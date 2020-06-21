@@ -589,11 +589,11 @@ func (p *pipeline) Dashboard() (atc.Dashboard, error) {
 
 	defer Rollback(tx)
 
-	dashboardFactory := newDashboardFactory(tx, sq.Eq{
+	dashboardFactory := NewDashboardFactory(tx, sq.Eq{
 		"j.pipeline_id": p.id,
 	})
 
-	dashboard, err := dashboardFactory.buildDashboard()
+	dashboard, err := dashboardFactory.BuildDashboard()
 	if err != nil {
 		return nil, err
 	}

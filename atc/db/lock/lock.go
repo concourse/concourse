@@ -22,6 +22,7 @@ const (
 	LockTypeActiveTasks
 	LockTypeResourceScanning
 	LockTypeJobScheduling
+	LockTypeCreateWatchTriggers
 )
 
 var ErrLostLock = errors.New("lock was lost while held, possibly due to connection breakage")
@@ -56,6 +57,10 @@ func NewResourceScanningLockID() LockID {
 
 func NewJobSchedulingLockID(jobID int) LockID {
 	return LockID{LockTypeJobScheduling, jobID}
+}
+
+func NewCreateWatchTriggersLockID() LockID {
+	return LockID{LockTypeCreateWatchTriggers}
 }
 
 //go:generate counterfeiter . LockFactory

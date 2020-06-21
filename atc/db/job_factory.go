@@ -198,12 +198,12 @@ func (j *jobFactory) VisibleJobs(teamNames []string) (atc.Dashboard, error) {
 
 	defer Rollback(tx)
 
-	dashboardFactory := newDashboardFactory(tx, sq.Or{
+	dashboardFactory := NewDashboardFactory(tx, sq.Or{
 		sq.Eq{"tm.name": teamNames},
 		sq.Eq{"p.public": true},
 	})
 
-	dashboard, err := dashboardFactory.buildDashboard()
+	dashboard, err := dashboardFactory.BuildDashboard()
 	if err != nil {
 		return nil, err
 	}
@@ -224,8 +224,8 @@ func (j *jobFactory) AllActiveJobs() (atc.Dashboard, error) {
 
 	defer Rollback(tx)
 
-	dashboardFactory := newDashboardFactory(tx, nil)
-	dashboard, err := dashboardFactory.buildDashboard()
+	dashboardFactory := NewDashboardFactory(tx, nil)
+	dashboard, err := dashboardFactory.BuildDashboard()
 	if err != nil {
 		return nil, err
 	}
@@ -247,14 +247,14 @@ type dashboardFactory struct {
 	tx Tx
 }
 
-func newDashboardFactory(tx Tx, pred interface{}) dashboardFactory {
+func NewDashboardFactory(tx Tx, pred interface{}) dashboardFactory {
 	return dashboardFactory{
 		pred: pred,
 		tx:   tx,
 	}
 }
 
-func (d dashboardFactory) buildDashboard() (atc.Dashboard, error) {
+func (d dashboardFactory) BuildDashboard() (atc.Dashboard, error) {
 	dashboard, err := d.constructJobsForDashboard()
 	if err != nil {
 		return nil, err
