@@ -42,7 +42,11 @@ model =
         RemoteData.Success
             [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
     , hovered = HoverState.NoHover
-    , isSideBarOpen = True
+    , sideBarState =
+        { isOpen = True
+        , width = 275
+        }
+    , draggingSideBar = False
     , screenSize = ScreenSize.Desktop
     }
 

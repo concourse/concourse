@@ -46,6 +46,7 @@ import Html.Events
         )
 import Http
 import Job.Styles as Styles
+import List.Extra
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
@@ -417,13 +418,7 @@ view session model =
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
-            [ SideBar.view
-                { expandedTeams = session.expandedTeams
-                , pipelines = session.pipelines
-                , hovered = session.hovered
-                , isSideBarOpen = session.isSideBarOpen
-                , screenSize = session.screenSize
-                }
+            [ SideBar.view session
                 (Just
                     { pipelineName = model.jobIdentifier.pipelineName
                     , teamName = model.jobIdentifier.teamName
@@ -441,6 +436,12 @@ tooltip _ _ =
 
 viewMainJobsSection : Session -> Model -> Html Message
 viewMainJobsSection session model =
+    let
+        archived =
+            isPipelineArchived
+                session.pipelines
+                model.jobIdentifier
+    in
     Html.div
         [ class "with-fixed-header"
         , style "flex-grow" "1"
@@ -470,68 +471,76 @@ viewMainJobsSection session model =
                         ]
                         [ Html.div
                             [ style "display" "flex" ]
-                            [ Html.button
-                                ([ id "pause-toggle"
-                                 , onMouseEnter <| Hover <| Just ToggleJobButton
-                                 , onMouseLeave <| Hover Nothing
-                                 , onClick <| Click ToggleJobButton
-                                 ]
-                                    ++ (Styles.triggerButton False toggleHovered <|
-                                            headerBuildStatus job.finishedBuild
-                                       )
-                                )
-                                [ Icon.icon
-                                    { sizePx = 40
-                                    , image =
-                                        Assets.CircleOutlineIcon <|
-                                            if job.paused then
-                                                Assets.PlayCircleIcon
+                            [ if archived then
+                                Html.text ""
 
-                                            else
-                                                Assets.PauseCircleIcon
-                                    }
-                                    (Styles.icon toggleHovered)
-                                ]
+                              else
+                                Html.button
+                                    ([ id "pause-toggle"
+                                     , onMouseEnter <| Hover <| Just ToggleJobButton
+                                     , onMouseLeave <| Hover Nothing
+                                     , onClick <| Click ToggleJobButton
+                                     ]
+                                        ++ (Styles.triggerButton False toggleHovered <|
+                                                headerBuildStatus job.finishedBuild
+                                           )
+                                    )
+                                    [ Icon.icon
+                                        { sizePx = 40
+                                        , image =
+                                            Assets.CircleOutlineIcon <|
+                                                if job.paused then
+                                                    Assets.PlayCircleIcon
+
+                                                else
+                                                    Assets.PauseCircleIcon
+                                        }
+                                        (Styles.icon toggleHovered)
+                                    ]
                             , Html.h1 []
                                 [ Html.span
                                     [ class "build-name" ]
                                     [ Html.text job.name ]
                                 ]
                             ]
-                        , Html.button
-                            ([ class "trigger-build"
-                             , onLeftClick <| Click TriggerBuildButton
-                             , attribute "aria-label" "Trigger Build"
-                             , attribute "title" "Trigger Build"
-                             , onMouseEnter <| Hover <| Just TriggerBuildButton
-                             , onMouseLeave <| Hover Nothing
-                             ]
-                                ++ (Styles.triggerButton job.disableManualTrigger triggerHovered <|
-                                        headerBuildStatus job.finishedBuild
-                                   )
-                            )
-                          <|
-                            [ Icon.icon
-                                { sizePx = 40
-                                , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
-                                }
-                                (Styles.icon <|
-                                    triggerHovered
-                                        && not job.disableManualTrigger
-                                )
-                            ]
-                                ++ (if job.disableManualTrigger && triggerHovered then
-                                        [ Html.div
-                                            Styles.triggerTooltip
-                                            [ Html.text <|
-                                                "manual triggering disabled "
-                                                    ++ "in job config"
-                                            ]
-                                        ]
+                        , if archived then
+                            Html.text ""
 
-                                    else
-                                        []
-                                   )
+                          else
+                            Html.button
+                                ([ class "trigger-build"
+                                 , onLeftClick <| Click TriggerBuildButton
+                                 , attribute "aria-label" "Trigger Build"
+                                 , attribute "title" "Trigger Build"
+                                 , onMouseEnter <| Hover <| Just TriggerBuildButton
+                                 , onMouseLeave <| Hover Nothing
+                                 ]
+                                    ++ (Styles.triggerButton job.disableManualTrigger triggerHovered <|
+                                            headerBuildStatus job.finishedBuild
+                                       )
+                                )
+                            <|
+                                [ Icon.icon
+                                    { sizePx = 40
+                                    , image = Assets.AddCircleIcon |> Assets.CircleOutlineIcon
+                                    }
+                                    (Styles.icon <|
+                                        triggerHovered
+                                            && not job.disableManualTrigger
+                                    )
+                                ]
+                                    ++ (if job.disableManualTrigger && triggerHovered then
+                                            [ Html.div
+                                                Styles.triggerTooltip
+                                                [ Html.text <|
+                                                    "manual triggering disabled "
+                                                        ++ "in job config"
+                                                ]
+                                            ]
+
+                                        else
+                                            []
+                                       )
                         ]
                     , Html.div
                         [ id "pagination-header"
@@ -542,9 +551,7 @@ viewMainJobsSection session model =
                         , style "background-color" Colors.secondaryTopBar
                         ]
                         [ Html.h1
-                            [ style "margin" "0 18px"
-                            , style "font-weight" "700"
-                            ]
+                            [ style "margin" "0 18px" ]
                             [ Html.text "builds" ]
                         , viewPaginationBar session model
                         ]
@@ -570,6 +577,18 @@ viewMainJobsSection session model =
                         List.map (viewBuildWithResources session model) anyList
                     ]
         ]
+
+
+isPipelineArchived :
+    WebData (List Concourse.Pipeline)
+    -> Concourse.JobIdentifier
+    -> Bool
+isPipelineArchived pipelines { pipelineName, teamName } =
+    pipelines
+        |> RemoteData.withDefault []
+        |> List.Extra.find (\p -> p.name == pipelineName && p.teamName == teamName)
+        |> Maybe.map .archived
+        |> Maybe.withDefault False
 
 
 headerBuildStatus : Maybe Concourse.Build -> BuildStatus

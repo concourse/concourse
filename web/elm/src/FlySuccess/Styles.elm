@@ -10,6 +10,7 @@ import Colors
 import FlySuccess.Models exposing (ButtonState(..), isClicked)
 import Html
 import Html.Attributes exposing (style)
+import Views.Styles
 
 
 card : List (Html.Attribute msg)
@@ -22,8 +23,7 @@ card =
     , style "flex-direction" "column"
     , style "align-items" "center"
     , style "text-align" "center"
-    , style "-webkit-font-smoothing" "antialiased"
-    , style "font-weight" "400"
+    , style "font-weight" Views.Styles.fontWeightLight
     ]
 
 
@@ -31,7 +31,7 @@ title : List (Html.Attribute msg)
 title =
     [ style "font-size" "18px"
     , style "margin" "0"
-    , style "font-weight" "700"
+    , style "font-weight" Views.Styles.fontWeightDefault
     ]
 
 

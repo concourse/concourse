@@ -16,15 +16,17 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
+	"github.com/cppforlife/go-semi-semantic/version"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker/gclient"
 	"github.com/concourse/concourse/tracing"
-	"github.com/cppforlife/go-semi-semantic/version"
-	"golang.org/x/sync/errgroup"
 )
 
 const userPropertyName = "user"
@@ -93,6 +95,7 @@ type gardenWorker struct {
 	dbWorker        db.Worker
 	buildContainers int
 	helper          workerHelper
+	policyChecker   *policy.Checker
 }
 
 // NewGardenWorker constructs a Worker using the gardenWorker runtime implementation and allows container and volume
@@ -108,6 +111,7 @@ func NewGardenWorker(
 	dbWorker db.Worker,
 	resourceCacheFactory db.ResourceCacheFactory,
 	numBuildContainers int,
+	policyChecker *policy.Checker,
 	// TODO: numBuildContainers is only needed for placement strategy but this
 	// method is called in ContainerProvider.FindOrCreateContainer as well and
 	// hence we pass in 0 values for numBuildContainers everywhere.
@@ -129,6 +133,7 @@ func NewGardenWorker(
 		resourceCacheFactory: resourceCacheFactory,
 		buildContainers:      numBuildContainers,
 		helper:               workerHelper,
+		policyChecker:        policyChecker,
 	}
 }
 
@@ -207,6 +212,68 @@ func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Vo
 	return worker.volumeClient.LookupVolume(logger, handle)
 }
 
+func (worker *gardenWorker) imagePolicyCheck(
+	ctx context.Context,
+	delegate ImageFetchingDelegate,
+	metadata db.ContainerMetadata,
+	containerSpec ContainerSpec,
+	resourceTypes atc.VersionedResourceTypes,
+) (bool, error) {
+	if worker.policyChecker == nil {
+		return true, nil
+	}
+
+	// Actions in skip list will not go through policy check.
+	if !worker.policyChecker.ShouldCheckAction(policy.ActionUseImage) {
+		return true, nil
+	}
+
+	imageSpec := containerSpec.ImageSpec
+
+	imageInfo := map[string]interface{}{
+		"privileged": imageSpec.Privileged,
+	}
+
+	if imageSpec.ImageResource != nil {
+		imageInfo["image_type"] = imageSpec.ImageResource.Type
+		imageInfo["image_source"] = imageSpec.ImageResource.Source
+	} else if imageSpec.ResourceType != "" {
+		for _, rt := range resourceTypes {
+			if rt.Name == imageSpec.ResourceType {
+				imageInfo["image_type"] = rt.Type
+				imageInfo["image_source"] = rt.Source
+			}
+		}
+
+		// If resource type not found, then it should be a built-in resource
+		// type, and could skip policy check.
+		if _, ok := imageInfo["image_type"]; !ok {
+			return true, nil
+		}
+	} else {
+		// Ignore other images as policy checker cannot do much on them.
+		return true, nil
+	}
+
+	if originalSource, ok := imageInfo["image_source"].(atc.Source); ok {
+		redactedSource, err := delegate.RedactImageSource(originalSource)
+		if err != nil {
+			return false, err
+		}
+		imageInfo["image_source"] = redactedSource
+	}
+
+	teamName, pipelineName := policy.TeamAndPipelineFromContext(ctx)
+	input := policy.PolicyCheckInput{
+		Action:   policy.ActionUseImage,
+		Team:     teamName,
+		Pipeline: pipelineName,
+		Data:     imageInfo,
+	}
+
+	return worker.policyChecker.Check(input)
+}
+
 func (worker *gardenWorker) FindOrCreateContainer(
 	ctx context.Context,
 	logger lager.Logger,
@@ -224,6 +291,14 @@ func (worker *gardenWorker) FindOrCreateContainer(
 		containerHandle   string
 		err               error
 	)
+
+	pass, err := worker.imagePolicyCheck(ctx, delegate, metadata, containerSpec, resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+	if !pass {
+		return nil, policy.PolicyCheckNotPass{}
+	}
 
 	// ensure either creatingContainer or createdContainer exists
 	creatingContainer, createdContainer, err = worker.dbWorker.FindContainer(owner)

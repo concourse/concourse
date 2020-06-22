@@ -286,7 +286,7 @@ handleDelivery delivery ( model, effects ) =
                 effects
             )
 
-        Moused ->
+        Moused _ ->
             ( { model | hideLegend = False, hideLegendCounter = 0 }, effects )
 
         ClockTicked OneSecond _ ->
@@ -377,50 +377,45 @@ view session model =
                 { id = model.pipelineLocator
                 , groups = model.selectedGroups
                 }
+
+        displayPaused =
+            isPaused model.pipeline
+                && not (isArchived model.pipeline)
     in
     Html.div [ Html.Attributes.style "height" "100%" ]
         [ Html.div
             (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
             [ Html.div
-                (id "top-bar-app"
-                    :: (Views.Styles.topBar <|
-                            isPaused model.pipeline
-                       )
-                )
+                (id "top-bar-app" :: Views.Styles.topBar displayPaused)
                 [ SideBar.hamburgerMenu session
                 , TopBar.concourseLogo
                 , TopBar.breadcrumbs route
                 , PinMenu.viewPinMenu session model
-                , Html.div
-                    (id "top-bar-pause-toggle"
-                        :: (Styles.pauseToggle <| isPaused model.pipeline)
-                    )
-                    [ PauseToggle.view
-                        { pipeline = model.pipelineLocator
-                        , isPaused = isPaused model.pipeline
-                        , isToggleHovered =
-                            HoverState.isHovered
-                                (PipelineButton model.pipelineLocator)
-                                session.hovered
-                        , isToggleLoading = model.isToggleLoading
-                        , tooltipPosition = Views.Styles.Below
-                        , margin = "17px"
-                        , userState = session.userState
-                        }
-                    ]
-                , Login.view session.userState model <| isPaused model.pipeline
+                , if isArchived model.pipeline then
+                    Html.text ""
+
+                  else
+                    Html.div
+                        (id "top-bar-pause-toggle" :: Styles.pauseToggle displayPaused)
+                        [ PauseToggle.view
+                            { pipeline = model.pipelineLocator
+                            , isPaused = isPaused model.pipeline
+                            , isToggleHovered =
+                                HoverState.isHovered
+                                    (PipelineButton model.pipelineLocator)
+                                    session.hovered
+                            , isToggleLoading = model.isToggleLoading
+                            , tooltipPosition = Views.Styles.Below
+                            , margin = "17px"
+                            , userState = session.userState
+                            }
+                        ]
+                , Login.view session.userState model <| displayPaused
                 ]
             , Html.div
                 (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
               <|
-                [ SideBar.view
-                    { expandedTeams = session.expandedTeams
-                    , pipelines = session.pipelines
-                    , hovered = session.hovered
-                    , isSideBarOpen = session.isSideBarOpen
-                    , screenSize = session.screenSize
-                    }
-                    (Just model.pipelineLocator)
+                [ SideBar.view session (Just model.pipelineLocator)
                 , viewSubPage session model
                 ]
             ]
@@ -435,6 +430,11 @@ tooltip _ _ =
 isPaused : WebData Concourse.Pipeline -> Bool
 isPaused p =
     RemoteData.withDefault False (RemoteData.map .paused p)
+
+
+isArchived : WebData Concourse.Pipeline -> Bool
+isArchived p =
+    RemoteData.withDefault False (RemoteData.map .archived p)
 
 
 viewSubPage :

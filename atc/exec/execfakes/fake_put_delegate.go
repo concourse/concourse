@@ -27,6 +27,19 @@ type FakePutDelegate struct {
 		arg2 exec.ExitStatus
 		arg3 runtime.VersionResult
 	}
+	ImageSourceRedactionStub        func(atc.Source) (atc.Source, error)
+	imageSourceRedactionMutex       sync.RWMutex
+	imageSourceRedactionArgsForCall []struct {
+		arg1 atc.Source
+	}
+	imageSourceRedactionReturns struct {
+		result1 atc.Source
+		result2 error
+	}
+	imageSourceRedactionReturnsOnCall map[int]struct {
+		result1 atc.Source
+		result2 error
+	}
 	ImageVersionDeterminedStub        func(db.UsedResourceCache) error
 	imageVersionDeterminedMutex       sync.RWMutex
 	imageVersionDeterminedArgsForCall []struct {
@@ -154,6 +167,69 @@ func (fake *FakePutDelegate) FinishedArgsForCall(i int) (lager.Logger, exec.Exit
 	defer fake.finishedMutex.RUnlock()
 	argsForCall := fake.finishedArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakePutDelegate) RedactImageSource(arg1 atc.Source) (atc.Source, error) {
+	fake.imageSourceRedactionMutex.Lock()
+	ret, specificReturn := fake.imageSourceRedactionReturnsOnCall[len(fake.imageSourceRedactionArgsForCall)]
+	fake.imageSourceRedactionArgsForCall = append(fake.imageSourceRedactionArgsForCall, struct {
+		arg1 atc.Source
+	}{arg1})
+	fake.recordInvocation("RedactImageSource", []interface{}{arg1})
+	fake.imageSourceRedactionMutex.Unlock()
+	if fake.ImageSourceRedactionStub != nil {
+		return fake.ImageSourceRedactionStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.imageSourceRedactionReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakePutDelegate) ImageSourceRedactionCallCount() int {
+	fake.imageSourceRedactionMutex.RLock()
+	defer fake.imageSourceRedactionMutex.RUnlock()
+	return len(fake.imageSourceRedactionArgsForCall)
+}
+
+func (fake *FakePutDelegate) ImageSourceRedactionCalls(stub func(atc.Source) (atc.Source, error)) {
+	fake.imageSourceRedactionMutex.Lock()
+	defer fake.imageSourceRedactionMutex.Unlock()
+	fake.ImageSourceRedactionStub = stub
+}
+
+func (fake *FakePutDelegate) ImageSourceRedactionArgsForCall(i int) atc.Source {
+	fake.imageSourceRedactionMutex.RLock()
+	defer fake.imageSourceRedactionMutex.RUnlock()
+	argsForCall := fake.imageSourceRedactionArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakePutDelegate) ImageSourceRedactionReturns(result1 atc.Source, result2 error) {
+	fake.imageSourceRedactionMutex.Lock()
+	defer fake.imageSourceRedactionMutex.Unlock()
+	fake.ImageSourceRedactionStub = nil
+	fake.imageSourceRedactionReturns = struct {
+		result1 atc.Source
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePutDelegate) ImageSourceRedactionReturnsOnCall(i int, result1 atc.Source, result2 error) {
+	fake.imageSourceRedactionMutex.Lock()
+	defer fake.imageSourceRedactionMutex.Unlock()
+	fake.ImageSourceRedactionStub = nil
+	if fake.imageSourceRedactionReturnsOnCall == nil {
+		fake.imageSourceRedactionReturnsOnCall = make(map[int]struct {
+			result1 atc.Source
+			result2 error
+		})
+	}
+	fake.imageSourceRedactionReturnsOnCall[i] = struct {
+		result1 atc.Source
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakePutDelegate) ImageVersionDetermined(arg1 db.UsedResourceCache) error {
@@ -476,6 +552,8 @@ func (fake *FakePutDelegate) Invocations() map[string][][]interface{} {
 	defer fake.erroredMutex.RUnlock()
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
+	fake.imageSourceRedactionMutex.RLock()
+	defer fake.imageSourceRedactionMutex.RUnlock()
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	fake.initializingMutex.RLock()

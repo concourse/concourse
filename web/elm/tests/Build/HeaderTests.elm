@@ -9,6 +9,7 @@ import Build.StepTree.Models as STModels
 import Common
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
+import Data
 import Expect
 import HoverState
 import Keyboard
@@ -188,6 +189,20 @@ all =
                                     , buildName = model.name
                                     }
                                 )
+                , test "archived pipeline's have no right widgets" <|
+                    \_ ->
+                        { model | status = BuildStatusSucceeded, job = Just jobId }
+                            |> Header.header
+                                { session
+                                    | pipelines =
+                                        RemoteData.Success
+                                            [ Data.pipeline jobId.teamName 0
+                                                |> Data.withName jobId.pipelineName
+                                                |> Data.withArchived True
+                                            ]
+                                }
+                            |> .rightWidgets
+                            |> Expect.equal []
                 ]
             ]
         , test "stops fetching history once current build appears" <|
@@ -348,7 +363,11 @@ session =
     { expandedTeams = Set.empty
     , pipelines = RemoteData.NotAsked
     , hovered = HoverState.NoHover
-    , isSideBarOpen = False
+    , sideBarState =
+        { isOpen = False
+        , width = 275
+        }
+    , draggingSideBar = False
     , screenSize = ScreenSize.Desktop
     , userState = UserState.UserStateLoggedOut
     , clusterName = ""

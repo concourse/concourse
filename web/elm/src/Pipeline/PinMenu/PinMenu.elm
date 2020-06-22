@@ -21,6 +21,7 @@ import Pipeline.PinMenu.Styles as Styles
 import Pipeline.PinMenu.Views as Views
 import Routes
 import SideBar.Styles as SS
+import Views.Styles
 
 
 type alias Model b =
@@ -67,7 +68,7 @@ type alias Badge =
 
 type alias Text =
     { content : String
-    , fontWeight : Int
+    , fontWeight : String
     , color : String
     }
 
@@ -150,7 +151,7 @@ pinMenu { hovered } model =
                         (\( resourceName, pinnedVersion ) ->
                             { title =
                                 { content = resourceName
-                                , fontWeight = 700
+                                , fontWeight = Views.Styles.fontWeightDefault
                                 , color = Colors.text
                                 }
                             , table =

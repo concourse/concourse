@@ -647,13 +647,7 @@ view session model =
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
-            [ SideBar.view
-                { expandedTeams = session.expandedTeams
-                , pipelines = session.pipelines
-                , hovered = session.hovered
-                , isSideBarOpen = session.isSideBarOpen
-                , screenSize = session.screenSize
-                }
+            [ SideBar.view session
                 (model.job
                     |> Maybe.map
                         (\j ->

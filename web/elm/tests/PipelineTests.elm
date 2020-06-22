@@ -445,7 +445,7 @@ all =
                     \_ ->
                         Common.init "/teams/team/pipelines/pipeline"
                             |> clockTickALot 11
-                            |> Application.update (Msgs.DeliveryReceived Moused)
+                            |> Application.update (Msgs.DeliveryReceived <| Moused { x = 0, y = 0 })
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.has [ id "legend" ]
@@ -557,6 +557,23 @@ all =
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has [ style "background-color" "#3498db" ]
+            , test "top nav bar isn't blue when pipeline is archived" <|
+                \_ ->
+                    Common.init "/teams/team/pipelines/pipeline"
+                        |> Application.handleCallback
+                            (Callback.PipelineFetched
+                                (Ok <|
+                                    (Data.pipeline "team" 0
+                                        |> Data.withName "pipeline"
+                                        |> Data.withPaused True
+                                        |> Data.withArchived True
+                                    )
+                                )
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ id "top-bar-app" ]
+                        |> Query.hasNot [ style "background-color" "#3498db" ]
             , test "breadcrumb list is laid out horizontally" <|
                 \_ ->
                     Common.init "/teams/team/pipelines/pipeline"

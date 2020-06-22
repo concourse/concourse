@@ -19,17 +19,40 @@
   src: url("/public/fonts/Inconsolata-Bold.ttf");
 }
 
+@font-face {
+  font-family: 'Inconsolata';
+  font-style: normal;
+  font-weight: 900;
+  src: url("/public/fonts/Inconsolata-Black.ttf");
+}
+
+body {
+  font-family: 'Inconsolata', monospace;
+  letter-spacing: (0.085em * @scale);
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 700;
+  -webkit-font-smoothing: "antialiased";
+  -moz-osx-font-smoothing: "grayscale";
+}
+
+pre {
+  font-family: 'Inconsolata', monospace;
+  letter-spacing: (0.085em * @scale);
+  word-wrap: break-word;
+}
+
 h1,
 .h1 {
   line-height: 60px;
   color: @base07;
-  font-weight: 300;
+  font-weight: 700;
   font-size: 24px;
 }
 
 h3,
 .h3 {
-  font-weight: bold;
+  font-size: 14px;
 }
 
 .nav-text {

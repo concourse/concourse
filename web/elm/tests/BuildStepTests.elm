@@ -26,6 +26,7 @@ import Test.Html.Event as Event
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (class, style, tag, text)
 import Time
+import Views.Styles
 
 
 all : Test
@@ -116,10 +117,10 @@ all =
                         given iVisitABuildWithARetryStep
                             >> when iAmLookingAtTheTabList
                             >> then_ iSeeItLaysOutHorizontally
-                    , test "have bold font" <|
+                    , test "have default font weight" <|
                         given iVisitABuildWithARetryStep
                             >> when iAmLookingAtTheFirstTab
-                            >> then_ iSeeBoldFont
+                            >> then_ iSeeDefaultFontWeight
                     , test "have pointer cursor" <|
                         given iVisitABuildWithARetryStep
                             >> when iAmLookingAtTheFirstTab
@@ -520,8 +521,8 @@ iAmLookingAtTheFirstTab =
         >> Query.first
 
 
-iSeeBoldFont =
-    Query.has [ style "font-weight" "700" ]
+iSeeDefaultFontWeight =
+    Query.has [ style "font-weight" Views.Styles.fontWeightDefault ]
 
 
 iSeePointerCursor =

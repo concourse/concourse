@@ -16,6 +16,7 @@ import Message.TopLevelMessage as ApplicationMsgs
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (attribute, containing, id, style, tag, text)
+import Views.Styles
 
 
 all : Test
@@ -132,13 +133,9 @@ hasWelcomeCard setup =
             >> Tuple.first
             >> Common.queryView
             >> Query.has [ id "welcome-card" ]
-    , test "with correct antialiasing in WebKit" <|
+    , test "with light text" <|
         subject
-            >> Query.has
-                [ style "-webkit-font-smoothing" "antialiased" ]
-    , test "with non-bold text" <|
-        subject
-            >> Query.has [ style "font-weight" "400" ]
+            >> Query.has [ style "font-weight" Views.Styles.fontWeightLight ]
     , test "title says 'welcome to concourse!'" <|
         subject
             >> Query.children []

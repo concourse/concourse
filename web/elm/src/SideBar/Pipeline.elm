@@ -1,5 +1,6 @@
 module SideBar.Pipeline exposing (pipeline)
 
+import Assets
 import Concourse
 import HoverState
 import Message.Message exposing (DomID(..), Message(..))
@@ -39,31 +40,45 @@ pipeline session p =
             HoverState.isHovered (SideBarPipeline pipelineId) session.hovered
     in
     { icon =
-        if isCurrent || isHovered then
-            Styles.Bright
+        { asset =
+            if p.archived then
+                Assets.ArchivedPipelineIcon
 
-        else
-            Styles.Dim
-    , link =
+            else
+                Assets.BreadcrumbIcon Assets.PipelineComponent
+        , opacity =
+            if isCurrent || isHovered then
+                Styles.Bright
+
+            else
+                Styles.Dim
+        }
+    , name =
         { opacity =
             if isCurrent || isHovered then
                 Styles.Bright
 
             else
                 Styles.Dim
-        , rectangle =
+        , text = p.name
+        , weight =
             if isCurrent then
-                Styles.Dark
-
-            else if isHovered then
-                Styles.Light
+                Styles.Bold
 
             else
-                Styles.PipelineInvisible
-        , href =
-            Routes.toString <|
-                Routes.Pipeline { id = pipelineId, groups = [] }
-        , text = p.name
-        , domID = SideBarPipeline pipelineId
+                Styles.Default
         }
+    , background =
+        if isCurrent then
+            Styles.Dark
+
+        else if isHovered then
+            Styles.Light
+
+        else
+            Styles.Invisible
+    , href =
+        Routes.toString <|
+            Routes.Pipeline { id = pipelineId, groups = [] }
+    , domID = SideBarPipeline pipelineId
     }

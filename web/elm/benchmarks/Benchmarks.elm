@@ -138,13 +138,7 @@ buildView session model =
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
-            [ SideBar.view
-                { expandedTeams = session.expandedTeams
-                , pipelines = session.pipelines
-                , hovered = session.hovered
-                , isSideBarOpen = session.isSideBarOpen
-                , screenSize = session.screenSize
-                }
+            [ SideBar.view session
                 (currentJob model
                     |> Maybe.map
                         (\j ->
@@ -688,7 +682,11 @@ sampleSession =
     , csrfToken = ""
     , expandedTeams = Set.empty
     , hovered = HoverState.NoHover
-    , isSideBarOpen = False
+    , sideBarState =
+        { isOpen = False
+        , width = 275
+        }
+    , draggingSideBar = False
     , notFoundImgSrc = ""
     , pipelineRunningKeyframes = ""
     , pipelines = RemoteData.NotAsked

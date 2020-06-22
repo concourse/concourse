@@ -637,12 +637,6 @@ all =
                     |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.hasNot [ style "padding-bottom" "50px" ]
-        , test "top bar has bold font" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> Common.queryView
-                    |> Query.find [ id "top-bar-app" ]
-                    |> Query.has [ style "font-weight" "700" ]
         , test "logging out causes pipeline list to reload" <|
             let
                 showsLoadingState : Application.Model -> Expectation
@@ -1840,7 +1834,7 @@ all =
                         |> Tuple.first
                         |> afterSeconds 6
                         |> Application.update
-                            (ApplicationMsgs.DeliveryReceived Moused)
+                            (ApplicationMsgs.DeliveryReceived <| Moused { x = 0, y = 0 })
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.has [ id "dashboard-info" ]

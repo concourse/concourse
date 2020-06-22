@@ -5,42 +5,19 @@ import Browser
 import Common exposing (queryView)
 import Expect
 import Message.Effects as Effects
+import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..))
 import Message.TopLevelMessage as Msgs
 import Test exposing (..)
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (style)
+import Test.Html.Selector exposing (id, style)
 import Url
 
 
 all : Test
 all =
     describe "top-level application"
-        [ test "bold and antialiasing on dashboard" <|
-            \_ ->
-                Common.init "/"
-                    |> queryView
-                    |> Query.has
-                        [ style "-webkit-font-smoothing" "antialiased"
-                        , style "font-weight" "700"
-                        ]
-        , test "bold and antialiasing on resource page" <|
-            \_ ->
-                Common.init "/teams/t/pipelines/p/resources/r"
-                    |> queryView
-                    |> Query.has
-                        [ style "-webkit-font-smoothing" "antialiased"
-                        , style "font-weight" "700"
-                        ]
-        , test "bold and antialiasing everywhere else" <|
-            \_ ->
-                Common.init "/teams/team/pipelines/pipeline"
-                    |> queryView
-                    |> Query.has
-                        [ style "-webkit-font-smoothing" "antialiased"
-                        , style "font-weight" "700"
-                        ]
-        , test "should subscribe to clicks from the not-automatically-linked boxes in the pipeline, and the token return" <|
+        [ test "should subscribe to clicks from the not-automatically-linked boxes in the pipeline, and the token return" <|
             \_ ->
                 Common.init "/teams/t/pipelines/p/"
                     |> Application.subscriptions
@@ -57,7 +34,7 @@ all =
                         )
                     |> Tuple.second
                     |> Expect.equal [ Effects.LoadExternal "/foo/bar" ]
-        , test "received token is passed to all subsquent requests" <|
+        , test "received token is passed to all subsequent requests" <|
             \_ ->
                 let
                     pipelineIdentifier =
@@ -73,4 +50,50 @@ all =
                     |> .session
                     |> .csrfToken
                     |> Expect.equal "real-token"
+        , test "subscribes to mouse events when dragging the side bar handle" <|
+            \_ ->
+                Common.init "/teams/t/pipelines/p/jobs/j"
+                    |> Application.update
+                        (Msgs.Update <|
+                            Click SideBarResizeHandle
+                        )
+                    |> Tuple.first
+                    |> Application.subscriptions
+                    |> Expect.all
+                        [ Common.contains Subscription.OnMouse
+                        , Common.contains Subscription.OnMouseUp
+                        ]
+        , test "cannot select text when dragging sidebar" <|
+            \_ ->
+                Common.init "/teams/t/pipelines/p/jobs/j"
+                    |> Application.update
+                        (Msgs.Update <|
+                            Click SideBarResizeHandle
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has
+                        [ style "user-select" "none"
+                        , style "-ms-user-select" "none"
+                        , style "-moz-user-select" "none"
+                        , style "-khtml-user-select" "none"
+                        , style "-webkit-user-select" "none"
+                        , style "-webkit-touch-callout" "none"
+                        ]
+        , test "can select text when not dragging sidebar" <|
+            \_ ->
+                Common.init "/teams/t/pipelines/p/jobs/j"
+                    |> Common.queryView
+                    |> Query.hasNot [ style "user-select" "none" ]
+        , test "page-wrapper fills height" <|
+            \_ ->
+                Common.init "/teams/t/pipelines/p/jobs/j"
+                    |> Application.update
+                        (Msgs.Update <|
+                            Click SideBarResizeHandle
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ id "page-wrapper" ]
+                    |> Query.has [ style "height" "100%" ]
         ]

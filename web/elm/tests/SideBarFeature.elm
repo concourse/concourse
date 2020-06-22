@@ -149,7 +149,7 @@ hasSideBar iAmLookingAtThePage =
             }
         , test "browser saves sidebar state on click" <|
             when iHaveAnOpenSideBar_
-                >> then_ myBrowserSavesSideBarState True
+                >> then_ myBrowserSavesSideBarState { isOpen = True, width = 275 }
         , test "background becomes lighter on click" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheHamburgerMenu
@@ -161,7 +161,7 @@ hasSideBar iAmLookingAtThePage =
         , test "browser toggles sidebar state on click" <|
             when iHaveAnOpenSideBar_
                 >> given iClickedTheHamburgerIcon
-                >> then_ myBrowserSavesSideBarState False
+                >> then_ myBrowserSavesSideBarState { isOpen = False, width = 275 }
         , test "background toggles back to dark" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedTheHamburgerIcon
@@ -229,18 +229,53 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeItScrollsIndependently
-        , test "sidebar is 275px wide" <|
+        , test "sidebar is 275px wide by default" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeItIs275PxWide
-        , test "sidebar has right padding" <|
+        , test "sidebar width is determined by sidebar state" <|
             given iHaveAnOpenSideBar_
+                >> given myBrowserReceives400PxWideSideBarState
                 >> when iAmLookingAtTheSideBar
-                >> then_ iSeeItHasRightPadding
+                >> then_ iSeeItHasWidth 400
         , test "sidebar has bottom padding" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeItHasBottomPadding
+        , test "sidebar has a resize handle" <|
+            given iHaveAnOpenSideBar_
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeItHasAResizeHandle
+        , test "dragging resize handle resizes sidebar" <|
+            given iHaveAnOpenSideBar_
+                >> given iDragTheSideBarHandleTo 400
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeItHasWidth 400
+        , test "resize handle ignores mouse events when no longer dragging" <|
+            given iHaveAnOpenSideBar_
+                >> given iDragTheSideBarHandleTo 400
+                >> given iMoveMyMouseXTo 500
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeItHasWidth 400
+        , test "dragging resize handle saves the side bar state" <|
+            given iHaveAnOpenSideBar_
+                >> when iDragTheSideBarHandleTo 400
+                >> then_ myBrowserSavesSideBarState { isOpen = True, width = 400 }
+        , test "dragging resize handle fetches the viewport of the dashboard" <|
+            given iHaveAnOpenSideBar_
+                >> when iPressTheSideBarHandle
+                >> when iMoveMyMouseXTo 400
+                >> then_ myBrowserFetchesTheDashboardViewport
+        , test "max sidebar width is 600px" <|
+            given iHaveAnOpenSideBar_
+                >> given iDragTheSideBarHandleTo 700
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeItHasWidth 600
+        , test "min sidebar width is 100px" <|
+            given iHaveAnOpenSideBar_
+                >> given iDragTheSideBarHandleTo 50
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeItHasWidth 100
         , test "toggles away" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedTheHamburgerIcon
@@ -288,13 +323,13 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamIcon
                 >> then_ iSeeItDoesNotShrink
-        , test "arrow is pointing right" <|
+        , test "team has a plus icon" <|
             given iHaveAnOpenSideBar_
-                >> when iAmLookingAtTheArrow
-                >> then_ iSeeARightPointingArrow
-        , test "arrow does not shrink" <|
+                >> when iAmLookingAtThePlusMinusIcon
+                >> then_ iSeeAPlusIcon
+        , test "plus icon does not shrink" <|
             given iHaveAnOpenSideBar_
-                >> when iAmLookingAtTheArrow
+                >> when iAmLookingAtThePlusMinusIcon
                 >> then_ iSeeItDoesNotShrink
         , test "team name has text content of team's name" <|
             given iHaveAnOpenSideBar_
@@ -304,10 +339,10 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamName
                 >> then_ iSeeMediumFont
-        , test "team name has padding and margin" <|
+        , test "team name has padding" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamName
-                >> then_ iSeeItHas2Point5PxPadding
+                >> then_ iSeeItHasProperPadding
         , test "team name stretches" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamName
@@ -324,17 +359,17 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamHeader
                 >> then_ (itIsClickable <| Message.SideBarTeam "team")
-        , test "arrow points down when group is clicked" <|
+        , test "there is a minus icon when group is clicked" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
-                >> when iAmLookingAtTheArrow
-                >> then_ iSeeADownPointingArrow
-        , test "arrow still points down after data refreshes" <|
+                >> when iAmLookingAtThePlusMinusIcon
+                >> then_ iSeeAMinusIcon
+        , test "it's still a minus icon after data refreshes" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> given dataRefreshes
-                >> when iAmLookingAtTheArrow
-                >> then_ iSeeADownPointingArrow
+                >> when iAmLookingAtThePlusMinusIcon
+                >> then_ iSeeAMinusIcon
         , test "pipeline list expands when header is clicked" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -365,11 +400,11 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipeline
                 >> then_ iSeeItCentersContents
-        , test "pipeline has 2.5px padding" <|
+        , test "pipeline has padding" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipeline
-                >> then_ iSeeItHas2Point5PxPadding
+                >> then_ iSeeItHasProperPadding
         , test "pipeline has icon on the left" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -390,11 +425,11 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineIcon
                 >> then_ iSeeItIsDim
-        , test "pipeline link has 2.5px padding" <|
+        , test "pipeline link has padding" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineLink
-                >> then_ iSeeItHas2Point5PxPadding
+                >> then_ iSeeItHasProperPadding
         , test "first pipeline link contains text of pipeline name" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -403,7 +438,7 @@ hasSideBar iAmLookingAtThePage =
         , test "pipeline link is a link to the pipeline" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
-                >> when iAmLookingAtTheFirstPipelineLink
+                >> when iAmLookingAtTheFirstPipeline
                 >> then_ iSeeItIsALinkToTheFirstPipeline
         , test "pipeline link has large font" <|
             given iHaveAnOpenSideBar_
@@ -420,10 +455,10 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineLink
                 >> then_ iSeeItEllipsizesLongText
-        , test "pipeline link will have a valid id" <|
+        , test "pipeline will have a valid id" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
-                >> when iAmLookingAtTheFirstPipelineLink
+                >> when iAmLookingAtTheFirstPipeline
                 >> then_ iSeeItHasAValidPipelineId
         , test "pipeline icon is bright when pipeline link is hovered" <|
             given iHaveAnOpenSideBar_
@@ -432,19 +467,17 @@ hasSideBar iAmLookingAtThePage =
                 >> when iAmLookingAtTheFirstPipelineIcon
                 >> then_ iSeeItIsBright
         , defineHoverBehaviour
-            { name = "pipeline link"
+            { name = "pipeline"
             , setup =
                 iAmViewingTheDashboardOnANonPhoneScreen ()
                     |> iClickedTheHamburgerIcon
                     |> iClickedThePipelineGroup
                     |> Tuple.first
-            , query = (\a -> ( a, [] )) >> iAmLookingAtTheFirstPipelineLink
+            , query = (\a -> ( a, [] )) >> iAmLookingAtTheFirstPipeline
             , unhoveredSelector =
                 { description = "grey"
                 , selector =
-                    [ style "opacity" "0.3"
-                    , style "border" <| "1px solid " ++ Colors.sideBar
-                    ]
+                    [ style "opacity" "0.4" ]
                 }
             , hoverable =
                 Message.SideBarPipeline
@@ -452,11 +485,10 @@ hasSideBar iAmLookingAtThePage =
                     , teamName = "team"
                     }
             , hoveredSelector =
-                { description = "white with grey square highlight"
+                { description = "light background"
                 , selector =
                     [ style "opacity" "1"
-                    , style "border" "1px solid #525151"
-                    , style "background-color" "#3A3A3A"
+                    , style "background-color" Colors.sideBarHovered
                     ]
                 }
             }
@@ -474,7 +506,7 @@ hasSideBar iAmLookingAtThePage =
                 >> given myBrowserFetchedPipelinesFromMultipleTeams
                 >> given iClickedTheHamburgerIcon
                 >> when iAmLookingAtTheSideBar
-                >> then_ iSeeTwoChildren
+                >> then_ iSeeTwoTeams
         , test "sidebar has text content of second team's name" <|
             given iAmLookingAtThePage
                 >> given iAmOnANonPhoneScreen
@@ -527,19 +559,12 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
             >> given iClickedTheOtherPipelineGroup
             >> when iAmLookingAtTheOtherTeamName
             >> then_ iSeeItIsBright
-    , test "current pipeline name has a grey border" <|
-        given iAmLookingAtThePage
-            >> given iAmOnANonPhoneScreen
-            >> given myBrowserFetchedPipelinesFromMultipleTeams
-            >> given iClickedTheHamburgerIcon
-            >> when iAmLookingAtTheOtherPipelineName
-            >> then_ iSeeAGreyBorder
     , test "current pipeline name has grey background" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
             >> given iClickedTheHamburgerIcon
-            >> when iAmLookingAtTheOtherPipelineName
+            >> when iAmLookingAtTheOtherPipeline
             >> then_ iSeeADarkGreyBackground
     , test "current pipeline has bright pipeline icon" <|
         given iAmLookingAtThePage
@@ -553,7 +578,7 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
             >> given iClickedTheHamburgerIcon
-            >> when iAmLookingAtTheOtherPipelineName
+            >> when iAmLookingAtTheOtherPipeline
             >> then_ iSeeItIsBright
     , test "pipeline with same name on other team has invisible border" <|
         given iAmLookingAtThePage
@@ -562,7 +587,7 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
             >> given iClickedTheHamburgerIcon
             >> given iClickedThePipelineGroup
             >> when iAmLookingAtThePipelineWithTheSameName
-            >> then_ iSeeAnInvisibleBorder
+            >> then_ iSeeAnInvisibleBackground
     ]
 
 
@@ -800,6 +825,30 @@ itIsClickable domID =
         ]
 
 
+iDragTheSideBarHandleTo x =
+    iPressTheSideBarHandle
+        >> iMoveMyMouseXTo x
+        >> iReleaseTheSideBarHandle
+
+
+iPressTheSideBarHandle =
+    Tuple.first
+        >> Application.update
+            (TopLevelMessage.Update <| Message.Click Message.SideBarResizeHandle)
+
+
+iMoveMyMouseXTo x =
+    Tuple.first
+        >> Application.handleDelivery
+            (Subscription.Moused { x = x, y = 0 })
+
+
+iReleaseTheSideBarHandle =
+    Tuple.first
+        >> Application.handleDelivery
+            Subscription.MouseUp
+
+
 iClickedTheHamburgerIcon =
     Tuple.first
         >> Application.update
@@ -816,6 +865,10 @@ iSeeADarkerBackground =
 
 iSeeTwoChildren =
     Query.children [] >> Query.count (Expect.equal 2)
+
+
+iSeeTwoTeams =
+    Query.children [ class "side-bar-team" ] >> Query.count (Expect.equal 2)
 
 
 iAmLookingAtThePageBelowTheTopBar =
@@ -859,6 +912,10 @@ iSeeItIs275PxWide =
     Query.has [ style "width" "275px", style "box-sizing" "border-box" ]
 
 
+iSeeItHasWidth width =
+    Query.has [ style "width" <| String.fromFloat width ++ "px" ]
+
+
 iAmLookingAtTheTeam =
     iAmLookingAtTheSideBar
         >> Query.children [ containing [ text "team" ] ]
@@ -873,27 +930,27 @@ iSeeItIsAsWideAsTheHamburgerIcon =
 
 
 iAmLookingAtTheTeamIcon =
-    iAmLookingAtTheTeamHeader >> Query.children [] >> Query.first
+    iAmLookingAtTheTeamHeader >> Query.children [] >> Query.index 1
 
 
 iSeeAPictureOfTwoPeople =
     Query.has
         (DashboardTests.iconSelector
-            { size = "20px"
+            { size = "18px"
             , image = Assets.PeopleIcon
             }
         )
 
 
-iAmLookingAtTheArrow =
-    iAmLookingAtTheTeamHeader >> Query.children [] >> Query.index 1
+iAmLookingAtThePlusMinusIcon =
+    iAmLookingAtTheTeamHeader >> Query.children [] >> Query.index 0
 
 
-iSeeARightPointingArrow =
+iSeeAPlusIcon =
     Query.has
         (DashboardTests.iconSelector
-            { size = "12px"
-            , image = Assets.KeyboardArrowRight
+            { size = "10px"
+            , image = Assets.PlusIcon
             }
         )
 
@@ -963,17 +1020,21 @@ iSeeItHasBottomPadding =
     Query.has [ style "padding-bottom" "10px" ]
 
 
+iSeeItHasAResizeHandle =
+    Query.has [ style "cursor" "col-resize" ]
+
+
 iClickedThePipelineGroup =
     Tuple.first
         >> Application.update
             (TopLevelMessage.Update <| Message.Click <| Message.SideBarTeam "team")
 
 
-iSeeADownPointingArrow =
+iSeeAMinusIcon =
     Query.has
         (DashboardTests.iconSelector
-            { size = "12px"
-            , image = Assets.KeyboardArrowDown
+            { size = "10px"
+            , image = Assets.MinusIcon
             }
         )
 
@@ -987,7 +1048,7 @@ iSeeItIsGreyedOut =
 
 
 iSeeItIsDim =
-    Query.has [ style "opacity" "0.3" ]
+    Query.has [ style "opacity" "0.4" ]
 
 
 iAmLookingAtThePipelineList =
@@ -1098,9 +1159,10 @@ iSeeAPipelineIcon =
             Assets.backgroundImage <|
                 Just (Assets.BreadcrumbIcon Assets.PipelineComponent)
         , style "background-repeat" "no-repeat"
-        , style "height" "16px"
-        , style "width" "32px"
+        , style "height" "18px"
+        , style "width" "18px"
         , style "background-size" "contain"
+        , style "background-position" "center"
         ]
 
 
@@ -1112,8 +1174,8 @@ iSeeItHasLeftMargin =
     Query.has [ style "margin-left" "28px" ]
 
 
-iSeeItHas2Point5PxPadding =
-    Query.has [ style "padding" "2.5px" ]
+iSeeItHasProperPadding =
+    Query.has [ style "padding" "5px 2.5px" ]
 
 
 iSeeASideBar =
@@ -1316,10 +1378,6 @@ iHaveAnExpandedPipelineGroup =
     iHaveAnOpenSideBar >> iClickedThePipelineGroup
 
 
-iAmLookingAtTheExpandedArrow =
-    iAmLookingAtTheArrow
-
-
 iHoveredThePipelineGroup =
     Tuple.first
         >> Application.update
@@ -1409,12 +1467,10 @@ iAmLookingAtTheOtherTeamIcon =
         >> Query.first
 
 
-iAmLookingAtTheOtherPipelineName =
+iAmLookingAtTheOtherPipeline =
     iAmLookingAtTheOtherPipelineList
         >> Query.children []
         >> Query.first
-        >> Query.children []
-        >> Query.index 1
 
 
 iAmLookingAtTheOtherPipelineIcon =
@@ -1483,12 +1539,8 @@ iNavigateBackToThePipelinePage =
             )
 
 
-iSeeAGreyBorder =
-    Query.has [ style "border" <| "1px solid " ++ Colors.groupBorderSelected ]
-
-
-iSeeAnInvisibleBorder =
-    Query.has [ style "border" <| "1px solid " ++ Colors.sideBar ]
+iSeeAnInvisibleBackground =
+    Query.has [ style "background-color" "inherit" ]
 
 
 iAmLookingAtThePipelineWithTheSameName =
@@ -1635,12 +1687,23 @@ myBrowserListensForSideBarStates =
 myBrowserReadSideBarState =
     Tuple.first
         >> Application.handleDelivery
-            (Subscription.SideBarStateReceived (Ok True))
+            (Subscription.SideBarStateReceived (Ok { isOpen = True, width = 275 }))
+
+
+myBrowserReceives400PxWideSideBarState =
+    Tuple.first
+        >> Application.handleDelivery
+            (Subscription.SideBarStateReceived (Ok { isOpen = True, width = 400 }))
 
 
 myBrowserFetchesSideBarState =
     Tuple.second
         >> Common.contains Effects.LoadSideBarState
+
+
+myBrowserFetchesTheDashboardViewport =
+    Tuple.second
+        >> Common.contains (Effects.GetViewportOf Message.Dashboard)
 
 
 myBrowserSavesSideBarState isOpen =

@@ -229,10 +229,12 @@ var _ = Describe("Client", func() {
 			result           worker.CheckResult
 			err, expectedErr error
 			fakeResource     *resourcefakes.FakeResource
+			fakeDelegate     *execfakes.FakeBuildStepDelegate
 		)
 
 		BeforeEach(func() {
 			fakeResource = new(resourcefakes.FakeResource)
+			fakeDelegate = new(execfakes.FakeBuildStepDelegate)
 		})
 
 		JustBeforeEach(func() {
@@ -242,6 +244,11 @@ var _ = Describe("Client", func() {
 			workerSpec := worker.WorkerSpec{}
 			fakeResourceTypes := atc.VersionedResourceTypes{}
 
+			imageSpec := worker.ImageFetcherSpec{
+				Delegate:      fakeDelegate,
+				ResourceTypes: fakeResourceTypes,
+			}
+
 			result, err = client.RunCheckStep(
 				context.Background(),
 				logger,
@@ -250,7 +257,7 @@ var _ = Describe("Client", func() {
 				workerSpec,
 				fakeStrategy,
 				metadata,
-				fakeResourceTypes,
+				imageSpec,
 				1*time.Nanosecond,
 				fakeResource,
 			)

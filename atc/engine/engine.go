@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/tracing"
 )
 
@@ -211,7 +212,9 @@ func (b *engineBuild) Run(ctx context.Context) {
 
 	done := make(chan error)
 	go func() {
-		done <- step.Run(lagerctx.NewContext(ctx, logger), state)
+		ctx := lagerctx.NewContext(ctx, logger)
+		ctx = policy.RecordTeamAndPipeline(ctx, b.build.TeamName(), b.build.PipelineName())
+		done <- step.Run(ctx, state)
 	}()
 
 	select {
@@ -371,6 +374,7 @@ func (c *engineCheck) Run(ctx context.Context) {
 	done := make(chan error)
 	go func() {
 		ctx := lagerctx.NewContext(ctx, logger)
+		ctx = policy.RecordTeamAndPipeline(ctx, c.check.TeamName(), c.check.PipelineName())
 		done <- step.Run(ctx, state)
 	}()
 

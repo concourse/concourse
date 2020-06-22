@@ -172,7 +172,11 @@ func validateCredParams(credMgrVars vars.Variables, config atc.Config, session l
 				var taskConfigSource exec.TaskConfigSource
 				embeddedTaskVars := []vars.Variables{credMgrVars}
 				taskConfigSource = exec.StaticConfigSource{Config: plan.TaskConfig}
-				taskConfigSource = exec.InterpolateTemplateConfigSource{ConfigSource: taskConfigSource, Vars: embeddedTaskVars}
+				taskConfigSource = exec.InterpolateTemplateConfigSource{
+					ConfigSource:  taskConfigSource,
+					Vars:          embeddedTaskVars,
+					ExpectAllKeys: true,
+				}
 				taskConfigSource = exec.ValidatingConfigSource{ConfigSource: taskConfigSource}
 				_, err = taskConfigSource.FetchConfig(context.TODO(), session, nil)
 				if err != nil {

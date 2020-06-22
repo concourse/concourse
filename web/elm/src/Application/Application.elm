@@ -11,11 +11,13 @@ module Application.Application exposing
     )
 
 import Application.Models exposing (Session)
+import Application.Styles as Styles
 import Browser
 import Concourse
 import EffectTransformer exposing (ET)
 import HoverState
 import Html
+import Html.Attributes exposing (id, style)
 import Http
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
@@ -74,7 +76,11 @@ init flags url =
             , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
             , expandedTeams = Set.empty
             , pipelines = RemoteData.NotAsked
-            , isSideBarOpen = False
+            , sideBarState =
+                { isOpen = False
+                , width = 275
+                }
+            , draggingSideBar = False
             , screenSize = ScreenSize.Desktop
             , timeZone = Time.utc
             }
@@ -441,7 +447,17 @@ view model =
             , SideBar.tooltip model.session
                 |> Maybe.map (Tooltip.view model.session)
                 |> Maybe.withDefault (Html.text "")
-            , body
+            , Html.div
+                (id "page-wrapper"
+                    :: style "height" "100%"
+                    :: (if model.session.draggingSideBar then
+                            Styles.disableInteraction
+
+                        else
+                            []
+                       )
+                )
+                [ body ]
             ]
     }
 
@@ -453,6 +469,14 @@ subscriptions model =
     , OnSideBarStateReceived
     , OnWindowResize
     ]
+        ++ (if model.session.draggingSideBar then
+                [ OnMouse
+                , OnMouseUp
+                ]
+
+            else
+                []
+           )
         ++ SubPage.subscriptions model.subModel
 
 

@@ -1,4 +1,11 @@
 ---
+var_sources:
+- name: vs
+  type: dummy
+  config:
+    vars:
+      echo_text: text-from-var-source
+
 resources:
 - name: some-resource
   type: mock
@@ -30,7 +37,7 @@ jobs:
     vars:
       image_resource_type: mock
 
-- name: extarnal-task-vars-from-load-var
+- name: external-task-vars-from-load-var
   plan:
   - get: some-resource
   - load_var: foo
@@ -42,3 +49,14 @@ jobs:
     vars:
       image_resource_type: mock
       echo_text: ((.:foo))
+
+- name: task-var-is-defined-but-task-also-needs-vars-from-var-sources
+  plan:
+  - get: some-resource
+  - task: process-task-definition
+    file: some-resource/task_unwrap.yml
+  - task: run
+    file: unwrapped-task-resource/task.yml
+    vars:
+      image_resource_type: mock
+      foo: bar

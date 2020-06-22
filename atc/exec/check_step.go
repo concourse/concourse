@@ -135,6 +135,11 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		step.plan.FromVersion,
 	)
 
+	imageSpec := worker.ImageFetcherSpec{
+		ResourceTypes: resourceTypes,
+		Delegate:      step.delegate,
+	}
+
 	result, err := step.workerClient.RunCheckStep(
 		ctx,
 		logger,
@@ -144,7 +149,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		step.strategy,
 
 		step.containerMetadata,
-		resourceTypes,
+		imageSpec,
 
 		timeout,
 		checkable,
