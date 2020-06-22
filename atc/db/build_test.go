@@ -2456,12 +2456,16 @@ var _ = Describe("Build", func() {
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
-						PlanSequence: atc.PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Get: "some-resource",
+								Config: &atc.GetStep{
+									Name: "some-resource",
+								},
 							},
 							{
-								Get: "some-other-resource",
+								Config: &atc.GetStep{
+									Name: "some-other-resource",
+								},
 							},
 						},
 					},

@@ -611,9 +611,11 @@ var _ = Describe("Job Factory", func() {
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-name",
-								PlanSequence: atc.PlanSequence{
+								PlanSequence: []atc.Step{
 									{
-										Get: "some-resource",
+										Config: &atc.GetStep{
+											Name: "some-resource",
+										},
 									},
 								},
 							},
@@ -665,20 +667,26 @@ var _ = Describe("Job Factory", func() {
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-1",
-								PlanSequence: atc.PlanSequence{
+								PlanSequence: []atc.Step{
 									{
-										Get: "some-resource",
+										Config: &atc.GetStep{
+											Name: "some-resource",
+										},
 									},
 								},
 							},
 							{
 								Name: "job-2",
-								PlanSequence: atc.PlanSequence{
+								PlanSequence: []atc.Step{
 									{
-										Get: "some-resource",
+										Config: &atc.GetStep{
+											Name: "some-resource",
+										},
 									},
 									{
-										Get: "other-resource",
+										Config: &atc.GetStep{
+											Name: "other-resource",
+										},
 									},
 								},
 							},
@@ -705,12 +713,16 @@ var _ = Describe("Job Factory", func() {
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-3",
-								PlanSequence: atc.PlanSequence{
+								PlanSequence: []atc.Step{
 									{
-										Get: "some-resource",
+										Config: &atc.GetStep{
+											Name: "some-resource",
+										},
 									},
 									{
-										Get: "some-resource-2",
+										Config: &atc.GetStep{
+											Name: "some-resource-2",
+										},
 									},
 								},
 							},
@@ -796,9 +808,11 @@ var _ = Describe("Job Factory", func() {
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-name",
-								PlanSequence: atc.PlanSequence{
+								PlanSequence: []atc.Step{
 									{
-										Put: "some-resource",
+										Config: &atc.PutStep{
+											Name: "some-resource",
+										},
 									},
 								},
 							},
@@ -849,12 +863,16 @@ var _ = Describe("Job Factory", func() {
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-name",
-								PlanSequence: atc.PlanSequence{
+								PlanSequence: []atc.Step{
 									{
-										Get: "some-resource",
+										Config: &atc.GetStep{
+											Name: "some-resource",
+										},
 									},
 									{
-										Put: "some-resource",
+										Config: &atc.PutStep{
+											Name: "some-resource",
+										},
 									},
 								},
 							},

@@ -2181,16 +2181,18 @@ var _ = Describe("Job", func() {
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
-							PlanSequence: atc.PlanSequence{
+							PlanSequence: []atc.Step{
 								{
-									Get:      "some-input",
-									Resource: "some-resource",
-									Params: atc.Params{
-										"some-param": "some-value",
+									Config: &atc.GetStep{
+										Name:     "some-input",
+										Resource: "some-resource",
+										Params: atc.Params{
+											"some-param": "some-value",
+										},
+										Passed:  []string{"job-1", "job-2"},
+										Trigger: true,
+										Version: &atc.VersionConfig{Every: true},
 									},
-									Passed:  []string{"job-1", "job-2"},
-									Trigger: true,
-									Version: &atc.VersionConfig{Every: true},
 								},
 							},
 						},
@@ -2252,11 +2254,13 @@ var _ = Describe("Job", func() {
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
-							PlanSequence: atc.PlanSequence{
+							PlanSequence: []atc.Step{
 								{
-									Get:      "some-pinned-input",
-									Resource: "some-resource",
-									Version:  &atc.VersionConfig{Pinned: atc.Version{"input": "pinned"}},
+									Config: &atc.GetStep{
+										Name:     "some-pinned-input",
+										Resource: "some-resource",
+										Version:  &atc.VersionConfig{Pinned: atc.Version{"input": "pinned"}},
+									},
 								},
 							},
 						},
@@ -2350,10 +2354,12 @@ var _ = Describe("Job", func() {
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
-							PlanSequence: atc.PlanSequence{
+							PlanSequence: []atc.Step{
 								{
-									Get:      "some-pinned-input",
-									Resource: "some-resource",
+									Config: &atc.GetStep{
+										Name:     "some-pinned-input",
+										Resource: "some-resource",
+									},
 								},
 							},
 						},
@@ -2398,10 +2404,12 @@ var _ = Describe("Job", func() {
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
-							PlanSequence: atc.PlanSequence{
+							PlanSequence: []atc.Step{
 								{
-									Get:      "some-pinned-input",
-									Resource: "some-resource",
+									Config: &atc.GetStep{
+										Name:     "some-pinned-input",
+										Resource: "some-resource",
+									},
 								},
 							},
 						},
@@ -2476,29 +2484,37 @@ var _ = Describe("Job", func() {
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
-							PlanSequence: atc.PlanSequence{
+							PlanSequence: []atc.Step{
 								{
-									Get:      "some-input",
-									Resource: "some-resource",
-									Trigger:  true,
-									Version:  &atc.VersionConfig{Every: true},
+									Config: &atc.GetStep{
+										Name:     "some-input",
+										Resource: "some-resource",
+										Trigger:  true,
+										Version:  &atc.VersionConfig{Every: true},
+									},
 								},
 								{
-									Get: "some-resource",
+									Config: &atc.GetStep{
+										Name: "some-resource",
+									},
 								},
 								{
-									Get:     "some-other-resource",
-									Trigger: true,
-									Version: &atc.VersionConfig{Latest: true},
+									Config: &atc.GetStep{
+										Name:    "some-other-resource",
+										Trigger: true,
+										Version: &atc.VersionConfig{Latest: true},
+									},
 								},
 							},
 						},
 						{
 							Name: "some-other-job",
-							PlanSequence: atc.PlanSequence{
+							PlanSequence: []atc.Step{
 								{
-									Get:      "other-job-resource",
-									Resource: "some-resource",
+									Config: &atc.GetStep{
+										Name:     "other-job-resource",
+										Resource: "some-resource",
+									},
 								},
 							},
 						},
@@ -2561,20 +2577,26 @@ var _ = Describe("Job", func() {
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
-							PlanSequence: atc.PlanSequence{
+							PlanSequence: []atc.Step{
 								{
-									Put: "some-resource",
-								},
-								{
-									Task:       "some-task",
-									Privileged: true,
-									File:       "some/config/path.yml",
-									TaskConfig: &atc.TaskConfig{
-										RootfsURI: "some-image",
+									Config: &atc.PutStep{
+										Name: "some-resource",
 									},
 								},
 								{
-									Get: "some-resource",
+									Config: &atc.TaskStep{
+										Name:       "some-task",
+										Privileged: true,
+										ConfigPath: "some/config/path.yml",
+										Config: &atc.TaskConfig{
+											RootfsURI: "some-image",
+										},
+									},
+								},
+								{
+									Config: &atc.GetStep{
+										Name: "some-resource",
+									},
 								},
 							},
 						},
