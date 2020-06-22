@@ -2577,7 +2577,7 @@ var _ = Describe("Build", func() {
 	})
 
 	Describe("SavePipeline", func() {
-		FIt("saves the parent job and build ids", func() {
+		It("saves the parent job and build ids", func() {
 			By("creating a build")
 			build, err := defaultJob.CreateBuild()
 			Expect(err).ToNot(HaveOccurred())
@@ -2611,6 +2611,72 @@ var _ = Describe("Build", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(pipeline.ParentJobID()).To(Equal(build.JobID()))
 			Expect(pipeline.ParentBuildID()).To(Equal(build.ID()))
+		})
+
+		It("only saves the pipeline if it is the latest build", func() {
+			By("creating two builds")
+			buildOne, err := defaultJob.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+			buildTwo, err := defaultJob.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+
+			By("saving a pipeline with the second build")
+			pipeline, _, err := buildTwo.SavePipeline("other-pipeline", atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some": "source",
+						},
+					},
+				},
+				ResourceTypes: atc.ResourceTypes{
+					{
+						Name: "some-type",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some-type": "source",
+						},
+					},
+				},
+			}, db.ConfigVersion(0), false)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(pipeline.ParentJobID()).To(Equal(buildTwo.JobID()))
+			Expect(pipeline.ParentBuildID()).To(Equal(buildTwo.ID()))
+
+			By("saving a pipeline with the first build")
+			pipeline, _, err = buildOne.SavePipeline("other-pipeline", atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some": "source",
+						},
+					},
+				},
+				ResourceTypes: atc.ResourceTypes{
+					{
+						Name: "some-type",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some-type": "source",
+						},
+					},
+				},
+			}, pipeline.ConfigVersion(), false)
+			Expect(err).To(Equal(db.ErrSetByNewerBuild))
 		})
 
 	})

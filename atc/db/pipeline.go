@@ -130,7 +130,9 @@ var pipelinesQuery = psql.Select(`
 		p.paused,
 		p.public,
 		p.archived,
-		p.last_updated
+		p.last_updated,
+		p.parent_job_id,
+		p.parent_build_id
 	`).
 	From("pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id")

@@ -22,6 +22,7 @@ import (
 const schema = "exec.v2"
 
 var ErrAdoptRerunBuildHasNoInputs = errors.New("inputs not ready for build to rerun")
+var ErrSetByNewerBuild = errors.New("pipeline set by a newer build")
 
 type BuildInput struct {
 	Name       string
@@ -1492,8 +1493,38 @@ func (b *build) SavePipeline(
 	from ConfigVersion,
 	initiallyPaused bool,
 ) (Pipeline, bool, error) {
-	return &pipeline{}, false, nil
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
 
+	defer Rollback(tx)
+
+	jobID := sql.NullInt64{Valid: true, Int64: int64(b.jobID)}
+	buildID := sql.NullInt64{Valid: true, Int64: int64(b.id)}
+	pipelineID, isNewPipeline, err := savePipeline(tx, pipelineName, config, from, initiallyPaused, b.teamID, jobID, buildID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	pipeline := newPipeline(b.conn, b.lockFactory)
+	err = scanPipeline(
+		pipeline,
+		pipelinesQuery.
+			Where(sq.Eq{"p.id": pipelineID}).
+			RunWith(tx).
+			QueryRow(),
+	)
+	if err != nil {
+		return nil, false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
+	return pipeline, isNewPipeline, nil
 }
 
 func createBuildEventSeq(tx Tx, buildid int) error {
