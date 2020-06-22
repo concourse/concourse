@@ -536,9 +536,7 @@ viewMainJobsSection session model =
                         , style "background-color" Colors.secondaryTopBar
                         ]
                         [ Html.h1
-                            [ style "margin" "0 18px"
-                            , style "font-weight" "700"
-                            ]
+                            [ style "margin" "0 18px" ]
                             [ Html.text "builds" ]
                         , viewPaginationBar session model
                         ]

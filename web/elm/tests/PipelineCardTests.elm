@@ -146,14 +146,11 @@ all =
                         noPipelinesCard
                             >> findHeader
                 in
-                [ test "says 'no pipeline set' in smooth white font" <|
+                [ test "says 'no pipeline set' in white font" <|
                     header
                         >> Expect.all
                             [ Query.has [ text "no pipeline set" ]
-                            , Query.has
-                                [ style "color" white
-                                , style "-webkit-font-smoothing" "antialiased"
-                                ]
+                            , Query.has [ style "color" white ]
                             ]
                 , test "has dark grey background and 12.5px padding" <|
                     header
@@ -311,13 +308,12 @@ all =
             [ test "has dark grey background" <|
                 header
                     >> Query.has [ style "background-color" darkGrey ]
-            , test "has larger, spaced-out smooth white text" <|
+            , test "has larger, spaced-out white text" <|
                 header
                     >> Query.has
                         [ style "font-size" "1.5em"
                         , style "letter-spacing" "0.1em"
                         , style "color" white
-                        , style "-webkit-font-smoothing" "antialiased"
                         ]
             , test "has 12.5px padding" <|
                 header

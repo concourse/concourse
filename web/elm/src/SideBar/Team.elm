@@ -1,5 +1,6 @@
 module SideBar.Team exposing (team)
 
+import Assets
 import Concourse
 import HoverState
 import Message.Message exposing (DomID(..), Message(..))
@@ -40,7 +41,7 @@ team session t =
 
         else
             Styles.Dim
-    , arrow =
+    , collapseIcon =
         { opacity =
             if isCurrent then
                 Styles.Bright
@@ -50,12 +51,12 @@ team session t =
 
             else
                 Styles.Dim
-        , icon =
+        , asset =
             if t.isExpanded then
-                Styles.Down
+                Assets.MinusIcon
 
             else
-                Styles.Right
+                Assets.PlusIcon
         }
     , name =
         { text = t.name
@@ -65,14 +66,14 @@ team session t =
 
             else
                 Styles.GreyedOut
-        , rectangle =
-            if isHovered then
-                Styles.GreyWithLightBorder
-
-            else
-                Styles.TeamInvisible
         , domID = SideBarTeam t.name
         }
     , isExpanded = t.isExpanded
     , pipelines = List.map (Pipeline.pipeline session) session.pipelines
+    , background =
+        if isHovered then
+            Styles.Light
+
+        else
+            Styles.Invisible
     }

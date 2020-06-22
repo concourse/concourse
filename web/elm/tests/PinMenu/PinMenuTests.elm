@@ -16,6 +16,7 @@ import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (id)
+import Views.Styles
 
 
 init =
@@ -158,7 +159,7 @@ all =
                                 , items =
                                     [ { title =
                                             { content = "test"
-                                            , fontWeight = 700
+                                            , fontWeight = Views.Styles.fontWeightDefault
                                             , color = Colors.text
                                             }
                                       , table =
@@ -209,7 +210,7 @@ all =
                                 , items =
                                     [ { title =
                                             { content = "test"
-                                            , fontWeight = 700
+                                            , fontWeight = Views.Styles.fontWeightDefault
                                             , color = Colors.text
                                             }
                                       , table =

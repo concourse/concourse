@@ -36,6 +36,7 @@ import Test.Html.Selector as Selector
         )
 import Time
 import Url
+import Views.Styles
 
 
 all : Test
@@ -430,7 +431,7 @@ all =
                             , style "width" "300px"
                             , style "color" "#ecf0f1"
                             , style "font-size" "12px"
-                            , style "font-family" "Inconsolata,monospace"
+                            , style "font-family" Views.Styles.fontFamilyDefault
                             , style "padding" "10px"
                             , style "text-align" "right"
                             ]
@@ -628,7 +629,7 @@ all =
                         , style "background-color" darkGrey
                         , style "height" "60px"
                         ]
-            , test "the word 'builds' is bold and indented" <|
+            , test "the word 'builds' is indented" <|
                 init { disabled = False, paused = False }
                     >> queryView
                     >> Query.find [ id "pagination-header" ]
@@ -637,7 +638,6 @@ all =
                     >> Query.has
                         [ containing [ text "builds" ]
                         , style "margin" "0 18px"
-                        , style "font-weight" "700"
                         ]
             , test "pagination lays out horizontally" <|
                 init { disabled = False, paused = False }
