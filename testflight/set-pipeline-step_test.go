@@ -48,23 +48,17 @@ jobs:
   plan:
     - get: some-resource
     - set_pipeline: %s
+      team: ((team_name))
       file: some-resource/pipeline.yml
       var_files:
       - some-resource/name.yml
       vars:
-        greetings: hello
-`
-
-	const pipelineContentWithTeam = pipelineContent + `
-      team: ` + teamName
-
-	const pipelineContentWithMainTeam = pipelineContent + `
-      team: main`
+        greetings: hello`
 
 	var (
-		fixture                string
-		currentPipelineContent string
-		currentFlyTarget       string
+		fixture          string
+		currentTeamName  string
+		currentFlyTarget string
 	)
 
 	BeforeEach(func() {
@@ -77,13 +71,18 @@ jobs:
 	JustBeforeEach(func() {
 		err := ioutil.WriteFile(
 			filepath.Join(fixture, pipelineName+".yml"),
-			[]byte(fmt.Sprintf(currentPipelineContent, secondPipelineName)),
+			[]byte(fmt.Sprintf(pipelineContent, secondPipelineName)),
 			0755,
 		)
 		Expect(err).NotTo(HaveOccurred())
 
 		withFlyTarget(currentFlyTarget, func() {
-			fly("set-pipeline", "-n", "-p", pipelineName, "-c", fixture+"/"+pipelineName+".yml")
+			fly(
+				"set-pipeline", "-n",
+				"-p", pipelineName,
+				"-c", fixture+"/"+pipelineName+".yml",
+				"-v", "team_name="+currentTeamName,
+			)
 			fly("unpause-pipeline", "-p", pipelineName)
 		})
 	})
@@ -96,8 +95,8 @@ jobs:
 
 	Context("when setting the current team's pipeline", func() {
 		BeforeEach(func() {
-			currentPipelineContent = pipelineContent
 			currentFlyTarget = testflightFlyTarget
+			currentTeamName = ""
 		})
 
 		AfterEach(func() {
@@ -124,8 +123,8 @@ jobs:
 
 	Context("when setting another team's pipeline from the main team", func() {
 		BeforeEach(func() {
-			currentPipelineContent = pipelineContentWithTeam
 			currentFlyTarget = adminFlyTarget
+			currentTeamName = teamName
 		})
 
 		It("sets the other pipeline", func() {
@@ -160,8 +159,8 @@ jobs:
 
 	Context("when setting the main team's pipeline from a normal team", func() {
 		BeforeEach(func() {
-			currentPipelineContent = pipelineContentWithMainTeam
 			currentFlyTarget = testflightFlyTarget
+			currentTeamName = "main"
 		})
 
 		It("fails to set the other pipeline", func() {
