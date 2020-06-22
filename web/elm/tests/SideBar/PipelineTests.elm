@@ -74,7 +74,7 @@ all =
             , test "font weight is bold" <|
                 \_ ->
                     pipeline
-                        |> viewPipeline { active = True, hovered = False }
+                        |> viewPipeline { active = True, hovered = False, favorited = False }
                         |> .name
                         |> .weight
                         |> Expect.equal Styles.Bold
@@ -124,7 +124,7 @@ all =
             , test "font weight is default" <|
                 \_ ->
                     pipeline
-                        |> viewPipeline { active = False, hovered = False }
+                        |> viewPipeline { active = False, hovered = False, favorited = False }
                         |> .name
                         |> .weight
                         |> Expect.equal Styles.Default

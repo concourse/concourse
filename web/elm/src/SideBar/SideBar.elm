@@ -202,16 +202,25 @@ view model currentPipeline =
 
             newState =
                 { oldState | width = clamp 100 600 oldState.width }
+
+            allPipelinesDiv =
+                allPipelines model currentPipeline
+
+            allFavoritedPipelinesDiv =
+                allFavoritedPipelines model currentPipeline
         in
         Html.div
             (id "side-bar" :: Styles.sideBar newState)
-            (allPipelines model currentPipeline)
-            ++ [ Html.div
-                    (Styles.sideBarHandle newState
-                        ++ [ onMouseDown <| Click SideBarResizeHandle ]
-                    )
-                    []
-               ]
+            [ Html.div Styles.sectionHeader [ Html.text "favorites" ]
+            , Html.div [ id "favorites" ] allFavoritedPipelinesDiv
+            , Html.div Styles.sectionHeader [ Html.text "all pipelines" ]
+            , Html.div [ id "all-pipelines" ] allPipelinesDiv
+            , Html.div
+                (Styles.sideBarHandle newState
+                    ++ [ onMouseDown <| Click SideBarResizeHandle ]
+                )
+                []
+            ]
 
     else
         Html.text ""
@@ -248,6 +257,31 @@ allPipelines model currentPipeline =
                 Team.team
                     { hovered = model.hovered
                     , pipelines = p :: ps
+                    , currentPipeline = currentPipeline
+                    , favoritedPipelines = model.favoritedPipelines
+                    }
+                    { name = p.teamName
+                    , isExpanded = Set.member p.teamName model.expandedTeams
+                    }
+                    |> Views.viewTeam
+            )
+
+
+allFavoritedPipelines : Model m -> Maybe (PipelineScoped a) -> List (Html Message)
+allFavoritedPipelines model currentPipeline =
+    model.pipelines
+        |> RemoteData.withDefault []
+        |> List.Extra.gatherEqualsBy .teamName
+        |> List.map
+            (\( p, ps ) ->
+                Team.team
+                    { hovered = model.hovered
+                    , pipelines =
+                        List.filter
+                            (\fp ->
+                                List.member fp.id model.favoritedPipelines
+                            )
+                            (p :: ps)
                     , currentPipeline = currentPipeline
                     , favoritedPipelines = model.favoritedPipelines
                     }

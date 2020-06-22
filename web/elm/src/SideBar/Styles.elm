@@ -12,6 +12,7 @@ module SideBar.Styles exposing
     , pipelineFavourite
     , pipelineIcon
     , pipelineName
+    , sectionHeader
     , sideBar
     , sideBarHandle
     , team
@@ -61,6 +62,19 @@ column : List (Html.Attribute msg)
 column =
     [ style "display" "flex"
     , style "flex-direction" "column"
+    ]
+
+
+sectionHeader : List (Html.Attribute msg)
+sectionHeader =
+    [ style "display" "flex"
+    , style "height" "20px"
+    , style "font-size" "16px"
+    , style "left" "8px"
+    , style "top" "8px"
+    , style "cursor" "pointer"
+    , style "align-items" "center"
+    , style "background" Colors.sideBarActive
     ]
 
 
