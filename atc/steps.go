@@ -8,10 +8,37 @@ import (
 	"strings"
 )
 
+// Step is an "envelope" type, acting as a wrapper to handle the marshaling and
+// unmarshaling of an underlying StepConfig.
 type Step struct {
 	Config StepConfig
 }
 
+// ErrNoStepConfigured is returned when a step does not have any keys that
+// indicate its step type.
+var ErrNoStepConfigured = errors.New("no step configured")
+
+// UnmarshalJSON unmarshals step configuration in multiple passes, determining
+// precedence by the order of StepDetectors listed in the StepPrecedence
+// variable.
+//
+// First, the data is unmarshalled into a map[string]*json.RawMessage. Next,
+// UnmarshalJSON loops over StepPrecedence.
+//
+// For any StepDetector with a .Key field present in the map, .New is called to
+// construct an empty StepConfig, and then .ParseJSON is called on it to parse
+// the data. For step modifiers like `timeout:' and `attempts:', this will be a
+// non-strict parse that only parses their fields, ignoring the rest. For core
+// step types, this will be a strict parse, raising an error on any unknown
+// fields.
+//
+// After a step is parsed, its .Key field is removed from the map, the map is
+// re-marshalled, and the loop continues on to the rest of the StepDetectors.
+// If a step was previously parsed, .Wrap will be called with the resulting
+// step.
+//
+// If no StepDetectors match, no step is parsed, ErrNoStepConfigured is
+// returned.
 func (step *Step) UnmarshalJSON(data []byte) error {
 	var deferred map[string]*json.RawMessage
 	err := json.Unmarshal(data, &deferred)
@@ -20,7 +47,7 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 	}
 
 	var outerStep StepConfig
-	for _, s := range stepPrecedence {
+	for _, s := range StepPrecedence {
 		_, found := deferred[s.Key]
 		if !found {
 			continue
@@ -51,7 +78,7 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 	}
 
 	if outerStep == nil {
-		return fmt.Errorf("no step configured")
+		return ErrNoStepConfigured
 	}
 
 	step.Config = outerStep
@@ -59,6 +86,9 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// MarshalJSON marshals step configuration in multiple passes, looping and
+// calling .Unwrap to marshal all nested steps into one big set of fields which
+// is then marshalled and returned.
 func (step Step) MarshalJSON() ([]byte, error) {
 	fields := map[string]*json.RawMessage{}
 
@@ -80,15 +110,47 @@ func (step Step) MarshalJSON() ([]byte, error) {
 	return json.Marshal(fields)
 }
 
+// StepConfig is implemented by all step types.
 type StepConfig interface {
+	// ParseJSON unmarshals the given data into the step type's struct.
+	//
+	// Core step types such as 'get:', 'put:', and 'in_parallel:' must error on
+	// extra fields. This will catch situations where multiple steps are
+	// configured at once, as well as any typoed fields.
+	//
+	// Modifier step types such as 'timeout:' and 'attempts:' must take care to
+	// ignore extra fields present in the data, and assume that they belong to
+	// the step they are wrapping.
 	ParseJSON([]byte) error
 
+	// Visit must call StepVisitor with the appropriate method corresponding to
+	// this step type.
+	//
+	// When a new step type is added, the StepVisitor interface must be extended.
+	// This allows the compiler to help us track down all the places where steps
+	// must be handled type-by-type.
 	Visit(StepVisitor) error
 
+	// Wrap is called during (Step).UnmarshalJSON whenever an 'inner' step is
+	// parsed.
+	//
+	// Core step types should implement this as a no-op; it should never be
+	// possible, assuming they implement ParseJSON to disallow extra fields.
+	//
+	// Modifier step types should implement this by assigning to an internal
+	// field that has a `json:"-"` struct tag.
 	Wrap(StepConfig)
+
+	// Unwrap is called during (Step).MarshalJSON and must return the wrapped
+	// StepConfig.
 	Unwrap() StepConfig
 }
 
+// StepVisitor is an interface used to assist in finding all the places that
+// need to be updated whenever a new step type is introduced.
+//
+// Each StepConfig must implement .Visit to call the appropriate method on the
+// given StepVisitor.
 type StepVisitor interface {
 	VisitTask(*TaskStep) error
 	VisitGet(*GetStep) error
@@ -108,12 +170,21 @@ type StepVisitor interface {
 	VisitEnsure(*EnsureStep) error
 }
 
-type stepFactory struct {
+// StepDetector is a simple structure used to detect whether a step type is
+// configured.
+type StepDetector struct {
+	// Key is the field that, if present, indicates that the step is configured.
 	Key string
+
+	// If Key is present, New will be called to construct an empty StepConfig.
 	New func() StepConfig
 }
 
-var stepPrecedence = []stepFactory{
+// StepPrecedence is a static list of all of the step types, listed in the
+// order that they should be parsed. Broadly, modifiers are parsed first - with
+// some important inter-modifier precedence - while core step types are parsed
+// last.
+var StepPrecedence = []StepDetector{
 	{
 		Key: "ensure",
 		New: func() StepConfig { return &EnsureStep{} },
