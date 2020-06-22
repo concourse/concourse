@@ -21,7 +21,7 @@ type StepTest struct {
 	ConfigYAML string
 	StepConfig atc.StepConfig
 
-	Err error
+	Err string
 }
 
 var factoryTests = []StepTest{
@@ -379,6 +379,14 @@ var factoryTests = []StepTest{
 			},
 		},
 	},
+	{
+		Title: "unknown fields",
+		ConfigYAML: `
+			get: some-name
+			bogus: foo
+		`,
+		Err: `error unmarshaling JSON: while decoding JSON: malformed get step: json: unknown field "bogus"`,
+	},
 }
 
 func (test StepTest) Run(s *StepsSuite) {
@@ -387,8 +395,8 @@ func (test StepTest) Run(s *StepsSuite) {
 	var step atc.Step
 	actualErr := yaml.Unmarshal([]byte(cleanIndents), &step)
 
-	if test.Err != nil {
-		s.Equal(test.Err, actualErr)
+	if test.Err != "" {
+		s.EqualError(actualErr, test.Err)
 		return
 	} else {
 		s.NoError(actualErr)
