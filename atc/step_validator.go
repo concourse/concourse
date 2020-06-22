@@ -6,17 +6,37 @@ import (
 	"time"
 )
 
+// StepValidator is a StepVisitor which validates each step that visits it,
+// collecting warnings and errors as it goes.
 type StepValidator struct {
+	// Warnings is a slice of warning messages to show to the user, while still
+	// allowing the pipeline to be configured. This is typically used for
+	// deprecations.
+	//
+	// This field will be populated after visiting the step.
+	Warnings []string
+
+	// Errors is a slice of critical errors which will prevent configuring the
+	// pipeline.
+	//
+	// This field will be populated after visiting the step.
+	Errors []string
+
 	config  Config
 	context []string
 
 	seenGetName     map[string]bool
 	seenLoadVarName map[string]bool
-
-	Warnings []string
-	Errors   []string
 }
 
+// NewStepValidator is a constructor which initializes internal data.
+//
+// The Config specified is used to validate the existence of resources and jobs
+// referenced by steps.
+//
+// The context argument contains the initial context used to annotate error and
+// warning messages. For example, []string{"jobs(foo)", ".plan"} will result in
+// errors like 'jobs(foo).plan.task(bar): blah blah'.
 func NewStepValidator(config Config, context []string) *StepValidator {
 	return &StepValidator{
 		config:          config,
@@ -24,26 +44,6 @@ func NewStepValidator(config Config, context []string) *StepValidator {
 		seenGetName:     map[string]bool{},
 		seenLoadVarName: map[string]bool{},
 	}
-}
-
-func (validator *StepValidator) recordWarning(message string, args ...interface{}) {
-	validator.Warnings = append(validator.Warnings, validator.annotate(fmt.Sprintf(message, args...)))
-}
-
-func (validator *StepValidator) recordError(message string, args ...interface{}) {
-	validator.Errors = append(validator.Errors, validator.annotate(fmt.Sprintf(message, args...)))
-}
-
-func (validator *StepValidator) annotate(message string) string {
-	return fmt.Sprintf("%s: %s", strings.Join(validator.context, ""), message)
-}
-
-func (validator *StepValidator) pushContext(ctx string, args ...interface{}) {
-	validator.context = append(validator.context, fmt.Sprintf(ctx, args...))
-}
-
-func (validator *StepValidator) popContext() {
-	validator.context = validator.context[0 : len(validator.context)-1]
 }
 
 func (validator *StepValidator) VisitTask(plan *TaskStep) error {
@@ -329,4 +329,24 @@ func (validator *StepValidator) VisitEnsure(step *EnsureStep) error {
 	defer validator.popContext()
 
 	return step.Hook.Config.Visit(validator)
+}
+
+func (validator *StepValidator) recordWarning(message string, args ...interface{}) {
+	validator.Warnings = append(validator.Warnings, validator.annotate(fmt.Sprintf(message, args...)))
+}
+
+func (validator *StepValidator) recordError(message string, args ...interface{}) {
+	validator.Errors = append(validator.Errors, validator.annotate(fmt.Sprintf(message, args...)))
+}
+
+func (validator *StepValidator) annotate(message string) string {
+	return fmt.Sprintf("%s: %s", strings.Join(validator.context, ""), message)
+}
+
+func (validator *StepValidator) pushContext(ctx string, args ...interface{}) {
+	validator.context = append(validator.context, fmt.Sprintf(ctx, args...))
+}
+
+func (validator *StepValidator) popContext() {
+	validator.context = validator.context[0 : len(validator.context)-1]
 }
