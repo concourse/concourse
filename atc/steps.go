@@ -43,7 +43,7 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 
 		data, err = json.Marshal(deferred)
 		if err != nil {
-			return fmt.Errorf("re-marshal deferred parsing: %s", err)
+			return fmt.Errorf("re-marshal deferred parsing: %w", err)
 		}
 	}
 
