@@ -59,7 +59,7 @@ UI, so you should make your output pretty.
       "branch": "develop",
       "private_key": "..."
     },
-    "version": { "ref": "61cebf" }
+    "version": { "ref": "61cbef" }
   }
   }}}
 
