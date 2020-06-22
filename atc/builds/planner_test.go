@@ -2,8 +2,6 @@ package builds_test
 
 import (
 	"encoding/json"
-	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/concourse/concourse/atc"
@@ -11,7 +9,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"sigs.k8s.io/yaml"
 )
 
 type PlannerSuite struct {
@@ -28,8 +25,8 @@ func TestPlanner(t *testing.T) {
 type PlannerTest struct {
 	Title string
 
-	ConfigYAML string
-	Inputs     []db.BuildInput
+	Config atc.StepConfig
+	Inputs []db.BuildInput
 
 	CompareIDs bool
 	PlanJSON   string
@@ -58,13 +55,13 @@ var resourceTypes = atc.VersionedResourceTypes{
 var factoryTests = []PlannerTest{
 	{
 		Title: "get step",
-		ConfigYAML: `
-			get: some-name
-			resource: some-resource
-			params: {some: params}
-			version: {doesnt: matter}
-			tags: [tag-1, tag-2]
-		`,
+		Config: &atc.GetStep{
+			Name:     "some-name",
+			Resource: "some-resource",
+			Params:   atc.Params{"some": "params"},
+			Version:  &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
+			Tags:     atc.Tags{"tag-1", "tag-2"},
+		},
 		Inputs: []db.BuildInput{
 			{
 				Name:    "some-name",
@@ -94,31 +91,30 @@ var factoryTests = []PlannerTest{
 	},
 	{
 		Title: "get step with unknown resource",
-		ConfigYAML: `
-			get: some-name
-			resource: bogus-resource
-		`,
+		Config: &atc.GetStep{
+			Name:     "some-name",
+			Resource: "bogus-resource",
+		},
 		Err: builds.UnknownResourceError{Resource: "bogus-resource"},
 	},
 	{
 		Title: "get step with no available version",
-		ConfigYAML: `
-			get: some-name
-			resource: some-resource
-		`,
+		Config: &atc.GetStep{
+			Name:     "some-name",
+			Resource: "some-resource",
+		},
 		Err: builds.VersionNotProvidedError{Input: "some-name"},
 	},
 	{
 		Title: "put step",
-
-		ConfigYAML: `
-			put: some-name
-			resource: some-resource
-			params: {some: params}
-			tags: [tag-1, tag-2]
-			inputs: all
-			get_params: {some: get-params}
-		`,
+		Config: &atc.PutStep{
+			Name:      "some-name",
+			Resource:  "some-resource",
+			Params:    atc.Params{"some": "params"},
+			Tags:      atc.Tags{"tag-1", "tag-2"},
+			Inputs:    &atc.InputsConfig{All: true},
+			GetParams: atc.Params{"some": "get-params"},
+		},
 		Inputs: []db.BuildInput{
 			{
 				Name:    "some-name",
@@ -177,20 +173,21 @@ var factoryTests = []PlannerTest{
 	{
 		Title: "task step",
 
-		ConfigYAML: `
-			task: some-task
-			privileged: true
-			config:
-			  platform: linux
-			  run: {path: hello}
-			file: some-task-file
-			vars: {some: vars}
-			params: {SOME: PARAMS}
-			tags: [tag-1, tag-2]
-			input_mapping: {generic: specific}
-			output_mapping: {specific: generic}
-			image: some-image
-		`,
+		Config: &atc.TaskStep{
+			Name:       "some-task",
+			Privileged: true,
+			Config: &atc.TaskConfig{
+				Platform: "linux",
+				Run:      atc.TaskRunConfig{Path: "hello"},
+			},
+			ConfigPath:        "some-task-file",
+			Vars:              atc.Params{"some": "vars"},
+			Params:            atc.Params{"SOME": "PARAMS"},
+			Tags:              atc.Tags{"tag-1", "tag-2"},
+			InputMapping:      map[string]string{"generic": "specific"},
+			OutputMapping:     map[string]string{"specific": "generic"},
+			ImageArtifactName: "some-image",
+		},
 
 		PlanJSON: `{
 			"id": "(unique)",
@@ -222,12 +219,12 @@ var factoryTests = []PlannerTest{
 	{
 		Title: "set_pipeline step",
 
-		ConfigYAML: `
-			set_pipeline: some-pipeline
-			file: some-pipeline-file
-			vars: {some: vars}
-			var_files: [file-1, file-2]
-		`,
+		Config: &atc.SetPipelineStep{
+			Name:     "some-pipeline",
+			File:     "some-pipeline-file",
+			Vars:     atc.Params{"some": "vars"},
+			VarFiles: []string{"file-1", "file-2"},
+		},
 
 		PlanJSON: `{
 			"id": "(unique)",
@@ -242,18 +239,18 @@ var factoryTests = []PlannerTest{
 	{
 		Title: "load_var step",
 
-		ConfigYAML: `
-			load_var: some-var
-			file: some-pipeline-file
-			format: raw
-			reveal: true
-		`,
+		Config: &atc.LoadVarStep{
+			Name:   "some-var",
+			File:   "some-var-file",
+			Format: "raw",
+			Reveal: true,
+		},
 
 		PlanJSON: `{
 			"id": "(unique)",
 			"load_var": {
 				"name": "some-var",
-				"file": "some-pipeline-file",
+				"file": "some-var-file",
 				"format": "raw",
 				"reveal": true
 			}
@@ -262,11 +259,14 @@ var factoryTests = []PlannerTest{
 	{
 		Title: "try step",
 
-		ConfigYAML: `
-			try:
-			  load_var: some-var
-			  file: some-file
-		`,
+		Config: &atc.TryStep{
+			Step: atc.Step{
+				Config: &atc.LoadVarStep{
+					Name: "some-var",
+					File: "some-file",
+				},
+			},
+		},
 
 		PlanJSON: `{
 			"id": "(unique)",
@@ -284,13 +284,22 @@ var factoryTests = []PlannerTest{
 	{
 		Title: "do step",
 
-		ConfigYAML: `
-			do:
-			- load_var: some-var
-			  file: some-file
-			- load_var: some-other-var
-			  file: some-other-file
-		`,
+		Config: &atc.DoStep{
+			Steps: []atc.Step{
+				{
+					Config: &atc.LoadVarStep{
+						Name: "some-var",
+						File: "some-file",
+					},
+				},
+				{
+					Config: &atc.LoadVarStep{
+						Name: "some-other-var",
+						File: "some-other-file",
+					},
+				},
+			},
+		},
 
 		PlanJSON: `{
 			"id": "(unique)",
@@ -313,51 +322,28 @@ var factoryTests = []PlannerTest{
 		}`,
 	},
 	{
-		Title: "in_parallel step with simple list",
+		Title: "in_parallel step",
 
-		ConfigYAML: `
-			in_parallel:
-			- load_var: some-var
-			  file: some-file
-			- load_var: some-other-var
-			  file: some-other-file
-		`,
-
-		PlanJSON: `{
-			"id": "(unique)",
-			"in_parallel": {
-				"steps": [
+		Config: &atc.InParallelStep{
+			Config: atc.InParallelConfig{
+				Limit:    3,
+				FailFast: true,
+				Steps: []atc.Step{
 					{
-						"id": "(unique)",
-						"load_var": {
-							"name": "some-var",
-							"file": "some-file"
-						}
+						Config: &atc.LoadVarStep{
+							Name: "some-var",
+							File: "some-file",
+						},
 					},
 					{
-						"id": "(unique)",
-						"load_var": {
-							"name": "some-other-var",
-							"file": "some-other-file"
-						}
-					}
-				]
-			}
-		}`,
-	},
-	{
-		Title: "in_parallel step with config",
-
-		ConfigYAML: `
-			in_parallel:
-			  steps:
-			  - load_var: some-var
-			    file: some-file
-			  - load_var: some-other-var
-			    file: some-other-file
-			  limit: 3
-			  fail_fast: true
-		`,
+						Config: &atc.LoadVarStep{
+							Name: "some-other-var",
+							File: "some-other-file",
+						},
+					},
+				},
+			},
+		},
 
 		PlanJSON: `{
 			"id": "(unique)",
@@ -386,13 +372,22 @@ var factoryTests = []PlannerTest{
 	{
 		Title: "aggregate step",
 
-		ConfigYAML: `
-			aggregate:
-			- load_var: some-var
-			  file: some-file
-			- load_var: some-other-var
-			  file: some-other-file
-		`,
+		Config: &atc.AggregateStep{
+			Steps: []atc.Step{
+				{
+					Config: &atc.LoadVarStep{
+						Name: "some-var",
+						File: "some-file",
+					},
+				},
+				{
+					Config: &atc.LoadVarStep{
+						Name: "some-other-var",
+						File: "some-other-file",
+					},
+				},
+			},
+		},
 
 		PlanJSON: `{
 			"id": "(unique)",
@@ -417,11 +412,13 @@ var factoryTests = []PlannerTest{
 	{
 		Title: "timeout modifier",
 
-		ConfigYAML: `
-			load_var: some-var
-			file: some-file
-			timeout: 1h
-		`,
+		Config: &atc.TimeoutStep{
+			Step: &atc.LoadVarStep{
+				Name: "some-var",
+				File: "some-file",
+			},
+			Duration: "1h",
+		},
 
 		PlanJSON: `{
 			"id": "(unique)",
@@ -440,11 +437,13 @@ var factoryTests = []PlannerTest{
 	{
 		Title: "attempts modifier",
 
-		ConfigYAML: `
-			load_var: some-var
-			file: some-file
-			attempts: 3
-		`,
+		Config: &atc.RetryStep{
+			Step: &atc.LoadVarStep{
+				Name: "some-var",
+				File: "some-file",
+			},
+			Attempts: 3,
+		},
 
 		CompareIDs: true,
 		PlanJSON: `{
@@ -475,247 +474,191 @@ var factoryTests = []PlannerTest{
 		}`,
 	},
 	{
-		Title: "timeout and attempts modifier",
+		Title: "on_success step",
 
-		ConfigYAML: `
-			load_var: some-var
-			file: some-file
-			timeout: 1h
-			attempts: 3
-		`,
+		Config: &atc.OnSuccessStep{
+			Step: &atc.LoadVarStep{
+				Name: "some-var",
+				File: "some-file",
+			},
+			Hook: atc.Step{
+				Config: &atc.LoadVarStep{
+					Name: "some-other-var",
+					File: "some-other-file",
+				},
+			},
+		},
 
 		PlanJSON: `{
 			"id": "(unique)",
-			"retry": [
-				{
+			"on_success": {
+				"step": {
 					"id": "(unique)",
-					"timeout": {
-						"step": {
-							"id": "(unique)",
-							"load_var": {
-								"name": "some-var",
-								"file": "some-file"
-							}
-						},
-						"duration": "1h"
+					"load_var": {
+						"name": "some-var",
+						"file": "some-file"
 					}
 				},
-				{
+				"on_success": {
 					"id": "(unique)",
-					"timeout": {
-						"step": {
-							"id": "(unique)",
-							"load_var": {
-								"name": "some-var",
-								"file": "some-file"
-							}
-						},
-						"duration": "1h"
-					}
-				},
-				{
-					"id": "(unique)",
-					"timeout": {
-						"step": {
-							"id": "(unique)",
-							"load_var": {
-								"name": "some-var",
-								"file": "some-file"
-							}
-						},
-						"duration": "1h"
+					"load_var": {
+						"name": "some-other-var",
+						"file": "some-other-file"
 					}
 				}
-			]
+			}
 		}`,
 	},
-}
+	{
+		Title: "on_failure step",
 
-func init() {
-	for _, hookType := range []string{"on_success", "on_failure", "on_abort", "ensure"} {
-		factoryTests = append(factoryTests, PlannerTest{
-			Title: hookType + " hook",
+		Config: &atc.OnFailureStep{
+			Step: &atc.LoadVarStep{
+				Name: "some-var",
+				File: "some-file",
+			},
+			Hook: atc.Step{
+				Config: &atc.LoadVarStep{
+					Name: "some-other-var",
+					File: "some-other-file",
+				},
+			},
+		},
 
-			ConfigYAML: fmt.Sprintf(`
-				load_var: some-var
-				file: some-file
-				%s:
-				  load_var: some-hook-var
-				  file: some-hook-file
-			`, hookType),
-
-			PlanJSON: fmt.Sprintf(`{
-				"id": "(unique)",
-				"%s": {
-					"step": {
-						"id": "(unique)",
-						"load_var": {
-							"name": "some-var",
-							"file": "some-file"
-						}
-					},
-					"%s": {
-						"id": "(unique)",
-						"load_var": {
-							"name": "some-hook-var",
-							"file": "some-hook-file"
-						}
+		PlanJSON: `{
+			"id": "(unique)",
+			"on_failure": {
+				"step": {
+					"id": "(unique)",
+					"load_var": {
+						"name": "some-var",
+						"file": "some-file"
+					}
+				},
+				"on_failure": {
+					"id": "(unique)",
+					"load_var": {
+						"name": "some-other-var",
+						"file": "some-other-file"
 					}
 				}
-			}`, hookType, hookType),
-		}, PlannerTest{
-			Title: hookType + " hook with timeout",
+			}
+		}`,
+	},
+	{
+		Title: "on_error step",
 
-			ConfigYAML: fmt.Sprintf(`
-				load_var: some-var
-				file: some-file
-				timeout: 1h
-				%s:
-				  load_var: some-hook-var
-				  file: some-hook-file
-			`, hookType),
+		Config: &atc.OnErrorStep{
+			Step: &atc.LoadVarStep{
+				Name: "some-var",
+				File: "some-file",
+			},
+			Hook: atc.Step{
+				Config: &atc.LoadVarStep{
+					Name: "some-other-var",
+					File: "some-other-file",
+				},
+			},
+		},
 
-			// timeout applies to inner step, not hook
-			PlanJSON: fmt.Sprintf(`{
-				"id": "(unique)",
-				"%s": {
-					"step": {
-						"id": "(unique)",
-						"timeout": {
-							"step": {
-								"id": "(unique)",
-								"load_var": {
-									"name": "some-var",
-									"file": "some-file"
-								}
-							},
-							"duration": "1h"
-						}
-					},
-					"%s": {
-						"id": "(unique)",
-						"load_var": {
-							"name": "some-hook-var",
-							"file": "some-hook-file"
-						}
+		PlanJSON: `{
+			"id": "(unique)",
+			"on_error": {
+				"step": {
+					"id": "(unique)",
+					"load_var": {
+						"name": "some-var",
+						"file": "some-file"
+					}
+				},
+				"on_error": {
+					"id": "(unique)",
+					"load_var": {
+						"name": "some-other-var",
+						"file": "some-other-file"
 					}
 				}
-			}`, hookType, hookType),
-		}, PlannerTest{
-			Title: hookType + " hook with attempts",
+			}
+		}`,
+	},
+	{
+		Title: "on_abort step",
 
-			ConfigYAML: fmt.Sprintf(`
-				load_var: some-var
-				file: some-file
-				attempts: 3
-				%s:
-				  load_var: some-hook-var
-				  file: some-hook-file
-			`, hookType),
+		Config: &atc.OnAbortStep{
+			Step: &atc.LoadVarStep{
+				Name: "some-var",
+				File: "some-file",
+			},
+			Hook: atc.Step{
+				Config: &atc.LoadVarStep{
+					Name: "some-other-var",
+					File: "some-other-file",
+				},
+			},
+		},
 
-			// timeout applies to inner step, not hook
-			PlanJSON: fmt.Sprintf(`{
-				"id": "(unique)",
-				"%s": {
-					"step": {
-						"id": "(unique)",
-						"retry": [
-							{
-								"id": "(unique)",
-								"load_var": {
-									"name": "some-var",
-									"file": "some-file"
-								}
-							},
-							{
-								"id": "(unique)",
-								"load_var": {
-									"name": "some-var",
-									"file": "some-file"
-								}
-							},
-							{
-								"id": "(unique)",
-								"load_var": {
-									"name": "some-var",
-									"file": "some-file"
-								}
-							}
-						]
-					},
-					"%s": {
-						"id": "(unique)",
-						"load_var": {
-							"name": "some-hook-var",
-							"file": "some-hook-file"
-						}
+		PlanJSON: `{
+			"id": "(unique)",
+			"on_abort": {
+				"step": {
+					"id": "(unique)",
+					"load_var": {
+						"name": "some-var",
+						"file": "some-file"
+					}
+				},
+				"on_abort": {
+					"id": "(unique)",
+					"load_var": {
+						"name": "some-other-var",
+						"file": "some-other-file"
 					}
 				}
-			}`, hookType, hookType),
-		})
-	}
+			}
+		}`,
+	},
+	{
+		Title: "ensure step",
 
-	for _, hookType := range []string{"on_success", "on_failure", "on_abort"} {
-		factoryTests = append(factoryTests, PlannerTest{
-			Title: hookType + " hook with ensure",
+		Config: &atc.EnsureStep{
+			Step: &atc.LoadVarStep{
+				Name: "some-var",
+				File: "some-file",
+			},
+			Hook: atc.Step{
+				Config: &atc.LoadVarStep{
+					Name: "some-other-var",
+					File: "some-other-file",
+				},
+			},
+		},
 
-			ConfigYAML: fmt.Sprintf(`
-				load_var: some-var
-				file: some-file
-				%s:
-				  load_var: some-hook-var
-				  file: some-hook-file
-				ensure:
-				  load_var: some-ensure-var
-				  file: some-ensure-file
-			`, hookType),
-
-			PlanJSON: fmt.Sprintf(`{
-				"id": "(unique)",
+		PlanJSON: `{
+			"id": "(unique)",
+			"ensure": {
+				"step": {
+					"id": "(unique)",
+					"load_var": {
+						"name": "some-var",
+						"file": "some-file"
+					}
+				},
 				"ensure": {
-					"step": {
-						"id": "(unique)",
-						"%s": {
-							"step": {
-								"id": "(unique)",
-								"load_var": {
-									"name": "some-var",
-									"file": "some-file"
-								}
-							},
-							"%s": {
-								"id": "(unique)",
-								"load_var": {
-									"name": "some-hook-var",
-									"file": "some-hook-file"
-								}
-							}
-						}
-					},
-					"ensure": {
-						"id": "(unique)",
-						"load_var": {
-							"name": "some-ensure-var",
-							"file": "some-ensure-file"
-						}
+					"id": "(unique)",
+					"load_var": {
+						"name": "some-other-var",
+						"file": "some-other-file"
 					}
 				}
-			}`, hookType, hookType),
-		})
-	}
+			}
+		}`,
+	},
 }
 
 func (test PlannerTest) Run(s *PlannerSuite) {
 	factory := builds.NewPlanner(atc.NewPlanFactory(0))
 
-	// thank goodness gofmt makes this a reasonable assumption
-	cleanIndents := strings.ReplaceAll(test.ConfigYAML, "\t", "")
-
-	var step atc.Step
-	err := yaml.Unmarshal([]byte(cleanIndents), &step)
-	s.NoError(err)
-
-	actualPlan, actualErr := factory.Create(step.Config, resources, resourceTypes, test.Inputs)
+	actualPlan, actualErr := factory.Create(test.Config, resources, resourceTypes, test.Inputs)
 
 	if test.Err != nil {
 		s.Equal(test.Err, actualErr)
