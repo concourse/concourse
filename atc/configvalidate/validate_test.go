@@ -785,7 +785,7 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(errorMessages).To(HaveLen(1))
 				Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
 				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[1].get(some-resource): repeated name"))
-				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[1].get(some-resource): repeated name"))
+				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[2].get(some-resource): repeated name"))
 			})
 		})
 
