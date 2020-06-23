@@ -37,6 +37,7 @@ services:
     image: concourse/concourse:local
     command: worker
     privileged: true
+    depends_on: [web]
     ports:
     - 7777:7777
     - 7788:7788
