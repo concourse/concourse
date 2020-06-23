@@ -10,11 +10,12 @@ import (
 type Server struct {
 	logger lager.Logger
 
-	externalURL   string
-	rejector      auth.Rejector
-	secretManager creds.Secrets
-	jobFactory    db.JobFactory
-	checkFactory  db.CheckFactory
+	externalURL        string
+	rejector           auth.Rejector
+	secretManager      creds.Secrets
+	jobFactory         db.JobFactory
+	checkFactory       db.CheckFactory
+	listAllJobsWatcher ListAllJobsWatcher
 }
 
 func NewServer(
@@ -23,13 +24,15 @@ func NewServer(
 	secretManager creds.Secrets,
 	jobFactory db.JobFactory,
 	checkFactory db.CheckFactory,
+	listAllJobsWatcher ListAllJobsWatcher,
 ) *Server {
 	return &Server{
-		logger:        logger,
-		externalURL:   externalURL,
-		rejector:      auth.UnauthorizedRejector{},
-		secretManager: secretManager,
-		jobFactory:    jobFactory,
-		checkFactory:  checkFactory,
+		logger:             logger,
+		externalURL:        externalURL,
+		rejector:           auth.UnauthorizedRejector{},
+		secretManager:      secretManager,
+		jobFactory:         jobFactory,
+		checkFactory:       checkFactory,
+		listAllJobsWatcher: listAllJobsWatcher,
 	}
 }

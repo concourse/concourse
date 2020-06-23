@@ -38,6 +38,7 @@ import (
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
+	"github.com/concourse/concourse/atc/db/watch"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/gc"
@@ -804,6 +805,11 @@ func (cmd *RunCommand) constructAPIMembers(
 
 	middleware := token.NewMiddleware(cmd.Auth.AuthFlags.SecureCookies)
 
+	listAllJobsWatcher, err := watch.NewListAllJobsWatcher(logger.Session("list-all-jobs-watcher"), dbConn, lockFactory)
+	if err != nil {
+		return nil, err
+	}
+
 	apiHandler, err := cmd.constructAPIHandler(
 		logger,
 		reconfigurableSink,
@@ -825,6 +831,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		accessFactory,
 		dbWall,
 		policyChecker,
+		listAllJobsWatcher,
 	)
 	if err != nil {
 		return nil, err
@@ -1832,6 +1839,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	accessFactory accessor.AccessFactory,
 	dbWall db.Wall,
 	policyChecker *policy.Checker,
+	listAllJobsWatcher *watch.ListAllJobsWatcher,
 ) (http.Handler, error) {
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(teamFactory)
@@ -1920,6 +1928,8 @@ func (cmd *RunCommand) constructAPIHandler(
 		time.Minute,
 		dbWall,
 		clock.NewClock(),
+
+		listAllJobsWatcher,
 	)
 }
 

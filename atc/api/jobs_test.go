@@ -12,9 +12,11 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/db/watch"
 	. "github.com/concourse/concourse/atc/testhelpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/vito/go-sse/sse"
 )
 
 var _ = Describe("Jobs API", func() {
@@ -240,6 +242,92 @@ var _ = Describe("Jobs API", func() {
 					Expect(dbJobFactory.AllActiveJobsCallCount()).To(Equal(1))
 				})
 			})
+		})
+	})
+
+	Describe("GET /api/v1/jobs?watch=true", func() {
+		var (
+			response *http.Response
+
+			eventsChan chan []watch.ListAllJobsEvent
+		)
+
+		JustBeforeEach(func() {
+			req, err := http.NewRequest("GET", server.URL+"/api/v1/jobs?watch=true", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			req.Header.Set("Content-Type", "application/json")
+
+			response, err = client.Do(req)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		BeforeEach(func() {
+			job := atc.DashboardJob{
+				ID:           1,
+				Name:         "some-job",
+				PipelineName: "some-pipeline",
+				TeamName:     "some-team",
+			}
+			dbJobFactory.VisibleJobsReturns(atc.Dashboard{job}, nil)
+
+			eventsChan = make(chan []watch.ListAllJobsEvent, 1)
+			fakeListAllJobsWatcher.WatchListAllJobsReturns(eventsChan)
+		})
+
+		AfterEach(func() {
+			err := response.Body.Close()
+			Expect(err).ToNot(HaveOccurred())
+
+			close(eventsChan)
+		})
+
+		It("sets SSE headers", func() {
+			expectedHeaderEntries := map[string]string{
+				"Content-Type":      "text/event-stream; charset=utf-8",
+				"Cache-Control":     "no-cache, no-store, must-revalidate",
+				"X-Accel-Buffering": "no",
+			}
+			Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
+		})
+
+		It("sends an initial event with all jobs", func() {
+			reader := sse.NewReadCloser(response.Body)
+
+			Expect(reader.Next()).To(Equal(sse.Event{
+				ID:   "0",
+				Name: "initial",
+				Data: []byte(`[{"id":1,"name":"some-job","pipeline_name":"some-pipeline","team_name":"some-team","next_build":null,"finished_build":null,"groups":null}]`),
+			}))
+		})
+
+		It("sends a patch event when jobs change", func() {
+			eventsChan <- []watch.ListAllJobsEvent{
+				{
+					ID:   1,
+					Type: watch.Put,
+					Job: &atc.DashboardJob{
+						ID:           1,
+						Name:         "new-job",
+						PipelineName: "some-pipeline",
+						TeamName:     "some-team",
+					},
+				},
+				{
+					ID:   2,
+					Type: watch.Delete,
+				},
+			}
+
+			reader := sse.NewReadCloser(response.Body)
+
+			reader.Next()
+
+			Expect(reader.Next()).To(Equal(sse.Event{
+				ID:   "1",
+				Name: "patch",
+				Data: []byte(`[{"id":1,"eventType":"PUT","job":{"id":1,"name":"new-job","pipeline_name":"some-pipeline","team_name":"some-team","next_build":null,"finished_build":null,"groups":null}},{"id":2,"eventType":"DELETE","job":null}]`),
+			}))
 		})
 	})
 
