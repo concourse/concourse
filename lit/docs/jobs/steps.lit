@@ -679,6 +679,25 @@ by configuring \reference{schema.step.on_failure} or
         in multiple files, the value from a file that is passed later in the
         list will override the values from files earlier in the list.
       }
+
+      \optional-attribute{team}{identifier}{
+        By default, the \code{set_pipeline} step sets the pipeline for the
+        same \reference{teams}{team} that is running the build.
+
+        The \code{team} attribute can be used to specify another team.
+
+        Only the \reference{main-team} is allowed to set another team's
+        pipeline.  Any team other than the \reference{main-team} using the
+        \code{team} attribute will error, unless they reference their own team.
+
+        \warn{
+          The \code{team} attribute was introduced in Concourse v6.4.0. It is
+          considered an \bold{experimental} feature and may be removed at any
+          time. Contribute to the associated
+          \link{discussion}{https://github.com/concourse/concourse/discussions/5731}
+          with feedback.
+        }
+      }
     }
   }{
     \schema-group{\code{load_var} step}{load-var-step}{
