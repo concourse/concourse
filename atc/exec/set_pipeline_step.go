@@ -32,6 +32,7 @@ type SetPipelineStep struct {
 	metadata    StepMetadata
 	delegate    BuildStepDelegate
 	teamFactory db.TeamFactory
+	builFactory db.BuildFactory
 	client      worker.Client
 	succeeded   bool
 }
@@ -42,15 +43,17 @@ func NewSetPipelineStep(
 	metadata StepMetadata,
 	delegate BuildStepDelegate,
 	teamFactory db.TeamFactory,
+	buildFactory db.BuildFactory,
 	client worker.Client,
 ) Step {
 	return &SetPipelineStep{
-		planID:      planID,
-		plan:        plan,
-		metadata:    metadata,
-		delegate:    delegate,
-		teamFactory: teamFactory,
-		client:      client,
+		planID:       planID,
+		plan:         plan,
+		metadata:     metadata,
+		delegate:     delegate,
+		teamFactory:  teamFactory,
+		buildFactory: buildFactory,
+		client:       client,
 	}
 }
 

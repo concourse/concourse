@@ -79,10 +79,11 @@ jobs:
 		cancel     func()
 		testLogger *lagertest.TestLogger
 
-		fakeDelegate    *execfakes.FakeBuildStepDelegate
-		fakeTeamFactory *dbfakes.FakeTeamFactory
-		fakeTeam        *dbfakes.FakeTeam
-		fakePipeline    *dbfakes.FakePipeline
+		fakeDelegate     *execfakes.FakeBuildStepDelegate
+		fakeTeamFactory  *dbfakes.FakeTeamFactory
+		fakeBuildFactory *dbfakes.FakeBuildFactory
+		fakeTeam         *dbfakes.FakeTeam
+		fakePipeline     *dbfakes.FakePipeline
 
 		fakeWorkerClient *workerfakes.FakeClient
 
@@ -96,7 +97,16 @@ jobs:
 
 		credVarsTracker vars.CredVarsTracker
 
-		stepMetadata exec.StepMetadata
+		stepMetadata = exec.StepMetadata{
+			TeamID:       123,
+			TeamName:     "some-team",
+			JobID:        87,
+			JobName:      "some-job",
+			BuildID:      42,
+			BuildName:    "some-build",
+			PipelineID:   4567,
+			PipelineName: "some-pipeline",
+		}
 
 		stdout, stderr *gbytes.Buffer
 
@@ -127,6 +137,7 @@ jobs:
 		fakeDelegate.StderrReturns(stderr)
 
 		fakeTeamFactory = new(dbfakes.FakeTeamFactory)
+		fakeBuildFactory = new(dbfakes.FakeBuildFactory)
 		fakeTeam = new(dbfakes.FakeTeam)
 		fakePipeline = new(dbfakes.FakePipeline)
 
@@ -169,6 +180,7 @@ jobs:
 			stepMetadata,
 			fakeDelegate,
 			fakeTeamFactory,
+			fakeBuildFactory,
 			fakeWorkerClient,
 		)
 
@@ -268,6 +280,13 @@ jobs:
 
 					It("should log no-diff", func() {
 						Expect(stdout).To(gbytes.Say("no diff found."))
+					})
+
+					FIt("should update the job and build id", func() {
+						Expect(fakePipeline.SetParentIDsCallCount()).To(Equal(1))
+						jobID, buildID := fakePipeline.SetParentIDsArgToCall(0)
+						Expect(jobID).To(Equal(stepMetadata.JobID))
+						Expect(buildID).To(Equal(stepMetadata.BuildID))
 					})
 				})
 
