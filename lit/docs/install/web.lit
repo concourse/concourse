@@ -148,8 +148,8 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
     \title{Reloading worker authorized key}
 
     While \reference{web-running}, the authorized worker key files are loaded at
-    startup. During the lifecycle of a \reference{web-node} new \code{worker} key
-    might be added or removed.
+    startup. During the lifecycle of a \reference{web-node} new \code{worker} keys
+    might be added or old ones removed.
 
     The authorized key file containing \code{workers} public keys can be reloaded without
     downtime by sending \code{SIGHUP} to the \code{web} process. The process
