@@ -490,26 +490,14 @@ func (step *RetryStep) Visit(v StepVisitor) error {
 }
 
 type TimeoutStep struct {
-	Step     StepConfig `json:"-"`
-	Duration string     `json:"timeout"`
+	Step StepConfig `json:"-"`
+
+	// it's very tempting to make this a Duration type, but that would probably
+	// prevent using `((vars))` to parameterize it
+	Duration string `json:"timeout"`
 }
 
 func (step *TimeoutStep) ParseJSON(data []byte) error {
-	// var s struct {
-	// 	Duration string `json:"timeout"`
-	// }
-	// err := json.Unmarshal(data, &s)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// dur, err := time.ParseDuration(s.Duration)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// step.Duration = dur
-
 	return json.Unmarshal(data, &step)
 }
 
