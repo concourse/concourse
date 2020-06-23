@@ -380,12 +380,20 @@ var factoryTests = []StepTest{
 		},
 	},
 	{
-		Title: "unknown fields",
+		Title: "unknown field with get step",
 		ConfigYAML: `
 			get: some-name
 			bogus: foo
 		`,
 		Err: `error unmarshaling JSON: while decoding JSON: malformed get step: json: unknown field "bogus"`,
+	},
+	{
+		Title: "multiple steps defined",
+		ConfigYAML: `
+			put: some-name
+			get: some-other-name
+		`,
+		Err: `error unmarshaling JSON: while decoding JSON: malformed put step: json: unknown field "get"`,
 	},
 }
 

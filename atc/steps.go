@@ -58,7 +58,7 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 		err := step.ParseJSON(data)
 		if err != nil {
 			return MalformedStepError{
-				StepType: "get",
+				StepType: s.Key,
 				Err:      err,
 			}
 		}
