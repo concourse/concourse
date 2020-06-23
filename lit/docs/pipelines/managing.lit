@@ -138,3 +138,22 @@
   order. If there are other pipelines that you haven't included in the command,
   they may appear in-between, before, or after the given set.
 }
+
+\section{
+    \title{\code{fly archive-pipeline}}{fly-archive-pipeline}
+
+    Pipelines can be archived via fly. This means that the existing pipeline will
+    be paused and stays hidden on the concourse UI. Archived pipelines retains their
+    build logs associated with jobs, resources and resource types. When a new pipeline
+    with a same name is configured, it retains the build logs from the archived pipeline
+    with same name. Any new jobs is appended to the jobs from the archived pipeline.
+    Any job not mentioned in the new pipeline is omitted.
+
+    To unarchive a pipeline, simply reset it with the same name using {\code{fly set-pipeline}}
+
+    \codeblock{bash}{{
+    $ fly -t example archive-pipeline -p pipeline-1
+    }}
+
+    Note that the config related to the jobs in a pipeline will be deleted due to security concerns.
+}
