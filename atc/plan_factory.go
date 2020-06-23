@@ -16,11 +16,11 @@ func NewPlanFactory(startingNum int64) PlanFactory {
 	}
 }
 
-type PlanConfigXXX interface {
+type PlanConfig interface {
 	Public() *json.RawMessage
 }
 
-func (factory PlanFactory) NewPlan(step PlanConfigXXX) Plan {
+func (factory PlanFactory) NewPlan(step PlanConfig) Plan {
 	num := atomic.AddInt64(factory.currentNum, 1)
 
 	var plan Plan
