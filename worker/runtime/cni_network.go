@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/containerd/containerd"
@@ -139,12 +140,21 @@ func WithCNIFileStore(f FileStore) CNINetworkOpt {
 	}
 }
 
+// WithRestrictedNetworks defines the network ranges that containers will be restricted
+// from accessing.
+func WithRestrictedNetworks(restrictedNetworks []string) CNINetworkOpt {
+	return func(n *cniNetwork) {
+		n.restrictedNetworks = restrictedNetworks
+	}
+}
+
 type cniNetwork struct {
-	client      cni.CNI
-	store       FileStore
-	config      CNINetworkConfig
-	nameServers []string
-	binariesDir string
+	client             cni.CNI
+	store              FileStore
+	config             CNINetworkConfig
+	nameServers        []string
+	binariesDir        string
+	restrictedNetworks []string
 }
 
 var _ Network = (*cniNetwork)(nil)
@@ -179,6 +189,11 @@ func NewCNINetwork(opts ...CNINetworkOpt) (*cniNetwork, error) {
 		if err != nil {
 			return nil, fmt.Errorf("cni configuration loading: %w", err)
 		}
+	}
+
+	err = n.setupRestrictedNetworks()
+	if err != nil {
+		return nil, fmt.Errorf("setup restricted networks failed: %w", err)
 	}
 
 	return n, nil
@@ -218,6 +233,63 @@ func (n cniNetwork) SetupMounts(handle string) ([]specs.Mount, error) {
 			Options:     []string{"bind", "rw"},
 		},
 	}, nil
+}
+
+func (n cniNetwork) setupRestrictedNetworks() error {
+	err := createIptablesChain()
+	if err != nil {
+		return err
+	}
+
+	for _, network := range n.restrictedNetworks {
+		err = createRejectRules(network, "CNI-ADMIN")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Create chain - ignore error if it already exists
+func createIptablesChain() error {
+	cmd := exec.Command("iptables", "-t", "filter", "-N", "CNI-ADMIN")
+	_, err := cmd.Output()
+
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			// Ignore error if Chain already exists
+			if string(exitErr.Stderr) != "iptables: Chain already exists.\n" {
+				return fmt.Errorf("failed to create iptables chain CNI-ADMIN: %s", string(exitErr.Stderr))
+			}
+		} else {
+			return fmt.Errorf("failed to create iptables chain CNI-ADMIN: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// Check reject rule - check if rule exists in chain, otherwise clear chain and add rule
+func createRejectRules(restrictedNetwork string, targetChain string) error {
+	// Check if reject rule exists
+	cmd := exec.Command("iptables", "-C", targetChain, "-d", restrictedNetwork, "-j", "REJECT")
+	err := cmd.Run()
+	if err != nil {
+		// Delete all rules in chain
+		cmd = exec.Command("iptables", "-F", targetChain)
+		err = cmd.Run()
+		if err != nil {
+			return fmt.Errorf("failed to flush chain: %w", err)
+		}
+		// Append reject rule
+		cmd = exec.Command("iptables", "-A", targetChain, "-d", restrictedNetwork, "-j", "REJECT")
+		err = cmd.Run()
+		if err != nil {
+			return fmt.Errorf("failed to create REJECT rule: %w", err)
+		}
+
+	}
+	return nil
 }
 
 func (n cniNetwork) generateResolvConfContents() []byte {
