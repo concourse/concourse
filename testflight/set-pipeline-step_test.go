@@ -8,14 +8,15 @@ import (
 )
 
 var _ = Describe("set-pipeline Step", func() {
-	const (
-		createdPipelineName = "created-pipeline"
+	var (
+		createdPipelineName string
+		currentTeamName     string
+		currentFlyTarget    string
 	)
 
-	var (
-		currentTeamName  string
-		currentFlyTarget string
-	)
+	BeforeEach(func() {
+		createdPipelineName = randomPipelineName()
+	})
 
 	JustBeforeEach(func() {
 		withFlyTarget(currentFlyTarget, func() {
@@ -52,7 +53,7 @@ var _ = Describe("set-pipeline Step", func() {
 
 			By("set-pipeline step should succeed")
 			execS = fly("trigger-job", "-w", "-j", pipelineName+"/sp")
-			Expect(execS.Out).To(gbytes.Say("setting pipeline: created-pipeline"))
+			Expect(execS.Out).To(gbytes.Say("setting pipeline: " + createdPipelineName))
 			Expect(execS.Out).To(gbytes.Say("done"))
 
 			By("should trigger the second pipeline job successfully")
@@ -79,7 +80,7 @@ var _ = Describe("set-pipeline Step", func() {
 			By("set-pipeline step should succeed")
 			withFlyTarget(adminFlyTarget, func() {
 				execS := fly("trigger-job", "-w", "-j", pipelineName+"/sp")
-				Expect(execS.Out).To(gbytes.Say("setting pipeline: created-pipeline"))
+				Expect(execS.Out).To(gbytes.Say("setting pipeline: " + createdPipelineName))
 				Expect(execS.Out).To(gbytes.Say("done"))
 			})
 
