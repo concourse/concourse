@@ -250,7 +250,7 @@ func (versions VersionsDB) FindVersionOfResource(ctx context.Context, resourceID
 		Where(sq.Eq{
 			"r.id": resourceID,
 		}).
-		Where(sq.Expr("rcv.version_md5 = md5(?)", versionJSON)).
+		Where(sq.Expr("rcv.version @> ?", versionJSON)).
 		RunWith(versions.conn).
 		QueryRowContext(ctx).
 		Scan(&version)
