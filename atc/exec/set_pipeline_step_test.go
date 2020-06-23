@@ -94,14 +94,7 @@ jobs:
 
 		credVarsTracker vars.CredVarsTracker
 
-		stepMetadata = exec.StepMetadata{
-			TeamID:       123,
-			TeamName:     "some-team",
-			BuildID:      42,
-			BuildName:    "some-build",
-			PipelineID:   4567,
-			PipelineName: "some-pipeline",
-		}
+		stepMetadata exec.StepMetadata
 
 		stdout, stderr *gbytes.Buffer
 
@@ -135,7 +128,18 @@ jobs:
 		fakeTeam = new(dbfakes.FakeTeam)
 		fakePipeline = new(dbfakes.FakePipeline)
 
-		fakeTeam.NameReturns("some-team")
+		stepMetadata = exec.StepMetadata{
+			TeamID:       123,
+			TeamName:     "some-team",
+			BuildID:      42,
+			BuildName:    "some-build",
+			PipelineID:   4567,
+			PipelineName: "some-pipeline",
+		}
+
+		fakeTeam.IDReturns(stepMetadata.TeamID)
+		fakeTeam.NameReturns(stepMetadata.TeamName)
+
 		fakePipeline.NameReturns("some-pipeline")
 		fakeTeamFactory.GetByIDReturns(fakeTeam)
 
@@ -303,6 +307,117 @@ jobs:
 					Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 					_, succeeded := fakeDelegate.FinishedArgsForCall(0)
 					Expect(succeeded).To(BeTrue())
+				})
+			})
+
+			Context("when team is configured", func() {
+				var (
+					fakeUserCurrentTeam *dbfakes.FakeTeam
+				)
+
+				BeforeEach(func() {
+					fakeUserCurrentTeam = new(dbfakes.FakeTeam)
+					fakeUserCurrentTeam.IDReturns(111)
+					fakeUserCurrentTeam.NameReturns("main")
+					fakeUserCurrentTeam.AdminReturns(false)
+
+					stepMetadata.TeamID = fakeUserCurrentTeam.ID()
+					stepMetadata.TeamName = fakeUserCurrentTeam.Name()
+					fakeTeamFactory.FindTeamReturnsOnCall(
+						0,
+						fakeUserCurrentTeam, true, nil,
+					)
+				})
+
+				Context("when team is set to the empty string", func() {
+					BeforeEach(func() {
+						fakeTeam.PipelineReturns(fakePipeline, true, nil)
+						fakeTeam.SavePipelineReturns(fakePipeline, false, nil)
+						spPlan.Team = ""
+					})
+
+					It("should finish successfully", func() {
+						Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+						_, succeeded := fakeDelegate.FinishedArgsForCall(0)
+						Expect(succeeded).To(BeTrue())
+					})
+				})
+
+				Context("when team does not exist", func() {
+					BeforeEach(func() {
+						spPlan.Team = "not-found"
+						fakeTeamFactory.FindTeamReturnsOnCall(
+							1,
+							nil, false, nil,
+						)
+					})
+
+					It("should return error", func() {
+						Expect(stepErr).To(HaveOccurred())
+						Expect(stepErr.Error()).To(Equal("team not-found not found"))
+					})
+				})
+
+				Context("when team exists", func() {
+					Context("when the target team is the current team", func() {
+						BeforeEach(func() {
+							spPlan.Team = fakeUserCurrentTeam.Name()
+							fakeTeamFactory.FindTeamReturnsOnCall(
+								1,
+								fakeUserCurrentTeam, true, nil,
+							)
+
+							fakeUserCurrentTeam.PipelineReturns(fakePipeline, true, nil)
+							fakeUserCurrentTeam.SavePipelineReturns(fakePipeline, false, nil)
+						})
+
+						It("should finish successfully", func() {
+							Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+							_, succeeded := fakeDelegate.FinishedArgsForCall(0)
+							Expect(succeeded).To(BeTrue())
+						})
+
+						It("should print an experimental message", func() {
+							Expect(stderr).To(gbytes.Say("WARNING: specifying the team"))
+							Expect(stderr).To(gbytes.Say("contribute to discussion #5731"))
+							Expect(stderr).To(gbytes.Say("discussions/5731"))
+						})
+					})
+
+					Context("when the team is not the current team", func() {
+						BeforeEach(func() {
+							spPlan.Team = fakeTeam.Name()
+							fakeTeamFactory.FindTeamReturnsOnCall(
+								1,
+								fakeTeam, true, nil,
+							)
+						})
+
+						Context("when the current team is an admin team", func() {
+							BeforeEach(func() {
+								fakeUserCurrentTeam.AdminReturns(true)
+
+								fakeTeam.PipelineReturns(fakePipeline, true, nil)
+								fakeTeam.SavePipelineReturns(fakePipeline, false, nil)
+							})
+
+							It("should finish successfully", func() {
+								Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+								_, succeeded := fakeDelegate.FinishedArgsForCall(0)
+								Expect(succeeded).To(BeTrue())
+							})
+						})
+
+						Context("when the current team is not an admin team", func() {
+							It("should return error", func() {
+
+								Expect(stepErr).To(HaveOccurred())
+								Expect(stepErr.Error()).To(Equal(
+									"only main team can set another team's pipeline",
+								))
+							})
+						})
+					})
 				})
 			})
 		})

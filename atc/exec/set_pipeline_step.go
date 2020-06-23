@@ -130,7 +130,47 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 		return nil
 	}
 
-	team := step.teamFactory.GetByID(step.metadata.TeamID)
+	var team db.Team
+	if step.plan.Team == "" {
+		team = step.teamFactory.GetByID(step.metadata.TeamID)
+	} else {
+		fmt.Fprintln(stderr, "\x1b[1;33mWARNING: specifying the team in a set_pipeline step is experimental and may be removed in the future!\x1b[0m")
+		fmt.Fprintln(stderr, "")
+		fmt.Fprintln(stderr, "\x1b[33mcontribute to discussion #5731 with feedback: https://github.com/concourse/concourse/discussions/5731\x1b[0m")
+		fmt.Fprintln(stderr, "")
+
+		currentTeam, found, err := step.teamFactory.FindTeam(step.metadata.TeamName)
+		if err != nil {
+			return err
+		}
+		if !found {
+			return fmt.Errorf("team %s not found", step.metadata.TeamName)
+		}
+
+		targetTeam, found, err := step.teamFactory.FindTeam(step.plan.Team)
+		if err != nil {
+			return err
+		}
+		if !found {
+			return fmt.Errorf("team %s not found", step.plan.Team)
+		}
+
+		permitted := false
+		if targetTeam.ID() == currentTeam.ID() {
+			permitted = true
+		}
+		if currentTeam.Admin() {
+			permitted = true
+		}
+		if !permitted {
+			return fmt.Errorf(
+				"only %s team can set another team's pipeline",
+				atc.DefaultTeamName,
+			)
+		}
+
+		team = targetTeam
+	}
 
 	fromVersion := db.ConfigVersion(0)
 	pipeline, found, err := team.Pipeline(step.plan.Name)

@@ -281,6 +281,7 @@ func (factory *buildFactory) basePlan(
 		plan = factory.planFactory.NewPlan(atc.SetPipelinePlan{
 			Name:     name,
 			File:     planConfig.File,
+			Team:     planConfig.Team,
 			Vars:     planConfig.Vars,
 			VarFiles: planConfig.VarFiles,
 		})
