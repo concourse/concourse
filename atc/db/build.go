@@ -1500,8 +1500,8 @@ func (b *build) SavePipeline(
 
 	defer Rollback(tx)
 
-	jobID := sql.NullInt64{Valid: true, Int64: int64(b.jobID)}
-	buildID := sql.NullInt64{Valid: true, Int64: int64(b.id)}
+	jobID := newNullInt64(b.jobID)
+	buildID := newNullInt64(b.id)
 	pipelineID, isNewPipeline, err := savePipeline(tx, pipelineName, config, from, initiallyPaused, b.teamID, jobID, buildID)
 	if err != nil {
 		return nil, false, err
@@ -1525,6 +1525,13 @@ func (b *build) SavePipeline(
 	}
 
 	return pipeline, isNewPipeline, nil
+}
+
+func newNullInt64(i int) sql.NullInt64 {
+	return sql.NullInt64{
+		Valid: true,
+		Int64: int64(i),
+	}
 }
 
 func createBuildEventSeq(tx Tx, buildid int) error {
