@@ -681,10 +681,10 @@ by configuring \reference{schema.step.on_failure} or
       }
 
       \optional-attribute{team}{identifier}{
-        By default the \code{set_pipeline} step sets pipelines for the
-        pipeline's \reference{teams}{team}.
+        By default, the \code{set_pipeline} step sets the pipeline for the
+        same \reference{teams}{team} that is running the build.
 
-        The \code{team} attribute can be used to specify a specific team.
+        The \code{team} attribute can be used to specify another team.
 
         Only the \reference{main-team} is allowed to set another team's
         pipeline.  Any team other than the \reference{main-team} using the
@@ -692,8 +692,10 @@ by configuring \reference{schema.step.on_failure} or
 
         \warn{
           The \code{team} attribute was introduced in Concourse v6.4.0. It is
-          considered an \bold{experimental} feature until its associated
-          \link{RFC}{https://github.com/concourse/rfcs/pull/31} is resolved.
+          considered an \bold{experimental} feature and may be removed at any
+          time. Contribute to the associated
+          \link{discussion}{https://github.com/concourse/concourse/discussions/5731}
+          with feedback.
         }
       }
     }
