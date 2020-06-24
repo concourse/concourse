@@ -7,6 +7,7 @@ port module Message.Subscription exposing
     , runSubscription
     )
 
+import Api.EventSource exposing (EventEnvelope, decodeEventEnvelope)
 import Browser
 import Browser.Events
     exposing
@@ -17,9 +18,9 @@ import Browser.Events
         , onMouseUp
         , onResize
         )
-import Build.StepTree.Models exposing (BuildEventEnvelope)
+import Build.StepTree.Models exposing (BuildEvent)
 import Concourse exposing (DatabaseID, decodeJob, decodePipeline, decodeTeam)
-import Concourse.BuildEvents exposing (decodeBuildEventEnvelope)
+import Concourse.BuildEvents exposing (decodeRawBuildEvent)
 import Json.Decode
 import Json.Encode
 import Keyboard
@@ -101,7 +102,7 @@ type Delivery
     | ClockTicked Interval Time.Posix
     | WindowResized Float Float
     | NonHrefLinkClicked String -- must be a String because we can't parse it out too easily :(
-    | BuildEventsReceived (Result Json.Decode.Error (List BuildEventEnvelope))
+    | BuildEventsReceived (Result Json.Decode.Error (List (EventEnvelope BuildEvent)))
     | RouteChanged Routes.Route
     | UrlRequest Browser.UrlRequest
     | ElementVisible ( String, Bool )
@@ -154,7 +155,9 @@ runSubscription s =
                         "BuildEvents" ->
                             value
                                 |> Json.Decode.decodeValue
-                                    (Json.Decode.list decodeBuildEventEnvelope)
+                                    (Json.Decode.list <|
+                                        decodeEventEnvelope decodeRawBuildEvent
+                                    )
                                 |> BuildEventsReceived
 
                         _ ->

@@ -8,12 +8,12 @@ module Build.Output.Output exposing
 
 import Ansi.Log
 import Api.Endpoints as Endpoints
+import Api.EventSource exposing (Event(..), EventEnvelope)
 import Array
 import Build.Output.Models exposing (OutputModel, OutputState(..))
 import Build.StepTree.Models as StepTree
     exposing
         ( BuildEvent(..)
-        , BuildEventEnvelope
         , StepState(..)
         , StepTree
         , StepTreeModel
@@ -104,7 +104,7 @@ planAndResourcesFetched buildId ( plan, resources ) model =
 
 
 handleEnvelopes :
-    List BuildEventEnvelope
+    List (EventEnvelope BuildEvent)
     -> OutputModel
     -> ( OutputModel, List Effect )
 handleEnvelopes envelopes model =
@@ -114,7 +114,7 @@ handleEnvelopes envelopes model =
 
 
 handleEnvelope :
-    BuildEventEnvelope
+    EventEnvelope BuildEvent
     -> ( OutputModel, List Effect )
     -> ( OutputModel, List Effect )
 handleEnvelope { url, data } ( model, effects ) =
@@ -130,7 +130,7 @@ handleEnvelope { url, data } ( model, effects ) =
 
 
 handleEvent :
-    BuildEvent
+    Event BuildEvent
     -> ( OutputModel, List Effect )
     -> ( OutputModel, List Effect )
 handleEvent event ( model, effects ) =
@@ -140,87 +140,87 @@ handleEvent event ( model, effects ) =
             , effects
             )
 
-        Log origin output time ->
+        Event (Log origin output time) ->
             ( updateStep origin.id (setRunning << appendStepLog output time) model
             , effects
             )
 
-        SelectedWorker origin output time ->
+        Event (SelectedWorker origin output time) ->
             ( updateStep origin.id (setRunning << appendStepLog ("\u{001B}[1mselected worker: \u{001B}[0m" ++ output ++ "\n") time) model
             , effects
             )
 
-        Error origin message time ->
+        Event (Error origin message time) ->
             ( updateStep origin.id (setStepError message time) model
             , effects
             )
 
-        InitializeTask origin time ->
+        Event (InitializeTask origin time) ->
             ( updateStep origin.id (setInitialize time) model
             , effects
             )
 
-        StartTask origin time ->
+        Event (StartTask origin time) ->
             ( updateStep origin.id (setStart time) model
             , effects
             )
 
-        FinishTask origin exitStatus time ->
+        Event (FinishTask origin exitStatus time) ->
             ( updateStep origin.id (finishStep (exitStatus == 0) (Just time)) model
             , effects
             )
 
-        Initialize origin time ->
+        Event (Initialize origin time) ->
             ( updateStep origin.id (setInitialize time) model
             , effects
             )
 
-        Start origin time ->
+        Event (Start origin time) ->
             ( updateStep origin.id (setStart time) model
             , effects
             )
 
-        Finish origin time succeeded ->
+        Event (Finish origin time succeeded) ->
             ( updateStep origin.id (finishStep succeeded (Just time)) model
             , effects
             )
 
-        InitializeGet origin time ->
+        Event (InitializeGet origin time) ->
             ( updateStep origin.id (setInitialize time) model
             , effects
             )
 
-        StartGet origin time ->
+        Event (StartGet origin time) ->
             ( updateStep origin.id (setStart time) model
             , effects
             )
 
-        FinishGet origin exitStatus version metadata time ->
+        Event (FinishGet origin exitStatus version metadata time) ->
             ( updateStep origin.id (finishStep (exitStatus == 0) time << setResourceInfo version metadata) model
             , effects
             )
 
-        InitializePut origin time ->
+        Event (InitializePut origin time) ->
             ( updateStep origin.id (setInitialize time) model
             , effects
             )
 
-        StartPut origin time ->
+        Event (StartPut origin time) ->
             ( updateStep origin.id (setStart time) model
             , effects
             )
 
-        FinishPut origin exitStatus version metadata time ->
+        Event (FinishPut origin exitStatus version metadata time) ->
             ( updateStep origin.id (finishStep (exitStatus == 0) time << setResourceInfo version metadata) model
             , effects
             )
 
-        SetPipelineChanged origin changed ->
+        Event (SetPipelineChanged origin changed) ->
             ( updateStep origin.id (setSetPipelineChanged changed) model
             , effects
             )
 
-        BuildStatus status _ ->
+        Event (BuildStatus status _) ->
             let
                 newSt =
                     model.steps
@@ -235,7 +235,7 @@ handleEvent event ( model, effects ) =
             in
             ( { model | steps = newSt }, effects )
 
-        End ->
+        Event End ->
             ( { model | state = StepsComplete, eventStreamUrlPath = Nothing }
             , effects
             )

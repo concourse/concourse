@@ -1,5 +1,6 @@
 module Build.HeaderTests exposing (all)
 
+import Api.EventSource exposing (Event(..))
 import Application.Models exposing (Session)
 import Build.Header.Header as Header
 import Build.Header.Models as Models
@@ -260,8 +261,9 @@ all =
                         (Subscription.BuildEventsReceived <|
                             Ok
                                 [ { data =
-                                        STModels.BuildStatus BuildStatusSucceeded <|
-                                            Time.millisToPosix 1000
+                                        Event <|
+                                            STModels.BuildStatus BuildStatusSucceeded <|
+                                                Time.millisToPosix 1000
                                   , url = "http://localhost:8080/api/v1/builds/0/events"
                                   }
                                 ]
@@ -287,7 +289,10 @@ all =
                     |> Header.handleDelivery
                         (Subscription.BuildEventsReceived <|
                             Ok
-                                [ { data = STModels.BuildStatus BuildStatusStarted <| Time.millisToPosix 0
+                                [ { data =
+                                        Event <|
+                                            STModels.BuildStatus BuildStatusStarted <|
+                                                Time.millisToPosix 0
                                   , url = "http://localhost:8080/api/v1/builds/1/events"
                                   }
                                 ]

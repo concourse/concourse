@@ -1,13 +1,13 @@
 module Concourse.BuildEvents exposing
     ( dateFromSeconds
     , decodeBuildEvent
-    , decodeBuildEventEnvelope
     , decodeErrorEvent
     , decodeFinishResource
     , decodeOrigin
+    , decodeRawBuildEvent
     )
 
-import Build.StepTree.Models exposing (BuildEvent(..), BuildEventEnvelope, Origin)
+import Build.StepTree.Models exposing (BuildEvent(..), Origin)
 import Concourse
 import Concourse.BuildStatus
 import Dict
@@ -15,52 +15,28 @@ import Json.Decode
 import Time
 
 
-decodeBuildEventEnvelope : Json.Decode.Decoder BuildEventEnvelope
-decodeBuildEventEnvelope =
-    let
-        typeDecoder =
-            Json.Decode.field
-                "type"
-                Json.Decode.string
+decodeRawBuildEvent : String -> Json.Decode.Decoder BuildEvent
+decodeRawBuildEvent eventType =
+    case eventType of
+        "end" ->
+            Json.Decode.succeed End
 
-        urlDecoder =
-            Json.Decode.at [ "target", "url" ] Json.Decode.string
-
-        dataDecoder =
-            typeDecoder
+        _ ->
+            Json.Decode.field "data" Json.Decode.string
                 |> Json.Decode.andThen
-                    (\t ->
-                        case t of
-                            "end" ->
-                                Json.Decode.succeed End
+                    (\rawEvent ->
+                        case
+                            Json.Decode.decodeString
+                                decodeBuildEvent
+                                rawEvent
+                        of
+                            Ok event ->
+                                Json.Decode.succeed event
 
-                            "open" ->
-                                Json.Decode.succeed Opened
-
-                            "error" ->
-                                Json.Decode.succeed NetworkError
-
-                            _ ->
-                                Json.Decode.field "data" Json.Decode.string
-                                    |> Json.Decode.andThen
-                                        (\rawEvent ->
-                                            case
-                                                Json.Decode.decodeString
-                                                    decodeBuildEvent
-                                                    rawEvent
-                                            of
-                                                Ok event ->
-                                                    Json.Decode.succeed event
-
-                                                Err err ->
-                                                    Json.Decode.fail <|
-                                                        Json.Decode.errorToString err
-                                        )
+                            Err err ->
+                                Json.Decode.fail <|
+                                    Json.Decode.errorToString err
                     )
-    in
-    Json.Decode.map2 BuildEventEnvelope
-        dataDecoder
-        urlDecoder
 
 
 decodeBuildEvent : Json.Decode.Decoder BuildEvent

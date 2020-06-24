@@ -1,6 +1,5 @@
 module Build.StepTree.Models exposing
     ( BuildEvent(..)
-    , BuildEventEnvelope
     , HookedStep
     , MetadataField
     , Origin
@@ -254,12 +253,6 @@ type TabFocus
     | User
 
 
-type alias BuildEventEnvelope =
-    { data : BuildEvent
-    , url : String
-    }
-
-
 type BuildEvent
     = BuildStatus BuildStatus Time.Posix
     | InitializeTask Origin Time.Posix
@@ -279,8 +272,6 @@ type BuildEvent
     | SelectedWorker Origin String (Maybe Time.Posix)
     | Error Origin String Time.Posix
     | End
-    | Opened
-    | NetworkError
 
 
 type alias Origin =

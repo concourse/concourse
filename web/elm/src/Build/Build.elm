@@ -13,7 +13,7 @@ module Build.Build exposing
     , view
     )
 
-import Api.Endpoints as Endpoints
+import Api.EventSource exposing (Event(..))
 import Application.Models exposing (Session)
 import Assets
 import Build.Header.Header as Header
@@ -151,7 +151,7 @@ subscriptions model =
                 Nothing ->
                     []
 
-                Just url ->
+                Just _ ->
                     [ Subscription.FromEventSource ]
            )
 
@@ -343,7 +343,7 @@ handleDelivery session delivery ( model, effects ) =
                         |> List.filterMap
                             (\{ data } ->
                                 case data of
-                                    STModels.BuildStatus status date ->
+                                    Event (STModels.BuildStatus status date) ->
                                         Just ( status, date )
 
                                     _ ->
@@ -354,7 +354,13 @@ handleDelivery session delivery ( model, effects ) =
                 ( newModel, newEffects ) =
                     updateOutput
                         (Build.Output.Output.handleEnvelopes envelopes)
-                        (if eventSourceClosed && (envelopes |> List.map .data |> List.member STModels.NetworkError) then
+                        (if
+                            eventSourceClosed
+                                && (envelopes
+                                        |> List.map .data
+                                        |> List.member NetworkError
+                                   )
+                         then
                             ( { model | authorized = False }, effects )
 
                          else
