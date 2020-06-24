@@ -209,7 +209,7 @@ run: {path: a/file}
 			})
 
 			It("returns an error", func() {
-				Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  missing 'platform'")))
+				Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("missing 'platform'")))
 			})
 		})
 
@@ -325,7 +325,7 @@ run: {path: a/file}
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  input in position 1 is missing a name")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("input in position 1 is missing a name")))
 				})
 			})
 
@@ -342,8 +342,8 @@ run: {path: a/file}
 				It("returns an error", func() {
 					err := invalidConfig.Validate()
 
-					Expect(err).To(MatchError(ContainSubstring("  input in position 1 is missing a name")))
-					Expect(err).To(MatchError(ContainSubstring("  input in position 2 is missing a name")))
+					Expect(err).To(MatchError(ContainSubstring("input in position 1 is missing a name")))
+					Expect(err).To(MatchError(ContainSubstring("input in position 2 is missing a name")))
 				})
 			})
 		})
@@ -363,7 +363,7 @@ run: {path: a/file}
 				})
 
 				It("returns an error", func() {
-					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  output in position 1 is missing a name")))
+					Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("output in position 1 is missing a name")))
 				})
 			})
 
@@ -380,8 +380,8 @@ run: {path: a/file}
 				It("returns an error", func() {
 					err := invalidConfig.Validate()
 
-					Expect(err).To(MatchError(ContainSubstring("  output in position 1 is missing a name")))
-					Expect(err).To(MatchError(ContainSubstring("  output in position 2 is missing a name")))
+					Expect(err).To(MatchError(ContainSubstring("output in position 1 is missing a name")))
+					Expect(err).To(MatchError(ContainSubstring("output in position 2 is missing a name")))
 				})
 			})
 		})
@@ -392,7 +392,7 @@ run: {path: a/file}
 			})
 
 			It("returns an error", func() {
-				Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("  missing path to executable to run")))
+				Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("missing path to executable to run")))
 			})
 		})
 

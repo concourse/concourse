@@ -52,18 +52,20 @@ jobs:
 		Jobs: atc.JobConfigs{
 			{
 				Name: "some-job",
-				PlanSequence: atc.PlanSequence{
+				PlanSequence: []atc.Step{
 					{
-						Task: "some-task",
-						TaskConfig: &atc.TaskConfig{
-							Platform: "linux",
-							ImageResource: &atc.ImageResource{
-								Type:   "registry-image",
-								Source: atc.Source{"repository": "busybox"},
-							},
-							Run: atc.TaskRunConfig{
-								Path: "echo",
-								Args: []string{"hello"},
+						Config: &atc.TaskStep{
+							Name: "some-task",
+							Config: &atc.TaskConfig{
+								Platform: "linux",
+								ImageResource: &atc.ImageResource{
+									Type:   "registry-image",
+									Source: atc.Source{"repository": "busybox"},
+								},
+								Run: atc.TaskRunConfig{
+									Path: "echo",
+									Args: []string{"hello"},
+								},
 							},
 						},
 					},
@@ -271,7 +273,7 @@ jobs:
 
 				Context("when there are some diff", func() {
 					BeforeEach(func() {
-						pipelineObject.Jobs[0].PlanSequence[0].TaskConfig.Run.Args = []string{"hello world"}
+						pipelineObject.Jobs[0].PlanSequence[0].Config.(*atc.TaskStep).Config.Run.Args = []string{"hello world"}
 						fakePipeline.ConfigReturns(pipelineObject, nil)
 					})
 

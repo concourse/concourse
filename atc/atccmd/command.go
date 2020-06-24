@@ -47,7 +47,6 @@ import (
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/scheduler"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
-	"github.com/concourse/concourse/atc/scheduler/factory"
 	"github.com/concourse/concourse/atc/syslog"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/image"
@@ -1033,7 +1032,7 @@ func (cmd *RunCommand) backendComponents(
 				&scheduler.Scheduler{
 					Algorithm: alg,
 					BuildStarter: scheduler.NewBuildStarter(
-						factory.NewBuildFactory(
+						builds.NewPlanner(
 							atc.NewPlanFactory(time.Now().Unix()),
 						),
 						alg),

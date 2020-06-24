@@ -3,9 +3,8 @@ package configvalidate_test
 import (
 	"strings"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/configvalidate"
-
-	. "github.com/concourse/concourse/atc"
 
 	// load dummy credential manager
 	_ "github.com/concourse/concourse/atc/creds/dummy"
@@ -16,14 +15,14 @@ import (
 
 var _ = Describe("ValidateConfig", func() {
 	var (
-		config Config
+		config atc.Config
 
 		errorMessages []string
 	)
 
 	BeforeEach(func() {
-		config = Config{
-			Groups: GroupConfigs{
+		config = atc.Config{
+			Groups: atc.GroupConfigs{
 				{
 					Name:      "some-group",
 					Jobs:      []string{"some-job"},
@@ -35,59 +34,69 @@ var _ = Describe("ValidateConfig", func() {
 				},
 			},
 
-			VarSources: VarSourceConfigs{},
+			VarSources: atc.VarSourceConfigs{},
 
-			Resources: ResourceConfigs{
+			Resources: atc.ResourceConfigs{
 				{
 					Name: "some-resource",
 					Type: "some-type",
-					Source: Source{
+					Source: atc.Source{
 						"source-config": "some-value",
 					},
 				},
 			},
 
-			ResourceTypes: ResourceTypes{
+			ResourceTypes: atc.ResourceTypes{
 				{
 					Name: "some-resource-type",
 					Type: "some-type",
-					Source: Source{
+					Source: atc.Source{
 						"source-config": "some-value",
 					},
 				},
 			},
 
-			Jobs: JobConfigs{
+			Jobs: atc.JobConfigs{
 				{
 					Name:   "some-job",
 					Public: true,
 					Serial: true,
-					PlanSequence: PlanSequence{
+					PlanSequence: []atc.Step{
 						{
-							Get:      "some-input",
-							Resource: "some-resource",
-							Params: Params{
-								"some-param": "some-value",
+							Config: &atc.GetStep{
+								Name:     "some-input",
+								Resource: "some-resource",
+								Params: atc.Params{
+									"some-param": "some-value",
+								},
 							},
 						},
 						{
-							LoadVar: "some-var",
-							File:    "some-input/some-file.json",
-						},
-						{
-							Task:       "some-task",
-							Privileged: true,
-							File:       "some/config/path.yml",
-						},
-						{
-							Put: "some-resource",
-							Params: Params{
-								"some-param": "some-value",
+							Config: &atc.LoadVarStep{
+								Name: "some-var",
+								File: "some-input/some-file.json",
 							},
 						},
 						{
-							SetPipeline: "some-pipeline",
-							File:        "some-file",
+							Config: &atc.TaskStep{
+								Name:       "some-task",
+								Privileged: true,
+								ConfigPath: "some/config/path.yml",
+							},
+						},
+						{
+							Config: &atc.PutStep{
+								Name: "some-resource",
+								Params: atc.Params{
+									"some-param": "some-value",
+								},
+							},
+						},
+						{
+							Config: &atc.SetPipelineStep{
+								Name: "some-pipeline",
+								File: "some-file",
+							},
 						},
 					},
 				},
@@ -111,7 +120,7 @@ var _ = Describe("ValidateConfig", func() {
 	Describe("invalid groups", func() {
 		Context("when the groups reference a bogus resource", func() {
 			BeforeEach(func() {
-				config.Groups = append(config.Groups, GroupConfig{
+				config.Groups = append(config.Groups, atc.GroupConfig{
 					Name:      "bogus",
 					Resources: []string{"bogus-resource"},
 				})
@@ -126,7 +135,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when the groups reference a bogus job", func() {
 			BeforeEach(func() {
-				config.Groups = append(config.Groups, GroupConfig{
+				config.Groups = append(config.Groups, atc.GroupConfig{
 					Name: "bogus",
 					Jobs: []string{"bogus-job"},
 				})
@@ -141,10 +150,10 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when there are jobs excluded from groups", func() {
 			BeforeEach(func() {
-				config.Jobs = append(config.Jobs, JobConfig{
+				config.Jobs = append(config.Jobs, atc.JobConfig{
 					Name: "stand-alone-job",
 				})
-				config.Jobs = append(config.Jobs, JobConfig{
+				config.Jobs = append(config.Jobs, atc.JobConfig{
 					Name: "other-stand-alone-job",
 				})
 			})
@@ -160,7 +169,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when the groups have two duplicate names", func() {
 			BeforeEach(func() {
-				config.Groups = append(config.Groups, GroupConfig{
+				config.Groups = append(config.Groups, atc.GroupConfig{
 					Name: "some-group",
 				})
 			})
@@ -174,11 +183,11 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when the groups have four duplicate names", func() {
 			BeforeEach(func() {
-				config.Groups = append(config.Groups, GroupConfig{
+				config.Groups = append(config.Groups, atc.GroupConfig{
 					Name: "some-group",
-				}, GroupConfig{
+				}, atc.GroupConfig{
 					Name: "some-group",
-				}, GroupConfig{
+				}, atc.GroupConfig{
 					Name: "some-group",
 				})
 			})
@@ -197,7 +206,7 @@ var _ = Describe("ValidateConfig", func() {
 	Describe("invalid var sources", func() {
 		Context("when a var source type is invalid", func() {
 			BeforeEach(func() {
-				config.VarSources = append(config.VarSources, VarSourceConfig{
+				config.VarSources = append(config.VarSources, atc.VarSourceConfig{
 					Name:   "some",
 					Type:   "some",
 					Config: "",
@@ -212,7 +221,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when config is invalid", func() {
 			BeforeEach(func() {
-				config.VarSources = append(config.VarSources, VarSourceConfig{
+				config.VarSources = append(config.VarSources, atc.VarSourceConfig{
 					Name:   "some",
 					Type:   "dummy",
 					Config: "",
@@ -228,14 +237,14 @@ var _ = Describe("ValidateConfig", func() {
 		Context("when duplicate var source names", func() {
 			BeforeEach(func() {
 				config.VarSources = append(config.VarSources,
-					VarSourceConfig{
+					atc.VarSourceConfig{
 						Name: "some",
 						Type: "dummy",
 						Config: map[string]interface{}{
 							"vars": map[string]interface{}{"k2": "v2"},
 						},
 					},
-					VarSourceConfig{
+					atc.VarSourceConfig{
 						Name: "some",
 						Type: "dummy",
 						Config: map[string]interface{}{
@@ -254,21 +263,21 @@ var _ = Describe("ValidateConfig", func() {
 		Context("when var source's dependency cannot be resolved", func() {
 			BeforeEach(func() {
 				config.VarSources = append(config.VarSources,
-					VarSourceConfig{
+					atc.VarSourceConfig{
 						Name: "s1",
 						Type: "dummy",
 						Config: map[string]interface{}{
 							"vars": map[string]interface{}{"k": "v"},
 						},
 					},
-					VarSourceConfig{
+					atc.VarSourceConfig{
 						Name: "s2",
 						Type: "dummy",
 						Config: map[string]interface{}{
 							"vars": map[string]interface{}{"k": "((s1:k))"},
 						},
 					},
-					VarSourceConfig{
+					atc.VarSourceConfig{
 						Name: "s3",
 						Type: "dummy",
 						Config: map[string]interface{}{
@@ -287,21 +296,21 @@ var _ = Describe("ValidateConfig", func() {
 		Context("when var source names are circular", func() {
 			BeforeEach(func() {
 				config.VarSources = append(config.VarSources,
-					VarSourceConfig{
+					atc.VarSourceConfig{
 						Name: "s1",
 						Type: "dummy",
 						Config: map[string]interface{}{
 							"vars": map[string]interface{}{"k": "((s3:v))"},
 						},
 					},
-					VarSourceConfig{
+					atc.VarSourceConfig{
 						Name: "s2",
 						Type: "dummy",
 						Config: map[string]interface{}{
 							"vars": map[string]interface{}{"k": "((s1:k))"},
 						},
 					},
-					VarSourceConfig{
+					atc.VarSourceConfig{
 						Name: "s3",
 						Type: "dummy",
 						Config: map[string]interface{}{
@@ -321,7 +330,7 @@ var _ = Describe("ValidateConfig", func() {
 	Describe("invalid resources", func() {
 		Context("when a resource has no name", func() {
 			BeforeEach(func() {
-				config.Resources = append(config.Resources, ResourceConfig{
+				config.Resources = append(config.Resources, atc.ResourceConfig{
 					Name: "",
 				})
 			})
@@ -335,7 +344,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a resource has no type", func() {
 			BeforeEach(func() {
-				config.Resources = append(config.Resources, ResourceConfig{
+				config.Resources = append(config.Resources, atc.ResourceConfig{
 					Name: "bogus-resource",
 					Type: "",
 				})
@@ -350,7 +359,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a resource has no name or type", func() {
 			BeforeEach(func() {
-				config.Resources = append(config.Resources, ResourceConfig{
+				config.Resources = append(config.Resources, atc.ResourceConfig{
 					Name: "",
 					Type: "",
 				})
@@ -381,8 +390,8 @@ var _ = Describe("ValidateConfig", func() {
 
 	Describe("unused resources", func() {
 		BeforeEach(func() {
-			config = Config{
-				Resources: ResourceConfigs{
+			config = atc.Config{
+				Resources: atc.ResourceConfigs{
 					{
 						Name: "unused-resource",
 						Type: "some-type",
@@ -449,104 +458,164 @@ var _ = Describe("ValidateConfig", func() {
 					},
 				},
 
-				Jobs: JobConfigs{
+				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
-						PlanSequence: PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Get: "get",
-							},
-							{
-								Get:      "get-alias",
-								Resource: "resource",
-							},
-							{
-								Put: "put",
-							},
-							{
-								Put:      "put-alias",
-								Resource: "resource",
-							},
-							{
-								Do: &PlanSequence{
-									{
-										Get: "do",
-									},
+								Config: &atc.GetStep{
+									Name: "get",
 								},
 							},
 							{
-								Aggregate: &PlanSequence{
-									{
-										Get: "aggregate",
-									},
+								Config: &atc.GetStep{
+									Name:     "get-alias",
+									Resource: "resource",
 								},
 							},
 							{
-								InParallel: &InParallelConfig{
-									Steps: PlanSequence{
+								Config: &atc.PutStep{
+									Name: "put",
+								},
+							},
+							{
+								Config: &atc.PutStep{
+									Name:     "put-alias",
+									Resource: "resource",
+								},
+							},
+							{
+								Config: &atc.DoStep{
+									Steps: []atc.Step{
 										{
-											Get: "parallel",
+											Config: &atc.GetStep{
+												Name: "do",
+											},
 										},
 									},
-									Limit:    1,
-									FailFast: true,
 								},
 							},
 							{
-								Task: "some-task",
-								File: "some/config/path.yml",
-								Abort: &PlanConfig{
-									Get: "abort",
+								Config: &atc.AggregateStep{
+									Steps: []atc.Step{
+										{
+											Config: &atc.GetStep{
+												Name: "aggregate",
+											},
+										},
+									},
 								},
 							},
 							{
-								Task: "some-task",
-								File: "some/config/path.yml",
-								Error: &PlanConfig{
-									Get: "error",
+								Config: &atc.InParallelStep{
+									Config: atc.InParallelConfig{
+										Steps: []atc.Step{
+											{
+												Config: &atc.GetStep{
+													Name: "parallel",
+												},
+											},
+										},
+										Limit:    1,
+										FailFast: true,
+									},
 								},
 							},
 							{
-								Task: "some-task",
-								File: "some/config/path.yml",
-								Failure: &PlanConfig{
-									Get: "failure",
+								Config: &atc.OnAbortStep{
+									Step: &atc.TaskStep{
+										Name:       "some-task",
+										ConfigPath: "some/config/path.yml",
+									},
+									Hook: atc.Step{
+										Config: &atc.GetStep{
+											Name: "abort",
+										},
+									},
 								},
 							},
 							{
-								Task: "some-task",
-								File: "some/config/path.yml",
-								Ensure: &PlanConfig{
-									Get: "ensure",
+								Config: &atc.OnErrorStep{
+									Step: &atc.TaskStep{
+										Name:       "some-task",
+										ConfigPath: "some/config/path.yml",
+									},
+									Hook: atc.Step{
+										Config: &atc.GetStep{
+											Name: "error",
+										},
+									},
 								},
 							},
 							{
-								Task: "some-task",
-								File: "some/config/path.yml",
-								Success: &PlanConfig{
-									Get: "success",
+								Config: &atc.OnFailureStep{
+									Step: &atc.TaskStep{
+										Name:       "some-task",
+										ConfigPath: "some/config/path.yml",
+									},
+									Hook: atc.Step{
+										Config: &atc.GetStep{
+											Name: "failure",
+										},
+									},
 								},
 							},
 							{
-								Try: &PlanConfig{
-									Get: "try",
+								Config: &atc.OnSuccessStep{
+									Step: &atc.TaskStep{
+										Name:       "some-task",
+										ConfigPath: "some/config/path.yml",
+									},
+									Hook: atc.Step{
+										Config: &atc.GetStep{
+											Name: "success",
+										},
+									},
 								},
 							},
 							{
-								Task: "some-task",
-								File: "some/config/path.yml",
+								Config: &atc.EnsureStep{
+									Step: &atc.TaskStep{
+										Name:       "some-task",
+										ConfigPath: "some/config/path.yml",
+									},
+									Hook: atc.Step{
+										Config: &atc.GetStep{
+											Name: "ensure",
+										},
+									},
+								},
+							},
+							{
+								Config: &atc.TryStep{
+									Step: atc.Step{
+										Config: &atc.GetStep{
+											Name: "try",
+										},
+									},
+								},
+							},
+							{
+								Config: &atc.TaskStep{
+									Name:       "some-task",
+									ConfigPath: "some/config/path.yml",
+								},
 							},
 						},
 					},
 					{
 						Name: "another-job",
-						PlanSequence: PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Get: "another-job",
+								Config: &atc.GetStep{
+									Name: "another-job",
+								},
 							},
 							{
-								Task: "some-task",
-								File: "some/config/path.yml",
+								Config: &atc.TaskStep{
+									Name:       "some-task",
+									ConfigPath: "some/config/path.yml",
+								},
 							},
 						},
 					},
@@ -567,7 +636,7 @@ var _ = Describe("ValidateConfig", func() {
 	Describe("invalid resource types", func() {
 		Context("when a resource type has no name", func() {
 			BeforeEach(func() {
-				config.ResourceTypes = append(config.ResourceTypes, ResourceType{
+				config.ResourceTypes = append(config.ResourceTypes, atc.ResourceType{
 					Name: "",
 				})
 			})
@@ -581,7 +650,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a resource has no type", func() {
 			BeforeEach(func() {
-				config.ResourceTypes = append(config.ResourceTypes, ResourceType{
+				config.ResourceTypes = append(config.ResourceTypes, atc.ResourceType{
 					Name: "bogus-resource-type",
 					Type: "",
 				})
@@ -596,7 +665,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a resource has no name or type", func() {
 			BeforeEach(func() {
-				config.ResourceTypes = append(config.ResourceTypes, ResourceType{
+				config.ResourceTypes = append(config.ResourceTypes, atc.ResourceType{
 					Name: "",
 					Type: "",
 				})
@@ -624,13 +693,13 @@ var _ = Describe("ValidateConfig", func() {
 	})
 
 	Describe("validating a job", func() {
-		var job JobConfig
+		var job atc.JobConfig
 
 		BeforeEach(func() {
-			job = JobConfig{
+			job = atc.JobConfig{
 				Name: "some-other-job",
 			}
-			config.Groups = []GroupConfig{}
+			config.Groups = []atc.GroupConfig{}
 		})
 
 		Context("when a job has no name", func() {
@@ -661,53 +730,78 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job has duplicate inputs", func() {
 			BeforeEach(func() {
-				job.PlanSequence = append(job.PlanSequence, PlanConfig{
-					Get: "some-resource",
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.GetStep{
+						Name: "some-resource",
+					},
 				})
-				job.PlanSequence = append(job.PlanSequence, PlanConfig{
-					Get: "some-resource",
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.GetStep{
+						Name: "some-resource",
+					},
+				})
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.GetStep{
+						Name: "some-resource",
+					},
 				})
 
 				config.Jobs = append(config.Jobs, job)
 			})
 
-			It("returns a single error", func() {
+			It("returns an error for each step", func() {
 				Expect(errorMessages).To(HaveLen(1))
 				Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-				Expect(strings.Count(errorMessages[0], "has get steps with the same name: some-resource")).To(Equal(1))
+				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[1].get(some-resource): repeated name"))
+				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[2].get(some-resource): repeated name"))
 			})
 		})
 
 		Context("when a job has duplicate inputs with different resources", func() {
 			BeforeEach(func() {
-				job.PlanSequence = append(job.PlanSequence, PlanConfig{
-					Get:      "some-resource",
-					Resource: "a",
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.GetStep{
+						Name:     "some-resource",
+						Resource: "a",
+					},
 				})
-				job.PlanSequence = append(job.PlanSequence, PlanConfig{
-					Get:      "some-resource",
-					Resource: "b",
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.GetStep{
+						Name:     "some-resource",
+						Resource: "b",
+					},
+				})
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.GetStep{
+						Name:     "some-resource",
+						Resource: "c",
+					},
 				})
 
 				config.Jobs = append(config.Jobs, job)
 			})
 
-			It("returns a single error", func() {
+			It("returns an error for each step", func() {
 				Expect(errorMessages).To(HaveLen(1))
 				Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-				Expect(strings.Count(errorMessages[0], "has get steps with the same name: some-resource")).To(Equal(1))
+				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[1].get(some-resource): repeated name"))
+				Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[2].get(some-resource): repeated name"))
 			})
 		})
 
 		Context("when a job gets the same resource multiple times but with different names", func() {
 			BeforeEach(func() {
-				job.PlanSequence = append(job.PlanSequence, PlanConfig{
-					Get:      "a",
-					Resource: "some-resource",
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.GetStep{
+						Name:     "a",
+						Resource: "some-resource",
+					},
 				})
-				job.PlanSequence = append(job.PlanSequence, PlanConfig{
-					Get:      "b",
-					Resource: "some-resource",
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.GetStep{
+						Name:     "b",
+						Resource: "some-resource",
+					},
 				})
 
 				config.Jobs = append(config.Jobs, job)
@@ -718,157 +812,13 @@ var _ = Describe("ValidateConfig", func() {
 			})
 		})
 
-		Context("when a job has duplicate inputs via aggregate", func() {
-			BeforeEach(func() {
-				job.PlanSequence = append(job.PlanSequence, PlanConfig{
-					Get: "some-resource",
-				})
-				job.PlanSequence = append(job.PlanSequence, PlanConfig{
-					Aggregate: &PlanSequence{
-						{
-							Get: "some-resource",
-						},
-					},
-				})
-
-				config.Jobs = append(config.Jobs, job)
-			})
-
-			It("returns a single error", func() {
-				Expect(errorMessages).To(HaveLen(1))
-				Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-				Expect(strings.Count(errorMessages[0], "has get steps with the same name: some-resource")).To(Equal(1))
-			})
-		})
-
-		Context("when a job has duplicate inputs via parallel", func() {
-			BeforeEach(func() {
-				job.PlanSequence = append(job.PlanSequence, PlanConfig{
-					Get: "some-resource",
-				})
-				job.PlanSequence = append(job.PlanSequence, PlanConfig{
-					InParallel: &InParallelConfig{
-						Steps: PlanSequence{
-							{
-								Get: "some-resource",
-							},
-						},
-						Limit:    1,
-						FailFast: true,
-					},
-				})
-
-				config.Jobs = append(config.Jobs, job)
-			})
-
-			It("returns a single error", func() {
-				Expect(errorMessages).To(HaveLen(1))
-				Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-				Expect(strings.Count(errorMessages[0], "has get steps with the same name: some-resource")).To(Equal(1))
-			})
-		})
-
 		Describe("plans", func() {
-			Context("when multiple actions are specified in the same plan", func() {
-				Context("when it's not just Get and Put", func() {
-					BeforeEach(func() {
-						job.PlanSequence = append(job.PlanSequence, PlanConfig{
-							Get:        "some-resource",
-							Put:        "some-resource",
-							Task:       "some-resource",
-							Do:         &PlanSequence{},
-							Aggregate:  &PlanSequence{},
-							InParallel: &InParallelConfig{},
-						})
-
-						config.Jobs = append(config.Jobs, job)
-					})
-
-					It("returns an error", func() {
-						Expect(errorMessages).To(HaveLen(1))
-						Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-						Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0] has multiple actions specified (aggregate, do, get, parallel, put, task)"))
-					})
-				})
-
-				Context("when it's just Get and Put (this was valid at one point)", func() {
-					BeforeEach(func() {
-						job.PlanSequence = append(job.PlanSequence, PlanConfig{
-							Get:        "some-resource",
-							Put:        "some-resource",
-							Task:       "",
-							Do:         nil,
-							Aggregate:  nil,
-							InParallel: nil,
-						})
-
-						config.Jobs = append(config.Jobs, job)
-					})
-
-					It("returns an error", func() {
-						Expect(errorMessages).To(HaveLen(1))
-						Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-						Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0] has multiple actions specified (get, put)"))
-					})
-				})
-			})
-
-			Context("when no actions are specified in the plan", func() {
-				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{})
-
-					config.Jobs = append(config.Jobs, job)
-				})
-
-				It("returns an error", func() {
-					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0] has no action specified"))
-				})
-			})
-
-			Context("when a get plan has task-only fields specified", func() {
-				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Get:        "lol",
-						Privileged: true,
-						File:       "task.yml",
-					})
-
-					config.Jobs = append(config.Jobs, job)
-				})
-
-				It("returns an error", func() {
-					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.lol has invalid fields specified (privileged, file)"))
-				})
-			})
-
-			Context("when a task plan has invalid fields specified", func() {
-				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Task:     "lol",
-						Resource: "some-resource",
-						Passed:   []string{"hi"},
-						Trigger:  true,
-					})
-
-					config.Jobs = append(config.Jobs, job)
-				})
-
-				It("returns an error", func() {
-					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].task.lol has invalid fields specified (resource, passed, trigger)"))
-				})
-			})
-
 			Context("when a task plan has neither a config or a path set", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Task:              "lol",
-						ImageArtifactName: "some-image",
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.TaskStep{
+							Name: "lol",
+						},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -877,18 +827,20 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].task.lol does not specify any task configuration"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(lol): must specify either `file:` or `config:`"))
 				})
 			})
 
 			Context("when a task plan has config path and config specified", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Task: "lol",
-						File: "task.yml",
-						TaskConfig: &TaskConfig{
-							Params: TaskEnv{
-								"param1": "value1",
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.TaskStep{
+							Name:       "lol",
+							ConfigPath: "task.yml",
+							Config: &atc.TaskConfig{
+								Params: atc.TaskEnv{
+									"param1": "value1",
+								},
 							},
 						},
 					})
@@ -899,17 +851,19 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].task.lol specifies both `file` and `config` in a task step"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(lol): must specify one of `file:` or `config:`, not both"))
 				})
 			})
 
 			Context("when a task plan is invalid", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Task: "some-resource",
-						TaskConfig: &TaskConfig{
-							Params: TaskEnv{
-								"param1": "value1",
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.TaskStep{
+							Name: "some-resource",
+							Config: &atc.TaskConfig{
+								Params: atc.TaskEnv{
+									"param1": "value1",
+								},
 							},
 						},
 					})
@@ -920,35 +874,17 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].task.some-resource missing 'platform'"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].task.some-resource missing path to executable to run"))
-				})
-			})
-
-			Context("when a put plan has invalid fields specified", func() {
-				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Put:        "lol",
-						Passed:     []string{"get", "only"},
-						Trigger:    true,
-						Privileged: true,
-						File:       "btaskyml",
-					})
-
-					config.Jobs = append(config.Jobs, job)
-				})
-
-				It("returns an error", func() {
-					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].put.lol has invalid fields specified (passed, trigger, privileged, file)"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(some-resource).config: missing 'platform'"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(some-resource).config: missing path to executable to run"))
 				})
 			})
 
 			Context("when a put plan has refers to a resource that does exist", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Put: "some-resource",
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.PutStep{
+							Name: "some-resource",
+						},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -961,8 +897,10 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a get plan has refers to a resource that does not exist", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Get: "some-nonexistent-resource",
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.GetStep{
+							Name: "some-nonexistent-resource",
+						},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -971,14 +909,16 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-nonexistent-resource refers to a resource that does not exist"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].get(some-nonexistent-resource): unknown resource 'some-nonexistent-resource'"))
 				})
 			})
 
 			Context("when a put plan has refers to a resource that does not exist", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Put: "some-nonexistent-resource",
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.PutStep{
+							Name: "some-nonexistent-resource",
+						},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -987,15 +927,17 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].put.some-nonexistent-resource refers to a resource that does not exist"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].put(some-nonexistent-resource): unknown resource 'some-nonexistent-resource'"))
 				})
 			})
 
 			Context("when a get plan has a custom name but refers to a resource that does exist", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Get:      "custom-name",
-						Resource: "some-resource",
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.GetStep{
+							Name:     "custom-name",
+							Resource: "some-resource",
+						},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -1008,9 +950,11 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a get plan has a custom name but refers to a resource that does not exist", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Get:      "custom-name",
-						Resource: "some-missing-resource",
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.GetStep{
+							Name:     "custom-name",
+							Resource: "some-missing-resource",
+						},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -1019,15 +963,17 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.custom-name refers to a resource that does not exist ('some-missing-resource')"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].get(custom-name): unknown resource 'some-missing-resource'"))
 				})
 			})
 
 			Context("when a put plan has a custom name but refers to a resource that does exist", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Put:      "custom-name",
-						Resource: "some-resource",
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.PutStep{
+							Name:     "custom-name",
+							Resource: "some-resource",
+						},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -1038,10 +984,30 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
+			Context("when a put plan has a custom name but refers to a resource that does not exist", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.PutStep{
+							Name:     "custom-name",
+							Resource: "some-missing-resource",
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does return an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].put(custom-name): unknown resource 'some-missing-resource'"))
+				})
+			})
+
 			Context("when a job success hook refers to a resource that does exist", func() {
 				BeforeEach(func() {
-					job.Success = &PlanConfig{
-						Get: "some-resource",
+					job.OnSuccess = &atc.Step{
+						Config: &atc.GetStep{
+							Name: "some-resource",
+						},
 					}
 
 					config.Jobs = append(config.Jobs, job)
@@ -1054,8 +1020,10 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a job success hook refers to a resource that does not exist", func() {
 				BeforeEach(func() {
-					job.Success = &PlanConfig{
-						Get: "some-nonexistent-resource",
+					job.OnSuccess = &atc.Step{
+						Config: &atc.GetStep{
+							Name: "some-nonexistent-resource",
+						},
 					}
 
 					config.Jobs = append(config.Jobs, job)
@@ -1064,14 +1032,16 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.on_success.get.some-nonexistent-resource refers to a resource that does not exist"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.on_success.get(some-nonexistent-resource): unknown resource 'some-nonexistent-resource'"))
 				})
 			})
 
 			Context("when a job failure hook refers to a resource that does exist", func() {
 				BeforeEach(func() {
-					job.Failure = &PlanConfig{
-						Get: "some-resource",
+					job.OnFailure = &atc.Step{
+						Config: &atc.GetStep{
+							Name: "some-resource",
+						},
 					}
 
 					config.Jobs = append(config.Jobs, job)
@@ -1084,8 +1054,10 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a job failure hook refers to a resource that does not exist", func() {
 				BeforeEach(func() {
-					job.Failure = &PlanConfig{
-						Get: "some-nonexistent-resource",
+					job.OnFailure = &atc.Step{
+						Config: &atc.GetStep{
+							Name: "some-nonexistent-resource",
+						},
 					}
 
 					config.Jobs = append(config.Jobs, job)
@@ -1094,14 +1066,16 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.on_failure.get.some-nonexistent-resource refers to a resource that does not exist"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.on_failure.get(some-nonexistent-resource): unknown resource 'some-nonexistent-resource'"))
 				})
 			})
 
 			Context("when a job error hook refers to a resource that does exist", func() {
 				BeforeEach(func() {
-					job.Error = &PlanConfig{
-						Get: "some-resource",
+					job.OnError = &atc.Step{
+						Config: &atc.GetStep{
+							Name: "some-resource",
+						},
 					}
 
 					config.Jobs = append(config.Jobs, job)
@@ -1114,8 +1088,10 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a job ensure hook refers to a resource that does not exist", func() {
 				BeforeEach(func() {
-					job.Error = &PlanConfig{
-						Get: "some-nonexistent-resource",
+					job.OnError = &atc.Step{
+						Config: &atc.GetStep{
+							Name: "some-nonexistent-resource",
+						},
 					}
 
 					config.Jobs = append(config.Jobs, job)
@@ -1124,14 +1100,16 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.on_error.get.some-nonexistent-resource refers to a resource that does not exist"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.on_error.get(some-nonexistent-resource): unknown resource 'some-nonexistent-resource'"))
 				})
 			})
 
 			Context("when a job abort hook refers to a resource that does exist", func() {
 				BeforeEach(func() {
-					job.Abort = &PlanConfig{
-						Get: "some-resource",
+					job.OnAbort = &atc.Step{
+						Config: &atc.GetStep{
+							Name: "some-resource",
+						},
 					}
 
 					config.Jobs = append(config.Jobs, job)
@@ -1144,8 +1122,10 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a job abort hook refers to a resource that does not exist", func() {
 				BeforeEach(func() {
-					job.Abort = &PlanConfig{
-						Get: "some-nonexistent-resource",
+					job.OnAbort = &atc.Step{
+						Config: &atc.GetStep{
+							Name: "some-nonexistent-resource",
+						},
 					}
 
 					config.Jobs = append(config.Jobs, job)
@@ -1154,14 +1134,16 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.on_abort.get.some-nonexistent-resource refers to a resource that does not exist"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.on_abort.get(some-nonexistent-resource): unknown resource 'some-nonexistent-resource'"))
 				})
 			})
 
 			Context("when a job ensure hook refers to a resource that does exist", func() {
 				BeforeEach(func() {
-					job.Ensure = &PlanConfig{
-						Get: "some-resource",
+					job.Ensure = &atc.Step{
+						Config: &atc.GetStep{
+							Name: "some-resource",
+						},
 					}
 
 					config.Jobs = append(config.Jobs, job)
@@ -1174,8 +1156,10 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a job ensure hook refers to a resource that does not exist", func() {
 				BeforeEach(func() {
-					job.Ensure = &PlanConfig{
-						Get: "some-nonexistent-resource",
+					job.Ensure = &atc.Step{
+						Config: &atc.GetStep{
+							Name: "some-nonexistent-resource",
+						},
 					}
 
 					config.Jobs = append(config.Jobs, job)
@@ -1184,34 +1168,42 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.ensure.get.some-nonexistent-resource refers to a resource that does not exist"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.ensure.get(some-nonexistent-resource): unknown resource 'some-nonexistent-resource'"))
 				})
 			})
 
 			Context("when a get plan refers to a 'put' resource that exists in another job's hook", func() {
 				var (
-					job1 JobConfig
-					job2 JobConfig
+					job1 atc.JobConfig
+					job2 atc.JobConfig
 				)
 				BeforeEach(func() {
-					job1 = JobConfig{
+					job1 = atc.JobConfig{
 						Name: "job-one",
 					}
-					job2 = JobConfig{
+					job2 = atc.JobConfig{
 						Name: "job-two",
 					}
 
-					job1.PlanSequence = append(job1.PlanSequence, PlanConfig{
-						Task: "job-one",
-						Success: &PlanConfig{
-							Put: "some-resource",
+					job1.PlanSequence = append(job1.PlanSequence, atc.Step{
+						Config: &atc.OnSuccessStep{
+							Step: &atc.TaskStep{
+								Name:       "job-one",
+								ConfigPath: "job-one-config-path",
+							},
+							Hook: atc.Step{
+								Config: &atc.PutStep{
+									Name: "some-resource",
+								},
+							},
 						},
-						File: "job-one-config-path",
 					})
 
-					job2.PlanSequence = append(job2.PlanSequence, PlanConfig{
-						Get:    "some-resource",
-						Passed: []string{"job-one"},
+					job2.PlanSequence = append(job2.PlanSequence, atc.Step{
+						Config: &atc.GetStep{
+							Name:   "some-resource",
+							Passed: []string{"job-one"},
+						},
 					})
 					config.Jobs = append(config.Jobs, job1, job2)
 				})
@@ -1223,28 +1215,36 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a get plan refers to a 'get' resource that exists in another job's hook", func() {
 				var (
-					job1 JobConfig
-					job2 JobConfig
+					job1 atc.JobConfig
+					job2 atc.JobConfig
 				)
 				BeforeEach(func() {
-					job1 = JobConfig{
+					job1 = atc.JobConfig{
 						Name: "job-one",
 					}
-					job2 = JobConfig{
+					job2 = atc.JobConfig{
 						Name: "job-two",
 					}
 
-					job1.PlanSequence = append(job1.PlanSequence, PlanConfig{
-						Task: "job-one",
-						Success: &PlanConfig{
-							Get: "some-resource",
+					job1.PlanSequence = append(job1.PlanSequence, atc.Step{
+						Config: &atc.OnSuccessStep{
+							Step: &atc.TaskStep{
+								Name:       "job-one",
+								ConfigPath: "job-one-config-path",
+							},
+							Hook: atc.Step{
+								Config: &atc.GetStep{
+									Name: "some-resource",
+								},
+							},
 						},
-						File: "job-one-config-path",
 					})
 
-					job2.PlanSequence = append(job2.PlanSequence, PlanConfig{
-						Get:    "some-resource",
-						Passed: []string{"job-one"},
+					job2.PlanSequence = append(job2.PlanSequence, atc.Step{
+						Config: &atc.GetStep{
+							Name:   "some-resource",
+							Passed: []string{"job-one"},
+						},
 					})
 					config.Jobs = append(config.Jobs, job1, job2)
 				})
@@ -1256,27 +1256,32 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a get plan refers to a 'put' resource that exists in another job's try-step", func() {
 				var (
-					job1 JobConfig
-					job2 JobConfig
+					job1 atc.JobConfig
+					job2 atc.JobConfig
 				)
 				BeforeEach(func() {
-					job1 = JobConfig{
+					job1 = atc.JobConfig{
 						Name: "job-one",
 					}
-					job2 = JobConfig{
+					job2 = atc.JobConfig{
 						Name: "job-two",
 					}
 
-					job1.PlanSequence = append(job1.PlanSequence, PlanConfig{
-						Try: &PlanConfig{
-							Put: "some-resource",
+					job1.PlanSequence = append(job1.PlanSequence, atc.Step{
+						Config: &atc.TryStep{
+							Step: atc.Step{
+								Config: &atc.PutStep{
+									Name: "some-resource",
+								},
+							},
 						},
-						File: "job-one-config-path",
 					})
 
-					job2.PlanSequence = append(job2.PlanSequence, PlanConfig{
-						Get:    "some-resource",
-						Passed: []string{"job-one"},
+					job2.PlanSequence = append(job2.PlanSequence, atc.Step{
+						Config: &atc.GetStep{
+							Name:   "some-resource",
+							Passed: []string{"job-one"},
+						},
 					})
 					config.Jobs = append(config.Jobs, job1, job2)
 
@@ -1289,27 +1294,32 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a get plan refers to a 'get' resource that exists in another job's try-step", func() {
 				var (
-					job1 JobConfig
-					job2 JobConfig
+					job1 atc.JobConfig
+					job2 atc.JobConfig
 				)
 				BeforeEach(func() {
-					job1 = JobConfig{
+					job1 = atc.JobConfig{
 						Name: "job-one",
 					}
-					job2 = JobConfig{
+					job2 = atc.JobConfig{
 						Name: "job-two",
 					}
 
-					job1.PlanSequence = append(job1.PlanSequence, PlanConfig{
-						Try: &PlanConfig{
-							Get: "some-resource",
+					job1.PlanSequence = append(job1.PlanSequence, atc.Step{
+						Config: &atc.TryStep{
+							Step: atc.Step{
+								Config: &atc.GetStep{
+									Name: "some-resource",
+								},
+							},
 						},
-						File: "job-one-config-path",
 					})
 
-					job2.PlanSequence = append(job2.PlanSequence, PlanConfig{
-						Get:    "some-resource",
-						Passed: []string{"job-one"},
+					job2.PlanSequence = append(job2.PlanSequence, atc.Step{
+						Config: &atc.GetStep{
+							Name:   "some-resource",
+							Passed: []string{"job-one"},
+						},
 					})
 					config.Jobs = append(config.Jobs, job1, job2)
 
@@ -1322,11 +1332,17 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a plan has an invalid step within an abort", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Get: "some-resource",
-						Abort: &PlanConfig{
-							Put:      "custom-name",
-							Resource: "some-missing-resource",
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.OnAbortStep{
+							Step: &atc.GetStep{
+								Name: "some-resource",
+							},
+							Hook: atc.Step{
+								Config: &atc.PutStep{
+									Name:     "custom-name",
+									Resource: "some-missing-resource",
+								},
+							},
 						},
 					})
 
@@ -1335,17 +1351,23 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("throws a validation error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.on_abort.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].on_abort.put(custom-name): unknown resource 'some-missing-resource'"))
 				})
 			})
 
 			Context("when a plan has an invalid step within an error", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Get: "some-resource",
-						Error: &PlanConfig{
-							Put:      "custom-name",
-							Resource: "some-missing-resource",
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.OnErrorStep{
+							Step: &atc.GetStep{
+								Name: "some-resource",
+							},
+							Hook: atc.Step{
+								Config: &atc.PutStep{
+									Name:     "custom-name",
+									Resource: "some-missing-resource",
+								},
+							},
 						},
 					})
 
@@ -1354,17 +1376,23 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("throws a validation error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.on_error.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].on_error.put(custom-name): unknown resource 'some-missing-resource'"))
 				})
 			})
 
 			Context("when a plan has an invalid step within an ensure", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Get: "some-resource",
-						Ensure: &PlanConfig{
-							Put:      "custom-name",
-							Resource: "some-missing-resource",
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.EnsureStep{
+							Step: &atc.GetStep{
+								Name: "some-resource",
+							},
+							Hook: atc.Step{
+								Config: &atc.PutStep{
+									Name:     "custom-name",
+									Resource: "some-missing-resource",
+								},
+							},
 						},
 					})
 
@@ -1373,17 +1401,23 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("throws a validation error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.ensure.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].ensure.put(custom-name): unknown resource 'some-missing-resource'"))
 				})
 			})
 
 			Context("when a plan has an invalid step within a success", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Get: "some-resource",
-						Success: &PlanConfig{
-							Put:      "custom-name",
-							Resource: "some-missing-resource",
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.OnSuccessStep{
+							Step: &atc.GetStep{
+								Name: "some-resource",
+							},
+							Hook: atc.Step{
+								Config: &atc.PutStep{
+									Name:     "custom-name",
+									Resource: "some-missing-resource",
+								},
+							},
 						},
 					})
 
@@ -1392,17 +1426,23 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("throws a validation error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.on_success.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].on_success.put(custom-name): unknown resource 'some-missing-resource'"))
 				})
 			})
 
 			Context("when a plan has an invalid step within a failure", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Get: "some-resource",
-						Failure: &PlanConfig{
-							Put:      "custom-name",
-							Resource: "some-missing-resource",
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.OnFailureStep{
+							Step: &atc.GetStep{
+								Name: "some-resource",
+							},
+							Hook: atc.Step{
+								Config: &atc.PutStep{
+									Name:     "custom-name",
+									Resource: "some-missing-resource",
+								},
+							},
 						},
 					})
 
@@ -1411,32 +1451,20 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("throws a validation error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.on_failure.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
-				})
-			})
-
-			Context("when a plan has an invalid timeout in a step", func() {
-				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Get:     "some-resource",
-						Timeout: "nope",
-					})
-
-					config.Jobs = append(config.Jobs, job)
-				})
-
-				It("throws a validation error", func() {
-					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.timeout refers to a duration that could not be parsed ('nope')"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].on_failure.put(custom-name): unknown resource 'some-missing-resource'"))
 				})
 			})
 
 			Context("when a plan has an invalid step within a try", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Try: &PlanConfig{
-							Put:      "custom-name",
-							Resource: "some-missing-resource",
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.TryStep{
+							Step: atc.Step{
+								Config: &atc.PutStep{
+									Name:     "custom-name",
+									Resource: "some-missing-resource",
+								},
+							},
 						},
 					})
 
@@ -1445,15 +1473,39 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("throws a validation error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].try.put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].try.put(custom-name): unknown resource 'some-missing-resource'"))
+				})
+			})
+
+			Context("when a plan has an invalid timeout in a step", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.TimeoutStep{
+							Step: &atc.GetStep{
+								Name: "some-resource",
+							},
+							Duration: "nope",
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("throws a validation error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].timeout: invalid duration 'nope'"))
 				})
 			})
 
 			Context("when a retry plan has a negative attempts number", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Put:      "some-resource",
-						Attempts: -1,
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.RetryStep{
+							Step: &atc.PutStep{
+								Name: "some-resource",
+							},
+							Attempts: -1,
+						},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -1461,30 +1513,16 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("does return an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].put.some-resource.attempts has an invalid number of attempts (-1)"))
-				})
-			})
-
-			Context("when a put plan has a custom name but refers to a resource that does not exist", func() {
-				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Put:      "custom-name",
-						Resource: "some-missing-resource",
-					})
-
-					config.Jobs = append(config.Jobs, job)
-				})
-
-				It("does return an error", func() {
-					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].put.custom-name refers to a resource that does not exist ('some-missing-resource')"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].attempts: cannot be negative"))
 				})
 			})
 
 			Context("when a set_pipeline step has no file configured", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						SetPipeline: "other-pipeline",
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.SetPipelineStep{
+							Name: "other-pipeline",
+						},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -1492,15 +1530,17 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("does return an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].set_pipeline.other-pipeline does not specify any pipeline configuration"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].set_pipeline(other-pipeline): no file specified"))
 				})
 			})
 
 			Context("when a job's input's passed constraints reference a bogus job", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Get:    "lol",
-						Passed: []string{"bogus-job"},
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.GetStep{
+							Name:   "lol",
+							Passed: []string{"bogus-job"},
+						},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -1508,20 +1548,24 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.lol.passed references an unknown job ('bogus-job')"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].get(lol).passed: unknown job 'bogus-job'"))
 				})
 			})
 
 			Context("when a job's input's passed constraints references a valid job that has the resource as an output", func() {
 				BeforeEach(func() {
-					config.Jobs[0].PlanSequence = append(config.Jobs[0].PlanSequence, PlanConfig{
-						Put:      "custom-name",
-						Resource: "some-resource",
+					config.Jobs[0].PlanSequence = append(config.Jobs[0].PlanSequence, atc.Step{
+						Config: &atc.PutStep{
+							Name:     "custom-name",
+							Resource: "some-resource",
+						},
 					})
 
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Get:    "some-resource",
-						Passed: []string{"some-job"},
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.GetStep{
+							Name:   "some-resource",
+							Passed: []string{"some-job"},
+						},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -1534,9 +1578,11 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a job's input's passed constraints references a valid job that has the resource as an input", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Get:    "some-resource",
-						Passed: []string{"some-job"},
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.GetStep{
+							Name:   "some-resource",
+							Passed: []string{"some-job"},
+						},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -1549,10 +1595,12 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a job's input's passed constraints references a valid job that has the resource (with a custom name) as an input", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Get:      "custom-name",
-						Resource: "some-resource",
-						Passed:   []string{"some-job"},
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.GetStep{
+							Name:     "custom-name",
+							Resource: "some-resource",
+							Passed:   []string{"some-job"},
+						},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -1565,9 +1613,11 @@ var _ = Describe("ValidateConfig", func() {
 
 			Context("when a job's input's passed constraints references a valid job that does not have the resource as an input or output", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						Get:    "some-resource",
-						Passed: []string{"some-empty-job"},
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.GetStep{
+							Name:   "some-resource",
+							Passed: []string{"some-empty-job"},
+						},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -1575,14 +1625,16 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].get.some-resource.passed references a job ('some-empty-job') which doesn't interact with the resource ('some-resource')"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].get(some-resource).passed: job 'some-empty-job' does not interact with resource 'some-resource'"))
 				})
 			})
 
 			Context("when a load_var has not defined 'File'", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						LoadVar: "a-var",
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.LoadVarStep{
+							Name: "a-var",
+						},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -1590,18 +1642,22 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan[0].load_var.a-var does not specify any file"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].load_var(a-var): no file specified"))
 				})
 			})
 
 			Context("when two load_var steps have same name", func() {
 				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, PlanConfig{
-						LoadVar: "a-var",
-						File:    "file1",
-					}, PlanConfig{
-						LoadVar: "a-var",
-						File:    "file1",
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.LoadVarStep{
+							Name: "a-var",
+							File: "file1",
+						},
+					}, atc.Step{
+						Config: &atc.LoadVarStep{
+							Name: "a-var",
+							File: "file1",
+						},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -1609,7 +1665,7 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job has load_var steps with the same name: a-var"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[1].load_var(a-var): repeated name"))
 				})
 			})
 		})
@@ -1627,7 +1683,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job has build_log_retention and deprecated build_logs_to_retain", func() {
 			BeforeEach(func() {
-				config.Jobs[0].BuildLogRetention = &BuildLogRetention{
+				config.Jobs[0].BuildLogRetention = &atc.BuildLogRetention{
 					Builds: 1,
 					Days:   1,
 				}
@@ -1653,7 +1709,7 @@ var _ = Describe("ValidateConfig", func() {
 
 		Context("when a job has negative build_log_retention values", func() {
 			BeforeEach(func() {
-				config.Jobs[0].BuildLogRetention = &BuildLogRetention{
+				config.Jobs[0].BuildLogRetention = &atc.BuildLogRetention{
 					Builds: -1,
 					Days:   -1,
 				}

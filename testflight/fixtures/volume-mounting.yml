@@ -33,7 +33,7 @@ jobs:
         source: {mirror_self: true}
 
       run:
-        path: true
+        path: "true"
   - task: step2
     config:
       platform: linux

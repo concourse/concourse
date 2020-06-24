@@ -25,7 +25,7 @@ type TrackerSuite struct {
 	tracker *builds.Tracker
 }
 
-func TestBuildTracker(t *testing.T) {
+func TestTracker(t *testing.T) {
 	suite.Run(t, &TrackerSuite{
 		Assertions: require.New(t),
 	})

@@ -26,48 +26,66 @@ var _ = Describe("Job Factory", func() {
 				Jobs: atc.JobConfigs{
 					{
 						Name: "public-pipeline-job-1",
-						PlanSequence: atc.PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Get: "some-resource",
+								Config: &atc.GetStep{
+									Name: "some-resource",
+								},
 							},
 							{
-								Get: "some-other-resource",
+								Config: &atc.GetStep{
+									Name: "some-other-resource",
+								},
 							},
 							{
-								Put: "some-resource",
+								Config: &atc.PutStep{
+									Name: "some-resource",
+								},
 							},
 						},
 					},
 					{
 						Name: "public-pipeline-job-2",
-						PlanSequence: atc.PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Get:    "some-resource",
-								Passed: []string{"public-pipeline-job-1"},
+								Config: &atc.GetStep{
+									Name:   "some-resource",
+									Passed: []string{"public-pipeline-job-1"},
+								},
 							},
 							{
-								Get:    "some-other-resource",
-								Passed: []string{"public-pipeline-job-1"},
+								Config: &atc.GetStep{
+									Name:   "some-other-resource",
+									Passed: []string{"public-pipeline-job-1"},
+								},
 							},
 							{
-								Get:      "resource",
-								Resource: "some-resource",
+								Config: &atc.GetStep{
+									Name:     "resource",
+									Resource: "some-resource",
+								},
 							},
 							{
-								Put:      "resource",
-								Resource: "some-resource",
+								Config: &atc.PutStep{
+									Name:     "resource",
+									Resource: "some-resource",
+								},
 							},
 							{
-								Put: "some-resource",
+								Config: &atc.PutStep{
+									Name: "some-resource",
+								},
 							},
 						},
 					},
 					{
 						Name: "public-pipeline-job-3",
-						PlanSequence: atc.PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Get:    "some-resource",
-								Passed: []string{"public-pipeline-job-1", "public-pipeline-job-2"},
+								Config: &atc.GetStep{
+									Name:   "some-resource",
+									Passed: []string{"public-pipeline-job-1", "public-pipeline-job-2"},
+								},
 							},
 						},
 					},
@@ -90,12 +108,16 @@ var _ = Describe("Job Factory", func() {
 				Jobs: atc.JobConfigs{
 					{
 						Name: "private-pipeline-job",
-						PlanSequence: atc.PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Get: "some-resource",
+								Config: &atc.GetStep{
+									Name: "some-resource",
+								},
 							},
 							{
-								Put: "some-resource",
+								Config: &atc.PutStep{
+									Name: "some-resource",
+								},
 							},
 						},
 					},
@@ -589,9 +611,11 @@ var _ = Describe("Job Factory", func() {
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-name",
-								PlanSequence: atc.PlanSequence{
+								PlanSequence: []atc.Step{
 									{
-										Get: "some-resource",
+										Config: &atc.GetStep{
+											Name: "some-resource",
+										},
 									},
 								},
 							},
@@ -643,20 +667,26 @@ var _ = Describe("Job Factory", func() {
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-1",
-								PlanSequence: atc.PlanSequence{
+								PlanSequence: []atc.Step{
 									{
-										Get: "some-resource",
+										Config: &atc.GetStep{
+											Name: "some-resource",
+										},
 									},
 								},
 							},
 							{
 								Name: "job-2",
-								PlanSequence: atc.PlanSequence{
+								PlanSequence: []atc.Step{
 									{
-										Get: "some-resource",
+										Config: &atc.GetStep{
+											Name: "some-resource",
+										},
 									},
 									{
-										Get: "other-resource",
+										Config: &atc.GetStep{
+											Name: "other-resource",
+										},
 									},
 								},
 							},
@@ -683,12 +713,16 @@ var _ = Describe("Job Factory", func() {
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-3",
-								PlanSequence: atc.PlanSequence{
+								PlanSequence: []atc.Step{
 									{
-										Get: "some-resource",
+										Config: &atc.GetStep{
+											Name: "some-resource",
+										},
 									},
 									{
-										Get: "some-resource-2",
+										Config: &atc.GetStep{
+											Name: "some-resource-2",
+										},
 									},
 								},
 							},
@@ -774,9 +808,11 @@ var _ = Describe("Job Factory", func() {
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-name",
-								PlanSequence: atc.PlanSequence{
+								PlanSequence: []atc.Step{
 									{
-										Put: "some-resource",
+										Config: &atc.PutStep{
+											Name: "some-resource",
+										},
 									},
 								},
 							},
@@ -827,12 +863,16 @@ var _ = Describe("Job Factory", func() {
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-name",
-								PlanSequence: atc.PlanSequence{
+								PlanSequence: []atc.Step{
 									{
-										Get: "some-resource",
+										Config: &atc.GetStep{
+											Name: "some-resource",
+										},
 									},
 									{
-										Put: "some-resource",
+										Config: &atc.PutStep{
+											Name: "some-resource",
+										},
 									},
 								},
 							},
