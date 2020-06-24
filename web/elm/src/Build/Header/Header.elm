@@ -342,7 +342,7 @@ handleDelivery delivery ( model, effects ) =
                    )
             )
 
-        EventsReceived result ->
+        BuildEventsReceived result ->
             Result.toMaybe result
                 |> Maybe.map
                     (List.filter

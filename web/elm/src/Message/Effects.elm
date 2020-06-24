@@ -70,10 +70,10 @@ port resetPipelineFocus : () -> Cmd msg
 port requestLoginRedirect : String -> Cmd msg
 
 
-port openEventStream : { url : String, eventTypes : List String } -> Cmd msg
+port openEventStream : { id : String, url : String, eventTypes : List String } -> Cmd msg
 
 
-port closeEventStream : () -> Cmd msg
+port closeEventStream : String -> Cmd msg
 
 
 port checkIsVisible : String -> Cmd msg
@@ -174,7 +174,7 @@ type Effect
     | PinTeamNames StickyHeaderConfig
     | Scroll ScrollDirection String
     | SetFavIcon (Maybe BuildStatus)
-    | OpenBuildEventStream { url : String, eventTypes : List String }
+    | OpenBuildEventStream Int
     | CloseBuildEventStream
     | CheckIsVisible String
     | Focus String
@@ -571,11 +571,18 @@ runEffect effect key csrfToken =
             Browser.Dom.blur id
                 |> Task.attempt (always EmptyCallback)
 
-        OpenBuildEventStream config ->
-            openEventStream config
+        OpenBuildEventStream buildID ->
+            openEventStream
+                { id = "BuildEvents"
+                , url =
+                    Endpoints.BuildEventStream
+                        |> Endpoints.Build buildID
+                        |> Endpoints.toString []
+                , eventTypes = [ "event", "end" ]
+                }
 
         CloseBuildEventStream ->
-            closeEventStream ()
+            closeEventStream "BuildEvents"
 
         CheckIsVisible id ->
             checkIsVisible id

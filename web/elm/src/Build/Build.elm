@@ -152,7 +152,7 @@ subscriptions model =
                     []
 
                 Just url ->
-                    [ Subscription.FromEventSource ( url, [ "end", "event" ] ) ]
+                    [ Subscription.FromEventSource ]
            )
 
 
@@ -263,13 +263,7 @@ handleCallback action ( model, effects ) =
                 )
                 ( model
                 , effects
-                    ++ [ Effects.OpenBuildEventStream
-                            { url =
-                                Endpoints.BuildEventStream
-                                    |> Endpoints.Build buildId
-                                    |> Endpoints.toString []
-                            , eventTypes = [ "end", "event" ]
-                            }
+                    ++ [ Effects.OpenBuildEventStream buildId
                        , SyncStickyBuildLogHeaders
                        ]
                 )
@@ -336,7 +330,7 @@ handleDelivery session delivery ( model, effects ) =
         WindowResized _ _ ->
             ( model, effects ++ [ SyncStickyBuildLogHeaders ] )
 
-        EventsReceived (Ok envelopes) ->
+        BuildEventsReceived (Ok envelopes) ->
             let
                 eventSourceClosed =
                     model.output

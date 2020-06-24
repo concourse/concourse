@@ -44,7 +44,7 @@ import Url
 port newUrl : (String -> msg) -> Sub msg
 
 
-port eventSource : (Json.Encode.Value -> msg) -> Sub msg
+port eventSource : (( String, Json.Encode.Value ) -> msg) -> Sub msg
 
 
 port reportIsVisible : (( String, Bool ) -> msg) -> Sub msg
@@ -80,7 +80,7 @@ type Subscription
     | OnKeyDown
     | OnKeyUp
     | OnWindowResize
-    | FromEventSource ( String, List String )
+    | FromEventSource
     | OnNonHrefLinkClicked
     | OnElementVisible
     | OnTokenSentToFly
@@ -101,7 +101,7 @@ type Delivery
     | ClockTicked Interval Time.Posix
     | WindowResized Float Float
     | NonHrefLinkClicked String -- must be a String because we can't parse it out too easily :(
-    | EventsReceived (Result Json.Decode.Error (List BuildEventEnvelope))
+    | BuildEventsReceived (Result Json.Decode.Error (List BuildEventEnvelope))
     | RouteChanged Routes.Route
     | UrlRequest Browser.UrlRequest
     | ElementVisible ( String, Bool )
@@ -147,12 +147,18 @@ runSubscription s =
             onResize
                 (\width height -> WindowResized (toFloat width) (toFloat height))
 
-        FromEventSource _ ->
-            eventSource
-                (Json.Decode.decodeValue
-                    (Json.Decode.list decodeBuildEventEnvelope)
-                    >> EventsReceived
-                )
+        FromEventSource ->
+            eventSource <|
+                \( id, value ) ->
+                    case id of
+                        "BuildEvents" ->
+                            value
+                                |> Json.Decode.decodeValue
+                                    (Json.Decode.list decodeBuildEventEnvelope)
+                                |> BuildEventsReceived
+
+                        _ ->
+                            Noop
 
         OnNonHrefLinkClicked ->
             newUrl

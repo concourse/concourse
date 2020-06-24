@@ -279,12 +279,15 @@ function offsetTop(element, untilElement) {
   return offsetTop;
 }
 
+const eventStreams = {};
+
 app.ports.openEventStream.subscribe(function(config) {
   var buffer = [];
   var es = new EventSource(config.url);
+  eventStreams[config.id] = es;
   function flush() {
     if (buffer.length > 0) {
-      app.ports.eventSource.send(buffer);
+      app.ports.eventSource.send([config.id, buffer]);
       buffer = [];
     }
   }
@@ -299,10 +302,16 @@ app.ports.openEventStream.subscribe(function(config) {
   config.eventTypes.forEach(function(eventType) {
     es.addEventListener(eventType, dispatchEvent);
   });
-  app.ports.closeEventStream.subscribe(function() {
-    es.close();
-  });
   setInterval(flush, 200);
+});
+
+app.ports.closeEventStream.subscribe(function(id) {
+  const es = eventStreams[id];
+  if (es == null) {
+    return;
+  }
+  es.close();
+  delete eventStreams[id];
 });
 
 app.ports.checkIsVisible.subscribe(function(id) {

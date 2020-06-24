@@ -164,7 +164,7 @@ all =
                     |> Tuple.first
                     |> Application.update
                         (Msgs.DeliveryReceived <|
-                            EventsReceived <|
+                            BuildEventsReceived <|
                                 Ok <|
                                     [ { url = eventsUrl
                                       , data =
@@ -220,7 +220,7 @@ all =
                     |> Tuple.first
                     |> Application.update
                         (Msgs.DeliveryReceived <|
-                            EventsReceived <|
+                            BuildEventsReceived <|
                                 Ok <|
                                     [ { url = eventsUrl
                                       , data =
@@ -271,7 +271,7 @@ all =
                     |> Tuple.first
                     |> Application.update
                         (Msgs.DeliveryReceived <|
-                            EventsReceived <|
+                            BuildEventsReceived <|
                                 Ok <|
                                     [ { url = eventsUrl
                                       , data =
@@ -322,7 +322,7 @@ all =
                     |> Tuple.first
                     |> Application.update
                         (Msgs.DeliveryReceived <|
-                            EventsReceived <|
+                            BuildEventsReceived <|
                                 Ok <|
                                     [ { url = eventsUrl
                                       , data =
@@ -381,7 +381,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleDelivery
-                        (EventsReceived <|
+                        (BuildEventsReceived <|
                             Ok <|
                                 [ { url = eventsUrl
                                   , data =
@@ -404,7 +404,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleDelivery
-                        (EventsReceived <| Ok [])
+                        (BuildEventsReceived <| Ok [])
                     |> Tuple.second
                     |> Common.notContains (Effects.Scroll (ScrollDirection.ToId "stepid:1") "build-body")
         , test "auto-scroll disallowed before scrolled to highlighted line" <|
@@ -434,7 +434,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleDelivery
-                        (EventsReceived <|
+                        (BuildEventsReceived <|
                             Ok <|
                                 [ { url = eventsUrl
                                   , data =
@@ -466,7 +466,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleDelivery
-                        (EventsReceived <| Ok [])
+                        (BuildEventsReceived <| Ok [])
                     |> Tuple.second
                     |> Common.notContains (Effects.Scroll ScrollDirection.ToBottom "build-body")
         , test "auto-scroll disallowed before scrolling away from highlighted line" <|
@@ -496,7 +496,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleDelivery
-                        (EventsReceived <|
+                        (BuildEventsReceived <|
                             Ok <|
                                 [ { url = eventsUrl
                                   , data =
@@ -531,7 +531,7 @@ all =
                         (Subscription.ScrolledToId ( "Lstepid:1", "build-body" ))
                     |> Tuple.first
                     |> Application.handleDelivery
-                        (EventsReceived <| Ok [])
+                        (BuildEventsReceived <| Ok [])
                     |> Tuple.second
                     |> Common.notContains (Effects.Scroll ScrollDirection.ToBottom "build-body")
         , test "auto-scroll allowed after scrolling away from highlighted line" <|
@@ -561,7 +561,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleDelivery
-                        (EventsReceived <|
+                        (BuildEventsReceived <|
                             Ok <|
                                 [ { url = eventsUrl
                                   , data =
@@ -596,7 +596,7 @@ all =
                         )
                     |> Tuple.first
                     |> Application.handleDelivery
-                        (EventsReceived <| Ok [])
+                        (BuildEventsReceived <| Ok [])
                     |> Tuple.second
                     |> Common.contains (Effects.Scroll ScrollDirection.ToBottom "build-body")
         , test "subscribes to scrolled to id completion" <|
@@ -1816,7 +1816,7 @@ all =
                             )
                         >> Tuple.first
                         >> Application.handleDelivery
-                            (Subscription.EventsReceived <|
+                            (Subscription.BuildEventsReceived <|
                                 Ok
                                     [ { data =
                                             STModels.BuildStatus BuildStatusSucceeded <|
@@ -2616,20 +2616,10 @@ all =
                             )
                         >> Expect.all
                             [ Tuple.second
-                                >> Common.contains
-                                    (Effects.OpenBuildEventStream
-                                        { url = "/api/v1/builds/1/events"
-                                        , eventTypes = [ "end", "event" ]
-                                        }
-                                    )
+                                >> Common.contains (Effects.OpenBuildEventStream 1)
                             , Tuple.first
                                 >> Application.subscriptions
-                                >> Common.contains
-                                    (Subscription.FromEventSource
-                                        ( "/api/v1/builds/1/events"
-                                        , [ "end", "event" ]
-                                        )
-                                    )
+                                >> Common.contains Subscription.FromEventSource
                             ]
                 , test "if build plan request fails, no event stream" <|
                     preBuildPlanReceived
@@ -2639,12 +2629,7 @@ all =
                             [ Tuple.second >> Expect.equal []
                             , Tuple.first
                                 >> Application.subscriptions
-                                >> Common.notContains
-                                    (Subscription.FromEventSource
-                                        ( "/api/v1/builds/1/events"
-                                        , [ "end", "event" ]
-                                        )
-                                    )
+                                >> Common.notContains Subscription.FromEventSource
                             ]
                 ]
             , describe "sync sticky build log headers" <|
@@ -2908,7 +2893,7 @@ all =
                 [ test "step is collapsed by default" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok <|
                                     [ { url =
                                             eventsUrl
@@ -2927,7 +2912,7 @@ all =
                 , test "step expands on click" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok <|
                                     [ { url =
                                             eventsUrl
@@ -2952,7 +2937,7 @@ all =
                 , test "expanded step collapses on click" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok <|
                                     [ { url =
                                             eventsUrl
@@ -3204,7 +3189,7 @@ all =
                 , test "artifact output step has green check on finished build" <|
                     fetchPlanWithEnsureArtifactOutputStep
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok <|
                                     [ { url =
                                             eventsUrl
@@ -3231,7 +3216,7 @@ all =
                 , test "successful step has a checkmark at the far right" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok <|
                                     [ { url =
                                             eventsUrl
@@ -3262,7 +3247,7 @@ all =
                 , test "get step lists resource version on the right" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok <|
                                     [ { url = eventsUrl
                                       , data =
@@ -3284,7 +3269,7 @@ all =
                 , test "one tick after hovering step state, GetElement fires" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok <|
                                     [ { url = eventsUrl
                                       , data =
@@ -3326,7 +3311,7 @@ all =
                 , test "finished task lists initialization duration in tooltip" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok <|
                                     [ { url = eventsUrl
                                       , data =
@@ -3411,7 +3396,7 @@ all =
                 , test "finished task lists step duration in tooltip" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok <|
                                     [ { url = eventsUrl
                                       , data =
@@ -3496,7 +3481,7 @@ all =
                 , test "running step has loading spinner at the right" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok <|
                                     [ { url = eventsUrl
                                       , data =
@@ -3533,7 +3518,7 @@ all =
                 , test "cancelled step has no-entry circle at the right" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok <|
                                     [ { url = eventsUrl
                                       , data =
@@ -3566,7 +3551,7 @@ all =
                 , test "interrupted step has dashed circle with dot at the right" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok <|
                                     [ { url = eventsUrl
                                       , data =
@@ -3591,7 +3576,7 @@ all =
                 , test "failing step has an X at the far right" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok <|
                                     [ { url = eventsUrl
                                       , data =
@@ -3619,7 +3604,7 @@ all =
                 , test "erroring step has orange exclamation triangle at right" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok <|
                                     [ { url = eventsUrl
                                       , data =
@@ -3645,7 +3630,7 @@ all =
                 , test "successful step has no border" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok <|
                                     [ { url =
                                             eventsUrl
@@ -3669,7 +3654,7 @@ all =
                 , test "failing step has a red border" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok <|
                                     [ { url = eventsUrl
                                       , data =
@@ -3690,7 +3675,7 @@ all =
                 , test "started step has a yellow border" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok <|
                                     [ { url = eventsUrl
                                       , data =
@@ -3757,7 +3742,7 @@ all =
                     in
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok
                                     [ { data = STModels.NetworkError
                                       , url = eventsUrl
@@ -3773,7 +3758,7 @@ all =
                           (EventSource browser API will retry connection)""" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok
                                     [ { url = eventsUrl
                                       , data = STModels.Opened
@@ -3782,7 +3767,7 @@ all =
                             )
                         >> Tuple.first
                         >> Application.handleDelivery
-                            (EventsReceived <|
+                            (BuildEventsReceived <|
                                 Ok
                                     [ { data = STModels.NetworkError
                                       , url = eventsUrl
@@ -3849,7 +3834,7 @@ all =
                             |> Tuple.first
                             |> Application.update
                                 (Msgs.DeliveryReceived <|
-                                    EventsReceived <|
+                                    BuildEventsReceived <|
                                         Ok <|
                                             [ { url = eventsUrl
                                               , data =
@@ -4052,4 +4037,4 @@ receiveEvent :
     -> Application.Model
     -> ( Application.Model, List Effects.Effect )
 receiveEvent envelope =
-    Application.update (Msgs.DeliveryReceived <| EventsReceived <| Ok [ envelope ])
+    Application.update (Msgs.DeliveryReceived <| BuildEventsReceived <| Ok [ envelope ])
