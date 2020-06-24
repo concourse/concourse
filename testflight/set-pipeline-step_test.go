@@ -1,6 +1,7 @@
 package testflight_test
 
 import (
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -134,16 +135,15 @@ var _ = Describe("set-pipeline Step", func() {
 
 	Context("set self", func() {
 		BeforeEach(func() {
-			pipelineName = "self-reset"
-
-			fly("set-pipeline", "-n", "-p", pipelineName, "-c", "fixtures/set-pipeline.yml", "-v", "pipeline_name=self")
-			fly("unpause-pipeline", "-p", pipelineName)
+			currentFlyTarget = testflightFlyTarget
+			currentTeamName = ""
+			createdPipelineName = "self"
 		})
 
 		It("set the other pipeline", func() {
 			By("set-pipeline step should succeed")
 			execS := fly("trigger-job", "-w", "-j", pipelineName+"/sp")
-			Expect(execS.Out).To(gbytes.Say("setting pipeline: self-reset"))
+			Expect(execS.Out).To(gbytes.Say(fmt.Sprintf("setting pipeline: %s", pipelineName)))
 			Expect(execS.Out).To(gbytes.Say("done"))
 
 			By("should trigger the pipeline job successfully")

@@ -104,6 +104,8 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 		fmt.Fprintln(stderr, "")
 
 		step.plan.Name = step.metadata.PipelineName
+		// self must be set to current team, thus ignore team.
+		step.plan.Team = ""
 	}
 
 	source := setPipelineSource{
