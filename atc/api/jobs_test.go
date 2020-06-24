@@ -71,7 +71,7 @@ var _ = Describe("Jobs API", func() {
 			req, err := http.NewRequest("GET", server.URL+"/api/v1/jobs", nil)
 			Expect(err).NotTo(HaveOccurred())
 
-			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Accept", "application/json")
 
 			response, err = client.Do(req)
 			Expect(err).NotTo(HaveOccurred())
@@ -245,7 +245,7 @@ var _ = Describe("Jobs API", func() {
 		})
 	})
 
-	Describe("GET /api/v1/jobs?watch=true", func() {
+	Describe("GET /api/v1/jobs, watch mode", func() {
 		var (
 			response *http.Response
 
@@ -253,10 +253,10 @@ var _ = Describe("Jobs API", func() {
 		)
 
 		JustBeforeEach(func() {
-			req, err := http.NewRequest("GET", server.URL+"/api/v1/jobs?watch=true", nil)
+			req, err := http.NewRequest("GET", server.URL+"/api/v1/jobs", nil)
 			Expect(err).NotTo(HaveOccurred())
 
-			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Accept", "text/event-stream")
 
 			response, err = client.Do(req)
 			Expect(err).NotTo(HaveOccurred())

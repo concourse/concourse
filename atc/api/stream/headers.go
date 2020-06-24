@@ -7,3 +7,7 @@ func WriteHeaders(w http.ResponseWriter) {
 	w.Header().Add("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Add("X-Accel-Buffering", "no")
 }
+
+func IsRequested(r *http.Request) bool {
+	return r.Header.Get("Accept") == "text/event-stream"
+}

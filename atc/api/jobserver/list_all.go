@@ -29,7 +29,7 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 
 	acc := accessor.GetAccessor(r)
 
-	watchMode := r.URL.Query().Get("watch") == "true"
+	watchMode := stream.IsRequested(r)
 	var watchEventsChan <-chan []watch.ListAllJobsEvent
 	if watchMode {
 		watchEventsChan = s.listAllJobsWatcher.WatchListAllJobs(r.Context(), acc)
@@ -57,8 +57,9 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 
 	if watchMode {
 		stream.WriteHeaders(w)
-		var eventID uint = 0
 		writer := stream.EventWriter{WriteFlusher: w.(stream.WriteFlusher)}
+
+		var eventID uint = 0
 		if err := writer.WriteEvent(eventID, "initial", jobs); err != nil {
 			logger.Error("failed-to-write-initial-event", err)
 			return
