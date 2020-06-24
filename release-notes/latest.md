@@ -15,4 +15,4 @@
 
 #### <sub><sup><a name="5390" href="#5390">:link:</a></sup></sub> fix
 
-* Add `--include-archive` flag for `fly pipelines` command.
+* Add `--include-archived` flag for `fly pipelines` command. #5673
