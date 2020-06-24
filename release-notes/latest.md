@@ -8,3 +8,7 @@
 #### <sub><sup><a name="5782" href="#5782">:link:</a></sup></sub> fix
 
 * The sidebar can now be expanded in the UI - no more long pipeline names being cut off! #5782
+
+#### <sub><sup><a name="5390" href="#5390">:link:</a></sup></sub> feature
+
+* Add `--team` flag for `fly set-pipelines` command #5805

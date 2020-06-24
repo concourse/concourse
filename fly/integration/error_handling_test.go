@@ -116,6 +116,8 @@ var _ = Describe("Fly CLI", func() {
 				exec.Command(flyPath, "-t", targetName, "unpause-job", "-j", "pipeline/job", "--team", "doesnotexist")),
 			Entry("unpause-pipeline command returns an error",
 				exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "-p", "pipeline", "--team", "doesnotexist")),
+			Entry("set-pipeline command returns an error",
+				exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "pipeline", "-c", "fixtures/testConfig.yml", "--team", "doesnotexist")),
 		)
 
 		DescribeTable("and you are NOT authorized to view the team",
@@ -144,6 +146,8 @@ var _ = Describe("Fly CLI", func() {
 				exec.Command(flyPath, "-t", targetName, "unpause-job", "-j", "pipeline/job", "--team", "other-team")),
 			Entry("unpause-pipeline command returns an error",
 				exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "-p", "pipeline", "--team", "other-team")),
+			Entry("set-pipeline command returns an error",
+				exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "pipeline", "-c", "fixtures/testConfig.yml", "--team", "other-team")),
 		)
 	})
 })
