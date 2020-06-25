@@ -13,6 +13,10 @@
 [static vars]: https://concourse-ci.org/vars.html#static-vars
 [dynamic vars]: https://concourse-ci.org/vars.html#dynamic-vars
 
+#### <sub><sup><a name="5821" href="#5821">:link:</a></sup></sub> fix
+
+* Pipelines can be re-ordered in the dashboard when filtering. This was a regression introduced in 6.0. #5821
+
 #### <sub><sup><a name="5778" href="#5778">:link:</a></sup></sub> feature
 
 * Style improvements to the sidebar. #5778
