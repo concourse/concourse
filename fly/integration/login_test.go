@@ -335,7 +335,7 @@ var _ = Describe("login Command", func() {
 				)
 			})
 
-			It("instructs the user to visit the top-level login endpoint with fly port", func() {
+			It("allows providing the token via stdin", func() {
 				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL())
 
 				stdin, err := flyCmd.StdinPipe()
@@ -356,6 +356,74 @@ var _ = Describe("login Command", func() {
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
+			})
+
+			Context("when the token from stdin is malformed", func() {
+				It("logs an error and accepts further input", func() {
+					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL())
+
+					stdin, err := flyCmd.StdinPipe()
+					Expect(err).NotTo(HaveOccurred())
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess.Out).Should(gbytes.Say("or enter token manually"))
+
+					_, err = fmt.Fprintf(stdin, "not a token\n")
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess.Out).Should(gbytes.Say("token must be of the format 'TYPE VALUE', e.g. 'Bearer ...'"))
+
+					_, err = fmt.Fprintf(stdin, "Bearer ok-this-time-its-the-real-deal\n")
+					Expect(err).NotTo(HaveOccurred())
+
+					err = stdin.Close()
+					Expect(err).NotTo(HaveOccurred())
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+				})
+			})
+
+			Context("when the token from stdin is terminated with an EOF", func() {
+				It("accepts the input", func() {
+					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL())
+
+					stdin, err := flyCmd.StdinPipe()
+					Expect(err).NotTo(HaveOccurred())
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess.Out).Should(gbytes.Say("or enter token manually"))
+
+					_, err = fmt.Fprintf(stdin, "bearer no-new-line-here")
+					Expect(err).NotTo(HaveOccurred())
+
+					err = stdin.Close()
+					Expect(err).NotTo(HaveOccurred())
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+				})
+
+				It("ignores empty input", func() {
+					flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL())
+
+					stdin, err := flyCmd.StdinPipe()
+					Expect(err).NotTo(HaveOccurred())
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					err = stdin.Close()
+					Expect(err).NotTo(HaveOccurred())
+
+					Consistently(sess.Out).ShouldNot(gbytes.Say("error"))
+
+					sess.Kill()
+				})
 			})
 
 			Context("token callback listener", func() {
