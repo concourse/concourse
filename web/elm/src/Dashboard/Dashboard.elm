@@ -1188,7 +1188,6 @@ pipelinesView session params =
                                     , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                                     , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                                     , pipelineLayers = params.pipelineLayers
-                                    , query = params.query
                                     , pipelineCards = layout.pipelineCards
                                     , dropAreas = layout.dropAreas
                                     , groupCardsHeight = layout.height
