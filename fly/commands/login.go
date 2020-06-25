@@ -291,11 +291,16 @@ type tcpKeepAliveListener struct {
 func waitForTokenInput(lineReader *liner.State, tokenChannel chan string, errorChannel chan error) {
 	fmt.Println()
 
+	passwordPromptSupported := liner.TerminalSupported()
 	for {
 		var token string
 		var err error
-		if liner.TerminalSupported() {
+		if passwordPromptSupported {
 			token, err = lineReader.PasswordPrompt("or enter token manually (input hidden): ")
+			if err != nil && err != liner.ErrPromptAborted && err != io.EOF {
+				passwordPromptSupported = false
+				continue
+			}
 		} else {
 			token, err = lineReader.Prompt("or enter token manually: ")
 		}
