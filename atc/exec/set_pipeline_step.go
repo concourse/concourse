@@ -27,14 +27,14 @@ import (
 // SetPipelineStep sets a pipeline to current team. This step takes pipeline
 // configure file and var files from some resource in the pipeline, like git.
 type SetPipelineStep struct {
-	planID      atc.PlanID
-	plan        atc.SetPipelinePlan
-	metadata    StepMetadata
-	delegate    BuildStepDelegate
-	teamFactory db.TeamFactory
-	builFactory db.BuildFactory
-	client      worker.Client
-	succeeded   bool
+	planID       atc.PlanID
+	plan         atc.SetPipelinePlan
+	metadata     StepMetadata
+	delegate     BuildStepDelegate
+	teamFactory  db.TeamFactory
+	buildFactory db.BuildFactory
+	client       worker.Client
+	succeeded    bool
 }
 
 func NewSetPipelineStep(
@@ -175,6 +175,16 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 		team = targetTeam
 	}
 
+	team = step.teamFactory.GetByID(step.metadata.TeamID)
+	parentBuild, found, err := step.buildFactory.Build(step.metadata.BuildID)
+	if err != nil {
+		return err
+	}
+
+	if !found {
+		return fmt.Errorf("set_pipeline step not attached to a buildID")
+	}
+
 	fromVersion := db.ConfigVersion(0)
 	pipeline, found, err := team.Pipeline(step.plan.Name)
 	if err != nil {
@@ -197,13 +207,17 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 		logger.Debug("no-diff")
 
 		fmt.Fprintf(stdout, "no diff found.\n")
+		err := pipeline.SetParentIDs(step.metadata.JobID, step.metadata.BuildID)
+		if err != nil {
+			return err
+		}
 		step.succeeded = true
 		step.delegate.Finished(logger, true)
 		return nil
 	}
 
 	fmt.Fprintf(stdout, "setting pipeline: %s\n", step.plan.Name)
-	pipeline, _, err = team.SavePipeline(step.plan.Name, atcConfig, fromVersion, false)
+	pipeline, _, err = parentBuild.SavePipeline(step.plan.Name, atcConfig, fromVersion, false)
 	if err != nil {
 		return err
 	}

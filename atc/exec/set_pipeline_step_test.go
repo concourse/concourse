@@ -82,6 +82,7 @@ jobs:
 		fakeDelegate     *execfakes.FakeBuildStepDelegate
 		fakeTeamFactory  *dbfakes.FakeTeamFactory
 		fakeBuildFactory *dbfakes.FakeBuildFactory
+		fakeBuild        *dbfakes.FakeBuild
 		fakeTeam         *dbfakes.FakeTeam
 		fakePipeline     *dbfakes.FakePipeline
 
@@ -138,6 +139,7 @@ jobs:
 
 		fakeTeamFactory = new(dbfakes.FakeTeamFactory)
 		fakeBuildFactory = new(dbfakes.FakeBuildFactory)
+		fakeBuild = new(dbfakes.FakeBuild)
 		fakeTeam = new(dbfakes.FakeTeam)
 		fakePipeline = new(dbfakes.FakePipeline)
 
@@ -155,6 +157,7 @@ jobs:
 
 		fakePipeline.NameReturns("some-pipeline")
 		fakeTeamFactory.GetByIDReturns(fakeTeam)
+		fakeBuildFactory.BuildReturns(fakeBuild, true, nil)
 
 		fakeWorkerClient = new(workerfakes.FakeClient)
 
@@ -252,12 +255,12 @@ jobs:
 			Context("when specified pipeline not found", func() {
 				BeforeEach(func() {
 					fakeTeam.PipelineReturns(nil, false, nil)
-					fakeTeam.SavePipelineReturns(fakePipeline, true, nil)
+					fakeBuild.SavePipelineReturns(fakePipeline, true, nil)
 				})
 
 				It("should save the pipeline un-paused", func() {
-					Expect(fakeTeam.SavePipelineCallCount()).To(Equal(1))
-					name, _, _, paused := fakeTeam.SavePipelineArgsForCall(0)
+					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
+					name, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
 					Expect(name).To(Equal("some-pipeline"))
 					Expect(paused).To(BeFalse())
 				})
@@ -270,21 +273,22 @@ jobs:
 			Context("when specified pipeline exists already", func() {
 				BeforeEach(func() {
 					fakeTeam.PipelineReturns(fakePipeline, true, nil)
-					fakeTeam.SavePipelineReturns(fakePipeline, false, nil)
+					fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
 				})
 
 				Context("when no diff", func() {
 					BeforeEach(func() {
 						fakePipeline.ConfigReturns(pipelineObject, nil)
+						fakePipeline.SetParentIDsReturns(nil)
 					})
 
 					It("should log no-diff", func() {
 						Expect(stdout).To(gbytes.Say("no diff found."))
 					})
 
-					FIt("should update the job and build id", func() {
+					It("should update the job and build id", func() {
 						Expect(fakePipeline.SetParentIDsCallCount()).To(Equal(1))
-						jobID, buildID := fakePipeline.SetParentIDsArgToCall(0)
+						jobID, buildID := fakePipeline.SetParentIDsArgsForCall(0)
 						Expect(jobID).To(Equal(stepMetadata.JobID))
 						Expect(buildID).To(Equal(stepMetadata.BuildID))
 					})
@@ -303,7 +307,7 @@ jobs:
 
 				Context("when SavePipeline fails", func() {
 					BeforeEach(func() {
-						fakeTeam.SavePipelineReturns(nil, false, errors.New("failed to save"))
+						fakeBuild.SavePipelineReturns(nil, false, errors.New("failed to save"))
 					})
 
 					It("should return error", func() {
@@ -313,8 +317,8 @@ jobs:
 				})
 
 				It("should save the pipeline un-paused", func() {
-					Expect(fakeTeam.SavePipelineCallCount()).To(Equal(1))
-					name, _, _, paused := fakeTeam.SavePipelineArgsForCall(0)
+					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
+					name, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
 					Expect(name).To(Equal("some-pipeline"))
 					Expect(paused).To(BeFalse())
 				})
