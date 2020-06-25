@@ -2177,6 +2177,20 @@ var _ = Describe("Pipeline", func() {
 		})
 	})
 
+	Describe("SetParentIDs", func() {
+		It("sets the parent_job_id and parent_build_id fields", func() {
+			jobID := 123
+			buildID := 456
+			Expect(pipeline.SetParentIDs(jobID, buildID)).To(Succeed())
+
+			found, err := pipeline.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(pipeline.ParentJobID()).To(Equal(jobID))
+			Expect(pipeline.ParentBuildID()).To(Equal(buildID))
+		})
+	})
+
 	Context("Config", func() {
 		It("should return config correctly", func() {
 			Expect(pipeline.Config()).To(Equal(pipelineConfig))

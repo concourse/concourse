@@ -94,6 +94,8 @@ type Pipeline interface {
 	Rename(string) error
 
 	Variables(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
+
+	SetParentIDs(jobID, buildID int) error
 }
 
 type pipeline struct {
@@ -1142,6 +1144,30 @@ func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, v
 	}
 
 	return allVars, nil
+}
+
+func (p *pipeline) SetParentIDs(jobID, buildID int) error {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	_, err = psql.Update("pipelines").
+		Set("parent_job_id", jobID).
+		Set("parent_build_id", buildID).
+		Where(sq.Eq{
+			"id": p.id,
+		}).
+		RunWith(tx).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, error) {
