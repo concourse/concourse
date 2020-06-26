@@ -15,7 +15,11 @@
     });
 
     app.ports.emitSearchTerm.subscribe(function(term) {
-      gtag('event', 'search', {search_term: term});
+      goatcounter.count({
+        event: "search:"+term,
+        title: "user searched: " + term,
+        event: true
+      });
     });
   </script>
 </nav>
