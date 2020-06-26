@@ -111,7 +111,7 @@ all =
                     |> Application.handleDelivery
                         (CachedJobsReceived <|
                             Ok <|
-                                [ Data.job 0 ]
+                                [ Data.job 0 0 ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -129,7 +129,7 @@ all =
                     |> Application.handleCallback
                         (AllJobsFetched <|
                             Ok <|
-                                [ Data.job 0 ]
+                                [ Data.job 0 0 ]
                         )
                     |> Tuple.first
                     |> Application.handleDelivery
@@ -147,22 +147,24 @@ all =
                     |> Application.handleCallback
                         (AllJobsFetched <|
                             Ok <|
-                                [ Data.job 0 ]
+                                [ Data.job 0 0 ]
                         )
                     |> Tuple.second
-                    |> Common.contains (SaveCachedJobs [ Data.job 0 ])
+                    |> Common.contains (SaveCachedJobs [ Data.job 0 0 ])
         , test "removes build information from jobs when saving to cache" <|
             \_ ->
                 let
                     jobWithoutBuild =
-                        Data.job 0
+                        Data.job 0 0
+
+                    build =
+                        Data.jobBuild BuildStatusSucceeded |> Just
 
                     jobWithBuild =
-                        { jobWithoutBuild
-                            | finishedBuild = Just <| Data.jobBuild BuildStatusSucceeded
-                            , transitionBuild = Just <| Data.jobBuild BuildStatusSucceeded
-                            , nextBuild = Just <| Data.jobBuild BuildStatusSucceeded
-                        }
+                        jobWithoutBuild
+                            |> Data.withFinishedBuild build
+                            |> Data.withTransitionBuild build
+                            |> Data.withNextBuild build
                 in
                 whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
@@ -178,21 +180,21 @@ all =
                     |> Application.handleDelivery
                         (CachedJobsReceived <|
                             Ok <|
-                                [ Data.job 0 ]
+                                [ Data.job 0 0 ]
                         )
                     |> Tuple.first
                     |> Application.handleCallback
                         (AllJobsFetched <|
                             Ok <|
-                                [ Data.job 0 ]
+                                [ Data.job 0 0 ]
                         )
                     |> Tuple.second
-                    |> Common.notContains (SaveCachedJobs [ Data.job 0 ])
+                    |> Common.notContains (SaveCachedJobs [ Data.job 0 0 ])
         , test "bounds the number of cached jobs to 1000" <|
             \_ ->
                 let
                     firstNJobs n =
-                        List.range 0 (n - 1) |> List.map Data.job
+                        List.range 0 (n - 1) |> List.map (\id -> Data.job id 0)
                 in
                 whenOnDashboard { highDensity = False }
                     |> Application.handleCallback

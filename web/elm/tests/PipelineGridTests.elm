@@ -747,45 +747,25 @@ jobsWithHeight pipelineID height =
     List.range 1 height
         |> List.map
             (\i ->
-                let
-                    job =
-                        Data.job pipelineID
-                in
-                { job | name = String.fromInt i }
+                Data.job i pipelineID
+                    |> Data.withName (String.fromInt i)
             )
 
 
 jobsWithDepth : Int -> Int -> List Concourse.Job
 jobsWithDepth pipelineID depth =
-    let
-        job =
-            Data.job pipelineID
-    in
     if depth < 1 then
         []
 
     else if depth == 1 then
-        [ { job
-            | name = "1"
-            , inputs =
-                [ { name = ""
-                  , resource = ""
-                  , passed = []
-                  , trigger = False
-                  }
-                ]
-          }
+        [ Data.job 1 pipelineID
+            |> Data.withName "1"
+            |> Data.withInputs [ Data.input [] ]
         ]
 
     else
-        { job
-            | name = String.fromInt depth
-            , inputs =
-                [ { name = ""
-                  , resource = ""
-                  , passed = [ String.fromInt <| depth - 1 ]
-                  , trigger = False
-                  }
-                ]
-        }
+        (Data.job depth pipelineID
+            |> Data.withName (String.fromInt depth)
+            |> Data.withInputs [ Data.input [ String.fromInt <| depth - 1 ] ]
+        )
             :: (jobsWithDepth pipelineID <| depth - 1)

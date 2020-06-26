@@ -713,7 +713,8 @@ type alias JobIdentifier =
 
 
 type alias Job =
-    { name : JobName
+    { id : Int
+    , name : JobName
     , pipelineName : PipelineName
     , teamName : TeamName
     , nextBuild : Maybe Build
@@ -744,7 +745,8 @@ type alias JobOutput =
 encodeJob : Job -> Json.Encode.Value
 encodeJob job =
     Json.Encode.object
-        [ ( "name", job.name |> Json.Encode.string )
+        [ ( "id", job.id |> Json.Encode.int )
+        , ( "name", job.name |> Json.Encode.string )
         , ( "pipeline_name", job.pipelineName |> Json.Encode.string )
         , ( "team_name", job.teamName |> Json.Encode.string )
         , ( "next_build", job.nextBuild |> encodeMaybeBuild )
@@ -762,6 +764,7 @@ encodeJob job =
 decodeJob : Json.Decode.Decoder Job
 decodeJob =
     Json.Decode.succeed Job
+        |> andMap (Json.Decode.field "id" Json.Decode.int)
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)

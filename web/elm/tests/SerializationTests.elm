@@ -16,7 +16,7 @@ all =
             \_ ->
                 let
                     job =
-                        Data.job 1
+                        Data.job 1 1
                 in
                 job
                     |> Concourse.encodeJob

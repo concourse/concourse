@@ -98,7 +98,10 @@ all =
                 Application.handleCallback <|
                     Callback.BuildJobDetailsFetched <|
                         Ok
-                            (Data.job 0 |> Data.withShortPipelineId |> Data.withName "j")
+                            (Data.job 0 0
+                                |> Data.withShortPipelineId
+                                |> Data.withName "j"
+                            )
 
             fetchJobDetailsNoTrigger :
                 Application.Model
@@ -107,7 +110,7 @@ all =
                 Application.handleCallback <|
                     Callback.BuildJobDetailsFetched <|
                         Ok
-                            (Data.job 0
+                            (Data.job 0 0
                                 |> Data.withShortPipelineId
                                 |> Data.withName "j"
                                 |> Data.withDisableManualTrigger True
@@ -1151,22 +1154,7 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <| Ok (Data.jobBuild BuildStatusStarted))
                     |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.BuildJobDetailsFetched <|
-                            Ok
-                                { name = ""
-                                , pipelineName = "p"
-                                , teamName = "t"
-                                , nextBuild = Nothing
-                                , finishedBuild = Nothing
-                                , transitionBuild = Nothing
-                                , paused = False
-                                , disableManualTrigger = False
-                                , inputs = []
-                                , outputs = []
-                                , groups = []
-                                }
-                        )
+                    |> fetchJobDetails
                     |> Tuple.first
                     |> Application.update
                         (Msgs.DeliveryReceived <|
@@ -1205,22 +1193,7 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <| Ok (Data.jobBuild BuildStatusSucceeded))
                     |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.BuildJobDetailsFetched <|
-                            Ok
-                                { name = ""
-                                , pipelineName = "p"
-                                , teamName = "t"
-                                , nextBuild = Nothing
-                                , finishedBuild = Nothing
-                                , transitionBuild = Nothing
-                                , paused = False
-                                , disableManualTrigger = False
-                                , inputs = []
-                                , outputs = []
-                                , groups = []
-                                }
-                        )
+                    |> fetchJobDetails
                     |> Tuple.first
                     |> Application.update
                         (Msgs.DeliveryReceived <|
@@ -1239,22 +1212,7 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <| Ok (Data.jobBuild BuildStatusStarted))
                     |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.BuildJobDetailsFetched <|
-                            Ok
-                                { name = ""
-                                , pipelineName = "p"
-                                , teamName = "t"
-                                , nextBuild = Nothing
-                                , finishedBuild = Nothing
-                                , transitionBuild = Nothing
-                                , paused = False
-                                , disableManualTrigger = False
-                                , inputs = []
-                                , outputs = []
-                                , groups = []
-                                }
-                        )
+                    |> fetchJobDetails
                     |> Tuple.first
                     |> Application.update
                         (Msgs.DeliveryReceived <|

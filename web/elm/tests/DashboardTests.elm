@@ -13,12 +13,9 @@ module DashboardTests exposing
     , givenDataUnauthenticated
     , green
     , iconSelector
-    , job
-    , jobWithNameTransitionedAt
     , lightGrey
     , middleGrey
     , orange
-    , otherJob
     , red
     , running
     , userWithRoles
@@ -698,26 +695,12 @@ all =
                     |> Application.handleCallback
                         (Callback.AllJobsFetched <|
                             Ok
-                                [ { name = "job"
-                                  , pipelineName = "pipeline"
-                                  , teamName = "team"
-                                  , nextBuild = Nothing
-                                  , finishedBuild =
-                                        Just
-                                            { id = 0
-                                            , name = "1"
-                                            , job = Just Data.jobId
-                                            , status = BuildStatusSucceeded
-                                            , duration = { startedAt = Nothing, finishedAt = Nothing }
-                                            , reapTime = Nothing
-                                            }
-                                  , transitionBuild = Nothing
-                                  , paused = False
-                                  , disableManualTrigger = False
-                                  , inputs = []
-                                  , outputs = []
-                                  , groups = []
-                                  }
+                                [ Data.job 0 0
+                                    |> Data.withName "job"
+                                    |> Data.withPipelineName "pipeline"
+                                    |> Data.withTeamName "team"
+                                    |> Data.withFinishedBuild
+                                        (Just <| Data.jobBuild BuildStatusSucceeded)
                                 ]
                         )
                     |> Tuple.first
@@ -2210,156 +2193,28 @@ apiData pipelines =
 
 
 running : Concourse.Job -> Concourse.Job
-running j =
-    { j
-        | nextBuild =
-            Just
-                { id = 1
-                , name = "1"
-                , job = Just Data.jobId
-                , status = BuildStatusStarted
-                , duration =
-                    { startedAt = Nothing
-                    , finishedAt = Nothing
-                    }
-                , reapTime = Nothing
-                }
-    }
-
-
-otherJob : BuildStatus -> Concourse.Job
-otherJob =
-    jobWithNameTransitionedAt "other-job" <| Just <| Time.millisToPosix 0
-
-
-job : BuildStatus -> Concourse.Job
-job =
-    jobWithNameTransitionedAt "job" <| Just <| Time.millisToPosix 0
-
-
-jobWithNameTransitionedAt : String -> Maybe Time.Posix -> BuildStatus -> Concourse.Job
-jobWithNameTransitionedAt jobName transitionedAt status =
-    { name = jobName
-    , pipelineName = "pipeline"
-    , teamName = "team"
-    , nextBuild = Nothing
-    , finishedBuild =
-        Just
-            { id = 0
-            , name = "0"
-            , job = Just Data.jobId
-            , status = status
-            , duration =
-                { startedAt = Nothing
-                , finishedAt = Nothing
-                }
-            , reapTime = Nothing
-            }
-    , transitionBuild =
-        transitionedAt
-            |> Maybe.map
-                (\t ->
-                    { id = 1
-                    , name = "1"
-                    , job = Just Data.jobId
-                    , status = status
-                    , duration =
-                        { startedAt = Nothing
-                        , finishedAt = Just <| t
-                        }
-                    , reapTime = Nothing
-                    }
-                )
-    , paused = False
-    , disableManualTrigger = False
-    , inputs = []
-    , outputs = []
-    , groups = []
-    }
+running =
+    Data.withNextBuild (Data.jobBuild BuildStatusStarted |> Just)
 
 
 circularJobs : List Concourse.Job
 circularJobs =
-    [ { name = "jobA"
-      , pipelineName = "pipeline"
-      , teamName = "team"
-      , nextBuild = Nothing
-      , finishedBuild =
-            Just
-                { id = 0
-                , name = "0"
-                , job = Just (Data.jobId |> Data.withJobName "jobA")
-                , status = BuildStatusSucceeded
-                , duration =
-                    { startedAt = Nothing
-                    , finishedAt = Nothing
-                    }
-                , reapTime = Nothing
-                }
-      , transitionBuild =
-            Just
-                { id = 1
-                , name = "1"
-                , job = Just (Data.jobId |> Data.withJobName "jobA")
-                , status = BuildStatusSucceeded
-                , duration =
-                    { startedAt = Nothing
-                    , finishedAt = Just <| Time.millisToPosix 0
-                    }
-                , reapTime = Nothing
-                }
-      , paused = False
-      , disableManualTrigger = False
-      , inputs =
-            [ { name = "inA"
-              , resource = "res0"
-              , passed = [ "jobB" ]
-              , trigger = True
-              }
-            ]
-      , outputs = []
-      , groups = []
-      }
-    , { name = "jobB"
-      , pipelineName = "pipeline"
-      , teamName = "team"
-      , nextBuild = Nothing
-      , finishedBuild =
-            Just
-                { id = 0
-                , name = "0"
-                , job = Just (Data.jobId |> Data.withJobName "jobB")
-                , status = BuildStatusSucceeded
-                , duration =
-                    { startedAt = Nothing
-                    , finishedAt = Nothing
-                    }
-                , reapTime = Nothing
-                }
-      , transitionBuild =
-            Just
-                { id = 1
-                , name = "1"
-                , job = Just (Data.jobId |> Data.withJobName "jobB")
-                , status = BuildStatusSucceeded
-                , duration =
-                    { startedAt = Nothing
-                    , finishedAt = Just <| Time.millisToPosix 0
-                    }
-                , reapTime = Nothing
-                }
-      , paused = False
-      , disableManualTrigger = False
-      , inputs =
-            [ { name = "inB"
-              , resource = "res0"
-              , passed = [ "jobA" ]
-              , trigger = True
-              }
-            ]
-      , outputs = []
-      , groups = []
-      }
+    let
+        build =
+            Data.jobBuild BuildStatusSucceeded |> Just
+    in
+    [ Data.job 0 0
+        |> Data.withName "jobA"
+        |> Data.withPipelineName "pipeline"
+        |> Data.withFinishedBuild build
+        |> Data.withTransitionBuild build
+        |> Data.withInputs [ Data.input [ "jobB" ] ]
+    , Data.job 1 0
+        |> Data.withName "jobB"
+        |> Data.withPipelineName "pipeline"
+        |> Data.withFinishedBuild build
+        |> Data.withTransitionBuild build
+        |> Data.withInputs [ Data.input [ "jobA" ] ]
     ]
 
 

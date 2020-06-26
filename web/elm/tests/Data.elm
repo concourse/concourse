@@ -6,6 +6,7 @@ module Data exposing
     , httpNotFound
     , httpNotImplemented
     , httpUnauthorized
+    , input
     , job
     , jobBuild
     , jobBuildId
@@ -30,9 +31,12 @@ module Data exposing
     , withBackgroundImage
     , withBuildName
     , withDisableManualTrigger
+    , withFinishedBuild
     , withGroups
+    , withInputs
     , withJobName
     , withName
+    , withNextBuild
     , withPaused
     , withPipelineName
     , withPublic
@@ -41,6 +45,7 @@ module Data exposing
     , withShortPipelineId
     , withShortResourceId
     , withTeamName
+    , withTransitionBuild
     )
 
 import Browser.Dom
@@ -215,9 +220,10 @@ withBackgroundImage bg p =
     { p | backgroundImage = Just bg }
 
 
-job : Int -> Concourse.Job
-job pipelineID =
-    { name = jobName
+job : Int -> Int -> Concourse.Job
+job jobID pipelineID =
+    { id = jobID
+    , name = jobName
     , pipelineName = "pipeline-" ++ String.fromInt pipelineID
     , teamName = teamName
     , nextBuild = Nothing
@@ -259,6 +265,59 @@ withResourceName name p =
 withBuildName : String -> { r | buildName : String } -> { r | buildName : String }
 withBuildName name p =
     { p | buildName = name }
+
+
+withNextBuild :
+    Maybe Concourse.Build
+    -> { r | nextBuild : Maybe Concourse.Build, name : String, pipelineName : String, teamName : String }
+    -> { r | nextBuild : Maybe Concourse.Build, name : String, pipelineName : String, teamName : String }
+withNextBuild build j =
+    { j | nextBuild = build |> Maybe.map (updateJobIdentifier j) }
+
+
+withFinishedBuild :
+    Maybe Concourse.Build
+    -> { r | finishedBuild : Maybe Concourse.Build, name : String, pipelineName : String, teamName : String }
+    -> { r | finishedBuild : Maybe Concourse.Build, name : String, pipelineName : String, teamName : String }
+withFinishedBuild build j =
+    { j | finishedBuild = build |> Maybe.map (updateJobIdentifier j) }
+
+
+withTransitionBuild :
+    Maybe Concourse.Build
+    -> { r | transitionBuild : Maybe Concourse.Build, name : String, pipelineName : String, teamName : String }
+    -> { r | transitionBuild : Maybe Concourse.Build, name : String, pipelineName : String, teamName : String }
+withTransitionBuild build j =
+    { j | transitionBuild = build |> Maybe.map (updateJobIdentifier j) }
+
+
+updateJobIdentifier :
+    { r | name : String, pipelineName : String, teamName : String }
+    -> Concourse.Build
+    -> Concourse.Build
+updateJobIdentifier j b =
+    { b
+        | job =
+            Just
+                { jobName = j.name
+                , pipelineName = j.pipelineName
+                , teamName = j.teamName
+                }
+    }
+
+
+withInputs : List Concourse.JobInput -> { r | inputs : List Concourse.JobInput } -> { r | inputs : List Concourse.JobInput }
+withInputs inputs j =
+    { j | inputs = inputs }
+
+
+input : List String -> Concourse.JobInput
+input passed =
+    { name = "input"
+    , resource = "res0"
+    , passed = passed
+    , trigger = True
+    }
 
 
 jobName =

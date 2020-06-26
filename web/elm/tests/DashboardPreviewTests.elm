@@ -254,48 +254,28 @@ findJobPreview =
 
 job : Concourse.Job
 job =
-    { name = "job"
-    , pipelineName = "pipeline"
-    , teamName = "team"
-    , nextBuild = Nothing
-    , finishedBuild = Nothing
-    , transitionBuild = Nothing
-    , paused = False
-    , disableManualTrigger = False
-    , inputs = []
-    , outputs = []
-    , groups = []
-    }
+    Data.job 0 0
+        |> Data.withName "job"
+        |> Data.withPipelineName "pipeline"
+        |> Data.withTeamName "team"
 
 
 withNextBuild : Concourse.Job -> Concourse.Job
-withNextBuild j =
-    { j
-        | nextBuild =
-            Just
-                { id = 2
-                , name = "2"
-                , job = Just jobId
-                , status = BuildStatusStarted
-                , duration = { startedAt = Nothing, finishedAt = Nothing }
-                , reapTime = Nothing
-                }
-    }
+withNextBuild =
+    Data.withNextBuild
+        (Data.jobBuild BuildStatusStarted
+            |> Data.withName "2"
+            |> Just
+        )
 
 
 withStatus : BuildStatus -> Concourse.Job -> Concourse.Job
-withStatus status j =
-    { j
-        | finishedBuild =
-            Just
-                { id = 1
-                , name = "1"
-                , job = Just jobId
-                , status = status
-                , duration = { startedAt = Nothing, finishedAt = Nothing }
-                , reapTime = Nothing
-                }
-    }
+withStatus status =
+    Data.withFinishedBuild
+        (Data.jobBuild status
+            |> Data.withName "1"
+            |> Just
+        )
 
 
 isPaused : Concourse.Job -> Concourse.Job
