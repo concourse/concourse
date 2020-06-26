@@ -903,6 +903,14 @@ func (cmd *RunCommand) backendComponents(
 		resourceFetcher,
 	)
 
+	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
+	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
+	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
+	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
+	dbCheckableCounter := db.NewCheckableCounter(dbConn)
+
+	alg := algorithm.New(db.NewVersionsDB(dbConn, algorithmLimitRows, schedulerCache))
+
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
 	dbTaskCacheFactory := db.NewTaskCacheFactory(dbConn)
 	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
@@ -960,6 +968,7 @@ func (cmd *RunCommand) backendComponents(
 		workerClient,
 		resourceFactory,
 		teamFactory,
+		dbBuildFactory,
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		secretManager,
@@ -967,14 +976,6 @@ func (cmd *RunCommand) backendComponents(
 		buildContainerStrategy,
 		lockFactory,
 	)
-
-	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
-	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
-	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
-	dbCheckableCounter := db.NewCheckableCounter(dbConn)
-
-	alg := algorithm.New(db.NewVersionsDB(dbConn, algorithmLimitRows, schedulerCache))
 
 	// In case that a user configures resource-checking-interval, but forgets to
 	// configure resource-with-webhook-checking-interval, keep both checking-
@@ -1552,6 +1553,7 @@ func (cmd *RunCommand) constructEngine(
 	workerClient worker.Client,
 	resourceFactory resource.ResourceFactory,
 	teamFactory db.TeamFactory,
+	buildFactory db.BuildFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	secretManager creds.Secrets,
@@ -1565,6 +1567,7 @@ func (cmd *RunCommand) constructEngine(
 		workerClient,
 		resourceFactory,
 		teamFactory,
+		buildFactory,
 		resourceCacheFactory,
 		resourceConfigFactory,
 		defaultLimits,
