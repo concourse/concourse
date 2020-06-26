@@ -7,6 +7,8 @@ import Dict exposing (Dict)
 import Expect
 import Http
 import Message.Callback exposing (Callback(..))
+import Message.Effects exposing (Effect(..))
+import Message.Subscription exposing (Delivery(..))
 import NotFound.Model
 import Routes
 import SubPage.SubPage exposing (..)
@@ -16,13 +18,13 @@ import Url
 
 all : Test
 all =
-    describe "SubPage"
-        [ describe "not found" <|
-            let
-                init : String -> () -> Application.Model
-                init path _ =
-                    Common.init path
-            in
+    describe "SubPage" <|
+        let
+            init : String -> () -> Application.Model
+            init path _ =
+                Common.init path
+        in
+        [ describe "not found"
             [ test "JobNotFound" <|
                 init "/teams/t/pipelines/p/jobs/j"
                     >> Application.handleCallback (JobFetched Data.httpNotFound)
@@ -85,6 +87,39 @@ all =
                                 )
                             )
                         )
+            ]
+        , describe "close event streams on navigation"
+            [ test "close BuildEventStream from Build page to dashboard" <|
+                init "/teams/t/pipelines/p/jobs/j/builds/1"
+                    >> Application.handleDelivery
+                        (RouteChanged <|
+                            Routes.Dashboard <|
+                                Routes.Normal Nothing
+                        )
+                    >> Tuple.second
+                    >> Common.contains CloseBuildEventStream
+            , test "close BuildEventStream from Build page to different Build page" <|
+                init "/teams/t/pipelines/p/jobs/j/builds/1"
+                    >> Application.handleDelivery
+                        (RouteChanged <|
+                            Routes.Build
+                                { id = { teamName = "t", pipelineName = "b", jobName = "j", buildName = "2" }
+                                , highlight = Routes.HighlightNothing
+                                }
+                        )
+                    >> Tuple.second
+                    >> Common.contains CloseBuildEventStream
+            , test "don't close BuildEventStream when navigating to same Build" <|
+                init "/teams/t/pipelines/p/jobs/j/builds/1"
+                    >> Application.handleDelivery
+                        (RouteChanged <|
+                            Routes.Build
+                                { id = { teamName = "t", pipelineName = "p", jobName = "j", buildName = "1" }
+                                , highlight = Routes.HighlightLine "step" 1
+                                }
+                        )
+                    >> Tuple.second
+                    >> Common.notContains CloseBuildEventStream
             ]
         ]
 

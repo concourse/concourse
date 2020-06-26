@@ -1,6 +1,7 @@
 module Build.Build exposing
     ( bodyId
     , changeToBuild
+    , cleanup
     , documentTitle
     , getScrollBehavior
     , getUpdateMessage
@@ -130,6 +131,11 @@ init flags =
           , FetchAllPipelines
           ]
         )
+
+
+cleanup : List Effect
+cleanup =
+    [ CloseBuildEventStream ]
 
 
 subscriptions : Model -> List Subscription

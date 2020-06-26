@@ -1,5 +1,6 @@
 module SubPage.SubPage exposing
     ( Model(..)
+    , cleanup
     , handleCallback
     , handleDelivery
     , handleNotFound
@@ -104,6 +105,16 @@ init session route =
                 , noop = noop
                 }
                 |> Tuple.mapFirst FlySuccessModel
+
+
+cleanup : Routes.Route -> List Effect
+cleanup route =
+    case route of
+        Routes.Build _ ->
+            Build.cleanup
+
+        _ ->
+            []
 
 
 handleNotFound : String -> Routes.Route -> ET Model

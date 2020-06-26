@@ -437,7 +437,11 @@ urlUpdate route model =
                     ( model.subModel, [] )
 
             else
-                SubPage.init model.session route
+                let
+                    cleanupEffects =
+                        SubPage.cleanup model.route
+                in
+                SubPage.init model.session route |> Tuple.mapSecond ((++) cleanupEffects)
     in
     ( { model | subModel = newSubmodel, route = route }
     , subEffects ++ [ SetFavIcon Nothing ]
