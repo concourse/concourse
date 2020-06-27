@@ -1,5 +1,6 @@
 module Dashboard.Dashboard exposing
-    ( documentTitle
+    ( cleanup
+    , documentTitle
     , handleCallback
     , handleDelivery
     , init
@@ -9,9 +10,11 @@ module Dashboard.Dashboard exposing
     , view
     )
 
+import Api.EventSource exposing (Event(..), EventEnvelope)
 import Application.Models exposing (Session)
 import Concourse
 import Concourse.Cli as Cli
+import Concourse.ListAllJobsEvent exposing (JobUpdate(..), ListAllJobsEvent(..))
 import Dashboard.DashboardPreview as DashboardPreview
 import Dashboard.Drag as Drag
 import Dashboard.Filter as Filter
@@ -99,6 +102,7 @@ init f =
       , dashboardView = f.dashboardView
       , pipelinesWithResourceErrors = Set.empty
       , jobs = None
+      , jobIDs = Dict.empty
       , pipelines = Nothing
       , pipelineLayers = Dict.empty
       , teams = None
@@ -106,6 +110,7 @@ init f =
       , dropdown = Hidden
       , dragState = Models.NotDragging
       , dropState = Models.NotDropping
+      , isWatchingListAllJobs = True
       , isJobsRequestFinished = False
       , isTeamsRequestFinished = False
       , isResourcesRequestFinished = False
@@ -124,7 +129,7 @@ init f =
       , PinTeamNames Message.Effects.stickyHeaderConfig
       , GetScreenSize
       , FetchAllResources
-      , FetchAllJobs
+      , OpenListAllJobsEventStream
       , FetchAllPipelines
       , LoadCachedJobs
       , LoadCachedPipelines
@@ -132,6 +137,11 @@ init f =
       , GetViewportOf Dashboard
       ]
     )
+
+
+cleanup : List Effect
+cleanup =
+    [ CloseListAllJobsEventStream ]
 
 
 buffers : List (Buffer Model)
@@ -171,7 +181,11 @@ buffers =
                 _ ->
                     False
         )
-        (\model -> model.dragState /= NotDragging || model.jobsError == Just Disabled)
+        (\model ->
+            (model.dragState /= NotDragging)
+                || (model.jobsError == Just Disabled)
+                || model.isWatchingListAllJobs
+        )
         { get = \m -> m.isJobsRequestFinished
         , set = \f m -> { m | isJobsRequestFinished = f }
         }
@@ -219,33 +233,14 @@ handleCallback callback ( model, effects ) =
 
         AllJobsFetched (Ok allJobsInEntireCluster) ->
             let
-                removeBuild job =
-                    { job
-                        | finishedBuild = Nothing
-                        , transitionBuild = Nothing
-                        , nextBuild = Nothing
-                    }
-
-                newJobs =
-                    allJobsInEntireCluster
-                        |> List.map
-                            (\job ->
-                                ( ( job.teamName
-                                  , job.pipelineName
-                                  , job.name
-                                  )
-                                , job
-                                )
-                            )
-                        |> Dict.fromList
-                        |> Fetched
-
-                maxJobsInCache =
-                    1000
-
                 mapToJobIds jobsResult =
                     jobsResult
                         |> FetchResult.map (Dict.toList >> List.map Tuple.first)
+
+                newJobs =
+                    allJobsInEntireCluster
+                        |> jobsToDict
+                        |> Fetched
 
                 newModel =
                     { model
@@ -254,13 +249,8 @@ handleCallback callback ( model, effects ) =
                     }
             in
             if mapToJobIds newJobs |> changedFrom (mapToJobIds model.jobs) then
-                ( newModel |> precomputeJobMetadata
-                , effects
-                    ++ [ allJobsInEntireCluster
-                            |> List.take maxJobsInCache
-                            |> List.map removeBuild
-                            |> SaveCachedJobs
-                       ]
+                ( precomputeJobMetadata newModel
+                , effects ++ [ saveCachedJobs allJobsInEntireCluster ]
                 )
 
             else
@@ -380,11 +370,11 @@ handleCallback callback ( model, effects ) =
                                 }
                    , FetchAllTeams
                    , FetchAllResources
-                   , FetchAllJobs
                    , FetchAllPipelines
                    , DeleteCachedPipelines
                    , DeleteCachedJobs
                    , DeleteCachedTeams
+                   , OpenListAllJobsEventStream
                    ]
             )
 
@@ -544,8 +534,242 @@ handleDeliveryBody delivery ( model, effects ) =
             else
                 ( model, effects )
 
+        ListAllJobsEventsReceived (Ok envelopes) ->
+            envelopes
+                |> List.reverse
+                |> List.foldr handleListAllJobsEnvelope ( model, effects )
+
+        ListAllJobsEventsReceived (Err _) ->
+            -- Fallback to polling
+            ( { model | isWatchingListAllJobs = False }, effects ++ [ FetchAllJobs ] )
+
         _ ->
             ( model, effects )
+
+
+handleListAllJobsEnvelope : EventEnvelope ListAllJobsEvent -> ET Model
+handleListAllJobsEnvelope { data } ( model, effects ) =
+    case data of
+        Opened ->
+            ( { model | isWatchingListAllJobs = True }, effects )
+
+        NetworkError ->
+            -- Fallback to polling
+            ( { model | isWatchingListAllJobs = False }, effects ++ [ FetchAllJobs ] )
+
+        Event (Initial allJobsInEntireCluster) ->
+            let
+                newModel =
+                    { model
+                        | jobs =
+                            allJobsInEntireCluster
+                                |> jobsToDict
+                                |> Fetched
+                        , jobsError = Nothing
+                    }
+            in
+            ( precomputeJobMetadata newModel
+            , effects ++ [ saveCachedJobs allJobsInEntireCluster ]
+            )
+
+        Event (Patch updates) ->
+            updates
+                |> List.reverse
+                |> List.foldr handleListAllJobsUpdate ( model, effects )
+                |> (\( model_, effects_ ) ->
+                        ( model_
+                        , effects_
+                            ++ [ model_.jobs
+                                    |> FetchResult.withDefault Dict.empty
+                                    |> Dict.values
+                                    |> saveCachedJobs
+                               ]
+                        )
+                   )
+
+
+jobsToDict : List Concourse.Job -> Dict ( String, String, String ) Concourse.Job
+jobsToDict =
+    List.map
+        (\job ->
+            ( ( job.teamName
+              , job.pipelineName
+              , job.name
+              )
+            , job
+            )
+        )
+        >> Dict.fromList
+
+
+saveCachedJobs : List Concourse.Job -> Effect
+saveCachedJobs jobs =
+    let
+        maxJobsInCache =
+            1000
+
+        removeBuild job =
+            { job
+                | finishedBuild = Nothing
+                , transitionBuild = Nothing
+                , nextBuild = Nothing
+            }
+    in
+    jobs
+        |> List.take maxJobsInCache
+        |> List.map removeBuild
+        |> SaveCachedJobs
+
+
+handleListAllJobsUpdate : JobUpdate -> ET Model
+handleListAllJobsUpdate jobUpdate ( model, effects ) =
+    case jobUpdate of
+        Put id job ->
+            case model.jobIDs |> Dict.get id of
+                Nothing ->
+                    insertJob id job ( model, effects )
+
+                Just oldJobID ->
+                    if jobToId job /= oldJobID then
+                        (deleteJob id >> insertJob id job) <| ( model, effects )
+
+                    else
+                        updateJob job ( model, effects )
+
+        Delete id ->
+            deleteJob id ( model, effects )
+
+
+insertJob : Int -> Concourse.Job -> ET Model
+insertJob id job ( model, effects ) =
+    let
+        updatedModel =
+            updatePipelineJobs ((++) [ job ])
+                ( job.teamName, job.pipelineName )
+                model
+    in
+    ( { updatedModel
+        | jobs =
+            model.jobs
+                |> FetchResult.map
+                    (Dict.update
+                        ( job.teamName, job.pipelineName, job.name )
+                        (always <| Just job)
+                    )
+        , jobIDs =
+            model.jobIDs
+                |> Dict.update id (always <| Just <| jobToId job)
+      }
+    , effects
+    )
+
+
+updateJob : Concourse.Job -> ET Model
+updateJob job ( model, effects ) =
+    let
+        updatedModel =
+            updatePipelineJobs
+                (List.map
+                    (\curJob ->
+                        if curJob.id == job.id then
+                            job
+
+                        else
+                            curJob
+                    )
+                )
+                ( job.teamName, job.pipelineName )
+                model
+    in
+    ( { updatedModel
+        | jobs =
+            model.jobs
+                |> FetchResult.map
+                    (Dict.update
+                        ( job.teamName, job.pipelineName, job.name )
+                        (always <| Just job)
+                    )
+      }
+    , effects
+    )
+
+
+deleteJob : Int -> ET Model
+deleteJob id ( model, effects ) =
+    case model.jobIDs |> Dict.get id of
+        Nothing ->
+            ( model, effects )
+
+        Just jobID ->
+            let
+                updatedModel =
+                    updatePipelineJobs (List.filter (.id >> (/=) id))
+                        ( jobID.teamName, jobID.pipelineName )
+                        model
+            in
+            ( { updatedModel
+                | jobs =
+                    model.jobs
+                        |> FetchResult.map
+                            (Dict.update
+                                ( jobID.teamName, jobID.pipelineName, jobID.jobName )
+                                (always Nothing)
+                            )
+                , jobIDs =
+                    model.jobIDs
+                        |> Dict.update
+                            id
+                            (always Nothing)
+              }
+            , effects
+            )
+
+
+updatePipelineJobs :
+    (List Concourse.Job -> List Concourse.Job)
+    -> ( String, String )
+    -> Model
+    -> Model
+updatePipelineJobs transform pipelineId model =
+    let
+        oldPipelineJobs =
+            case model.pipelineJobs |> Dict.get pipelineId of
+                Nothing ->
+                    []
+
+                Just existingJobs ->
+                    let
+                        jobs =
+                            model.jobs |> FetchResult.withDefault Dict.empty
+                    in
+                    existingJobs
+                        |> List.filterMap
+                            (\jobId ->
+                                Dict.get
+                                    ( jobId.teamName, jobId.pipelineName, jobId.jobName )
+                                    jobs
+                            )
+
+        newPipelineJobs =
+            transform oldPipelineJobs
+
+        pipelineLayers =
+            newPipelineJobs
+                |> DashboardPreview.groupByRank
+                |> List.map (List.map jobToId)
+    in
+    { model
+        | pipelineLayers =
+            model.pipelineLayers
+                |> Dict.update
+                    pipelineId
+                    (always <| Just pipelineLayers)
+        , pipelineJobs =
+            model.pipelineJobs
+                |> Dict.update
+                    pipelineId
+                    (always <| Just <| List.map jobToId newPipelineJobs)
+    }
 
 
 toDashboardPipeline : Bool -> Bool -> Concourse.Pipeline -> Pipeline
@@ -602,6 +826,14 @@ groupBy keyfn list =
         list
 
 
+jobToId : Concourse.Job -> Concourse.JobIdentifier
+jobToId job =
+    { teamName = job.teamName
+    , pipelineName = job.pipelineName
+    , jobName = job.name
+    }
+
+
 precomputeJobMetadata : Model -> Model
 precomputeJobMetadata model =
     let
@@ -612,12 +844,6 @@ precomputeJobMetadata model =
 
         pipelineJobs =
             allJobs |> groupBy (\j -> ( j.teamName, j.pipelineName ))
-
-        jobToId job =
-            { teamName = job.teamName
-            , pipelineName = job.pipelineName
-            , jobName = job.name
-            }
     in
     { model
         | pipelineLayers =
@@ -631,6 +857,10 @@ precomputeJobMetadata model =
         , pipelineJobs =
             pipelineJobs
                 |> Dict.map (\_ jobs -> jobs |> List.map jobToId)
+        , jobIDs =
+            allJobs
+                |> List.map (\j -> ( j.id, jobToId j ))
+                |> Dict.fromList
     }
 
 
@@ -772,6 +1002,7 @@ subscriptions =
     , OnCachedJobsReceived
     , OnCachedPipelinesReceived
     , OnCachedTeamsReceived
+    , FromEventSource
     ]
 
 

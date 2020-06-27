@@ -1,8 +1,10 @@
 module DashboardCacheTests exposing (all)
 
+import Api.EventSource exposing (Event(..), EventEnvelope)
 import Application.Application as Application
 import Common
 import Concourse.BuildStatus exposing (BuildStatus(..))
+import Concourse.ListAllJobsEvent exposing (JobUpdate(..), ListAllJobsEvent(..))
 import DashboardTests exposing (whenOnDashboard)
 import Data
 import Message.Callback exposing (Callback(..))
@@ -151,6 +153,36 @@ all =
                         )
                     |> Tuple.second
                     |> Common.contains (SaveCachedJobs [ Data.job 0 0 ])
+        , test "saves jobs to cache when initial event received from event stream" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Application.handleDelivery
+                        (ListAllJobsEventsReceived <|
+                            Ok <|
+                                [ envelope <| Event <| Initial [ Data.job 0 0 ] ]
+                        )
+                    |> Tuple.second
+                    |> Common.contains (SaveCachedJobs [ Data.job 0 0 ])
+        , test "saves jobs to cache when patch event received from event stream" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Application.handleDelivery
+                        (ListAllJobsEventsReceived <|
+                            Ok <|
+                                [ envelope <| Event <| Initial [ Data.job 0 0 ] ]
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ListAllJobsEventsReceived <|
+                            Ok <|
+                                [ envelope <|
+                                    Event <|
+                                        Patch
+                                            [ Put 1 (Data.job 1 0 |> Data.withName "other-job") ]
+                                ]
+                        )
+                    |> Tuple.second
+                    |> Common.contains (SaveCachedJobs [ Data.job 0 0, Data.job 1 0 |> Data.withName "other-job" ])
         , test "removes build information from jobs when saving to cache" <|
             \_ ->
                 let
@@ -194,7 +226,12 @@ all =
             \_ ->
                 let
                     firstNJobs n =
-                        List.range 0 (n - 1) |> List.map (\id -> Data.job id 0)
+                        List.range 0 (n - 1)
+                            |> List.map
+                                (\id ->
+                                    Data.job id 0
+                                        |> Data.withName (String.fromInt id)
+                                )
                 in
                 whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
@@ -314,3 +351,8 @@ all =
                     |> Tuple.second
                     |> Common.contains DeleteCachedTeams
         ]
+
+
+envelope : Event a -> EventEnvelope a
+envelope e =
+    { data = e, url = "/api/v1/jobs" }

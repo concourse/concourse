@@ -21,6 +21,7 @@ import Browser.Events
 import Build.StepTree.Models exposing (BuildEvent)
 import Concourse exposing (DatabaseID, decodeJob, decodePipeline, decodeTeam)
 import Concourse.BuildEvents exposing (decodeRawBuildEvent)
+import Concourse.ListAllJobsEvent exposing (ListAllJobsEvent, decodeListAllJobsEvent)
 import Json.Decode
 import Json.Encode
 import Keyboard
@@ -103,6 +104,7 @@ type Delivery
     | WindowResized Float Float
     | NonHrefLinkClicked String -- must be a String because we can't parse it out too easily :(
     | BuildEventsReceived (Result Json.Decode.Error (List (EventEnvelope BuildEvent)))
+    | ListAllJobsEventsReceived (Result Json.Decode.Error (List (EventEnvelope ListAllJobsEvent)))
     | RouteChanged Routes.Route
     | UrlRequest Browser.UrlRequest
     | ElementVisible ( String, Bool )
@@ -159,6 +161,14 @@ runSubscription s =
                                         decodeEventEnvelope decodeRawBuildEvent
                                     )
                                 |> BuildEventsReceived
+
+                        "ListAllJobs" ->
+                            value
+                                |> Json.Decode.decodeValue
+                                    (Json.Decode.list <|
+                                        decodeEventEnvelope decodeListAllJobsEvent
+                                    )
+                                |> ListAllJobsEventsReceived
 
                         _ ->
                             Noop

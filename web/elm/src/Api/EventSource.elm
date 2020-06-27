@@ -1,4 +1,4 @@
-module Api.EventSource exposing (Event(..), EventEnvelope, decodeEventEnvelope)
+module Api.EventSource exposing (Event(..), EventEnvelope, decodeData, decodeEventEnvelope)
 
 import Json.Decode
 
@@ -41,3 +41,22 @@ decodeEventEnvelope eventDecoder =
     Json.Decode.map2 EventEnvelope
         dataDecoder
         urlDecoder
+
+
+decodeData : Json.Decode.Decoder a -> Json.Decode.Decoder a
+decodeData dataDecoder =
+    Json.Decode.field "data" Json.Decode.string
+        |> Json.Decode.andThen
+            (\rawEvent ->
+                case
+                    Json.Decode.decodeString
+                        dataDecoder
+                        rawEvent
+                of
+                    Ok result ->
+                        Json.Decode.succeed result
+
+                    Err err ->
+                        Json.Decode.fail <|
+                            Json.Decode.errorToString err
+            )

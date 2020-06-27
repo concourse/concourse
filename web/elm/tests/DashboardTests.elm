@@ -204,24 +204,6 @@ all =
                     }
                     |> Tuple.second
                     |> Common.contains Effects.FetchAllResources
-        , test "requests all jobs on page load" <|
-            \_ ->
-                Application.init
-                    { turbulenceImgSrc = ""
-                    , notFoundImgSrc = "notfound.svg"
-                    , csrfToken = "csrf_token"
-                    , authToken = ""
-                    , pipelineRunningKeyframes = ""
-                    }
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/"
-                    , query = Nothing
-                    , fragment = Nothing
-                    }
-                    |> Tuple.second
-                    |> Common.contains Effects.FetchAllJobs
         , test "requests all pipelines on page load" <|
             \_ ->
                 Application.init
@@ -1954,73 +1936,11 @@ all =
                 whenOnDashboard { highDensity = False }
                     |> Application.subscriptions
                     |> Common.contains Subscription.OnKeyUp
-        , test "auto refreshes jobs on five-second tick after previous request finishes" <|
+        , test "subscribes to event source" <|
             \_ ->
-                Common.init "/"
-                    |> Application.handleCallback
-                        (Callback.AllJobsFetched <| Ok [])
-                    |> Tuple.first
-                    |> Application.handleDelivery
-                        (ClockTicked FiveSeconds <|
-                            Time.millisToPosix 0
-                        )
-                    |> Tuple.second
-                    |> Common.contains Effects.FetchAllJobs
-        , test "stops polling jobs if the endpoint is disabled" <|
-            \_ ->
-                Common.init "/"
-                    |> Application.handleCallback
-                        (Callback.AllJobsFetched <| Data.httpNotImplemented)
-                    |> Tuple.first
-                    |> Application.handleDelivery
-                        (ClockTicked FiveSeconds <|
-                            Time.millisToPosix 0
-                        )
-                    |> Tuple.second
-                    |> Common.notContains Effects.FetchAllJobs
-        , test "auto refreshes jobs on next five-second tick after dropping" <|
-            \_ ->
-                Common.init "/"
-                    |> Application.handleCallback
-                        (Callback.AllJobsFetched <| Ok [])
-                    |> Tuple.first
-                    |> Application.update
-                        (ApplicationMsgs.Update <| Msgs.DragStart "team" "pipeline")
-                    |> Tuple.first
-                    |> Application.handleDelivery
-                        (ClockTicked FiveSeconds <|
-                            Time.millisToPosix 0
-                        )
-                    |> Tuple.first
-                    |> Application.update
-                        (ApplicationMsgs.Update <| Msgs.DragEnd)
-                    |> Tuple.first
-                    |> Application.handleDelivery
-                        (ClockTicked FiveSeconds <|
-                            Time.millisToPosix 0
-                        )
-                    |> Tuple.second
-                    |> Common.contains Effects.FetchAllJobs
-        , test "don't fetch any jobs until the first request finishes" <|
-            \_ ->
-                Common.init "/"
-                    |> Application.handleDelivery
-                        (ClockTicked FiveSeconds <| Time.millisToPosix 0)
-                    |> Tuple.second
-                    |> Common.notContains Effects.FetchAllJobs
-        , test "don't fetch all jobs until the last request finishes" <|
-            \_ ->
-                Common.init "/"
-                    |> Application.handleCallback
-                        (Callback.AllJobsFetched <| Ok [])
-                    |> Tuple.first
-                    |> Application.handleDelivery
-                        (ClockTicked FiveSeconds <| Time.millisToPosix 0)
-                    |> Tuple.first
-                    |> Application.handleDelivery
-                        (ClockTicked FiveSeconds <| Time.millisToPosix 0)
-                    |> Tuple.second
-                    |> Common.notContains Effects.FetchAllJobs
+                whenOnDashboard { highDensity = False }
+                    |> Application.subscriptions
+                    |> Common.contains Subscription.FromEventSource
         , test "navigate to non-hd view on logged out when in non-hd view" <|
             \_ ->
                 Common.init "/"
@@ -2049,13 +1969,6 @@ all =
                         (Callback.LoggedOut <| Ok ())
                     |> Tuple.second
                     |> Common.contains Effects.FetchAllResources
-        , test "fetch all jobs on logged out" <|
-            \_ ->
-                Common.init "/"
-                    |> Application.handleCallback
-                        (Callback.LoggedOut <| Ok ())
-                    |> Tuple.second
-                    |> Common.contains Effects.FetchAllJobs
         , test "fetch all pipelines on logged out" <|
             \_ ->
                 Common.init "/"

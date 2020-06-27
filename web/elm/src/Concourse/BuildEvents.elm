@@ -7,6 +7,7 @@ module Concourse.BuildEvents exposing
     , decodeRawBuildEvent
     )
 
+import Api.EventSource exposing (decodeData)
 import Build.StepTree.Models exposing (BuildEvent(..), Origin)
 import Concourse
 import Concourse.BuildStatus
@@ -21,22 +22,11 @@ decodeRawBuildEvent eventType =
         "end" ->
             Json.Decode.succeed End
 
-        _ ->
-            Json.Decode.field "data" Json.Decode.string
-                |> Json.Decode.andThen
-                    (\rawEvent ->
-                        case
-                            Json.Decode.decodeString
-                                decodeBuildEvent
-                                rawEvent
-                        of
-                            Ok event ->
-                                Json.Decode.succeed event
+        "event" ->
+            decodeData decodeBuildEvent
 
-                            Err err ->
-                                Json.Decode.fail <|
-                                    Json.Decode.errorToString err
-                    )
+        invalidType ->
+            Json.Decode.fail <| "unsupported event type " ++ invalidType
 
 
 decodeBuildEvent : Json.Decode.Decoder BuildEvent
