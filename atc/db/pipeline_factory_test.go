@@ -48,7 +48,10 @@ var _ = Describe("Pipeline Factory", func() {
 
 			pipeline3, _, err = defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline-three"}, atc.Config{
 				Jobs: atc.JobConfigs{
-					{Name: "job-fake-two"},
+					{
+						Name: "job-fake-two",
+						Public: true,
+					},
 				},
 			}, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
@@ -116,6 +119,14 @@ var _ = Describe("Pipeline Factory", func() {
 					pipelineRef(pipeline3),
 				}))
 			})
+		})
+
+		It("returns no visible pipelines when DisablePublicPipelines is true and when provided a nil teams", func() {
+			atc.DisablePublicPipelines = true
+			pipelines, err := pipelineFactory.VisiblePipelines(nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(pipelines)).To(Equal(0))
+			atc.DisablePublicPipelines = false
 		})
 	})
 

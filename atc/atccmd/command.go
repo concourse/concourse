@@ -130,6 +130,7 @@ type RunCommand struct {
 	ConcurrentRequestLimits   map[wrappa.LimitedRoute]int `long:"concurrent-request-limit" description:"Limit the number of concurrent requests to an API endpoint (Example: ListAllJobs:5)"`
 	APIMaxOpenConnections     int                         `long:"api-max-conns" description:"The maximum number of open connections for the api connection pool." default:"10"`
 	BackendMaxOpenConnections int                         `long:"backend-max-conns" description:"The maximum number of open connections for the backend connection pool." default:"50"`
+	DisablePublicPipelines    bool                        `long:"disable-public-pipelines" description:"Disable the loading of public pipelines on the dashboard"`
 
 	CredentialManagement creds.CredentialManagementConfig `group:"Credential Management"`
 	CredentialManagers   creds.Managers
@@ -543,6 +544,8 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 		atc.LoadBaseResourceTypeDefaults(defaults)
 	}
+
+	atc.DisablePublicPipelines = cmd.DisablePublicPipelines
 
 	//FIXME: These only need to run once for the entire binary. At the moment,
 	//they rely on state of the command.
