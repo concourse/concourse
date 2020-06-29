@@ -199,5 +199,35 @@ var _ = Describe("Checker", func() {
 				Eventually(fakeEngine.NewCheckCallCount).Should(Equal(1))
 			})
 		})
+
+		Context("when check run panicing", func() {
+			var fakeRunnable *enginefakes.FakeRunnable
+			var fakeCheck *dbfakes.FakeCheck
+
+			BeforeEach(func() {
+				fakeCheck = new(dbfakes.FakeCheck)
+				fakeRunnable = new(enginefakes.FakeRunnable)
+
+				fakeEngine.NewCheckReturns(fakeRunnable)
+
+				fakeCheckFactory.StartedChecksReturns([]db.Check{
+					fakeCheck,
+				}, nil)
+
+				fakeLimiter.WaitReturns(nil)
+				fakeRateCalculator.RateLimiterReturns(fakeLimiter, nil)
+
+				fakeRunnable.RunStub = func(context.Context) {
+					panic("something went wrong")
+				}
+			})
+
+			It("tries to run the runnable", func() {
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(fakeRunnable.RunCallCount).Should(Equal(1))
+				Eventually(fakeCheck.FinishWithErrorCallCount).Should(Equal(1))
+				Eventually(fakeCheck.FinishWithErrorArgsForCall(0).Error).Should(ContainSubstring("something went wrong"))
+			})
+		})
 	})
 })

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/concourse/concourse/atc/exec"
 	. "github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
@@ -118,6 +119,23 @@ var _ = Describe("Aggregate", func() {
 		It("exits with an error including the original message", func() {
 			Expect(stepErr.Error()).To(ContainSubstring("nope A"))
 			Expect(stepErr.Error()).To(ContainSubstring("nope B"))
+		})
+	})
+
+	Describe("Panic", func() {
+		Context("when one step panic", func() {
+			BeforeEach(func() {
+				fakeStepA.SucceededReturns(true)
+
+				fakeStepB.RunStub = func(_ context.Context, _ exec.RunState) error {
+					panic("something terrible")
+				}
+			})
+
+			It("recover from panic and yields false", func() {
+				Expect(step.Succeeded()).To(BeFalse())
+				Expect(stepErr.Error()).To(ContainSubstring("something terrible"))
+			})
 		})
 	})
 

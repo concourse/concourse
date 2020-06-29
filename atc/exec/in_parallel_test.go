@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/concourse/concourse/atc/exec"
 	. "github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
@@ -276,5 +277,22 @@ var _ = Describe("Parallel", func() {
 				Expect(step.Succeeded()).To(BeTrue())
 			})
 		})
+	})
+
+	Describe("Panic", func() {
+		Context("when one step panic", func() {
+			BeforeEach(func() {
+				fakeStepA.SucceededReturns(false)
+				fakeStepB.RunStub = func(context.Context, exec.RunState) error {
+					panic("something went wrong")
+				}
+			})
+
+			It("returns false", func() {
+				Expect(step.Succeeded()).To(BeFalse())
+				Expect(stepErr.Error()).To(ContainSubstring("something went wrong"))
+			})
+		})
+
 	})
 })
