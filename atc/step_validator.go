@@ -264,8 +264,8 @@ func (validator *StepValidator) VisitRetry(step *RetryStep) error {
 	validator.pushContext(".attempts")
 	defer validator.popContext()
 
-	if step.Attempts < 0 {
-		validator.recordError("cannot be negative")
+	if step.Attempts <= 0 {
+		validator.recordError("must be greater than 0")
 	}
 
 	return nil
