@@ -2583,7 +2583,7 @@ var _ = Describe("Build", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("saving a pipeline with the build")
-			pipeline, _, err := build.SavePipeline("other-pipeline", atc.Config{
+			pipeline, _, err := build.SavePipeline("other-pipeline", build.TeamID(), atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
@@ -2621,7 +2621,7 @@ var _ = Describe("Build", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("saving a pipeline with the second build")
-			pipeline, _, err := buildTwo.SavePipeline("other-pipeline", atc.Config{
+			pipeline, _, err := buildTwo.SavePipeline("other-pipeline", buildTwo.TeamID(), atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
@@ -2651,7 +2651,7 @@ var _ = Describe("Build", func() {
 			Expect(pipeline.ParentBuildID()).To(Equal(buildTwo.ID()))
 
 			By("saving a pipeline with the first build")
-			pipeline, _, err = buildOne.SavePipeline("other-pipeline", atc.Config{
+			pipeline, _, err = buildOne.SavePipeline("other-pipeline", buildOne.TeamID(), atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
@@ -2686,7 +2686,7 @@ var _ = Describe("Build", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				By("re-saving the default pipeline with the build")
-				pipeline, _, err := build.SavePipeline("default-pipeline", defaultPipelineConfig, db.ConfigVersion(1), false)
+				pipeline, _, err := build.SavePipeline("default-pipeline", build.TeamID(), defaultPipelineConfig, db.ConfigVersion(1), false)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(pipeline.ParentJobID()).To(Equal(build.JobID()))
 				Expect(pipeline.ParentBuildID()).To(Equal(build.ID()))

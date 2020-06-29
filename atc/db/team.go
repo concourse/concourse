@@ -429,8 +429,9 @@ func savePipeline(
 					SELECT parent_build_id
 					FROM pipelines
 					WHERE name = $1
-					AND team_id = $2
-		`, pipelineName, teamID).Scan(&currentParentBuildID)
+					AND team_id = $2 `,
+					pipelineName, teamID).
+					Scan(&currentParentBuildID)
 				if err != nil {
 					return 0, false, err
 				}

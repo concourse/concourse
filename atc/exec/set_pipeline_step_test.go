@@ -258,9 +258,9 @@ jobs:
 					fakeBuild.SavePipelineReturns(fakePipeline, true, nil)
 				})
 
-				It("should save the pipeline un-paused", func() {
+				It("should save the pipeline", func() {
 					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
-					name, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
+					name, _, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
 					Expect(name).To(Equal("some-pipeline"))
 					Expect(paused).To(BeFalse())
 				})
@@ -318,7 +318,7 @@ jobs:
 
 				It("should save the pipeline un-paused", func() {
 					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
-					name, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
+					name, _, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
 					Expect(name).To(Equal("some-pipeline"))
 					Expect(paused).To(BeFalse())
 				})
@@ -356,8 +356,8 @@ jobs:
 
 				Context("when team is set to the empty string", func() {
 					BeforeEach(func() {
-						fakeTeam.PipelineReturns(fakePipeline, true, nil)
-						fakeTeam.SavePipelineReturns(fakePipeline, false, nil)
+						fakeBuild.PipelineReturns(fakePipeline, true, nil)
+						fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
 						spPlan.Team = ""
 					})
 
@@ -392,11 +392,13 @@ jobs:
 								fakeUserCurrentTeam, true, nil,
 							)
 
-							fakeUserCurrentTeam.PipelineReturns(fakePipeline, true, nil)
-							fakeUserCurrentTeam.SavePipelineReturns(fakePipeline, false, nil)
+							fakeBuild.PipelineReturns(fakePipeline, true, nil)
+							fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
 						})
 
 						It("should finish successfully", func() {
+							_, teamID, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+							Expect(teamID).To(Equal(fakeUserCurrentTeam.ID()))
 							Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 							_, succeeded := fakeDelegate.FinishedArgsForCall(0)
 							Expect(succeeded).To(BeTrue())
@@ -422,11 +424,13 @@ jobs:
 							BeforeEach(func() {
 								fakeUserCurrentTeam.AdminReturns(true)
 
-								fakeTeam.PipelineReturns(fakePipeline, true, nil)
-								fakeTeam.SavePipelineReturns(fakePipeline, false, nil)
+								fakeBuild.PipelineReturns(fakePipeline, true, nil)
+								fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
 							})
 
 							It("should finish successfully", func() {
+								_, teamID, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+								Expect(teamID).To(Equal(fakeTeam.ID()))
 								Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 								_, succeeded := fakeDelegate.FinishedArgsForCall(0)
 								Expect(succeeded).To(BeTrue())

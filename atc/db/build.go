@@ -165,6 +165,7 @@ type Build interface {
 
 	SavePipeline(
 		pipelineName string,
+		teamId int,
 		config atc.Config,
 		from ConfigVersion,
 		initiallyPaused bool,
@@ -1489,6 +1490,7 @@ func (b *build) SpanContext() propagators.Supplier {
 
 func (b *build) SavePipeline(
 	pipelineName string,
+	teamID int,
 	config atc.Config,
 	from ConfigVersion,
 	initiallyPaused bool,
@@ -1502,7 +1504,7 @@ func (b *build) SavePipeline(
 
 	jobID := newNullInt64(b.jobID)
 	buildID := newNullInt64(b.id)
-	pipelineID, isNewPipeline, err := savePipeline(tx, pipelineName, config, from, initiallyPaused, b.teamID, jobID, buildID)
+	pipelineID, isNewPipeline, err := savePipeline(tx, pipelineName, config, from, initiallyPaused, teamID, jobID, buildID)
 	if err != nil {
 		return nil, false, err
 	}

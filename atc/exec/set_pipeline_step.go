@@ -175,16 +175,6 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 		team = targetTeam
 	}
 
-	team = step.teamFactory.GetByID(step.metadata.TeamID)
-	parentBuild, found, err := step.buildFactory.Build(step.metadata.BuildID)
-	if err != nil {
-		return err
-	}
-
-	if !found {
-		return fmt.Errorf("set_pipeline step not attached to a buildID")
-	}
-
 	fromVersion := db.ConfigVersion(0)
 	pipeline, found, err := team.Pipeline(step.plan.Name)
 	if err != nil {
@@ -217,7 +207,16 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 	}
 
 	fmt.Fprintf(stdout, "setting pipeline: %s\n", step.plan.Name)
-	pipeline, _, err = parentBuild.SavePipeline(step.plan.Name, atcConfig, fromVersion, false)
+	parentBuild, found, err := step.buildFactory.Build(step.metadata.BuildID)
+	if err != nil {
+		return err
+	}
+
+	if !found {
+		return fmt.Errorf("set_pipeline step not attached to a buildID")
+	}
+
+	pipeline, _, err = parentBuild.SavePipeline(step.plan.Name, team.ID(), atcConfig, fromVersion, false)
 	if err != nil {
 		return err
 	}
