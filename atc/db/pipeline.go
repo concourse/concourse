@@ -1147,6 +1147,10 @@ func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, v
 }
 
 func (p *pipeline) SetParentIDs(jobID, buildID int) error {
+	if jobID <= 0 || buildID <= 0 {
+		return errors.New("job and build id cannot be zero-value")
+	}
+
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return err
@@ -1154,17 +1158,26 @@ func (p *pipeline) SetParentIDs(jobID, buildID int) error {
 
 	defer Rollback(tx)
 
-	_, err = psql.Update("pipelines").
+	result, err := psql.Update("pipelines").
 		Set("parent_job_id", jobID).
 		Set("parent_build_id", buildID).
 		Where(sq.Eq{
 			"id": p.id,
 		}).
+		Where(sq.Or{sq.Lt{"parent_build_id": buildID}, sq.Eq{"parent_build_id": sql.NullInt64{}}}).
 		RunWith(tx).
 		Exec()
 
 	if err != nil {
 		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return ErrSetByNewerBuild
 	}
 
 	return tx.Commit()
