@@ -339,4 +339,16 @@ var _ = Describe("Retry Step", func() {
 			})
 		})
 	})
+
+	Context("when the RetryStep is given no attempts", func() {
+		BeforeEach(func() {
+			step = Retry()
+		})
+
+		Describe("Succeeded", func() {
+			It("should return false", func() {
+				Expect(step.Succeeded()).To(BeFalse())
+			})
+		})
+	})
 })
