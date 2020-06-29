@@ -42,6 +42,8 @@ const (
 	// binaries in.
 	//
 	binariesDir = "/usr/local/concourse/bin"
+
+	ipTablesAdminChainName = "CONCOURSE-OPERATOR"
 )
 
 var (
@@ -80,13 +82,14 @@ func (c CNINetworkConfig) ToJSON() string {
       }
     },
     {
-      "type": "firewall"
+      "type": "firewall",
+	  "iptablesAdminChainName": "%s"
     }
   ]
 }`
 
 	return fmt.Sprintf(networksConfListFormat,
-		c.NetworkName, c.BridgeName, c.Subnet,
+		c.NetworkName, c.BridgeName, c.Subnet, ipTablesAdminChainName,
 	)
 }
 
@@ -236,13 +239,13 @@ func (n cniNetwork) SetupMounts(handle string) ([]specs.Mount, error) {
 }
 
 func (n cniNetwork) setupRestrictedNetworks() error {
-	err := createIptablesChain()
+	err := createIptablesChain(ipTablesAdminChainName)
 	if err != nil {
 		return err
 	}
 
 	for _, network := range n.restrictedNetworks {
-		err = createRejectRules(network, "CNI-ADMIN")
+		err = createRejectRules(network, ipTablesAdminChainName)
 		if err != nil {
 			return err
 		}
@@ -251,18 +254,18 @@ func (n cniNetwork) setupRestrictedNetworks() error {
 }
 
 // Create chain - ignore error if it already exists
-func createIptablesChain() error {
-	cmd := exec.Command("iptables", "-t", "filter", "-N", "CNI-ADMIN")
+func createIptablesChain(chainName string) error {
+	cmd := exec.Command("iptables", "-t", "filter", "-N", chainName)
 	_, err := cmd.Output()
 
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			// Ignore error if Chain already exists
 			if string(exitErr.Stderr) != "iptables: Chain already exists.\n" {
-				return fmt.Errorf("failed to create iptables chain CNI-ADMIN: %s", string(exitErr.Stderr))
+				return fmt.Errorf("failed to create iptables chain %s: %s", chainName, string(exitErr.Stderr))
 			}
 		} else {
-			return fmt.Errorf("failed to create iptables chain CNI-ADMIN: %w", err)
+			return fmt.Errorf("failed to create iptables chain %s: %w", chainName, err)
 		}
 	}
 
@@ -270,19 +273,19 @@ func createIptablesChain() error {
 }
 
 // Check reject rule - check if rule exists in chain, otherwise clear chain and add rule
-func createRejectRules(restrictedNetwork string, targetChain string) error {
+func createRejectRules(restrictedNetwork string, chainName string) error {
 	// Check if reject rule exists
-	cmd := exec.Command("iptables", "-C", targetChain, "-d", restrictedNetwork, "-j", "REJECT")
+	cmd := exec.Command("iptables", "-C", chainName, "-d", restrictedNetwork, "-j", "REJECT")
 	err := cmd.Run()
 	if err != nil {
 		// Delete all rules in chain
-		cmd = exec.Command("iptables", "-F", targetChain)
+		cmd = exec.Command("iptables", "-F", chainName)
 		err = cmd.Run()
 		if err != nil {
 			return fmt.Errorf("failed to flush chain: %w", err)
 		}
 		// Append reject rule
-		cmd = exec.Command("iptables", "-A", targetChain, "-d", restrictedNetwork, "-j", "REJECT")
+		cmd = exec.Command("iptables", "-A", chainName, "-d", restrictedNetwork, "-j", "REJECT")
 		err = cmd.Run()
 		if err != nil {
 			return fmt.Errorf("failed to create REJECT rule: %w", err)
