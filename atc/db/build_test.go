@@ -2679,6 +2679,19 @@ var _ = Describe("Build", func() {
 			Expect(err).To(Equal(db.ErrSetByNewerBuild))
 		})
 
+		Context("a pipeline is previously saved by team.SavePipeline", func() {
+			It("the parent job and build ID are updated", func() {
+				By("creating a build")
+				build, err := defaultJob.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+
+				By("re-saving the default pipeline with the build")
+				pipeline, _, err := build.SavePipeline("default-pipeline", defaultPipelineConfig, db.ConfigVersion(1), false)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(pipeline.ParentJobID()).To(Equal(build.JobID()))
+				Expect(pipeline.ParentBuildID()).To(Equal(build.ID()))
+			})
+		})
 	})
 })
 

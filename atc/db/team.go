@@ -415,7 +415,7 @@ func savePipeline(
 			})
 
 		if buildID.Valid {
-			q = q.Where(sq.Lt{"parent_build_id": buildID})
+			q = q.Where(sq.Or{sq.Lt{"parent_build_id": buildID}, sq.Eq{"parent_build_id": sql.NullInt64{}}})
 		}
 
 		err := q.Suffix("RETURNING id").
