@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -56,6 +57,10 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 
 	if cmd.ContainerNetworkPool != "" {
 		gdnServerFlags = append(gdnServerFlags, "--network-pool", cmd.ContainerNetworkPool)
+	}
+
+	if cmd.Garden.MaxContainers != 0 {
+		gdnServerFlags = append(gdnServerFlags, "--max-containers", strconv.Itoa(cmd.Garden.MaxContainers))
 	}
 
 	gdnServerFlags = append(gdnServerFlags, detectGardenFlags(logger)...)

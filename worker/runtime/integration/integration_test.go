@@ -464,3 +464,49 @@ func (s *IntegrationSuite) testStop(kill bool) {
 	s.NoError(err)
 	s.NoError(container.Stop(kill))
 }
+
+// TestMaxContainers aims at making sure that when the max container count is
+// reached, any additional Create calls will fail
+//
+func (s *IntegrationSuite) TestMaxContainers() {
+	namespace := "test-max-containers"
+	requestTimeout := 1 * time.Second
+
+	limit := runtime.WithMaxContainers(1)
+
+	customBackend, err := runtime.NewGardenBackend(
+		libcontainerd.New(
+			s.containerdSocket(),
+			namespace,
+			requestTimeout,
+		),
+		limit,
+	)
+	s.NoError(err)
+
+	s.NoError(customBackend.Start())
+
+	handle1 := uuid()
+	handle2 := uuid()
+
+	_, err = customBackend.Create(garden.ContainerSpec{
+		Handle:     handle1,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+	})
+	s.NoError(err)
+
+	defer func() {
+		s.NoError(customBackend.Destroy(handle1))
+		customBackend.Stop()
+	}()
+
+	// not destroying handle2 as it is never successfully created
+	_, err = customBackend.Create(garden.ContainerSpec{
+		Handle:     handle2,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+	})
+	s.Error(err)
+	s.Contains(err.Error(), "max containers reached")
+}

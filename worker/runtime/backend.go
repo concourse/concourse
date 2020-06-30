@@ -16,6 +16,7 @@ import (
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/errdefs"
+	"golang.org/x/sync/semaphore"
 )
 
 var _ garden.Backend = (*GardenBackend)(nil)
@@ -28,6 +29,10 @@ type GardenBackend struct {
 	network       Network
 	rootfsManager RootfsManager
 	userNamespace UserNamespace
+
+	maxContainers  int
+	requestTimeout time.Duration
+	createLock     *semaphore.Weighted
 }
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . UserNamespace
@@ -71,6 +76,22 @@ func WithNetwork(n Network) GardenBackendOpt {
 	}
 }
 
+// WithMaxContainers configures the max number of containers that can be created
+//
+func WithMaxContainers(limit int) GardenBackendOpt {
+	return func(b *GardenBackend) {
+		b.maxContainers = limit
+	}
+}
+
+// WithRequestTimeout configures the request timeout
+// Currently only used as timeout for acquiring the create container lock
+func WithRequestTimeout(requestTimeout time.Duration) GardenBackendOpt {
+	return func(b *GardenBackend) {
+		b.requestTimeout = requestTimeout
+	}
+}
+
 // NewGardenBackend instantiates a GardenBackend with tweakable configurations passed as Config.
 //
 func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b GardenBackend, err error) {
@@ -79,7 +100,10 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 		return
 	}
 
-	b = GardenBackend{client: client}
+	b = GardenBackend{
+		client:     client,
+		createLock: semaphore.NewWeighted(1),
+	}
 	for _, opt := range opts {
 		opt(&b)
 	}
@@ -140,6 +164,33 @@ func (b *GardenBackend) Ping() (err error) {
 func (b *GardenBackend) Create(gdnSpec garden.ContainerSpec) (garden.Container, error) {
 	ctx := context.Background()
 
+	cont, err := b.createContainer(ctx, gdnSpec)
+	if err != nil {
+		return nil, fmt.Errorf("new container: %w", err)
+	}
+
+	err = b.startTask(ctx, cont)
+	if err != nil {
+		return nil, fmt.Errorf("starting task: %w", err)
+	}
+
+	return NewContainer(
+		cont,
+		b.killer,
+		b.rootfsManager,
+	), nil
+}
+
+func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.ContainerSpec) (containerd.Container, error) {
+	acquired, err := b.checkContainerCapacity(ctx)
+	if acquired {
+		defer b.createLock.Release(1)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("checking container capcity: %w", err)
+	}
+
 	maxUid, maxGid, err := b.userNamespace.MaxValidIds()
 	if err != nil {
 		return nil, fmt.Errorf("getting uid and gid maps: %w", err)
@@ -157,31 +208,21 @@ func (b *GardenBackend) Create(gdnSpec garden.ContainerSpec) (garden.Container, 
 
 	oci.Mounts = append(oci.Mounts, netMounts...)
 
-	cont, err := b.client.NewContainer(ctx, gdnSpec.Handle, gdnSpec.Properties, oci)
-	if err != nil {
-		return nil, fmt.Errorf("new container: %w", err)
-	}
+	return b.client.NewContainer(ctx, gdnSpec.Handle, gdnSpec.Properties, oci)
+}
 
+func (b *GardenBackend) startTask(ctx context.Context, cont containerd.Container) error {
 	task, err := cont.NewTask(ctx, cio.NullIO, containerd.WithNoNewKeyring)
 	if err != nil {
-		return nil, fmt.Errorf("new task: %w", err)
+		return fmt.Errorf("new task: %w", err)
 	}
 
 	err = b.network.Add(ctx, task)
 	if err != nil {
-		return nil, fmt.Errorf("network add: %w", err)
+		return fmt.Errorf("network add: %w", err)
 	}
 
-	err = task.Start(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("task start: %w", err)
-	}
-
-	return NewContainer(
-		cont,
-		b.killer,
-		b.rootfsManager,
-	), nil
+	return task.Start(ctx)
 }
 
 // Destroy gracefully destroys a container.
@@ -316,4 +357,30 @@ func (b *GardenBackend) BulkInfo(handles []string) (info map[string]garden.Conta
 func (b *GardenBackend) BulkMetrics(handles []string) (metrics map[string]garden.ContainerMetricsEntry, err error) {
 	err = ErrNotImplemented
 	return
+}
+
+// checkContainerCapacity ensures that Garden.MaxContainers is respected
+//
+func (b *GardenBackend) checkContainerCapacity(ctx context.Context) (bool, error) {
+	if b.maxContainers == 0 {
+		return false, nil
+	}
+
+	c, cancel := context.WithTimeout(ctx, b.requestTimeout)
+	defer cancel()
+
+	err := b.createLock.Acquire(c, 1)
+	if err != nil {
+		return false, fmt.Errorf("acquiring create container lock: %w", err)
+	}
+
+	containers, err := b.client.Containers(ctx)
+	if err != nil {
+		return true, fmt.Errorf("getting list of containers: %w", err)
+	}
+
+	if len(containers) >= b.maxContainers {
+		return true, fmt.Errorf("max containers reached")
+	}
+	return true, nil
 }
