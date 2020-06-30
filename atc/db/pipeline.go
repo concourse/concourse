@@ -1148,7 +1148,7 @@ func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, v
 
 func (p *pipeline) SetParentIDs(jobID, buildID int) error {
 	if jobID <= 0 || buildID <= 0 {
-		return errors.New("job and build id cannot be zero-value")
+		return errors.New("job and build id cannot be negative or zero-value")
 	}
 
 	tx, err := p.conn.Begin()
@@ -1164,7 +1164,7 @@ func (p *pipeline) SetParentIDs(jobID, buildID int) error {
 		Where(sq.Eq{
 			"id": p.id,
 		}).
-		Where(sq.Or{sq.Lt{"parent_build_id": buildID}, sq.Eq{"parent_build_id": sql.NullInt64{}}}).
+		Where(sq.Or{sq.Lt{"parent_build_id": buildID}, sq.Eq{"parent_build_id": nil}}).
 		RunWith(tx).
 		Exec()
 
