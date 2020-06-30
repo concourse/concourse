@@ -644,8 +644,16 @@ func (p *pipeline) Archive() error {
 	}
 
 	defer Rollback(tx)
+	err = p.archive(tx)
+	if err != nil {
+		return err
+	}
 
-	_, err = psql.Update("pipelines").
+	return tx.Commit()
+}
+
+func (p *pipeline) archive(tx Tx) error {
+	_, err := psql.Update("pipelines").
 		Set("archived", true).
 		Set("last_updated", sq.Expr("now()")).
 		Set("paused", true).
@@ -670,12 +678,7 @@ func (p *pipeline) Archive() error {
 		return err
 	}
 
-	err = p.clearConfigForResourceTypesInPipeline(tx)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
+	return p.clearConfigForResourceTypesInPipeline(tx)
 }
 
 func (p *pipeline) Hide() error {
