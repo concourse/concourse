@@ -57,7 +57,7 @@ func (s *scanner) Run(ctx context.Context) error {
 
 	resourceTypes, err := s.checkFactory.ResourceTypes()
 	if err != nil {
-		s.logger.Error("failed-to-get-resources", err)
+		s.logger.Error("failed-to-get-resource-types", err)
 		return err
 	}
 
