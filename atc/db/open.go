@@ -62,6 +62,7 @@ type Tx interface {
 	QueryRowContext(context.Context, string, ...interface{}) squirrel.RowScanner
 	Rollback() error
 	Stmt(*sql.Stmt) *sql.Stmt
+	EncryptionStrategy() encryption.Strategy
 }
 
 func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *encryption.Key, oldKey *encryption.Key, connectionName string, lockFactory lock.LockFactory) (Conn, error) {
@@ -394,7 +395,7 @@ func (db *db) Begin() (Tx, error) {
 		return nil, err
 	}
 
-	return &dbTx{tx, GlobalConnectionTracker.Track()}, nil
+	return &dbTx{tx, GlobalConnectionTracker.Track(), db.EncryptionStrategy()}, nil
 }
 
 func (db *db) Exec(query string, args ...interface{}) (sql.Result, error) {
@@ -424,7 +425,7 @@ func (db *db) BeginTx(ctx context.Context, opts *sql.TxOptions) (Tx, error) {
 		return nil, err
 	}
 
-	return &dbTx{tx, GlobalConnectionTracker.Track()}, nil
+	return &dbTx{tx, GlobalConnectionTracker.Track(), db.EncryptionStrategy()}, nil
 }
 
 func (db *db) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
@@ -451,7 +452,8 @@ func (db *db) QueryRowContext(ctx context.Context, query string, args ...interfa
 type dbTx struct {
 	*sql.Tx
 
-	session *ConnectionSession
+	session            *ConnectionSession
+	encryptionStrategy encryption.Strategy
 }
 
 // to conform to squirrel.Runner interface
@@ -471,6 +473,10 @@ func (tx *dbTx) Commit() error {
 func (tx *dbTx) Rollback() error {
 	defer tx.session.Release()
 	return tx.Tx.Rollback()
+}
+
+func (tx *dbTx) EncryptionStrategy() encryption.Strategy {
+	return tx.encryptionStrategy
 }
 
 // Rollback ignores errors, and should be used with defer.

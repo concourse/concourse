@@ -3,6 +3,7 @@ package exec_test
 import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
 	"context"
@@ -79,10 +80,12 @@ jobs:
 		cancel     func()
 		testLogger *lagertest.TestLogger
 
-		fakeDelegate    *execfakes.FakeBuildStepDelegate
-		fakeTeamFactory *dbfakes.FakeTeamFactory
-		fakeTeam        *dbfakes.FakeTeam
-		fakePipeline    *dbfakes.FakePipeline
+		fakeDelegate     *execfakes.FakeBuildStepDelegate
+		fakeTeamFactory  *dbfakes.FakeTeamFactory
+		fakeBuildFactory *dbfakes.FakeBuildFactory
+		fakeBuild        *dbfakes.FakeBuild
+		fakeTeam         *dbfakes.FakeTeam
+		fakePipeline     *dbfakes.FakePipeline
 
 		fakeWorkerClient *workerfakes.FakeClient
 
@@ -96,7 +99,16 @@ jobs:
 
 		credVarsTracker vars.CredVarsTracker
 
-		stepMetadata exec.StepMetadata
+		stepMetadata = exec.StepMetadata{
+			TeamID:       123,
+			TeamName:     "some-team",
+			JobID:        87,
+			JobName:      "some-job",
+			BuildID:      42,
+			BuildName:    "some-build",
+			PipelineID:   4567,
+			PipelineName: "some-pipeline",
+		}
 
 		stdout, stderr *gbytes.Buffer
 
@@ -127,6 +139,8 @@ jobs:
 		fakeDelegate.StderrReturns(stderr)
 
 		fakeTeamFactory = new(dbfakes.FakeTeamFactory)
+		fakeBuildFactory = new(dbfakes.FakeBuildFactory)
+		fakeBuild = new(dbfakes.FakeBuild)
 		fakeTeam = new(dbfakes.FakeTeam)
 		fakePipeline = new(dbfakes.FakePipeline)
 
@@ -144,6 +158,7 @@ jobs:
 
 		fakePipeline.NameReturns("some-pipeline")
 		fakeTeamFactory.GetByIDReturns(fakeTeam)
+		fakeBuildFactory.BuildReturns(fakeBuild, true, nil)
 
 		fakeWorkerClient = new(workerfakes.FakeClient)
 
@@ -169,6 +184,7 @@ jobs:
 			stepMetadata,
 			fakeDelegate,
 			fakeTeamFactory,
+			fakeBuildFactory,
 			fakeWorkerClient,
 		)
 
@@ -240,12 +256,12 @@ jobs:
 			Context("when specified pipeline not found", func() {
 				BeforeEach(func() {
 					fakeTeam.PipelineReturns(nil, false, nil)
-					fakeTeam.SavePipelineReturns(fakePipeline, true, nil)
+					fakeBuild.SavePipelineReturns(fakePipeline, true, nil)
 				})
 
-				It("should save the pipeline un-paused", func() {
-					Expect(fakeTeam.SavePipelineCallCount()).To(Equal(1))
-					name, _, _, paused := fakeTeam.SavePipelineArgsForCall(0)
+				It("should save the pipeline", func() {
+					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
+					name, _, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
 					Expect(name).To(Equal("some-pipeline"))
 					Expect(paused).To(BeFalse())
 				})
@@ -258,16 +274,24 @@ jobs:
 			Context("when specified pipeline exists already", func() {
 				BeforeEach(func() {
 					fakeTeam.PipelineReturns(fakePipeline, true, nil)
-					fakeTeam.SavePipelineReturns(fakePipeline, false, nil)
+					fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
 				})
 
 				Context("when no diff", func() {
 					BeforeEach(func() {
 						fakePipeline.ConfigReturns(pipelineObject, nil)
+						fakePipeline.SetParentIDsReturns(nil)
 					})
 
 					It("should log no-diff", func() {
 						Expect(stdout).To(gbytes.Say("no diff found."))
+					})
+
+					It("should update the job and build id", func() {
+						Expect(fakePipeline.SetParentIDsCallCount()).To(Equal(1))
+						jobID, buildID := fakePipeline.SetParentIDsArgsForCall(0)
+						Expect(jobID).To(Equal(stepMetadata.JobID))
+						Expect(buildID).To(Equal(stepMetadata.BuildID))
 					})
 				})
 
@@ -284,18 +308,31 @@ jobs:
 
 				Context("when SavePipeline fails", func() {
 					BeforeEach(func() {
-						fakeTeam.SavePipelineReturns(nil, false, errors.New("failed to save"))
+						fakeBuild.SavePipelineReturns(nil, false, errors.New("failed to save"))
 					})
 
 					It("should return error", func() {
 						Expect(stepErr).To(HaveOccurred())
 						Expect(stepErr.Error()).To(Equal("failed to save"))
 					})
+
+					Context("due to the pipeline being set by a newer build", func() {
+						BeforeEach(func() {
+							fakeBuild.SavePipelineReturns(nil, false, db.ErrSetByNewerBuild)
+						})
+						It("logs a warning", func() {
+							Expect(stderr).To(gbytes.Say("WARNING: the pipeline was not saved because it was already saved by a newer build"))
+						})
+						It("does not fail the step", func() {
+							Expect(stepErr).ToNot(HaveOccurred())
+							Expect(spStep.Succeeded()).To(BeTrue())
+						})
+					})
 				})
 
 				It("should save the pipeline un-paused", func() {
-					Expect(fakeTeam.SavePipelineCallCount()).To(Equal(1))
-					name, _, _, paused := fakeTeam.SavePipelineArgsForCall(0)
+					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
+					name, _, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
 					Expect(name).To(Equal("some-pipeline"))
 					Expect(paused).To(BeFalse())
 				})
@@ -333,8 +370,8 @@ jobs:
 
 				Context("when team is set to the empty string", func() {
 					BeforeEach(func() {
-						fakeTeam.PipelineReturns(fakePipeline, true, nil)
-						fakeTeam.SavePipelineReturns(fakePipeline, false, nil)
+						fakeBuild.PipelineReturns(fakePipeline, true, nil)
+						fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
 						spPlan.Team = ""
 					})
 
@@ -369,11 +406,13 @@ jobs:
 								fakeUserCurrentTeam, true, nil,
 							)
 
-							fakeUserCurrentTeam.PipelineReturns(fakePipeline, true, nil)
-							fakeUserCurrentTeam.SavePipelineReturns(fakePipeline, false, nil)
+							fakeBuild.PipelineReturns(fakePipeline, true, nil)
+							fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
 						})
 
 						It("should finish successfully", func() {
+							_, teamID, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+							Expect(teamID).To(Equal(fakeUserCurrentTeam.ID()))
 							Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 							_, succeeded := fakeDelegate.FinishedArgsForCall(0)
 							Expect(succeeded).To(BeTrue())
@@ -399,11 +438,13 @@ jobs:
 							BeforeEach(func() {
 								fakeUserCurrentTeam.AdminReturns(true)
 
-								fakeTeam.PipelineReturns(fakePipeline, true, nil)
-								fakeTeam.SavePipelineReturns(fakePipeline, false, nil)
+								fakeBuild.PipelineReturns(fakePipeline, true, nil)
+								fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
 							})
 
 							It("should finish successfully", func() {
+								_, teamID, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+								Expect(teamID).To(Equal(fakeTeam.ID()))
 								Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 								_, succeeded := fakeDelegate.FinishedArgsForCall(0)
 								Expect(succeeded).To(BeTrue())

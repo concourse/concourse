@@ -27,13 +27,14 @@ import (
 // SetPipelineStep sets a pipeline to current team. This step takes pipeline
 // configure file and var files from some resource in the pipeline, like git.
 type SetPipelineStep struct {
-	planID      atc.PlanID
-	plan        atc.SetPipelinePlan
-	metadata    StepMetadata
-	delegate    BuildStepDelegate
-	teamFactory db.TeamFactory
-	client      worker.Client
-	succeeded   bool
+	planID       atc.PlanID
+	plan         atc.SetPipelinePlan
+	metadata     StepMetadata
+	delegate     BuildStepDelegate
+	teamFactory  db.TeamFactory
+	buildFactory db.BuildFactory
+	client       worker.Client
+	succeeded    bool
 }
 
 func NewSetPipelineStep(
@@ -42,15 +43,17 @@ func NewSetPipelineStep(
 	metadata StepMetadata,
 	delegate BuildStepDelegate,
 	teamFactory db.TeamFactory,
+	buildFactory db.BuildFactory,
 	client worker.Client,
 ) Step {
 	return &SetPipelineStep{
-		planID:      planID,
-		plan:        plan,
-		metadata:    metadata,
-		delegate:    delegate,
-		teamFactory: teamFactory,
-		client:      client,
+		planID:       planID,
+		plan:         plan,
+		metadata:     metadata,
+		delegate:     delegate,
+		teamFactory:  teamFactory,
+		buildFactory: buildFactory,
+		client:       client,
 	}
 }
 
@@ -194,14 +197,33 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 		logger.Debug("no-diff")
 
 		fmt.Fprintf(stdout, "no diff found.\n")
+		err := pipeline.SetParentIDs(step.metadata.JobID, step.metadata.BuildID)
+		if err != nil {
+			return err
+		}
 		step.succeeded = true
 		step.delegate.Finished(logger, true)
 		return nil
 	}
 
 	fmt.Fprintf(stdout, "setting pipeline: %s\n", step.plan.Name)
-	pipeline, _, err = team.SavePipeline(step.plan.Name, atcConfig, fromVersion, false)
+	parentBuild, found, err := step.buildFactory.Build(step.metadata.BuildID)
 	if err != nil {
+		return err
+	}
+
+	if !found {
+		return fmt.Errorf("set_pipeline step not attached to a buildID")
+	}
+
+	pipeline, _, err = parentBuild.SavePipeline(step.plan.Name, team.ID(), atcConfig, fromVersion, false)
+	if err != nil {
+		if err == db.ErrSetByNewerBuild {
+			fmt.Fprintln(stderr, "\x1b[1;33mWARNING: the pipeline was not saved because it was already saved by a newer build\x1b[0m")
+			step.succeeded = true
+			step.delegate.Finished(logger, true)
+			return nil
+		}
 		return err
 	}
 

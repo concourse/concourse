@@ -2177,6 +2177,52 @@ var _ = Describe("Pipeline", func() {
 		})
 	})
 
+	Describe("SetParentIDs", func() {
+		It("sets the parent_job_id and parent_build_id fields", func() {
+			jobID := 123
+			buildID := 456
+			Expect(pipeline.SetParentIDs(jobID, buildID)).To(Succeed())
+
+			found, err := pipeline.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(pipeline.ParentJobID()).To(Equal(jobID))
+			Expect(pipeline.ParentBuildID()).To(Equal(buildID))
+		})
+
+		It("returns an error if job or build ID are less than or equal to zero", func() {
+			err := pipeline.SetParentIDs(0, 0)
+			Expect(err).To(MatchError("job and build id cannot be negative or zero-value"))
+			err = pipeline.SetParentIDs(-1, -6)
+			Expect(err).To(MatchError("job and build id cannot be negative or zero-value"))
+		})
+
+		Context("pipeline was saved by a newer build", func() {
+			It("returns ErrSetByNewerBuild", func() {
+				By("setting the build ID to a high number")
+				pipeline.SetParentIDs(1, 60)
+
+				By("trying to set the build ID to a lower number")
+				err := pipeline.SetParentIDs(1, 2)
+				Expect(err).To(MatchError(db.ErrSetByNewerBuild))
+			})
+		})
+
+		Context("pipeline was previously saved by team.SavePipeline", func() {
+			It("successfully updates the parent build and job IDs", func() {
+				By("using the defaultPipeline saved by defaultTeam at the suite level")
+				Expect(defaultPipeline.ParentJobID()).To(Equal(0), "should be zero if sql value is null")
+				Expect(defaultPipeline.ParentBuildID()).To(Equal(0), "should be zero if sql value is null")
+
+				err := defaultPipeline.SetParentIDs(1, 6)
+				Expect(err).ToNot(HaveOccurred())
+				defaultPipeline.Reload()
+				Expect(defaultPipeline.ParentJobID()).To(Equal(1), "should be zero if sql value is null")
+				Expect(defaultPipeline.ParentBuildID()).To(Equal(6), "should be zero if sql value is null")
+			})
+		})
+	})
+
 	Context("Config", func() {
 		It("should return config correctly", func() {
 			Expect(pipeline.Config()).To(Equal(pipelineConfig))
