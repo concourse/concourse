@@ -388,6 +388,42 @@ var _ = Describe("Build", func() {
 			Expect(build.Status()).To(Equal(db.BuildStatusSucceeded))
 		})
 
+		Context("build is successful", func() {
+			It("updates the job latest successful build id", func() {
+				Expect(getJobBuildID("latest_successful_build_id", job.ID())).To(Equal(build.ID()))
+			})
+
+			Context("builds finish out of order of creation", func() {
+				var (
+					build1 db.Build
+					build2 db.Build
+				)
+				BeforeEach(func() {
+					build1, _ = job.CreateBuild()
+					build2, _ = job.CreateBuild()
+
+					build2.Finish(db.BuildStatusSucceeded)
+					build1.Finish(db.BuildStatusSucceeded)
+				})
+
+				It("only updates the latest successful build id if it's larger", func() {
+					Expect(getJobBuildID("latest_successful_build_id", job.ID())).To(Equal(build2.ID()), "older builds should not update latest_successful_build_id")
+				})
+			})
+		})
+
+		Context("build is not successful", func() {
+			var failingBuild db.Build
+			BeforeEach(func() {
+				failingBuild, _ = job.CreateBuild()
+				failingBuild.Finish(db.BuildStatusFailed)
+			})
+
+			It("does not update the job latest successful build id", func() {
+				Expect(getJobBuildID("latest_successful_build_id", job.ID())).ToNot(Equal(failingBuild.ID()), "failing build should not update latest_successful_build_id")
+			})
+		})
+
 		Context("rerunning a build", func() {
 			var (
 				pdBuild, pdBuild2, rrBuild db.Build

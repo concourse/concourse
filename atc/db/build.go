@@ -549,6 +549,11 @@ func (b *build) Finish(status BuildStatus) error {
 		if err != nil {
 			return err
 		}
+
+		err = updateLatestSuccessfulBuildForJob(tx, b.jobID, b.id)
+		if err != nil {
+			return err
+		}
 	}
 
 	if b.jobID != 0 {
@@ -1770,6 +1775,20 @@ func updateLatestCompletedBuildForJob(tx Tx, jobID int, latestNonRerunId int) er
 		SET latest_completed_build_id = $1
 		WHERE j.id = $2
 	`, id, jobID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func updateLatestSuccessfulBuildForJob(tx Tx, jobID int, buildID int) error {
+	_, err := tx.Exec(`
+		UPDATE jobs AS j
+		SET latest_successful_build_id = $1
+		WHERE j.id = $2
+		AND (j.latest_successful_build_id < $1 OR j.latest_successful_build_id IS NULL)
+	`, buildID, jobID)
 	if err != nil {
 		return err
 	}
