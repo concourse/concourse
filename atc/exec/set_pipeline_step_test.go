@@ -3,6 +3,7 @@ package exec_test
 import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
 	"context"
@@ -313,6 +314,19 @@ jobs:
 					It("should return error", func() {
 						Expect(stepErr).To(HaveOccurred())
 						Expect(stepErr.Error()).To(Equal("failed to save"))
+					})
+
+					Context("due to the pipeline being set by a newer build", func() {
+						BeforeEach(func() {
+							fakeBuild.SavePipelineReturns(nil, false, db.ErrSetByNewerBuild)
+						})
+						It("logs a warning", func() {
+							Expect(stderr).To(gbytes.Say("WARNING: the pipeline was not saved because it was already saved by a newer build"))
+						})
+						It("does not fail the step", func() {
+							Expect(stepErr).ToNot(HaveOccurred())
+							Expect(spStep.Succeeded()).To(BeTrue())
+						})
 					})
 				})
 

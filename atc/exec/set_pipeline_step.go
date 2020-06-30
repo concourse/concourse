@@ -218,6 +218,12 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 
 	pipeline, _, err = parentBuild.SavePipeline(step.plan.Name, team.ID(), atcConfig, fromVersion, false)
 	if err != nil {
+		if err == db.ErrSetByNewerBuild {
+			fmt.Fprintln(stderr, "\x1b[1;33mWARNING: the pipeline was not saved because it was already saved by a newer build\x1b[0m")
+			step.succeeded = true
+			step.delegate.Finished(logger, true)
+			return nil
+		}
 		return err
 	}
 
