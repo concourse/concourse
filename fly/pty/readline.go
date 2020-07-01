@@ -8,7 +8,7 @@ import (
 var ErrInterrupted = errors.New("interrupted")
 
 const (
-	keyCtrlC = 3
+	keyCtrlC     = 3
 	keyBackspace = 127
 )
 
@@ -29,7 +29,9 @@ func ReadLine(reader io.Reader) ([]byte, error) {
 			case keyCtrlC:
 				return nil, ErrInterrupted
 			default:
-				ret = append(ret, buf[0])
+				if isPrintableChar(buf[0]) {
+					ret = append(ret, buf[0])
+				}
 			}
 			continue
 		}
@@ -40,4 +42,8 @@ func ReadLine(reader io.Reader) ([]byte, error) {
 			return ret, err
 		}
 	}
+}
+
+func isPrintableChar(b byte) bool {
+	return b >= 32
 }
