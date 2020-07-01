@@ -1,18 +1,49 @@
 package concourse
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
+
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/go-concourse/concourse/eventstream"
+	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
+	"github.com/vito/go-sse/sse"
 )
 
-type Events interface {
-	NextEvent() (atc.Event, error)
-	Close() error
+type BuildEvents struct {
+	src *sse.EventSource
 }
 
-func (client *client) BuildEvents(buildID string) (Events, error) {
+func (b BuildEvents) NextEvent() (atc.Event, error) {
+	se, err := b.src.Next()
+	if err != nil {
+		return nil, err
+	}
+	switch se.Name {
+	case "event":
+		var message event.Message
+		err := json.Unmarshal(se.Data, &message)
+		if err != nil {
+			return nil, err
+		}
+
+		return message.Event, nil
+
+	case "end":
+		return nil, io.EOF
+
+	default:
+		return nil, fmt.Errorf("unknown event name: %s", se.Name)
+	}
+}
+
+func (b BuildEvents) Close() error {
+	return b.src.Close()
+}
+
+func (client *client) BuildEvents(buildID string) (BuildEvents, error) {
 	sseEvents, err := client.connection.ConnectToEventStream(internal.Request{
 		RequestName: atc.BuildEvents,
 		Params: rata.Params{
@@ -20,8 +51,8 @@ func (client *client) BuildEvents(buildID string) (Events, error) {
 		},
 	})
 	if err != nil {
-		return nil, err
+		return BuildEvents{}, err
 	}
 
-	return eventstream.NewSSEEventStream(sseEvents), nil
+	return BuildEvents{sseEvents}, nil
 }

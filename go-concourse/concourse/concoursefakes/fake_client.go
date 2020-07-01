@@ -38,17 +38,17 @@ type FakeClient struct {
 		result2 bool
 		result3 error
 	}
-	BuildEventsStub        func(string) (concourse.Events, error)
+	BuildEventsStub        func(string) (concourse.BuildEvents, error)
 	buildEventsMutex       sync.RWMutex
 	buildEventsArgsForCall []struct {
 		arg1 string
 	}
 	buildEventsReturns struct {
-		result1 concourse.Events
+		result1 concourse.BuildEvents
 		result2 error
 	}
 	buildEventsReturnsOnCall map[int]struct {
-		result1 concourse.Events
+		result1 concourse.BuildEvents
 		result2 error
 	}
 	BuildPlanStub        func(int) (atc.PublicBuildPlan, bool, error)
@@ -420,7 +420,7 @@ func (fake *FakeClient) BuildReturnsOnCall(i int, result1 atc.Build, result2 boo
 	}{result1, result2, result3}
 }
 
-func (fake *FakeClient) BuildEvents(arg1 string) (concourse.Events, error) {
+func (fake *FakeClient) BuildEvents(arg1 string) (concourse.BuildEvents, error) {
 	fake.buildEventsMutex.Lock()
 	ret, specificReturn := fake.buildEventsReturnsOnCall[len(fake.buildEventsArgsForCall)]
 	fake.buildEventsArgsForCall = append(fake.buildEventsArgsForCall, struct {
@@ -444,7 +444,7 @@ func (fake *FakeClient) BuildEventsCallCount() int {
 	return len(fake.buildEventsArgsForCall)
 }
 
-func (fake *FakeClient) BuildEventsCalls(stub func(string) (concourse.Events, error)) {
+func (fake *FakeClient) BuildEventsCalls(stub func(string) (concourse.BuildEvents, error)) {
 	fake.buildEventsMutex.Lock()
 	defer fake.buildEventsMutex.Unlock()
 	fake.BuildEventsStub = stub
@@ -457,28 +457,28 @@ func (fake *FakeClient) BuildEventsArgsForCall(i int) string {
 	return argsForCall.arg1
 }
 
-func (fake *FakeClient) BuildEventsReturns(result1 concourse.Events, result2 error) {
+func (fake *FakeClient) BuildEventsReturns(result1 concourse.BuildEvents, result2 error) {
 	fake.buildEventsMutex.Lock()
 	defer fake.buildEventsMutex.Unlock()
 	fake.BuildEventsStub = nil
 	fake.buildEventsReturns = struct {
-		result1 concourse.Events
+		result1 concourse.BuildEvents
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeClient) BuildEventsReturnsOnCall(i int, result1 concourse.Events, result2 error) {
+func (fake *FakeClient) BuildEventsReturnsOnCall(i int, result1 concourse.BuildEvents, result2 error) {
 	fake.buildEventsMutex.Lock()
 	defer fake.buildEventsMutex.Unlock()
 	fake.BuildEventsStub = nil
 	if fake.buildEventsReturnsOnCall == nil {
 		fake.buildEventsReturnsOnCall = make(map[int]struct {
-			result1 concourse.Events
+			result1 concourse.BuildEvents
 			result2 error
 		})
 	}
 	fake.buildEventsReturnsOnCall[i] = struct {
-		result1 concourse.Events
+		result1 concourse.BuildEvents
 		result2 error
 	}{result1, result2}
 }

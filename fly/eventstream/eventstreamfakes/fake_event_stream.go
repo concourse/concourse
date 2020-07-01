@@ -5,20 +5,10 @@ import (
 	"sync"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/go-concourse/concourse/eventstream"
+	"github.com/concourse/concourse/fly/eventstream"
 )
 
 type FakeEventStream struct {
-	CloseStub        func() error
-	closeMutex       sync.RWMutex
-	closeArgsForCall []struct {
-	}
-	closeReturns struct {
-		result1 error
-	}
-	closeReturnsOnCall map[int]struct {
-		result1 error
-	}
 	NextEventStub        func() (atc.Event, error)
 	nextEventMutex       sync.RWMutex
 	nextEventArgsForCall []struct {
@@ -33,58 +23,6 @@ type FakeEventStream struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeEventStream) Close() error {
-	fake.closeMutex.Lock()
-	ret, specificReturn := fake.closeReturnsOnCall[len(fake.closeArgsForCall)]
-	fake.closeArgsForCall = append(fake.closeArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Close", []interface{}{})
-	fake.closeMutex.Unlock()
-	if fake.CloseStub != nil {
-		return fake.CloseStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.closeReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeEventStream) CloseCallCount() int {
-	fake.closeMutex.RLock()
-	defer fake.closeMutex.RUnlock()
-	return len(fake.closeArgsForCall)
-}
-
-func (fake *FakeEventStream) CloseCalls(stub func() error) {
-	fake.closeMutex.Lock()
-	defer fake.closeMutex.Unlock()
-	fake.CloseStub = stub
-}
-
-func (fake *FakeEventStream) CloseReturns(result1 error) {
-	fake.closeMutex.Lock()
-	defer fake.closeMutex.Unlock()
-	fake.CloseStub = nil
-	fake.closeReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeEventStream) CloseReturnsOnCall(i int, result1 error) {
-	fake.closeMutex.Lock()
-	defer fake.closeMutex.Unlock()
-	fake.CloseStub = nil
-	if fake.closeReturnsOnCall == nil {
-		fake.closeReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.closeReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeEventStream) NextEvent() (atc.Event, error) {
@@ -145,8 +83,6 @@ func (fake *FakeEventStream) NextEventReturnsOnCall(i int, result1 atc.Event, re
 func (fake *FakeEventStream) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.closeMutex.RLock()
-	defer fake.closeMutex.RUnlock()
 	fake.nextEventMutex.RLock()
 	defer fake.nextEventMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

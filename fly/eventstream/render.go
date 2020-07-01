@@ -5,9 +5,9 @@ import (
 	"io"
 	"strings"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/fly/ui"
-	"github.com/concourse/concourse/go-concourse/concourse/eventstream"
 	"github.com/fatih/color"
 )
 
@@ -16,7 +16,13 @@ type RenderOptions struct {
 	IgnoreEventParsingErrors bool
 }
 
-func Render(dst io.Writer, src eventstream.EventStream, options RenderOptions) int {
+//go:generate counterfeiter . EventStream
+
+type EventStream interface {
+	NextEvent() (atc.Event, error)
+}
+
+func Render(dst io.Writer, src EventStream, options RenderOptions) int {
 	dstImpl := NewTimestampedWriter(dst, options.ShowTimestamp)
 
 	exitStatus := 0

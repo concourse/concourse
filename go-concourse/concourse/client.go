@@ -16,7 +16,7 @@ type Client interface {
 	HTTPClient() *http.Client
 	Builds(Page) ([]atc.Build, Pagination, error)
 	Build(buildID string) (atc.Build, bool, error)
-	BuildEvents(buildID string) (Events, error)
+	BuildEvents(buildID string) (BuildEvents, error)
 	BuildResources(buildID int) (atc.BuildInputsOutputs, bool, error)
 	ListBuildArtifacts(buildID string) ([]atc.WorkerArtifact, error)
 	AbortBuild(buildID string) error
