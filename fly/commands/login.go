@@ -115,7 +115,8 @@ func (command *LoginCommand) Execute(args []string) error {
 		return err
 	}
 
-	if pty.IsTerminal() && !command.BrowserOnly {
+	isRawMode := pty.IsTerminal() && !command.BrowserOnly
+	if isRawMode {
 		state, err := terminal.MakeRaw(int(os.Stdin.Fd()))
 		if err != nil {
 			return err
@@ -128,12 +129,12 @@ func (command *LoginCommand) Execute(args []string) error {
 
 	if semver.Compare(legacySemver) <= 0 && semver.Compare(devSemver) != 0 {
 		// Legacy Auth Support
-		tokenType, tokenValue, err = command.legacyAuth(target, command.BrowserOnly)
+		tokenType, tokenValue, err = command.legacyAuth(target, command.BrowserOnly, isRawMode)
 	} else {
 		if command.Username != "" && command.Password != "" {
 			tokenType, tokenValue, err = command.passwordGrant(client, command.Username, command.Password)
 		} else {
-			tokenType, tokenValue, err = command.authCodeGrant(client.URL(), command.BrowserOnly)
+			tokenType, tokenValue, err = command.authCodeGrant(client.URL(), command.BrowserOnly, isRawMode)
 		}
 	}
 
@@ -211,7 +212,7 @@ func (command *LoginCommand) passwordGrant(client concourse.Client, username, pa
 	return token.TokenType, idToken, nil
 }
 
-func (command *LoginCommand) authCodeGrant(targetUrl string, browserOnly bool) (string, string, error) {
+func (command *LoginCommand) authCodeGrant(targetUrl string, browserOnly bool, isRawMode bool) (string, string, error) {
 	var tokenStr string
 
 	stdinChannel := make(chan string)
@@ -239,7 +240,7 @@ func (command *LoginCommand) authCodeGrant(targetUrl string, browserOnly bool) (
 	}
 
 	if !browserOnly {
-		go waitForTokenInput(stdinChannel, errorChannel)
+		go waitForTokenInput(stdinChannel, errorChannel, isRawMode)
 	}
 
 	select {
@@ -300,11 +301,15 @@ type tcpKeepAliveListener struct {
 	*net.TCPListener
 }
 
-func waitForTokenInput(tokenChannel chan string, errorChannel chan error) {
+func waitForTokenInput(tokenChannel chan string, errorChannel chan error, isRawMode bool) {
 	fmt.Println()
 
 	for {
-		fmt.Print("or enter token manually (input hidden): ")
+		if isRawMode {
+			fmt.Print("or enter token manually (input hidden): ")
+		} else {
+			fmt.Print("or enter token manually: ")
+		}
 		tokenBytes, err := pty.ReadLine(os.Stdin)
 		token := strings.TrimSpace(string(tokenBytes))
 		if len(token) == 0 && err == io.EOF {
@@ -347,7 +352,7 @@ func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken, caCer
 	return nil
 }
 
-func (command *LoginCommand) legacyAuth(target rc.Target, browserOnly bool) (string, string, error) {
+func (command *LoginCommand) legacyAuth(target rc.Target, browserOnly bool, isRawMode bool) (string, string, error) {
 
 	httpClient := target.Client().HTTPClient()
 
@@ -436,7 +441,7 @@ func (command *LoginCommand) legacyAuth(target rc.Target, browserOnly bool) (str
 		}
 
 		if !browserOnly {
-			go waitForTokenInput(stdinChannel, errorChannel)
+			go waitForTokenInput(stdinChannel, errorChannel, isRawMode)
 		}
 
 		select {
