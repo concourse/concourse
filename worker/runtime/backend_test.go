@@ -196,7 +196,7 @@ func (s *BackendSuite) TestCreateMaxContainersReachedConcurrent() {
 
 	for i := 0; i < numberOfRequests; i++ {
 		go func() {
-			_, err = backend.Create(minimumValidGdnSpec)
+			_, err := backend.Create(minimumValidGdnSpec)
 			if err != nil {
 				requestErrors <- err
 			}
@@ -245,7 +245,7 @@ func (s *BackendSuite) TestCreateContainerLockTimeout() {
 
 	for i := 0; i < numberOfRequests; i++ {
 		go func() {
-			_, err = backend.Create(minimumValidGdnSpec)
+			_, err := backend.Create(minimumValidGdnSpec)
 			if err != nil {
 				requestErrors <- err
 			}
