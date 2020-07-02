@@ -123,7 +123,7 @@ func (command *LoginCommand) Execute(args []string) error {
 		}
 		defer func() {
 			terminal.Restore(int(os.Stdin.Fd()), state)
-			fmt.Println("\r")
+			fmt.Print("\r")
 		}()
 	}
 
@@ -139,6 +139,7 @@ func (command *LoginCommand) Execute(args []string) error {
 	}
 
 	if errors.Is(err, pty.ErrInterrupted) {
+		fmt.Println("^C\r")
 		return nil
 	}
 
