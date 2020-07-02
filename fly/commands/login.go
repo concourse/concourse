@@ -119,12 +119,13 @@ func (command *LoginCommand) Execute(args []string) error {
 	if isRawMode {
 		state, err := terminal.MakeRaw(int(os.Stdin.Fd()))
 		if err != nil {
-			return err
+			isRawMode = false
+		} else {
+			defer func() {
+				terminal.Restore(int(os.Stdin.Fd()), state)
+				fmt.Print("\r")
+			}()
 		}
-		defer func() {
-			terminal.Restore(int(os.Stdin.Fd()), state)
-			fmt.Print("\r")
-		}()
 	}
 
 	if semver.Compare(legacySemver) <= 0 && semver.Compare(devSemver) != 0 {
