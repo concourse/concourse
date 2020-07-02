@@ -6,6 +6,7 @@ import (
 	"github.com/concourse/concourse/fly/commands/internal/setpipelinehelpers"
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
 	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/mgutz/ansi"
 )
 
@@ -22,6 +23,8 @@ type SetPipelineCommand struct {
 	YAMLVar []flaghelpers.YAMLVariablePairFlag `short:"y"  long:"yaml-var"  value-name:"[NAME=YAML]"    description:"Specify a YAML value to set for a variable in the pipeline"`
 
 	VarsFrom []atc.PathFlag `short:"l"  long:"load-vars-from"  description:"Variable flag that can be used for filling in template values in configuration from a YAML file"`
+
+	Team string `long:"team"              description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *SetPipelineCommand) Validate() error {
@@ -47,10 +50,21 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		return err
 	}
 
+	var team concourse.Team
+
+	if command.Team != "" {
+		team, err = target.FindTeam(command.Team)
+		if err != nil {
+			return err
+		}
+	} else {
+		team = target.Team()
+	}
+
 	ansi.DisableColors(command.DisableAnsiColor)
 
 	atcConfig := setpipelinehelpers.ATCConfig{
-		Team:             target.Team(),
+		Team:             team,
 		PipelineName:     pipelineName,
 		TargetName:       Fly.Target,
 		Target:           target.Client().URL(),
