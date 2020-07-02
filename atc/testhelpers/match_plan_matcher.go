@@ -79,73 +79,21 @@ func (matcher *PlanMatcher) NegatedFailureMessage(actual interface{}) string {
 }
 
 func stripIDs(plan atc.Plan) (atc.Plan, []string) {
-	var ids []string
+	walker := func(plan atc.Plan) (atc.Plan, error) {
+		plan.ID = "<stripped>"
 
-	var subIDs []string
-
-	plan.ID = "<stripped>"
-
-	if plan.Aggregate != nil {
-		for i, p := range *plan.Aggregate {
-			(*plan.Aggregate)[i], subIDs = stripIDs(p)
-			ids = append(ids, subIDs...)
+		if plan.Get != nil {
+			if plan.Get.VersionFrom != nil {
+				planID := atc.PlanID("<stripped>")
+				plan.Get.VersionFrom = &planID
+			}
 		}
+
+		return plan, nil
 	}
 
-	if plan.InParallel != nil {
-		for i, p := range plan.InParallel.Steps {
-			plan.InParallel.Steps[i], subIDs = stripIDs(p)
-			ids = append(ids, subIDs...)
-		}
-	}
+	// Ignore errors, since our walker doesn't return an error.
+	plan, _ = WalkPlan(plan, walker)
 
-	if plan.Do != nil {
-		for i, p := range *plan.Do {
-			(*plan.Do)[i], subIDs = stripIDs(p)
-			ids = append(ids, subIDs...)
-		}
-	}
-
-	if plan.OnSuccess != nil {
-		plan.OnSuccess.Step, subIDs = stripIDs(plan.OnSuccess.Step)
-		ids = append(ids, subIDs...)
-
-		plan.OnSuccess.Next, subIDs = stripIDs(plan.OnSuccess.Next)
-		ids = append(ids, subIDs...)
-	}
-
-	if plan.OnFailure != nil {
-		plan.OnFailure.Step, subIDs = stripIDs(plan.OnFailure.Step)
-		ids = append(ids, subIDs...)
-
-		plan.OnFailure.Next, subIDs = stripIDs(plan.OnFailure.Next)
-		ids = append(ids, subIDs...)
-	}
-
-	if plan.Ensure != nil {
-		plan.Ensure.Step, subIDs = stripIDs(plan.Ensure.Step)
-		ids = append(ids, subIDs...)
-
-		plan.Ensure.Next, subIDs = stripIDs(plan.Ensure.Next)
-		ids = append(ids, subIDs...)
-	}
-
-	if plan.Timeout != nil {
-		plan.Timeout.Step, subIDs = stripIDs(plan.Timeout.Step)
-		ids = append(ids, subIDs...)
-	}
-
-	if plan.Try != nil {
-		plan.Try.Step, subIDs = stripIDs(plan.Try.Step)
-		ids = append(ids, subIDs...)
-	}
-
-	if plan.Get != nil {
-		if plan.Get.VersionFrom != nil {
-			planID := atc.PlanID("<stripped>")
-			plan.Get.VersionFrom = &planID
-		}
-	}
-
-	return plan, ids
+	return plan, nil
 }

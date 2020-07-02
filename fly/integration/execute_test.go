@@ -19,6 +19,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/atc/testhelpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -246,6 +247,13 @@ run:
 			atcServer.RouteToHandler("POST", "/api/v1/teams/main/pipelines/some-pipeline/builds",
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/some-pipeline/builds"),
+					testhelpers.VerifyResourceTypes(atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name:   "resource-type",
+							Type:   "s3",
+							Source: atc.Source{},
+						},
+					}),
 					func(w http.ResponseWriter, r *http.Request) {
 						http.SetCookie(w, &http.Cookie{
 							Name:    "Some-Cookie",
@@ -261,7 +269,15 @@ run:
 				ghttp.RespondWithJSONEncoded(200, []atc.BuildInput{atc.BuildInput{Name: "fixture"}}),
 			)
 			atcServer.RouteToHandler("GET", "/api/v1/teams/main/pipelines/some-pipeline/resource-types",
-				ghttp.RespondWithJSONEncoded(200, atc.VersionedResourceTypes{}),
+				ghttp.RespondWithJSONEncoded(200, atc.VersionedResourceTypes{
+					atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name:   "resource-type",
+							Type:   "s3",
+							Source: atc.Source{},
+						},
+					},
+				}),
 			)
 		})
 

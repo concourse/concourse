@@ -31,23 +31,23 @@ func DetermineInputs(
 	inputsFrom flaghelpers.JobFlag,
 	includeIgnored bool,
 	platform string,
-) ([]Input, map[string]string, *atc.ImageResource, error) {
+) ([]Input, map[string]string, *atc.ImageResource, atc.VersionedResourceTypes, error) {
 	inputMappings := ConvertInputMappings(userInputMappings)
 
 	err := CheckForUnknownInputMappings(localInputMappings, taskInputs)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	err = CheckForInputType(localInputMappings)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	if len(localInputMappings) == 0 && inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
 		wd, err := os.Getwd()
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
 
 		localInputMappings = append(localInputMappings, flaghelpers.InputPairFlag{
@@ -58,12 +58,12 @@ func DetermineInputs(
 
 	inputsFromLocal, err := GenerateLocalInputs(fact, team, localInputMappings, includeIgnored, platform)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
-	inputsFromJob, imageResourceFromJob, err := FetchInputsFromJob(fact, team, inputsFrom, jobInputImage)
+	inputsFromJob, imageResourceFromJob, resourceTypes, err := FetchInputsFromJob(fact, team, inputsFrom, jobInputImage)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	inputs := []Input{}
@@ -81,7 +81,7 @@ func DetermineInputs(
 				if taskInput.Optional {
 					continue
 				} else {
-					return nil, nil, nil, fmt.Errorf("missing required input `%s`", taskInput.Name)
+					return nil, nil, nil, nil, fmt.Errorf("missing required input `%s`", taskInput.Name)
 				}
 			}
 		}
@@ -89,7 +89,7 @@ func DetermineInputs(
 		inputs = append(inputs, input)
 	}
 
-	return inputs, inputMappings, imageResourceFromJob, nil
+	return inputs, inputMappings, imageResourceFromJob, resourceTypes, nil
 }
 
 func ConvertInputMappings(variables []flaghelpers.VariablePairFlag) map[string]string {
@@ -184,40 +184,40 @@ func GenerateLocalInputs(
 	return inputs, nil
 }
 
-func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom flaghelpers.JobFlag, imageName string) (map[string]Input, *atc.ImageResource, error) {
+func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom flaghelpers.JobFlag, imageName string) (map[string]Input, *atc.ImageResource, atc.VersionedResourceTypes, error) {
 	kvMap := map[string]Input{}
 
 	if inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
-		return kvMap, nil, nil
+		return kvMap, nil, nil, nil
 	}
 
 	buildInputs, found, err := team.BuildInputsForJob(inputsFrom.PipelineName, inputsFrom.JobName)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if !found {
-		return nil, nil, fmt.Errorf("build inputs for %s/%s not found", inputsFrom.PipelineName, inputsFrom.JobName)
+		return nil, nil, nil, fmt.Errorf("build inputs for %s/%s not found", inputsFrom.PipelineName, inputsFrom.JobName)
 	}
 
 	versionedResourceTypes, found, err := team.VersionedResourceTypes(inputsFrom.PipelineName)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if !found {
-		return nil, nil, fmt.Errorf("versioned resource types of %s not found", inputsFrom.PipelineName)
+		return nil, nil, nil, fmt.Errorf("versioned resource types of %s not found", inputsFrom.PipelineName)
 	}
 
 	var imageResource *atc.ImageResource
 	if imageName != "" {
 		imageResource, found, err = FetchImageResourceFromJobInputs(buildInputs, imageName)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		if !found {
-			return nil, nil, fmt.Errorf("image resource %s not found", imageName)
+			return nil, nil, nil, fmt.Errorf("image resource %s not found", imageName)
 		}
 	}
 
@@ -239,7 +239,7 @@ func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom fl
 		}
 	}
 
-	return kvMap, imageResource, nil
+	return kvMap, imageResource, versionedResourceTypes, nil
 }
 
 func FetchImageResourceFromJobInputs(inputs []atc.BuildInput, imageName string) (*atc.ImageResource, bool, error) {
