@@ -5,10 +5,12 @@ package pty
 import (
 	"io"
 	"os"
+
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 func IsTerminal() bool {
-	return true
+	return terminal.IsTerminal(int(os.Stdin.Fd()))
 }
 
 func OpenRawTerm() (Term, error) {
