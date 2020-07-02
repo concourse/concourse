@@ -147,7 +147,7 @@
 
     A pipeline can be archived via fly. This means that the pipeline will be paused
     and hidden from the web UI. The pipeline config will be deleted (so any secrets or
-    interpolated \reference{vars} will be lost) while the build logs will be retained.
+    interpolated \reference{vars} will be removed) while the build logs will be retained.
 
     \codeblock{bash}{{
     $ fly -t example archive-pipeline -p pipeline-1
@@ -158,5 +158,5 @@
     as a job in the archived pipeline, the old build logs for that job will be restored.
 
     Note that because the config is deleted, \reference{fly-get-pipeline} will no
-    longer work archived pipelines.
+    longer work for archived pipelines.
 }
