@@ -15,7 +15,7 @@ import (
 //go:generate counterfeiter . ListAllJobsWatcher
 
 type ListAllJobsWatcher interface {
-	WatchListAllJobs(ctx context.Context, access accessor.Access) <-chan []watch.DashboardJobEvent
+	WatchListAllJobs(ctx context.Context, access accessor.Access) (<-chan []watch.DashboardJobEvent, error)
 }
 
 type JobWatchEvent struct {
@@ -31,12 +31,20 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 
 	watchMode := stream.IsRequested(r)
 	var watchEventsChan <-chan []watch.DashboardJobEvent
+	var err error
 	if watchMode {
-		watchEventsChan = s.listAllJobsWatcher.WatchListAllJobs(r.Context(), acc)
+		watchEventsChan, err = s.listAllJobsWatcher.WatchListAllJobs(r.Context(), acc)
+		if err == watch.ErrDisabled {
+			http.Error(w, "ListAllJobs watch endpoint is not enabled", http.StatusNotAcceptable)
+			return
+		}
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	var dashboard atc.Dashboard
-	var err error
 
 	if acc.IsAdmin() {
 		dashboard, err = s.jobFactory.AllActiveJobs()

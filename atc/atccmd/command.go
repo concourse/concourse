@@ -26,6 +26,7 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/buildserver"
 	"github.com/concourse/concourse/atc/api/containerserver"
+	"github.com/concourse/concourse/atc/api/jobserver"
 	"github.com/concourse/concourse/atc/api/pipelineserver"
 	"github.com/concourse/concourse/atc/api/policychecker"
 	"github.com/concourse/concourse/atc/auditor"
@@ -250,6 +251,7 @@ type RunCommand struct {
 		EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears or a network error occurs"`
 		EnableAcrossStep                     bool `long:"enable-across-step" description:"Enable the experimental across step to be used in jobs. The API is subject to change."`
 		EnablePipelineInstances              bool `long:"enable-pipeline-instances" description:"Enable pipeline instances"`
+		EnableWatchEndpoints                 bool `long:"enable-watch-endpoints" description:"Enable watching API endpoints for changes."`
 	} `group:"Feature Flags"`
 
 	BaseResourceTypeDefaults flag.File `long:"base-resource-type-defaults" description:"Base resource type defaults"`
@@ -805,9 +807,14 @@ func (cmd *RunCommand) constructAPIMembers(
 
 	middleware := token.NewMiddleware(cmd.Auth.AuthFlags.SecureCookies)
 
-	listAllJobsWatcher, err := watch.NewListAllJobsWatcher(logger.Session("list-all-jobs-watcher"), dbConn, lockFactory)
-	if err != nil {
-		return nil, err
+	var listAllJobsWatcher jobserver.ListAllJobsWatcher
+	if cmd.FeatureFlags.EnableWatchEndpoints {
+		listAllJobsWatcher, err = watch.NewListAllJobsWatcher(logger.Session("list-all-jobs-watcher"), dbConn, lockFactory)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		listAllJobsWatcher = watch.DisabledListAllJobsWatcher{}
 	}
 
 	apiHandler, err := cmd.constructAPIHandler(
@@ -1839,7 +1846,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	accessFactory accessor.AccessFactory,
 	dbWall db.Wall,
 	policyChecker *policy.Checker,
-	listAllJobsWatcher *watch.ListAllJobsWatcher,
+	listAllJobsWatcher jobserver.ListAllJobsWatcher,
 ) (http.Handler, error) {
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(teamFactory)

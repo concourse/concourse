@@ -117,7 +117,7 @@ func (w *ListAllJobsWatcher) setupTriggers() error {
 	return nil
 }
 
-func (w *ListAllJobsWatcher) WatchListAllJobs(ctx context.Context, access accessor.Access) <-chan []DashboardJobEvent {
+func (w *ListAllJobsWatcher) WatchListAllJobs(ctx context.Context, access accessor.Access) (<-chan []DashboardJobEvent, error) {
 	eventsChan := make(chan []DashboardJobEvent)
 
 	dirty := make(chan struct{})
@@ -125,7 +125,7 @@ func (w *ListAllJobsWatcher) WatchListAllJobs(ctx context.Context, access access
 	var mtx sync.Mutex
 	go w.watchEvents(ctx, access, &pendingEvents, &mtx, dirty)
 	go w.sendEvents(ctx, eventsChan, &pendingEvents, &mtx, dirty)
-	return eventsChan
+	return eventsChan, nil
 }
 
 func (w *ListAllJobsWatcher) watchEvents(

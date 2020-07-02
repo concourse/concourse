@@ -7,7 +7,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-var ErrDisconnectedFromNotificationBus = fmt.Errorf("temporarily disconnected from notification bus")
+var ErrDisabled = fmt.Errorf("watching is disabled")
 
 const eventsChannel = "watch_events"
 

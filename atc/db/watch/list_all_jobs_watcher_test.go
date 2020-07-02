@@ -141,7 +141,7 @@ var _ = Describe("ListAllJobsWatcher", func() {
 		})
 
 		JustBeforeEach(func() {
-			eventsChan := watcher.WatchListAllJobs(ctx, access)
+			eventsChan, _ := watcher.WatchListAllJobs(ctx, access)
 			go func() {
 				for events := range eventsChan {
 					mtx.Lock()
@@ -279,7 +279,7 @@ var _ = Describe("ListAllJobsWatcher", func() {
 
 	It("cancelling the context halts the subscriber", func() {
 		time.AfterFunc(50*time.Millisecond, cancel)
-		eventsChan := watcher.WatchListAllJobs(ctx, new(accessorfakes.FakeAccess))
+		eventsChan, _ := watcher.WatchListAllJobs(ctx, new(accessorfakes.FakeAccess))
 		Eventually(eventsChan).Should(BeClosed())
 	})
 })

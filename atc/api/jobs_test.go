@@ -272,7 +272,7 @@ var _ = Describe("Jobs API", func() {
 			dbJobFactory.VisibleJobsReturns(atc.Dashboard{job}, nil)
 
 			eventsChan = make(chan []watch.DashboardJobEvent, 1)
-			fakeListAllJobsWatcher.WatchListAllJobsReturns(eventsChan)
+			fakeListAllJobsWatcher.WatchListAllJobsReturns(eventsChan, nil)
 		})
 
 		AfterEach(func() {
@@ -328,6 +328,26 @@ var _ = Describe("Jobs API", func() {
 				Name: "patch",
 				Data: []byte(`[{"id":1,"eventType":"PUT","job":{"id":1,"name":"new-job","pipeline_name":"some-pipeline","team_name":"some-team","next_build":null,"finished_build":null,"groups":null}},{"id":2,"eventType":"DELETE","job":null}]`),
 			}))
+		})
+
+		Context("when the watcher returns watch.ErrDisabled", func() {
+			BeforeEach(func() {
+				fakeListAllJobsWatcher.WatchListAllJobsReturns(nil, watch.ErrDisabled)
+			})
+
+			It("returns a 406 status code", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusNotAcceptable))
+			})
+		})
+
+		Context("when the watcher returns an unexpected error", func() {
+			BeforeEach(func() {
+				fakeListAllJobsWatcher.WatchListAllJobsReturns(nil, errors.New("something bad"))
+			})
+
+			It("returns a 500 status code", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
 		})
 	})
 
