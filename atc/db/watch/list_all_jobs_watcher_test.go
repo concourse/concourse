@@ -246,13 +246,6 @@ var _ = Describe("ListAllJobsWatcher", func() {
 					Consistently(getInvokedEvents).Should(BeEmpty())
 				})
 
-				Context("when the notification is a delete", func() {
-					It("forwards the notification", func() {
-						pipeline.Destroy()
-						Eventually(getInvokedEvents).Should(ContainElement(DeleteEvent(job1.ID())))
-					})
-				})
-
 				Context("when the pipeline is public", func() {
 					BeforeEach(func() {
 						pipeline.Expose()
