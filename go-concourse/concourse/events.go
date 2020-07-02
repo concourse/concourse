@@ -12,34 +12,47 @@ import (
 	"github.com/vito/go-sse/sse"
 )
 
-type BuildEvents struct {
+//go:generate counterfeiter . BuildEvents
+
+type BuildEvents interface {
+	Accept(visitor BuildEventsVisitor) error
+	Close() error
+}
+
+type buildEvents struct {
 	src *sse.EventSource
 }
 
-func (b BuildEvents) NextEvent() (atc.Event, error) {
+//go:generate counterfeiter . BuildEventsVisitor
+
+type BuildEventsVisitor interface {
+	VisitEvent(event atc.Event) error
+}
+
+func (b buildEvents) Accept(visitor BuildEventsVisitor) error {
 	se, err := b.src.Next()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	switch se.Name {
 	case "event":
 		var message event.Message
 		err := json.Unmarshal(se.Data, &message)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		return message.Event, nil
+		return visitor.VisitEvent(message.Event)
 
 	case "end":
-		return nil, io.EOF
+		return io.EOF
 
 	default:
-		return nil, fmt.Errorf("unknown event name: %s", se.Name)
+		return fmt.Errorf("unknown event name: %s", se.Name)
 	}
 }
 
-func (b BuildEvents) Close() error {
+func (b buildEvents) Close() error {
 	return b.src.Close()
 }
 
@@ -51,8 +64,8 @@ func (client *client) BuildEvents(buildID string) (BuildEvents, error) {
 		},
 	})
 	if err != nil {
-		return BuildEvents{}, err
+		return buildEvents{}, err
 	}
 
-	return BuildEvents{sseEvents}, nil
+	return buildEvents{sseEvents}, nil
 }

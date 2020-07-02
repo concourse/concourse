@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/go-concourse/concourse/concoursefakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
@@ -21,6 +22,7 @@ var _ = Describe("ATC Handler Events", func() {
 
 		var streaming chan struct{}
 		var eventsChan chan atc.Event
+		var visitor *concoursefakes.FakeBuildEventsVisitor
 
 		BeforeEach(func() {
 			streaming = make(chan struct{})
@@ -29,6 +31,8 @@ var _ = Describe("ATC Handler Events", func() {
 			eventsChan <- event.Status{Status: atc.StatusStarted}
 			eventsChan <- event.Status{Status: atc.StatusSucceeded}
 			close(eventsChan)
+
+			visitor = new(concoursefakes.FakeBuildEventsVisitor)
 		})
 
 		eventsHandler := func() http.HandlerFunc {
@@ -86,19 +90,19 @@ var _ = Describe("ATC Handler Events", func() {
 				stream, err := client.BuildEvents(buildID)
 				Expect(err).NotTo(HaveOccurred())
 
-				next, err := stream.NextEvent()
+				err = stream.Accept(visitor)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(next).To(Equal(event.Status{
+				Expect(visitor.VisitEventArgsForCall(0)).To(Equal(event.Status{
 					Status: atc.StatusStarted,
 				}))
 
-				next, err = stream.NextEvent()
+				err = stream.Accept(visitor)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(next).To(Equal(event.Status{
+				Expect(visitor.VisitEventArgsForCall(1)).To(Equal(event.Status{
 					Status: atc.StatusSucceeded,
 				}))
 
-				_, err = stream.NextEvent()
+				err = stream.Accept(visitor)
 				Expect(err).To(Equal(io.EOF))
 
 				err = stream.Close()

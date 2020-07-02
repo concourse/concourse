@@ -4,6 +4,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/go-concourse/concourse/concoursefakes"
 	"github.com/fatih/color"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,16 +15,16 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/fly/eventstream"
-	"github.com/concourse/concourse/fly/eventstream/eventstreamfakes"
 	"github.com/concourse/concourse/fly/ui"
 )
 
 var _ = Describe("V1.0 Renderer", func() {
 	var (
 		out     *gbytes.Buffer
-		stream  *eventstreamfakes.FakeEventStream
+		events  *concoursefakes.FakeBuildEvents
 		options eventstream.RenderOptions
 
+		receivedErrors chan<- error
 		receivedEvents chan<- atc.Event
 
 		exitStatus int
@@ -31,24 +33,28 @@ var _ = Describe("V1.0 Renderer", func() {
 	BeforeEach(func() {
 		color.NoColor = false
 		out = gbytes.NewBuffer()
-		stream = new(eventstreamfakes.FakeEventStream)
+		events = new(concoursefakes.FakeBuildEvents)
 		options = eventstream.RenderOptions{}
 
-		events := make(chan atc.Event, 100)
-		receivedEvents = events
+		eventsChan := make(chan atc.Event, 100)
+		errChan := make(chan error, 100)
+		receivedEvents = eventsChan
+		receivedErrors = errChan
 
-		stream.NextEventStub = func() (atc.Event, error) {
+		events.AcceptStub = func(v concourse.BuildEventsVisitor) error {
 			select {
-			case ev := <-events:
-				return ev, nil
+			case err := <-errChan:
+				return err
+			case ev := <-eventsChan:
+				return v.VisitEvent(ev)
 			default:
-				return nil, io.EOF
+				return io.EOF
 			}
 		}
 	})
 
 	JustBeforeEach(func() {
-		exitStatus = eventstream.Render(out, stream, options)
+		exitStatus = eventstream.Render(out, events, options)
 	})
 
 	Context("when a Log event is received", func() {
@@ -320,20 +326,9 @@ var _ = Describe("V1.0 Renderer", func() {
 	})
 
 	Context("when an UnknownEventTypeError or UnknownEventVersionError is received", func() {
-
 		BeforeEach(func() {
-			errors := make(chan error, 100)
-
-			stream.NextEventStub = func() (atc.Event, error) {
-				select {
-				case ev := <-errors:
-					return nil, ev
-				default:
-					return nil, io.EOF
-				}
-			}
-			errors <- event.UnknownEventTypeError{Type: "some-event"}
-			errors <- event.UnknownEventVersionError{Type: "some-bad-version-event"}
+			receivedErrors <- event.UnknownEventTypeError{Type: "some-event"}
+			receivedErrors <- event.UnknownEventVersionError{Type: "some-bad-version-event"}
 		})
 
 		It("prints the build's run script", func() {
@@ -351,9 +346,6 @@ var _ = Describe("V1.0 Renderer", func() {
 			It("exits with 0 exit code", func() {
 				Expect(exitStatus).To(Equal(0))
 			})
-
 		})
-
 	})
-
 })

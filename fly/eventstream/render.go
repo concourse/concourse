@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/fatih/color"
 )
 
@@ -16,31 +17,18 @@ type RenderOptions struct {
 	IgnoreEventParsingErrors bool
 }
 
-//go:generate counterfeiter . EventStream
+type buildEventsVisitorFunc func(atc.Event) error
 
-type EventStream interface {
-	NextEvent() (atc.Event, error)
+func (f buildEventsVisitorFunc) VisitEvent(ev atc.Event) error {
+	return f(ev)
 }
 
-func Render(dst io.Writer, src EventStream, options RenderOptions) int {
+func Render(dst io.Writer, events concourse.BuildEvents, options RenderOptions) int {
 	dstImpl := NewTimestampedWriter(dst, options.ShowTimestamp)
 
 	exitStatus := 0
 
-	for {
-		ev, err := src.NextEvent()
-		if err != nil {
-			if err == io.EOF {
-				return exitStatus
-			} else if options.IgnoreEventParsingErrors && isEventParseError(err) {
-				continue
-			} else {
-				dstImpl.SetTimestamp(0)
-				fmt.Fprintf(dstImpl, "failed to parse next event: %s\n", ui.ErroredColor.Sprint(err))
-				return 255
-			}
-		}
-
+	visitor := buildEventsVisitorFunc(func(ev atc.Event) error {
 		switch e := ev.(type) {
 		case event.Log:
 			dstImpl.SetTimestamp(e.Time)
@@ -75,7 +63,6 @@ func Render(dst io.Writer, src EventStream, options RenderOptions) int {
 
 			switch e.Status {
 			case "started":
-				continue
 			case "succeeded":
 				printColor = ui.SucceededColor
 			case "failed":
@@ -97,14 +84,27 @@ func Render(dst io.Writer, src EventStream, options RenderOptions) int {
 					exitStatus = 3
 				}
 			default:
-				fmt.Fprintf(dstImpl, "unknown status: %s", e.Status)
-				return 255
+				return fmt.Errorf("unknown status: %s", e.Status)
 			}
 
 			printColorFunc := printColor.SprintFunc()
 			fmt.Fprintf(dstImpl, "%s\n", printColorFunc(e.Status))
+		}
+		return nil
+	})
 
-			return exitStatus
+	for {
+		err := events.Accept(visitor)
+		if err != nil {
+			if err == io.EOF {
+				return exitStatus
+			} else if options.IgnoreEventParsingErrors && isEventParseError(err) {
+				continue
+			} else {
+				dstImpl.SetTimestamp(0)
+				fmt.Fprintf(dstImpl, "failed to parse next event: %s\n", err)
+				return 255
+			}
 		}
 	}
 }

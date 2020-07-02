@@ -135,15 +135,15 @@ func (command *ExecuteCommand) Execute(args []string) error {
 
 	signal.Notify(terminate, syscall.SIGINT, syscall.SIGTERM)
 
-	eventSource, err := client.BuildEvents(strconv.Itoa(build.ID))
+	events, err := client.BuildEvents(strconv.Itoa(build.ID))
 	if err != nil {
 		return err
 	}
 
 	renderOptions := eventstream.RenderOptions{}
 
-	exitCode := eventstream.Render(os.Stdout, eventSource, renderOptions)
-	eventSource.Close()
+	exitCode := eventstream.Render(os.Stdout, events, renderOptions)
+	events.Close()
 
 	artifactList, err := client.ListBuildArtifacts(strconv.Itoa(build.ID))
 	if err != nil {
