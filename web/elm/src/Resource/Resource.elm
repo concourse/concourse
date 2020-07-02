@@ -77,6 +77,7 @@ import Message.Subscription as Subscription
         )
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Pinned exposing (ResourcePinState(..), VersionPinState(..))
+import RemoteData exposing (WebData)
 import Resource.Models as Models exposing (Model)
 import Resource.Styles
 import Routes
@@ -893,12 +894,17 @@ tooltip _ _ =
 header : Session -> Model -> Html Message
 header session model =
     let
+        archived =
+            isPipelineArchived
+                session.pipelines
+                model.resourceIdentifier
+
         lastCheckedView =
-            case ( model.now, model.lastChecked ) of
-                ( Just now, Just date ) ->
+            case ( model.now, model.lastChecked, archived ) of
+                ( Just now, Just date, False ) ->
                     viewLastChecked session.timeZone now date
 
-                ( _, _ ) ->
+                ( _, _, _ ) ->
                     Html.text ""
 
         iconView =
@@ -932,7 +938,11 @@ header session model =
 
 
 body :
-    { a | userState : UserState, hovered : HoverState.HoverState }
+    { a
+        | userState : UserState
+        , pipelines : WebData (List Concourse.Pipeline)
+        , hovered : HoverState.HoverState
+    }
     -> Model
     -> Html Message
 body session model =
@@ -945,12 +955,21 @@ body session model =
             , userState = session.userState
             , teamName = model.resourceIdentifier.teamName
             }
+
+        archived =
+            isPipelineArchived
+                session.pipelines
+                model.resourceIdentifier
     in
     Html.div
         (id "body" :: Resource.Styles.body)
     <|
         (if model.pinnedVersion == NotPinned then
-            [ checkSection sectionModel ]
+            if archived then
+                []
+
+            else
+                [ checkSection sectionModel ]
 
          else
             [ pinTools session model ]
@@ -1214,7 +1233,11 @@ checkButton ({ hovered, userState, checkStatus } as params) =
 
 
 commentBar :
-    { a | userState : UserState, hovered : HoverState.HoverState }
+    { a
+        | userState : UserState
+        , pipelines : WebData (List Concourse.Pipeline)
+        , hovered : HoverState.HoverState
+    }
     ->
         { b
             | pinnedVersion : Models.PinnedVersion
@@ -1240,6 +1263,11 @@ commentBar session { resourceIdentifier, pinnedVersion, pinCommentLoading, isEdi
                                     { teamName = resourceIdentifier.teamName
                                     , userState = session.userState
                                     }
+                                    && not
+                                        (isPipelineArchived
+                                            session.pipelines
+                                            resourceIdentifier
+                                        )
                             then
                                 [ Html.textarea
                                     ([ id (toHtmlID ResourceCommentTextarea)
@@ -1325,7 +1353,11 @@ saveButton commentState pinCommentLoading hovered =
 
 
 pinTools :
-    { s | hovered : HoverState.HoverState, userState : UserState }
+    { s
+        | hovered : HoverState.HoverState
+        , pipelines : WebData (List Concourse.Pipeline)
+        , userState : UserState
+    }
     ->
         { b
             | pinnedVersion : Models.PinnedVersion
@@ -1347,10 +1379,17 @@ pinTools session model =
 
 
 pinBar :
-    { a | hovered : HoverState.HoverState }
-    -> { b | pinnedVersion : Models.PinnedVersion }
+    { a
+        | hovered : HoverState.HoverState
+        , pipelines : WebData (List Concourse.Pipeline)
+    }
+    ->
+        { b
+            | pinnedVersion : Models.PinnedVersion
+            , resourceIdentifier : Concourse.ResourceIdentifier
+        }
     -> Html Message
-pinBar { hovered } { pinnedVersion } =
+pinBar { hovered, pipelines } { pinnedVersion, resourceIdentifier } =
     let
         pinBarVersion =
             Pinned.stable pinnedVersion
@@ -1374,6 +1413,11 @@ pinBar { hovered } { pinnedVersion } =
 
                 _ ->
                     False
+
+        archived =
+            isPipelineArchived
+                pipelines
+                resourceIdentifier
     in
     Html.div
         (attrList
@@ -1395,15 +1439,15 @@ pinBar { hovered } { pinnedVersion } =
             (attrList
                 [ ( id "pin-icon", True )
                 , ( onClick <| Click PinIcon
-                  , isPinnedDynamically
+                  , isPinnedDynamically && not archived
                   )
                 , ( onMouseEnter <| Hover <| Just PinIcon
-                  , isPinnedDynamically
+                  , isPinnedDynamically && not archived
                   )
                 , ( onMouseLeave <| Hover Nothing, True )
                 ]
                 ++ Resource.Styles.pinIcon
-                    { isPinnedDynamically = isPinnedDynamically
+                    { clickable = isPinnedDynamically && not archived
                     , hover = HoverState.isHovered PinIcon hovered
                     }
             )
@@ -1426,15 +1470,37 @@ pinBar { hovered } { pinnedVersion } =
         )
 
 
+isPipelineArchived :
+    WebData (List Concourse.Pipeline)
+    -> Concourse.ResourceIdentifier
+    -> Bool
+isPipelineArchived pipelines { pipelineName, teamName } =
+    pipelines
+        |> RemoteData.withDefault []
+        |> List.Extra.find (\p -> p.name == pipelineName && p.teamName == teamName)
+        |> Maybe.map .archived
+        |> Maybe.withDefault False
+
+
 viewVersionedResources :
-    { a | hovered : HoverState.HoverState }
+    { a
+        | hovered : HoverState.HoverState
+        , pipelines : WebData (List Concourse.Pipeline)
+    }
     ->
         { b
             | versions : Paginated Models.Version
             , pinnedVersion : Models.PinnedVersion
+            , resourceIdentifier : Concourse.ResourceIdentifier
         }
     -> Html Message
-viewVersionedResources { hovered } model =
+viewVersionedResources { hovered, pipelines } model =
+    let
+        archived =
+            isPipelineArchived
+                pipelines
+                model.resourceIdentifier
+    in
     model
         |> versions
         |> List.map
@@ -1443,6 +1509,7 @@ viewVersionedResources { hovered } model =
                     { version = v
                     , pinnedVersion = model.pinnedVersion
                     , hovered = hovered
+                    , archived = archived
                     }
             )
         |> Html.ul [ class "list list-collapsable list-enableDisable resource-versions" ]
@@ -1452,9 +1519,10 @@ viewVersionedResource :
     { version : VersionPresenter
     , pinnedVersion : Models.PinnedVersion
     , hovered : HoverState.HoverState
+    , archived : Bool
     }
     -> Html Message
-viewVersionedResource { version, hovered } =
+viewVersionedResource { version, hovered, archived } =
     Html.li
         (case ( version.pinState, version.enabled ) of
             ( Disabled, _ ) ->
@@ -1473,22 +1541,29 @@ viewVersionedResource { version, hovered } =
             [ style "display" "flex"
             , style "margin" "5px 0px"
             ]
-            [ viewEnabledCheckbox
-                { enabled = version.enabled
-                , id = version.id
-                , pinState = version.pinState
-                }
-            , viewPinButton
-                { versionID = version.id
-                , pinState = version.pinState
-                , hovered = hovered
-                }
-            , viewVersionHeader
-                { id = version.id
-                , version = version.version
-                , pinnedState = version.pinState
-                }
-            ]
+            ((if archived then
+                []
+
+              else
+                [ viewEnabledCheckbox
+                    { enabled = version.enabled
+                    , id = version.id
+                    , pinState = version.pinState
+                    }
+                , viewPinButton
+                    { versionID = version.id
+                    , pinState = version.pinState
+                    , hovered = hovered
+                    }
+                ]
+             )
+                ++ [ viewVersionHeader
+                        { id = version.id
+                        , version = version.version
+                        , pinnedState = version.pinState
+                        }
+                   ]
+            )
             :: (if version.expanded then
                     [ viewVersionBody
                         { inputTo = version.inputTo

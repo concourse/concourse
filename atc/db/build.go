@@ -22,6 +22,7 @@ import (
 const schema = "exec.v2"
 
 var ErrAdoptRerunBuildHasNoInputs = errors.New("inputs not ready for build to rerun")
+var ErrSetByNewerBuild = errors.New("pipeline set by a newer build")
 
 type BuildInput struct {
 	Name       string
@@ -161,6 +162,14 @@ type Build interface {
 	SetDrained(bool) error
 
 	SpanContext() propagators.Supplier
+
+	SavePipeline(
+		pipelineName string,
+		teamId int,
+		config atc.Config,
+		from ConfigVersion,
+		initiallyPaused bool,
+	) (Pipeline, bool, error)
 }
 
 type build struct {
@@ -1477,6 +1486,54 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 
 func (b *build) SpanContext() propagators.Supplier {
 	return b.spanContext
+}
+
+func (b *build) SavePipeline(
+	pipelineName string,
+	teamID int,
+	config atc.Config,
+	from ConfigVersion,
+	initiallyPaused bool,
+) (Pipeline, bool, error) {
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer Rollback(tx)
+
+	jobID := newNullInt64(b.jobID)
+	buildID := newNullInt64(b.id)
+	pipelineID, isNewPipeline, err := savePipeline(tx, pipelineName, config, from, initiallyPaused, teamID, jobID, buildID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	pipeline := newPipeline(b.conn, b.lockFactory)
+	err = scanPipeline(
+		pipeline,
+		pipelinesQuery.
+			Where(sq.Eq{"p.id": pipelineID}).
+			RunWith(tx).
+			QueryRow(),
+	)
+	if err != nil {
+		return nil, false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
+	return pipeline, isNewPipeline, nil
+}
+
+func newNullInt64(i int) sql.NullInt64 {
+	return sql.NullInt64{
+		Valid: true,
+		Int64: int64(i),
+	}
 }
 
 func createBuildEventSeq(tx Tx, buildid int) error {

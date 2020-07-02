@@ -80,7 +80,7 @@ var _ = Describe("JobConfig", func() {
 		Context("with a build plan", func() {
 			Context("with an empty plan", func() {
 				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{}
+					jobConfig.PlanSequence = []atc.Step{}
 				})
 
 				It("returns an empty set of inputs", func() {
@@ -90,14 +90,18 @@ var _ = Describe("JobConfig", func() {
 
 			Context("with two serial gets", func() {
 				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
+					jobConfig.PlanSequence = []atc.Step{
 						{
-							Get:     "some-get-plan",
-							Passed:  []string{"a", "b"},
-							Trigger: true,
+							Config: &atc.GetStep{
+								Name:    "some-get-plan",
+								Passed:  []string{"a", "b"},
+								Trigger: true,
+							},
 						},
 						{
-							Get: "some-other-get-plan",
+							Config: &atc.GetStep{
+								Name: "some-other-get-plan",
+							},
 						},
 					}
 				})
@@ -126,11 +130,13 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a plan has a version on a get", func() {
 				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
+					jobConfig.PlanSequence = []atc.Step{
 						{
-							Get: "a",
-							Version: &atc.VersionConfig{
-								Every: true,
+							Config: &atc.GetStep{
+								Name: "a",
+								Version: &atc.VersionConfig{
+									Every: true,
+								},
 							},
 						},
 					}
@@ -155,14 +161,18 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a job has an ensure hook", func() {
 				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
+					jobConfig.PlanSequence = []atc.Step{
 						{
-							Get: "a",
+							Config: &atc.GetStep{
+								Name: "a",
+							},
 						},
 					}
 
-					jobConfig.Ensure = &atc.PlanConfig{
-						Get: "b",
+					jobConfig.Ensure = &atc.Step{
+						Config: &atc.GetStep{
+							Name: "b",
+						},
 					}
 				})
 
@@ -186,14 +196,18 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a job has a success hook", func() {
 				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
+					jobConfig.PlanSequence = []atc.Step{
 						{
-							Get: "a",
+							Config: &atc.GetStep{
+								Name: "a",
+							},
 						},
 					}
 
-					jobConfig.Success = &atc.PlanConfig{
-						Get: "b",
+					jobConfig.OnSuccess = &atc.Step{
+						Config: &atc.GetStep{
+							Name: "b",
+						},
 					}
 				})
 
@@ -218,14 +232,18 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a job has a failure hook", func() {
 				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
+					jobConfig.PlanSequence = []atc.Step{
 						{
-							Get: "a",
+							Config: &atc.GetStep{
+								Name: "a",
+							},
 						},
 					}
 
-					jobConfig.Failure = &atc.PlanConfig{
-						Get: "b",
+					jobConfig.OnFailure = &atc.Step{
+						Config: &atc.GetStep{
+							Name: "b",
+						},
 					}
 				})
 
@@ -250,14 +268,18 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a job has an abort hook", func() {
 				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
+					jobConfig.PlanSequence = []atc.Step{
 						{
-							Get: "a",
+							Config: &atc.GetStep{
+								Name: "a",
+							},
 						},
 					}
 
-					jobConfig.Abort = &atc.PlanConfig{
-						Get: "b",
+					jobConfig.OnAbort = &atc.Step{
+						Config: &atc.GetStep{
+							Name: "b",
+						},
 					}
 				})
 
@@ -282,168 +304,17 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a job has an error hook", func() {
 				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
+					jobConfig.PlanSequence = []atc.Step{
 						{
-							Get: "a",
+							Config: &atc.GetStep{
+								Name: "a",
+							},
 						},
 					}
 
-					jobConfig.Error = &atc.PlanConfig{
-						Get: "b",
-					}
-				})
-
-				It("returns an input config for all get plans", func() {
-					Expect(inputs).To(ConsistOf(
-						atc.JobInputParams{
-							JobInput: atc.JobInput{
-								Name:     "a",
-								Resource: "a",
-							},
-						},
-						atc.JobInputParams{
-							JobInput: atc.JobInput{
-								Name:     "b",
-								Resource: "b",
-							},
-						},
-					))
-
-				})
-			})
-
-			Context("when a plan has an ensure hook on a get", func() {
-				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
-						{
-							Get: "a",
-							Ensure: &atc.PlanConfig{
-								Get: "b",
-							},
-						},
-					}
-				})
-
-				It("returns an input config for all get plans", func() {
-					Expect(inputs).To(ConsistOf(
-						atc.JobInputParams{
-							JobInput: atc.JobInput{
-								Name:     "a",
-								Resource: "a",
-							},
-						},
-						atc.JobInputParams{
-							JobInput: atc.JobInput{
-								Name:     "b",
-								Resource: "b",
-							},
-						},
-					))
-
-				})
-			})
-
-			Context("when a plan has a success hook on a get", func() {
-				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
-						{
-							Get: "a",
-							Success: &atc.PlanConfig{
-								Get: "b",
-							},
-						},
-					}
-				})
-
-				It("returns an input config for all get plans", func() {
-					Expect(inputs).To(ConsistOf(
-						atc.JobInputParams{
-							JobInput: atc.JobInput{
-								Name:     "a",
-								Resource: "a",
-							},
-						},
-						atc.JobInputParams{
-							JobInput: atc.JobInput{
-								Name:     "b",
-								Resource: "b",
-							},
-						},
-					))
-
-				})
-			})
-
-			Context("when a plan has a failure hook on a get", func() {
-				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
-						{
-							Get: "a",
-							Failure: &atc.PlanConfig{
-								Get: "b",
-							},
-						},
-					}
-				})
-
-				It("returns an input config for all get plans", func() {
-					Expect(inputs).To(ConsistOf(
-						atc.JobInputParams{
-							JobInput: atc.JobInput{
-								Name:     "a",
-								Resource: "a",
-							},
-						},
-						atc.JobInputParams{
-							JobInput: atc.JobInput{
-								Name:     "b",
-								Resource: "b",
-							},
-						},
-					))
-
-				})
-			})
-
-			Context("when a plan has an abort hook on a get", func() {
-				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
-						{
-							Get: "a",
-							Abort: &atc.PlanConfig{
-								Get: "b",
-							},
-						},
-					}
-				})
-
-				It("returns an input config for all get plans", func() {
-					Expect(inputs).To(ConsistOf(
-						atc.JobInputParams{
-							JobInput: atc.JobInput{
-								Name:     "a",
-								Resource: "a",
-							},
-						},
-						atc.JobInputParams{
-							JobInput: atc.JobInput{
-								Name:     "b",
-								Resource: "b",
-							},
-						},
-					))
-
-				})
-			})
-
-			Context("when a plan has an error hook on a get", func() {
-				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
-						{
-							Get: "a",
-							Error: &atc.PlanConfig{
-								Get: "b",
-							},
+					jobConfig.OnError = &atc.Step{
+						Config: &atc.GetStep{
+							Name: "b",
 						},
 					}
 				})
@@ -469,10 +340,12 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a resource is specified", func() {
 				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
+					jobConfig.PlanSequence = []atc.Step{
 						{
-							Get:      "some-get-plan",
-							Resource: "some-get-resource",
+							Config: &atc.GetStep{
+								Name:     "some-get-plan",
+								Resource: "some-get-resource",
+							},
 						},
 					}
 				})
@@ -493,165 +366,38 @@ var _ = Describe("JobConfig", func() {
 
 			Context("when a simple aggregate plan is the first step", func() {
 				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
+					jobConfig.PlanSequence = []atc.Step{
 						{
-							Aggregate: &atc.PlanSequence{
-								{Get: "a"},
-								{Put: "y"},
-								{Get: "b", Resource: "some-resource", Passed: []string{"x"}},
-								{Get: "c", Trigger: true},
-							},
-						},
-					}
-				})
-
-				It("returns an input config for all get plans", func() {
-					Expect(inputs).To(Equal([]atc.JobInputParams{
-						{
-							JobInput: atc.JobInput{
-								Name:     "a",
-								Resource: "a",
-								Trigger:  false,
-							},
-						},
-						{
-							JobInput: atc.JobInput{
-								Name:     "b",
-								Resource: "some-resource",
-								Passed:   []string{"x"},
-								Trigger:  false,
-							},
-						},
-						{
-							JobInput: atc.JobInput{
-								Name:     "c",
-								Resource: "c",
-								Trigger:  true,
-							},
-						},
-					}))
-
-				})
-			})
-
-			Context("when an overly complicated aggregate plan is the first step", func() {
-				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
-						{
-							Aggregate: &atc.PlanSequence{
-								{
-									Aggregate: &atc.PlanSequence{
-										{Get: "a"},
-									},
-								},
-								{Get: "b", Resource: "some-resource", Passed: []string{"x"}},
-								{Get: "c", Trigger: true},
-							},
-						},
-					}
-				})
-
-				It("returns an input config for all of the get plans present", func() {
-					Expect(inputs).To(Equal([]atc.JobInputParams{
-						{
-							JobInput: atc.JobInput{
-								Name:     "a",
-								Resource: "a",
-								Trigger:  false,
-							},
-						},
-						{
-							JobInput: atc.JobInput{
-								Name:     "b",
-								Resource: "some-resource",
-								Passed:   []string{"x"},
-								Trigger:  false,
-							},
-						},
-						{
-							JobInput: atc.JobInput{
-								Name:     "c",
-								Resource: "c",
-								Trigger:  true,
-							},
-						},
-					}))
-
-				})
-			})
-
-			Context("when a simple parallel plan is the first step", func() {
-				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
-						{
-							InParallel: &atc.InParallelConfig{
-								Steps: atc.PlanSequence{
-									{Get: "a"},
-									{Put: "y"},
-									{Get: "b", Resource: "some-resource", Passed: []string{"x"}},
-									{Get: "c", Trigger: true},
-								},
-								Limit:    1,
-								FailFast: true,
-							},
-						},
-					}
-				})
-
-				It("returns an input config for all get plans", func() {
-					Expect(inputs).To(Equal([]atc.JobInputParams{
-						{
-							JobInput: atc.JobInput{
-								Name:     "a",
-								Resource: "a",
-								Trigger:  false,
-							},
-						},
-						{
-							JobInput: atc.JobInput{
-								Name:     "b",
-								Resource: "some-resource",
-								Passed:   []string{"x"},
-								Trigger:  false,
-							},
-						},
-						{
-							JobInput: atc.JobInput{
-								Name:     "c",
-								Resource: "c",
-								Trigger:  true,
-							},
-						},
-					}))
-
-				})
-			})
-
-			Context("when an overly complicated parallel plan is the first step", func() {
-				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
-						{
-							InParallel: &atc.InParallelConfig{
-								Steps: atc.PlanSequence{
+							Config: &atc.AggregateStep{
+								Steps: []atc.Step{
 									{
-										InParallel: &atc.InParallelConfig{
-											Steps: atc.PlanSequence{
-												{Get: "a"},
-											},
-											Limit: 1,
+										Config: &atc.GetStep{
+											Name: "a",
 										},
 									},
-									{Get: "b", Resource: "some-resource", Passed: []string{"x"}},
-									{Get: "c", Trigger: true},
+									{
+										Config: &atc.PutStep{
+											Name: "y",
+										},
+									},
+									{
+										Config: &atc.GetStep{
+											Name:     "b",
+											Resource: "some-resource", Passed: []string{"x"},
+										},
+									},
+									{
+										Config: &atc.GetStep{
+											Name: "c", Trigger: true,
+										},
+									},
 								},
-								Limit:    2,
-								FailFast: true,
 							},
 						},
 					}
 				})
 
-				It("returns an input config for all of the get plans present", func() {
+				It("returns an input config for all get plans", func() {
 					Expect(inputs).To(Equal([]atc.JobInputParams{
 						{
 							JobInput: atc.JobInput{
@@ -680,11 +426,13 @@ var _ = Describe("JobConfig", func() {
 				})
 			})
 
-			Context("when there are not gets in the plan", func() {
+			Context("when there are no gets in the plan", func() {
 				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
+					jobConfig.PlanSequence = []atc.Step{
 						{
-							Put: "some-put-plan",
+							Config: &atc.PutStep{
+								Name: "some-put-plan",
+							},
 						},
 					}
 				})
@@ -714,7 +462,7 @@ var _ = Describe("JobConfig", func() {
 		Context("with a build plan", func() {
 			Context("with an empty plan", func() {
 				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{}
+					jobConfig.PlanSequence = []atc.Step{}
 				})
 
 				It("returns an empty set of outputs", func() {
@@ -722,24 +470,13 @@ var _ = Describe("JobConfig", func() {
 				})
 			})
 
-			Context("when an overly complicated plan is configured", func() {
+			Context("when a simple plan is configured", func() {
 				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
+					jobConfig.PlanSequence = []atc.Step{
 						{
-							Aggregate: &atc.PlanSequence{
-								{
-									InParallel: &atc.InParallelConfig{
-										Steps: atc.PlanSequence{
-											{Put: "a"},
-										},
-									},
-								},
-								{Put: "b", Resource: "some-resource"},
-								{
-									Do: &atc.PlanSequence{
-										{Put: "c"},
-									},
-								},
+							Config: &atc.PutStep{
+								Name:     "some-name",
+								Resource: "some-resource",
 							},
 						},
 					}
@@ -748,308 +485,187 @@ var _ = Describe("JobConfig", func() {
 				It("returns an output for all of the put plans present", func() {
 					Expect(outputs).To(Equal([]atc.JobOutput{
 						{
-							Name:     "a",
-							Resource: "a",
-						},
-						{
-							Name:     "b",
+							Name:     "some-name",
 							Resource: "some-resource",
-						},
-						{
-							Name:     "c",
-							Resource: "c",
 						},
 					}))
 
 				})
 			})
+		})
 
-			Context("when a job has an ensure hook", func() {
-				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
-						{
-							Put: "a",
+		Context("when a job has an ensure hook", func() {
+			BeforeEach(func() {
+				jobConfig.PlanSequence = []atc.Step{
+					{
+						Config: &atc.PutStep{
+							Name: "a",
 						},
-					}
+					},
+				}
 
-					jobConfig.Ensure = &atc.PlanConfig{
-						Put: "b",
-					}
-				})
-
-				It("returns an input config for all get plans", func() {
-					Expect(outputs).To(ConsistOf(
-						atc.JobOutput{
-							Name:     "a",
-							Resource: "a",
-						},
-						atc.JobOutput{
-							Name:     "b",
-							Resource: "b",
-						},
-					))
-				})
+				jobConfig.Ensure = &atc.Step{
+					Config: &atc.PutStep{
+						Name: "b",
+					},
+				}
 			})
 
-			Context("when a job has a success hook", func() {
-				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
-						{
-							Put: "a",
-						},
-					}
+			It("returns an input config for all get plans", func() {
+				Expect(outputs).To(ConsistOf(
+					atc.JobOutput{
+						Name:     "a",
+						Resource: "a",
+					},
+					atc.JobOutput{
+						Name:     "b",
+						Resource: "b",
+					},
+				))
+			})
+		})
 
-					jobConfig.Success = &atc.PlanConfig{
-						Put: "b",
-					}
-				})
-
-				It("returns an input config for all get plans", func() {
-					Expect(outputs).To(ConsistOf(
-						atc.JobOutput{
-							Name:     "a",
-							Resource: "a",
+		Context("when a job has a success hook", func() {
+			BeforeEach(func() {
+				jobConfig.PlanSequence = []atc.Step{
+					{
+						Config: &atc.PutStep{
+							Name: "a",
 						},
-						atc.JobOutput{
-							Name:     "b",
-							Resource: "b",
-						},
-					))
+					},
+				}
 
-				})
+				jobConfig.OnSuccess = &atc.Step{
+					Config: &atc.PutStep{
+						Name: "b",
+					},
+				}
 			})
 
-			Context("when a job has a failure hook", func() {
-				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
-						{
-							Put: "a",
-						},
-					}
+			It("returns an input config for all get plans", func() {
+				Expect(outputs).To(ConsistOf(
+					atc.JobOutput{
+						Name:     "a",
+						Resource: "a",
+					},
+					atc.JobOutput{
+						Name:     "b",
+						Resource: "b",
+					},
+				))
 
-					jobConfig.Failure = &atc.PlanConfig{
-						Put: "b",
-					}
-				})
+			})
+		})
 
-				It("returns an input config for all get plans", func() {
-					Expect(outputs).To(ConsistOf(
-						atc.JobOutput{
-							Name:     "a",
-							Resource: "a",
+		Context("when a job has a failure hook", func() {
+			BeforeEach(func() {
+				jobConfig.PlanSequence = []atc.Step{
+					{
+						Config: &atc.PutStep{
+							Name: "a",
 						},
-						atc.JobOutput{
-							Name:     "b",
-							Resource: "b",
-						},
-					))
+					},
+				}
 
-				})
+				jobConfig.OnFailure = &atc.Step{
+					Config: &atc.PutStep{
+						Name: "b",
+					},
+				}
 			})
 
-			Context("when a job has an abort hook", func() {
-				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
-						{
-							Put: "a",
-						},
-					}
+			It("returns an input config for all get plans", func() {
+				Expect(outputs).To(ConsistOf(
+					atc.JobOutput{
+						Name:     "a",
+						Resource: "a",
+					},
+					atc.JobOutput{
+						Name:     "b",
+						Resource: "b",
+					},
+				))
 
-					jobConfig.Abort = &atc.PlanConfig{
-						Put: "b",
-					}
-				})
+			})
+		})
 
-				It("returns an input config for all get plans", func() {
-					Expect(outputs).To(ConsistOf(
-						atc.JobOutput{
-							Name:     "a",
-							Resource: "a",
+		Context("when a job has an abort hook", func() {
+			BeforeEach(func() {
+				jobConfig.PlanSequence = []atc.Step{
+					{
+						Config: &atc.PutStep{
+							Name: "a",
 						},
-						atc.JobOutput{
-							Name:     "b",
-							Resource: "b",
-						},
-					))
+					},
+				}
 
-				})
+				jobConfig.OnAbort = &atc.Step{
+					Config: &atc.PutStep{
+						Name: "b",
+					},
+				}
 			})
 
-			Context("when a job has an error hook", func() {
-				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
-						{
-							Put: "a",
-						},
-					}
+			It("returns an input config for all get plans", func() {
+				Expect(outputs).To(ConsistOf(
+					atc.JobOutput{
+						Name:     "a",
+						Resource: "a",
+					},
+					atc.JobOutput{
+						Name:     "b",
+						Resource: "b",
+					},
+				))
 
-					jobConfig.Error = &atc.PlanConfig{
-						Put: "b",
-					}
-				})
+			})
+		})
 
-				It("returns an input config for all get plans", func() {
-					Expect(outputs).To(ConsistOf(
-						atc.JobOutput{
-							Name:     "a",
-							Resource: "a",
+		Context("when a job has an error hook", func() {
+			BeforeEach(func() {
+				jobConfig.PlanSequence = []atc.Step{
+					{
+						Config: &atc.PutStep{
+							Name: "a",
 						},
-						atc.JobOutput{
-							Name:     "b",
-							Resource: "b",
-						},
-					))
+					},
+				}
 
-				})
+				jobConfig.OnError = &atc.Step{
+					Config: &atc.PutStep{
+						Name: "b",
+					},
+				}
 			})
 
-			Context("when a plan has an ensure on a put", func() {
-				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
-						{
-							Put: "a",
-							Ensure: &atc.PlanConfig{
-								Put: "b",
-							},
-						},
-					}
-				})
+			It("returns an input config for all get plans", func() {
+				Expect(outputs).To(ConsistOf(
+					atc.JobOutput{
+						Name:     "a",
+						Resource: "a",
+					},
+					atc.JobOutput{
+						Name:     "b",
+						Resource: "b",
+					},
+				))
 
-				It("returns an output config for all put plans", func() {
-					Expect(outputs).To(ConsistOf(
-						atc.JobOutput{
-							Name:     "a",
-							Resource: "a",
-						},
-						atc.JobOutput{
-							Name:     "b",
-							Resource: "b",
-						},
-					))
+			})
+		})
 
-				})
+		Context("when the plan contains no puts steps", func() {
+			BeforeEach(func() {
+				jobConfig.PlanSequence = []atc.Step{
+					{
+						Config: &atc.GetStep{
+							Name: "some-put-plan",
+						},
+					},
+				}
 			})
 
-			Context("when a plan has a success hook on a put", func() {
-				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
-						{
-							Put: "a",
-							Success: &atc.PlanConfig{
-								Put: "b",
-							},
-						},
-					}
-				})
-
-				It("returns an output config for all put plans", func() {
-					Expect(outputs).To(ConsistOf(
-						atc.JobOutput{
-							Name:     "a",
-							Resource: "a",
-						},
-						atc.JobOutput{
-							Name:     "b",
-							Resource: "b",
-						},
-					))
-
-				})
-			})
-
-			Context("when a plan has a failure hook on a put", func() {
-				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
-						{
-							Put: "a",
-							Failure: &atc.PlanConfig{
-								Put: "b",
-							},
-						},
-					}
-				})
-
-				It("returns an output config for all put plans", func() {
-					Expect(outputs).To(ConsistOf(
-						atc.JobOutput{
-							Name:     "a",
-							Resource: "a",
-						},
-						atc.JobOutput{
-							Name:     "b",
-							Resource: "b",
-						},
-					))
-
-				})
-			})
-
-			Context("when a plan has an abort hook on a put", func() {
-				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
-						{
-							Put: "a",
-							Abort: &atc.PlanConfig{
-								Put: "b",
-							},
-						},
-					}
-				})
-
-				It("returns an output config for all put plans", func() {
-					Expect(outputs).To(ConsistOf(
-						atc.JobOutput{
-							Name:     "a",
-							Resource: "a",
-						},
-						atc.JobOutput{
-							Name:     "b",
-							Resource: "b",
-						},
-					))
-
-				})
-			})
-
-			Context("when a plan has an error hook on a put", func() {
-				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
-						{
-							Put: "a",
-							Error: &atc.PlanConfig{
-								Put: "b",
-							},
-						},
-					}
-				})
-
-				It("returns an output config for all put plans", func() {
-					Expect(outputs).To(ConsistOf(
-						atc.JobOutput{
-							Name:     "a",
-							Resource: "a",
-						},
-						atc.JobOutput{
-							Name:     "b",
-							Resource: "b",
-						},
-					))
-
-				})
-			})
-
-			Context("when the plan contains no puts steps", func() {
-				BeforeEach(func() {
-					jobConfig.PlanSequence = atc.PlanSequence{
-						{
-							Get: "some-put-plan",
-						},
-					}
-				})
-
-				It("returns an empty set of outputs", func() {
-					Expect(outputs).To(BeEmpty())
-				})
+			It("returns an empty set of outputs", func() {
+				Expect(outputs).To(BeEmpty())
 			})
 		})
 	})

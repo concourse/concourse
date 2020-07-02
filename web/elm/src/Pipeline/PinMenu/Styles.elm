@@ -18,6 +18,7 @@ import Pipeline.PinMenu.Views
         , Position(..)
         )
 import SideBar.Styles as SS
+import Views.Styles
 
 
 pinIconBackground :
@@ -133,15 +134,15 @@ pinIconDropdownItem { paddingPx, background } =
     [ style "padding" <| String.fromInt paddingPx ++ "px"
     , style "background-color" background
     , style "cursor" "pointer"
-    , style "font-weight" "400"
+    , style "font-weight" Views.Styles.fontWeightLight
     , style "border-width" "0 1px 1px 1px"
     , style "border-style" "solid"
     , style "border-color" Colors.frame
     ]
 
 
-title : { a | fontWeight : Int, color : String } -> List (Html.Attribute msg)
+title : { a | fontWeight : String, color : String } -> List (Html.Attribute msg)
 title { fontWeight, color } =
-    [ style "font-weight" <| String.fromInt fontWeight
+    [ style "font-weight" fontWeight
     , style "color" color
     ]

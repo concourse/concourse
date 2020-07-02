@@ -66,22 +66,32 @@ func NewTaskConfig(configBytes []byte) (TaskConfig, error) {
 	return config, nil
 }
 
+type TaskValidationError struct {
+	Errors []string
+}
+
+func (err TaskValidationError) Error() string {
+	return fmt.Sprintf("invalid task configuration:\n%s", strings.Join(err.Errors, "\n"))
+}
+
 func (config TaskConfig) Validate() error {
-	var messages []string
+	var errors []string
 
 	if config.Platform == "" {
-		messages = append(messages, "  missing 'platform'")
+		errors = append(errors, "missing 'platform'")
 	}
 
 	if config.Run.Path == "" {
-		messages = append(messages, "  missing path to executable to run")
+		errors = append(errors, "missing path to executable to run")
 	}
 
-	messages = append(messages, config.validateInputContainsNames()...)
-	messages = append(messages, config.validateOutputContainsNames()...)
+	errors = append(errors, config.validateInputContainsNames()...)
+	errors = append(errors, config.validateOutputContainsNames()...)
 
-	if len(messages) > 0 {
-		return fmt.Errorf("invalid task configuration:\n%s", strings.Join(messages, "\n"))
+	if len(errors) > 0 {
+		return TaskValidationError{
+			Errors: errors,
+		}
 	}
 
 	return nil

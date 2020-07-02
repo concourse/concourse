@@ -40,18 +40,22 @@ var _ = Describe("Resource Config Scope", func() {
 			Jobs: atc.JobConfigs{
 				{
 					Name: "some-job",
-					PlanSequence: atc.PlanSequence{
+					PlanSequence: []atc.Step{
 						{
-							Get: "some-resource",
+							Config: &atc.GetStep{
+								Name: "some-resource",
+							},
 						},
 					},
 				},
 				{
 					Name: "downstream-job",
-					PlanSequence: atc.PlanSequence{
+					PlanSequence: []atc.Step{
 						{
-							Get:    "some-resource",
-							Passed: []string{"some-job"},
+							Config: &atc.GetStep{
+								Name:   "some-resource",
+								Passed: []string{"some-job"},
+							},
 						},
 					},
 				},

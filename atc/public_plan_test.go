@@ -354,6 +354,7 @@ var _ = Describe("Plan", func() {
 						ID: "37",
 						SetPipeline: &atc.SetPipelinePlan{
 							Name:     "some-pipeline",
+							Team:     "some-team",
 							File:     "some-file",
 							VarFiles: []string{"vf"},
 							Vars:     map[string]interface{}{"k1": "v1"},
@@ -621,7 +622,8 @@ var _ = Describe("Plan", func() {
 	{
 	  "id": "37",
 	  "set_pipeline": {
-		"name": "some-pipeline"
+		"name": "some-pipeline",
+		"team": "some-team"
 	  }
 	}
   ]

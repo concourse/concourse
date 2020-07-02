@@ -16,14 +16,10 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
 	github.com/aws/aws-sdk-go v1.25.18
-	github.com/bmatcuk/doublestar v1.3.1 // indirect
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/cenkalti/backoff v2.1.1+incompatible
-	github.com/cloudfoundry/bosh-cli v6.2.1+incompatible // indirect
-	github.com/cloudfoundry/bosh-utils v0.0.0-20200530100232-5bc6670a4f89 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
-	github.com/concourse/atc v4.2.2+incompatible
 	github.com/concourse/baggageclaim v1.6.6
 	github.com/concourse/dex v0.0.0-20200417202922-dcbe94f28c88
 	github.com/concourse/flag v1.0.0
@@ -37,7 +33,6 @@ require (
 	github.com/containerd/ttrpc v0.0.0-20191028202541-4f1b8fe65a5c // indirect
 	github.com/containerd/typeurl v0.0.0-20190911142611-5eb25027c9fd
 	github.com/coreos/go-oidc v2.0.0+incompatible // indirect
-	github.com/cppforlife/go-patch v0.2.0 // indirect
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
 	github.com/creack/pty v1.1.9 // indirect
 	github.com/cyberark/conjur-api-go v0.6.0
@@ -75,7 +70,7 @@ require (
 	github.com/mattn/go-colorable v0.1.6
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.2.2
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.2.3
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
 	github.com/miekg/dns v1.1.6
 	github.com/mitchellh/mapstructure v1.1.2
@@ -87,13 +82,13 @@ require (
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/opencontainers/runtime-spec v1.0.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
+	github.com/peterh/liner v1.2.0
 	github.com/peterhellberg/link v1.0.0
 	github.com/pkg/errors v0.8.1
 	github.com/pkg/term v0.0.0-20190109203006-aa71e9d9e942
 	github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35 // indirect
 	github.com/prometheus/client_golang v0.9.3
 	github.com/racksec/srslog v0.0.0-20180709174129-a4725f04ec91
-	github.com/sclevine/spec v1.3.0 // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/skratchdot/open-golang v0.0.0-20160302144031-75fb7ed4208c
 	github.com/square/certstrap v1.1.1

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	semisemanticversion "github.com/cppforlife/go-semi-semantic/version"
+	"github.com/peterh/liner"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/vito/go-interact/interact"
 	"golang.org/x/oauth2"
@@ -111,14 +113,18 @@ func (command *LoginCommand) Execute(args []string) error {
 		return err
 	}
 
+	lineReader := liner.NewLiner()
+	defer lineReader.Close()
+	lineReader.SetCtrlCAborts(true)
+
 	if semver.Compare(legacySemver) <= 0 && semver.Compare(devSemver) != 0 {
 		// Legacy Auth Support
-		tokenType, tokenValue, err = command.legacyAuth(target, command.BrowserOnly)
+		tokenType, tokenValue, err = command.legacyAuth(lineReader, target, command.BrowserOnly)
 	} else {
 		if command.Username != "" && command.Password != "" {
 			tokenType, tokenValue, err = command.passwordGrant(client, command.Username, command.Password)
 		} else {
-			tokenType, tokenValue, err = command.authCodeGrant(client.URL(), command.BrowserOnly)
+			tokenType, tokenValue, err = command.authCodeGrant(lineReader, client.URL(), command.BrowserOnly)
 		}
 	}
 
@@ -192,7 +198,7 @@ func (command *LoginCommand) passwordGrant(client concourse.Client, username, pa
 	return token.TokenType, idToken, nil
 }
 
-func (command *LoginCommand) authCodeGrant(targetUrl string, browserOnly bool) (string, string, error) {
+func (command *LoginCommand) authCodeGrant(lineReader *liner.State, targetUrl string, browserOnly bool) (string, string, error) {
 
 	var tokenStr string
 
@@ -213,10 +219,6 @@ func (command *LoginCommand) authCodeGrant(targetUrl string, browserOnly bool) (
 	openURL = fmt.Sprintf("%s/login?fly_port=%s", targetUrl, port)
 
 	fmt.Printf("  %s\n", openURL)
-	if !browserOnly {
-		fmt.Println("")
-		fmt.Printf("or enter token manually: ")
-	}
 
 	if command.OpenBrowser {
 		// try to open the browser window, but don't get all hung up if it
@@ -225,7 +227,7 @@ func (command *LoginCommand) authCodeGrant(targetUrl string, browserOnly bool) (
 	}
 
 	if !browserOnly {
-		go waitForTokenInput(stdinChannel, errorChannel)
+		go waitForTokenInput(lineReader, stdinChannel, errorChannel)
 	}
 
 	select {
@@ -286,22 +288,38 @@ type tcpKeepAliveListener struct {
 	*net.TCPListener
 }
 
-func waitForTokenInput(tokenChannel chan string, errorChannel chan error) {
+func waitForTokenInput(lineReader *liner.State, tokenChannel chan string, errorChannel chan error) {
+	fmt.Println()
+
+	passwordPromptSupported := liner.TerminalSupported()
 	for {
-		var tokenType string
-		var tokenValue string
-		count, err := fmt.Scanf("%s %s", &tokenType, &tokenValue)
-		if err != nil {
-			if count != 2 {
-				fmt.Println("token must be of the format 'TYPE VALUE', e.g. 'Bearer ...'")
+		var token string
+		var err error
+		if passwordPromptSupported {
+			token, err = lineReader.PasswordPrompt("or enter token manually (input hidden): ")
+			if err != nil && err != liner.ErrPromptAborted && err != io.EOF {
+				passwordPromptSupported = false
 				continue
 			}
-
+		} else {
+			token, err = lineReader.Prompt("or enter token manually: ")
+		}
+		token = strings.TrimSpace(token)
+		if len(token) == 0 && err == io.EOF {
+			return
+		}
+		if err != nil && err != io.EOF {
 			errorChannel <- err
 			return
 		}
 
-		tokenChannel <- tokenType + " " + tokenValue
+		parts := strings.Split(token, " ")
+		if len(parts) != 2 {
+			fmt.Println("token must be of the format 'TYPE VALUE', e.g. 'Bearer ...'")
+			continue
+		}
+
+		tokenChannel <- token
 		break
 	}
 }
@@ -327,7 +345,7 @@ func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken, caCer
 	return nil
 }
 
-func (command *LoginCommand) legacyAuth(target rc.Target, browserOnly bool) (string, string, error) {
+func (command *LoginCommand) legacyAuth(lineReader *liner.State, target rc.Target, browserOnly bool) (string, string, error) {
 
 	httpClient := target.Client().HTTPClient()
 
@@ -409,11 +427,6 @@ func (command *LoginCommand) legacyAuth(target rc.Target, browserOnly bool) (str
 		fmt.Println("")
 		fmt.Printf("    %s", theURL)
 
-		if !browserOnly {
-			fmt.Println("")
-			fmt.Printf("or enter token manually: ")
-		}
-
 		if command.OpenBrowser {
 			// try to open the browser window, but don't get all hung up if it
 			// fails, since we already printed about it.
@@ -421,7 +434,7 @@ func (command *LoginCommand) legacyAuth(target rc.Target, browserOnly bool) (str
 		}
 
 		if !browserOnly {
-			go waitForTokenInput(stdinChannel, errorChannel)
+			go waitForTokenInput(lineReader, stdinChannel, errorChannel)
 		}
 
 		select {

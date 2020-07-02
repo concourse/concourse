@@ -4,6 +4,11 @@ module Views.Styles exposing
     , breadcrumbContainer
     , breadcrumbItem
     , concourseLogo
+    , defaultFont
+    , fontFamilyDefault
+    , fontWeightBold
+    , fontWeightDefault
+    , fontWeightLight
     , pageBelowTopBar
     , pageHeaderHeight
     , pageIncludingTopBar
@@ -20,6 +25,34 @@ import Html.Attributes exposing (style)
 import Routes
 
 
+defaultFont : List (Html.Attribute msg)
+defaultFont =
+    [ style "font-size" "12px"
+    , style "font-family" fontFamilyDefault
+    , style "font-weight" fontWeightDefault
+    ]
+
+
+fontFamilyDefault : String
+fontFamilyDefault =
+    "Inconsolata,monospace"
+
+
+fontWeightLight : String
+fontWeightLight =
+    "400"
+
+
+fontWeightDefault : String
+fontWeightDefault =
+    "700"
+
+
+fontWeightBold : String
+fontWeightBold =
+    "900"
+
+
 pageHeaderHeight : Float
 pageHeaderHeight =
     54
@@ -27,9 +60,7 @@ pageHeaderHeight =
 
 pageIncludingTopBar : List (Html.Attribute msg)
 pageIncludingTopBar =
-    [ style "-webkit-font-smoothing" "antialiased"
-    , style "font-weight" "700"
-    , style "height" "100%"
+    [ style "height" "100%"
     ]
 
 
@@ -88,7 +119,6 @@ topBar isPaused =
     , style "z-index" "999"
     , style "display" "flex"
     , style "justify-content" "space-between"
-    , style "font-weight" "700"
     , style "background-color" <|
         if isPaused then
             Colors.paused

@@ -34,6 +34,7 @@ import Html
 import Html.Attributes exposing (rows, style)
 import Pinned
 import Resource.Models as Models
+import Views.Styles
 
 
 headerHeight : Int
@@ -61,14 +62,14 @@ pinBar isPinned =
 
 
 pinIcon :
-    { isPinnedDynamically : Bool
+    { clickable : Bool
     , hover : Bool
     }
     -> List (Html.Attribute msg)
-pinIcon { isPinnedDynamically, hover } =
+pinIcon { clickable, hover } =
     let
         cursorType =
-            if isPinnedDynamically then
+            if clickable then
                 "pointer"
 
             else
@@ -267,10 +268,7 @@ commentBarMessageIcon =
 
 commentTextArea : List (Html.Attribute msg)
 commentTextArea =
-    [ style "font-size" "12px"
-    , style "font-family" "Inconsolata, monospace"
-    , style "font-weight" "700"
-    , style "box-sizing" "border-box"
+    [ style "box-sizing" "border-box"
     , style "flex-grow" "1"
     , style "resize" "none"
     , style "outline" "none"
@@ -281,6 +279,7 @@ commentTextArea =
     , style "margin" "8px 0"
     , rows 1
     ]
+        ++ Views.Styles.defaultFont
 
 
 commentText : List (Html.Attribute msg)
@@ -298,10 +297,7 @@ commentSaveButton :
     { isHovered : Bool, commentChanged : Bool, pinCommentLoading : Bool }
     -> List (Html.Attribute msg)
 commentSaveButton { commentChanged, isHovered, pinCommentLoading } =
-    [ style "font-size" "12px"
-    , style "font-family" "Inconsolata, monospace"
-    , style "font-weight" "700"
-    , style "border" <|
+    [ style "border" <|
         "1px solid "
             ++ (if commentChanged && not pinCommentLoading then
                     Colors.white
@@ -332,6 +328,7 @@ commentSaveButton { commentChanged, isHovered, pinCommentLoading } =
         else
             "default"
     ]
+        ++ Views.Styles.defaultFont
 
 
 commentBarIconContainer : Bool -> List (Html.Attribute msg)
@@ -383,8 +380,7 @@ headerBar =
 
 headerResourceName : List (Html.Attribute msg)
 headerResourceName =
-    [ style "font-weight" "700"
-    , style "margin-left" "18px"
+    [ style "margin-left" "18px"
     , style "display" "flex"
     , style "align-items" "center"
     , style "justify-content" "center"

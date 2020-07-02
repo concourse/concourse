@@ -82,11 +82,12 @@ func (workerTaskCache WorkerTaskCache) find(runner sq.Runner) (*UsedWorkerTaskCa
 func removeUnusedWorkerTaskCaches(tx Tx, pipelineID int, jobConfigs []atc.JobConfig) error {
 	steps := make(map[string][]string)
 	for _, jobConfig := range jobConfigs {
-		for _, jobConfigPlan := range jobConfig.Plans() {
-			if jobConfigPlan.Task != "" {
-				steps[jobConfig.Name] = append(steps[jobConfig.Name], jobConfigPlan.Task)
-			}
-		}
+		_ = jobConfig.StepConfig().Visit(atc.StepRecursor{
+			OnTask: func(step *atc.TaskStep) error {
+				steps[jobConfig.Name] = append(steps[jobConfig.Name], step.Name)
+				return nil
+			},
+		})
 	}
 
 	query := sq.Or{}

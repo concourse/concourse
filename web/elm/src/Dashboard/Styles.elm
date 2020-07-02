@@ -67,6 +67,7 @@ import Dashboard.PipelineGrid.Constants as PipelineGridConstants
 import Html
 import Html.Attributes exposing (style)
 import ScreenSize exposing (ScreenSize(..))
+import Views.Styles
 
 
 content : Bool -> List (Html.Attribute msg)
@@ -173,7 +174,6 @@ noPipelineCardHeader =
     , style "letter-spacing" "0.1em"
     , style "padding" "12.5px"
     , style "text-align" "center"
-    , style "-webkit-font-smoothing" "antialiased"
     ]
 
 
@@ -183,7 +183,6 @@ pipelineCardHeader =
     , style "color" Colors.dashboardText
     , style "font-size" "1.5em"
     , style "letter-spacing" "0.1em"
-    , style "-webkit-font-smoothing" "antialiased"
     , style "padding" "12.5px"
     ]
 
@@ -519,10 +518,9 @@ welcomeCard =
     [ style "background-color" Colors.card
     , style "margin" "25px"
     , style "padding" "40px"
-    , style "-webkit-font-smoothing" "antialiased"
     , style "position" "relative"
     , style "overflow" "hidden"
-    , style "font-weight" "400"
+    , style "font-weight" Views.Styles.fontWeightLight
     , style "display" "flex"
     , style "flex-direction" "column"
     ]
@@ -613,11 +611,12 @@ searchInput screenSize =
     , style "background-repeat" "no-repeat"
     , style "background-position" "12px 8px"
     , style "height" "30px"
+    , style "min-height" "30px"
     , style "padding" "0 42px"
     , style "border" <| "1px solid " ++ Colors.inputOutline
     , style "color" Colors.dashboardText
     , style "font-size" "1.15em"
-    , style "font-family" "Inconsolata, monospace"
+    , style "font-family" Views.Styles.fontFamilyDefault
     , style "outline" "0"
     ]
         ++ widthStyles

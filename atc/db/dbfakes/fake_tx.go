@@ -8,6 +8,7 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/encryption"
 )
 
 type FakeTx struct {
@@ -20,6 +21,16 @@ type FakeTx struct {
 	}
 	commitReturnsOnCall map[int]struct {
 		result1 error
+	}
+	EncryptionStrategyStub        func() encryption.Strategy
+	encryptionStrategyMutex       sync.RWMutex
+	encryptionStrategyArgsForCall []struct {
+	}
+	encryptionStrategyReturns struct {
+		result1 encryption.Strategy
+	}
+	encryptionStrategyReturnsOnCall map[int]struct {
+		result1 encryption.Strategy
 	}
 	ExecStub        func(string, ...interface{}) (sql.Result, error)
 	execMutex       sync.RWMutex
@@ -205,6 +216,58 @@ func (fake *FakeTx) CommitReturnsOnCall(i int, result1 error) {
 	}
 	fake.commitReturnsOnCall[i] = struct {
 		result1 error
+	}{result1}
+}
+
+func (fake *FakeTx) EncryptionStrategy() encryption.Strategy {
+	fake.encryptionStrategyMutex.Lock()
+	ret, specificReturn := fake.encryptionStrategyReturnsOnCall[len(fake.encryptionStrategyArgsForCall)]
+	fake.encryptionStrategyArgsForCall = append(fake.encryptionStrategyArgsForCall, struct {
+	}{})
+	fake.recordInvocation("EncryptionStrategy", []interface{}{})
+	fake.encryptionStrategyMutex.Unlock()
+	if fake.EncryptionStrategyStub != nil {
+		return fake.EncryptionStrategyStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.encryptionStrategyReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeTx) EncryptionStrategyCallCount() int {
+	fake.encryptionStrategyMutex.RLock()
+	defer fake.encryptionStrategyMutex.RUnlock()
+	return len(fake.encryptionStrategyArgsForCall)
+}
+
+func (fake *FakeTx) EncryptionStrategyCalls(stub func() encryption.Strategy) {
+	fake.encryptionStrategyMutex.Lock()
+	defer fake.encryptionStrategyMutex.Unlock()
+	fake.EncryptionStrategyStub = stub
+}
+
+func (fake *FakeTx) EncryptionStrategyReturns(result1 encryption.Strategy) {
+	fake.encryptionStrategyMutex.Lock()
+	defer fake.encryptionStrategyMutex.Unlock()
+	fake.EncryptionStrategyStub = nil
+	fake.encryptionStrategyReturns = struct {
+		result1 encryption.Strategy
+	}{result1}
+}
+
+func (fake *FakeTx) EncryptionStrategyReturnsOnCall(i int, result1 encryption.Strategy) {
+	fake.encryptionStrategyMutex.Lock()
+	defer fake.encryptionStrategyMutex.Unlock()
+	fake.EncryptionStrategyStub = nil
+	if fake.encryptionStrategyReturnsOnCall == nil {
+		fake.encryptionStrategyReturnsOnCall = make(map[int]struct {
+			result1 encryption.Strategy
+		})
+	}
+	fake.encryptionStrategyReturnsOnCall[i] = struct {
+		result1 encryption.Strategy
 	}{result1}
 }
 
@@ -833,6 +896,8 @@ func (fake *FakeTx) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.commitMutex.RLock()
 	defer fake.commitMutex.RUnlock()
+	fake.encryptionStrategyMutex.RLock()
+	defer fake.encryptionStrategyMutex.RUnlock()
 	fake.execMutex.RLock()
 	defer fake.execMutex.RUnlock()
 	fake.execContextMutex.RLock()

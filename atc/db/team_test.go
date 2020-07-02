@@ -1572,28 +1572,34 @@ var _ = Describe("Team", func() {
 						Serial:       true,
 						SerialGroups: []string{"serial-group-1", "serial-group-2"},
 
-						PlanSequence: atc.PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Get:      "some-input",
-								Resource: "some-resource",
-								Params: atc.Params{
-									"some-param": "some-value",
-								},
-								Passed:  []string{"job-1", "job-2"},
-								Trigger: true,
-							},
-							{
-								Task:       "some-task",
-								Privileged: true,
-								File:       "some/config/path.yml",
-								TaskConfig: &atc.TaskConfig{
-									RootfsURI: "some-image",
+								Config: &atc.GetStep{
+									Name:     "some-input",
+									Resource: "some-resource",
+									Params: atc.Params{
+										"some-param": "some-value",
+									},
+									Passed:  []string{"job-1", "job-2"},
+									Trigger: true,
 								},
 							},
 							{
-								Put: "some-resource",
-								Params: atc.Params{
-									"some-param": "some-value",
+								Config: &atc.TaskStep{
+									Name:       "some-task",
+									Privileged: true,
+									ConfigPath: "some/config/path.yml",
+									Config: &atc.TaskConfig{
+										RootfsURI: "some-image",
+									},
+								},
+							},
+							{
+								Config: &atc.PutStep{
+									Name: "some-resource",
+									Params: atc.Params{
+										"some-param": "some-value",
+									},
 								},
 							},
 						},
@@ -1900,19 +1906,23 @@ var _ = Describe("Team", func() {
 					Serial:       true,
 					SerialGroups: []string{"serial-group-1", "serial-group-2"},
 
-					PlanSequence: atc.PlanSequence{
+					PlanSequence: []atc.Step{
 						{
-							Task:       "some-task",
-							Privileged: true,
-							File:       "some/config/path.yml",
-							TaskConfig: &atc.TaskConfig{
-								RootfsURI: "some-image",
+							Config: &atc.TaskStep{
+								Name:       "some-task",
+								Privileged: true,
+								ConfigPath: "some/config/path.yml",
+								Config: &atc.TaskConfig{
+									RootfsURI: "some-image",
+								},
 							},
 						},
 						{
-							Put: "some-resource",
-							Params: atc.Params{
-								"some-param": "some-value",
+							Config: &atc.PutStep{
+								Name: "some-resource",
+								Params: atc.Params{
+									"some-param": "some-value",
+								},
 							},
 						},
 					},
@@ -2035,31 +2045,41 @@ var _ = Describe("Team", func() {
 					Serial:       true,
 					SerialGroups: []string{"serial-group-1", "serial-group-2"},
 
-					PlanSequence: atc.PlanSequence{
+					PlanSequence: []atc.Step{
 						{
-							Get:      "some-input",
-							Resource: "some-resource",
-							Params: atc.Params{
-								"some-param": "some-value",
-							},
-							Passed:  []string{"job-1", "job-2"},
-							Trigger: true,
-						},
-						{
-							Task: "some-task",
-							File: "some/config/path.yml",
-						},
-						{
-							Put: "some-resource",
-							Params: atc.Params{
-								"some-param": "some-value",
+							Config: &atc.GetStep{
+								Name:     "some-input",
+								Resource: "some-resource",
+								Params: atc.Params{
+									"some-param": "some-value",
+								},
+								Passed:  []string{"job-1", "job-2"},
+								Trigger: true,
 							},
 						},
 						{
-							Do: &atc.PlanSequence{
-								{
-									Task: "some-nested-task",
-									File: "some/config/path.yml",
+							Config: &atc.TaskStep{
+								Name:       "some-task",
+								ConfigPath: "some/config/path.yml",
+							},
+						},
+						{
+							Config: &atc.PutStep{
+								Name: "some-resource",
+								Params: atc.Params{
+									"some-param": "some-value",
+								},
+							},
+						},
+						{
+							Config: &atc.DoStep{
+								Steps: []atc.Step{
+									{
+										Config: &atc.TaskStep{
+											Name:       "some-nested-task",
+											ConfigPath: "some/config/path.yml",
+										},
+									},
 								},
 							},
 						},
@@ -2202,10 +2222,12 @@ var _ = Describe("Team", func() {
 			config.Jobs = []atc.JobConfig{
 				{
 					Name: "some-job",
-					PlanSequence: atc.PlanSequence{
+					PlanSequence: []atc.Step{
 						{
-							Task: "some-other-task",
-							File: "some/config/path.yml",
+							Config: &atc.TaskStep{
+								Name:       "some-other-task",
+								ConfigPath: "some/config/path.yml",
+							},
 						},
 					},
 				},
@@ -2255,10 +2277,12 @@ var _ = Describe("Team", func() {
 			config.Jobs = []atc.JobConfig{
 				{
 					Name: "some-job",
-					PlanSequence: atc.PlanSequence{
+					PlanSequence: []atc.Step{
 						{
-							Task: "some-other-task",
-							File: "some/config/path.yml",
+							Config: &atc.TaskStep{
+								Name:       "some-other-task",
+								ConfigPath: "some/config/path.yml",
+							},
 						},
 					},
 				},
@@ -2391,17 +2415,21 @@ var _ = Describe("Team", func() {
 				Jobs: atc.JobConfigs{
 					{
 						Name: "job-1",
-						PlanSequence: atc.PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Get: "some-resource",
+								Config: &atc.GetStep{
+									Name: "some-resource",
+								},
 							},
 						},
 					},
 					{
 						Name: "job-2",
-						PlanSequence: atc.PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Get: "some-resource",
+								Config: &atc.GetStep{
+									Name: "some-resource",
+								},
 							},
 						},
 					},
@@ -2413,36 +2441,46 @@ var _ = Describe("Team", func() {
 						Serial:       true,
 						SerialGroups: []string{"serial-group-1", "serial-group-2"},
 
-						PlanSequence: atc.PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Do: &atc.PlanSequence{
-									{
-										Get:      "other-input",
-										Resource: "some-resource",
+								Config: &atc.DoStep{
+									Steps: []atc.Step{
+										{
+											Config: &atc.GetStep{
+												Name:     "other-input",
+												Resource: "some-resource",
+											},
+										},
 									},
 								},
 							},
 							{
-								Get:      "some-input",
-								Resource: "some-resource",
-								Params: atc.Params{
-									"some-param": "some-value",
-								},
-								Passed:  []string{"job-1", "job-2"},
-								Trigger: true,
-							},
-							{
-								Task:       "some-task",
-								Privileged: true,
-								File:       "some/config/path.yml",
-								TaskConfig: &atc.TaskConfig{
-									RootfsURI: "some-image",
+								Config: &atc.GetStep{
+									Name:     "some-input",
+									Resource: "some-resource",
+									Params: atc.Params{
+										"some-param": "some-value",
+									},
+									Passed:  []string{"job-1", "job-2"},
+									Trigger: true,
 								},
 							},
 							{
-								Put: "some-resource",
-								Params: atc.Params{
-									"some-param": "some-value",
+								Config: &atc.TaskStep{
+									Name:       "some-task",
+									Privileged: true,
+									ConfigPath: "some/config/path.yml",
+									Config: &atc.TaskConfig{
+										RootfsURI: "some-image",
+									},
+								},
+							},
+							{
+								Config: &atc.PutStep{
+									Name: "some-resource",
+									Params: atc.Params{
+										"some-param": "some-value",
+									},
 								},
 							},
 						},
@@ -2555,9 +2593,11 @@ var _ = Describe("Team", func() {
 				Jobs: atc.JobConfigs{
 					{
 						Name: "job-2",
-						PlanSequence: atc.PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Get: "some-resource",
+								Config: &atc.GetStep{
+									Name: "some-resource",
+								},
 							},
 						},
 					},
@@ -2569,28 +2609,34 @@ var _ = Describe("Team", func() {
 						Serial:       true,
 						SerialGroups: []string{"serial-group-1", "serial-group-2"},
 
-						PlanSequence: atc.PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Get:      "some-input",
-								Resource: "some-resource",
-								Params: atc.Params{
-									"some-param": "some-value",
-								},
-								Passed:  []string{"job-2"},
-								Trigger: true,
-							},
-							{
-								Task:       "some-task",
-								Privileged: true,
-								File:       "some/config/path.yml",
-								TaskConfig: &atc.TaskConfig{
-									RootfsURI: "some-image",
+								Config: &atc.GetStep{
+									Name:     "some-input",
+									Resource: "some-resource",
+									Params: atc.Params{
+										"some-param": "some-value",
+									},
+									Passed:  []string{"job-2"},
+									Trigger: true,
 								},
 							},
 							{
-								Put: "some-resource",
-								Params: atc.Params{
-									"some-param": "some-value",
+								Config: &atc.TaskStep{
+									Name:       "some-task",
+									Privileged: true,
+									ConfigPath: "some/config/path.yml",
+									Config: &atc.TaskConfig{
+										RootfsURI: "some-image",
+									},
+								},
+							},
+							{
+								Config: &atc.PutStep{
+									Name: "some-resource",
+									Params: atc.Params{
+										"some-param": "some-value",
+									},
 								},
 							},
 						},
@@ -2806,17 +2852,21 @@ var _ = Describe("Team", func() {
 
 			updatedConfig.Jobs = append(config.Jobs, atc.JobConfig{
 				Name: "new-job",
-				PlanSequence: atc.PlanSequence{
+				PlanSequence: []atc.Step{
 					{
-						Get:      "new-input",
-						Resource: "new-resource",
-						Params: atc.Params{
-							"new-param": "new-value",
+						Config: &atc.GetStep{
+							Name:     "new-input",
+							Resource: "new-resource",
+							Params: atc.Params{
+								"new-param": "new-value",
+							},
 						},
 					},
 					{
-						Task: "some-task",
-						File: "new/config/path.yml",
+						Config: &atc.TaskStep{
+							Name:       "some-task",
+							ConfigPath: "new/config/path.yml",
+						},
 					},
 				},
 			})

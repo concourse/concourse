@@ -17,6 +17,9 @@ var _ = Describe("Resource-types checks", func() {
 			"fixtures/resource-types.yml",
 			"-v", "hash="+hash.String(),
 		)
+
+		checkS := fly("check-resource", "-r", inPipeline("my-resource-image"))
+		Eventually(checkS).Should(gbytes.Say("succeeded"))
 	})
 
 	It("can check the resource-type", func() {

@@ -59,6 +59,7 @@ var (
 	otherWorkerPayload        atc.Worker
 	defaultResourceType       db.ResourceType
 	defaultResource           db.Resource
+	defaultPipelineConfig     atc.Config
 	defaultPipeline           db.Pipeline
 	defaultJob                db.Job
 	logger                    *lagertest.TestLogger
@@ -155,7 +156,7 @@ var _ = BeforeEach(func() {
 	otherWorker, err = workerFactory.SaveWorker(otherWorkerPayload, 0)
 	Expect(err).NotTo(HaveOccurred())
 
-	defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atc.Config{
+	defaultPipelineConfig := atc.Config{
 		Jobs: atc.JobConfigs{
 			{
 				Name: "some-job",
@@ -179,7 +180,9 @@ var _ = BeforeEach(func() {
 				},
 			},
 		},
-	}, db.ConfigVersion(0), false)
+	}
+
+	defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", defaultPipelineConfig, db.ConfigVersion(0), false)
 	Expect(err).NotTo(HaveOccurred())
 
 	var found bool

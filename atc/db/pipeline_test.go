@@ -59,37 +59,45 @@ var _ = Describe("Pipeline", func() {
 
 					SerialGroups: []string{"serial-group"},
 
-					PlanSequence: atc.PlanSequence{
+					PlanSequence: []atc.Step{
 						{
-							Put: "some-resource",
-							Params: atc.Params{
-								"some-param": "some-value",
+							Config: &atc.PutStep{
+								Name: "some-resource",
+								Params: atc.Params{
+									"some-param": "some-value",
+								},
 							},
 						},
 						{
-							Get:      "some-input",
-							Resource: "some-resource",
-							Params: atc.Params{
-								"some-param": "some-value",
-							},
-							Passed:  []string{"job-1", "job-2"},
-							Trigger: true,
-						},
-						{
-							Task:       "some-task",
-							Privileged: true,
-							File:       "some/config/path.yml",
-							TaskConfig: &atc.TaskConfig{
-								RootfsURI: "some-image",
+							Config: &atc.GetStep{
+								Name:     "some-input",
+								Resource: "some-resource",
+								Params: atc.Params{
+									"some-param": "some-value",
+								},
+								Passed:  []string{"job-1", "job-2"},
+								Trigger: true,
 							},
 						},
 						{
-							SetPipeline: "some-pipeline",
-							File:        "some-file",
-							VarFiles:    []string{"var-file1", "var-file2"},
-							Vars: map[string]interface{}{
-								"k1": "v1",
-								"k2": "v2",
+							Config: &atc.TaskStep{
+								Name:       "some-task",
+								Privileged: true,
+								ConfigPath: "some/config/path.yml",
+								Config: &atc.TaskConfig{
+									RootfsURI: "some-image",
+								},
+							},
+						},
+						{
+							Config: &atc.SetPipelineStep{
+								Name:     "some-pipeline",
+								File:     "some-file",
+								VarFiles: []string{"var-file1", "var-file2"},
+								Vars: map[string]interface{}{
+									"k1": "v1",
+									"k2": "v2",
+								},
 							},
 						},
 					},
@@ -491,28 +499,34 @@ var _ = Describe("Pipeline", func() {
 
 						SerialGroups: []string{"serial-group"},
 
-						PlanSequence: atc.PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Put: "some-resource",
-								Params: atc.Params{
-									"some-param": "some-value",
+								Config: &atc.PutStep{
+									Name: "some-resource",
+									Params: atc.Params{
+										"some-param": "some-value",
+									},
 								},
 							},
 							{
-								Get:      "some-input",
-								Resource: "some-resource",
-								Params: atc.Params{
-									"some-param": "some-value",
+								Config: &atc.GetStep{
+									Name:     "some-input",
+									Resource: "some-resource",
+									Params: atc.Params{
+										"some-param": "some-value",
+									},
+									Passed:  []string{"job-1", "job-2"},
+									Trigger: true,
 								},
-								Passed:  []string{"job-1", "job-2"},
-								Trigger: true,
 							},
 							{
-								Task:       "some-task",
-								Privileged: true,
-								File:       "some/config/path.yml",
-								TaskConfig: &atc.TaskConfig{
-									RootfsURI: "some-image",
+								Config: &atc.TaskStep{
+									Name:       "some-task",
+									Privileged: true,
+									ConfigPath: "some/config/path.yml",
+									Config: &atc.TaskConfig{
+										RootfsURI: "some-image",
+									},
 								},
 							},
 						},
@@ -2159,6 +2173,52 @@ var _ = Describe("Pipeline", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(v.(string)).To(Equal("pv"))
+			})
+		})
+	})
+
+	Describe("SetParentIDs", func() {
+		It("sets the parent_job_id and parent_build_id fields", func() {
+			jobID := 123
+			buildID := 456
+			Expect(pipeline.SetParentIDs(jobID, buildID)).To(Succeed())
+
+			found, err := pipeline.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(pipeline.ParentJobID()).To(Equal(jobID))
+			Expect(pipeline.ParentBuildID()).To(Equal(buildID))
+		})
+
+		It("returns an error if job or build ID are less than or equal to zero", func() {
+			err := pipeline.SetParentIDs(0, 0)
+			Expect(err).To(MatchError("job and build id cannot be negative or zero-value"))
+			err = pipeline.SetParentIDs(-1, -6)
+			Expect(err).To(MatchError("job and build id cannot be negative or zero-value"))
+		})
+
+		Context("pipeline was saved by a newer build", func() {
+			It("returns ErrSetByNewerBuild", func() {
+				By("setting the build ID to a high number")
+				pipeline.SetParentIDs(1, 60)
+
+				By("trying to set the build ID to a lower number")
+				err := pipeline.SetParentIDs(1, 2)
+				Expect(err).To(MatchError(db.ErrSetByNewerBuild))
+			})
+		})
+
+		Context("pipeline was previously saved by team.SavePipeline", func() {
+			It("successfully updates the parent build and job IDs", func() {
+				By("using the defaultPipeline saved by defaultTeam at the suite level")
+				Expect(defaultPipeline.ParentJobID()).To(Equal(0), "should be zero if sql value is null")
+				Expect(defaultPipeline.ParentBuildID()).To(Equal(0), "should be zero if sql value is null")
+
+				err := defaultPipeline.SetParentIDs(1, 6)
+				Expect(err).ToNot(HaveOccurred())
+				defaultPipeline.Reload()
+				Expect(defaultPipeline.ParentJobID()).To(Equal(1), "should be zero if sql value is null")
+				Expect(defaultPipeline.ParentBuildID()).To(Equal(6), "should be zero if sql value is null")
 			})
 		})
 	})

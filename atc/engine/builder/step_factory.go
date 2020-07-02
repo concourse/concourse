@@ -18,6 +18,7 @@ type stepFactory struct {
 	client                          worker.Client
 	resourceFactory                 resource.ResourceFactory
 	teamFactory                     db.TeamFactory
+	buildFactory                    db.BuildFactory
 	resourceCacheFactory            db.ResourceCacheFactory
 	resourceConfigFactory           db.ResourceConfigFactory
 	defaultLimits                   atc.ContainerLimits
@@ -31,6 +32,7 @@ func NewStepFactory(
 	client worker.Client,
 	resourceFactory resource.ResourceFactory,
 	teamFactory db.TeamFactory,
+	buildFactory db.BuildFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	defaultLimits atc.ContainerLimits,
@@ -43,6 +45,7 @@ func NewStepFactory(
 		client:                          client,
 		resourceFactory:                 resourceFactory,
 		teamFactory:                     teamFactory,
+		buildFactory:                    buildFactory,
 		resourceCacheFactory:            resourceCacheFactory,
 		resourceConfigFactory:           resourceConfigFactory,
 		defaultLimits:                   defaultLimits,
@@ -168,6 +171,7 @@ func (factory *stepFactory) SetPipelineStep(
 		stepMetadata,
 		delegate,
 		factory.teamFactory,
+		factory.buildFactory,
 		factory.client,
 	)
 

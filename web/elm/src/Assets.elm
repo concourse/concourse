@@ -23,6 +23,7 @@ type Asset
     | PinIconGrey
     | CheckmarkIcon
     | BreadcrumbIcon ComponentType
+    | ArchivedPipelineIcon
     | PassportOfficerIcon
     | ConcourseLogoWhite
     | CircleOutlineIcon CircleOutlineIcon
@@ -46,8 +47,8 @@ type Asset
     | MessageIcon
     | HamburgerMenuIcon
     | PeopleIcon
-    | KeyboardArrowDown
-    | KeyboardArrowRight
+    | PlusIcon
+    | MinusIcon
     | PlayIcon
     | PauseIcon
     | PencilIcon
@@ -174,6 +175,9 @@ toPath asset =
             in
             basePath ++ [ "ic-breadcrumb-" ++ imageName ++ ".svg" ]
 
+        ArchivedPipelineIcon ->
+            basePath ++ [ "ic-archived-pipeline.svg" ]
+
         PassportOfficerIcon ->
             basePath ++ [ "passport-officer-ic.svg" ]
 
@@ -279,11 +283,11 @@ toPath asset =
         PeopleIcon ->
             basePath ++ [ "baseline-people.svg" ]
 
-        KeyboardArrowDown ->
-            basePath ++ [ "baseline-keyboard-arrow-down.svg" ]
+        PlusIcon ->
+            basePath ++ [ "ic-plus.svg" ]
 
-        KeyboardArrowRight ->
-            basePath ++ [ "baseline-keyboard-arrow-right.svg" ]
+        MinusIcon ->
+            basePath ++ [ "ic-minus.svg" ]
 
         PlayIcon ->
             basePath ++ [ "ic-play-white.svg" ]
