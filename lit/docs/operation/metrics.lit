@@ -8,7 +8,7 @@ about the builds that it is running. Operators can tap into these metrics in
 order to observe the health of the system.
 
 In the spirit of openness, the \link{metrics from our
-deployment}{https://metrics.concourse-ci.org/dashboard/db/concourse} are
+deployment}{https://p.datadoghq.com/sb/bb663c3fb-c0f3ba68561631a1b130a4507bf36a15?tpl_var_environment=ci&tpl_var_web=ci-web&tpl_var_worker=ci-worker} are
 public. We consider it a bug to emit anything sensitive or secret into our
 metrics pipeline.
 
@@ -118,7 +118,7 @@ metrics pipeline.
     # TYPE concourse_locks_held gauge
     concourse_locks_held{type="Batch"} 0
     concourse_locks_held{type="DatabaseMigration"} 0
-    # HELP concourse_tasks_waiting Number of Concourse tasks currently waiting. 
+    # HELP concourse_tasks_waiting Number of Concourse tasks currently waiting.
     # TYPE concourse_tasks_waiting gauge
     concourse_tasks_waiting 3
     # HELP concourse_workers_containers Number of containers per worker
