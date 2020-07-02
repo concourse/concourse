@@ -6,7 +6,11 @@ import (
 	"strings"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/jobserver"
+	"github.com/concourse/concourse/atc/api/stream"
+	"github.com/concourse/concourse/atc/db/watch"
 	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/go-concourse/concourse/concoursefakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -78,6 +82,74 @@ var _ = Describe("ATC Handler Jobs", func() {
 			jobs, err := client.ListAllJobs()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(jobs).To(Equal(expectedJobs))
+		})
+	})
+
+	Describe("client.WatchListAllJobs", func() {
+		var initialJobs []atc.Job
+		var patchEvents [][]jobserver.JobWatchEvent
+		var visitor *concoursefakes.FakeJobsEventsVisitor
+
+		BeforeEach(func() {
+			expectedURL := "/api/v1/jobs"
+
+			initialJobs = []atc.Job{
+				{Name: "myjob-1"},
+				{Name: "myjob-2"},
+			}
+			patchEvents = [][]jobserver.JobWatchEvent{
+				{
+					{ID: 0, Type: watch.Delete},
+					{ID: 1, Type: watch.Put, Job: &atc.Job{ID: 1}},
+				},
+				{
+					{ID: 1, Type: watch.Delete},
+					{ID: 0, Type: watch.Put, Job: &atc.Job{ID: 0}},
+				},
+			}
+
+			visitor = new(concoursefakes.FakeJobsEventsVisitor)
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", expectedURL),
+					ghttp.VerifyHeaderKV("Accept", "text/event-stream"),
+					func(w http.ResponseWriter, r *http.Request) {
+						stream.WriteHeaders(w)
+						writer := stream.EventWriter{w.(stream.WriteFlusher)}
+
+						id := uint(0)
+
+						err := writer.WriteEvent(id, "initial", initialJobs)
+						Expect(err).NotTo(HaveOccurred())
+						id++
+
+						for _, e := range patchEvents {
+							err := writer.WriteEvent(id, "patch", e)
+							Expect(err).NotTo(HaveOccurred())
+							id++
+						}
+					},
+				),
+			)
+		})
+
+		It("streams Job events", func() {
+			stream, err := client.WatchListAllJobs()
+			Expect(err).NotTo(HaveOccurred())
+			defer stream.Close()
+
+			err = stream.Accept(visitor)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(visitor.VisitInitialEventArgsForCall(0)).To(Equal(initialJobs))
+
+			err = stream.Accept(visitor)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(visitor.VisitPatchEventArgsForCall(0)).To(Equal(patchEvents[0]))
+
+			err = stream.Accept(visitor)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(visitor.VisitPatchEventArgsForCall(1)).To(Equal(patchEvents[1]))
 		})
 	})
 

@@ -290,6 +290,18 @@ type FakeClient struct {
 		result1 atc.UserInfo
 		result2 error
 	}
+	WatchListAllJobsStub        func() (concourse.JobsEvents, error)
+	watchListAllJobsMutex       sync.RWMutex
+	watchListAllJobsArgsForCall []struct {
+	}
+	watchListAllJobsReturns struct {
+		result1 concourse.JobsEvents
+		result2 error
+	}
+	watchListAllJobsReturnsOnCall map[int]struct {
+		result1 concourse.JobsEvents
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -1615,6 +1627,61 @@ func (fake *FakeClient) UserInfoReturnsOnCall(i int, result1 atc.UserInfo, resul
 	}{result1, result2}
 }
 
+func (fake *FakeClient) WatchListAllJobs() (concourse.JobsEvents, error) {
+	fake.watchListAllJobsMutex.Lock()
+	ret, specificReturn := fake.watchListAllJobsReturnsOnCall[len(fake.watchListAllJobsArgsForCall)]
+	fake.watchListAllJobsArgsForCall = append(fake.watchListAllJobsArgsForCall, struct {
+	}{})
+	fake.recordInvocation("WatchListAllJobs", []interface{}{})
+	fake.watchListAllJobsMutex.Unlock()
+	if fake.WatchListAllJobsStub != nil {
+		return fake.WatchListAllJobsStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.watchListAllJobsReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeClient) WatchListAllJobsCallCount() int {
+	fake.watchListAllJobsMutex.RLock()
+	defer fake.watchListAllJobsMutex.RUnlock()
+	return len(fake.watchListAllJobsArgsForCall)
+}
+
+func (fake *FakeClient) WatchListAllJobsCalls(stub func() (concourse.JobsEvents, error)) {
+	fake.watchListAllJobsMutex.Lock()
+	defer fake.watchListAllJobsMutex.Unlock()
+	fake.WatchListAllJobsStub = stub
+}
+
+func (fake *FakeClient) WatchListAllJobsReturns(result1 concourse.JobsEvents, result2 error) {
+	fake.watchListAllJobsMutex.Lock()
+	defer fake.watchListAllJobsMutex.Unlock()
+	fake.WatchListAllJobsStub = nil
+	fake.watchListAllJobsReturns = struct {
+		result1 concourse.JobsEvents
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) WatchListAllJobsReturnsOnCall(i int, result1 concourse.JobsEvents, result2 error) {
+	fake.watchListAllJobsMutex.Lock()
+	defer fake.watchListAllJobsMutex.Unlock()
+	fake.WatchListAllJobsStub = nil
+	if fake.watchListAllJobsReturnsOnCall == nil {
+		fake.watchListAllJobsReturnsOnCall = make(map[int]struct {
+			result1 concourse.JobsEvents
+			result2 error
+		})
+	}
+	fake.watchListAllJobsReturnsOnCall[i] = struct {
+		result1 concourse.JobsEvents
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -1662,6 +1729,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.uRLMutex.RUnlock()
 	fake.userInfoMutex.RLock()
 	defer fake.userInfoMutex.RUnlock()
+	fake.watchListAllJobsMutex.RLock()
+	defer fake.watchListAllJobsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

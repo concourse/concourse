@@ -1,12 +1,16 @@
 package concourse
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/jobserver"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
+	"github.com/vito/go-sse/sse"
 )
 
 func (team *team) ListJobs(pipelineRef atc.PipelineRef) ([]atc.Job, error) {
@@ -36,6 +40,67 @@ func (client *client) ListAllJobs() ([]atc.Job, error) {
 	})
 
 	return jobs, err
+}
+
+type JobsEvents interface {
+	Accept(visitor JobsEventsVisitor) error
+	Close() error
+}
+
+type jobsEvents struct {
+	src *sse.EventSource
+}
+
+//go:generate counterfeiter . JobsEventsVisitor
+
+type JobsEventsVisitor interface {
+	VisitInitialEvent(jobs []atc.Job) error
+	VisitPatchEvent(events []jobserver.JobWatchEvent) error
+}
+
+func (j jobsEvents) Accept(visitor JobsEventsVisitor) error {
+	se, err := j.src.Next()
+	if err != nil {
+		return err
+	}
+	switch se.Name {
+	case "initial":
+		var jobs []atc.Job
+		err := json.Unmarshal(se.Data, &jobs)
+		if err != nil {
+			return err
+		}
+
+		return visitor.VisitInitialEvent(jobs)
+
+	case "patch":
+		var events []jobserver.JobWatchEvent
+		err := json.Unmarshal(se.Data, &events)
+		if err != nil {
+			return err
+		}
+
+		return visitor.VisitPatchEvent(events)
+
+	default:
+		return fmt.Errorf("unknown event name: %s", se.Name)
+	}
+}
+
+func (j jobsEvents) Close() error {
+	return j.src.Close()
+}
+
+func (client *client) WatchListAllJobs() (JobsEvents, error) {
+	sseEvents, err := client.connection.ConnectToEventStream(internal.Request{
+		RequestName: atc.ListAllJobs,
+	})
+
+	if err != nil {
+		return jobsEvents{}, err
+	}
+
+	return jobsEvents{sseEvents}, nil
 }
 
 func (team *team) Job(pipelineRef atc.PipelineRef, jobName string) (atc.Job, bool, error) {

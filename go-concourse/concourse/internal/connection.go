@@ -134,6 +134,7 @@ func (connection *connection) ConnectToEventStream(passedRequest Request) (*sse.
 		if reqErr != nil {
 			panic("unexpected error creating request: " + reqErr.Error())
 		}
+		request.Header.Set("Accept", "text/event-stream")
 
 		return request
 	})
