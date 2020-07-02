@@ -249,7 +249,7 @@ var _ = Describe("Jobs API", func() {
 		var (
 			response *http.Response
 
-			eventsChan chan []watch.ListAllJobsEvent
+			eventsChan chan []watch.DashboardJobEvent
 		)
 
 		JustBeforeEach(func() {
@@ -271,7 +271,7 @@ var _ = Describe("Jobs API", func() {
 			}
 			dbJobFactory.VisibleJobsReturns(atc.Dashboard{job}, nil)
 
-			eventsChan = make(chan []watch.ListAllJobsEvent, 1)
+			eventsChan = make(chan []watch.DashboardJobEvent, 1)
 			fakeListAllJobsWatcher.WatchListAllJobsReturns(eventsChan)
 		})
 
@@ -302,7 +302,7 @@ var _ = Describe("Jobs API", func() {
 		})
 
 		It("sends a patch event when jobs change", func() {
-			eventsChan <- []watch.ListAllJobsEvent{
+			eventsChan <- []watch.DashboardJobEvent{
 				{
 					ID:   1,
 					Type: watch.Put,

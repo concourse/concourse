@@ -15,10 +15,10 @@ import (
 //go:generate counterfeiter . ListAllJobsWatcher
 
 type ListAllJobsWatcher interface {
-	WatchListAllJobs(ctx context.Context, access accessor.Access) <-chan []watch.ListAllJobsEvent
+	WatchListAllJobs(ctx context.Context, access accessor.Access) <-chan []watch.DashboardJobEvent
 }
 
-type listAllJobsWatchEvent struct {
+type JobWatchEvent struct {
 	ID   int             `json:"id"`
 	Type watch.EventType `json:"eventType"`
 	Job  *atc.Job        `json:"job"`
@@ -30,7 +30,7 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 	acc := accessor.GetAccessor(r)
 
 	watchMode := stream.IsRequested(r)
-	var watchEventsChan <-chan []watch.ListAllJobsEvent
+	var watchEventsChan <-chan []watch.DashboardJobEvent
 	if watchMode {
 		watchEventsChan = s.listAllJobsWatcher.WatchListAllJobs(r.Context(), acc)
 	}
@@ -82,10 +82,10 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func presentEvents(events []watch.ListAllJobsEvent) []listAllJobsWatchEvent {
-	presentEvents := make([]listAllJobsWatchEvent, len(events))
+func presentEvents(events []watch.DashboardJobEvent) []JobWatchEvent {
+	presentEvents := make([]JobWatchEvent, len(events))
 	for i, event := range events {
-		presentEvent := listAllJobsWatchEvent{
+		presentEvent := JobWatchEvent{
 			ID:   event.ID,
 			Type: event.Type,
 		}

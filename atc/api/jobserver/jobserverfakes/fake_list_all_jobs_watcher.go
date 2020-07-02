@@ -11,23 +11,23 @@ import (
 )
 
 type FakeListAllJobsWatcher struct {
-	WatchListAllJobsStub        func(context.Context, accessor.Access) <-chan []watch.ListAllJobsEvent
+	WatchListAllJobsStub        func(context.Context, accessor.Access) <-chan []watch.DashboardJobEvent
 	watchListAllJobsMutex       sync.RWMutex
 	watchListAllJobsArgsForCall []struct {
 		arg1 context.Context
 		arg2 accessor.Access
 	}
 	watchListAllJobsReturns struct {
-		result1 <-chan []watch.ListAllJobsEvent
+		result1 <-chan []watch.DashboardJobEvent
 	}
 	watchListAllJobsReturnsOnCall map[int]struct {
-		result1 <-chan []watch.ListAllJobsEvent
+		result1 <-chan []watch.DashboardJobEvent
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeListAllJobsWatcher) WatchListAllJobs(arg1 context.Context, arg2 accessor.Access) <-chan []watch.ListAllJobsEvent {
+func (fake *FakeListAllJobsWatcher) WatchListAllJobs(arg1 context.Context, arg2 accessor.Access) <-chan []watch.DashboardJobEvent {
 	fake.watchListAllJobsMutex.Lock()
 	ret, specificReturn := fake.watchListAllJobsReturnsOnCall[len(fake.watchListAllJobsArgsForCall)]
 	fake.watchListAllJobsArgsForCall = append(fake.watchListAllJobsArgsForCall, struct {
@@ -52,7 +52,7 @@ func (fake *FakeListAllJobsWatcher) WatchListAllJobsCallCount() int {
 	return len(fake.watchListAllJobsArgsForCall)
 }
 
-func (fake *FakeListAllJobsWatcher) WatchListAllJobsCalls(stub func(context.Context, accessor.Access) <-chan []watch.ListAllJobsEvent) {
+func (fake *FakeListAllJobsWatcher) WatchListAllJobsCalls(stub func(context.Context, accessor.Access) <-chan []watch.DashboardJobEvent) {
 	fake.watchListAllJobsMutex.Lock()
 	defer fake.watchListAllJobsMutex.Unlock()
 	fake.WatchListAllJobsStub = stub
@@ -65,26 +65,26 @@ func (fake *FakeListAllJobsWatcher) WatchListAllJobsArgsForCall(i int) (context.
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeListAllJobsWatcher) WatchListAllJobsReturns(result1 <-chan []watch.ListAllJobsEvent) {
+func (fake *FakeListAllJobsWatcher) WatchListAllJobsReturns(result1 <-chan []watch.DashboardJobEvent) {
 	fake.watchListAllJobsMutex.Lock()
 	defer fake.watchListAllJobsMutex.Unlock()
 	fake.WatchListAllJobsStub = nil
 	fake.watchListAllJobsReturns = struct {
-		result1 <-chan []watch.ListAllJobsEvent
+		result1 <-chan []watch.DashboardJobEvent
 	}{result1}
 }
 
-func (fake *FakeListAllJobsWatcher) WatchListAllJobsReturnsOnCall(i int, result1 <-chan []watch.ListAllJobsEvent) {
+func (fake *FakeListAllJobsWatcher) WatchListAllJobsReturnsOnCall(i int, result1 <-chan []watch.DashboardJobEvent) {
 	fake.watchListAllJobsMutex.Lock()
 	defer fake.watchListAllJobsMutex.Unlock()
 	fake.WatchListAllJobsStub = nil
 	if fake.watchListAllJobsReturnsOnCall == nil {
 		fake.watchListAllJobsReturnsOnCall = make(map[int]struct {
-			result1 <-chan []watch.ListAllJobsEvent
+			result1 <-chan []watch.DashboardJobEvent
 		})
 	}
 	fake.watchListAllJobsReturnsOnCall[i] = struct {
-		result1 <-chan []watch.ListAllJobsEvent
+		result1 <-chan []watch.DashboardJobEvent
 	}{result1}
 }
 

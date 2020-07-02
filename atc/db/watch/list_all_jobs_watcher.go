@@ -15,7 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
-type ListAllJobsEvent struct {
+type DashboardJobEvent struct {
 	ID   int
 	Type EventType
 	Job  *atc.DashboardJob
@@ -27,7 +27,7 @@ type ListAllJobsWatcher struct {
 	lockFactory lock.LockFactory
 
 	mtx         sync.RWMutex
-	subscribers map[chan []ListAllJobsEvent]struct{}
+	subscribers map[chan []DashboardJobEvent]struct{}
 }
 
 var listAllJobsWatchTables = []watchTable{
@@ -65,7 +65,7 @@ func NewListAllJobsWatcher(logger lager.Logger, conn db.Conn, lockFactory lock.L
 		conn:        conn,
 		lockFactory: lockFactory,
 
-		subscribers: make(map[chan []ListAllJobsEvent]struct{}),
+		subscribers: make(map[chan []DashboardJobEvent]struct{}),
 	}
 
 	if err := watcher.setupTriggers(); err != nil {
@@ -117,11 +117,11 @@ func (w *ListAllJobsWatcher) setupTriggers() error {
 	return nil
 }
 
-func (w *ListAllJobsWatcher) WatchListAllJobs(ctx context.Context, access accessor.Access) <-chan []ListAllJobsEvent {
-	eventsChan := make(chan []ListAllJobsEvent)
+func (w *ListAllJobsWatcher) WatchListAllJobs(ctx context.Context, access accessor.Access) <-chan []DashboardJobEvent {
+	eventsChan := make(chan []DashboardJobEvent)
 
 	dirty := make(chan struct{})
-	var pendingEvents []ListAllJobsEvent
+	var pendingEvents []DashboardJobEvent
 	var mtx sync.Mutex
 	go w.watchEvents(ctx, access, &pendingEvents, &mtx, dirty)
 	go w.sendEvents(ctx, eventsChan, &pendingEvents, &mtx, dirty)
@@ -131,7 +131,7 @@ func (w *ListAllJobsWatcher) WatchListAllJobs(ctx context.Context, access access
 func (w *ListAllJobsWatcher) watchEvents(
 	ctx context.Context,
 	access accessor.Access,
-	pendingEvents *[]ListAllJobsEvent,
+	pendingEvents *[]DashboardJobEvent,
 	mtx *sync.Mutex,
 	dirty chan<- struct{},
 ) {
@@ -161,20 +161,20 @@ func (w *ListAllJobsWatcher) watchEvents(
 
 func (w *ListAllJobsWatcher) sendEvents(
 	ctx context.Context,
-	eventsChan chan<- []ListAllJobsEvent,
-	pendingEvents *[]ListAllJobsEvent,
+	eventsChan chan<- []DashboardJobEvent,
+	pendingEvents *[]DashboardJobEvent,
 	mtx *sync.Mutex,
 	dirty <-chan struct{},
 ) {
 	defer close(eventsChan)
 	for {
 		select {
-			case <-ctx.Done():
-				return
-			case <-dirty:
+		case <-ctx.Done():
+			return
+		case <-dirty:
 		}
 		mtx.Lock()
-		eventsToSend := make([]ListAllJobsEvent, len(*pendingEvents))
+		eventsToSend := make([]DashboardJobEvent, len(*pendingEvents))
 		copy(eventsToSend, *pendingEvents)
 		*pendingEvents = (*pendingEvents)[:0]
 		mtx.Unlock()
@@ -194,8 +194,8 @@ func invalidate(dirty chan<- struct{}) {
 	}
 }
 
-func (w *ListAllJobsWatcher) subscribe() chan []ListAllJobsEvent {
-	c := make(chan []ListAllJobsEvent)
+func (w *ListAllJobsWatcher) subscribe() chan []DashboardJobEvent {
+	c := make(chan []DashboardJobEvent)
 
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
@@ -204,7 +204,7 @@ func (w *ListAllJobsWatcher) subscribe() chan []ListAllJobsEvent {
 	return c
 }
 
-func (w *ListAllJobsWatcher) unsubscribe(c chan []ListAllJobsEvent) {
+func (w *ListAllJobsWatcher) unsubscribe(c chan []DashboardJobEvent) {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 	delete(w.subscribers, c)
@@ -225,7 +225,7 @@ func (w *ListAllJobsWatcher) terminateSubscribers() {
 	}
 }
 
-func (w *ListAllJobsWatcher) hasAccessTo(access accessor.Access, evt ListAllJobsEvent) bool {
+func (w *ListAllJobsWatcher) hasAccessTo(access accessor.Access, evt DashboardJobEvent) bool {
 	if access.IsAdmin() {
 		return true
 	}
@@ -272,7 +272,7 @@ func (w *ListAllJobsWatcher) process(payload string) error {
 	case "jobs":
 		jobID, pred, err = intEqPred("j.id", notif.Data["id"])
 		if notif.Operation == "DELETE" {
-			w.publishEvents(ListAllJobsEvent{
+			w.publishEvents(DashboardJobEvent{
 				ID:   jobID,
 				Type: Delete,
 			})
@@ -296,16 +296,16 @@ func (w *ListAllJobsWatcher) process(payload string) error {
 		// an update to a job that results in it not being found is updating active to false (or it was already false).
 		// either way, sending a 'DELETE' is reasonable, as long as we make no guarantees about repeated DELETEs
 		if notif.Table == "jobs" && notif.Operation == "UPDATE" {
-			w.publishEvents(ListAllJobsEvent{
+			w.publishEvents(DashboardJobEvent{
 				ID:   jobID,
 				Type: Delete,
 			})
 		}
 		return nil
 	}
-	evts := make([]ListAllJobsEvent, len(jobs))
+	evts := make([]DashboardJobEvent, len(jobs))
 	for i, job := range jobs {
-		evts[i] = ListAllJobsEvent{
+		evts[i] = DashboardJobEvent{
 			ID:   job.ID,
 			Type: Put,
 			Job:  &jobs[i],
@@ -335,7 +335,7 @@ func (w *ListAllJobsWatcher) fetchJobs(pred interface{}) (atc.Dashboard, error) 
 	return dashboard, nil
 }
 
-func (w *ListAllJobsWatcher) publishEvents(evts ...ListAllJobsEvent) {
+func (w *ListAllJobsWatcher) publishEvents(evts ...DashboardJobEvent) {
 	w.mtx.RLock()
 	defer w.mtx.RUnlock()
 	for c := range w.subscribers {

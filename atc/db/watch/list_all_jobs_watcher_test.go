@@ -84,25 +84,25 @@ var _ = Describe("ListAllJobsWatcher", func() {
 
 			access        *accessorfakes.FakeAccess
 			mtx           sync.Mutex
-			invokedEvents []watch.ListAllJobsEvent
+			invokedEvents []watch.DashboardJobEvent
 		)
 
-		PutEvent := func(job db.Job) watch.ListAllJobsEvent {
-			return watch.ListAllJobsEvent{
+		PutEvent := func(job db.Job) watch.DashboardJobEvent {
+			return watch.DashboardJobEvent{
 				ID:   job.ID(),
 				Type: watch.Put,
 				Job:  toDashboardJob(job),
 			}
 		}
 
-		DeleteEvent := func(jobID int) watch.ListAllJobsEvent {
-			return watch.ListAllJobsEvent{
+		DeleteEvent := func(jobID int) watch.DashboardJobEvent {
+			return watch.DashboardJobEvent{
 				ID:   jobID,
 				Type: watch.Delete,
 			}
 		}
 
-		getInvokedEvents := func() []watch.ListAllJobsEvent {
+		getInvokedEvents := func() []watch.DashboardJobEvent {
 			mtx.Lock()
 			defer mtx.Unlock()
 			return invokedEvents
