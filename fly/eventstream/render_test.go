@@ -193,6 +193,19 @@ var _ = Describe("V1.0 Renderer", func() {
 	})
 
 	Describe("receiving a Status event", func() {
+		Context("with status 'started'", func() {
+			BeforeEach(func() {
+				receivedEvents <- event.Status{
+					Status: atc.StatusStarted,
+					Time:   time.Now().Unix(),
+				}
+			})
+
+			It("prints nothing", func() {
+				Expect(out.Contents()).To(BeEmpty())
+			})
+		})
+
 		Context("with status 'succeeded'", func() {
 			BeforeEach(func() {
 				receivedEvents <- event.Status{
