@@ -1,7 +1,6 @@
 package testflight_test
 
 import (
-	uuid "github.com/nu7hatch/gouuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -9,26 +8,26 @@ import (
 
 var _ = Describe("Renaming a resource", func() {
 
-	It("preserved data", func() {
-		guid, err := uuid.NewV4()
-		Expect(err).ToNot(HaveOccurred())
+	It("preserves version history", func() {
+		setAndUnpausePipeline("fixtures/resource-with-versions.yml")
 
-		setAndUnpausePipeline(
-			"fixtures/resource-with-params.yml",
-			"-v", "unique_version="+guid.String(),
-		)
+		guid1 := newMockVersion("some-resource", "guid1")
+		guid2 := newMockVersion("some-resource", "guid2")
+		guid3 := newMockVersion("some-resource", "guid3")
 
-		fly("trigger-job", "-j", inPipeline("without-params"), "-w")
+		fly("trigger-job", "-j", inPipeline("some-passing-job"), "-w")
 		build := fly("builds", "-p", pipelineName)
-		Expect(build).To(gbytes.Say(pipelineName + "/without-params"))
+		Expect(build).To(gbytes.Say(pipelineName + "/some-passing-job"))
 
-		setPipeline(
-			"fixtures/rename-resource-with-params.yml",
-			"-v", "unique_version="+guid.String(),
-		)
+		setPipeline("fixtures/rename-resource.yml")
 
-		fly("trigger-job", "-j", inPipeline("without-params"), "-w")
+		fly("trigger-job", "-j", inPipeline("some-passing-job"), "-w")
 		build = fly("builds", "-p", pipelineName)
-		Expect(build).To(gbytes.Say(pipelineName + "/without-params"))
+		Expect(build).To(gbytes.Say(pipelineName + "/some-passing-job"))
+
+		resourceVersions := fly("resource-versions", "-r", inPipeline("some-new-resource"))
+		Expect(resourceVersions).To(gbytes.Say(guid3))
+		Expect(resourceVersions).To(gbytes.Say(guid2))
+		Expect(resourceVersions).To(gbytes.Say(guid1))
 	})
 })
