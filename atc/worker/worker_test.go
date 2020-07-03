@@ -1369,7 +1369,7 @@ var _ = Describe("Worker", func() {
 
 				It("streams remote inputs into newly created container volumes", func() {
 					Expect(fakeRemoteInputAS.StreamToCallCount()).To(Equal(1))
-					_, _, ad := fakeRemoteInputAS.StreamToArgsForCall(0)
+					_, ad := fakeRemoteInputAS.StreamToArgsForCall(0)
 
 					err := ad.StreamIn(context.TODO(), ".", baggageclaim.GzipEncoding, bytes.NewBufferString("some-stream"))
 					Expect(err).ToNot(HaveOccurred())
