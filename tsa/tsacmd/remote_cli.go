@@ -75,9 +75,8 @@ func (req forwardWorkerRequest) Handle(ctx context.Context, state ConnState, cha
 		req.server.heartbeatInterval,
 		req.server.cprInterval,
 		gclient.BasicGardenClientWithRequestTimeout(
-			logger.Session("garden-connection"),
-			// TODO Don't hardcode this
-			time.Minute*5,
+			lagerctx.WithSession(ctx, "garden-connection"),
+			req.server.gardenRequestTimeout,
 			gardenURL(worker.GardenAddr),
 		),
 		bclient.NewWithHTTPClient(worker.BaggageclaimURL, &http.Client{

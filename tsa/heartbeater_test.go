@@ -8,13 +8,14 @@ import (
 
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/garden"
-	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/baggageclaim/baggageclaimfakes"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/worker/gclient"
+	"github.com/concourse/concourse/atc/worker/gclient/gclientfakes"
 	. "github.com/concourse/concourse/tsa"
 	"github.com/concourse/concourse/tsa/tsafakes"
 	. "github.com/onsi/ginkgo"
@@ -42,7 +43,7 @@ var _ = Describe("Heartbeater", func() {
 		resourceTypes  []atc.WorkerResourceType
 
 		expectedWorker         atc.Worker
-		fakeGardenClient       *gardenfakes.FakeClient
+		fakeGardenClient       *gclientfakes.FakeClient
 		fakeBaggageclaimClient *baggageclaimfakes.FakeClient
 		fakeATC1               *ghttp.Server
 		fakeATC2               *ghttp.Server
@@ -130,7 +131,7 @@ var _ = Describe("Heartbeater", func() {
 			},
 		)
 
-		fakeGardenClient = new(gardenfakes.FakeClient)
+		fakeGardenClient = new(gclientfakes.FakeClient)
 		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
 
 		clientWriter = gbytes.NewBuffer()
@@ -181,12 +182,12 @@ var _ = Describe("Heartbeater", func() {
 
 	Context("when Garden returns containers and Baggageclaim returns volumes", func() {
 		BeforeEach(func() {
-			containers := make(chan []garden.Container, 4)
+			containers := make(chan []gclient.Container, 4)
 			volumes := make(chan []baggageclaim.Volume, 4)
 
-			containers <- []garden.Container{
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
+			containers <- []gclient.Container{
+				new(gclientfakes.FakeContainer),
+				new(gclientfakes.FakeContainer),
 			}
 
 			volumes <- []baggageclaim.Volume{
@@ -195,12 +196,12 @@ var _ = Describe("Heartbeater", func() {
 				new(baggageclaimfakes.FakeVolume),
 			}
 
-			containers <- []garden.Container{
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
+			containers <- []gclient.Container{
+				new(gclientfakes.FakeContainer),
+				new(gclientfakes.FakeContainer),
+				new(gclientfakes.FakeContainer),
+				new(gclientfakes.FakeContainer),
+				new(gclientfakes.FakeContainer),
 			}
 
 			volumes <- []baggageclaim.Volume{
@@ -208,21 +209,21 @@ var _ = Describe("Heartbeater", func() {
 				new(baggageclaimfakes.FakeVolume),
 			}
 
-			containers <- []garden.Container{
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
+			containers <- []gclient.Container{
+				new(gclientfakes.FakeContainer),
+				new(gclientfakes.FakeContainer),
+				new(gclientfakes.FakeContainer),
+				new(gclientfakes.FakeContainer),
 			}
 
 			volumes <- []baggageclaim.Volume{
 				new(baggageclaimfakes.FakeVolume),
 			}
 
-			containers <- []garden.Container{
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
-				new(gardenfakes.FakeContainer),
+			containers <- []gclient.Container{
+				new(gclientfakes.FakeContainer),
+				new(gclientfakes.FakeContainer),
+				new(gclientfakes.FakeContainer),
 			}
 
 			volumes <- []baggageclaim.Volume{}
@@ -230,7 +231,7 @@ var _ = Describe("Heartbeater", func() {
 			close(containers)
 			close(volumes)
 
-			fakeGardenClient.ContainersStub = func(garden.Properties) ([]garden.Container, error) {
+			fakeGardenClient.ContainersStub = func(garden.Properties) ([]gclient.Container, error) {
 				return <-containers, nil
 			}
 
