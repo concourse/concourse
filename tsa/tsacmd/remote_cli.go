@@ -4,17 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"time"
 
 	"code.cloudfoundry.org/clock"
-	gclient "code.cloudfoundry.org/garden/client"
-	gconn "code.cloudfoundry.org/garden/client/connection"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	bclient "github.com/concourse/baggageclaim/client"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/worker/gclient"
 	"github.com/concourse/concourse/tsa"
 	"golang.org/x/crypto/ssh"
 )
@@ -76,11 +74,11 @@ func (req forwardWorkerRequest) Handle(ctx context.Context, state ConnState, cha
 		clock.NewClock(),
 		req.server.heartbeatInterval,
 		req.server.cprInterval,
-		gclient.New(
-			gconn.NewWithDialerAndLogger(
-				keepaliveDialerFactory("tcp", worker.GardenAddr),
-				lagerctx.WithSession(ctx, "garden-connection"),
-			),
+		gclient.BasicGardenClientWithRequestTimeout(
+			logger.Session("garden-connection"),
+			// TODO Don't hardcode this
+			time.Minute*5,
+			gardenURL(worker.GardenAddr),
 		),
 		bclient.NewWithHTTPClient(worker.BaggageclaimURL, &http.Client{
 			Transport: &http.Transport{
@@ -330,12 +328,6 @@ func (req reportVolumesRequest) Handle(ctx context.Context, state ConnState, cha
 	}).WorkerStatus(ctx, worker, tsa.ReportVolumes)
 }
 
-func keepaliveDialerFactory(network string, address string) gconn.DialerFunc {
-	dialer := &net.Dialer{
-		KeepAlive: 15 * time.Second,
-	}
-
-	return func(string, string) (net.Conn, error) {
-		return dialer.Dial(network, address)
-	}
+func gardenURL(addr string) string {
+	return fmt.Sprintf("http://%s", addr)
 }
