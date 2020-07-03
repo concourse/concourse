@@ -18,3 +18,7 @@
   * set_pipeline step is removed from job
   * Job that set pipeline is deleted
   * Parent pipeline is deleted
+
+#### <sub><sup><a name="5146" href="#5146">:link:</a></sup></sub> feature
+
+* Refactor TSA to use Concourse's gclient which has a configurable timeout Issue: #5146 PR: #5845
