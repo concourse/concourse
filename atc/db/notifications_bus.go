@@ -168,8 +168,9 @@ func (bus *notificationsBus) handleReconnect() {
 
 type queue struct {
 	sync.Mutex
-	dirty chan struct{}
-	queue []Notification
+	dirty  chan struct{}
+	closed chan struct{}
+	queue  []Notification
 }
 
 func newQueue() *queue {
@@ -190,9 +191,10 @@ func (q *queue) enqueue(n Notification) {
 
 func (q *queue) drain(notify chan Notification) {
 	for {
-		_, ok := <-q.dirty
-		if !ok {
+		select {
+		case <-q.closed:
 			return
+		case <-q.dirty:
 		}
 		q.Lock()
 		clone := make([]Notification, len(q.queue))
@@ -201,7 +203,11 @@ func (q *queue) drain(notify chan Notification) {
 		q.Unlock()
 
 		for _, elem := range clone {
-			notify <- elem
+			select {
+			case <-q.closed:
+				return
+			case notify <- elem:
+			}
 		}
 	}
 }
@@ -248,7 +254,7 @@ func (m *notificationsMap) unregister(channel string, notify chan Notification) 
 	}
 	q := n[notify]
 	if q != nil {
-		close(q.dirty)
+		close(q.closed)
 	}
 	delete(m.notifications[channel], notify)
 }
