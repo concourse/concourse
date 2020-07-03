@@ -2320,7 +2320,7 @@ var _ = Describe("Team", func() {
 					Expect(versions[0].Enabled).To(BeFalse())
 				})
 
-				It("should successfully update resource name", func() {
+				It("should not change the disabled version", func() {
 
 					config.Resources[0].Name = "disabled-resource"
 					config.Resources[0].OldName = "some-resource"
@@ -2343,6 +2343,13 @@ var _ = Describe("Team", func() {
 
 					updatedResource, _, _ := pipeline.Resource("disabled-resource")
 					Expect(updatedResource.ID()).To(Equal(resource.ID()))
+
+					versions, _, found, err := updatedResource.Versions(db.Page{Limit: 3}, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(versions).To(HaveLen(1))
+					Expect(versions[0].Version).To(Equal(atc.Version{"disabled": "version"}))
+					Expect(versions[0].Enabled).To(BeFalse())
 				})
 			})
 
@@ -2390,7 +2397,7 @@ var _ = Describe("Team", func() {
 					Expect(err).ToNot(HaveOccurred())
 				})
 
-				It("should successfully update resource name", func() {
+				It("should not change the pinned version", func() {
 					config.Resources[0].Name = "pinned-resource"
 					config.Resources[0].OldName = "some-resource"
 					config.Jobs[0].PlanSequence = []atc.Step{
