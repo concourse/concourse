@@ -252,11 +252,6 @@ func (p *pipeline) Config() (atc.Config, error) {
 		return atc.Config{}, fmt.Errorf("failed to get resources: %w", err)
 	}
 
-	resourceConfigs, err := resources.Configs()
-	if err != nil {
-		return atc.Config{}, fmt.Errorf("failed to get resources configs: %w", err)
-	}
-
 	resourceTypes, err := p.ResourceTypes()
 	if err != nil {
 		return atc.Config{}, fmt.Errorf("failed to get resources-types: %w", err)
@@ -270,7 +265,7 @@ func (p *pipeline) Config() (atc.Config, error) {
 	config := atc.Config{
 		Groups:        p.Groups(),
 		VarSources:    p.VarSources(),
-		Resources:     resourceConfigs,
+		Resources:     resources.Configs(),
 		ResourceTypes: resourceTypes.Configs(),
 		Jobs:          jobConfigs,
 	}

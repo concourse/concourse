@@ -3016,15 +3016,13 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			resources, err := pipeline.Resources()
 			Expect(err).ToNot(HaveOccurred())
-			resourceConfigs, err := resources.Configs()
-			Expect(err).ToNot(HaveOccurred())
 			jobs, err := pipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())
 			jobConfigs, err := jobs.Configs()
 			Expect(err).ToNot(HaveOccurred())
 			expectConfigsEqual(atc.Config{
 				Groups:        pipeline.Groups(),
-				Resources:     resourceConfigs,
+				Resources:     resources.Configs(),
 				ResourceTypes: resourceTypes.Configs(),
 				Jobs:          jobConfigs,
 			}, config)
@@ -3038,15 +3036,13 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			otherResources, err := otherPipeline.Resources()
 			Expect(err).ToNot(HaveOccurred())
-			otherResourceConfigs, err := otherResources.Configs()
-			Expect(err).ToNot(HaveOccurred())
 			otherJobs, err := otherPipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())
 			otherJobConfigs, err := otherJobs.Configs()
 			Expect(err).ToNot(HaveOccurred())
 			expectConfigsEqual(atc.Config{
 				Groups:        otherPipeline.Groups(),
-				Resources:     otherResourceConfigs,
+				Resources:     otherResources.Configs(),
 				ResourceTypes: otherResourceTypes.Configs(),
 				Jobs:          otherJobConfigs,
 			}, otherConfig)
@@ -3069,15 +3065,13 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			resources, err := pipeline.Resources()
 			Expect(err).ToNot(HaveOccurred())
-			resourceConfigs, err := resources.Configs()
-			Expect(err).ToNot(HaveOccurred())
 			jobs, err := pipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())
 			jobConfigs, err := jobs.Configs()
 			Expect(err).ToNot(HaveOccurred())
 			expectConfigsEqual(atc.Config{
 				Groups:        pipeline.Groups(),
-				Resources:     resourceConfigs,
+				Resources:     resources.Configs(),
 				ResourceTypes: resourceTypes.Configs(),
 				Jobs:          jobConfigs,
 			}, config)
@@ -3086,15 +3080,13 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			otherResources, err := otherPipeline.Resources()
 			Expect(err).ToNot(HaveOccurred())
-			otherResourceConfigs, err := otherResources.Configs()
-			Expect(err).ToNot(HaveOccurred())
 			otherJobs, err := otherPipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())
 			otherJobConfigs, err := otherJobs.Configs()
 			Expect(err).ToNot(HaveOccurred())
 			expectConfigsEqual(atc.Config{
 				Groups:        otherPipeline.Groups(),
-				Resources:     otherResourceConfigs,
+				Resources:     otherResources.Configs(),
 				ResourceTypes: otherResourceTypes.Configs(),
 				Jobs:          otherJobConfigs,
 			}, otherConfig)
@@ -3166,15 +3158,13 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			resources, err = pipeline.Resources()
 			Expect(err).ToNot(HaveOccurred())
-			resourceConfigs, err = resources.Configs()
-			Expect(err).ToNot(HaveOccurred())
 			jobs, err = pipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())
 			jobConfigs, err = jobs.Configs()
 			Expect(err).ToNot(HaveOccurred())
 			expectConfigsEqual(atc.Config{
 				Groups:        pipeline.Groups(),
-				Resources:     resourceConfigs,
+				Resources:     resources.Configs(),
 				ResourceTypes: resourceTypes.Configs(),
 				Jobs:          jobConfigs,
 			}, updatedConfig)
@@ -3183,15 +3173,13 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			otherResources, err = otherPipeline.Resources()
 			Expect(err).ToNot(HaveOccurred())
-			otherResourceConfigs, err = otherResources.Configs()
-			Expect(err).ToNot(HaveOccurred())
 			otherJobs, err = otherPipeline.Jobs()
 			Expect(err).ToNot(HaveOccurred())
 			otherJobConfigs, err = jobs.Configs()
 			Expect(err).ToNot(HaveOccurred())
 			expectConfigsEqual(atc.Config{
 				Groups:        otherPipeline.Groups(),
-				Resources:     otherResourceConfigs,
+				Resources:     otherResources.Configs(),
 				ResourceTypes: otherResourceTypes.Configs(),
 				Jobs:          otherJobConfigs,
 			}, updatedConfig)
@@ -3234,8 +3222,7 @@ var _ = Describe("Team", func() {
 
 			resources, err := pipeline.Resources()
 			Expect(err).ToNot(HaveOccurred())
-			rConfigs, err := resources.Configs()
-			Expect(err).ToNot(HaveOccurred())
+			rConfigs := resources.Configs()
 			Expect(rConfigs[0].Name).To(Equal(config.Resources[1].Name)) // "new-resource"
 			Expect(rConfigs[1].Name).To(Equal(config.Resources[0].Name)) // "some-resource"
 		})

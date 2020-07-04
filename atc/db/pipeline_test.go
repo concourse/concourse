@@ -266,8 +266,7 @@ var _ = Describe("Pipeline", func() {
 			resources, err := pipeline.Resources()
 			Expect(err).ToNot(HaveOccurred())
 
-			resourceConfigs, err := resources.Configs()
-			Expect(err).ToNot(HaveOccurred())
+			resourceConfigs := resources.Configs()
 
 			emptyResourceConfigs := make(atc.ResourceConfigs, len(pipelineConfig.Resources))
 			Expect(resourceConfigs).To(Equal(emptyResourceConfigs))
