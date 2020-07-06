@@ -8,17 +8,17 @@ import (
 )
 
 type FakeIptables struct {
-	AppendChainStub        func(string, string, ...string) error
-	appendChainMutex       sync.RWMutex
-	appendChainArgsForCall []struct {
+	AppendRuleStub        func(string, string, ...string) error
+	appendRuleMutex       sync.RWMutex
+	appendRuleArgsForCall []struct {
 		arg1 string
 		arg2 string
 		arg3 []string
 	}
-	appendChainReturns struct {
+	appendRuleReturns struct {
 		result1 error
 	}
-	appendChainReturnsOnCall map[int]struct {
+	appendRuleReturnsOnCall map[int]struct {
 		result1 error
 	}
 	CreateChainOrFlushIfExistsStub        func(string, string) error
@@ -37,64 +37,64 @@ type FakeIptables struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeIptables) AppendChain(arg1 string, arg2 string, arg3 ...string) error {
-	fake.appendChainMutex.Lock()
-	ret, specificReturn := fake.appendChainReturnsOnCall[len(fake.appendChainArgsForCall)]
-	fake.appendChainArgsForCall = append(fake.appendChainArgsForCall, struct {
+func (fake *FakeIptables) AppendRule(arg1 string, arg2 string, arg3 ...string) error {
+	fake.appendRuleMutex.Lock()
+	ret, specificReturn := fake.appendRuleReturnsOnCall[len(fake.appendRuleArgsForCall)]
+	fake.appendRuleArgsForCall = append(fake.appendRuleArgsForCall, struct {
 		arg1 string
 		arg2 string
 		arg3 []string
 	}{arg1, arg2, arg3})
-	fake.recordInvocation("AppendChain", []interface{}{arg1, arg2, arg3})
-	fake.appendChainMutex.Unlock()
-	if fake.AppendChainStub != nil {
-		return fake.AppendChainStub(arg1, arg2, arg3...)
+	fake.recordInvocation("AppendRule", []interface{}{arg1, arg2, arg3})
+	fake.appendRuleMutex.Unlock()
+	if fake.AppendRuleStub != nil {
+		return fake.AppendRuleStub(arg1, arg2, arg3...)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.appendChainReturns
+	fakeReturns := fake.appendRuleReturns
 	return fakeReturns.result1
 }
 
-func (fake *FakeIptables) AppendChainCallCount() int {
-	fake.appendChainMutex.RLock()
-	defer fake.appendChainMutex.RUnlock()
-	return len(fake.appendChainArgsForCall)
+func (fake *FakeIptables) AppendRuleCallCount() int {
+	fake.appendRuleMutex.RLock()
+	defer fake.appendRuleMutex.RUnlock()
+	return len(fake.appendRuleArgsForCall)
 }
 
-func (fake *FakeIptables) AppendChainCalls(stub func(string, string, ...string) error) {
-	fake.appendChainMutex.Lock()
-	defer fake.appendChainMutex.Unlock()
-	fake.AppendChainStub = stub
+func (fake *FakeIptables) AppendRuleCalls(stub func(string, string, ...string) error) {
+	fake.appendRuleMutex.Lock()
+	defer fake.appendRuleMutex.Unlock()
+	fake.AppendRuleStub = stub
 }
 
-func (fake *FakeIptables) AppendChainArgsForCall(i int) (string, string, []string) {
-	fake.appendChainMutex.RLock()
-	defer fake.appendChainMutex.RUnlock()
-	argsForCall := fake.appendChainArgsForCall[i]
+func (fake *FakeIptables) AppendRuleArgsForCall(i int) (string, string, []string) {
+	fake.appendRuleMutex.RLock()
+	defer fake.appendRuleMutex.RUnlock()
+	argsForCall := fake.appendRuleArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeIptables) AppendChainReturns(result1 error) {
-	fake.appendChainMutex.Lock()
-	defer fake.appendChainMutex.Unlock()
-	fake.AppendChainStub = nil
-	fake.appendChainReturns = struct {
+func (fake *FakeIptables) AppendRuleReturns(result1 error) {
+	fake.appendRuleMutex.Lock()
+	defer fake.appendRuleMutex.Unlock()
+	fake.AppendRuleStub = nil
+	fake.appendRuleReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeIptables) AppendChainReturnsOnCall(i int, result1 error) {
-	fake.appendChainMutex.Lock()
-	defer fake.appendChainMutex.Unlock()
-	fake.AppendChainStub = nil
-	if fake.appendChainReturnsOnCall == nil {
-		fake.appendChainReturnsOnCall = make(map[int]struct {
+func (fake *FakeIptables) AppendRuleReturnsOnCall(i int, result1 error) {
+	fake.appendRuleMutex.Lock()
+	defer fake.appendRuleMutex.Unlock()
+	fake.AppendRuleStub = nil
+	if fake.appendRuleReturnsOnCall == nil {
+		fake.appendRuleReturnsOnCall = make(map[int]struct {
 			result1 error
 		})
 	}
-	fake.appendChainReturnsOnCall[i] = struct {
+	fake.appendRuleReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -163,8 +163,8 @@ func (fake *FakeIptables) CreateChainOrFlushIfExistsReturnsOnCall(i int, result1
 func (fake *FakeIptables) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.appendChainMutex.RLock()
-	defer fake.appendChainMutex.RUnlock()
+	fake.appendRuleMutex.RLock()
+	defer fake.appendRuleMutex.RUnlock()
 	fake.createChainOrFlushIfExistsMutex.RLock()
 	defer fake.createChainOrFlushIfExistsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

@@ -205,6 +205,10 @@ func NewCNINetwork(opts ...CNINetworkOpt) (*cniNetwork, error) {
 
 	if n.ipt == nil {
 		n.ipt, err = iptables.New()
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialized iptables")
+		}
 	}
 
 	return n, nil
@@ -252,7 +256,7 @@ func (n cniNetwork) SetupRestrictedNetworks() error {
 
 	// Create REJECT rules in empty admin chain
 	for _, restrictedNetwork := range n.restrictedNetworks {
-		err = n.ipt.AppendChain(tableName, ipTablesAdminChainName, "-d", restrictedNetwork, "-j", "REJECT")
+		err = n.ipt.AppendRule(tableName, ipTablesAdminChainName, "-d", restrictedNetwork, "-j", "REJECT")
 		if err != nil {
 			return err
 		}

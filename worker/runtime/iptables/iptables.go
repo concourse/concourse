@@ -8,7 +8,7 @@ import (
 
 type Iptables interface {
 	CreateChainOrFlushIfExists(table string, chain string) error
-	AppendChain(table string, chain string, rulespec ...string) error
+	AppendRule(table string, chain string, rulespec ...string) error
 }
 
 type iptables struct {
@@ -35,7 +35,7 @@ func (ipt *iptables) CreateChainOrFlushIfExists(table string, chain string) erro
 	return err
 }
 
-func (ipt *iptables) AppendChain(table string, chain string, rulespec ...string) error {
+func (ipt *iptables) AppendRule(table string, chain string, rulespec ...string) error {
 	err := ipt.goipt.Append(table, chain, rulespec...)
 	return err
 }

@@ -19,7 +19,6 @@ type CNINetworkSuite struct {
 	network runtime.Network
 	cni     *runtimefakes.FakeCNI
 	store   *runtimefakes.FakeFileStore
-	ipt *iptablesfakes.FakeIptables
 }
 
 func (s *CNINetworkSuite) SetupTest() {
@@ -27,12 +26,11 @@ func (s *CNINetworkSuite) SetupTest() {
 
 	s.store = new(runtimefakes.FakeFileStore)
 	s.cni = new(runtimefakes.FakeCNI)
-	s.ipt = new(iptablesfakes.FakeIptables)
 
 	s.network, err = runtime.NewCNINetwork(
 		runtime.WithCNIFileStore(s.store),
 		runtime.WithCNIClient(s.cni),
-		runtime.WithIptables(s.ipt),
+		runtime.WithIptables(new(iptablesfakes.FakeIptables)),
 	)
 	s.NoError(err)
 }
@@ -130,11 +128,28 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithOneNameServer() {
 }
 
 func (s *CNINetworkSuite) TestSetupRestrictedNetworksCreatesEmptyAdminChain() {
-	err := s.network.SetupRestrictedNetworks()
+	fakeIpt := new(iptablesfakes.FakeIptables)
+	network, err := runtime.NewCNINetwork(
+		runtime.WithRestrictedNetworks([]string{"1.1.1.1", "8.8.8.8"}),
+		runtime.WithIptables(fakeIpt),
+	)
+
+	err = network.SetupRestrictedNetworks()
 	s.NoError(err)
 
-	//TODO: set RESTRICTED_NETWORKS values and check if params match or call count on Append matches
-	s.Equal(1, s.ipt.CreateChainOrFlushIfExistsCallCount())
+	tablename, chainName := fakeIpt.CreateChainOrFlushIfExistsArgsForCall(0)
+	s.Equal(tablename, "filter")
+	s.Equal(chainName, "CONCOURSE-OPERATOR")
+
+	tablename, chainName, rulespec := fakeIpt.AppendRuleArgsForCall(0)
+	s.Equal(tablename, "filter")
+	s.Equal(chainName, "CONCOURSE-OPERATOR")
+	s.Equal(rulespec, []string{"-d", "1.1.1.1", "-j", "REJECT"})
+
+	tablename, chainName, rulespec = fakeIpt.AppendRuleArgsForCall(1)
+	s.Equal(tablename, "filter")
+	s.Equal(chainName, "CONCOURSE-OPERATOR")
+	s.Equal(rulespec, []string{"-d", "8.8.8.8", "-j", "REJECT"})
 }
 
 func (s *CNINetworkSuite) TestAddNilTask() {
