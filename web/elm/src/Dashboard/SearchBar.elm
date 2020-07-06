@@ -16,6 +16,7 @@ import Concourse.PipelineStatus
 import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Models exposing (Dropdown(..), Model)
 import Dashboard.Styles as Styles
+import Dict exposing (Dict)
 import EffectTransformer exposing (ET)
 import FetchResult exposing (FetchResult)
 import Html exposing (Html)
@@ -48,7 +49,10 @@ update session msg ( model, effects ) =
                 ++ [ Focus searchInputId
                    , ModifyUrl <|
                         Routes.toString <|
-                            Routes.Dashboard (Routes.Normal Nothing)
+                            Routes.Dashboard
+                                { searchType = Routes.Normal ""
+                                , dashboardView = model.dashboardView
+                                }
                    ]
             )
 
@@ -58,7 +62,10 @@ update session msg ( model, effects ) =
                 ++ [ Focus searchInputId
                    , ModifyUrl <|
                         Routes.toString <|
-                            Routes.Dashboard (Routes.Normal (Just query))
+                            Routes.Dashboard
+                                { searchType = Routes.Normal query
+                                , dashboardView = model.dashboardView
+                                }
                    ]
             )
 
@@ -157,7 +164,9 @@ handleDelivery delivery ( model, effects ) =
                             , [ ModifyUrl <|
                                     Routes.toString <|
                                         Routes.Dashboard
-                                            (Routes.Normal (Just selectedItem))
+                                            { searchType = Routes.Normal selectedItem
+                                            , dashboardView = model.dashboardView
+                                            }
                               ]
                             )
 
@@ -233,7 +242,7 @@ view :
             , dropdown : Dropdown
             , teams : FetchResult (List Concourse.Team)
             , highDensity : Bool
-            , pipelines : Maybe (List Pipeline)
+            , pipelines : Maybe (Dict String (List Pipeline))
         }
     -> Html Message
 view session ({ query, dropdown, pipelines } as params) =
@@ -246,8 +255,9 @@ view session ({ query, dropdown, pipelines } as params) =
 
         noPipelines =
             pipelines
-                |> Maybe.withDefault []
-                |> List.isEmpty
+                |> Maybe.withDefault Dict.empty
+                |> Dict.values
+                |> List.all List.isEmpty
     in
     if noPipelines then
         Html.text ""
@@ -304,7 +314,7 @@ viewDropdownItems :
             | query : String
             , dropdown : Dropdown
             , teams : FetchResult (List Concourse.Team)
-            , pipelines : Maybe (List Pipeline)
+            , pipelines : Maybe (Dict String (List Pipeline))
         }
     -> List (Html Message)
 viewDropdownItems { screenSize } ({ dropdown } as model) =
@@ -328,7 +338,13 @@ viewDropdownItems { screenSize } ({ dropdown } as model) =
             ]
 
 
-dropdownOptions : { a | query : String, teams : FetchResult (List Concourse.Team), pipelines : Maybe (List Pipeline) } -> List String
+dropdownOptions :
+    { a
+        | query : String
+        , teams : FetchResult (List Concourse.Team)
+        , pipelines : Maybe (Dict String (List Pipeline))
+    }
+    -> List String
 dropdownOptions { query, teams, pipelines } =
     case String.trim query of
         "" ->
@@ -352,8 +368,8 @@ dropdownOptions { query, teams, pipelines } =
                     |> Set.fromList
                 )
                 (pipelines
-                    |> Maybe.withDefault []
-                    |> List.map .teamName
+                    |> Maybe.withDefault Dict.empty
+                    |> Dict.keys
                     |> Set.fromList
                 )
                 |> Set.toList

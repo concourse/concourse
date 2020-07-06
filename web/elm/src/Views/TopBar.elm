@@ -67,10 +67,18 @@ breadcrumbs route =
                 []
 
 
-breadcrumbComponent : Assets.ComponentType -> String -> List (Html Message)
-breadcrumbComponent componentType name =
+breadcrumbComponent :
+    { icon :
+        { component : Assets.ComponentType
+        , widthPx : Float
+        , heightPx : Float
+        }
+    , name : String
+    }
+    -> List (Html Message)
+breadcrumbComponent { name, icon } =
     [ Html.div
-        (Styles.breadcrumbComponent componentType)
+        (Styles.breadcrumbComponent icon)
         []
     , Html.text <| decodeName name
     ]
@@ -93,21 +101,45 @@ pipelineBreadcumb pipelineId =
          ]
             ++ Styles.breadcrumbItem True
         )
-        (breadcrumbComponent Assets.PipelineComponent pipelineId.pipelineName)
+        (breadcrumbComponent
+            { icon =
+                { component = Assets.PipelineComponent
+                , widthPx = 28
+                , heightPx = 16
+                }
+            , name = pipelineId.pipelineName
+            }
+        )
 
 
 jobBreadcrumb : String -> Html Message
 jobBreadcrumb jobName =
     Html.li
         (id "breadcrumb-job" :: Styles.breadcrumbItem False)
-        (breadcrumbComponent Assets.JobComponent jobName)
+        (breadcrumbComponent
+            { icon =
+                { component = Assets.JobComponent
+                , widthPx = 32
+                , heightPx = 17
+                }
+            , name = jobName
+            }
+        )
 
 
 resourceBreadcrumb : String -> Html Message
 resourceBreadcrumb resourceName =
     Html.li
         (id "breadcrumb-resource" :: Styles.breadcrumbItem False)
-        (breadcrumbComponent Assets.ResourceComponent resourceName)
+        (breadcrumbComponent
+            { icon =
+                { component = Assets.ResourceComponent
+                , widthPx = 32
+                , heightPx = 17
+                }
+            , name = resourceName
+            }
+        )
 
 
 decodeName : String -> String

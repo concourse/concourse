@@ -23,6 +23,7 @@ module DashboardTests exposing
     , running
     , userWithRoles
     , whenOnDashboard
+    , whenOnDashboardViewingAllPipelines
     , white
     )
 
@@ -49,6 +50,7 @@ import Message.Effects as Effects
 import Message.Message as Msgs
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as ApplicationMsgs
+import Routes
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -1492,6 +1494,10 @@ all =
                             hdToggle
                                 |> Query.has
                                     [ style "text-transform" "uppercase" ]
+                    , test "displays label on the right" <|
+                        \_ ->
+                            hdToggle
+                                |> Query.has [ style "flex-direction" "row" ]
                     , test "links to HD view" <|
                         \_ ->
                             hdToggle
@@ -1504,7 +1510,7 @@ all =
                                 |> Query.has
                                     [ style "background-image" <|
                                         Assets.backgroundImage <|
-                                            Just (Assets.HighDensityIcon False)
+                                            Just (Assets.ToggleSwitch False)
                                     , style "background-size" "contain"
                                     , style "height" "20px"
                                     , style "width" "35px"
@@ -1536,7 +1542,7 @@ all =
                                 |> Query.has
                                     [ style "background-image" <|
                                         Assets.backgroundImage <|
-                                            Just (Assets.HighDensityIcon True)
+                                            Just (Assets.ToggleSwitch True)
                                     , style "background-size" "contain"
                                     , style "height" "20px"
                                     , style "width" "35px"
@@ -1910,7 +1916,7 @@ all =
                         (Callback.AllJobsFetched <| Ok [])
                     |> Tuple.first
                     |> Application.update
-                        (ApplicationMsgs.Update <| Msgs.DragStart "team" 0)
+                        (ApplicationMsgs.Update <| Msgs.DragStart "team" "pipeline")
                     |> Tuple.first
                     |> Application.handleDelivery
                         (ClockTicked FiveSeconds <|
@@ -2027,6 +2033,24 @@ whenOnDashboard { highDensity } =
 
         else
             "/"
+
+
+whenOnDashboardViewingAllPipelines : { highDensity : Bool } -> Application.Model
+whenOnDashboardViewingAllPipelines { highDensity } =
+    whenOnDashboard { highDensity = highDensity }
+        |> Application.handleDelivery
+            (RouteChanged <|
+                Routes.Dashboard
+                    { searchType =
+                        if highDensity then
+                            Routes.HighDensity
+
+                        else
+                            Routes.Normal ""
+                    , dashboardView = Routes.ViewAllPipelines
+                    }
+            )
+        |> Tuple.first
 
 
 givenDataAndUser :

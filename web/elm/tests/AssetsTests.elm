@@ -45,17 +45,17 @@ toStringTests =
                 ChevronRight
                     |> toString
                     |> Expect.equal "/public/images/baseline-chevron-right.svg"
-        , describe "HighDensityIcon"
+        , describe "ToggleSwitch"
             [ test "On" <|
                 \_ ->
-                    HighDensityIcon True
+                    ToggleSwitch True
                         |> toString
-                        |> Expect.equal "/public/images/ic-hd-on.svg"
+                        |> Expect.equal "/public/images/ic-toggle-on.svg"
             , test "Off" <|
                 \_ ->
-                    HighDensityIcon False
+                    ToggleSwitch False
                         |> toString
-                        |> Expect.equal "/public/images/ic-hd-off.svg"
+                        |> Expect.equal "/public/images/ic-toggle-off.svg"
             ]
         , describe "VisibilityToggleIcon"
             [ test "Visible" <|

@@ -30,6 +30,7 @@ import Parser
         , succeed
         , symbol
         )
+import Routes
 import Simple.Fuzzy
 
 
@@ -44,33 +45,36 @@ filterGroups :
     , jobs : Dict ( String, String, String ) Concourse.Job
     , query : String
     , teams : List Concourse.Team
-    , pipelines : List Pipeline
+    , pipelines : Dict String (List Pipeline)
+    , dashboardView : Routes.DashboardView
     }
     -> List Group
-filterGroups { pipelineJobs, jobs, query, teams, pipelines } =
+filterGroups { pipelineJobs, jobs, query, teams, pipelines, dashboardView } =
     let
         groupsToFilter =
-            pipelines
-                |> List.foldr
-                    (\p ->
-                        Dict.update p.teamName
-                            (Maybe.withDefault []
-                                >> (::) p
-                                >> Just
-                            )
-                    )
-                    (teams
-                        |> List.map (\team -> ( team.name, [] ))
-                        |> Dict.fromList
-                    )
+            teams
+                |> List.map (\t -> ( t.name, [] ))
+                |> Dict.fromList
+                |> Dict.union pipelines
                 |> Dict.toList
-                |> List.map (\( k, v ) -> { teamName = k, pipelines = v })
+                |> List.map
+                    (\( t, p ) ->
+                        { teamName = t
+                        , pipelines = List.filter (prefilter dashboardView) p
+                        }
+                    )
     in
-    if query == "" then
-        groupsToFilter
+    parseFilters query |> List.foldr (runFilter jobs pipelineJobs) groupsToFilter
 
-    else
-        parseFilters query |> List.foldr (runFilter jobs pipelineJobs) groupsToFilter
+
+prefilter : Routes.DashboardView -> (Pipeline -> Bool)
+prefilter view =
+    case view of
+        Routes.ViewNonArchivedPipelines ->
+            not << .archived
+
+        _ ->
+            always True
 
 
 runFilter : Dict ( String, String, String ) Concourse.Job -> Dict ( String, String ) (List Concourse.JobIdentifier) -> Filter -> List Group -> List Group

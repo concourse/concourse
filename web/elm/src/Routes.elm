@@ -1,11 +1,11 @@
 module Routes exposing
-    ( Highlight(..)
+    ( DashboardView(..)
+    , Highlight(..)
     , Route(..)
     , SearchType(..)
     , StepID
     , Transition
     , buildRoute
-    , dashboardRoute
     , extractPid
     , extractQuery
     , jobRoute
@@ -18,6 +18,7 @@ module Routes exposing
 
 import Concourse
 import Concourse.Pagination as Pagination exposing (Direction(..))
+import Dict
 import Maybe.Extra
 import Url
 import Url.Builder as Builder
@@ -45,13 +46,33 @@ type Route
     | Job { id : Concourse.JobIdentifier, page : Maybe Pagination.Page }
     | OneOffBuild { id : Concourse.BuildId, highlight : Highlight }
     | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
-    | Dashboard SearchType
+    | Dashboard { searchType : SearchType, dashboardView : DashboardView }
     | FlySuccess Bool (Maybe Int)
 
 
 type SearchType
     = HighDensity
-    | Normal (Maybe String)
+    | Normal String
+
+
+type DashboardView
+    = ViewNonArchivedPipelines
+    | ViewAllPipelines
+
+
+dashboardViews : List DashboardView
+dashboardViews =
+    [ ViewNonArchivedPipelines, ViewAllPipelines ]
+
+
+dashboardViewName : DashboardView -> String
+dashboardViewName view =
+    case view of
+        ViewAllPipelines ->
+            "all"
+
+        ViewNonArchivedPipelines ->
+            "non_archived"
 
 
 type Highlight
@@ -201,16 +222,29 @@ pipeline =
 
 dashboard : Parser (Route -> a) a
 dashboard =
-    oneOf
-        [ map
-            (Maybe.map (String.replace "+" " ")
-                -- https://github.com/elm/url/issues/32
-                >> Normal
-                >> Dashboard
+    map (\st view -> Dashboard { searchType = st, dashboardView = view }) <|
+        oneOf
+            [ (top <?> Query.string "search")
+                |> map
+                    (Maybe.map (String.replace "+" " ")
+                        -- https://github.com/elm/url/issues/32
+                        >> Maybe.withDefault ""
+                        >> Normal
+                    )
+            , s "hd" |> map HighDensity
+            ]
+            <?> dashboardViewQuery
+
+
+dashboardViewQuery : Query.Parser DashboardView
+dashboardViewQuery =
+    (Query.enum "view" <|
+        Dict.fromList
+            (dashboardViews
+                |> List.map (\v -> ( dashboardViewName v, v ))
             )
-            (top <?> Query.string "search")
-        , map (Dashboard HighDensity) (s "hd")
-        ]
+    )
+        |> Query.map (Maybe.withDefault ViewNonArchivedPipelines)
 
 
 flySuccess : Parser (Route -> a) a
@@ -259,15 +293,6 @@ jobRoute j =
 pipelineRoute : { a | name : String, teamName : String } -> Route
 pipelineRoute p =
     Pipeline { id = { teamName = p.teamName, pipelineName = p.name }, groups = [] }
-
-
-dashboardRoute : Bool -> Route
-dashboardRoute isHd =
-    if isHd then
-        Dashboard HighDensity
-
-    else
-        Dashboard (Normal Nothing)
 
 
 showHighlight : Highlight -> String
@@ -425,14 +450,36 @@ toString route =
                 ]
                 (groups |> List.map (Builder.string "group"))
 
-        Dashboard (Normal (Just search)) ->
-            Builder.absolute [] [ Builder.string "search" search ]
+        Dashboard { searchType, dashboardView } ->
+            let
+                path =
+                    case searchType of
+                        Normal _ ->
+                            []
 
-        Dashboard (Normal Nothing) ->
-            Builder.absolute [] []
+                        HighDensity ->
+                            [ "hd" ]
 
-        Dashboard HighDensity ->
-            Builder.absolute [ "hd" ] []
+                queryParams =
+                    (case searchType of
+                        Normal "" ->
+                            []
+
+                        Normal query ->
+                            [ Builder.string "search" query ]
+
+                        _ ->
+                            []
+                    )
+                        ++ (case dashboardView of
+                                ViewNonArchivedPipelines ->
+                                    []
+
+                                _ ->
+                                    [ Builder.string "view" <| dashboardViewName dashboardView ]
+                           )
+            in
+            Builder.absolute path queryParams
 
         FlySuccess noop flyPort ->
             Builder.absolute [ "fly_success" ] <|
@@ -479,7 +526,7 @@ extractPid route =
 extractQuery : SearchType -> String
 extractQuery route =
     case route of
-        Normal (Just q) ->
+        Normal q ->
             q
 
         _ ->
