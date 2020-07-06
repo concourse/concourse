@@ -268,10 +268,7 @@ var _ = Describe("Pipeline", func() {
 
 			resourceConfigs := resources.Configs()
 
-			emptyResourceConfigs := atc.ResourceConfigs{
-				{Name: "some-other-resource", Type: "some-type"},
-				{Name: "some-resource", Type: "some-type"},
-			}
+			emptyResourceConfigs := make(atc.ResourceConfigs, len(pipelineConfig.Resources))
 			Expect(resourceConfigs).To(Equal(emptyResourceConfigs))
 		})
 

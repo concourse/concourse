@@ -60,6 +60,16 @@ type FakeResource struct {
 	checkTimeoutReturnsOnCall map[int]struct {
 		result1 string
 	}
+	ConfigStub        func() atc.ResourceConfig
+	configMutex       sync.RWMutex
+	configArgsForCall []struct {
+	}
+	configReturns struct {
+		result1 atc.ResourceConfig
+	}
+	configReturnsOnCall map[int]struct {
+		result1 atc.ResourceConfig
+	}
 	ConfigPinnedVersionStub        func() atc.Version
 	configPinnedVersionMutex       sync.RWMutex
 	configPinnedVersionArgsForCall []struct {
@@ -701,6 +711,58 @@ func (fake *FakeResource) CheckTimeoutReturnsOnCall(i int, result1 string) {
 	}
 	fake.checkTimeoutReturnsOnCall[i] = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakeResource) Config() atc.ResourceConfig {
+	fake.configMutex.Lock()
+	ret, specificReturn := fake.configReturnsOnCall[len(fake.configArgsForCall)]
+	fake.configArgsForCall = append(fake.configArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Config", []interface{}{})
+	fake.configMutex.Unlock()
+	if fake.ConfigStub != nil {
+		return fake.ConfigStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.configReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResource) ConfigCallCount() int {
+	fake.configMutex.RLock()
+	defer fake.configMutex.RUnlock()
+	return len(fake.configArgsForCall)
+}
+
+func (fake *FakeResource) ConfigCalls(stub func() atc.ResourceConfig) {
+	fake.configMutex.Lock()
+	defer fake.configMutex.Unlock()
+	fake.ConfigStub = stub
+}
+
+func (fake *FakeResource) ConfigReturns(result1 atc.ResourceConfig) {
+	fake.configMutex.Lock()
+	defer fake.configMutex.Unlock()
+	fake.ConfigStub = nil
+	fake.configReturns = struct {
+		result1 atc.ResourceConfig
+	}{result1}
+}
+
+func (fake *FakeResource) ConfigReturnsOnCall(i int, result1 atc.ResourceConfig) {
+	fake.configMutex.Lock()
+	defer fake.configMutex.Unlock()
+	fake.ConfigStub = nil
+	if fake.configReturnsOnCall == nil {
+		fake.configReturnsOnCall = make(map[int]struct {
+			result1 atc.ResourceConfig
+		})
+	}
+	fake.configReturnsOnCall[i] = struct {
+		result1 atc.ResourceConfig
 	}{result1}
 }
 
@@ -2607,6 +2669,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.checkSetupErrorMutex.RUnlock()
 	fake.checkTimeoutMutex.RLock()
 	defer fake.checkTimeoutMutex.RUnlock()
+	fake.configMutex.RLock()
+	defer fake.configMutex.RUnlock()
 	fake.configPinnedVersionMutex.RLock()
 	defer fake.configPinnedVersionMutex.RUnlock()
 	fake.currentPinnedVersionMutex.RLock()
