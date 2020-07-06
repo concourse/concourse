@@ -1,3 +1,7 @@
+#### <sub><sup><a name="5833" href="#5833">:link:</a></sup></sub> feature
+
+* Added a way of renaming pipeline resources while preserving version history by updating the resource name (as well as any reference in steps) and specifying its old name as [**`old_name`**](https://concourse-ci.org/resources.html#schema.resource.old_name). After the pipeline has been configured, the `old_name` field can be removed. #5833
+
 #### <sub><sup><a name="5777" href="#5777">:link:</a></sup></sub> feature
 
 * Archived pipelines can be displayed in the web UI via a toggle switch in the top bar. #5777, #5760
