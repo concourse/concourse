@@ -100,7 +100,6 @@ type resource struct {
 
 	id                    int
 	name                  string
-	public                bool
 	teamID                int
 	teamName              string
 	type_                 string
