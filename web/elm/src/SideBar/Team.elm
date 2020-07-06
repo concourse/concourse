@@ -3,7 +3,7 @@ module SideBar.Team exposing (team)
 import Assets
 import Concourse
 import HoverState
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..), SideBarSection(..))
 import SideBar.Pipeline as Pipeline
 import SideBar.Styles as Styles
 import SideBar.Views as Views
@@ -22,13 +22,24 @@ team :
         , pipelines : List Concourse.Pipeline
         , currentPipeline : Maybe (PipelineScoped b)
         , favoritedPipelines : List Int
+        , isFavoritesSection : Bool
     }
     -> { name : String, isExpanded : Bool }
     -> Views.Team
 team session t =
     let
+        domID =
+            SideBarTeam
+                (if session.isFavoritesSection then
+                    Favorites
+
+                 else
+                    AllPipelines
+                )
+                t.name
+
         isHovered =
-            HoverState.isHovered (SideBarTeam t.name) session.hovered
+            HoverState.isHovered domID session.hovered
 
         isCurrent =
             (session.currentPipeline |> Maybe.map .teamName) == Just t.name
@@ -67,7 +78,7 @@ team session t =
 
             else
                 Styles.GreyedOut
-        , domID = SideBarTeam t.name
+        , domID = domID
         }
     , isExpanded = t.isExpanded
     , pipelines = List.map (Pipeline.pipeline session) session.pipelines

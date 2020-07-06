@@ -3,7 +3,7 @@ module SideBar.Pipeline exposing (pipeline)
 import Assets
 import Concourse
 import HoverState
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..), SideBarSection(..))
 import Routes
 import SideBar.Styles as Styles
 import SideBar.Views as Views
@@ -21,6 +21,7 @@ pipeline :
         | hovered : HoverState.HoverState
         , currentPipeline : Maybe (PipelineScoped b)
         , favoritedPipelines : List Int
+        , isFavoritesSection : Bool
     }
     -> Concourse.Pipeline
     -> Views.Pipeline
@@ -37,8 +38,18 @@ pipeline session p =
         pipelineId =
             { pipelineName = p.name, teamName = p.teamName }
 
+        domID =
+            SideBarPipeline
+                (if session.isFavoritesSection then
+                    Favorites
+
+                 else
+                    AllPipelines
+                )
+                pipelineId
+
         isHovered =
-            HoverState.isHovered (SideBarPipeline pipelineId) session.hovered
+            HoverState.isHovered domID session.hovered
     in
     { icon =
         { asset =
@@ -81,7 +92,7 @@ pipeline session p =
     , href =
         Routes.toString <|
             Routes.Pipeline { id = pipelineId, groups = [] }
-    , domID = SideBarPipeline pipelineId
+    , domID = domID
     , favIcon =
         { opacity =
             if isCurrent || isHovered then

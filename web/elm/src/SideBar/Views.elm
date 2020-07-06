@@ -34,8 +34,8 @@ viewTeam team =
         (class "side-bar-team" :: Styles.team)
         [ Html.div
             (Styles.teamHeader team
-                ++ [ onClick <| Click <| SideBarTeam team.name.text
-                   , onMouseEnter <| Hover <| Just <| SideBarTeam team.name.text
+                ++ [ onClick <| Click <| team.name.domID
+                   , onMouseEnter <| Hover <| Just <| team.name.domID
                    , onMouseLeave <| Hover Nothing
                    ]
             )
@@ -83,14 +83,15 @@ viewPipeline p =
             ++ [ href <| p.href
                , onMouseEnter <| Hover <| Just <| p.domID
                , onMouseLeave <| Hover Nothing
-               , id <| toHtmlID p.domID
                ]
         )
         [ Html.div
             (Styles.pipelineIcon p.icon)
             []
         , Html.div
-            (Styles.pipelineName p.name)
+            (id (toHtmlID p.domID)
+                :: Styles.pipelineName p.name
+            )
             [ Html.text p.name.text ]
         , Html.div
             (Styles.pipelineFavourite p.favIcon

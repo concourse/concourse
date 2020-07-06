@@ -2,9 +2,11 @@ module Message.Message exposing
     ( DomID(..)
     , DropTarget(..)
     , Message(..)
+    , SideBarSection(..)
     , VersionId
     , VersionToggleAction(..)
     , VisibilityAction(..)
+    , sideBarSectionName
     )
 
 import Concourse
@@ -84,11 +86,26 @@ type DomID
     | JobPreview Concourse.JobIdentifier
     | HamburgerMenu
     | SideBarResizeHandle
-    | SideBarTeam String
-    | SideBarPipeline Concourse.PipelineIdentifier
+    | SideBarTeam SideBarSection String
+    | SideBarPipeline SideBarSection Concourse.PipelineIdentifier
     | SideBarStarIcon Int -- Concourse.Pipeline.id
     | Dashboard
     | DashboardGroup String
+
+
+type SideBarSection
+    = Favorites
+    | AllPipelines
+
+
+sideBarSectionName : SideBarSection -> String
+sideBarSectionName section =
+    case section of
+        Favorites ->
+            "Favorites"
+
+        AllPipelines ->
+            "AllPipelines"
 
 
 type VersionToggleAction

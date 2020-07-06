@@ -25,6 +25,7 @@ import Message.Message
         ( DomID(..)
         , VersionToggleAction(..)
         , VisibilityAction(..)
+        , sideBarSectionName
         )
 import Message.ScrollDirection exposing (ScrollDirection(..))
 import Message.Storage
@@ -649,11 +650,11 @@ runEffect effect key csrfToken =
 toHtmlID : DomID -> String
 toHtmlID domId =
     case domId of
-        SideBarTeam t ->
-            Base64.encode t
+        SideBarTeam section t ->
+            sideBarSectionName section ++ "_" ++ Base64.encode t
 
-        SideBarPipeline p ->
-            Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
+        SideBarPipeline section p ->
+            sideBarSectionName section ++ "_" ++ Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
 
         PipelineStatusIcon p ->
             Base64.encode p.teamName

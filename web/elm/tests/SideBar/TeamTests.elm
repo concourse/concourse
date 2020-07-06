@@ -5,7 +5,7 @@ import Data
 import Expect
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
-import Message.Message exposing (DomID(..), Message)
+import Message.Message exposing (DomID(..), Message, SideBarSection(..))
 import SideBar.Styles as Styles
 import SideBar.Team as Team
 import SideBar.Views as Views
@@ -19,6 +19,7 @@ defaultState =
     , expanded = False
     , hovered = False
     , hasFavorited = False
+    , isFavoritesSection = False
     }
 
 
@@ -277,15 +278,38 @@ all =
                     ]
                 ]
             ]
+        , describe "when in all pipelines section"
+            [ test "domID is for AllPipelines section" <|
+                \_ ->
+                    team { defaultState | isFavoritesSection = False }
+                        |> .name
+                        |> .domID
+                        |> Expect.equal (SideBarTeam AllPipelines "team")
+            ]
+        , describe "when in favorites section"
+            [ test "domID is for Favorites section" <|
+                \_ ->
+                    team { defaultState | isFavoritesSection = True }
+                        |> .name
+                        |> .domID
+                        |> Expect.equal (SideBarTeam Favorites "team")
+            ]
         ]
 
 
-team : { active : Bool, expanded : Bool, hovered : Bool, hasFavorited : Bool } -> Views.Team
-team { active, expanded, hovered, hasFavorited } =
+team :
+    { active : Bool
+    , expanded : Bool
+    , hovered : Bool
+    , hasFavorited : Bool
+    , isFavoritesSection : Bool
+    }
+    -> Views.Team
+team { active, expanded, hovered, hasFavorited, isFavoritesSection } =
     let
         hoveredDomId =
             if hovered then
-                HoverState.Hovered (SideBarTeam "team")
+                HoverState.Hovered (SideBarTeam AllPipelines "team")
 
             else
                 HoverState.NoHover
@@ -315,6 +339,7 @@ team { active, expanded, hovered, hasFavorited } =
         , pipelines = pipelines
         , currentPipeline = activePipeline
         , favoritedPipelines = favoritedPipelines
+        , isFavoritesSection = isFavoritesSection
         }
         { name = "team"
         , isExpanded = expanded

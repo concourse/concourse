@@ -19,7 +19,7 @@ import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
 import List.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..), SideBarSection(..), sideBarSectionName)
 import Message.Subscription exposing (Delivery(..))
 import RemoteData exposing (RemoteData(..), WebData)
 import ScreenSize exposing (ScreenSize(..))
@@ -35,7 +35,7 @@ import Views.Icon as Icon
 type alias Model m =
     Tooltip.Model
         { m
-            | expandedTeams : Set String
+            | expandedTeams : Set ( String, String )
             , pipelines : WebData (List Concourse.Pipeline)
             , sideBarState : SideBarState
             , draggingSideBar : Bool
@@ -66,14 +66,18 @@ update message model =
             , [ Effects.SaveSideBarState newState ]
             )
 
-        Click (SideBarTeam teamName) ->
+        Click (SideBarTeam section teamName) ->
+            let
+                entry =
+                    ( sideBarSectionName section, teamName )
+            in
             ( { model
                 | expandedTeams =
-                    if Set.member teamName model.expandedTeams then
-                        Set.remove teamName model.expandedTeams
+                    if Set.member entry model.expandedTeams then
+                        Set.remove entry model.expandedTeams
 
                     else
-                        Set.insert teamName model.expandedTeams
+                        Set.insert entry model.expandedTeams
               }
             , []
             )
@@ -96,17 +100,17 @@ update message model =
             , [ Effects.SaveFavoritedPipelines <| favoritedPipelines ]
             )
 
-        Hover (Just (SideBarPipeline pipelineID)) ->
+        Hover (Just (SideBarPipeline section pipelineID)) ->
             ( model
             , [ Effects.GetViewportOf
-                    (SideBarPipeline pipelineID)
+                    (SideBarPipeline section pipelineID)
               ]
             )
 
-        Hover (Just (SideBarTeam teamName)) ->
+        Hover (Just (SideBarTeam section teamName)) ->
             ( model
             , [ Effects.GetViewportOf
-                    (SideBarTeam teamName)
+                    (SideBarTeam section teamName)
               ]
             )
 
@@ -123,7 +127,9 @@ handleCallback callback currentPipeline ( model, effects ) =
                 , expandedTeams =
                     case ( model.pipelines, currentPipeline ) of
                         ( NotAsked, Success { teamName } ) ->
-                            Set.insert teamName model.expandedTeams
+                            model.expandedTeams
+                                |> Set.insert ( sideBarSectionName AllPipelines, teamName )
+                                |> Set.insert ( sideBarSectionName Favorites, teamName )
 
                         _ ->
                             model.expandedTeams
@@ -136,7 +142,9 @@ handleCallback callback currentPipeline ( model, effects ) =
                 | expandedTeams =
                     case ( currentPipeline, build.job ) of
                         ( NotAsked, Just { teamName } ) ->
-                            Set.insert teamName model.expandedTeams
+                            model.expandedTeams
+                                |> Set.insert ( sideBarSectionName AllPipelines, teamName )
+                                |> Set.insert ( sideBarSectionName Favorites, teamName )
 
                         _ ->
                             model.expandedTeams
@@ -202,25 +210,18 @@ view model currentPipeline =
 
             newState =
                 { oldState | width = clamp 100 600 oldState.width }
-
-            allPipelinesDiv =
-                allPipelines model currentPipeline
-
-            allFavoritedPipelinesDiv =
-                allFavoritedPipelines model currentPipeline
         in
         Html.div
             (id "side-bar" :: Styles.sideBar newState)
-            [ Html.div Styles.sectionHeader [ Html.text "favorites" ]
-            , Html.div [ id "favorites" ] allFavoritedPipelinesDiv
-            , Html.div Styles.sectionHeader [ Html.text "all pipelines" ]
-            , Html.div [ id "all-pipelines" ] allPipelinesDiv
-            , Html.div
-                (Styles.sideBarHandle newState
-                    ++ [ onMouseDown <| Click SideBarResizeHandle ]
-                )
-                []
-            ]
+            (allFavoritedPipelinesSection model currentPipeline
+                ++ allPipelinesSection model currentPipeline
+                ++ [ Html.div
+                        (Styles.sideBarHandle newState
+                            ++ [ onMouseDown <| Click SideBarResizeHandle ]
+                        )
+                        []
+                   ]
+            )
 
     else
         Html.text ""
@@ -229,14 +230,14 @@ view model currentPipeline =
 tooltip : Model m -> Maybe Tooltip.Tooltip
 tooltip { hovered } =
     case hovered of
-        HoverState.Tooltip (SideBarTeam teamName) _ ->
+        HoverState.Tooltip (SideBarTeam _ teamName) _ ->
             Just
                 { body = Html.div Styles.tooltipBody [ Html.text teamName ]
                 , attachPosition = { direction = Tooltip.Right, alignment = Tooltip.Middle 30 }
                 , arrow = Just { size = 15, color = Colors.frame }
                 }
 
-        HoverState.Tooltip (SideBarPipeline pipelineID) _ ->
+        HoverState.Tooltip (SideBarPipeline _ pipelineID) _ ->
             Just
                 { body = Html.div Styles.tooltipBody [ Html.text pipelineID.pipelineName ]
                 , attachPosition = { direction = Tooltip.Right, alignment = Tooltip.Middle 30 }
@@ -247,49 +248,63 @@ tooltip { hovered } =
             Nothing
 
 
-allPipelines : Model m -> Maybe (PipelineScoped a) -> List (Html Message)
-allPipelines model currentPipeline =
-    model.pipelines
-        |> RemoteData.withDefault []
-        |> List.Extra.gatherEqualsBy .teamName
-        |> List.map
-            (\( p, ps ) ->
-                Team.team
-                    { hovered = model.hovered
-                    , pipelines = p :: ps
-                    , currentPipeline = currentPipeline
-                    , favoritedPipelines = model.favoritedPipelines
-                    }
-                    { name = p.teamName
-                    , isExpanded = Set.member p.teamName model.expandedTeams
-                    }
-                    |> Views.viewTeam
-            )
+allPipelinesSection : Model m -> Maybe (PipelineScoped a) -> List (Html Message)
+allPipelinesSection model currentPipeline =
+    [ Html.div Styles.sectionHeader [ Html.text "all pipelines" ]
+    , Html.div [ id "all-pipelines" ]
+        (model.pipelines
+            |> RemoteData.withDefault []
+            |> List.Extra.gatherEqualsBy .teamName
+            |> List.map
+                (\( p, ps ) ->
+                    Team.team
+                        { hovered = model.hovered
+                        , pipelines = p :: ps
+                        , currentPipeline = currentPipeline
+                        , favoritedPipelines = model.favoritedPipelines
+                        , isFavoritesSection = False
+                        }
+                        { name = p.teamName
+                        , isExpanded = Set.member ( sideBarSectionName AllPipelines, p.teamName ) model.expandedTeams
+                        }
+                        |> Views.viewTeam
+                )
+        )
+    ]
 
 
-allFavoritedPipelines : Model m -> Maybe (PipelineScoped a) -> List (Html Message)
-allFavoritedPipelines model currentPipeline =
-    model.pipelines
-        |> RemoteData.withDefault []
-        |> List.Extra.gatherEqualsBy .teamName
-        |> List.map
-            (\( p, ps ) ->
-                Team.team
-                    { hovered = model.hovered
-                    , pipelines =
-                        List.filter
-                            (\fp ->
-                                List.member fp.id model.favoritedPipelines
-                            )
-                            (p :: ps)
-                    , currentPipeline = currentPipeline
-                    , favoritedPipelines = model.favoritedPipelines
-                    }
-                    { name = p.teamName
-                    , isExpanded = Set.member p.teamName model.expandedTeams
-                    }
-                    |> Views.viewTeam
+allFavoritedPipelinesSection : Model m -> Maybe (PipelineScoped a) -> List (Html Message)
+allFavoritedPipelinesSection model currentPipeline =
+    if List.isEmpty model.favoritedPipelines then
+        []
+
+    else
+        [ Html.div Styles.sectionHeader [ Html.text "favorites" ]
+        , Html.div [ id "favorites" ]
+            (model.pipelines
+                |> RemoteData.withDefault []
+                |> List.Extra.gatherEqualsBy .teamName
+                |> List.map
+                    (\( p, ps ) ->
+                        Team.team
+                            { hovered = model.hovered
+                            , pipelines =
+                                List.filter
+                                    (\fp ->
+                                        List.member fp.id model.favoritedPipelines
+                                    )
+                                    (p :: ps)
+                            , currentPipeline = currentPipeline
+                            , favoritedPipelines = model.favoritedPipelines
+                            , isFavoritesSection = True
+                            }
+                            { name = p.teamName
+                            , isExpanded = Set.member ( sideBarSectionName Favorites, p.teamName ) model.expandedTeams
+                            }
+                            |> Views.viewTeam
+                    )
             )
+        ]
 
 
 hamburgerMenu :

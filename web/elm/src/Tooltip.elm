@@ -66,10 +66,10 @@ type Alignment
 policy : DomID -> TooltipCondition
 policy domID =
     case domID of
-        SideBarPipeline _ ->
+        SideBarPipeline _ _ ->
             OnlyShowWhenOverflowing
 
-        SideBarTeam _ ->
+        SideBarTeam _ _ ->
             OnlyShowWhenOverflowing
 
         _ ->
