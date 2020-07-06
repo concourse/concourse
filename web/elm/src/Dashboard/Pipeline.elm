@@ -111,10 +111,9 @@ pipelineView :
     , resourceError : Bool
     , existingJobs : List Concourse.Job
     , layers : List (List Concourse.Job)
-    , query : String
     }
     -> Html Message
-pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, resourceError, existingJobs, layers, query } =
+pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, resourceError, existingJobs, layers } =
     let
         bannerStyle =
             if pipeline.stale then
@@ -131,7 +130,7 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, reso
     in
     Html.div
         (Styles.pipelineCard
-            ++ (if not pipeline.stale && String.isEmpty query then
+            ++ (if not pipeline.stale then
                     [ style "cursor" "move" ]
 
                 else

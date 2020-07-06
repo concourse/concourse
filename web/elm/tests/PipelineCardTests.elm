@@ -227,26 +227,6 @@ all =
                         , containing [ text "pipeline" ]
                         ]
                     |> Query.has [ style "cursor" "move" ]
-        , test "does not have 'move' cursor when searching" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
-                    |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.AllPipelinesFetched <|
-                            Ok
-                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
-                        )
-                    |> Tuple.first
-                    |> Application.update
-                        (ApplicationMsgs.Update <| Msgs.FilterMsg "pipeline")
-                    |> Tuple.first
-                    |> Common.queryView
-                    |> Query.find
-                        [ class "card"
-                        , containing [ text "pipeline" ]
-                        ]
-                    |> Query.hasNot [ style "cursor" "move" ]
         , test "does not have 'move' cursor when rendering based on cache" <|
             \_ ->
                 whenOnDashboard { highDensity = False }

@@ -52,7 +52,6 @@ view :
         , pipelineRunningKeyframes : String
         , pipelinesWithResourceErrors : Set ( String, String )
         , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
-        , query : String
         , pipelineCards : List PipelineGrid.PipelineCard
         , dropAreas : List PipelineGrid.DropArea
         , groupCardsHeight : Float
@@ -217,7 +216,6 @@ pipelineCardView :
             , pipelineRunningKeyframes : String
             , pipelinesWithResourceErrors : Set ( String, String )
             , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
-            , query : String
             , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
             , jobs : Dict ( String, String, String ) Concourse.Job
         }
@@ -289,7 +287,7 @@ pipelineCardView session params { bounds, pipeline } teamName =
              , style "width" "100%"
              , attribute "data-pipeline-name" pipeline.name
              ]
-                ++ (if not pipeline.stale && String.isEmpty params.query then
+                ++ (if not pipeline.stale then
                         [ attribute
                             "ondragstart"
                             "event.dataTransfer.setData('text/plain', '');"
@@ -337,7 +335,6 @@ pipelineCardView session params { bounds, pipeline } teamName =
                 , hovered = params.hovered
                 , pipelineRunningKeyframes = params.pipelineRunningKeyframes
                 , userState = session.userState
-                , query = params.query
                 }
             ]
         ]
