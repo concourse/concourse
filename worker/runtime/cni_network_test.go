@@ -3,10 +3,10 @@ package runtime_test
 import (
 	"context"
 	"errors"
-
 	"github.com/concourse/concourse/worker/runtime"
-	"github.com/concourse/concourse/worker/runtime/runtimefakes"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
+	"github.com/concourse/concourse/worker/runtime/iptables/iptablesfakes"
+	"github.com/concourse/concourse/worker/runtime/runtimefakes"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -19,6 +19,7 @@ type CNINetworkSuite struct {
 	network runtime.Network
 	cni     *runtimefakes.FakeCNI
 	store   *runtimefakes.FakeFileStore
+	ipt *iptablesfakes.FakeIptables
 }
 
 func (s *CNINetworkSuite) SetupTest() {
@@ -26,9 +27,12 @@ func (s *CNINetworkSuite) SetupTest() {
 
 	s.store = new(runtimefakes.FakeFileStore)
 	s.cni = new(runtimefakes.FakeCNI)
+	s.ipt = new(iptablesfakes.FakeIptables)
+
 	s.network, err = runtime.NewCNINetwork(
 		runtime.WithCNIFileStore(s.store),
 		runtime.WithCNIClient(s.cni),
+		runtime.WithIptables(s.ipt),
 	)
 	s.NoError(err)
 }
@@ -123,6 +127,14 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithOneNameServer() {
 
 	_, resolvConfContents := s.store.CreateArgsForCall(1)
 	s.Equal(resolvConfContents, []byte("nameserver 6.6.7.7\nnameserver 1.2.3.4\n"))
+}
+
+func (s *CNINetworkSuite) TestSetupRestrictedNetworksCreatesEmptyAdminChain() {
+	err := s.network.SetupRestrictedNetworks()
+	s.NoError(err)
+
+	//TODO: set RESTRICTED_NETWORKS values and check if params match or call count on Append matches
+	s.Equal(1, s.ipt.CreateChainOrFlushIfExistsCallCount())
 }
 
 func (s *CNINetworkSuite) TestAddNilTask() {
