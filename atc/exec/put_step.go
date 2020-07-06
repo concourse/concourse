@@ -30,6 +30,7 @@ type PutDelegate interface {
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus, runtime.VersionResult)
+	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
 
 	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, atc.VersionedResourceTypes, runtime.VersionResult)

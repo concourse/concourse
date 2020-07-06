@@ -506,6 +506,17 @@ func (delegate *buildStepDelegate) Finished(logger lager.Logger, succeeded bool)
 	logger.Info("finished")
 }
 
+func (d *buildStepDelegate) SelectedWorker(logger lager.Logger, workerName string) {
+	err := d.build.SaveEvent(event.SelectedWorker{
+		Time:       time.Now().Unix(),
+		WorkerName: workerName,
+	})
+	if err != nil {
+		logger.Error("failed-to-save-selected-worker-event", err)
+		return
+	}
+}
+
 func (delegate *buildStepDelegate) Errored(logger lager.Logger, message string) {
 	err := delegate.build.SaveEvent(event.Error{
 		Message: message,

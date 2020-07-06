@@ -48,6 +48,7 @@ type GetDelegate interface {
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus, runtime.VersionResult)
+	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
 
 	UpdateVersion(lager.Logger, atc.GetPlan, runtime.VersionResult)

@@ -25,19 +25,6 @@ type FakeTaskDelegate struct {
 		arg1 lager.Logger
 		arg2 exec.ExitStatus
 	}
-	ImageSourceRedactionStub        func(atc.Source) (atc.Source, error)
-	imageSourceRedactionMutex       sync.RWMutex
-	imageSourceRedactionArgsForCall []struct {
-		arg1 atc.Source
-	}
-	imageSourceRedactionReturns struct {
-		result1 atc.Source
-		result2 error
-	}
-	imageSourceRedactionReturnsOnCall map[int]struct {
-		result1 atc.Source
-		result2 error
-	}
 	ImageVersionDeterminedStub        func(db.UsedResourceCache) error
 	imageVersionDeterminedMutex       sync.RWMutex
 	imageVersionDeterminedArgsForCall []struct {
@@ -53,6 +40,25 @@ type FakeTaskDelegate struct {
 	initializingMutex       sync.RWMutex
 	initializingArgsForCall []struct {
 		arg1 lager.Logger
+	}
+	RedactImageSourceStub        func(atc.Source) (atc.Source, error)
+	redactImageSourceMutex       sync.RWMutex
+	redactImageSourceArgsForCall []struct {
+		arg1 atc.Source
+	}
+	redactImageSourceReturns struct {
+		result1 atc.Source
+		result2 error
+	}
+	redactImageSourceReturnsOnCall map[int]struct {
+		result1 atc.Source
+		result2 error
+	}
+	SelectedWorkerStub        func(lager.Logger, string)
+	selectedWorkerMutex       sync.RWMutex
+	selectedWorkerArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 string
 	}
 	SetTaskConfigStub        func(atc.TaskConfig)
 	setTaskConfigMutex       sync.RWMutex
@@ -162,69 +168,6 @@ func (fake *FakeTaskDelegate) FinishedArgsForCall(i int) (lager.Logger, exec.Exi
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeTaskDelegate) RedactImageSource(arg1 atc.Source) (atc.Source, error) {
-	fake.imageSourceRedactionMutex.Lock()
-	ret, specificReturn := fake.imageSourceRedactionReturnsOnCall[len(fake.imageSourceRedactionArgsForCall)]
-	fake.imageSourceRedactionArgsForCall = append(fake.imageSourceRedactionArgsForCall, struct {
-		arg1 atc.Source
-	}{arg1})
-	fake.recordInvocation("RedactImageSource", []interface{}{arg1})
-	fake.imageSourceRedactionMutex.Unlock()
-	if fake.ImageSourceRedactionStub != nil {
-		return fake.ImageSourceRedactionStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.imageSourceRedactionReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeTaskDelegate) ImageSourceRedactionCallCount() int {
-	fake.imageSourceRedactionMutex.RLock()
-	defer fake.imageSourceRedactionMutex.RUnlock()
-	return len(fake.imageSourceRedactionArgsForCall)
-}
-
-func (fake *FakeTaskDelegate) ImageSourceRedactionCalls(stub func(atc.Source) (atc.Source, error)) {
-	fake.imageSourceRedactionMutex.Lock()
-	defer fake.imageSourceRedactionMutex.Unlock()
-	fake.ImageSourceRedactionStub = stub
-}
-
-func (fake *FakeTaskDelegate) ImageSourceRedactionArgsForCall(i int) atc.Source {
-	fake.imageSourceRedactionMutex.RLock()
-	defer fake.imageSourceRedactionMutex.RUnlock()
-	argsForCall := fake.imageSourceRedactionArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeTaskDelegate) ImageSourceRedactionReturns(result1 atc.Source, result2 error) {
-	fake.imageSourceRedactionMutex.Lock()
-	defer fake.imageSourceRedactionMutex.Unlock()
-	fake.ImageSourceRedactionStub = nil
-	fake.imageSourceRedactionReturns = struct {
-		result1 atc.Source
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeTaskDelegate) ImageSourceRedactionReturnsOnCall(i int, result1 atc.Source, result2 error) {
-	fake.imageSourceRedactionMutex.Lock()
-	defer fake.imageSourceRedactionMutex.Unlock()
-	fake.ImageSourceRedactionStub = nil
-	if fake.imageSourceRedactionReturnsOnCall == nil {
-		fake.imageSourceRedactionReturnsOnCall = make(map[int]struct {
-			result1 atc.Source
-			result2 error
-		})
-	}
-	fake.imageSourceRedactionReturnsOnCall[i] = struct {
-		result1 atc.Source
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeTaskDelegate) ImageVersionDetermined(arg1 db.UsedResourceCache) error {
 	fake.imageVersionDeterminedMutex.Lock()
 	ret, specificReturn := fake.imageVersionDeterminedReturnsOnCall[len(fake.imageVersionDeterminedArgsForCall)]
@@ -314,6 +257,101 @@ func (fake *FakeTaskDelegate) InitializingArgsForCall(i int) lager.Logger {
 	defer fake.initializingMutex.RUnlock()
 	argsForCall := fake.initializingArgsForCall[i]
 	return argsForCall.arg1
+}
+
+func (fake *FakeTaskDelegate) RedactImageSource(arg1 atc.Source) (atc.Source, error) {
+	fake.redactImageSourceMutex.Lock()
+	ret, specificReturn := fake.redactImageSourceReturnsOnCall[len(fake.redactImageSourceArgsForCall)]
+	fake.redactImageSourceArgsForCall = append(fake.redactImageSourceArgsForCall, struct {
+		arg1 atc.Source
+	}{arg1})
+	fake.recordInvocation("RedactImageSource", []interface{}{arg1})
+	fake.redactImageSourceMutex.Unlock()
+	if fake.RedactImageSourceStub != nil {
+		return fake.RedactImageSourceStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.redactImageSourceReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTaskDelegate) RedactImageSourceCallCount() int {
+	fake.redactImageSourceMutex.RLock()
+	defer fake.redactImageSourceMutex.RUnlock()
+	return len(fake.redactImageSourceArgsForCall)
+}
+
+func (fake *FakeTaskDelegate) RedactImageSourceCalls(stub func(atc.Source) (atc.Source, error)) {
+	fake.redactImageSourceMutex.Lock()
+	defer fake.redactImageSourceMutex.Unlock()
+	fake.RedactImageSourceStub = stub
+}
+
+func (fake *FakeTaskDelegate) RedactImageSourceArgsForCall(i int) atc.Source {
+	fake.redactImageSourceMutex.RLock()
+	defer fake.redactImageSourceMutex.RUnlock()
+	argsForCall := fake.redactImageSourceArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeTaskDelegate) RedactImageSourceReturns(result1 atc.Source, result2 error) {
+	fake.redactImageSourceMutex.Lock()
+	defer fake.redactImageSourceMutex.Unlock()
+	fake.RedactImageSourceStub = nil
+	fake.redactImageSourceReturns = struct {
+		result1 atc.Source
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTaskDelegate) RedactImageSourceReturnsOnCall(i int, result1 atc.Source, result2 error) {
+	fake.redactImageSourceMutex.Lock()
+	defer fake.redactImageSourceMutex.Unlock()
+	fake.RedactImageSourceStub = nil
+	if fake.redactImageSourceReturnsOnCall == nil {
+		fake.redactImageSourceReturnsOnCall = make(map[int]struct {
+			result1 atc.Source
+			result2 error
+		})
+	}
+	fake.redactImageSourceReturnsOnCall[i] = struct {
+		result1 atc.Source
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTaskDelegate) SelectedWorker(arg1 lager.Logger, arg2 string) {
+	fake.selectedWorkerMutex.Lock()
+	fake.selectedWorkerArgsForCall = append(fake.selectedWorkerArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("SelectedWorker", []interface{}{arg1, arg2})
+	fake.selectedWorkerMutex.Unlock()
+	if fake.SelectedWorkerStub != nil {
+		fake.SelectedWorkerStub(arg1, arg2)
+	}
+}
+
+func (fake *FakeTaskDelegate) SelectedWorkerCallCount() int {
+	fake.selectedWorkerMutex.RLock()
+	defer fake.selectedWorkerMutex.RUnlock()
+	return len(fake.selectedWorkerArgsForCall)
+}
+
+func (fake *FakeTaskDelegate) SelectedWorkerCalls(stub func(lager.Logger, string)) {
+	fake.selectedWorkerMutex.Lock()
+	defer fake.selectedWorkerMutex.Unlock()
+	fake.SelectedWorkerStub = stub
+}
+
+func (fake *FakeTaskDelegate) SelectedWorkerArgsForCall(i int) (lager.Logger, string) {
+	fake.selectedWorkerMutex.RLock()
+	defer fake.selectedWorkerMutex.RUnlock()
+	argsForCall := fake.selectedWorkerArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeTaskDelegate) SetTaskConfig(arg1 atc.TaskConfig) {
@@ -541,12 +579,14 @@ func (fake *FakeTaskDelegate) Invocations() map[string][][]interface{} {
 	defer fake.erroredMutex.RUnlock()
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
-	fake.imageSourceRedactionMutex.RLock()
-	defer fake.imageSourceRedactionMutex.RUnlock()
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	fake.initializingMutex.RLock()
 	defer fake.initializingMutex.RUnlock()
+	fake.redactImageSourceMutex.RLock()
+	defer fake.redactImageSourceMutex.RUnlock()
+	fake.selectedWorkerMutex.RLock()
+	defer fake.selectedWorkerMutex.RUnlock()
 	fake.setTaskConfigMutex.RLock()
 	defer fake.setTaskConfigMutex.RUnlock()
 	fake.startingMutex.RLock()

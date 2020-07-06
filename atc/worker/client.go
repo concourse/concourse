@@ -100,13 +100,14 @@ func NewClient(pool Pool,
 	provider WorkerProvider,
 	compression compression.Compression,
 	workerPollingInterval time.Duration,
-	WorkerStatusPublishInterval time.Duration) *client {
+	workerStatusPublishInterval time.Duration,
+) *client {
 	return &client{
 		pool:                        pool,
 		provider:                    provider,
 		compression:                 compression,
 		workerPollingInterval:       workerPollingInterval,
-		workerStatusPublishInterval: WorkerStatusPublishInterval,
+		workerStatusPublishInterval: workerStatusPublishInterval,
 	}
 }
 
@@ -304,6 +305,8 @@ func (client *client) RunTaskStep(
 		return TaskResult{}, err
 	}
 
+	eventDelegate.SelectedWorker(logger, chosenWorker.Name())
+
 	// container already exited
 	exitStatusProp, _ := container.Properties()
 	code := exitStatusProp[taskExitStatusPropertyName]
@@ -427,6 +430,8 @@ func (client *client) RunGetStep(
 		return GetResult{}, err
 	}
 
+	eventDelegate.SelectedWorker(logger, chosenWorker.Name())
+
 	sign, err := resource.Signature()
 	if err != nil {
 		return GetResult{}, err
@@ -484,6 +489,8 @@ func (client *client) RunPutStep(
 	if err != nil {
 		return PutResult{}, err
 	}
+
+	eventDelegate.SelectedWorker(logger, chosenWorker.Name())
 
 	container, err := chosenWorker.FindOrCreateContainer(
 		ctx,
