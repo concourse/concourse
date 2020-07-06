@@ -41,6 +41,34 @@ with the following schema.
     organization}{https://github.com/concourse?query=-resource}.
   }
 
+  \optional-attribute{old_name}{identifier}{
+    The old name of the resource. If configured, the history of old resource will be
+    inherited to the new one. Once the pipeline is set, this field can be
+    removed as the builds have been transfered.
+
+    \example-toggle{Renaming a resource}{
+      This can be used to rename a resource without losing its history, like so:
+
+      \codeblock{yaml}{{
+      resources:
+      - name: new-name
+        old_name: current-name
+        type: git
+        source: {uri: "https://github.com/vito/booklit"}
+      }}
+
+      After the pipeline is set, because the builds have been inherited, the resource can
+      have the field removed:
+
+      \codeblock{yaml}{{
+      resources:
+      - name: new-name
+        type: git
+        source: {uri: "https://github.com/vito/booklit"}
+      }}
+    }
+  }
+
   \optional-attribute{icon}{string}{
     The name of a \link{Material Design icon}{https://materialdesignicons.com/}
     to show next to the resource name in the web UI. For example,
