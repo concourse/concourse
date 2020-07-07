@@ -183,7 +183,7 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 		cmd.Garden.RequestTimeout,
 		dnsServers,
 		cmd.ContainerNetworkPool,
-		cmd.Garden.RestrictedNetworks,
+		cmd.Garden.DenyNetworks,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("containerd garden server runner: %w", err)
