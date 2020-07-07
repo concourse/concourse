@@ -42,9 +42,9 @@ with the following schema.
   }
 
   \optional-attribute{old_name}{identifier}{
-    The old name of the resource. If configured, the history of old resource will be
+    The old name of the resource. If configured, the history of the old resource will be
     inherited to the new one. Once the pipeline is set, this field can be
-    removed as the builds have been transfered.
+    removed as the history has been transferred.
 
     \example-toggle{Renaming a resource}{
       This can be used to rename a resource without losing its history, like so:
@@ -57,8 +57,8 @@ with the following schema.
         source: {uri: "https://github.com/vito/booklit"}
       }}
 
-      After the pipeline is set, because the builds have been inherited, the resource can
-      have the field removed:
+      After the pipeline is set, the resource was successfully renamed, so the `old_name` field can
+      be removed from the resource:
 
       \codeblock{yaml}{{
       resources:
