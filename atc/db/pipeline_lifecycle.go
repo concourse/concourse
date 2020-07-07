@@ -5,6 +5,8 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
+//go:generate counterfeiter . PipelineLifecycle
+
 type PipelineLifecycle interface {
 	ArchiveAbandonedPipelines() (int, error)
 }
