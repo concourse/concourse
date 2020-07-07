@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/concourse/concourse/worker/runtime/iptables"
 	"github.com/containerd/containerd"
 	"github.com/containerd/go-cni"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/concourse/concourse/worker/runtime/iptables"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 github.com/containerd/go-cni.CNI
@@ -83,7 +83,7 @@ func (c CNINetworkConfig) ToJSON() string {
     },
     {
       "type": "firewall",
-	  "iptablesAdminChainName": "%s"
+      "iptablesAdminChainName": "%s"
     }
   ]
 }`
@@ -166,7 +166,7 @@ type cniNetwork struct {
 	nameServers        []string
 	binariesDir        string
 	restrictedNetworks []string
-	ipt iptables.Iptables
+	ipt                iptables.Iptables
 }
 
 var _ Network = (*cniNetwork)(nil)
@@ -253,12 +253,15 @@ func (n cniNetwork) SetupMounts(handle string) ([]specs.Mount, error) {
 func (n cniNetwork) SetupRestrictedNetworks() error {
 	const tableName = "filter"
 	err := n.ipt.CreateChainOrFlushIfExists(tableName, ipTablesAdminChainName)
+	if err != nil {
+		return fmt.Errorf("create chain or flush if exists failed: %w", err)
+	}
 
 	// Create REJECT rules in empty admin chain
 	for _, restrictedNetwork := range n.restrictedNetworks {
 		err = n.ipt.AppendRule(tableName, ipTablesAdminChainName, "-d", restrictedNetwork, "-j", "REJECT")
 		if err != nil {
-			return err
+			return fmt.Errorf("appending reject rule for restricted network failed: %w", err)
 		}
 	}
 	return nil
