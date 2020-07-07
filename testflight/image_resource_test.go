@@ -59,7 +59,7 @@ run:
 		Expect(err).NotTo(HaveOccurred())
 
 		exec := spawnFlyIn(fixture, "execute", "-c", "task.yml")
-		wait(exec)
+		wait(exec, false)
 		Expect(exec).To(gbytes.Say("/opt/resource/check"))
 		Expect(exec).To(gbytes.Say("VERSION=hello-version"))
 	})
@@ -86,7 +86,7 @@ run:
 		Expect(err).NotTo(HaveOccurred())
 
 		exec := spawnFlyIn(fixture, "execute", "-c", "task.yml")
-		wait(exec)
+		wait(exec, false)
 		Expect(exec).To(gbytes.Say("VERSION=hi-im-a-version"))
 	})
 })

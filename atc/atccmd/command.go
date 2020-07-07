@@ -1099,6 +1099,7 @@ func (cmd *RunCommand) gcComponents(
 	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(gcConn)
 	dbBuildFactory := db.NewBuildFactory(gcConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(gcConn, lockFactory)
+	dbPipelineLifecycle := db.NewPipelineLifecycle(gcConn, lockFactory)
 
 	dbVolumeRepository := db.NewVolumeRepository(gcConn)
 
@@ -1113,6 +1114,7 @@ func (cmd *RunCommand) gcComponents(
 		atc.ComponentCollectorVolumes:           gc.NewVolumeCollector(dbVolumeRepository, cmd.GC.MissingGracePeriod),
 		atc.ComponentCollectorContainers:        gc.NewContainerCollector(dbContainerRepository, cmd.GC.MissingGracePeriod, cmd.GC.HijackGracePeriod),
 		atc.ComponentCollectorCheckSessions:     gc.NewResourceConfigCheckSessionCollector(resourceConfigCheckSessionLifecycle),
+		atc.ComponentCollectorPipelines:         gc.NewPipelineCollector(dbPipelineLifecycle),
 	}
 
 	var components []RunnableComponent

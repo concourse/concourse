@@ -96,7 +96,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	}, 2*time.Minute, time.Second).Should(gexec.Exit(0))
 
 	fly("-t", adminFlyTarget, "set-team", "--non-interactive", "-n", teamName, "--local-user", config.ATCUsername)
-	wait(spawnFlyLogin(testflightFlyTarget, "-n", teamName))
+	wait(spawnFlyLogin(testflightFlyTarget, "-n", teamName), false)
 
 	for _, ps := range flyTable("-t", adminFlyTarget, "pipelines") {
 		name := ps["name"]
@@ -175,13 +175,19 @@ func randomPipelineName() string {
 
 func fly(argv ...string) *gexec.Session {
 	sess := spawnFly(argv...)
-	wait(sess)
+	wait(sess, false)
 	return sess
 }
 
 func flyIn(dir string, argv ...string) *gexec.Session {
 	sess := spawnFlyIn(dir, argv...)
-	wait(sess)
+	wait(sess, false)
+	return sess
+}
+
+func flyUnsafe(argv ...string) *gexec.Session {
+	sess := spawnFly(argv...)
+	wait(sess, true)
 	return sess
 }
 
@@ -214,9 +220,11 @@ func spawnIn(dir string, argc string, argv ...string) *gexec.Session {
 	return session
 }
 
-func wait(session *gexec.Session) {
+func wait(session *gexec.Session, allowNonZero bool) {
 	<-session.Exited
-	Expect(session.ExitCode()).To(Equal(0), "Output: "+string(session.Out.Contents()))
+	if !allowNonZero {
+		Expect(session.ExitCode()).To(Equal(0), "Output: "+string(session.Out.Contents()))
+	}
 }
 
 var colSplit = regexp.MustCompile(`\s{2,}`)
