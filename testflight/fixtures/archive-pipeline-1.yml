@@ -29,7 +29,6 @@ jobs:
   plan:
     - get: some-resource
     - set_pipeline: ((pipeline_name))
-      team: ((team_name))
       file: some-resource/pipeline.yml
       var_files:
       - some-resource/name.yml

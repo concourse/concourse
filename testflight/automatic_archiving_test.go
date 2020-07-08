@@ -24,7 +24,6 @@ var _ = Describe("archive-pipeline", func() {
 		withFlyTarget(testflightFlyTarget, func() {
 			setAndUnpausePipeline(
 				"fixtures/archive-pipeline-1.yml",
-				"-v", "team_name="+teamName,
 				"-v", "pipeline_name="+createdPipelineName,
 			)
 

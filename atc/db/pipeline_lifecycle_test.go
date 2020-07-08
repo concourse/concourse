@@ -58,7 +58,7 @@ var _ = Describe("PipelineLifecycle", func() {
 			child2Pipeline, _, _ = build.SavePipeline("child2-pipeline", defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
 			build.Finish(db.BuildStatusSucceeded)
 
-			By("second build fails and sets no pipelines")
+			By("second build fails and does not set all pipelines")
 			build2, _ := defaultJob.CreateBuild()
 			child1Pipeline, _, _ = build2.SavePipeline("child1-pipeline", defaultTeam.ID(), defaultPipelineConfig, child1Pipeline.ConfigVersion(), false)
 			build2.Finish(db.BuildStatusFailed)
