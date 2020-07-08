@@ -42,10 +42,11 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 		errorMessages = append(errorMessages, formatErr("resource types", resourceTypesErr))
 	}
 
-	varSourcesErr := validateVarSources(c)
+	varSourcesWarnings, varSourcesErr := validateVarSources(c)
 	if varSourcesErr != nil {
 		errorMessages = append(errorMessages, formatErr("variable sources", varSourcesErr))
 	}
+	warnings = append(warnings, varSourcesWarnings...)
 
 	jobWarnings, jobsErr := validateJobs(c)
 	if jobsErr != nil {
@@ -323,41 +324,50 @@ func compositeErr(errorMessages []string) error {
 	return errors.New(strings.Join(errorMessages, "\n"))
 }
 
-func validateVarSources(c Config) error {
+func validateVarSources(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
+	var errorMessages []string
+
 	names := map[string]interface{}{}
 
 	for _, cm := range c.VarSources {
-		factory := creds.ManagerFactories()[cm.Type]
-		if factory == nil {
-			return fmt.Errorf("unknown credential manager type: %s", cm.Type)
+		if err := validateIdentifier(cm.Name); err != nil {
+			warnings = append(warnings, ConfigWarning{
+				Type:    "invalid_identifier",
+				Message: err.Error(),
+			})
 		}
 
-		// TODO: this check should eventually be removed once all credential managers
-		// are supported in pipeline. - @evanchaoli
-		switch cm.Type {
-		case "vault", "dummy", "ssm":
-		default:
-			return fmt.Errorf("credential manager type %s is not supported in pipeline yet", cm.Type)
-		}
+		if factory, exists := creds.ManagerFactories()[cm.Type]; exists {
+			// TODO: this check should eventually be removed once all credential managers
+			// are supported in pipeline. - @evanchaoli
+			switch cm.Type {
+			case "vault", "dummy", "ssm":
+			default:
+				errorMessages = append(errorMessages, fmt.Sprintf("credential manager type %s is not supported in pipeline yet", cm.Type))
+			}
 
-		if _, ok := names[cm.Name]; ok {
-			return fmt.Errorf("duplicate var_source name: %s", cm.Name)
-		}
-		names[cm.Name] = 0
+			if _, ok := names[cm.Name]; ok {
+				errorMessages = append(errorMessages, fmt.Sprintf("duplicate var_source name: %s", cm.Name))
+			}
+			names[cm.Name] = 0
 
-		manager, err := factory.NewInstance(cm.Config)
-		if err != nil {
-			return fmt.Errorf("failed to create credential manager %s: %s", cm.Name, err.Error())
-		}
-		err = manager.Validate()
-		if err != nil {
-			return fmt.Errorf("credential manager %s is invalid: %s", cm.Name, err.Error())
+			if manager, err := factory.NewInstance(cm.Config); err == nil {
+				err = manager.Validate()
+				if err != nil {
+					errorMessages = append(errorMessages, fmt.Sprintf("credential manager %s is invalid: %s", cm.Name, err.Error()))
+				}
+			} else {
+				errorMessages = append(errorMessages, fmt.Sprintf("failed to create credential manager %s: %s", cm.Name, err.Error()))
+			}
+		} else {
+			errorMessages = append(errorMessages, fmt.Sprintf("unknown credential manager type: %s", cm.Type))
 		}
 	}
 
 	if _, err := c.VarSources.OrderByDependency(); err != nil {
-		return err
+		errorMessages = append(errorMessages, fmt.Sprintf("failed to order by dependency: %s", err.Error()))
 	}
 
-	return nil
+	return warnings, compositeErr(errorMessages)
 }

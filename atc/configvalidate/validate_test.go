@@ -138,6 +138,24 @@ var _ = Describe("ValidateConfig", func() {
 				}))
 			})
 		})
+
+		Context("when a var source has an invalid identifier", func() {
+			BeforeEach(func() {
+				config.VarSources = append(config.VarSources, atc.VarSourceConfig{
+					Name:   "_some-var-source",
+					Type:   "dummy",
+					Config: "",
+				})
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(1))
+				Expect(warnings[0]).To(Equal(atc.ConfigWarning{
+					Type:    "invalid_identifier",
+					Message: "'_some-var-source' is not a valid identifier",
+				}))
+			})
+		})
 	})
 
 	Describe("invalid groups", func() {
