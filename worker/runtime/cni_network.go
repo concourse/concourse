@@ -257,11 +257,17 @@ func (n cniNetwork) SetupRestrictedNetworks() error {
 		return fmt.Errorf("create chain or flush if exists failed: %w", err)
 	}
 
-	// Create REJECT rules in empty admin chain
+	// Optimization that allows packets of ESTABLISHED and RELATED connections to go through without further rule matching
+	err = n.ipt.AppendRule(tableName, ipTablesAdminChainName, "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT")
+	if err != nil {
+		return fmt.Errorf("appending accept rule for RELATED & ESTABLISHED connections failed: %w", err)
+	}
+
 	for _, restrictedNetwork := range n.restrictedNetworks {
+		// Create REJECT rule in admin chain
 		err = n.ipt.AppendRule(tableName, ipTablesAdminChainName, "-d", restrictedNetwork, "-j", "REJECT")
 		if err != nil {
-			return fmt.Errorf("appending reject rule for restricted network failed: %w", err)
+			return fmt.Errorf("appending reject rule for restricted network %s failed: %w", restrictedNetwork, err)
 		}
 	}
 	return nil

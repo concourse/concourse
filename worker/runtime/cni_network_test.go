@@ -144,9 +144,14 @@ func (s *CNINetworkSuite) TestSetupRestrictedNetworksCreatesEmptyAdminChain() {
 	tablename, chainName, rulespec := fakeIpt.AppendRuleArgsForCall(0)
 	s.Equal(tablename, "filter")
 	s.Equal(chainName, "CONCOURSE-OPERATOR")
-	s.Equal(rulespec, []string{"-d", "1.1.1.1", "-j", "REJECT"})
+	s.Equal(rulespec, []string{"-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"})
 
 	tablename, chainName, rulespec = fakeIpt.AppendRuleArgsForCall(1)
+	s.Equal(tablename, "filter")
+	s.Equal(chainName, "CONCOURSE-OPERATOR")
+	s.Equal(rulespec, []string{"-d", "1.1.1.1", "-j", "REJECT"})
+
+	tablename, chainName, rulespec = fakeIpt.AppendRuleArgsForCall(2)
 	s.Equal(tablename, "filter")
 	s.Equal(chainName, "CONCOURSE-OPERATOR")
 	s.Equal(rulespec, []string{"-d", "8.8.8.8", "-j", "REJECT"})
