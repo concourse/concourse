@@ -210,8 +210,6 @@ var _ = BeforeEach(func() {
 		time.Second,
 		dbWall,
 		fakeClock,
-
-		true, /* enableArchivePipeline */
 	)
 
 	Expect(err).NotTo(HaveOccurred())
