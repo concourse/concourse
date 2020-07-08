@@ -77,13 +77,14 @@ viewPipeline p =
             ++ [ href <| p.href
                , onMouseEnter <| Hover <| Just <| p.domID
                , onMouseLeave <| Hover Nothing
-               , id <| toHtmlID p.domID
                ]
         )
         [ Html.div
             (Styles.pipelineIcon p.icon)
             []
         , Html.div
-            (Styles.pipelineName p.name)
+            (id (toHtmlID p.domID)
+                :: Styles.pipelineName p.name
+            )
             [ Html.text p.name.text ]
         ]
