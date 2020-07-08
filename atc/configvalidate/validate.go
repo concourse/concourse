@@ -26,10 +26,11 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 	warnings := []ConfigWarning{}
 	errorMessages := []string{}
 
-	groupsErr := validateGroups(c)
+	groupsWarnings, groupsErr := validateGroups(c)
 	if groupsErr != nil {
 		errorMessages = append(errorMessages, formatErr("groups", groupsErr))
 	}
+	warnings = append(warnings, groupsWarnings...)
 
 	resourcesWarnings, resourcesErr := validateResources(c)
 	if resourcesErr != nil {
@@ -64,7 +65,8 @@ func validateIdentifier(identifier string) error {
 	return nil
 }
 
-func validateGroups(c Config) error {
+func validateGroups(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
 	var errorMessages []string
 
 	jobsGrouped := make(map[string]bool)
@@ -75,6 +77,12 @@ func validateGroups(c Config) error {
 	}
 
 	for _, group := range c.Groups {
+		if err := validateIdentifier(group.Name); err != nil {
+			warnings = append(warnings, ConfigWarning{
+				Type:    "invalid_identifier",
+				Message: err.Error(),
+			})
+		}
 
 		if val, ok := groupNames[group.Name]; ok {
 			groupNames[group.Name] = val + 1
@@ -117,7 +125,7 @@ func validateGroups(c Config) error {
 		}
 	}
 
-	return compositeErr(errorMessages)
+	return warnings, compositeErr(errorMessages)
 }
 
 func validateResources(c Config) ([]ConfigWarning, error) {

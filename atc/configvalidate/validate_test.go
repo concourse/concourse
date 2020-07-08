@@ -119,6 +119,24 @@ var _ = Describe("ValidateConfig", func() {
 	})
 
 	Describe("invalid identifiers", func() {
+
+		Context("when a group has an invalid identifier", func() {
+			BeforeEach(func() {
+				config.Groups = append(config.Groups, atc.GroupConfig{
+					Name: "_some-group",
+					Jobs: []string{"some-job"},
+				})
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(1))
+				Expect(warnings[0]).To(Equal(atc.ConfigWarning{
+					Type:    "invalid_identifier",
+					Message: "'_some-group' is not a valid identifier",
+				}))
+			})
+		})
+
 		Context("when a resource has an invalid identifier", func() {
 			BeforeEach(func() {
 				config.Resources = append(config.Resources, atc.ResourceConfig{
