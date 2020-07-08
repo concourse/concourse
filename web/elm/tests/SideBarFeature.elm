@@ -296,12 +296,12 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iDoNotSeeFavoritesSection
-
-        -- TODO by zoe
-        -- , test "TODO: don't show teams in favorites section that have no pipelines" <|
-        --     given iHaveAnOpenSideBar_
-        --         >> when iAmLookingAtTheSideBar
-        --         >> then_ iDoNotSeeFavoritesSection
+        , test "don't show teams that have no favorited pipelines" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedPipelinesFromMultipleTeams
+                >> given myBrowserFetchedFavoritedPipelines
+                >> when iAmLookingAtTheFavoritesSection
+                >> then_ iDoNotSeeTheOtherTeam
         , test "teams can be expanded independently of the all pipelines section" <|
             given iHaveAnExpandedTeam
                 >> given myBrowserFetchedFavoritedPipelines
@@ -1007,6 +1007,10 @@ iSeeAPlusIcon =
 
 iSeeTheTeamName =
     Query.has [ text "team" ]
+
+
+iDoNotSeeTheOtherTeam =
+    Query.hasNot [ text "other-team" ]
 
 
 iSeeItSpreadsAndCentersContents =

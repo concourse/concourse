@@ -283,17 +283,16 @@ allFavoritedPipelinesSection model currentPipeline =
         , Html.div [ id "favorites" ]
             (model.pipelines
                 |> RemoteData.withDefault []
+                |> List.filter
+                    (\fp ->
+                        List.member fp.id model.favoritedPipelines
+                    )
                 |> List.Extra.gatherEqualsBy .teamName
                 |> List.map
                     (\( p, ps ) ->
                         Team.team
                             { hovered = model.hovered
-                            , pipelines =
-                                List.filter
-                                    (\fp ->
-                                        List.member fp.id model.favoritedPipelines
-                                    )
-                                    (p :: ps)
+                            , pipelines = p :: ps
                             , currentPipeline = currentPipeline
                             , favoritedPipelines = model.favoritedPipelines
                             , isFavoritesSection = True
@@ -304,6 +303,7 @@ allFavoritedPipelinesSection model currentPipeline =
                             |> Views.viewTeam
                     )
             )
+        , Styles.separator
         ]
 
 

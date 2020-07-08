@@ -13,6 +13,7 @@ module SideBar.Styles exposing
     , pipelineIcon
     , pipelineName
     , sectionHeader
+    , separator
     , sideBar
     , sideBarHandle
     , team
@@ -67,14 +68,12 @@ column =
 
 sectionHeader : List (Html.Attribute msg)
 sectionHeader =
-    [ style "display" "flex"
-    , style "height" "20px"
-    , style "font-size" "16px"
-    , style "left" "8px"
-    , style "top" "8px"
-    , style "cursor" "pointer"
-    , style "align-items" "center"
-    , style "background" Colors.sideBarActive
+    [ style "font-size" "14px"
+    , style "overflow" "hidden"
+    , style "white-space" "nowrap"
+    , style "text-overflow" "ellipsis"
+    , style "padding" "15px 5px 5px 10px"
+    , fontWeightAttr Bold
     ]
 
 
@@ -318,3 +317,12 @@ tooltipBody =
     , style "align-items" "center"
     , style "height" "30px"
     ]
+
+
+separator : Html.Html msg
+separator =
+    Html.div
+        [ style "border-bottom" "1px solid black"
+        , style "margin-top" "10px"
+        ]
+        []
