@@ -156,6 +156,22 @@ var _ = Describe("ValidateConfig", func() {
 				}))
 			})
 		})
+
+		Context("when a job has an invalid identifier", func() {
+			BeforeEach(func() {
+				config.Jobs = append(config.Jobs, atc.JobConfig{
+					Name: "_some-job",
+				})
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(1))
+				Expect(warnings[0]).To(Equal(atc.ConfigWarning{
+					Type:    "invalid_identifier",
+					Message: "'_some-job' is not a valid identifier",
+				}))
+			})
+		})
 	})
 
 	Describe("invalid groups", func() {

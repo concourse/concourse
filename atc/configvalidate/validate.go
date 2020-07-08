@@ -238,6 +238,13 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 	names := map[string]int{}
 
 	for i, job := range c.Jobs {
+		if err := validateIdentifier(job.Name); err != nil {
+			warnings = append(warnings, ConfigWarning{
+				Type:    "invalid_identifier",
+				Message: err.Error(),
+			})
+		}
+
 		var identifier string
 		if job.Name == "" {
 			identifier = fmt.Sprintf("jobs[%d]", i)
