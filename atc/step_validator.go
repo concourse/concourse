@@ -14,7 +14,7 @@ type StepValidator struct {
 	// deprecations.
 	//
 	// This field will be populated after visiting the step.
-	Warnings []string
+	Warnings []ConfigWarning
 
 	// Errors is a slice of critical errors which will prevent configuring the
 	// pipeline.
@@ -71,7 +71,10 @@ func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 	}
 
 	if plan.Config != nil && (plan.Config.RootfsURI != "" || plan.Config.ImageResource != nil) && plan.ImageArtifactName != "" {
-		validator.recordWarning("specifies image: on the step but also specifies an image under config: - the image: on the step takes precedence")
+		validator.recordWarning(ConfigWarning{
+			Type:    "pipeline",
+			Message: "specifies image: on the step but also specifies an image under config: - the image: on the step takes precedence",
+		})
 	}
 
 	if plan.Config != nil {
@@ -235,7 +238,10 @@ func (validator *StepValidator) VisitAggregate(step *AggregateStep) error {
 	validator.pushContext(".aggregate")
 	defer validator.popContext()
 
-	validator.recordWarning("the aggregate step is deprecated and will be removed in a future version")
+	validator.recordWarning(ConfigWarning{
+		Type:    "pipeline",
+		Message: "the aggregate step is deprecated and will be removed in a future version",
+	})
 
 	for i, sub := range step.Steps {
 		validator.pushContext("[%d]", i)
@@ -344,8 +350,8 @@ func (validator *StepValidator) VisitEnsure(step *EnsureStep) error {
 	return validator.Validate(step.Hook)
 }
 
-func (validator *StepValidator) recordWarning(message string, args ...interface{}) {
-	validator.Warnings = append(validator.Warnings, validator.annotate(fmt.Sprintf(message, args...)))
+func (validator *StepValidator) recordWarning(warning ConfigWarning) {
+	validator.Warnings = append(validator.Warnings, warning)
 }
 
 func (validator *StepValidator) recordError(message string, args ...interface{}) {

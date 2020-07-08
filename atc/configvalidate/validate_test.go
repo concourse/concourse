@@ -210,6 +210,49 @@ var _ = Describe("ValidateConfig", func() {
 				}))
 			})
 		})
+
+		Context("when a step has an invalid identifier", func() {
+			var job atc.JobConfig
+
+			BeforeEach(func() {
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.GetStep{
+						Name: "_get-step",
+					},
+				})
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.TaskStep{
+						Name: "_task-step",
+					},
+				})
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.PutStep{
+						Name: "_put-step",
+					},
+				})
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.SetPipelineStep{
+						Name: "_set-pipeline-step",
+					},
+				})
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.LoadVarStep{
+						Name: "_load-var-step",
+					},
+				})
+
+				config.Jobs = append(config.Jobs, job)
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(5))
+				Expect(warnings[0].Message).To(ContainSubstring("'_get-step' is not a valid identifier"))
+				Expect(warnings[1].Message).To(ContainSubstring("'_task-step' is not a valid identifier"))
+				Expect(warnings[2].Message).To(ContainSubstring("'_put-step' is not a valid identifier"))
+				Expect(warnings[3].Message).To(ContainSubstring("'_set-pipeline-step' is not a valid identifier"))
+				Expect(warnings[4].Message).To(ContainSubstring("'_load-var-step' is not a valid identifier"))
+			})
+		})
 	})
 
 	Describe("invalid groups", func() {

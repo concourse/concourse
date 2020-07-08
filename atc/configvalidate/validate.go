@@ -327,12 +327,7 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 
 		_ = validator.Validate(step)
 
-		for _, warning := range validator.Warnings {
-			warnings = append(warnings, ConfigWarning{
-				Type:    "pipeline",
-				Message: warning,
-			})
-		}
+		warnings = append(warnings, validator.Warnings...)
 
 		errorMessages = append(errorMessages, validator.Errors...)
 	}
