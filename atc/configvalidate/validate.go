@@ -3,6 +3,7 @@ package configvalidate
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/concourse/concourse/atc"
@@ -30,10 +31,11 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 		errorMessages = append(errorMessages, formatErr("groups", groupsErr))
 	}
 
-	resourcesErr := validateResources(c)
+	resourcesWarnings, resourcesErr := validateResources(c)
 	if resourcesErr != nil {
 		errorMessages = append(errorMessages, formatErr("resources", resourcesErr))
 	}
+	warnings = append(warnings, resourcesWarnings...)
 
 	resourceTypesErr := validateResourceTypes(c)
 	if resourceTypesErr != nil {
@@ -52,6 +54,13 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 	warnings = append(warnings, jobWarnings...)
 
 	return warnings, errorMessages
+}
+
+func validateIdentifier(identifier string) error {
+	if identifier != "" && !regexp.MustCompile(`^\p{L}[\p{L}\d\-.]*$`).MatchString(identifier) {
+		return fmt.Errorf("'%s' is not a valid identifier", identifier)
+	}
+	return nil
 }
 
 func validateGroups(c Config) error {
@@ -110,12 +119,20 @@ func validateGroups(c Config) error {
 	return compositeErr(errorMessages)
 }
 
-func validateResources(c Config) error {
+func validateResources(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
 	var errorMessages []string
 
 	names := map[string]int{}
 
 	for i, resource := range c.Resources {
+		if err := validateIdentifier(resource.Name); err != nil {
+			warnings = append(warnings, ConfigWarning{
+				Type:    "invalid_identifier",
+				Message: err.Error(),
+			})
+		}
+
 		var identifier string
 		if resource.Name == "" {
 			identifier = fmt.Sprintf("resources[%d]", i)
@@ -143,7 +160,7 @@ func validateResources(c Config) error {
 
 	errorMessages = append(errorMessages, validateResourcesUnused(c)...)
 
-	return compositeErr(errorMessages)
+	return warnings, compositeErr(errorMessages)
 }
 
 func validateResourceTypes(c Config) error {

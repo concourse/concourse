@@ -16,8 +16,8 @@ import (
 
 var _ = Describe("ValidateConfig", func() {
 	var (
-		config atc.Config
-
+		config        atc.Config
+		warnings      []atc.ConfigWarning
 		errorMessages []string
 	)
 
@@ -109,12 +109,34 @@ var _ = Describe("ValidateConfig", func() {
 	})
 
 	JustBeforeEach(func() {
-		_, errorMessages = configvalidate.Validate(config)
+		warnings, errorMessages = configvalidate.Validate(config)
 	})
 
 	Context("when the config is valid", func() {
 		It("returns no error", func() {
 			Expect(errorMessages).To(HaveLen(0))
+		})
+	})
+
+	Describe("invalid identifiers", func() {
+		Context("when a resource has an invalid identifier", func() {
+			BeforeEach(func() {
+				config.Resources = append(config.Resources, atc.ResourceConfig{
+					Name: "some_resource",
+					Type: "some-type",
+					Source: atc.Source{
+						"source-config": "some-value",
+					},
+				})
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(1))
+				Expect(warnings[0]).To(Equal(atc.ConfigWarning{
+					Type:    "invalid_identifier",
+					Message: "'some_resource' is not a valid identifier",
+				}))
+			})
 		})
 	})
 
