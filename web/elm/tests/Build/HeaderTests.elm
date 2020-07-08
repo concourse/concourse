@@ -360,7 +360,8 @@ all =
 
 session : Session
 session =
-    { expandedTeams = Set.empty
+    { expandedTeamsInAllPipelines = Set.empty
+    , collapsedTeamsInFavorites = Set.empty
     , pipelines = RemoteData.NotAsked
     , hovered = HoverState.NoHover
     , sideBarState =

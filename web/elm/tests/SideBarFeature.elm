@@ -22,8 +22,8 @@ import Expect
 import Html.Attributes as Attr
 import Http
 import Message.Callback as Callback
-import Message.Effects as Effects
-import Message.Message as Message exposing (SideBarSection(..), sideBarSectionName)
+import Message.Effects as Effects exposing (sideBarSectionName)
+import Message.Message as Message exposing (SideBarSection(..))
 import Message.Subscription as Subscription
 import Message.TopLevelMessage as TopLevelMessage
 import Routes
@@ -302,11 +302,11 @@ hasSideBar iAmLookingAtThePage =
                 >> given myBrowserFetchedFavoritedPipelines
                 >> when iAmLookingAtTheFavoritesSection
                 >> then_ iDoNotSeeTheOtherTeam
-        , test "teams can be expanded independently of the all pipelines section" <|
-            given iHaveAnExpandedTeam
+        , test "teams are expanded by default" <|
+            given iHaveAnOpenSideBar_
                 >> given myBrowserFetchedFavoritedPipelines
                 >> when iAmLookingAtTheTeamInTheFavoritesSection
-                >> then_ iSeeItIsCollapsed
+                >> then_ iSeeItIsExpanded
         ]
     , describe "teams list" <|
         [ test "sidebar contains pipeline groups" <|
@@ -1639,6 +1639,10 @@ iClickAPipelineLink =
 
 iSeeThePipelineGroupIsStillExpanded =
     iAmLookingAtThePipelineList >> iSeeAllPipelineNames
+
+
+iSeeItIsExpanded =
+    iSeeItContainsThePipelineName
 
 
 iSeeItIsCollapsed =

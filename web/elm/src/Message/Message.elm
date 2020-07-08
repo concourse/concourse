@@ -6,7 +6,6 @@ module Message.Message exposing
     , VersionId
     , VersionToggleAction(..)
     , VisibilityAction(..)
-    , sideBarSectionName
     )
 
 import Concourse
@@ -96,16 +95,6 @@ type DomID
 type SideBarSection
     = Favorites
     | AllPipelines
-
-
-sideBarSectionName : SideBarSection -> String
-sideBarSectionName section =
-    case section of
-        Favorites ->
-            "Favorites"
-
-        AllPipelines ->
-            "AllPipelines"
 
 
 type VersionToggleAction

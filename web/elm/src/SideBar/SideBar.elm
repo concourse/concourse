@@ -19,7 +19,7 @@ import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
 import List.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
-import Message.Message exposing (DomID(..), Message(..), SideBarSection(..), sideBarSectionName)
+import Message.Message exposing (DomID(..), Message(..), SideBarSection(..))
 import Message.Subscription exposing (Delivery(..))
 import RemoteData exposing (RemoteData(..), WebData)
 import ScreenSize exposing (ScreenSize(..))
@@ -35,7 +35,8 @@ import Views.Icon as Icon
 type alias Model m =
     Tooltip.Model
         { m
-            | expandedTeams : Set ( String, String )
+            | expandedTeamsInAllPipelines : Set String
+            , collapsedTeamsInFavorites : Set String
             , pipelines : WebData (List Concourse.Pipeline)
             , sideBarState : SideBarState
             , draggingSideBar : Bool
@@ -68,19 +69,29 @@ update message model =
 
         Click (SideBarTeam section teamName) ->
             let
-                entry =
-                    ( sideBarSectionName section, teamName )
-            in
-            ( { model
-                | expandedTeams =
-                    if Set.member entry model.expandedTeams then
-                        Set.remove entry model.expandedTeams
+                toggle set =
+                    if Set.member teamName set then
+                        Set.remove teamName set
 
                     else
-                        Set.insert entry model.expandedTeams
-              }
-            , []
-            )
+                        Set.insert teamName set
+            in
+            case section of
+                AllPipelines ->
+                    ( { model
+                        | expandedTeamsInAllPipelines =
+                            toggle model.expandedTeamsInAllPipelines
+                      }
+                    , []
+                    )
+
+                Favorites ->
+                    ( { model
+                        | collapsedTeamsInFavorites =
+                            toggle model.collapsedTeamsInFavorites
+                      }
+                    , []
+                    )
 
         Click SideBarResizeHandle ->
             ( { model | draggingSideBar = True }, [] )
@@ -124,30 +135,28 @@ handleCallback callback currentPipeline ( model, effects ) =
         AllPipelinesFetched (Ok pipelines) ->
             ( { model
                 | pipelines = Success pipelines
-                , expandedTeams =
+                , expandedTeamsInAllPipelines =
                     case ( model.pipelines, currentPipeline ) of
                         ( NotAsked, Success { teamName } ) ->
-                            model.expandedTeams
-                                |> Set.insert ( sideBarSectionName AllPipelines, teamName )
-                                |> Set.insert ( sideBarSectionName Favorites, teamName )
+                            model.expandedTeamsInAllPipelines
+                                |> Set.insert teamName
 
                         _ ->
-                            model.expandedTeams
+                            model.expandedTeamsInAllPipelines
               }
             , effects
             )
 
         BuildFetched (Ok build) ->
             ( { model
-                | expandedTeams =
+                | expandedTeamsInAllPipelines =
                     case ( currentPipeline, build.job ) of
                         ( NotAsked, Just { teamName } ) ->
-                            model.expandedTeams
-                                |> Set.insert ( sideBarSectionName AllPipelines, teamName )
-                                |> Set.insert ( sideBarSectionName Favorites, teamName )
+                            model.expandedTeamsInAllPipelines
+                                |> Set.insert teamName
 
                         _ ->
-                            model.expandedTeams
+                            model.expandedTeamsInAllPipelines
               }
             , effects
             )
@@ -265,7 +274,7 @@ allPipelinesSection model currentPipeline =
                         , isFavoritesSection = False
                         }
                         { name = p.teamName
-                        , isExpanded = Set.member ( sideBarSectionName AllPipelines, p.teamName ) model.expandedTeams
+                        , isExpanded = Set.member p.teamName model.expandedTeamsInAllPipelines
                         }
                         |> Views.viewTeam
                 )
@@ -298,7 +307,9 @@ allFavoritedPipelinesSection model currentPipeline =
                             , isFavoritesSection = True
                             }
                             { name = p.teamName
-                            , isExpanded = Set.member ( sideBarSectionName Favorites, p.teamName ) model.expandedTeams
+                            , isExpanded =
+                                not <|
+                                    Set.member p.teamName model.collapsedTeamsInFavorites
                             }
                             |> Views.viewTeam
                     )

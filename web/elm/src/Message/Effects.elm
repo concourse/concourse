@@ -3,6 +3,7 @@ port module Message.Effects exposing
     , renderPipeline
     , renderSvgIcon
     , runEffect
+    , sideBarSectionName
     , stickyHeaderConfig
     , toHtmlID
     )
@@ -23,9 +24,9 @@ import Message.Callback exposing (Callback(..))
 import Message.Message
     exposing
         ( DomID(..)
+        , SideBarSection(..)
         , VersionToggleAction(..)
         , VisibilityAction(..)
-        , sideBarSectionName
         )
 import Message.ScrollDirection exposing (ScrollDirection(..))
 import Message.Storage
@@ -645,6 +646,16 @@ runEffect effect key csrfToken =
 
         SyncTextareaHeight domID ->
             syncTextareaHeight (toHtmlID domID)
+
+
+sideBarSectionName : SideBarSection -> String
+sideBarSectionName section =
+    case section of
+        Favorites ->
+            "Favorites"
+
+        AllPipelines ->
+            "AllPipelines"
 
 
 toHtmlID : DomID -> String
