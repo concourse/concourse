@@ -100,6 +100,11 @@ func (validator *StepValidator) VisitGet(step *GetStep) error {
 	validator.pushContext(fmt.Sprintf(".get(%s)", step.Name))
 	defer validator.popContext()
 
+	err := ValidateIdentifier(step.Name)
+	if err != nil {
+		validator.recordWarning(ConfigWarning{Type: "invalid_identifier", Message: err.Error()})
+	}
+
 	if validator.seenGetName[step.Name] {
 		validator.recordError("repeated name")
 	}
@@ -153,6 +158,11 @@ func (validator *StepValidator) VisitPut(step *PutStep) error {
 	validator.pushContext(".put(%s)", step.Name)
 	defer validator.popContext()
 
+	err := ValidateIdentifier(step.Name)
+	if err != nil {
+		validator.recordWarning(ConfigWarning{Type: "invalid_identifier", Message: err.Error()})
+	}
+
 	resourceName := step.ResourceName()
 
 	_, found := validator.config.Resources.Lookup(resourceName)
@@ -167,6 +177,11 @@ func (validator *StepValidator) VisitSetPipeline(step *SetPipelineStep) error {
 	validator.pushContext(".set_pipeline(%s)", step.Name)
 	defer validator.popContext()
 
+	err := ValidateIdentifier(step.Name)
+	if err != nil {
+		validator.recordWarning(ConfigWarning{Type: "invalid_identifier", Message: err.Error()})
+	}
+
 	if step.File == "" {
 		validator.recordError("no file specified")
 	}
@@ -177,6 +192,11 @@ func (validator *StepValidator) VisitSetPipeline(step *SetPipelineStep) error {
 func (validator *StepValidator) VisitLoadVar(step *LoadVarStep) error {
 	validator.pushContext(".load_var(%s)", step.Name)
 	defer validator.popContext()
+
+	err := ValidateIdentifier(step.Name)
+	if err != nil {
+		validator.recordWarning(ConfigWarning{Type: "invalid_identifier", Message: err.Error()})
+	}
 
 	if validator.seenLoadVarName[step.Name] {
 		validator.recordError("repeated name")

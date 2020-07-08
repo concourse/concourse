@@ -3,7 +3,6 @@ package configvalidate
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/concourse/concourse/atc"
@@ -59,13 +58,6 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 	return warnings, errorMessages
 }
 
-func validateIdentifier(identifier string) error {
-	if identifier != "" && !regexp.MustCompile(`^\p{L}[\p{L}\d\-.]*$`).MatchString(identifier) {
-		return fmt.Errorf("'%s' is not a valid identifier", identifier)
-	}
-	return nil
-}
-
 func validateGroups(c Config) ([]ConfigWarning, error) {
 	var warnings []ConfigWarning
 	var errorMessages []string
@@ -78,7 +70,7 @@ func validateGroups(c Config) ([]ConfigWarning, error) {
 	}
 
 	for _, group := range c.Groups {
-		if err := validateIdentifier(group.Name); err != nil {
+		if err := ValidateIdentifier(group.Name); err != nil {
 			warnings = append(warnings, ConfigWarning{
 				Type:    "invalid_identifier",
 				Message: err.Error(),
@@ -136,7 +128,7 @@ func validateResources(c Config) ([]ConfigWarning, error) {
 	names := map[string]int{}
 
 	for i, resource := range c.Resources {
-		if err := validateIdentifier(resource.Name); err != nil {
+		if err := ValidateIdentifier(resource.Name); err != nil {
 			warnings = append(warnings, ConfigWarning{
 				Type:    "invalid_identifier",
 				Message: err.Error(),
@@ -180,7 +172,7 @@ func validateResourceTypes(c Config) ([]ConfigWarning, error) {
 	names := map[string]int{}
 
 	for i, resourceType := range c.ResourceTypes {
-		if err := validateIdentifier(resourceType.Name); err != nil {
+		if err := ValidateIdentifier(resourceType.Name); err != nil {
 			warnings = append(warnings, ConfigWarning{
 				Type:    "invalid_identifier",
 				Message: err.Error(),
@@ -255,7 +247,7 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 	names := map[string]int{}
 
 	for i, job := range c.Jobs {
-		if err := validateIdentifier(job.Name); err != nil {
+		if err := ValidateIdentifier(job.Name); err != nil {
 			warnings = append(warnings, ConfigWarning{
 				Type:    "invalid_identifier",
 				Message: err.Error(),
@@ -350,7 +342,7 @@ func validateVarSources(c Config) ([]ConfigWarning, error) {
 	names := map[string]interface{}{}
 
 	for _, cm := range c.VarSources {
-		if err := validateIdentifier(cm.Name); err != nil {
+		if err := ValidateIdentifier(cm.Name); err != nil {
 			warnings = append(warnings, ConfigWarning{
 				Type:    "invalid_identifier",
 				Message: err.Error(),
