@@ -38,10 +38,11 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 	}
 	warnings = append(warnings, resourcesWarnings...)
 
-	resourceTypesErr := validateResourceTypes(c)
+	resourceTypesWarnings, resourceTypesErr := validateResourceTypes(c)
 	if resourceTypesErr != nil {
 		errorMessages = append(errorMessages, formatErr("resource types", resourceTypesErr))
 	}
+	warnings = append(warnings, resourceTypesWarnings...)
 
 	varSourcesWarnings, varSourcesErr := validateVarSources(c)
 	if varSourcesErr != nil {
@@ -172,12 +173,20 @@ func validateResources(c Config) ([]ConfigWarning, error) {
 	return warnings, compositeErr(errorMessages)
 }
 
-func validateResourceTypes(c Config) error {
+func validateResourceTypes(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
 	var errorMessages []string
 
 	names := map[string]int{}
 
 	for i, resourceType := range c.ResourceTypes {
+		if err := validateIdentifier(resourceType.Name); err != nil {
+			warnings = append(warnings, ConfigWarning{
+				Type:    "invalid_identifier",
+				Message: err.Error(),
+			})
+		}
+
 		var identifier string
 		if resourceType.Name == "" {
 			identifier = fmt.Sprintf("resource_types[%d]", i)
@@ -203,7 +212,7 @@ func validateResourceTypes(c Config) error {
 		}
 	}
 
-	return compositeErr(errorMessages)
+	return warnings, compositeErr(errorMessages)
 }
 
 func validateResourcesUnused(c Config) []string {

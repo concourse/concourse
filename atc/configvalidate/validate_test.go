@@ -157,6 +157,26 @@ var _ = Describe("ValidateConfig", func() {
 			})
 		})
 
+		Context("when a resource type has an invalid identifier", func() {
+			BeforeEach(func() {
+				config.ResourceTypes = append(config.ResourceTypes, atc.ResourceType{
+					Name: "_some-resource-type",
+					Type: "some-type",
+					Source: atc.Source{
+						"source-config": "some-value",
+					},
+				})
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(1))
+				Expect(warnings[0]).To(Equal(atc.ConfigWarning{
+					Type:    "invalid_identifier",
+					Message: "'_some-resource-type' is not a valid identifier",
+				}))
+			})
+		})
+
 		Context("when a var source has an invalid identifier", func() {
 			BeforeEach(func() {
 				config.VarSources = append(config.VarSources, atc.VarSourceConfig{
