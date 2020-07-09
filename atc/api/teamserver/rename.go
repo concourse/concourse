@@ -2,6 +2,7 @@ package teamserver
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -35,6 +36,15 @@ func (s *Server) RenameTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var warnings []atc.ConfigWarning
+	err = atc.ValidateIdentifier(rename.NewName, "team")
+	if err != nil {
+		warnings = append(warnings, atc.ConfigWarning{
+			Type:    "invalid_identifier",
+			Message: err.Error(),
+		})
+	}
+
 	team, found, err := s.teamFactory.FindTeam(teamName)
 	if err != nil {
 		logger.Error("failed-to-get-team", err)
@@ -55,5 +65,22 @@ func (s *Server) RenameTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	s.writeResponse(w, atc.SaveConfigResponse{Warnings: warnings})
+}
+
+func (s *Server) writeResponse(w http.ResponseWriter, response atc.SaveConfigResponse) {
+	responseJSON, err := json.Marshal(response)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "failed to generate error response: %s", err)
+		return
+	}
+
+	_, err = w.Write(responseJSON)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }

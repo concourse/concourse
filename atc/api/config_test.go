@@ -293,6 +293,41 @@ var _ = Describe("Config API", func() {
 				fakeAccess.IsAuthorizedReturns(true)
 			})
 
+			Context("when an identifier is invalid", func() {
+
+				BeforeEach(func() {
+					var err error
+					request, err = requestGenerator.CreateRequest(atc.SaveConfig, rata.Params{
+						"team_name":     "_team",
+						"pipeline_name": "_pipeline",
+					}, nil)
+					Expect(err).NotTo(HaveOccurred())
+
+					request.Header.Set("Content-Type", "application/json")
+
+					payload, err := json.Marshal(pipelineConfig)
+					Expect(err).NotTo(HaveOccurred())
+
+					request.Body = gbytes.BufferWithBytes(payload)
+				})
+
+				It("returns warnings in the response body", func() {
+					Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							{
+								"warnings": [
+									{
+										"type": "invalid_identifier",
+										"message": "'_pipeline' is not a valid [pipeline] identifier"
+									},
+									{
+										"type": "invalid_identifier",
+										"message": "'_team' is not a valid [team] identifier"
+									}
+								]
+							}`))
+				})
+			})
+
 			Context("when a config version is specified", func() {
 				BeforeEach(func() {
 					request.Header.Set(atc.ConfigVersionHeader, "42")

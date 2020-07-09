@@ -69,7 +69,22 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pipelineName := rata.Param(r, "pipeline_name")
+	err := atc.ValidateIdentifier(pipelineName, "pipeline")
+	if err != nil {
+		warnings = append(warnings, atc.ConfigWarning{
+			Type:    "invalid_identifier",
+			Message: err.Error(),
+		})
+	}
+
 	teamName := rata.Param(r, "team_name")
+	err = atc.ValidateIdentifier(teamName, "team")
+	if err != nil {
+		warnings = append(warnings, atc.ConfigWarning{
+			Type:    "invalid_identifier",
+			Message: err.Error(),
+		})
+	}
 
 	if checkCredentials {
 		variables := creds.NewVariables(s.secretManager, teamName, pipelineName, false)
