@@ -236,15 +236,27 @@ tooltip { hovered } =
         HoverState.Tooltip (SideBarTeam _ teamName) _ ->
             Just
                 { body = Html.div Styles.tooltipBody [ Html.text teamName ]
-                , attachPosition = { direction = Tooltip.Right, alignment = Tooltip.Middle 30 }
-                , arrow = Just { size = 15, color = Colors.frame }
+                , attachPosition =
+                    { direction =
+                        Tooltip.Right (Styles.tooltipArrowSize - Styles.tooltipOffset)
+                    , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
+                    }
+                , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.frame }
                 }
 
         HoverState.Tooltip (SideBarPipeline _ pipelineID) _ ->
             Just
                 { body = Html.div Styles.tooltipBody [ Html.text pipelineID.pipelineName ]
-                , attachPosition = { direction = Tooltip.Right, alignment = Tooltip.Middle 30 }
-                , arrow = Just { size = 15, color = Colors.frame }
+                , attachPosition =
+                    { direction =
+                        Tooltip.Right <|
+                            Styles.tooltipArrowSize
+                                + (Styles.starPadding * 2)
+                                + Styles.starWidth
+                                - Styles.tooltipOffset
+                    , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
+                    }
+                , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.frame }
                 }
 
         _ ->

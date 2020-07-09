@@ -16,12 +16,16 @@ module SideBar.Styles exposing
     , separator
     , sideBar
     , sideBarHandle
+    , starPadding
+    , starWidth
     , team
     , teamHeader
     , teamIcon
     , teamName
     , tooltip
+    , tooltipArrowSize
     , tooltipBody
+    , tooltipOffset
     )
 
 import Assets
@@ -30,6 +34,26 @@ import Html
 import Html.Attributes as Attr exposing (style)
 import Views.Icon as Icon
 import Views.Styles
+
+
+starPadding : Float
+starPadding =
+    10
+
+
+starWidth : Float
+starWidth =
+    18
+
+
+tooltipArrowSize : Float
+tooltipArrowSize =
+    15
+
+
+tooltipOffset : Float
+tooltipOffset =
+    3
 
 
 sideBar : { r | width : Float } -> List (Html.Attribute msg)
@@ -286,11 +310,11 @@ pipelineFavourite fav =
                     Assets.StarIconUnfilled
     , style "background-repeat" "no-repeat"
     , style "background-position" "50% 50%"
-    , style "height" "18px"
-    , style "width" "18px"
+    , style "height" <| String.fromFloat starWidth ++ "px"
+    , style "width" <| String.fromFloat starWidth ++ "px"
     , style "background-size" "contain"
     , style "background-origin" "content-box"
-    , style "padding" "0 10px"
+    , style "padding" <| "0 " ++ String.fromFloat starPadding ++ "px"
     , style "flex-shrink" "0"
     , style "cursor" "pointer"
     , Attr.attribute "aria-label" "Favorite Icon"
