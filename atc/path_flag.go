@@ -2,6 +2,9 @@ package atc
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -12,6 +15,21 @@ type PathFlag string
 
 func (path *PathFlag) UnmarshalFlag(value string) error {
 	if value == "" {
+		return nil
+	}
+
+	if value == "-" {
+		tempf, err := ioutil.TempFile("", "fly-set-pipeline")
+		if err != nil {
+			return fmt.Errorf("failed to create a temp file")
+		}
+		defer tempf.Close()
+
+		_, err = io.Copy(tempf, os.Stdin)
+		if err != nil {
+			return fmt.Errorf("failed to write temp file: %s", err.Error())
+		}
+		*path = PathFlag(tempf.Name())
 		return nil
 	}
 
