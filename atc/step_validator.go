@@ -78,7 +78,7 @@ func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 	if plan.Config != nil && (plan.Config.RootfsURI != "" || plan.Config.ImageResource != nil) && plan.ImageArtifactName != "" {
 		validator.recordWarning(ConfigWarning{
 			Type:    "pipeline",
-			Message: "specifies image: on the step but also specifies an image under config: - the image: on the step takes precedence",
+			Message: validator.annotate("specifies image: on the step but also specifies an image under config: - the image: on the step takes precedence"),
 		})
 	}
 
@@ -265,7 +265,7 @@ func (validator *StepValidator) VisitAggregate(step *AggregateStep) error {
 
 	validator.recordWarning(ConfigWarning{
 		Type:    "pipeline",
-		Message: "the aggregate step is deprecated and will be removed in a future version",
+		Message: validator.annotate("the aggregate step is deprecated and will be removed in a future version"),
 	})
 
 	for i, sub := range step.Steps {
