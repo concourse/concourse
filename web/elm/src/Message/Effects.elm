@@ -45,6 +45,7 @@ import Message.Storage
         )
 import Process
 import Routes
+import Set exposing (Set)
 import SideBar.State exposing (SideBarState, encodeSideBarState)
 import Task
 import Time
@@ -189,7 +190,7 @@ type Effect
     | GetViewportOf DomID
     | GetElement DomID
     | SyncTextareaHeight DomID
-    | SaveFavoritedPipelines (List Int) -- List of Concourse.Pipeline.id
+    | SaveFavoritedPipelines (Set Int) -- Set of Concourse.Pipeline.id
     | LoadFavoritedPipelines
 
 
@@ -621,7 +622,7 @@ runEffect effect key csrfToken =
         SaveFavoritedPipelines pipelineIDs ->
             saveToLocalStorage
                 ( favoritedPipelinesKey
-                , pipelineIDs |> Json.Encode.list Json.Encode.int
+                , pipelineIDs |> Json.Encode.set Json.Encode.int
                 )
 
         LoadFavoritedPipelines ->

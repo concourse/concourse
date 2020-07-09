@@ -9,6 +9,7 @@ import Expect
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
 import Message.Message exposing (DomID(..), Message, SideBarSection(..))
+import Set
 import SideBar.Pipeline as Pipeline
 import SideBar.Styles as Styles
 import SideBar.Views as Views
@@ -212,10 +213,10 @@ viewPipeline { active, hovered, favorited, isFavoritesSection } p =
 
         favoritedPipelines =
             if favorited then
-                [ p.id ]
+                Set.singleton p.id
 
             else
-                []
+                Set.empty
     in
     Pipeline.pipeline
         { hovered = hoveredDomId

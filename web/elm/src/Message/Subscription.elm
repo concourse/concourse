@@ -35,6 +35,7 @@ import Message.Storage as Storage
         , tokenKey
         )
 import Routes
+import Set exposing (Set)
 import SideBar.State exposing (SideBarState, decodeSideBarState)
 import Time
 import Url
@@ -106,7 +107,7 @@ type Delivery
     | CachedJobsReceived (Result Json.Decode.Error (List Concourse.Job))
     | CachedPipelinesReceived (Result Json.Decode.Error (List Concourse.Pipeline))
     | CachedTeamsReceived (Result Json.Decode.Error (List Concourse.Team))
-    | FavoritedPipelinesReceived (Result Json.Decode.Error (List Int)) -- List of Concourse.Pipeline.id
+    | FavoritedPipelinesReceived (Result Json.Decode.Error (Set Int)) -- Set of Concourse.Pipeline.id
     | ScrolledToId ( String, String )
     | Noop
 
@@ -203,7 +204,7 @@ runSubscription s =
         OnFavoritedPipelinesReceived ->
             receivedFromLocalStorage <|
                 decodeStorageResponse favoritedPipelinesKey
-                    (Json.Decode.list Json.Decode.int)
+                    (Json.Decode.list Json.Decode.int |> Json.Decode.map Set.fromList)
                     FavoritedPipelinesReceived
 
         OnElementVisible ->

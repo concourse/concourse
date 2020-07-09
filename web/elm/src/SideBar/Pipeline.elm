@@ -5,6 +5,7 @@ import Concourse
 import HoverState
 import Message.Message exposing (DomID(..), Message(..), SideBarSection(..))
 import Routes
+import Set exposing (Set)
 import SideBar.Styles as Styles
 import SideBar.Views as Views
 
@@ -20,7 +21,7 @@ pipeline :
     { a
         | hovered : HoverState.HoverState
         , currentPipeline : Maybe (PipelineScoped b)
-        , favoritedPipelines : List Int
+        , favoritedPipelines : Set Int
         , isFavoritesSection : Bool
     }
     -> Concourse.Pipeline
@@ -100,7 +101,7 @@ pipeline session p =
 
             else
                 Styles.Dim
-        , filled = List.member p.id session.favoritedPipelines
+        , filled = Set.member p.id session.favoritedPipelines
         }
     , id = p.id
     }

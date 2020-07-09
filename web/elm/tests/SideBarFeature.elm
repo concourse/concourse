@@ -27,6 +27,7 @@ import Message.Message as Message exposing (SideBarSection(..))
 import Message.Subscription as Subscription
 import Message.TopLevelMessage as TopLevelMessage
 import Routes
+import Set
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -288,8 +289,7 @@ hasSideBar iAmLookingAtThePage =
     , describe "favorites section" <|
         [ test "exists when there are favorited pipelines" <|
             given iHaveAnOpenSideBar_
-                >> given iClickedThePipelineGroup
-                >> given iClickedTheFirstPipelineStar
+                >> given myBrowserFetchedFavoritedPipelines
                 >> when iAmLookingAtTheSideBar
                 >> then_ iSeeFavoritesSection
         , test "does not exist when there are no favorited pipelines" <|
@@ -1456,7 +1456,7 @@ myBrowserFetchedFavoritedPipelines =
     Tuple.first
         >> Application.handleDelivery
             (Subscription.FavoritedPipelinesReceived <|
-                Ok [ 0 ]
+                Ok (Set.singleton 0)
             )
 
 

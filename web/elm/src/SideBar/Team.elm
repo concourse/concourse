@@ -4,6 +4,7 @@ import Assets
 import Concourse
 import HoverState
 import Message.Message exposing (DomID(..), Message(..), SideBarSection(..))
+import Set exposing (Set)
 import SideBar.Pipeline as Pipeline
 import SideBar.Styles as Styles
 import SideBar.Views as Views
@@ -21,7 +22,7 @@ team :
         | hovered : HoverState.HoverState
         , pipelines : List Concourse.Pipeline
         , currentPipeline : Maybe (PipelineScoped b)
-        , favoritedPipelines : List Int
+        , favoritedPipelines : Set Int
         , isFavoritesSection : Bool
     }
     -> { name : String, isExpanded : Bool }

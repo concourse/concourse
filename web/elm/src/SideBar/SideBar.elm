@@ -41,7 +41,7 @@ type alias Model m =
             , sideBarState : SideBarState
             , draggingSideBar : Bool
             , screenSize : ScreenSize.ScreenSize
-            , favoritedPipelines : List Int
+            , favoritedPipelines : Set Int
         }
 
 
@@ -54,6 +54,14 @@ type alias PipelineScoped a =
 
 update : Message -> Model m -> ( Model m, List Effects.Effect )
 update message model =
+    let
+        toggle element set =
+            if Set.member element set then
+                Set.remove element set
+
+            else
+                Set.insert element set
+    in
     case message of
         Click HamburgerMenu ->
             let
@@ -68,19 +76,11 @@ update message model =
             )
 
         Click (SideBarTeam section teamName) ->
-            let
-                toggle set =
-                    if Set.member teamName set then
-                        Set.remove teamName set
-
-                    else
-                        Set.insert teamName set
-            in
             case section of
                 AllPipelines ->
                     ( { model
                         | expandedTeamsInAllPipelines =
-                            toggle model.expandedTeamsInAllPipelines
+                            toggle teamName model.expandedTeamsInAllPipelines
                       }
                     , []
                     )
@@ -88,7 +88,7 @@ update message model =
                 Favorites ->
                     ( { model
                         | collapsedTeamsInFavorites =
-                            toggle model.collapsedTeamsInFavorites
+                            toggle teamName model.collapsedTeamsInFavorites
                       }
                     , []
                     )
@@ -99,15 +99,9 @@ update message model =
         Click (SideBarStarIcon pipelineID) ->
             let
                 favoritedPipelines =
-                    if List.member pipelineID model.favoritedPipelines then
-                        List.filter ((/=) pipelineID) model.favoritedPipelines
-
-                    else
-                        pipelineID :: model.favoritedPipelines
+                    toggle pipelineID model.favoritedPipelines
             in
-            ( { model
-                | favoritedPipelines = favoritedPipelines
-              }
+            ( { model | favoritedPipelines = favoritedPipelines }
             , [ Effects.SaveFavoritedPipelines <| favoritedPipelines ]
             )
 
@@ -284,7 +278,7 @@ allPipelinesSection model currentPipeline =
 
 allFavoritedPipelinesSection : Model m -> Maybe (PipelineScoped a) -> List (Html Message)
 allFavoritedPipelinesSection model currentPipeline =
-    if List.isEmpty model.favoritedPipelines then
+    if Set.isEmpty model.favoritedPipelines then
         []
 
     else
@@ -294,7 +288,7 @@ allFavoritedPipelinesSection model currentPipeline =
                 |> RemoteData.withDefault []
                 |> List.filter
                     (\fp ->
-                        List.member fp.id model.favoritedPipelines
+                        Set.member fp.id model.favoritedPipelines
                     )
                 |> List.Extra.gatherEqualsBy .teamName
                 |> List.map
