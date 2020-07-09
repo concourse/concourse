@@ -132,7 +132,7 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(warnings).To(HaveLen(1))
 				Expect(warnings[0]).To(Equal(atc.ConfigWarning{
 					Type:    "invalid_identifier",
-					Message: "'_some-group' is not a valid identifier",
+					Message: "'_some-group' is not a valid [group] identifier",
 				}))
 			})
 		})
@@ -152,7 +152,7 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(warnings).To(HaveLen(1))
 				Expect(warnings[0]).To(Equal(atc.ConfigWarning{
 					Type:    "invalid_identifier",
-					Message: "'some_resource' is not a valid identifier",
+					Message: "'some_resource' is not a valid [resource] identifier",
 				}))
 			})
 		})
@@ -172,7 +172,7 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(warnings).To(HaveLen(1))
 				Expect(warnings[0]).To(Equal(atc.ConfigWarning{
 					Type:    "invalid_identifier",
-					Message: "'_some-resource-type' is not a valid identifier",
+					Message: "'_some-resource-type' is not a valid [resource_type] identifier",
 				}))
 			})
 		})
@@ -190,7 +190,7 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(warnings).To(HaveLen(1))
 				Expect(warnings[0]).To(Equal(atc.ConfigWarning{
 					Type:    "invalid_identifier",
-					Message: "'_some-var-source' is not a valid identifier",
+					Message: "'_some-var-source' is not a valid [var_source] identifier",
 				}))
 			})
 		})
@@ -206,7 +206,7 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(warnings).To(HaveLen(1))
 				Expect(warnings[0]).To(Equal(atc.ConfigWarning{
 					Type:    "invalid_identifier",
-					Message: "'_some-job' is not a valid identifier",
+					Message: "'_some-job' is not a valid [job] identifier",
 				}))
 			})
 		})

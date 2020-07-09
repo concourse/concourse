@@ -70,7 +70,7 @@ func validateGroups(c Config) ([]ConfigWarning, error) {
 	}
 
 	for _, group := range c.Groups {
-		if err := ValidateIdentifier(group.Name); err != nil {
+		if err := ValidateIdentifier(group.Name, "group"); err != nil {
 			warnings = append(warnings, ConfigWarning{
 				Type:    "invalid_identifier",
 				Message: err.Error(),
@@ -128,7 +128,7 @@ func validateResources(c Config) ([]ConfigWarning, error) {
 	names := map[string]int{}
 
 	for i, resource := range c.Resources {
-		if err := ValidateIdentifier(resource.Name); err != nil {
+		if err := ValidateIdentifier(resource.Name, "resource"); err != nil {
 			warnings = append(warnings, ConfigWarning{
 				Type:    "invalid_identifier",
 				Message: err.Error(),
@@ -172,7 +172,7 @@ func validateResourceTypes(c Config) ([]ConfigWarning, error) {
 	names := map[string]int{}
 
 	for i, resourceType := range c.ResourceTypes {
-		if err := ValidateIdentifier(resourceType.Name); err != nil {
+		if err := ValidateIdentifier(resourceType.Name, "resource_type"); err != nil {
 			warnings = append(warnings, ConfigWarning{
 				Type:    "invalid_identifier",
 				Message: err.Error(),
@@ -247,7 +247,7 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 	names := map[string]int{}
 
 	for i, job := range c.Jobs {
-		if err := ValidateIdentifier(job.Name); err != nil {
+		if err := ValidateIdentifier(job.Name, "job"); err != nil {
 			warnings = append(warnings, ConfigWarning{
 				Type:    "invalid_identifier",
 				Message: err.Error(),
@@ -342,7 +342,7 @@ func validateVarSources(c Config) ([]ConfigWarning, error) {
 	names := map[string]interface{}{}
 
 	for _, cm := range c.VarSources {
-		if err := ValidateIdentifier(cm.Name); err != nil {
+		if err := ValidateIdentifier(cm.Name, "var_source"); err != nil {
 			warnings = append(warnings, ConfigWarning{
 				Type:    "invalid_identifier",
 				Message: err.Error(),

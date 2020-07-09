@@ -10,8 +10,13 @@ type ConfigWarning struct {
 	Message string `json:"message"`
 }
 
-func ValidateIdentifier(identifier string) error {
-	if identifier != "" && !regexp.MustCompile(`^\p{L}[\p{L}\d\-.]*$`).MatchString(identifier) {
+var validIdentifiers = regexp.MustCompile(`^\p{L}[\p{L}\d\-.]*$`)
+
+func ValidateIdentifier(identifier string, context ...string) error {
+	if identifier != "" && !validIdentifiers.MatchString(identifier) {
+		if context != nil {
+			return fmt.Errorf("'%s' is not a valid %s identifier", identifier, context)
+		}
 		return fmt.Errorf("'%s' is not a valid identifier", identifier)
 	}
 	return nil

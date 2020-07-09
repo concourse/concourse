@@ -49,4 +49,15 @@ var _ = Describe("ValidateIdentifier", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
+
+	Describe("ValidateIdentifier with context", func() {
+		Context("when an identifier is invalid", func() {
+			It("returns an error with context", func() {
+				err := atc.ValidateIdentifier("_something", "pipeline")
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal("'_something' is not a valid [pipeline] identifier"))
+			})
+		})
+
+	})
 })

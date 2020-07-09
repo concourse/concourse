@@ -62,6 +62,11 @@ func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 	validator.pushContext(fmt.Sprintf(".task(%s)", plan.Name))
 	defer validator.popContext()
 
+	err := ValidateIdentifier(plan.Name)
+	if err != nil {
+		validator.recordWarning(ConfigWarning{Type: "invalid_identifier", Message: validator.annotate(err.Error())})
+	}
+
 	if plan.Config == nil && plan.ConfigPath == "" {
 		validator.recordError("must specify either `file:` or `config:`")
 	}
@@ -102,7 +107,7 @@ func (validator *StepValidator) VisitGet(step *GetStep) error {
 
 	err := ValidateIdentifier(step.Name)
 	if err != nil {
-		validator.recordWarning(ConfigWarning{Type: "invalid_identifier", Message: err.Error()})
+		validator.recordWarning(ConfigWarning{Type: "invalid_identifier", Message: validator.annotate(err.Error())})
 	}
 
 	if validator.seenGetName[step.Name] {
@@ -160,7 +165,7 @@ func (validator *StepValidator) VisitPut(step *PutStep) error {
 
 	err := ValidateIdentifier(step.Name)
 	if err != nil {
-		validator.recordWarning(ConfigWarning{Type: "invalid_identifier", Message: err.Error()})
+		validator.recordWarning(ConfigWarning{Type: "invalid_identifier", Message: validator.annotate(err.Error())})
 	}
 
 	resourceName := step.ResourceName()
@@ -179,7 +184,7 @@ func (validator *StepValidator) VisitSetPipeline(step *SetPipelineStep) error {
 
 	err := ValidateIdentifier(step.Name)
 	if err != nil {
-		validator.recordWarning(ConfigWarning{Type: "invalid_identifier", Message: err.Error()})
+		validator.recordWarning(ConfigWarning{Type: "invalid_identifier", Message: validator.annotate(err.Error())})
 	}
 
 	if step.File == "" {
@@ -195,7 +200,7 @@ func (validator *StepValidator) VisitLoadVar(step *LoadVarStep) error {
 
 	err := ValidateIdentifier(step.Name)
 	if err != nil {
-		validator.recordWarning(ConfigWarning{Type: "invalid_identifier", Message: err.Error()})
+		validator.recordWarning(ConfigWarning{Type: "invalid_identifier", Message: validator.annotate(err.Error())})
 	}
 
 	if validator.seenLoadVarName[step.Name] {
