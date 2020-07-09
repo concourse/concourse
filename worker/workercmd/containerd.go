@@ -19,7 +19,6 @@ import (
 	"github.com/concourse/concourse/worker/runtime/libcontainerd"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
-	"github.com/tedsuo/ifrit/restart"
 )
 
 // TODO This constructor could use refactoring using the functional options pattern.
@@ -78,14 +77,7 @@ func containerdGardenServerRunner(
 		logger,
 	)
 
-	runner := gardenServerRunner{logger, server}
-
-	return restart.Restarter{
-		Runner: runner,
-		Load: func(prevRunner ifrit.Runner, prevErr error) ifrit.Runner {
-			return runner
-		},
-	}, nil
+	return gardenServerRunner{logger, server}, nil
 }
 
 // writeDefaultContainerdConfig writes a default containerd configuration file
@@ -189,7 +181,7 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 		return nil, fmt.Errorf("containerd garden server runner: %w", err)
 	}
 
-	members = append(members, grouper.Members{
+	members = append(grouper.Members{
 		{
 			Name:   "containerd",
 			Runner: CmdRunner{command},
@@ -198,7 +190,8 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 			Name:   "containerd-garden-backend",
 			Runner: gardenServerRunner,
 		},
-	}...)
+	}, members...)
 
-	return grouper.NewParallel(os.Interrupt, members), nil
+	// Using the Ordered strategy to ensure containerd is up before the garden server is started
+	return grouper.NewOrdered(os.Interrupt, members), nil
 }
