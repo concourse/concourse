@@ -41,9 +41,13 @@ func (command *RenamePipelineCommand) Execute([]string) error {
 	oldName := string(command.Pipeline)
 	newName := string(command.Name)
 
-	found, err := target.Team().RenamePipeline(oldName, newName)
+	found, warnings, err := target.Team().RenamePipeline(oldName, newName)
 	if err != nil {
 		return err
+	}
+
+	if len(warnings) > 0 {
+		displayhelpers.ShowWarnings(warnings)
 	}
 
 	if !found {

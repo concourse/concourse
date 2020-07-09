@@ -97,9 +97,13 @@ func (command *SetTeamCommand) Execute([]string) error {
 
 	team := atc.Team{Auth: authRoles}
 
-	_, created, updated, err := target.Client().Team(teamName).CreateOrUpdate(team)
+	_, created, updated, warnings, err := target.Client().Team(teamName).CreateOrUpdate(team)
 	if err != nil {
 		return err
+	}
+
+	if len(warnings) > 0 {
+		displayhelpers.ShowWarnings(warnings)
 	}
 
 	if created {
