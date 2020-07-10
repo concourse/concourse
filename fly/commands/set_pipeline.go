@@ -5,6 +5,7 @@ import (
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/commands/internal/setpipelinehelpers"
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
+	"github.com/concourse/concourse/fly/pty"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/mgutz/ansi"
@@ -17,7 +18,7 @@ type SetPipelineCommand struct {
 	CheckCredentials bool `long:"check-creds"  description:"Validate credential variables against credential manager"`
 
 	Pipeline flaghelpers.PipelineFlag `short:"p"  long:"pipeline"  required:"true"  description:"Pipeline to configure"`
-	Config   atc.PathFlag             `short:"c"  long:"config"    required:"true"  description:"Pipeline configuration file"`
+	Config   atc.PathFlag             `short:"c"  long:"config"    required:"true"  description:"Pipeline configuration file, \"-\" stands for stdin"`
 
 	Var     []flaghelpers.VariablePairFlag     `short:"v"  long:"var"       value-name:"[NAME=STRING]"  description:"Specify a string value to set for a variable in the pipeline"`
 	YAMLVar []flaghelpers.YAMLVariablePairFlag `short:"y"  long:"yaml-var"  value-name:"[NAME=YAML]"    description:"Specify a YAML value to set for a variable in the pipeline"`
@@ -77,7 +78,7 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		PipelineName:     pipelineName,
 		TargetName:       Fly.Target,
 		Target:           target.Client().URL(),
-		SkipInteraction:  command.SkipInteractive,
+		SkipInteraction:  command.SkipInteractive || !pty.IsTerminal(),
 		CheckCredentials: command.CheckCredentials,
 		CommandWarnings:  warnings,
 	}
