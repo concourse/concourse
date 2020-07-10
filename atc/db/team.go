@@ -1234,8 +1234,9 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		lastUpdated   pq.NullTime
 		parentJobID   sql.NullInt64
 		parentBuildID sql.NullInt64
+		instanceVars  sql.NullString
 	)
-	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &display, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &p.archived, &lastUpdated, &parentJobID, &parentBuildID)
+	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &display, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &p.archived, &lastUpdated, &parentJobID, &parentBuildID, &instanceVars)
 	if err != nil {
 		return err
 	}
@@ -1280,6 +1281,16 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		}
 
 		p.varSources = pipelineVarSources
+	}
+
+	if instanceVars.Valid {
+		var pipelineInstanceVars atc.InstanceVars
+		err = json.Unmarshal([]byte(instanceVars.String), &pipelineInstanceVars)
+		if err != nil {
+			return err
+		}
+
+		p.instanceVars = pipelineInstanceVars
 	}
 
 	return nil

@@ -1,5 +1,7 @@
 package atc
 
+type InstanceVars map[string]interface{}
+
 type Pipeline struct {
 	ID          int            `json:"id"`
 	Name        string         `json:"name"`
