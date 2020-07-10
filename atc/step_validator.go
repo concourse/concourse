@@ -25,8 +25,8 @@ type StepValidator struct {
 	config  Config
 	context []string
 
-	seenGetName     map[string]bool
-	seenLoadVarName map[string]bool
+	seenGetName      map[string]bool
+	seenLocalVarName map[string]bool
 }
 
 // NewStepValidator is a constructor which initializes internal data.
@@ -39,10 +39,10 @@ type StepValidator struct {
 // errors like 'jobs(foo).plan.task(bar): blah blah'.
 func NewStepValidator(config Config, context []string) *StepValidator {
 	return &StepValidator{
-		config:          config,
-		context:         context,
-		seenGetName:     map[string]bool{},
-		seenLoadVarName: map[string]bool{},
+		config:           config,
+		context:          context,
+		seenGetName:      map[string]bool{},
+		seenLocalVarName: map[string]bool{},
 	}
 }
 
@@ -203,11 +203,11 @@ func (validator *StepValidator) VisitLoadVar(step *LoadVarStep) error {
 		validator.recordWarning(*warning)
 	}
 
-	if validator.seenLoadVarName[step.Name] {
+	if validator.seenLocalVarName[step.Name] {
 		validator.recordError("repeated name")
 	}
 
-	validator.seenLoadVarName[step.Name] = true
+	validator.seenLocalVarName[step.Name] = true
 
 	if step.File == "" {
 		validator.recordError("no file specified")
@@ -280,6 +280,32 @@ func (validator *StepValidator) VisitAggregate(step *AggregateStep) error {
 	}
 
 	return nil
+}
+
+func (validator *StepValidator) VisitAcross(step *AcrossStep) error {
+	validator.pushContext(".across")
+	defer validator.popContext()
+
+	if len(step.Vars) == 0 {
+		validator.recordError("no vars specified")
+	}
+
+	for i, v := range step.Vars {
+		validator.pushContext("[%d]", i)
+		if validator.seenLocalVarName[v.Var] {
+			validator.recordError("repeated var name")
+		}
+		validator.seenLocalVarName[v.Var] = true
+
+		validator.pushContext(".max_in_flight")
+		if v.MaxInFlight.Limit < 0 {
+			validator.recordError("cannot be negative")
+		}
+		validator.popContext()
+		validator.popContext()
+	}
+
+	return step.Step.Visit(validator)
 }
 
 func (validator *StepValidator) VisitTimeout(step *TimeoutStep) error {

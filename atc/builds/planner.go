@@ -208,6 +208,46 @@ func (visitor *planVisitor) VisitInParallel(step *atc.InParallelStep) error {
 	return nil
 }
 
+func (visitor *planVisitor) VisitAcross(step *atc.AcrossStep) error {
+	v := step.Vars[0]
+	maxInFlight := v.MaxInFlight.Limit
+	if v.MaxInFlight.All {
+		maxInFlight = len(v.Values)
+	}
+	if maxInFlight == 0 {
+		maxInFlight = 1
+	}
+	acrossPlan := atc.AcrossPlan{
+		Var:         v.Var,
+		Steps:       []atc.VarScopedPlan{},
+		MaxInFlight: maxInFlight,
+		FailFast:    step.FailFast,
+	}
+	for _, val := range v.Values {
+		var err error
+		if len(step.Vars) > 1 {
+			err = visitor.VisitAcross(&atc.AcrossStep{
+				Step: step.Step,
+				Vars: step.Vars[1:],
+			})
+		} else {
+			err = step.Step.Visit(visitor)
+		}
+		if err != nil {
+			return err
+		}
+
+		acrossPlan.Steps = append(acrossPlan.Steps, atc.VarScopedPlan{
+			Step:  visitor.plan,
+			Value: val,
+		})
+	}
+
+	visitor.plan = visitor.planFactory.NewPlan(acrossPlan)
+
+	return nil
+}
+
 func (visitor *planVisitor) VisitSetPipeline(step *atc.SetPipelineStep) error {
 	visitor.plan = visitor.planFactory.NewPlan(atc.SetPipelinePlan{
 		Name:     step.Name,

@@ -3,6 +3,7 @@ package builder_test
 import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/concourse/vars"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -27,10 +28,10 @@ var _ = Describe("Builder", func() {
 		var (
 			err error
 
-			fakeStepFactory     *builderfakes.FakeStepFactory
-			fakeDelegateFactory *builderfakes.FakeDelegateFactory
-			fakeSecretManager   *credsfakes.FakeSecrets
-			fakeVarSourcePool   *credsfakes.FakeVarSourcePool
+			fakeStepFactory   *builderfakes.FakeStepFactory
+			fakeSecretManager *credsfakes.FakeSecrets
+			fakeVarSourcePool *credsfakes.FakeVarSourcePool
+			delegateFactory   builder.DelegateFactory
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
@@ -40,13 +41,13 @@ var _ = Describe("Builder", func() {
 
 		BeforeEach(func() {
 			fakeStepFactory = new(builderfakes.FakeStepFactory)
-			fakeDelegateFactory = new(builderfakes.FakeDelegateFactory)
 			fakeSecretManager = new(credsfakes.FakeSecrets)
 			fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
+			delegateFactory = builder.NewDelegateFactory()
 
 			stepBuilder = builder.NewStepBuilder(
 				fakeStepFactory,
-				fakeDelegateFactory,
+				delegateFactory,
 				"http://example.com",
 				fakeSecretManager,
 				fakeVarSourcePool,
@@ -796,6 +797,87 @@ var _ = Describe("Builder", func() {
 						}))
 					})
 				})
+
+				Context("running across steps", func() {
+					var taskPlanFactory func() atc.Plan
+					BeforeEach(func() {
+						taskPlanFactory = func() atc.Plan {
+							return planFactory.NewPlan(atc.TaskPlan{
+								Name: "some-task",
+							})
+						}
+
+						acrossPlanFactory := func(varName string, subPlanFactory func() atc.Plan) atc.Plan {
+							return planFactory.NewPlan(atc.AcrossPlan{
+								Var: varName,
+								Steps: []atc.VarScopedPlan{
+									{
+										Step:  subPlanFactory(),
+										Value: "v1",
+									},
+									{
+										Step:  subPlanFactory(),
+										Value: "v2",
+									},
+								},
+							})
+						}
+
+						expectedPlan = acrossPlanFactory("var1", func() atc.Plan {
+							return acrossPlanFactory("var2", taskPlanFactory)
+						})
+					})
+
+					It("constructs the steps correctly", func() {
+						Expect(fakeStepFactory.TaskStepCallCount()).To(Equal(4))
+						plan, stepMetadata, containerMetadata, _ := fakeStepFactory.TaskStepArgsForCall(0)
+						inputPlan := taskPlanFactory()
+						// ignore the ID
+						plan.ID = inputPlan.ID
+						Expect(plan).To(Equal(inputPlan))
+						Expect(stepMetadata).To(Equal(expectedMetadata))
+						Expect(containerMetadata).To(Equal(db.ContainerMetadata{
+							Type:         db.ContainerTypeTask,
+							StepName:     "some-task",
+							PipelineID:   2222,
+							PipelineName: "some-pipeline",
+							JobID:        3333,
+							JobName:      "some-job",
+							BuildID:      4444,
+							BuildName:    "42",
+						}))
+					})
+
+					ensureLocalVar := func(i int, name string, value interface{}) {
+						_, _, _, delegate := fakeStepFactory.TaskStepArgsForCall(i)
+						val, found, err := delegate.Variables().Get(vars.VariableDefinition{Name: ".:" + name})
+						Expect(err).ToNot(HaveOccurred())
+						Expect(found).To(BeTrue())
+						Expect(val).To(Equal(value))
+					}
+
+					It("runs each step with the correct local vars", func() {
+						ensureLocalVar(0, "var1", "v1")
+						ensureLocalVar(0, "var2", "v1")
+
+						ensureLocalVar(1, "var1", "v1")
+						ensureLocalVar(1, "var2", "v2")
+
+						ensureLocalVar(2, "var1", "v2")
+						ensureLocalVar(2, "var2", "v1")
+
+						ensureLocalVar(3, "var1", "v2")
+						ensureLocalVar(3, "var2", "v2")
+					})
+
+					It("runs each step with their own local var scope", func() {
+						_, _, _, delegate := fakeStepFactory.TaskStepArgsForCall(0)
+						delegate.Variables().AddLocalVar("var1", "modified", false)
+
+						// Other steps remain unchanged
+						ensureLocalVar(1, "var1", "v1")
+					})
+				})
 			})
 		})
 	})
@@ -805,10 +887,10 @@ var _ = Describe("Builder", func() {
 		var (
 			err error
 
-			fakeStepFactory     *builderfakes.FakeStepFactory
-			fakeDelegateFactory *builderfakes.FakeDelegateFactory
-			fakeSecretManager   *credsfakes.FakeSecrets
-			fakeVarSourcePool   *credsfakes.FakeVarSourcePool
+			fakeStepFactory   *builderfakes.FakeStepFactory
+			fakeSecretManager *credsfakes.FakeSecrets
+			fakeVarSourcePool *credsfakes.FakeVarSourcePool
+			delegateFactory   builder.DelegateFactory
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
@@ -818,13 +900,13 @@ var _ = Describe("Builder", func() {
 
 		BeforeEach(func() {
 			fakeStepFactory = new(builderfakes.FakeStepFactory)
-			fakeDelegateFactory = new(builderfakes.FakeDelegateFactory)
 			fakeSecretManager = new(credsfakes.FakeSecrets)
 			fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
+			delegateFactory = builder.NewDelegateFactory()
 
 			stepBuilder = builder.NewStepBuilder(
 				fakeStepFactory,
-				fakeDelegateFactory,
+				delegateFactory,
 				"http://example.com",
 				fakeSecretManager,
 				fakeVarSourcePool,

@@ -29,6 +29,8 @@ func (factory PlanFactory) NewPlan(step PlanConfig) Plan {
 		plan.Aggregate = &t
 	case InParallelPlan:
 		plan.InParallel = &t
+	case AcrossPlan:
+		plan.Across = &t
 	case DoPlan:
 		plan.Do = &t
 	case GetPlan:

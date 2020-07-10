@@ -1810,6 +1810,78 @@ var _ = Describe("ValidateConfig", func() {
 					Expect(errorMessages[0]).To(ContainSubstring(`jobs.some-other-job.plan.do[0]: unknown fields ["bogus"]`))
 				})
 			})
+
+			Context("when an across step has no vars", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.AcrossStep{
+							Step: &atc.PutStep{
+								Name: "some-resource",
+							},
+							Vars: []atc.AcrossVarConfig{},
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].across: no vars specified"))
+				})
+			})
+
+			Context("when an across step repeats a var name", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.AcrossStep{
+							Step: &atc.PutStep{
+								Name: "some-resource",
+							},
+							Vars: []atc.AcrossVarConfig{
+								{
+									Var: "var1",
+								},
+								{
+									Var: "var1",
+								},
+							},
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].across[1]: repeated var name"))
+				})
+			})
+
+			Context("when an across step has a negative limit", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.AcrossStep{
+							Step: &atc.PutStep{
+								Name: "some-resource",
+							},
+							Vars: []atc.AcrossVarConfig{
+								{
+									Var:         "var",
+									MaxInFlight: atc.MaxInFlightConfig{Limit: -1},
+								},
+							},
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].across[0].max_in_flight: cannot be negative"))
+				})
+			})
 		})
 
 		Context("when two jobs have the same name", func() {

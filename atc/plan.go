@@ -14,6 +14,7 @@ type Plan struct {
 	Do         *DoPlan         `json:"do,omitempty"`
 	InParallel *InParallelPlan `json:"in_parallel,omitempty"`
 	Aggregate  *AggregatePlan  `json:"aggregate,omitempty"`
+	Across     *AcrossPlan     `json:"across,omitempty"`
 
 	OnSuccess *OnSuccessPlan `json:"on_success,omitempty"`
 	OnFailure *OnFailurePlan `json:"on_failure,omitempty"`
@@ -54,6 +55,13 @@ func (plan *Plan) Each(f func(*Plan)) {
 		for i, p := range *plan.Aggregate {
 			p.Each(f)
 			(*plan.Aggregate)[i] = p
+		}
+	}
+
+	if plan.Across != nil {
+		for i, p := range plan.Across.Steps {
+			p.Step.Each(f)
+			plan.Across.Steps[i] = p
 		}
 	}
 
@@ -149,6 +157,18 @@ type InParallelPlan struct {
 	Steps    []Plan `json:"steps"`
 	Limit    int    `json:"limit,omitempty"`
 	FailFast bool   `json:"fail_fast,omitempty"`
+}
+
+type AcrossPlan struct {
+	Var         string          `json:"var"`
+	Steps       []VarScopedPlan `json:"steps"`
+	MaxInFlight int             `json:"max_in_flight,omitempty"`
+	FailFast    bool            `json:"fail_fast,omitempty"`
+}
+
+type VarScopedPlan struct {
+	Step  Plan        `json:"step"`
+	Value interface{} `json:"value"`
 }
 
 type DoPlan []Plan

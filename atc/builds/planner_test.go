@@ -410,6 +410,101 @@ var factoryTests = []PlannerTest{
 		}`,
 	},
 	{
+		Title: "across step",
+
+		Config: &atc.AcrossStep{
+			Step: &atc.LoadVarStep{
+				Name: "some-var",
+				File: "some-file",
+			},
+			Vars: []atc.AcrossVarConfig{
+				{
+					Var: "var1",
+					Values: []interface{}{"a1", "a2"},
+					MaxInFlight: atc.MaxInFlightConfig{All: true},
+				},
+				{
+					Var: "var2",
+					Values: []interface{}{"b1", "b2"},
+				},
+			},
+		},
+
+		PlanJSON: `{
+			"id": "(unique)",
+			"across": {
+				"var": "var1",
+				"max_in_flight": 2,
+				"steps": [
+					{
+						"value": "a1",
+						"step": {
+							"id": "(unique)",
+							"across": {
+								"var": "var2",
+								"max_in_flight": 1,
+								"steps": [
+									{
+										"value": "b1",
+										"step": {
+											"id": "(unique)",
+											"load_var": {
+												"name": "some-var",
+												"file": "some-file"
+											}
+										}
+									},
+									{
+										"value": "b2",
+										"step": {
+											"id": "(unique)",
+											"load_var": {
+												"name": "some-var",
+												"file": "some-file"
+											}
+										}
+									}
+								]
+							}
+						}
+					},
+					{
+						"value": "a2",
+						"step": {
+							"id": "(unique)",
+							"across": {
+								"var": "var2",
+								"max_in_flight": 1,
+								"steps": [
+									{
+										"value": "b1",
+										"step": {
+											"id": "(unique)",
+											"load_var": {
+												"name": "some-var",
+												"file": "some-file"
+											}
+										}
+									},
+									{
+										"value": "b2",
+										"step": {
+											"id": "(unique)",
+											"load_var": {
+												"name": "some-var",
+												"file": "some-file"
+											}
+										}
+									}
+								]
+							}
+						}
+					}
+				]
+			}
+		}`,
+	},
+	{
 		Title: "timeout modifier",
 
 		Config: &atc.TimeoutStep{

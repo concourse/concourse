@@ -139,6 +139,10 @@ func (builder *stepBuilder) buildStep(build db.Build, plan atc.Plan, credVarsTra
 		return builder.buildParallelStep(build, plan, credVarsTracker)
 	}
 
+	if plan.Across != nil {
+		return builder.buildAcrossStep(build, plan, credVarsTracker)
+	}
+
 	if plan.Do != nil {
 		return builder.buildDoStep(build, plan, credVarsTracker)
 	}
@@ -230,6 +234,32 @@ func (builder *stepBuilder) buildParallelStep(build db.Build, plan atc.Plan, cre
 	}
 
 	return exec.InParallel(steps, plan.InParallel.Limit, plan.InParallel.FailFast)
+}
+
+func (builder *stepBuilder) buildAcrossStep(build db.Build, plan atc.Plan, credVarsTracker vars.CredVarsTracker) exec.Step {
+
+	var steps []exec.Step
+
+	for _, p := range plan.Across.Steps {
+		scopedCredVarsTracker := credVarsTracker.NewLocalScope()
+		// Don't redact because the `list` operation of a var_source should return identifiers
+		// which should be publicly accessible. For static across steps, the static list is
+		// embedded directly in the pipeline
+		scopedCredVarsTracker.AddLocalVar(plan.Across.Var, p.Value, false)
+		steps = append(steps, builder.buildStep(build, p.Step, scopedCredVarsTracker))
+	}
+
+	stepMetadata := builder.stepMetadata(
+		build,
+		builder.externalURL,
+	)
+
+	return exec.Across(
+		*plan.Across,
+		steps,
+		builder.delegateFactory.BuildStepDelegate(build, plan.ID, credVarsTracker),
+		stepMetadata,
+	)
 }
 
 func (builder *stepBuilder) buildDoStep(build db.Build, plan atc.Plan, credVarsTracker vars.CredVarsTracker) exec.Step {

@@ -271,6 +271,76 @@ var factoryTests = []StepTest{
 		},
 	},
 	{
+		Title: "across step",
+
+		ConfigYAML: `
+			load_var: some-var
+			file: some-file
+			across:
+			- var: var1
+			  values: [1, 2, 3]
+			  max_in_flight: 3
+			- var: var2
+			  values: ["a", "b"]
+			  max_in_flight: all
+			- var: var3
+			  values: [{a: "a", b: "b"}]
+			fail_fast: true
+		`,
+
+		StepConfig: &atc.AcrossStep{
+			Step: &atc.LoadVarStep{
+				Name: "some-var",
+				File: "some-file",
+			},
+			Vars: []atc.AcrossVarConfig{
+				{
+					Var:         "var1",
+					Values:      []interface{}{float64(1), float64(2), float64(3)},
+					MaxInFlight: atc.MaxInFlightConfig{Limit: 3},
+				},
+				{
+					Var:         "var2",
+					Values:      []interface{}{"a", "b"},
+					MaxInFlight: atc.MaxInFlightConfig{All: true},
+				},
+				{
+					Var:    "var3",
+					Values: []interface{}{map[string]interface{}{"a": "a", "b": "b"}},
+				},
+			},
+			FailFast: true,
+		},
+	},
+	{
+		Title: "across step with invalid field",
+
+		ConfigYAML: `
+			load_var: some-var
+			file: some-file
+			across:
+			- var: var1
+			  values: [1, 2, 3]
+			  bogus_field: lol what ru gonna do about it 
+		`,
+
+		Err: `error unmarshaling JSON: while decoding JSON: malformed across step: json: unknown field "bogus_field"`,
+	},
+	{
+		Title: "across step with invalid max_in_flight",
+
+		ConfigYAML: `
+			load_var: some-var
+			file: some-file
+			across:
+			- var: var1
+			  values: [1, 2, 3]
+			  max_in_flight: some
+		`,
+
+		Err: `error unmarshaling JSON: while decoding JSON: malformed across step: invalid max_in_flight "some"`,
+	},
+	{
 		Title: "timeout modifier",
 
 		ConfigYAML: `
@@ -312,6 +382,9 @@ var factoryTests = []StepTest{
 			file: some-file
 			timeout: 1h
 			attempts: 3
+			across:
+			- var: version
+			  values: [v1, v2, v3]
 			on_success:
 			  load_var: success-var
 			  file: success-file
@@ -334,15 +407,23 @@ var factoryTests = []StepTest{
 				Step: &atc.OnAbortStep{
 					Step: &atc.OnFailureStep{
 						Step: &atc.OnSuccessStep{
-							Step: &atc.RetryStep{
-								Step: &atc.TimeoutStep{
-									Step: &atc.LoadVarStep{
-										Name: "some-var",
-										File: "some-file",
+							Step: &atc.AcrossStep{
+								Step: &atc.RetryStep{
+									Step: &atc.TimeoutStep{
+										Step: &atc.LoadVarStep{
+											Name: "some-var",
+											File: "some-file",
+										},
+										Duration: "1h",
 									},
-									Duration: "1h",
+									Attempts: 3,
 								},
-								Attempts: 3,
+								Vars: []atc.AcrossVarConfig{
+									{
+										Var:    "version",
+										Values: []interface{}{"v1", "v2", "v3"},
+									},
+								},
 							},
 							Hook: atc.Step{
 								Config: &atc.LoadVarStep{
