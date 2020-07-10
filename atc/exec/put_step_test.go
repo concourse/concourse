@@ -359,10 +359,10 @@ var _ = Describe("PutStep", func() {
 		})
 
 		It("secrets are tracked", func() {
-			mapit := vars.NewMapCredVarsTrackerIterator()
+			mapit := vars.MapCredVarsTrackerIterator{}
 			credVarsTracker.IterateInterpolatedCreds(mapit)
-			Expect(mapit.Data["custom-param"]).To(Equal("source"))
-			Expect(mapit.Data["source-param"]).To(Equal("super-secret-source"))
+			Expect(mapit["custom-param"]).To(Equal("source"))
+			Expect(mapit["source-param"]).To(Equal("super-secret-source"))
 		})
 
 		It("creates a resource with the correct source and params", func() {

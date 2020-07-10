@@ -57,6 +57,16 @@ type FakeCredVarsTracker struct {
 		result1 []vars.VariableDefinition
 		result2 error
 	}
+	NewLocalScopeStub        func() vars.CredVarsTracker
+	newLocalScopeMutex       sync.RWMutex
+	newLocalScopeArgsForCall []struct {
+	}
+	newLocalScopeReturns struct {
+		result1 vars.CredVarsTracker
+	}
+	newLocalScopeReturnsOnCall map[int]struct {
+		result1 vars.CredVarsTracker
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -298,6 +308,58 @@ func (fake *FakeCredVarsTracker) ListReturnsOnCall(i int, result1 []vars.Variabl
 	}{result1, result2}
 }
 
+func (fake *FakeCredVarsTracker) NewLocalScope() vars.CredVarsTracker {
+	fake.newLocalScopeMutex.Lock()
+	ret, specificReturn := fake.newLocalScopeReturnsOnCall[len(fake.newLocalScopeArgsForCall)]
+	fake.newLocalScopeArgsForCall = append(fake.newLocalScopeArgsForCall, struct {
+	}{})
+	fake.recordInvocation("NewLocalScope", []interface{}{})
+	fake.newLocalScopeMutex.Unlock()
+	if fake.NewLocalScopeStub != nil {
+		return fake.NewLocalScopeStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.newLocalScopeReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeCredVarsTracker) NewLocalScopeCallCount() int {
+	fake.newLocalScopeMutex.RLock()
+	defer fake.newLocalScopeMutex.RUnlock()
+	return len(fake.newLocalScopeArgsForCall)
+}
+
+func (fake *FakeCredVarsTracker) NewLocalScopeCalls(stub func() vars.CredVarsTracker) {
+	fake.newLocalScopeMutex.Lock()
+	defer fake.newLocalScopeMutex.Unlock()
+	fake.NewLocalScopeStub = stub
+}
+
+func (fake *FakeCredVarsTracker) NewLocalScopeReturns(result1 vars.CredVarsTracker) {
+	fake.newLocalScopeMutex.Lock()
+	defer fake.newLocalScopeMutex.Unlock()
+	fake.NewLocalScopeStub = nil
+	fake.newLocalScopeReturns = struct {
+		result1 vars.CredVarsTracker
+	}{result1}
+}
+
+func (fake *FakeCredVarsTracker) NewLocalScopeReturnsOnCall(i int, result1 vars.CredVarsTracker) {
+	fake.newLocalScopeMutex.Lock()
+	defer fake.newLocalScopeMutex.Unlock()
+	fake.NewLocalScopeStub = nil
+	if fake.newLocalScopeReturnsOnCall == nil {
+		fake.newLocalScopeReturnsOnCall = make(map[int]struct {
+			result1 vars.CredVarsTracker
+		})
+	}
+	fake.newLocalScopeReturnsOnCall[i] = struct {
+		result1 vars.CredVarsTracker
+	}{result1}
+}
+
 func (fake *FakeCredVarsTracker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -311,6 +373,8 @@ func (fake *FakeCredVarsTracker) Invocations() map[string][][]interface{} {
 	defer fake.iterateInterpolatedCredsMutex.RUnlock()
 	fake.listMutex.RLock()
 	defer fake.listMutex.RUnlock()
+	fake.newLocalScopeMutex.RLock()
+	defer fake.newLocalScopeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

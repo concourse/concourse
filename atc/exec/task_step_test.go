@@ -247,9 +247,9 @@ var _ = Describe("TaskStep", func() {
 		})
 
 		It("secrets are tracked", func() {
-			mapit := vars.NewMapCredVarsTrackerIterator()
+			mapit := vars.MapCredVarsTrackerIterator{}
 			credVarsTracker.IterateInterpolatedCreds(mapit)
-			Expect(mapit.Data["source-param"]).To(Equal("super-secret-source"))
+			Expect(mapit["source-param"]).To(Equal("super-secret-source"))
 		})
 
 		It("creates a containerSpec with the correct parameters", func() {

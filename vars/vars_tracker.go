@@ -19,6 +19,7 @@ type CredVarsTracker interface {
 	IterateInterpolatedCreds(iter CredVarsTrackerIterator)
 	Enabled() bool
 
+	NewLocalScope() CredVarsTracker
 	AddLocalVar(string, interface{}, bool)
 }
 
@@ -29,7 +30,6 @@ func NewCredVarsTracker(credVars Variables, on bool) CredVarsTracker {
 		enabled:           on,
 		interpolatedCreds: map[string]string{},
 		noRedactVarNames:  map[string]bool{},
-		lock:              sync.RWMutex{},
 	}
 }
 
@@ -116,6 +116,26 @@ func (t *credVarsTracker) Enabled() bool {
 	return t.enabled
 }
 
+func (t *credVarsTracker) NewLocalScope() CredVarsTracker {
+	localVarsClone := make(StaticVariables, len(t.localVars))
+	for k, v := range t.localVars {
+		localVarsClone[k] = v
+	}
+	noRedactVarNamesClone := make(map[string]bool, len(t.noRedactVarNames))
+	for k, v := range t.noRedactVarNames {
+		noRedactVarNamesClone[k] = v
+	}
+	interpolatedCredsClone := MapCredVarsTrackerIterator{}
+	t.IterateInterpolatedCreds(interpolatedCredsClone)
+	return &credVarsTracker{
+		credVars:          t.credVars,
+		enabled:           t.enabled,
+		localVars:         localVarsClone,
+		noRedactVarNames:  noRedactVarNamesClone,
+		interpolatedCreds: interpolatedCredsClone,
+	}
+}
+
 func (t *credVarsTracker) AddLocalVar(name string, value interface{}, redact bool) {
 	t.localVars[name] = value
 	if !redact {
@@ -124,18 +144,9 @@ func (t *credVarsTracker) AddLocalVar(name string, value interface{}, redact boo
 }
 
 // MapCredVarsTrackerIterator implements a simple CredVarsTrackerIterator which just
-// populate interpolated secrets into a map. This could be useful in unit test.
+// populate interpolated secrets into a map.
+type MapCredVarsTrackerIterator map[string]string
 
-type MapCredVarsTrackerIterator struct {
-	Data map[string]interface{}
-}
-
-func NewMapCredVarsTrackerIterator() *MapCredVarsTrackerIterator {
-	return &MapCredVarsTrackerIterator{
-		Data: map[string]interface{}{},
-	}
-}
-
-func (it *MapCredVarsTrackerIterator) YieldCred(k, v string) {
-	it.Data[k] = v
+func (it MapCredVarsTrackerIterator) YieldCred(k, v string) {
+	it[k] = v
 }
