@@ -39,7 +39,7 @@ func VerifyResourceTypes(resourceTypes ...atc.VersionedResourceType) http.Handle
 	}
 }
 
-func (m *HasResourceTypesMatcher) hasResourceTypes(p atc.Plan) (bool, error) {
+func (m *HasResourceTypesMatcher) hasResourceTypes(p *atc.Plan) (bool, error) {
 	var matched bool
 	var err error
 
@@ -64,7 +64,7 @@ func (m *HasResourceTypesMatcher) hasResourceTypes(p atc.Plan) (bool, error) {
 		m.failedValue = p
 	}
 
-	return matched, nil
+	return true, nil
 }
 
 func (matcher *HasResourceTypesMatcher) Match(actual interface{}) (bool, error) {
@@ -73,28 +73,23 @@ func (matcher *HasResourceTypesMatcher) Match(actual interface{}) (bool, error) 
 		return false, fmt.Errorf("expected a atc.Plan, got a %T", actual)
 	}
 
-	var matched bool
-	var err error
+	matched := true
+	var iterErr error
 
-	WalkPlan(actualPlan, func(plan atc.Plan) (atc.Plan, error) {
-		matched, err = matcher.hasResourceTypes(plan)
+	actualPlan.Each(func(plan *atc.Plan) {
+		m, err := matcher.hasResourceTypes(plan)
 		if err != nil {
-			return atc.Plan{}, err
+			iterErr = err
+			return
 		}
 
-		if !matched {
+		if !m {
 			// exit early
-			return atc.Plan{}, ErrPlanWithoutMatchingResourceTypes
+			matched = false
 		}
-
-		return plan, nil
 	})
 
-	if err != nil {
-		return false, err
-	}
-
-	return matched, nil
+	return matched, iterErr
 }
 
 func (matcher *HasResourceTypesMatcher) FailureMessage(actual interface{}) string {

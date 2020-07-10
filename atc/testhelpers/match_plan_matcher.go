@@ -79,7 +79,8 @@ func (matcher *PlanMatcher) NegatedFailureMessage(actual interface{}) string {
 }
 
 func stripIDs(plan atc.Plan) (atc.Plan, []string) {
-	walker := func(plan atc.Plan) (atc.Plan, error) {
+	// Ignore errors, since our walker doesn't return an error.
+	plan.Each(func(plan *atc.Plan) {
 		plan.ID = "<stripped>"
 
 		if plan.Get != nil {
@@ -88,12 +89,7 @@ func stripIDs(plan atc.Plan) (atc.Plan, []string) {
 				plan.Get.VersionFrom = &planID
 			}
 		}
-
-		return plan, nil
-	}
-
-	// Ignore errors, since our walker doesn't return an error.
-	plan, _ = WalkPlan(plan, walker)
+	})
 
 	return plan, nil
 }
