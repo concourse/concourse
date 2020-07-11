@@ -434,7 +434,7 @@ var _ = Describe("Teams API", func() {
 									"warnings": [
 										{
 											"type": "invalid_identifier",
-											"message": "'_some-team' is not a valid [team] identifier"
+											"message": "team: '_some-team' is not a valid identifier"
 										}
 									],
 									"team": {
@@ -647,7 +647,7 @@ var _ = Describe("Teams API", func() {
 								"warnings": [
 								{
 									"type": "invalid_identifier",
-									"message": "'_some-new-name' is not a valid [team] identifier"
+									"message": "team: '_some-new-name' is not a valid identifier"
 								}
 								]
 							}`))

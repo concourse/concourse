@@ -3,6 +3,7 @@ package configserver
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -69,21 +70,19 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pipelineName := rata.Param(r, "pipeline_name")
-	err := atc.ValidateIdentifier(pipelineName, "pipeline")
-	if err != nil {
-		warnings = append(warnings, atc.ConfigWarning{
-			Type:    "invalid_identifier",
-			Message: err.Error(),
-		})
+	if err := atc.ValidateIdentifier(pipelineName, "pipeline"); err != nil {
+		var got *atc.InvalidIdentifierError
+		if errors.As(err, &got) {
+			warnings = append(warnings, got.ConfigWarning())
+		}
 	}
 
 	teamName := rata.Param(r, "team_name")
-	err = atc.ValidateIdentifier(teamName, "team")
-	if err != nil {
-		warnings = append(warnings, atc.ConfigWarning{
-			Type:    "invalid_identifier",
-			Message: err.Error(),
-		})
+	if err := atc.ValidateIdentifier(teamName, "team"); err != nil {
+		var got *atc.InvalidIdentifierError
+		if errors.As(err, &got) {
+			warnings = append(warnings, got.ConfigWarning())
+		}
 	}
 
 	if checkCredentials {

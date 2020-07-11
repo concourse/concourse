@@ -2,6 +2,7 @@ package teamserver
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -37,12 +38,11 @@ func (s *Server) RenameTeam(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var warnings []atc.ConfigWarning
-	err = atc.ValidateIdentifier(rename.NewName, "team")
-	if err != nil {
-		warnings = append(warnings, atc.ConfigWarning{
-			Type:    "invalid_identifier",
-			Message: err.Error(),
-		})
+	if err = atc.ValidateIdentifier(rename.NewName, "team"); err != nil {
+		var got *atc.InvalidIdentifierError
+		if errors.As(err, &got) {
+			warnings = append(warnings, got.ConfigWarning())
+		}
 	}
 
 	team, found, err := s.teamFactory.FindTeam(teamName)

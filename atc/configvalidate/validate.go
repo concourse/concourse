@@ -69,12 +69,19 @@ func validateGroups(c Config) ([]ConfigWarning, error) {
 		jobsGrouped[job.Name] = false
 	}
 
-	for _, group := range c.Groups {
-		if err := ValidateIdentifier(group.Name, "group"); err != nil {
-			warnings = append(warnings, ConfigWarning{
-				Type:    "invalid_identifier",
-				Message: err.Error(),
-			})
+	for i, group := range c.Groups {
+		var identifier string
+		if group.Name == "" {
+			identifier = fmt.Sprintf("groups[%d]", i)
+		} else {
+			identifier = fmt.Sprintf("groups.%s", group.Name)
+		}
+
+		if err := ValidateIdentifier(group.Name, identifier); err != nil {
+			var got *atc.InvalidIdentifierError
+			if errors.As(err, &got) {
+				warnings = append(warnings, got.ConfigWarning())
+			}
 		}
 
 		if val, ok := groupNames[group.Name]; ok {
@@ -128,18 +135,18 @@ func validateResources(c Config) ([]ConfigWarning, error) {
 	names := map[string]int{}
 
 	for i, resource := range c.Resources {
-		if err := ValidateIdentifier(resource.Name, "resource"); err != nil {
-			warnings = append(warnings, ConfigWarning{
-				Type:    "invalid_identifier",
-				Message: err.Error(),
-			})
-		}
-
 		var identifier string
 		if resource.Name == "" {
 			identifier = fmt.Sprintf("resources[%d]", i)
 		} else {
 			identifier = fmt.Sprintf("resources.%s", resource.Name)
+		}
+
+		if err := ValidateIdentifier(resource.Name, identifier); err != nil {
+			var got *atc.InvalidIdentifierError
+			if errors.As(err, &got) {
+				warnings = append(warnings, got.ConfigWarning())
+			}
 		}
 
 		if other, exists := names[resource.Name]; exists {
@@ -172,18 +179,18 @@ func validateResourceTypes(c Config) ([]ConfigWarning, error) {
 	names := map[string]int{}
 
 	for i, resourceType := range c.ResourceTypes {
-		if err := ValidateIdentifier(resourceType.Name, "resource_type"); err != nil {
-			warnings = append(warnings, ConfigWarning{
-				Type:    "invalid_identifier",
-				Message: err.Error(),
-			})
-		}
-
 		var identifier string
 		if resourceType.Name == "" {
 			identifier = fmt.Sprintf("resource_types[%d]", i)
 		} else {
 			identifier = fmt.Sprintf("resource_types.%s", resourceType.Name)
+		}
+
+		if err := ValidateIdentifier(resourceType.Name, identifier); err != nil {
+			var got *atc.InvalidIdentifierError
+			if errors.As(err, &got) {
+				warnings = append(warnings, got.ConfigWarning())
+			}
 		}
 
 		if other, exists := names[resourceType.Name]; exists {
@@ -247,18 +254,18 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 	names := map[string]int{}
 
 	for i, job := range c.Jobs {
-		if err := ValidateIdentifier(job.Name, "job"); err != nil {
-			warnings = append(warnings, ConfigWarning{
-				Type:    "invalid_identifier",
-				Message: err.Error(),
-			})
-		}
-
 		var identifier string
 		if job.Name == "" {
 			identifier = fmt.Sprintf("jobs[%d]", i)
 		} else {
 			identifier = fmt.Sprintf("jobs.%s", job.Name)
+		}
+
+		if err := ValidateIdentifier(job.Name, identifier); err != nil {
+			var got *atc.InvalidIdentifierError
+			if errors.As(err, &got) {
+				warnings = append(warnings, got.ConfigWarning())
+			}
 		}
 
 		if other, exists := names[job.Name]; exists {
@@ -341,12 +348,19 @@ func validateVarSources(c Config) ([]ConfigWarning, error) {
 
 	names := map[string]interface{}{}
 
-	for _, cm := range c.VarSources {
-		if err := ValidateIdentifier(cm.Name, "var_source"); err != nil {
-			warnings = append(warnings, ConfigWarning{
-				Type:    "invalid_identifier",
-				Message: err.Error(),
-			})
+	for i, cm := range c.VarSources {
+		var identifier string
+		if cm.Name == "" {
+			identifier = fmt.Sprintf("var_sources[%d]", i)
+		} else {
+			identifier = fmt.Sprintf("var_sources.%s", cm.Name)
+		}
+
+		if err := ValidateIdentifier(cm.Name, identifier); err != nil {
+			var got *atc.InvalidIdentifierError
+			if errors.As(err, &got) {
+				warnings = append(warnings, got.ConfigWarning())
+			}
 		}
 
 		if factory, exists := creds.ManagerFactories()[cm.Type]; exists {

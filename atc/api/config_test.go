@@ -317,11 +317,11 @@ var _ = Describe("Config API", func() {
 								"warnings": [
 									{
 										"type": "invalid_identifier",
-										"message": "'_pipeline' is not a valid [pipeline] identifier"
+										"message": "pipeline: '_pipeline' is not a valid identifier"
 									},
 									{
 										"type": "invalid_identifier",
-										"message": "'_team' is not a valid [team] identifier"
+										"message": "team: '_team' is not a valid identifier"
 									}
 								]
 							}`))

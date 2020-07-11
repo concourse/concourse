@@ -2,6 +2,7 @@ package pipelineserver
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -30,12 +31,11 @@ func (s *Server) RenamePipeline(pipeline db.Pipeline) http.Handler {
 		}
 
 		var warnings []atc.ConfigWarning
-		err = atc.ValidateIdentifier(rename.NewName, "pipeline")
-		if err != nil {
-			warnings = append(warnings, atc.ConfigWarning{
-				Type:    "invalid_identifier",
-				Message: err.Error(),
-			})
+		if err = atc.ValidateIdentifier(rename.NewName, "pipeline"); err != nil {
+			var got *atc.InvalidIdentifierError
+			if errors.As(err, &got) {
+				warnings = append(warnings, got.ConfigWarning())
+			}
 		}
 
 		err = pipeline.Rename(rename.NewName)

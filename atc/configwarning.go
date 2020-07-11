@@ -3,6 +3,7 @@ package atc
 import (
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 type ConfigWarning struct {
@@ -10,14 +11,36 @@ type ConfigWarning struct {
 	Message string `json:"message"`
 }
 
+type InvalidIdentifierError struct {
+	Identifier string
+	Context    []string
+}
+
+func (e *InvalidIdentifierError) Error() string {
+	return fmt.Sprintf("'%s' is not a valid identifier", e.Identifier)
+}
+
+func (e *InvalidIdentifierError) ConfigWarning() ConfigWarning {
+	warning := ConfigWarning{
+		Type:    "invalid_identifier",
+		Message: e.Error(),
+	}
+
+	if e.Context != nil {
+		warning.Message = fmt.Sprintf("%s: %s", strings.Join(e.Context, ""), e.Error())
+	}
+
+	return warning
+}
+
 var validIdentifiers = regexp.MustCompile(`^\p{L}[\p{L}\d\-.]*$`)
 
 func ValidateIdentifier(identifier string, context ...string) error {
 	if identifier != "" && !validIdentifiers.MatchString(identifier) {
-		if context != nil {
-			return fmt.Errorf("'%s' is not a valid %s identifier", identifier, context)
+		return &InvalidIdentifierError{
+			Identifier: identifier,
+			Context:    context,
 		}
-		return fmt.Errorf("'%s' is not a valid identifier", identifier)
 	}
 	return nil
 }
