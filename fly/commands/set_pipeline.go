@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"errors"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/commands/internal/setpipelinehelpers"
@@ -27,12 +29,25 @@ type SetPipelineCommand struct {
 	Team string `long:"team"              description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
-func (command *SetPipelineCommand) Validate() error {
-	return command.Pipeline.Validate()
+func (command *SetPipelineCommand) Validate() ([]concourse.ConfigWarning, error) {
+	if err := command.Pipeline.Validate(); err != nil {
+		var warnings []concourse.ConfigWarning
+		var got *atc.InvalidIdentifierError
+		if errors.As(err, &got) {
+			warning := got.ConfigWarning()
+			warnings = append(warnings, concourse.ConfigWarning{
+				Type:    warning.Type,
+				Message: warning.Message,
+			})
+			return warnings, nil
+		}
+		return nil, err
+	}
+	return nil, nil
 }
 
 func (command *SetPipelineCommand) Execute(args []string) error {
-	err := command.Validate()
+	warnings, err := command.Validate()
 	if err != nil {
 		return err
 	}
@@ -70,6 +85,7 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		Target:           target.Client().URL(),
 		SkipInteraction:  command.SkipInteractive,
 		CheckCredentials: command.CheckCredentials,
+		CommandWarnings:  warnings,
 	}
 
 	yamlTemplateWithParams := templatehelpers.NewYamlTemplateWithParams(configPath, templateVariablesFiles, command.Var, command.YAMLVar)

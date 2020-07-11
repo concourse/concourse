@@ -9,6 +9,7 @@ import (
 	"github.com/vito/go-interact/interact"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/configvalidate"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
 	"github.com/concourse/concourse/fly/rc"
@@ -23,6 +24,7 @@ type ATCConfig struct {
 	Target           string
 	SkipInteraction  bool
 	CheckCredentials bool
+	CommandWarnings  []concourse.ConfigWarning
 }
 
 func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
@@ -54,6 +56,18 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 	err = yaml.Unmarshal([]byte(evaluatedTemplate), &newConfig)
 	if err != nil {
 		return err
+	}
+
+	configWarnings, _ := configvalidate.Validate(newConfig)
+	for _, w := range configWarnings {
+		atcConfig.CommandWarnings = append(atcConfig.CommandWarnings, concourse.ConfigWarning{
+			Type:    w.Type,
+			Message: w.Message,
+		})
+	}
+
+	if len(atcConfig.CommandWarnings) > 0 {
+		displayhelpers.ShowWarnings(atcConfig.CommandWarnings)
 	}
 
 	diffExists := diff(existingConfig, newConfig)

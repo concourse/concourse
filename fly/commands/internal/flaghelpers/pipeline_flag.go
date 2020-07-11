@@ -6,6 +6,7 @@ import (
 
 	"github.com/jessevdk/go-flags"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/rc"
 )
 
@@ -15,7 +16,7 @@ func (flag *PipelineFlag) Validate() error {
 	if strings.Contains(string(*flag), "/") {
 		return errors.New("pipeline name cannot contain '/'")
 	}
-	return nil
+	return atc.ValidateIdentifier(string(*flag), "pipeline")
 }
 
 func (flag *PipelineFlag) Complete(match string) []flags.Completion {
