@@ -21,7 +21,7 @@ type StepTest struct {
 	ConfigYAML string
 	StepConfig atc.StepConfig
 
-	Err string
+	UnknownFields map[string]*json.RawMessage
 }
 
 var factoryTests = []StepTest{
@@ -381,19 +381,31 @@ var factoryTests = []StepTest{
 	},
 	{
 		Title: "unknown field with get step",
+
 		ConfigYAML: `
 			get: some-name
 			bogus: foo
 		`,
-		Err: `error unmarshaling JSON: while decoding JSON: malformed get step: json: unknown field "bogus"`,
+
+		StepConfig: &atc.GetStep{
+			Name: "some-name",
+		},
+
+		UnknownFields: map[string]*json.RawMessage{"bogus": rawMessage(`"foo"`)},
 	},
 	{
 		Title: "multiple steps defined",
+
 		ConfigYAML: `
 			put: some-name
 			get: some-other-name
 		`,
-		Err: `error unmarshaling JSON: while decoding JSON: malformed put step: json: unknown field "get"`,
+
+		StepConfig: &atc.PutStep{
+			Name: "some-name",
+		},
+
+		UnknownFields: map[string]*json.RawMessage{"get": rawMessage(`"some-other-name"`)},
 	},
 }
 
@@ -402,15 +414,10 @@ func (test StepTest) Run(s *StepsSuite) {
 
 	var step atc.Step
 	actualErr := yaml.Unmarshal([]byte(cleanIndents), &step)
-
-	if test.Err != "" {
-		s.EqualError(actualErr, test.Err)
-		return
-	} else {
-		s.NoError(actualErr)
-	}
+	s.NoError(actualErr)
 
 	s.Equal(test.StepConfig, step.Config)
+	s.Equal(test.UnknownFields, step.UnknownFields)
 
 	remarshalled, err := json.Marshal(step)
 	s.NoError(err)
@@ -428,4 +435,9 @@ func (s *StepsSuite) TestFactory() {
 			test.Run(s)
 		})
 	}
+}
+
+func rawMessage(s string) *json.RawMessage {
+	raw := json.RawMessage(s)
+	return &raw
 }
