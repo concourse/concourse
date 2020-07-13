@@ -1,7 +1,6 @@
 package vars
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"sort"
@@ -51,7 +50,7 @@ func (t Template) Evaluate(vars Variables, opts EvaluateOpts) ([]byte, error) {
 
 func (t Template) interpolateRoot(obj interface{}, tracker varsTracker) (interface{}, error) {
 	var err error
-	obj, err = interpolator{}.Interpolate(obj, varsLookup{tracker})
+	obj, err = interpolator{}.Interpolate(obj, tracker)
 	if err != nil {
 		return nil, err
 	}
@@ -62,20 +61,21 @@ func (t Template) interpolateRoot(obj interface{}, tracker varsTracker) (interfa
 type interpolator struct{}
 
 var (
-	interpolationRegex         = regexp.MustCompile(`\(\((!?([-/\.\w\pL]+\:)?[-/\.\w\pL]+)\)\)`)
+	pathRegex                  = regexp.MustCompile(`("[^"]*"|[^\.]+)+`)
+	interpolationRegex         = regexp.MustCompile(`\(\((([-/\.\w\pL]+\:)?[-/\.:"\w\pL]+)\)\)`)
 	interpolationAnchoredRegex = regexp.MustCompile("\\A" + interpolationRegex.String() + "\\z")
 )
 
-func (i interpolator) Interpolate(node interface{}, varsLookup varsLookup) (interface{}, error) {
+func (i interpolator) Interpolate(node interface{}, tracker varsTracker) (interface{}, error) {
 	switch typedNode := node.(type) {
 	case map[interface{}]interface{}:
 		for k, v := range typedNode {
-			evaluatedValue, err := i.Interpolate(v, varsLookup)
+			evaluatedValue, err := i.Interpolate(v, tracker)
 			if err != nil {
 				return nil, err
 			}
 
-			evaluatedKey, err := i.Interpolate(k, varsLookup)
+			evaluatedKey, err := i.Interpolate(k, tracker)
 			if err != nil {
 				return nil, err
 			}
@@ -87,7 +87,7 @@ func (i interpolator) Interpolate(node interface{}, varsLookup varsLookup) (inte
 	case []interface{}:
 		for idx, x := range typedNode {
 			var err error
-			typedNode[idx], err = i.Interpolate(x, varsLookup)
+			typedNode[idx], err = i.Interpolate(x, tracker)
 			if err != nil {
 				return nil, err
 			}
@@ -95,9 +95,9 @@ func (i interpolator) Interpolate(node interface{}, varsLookup varsLookup) (inte
 
 	case string:
 		for _, name := range i.extractVarNames(typedNode) {
-			foundVal, found, err := varsLookup.Get(name)
+			foundVal, found, err := tracker.Get(name)
 			if err != nil {
-				return nil, fmt.Errorf("var lookup '%s': %w", name, err)
+				return nil, err
 			}
 
 			if found {
@@ -110,10 +110,9 @@ func (i interpolator) Interpolate(node interface{}, varsLookup varsLookup) (inte
 				case string, int, int16, int32, int64, uint, uint16, uint32, uint64:
 					foundValStr := fmt.Sprintf("%v", foundVal)
 					typedNode = strings.Replace(typedNode, fmt.Sprintf("((%s))", name), foundValStr, -1)
-					typedNode = strings.Replace(typedNode, fmt.Sprintf("((!%s))", name), foundValStr, -1)
 				default:
 					return nil, InvalidInterpolationError{
-						Path:  name,
+						Name:  name,
 						Value: foundVal,
 					}
 				}
@@ -130,73 +129,36 @@ func (i interpolator) extractVarNames(value string) []string {
 	var names []string
 
 	for _, match := range interpolationRegex.FindAllSubmatch([]byte(value), -1) {
-		names = append(names, strings.TrimPrefix(string(match[1]), "!"))
+		names = append(names, string(match[1]))
 	}
 
 	return names
 }
 
-type varsLookup struct {
-	varsTracker
-}
+func parseVarName(name string) VariableReference {
+	var pathPieces []string
 
-var ErrEmptyVar = errors.New("empty var")
+	varRef := VariableReference{Name: name}
 
-// Get value of a var. Name can be the following formats: 1) 'foo', where foo
-// is var name; 2) 'foo:bar', where foo is var source name, and bar is var name;
-// 3) '.:foo', where . means a local var, foo is var name.
-func (l varsLookup) Get(name string) (interface{}, bool, error) {
-	var splitName []string
 	if strings.Index(name, ":") > 0 {
-		parts := strings.Split(name, ":")
-		splitName = strings.Split(parts[1], ".")
-		splitName[0] = fmt.Sprintf("%s:%s", parts[0], splitName[0])
+		parts := strings.SplitN(name, ":", 2)
+		varRef.Source = parts[0]
+
+		pathPieces = pathRegex.FindAllString(parts[1], -1)
+
 	} else {
-		splitName = strings.Split(name, ".")
+		pathPieces = pathRegex.FindAllString(name, -1)
 	}
 
-	// this should be impossible since interpolationRegex only matches non-empty
-	// vars, but better to error than to panic
-	if len(splitName) == 0 {
-		return nil, false, ErrEmptyVar
+	varRef.Path = strings.ReplaceAll(pathPieces[0], "\"", "")
+	if len(pathPieces) >= 2 {
+		varRef.Fields = pathPieces[1:]
 	}
 
-	val, found, err := l.varsTracker.Get(splitName[0])
-	if !found || err != nil {
-		return val, found, err
-	}
-
-	for _, seg := range splitName[1:] {
-		switch v := val.(type) {
-		case map[interface{}]interface{}:
-			var found bool
-			val, found = v[seg]
-			if !found {
-				return nil, false, MissingFieldError{
-					Path:  name,
-					Field: seg,
-				}
-			}
-		case map[string]interface{}:
-			var found bool
-			val, found = v[seg]
-			if !found {
-				return nil, false, MissingFieldError{
-					Path:  name,
-					Field: seg,
-				}
-			}
-		default:
-			return nil, false, InvalidFieldError{
-				Path:  name,
-				Field: seg,
-				Value: val,
-			}
-		}
-	}
-
-	return val, true, err
+	return varRef
 }
+
+// var ErrEmptyVar = errors.New("empty var")
 
 type varsTracker struct {
 	vars Variables
@@ -204,7 +166,7 @@ type varsTracker struct {
 	expectAllFound bool
 	expectAllUsed  bool
 
-	missing    map[string]struct{} // track missing var names
+	missing    map[string]error // track missing var names
 	visited    map[string]struct{}
 	visitedAll map[string]struct{} // track all var names that were accessed
 }
@@ -214,18 +176,23 @@ func newVarsTracker(vars Variables, expectAllFound, expectAllUsed bool) varsTrac
 		vars:           vars,
 		expectAllFound: expectAllFound,
 		expectAllUsed:  expectAllUsed,
-		missing:        map[string]struct{}{},
+		missing:        map[string]error{},
 		visited:        map[string]struct{}{},
 		visitedAll:     map[string]struct{}{},
 	}
 }
 
-func (t varsTracker) Get(name string) (interface{}, bool, error) {
-	t.visitedAll[name] = struct{}{}
+// Get value of a var. Name can be the following formats: 1) 'foo', where foo
+// is var name; 2) 'foo:bar', where foo is var source name, and bar is var name;
+// 3) '.:foo', where . means a local var, foo is var name.
+func (t varsTracker) Get(varName string) (interface{}, bool, error) {
+	t.visitedAll[varName] = struct{}{}
 
-	val, found, err := t.vars.Get(VariableDefinition{Name: name})
+	varRef := parseVarName(varName)
+
+	val, found, err := t.vars.Get(VariableDefinition{Ref: varRef})
 	if !found {
-		t.missing[name] = struct{}{}
+		t.missing[varRef.Path] = err
 	}
 
 	return val, found, err
@@ -250,7 +217,17 @@ func (t varsTracker) MissingError() error {
 		return nil
 	}
 
-	return UndefinedVarsError{Vars: names(t.missing)}
+	var missingErrors error
+	var undefinedVars []string
+	for path, err := range t.missing {
+		if err != nil {
+			missingErrors = multierror.Append(missingErrors, err)
+		} else {
+			undefinedVars = append(undefinedVars, path)
+		}
+	}
+	sort.Strings(undefinedVars)
+	return multierror.Append(UndefinedVarsError{Vars: undefinedVars}, missingErrors)
 }
 
 func (t varsTracker) ExtraError() error {
@@ -266,8 +243,8 @@ func (t varsTracker) ExtraError() error {
 	unusedNames := map[string]struct{}{}
 
 	for _, def := range allDefs {
-		if _, found := t.visitedAll[def.Name]; !found {
-			unusedNames[def.Name] = struct{}{}
+		if _, found := t.visitedAll[def.Ref.Path]; !found {
+			unusedNames[def.Ref.Path] = struct{}{}
 		}
 	}
 

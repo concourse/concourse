@@ -23,33 +23,11 @@ var _ = Describe("NamedVariables", func() {
 			vars2 := StaticVariables{"key2": "val"}
 			vars := NamedVariables{"s1": vars1, "s2": vars2}
 
-			val, found, err := vars.Get(VariableDefinition{Name: "s3:key1"})
+			val, found, err := vars.Get(VariableDefinition{Ref: VariableReference{Name: "s3:foo", Source: "s3"}})
 			Expect(val).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).To(HaveOccurred())
-			Expect(err).To(Equal(errors.New("unknown var source: s3")))
-		})
-
-		It("return no value and not found if var source name is not specified", func() {
-			vars1 := StaticVariables{"key1": "val"}
-			vars2 := StaticVariables{"key2": "val"}
-			vars := NamedVariables{"s1": vars1, "s2": vars2}
-
-			val, found, err := vars.Get(VariableDefinition{Name: "key1"})
-			Expect(val).To(BeNil())
-			Expect(found).To(BeFalse())
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		It("return error as soon as one source fails", func() {
-			vars1 := StaticVariables{"key1": "val"}
-			vars2 := &FakeVariables{GetErr: errors.New("fake-err")}
-			vars := NamedVariables{"s1": vars1, "s2": vars2}
-
-			val, found, err := vars.Get(VariableDefinition{Name: "s2:key3"})
-			Expect(val).To(BeNil())
-			Expect(found).To(BeFalse())
-			Expect(err).To(Equal(errors.New("fake-err")))
+			Expect(err.Error()).To(Equal("missing source 's3' in var: s3:foo"))
 		})
 
 		It("return found value as soon as one source succeeds", func() {
@@ -58,7 +36,7 @@ var _ = Describe("NamedVariables", func() {
 			vars3 := &FakeVariables{GetErr: errors.New("fake-err")}
 			vars := NamedVariables{"s1": vars1, "s2": vars2, "s3": vars3}
 
-			val, found, err := vars.Get(VariableDefinition{Name: "s2:key2"})
+			val, found, err := vars.Get(VariableDefinition{Ref: VariableReference{Source: "s2", Path: "key2"}})
 			Expect(val).To(Equal("val"))
 			Expect(found).To(BeTrue())
 			Expect(err).ToNot(HaveOccurred())
@@ -81,7 +59,12 @@ var _ = Describe("NamedVariables", func() {
 			}
 
 			defs, err = vars.List()
-			Expect(defs).To(ConsistOf([]VariableDefinition{{Name: "a"}, {Name: "b"}, {Name: "b"}, {Name: "c"}}))
+			Expect(defs).To(ConsistOf([]VariableDefinition{
+				{Ref: VariableReference{Source: "s1", Path: "a"}},
+				{Ref: VariableReference{Source: "s1", Path: "b"}},
+				{Ref: VariableReference{Source: "s2", Path: "b"}},
+				{Ref: VariableReference{Source: "s2", Path: "c"}},
+			}))
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})

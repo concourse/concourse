@@ -1,54 +1,55 @@
 package vars
 
-import (
-	"strings"
-)
-
 type StaticVariables map[string]interface{}
 
 var _ Variables = StaticVariables{}
 
 func (v StaticVariables) Get(varDef VariableDefinition) (interface{}, bool, error) {
-	val, found := v.processed()[varDef.Name]
+	name := varDef.Ref.Name
+
+	val, found := v[varDef.Ref.Path]
+	if !found {
+		return val, found, nil
+	}
+
+	for _, seg := range varDef.Ref.Fields {
+		switch v := val.(type) {
+		case map[interface{}]interface{}:
+			var found bool
+			val, found = v[seg]
+			if !found {
+				return nil, false, MissingFieldError{
+					Name:  name,
+					Field: seg,
+				}
+			}
+		case map[string]interface{}:
+			var found bool
+			val, found = v[seg]
+			if !found {
+				return nil, false, MissingFieldError{
+					Name:  name,
+					Field: seg,
+				}
+			}
+		default:
+			return nil, false, InvalidFieldError{
+				Name:  name,
+				Field: seg,
+				Value: val,
+			}
+		}
+	}
+
 	return val, found, nil
 }
 
 func (v StaticVariables) List() ([]VariableDefinition, error) {
 	var defs []VariableDefinition
 
-	for name, _ := range v.processed() {
-		defs = append(defs, VariableDefinition{Name: name})
+	for name, _ := range v {
+		defs = append(defs, VariableDefinition{Ref: VariableReference{Path: name}})
 	}
 
 	return defs, nil
-}
-
-func (v StaticVariables) processed() map[string]interface{} {
-	processed := map[interface{}]interface{}{}
-
-	for name, val := range v {
-		pieces := strings.Split(name, ".")
-		if len(pieces) == 1 {
-			processed[name] = val
-		} else {
-			mapRef := processed
-
-			for _, p := range pieces[0 : len(pieces)-1] {
-				if _, found := processed[p]; !found {
-					mapRef[p] = map[interface{}]interface{}{}
-				}
-				mapRef = mapRef[p].(map[interface{}]interface{})
-			}
-
-			mapRef[pieces[len(pieces)-1]] = val
-		}
-	}
-
-	processedTyped := map[string]interface{}{}
-
-	for k, v := range processed {
-		processedTyped[k.(string)] = v
-	}
-
-	return processedTyped
 }

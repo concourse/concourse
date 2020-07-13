@@ -12,7 +12,7 @@ var _ = Describe("StaticVariables", func() {
 		It("returns value and found if key is found", func() {
 			a := StaticVariables{"a": "foo"}
 
-			val, found, err := a.Get(VariableDefinition{Name: "a"})
+			val, found, err := a.Get(VariableDefinition{Ref: VariableReference{Path: "a"}})
 			Expect(val).To(Equal("foo"))
 			Expect(found).To(BeTrue())
 			Expect(err).ToNot(HaveOccurred())
@@ -21,36 +21,33 @@ var _ = Describe("StaticVariables", func() {
 		It("returns nil and not found if key is not found", func() {
 			a := StaticVariables{"a": "foo"}
 
-			val, found, err := a.Get(VariableDefinition{Name: "b"})
+			val, found, err := a.Get(VariableDefinition{Ref: VariableReference{Path: "b"}})
 			Expect(val).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("recognizes keys that use dot notation for subvalues", func() {
-			a := StaticVariables{"a.subkey": "foo", "a.subkey2": "foo2"}
+		It("recognizes keys that has dot and colon", func() {
+			a := StaticVariables{"a.foo:bar": "foo"}
 
-			val, found, err := a.Get(VariableDefinition{Name: "a"})
-			Expect(val).To(Equal(map[interface{}]interface{}{"subkey": "foo", "subkey2": "foo2"}))
+			val, found, err := a.Get(VariableDefinition{Ref: VariableReference{Path: "a.foo:bar"}})
+			Expect(val).To(Equal("foo"))
 			Expect(found).To(BeTrue())
 			Expect(err).ToNot(HaveOccurred())
+		})
 
-			a = StaticVariables{"a.subkey.subsubkey": "foo", "a.subkey2": "foo2"}
-
-			val, found, err = a.Get(VariableDefinition{Name: "a"})
-			Expect(val).To(Equal(map[interface{}]interface{}{
-				"subkey":  map[interface{}]interface{}{"subsubkey": "foo"},
+		It("recognizes keys has multiple fields", func() {
+			a := StaticVariables{"a": map[string]interface{}{
+				"subkey": map[string]interface{}{
+					"subsubkey": "foo",
+				},
 				"subkey2": "foo2",
-			}))
+			}}
+
+			val, found, err := a.Get(VariableDefinition{Ref: VariableReference{Path: "a", Fields: []string{"subkey", "subsubkey"}}})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(val).To(Equal("foo"))
 			Expect(found).To(BeTrue())
-			Expect(err).ToNot(HaveOccurred())
-
-			a = StaticVariables{"a.subkey": "foo"}
-
-			val, found, err = a.Get(VariableDefinition{Name: "a.subkey"})
-			Expect(val).To(BeNil())
-			Expect(found).To(BeFalse())
-			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 
@@ -61,7 +58,10 @@ var _ = Describe("StaticVariables", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			defs, err = StaticVariables{"a": "1", "b": "2"}.List()
-			Expect(defs).To(ConsistOf([]VariableDefinition{{Name: "a"}, {Name: "b"}}))
+			Expect(defs).To(ConsistOf([]VariableDefinition{
+				{Ref: VariableReference{Path: "a"}},
+				{Ref: VariableReference{Path: "b"}},
+			}))
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
