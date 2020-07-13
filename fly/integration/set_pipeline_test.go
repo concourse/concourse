@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"runtime"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -1001,6 +1002,82 @@ this is super secure
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
 					}).By(2))
+				})
+
+				It("parses the config from stdin and sends it to the ATC", func() {
+					Expect(func() {
+						if runtime.GOOS == "windows" {
+							// Ignore this test case on windows.
+							return
+						}
+
+						flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", "-")
+
+						stdin, err := flyCmd.StdinPipe()
+						Expect(err).NotTo(HaveOccurred())
+
+						file, err := os.Open(configFile.Name())
+						Expect(err).NotTo(HaveOccurred())
+						_, err = io.Copy(stdin, file)
+						Expect(err).NotTo(HaveOccurred())
+						file.Close()
+						stdin.Close()
+
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+
+						Eventually(sess).Should(gbytes.Say("group some-group has changed"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("- some-new-job", "green")))
+
+						Eventually(sess).Should(gbytes.Say("group some-other-group has been removed"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-other-group", "red")))
+
+						Eventually(sess).Should(gbytes.Say("group some-new-group has been added"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-group", "green")))
+
+						Eventually(sess).Should(gbytes.Say("resource some-resource has changed"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("type: some-type", "red")))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("type: some-new-type", "green")))
+
+						Eventually(sess).Should(gbytes.Say("resource some-other-resource has been removed"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-other-resource", "red")))
+
+						Eventually(sess).Should(gbytes.Say("resource some-new-resource has been added"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-resource", "green")))
+
+						Eventually(sess).Should(gbytes.Say("resource type some-resource-type has changed"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("type: some-type", "red")))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("type: some-new-type", "green")))
+
+						Eventually(sess).Should(gbytes.Say("resource type some-other-resource-type has been removed"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-other-resource-type", "red")))
+
+						Eventually(sess).Should(gbytes.Say("resource type some-new-resource-type has been added"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-resource-type", "green")))
+
+						Eventually(sess).Should(gbytes.Say("job some-job has changed"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("serial: true", "red")))
+
+						Eventually(sess).Should(gbytes.Say("job some-other-job has been removed"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-other-job", "red")))
+
+						Eventually(sess).Should(gbytes.Say("job some-new-job has been added"))
+						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-job", "green")))
+
+						// When read pipeline configure from stdin, it should do non-interactive mode.
+						Eventually(sess).ShouldNot(gbytes.Say(`apply configuration\? \[yN\]: `))
+
+						Eventually(sess).Should(gbytes.Say("configuration updated"))
+
+						<-sess.Exited
+						Expect(sess.ExitCode()).To(Equal(0))
+
+						Expect(sess.Out.Contents()).ToNot(ContainSubstring("some-resource-with-int-field"))
+
+						Expect(sess.Out.Contents()).ToNot(ContainSubstring("some-unchanged-job"))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(4))
 				})
 			})
 

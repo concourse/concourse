@@ -5,7 +5,6 @@ import (
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/commands/internal/setpipelinehelpers"
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
-	"github.com/concourse/concourse/fly/pty"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/mgutz/ansi"
@@ -78,7 +77,7 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		PipelineName:     pipelineName,
 		TargetName:       Fly.Target,
 		Target:           target.Client().URL(),
-		SkipInteraction:  command.SkipInteractive || !pty.IsTerminal(),
+		SkipInteraction:  command.SkipInteractive || command.Config.FromStdin(),
 		CheckCredentials: command.CheckCredentials,
 		CommandWarnings:  warnings,
 	}

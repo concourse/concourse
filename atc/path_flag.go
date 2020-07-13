@@ -6,10 +6,13 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/jessevdk/go-flags"
 )
+
+const tempFilePattern = "___dash-stdin-path-flag___"
 
 type PathFlag string
 
@@ -18,8 +21,8 @@ func (path *PathFlag) UnmarshalFlag(value string) error {
 		return nil
 	}
 
-	if value == "-" {
-		tempf, err := ioutil.TempFile("", "fly-set-pipeline")
+	if value == "-" && runtime.GOOS != "windows" {
+		tempf, err := ioutil.TempFile("", tempFilePattern)
 		if err != nil {
 			return fmt.Errorf("failed to create a temp file")
 		}
@@ -59,4 +62,8 @@ func (path *PathFlag) Complete(match string) []flags.Completion {
 	}
 
 	return comps
+}
+
+func (path *PathFlag) FromStdin() bool {
+	return strings.Index(string(*path), tempFilePattern) >= 0
 }
