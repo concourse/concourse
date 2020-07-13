@@ -18,6 +18,7 @@ type Asset
     | ChevronRight
     | ToggleSwitch Bool
     | VisibilityToggleIcon Bool
+    | FavoritedToggleIcon Bool
     | BuildFavicon (Maybe BuildStatus)
     | PinIconWhite
     | PinIconGrey
@@ -135,6 +136,17 @@ toPath asset =
                         "-off"
             in
             basePath ++ [ "baseline-visibility" ++ imageName ++ ".svg" ]
+
+        FavoritedToggleIcon isFavorited ->
+            let
+                imageName =
+                    if isFavorited then
+                        "-filled"
+
+                    else
+                        "-unfilled"
+            in
+            basePath ++ [ "star" ++ imageName ++ ".svg" ]
 
         BuildFavicon maybeStatus ->
             basePath

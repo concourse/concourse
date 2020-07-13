@@ -34,15 +34,14 @@ import DashboardTests
         , white
         )
 import Data
-import Dict
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
-import Http
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message as Msgs
 import Message.Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as ApplicationMsgs
+import Set
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -1599,7 +1598,7 @@ all =
                                 >> Query.children []
                                 >> Query.index -1
                                 >> Query.children []
-                                >> Query.index -1
+                                >> Query.index 2
 
                         openEye =
                             iconSelector
@@ -2092,8 +2091,30 @@ all =
                             |> Query.index -1
                             |> Query.children []
                             |> Expect.all
-                                [ Query.count (Expect.equal 3)
+                                [ Query.count (Expect.equal 5)
                                 , Query.index 1 >> Query.has [ style "width" "13.5px" ]
+                                ]
+                , test "there is medium spacing between the eye and the favorited icon" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataAndUser
+                                (apiData [ ( "team", [] ) ])
+                                (userWithRoles [ ( "team", [ "owner" ] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                )
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.find [ class "card-footer" ]
+                            |> Query.children []
+                            |> Query.index -1
+                            |> Query.children []
+                            |> Expect.all
+                                [ Query.count (Expect.equal 5)
+                                , Query.index 3 >> Query.has [ style "width" "13.5px" ]
                                 ]
                 , describe "pause toggle"
                     [ test "the right section has a 20px square pause button on the left" <|
@@ -2411,6 +2432,104 @@ all =
                                 |> Tuple.second
                                 |> Expect.equal [ Effects.RedirectToLogin ]
                     ]
+                , describe "favorited icon" <|
+                    let
+                        pipelineId =
+                            0
+
+                        unfilledFavoritedIcon =
+                            iconSelector
+                                { size = "20px"
+                                , image = Assets.StarIconUnfilled
+                                }
+                                ++ [ style "background-size" "contain" ]
+
+                        filledFavoritedIcon =
+                            iconSelector
+                                { size = "20px"
+                                , image = Assets.StarIconFilled
+                                }
+                                ++ [ style "background-size" "contain" ]
+
+                        favoritedToggle =
+                            Common.queryView
+                                >> Query.find [ class "card-footer" ]
+                                >> Query.children []
+                                >> Query.index -1
+                                >> Query.children []
+                                >> Query.index -1
+
+                        favoritedIconClickable setup =
+                            [ defineHoverBehaviour
+                                { name = "favorited icon toggle"
+                                , setup =
+                                    whenOnDashboard { highDensity = False }
+                                        |> setup
+                                        |> Tuple.first
+                                , query = favoritedToggle
+                                , unhoveredSelector =
+                                    { description = "faded 20px square"
+                                    , selector =
+                                        unfilledFavoritedIcon
+                                            ++ [ style "opacity" "0.5"
+                                               , style "cursor" "pointer"
+                                               ]
+                                    }
+                                , hoverable =
+                                    Msgs.PipelineCardFavoritedIcon pipelineId
+                                , hoveredSelector =
+                                    { description = "bright 20px square"
+                                    , selector =
+                                        unfilledFavoritedIcon
+                                            ++ [ style "opacity" "1"
+                                               , style "cursor" "pointer"
+                                               ]
+                                    }
+                                }
+                            , test "has click handler" <|
+                                \_ ->
+                                    whenOnDashboard { highDensity = False }
+                                        |> setup
+                                        |> Tuple.first
+                                        |> favoritedToggle
+                                        |> Event.simulate Event.click
+                                        |> Event.expect
+                                            (ApplicationMsgs.Update <|
+                                                Msgs.Click <|
+                                                    Msgs.PipelineCardFavoritedIcon
+                                                        pipelineId
+                                            )
+                            , test "click has FavoritedPipeline effect" <|
+                                \_ ->
+                                    whenOnDashboard { highDensity = False }
+                                        |> setup
+                                        |> Tuple.first
+                                        |> Application.update
+                                            (ApplicationMsgs.Update <|
+                                                Msgs.Click <|
+                                                    Msgs.PipelineCardFavoritedIcon
+                                                        pipelineId
+                                            )
+                                        |> Tuple.second
+                                        |> Expect.equal
+                                            [ Effects.SaveFavoritedPipelines <|
+                                                Set.singleton pipelineId
+                                            ]
+                            ]
+                    in
+                    favoritedIconClickable
+                        (givenDataAndUser
+                            (apiData [ ( "team", [] ) ])
+                            (userWithRoles
+                                [ ( "team", [ "owner" ] ) ]
+                            )
+                            >> Tuple.first
+                            >> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                )
+                        )
                 ]
             ]
         ]

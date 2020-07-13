@@ -406,7 +406,7 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineStar
-                >> then_ (itIsClickable <| Message.SideBarStarIcon 0)
+                >> then_ (itIsClickable <| Message.SideBarFavoritedIcon 0)
         , test "pipeline gets favorited when star icon is clicked" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -1115,7 +1115,7 @@ iClickedTheFirstPipelineStar =
         >> Application.update
             (TopLevelMessage.Update <|
                 Message.Click <|
-                    Message.SideBarStarIcon 0
+                    Message.SideBarFavoritedIcon 0
             )
 
 

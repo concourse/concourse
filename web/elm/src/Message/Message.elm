@@ -65,6 +65,7 @@ type DomID
     | PipelineStatusIcon Concourse.PipelineIdentifier
     | PipelineButton Concourse.PipelineIdentifier
     | VisibilityButton Concourse.PipelineIdentifier
+    | PipelineCardFavoritedIcon DatabaseID
     | FooterCliIcon Cli.Cli
     | WelcomeCardCliIcon Cli.Cli
     | CopyTokenButton
@@ -87,7 +88,7 @@ type DomID
     | SideBarResizeHandle
     | SideBarTeam SideBarSection String
     | SideBarPipeline SideBarSection Concourse.PipelineIdentifier
-    | SideBarStarIcon DatabaseID
+    | SideBarFavoritedIcon DatabaseID
     | Dashboard
     | DashboardGroup String
 

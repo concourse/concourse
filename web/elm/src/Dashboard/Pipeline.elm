@@ -1,5 +1,6 @@
 module Dashboard.Pipeline exposing
-    ( hdPipelineView
+    ( favoritedView
+    , hdPipelineView
     , pipelineNotSetView
     , pipelineStatus
     , pipelineView
@@ -328,6 +329,19 @@ footerView userState pipeline now hovered existingJobs =
                     HoverState.isHovered (VisibilityButton pipelineId) hovered
                 , isVisibilityLoading = pipeline.isVisibilityLoading
                 }
+
+        favoritedIcon =
+            favoritedView
+                { isFavorited = pipeline.isFavorited
+                , isClickable =
+                    UserState.isAnonymous userState
+                        || UserState.isMember
+                            { teamName = pipeline.teamName
+                            , userState = userState
+                            }
+                , isHovered = HoverState.isHovered (PipelineCardFavoritedIcon pipeline.id) hovered
+                , pipelineId = pipeline.id
+                }
     in
     Html.div
         (class "card-footer" :: Styles.pipelineCardFooter)
@@ -337,10 +351,10 @@ footerView userState pipeline now hovered existingJobs =
           <|
             List.intersperse spacer
                 (if pipeline.archived then
-                    [ visibilityButton ]
+                    [ visibilityButton, favoritedIcon ]
 
                  else
-                    [ pauseToggle, visibilityButton ]
+                    [ pauseToggle, visibilityButton, favoritedIcon ]
                 )
         ]
 
@@ -398,6 +412,34 @@ pipelineStatusView pipeline status now =
                 transitionView now status
             ]
         )
+
+
+favoritedView :
+    { isFavorited : Bool
+    , isClickable : Bool
+    , isHovered : Bool
+    , pipelineId : Concourse.DatabaseID
+    }
+    -> Html Message
+favoritedView { isFavorited, isClickable, isHovered, pipelineId } =
+    Html.div
+        (Styles.favoritedToggle
+            { isFavorited = isFavorited
+            , isClickable = isClickable
+            , isHovered = isHovered
+            }
+            ++ [ onMouseEnter <| Hover <| Just <| PipelineCardFavoritedIcon pipelineId
+               , onMouseLeave <| Hover Nothing
+               , id <| Effects.toHtmlID <| PipelineCardFavoritedIcon pipelineId
+               ]
+            ++ (if isClickable then
+                    [ onClick <| Click <| PipelineCardFavoritedIcon pipelineId ]
+
+                else
+                    []
+               )
+        )
+        []
 
 
 visibilityView :

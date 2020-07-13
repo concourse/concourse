@@ -559,6 +559,7 @@ toDashboardPipeline isStale jobsDisabled p =
     , archived = p.archived
     , stale = isStale
     , jobsDisabled = jobsDisabled
+    , isFavorited = False
     }
 
 
