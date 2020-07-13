@@ -1,6 +1,7 @@
 package configvalidate_test
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/concourse/concourse/atc"
@@ -1667,6 +1668,106 @@ var _ = Describe("ValidateConfig", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[1].load_var(a-var): repeated name"))
 				})
+			})
+
+			Describe("checking for unknown fields", func() {
+				basicStep := func() atc.StepConfig {
+					return &atc.TaskStep{
+						Name:       "task",
+						ConfigPath: "some-file",
+					}
+				}
+
+				stepWithUnknownFields := func() atc.Step {
+					return atc.Step{
+						Config:        basicStep(),
+						UnknownFields: map[string]*json.RawMessage{"bogus": nil},
+					}
+				}
+
+				for _, test := range []struct {
+					name   string
+					config atc.StepConfig
+				}{
+					{
+						name: "on_success",
+						config: &atc.OnSuccessStep{
+							Step: basicStep(),
+							Hook: stepWithUnknownFields(),
+						},
+					},
+					{
+						name: "on_failure",
+						config: &atc.OnFailureStep{
+							Step: basicStep(),
+							Hook: stepWithUnknownFields(),
+						},
+					},
+					{
+						name: "on_error",
+						config: &atc.OnErrorStep{
+							Step: basicStep(),
+							Hook: stepWithUnknownFields(),
+						},
+					},
+					{
+						name: "on_abort",
+						config: &atc.OnAbortStep{
+							Step: basicStep(),
+							Hook: stepWithUnknownFields(),
+						},
+					},
+					{
+						name: "ensure",
+						config: &atc.EnsureStep{
+							Step: basicStep(),
+							Hook: stepWithUnknownFields(),
+						},
+					},
+					{
+						name: "try",
+						config: &atc.TryStep{
+							Step: stepWithUnknownFields(),
+						},
+					},
+					{
+						name: "do[0]",
+						config: &atc.DoStep{
+							Steps: []atc.Step{stepWithUnknownFields()},
+						},
+					},
+					{
+						name: "in_parallel.steps[0]",
+						config: &atc.InParallelStep{
+							Config: atc.InParallelConfig{
+								Steps: []atc.Step{stepWithUnknownFields()},
+							},
+						},
+					},
+					{
+						name: "aggregate[0]",
+						config: &atc.AggregateStep{
+							Steps: []atc.Step{stepWithUnknownFields()},
+						},
+					},
+				} {
+					test := test
+
+					Context("when an "+test.name+" step has unknown fields", func() {
+						BeforeEach(func() {
+							job.PlanSequence = append(job.PlanSequence, atc.Step{
+								Config: test.config,
+							})
+
+							config.Jobs = append(config.Jobs, job)
+						})
+
+						It("returns an error", func() {
+							Expect(errorMessages).To(HaveLen(1))
+							Expect(errorMessages[0]).To(ContainSubstring(`jobs.some-other-job.plan.do[0].` + test.name + `: unknown fields ["bogus"]`))
+						})
+					})
+				}
 			})
 		})
 
