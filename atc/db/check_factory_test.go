@@ -429,7 +429,7 @@ var _ = Describe("CheckFactory", func() {
 			var nonManuallyTriggeredCheck, manuallyTriggeredCheck db.Check
 
 			BeforeEach(func() {
-				defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atc.Config{
+				defaultPipeline, _, err = defaultTeam.SavePipeline(atc.PipelineRef{Name: "default-pipeline"}, atc.Config{
 					Resources: atc.ResourceConfigs{
 						{
 							Name: "some-resource",

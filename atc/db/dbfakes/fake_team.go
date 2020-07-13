@@ -274,10 +274,10 @@ type FakeTeam struct {
 	orderPipelinesReturnsOnCall map[int]struct {
 		result1 error
 	}
-	PipelineStub        func(string) (db.Pipeline, bool, error)
+	PipelineStub        func(atc.PipelineRef) (db.Pipeline, bool, error)
 	pipelineMutex       sync.RWMutex
 	pipelineArgsForCall []struct {
-		arg1 string
+		arg1 atc.PipelineRef
 	}
 	pipelineReturns struct {
 		result1 db.Pipeline
@@ -339,10 +339,10 @@ type FakeTeam struct {
 	renameReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SavePipelineStub        func(string, atc.Config, db.ConfigVersion, bool) (db.Pipeline, bool, error)
+	SavePipelineStub        func(atc.PipelineRef, atc.Config, db.ConfigVersion, bool) (db.Pipeline, bool, error)
 	savePipelineMutex       sync.RWMutex
 	savePipelineArgsForCall []struct {
-		arg1 string
+		arg1 atc.PipelineRef
 		arg2 atc.Config
 		arg3 db.ConfigVersion
 		arg4 bool
@@ -1618,11 +1618,11 @@ func (fake *FakeTeam) OrderPipelinesReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeTeam) Pipeline(arg1 string) (db.Pipeline, bool, error) {
+func (fake *FakeTeam) Pipeline(arg1 atc.PipelineRef) (db.Pipeline, bool, error) {
 	fake.pipelineMutex.Lock()
 	ret, specificReturn := fake.pipelineReturnsOnCall[len(fake.pipelineArgsForCall)]
 	fake.pipelineArgsForCall = append(fake.pipelineArgsForCall, struct {
-		arg1 string
+		arg1 atc.PipelineRef
 	}{arg1})
 	fake.recordInvocation("Pipeline", []interface{}{arg1})
 	fake.pipelineMutex.Unlock()
@@ -1642,13 +1642,13 @@ func (fake *FakeTeam) PipelineCallCount() int {
 	return len(fake.pipelineArgsForCall)
 }
 
-func (fake *FakeTeam) PipelineCalls(stub func(string) (db.Pipeline, bool, error)) {
+func (fake *FakeTeam) PipelineCalls(stub func(atc.PipelineRef) (db.Pipeline, bool, error)) {
 	fake.pipelineMutex.Lock()
 	defer fake.pipelineMutex.Unlock()
 	fake.PipelineStub = stub
 }
 
-func (fake *FakeTeam) PipelineArgsForCall(i int) string {
+func (fake *FakeTeam) PipelineArgsForCall(i int) atc.PipelineRef {
 	fake.pipelineMutex.RLock()
 	defer fake.pipelineMutex.RUnlock()
 	argsForCall := fake.pipelineArgsForCall[i]
@@ -1920,11 +1920,11 @@ func (fake *FakeTeam) RenameReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeTeam) SavePipeline(arg1 string, arg2 atc.Config, arg3 db.ConfigVersion, arg4 bool) (db.Pipeline, bool, error) {
+func (fake *FakeTeam) SavePipeline(arg1 atc.PipelineRef, arg2 atc.Config, arg3 db.ConfigVersion, arg4 bool) (db.Pipeline, bool, error) {
 	fake.savePipelineMutex.Lock()
 	ret, specificReturn := fake.savePipelineReturnsOnCall[len(fake.savePipelineArgsForCall)]
 	fake.savePipelineArgsForCall = append(fake.savePipelineArgsForCall, struct {
-		arg1 string
+		arg1 atc.PipelineRef
 		arg2 atc.Config
 		arg3 db.ConfigVersion
 		arg4 bool
@@ -1947,13 +1947,13 @@ func (fake *FakeTeam) SavePipelineCallCount() int {
 	return len(fake.savePipelineArgsForCall)
 }
 
-func (fake *FakeTeam) SavePipelineCalls(stub func(string, atc.Config, db.ConfigVersion, bool) (db.Pipeline, bool, error)) {
+func (fake *FakeTeam) SavePipelineCalls(stub func(atc.PipelineRef, atc.Config, db.ConfigVersion, bool) (db.Pipeline, bool, error)) {
 	fake.savePipelineMutex.Lock()
 	defer fake.savePipelineMutex.Unlock()
 	fake.SavePipelineStub = stub
 }
 
-func (fake *FakeTeam) SavePipelineArgsForCall(i int) (string, atc.Config, db.ConfigVersion, bool) {
+func (fake *FakeTeam) SavePipelineArgsForCall(i int) (atc.PipelineRef, atc.Config, db.ConfigVersion, bool) {
 	fake.savePipelineMutex.RLock()
 	defer fake.savePipelineMutex.RUnlock()
 	argsForCall := fake.savePipelineArgsForCall[i]

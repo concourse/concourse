@@ -116,7 +116,7 @@ var _ = Describe("BuildFactory", func() {
 				err = build2.Finish(db.BuildStatusErrored)
 				Expect(err).NotTo(HaveOccurred())
 
-				p, _, err := defaultTeam.SavePipeline("other-pipeline", atc.Config{
+				p, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "other-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-other-job",
@@ -251,7 +251,7 @@ var _ = Describe("BuildFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			config := atc.Config{Jobs: atc.JobConfigs{{Name: "some-job"}}}
-			privatePipeline, _, err := team.SavePipeline("private-pipeline", config, db.ConfigVersion(1), false)
+			privatePipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "private-pipeline"}, config, db.ConfigVersion(1), false)
 			Expect(err).NotTo(HaveOccurred())
 
 			privateJob, found, err := privatePipeline.Job("some-job")
@@ -261,7 +261,7 @@ var _ = Describe("BuildFactory", func() {
 			build2, err = privateJob.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			publicPipeline, _, err := team.SavePipeline("public-pipeline", config, db.ConfigVersion(1), false)
+			publicPipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "public-pipeline"}, config, db.ConfigVersion(1), false)
 			Expect(err).NotTo(HaveOccurred())
 			err = publicPipeline.Expose()
 			Expect(err).NotTo(HaveOccurred())
@@ -310,7 +310,7 @@ var _ = Describe("BuildFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			config := atc.Config{Jobs: atc.JobConfigs{{Name: "some-job"}}}
-			privatePipeline, _, err := team.SavePipeline("private-pipeline", config, db.ConfigVersion(1), false)
+			privatePipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "private-pipeline"}, config, db.ConfigVersion(1), false)
 			Expect(err).NotTo(HaveOccurred())
 
 			privateJob, found, err := privatePipeline.Job("some-job")
@@ -320,7 +320,7 @@ var _ = Describe("BuildFactory", func() {
 			build2, err = privateJob.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			publicPipeline, _, err := team.SavePipeline("public-pipeline", config, db.ConfigVersion(1), false)
+			publicPipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "public-pipeline"}, config, db.ConfigVersion(1), false)
 			Expect(err).NotTo(HaveOccurred())
 			err = publicPipeline.Expose()
 			Expect(err).NotTo(HaveOccurred())
@@ -356,7 +356,7 @@ var _ = Describe("BuildFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			config := atc.Config{Jobs: atc.JobConfigs{{Name: "some-job"}}}
-			privatePipeline, _, err := team.SavePipeline("private-pipeline", config, db.ConfigVersion(1), false)
+			privatePipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "private-pipeline"}, config, db.ConfigVersion(1), false)
 			Expect(err).NotTo(HaveOccurred())
 
 			privateJob, found, err := privatePipeline.Job("some-job")
@@ -366,7 +366,7 @@ var _ = Describe("BuildFactory", func() {
 			_, err = privateJob.CreateBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			publicPipeline, _, err := team.SavePipeline("public-pipeline", config, db.ConfigVersion(1), false)
+			publicPipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "public-pipeline"}, config, db.ConfigVersion(1), false)
 			Expect(err).NotTo(HaveOccurred())
 			err = publicPipeline.Expose()
 			Expect(err).NotTo(HaveOccurred())
@@ -392,7 +392,7 @@ var _ = Describe("BuildFactory", func() {
 		var build2DB, build3DB, build4DB db.Build
 
 		BeforeEach(func() {
-			pipeline, _, err := team.SavePipeline("other-pipeline", atc.Config{
+			pipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "other-pipeline"}, atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
@@ -447,7 +447,7 @@ var _ = Describe("BuildFactory", func() {
 		var build2DB db.Build
 
 		BeforeEach(func() {
-			pipeline, _, err := team.SavePipeline("other-pipeline", atc.Config{
+			pipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "other-pipeline"}, atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
@@ -496,7 +496,7 @@ var _ = Describe("BuildFactory", func() {
 		var build2DB db.Build
 
 		BeforeEach(func() {
-			pipeline, _, err := team.SavePipeline("other-pipeline", atc.Config{
+			pipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "other-pipeline"}, atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",

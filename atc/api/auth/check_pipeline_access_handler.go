@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -55,7 +56,8 @@ func (h checkPipelineAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	pipeline, found, err := team.Pipeline(pipelineName)
+
+	pipeline, found, err := team.Pipeline(atc.PipelineRef{Name: pipelineName}) // FIXME 5808 should filter on instanced pipeline?
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

@@ -426,8 +426,8 @@ var _ = Describe("Config API", func() {
 						It("saves it initially paused", func() {
 							Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
-							name, savedConfig, id, initiallyPaused := dbTeam.SavePipelineArgsForCall(0)
-							Expect(name).To(Equal("a-pipeline"))
+							ref, savedConfig, id, initiallyPaused := dbTeam.SavePipelineArgsForCall(0)
+							Expect(ref.Name).To(Equal("a-pipeline"))
 							Expect(savedConfig).To(Equal(pipelineConfig))
 							Expect(id).To(Equal(db.ConfigVersion(42)))
 							Expect(initiallyPaused).To(BeTrue())
@@ -524,8 +524,8 @@ var _ = Describe("Config API", func() {
 						It("saves it initially paused", func() {
 							Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
-							name, savedConfig, id, initiallyPaused := dbTeam.SavePipelineArgsForCall(0)
-							Expect(name).To(Equal("a-pipeline"))
+							ref, savedConfig, id, initiallyPaused := dbTeam.SavePipelineArgsForCall(0)
+							Expect(ref.Name).To(Equal("a-pipeline"))
 							Expect(savedConfig).To(Equal(pipelineConfig))
 							Expect(id).To(Equal(db.ConfigVersion(42)))
 							Expect(initiallyPaused).To(BeTrue())
@@ -571,8 +571,8 @@ jobs:
 							It("saves it", func() {
 								Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
-								name, savedConfig, id, initiallyPaused := dbTeam.SavePipelineArgsForCall(0)
-								Expect(name).To(Equal("a-pipeline"))
+								ref, savedConfig, id, initiallyPaused := dbTeam.SavePipelineArgsForCall(0)
+								Expect(ref.Name).To(Equal("a-pipeline"))
 								Expect(savedConfig).To(Equal(atc.Config{
 									Resources: []atc.ResourceConfig{
 										{
@@ -874,8 +874,8 @@ jobs:
 									It("passes validation and saves it un-interpolated", func() {
 										Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
-										name, savedConfig, id, initiallyPaused := dbTeam.SavePipelineArgsForCall(0)
-										Expect(name).To(Equal("a-pipeline"))
+										ref, savedConfig, id, initiallyPaused := dbTeam.SavePipelineArgsForCall(0)
+										Expect(ref.Name).To(Equal("a-pipeline"))
 										Expect(savedConfig).To(Equal(payloadAsConfig))
 										Expect(id).To(Equal(db.ConfigVersion(42)))
 										Expect(initiallyPaused).To(BeTrue())
@@ -1073,8 +1073,8 @@ jobs:
 					It("saves it", func() {
 						Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
 
-						name, savedConfig, id, initiallyPaused := dbTeam.SavePipelineArgsForCall(0)
-						Expect(name).To(Equal("a-pipeline"))
+						ref, savedConfig, id, initiallyPaused := dbTeam.SavePipelineArgsForCall(0)
+						Expect(ref.Name).To(Equal("a-pipeline"))
 						Expect(savedConfig).To(Equal(atc.Config{
 							Jobs: atc.JobConfigs{
 								{

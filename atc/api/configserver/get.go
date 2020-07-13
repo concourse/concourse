@@ -29,7 +29,7 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pipeline, found, err := team.Pipeline(pipelineName)
+	pipeline, found, err := team.Pipeline(atc.PipelineRef{Name: pipelineName}) // FIXME 5808 should filter on instanced pipeline?
 	if err != nil {
 		logger.Error("failed-to-find-pipeline", err)
 		w.WriteHeader(http.StatusInternalServerError)

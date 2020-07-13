@@ -14,6 +14,11 @@ type Pipeline struct {
 	LastUpdated int64          `json:"last_updated,omitempty"`
 }
 
+type PipelineRef struct {
+	Name         string       `json:"name,omitempty"`
+	InstanceVars InstanceVars `json:"instance_vars,omitempty"`
+}
+
 type RenameRequest struct {
 	NewName string `json:"name"`
 }

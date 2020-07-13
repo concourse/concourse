@@ -22,7 +22,7 @@ var _ = Describe("Job Factory", func() {
 			otherTeam, err := teamFactory.CreateTeam(atc.Team{Name: "other-team"})
 			Expect(err).NotTo(HaveOccurred())
 
-			publicPipeline, _, err = otherTeam.SavePipeline("public-pipeline", atc.Config{
+			publicPipeline, _, err = otherTeam.SavePipeline(atc.PipelineRef{Name: "public-pipeline"}, atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "public-pipeline-job-1",
@@ -104,7 +104,7 @@ var _ = Describe("Job Factory", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(publicPipeline.Expose()).To(Succeed())
 
-			_, _, err = otherTeam.SavePipeline("private-pipeline", atc.Config{
+			_, _, err = otherTeam.SavePipeline(atc.PipelineRef{Name: "private-pipeline"}, atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "private-pipeline-job",
@@ -354,7 +354,7 @@ var _ = Describe("Job Factory", func() {
 
 		Context("when the job has a requested schedule time later than the last scheduled", func() {
 			BeforeEach(func() {
-				pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+				pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
@@ -380,7 +380,7 @@ var _ = Describe("Job Factory", func() {
 
 		Context("when the job has a requested schedule time earlier than the last scheduled", func() {
 			BeforeEach(func() {
-				pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+				pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
@@ -405,7 +405,7 @@ var _ = Describe("Job Factory", func() {
 
 		Context("when the job has a requested schedule time is the same as the last scheduled", func() {
 			BeforeEach(func() {
-				pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+				pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
@@ -437,7 +437,7 @@ var _ = Describe("Job Factory", func() {
 
 		Context("when there are multiple jobs with different times", func() {
 			BeforeEach(func() {
-				pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+				pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
@@ -455,7 +455,7 @@ var _ = Describe("Job Factory", func() {
 				team, err := teamFactory.CreateTeam(atc.Team{Name: "some-team"})
 				Expect(err).ToNot(HaveOccurred())
 
-				pipeline2, _, err := team.SavePipeline("fake-pipeline-two", atc.Config{
+				pipeline2, _, err := team.SavePipeline(atc.PipelineRef{Name: "fake-pipeline-two"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-fake"},
 					},
@@ -466,7 +466,7 @@ var _ = Describe("Job Factory", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				pipeline3, _, err := team.SavePipeline("fake-pipeline-three", atc.Config{
+				pipeline3, _, err := team.SavePipeline(atc.PipelineRef{Name: "fake-pipeline-three"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-fake-two"},
 					},
@@ -495,7 +495,7 @@ var _ = Describe("Job Factory", func() {
 
 		Context("when the job is paused but has a later schedule requested time", func() {
 			BeforeEach(func() {
-				pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+				pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
@@ -523,7 +523,7 @@ var _ = Describe("Job Factory", func() {
 
 		Context("when the job is inactive but has a later schedule requested time", func() {
 			BeforeEach(func() {
-				pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+				pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
@@ -538,7 +538,7 @@ var _ = Describe("Job Factory", func() {
 				err = job1.RequestSchedule()
 				Expect(err).ToNot(HaveOccurred())
 
-				_, _, err = defaultTeam.SavePipeline("fake-pipeline", atc.Config{}, pipeline1.ConfigVersion(), false)
+				_, _, err = defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{}, pipeline1.ConfigVersion(), false)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -551,7 +551,7 @@ var _ = Describe("Job Factory", func() {
 
 		Context("when the pipeline is paused but it's job has a later schedule requested time", func() {
 			BeforeEach(func() {
-				pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+				pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
@@ -580,7 +580,7 @@ var _ = Describe("Job Factory", func() {
 		Describe("scheduler jobs resources", func() {
 			Context("when the job needed to be schedule has no resources", func() {
 				BeforeEach(func() {
-					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+					pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{Name: "job-name"},
 						},
@@ -607,7 +607,7 @@ var _ = Describe("Job Factory", func() {
 
 			Context("when the job needed to be schedule uses resources", func() {
 				BeforeEach(func() {
-					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+					pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-name",
@@ -663,7 +663,7 @@ var _ = Describe("Job Factory", func() {
 
 			Context("when multiple jobs needed to be schedule uses resources", func() {
 				BeforeEach(func() {
-					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+					pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-1",
@@ -709,7 +709,7 @@ var _ = Describe("Job Factory", func() {
 					}, db.ConfigVersion(1), false)
 					Expect(err).ToNot(HaveOccurred())
 
-					pipeline2, _, err := defaultTeam.SavePipeline("fake-pipeline-2", atc.Config{
+					pipeline2, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline-2"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-3",
@@ -804,7 +804,7 @@ var _ = Describe("Job Factory", func() {
 
 			Context("when the job needed to be schedule uses resources as puts", func() {
 				BeforeEach(func() {
-					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+					pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-name",
@@ -859,7 +859,7 @@ var _ = Describe("Job Factory", func() {
 
 			Context("when the job needed to be schedule uses the resource as a put and a get", func() {
 				BeforeEach(func() {
-					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+					pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-name",
@@ -921,7 +921,7 @@ var _ = Describe("Job Factory", func() {
 		Describe("schedule jobs resource types", func() {
 			Context("when the pipeline for the job needed to be scheduled uses custom resource types", func() {
 				BeforeEach(func() {
-					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+					pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{Name: "job-name"},
 						},
@@ -961,7 +961,7 @@ var _ = Describe("Job Factory", func() {
 
 			Context("when multiple job from different pipelines uses custom resource types", func() {
 				BeforeEach(func() {
-					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+					pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{Name: "job-1"},
 							{Name: "job-2"},
@@ -975,7 +975,7 @@ var _ = Describe("Job Factory", func() {
 					}, db.ConfigVersion(1), false)
 					Expect(err).ToNot(HaveOccurred())
 
-					pipeline2, _, err := defaultTeam.SavePipeline("fake-pipeline-2", atc.Config{
+					pipeline2, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline-2"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{Name: "job-3"},
 						},

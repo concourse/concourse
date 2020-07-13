@@ -3,6 +3,7 @@ package pipelineserver
 import (
 	"net/http"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -37,7 +38,7 @@ func (pdbh *ScopedHandlerFactory) HandlerFor(pipelineScopedHandler func(db.Pipel
 				return
 			}
 
-			pipeline, found, err = dbTeam.Pipeline(pipelineName)
+			pipeline, found, err = dbTeam.Pipeline(atc.PipelineRef{Name: pipelineName}) // FIXME 5808 should filter on instanced pipeline?
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return

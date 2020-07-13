@@ -80,7 +80,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 			It("removes check sessions for inactive resources", func() {
 				By("removing the default resource from the pipeline config")
-				_, _, err := defaultTeam.SavePipeline("default-pipeline", atc.Config{
+				_, _, err := defaultTeam.SavePipeline(defaultPipelineRef, atc.Config{
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
@@ -181,7 +181,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 			It("removes check sessions for inactive resource types", func() {
 				By("removing the default resource from the pipeline config")
-				_, _, err := defaultTeam.SavePipeline("default-pipeline", atc.Config{
+				_, _, err := defaultTeam.SavePipeline(defaultPipelineRef, atc.Config{
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",

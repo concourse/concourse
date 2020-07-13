@@ -835,8 +835,8 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("injects the proper pipelineDB", func() {
-					pipelineName := fakeTeam.PipelineArgsForCall(0)
-					Expect(pipelineName).To(Equal("a-pipeline-name"))
+					pipelineRef := fakeTeam.PipelineArgsForCall(0)
+					Expect(pipelineRef).To(Equal(atc.PipelineRef{Name: "a-pipeline-name"}))
 				})
 
 				It("deletes the named pipeline from the database", func() {
@@ -908,8 +908,8 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("injects the proper pipelineDB", func() {
-					pipelineName := fakeTeam.PipelineArgsForCall(0)
-					Expect(pipelineName).To(Equal("a-pipeline"))
+					pipelineRef := fakeTeam.PipelineArgsForCall(0)
+					Expect(pipelineRef).To(Equal(atc.PipelineRef{Name: "a-pipeline"}))
 				})
 
 				Context("when pausing the pipeline succeeds", func() {
@@ -1034,8 +1034,8 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("injects the proper pipelineDB", func() {
-					pipelineName := fakeTeam.PipelineArgsForCall(0)
-					Expect(pipelineName).To(Equal("a-pipeline"))
+					pipelineRef := fakeTeam.PipelineArgsForCall(0)
+					Expect(pipelineRef).To(Equal(atc.PipelineRef{Name: "a-pipeline"}))
 				})
 
 				Context("when unpausing the pipeline succeeds", func() {
@@ -1118,8 +1118,8 @@ var _ = Describe("Pipelines API", func() {
 
 				It("injects the proper pipelineDB", func() {
 					Expect(fakeTeam.PipelineCallCount()).To(Equal(1))
-					pipelineName := fakeTeam.PipelineArgsForCall(0)
-					Expect(pipelineName).To(Equal("a-pipeline"))
+					pipelineRef := fakeTeam.PipelineArgsForCall(0)
+					Expect(pipelineRef).To(Equal(atc.PipelineRef{Name: "a-pipeline"}))
 				})
 
 				Context("when exposing the pipeline succeeds", func() {
@@ -1196,8 +1196,8 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("injects the proper pipeline", func() {
-					pipelineName := fakeTeam.PipelineArgsForCall(0)
-					Expect(pipelineName).To(Equal("a-pipeline"))
+					pipelineRef := fakeTeam.PipelineArgsForCall(0)
+					Expect(pipelineRef).To(Equal(atc.PipelineRef{Name: "a-pipeline"}))
 				})
 
 				Context("when hiding the pipeline succeeds", func() {
@@ -1595,8 +1595,8 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("injects the proper pipeline", func() {
-					pipelineName := fakeTeam.PipelineArgsForCall(0)
-					Expect(pipelineName).To(Equal("a-pipeline"))
+					pipelineRef := fakeTeam.PipelineArgsForCall(0)
+					Expect(pipelineRef).To(Equal(atc.PipelineRef{Name: "a-pipeline"}))
 				})
 
 				It("returns 200", func() {

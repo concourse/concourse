@@ -21,7 +21,7 @@ var _ = Describe("Resource", func() {
 		)
 
 		pipeline, created, err = defaultTeam.SavePipeline(
-			"pipeline-with-resources",
+			atc.PipelineRef{Name: "pipeline-with-resources"},
 			atc.Config{
 				Resources: atc.ResourceConfigs{
 					{
@@ -394,7 +394,7 @@ var _ = Describe("Resource", func() {
 			}
 
 			pipeline, created, err = defaultTeam.SavePipeline(
-				"pipeline-with-same-resources",
+				atc.PipelineRef{Name: "pipeline-with-same-resources"},
 				config,
 				0,
 				false,
@@ -614,7 +614,7 @@ var _ = Describe("Resource", func() {
 					BeforeEach(func() {
 						config.Resources[2].Source = atc.Source{"some": "other-repo"}
 						newPipeline, _, err := defaultTeam.SavePipeline(
-							"pipeline-with-same-resources",
+							atc.PipelineRef{Name: "pipeline-with-same-resources"},
 							config,
 							pipeline.ConfigVersion(),
 							false,
@@ -646,7 +646,7 @@ var _ = Describe("Resource", func() {
 					BeforeEach(func() {
 						config.ResourceTypes[0].UniqueVersionHistory = false
 						newPipeline, _, err := defaultTeam.SavePipeline(
-							"pipeline-with-same-resources",
+							atc.PipelineRef{Name: "pipeline-with-same-resources"},
 							config,
 							pipeline.ConfigVersion(),
 							false,

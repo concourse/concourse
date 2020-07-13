@@ -160,7 +160,7 @@ var _ = Describe("Pipeline", func() {
 			},
 		}
 		var created bool
-		pipeline, created, err = team.SavePipeline("fake-pipeline", pipelineConfig, db.ConfigVersion(0), false)
+		pipeline, created, err = team.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, pipelineConfig, db.ConfigVersion(0), false)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(created).To(BeTrue())
 
@@ -418,7 +418,7 @@ var _ = Describe("Pipeline", func() {
 		})
 
 		It("renames the pipeline", func() {
-			pipeline, found, err := team.Pipeline("oopsies")
+			pipeline, found, err := team.Pipeline(atc.PipelineRef{Name: "oopsies"})
 			Expect(pipeline.Name()).To(Equal("oopsies"))
 			Expect(found).To(BeTrue())
 			Expect(err).ToNot(HaveOccurred())
@@ -608,10 +608,10 @@ var _ = Describe("Pipeline", func() {
 			}
 
 			var err error
-			dbPipeline, _, err = team.SavePipeline("pipeline-name", pipelineConfig, 0, false)
+			dbPipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "pipeline-name"}, pipelineConfig, 0, false)
 			Expect(err).ToNot(HaveOccurred())
 
-			otherDBPipeline, _, err = team.SavePipeline("other-pipeline-name", otherPipelineConfig, 0, false)
+			otherDBPipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "other-pipeline-name"}, otherPipelineConfig, 0, false)
 			Expect(err).ToNot(HaveOccurred())
 
 			resource, _, err = dbPipeline.Resource(resourceName)
@@ -1204,7 +1204,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeFalse())
 
-			_, found, err = team.Pipeline(pipeline.Name())
+			pipeline, found, err = team.Pipeline(atc.PipelineRef{Name: pipeline.Name()})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})
@@ -2008,7 +2008,7 @@ var _ = Describe("Pipeline", func() {
 					},
 				},
 			}
-			pipeline, _, err = team.SavePipeline("some-pipeline", config, db.ConfigVersion(1), false)
+			pipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, config, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
 			job, found, err = pipeline.Job("some-job")
@@ -2028,7 +2028,7 @@ var _ = Describe("Pipeline", func() {
 				Expect(found).To(BeTrue())
 			}
 
-			otherPipeline, _, err := team.SavePipeline("another-pipeline", config, db.ConfigVersion(1), false)
+			otherPipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "another-pipeline"}, config, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
 			otherJob, found, err := otherPipeline.Job("some-job")
@@ -2183,7 +2183,7 @@ var _ = Describe("Pipeline", func() {
 				})
 
 				var created bool
-				pipeline, created, err = team.SavePipeline("fake-pipeline", pipelineConfig, pipeline.ConfigVersion(), false)
+				pipeline, created, err = team.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, pipelineConfig, pipeline.ConfigVersion(), false)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(created).To(BeFalse())
 			})

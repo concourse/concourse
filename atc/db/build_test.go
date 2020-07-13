@@ -43,7 +43,7 @@ var _ = Describe("Build", func() {
 			},
 		}
 
-		pipeline, _, err := team.SavePipeline("some-build-pipeline", pipelineConfig, db.ConfigVersion(1), false)
+		pipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "some-build-pipeline"}, pipelineConfig, db.ConfigVersion(1), false)
 		Expect(err).ToNot(HaveOccurred())
 
 		job, found, err = pipeline.Job("some-job")
@@ -255,7 +255,7 @@ var _ = Describe("Build", func() {
 				},
 			}
 
-			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(1), false)
+			pipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, pipelineConfig, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
 			var found bool
@@ -858,7 +858,7 @@ var _ = Describe("Build", func() {
 			}
 
 			var err error
-			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(1), false)
+			pipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, pipelineConfig, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
 			var found bool
@@ -944,7 +944,7 @@ var _ = Describe("Build", func() {
 					},
 				}
 
-				otherPipeline, _, err := team.SavePipeline("some-other-pipeline", pipelineConfig, db.ConfigVersion(1), false)
+				otherPipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "some-other-pipeline"}, pipelineConfig, db.ConfigVersion(1), false)
 				Expect(err).ToNot(HaveOccurred())
 
 				resource, found, err := otherPipeline.Resource("some-explicit-resource")
@@ -1046,7 +1046,7 @@ var _ = Describe("Build", func() {
 					},
 				}
 
-				otherPipeline, _, err := team.SavePipeline("some-other-pipeline", pipelineConfig, db.ConfigVersion(1), false)
+				otherPipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "some-other-pipeline"}, pipelineConfig, db.ConfigVersion(1), false)
 				Expect(err).ToNot(HaveOccurred())
 
 				resource, found, err := otherPipeline.Resource("some-explicit-resource")
@@ -1176,7 +1176,7 @@ var _ = Describe("Build", func() {
 				},
 			}
 
-			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(1), false)
+			pipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, pipelineConfig, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
 			job, found, err = pipeline.Job("some-job")
@@ -1378,7 +1378,7 @@ var _ = Describe("Build", func() {
 		Context("when a job build", func() {
 			BeforeEach(func() {
 				var err error
-				createdPipeline, _, err = team.SavePipeline("some-pipeline", atc.Config{
+				createdPipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
@@ -1428,7 +1428,7 @@ var _ = Describe("Build", func() {
 			BeforeEach(func() {
 				var err error
 
-				pipeline, _, err = team.SavePipeline("some-pipeline", atc.Config{
+				pipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, atc.Config{
 					Resources: atc.ResourceConfigs{
 						{
 							Name: "some-resource",
@@ -1625,7 +1625,7 @@ var _ = Describe("Build", func() {
 							Expect(err).ToNot(HaveOccurred())
 							Expect(scheduled).To(BeTrue())
 
-							pipeline, _, err = team.SavePipeline("some-pipeline", atc.Config{
+							pipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, atc.Config{
 								Resources: atc.ResourceConfigs{
 									{
 										Name: "some-resource",
@@ -1688,7 +1688,7 @@ var _ = Describe("Build", func() {
 					Context("when max running builds is de-reached", func() {
 						BeforeEach(func() {
 							var err error
-							pipeline, _, err = team.SavePipeline("some-pipeline", atc.Config{
+							pipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, atc.Config{
 								Resources: atc.ResourceConfigs{
 									{
 										Name: "some-resource",
@@ -1836,7 +1836,7 @@ var _ = Describe("Build", func() {
 						},
 					}
 
-					pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(3), false)
+					pipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, pipelineConfig, db.ConfigVersion(3), false)
 					Expect(err).ToNot(HaveOccurred())
 
 					err = job.SaveNextInputMapping(db.InputMapping{
@@ -1889,7 +1889,7 @@ var _ = Describe("Build", func() {
 						},
 					}
 
-					pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(3), false)
+					pipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, pipelineConfig, db.ConfigVersion(3), false)
 					Expect(err).ToNot(HaveOccurred())
 
 					setupTx, err := dbConn.Begin()
@@ -1999,7 +1999,7 @@ var _ = Describe("Build", func() {
 			}
 
 			var err error
-			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(1), false)
+			pipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, pipelineConfig, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
 			var found bool
@@ -2262,7 +2262,7 @@ var _ = Describe("Build", func() {
 			}
 
 			var err error
-			pipeline, _, err = team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(1), false)
+			pipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, pipelineConfig, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
 			var found bool
@@ -2534,7 +2534,7 @@ var _ = Describe("Build", func() {
 			}
 
 			var err error
-			pipeline, _, err := team.SavePipeline("some-pipeline", pipelineConfig, db.ConfigVersion(1), false)
+			pipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, pipelineConfig, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
 			var found bool

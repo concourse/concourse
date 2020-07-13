@@ -105,7 +105,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, created, err := team.SavePipeline(pipelineName, config, version, true)
+	_, created, err := team.SavePipeline(atc.PipelineRef{Name: pipelineName}, config, version, true) // FIXME 5808 should filter on instanced pipeline?
 	if err != nil {
 		session.Error("failed-to-save-config", err)
 		w.WriteHeader(http.StatusInternalServerError)

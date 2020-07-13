@@ -124,7 +124,7 @@ func (example Example) Run() {
 	team, err := teamFactory.CreateTeam(atc.Team{Name: "algorithm"})
 	Expect(err).NotTo(HaveOccurred())
 
-	pipeline, _, err := team.SavePipeline("algorithm", atc.Config{}, db.ConfigVersion(0), false)
+	pipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "algorithm"}, atc.Config{}, db.ConfigVersion(0), false)
 	Expect(err).NotTo(HaveOccurred())
 
 	setupTx, err := dbConn.Begin()

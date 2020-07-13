@@ -803,7 +803,7 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 		return BuildPreparation{}, false, nil
 	}
 
-	pipeline, found, err := t.Pipeline(b.pipelineName)
+	pipeline, found, err := t.Pipeline(atc.PipelineRef{Name: b.pipelineName}) // FIXME 5808 should filter on instanced pipeline?
 	if err != nil {
 		return BuildPreparation{}, false, err
 	}
@@ -1549,7 +1549,7 @@ func (b *build) SavePipeline(
 
 	jobID := newNullInt64(b.jobID)
 	buildID := newNullInt64(b.id)
-	pipelineID, isNewPipeline, err := savePipeline(tx, pipelineName, config, from, initiallyPaused, teamID, jobID, buildID)
+	pipelineID, isNewPipeline, err := savePipeline(tx, atc.PipelineRef{Name: pipelineName}, config, from, initiallyPaused, teamID, jobID, buildID) // FIXME 5808 should filter on instanced pipeline?
 	if err != nil {
 		return nil, false, err
 	}

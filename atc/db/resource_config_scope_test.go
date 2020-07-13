@@ -27,7 +27,7 @@ var _ = Describe("Resource Config Scope", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(setupTx.Commit()).To(Succeed())
 
-		pipeline, _, err = defaultTeam.SavePipeline("scope-pipeline", atc.Config{
+		pipeline, _, err = defaultTeam.SavePipeline(atc.PipelineRef{Name: "scope-pipeline"}, atc.Config{
 			Resources: atc.ResourceConfigs{
 				{
 					Name: "some-resource",

@@ -187,7 +187,7 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 	}
 
 	fromVersion := db.ConfigVersion(0)
-	pipeline, found, err := team.Pipeline(step.plan.Name)
+	pipeline, found, err := team.Pipeline(atc.PipelineRef{Name: step.plan.Name}) // FIXME 5808 should filter on instanced pipeline?
 	if err != nil {
 		return err
 	}
