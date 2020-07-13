@@ -2,6 +2,9 @@ package lidar
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"runtime/debug"
 	"strconv"
 	"sync"
 	"time"
@@ -68,6 +71,22 @@ func (s *scanner) Run(ctx context.Context) error {
 		waitGroup.Add(1)
 
 		go func(resource db.Resource, resourceTypes db.ResourceTypes) {
+			loggerData := lager.Data{
+				"resource_id":   strconv.Itoa(resource.ID()),
+				"resource_name": resource.Name(),
+				"pipeline_name": resource.PipelineName(),
+				"team_name":     resource.TeamName(),
+			}
+			defer func() {
+				if r := recover(); r != nil {
+					err = fmt.Errorf("panic in scanner run %s: %v", loggerData, r)
+
+					fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
+					s.logger.Error("panic-in-scanner-run", err)
+
+					s.setCheckError(s.logger, resource, err)
+				}
+			}()
 			defer waitGroup.Done()
 
 			err := s.check(spanCtx, resource, resourceTypes, resourceTypesChecked)
