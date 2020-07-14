@@ -1,6 +1,7 @@
 package runtime_test
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"testing"
@@ -172,17 +173,15 @@ func (s *BackendSuite) TestCreateMaxContainersReachedConcurrent() {
 	fakeContainer := new(libcontainerdfakes.FakeContainer)
 
 	fakeContainer.NewTaskReturns(fakeTask, nil)
-	s.client.NewContainerReturns(fakeContainer, nil)
 
-	network := new(runtimefakes.FakeNetwork)
-	network.SetupMountsStub = func(string) ([]specs.Mount, error) {
+	s.client.NewContainerStub = func(context context.Context, str string, strings map[string]string, spec *specs.Spec) (container containerd.Container, e error) {
 		s.client.ContainersReturns([]containerd.Container{fakeContainer}, nil)
-		return nil, nil
+		return fakeContainer, nil
 	}
 
 	backend, err := runtime.NewGardenBackend(s.client,
 		runtime.WithKiller(s.killer),
-		runtime.WithNetwork(network),
+		runtime.WithNetwork(s.network),
 		runtime.WithUserNamespace(s.userns),
 		runtime.WithMaxContainers(1),
 		runtime.WithRequestTimeout(1*time.Second),
@@ -219,20 +218,18 @@ func (s *BackendSuite) TestCreateContainerLockTimeout() {
 
 	fakeContainer.IDReturns("handle")
 	fakeContainer.NewTaskReturns(fakeTask, nil)
-	s.client.NewContainerReturns(fakeContainer, nil)
 
-	network := new(runtimefakes.FakeNetwork)
-	network.SetupMountsStub = func(string) ([]specs.Mount, error) {
-		time.Sleep(500 * time.Millisecond)
+	s.client.NewContainerStub = func(context context.Context, str string, strings map[string]string, spec *specs.Spec) (container containerd.Container, e error) {
 		s.client.ContainersReturns([]containerd.Container{fakeContainer}, nil)
-		return nil, nil
+		time.Sleep(500 * time.Millisecond)
+		return fakeContainer, nil
 	}
 
 	numberOfRequests := 10
 
 	backend, err := runtime.NewGardenBackend(s.client,
 		runtime.WithKiller(s.killer),
-		runtime.WithNetwork(network),
+		runtime.WithNetwork(s.network),
 		runtime.WithUserNamespace(s.userns),
 		runtime.WithRequestTimeout(10*time.Millisecond),
 		runtime.WithMaxContainers(numberOfRequests),
