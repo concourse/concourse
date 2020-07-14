@@ -1599,7 +1599,7 @@ var _ = Describe("Pipelines API", func() {
 						requestBody = `{"name":"_some-new-name"}`
 					})
 
-					It("returns a waring in the response body", func() {
+					It("returns a warning in the response body", func() {
 						Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 							{
 								"warnings": [

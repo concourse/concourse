@@ -428,7 +428,7 @@ var _ = Describe("Teams API", func() {
 							fakeTeam.NameReturns("_some-team")
 						})
 
-						It("returns a waring in the response body", func() {
+						It("returns a warning in the response body", func() {
 							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 								{
 									"warnings": [
@@ -641,7 +641,7 @@ var _ = Describe("Teams API", func() {
 							requestBody = `{"name":"_some-new-name"}`
 						})
 
-						It("returns a waring in the response body", func() {
+						It("returns a warning in the response body", func() {
 							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 							{
 								"warnings": [
