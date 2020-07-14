@@ -279,11 +279,11 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 			}
 		}
 
-		stepConfig := job.StepConfig()
+		step := job.Step()
 
 		validator := atc.NewStepValidator(c, []string{identifier, ".plan"})
 
-		_ = stepConfig.Visit(validator)
+		_ = validator.Validate(step)
 
 		for _, warning := range validator.Warnings {
 			warnings = append(warnings, ConfigWarning{
