@@ -46,6 +46,18 @@ func NewStepValidator(config Config, context []string) *StepValidator {
 	}
 }
 
+func (validator *StepValidator) Validate(step Step) error {
+	if len(step.UnknownFields) > 0 {
+		var fieldNames []string
+		for field := range step.UnknownFields {
+			fieldNames = append(fieldNames, field)
+		}
+		validator.recordError("unknown fields %+q", fieldNames)
+	}
+
+	return step.Config.Visit(validator)
+}
+
 func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 	validator.pushContext(fmt.Sprintf(".task(%s)", plan.Name))
 	defer validator.popContext()
@@ -180,9 +192,7 @@ func (validator *StepValidator) VisitTry(step *TryStep) error {
 	validator.pushContext(".try")
 	defer validator.popContext()
 
-	validator.checkForUnknownFields(step.Step)
-
-	return step.Step.Config.Visit(validator)
+	return validator.Validate(step.Step)
 }
 
 func (validator *StepValidator) VisitDo(step *DoStep) error {
@@ -192,9 +202,7 @@ func (validator *StepValidator) VisitDo(step *DoStep) error {
 	for i, sub := range step.Steps {
 		validator.pushContext(fmt.Sprintf("[%d]", i))
 
-		validator.checkForUnknownFields(sub)
-
-		err := sub.Config.Visit(validator)
+		err := validator.Validate(sub)
 		if err != nil {
 			return err
 		}
@@ -212,9 +220,7 @@ func (validator *StepValidator) VisitInParallel(step *InParallelStep) error {
 	for i, sub := range step.Config.Steps {
 		validator.pushContext(".steps[%d]", i)
 
-		validator.checkForUnknownFields(sub)
-
-		err := sub.Config.Visit(validator)
+		err := validator.Validate(sub)
 		if err != nil {
 			return err
 		}
@@ -234,9 +240,7 @@ func (validator *StepValidator) VisitAggregate(step *AggregateStep) error {
 	for i, sub := range step.Steps {
 		validator.pushContext("[%d]", i)
 
-		validator.checkForUnknownFields(sub)
-
-		err := sub.Config.Visit(validator)
+		err := validator.Validate(sub)
 		if err != nil {
 			return err
 		}
@@ -289,9 +293,7 @@ func (validator *StepValidator) VisitOnSuccess(step *OnSuccessStep) error {
 	validator.pushContext(".on_success")
 	defer validator.popContext()
 
-	validator.checkForUnknownFields(step.Hook)
-
-	return step.Hook.Config.Visit(validator)
+	return validator.Validate(step.Hook)
 }
 
 func (validator *StepValidator) VisitOnFailure(step *OnFailureStep) error {
@@ -303,9 +305,7 @@ func (validator *StepValidator) VisitOnFailure(step *OnFailureStep) error {
 	validator.pushContext(".on_failure")
 	defer validator.popContext()
 
-	validator.checkForUnknownFields(step.Hook)
-
-	return step.Hook.Config.Visit(validator)
+	return validator.Validate(step.Hook)
 }
 
 func (validator *StepValidator) VisitOnAbort(step *OnAbortStep) error {
@@ -317,9 +317,7 @@ func (validator *StepValidator) VisitOnAbort(step *OnAbortStep) error {
 	validator.pushContext(".on_abort")
 	defer validator.popContext()
 
-	validator.checkForUnknownFields(step.Hook)
-
-	return step.Hook.Config.Visit(validator)
+	return validator.Validate(step.Hook)
 }
 
 func (validator *StepValidator) VisitOnError(step *OnErrorStep) error {
@@ -331,9 +329,7 @@ func (validator *StepValidator) VisitOnError(step *OnErrorStep) error {
 	validator.pushContext(".on_error")
 	defer validator.popContext()
 
-	validator.checkForUnknownFields(step.Hook)
-
-	return step.Hook.Config.Visit(validator)
+	return validator.Validate(step.Hook)
 }
 
 func (validator *StepValidator) VisitEnsure(step *EnsureStep) error {
@@ -345,9 +341,7 @@ func (validator *StepValidator) VisitEnsure(step *EnsureStep) error {
 	validator.pushContext(".ensure")
 	defer validator.popContext()
 
-	validator.checkForUnknownFields(step.Hook)
-
-	return step.Hook.Config.Visit(validator)
+	return validator.Validate(step.Hook)
 }
 
 func (validator *StepValidator) recordWarning(message string, args ...interface{}) {
@@ -368,15 +362,4 @@ func (validator *StepValidator) pushContext(ctx string, args ...interface{}) {
 
 func (validator *StepValidator) popContext() {
 	validator.context = validator.context[0 : len(validator.context)-1]
-}
-
-func (validator *StepValidator) checkForUnknownFields(step Step) {
-	if len(step.UnknownFields) == 0 {
-		return
-	}
-	var fieldNames []string
-	for field := range step.UnknownFields {
-		fieldNames = append(fieldNames, field)
-	}
-	validator.recordError("unknown fields %+q", fieldNames)
 }
