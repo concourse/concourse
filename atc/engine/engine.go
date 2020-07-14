@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"runtime/debug"
 	"strconv"
 	"sync"
 	"time"
@@ -212,6 +214,20 @@ func (b *engineBuild) Run(ctx context.Context) {
 
 	done := make(chan error)
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				err = fmt.Errorf("panic in engine build step run %s: %v", lager.Data{
+					"team_name":     b.build.TeamName(),
+					"pipeline_name": b.build.PipelineName(),
+				}, r)
+
+				fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
+				logger.Error("panic-in-engine-build-step-run", err)
+
+				done <- err
+			}
+		}()
+
 		ctx := lagerctx.NewContext(ctx, logger)
 		ctx = policy.RecordTeamAndPipeline(ctx, b.build.TeamName(), b.build.PipelineName())
 		done <- step.Run(ctx, state)
@@ -373,6 +389,19 @@ func (c *engineCheck) Run(ctx context.Context) {
 
 	done := make(chan error)
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				err = fmt.Errorf("panic in engine check step run %s: %v", lager.Data{
+					"team_name":     c.check.TeamName(),
+					"pipeline_name": c.check.PipelineName(),
+				}, r)
+
+				fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
+				logger.Error("panic-in-engine-check-step-run", err)
+
+				done <- err
+			}
+		}()
 		ctx := lagerctx.NewContext(ctx, logger)
 		ctx = policy.RecordTeamAndPipeline(ctx, c.check.TeamName(), c.check.PipelineName())
 		done <- step.Run(ctx, state)

@@ -145,6 +145,20 @@ var _ = Describe("Scanner", func() {
 							It("sends a notification for the checker to run", func() {
 								Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
 							})
+
+							Context("when try creating a check panic", func() {
+								BeforeEach(func() {
+									fakeCheckFactory.TryCreateCheckStub = func(context.Context, db.Checkable, db.ResourceTypes, atc.Version, bool) (db.Check, bool, error) {
+										panic("something went wrong")
+									}
+								})
+
+								It("recover from the panic", func() {
+									Expect(err).ToNot(HaveOccurred())
+									Eventually(fakeResource.SetCheckSetupErrorCallCount).Should(Equal(1))
+									Eventually(fakeResource.SetCheckSetupErrorArgsForCall(0).Error).Should(ContainSubstring("something went wrong"))
+								})
+							})
 						})
 
 						Context("when the checkable has a pinned version", func() {
@@ -316,7 +330,7 @@ var _ = Describe("Scanner", func() {
 
 				Context("last check is 9 minutes ago", func() {
 					BeforeEach(func() {
-						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Minute*9))
+						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Minute * 9))
 					})
 
 					It("does not create a check", func() {
@@ -326,7 +340,7 @@ var _ = Describe("Scanner", func() {
 
 				Context("last check is 11 minutes ago", func() {
 					BeforeEach(func() {
-						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Minute*11))
+						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Minute * 11))
 					})
 
 					It("does not create a check", func() {

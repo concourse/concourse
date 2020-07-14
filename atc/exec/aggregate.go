@@ -3,6 +3,8 @@ package exec
 import (
 	"context"
 	"fmt"
+	"os"
+	"runtime/debug"
 	"strings"
 )
 
@@ -22,6 +24,15 @@ func (step AggregateStep) Run(ctx context.Context, state RunState) error {
 	for _, s := range step {
 		s := s
 		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					err := fmt.Errorf("panic in aggregate step: %v", r)
+
+					fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
+					errs <- err
+				}
+			}()
+
 			errs <- s.Run(ctx, state)
 		}()
 	}
