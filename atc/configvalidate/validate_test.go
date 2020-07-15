@@ -1,6 +1,7 @@
 package configvalidate_test
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/concourse/concourse/atc"
@@ -1666,6 +1667,25 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[1].load_var(a-var): repeated name"))
+				})
+			})
+
+			Context("when a step has unknown fields", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.TaskStep{
+							Name:       "task",
+							ConfigPath: "some-file",
+						},
+						UnknownFields: map[string]*json.RawMessage{"bogus": nil},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring(`jobs.some-other-job.plan.do[0]: unknown fields ["bogus"]`))
 				})
 			})
 		})

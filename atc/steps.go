@@ -1,17 +1,18 @@
 package atc
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 )
 
 // Step is an "envelope" type, acting as a wrapper to handle the marshaling and
 // unmarshaling of an underlying StepConfig.
 type Step struct {
-	Config StepConfig
+	Config        StepConfig
+	UnknownFields map[string]*json.RawMessage
 }
 
 // ErrNoStepConfigured is returned when a step does not have any keys that
@@ -46,16 +47,16 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	var outerStep StepConfig
+	var prevStep StepWrapper
 	for _, s := range StepPrecedence {
 		_, found := deferred[s.Key]
 		if !found {
 			continue
 		}
 
-		step := s.New()
+		curStep := s.New()
 
-		err := step.ParseJSON(data)
+		err := json.Unmarshal(data, curStep)
 		if err != nil {
 			return MalformedStepError{
 				StepType: s.Key,
@@ -63,13 +64,21 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 			}
 		}
 
-		if outerStep == nil {
-			outerStep = step
-		} else {
-			outerStep.Wrap(step)
+		if step.Config == nil {
+			step.Config = curStep
 		}
 
-		delete(deferred, s.Key)
+		if prevStep != nil {
+			prevStep.Wrap(curStep)
+		}
+
+		deleteKeys(deferred, curStep)
+
+		if wrapper, isWrapper := curStep.(StepWrapper); isWrapper {
+			prevStep = wrapper
+		} else {
+			break
+		}
 
 		data, err = json.Marshal(deferred)
 		if err != nil {
@@ -77,11 +86,13 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 		}
 	}
 
-	if outerStep == nil {
+	if step.Config == nil {
 		return ErrNoStepConfigured
 	}
 
-	step.Config = outerStep
+	if len(deferred) != 0 {
+		step.UnknownFields = deferred
+	}
 
 	return nil
 }
@@ -90,7 +101,7 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 // calling .Unwrap to marshal all nested steps into one big set of fields which
 // is then marshalled and returned.
 func (step Step) MarshalJSON() ([]byte, error) {
-	fields := map[string]*json.RawMessage{}
+	fields := step.UnknownFields
 
 	unwrapped := step.Config
 	for unwrapped != nil {
@@ -104,25 +115,39 @@ func (step Step) MarshalJSON() ([]byte, error) {
 			return nil, err
 		}
 
-		unwrapped = unwrapped.Unwrap()
+		if wrapper, isWrapper := unwrapped.(StepWrapper); isWrapper {
+			unwrapped = wrapper.Unwrap()
+		} else {
+			break
+		}
 	}
 
 	return json.Marshal(fields)
 }
 
+// See the note about json tags here: https://golang.org/pkg/encoding/json/#Marshal
+func deleteKeys(deferred map[string]*json.RawMessage, step StepConfig) {
+	stepType := reflect.TypeOf(step).Elem()
+	for i := 0; i < stepType.NumField(); i++ {
+		field := stepType.Field(i)
+		jsonTag := field.Tag.Get("json")
+		if jsonTag == "-" {
+			continue
+		}
+		jsonTagParts := strings.Split(jsonTag, ",")
+		if len(jsonTagParts) < 1 {
+			continue
+		}
+		jsonKey := jsonTagParts[0]
+		if jsonKey == "" {
+			jsonKey = field.Name
+		}
+		delete(deferred, jsonKey)
+	}
+}
+
 // StepConfig is implemented by all step types.
 type StepConfig interface {
-	// ParseJSON unmarshals the given data into the step type's struct.
-	//
-	// Core step types such as 'get:', 'put:', and 'in_parallel:' must error on
-	// extra fields. This will catch situations where multiple steps are
-	// configured at once, as well as any typoed fields.
-	//
-	// Modifier step types such as 'timeout:' and 'attempts:' must take care to
-	// ignore extra fields present in the data, and assume that they belong to
-	// the step they are wrapping.
-	ParseJSON([]byte) error
-
 	// Visit must call StepVisitor with the appropriate method corresponding to
 	// this step type.
 	//
@@ -130,12 +155,13 @@ type StepConfig interface {
 	// This allows the compiler to help us track down all the places where steps
 	// must be handled type-by-type.
 	Visit(StepVisitor) error
+}
 
+// StepWrapper is an optional interface for step types that is implemented by
+// steps that wrap other steps (e.g. hooks like `on_success`, `timeout`, etc.)
+type StepWrapper interface {
 	// Wrap is called during (Step).UnmarshalJSON whenever an 'inner' step is
 	// parsed.
-	//
-	// Core step types should implement this as a no-op; it should never be
-	// possible, assuming they implement ParseJSON to disallow extra fields.
 	//
 	// Modifier step types should implement this by assigning to an internal
 	// field that has a `json:"-"` struct tag.
@@ -269,13 +295,6 @@ func (step *GetStep) ResourceName() string {
 	return step.Name
 }
 
-func (step *GetStep) ParseJSON(data []byte) error {
-	return unmarshalStrict(data, step)
-}
-
-func (step *GetStep) Wrap(StepConfig)    {}
-func (step *GetStep) Unwrap() StepConfig { return nil }
-
 func (step *GetStep) Visit(v StepVisitor) error {
 	return v.VisitGet(step)
 }
@@ -297,13 +316,6 @@ func (step *PutStep) ResourceName() string {
 	return step.Name
 }
 
-func (step *PutStep) ParseJSON(data []byte) error {
-	return unmarshalStrict(data, step)
-}
-
-func (step *PutStep) Wrap(StepConfig)    {}
-func (step *PutStep) Unwrap() StepConfig { return nil }
-
 func (step *PutStep) Visit(v StepVisitor) error {
 	return v.VisitPut(step)
 }
@@ -321,13 +333,6 @@ type TaskStep struct {
 	ImageArtifactName string            `json:"image,omitempty"`
 }
 
-func (step *TaskStep) ParseJSON(data []byte) error {
-	return unmarshalStrict(data, step)
-}
-
-func (step *TaskStep) Wrap(StepConfig)    {}
-func (step *TaskStep) Unwrap() StepConfig { return nil }
-
 func (step *TaskStep) Visit(v StepVisitor) error {
 	return v.VisitTask(step)
 }
@@ -340,13 +345,6 @@ type SetPipelineStep struct {
 	VarFiles []string `json:"var_files,omitempty"`
 }
 
-func (step *SetPipelineStep) ParseJSON(data []byte) error {
-	return unmarshalStrict(data, step)
-}
-
-func (step *SetPipelineStep) Wrap(StepConfig)    {}
-func (step *SetPipelineStep) Unwrap() StepConfig { return nil }
-
 func (step *SetPipelineStep) Visit(v StepVisitor) error {
 	return v.VisitSetPipeline(step)
 }
@@ -358,13 +356,6 @@ type LoadVarStep struct {
 	Reveal bool   `json:"reveal,omitempty"`
 }
 
-func (step *LoadVarStep) ParseJSON(data []byte) error {
-	return unmarshalStrict(data, step)
-}
-
-func (step *LoadVarStep) Wrap(StepConfig)    {}
-func (step *LoadVarStep) Unwrap() StepConfig { return nil }
-
 func (step *LoadVarStep) Visit(v StepVisitor) error {
 	return v.VisitLoadVar(step)
 }
@@ -372,13 +363,6 @@ func (step *LoadVarStep) Visit(v StepVisitor) error {
 type TryStep struct {
 	Step Step `json:"try"`
 }
-
-func (step *TryStep) ParseJSON(data []byte) error {
-	return unmarshalStrict(data, step)
-}
-
-func (step *TryStep) Wrap(StepConfig)    {}
-func (step *TryStep) Unwrap() StepConfig { return nil }
 
 func (step *TryStep) Visit(v StepVisitor) error {
 	return v.VisitTry(step)
@@ -388,13 +372,6 @@ type DoStep struct {
 	Steps []Step `json:"do"`
 }
 
-func (step *DoStep) ParseJSON(data []byte) error {
-	return unmarshalStrict(data, step)
-}
-
-func (step *DoStep) Wrap(StepConfig)    {}
-func (step *DoStep) Unwrap() StepConfig { return nil }
-
 func (step *DoStep) Visit(v StepVisitor) error {
 	return v.VisitDo(step)
 }
@@ -403,13 +380,6 @@ type AggregateStep struct {
 	Steps []Step `json:"aggregate"`
 }
 
-func (step *AggregateStep) ParseJSON(data []byte) error {
-	return unmarshalStrict(data, step)
-}
-
-func (step *AggregateStep) Wrap(StepConfig)    {}
-func (step *AggregateStep) Unwrap() StepConfig { return nil }
-
 func (step *AggregateStep) Visit(v StepVisitor) error {
 	return v.VisitAggregate(step)
 }
@@ -417,13 +387,6 @@ func (step *AggregateStep) Visit(v StepVisitor) error {
 type InParallelStep struct {
 	Config InParallelConfig `json:"in_parallel"`
 }
-
-func (step *InParallelStep) ParseJSON(data []byte) error {
-	return unmarshalStrict(data, step)
-}
-
-func (step *InParallelStep) Wrap(StepConfig)    {}
-func (step *InParallelStep) Unwrap() StepConfig { return nil }
 
 func (step *InParallelStep) Visit(v StepVisitor) error {
 	return v.VisitInParallel(step)
@@ -469,16 +432,8 @@ type RetryStep struct {
 	Attempts int        `json:"attempts"`
 }
 
-func (step *RetryStep) ParseJSON(data []byte) error {
-	return json.Unmarshal(data, step)
-}
-
 func (step *RetryStep) Wrap(sub StepConfig) {
-	if step.Step != nil {
-		step.Step.Wrap(sub)
-	} else {
-		step.Step = sub
-	}
+	step.Step = sub
 }
 
 func (step *RetryStep) Unwrap() StepConfig {
@@ -497,16 +452,8 @@ type TimeoutStep struct {
 	Duration string `json:"timeout"`
 }
 
-func (step *TimeoutStep) ParseJSON(data []byte) error {
-	return json.Unmarshal(data, &step)
-}
-
 func (step *TimeoutStep) Wrap(sub StepConfig) {
-	if step.Step != nil {
-		step.Step.Wrap(sub)
-	} else {
-		step.Step = sub
-	}
+	step.Step = sub
 }
 
 func (step *TimeoutStep) Unwrap() StepConfig {
@@ -522,16 +469,8 @@ type OnSuccessStep struct {
 	Hook Step       `json:"on_success"`
 }
 
-func (step *OnSuccessStep) ParseJSON(data []byte) error {
-	return json.Unmarshal(data, step)
-}
-
 func (step *OnSuccessStep) Wrap(sub StepConfig) {
-	if step.Step != nil {
-		step.Step.Wrap(sub)
-	} else {
-		step.Step = sub
-	}
+	step.Step = sub
 }
 
 func (step *OnSuccessStep) Unwrap() StepConfig {
@@ -547,16 +486,8 @@ type OnFailureStep struct {
 	Hook Step       `json:"on_failure"`
 }
 
-func (step *OnFailureStep) ParseJSON(data []byte) error {
-	return json.Unmarshal(data, step)
-}
-
 func (step *OnFailureStep) Wrap(sub StepConfig) {
-	if step.Step != nil {
-		step.Step.Wrap(sub)
-	} else {
-		step.Step = sub
-	}
+	step.Step = sub
 }
 
 func (step *OnFailureStep) Unwrap() StepConfig {
@@ -572,16 +503,8 @@ type OnErrorStep struct {
 	Hook Step       `json:"on_error"`
 }
 
-func (step *OnErrorStep) ParseJSON(data []byte) error {
-	return json.Unmarshal(data, step)
-}
-
 func (step *OnErrorStep) Wrap(sub StepConfig) {
-	if step.Step != nil {
-		step.Step.Wrap(sub)
-	} else {
-		step.Step = sub
-	}
+	step.Step = sub
 }
 
 func (step *OnErrorStep) Unwrap() StepConfig {
@@ -597,16 +520,8 @@ type OnAbortStep struct {
 	Hook Step       `json:"on_abort"`
 }
 
-func (step *OnAbortStep) ParseJSON(data []byte) error {
-	return json.Unmarshal(data, step)
-}
-
 func (step *OnAbortStep) Wrap(sub StepConfig) {
-	if step.Step != nil {
-		step.Step.Wrap(sub)
-	} else {
-		step.Step = sub
-	}
+	step.Step = sub
 }
 
 func (step *OnAbortStep) Unwrap() StepConfig {
@@ -622,16 +537,8 @@ type EnsureStep struct {
 	Hook Step       `json:"ensure"`
 }
 
-func (step *EnsureStep) ParseJSON(data []byte) error {
-	return json.Unmarshal(data, step)
-}
-
 func (step *EnsureStep) Wrap(sub StepConfig) {
-	if step.Step != nil {
-		step.Step.Wrap(sub)
-	} else {
-		step.Step = sub
-	}
+	step.Step = sub
 }
 
 func (step *EnsureStep) Unwrap() StepConfig {
@@ -758,10 +665,4 @@ func (c InputsConfig) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal("")
-}
-
-func unmarshalStrict(data []byte, to interface{}) error {
-	decoder := json.NewDecoder(bytes.NewBuffer(data))
-	decoder.DisallowUnknownFields()
-	return decoder.Decode(to)
 }
