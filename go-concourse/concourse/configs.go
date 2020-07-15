@@ -14,10 +14,19 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (team *team) PipelineConfig(pipelineName string) (atc.Config, string, bool, error) {
+func (team *team) PipelineConfig(ref atc.PipelineRef) (atc.Config, string, bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
+		"pipeline_name": ref.Name,
 		"team_name":     team.Name(),
+	}
+
+	queryParams := url.Values{}
+	if ref.InstanceVars != nil {
+		payload, err := json.Marshal(ref.InstanceVars)
+		if err != nil {
+			return atc.Config{}, "", false, err
+		}
+		queryParams.Add("instance_vars", string(payload)) // TODO 5808 const for param
 	}
 
 	var configResponse atc.ConfigResponse
@@ -30,6 +39,7 @@ func (team *team) PipelineConfig(pipelineName string) (atc.Config, string, bool,
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.GetConfig,
 		Params:      params,
+		Query:       queryParams,
 	}, &response)
 
 	switch err.(type) {
@@ -55,15 +65,23 @@ type setConfigResponse struct {
 	Warnings []ConfigWarning `json:"warnings"`
 }
 
-func (team *team) CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig []byte, checkCredentials bool) (bool, bool, []ConfigWarning, error) {
+func (team *team) CreateOrUpdatePipelineConfig(ref atc.PipelineRef, configVersion string, passedConfig []byte, checkCredentials bool) (bool, bool, []ConfigWarning, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
+		"pipeline_name": ref.Name,
 		"team_name":     team.Name(),
 	}
 
 	queryParams := url.Values{}
 	if checkCredentials {
 		queryParams.Add(atc.SaveConfigCheckCreds, "")
+	}
+
+	if ref.InstanceVars != nil {
+		payload, err := json.Marshal(ref.InstanceVars)
+		if err != nil {
+			return false, false, []ConfigWarning{}, err
+		}
+		queryParams.Add("instance_vars", string(payload)) // TODO 5808 const for param
 	}
 
 	response := internal.Response{}

@@ -29,7 +29,17 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pipeline, found, err := team.Pipeline(atc.PipelineRef{Name: pipelineName}) // FIXME 5808 should filter on instanced pipeline?
+	pipelineRef := atc.PipelineRef{Name: pipelineName}
+	if instanceVars := r.URL.Query().Get("instance_vars"); instanceVars != "" {
+		err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
+		if err != nil {
+			logger.Error("malformed-instance-vars", err)
+			s.handleBadRequest(w, fmt.Sprintf("instance_vars is malformed: %s", err))
+			return
+		}
+	}
+
+	pipeline, found, err := team.Pipeline(pipelineRef) // FIXME 5808 should filter on instanced pipeline?
 	if err != nil {
 		logger.Error("failed-to-find-pipeline", err)
 		w.WriteHeader(http.StatusInternalServerError)

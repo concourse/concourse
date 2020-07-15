@@ -36,7 +36,7 @@ func (command *ChecklistCommand) Execute([]string) error {
 
 	pipelineName := string(command.Pipeline)
 
-	config, _, _, err := target.Team().PipelineConfig(pipelineName)
+	config, _, _, err := target.Team().PipelineConfig(atc.PipelineRef{Name: pipelineName}) // FIXME 5808 should filter on instanced pipeline?
 	if err != nil {
 		return err
 	}

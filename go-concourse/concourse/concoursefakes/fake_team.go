@@ -219,10 +219,10 @@ type FakeTeam struct {
 		result4 []concourse.ConfigWarning
 		result5 error
 	}
-	CreateOrUpdatePipelineConfigStub        func(string, string, []byte, bool) (bool, bool, []concourse.ConfigWarning, error)
+	CreateOrUpdatePipelineConfigStub        func(atc.PipelineRef, string, []byte, bool) (bool, bool, []concourse.ConfigWarning, error)
 	createOrUpdatePipelineConfigMutex       sync.RWMutex
 	createOrUpdatePipelineConfigArgsForCall []struct {
-		arg1 string
+		arg1 atc.PipelineRef
 		arg2 string
 		arg3 []byte
 		arg4 bool
@@ -580,10 +580,10 @@ type FakeTeam struct {
 		result3 bool
 		result4 error
 	}
-	PipelineConfigStub        func(string) (atc.Config, string, bool, error)
+	PipelineConfigStub        func(atc.PipelineRef) (atc.Config, string, bool, error)
 	pipelineConfigMutex       sync.RWMutex
 	pipelineConfigArgsForCall []struct {
-		arg1 string
+		arg1 atc.PipelineRef
 	}
 	pipelineConfigReturns struct {
 		result1 atc.Config
@@ -1676,7 +1676,7 @@ func (fake *FakeTeam) CreateOrUpdateReturnsOnCall(i int, result1 atc.Team, resul
 	}{result1, result2, result3, result4, result5}
 }
 
-func (fake *FakeTeam) CreateOrUpdatePipelineConfig(arg1 string, arg2 string, arg3 []byte, arg4 bool) (bool, bool, []concourse.ConfigWarning, error) {
+func (fake *FakeTeam) CreateOrUpdatePipelineConfig(arg1 atc.PipelineRef, arg2 string, arg3 []byte, arg4 bool) (bool, bool, []concourse.ConfigWarning, error) {
 	var arg3Copy []byte
 	if arg3 != nil {
 		arg3Copy = make([]byte, len(arg3))
@@ -1685,7 +1685,7 @@ func (fake *FakeTeam) CreateOrUpdatePipelineConfig(arg1 string, arg2 string, arg
 	fake.createOrUpdatePipelineConfigMutex.Lock()
 	ret, specificReturn := fake.createOrUpdatePipelineConfigReturnsOnCall[len(fake.createOrUpdatePipelineConfigArgsForCall)]
 	fake.createOrUpdatePipelineConfigArgsForCall = append(fake.createOrUpdatePipelineConfigArgsForCall, struct {
-		arg1 string
+		arg1 atc.PipelineRef
 		arg2 string
 		arg3 []byte
 		arg4 bool
@@ -1708,13 +1708,13 @@ func (fake *FakeTeam) CreateOrUpdatePipelineConfigCallCount() int {
 	return len(fake.createOrUpdatePipelineConfigArgsForCall)
 }
 
-func (fake *FakeTeam) CreateOrUpdatePipelineConfigCalls(stub func(string, string, []byte, bool) (bool, bool, []concourse.ConfigWarning, error)) {
+func (fake *FakeTeam) CreateOrUpdatePipelineConfigCalls(stub func(atc.PipelineRef, string, []byte, bool) (bool, bool, []concourse.ConfigWarning, error)) {
 	fake.createOrUpdatePipelineConfigMutex.Lock()
 	defer fake.createOrUpdatePipelineConfigMutex.Unlock()
 	fake.CreateOrUpdatePipelineConfigStub = stub
 }
 
-func (fake *FakeTeam) CreateOrUpdatePipelineConfigArgsForCall(i int) (string, string, []byte, bool) {
+func (fake *FakeTeam) CreateOrUpdatePipelineConfigArgsForCall(i int) (atc.PipelineRef, string, []byte, bool) {
 	fake.createOrUpdatePipelineConfigMutex.RLock()
 	defer fake.createOrUpdatePipelineConfigMutex.RUnlock()
 	argsForCall := fake.createOrUpdatePipelineConfigArgsForCall[i]
@@ -3324,11 +3324,11 @@ func (fake *FakeTeam) PipelineBuildsReturnsOnCall(i int, result1 []atc.Build, re
 	}{result1, result2, result3, result4}
 }
 
-func (fake *FakeTeam) PipelineConfig(arg1 string) (atc.Config, string, bool, error) {
+func (fake *FakeTeam) PipelineConfig(arg1 atc.PipelineRef) (atc.Config, string, bool, error) {
 	fake.pipelineConfigMutex.Lock()
 	ret, specificReturn := fake.pipelineConfigReturnsOnCall[len(fake.pipelineConfigArgsForCall)]
 	fake.pipelineConfigArgsForCall = append(fake.pipelineConfigArgsForCall, struct {
-		arg1 string
+		arg1 atc.PipelineRef
 	}{arg1})
 	fake.recordInvocation("PipelineConfig", []interface{}{arg1})
 	fake.pipelineConfigMutex.Unlock()
@@ -3348,13 +3348,13 @@ func (fake *FakeTeam) PipelineConfigCallCount() int {
 	return len(fake.pipelineConfigArgsForCall)
 }
 
-func (fake *FakeTeam) PipelineConfigCalls(stub func(string) (atc.Config, string, bool, error)) {
+func (fake *FakeTeam) PipelineConfigCalls(stub func(atc.PipelineRef) (atc.Config, string, bool, error)) {
 	fake.pipelineConfigMutex.Lock()
 	defer fake.pipelineConfigMutex.Unlock()
 	fake.PipelineConfigStub = stub
 }
 
-func (fake *FakeTeam) PipelineConfigArgsForCall(i int) string {
+func (fake *FakeTeam) PipelineConfigArgsForCall(i int) atc.PipelineRef {
 	fake.pipelineConfigMutex.RLock()
 	defer fake.pipelineConfigMutex.RUnlock()
 	argsForCall := fake.pipelineConfigArgsForCall[i]

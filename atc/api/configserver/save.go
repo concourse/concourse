@@ -105,7 +105,17 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, created, err := team.SavePipeline(atc.PipelineRef{Name: pipelineName}, config, version, true) // FIXME 5808 should filter on instanced pipeline?
+	pipelineRef := atc.PipelineRef{Name: pipelineName}
+	if instanceVars := query.Get("instance_vars"); instanceVars != "" {
+		err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
+		if err != nil {
+			session.Error("malformed-instance-vars", err)
+			s.handleBadRequest(w, fmt.Sprintf("instance_vars is malformed: %s", err))
+			return
+		}
+	}
+
+	_, created, err := team.SavePipeline(pipelineRef, config, version, true) // FIXME 5808 should filter on instanced pipeline?
 	if err != nil {
 		session.Error("failed-to-save-config", err)
 		w.WriteHeader(http.StatusInternalServerError)

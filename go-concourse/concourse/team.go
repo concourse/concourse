@@ -29,8 +29,8 @@ type Team interface {
 	HidePipeline(pipelineName string) (bool, error)
 	RenamePipeline(pipelineName, name string) (bool, []ConfigWarning, error)
 	ListPipelines() ([]atc.Pipeline, error)
-	PipelineConfig(pipelineName string) (atc.Config, string, bool, error)
-	CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig []byte, checkCredentials bool) (bool, bool, []ConfigWarning, error)
+	PipelineConfig(ref atc.PipelineRef) (atc.Config, string, bool, error)
+	CreateOrUpdatePipelineConfig(ref atc.PipelineRef, configVersion string, passedConfig []byte, checkCredentials bool) (bool, bool, []ConfigWarning, error)
 
 	CreatePipelineBuild(pipelineName string, plan atc.Plan) (atc.Build, error)
 

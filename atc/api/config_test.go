@@ -112,17 +112,22 @@ var _ = Describe("Config API", func() {
 
 	Describe("GET /api/v1/teams/:team_name/pipelines/:name/config", func() {
 		var (
+			request  *http.Request
 			response *http.Response
 		)
 
-		JustBeforeEach(func() {
-			req, err := requestGenerator.CreateRequest(atc.GetConfig, rata.Params{
+		BeforeEach(func() {
+			var err error
+			request, err = requestGenerator.CreateRequest(atc.GetConfig, rata.Params{
 				"team_name":     "a-team",
 				"pipeline_name": "something-else",
 			}, nil)
 			Expect(err).NotTo(HaveOccurred())
+		})
 
-			response, err = client.Do(req)
+		JustBeforeEach(func() {
+			var err error
+			response, err = client.Do(request)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -163,6 +168,60 @@ var _ = Describe("Config API", func() {
 							},
 						})
 						fakeTeam.PipelineReturns(fakePipeline, true, nil)
+					})
+
+					Context("when instance vars ar specified", func() {
+						Context("when instance vars are malformed", func() {
+							BeforeEach(func() {
+								query := request.URL.Query()
+								query.Add("instance_vars", "{")
+								request.URL.RawQuery = query.Encode()
+							})
+
+							It("returns 400", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+							})
+
+							It("returns Content-Type 'application/json'", func() {
+								expectedHeaderEntries := map[string]string{
+									"Content-Type": "application/json",
+								}
+								Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
+							})
+
+							It("returns an error in the response body", func() {
+								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+										{
+											"errors": [
+												"instance_vars is malformed: unexpected end of JSON input"
+											]
+										}`))
+							})
+
+							It("doesn't find the pipeline", func() {
+								Expect(dbTeam.PipelineCallCount()).To(Equal(0))
+							})
+						})
+
+						Context("when instance vars is valid", func() {
+							BeforeEach(func() {
+								query := request.URL.Query()
+								query.Add("instance_vars", "{\"branch\":\"feature\"}")
+								request.URL.RawQuery = query.Encode()
+
+								fakePipeline.InstanceVarsReturns(atc.InstanceVars{"branch": "feature"})
+							})
+
+							It("finds the pipeline", func() {
+								Expect(fakeTeam.PipelineCallCount()).To(Equal(1))
+
+								ref := fakeTeam.PipelineArgsForCall(0)
+								Expect(ref).To(Equal(atc.PipelineRef{
+									Name:         "something-else",
+									InstanceVars: atc.InstanceVars{"branch": "feature"},
+								}))
+							})
+						})
 					})
 
 					Context("when the pipeline config is found", func() {
@@ -978,6 +1037,58 @@ jobs:
 
 							It("does not save it", func() {
 								Expect(dbTeam.SavePipelineCallCount()).To(BeZero())
+							})
+						})
+
+						Context("when instance vars are specified", func() {
+							Context("when instance vars are malformed", func() {
+								BeforeEach(func() {
+									query := request.URL.Query()
+									query.Add("instance_vars", "{")
+									request.URL.RawQuery = query.Encode()
+								})
+
+								It("returns 400", func() {
+									Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+								})
+
+								It("returns Content-Type 'application/json'", func() {
+									expectedHeaderEntries := map[string]string{
+										"Content-Type": "application/json",
+									}
+									Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
+								})
+
+								It("returns an error in the response body", func() {
+									Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+										{
+											"errors": [
+												"instance_vars is malformed: unexpected end of JSON input"
+											]
+										}`))
+								})
+
+								It("does not save anything", func() {
+									Expect(dbTeam.SavePipelineCallCount()).To(Equal(0))
+								})
+							})
+
+							Context("when instance vars is valid", func() {
+								BeforeEach(func() {
+									query := request.URL.Query()
+									query.Add("instance_vars", "{\"branch\":\"feature\"}")
+									request.URL.RawQuery = query.Encode()
+								})
+
+								It("saves an instanced pipeline", func() {
+									Expect(dbTeam.SavePipelineCallCount()).To(Equal(1))
+
+									ref, _, _, _ := dbTeam.SavePipelineArgsForCall(0)
+									Expect(ref).To(Equal(atc.PipelineRef{
+										Name:         "a-pipeline",
+										InstanceVars: atc.InstanceVars{"branch": "feature"},
+									}))
+								})
 							})
 						})
 					})

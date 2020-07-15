@@ -19,6 +19,7 @@ import (
 
 type ATCConfig struct {
 	PipelineName     string
+	InstanceVars     atc.InstanceVars
 	Team             concourse.Team
 	TargetName       rc.TargetName
 	Target           string
@@ -47,7 +48,11 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 		return err
 	}
 
-	existingConfig, existingConfigVersion, _, err := atcConfig.Team.PipelineConfig(atcConfig.PipelineName)
+	pipelineRef := atc.PipelineRef{
+		Name:         atcConfig.PipelineName,
+		InstanceVars: atcConfig.InstanceVars,
+	}
+	existingConfig, existingConfigVersion, _, err := atcConfig.Team.PipelineConfig(pipelineRef)
 	if err != nil {
 		return err
 	}
@@ -83,7 +88,7 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 	}
 
 	created, updated, warnings, err := atcConfig.Team.CreateOrUpdatePipelineConfig(
-		atcConfig.PipelineName,
+		pipelineRef,
 		existingConfigVersion,
 		evaluatedTemplate,
 		atcConfig.CheckCredentials,

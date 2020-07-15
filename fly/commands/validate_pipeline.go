@@ -29,6 +29,6 @@ type ValidatePipelineCommand struct {
 }
 
 func (command *ValidatePipelineCommand) Execute(args []string) error {
-	yamlTemplate := templatehelpers.NewYamlTemplateWithParams(command.Config, command.VarsFrom, command.Var, command.YAMLVar)
+	yamlTemplate := templatehelpers.NewYamlTemplateWithParams(command.Config, command.VarsFrom, command.Var, command.YAMLVar, nil) // FIXME 5808
 	return validatepipelinehelpers.Validate(yamlTemplate, command.Strict, command.Output, command.EnableAcrossStep)
 }

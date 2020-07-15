@@ -24,6 +24,8 @@ type SetPipelineCommand struct {
 
 	VarsFrom []atc.PathFlag `short:"l"  long:"load-vars-from"  description:"Variable flag that can be used for filling in template values in configuration from a YAML file"`
 
+	InstanceVars []flaghelpers.VariablePairFlag `short:"i"  long:"instance-var"       value-name:"[NAME=STRING]"  description:"Specify a string value to set for a variable in the pipeline and an instanced pipeline identifier"`
+
 	Team string `long:"team"              description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
@@ -72,9 +74,18 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 
 	ansi.DisableColors(command.DisableAnsiColor)
 
+	var instanceVars atc.InstanceVars
+	if command.InstanceVars != nil {
+		instanceVars = atc.InstanceVars{}
+		for _, f := range command.InstanceVars {
+			instanceVars[f.Name] = f.Value
+		}
+	}
+
 	atcConfig := setpipelinehelpers.ATCConfig{
 		Team:             team,
 		PipelineName:     pipelineName,
+		InstanceVars:     instanceVars,
 		TargetName:       Fly.Target,
 		Target:           target.Client().URL(),
 		SkipInteraction:  command.SkipInteractive || command.Config.FromStdin(),
@@ -82,6 +93,6 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		CommandWarnings:  warnings,
 	}
 
-	yamlTemplateWithParams := templatehelpers.NewYamlTemplateWithParams(configPath, templateVariablesFiles, command.Var, command.YAMLVar)
+	yamlTemplateWithParams := templatehelpers.NewYamlTemplateWithParams(configPath, templateVariablesFiles, command.Var, command.YAMLVar, command.InstanceVars)
 	return atcConfig.Set(yamlTemplateWithParams)
 }
