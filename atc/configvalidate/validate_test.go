@@ -1505,7 +1505,7 @@ var _ = Describe("ValidateConfig", func() {
 							Step: &atc.PutStep{
 								Name: "some-resource",
 							},
-							Attempts: -1,
+							Attempts: 0,
 						},
 					})
 
@@ -1514,7 +1514,7 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("does return an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].attempts: cannot be negative"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].attempts: must be greater than 0"))
 				})
 			})
 

@@ -40,6 +40,27 @@ var _ = Describe("Retry Step", func() {
 		step = Retry(attempt1, attempt2, attempt3)
 	})
 
+	Context("when calling succeeded before running", func() {
+		Context("when the RetryStep is given no attempts", func() {
+			BeforeEach(func() {
+				step = Retry()
+			})
+
+			Describe("Succeeded", func() {
+				It("should return false", func() {
+					Expect(step.Succeeded()).To(BeFalse())
+				})
+			})
+		})
+
+		Context("when the RetryStep is given attempts", func() {
+			Describe("Succeeded", func() {
+				It("should return false", func() {
+					Expect(step.Succeeded()).To(BeFalse())
+				})
+			})
+		})
+	})
 	Context("when attempt 1 succeeds", func() {
 		BeforeEach(func() {
 			attempt1.SucceededReturns(true)
