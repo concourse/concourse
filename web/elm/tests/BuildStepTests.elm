@@ -17,14 +17,16 @@ import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Dict
 import Expect
+import Json.Encode
 import Message.Callback as Callback
 import Message.Message as Message exposing (DomID(..))
 import Message.Subscription exposing (Delivery(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
+import Routes
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (class, style, tag, text)
+import Test.Html.Selector exposing (class, containing, style, tag, text)
 import Time
 import Views.Styles
 
@@ -138,7 +140,7 @@ all =
                             , selector =
                                 [ style "background-color" Colors.background ]
                             }
-                        , hoverable = StepTab "retryStepId" 2
+                        , hoverable = StepTab "retryStepId" 1
                         , hoveredSelector =
                             { description = "lighter grey background"
                             , selector =
@@ -148,7 +150,7 @@ all =
                     , test "have click handlers" <|
                         given iVisitABuildWithARetryStep
                             >> when iAmLookingAtTheFirstTab
-                            >> then_ (itIsClickable <| StepTab "retryStepId" 1)
+                            >> then_ (itIsClickable <| StepTab "retryStepId" 0)
                     , test "have horizontal spacing" <|
                         given iVisitABuildWithARetryStep
                             >> when iAmLookingAtTheFirstTab
@@ -207,6 +209,50 @@ all =
                     ]
                 ]
             ]
+        , describe "across step"
+            [ test "shows var name" <|
+                given iVisitABuildWithAnAcrossStep
+                    >> when iAmLookingAtTheAcrossStepInTheBuildOutput
+                    >> then_ iSeeTheVarName
+            , describe "tab list"
+                [ test "has as many tabs as values" <|
+                    given iVisitABuildWithAnAcrossStep
+                        >> given theAcrossStepIsExpanded
+                        >> when iAmLookingAtTheAcrossTabList
+                        >> then_ iSeeTwoChildren
+                , test "tab labels are the values" <|
+                    given iVisitABuildWithAnAcrossStep
+                        >> given theAcrossStepIsExpanded
+                        >> when iAmLookingAtTheAcrossTabList
+                        >> then_ iSeeTheValuesAsLabels
+                , describe "status indicator"
+                    [ test "success" <|
+                        given iVisitABuildWithAnAcrossStep
+                            >> given theAcrossStepIsExpanded
+                            >> given theFirstTaskSucceeded
+                            >> when iAmLookingAtTheFirstAcrossTab
+                            >> then_ iSeeTheSuccessColor
+                    , test "failure" <|
+                        given iVisitABuildWithAnAcrossStep
+                            >> given theAcrossStepIsExpanded
+                            >> given theFirstTaskFailed
+                            >> when iAmLookingAtTheFirstAcrossTab
+                            >> then_ iSeeTheFailureColor
+                    , test "initialized" <|
+                        given iVisitABuildWithAnAcrossStep
+                            >> given theAcrossStepIsExpanded
+                            >> given theFirstTaskInitialized
+                            >> when iAmLookingAtTheFirstAcrossTab
+                            >> then_ iSeeTheStartedColor
+                    , test "errored" <|
+                        given iVisitABuildWithAnAcrossStep
+                            >> given theAcrossStepIsExpanded
+                            >> given theFirstTaskErrored
+                            >> when iAmLookingAtTheFirstAcrossTab
+                            >> then_ iSeeTheErrorColor
+                    ]
+                ]
+            ]
         , describe "task step"
             [ test "logs show timestamps" <|
                 given iVisitABuildWithATaskStep
@@ -236,6 +282,12 @@ iVisitABuildWithARetryStep =
     iOpenTheBuildPage
         >> myBrowserFetchedTheBuild
         >> thePlanContainsARetryStep
+
+
+iVisitABuildWithAnAcrossStep =
+    iOpenTheBuildPage
+        >> myBrowserFetchedTheBuild
+        >> thePlanContainsAnAcrossStep
 
 
 iVisitABuildWithATaskStep =
@@ -283,6 +335,11 @@ theLoadVarStepIsExpanded =
         >> Application.update (Update <| Message.Click <| StepHeader setLoadVarStepId)
 
 
+theAcrossStepIsExpanded =
+    Tuple.first
+        >> Application.update (Update <| Message.Click <| StepHeader acrossStepId)
+
+
 thePlanContainsARetryStep =
     Tuple.first
         >> Application.handleCallback
@@ -304,6 +361,41 @@ thePlanContainsARetryStep =
                                       }
                                     ]
                                 )
+                      }
+                    , { inputs = []
+                      , outputs = []
+                      }
+                    )
+            )
+
+
+thePlanContainsAnAcrossStep =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.PlanAndResourcesFetched 1 <|
+                Ok
+                    ( { id = acrossStepId
+                      , step =
+                            Concourse.BuildStepAcross
+                                { varName = "some-var"
+                                , steps =
+                                    Array.fromList
+                                        [ ( Json.Encode.string "v1"
+                                          , { id = "task1Id"
+                                            , step =
+                                                Concourse.BuildStepTask
+                                                    "taskName"
+                                            }
+                                          )
+                                        , ( Json.Encode.string "v2"
+                                          , { id = "task2Id"
+                                            , step =
+                                                Concourse.BuildStepTask
+                                                    "taskName"
+                                            }
+                                          )
+                                        ]
+                                }
                       }
                     , { inputs = []
                       , outputs = []
@@ -369,6 +461,10 @@ setLoadVarStepId =
     "loadVarStep"
 
 
+acrossStepId =
+    "acrossStep"
+
+
 thePlanContainsAGetStep =
     Tuple.first
         >> Application.handleCallback
@@ -415,6 +511,12 @@ iAmLookingAtTheRetryStepInTheBuildOutput =
     Tuple.first
         >> Common.queryView
         >> Query.find [ class "retry" ]
+
+
+iAmLookingAtTheAcrossStepInTheBuildOutput =
+    Tuple.first
+        >> Common.queryView
+        >> Query.find [ class "build-step", containing [ text "across:" ] ]
 
 
 iAmLookingAtTheStepBody =
@@ -490,6 +592,18 @@ iAmLookingAtTheTabList =
         >> Query.first
 
 
+iAmLookingAtTheAcrossTabList =
+    iAmLookingAtTheAcrossStepInTheBuildOutput
+        >> Query.find [ class "across-tabs" ]
+
+
+iSeeTheValuesAsLabels =
+    Expect.all
+        [ Query.has [ text "\"v1\"" ]
+        , Query.has [ text "\"v2\"" ]
+        ]
+
+
 iSeeItIsAList =
     Query.has [ tag "ul" ]
 
@@ -521,6 +635,12 @@ iAmLookingAtTheFirstTab =
         >> Query.first
 
 
+iAmLookingAtTheFirstAcrossTab =
+    iAmLookingAtTheAcrossTabList
+        >> Query.children []
+        >> Query.first
+
+
 iSeeDefaultFontWeight =
     Query.has [ style "font-weight" Views.Styles.fontWeightDefault ]
 
@@ -542,6 +662,22 @@ iSeeALighterGreyBackground =
     Query.has [ style "background-color" Colors.paginationHover ]
 
 
+iSeeTheSuccessColor =
+    Query.has [ style "background-color" Colors.success ]
+
+
+iSeeTheFailureColor =
+    Query.has [ style "background-color" Colors.failure ]
+
+
+iSeeTheStartedColor =
+    Query.has [ style "background-color" Colors.started ]
+
+
+iSeeTheErrorColor =
+    Query.has [ style "background-color" Colors.error ]
+
+
 iSeeItIsTransparent =
     Query.has [ style "opacity" "0.5" ]
 
@@ -558,6 +694,10 @@ iSeeTheLoadVarName =
     Query.has [ text "var-name" ]
 
 
+iSeeTheVarName =
+    Query.has [ text "some-var" ]
+
+
 iAmLookingAtTheSecondTab =
     iAmLookingAtTheTabList >> Query.children [] >> Query.index 1
 
@@ -570,21 +710,61 @@ theSecondAttemptInitialized =
     taskInitialized "attempt2Id"
 
 
-taskInitialized stepId =
+theFirstTaskInitialized =
+    taskInitialized "task1Id"
+
+
+theFirstTaskSucceeded =
+    taskFinished "task1Id" 0
+
+
+theFirstTaskFailed =
+    taskFinished "task1Id" 1
+
+
+theFirstTaskErrored =
+    taskErrored "task1Id"
+
+
+taskEvent event =
     Tuple.first
         >> Application.handleDelivery
             (EventsReceived <|
                 Ok
-                    [ { data =
-                            InitializeTask
-                                { source = "stdout"
-                                , id = stepId
-                                }
-                                (Time.millisToPosix 0)
+                    [ { data = event
                       , url = "http://localhost:8080/api/v1/builds/1/events"
                       }
                     ]
             )
+
+
+taskInitialized stepId =
+    taskEvent <|
+        InitializeTask
+            { source = "stdout"
+            , id = stepId
+            }
+            (Time.millisToPosix 0)
+
+
+taskFinished stepId exitCode =
+    taskEvent <|
+        FinishTask
+            { source = "stdout"
+            , id = stepId
+            }
+            exitCode
+            (Time.millisToPosix 0)
+
+
+taskErrored stepId =
+    taskEvent <|
+        Error
+            { source = "stdout"
+            , id = stepId
+            }
+            "errored"
+            (Time.millisToPosix 0)
 
 
 thereIsALog =

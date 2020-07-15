@@ -72,3 +72,4 @@ type StepHeaderType
     | StepHeaderTask
     | StepHeaderSetPipeline
     | StepHeaderLoadVar
+    | StepHeaderAcross

@@ -1,6 +1,7 @@
 module Build.Styles exposing
     ( MetadataCellType(..)
     , abortButton
+    , acrossTabList
     , body
     , buttonTooltip
     , buttonTooltipArrow
@@ -12,11 +13,12 @@ module Build.Styles exposing
     , historyItem
     , metadataCell
     , metadataTable
-    , retryTab
     , retryTabList
     , stepHeader
     , stepHeaderLabel
     , stepStatusIcon
+    , tab
+    , tabStatusIndicator
     , triggerButton
     )
 
@@ -274,20 +276,33 @@ errorLog =
     ]
 
 
-retryTabList : List (Html.Attribute msg)
-retryTabList =
-    [ style "margin" "0"
-    , style "font-size" "16px"
-    , style "line-height" "26px"
+tabList : List (Html.Attribute msg)
+tabList =
+    [ style "line-height" "26px"
     , style "background-color" Colors.background
     ]
 
 
-retryTab :
+retryTabList : List (Html.Attribute msg)
+retryTabList =
+    style "font-size" "16px"
+        :: style "margin" "0"
+        :: tabList
+
+
+acrossTabList : List (Html.Attribute msg)
+acrossTabList =
+    style "font-size" "14px"
+        :: style "margin" "10px 0 0 0"
+        :: tabList
+
+
+tab :
     { isHovered : Bool, isCurrent : Bool, isStarted : Bool }
     -> List (Html.Attribute msg)
-retryTab { isHovered, isCurrent, isStarted } =
+tab { isHovered, isCurrent, isStarted } =
     [ style "display" "inline-block"
+    , style "position" "relative"
     , style "padding" "0 5px"
     , style "font-weight" Views.Styles.fontWeightDefault
     , style "cursor" "pointer"
@@ -304,6 +319,36 @@ retryTab { isHovered, isCurrent, isStarted } =
 
         else
             "0.5"
+    ]
+
+
+tabStatusIndicator :
+    StepState
+    -> List (Html.Attribute msg)
+tabStatusIndicator state =
+    [ style "background-color" <|
+        case state of
+            StepStateFailed ->
+                Colors.failure
+
+            StepStateErrored ->
+                Colors.error
+
+            StepStateRunning ->
+                Colors.started
+
+            StepStateSucceeded ->
+                Colors.success
+
+            _ ->
+                "transparent"
+    , style "position" "absolute"
+    , style "height" "1px"
+    , style "width" "90%"
+    , style "margin" "0 auto"
+    , style "left" "0"
+    , style "right" "0"
+    , style "top" "0"
     ]
 
 

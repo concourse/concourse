@@ -11,10 +11,12 @@ module Build.StepTree.Models exposing
     , StepTree(..)
     , StepTreeModel
     , TabFocus(..)
+    , TabInfo
     , Version
     , finishTree
-    , focusRetry
+    , focusTabbed
     , map
+    , stepStateOrdering
     , updateAt
     , wrapHook
     , wrapMultiStep
@@ -26,6 +28,8 @@ import Array exposing (Array)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus)
 import Dict exposing (Dict)
+import Json.Encode
+import Ordering exposing (Ordering)
 import Routes exposing (Highlight, StepID)
 import Time
 
@@ -47,6 +51,7 @@ type StepTree
     | Put Step
     | Aggregate (Array StepTree)
     | InParallel (Array StepTree)
+    | Across TabInfo (Array Json.Encode.Value) Step (Array StepTree)
     | Do (Array StepTree)
     | OnSuccess HookedStep
     | OnFailure HookedStep
@@ -54,12 +59,19 @@ type StepTree
     | OnError HookedStep
     | Ensure HookedStep
     | Try StepTree
-    | Retry StepID Int TabFocus (Array StepTree)
+    | Retry TabInfo (Array StepTree)
     | Timeout StepTree
 
 
 type alias StepFocus =
     (StepTree -> StepTree) -> StepTree -> StepTree
+
+
+type alias TabInfo =
+    { id : StepID
+    , tab : Int
+    , focus : TabFocus
+    }
 
 
 type alias Step =
@@ -91,6 +103,19 @@ type StepState
     | StepStateSucceeded
     | StepStateFailed
     | StepStateErrored
+
+
+stepStateOrdering : Ordering StepState
+stepStateOrdering =
+    Ordering.explicit
+        [ StepStateFailed
+        , StepStateErrored
+        , StepStateInterrupted
+        , StepStateCancelled
+        , StepStateRunning
+        , StepStatePending
+        , StepStateSucceeded
+        ]
 
 
 type alias Version =
@@ -152,11 +177,14 @@ type alias Origin =
 -- model manipulation functions
 
 
-focusRetry : Int -> StepTree -> StepTree
-focusRetry tab tree =
+focusTabbed : Int -> StepTree -> StepTree
+focusTabbed tab tree =
     case tree of
-        Retry id _ _ steps ->
-            Retry id tab User steps
+        Retry tabInfo steps ->
+            Retry { tabInfo | tab = tab, focus = User } steps
+
+        Across tabInfo vals step substeps ->
+            Across { tabInfo | tab = tab, focus = User } vals step substeps
 
         _ ->
             -- impossible (non-retry tab focus)
@@ -191,6 +219,9 @@ map f tree =
 
         LoadVar step ->
             LoadVar (f step)
+
+        Across tabInfo vals step substeps ->
+            Across tabInfo vals (f step) substeps
 
         _ ->
             tree
@@ -277,7 +308,10 @@ getMultiStepIndex idx tree =
                 Do trees ->
                     trees
 
-                Retry _ _ _ trees ->
+                Retry _ trees ->
+                    trees
+
+                Across _ _ _ trees ->
                     trees
 
                 _ ->
@@ -305,17 +339,30 @@ setMultiStepIndex idx update tree =
         Do trees ->
             Do (Array.set idx (update (getMultiStepIndex idx tree)) trees)
 
-        Retry id tab focus trees ->
+        Retry tabInfo trees ->
             let
                 updatedSteps =
                     Array.set idx (update (getMultiStepIndex idx tree)) trees
             in
-            case focus of
+            case tabInfo.focus of
                 Auto ->
-                    Retry id (idx + 1) Auto updatedSteps
+                    Retry { tabInfo | tab = idx } updatedSteps
 
                 User ->
-                    Retry id tab User updatedSteps
+                    Retry tabInfo updatedSteps
+
+        Across tabInfo vals step trees ->
+            let
+                updatedSteps =
+                    Array.set idx (update (getMultiStepIndex idx tree)) trees
+            in
+            case tabInfo.focus of
+                Auto ->
+                    -- TODO: what does auto look like for across (with max_in_flight)
+                    Across tabInfo vals step updatedSteps
+
+                User ->
+                    Across tabInfo vals step updatedSteps
 
         _ ->
             -- impossible
@@ -352,6 +399,9 @@ finishTree root =
         InParallel trees ->
             InParallel (Array.map finishTree trees)
 
+        Across tabInfo vals step trees ->
+            Across tabInfo vals (finishStep step) (Array.map finishTree trees)
+
         Do trees ->
             Do (Array.map finishTree trees)
 
@@ -373,8 +423,8 @@ finishTree root =
         Try tree ->
             Try (finishTree tree)
 
-        Retry id tab focus trees ->
-            Retry id tab focus (Array.map finishTree trees)
+        Retry tabInfo trees ->
+            Retry tabInfo (Array.map finishTree trees)
 
         Timeout tree ->
             Timeout (finishTree tree)
