@@ -19,15 +19,24 @@ resources:
       uri: https://github.com/concourse/examples
 
 jobs:
-  - name: set-example-pipelines
+  # update this pipeline before updating child pipelines
+  - name: set-self
     public: true
     plan:
       - get: concourse-examples
         trigger: true
       - set_pipeline: set-pipelines
         file: concourse-examples/pipelines/set-pipelines.yml
+  - name: set-example-pipelines
+    public: true
+    plan:
+      - get: concourse-examples
+        trigger: true
+        passed: [set-self]
       - set_pipeline: job
         file: concourse-examples/pipelines/hello-world.yml
+      - set_pipeline: separate-task-config
+        file: concourse-examples/pipelines/separate-task-config.yml
       - set_pipeline: serial-job
         file: concourse-examples/pipelines/serial-job.yml
       - set_pipeline: pipeline-vars
