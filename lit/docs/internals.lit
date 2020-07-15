@@ -75,21 +75,49 @@ experienced users that want to dig deeper into how Concourse works.
   registering \reference{architecture-worker}{workers} with the
   \reference{component-atc}{ATC}.
 
-  The TSA only supports two commands: \code{register-worker} and
-  \code{forward-worker}.
-
-  The \code{register-worker} command is used to register a worker directly with
-  the ATC. This should be used if the worker is running in the same (private)
-  network as the ATC.
-
-  The \code{forward-worker} command is used to reverse-tunnel a worker's
-  addresses through the TSA and register the forwarded connections with the
-  ATC. This allows workers running in arbitrary networks to register securely,
-  so long as they can reach the TSA. This is much safer than opening the worker
-  up to the outside world.
-
   The TSA by default listens on port \code{2222}, and is usually colocated with
   the \reference{component-atc}{ATC} and sitting behind a load balancer.
+
+  The TSA implements CLI over the SSH connection, supporting the following
+  commands:
+
+  \list{
+    The \code{forward-worker} command is used to reverse-tunnel a worker's
+    addresses through the TSA and register the forwarded connections with the
+    ATC. This allows workers running in arbitrary networks to register
+    securely, so long as they can reach the TSA. This is much safer than
+    opening the worker up to the outside world.
+  }{
+    The \code{land-worker} command is sent from the worker when landing, and
+    initiates the state change to \reference{LANDING-table} through the ATC.
+  }{
+    The \code{retire-worker} command is sent from the worker when retiring, and
+    initiates the state change to \reference{RETIRING-table} through the ATC.
+  }{
+    The \code{delete-worker} command is sent from the worker when draining is
+    interrupted while a worker is retiring. It removes the worker from the ATC.
+  }{
+    The \code{sweep-containers} command is sent periodically to facilitate
+    garbage collection of containers which can be removed from the worker. It
+    returns a list of handles for containers in the \code{DESTROYING} state,
+    and it is the worker's job to subsequently destroy them.
+  }{
+    The \code{report-containers} command is sent along with the list of all
+    container handles on the worker. The ATC uses this to update the database,
+    removing any \code{DESTROYING} containers which are no longer in the set of
+    handles, and marking any \code{CREATED} containers that are not present as
+    missing.
+  }{
+    The \code{sweep-volumes} command is sent periodically to facilitate garbage
+    collection of volumes which can be removed from the worker. It returns a
+    list of handles for volumes in the \code{DESTROYING} state, and it is the
+    worker's job to subsequently destroy them.
+  }{
+    The \code{report-volumes} command is sent along with the list of all volume
+    handles on the worker. The ATC uses this to update the database, removing
+    any \code{DESTROYING} volumes which are no longer in the set of handles,
+    and marking any \code{CREATED} volumes that are not present as missing.
+  }
 }
 
 \section{
