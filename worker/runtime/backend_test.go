@@ -371,10 +371,11 @@ func (s *BackendSuite) TestDestroySucceeds() {
 	s.NoError(err)
 }
 
-func (s *BackendSuite) TestStart() {
+func (s *BackendSuite) TestStartInitsClientAndSetsUpRestrictedNetworks() {
 	err := s.backend.Start()
 	s.NoError(err)
 	s.Equal(1, s.client.InitCallCount())
+	s.Equal(1, s.network.SetupRestrictedNetworksCallCount())
 }
 
 func (s *BackendSuite) TestStartInitError() {

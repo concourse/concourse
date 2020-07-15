@@ -552,7 +552,7 @@ func (client *client) StreamFileFromArtifact(
 		volume:      artifactVolume,
 		compression: client.compression,
 	}
-	return source.StreamFile(ctx, logger, filePath)
+	return source.StreamFile(ctx, filePath)
 }
 
 func (client *client) chooseTaskWorker(

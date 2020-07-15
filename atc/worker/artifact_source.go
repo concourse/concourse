@@ -30,11 +30,11 @@ type StreamableArtifactSource interface {
 	// StreamTo copies the data from the source to the destination. Note that
 	// this potentially uses a lot of network transfer, for larger artifacts, as
 	// the ATC will effectively act as a middleman.
-	StreamTo(context.Context, lager.Logger, ArtifactDestination) error
+	StreamTo(context.Context, ArtifactDestination) error
 
 	// StreamFile returns the contents of a single file in the artifact source.
 	// This is used for loading a task's configuration at runtime.
-	StreamFile(context.Context, lager.Logger, string) (io.ReadCloser, error)
+	StreamFile(context.Context, string) (io.ReadCloser, error)
 }
 
 type artifactSource struct {
@@ -55,10 +55,8 @@ func NewStreamableArtifactSource(
 	}
 }
 
-// TODO: figure out if we want logging before and after streams, I remove logger from private methods
 func (source *artifactSource) StreamTo(
 	ctx context.Context,
-	logger lager.Logger,
 	destination ArtifactDestination,
 ) error {
 	ctx, span := tracing.StartSpan(ctx, "artifactSource.StreamTo", nil)
@@ -83,10 +81,8 @@ func (source *artifactSource) StreamTo(
 	return err
 }
 
-// TODO: figure out if we want logging before and after streams, I remove logger from private methods
 func (source *artifactSource) StreamFile(
 	ctx context.Context,
-	logger lager.Logger,
 	filepath string,
 ) (io.ReadCloser, error) {
 	out, err := source.volume.StreamOut(ctx, filepath, source.compression.Encoding())

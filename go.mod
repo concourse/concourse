@@ -32,6 +32,7 @@ require (
 	github.com/containerd/go-cni v0.0.0-20200107172653-c154a49e2c75
 	github.com/containerd/ttrpc v0.0.0-20191028202541-4f1b8fe65a5c // indirect
 	github.com/containerd/typeurl v0.0.0-20190911142611-5eb25027c9fd
+	github.com/coreos/go-iptables v0.4.5
 	github.com/coreos/go-oidc v2.0.0+incompatible // indirect
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
 	github.com/creack/pty v1.1.9 // indirect

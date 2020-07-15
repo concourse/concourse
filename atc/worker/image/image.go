@@ -2,7 +2,6 @@ package image
 
 import (
 	"context"
-	"github.com/concourse/concourse/tracing"
 	"io"
 	"net/url"
 	"path"
@@ -12,6 +11,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/tracing"
 )
 
 const RawRootFSScheme = "raw"
@@ -44,7 +44,7 @@ func (i *imageProvidedByPreviousStepOnSameWorker) FetchForContainer(
 		return worker.FetchedImage{}, err
 	}
 
-	imageMetadataReader, err := i.imageSpec.ImageArtifactSource.StreamFile(ctx, logger, ImageMetadataFile)
+	imageMetadataReader, err := i.imageSpec.ImageArtifactSource.StreamFile(ctx, ImageMetadataFile)
 	if err != nil {
 		logger.Error("failed-to-stream-metadata-file", err)
 		return worker.FetchedImage{}, err
@@ -100,14 +100,14 @@ func (i *imageProvidedByPreviousStepOnDifferentWorker) FetchForContainer(
 		destination: imageVolume,
 	}
 
-	err = i.imageSpec.ImageArtifactSource.StreamTo(ctx, logger, &dest)
+	err = i.imageSpec.ImageArtifactSource.StreamTo(ctx, &dest)
 	if err != nil {
 		logger.Error("failed-to-stream-image-artifact-source", err)
 		return worker.FetchedImage{}, err
 	}
 	logger.Debug("streamed-non-local-image-volume")
 
-	imageMetadataReader, err := i.imageSpec.ImageArtifactSource.StreamFile(ctx, logger, ImageMetadataFile)
+	imageMetadataReader, err := i.imageSpec.ImageArtifactSource.StreamFile(ctx, ImageMetadataFile)
 	if err != nil {
 		logger.Error("failed-to-stream-metadata-file", err)
 		return worker.FetchedImage{}, err

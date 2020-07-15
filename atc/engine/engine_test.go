@@ -272,6 +272,20 @@ var _ = Describe("Engine", func() {
 									Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusAborted))
 								})
 							})
+
+							Context("when the build panic", func() {
+								BeforeEach(func() {
+									fakeStep.RunStub = func(context.Context, exec.RunState) error {
+										panic("something went wrong")
+									}
+								})
+
+								It("finishes the build with error", func() {
+									waitGroup.Wait()
+									Expect(fakeBuild.FinishCallCount()).To(Equal(1))
+									Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusErrored))
+								})
+							})
 						})
 
 						Context("when converting the plan to a step fails", func() {
@@ -468,6 +482,20 @@ var _ = Describe("Engine", func() {
 								waitGroup.Wait()
 								Expect(fakeCheck.FinishWithErrorCallCount()).To(Equal(1))
 								Expect(fakeCheck.FinishWithErrorArgsForCall(0)).To(Equal(fmt.Errorf("run check step: %w", errors.New("nope"))))
+							})
+						})
+
+						Context("when the check panic", func() {
+							BeforeEach(func() {
+								fakeStep.RunStub = func(context.Context, exec.RunState) error {
+									panic("something went wrong")
+								}
+							})
+
+							It("finishes the check with panic error", func() {
+								waitGroup.Wait()
+								Expect(fakeCheck.FinishWithErrorCallCount()).To(Equal(1))
+								Expect(fakeCheck.FinishWithErrorArgsForCall(0).Error()).To(ContainSubstring("something went wrong"))
 							})
 						})
 
