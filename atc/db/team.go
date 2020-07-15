@@ -350,19 +350,16 @@ func savePipeline(
 	buildID sql.NullInt64,
 ) (int, bool, error) {
 
-	instanceVarsPayload, err := json.Marshal(pipelineRef.InstanceVars)
-	if err != nil {
-		return 0, false, err
-	}
+	instanceVarPayload, _ := json.Marshal(pipelineRef.InstanceVars)
 
 	var existingConfig bool
-	err = tx.QueryRow(`SELECT EXISTS (
+	err := tx.QueryRow(`SELECT EXISTS (
 		SELECT 1
 		FROM pipelines
 		WHERE team_id = $1
 		AND name = $2
 		AND instance_vars = $3
-	)`, teamID, pipelineRef.Name, instanceVarsPayload).Scan(&existingConfig)
+	)`, teamID, pipelineRef.Name, instanceVarPayload).Scan(&existingConfig)
 	if err != nil {
 		return 0, false, err
 	}
@@ -403,7 +400,7 @@ func savePipeline(
 				"team_id":         teamID,
 				"parent_job_id":   jobID,
 				"parent_build_id": buildID,
-				"instance_vars":   instanceVarsPayload,
+				"instance_vars":   instanceVarPayload,
 			}).
 			Suffix("RETURNING id").
 			RunWith(tx).
@@ -427,7 +424,7 @@ func savePipeline(
 				"name":          pipelineRef.Name,
 				"version":       from,
 				"team_id":       teamID,
-				"instance_vars": instanceVarsPayload,
+				"instance_vars": instanceVarPayload,
 			})
 
 		if buildID.Valid {
@@ -447,7 +444,7 @@ func savePipeline(
 					WHERE team_id = $1
 					AND name = $2
 					AND instance_vars = $3 `,
-					teamID, pipelineRef.Name, instanceVarsPayload).
+					teamID, pipelineRef.Name, instanceVarPayload).
 					Scan(&currentParentBuildID)
 				if err != nil {
 					return 0, false, err
@@ -565,29 +562,15 @@ func (t *team) SavePipeline(
 func (t *team) Pipeline(pipelineRef atc.PipelineRef) (Pipeline, bool, error) {
 	pipeline := newPipeline(t.conn, t.lockFactory)
 
-	var whereClause sq.Eq
-	if pipelineRef.InstanceVars == nil {
-		whereClause = sq.Eq{
-			"p.team_id": t.id,
-			"p.name":    pipelineRef.Name,
-		}
-	} else {
-		instanceVarsJSON, err := json.Marshal(pipelineRef.InstanceVars)
-		if err != nil {
-			return nil, false, err
-		}
-
-		whereClause = sq.Eq{
-			"p.team_id":       t.id,
-			"p.name":          pipelineRef.Name,
-			"p.instance_vars": instanceVarsJSON,
-		}
-	}
-
+	instanceVarsPayload, _ := json.Marshal(pipelineRef.InstanceVars)
 	err := scanPipeline(
 		pipeline,
 		pipelinesQuery.
-			Where(whereClause).
+			Where(sq.Eq{
+				"p.team_id":       t.id,
+				"p.name":          pipelineRef.Name,
+				"p.instance_vars": instanceVarsPayload,
+			}).
 			RunWith(t.conn).
 			QueryRow(),
 	)

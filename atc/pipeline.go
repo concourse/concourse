@@ -1,7 +1,5 @@
 package atc
 
-type InstanceVars map[string]interface{}
-
 type Pipeline struct {
 	ID          int            `json:"id"`
 	Name        string         `json:"name"`
@@ -14,11 +12,13 @@ type Pipeline struct {
 	LastUpdated int64          `json:"last_updated,omitempty"`
 }
 
-type PipelineRef struct {
-	Name         string       `json:"name,omitempty"`
-	InstanceVars InstanceVars `json:"instance_vars,omitempty"`
-}
-
 type RenameRequest struct {
 	NewName string `json:"name"`
+}
+
+type InstanceVars map[string]interface{}
+
+type PipelineRef struct {
+	Name         string       `json:"name"`
+	InstanceVars InstanceVars `json:"instance_vars,omitempty"`
 }

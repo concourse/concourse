@@ -1507,49 +1507,55 @@ var _ = Describe("Team", func() {
 	})
 
 	Describe("Pipeline", func() {
-		var (
-			namedPipelineRef     atc.PipelineRef
-			namedPipeline        db.Pipeline
-			instancedPipelineRef atc.PipelineRef
-			instancedPipeline    db.Pipeline
-		)
-
 		Context("when the team has instanced pipelines configured", func() {
+			var (
+				instancedPipelineRef atc.PipelineRef
+				instancedPipeline    db.Pipeline
+			)
 
 			BeforeEach(func() {
 				var err error
-				namedPipelineRef = atc.PipelineRef{Name: "fake-pipeline"}
-				namedPipeline, _, err = team.SavePipeline(namedPipelineRef, atc.Config{
-					Jobs: atc.JobConfigs{
-						{Name: "job-name"},
-					},
-				}, db.ConfigVersion(1), false)
-				Expect(err).ToNot(HaveOccurred())
-
 				instancedPipelineRef = atc.PipelineRef{
 					Name:         "fake-pipeline",
 					InstanceVars: atc.InstanceVars{"branch": "feature"},
 				}
-				instancedPipeline, _, err = team.SavePipeline(instancedPipelineRef, atc.Config{
-					Jobs: atc.JobConfigs{
-						{Name: "job-name"},
-					},
-				}, db.ConfigVersion(1), false)
+				instancedPipeline, _, err = team.SavePipeline(instancedPipelineRef, atc.Config{}, db.ConfigVersion(0), false)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("returns the instanced pipeline when requesting with instance vars", func() {
+			It("returns the pipeline when requesting by name and instance vars", func() {
 				pipeline, found, err := team.Pipeline(instancedPipelineRef)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(pipeline).To(Equal(instancedPipeline))
 			})
 
-			It("returns the pipelines when requesting with name only", func() {
-				pipeline, found, err := team.Pipeline(namedPipelineRef)
+			It("returns nothing when requesting by name only", func() {
+				pipeline, found, err := team.Pipeline(atc.PipelineRef{Name: "fake-pipeline"})
 				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(pipeline).To(Equal(namedPipeline))
+				Expect(found).To(BeFalse())
+				Expect(pipeline).To(BeNil())
+			})
+
+			Context("when the team has instanced and named pipelines configured with the same name", func() {
+				var (
+					namedPipelineRef atc.PipelineRef
+					namedPipeline    db.Pipeline
+				)
+
+				BeforeEach(func() {
+					var err error
+					namedPipelineRef = atc.PipelineRef{Name: "fake-pipeline"}
+					namedPipeline, _, err = team.SavePipeline(namedPipelineRef, atc.Config{}, db.ConfigVersion(0), false)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("returns the named pipeline when requesting with name only", func() {
+					pipeline, found, err := team.Pipeline(namedPipelineRef)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(pipeline).To(Equal(namedPipeline))
+				})
 			})
 		})
 	})
