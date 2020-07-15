@@ -54,6 +54,10 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 		gdnServerFlags = append(gdnServerFlags, "--dns-server", dnsServer)
 	}
 
+	for _, denyNetwork := range cmd.Garden.DenyNetworks {
+		gdnServerFlags = append(gdnServerFlags, "--deny-network", denyNetwork)
+	}
+
 	if cmd.ContainerNetworkPool != "" {
 		gdnServerFlags = append(gdnServerFlags, "--network-pool", cmd.ContainerNetworkPool)
 	}

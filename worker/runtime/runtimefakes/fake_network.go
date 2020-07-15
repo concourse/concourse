@@ -48,6 +48,16 @@ type FakeNetwork struct {
 		result1 []specs.Mount
 		result2 error
 	}
+	SetupRestrictedNetworksStub        func() error
+	setupRestrictedNetworksMutex       sync.RWMutex
+	setupRestrictedNetworksArgsForCall []struct {
+	}
+	setupRestrictedNetworksReturns struct {
+		result1 error
+	}
+	setupRestrictedNetworksReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -237,6 +247,58 @@ func (fake *FakeNetwork) SetupMountsReturnsOnCall(i int, result1 []specs.Mount, 
 	}{result1, result2}
 }
 
+func (fake *FakeNetwork) SetupRestrictedNetworks() error {
+	fake.setupRestrictedNetworksMutex.Lock()
+	ret, specificReturn := fake.setupRestrictedNetworksReturnsOnCall[len(fake.setupRestrictedNetworksArgsForCall)]
+	fake.setupRestrictedNetworksArgsForCall = append(fake.setupRestrictedNetworksArgsForCall, struct {
+	}{})
+	fake.recordInvocation("SetupRestrictedNetworks", []interface{}{})
+	fake.setupRestrictedNetworksMutex.Unlock()
+	if fake.SetupRestrictedNetworksStub != nil {
+		return fake.SetupRestrictedNetworksStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.setupRestrictedNetworksReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeNetwork) SetupRestrictedNetworksCallCount() int {
+	fake.setupRestrictedNetworksMutex.RLock()
+	defer fake.setupRestrictedNetworksMutex.RUnlock()
+	return len(fake.setupRestrictedNetworksArgsForCall)
+}
+
+func (fake *FakeNetwork) SetupRestrictedNetworksCalls(stub func() error) {
+	fake.setupRestrictedNetworksMutex.Lock()
+	defer fake.setupRestrictedNetworksMutex.Unlock()
+	fake.SetupRestrictedNetworksStub = stub
+}
+
+func (fake *FakeNetwork) SetupRestrictedNetworksReturns(result1 error) {
+	fake.setupRestrictedNetworksMutex.Lock()
+	defer fake.setupRestrictedNetworksMutex.Unlock()
+	fake.SetupRestrictedNetworksStub = nil
+	fake.setupRestrictedNetworksReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeNetwork) SetupRestrictedNetworksReturnsOnCall(i int, result1 error) {
+	fake.setupRestrictedNetworksMutex.Lock()
+	defer fake.setupRestrictedNetworksMutex.Unlock()
+	fake.SetupRestrictedNetworksStub = nil
+	if fake.setupRestrictedNetworksReturnsOnCall == nil {
+		fake.setupRestrictedNetworksReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setupRestrictedNetworksReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeNetwork) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -246,6 +308,8 @@ func (fake *FakeNetwork) Invocations() map[string][][]interface{} {
 	defer fake.removeMutex.RUnlock()
 	fake.setupMountsMutex.RLock()
 	defer fake.setupMountsMutex.RUnlock()
+	fake.setupRestrictedNetworksMutex.RLock()
+	defer fake.setupRestrictedNetworksMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

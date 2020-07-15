@@ -3,10 +3,10 @@ package runtime_test
 import (
 	"context"
 	"errors"
-
 	"github.com/concourse/concourse/worker/runtime"
-	"github.com/concourse/concourse/worker/runtime/runtimefakes"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
+	"github.com/concourse/concourse/worker/runtime/iptables/iptablesfakes"
+	"github.com/concourse/concourse/worker/runtime/runtimefakes"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -26,9 +26,11 @@ func (s *CNINetworkSuite) SetupTest() {
 
 	s.store = new(runtimefakes.FakeFileStore)
 	s.cni = new(runtimefakes.FakeCNI)
+
 	s.network, err = runtime.NewCNINetwork(
 		runtime.WithCNIFileStore(s.store),
 		runtime.WithCNIClient(s.cni),
+		runtime.WithIptables(new(iptablesfakes.FakeIptables)),
 	)
 	s.NoError(err)
 }
@@ -123,6 +125,36 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithOneNameServer() {
 
 	_, resolvConfContents := s.store.CreateArgsForCall(1)
 	s.Equal(resolvConfContents, []byte("nameserver 6.6.7.7\nnameserver 1.2.3.4\n"))
+}
+
+func (s *CNINetworkSuite) TestSetupRestrictedNetworksCreatesEmptyAdminChain() {
+	fakeIpt := new(iptablesfakes.FakeIptables)
+	network, err := runtime.NewCNINetwork(
+		runtime.WithRestrictedNetworks([]string{"1.1.1.1", "8.8.8.8"}),
+		runtime.WithIptables(fakeIpt),
+	)
+
+	err = network.SetupRestrictedNetworks()
+	s.NoError(err)
+
+	tablename, chainName := fakeIpt.CreateChainOrFlushIfExistsArgsForCall(0)
+	s.Equal(tablename, "filter")
+	s.Equal(chainName, "CONCOURSE-OPERATOR")
+
+	tablename, chainName, rulespec := fakeIpt.AppendRuleArgsForCall(0)
+	s.Equal(tablename, "filter")
+	s.Equal(chainName, "CONCOURSE-OPERATOR")
+	s.Equal(rulespec, []string{"-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"})
+
+	tablename, chainName, rulespec = fakeIpt.AppendRuleArgsForCall(1)
+	s.Equal(tablename, "filter")
+	s.Equal(chainName, "CONCOURSE-OPERATOR")
+	s.Equal(rulespec, []string{"-d", "1.1.1.1", "-j", "REJECT"})
+
+	tablename, chainName, rulespec = fakeIpt.AppendRuleArgsForCall(2)
+	s.Equal(tablename, "filter")
+	s.Equal(chainName, "CONCOURSE-OPERATOR")
+	s.Equal(rulespec, []string{"-d", "8.8.8.8", "-j", "REJECT"})
 }
 
 func (s *CNINetworkSuite) TestAddNilTask() {
