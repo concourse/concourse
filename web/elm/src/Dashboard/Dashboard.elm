@@ -71,6 +71,7 @@ import Message.Subscription
         )
 import Routes
 import ScreenSize exposing (ScreenSize(..))
+import Set exposing (Set)
 import SideBar.SideBar as SideBar
 import StrictEvents exposing (onScroll)
 import Time
@@ -78,17 +79,25 @@ import Tooltip
 import UserState
 import Views.Spinner as Spinner
 import Views.Styles
+import Views.Toggle as Toggle
 
 
-init : Routes.SearchType -> ( Model, List Effect )
-init searchType =
+type alias Flags =
+    { searchType : Routes.SearchType
+    , dashboardView : Routes.DashboardView
+    }
+
+
+init : Flags -> ( Model, List Effect )
+init f =
     ( { now = Nothing
       , hideFooter = False
       , hideFooterCounter = 0
       , showHelp = False
-      , highDensity = searchType == Routes.HighDensity
-      , query = Routes.extractQuery searchType
-      , pipelinesWithResourceErrors = Dict.empty
+      , highDensity = f.searchType == Routes.HighDensity
+      , query = Routes.extractQuery f.searchType
+      , dashboardView = f.dashboardView
+      , pipelinesWithResourceErrors = Set.empty
       , jobs = None
       , pipelines = Nothing
       , pipelineLayers = Dict.empty
@@ -268,9 +277,13 @@ handleCallback callback ( model, effects ) =
                                 , pipelines =
                                     model.pipelines
                                         |> Maybe.map
-                                            (List.map
-                                                (\p ->
-                                                    { p | jobsDisabled = True }
+                                            (Dict.map
+                                                (\_ l ->
+                                                    List.map
+                                                        (\p ->
+                                                            { p | jobsDisabled = True }
+                                                        )
+                                                        l
                                                 )
                                             )
                               }
@@ -301,15 +314,9 @@ handleCallback callback ( model, effects ) =
             ( { model
                 | pipelinesWithResourceErrors =
                     resources
-                        |> List.foldr
-                            (\r ->
-                                Dict.update ( r.teamName, r.pipelineName )
-                                    (Maybe.withDefault False
-                                        >> (||) r.failingToCheck
-                                        >> Just
-                                    )
-                            )
-                            model.pipelinesWithResourceErrors
+                        |> List.filter .failingToCheck
+                        |> List.map (\r -> ( r.teamName, r.pipelineName ))
+                        |> Set.fromList
                 , resourcesError = Nothing
               }
             , effects
@@ -323,6 +330,7 @@ handleCallback callback ( model, effects ) =
                 newPipelines =
                     allPipelinesInEntireCluster
                         |> List.map (toDashboardPipeline False (model.jobsError == Just Disabled))
+                        |> groupBy .teamName
                         |> Just
             in
             ( { model
@@ -360,8 +368,15 @@ handleCallback callback ( model, effects ) =
             , effects
                 ++ [ NavigateTo <|
                         Routes.toString <|
-                            Routes.dashboardRoute <|
-                                model.highDensity
+                            Routes.Dashboard
+                                { searchType =
+                                    if model.highDensity then
+                                        Routes.HighDensity
+
+                                    else
+                                        Routes.Normal model.query
+                                , dashboardView = model.dashboardView
+                                }
                    , FetchAllTeams
                    , FetchAllResources
                    , FetchAllJobs
@@ -432,13 +447,22 @@ updatePipeline updater pipelineId model =
         | pipelines =
             model.pipelines
                 |> Maybe.map
-                    (List.Extra.updateIf
-                        (\p ->
-                            p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName
+                    (Dict.update pipelineId.teamName
+                        (Maybe.map
+                            (List.Extra.updateIf
+                                (\p -> p.name == pipelineId.pipelineName)
+                                updater
+                            )
                         )
-                        updater
                     )
     }
+
+
+findPipeline : Concourse.PipelineIdentifier -> Maybe (Dict String (List Pipeline)) -> Maybe Pipeline
+findPipeline pipelineId pipelines =
+    pipelines
+        |> Maybe.andThen (Dict.get pipelineId.teamName)
+        |> Maybe.andThen (List.Extra.find (.name >> (==) pipelineId.pipelineName))
 
 
 handleDelivery : Delivery -> ET Model
@@ -471,6 +495,7 @@ handleDeliveryBody delivery ( model, effects ) =
                                     True
                                     (model.jobsError == Just Disabled)
                                 )
+                            |> groupBy .teamName
                             |> Just
                   }
                 , effects
@@ -549,11 +574,17 @@ toConcoursePipeline p =
     }
 
 
-pipelinesChangedFrom : Maybe (List Pipeline) -> Maybe (List Pipeline) -> Bool
+pipelinesChangedFrom :
+    Maybe (Dict String (List Pipeline))
+    -> Maybe (Dict String (List Pipeline))
+    -> Bool
 pipelinesChangedFrom ps qs =
     let
         project =
-            Maybe.map <| List.map (\x -> { x | stale = True })
+            Maybe.map <|
+                Dict.values
+                    >> List.concat
+                    >> List.map (\x -> { x | stale = True })
     in
     project ps /= project qs
 
@@ -609,11 +640,11 @@ update session msg =
 updateBody : Message -> ET Model
 updateBody msg ( model, effects ) =
     case msg of
-        DragStart teamName index ->
-            ( { model | dragState = Models.Dragging teamName index }, effects )
+        DragStart teamName pipelineName ->
+            ( { model | dragState = Models.Dragging teamName pipelineName }, effects )
 
-        DragOver _ index ->
-            ( { model | dropState = Models.Dropping index }, effects )
+        DragOver target ->
+            ( { model | dropState = Models.Dropping target }, effects )
 
         TooltipHd pipelineName teamName ->
             ( model, effects ++ [ ShowTooltipHd ( pipelineName, teamName ) ] )
@@ -622,33 +653,19 @@ updateBody msg ( model, effects ) =
             ( model, effects ++ [ ShowTooltip ( pipelineName, teamName ) ] )
 
         DragEnd ->
-            case model.dragState of
-                Dragging teamName dragIdx ->
+            case ( model.dragState, model.dropState ) of
+                ( Dragging teamName pipelineName, Dropping target ) ->
                     let
-                        teamStartIndex =
+                        teamPipelines =
                             model.pipelines
+                                |> Maybe.andThen (Dict.get teamName)
                                 |> Maybe.withDefault []
-                                |> List.Extra.findIndex (\p -> p.teamName == teamName)
+                                |> Drag.dragPipeline pipelineName target
 
                         pipelines =
-                            case teamStartIndex of
-                                Just teamStartIdx ->
-                                    model.pipelines
-                                        |> Maybe.withDefault []
-                                        |> Drag.drag
-                                            (teamStartIdx + dragIdx)
-                                            (teamStartIdx
-                                                + (case model.dropState of
-                                                    Dropping dropIdx ->
-                                                        dropIdx
-
-                                                    _ ->
-                                                        dragIdx + 1
-                                                  )
-                                            )
-
-                                _ ->
-                                    model.pipelines |> Maybe.withDefault []
+                            model.pipelines
+                                |> Maybe.withDefault Dict.empty
+                                |> Dict.update teamName (always <| Just teamPipelines)
                     in
                     ( { model
                         | pipelines = Just pipelines
@@ -656,18 +673,24 @@ updateBody msg ( model, effects ) =
                         , dropState = DroppingWhileApiRequestInFlight teamName
                       }
                     , effects
-                        ++ [ pipelines
-                                |> List.filter (.teamName >> (==) teamName)
+                        ++ [ teamPipelines
                                 |> List.map .name
                                 |> SendOrderPipelinesRequest teamName
                            , pipelines
+                                |> Dict.values
+                                |> List.concat
                                 |> List.map toConcoursePipeline
                                 |> SaveCachedPipelines
                            ]
                     )
 
                 _ ->
-                    ( model, effects )
+                    ( { model
+                        | dragState = NotDragging
+                        , dropState = NotDropping
+                      }
+                    , effects
+                    )
 
         Hover (Just domID) ->
             ( model, effects ++ [ GetViewportOf domID ] )
@@ -685,9 +708,7 @@ updateBody msg ( model, effects ) =
             let
                 isPaused =
                     model.pipelines
-                        |> Maybe.withDefault []
-                        |> List.Extra.find
-                            (\p -> p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName)
+                        |> findPipeline pipelineId
                         |> Maybe.map .paused
             in
             case isPaused of
@@ -707,9 +728,7 @@ updateBody msg ( model, effects ) =
             let
                 isPublic =
                     model.pipelines
-                        |> Maybe.withDefault []
-                        |> List.Extra.find
-                            (\p -> p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName)
+                        |> findPipeline pipelineId
                         |> Maybe.map .public
             in
             case isPublic of
@@ -785,7 +804,7 @@ view session model =
         ]
 
 
-tooltip : { a | pipelines : Maybe (List Pipeline) } -> { b | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
+tooltip : { a | pipelines : Maybe (Dict String (List Pipeline)) } -> { b | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
 tooltip model { hovered } =
     case hovered of
         HoverState.Tooltip (Message.PipelineStatusIcon _) _ ->
@@ -798,13 +817,9 @@ tooltip model { hovered } =
                 , arrow = Nothing
                 }
 
-        HoverState.Tooltip (Message.VisibilityButton { teamName, pipelineName }) _ ->
+        HoverState.Tooltip (Message.VisibilityButton pipelineId) _ ->
             model.pipelines
-                |> Maybe.withDefault []
-                |> List.Extra.find
-                    (\p ->
-                        p.teamName == teamName && p.name == pipelineName
-                    )
+                |> findPipeline pipelineId
                 |> Maybe.map
                     (\p ->
                         { body =
@@ -855,13 +870,24 @@ topBar session model =
                     [ SearchBar.view session model ]
 
                 else if not model.highDensity then
-                    [ SearchBar.view session model
+                    [ topBarContent [ SearchBar.view session model ]
+                    , showArchivedToggleView model
                     , Login.view session.userState model False
                     ]
 
                 else
-                    [ Login.view session.userState model False ]
+                    [ topBarContent []
+                    , showArchivedToggleView model
+                    , Login.view session.userState model False
+                    ]
                )
+
+
+topBarContent : List (Html Message) -> Html Message
+topBarContent content =
+    Html.div
+        (id "top-bar-content" :: Styles.topBarContent)
+        content
 
 
 clusterNameView : Session -> Html Message
@@ -869,6 +895,53 @@ clusterNameView session =
     Html.div
         Styles.clusterName
         [ Html.text session.clusterName ]
+
+
+showArchivedToggleView :
+    { a
+        | pipelines : Maybe (Dict String (List Pipeline))
+        , query : String
+        , highDensity : Bool
+        , dashboardView : Routes.DashboardView
+    }
+    -> Html Message
+showArchivedToggleView model =
+    let
+        noPipelines =
+            model.pipelines
+                |> Maybe.withDefault Dict.empty
+                |> Dict.values
+                |> List.all List.isEmpty
+
+        on =
+            model.dashboardView == Routes.ViewAllPipelines
+    in
+    if noPipelines then
+        Html.text ""
+
+    else
+        Toggle.toggleSwitch
+            { ariaLabel = "Toggle whether archived pipelines are displayed"
+            , hrefRoute =
+                Routes.Dashboard
+                    { searchType =
+                        if model.highDensity then
+                            Routes.HighDensity
+
+                        else
+                            Routes.Normal model.query
+                    , dashboardView =
+                        if on then
+                            Routes.ViewNonArchivedPipelines
+
+                        else
+                            Routes.ViewAllPipelines
+                    }
+            , text = "show archived"
+            , textDirection = Toggle.Left
+            , on = on
+            , styles = Styles.showArchivedToggle
+            }
 
 
 showTurbulence :
@@ -911,11 +984,12 @@ dashboardView session model =
                 Nothing ->
                     [ loadingView ]
 
-                Just [] ->
-                    welcomeCard session :: pipelinesView session model
+                Just pipelines ->
+                    if pipelines |> Dict.values |> List.all List.isEmpty then
+                        welcomeCard session :: pipelinesView session model
 
-                Just _ ->
-                    Html.text "" :: pipelinesView session model
+                    else
+                        Html.text "" :: pipelinesView session model
             )
 
 
@@ -1038,9 +1112,10 @@ pipelinesView :
             | teams : FetchResult (List Concourse.Team)
             , query : String
             , highDensity : Bool
-            , pipelinesWithResourceErrors : Dict ( String, String ) Bool
+            , dashboardView : Routes.DashboardView
+            , pipelinesWithResourceErrors : Set ( String, String )
             , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
-            , pipelines : Maybe (List Pipeline)
+            , pipelines : Maybe (Dict String (List Pipeline))
             , jobs : FetchResult (Dict ( String, String, String ) Concourse.Job)
             , dragState : DragState
             , dropState : DropState
@@ -1055,8 +1130,7 @@ pipelinesView session params =
     let
         pipelines =
             params.pipelines
-                |> Maybe.withDefault []
-                |> List.filter (not << .archived)
+                |> Maybe.withDefault Dict.empty
 
         jobs =
             params.jobs
@@ -1073,6 +1147,7 @@ pipelinesView session params =
                 , query = params.query
                 , teams = teams
                 , pipelines = pipelines
+                , dashboardView = params.dashboardView
                 }
                 |> List.sortWith (Group.ordering session)
 
@@ -1113,7 +1188,6 @@ pipelinesView session params =
                                     , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                                     , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                                     , pipelineLayers = params.pipelineLayers
-                                    , query = params.query
                                     , pipelineCards = layout.pipelineCards
                                     , dropAreas = layout.dropAreas
                                     , groupCardsHeight = layout.height

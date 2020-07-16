@@ -2161,6 +2161,269 @@ var _ = Describe("Team", func() {
 			})
 		})
 
+		Context("update resource names but keeps data", func() {
+
+			BeforeEach(func() {
+
+				config.Resources = append(config.Resources, atc.ResourceConfig{
+					Name: "new-resource",
+					Type: "some-type",
+					Source: atc.Source{
+						"source-config": "some-value",
+					},
+				})
+			})
+
+			It("should successfully update resource name", func() {
+				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, false)
+				Expect(err).ToNot(HaveOccurred())
+
+				resource, _, _ := pipeline.Resource("some-resource")
+
+				config.Resources[0].Name = "renamed-resource"
+				config.Resources[0].OldName = "some-resource"
+
+				config.Jobs[0].PlanSequence = []atc.Step{
+					{
+						Config: &atc.GetStep{
+							Name:     "some-input",
+							Resource: "renamed-resource",
+							Params: atc.Params{
+								"some-param": "some-value",
+							},
+							Passed:  []string{"job-1", "job-2"},
+							Trigger: true,
+						},
+					},
+				}
+
+				updatedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				updatedResource, _, _ := updatedPipeline.Resource("renamed-resource")
+				Expect(updatedResource.ID()).To(Equal(resource.ID()))
+			})
+
+			It("should handle when there are multiple name changes", func() {
+				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, false)
+				Expect(err).ToNot(HaveOccurred())
+
+				resource, _, _ := pipeline.Resource("some-resource")
+				otherResource, _, _ := pipeline.Resource("new-resource")
+
+				config.Resources[0].Name = "new-resource"
+				config.Resources[0].OldName = "some-resource"
+
+				config.Resources[1].Name = "new-other-resource"
+				config.Resources[1].OldName = "new-resource"
+
+				config.Jobs[0].PlanSequence = []atc.Step{
+					{
+						Config: &atc.GetStep{
+							Name:     "some-input",
+							Resource: "new-resource",
+							Params: atc.Params{
+								"some-param": "some-value",
+							},
+							Passed:  []string{"job-1", "job-2"},
+							Trigger: true,
+						},
+					},
+				}
+
+				updatedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				updatedResource, _, _ := updatedPipeline.Resource("new-resource")
+				Expect(updatedResource.ID()).To(Equal(resource.ID()))
+
+				otherUpdatedResource, _, _ := updatedPipeline.Resource("new-other-resource")
+				Expect(otherUpdatedResource.ID()).To(Equal(otherResource.ID()))
+			})
+
+			It("should handle when old resource has the same name as new resource", func() {
+				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, false)
+				Expect(err).ToNot(HaveOccurred())
+
+				resource, _, _ := pipeline.Resource("some-resource")
+
+				config.Resources[0].Name = "some-resource"
+				config.Resources[0].OldName = "some-resource"
+
+				updatedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				updatedResource, _, _ := updatedPipeline.Resource("some-resource")
+				Expect(updatedResource.ID()).To(Equal(resource.ID()))
+			})
+
+			It("should return an error when there is a swap with resource name", func() {
+				pipeline, _, err := team.SavePipeline(pipelineName, config, 0, false)
+				Expect(err).ToNot(HaveOccurred())
+
+				config.Resources[0].Name = "new-resource"
+				config.Resources[0].OldName = "some-resource"
+
+				config.Resources[1].Name = "some-resource"
+				config.Resources[1].OldName = "new-resource"
+
+				_, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), false)
+				Expect(err).To(HaveOccurred())
+			})
+
+			Context("when new resource exists but is disabled", func() {
+				var pipeline db.Pipeline
+				var resource db.Resource
+				var rcv db.ResourceConfigVersion
+				var err error
+				var found bool
+
+				BeforeEach(func() {
+					pipeline, _, err = team.SavePipeline(pipelineName, config, 0, false)
+					Expect(err).ToNot(HaveOccurred())
+
+					resource, found, err = pipeline.Resource("some-resource")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					setupTx, err := dbConn.Begin()
+					Expect(err).ToNot(HaveOccurred())
+
+					brt := db.BaseResourceType{
+						Name: "some-type",
+					}
+
+					_, err = brt.FindOrCreate(setupTx, false)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(setupTx.Commit()).To(Succeed())
+
+					resourceScope, err := resource.SetResourceConfig(atc.Source{"some": "other-repository"}, atc.VersionedResourceTypes{})
+					Expect(err).NotTo(HaveOccurred())
+
+					err = resourceScope.SaveVersions(nil, []atc.Version{
+						{"disabled": "version"},
+					})
+					Expect(err).ToNot(HaveOccurred())
+
+					rcv, found, err = resourceScope.FindVersion(atc.Version{"disabled": "version"})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					err = resource.DisableVersion(rcv.ID())
+					Expect(err).ToNot(HaveOccurred())
+
+					versions, _, found, err := resource.Versions(db.Page{Limit: 3}, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(versions).To(HaveLen(1))
+					Expect(versions[0].Version).To(Equal(atc.Version{"disabled": "version"}))
+					Expect(versions[0].Enabled).To(BeFalse())
+				})
+
+				It("should not change the disabled version", func() {
+
+					config.Resources[0].Name = "disabled-resource"
+					config.Resources[0].OldName = "some-resource"
+					config.Jobs[0].PlanSequence = []atc.Step{
+						{
+							Config: &atc.GetStep{
+								Name:     "some-input",
+								Resource: "disabled-resource",
+								Params: atc.Params{
+									"some-param": "some-value",
+								},
+								Passed:  []string{"job-1", "job-2"},
+								Trigger: true,
+							},
+						},
+					}
+
+					pipeline, _, err = team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), false)
+					Expect(err).ToNot(HaveOccurred())
+
+					updatedResource, _, _ := pipeline.Resource("disabled-resource")
+					Expect(updatedResource.ID()).To(Equal(resource.ID()))
+
+					versions, _, found, err := updatedResource.Versions(db.Page{Limit: 3}, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(versions).To(HaveLen(1))
+					Expect(versions[0].Version).To(Equal(atc.Version{"disabled": "version"}))
+					Expect(versions[0].Enabled).To(BeFalse())
+				})
+			})
+
+			Context("when new resource exists but the version is pinned", func() {
+				var pipeline db.Pipeline
+				var resource db.Resource
+				var pinnedVersion atc.Version
+				var err error
+
+				BeforeEach(func() {
+					pipeline, _, err = team.SavePipeline(pipelineName, config, 0, false)
+					Expect(err).ToNot(HaveOccurred())
+
+					resource, _, _ = pipeline.Resource("some-resource")
+
+					setupTx, err := dbConn.Begin()
+					Expect(err).ToNot(HaveOccurred())
+
+					brt := db.BaseResourceType{
+						Name: "some-type",
+					}
+
+					_, err = brt.FindOrCreate(setupTx, false)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(setupTx.Commit()).To(Succeed())
+
+					resourceScope, err := resource.SetResourceConfig(atc.Source{"some": "other-repository"}, atc.VersionedResourceTypes{})
+					Expect(err).ToNot(HaveOccurred())
+
+					err = resourceScope.SaveVersions(nil, []atc.Version{
+						atc.Version{"version": "v1"},
+						atc.Version{"version": "v2"},
+						atc.Version{"version": "v3"},
+					})
+					Expect(err).ToNot(HaveOccurred())
+
+					pinnedVersion = atc.Version{"version": "v1"}
+					resConf, found, err := resourceScope.FindVersion(pinnedVersion)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					resID := resConf.ID()
+
+					found, err = resource.PinVersion(resID)
+					Expect(found).To(BeTrue())
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("should not change the pinned version", func() {
+					config.Resources[0].Name = "pinned-resource"
+					config.Resources[0].OldName = "some-resource"
+					config.Jobs[0].PlanSequence = []atc.Step{
+						{
+							Config: &atc.GetStep{
+								Name:     "some-input",
+								Resource: "pinned-resource",
+								Params: atc.Params{
+									"some-param": "some-value",
+								},
+								Passed:  []string{"job-1", "job-2"},
+								Trigger: true,
+							},
+						},
+					}
+
+					updatedPipeline, _, err := team.SavePipeline(pipelineName, config, pipeline.ConfigVersion(), false)
+					Expect(err).ToNot(HaveOccurred())
+
+					updatedResource, _, _ := updatedPipeline.Resource("pinned-resource")
+					Expect(updatedResource.ID()).To(Equal(resource.ID()))
+					Expect(updatedResource.APIPinnedVersion()).To(Equal(pinnedVersion))
+				})
+			})
+		})
+
 		It("removes task caches for jobs that are no longer in pipeline", func() {
 			pipeline, _, err := team.SavePipeline(pipelineName, config, 0, false)
 			Expect(err).ToNot(HaveOccurred())

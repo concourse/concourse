@@ -44,5 +44,8 @@ func (step *RetryStep) Run(ctx context.Context, state RunState) error {
 
 // Succeeded delegates to the last step that it ran.
 func (step *RetryStep) Succeeded() bool {
+	if step.LastAttempt == nil {
+		return false
+	}
 	return step.LastAttempt.Succeeded()
 }

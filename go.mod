@@ -32,6 +32,7 @@ require (
 	github.com/containerd/go-cni v0.0.0-20200107172653-c154a49e2c75
 	github.com/containerd/ttrpc v0.0.0-20191028202541-4f1b8fe65a5c // indirect
 	github.com/containerd/typeurl v0.0.0-20190911142611-5eb25027c9fd
+	github.com/coreos/go-iptables v0.4.5
 	github.com/coreos/go-oidc v2.0.0+incompatible // indirect
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
 	github.com/creack/pty v1.1.9 // indirect
@@ -82,7 +83,6 @@ require (
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/opencontainers/runtime-spec v1.0.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/peterh/liner v1.2.0
 	github.com/peterhellberg/link v1.0.0
 	github.com/pkg/errors v0.8.1
 	github.com/pkg/term v0.0.0-20190109203006-aa71e9d9e942

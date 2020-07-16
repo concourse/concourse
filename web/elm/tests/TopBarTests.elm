@@ -688,8 +688,20 @@ all =
                 , it "has placeholder text" <|
                     Query.find [ id SearchBar.searchInputId ]
                         >> Query.has [ tag "input", attribute <| Attr.placeholder "search" ]
-                , it "has a search container" <|
-                    Query.has [ id "search-container" ]
+                , it "has a wrapper for top bar content" <|
+                    Query.has
+                        [ id "top-bar-content"
+                        , containing [ id "search-container" ]
+                        ]
+                , it "top bar content wrapper fills available space" <|
+                    Query.find [ id "top-bar-content" ]
+                        >> Query.has [ style "flex-grow" "1" ]
+                , it "top bar content wrapper centers its content" <|
+                    Query.find [ id "top-bar-content" ]
+                        >> Query.has
+                            [ style "display" "flex"
+                            , style "justify-content" "center"
+                            ]
                 , it "search container is positioned appropriately" <|
                     Query.find [ id "search-container" ]
                         >> Expect.all
@@ -1293,6 +1305,22 @@ all =
                     Query.findAll [ id "search-dropdown" ]
                         >> Query.count (Expect.equal 0)
                 ]
+            ]
+        , rspecStyleDescribe "HD dashboard view"
+            (Common.init "/hd"
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok
+                            [ Data.pipeline "team1" 0 |> Data.withName "pipeline" ]
+                    )
+                |> Tuple.first
+            )
+            [ it "renders an empty top bar content that fills width" <|
+                queryView
+                    >> Query.has
+                        [ id "top-bar-content"
+                        , style "flex-grow" "1"
+                        ]
             ]
         , describe "pause toggle" <|
             let

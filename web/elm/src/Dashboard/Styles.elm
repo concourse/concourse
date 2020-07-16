@@ -6,7 +6,6 @@ module Dashboard.Styles exposing
     , content
     , dropdownContainer
     , dropdownItem
-    , highDensityIcon
     , highDensityToggle
     , info
     , infoBar
@@ -26,6 +25,8 @@ module Dashboard.Styles exposing
     , noResults
     , pipelineCard
     , pipelineCardBanner
+    , pipelineCardBannerArchived
+    , pipelineCardBannerArchivedHd
     , pipelineCardBannerHd
     , pipelineCardBannerStale
     , pipelineCardBannerStaleHd
@@ -45,9 +46,11 @@ module Dashboard.Styles exposing
     , searchClearButton
     , searchContainer
     , searchInput
+    , showArchivedToggle
     , showSearchContainer
     , striped
     , teamNameHd
+    , topBarContent
     , topCliIcon
     , visibilityToggle
     , visibilityTooltip
@@ -129,6 +132,13 @@ pipelineCardBannerStale : List (Html.Attribute msg)
 pipelineCardBannerStale =
     [ style "height" "7px"
     , style "background-color" Colors.unknown
+    ]
+
+
+pipelineCardBannerArchived : List (Html.Attribute msg)
+pipelineCardBannerArchived =
+    [ style "height" "7px"
+    , style "background-color" Colors.backgroundDark
     ]
 
 
@@ -301,6 +311,13 @@ pipelineCardBannerStaleHd =
     ]
 
 
+pipelineCardBannerArchivedHd : List (Html.Attribute msg)
+pipelineCardBannerArchivedHd =
+    [ style "width" "8px"
+    , style "background-color" Colors.backgroundDark
+    ]
+
+
 solid : String -> List (Html.Attribute msg)
 solid color =
     [ style "background-color" color ]
@@ -438,22 +455,15 @@ highDensityToggle : List (Html.Attribute msg)
 highDensityToggle =
     [ style "color" Colors.bottomBarText
     , style "margin-right" "20px"
-    , style "display" "flex"
     , style "text-transform" "uppercase"
-    , style "align-items" "center"
     ]
 
 
-highDensityIcon : Bool -> List (Html.Attribute msg)
-highDensityIcon highDensity =
-    [ style "background-image" <|
-        Assets.backgroundImage <|
-            Just (Assets.HighDensityIcon highDensity)
-    , style "background-size" "contain"
-    , style "height" "20px"
-    , style "width" "35px"
-    , style "flex-shrink" "0"
-    , style "margin-right" "10px"
+showArchivedToggle : List (Html.Attribute msg)
+showArchivedToggle =
+    [ style "margin-right" "10px"
+    , style "padding-left" "10px"
+    , style "border-left" <| "1px solid " ++ Colors.background
     ]
 
 
@@ -570,6 +580,14 @@ noResults =
     [ style "text-align" "center"
     , style "font-size" "13px"
     , style "margin-top" "20px"
+    ]
+
+
+topBarContent : List (Html.Attribute msg)
+topBarContent =
+    [ style "display" "flex"
+    , style "flex-grow" "1"
+    , style "justify-content" "center"
     ]
 
 

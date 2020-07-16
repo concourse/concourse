@@ -2,6 +2,7 @@ module PipelineCardTests exposing (all)
 
 import Application.Application as Application
 import Assets
+import Colors
 import Common exposing (defineHoverBehaviour, isColorWithStripes)
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
@@ -29,6 +30,7 @@ import DashboardTests
         , running
         , userWithRoles
         , whenOnDashboard
+        , whenOnDashboardViewingAllPipelines
         , white
         )
 import Data
@@ -225,26 +227,6 @@ all =
                         , containing [ text "pipeline" ]
                         ]
                     |> Query.has [ style "cursor" "move" ]
-        , test "does not have 'move' cursor when searching" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
-                    |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.AllPipelinesFetched <|
-                            Ok
-                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
-                        )
-                    |> Tuple.first
-                    |> Application.update
-                        (ApplicationMsgs.Update <| Msgs.FilterMsg "pipeline")
-                    |> Tuple.first
-                    |> Common.queryView
-                    |> Query.find
-                        [ class "card"
-                        , containing [ text "pipeline" ]
-                        ]
-                    |> Query.hasNot [ style "cursor" "move" ]
         , test "does not have 'move' cursor when rendering based on cache" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
@@ -376,6 +358,24 @@ all =
                             |> Common.queryView
                             |> findBanner
                             |> isSolid lightGrey
+                , test "is dark grey when pipeline is archived" <|
+                    \_ ->
+                        whenOnDashboardViewingAllPipelines { highDensity = False }
+                            |> givenDataUnauthenticated [ { id = 0, name = "team" } ]
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ Data.pipeline "team" 0
+                                            |> Data.withName "pipeline"
+                                            |> Data.withArchived True
+                                            |> Data.withPaused True
+                                        ]
+                                )
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> findBanner
+                            |> isSolid Colors.backgroundDark
                 , test "is blue when pipeline is paused" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
@@ -584,6 +584,24 @@ all =
                                 |> Common.queryView
                                 |> findBanner
                                 |> isSolid lightGrey
+                    , test "is dark grey when pipeline is archived" <|
+                        \_ ->
+                            whenOnDashboardViewingAllPipelines { highDensity = False }
+                                |> givenDataUnauthenticated [ { id = 0, name = "team" } ]
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllPipelinesFetched <|
+                                        Ok
+                                            [ Data.pipeline "team" 0
+                                                |> Data.withName "pipeline"
+                                                |> Data.withArchived True
+                                                |> Data.withPaused True
+                                            ]
+                                    )
+                                |> Tuple.first
+                                |> Common.queryView
+                                |> findBanner
+                                |> isSolid Colors.backgroundDark
                     , test "is blue when pipeline is paused" <|
                         \_ ->
                             whenOnDashboard { highDensity = True }
@@ -1114,16 +1132,12 @@ all =
             , describe "left-hand section" <|
                 let
                     findStatusIcon =
-                        Query.find [ class "card-footer" ]
-                            >> Query.children []
-                            >> Query.first
+                        Query.find [ class "pipeline-status" ]
                             >> Query.children []
                             >> Query.first
 
                     findStatusText =
-                        Query.find [ class "card-footer" ]
-                            >> Query.children []
-                            >> Query.first
+                        Query.find [ class "pipeline-status" ]
                             >> Query.children []
                             >> Query.index -1
                 in
@@ -1372,6 +1386,49 @@ all =
                             setup
                                 |> Tuple.second
                                 |> Common.contains Effects.DeleteCachedJobs
+                    ]
+                , describe "when pipeline is archived" <|
+                    let
+                        setup =
+                            whenOnDashboardViewingAllPipelines { highDensity = False }
+                                |> givenDataUnauthenticated
+                                    [ { id = 0, name = "team" } ]
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllPipelinesFetched <|
+                                        Ok
+                                            [ Data.pipeline "team" 0
+                                                |> Data.withArchived True
+                                            ]
+                                    )
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllJobsFetched <|
+                                        Ok
+                                            [ Data.job 0 ]
+                                    )
+                    in
+                    [ test "status section is empty" <|
+                        \_ ->
+                            setup
+                                |> Tuple.first
+                                |> Common.queryView
+                                |> Query.find [ class "pipeline-status" ]
+                                |> Query.children []
+                                |> Query.count (Expect.equal 0)
+                    , test "job preview is empty placeholder" <|
+                        \_ ->
+                            setup
+                                |> Tuple.first
+                                |> Common.queryView
+                                |> Query.find [ class "card-body" ]
+                                |> Query.has [ style "background-color" middleGrey ]
+                    , test "there is no pause button" <|
+                        \_ ->
+                            setup
+                                |> Tuple.first
+                                |> Common.queryView
+                                |> Query.hasNot [ class "pause-toggle" ]
                     ]
                 , describe "when pipeline is pending" <|
                     [ test "status icon is grey" <|

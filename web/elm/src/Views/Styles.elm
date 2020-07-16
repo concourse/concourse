@@ -145,29 +145,36 @@ concourseLogo =
 
 breadcrumbContainer : List (Html.Attribute msg)
 breadcrumbContainer =
-    [ style "flex-grow" "1" ]
+    [ style "flex-grow" "1"
+    , style "display" "flex"
+    ]
 
 
-breadcrumbComponent : Assets.ComponentType -> List (Html.Attribute msg)
-breadcrumbComponent componentType =
+breadcrumbComponent :
+    { component : Assets.ComponentType
+    , widthPx : Float
+    , heightPx : Float
+    }
+    -> List (Html.Attribute msg)
+breadcrumbComponent { component, widthPx, heightPx } =
     [ style "background-image" <|
         Assets.backgroundImage <|
             Just <|
-                Assets.BreadcrumbIcon componentType
+                Assets.BreadcrumbIcon component
     , style "background-repeat" "no-repeat"
     , style "background-size" "contain"
+    , style "background-position" "center"
     , style "display" "inline-block"
-    , style "vertical-align" "middle"
-    , style "height" "16px"
-    , style "width" "32px"
+    , style "height" <| String.fromFloat heightPx ++ "px"
+    , style "width" <| String.fromFloat widthPx ++ "px"
     , style "margin-right" "10px"
     ]
 
 
 breadcrumbItem : Bool -> List (Html.Attribute msg)
 breadcrumbItem clickable =
-    [ style "display" "inline-block"
-    , style "vertical-align" "middle"
+    [ style "display" "inline-flex"
+    , style "align-items" "center"
     , style "font-size" "18px"
     , style "padding" "0 10px"
     , style "line-height" "54px"

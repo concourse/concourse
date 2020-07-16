@@ -2,6 +2,10 @@ package builds
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"runtime/debug"
+	"strconv"
 	"sync"
 
 	"code.cloudfoundry.org/lager"
@@ -46,6 +50,22 @@ func (bt *Tracker) Run(ctx context.Context) error {
 	for _, b := range builds {
 		if _, exists := bt.running.LoadOrStore(b.ID(), true); !exists {
 			go func(build db.Build) {
+				loggerData := lager.Data{
+					"build":    strconv.Itoa(build.ID()),
+					"pipeline": build.PipelineName(),
+					"job":      build.JobName(),
+				}
+				defer func() {
+					if r := recover(); r != nil {
+						err = fmt.Errorf("panic in tracker build run %s: %v", loggerData, r)
+
+						fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
+						logger.Error("panic-in-tracker-build-run", err)
+
+						build.Finish(db.BuildStatusErrored)
+					}
+				}()
+
 				defer bt.running.Delete(build.ID())
 
 				metric.BuildsRunning.Inc()
@@ -54,11 +74,7 @@ func (bt *Tracker) Run(ctx context.Context) error {
 				bt.engine.NewBuild(build).Run(
 					lagerctx.NewContext(
 						context.Background(),
-						logger.Session("run", lager.Data{
-							"build":    build.ID(),
-							"pipeline": build.PipelineName(),
-							"job":      build.JobName(),
-						}),
+						logger.Session("run", loggerData),
 					),
 				)
 			}(b)

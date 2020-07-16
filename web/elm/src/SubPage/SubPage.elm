@@ -90,8 +90,11 @@ init session route =
                 }
                 |> Tuple.mapFirst PipelineModel
 
-        Routes.Dashboard searchType ->
-            Dashboard.init searchType
+        Routes.Dashboard { searchType, dashboardView } ->
+            Dashboard.init
+                { searchType = searchType
+                , dashboardView = dashboardView
+                }
                 |> Tuple.mapFirst DashboardModel
 
         Routes.FlySuccess noop flyPort ->
@@ -205,7 +208,14 @@ handleCallback callback session =
 handleLoggedOut : ET { a | isUserMenuExpanded : Bool }
 handleLoggedOut ( m, effs ) =
     ( { m | isUserMenuExpanded = False }
-    , effs ++ [ NavigateTo <| Routes.toString <| Routes.dashboardRoute False ]
+    , effs
+        ++ [ NavigateTo <|
+                Routes.toString <|
+                    Routes.Dashboard
+                        { searchType = Routes.Normal ""
+                        , dashboardView = Routes.ViewNonArchivedPipelines
+                        }
+           ]
     )
 
 
@@ -303,9 +313,14 @@ urlUpdate routes =
                 identity
         )
         (case routes.to of
-            Routes.Dashboard st ->
+            Routes.Dashboard { searchType, dashboardView } ->
                 Tuple.mapFirst
-                    (\dm -> { dm | highDensity = st == Routes.HighDensity })
+                    (\dm ->
+                        { dm
+                            | highDensity = searchType == Routes.HighDensity
+                            , dashboardView = dashboardView
+                        }
+                    )
 
             _ ->
                 identity

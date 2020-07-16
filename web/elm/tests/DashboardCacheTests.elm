@@ -6,7 +6,7 @@ import Concourse.BuildStatus exposing (BuildStatus(..))
 import Data
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message as Message
+import Message.Message as Message exposing (DropTarget(..))
 import Message.Subscription as Subscription exposing (Delivery(..))
 import Message.TopLevelMessage as TopLevelMessage
 import Test exposing (Test, describe, test)
@@ -254,10 +254,10 @@ all =
                         )
                     |> Tuple.first
                     |> Application.update
-                        (TopLevelMessage.Update <| Message.DragStart "team" 0)
+                        (TopLevelMessage.Update <| Message.DragStart "team" "pipeline-0")
                     |> Tuple.first
                     |> Application.update
-                        (TopLevelMessage.Update <| Message.DragOver "team" 2)
+                        (TopLevelMessage.Update <| Message.DragOver <| After "pipeline-1")
                     |> Tuple.first
                     |> Application.update
                         (TopLevelMessage.Update <| Message.DragEnd)

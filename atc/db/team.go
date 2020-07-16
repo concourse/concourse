@@ -450,6 +450,11 @@ func savePipeline(
 		}
 	}
 
+	err = updateResourcesName(tx, config.Resources, pipelineID)
+	if err != nil {
+		return 0, false, err
+	}
+
 	resourceNameToID, err := saveResources(tx, config.Resources, pipelineID)
 	if err != nil {
 		return 0, false, err
@@ -472,7 +477,7 @@ func savePipeline(
 		return 0, false, err
 	}
 
-	err = updateName(tx, config.Jobs, pipelineID)
+	err = updateJobsName(tx, config.Jobs, pipelineID)
 	if err != nil {
 		return 0, false, err
 	}
@@ -888,7 +893,7 @@ type UpdateName struct {
 	NewName string
 }
 
-func updateName(tx Tx, jobs []atc.JobConfig, pipelineID int) error {
+func updateJobsName(tx Tx, jobs []atc.JobConfig, pipelineID int) error {
 	jobsToUpdate := []UpdateName{}
 
 	for _, job := range jobs {
@@ -950,12 +955,73 @@ func updateName(tx Tx, jobs []atc.JobConfig, pipelineID int) error {
 	return nil
 }
 
-func checkCyclic(jobNames []UpdateName, curr string, visited map[int]bool) bool {
-	for i, job := range jobNames {
-		if job.NewName == curr && !visited[i] {
+func updateResourcesName(tx Tx, resources []atc.ResourceConfig, pipelineID int) error {
+	resourcesToUpdate := []UpdateName{}
+
+	for _, res := range resources {
+		if res.OldName != "" && res.OldName != res.Name {
+			var count int
+			err := psql.Select("COUNT(*) as count").
+				From("resources").
+				Where(sq.Eq{
+					"name":        res.OldName,
+					"pipeline_id": pipelineID}).
+				RunWith(tx).
+				QueryRow().
+				Scan(&count)
+			if err != nil {
+				return err
+			}
+
+			if count != 0 {
+				resourcesToUpdate = append(resourcesToUpdate, UpdateName{
+					OldName: res.OldName,
+					NewName: res.Name,
+				})
+			}
+		}
+	}
+
+	newMap := make(map[int]bool)
+	for _, updateNames := range resourcesToUpdate {
+		isCyclic := checkCyclic(resourcesToUpdate, updateNames.OldName, newMap)
+		if isCyclic {
+			return errors.New("resource name swapping is not supported at this time")
+		}
+	}
+
+	resourcesToUpdate = sortUpdateNames(resourcesToUpdate)
+
+	for _, updateName := range resourcesToUpdate {
+		_, err := psql.Delete("resources").
+			Where(sq.Eq{
+				"name":        updateName.NewName,
+				"pipeline_id": pipelineID}).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
+
+		_, err = psql.Update("resources").
+			Set("name", updateName.NewName).
+			Where(sq.Eq{"name": updateName.OldName, "pipeline_id": pipelineID}).
+			RunWith(tx).
+			Exec()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func checkCyclic(updateNames []UpdateName, curr string, visited map[int]bool) bool {
+	for i, updateName := range updateNames {
+		if updateName.NewName == curr && !visited[i] {
 			visited[i] = true
-			checkCyclic(jobNames, job.OldName, visited)
-		} else if job.NewName == curr && visited[i] && curr != job.OldName {
+			checkCyclic(updateNames, updateName.OldName, visited)
+		} else if updateName.NewName == curr && visited[i] && curr != updateName.OldName {
 			return true
 		}
 	}
@@ -963,23 +1029,23 @@ func checkCyclic(jobNames []UpdateName, curr string, visited map[int]bool) bool 
 	return false
 }
 
-func sortUpdateNames(jobNames []UpdateName) []UpdateName {
+func sortUpdateNames(updateNames []UpdateName) []UpdateName {
 	newMap := make(map[string]int)
-	for i, job := range jobNames {
-		newMap[job.NewName] = i + 1
+	for i, updateName := range updateNames {
+		newMap[updateName.NewName] = i + 1
 
-		if newMap[job.OldName] != 0 {
-			index := newMap[job.OldName] - 1
+		if newMap[updateName.OldName] != 0 {
+			index := newMap[updateName.OldName] - 1
 
-			tempJob := jobNames[index]
-			jobNames[index] = job
-			jobNames[i] = tempJob
+			tempName := updateNames[index]
+			updateNames[index] = updateName
+			updateNames[i] = tempName
 
-			return sortUpdateNames(jobNames)
+			return sortUpdateNames(updateNames)
 		}
 	}
 
-	return jobNames
+	return updateNames
 }
 
 func saveJob(tx Tx, job atc.JobConfig, pipelineID int, groups []string) (int, error) {

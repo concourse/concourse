@@ -80,6 +80,9 @@ hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs
             (if pipeline.stale then
                 Styles.pipelineCardBannerStaleHd
 
+             else if pipeline.archived then
+                Styles.pipelineCardBannerArchivedHd
+
              else
                 Styles.pipelineCardBannerHd
                     { status = pipelineStatus existingJobs pipeline
@@ -108,14 +111,16 @@ pipelineView :
     , resourceError : Bool
     , existingJobs : List Concourse.Job
     , layers : List (List Concourse.Job)
-    , query : String
     }
     -> Html Message
-pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, resourceError, existingJobs, layers, query } =
+pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, resourceError, existingJobs, layers } =
     let
         bannerStyle =
             if pipeline.stale then
                 Styles.pipelineCardBannerStale
+
+            else if pipeline.archived then
+                Styles.pipelineCardBannerArchived
 
             else
                 Styles.pipelineCardBanner
@@ -125,7 +130,7 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, reso
     in
     Html.div
         (Styles.pipelineCard
-            ++ (if not pipeline.stale && String.isEmpty query then
+            ++ (if not pipeline.stale then
                     [ style "cursor" "move" ]
 
                 else
@@ -142,7 +147,7 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, reso
             (class "banner" :: bannerStyle)
             []
         , headerView pipeline resourceError
-        , if pipeline.jobsDisabled then
+        , if pipeline.jobsDisabled || pipeline.archived then
             previewPlaceholder
 
           else
@@ -295,11 +300,67 @@ footerView userState pipeline now hovered existingJobs =
 
         status =
             pipelineStatus existingJobs pipeline
+
+        pauseToggle =
+            PauseToggle.view
+                { isPaused =
+                    status == PipelineStatus.PipelineStatusPaused
+                , pipeline = pipelineId
+                , isToggleHovered =
+                    HoverState.isHovered (PipelineButton pipelineId) hovered
+                , isToggleLoading = pipeline.isToggleLoading
+                , tooltipPosition = Views.Styles.Above
+                , margin = "0"
+                , userState = userState
+                }
+
+        visibilityButton =
+            visibilityView
+                { public = pipeline.public
+                , pipelineId = pipelineId
+                , isClickable =
+                    UserState.isAnonymous userState
+                        || UserState.isMember
+                            { teamName = pipeline.teamName
+                            , userState = userState
+                            }
+                , isHovered =
+                    HoverState.isHovered (VisibilityButton pipelineId) hovered
+                , isVisibilityLoading = pipeline.isVisibilityLoading
+                }
     in
     Html.div
         (class "card-footer" :: Styles.pipelineCardFooter)
-        [ Html.div
+        [ pipelineStatusView pipeline status now
+        , Html.div
             [ style "display" "flex" ]
+          <|
+            List.intersperse spacer
+                (if pipeline.archived then
+                    [ visibilityButton ]
+
+                 else
+                    [ pauseToggle, visibilityButton ]
+                )
+        ]
+
+
+pipelineStatusView : Pipeline -> PipelineStatus.PipelineStatus -> Maybe Time.Posix -> Html Message
+pipelineStatusView pipeline status now =
+    let
+        pipelineId =
+            { pipelineName = pipeline.name
+            , teamName = pipeline.teamName
+            }
+    in
+    Html.div
+        [ style "display" "flex"
+        , class "pipeline-status"
+        ]
+        (if pipeline.archived then
+            []
+
+         else
             [ if pipeline.jobsDisabled then
                 Icon.icon
                     { sizePx = 20, image = Assets.PipelineStatusIconJobsDisabled }
@@ -336,36 +397,7 @@ footerView userState pipeline now hovered existingJobs =
               else
                 transitionView now status
             ]
-        , Html.div
-            [ style "display" "flex" ]
-          <|
-            List.intersperse spacer
-                [ PauseToggle.view
-                    { isPaused =
-                        status == PipelineStatus.PipelineStatusPaused
-                    , pipeline = pipelineId
-                    , isToggleHovered =
-                        HoverState.isHovered (PipelineButton pipelineId) hovered
-                    , isToggleLoading = pipeline.isToggleLoading
-                    , tooltipPosition = Views.Styles.Above
-                    , margin = "0"
-                    , userState = userState
-                    }
-                , visibilityView
-                    { public = pipeline.public
-                    , pipelineId = pipelineId
-                    , isClickable =
-                        UserState.isAnonymous userState
-                            || UserState.isMember
-                                { teamName = pipeline.teamName
-                                , userState = userState
-                                }
-                    , isHovered =
-                        HoverState.isHovered (VisibilityButton pipelineId) hovered
-                    , isVisibilityLoading = pipeline.isVisibilityLoading
-                    }
-                ]
-        ]
+        )
 
 
 visibilityView :

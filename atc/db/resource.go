@@ -37,6 +37,7 @@ type Resource interface {
 	CheckSetupError() error
 	CheckError() error
 	WebhookToken() string
+	Config() atc.ResourceConfig
 	ConfigPinnedVersion() atc.Version
 	APIPinnedVersion() atc.Version
 	PinComment() string
@@ -99,25 +100,19 @@ type resource struct {
 
 	id                    int
 	name                  string
-	public                bool
 	teamID                int
 	teamName              string
 	type_                 string
-	source                atc.Source
-	checkEvery            string
-	checkTimeout          string
 	lastCheckStartTime    time.Time
 	lastCheckEndTime      time.Time
-	tags                  atc.Tags
 	checkSetupError       error
 	checkError            error
-	webhookToken          string
+	config                atc.ResourceConfig
 	configPinnedVersion   atc.Version
 	apiPinnedVersion      atc.Version
 	pinComment            string
 	resourceConfigID      int
 	resourceConfigScopeID int
-	icon                  string
 }
 
 func newEmptyResource(conn Conn, lockFactory lock.LockFactory) *resource {
@@ -146,45 +141,34 @@ func (resources Resources) Lookup(name string) (Resource, bool) {
 
 func (resources Resources) Configs() atc.ResourceConfigs {
 	var configs atc.ResourceConfigs
-
 	for _, r := range resources {
-		configs = append(configs, atc.ResourceConfig{
-			Name:         r.Name(),
-			Public:       r.Public(),
-			WebhookToken: r.WebhookToken(),
-			Type:         r.Type(),
-			Source:       r.Source(),
-			CheckEvery:   r.CheckEvery(),
-			Tags:         r.Tags(),
-			Version:      r.ConfigPinnedVersion(),
-			Icon:         r.Icon(),
-		})
+		configs = append(configs, r.Config())
 	}
-
 	return configs
 }
 
 func (r *resource) ID() int                          { return r.id }
 func (r *resource) Name() string                     { return r.name }
-func (r *resource) Public() bool                     { return r.public }
+func (r *resource) Public() bool                     { return r.config.Public }
 func (r *resource) TeamID() int                      { return r.teamID }
 func (r *resource) TeamName() string                 { return r.teamName }
 func (r *resource) Type() string                     { return r.type_ }
-func (r *resource) Source() atc.Source               { return r.source }
-func (r *resource) CheckEvery() string               { return r.checkEvery }
-func (r *resource) CheckTimeout() string             { return r.checkTimeout }
+func (r *resource) Source() atc.Source               { return r.config.Source }
+func (r *resource) CheckEvery() string               { return r.config.CheckEvery }
+func (r *resource) CheckTimeout() string             { return r.config.CheckTimeout }
 func (r *resource) LastCheckStartTime() time.Time    { return r.lastCheckStartTime }
 func (r *resource) LastCheckEndTime() time.Time      { return r.lastCheckEndTime }
-func (r *resource) Tags() atc.Tags                   { return r.tags }
+func (r *resource) Tags() atc.Tags                   { return r.config.Tags }
 func (r *resource) CheckSetupError() error           { return r.checkSetupError }
 func (r *resource) CheckError() error                { return r.checkError }
-func (r *resource) WebhookToken() string             { return r.webhookToken }
+func (r *resource) WebhookToken() string             { return r.config.WebhookToken }
+func (r *resource) Config() atc.ResourceConfig       { return r.config }
 func (r *resource) ConfigPinnedVersion() atc.Version { return r.configPinnedVersion }
 func (r *resource) APIPinnedVersion() atc.Version    { return r.apiPinnedVersion }
 func (r *resource) PinComment() string               { return r.pinComment }
 func (r *resource) ResourceConfigID() int            { return r.resourceConfigID }
 func (r *resource) ResourceConfigScopeID() int       { return r.resourceConfigScopeID }
-func (r *resource) Icon() string                     { return r.icon }
+func (r *resource) Icon() string                     { return r.config.Icon }
 
 func (r *resource) HasWebhook() bool { return r.WebhookToken() != "" }
 
@@ -753,28 +737,19 @@ func scanResource(r *resource, row scannable) error {
 		noncense = &nonce.String
 	}
 
-	var config atc.ResourceConfig
 	if configBlob.Valid {
 		decryptedConfig, err := es.Decrypt(configBlob.String, noncense)
 		if err != nil {
 			return err
 		}
 
-		err = json.Unmarshal(decryptedConfig, &config)
+		err = json.Unmarshal(decryptedConfig, &r.config)
 		if err != nil {
 			return err
 		}
 	} else {
-		config = atc.ResourceConfig{}
+		r.config = atc.ResourceConfig{}
 	}
-
-	r.public = config.Public
-	r.source = config.Source
-	r.checkEvery = config.CheckEvery
-	r.checkTimeout = config.CheckTimeout
-	r.tags = config.Tags
-	r.webhookToken = config.WebhookToken
-	r.icon = config.Icon
 
 	if pinnedVersion.Valid {
 		var version atc.Version

@@ -2,6 +2,9 @@ package lidar
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"runtime/debug"
 	"strconv"
 	"sync"
 
@@ -76,6 +79,20 @@ func (c *checker) Run(ctx context.Context) error {
 			}
 
 			go func(check db.Check) {
+				loggerData := lager.Data{
+					"check_id": strconv.Itoa(check.ID()),
+				}
+				defer func() {
+					if r := recover(); r != nil {
+						err = fmt.Errorf("panic in checker check run %s: %v", loggerData, r)
+
+						fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
+						c.logger.Error("panic-in-checker-check-run", err)
+
+						check.FinishWithError(err)
+					}
+				}()
+
 				spanCtx, span := tracing.StartSpanFollowing(
 					ctx,
 					check,
@@ -93,9 +110,7 @@ func (c *checker) Run(ctx context.Context) error {
 				c.engine.NewCheck(check).Run(
 					lagerctx.NewContext(
 						spanCtx,
-						c.logger.WithData(lager.Data{
-							"check": check.ID(),
-						}),
+						c.logger.WithData(loggerData),
 					),
 				)
 			}(ck)

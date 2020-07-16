@@ -46,6 +46,18 @@ func NewStepValidator(config Config, context []string) *StepValidator {
 	}
 }
 
+func (validator *StepValidator) Validate(step Step) error {
+	if len(step.UnknownFields) > 0 {
+		var fieldNames []string
+		for field := range step.UnknownFields {
+			fieldNames = append(fieldNames, field)
+		}
+		validator.recordError("unknown fields %+q", fieldNames)
+	}
+
+	return step.Config.Visit(validator)
+}
+
 func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 	validator.pushContext(fmt.Sprintf(".task(%s)", plan.Name))
 	defer validator.popContext()
@@ -179,7 +191,8 @@ func (validator *StepValidator) VisitLoadVar(step *LoadVarStep) error {
 func (validator *StepValidator) VisitTry(step *TryStep) error {
 	validator.pushContext(".try")
 	defer validator.popContext()
-	return step.Step.Config.Visit(validator)
+
+	return validator.Validate(step.Step)
 }
 
 func (validator *StepValidator) VisitDo(step *DoStep) error {
@@ -189,7 +202,7 @@ func (validator *StepValidator) VisitDo(step *DoStep) error {
 	for i, sub := range step.Steps {
 		validator.pushContext(fmt.Sprintf("[%d]", i))
 
-		err := sub.Config.Visit(validator)
+		err := validator.Validate(sub)
 		if err != nil {
 			return err
 		}
@@ -207,7 +220,7 @@ func (validator *StepValidator) VisitInParallel(step *InParallelStep) error {
 	for i, sub := range step.Config.Steps {
 		validator.pushContext(".steps[%d]", i)
 
-		err := sub.Config.Visit(validator)
+		err := validator.Validate(sub)
 		if err != nil {
 			return err
 		}
@@ -227,7 +240,7 @@ func (validator *StepValidator) VisitAggregate(step *AggregateStep) error {
 	for i, sub := range step.Steps {
 		validator.pushContext("[%d]", i)
 
-		err := sub.Config.Visit(validator)
+		err := validator.Validate(sub)
 		if err != nil {
 			return err
 		}
@@ -264,8 +277,8 @@ func (validator *StepValidator) VisitRetry(step *RetryStep) error {
 	validator.pushContext(".attempts")
 	defer validator.popContext()
 
-	if step.Attempts < 0 {
-		validator.recordError("cannot be negative")
+	if step.Attempts <= 0 {
+		validator.recordError("must be greater than 0")
 	}
 
 	return nil
@@ -280,7 +293,7 @@ func (validator *StepValidator) VisitOnSuccess(step *OnSuccessStep) error {
 	validator.pushContext(".on_success")
 	defer validator.popContext()
 
-	return step.Hook.Config.Visit(validator)
+	return validator.Validate(step.Hook)
 }
 
 func (validator *StepValidator) VisitOnFailure(step *OnFailureStep) error {
@@ -292,7 +305,7 @@ func (validator *StepValidator) VisitOnFailure(step *OnFailureStep) error {
 	validator.pushContext(".on_failure")
 	defer validator.popContext()
 
-	return step.Hook.Config.Visit(validator)
+	return validator.Validate(step.Hook)
 }
 
 func (validator *StepValidator) VisitOnAbort(step *OnAbortStep) error {
@@ -304,7 +317,7 @@ func (validator *StepValidator) VisitOnAbort(step *OnAbortStep) error {
 	validator.pushContext(".on_abort")
 	defer validator.popContext()
 
-	return step.Hook.Config.Visit(validator)
+	return validator.Validate(step.Hook)
 }
 
 func (validator *StepValidator) VisitOnError(step *OnErrorStep) error {
@@ -316,7 +329,7 @@ func (validator *StepValidator) VisitOnError(step *OnErrorStep) error {
 	validator.pushContext(".on_error")
 	defer validator.popContext()
 
-	return step.Hook.Config.Visit(validator)
+	return validator.Validate(step.Hook)
 }
 
 func (validator *StepValidator) VisitEnsure(step *EnsureStep) error {
@@ -328,7 +341,7 @@ func (validator *StepValidator) VisitEnsure(step *EnsureStep) error {
 	validator.pushContext(".ensure")
 	defer validator.popContext()
 
-	return step.Hook.Config.Visit(validator)
+	return validator.Validate(step.Hook)
 }
 
 func (validator *StepValidator) recordWarning(message string, args ...interface{}) {
