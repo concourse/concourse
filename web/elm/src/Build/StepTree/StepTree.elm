@@ -26,6 +26,7 @@ import Build.StepTree.Models
         , Version
         , finishTree
         , focusTabbed
+        , fold
         , map
         , stepStateOrdering
         , updateAt
@@ -291,74 +292,19 @@ initHookedStep hl resources create hookedPlan =
     }
 
 
-listSteps : StepTree -> List Step
-listSteps stepTree =
-    case stepTree of
-        Aggregate trees ->
-            List.concatMap listSteps (Array.toList trees)
-
-        InParallel trees ->
-            List.concatMap listSteps (Array.toList trees)
-
-        Do trees ->
-            List.concatMap listSteps (Array.toList trees)
-
-        Across _ _ step trees ->
-            step :: List.concatMap listSteps (Array.toList trees)
-
-        OnSuccess { step, hook } ->
-            listSteps step ++ listSteps hook
-
-        OnFailure { step, hook } ->
-            listSteps step ++ listSteps hook
-
-        OnAbort { step, hook } ->
-            listSteps step ++ listSteps hook
-
-        OnError { step, hook } ->
-            listSteps step ++ listSteps hook
-
-        Ensure { step, hook } ->
-            listSteps step ++ listSteps hook
-
-        Try tree ->
-            listSteps tree
-
-        Timeout tree ->
-            listSteps tree
-
-        Retry _ trees ->
-            List.concatMap listSteps (Array.toList trees)
-
-        Task step ->
-            [ step ]
-
-        SetPipeline step ->
-            [ step ]
-
-        LoadVar step ->
-            [ step ]
-
-        ArtifactInput step ->
-            [ step ]
-
-        Get step ->
-            [ step ]
-
-        ArtifactOutput step ->
-            [ step ]
-
-        Put step ->
-            [ step ]
-
-
 mostSevereStepState : StepTree -> StepState
 mostSevereStepState stepTree =
-    listSteps stepTree
-        |> List.map .state
-        |> List.sortWith stepStateOrdering
-        |> List.head
-        |> Maybe.withDefault StepStatePending
+    stepTree
+        |> fold
+            (\step state ->
+                case stepStateOrdering step.state state of
+                    LT ->
+                        step.state
+
+                    _ ->
+                        state
+            )
+            StepStateSucceeded
 
 
 treeIsActive : StepTree -> Bool
@@ -368,7 +314,10 @@ treeIsActive stepTree =
             False
 
         _ ->
-            listSteps stepTree |> List.any stepIsActive
+            stepTree
+                |> fold
+                    (\step active -> active || stepIsActive step)
+                    False
 
 
 stepIsActive : Step -> Bool

@@ -15,6 +15,7 @@ module Build.StepTree.Models exposing
     , Version
     , finishTree
     , focusTabbed
+    , fold
     , map
     , stepStateOrdering
     , updateAt
@@ -116,6 +117,76 @@ stepStateOrdering =
         , StepStatePending
         , StepStateSucceeded
         ]
+
+
+fold : (Step -> b -> b) -> b -> StepTree -> b
+fold acc start stepTree =
+    let
+        iter trees idx start_ =
+            case Array.get idx trees of
+                Nothing ->
+                    start_
+
+                Just t ->
+                    fold acc start_ t |> iter trees (idx + 1)
+    in
+    case stepTree of
+        Aggregate trees ->
+            iter trees 0 start
+
+        InParallel trees ->
+            iter trees 0 start
+
+        Do trees ->
+            iter trees 0 start
+
+        Across _ _ step trees ->
+            acc step (iter trees 0 start)
+
+        OnSuccess { step, hook } ->
+            fold acc (fold acc start step) hook
+
+        OnFailure { step, hook } ->
+            fold acc (fold acc start step) hook
+
+        OnAbort { step, hook } ->
+            fold acc (fold acc start step) hook
+
+        OnError { step, hook } ->
+            fold acc (fold acc start step) hook
+
+        Ensure { step, hook } ->
+            fold acc (fold acc start step) hook
+
+        Try tree ->
+            fold acc start tree
+
+        Timeout tree ->
+            fold acc start tree
+
+        Retry _ trees ->
+            iter trees 0 start
+
+        Task step ->
+            acc step start
+
+        SetPipeline step ->
+            acc step start
+
+        LoadVar step ->
+            acc step start
+
+        ArtifactInput step ->
+            acc step start
+
+        Get step ->
+            acc step start
+
+        ArtifactOutput step ->
+            acc step start
+
+        Put step ->
+            acc step start
 
 
 type alias Version =
