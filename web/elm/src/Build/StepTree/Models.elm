@@ -16,8 +16,10 @@ module Build.StepTree.Models exposing
     , finishTree
     , focusTabbed
     , fold
+    , isActive
     , map
     , stepStateOrdering
+    , treeIsActive
     , updateAt
     , wrapHook
     , wrapMultiStep
@@ -426,11 +428,22 @@ setMultiStepIndex idx update tree =
             let
                 updatedSteps =
                     Array.set idx (update (getMultiStepIndex idx tree)) trees
+
+                nextNonFinished fromIdx =
+                    case Array.get fromIdx updatedSteps of
+                        Nothing ->
+                            idx
+
+                        Just t ->
+                            if treeIsFinished t then
+                                nextNonFinished (fromIdx + 1)
+
+                            else
+                                fromIdx
             in
             case tabInfo.focus of
                 Auto ->
-                    -- TODO: what does auto look like for across (with max_in_flight)
-                    Across tabInfo vals step updatedSteps
+                    Across { tabInfo | tab = nextNonFinished 0 } vals step updatedSteps
 
                 User ->
                     Across tabInfo vals step updatedSteps
@@ -438,6 +451,37 @@ setMultiStepIndex idx update tree =
         _ ->
             -- impossible
             tree
+
+
+treeIsActive : StepTree -> Bool
+treeIsActive stepTree =
+    case stepTree of
+        ArtifactInput _ ->
+            False
+
+        _ ->
+            stepTree
+                |> fold
+                    (\step active -> active || isActive step.state)
+                    False
+
+
+isActive : StepState -> Bool
+isActive state =
+    state /= StepStatePending && state /= StepStateCancelled
+
+
+treeIsFinished : StepTree -> Bool
+treeIsFinished stepTree =
+    stepTree
+        |> fold
+            (\step finished -> finished && isFinished step.state)
+            True
+
+
+isFinished : StepState -> Bool
+isFinished state =
+    state /= StepStatePending && state /= StepStateRunning
 
 
 finishTree : StepTree -> StepTree

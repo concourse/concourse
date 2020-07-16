@@ -251,6 +251,14 @@ all =
                             >> when iAmLookingAtTheFirstAcrossTab
                             >> then_ iSeeTheErrorColor
                     ]
+                , describe "selected tab follows the earliest non-finished build"
+                    [ test "moves to next step when selected step finishes" <|
+                        given iVisitABuildWithAnAcrossStep
+                            >> given theAcrossStepIsExpanded
+                            >> given theFirstTaskSucceeded
+                            >> when iAmLookingAtTheSecondAcrossTab
+                            >> then_ iSeeItIsSelected
+                    ]
                 ]
             ]
         , describe "task step"
@@ -641,6 +649,12 @@ iAmLookingAtTheFirstAcrossTab =
         >> Query.first
 
 
+iAmLookingAtTheSecondAcrossTab =
+    iAmLookingAtTheAcrossTabList
+        >> Query.children []
+        >> Query.index 1
+
+
 iSeeDefaultFontWeight =
     Query.has [ style "font-weight" Views.Styles.fontWeightDefault ]
 
@@ -660,6 +674,10 @@ itIsClickable domID =
 
 iSeeALighterGreyBackground =
     Query.has [ style "background-color" Colors.paginationHover ]
+
+
+iSeeItIsSelected =
+    iSeeALighterGreyBackground
 
 
 iSeeTheSuccessColor =
@@ -712,6 +730,10 @@ theSecondAttemptInitialized =
 
 theFirstTaskInitialized =
     taskInitialized "task1Id"
+
+
+theSecondTaskInitialized =
+    taskInitialized "task2Id"
 
 
 theFirstTaskSucceeded =

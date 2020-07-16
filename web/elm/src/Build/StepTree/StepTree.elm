@@ -27,8 +27,10 @@ import Build.StepTree.Models
         , finishTree
         , focusTabbed
         , fold
+        , isActive
         , map
         , stepStateOrdering
+        , treeIsActive
         , updateAt
         , wrapHook
         , wrapMultiStep
@@ -114,7 +116,7 @@ init hl resources buildPlan =
                 buildPlan
                 plan.varName
                 (Across
-                    { id = buildPlan.id, tab = tabIndex hl plans, focus = User }
+                    (startingTab hl buildPlan.id plans)
                     (values |> Array.fromList)
                 )
                 (plans |> Array.fromList)
@@ -123,7 +125,7 @@ init hl resources buildPlan =
             initMultiStep hl
                 resources
                 buildPlan.id
-                (Retry { id = buildPlan.id, tab = tabIndex hl (Array.toList plans), focus = Auto })
+                (Retry <| startingTab hl buildPlan.id (Array.toList plans))
                 plans
 
         Concourse.BuildStepOnSuccess hookedPlan ->
@@ -148,23 +150,30 @@ init hl resources buildPlan =
             initWrappedStep hl resources Timeout plan
 
 
-tabIndex : Highlight -> List Concourse.BuildPlan -> Int
-tabIndex hl plans =
-    (case hl of
-        HighlightNothing ->
-            Nothing
+startingTab : Highlight -> String -> List Concourse.BuildPlan -> TabInfo
+startingTab hl planID plans =
+    let
+        idx =
+            case hl of
+                HighlightNothing ->
+                    Nothing
 
-        HighlightLine stepID _ ->
-            plans
-                |> List.map (Concourse.mapBuildPlan .id)
-                |> List.Extra.findIndex (List.member stepID)
+                HighlightLine stepID _ ->
+                    plans
+                        |> List.map (Concourse.mapBuildPlan .id)
+                        |> List.Extra.findIndex (List.member stepID)
 
-        HighlightRange stepID _ _ ->
-            plans
-                |> List.map (Concourse.mapBuildPlan .id)
-                |> List.Extra.findIndex (List.member stepID)
-    )
-        |> Maybe.withDefault 0
+                HighlightRange stepID _ _ ->
+                    plans
+                        |> List.map (Concourse.mapBuildPlan .id)
+                        |> List.Extra.findIndex (List.member stepID)
+    in
+    case idx of
+        Nothing ->
+            { id = planID, tab = 0, focus = Auto }
+
+        Just tab ->
+            { id = planID, tab = tab, focus = User }
 
 
 initMultiStep :
@@ -305,24 +314,6 @@ mostSevereStepState stepTree =
                         state
             )
             StepStateSucceeded
-
-
-treeIsActive : StepTree -> Bool
-treeIsActive stepTree =
-    case stepTree of
-        ArtifactInput _ ->
-            False
-
-        _ ->
-            stepTree
-                |> fold
-                    (\step active -> active || stepIsActive step)
-                    False
-
-
-stepIsActive : Step -> Bool
-stepIsActive =
-    isActive << .state
 
 
 setupGetStep : Concourse.BuildResources -> StepName -> Maybe Version -> Step -> Step
@@ -585,11 +576,6 @@ viewHooked session name model step hook =
             [ Html.div [ class ("hook hook-" ++ name) ] [ viewTree session model hook ]
             ]
         ]
-
-
-isActive : StepState -> Bool
-isActive state =
-    state /= StepStatePending && state /= StepStateCancelled
 
 
 viewStepWithBody : StepTreeModel -> { timeZone : Time.Zone, hovered : HoverState.HoverState } -> Step -> StepHeaderType -> List (Html Message) -> Html Message
