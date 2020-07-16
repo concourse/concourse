@@ -298,8 +298,8 @@ func (validator *StepValidator) VisitAcross(step *AcrossStep) error {
 		validator.seenLocalVarName[v.Var] = true
 
 		validator.pushContext(".max_in_flight")
-		if v.MaxInFlight.Limit < 0 {
-			validator.recordError("cannot be negative")
+		if v.MaxInFlight != nil && !v.MaxInFlight.All && v.MaxInFlight.Limit <= 0 {
+			validator.recordError("must be greater than 0")
 		}
 		validator.popContext()
 		validator.popContext()

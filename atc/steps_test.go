@@ -297,12 +297,12 @@ var factoryTests = []StepTest{
 				{
 					Var:         "var1",
 					Values:      []interface{}{float64(1), float64(2), float64(3)},
-					MaxInFlight: atc.MaxInFlightConfig{Limit: 3},
+					MaxInFlight: &atc.MaxInFlightConfig{Limit: 3},
 				},
 				{
 					Var:         "var2",
 					Values:      []interface{}{"a", "b"},
-					MaxInFlight: atc.MaxInFlightConfig{All: true},
+					MaxInFlight: &atc.MaxInFlightConfig{All: true},
 				},
 				{
 					Var:    "var3",

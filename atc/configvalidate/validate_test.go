@@ -1811,6 +1811,40 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
+			Context("when an across step is valid", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.AcrossStep{
+							Step: &atc.PutStep{
+								Name: "some-resource",
+							},
+							Vars: []atc.AcrossVarConfig{
+								{
+									Var: "var1",
+									Values: []interface{}{"v1", "v2"},
+								},
+								{
+									Var: "var2",
+									MaxInFlight: &atc.MaxInFlightConfig{Limit: 2},
+									Values: []interface{}{"v1", "v2"},
+								},
+								{
+									Var: "var3",
+									MaxInFlight: &atc.MaxInFlightConfig{All: true},
+									Values: []interface{}{"v1", "v2"},
+								},
+							},
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("succeeds", func() {
+					Expect(errorMessages).To(HaveLen(0))
+				})
+			})
+
 			Context("when an across step has no vars", func() {
 				BeforeEach(func() {
 					job.PlanSequence = append(job.PlanSequence, atc.Step{
@@ -1858,7 +1892,7 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			Context("when an across step has a negative limit", func() {
+			Context("when an across step has a non-positive limit", func() {
 				BeforeEach(func() {
 					job.PlanSequence = append(job.PlanSequence, atc.Step{
 						Config: &atc.AcrossStep{
@@ -1868,7 +1902,7 @@ var _ = Describe("ValidateConfig", func() {
 							Vars: []atc.AcrossVarConfig{
 								{
 									Var:         "var",
-									MaxInFlight: atc.MaxInFlightConfig{Limit: -1},
+									MaxInFlight: &atc.MaxInFlightConfig{Limit: 0},
 								},
 							},
 						},
@@ -1879,7 +1913,7 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].across[0].max_in_flight: cannot be negative"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].across[0].max_in_flight: must be greater than 0"))
 				})
 			})
 		})
