@@ -35,6 +35,7 @@ var _ = Describe("Vault", func() {
 	var v *vault.Vault
 	var variables vars.Variables
 	var msr *MockSecretReader
+	var varFoo vars.VariableDefinition
 
 	BeforeEach(func() {
 
@@ -58,6 +59,7 @@ var _ = Describe("Vault", func() {
 		}
 
 		variables = creds.NewVariables(v, "team", "pipeline", false)
+		varFoo = vars.VariableDefinition{Ref: vars.VariableReference{Name: "foo"}}
 	})
 
 	Describe("Get()", func() {
@@ -70,7 +72,7 @@ var _ = Describe("Vault", func() {
 					},
 				}},
 			}
-			value, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
+			value, found, err := variables.Get(varFoo)
 			Expect(value).To(BeEquivalentTo("bar"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -85,7 +87,7 @@ var _ = Describe("Vault", func() {
 					},
 				}},
 			}
-			value, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
+			value, found, err := variables.Get(varFoo)
 			Expect(value).To(BeEquivalentTo("bar"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -100,7 +102,7 @@ var _ = Describe("Vault", func() {
 					},
 				}},
 			}
-			value, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
+			value, found, err := variables.Get(varFoo)
 			Expect(value).To(BeEquivalentTo("bar"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -121,7 +123,7 @@ var _ = Describe("Vault", func() {
 					},
 				}},
 			}
-			value, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
+			value, found, err := variables.Get(varFoo)
 			Expect(value).To(BeEquivalentTo("bar"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -164,21 +166,21 @@ var _ = Describe("Vault", func() {
 			})
 
 			It("should find pipeline secrets in the configured place", func() {
-				value, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
+				value, found, err := variables.Get(varFoo)
 				Expect(value).To(BeEquivalentTo("bar"))
 				Expect(found).To(BeTrue())
 				Expect(err).To(BeNil())
 			})
 
 			It("should find team secrets in the configured place", func() {
-				value, found, err := variables.Get(vars.VariableDefinition{Name: "baz"})
+				value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.VariableReference{Name: "baz"}})
 				Expect(value).To(BeEquivalentTo("qux"))
 				Expect(found).To(BeTrue())
 				Expect(err).To(BeNil())
 			})
 
 			It("should find static secrets in the configured place", func() {
-				value, found, err := variables.Get(vars.VariableDefinition{Name: "global"})
+				value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.VariableReference{Name: "global"}})
 				Expect(value).To(BeEquivalentTo("shared"))
 				Expect(found).To(BeTrue())
 				Expect(err).To(BeNil())
@@ -208,7 +210,7 @@ var _ = Describe("Vault", func() {
 						},
 					}},
 				}
-				_, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
+				_, found, err := variables.Get(varFoo)
 				Expect(found).To(BeFalse())
 				Expect(err).To(BeNil())
 			})
@@ -232,7 +234,7 @@ var _ = Describe("Vault", func() {
 				})
 
 				It("should get secret from root", func() {
-					_, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
+					_, found, err := variables.Get(varFoo)
 					Expect(err).To(BeNil())
 					Expect(found).To(BeTrue())
 				})
@@ -244,7 +246,7 @@ var _ = Describe("Vault", func() {
 				})
 
 				It("should not get secret from root", func() {
-					_, found, err := variables.Get(vars.VariableDefinition{Name: "foo"})
+					_, found, err := variables.Get(varFoo)
 					Expect(err).To(BeNil())
 					Expect(found).To(BeFalse())
 				})

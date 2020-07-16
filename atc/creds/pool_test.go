@@ -7,6 +7,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/vars"
 
 	// load dummy credential manager
 	_ "github.com/concourse/concourse/atc/creds/dummy"
@@ -60,14 +61,14 @@ var _ = Context("pool", func() {
 			})
 
 			It("should get k1", func() {
-				v, _, found, err := secrets.Get("k1")
+				v, _, found, err := secrets.Get(vars.VariableReference{Path: "k1"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(v.(string)).To(Equal("v1"))
 			})
 
 			It("should not get foo", func() {
-				_, _, found, err := secrets.Get("foo")
+				_, _, found, err := secrets.Get(vars.VariableReference{Path: "foo"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -90,25 +91,25 @@ var _ = Context("pool", func() {
 			})
 
 			It("should get k1", func() {
-				v, _, found, err := secrets1.Get("k1")
+				v, _, found, err := secrets1.Get(vars.VariableReference{Path: "k1"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(v.(string)).To(Equal("v1"))
 			})
 
 			It("should get k2", func() {
-				v, _, found, err := secrets2.Get("k2")
+				v, _, found, err := secrets2.Get(vars.VariableReference{Path: "k2"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(v.(string)).To(Equal("v2"))
 			})
 
 			It("should not get foo", func() {
-				_, _, found, err := secrets1.Get("foo")
+				_, _, found, err := secrets1.Get(vars.VariableReference{Path: "foo"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 
-				_, _, found, err = secrets2.Get("foo")
+				_, _, found, err = secrets2.Get(vars.VariableReference{Path: "foo"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -139,25 +140,25 @@ var _ = Context("pool", func() {
 			})
 
 			It("should get k1", func() {
-				v, _, found, err := secrets1.Get("k1")
+				v, _, found, err := secrets1.Get(vars.VariableReference{Path: "k1"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(v.(string)).To(Equal("v1"))
 			})
 
 			It("should get k2", func() {
-				v, _, found, err := secrets2.Get("k2")
+				v, _, found, err := secrets2.Get(vars.VariableReference{Path: "k2"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(v.(string)).To(Equal("v2"))
 			})
 
 			It("should not get foo", func() {
-				_, _, found, err := secrets1.Get("foo")
+				_, _, found, err := secrets1.Get(vars.VariableReference{Path: "foo"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 
-				_, _, found, err = secrets2.Get("foo")
+				_, _, found, err = secrets2.Get(vars.VariableReference{Path: "foo"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})

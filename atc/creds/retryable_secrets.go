@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/concourse/concourse/vars"
 	"github.com/concourse/retryhttp"
 )
 
@@ -22,17 +23,17 @@ func NewRetryableSecrets(secrets Secrets, retryConfig SecretRetryConfig) Secrets
 }
 
 // Get retrieves the value and expiration of an individual secret
-func (rs RetryableSecrets) Get(secretPath string) (interface{}, *time.Time, bool, error) {
+func (rs RetryableSecrets) Get(ref vars.VariableReference) (interface{}, *time.Time, bool, error) {
 	r := &retryhttp.DefaultRetryer{}
 	for i := 0; i < rs.retryConfig.Attempts-1; i++ {
-		result, expiration, exists, err := rs.secrets.Get(secretPath)
+		result, expiration, exists, err := rs.secrets.Get(ref)
 		if err != nil && r.IsRetryable(err) {
 			time.Sleep(rs.retryConfig.Interval)
 			continue
 		}
 		return result, expiration, exists, err
 	}
-	result, expiration, exists, err := rs.secrets.Get(secretPath)
+	result, expiration, exists, err := rs.secrets.Get(ref)
 	if err != nil {
 		err = fmt.Errorf("%s (after %d retries)", err, rs.retryConfig.Attempts)
 	}

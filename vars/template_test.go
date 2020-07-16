@@ -89,7 +89,7 @@ dup-key: ((key3))
 
 		_, err := template.Evaluate(vars, EvaluateOpts{ExpectAllKeys: true})
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("undefined vars: key, key2, key4, key_in_array"))
+		Expect(err.Error()).To(Equal("undefined vars: key, key2, key4, key_in_array"))
 	})
 
 	It("does not return error if there are missing variable keys and ExpectAllKeys is false", func() {

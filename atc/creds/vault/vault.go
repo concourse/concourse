@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/vars"
 
 	vaultapi "github.com/hashicorp/vault/api"
 )
@@ -42,8 +43,8 @@ func (v Vault) NewSecretLookupPaths(teamName string, pipelineName string, allowR
 }
 
 // Get retrieves the value and expiration of an individual secret
-func (v Vault) Get(secretPath string) (interface{}, *time.Time, bool, error) {
-	secret, expiration, found, err := v.findSecret(secretPath)
+func (v Vault) Get(ref vars.VariableReference) (interface{}, *time.Time, bool, error) {
+	secret, expiration, found, err := v.findSecret(ref.Name)
 	if err != nil {
 		return nil, nil, false, err
 	}

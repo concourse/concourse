@@ -6,13 +6,14 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/vars"
 )
 
 type FakeSecrets struct {
-	GetStub        func(string) (interface{}, *time.Time, bool, error)
+	GetStub        func(vars.VariableReference) (interface{}, *time.Time, bool, error)
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
-		arg1 string
+		arg1 vars.VariableReference
 	}
 	getReturns struct {
 		result1 interface{}
@@ -43,11 +44,11 @@ type FakeSecrets struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeSecrets) Get(arg1 string) (interface{}, *time.Time, bool, error) {
+func (fake *FakeSecrets) Get(arg1 vars.VariableReference) (interface{}, *time.Time, bool, error) {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
-		arg1 string
+		arg1 vars.VariableReference
 	}{arg1})
 	fake.recordInvocation("Get", []interface{}{arg1})
 	fake.getMutex.Unlock()
@@ -67,13 +68,13 @@ func (fake *FakeSecrets) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeSecrets) GetCalls(stub func(string) (interface{}, *time.Time, bool, error)) {
+func (fake *FakeSecrets) GetCalls(stub func(vars.VariableReference) (interface{}, *time.Time, bool, error)) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = stub
 }
 
-func (fake *FakeSecrets) GetArgsForCall(i int) string {
+func (fake *FakeSecrets) GetArgsForCall(i int) vars.VariableReference {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	argsForCall := fake.getArgsForCall[i]

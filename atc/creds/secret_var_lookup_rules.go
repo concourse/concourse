@@ -6,11 +6,13 @@ import (
 	"io/ioutil"
 	"text/template"
 	"text/template/parse"
+
+	"github.com/concourse/concourse/vars"
 )
 
 // SecretLookupPath transforms variable name into full secret path
 type SecretLookupPath interface {
-	VariableToSecretPath(string) (string, error)
+	VariableToSecretPath(vars.VariableReference) (vars.VariableReference, error)
 }
 
 // SecretLookupWithPrefix is an implementation which returns [prefix][separator][varName]
@@ -24,8 +26,12 @@ func NewSecretLookupWithPrefix(prefix string) SecretLookupPath {
 	}
 }
 
-func (sl SecretLookupWithPrefix) VariableToSecretPath(varName string) (string, error) {
-	return sl.Prefix + varName, nil
+func (sl SecretLookupWithPrefix) VariableToSecretPath(ref vars.VariableReference) (vars.VariableReference, error) {
+	return vars.VariableReference{
+		Name:   sl.Prefix + ref.Name,
+		Path:   sl.Prefix + ref.Path,
+		Fields: ref.Fields,
+	}, nil
 }
 
 // SecretLookupWithTemplate uses the given template to construct a lookup path specific
@@ -37,7 +43,7 @@ type SecretTemplate struct {
 
 type SecretLookupWithTemplate struct {
 	PathTemplate *SecretTemplate
-	TeamName string
+	TeamName     string
 	PipelineName string
 }
 
@@ -52,7 +58,7 @@ func BuildSecretTemplate(name, tmpl string) (*SecretTemplate, error) {
 	}
 
 	// Validate that the template only consumes the expected keys
-	dummy := struct {Team, Pipeline, Secret string}{"team", "pipeline", "secret"}
+	dummy := struct{ Team, Pipeline, Secret string }{"team", "pipeline", "secret"}
 	if err = t.Execute(ioutil.Discard, &dummy); err != nil {
 		return nil, err
 	}
@@ -60,7 +66,7 @@ func BuildSecretTemplate(name, tmpl string) (*SecretTemplate, error) {
 	// Detect whether this template requires "Pipeline", and therefore
 	// should only be expanded when there is a pipeline context
 	pipelineDependent := false
-	dummyNoPipeline := struct {Team, Secret string}{"team", "secret"}
+	dummyNoPipeline := struct{ Team, Secret string }{"team", "secret"}
 	if t.Execute(ioutil.Discard, &dummyNoPipeline) != nil {
 		pipelineDependent = true
 	}
@@ -75,23 +81,26 @@ func NewSecretLookupWithTemplate(pathTemplate *SecretTemplate, teamName string, 
 
 	return &SecretLookupWithTemplate{
 		PathTemplate: pathTemplate,
-		TeamName: teamName,
+		TeamName:     teamName,
 		PipelineName: pipelineName,
 	}
 }
 
-func (sl SecretLookupWithTemplate) VariableToSecretPath(varName string) (string, error) {	
+func (sl SecretLookupWithTemplate) VariableToSecretPath(ref vars.VariableReference) (vars.VariableReference, error) {
 	var buf bytes.Buffer
 	data := struct {
-		Team string
+		Team     string
 		Pipeline string
-		Secret string
+		Secret   string
 	}{
 		sl.TeamName,
 		sl.PipelineName,
-		varName,
+		ref.Name,
 	}
 
 	err := sl.PathTemplate.Execute(&buf, &data)
-	return buf.String(), err
+	return vars.VariableReference{
+		Name: buf.String(),
+		// TODO: determine what to do with Path and Fields, might need to re-architect cred managers
+	}, err
 }

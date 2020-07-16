@@ -98,40 +98,6 @@ func (t *credVarsTracker) track(varRef VariableReference, val interface{}) {
 	default:
 		// Do nothing
 	}
-	// switch v := val.(type) {
-	// case map[interface{}]interface{}:
-	// 	var found bool
-	// 	val, found = v[field]
-	// 	if found {
-	// 		varPath = fmt.Sprintf("%s.%s", varPath, field)
-	// 	}
-	// case map[string]interface{}:
-	// 	var found bool
-	// 	val, found = v[field]
-	// 	if found {
-	// 		varPath = fmt.Sprintf("%s.%s", varPath, field)
-	// 	}
-	// case string:
-	// 	t.interpolatedCreds[varPath] = v
-	// default:
-	// 	// Do nothing
-	// }
-
-	// case map[interface{}]interface{}:
-	// 	for kk, vv := range v {
-	// 		nn := fmt.Sprintf("%s.%s", name, kk.(string))
-	// 		t.track(nn, vv)
-	// 	}
-	// case map[string]interface{}:
-	// 	for kk, vv := range v {
-	// 		nn := fmt.Sprintf("%s.%s", name, kk)
-	// 		t.track(nn, vv)
-	// 	}
-	// case string:
-	// 	t.interpolatedCreds[name] = v
-	// default:
-	// 	// Do nothing
-	// }
 }
 
 func (t *credVarsTracker) List() ([]VariableDefinition, error) {

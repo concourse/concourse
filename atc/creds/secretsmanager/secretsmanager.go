@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/vars"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -38,11 +39,11 @@ func (s *SecretsManager) NewSecretLookupPaths(teamName string, pipelineName stri
 }
 
 // Get retrieves the value and expiration of an individual secret
-func (s *SecretsManager) Get(secretPath string) (interface{}, *time.Time, bool, error) {
-	value, expiration, found, err := s.getSecretById(secretPath)
+func (s *SecretsManager) Get(ref vars.VariableReference) (interface{}, *time.Time, bool, error) {
+	value, expiration, found, err := s.getSecretById(ref.Name)
 	if err != nil {
 		s.log.Error("failed-to-fetch-aws-secret", err, lager.Data{
-			"secret-path": secretPath,
+			"secret-path": ref.Name,
 		})
 		return nil, nil, false, err
 	}

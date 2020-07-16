@@ -27,27 +27,13 @@ var _ = Describe("StaticVariables", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("recognizes keys that has dot and colon", func() {
-			a := StaticVariables{"a.foo:bar": "foo"}
+		It("recognizes keys that use dot notation for subvalues", func() {
+			a := StaticVariables{"a.subkey": "foo", "a.subkey2": "foo2"}
 
-			val, found, err := a.Get(VariableDefinition{Ref: VariableReference{Path: "a.foo:bar"}})
+			val, found, err := a.Get(VariableDefinition{Ref: VariableReference{Path: "a.subkey"}})
 			Expect(val).To(Equal("foo"))
 			Expect(found).To(BeTrue())
 			Expect(err).ToNot(HaveOccurred())
-		})
-
-		It("recognizes keys has multiple fields", func() {
-			a := StaticVariables{"a": map[string]interface{}{
-				"subkey": map[string]interface{}{
-					"subsubkey": "foo",
-				},
-				"subkey2": "foo2",
-			}}
-
-			val, found, err := a.Get(VariableDefinition{Ref: VariableReference{Path: "a", Fields: []string{"subkey", "subsubkey"}}})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(val).To(Equal("foo"))
-			Expect(found).To(BeTrue())
 		})
 	})
 

@@ -28,9 +28,9 @@ func (secrets *Secrets) NewSecretLookupPaths(teamName string, pipelineName strin
 	return lookupPaths
 }
 
-func (secrets *Secrets) Get(secretPath string) (interface{}, *time.Time, bool, error) {
+func (secrets *Secrets) Get(ref vars.VariableReference) (interface{}, *time.Time, bool, error) {
 	v, found, err := secrets.StaticVariables.Get(vars.VariableDefinition{
-		Name: secretPath,
+		Ref: ref,
 	})
 	if err != nil {
 		return nil, nil, false, err

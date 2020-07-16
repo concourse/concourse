@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/vars"
 
 	"code.cloudfoundry.org/credhub-cli/credhub"
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials"
@@ -31,12 +32,12 @@ func (c CredHubAtc) NewSecretLookupPaths(teamName string, pipelineName string, a
 }
 
 // Get retrieves the value and expiration of an individual secret
-func (c CredHubAtc) Get(secretPath string) (interface{}, *time.Time, bool, error) {
+func (c CredHubAtc) Get(ref vars.VariableReference) (interface{}, *time.Time, bool, error) {
 	var cred credentials.Credential
 	var found bool
 	var err error
 
-	cred, found, err = c.findCred(secretPath)
+	cred, found, err = c.findCred(ref.Name)
 	if err != nil {
 		c.logger.Error("unable to retrieve credhub secret", err)
 		return nil, nil, false, err

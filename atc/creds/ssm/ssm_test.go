@@ -1,9 +1,10 @@
 package ssm_test
 
 import (
-	"code.cloudfoundry.org/lager/lagertest"
 	"errors"
 	"strconv"
+
+	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/concourse/atc/creds"
 
@@ -90,7 +91,7 @@ var _ = Describe("Ssm", func() {
 	var mockService MockSsmService
 
 	JustBeforeEach(func() {
-		varDef = vars.VariableDefinition{Name: "cheery"}
+		varDef = vars.VariableDefinition{Ref: vars.VariableReference{Name: "cheery"}}
 		t1, err := creds.BuildSecretTemplate("t1", DefaultPipelineSecretTemplate)
 		Expect(t1).NotTo(BeNil())
 		Expect(err).To(BeNil())
@@ -131,7 +132,7 @@ var _ = Describe("Ssm", func() {
 					},
 				}
 			}
-			value, found, err := variables.Get(vars.VariableDefinition{Name: "user"})
+			value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.VariableReference{Name: "user"}})
 			Expect(value).To(BeEquivalentTo(map[string]interface{}{
 				"name": "yours",
 				"pass": "truely",

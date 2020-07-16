@@ -1,8 +1,9 @@
 package secretsmanager_test
 
 import (
-	"code.cloudfoundry.org/lager/lagertest"
 	"errors"
+
+	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/concourse/atc/creds"
 
@@ -43,7 +44,7 @@ var _ = Describe("SecretsManager", func() {
 	var mockService MockSecretsManagerService
 
 	JustBeforeEach(func() {
-		varDef = vars.VariableDefinition{Name: "cheery"}
+		varDef = vars.VariableDefinition{Ref: vars.VariableReference{Name: "cheery"}}
 		t1, err := creds.BuildSecretTemplate("t1", DefaultPipelineSecretTemplate)
 		Expect(t1).NotTo(BeNil())
 		Expect(err).To(BeNil())
@@ -75,7 +76,7 @@ var _ = Describe("SecretsManager", func() {
 					SecretBinary: []byte(`{"name": "yours", "pass": "truely"}`),
 				}, nil
 			}
-			value, found, err := variables.Get(vars.VariableDefinition{Name: "user"})
+			value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.VariableReference{Name: "user"}})
 			Expect(err).To(BeNil())
 			Expect(found).To(BeTrue())
 			Expect(value).To(BeEquivalentTo(map[string]interface{}{

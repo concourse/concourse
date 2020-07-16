@@ -20,11 +20,12 @@ func (sl VariableLookupFromSecrets) Get(varDef vars.VariableDefinition) (interfa
 	// try to find a secret according to our var->secret lookup paths
 	if len(sl.LookupPaths) > 0 {
 		for _, rule := range sl.LookupPaths {
-			secretId, err := rule.VariableToSecretPath(varDef.Name)
+			// prepands any additionals prefix paths to front of the path
+			secretRef, err := rule.VariableToSecretPath(varDef.Ref)
 			if err != nil {
 				return nil, false, err
 			}
-			result, _, found, err := sl.Secrets.Get(secretId)
+			result, _, found, err := sl.Secrets.Get(secretRef)
 			if err != nil {
 				return nil, false, err
 			}
@@ -36,7 +37,7 @@ func (sl VariableLookupFromSecrets) Get(varDef vars.VariableDefinition) (interfa
 		return nil, false, nil
 	} else {
 		// if no paths are specified (i.e. for fake & noop secret managers), then try 1-to-1 var->secret mapping
-		result, _, found, err := sl.Secrets.Get(varDef.Name)
+		result, _, found, err := sl.Secrets.Get(varDef.Ref)
 		return result, found, err
 	}
 }

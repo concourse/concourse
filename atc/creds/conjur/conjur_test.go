@@ -38,7 +38,7 @@ var _ = Describe("Conjur", func() {
 	var mockService MockConjurService
 
 	JustBeforeEach(func() {
-		varDef = vars.VariableDefinition{Name: "cheery"}
+		varDef = vars.VariableDefinition{Ref: vars.VariableReference{Name: "cheery"}}
 		t1, err := creds.BuildSecretTemplate("t1", DefaultPipelineSecretTemplate)
 		Expect(t1).NotTo(BeNil())
 		Expect(err).To(BeNil())
@@ -98,7 +98,7 @@ var _ = Describe("Conjur", func() {
 		})
 
 		It("should allow full variable path when no templates were configured", func() {
-			secretAccess = NewConjur(lager.NewLogger("conjur_test"), &mockService, []*creds.SecretTemplate{}) 
+			secretAccess = NewConjur(lager.NewLogger("conjur_test"), &mockService, []*creds.SecretTemplate{})
 			variables := creds.NewVariables(secretAccess, "", "", false)
 			mockService.stubGetParameter = func(input string) ([]byte, error) {
 				Expect(input).To(Equal("cheery"))

@@ -45,6 +45,28 @@ var _ = Describe("NamedVariables", func() {
 			Expect(vars1.GetCallCount).To(Equal(0))
 			Expect(vars3.GetCallCount).To(Equal(0))
 		})
+
+		It("return no value and not found if var source name is not specified", func() {
+			vars1 := StaticVariables{"key1": "val"}
+			vars2 := StaticVariables{"key2": "val"}
+			vars := NamedVariables{"s1": vars1, "s2": vars2}
+
+			val, found, err := vars.Get(VariableDefinition{Ref: VariableReference{Name: "key1"}})
+			Expect(val).To(BeNil())
+			Expect(found).To(BeFalse())
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("return error as soon as one source fails", func() {
+			vars1 := StaticVariables{"key1": "val"}
+			vars2 := &FakeVariables{GetErr: errors.New("fake-err")}
+			vars := NamedVariables{"s1": vars1, "s2": vars2}
+
+			val, found, err := vars.Get(VariableDefinition{Ref: VariableReference{Source: "s2", Name: "key3"}})
+			Expect(val).To(BeNil())
+			Expect(found).To(BeFalse())
+			Expect(err).To(Equal(errors.New("fake-err")))
+		})
 	})
 
 	Describe("List", func() {

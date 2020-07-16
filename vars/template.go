@@ -166,7 +166,7 @@ type varsTracker struct {
 	expectAllFound bool
 	expectAllUsed  bool
 
-	missing    map[string]error // track missing var names
+	missing    map[string]struct{}
 	visited    map[string]struct{}
 	visitedAll map[string]struct{} // track all var names that were accessed
 }
@@ -176,7 +176,7 @@ func newVarsTracker(vars Variables, expectAllFound, expectAllUsed bool) varsTrac
 		vars:           vars,
 		expectAllFound: expectAllFound,
 		expectAllUsed:  expectAllUsed,
-		missing:        map[string]error{},
+		missing:        map[string]struct{}{},
 		visited:        map[string]struct{}{},
 		visitedAll:     map[string]struct{}{},
 	}
@@ -191,11 +191,41 @@ func (t varsTracker) Get(varName string) (interface{}, bool, error) {
 	varRef := parseVarName(varName)
 
 	val, found, err := t.vars.Get(VariableDefinition{Ref: varRef})
-	if !found {
-		t.missing[varRef.Path] = err
+	if !found || err != nil {
+		t.missing[varRef.Path] = struct{}{}
+		return val, found, err
 	}
 
-	return val, found, err
+	for _, seg := range varRef.Fields {
+		switch v := val.(type) {
+		case map[interface{}]interface{}:
+			var found bool
+			val, found = v[seg]
+			if !found {
+				return nil, false, MissingFieldError{
+					Name:  varName,
+					Field: seg,
+				}
+			}
+		case map[string]interface{}:
+			var found bool
+			val, found = v[seg]
+			if !found {
+				return nil, false, MissingFieldError{
+					Name:  varName,
+					Field: seg,
+				}
+			}
+		default:
+			return nil, false, InvalidFieldError{
+				Name:  varName,
+				Field: seg,
+				Value: val,
+			}
+		}
+	}
+
+	return val, true, err
 }
 
 func (t varsTracker) Error() error {
@@ -217,17 +247,7 @@ func (t varsTracker) MissingError() error {
 		return nil
 	}
 
-	var missingErrors error
-	var undefinedVars []string
-	for path, err := range t.missing {
-		if err != nil {
-			missingErrors = multierror.Append(missingErrors, err)
-		} else {
-			undefinedVars = append(undefinedVars, path)
-		}
-	}
-	sort.Strings(undefinedVars)
-	return multierror.Append(UndefinedVarsError{Vars: undefinedVars}, missingErrors)
+	return UndefinedVarsError{Vars: names(t.missing)}
 }
 
 func (t varsTracker) ExtraError() error {

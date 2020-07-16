@@ -6,14 +6,15 @@ import (
 
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
+	"github.com/concourse/concourse/vars"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-func makeGetStub(name string, value interface{}, expiration *time.Time, found bool, err error, cntReads *int, cntMisses *int) func(string) (interface{}, *time.Time, bool, error) {
-	return func(secretPath string) (interface{}, *time.Time, bool, error) {
-		if secretPath == name {
+func makeGetStub(name string, value interface{}, expiration *time.Time, found bool, err error, cntReads *int, cntMisses *int) func(vars.VariableReference) (interface{}, *time.Time, bool, error) {
+	return func(ref vars.VariableReference) (interface{}, *time.Time, bool, error) {
+		if ref.Name == name {
 			*cntReads++
 			return value, expiration, found, err
 		}
@@ -46,7 +47,7 @@ var _ = Describe("Caching of secrets", func() {
 		secretManager.GetStub = makeGetStub("foo", "value", nil, true, nil, &underlyingReads, &underlyingMisses)
 
 		// miss
-		value, expiration, found, err := cachedSecretManager.Get("bar")
+		value, expiration, found, err := cachedSecretManager.Get(vars.VariableReference{Name: "bar"})
 		Expect(value).To(BeNil())
 		Expect(expiration).To(BeNil())
 		Expect(found).To(BeFalse())
@@ -55,7 +56,7 @@ var _ = Describe("Caching of secrets", func() {
 		Expect(underlyingMisses).To(BeIdenticalTo(1))
 
 		// cached miss
-		value, expiration, found, err = cachedSecretManager.Get("bar")
+		value, expiration, found, err = cachedSecretManager.Get(vars.VariableReference{Name: "bar"})
 		Expect(value).To(BeNil())
 		Expect(expiration).To(BeNil())
 		Expect(found).To(BeFalse())
@@ -68,7 +69,7 @@ var _ = Describe("Caching of secrets", func() {
 		secretManager.GetStub = makeGetStub("foo", "value", nil, true, nil, &underlyingReads, &underlyingMisses)
 
 		// hit
-		value, expiration, found, err := cachedSecretManager.Get("foo")
+		value, expiration, found, err := cachedSecretManager.Get(vars.VariableReference{Name: "foo"})
 		Expect(value).To(BeIdenticalTo("value"))
 		Expect(expiration).To(BeNil())
 		Expect(found).To(BeTrue())
@@ -78,7 +79,7 @@ var _ = Describe("Caching of secrets", func() {
 
 		// cached hit
 		secretManager.GetStub = makeGetStub("foo", "different-value", nil, true, nil, &underlyingReads, &underlyingMisses)
-		value, expiration, found, err = cachedSecretManager.Get("foo")
+		value, expiration, found, err = cachedSecretManager.Get(vars.VariableReference{Name: "foo"})
 		Expect(value).To(BeIdenticalTo("value"))
 		Expect(expiration).To(BeNil())
 		Expect(found).To(BeTrue())
@@ -91,7 +92,7 @@ var _ = Describe("Caching of secrets", func() {
 		secretManager.GetStub = makeGetStub("baz", nil, nil, false, fmt.Errorf("unexpected error"), &underlyingReads, &underlyingMisses)
 
 		// error
-		value, expiration, found, err := cachedSecretManager.Get("baz")
+		value, expiration, found, err := cachedSecretManager.Get(vars.VariableReference{Name: "baz"})
 		Expect(value).To(BeNil())
 		Expect(expiration).To(BeNil())
 		Expect(found).To(BeFalse())
@@ -100,7 +101,7 @@ var _ = Describe("Caching of secrets", func() {
 		Expect(underlyingMisses).To(BeIdenticalTo(0))
 
 		// no caching of error
-		value, expiration, found, err = cachedSecretManager.Get("baz")
+		value, expiration, found, err = cachedSecretManager.Get(vars.VariableReference{Name: "baz"})
 		Expect(value).To(BeNil())
 		Expect(expiration).To(BeNil())
 		Expect(found).To(BeFalse())
@@ -113,16 +114,16 @@ var _ = Describe("Caching of secrets", func() {
 		secretManager.GetStub = makeGetStub("foo", "value", nil, true, nil, &underlyingReads, &underlyingMisses)
 
 		// get few entries first
-		_, _, _, _ = cachedSecretManager.Get("foo")
-		_, _, _, _ = cachedSecretManager.Get("bar")
-		_, _, _, _ = cachedSecretManager.Get("baz")
+		_, _, _, _ = cachedSecretManager.Get(vars.VariableReference{Name: "foo"})
+		_, _, _, _ = cachedSecretManager.Get(vars.VariableReference{Name: "bar"})
+		_, _, _, _ = cachedSecretManager.Get(vars.VariableReference{Name: "baz"})
 		Expect(underlyingReads).To(BeIdenticalTo(1))
 		Expect(underlyingMisses).To(BeIdenticalTo(2))
 
 		// get these entries again and make sure they are cached
-		_, _, _, _ = cachedSecretManager.Get("foo")
-		_, _, _, _ = cachedSecretManager.Get("bar")
-		_, _, _, _ = cachedSecretManager.Get("baz")
+		_, _, _, _ = cachedSecretManager.Get(vars.VariableReference{Name: "foo"})
+		_, _, _, _ = cachedSecretManager.Get(vars.VariableReference{Name: "bar"})
+		_, _, _, _ = cachedSecretManager.Get(vars.VariableReference{Name: "baz"})
 		Expect(underlyingReads).To(BeIdenticalTo(1))
 		Expect(underlyingMisses).To(BeIdenticalTo(2))
 
@@ -130,9 +131,9 @@ var _ = Describe("Caching of secrets", func() {
 		time.Sleep(cacheConfig.Duration + time.Millisecond)
 
 		// check counters again and make sure the entries are re-retrieved
-		_, _, _, _ = cachedSecretManager.Get("foo")
-		_, _, _, _ = cachedSecretManager.Get("bar")
-		_, _, _, _ = cachedSecretManager.Get("baz")
+		_, _, _, _ = cachedSecretManager.Get(vars.VariableReference{Name: "foo"})
+		_, _, _, _ = cachedSecretManager.Get(vars.VariableReference{Name: "bar"})
+		_, _, _, _ = cachedSecretManager.Get(vars.VariableReference{Name: "baz"})
 		Expect(underlyingReads).To(BeIdenticalTo(2))
 		Expect(underlyingMisses).To(BeIdenticalTo(4))
 	})
@@ -141,9 +142,9 @@ var _ = Describe("Caching of secrets", func() {
 		secretManager.GetStub = makeGetStub("foo", "value", nil, true, nil, &underlyingReads, &underlyingMisses)
 
 		// get few entries first
-		_, _, _, _ = cachedSecretManager.Get("foo")
-		_, _, _, _ = cachedSecretManager.Get("bar")
-		_, _, _, _ = cachedSecretManager.Get("baz")
+		_, _, _, _ = cachedSecretManager.Get(vars.VariableReference{Name: "foo"})
+		_, _, _, _ = cachedSecretManager.Get(vars.VariableReference{Name: "bar"})
+		_, _, _, _ = cachedSecretManager.Get(vars.VariableReference{Name: "baz"})
 		Expect(underlyingReads).To(BeIdenticalTo(1))
 		Expect(underlyingMisses).To(BeIdenticalTo(2))
 
@@ -151,13 +152,13 @@ var _ = Describe("Caching of secrets", func() {
 		time.Sleep(cacheConfig.DurationNotFound + time.Millisecond)
 
 		// existing secret should still be cached
-		_, _, _, _ = cachedSecretManager.Get("foo")
+		_, _, _, _ = cachedSecretManager.Get(vars.VariableReference{Name: "foo"})
 		Expect(underlyingReads).To(BeIdenticalTo(1))
 		Expect(underlyingMisses).To(BeIdenticalTo(2))
 
 		// non-existing secrets should be attempted to be retrieved again
-		_, _, _, _ = cachedSecretManager.Get("bar")
-		_, _, _, _ = cachedSecretManager.Get("baz")
+		_, _, _, _ = cachedSecretManager.Get(vars.VariableReference{Name: "bar"})
+		_, _, _, _ = cachedSecretManager.Get(vars.VariableReference{Name: "baz"})
 		Expect(underlyingReads).To(BeIdenticalTo(1))
 		Expect(underlyingMisses).To(BeIdenticalTo(4))
 	})
