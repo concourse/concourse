@@ -1,7 +1,6 @@
 package atc
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -63,11 +62,9 @@ func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 	validator.pushContext(fmt.Sprintf(".task(%s)", plan.Name))
 	defer validator.popContext()
 
-	if err := ValidateIdentifier(plan.Name, validator.context...); err != nil {
-		var got *InvalidIdentifierError
-		if errors.As(err, &got) {
-			validator.recordWarning(got.ConfigWarning())
-		}
+	warning := ValidateIdentifier(plan.Name, validator.context...)
+	if warning != nil {
+		validator.recordWarning(*warning)
 	}
 
 	if plan.Config == nil && plan.ConfigPath == "" {
@@ -108,11 +105,9 @@ func (validator *StepValidator) VisitGet(step *GetStep) error {
 	validator.pushContext(fmt.Sprintf(".get(%s)", step.Name))
 	defer validator.popContext()
 
-	if err := ValidateIdentifier(step.Name, validator.context...); err != nil {
-		var got *InvalidIdentifierError
-		if errors.As(err, &got) {
-			validator.recordWarning(got.ConfigWarning())
-		}
+	warning := ValidateIdentifier(step.Name, validator.context...)
+	if warning != nil {
+		validator.recordWarning(*warning)
 	}
 
 	if validator.seenGetName[step.Name] {
@@ -168,11 +163,9 @@ func (validator *StepValidator) VisitPut(step *PutStep) error {
 	validator.pushContext(".put(%s)", step.Name)
 	defer validator.popContext()
 
-	if err := ValidateIdentifier(step.Name, validator.context...); err != nil {
-		var got *InvalidIdentifierError
-		if errors.As(err, &got) {
-			validator.recordWarning(got.ConfigWarning())
-		}
+	warning := ValidateIdentifier(step.Name, validator.context...)
+	if warning != nil {
+		validator.recordWarning(*warning)
 	}
 
 	resourceName := step.ResourceName()
@@ -189,11 +182,9 @@ func (validator *StepValidator) VisitSetPipeline(step *SetPipelineStep) error {
 	validator.pushContext(".set_pipeline(%s)", step.Name)
 	defer validator.popContext()
 
-	if err := ValidateIdentifier(step.Name, validator.context...); err != nil {
-		var got *InvalidIdentifierError
-		if errors.As(err, &got) {
-			validator.recordWarning(got.ConfigWarning())
-		}
+	warning := ValidateIdentifier(step.Name, validator.context...)
+	if warning != nil {
+		validator.recordWarning(*warning)
 	}
 
 	if step.File == "" {
@@ -207,11 +198,9 @@ func (validator *StepValidator) VisitLoadVar(step *LoadVarStep) error {
 	validator.pushContext(".load_var(%s)", step.Name)
 	defer validator.popContext()
 
-	if err := ValidateIdentifier(step.Name, validator.context...); err != nil {
-		var got *InvalidIdentifierError
-		if errors.As(err, &got) {
-			validator.recordWarning(got.ConfigWarning())
-		}
+	warning := ValidateIdentifier(step.Name, validator.context...)
+	if warning != nil {
+		validator.recordWarning(*warning)
 	}
 
 	if validator.seenLoadVarName[step.Name] {

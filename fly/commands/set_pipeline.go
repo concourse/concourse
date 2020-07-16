@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"errors"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/commands/internal/setpipelinehelpers"
@@ -30,20 +28,16 @@ type SetPipelineCommand struct {
 }
 
 func (command *SetPipelineCommand) Validate() ([]concourse.ConfigWarning, error) {
-	if err := command.Pipeline.Validate(); err != nil {
-		var warnings []concourse.ConfigWarning
-		var got *atc.InvalidIdentifierError
-		if errors.As(err, &got) {
-			warning := got.ConfigWarning()
+	warnings, err := command.Pipeline.Validate()
+	if command.Team != "" {
+		if warning := atc.ValidateIdentifier(command.Team, "team"); warning != nil {
 			warnings = append(warnings, concourse.ConfigWarning{
 				Type:    warning.Type,
 				Message: warning.Message,
 			})
-			return warnings, nil
 		}
-		return nil, err
 	}
-	return nil, nil
+	return warnings, err
 }
 
 func (command *SetPipelineCommand) Execute(args []string) error {

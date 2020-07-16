@@ -8,15 +8,24 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type PipelineFlag string
 
-func (flag *PipelineFlag) Validate() error {
+func (flag *PipelineFlag) Validate() ([]concourse.ConfigWarning, error) {
 	if strings.Contains(string(*flag), "/") {
-		return errors.New("pipeline name cannot contain '/'")
+		return nil, errors.New("pipeline name cannot contain '/'")
 	}
-	return atc.ValidateIdentifier(string(*flag), "pipeline")
+
+	var warnings []concourse.ConfigWarning
+	if warning := atc.ValidateIdentifier(string(*flag), "pipeline"); warning != nil {
+		warnings = append(warnings, concourse.ConfigWarning{
+			Type:    warning.Type,
+			Message: warning.Message,
+		})
+	}
+	return warnings, nil
 }
 
 func (flag *PipelineFlag) Complete(match string) []flags.Completion {

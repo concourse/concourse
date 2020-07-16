@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -33,20 +32,14 @@ type SetTeamCommand struct {
 }
 
 func (command *SetTeamCommand) Validate() ([]concourse.ConfigWarning, error) {
-	if err := atc.ValidateIdentifier(command.Team.Name(), "team"); err != nil {
-		var warnings []concourse.ConfigWarning
-		var got *atc.InvalidIdentifierError
-		if errors.As(err, &got) {
-			warning := got.ConfigWarning()
-			warnings = append(warnings, concourse.ConfigWarning{
-				Type:    warning.Type,
-				Message: warning.Message,
-			})
-			return warnings, nil
-		}
-		return nil, err
+	var warnings []concourse.ConfigWarning
+	if warning := atc.ValidateIdentifier(command.Team.Name(), "team"); warning != nil {
+		warnings = append(warnings, concourse.ConfigWarning{
+			Type:    warning.Type,
+			Message: warning.Message,
+		})
 	}
-	return nil, nil
+	return warnings, nil
 }
 
 func (command *SetTeamCommand) Execute([]string) error {

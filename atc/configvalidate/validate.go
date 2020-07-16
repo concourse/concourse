@@ -77,11 +77,9 @@ func validateGroups(c Config) ([]ConfigWarning, error) {
 			identifier = fmt.Sprintf("groups.%s", group.Name)
 		}
 
-		if err := ValidateIdentifier(group.Name, identifier); err != nil {
-			var got *atc.InvalidIdentifierError
-			if errors.As(err, &got) {
-				warnings = append(warnings, got.ConfigWarning())
-			}
+		warning := ValidateIdentifier(group.Name, identifier)
+		if warning != nil {
+			warnings = append(warnings, *warning)
 		}
 
 		if val, ok := groupNames[group.Name]; ok {
@@ -142,11 +140,9 @@ func validateResources(c Config) ([]ConfigWarning, error) {
 			identifier = fmt.Sprintf("resources.%s", resource.Name)
 		}
 
-		if err := ValidateIdentifier(resource.Name, identifier); err != nil {
-			var got *atc.InvalidIdentifierError
-			if errors.As(err, &got) {
-				warnings = append(warnings, got.ConfigWarning())
-			}
+		warning := ValidateIdentifier(resource.Name, identifier)
+		if warning != nil {
+			warnings = append(warnings, *warning)
 		}
 
 		if other, exists := names[resource.Name]; exists {
@@ -186,11 +182,9 @@ func validateResourceTypes(c Config) ([]ConfigWarning, error) {
 			identifier = fmt.Sprintf("resource_types.%s", resourceType.Name)
 		}
 
-		if err := ValidateIdentifier(resourceType.Name, identifier); err != nil {
-			var got *atc.InvalidIdentifierError
-			if errors.As(err, &got) {
-				warnings = append(warnings, got.ConfigWarning())
-			}
+		warning := ValidateIdentifier(resourceType.Name, identifier)
+		if warning != nil {
+			warnings = append(warnings, *warning)
 		}
 
 		if other, exists := names[resourceType.Name]; exists {
@@ -261,11 +255,9 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 			identifier = fmt.Sprintf("jobs.%s", job.Name)
 		}
 
-		if err := ValidateIdentifier(job.Name, identifier); err != nil {
-			var got *atc.InvalidIdentifierError
-			if errors.As(err, &got) {
-				warnings = append(warnings, got.ConfigWarning())
-			}
+		warning := ValidateIdentifier(job.Name, identifier)
+		if warning != nil {
+			warnings = append(warnings, *warning)
 		}
 
 		if other, exists := names[job.Name]; exists {
@@ -356,11 +348,9 @@ func validateVarSources(c Config) ([]ConfigWarning, error) {
 			identifier = fmt.Sprintf("var_sources.%s", cm.Name)
 		}
 
-		if err := ValidateIdentifier(cm.Name, identifier); err != nil {
-			var got *atc.InvalidIdentifierError
-			if errors.As(err, &got) {
-				warnings = append(warnings, got.ConfigWarning())
-			}
+		warning := ValidateIdentifier(cm.Name, identifier)
+		if warning != nil {
+			warnings = append(warnings, *warning)
 		}
 
 		if factory, exists := creds.ManagerFactories()[cm.Type]; exists {

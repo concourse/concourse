@@ -2,8 +2,6 @@ package teamserver
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -38,11 +36,9 @@ func (s *Server) RenameTeam(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var warnings []atc.ConfigWarning
-	if err = atc.ValidateIdentifier(rename.NewName, "team"); err != nil {
-		var got *atc.InvalidIdentifierError
-		if errors.As(err, &got) {
-			warnings = append(warnings, got.ConfigWarning())
-		}
+	warning := atc.ValidateIdentifier(rename.NewName, "team")
+	if warning != nil {
+		warnings = append(warnings, *warning)
 	}
 
 	team, found, err := s.teamFactory.FindTeam(teamName)
@@ -66,21 +62,9 @@ func (s *Server) RenameTeam(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	s.writeResponse(w, atc.SaveConfigResponse{Warnings: warnings})
-}
-
-func (s *Server) writeResponse(w http.ResponseWriter, response atc.SaveConfigResponse) {
-	responseJSON, err := json.Marshal(response)
+	err = json.NewEncoder(w).Encode(atc.SaveConfigResponse{Warnings: warnings})
 	if err != nil {
+		s.logger.Error("failed-to-encode-response", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "failed to generate error response: %s", err)
-		return
-	}
-
-	_, err = w.Write(responseJSON)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
 	}
 }

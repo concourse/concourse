@@ -2,7 +2,6 @@ package teamserver
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
@@ -70,14 +69,10 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	} else if acc.IsAdmin() {
 		hLog.Debug("creating team")
 
-		var warnings []atc.ConfigWarning
-		if err = atc.ValidateIdentifier(atcTeam.Name, "team"); err != nil {
-			var got *atc.InvalidIdentifierError
-			if errors.As(err, &got) {
-				warnings = append(warnings, got.ConfigWarning())
-			}
+		warning := atc.ValidateIdentifier(atcTeam.Name, "team")
+		if warning != nil {
+			response.Warnings = append(response.Warnings, *warning)
 		}
-		response.Warnings = warnings
 
 		team, err = s.teamFactory.CreateTeam(atcTeam)
 		if err != nil {
