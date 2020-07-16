@@ -33,7 +33,7 @@ func (e *InvalidIdentifierError) ConfigWarning() ConfigWarning {
 	return warning
 }
 
-var validIdentifiers = regexp.MustCompile(`^\p{L}[\p{L}\d\-.]*$`)
+var validIdentifiers = regexp.MustCompile(`^[\p{Ll}\p{Lt}\p{Lm}\p{Lo}][\p{Ll}\p{Lt}\p{Lm}\p{Lo}\d\-.]*$`)
 
 func ValidateIdentifier(identifier string, context ...string) error {
 	if identifier != "" && !validIdentifiers.MatchString(identifier) {

@@ -3,7 +3,6 @@ package pipelineserver
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -46,22 +45,10 @@ func (s *Server) RenamePipeline(pipeline db.Pipeline) http.Handler {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		s.writeResponse(w, atc.SaveConfigResponse{Warnings: warnings})
+		err = json.NewEncoder(w).Encode(atc.SaveConfigResponse{Warnings: warnings})
+		if err != nil {
+			s.logger.Error("failed-to-encode-response", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	})
-}
-
-func (s *Server) writeResponse(w http.ResponseWriter, response atc.SaveConfigResponse) {
-	responseJSON, err := json.Marshal(response)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "failed to generate error response: %s", err)
-		return
-	}
-
-	_, err = w.Write(responseJSON)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
 }

@@ -8,47 +8,73 @@ import (
 )
 
 var _ = Describe("ValidateIdentifier", func() {
-	Context("when an identifier starts with valid letter", func() {
-		It("runs without error", func() {
-			err := atc.ValidateIdentifier("something")
-			Expect(err).NotTo(HaveOccurred())
-		})
-	})
+	type testCase struct {
+		description string
+		identifier  string
+		errors      bool
+	}
 
-	Context("when an identifier starts with a number", func() {
-		It("returns an error", func() {
-			err := atc.ValidateIdentifier("1something")
-			Expect(err).To(HaveOccurred())
-		})
-	})
+	for _, test := range []testCase{
+		{
+			description: "starts with a valid letter",
+			identifier:  "something",
+			errors:      false,
+		},
+		{
+			description: "contains multilingual characters",
+			identifier:  "ひらがな",
+			errors:      false,
+		},
+		{
+			description: "starts with a number",
+			identifier:  "1something",
+			errors:      true,
+		},
+		{
+			description: "starts with hyphen",
+			identifier:  "-something",
+			errors:      true,
+		},
+		{
+			description: "starts with period",
+			identifier:  ".something",
+			errors:      true,
+		},
+		{
+			description: "starts with an uppercase letter",
+			identifier:  "Something",
+			errors:      true,
+		},
+		{
+			description: "contains an underscore",
+			identifier:  "some_thing",
+			errors:      true,
+		},
+		{
+			description: "contains an uppercase letter",
+			identifier:  "someThing",
+			errors:      true,
+		},
+	} {
+		test := test
 
-	Context("when an identifier starts with an hyphen", func() {
-		It("returns an error", func() {
-			err := atc.ValidateIdentifier("-something")
-			Expect(err).To(HaveOccurred())
+		Context("when an identifier "+test.description, func() {
+			var it string
+			if test.errors {
+				it = "returns an error"
+			} else {
+				it = "runs without error"
+			}
+			It(it, func() {
+				err := atc.ValidateIdentifier(test.identifier)
+				if test.errors {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).NotTo(HaveOccurred())
+				}
+			})
 		})
-	})
-
-	Context("when an identifier starts with an underscore", func() {
-		It("returns an error", func() {
-			err := atc.ValidateIdentifier("_something")
-			Expect(err).To(HaveOccurred())
-		})
-	})
-
-	Context("when an identifier starts with an period", func() {
-		It("returns an error", func() {
-			err := atc.ValidateIdentifier(".something")
-			Expect(err).To(HaveOccurred())
-		})
-	})
-
-	Context("when an identifier contains multilingual characters", func() {
-		It("runs without error", func() {
-			err := atc.ValidateIdentifier("ひらがな")
-			Expect(err).NotTo(HaveOccurred())
-		})
-	})
+	}
 
 	Describe("ValidateIdentifier with context", func() {
 		Context("when an identifier is invalid", func() {
