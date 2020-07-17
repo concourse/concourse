@@ -14,7 +14,7 @@ import FlySuccess.Models as Models exposing (ButtonState(..), Model, hover)
 import FlySuccess.Styles as Styles
 import FlySuccess.Text as Text
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, href, id, style, value)
+import Html.Attributes exposing (attribute, href, id, style, value)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
@@ -198,10 +198,7 @@ tokenTextBox token =
     Html.label []
         [ Html.text Text.copyTokenInput
         , Html.input
-            ([ value token
-             ]
-                ++ Styles.input
-            )
+            (value token :: Styles.input)
             []
         ]
 
