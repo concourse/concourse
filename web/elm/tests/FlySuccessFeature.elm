@@ -431,6 +431,30 @@ bodyParagraphPositions =
 
 
 
+-- body on any type of failure
+
+
+copyLinkInput : Property
+copyLinkInput =
+    property body "label gives instructions for manual copying" <|
+        Query.children []
+            >> Expect.all
+                [ Query.index 1
+                    >> Query.has
+                        [ text "copy token here" ]
+                , Query.index 1
+                    >> Query.children [ tag "input" ]
+                    >> Query.first
+                    >> Query.has
+                        [ attribute <| Attr.value authToken
+                        , style "white-space" "nowrap"
+                        , style "overflow" "hidden"
+                        , style "text-overflow" "ellipsis"
+                        ]
+                ]
+
+
+
 -- body on invalid fly port
 
 
@@ -744,10 +768,13 @@ all =
                     ]
             , invalidFlyPort |> firstParagraphFailureText
             , invalidFlyPort |> secondParagraphErrorText
+            , invalidFlyPort |> copyLinkInput
             , tokenSendBlocked |> firstParagraphBlockedText
             , tokenSendBlocked |> secondParagraphBlockedText
+            , tokenSendBlocked |> copyLinkInput
             , tokenSendFailed |> firstParagraphFailureText
             , tokenSendFailed |> secondParagraphFailureText
+            , tokenSendFailed |> copyLinkInput
             , tokenCopied |> firstParagraphFailureText
             , tokenCopied |> secondParagraphFailureText
             , whenOnFlySuccessPage |> bodyPendingText
