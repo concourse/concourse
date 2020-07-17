@@ -16,7 +16,7 @@
 
     app.ports.emitSearchTerm.subscribe(function(term) {
       goatcounter.count({
-        event: "search:"+term,
+        path: "search:" + term,
         title: "user searched: " + term,
         event: true
       });
