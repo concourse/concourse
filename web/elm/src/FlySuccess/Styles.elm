@@ -8,7 +8,7 @@ module FlySuccess.Styles exposing
     )
 
 import Colors
-import FlySuccess.Models exposing (ButtonState(..), isClicked)
+import FlySuccess.Models exposing (ButtonState(..), InputState(..), isClicked)
 import Html
 import Html.Attributes exposing (style)
 import Views.Styles
@@ -52,8 +52,8 @@ paragraph =
     ]
 
 
-input : List (Html.Attribute msg)
-input =
+input : InputState -> List (Html.Attribute msg)
+input inputState =
     [ style "border" <|
         "1px solid "
             ++ Colors.text
@@ -65,6 +65,13 @@ input =
     , style "width" "192px"
     , style "text-align" "center"
     , style "background-color" Colors.flySuccessCard
+    , style "background-color" <|
+        case inputState of
+            InputUnhovered ->
+                Colors.flySuccessCard
+
+            InputHovered ->
+                Colors.flySuccessButtonHover
     , style "color" Colors.text
     , style "white-space" "nowrap"
     , style "overflow" "hidden"

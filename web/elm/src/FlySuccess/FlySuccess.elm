@@ -10,7 +10,7 @@ module FlySuccess.FlySuccess exposing
 
 import Assets
 import EffectTransformer exposing (ET)
-import FlySuccess.Models as Models exposing (ButtonState(..), Model, hover)
+import FlySuccess.Models as Models exposing (ButtonState(..), InputState(..), Model, hover)
 import FlySuccess.Styles as Styles
 import FlySuccess.Text as Text
 import Html exposing (Html)
@@ -44,6 +44,7 @@ init :
 init { authToken, flyPort, noop } =
     ( { copyTokenButtonState = Unhovered
       , sendTokenButtonState = Unhovered
+      , copyTokenInputState = InputUnhovered
       , authToken = authToken
       , tokenTransfer =
             case ( noop, flyPort ) of
@@ -100,10 +101,14 @@ update msg ( model, effects ) =
             , effects
             )
 
+        Hover (Just CopyTokenInput) ->
+            ( { model | copyTokenInputState = InputHovered }, effects )
+
         Hover Nothing ->
             ( { model
                 | copyTokenButtonState = hover False model.copyTokenButtonState
                 , sendTokenButtonState = hover False model.sendTokenButtonState
+                , copyTokenInputState = InputUnhovered
               }
             , effects
             )
@@ -184,21 +189,27 @@ body model =
             [ p1, p2 ]
 
         Models.NetworkTrouble ->
-            [ p1, tokenTextBox model.authToken, copyTokenButton model, p2 ]
+            [ p1, tokenTextBox model, copyTokenButton model, p2 ]
 
         Models.BlockedByBrowser ->
-            [ p1, tokenTextBox model.authToken, sendTokenButton model, p2, copyTokenButton model ]
+            [ p1, tokenTextBox model, sendTokenButton model, p2, copyTokenButton model ]
 
         Models.NoFlyPort ->
-            [ p1, tokenTextBox model.authToken, copyTokenButton model, p2 ]
+            [ p1, tokenTextBox model, copyTokenButton model, p2 ]
 
 
-tokenTextBox : String -> Html Message
-tokenTextBox token =
+tokenTextBox : Model -> Html Message
+tokenTextBox { copyTokenInputState, authToken } =
     Html.label []
         [ Html.text Text.copyTokenInput
         , Html.input
-            (value token :: Styles.input)
+            ([ id "manual-copy-token"
+             , value authToken
+             , onMouseEnter <| Hover <| Just CopyTokenInput
+             , onMouseLeave <| Hover Nothing
+             ]
+                ++ Styles.input copyTokenInputState
+            )
             []
         ]
 

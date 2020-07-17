@@ -246,6 +246,11 @@ copyTokenButton =
     body >> Query.find [ id "copy-token" ]
 
 
+copyTokenInput : Query
+copyTokenInput =
+    body >> Query.find [ id "manual-copy-token" ]
+
+
 sendTokenButton : Query
 sendTokenButton =
     body >> Query.find [ id "send-token" ]
@@ -781,6 +786,25 @@ all =
             , whenOnFlySuccessPage |> bodyNoButton
             , tokenSendSuccess |> firstParagraphSuccessText
             , tokenSendSuccess |> secondParagraphSuccessText
+            ]
+        , describe "copy token input"
+            [ defineHoverBehaviour
+                { name = "copy token input"
+                , setup = steps tokenSendFailed () |> Tuple.first
+                , query = copyTokenInput
+                , unhoveredSelector =
+                    { description =
+                        "same background as card"
+                    , selector = [ style "background-color" darkGrey ]
+                    }
+                , hoverable =
+                    Message.Message.CopyTokenInput
+                , hoveredSelector =
+                    { description = "darker background"
+                    , selector =
+                        [ style "background-color" darkerGrey ]
+                    }
+                }
             ]
         , describe "copy token button"
             [ describe "always" <|
