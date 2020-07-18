@@ -717,6 +717,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
 	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
+	dbAccessTokenFactory := db.NewAccessTokenFactory(dbConn)
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
 
@@ -765,6 +766,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	authHandler, err := cmd.constructAuthHandler(
 		logger,
 		storage,
+		dbAccessTokenFactory,
 	)
 	if err != nil {
 		return nil, err
@@ -1642,6 +1644,7 @@ func (cmd *RunCommand) constructLegacyHandler(
 func (cmd *RunCommand) constructAuthHandler(
 	logger lager.Logger,
 	storage storage.Storage,
+	accessTokenFactory db.AccessTokenFactory,
 ) (http.Handler, error) {
 
 	issuerPath, _ := url.Parse("/sky/issuer")
@@ -1668,7 +1671,13 @@ func (cmd *RunCommand) constructAuthHandler(
 		return nil, err
 	}
 
-	return dexServer, nil
+	return token.StoreAccessToken(
+		logger.Session("dex-server"),
+		dexServer,
+		token.NewGenerator(),
+		token.NewClaimsParser(),
+		accessTokenFactory,
+	), nil
 }
 
 func (cmd *RunCommand) constructLoginHandler(

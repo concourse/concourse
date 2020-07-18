@@ -7,6 +7,8 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
+//go:generate counterfeiter . AccessTokenFactory
+
 type AccessTokenFactory interface {
 	CreateAccessToken(token string, claims Claims) error
 	GetAccessToken(token string) (AccessToken, bool, error)
