@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Check", func() {
+var _ = FDescribe("Check", func() {
 	var (
 		err                     error
 		created                 bool
@@ -39,11 +39,12 @@ var _ = Describe("Check", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		metadata := db.CheckMetadata{
-			TeamID:             defaultTeam.ID(),
-			TeamName:           defaultTeam.Name(),
-			PipelineName:       defaultPipeline.Name(),
-			ResourceConfigID:   resourceConfigScope.ResourceConfig().ID(),
-			BaseResourceTypeID: resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+			TeamID:               defaultTeam.ID(),
+			TeamName:             defaultTeam.Name(),
+			PipelineName:         defaultPipeline.Name(),
+			PipelineInstanceVars: defaultPipeline.InstanceVars(),
+			ResourceConfigID:     resourceConfigScope.ResourceConfig().ID(),
+			BaseResourceTypeID:   resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
 		}
 
 		check, created, err = checkFactory.CreateCheck(
@@ -168,11 +169,12 @@ var _ = Describe("Check", func() {
 			BeforeEach(func() {
 
 				metadata := db.CheckMetadata{
-					TeamID:             defaultTeam.ID(),
-					TeamName:           defaultTeam.Name(),
-					PipelineName:       defaultPipeline.Name(),
-					ResourceConfigID:   resourceConfigScope.ResourceConfig().ID(),
-					BaseResourceTypeID: resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+					TeamID:               defaultTeam.ID(),
+					TeamName:             defaultTeam.Name(),
+					PipelineName:         defaultPipeline.Name(),
+					PipelineInstanceVars: defaultPipeline.InstanceVars(),
+					ResourceConfigID:     resourceConfigScope.ResourceConfig().ID(),
+					BaseResourceTypeID:   resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
 				}
 
 				check, created, err = checkFactory.CreateCheck(

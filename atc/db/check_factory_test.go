@@ -36,11 +36,12 @@ var _ = Describe("CheckFactory", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		metadata = db.CheckMetadata{
-			TeamID:             defaultTeam.ID(),
-			TeamName:           defaultTeam.Name(),
-			PipelineName:       defaultPipeline.Name(),
-			ResourceConfigID:   resourceConfigScope.ResourceConfig().ID(),
-			BaseResourceTypeID: resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+			TeamID:               defaultTeam.ID(),
+			TeamName:             defaultTeam.Name(),
+			PipelineName:         defaultPipeline.Name(),
+			PipelineInstanceVars: defaultPipeline.InstanceVars(),
+			ResourceConfigID:     resourceConfigScope.ResourceConfig().ID(),
+			BaseResourceTypeID:   resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
 		}
 	})
 

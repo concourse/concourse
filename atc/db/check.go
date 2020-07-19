@@ -92,12 +92,13 @@ type check struct {
 }
 
 type CheckMetadata struct {
-	TeamID             int    `json:"team_id"`
-	TeamName           string `json:"team_name"`
-	PipelineID         int    `json:"pipeline_id"`
-	PipelineName       string `json:"pipeline_name"`
-	ResourceConfigID   int    `json:"resource_config_id"`
-	BaseResourceTypeID int    `json:"base_resource_type_id"`
+	TeamID               int              `json:"team_id"`
+	TeamName             string           `json:"team_name"`
+	PipelineID           int              `json:"pipeline_id"`
+	PipelineName         string           `json:"pipeline_name"`
+	PipelineInstanceVars atc.InstanceVars `json:"pipeline_instance_vars"`
+	ResourceConfigID     int              `json:"resource_config_id"`
+	BaseResourceTypeID   int              `json:"base_resource_type_id"`
 }
 
 func newEmptyCheck(conn Conn, lockFactory lock.LockFactory) *check {
@@ -396,6 +397,7 @@ func scanCheck(c *check, row scannable) error {
 
 	c.pipelineID = c.metadata.PipelineID
 	c.pipelineName = c.metadata.PipelineName
+	c.pipelineInstanceVars = c.metadata.PipelineInstanceVars
 
 	if checkError.Valid {
 		c.checkError = errors.New(checkError.String)

@@ -94,6 +94,16 @@ type FakeCheckable struct {
 	pipelineIDReturnsOnCall map[int]struct {
 		result1 int
 	}
+	PipelineInstanceVarsStub        func() atc.InstanceVars
+	pipelineInstanceVarsMutex       sync.RWMutex
+	pipelineInstanceVarsArgsForCall []struct {
+	}
+	pipelineInstanceVarsReturns struct {
+		result1 atc.InstanceVars
+	}
+	pipelineInstanceVarsReturnsOnCall map[int]struct {
+		result1 atc.InstanceVars
+	}
 	PipelineNameStub        func() string
 	pipelineNameMutex       sync.RWMutex
 	pipelineNameArgsForCall []struct {
@@ -615,6 +625,58 @@ func (fake *FakeCheckable) PipelineIDReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
+func (fake *FakeCheckable) PipelineInstanceVars() atc.InstanceVars {
+	fake.pipelineInstanceVarsMutex.Lock()
+	ret, specificReturn := fake.pipelineInstanceVarsReturnsOnCall[len(fake.pipelineInstanceVarsArgsForCall)]
+	fake.pipelineInstanceVarsArgsForCall = append(fake.pipelineInstanceVarsArgsForCall, struct {
+	}{})
+	fake.recordInvocation("PipelineInstanceVars", []interface{}{})
+	fake.pipelineInstanceVarsMutex.Unlock()
+	if fake.PipelineInstanceVarsStub != nil {
+		return fake.PipelineInstanceVarsStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.pipelineInstanceVarsReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeCheckable) PipelineInstanceVarsCallCount() int {
+	fake.pipelineInstanceVarsMutex.RLock()
+	defer fake.pipelineInstanceVarsMutex.RUnlock()
+	return len(fake.pipelineInstanceVarsArgsForCall)
+}
+
+func (fake *FakeCheckable) PipelineInstanceVarsCalls(stub func() atc.InstanceVars) {
+	fake.pipelineInstanceVarsMutex.Lock()
+	defer fake.pipelineInstanceVarsMutex.Unlock()
+	fake.PipelineInstanceVarsStub = stub
+}
+
+func (fake *FakeCheckable) PipelineInstanceVarsReturns(result1 atc.InstanceVars) {
+	fake.pipelineInstanceVarsMutex.Lock()
+	defer fake.pipelineInstanceVarsMutex.Unlock()
+	fake.PipelineInstanceVarsStub = nil
+	fake.pipelineInstanceVarsReturns = struct {
+		result1 atc.InstanceVars
+	}{result1}
+}
+
+func (fake *FakeCheckable) PipelineInstanceVarsReturnsOnCall(i int, result1 atc.InstanceVars) {
+	fake.pipelineInstanceVarsMutex.Lock()
+	defer fake.pipelineInstanceVarsMutex.Unlock()
+	fake.PipelineInstanceVarsStub = nil
+	if fake.pipelineInstanceVarsReturnsOnCall == nil {
+		fake.pipelineInstanceVarsReturnsOnCall = make(map[int]struct {
+			result1 atc.InstanceVars
+		})
+	}
+	fake.pipelineInstanceVarsReturnsOnCall[i] = struct {
+		result1 atc.InstanceVars
+	}{result1}
+}
+
 func (fake *FakeCheckable) PipelineName() string {
 	fake.pipelineNameMutex.Lock()
 	ret, specificReturn := fake.pipelineNameReturnsOnCall[len(fake.pipelineNameArgsForCall)]
@@ -1122,6 +1184,8 @@ func (fake *FakeCheckable) Invocations() map[string][][]interface{} {
 	defer fake.pipelineMutex.RUnlock()
 	fake.pipelineIDMutex.RLock()
 	defer fake.pipelineIDMutex.RUnlock()
+	fake.pipelineInstanceVarsMutex.RLock()
+	defer fake.pipelineInstanceVarsMutex.RUnlock()
 	fake.pipelineNameMutex.RLock()
 	defer fake.pipelineNameMutex.RUnlock()
 	fake.resourceConfigScopeIDMutex.RLock()

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	sq "github.com/Masterminds/squirrel"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
@@ -13,23 +14,26 @@ import (
 type PipelineRef interface {
 	PipelineID() int
 	PipelineName() string
+	PipelineInstanceVars() atc.InstanceVars
 	Pipeline() (Pipeline, bool, error)
 }
 
 type pipelineRef struct {
-	pipelineID   int
-	pipelineName string
+	pipelineID           int
+	pipelineName         string
+	pipelineInstanceVars atc.InstanceVars
 
 	conn        Conn
 	lockFactory lock.LockFactory
 }
 
-func NewPipelineRef(id int, name string, conn Conn, lockFactory lock.LockFactory) PipelineRef {
+func NewPipelineRef(id int, name string, instanceVars atc.InstanceVars, conn Conn, lockFactory lock.LockFactory) PipelineRef {
 	return pipelineRef{
-		pipelineID:   id,
-		pipelineName: name,
-		conn:         conn,
-		lockFactory:  lockFactory,
+		pipelineID:           id,
+		pipelineName:         name,
+		pipelineInstanceVars: instanceVars,
+		conn:                 conn,
+		lockFactory:          lockFactory,
 	}
 }
 
@@ -39,6 +43,10 @@ func (r pipelineRef) PipelineID() int {
 
 func (r pipelineRef) PipelineName() string {
 	return r.pipelineName
+}
+
+func (r pipelineRef) PipelineInstanceVars() atc.InstanceVars {
+	return r.pipelineInstanceVars
 }
 
 func (r pipelineRef) Pipeline() (Pipeline, bool, error) {

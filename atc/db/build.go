@@ -73,6 +73,7 @@ var buildsQuery = psql.Select(`
 		j.name,
 		b.pipeline_id,
 		p.name,
+		p.instance_vars,
 		t.name,
 		b.nonce,
 		b.drained,
@@ -1600,6 +1601,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		nonce, spanContext                                                  sql.NullString
 		drained, aborted, completed                                         bool
 		status                                                              string
+		pipelineInstanceVars                                                sql.NullString
 	)
 
 	err := row.Scan(
@@ -1620,6 +1622,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		&jobName,
 		&pipelineID,
 		&pipelineName,
+		&pipelineInstanceVars,
 		&b.teamName,
 		&nonce,
 		&drained,
@@ -1683,6 +1686,13 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 
 	if spanContext.Valid {
 		err = json.Unmarshal([]byte(spanContext.String), &b.spanContext)
+		if err != nil {
+			return err
+		}
+	}
+
+	if pipelineInstanceVars.Valid {
+		err = json.Unmarshal([]byte(pipelineInstanceVars.String), &b.pipelineInstanceVars)
 		if err != nil {
 			return err
 		}
