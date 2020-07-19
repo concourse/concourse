@@ -433,70 +433,54 @@ var factoryTests = []PlannerTest{
 		PlanJSON: `{
 			"id": "(unique)",
 			"across": {
-				"var": "var1",
-				"max_in_flight": 2,
+				"vars": [
+					{
+						"name": "var1",
+						"max_in_flight": 2
+					},
+					{
+						"name": "var2",
+						"max_in_flight": 1
+					}
+				],
 				"steps": [
 					{
-						"value": "a1",
+						"values": ["a1", "b1"],
 						"step": {
 							"id": "(unique)",
-							"across": {
-								"var": "var2",
-								"max_in_flight": 1,
-								"steps": [
-									{
-										"value": "b1",
-										"step": {
-											"id": "(unique)",
-											"load_var": {
-												"name": "some-var",
-												"file": "some-file"
-											}
-										}
-									},
-									{
-										"value": "b2",
-										"step": {
-											"id": "(unique)",
-											"load_var": {
-												"name": "some-var",
-												"file": "some-file"
-											}
-										}
-									}
-								]
+							"load_var": {
+								"name": "some-var",
+								"file": "some-file"
 							}
 						}
 					},
 					{
-						"value": "a2",
+						"values": ["a1", "b2"],
 						"step": {
 							"id": "(unique)",
-							"across": {
-								"var": "var2",
-								"max_in_flight": 1,
-								"steps": [
-									{
-										"value": "b1",
-										"step": {
-											"id": "(unique)",
-											"load_var": {
-												"name": "some-var",
-												"file": "some-file"
-											}
-										}
-									},
-									{
-										"value": "b2",
-										"step": {
-											"id": "(unique)",
-											"load_var": {
-												"name": "some-var",
-												"file": "some-file"
-											}
-										}
-									}
-								]
+							"load_var": {
+								"name": "some-var",
+								"file": "some-file"
+							}
+						}
+					},
+					{
+						"values": ["a2", "b1"],
+						"step": {
+							"id": "(unique)",
+							"load_var": {
+								"name": "some-var",
+								"file": "some-file"
+							}
+						}
+					},
+					{
+						"values": ["a2", "b2"],
+						"step": {
+							"id": "(unique)",
+							"load_var": {
+								"name": "some-var",
+								"file": "some-file"
 							}
 						}
 					}

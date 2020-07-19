@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 )
@@ -16,13 +15,13 @@ import (
 var _ = Describe("AcrossStep", func() {
 
 	var (
-		ctx        context.Context
-		cancel     func()
+		ctx    context.Context
+		cancel func()
 
-		fakeDelegate     *execfakes.FakeBuildStepDelegate
+		fakeDelegate *execfakes.FakeBuildStepDelegate
 
-		acrossPlan         atc.AcrossPlan
-		state              *execfakes.FakeRunState
+		step  exec.InParallelStep
+		state *execfakes.FakeRunState
 
 		stepMetadata = exec.StepMetadata{
 			TeamID:       123,
@@ -54,8 +53,7 @@ var _ = Describe("AcrossStep", func() {
 
 	BeforeEach(func() {
 		step := exec.Across(
-			acrossPlan,
-			nil,
+			step,
 			fakeDelegate,
 			stepMetadata,
 		)

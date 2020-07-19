@@ -160,15 +160,20 @@ type InParallelPlan struct {
 }
 
 type AcrossPlan struct {
-	Var         string          `json:"var"`
-	Steps       []VarScopedPlan `json:"steps"`
-	MaxInFlight int             `json:"max_in_flight,omitempty"`
-	FailFast    bool            `json:"fail_fast,omitempty"`
+	Vars     []AcrossVar     `json:"vars"`
+	Steps    []VarScopedPlan `json:"steps"`
+	FailFast bool            `json:"fail_fast,omitempty"`
+}
+
+type AcrossVar struct {
+	Var         string        `json:"name"`
+	Values      []interface{} `json:"values"`
+	MaxInFlight int           `json:"max_in_flight"`
 }
 
 type VarScopedPlan struct {
-	Step  Plan        `json:"step"`
-	Value interface{} `json:"value"`
+	Step   Plan          `json:"step"`
+	Values []interface{} `json:"values"`
 }
 
 type DoPlan []Plan

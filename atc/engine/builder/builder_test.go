@@ -3,6 +3,7 @@ package builder_test
 import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/vars"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -799,42 +800,35 @@ var _ = Describe("Builder", func() {
 				})
 
 				Context("running across steps", func() {
-					var taskPlanFactory func() atc.Plan
 					BeforeEach(func() {
-						taskPlanFactory = func() atc.Plan {
-							return planFactory.NewPlan(atc.TaskPlan{
-								Name: "some-task",
-							})
-						}
+						planner := builds.NewPlanner(planFactory)
 
-						acrossPlanFactory := func(varName string, subPlanFactory func() atc.Plan) atc.Plan {
-							return planFactory.NewPlan(atc.AcrossPlan{
-								Var: varName,
-								Steps: []atc.VarScopedPlan{
-									{
-										Step:  subPlanFactory(),
-										Value: "v1",
-									},
-									{
-										Step:  subPlanFactory(),
-										Value: "v2",
-									},
+						step := &atc.AcrossStep{
+							Step: &atc.TaskStep{Name: "some-task"},
+							Vars: []atc.AcrossVarConfig{
+								{
+									Var:    "var1",
+									Values: []interface{}{"a1", "a2"},
 								},
-							})
+								{
+									Var:    "var2",
+									Values: []interface{}{"b1", "b2"},
+								},
+								{
+									Var:    "var3",
+									Values: []interface{}{"c1"},
+								},
+							},
 						}
 
-						expectedPlan = acrossPlanFactory("var1", func() atc.Plan {
-							return acrossPlanFactory("var2", taskPlanFactory)
-						})
+						expectedPlan, err = planner.Create(step, nil, nil, nil)
+						Expect(err).ToNot(HaveOccurred())
 					})
 
 					It("constructs the steps correctly", func() {
 						Expect(fakeStepFactory.TaskStepCallCount()).To(Equal(4))
 						plan, stepMetadata, containerMetadata, _ := fakeStepFactory.TaskStepArgsForCall(0)
-						inputPlan := taskPlanFactory()
-						// ignore the ID
-						plan.ID = inputPlan.ID
-						Expect(plan).To(Equal(inputPlan))
+						Expect(*plan.Task).To(Equal(atc.TaskPlan{Name: "some-task"}))
 						Expect(stepMetadata).To(Equal(expectedMetadata))
 						Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 							Type:         db.ContainerTypeTask,
@@ -857,17 +851,21 @@ var _ = Describe("Builder", func() {
 					}
 
 					It("runs each step with the correct local vars", func() {
-						ensureLocalVar(0, "var1", "v1")
-						ensureLocalVar(0, "var2", "v1")
+						ensureLocalVar(0, "var1", "a1")
+						ensureLocalVar(0, "var2", "b1")
+						ensureLocalVar(0, "var3", "c1")
 
-						ensureLocalVar(1, "var1", "v1")
-						ensureLocalVar(1, "var2", "v2")
+						ensureLocalVar(1, "var1", "a1")
+						ensureLocalVar(1, "var2", "b2")
+						ensureLocalVar(1, "var3", "c1")
 
-						ensureLocalVar(2, "var1", "v2")
-						ensureLocalVar(2, "var2", "v1")
+						ensureLocalVar(2, "var1", "a2")
+						ensureLocalVar(2, "var2", "b1")
+						ensureLocalVar(2, "var3", "c1")
 
-						ensureLocalVar(3, "var1", "v2")
-						ensureLocalVar(3, "var2", "v2")
+						ensureLocalVar(3, "var1", "a2")
+						ensureLocalVar(3, "var2", "b2")
+						ensureLocalVar(3, "var3", "c1")
 					})
 
 					It("runs each step with their own local var scope", func() {
@@ -875,7 +873,7 @@ var _ = Describe("Builder", func() {
 						delegate.Variables().AddLocalVar("var1", "modified", false)
 
 						// Other steps remain unchanged
-						ensureLocalVar(1, "var1", "v1")
+						ensureLocalVar(1, "var1", "a1")
 					})
 				})
 			})

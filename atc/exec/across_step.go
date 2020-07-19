@@ -6,7 +6,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
-	"github.com/concourse/concourse/atc"
 )
 
 // AcrossStep is a step of steps to run in parallel. It behaves the same as InParallelStep
@@ -14,7 +13,6 @@ import (
 // lifecycle build events are emitted (Initializing, Starting, and Finished)
 type AcrossStep struct {
 	InParallelStep
-	plan atc.AcrossPlan
 
 	delegate BuildStepDelegate
 	metadata StepMetadata
@@ -22,14 +20,12 @@ type AcrossStep struct {
 
 // Across constructs an AcrossStep.
 func Across(
-	plan atc.AcrossPlan,
-	steps []Step,
+	step InParallelStep,
 	delegate BuildStepDelegate,
 	metadata StepMetadata,
 ) AcrossStep {
 	return AcrossStep{
-		InParallelStep: InParallel(steps, plan.MaxInFlight, plan.FailFast),
-		plan:           plan,
+		InParallelStep: step,
 		delegate:       delegate,
 		metadata:       metadata,
 	}
@@ -40,8 +36,7 @@ func Across(
 func (step AcrossStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("across-step", lager.Data{
-		"var-name": step.plan.Var,
-		"job-id":   step.metadata.JobID,
+		"job-id": step.metadata.JobID,
 	})
 
 	step.delegate.Initializing(logger)

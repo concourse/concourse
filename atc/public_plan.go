@@ -148,27 +148,25 @@ func (plan InParallelPlan) Public() *json.RawMessage {
 
 func (plan AcrossPlan) Public() *json.RawMessage {
 	type scopedStep struct {
-		Step  *json.RawMessage `json:"step"`
-		Value interface{}      `json:"value"`
+		Step   *json.RawMessage `json:"step"`
+		Values []interface{}    `json:"values"`
 	}
 
 	steps := []scopedStep{}
 	for _, step := range plan.Steps {
 		steps = append(steps, scopedStep{
-			Step:  step.Step.Public(),
-			Value: step.Value,
+			Step:   step.Step.Public(),
+			Values: step.Values,
 		})
 	}
 
 	return enc(struct {
-		Var         string       `json:"var"`
+		Vars        []AcrossVar  `json:"vars"`
 		Steps       []scopedStep `json:"steps"`
-		MaxInFlight int          `json:"max_in_flight,omitempty"`
 		FailFast    bool         `json:"fail_fast,omitempty"`
 	}{
-		Var:         plan.Var,
+		Vars:        plan.Vars,
 		Steps:       steps,
-		MaxInFlight: plan.MaxInFlight,
 		FailFast:    plan.FailFast,
 	})
 }

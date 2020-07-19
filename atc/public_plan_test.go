@@ -351,13 +351,46 @@ var _ = Describe("Plan", func() {
 						},
 					},
 					atc.Plan{
-						ID: "37",
+						ID: "38",
 						SetPipeline: &atc.SetPipelinePlan{
 							Name:     "some-pipeline",
 							Team:     "some-team",
 							File:     "some-file",
 							VarFiles: []string{"vf"},
 							Vars:     map[string]interface{}{"k1": "v1"},
+						},
+					},
+					atc.Plan{
+						ID: "39",
+						Across: &atc.AcrossPlan{
+							Vars: []atc.AcrossVar{
+								{
+									Var:         "v1",
+									Values:      []interface{}{"a"},
+									MaxInFlight: 1,
+								},
+								{
+									Var:         "v2",
+									Values:      []interface{}{"b"},
+									MaxInFlight: 2,
+								},
+							},
+							Steps: []atc.VarScopedPlan{
+								{
+									Step: atc.Plan{
+										ID: "40",
+										Task: &atc.TaskPlan{
+											Name:       "name",
+											ConfigPath: "some/config/path.yml",
+											Config: &atc.TaskConfig{
+												Params: atc.TaskEnv{"some": "secret"},
+											},
+										},
+									},
+									Values: []interface{}{"a", "b"},
+								},
+							},
+							FailFast: true,
 						},
 					},
 				},
@@ -620,10 +653,40 @@ var _ = Describe("Plan", func() {
 	  }
 	},
 	{
-	  "id": "37",
+	  "id": "38",
 	  "set_pipeline": {
 		"name": "some-pipeline",
 		"team": "some-team"
+	  }
+	},
+	{
+	  "id": "39",
+	  "across": {
+	    "vars": [
+	      {
+	        "name": "v1",
+	        "values": ["a"],
+	        "max_in_flight": 1
+	      },
+	      {
+	        "name": "v2",
+	        "values": ["b"],
+	        "max_in_flight": 2
+	      }
+	    ],
+	    "steps": [
+	      {
+	        "step": {
+	          "id": "40",
+	          "task": {
+	            "name": "name",
+	            "privileged": false
+	          }
+	        },
+	        "values": ["a", "b"]
+	      }
+	    ],
+	    "fail_fast": true
 	  }
 	}
   ]

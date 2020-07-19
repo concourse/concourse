@@ -237,17 +237,7 @@ func (builder *stepBuilder) buildParallelStep(build db.Build, plan atc.Plan, cre
 }
 
 func (builder *stepBuilder) buildAcrossStep(build db.Build, plan atc.Plan, credVarsTracker vars.CredVarsTracker) exec.Step {
-
-	var steps []exec.Step
-
-	for _, p := range plan.Across.Steps {
-		scopedCredVarsTracker := credVarsTracker.NewLocalScope()
-		// Don't redact because the `list` operation of a var_source should return identifiers
-		// which should be publicly accessible. For static across steps, the static list is
-		// embedded directly in the pipeline
-		scopedCredVarsTracker.AddLocalVar(plan.Across.Var, p.Value, false)
-		steps = append(steps, builder.buildStep(build, p.Step, scopedCredVarsTracker))
-	}
+	step := builder.buildAcrossInParallelStep(build, 0, *plan.Across, credVarsTracker)
 
 	stepMetadata := builder.stepMetadata(
 		build,
@@ -255,11 +245,41 @@ func (builder *stepBuilder) buildAcrossStep(build db.Build, plan atc.Plan, credV
 	)
 
 	return exec.Across(
-		*plan.Across,
-		steps,
+		step,
 		builder.delegateFactory.BuildStepDelegate(build, plan.ID, credVarsTracker),
 		stepMetadata,
 	)
+}
+
+func (builder *stepBuilder) buildAcrossInParallelStep(build db.Build, varIndex int, plan atc.AcrossPlan, credVarsTracker vars.CredVarsTracker) exec.InParallelStep {
+	if varIndex == len(plan.Vars)-1 {
+		var steps []exec.Step
+		for _, step := range plan.Steps {
+			scopedCredVarsTracker := credVarsTracker.NewLocalScope()
+			for i, v := range plan.Vars {
+				// Don't redact because the `list` operation of a var_source should return identifiers
+				// which should be publicly accessible. For static across steps, the static list is
+				// embedded directly in the pipeline
+				scopedCredVarsTracker.AddLocalVar(v.Var, step.Values[i], false)
+			}
+			steps = append(steps, builder.buildStep(build, step.Step, scopedCredVarsTracker))
+		}
+		return exec.InParallel(steps, plan.Vars[varIndex].MaxInFlight, plan.FailFast)
+	}
+	stepsPerValue := 1
+	for _, v := range plan.Vars[varIndex+1:] {
+		stepsPerValue *= len(v.Values)
+	}
+	numValues := len(plan.Vars[varIndex].Values)
+	substeps := make([]exec.Step, numValues)
+	for i := range substeps {
+		startIndex := i * stepsPerValue
+		endIndex := (i + 1) * stepsPerValue
+		planCopy := plan
+		planCopy.Steps = plan.Steps[startIndex:endIndex]
+		substeps[i] = builder.buildAcrossInParallelStep(build, varIndex+1, planCopy, credVarsTracker)
+	}
+	return exec.InParallel(substeps, plan.Vars[varIndex].MaxInFlight, plan.FailFast)
 }
 
 func (builder *stepBuilder) buildDoStep(build db.Build, plan atc.Plan, credVarsTracker vars.CredVarsTracker) exec.Step {
