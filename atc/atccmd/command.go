@@ -721,7 +721,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
 
-	tokenVerifier := cmd.constructTokenVerifier(httpClient)
+	tokenVerifier := cmd.constructTokenVerifier(dbAccessTokenFactory)
 
 	accessFactory := accessor.NewAccessFactory(
 		cmd.SystemClaimKey,
@@ -1721,17 +1721,14 @@ func (cmd *RunCommand) constructLoginHandler(
 	return skyserver.NewSkyHandler(skyServer), nil
 }
 
-func (cmd *RunCommand) constructTokenVerifier(httpClient *http.Client) accessor.TokenVerifier {
-
-	publicKeyPath, _ := url.Parse("/sky/issuer/keys")
-	publicKeyURL := cmd.ExternalURL.URL.ResolveReference(publicKeyPath)
+func (cmd *RunCommand) constructTokenVerifier(accessTokenFactory db.AccessTokenFactory) accessor.TokenVerifier {
 
 	validClients := []string{flyClientID}
 	for clientId, _ := range cmd.Auth.AuthFlags.Clients {
 		validClients = append(validClients, clientId)
 	}
 
-	return accessor.NewVerifier(httpClient, publicKeyURL, validClients)
+	return accessor.NewVerifier(accessTokenFactory, validClients)
 }
 
 func (cmd *RunCommand) constructAPIHandler(

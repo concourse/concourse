@@ -1,63 +1,47 @@
 package accessor_test
 
 import (
-	"bytes"
-	"crypto/rand"
-	"crypto/rsa"
-	"encoding/base64"
-	"encoding/binary"
-	"fmt"
+	"errors"
 	"net/http"
-	"net/url"
-	"strings"
+	"time"
 
+	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/concourse/concourse/atc/api/accessor"
-	"github.com/onsi/gomega/ghttp"
-	"gopkg.in/square/go-jose.v2"
 )
-
-type Verifier interface {
-	Verify(*http.Request) (map[string]interface{}, error)
-}
 
 var _ = Describe("Verifier", func() {
 	var (
-		key        *rsa.PrivateKey
-		authServer *ghttp.Server
+		accessTokenFetcher *accessorfakes.FakeAccessTokenFetcher
+		accessToken        *dbfakes.FakeAccessToken
 
-		req      *http.Request
-		verifier Verifier
+		req *http.Request
 
-		err    error
-		claims map[string]interface{}
+		verifier accessor.TokenVerifier
+
+		err error
 	)
 
 	BeforeEach(func() {
+		accessTokenFetcher = new(accessorfakes.FakeAccessTokenFetcher)
+		accessToken = new(dbfakes.FakeAccessToken)
+		accessTokenFetcher.GetAccessTokenReturns(accessToken, true, nil)
 
-		key, err = rsa.GenerateKey(rand.Reader, 2048)
-		Expect(err).NotTo(HaveOccurred())
+		req, _ = http.NewRequest("GET", "localhost:8080", nil)
+		req.Header.Set("Authorization", "bearer 1234567890")
 
-		authServer = ghttp.NewServer()
-		authServer.SetAllowUnhandledRequests(true)
-
-		req, err = http.NewRequest("GET", "localhost:8080", nil)
-		Expect(err).NotTo(HaveOccurred())
-
-		keysURL, _ := url.Parse(authServer.URL() + "/keys")
-		verifier = accessor.NewVerifier(http.DefaultClient, keysURL, []string{"some-aud"})
-	})
-
-	AfterEach(func() {
-		authServer.Close()
+		verifier = accessor.NewVerifier(accessTokenFetcher, []string{"some-aud"})
 	})
 
 	Describe("Verify", func() {
 
 		JustBeforeEach(func() {
-			claims, err = verifier.Verify(req)
+			_, err = verifier.Verify(req)
 		})
 
 		Context("when request has no token", func() {
@@ -72,7 +56,7 @@ var _ = Describe("Verifier", func() {
 
 		Context("when request has an invalid auth header", func() {
 			BeforeEach(func() {
-				req.Header.Add("Authorization", "1234567890")
+				req.Header.Set("Authorization", "invalid")
 			})
 
 			It("fails verification", func() {
@@ -82,7 +66,7 @@ var _ = Describe("Verifier", func() {
 
 		Context("when request has an invalid token type", func() {
 			BeforeEach(func() {
-				req.Header.Add("Authorization", "not-bearer 1234567890")
+				req.Header.Set("Authorization", "not-bearer 1234567890")
 			})
 
 			It("fails verification", func() {
@@ -90,9 +74,19 @@ var _ = Describe("Verifier", func() {
 			})
 		})
 
-		Context("when request has an invalid token", func() {
+		Context("when getting the access token errors", func() {
 			BeforeEach(func() {
-				req.Header.Add("Authorization", fmt.Sprintf("bearer %s", "29384q29jdhkwjdhs"))
+				accessTokenFetcher.GetAccessTokenReturns(nil, false, errors.New("db error"))
+			})
+
+			It("errors", func() {
+				Expect(err).To(MatchError("db error"))
+			})
+		})
+
+		Context("when the token is not found in the DB", func() {
+			BeforeEach(func() {
+				accessTokenFetcher.GetAccessTokenReturns(nil, false, nil)
 			})
 
 			It("fails verification", func() {
@@ -100,169 +94,51 @@ var _ = Describe("Verifier", func() {
 			})
 		})
 
-		Context("when request has a token with an invalid signature", func() {
+		Context("when the claims have expired", func() {
 			BeforeEach(func() {
-				req.Header.Add("Authorization", fmt.Sprintf("bearer %s", "eyJhbGciOiJSUzI1NiIsImtpZCI6ImtpZCJ9.eyJzdWIiOiAic29tZS1zdWIiLCAiZXhwIjogMH0.eiDPnv44MuLYfL9K0H6METeKDQSzmrSmUHAKxpXSZTIXa20VJurNMeBUF9uG4sAMoeNKlE4UEHrcn4xNtg8iwGqSMpLUNtVpuZFogKL3TFjhBha9LTNoH3uP5jjZB0MXMXu_xc9DM9qZnP7Efrm8zmDY7AGaK13sSVrneHbQ2VufsnzYxro1kXCyw5_QEyyemTrMLLyFdfe6XmZa20O4YthZor53vR9Iuaq1rrtTbYCiMIzVMdRrnX2B5FAMLqJso7XajKa5U9mTipW_YPHu8YOlUuu8HeuvmhrotEy5uD8HUAmVdkOIlKkP661cDVAl-HfcpVtCBmAGLFTSH-ANJw"))
-			})
-
-			Context("when the auth server responds with an error", func() {
-				BeforeEach(func() {
-					authServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/keys"),
-							ghttp.RespondWith(http.StatusInternalServerError, nil),
-						),
-					)
-				})
-
-				It("tries to fetch a public key from the auth server", func() {
-					Expect(authServer.ReceivedRequests()).To(HaveLen(1))
-				})
-
-				It("fails verification", func() {
-					Expect(err).To(Equal(accessor.ErrVerificationFetchFailed))
+				oneHourAgo := jwt.NewNumericDate(time.Now().Add(-1 * time.Hour))
+				accessToken.ClaimsReturns(db.Claims{
+					Claims: jwt.Claims{
+						Expiry: oneHourAgo,
+					},
 				})
 			})
 
-			Context("when the auth server responds with a valid public key", func() {
-				BeforeEach(func() {
-					authServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/keys"),
-							ghttp.RespondWithJSONEncoded(http.StatusOK, map[string]interface{}{
-								"keys": []map[string]string{{
-									"kty": "RSA",
-									"kid": "kid",
-									"n":   n(&key.PublicKey),
-									"e":   e(&key.PublicKey),
-								}},
-							}),
-						),
-					)
-				})
-
-				It("tries to fetch a public key from the auth server", func() {
-					Expect(authServer.ReceivedRequests()).To(HaveLen(1))
-				})
-
-				It("fails verification", func() {
-					Expect(err).To(Equal(accessor.ErrVerificationInvalidSignature))
-				})
+			It("fails verification", func() {
+				Expect(err).To(Equal(accessor.ErrVerificationTokenExpired))
 			})
 		})
 
-		Context("when the token has a valid signature", func() {
+		Context("whne the claims have invalid audience", func() {
 			BeforeEach(func() {
-				authServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/keys"),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, map[string]interface{}{
-							"keys": []map[string]string{{
-								"kty": "RSA",
-								"kid": "kid",
-								"n":   n(&key.PublicKey),
-								"e":   e(&key.PublicKey),
-							}},
-						}),
-					),
-				)
-			})
-
-			Context("when the token is expired", func() {
-				BeforeEach(func() {
-					token := newToken(key, `{"sub": "some-sub", "exp": 0}`)
-
-					req.Header.Add("Authorization", fmt.Sprintf("bearer %s", token))
-				})
-
-				It("fails verification", func() {
-					Expect(err).To(Equal(accessor.ErrVerificationTokenExpired))
+				oneHourFromNow := jwt.NewNumericDate(time.Now().Add(1 * time.Hour))
+				accessToken.ClaimsReturns(db.Claims{
+					Claims: jwt.Claims{
+						Expiry:   oneHourFromNow,
+						Audience: []string{"invalid"},
+					},
 				})
 			})
 
-			Context("when the token has an invalid audience", func() {
-				BeforeEach(func() {
-					token := newToken(key, `{"sub": "some-sub", "exp": 9999999999, "aud": "not-aud"}`)
+			It("fails verification", func() {
+				Expect(err).To(Equal(accessor.ErrVerificationInvalidAudience))
+			})
+		})
 
-					req.Header.Add("Authorization", fmt.Sprintf("bearer %s", token))
-				})
-
-				It("fails verification", func() {
-					Expect(err).To(Equal(accessor.ErrVerificationInvalidAudience))
+		Context("when the claims are valid", func() {
+			BeforeEach(func() {
+				oneHourFromNow := jwt.NewNumericDate(time.Now().Add(1 * time.Hour))
+				accessToken.ClaimsReturns(db.Claims{
+					Claims: jwt.Claims{
+						Expiry:   oneHourFromNow,
+						Audience: []string{"some-aud"},
+					},
 				})
 			})
 
-			Context("when the token has valid claims", func() {
-
-				BeforeEach(func() {
-					token := newToken(key, `{"sub": "some-sub", "exp": 9999999999, "aud": "some-aud"}`)
-
-					req.Header.Add("Authorization", fmt.Sprintf("bearer %s", token))
-				})
-
-				It("verifies the token", func() {
-					Expect(err).NotTo(HaveOccurred())
-					Expect(claims).Should(HaveKeyWithValue("sub", "some-sub"))
-					Expect(claims).Should(HaveKeyWithValue("aud", "some-aud"))
-				})
-
-				Context("when handling multiple verifications", func() {
-					BeforeEach(func() {
-						claims, err := verifier.Verify(req)
-
-						Expect(err).NotTo(HaveOccurred())
-						Expect(claims).Should(HaveKeyWithValue("sub", "some-sub"))
-						Expect(claims).Should(HaveKeyWithValue("aud", "some-aud"))
-
-						claims, err = verifier.Verify(req)
-
-						Expect(err).NotTo(HaveOccurred())
-						Expect(claims).Should(HaveKeyWithValue("sub", "some-sub"))
-						Expect(claims).Should(HaveKeyWithValue("aud", "some-aud"))
-					})
-
-					It("only fetches the public key once", func() {
-						Expect(authServer.ReceivedRequests()).To(HaveLen(1))
-					})
-				})
+			It("succeeds", func() {
+				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 	})
 })
-
-func n(pub *rsa.PublicKey) string {
-	return encode(pub.N.Bytes())
-}
-
-func e(pub *rsa.PublicKey) string {
-	data := make([]byte, 8)
-	binary.BigEndian.PutUint64(data, uint64(pub.E))
-	return encode(bytes.TrimLeft(data, "\x00"))
-}
-
-func encode(payload []byte) string {
-	result := base64.URLEncoding.EncodeToString(payload)
-	return strings.TrimRight(result, "=")
-}
-
-func newToken(key *rsa.PrivateKey, claims string) string {
-
-	signingKey := jose.SigningKey{
-		Algorithm: jose.RS256,
-		Key:       key,
-	}
-
-	var signerOpts = &jose.SignerOptions{}
-	signerOpts.WithHeader("kid", "kid")
-
-	signer, err := jose.NewSigner(signingKey, signerOpts)
-	Expect(err).NotTo(HaveOccurred())
-
-	object, err := signer.Sign([]byte(claims))
-	Expect(err).NotTo(HaveOccurred())
-
-	token, err := object.CompactSerialize()
-	Expect(err).NotTo(HaveOccurred())
-
-	return token
-}
