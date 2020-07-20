@@ -509,7 +509,6 @@ var _ = Describe("login Command", func() {
 						ghttp.RespondWithJSONEncoded(200, map[string]string{
 							"token_type":   "Bearer",
 							"access_token": "access-token",
-							"id_token":     "some-token",
 						}),
 					),
 					userInfoHandler(),
@@ -555,7 +554,7 @@ var _ = Describe("login Command", func() {
 							infoHandler(),
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
-								ghttp.VerifyHeaderKV("Authorization", "Bearer some-token"),
+								ghttp.VerifyHeaderKV("Authorization", "Bearer access-token"),
 								ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
 									{Name: "pipeline-1"},
 								}),
@@ -594,14 +593,13 @@ var _ = Describe("login Command", func() {
 								ghttp.RespondWithJSONEncoded(200, map[string]string{
 									"token_type":   "Bearer",
 									"access_token": "some-new-token",
-									"id_token":     "some-new-id-token",
 								}),
 							),
 							userInfoHandler(),
 							infoHandler(),
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines"),
-								ghttp.VerifyHeaderKV("Authorization", "Bearer some-new-id-token"),
+								ghttp.VerifyHeaderKV("Authorization", "Bearer some-new-token"),
 								ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
 									{Name: "pipeline-2"},
 								}),
