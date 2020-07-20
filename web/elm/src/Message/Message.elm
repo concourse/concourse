@@ -8,7 +8,7 @@ module Message.Message exposing
     , VisibilityAction(..)
     )
 
-import Concourse
+import Concourse exposing (DatabaseID)
 import Concourse.Cli as Cli
 import Concourse.Pagination exposing (Page)
 import Routes exposing (StepID)
@@ -87,7 +87,7 @@ type DomID
     | SideBarResizeHandle
     | SideBarTeam SideBarSection String
     | SideBarPipeline SideBarSection Concourse.PipelineIdentifier
-    | SideBarStarIcon Int -- Concourse.Pipeline.id
+    | SideBarStarIcon DatabaseID
     | Dashboard
     | DashboardGroup String
 

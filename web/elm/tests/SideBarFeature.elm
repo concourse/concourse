@@ -863,7 +863,7 @@ iAmLookingAtTheHamburgerMenu =
 itIsClickable domID =
     Expect.all
         [ Query.has [ style "cursor" "pointer" ]
-        , Event.simulate Common.leftClickEvent
+        , Event.simulate Data.leftClickEvent
             >> Event.expect
                 (TopLevelMessage.Update <|
                     Message.Click domID

@@ -68,7 +68,7 @@ type alias Pipeline =
     , background : Styles.Background
     , href : String
     , domID : DomID
-    , favIcon :
+    , starIcon :
         { opacity : Styles.Opacity
         , filled : Bool
         }
@@ -94,7 +94,7 @@ viewPipeline p =
             )
             [ Html.text p.name.text ]
         , Html.div
-            (Styles.pipelineFavourite p.favIcon
+            (Styles.pipelineFavourite p.starIcon
                 ++ [ onLeftClickStopPropagation <| Click <| SideBarStarIcon p.id ]
             )
             []

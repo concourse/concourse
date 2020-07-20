@@ -14,7 +14,7 @@ import Assets
 import Base64
 import Browser.Dom exposing (Viewport, getElement, getViewport, getViewportOf, setViewportOf)
 import Browser.Navigation as Navigation
-import Concourse exposing (encodeJob, encodePipeline, encodeTeam)
+import Concourse exposing (DatabaseID, encodeJob, encodePipeline, encodeTeam)
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Page)
 import Json.Decode
@@ -190,7 +190,7 @@ type Effect
     | GetViewportOf DomID
     | GetElement DomID
     | SyncTextareaHeight DomID
-    | SaveFavoritedPipelines (Set Int) -- Set of Concourse.Pipeline.id
+    | SaveFavoritedPipelines (Set DatabaseID)
     | LoadFavoritedPipelines
 
 

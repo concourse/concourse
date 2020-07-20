@@ -25,12 +25,12 @@ all =
                         [ Common.contains Subscription.OnNonHrefLinkClicked
                         , Common.contains Subscription.OnTokenReceived
                         ]
-        , test "should subscribe to the favorited pipelines response" <|
+        , test "subscribes to the favorited pipelines response" <|
             \_ ->
                 Common.init "/teams/t/pipelines/p/"
                     |> Application.subscriptions
                     |> Common.contains Subscription.OnFavoritedPipelinesReceived
-        , test "should load favorited pipelines on init" <|
+        , test "loads favorited pipelines on init" <|
             \_ ->
                 Application.init
                     { turbulenceImgSrc = ""

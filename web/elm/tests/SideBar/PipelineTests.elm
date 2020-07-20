@@ -51,7 +51,7 @@ all =
                         \_ ->
                             pipeline
                                 |> viewPipeline { defaultState | active = True, hovered = True }
-                                |> .favIcon
+                                |> .starIcon
                                 |> Expect.equal { opacity = Styles.Bright, filled = False }
                     ]
                 , describe "when favorited"
@@ -64,7 +64,7 @@ all =
                                         , hovered = True
                                         , favorited = True
                                     }
-                                |> .favIcon
+                                |> .starIcon
                                 |> Expect.equal { opacity = Styles.Bright, filled = True }
                     ]
                 ]
