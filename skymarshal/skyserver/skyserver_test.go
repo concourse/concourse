@@ -321,32 +321,6 @@ var _ = Describe("Sky Server API", func() {
 						})
 					})
 
-					Context("when the server response does not include an id_token", func() {
-
-						BeforeEach(func() {
-							dexServer.AppendHandlers(
-								ghttp.CombineHandlers(
-									ghttp.VerifyRequest("POST", "/token"),
-									ghttp.VerifyHeaderKV("Authorization", "Basic ZGV4LWNsaWVudC1pZDpkZXgtY2xpZW50LXNlY3JldA=="),
-									ghttp.VerifyFormKV("grant_type", "authorization_code"),
-									ghttp.VerifyFormKV("code", "some-code"),
-									ghttp.RespondWithJSONEncoded(http.StatusOK, map[string]string{
-										"token_type":   "some-type",
-										"access_token": "some-token",
-									}),
-								),
-							)
-						})
-
-						It("errors", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-						})
-
-						It("shows token exchange error", func() {
-							Expect(string(body)).To(Equal("invalid id_token\n"))
-						})
-					})
-
 					Context("when the server returns a token", func() {
 
 						BeforeEach(func() {
@@ -460,10 +434,10 @@ var _ = Describe("Sky Server API", func() {
 										Expect(fakeTokenMiddleware.UnsetStateTokenCallCount()).To(Equal(1))
 									})
 
-									It("saves the id-token from the response", func() {
+									It("saves the access token from the response", func() {
 										Expect(fakeTokenMiddleware.SetAuthTokenCallCount()).To(Equal(1))
 										_, tokenString, _ := fakeTokenMiddleware.SetAuthTokenArgsForCall(0)
-										Expect(tokenString).To(Equal("some-type some-id-token"))
+										Expect(tokenString).To(Equal("some-type some-token"))
 									})
 
 									It("sets a new csrf token", func() {

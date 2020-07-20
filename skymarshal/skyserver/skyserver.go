@@ -161,13 +161,6 @@ func (s *SkyServer) Callback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	dexToken, err = token.UseIDToken(dexToken)
-	if err != nil {
-		logger.Error("failed-to-convert-id-token", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
 	s.Redirect(w, r, dexToken, decode(stateToken).RedirectURI)
 }
 
