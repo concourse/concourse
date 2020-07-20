@@ -44,6 +44,18 @@ var _ = Describe("PipelineLifecycle", func() {
 			})
 		})
 
+		Context("parent pipeline is archived", func() {
+			BeforeEach(func() {
+				defaultPipeline.Archive()
+			})
+
+			It("should archive all child pipelines", func() {
+				Expect(pipelinesArchived).To(Equal(1))
+				childPipeline.Reload()
+				Expect(childPipeline.Archived()).To(BeTrue())
+			})
+		})
+
 		Context("job is removed from the parent pipeline", func() {
 			BeforeEach(func() {
 				defaultPipelineConfig.Jobs = atc.JobConfigs{

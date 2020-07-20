@@ -66,6 +66,18 @@ var _ = Describe("archive-pipeline", func() {
 		})
 	})
 
+	Context("when the parent pipeline is archived", func() {
+		JustBeforeEach(func() {
+			fly("archive-pipeline", "-n", "-p", parentPipeline)
+		})
+
+		It("archives the child pipeline", func() {
+			Eventually(func() *gbytes.Buffer {
+				return flyUnsafe("get-pipeline", "-p", childPipeline).Err
+			}, timeout, interval).Should(gbytes.Say("pipeline not found"), "the pipeline should be archived")
+		})
+	})
+
 	Context("when the job is removed from the parent pipeline config", func() {
 		It("archives the child pipeline", func() {
 			execS := fly("get-pipeline", "-p", childPipeline)

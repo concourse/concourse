@@ -35,14 +35,17 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() (int, error) {
 
 	rows, err := pipelinesQuery.
 		LeftJoin("jobs j ON j.id = p.parent_job_id").
+		LeftJoin("pipelines p2 ON j.pipeline_id = p2.id").
 		Where(sq.Or{
 			// parent pipeline was destroyed
 			sq.And{
-				sq.NotEq{"parent_build_id": nil},
+				sq.NotEq{"p.parent_build_id": nil},
 				sq.Eq{"j.id": nil},
 			},
 			// pipeline was set by a job. The job was removed from the parent pipeline
 			sq.Eq{"j.active": false},
+			// parent pipeline was archived
+			sq.Eq{"p2.archived": true},
 		}).
 		RunWith(tx).
 		Query()
