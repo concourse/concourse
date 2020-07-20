@@ -23,9 +23,13 @@ type accessTokenFactory struct {
 }
 
 func (a *accessTokenFactory) CreateAccessToken(token string, claims Claims) error {
+	var expiry int64
+	if claims.Expiry != nil {
+		expiry = int64(*claims.Expiry)
+	}
 	_, err := psql.Insert("access_tokens").
 		Columns("token", "sub", "expires_at", "claims").
-		Values(token, claims.Sub, time.Unix(claims.ExpiresAt, 0), claims).
+		Values(token, claims.Subject, time.Unix(expiry, 0), claims).
 		RunWith(a.conn).
 		Exec()
 	if err != nil {

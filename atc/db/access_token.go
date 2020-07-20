@@ -4,6 +4,8 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+
+	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 //go:generate counterfeiter . AccessToken
@@ -26,32 +28,23 @@ func scanAccessToken(rcv *accessToken, scan scannable) error {
 }
 
 type Claims struct {
-	Sub       string                 `json:"sub"`
-	ExpiresAt int64                  `json:"exp"`
-	Extra     map[string]interface{} `json:"-"`
+	jwt.Claims
+	RawClaims map[string]interface{} `json:"-"`
 }
 
 func (c Claims) MarshalJSON() ([]byte, error) {
-	m := map[string]interface{}{}
-	m["sub"] = c.Sub
-	m["exp"] = c.ExpiresAt
-	for k, v := range c.Extra {
-		m[k] = v
-	}
-	return json.Marshal(m)
+	return json.Marshal(c.RawClaims)
 }
 
 func (c *Claims) UnmarshalJSON(data []byte) error {
 	type target Claims
 	var t target
-	if err := json.Unmarshal(data, &t); err != nil {
+	if err := json.Unmarshal(data, &t.Claims); err != nil {
 		return err
 	}
-	if err := json.Unmarshal(data, &t.Extra); err != nil {
+	if err := json.Unmarshal(data, &t.RawClaims); err != nil {
 		return err
 	}
-	delete(t.Extra, "sub")
-	delete(t.Extra, "exp")
 
 	*c = Claims(t)
 	return nil
