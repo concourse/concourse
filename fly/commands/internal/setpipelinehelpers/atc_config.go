@@ -66,11 +66,11 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 		})
 	}
 
+	diffExists := diff(existingConfig, newConfig)
+
 	if len(atcConfig.CommandWarnings) > 0 {
 		displayhelpers.ShowWarnings(atcConfig.CommandWarnings)
 	}
-
-	diffExists := diff(existingConfig, newConfig)
 
 	if !diffExists {
 		fmt.Println("no changes to apply")
