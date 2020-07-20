@@ -1,6 +1,8 @@
 package db
 
 import (
+	"database/sql"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc/db/lock"
 )
@@ -31,23 +33,9 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() (int, error) {
 
 	defer Rollback(tx)
 
-	latestSuccessfulBuilds := `WITH successful_builds AS (
-      SELECT DISTINCT ON (job_id) id, job_id
-      FROM builds
-      WHERE status='succeeded'
-      ORDER BY job_id, id DESC
-      )`
 	rows, err := pipelinesQuery.
-		Prefix(latestSuccessfulBuilds).
 		LeftJoin("jobs j ON j.id = p.parent_job_id").
-		LeftJoin("successful_builds ON successful_builds.job_id = p.parent_job_id").
 		Where(sq.Or{
-			// pipeline is no longer set by the parent pipeline
-			sq.And{
-				sq.NotEq{"parent_build_id": nil},
-				sq.Eq{"archived": false},
-				sq.Expr("p.parent_build_id < successful_builds.id"),
-			},
 			// parent pipeline was destroyed
 			sq.And{
 				sq.NotEq{"parent_build_id": nil},
@@ -63,21 +51,9 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() (int, error) {
 	}
 	defer rows.Close()
 
-	var archivedPipelines []pipeline
-	for rows.Next() {
-		p := newPipeline(pl.conn, pl.lockFactory)
-		if err = scanPipeline(p, rows); err != nil {
-			return 0, err
-		}
-
-		archivedPipelines = append(archivedPipelines, *p)
-	}
-
-	for _, pipeline := range archivedPipelines {
-		err = pipeline.archive(tx)
-		if err != nil {
-			return 0, err
-		}
+	archivedPipelines, err := archivePipelines(tx, pl.conn, pl.lockFactory, rows)
+	if err != nil {
+		return 0, err
 	}
 
 	err = tx.Commit()
@@ -86,4 +62,25 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() (int, error) {
 	}
 
 	return len(archivedPipelines), nil
+}
+
+func archivePipelines(tx Tx, conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) ([]pipeline, error) {
+	var archivedPipelines []pipeline
+	for rows.Next() {
+		p := newPipeline(conn, lockFactory)
+		if err := scanPipeline(p, rows); err != nil {
+			return nil, err
+		}
+
+		archivedPipelines = append(archivedPipelines, *p)
+	}
+
+	for _, pipeline := range archivedPipelines {
+		err := pipeline.archive(tx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return archivedPipelines, nil
 }

@@ -549,6 +549,26 @@ func (b *build) Finish(status BuildStatus) error {
 		if err != nil {
 			return err
 		}
+
+		pipelineRows, err := pipelinesQuery.
+			Where(
+				sq.And{
+					sq.Eq{"archived": false},
+					sq.Eq{"parent_job_id": b.jobID},
+					sq.Lt{"parent_build_id": b.id},
+				},
+			).
+			RunWith(tx).
+			Query()
+		if err != nil {
+			return err
+		}
+		defer pipelineRows.Close()
+
+		_, err = archivePipelines(tx, b.conn, b.lockFactory, pipelineRows)
+		if err != nil {
+			return err
+		}
 	}
 
 	if b.jobID != 0 {

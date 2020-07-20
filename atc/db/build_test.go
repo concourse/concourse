@@ -578,6 +578,39 @@ var _ = Describe("Build", func() {
 				Expect(noRequestJob.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
 			})
 		})
+
+		Context("archiving pipelines", func() {
+			Context("build is successful", func() {
+				It("archives pipelines no longer set by the job", func() {
+					By("creating a child pipeline")
+					build, _ := defaultJob.CreateBuild()
+					childPipeline, _, _ := build.SavePipeline("child1-pipeline", defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
+					build.Finish(db.BuildStatusSucceeded)
+
+					By("no longer setting the child pipeline")
+					build2, _ := defaultJob.CreateBuild()
+					build2.Finish(db.BuildStatusSucceeded)
+
+					childPipeline.Reload()
+					Expect(childPipeline.Archived()).To(BeTrue())
+				})
+			})
+			Context("build is not successful", func() {
+				It("does not archive pipelines", func() {
+					By("creating a child pipeline")
+					build, _ := defaultJob.CreateBuild()
+					childPipeline, _, _ := build.SavePipeline("child1-pipeline", defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
+					build.Finish(db.BuildStatusSucceeded)
+
+					By("no longer setting the child pipeline")
+					build2, _ := defaultJob.CreateBuild()
+					build2.Finish(db.BuildStatusFailed)
+
+					childPipeline.Reload()
+					Expect(childPipeline.Archived()).To(BeFalse())
+				})
+			})
+		})
 	})
 
 	Describe("Abort", func() {
