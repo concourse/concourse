@@ -1605,7 +1605,7 @@ var _ = Describe("Pipelines API", func() {
 								"warnings": [
 									{
 										"type": "invalid_identifier",
-										"message": "pipeline: '_some-new-name' is not a valid identifier"
+										"message": "pipeline: '_some-new-name' is not a valid identifier: must start with a lowercase letter"
 									}
 								]
 							}`))

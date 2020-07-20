@@ -11,6 +11,7 @@ var _ = Describe("ValidateIdentifier", func() {
 	type testCase struct {
 		description string
 		identifier  string
+		message     string
 		warning     bool
 	}
 
@@ -28,31 +29,37 @@ var _ = Describe("ValidateIdentifier", func() {
 		{
 			description: "starts with a number",
 			identifier:  "1something",
+			message:     "must start with a lowercase letter",
 			warning:     true,
 		},
 		{
 			description: "starts with hyphen",
 			identifier:  "-something",
+			message:     "must start with a lowercase letter",
 			warning:     true,
 		},
 		{
 			description: "starts with period",
 			identifier:  ".something",
+			message:     "must start with a lowercase letter",
 			warning:     true,
 		},
 		{
 			description: "starts with an uppercase letter",
 			identifier:  "Something",
+			message:     "must start with a lowercase letter",
 			warning:     true,
 		},
 		{
 			description: "contains an underscore",
 			identifier:  "some_thing",
+			message:     "illegal character '_'",
 			warning:     true,
 		},
 		{
 			description: "contains an uppercase letter",
 			identifier:  "someThing",
+			message:     "illegal character 'T'",
 			warning:     true,
 		},
 	} {
@@ -69,6 +76,7 @@ var _ = Describe("ValidateIdentifier", func() {
 				warning := atc.ValidateIdentifier(test.identifier)
 				if test.warning {
 					Expect(warning).NotTo(BeNil())
+					Expect(warning.Message).To(ContainSubstring(test.message))
 				} else {
 					Expect(warning).To(BeNil())
 				}
