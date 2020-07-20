@@ -18,6 +18,7 @@ module Concourse exposing
     , CheckIdentifier
     , CheckStatus(..)
     , ClusterInfo
+    , DatabaseID
     , HookedPlan
     , Job
     , JobBuildIdentifier
@@ -80,6 +81,10 @@ import Time
 
 type alias AuthToken =
     String
+
+
+type alias DatabaseID =
+    Int
 
 
 decodeAuthToken : Json.Decode.Decoder AuthToken

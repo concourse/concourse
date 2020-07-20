@@ -216,7 +216,7 @@ view model currentPipeline =
         in
         Html.div
             (id "side-bar" :: Styles.sideBar newState)
-            (allFavoritedPipelinesSection model currentPipeline
+            (favoritedPipelinesSection model currentPipeline
                 ++ allPipelinesSection model currentPipeline
                 ++ [ Html.div
                         (Styles.sideBarHandle newState
@@ -288,8 +288,8 @@ allPipelinesSection model currentPipeline =
     ]
 
 
-allFavoritedPipelinesSection : Model m -> Maybe (PipelineScoped a) -> List (Html Message)
-allFavoritedPipelinesSection model currentPipeline =
+favoritedPipelinesSection : Model m -> Maybe (PipelineScoped a) -> List (Html Message)
+favoritedPipelinesSection model currentPipeline =
     if Set.isEmpty model.favoritedPipelines then
         []
 

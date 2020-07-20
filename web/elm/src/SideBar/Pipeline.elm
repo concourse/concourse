@@ -26,10 +26,10 @@ pipeline :
     }
     -> Concourse.Pipeline
     -> Views.Pipeline
-pipeline session p =
+pipeline params p =
     let
         isCurrent =
-            case session.currentPipeline of
+            case params.currentPipeline of
                 Just cp ->
                     cp.pipelineName == p.name && cp.teamName == p.teamName
 
@@ -41,7 +41,7 @@ pipeline session p =
 
         domID =
             SideBarPipeline
-                (if session.isFavoritesSection then
+                (if params.isFavoritesSection then
                     Favorites
 
                  else
@@ -50,7 +50,7 @@ pipeline session p =
                 pipelineId
 
         isHovered =
-            HoverState.isHovered domID session.hovered
+            HoverState.isHovered domID params.hovered
     in
     { icon =
         { asset =
@@ -94,14 +94,14 @@ pipeline session p =
         Routes.toString <|
             Routes.Pipeline { id = pipelineId, groups = [] }
     , domID = domID
-    , favIcon =
+    , starIcon =
         { opacity =
             if isCurrent || isHovered then
                 Styles.Bright
 
             else
                 Styles.Dim
-        , filled = Set.member p.id session.favoritedPipelines
+        , filled = Set.member p.id params.favoritedPipelines
         }
     , id = p.id
     }

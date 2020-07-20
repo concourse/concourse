@@ -10,6 +10,7 @@ module Data exposing
     , jobBuild
     , jobId
     , jobName
+    , leftClickEvent
     , pipeline
     , pipelineName
     , resource
@@ -30,6 +31,8 @@ import Concourse.BuildStatus as BuildStatus
 import Dashboard.Group.Models
 import Dict exposing (Dict)
 import Http
+import Json.Encode
+import Test.Html.Event as Event
 import Time
 
 
@@ -286,3 +289,15 @@ elementPosition =
         , height = 1
         }
     }
+
+
+leftClickEvent : ( String, Json.Encode.Value )
+leftClickEvent =
+    Event.custom "click" <|
+        Json.Encode.object
+            [ ( "ctrlKey", Json.Encode.bool False )
+            , ( "altKey", Json.Encode.bool False )
+            , ( "metaKey", Json.Encode.bool False )
+            , ( "shiftKey", Json.Encode.bool False )
+            , ( "button", Json.Encode.int 0 )
+            ]
