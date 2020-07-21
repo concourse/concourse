@@ -1,5 +1,9 @@
 <!--
 Hi there! Thanks for submitting a pull request to Concourse!
+
+Please ensure your PR title is appropriate because it will be used to generate
+the release note.
+
 To help us review your PR, please fill in the following information.
 -->
 
@@ -24,6 +28,13 @@ Leave a message to whoever is going to review this PR.
 Mainly, pointers to review the PR, and how they can test it.
 -->
 
+## Release Note
+<!--
+If needed, you can leave a detailed description here which will be used to
+generate the release note for the next version of Concourse. The title of the
+PR will also be pulled into the release note.
+-->
+
 ## Contributor Checklist
 <!--
 Most of the PRs should have the following added to them,
@@ -33,14 +44,13 @@ this doesn't apply to all PRs, so it is helpful to tell us what you did.
 - [ ] [Signed] all commits
 - [ ] Added tests (Unit and/or Integration)
 - [ ] Updated [Documentation]
-- [ ] Updated [Release notes]
+- [ ] Added release note (Optional)
 
 [Code of Conduct]: https://github.com/concourse/concourse/blob/master/CODE_OF_CONDUCT.md
 [Contributing Guide]: https://github.com/concourse/concourse/blob/master/CONTRIBUTING.md
 [Anti-patterns]: https://github.com/concourse/concourse/wiki/Anti-Patterns
 [Signed]: https://help.github.com/en/github/authenticating-to-github/signing-commits
 [Documentation]: https://github.com/concourse/docs
-[Release notes]: https://github.com/concourse/concourse/tree/master/release-notes
 
 ## Reviewer Checklist
 <!--
