@@ -17,7 +17,6 @@ import (
 	"github.com/concourse/concourse/atc/atccmd"
 	"github.com/concourse/concourse/atc/postgresrunner"
 	"github.com/concourse/concourse/go-concourse/concourse"
-	"github.com/concourse/concourse/skymarshal/token"
 	"github.com/concourse/flag"
 	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
@@ -123,8 +122,7 @@ func login(atcURL, username, password string) concourse.Client {
 	Expect(err).NotTo(HaveOccurred())
 
 	tokenSource := oauth2.StaticTokenSource(oauthToken)
-	idTokenSource := token.NewTokenSource(tokenSource)
-	httpClient := oauth2.NewClient(ctx, idTokenSource)
+	httpClient := oauth2.NewClient(ctx, tokenSource)
 
 	return concourse.NewClient(atcURL, httpClient, false)
 }
