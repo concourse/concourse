@@ -29,6 +29,7 @@ func containerdGardenServerRunner(
 	requestTimeout time.Duration,
 	dnsServers []string,
 	networkPool string,
+	maxContainers int,
 	restrictedNetworks []string,
 ) (ifrit.Runner, error) {
 	const (
@@ -61,7 +62,11 @@ func containerdGardenServerRunner(
 		return nil, fmt.Errorf("new cni network: %w", err)
 	}
 
-	backendOpts = append(backendOpts, runtime.WithNetwork(cniNetwork))
+	backendOpts = append(backendOpts,
+		runtime.WithNetwork(cniNetwork),
+		runtime.WithRequestTimeout(requestTimeout),
+		runtime.WithMaxContainers(maxContainers),
+	)
 
 	gardenBackend, err := runtime.NewGardenBackend(
 		libcontainerd.New(containerdAddr, namespace, requestTimeout),
@@ -175,6 +180,7 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 		cmd.Garden.RequestTimeout,
 		dnsServers,
 		cmd.ContainerNetworkPool,
+		cmd.Garden.MaxContainers,
 		cmd.Garden.DenyNetworks,
 	)
 	if err != nil {

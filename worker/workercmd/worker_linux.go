@@ -32,6 +32,8 @@ type GardenBackend struct {
 	DNS            DNSConfig     `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
 	DenyNetworks   []string      `long:"deny-network" description:"Network ranges to which traffic from containers will be restricted. Can be specified multiple times."`
 	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
+
+	MaxContainers int `long:"max-containers" default:"0" description:"Max container capacity. 0 means no limit."`
 }
 
 func (cmd WorkerCommand) LessenRequirements(prefix string, command *flags.Command) {
@@ -173,6 +175,3 @@ func (cmd *WorkerCommand) loadResources(logger lager.Logger) ([]atc.WorkerResour
 
 	return types, nil
 }
-
-
-
