@@ -44,7 +44,7 @@ var _ = Describe("SecretsManager", func() {
 	var mockService MockSecretsManagerService
 
 	JustBeforeEach(func() {
-		varDef = vars.VariableDefinition{Ref: vars.VariableReference{Name: "cheery"}}
+		varDef = vars.VariableDefinition{Ref: vars.VariableReference{Path: "cheery"}}
 		t1, err := creds.BuildSecretTemplate("t1", DefaultPipelineSecretTemplate)
 		Expect(t1).NotTo(BeNil())
 		Expect(err).To(BeNil())
@@ -76,7 +76,7 @@ var _ = Describe("SecretsManager", func() {
 					SecretBinary: []byte(`{"name": "yours", "pass": "truely"}`),
 				}, nil
 			}
-			value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.VariableReference{Name: "user"}})
+			value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "user"}})
 			Expect(err).To(BeNil())
 			Expect(found).To(BeTrue())
 			Expect(value).To(BeEquivalentTo(map[string]interface{}{

@@ -158,8 +158,6 @@ func parseVarName(name string) VariableReference {
 	return varRef
 }
 
-// var ErrEmptyVar = errors.New("empty var")
-
 type varsTracker struct {
 	vars Variables
 

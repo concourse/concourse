@@ -40,7 +40,7 @@ func (secrets Secrets) NewSecretLookupPaths(teamName string, pipelineName string
 func (secrets Secrets) Get(ref vars.VariableReference) (interface{}, *time.Time, bool, error) {
 	parts := strings.Split(ref.Path, "/")
 	if len(parts) != 2 {
-		return nil, nil, false, fmt.Errorf("unable to split kubernetes secret path into [namespace]/[secret]: %s", ref.Name)
+		return nil, nil, false, fmt.Errorf("unable to split kubernetes secret path into [namespace]/[secret]: %s", ref.Path)
 	}
 
 	var namespace = parts[0]

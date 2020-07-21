@@ -42,10 +42,10 @@ func (s *Ssm) NewSecretLookupPaths(teamName string, pipelineName string, allowRo
 // Get retrieves the value and expiration of an individual secret
 func (s *Ssm) Get(ref vars.VariableReference) (interface{}, *time.Time, bool, error) {
 	// Try to get the parameter as string value, by name
-	value, expiration, found, err := s.getParameterByName(ref.Name)
+	value, expiration, found, err := s.getParameterByName(ref.Path)
 	if err != nil {
 		s.log.Error("unable to retrieve aws ssm secret by name", err, lager.Data{
-			"secretPath": ref.Name,
+			"secretPath": ref.Path,
 		})
 		return nil, nil, false, err
 	}
@@ -53,10 +53,10 @@ func (s *Ssm) Get(ref vars.VariableReference) (interface{}, *time.Time, bool, er
 		return value, expiration, true, nil
 	}
 	// Parameter may exist as a complex value so try again using parameter name as root path
-	value, expiration, found, err = s.getParameterByPath(ref.Name)
+	value, expiration, found, err = s.getParameterByPath(ref.Path)
 	if err != nil {
 		s.log.Error("unable to retrieve aws ssm secret by path", err, lager.Data{
-			"secretPath": ref.Name,
+			"secretPath": ref.Path,
 		})
 		return nil, nil, false, err
 	}
@@ -102,4 +102,3 @@ func (s *Ssm) getParameterByPath(path string) (interface{}, *time.Time, bool, er
 	}
 	return value, nil, true, nil
 }
-

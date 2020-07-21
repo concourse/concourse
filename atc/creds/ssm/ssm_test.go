@@ -91,7 +91,7 @@ var _ = Describe("Ssm", func() {
 	var mockService MockSsmService
 
 	JustBeforeEach(func() {
-		varDef = vars.VariableDefinition{Ref: vars.VariableReference{Name: "cheery"}}
+		varDef = vars.VariableDefinition{Ref: vars.VariableReference{Path: "cheery"}}
 		t1, err := creds.BuildSecretTemplate("t1", DefaultPipelineSecretTemplate)
 		Expect(t1).NotTo(BeNil())
 		Expect(err).To(BeNil())
@@ -132,7 +132,7 @@ var _ = Describe("Ssm", func() {
 					},
 				}
 			}
-			value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.VariableReference{Name: "user"}})
+			value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "user"}})
 			Expect(value).To(BeEquivalentTo(map[string]interface{}{
 				"name": "yours",
 				"pass": "truely",

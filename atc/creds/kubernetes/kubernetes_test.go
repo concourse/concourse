@@ -69,7 +69,7 @@ var _ = Describe("Kubernetes", func() {
 		ex.Assert(vs)
 	},
 
-		FEntry("bogus vars", Example{
+		Entry("bogus vars", Example{
 			Template: "((bogus)) ((vars))",
 			Err:      vars.UndefinedVarsError{Vars: []string{"bogus", "vars"}},
 		}),

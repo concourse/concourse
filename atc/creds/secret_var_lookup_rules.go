@@ -95,12 +95,11 @@ func (sl SecretLookupWithTemplate) VariableToSecretPath(ref vars.VariableReferen
 	}{
 		sl.TeamName,
 		sl.PipelineName,
-		ref.Name,
+		ref.Path,
 	}
 
 	err := sl.PathTemplate.Execute(&buf, &data)
 	return vars.VariableReference{
-		Name: buf.String(),
-		// TODO: determine what to do with Path and Fields, might need to re-architect cred managers
+		Path: buf.String(),
 	}, err
 }

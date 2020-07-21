@@ -39,7 +39,7 @@ func (c Conjur) NewSecretLookupPaths(teamName string, pipelineName string, allow
 }
 
 func (c Conjur) Get(ref vars.VariableReference) (interface{}, *time.Time, bool, error) {
-	secretValue, err := c.client.RetrieveSecret(ref.Name)
+	secretValue, err := c.client.RetrieveSecret(ref.Path)
 	if err != nil {
 		return nil, nil, false, nil
 	}
