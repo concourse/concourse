@@ -105,7 +105,7 @@ var _ = Describe("Scanner", func() {
 
 				Context("when the resource parent type is a base type", func() {
 					BeforeEach(func() {
-						fakeResource.TypeReturns("base-type")
+						fakeResource.TypeReturns("some-type")
 					})
 
 					Context("when the check interval is parseable", func() {
@@ -134,7 +134,7 @@ var _ = Describe("Scanner", func() {
 							})
 
 							It("creates a check", func() {
-								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
 							})
 
 							It("clears the check error", func() {
@@ -167,8 +167,8 @@ var _ = Describe("Scanner", func() {
 							})
 
 							It("creates a check", func() {
-								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-								_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
+								_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(1)
 								Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
 							})
 
@@ -188,7 +188,7 @@ var _ = Describe("Scanner", func() {
 							})
 
 							It("creates a check", func() {
-								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
 								_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 								Expect(fromVersion).To(BeNil())
 							})
