@@ -767,7 +767,7 @@ favoritedToggle { isFavorited, isClickable, isHovered } =
         else
             "default"
     , style "opacity" <|
-        if isClickable && isHovered then
+        if (isClickable && isHovered) || isFavorited then
             "1"
 
         else

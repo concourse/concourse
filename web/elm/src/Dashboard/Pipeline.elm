@@ -30,6 +30,7 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
 import Routes
+import Set exposing (Set)
 import Time
 import UserState exposing (UserState)
 import Views.Icon as Icon
@@ -109,12 +110,13 @@ pipelineView :
     , hovered : HoverState.HoverState
     , pipelineRunningKeyframes : String
     , userState : UserState
+    , favoritedPipelines : Set Concourse.DatabaseID
     , resourceError : Bool
     , existingJobs : List Concourse.Job
     , layers : List (List Concourse.Job)
     }
     -> Html Message
-pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, resourceError, existingJobs, layers } =
+pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, favoritedPipelines, resourceError, existingJobs, layers } =
     let
         bannerStyle =
             if pipeline.stale then
@@ -153,7 +155,7 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, reso
 
           else
             bodyView hovered layers
-        , footerView userState pipeline now hovered existingJobs
+        , footerView userState favoritedPipelines pipeline now hovered existingJobs
         ]
 
 
@@ -284,12 +286,13 @@ bodyView hovered layers =
 
 footerView :
     UserState
+    -> Set Concourse.DatabaseID
     -> Pipeline
     -> Maybe Time.Posix
     -> HoverState.HoverState
     -> List Concourse.Job
     -> Html Message
-footerView userState pipeline now hovered existingJobs =
+footerView userState favoritedPipelines pipeline now hovered existingJobs =
     let
         spacer =
             Html.div [ style "width" "13.5px" ] []
@@ -332,7 +335,7 @@ footerView userState pipeline now hovered existingJobs =
 
         favoritedIcon =
             favoritedView
-                { isFavorited = pipeline.isFavorited
+                { isFavorited = Set.member pipeline.id favoritedPipelines
                 , isClickable =
                     UserState.isAnonymous userState
                         || UserState.isMember

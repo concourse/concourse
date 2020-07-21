@@ -2515,6 +2515,22 @@ all =
                                             [ Effects.SaveFavoritedPipelines <|
                                                 Set.singleton pipelineId
                                             ]
+                            , test "favorited pipeline card has a bright filled star icon" <|
+                                \_ ->
+                                    whenOnDashboard { highDensity = False }
+                                        |> setup
+                                        |> Tuple.first
+                                        |> Application.handleDelivery
+                                            (FavoritedPipelinesReceived <|
+                                                Ok <|
+                                                    Set.singleton pipelineId
+                                            )
+                                        |> Tuple.first
+                                        |> favoritedToggle
+                                        |> Expect.all
+                                            [ Query.has filledFavoritedIcon
+                                            , Query.has [ style "opacity" "1" ]
+                                            ]
                             ]
                     in
                     favoritedIconClickable

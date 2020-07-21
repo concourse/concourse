@@ -41,7 +41,7 @@ type alias Model m =
             , sideBarState : SideBarState
             , draggingSideBar : Bool
             , screenSize : ScreenSize.ScreenSize
-            , favoritedPipelines : Set Int
+            , favoritedPipelines : Set Concourse.DatabaseID
         }
 
 
