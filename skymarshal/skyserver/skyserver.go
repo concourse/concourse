@@ -22,6 +22,7 @@ import (
 type SkyConfig struct {
 	Logger          lager.Logger
 	TokenMiddleware token.Middleware
+	TokenParser     token.Parser
 	OAuthConfig     *oauth2.Config
 	HTTPClient      *http.Client
 }
@@ -65,23 +66,15 @@ func (s *SkyServer) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	parsed, err := jwt.ParseSigned(parts[1])
+	expiry, err := s.config.TokenParser.ParseExpiry(parts[1])
 	if err != nil {
-		logger.Error("failed-to-parse-cookie-token", err)
+		logger.Error("failed-to-parse-expiration", err)
 		s.NewLogin(w, r)
 		return
 	}
-
-	var claims jwt.Claims
-
-	if err = parsed.UnsafeClaimsWithoutVerification(&claims); err != nil {
-		logger.Error("failed-to-parse-claims", err)
-		s.NewLogin(w, r)
-		return
-	}
-
-	if err = claims.Validate(jwt.Expected{Time: time.Now()}); err != nil {
-		logger.Error("failed-to-validate-claims", err)
+	nowWithLeeway := time.Now().Add(-jwt.DefaultLeeway)
+	if expiry.Before(nowWithLeeway) {
+		logger.Info("token-is-expired")
 		s.NewLogin(w, r)
 		return
 	}
@@ -89,7 +82,7 @@ func (s *SkyServer) Login(w http.ResponseWriter, r *http.Request) {
 	oauth2Token := &oauth2.Token{
 		TokenType:   parts[0],
 		AccessToken: parts[1],
-		Expiry:      claims.Expiry.Time(),
+		Expiry:      expiry,
 	}
 
 	s.Redirect(w, r, oauth2Token, redirectURI)

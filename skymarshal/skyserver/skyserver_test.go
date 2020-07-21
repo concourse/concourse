@@ -118,8 +118,9 @@ var _ = Describe("Sky Server API", func() {
 				ExpectNewLogin()
 			})
 
-			Context("when the token is not signed", func() {
+			Context("when parsing the expiry errors", func() {
 				BeforeEach(func() {
+					fakeTokenParser.ParseExpiryReturns(time.Time{}, errors.New("error"))
 					fakeTokenMiddleware.GetAuthTokenReturns("bearer some-token")
 				})
 				ExpectNewLogin()
@@ -127,30 +128,22 @@ var _ = Describe("Sky Server API", func() {
 
 			Context("when the token is expired", func() {
 				BeforeEach(func() {
-					token := newToken(map[string]interface{}{
-						"exp": time.Now().Add(-1 * time.Hour).Unix(),
-					})
-
-					fakeTokenMiddleware.GetAuthTokenReturns("bearer " + token)
+					fakeTokenParser.ParseExpiryReturns(time.Now().Add(-time.Hour), nil)
+					fakeTokenMiddleware.GetAuthTokenReturns("bearer some-token")
 				})
 				ExpectNewLogin()
 			})
 
 			Context("when the token is valid", func() {
-				var token string
-
 				BeforeEach(func() {
-					token = newToken(map[string]interface{}{
-						"exp": time.Now().Add(time.Hour).Unix(),
-					})
-
-					fakeTokenMiddleware.GetAuthTokenReturns("bearer " + token)
+					fakeTokenParser.ParseExpiryReturns(time.Now().Add(time.Hour), nil)
+					fakeTokenMiddleware.GetAuthTokenReturns("bearer some-token")
 				})
 
 				It("updates the auth token", func() {
 					Expect(fakeTokenMiddleware.SetAuthTokenCallCount()).To(Equal(1))
 					_, tokenArg, _ := fakeTokenMiddleware.SetAuthTokenArgsForCall(0)
-					Expect(tokenArg).To(Equal("bearer " + token))
+					Expect(tokenArg).To(Equal("bearer some-token"))
 				})
 
 				It("updates the csrf token", func() {

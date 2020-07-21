@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
@@ -17,7 +20,13 @@ import (
 //go:generate counterfeiter . Generator
 
 type Generator interface {
-	GenerateAccessToken() (string, error)
+	GenerateAccessToken(claims db.Claims) (string, error)
+}
+
+//go:generate counterfeiter . Parser
+
+type Parser interface {
+	ParseExpiry(raw string) (time.Time, error)
 }
 
 //go:generate counterfeiter . ClaimsParser
@@ -69,7 +78,7 @@ func StoreAccessToken(logger lager.Logger, handler http.Handler, generator Gener
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		resp.AccessToken, err = generator.GenerateAccessToken()
+		resp.AccessToken, err = generator.GenerateAccessToken(claims)
 		if err != nil {
 			logger.Error("generate-access-token", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -122,23 +131,32 @@ func (claimsParserNoVerify) ParseClaims(idToken string) (db.Claims, error) {
 	return claims, nil
 }
 
-func NewGenerator() Generator {
-	return randomTokenGenerator{}
+type Factory struct {
 }
 
-type randomTokenGenerator struct {
-}
-
-func (randomTokenGenerator) GenerateAccessToken() (string, error) {
-	b := [20]byte{}
-	_, err := rand.Read(b[:])
+// GenerateAccessToken generates a token with 20 bytes of entropy with the
+// unix timestamp appended.
+func (Factory) GenerateAccessToken(claims db.Claims) (string, error) {
+	b := [28]byte{}
+	_, err := rand.Read(b[:20])
 	if err != nil {
 		return "", err
 	}
-	buf := new(bytes.Buffer)
-	_, err = base64.NewEncoder(base64.StdEncoding, buf).Write(b[:])
-	if err != nil {
-		return "", err
+	if claims.Expiry == nil {
+		return "", errors.New("missing 'exp' claim")
 	}
-	return buf.String(), nil
+	binary.LittleEndian.PutUint64(b[20:], uint64(*claims.Expiry))
+	return base64.RawStdEncoding.EncodeToString(b[:]), nil
+}
+
+func (Factory) ParseExpiry(accessToken string) (time.Time, error) {
+	raw, err := base64.RawStdEncoding.DecodeString(accessToken)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if len(raw) != 28 {
+		return time.Time{}, errors.New("invalid access token length")
+	}
+	expiry := jwt.NumericDate(binary.LittleEndian.Uint64(raw[20:]))
+	return expiry.Time(), nil
 }

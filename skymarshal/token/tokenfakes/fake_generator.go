@@ -4,13 +4,15 @@ package tokenfakes
 import (
 	"sync"
 
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/skymarshal/token"
 )
 
 type FakeGenerator struct {
-	GenerateAccessTokenStub        func() (string, error)
+	GenerateAccessTokenStub        func(db.Claims) (string, error)
 	generateAccessTokenMutex       sync.RWMutex
 	generateAccessTokenArgsForCall []struct {
+		arg1 db.Claims
 	}
 	generateAccessTokenReturns struct {
 		result1 string
@@ -24,15 +26,16 @@ type FakeGenerator struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeGenerator) GenerateAccessToken() (string, error) {
+func (fake *FakeGenerator) GenerateAccessToken(arg1 db.Claims) (string, error) {
 	fake.generateAccessTokenMutex.Lock()
 	ret, specificReturn := fake.generateAccessTokenReturnsOnCall[len(fake.generateAccessTokenArgsForCall)]
 	fake.generateAccessTokenArgsForCall = append(fake.generateAccessTokenArgsForCall, struct {
-	}{})
-	fake.recordInvocation("GenerateAccessToken", []interface{}{})
+		arg1 db.Claims
+	}{arg1})
+	fake.recordInvocation("GenerateAccessToken", []interface{}{arg1})
 	fake.generateAccessTokenMutex.Unlock()
 	if fake.GenerateAccessTokenStub != nil {
-		return fake.GenerateAccessTokenStub()
+		return fake.GenerateAccessTokenStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -47,10 +50,17 @@ func (fake *FakeGenerator) GenerateAccessTokenCallCount() int {
 	return len(fake.generateAccessTokenArgsForCall)
 }
 
-func (fake *FakeGenerator) GenerateAccessTokenCalls(stub func() (string, error)) {
+func (fake *FakeGenerator) GenerateAccessTokenCalls(stub func(db.Claims) (string, error)) {
 	fake.generateAccessTokenMutex.Lock()
 	defer fake.generateAccessTokenMutex.Unlock()
 	fake.GenerateAccessTokenStub = stub
+}
+
+func (fake *FakeGenerator) GenerateAccessTokenArgsForCall(i int) db.Claims {
+	fake.generateAccessTokenMutex.RLock()
+	defer fake.generateAccessTokenMutex.RUnlock()
+	argsForCall := fake.generateAccessTokenArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeGenerator) GenerateAccessTokenReturns(result1 string, result2 error) {

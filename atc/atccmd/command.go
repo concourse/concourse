@@ -1674,7 +1674,7 @@ func (cmd *RunCommand) constructAuthHandler(
 	return token.StoreAccessToken(
 		logger.Session("dex-server"),
 		dexServer,
-		token.NewGenerator(),
+		token.Factory{},
 		token.NewClaimsParser(),
 		accessTokenFactory,
 	), nil
@@ -1711,6 +1711,7 @@ func (cmd *RunCommand) constructLoginHandler(
 	skyServer, err := skyserver.NewSkyServer(&skyserver.SkyConfig{
 		Logger:          logger.Session("sky"),
 		TokenMiddleware: middleware,
+		TokenParser:     token.Factory{},
 		OAuthConfig:     oauth2Config,
 		HTTPClient:      httpClient,
 	})

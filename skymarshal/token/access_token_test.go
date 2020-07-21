@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/db"
@@ -12,6 +13,7 @@ import (
 	"github.com/concourse/concourse/skymarshal/token/tokenfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 var _ = Describe("Access Tokens", func() {
@@ -145,5 +147,20 @@ var _ = Describe("Access Tokens", func() {
 				Expect(rec.Body.String()).To(Equal(t.expectBody))
 			})
 		}
+	})
+
+	Describe("Token Generation", func() {
+		It("generates a token with the unix timestamp", func() {
+			factory := token.Factory{}
+			expectExpiry := jwt.NewNumericDate(time.Now())
+			rawToken, err := factory.GenerateAccessToken(db.Claims{
+				Claims: jwt.Claims{Expiry: expectExpiry},
+			})
+			Expect(err).ToNot(HaveOccurred())
+			expiry, err := factory.ParseExpiry(rawToken)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(expiry).To(Equal(expectExpiry.Time()))
+		})
 	})
 })
