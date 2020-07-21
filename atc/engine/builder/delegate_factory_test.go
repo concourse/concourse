@@ -624,8 +624,8 @@ var _ = Describe("DelegateFactory", func() {
 			)
 
 			BeforeEach(func() {
-				delegate.Variables().Get(vars.VariableDefinition{Name: "source-param"})
-				delegate.Variables().Get(vars.VariableDefinition{Name: "git-key"})
+				delegate.Variables().Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "source-param"}})
+				delegate.Variables().Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "git-key"}})
 			})
 
 			Context("Stdout", func() {
