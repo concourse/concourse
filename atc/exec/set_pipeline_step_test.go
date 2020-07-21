@@ -349,6 +349,35 @@ jobs:
 				})
 			})
 
+			Context("when set-pipeline self", func(){
+				BeforeEach(func(){
+					spPlan = &atc.SetPipelinePlan{
+						Name: "self",
+						File: "some-resource/pipeline.yml",
+						Team: "foo-team",
+					}
+					fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
+				})
+
+				It("should save the pipeline itself", func(){
+					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
+					name, _, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+					Expect(name).To(Equal("some-pipeline"))
+				})
+
+				It("should save to the current team", func(){
+					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
+					_, teamId, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+					Expect(teamId).To(Equal(fakeTeam.ID()))
+				})
+
+				It("should print an experimental message", func() {
+					Expect(stderr).To(gbytes.Say("WARNING: 'set_pipeline: self' is experimental"))
+					Expect(stderr).To(gbytes.Say("contribute to discussion #5732"))
+					Expect(stderr).To(gbytes.Say("discussions/5732"))
+				})
+			})
+
 			Context("when team is configured", func() {
 				var (
 					fakeUserCurrentTeam *dbfakes.FakeTeam
