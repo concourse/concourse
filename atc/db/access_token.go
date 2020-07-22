@@ -8,23 +8,12 @@ import (
 	"gopkg.in/square/go-jose.v2/jwt"
 )
 
-//go:generate counterfeiter . AccessToken
-
-type AccessToken interface {
-	Token() string
-	Claims() Claims
+type AccessToken struct {
+	Token  string
+	Claims Claims
 }
-
-type accessToken struct {
-	token  string
-	claims Claims
-}
-
-func (a accessToken) Token() string  { return a.token }
-func (a accessToken) Claims() Claims { return a.claims }
-
-func scanAccessToken(rcv *accessToken, scan scannable) error {
-	return scan.Scan(&rcv.token, &rcv.claims)
+func scanAccessToken(rcv *AccessToken, scan scannable) error {
+	return scan.Scan(&rcv.Token, &rcv.Claims)
 }
 
 type Claims struct {

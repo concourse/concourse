@@ -35,8 +35,8 @@ var _ = Describe("Access Token Factory", func() {
 
 		token, ok, _ := factory.GetAccessToken("my-awesome-token")
 		Expect(ok).To(BeTrue())
-		Expect(token.Token()).To(Equal("my-awesome-token"))
-		Expect(token.Claims()).To(Equal(db.Claims{
+		Expect(token.Token).To(Equal("my-awesome-token"))
+		Expect(token.Claims).To(Equal(db.Claims{
 			Claims: jwt.Claims{
 				Issuer:    "issuer",
 				Subject:   "subject",

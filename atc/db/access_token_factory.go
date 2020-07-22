@@ -45,13 +45,13 @@ func (a *accessTokenFactory) GetAccessToken(token string) (AccessToken, bool, er
 		RunWith(a.conn).
 		QueryRow()
 
-	var accessToken accessToken
+	var accessToken AccessToken
 	err := scanAccessToken(&accessToken, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, false, nil
+			return AccessToken{}, false, nil
 		}
-		return nil, false, err
+		return AccessToken{}, false, err
 	}
 	return accessToken, true, nil
 }

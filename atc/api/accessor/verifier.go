@@ -54,7 +54,7 @@ func (v *verifier) verify(rawToken string) (map[string]interface{}, error) {
 		return nil, ErrVerificationInvalidToken
 	}
 
-	claims := token.Claims()
+	claims := token.Claims
 	err = claims.Validate(jwt.Expected{Time: time.Now()})
 	if err != nil {
 		return nil, ErrVerificationTokenExpired

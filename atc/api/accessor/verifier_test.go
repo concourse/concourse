@@ -7,7 +7,6 @@ import (
 
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"gopkg.in/square/go-jose.v2/jwt"
@@ -18,7 +17,7 @@ import (
 var _ = Describe("Verifier", func() {
 	var (
 		accessTokenFetcher *accessorfakes.FakeAccessTokenFetcher
-		accessToken        *dbfakes.FakeAccessToken
+		accessToken        db.AccessToken
 
 		req *http.Request
 
@@ -29,8 +28,9 @@ var _ = Describe("Verifier", func() {
 
 	BeforeEach(func() {
 		accessTokenFetcher = new(accessorfakes.FakeAccessTokenFetcher)
-		accessToken = new(dbfakes.FakeAccessToken)
-		accessTokenFetcher.GetAccessTokenReturns(accessToken, true, nil)
+		accessTokenFetcher.GetAccessTokenCalls(func(string) (db.AccessToken, bool, error) {
+			return accessToken, true, nil
+		})
 
 		req, _ = http.NewRequest("GET", "localhost:8080", nil)
 		req.Header.Set("Authorization", "bearer 1234567890")
@@ -76,7 +76,7 @@ var _ = Describe("Verifier", func() {
 
 		Context("when getting the access token errors", func() {
 			BeforeEach(func() {
-				accessTokenFetcher.GetAccessTokenReturns(nil, false, errors.New("db error"))
+				accessTokenFetcher.GetAccessTokenReturns(db.AccessToken{}, false, errors.New("db error"))
 			})
 
 			It("errors", func() {
@@ -86,7 +86,7 @@ var _ = Describe("Verifier", func() {
 
 		Context("when the token is not found in the DB", func() {
 			BeforeEach(func() {
-				accessTokenFetcher.GetAccessTokenReturns(nil, false, nil)
+				accessTokenFetcher.GetAccessTokenReturns(db.AccessToken{}, false, nil)
 			})
 
 			It("fails verification", func() {
@@ -97,11 +97,11 @@ var _ = Describe("Verifier", func() {
 		Context("when the claims have expired", func() {
 			BeforeEach(func() {
 				oneHourAgo := jwt.NewNumericDate(time.Now().Add(-1 * time.Hour))
-				accessToken.ClaimsReturns(db.Claims{
+				accessToken.Claims = db.Claims{
 					Claims: jwt.Claims{
 						Expiry: oneHourAgo,
 					},
-				})
+				}
 			})
 
 			It("fails verification", func() {
@@ -112,12 +112,12 @@ var _ = Describe("Verifier", func() {
 		Context("whne the claims have invalid audience", func() {
 			BeforeEach(func() {
 				oneHourFromNow := jwt.NewNumericDate(time.Now().Add(1 * time.Hour))
-				accessToken.ClaimsReturns(db.Claims{
+				accessToken.Claims = db.Claims{
 					Claims: jwt.Claims{
 						Expiry:   oneHourFromNow,
 						Audience: []string{"invalid"},
 					},
-				})
+				}
 			})
 
 			It("fails verification", func() {
@@ -128,12 +128,12 @@ var _ = Describe("Verifier", func() {
 		Context("when the claims are valid", func() {
 			BeforeEach(func() {
 				oneHourFromNow := jwt.NewNumericDate(time.Now().Add(1 * time.Hour))
-				accessToken.ClaimsReturns(db.Claims{
+				accessToken.Claims = db.Claims{
 					Claims: jwt.Claims{
 						Expiry:   oneHourFromNow,
 						Audience: []string{"some-aud"},
 					},
-				})
+				}
 			})
 
 			It("succeeds", func() {
