@@ -9,24 +9,51 @@ module SideBar.Styles exposing
     , iconGroup
     , opacityAttr
     , pipeline
+    , pipelineFavourite
     , pipelineIcon
     , pipelineName
+    , sectionHeader
+    , separator
     , sideBar
     , sideBarHandle
+    , starPadding
+    , starWidth
     , team
     , teamHeader
     , teamIcon
     , teamName
     , tooltip
+    , tooltipArrowSize
     , tooltipBody
+    , tooltipOffset
     )
 
 import Assets
 import Colors
 import Html
-import Html.Attributes exposing (style)
+import Html.Attributes as Attr exposing (style)
 import Views.Icon as Icon
 import Views.Styles
+
+
+starPadding : Float
+starPadding =
+    10
+
+
+starWidth : Float
+starWidth =
+    18
+
+
+tooltipArrowSize : Float
+tooltipArrowSize =
+    15
+
+
+tooltipOffset : Float
+tooltipOffset =
+    3
 
 
 sideBar : { r | width : Float } -> List (Html.Attribute msg)
@@ -60,6 +87,17 @@ column : List (Html.Attribute msg)
 column =
     [ style "display" "flex"
     , style "flex-direction" "column"
+    ]
+
+
+sectionHeader : List (Html.Attribute msg)
+sectionHeader =
+    [ style "font-size" "14px"
+    , style "overflow" "hidden"
+    , style "white-space" "nowrap"
+    , style "text-overflow" "ellipsis"
+    , style "padding" "15px 5px 5px 10px"
+    , fontWeightAttr Bold
     ]
 
 
@@ -260,9 +298,36 @@ pipelineIcon { asset, opacity } =
     ]
 
 
-tooltip : List (Html.Attribute msg)
-tooltip =
-    [ style "z-index" "1"
+pipelineFavourite : { opacity : Opacity, filled : Bool } -> List (Html.Attribute msg)
+pipelineFavourite fav =
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just <|
+                if fav.filled then
+                    Assets.StarIconFilled
+
+                else
+                    Assets.StarIconUnfilled
+    , style "background-repeat" "no-repeat"
+    , style "background-position" "50% 50%"
+    , style "height" <| String.fromFloat starWidth ++ "px"
+    , style "width" <| String.fromFloat starWidth ++ "px"
+    , style "background-size" "contain"
+    , style "background-origin" "content-box"
+    , style "padding" <| "0 " ++ String.fromFloat starPadding ++ "px"
+    , style "flex-shrink" "0"
+    , style "cursor" "pointer"
+    , Attr.attribute "aria-label" "Favorite Icon"
+    ]
+
+
+tooltip : Float -> Float -> List (Html.Attribute msg)
+tooltip top left =
+    [ style "position" "fixed"
+    , style "left" <| String.fromFloat left ++ "px"
+    , style "top" <| String.fromFloat top ++ "px"
+    , style "margin-top" "-15px"
+    , style "z-index" "1"
     , style "display" "flex"
     ]
 
@@ -276,3 +341,12 @@ tooltipBody =
     , style "align-items" "center"
     , style "height" "30px"
     ]
+
+
+separator : Html.Html msg
+separator =
+    Html.div
+        [ style "border-bottom" "1px solid black"
+        , style "margin-top" "10px"
+        ]
+        []

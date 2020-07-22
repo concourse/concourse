@@ -2,12 +2,13 @@ module Message.Message exposing
     ( DomID(..)
     , DropTarget(..)
     , Message(..)
+    , SideBarSection(..)
     , VersionId
     , VersionToggleAction(..)
     , VisibilityAction(..)
     )
 
-import Concourse
+import Concourse exposing (DatabaseID)
 import Concourse.Cli as Cli
 import Concourse.Pagination exposing (Page)
 import Routes exposing (StepID)
@@ -85,10 +86,16 @@ type DomID
     | JobPreview Concourse.JobIdentifier
     | HamburgerMenu
     | SideBarResizeHandle
-    | SideBarTeam String
-    | SideBarPipeline Concourse.PipelineIdentifier
+    | SideBarTeam SideBarSection String
+    | SideBarPipeline SideBarSection Concourse.PipelineIdentifier
+    | SideBarStarIcon DatabaseID
     | Dashboard
     | DashboardGroup String
+
+
+type SideBarSection
+    = Favorites
+    | AllPipelines
 
 
 type VersionToggleAction

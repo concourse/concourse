@@ -15,18 +15,19 @@ import Common
         )
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
-import DashboardTests
+import DashboardTests exposing (iconSelector)
 import Data
 import Dict
 import Expect
 import Html.Attributes as Attr
 import Http
 import Message.Callback as Callback
-import Message.Effects as Effects
-import Message.Message as Message
+import Message.Effects as Effects exposing (sideBarSectionName)
+import Message.Message as Message exposing (SideBarSection(..))
 import Message.Subscription as Subscription
 import Message.TopLevelMessage as TopLevelMessage
 import Routes
+import Set
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -69,6 +70,9 @@ hasSideBar iAmLookingAtThePage =
                 >> given iAmOnANonPhoneScreen
                 >> given myBrowserFetchedPipelines
                 >> given iClickedTheHamburgerIcon
+
+        iHaveAnExpandedTeam =
+            iHaveAnOpenSideBar_ >> iClickedThePipelineGroup
     in
     [ test "top bar is exactly 54px tall" <|
         given iAmLookingAtThePage
@@ -282,11 +286,29 @@ hasSideBar iAmLookingAtThePage =
                 >> when iAmLookingAtThePageBelowTheTopBar
                 >> then_ iSeeNoSideBar
         ]
+    , describe "favorites section" <|
+        [ test "exists when there are favorited pipelines" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedFavoritedPipelines
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeFavoritesSection
+        , test "does not exist when there are no favorited pipelines" <|
+            given iHaveAnOpenSideBar_
+                >> when iAmLookingAtTheSideBar
+                >> then_ iDoNotSeeFavoritesSection
+        , test "don't show teams that have no favorited pipelines" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedPipelinesFromMultipleTeams
+                >> given myBrowserFetchedFavoritedPipelines
+                >> when iAmLookingAtTheFavoritesSection
+                >> then_ iDoNotSeeTheOtherTeam
+        , test "teams are expanded by default" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedFavoritedPipelines
+                >> when iAmLookingAtTheTeamInTheFavoritesSection
+                >> then_ iSeeItIsExpanded
+        ]
     , describe "teams list" <|
-        let
-            iHaveAnExpandedTeam =
-                iHaveAnOpenSideBar_ >> iClickedThePipelineGroup
-        in
         [ test "sidebar contains pipeline groups" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
@@ -358,7 +380,7 @@ hasSideBar iAmLookingAtThePage =
         , test "team header is clickable" <|
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheTeamHeader
-                >> then_ (itIsClickable <| Message.SideBarTeam "team")
+                >> then_ (itIsClickable <| Message.SideBarTeam AllPipelines "team")
         , test "there is a minus icon when group is clicked" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -380,16 +402,40 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtThePipelineList
                 >> then_ iSeeTwoChildren
+        , test "pipeline star icon is clickable" <|
+            given iHaveAnOpenSideBar_
+                >> given iClickedThePipelineGroup
+                >> when iAmLookingAtTheFirstPipelineStar
+                >> then_ (itIsClickable <| Message.SideBarStarIcon 0)
+        , test "pipeline gets favorited when star icon is clicked" <|
+            given iHaveAnOpenSideBar_
+                >> given iClickedThePipelineGroup
+                >> given iClickedTheFirstPipelineStar
+                >> when iAmLookingAtTheFirstPipelineStar
+                >> then_ iSeeFilledStarIcon
+        , test "clicked on favorited pipeline has unfilled star icon" <|
+            given iHaveAnOpenSideBar_
+                >> given iClickedThePipelineGroup
+                >> given iClickedTheFirstPipelineStar
+                >> given iClickedTheFirstPipelineStar
+                >> when iAmLookingAtTheFirstPipelineStar
+                >> then_ iSeeUnfilledStarIcon
+        , test "favorited pipelines are loaded from local storage" <|
+            given iHaveAnOpenSideBar_
+                >> given iClickedThePipelineGroup
+                >> given myBrowserFetchedFavoritedPipelines
+                >> when iAmLookingAtTheFirstPipelineStar
+                >> then_ iSeeFilledStarIcon
         , test "pipeline list lays out vertically" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtThePipelineList
                 >> then_ iSeeItLaysOutVertically
-        , test "pipeline has two children" <|
+        , test "pipeline has three children" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipeline
-                >> then_ iSeeTwoChildren
+                >> then_ iSeeThreeChildren
         , test "pipeline lays out horizontally" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -480,7 +526,7 @@ hasSideBar iAmLookingAtThePage =
                     [ style "opacity" "0.4" ]
                 }
             , hoverable =
-                Message.SideBarPipeline
+                Message.SideBarPipeline AllPipelines
                     { pipelineName = "pipeline"
                     , teamName = "team"
                     }
@@ -817,7 +863,7 @@ iAmLookingAtTheHamburgerMenu =
 itIsClickable domID =
     Expect.all
         [ Query.has [ style "cursor" "pointer" ]
-        , Event.simulate Event.click
+        , Event.simulate Data.leftClickEvent
             >> Event.expect
                 (TopLevelMessage.Update <|
                     Message.Click domID
@@ -868,7 +914,11 @@ iSeeTwoChildren =
 
 
 iSeeTwoTeams =
-    Query.children [ class "side-bar-team" ] >> Query.count (Expect.equal 2)
+    Query.children [ class "side-bar-team" ] >> Query.first >> Query.children [] >> Query.count (Expect.equal 2)
+
+
+iSeeThreeChildren =
+    Query.children [] >> Query.count (Expect.equal 3)
 
 
 iAmLookingAtThePageBelowTheTopBar =
@@ -959,6 +1009,10 @@ iSeeTheTeamName =
     Query.has [ text "team" ]
 
 
+iDoNotSeeTheOtherTeam =
+    Query.hasNot [ text "other-team" ]
+
+
 iSeeItSpreadsAndCentersContents =
     Query.has
         [ style "align-items" "center"
@@ -987,13 +1041,21 @@ iSeeItEllipsizesLongText =
 
 
 iSeeItHasAValidTeamId =
-    Query.has [ id <| Base64.encode "team" ]
+    Query.has
+        [ id <|
+            (sideBarSectionName AllPipelines
+                ++ "_"
+                ++ Base64.encode "team"
+            )
+        ]
 
 
 iSeeItHasAValidPipelineId =
     Query.has
         [ id <|
-            (Base64.encode "team"
+            (sideBarSectionName AllPipelines
+                ++ "_"
+                ++ Base64.encode "team"
                 ++ "_"
                 ++ Base64.encode "pipeline"
             )
@@ -1024,10 +1086,47 @@ iSeeItHasAResizeHandle =
     Query.has [ style "cursor" "col-resize" ]
 
 
+iSeeUnfilledStarIcon =
+    Query.has
+        (DashboardTests.iconSelector
+            { size = "18px"
+            , image = Assets.StarIconUnfilled
+            }
+        )
+
+
+iSeeFilledStarIcon =
+    Query.has
+        (DashboardTests.iconSelector
+            { size = "18px"
+            , image = Assets.StarIconFilled
+            }
+        )
+
+
 iClickedThePipelineGroup =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.Click <| Message.SideBarTeam "team")
+            (TopLevelMessage.Update <| Message.Click <| Message.SideBarTeam AllPipelines "team")
+
+
+iClickedTheFirstPipelineStar =
+    Tuple.first
+        >> Application.update
+            (TopLevelMessage.Update <|
+                Message.Click <|
+                    Message.SideBarStarIcon 0
+            )
+
+
+iClickedFavoritedPipelineStar =
+    iClickedTheFirstPipelineStar
+
+
+iAmLookingAtThePreviousPipelineStar =
+    iAmLookingAtTheFirstPipeline
+        >> Query.findAll [ attribute <| Attr.attribute "aria-label" "Favorite Icon" ]
+        >> Query.index 0
 
 
 iSeeAMinusIcon =
@@ -1052,11 +1151,13 @@ iSeeItIsDim =
 
 
 iAmLookingAtThePipelineList =
-    iAmLookingAtTheTeam >> Query.children [] >> Query.index 1
+    iAmLookingAtTheAllPipelinesSection
+        >> Query.children []
+        >> Query.index 0
 
 
 iAmLookingAtTheFirstPipeline =
-    iAmLookingAtThePipelineList >> Query.children [] >> Query.first
+    iAmLookingAtThePipelineList >> Query.children [] >> Query.index 1 >> Query.children [] >> Query.first
 
 
 iAmLookingAtTheFirstPipelineLink =
@@ -1069,7 +1170,7 @@ iHoveredTheFirstPipelineLink =
             (TopLevelMessage.Update <|
                 Message.Hover <|
                     Just <|
-                        Message.SideBarPipeline
+                        Message.SideBarPipeline AllPipelines
                             { teamName = "team"
                             , pipelineName = "pipeline"
                             }
@@ -1081,7 +1182,7 @@ iSeeItContainsThePipelineName =
 
 
 iAmLookingAtTheTeamHeader =
-    iAmLookingAtTheTeam >> Query.children [] >> Query.first
+    iAmLookingAtTheTeam >> Query.children [] >> Query.first >> Query.children [] >> Query.first
 
 
 iAmLookingAtTheTeamName =
@@ -1154,6 +1255,20 @@ iSeeItHasNarrowerLines =
 
 iAmLookingAtTheFirstPipelineIcon =
     iAmLookingAtTheFirstPipeline >> Query.children [] >> Query.first
+
+
+iAmLookingAtTheFirstPipelineStar =
+    iAmLookingAtTheFirstPipeline
+        >> Query.findAll [ attribute <| Attr.attribute "aria-label" "Favorite Icon" ]
+        >> Query.index 0
+
+
+iAmLookingAtTheAllPipelinesSection =
+    Tuple.first >> Common.queryView >> Query.find [ id "all-pipelines" ]
+
+
+iAmLookingAtTheFavoritesSection =
+    Tuple.first >> Common.queryView >> Query.find [ id "favorites" ]
 
 
 iSeeAPipelineIcon =
@@ -1305,6 +1420,14 @@ iSeeNoSideBar =
     Query.hasNot [ id "side-bar" ]
 
 
+iSeeFavoritesSection =
+    Query.has [ text "favorites" ]
+
+
+iDoNotSeeFavoritesSection =
+    Query.hasNot [ text "favorites" ]
+
+
 myBrowserFetchedPipelinesFromMultipleTeams =
     Tuple.first
         >> Application.handleCallback
@@ -1327,6 +1450,18 @@ myBrowserFetchedPipelines =
                     , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
                     ]
             )
+
+
+myBrowserFetchedFavoritedPipelines =
+    Tuple.first
+        >> Application.handleDelivery
+            (Subscription.FavoritedPipelinesReceived <|
+                Ok (Set.singleton 0)
+            )
+
+
+iAmLookingAtTheTeamInTheFavoritesSection =
+    iAmLookingAtTheFavoritesSection >> Query.children [ containing [ text "team" ] ] >> Query.first
 
 
 itIsNotClickable =
@@ -1381,23 +1516,13 @@ iHaveAnExpandedPipelineGroup =
     iHaveAnOpenSideBar >> iClickedThePipelineGroup
 
 
-iHoveredThePipelineGroup =
-    Tuple.first
-        >> Application.update
-            (TopLevelMessage.Update <|
-                Message.Hover <|
-                    Just <|
-                        Message.SideBarTeam "team"
-            )
-
-
 iHoveredThePipelineLink =
     Tuple.first
         >> Application.update
             (TopLevelMessage.Update <|
                 Message.Hover <|
                     Just <|
-                        Message.SideBarPipeline
+                        Message.SideBarPipeline AllPipelines
                             { pipelineName = "pipeline"
                             , teamName = "team"
                             }
@@ -1424,7 +1549,7 @@ iSeeNoPipelineNames =
 iSeeAllPipelineNames =
     Query.children []
         >> Expect.all
-            [ Query.index 0 >> Query.has [ text "pipeline" ]
+            [ Query.index 1 >> Query.has [ text "pipeline" ]
             , Query.index 1 >> Query.has [ text "other-pipeline" ]
             ]
 
@@ -1434,7 +1559,7 @@ iClickedTheOtherPipelineGroup =
         >> Application.update
             (TopLevelMessage.Update <|
                 Message.Click <|
-                    Message.SideBarTeam "other-team"
+                    Message.SideBarTeam AllPipelines "other-team"
             )
 
 
@@ -1446,6 +1571,8 @@ iAmLookingAtTheOtherPipelineGroup =
     iAmLookingAtTheSideBar
         >> Query.children [ containing [ text "other-team" ] ]
         >> Query.first
+        >> Query.children []
+        >> Query.index 1
 
 
 iAmLookingAtTheOtherPipelineList =
@@ -1512,6 +1639,14 @@ iClickAPipelineLink =
 
 iSeeThePipelineGroupIsStillExpanded =
     iAmLookingAtThePipelineList >> iSeeAllPipelineNames
+
+
+iSeeItIsExpanded =
+    iSeeItContainsThePipelineName
+
+
+iSeeItIsCollapsed =
+    iSeeNoPipelineNames
 
 
 iNavigateToTheDashboard =

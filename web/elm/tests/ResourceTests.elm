@@ -3977,13 +3977,15 @@ session =
     , csrfToken = flags.csrfToken
     , authToken = flags.authToken
     , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
-    , expandedTeams = Set.empty
+    , expandedTeamsInAllPipelines = Set.empty
+    , collapsedTeamsInFavorites = Set.empty
     , pipelines = RemoteData.NotAsked
     , sideBarState =
         { isOpen = False
         , width = 275
         }
     , draggingSideBar = False
+    , favoritedPipelines = Set.empty
     , screenSize = ScreenSize.Desktop
     , timeZone = Time.utc
     }

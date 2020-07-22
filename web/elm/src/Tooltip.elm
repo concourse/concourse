@@ -54,7 +54,7 @@ type alias AttachPosition =
 
 type Direction
     = Top
-    | Right
+    | Right Float
 
 
 type Alignment
@@ -66,10 +66,10 @@ type Alignment
 policy : DomID -> TooltipCondition
 policy domID =
     case domID of
-        SideBarPipeline _ ->
+        SideBarPipeline _ _ ->
             OnlyShowWhenOverflowing
 
-        SideBarTeam _ ->
+        SideBarTeam _ _ ->
             OnlyShowWhenOverflowing
 
         _ ->
@@ -87,13 +87,13 @@ position { direction, alignment } { element, viewport } =
                 ( Top, _ ) ->
                     [ style "bottom" <| String.fromFloat (viewport.height - target.y) ++ "px" ]
 
-                ( Right, Start ) ->
+                ( Right _, Start ) ->
                     [ style "top" <| String.fromFloat target.y ++ "px" ]
 
-                ( Right, Middle height ) ->
+                ( Right _, Middle height ) ->
                     [ style "top" <| String.fromFloat (target.y + (target.height - height) / 2) ++ "px" ]
 
-                ( Right, End ) ->
+                ( Right _, End ) ->
                     [ style "bottom" <| String.fromFloat (viewport.height - target.y - target.height) ++ "px" ]
 
         horizontal =
@@ -107,8 +107,8 @@ position { direction, alignment } { element, viewport } =
                 ( Top, End ) ->
                     [ style "right" <| String.fromFloat (viewport.width - target.x - target.width) ++ "px" ]
 
-                ( Right, _ ) ->
-                    [ style "left" <| String.fromFloat (target.x + target.width) ++ "px" ]
+                ( Right offset, _ ) ->
+                    [ style "left" <| String.fromFloat (target.x + target.width + offset) ++ "px" ]
     in
     [ style "position" "fixed", style "z-index" "100" ] ++ vertical ++ horizontal
 
@@ -158,7 +158,7 @@ arrowView { direction } target { size, color } =
                 , style "margin-bottom" <| "-" ++ String.fromFloat size ++ "px"
                 ]
 
-            Right ->
+            Right _ ->
                 [ style "border-right" <| String.fromFloat size ++ "px solid " ++ color
                 , style "border-top" <| String.fromFloat size ++ "px solid transparent"
                 , style "border-bottom" <| String.fromFloat size ++ "px solid transparent"

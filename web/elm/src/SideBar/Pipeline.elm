@@ -3,8 +3,9 @@ module SideBar.Pipeline exposing (pipeline)
 import Assets
 import Concourse
 import HoverState
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..), SideBarSection(..))
 import Routes
+import Set exposing (Set)
 import SideBar.Styles as Styles
 import SideBar.Views as Views
 
@@ -20,13 +21,15 @@ pipeline :
     { a
         | hovered : HoverState.HoverState
         , currentPipeline : Maybe (PipelineScoped b)
+        , favoritedPipelines : Set Int
+        , isFavoritesSection : Bool
     }
     -> Concourse.Pipeline
     -> Views.Pipeline
-pipeline session p =
+pipeline params p =
     let
         isCurrent =
-            case session.currentPipeline of
+            case params.currentPipeline of
                 Just cp ->
                     cp.pipelineName == p.name && cp.teamName == p.teamName
 
@@ -36,8 +39,18 @@ pipeline session p =
         pipelineId =
             { pipelineName = p.name, teamName = p.teamName }
 
+        domID =
+            SideBarPipeline
+                (if params.isFavoritesSection then
+                    Favorites
+
+                 else
+                    AllPipelines
+                )
+                pipelineId
+
         isHovered =
-            HoverState.isHovered (SideBarPipeline pipelineId) session.hovered
+            HoverState.isHovered domID params.hovered
     in
     { icon =
         { asset =
@@ -80,5 +93,15 @@ pipeline session p =
     , href =
         Routes.toString <|
             Routes.Pipeline { id = pipelineId, groups = [] }
-    , domID = SideBarPipeline pipelineId
+    , domID = domID
+    , starIcon =
+        { opacity =
+            if isCurrent || isHovered then
+                Styles.Bright
+
+            else
+                Styles.Dim
+        , filled = Set.member p.id params.favoritedPipelines
+        }
+    , id = p.id
     }

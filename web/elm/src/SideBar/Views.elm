@@ -8,6 +8,7 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Effects exposing (toHtmlID)
 import Message.Message exposing (DomID(..), Message(..))
 import SideBar.Styles as Styles
+import StrictEvents exposing (onLeftClickStopPropagation)
 
 
 type alias Team =
@@ -33,8 +34,8 @@ viewTeam team =
         (class "side-bar-team" :: Styles.team)
         [ Html.div
             (Styles.teamHeader team
-                ++ [ onClick <| Click <| SideBarTeam team.name.text
-                   , onMouseEnter <| Hover <| Just <| SideBarTeam team.name.text
+                ++ [ onClick <| Click <| team.name.domID
+                   , onMouseEnter <| Hover <| Just <| team.name.domID
                    , onMouseLeave <| Hover Nothing
                    ]
             )
@@ -67,6 +68,11 @@ type alias Pipeline =
     , background : Styles.Background
     , href : String
     , domID : DomID
+    , starIcon :
+        { opacity : Styles.Opacity
+        , filled : Bool
+        }
+    , id : Int
     }
 
 
@@ -87,4 +93,9 @@ viewPipeline p =
                 :: Styles.pipelineName p.name
             )
             [ Html.text p.name.text ]
+        , Html.div
+            (Styles.pipelineFavourite p.starIcon
+                ++ [ onLeftClickStopPropagation <| Click <| SideBarStarIcon p.id ]
+            )
+            []
         ]

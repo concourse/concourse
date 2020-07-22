@@ -3,6 +3,7 @@ port module Message.Effects exposing
     , renderPipeline
     , renderSvgIcon
     , runEffect
+    , sideBarSectionName
     , stickyHeaderConfig
     , toHtmlID
     )
@@ -13,7 +14,7 @@ import Assets
 import Base64
 import Browser.Dom exposing (Viewport, getElement, getViewport, getViewportOf, setViewportOf)
 import Browser.Navigation as Navigation
-import Concourse exposing (encodeJob, encodePipeline, encodeTeam)
+import Concourse exposing (DatabaseID, encodeJob, encodePipeline, encodeTeam)
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Page)
 import Json.Decode
@@ -23,6 +24,7 @@ import Message.Callback exposing (Callback(..))
 import Message.Message
     exposing
         ( DomID(..)
+        , SideBarSection(..)
         , VersionToggleAction(..)
         , VisibilityAction(..)
         )
@@ -30,6 +32,7 @@ import Message.ScrollDirection exposing (ScrollDirection(..))
 import Message.Storage
     exposing
         ( deleteFromLocalStorage
+        , favoritedPipelinesKey
         , jobsKey
         , loadFromLocalStorage
         , loadFromSessionStorage
@@ -42,6 +45,7 @@ import Message.Storage
         )
 import Process
 import Routes
+import Set exposing (Set)
 import SideBar.State exposing (SideBarState, encodeSideBarState)
 import Task
 import Time
@@ -186,6 +190,8 @@ type Effect
     | GetViewportOf DomID
     | GetElement DomID
     | SyncTextareaHeight DomID
+    | SaveFavoritedPipelines (Set DatabaseID)
+    | LoadFavoritedPipelines
 
 
 type alias VersionId =
@@ -613,6 +619,15 @@ runEffect effect key csrfToken =
         DeleteCachedPipelines ->
             deleteFromLocalStorage pipelinesKey
 
+        SaveFavoritedPipelines pipelineIDs ->
+            saveToLocalStorage
+                ( favoritedPipelinesKey
+                , pipelineIDs |> Json.Encode.set Json.Encode.int
+                )
+
+        LoadFavoritedPipelines ->
+            loadFromLocalStorage favoritedPipelinesKey
+
         SaveCachedTeams teams ->
             saveToLocalStorage ( teamsKey, teams |> Json.Encode.list encodeTeam )
 
@@ -634,14 +649,24 @@ runEffect effect key csrfToken =
             syncTextareaHeight (toHtmlID domID)
 
 
+sideBarSectionName : SideBarSection -> String
+sideBarSectionName section =
+    case section of
+        Favorites ->
+            "Favorites"
+
+        AllPipelines ->
+            "AllPipelines"
+
+
 toHtmlID : DomID -> String
 toHtmlID domId =
     case domId of
-        SideBarTeam t ->
-            Base64.encode t
+        SideBarTeam section t ->
+            sideBarSectionName section ++ "_" ++ Base64.encode t
 
-        SideBarPipeline p ->
-            Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
+        SideBarPipeline section p ->
+            sideBarSectionName section ++ "_" ++ Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
 
         PipelineStatusIcon p ->
             Base64.encode p.teamName
