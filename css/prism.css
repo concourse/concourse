@@ -1,52 +1,12 @@
 /* PrismJS 1.20.0
-https://prismjs.com/download.html#themes=prism-tomorrow&languages=markup+css+clike+javascript+bash+diff+docker+elm+go+json+json5+regex+shell-session+sql+yaml&plugins=line-highlight */
-/**
- * prism.js tomorrow night eighties for JavaScript, CoffeeScript, CSS and HTML
- * Based on https://github.com/chriskempson/tomorrow-theme
- * @author Rose Pritchard
+ *
+ * HANDCRAFTED, BESPOKE, ARTISINAL - DO NOT GENERATE
  */
 
-code[class*="language-"],
-pre[class*="language-"] {
-	color: #ccc;
-	background: none;
-	font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
-	font-size: 1em;
-	text-align: left;
-	white-space: pre;
-	word-spacing: normal;
-	word-break: normal;
-	word-wrap: normal;
-	line-height: 1.5;
-
-	-moz-tab-size: 4;
-	-o-tab-size: 4;
-	tab-size: 4;
-
-	-webkit-hyphens: none;
-	-moz-hyphens: none;
-	-ms-hyphens: none;
-	hyphens: none;
-
-}
-
-/* Code blocks */
-pre[class*="language-"] {
-	padding: 1em;
-	margin: .5em 0;
-	overflow: auto;
-}
-
-:not(pre) > code[class*="language-"],
-pre[class*="language-"] {
-	background: #2d2d2d;
-}
-
-/* Inline code */
-:not(pre) > code[class*="language-"] {
-	padding: .1em;
-	border-radius: .3em;
-	white-space: normal;
+pre {
+  background: #2a2929;
+  color: #f6f5f5;
+  line-height: 24px;
 }
 
 .token.comment,
@@ -54,35 +14,35 @@ pre[class*="language-"] {
 .token.prolog,
 .token.doctype,
 .token.cdata {
-	color: #999;
+  color: #7a7373;
 }
 
 .token.punctuation {
-	color: #ccc;
+  color: #9b9b9b;
 }
 
 .token.tag,
 .token.attr-name,
 .token.namespace,
 .token.deleted {
-	color: #e2777a;
+  color: #ed4b35;
 }
 
 .token.function-name {
-	color: #6196cc;
+  color: #4a90e2;
 }
 
 .token.boolean,
 .token.number,
 .token.function {
-	color: #f08d49;
+  color: #f5a623;
 }
 
 .token.property,
 .token.class-name,
 .token.constant,
 .token.symbol {
-	color: #f8c555;
+  color: #f5a623;
 }
 
 .token.selector,
@@ -90,7 +50,7 @@ pre[class*="language-"] {
 .token.atrule,
 .token.keyword,
 .token.builtin {
-	color: #cc99cd;
+  color: #4a90e2;
 }
 
 .token.string,
@@ -98,88 +58,67 @@ pre[class*="language-"] {
 .token.attr-value,
 .token.regex,
 .token.variable {
-	color: #7ec699;
+  color: #11c560;
 }
 
 .token.operator,
 .token.entity,
 .token.url {
-	color: #67cdcc;
+  color: #2d76cc;
 }
 
 .token.important,
 .token.bold {
-	font-weight: bold;
+  font-weight: bold;
 }
 .token.italic {
-	font-style: italic;
+  font-style: italic;
 }
 
 .token.entity {
-	cursor: help;
+  cursor: help;
 }
 
 .token.inserted {
-	color: green;
+  color: #11c560;
 }
 
 pre[data-line] {
-	position: relative;
-	padding: 1em 0 1em 3em;
+  position: relative;
 }
 
 .line-highlight {
-	position: absolute;
-	left: 0;
-	right: 0;
-	padding: inherit 0;
-	margin-top: 1em; /* Same as .prism’s padding-top */
+  background: rgba(255, 255, 255, 0.1);
 
-	background: hsla(24, 20%, 50%,.08);
-	background: linear-gradient(to right, hsla(24, 20%, 50%,.1) 70%, hsla(24, 20%, 50%,0));
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin-top: 0.5rem; /* same as pre padding */
 
-	pointer-events: none;
-
-	line-height: inherit;
-	white-space: pre;
+  pointer-events: none;
+  line-height: inherit;
+  white-space: pre;
 }
 
-	.line-highlight:before,
-	.line-highlight[data-end]:after {
-		content: attr(data-start);
-		position: absolute;
-		top: .4em;
-		left: .6em;
-		min-width: 1em;
-		padding: 0 .5em;
-		background-color: hsla(24, 20%, 50%,.4);
-		color: hsl(24, 20%, 95%);
-		font: bold 65%/1.5 sans-serif;
-		text-align: center;
-		vertical-align: .3em;
-		border-radius: 999px;
-		text-shadow: none;
-		box-shadow: 0 1px white;
-	}
+.line-highlight:before,
+.line-highlight[data-end]:after {
+  content: attr(data-start);
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: #1e1d1d;
+  color: #efeeee;
+  text-align: center;
+  width: 2em;
+}
 
-	.line-highlight[data-end]:after {
-		content: attr(data-end);
-		top: auto;
-		bottom: .4em;
-	}
+.line-highlight[data-end]:after {
+  content: attr(data-end);
+  top: auto;
+  bottom: 0;
+}
 
 .line-numbers .line-highlight:before,
 .line-numbers .line-highlight:after {
-	content: none;
+  content: none;
 }
-
-pre[id].linkable-line-numbers span.line-numbers-rows {
-	pointer-events: all;
-}
-pre[id].linkable-line-numbers span.line-numbers-rows > span:before {
-	cursor: pointer;
-}
-pre[id].linkable-line-numbers span.line-numbers-rows > span:hover:before {
-	background-color: rgba(128, 128, 128, .2);
-}
-
