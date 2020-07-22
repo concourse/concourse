@@ -61,22 +61,31 @@ just here for completeness!
 }
 
 \schema{identifier}{
-  An \italic{identifier} is string value. Currently, there are no validations
-  for what makes a string a valid identifier.
+  An \italic{identifier} is a string value. The following defines the allowed
+  character set for an \italic{identifier}:
 
-  \link{RFC #40}{https://github.com/concourse/rfcs/pull/40} proposes a much
-  more limited character set, so for the sake of future-proofing you may want
-  to conform to it.
+  \list{
+    Unicode lowercase letters, while still supporting languages that don't
+    have any casing (e.g. Japanese).
+  }{
+    Decimal numbers.
+  }{
+    Hyphens (-), as the canonical word separator.
+  }{
+    Periods (.), in order to support domain names and version numbers.
+  }
 
-  The proposed valid character set is as follows:
+  The validation rule is as follows:
 
   \codeblock{regex}{{{
-    ^\p{L}[\p{L}\d\-.]*$
+    ^[\p{Ll}\p{Lt}\p{Lm}\p{Lo}][\p{Ll}\p{Lt}\p{Lm}\p{Lo}\d\-.]*$
   }}}
 
-  (Don't worry - if you currently have pipelines that do \italic{not} conform
-  to the above regexp validation, they will be permitted to function; this
-  validation will only be peformed for newly configured pipelines.)
+  Where all \italic{identifier} must start with a Unicode lowercase letter,
+  followed by any number of allowed characters.
+
+  Currently, the validation will only show as warnings. For the sake of
+  future-proofing, you may want to conform to it.
 }
 
 \schema{dir-path}{
