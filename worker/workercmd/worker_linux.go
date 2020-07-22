@@ -22,9 +22,11 @@ type Certs struct {
 	Dir string `long:"certs-dir" description:"Directory to use when creating the resource certificates volume."`
 }
 
+type Runtime struct {
+	Type string `long:"type" default:"guardian" description:"Runtime to use with the worker. Possible values: guardian, containerd, houdini. Please note that Houdini is insecure and doesn't run 'tasks' in containers"`
+}
+
 type GardenBackend struct {
-	UseHoudini    bool `long:"use-houdini"    description:"Use the insecure Houdini Garden backend."`
-	UseContainerd bool `long:"use-containerd" description:"Use the containerd backend. (experimental)"`
 	Bin            string        `long:"bin"        description:"Path to a garden backend executable (non-absolute names get resolved from $PATH)."`
 	Config         flag.File     `long:"config"     description:"Path to a config file to use for the Garden backend. Guardian flags as env vars, e.g. 'CONCOURSE_GARDEN_FOO_BAR=a,b' for '--foo-bar a --foo-bar b'."`
 	DNSServers     []string      `long:"dns-server" description:"DNS server IP address to use instead of automatically determined servers. Can be specified multiple times."`
@@ -80,12 +82,14 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 	var runner ifrit.Runner
 
 	switch {
-	case cmd.Garden.UseHoudini:
+	case cmd.Runtime.Type == "houdini":
 		runner, err = cmd.houdiniRunner(logger)
-	case cmd.Garden.UseContainerd:
+	case cmd.Runtime.Type == "containerd":
 		runner, err = cmd.containerdRunner(logger)
-	default:
+	case cmd.Runtime.Type == "guardian":
 		runner, err = cmd.guardianRunner(logger)
+	default:
+		err = fmt.Errorf("unsupported Runtime :%s", cmd.Runtime.Type)
 	}
 
 	if err != nil {

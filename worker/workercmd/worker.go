@@ -54,6 +54,8 @@ type WorkerCommand struct {
 
 	Containerd ContainerdBackend `group:"Containerd Configuration" namespace:"containerd"`
 
+	Runtime Runtime `group:"Runtime Configuration" namespace:"runtime"`
+
 	ExternalGardenURL flag.URL `long:"external-garden-url" description:"API endpoint of an externally managed Garden server to use instead of running the embedded Garden server."`
 
 	Baggageclaim baggageclaimcmd.BaggageclaimCommand `group:"Baggageclaim Configuration" namespace:"baggageclaim"`

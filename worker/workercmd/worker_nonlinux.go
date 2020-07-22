@@ -12,6 +12,9 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
+type Runtime struct {
+}
+
 type GardenBackend struct {
 	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
 }
