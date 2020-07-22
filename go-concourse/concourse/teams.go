@@ -15,20 +15,26 @@ import (
 
 var ErrDestroyRefused = errors.New("not-permitted-to-destroy-as-requested")
 
+type setTeamResponse struct {
+	Errors   []string        `json:"errors,omitempty"`
+	Warnings []ConfigWarning `json:"warnings,omitempty"`
+	Team     atc.Team        `json:"team"`
+}
+
 // CreateOrUpdate creates or updates team teamName with the settings provided in passedTeam.
 // passedTeam should reflect the desired state of team's configuration.
-func (team *team) CreateOrUpdate(passedTeam atc.Team) (atc.Team, bool, bool, error) {
+func (team *team) CreateOrUpdate(passedTeam atc.Team) (atc.Team, bool, bool, []ConfigWarning, error) {
 	params := rata.Params{"team_name": team.name}
 
 	buffer := &bytes.Buffer{}
 	err := json.NewEncoder(buffer).Encode(passedTeam)
 	if err != nil {
-		return atc.Team{}, false, false, fmt.Errorf("Unable to marshal plan: %s", err)
+		return atc.Team{}, false, false, []ConfigWarning{}, fmt.Errorf("Unable to marshal plan: %s", err)
 	}
 
-	var savedTeam atc.Team
+	var result setTeamResponse
 	response := internal.Response{
-		Result: &savedTeam,
+		Result: &result,
 	}
 	err = team.connection.Send(internal.Request{
 		RequestName: atc.SetTeam,
@@ -40,7 +46,7 @@ func (team *team) CreateOrUpdate(passedTeam atc.Team) (atc.Team, bool, bool, err
 	}, &response)
 
 	if err != nil {
-		return savedTeam, false, false, err
+		return result.Team, false, false, []ConfigWarning{}, err
 	}
 
 	var created, updated bool
@@ -50,7 +56,7 @@ func (team *team) CreateOrUpdate(passedTeam atc.Team) (atc.Team, bool, bool, err
 		updated = true
 	}
 
-	return savedTeam, created, updated, nil
+	return result.Team, created, updated, result.Warnings, nil
 }
 
 // DestroyTeam destroys the team with the name given as argument.
@@ -71,29 +77,33 @@ func (team *team) DestroyTeam(teamName string) error {
 	return err
 }
 
-func (team *team) RenameTeam(teamName, name string) (bool, error) {
+func (team *team) RenameTeam(teamName, name string) (bool, []ConfigWarning, error) {
 	params := rata.Params{
 		"team_name": teamName,
 	}
 
 	jsonBytes, err := json.Marshal(atc.RenameRequest{NewName: name})
 	if err != nil {
-		return false, err
+		return false, []ConfigWarning{}, err
 	}
 
+	var response setConfigResponse
 	err = team.connection.Send(internal.Request{
 		RequestName: atc.RenameTeam,
 		Params:      params,
 		Body:        bytes.NewBuffer(jsonBytes),
 		Header:      http.Header{"Content-Type": []string{"application/json"}},
-	}, nil)
+	}, &internal.Response{
+		Result: &response,
+	})
+
 	switch err.(type) {
 	case nil:
-		return true, nil
+		return true, response.Warnings, nil
 	case internal.ResourceNotFoundError:
-		return false, nil
+		return false, []ConfigWarning{}, nil
 	default:
-		return false, err
+		return false, []ConfigWarning{}, err
 	}
 }
 

@@ -16,8 +16,8 @@ import (
 
 var _ = Describe("ValidateConfig", func() {
 	var (
-		config atc.Config
-
+		config        atc.Config
+		warnings      []atc.ConfigWarning
 		errorMessages []string
 	)
 
@@ -109,12 +109,134 @@ var _ = Describe("ValidateConfig", func() {
 	})
 
 	JustBeforeEach(func() {
-		_, errorMessages = configvalidate.Validate(config)
+		warnings, errorMessages = configvalidate.Validate(config)
 	})
 
 	Context("when the config is valid", func() {
 		It("returns no error", func() {
 			Expect(errorMessages).To(HaveLen(0))
+		})
+	})
+
+	Describe("invalid identifiers", func() {
+
+		Context("when a group has an invalid identifier", func() {
+			BeforeEach(func() {
+				config.Groups = append(config.Groups, atc.GroupConfig{
+					Name: "_some-group",
+					Jobs: []string{"some-job"},
+				})
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(1))
+				Expect(warnings[0].Message).To(ContainSubstring("'_some-group' is not a valid identifier"))
+			})
+		})
+
+		Context("when a resource has an invalid identifier", func() {
+			BeforeEach(func() {
+				config.Resources = append(config.Resources, atc.ResourceConfig{
+					Name: "some_resource",
+					Type: "some-type",
+					Source: atc.Source{
+						"source-config": "some-value",
+					},
+				})
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(1))
+				Expect(warnings[0].Message).To(ContainSubstring("'some_resource' is not a valid identifier"))
+			})
+		})
+
+		Context("when a resource type has an invalid identifier", func() {
+			BeforeEach(func() {
+				config.ResourceTypes = append(config.ResourceTypes, atc.ResourceType{
+					Name: "_some-resource-type",
+					Type: "some-type",
+					Source: atc.Source{
+						"source-config": "some-value",
+					},
+				})
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(1))
+				Expect(warnings[0].Message).To(ContainSubstring("'_some-resource-type' is not a valid identifier"))
+			})
+		})
+
+		Context("when a var source has an invalid identifier", func() {
+			BeforeEach(func() {
+				config.VarSources = append(config.VarSources, atc.VarSourceConfig{
+					Name:   "_some-var-source",
+					Type:   "dummy",
+					Config: "",
+				})
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(1))
+				Expect(warnings[0].Message).To(ContainSubstring("'_some-var-source' is not a valid identifier"))
+			})
+		})
+
+		Context("when a job has an invalid identifier", func() {
+			BeforeEach(func() {
+				config.Jobs = append(config.Jobs, atc.JobConfig{
+					Name: "_some-job",
+				})
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(1))
+				Expect(warnings[0].Message).To(ContainSubstring("'_some-job' is not a valid identifier"))
+			})
+		})
+
+		Context("when a step has an invalid identifier", func() {
+			var job atc.JobConfig
+
+			BeforeEach(func() {
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.GetStep{
+						Name: "_get-step",
+					},
+				})
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.TaskStep{
+						Name: "_task-step",
+					},
+				})
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.PutStep{
+						Name: "_put-step",
+					},
+				})
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.SetPipelineStep{
+						Name: "_set-pipeline-step",
+					},
+				})
+				job.PlanSequence = append(job.PlanSequence, atc.Step{
+					Config: &atc.LoadVarStep{
+						Name: "_load-var-step",
+					},
+				})
+
+				config.Jobs = append(config.Jobs, job)
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(5))
+				Expect(warnings[0].Message).To(ContainSubstring("'_get-step' is not a valid identifier"))
+				Expect(warnings[1].Message).To(ContainSubstring("'_task-step' is not a valid identifier"))
+				Expect(warnings[2].Message).To(ContainSubstring("'_put-step' is not a valid identifier"))
+				Expect(warnings[3].Message).To(ContainSubstring("'_set-pipeline-step' is not a valid identifier"))
+				Expect(warnings[4].Message).To(ContainSubstring("'_load-var-step' is not a valid identifier"))
+			})
 		})
 	})
 

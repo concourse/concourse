@@ -27,12 +27,21 @@ type SetPipelineCommand struct {
 	Team string `long:"team"              description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
-func (command *SetPipelineCommand) Validate() error {
-	return command.Pipeline.Validate()
+func (command *SetPipelineCommand) Validate() ([]concourse.ConfigWarning, error) {
+	warnings, err := command.Pipeline.Validate()
+	if command.Team != "" {
+		if warning := atc.ValidateIdentifier(command.Team, "team"); warning != nil {
+			warnings = append(warnings, concourse.ConfigWarning{
+				Type:    warning.Type,
+				Message: warning.Message,
+			})
+		}
+	}
+	return warnings, err
 }
 
 func (command *SetPipelineCommand) Execute(args []string) error {
-	err := command.Validate()
+	warnings, err := command.Validate()
 	if err != nil {
 		return err
 	}
@@ -70,6 +79,7 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		Target:           target.Client().URL(),
 		SkipInteraction:  command.SkipInteractive,
 		CheckCredentials: command.CheckCredentials,
+		CommandWarnings:  warnings,
 	}
 
 	yamlTemplateWithParams := templatehelpers.NewYamlTemplateWithParams(configPath, templateVariablesFiles, command.Var, command.YAMLVar)

@@ -13,7 +13,8 @@ type ExposePipelineCommand struct {
 }
 
 func (command *ExposePipelineCommand) Validate() error {
-	return command.Pipeline.Validate()
+	_, err := command.Pipeline.Validate()
+	return err
 }
 
 func (command *ExposePipelineCommand) Execute(args []string) error {

@@ -69,7 +69,16 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pipelineName := rata.Param(r, "pipeline_name")
+	warning := atc.ValidateIdentifier(pipelineName, "pipeline")
+	if warning != nil {
+		warnings = append(warnings, *warning)
+	}
+
 	teamName := rata.Param(r, "team_name")
+	warning = atc.ValidateIdentifier(teamName, "team")
+	if warning != nil {
+		warnings = append(warnings, *warning)
+	}
 
 	if checkCredentials {
 		variables := creds.NewVariables(s.secretManager, teamName, pipelineName, false)

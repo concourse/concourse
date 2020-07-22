@@ -19,7 +19,8 @@ type ArchivePipelineCommand struct {
 }
 
 func (command *ArchivePipelineCommand) Validate() error {
-	return command.Pipeline.Validate()
+	_, err := command.Pipeline.Validate()
+	return err
 }
 
 func (command *ArchivePipelineCommand) Execute(args []string) error {

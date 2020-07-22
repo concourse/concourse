@@ -134,7 +134,7 @@ jobs:
 					}
 
 					ccClient := login(atcURL, "o-user", "o-user")
-					createdTeam, _, _, err := ccClient.Team(team.Name).CreateOrUpdate(team)
+					createdTeam, _, _, _, err := ccClient.Team(team.Name).CreateOrUpdate(team)
 
 					Expect(err).ToNot(HaveOccurred())
 					Expect(createdTeam.Name).To(Equal(team.Name))

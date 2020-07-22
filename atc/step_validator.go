@@ -14,7 +14,7 @@ type StepValidator struct {
 	// deprecations.
 	//
 	// This field will be populated after visiting the step.
-	Warnings []string
+	Warnings []ConfigWarning
 
 	// Errors is a slice of critical errors which will prevent configuring the
 	// pipeline.
@@ -62,6 +62,11 @@ func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 	validator.pushContext(fmt.Sprintf(".task(%s)", plan.Name))
 	defer validator.popContext()
 
+	warning := ValidateIdentifier(plan.Name, validator.context...)
+	if warning != nil {
+		validator.recordWarning(*warning)
+	}
+
 	if plan.Config == nil && plan.ConfigPath == "" {
 		validator.recordError("must specify either `file:` or `config:`")
 	}
@@ -71,7 +76,10 @@ func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 	}
 
 	if plan.Config != nil && (plan.Config.RootfsURI != "" || plan.Config.ImageResource != nil) && plan.ImageArtifactName != "" {
-		validator.recordWarning("specifies image: on the step but also specifies an image under config: - the image: on the step takes precedence")
+		validator.recordWarning(ConfigWarning{
+			Type:    "pipeline",
+			Message: validator.annotate("specifies image: on the step but also specifies an image under config: - the image: on the step takes precedence"),
+		})
 	}
 
 	if plan.Config != nil {
@@ -96,6 +104,11 @@ func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 func (validator *StepValidator) VisitGet(step *GetStep) error {
 	validator.pushContext(fmt.Sprintf(".get(%s)", step.Name))
 	defer validator.popContext()
+
+	warning := ValidateIdentifier(step.Name, validator.context...)
+	if warning != nil {
+		validator.recordWarning(*warning)
+	}
 
 	if validator.seenGetName[step.Name] {
 		validator.recordError("repeated name")
@@ -150,6 +163,11 @@ func (validator *StepValidator) VisitPut(step *PutStep) error {
 	validator.pushContext(".put(%s)", step.Name)
 	defer validator.popContext()
 
+	warning := ValidateIdentifier(step.Name, validator.context...)
+	if warning != nil {
+		validator.recordWarning(*warning)
+	}
+
 	resourceName := step.ResourceName()
 
 	_, found := validator.config.Resources.Lookup(resourceName)
@@ -164,6 +182,11 @@ func (validator *StepValidator) VisitSetPipeline(step *SetPipelineStep) error {
 	validator.pushContext(".set_pipeline(%s)", step.Name)
 	defer validator.popContext()
 
+	warning := ValidateIdentifier(step.Name, validator.context...)
+	if warning != nil {
+		validator.recordWarning(*warning)
+	}
+
 	if step.File == "" {
 		validator.recordError("no file specified")
 	}
@@ -174,6 +197,11 @@ func (validator *StepValidator) VisitSetPipeline(step *SetPipelineStep) error {
 func (validator *StepValidator) VisitLoadVar(step *LoadVarStep) error {
 	validator.pushContext(".load_var(%s)", step.Name)
 	defer validator.popContext()
+
+	warning := ValidateIdentifier(step.Name, validator.context...)
+	if warning != nil {
+		validator.recordWarning(*warning)
+	}
 
 	if validator.seenLoadVarName[step.Name] {
 		validator.recordError("repeated name")
@@ -235,7 +263,10 @@ func (validator *StepValidator) VisitAggregate(step *AggregateStep) error {
 	validator.pushContext(".aggregate")
 	defer validator.popContext()
 
-	validator.recordWarning("the aggregate step is deprecated and will be removed in a future version")
+	validator.recordWarning(ConfigWarning{
+		Type:    "pipeline",
+		Message: validator.annotate("the aggregate step is deprecated and will be removed in a future version"),
+	})
 
 	for i, sub := range step.Steps {
 		validator.pushContext("[%d]", i)
@@ -344,8 +375,8 @@ func (validator *StepValidator) VisitEnsure(step *EnsureStep) error {
 	return validator.Validate(step.Hook)
 }
 
-func (validator *StepValidator) recordWarning(message string, args ...interface{}) {
-	validator.Warnings = append(validator.Warnings, validator.annotate(fmt.Sprintf(message, args...)))
+func (validator *StepValidator) recordWarning(warning ConfigWarning) {
+	validator.Warnings = append(validator.Warnings, warning)
 }
 
 func (validator *StepValidator) recordError(message string, args ...interface{}) {
