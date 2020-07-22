@@ -4,21 +4,21 @@ import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
 	"context"
-	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/exec/build/buildfakes"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
-	"github.com/concourse/concourse/vars/varsfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/atc/exec/build/buildfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/vars/varsfakes"
 )
 
-const plainString = "pv"
+const plainString = "  pv  \n\n"
 
 const yamlString = `
 k1: yv1
@@ -128,6 +128,28 @@ var _ = Describe("LoadVarStep", func() {
 			})
 		})
 
+		Context("when format is trim", func() {
+			BeforeEach(func() {
+				loadVarPlan = &atc.LoadVarPlan{
+					Name:   "some-var",
+					File:   "some-resource/a.diff",
+					Format: "trim",
+				}
+
+				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
+			})
+
+			It("step should not fail", func() {
+				Expect(stepErr).ToNot(HaveOccurred())
+			})
+
+			It("should var parsed correctly", func() {
+				value, err := vars.NewTemplate([]byte("((.:some-var))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(string(value)).To(Equal("pv\n"))
+			})
+		})
+
 		Context("when format is raw", func() {
 			BeforeEach(func() {
 				loadVarPlan = &atc.LoadVarPlan{
@@ -146,7 +168,7 @@ var _ = Describe("LoadVarStep", func() {
 			It("should var parsed correctly", func() {
 				value, err := vars.NewTemplate([]byte("((.:some-var))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
 				Expect(err).ToNot(HaveOccurred())
-				Expect(string(value)).To(Equal("pv\n"))
+				Expect(string(value)).To(Equal("\"  pv  \\n\\n\"\n"))
 			})
 		})
 
@@ -232,7 +254,7 @@ var _ = Describe("LoadVarStep", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
 			})
 
-			It("should var parsed correctly as raw", func() {
+			It("should var parsed correctly as trim", func() {
 				value, err := vars.NewTemplate([]byte("((.:some-var))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(value)).To(Equal("pv\n"))

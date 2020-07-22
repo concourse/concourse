@@ -175,6 +175,8 @@ func (step *LoadVarStep) fetchVars(
 		if err != nil {
 			return nil, InvalidLocalVarFile{file, "yaml", err}
 		}
+	case "trim":
+		value = strings.TrimSpace(string(fileContent))
 	case "raw":
 		value = string(fileContent)
 	default:
@@ -197,12 +199,12 @@ func (step *LoadVarStep) fileFormat(file string) (string, error) {
 		return format, nil
 	}
 
-	return "raw", nil
+	return "trim", nil
 }
 
 func (step *LoadVarStep) isValidFormat(format string) bool {
 	switch format {
-	case "raw", "yml", "yaml", "json":
+	case "raw", "trim", "yml", "yaml", "json":
 		return true
 	}
 	return false
