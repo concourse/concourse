@@ -44,9 +44,9 @@ A pipeline's resource types are listed under
     by resource type, and is a black box to Concourse; it is blindly passed to
     the resource at runtime.
 
-    To use \code{docker-image} as an example, the source would contain something
-    like \code{repository: username/reponame}. See the \link{Docker Image
-    resource}{https://github.com/concourse/docker-image-resource} (or whatever
+    To use \code{registry-image} as an example, the source would contain something
+    like \code{repository: username/reponame}. See the \link{Registry Image
+    resource}{https://github.com/concourse/registry-image-resource} (or whatever
     resource type your resource type uses) for more information.
   }
 
@@ -103,7 +103,7 @@ A pipeline's resource types are listed under
     ---
     resource_types:
     - name: rss
-      type: docker-image
+      type: registry-image
       source:
         repository: suhlig/concourse-rss-resource
         tag: latest

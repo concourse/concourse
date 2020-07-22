@@ -98,7 +98,7 @@ files} which conform to the following schema:
           config:
             platform: linux
             image_resource:
-              type: docker-image
+              type: registry-image
               source: {repository: alpine}
             run:
               path: echo
@@ -177,7 +177,7 @@ files} which conform to the following schema:
       ---
       resource_types:
       - name: rss
-        type: docker-image
+        type: registry-image
         source:
           repository: suhlig/concourse-rss-resource
           tag: latest

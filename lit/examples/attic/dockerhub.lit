@@ -6,7 +6,7 @@
 \section{
   \title{}{pipeline}
 
-	You can use the docker-image resource to compile and test Dockerfiles.
+	You can use the registry-image resource to compile and test Dockerfiles.
 
 	\frame{https://ci.concourse-ci.org/teams/examples/pipelines/job}
 }
@@ -22,7 +22,7 @@ resources:
       uri: https://github.com/concourse/mock-resource
 
   - name: dockerhub-edge
-    type: docker-image
+    type: registry-image
     source:
       tag: example-edge
       repository: concourse/docs

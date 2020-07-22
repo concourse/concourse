@@ -41,7 +41,7 @@ Putting all this together, the following task config:
 platform: linux
 
 image_resource:
-  type: docker-image
+  type: registry-image
   source:
     repository: golang
     tag: '1.6'
