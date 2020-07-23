@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 
@@ -33,10 +32,6 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 
 	gdnFlags := []string{}
 
-	if cmd.Garden.Config.Path() != "" {
-		gdnFlags = append(gdnFlags, "--config", cmd.Garden.Config.Path())
-	}
-
 	gdnServerFlags := []string{
 		"--bind-ip", cmd.BindIP.IP.String(),
 		"--bind-port", fmt.Sprintf("%d", cmd.BindPort),
@@ -49,22 +44,6 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 		// disable graph and grootfs setup; all images passed to Concourse
 		// containers are raw://
 		"--no-image-plugin",
-	}
-
-	for _, dnsServer := range cmd.Garden.DNSServers {
-		gdnServerFlags = append(gdnServerFlags, "--dns-server", dnsServer)
-	}
-
-	for _, denyNetwork := range cmd.Garden.DenyNetworks {
-		gdnServerFlags = append(gdnServerFlags, "--deny-network", denyNetwork)
-	}
-
-	if cmd.ContainerNetworkPool != "" {
-		gdnServerFlags = append(gdnServerFlags, "--network-pool", cmd.ContainerNetworkPool)
-	}
-
-	if cmd.Garden.MaxContainers != 0 {
-		gdnServerFlags = append(gdnServerFlags, "--max-containers", strconv.Itoa(cmd.Garden.MaxContainers))
 	}
 
 	gdnServerFlags = append(gdnServerFlags, detectGardenFlags(logger)...)
