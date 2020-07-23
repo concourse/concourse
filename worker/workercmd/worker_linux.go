@@ -23,21 +23,21 @@ type Certs struct {
 }
 
 type Runtime struct {
-	Type string `long:"type" default:"guardian" description:"Runtime to use with the worker. Possible values: guardian, containerd, houdini. Please note that Houdini is insecure and doesn't run 'tasks' in containers"`
+	Type string `long:"type" default:"guardian" description:"Runtime to use with the worker. Possible values: guardian, containerd, houdini. Please note that Houdini is insecure and doesn't run 'tasks' in containers."`
 }
 
-type GardenBackend struct {
+type GuardianRuntime struct {
 	Bin            string        `long:"bin"        description:"Path to a garden backend executable (non-absolute names get resolved from $PATH)."`
 	DNS            DNSConfig     `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
 	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
 }
 
-type ContainerdBackend struct {
+type ContainerdRuntime struct {
 	Config         flag.File     `long:"config"     description:"Path to a config file to use for the Containerd binary."`
 	Bin            string        `long:"bin"        description:"Path to a containerd executable (non-absolute names get resolved from $PATH)."`
 	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Containerd to complete. 0 means no timeout."`
 
-	//TODO can this be simplifed to just a bool rather than struct with a bool?
+	//TODO can DNSConfig be simplifed to just a bool rather than struct with a bool?
 	DNS            DNSConfig     `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
 	DNSServers     []string      `long:"dns-server" description:"DNS server IP address to use instead of automatically determined servers. Can be specified multiple times."`
 	DenyNetworks   []string      `long:"deny-network" description:"Network ranges to which traffic from containers will be restricted. Can be specified multiple times."`
@@ -124,7 +124,7 @@ func (cmd *WorkerCommand) checkRoot() error {
 }
 
 func (cmd *WorkerCommand) dnsProxyRunner(logger lager.Logger) (ifrit.Runner, error) {
-	server, err := cmd.Garden.DNS.Server()
+	server, err := cmd.Guardian.DNS.Server()
 	if err != nil {
 		return nil, err
 	}

@@ -48,9 +48,11 @@ type WorkerCommand struct {
 
 	ConnectionDrainTimeout time.Duration `long:"connection-drain-timeout" default:"1h" description:"Duration after which a worker should give up draining forwarded connections on shutdown."`
 
-	Garden GardenBackend `group:"Garden Configuration" namespace:"garden"`
+	// This refers to flags relevant to the operation of the Guardian runtime.
+	// For historical reasons it is namespaced under "garden" i.e. CONCOURSE_GARDEN instead of "guardian" i.e. CONCOURSE_GUARDIAN
+	Guardian GuardianRuntime `group:"Guardian Configuration" namespace:"garden"`
 
-	Containerd ContainerdBackend `group:"Containerd Configuration" namespace:"containerd"`
+	Containerd ContainerdRuntime `group:"Containerd Configuration" namespace:"containerd"`
 
 	Runtime Runtime `group:"Runtime Configuration" namespace:"runtime"`
 
@@ -111,7 +113,7 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	gardenClient := gclient.BasicGardenClientWithRequestTimeout(
 		logger.Session("garden-connection"),
-		cmd.Garden.RequestTimeout,
+		cmd.Guardian.RequestTimeout,
 		cmd.gardenURL(),
 	)
 
