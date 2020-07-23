@@ -35,7 +35,14 @@ type ClaimsParser interface {
 	ParseClaims(idToken string) (db.Claims, error)
 }
 
-func StoreAccessToken(logger lager.Logger, handler http.Handler, generator Generator, claimsParser ClaimsParser, accessTokenFactory db.AccessTokenFactory) http.Handler {
+func StoreAccessToken(
+	logger lager.Logger,
+	handler http.Handler,
+	generator Generator,
+	claimsParser ClaimsParser,
+	accessTokenFactory db.AccessTokenFactory,
+	userFactory db.UserFactory,
+) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/sky/issuer/token" {
 			handler.ServeHTTP(w, r)
@@ -87,6 +94,12 @@ func StoreAccessToken(logger lager.Logger, handler http.Handler, generator Gener
 		err = accessTokenFactory.CreateAccessToken(resp.AccessToken, claims)
 		if err != nil {
 			logger.Error("create-access-token-in-db", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = userFactory.CreateOrUpdateUser(claims.Username, claims.Connector, claims.Subject)
+		if err != nil {
+			logger.Error("create-or-update-user", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

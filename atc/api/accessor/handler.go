@@ -35,12 +35,6 @@ type AccessTokenFetcher interface {
 	GetAccessToken(rawToken string) (db.AccessToken, bool, error)
 }
 
-//go:generate counterfeiter UserTracker
-
-type UserTracker interface {
-	CreateOrUpdateUser(username, connector, sub string) error
-}
-
 func NewHandler(
 	logger lager.Logger,
 	action string,
@@ -48,7 +42,6 @@ func NewHandler(
 	accessFactory AccessFactory,
 	tokenVerifier TokenVerifier,
 	teamFetcher TeamFetcher,
-	userTracker UserTracker,
 	auditor auditor.Auditor,
 	customRoles map[string]string,
 ) http.Handler {
@@ -60,7 +53,6 @@ func NewHandler(
 		auditor:       auditor,
 		tokenVerifier: tokenVerifier,
 		teamFetcher:   teamFetcher,
-		userTracker:   userTracker,
 		customRoles:   customRoles,
 	}
 }
@@ -72,7 +64,6 @@ type accessorHandler struct {
 	accessFactory AccessFactory
 	tokenVerifier TokenVerifier
 	teamFetcher   TeamFetcher
-	userTracker   UserTracker
 	auditor       auditor.Auditor
 	customRoles   map[string]string
 }
@@ -94,20 +85,6 @@ func (h *accessorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	acc := h.accessFactory.Create(requiredRole, h.verifyToken(r), teams)
 
 	claims := acc.Claims()
-
-	if acc.IsAuthenticated() {
-
-		err = h.userTracker.CreateOrUpdateUser(
-			claims.UserName,
-			claims.Connector,
-			claims.Sub,
-		)
-		if err != nil {
-			h.logger.Error("failed-to-track-user", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-	}
 
 	ctx := context.WithValue(r.Context(), "accessor", acc)
 

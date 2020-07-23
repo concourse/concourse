@@ -23,6 +23,7 @@ var _ = Describe("Access Tokens", func() {
 			generator          *tokenfakes.FakeGenerator
 			claimsParser       *tokenfakes.FakeClaimsParser
 			accessTokenFactory *dbfakes.FakeAccessTokenFactory
+			userFactory        *dbfakes.FakeUserFactory
 
 			dummyLogger *lagertest.TestLogger
 		)
@@ -31,6 +32,7 @@ var _ = Describe("Access Tokens", func() {
 			generator = new(tokenfakes.FakeGenerator)
 			claimsParser = new(tokenfakes.FakeClaimsParser)
 			accessTokenFactory = new(dbfakes.FakeAccessTokenFactory)
+			userFactory = new(dbfakes.FakeUserFactory)
 
 			dummyLogger = lagertest.NewTestLogger("whatever")
 		})
@@ -45,6 +47,7 @@ var _ = Describe("Access Tokens", func() {
 			parseClaimsErrors   bool
 			generateTokenErrors bool
 			storeTokenErrors    bool
+			storeUserErrors     bool
 
 			expectStatusCode int
 			expectBody       string
@@ -114,6 +117,17 @@ var _ = Describe("Access Tokens", func() {
 
 				expectStatusCode: 500,
 			},
+			{
+				it: "errors if storing user fails",
+
+				path:       "/sky/issuer/token",
+				statusCode: 200,
+				body:       `{"access_token":"123","token_type":"bearer","expires_in":1234,"id_token":"a.b.c"}`,
+
+				storeUserErrors: true,
+
+				expectStatusCode: 500,
+			},
 		} {
 			t := t
 
@@ -122,7 +136,7 @@ var _ = Describe("Access Tokens", func() {
 					w.WriteHeader(t.statusCode)
 					w.Write([]byte(t.body))
 				})
-				handler := token.StoreAccessToken(dummyLogger, baseHandler, generator, claimsParser, accessTokenFactory)
+				handler := token.StoreAccessToken(dummyLogger, baseHandler, generator, claimsParser, accessTokenFactory, userFactory)
 				r, _ := http.NewRequest("GET", t.path, nil)
 				rec := httptest.NewRecorder()
 
@@ -138,6 +152,10 @@ var _ = Describe("Access Tokens", func() {
 
 				if t.storeTokenErrors {
 					accessTokenFactory.CreateAccessTokenReturns(errors.New("store token error"))
+				}
+
+				if t.storeUserErrors {
+					userFactory.CreateOrUpdateUserReturns(errors.New("upsert user error"))
 				}
 
 				handler.ServeHTTP(rec, r)

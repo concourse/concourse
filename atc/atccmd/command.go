@@ -104,7 +104,6 @@ var flyClientSecret = "Zmx5"
 
 var workerAvailabilityPollingInterval = 5 * time.Second
 var workerStatusPublishInterval = 1 * time.Minute
-var BatcherInterval = 15 * time.Second
 
 type ATCCommand struct {
 	RunCommand RunCommand `command:"run"`
@@ -768,6 +767,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		logger,
 		storage,
 		dbAccessTokenFactory,
+		userFactory,
 	)
 	if err != nil {
 		return nil, err
@@ -1648,6 +1648,7 @@ func (cmd *RunCommand) constructAuthHandler(
 	logger lager.Logger,
 	storage storage.Storage,
 	accessTokenFactory db.AccessTokenFactory,
+	userFactory db.UserFactory,
 ) (http.Handler, error) {
 
 	issuerPath, _ := url.Parse("/sky/issuer")
@@ -1680,6 +1681,7 @@ func (cmd *RunCommand) constructAuthHandler(
 		token.Factory{},
 		token.NewClaimsParser(),
 		accessTokenFactory,
+		userFactory,
 	), nil
 }
 
@@ -1783,13 +1785,6 @@ func (cmd *RunCommand) constructAPIHandler(
 		logger,
 	)
 
-	batcher := accessor.NewBatcher(
-		logger,
-		dbUserFactory,
-		BatcherInterval,
-		100,
-	)
-
 	teamsCacher := accessor.NewTeamsCacher(
 		logger,
 		notifications,
@@ -1823,7 +1818,6 @@ func (cmd *RunCommand) constructAPIHandler(
 			accessFactory,
 			tokenVerifier,
 			teamsCacher,
-			batcher,
 			aud,
 			customRoles,
 		),

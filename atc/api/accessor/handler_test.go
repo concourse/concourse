@@ -26,7 +26,6 @@ var _ = Describe("Handler", func() {
 		fakeAccessorFactory *accessorfakes.FakeAccessFactory
 		fakeTokenVerifier   *accessorfakes.FakeTokenVerifier
 		fakeTeamFetcher     *accessorfakes.FakeTeamFetcher
-		fakeUserTracker     *accessorfakes.FakeUserTracker
 		fakeAuditor         *auditorfakes.FakeAuditor
 
 		action      string
@@ -45,7 +44,6 @@ var _ = Describe("Handler", func() {
 		fakeAccessorFactory.CreateReturns(fakeAccess)
 		fakeTokenVerifier = new(accessorfakes.FakeTokenVerifier)
 		fakeTeamFetcher = new(accessorfakes.FakeTeamFetcher)
-		fakeUserTracker = new(accessorfakes.FakeUserTracker)
 		fakeAuditor = new(auditorfakes.FakeAuditor)
 
 		action = "some-action"
@@ -66,7 +64,6 @@ var _ = Describe("Handler", func() {
 			fakeAccessorFactory,
 			fakeTokenVerifier,
 			fakeTeamFetcher,
-			fakeUserTracker,
 			fakeAuditor,
 			customRoles,
 		)
@@ -213,42 +210,18 @@ var _ = Describe("Handler", func() {
 					})
 				})
 
-				Context("when the user factory fails", func() {
-					BeforeEach(func() {
-						fakeUserTracker.CreateOrUpdateUserReturns(errors.New("nope"))
-					})
-
-					It("returns a server error", func() {
-						Expect(w.Result().StatusCode).To(Equal(http.StatusInternalServerError))
-					})
+				It("audits the event", func() {
+					Expect(fakeAuditor.AuditCallCount()).To(Equal(1))
+					action, userName, req := fakeAuditor.AuditArgsForCall(0)
+					Expect(action).To(Equal("some-action"))
+					Expect(userName).To(Equal("some-user"))
+					Expect(req).To(Equal(r))
 				})
 
-				Context("when the user factory succeeds", func() {
-					BeforeEach(func() {
-						fakeUserTracker.CreateOrUpdateUserReturns(nil)
-					})
-
-					It("updates the requesting user's activity", func() {
-						Expect(fakeUserTracker.CreateOrUpdateUserCallCount()).To(Equal(1))
-						username, connector, sub := fakeUserTracker.CreateOrUpdateUserArgsForCall(0)
-						Expect(username).To(Equal("some-user"))
-						Expect(connector).To(Equal("some-connector"))
-						Expect(sub).To(Equal("some-sub"))
-					})
-
-					It("audits the event", func() {
-						Expect(fakeAuditor.AuditCallCount()).To(Equal(1))
-						action, userName, req := fakeAuditor.AuditArgsForCall(0)
-						Expect(action).To(Equal("some-action"))
-						Expect(userName).To(Equal("some-user"))
-						Expect(req).To(Equal(r))
-					})
-
-					It("invokes the handler", func() {
-						Expect(fakeHandler.ServeHTTPCallCount()).To(Equal(1))
-						_, r := fakeHandler.ServeHTTPArgsForCall(0)
-						Expect(accessor.GetAccessor(r)).To(Equal(fakeAccess))
-					})
+				It("invokes the handler", func() {
+					Expect(fakeHandler.ServeHTTPCallCount()).To(Equal(1))
+					_, r := fakeHandler.ServeHTTPArgsForCall(0)
+					Expect(accessor.GetAccessor(r)).To(Equal(fakeAccess))
 				})
 			})
 
@@ -256,10 +229,6 @@ var _ = Describe("Handler", func() {
 				BeforeEach(func() {
 					fakeAccess.IsAuthenticatedReturns(false)
 					fakeAccess.ClaimsReturns(accessor.Claims{})
-				})
-
-				It("doesn't track the request", func() {
-					Expect(fakeUserTracker.CreateOrUpdateUserCallCount()).To(Equal(0))
 				})
 
 				It("audits the anonymous request", func() {

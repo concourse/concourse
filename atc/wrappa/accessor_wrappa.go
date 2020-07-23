@@ -12,7 +12,6 @@ func NewAccessorWrappa(
 	accessFactory accessor.AccessFactory,
 	tokenVerifier accessor.TokenVerifier,
 	teamFetcher accessor.TeamFetcher,
-	userTracker accessor.UserTracker,
 	auditor auditor.Auditor,
 	customRoles map[string]string,
 ) *AccessorWrappa {
@@ -21,7 +20,6 @@ func NewAccessorWrappa(
 		accessFactory: accessFactory,
 		tokenVerifier: tokenVerifier,
 		teamFetcher:   teamFetcher,
-		userTracker:   userTracker,
 		auditor:       auditor,
 		customRoles:   customRoles,
 	}
@@ -32,7 +30,6 @@ type AccessorWrappa struct {
 	accessFactory accessor.AccessFactory
 	tokenVerifier accessor.TokenVerifier
 	teamFetcher   accessor.TeamFetcher
-	userTracker   accessor.UserTracker
 	auditor       auditor.Auditor
 	customRoles   map[string]string
 }
@@ -48,7 +45,6 @@ func (w *AccessorWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			w.accessFactory,
 			w.tokenVerifier,
 			w.teamFetcher,
-			w.userTracker,
 			w.auditor,
 			w.customRoles,
 		)

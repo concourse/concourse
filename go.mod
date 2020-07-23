@@ -10,7 +10,6 @@ require (
 	github.com/Azure/go-autorest/autorest v0.10.1 // indirect
 	github.com/Azure/go-autorest/autorest/adal v0.8.3 // indirect
 	github.com/DataDog/datadog-go v3.2.0+incompatible
-	github.com/MasterOfBinary/gobatch v0.0.0-20180929163814-711b27aab3df
 	github.com/Masterminds/squirrel v1.1.0
 	github.com/Microsoft/hcsshim v0.8.7 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
