@@ -1,4 +1,4 @@
-module Dashboard.PipelineGrid.Layout exposing (cardSize, layout)
+module Dashboard.PipelineGrid.Layout exposing (Card, cardSize, layout)
 
 
 type alias GridSpan =
@@ -6,8 +6,8 @@ type alias GridSpan =
 
 
 type alias Card =
-    { width : GridSpan
-    , height : GridSpan
+    { spannedColumns : GridSpan
+    , spannedRows : GridSpan
     , column : Int
     , row : Int
     }
@@ -63,7 +63,7 @@ layout numColumns cardSizes =
                         else
                             max rowHeight h
                 in
-                { cards = { width = w, height = h, column = newColumn, row = newRow } :: cards
+                { cards = { spannedColumns = w, spannedRows = h, column = newColumn, row = newRow } :: cards
                 , column = newColumn + w
                 , row = newRow
                 , rowHeight = newRowHeight

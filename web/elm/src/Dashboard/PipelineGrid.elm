@@ -67,41 +67,21 @@ computeLayout params g =
         numColumns =
             max 1 (floor (params.viewportWidth / (cardWidth + padding)))
 
-        numRowsVisible =
-            ceiling (params.viewportHeight / (cardHeight + padding)) + 1
+        rowHeight =
+            cardHeight + padding
 
-        numRowsOffset =
-            floor (params.scrollTop / (cardHeight + padding))
-
-        isVisible { row, height } =
-            (numRowsOffset < row + height)
-                && (row <= numRowsOffset + numRowsVisible)
-
-        previewSizes =
-            orderedPipelines
-                |> List.map
-                    (\pipeline ->
-                        Dict.get ( pipeline.teamName, pipeline.name ) params.pipelineLayers
-                            |> Maybe.withDefault []
-                    )
-                |> List.map
-                    (\layers ->
-                        ( List.length layers
-                        , layers
-                            |> List.map List.length
-                            |> List.maximum
-                            |> Maybe.withDefault 0
-                        )
-                    )
+        isVisible_ =
+            isVisible params.viewportHeight params.scrollTop rowHeight
 
         cards =
-            previewSizes
+            orderedPipelines
+                |> previewSizes params.pipelineLayers
                 |> List.map Layout.cardSize
                 |> Layout.layout numColumns
 
         numRows =
             cards
-                |> List.map (\c -> c.row + c.height - 1)
+                |> List.map (\c -> c.row + c.spannedRows - 1)
                 |> List.maximum
                 |> Maybe.withDefault 1
 
@@ -121,57 +101,61 @@ computeLayout params g =
             cards
                 |> List.map2 Tuple.pair (Nothing :: (cards |> List.map Just))
 
+        cardBounds =
+            boundsForCell
+                { colGap = padding
+                , rowGap = padding
+                , offsetX = padding
+                , offsetY = 0
+                }
+
+        dropAreaBounds =
+            cardBounds >> (\b -> { b | x = b.x - padding, width = b.width + padding })
+
         dropAreas =
             (prevAndCurrentCards
                 |> List.map2 Tuple.pair g.pipelines
-                |> List.filter (\( _, ( _, card ) ) -> isVisible card)
+                |> List.filter (\( _, ( _, card ) ) -> isVisible_ card)
                 |> List.map
                     (\( pipeline, ( prevCard, card ) ) ->
                         let
-                            cardBounds =
-                                { x = (toFloat card.column - 1) * (cardWidth + padding)
-                                , y = (toFloat card.row - 1) * (cardHeight + padding)
-                                , width = cardWidth * toFloat card.width + padding * toFloat card.width
-                                , height = cardHeight * toFloat card.height + padding * (toFloat card.height - 1)
-                                }
-
                             boundsToRightOf otherCard =
-                                { x = toFloat (otherCard.column - 1 + otherCard.width) * (cardWidth + padding)
-                                , y = (toFloat otherCard.row - 1) * (cardHeight + padding)
-                                , width = cardWidth + padding
-                                , height = cardHeight
-                                }
+                                dropAreaBounds
+                                    { otherCard
+                                        | column = otherCard.column + otherCard.spannedColumns
+                                        , spannedColumns = 1
+                                    }
 
                             bounds =
                                 case prevCard of
                                     Just otherCard ->
                                         if
                                             (otherCard.row < card.row)
-                                                && (otherCard.column + otherCard.width <= numColumns)
+                                                && (otherCard.column + otherCard.spannedColumns <= numColumns)
                                         then
                                             boundsToRightOf otherCard
 
                                         else
-                                            cardBounds
+                                            dropAreaBounds card
 
                                     Nothing ->
-                                        cardBounds
+                                        dropAreaBounds card
                         in
                         { bounds = bounds, target = Before pipeline.name }
                     )
             )
                 ++ (case List.head (List.reverse (List.map2 Tuple.pair cards g.pipelines)) of
                         Just ( lastCard, lastPipeline ) ->
-                            if not (isVisible lastCard) then
+                            if not (isVisible_ lastCard) then
                                 []
 
                             else
                                 [ { bounds =
-                                        { x = toFloat lastCard.column * (cardWidth + padding)
-                                        , y = (toFloat lastCard.row - 1) * (cardHeight + padding)
-                                        , width = cardWidth + padding
-                                        , height = cardHeight
-                                        }
+                                        dropAreaBounds
+                                            { lastCard
+                                                | column = lastCard.column + lastCard.spannedColumns
+                                                , spannedColumns = 1
+                                            }
                                   , target = After lastPipeline.name
                                   }
                                 ]
@@ -186,31 +170,88 @@ computeLayout params g =
                     (\pipeline ->
                         cardLookup
                             |> Dict.get pipeline.id
-                            |> Maybe.withDefault { row = 0, column = 0, width = 0, height = 0 }
+                            |> Maybe.withDefault
+                                { row = 0
+                                , column = 0
+                                , spannedColumns = 0
+                                , spannedRows = 0
+                                }
                             |> (\card -> ( pipeline, card ))
                     )
-                |> List.filter (\( _, card ) -> isVisible card)
+                |> List.filter (\( _, card ) -> isVisible_ card)
                 |> List.map
                     (\( pipeline, card ) ->
                         { pipeline = pipeline
-                        , bounds =
-                            { x = (toFloat card.column - 1) * (cardWidth + padding) + padding
-                            , y = (toFloat card.row - 1) * (cardHeight + padding)
-                            , width =
-                                cardWidth
-                                    * toFloat card.width
-                                    + padding
-                                    * (toFloat card.width - 1)
-                            , height =
-                                cardHeight
-                                    * toFloat card.height
-                                    + padding
-                                    * (toFloat card.height - 1)
-                            }
+                        , bounds = cardBounds card
                         }
                     )
     in
     { pipelineCards = pipelineCards
     , dropAreas = dropAreas
     , height = totalCardsHeight
+    }
+
+
+previewSizes :
+    Dict ( String, String ) (List (List Concourse.JobIdentifier))
+    -> List Pipeline
+    -> List ( Int, Int )
+previewSizes pipelineLayers =
+    List.map
+        (\pipeline ->
+            Dict.get ( pipeline.teamName, pipeline.name ) pipelineLayers
+                |> Maybe.withDefault []
+        )
+        >> List.map
+            (\layers ->
+                ( List.length layers
+                , layers
+                    |> List.map List.length
+                    |> List.maximum
+                    |> Maybe.withDefault 0
+                )
+            )
+
+
+isVisible : Float -> Float -> Float -> { r | row : Int, spannedRows : Int } -> Bool
+isVisible viewportHeight scrollTop rowHeight { row, spannedRows } =
+    let
+        numRowsVisible =
+            ceiling (viewportHeight / rowHeight) + 1
+
+        numRowsOffset =
+            floor (scrollTop / rowHeight)
+    in
+    (numRowsOffset < row + spannedRows)
+        && (row <= numRowsOffset + numRowsVisible)
+
+
+boundsForCell :
+    { colGap : Float
+    , rowGap : Float
+    , offsetX : Float
+    , offsetY : Float
+    }
+    -> Layout.Card
+    -> Bounds
+boundsForCell { colGap, rowGap, offsetX, offsetY } card =
+    let
+        colWidth =
+            cardWidth + colGap
+
+        rowHeight =
+            cardHeight + rowGap
+    in
+    { x = (toFloat card.column - 1) * colWidth + offsetX
+    , y = (toFloat card.row - 1) * rowHeight + offsetY
+    , width =
+        cardWidth
+            * toFloat card.spannedColumns
+            + colGap
+            * (toFloat card.spannedColumns - 1)
+    , height =
+        cardHeight
+            * toFloat card.spannedRows
+            + rowGap
+            * (toFloat card.spannedRows - 1)
     }

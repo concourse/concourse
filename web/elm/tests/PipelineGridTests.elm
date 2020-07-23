@@ -622,6 +622,30 @@ all =
                         |> Query.find [ class "dashboard-team-pipelines" ]
                         |> Query.findAll [ class "drop-area" ]
                         |> Query.count (Expect.equal 2)
+            , test "renders the final drop area to the right of the last card" <|
+                \_ ->
+                    Common.init "/"
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok [ Data.pipeline "team" 0 ]
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.GotViewport Dashboard <|
+                                Ok <|
+                                    viewportWithSize 600 200
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ class "dashboard-team-pipelines" ]
+                        |> Query.findAll [ class "drop-area" ]
+                        |> Query.index -1
+                        |> hasBounds
+                            { x = 272 + 25
+                            , y = 0
+                            , width = 272 + 25
+                            , height = 268
+                            }
             , test "renders the drop area up one row when the card breaks the row, but there is space for a smaller card" <|
                 \_ ->
                     Common.init "/"
