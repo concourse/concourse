@@ -1164,7 +1164,7 @@ pipelinesView session params =
                 else
                     let
                         offset =
-                            0
+                            PipelineGridConstants.sectionHeaderHeight
 
                         layout =
                             PipelineGrid.computeFavoritePipelinesLayout
@@ -1175,25 +1175,32 @@ pipelinesView session params =
                                 }
                                 favoritedPipelines
                     in
-                    Group.viewFavoritePipelines
-                        session
-                        { dragState = NotDragging
-                        , dropState = NotDropping
-                        , now = params.now
-                        , hovered = session.hovered
-                        , pipelineRunningKeyframes = session.pipelineRunningKeyframes
-                        , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
-                        , pipelineLayers = params.pipelineLayers
-                        , pipelineCards = layout.pipelineCards
-                        , headers = layout.headers
-                        , groupCardsHeight = layout.height
-                        , pipelineJobs = params.pipelineJobs
-                        , jobs = jobs
-                        }
-                        favoritedPipelines
+                    Html.div []
+                        [ Html.div Styles.pipelineSectionHeader [ Html.text "favorite pipelines" ]
+                        , Group.viewFavoritePipelines
+                            session
+                            { dragState = NotDragging
+                            , dropState = NotDropping
+                            , now = params.now
+                            , hovered = session.hovered
+                            , pipelineRunningKeyframes = session.pipelineRunningKeyframes
+                            , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
+                            , pipelineLayers = params.pipelineLayers
+                            , pipelineCards = layout.pipelineCards
+                            , headers = layout.headers
+                            , groupCardsHeight = layout.height
+                            , pipelineJobs = params.pipelineJobs
+                            , jobs = jobs
+                            }
+                            favoritedPipelines
+                        , Views.Styles.separator PipelineGridConstants.sectionSpacerHeight
+                        , Html.div Styles.pipelineSectionHeader [ Html.text "all pipelines" ]
+                        ]
                         |> (\html ->
                                 ( html
                                 , layout.height
+                                    + (2 * PipelineGridConstants.sectionHeaderHeight)
+                                    + PipelineGridConstants.sectionSpacerHeight
                                 )
                            )
 

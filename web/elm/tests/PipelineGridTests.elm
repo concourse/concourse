@@ -857,7 +857,7 @@ all =
                         |> Application.handleCallback
                             (Callback.GotViewport Dashboard <|
                                 Ok <|
-                                    viewportWithSize 300 200
+                                    viewportWithSize 300 600
                             )
                         |> Tuple.first
                         |> gotFavoritedPipelines [ 0, 1 ]

@@ -13,7 +13,6 @@ module SideBar.Styles exposing
     , pipelineIcon
     , pipelineName
     , sectionHeader
-    , separator
     , sideBar
     , sideBarHandle
     , starPadding
@@ -337,12 +336,3 @@ tooltipBody =
     , style "align-items" "center"
     , style "height" "30px"
     ]
-
-
-separator : Html.Html msg
-separator =
-    Html.div
-        [ style "border-bottom" "1px solid black"
-        , style "margin-top" "10px"
-        ]
-        []

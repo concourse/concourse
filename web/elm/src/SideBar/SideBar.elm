@@ -30,6 +30,7 @@ import SideBar.Team as Team
 import SideBar.Views as Views
 import Tooltip
 import Views.Icon as Icon
+import Views.Styles
 
 
 type alias Model m =
@@ -329,7 +330,7 @@ favoritedPipelinesSection model currentPipeline =
                             |> Views.viewTeam
                     )
             )
-        , Styles.separator
+        , Views.Styles.separator 10
         ]
 
 

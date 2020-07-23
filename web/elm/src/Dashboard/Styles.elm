@@ -40,6 +40,7 @@ module Dashboard.Styles exposing
     , pipelineCardTransitionAgeStale
     , pipelineName
     , pipelinePreviewGrid
+    , pipelineSectionHeader
     , pipelineStatusIcon
     , previewPlaceholder
     , resourceErrorTriangle
@@ -880,4 +881,13 @@ loadingView =
     , style "align-items" "center"
     , style "width" "100%"
     , style "height" "100%"
+    ]
+
+
+pipelineSectionHeader : List (Html.Attribute msg)
+pipelineSectionHeader =
+    [ style "font-size" "22px"
+    , style "font-weight" Views.Styles.fontWeightBold
+    , style "padding" "30px 0 10px 25px"
+    , style "margin-left" "0.5rem"
     ]
