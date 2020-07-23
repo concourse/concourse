@@ -37,7 +37,7 @@ func (c CredHubAtc) Get(ref vars.VariableReference) (interface{}, *time.Time, bo
 	var found bool
 	var err error
 
-	cred, found, err = c.findCred(ref.Name)
+	cred, found, err = c.findCred(ref.Path)
 	if err != nil {
 		c.logger.Error("unable to retrieve credhub secret", err)
 		return nil, nil, false, err
