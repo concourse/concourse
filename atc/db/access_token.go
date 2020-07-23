@@ -12,13 +12,20 @@ type AccessToken struct {
 	Token  string
 	Claims Claims
 }
+
 func scanAccessToken(rcv *AccessToken, scan scannable) error {
 	return scan.Scan(&rcv.Token, &rcv.Claims)
 }
 
 type Claims struct {
 	jwt.Claims
-	RawClaims map[string]interface{} `json:"-"`
+	FederatedClaims `json:"federated_claims"`
+	RawClaims       map[string]interface{} `json:"-"`
+}
+
+type FederatedClaims struct {
+	Username  string `json:"user_name"`
+	Connector string `json:"connector_id"`
 }
 
 func (c Claims) MarshalJSON() ([]byte, error) {
@@ -28,7 +35,7 @@ func (c Claims) MarshalJSON() ([]byte, error) {
 func (c *Claims) UnmarshalJSON(data []byte) error {
 	type target Claims
 	var t target
-	if err := json.Unmarshal(data, &t.Claims); err != nil {
+	if err := json.Unmarshal(data, &t); err != nil {
 		return err
 	}
 	if err := json.Unmarshal(data, &t.RawClaims); err != nil {

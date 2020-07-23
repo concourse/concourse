@@ -21,13 +21,20 @@ var _ = Describe("Access Token Factory", func() {
 		date := jwt.NumericDate(1234567890)
 		err := factory.CreateAccessToken("my-awesome-token", db.Claims{
 			RawClaims: map[string]interface{}{
-				"iss":    "issuer",
-				"sub":    "subject",
-				"aud":    []interface{}{"audience"},
-				"exp":    date,
-				"nbf":    date,
-				"iat":    date,
-				"jti":    "id",
+				"iss": "issuer",
+				"sub": "subject",
+				"aud": []interface{}{"audience"},
+				"exp": date,
+				"nbf": date,
+				"iat": date,
+				"jti": "id",
+
+				"federated_claims": map[string]interface{}{
+					"user_name":    "abc",
+					"connector_id": "github",
+					"other":        "blah",
+				},
+
 				"groups": []interface{}{"group1", "group2"},
 			},
 		})
@@ -46,14 +53,25 @@ var _ = Describe("Access Token Factory", func() {
 				IssuedAt:  &date,
 				ID:        "id",
 			},
+			FederatedClaims: db.FederatedClaims{
+				Username:  "abc",
+				Connector: "github",
+			},
 			RawClaims: map[string]interface{}{
-				"iss":    "issuer",
-				"sub":    "subject",
-				"aud":    []interface{}{"audience"},
-				"exp":    float64(date),
-				"nbf":    float64(date),
-				"iat":    float64(date),
-				"jti":    "id",
+				"iss": "issuer",
+				"sub": "subject",
+				"aud": []interface{}{"audience"},
+				"exp": float64(date),
+				"nbf": float64(date),
+				"iat": float64(date),
+				"jti": "id",
+
+				"federated_claims": map[string]interface{}{
+					"user_name":    "abc",
+					"connector_id": "github",
+					"other":        "blah",
+				},
+
 				"groups": []interface{}{"group1", "group2"},
 			},
 		}))
