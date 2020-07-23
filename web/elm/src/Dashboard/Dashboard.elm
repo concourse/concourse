@@ -1142,6 +1142,61 @@ pipelinesView session params =
             params.teams
                 |> FetchResult.withDefault []
 
+        ( favoritesView, offsetHeight ) =
+            if params.highDensity then
+                ( Html.text "", 0 )
+
+            else
+                let
+                    favoritedPipelines =
+                        params.pipelines
+                            |> Maybe.withDefault Dict.empty
+                            |> Dict.toList
+                            |> List.concatMap Tuple.second
+                            |> List.filter
+                                (\fp ->
+                                    Set.member fp.id session.favoritedPipelines
+                                )
+                in
+                if List.isEmpty favoritedPipelines then
+                    ( Html.text "", 0 )
+
+                else
+                    let
+                        offset =
+                            0
+
+                        layout =
+                            PipelineGrid.computeFavoritePipelinesLayout
+                                { pipelineLayers = params.pipelineLayers
+                                , viewportWidth = params.viewportWidth
+                                , viewportHeight = params.viewportHeight
+                                , scrollTop = params.scrollTop - offset
+                                }
+                                favoritedPipelines
+                    in
+                    Group.viewFavoritePipelines
+                        session
+                        { dragState = NotDragging
+                        , dropState = NotDropping
+                        , now = params.now
+                        , hovered = session.hovered
+                        , pipelineRunningKeyframes = session.pipelineRunningKeyframes
+                        , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
+                        , pipelineLayers = params.pipelineLayers
+                        , pipelineCards = layout.pipelineCards
+                        , headers = layout.headers
+                        , groupCardsHeight = layout.height
+                        , pipelineJobs = params.pipelineJobs
+                        , jobs = jobs
+                        }
+                        favoritedPipelines
+                        |> (\html ->
+                                ( html
+                                , layout.height
+                                )
+                           )
+
         filteredGroups =
             Filter.filterGroups
                 { pipelineJobs = params.pipelineJobs
@@ -1206,7 +1261,7 @@ pipelinesView session params =
                                             )
                                        )
                             )
-                            ( [], 0 )
+                            ( [], offsetHeight )
                             >> Tuple.first
                             >> List.reverse
                    )
@@ -1219,4 +1274,4 @@ pipelinesView session params =
         [ noResultsView params.query ]
 
     else
-        groupViews
+        favoritesView :: groupViews

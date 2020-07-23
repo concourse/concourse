@@ -4,6 +4,7 @@ module Dashboard.Group exposing
     , ordering
     , pipelineNotSetView
     , view
+    , viewFavoritePipelines
     )
 
 import Concourse
@@ -119,6 +120,61 @@ view session params g =
                 ++ [ ( "drop-areas", Html.div [ style "position" "absolute" ] dropAreaViews ) ]
             )
         ]
+
+
+viewFavoritePipelines :
+    { a | userState : UserState, favoritedPipelines : Set Concourse.DatabaseID }
+    ->
+        { dragState : DragState
+        , dropState : DropState
+        , now : Maybe Time.Posix
+        , hovered : HoverState.HoverState
+        , pipelineRunningKeyframes : String
+        , pipelinesWithResourceErrors : Set ( String, String )
+        , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
+        , pipelineCards : List PipelineGrid.PipelineCard
+        , headers : List PipelineGrid.Header
+        , groupCardsHeight : Float
+        , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
+        , jobs : Dict ( String, String, String ) Concourse.Job
+        }
+    -> List Pipeline
+    -> Html Message
+viewFavoritePipelines session params g =
+    let
+        pipelineCardViews =
+            params.pipelineCards
+                |> List.map
+                    (\{ bounds, pipeline } ->
+                        pipelineCardView session
+                            params
+                            { bounds = bounds, pipeline = pipeline }
+                            pipeline.teamName
+                            |> (\html -> ( String.fromInt pipeline.id, html ))
+                    )
+
+        headerViews =
+            params.headers
+                |> List.map
+                    (\{ bounds, header } ->
+                        headerView bounds header
+                    )
+    in
+    Html.Keyed.node "div"
+        [ id <| "dashboard-favorite-pipelines"
+        , style "position" "relative"
+        , style "height" <| String.fromFloat params.groupCardsHeight ++ "px"
+        ]
+        (pipelineCardViews
+            ++ [ ( "headers"
+                 , Html.div
+                    [ style "position" "absolute"
+                    , class "headers"
+                    ]
+                    headerViews
+                 )
+               ]
+        )
 
 
 tag : { a | userState : UserState } -> Group -> Maybe Tag.Tag
@@ -285,6 +341,7 @@ pipelineCardView session params { bounds, pipeline } teamName =
         [ Html.div
             ([ class "card"
              , style "width" "100%"
+             , style "height" "100%"
              , attribute "data-pipeline-name" pipeline.name
              ]
                 ++ (if not pipeline.stale then
@@ -374,3 +431,27 @@ pipelineDropAreaView dragState name { x, y, width, height } target =
         , stopPropagationOn "drop" (Json.Decode.succeed ( DragEnd, True ))
         ]
         []
+
+
+headerView : PipelineGrid.Bounds -> String -> Html Message
+headerView { x, y, width, height } header =
+    Html.div
+        [ class "header"
+        , style "position" "absolute"
+        , style "transform" <|
+            "translate("
+                ++ String.fromFloat x
+                ++ "px,"
+                ++ String.fromFloat y
+                ++ "px)"
+        , style "width" <| String.fromFloat width ++ "px"
+        , style "height" <| String.fromFloat height ++ "px"
+        , style "font-size" "18px"
+        , style "padding-left" "0.5em"
+        , style "padding-top" "17.5px"
+        , style "box-sizing" "border-box"
+        , style "text-overflow" "ellipsis"
+        , style "overflow" "hidden"
+        , style "white-space" "nowrap"
+        ]
+        [ Html.text header ]

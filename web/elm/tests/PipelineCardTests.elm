@@ -2412,7 +2412,8 @@ all =
 
                         favoritedToggle =
                             Common.queryView
-                                >> Query.find [ class "card-footer" ]
+                                >> Query.findAll [ class "card-footer" ]
+                                >> Query.first
                                 >> Query.children []
                                 >> Query.index -1
                                 >> Query.children []
