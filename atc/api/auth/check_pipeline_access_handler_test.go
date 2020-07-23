@@ -51,7 +51,6 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 			fakeAccessor,
 			new(accessorfakes.FakeTokenVerifier),
 			new(accessorfakes.FakeTeamFetcher),
-			new(accessorfakes.FakeUserTracker),
 			new(auditorfakes.FakeAuditor),
 			map[string]string{},
 		)

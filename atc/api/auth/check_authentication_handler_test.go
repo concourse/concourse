@@ -73,7 +73,6 @@ var _ = Describe("AuthenticationHandler", func() {
 				fakeAccessor,
 				new(accessorfakes.FakeTokenVerifier),
 				new(accessorfakes.FakeTeamFetcher),
-				new(accessorfakes.FakeUserTracker),
 				new(auditorfakes.FakeAuditor),
 				map[string]string{},
 			))
@@ -134,7 +133,6 @@ var _ = Describe("AuthenticationHandler", func() {
 				fakeAccessor,
 				new(accessorfakes.FakeTokenVerifier),
 				new(accessorfakes.FakeTeamFetcher),
-				new(accessorfakes.FakeUserTracker),
 				new(auditorfakes.FakeAuditor),
 				map[string]string{},
 			))

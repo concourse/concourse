@@ -60,7 +60,6 @@ var _ = Describe("CheckAdminHandler", func() {
 			fakeAccessor,
 			new(accessorfakes.FakeTokenVerifier),
 			new(accessorfakes.FakeTeamFetcher),
-			new(accessorfakes.FakeUserTracker),
 			new(auditorfakes.FakeAuditor),
 			map[string]string{},
 		))

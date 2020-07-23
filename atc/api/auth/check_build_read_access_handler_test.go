@@ -111,7 +111,6 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 				fakeAccessor,
 				new(accessorfakes.FakeTokenVerifier),
 				new(accessorfakes.FakeTeamFetcher),
-				new(accessorfakes.FakeUserTracker),
 				new(auditorfakes.FakeAuditor),
 				map[string]string{},
 			)
@@ -230,7 +229,6 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 				fakeAccessor,
 				new(accessorfakes.FakeTokenVerifier),
 				new(accessorfakes.FakeTeamFetcher),
-				new(accessorfakes.FakeUserTracker),
 				new(auditorfakes.FakeAuditor),
 				map[string]string{},
 			)

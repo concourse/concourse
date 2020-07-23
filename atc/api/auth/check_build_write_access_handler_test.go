@@ -52,7 +52,6 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 			fakeAccessor,
 			new(accessorfakes.FakeTokenVerifier),
 			new(accessorfakes.FakeTeamFetcher),
-			new(accessorfakes.FakeUserTracker),
 			new(auditorfakes.FakeAuditor),
 			map[string]string{},
 		)
