@@ -48,13 +48,13 @@ type WorkerCommand struct {
 
 	ConnectionDrainTimeout time.Duration `long:"connection-drain-timeout" default:"1h" description:"Duration after which a worker should give up draining forwarded connections on shutdown."`
 
+	Runtime Runtime `group:"Runtime Configuration" namespace:"runtime"`
+
 	// This refers to flags relevant to the operation of the Guardian runtime.
 	// For historical reasons it is namespaced under "garden" i.e. CONCOURSE_GARDEN instead of "guardian" i.e. CONCOURSE_GUARDIAN
 	Guardian GuardianRuntime `group:"Guardian Configuration" namespace:"garden"`
 
 	Containerd ContainerdRuntime `group:"Containerd Configuration" namespace:"containerd"`
-
-	Runtime Runtime `group:"Runtime Configuration" namespace:"runtime"`
 
 	ExternalGardenURL flag.URL `long:"external-garden-url" description:"API endpoint of an externally managed Garden server to use instead of running the embedded Garden server."`
 
@@ -81,7 +81,7 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	logger, _ := cmd.Logger.Logger("worker")
 
-	atcWorker, gardenRunner, err := cmd.gardenRunner(logger.Session("garden"))
+	atcWorker, gardenServerRunner, err := cmd.gardenServerRunner(logger.Session("garden"))
 	if err != nil {
 		return nil, err
 	}
@@ -155,10 +155,10 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 
 	var members grouper.Members
 
-	if !cmd.gardenIsExternal() {
+	if !cmd.gardenServerIsExternal() {
 		members = append(members, grouper.Member{
 			Name:   "garden",
-			Runner: concourseCmd.NewLoggingRunner(logger.Session("garden-runner"), gardenRunner),
+			Runner: concourseCmd.NewLoggingRunner(logger.Session("garden-runner"), gardenServerRunner),
 		})
 	}
 
@@ -213,12 +213,12 @@ func (cmd *WorkerCommand) Runner(args []string) (ifrit.Runner, error) {
 	return grouper.NewParallel(os.Interrupt, members), nil
 }
 
-func (cmd *WorkerCommand) gardenIsExternal() bool {
+func (cmd *WorkerCommand) gardenServerIsExternal() bool {
 	return cmd.ExternalGardenURL.URL != nil
 }
 
 func (cmd *WorkerCommand) gardenAddr() string {
-	if cmd.gardenIsExternal() {
+	if cmd.gardenServerIsExternal() {
 		return cmd.ExternalGardenURL.URL.Host
 	}
 

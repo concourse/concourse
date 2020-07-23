@@ -27,13 +27,13 @@ type Runtime struct {
 }
 
 type GuardianRuntime struct {
-	Bin            string        `long:"bin"        description:"Path to a garden backend executable (non-absolute names get resolved from $PATH)."`
+	Bin            string        `long:"bin"        description:"Path to a garden server executable (non-absolute names get resolved from $PATH)."`
 	DNS            DNSConfig     `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
-	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
+	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to the Garden server to complete. 0 means no timeout."`
 }
 
 type ContainerdRuntime struct {
-	Config         flag.File     `long:"config"     description:"Path to a config file to use for the Containerd binary."`
+	Config         flag.File     `long:"config"     description:"Path to a config file to use for the Containerd daemon."`
 	Bin            string        `long:"bin"        description:"Path to a containerd executable (non-absolute names get resolved from $PATH)."`
 	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Containerd to complete. 0 means no timeout."`
 
@@ -50,7 +50,11 @@ func (cmd WorkerCommand) LessenRequirements(prefix string, command *flags.Comman
 	command.FindOptionByLongName(prefix + "baggageclaim-volumes").Required = false
 }
 
-func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.Runner, error) {
+// Chooses the appropriate runtime based on CONCOURSE_RUNTIME_TYPE.
+// The runtime is represented as a Ifrit runner that must include a Garden Server process. The Garden server exposes API
+// endpoints that allow the ATC to make container related requests to the worker.
+// The runner may also include additional processes such as the runtime's daemon or a DNS proxy server.
+func (cmd *WorkerCommand) gardenServerRunner(logger lager.Logger) (atc.Worker, ifrit.Runner, error) {
 	err := cmd.checkRoot()
 	if err != nil {
 		return atc.Worker{}, nil, err
