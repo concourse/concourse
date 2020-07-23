@@ -441,3 +441,15 @@ func rawMessage(s string) *json.RawMessage {
 	raw := json.RawMessage(s)
 	return &raw
 }
+
+func (s *StepsSuite) TestModifierOnlyStepsAreInvalid() {
+	ConfigYAML := `
+			attempts: 2
+		`
+	cleanIndents := strings.ReplaceAll(ConfigYAML, "\t", "")
+
+	var step atc.Step
+	actualErr := yaml.Unmarshal([]byte(cleanIndents), &step)
+	s.Error(actualErr)
+	s.Contains(actualErr.Error(), "no core step type declared (e.g. get, put, task, etc.)")
+}

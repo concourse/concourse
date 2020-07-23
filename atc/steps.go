@@ -27,16 +27,15 @@ var ErrNoStepConfigured = errors.New("no step configured")
 // UnmarshalJSON loops over StepPrecedence.
 //
 // For any StepDetector with a .Key field present in the map, .New is called to
-// construct an empty StepConfig, and then .ParseJSON is called on it to parse
-// the data. For step modifiers like `timeout:' and `attempts:', this will be a
-// non-strict parse that only parses their fields, ignoring the rest. For core
-// step types, this will be a strict parse, raising an error on any unknown
-// fields.
+// construct an empty StepConfig, and then json.Unmarshal is called on it to parse
+// the data.
 //
-// After a step is parsed, its .Key field is removed from the map, the map is
-// re-marshalled, and the loop continues on to the rest of the StepDetectors.
-// If a step was previously parsed, .Wrap will be called with the resulting
-// step.
+//  For step modifiers like `timeout:` and `attempts:` they eventuallly wrap a
+//  core step type (e.g. get, put, task etc.). Core step types do not wrap other
+//  steps. When a core step type is encountered parsing stops and any remaining
+//  keys are considered invalid. This is how we stop someone from putting a `get`
+//  and `put` in the same step while still allowing valid step modifiers. This is
+//  also why step modifiers are listed first in StepPrecedence.
 //
 // If no StepDetectors match, no step is parsed, ErrNoStepConfigured is
 // returned.
@@ -48,6 +47,7 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 	}
 
 	var prevStep StepWrapper
+	var coreStepDeclared bool
 	for _, s := range StepPrecedence {
 		_, found := deferred[s.Key]
 		if !found {
@@ -77,6 +77,7 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 		if wrapper, isWrapper := curStep.(StepWrapper); isWrapper {
 			prevStep = wrapper
 		} else {
+			coreStepDeclared = true
 			break
 		}
 
@@ -88,6 +89,10 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 
 	if step.Config == nil {
 		return ErrNoStepConfigured
+	}
+
+	if !coreStepDeclared {
+		return errors.New("no core step type declared (e.g. get, put, task, etc.)")
 	}
 
 	if len(deferred) != 0 {
@@ -126,6 +131,8 @@ func (step Step) MarshalJSON() ([]byte, error) {
 }
 
 // See the note about json tags here: https://golang.org/pkg/encoding/json/#Marshal
+// keys are deleted based on the assumption that the first non-ignorable field
+// on the step struct matches the name of the step (e.g. get, put, on_success, etc.)
 func deleteKeys(deferred map[string]*json.RawMessage, step StepConfig) {
 	stepType := reflect.TypeOf(step).Elem()
 	for i := 0; i < stepType.NumField(); i++ {
@@ -158,13 +165,13 @@ type StepConfig interface {
 }
 
 // StepWrapper is an optional interface for step types that is implemented by
-// steps that wrap other steps (e.g. hooks like `on_success`, `timeout`, etc.)
+// steps that wrap/modify other steps (e.g. hooks like `on_success`, `timeout`, etc.)
 type StepWrapper interface {
 	// Wrap is called during (Step).UnmarshalJSON whenever an 'inner' step is
 	// parsed.
 	//
-	// Modifier step types should implement this by assigning to an internal
-	// field that has a `json:"-"` struct tag.
+	// Modifier step types should implement this by assigning a `json:"-"` tag to
+	// an internal field of type StepConfig in their struct.
 	Wrap(StepConfig)
 
 	// Unwrap is called during (Step).MarshalJSON and must return the wrapped
