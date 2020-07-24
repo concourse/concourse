@@ -157,14 +157,16 @@ jobs:
 		fakeTeam.NameReturns(stepMetadata.TeamName)
 
 		fakePipeline.NameReturns("some-pipeline")
+		fakePipeline.InstanceVarsReturns(atc.InstanceVars{"branch": "feature/foo"})
 		fakeTeamFactory.GetByIDReturns(fakeTeam)
 		fakeBuildFactory.BuildReturns(fakeBuild, true, nil)
 
 		fakeWorkerClient = new(workerfakes.FakeClient)
 
 		spPlan = &atc.SetPipelinePlan{
-			Name: "some-pipeline",
-			File: "some-resource/pipeline.yml",
+			Name:         "some-pipeline",
+			InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
+			File:         "some-resource/pipeline.yml",
 		}
 	})
 
@@ -261,8 +263,11 @@ jobs:
 
 				It("should save the pipeline", func() {
 					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
-					name, _, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
-					Expect(name).To(Equal("some-pipeline"))
+					ref, _, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
+					Expect(ref).To(Equal(atc.PipelineRef{
+						Name:         "some-pipeline",
+						InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
+					}))
 					Expect(paused).To(BeFalse())
 				})
 
@@ -344,8 +349,11 @@ jobs:
 
 				It("should save the pipeline un-paused", func() {
 					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
-					name, _, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
-					Expect(name).To(Equal("some-pipeline"))
+					ref, _, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
+					Expect(ref).To(Equal(atc.PipelineRef{
+						Name:         "some-pipeline",
+						InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
+					}))
 					Expect(paused).To(BeFalse())
 				})
 

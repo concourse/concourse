@@ -186,12 +186,16 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 		team = targetTeam
 	}
 
-	fromVersion := db.ConfigVersion(0)
-	pipeline, found, err := team.Pipeline(atc.PipelineRef{Name: step.plan.Name}) // FIXME 5808 should filter on instanced pipeline?
+	pipelineRef := atc.PipelineRef{
+		Name:         step.plan.Name,
+		InstanceVars: step.plan.InstanceVars,
+	}
+	pipeline, found, err := team.Pipeline(pipelineRef)
 	if err != nil {
 		return err
 	}
 
+	fromVersion := db.ConfigVersion(0)
 	var existingConfig atc.Config
 	if !found {
 		existingConfig = atc.Config{}
@@ -229,7 +233,7 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 		return fmt.Errorf("set_pipeline step not attached to a buildID")
 	}
 
-	pipeline, _, err = parentBuild.SavePipeline(step.plan.Name, team.ID(), atcConfig, fromVersion, false)
+	pipeline, _, err = parentBuild.SavePipeline(pipelineRef, team.ID(), atcConfig, fromVersion, false)
 	if err != nil {
 		if err == db.ErrSetByNewerBuild {
 			fmt.Fprintln(stderr, "\x1b[1;33mWARNING: the pipeline was not saved because it was already saved by a newer build\x1b[0m")
@@ -293,6 +297,14 @@ func (s setPipelineSource) FetchPipelineConfig() (atc.Config, error) {
 		}
 
 		staticVars = append(staticVars, sv)
+	}
+
+	if len(s.step.plan.InstanceVars) > 0 {
+		iv := vars.StaticVariables{}
+		for k, v := range s.step.plan.InstanceVars {
+			iv[k] = v
+		}
+		staticVars = append(staticVars, iv)
 	}
 
 	if len(staticVars) > 0 {

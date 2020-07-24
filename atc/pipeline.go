@@ -16,7 +16,7 @@ type RenameRequest struct {
 	NewName string `json:"name"`
 }
 
-type InstanceVars map[string]interface{}
+type InstanceVars map[string]string
 
 type PipelineRef struct {
 	Name         string       `json:"name"`

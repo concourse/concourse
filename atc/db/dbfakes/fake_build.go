@@ -489,10 +489,10 @@ type FakeBuild struct {
 	saveOutputReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SavePipelineStub        func(string, int, atc.Config, db.ConfigVersion, bool) (db.Pipeline, bool, error)
+	SavePipelineStub        func(atc.PipelineRef, int, atc.Config, db.ConfigVersion, bool) (db.Pipeline, bool, error)
 	savePipelineMutex       sync.RWMutex
 	savePipelineArgsForCall []struct {
-		arg1 string
+		arg1 atc.PipelineRef
 		arg2 int
 		arg3 atc.Config
 		arg4 db.ConfigVersion
@@ -2922,11 +2922,11 @@ func (fake *FakeBuild) SaveOutputReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBuild) SavePipeline(arg1 string, arg2 int, arg3 atc.Config, arg4 db.ConfigVersion, arg5 bool) (db.Pipeline, bool, error) {
+func (fake *FakeBuild) SavePipeline(arg1 atc.PipelineRef, arg2 int, arg3 atc.Config, arg4 db.ConfigVersion, arg5 bool) (db.Pipeline, bool, error) {
 	fake.savePipelineMutex.Lock()
 	ret, specificReturn := fake.savePipelineReturnsOnCall[len(fake.savePipelineArgsForCall)]
 	fake.savePipelineArgsForCall = append(fake.savePipelineArgsForCall, struct {
-		arg1 string
+		arg1 atc.PipelineRef
 		arg2 int
 		arg3 atc.Config
 		arg4 db.ConfigVersion
@@ -2950,13 +2950,13 @@ func (fake *FakeBuild) SavePipelineCallCount() int {
 	return len(fake.savePipelineArgsForCall)
 }
 
-func (fake *FakeBuild) SavePipelineCalls(stub func(string, int, atc.Config, db.ConfigVersion, bool) (db.Pipeline, bool, error)) {
+func (fake *FakeBuild) SavePipelineCalls(stub func(atc.PipelineRef, int, atc.Config, db.ConfigVersion, bool) (db.Pipeline, bool, error)) {
 	fake.savePipelineMutex.Lock()
 	defer fake.savePipelineMutex.Unlock()
 	fake.SavePipelineStub = stub
 }
 
-func (fake *FakeBuild) SavePipelineArgsForCall(i int) (string, int, atc.Config, db.ConfigVersion, bool) {
+func (fake *FakeBuild) SavePipelineArgsForCall(i int) (atc.PipelineRef, int, atc.Config, db.ConfigVersion, bool) {
 	fake.savePipelineMutex.RLock()
 	defer fake.savePipelineMutex.RUnlock()
 	argsForCall := fake.savePipelineArgsForCall[i]

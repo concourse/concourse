@@ -165,7 +165,7 @@ type Build interface {
 	SpanContext() propagators.Supplier
 
 	SavePipeline(
-		pipelineName string,
+		pipelineRef atc.PipelineRef,
 		teamId int,
 		config atc.Config,
 		from ConfigVersion,
@@ -804,7 +804,11 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 		return BuildPreparation{}, false, nil
 	}
 
-	pipeline, found, err := t.Pipeline(atc.PipelineRef{Name: b.pipelineName}) // FIXME 5808 should filter on instanced pipeline?
+	pipelineRef := atc.PipelineRef{
+		Name:         b.pipelineName,
+		InstanceVars: b.pipelineInstanceVars,
+	}
+	pipeline, found, err := t.Pipeline(pipelineRef)
 	if err != nil {
 		return BuildPreparation{}, false, err
 	}
@@ -1535,7 +1539,7 @@ func (b *build) SpanContext() propagators.Supplier {
 }
 
 func (b *build) SavePipeline(
-	pipelineName string,
+	pipelineRef atc.PipelineRef,
 	teamID int,
 	config atc.Config,
 	from ConfigVersion,
@@ -1550,7 +1554,7 @@ func (b *build) SavePipeline(
 
 	jobID := newNullInt64(b.jobID)
 	buildID := newNullInt64(b.id)
-	pipelineID, isNewPipeline, err := savePipeline(tx, atc.PipelineRef{Name: pipelineName}, config, from, initiallyPaused, teamID, jobID, buildID) // FIXME 5808 should filter on instanced pipeline?
+	pipelineID, isNewPipeline, err := savePipeline(tx, pipelineRef, config, from, initiallyPaused, teamID, jobID, buildID)
 	if err != nil {
 		return nil, false, err
 	}

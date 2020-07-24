@@ -220,10 +220,11 @@ var factoryTests = []PlannerTest{
 		Title: "set_pipeline step",
 
 		Config: &atc.SetPipelineStep{
-			Name:     "some-pipeline",
-			File:     "some-pipeline-file",
-			Vars:     atc.Params{"some": "vars"},
-			VarFiles: []string{"file-1", "file-2"},
+			Name:         "some-pipeline",
+			File:         "some-pipeline-file",
+			Vars:         atc.Params{"some": "vars"},
+			VarFiles:     []string{"file-1", "file-2"},
+			InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
 		},
 
 		PlanJSON: `{
@@ -232,7 +233,8 @@ var factoryTests = []PlannerTest{
 				"name": "some-pipeline",
 				"file": "some-pipeline-file",
 				"vars": {"some": "vars"},
-				"var_files": ["file-1", "file-2"]
+				"var_files": ["file-1", "file-2"],
+				"instance_vars": {"branch": "feature/foo"}
 			}
 		}`,
 	},
