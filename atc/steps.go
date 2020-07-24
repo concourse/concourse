@@ -18,6 +18,7 @@ type Step struct {
 // ErrNoStepConfigured is returned when a step does not have any keys that
 // indicate its step type.
 var ErrNoStepConfigured = errors.New("no step configured")
+var ErrNoCoreStepDeclared = errors.New("no core step type declared (e.g. get, put, task, etc.)")
 
 // UnmarshalJSON unmarshals step configuration in multiple passes, determining
 // precedence by the order of StepDetectors listed in the StepPrecedence
@@ -92,7 +93,7 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 	}
 
 	if !coreStepDeclared {
-		return errors.New("no core step type declared (e.g. get, put, task, etc.)")
+		return ErrNoCoreStepDeclared
 	}
 
 	if len(deferred) != 0 {
