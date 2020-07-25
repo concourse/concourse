@@ -26,6 +26,7 @@ module Concourse exposing
     , JobInput
     , JobName
     , JobOutput
+    , JsonValue(..)
     , Metadata
     , MetadataField
     , Pipeline
@@ -371,7 +372,7 @@ mapBuildPlan fn plan =
 
                 BuildStepAcross { steps } ->
                     List.concatMap (mapBuildPlan fn)
-                        (Array.toList steps |> List.map Tuple.second)
+                        (steps |> List.map Tuple.second)
 
                 BuildStepDo plans ->
                     List.concatMap (mapBuildPlan fn) (Array.toList plans)
@@ -434,9 +435,35 @@ type alias HookedPlan =
     }
 
 
+type JsonValue
+    = JsonString String
+    | JsonNumber Float
+    | JsonObject (List ( String, JsonValue ))
+    | JsonArray (List JsonValue)
+    | JsonRaw Json.Decode.Value
+
+
+decodeJsonValue : Json.Decode.Decoder JsonValue
+decodeJsonValue =
+    Json.Decode.oneOf
+        [ Json.Decode.keyValuePairs decodeSimpleJsonValue |> Json.Decode.map JsonObject
+        , Json.Decode.list decodeSimpleJsonValue |> Json.Decode.map JsonArray
+        , decodeSimpleJsonValue
+        ]
+
+
+decodeSimpleJsonValue : Json.Decode.Decoder JsonValue
+decodeSimpleJsonValue =
+    Json.Decode.oneOf
+        [ Json.Decode.string |> Json.Decode.map JsonString
+        , Json.Decode.float |> Json.Decode.map JsonNumber
+        , Json.Decode.value |> Json.Decode.map JsonRaw
+        ]
+
+
 type alias AcrossPlan =
-    { varName : String
-    , steps : Array ( Json.Encode.Value, BuildPlan )
+    { vars : List String
+    , steps : List ( List JsonValue, BuildPlan )
     }
 
 
@@ -625,12 +652,16 @@ decodeBuildStepAcross : Json.Decode.Decoder BuildStep
 decodeBuildStepAcross =
     Json.Decode.map BuildStepAcross
         (Json.Decode.succeed AcrossPlan
-            |> andMap (Json.Decode.field "var" Json.Decode.string)
+            |> andMap
+                (Json.Decode.field "vars" <|
+                    Json.Decode.list <|
+                        Json.Decode.field "name" Json.Decode.string
+                )
             |> andMap
                 (Json.Decode.field "steps" <|
-                    Json.Decode.array <|
+                    Json.Decode.list <|
                         Json.Decode.map2 Tuple.pair
-                            (Json.Decode.field "value" Json.Decode.value)
+                            (Json.Decode.field "values" <| Json.Decode.list decodeJsonValue)
                             (Json.Decode.field "step" decodeBuildPlan_)
                 )
         )

@@ -437,6 +437,11 @@ update msg ( model, effects ) =
                 (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStep id)
                 ( model, effects )
 
+        Click (StepSubHeader id i) ->
+            updateOutput
+                (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStepSubHeader id i)
+                ( model, effects )
+
         Click (StepTab id tab) ->
             updateOutput
                 (Build.Output.Output.handleStepTreeMsg <| StepTree.switchTab id tab)

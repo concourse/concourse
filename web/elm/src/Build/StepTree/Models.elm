@@ -15,10 +15,10 @@ module Build.StepTree.Models exposing
     , Version
     , finishTree
     , focusTabbed
-    , fold
     , isActive
     , map
-    , stepStateOrdering
+    , mostSevereStepState
+    , toggleSubHeaderExpanded
     , treeIsActive
     , updateAt
     , wrapHook
@@ -31,7 +31,7 @@ import Array exposing (Array)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus)
 import Dict exposing (Dict)
-import Json.Encode
+import List.Extra
 import Ordering exposing (Ordering)
 import Routes exposing (Highlight, StepID)
 import Time
@@ -54,7 +54,7 @@ type StepTree
     | Put Step
     | Aggregate (Array StepTree)
     | InParallel (Array StepTree)
-    | Across TabInfo (Array Json.Encode.Value) Step (Array StepTree)
+    | Across (List String) (List (List Concourse.JsonValue)) (List Bool) Step (Array StepTree)
     | Do (Array StepTree)
     | OnSuccess HookedStep
     | OnFailure HookedStep
@@ -121,16 +121,39 @@ stepStateOrdering =
         ]
 
 
+
+-- fold does not iterate over Steps that won't be executed
+-- (e.g. hooks that aren't triggered, retry steps that aren't needed)
+
+
 fold : (Step -> b -> b) -> b -> StepTree -> b
 fold acc start stepTree =
     let
-        iter trees idx start_ =
+        iterWhile cond trees idx start_ =
             case Array.get idx trees of
                 Nothing ->
                     start_
 
                 Just t ->
-                    fold acc start_ t |> iter trees (idx + 1)
+                    if cond t then
+                        fold acc start_ t |> iterWhile cond trees (idx + 1)
+
+                    else
+                        start_
+
+        iter =
+            iterWhile (always True)
+
+        foldHooked cond { step, hook } =
+            let
+                foldedStep =
+                    fold acc start step
+            in
+            if mostSevereStepState step |> cond then
+                fold acc foldedStep hook
+
+            else
+                foldedStep
     in
     case stepTree of
         Aggregate trees ->
@@ -142,23 +165,23 @@ fold acc start stepTree =
         Do trees ->
             iter trees 0 start
 
-        Across _ _ step trees ->
+        Across _ _ _ step trees ->
             acc step (iter trees 0 start)
 
-        OnSuccess { step, hook } ->
-            fold acc (fold acc start step) hook
+        OnSuccess hooked ->
+            foldHooked ((==) StepStateSucceeded) hooked
 
-        OnFailure { step, hook } ->
-            fold acc (fold acc start step) hook
+        OnFailure hooked ->
+            foldHooked ((==) StepStateFailed) hooked
 
-        OnAbort { step, hook } ->
-            fold acc (fold acc start step) hook
+        OnAbort hooked ->
+            foldHooked ((==) StepStateInterrupted) hooked
 
-        OnError { step, hook } ->
-            fold acc (fold acc start step) hook
+        OnError hooked ->
+            foldHooked ((==) StepStateErrored) hooked
 
-        Ensure { step, hook } ->
-            fold acc (fold acc start step) hook
+        Ensure hooked ->
+            foldHooked (always True) hooked
 
         Try tree ->
             fold acc start tree
@@ -167,7 +190,7 @@ fold acc start stepTree =
             fold acc start tree
 
         Retry _ trees ->
-            iter trees 0 start
+            iterWhile (mostSevereStepState >> (/=) StepStateSucceeded) trees 0 start
 
         Task step ->
             acc step start
@@ -189,6 +212,21 @@ fold acc start stepTree =
 
         Put step ->
             acc step start
+
+
+mostSevereStepState : StepTree -> StepState
+mostSevereStepState stepTree =
+    stepTree
+        |> fold
+            (\step state ->
+                case stepStateOrdering step.state state of
+                    LT ->
+                        step.state
+
+                    _ ->
+                        state
+            )
+            StepStateSucceeded
 
 
 type alias Version =
@@ -256,11 +294,23 @@ focusTabbed tab tree =
         Retry tabInfo steps ->
             Retry { tabInfo | tab = tab, focus = User } steps
 
-        Across tabInfo vals step substeps ->
-            Across { tabInfo | tab = tab, focus = User } vals step substeps
-
         _ ->
             -- impossible (non-retry tab focus)
+            tree
+
+
+toggleSubHeaderExpanded : Int -> StepTree -> StepTree
+toggleSubHeaderExpanded idx tree =
+    case tree of
+        Across vars vals expanded step substeps ->
+            let
+                newExpanded =
+                    List.Extra.updateAt idx not expanded
+            in
+            Across vars vals newExpanded step substeps
+
+        _ ->
+            -- impossible (only across has sub headers)
             tree
 
 
@@ -293,8 +343,8 @@ map f tree =
         LoadVar step ->
             LoadVar (f step)
 
-        Across tabInfo vals step substeps ->
-            Across tabInfo vals (f step) substeps
+        Across vars vals expanded step substeps ->
+            Across vars vals expanded (f step) substeps
 
         _ ->
             tree
@@ -384,7 +434,7 @@ getMultiStepIndex idx tree =
                 Retry _ trees ->
                     trees
 
-                Across _ _ _ trees ->
+                Across _ _ _ _ trees ->
                     trees
 
                 _ ->
@@ -424,29 +474,12 @@ setMultiStepIndex idx update tree =
                 User ->
                     Retry tabInfo updatedSteps
 
-        Across tabInfo vals step trees ->
+        Across vars vals expanded step trees ->
             let
                 updatedSteps =
                     Array.set idx (update (getMultiStepIndex idx tree)) trees
-
-                nextNonFinished fromIdx =
-                    case Array.get fromIdx updatedSteps of
-                        Nothing ->
-                            idx
-
-                        Just t ->
-                            if treeIsFinished t then
-                                nextNonFinished (fromIdx + 1)
-
-                            else
-                                fromIdx
             in
-            case tabInfo.focus of
-                Auto ->
-                    Across { tabInfo | tab = nextNonFinished 0 } vals step updatedSteps
-
-                User ->
-                    Across tabInfo vals step updatedSteps
+            Across vars vals expanded step updatedSteps
 
         _ ->
             -- impossible
@@ -469,19 +502,6 @@ treeIsActive stepTree =
 isActive : StepState -> Bool
 isActive state =
     state /= StepStatePending && state /= StepStateCancelled
-
-
-treeIsFinished : StepTree -> Bool
-treeIsFinished stepTree =
-    stepTree
-        |> fold
-            (\step finished -> finished && isFinished step.state)
-            True
-
-
-isFinished : StepState -> Bool
-isFinished state =
-    state /= StepStatePending && state /= StepStateRunning
 
 
 finishTree : StepTree -> StepTree
@@ -514,8 +534,8 @@ finishTree root =
         InParallel trees ->
             InParallel (Array.map finishTree trees)
 
-        Across tabInfo vals step trees ->
-            Across tabInfo vals (finishStep step) (Array.map finishTree trees)
+        Across vars vals expanded step trees ->
+            Across vars vals expanded (finishStep step) (Array.map finishTree trees)
 
         Do trees ->
             Do (Array.map finishTree trees)

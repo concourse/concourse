@@ -5,6 +5,7 @@ module Build.StepTree.StepTree exposing
     , setHighlight
     , switchTab
     , toggleStep
+    , toggleStepSubHeader
     , view
     )
 
@@ -26,10 +27,10 @@ import Build.StepTree.Models
         , Version
         , finishTree
         , focusTabbed
-        , fold
         , isActive
         , map
-        , stepStateOrdering
+        , mostSevereStepState
+        , toggleSubHeaderExpanded
         , treeIsActive
         , updateAt
         , wrapHook
@@ -37,7 +38,8 @@ import Build.StepTree.Models
         , wrapStep
         )
 import Build.Styles as Styles
-import Concourse
+import Colors
+import Concourse exposing (JsonValue(..))
 import DateFormat
 import Dict exposing (Dict)
 import Duration
@@ -108,16 +110,16 @@ init hl resources buildPlan =
             let
                 ( values, plans ) =
                     plan.steps
-                        |> Array.toList
                         |> List.unzip
             in
             initRootedMultiStep hl
                 resources
                 buildPlan
-                plan.varName
+                (plan.vars |> String.join ", ")
                 (Across
-                    (startingTab hl buildPlan.id plans)
-                    (values |> Array.fromList)
+                    plan.vars
+                    values
+                    (plans |> List.map (planIsHighlighted hl))
                 )
                 (plans |> Array.fromList)
 
@@ -150,6 +152,24 @@ init hl resources buildPlan =
             initWrappedStep hl resources Timeout plan
 
 
+planIsHighlighted : Highlight -> Concourse.BuildPlan -> Bool
+planIsHighlighted hl plan =
+    case hl of
+        HighlightNothing ->
+            False
+
+        HighlightLine stepID _ ->
+            planContainsID stepID plan
+
+        HighlightRange stepID _ _ ->
+            planContainsID stepID plan
+
+
+planContainsID : StepID -> Concourse.BuildPlan -> Bool
+planContainsID stepID plan =
+    plan |> Concourse.mapBuildPlan .id |> List.member stepID
+
+
 startingTab : Highlight -> String -> List Concourse.BuildPlan -> TabInfo
 startingTab hl planID plans =
     let
@@ -159,14 +179,10 @@ startingTab hl planID plans =
                     Nothing
 
                 HighlightLine stepID _ ->
-                    plans
-                        |> List.map (Concourse.mapBuildPlan .id)
-                        |> List.Extra.findIndex (List.member stepID)
+                    plans |> List.Extra.findIndex (planContainsID stepID)
 
                 HighlightRange stepID _ _ ->
-                    plans
-                        |> List.map (Concourse.mapBuildPlan .id)
-                        |> List.Extra.findIndex (List.member stepID)
+                    plans |> List.Extra.findIndex (planContainsID stepID)
     in
     case idx of
         Nothing ->
@@ -301,21 +317,6 @@ initHookedStep hl resources create hookedPlan =
     }
 
 
-mostSevereStepState : StepTree -> StepState
-mostSevereStepState stepTree =
-    stepTree
-        |> fold
-            (\step state ->
-                case stepStateOrdering step.state state of
-                    LT ->
-                        step.state
-
-                    _ ->
-                        state
-            )
-            StepStateSucceeded
-
-
 setupGetStep : Concourse.BuildResources -> StepName -> Maybe Version -> Step -> Step
 setupGetStep resources name version step =
     { step
@@ -348,6 +349,11 @@ toggleStep id root =
     ( updateAt id (map (\step -> { step | expanded = not step.expanded })) root
     , []
     )
+
+
+toggleStepSubHeader : StepID -> Int -> StepTreeModel -> ( StepTreeModel, List Effect )
+toggleStepSubHeader id i root =
+    ( updateAt id (toggleSubHeaderExpanded i) root, [] )
 
 
 switchTab : StepID -> Int -> StepTreeModel -> ( StepTreeModel, List Effect )
@@ -436,19 +442,35 @@ viewTree session model tree =
         Try step ->
             viewTree session model step
 
-        Across tabInfo vals step substeps ->
+        Across vars vals expanded step substeps ->
             viewStepWithBody model session step StepHeaderAcross <|
-                [ Html.ul
-                    (class "across-tabs" :: Styles.acrossTabList)
-                    (Array.toList <| Array.indexedMap (viewAcrossTab session vals tabInfo) substeps)
-                , case Array.get tabInfo.tab substeps of
-                    Just substep ->
-                        viewTree session model substep
+                (List.map2 Tuple.pair vals expanded
+                    |> List.indexedMap
+                        (\i ( vals_, expanded_ ) ->
+                            ( vals_
+                            , expanded_
+                            , substeps |> Array.get i
+                            )
+                        )
+                    |> List.filterMap
+                        (\( vals_, expanded_, substep ) ->
+                            case substep of
+                                Nothing ->
+                                    -- impossible, but need to get rid of the Maybe
+                                    Nothing
 
-                    Nothing ->
-                        -- impossible (bogus tab selected)
-                        Html.text ""
-                ]
+                                Just substep_ ->
+                                    Just ( vals_, expanded_, substep_ )
+                        )
+                    |> List.indexedMap
+                        (\i ( vals_, expanded_, substep ) ->
+                            let
+                                keyVals =
+                                    List.map2 Tuple.pair vars vals_
+                            in
+                            viewAcrossStepSubHeader model session step.id i keyVals expanded_ substep
+                        )
+                )
 
         Retry tabInfo steps ->
             Html.div [ class "retry" ]
@@ -495,6 +517,112 @@ viewTree session model tree =
             viewHooked session "ensure" model step hook
 
 
+viewAcrossStepSubHeader :
+    StepTreeModel
+    -> { timeZone : Time.Zone, hovered : HoverState.HoverState }
+    -> StepID
+    -> Int
+    -> List ( String, JsonValue )
+    -> Bool
+    -> StepTree
+    -> Html Message
+viewAcrossStepSubHeader model session stepID subHeaderIdx keyVals expanded subtree =
+    let
+        state =
+            mostSevereStepState subtree
+    in
+    Html.div
+        [ classList
+            [ ( "build-step", True )
+            , ( "inactive", not <| isActive state )
+            ]
+        , style "margin-top" "10px"
+        ]
+        [ Html.div
+            ([ class "header"
+             , class "sub-header"
+             , onClick <| Click <| StepSubHeader stepID subHeaderIdx
+             ]
+                ++ Styles.stepHeader state
+            )
+            [ Html.div
+                [ style "display" "flex" ]
+                [ viewAcrossStepSubHeaderLabels keyVals ]
+            , Html.div
+                [ style "display" "flex" ]
+                [ viewStepStateWithoutTooltip state ]
+            ]
+        , if expanded then
+            Html.div
+                [ class "step-body"
+                , class "clearfix"
+                ]
+                [ viewTree session model subtree ]
+
+          else
+            Html.text ""
+        ]
+
+
+viewAcrossStepSubHeaderLabels : List ( String, JsonValue ) -> Html Message
+viewAcrossStepSubHeaderLabels keyVals =
+    Html.div Styles.acrossStepSubHeaderLabel
+        (keyVals
+            |> List.concatMap
+                (\( k, v ) ->
+                    viewAcrossStepSubHeaderKeyValue k v
+                )
+        )
+
+
+viewAcrossStepSubHeaderKeyValue : String -> JsonValue -> List (Html Message)
+viewAcrossStepSubHeaderKeyValue key val =
+    let
+        keyValueSpan text =
+            [ Html.span
+                [ style "display" "inline-block"
+                , style "margin-right" "10px"
+                ]
+                [ Html.span [ style "color" Colors.pending ]
+                    [ Html.text <| key ++ ": " ]
+                , Html.text text
+                ]
+            ]
+    in
+    case val of
+        JsonString s ->
+            keyValueSpan s
+
+        JsonNumber n ->
+            keyValueSpan <| String.fromFloat n
+
+        JsonRaw v ->
+            keyValueSpan <| Json.Encode.encode 0 v
+
+        JsonArray l ->
+            List.indexedMap
+                (\i v ->
+                    let
+                        subKey =
+                            key ++ "[" ++ String.fromInt i ++ "]"
+                    in
+                    viewAcrossStepSubHeaderKeyValue subKey v
+                )
+                l
+                |> List.concat
+
+        JsonObject o ->
+            List.concatMap
+                (\( k, v ) ->
+                    let
+                        subKey =
+                            key ++ "." ++ k
+                    in
+                    viewAcrossStepSubHeaderKeyValue subKey v
+                )
+                o
+
+
 viewRetryTab :
     { r | hovered : HoverState.HoverState }
     -> TabInfo
@@ -502,31 +630,7 @@ viewRetryTab :
     -> StepTree
     -> Html Message
 viewRetryTab session tabInfo idx step =
-    viewTab session tabInfo idx (String.fromInt (idx + 1)) Nothing step
-
-
-viewAcrossTab :
-    { r | hovered : HoverState.HoverState }
-    -> Array Json.Encode.Value
-    -> TabInfo
-    -> Int
-    -> StepTree
-    -> Html Message
-viewAcrossTab session vals tabInfo idx step =
-    let
-        tabLabel =
-            case Array.get idx vals of
-                Just val ->
-                    Json.Encode.encode 0 val
-
-                Nothing ->
-                    -- impossible (mismatch of step/value count)
-                    ""
-
-        stepState =
-            mostSevereStepState step
-    in
-    viewTab session tabInfo idx tabLabel (Just stepState) step
+    viewTab session tabInfo idx (String.fromInt (idx + 1)) step
 
 
 viewTab :
@@ -534,10 +638,9 @@ viewTab :
     -> TabInfo
     -> Int
     -> String
-    -> Maybe StepState
     -> StepTree
     -> Html Message
-viewTab { hovered } tabInfo tab label stepState step =
+viewTab { hovered } tabInfo tab label step =
     Html.li
         ([ classList
             [ ( "current", tabInfo.tab == tab )
@@ -553,14 +656,7 @@ viewTab { hovered } tabInfo tab label stepState step =
                 , isStarted = treeIsActive step
                 }
         )
-        [ Html.text label
-        , case stepState of
-            Just state ->
-                Html.div (Styles.tabStatusIndicator state) []
-
-            Nothing ->
-                Html.text ""
-        ]
+        [ Html.text label ]
 
 
 viewSeq : { timeZone : Time.Zone, hovered : HoverState.HoverState } -> StepTreeModel -> StepTree -> Html Message
@@ -792,6 +888,80 @@ viewMetadata =
                     ]
             )
         >> Html.table Styles.metadataTable
+
+
+viewStepStateWithoutTooltip : StepState -> Html Message
+viewStepStateWithoutTooltip state =
+    let
+        attributes =
+            [ style "position" "relative" ]
+    in
+    case state of
+        StepStateRunning ->
+            Spinner.spinner
+                { sizePx = 14
+                , margin = "7px"
+                }
+
+        StepStatePending ->
+            Icon.icon
+                { sizePx = 28
+                , image = Assets.PendingIcon
+                }
+                (attribute "data-step-state" "pending"
+                    :: Styles.stepStatusIcon
+                    ++ attributes
+                )
+
+        StepStateInterrupted ->
+            Icon.icon
+                { sizePx = 28
+                , image = Assets.InterruptedIcon
+                }
+                (attribute "data-step-state" "interrupted"
+                    :: Styles.stepStatusIcon
+                    ++ attributes
+                )
+
+        StepStateCancelled ->
+            Icon.icon
+                { sizePx = 28
+                , image = Assets.CancelledIcon
+                }
+                (attribute "data-step-state" "cancelled"
+                    :: Styles.stepStatusIcon
+                    ++ attributes
+                )
+
+        StepStateSucceeded ->
+            Icon.icon
+                { sizePx = 28
+                , image = Assets.SuccessCheckIcon
+                }
+                (attribute "data-step-state" "succeeded"
+                    :: Styles.stepStatusIcon
+                    ++ attributes
+                )
+
+        StepStateFailed ->
+            Icon.icon
+                { sizePx = 28
+                , image = Assets.FailureTimesIcon
+                }
+                (attribute "data-step-state" "failed"
+                    :: Styles.stepStatusIcon
+                    ++ attributes
+                )
+
+        StepStateErrored ->
+            Icon.icon
+                { sizePx = 28
+                , image = Assets.ExclamationTriangleIcon
+                }
+                (attribute "data-step-state" "errored"
+                    :: Styles.stepStatusIcon
+                    ++ attributes
+                )
 
 
 viewStepState : StepState -> StepID -> List (Html Message) -> Html Message

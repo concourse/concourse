@@ -1,7 +1,7 @@
 module Build.Styles exposing
     ( MetadataCellType(..)
     , abortButton
-    , acrossTabList
+    , acrossStepSubHeaderLabel
     , body
     , buttonTooltip
     , buttonTooltipArrow
@@ -18,7 +18,6 @@ module Build.Styles exposing
     , stepHeaderLabel
     , stepStatusIcon
     , tab
-    , tabStatusIndicator
     , triggerButton
     )
 
@@ -223,6 +222,13 @@ stepHeaderLabel headerType =
     ]
 
 
+acrossStepSubHeaderLabel : List (Html.Attribute msg)
+acrossStepSubHeaderLabel =
+    [ style "line-height" "28px"
+    , style "padding-left" "6px"
+    ]
+
+
 stepStatusIcon : List (Html.Attribute msg)
 stepStatusIcon =
     [ style "background-size" "14px 14px"
@@ -290,13 +296,6 @@ retryTabList =
         :: tabList
 
 
-acrossTabList : List (Html.Attribute msg)
-acrossTabList =
-    style "font-size" "14px"
-        :: style "margin" "10px 0 0 0"
-        :: tabList
-
-
 tab :
     { isHovered : Bool, isCurrent : Bool, isStarted : Bool }
     -> List (Html.Attribute msg)
@@ -319,36 +318,6 @@ tab { isHovered, isCurrent, isStarted } =
 
         else
             "0.5"
-    ]
-
-
-tabStatusIndicator :
-    StepState
-    -> List (Html.Attribute msg)
-tabStatusIndicator state =
-    [ style "background-color" <|
-        case state of
-            StepStateFailed ->
-                Colors.failure
-
-            StepStateErrored ->
-                Colors.error
-
-            StepStateRunning ->
-                Colors.started
-
-            StepStateSucceeded ->
-                Colors.success
-
-            _ ->
-                "transparent"
-    , style "position" "absolute"
-    , style "height" "1px"
-    , style "width" "90%"
-    , style "margin" "0 auto"
-    , style "left" "0"
-    , style "right" "0"
-    , style "top" "0"
     ]
 
 
