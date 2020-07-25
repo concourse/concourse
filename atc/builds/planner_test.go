@@ -436,10 +436,12 @@ var factoryTests = []PlannerTest{
 				"vars": [
 					{
 						"name": "var1",
+						"values": ["a1", "a2"],
 						"max_in_flight": 2
 					},
 					{
 						"name": "var2",
+						"values": ["b1", "b2"],
 						"max_in_flight": 1
 					}
 				],
