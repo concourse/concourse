@@ -13,8 +13,17 @@ import (
 
 func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("get-config")
-	pipelineName := rata.Param(r, "pipeline_name")
 	teamName := rata.Param(r, "team_name")
+	pipelineName := rata.Param(r, "pipeline_name")
+	pipelineRef := atc.PipelineRef{Name: pipelineName}
+	if instanceVars := r.URL.Query().Get("instance_vars"); instanceVars != "" {
+		err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
+		if err != nil {
+			logger.Error("malformed-instance-vars", err)
+			s.handleBadRequest(w, fmt.Sprintf("instance_vars is malformed: %s", err))
+			return
+		}
+	}
 
 	team, found, err := s.teamFactory.FindTeam(teamName)
 	if err != nil {
@@ -29,17 +38,7 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pipelineRef := atc.PipelineRef{Name: pipelineName}
-	if instanceVars := r.URL.Query().Get("instance_vars"); instanceVars != "" {
-		err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
-		if err != nil {
-			logger.Error("malformed-instance-vars", err)
-			s.handleBadRequest(w, fmt.Sprintf("instance_vars is malformed: %s", err))
-			return
-		}
-	}
-
-	pipeline, found, err := team.Pipeline(pipelineRef) // FIXME 5808 should filter on instanced pipeline?
+	pipeline, found, err := team.Pipeline(pipelineRef)
 	if err != nil {
 		logger.Error("failed-to-find-pipeline", err)
 		w.WriteHeader(http.StatusInternalServerError)

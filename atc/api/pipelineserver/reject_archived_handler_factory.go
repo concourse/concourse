@@ -1,6 +1,7 @@
 package pipelineserver
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
@@ -32,6 +33,14 @@ type RejectArchivedHandler struct {
 func (ra RejectArchivedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	teamName := r.FormValue(":team_name")
 	pipelineName := r.FormValue(":pipeline_name")
+	pipelineRef := atc.PipelineRef{Name: pipelineName}
+	if instanceVars := r.URL.Query().Get("instance_vars"); instanceVars != "" {
+		err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
 
 	team, found, err := ra.teamFactory.FindTeam(teamName)
 	if err != nil {
@@ -44,7 +53,7 @@ func (ra RejectArchivedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	pipeline, found, err := team.Pipeline(atc.PipelineRef{Name: pipelineName}) // FIXME 5808 should filter on instanced pipeline?
+	pipeline, found, err := team.Pipeline(pipelineRef)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

@@ -80,6 +80,16 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		warnings = append(warnings, *warning)
 	}
 
+	pipelineRef := atc.PipelineRef{Name: pipelineName}
+	if instanceVars := query.Get("instance_vars"); instanceVars != "" {
+		err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
+		if err != nil {
+			session.Error("malformed-instance-vars", err)
+			s.handleBadRequest(w, fmt.Sprintf("instance_vars is malformed: %s", err))
+			return
+		}
+	}
+
 	if checkCredentials {
 		variables := creds.NewVariables(s.secretManager, teamName, pipelineName, false)
 
@@ -105,17 +115,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pipelineRef := atc.PipelineRef{Name: pipelineName}
-	if instanceVars := query.Get("instance_vars"); instanceVars != "" {
-		err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
-		if err != nil {
-			session.Error("malformed-instance-vars", err)
-			s.handleBadRequest(w, fmt.Sprintf("instance_vars is malformed: %s", err))
-			return
-		}
-	}
-
-	_, created, err := team.SavePipeline(pipelineRef, config, version, true) // FIXME 5808 should filter on instanced pipeline?
+	_, created, err := team.SavePipeline(pipelineRef, config, version, true)
 	if err != nil {
 		session.Error("failed-to-save-config", err)
 		w.WriteHeader(http.StatusInternalServerError)
