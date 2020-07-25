@@ -464,7 +464,7 @@ func (config *AcrossVarConfig) UnmarshalJSON(data []byte) error {
 type AcrossStep struct {
 	Step     StepConfig        `json:"-"`
 	Vars     []AcrossVarConfig `json:"across"`
-	FailFast bool              `json:"fail_fast"`
+	FailFast bool              `json:"fail_fast,omitempty"`
 }
 
 func (step *AcrossStep) ParseJSON(data []byte) error {
