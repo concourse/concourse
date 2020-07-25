@@ -11,6 +11,7 @@ view =
     Html.div [ class "build-step" ]
         [ Html.div
             [ class "header"
+            , class "loading-header"
             , style "display" "flex"
             ]
             [ Spinner.spinner

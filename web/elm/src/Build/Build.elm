@@ -270,6 +270,7 @@ handleCallback action ( model, effects ) =
                                     |> Endpoints.toString []
                             , eventTypes = [ "end", "event" ]
                             }
+                       , SyncStickyBuildLogHeaders
                        ]
                 )
 
@@ -331,6 +332,9 @@ handleDelivery session delivery ( model, effects ) =
 
         ClockTicked FiveSeconds _ ->
             ( model, effects ++ [ Effects.FetchAllPipelines ] )
+
+        WindowResized _ _ ->
+            ( model, effects ++ [ SyncStickyBuildLogHeaders ] )
 
         EventsReceived (Ok envelopes) ->
             let
@@ -435,12 +439,12 @@ update msg ( model, effects ) =
         Click (StepHeader id) ->
             updateOutput
                 (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStep id)
-                ( model, effects )
+                ( model, effects ++ [ SyncStickyBuildLogHeaders ] )
 
         Click (StepSubHeader id i) ->
             updateOutput
                 (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStepSubHeader id i)
-                ( model, effects )
+                ( model, effects ++ [ SyncStickyBuildLogHeaders ] )
 
         Click (StepTab id tab) ->
             updateOutput

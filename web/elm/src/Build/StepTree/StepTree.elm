@@ -556,6 +556,7 @@ viewAcrossStepSubHeader model session stepID subHeaderIdx keyVals expanded subtr
             Html.div
                 [ class "step-body"
                 , class "clearfix"
+                , style "padding-bottom" "0"
                 ]
                 [ viewTree session model subtree ]
 
