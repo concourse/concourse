@@ -408,42 +408,43 @@ view :
     -> StepTreeModel
     -> Html Message
 view session model =
-    viewTree session model model.tree
+    viewTree session model model.tree 0
 
 
 viewTree :
     { timeZone : Time.Zone, hovered : HoverState.HoverState }
     -> StepTreeModel
     -> StepTree
+    -> Int
     -> Html Message
-viewTree session model tree =
+viewTree session model tree depth =
     case tree of
         Task step ->
-            viewStep model session step StepHeaderTask
+            viewStep model session depth step StepHeaderTask
 
         ArtifactInput step ->
-            viewStep model session step (StepHeaderGet False)
+            viewStep model session depth step (StepHeaderGet False)
 
         Get step ->
-            viewStep model session step (StepHeaderGet step.firstOccurrence)
+            viewStep model session depth step (StepHeaderGet step.firstOccurrence)
 
         ArtifactOutput step ->
-            viewStep model session step StepHeaderPut
+            viewStep model session depth step StepHeaderPut
 
         Put step ->
-            viewStep model session step StepHeaderPut
+            viewStep model session depth step StepHeaderPut
 
         SetPipeline step ->
-            viewStep model session step StepHeaderSetPipeline
+            viewStep model session depth step StepHeaderSetPipeline
 
         LoadVar step ->
-            viewStep model session step StepHeaderLoadVar
+            viewStep model session depth step StepHeaderLoadVar
 
         Try step ->
-            viewTree session model step
+            viewTree session model step depth
 
         Across vars vals expanded step substeps ->
-            viewStepWithBody model session step StepHeaderAcross <|
+            viewStepWithBody model session depth step StepHeaderAcross <|
                 (List.map2 Tuple.pair vals expanded
                     |> List.indexedMap
                         (\i ( vals_, expanded_ ) ->
@@ -468,7 +469,7 @@ viewTree session model tree =
                                 keyVals =
                                     List.map2 Tuple.pair vars vals_
                             in
-                            viewAcrossStepSubHeader model session step.id i keyVals expanded_ substep
+                            viewAcrossStepSubHeader model session step.id i keyVals expanded_ (depth + 1) substep
                         )
                 )
 
@@ -479,7 +480,7 @@ viewTree session model tree =
                     (Array.toList <| Array.indexedMap (viewRetryTab session tabInfo) steps)
                 , case Array.get tabInfo.tab steps of
                     Just step ->
-                        viewTree session model step
+                        viewTree session model step depth
 
                     Nothing ->
                         -- impossible (bogus tab selected)
@@ -487,34 +488,34 @@ viewTree session model tree =
                 ]
 
         Timeout step ->
-            viewTree session model step
+            viewTree session model step depth
 
         Aggregate steps ->
             Html.div [ class "aggregate" ]
-                (Array.toList <| Array.map (viewSeq session model) steps)
+                (Array.toList <| Array.map (viewSeq session model depth) steps)
 
         InParallel steps ->
             Html.div [ class "parallel" ]
-                (Array.toList <| Array.map (viewSeq session model) steps)
+                (Array.toList <| Array.map (viewSeq session model depth) steps)
 
         Do steps ->
             Html.div [ class "do" ]
-                (Array.toList <| Array.map (viewSeq session model) steps)
+                (Array.toList <| Array.map (viewSeq session model depth) steps)
 
         OnSuccess { step, hook } ->
-            viewHooked session "success" model step hook
+            viewHooked session "success" model depth step hook
 
         OnFailure { step, hook } ->
-            viewHooked session "failure" model step hook
+            viewHooked session "failure" model depth step hook
 
         OnAbort { step, hook } ->
-            viewHooked session "abort" model step hook
+            viewHooked session "abort" model depth step hook
 
         OnError { step, hook } ->
-            viewHooked session "error" model step hook
+            viewHooked session "error" model depth step hook
 
         Ensure { step, hook } ->
-            viewHooked session "ensure" model step hook
+            viewHooked session "ensure" model depth step hook
 
 
 viewAcrossStepSubHeader :
@@ -524,9 +525,10 @@ viewAcrossStepSubHeader :
     -> Int
     -> List ( String, JsonValue )
     -> Bool
+    -> Int
     -> StepTree
     -> Html Message
-viewAcrossStepSubHeader model session stepID subHeaderIdx keyVals expanded subtree =
+viewAcrossStepSubHeader model session stepID subHeaderIdx keyVals expanded depth subtree =
     let
         state =
             mostSevereStepState subtree
@@ -542,6 +544,7 @@ viewAcrossStepSubHeader model session stepID subHeaderIdx keyVals expanded subtr
             ([ class "header"
              , class "sub-header"
              , onClick <| Click <| StepSubHeader stepID subHeaderIdx
+             , style "z-index" <| String.fromInt <| max (maxDepth - depth) 1
              ]
                 ++ Styles.stepHeader state
             )
@@ -558,7 +561,7 @@ viewAcrossStepSubHeader model session stepID subHeaderIdx keyVals expanded subtr
                 , class "clearfix"
                 , style "padding-bottom" "0"
                 ]
-                [ viewTree session model subtree ]
+                [ viewTree session model subtree (depth + 1) ]
 
           else
             Html.text ""
@@ -660,23 +663,35 @@ viewTab { hovered } tabInfo tab label step =
         [ Html.text label ]
 
 
-viewSeq : { timeZone : Time.Zone, hovered : HoverState.HoverState } -> StepTreeModel -> StepTree -> Html Message
-viewSeq session model tree =
-    Html.div [ class "seq" ] [ viewTree session model tree ]
+viewSeq : { timeZone : Time.Zone, hovered : HoverState.HoverState } -> StepTreeModel -> Int -> StepTree -> Html Message
+viewSeq session model depth tree =
+    Html.div [ class "seq" ] [ viewTree session model tree depth ]
 
 
-viewHooked : { timeZone : Time.Zone, hovered : HoverState.HoverState } -> String -> StepTreeModel -> StepTree -> StepTree -> Html Message
-viewHooked session name model step hook =
+viewHooked : { timeZone : Time.Zone, hovered : HoverState.HoverState } -> String -> StepTreeModel -> Int -> StepTree -> StepTree -> Html Message
+viewHooked session name model depth step hook =
     Html.div [ class "hooked" ]
-        [ Html.div [ class "step" ] [ viewTree session model step ]
+        [ Html.div [ class "step" ] [ viewTree session model step depth ]
         , Html.div [ class "children" ]
-            [ Html.div [ class ("hook hook-" ++ name) ] [ viewTree session model hook ]
+            [ Html.div [ class ("hook hook-" ++ name) ] [ viewTree session model hook depth ]
             ]
         ]
 
 
-viewStepWithBody : StepTreeModel -> { timeZone : Time.Zone, hovered : HoverState.HoverState } -> Step -> StepHeaderType -> List (Html Message) -> Html Message
-viewStepWithBody model session { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, start, finish } headerType body =
+maxDepth : Int
+maxDepth =
+    10
+
+
+viewStepWithBody :
+    StepTreeModel
+    -> { timeZone : Time.Zone, hovered : HoverState.HoverState }
+    -> Int
+    -> Step
+    -> StepHeaderType
+    -> List (Html Message)
+    -> Html Message
+viewStepWithBody model session depth { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, start, finish } headerType body =
     Html.div
         [ classList
             [ ( "build-step", True )
@@ -687,6 +702,7 @@ viewStepWithBody model session { id, name, log, state, error, expanded, version,
         [ Html.div
             ([ class "header"
              , onClick <| Click <| StepHeader id
+             , style "z-index" <| String.fromInt <| max (maxDepth - depth) 1
              ]
                 ++ Styles.stepHeader state
             )
@@ -732,9 +748,9 @@ viewStepWithBody model session { id, name, log, state, error, expanded, version,
         ]
 
 
-viewStep : StepTreeModel -> { timeZone : Time.Zone, hovered : HoverState.HoverState } -> Step -> StepHeaderType -> Html Message
-viewStep model session step headerType =
-    viewStepWithBody model session step headerType []
+viewStep : StepTreeModel -> { timeZone : Time.Zone, hovered : HoverState.HoverState } -> Int -> Step -> StepHeaderType -> Html Message
+viewStep model session depth step headerType =
+    viewStepWithBody model session depth step headerType []
 
 
 showTooltip : Tooltip.Model b -> DomID -> Bool

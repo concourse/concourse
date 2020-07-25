@@ -222,6 +222,11 @@ all =
                         >> given theAcrossStepIsExpanded
                         >> when iAmLookingAtTheAcrossSubHeaders
                         >> then_ iSeeFourOfThem
+                , test "appears behind top-level headers" <|
+                    given iVisitABuildWithAnAcrossStep
+                        >> given theAcrossStepIsExpanded
+                        >> when iAmLookingAtTheFirstAcrossSubHeader
+                        >> then_ iSeeItAppearsBehindTopLevelHeaders
                 , test "have key-value pairs for the vars" <|
                     given iVisitABuildWithAnAcrossStep
                         >> given theAcrossStepIsExpanded
@@ -824,6 +829,10 @@ iSeeTheArrayKeyValuePairs =
 
 iAmLookingAtTheFirstAcrossSubHeader =
     iAmLookingAtTheAcrossSubHeaders >> Query.first
+
+
+iSeeItAppearsBehindTopLevelHeaders =
+    Query.has [ style "z-index" "9" ]
 
 
 iAmLookingAtTheSecondAcrossSubHeader =
