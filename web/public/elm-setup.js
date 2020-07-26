@@ -253,7 +253,7 @@ app.ports.scrollToId.subscribe(function(params) {
     return;
   }
   const [parentId, toId] = params;
-  const padding = 10;
+  const padding = 150;
   const interval = setInterval(function() {
     const parentElem = document.getElementById(parentId);
     if (parentElem === null) {
@@ -263,11 +263,20 @@ app.ports.scrollToId.subscribe(function(params) {
     if (elem === null) {
       return;
     }
-    parentElem.scrollTop = elem.offsetTop - padding;
+    parentElem.scrollTop = offsetTop(elem, parentElem) - padding;
     setTimeout(() => app.ports.scrolledToId.send([parentId, toId]), 50)
     clearInterval(interval);
   }, 20);
 });
+
+function offsetTop(element, untilElement) {
+  let offsetTop = 0;
+  while(element && element != untilElement) {
+    offsetTop += element.offsetTop;
+    element = element.offsetParent;
+  }
+  return offsetTop;
+}
 
 app.ports.openEventStream.subscribe(function(config) {
   var buffer = [];

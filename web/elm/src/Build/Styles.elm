@@ -63,6 +63,7 @@ body : List (Html.Attribute msg)
 body =
     [ style "overflow-y" "auto"
     , style "outline" "none"
+    , style "position" "relative"
     , style "-webkit-overflow-scrolling" "touch"
     ]
 
