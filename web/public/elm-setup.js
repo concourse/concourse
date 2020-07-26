@@ -229,7 +229,7 @@ app.ports.syncStickyBuildLogHeaders.subscribe(function() {
         }
       }, 250);
     }
-  }, 0);
+  }, 50);
 });
 
 function findParentHeader(el) {
