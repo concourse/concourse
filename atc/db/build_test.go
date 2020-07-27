@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"strconv"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -580,13 +581,20 @@ var _ = Describe("Build", func() {
 		})
 
 		Context("archiving pipelines", func() {
+			var childPipeline db.Pipeline
+
+			BeforeEach(func() {
+				By("creating a child pipeline")
+				build, _ := defaultJob.CreateBuild()
+				childPipeline, _, _ = build.SavePipeline("child1-pipeline", defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
+				build.Finish(db.BuildStatusSucceeded)
+
+				childPipeline.Reload()
+				Expect(childPipeline.Archived()).To(BeFalse())
+			})
+
 			Context("build is successful", func() {
 				It("archives pipelines no longer set by the job", func() {
-					By("creating a child pipeline")
-					build, _ := defaultJob.CreateBuild()
-					childPipeline, _, _ := build.SavePipeline("child1-pipeline", defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
-					build.Finish(db.BuildStatusSucceeded)
-
 					By("no longer setting the child pipeline")
 					build2, _ := defaultJob.CreateBuild()
 					build2.Finish(db.BuildStatusSucceeded)
@@ -594,14 +602,45 @@ var _ = Describe("Build", func() {
 					childPipeline.Reload()
 					Expect(childPipeline.Archived()).To(BeTrue())
 				})
+
+				Context("chain of pipelines setting each other... like a russian doll set...", func() {
+					It("archives all descendent pipelines", func() {
+						childPipelines := []db.Pipeline{childPipeline}
+
+						By("creating a chain of pipelines, previous pipeline setting the next pipeline")
+						for i := 0; i < 5; i++ {
+							job, _, _ := childPipeline.Job("some-job")
+							build, _ := job.CreateBuild()
+							childPipeline, _, _ = build.SavePipeline("child-pipeline-"+strconv.Itoa(i), defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
+							build.Finish(db.BuildStatusSucceeded)
+							childPipelines = append(childPipelines, childPipeline)
+						}
+
+						By("parent pipeline no longer sets child pipeline in most recent build")
+						build, _ := defaultJob.CreateBuild()
+						build.Finish(db.BuildStatusSucceeded)
+
+						for _, pipeline := range childPipelines {
+							pipeline.Reload()
+							Expect(pipeline.Archived()).To(BeTrue())
+						}
+
+					})
+				})
+
+				Context("when the pipeline is not set by build", func() {
+					It("never gets archived", func() {
+						build, _ := defaultJob.CreateBuild()
+						teamPipeline, _, _ := defaultTeam.SavePipeline("team-pipeline", defaultPipelineConfig, db.ConfigVersion(0), false)
+						build.Finish(db.BuildStatusSucceeded)
+
+						teamPipeline.Reload()
+						Expect(teamPipeline.Archived()).To(BeFalse())
+					})
+				})
 			})
 			Context("build is not successful", func() {
 				It("does not archive pipelines", func() {
-					By("creating a child pipeline")
-					build, _ := defaultJob.CreateBuild()
-					childPipeline, _, _ := build.SavePipeline("child1-pipeline", defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
-					build.Finish(db.BuildStatusSucceeded)
-
 					By("no longer setting the child pipeline")
 					build2, _ := defaultJob.CreateBuild()
 					build2.Finish(db.BuildStatusFailed)
