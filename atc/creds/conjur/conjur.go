@@ -5,7 +5,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/vars"
 )
 
 type IConjurClient interface {
@@ -38,8 +37,8 @@ func (c Conjur) NewSecretLookupPaths(teamName string, pipelineName string, allow
 	return lookupPaths
 }
 
-func (c Conjur) Get(ref vars.VariableReference) (interface{}, *time.Time, bool, error) {
-	secretValue, err := c.client.RetrieveSecret(ref.Path)
+func (c Conjur) Get(secretPath string) (interface{}, *time.Time, bool, error) {
+	secretValue, err := c.client.RetrieveSecret(secretPath)
 	if err != nil {
 		return nil, nil, false, nil
 	}

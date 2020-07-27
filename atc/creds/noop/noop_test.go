@@ -4,7 +4,6 @@ import (
 	"time"
 
 	. "github.com/concourse/concourse/atc/creds/noop"
-	"github.com/concourse/concourse/vars"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,7 +23,7 @@ var _ = Describe("Noop", func() {
 		var getErr error
 
 		JustBeforeEach(func() {
-			val, expiration, found, getErr = noop.Get(vars.VariableReference{ Name: "foo"})
+			val, expiration, found, getErr = noop.Get("foo")
 		})
 
 		It("never locates the variable", func() {

@@ -3,7 +3,6 @@ package creds
 import (
 	"time"
 
-	"github.com/concourse/concourse/vars"
 	"github.com/patrickmn/go-cache"
 )
 
@@ -37,16 +36,16 @@ func NewCachedSecrets(secrets Secrets, cacheConfig SecretCacheConfig) *CachedSec
 	}
 }
 
-func (cs *CachedSecrets) Get(ref vars.VariableReference) (interface{}, *time.Time, bool, error) {
+func (cs *CachedSecrets) Get(secretPath string) (interface{}, *time.Time, bool, error) {
 	// if there is a corresponding entry in the cache, return it
-	entry, found := cs.cache.Get(ref.Name)
+	entry, found := cs.cache.Get(secretPath)
 	if found {
 		result := entry.(CacheEntry)
 		return result.value, result.expiration, result.found, nil
 	}
 
 	// otherwise, let's make a request to the underlying secret manager
-	value, expiration, found, err := cs.secrets.Get(ref)
+	value, expiration, found, err := cs.secrets.Get(secretPath)
 
 	// we don't want to cache errors, let the errors be retried the next time around
 	if err != nil {
@@ -67,9 +66,9 @@ func (cs *CachedSecrets) Get(ref vars.VariableReference) (interface{}, *time.Tim
 				duration = itemDuration
 			}
 		}
-		cs.cache.Set(ref.Name, entry, duration)
+		cs.cache.Set(secretPath, entry, duration)
 	} else {
-		cs.cache.Set(ref.Name, entry, cs.cacheConfig.DurationNotFound)
+		cs.cache.Set(secretPath, entry, cs.cacheConfig.DurationNotFound)
 	}
 
 	return value, expiration, found, nil

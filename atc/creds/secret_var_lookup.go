@@ -25,7 +25,7 @@ func (sl VariableLookupFromSecrets) Get(varDef vars.VariableDefinition) (interfa
 			if err != nil {
 				return nil, false, err
 			}
-			result, _, found, err := sl.Secrets.Get(secretRef)
+			result, _, found, err := sl.Secrets.Get(secretRef.Path)
 			if err != nil {
 				return nil, false, err
 			}
@@ -37,7 +37,7 @@ func (sl VariableLookupFromSecrets) Get(varDef vars.VariableDefinition) (interfa
 		return nil, false, nil
 	} else {
 		// if no paths are specified (i.e. for fake & noop secret managers), then try 1-to-1 var->secret mapping
-		result, _, found, err := sl.Secrets.Get(varDef.Ref)
+		result, _, found, err := sl.Secrets.Get(varDef.Ref.Path)
 		return result, found, err
 	}
 }

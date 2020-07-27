@@ -7,7 +7,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/vars"
 
 	v1 "k8s.io/api/core/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
@@ -36,11 +35,10 @@ func (secrets Secrets) NewSecretLookupPaths(teamName string, pipelineName string
 }
 
 // Get retrieves the value and expiration of an individual secret
-// TODO: fix concourse not resolving values when Get returns map[string]interface{}
-func (secrets Secrets) Get(ref vars.VariableReference) (interface{}, *time.Time, bool, error) {
-	parts := strings.Split(ref.Path, "/")
+func (secrets Secrets) Get(secretPath string) (interface{}, *time.Time, bool, error) {
+	parts := strings.Split(secretPath, "/")
 	if len(parts) != 2 {
-		return nil, nil, false, fmt.Errorf("unable to split kubernetes secret path into [namespace]/[secret]: %s", ref.Path)
+		return nil, nil, false, fmt.Errorf("unable to split kubernetes secret path into [namespace]/[secret]: %s", secretPath)
 	}
 
 	var namespace = parts[0]

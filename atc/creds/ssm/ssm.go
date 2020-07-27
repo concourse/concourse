@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/vars"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
@@ -40,12 +39,12 @@ func (s *Ssm) NewSecretLookupPaths(teamName string, pipelineName string, allowRo
 }
 
 // Get retrieves the value and expiration of an individual secret
-func (s *Ssm) Get(ref vars.VariableReference) (interface{}, *time.Time, bool, error) {
+func (s *Ssm) Get(secretPath string) (interface{}, *time.Time, bool, error) {
 	// Try to get the parameter as string value, by name
-	value, expiration, found, err := s.getParameterByName(ref.Path)
+	value, expiration, found, err := s.getParameterByName(secretPath)
 	if err != nil {
 		s.log.Error("unable to retrieve aws ssm secret by name", err, lager.Data{
-			"secretPath": ref.Path,
+			"secretPath": secretPath,
 		})
 		return nil, nil, false, err
 	}
@@ -53,10 +52,10 @@ func (s *Ssm) Get(ref vars.VariableReference) (interface{}, *time.Time, bool, er
 		return value, expiration, true, nil
 	}
 	// Parameter may exist as a complex value so try again using parameter name as root path
-	value, expiration, found, err = s.getParameterByPath(ref.Path)
+	value, expiration, found, err = s.getParameterByPath(secretPath)
 	if err != nil {
 		s.log.Error("unable to retrieve aws ssm secret by path", err, lager.Data{
-			"secretPath": ref.Path,
+			"secretPath": secretPath,
 		})
 		return nil, nil, false, err
 	}

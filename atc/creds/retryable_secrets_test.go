@@ -14,7 +14,7 @@ import (
 func makeFlakySecretManager(numberOfFails int) creds.Secrets {
 	fakeSecretManager := new(credsfakes.FakeSecrets)
 	attempt := 0
-	fakeSecretManager.GetStub = func(vars.VariableReference) (interface{}, *time.Time, bool, error) {
+	fakeSecretManager.GetStub = func(string) (interface{}, *time.Time, bool, error) {
 		attempt++
 		if attempt <= numberOfFails {
 			return nil, nil, false, fmt.Errorf("remote error: handshake failure")
