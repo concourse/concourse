@@ -8,23 +8,21 @@ import (
 )
 
 type FakePipelineLifecycle struct {
-	ArchiveAbandonedPipelinesStub        func() (int, error)
+	ArchiveAbandonedPipelinesStub        func() error
 	archiveAbandonedPipelinesMutex       sync.RWMutex
 	archiveAbandonedPipelinesArgsForCall []struct {
 	}
 	archiveAbandonedPipelinesReturns struct {
-		result1 int
-		result2 error
+		result1 error
 	}
 	archiveAbandonedPipelinesReturnsOnCall map[int]struct {
-		result1 int
-		result2 error
+		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakePipelineLifecycle) ArchiveAbandonedPipelines() (int, error) {
+func (fake *FakePipelineLifecycle) ArchiveAbandonedPipelines() error {
 	fake.archiveAbandonedPipelinesMutex.Lock()
 	ret, specificReturn := fake.archiveAbandonedPipelinesReturnsOnCall[len(fake.archiveAbandonedPipelinesArgsForCall)]
 	fake.archiveAbandonedPipelinesArgsForCall = append(fake.archiveAbandonedPipelinesArgsForCall, struct {
@@ -35,10 +33,10 @@ func (fake *FakePipelineLifecycle) ArchiveAbandonedPipelines() (int, error) {
 		return fake.ArchiveAbandonedPipelinesStub()
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1
 	}
 	fakeReturns := fake.archiveAbandonedPipelinesReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fakeReturns.result1
 }
 
 func (fake *FakePipelineLifecycle) ArchiveAbandonedPipelinesCallCount() int {
@@ -47,36 +45,33 @@ func (fake *FakePipelineLifecycle) ArchiveAbandonedPipelinesCallCount() int {
 	return len(fake.archiveAbandonedPipelinesArgsForCall)
 }
 
-func (fake *FakePipelineLifecycle) ArchiveAbandonedPipelinesCalls(stub func() (int, error)) {
+func (fake *FakePipelineLifecycle) ArchiveAbandonedPipelinesCalls(stub func() error) {
 	fake.archiveAbandonedPipelinesMutex.Lock()
 	defer fake.archiveAbandonedPipelinesMutex.Unlock()
 	fake.ArchiveAbandonedPipelinesStub = stub
 }
 
-func (fake *FakePipelineLifecycle) ArchiveAbandonedPipelinesReturns(result1 int, result2 error) {
+func (fake *FakePipelineLifecycle) ArchiveAbandonedPipelinesReturns(result1 error) {
 	fake.archiveAbandonedPipelinesMutex.Lock()
 	defer fake.archiveAbandonedPipelinesMutex.Unlock()
 	fake.ArchiveAbandonedPipelinesStub = nil
 	fake.archiveAbandonedPipelinesReturns = struct {
-		result1 int
-		result2 error
-	}{result1, result2}
+		result1 error
+	}{result1}
 }
 
-func (fake *FakePipelineLifecycle) ArchiveAbandonedPipelinesReturnsOnCall(i int, result1 int, result2 error) {
+func (fake *FakePipelineLifecycle) ArchiveAbandonedPipelinesReturnsOnCall(i int, result1 error) {
 	fake.archiveAbandonedPipelinesMutex.Lock()
 	defer fake.archiveAbandonedPipelinesMutex.Unlock()
 	fake.ArchiveAbandonedPipelinesStub = nil
 	if fake.archiveAbandonedPipelinesReturnsOnCall == nil {
 		fake.archiveAbandonedPipelinesReturnsOnCall = make(map[int]struct {
-			result1 int
-			result2 error
+			result1 error
 		})
 	}
 	fake.archiveAbandonedPipelinesReturnsOnCall[i] = struct {
-		result1 int
-		result2 error
-	}{result1, result2}
+		result1 error
+	}{result1}
 }
 
 func (fake *FakePipelineLifecycle) Invocations() map[string][][]interface{} {
