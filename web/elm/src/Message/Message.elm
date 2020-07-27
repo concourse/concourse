@@ -62,10 +62,10 @@ type DomID
     | PinMenuDropDown String
     | PinButton VersionId
     | PinBar
-    | PipelineStatusIcon Concourse.PipelineIdentifier
-    | PipelineButton Concourse.PipelineIdentifier
-    | VisibilityButton Concourse.PipelineIdentifier
-    | PipelineCardFavoritedIcon DatabaseID
+    | PipelineStatusIcon PipelinesSection Concourse.PipelineIdentifier
+    | PipelineButton PipelinesSection Concourse.PipelineIdentifier
+    | VisibilityButton PipelinesSection Concourse.PipelineIdentifier
+    | PipelineCardFavoritedIcon PipelinesSection DatabaseID
     | FooterCliIcon Cli.Cli
     | WelcomeCardCliIcon Cli.Cli
     | CopyTokenButton
@@ -84,7 +84,7 @@ type DomID
     | VersionToggle VersionId
     | BuildTab Int String
     | PipelineWrapper Concourse.PipelineIdentifier
-    | JobPreview Concourse.JobIdentifier
+    | JobPreview PipelinesSection Concourse.JobIdentifier
     | HamburgerMenu
     | SideBarResizeHandle
     | SideBarTeam PipelinesSection String

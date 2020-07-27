@@ -328,7 +328,7 @@ pipelineCardView session params { bounds, pipeline } teamName =
                             []
                 in
                 case HoverState.hoveredElement params.hovered of
-                    Just (JobPreview jobID) ->
+                    Just (JobPreview _ jobID) ->
                         hoverStyle jobID
 
                     Just (PipelineWrapper pipelineID) ->

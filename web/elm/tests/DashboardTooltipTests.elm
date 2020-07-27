@@ -6,7 +6,7 @@ import Dict
 import Expect
 import HoverState exposing (HoverState(..))
 import Html
-import Message.Message exposing (DomID(..))
+import Message.Message exposing (DomID(..), PipelinesSection(..))
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (text)

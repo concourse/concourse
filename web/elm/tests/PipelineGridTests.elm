@@ -8,7 +8,7 @@ import Expect
 import Json.Encode as Encode
 import Message.Callback as Callback
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Message.Subscription as Subscription exposing (Delivery(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Set

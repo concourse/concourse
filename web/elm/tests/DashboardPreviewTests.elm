@@ -9,7 +9,7 @@ import Dashboard.DashboardPreview as DP
 import Data
 import Expect
 import Message.Callback as Callback
-import Message.Message exposing (DomID(..))
+import Message.Message exposing (DomID(..), PipelinesSection(..))
 import Message.TopLevelMessage exposing (TopLevelMessage)
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
@@ -51,7 +51,7 @@ all =
                 { description = "light grey background"
                 , selector = [ style "background-color" Colors.pending ]
                 }
-            , hoverable = JobPreview jobId
+            , hoverable = JobPreview AllPipelinesSection jobId
             , hoveredSelector =
                 { description = "dark grey background"
                 , selector = [ style "background-color" Colors.pendingFaded ]

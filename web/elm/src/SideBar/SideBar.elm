@@ -106,7 +106,7 @@ update message model =
             , [ Effects.SaveFavoritedPipelines <| favoritedPipelines ]
             )
 
-        Click (PipelineCardFavoritedIcon pipelineID) ->
+        Click (PipelineCardFavoritedIcon _ pipelineID) ->
             let
                 favoritedPipelines =
                     toggle pipelineID model.favoritedPipelines

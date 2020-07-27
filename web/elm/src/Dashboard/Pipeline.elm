@@ -28,7 +28,7 @@ import Html.Attributes
         )
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Effects as Effects
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
 import Set exposing (Set)
 import Time
@@ -311,7 +311,7 @@ footerView userState favoritedPipelines pipeline now hovered existingJobs =
                     status == PipelineStatus.PipelineStatusPaused
                 , pipeline = pipelineId
                 , isToggleHovered =
-                    HoverState.isHovered (PipelineButton pipelineId) hovered
+                    HoverState.isHovered (PipelineButton AllPipelinesSection pipelineId) hovered
                 , isToggleLoading = pipeline.isToggleLoading
                 , tooltipPosition = Views.Styles.Above
                 , margin = "0"
@@ -329,14 +329,14 @@ footerView userState favoritedPipelines pipeline now hovered existingJobs =
                             , userState = userState
                             }
                 , isHovered =
-                    HoverState.isHovered (VisibilityButton pipelineId) hovered
+                    HoverState.isHovered (VisibilityButton AllPipelinesSection pipelineId) hovered
                 , isVisibilityLoading = pipeline.isVisibilityLoading
                 }
 
         favoritedIcon =
             favoritedView
                 { isFavorited = Set.member pipeline.id favoritedPipelines
-                , isHovered = HoverState.isHovered (PipelineCardFavoritedIcon pipeline.id) hovered
+                , isHovered = HoverState.isHovered (PipelineCardFavoritedIcon AllPipelinesSection pipeline.id) hovered
                 , pipelineId = pipeline.id
                 }
     in
@@ -376,8 +376,8 @@ pipelineStatusView pipeline status now =
                 Icon.icon
                     { sizePx = 20, image = Assets.PipelineStatusIconJobsDisabled }
                     ([ style "opacity" "0.5"
-                     , id <| Effects.toHtmlID <| PipelineStatusIcon pipelineId
-                     , onMouseEnter <| Hover <| Just <| PipelineStatusIcon pipelineId
+                     , id <| Effects.toHtmlID <| PipelineStatusIcon AllPipelinesSection pipelineId
+                     , onMouseEnter <| Hover <| Just <| PipelineStatusIcon AllPipelinesSection pipelineId
                      ]
                         ++ Styles.pipelineStatusIcon
                     )
@@ -423,10 +423,10 @@ favoritedView { isFavorited, isHovered, pipelineId } =
             { isFavorited = isFavorited
             , isHovered = isHovered
             }
-            ++ [ onMouseEnter <| Hover <| Just <| PipelineCardFavoritedIcon pipelineId
+            ++ [ onMouseEnter <| Hover <| Just <| PipelineCardFavoritedIcon AllPipelinesSection pipelineId
                , onMouseLeave <| Hover Nothing
-               , id <| Effects.toHtmlID <| PipelineCardFavoritedIcon pipelineId
-               , onClick <| Click <| PipelineCardFavoritedIcon pipelineId
+               , id <| Effects.toHtmlID <| PipelineCardFavoritedIcon AllPipelinesSection pipelineId
+               , onClick <| Click <| PipelineCardFavoritedIcon AllPipelinesSection pipelineId
                ]
         )
         []
@@ -445,7 +445,7 @@ visibilityView { public, pipelineId, isClickable, isHovered, isVisibilityLoading
         Spinner.hoverableSpinner
             { sizePx = 20
             , margin = "0"
-            , hoverable = Just <| VisibilityButton pipelineId
+            , hoverable = Just <| VisibilityButton AllPipelinesSection pipelineId
             }
 
     else
@@ -455,12 +455,12 @@ visibilityView { public, pipelineId, isClickable, isHovered, isVisibilityLoading
                 , isClickable = isClickable
                 , isHovered = isHovered
                 }
-                ++ [ onMouseEnter <| Hover <| Just <| VisibilityButton pipelineId
+                ++ [ onMouseEnter <| Hover <| Just <| VisibilityButton AllPipelinesSection pipelineId
                    , onMouseLeave <| Hover Nothing
-                   , id <| Effects.toHtmlID <| VisibilityButton pipelineId
+                   , id <| Effects.toHtmlID <| VisibilityButton AllPipelinesSection pipelineId
                    ]
                 ++ (if isClickable then
-                        [ onClick <| Click <| VisibilityButton pipelineId ]
+                        [ onClick <| Click <| VisibilityButton AllPipelinesSection pipelineId ]
 
                     else
                         []

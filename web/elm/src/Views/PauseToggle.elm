@@ -5,7 +5,7 @@ import Concourse
 import Html exposing (Html)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import UserState exposing (UserState(..))
 import Views.Icon as Icon
 import Views.Spinner as Spinner
@@ -38,12 +38,12 @@ view params =
     else
         Html.div
             (Styles.pauseToggle params.margin
-                ++ [ onMouseEnter <| Hover <| Just <| PipelineButton params.pipeline
+                ++ [ onMouseEnter <| Hover <| Just <| PipelineButton AllPipelinesSection params.pipeline
                    , onMouseLeave <| Hover Nothing
                    , class "pause-toggle"
                    ]
                 ++ (if isClickable then
-                        [ onClick <| Click <| PipelineButton params.pipeline ]
+                        [ onClick <| Click <| PipelineButton AllPipelinesSection params.pipeline ]
 
                     else
                         []

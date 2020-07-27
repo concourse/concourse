@@ -38,7 +38,7 @@ import Keyboard
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Message.Subscription
     exposing
         ( Delivery(..)
@@ -329,7 +329,7 @@ update msg ( model, effects ) =
         SetGroups groups ->
             ( model, effects ++ [ NavigateTo <| getNextUrl groups model ] )
 
-        Click (PipelineButton pipelineIdentifier) ->
+        Click (PipelineButton _ pipelineIdentifier) ->
             let
                 paused =
                     model.pipeline |> RemoteData.map .paused
@@ -402,7 +402,7 @@ view session model =
                             , isPaused = isPaused model.pipeline
                             , isToggleHovered =
                                 HoverState.isHovered
-                                    (PipelineButton model.pipelineLocator)
+                                    (PipelineButton AllPipelinesSection model.pipelineLocator)
                                     session.hovered
                             , isToggleLoading = model.isToggleLoading
                             , tooltipPosition = Views.Styles.Below

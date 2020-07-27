@@ -704,7 +704,7 @@ updateBody msg ( model, effects ) =
             , effects
             )
 
-        Click (PipelineButton pipelineId) ->
+        Click (PipelineButton _ pipelineId) ->
             let
                 isPaused =
                     model.pipelines
@@ -724,7 +724,7 @@ updateBody msg ( model, effects ) =
                 Nothing ->
                     ( model, effects )
 
-        Click (VisibilityButton pipelineId) ->
+        Click (VisibilityButton _ pipelineId) ->
             let
                 isPublic =
                     model.pipelines
@@ -807,7 +807,7 @@ view session model =
 tooltip : { a | pipelines : Maybe (Dict String (List Pipeline)) } -> { b | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
 tooltip model { hovered } =
     case hovered of
-        HoverState.Tooltip (Message.PipelineStatusIcon _) _ ->
+        HoverState.Tooltip (Message.PipelineStatusIcon _ _) _ ->
             Just
                 { body =
                     Html.div
@@ -817,7 +817,7 @@ tooltip model { hovered } =
                 , arrow = Nothing
                 }
 
-        HoverState.Tooltip (Message.VisibilityButton pipelineId) _ ->
+        HoverState.Tooltip (Message.VisibilityButton _ pipelineId) _ ->
             model.pipelines
                 |> findPipeline pipelineId
                 |> Maybe.map

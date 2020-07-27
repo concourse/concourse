@@ -9,7 +9,7 @@ import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, href)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
 import List.Extra
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
 
 
@@ -53,8 +53,12 @@ viewJob hovered job =
     in
     Html.div
         (attribute "data-tooltip" job.name
-            :: Styles.jobPreview job (HoverState.isHovered (JobPreview jobId) hovered)
-            ++ [ onMouseEnter <| Hover <| Just <| JobPreview jobId
+            :: Styles.jobPreview job
+                (HoverState.isHovered
+                    (JobPreview AllPipelinesSection jobId)
+                    hovered
+                )
+            ++ [ onMouseEnter <| Hover <| Just <| JobPreview AllPipelinesSection jobId
                , onMouseLeave <| Hover Nothing
                ]
         )

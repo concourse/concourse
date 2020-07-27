@@ -672,14 +672,18 @@ toHtmlID domId =
         SideBarPipeline section p ->
             pipelinesSectionName section ++ "_" ++ Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
 
-        PipelineStatusIcon p ->
-            Base64.encode p.teamName
+        PipelineStatusIcon section p ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ Base64.encode p.teamName
                 ++ "_"
                 ++ Base64.encode p.pipelineName
                 ++ "_status"
 
-        VisibilityButton p ->
-            Base64.encode p.teamName
+        VisibilityButton section p ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ Base64.encode p.teamName
                 ++ "_"
                 ++ Base64.encode p.pipelineName
                 ++ "_visibility"
