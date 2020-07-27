@@ -442,6 +442,10 @@ var _ = Describe("Client", func() {
 			Expect(actualStrategy).To(Equal(fakeStrategy))
 		})
 
+		It("invokes the SelectedWorker Event on the delegate", func() {
+			Expect(fakeEventDelegate.SelectedWorkerCallCount()).Should((Equal(1)))
+		})
+
 		Context("worker is chosen", func() {
 			BeforeEach(func() {
 				fakePool.FindOrChooseWorkerReturns(fakeChosenWorker, nil)
@@ -641,6 +645,10 @@ var _ = Describe("Client", func() {
 				Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
 			})
 
+			It("invokes the SelectedWorker Event on the delegate", func() {
+				Expect(fakeEventDelegate.SelectedWorkerCallCount()).Should((Equal(1)))
+			})
+
 			Context("when 'limit-active-tasks' strategy is chosen", func() {
 				BeforeEach(func() {
 					fakeStrategy.ModifiesActiveTasksReturns(true)
@@ -697,6 +705,10 @@ var _ = Describe("Client", func() {
 
 				It("returns the error", func() {
 					Expect(err).To(Equal(workerDisaster))
+				})
+
+				It("should not invokes the SelectedWorker Event on the delegate", func() {
+					Expect(fakeEventDelegate.SelectedWorkerCallCount()).Should((Equal(0)))
 				})
 			})
 
@@ -1355,6 +1367,10 @@ var _ = Describe("Client", func() {
 			Expect(actualContainerSpec).To(Equal(containerSpec))
 			Expect(actualWorkerSpec).To(Equal(workerSpec))
 			Expect(strategy).To(Equal(fakeStrategy))
+		})
+
+		It("invokes the SelectedWorker Event on the delegate", func() {
+			Expect(fakeEventDelegate.SelectedWorkerCallCount()).Should((Equal(1)))
 		})
 
 		Context("worker is chosen", func() {
