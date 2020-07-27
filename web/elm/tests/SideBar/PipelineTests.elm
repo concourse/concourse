@@ -8,7 +8,7 @@ import Data
 import Expect
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
-import Message.Message exposing (DomID(..), Message, SideBarSection(..))
+import Message.Message exposing (DomID(..), Message, PipelinesSection(..))
 import Set
 import SideBar.Pipeline as Pipeline
 import SideBar.Styles as Styles

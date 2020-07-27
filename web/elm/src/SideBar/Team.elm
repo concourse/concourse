@@ -3,7 +3,7 @@ module SideBar.Team exposing (team)
 import Assets
 import Concourse
 import HoverState
-import Message.Message exposing (DomID(..), Message(..), SideBarSection(..))
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Set exposing (Set)
 import SideBar.Pipeline as Pipeline
 import SideBar.Styles as Styles
@@ -32,10 +32,10 @@ team session t =
         domID =
             SideBarTeam
                 (if session.isFavoritesSection then
-                    Favorites
+                    FavoritesSection
 
                  else
-                    AllPipelines
+                    AllPipelinesSection
                 )
                 t.name
 

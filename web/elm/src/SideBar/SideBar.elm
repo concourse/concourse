@@ -19,7 +19,7 @@ import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
 import List.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
-import Message.Message exposing (DomID(..), Message(..), SideBarSection(..))
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Message.Subscription exposing (Delivery(..))
 import RemoteData exposing (RemoteData(..), WebData)
 import ScreenSize exposing (ScreenSize(..))
@@ -78,7 +78,7 @@ update message model =
 
         Click (SideBarTeam section teamName) ->
             case section of
-                AllPipelines ->
+                AllPipelinesSection ->
                     ( { model
                         | expandedTeamsInAllPipelines =
                             toggle teamName model.expandedTeamsInAllPipelines
@@ -86,7 +86,7 @@ update message model =
                     , []
                     )
 
-                Favorites ->
+                FavoritesSection ->
                     ( { model
                         | collapsedTeamsInFavorites =
                             toggle teamName model.collapsedTeamsInFavorites

@@ -2,7 +2,7 @@ module Message.Message exposing
     ( DomID(..)
     , DropTarget(..)
     , Message(..)
-    , SideBarSection(..)
+    , PipelinesSection(..)
     , VersionId
     , VersionToggleAction(..)
     , VisibilityAction(..)
@@ -87,16 +87,16 @@ type DomID
     | JobPreview Concourse.JobIdentifier
     | HamburgerMenu
     | SideBarResizeHandle
-    | SideBarTeam SideBarSection String
-    | SideBarPipeline SideBarSection Concourse.PipelineIdentifier
+    | SideBarTeam PipelinesSection String
+    | SideBarPipeline PipelinesSection Concourse.PipelineIdentifier
     | SideBarFavoritedIcon DatabaseID
     | Dashboard
     | DashboardGroup String
 
 
-type SideBarSection
-    = Favorites
-    | AllPipelines
+type PipelinesSection
+    = FavoritesSection
+    | AllPipelinesSection
 
 
 type VersionToggleAction

@@ -1,9 +1,9 @@
 port module Message.Effects exposing
     ( Effect(..)
+    , pipelinesSectionName
     , renderPipeline
     , renderSvgIcon
     , runEffect
-    , sideBarSectionName
     , stickyHeaderConfig
     , toHtmlID
     )
@@ -24,7 +24,7 @@ import Message.Callback exposing (Callback(..))
 import Message.Message
     exposing
         ( DomID(..)
-        , SideBarSection(..)
+        , PipelinesSection(..)
         , VersionToggleAction(..)
         , VisibilityAction(..)
         )
@@ -653,13 +653,13 @@ runEffect effect key csrfToken =
             syncTextareaHeight (toHtmlID domID)
 
 
-sideBarSectionName : SideBarSection -> String
-sideBarSectionName section =
+pipelinesSectionName : PipelinesSection -> String
+pipelinesSectionName section =
     case section of
-        Favorites ->
+        FavoritesSection ->
             "Favorites"
 
-        AllPipelines ->
+        AllPipelinesSection ->
             "AllPipelines"
 
 
@@ -667,10 +667,10 @@ toHtmlID : DomID -> String
 toHtmlID domId =
     case domId of
         SideBarTeam section t ->
-            sideBarSectionName section ++ "_" ++ Base64.encode t
+            pipelinesSectionName section ++ "_" ++ Base64.encode t
 
         SideBarPipeline section p ->
-            sideBarSectionName section ++ "_" ++ Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
+            pipelinesSectionName section ++ "_" ++ Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
 
         PipelineStatusIcon p ->
             Base64.encode p.teamName

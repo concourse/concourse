@@ -5,7 +5,7 @@ import Data
 import Expect
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
-import Message.Message exposing (DomID(..), Message, SideBarSection(..))
+import Message.Message exposing (DomID(..), Message, PipelinesSection(..))
 import Set
 import SideBar.Styles as Styles
 import SideBar.Team as Team
@@ -285,7 +285,7 @@ all =
                     team { defaultState | isFavoritesSection = False }
                         |> .name
                         |> .domID
-                        |> Expect.equal (SideBarTeam AllPipelines "team")
+                        |> Expect.equal (SideBarTeam AllPipelinesSection "team")
             ]
         , describe "when in favorites section"
             [ test "domID is for Favorites section" <|
@@ -293,7 +293,7 @@ all =
                     team { defaultState | isFavoritesSection = True }
                         |> .name
                         |> .domID
-                        |> Expect.equal (SideBarTeam Favorites "team")
+                        |> Expect.equal (SideBarTeam FavoritesSection "team")
             ]
         ]
 
@@ -310,7 +310,7 @@ team { active, expanded, hovered, hasFavorited, isFavoritesSection } =
     let
         hoveredDomId =
             if hovered then
-                HoverState.Hovered (SideBarTeam AllPipelines "team")
+                HoverState.Hovered (SideBarTeam AllPipelinesSection "team")
 
             else
                 HoverState.NoHover
