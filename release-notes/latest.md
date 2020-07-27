@@ -10,3 +10,4 @@
 
 * Reduce the allowed character set for Concourse valid identifiers. Only prints warnings instead of errors as a first step. #5810
 * Add `--team` flag for `fly pause-pipeline` command. #5917
+* Add `--team` flag for `fly hide-pipeline` command. #5917
