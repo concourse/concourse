@@ -45,7 +45,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 	})
 
 	JustBeforeEach(func() {
-		fakeAccessor.CreateReturns(fakeaccess)
+		fakeAccessor.CreateReturns(fakeaccess, nil)
 		server = httptest.NewServer(handler)
 
 		request, err := http.NewRequest("POST", server.URL+"?:build_id=55", nil)
@@ -109,8 +109,6 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 				"some-action",
 				innerHandler,
 				fakeAccessor,
-				new(accessorfakes.FakeTokenVerifier),
-				new(accessorfakes.FakeTeamFetcher),
 				new(auditorfakes.FakeAuditor),
 				map[string]string{},
 			)
@@ -227,8 +225,6 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 				"some-action",
 				innerHandler,
 				fakeAccessor,
-				new(accessorfakes.FakeTokenVerifier),
-				new(accessorfakes.FakeTeamFetcher),
 				new(auditorfakes.FakeAuditor),
 				map[string]string{},
 			)

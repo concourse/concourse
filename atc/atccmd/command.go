@@ -723,7 +723,17 @@ func (cmd *RunCommand) constructAPIMembers(
 
 	tokenVerifier := cmd.constructTokenVerifier(dbAccessTokenFactory)
 
+	teamsCacher := accessor.NewTeamsCacher(
+		logger,
+		dbConn.Bus(),
+		teamFactory,
+		time.Minute,
+		time.Minute,
+	)
+
 	accessFactory := accessor.NewAccessFactory(
+		tokenVerifier,
+		teamsCacher,
 		cmd.SystemClaimKey,
 		cmd.SystemClaimValues,
 	)
@@ -750,8 +760,6 @@ func (cmd *RunCommand) constructAPIMembers(
 		credsManagers,
 		accessFactory,
 		dbWall,
-		tokenVerifier,
-		dbConn.Bus(),
 		policyChecker,
 	)
 	if err != nil {
@@ -1760,8 +1768,6 @@ func (cmd *RunCommand) constructAPIHandler(
 	credsManagers creds.Managers,
 	accessFactory accessor.AccessFactory,
 	dbWall db.Wall,
-	tokenVerifier accessor.TokenVerifier,
-	notifications db.NotificationsBus,
 	policyChecker *policy.Checker,
 ) (http.Handler, error) {
 
@@ -1783,14 +1789,6 @@ func (cmd *RunCommand) constructAPIHandler(
 		cmd.Auditor.EnableWorkerAuditLog,
 		cmd.Auditor.EnableVolumeAuditLog,
 		logger,
-	)
-
-	teamsCacher := accessor.NewTeamsCacher(
-		logger,
-		notifications,
-		teamFactory,
-		time.Minute,
-		time.Minute,
 	)
 
 	customRoles, err := cmd.parseCustomRoles()
@@ -1816,8 +1814,6 @@ func (cmd *RunCommand) constructAPIHandler(
 		wrappa.NewAccessorWrappa(
 			logger,
 			accessFactory,
-			tokenVerifier,
-			teamsCacher,
 			aud,
 			customRoles,
 		),

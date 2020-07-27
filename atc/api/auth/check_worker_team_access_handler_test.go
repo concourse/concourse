@@ -45,15 +45,13 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 			"some-action",
 			innerHandler,
 			fakeAccessor,
-			new(accessorfakes.FakeTokenVerifier),
-			new(accessorfakes.FakeTeamFetcher),
 			new(auditorfakes.FakeAuditor),
 			map[string]string{},
 		)
 	})
 
 	JustBeforeEach(func() {
-		fakeAccessor.CreateReturns(fakeaccess)
+		fakeAccessor.CreateReturns(fakeaccess, nil)
 		routes := rata.Routes{}
 		for _, route := range atc.Routes {
 			if route.Name == atc.RetireWorker {

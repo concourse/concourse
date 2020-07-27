@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/concourse/concourse/atc/db"
 	"gopkg.in/square/go-jose.v2/jwt"
 )
 
@@ -16,6 +17,12 @@ var (
 	ErrVerificationTokenExpired    = errors.New("token is expired")
 	ErrVerificationInvalidAudience = errors.New("token has invalid audience")
 )
+
+//go:generate counterfeiter .  AccessTokenFetcher
+
+type AccessTokenFetcher interface {
+	GetAccessToken(rawToken string) (db.AccessToken, bool, error)
+}
 
 func NewVerifier(accessTokenFetcher AccessTokenFetcher, audience []string) *verifier {
 	return &verifier{
