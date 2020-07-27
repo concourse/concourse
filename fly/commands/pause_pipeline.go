@@ -6,11 +6,13 @@ import (
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type PausePipelineCommand struct {
-	Pipeline flaghelpers.PipelineFlag `short:"p"  long:"pipeline" description:"Pipeline to pause"`
-	All      bool                     `short:"a"  long:"all"      description:"Pause all pipelines"`
+	Pipeline flaghelpers.PipelineFlag `short:"p"   long:"pipeline" description:"Pipeline to pause"`
+	All      bool                     `short:"a"   long:"all"      description:"Pause all pipelines"`
+	Team     string                   `long:"team"                 description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *PausePipelineCommand) Validate() error {
@@ -42,13 +44,23 @@ func (command *PausePipelineCommand) Execute(args []string) error {
 		return err
 	}
 
+	var team concourse.Team
+	if command.Team != "" {
+		team, err = target.FindTeam(command.Team)
+		if err != nil {
+			return err
+		}
+	} else {
+		team = target.Team()
+	}
+
 	var pipelineNames []string
 	if string(command.Pipeline) != "" {
 		pipelineNames = []string{string(command.Pipeline)}
 	}
 
 	if command.All {
-		pipelines, err := target.Team().ListPipelines()
+		pipelines, err := team.ListPipelines()
 		if err != nil {
 			return err
 		}
@@ -59,7 +71,7 @@ func (command *PausePipelineCommand) Execute(args []string) error {
 	}
 
 	for _, pipelineName := range pipelineNames {
-		found, err := target.Team().PausePipeline(pipelineName)
+		found, err := team.PausePipeline(pipelineName)
 		if err != nil {
 			return err
 		}
