@@ -2326,10 +2326,7 @@ all =
                                        ]
                             }
                         , hoverable =
-                            Msgs.PipelineCardPauseToggle FavoritesSection
-                                { pipelineName = "pipeline"
-                                , teamName = "team"
-                                }
+                            Msgs.PipelineCardPauseToggle FavoritesSection Data.pipelineId
                         , hoveredSelector =
                             { description = "a bright 20px square pause button with pointer cursor"
                             , selector =
