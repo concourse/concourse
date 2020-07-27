@@ -10,7 +10,7 @@ import (
 //go:generate counterfeiter . PipelineLifecycle
 
 type PipelineLifecycle interface {
-	ArchiveAbandonedPipelines() (int, error)
+	ArchiveAbandonedPipelines() error
 }
 
 func NewPipelineLifecycle(conn Conn, lockFactory lock.LockFactory) PipelineLifecycle {
@@ -25,10 +25,10 @@ type pipelineLifecycle struct {
 	lockFactory lock.LockFactory
 }
 
-func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() (int, error) {
+func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
 	tx, err := pl.conn.Begin()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	defer Rollback(tx)
@@ -50,40 +50,40 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() (int, error) {
 		RunWith(tx).
 		Query()
 	if err != nil {
-		return 0, err
+		return err
 	}
 	defer rows.Close()
 
-	archivedPipelines, err := archivePipelines(tx, pl.conn, pl.lockFactory, rows)
+	err = archivePipelines(tx, pl.conn, pl.lockFactory, rows)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return len(archivedPipelines), nil
+	return nil
 }
 
-func archivePipelines(tx Tx, conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) ([]pipeline, error) {
-	var archivedPipelines []pipeline
+func archivePipelines(tx Tx, conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) error {
+	var toArchive []pipeline
 	for rows.Next() {
 		p := newPipeline(conn, lockFactory)
 		if err := scanPipeline(p, rows); err != nil {
-			return nil, err
+			return err
 		}
 
-		archivedPipelines = append(archivedPipelines, *p)
+		toArchive = append(toArchive, *p)
 	}
 
-	for _, pipeline := range archivedPipelines {
+	for _, pipeline := range toArchive {
 		err := pipeline.archive(tx)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	return archivedPipelines, nil
+	return nil
 }

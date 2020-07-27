@@ -571,7 +571,7 @@ WITH RECURSIVE pipelines_to_archive AS (
 		}
 		defer pipelineRows.Close()
 
-		_, err = archivePipelines(tx, b.conn, b.lockFactory, pipelineRows)
+		err = archivePipelines(tx, b.conn, b.lockFactory, pipelineRows)
 		if err != nil {
 			return err
 		}

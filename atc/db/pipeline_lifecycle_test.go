@@ -10,10 +10,9 @@ import (
 
 var _ = Describe("PipelineLifecycle", func() {
 	var (
-		pl                db.PipelineLifecycle
-		childPipeline     db.Pipeline
-		pipelinesArchived int
-		err               error
+		pl            db.PipelineLifecycle
+		childPipeline db.Pipeline
+		err           error
 	)
 
 	BeforeEach(func() {
@@ -21,7 +20,7 @@ var _ = Describe("PipelineLifecycle", func() {
 	})
 
 	JustBeforeEach(func() {
-		pipelinesArchived, err = pl.ArchiveAbandonedPipelines()
+		err = pl.ArchiveAbandonedPipelines()
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -38,7 +37,6 @@ var _ = Describe("PipelineLifecycle", func() {
 			})
 
 			It("should archive all child pipelines", func() {
-				Expect(pipelinesArchived).To(Equal(1))
 				childPipeline.Reload()
 				Expect(childPipeline.Archived()).To(BeTrue())
 			})
@@ -50,7 +48,6 @@ var _ = Describe("PipelineLifecycle", func() {
 			})
 
 			It("should archive all child pipelines", func() {
-				Expect(pipelinesArchived).To(Equal(1))
 				childPipeline.Reload()
 				Expect(childPipeline.Archived()).To(BeTrue())
 			})
@@ -67,7 +64,6 @@ var _ = Describe("PipelineLifecycle", func() {
 			})
 
 			It("archives all child pipelines set by the deleted job", func() {
-				Expect(pipelinesArchived).To(Equal(1))
 				childPipeline.Reload()
 				Expect(childPipeline.Archived()).To(BeTrue())
 			})
@@ -76,8 +72,6 @@ var _ = Describe("PipelineLifecycle", func() {
 
 	Context("pipeline does not have a parent job and build ID", func() {
 		It("Should not archive the pipeline", func() {
-			Expect(pipelinesArchived).To(Equal(0))
-
 			defaultPipeline.Reload()
 			Expect(defaultPipeline.Archived()).To(BeFalse())
 		})

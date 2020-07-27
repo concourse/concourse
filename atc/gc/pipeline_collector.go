@@ -23,7 +23,7 @@ func (pc *pipelineCollector) Run(ctx context.Context) error {
 	logger.Debug("start")
 	defer logger.Debug("done")
 
-	_, err := pc.pipelineLifecycle.ArchiveAbandonedPipelines()
+	err := pc.pipelineLifecycle.ArchiveAbandonedPipelines()
 	if err != nil {
 		logger.Error("failed-to-automatically-archive-pipelines", err)
 		return err
