@@ -24,25 +24,28 @@ var ErrNoCoreStepDeclared = errors.New("no core step type declared (e.g. get, pu
 // precedence by the order of StepDetectors listed in the StepPrecedence
 // variable.
 //
-// First, the data is unmarshalled into a map[string]*json.RawMessage. Next,
-// UnmarshalJSON loops over StepPrecedence.
+// First, the step data is unmarshalled into a map[string]*json.RawMessage. Next,
+// UnmarshalJSON loops over StepPrecedence to determine the type of step.
 //
 // For any StepDetector with a .Key field present in the map, .New is called to
 // construct an empty StepConfig, and then json.Unmarshal is called on it to parse
 // the data.
 //
-//  For step modifiers like `timeout:` and `attempts:` they eventuallly wrap a
-//  core step type (e.g. get, put, task etc.). Core step types do not wrap other
-//  steps. When a core step type is encountered parsing stops and any remaining
-//  keys are considered invalid. This is how we stop someone from putting a `get`
-//  and `put` in the same step while still allowing valid step modifiers. This is
-//  also why step modifiers are listed first in StepPrecedence.
+// For step modifiers like `timeout:` and `attempts:` they eventuallly wrap a
+// core step type (e.g. get, put, task etc.). Core step types do not wrap other
+// steps.
+//
+// When a core step type is encountered parsing stops and any remaining keys in
+// rawStepConfig are considered invalid. This is how we stop someone from
+// putting a `get` and `put` in the same step while still allowing valid step
+// modifiers. This is also why step modifiers are listed first in
+// StepPrecedence.
 //
 // If no StepDetectors match, no step is parsed, ErrNoStepConfigured is
 // returned.
 func (step *Step) UnmarshalJSON(data []byte) error {
-	var deferred map[string]*json.RawMessage
-	err := json.Unmarshal(data, &deferred)
+	var rawStepConfig map[string]*json.RawMessage
+	err := json.Unmarshal(data, &rawStepConfig)
 	if err != nil {
 		return err
 	}
@@ -50,7 +53,7 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 	var prevStep StepWrapper
 	var coreStepDeclared bool
 	for _, s := range StepPrecedence {
-		_, found := deferred[s.Key]
+		_, found := rawStepConfig[s.Key]
 		if !found {
 			continue
 		}
@@ -73,7 +76,7 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 			prevStep.Wrap(curStep)
 		}
 
-		deleteKeys(deferred, curStep)
+		deleteKnownFields(rawStepConfig, curStep)
 
 		if wrapper, isWrapper := curStep.(StepWrapper); isWrapper {
 			prevStep = wrapper
@@ -82,9 +85,9 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 			break
 		}
 
-		data, err = json.Marshal(deferred)
+		data, err = json.Marshal(rawStepConfig)
 		if err != nil {
-			return fmt.Errorf("re-marshal deferred parsing: %w", err)
+			return fmt.Errorf("re-marshal rawStepConfig parsing: %w", err)
 		}
 	}
 
@@ -96,8 +99,8 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 		return ErrNoCoreStepDeclared
 	}
 
-	if len(deferred) != 0 {
-		step.UnknownFields = deferred
+	if len(rawStepConfig) != 0 {
+		step.UnknownFields = rawStepConfig
 	}
 
 	return nil
@@ -132,9 +135,7 @@ func (step Step) MarshalJSON() ([]byte, error) {
 }
 
 // See the note about json tags here: https://golang.org/pkg/encoding/json/#Marshal
-// keys are deleted based on the assumption that the first non-ignorable field
-// on the step struct matches the name of the step (e.g. get, put, on_success, etc.)
-func deleteKeys(deferred map[string]*json.RawMessage, step StepConfig) {
+func deleteKnownFields(rawStepConfig map[string]*json.RawMessage, step StepConfig) {
 	stepType := reflect.TypeOf(step).Elem()
 	for i := 0; i < stepType.NumField(); i++ {
 		field := stepType.Field(i)
@@ -150,7 +151,7 @@ func deleteKeys(deferred map[string]*json.RawMessage, step StepConfig) {
 		if jsonKey == "" {
 			jsonKey = field.Name
 		}
-		delete(deferred, jsonKey)
+		delete(rawStepConfig, jsonKey)
 	}
 }
 
