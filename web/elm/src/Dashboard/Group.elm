@@ -450,7 +450,7 @@ headerView { x, y, width, height } header =
         , style "width" <| String.fromFloat width ++ "px"
         , style "height" <| String.fromFloat height ++ "px"
         , style "font-size" "18px"
-        , style "padding-left" "0.5rem"
+        , style "padding-left" "12.5px"
         , style "padding-top" "17.5px"
         , style "box-sizing" "border-box"
         , style "text-overflow" "ellipsis"
