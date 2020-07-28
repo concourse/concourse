@@ -184,13 +184,13 @@ func newVarsTracker(vars Variables, expectAllFound, expectAllUsed bool) varsTrac
 // is var name; 2) 'foo:bar', where foo is var source name, and bar is var name;
 // 3) '.:foo', where . means a local var, foo is var name.
 func (t varsTracker) Get(varName string) (interface{}, bool, error) {
-	t.visitedAll[varName] = struct{}{}
-
 	varRef := parseVarName(varName)
+
+	t.visitedAll[identifier(varRef)] = struct{}{}
 
 	val, found, err := t.vars.Get(VariableDefinition{Ref: varRef})
 	if !found || err != nil {
-		t.missing[varRef.Path] = struct{}{}
+		t.missing[varRef.Name] = struct{}{}
 		return val, found, err
 	}
 
@@ -261,8 +261,9 @@ func (t varsTracker) ExtraError() error {
 	unusedNames := map[string]struct{}{}
 
 	for _, def := range allDefs {
-		if _, found := t.visitedAll[def.Ref.Path]; !found {
-			unusedNames[def.Ref.Path] = struct{}{}
+		id := identifier(def.Ref)
+		if _, found := t.visitedAll[id]; !found {
+			unusedNames[id] = struct{}{}
 		}
 	}
 
@@ -282,4 +283,14 @@ func names(mapWithNames map[string]struct{}) []string {
 	sort.Strings(names)
 
 	return names
+}
+
+func identifier(varRef VariableReference) string {
+	id := varRef.Path
+
+	if varRef.Source != "" {
+		id = fmt.Sprintf("%s:%s", varRef.Source, id)
+	}
+
+	return id
 }

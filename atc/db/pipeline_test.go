@@ -2105,8 +2105,8 @@ var _ = Describe("Pipeline", func() {
 
 		JustBeforeEach(func() {
 			fakeGlobalSecrets = new(credsfakes.FakeSecrets)
-			fakeGlobalSecrets.GetStub = func(ref vars.VariableReference) (interface{}, *time.Time, bool, error) {
-				if ref.Path == "gk" {
+			fakeGlobalSecrets.GetStub = func(key string) (interface{}, *time.Time, bool, error) {
+				if key == "gk" {
 					return "gv", nil, true, nil
 				}
 				return nil, nil, false, nil

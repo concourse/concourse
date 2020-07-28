@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/concourse/vars"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds/noop"
 	"github.com/concourse/concourse/atc/db"
@@ -904,8 +902,8 @@ jobs:
 
 								Context("when a credentials manager is not used", func() {
 									BeforeEach(func() {
-										fakeSecretManager.GetStub = func(secretRef vars.VariableReference) (interface{}, *time.Time, bool, error) {
-											return noop.Noop{}.Get(secretRef)
+										fakeSecretManager.GetStub = func(secretPath string) (interface{}, *time.Time, bool, error) {
+											return noop.Noop{}.Get(secretPath)
 										}
 									})
 
