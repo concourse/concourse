@@ -346,7 +346,7 @@ pipelineCardView session params section { bounds, pipeline } teamName =
              , style "height" "100%"
              , attribute "data-pipeline-name" pipeline.name
              ]
-                ++ (if not pipeline.stale then
+                ++ (if section == AllPipelinesSection && not pipeline.stale then
                         [ attribute
                             "ondragstart"
                             "event.dataTransfer.setData('text/plain', '');"

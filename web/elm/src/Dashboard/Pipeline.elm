@@ -134,7 +134,7 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, favo
     in
     Html.div
         (Styles.pipelineCard
-            ++ (if not pipeline.stale then
+            ++ (if section == AllPipelinesSection && not pipeline.stale then
                     [ style "cursor" "move" ]
 
                 else

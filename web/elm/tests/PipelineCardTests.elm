@@ -209,7 +209,7 @@ all =
                         , style "height" "47px"
                         ]
             ]
-        , test "has 'move' cursor when not searching and result fetched" <|
+        , test "is draggable when in all pipelines section and result is not stale" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
@@ -225,8 +225,35 @@ all =
                         [ class "card"
                         , containing [ text "pipeline" ]
                         ]
-                    |> Query.has [ style "cursor" "move" ]
-        , test "does not have 'move' cursor when rendering based on cache" <|
+                    |> Expect.all
+                        [ Query.has [ attribute <| Attr.attribute "draggable" "true" ]
+                        , Query.has [ style "cursor" "move" ]
+                        ]
+        , test "is not draggable when in favorites section" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (FavoritedPipelinesReceived <| Ok <| Set.singleton 0)
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.findAll
+                        [ class "card"
+                        , containing [ text "pipeline" ]
+                        ]
+                    |> Query.first
+                    |> Expect.all
+                        [ Query.hasNot [ attribute <| Attr.attribute "draggable" "true" ]
+                        , Query.hasNot [ style "cursor" "move" ]
+                        ]
+        , test "is not draggable when rendering based on the cache" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
@@ -242,7 +269,10 @@ all =
                         [ class "card"
                         , containing [ text "pipeline" ]
                         ]
-                    |> Query.hasNot [ style "cursor" "move" ]
+                    |> Expect.all
+                        [ Query.hasNot [ attribute <| Attr.attribute "draggable" "true" ]
+                        , Query.hasNot [ style "cursor" "move" ]
+                        ]
         , test "fills available space" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
