@@ -114,9 +114,10 @@ pipelineView :
     , resourceError : Bool
     , existingJobs : List Concourse.Job
     , layers : List (List Concourse.Job)
+    , section : PipelinesSection
     }
     -> Html Message
-pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, favoritedPipelines, resourceError, existingJobs, layers } =
+pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, favoritedPipelines, resourceError, existingJobs, layers, section } =
     let
         bannerStyle =
             if pipeline.stale then
@@ -154,7 +155,7 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, favo
             previewPlaceholder
 
           else
-            bodyView hovered layers
+            bodyView section hovered layers
         , footerView userState favoritedPipelines pipeline now hovered existingJobs
         ]
 
@@ -277,11 +278,11 @@ headerView pipeline resourceError =
         ]
 
 
-bodyView : HoverState.HoverState -> List (List Concourse.Job) -> Html Message
-bodyView hovered layers =
+bodyView : PipelinesSection -> HoverState.HoverState -> List (List Concourse.Job) -> Html Message
+bodyView section hovered layers =
     Html.div
         (class "card-body" :: Styles.pipelineCardBody)
-        [ DashboardPreview.view hovered layers ]
+        [ DashboardPreview.view section hovered layers ]
 
 
 footerView :

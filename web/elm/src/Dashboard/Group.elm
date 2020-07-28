@@ -24,7 +24,7 @@ import Html.Keyed
 import Json.Decode
 import Maybe.Extra
 import Message.Effects as Effects
-import Message.Message exposing (DomID(..), DropTarget(..), Message(..))
+import Message.Message exposing (DomID(..), DropTarget(..), Message(..), PipelinesSection(..))
 import Ordering exposing (Ordering)
 import Set exposing (Set)
 import Time
@@ -73,6 +73,7 @@ view session params g =
                         (\{ bounds, pipeline } ->
                             pipelineCardView session
                                 params
+                                AllPipelinesSection
                                 { bounds = bounds, pipeline = pipeline }
                                 g.teamName
                                 |> (\html -> ( String.fromInt pipeline.id, html ))
@@ -148,6 +149,7 @@ viewFavoritePipelines session params g =
                     (\{ bounds, pipeline } ->
                         pipelineCardView session
                             params
+                            FavoritesSection
                             { bounds = bounds, pipeline = pipeline }
                             pipeline.teamName
                             |> (\html -> ( String.fromInt pipeline.id, html ))
@@ -275,13 +277,14 @@ pipelineCardView :
             , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
             , jobs : Dict ( String, String, String ) Concourse.Job
         }
+    -> PipelinesSection
     ->
         { bounds : PipelineGrid.Bounds
         , pipeline : Pipeline
         }
     -> String
     -> Html Message
-pipelineCardView session params { bounds, pipeline } teamName =
+pipelineCardView session params section { bounds, pipeline } teamName =
     Html.div
         ([ class "pipeline-wrapper"
          , style "position" "absolute"
@@ -393,6 +396,7 @@ pipelineCardView session params { bounds, pipeline } teamName =
                 , pipelineRunningKeyframes = params.pipelineRunningKeyframes
                 , userState = session.userState
                 , favoritedPipelines = session.favoritedPipelines
+                , section = section
                 }
             ]
         ]
