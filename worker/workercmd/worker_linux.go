@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -44,6 +45,10 @@ type ContainerdRuntime struct {
 	MaxContainers      int       `long:"max-containers" default:"0" description:"Max container capacity. 0 means no limit."`
 	NetworkPool        string    `long:"network-pool" description:"Network range to use for dynamically allocated container subnets."`
 }
+
+const containerdRuntime = "containerd"
+const guardianRuntime = "guardian"
+const houdiniRuntime = "houdini"
 
 func (cmd WorkerCommand) LessenRequirements(prefix string, command *flags.Command) {
 	// configured as work-dir/volumes
@@ -82,11 +87,11 @@ func (cmd *WorkerCommand) gardenServerRunner(logger lager.Logger) (atc.Worker, i
 	var runner ifrit.Runner
 
 	switch {
-	case cmd.Runtime.Type == "houdini":
+	case cmd.Runtime.Type == houdiniRuntime:
 		runner, err = cmd.houdiniRunner(logger)
-	case cmd.Runtime.Type == "containerd":
+	case cmd.Runtime.Type == containerdRuntime:
 		runner, err = cmd.containerdRunner(logger)
-	case cmd.Runtime.Type == "guardian":
+	case cmd.Runtime.Type == guardianRuntime:
 		runner, err = cmd.guardianRunner(logger)
 	default:
 		err = fmt.Errorf("unsupported Runtime :%s", cmd.Runtime.Type)
@@ -189,4 +194,38 @@ func (cmd *WorkerCommand) loadResources(logger lager.Logger) ([]atc.WorkerResour
 	}
 
 	return types, nil
+}
+
+
+func (cmd *WorkerCommand) hasFlags(prefix string) bool {
+	env := os.Environ()
+
+	for _, envVar := range env {
+		if strings.HasPrefix(envVar, prefix) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (cmd *WorkerCommand) verifyRuntimeFlags() error {
+	switch {
+	case cmd.Runtime.Type == houdiniRuntime:
+		if cmd.hasFlags("CONCOURSE_GUARDIAN_")  || cmd.hasFlags("CONCOURSE_CONTAINERD_") {
+			return fmt.Errorf("cannot use CONCOURSE_GUARDIAN_ or CONCOURSE_CONTAINERD_ environment variables with Houdini")
+		}
+	case cmd.Runtime.Type == containerdRuntime:
+		if cmd.hasFlags("CONCOURSE_GUARDIAN_") {
+			return fmt.Errorf("cannot use CONCOURSE_GUARDIAN_ environment variables with Containerd")
+		}
+	case cmd.Runtime.Type == guardianRuntime:
+		if cmd.hasFlags("CONCOURSE_CONTAINERD_") {
+			return fmt.Errorf("cannot use CONCOURSE_CONTAINERD_ environment variables with Guardian")
+		}
+	default:
+		return fmt.Errorf("unsupported Runtime :%s", cmd.Runtime.Type)
+	}
+
+	return nil
 }
