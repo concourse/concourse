@@ -77,7 +77,6 @@ fly -t ci set-pipeline -p booklit -c booklit.yml
 These pipeline files are self-contained, maximizing portability from one
 Concourse instance to the next.
 
-
 ### Learn More
 
 * The [Official Site](https://concourse-ci.org) for documentation,
