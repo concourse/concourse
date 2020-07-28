@@ -403,11 +403,13 @@ view session model =
                             , isToggleHovered =
                                 HoverState.isHovered
                                     (PipelineButton AllPipelinesSection model.pipelineLocator)
+                                    -- TODO: pick a diff. domID
                                     session.hovered
                             , isToggleLoading = model.isToggleLoading
                             , tooltipPosition = Views.Styles.Below
                             , margin = "17px"
                             , userState = session.userState
+                            , section = AllPipelinesSection
                             }
                         ]
                 , Login.view session.userState model <| displayPaused
