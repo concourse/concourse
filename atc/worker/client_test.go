@@ -453,6 +453,8 @@ var _ = Describe("Client", func() {
 
 			It("invokes the Starting Event on the delegate", func() {
 				Expect(fakeEventDelegate.StartingCallCount()).Should((Equal(1)))
+				_, actualWorkerName := fakeEventDelegate.SelectedWorkerArgsForCall(0)
+				Expect(actualWorkerName).To(Equal(fakeChosenWorker.Name()))
 			})
 
 			It("calls Fetch on the worker", func() {
@@ -643,6 +645,8 @@ var _ = Describe("Client", func() {
 			It("chooses a worker", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
+				_, actualWorkerName := fakeEventDelegate.SelectedWorkerArgsForCall(0)
+				Expect(actualWorkerName).To(Equal(fakeWorker.Name()))
 			})
 
 			It("invokes the SelectedWorker Event on the delegate", func() {
@@ -1371,6 +1375,8 @@ var _ = Describe("Client", func() {
 
 		It("invokes the SelectedWorker Event on the delegate", func() {
 			Expect(fakeEventDelegate.SelectedWorkerCallCount()).Should((Equal(1)))
+			_, actualWorkerName := fakeEventDelegate.SelectedWorkerArgsForCall(0)
+			Expect(actualWorkerName).To(Equal(fakeChosenWorker.Name()))
 		})
 
 		Context("worker is chosen", func() {
