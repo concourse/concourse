@@ -18,3 +18,7 @@
   * set_pipeline step is removed from job
   * Job that set pipeline is deleted
   * Parent pipeline is deleted
+
+#### <sub><sup><a name="5846" href="#5810">:link:</a></sup></sub> feature
+
+* @evanchaoli Enhanced build log page as well as `fly watch` to display worker name for `get/put/task` steps. #5846
