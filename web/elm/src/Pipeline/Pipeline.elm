@@ -329,7 +329,7 @@ update msg ( model, effects ) =
         SetGroups groups ->
             ( model, effects ++ [ NavigateTo <| getNextUrl groups model ] )
 
-        Click (PipelineButton _ pipelineIdentifier) ->
+        Click (TopBarPauseToggle pipelineIdentifier) ->
             let
                 paused =
                     model.pipeline |> RemoteData.map .paused
@@ -402,14 +402,13 @@ view session model =
                             , isPaused = isPaused model.pipeline
                             , isToggleHovered =
                                 HoverState.isHovered
-                                    (PipelineButton AllPipelinesSection model.pipelineLocator)
-                                    -- TODO: pick a diff. domID
+                                    (TopBarPauseToggle model.pipelineLocator)
                                     session.hovered
                             , isToggleLoading = model.isToggleLoading
                             , tooltipPosition = Views.Styles.Below
                             , margin = "17px"
                             , userState = session.userState
-                            , section = AllPipelinesSection
+                            , domID = TopBarPauseToggle model.pipelineLocator
                             }
                         ]
                 , Login.view session.userState model <| displayPaused

@@ -139,9 +139,8 @@ viewFavoritePipelines :
         , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
         , jobs : Dict ( String, String, String ) Concourse.Job
         }
-    -> List Pipeline
     -> Html Message
-viewFavoritePipelines session params g =
+viewFavoritePipelines session params =
     let
         pipelineCardViews =
             params.pipelineCards

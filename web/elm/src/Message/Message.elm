@@ -63,7 +63,8 @@ type DomID
     | PinButton VersionId
     | PinBar
     | PipelineStatusIcon PipelinesSection Concourse.PipelineIdentifier
-    | PipelineButton PipelinesSection Concourse.PipelineIdentifier
+    | PipelineCardPauseToggle PipelinesSection Concourse.PipelineIdentifier
+    | TopBarPauseToggle Concourse.PipelineIdentifier
     | VisibilityButton PipelinesSection Concourse.PipelineIdentifier
     | PipelineCardFavoritedIcon PipelinesSection DatabaseID
     | FooterCliIcon Cli.Cli

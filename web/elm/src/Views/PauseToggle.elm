@@ -21,7 +21,7 @@ view :
         , margin : String
         , userState : UserState
         , tooltipPosition : Styles.TooltipPosition
-        , section : PipelinesSection
+        , domID : DomID
     }
     -> Html Message
 view params =
@@ -39,12 +39,12 @@ view params =
     else
         Html.div
             (Styles.pauseToggle params.margin
-                ++ [ onMouseEnter <| Hover <| Just <| PipelineButton params.section params.pipeline
+                ++ [ onMouseEnter <| Hover <| Just <| params.domID
                    , onMouseLeave <| Hover Nothing
                    , class "pause-toggle"
                    ]
                 ++ (if isClickable then
-                        [ onClick <| Click <| PipelineButton params.section params.pipeline ]
+                        [ onClick <| Click <| params.domID ]
 
                     else
                         []

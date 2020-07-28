@@ -704,7 +704,7 @@ updateBody msg ( model, effects ) =
             , effects
             )
 
-        Click (PipelineButton _ pipelineId) ->
+        Click (PipelineCardPauseToggle _ pipelineId) ->
             let
                 isPaused =
                     model.pipelines
@@ -1192,7 +1192,6 @@ pipelinesView session params =
                             , pipelineJobs = params.pipelineJobs
                             , jobs = jobs
                             }
-                            favoritedPipelines
                         , Views.Styles.separator PipelineGridConstants.sectionSpacerHeight
                         , Html.div Styles.pipelineSectionHeader [ Html.text "all pipelines" ]
                         ]

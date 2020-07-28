@@ -313,12 +313,12 @@ footerView userState favoritedPipelines pipeline section now hovered existingJob
                     status == PipelineStatus.PipelineStatusPaused
                 , pipeline = pipelineId
                 , isToggleHovered =
-                    HoverState.isHovered (PipelineButton section pipelineId) hovered
+                    HoverState.isHovered (PipelineCardPauseToggle section pipelineId) hovered
                 , isToggleLoading = pipeline.isToggleLoading
                 , tooltipPosition = Views.Styles.Above
                 , margin = "0"
                 , userState = userState
-                , section = section
+                , domID = PipelineCardPauseToggle section pipelineId
                 }
 
         visibilityButton =
