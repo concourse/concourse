@@ -109,7 +109,7 @@ var _ = Describe("Verifier", func() {
 			})
 		})
 
-		Context("whne the claims have invalid audience", func() {
+		Context("when the claims have invalid audience", func() {
 			BeforeEach(func() {
 				oneHourFromNow := jwt.NewNumericDate(time.Now().Add(1 * time.Hour))
 				accessToken.Claims = db.Claims{
