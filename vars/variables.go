@@ -5,8 +5,15 @@ type Variables interface {
 	List() ([]VariableDefinition, error)
 }
 
+type VariableReference struct {
+	Name   string
+	Source string
+	Path   string
+	Fields []string
+}
+
 type VariableDefinition struct {
-	Name    string
+	Ref     VariableReference
 	Type    string
 	Options interface{}
 }

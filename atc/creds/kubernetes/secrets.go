@@ -71,6 +71,7 @@ func (secrets Secrets) getValueFromSecret(secret *v1.Secret) (interface{}, *time
 		return string(val), nil, true, nil
 	}
 
+	// TODO: make this smarter since we now have access to ref.Fields
 	stringified := map[string]interface{}{}
 	for k, v := range secret.Data {
 		stringified[k] = string(v)

@@ -101,4 +101,3 @@ func (s *Ssm) getParameterByPath(path string) (interface{}, *time.Time, bool, er
 	}
 	return value, nil, true, nil
 }
-

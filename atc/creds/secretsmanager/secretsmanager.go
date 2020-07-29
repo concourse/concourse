@@ -53,14 +53,14 @@ func (s *SecretsManager) Get(secretPath string) (interface{}, *time.Time, bool, 
 }
 
 /*
-	Looks up secret by name. Depending on which field is filled it will either
+	Looks up secret by path. Depending on which field is filled it will either
 	return a string value (SecretString) or a map[string]interface{} (SecretBinary).
 
 	In case SecretBinary is set, it is expected to be a valid JSON object or it will error.
 */
-func (s *SecretsManager) getSecretById(name string) (interface{}, *time.Time, bool, error) {
+func (s *SecretsManager) getSecretById(path string) (interface{}, *time.Time, bool, error) {
 	value, err := s.api.GetSecretValue(&secretsmanager.GetSecretValueInput{
-		SecretId: &name,
+		SecretId: &path,
 	})
 	if err == nil {
 		switch {

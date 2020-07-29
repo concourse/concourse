@@ -1,7 +1,6 @@
 package vars
 
 import (
-	"fmt"
 	"strings"
 	"sync"
 )
@@ -9,7 +8,6 @@ import (
 // CredVarsTracker implements the interface Variables. It wraps a secret manager and
 // tracks key-values fetched from the secret managers. It also provides a method to
 // thread-safely iterate interpolated key-values.
-
 type CredVarsTrackerIterator interface {
 	YieldCred(string, string)
 }
@@ -57,13 +55,10 @@ func (t *credVarsTracker) Get(varDef VariableDefinition) (interface{}, bool, err
 	)
 
 	redact := true
-	parts := strings.Split(varDef.Name, ":")
-	if len(parts) == 2 && parts[0] == "." {
-		varDef.Name = parts[1]
+	if varDef.Ref.Source == "." {
 		val, found, err = t.localVars.Get(varDef)
 		if found {
-			parts = strings.Split(varDef.Name, ".")
-			if _, ok := t.noRedactVarNames[parts[0]]; ok {
+			if _, ok := t.noRedactVarNames[varDef.Ref.Path]; ok {
 				redact = false
 			}
 		}
@@ -73,27 +68,33 @@ func (t *credVarsTracker) Get(varDef VariableDefinition) (interface{}, bool, err
 
 	if t.enabled && found && redact {
 		t.lock.Lock()
-		t.track(varDef.Name, val)
+		t.track(varDef.Ref, val)
 		t.lock.Unlock()
 	}
 
 	return val, found, err
 }
 
-func (t *credVarsTracker) track(name string, val interface{}) {
+func (t *credVarsTracker) track(varRef VariableReference, val interface{}) {
 	switch v := val.(type) {
 	case map[interface{}]interface{}:
 		for kk, vv := range v {
-			nn := fmt.Sprintf("%s.%s", name, kk.(string))
-			t.track(nn, vv)
+			t.track(VariableReference{
+				Path:   varRef.Path,
+				Fields: append(varRef.Fields, kk.(string)),
+			}, vv)
 		}
 	case map[string]interface{}:
 		for kk, vv := range v {
-			nn := fmt.Sprintf("%s.%s", name, kk)
-			t.track(nn, vv)
+			t.track(VariableReference{
+				Path:   varRef.Path,
+				Fields: append(varRef.Fields, kk),
+			}, vv)
 		}
 	case string:
-		t.interpolatedCreds[name] = v
+		paths := append([]string{varRef.Path}, varRef.Fields...)
+
+		t.interpolatedCreds[strings.Join(paths, ".")] = v
 	default:
 		// Do nothing
 	}
