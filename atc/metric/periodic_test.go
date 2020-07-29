@@ -142,10 +142,17 @@ var _ = Describe("Periodic emission of metrics", func() {
 	})
 
 	Context("limit-active-tasks metrics", func() {
+		labels := metric.TasksWaitingLabels{
+			TeamId:     "42",
+			WorkerTags: "tester",
+			Platform:   "darwin",
+		}
+
 		BeforeEach(func() {
 			gauge := &metric.Gauge{}
 			gauge.Set(123)
-			metric.TasksWaiting = gauge
+
+			metric.TasksWaiting[labels] = gauge
 		})
 		It("emits", func() {
 			Eventually(emitter.EmitCallCount).Should(BeNumerically(">=", 1))
@@ -155,6 +162,11 @@ var _ = Describe("Periodic emission of metrics", func() {
 						MatchFields(IgnoreExtras, Fields{
 							"Name":  Equal("tasks waiting"),
 							"Value": Equal(float64(123)),
+							"Attributes": Equal(map[string]string{
+								"teamId":     labels.TeamId,
+								"workerTags": labels.WorkerTags,
+								"platform":   labels.Platform,
+							}),
 						}),
 					),
 				),

@@ -30,8 +30,6 @@ var JobsScheduling = &Gauge{}
 var BuildsStarted = &Counter{}
 var BuildsRunning = &Gauge{}
 
-var TasksWaiting = &Gauge{}
-
 var ChecksFinishedWithError = &Counter{}
 var ChecksFinishedWithSuccess = &Counter{}
 var ChecksQueueSize = &Gauge{}
@@ -40,6 +38,34 @@ var ChecksEnqueued = &Counter{}
 
 var ConcurrentRequests = map[string]*Gauge{}
 var ConcurrentRequestsLimitHit = map[string]*Counter{}
+
+type TasksWaitingLabels struct {
+	TeamId     string
+	WorkerTags string
+	Platform   string
+}
+
+var TasksWaiting = map[TasksWaitingLabels]*Gauge{}
+
+type TasksWaitingDuration struct {
+	Labels   TasksWaitingLabels
+	Duration time.Duration
+}
+
+func (event TasksWaitingDuration) Emit(logger lager.Logger) {
+	emit(
+		logger.Session("tasks-waiting-duration"),
+		Event{
+			Name:  "tasks waiting duration",
+			Value: event.Duration.Seconds(),
+			Attributes: map[string]string{
+				"teamId":     event.Labels.TeamId,
+				"workerTags": event.Labels.WorkerTags,
+				"platform":   event.Labels.Platform,
+			},
+		},
+	)
+}
 
 type BuildCollectorDuration struct {
 	Duration time.Duration

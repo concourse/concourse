@@ -165,13 +165,20 @@ func tick(logger lager.Logger) {
 		)
 	}
 
-	emit(
-		logger.Session("tasks-waiting"),
-		Event{
-			Name:  "tasks waiting",
-			Value: TasksWaiting.Max(),
-		},
-	)
+	for labels, gauge := range TasksWaiting {
+		emit(
+			logger.Session("tasks-waiting"),
+			Event{
+				Name:  "tasks waiting",
+				Value: gauge.Max(),
+				Attributes: map[string]string{
+					"teamId":     labels.TeamId,
+					"workerTags": labels.WorkerTags,
+					"platform":   labels.Platform,
+				},
+			},
+		)
+	}
 
 	emit(
 		logger.Session("checks-finished-with-error"),

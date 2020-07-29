@@ -27,7 +27,8 @@ type PrometheusEmitter struct {
 	concurrentRequestsLimitHit *prometheus.CounterVec
 	concurrentRequests         *prometheus.GaugeVec
 
-	tasksWaiting prometheus.Gauge
+	tasksWaiting         *prometheus.GaugeVec
+	tasksWaitingDuration *prometheus.HistogramVec
 
 	buildDurationsVec *prometheus.HistogramVec
 	buildsAborted     prometheus.Counter
@@ -171,13 +172,22 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	}, []string{"action"})
 	prometheus.MustRegister(concurrentRequests)
 
-	tasksWaiting := prometheus.NewGauge(prometheus.GaugeOpts{
+	tasksWaiting := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "concourse",
 		Subsystem: "tasks",
 		Name:      "waiting",
 		Help:      "Number of Concourse tasks currently waiting.",
-	})
+	}, []string{"teamId", "workerTags", "platform"})
 	prometheus.MustRegister(tasksWaiting)
+
+	tasksWaitingDuration := prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: "concourse",
+		Subsystem: "tasks",
+		Name:      "wait_duration",
+		Help:      "Elapsed time waiting for execution",
+		Buckets:   []float64{1, 15, 30, 60, 120, 180, 240, 300, 600, 1200},
+	}, []string{"teamId", "workerTags", "platform"})
+	prometheus.MustRegister(tasksWaitingDuration)
 
 	buildsFinished := prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "concourse",
@@ -398,7 +408,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		concurrentRequestsLimitHit: concurrentRequestsLimitHit,
 		concurrentRequests:         concurrentRequests,
 
-		tasksWaiting: tasksWaiting,
+		tasksWaiting:         tasksWaiting,
+		tasksWaitingDuration: tasksWaitingDuration,
 
 		buildDurationsVec: buildDurationsVec,
 		buildsAborted:     buildsAborted,
@@ -463,9 +474,22 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 	case "concurrent requests limit hit":
 		emitter.concurrentRequestsLimitHit.WithLabelValues(event.Attributes["action"]).Add(event.Value)
 	case "concurrent requests":
-		emitter.concurrentRequests.WithLabelValues(event.Attributes["action"]).Set(event.Value)
+		emitter.concurrentRequests.
+			WithLabelValues(event.Attributes["action"]).Set(event.Value)
 	case "tasks waiting":
-		emitter.tasksWaiting.Set(event.Value)
+		emitter.tasksWaiting.
+			WithLabelValues(
+				event.Attributes["teamId"],
+				event.Attributes["workerTags"],
+				event.Attributes["platform"],
+			).Set(event.Value)
+	case "tasks waiting duration":
+		emitter.tasksWaitingDuration.
+			WithLabelValues(
+				event.Attributes["teamId"],
+				event.Attributes["workerTags"],
+				event.Attributes["platform"],
+			).Observe(event.Value)
 	case "build finished":
 		emitter.buildFinishedMetrics(logger, event)
 	case "worker containers":
