@@ -31,7 +31,13 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 
 	members := grouper.Members{}
 
-	gdnFlags := []string{
+	gdnConfigFlag := []string{}
+
+	if cmd.Guardian.Config.Path() != "" {
+		gdnConfigFlag = append(gdnConfigFlag, "--config", cmd.Guardian.Config.Path())
+	}
+
+	gdnServerFlags := []string{
 		"--bind-ip", cmd.BindIP.IP.String(),
 		"--bind-port", fmt.Sprintf("%d", cmd.BindPort),
 
@@ -45,7 +51,7 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 		"--no-image-plugin",
 	}
 
-	gdnFlags = append(gdnFlags, detectGuardianFlags(logger)...)
+	gdnServerFlags = append(gdnServerFlags, detectGuardianFlags(logger)...)
 
 	if cmd.Guardian.DNS.Enable {
 		dnsProxyRunner, err := cmd.dnsProxyRunner(logger.Session("dns-proxy"))
@@ -66,14 +72,14 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 			),
 		})
 
-		gdnFlags = append(gdnFlags, "--dns-server", lip)
+		gdnServerFlags = append(gdnServerFlags, "--dns-server", lip)
 
 		// must permit access to host network in order for DNS proxy address to be
 		// reachable
-		gdnFlags = append(gdnFlags, "--allow-host-access")
+		gdnServerFlags = append(gdnServerFlags, "--allow-host-access")
 	}
 
-	gdnArgs := append([]string{"server"}, gdnFlags...)
+	gdnArgs := append(gdnConfigFlag, append([]string{"server"}, gdnServerFlags...)...)
 
 	bin := "gdn"
 	if cmd.Guardian.Bin != "" {
