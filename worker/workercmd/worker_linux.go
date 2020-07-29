@@ -43,7 +43,7 @@ type ContainerdRuntime struct {
 	DNSServers         []string  `long:"dns-server" description:"DNS server IP address to use instead of automatically determined servers. Can be specified multiple times."`
 	RestrictedNetworks []string  `long:"restricted-network" description:"Network ranges to which traffic from containers will be restricted. Can be specified multiple times."`
 	MaxContainers      int       `long:"max-containers" default:"0" description:"Max container capacity. 0 means no limit."`
-	NetworkPool        string    `long:"network-pool" description:"Network range to use for dynamically allocated container subnets."`
+	NetworkPool        string    `long:"network-pool" default:"10.80.0.0/16" description:"Network range to use for dynamically allocated container subnets."`
 }
 
 const containerdRuntime = "containerd"
