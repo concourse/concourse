@@ -104,9 +104,6 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 	return grouper.NewParallel(os.Interrupt, members), nil
 }
 
-// For historical reasons this is "CONCOURSE_GARDEN_" instead of "CONCOURSE_GUARDIAN_"
-var guardianEnvPrefix = "CONCOURSE_GARDEN_"
-
 func detectGuardianFlags(logger lager.Logger) []string {
 	env := os.Environ()
 

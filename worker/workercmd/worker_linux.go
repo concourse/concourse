@@ -24,7 +24,7 @@ type Certs struct {
 }
 
 type Runtime struct {
-	Type string `long:"type" default:"guardian" description:"Runtime to use with the worker. Possible values: guardian, containerd, houdini. Please note that Houdini is insecure and doesn't run 'tasks' in containers."`
+	Type string `long:"type" default:"guardian" choice:"guardian" choice:"containerd" choice:"houdini" description:"Runtime to use with the worker. Please note that Houdini is insecure and doesn't run 'tasks' in containers."`
 }
 
 type GuardianRuntime struct {
@@ -62,6 +62,11 @@ func (cmd WorkerCommand) LessenRequirements(prefix string, command *flags.Comman
 // The runner may also include additional processes such as the runtime's daemon or a DNS proxy server.
 func (cmd *WorkerCommand) gardenServerRunner(logger lager.Logger) (atc.Worker, ifrit.Runner, error) {
 	err := cmd.checkRoot()
+	if err != nil {
+		return atc.Worker{}, nil, err
+	}
+
+	err = cmd.verifyRuntimeFlags()
 	if err != nil {
 		return atc.Worker{}, nil, err
 	}
@@ -210,19 +215,23 @@ func (cmd *WorkerCommand) hasFlags(prefix string) bool {
 	return false
 }
 
+const guardianEnvPrefix = "CONCOURSE_GARDEN_"
+const containerdEnvPrefix = "CONCOURSE_CONTAINERD_"
+
+// Checks if runtime specific flags provided match the selected runtime type
 func (cmd *WorkerCommand) verifyRuntimeFlags() error {
 	switch {
 	case cmd.Runtime.Type == houdiniRuntime:
-		if cmd.hasFlags("CONCOURSE_GUARDIAN_")  || cmd.hasFlags("CONCOURSE_CONTAINERD_") {
-			return fmt.Errorf("cannot use CONCOURSE_GUARDIAN_ or CONCOURSE_CONTAINERD_ environment variables with Houdini")
+		if cmd.hasFlags(guardianEnvPrefix)  || cmd.hasFlags(containerdEnvPrefix) {
+			return fmt.Errorf("cannot use %s or %s environment variables with Houdini", guardianEnvPrefix, containerdEnvPrefix)
 		}
 	case cmd.Runtime.Type == containerdRuntime:
-		if cmd.hasFlags("CONCOURSE_GUARDIAN_") {
-			return fmt.Errorf("cannot use CONCOURSE_GUARDIAN_ environment variables with Containerd")
+		if cmd.hasFlags(guardianEnvPrefix) {
+			return fmt.Errorf("cannot use %s environment variables with Containerd", guardianEnvPrefix)
 		}
 	case cmd.Runtime.Type == guardianRuntime:
-		if cmd.hasFlags("CONCOURSE_CONTAINERD_") {
-			return fmt.Errorf("cannot use CONCOURSE_CONTAINERD_ environment variables with Guardian")
+		if cmd.hasFlags(containerdEnvPrefix) {
+			return fmt.Errorf("cannot use %s environment variables with Guardian", containerdEnvPrefix)
 		}
 	default:
 		return fmt.Errorf("unsupported Runtime :%s", cmd.Runtime.Type)
