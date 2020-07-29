@@ -1,8 +1,12 @@
 <!--
 Hi there! Thanks for submitting a pull request to Concourse!
 
-Please ensure your PR title is appropriate because it will be used to generate
-the release note.
+The title of your pull request will be used to generate the release notes.
+Please make if a brief sentence that describes the PR in the imperative form.
+Please refrain from adding prefixes like 'feature:', and don't include a period
+at the end. (Thank you!)
+
+Examples: "Add feature to doohickey", "Fix panic during spline reticulation"
 
 To help us review your PR, please fill in the following information.
 -->
