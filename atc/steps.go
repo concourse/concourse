@@ -172,8 +172,8 @@ type StepWrapper interface {
 	// Wrap is called during (Step).UnmarshalJSON whenever an 'inner' step is
 	// parsed.
 	//
-	// Modifier step types should implement this by assigning a `json:"-"` tag to
-	// an internal field of type StepConfig in their struct.
+	// Modifier step types should implement this function by assigning to an
+	// internal field, that has a `json:"-"` tag, the passed in StepConfig.
 	Wrap(StepConfig)
 
 	// Unwrap is called during (Step).MarshalJSON and must return the wrapped
