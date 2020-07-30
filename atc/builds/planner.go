@@ -226,6 +226,7 @@ func (visitor *planVisitor) VisitLoadVar(step *atc.LoadVarStep) error {
 		File:   step.File,
 		Format: step.Format,
 		Reveal: step.Reveal,
+		AddVars: step.AddVars,
 	})
 
 	return nil

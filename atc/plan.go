@@ -217,10 +217,11 @@ type SetPipelinePlan struct {
 }
 
 type LoadVarPlan struct {
-	Name   string `json:"name"`
-	File   string `json:"file"`
-	Format string `json:"format,omitempty"`
-	Reveal bool   `json:"reveal,omitempty"`
+	Name    string         `json:"name"`
+	File    string         `json:"file"`
+	Format  string         `json:"format,omitempty"`
+	Reveal  bool           `json:"reveal,omitempty"`
+	AddVars []AddVarConfig `json:"adds,omitempty"`
 }
 
 type RetryPlan []Plan

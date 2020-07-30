@@ -17,6 +17,7 @@ type Template struct {
 type EvaluateOpts struct {
 	ExpectAllKeys     bool
 	ExpectAllVarsUsed bool
+	PlainText         bool
 }
 
 func NewTemplate(bytes []byte) Template {
@@ -29,6 +30,14 @@ func (t Template) ExtraVarNames() []string {
 
 func (t Template) Evaluate(vars Variables, opts EvaluateOpts) ([]byte, error) {
 	var obj interface{}
+
+	if opts.PlainText {
+		obj, err := t.interpolateRoot(string(t.bytes), newVarsTracker(vars, opts.ExpectAllKeys, opts.ExpectAllVarsUsed))
+		if err != nil {
+			return []byte{}, err
+		}
+		return []byte(obj.(string)), nil
+	}
 
 	err := yaml.Unmarshal(t.bytes, &obj)
 	if err != nil {

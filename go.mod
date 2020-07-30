@@ -14,6 +14,7 @@ require (
 	github.com/Masterminds/squirrel v1.1.0
 	github.com/Microsoft/hcsshim v0.8.7 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
+	github.com/PaesslerAG/gval v1.0.1
 	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
 	github.com/aws/aws-sdk-go v1.25.18
 	github.com/caarlos0/env v3.5.0+incompatible

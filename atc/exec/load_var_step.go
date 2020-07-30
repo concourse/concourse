@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/vars/eval"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
@@ -107,6 +109,29 @@ func (step *LoadVarStep) run(ctx context.Context, state RunState) error {
 
 	step.delegate.Variables().AddLocalVar(step.plan.Name, value, !step.plan.Reveal)
 	fmt.Fprintf(stdout, "added var %s to build.\n", step.plan.Name)
+
+	for _, add := range step.plan.AddVars {
+		fmt.Fprintf(stdout, "%s: origin expr - %s\n", add.Name, add.Expr)
+
+		interpolatedExprBytes, err := vars.NewTemplate([]byte(add.Expr)).Evaluate(step.delegate.Variables(), vars.EvaluateOpts{PlainText: true})
+		if err != nil {
+			return nil
+		}
+
+		interpolatedExpr := string(interpolatedExprBytes)
+		fmt.Fprintf(stdout, "%s - %s\n", add.Name, interpolatedExpr)
+
+		addValue, err := eval.VarEval(interpolatedExpr, value)
+		if err != nil {
+			fmt.Fprintf(stdout, "failed to evaluate %s: %s\n", add.Expr, err.Error())
+			return err
+		}
+
+		fmt.Fprintf(stdout, "%s - %s\n", add.Name, addValue)
+
+		newVarName := fmt.Sprintf("%s-%s", step.plan.Name, add.Name)
+		step.delegate.Variables().AddLocalVar(newVarName, addValue, !step.plan.Reveal)
+	}
 
 	step.succeeded = true
 	step.delegate.Finished(logger, step.succeeded)

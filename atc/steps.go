@@ -350,10 +350,11 @@ func (step *SetPipelineStep) Visit(v StepVisitor) error {
 }
 
 type LoadVarStep struct {
-	Name   string `json:"load_var"`
-	File   string `json:"file,omitempty"`
-	Format string `json:"format,omitempty"`
-	Reveal bool   `json:"reveal,omitempty"`
+	Name    string         `json:"load_var"`
+	File    string         `json:"file,omitempty"`
+	Format  string         `json:"format,omitempty"`
+	Reveal  bool           `json:"reveal,omitempty"`
+	AddVars []AddVarConfig `json:"adds,omitempty"`
 }
 
 func (step *LoadVarStep) Visit(v StepVisitor) error {

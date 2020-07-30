@@ -300,3 +300,8 @@ func DefaultSSHConfig() ssh.Config {
 		},
 	}
 }
+
+type AddVarConfig struct {
+	Name string `json:"name"`
+	Expr string `json:"expr"`
+}
