@@ -2917,7 +2917,7 @@ all =
                             |> Tuple.first
                             |> checkBar UserStateLoggedOut
                             |> Query.find [ tag "h3" ]
-                            |> Query.has [ text "checking successfully" ]
+                            |> Query.has [ text "checked successfully" ]
                 ]
             , describe "when authorized" <|
                 let

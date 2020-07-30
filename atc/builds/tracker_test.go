@@ -72,6 +72,51 @@ func (s *TrackerSuite) TestTrackRunsStartedBuilds() {
 	s.ElementsMatch(startedBuilds, ranBuilds)
 }
 
+func (s *TrackerSuite) TestTrackerDoesntCrashWhenOneBuildPanic() {
+	startedBuilds := []db.Build{}
+	fakeBuild1 := new(dbfakes.FakeBuild)
+	fakeBuild1.IDReturns(1)
+	startedBuilds = append(startedBuilds, fakeBuild1)
+
+	// build 2 and 3 are normal running build
+	for i := 1; i < 3; i++ {
+		fakeBuild := new(dbfakes.FakeBuild)
+		fakeBuild.IDReturns(i + 1)
+		startedBuilds = append(startedBuilds, fakeBuild)
+	}
+
+	s.fakeBuildFactory.GetAllStartedBuildsReturns(startedBuilds, nil)
+
+	running := make(chan db.Build, 3)
+	s.fakeEngine.NewBuildStub = func(build db.Build) engine.Runnable {
+		fakeEngineBuild := new(enginefakes.FakeRunnable)
+		fakeEngineBuild.RunStub = func(context.Context) {
+			if build.ID() == 1 {
+				panic("something went wrong")
+			} else {
+				running <- build
+			}
+		}
+
+		return fakeEngineBuild
+	}
+
+	err := s.tracker.Run(context.TODO())
+	s.NoError(err)
+
+	ranBuilds := []db.Build{
+		<-running,
+		<-running,
+	}
+	s.ElementsMatch([]db.Build{
+		startedBuilds[1],
+		startedBuilds[2],
+	}, ranBuilds)
+
+	s.Eventually(func() bool { return fakeBuild1.FinishCallCount() == 1 }, time.Second, 10*time.Millisecond)
+	s.Eventually(func() bool { return fakeBuild1.FinishArgsForCall(0) == db.BuildStatusErrored }, time.Second, 10*time.Millisecond)
+}
+
 func (s *TrackerSuite) TestTrackDoesntTrackAlreadyRunningBuilds() {
 	fakeBuild := new(dbfakes.FakeBuild)
 	fakeBuild.IDReturns(1)

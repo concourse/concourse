@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/concourse/concourse/atc/postgresrunner"
 	"github.com/onsi/gomega/gbytes"
@@ -145,7 +146,7 @@ var _ = Describe("Web Command", func() {
 				})
 
 				It("errors", func() {
-					Eventually(concourseRunner.Err()).Should(
+					Eventually(concourseRunner.Err(), 5*time.Second).Should(
 						gbytes.Say("at least one systemClaimValue must be equal to tsa-client-id"),
 					)
 				})

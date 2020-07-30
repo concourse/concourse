@@ -1546,11 +1546,16 @@ var _ = Describe("Pipelines API", func() {
 
 	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/rename", func() {
 		var response *http.Response
+		var requestBody string
+
+		BeforeEach(func() {
+			requestBody = `{"name":"some-new-name"}`
+		})
 
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/rename", bytes.NewBufferString(`{"name":"some-new-name"}`))
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/rename", bytes.NewBufferString(requestBody))
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -1579,13 +1584,32 @@ var _ = Describe("Pipelines API", func() {
 					Expect(pipelineName).To(Equal("a-pipeline"))
 				})
 
-				It("returns 204", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
 				It("renames the pipeline to the name provided", func() {
 					Expect(dbPipeline.RenameCallCount()).To(Equal(1))
 					Expect(dbPipeline.RenameArgsForCall(0)).To(Equal("some-new-name"))
+				})
+
+				Context("when a warning occurs", func() {
+
+					BeforeEach(func() {
+						requestBody = `{"name":"_some-new-name"}`
+					})
+
+					It("returns a warning in the response body", func() {
+						Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							{
+								"warnings": [
+									{
+										"type": "invalid_identifier",
+										"message": "pipeline: '_some-new-name' is not a valid identifier: must start with a lowercase letter"
+									}
+								]
+							}`))
+					})
 				})
 
 				Context("when an error occurs on update", func() {

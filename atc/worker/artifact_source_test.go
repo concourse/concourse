@@ -59,7 +59,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 		})
 
 		JustBeforeEach(func() {
-			streamToErr = artifactSource.StreamTo(context.TODO(), testLogger, fakeDestination)
+			streamToErr = artifactSource.StreamTo(context.TODO(), fakeDestination)
 		})
 
 		Context("when ArtifactSource can successfully stream to ArtifactDestination", func() {
@@ -111,7 +111,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 		)
 
 		JustBeforeEach(func() {
-			streamFileReader, streamFileErr = artifactSource.StreamFile(context.TODO(), testLogger, "some-file")
+			streamFileReader, streamFileErr = artifactSource.StreamFile(context.TODO(), "some-file")
 		})
 
 		Context("when ArtifactSource can successfully stream a file out", func() {

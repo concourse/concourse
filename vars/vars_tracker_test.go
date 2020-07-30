@@ -22,15 +22,15 @@ var _ = Describe("vars_tracker", func() {
 					found bool
 					err   error
 				)
-				val, found, err = tracker.Get(VariableDefinition{Name: "k1"})
+				val, found, err = tracker.Get(VariableDefinition{Ref: VariableReference{Path: "k1"}})
 				Expect(found).To(BeTrue())
 				Expect(err).To(BeNil())
 				Expect(val).To(Equal("v1"))
 			})
 
 			It("fetched variables are tracked", func() {
-				tracker.Get(VariableDefinition{Name: "k1"})
-				tracker.Get(VariableDefinition{Name: "k2"})
+				tracker.Get(VariableDefinition{Ref: VariableReference{Path: "k1"}})
+				tracker.Get(VariableDefinition{Ref: VariableReference{Path: "k2"}})
 				mapit := NewMapCredVarsTrackerIterator()
 				tracker.IterateInterpolatedCreds(mapit)
 				Expect(mapit.Data["k1"]).To(Equal("v1"))
@@ -43,7 +43,11 @@ var _ = Describe("vars_tracker", func() {
 		Describe("List", func() {
 			It("returns list of names from multiple vars with duplicates", func() {
 				defs, err := tracker.List()
-				Expect(defs).To(ConsistOf([]VariableDefinition{{Name: "k1"}, {Name: "k2"}, {Name: "k3"}}))
+				Expect(defs).To(ConsistOf([]VariableDefinition{
+					{Ref: VariableReference{Path: "k1"}},
+					{Ref: VariableReference{Path: "k2"}},
+					{Ref: VariableReference{Path: "k3"}},
+				}))
 				Expect(err).ToNot(HaveOccurred())
 			})
 		})
@@ -60,14 +64,14 @@ var _ = Describe("vars_tracker", func() {
 						found bool
 						err   error
 					)
-					val, found, err = tracker.Get(VariableDefinition{Name: ".:foo"})
+					val, found, err = tracker.Get(VariableDefinition{Ref: VariableReference{Source: ".", Path: "foo"}})
 					Expect(err).To(BeNil())
 					Expect(found).To(BeTrue())
 					Expect(val).To(Equal("bar"))
 				})
 
 				It("fetched variables are tracked", func() {
-					tracker.Get(VariableDefinition{Name: ".:foo"})
+					tracker.Get(VariableDefinition{Ref: VariableReference{Source: ".", Path: "foo"}})
 					mapit := NewMapCredVarsTrackerIterator()
 					tracker.IterateInterpolatedCreds(mapit)
 					Expect(mapit.Data["foo"]).To(Equal("bar"))
@@ -86,14 +90,14 @@ var _ = Describe("vars_tracker", func() {
 					found bool
 					err   error
 				)
-				val, found, err = tracker.Get(VariableDefinition{Name: ".:foo"})
+				val, found, err = tracker.Get(VariableDefinition{Ref: VariableReference{Source: ".", Path: "foo"}})
 				Expect(err).To(BeNil())
 				Expect(found).To(BeTrue())
 				Expect(val).To(Equal("bar"))
 			})
 
 			It("fetched variables are not tracked", func() {
-				tracker.Get(VariableDefinition{Name: ".:foo"})
+				tracker.Get(VariableDefinition{Ref: VariableReference{Source: ".", Path: "foo"}})
 				mapit := NewMapCredVarsTrackerIterator()
 				tracker.IterateInterpolatedCreds(mapit)
 				Expect(mapit.Data["foo"]).To(BeNil())
@@ -114,15 +118,15 @@ var _ = Describe("vars_tracker", func() {
 					found bool
 					err   error
 				)
-				val, found, err = tracker.Get(VariableDefinition{Name: "k1"})
+				val, found, err = tracker.Get(VariableDefinition{Ref: VariableReference{Path: "k1"}})
 				Expect(found).To(BeTrue())
 				Expect(err).To(BeNil())
 				Expect(val).To(Equal("v1"))
 			})
 
 			It("fetched variables should not be tracked", func() {
-				tracker.Get(VariableDefinition{Name: "k1"})
-				tracker.Get(VariableDefinition{Name: "k2"})
+				tracker.Get(VariableDefinition{Ref: VariableReference{Path: "k1"}})
+				tracker.Get(VariableDefinition{Ref: VariableReference{Path: "k2"}})
 				mapit := NewMapCredVarsTrackerIterator()
 				tracker.IterateInterpolatedCreds(mapit)
 				Expect(mapit.Data["k1"]).To(BeNil())
@@ -134,7 +138,11 @@ var _ = Describe("vars_tracker", func() {
 		Describe("List", func() {
 			It("returns list of names from multiple vars with duplicates", func() {
 				defs, err := tracker.List()
-				Expect(defs).To(ConsistOf([]VariableDefinition{{Name: "k1"}, {Name: "k2"}, {Name: "k3"}}))
+				Expect(defs).To(ConsistOf([]VariableDefinition{
+					{Ref: VariableReference{Path: "k1"}},
+					{Ref: VariableReference{Path: "k2"}},
+					{Ref: VariableReference{Path: "k3"}},
+				}))
 				Expect(err).ToNot(HaveOccurred())
 			})
 		})

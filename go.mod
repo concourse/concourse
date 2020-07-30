@@ -20,9 +20,9 @@ require (
 	github.com/cenkalti/backoff v2.1.1+incompatible
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
-	github.com/concourse/baggageclaim v1.6.6
+	github.com/concourse/baggageclaim v1.7.0
 	github.com/concourse/dex v0.0.0-20200417202922-dcbe94f28c88
-	github.com/concourse/flag v1.0.0
+	github.com/concourse/flag v1.1.0
 	github.com/concourse/go-archive v1.0.1
 	github.com/concourse/retryhttp v1.0.2
 	github.com/containerd/cgroups v0.0.0-20191220161829-06e718085901 // indirect
@@ -32,6 +32,7 @@ require (
 	github.com/containerd/go-cni v0.0.0-20200107172653-c154a49e2c75
 	github.com/containerd/ttrpc v0.0.0-20191028202541-4f1b8fe65a5c // indirect
 	github.com/containerd/typeurl v0.0.0-20190911142611-5eb25027c9fd
+	github.com/coreos/go-iptables v0.4.5
 	github.com/coreos/go-oidc v2.0.0+incompatible // indirect
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
 	github.com/creack/pty v1.1.9 // indirect

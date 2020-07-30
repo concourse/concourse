@@ -19,6 +19,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/atc/testhelpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -37,6 +38,7 @@ var _ = Describe("Fly CLI", func() {
 	var uploadingBits <-chan struct{}
 
 	var expectedPlan atc.Plan
+	var taskPlan atc.Plan
 	var workerArtifact = atc.WorkerArtifact{
 		ID:   125,
 		Name: "some-dir",
@@ -86,6 +88,32 @@ run:
 
 		planFactory := atc.NewPlanFactory(0)
 
+		taskPlan = planFactory.NewPlan(atc.TaskPlan{
+			Name: "one-off",
+			Config: &atc.TaskConfig{
+				Platform: "some-platform",
+				ImageResource: &atc.ImageResource{
+					Type: "registry-image",
+					Source: atc.Source{
+						"repository": "ubuntu",
+					},
+				},
+				Inputs: []atc.TaskInputConfig{
+					{Name: "fixture"},
+				},
+				Params: map[string]string{
+					"FOO":   "bar",
+					"BAZ":   "buzz",
+					"X":     "1",
+					"EMPTY": "",
+				},
+				Run: atc.TaskRunConfig{
+					Path: "find",
+					Args: []string{"."},
+				},
+			},
+		})
+
 		expectedPlan = planFactory.NewPlan(atc.DoPlan{
 			planFactory.NewPlan(atc.AggregatePlan{
 				planFactory.NewPlan(atc.ArtifactInputPlan{
@@ -93,31 +121,7 @@ run:
 					Name:       filepath.Base(buildDir),
 				}),
 			}),
-			planFactory.NewPlan(atc.TaskPlan{
-				Name: "one-off",
-				Config: &atc.TaskConfig{
-					Platform: "some-platform",
-					ImageResource: &atc.ImageResource{
-						Type: "registry-image",
-						Source: atc.Source{
-							"repository": "ubuntu",
-						},
-					},
-					Inputs: []atc.TaskInputConfig{
-						{Name: "fixture"},
-					},
-					Params: map[string]string{
-						"FOO":   "bar",
-						"BAZ":   "buzz",
-						"X":     "1",
-						"EMPTY": "",
-					},
-					Run: atc.TaskRunConfig{
-						Path: "find",
-						Args: []string{"."},
-					},
-				},
-			}),
+			taskPlan,
 		})
 	})
 
@@ -243,9 +247,40 @@ run:
 
 	Context("when there is a pipeline job with the same input", func() {
 		BeforeEach(func() {
+			taskPlan.Task.VersionedResourceTypes = atc.VersionedResourceTypes{
+				atc.VersionedResourceType{
+					ResourceType: atc.ResourceType{
+						Name:   "resource-type",
+						Type:   "s3",
+						Source: atc.Source{},
+					},
+				},
+			}
+
+			planFactory := atc.NewPlanFactory(0)
+
+			expectedPlan = planFactory.NewPlan(atc.DoPlan{
+				planFactory.NewPlan(atc.AggregatePlan{
+					planFactory.NewPlan(atc.GetPlan{
+						Name: "fixture",
+						VersionedResourceTypes: atc.VersionedResourceTypes{
+							atc.VersionedResourceType{
+								ResourceType: atc.ResourceType{
+									Name:   "resource-type",
+									Type:   "s3",
+									Source: atc.Source{},
+								},
+							},
+						},
+					}),
+				}),
+				taskPlan,
+			})
+
 			atcServer.RouteToHandler("POST", "/api/v1/teams/main/pipelines/some-pipeline/builds",
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/some-pipeline/builds"),
+					testhelpers.VerifyPlan(expectedPlan),
 					func(w http.ResponseWriter, r *http.Request) {
 						http.SetCookie(w, &http.Cookie{
 							Name:    "Some-Cookie",
@@ -261,7 +296,15 @@ run:
 				ghttp.RespondWithJSONEncoded(200, []atc.BuildInput{atc.BuildInput{Name: "fixture"}}),
 			)
 			atcServer.RouteToHandler("GET", "/api/v1/teams/main/pipelines/some-pipeline/resource-types",
-				ghttp.RespondWithJSONEncoded(200, atc.VersionedResourceTypes{}),
+				ghttp.RespondWithJSONEncoded(200, atc.VersionedResourceTypes{
+					atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name:   "resource-type",
+							Type:   "s3",
+							Source: atc.Source{},
+						},
+					},
+				}),
 			)
 		})
 

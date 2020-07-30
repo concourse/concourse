@@ -11,19 +11,6 @@ import (
 )
 
 type FakeImageFetchingDelegate struct {
-	ImageSourceRedactionStub        func(atc.Source) (atc.Source, error)
-	imageSourceRedactionMutex       sync.RWMutex
-	imageSourceRedactionArgsForCall []struct {
-		arg1 atc.Source
-	}
-	imageSourceRedactionReturns struct {
-		result1 atc.Source
-		result2 error
-	}
-	imageSourceRedactionReturnsOnCall map[int]struct {
-		result1 atc.Source
-		result2 error
-	}
 	ImageVersionDeterminedStub        func(db.UsedResourceCache) error
 	imageVersionDeterminedMutex       sync.RWMutex
 	imageVersionDeterminedArgsForCall []struct {
@@ -34,6 +21,19 @@ type FakeImageFetchingDelegate struct {
 	}
 	imageVersionDeterminedReturnsOnCall map[int]struct {
 		result1 error
+	}
+	RedactImageSourceStub        func(atc.Source) (atc.Source, error)
+	redactImageSourceMutex       sync.RWMutex
+	redactImageSourceArgsForCall []struct {
+		arg1 atc.Source
+	}
+	redactImageSourceReturns struct {
+		result1 atc.Source
+		result2 error
+	}
+	redactImageSourceReturnsOnCall map[int]struct {
+		result1 atc.Source
+		result2 error
 	}
 	StderrStub        func() io.Writer
 	stderrMutex       sync.RWMutex
@@ -57,69 +57,6 @@ type FakeImageFetchingDelegate struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeImageFetchingDelegate) RedactImageSource(arg1 atc.Source) (atc.Source, error) {
-	fake.imageSourceRedactionMutex.Lock()
-	ret, specificReturn := fake.imageSourceRedactionReturnsOnCall[len(fake.imageSourceRedactionArgsForCall)]
-	fake.imageSourceRedactionArgsForCall = append(fake.imageSourceRedactionArgsForCall, struct {
-		arg1 atc.Source
-	}{arg1})
-	fake.recordInvocation("RedactImageSource", []interface{}{arg1})
-	fake.imageSourceRedactionMutex.Unlock()
-	if fake.ImageSourceRedactionStub != nil {
-		return fake.ImageSourceRedactionStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.imageSourceRedactionReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeImageFetchingDelegate) ImageSourceRedactionCallCount() int {
-	fake.imageSourceRedactionMutex.RLock()
-	defer fake.imageSourceRedactionMutex.RUnlock()
-	return len(fake.imageSourceRedactionArgsForCall)
-}
-
-func (fake *FakeImageFetchingDelegate) ImageSourceRedactionCalls(stub func(atc.Source) (atc.Source, error)) {
-	fake.imageSourceRedactionMutex.Lock()
-	defer fake.imageSourceRedactionMutex.Unlock()
-	fake.ImageSourceRedactionStub = stub
-}
-
-func (fake *FakeImageFetchingDelegate) ImageSourceRedactionArgsForCall(i int) atc.Source {
-	fake.imageSourceRedactionMutex.RLock()
-	defer fake.imageSourceRedactionMutex.RUnlock()
-	argsForCall := fake.imageSourceRedactionArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeImageFetchingDelegate) ImageSourceRedactionReturns(result1 atc.Source, result2 error) {
-	fake.imageSourceRedactionMutex.Lock()
-	defer fake.imageSourceRedactionMutex.Unlock()
-	fake.ImageSourceRedactionStub = nil
-	fake.imageSourceRedactionReturns = struct {
-		result1 atc.Source
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeImageFetchingDelegate) ImageSourceRedactionReturnsOnCall(i int, result1 atc.Source, result2 error) {
-	fake.imageSourceRedactionMutex.Lock()
-	defer fake.imageSourceRedactionMutex.Unlock()
-	fake.ImageSourceRedactionStub = nil
-	if fake.imageSourceRedactionReturnsOnCall == nil {
-		fake.imageSourceRedactionReturnsOnCall = make(map[int]struct {
-			result1 atc.Source
-			result2 error
-		})
-	}
-	fake.imageSourceRedactionReturnsOnCall[i] = struct {
-		result1 atc.Source
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeImageFetchingDelegate) ImageVersionDetermined(arg1 db.UsedResourceCache) error {
@@ -180,6 +117,69 @@ func (fake *FakeImageFetchingDelegate) ImageVersionDeterminedReturnsOnCall(i int
 	fake.imageVersionDeterminedReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeImageFetchingDelegate) RedactImageSource(arg1 atc.Source) (atc.Source, error) {
+	fake.redactImageSourceMutex.Lock()
+	ret, specificReturn := fake.redactImageSourceReturnsOnCall[len(fake.redactImageSourceArgsForCall)]
+	fake.redactImageSourceArgsForCall = append(fake.redactImageSourceArgsForCall, struct {
+		arg1 atc.Source
+	}{arg1})
+	fake.recordInvocation("RedactImageSource", []interface{}{arg1})
+	fake.redactImageSourceMutex.Unlock()
+	if fake.RedactImageSourceStub != nil {
+		return fake.RedactImageSourceStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.redactImageSourceReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeImageFetchingDelegate) RedactImageSourceCallCount() int {
+	fake.redactImageSourceMutex.RLock()
+	defer fake.redactImageSourceMutex.RUnlock()
+	return len(fake.redactImageSourceArgsForCall)
+}
+
+func (fake *FakeImageFetchingDelegate) RedactImageSourceCalls(stub func(atc.Source) (atc.Source, error)) {
+	fake.redactImageSourceMutex.Lock()
+	defer fake.redactImageSourceMutex.Unlock()
+	fake.RedactImageSourceStub = stub
+}
+
+func (fake *FakeImageFetchingDelegate) RedactImageSourceArgsForCall(i int) atc.Source {
+	fake.redactImageSourceMutex.RLock()
+	defer fake.redactImageSourceMutex.RUnlock()
+	argsForCall := fake.redactImageSourceArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeImageFetchingDelegate) RedactImageSourceReturns(result1 atc.Source, result2 error) {
+	fake.redactImageSourceMutex.Lock()
+	defer fake.redactImageSourceMutex.Unlock()
+	fake.RedactImageSourceStub = nil
+	fake.redactImageSourceReturns = struct {
+		result1 atc.Source
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeImageFetchingDelegate) RedactImageSourceReturnsOnCall(i int, result1 atc.Source, result2 error) {
+	fake.redactImageSourceMutex.Lock()
+	defer fake.redactImageSourceMutex.Unlock()
+	fake.RedactImageSourceStub = nil
+	if fake.redactImageSourceReturnsOnCall == nil {
+		fake.redactImageSourceReturnsOnCall = make(map[int]struct {
+			result1 atc.Source
+			result2 error
+		})
+	}
+	fake.redactImageSourceReturnsOnCall[i] = struct {
+		result1 atc.Source
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeImageFetchingDelegate) Stderr() io.Writer {
@@ -289,10 +289,10 @@ func (fake *FakeImageFetchingDelegate) StdoutReturnsOnCall(i int, result1 io.Wri
 func (fake *FakeImageFetchingDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.imageSourceRedactionMutex.RLock()
-	defer fake.imageSourceRedactionMutex.RUnlock()
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
+	fake.redactImageSourceMutex.RLock()
+	defer fake.redactImageSourceMutex.RUnlock()
 	fake.stderrMutex.RLock()
 	defer fake.stderrMutex.RUnlock()
 	fake.stdoutMutex.RLock()

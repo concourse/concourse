@@ -2,6 +2,7 @@ package concourse_test
 
 import (
 	"errors"
+	"github.com/concourse/concourse/atc/api/teamserver"
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
@@ -100,6 +101,7 @@ var _ = Describe("ATC Handler Teams", func() {
 	Describe("CreateOrUpdate", func() {
 		var expectedURL = "/api/v1/teams/team venture"
 		var expectedTeam, desiredTeam atc.Team
+		var expectedResponse teamserver.SetTeamResponse
 
 		BeforeEach(func() {
 			desiredTeam = atc.Team{
@@ -109,6 +111,7 @@ var _ = Describe("ATC Handler Teams", func() {
 				ID:   1,
 				Name: "team venture",
 			}
+			expectedResponse.Team = expectedTeam
 
 			team = client.Team("team venture")
 		})
@@ -119,13 +122,13 @@ var _ = Describe("ATC Handler Teams", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", expectedURL),
 						ghttp.VerifyJSONRepresenting(desiredTeam),
-						ghttp.RespondWithJSONEncoded(http.StatusCreated, expectedTeam),
+						ghttp.RespondWithJSONEncoded(http.StatusCreated, expectedResponse),
 					),
 				)
 			})
 
 			It("returns back the team", func() {
-				team, _, _, err := team.CreateOrUpdate(desiredTeam)
+				team, _, _, _, err := team.CreateOrUpdate(desiredTeam)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(team).To(Equal(expectedTeam))
 			})
@@ -137,13 +140,13 @@ var _ = Describe("ATC Handler Teams", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", expectedURL),
 						ghttp.VerifyJSONRepresenting(desiredTeam),
-						ghttp.RespondWithJSONEncoded(http.StatusCreated, expectedTeam),
+						ghttp.RespondWithJSONEncoded(http.StatusCreated, expectedResponse),
 					),
 				)
 			})
 
 			It("returns back true for created, and false for updated", func() {
-				_, found, updated, err := team.CreateOrUpdate(desiredTeam)
+				_, found, updated, _, err := team.CreateOrUpdate(desiredTeam)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(updated).To(BeFalse())
@@ -151,21 +154,38 @@ var _ = Describe("ATC Handler Teams", func() {
 		})
 
 		Context("when passed a team that exists", func() {
-			BeforeEach(func() {
+			JustBeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", expectedURL),
 						ghttp.VerifyJSONRepresenting(desiredTeam),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedTeam),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedResponse),
 					),
 				)
 			})
 
 			It("returns back false for created, and true for updated", func() {
-				_, found, updated, err := team.CreateOrUpdate(desiredTeam)
+				_, found, updated, _, err := team.CreateOrUpdate(desiredTeam)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 				Expect(updated).To(BeTrue())
+			})
+
+			Context("when the team has an invalid identifier", func() {
+				BeforeEach(func() {
+					expectedResponse.Warnings = []atc.ConfigWarning{
+						{Type: "invalid_identifier",
+							Message: "team: 'new venture' is not a valid identifier",
+						},
+					}
+				})
+
+				It("returns back false for created, and true for updated", func() {
+					_, _, _, warnings, err := team.CreateOrUpdate(desiredTeam)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(warnings).To(HaveLen(1))
+					Expect(warnings[0].Message).To(ContainSubstring("team: 'new venture' is not a valid identifier"))
+				})
 			})
 		})
 	})

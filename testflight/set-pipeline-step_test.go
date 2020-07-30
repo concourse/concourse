@@ -1,6 +1,7 @@
 package testflight_test
 
 import (
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -129,6 +130,25 @@ var _ = Describe("set-pipeline Step", func() {
 				Expect(execS).To(gexec.Exit(1))
 				Expect(execS.Err).To(gbytes.Say("pipeline not found"))
 			})
+		})
+	})
+
+	Context("set self", func() {
+		BeforeEach(func() {
+			currentFlyTarget = testflightFlyTarget
+			currentTeamName = ""
+			createdPipelineName = "self"
+		})
+
+		It("set the other pipeline", func() {
+			By("set-pipeline step should succeed")
+			execS := fly("trigger-job", "-w", "-j", pipelineName+"/sp")
+			Expect(execS.Out).To(gbytes.Say(fmt.Sprintf("setting pipeline: %s", pipelineName)))
+			Expect(execS.Out).To(gbytes.Say("done"))
+
+			By("should trigger the pipeline job successfully")
+			execS = fly("trigger-job", "-w", "-j", pipelineName+"/normal-job")
+			Expect(execS.Out).To(gbytes.Say("hello world"))
 		})
 	})
 })

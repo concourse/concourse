@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/concourse/concourse/worker/runtime/iptables"
 	"github.com/containerd/containerd"
 	"github.com/containerd/go-cni"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -41,6 +42,8 @@ const (
 	// binaries in.
 	//
 	binariesDir = "/usr/local/concourse/bin"
+
+	ipTablesAdminChainName = "CONCOURSE-OPERATOR"
 )
 
 var (
@@ -79,13 +82,14 @@ func (c CNINetworkConfig) ToJSON() string {
       }
     },
     {
-      "type": "firewall"
+      "type": "firewall",
+      "iptablesAdminChainName": "%s"
     }
   ]
 }`
 
 	return fmt.Sprintf(networksConfListFormat,
-		c.NetworkName, c.BridgeName, c.Subnet,
+		c.NetworkName, c.BridgeName, c.Subnet, ipTablesAdminChainName,
 	)
 }
 
@@ -139,12 +143,30 @@ func WithCNIFileStore(f FileStore) CNINetworkOpt {
 	}
 }
 
+// WithRestrictedNetworks defines the network ranges that containers will be restricted
+// from accessing.
+func WithRestrictedNetworks(restrictedNetworks []string) CNINetworkOpt {
+	return func(n *cniNetwork) {
+		n.restrictedNetworks = restrictedNetworks
+	}
+}
+
+// WithIptables allows for a custom implementation of the iptables.Iptables interface
+// to be provided.
+func WithIptables(ipt iptables.Iptables) CNINetworkOpt {
+	return func(n *cniNetwork) {
+		n.ipt = ipt
+	}
+}
+
 type cniNetwork struct {
-	client      cni.CNI
-	store       FileStore
-	config      CNINetworkConfig
-	nameServers []string
-	binariesDir string
+	client             cni.CNI
+	store              FileStore
+	config             CNINetworkConfig
+	nameServers        []string
+	binariesDir        string
+	restrictedNetworks []string
+	ipt                iptables.Iptables
 }
 
 var _ Network = (*cniNetwork)(nil)
@@ -178,6 +200,14 @@ func NewCNINetwork(opts ...CNINetworkOpt) (*cniNetwork, error) {
 		)
 		if err != nil {
 			return nil, fmt.Errorf("cni configuration loading: %w", err)
+		}
+	}
+
+	if n.ipt == nil {
+		n.ipt, err = iptables.New()
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialized iptables")
 		}
 	}
 
@@ -218,6 +248,29 @@ func (n cniNetwork) SetupMounts(handle string) ([]specs.Mount, error) {
 			Options:     []string{"bind", "rw"},
 		},
 	}, nil
+}
+
+func (n cniNetwork) SetupRestrictedNetworks() error {
+	const tableName = "filter"
+	err := n.ipt.CreateChainOrFlushIfExists(tableName, ipTablesAdminChainName)
+	if err != nil {
+		return fmt.Errorf("create chain or flush if exists failed: %w", err)
+	}
+
+	// Optimization that allows packets of ESTABLISHED and RELATED connections to go through without further rule matching
+	err = n.ipt.AppendRule(tableName, ipTablesAdminChainName, "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT")
+	if err != nil {
+		return fmt.Errorf("appending accept rule for RELATED & ESTABLISHED connections failed: %w", err)
+	}
+
+	for _, restrictedNetwork := range n.restrictedNetworks {
+		// Create REJECT rule in admin chain
+		err = n.ipt.AppendRule(tableName, ipTablesAdminChainName, "-d", restrictedNetwork, "-j", "REJECT")
+		if err != nil {
+			return fmt.Errorf("appending reject rule for restricted network %s failed: %w", restrictedNetwork, err)
+		}
+	}
+	return nil
 }
 
 func (n cniNetwork) generateResolvConfContents() []byte {

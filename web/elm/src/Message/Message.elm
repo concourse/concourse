@@ -70,6 +70,7 @@ type DomID
     | WelcomeCardCliIcon Cli.Cli
     | CopyTokenButton
     | SendTokenButton
+    | CopyTokenInput
     | JobGroup Int
     | StepTab String Int
     | StepHeader String

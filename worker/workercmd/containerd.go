@@ -19,9 +19,9 @@ import (
 	"github.com/concourse/concourse/worker/runtime/libcontainerd"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
-	"github.com/tedsuo/ifrit/restart"
 )
 
+// TODO This constructor could use refactoring using the functional options pattern.
 func containerdGardenServerRunner(
 	logger lager.Logger,
 	bindAddr,
@@ -29,6 +29,8 @@ func containerdGardenServerRunner(
 	requestTimeout time.Duration,
 	dnsServers []string,
 	networkPool string,
+	maxContainers int,
+	restrictedNetworks []string,
 ) (ifrit.Runner, error) {
 	const (
 		graceTime = 0
@@ -40,6 +42,10 @@ func containerdGardenServerRunner(
 
 	if len(dnsServers) > 0 {
 		networkOpts = append(networkOpts, runtime.WithNameServers(dnsServers))
+	}
+
+	if len(restrictedNetworks) > 0 {
+		networkOpts = append(networkOpts, runtime.WithRestrictedNetworks(restrictedNetworks))
 	}
 
 	if networkPool != "" {
@@ -56,7 +62,11 @@ func containerdGardenServerRunner(
 		return nil, fmt.Errorf("new cni network: %w", err)
 	}
 
-	backendOpts = append(backendOpts, runtime.WithNetwork(cniNetwork))
+	backendOpts = append(backendOpts,
+		runtime.WithNetwork(cniNetwork),
+		runtime.WithRequestTimeout(requestTimeout),
+		runtime.WithMaxContainers(maxContainers),
+	)
 
 	gardenBackend, err := runtime.NewGardenBackend(
 		libcontainerd.New(containerdAddr, namespace, requestTimeout),
@@ -72,14 +82,7 @@ func containerdGardenServerRunner(
 		logger,
 	)
 
-	runner := gardenServerRunner{logger, server}
-
-	return restart.Restarter{
-		Runner: runner,
-		Load: func(prevRunner ifrit.Runner, prevErr error) ifrit.Runner {
-			return runner
-		},
-	}, nil
+	return gardenServerRunner{logger, server}, nil
 }
 
 // writeDefaultContainerdConfig writes a default containerd configuration file
@@ -177,12 +180,14 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 		cmd.Garden.RequestTimeout,
 		dnsServers,
 		cmd.ContainerNetworkPool,
+		cmd.Garden.MaxContainers,
+		cmd.Garden.DenyNetworks,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("containerd garden server runner: %w", err)
 	}
 
-	members = append(members, grouper.Members{
+	members = append(grouper.Members{
 		{
 			Name:   "containerd",
 			Runner: CmdRunner{command},
@@ -191,7 +196,8 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 			Name:   "containerd-garden-backend",
 			Runner: gardenServerRunner,
 		},
-	}...)
+	}, members...)
 
-	return grouper.NewParallel(os.Interrupt, members), nil
+	// Using the Ordered strategy to ensure containerd is up before the garden server is started
+	return grouper.NewOrdered(os.Interrupt, members), nil
 }

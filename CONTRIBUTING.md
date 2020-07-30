@@ -783,4 +783,3 @@ pushed commits without the signature.
 [helm-charts]: https://github.com/helm/charts/blob/master/README.md
 [fav-commit]: https://dhwthompson.com/2019/my-favourite-git-commit
 [sb-changes]: https://medium.com/@kentbeck_7670/bs-changes-e574bc396aaa
-

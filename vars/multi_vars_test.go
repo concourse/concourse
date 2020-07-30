@@ -23,7 +23,7 @@ var _ = Describe("MultiVariables", func() {
 			vars2 := StaticVariables{"key2": "val"}
 			vars := NewMultiVars([]Variables{vars1, vars2})
 
-			val, found, err := vars.Get(VariableDefinition{Name: "key3"})
+			val, found, err := vars.Get(VariableDefinition{Ref: VariableReference{Path: "key3"}})
 			Expect(val).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).ToNot(HaveOccurred())
@@ -34,7 +34,7 @@ var _ = Describe("MultiVariables", func() {
 			vars2 := &FakeVariables{GetErr: errors.New("fake-err")}
 			vars := NewMultiVars([]Variables{vars1, vars2})
 
-			val, found, err := vars.Get(VariableDefinition{Name: "key3"})
+			val, found, err := vars.Get(VariableDefinition{Ref: VariableReference{Path: "key3"}})
 			Expect(val).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).To(Equal(errors.New("fake-err")))
@@ -46,7 +46,7 @@ var _ = Describe("MultiVariables", func() {
 			vars3 := &FakeVariables{GetErr: errors.New("fake-err")}
 			vars := NewMultiVars([]Variables{vars1, vars2, vars3})
 
-			val, found, err := vars.Get(VariableDefinition{Name: "key2"})
+			val, found, err := vars.Get(VariableDefinition{Ref: VariableReference{Path: "key2"}})
 			Expect(val).To(Equal("val"))
 			Expect(found).To(BeTrue())
 			Expect(err).ToNot(HaveOccurred())
@@ -61,12 +61,12 @@ var _ = Describe("MultiVariables", func() {
 			vars2 := StaticVariables{"key2": "val"}
 			vars := NewMultiVars([]Variables{vars1, vars2})
 
-			val, found, err := vars.Get(VariableDefinition{Name: "key2", Type: "type", Options: "opts"})
+			val, found, err := vars.Get(VariableDefinition{Ref: VariableReference{Path: "key2"}, Type: "type", Options: "opts"})
 			Expect(val).To(Equal("val"))
 			Expect(found).To(BeTrue())
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(vars1.GetVarDef).To(Equal(VariableDefinition{Name: "key2", Type: "type", Options: "opts"}))
+			Expect(vars1.GetVarDef).To(Equal(VariableDefinition{Ref: VariableReference{Path: "key2"}, Type: "type", Options: "opts"}))
 		})
 	})
 
@@ -79,7 +79,12 @@ var _ = Describe("MultiVariables", func() {
 			vars := NewMultiVars([]Variables{StaticVariables{"a": "1", "b": "2"}, StaticVariables{"b": "3", "c": "4"}})
 
 			defs, err = vars.List()
-			Expect(defs).To(ConsistOf([]VariableDefinition{{Name: "a"}, {Name: "b"}, {Name: "b"}, {Name: "c"}}))
+			Expect(defs).To(ConsistOf([]VariableDefinition{
+				{Ref: VariableReference{Path: "a"}},
+				{Ref: VariableReference{Path: "b"}},
+				{Ref: VariableReference{Path: "b"}},
+				{Ref: VariableReference{Path: "c"}},
+			}))
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})

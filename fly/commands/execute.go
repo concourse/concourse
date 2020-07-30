@@ -56,7 +56,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 
 	planFactory := atc.NewPlanFactory(time.Now().Unix())
 
-	inputs, inputMappings, imageResource, err := executehelpers.DetermineInputs(
+	inputs, inputMappings, imageResource, resourceTypes, err := executehelpers.DetermineInputs(
 		planFactory,
 		target.Team(),
 		taskConfig.Inputs,
@@ -90,6 +90,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		command.Privileged,
 		inputs,
 		inputMappings,
+		resourceTypes,
 		outputs,
 		taskConfig,
 		command.Tags,

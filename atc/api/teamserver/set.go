@@ -11,6 +11,12 @@ import (
 	"github.com/concourse/concourse/atc/api/present"
 )
 
+type SetTeamResponse struct {
+	Errors   []string            `json:"errors,omitempty"`
+	Warnings []atc.ConfigWarning `json:"warnings,omitempty"`
+	Team     atc.Team            `json:"team"`
+}
+
 func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	hLog := s.logger.Session("set-team")
 
@@ -48,6 +54,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	response := SetTeamResponse{}
 	if found {
 		hLog.Debug("updating-credentials")
 		err = team.UpdateProviderAuth(atcTeam.Auth)
@@ -61,6 +68,11 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	} else if acc.IsAdmin() {
 		hLog.Debug("creating team")
+
+		warning := atc.ValidateIdentifier(atcTeam.Name, "team")
+		if warning != nil {
+			response.Warnings = append(response.Warnings, *warning)
+		}
 
 		team, err = s.teamFactory.CreateTeam(atcTeam)
 		if err != nil {
@@ -82,7 +94,9 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = json.NewEncoder(w).Encode(present.Team(team))
+	response.Team = present.Team(team)
+
+	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
 		hLog.Error("failed-to-encode-team", err)
 		w.WriteHeader(http.StatusInternalServerError)

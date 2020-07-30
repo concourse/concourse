@@ -25,25 +25,29 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 	warnings := []ConfigWarning{}
 	errorMessages := []string{}
 
-	groupsErr := validateGroups(c)
+	groupsWarnings, groupsErr := validateGroups(c)
 	if groupsErr != nil {
 		errorMessages = append(errorMessages, formatErr("groups", groupsErr))
 	}
+	warnings = append(warnings, groupsWarnings...)
 
-	resourcesErr := validateResources(c)
+	resourcesWarnings, resourcesErr := validateResources(c)
 	if resourcesErr != nil {
 		errorMessages = append(errorMessages, formatErr("resources", resourcesErr))
 	}
+	warnings = append(warnings, resourcesWarnings...)
 
-	resourceTypesErr := validateResourceTypes(c)
+	resourceTypesWarnings, resourceTypesErr := validateResourceTypes(c)
 	if resourceTypesErr != nil {
 		errorMessages = append(errorMessages, formatErr("resource types", resourceTypesErr))
 	}
+	warnings = append(warnings, resourceTypesWarnings...)
 
-	varSourcesErr := validateVarSources(c)
+	varSourcesWarnings, varSourcesErr := validateVarSources(c)
 	if varSourcesErr != nil {
 		errorMessages = append(errorMessages, formatErr("variable sources", varSourcesErr))
 	}
+	warnings = append(warnings, varSourcesWarnings...)
 
 	jobWarnings, jobsErr := validateJobs(c)
 	if jobsErr != nil {
@@ -54,7 +58,8 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 	return warnings, errorMessages
 }
 
-func validateGroups(c Config) error {
+func validateGroups(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
 	var errorMessages []string
 
 	jobsGrouped := make(map[string]bool)
@@ -64,7 +69,18 @@ func validateGroups(c Config) error {
 		jobsGrouped[job.Name] = false
 	}
 
-	for _, group := range c.Groups {
+	for i, group := range c.Groups {
+		var identifier string
+		if group.Name == "" {
+			identifier = fmt.Sprintf("groups[%d]", i)
+		} else {
+			identifier = fmt.Sprintf("groups.%s", group.Name)
+		}
+
+		warning := ValidateIdentifier(group.Name, identifier)
+		if warning != nil {
+			warnings = append(warnings, *warning)
+		}
 
 		if val, ok := groupNames[group.Name]; ok {
 			groupNames[group.Name] = val + 1
@@ -107,10 +123,11 @@ func validateGroups(c Config) error {
 		}
 	}
 
-	return compositeErr(errorMessages)
+	return warnings, compositeErr(errorMessages)
 }
 
-func validateResources(c Config) error {
+func validateResources(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
 	var errorMessages []string
 
 	names := map[string]int{}
@@ -121,6 +138,11 @@ func validateResources(c Config) error {
 			identifier = fmt.Sprintf("resources[%d]", i)
 		} else {
 			identifier = fmt.Sprintf("resources.%s", resource.Name)
+		}
+
+		warning := ValidateIdentifier(resource.Name, identifier)
+		if warning != nil {
+			warnings = append(warnings, *warning)
 		}
 
 		if other, exists := names[resource.Name]; exists {
@@ -143,10 +165,11 @@ func validateResources(c Config) error {
 
 	errorMessages = append(errorMessages, validateResourcesUnused(c)...)
 
-	return compositeErr(errorMessages)
+	return warnings, compositeErr(errorMessages)
 }
 
-func validateResourceTypes(c Config) error {
+func validateResourceTypes(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
 	var errorMessages []string
 
 	names := map[string]int{}
@@ -157,6 +180,11 @@ func validateResourceTypes(c Config) error {
 			identifier = fmt.Sprintf("resource_types[%d]", i)
 		} else {
 			identifier = fmt.Sprintf("resource_types.%s", resourceType.Name)
+		}
+
+		warning := ValidateIdentifier(resourceType.Name, identifier)
+		if warning != nil {
+			warnings = append(warnings, *warning)
 		}
 
 		if other, exists := names[resourceType.Name]; exists {
@@ -177,7 +205,7 @@ func validateResourceTypes(c Config) error {
 		}
 	}
 
-	return compositeErr(errorMessages)
+	return warnings, compositeErr(errorMessages)
 }
 
 func validateResourcesUnused(c Config) []string {
@@ -225,6 +253,11 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 			identifier = fmt.Sprintf("jobs[%d]", i)
 		} else {
 			identifier = fmt.Sprintf("jobs.%s", job.Name)
+		}
+
+		warning := ValidateIdentifier(job.Name, identifier)
+		if warning != nil {
+			warnings = append(warnings, *warning)
 		}
 
 		if other, exists := names[job.Name]; exists {
@@ -279,18 +312,13 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 			}
 		}
 
-		stepConfig := job.StepConfig()
+		step := job.Step()
 
 		validator := atc.NewStepValidator(c, []string{identifier, ".plan"})
 
-		_ = stepConfig.Visit(validator)
+		_ = validator.Validate(step)
 
-		for _, warning := range validator.Warnings {
-			warnings = append(warnings, ConfigWarning{
-				Type:    "pipeline",
-				Message: warning,
-			})
-		}
+		warnings = append(warnings, validator.Warnings...)
 
 		errorMessages = append(errorMessages, validator.Errors...)
 	}
@@ -306,41 +334,55 @@ func compositeErr(errorMessages []string) error {
 	return errors.New(strings.Join(errorMessages, "\n"))
 }
 
-func validateVarSources(c Config) error {
+func validateVarSources(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
+	var errorMessages []string
+
 	names := map[string]interface{}{}
 
-	for _, cm := range c.VarSources {
-		factory := creds.ManagerFactories()[cm.Type]
-		if factory == nil {
-			return fmt.Errorf("unknown credential manager type: %s", cm.Type)
+	for i, cm := range c.VarSources {
+		var identifier string
+		if cm.Name == "" {
+			identifier = fmt.Sprintf("var_sources[%d]", i)
+		} else {
+			identifier = fmt.Sprintf("var_sources.%s", cm.Name)
 		}
 
-		// TODO: this check should eventually be removed once all credential managers
-		// are supported in pipeline. - @evanchaoli
-		switch cm.Type {
-		case "vault", "dummy", "ssm":
-		default:
-			return fmt.Errorf("credential manager type %s is not supported in pipeline yet", cm.Type)
+		warning := ValidateIdentifier(cm.Name, identifier)
+		if warning != nil {
+			warnings = append(warnings, *warning)
 		}
 
-		if _, ok := names[cm.Name]; ok {
-			return fmt.Errorf("duplicate var_source name: %s", cm.Name)
-		}
-		names[cm.Name] = 0
+		if factory, exists := creds.ManagerFactories()[cm.Type]; exists {
+			// TODO: this check should eventually be removed once all credential managers
+			// are supported in pipeline. - @evanchaoli
+			switch cm.Type {
+			case "vault", "dummy", "ssm":
+			default:
+				errorMessages = append(errorMessages, fmt.Sprintf("credential manager type %s is not supported in pipeline yet", cm.Type))
+			}
 
-		manager, err := factory.NewInstance(cm.Config)
-		if err != nil {
-			return fmt.Errorf("failed to create credential manager %s: %s", cm.Name, err.Error())
-		}
-		err = manager.Validate()
-		if err != nil {
-			return fmt.Errorf("credential manager %s is invalid: %s", cm.Name, err.Error())
+			if _, ok := names[cm.Name]; ok {
+				errorMessages = append(errorMessages, fmt.Sprintf("duplicate var_source name: %s", cm.Name))
+			}
+			names[cm.Name] = 0
+
+			if manager, err := factory.NewInstance(cm.Config); err == nil {
+				err = manager.Validate()
+				if err != nil {
+					errorMessages = append(errorMessages, fmt.Sprintf("credential manager %s is invalid: %s", cm.Name, err.Error()))
+				}
+			} else {
+				errorMessages = append(errorMessages, fmt.Sprintf("failed to create credential manager %s: %s", cm.Name, err.Error()))
+			}
+		} else {
+			errorMessages = append(errorMessages, fmt.Sprintf("unknown credential manager type: %s", cm.Type))
 		}
 	}
 
 	if _, err := c.VarSources.OrderByDependency(); err != nil {
-		return err
+		errorMessages = append(errorMessages, fmt.Sprintf("failed to order by dependency: %s", err.Error()))
 	}
 
-	return nil
+	return warnings, compositeErr(errorMessages)
 }

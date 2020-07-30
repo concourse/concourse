@@ -1104,7 +1104,7 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
         checkMessage =
             case checkStatus of
                 Models.FailingToCheck ->
-                    "checking failed"
+                    "check failed"
 
                 Models.CheckPending ->
                     "check pending"
@@ -1113,7 +1113,7 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
                     "check in progress"
 
                 Models.CheckingSuccessfully ->
-                    "checking successfully"
+                    "checked successfully"
 
         stepBody =
             if failingToCheck then

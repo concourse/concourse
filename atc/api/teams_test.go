@@ -290,6 +290,7 @@ var _ = Describe("Teams API", func() {
 			response *http.Response
 			teamAuth atc.TeamAuth
 			atcTeam  atc.Team
+			path string
 		)
 
 		BeforeEach(func() {
@@ -302,11 +303,10 @@ var _ = Describe("Teams API", func() {
 				},
 			}
 			atcTeam = atc.Team{Auth: teamAuth}
+			path = fmt.Sprintf("%s/api/v1/teams/some-team", server.URL)
 		})
 
 			JustBeforeEach(func() {
-				path := fmt.Sprintf("%s/api/v1/teams/some-team", server.URL)
-
 				var err error
 				request, err := http.NewRequest("PUT", path, jsonEncode(atcTeam))
 				Expect(err).NotTo(HaveOccurred())
@@ -419,6 +419,29 @@ var _ = Describe("Teams API", func() {
 
 						It("does not delete the teams in cache", func() {
 							Expect(dbTeamFactory.NotifyCacherCallCount()).To(Equal(0))
+						})
+					})
+
+					Context("when the team's name is an invalid identifier", func() {
+						BeforeEach(func() {
+							path = fmt.Sprintf("%s/api/v1/teams/_some-team", server.URL)
+							fakeTeam.NameReturns("_some-team")
+						})
+
+						It("returns a warning in the response body", func() {
+							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+								{
+									"warnings": [
+										{
+											"type": "invalid_identifier",
+											"message": "team: '_some-team' is not a valid identifier: must start with a lowercase letter"
+										}
+									],
+									"team": {
+										"id": 5,
+										"name": "_some-team"
+									}
+								}`))
 						})
 					})
 				})
@@ -566,13 +589,14 @@ var _ = Describe("Teams API", func() {
 
 		Describe("PUT /api/v1/teams/:team_name/rename", func() {
 			var response *http.Response
+			var requestBody string
 			var teamName string
 
 			JustBeforeEach(func() {
 				request, err := http.NewRequest(
 					"PUT",
 					server.URL+"/api/v1/teams/"+teamName+"/rename",
-					bytes.NewBufferString(`{"name":"some-new-name"}`),
+					bytes.NewBufferString(requestBody),
 				)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -581,6 +605,7 @@ var _ = Describe("Teams API", func() {
 			})
 
 			BeforeEach(func() {
+				requestBody = `{"name":"some-new-name"}`
 				fakeTeam.IDReturns(2)
 			})
 
@@ -606,8 +631,27 @@ var _ = Describe("Teams API", func() {
 						Expect(fakeTeam.RenameArgsForCall(0)).To(Equal("some-new-name"))
 					})
 
-					It("returns 204 no content", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+					It("returns 200", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					Context("when a warning occurs", func() {
+
+						BeforeEach(func() {
+							requestBody = `{"name":"_some-new-name"}`
+						})
+
+						It("returns a warning in the response body", func() {
+							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							{
+								"warnings": [
+								{
+									"type": "invalid_identifier",
+									"message": "team: '_some-new-name' is not a valid identifier: must start with a lowercase letter"
+								}
+								]
+							}`))
+						})
 					})
 				})
 
@@ -629,8 +673,8 @@ var _ = Describe("Teams API", func() {
 						Expect(fakeTeam.RenameArgsForCall(0)).To(Equal("some-new-name"))
 					})
 
-					It("returns 204 no content", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+					It("returns 200", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
 					})
 				})
 

@@ -698,14 +698,10 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 		if err != nil {
 			return []VolumeMount{}, err
 		}
-		destData := lager.Data{
-			"destination-volume": inputVolume.Handle(),
-			"destination-worker": inputVolume.WorkerName(),
-		}
 
 		g.Go(func() error {
 			if streamable, ok := nonLocalInput.desiredArtifact.(StreamableArtifactSource); ok {
-				err = streamable.StreamTo(groupCtx, logger.Session("stream-to", destData), inputVolume)
+				err = streamable.StreamTo(groupCtx, inputVolume)
 				if err != nil {
 					return err
 				}

@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"runtime/debug"
 	"strings"
 )
 
@@ -55,6 +57,14 @@ func (step InParallelStep) Run(ctx context.Context, state RunState) error {
 		}
 
 		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					err := fmt.Errorf("panic in parallel step: %v", r)
+
+					fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
+					errs <- err
+				}
+			}()
 			defer func() {
 				<-sem
 			}()

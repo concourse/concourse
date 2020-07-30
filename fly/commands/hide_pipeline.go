@@ -6,14 +6,17 @@ import (
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type HidePipelineCommand struct {
-	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"Pipeline to hide"`
+	Pipeline flaghelpers.PipelineFlag `short:"p"   long:"pipeline" required:"true" description:"Pipeline to hide"`
+	Team     string                   `long:"team"                                 description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *HidePipelineCommand) Validate() error {
-	return command.Pipeline.Validate()
+	_, err := command.Pipeline.Validate()
+	return err
 }
 
 func (command *HidePipelineCommand) Execute(args []string) error {
@@ -34,7 +37,17 @@ func (command *HidePipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	found, err := target.Team().HidePipeline(pipelineName)
+	var team concourse.Team
+	if command.Team != "" {
+		team, err = target.FindTeam(command.Team)
+		if err != nil {
+			return err
+		}
+	} else {
+		team = target.Team()
+	}
+
+	found, err := team.HidePipeline(pipelineName)
 	if err != nil {
 		return err
 	}

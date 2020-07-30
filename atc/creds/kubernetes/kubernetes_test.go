@@ -41,7 +41,7 @@ func (example Example) Assert(vs vars.Variables) {
 	}
 
 	if example.Err != nil {
-		Expect(err).To(Equal(example.Err))
+		Expect(err.Error()).To(ContainSubstring(example.Err.Error()))
 	} else {
 		Expect(res).To(Equal(example.Result))
 	}

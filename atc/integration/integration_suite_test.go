@@ -131,7 +131,7 @@ func login(atcURL, username, password string) concourse.Client {
 
 func setupTeam(atcURL string, team atc.Team) {
 	ccClient := login(atcURL, "test", "test")
-	createdTeam, _, _, err := ccClient.Team(team.Name).CreateOrUpdate(team)
+	createdTeam, _, _, _, err := ccClient.Team(team.Name).CreateOrUpdate(team)
 
 	Expect(err).ToNot(HaveOccurred())
 	Expect(createdTeam.Name).To(Equal(team.Name))
