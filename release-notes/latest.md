@@ -11,3 +11,10 @@
 * Reduce the allowed character set for Concourse valid identifiers. Only prints warnings instead of errors as a first step. #5810
 * Add `--team` flag for `fly pause-pipeline` command. #5917
 * Add `--team` flag for `fly hide-pipeline` command. #5917
+
+#### <sub><sup><a name="5854" href="#5854">:link:</a></sup></sub> feature
+
+* Automatically archive pipelines set by a set_pipeline step that meets one of the following criteria: #5854
+  * set_pipeline step is removed from job
+  * Job that set pipeline is deleted
+  * Parent pipeline is deleted

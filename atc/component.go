@@ -19,6 +19,7 @@ const (
 	ComponentCollectorResourceConfigs   = "collector_resource_configs"
 	ComponentCollectorVolumes           = "collector_volumes"
 	ComponentCollectorWorkers           = "collector_workers"
+	ComponentCollectorPipelines         = "collector_pipelines"
 )
 
 type Component struct {

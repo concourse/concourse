@@ -30,7 +30,6 @@ services:
       CONCOURSE_ADD_LOCAL_USER: test:test,guest:guest
       CONCOURSE_MAIN_TEAM_LOCAL_USER: test
       CONCOURSE_CLUSTER_NAME: dev
-      CONCOURSE_ENABLE_ARCHIVE_PIPELINE: "true"
 
   worker:
     build: .

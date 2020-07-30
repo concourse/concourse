@@ -40,16 +40,6 @@ type FakeDestroyingContainer struct {
 	iDReturnsOnCall map[int]struct {
 		result1 int
 	}
-	IsDiscontinuedStub        func() bool
-	isDiscontinuedMutex       sync.RWMutex
-	isDiscontinuedArgsForCall []struct {
-	}
-	isDiscontinuedReturns struct {
-		result1 bool
-	}
-	isDiscontinuedReturnsOnCall map[int]struct {
-		result1 bool
-	}
 	MetadataStub        func() db.ContainerMetadata
 	metadataMutex       sync.RWMutex
 	metadataArgsForCall []struct {
@@ -243,58 +233,6 @@ func (fake *FakeDestroyingContainer) IDReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *FakeDestroyingContainer) IsDiscontinued() bool {
-	fake.isDiscontinuedMutex.Lock()
-	ret, specificReturn := fake.isDiscontinuedReturnsOnCall[len(fake.isDiscontinuedArgsForCall)]
-	fake.isDiscontinuedArgsForCall = append(fake.isDiscontinuedArgsForCall, struct {
-	}{})
-	fake.recordInvocation("IsDiscontinued", []interface{}{})
-	fake.isDiscontinuedMutex.Unlock()
-	if fake.IsDiscontinuedStub != nil {
-		return fake.IsDiscontinuedStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.isDiscontinuedReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeDestroyingContainer) IsDiscontinuedCallCount() int {
-	fake.isDiscontinuedMutex.RLock()
-	defer fake.isDiscontinuedMutex.RUnlock()
-	return len(fake.isDiscontinuedArgsForCall)
-}
-
-func (fake *FakeDestroyingContainer) IsDiscontinuedCalls(stub func() bool) {
-	fake.isDiscontinuedMutex.Lock()
-	defer fake.isDiscontinuedMutex.Unlock()
-	fake.IsDiscontinuedStub = stub
-}
-
-func (fake *FakeDestroyingContainer) IsDiscontinuedReturns(result1 bool) {
-	fake.isDiscontinuedMutex.Lock()
-	defer fake.isDiscontinuedMutex.Unlock()
-	fake.IsDiscontinuedStub = nil
-	fake.isDiscontinuedReturns = struct {
-		result1 bool
-	}{result1}
-}
-
-func (fake *FakeDestroyingContainer) IsDiscontinuedReturnsOnCall(i int, result1 bool) {
-	fake.isDiscontinuedMutex.Lock()
-	defer fake.isDiscontinuedMutex.Unlock()
-	fake.IsDiscontinuedStub = nil
-	if fake.isDiscontinuedReturnsOnCall == nil {
-		fake.isDiscontinuedReturnsOnCall = make(map[int]struct {
-			result1 bool
-		})
-	}
-	fake.isDiscontinuedReturnsOnCall[i] = struct {
-		result1 bool
-	}{result1}
-}
-
 func (fake *FakeDestroyingContainer) Metadata() db.ContainerMetadata {
 	fake.metadataMutex.Lock()
 	ret, specificReturn := fake.metadataReturnsOnCall[len(fake.metadataArgsForCall)]
@@ -460,8 +398,6 @@ func (fake *FakeDestroyingContainer) Invocations() map[string][][]interface{} {
 	defer fake.handleMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
-	fake.isDiscontinuedMutex.RLock()
-	defer fake.isDiscontinuedMutex.RUnlock()
 	fake.metadataMutex.RLock()
 	defer fake.metadataMutex.RUnlock()
 	fake.stateMutex.RLock()

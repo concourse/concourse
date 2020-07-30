@@ -549,6 +549,32 @@ func (b *build) Finish(status BuildStatus) error {
 		if err != nil {
 			return err
 		}
+
+		// recursively archive any child pipelines. This is likely the most common case for
+		// automatic archiving so it's worth it to make the feedback more instantenous rather
+		// than relying on GC
+		pipelineRows, err := pipelinesQuery.
+			Prefix(`
+WITH RECURSIVE pipelines_to_archive AS (
+	SELECT id from pipelines where archived = false AND parent_job_id = $1 AND parent_build_id < $2
+	UNION
+	SELECT p.id from pipelines p join jobs j on p.parent_job_id = j.id join pipelines_to_archive on j.pipeline_id = pipelines_to_archive.id
+)`,
+				b.jobID, b.id,
+			).
+			Where("EXISTS(SELECT 1 FROM pipelines_to_archive pa WHERE pa.id = p.id)").
+			RunWith(tx).
+			Query()
+
+		if err != nil {
+			return err
+		}
+		defer pipelineRows.Close()
+
+		err = archivePipelines(tx, b.conn, b.lockFactory, pipelineRows)
+		if err != nil {
+			return err
+		}
 	}
 
 	if b.jobID != 0 {

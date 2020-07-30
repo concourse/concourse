@@ -156,7 +156,7 @@ var _ = BeforeEach(func() {
 	otherWorker, err = workerFactory.SaveWorker(otherWorkerPayload, 0)
 	Expect(err).NotTo(HaveOccurred())
 
-	defaultPipelineConfig := atc.Config{
+	defaultPipelineConfig = atc.Config{
 		Jobs: atc.JobConfigs{
 			{
 				Name: "some-job",

@@ -2,7 +2,6 @@ package pipelineserver_test
 
 import (
 	"errors"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 
@@ -34,7 +33,6 @@ var _ = Describe("Archive Handler", func() {
 			new(dbfakes.FakeTeamFactory),
 			new(dbfakes.FakePipelineFactory),
 			"",
-			true, /* enableArchivePipeline */
 		)
 		dbPipeline = new(dbfakes.FakePipeline)
 		handler = server.ArchivePipeline(dbPipeline)
@@ -71,25 +69,5 @@ var _ = Describe("Archive Handler", func() {
 			"Message":  Equal("test.archive-pipeline"),
 			"LogLevel": Equal(lager.ERROR),
 		})))
-	})
-	Context("when the endpoint is not enabled", func() {
-		BeforeEach(func() {
-			server = pipelineserver.NewServer(
-				fakeLogger,
-				new(dbfakes.FakeTeamFactory),
-				new(dbfakes.FakePipelineFactory),
-				"",
-				false, /* enableArchivePipeline */
-			)
-			handler = server.ArchivePipeline(dbPipeline)
-		})
-
-		It("responds with status Forbidden", func() {
-			handler.ServeHTTP(recorder, request)
-
-			Expect(recorder.Code).To(Equal(http.StatusForbidden))
-			body, _ := ioutil.ReadAll(recorder.Body)
-			Expect(body).To(Equal([]byte("endpoint is not enabled\n")))
-		})
 	})
 })

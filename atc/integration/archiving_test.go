@@ -18,10 +18,6 @@ var _ = Describe("ATC Integration Test", func() {
 		client concourse.Client
 	)
 
-	BeforeEach(func() {
-		cmd.EnableArchivePipeline = true
-	})
-
 	JustBeforeEach(func() {
 		client = login(atcURL, "test", "test")
 	})
@@ -75,21 +71,6 @@ var _ = Describe("ATC Integration Test", func() {
 
 		_, hasConfig := getPipelineConfig(client, "pipeline")
 		Expect(hasConfig).To(BeFalse())
-	})
-
-	Context("when the archiving pipeline endpoint is not enabled", func() {
-		BeforeEach(func() {
-			cmd.EnableArchivePipeline = false
-		})
-
-		It("returns an error", func() {
-			givenAPipeline(client, "pipeline")
-
-			_, err := client.Team("main").ArchivePipeline("pipeline")
-
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("forbidden"))
-		})
 	})
 })
 
