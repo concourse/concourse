@@ -2,7 +2,9 @@ package integration_test
 
 import (
 	"fmt"
+	"github.com/concourse/concourse/atc"
 	"io"
+	"net/http"
 	"os/exec"
 
 	. "github.com/onsi/ginkgo"
@@ -147,6 +149,65 @@ var _ = Describe("Fly CLI", func() {
 					yes()
 					Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
 					Eventually(sess).Should(gexec.Exit(1))
+				})
+			})
+
+			Context("with a team specified", func() {
+				BeforeEach(func() {
+					args = append(args, "--team", "team-two")
+
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/team-two"),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
+								Name: "team-two",
+							}),
+						),
+					)
+				})
+
+				It("warns that it's about to do bad things", func() {
+					Eventually(sess).Should(gbytes.Say("!!! this will remove all data for pipeline `some-pipeline`"))
+				})
+
+				It("bails out if the user says no", func() {
+					no()
+					Eventually(sess).Should(gbytes.Say(`bailing out`))
+					Eventually(sess).Should(gexec.Exit(0))
+				})
+
+				Context("when the pipeline exists", func() {
+					BeforeEach(func() {
+						atcServer.AppendHandlers(
+							ghttp.CombineHandlers(
+								ghttp.VerifyRequest("DELETE", "/api/v1/teams/team-two/pipelines/some-pipeline"),
+								ghttp.RespondWith(204, ""),
+							),
+						)
+					})
+
+					It("succeeds if the user says yes", func() {
+						yes()
+						Eventually(sess).Should(gbytes.Say("`some-pipeline` deleted"))
+						Eventually(sess).Should(gexec.Exit(0))
+					})
+				})
+
+				Context("and the pipeline does not exist", func() {
+					BeforeEach(func() {
+						atcServer.AppendHandlers(
+							ghttp.CombineHandlers(
+								ghttp.VerifyRequest("DELETE", "/api/v1/teams/team-two/pipelines/some-pipeline"),
+								ghttp.RespondWith(404, ""),
+							),
+						)
+					})
+
+					It("writes that it did not exist and exits successfully", func() {
+						yes()
+						Eventually(sess).Should(gbytes.Say("`some-pipeline` does not exist"))
+						Eventually(sess).Should(gexec.Exit(0))
+					})
 				})
 			})
 		})
