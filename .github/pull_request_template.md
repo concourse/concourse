@@ -4,7 +4,8 @@ Hi there! Thanks for submitting a pull request to Concourse!
 The title of your pull request will be used to generate the release notes.
 Please make if a brief sentence that describes the PR in the imperative form.
 Please refrain from adding prefixes like 'feature:', and don't include a period
-at the end. (Thank you!)
+at the end. We will edit the title if needed so don't worry about getting it
+perfect!
 
 Examples: "Add feature to doohickey", "Fix panic during spline reticulation"
 
