@@ -746,11 +746,10 @@ searchButton =
 
 favoritedToggle :
     { isFavorited : Bool
-    , isClickable : Bool
     , isHovered : Bool
     }
     -> List (Html.Attribute msg)
-favoritedToggle { isFavorited, isClickable, isHovered } =
+favoritedToggle { isFavorited, isHovered } =
     [ style "background-image" <|
         Assets.backgroundImage <|
             Just (Assets.FavoritedToggleIcon isFavorited)
@@ -760,14 +759,9 @@ favoritedToggle { isFavorited, isClickable, isHovered } =
     , style "background-repeat" "no-repeat"
     , style "position" "relative"
     , style "background-size" "contain"
-    , style "cursor" <|
-        if isClickable then
-            "pointer"
-
-        else
-            "default"
+    , style "cursor" "pointer"
     , style "opacity" <|
-        if (isClickable && isHovered) || isFavorited then
+        if isHovered || isFavorited then
             "1"
 
         else

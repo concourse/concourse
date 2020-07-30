@@ -336,12 +336,6 @@ footerView userState favoritedPipelines pipeline now hovered existingJobs =
         favoritedIcon =
             favoritedView
                 { isFavorited = Set.member pipeline.id favoritedPipelines
-                , isClickable =
-                    UserState.isAnonymous userState
-                        || UserState.isMember
-                            { teamName = pipeline.teamName
-                            , userState = userState
-                            }
                 , isHovered = HoverState.isHovered (PipelineCardFavoritedIcon pipeline.id) hovered
                 , pipelineId = pipeline.id
                 }
@@ -419,28 +413,21 @@ pipelineStatusView pipeline status now =
 
 favoritedView :
     { isFavorited : Bool
-    , isClickable : Bool
     , isHovered : Bool
     , pipelineId : Concourse.DatabaseID
     }
     -> Html Message
-favoritedView { isFavorited, isClickable, isHovered, pipelineId } =
+favoritedView { isFavorited, isHovered, pipelineId } =
     Html.div
         (Styles.favoritedToggle
             { isFavorited = isFavorited
-            , isClickable = isClickable
             , isHovered = isHovered
             }
             ++ [ onMouseEnter <| Hover <| Just <| PipelineCardFavoritedIcon pipelineId
                , onMouseLeave <| Hover Nothing
                , id <| Effects.toHtmlID <| PipelineCardFavoritedIcon pipelineId
+               , onClick <| Click <| PipelineCardFavoritedIcon pipelineId
                ]
-            ++ (if isClickable then
-                    [ onClick <| Click <| PipelineCardFavoritedIcon pipelineId ]
-
-                else
-                    []
-               )
         )
         []
 
