@@ -55,8 +55,6 @@ type Asset
     | PencilIcon
     | SearchIcon
     | CloseIcon
-    | StarIconUnfilled
-    | StarIconFilled
 
 
 type ComponentType
@@ -170,12 +168,6 @@ toPath asset =
 
         PencilIcon ->
             basePath ++ [ "pencil-white.svg" ]
-
-        StarIconUnfilled ->
-            basePath ++ [ "star-unfilled.svg" ]
-
-        StarIconFilled ->
-            basePath ++ [ "star-filled.svg" ]
 
         CheckmarkIcon ->
             basePath ++ [ "checkmark-ic.svg" ]

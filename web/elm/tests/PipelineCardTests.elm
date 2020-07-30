@@ -2440,14 +2440,14 @@ all =
                         unfilledFavoritedIcon =
                             iconSelector
                                 { size = "20px"
-                                , image = Assets.StarIconUnfilled
+                                , image = Assets.FavoritedToggleIcon False
                                 }
                                 ++ [ style "background-size" "contain" ]
 
                         filledFavoritedIcon =
                             iconSelector
                                 { size = "20px"
-                                , image = Assets.StarIconFilled
+                                , image = Assets.FavoritedToggleIcon True
                                 }
                                 ++ [ style "background-size" "contain" ]
 
