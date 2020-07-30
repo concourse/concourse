@@ -125,8 +125,8 @@ github.com/concourse/atc v4.2.2+incompatible h1:hMtYBdeytPtIu/QNuHLQTafiHUHxm852
 github.com/concourse/atc v4.2.2+incompatible/go.mod h1:sB+NvCgZM3gsgFKEec4dRfBAxz8AHrUgol2t4B42wVM=
 github.com/concourse/baggageclaim v1.6.6 h1:wQyJgf41L522Vl1Z6L+LueoCLKia+/XqhrtTz0yrHRI=
 github.com/concourse/baggageclaim v1.6.6/go.mod h1:UdvVE2W8LgXcCz0ZdKBwUbpKZ0KN4Fx1OeY1xtZOUvY=
-github.com/concourse/dex v0.0.0-20200417202922-dcbe94f28c88 h1:8BK+Qq51oMwD2CzjAbbMKlAjcXM/PHnAjuRkzZvFmZ4=
-github.com/concourse/dex v0.0.0-20200417202922-dcbe94f28c88/go.mod h1:7xVx6jMkg5UoaGhDHp3mGdETzdVSTY8dOEG1v6ixNQc=
+github.com/concourse/dex v0.0.0-20200730150203-821b48abfd88 h1:RGcAW/U9rGy82zm8IQMqdvUuLcESgisSTb03Yb48zZo=
+github.com/concourse/dex v0.0.0-20200730150203-821b48abfd88/go.mod h1:7xVx6jMkg5UoaGhDHp3mGdETzdVSTY8dOEG1v6ixNQc=
 github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
 github.com/concourse/flag v1.0.0 h1:XG+A/Y+8kNdNDUC9T+SQ55dZ1+xYQN6LNVBg3cGJ080=
 github.com/concourse/flag v1.0.0/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
@@ -761,6 +761,7 @@ golang.org/x/lint v0.0.0-20190301231843-5614ed5bae6f/go.mod h1:UVdnD1Gm6xHRNCYTk
 golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3/go.mod h1:6SW0HCj/g11FgYtHlgUYUwCkIfeOF89ocIRzGO/8vkc=
 golang.org/x/lint v0.0.0-20190409202823-959b441ac422/go.mod h1:6SW0HCj/g11FgYtHlgUYUwCkIfeOF89ocIRzGO/8vkc=
 golang.org/x/lint v0.0.0-20190909230951-414d861bb4ac/go.mod h1:6SW0HCj/g11FgYtHlgUYUwCkIfeOF89ocIRzGO/8vkc=
+golang.org/x/lint v0.0.0-20190930215403-16217165b5de h1:5hukYrvBGR8/eNkX5mdUezrA6JiaEZDtJb9Ei+1LlBs=
 golang.org/x/lint v0.0.0-20190930215403-16217165b5de/go.mod h1:6SW0HCj/g11FgYtHlgUYUwCkIfeOF89ocIRzGO/8vkc=
 golang.org/x/mobile v0.0.0-20190312151609-d3739f865fa6/go.mod h1:z+o9i4GpDbdi3rU15maQ/Ox0txvL9dWGYEHz965HBQE=
 golang.org/x/mobile v0.0.0-20190719004257-d2bd2a29d028/go.mod h1:E/iHnbuqvinMTCcRqshq8CkpyQDoeVncDDYHnLhea+o=
