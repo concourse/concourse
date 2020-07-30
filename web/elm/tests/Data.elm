@@ -8,21 +8,38 @@ module Data exposing
     , httpUnauthorized
     , job
     , jobBuild
+    , jobBuildId
     , jobId
     , jobName
     , leftClickEvent
+    , longJobBuildId
     , pipeline
+    , pipelineId
     , pipelineName
     , resource
+    , resourceId
     , resourceName
+    , resourceVersionId
+    , shortJobId
+    , shortPipelineId
+    , shortResourceId
     , teamName
     , version
     , versionedResource
     , withArchived
+    , withBuildName
+    , withDisableManualTrigger
     , withGroups
+    , withJobName
     , withName
     , withPaused
+    , withPipelineName
     , withPublic
+    , withResourceName
+    , withShortJobId
+    , withShortPipelineId
+    , withShortResourceId
+    , withTeamName
     )
 
 import Browser.Dom
@@ -207,6 +224,36 @@ job pipelineID =
     }
 
 
+withDisableManualTrigger : Bool -> { r | disableManualTrigger : Bool } -> { r | disableManualTrigger : Bool }
+withDisableManualTrigger disableManualTrigger p =
+    { p | disableManualTrigger = disableManualTrigger }
+
+
+withTeamName : String -> { r | teamName : String } -> { r | teamName : String }
+withTeamName name p =
+    { p | teamName = name }
+
+
+withPipelineName : String -> { r | pipelineName : String } -> { r | pipelineName : String }
+withPipelineName name p =
+    { p | pipelineName = name }
+
+
+withJobName : String -> { r | jobName : String } -> { r | jobName : String }
+withJobName name p =
+    { p | jobName = name }
+
+
+withResourceName : String -> { r | resourceName : String } -> { r | resourceName : String }
+withResourceName name p =
+    { p | resourceName = name }
+
+
+withBuildName : String -> { r | buildName : String } -> { r | buildName : String }
+withBuildName name p =
+    { p | buildName = name }
+
+
 jobName =
     "job"
 
@@ -223,6 +270,23 @@ resourceName =
     "resource"
 
 
+buildName =
+    "1"
+
+
+withShortPipelineId =
+    withPipelineName "p"
+        >> withTeamName "t"
+
+
+withShortJobId =
+    withShortPipelineId >> withJobName "j"
+
+
+withShortResourceId =
+    withShortPipelineId >> withResourceName "r"
+
+
 versionedResource : String -> Int -> Concourse.VersionedResource
 versionedResource v id =
     { id = id
@@ -237,19 +301,77 @@ version v =
     Dict.fromList [ ( "version", v ) ]
 
 
+pipelineId : Concourse.PipelineIdentifier
+pipelineId =
+    { teamName = teamName
+    , pipelineName = pipelineName
+    }
+
+
+shortPipelineId : Concourse.PipelineIdentifier
+shortPipelineId =
+    pipelineId |> withShortPipelineId
+
+
 jobId : Concourse.JobIdentifier
 jobId =
-    { teamName = "t"
-    , pipelineName = "p"
-    , jobName = "j"
+    { teamName = teamName
+    , pipelineName = pipelineName
+    , jobName = jobName
+    }
+
+
+shortJobId : Concourse.JobIdentifier
+shortJobId =
+    jobId |> withShortJobId
+
+
+resourceId : Concourse.ResourceIdentifier
+resourceId =
+    { teamName = teamName
+    , pipelineName = pipelineName
+    , resourceName = resourceName
+    }
+
+
+shortResourceId : Concourse.ResourceIdentifier
+shortResourceId =
+    resourceId |> withShortResourceId
+
+
+resourceVersionId : Int -> Concourse.VersionedResourceIdentifier
+resourceVersionId v =
+    { teamName = teamName
+    , pipelineName = pipelineName
+    , resourceName = resourceName
+    , versionID = v
+    }
+
+
+
+-- jobBuildId is really shortJobBuildId, but since jobBuild returns a short jobId,
+-- it would be weird for jobBuildId to not represent jobBuild
+
+
+jobBuildId : Concourse.JobBuildIdentifier
+jobBuildId =
+    longJobBuildId |> withShortJobId
+
+
+longJobBuildId : Concourse.JobBuildIdentifier
+longJobBuildId =
+    { teamName = teamName
+    , pipelineName = pipelineName
+    , jobName = jobName
+    , buildName = buildName
     }
 
 
 jobBuild : BuildStatus.BuildStatus -> Concourse.Build
 jobBuild status =
     { id = 1
-    , name = "1"
-    , job = Just jobId
+    , name = buildName
+    , job = Just (jobId |> withShortJobId)
     , status = status
     , duration =
         { startedAt =

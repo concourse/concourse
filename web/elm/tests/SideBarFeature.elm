@@ -525,11 +525,7 @@ hasSideBar iAmLookingAtThePage =
                 , selector =
                     [ style "opacity" "0.4" ]
                 }
-            , hoverable =
-                Message.SideBarPipeline AllPipelines
-                    { pipelineName = "pipeline"
-                    , teamName = "team"
-                    }
+            , hoverable = Message.SideBarPipeline AllPipelines Data.pipelineId
             , hoveredSelector =
                 { description = "light background"
                 , selector =
@@ -1164,19 +1160,6 @@ iAmLookingAtTheFirstPipelineLink =
     iAmLookingAtTheFirstPipeline >> Query.children [] >> Query.index 1
 
 
-iHoveredTheFirstPipelineLink =
-    Tuple.first
-        >> Application.update
-            (TopLevelMessage.Update <|
-                Message.Hover <|
-                    Just <|
-                        Message.SideBarPipeline AllPipelines
-                            { teamName = "team"
-                            , pipelineName = "pipeline"
-                            }
-            )
-
-
 iSeeItContainsThePipelineName =
     Query.has [ text "pipeline" ]
 
@@ -1522,10 +1505,7 @@ iHoveredThePipelineLink =
             (TopLevelMessage.Update <|
                 Message.Hover <|
                     Just <|
-                        Message.SideBarPipeline AllPipelines
-                            { pipelineName = "pipeline"
-                            , teamName = "team"
-                            }
+                        Message.SideBarPipeline AllPipelines Data.pipelineId
             )
 
 
@@ -1629,10 +1609,7 @@ iClickAPipelineLink =
                 Subscription.RouteChanged <|
                     Routes.Pipeline
                         { groups = []
-                        , id =
-                            { pipelineName = "other-pipeline"
-                            , teamName = "team"
-                            }
+                        , id = Data.pipelineId |> Data.withPipelineName "other-pipeline"
                         }
             )
 
@@ -1673,9 +1650,9 @@ iNavigateBackToThePipelinePage =
                     Routes.Pipeline
                         { groups = []
                         , id =
-                            { pipelineName = "yet-another-pipeline"
-                            , teamName = "other-team"
-                            }
+                            Data.pipelineId
+                                |> Data.withTeamName "other-team"
+                                |> Data.withPipelineName "yet-another-pipeline"
                         }
             )
 

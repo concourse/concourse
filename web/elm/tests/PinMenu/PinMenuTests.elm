@@ -2,6 +2,7 @@ module PinMenu.PinMenuTests exposing (all)
 
 import Colors
 import Concourse
+import Data
 import Dict
 import Expect
 import HoverState
@@ -21,10 +22,7 @@ import Views.Styles
 
 init =
     Pipeline.init
-        { pipelineLocator =
-            { teamName = "team"
-            , pipelineName = "pipeline"
-            }
+        { pipelineLocator = Data.pipelineId
         , turbulenceImgSrc = ""
         , selectedGroups = []
         }
@@ -174,11 +172,7 @@ all =
                                       , onClick =
                                             GoToRoute <|
                                                 Routes.Resource
-                                                    { id =
-                                                        { teamName = "team"
-                                                        , pipelineName = "pipeline"
-                                                        , resourceName = "test"
-                                                        }
+                                                    { id = Data.resourceId |> Data.withResourceName "test"
                                                     , page = Nothing
                                                     }
                                       }
@@ -225,11 +219,7 @@ all =
                                       , onClick =
                                             GoToRoute <|
                                                 Routes.Resource
-                                                    { id =
-                                                        { teamName = "team"
-                                                        , pipelineName = "pipeline"
-                                                        , resourceName = "test"
-                                                        }
+                                                    { id = Data.resourceId |> Data.withResourceName "test"
                                                     , page = Nothing
                                                     }
                                       }

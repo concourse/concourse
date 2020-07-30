@@ -292,11 +292,7 @@ all =
                     (ApplicationMsgs.Update <|
                         Msgs.GoToRoute
                             (Routes.Resource
-                                { id =
-                                    { teamName = "t"
-                                    , pipelineName = "p"
-                                    , resourceName = "r"
-                                    }
+                                { id = Data.shortResourceId
                                 , page = Nothing
                                 }
                             )
@@ -306,11 +302,7 @@ all =
                         [ Effects.NavigateTo <|
                             Routes.toString <|
                                 Routes.Resource
-                                    { id =
-                                        { teamName = "t"
-                                        , pipelineName = "p"
-                                        , resourceName = "r"
-                                        }
+                                    { id = Data.shortResourceId
                                     , page = Nothing
                                     }
                         ]
@@ -1369,15 +1361,12 @@ all =
                         >> Tuple.first
 
                 pipelineIdentifier =
-                    { pipelineName = "p"
-                    , teamName = "t"
-                    }
+                    Data.shortPipelineId
 
                 toggleMsg =
                     ApplicationMsgs.Update <|
                         Msgs.Click <|
-                            Msgs.PipelineButton
-                                pipelineIdentifier
+                            Msgs.PipelineButton pipelineIdentifier
             in
             [ defineHoverBehaviour
                 { name = "play pipeline icon when authorized"
@@ -1412,7 +1401,7 @@ all =
                                 }
                     }
                 , hoverable =
-                    Msgs.PipelineButton { pipelineName = "p", teamName = "t" }
+                    Msgs.PipelineButton pipelineIdentifier
                 }
             , defineHoverBehaviour
                 { name = "play pipeline icon when unauthenticated"
@@ -1447,7 +1436,7 @@ all =
                                 }
                     }
                 , hoverable =
-                    Msgs.PipelineButton { pipelineName = "p", teamName = "t" }
+                    Msgs.PipelineButton pipelineIdentifier
                 }
             , defineHoverBehaviour
                 { name = "play pipeline icon when unauthorized"
@@ -1490,7 +1479,7 @@ all =
                         ]
                     }
                 , hoverable =
-                    Msgs.PipelineButton { pipelineName = "p", teamName = "t" }
+                    Msgs.PipelineButton pipelineIdentifier
                 }
             , test "clicking play button sends TogglePipelinePaused msg" <|
                 \_ ->

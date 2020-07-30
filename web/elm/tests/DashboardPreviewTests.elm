@@ -263,7 +263,4 @@ isPaused j =
 
 jobId : Concourse.JobIdentifier
 jobId =
-    { teamName = "team"
-    , pipelineName = "pipeline"
-    , jobName = "job"
-    }
+    Data.jobId

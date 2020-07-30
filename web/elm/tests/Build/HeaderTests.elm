@@ -182,12 +182,8 @@ all =
                             |> Header.update (Message.Click Message.RerunBuildButton)
                             |> Tuple.second
                             |> Common.contains
-                                (Effects.RerunJobBuild <|
-                                    { teamName = "team"
-                                    , pipelineName = "pipeline"
-                                    , jobName = "job"
-                                    , buildName = model.name
-                                    }
+                                (Effects.RerunJobBuild
+                                    (Data.longJobBuildId |> Data.withBuildName model.name)
                                 )
                 , test "archived pipeline's have no right widgets" <|
                     \_ ->
@@ -329,13 +325,7 @@ all =
                                 }
                         )
                     |> Header.changeToBuild
-                        (Models.JobBuildPage
-                            { teamName = "team"
-                            , pipelineName = "pipeline"
-                            , jobName = "job"
-                            , buildName = "1"
-                            }
-                        )
+                        (Models.JobBuildPage Data.longJobBuildId)
                     |> Tuple.first
                     |> Header.header session
                     |> Expect.all
@@ -413,7 +403,4 @@ build =
 
 jobId : Concourse.JobIdentifier
 jobId =
-    { teamName = "team"
-    , pipelineName = "pipeline"
-    , jobName = "job"
-    }
+    Data.jobId

@@ -45,16 +45,13 @@ all =
         [ describe "update" <|
             let
                 someJobInfo =
-                    { jobName = "some-job"
-                    , pipelineName = "some-pipeline"
-                    , teamName = "some-team"
-                    }
+                    Data.jobId
+                        |> Data.withJobName "some-job"
+                        |> Data.withPipelineName "some-pipeline"
+                        |> Data.withTeamName "some-team"
 
                 jobInfo =
-                    { jobName = "job"
-                    , pipelineName = "pipeline"
-                    , teamName = "team"
-                    }
+                    Data.jobId
 
                 someBuild : Build
                 someBuild =
@@ -193,10 +190,7 @@ all =
                             (JobBuildsFetched <|
                                 let
                                     jobId =
-                                        { jobName = "job"
-                                        , pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
+                                        Data.jobId
 
                                     status =
                                         BuildStatusSucceeded
@@ -499,10 +493,7 @@ all =
                         (JobBuildsFetched <|
                             let
                                 jobId =
-                                    { jobName = "job"
-                                    , pipelineName = "pipeline"
-                                    , teamName = "team"
-                                    }
+                                    Data.jobId
 
                                 status =
                                     BuildStatusSucceeded
@@ -538,10 +529,7 @@ all =
                         (JobBuildsFetched <|
                             let
                                 jobId =
-                                    { jobName = "job"
-                                    , pipelineName = "pipeline"
-                                    , teamName = "team"
-                                    }
+                                    Data.jobId
 
                                 status =
                                     BuildStatusSucceeded
@@ -596,10 +584,7 @@ all =
                         (JobBuildsFetched <|
                             let
                                 jobId =
-                                    { jobName = "job"
-                                    , pipelineName = "pipeline"
-                                    , teamName = "team"
-                                    }
+                                    Data.jobId
 
                                 status =
                                     BuildStatusSucceeded
@@ -683,10 +668,7 @@ all =
                         (JobBuildsFetched <|
                             let
                                 jobId =
-                                    { jobName = "job"
-                                    , pipelineName = "pipeline"
-                                    , teamName = "team"
-                                    }
+                                    Data.jobId
 
                                 status =
                                     BuildStatusSucceeded
@@ -763,10 +745,7 @@ all =
                 , setup =
                     let
                         jobId =
-                            { jobName = "job"
-                            , pipelineName = "pipeline"
-                            , teamName = "team"
-                            }
+                            Data.jobId
 
                         status =
                             BuildStatusSucceeded
