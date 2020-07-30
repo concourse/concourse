@@ -305,7 +305,7 @@ var _ = Describe("V1.0 Renderer", func() {
 		})
 
 		It("prints the build's run script", func() {
-			Expect(out.Contents()).To(ContainSubstring("\x1b[1mselected worker: some-worker\n"))
+			Expect(out.Contents()).To(ContainSubstring("\x1b[1mselected worker:\u001B[0m some-worker\n"))
 		})
 
 		Context("and time configuration enabled", func() {
