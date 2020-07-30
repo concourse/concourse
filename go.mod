@@ -25,7 +25,7 @@ require (
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
 	github.com/concourse/atc v4.2.2+incompatible
 	github.com/concourse/baggageclaim v1.6.6
-	github.com/concourse/dex v0.0.0-20200417202922-dcbe94f28c88
+	github.com/concourse/dex v0.0.0-20200730150203-821b48abfd88
 	github.com/concourse/flag v1.0.0
 	github.com/concourse/go-archive v1.0.1
 	github.com/concourse/retryhttp v1.0.2
