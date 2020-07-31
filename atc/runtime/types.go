@@ -17,6 +17,7 @@ const (
 //go:generate counterfeiter . StartingEventDelegate
 type StartingEventDelegate interface {
 	Starting(lager.Logger)
+	SelectedWorker(lager.Logger, string)
 }
 
 type VersionResult struct {

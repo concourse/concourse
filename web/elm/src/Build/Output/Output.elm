@@ -145,6 +145,11 @@ handleEvent event ( model, effects ) =
             , effects
             )
 
+        SelectedWorker origin output time ->
+            ( updateStep origin.id (setRunning << appendStepLog ("\u{001b}[1mselected worker: \u{001b}[0m" ++ output ++ "\n") time) model
+            , effects
+            )
+
         Error origin message time ->
             ( updateStep origin.id (setStepError message time) model
             , effects

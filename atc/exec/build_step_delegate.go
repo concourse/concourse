@@ -24,5 +24,6 @@ type BuildStepDelegate interface {
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, bool)
+	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
 }
