@@ -192,13 +192,13 @@ by configuring \reference{schema.step.on_failure} or
           \codeblock{yaml}{{{
           plan:
           - put: resource-image
-            resource: docker-image-resource
+            resource: registry-image-resource
           }}}
 
           Additionally, you can control the settings of the implicit \code{get} step
           by setting \code{get_params}. For example, if you did not want a \code{put}
-          step utilizing the \link{ \code{docker-image} resource
-          type}{https://github.com/concourse/docker-image-resource} to download the
+          step utilizing the \link{ \code{registry-image} resource
+          type}{https://github.com/concourse/registry-image-resource} to download the
           image, you would implement your \code{put} step as such:
 
           \codeblock{yaml}{{{
@@ -357,7 +357,7 @@ by configuring \reference{schema.step.on_failure} or
             source: {uri: https://github.com/my-user/my-project}
 
           - name: my-task-image
-            type: docker-image
+            type: registry-image
             source: {repository: my-user/my-repo}
 
           jobs:
@@ -439,7 +439,7 @@ by configuring \reference{schema.step.on_failure} or
             platform: linux
 
             image_resource:
-              type: docker-image
+              type: registry-image
               source:
                 repository: my.local.registry:8080/my/image
                 username: ((myuser))
@@ -648,7 +648,7 @@ by configuring \reference{schema.step.on_failure} or
           \codeblock{yaml}{{{
           resources:
           - name: task-image
-              type: docker-image
+              type: registry-image
               source:
                 repository: my.local.registry:8080/my/image
                 username: ((myuser))
