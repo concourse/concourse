@@ -2,15 +2,18 @@
 Hi there! Thanks for submitting a pull request to Concourse!
 
 The title of your pull request will be used to generate the release notes.
-Please make if a brief sentence that describes the PR in the imperative form.
-Please refrain from adding prefixes like 'feature:', and don't include a period
-at the end. We will edit the title if needed so don't worry about getting it
-perfect!
+Please provide a brief sentence that describes the PR, using the [imperative
+mood]. Please refrain from adding prefixes like 'feature:', and don't include a
+period at the end.
 
 Examples: "Add feature to doohickey", "Fix panic during spline reticulation"
 
+We will edit the title if needed so don't worry about getting it perfect!
+
 To help us review your PR, please fill in the following information.
 -->
+
+[imperative mood]: https://chris.beams.io/posts/git-commit/#imperative
 
 ## What does this PR accomplish?
 <!--
