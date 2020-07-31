@@ -84,6 +84,10 @@ var _ = Describe("Job", func() {
 				{
 					Name: "job-2",
 				},
+				{
+					Name: "non-triggerable-job",
+					DisableManualTrigger: true,
+				},
 			},
 			Resources: atc.ResourceConfigs{
 				{
@@ -127,6 +131,26 @@ var _ = Describe("Job", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(otherJob.Public()).To(BeFalse())
+			})
+		})
+	})
+
+	Describe("DisableManualTrigger", func() {
+		Context("when the config has disable_manual_trigger set to true", func() {
+			It("returns true", func() {
+				nonTriggerableJob, found, err := pipeline.Job("non-triggerable-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(nonTriggerableJob.DisableManualTrigger()).To(BeTrue())
+			})
+		})
+
+		Context("when the config does not have disable_manual_trigger set", func() {
+			It("returns false", func() {
+				otherJob, found, err := pipeline.Job("some-other-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(otherJob.DisableManualTrigger()).To(BeFalse())
 			})
 		})
 	})

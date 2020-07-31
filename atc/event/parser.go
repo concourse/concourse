@@ -44,6 +44,7 @@ func init() {
 	RegisterEvent(StartPut{})
 	RegisterEvent(FinishPut{})
 	RegisterEvent(Status{})
+	RegisterEvent(SelectedWorker{})
 	RegisterEvent(Log{})
 	RegisterEvent(Error{})
 

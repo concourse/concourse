@@ -66,6 +66,7 @@ type TaskDelegate interface {
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, ExitStatus)
+	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
 }
 
