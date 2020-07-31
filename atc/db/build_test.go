@@ -593,7 +593,7 @@ var _ = Describe("Build", func() {
 			BeforeEach(func() {
 				By("creating a child pipeline")
 				build, _ := defaultJob.CreateBuild()
-				childPipeline, _, _ = build.SavePipeline("child1-pipeline", defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
+				childPipeline, _, _ = build.SavePipeline(atc.PipelineRef{Name: "child1-pipeline"}, defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
 				build.Finish(db.BuildStatusSucceeded)
 
 				childPipeline.Reload()
@@ -618,7 +618,7 @@ var _ = Describe("Build", func() {
 						for i := 0; i < 5; i++ {
 							job, _, _ := childPipeline.Job("some-job")
 							build, _ := job.CreateBuild()
-							childPipeline, _, _ = build.SavePipeline("child-pipeline-"+strconv.Itoa(i), defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
+							childPipeline, _, _ = build.SavePipeline(atc.PipelineRef{Name: "child-pipeline-" + strconv.Itoa(i)}, defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
 							build.Finish(db.BuildStatusSucceeded)
 							childPipelines = append(childPipelines, childPipeline)
 						}
@@ -638,7 +638,7 @@ var _ = Describe("Build", func() {
 				Context("when the pipeline is not set by build", func() {
 					It("never gets archived", func() {
 						build, _ := defaultJob.CreateBuild()
-						teamPipeline, _, _ := defaultTeam.SavePipeline("team-pipeline", defaultPipelineConfig, db.ConfigVersion(0), false)
+						teamPipeline, _, _ := defaultTeam.SavePipeline(atc.PipelineRef{Name: "team-pipeline"}, defaultPipelineConfig, db.ConfigVersion(0), false)
 						build.Finish(db.BuildStatusSucceeded)
 
 						teamPipeline.Reload()

@@ -89,9 +89,11 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 	}
 
 	atcConfig := setpipelinehelpers.ATCConfig{
-		Team:             team,
-		PipelineName:     pipelineName,
-		InstanceVars:     instanceVars,
+		Team: team,
+		PipelineRef: atc.PipelineRef{
+			Name:         pipelineName,
+			InstanceVars: instanceVars,
+		},
 		TargetName:       Fly.Target,
 		Target:           target.Client().URL(),
 		SkipInteraction:  command.SkipInteractive || command.Config.FromStdin(),

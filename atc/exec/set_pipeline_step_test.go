@@ -381,8 +381,8 @@ jobs:
 
 				It("should save the pipeline itself", func() {
 					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
-					name, _, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
-					Expect(name).To(Equal("some-pipeline"))
+					pipelineRef, _, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+					Expect(pipelineRef).To(Equal(atc.PipelineRef{Name: "some-pipeline"}))
 				})
 
 				It("should save to the current team", func() {
