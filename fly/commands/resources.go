@@ -31,7 +31,7 @@ func (command *ResourcesCommand) Execute([]string) error {
 	var headers []string
 	var resources []atc.Resource
 
-	resources, err = target.Team().ListResources(pipelineName)
+	resources, err = target.Team().ListResources(atc.PipelineRef{Name: pipelineName})
 	if err != nil {
 		return err
 	}

@@ -15,7 +15,8 @@ jobs:
 
 var _ = Describe("ATC Integration Test", func() {
 	var (
-		client concourse.Client
+		client      concourse.Client
+		pipelineRef = atc.PipelineRef{Name: "pipeline"}
 	)
 
 	JustBeforeEach(func() {
@@ -23,54 +24,53 @@ var _ = Describe("ATC Integration Test", func() {
 	})
 
 	It("can archive pipelines", func() {
-		givenAPipeline(client, atc.PipelineRef{Name: "pipeline"})
+		givenAPipeline(client, pipelineRef)
 
-		whenIArchiveIt(client, "pipeline")
+		whenIArchiveIt(client, pipelineRef)
 
-		pipeline := getPipeline(client, "pipeline")
+		pipeline := getPipeline(client, pipelineRef)
 		Expect(pipeline.Archived).To(BeTrue(), "pipeline was not archived")
 		Expect(pipeline.Paused).To(BeTrue(), "pipeline was not paused")
 	})
 
 	It("fails when unpausing an archived pipeline", func() {
-		givenAPipeline(client, atc.PipelineRef{Name: "pipeline"})
-		whenIArchiveIt(client, "pipeline")
+		givenAPipeline(client, pipelineRef)
+		whenIArchiveIt(client, pipelineRef)
 
-		_, err := client.Team("main").UnpausePipeline("pipeline")
+		_, err := client.Team("main").UnpausePipeline(pipelineRef)
 
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("action not allowed for an archived pipeline"))
 	})
 
 	It("archived pipelines can have their name re-used", func() {
-		givenAPipeline(client, atc.PipelineRef{Name: "pipeline"})
-		whenIArchiveIt(client, "pipeline")
+		givenAPipeline(client, pipelineRef)
+		whenIArchiveIt(client, pipelineRef)
 
-		pipelineRef := atc.PipelineRef{Name: "pipeline"}
 		_, version, _, _ := client.Team("main").PipelineConfig(pipelineRef)
 		client.Team("main").CreateOrUpdatePipelineConfig(pipelineRef, version, basicPipelineConfig, false)
 
-		pipeline := getPipeline(client, "pipeline")
+		pipeline := getPipeline(client, pipelineRef)
 		Expect(pipeline.Archived).To(BeFalse(), "pipeline is still archived")
 		Expect(pipeline.Paused).To(BeTrue(), "pipeline was not paused")
 	})
 
 	It("archiving a pipeline results in it being paused", func() {
-		givenAPipeline(client, atc.PipelineRef{Name: "pipeline"})
-		whenIUnpauseIt(client, "pipeline")
+		givenAPipeline(client, pipelineRef)
+		whenIUnpauseIt(client, pipelineRef)
 
-		whenIArchiveIt(client, "pipeline")
+		whenIArchiveIt(client, pipelineRef)
 
-		pipeline := getPipeline(client, "pipeline")
+		pipeline := getPipeline(client, pipelineRef)
 		Expect(pipeline.Paused).To(BeTrue(), "pipeline was not paused")
 	})
 
 	It("archiving a pipeline purges its config", func() {
-		givenAPipeline(client, atc.PipelineRef{Name: "pipeline"})
+		givenAPipeline(client, pipelineRef)
 
-		whenIArchiveIt(client, "pipeline")
+		whenIArchiveIt(client, pipelineRef)
 
-		_, hasConfig := getPipelineConfig(client, atc.PipelineRef{Name: "pipeline"})
+		_, hasConfig := getPipelineConfig(client, pipelineRef)
 		Expect(hasConfig).To(BeFalse())
 	})
 })
@@ -80,18 +80,18 @@ func givenAPipeline(client concourse.Client, pipelineRef atc.PipelineRef) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
-func whenIUnpauseIt(client concourse.Client, pipelineName string) {
-	_, err := client.Team("main").UnpausePipeline(pipelineName)
+func whenIUnpauseIt(client concourse.Client, pipelineRef atc.PipelineRef) {
+	_, err := client.Team("main").UnpausePipeline(pipelineRef)
 	Expect(err).ToNot(HaveOccurred())
 }
 
-func whenIArchiveIt(client concourse.Client, pipelineName string) {
-	_, err := client.Team("main").ArchivePipeline(pipelineName)
+func whenIArchiveIt(client concourse.Client, pipelineRef atc.PipelineRef) {
+	_, err := client.Team("main").ArchivePipeline(pipelineRef)
 	Expect(err).ToNot(HaveOccurred())
 }
 
-func getPipeline(client concourse.Client, pipelineName string) atc.Pipeline {
-	pipeline, _, err := client.Team("main").Pipeline(pipelineName)
+func getPipeline(client concourse.Client, pipelineRef atc.PipelineRef) atc.Pipeline {
+	pipeline, _, err := client.Team("main").Pipeline(pipelineRef)
 	Expect(err).ToNot(HaveOccurred())
 	return pipeline
 }

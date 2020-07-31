@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/eventstream"
 	"github.com/concourse/concourse/fly/rc"
@@ -31,7 +32,7 @@ func (command *RerunBuildCommand) Execute(args []string) error {
 		return err
 	}
 
-	build, err := target.Team().RerunJobBuild(pipelineName, jobName, buildName)
+	build, err := target.Team().RerunJobBuild(atc.PipelineRef{Name: pipelineName}, jobName, buildName)
 	if err != nil {
 		return err
 	}

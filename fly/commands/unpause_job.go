@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/go-concourse/concourse"
@@ -35,7 +36,7 @@ func (command *UnpauseJobCommand) Execute(args []string) error {
 		team = target.Team()
 	}
 
-	found, err := team.UnpauseJob(pipelineName, jobName)
+	found, err := team.UnpauseJob(atc.PipelineRef{Name: pipelineName}, jobName)
 	if err != nil {
 		return err
 	}

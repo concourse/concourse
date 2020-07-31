@@ -44,7 +44,7 @@ func (command *CheckResourceTypeCommand) Execute(args []string) error {
 		}
 	}
 
-	check, found, err := target.Team().CheckResourceType(command.ResourceType.PipelineName, command.ResourceType.ResourceName, version)
+	check, found, err := target.Team().CheckResourceType(atc.PipelineRef{Name: command.ResourceType.PipelineName}, command.ResourceType.ResourceName, version)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (command *CheckResourceTypeCommand) Execute(args []string) error {
 }
 
 func (command *CheckResourceTypeCommand) checkParent(target rc.Target) error {
-	resourceTypes, found, err := target.Team().VersionedResourceTypes(command.ResourceType.PipelineName)
+	resourceTypes, found, err := target.Team().VersionedResourceTypes(atc.PipelineRef{Name: command.ResourceType.PipelineName})
 	if err != nil {
 		return err
 	}

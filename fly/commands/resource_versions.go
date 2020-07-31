@@ -36,7 +36,7 @@ func (command *ResourceVersionsCommand) Execute([]string) error {
 
 	team := target.Team()
 
-	versions, _, _, err := team.ResourceVersions(command.Resource.PipelineName, command.Resource.ResourceName, page, atc.Version{})
+	versions, _, _, err := team.ResourceVersions(atc.PipelineRef{Name: command.Resource.PipelineName}, command.Resource.ResourceName, page, atc.Version{})
 	if err != nil {
 		return err
 	}

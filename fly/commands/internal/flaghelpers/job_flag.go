@@ -7,6 +7,7 @@ import (
 
 	"github.com/jessevdk/go-flags"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/rc"
 )
 
@@ -57,7 +58,7 @@ func (flag *JobFlag) Complete(match string) []flags.Completion {
 			}
 		}
 	} else if len(vs) == 2 {
-		jobs, err := team.ListJobs(vs[0])
+		jobs, err := team.ListJobs(atc.PipelineRef{Name: vs[0]})
 		if err != nil {
 			return comps
 		}

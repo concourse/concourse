@@ -37,7 +37,7 @@ func (command *EnableResourceVersionCommand) Execute([]string) error {
 		enabled := latestResourceVer.Enabled
 
 		if !enabled {
-			enabled, err = team.EnableResourceVersion(command.Resource.PipelineName, command.Resource.ResourceName, latestResourceVer.ID)
+			enabled, err = team.EnableResourceVersion(atc.PipelineRef{Name: command.Resource.PipelineName}, command.Resource.ResourceName, latestResourceVer.ID)
 			if err != nil {
 				return err
 			}

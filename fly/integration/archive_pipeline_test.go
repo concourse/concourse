@@ -316,8 +316,8 @@ var _ = Describe("Fly CLI", func() {
 			})
 		})
 
-		Context("when specifying a pipeline name with a '/' character in it", func() {
-			It("fails and says '/' characters are not allowed", func() {
+		Context("when the pipeline flag is invalid", func() {
+			It("fails and print invalid flag error", func() {
 				flyCmd := exec.Command(flyPath, "-t", targetName, "archive-pipeline", "-p", "forbidden/pipelinename")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -326,7 +326,7 @@ var _ = Describe("Fly CLI", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
 
-				Expect(sess.Err).To(gbytes.Say("error: pipeline name cannot contain '/'"))
+				Expect(sess.Err).To(gbytes.Say("error: invalid argument for flag `-p, --pipeline'"))
 			})
 		})
 	})

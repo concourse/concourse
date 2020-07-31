@@ -8,10 +8,10 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (team *team) BuildsWithVersionAsOutput(pipelineName string, resourceName string, resourceVersionID int) ([]atc.Build, bool, error) {
+func (team *team) BuildsWithVersionAsOutput(pipelineRef atc.PipelineRef, resourceName string, resourceVersionID int) ([]atc.Build, bool, error) {
 	params := rata.Params{
 		"team_name":                  team.Name(),
-		"pipeline_name":              pipelineName,
+		"pipeline_name":              pipelineRef.Name,
 		"resource_name":              resourceName,
 		"resource_config_version_id": strconv.Itoa(resourceVersionID),
 	}
@@ -20,6 +20,7 @@ func (team *team) BuildsWithVersionAsOutput(pipelineName string, resourceName st
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.ListBuildsWithVersionAsOutput,
 		Params:      params,
+		Query:       pipelineRef.QueryParams(),
 	}, &internal.Response{
 		Result: &builds,
 	})

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 )
 
 type Pipeline struct {
@@ -39,8 +40,11 @@ type PipelineRef struct {
 
 func (ref PipelineRef) String() string {
 	if ref.InstanceVars != nil {
-		instanceVarsPayload, _ := json.Marshal(ref.InstanceVars) // TODO to comma separated key:value list
-		return fmt.Sprintf("%s: %s", ref.Name, instanceVarsPayload)
+		var instanceVars []string
+		for k, v := range ref.InstanceVars {
+			instanceVars = append(instanceVars, fmt.Sprintf("%s:%s", k, v))
+		}
+		return fmt.Sprintf("%s/%s", ref.Name, strings.Join(instanceVars, ","))
 	}
 	return ref.Name
 }

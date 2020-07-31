@@ -14,19 +14,10 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (team *team) PipelineConfig(ref atc.PipelineRef) (atc.Config, string, bool, error) {
+func (team *team) PipelineConfig(pipelineRef atc.PipelineRef) (atc.Config, string, bool, error) {
 	params := rata.Params{
-		"pipeline_name": ref.Name,
+		"pipeline_name": pipelineRef.Name,
 		"team_name":     team.Name(),
-	}
-
-	queryParams := url.Values{}
-	if ref.InstanceVars != nil {
-		payload, err := json.Marshal(ref.InstanceVars)
-		if err != nil {
-			return atc.Config{}, "", false, err
-		}
-		queryParams.Add("instance_vars", string(payload)) // TODO 5808 const for param
 	}
 
 	var configResponse atc.ConfigResponse
@@ -39,7 +30,7 @@ func (team *team) PipelineConfig(ref atc.PipelineRef) (atc.Config, string, bool,
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.GetConfig,
 		Params:      params,
-		Query:       queryParams,
+		Query:       pipelineRef.QueryParams(),
 	}, &response)
 
 	switch err.(type) {
@@ -65,9 +56,9 @@ type setConfigResponse struct {
 	Warnings []ConfigWarning `json:"warnings"`
 }
 
-func (team *team) CreateOrUpdatePipelineConfig(ref atc.PipelineRef, configVersion string, passedConfig []byte, checkCredentials bool) (bool, bool, []ConfigWarning, error) {
+func (team *team) CreateOrUpdatePipelineConfig(pipelineRef atc.PipelineRef, configVersion string, passedConfig []byte, checkCredentials bool) (bool, bool, []ConfigWarning, error) {
 	params := rata.Params{
-		"pipeline_name": ref.Name,
+		"pipeline_name": pipelineRef.Name,
 		"team_name":     team.Name(),
 	}
 
@@ -76,21 +67,13 @@ func (team *team) CreateOrUpdatePipelineConfig(ref atc.PipelineRef, configVersio
 		queryParams.Add(atc.SaveConfigCheckCreds, "")
 	}
 
-	if ref.InstanceVars != nil {
-		payload, err := json.Marshal(ref.InstanceVars)
-		if err != nil {
-			return false, false, []ConfigWarning{}, err
-		}
-		queryParams.Add("instance_vars", string(payload)) // TODO 5808 const for param
-	}
-
 	response := internal.Response{}
 
 	err := team.connection.Send(internal.Request{
 		ReturnResponseBody: true,
 		RequestName:        atc.SaveConfig,
 		Params:             params,
-		Query:              queryParams,
+		Query:              merge(queryParams, pipelineRef.QueryParams()),
 		Body:               bytes.NewBuffer(passedConfig),
 		Header: http.Header{
 			"Content-Type":          {"application/x-yaml"},
@@ -136,4 +119,15 @@ func (team *team) CreateOrUpdatePipelineConfig(ref atc.PipelineRef, configVersio
 	}
 
 	return response.Created, !response.Created, configResponse.Warnings, nil
+}
+
+func merge(base, extra url.Values) url.Values {
+	if extra != nil {
+		for key, values := range extra {
+			for _, value := range values {
+				base.Add(key, value)
+			}
+		}
+	}
+	return base
 }

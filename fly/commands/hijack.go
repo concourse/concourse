@@ -369,7 +369,7 @@ func (locator stepContainerLocator) locate(fingerprint *containerFingerprint) (m
 	} else if fingerprint.buildNameOrID != "" {
 		reqValues["build_id"] = fingerprint.buildNameOrID
 	} else {
-		build, err := GetBuild(locator.client, nil, "", "", "")
+		build, err := GetBuild(locator.client, nil, "", "", atc.PipelineRef{})
 		if err != nil {
 			return reqValues, err
 		}

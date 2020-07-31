@@ -211,7 +211,7 @@ func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom fl
 		return kvMap, nil, nil, nil
 	}
 
-	buildInputs, found, err := team.BuildInputsForJob(inputsFrom.PipelineName, inputsFrom.JobName)
+	buildInputs, found, err := team.BuildInputsForJob(atc.PipelineRef{Name: inputsFrom.PipelineName}, inputsFrom.JobName)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -220,7 +220,7 @@ func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom fl
 		return nil, nil, nil, fmt.Errorf("build inputs for %s/%s not found", inputsFrom.PipelineName, inputsFrom.JobName)
 	}
 
-	versionedResourceTypes, found, err := team.VersionedResourceTypes(inputsFrom.PipelineName)
+	versionedResourceTypes, found, err := team.VersionedResourceTypes(atc.PipelineRef{Name: inputsFrom.PipelineName})
 	if err != nil {
 		return nil, nil, nil, err
 	}

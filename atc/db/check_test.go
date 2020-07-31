@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = FDescribe("Check", func() {
+var _ = Describe("Check", func() {
 	var (
 		err                     error
 		created                 bool

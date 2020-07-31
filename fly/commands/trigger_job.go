@@ -46,7 +46,7 @@ func (command *TriggerJobCommand) Execute(args []string) error {
 		team = target.Team()
 	}
 
-	build, err = team.CreateJobBuild(pipelineName, jobName)
+	build, err = team.CreateJobBuild(atc.PipelineRef{Name: pipelineName}, jobName)
 	if err != nil {
 		return err
 	} else {

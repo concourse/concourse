@@ -100,8 +100,8 @@ var _ = Describe("Fly CLI", func() {
 				})
 			})
 
-			Context("when specifying a pipeline name with a '/' character in it", func() {
-				It("fails and says '/' characters are not allowed", func() {
+			Context("when the pipeline flag is invalid", func() {
+				It("fails and print invalid flag error", func() {
 					flyCmd := exec.Command(flyPath, "-t", targetName, "get-pipeline", "-p", "forbidden/pipelinename")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -110,7 +110,7 @@ var _ = Describe("Fly CLI", func() {
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
 
-					Expect(sess.Err).To(gbytes.Say("error: pipeline name cannot contain '/'"))
+					Expect(sess.Err).To(gbytes.Say("error: invalid argument for flag `-p, --pipeline'"))
 				})
 			})
 
@@ -120,6 +120,36 @@ var _ = Describe("Fly CLI", func() {
 					var err error
 					path, err = atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "some-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
+				})
+
+				Context("when specifying pipeline vars", func() {
+
+					Context("and pipeline exists", func() {
+						BeforeEach(func() {
+							atcServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", path, "instance_vars=%7B%22branch%22%3A%22master%22%7D"),
+									ghttp.RespondWithJSONEncoded(200, atc.ConfigResponse{Config: config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
+								),
+							)
+						})
+
+						It("prints the config as yaml to stdout", func() {
+							flyCmd := exec.Command(flyPath, "-t", targetName, "get-pipeline", "--pipeline", "some-pipeline/branch:master")
+
+							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+							Expect(err).NotTo(HaveOccurred())
+
+							<-sess.Exited
+							Expect(sess.ExitCode()).To(Equal(0))
+
+							var printedConfig atc.Config
+							err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(printedConfig).To(Equal(config))
+						})
+					})
 				})
 
 				Context("and pipeline is not found", func() {

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/commands/internal/setpipelinehelpers"
@@ -8,6 +9,7 @@ import (
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/mgutz/ansi"
+	"strings"
 )
 
 type SetPipelineCommand struct {
@@ -16,8 +18,8 @@ type SetPipelineCommand struct {
 
 	CheckCredentials bool `long:"check-creds"  description:"Validate credential variables against credential manager"`
 
-	Pipeline flaghelpers.PipelineFlag `short:"p"  long:"pipeline"  required:"true"  description:"Pipeline to configure"`
-	Config   atc.PathFlag             `short:"c"  long:"config"    required:"true"  description:"Pipeline configuration file, \"-\" stands for stdin"`
+	PipelineName string       `short:"p"  long:"pipeline"  required:"true"  description:"Pipeline to configure"`
+	Config       atc.PathFlag `short:"c"  long:"config"    required:"true"  description:"Pipeline configuration file, \"-\" stands for stdin"`
 
 	Var     []flaghelpers.VariablePairFlag     `short:"v"  long:"var"       value-name:"[NAME=STRING]"  description:"Specify a string value to set for a variable in the pipeline"`
 	YAMLVar []flaghelpers.YAMLVariablePairFlag `short:"y"  long:"yaml-var"  value-name:"[NAME=YAML]"    description:"Specify a YAML value to set for a variable in the pipeline"`
@@ -30,7 +32,11 @@ type SetPipelineCommand struct {
 }
 
 func (command *SetPipelineCommand) Validate() ([]concourse.ConfigWarning, error) {
-	warnings, err := command.Pipeline.Validate()
+	var warnings []concourse.ConfigWarning
+	var err error
+	if strings.Contains(command.PipelineName, "/") {
+		err = errors.New("pipeline name cannot contain '/'")
+	}
 	if command.Team != "" {
 		if warning := atc.ValidateIdentifier(command.Team, "team"); warning != nil {
 			warnings = append(warnings, concourse.ConfigWarning{
@@ -49,7 +55,7 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 	}
 	configPath := command.Config
 	templateVariablesFiles := command.VarsFrom
-	pipelineName := string(command.Pipeline)
+	pipelineName := command.PipelineName
 
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {

@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/vito/go-interact/interact"
@@ -43,7 +44,7 @@ func (command *ClearTaskCacheCommand) Execute([]string) error {
 		}
 	}
 
-	numRemoved, err := target.Team().ClearTaskCache(command.Job.PipelineName, command.Job.JobName, command.StepName, command.CachePath)
+	numRemoved, err := target.Team().ClearTaskCache(atc.PipelineRef{Name: command.Job.PipelineName}, command.Job.JobName, command.StepName, command.CachePath)
 
 	if err != nil {
 		fmt.Println(err.Error())

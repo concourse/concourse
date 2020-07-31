@@ -30,7 +30,7 @@ func (command *AbortBuildCommand) Execute([]string) error {
 	if command.Job.PipelineName == "" && command.Job.JobName == "" {
 		build, exists, err = target.Client().Build(command.Build)
 	} else {
-		build, exists, err = target.Team().JobBuild(command.Job.PipelineName, command.Job.JobName, command.Build)
+		build, exists, err = target.Team().JobBuild(atc.PipelineRef{Name: command.Job.PipelineName}, command.Job.JobName, command.Build)
 	}
 	if err != nil {
 		return err

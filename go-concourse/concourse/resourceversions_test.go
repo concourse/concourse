@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse"
@@ -15,9 +16,13 @@ import (
 
 var _ = Describe("ATC Handler Resource Versions", func() {
 	Describe("ResourceVersions", func() {
-		expectedURL := fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/versions")
-
-		var expectedVersions []atc.ResourceVersion
+		var (
+			expectedURL      = "/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/versions"
+			expectedQuery    []string
+			expectedStatus   = http.StatusOK
+			expectedVersions []atc.ResourceVersion
+			pipelineRef      = atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
+		)
 
 		var page concourse.Page
 		var filter atc.Version
@@ -29,6 +34,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 		BeforeEach(func() {
 			page = concourse.Page{}
+			expectedQuery = []string{"instance_vars=%7B%22branch%22%3A%22master%22%7D"}
 
 			expectedVersions = []atc.ResourceVersion{
 				{
@@ -38,22 +44,22 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 					Version: atc.Version{"version": "v2"},
 				},
 			}
+
 		})
 
 		JustBeforeEach(func() {
-			versions, pagination, found, clientErr = team.ResourceVersions("mypipeline", "myresource", page, filter)
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", expectedURL, strings.Join(expectedQuery, "&")),
+					ghttp.RespondWithJSONEncoded(expectedStatus, expectedVersions),
+				),
+			)
+
+			versions, pagination, found, clientErr = team.ResourceVersions(pipelineRef, "myresource", page, filter)
 		})
 
 		Context("when from, to, and limit are 0", func() {
-			BeforeEach(func() {
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedVersions),
-					),
-				)
-			})
-
 			It("calls to get all versions", func() {
 				Expect(clientErr).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
@@ -64,13 +70,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 		Context("when from is specified", func() {
 			BeforeEach(func() {
 				page = concourse.Page{From: 24}
-
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL, "from=24"),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedVersions),
-					),
-				)
+				expectedQuery = append(expectedQuery, "from=24")
 			})
 
 			It("calls to get all versions from that id", func() {
@@ -83,13 +83,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 		Context("when from and limit is specified", func() {
 			BeforeEach(func() {
 				page = concourse.Page{From: 24, Limit: 5}
-
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL, "from=24&limit=5"),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedVersions),
-					),
-				)
+				expectedQuery = append(expectedQuery, "from=24", "limit=5")
 			})
 
 			It("appends limit to the url", func() {
@@ -102,13 +96,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 		Context("when to is specified", func() {
 			BeforeEach(func() {
 				page = concourse.Page{To: 26}
-
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL, "to=26"),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedVersions),
-					),
-				)
+				expectedQuery = append(expectedQuery, "to=26")
 			})
 
 			It("calls to get all versions to that id", func() {
@@ -121,13 +109,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 		Context("when to and limit is specified", func() {
 			BeforeEach(func() {
 				page = concourse.Page{To: 26, Limit: 15}
-
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL, "to=26&limit=15"),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedVersions),
-					),
-				)
+				expectedQuery = append(expectedQuery, "to=26", "limit=15")
 			})
 
 			It("appends limit to the url", func() {
@@ -140,13 +122,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 		Context("when from and to are both specified", func() {
 			BeforeEach(func() {
 				page = concourse.Page{From: 24, To: 26}
-
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL, "to=26&from=24"),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedVersions),
-					),
-				)
+				expectedQuery = append(expectedQuery, "to=26", "from=24")
 			})
 
 			It("sends both from and the to", func() {
@@ -159,13 +135,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 		Context("when filter is specified", func() {
 			BeforeEach(func() {
 				filter = atc.Version{"some": "value"}
-
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL, "filter=some:value"),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedVersions),
-					),
-				)
+				expectedQuery = append(expectedQuery, "filter=some:value")
 			})
 
 			It("sends filters as url params", func() {
@@ -177,12 +147,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 		Context("when the server returns an error", func() {
 			BeforeEach(func() {
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWith(http.StatusInternalServerError, ""),
-					),
-				)
+				expectedStatus = http.StatusInternalServerError
 			})
 
 			It("returns false and an error", func() {
@@ -193,12 +158,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 		Context("when the server returns not found", func() {
 			BeforeEach(func() {
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWith(http.StatusNotFound, ""),
-					),
-				)
+				expectedStatus = http.StatusNotFound
 			})
 
 			It("returns false and no error", func() {
@@ -257,12 +217,14 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 			resourceName      = "myresource"
 			resourceVersionID = 42
 			expectedURL       = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/resources/%s/versions/%s/disable", pipelineName, resourceName, strconv.Itoa(resourceVersionID))
+			expectedQuery     = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			pipelineRef       = atc.PipelineRef{Name: pipelineName, InstanceVars: atc.InstanceVars{"branch": "master"}}
 		)
 
 		JustBeforeEach(func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("PUT", expectedURL),
+					ghttp.VerifyRequest("PUT", expectedURL, expectedQuery),
 					ghttp.RespondWith(expectedStatus, nil),
 				),
 			)
@@ -275,7 +237,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 			It("calls the disable resource and returns no error", func() {
 				Expect(func() {
-					disabled, err := team.DisableResourceVersion(pipelineName, resourceName, resourceVersionID)
+					disabled, err := team.DisableResourceVersion(pipelineRef, resourceName, resourceVersionID)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(disabled).To(BeTrue())
 				}).To(Change(func() int {
@@ -291,7 +253,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 			It("calls the disable resource and returns an error", func() {
 				Expect(func() {
-					disabled, err := team.DisableResourceVersion(pipelineName, resourceName, resourceVersionID)
+					disabled, err := team.DisableResourceVersion(pipelineRef, resourceName, resourceVersionID)
 					Expect(err).To(HaveOccurred())
 					Expect(disabled).To(BeFalse())
 				}).To(Change(func() int {
@@ -307,7 +269,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 			It("calls the disable resource and returns an error", func() {
 				Expect(func() {
-					disabled, err := team.DisableResourceVersion(pipelineName, resourceName, resourceVersionID)
+					disabled, err := team.DisableResourceVersion(pipelineRef, resourceName, resourceVersionID)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(disabled).To(BeFalse())
 				}).To(Change(func() int {
@@ -324,12 +286,14 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 			resourceName      = "myresource"
 			resourceVersionID = 42
 			expectedURL       = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/resources/%s/versions/%s/enable", pipelineName, resourceName, strconv.Itoa(resourceVersionID))
+			expectedQuery     = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			pipelineRef       = atc.PipelineRef{Name: pipelineName, InstanceVars: atc.InstanceVars{"branch": "master"}}
 		)
 
 		JustBeforeEach(func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("PUT", expectedURL),
+					ghttp.VerifyRequest("PUT", expectedURL, expectedQuery),
 					ghttp.RespondWith(expectedStatus, nil),
 				),
 			)
@@ -342,7 +306,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 			It("calls the enable resource and returns no error", func() {
 				Expect(func() {
-					enabled, err := team.EnableResourceVersion(pipelineName, resourceName, resourceVersionID)
+					enabled, err := team.EnableResourceVersion(pipelineRef, resourceName, resourceVersionID)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(enabled).To(BeTrue())
 				}).To(Change(func() int {
@@ -358,7 +322,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 			It("calls the enable resource and returns an error", func() {
 				Expect(func() {
-					enabled, err := team.EnableResourceVersion(pipelineName, resourceName, resourceVersionID)
+					enabled, err := team.EnableResourceVersion(pipelineRef, resourceName, resourceVersionID)
 					Expect(err).To(HaveOccurred())
 					Expect(enabled).To(BeFalse())
 				}).To(Change(func() int {
@@ -374,7 +338,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 			It("calls the enable resource and returns an error", func() {
 				Expect(func() {
-					enabled, err := team.EnableResourceVersion(pipelineName, resourceName, resourceVersionID)
+					enabled, err := team.EnableResourceVersion(pipelineRef, resourceName, resourceVersionID)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(enabled).To(BeFalse())
 				}).To(Change(func() int {
@@ -392,12 +356,14 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 			resourceName      = "myresource"
 			resourceVersionID = 42
 			expectedURL       = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/resources/%s/versions/%s/pin", pipelineName, resourceName, strconv.Itoa(resourceVersionID))
+			expectedQuery     = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			pipelineRef       = atc.PipelineRef{Name: pipelineName, InstanceVars: atc.InstanceVars{"branch": "master"}}
 		)
 
 		JustBeforeEach(func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("PUT", expectedURL),
+					ghttp.VerifyRequest("PUT", expectedURL, expectedQuery),
 					ghttp.VerifyBody(expectedBody),
 					ghttp.RespondWith(expectedStatus, nil),
 				),
@@ -411,7 +377,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 			It("calls the pin resource and returns no error", func() {
 				Expect(func() {
-					pinned, err := team.PinResourceVersion(pipelineName, resourceName, resourceVersionID)
+					pinned, err := team.PinResourceVersion(pipelineRef, resourceName, resourceVersionID)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(pinned).To(BeTrue())
 				}).To(Change(func() int {
@@ -427,7 +393,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 			It("calls the pin resource and returns an error", func() {
 				Expect(func() {
-					pinned, err := team.PinResourceVersion(pipelineName, resourceName, resourceVersionID)
+					pinned, err := team.PinResourceVersion(pipelineRef, resourceName, resourceVersionID)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(pinned).To(BeFalse())
 				}).To(Change(func() int {
@@ -443,7 +409,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 			It("calls the pin resource and returns an error", func() {
 				Expect(func() {
-					pinned, err := team.PinResourceVersion(pipelineName, resourceName, resourceVersionID)
+					pinned, err := team.PinResourceVersion(pipelineRef, resourceName, resourceVersionID)
 					Expect(err).To(HaveOccurred())
 					Expect(pinned).To(BeFalse())
 				}).To(Change(func() int {
@@ -459,12 +425,14 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 			pipelineName   = "banana"
 			resourceName   = "myresource"
 			expectedURL    = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/resources/%s/unpin", pipelineName, resourceName)
+			expectedQuery  = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			pipelineRef    = atc.PipelineRef{Name: pipelineName, InstanceVars: atc.InstanceVars{"branch": "master"}}
 		)
 
 		JustBeforeEach(func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("PUT", expectedURL),
+					ghttp.VerifyRequest("PUT", expectedURL, expectedQuery),
 					ghttp.RespondWith(expectedStatus, nil),
 				),
 			)
@@ -477,7 +445,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 			It("calls the unpin resource and returns no error", func() {
 				Expect(func() {
-					pinned, err := team.UnpinResource(pipelineName, resourceName)
+					pinned, err := team.UnpinResource(pipelineRef, resourceName)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(pinned).To(BeTrue())
 				}).To(Change(func() int {
@@ -493,7 +461,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 			It("calls the unpin resource and returns an error", func() {
 				Expect(func() {
-					pinned, err := team.UnpinResource(pipelineName, resourceName)
+					pinned, err := team.UnpinResource(pipelineRef, resourceName)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(pinned).To(BeFalse())
 				}).To(Change(func() int {
@@ -509,7 +477,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 			It("calls the unpin resource and returns an error", func() {
 				Expect(func() {
-					pinned, err := team.UnpinResource(pipelineName, resourceName)
+					pinned, err := team.UnpinResource(pipelineRef, resourceName)
 					Expect(err).To(HaveOccurred())
 					Expect(pinned).To(BeFalse())
 				}).To(Change(func() int {
@@ -526,12 +494,14 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 			pipelineName       = "banana"
 			resourceName       = "myresource"
 			expectedURL        = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/resources/%s/pin_comment", pipelineName, resourceName)
+			expectedQuery      = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			pipelineRef        = atc.PipelineRef{Name: pipelineName, InstanceVars: atc.InstanceVars{"branch": "master"}}
 		)
 
 		JustBeforeEach(func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("PUT", expectedURL),
+					ghttp.VerifyRequest("PUT", expectedURL, expectedQuery),
 					ghttp.VerifyJSONRepresenting(expectedPinComment),
 					ghttp.RespondWith(expectedStatus, nil),
 				),
@@ -549,7 +519,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 				It("calls set pin comment and returns no error", func() {
 					Expect(func() {
-						setComment, err := team.SetPinComment(pipelineName, resourceName, "some comment")
+						setComment, err := team.SetPinComment(pipelineRef, resourceName, "some comment")
 						Expect(err).ToNot(HaveOccurred())
 						Expect(setComment).To(BeTrue())
 					}).To(Change(func() int {
@@ -566,7 +536,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 			It("calls the pin comment and returns an error", func() {
 				Expect(func() {
-					setComment, err := team.SetPinComment(pipelineName, resourceName, "some comment")
+					setComment, err := team.SetPinComment(pipelineRef, resourceName, "some comment")
 					Expect(err).ToNot(HaveOccurred())
 					Expect(setComment).To(BeFalse())
 				}).To(Change(func() int {

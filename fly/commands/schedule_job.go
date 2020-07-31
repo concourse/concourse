@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
 )
@@ -22,7 +23,7 @@ func (command *ScheduleJobCommand) Execute(args []string) error {
 		return err
 	}
 
-	found, err := target.Team().ScheduleJob(command.Job.PipelineName, command.Job.JobName)
+	found, err := target.Team().ScheduleJob(atc.PipelineRef{Name: command.Job.PipelineName}, command.Job.JobName)
 	if err != nil {
 		return err
 	}

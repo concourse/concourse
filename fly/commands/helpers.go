@@ -11,14 +11,14 @@ import (
 	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
-func GetBuild(client concourse.Client, team concourse.Team, jobName string, buildNameOrID string, pipelineName string) (atc.Build, error) {
+func GetBuild(client concourse.Client, team concourse.Team, jobName string, buildNameOrID string, pipelineRef atc.PipelineRef) (atc.Build, error) {
 	if buildNameOrID != "" {
 		var build atc.Build
 		var err error
 		var found bool
 
 		if team != nil {
-			build, found, err = team.JobBuild(pipelineName, jobName, buildNameOrID)
+			build, found, err = team.JobBuild(pipelineRef, jobName, buildNameOrID)
 		} else {
 			build, found, err = client.Build(buildNameOrID)
 		}
@@ -33,7 +33,7 @@ func GetBuild(client concourse.Client, team concourse.Team, jobName string, buil
 
 		return build, nil
 	} else if jobName != "" {
-		job, found, err := team.Job(pipelineName, jobName)
+		job, found, err := team.Job(pipelineRef, jobName)
 
 		if err != nil {
 			return atc.Build{}, fmt.Errorf("failed to get job %s", err)
@@ -73,7 +73,7 @@ func GetBuild(client concourse.Client, team concourse.Team, jobName string, buil
 }
 
 func GetLatestResourceVersion(team concourse.Team, resource flaghelpers.ResourceFlag, version atc.Version) (atc.ResourceVersion, error) {
-	versions, _, found, err := team.ResourceVersions(resource.PipelineName, resource.ResourceName, concourse.Page{}, version)
+	versions, _, found, err := team.ResourceVersions(atc.PipelineRef{Name: resource.PipelineName}, resource.ResourceName, concourse.Page{}, version)
 
 	if err != nil {
 		return atc.ResourceVersion{}, err

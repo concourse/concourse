@@ -32,9 +32,6 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	asJSON := command.JSON
-	pipelineName := string(command.Pipeline)
-
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
@@ -45,7 +42,8 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	config, _, found, err := target.Team().PipelineConfig(atc.PipelineRef{Name: pipelineName}) // FIXME 5808 should filter on instanced pipeline?
+	pipelineRef := command.Pipeline.Ref()
+	config, _, found, err := target.Team().PipelineConfig(pipelineRef)
 	if err != nil {
 		return err
 	}
@@ -54,7 +52,7 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 		return errors.New("pipeline not found")
 	}
 
-	return dump(config, asJSON)
+	return dump(config, command.JSON)
 }
 
 func dump(config atc.Config, asJSON bool) error {

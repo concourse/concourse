@@ -34,14 +34,13 @@ func (command *ChecklistCommand) Execute([]string) error {
 		return err
 	}
 
-	pipelineName := string(command.Pipeline)
-
-	config, _, _, err := target.Team().PipelineConfig(atc.PipelineRef{Name: pipelineName}) // FIXME 5808 should filter on instanced pipeline?
+	pipelineRef := command.Pipeline.Ref()
+	config, _, _, err := target.Team().PipelineConfig(pipelineRef)
 	if err != nil {
 		return err
 	}
 
-	printCheckfile(target.Team().Name(), pipelineName, config, target.Client().URL())
+	printCheckfile(target.Team().Name(), pipelineRef.String(), config, target.Client().URL())
 
 	return nil
 }

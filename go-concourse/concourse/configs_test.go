@@ -24,7 +24,10 @@ var _ = Describe("ATC Handler Configs", func() {
 	})
 
 	Describe("PipelineConfig", func() {
-		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/config"
+		var (
+			expectedURL         = "/api/v1/teams/some-team/pipelines/mypipeline/config"
+			expectedQueryParams string
+		)
 
 		Context("ATC returns the correct response when it exists", func() {
 			var (
@@ -78,15 +81,13 @@ var _ = Describe("ATC Handler Configs", func() {
 				}
 
 				expectedVersion = "42"
+			})
 
-				configResponse := atc.ConfigResponse{
-					Config: expectedConfig,
-				}
-
+			JustBeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, configResponse, http.Header{atc.ConfigVersionHeader: {expectedVersion}}),
+						ghttp.VerifyRequest("GET", expectedURL, expectedQueryParams),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ConfigResponse{Config: expectedConfig}, http.Header{atc.ConfigVersionHeader: {expectedVersion}}),
 					),
 				)
 			})
@@ -97,6 +98,25 @@ var _ = Describe("ATC Handler Configs", func() {
 				Expect(pipelineConfig).To(Equal(expectedConfig))
 				Expect(version).To(Equal(expectedVersion))
 				Expect(found).To(BeTrue())
+			})
+
+			Context("when specifying instance vars", func() {
+
+				BeforeEach(func() {
+					pipelineRef = atc.PipelineRef{
+						Name:         "mypipeline",
+						InstanceVars: atc.InstanceVars{"branch": "master"},
+					}
+					expectedQueryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+				})
+
+				It("returns the given config and version for that pipeline instance", func() {
+					pipelineConfig, version, found, err := team.PipelineConfig(pipelineRef)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(pipelineConfig).To(Equal(expectedConfig))
+					Expect(version).To(Equal(expectedVersion))
+					Expect(found).To(BeTrue())
+				})
 			})
 		})
 

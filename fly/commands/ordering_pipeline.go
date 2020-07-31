@@ -25,7 +25,7 @@ func (command *OrderPipelinesCommand) Validate() ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		pipelines = append(pipelines, string(p))
+		pipelines = append(pipelines, p.Name)
 	}
 	return pipelines, nil
 

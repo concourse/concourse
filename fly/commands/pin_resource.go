@@ -34,7 +34,7 @@ func (command *PinResourceCommand) Execute([]string) error {
 			return err
 		}
 
-		pinned, err := team.PinResourceVersion(command.Resource.PipelineName, command.Resource.ResourceName, latestResourceVersion.ID)
+		pinned, err := team.PinResourceVersion(atc.PipelineRef{Name: command.Resource.PipelineName}, command.Resource.ResourceName, latestResourceVersion.ID)
 
 		if err != nil {
 			return err
@@ -53,7 +53,7 @@ func (command *PinResourceCommand) Execute([]string) error {
 	}
 
 	if command.Comment != "" {
-		saved, err := team.SetPinComment(command.Resource.PipelineName, command.Resource.ResourceName, command.Comment)
+		saved, err := team.SetPinComment(atc.PipelineRef{Name: command.Resource.PipelineName}, command.Resource.ResourceName, command.Comment)
 
 		if err != nil {
 			return err

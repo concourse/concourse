@@ -41,7 +41,7 @@ var _ = Describe("RenamePipeline", func() {
 		})
 	})
 
-	Context("when specifying a pipeline name with a '/' character in it", func() {
+	Context("when specifying a new pipeline name with a '/' character in it", func() {
 		It("fails and says '/' characters are not allowed", func() {
 			flyCmd := exec.Command(flyPath, "-t", targetName, "rename-pipeline", "-o", "some-pipeline", "-n", "forbidden/pipelinename")
 
@@ -52,6 +52,20 @@ var _ = Describe("RenamePipeline", func() {
 			Expect(sess.ExitCode()).To(Equal(1))
 
 			Expect(sess.Err).To(gbytes.Say("error: pipeline name cannot contain '/'"))
+		})
+	})
+
+	Context("when the pipeline flag is invalid", func() {
+		It("fails and print invalid flag error", func() {
+			flyCmd := exec.Command(flyPath, "-t", targetName, "rename-pipeline", "-o", "forbidden/pipelinename", "-n", "some-new-name")
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(1))
+
+			Expect(sess.Err).To(gbytes.Say("error: invalid argument for flag `-o, --old-name'"))
 		})
 	})
 

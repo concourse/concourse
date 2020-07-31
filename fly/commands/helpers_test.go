@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-
 	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/fly/commands"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc/rcfakes"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	fakes "github.com/concourse/concourse/go-concourse/concourse/concoursefakes"
@@ -24,7 +23,7 @@ var _ = Describe("Helper Functions", func() {
 		expectedBuildID := "123"
 		expectedBuildName := "5"
 		expectedJobName := "myjob"
-		expectedPipelineName := "mypipeline"
+		expectedPipelineRef := atc.PipelineRef{}
 		expectedBuild := atc.Build{
 			ID:      123,
 			Name:    expectedBuildName,
@@ -46,7 +45,7 @@ var _ = Describe("Helper Functions", func() {
 					})
 
 					It("returns the build", func() {
-						build, err := GetBuild(client, nil, "", expectedBuildID, "")
+						build, err := GetBuild(client, nil, "", expectedBuildID, expectedPipelineRef)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(build).To(Equal(expectedBuild))
 						Expect(client.BuildCallCount()).To(Equal(1))
@@ -60,7 +59,7 @@ var _ = Describe("Helper Functions", func() {
 					})
 
 					It("returns an error", func() {
-						_, err := GetBuild(client, nil, "", expectedBuildID, "")
+						_, err := GetBuild(client, nil, "", expectedBuildID, expectedPipelineRef)
 						Expect(err).To(HaveOccurred())
 						Expect(err).To(MatchError("build not found"))
 					})
@@ -73,7 +72,7 @@ var _ = Describe("Helper Functions", func() {
 				})
 
 				It("return an error", func() {
-					_, err := GetBuild(client, nil, "", expectedBuildID, "")
+					_, err := GetBuild(client, nil, "", expectedBuildID, expectedPipelineRef)
 					Expect(err).To(MatchError("failed to get build some-error"))
 				})
 			})
@@ -89,15 +88,16 @@ var _ = Describe("Helper Functions", func() {
 								NextBuild: &expectedBuild,
 							}
 							team.JobReturns(job, true, nil)
+							expectedPipelineRef = atc.PipelineRef{Name: "mypipeline"}
 						})
 
 						It("returns the next build for that job", func() {
-							build, err := GetBuild(client, team, expectedJobName, "", expectedPipelineName)
+							build, err := GetBuild(client, team, expectedJobName, "", expectedPipelineRef)
 							Expect(err).NotTo(HaveOccurred())
 							Expect(build).To(Equal(expectedBuild))
 							Expect(team.JobCallCount()).To(Equal(1))
-							pipelineName, jobName := team.JobArgsForCall(0)
-							Expect(pipelineName).To(Equal(expectedPipelineName))
+							pipelineRef, jobName := team.JobArgsForCall(0)
+							Expect(pipelineRef).To(Equal(expectedPipelineRef))
 							Expect(jobName).To(Equal(expectedJobName))
 						})
 					})
@@ -109,15 +109,16 @@ var _ = Describe("Helper Functions", func() {
 								FinishedBuild: &expectedBuild,
 							}
 							team.JobReturns(job, true, nil)
+							expectedPipelineRef = atc.PipelineRef{Name: "mypipeline"}
 						})
 
 						It("returns the finished build for that job", func() {
-							build, err := GetBuild(client, team, expectedJobName, "", expectedPipelineName)
+							build, err := GetBuild(client, team, expectedJobName, "", expectedPipelineRef)
 							Expect(err).NotTo(HaveOccurred())
 							Expect(build).To(Equal(expectedBuild))
 							Expect(team.JobCallCount()).To(Equal(1))
-							pipelineName, jobName := team.JobArgsForCall(0)
-							Expect(pipelineName).To(Equal(expectedPipelineName))
+							pipelineRef, jobName := team.JobArgsForCall(0)
+							Expect(pipelineRef).To(Equal(expectedPipelineRef))
 							Expect(jobName).To(Equal(expectedJobName))
 						})
 					})
@@ -128,10 +129,11 @@ var _ = Describe("Helper Functions", func() {
 								Name: expectedJobName,
 							}
 							team.JobReturns(job, true, nil)
+							expectedPipelineRef = atc.PipelineRef{Name: "mypipeline"}
 						})
 
 						It("returns an error", func() {
-							_, err := GetBuild(client, team, expectedJobName, "", expectedPipelineName)
+							_, err := GetBuild(client, team, expectedJobName, "", expectedPipelineRef)
 							Expect(err).To(HaveOccurred())
 						})
 					})
@@ -140,10 +142,11 @@ var _ = Describe("Helper Functions", func() {
 				Context("when job does not exists", func() {
 					BeforeEach(func() {
 						team.JobReturns(atc.Job{}, false, nil)
+						expectedPipelineRef = atc.PipelineRef{Name: "mypipeline"}
 					})
 
 					It("returns an error", func() {
-						_, err := GetBuild(client, team, expectedJobName, "", expectedPipelineName)
+						_, err := GetBuild(client, team, expectedJobName, "", expectedPipelineRef)
 						Expect(err).To(MatchError("job not found"))
 					})
 				})
@@ -155,7 +158,7 @@ var _ = Describe("Helper Functions", func() {
 				})
 
 				It("should return an error", func() {
-					_, err := GetBuild(client, team, expectedJobName, "", "")
+					_, err := GetBuild(client, team, expectedJobName, "", expectedPipelineRef)
 					Expect(err).To(HaveOccurred())
 					Expect(err).To(MatchError("failed to get job some-error"))
 				})
@@ -167,15 +170,16 @@ var _ = Describe("Helper Functions", func() {
 			Context("when the build exists", func() {
 				BeforeEach(func() {
 					team.JobBuildReturns(expectedBuild, true, nil)
+					expectedPipelineRef = atc.PipelineRef{Name: "mypipeline"}
 				})
 
 				It("returns the build", func() {
-					build, err := GetBuild(client, team, expectedJobName, expectedBuildName, expectedPipelineName)
+					build, err := GetBuild(client, team, expectedJobName, expectedBuildName, expectedPipelineRef)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(build).To(Equal(expectedBuild))
 					Expect(team.JobBuildCallCount()).To(Equal(1))
-					pipelineName, jobName, buildName := team.JobBuildArgsForCall(0)
-					Expect(pipelineName).To(Equal(expectedPipelineName))
+					pipelineRef, jobName, buildName := team.JobBuildArgsForCall(0)
+					Expect(pipelineRef).To(Equal(expectedPipelineRef))
 					Expect(buildName).To(Equal(expectedBuildName))
 					Expect(jobName).To(Equal(expectedJobName))
 				})
@@ -184,10 +188,11 @@ var _ = Describe("Helper Functions", func() {
 			Context("when the build does not exist", func() {
 				BeforeEach(func() {
 					team.JobBuildReturns(atc.Build{}, false, nil)
+					expectedPipelineRef = atc.PipelineRef{Name: "mypipeline"}
 				})
 
 				It("returns an error", func() {
-					_, err := GetBuild(client, team, expectedJobName, expectedBuildName, expectedPipelineName)
+					_, err := GetBuild(client, team, expectedJobName, expectedBuildName, expectedPipelineRef)
 					Expect(err).To(MatchError("build not found"))
 				})
 			})
@@ -242,7 +247,7 @@ var _ = Describe("Helper Functions", func() {
 					})
 
 					It("returns latest one off build", func() {
-						build, err := GetBuild(client, nil, "", "", "")
+						build, err := GetBuild(client, nil, "", "", expectedPipelineRef)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(build).To(Equal(expectedOneOffBuild))
 						Expect(client.BuildsCallCount()).To(Equal(2))
@@ -255,7 +260,7 @@ var _ = Describe("Helper Functions", func() {
 					})
 
 					It("returns an error", func() {
-						_, err := GetBuild(client, nil, "", "", "")
+						_, err := GetBuild(client, nil, "", "", expectedPipelineRef)
 						Expect(err).To(HaveOccurred())
 						Expect(err).To(MatchError("no builds match job"))
 					})
@@ -268,7 +273,7 @@ var _ = Describe("Helper Functions", func() {
 				})
 
 				It("should return an error", func() {
-					_, err := GetBuild(client, nil, "", "", "")
+					_, err := GetBuild(client, nil, "", "", expectedPipelineRef)
 					Expect(err).To(HaveOccurred())
 					Expect(err).To(MatchError("failed to get builds some-error"))
 				})
