@@ -18,19 +18,22 @@ var _ = Describe("Fly CLI", func() {
 	Describe("pause-pipeline", func() {
 		Context("when the pipeline name is specified", func() {
 			var (
-				path string
-				err  error
+				path        string
+				queryParams string
+				err         error
 			)
 			BeforeEach(func() {
 				path, err = atc.Routes.CreatePathForRoute(atc.PausePipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": teamName})
 				Expect(err).NotTo(HaveOccurred())
+
+				queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
 			})
 
 			Context("when the pipeline exists", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("PUT", path),
+							ghttp.VerifyRequest("PUT", path, queryParams),
 							ghttp.RespondWith(http.StatusOK, nil),
 						),
 					)
@@ -38,12 +41,12 @@ var _ = Describe("Fly CLI", func() {
 
 				It("pauses the pipeline", func() {
 					Expect(func() {
-						flyCmd := exec.Command(flyPath, "-t", targetName, "pause-pipeline", "-p", "awesome-pipeline")
+						flyCmd := exec.Command(flyPath, "-t", targetName, "pause-pipeline", "-p", "awesome-pipeline/branch:master")
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
-						Eventually(sess).Should(gbytes.Say(`paused 'awesome-pipeline'`))
+						Eventually(sess).Should(gbytes.Say(`paused 'awesome-pipeline/branch:master'`))
 
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(0))

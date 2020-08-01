@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/go-concourse/concourse"
@@ -15,7 +14,8 @@ type UnpauseJobCommand struct {
 }
 
 func (command *UnpauseJobCommand) Execute(args []string) error {
-	pipelineName, jobName := command.Job.PipelineName, command.Job.JobName
+	jobName := command.Job.JobName
+	pipelineRef := command.Job.PipelineRef
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
@@ -36,13 +36,13 @@ func (command *UnpauseJobCommand) Execute(args []string) error {
 		team = target.Team()
 	}
 
-	found, err := team.UnpauseJob(atc.PipelineRef{Name: pipelineName}, jobName)
+	found, err := team.UnpauseJob(pipelineRef, jobName)
 	if err != nil {
 		return err
 	}
 
 	if !found {
-		return fmt.Errorf("%s/%s not found on team %s\n", pipelineName, jobName, team.Name())
+		return fmt.Errorf("%s/%s not found on team %s\n", pipelineRef.String(), jobName, team.Name())
 	}
 
 	fmt.Printf("unpaused '%s'\n", jobName)

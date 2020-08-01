@@ -21,7 +21,8 @@ type TriggerJobCommand struct {
 }
 
 func (command *TriggerJobCommand) Execute(args []string) error {
-	pipelineName, jobName := command.Job.PipelineName, command.Job.JobName
+	jobName := command.Job.JobName
+	pipelineRef := command.Job.PipelineRef
 
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
@@ -46,11 +47,11 @@ func (command *TriggerJobCommand) Execute(args []string) error {
 		team = target.Team()
 	}
 
-	build, err = team.CreateJobBuild(atc.PipelineRef{Name: pipelineName}, jobName)
+	build, err = team.CreateJobBuild(pipelineRef, jobName)
 	if err != nil {
 		return err
 	} else {
-		fmt.Printf("started %s/%s #%s\n", pipelineName, jobName, build.Name)
+		fmt.Printf("started %s/%s #%s\n", pipelineRef.String(), jobName, build.Name)
 	}
 
 	if command.Watch {
@@ -60,7 +61,7 @@ func (command *TriggerJobCommand) Execute(args []string) error {
 			<-terminate
 			fmt.Fprintf(ui.Stderr, "\ndetached, build is still running...\n")
 			fmt.Fprintf(ui.Stderr, "re-attach to it with:\n\n")
-			fmt.Fprintf(ui.Stderr, "    "+ui.Embolden(fmt.Sprintf("fly -t %s watch -j %s/%s -b %s\n\n", Fly.Target, pipelineName, jobName, build.Name)))
+			fmt.Fprintf(ui.Stderr, "    "+ui.Embolden(fmt.Sprintf("fly -t %s watch -j %s/%s -b %s\n\n", Fly.Target, pipelineRef.String(), jobName, build.Name)))
 			os.Exit(2)
 		}(terminate)
 

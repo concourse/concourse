@@ -81,8 +81,8 @@ func (flag *PipelineFlag) Complete(match string) []flags.Completion {
 
 	comps := []flags.Completion{}
 	for _, pipeline := range pipelines {
-		if strings.HasPrefix(pipeline.Name, match) {
-			comps = append(comps, flags.Completion{Item: pipeline.Name})
+		if strings.HasPrefix(pipeline.Ref().String(), match) {
+			comps = append(comps, flags.Completion{Item: pipeline.Ref().String()})
 		}
 	}
 

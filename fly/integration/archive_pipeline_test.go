@@ -31,20 +31,23 @@ var _ = Describe("Fly CLI", func() {
 	Describe("archive-pipeline", func() {
 		Context("when the pipeline name is specified", func() {
 			var (
-				path string
-				err  error
+				path        string
+				queryParams string
+				err         error
 			)
 
 			BeforeEach(func() {
 				path, err = atc.Routes.CreatePathForRoute(atc.ArchivePipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 				Expect(err).NotTo(HaveOccurred())
+
+				queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
 			})
 
 			Context("when the pipeline exists", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("PUT", path),
+							ghttp.VerifyRequest("PUT", path, queryParams),
 							ghttp.RespondWith(http.StatusOK, nil),
 						),
 					)
@@ -53,7 +56,7 @@ var _ = Describe("Fly CLI", func() {
 				Context("when the user confirms", func() {
 					It("archives the pipeline", func() {
 						Expect(func() {
-							flyCmd := exec.Command(flyPath, "-t", targetName, "archive-pipeline", "-p", "awesome-pipeline")
+							flyCmd := exec.Command(flyPath, "-t", targetName, "archive-pipeline", "-p", "awesome-pipeline/branch:master")
 							stdin, err := flyCmd.StdinPipe()
 							Expect(err).NotTo(HaveOccurred())
 
@@ -61,10 +64,10 @@ var _ = Describe("Fly CLI", func() {
 							Expect(err).NotTo(HaveOccurred())
 
 							Eventually(sess).Should(gbytes.Say("!!! archiving the pipeline will remove its configuration. Build history will be retained.\n\n"))
-							Eventually(sess).Should(gbytes.Say("archive pipeline 'awesome-pipeline'?"))
+							Eventually(sess).Should(gbytes.Say("archive pipeline 'awesome-pipeline/branch:master'?"))
 							yes(stdin)
 
-							Eventually(sess).Should(gbytes.Say(`archived 'awesome-pipeline'`))
+							Eventually(sess).Should(gbytes.Say(`archived 'awesome-pipeline/branch:master'`))
 
 							<-sess.Exited
 							Expect(sess.ExitCode()).To(Equal(0))
@@ -77,14 +80,14 @@ var _ = Describe("Fly CLI", func() {
 				Context("when the user declines", func() {
 					It("does not archive the pipelines", func() {
 						Expect(func() {
-							flyCmd := exec.Command(flyPath, "-t", targetName, "archive-pipeline", "-p", "awesome-pipeline")
+							flyCmd := exec.Command(flyPath, "-t", targetName, "archive-pipeline", "-p", "awesome-pipeline/branch:master")
 							stdin, err := flyCmd.StdinPipe()
 							Expect(err).NotTo(HaveOccurred())
 
 							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 							Expect(err).NotTo(HaveOccurred())
 
-							Eventually(sess).Should(gbytes.Say("archive pipeline 'awesome-pipeline'?"))
+							Eventually(sess).Should(gbytes.Say("archive pipeline 'awesome-pipeline/branch:master'?"))
 							no(stdin)
 
 							Eventually(sess).Should(gbytes.Say(`bailing out`))
@@ -100,12 +103,12 @@ var _ = Describe("Fly CLI", func() {
 				Context("when running in non-interactive mode", func() {
 					It("does not prompt the user", func() {
 						Expect(func() {
-							flyCmd := exec.Command(flyPath, "-t", targetName, "archive-pipeline", "-n", "-p", "awesome-pipeline")
+							flyCmd := exec.Command(flyPath, "-t", targetName, "archive-pipeline", "-n", "-p", "awesome-pipeline/branch:master")
 
 							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 							Expect(err).NotTo(HaveOccurred())
 
-							Eventually(sess).Should(gbytes.Say(`archived 'awesome-pipeline'`))
+							Eventually(sess).Should(gbytes.Say(`archived 'awesome-pipeline/branch:master'`))
 
 							<-sess.Exited
 							Expect(sess.ExitCode()).To(Equal(0))

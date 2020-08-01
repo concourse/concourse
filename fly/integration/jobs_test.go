@@ -21,7 +21,7 @@ var _ = Describe("Fly CLI", func() {
 			flyCmd *exec.Cmd
 		)
 
-		pipelineName := "pipeline"
+		expectedURL := "/api/v1/teams/main/pipelines/pipeline/jobs"
 		sampleJobJsonString := `[
               {
                 "id": 0,
@@ -114,10 +114,10 @@ var _ = Describe("Fly CLI", func() {
 			}
 
 			BeforeEach(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "jobs", "--pipeline", pipelineName)
+				flyCmd = exec.Command(flyPath, "-t", targetName, "jobs", "--pipeline", "pipeline/branch:master")
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/jobs"),
+						ghttp.VerifyRequest("GET", expectedURL, "instance_vars=%7B%22branch%22%3A%22master%22%7D"),
 						ghttp.RespondWithJSONEncoded(200, sampleJobs),
 					),
 				)
@@ -157,7 +157,7 @@ var _ = Describe("Fly CLI", func() {
 				flyCmd = exec.Command(flyPath, "-t", targetName, "jobs", "-p", "pipeline")
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/jobs"),
+						ghttp.VerifyRequest("GET", expectedURL),
 						ghttp.RespondWith(500, ""),
 					),
 				)
@@ -187,7 +187,7 @@ var _ = Describe("Fly CLI", func() {
 					)
 				})
 				It("can list jobs in 'other-team'", func() {
-					flyJobCmd := exec.Command(flyPath, "-t", targetName, "jobs", "-p", pipelineName, "--team", "other-team", "--json")
+					flyJobCmd := exec.Command(flyPath, "-t", targetName, "jobs", "-p", "pipeline", "--team", "other-team", "--json")
 					sess, err := gexec.Start(flyJobCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 

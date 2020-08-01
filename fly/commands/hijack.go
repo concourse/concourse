@@ -280,9 +280,9 @@ func (command *HijackCommand) getContainerFingerprint(target rc.Target, team con
 		}
 	}
 
-	pipelineName := command.Check.PipelineName
-	if command.Job.PipelineName != "" {
-		pipelineName = command.Job.PipelineName
+	pipelineName := command.Check.PipelineName // FIXME 5808
+	if command.Job.PipelineRef.Name != "" {
+		pipelineName = command.Job.PipelineRef.String() // FIXME 5808
 	}
 
 	for _, field := range []struct {
@@ -396,7 +396,7 @@ func (locator checkContainerLocator) locate(fingerprint *containerFingerprint) (
 }
 
 type containerFingerprint struct {
-	pipelineName  string
+	pipelineName  string // FIXME 5808
 	jobName       string
 	buildNameOrID string
 

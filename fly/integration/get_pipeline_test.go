@@ -115,11 +115,17 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			Context("when specifying a pipeline name", func() {
-				var path string
+				var (
+					path        string
+					queryParams string
+				)
+
 				BeforeEach(func() {
 					var err error
 					path, err = atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "some-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
+
+					queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
 				})
 
 				Context("when specifying pipeline vars", func() {
@@ -128,7 +134,7 @@ var _ = Describe("Fly CLI", func() {
 						BeforeEach(func() {
 							atcServer.AppendHandlers(
 								ghttp.CombineHandlers(
-									ghttp.VerifyRequest("GET", path, "instance_vars=%7B%22branch%22%3A%22master%22%7D"),
+									ghttp.VerifyRequest("GET", path, queryParams),
 									ghttp.RespondWithJSONEncoded(200, atc.ConfigResponse{Config: config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
 								),
 							)

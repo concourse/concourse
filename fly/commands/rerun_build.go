@@ -6,7 +6,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/eventstream"
 	"github.com/concourse/concourse/fly/rc"
@@ -20,7 +19,8 @@ type RerunBuildCommand struct {
 }
 
 func (command *RerunBuildCommand) Execute(args []string) error {
-	pipelineName, jobName, buildName := command.Job.PipelineName, command.Job.JobName, command.Build
+	jobName, buildName := command.Job.JobName, command.Build
+	pipelineRef := command.Job.PipelineRef
 
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
@@ -32,11 +32,11 @@ func (command *RerunBuildCommand) Execute(args []string) error {
 		return err
 	}
 
-	build, err := target.Team().RerunJobBuild(atc.PipelineRef{Name: pipelineName}, jobName, buildName)
+	build, err := target.Team().RerunJobBuild(pipelineRef, jobName, buildName)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("started %s/%s #%s\n", pipelineName, jobName, build.Name)
+	fmt.Printf("started %s/%s #%s\n", pipelineRef.String(), jobName, build.Name)
 
 	if command.Watch {
 		terminate := make(chan os.Signal, 1)
@@ -45,7 +45,7 @@ func (command *RerunBuildCommand) Execute(args []string) error {
 			<-terminate
 			fmt.Fprintf(ui.Stderr, "\ndetached, build is still running...\n")
 			fmt.Fprintf(ui.Stderr, "re-attach to it with:\n\n")
-			fmt.Fprintf(ui.Stderr, "    "+ui.Embolden(fmt.Sprintf("fly -t %s watch -j %s/%s -b %s\n\n", Fly.Target, pipelineName, jobName, build.Name)))
+			fmt.Fprintf(ui.Stderr, "    "+ui.Embolden(fmt.Sprintf("fly -t %s watch -j %s/%s -b %s\n\n", Fly.Target, pipelineRef.QueryParams(), jobName, build.Name)))
 			os.Exit(2)
 		}(terminate)
 

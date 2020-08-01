@@ -136,7 +136,7 @@ func (command *BuildsCommand) validateJobBuilds(builds []atc.Build, currentTeam 
 	)
 
 	builds, _, found, err = currentTeam.JobBuilds(
-		atc.PipelineRef{Name: command.Job.PipelineName},
+		command.Job.PipelineRef,
 		command.Job.JobName,
 		page,
 	)
@@ -309,7 +309,7 @@ func roundSecondsOffDuration(d time.Duration) time.Duration {
 }
 
 func (command *BuildsCommand) jobFlag() bool {
-	return command.Job.PipelineName != "" && command.Job.JobName != ""
+	return command.Job.PipelineRef.Name != "" && command.Job.JobName != ""
 }
 
 func (command *BuildsCommand) pipelineFlag() bool {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os/exec"
+	"strings"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/gorilla/websocket"
@@ -318,8 +319,9 @@ var _ = Describe("Hijacking", func() {
 
 	Context("when multiple step containers are found", func() {
 		var (
-			containerList []atc.Container
-			didHijack     chan struct{}
+			containerList       []atc.Container
+			didHijack           chan struct{}
+			expectedQueryParams []string
 		)
 
 		BeforeEach(func() {
@@ -377,10 +379,14 @@ var _ = Describe("Hijacking", func() {
 			}
 		})
 
+		BeforeEach(func() {
+			expectedQueryParams = append(expectedQueryParams, "pipeline_name=pipeline-name-1", "job_name=some-job")
+		})
+
 		JustBeforeEach(func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", "pipeline_name=pipeline-name-1&job_name=some-job"),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", strings.Join(expectedQueryParams, "&")),
 					ghttp.RespondWithJSONEncoded(200, containerList),
 				),
 				hijackHandler("container-id-2", didHijack, nil, "main"),

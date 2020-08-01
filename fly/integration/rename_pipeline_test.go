@@ -14,16 +14,25 @@ import (
 )
 
 var _ = Describe("RenamePipeline", func() {
-	var newName string
-	BeforeEach(func() {
-		expectedURL := "/api/v1/teams/main/pipelines/some-pipeline/rename"
-		newName = "brandnew"
+	var (
+		expectedURL         string
+		expectedQueryParams string
+		expectedStatusCode  int
+		newName             string
+	)
 
+	BeforeEach(func() {
+		expectedURL = "/api/v1/teams/main/pipelines/some-pipeline/rename"
+		expectedStatusCode = http.StatusNoContent
+		newName = "brandnew"
+	})
+
+	JustBeforeEach(func() {
 		atcServer.AppendHandlers(
 			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("PUT", expectedURL),
+				ghttp.VerifyRequest("PUT", expectedURL, expectedQueryParams),
 				ghttp.VerifyJSON(fmt.Sprintf(`{"name":%q}`, newName)),
-				ghttp.RespondWith(http.StatusNoContent, ""),
+				ghttp.RespondWith(expectedStatusCode, ""),
 			),
 		)
 	})
@@ -83,8 +92,13 @@ var _ = Describe("RenamePipeline", func() {
 	})
 
 	Context("when all the inputs are provided", func() {
+
+		BeforeEach(func() {
+			expectedQueryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+		})
+
 		It("successfully renames the pipeline to the provided name", func() {
-			flyCmd := exec.Command(flyPath, "-t", targetName, "rename-pipeline", "-o", "some-pipeline", "-n", newName)
+			flyCmd := exec.Command(flyPath, "-t", targetName, "rename-pipeline", "-o", "some-pipeline/branch:master", "-n", newName)
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
@@ -96,28 +110,28 @@ var _ = Describe("RenamePipeline", func() {
 
 		Context("when the pipeline is not found", func() {
 			BeforeEach(func() {
-				atcServer.SetHandler(4, ghttp.RespondWith(http.StatusNotFound, ""))
+				expectedStatusCode = http.StatusNotFound
 			})
 
 			It("returns an error", func() {
-				flyCmd := exec.Command(flyPath, "-t", targetName, "rename-pipeline", "-o", "some-pipeline", "-n", newName)
+				flyCmd := exec.Command(flyPath, "-t", targetName, "rename-pipeline", "-o", "some-pipeline/branch:master", "-n", newName)
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(sess).Should(gexec.Exit(1))
 				Expect(atcServer.ReceivedRequests()).To(HaveLen(5))
-				Expect(sess.Err).To(gbytes.Say("pipeline 'some-pipeline' not found"))
+				Expect(sess.Err).To(gbytes.Say("pipeline 'some-pipeline/branch:master' not found"))
 			})
 		})
 
 		Context("when an error occurs", func() {
 			BeforeEach(func() {
-				atcServer.SetHandler(4, ghttp.RespondWith(http.StatusTeapot, ""))
+				expectedStatusCode = http.StatusTeapot
 			})
 
 			It("returns an error", func() {
-				flyCmd := exec.Command(flyPath, "-t", targetName, "rename-pipeline", "-o", "some-pipeline", "-n", newName)
+				flyCmd := exec.Command(flyPath, "-t", targetName, "rename-pipeline", "-o", "some-pipeline/branch:master", "-n", newName)
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())

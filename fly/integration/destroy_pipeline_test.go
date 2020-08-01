@@ -2,11 +2,11 @@ package integration_test
 
 import (
 	"fmt"
-	"github.com/concourse/concourse/atc"
 	"io"
 	"net/http"
 	"os/exec"
 
+	"github.com/concourse/concourse/atc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -67,7 +67,7 @@ var _ = Describe("Fly CLI", func() {
 
 		Context("when a pipeline name is specified", func() {
 			BeforeEach(func() {
-				args = append(args, "-p", "some-pipeline")
+				args = append(args, "-p", "some-pipeline/branch:master")
 			})
 
 			yes := func() {
@@ -80,8 +80,10 @@ var _ = Describe("Fly CLI", func() {
 				fmt.Fprintf(stdin, "n\n")
 			}
 
+			queryParams := "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+
 			It("warns that it's about to do bad things", func() {
-				Eventually(sess).Should(gbytes.Say("!!! this will remove all data for pipeline `some-pipeline`"))
+				Eventually(sess).Should(gbytes.Say("!!! this will remove all data for pipeline `some-pipeline/branch:master`"))
 			})
 
 			It("bails out if the user says no", func() {
@@ -94,7 +96,7 @@ var _ = Describe("Fly CLI", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/some-pipeline"),
+							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/some-pipeline", queryParams),
 							ghttp.RespondWith(204, ""),
 						),
 					)
@@ -102,7 +104,7 @@ var _ = Describe("Fly CLI", func() {
 
 				It("succeeds if the user says yes", func() {
 					yes()
-					Eventually(sess).Should(gbytes.Say("`some-pipeline` deleted"))
+					Eventually(sess).Should(gbytes.Say("`some-pipeline/branch:master` deleted"))
 					Eventually(sess).Should(gexec.Exit(0))
 				})
 
@@ -112,7 +114,7 @@ var _ = Describe("Fly CLI", func() {
 					})
 
 					It("destroys the pipeline without confirming", func() {
-						Eventually(sess).Should(gbytes.Say("`some-pipeline` deleted"))
+						Eventually(sess).Should(gbytes.Say("`some-pipeline/branch:master` deleted"))
 						Eventually(sess).Should(gexec.Exit(0))
 					})
 				})
@@ -122,7 +124,7 @@ var _ = Describe("Fly CLI", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/some-pipeline"),
+							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/some-pipeline", queryParams),
 							ghttp.RespondWith(404, ""),
 						),
 					)
@@ -130,7 +132,7 @@ var _ = Describe("Fly CLI", func() {
 
 				It("writes that it did not exist and exits successfully", func() {
 					yes()
-					Eventually(sess).Should(gbytes.Say("`some-pipeline` does not exist"))
+					Eventually(sess).Should(gbytes.Say("`some-pipeline/branch:master` does not exist"))
 					Eventually(sess).Should(gexec.Exit(0))
 				})
 			})
@@ -139,7 +141,7 @@ var _ = Describe("Fly CLI", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/some-pipeline"),
+							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/some-pipeline", queryParams),
 							ghttp.RespondWith(402, ""),
 						),
 					)
@@ -167,7 +169,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("warns that it's about to do bad things", func() {
-					Eventually(sess).Should(gbytes.Say("!!! this will remove all data for pipeline `some-pipeline`"))
+					Eventually(sess).Should(gbytes.Say("!!! this will remove all data for pipeline `some-pipeline/branch:master`"))
 				})
 
 				It("bails out if the user says no", func() {
@@ -180,7 +182,7 @@ var _ = Describe("Fly CLI", func() {
 					BeforeEach(func() {
 						atcServer.AppendHandlers(
 							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("DELETE", "/api/v1/teams/team-two/pipelines/some-pipeline"),
+								ghttp.VerifyRequest("DELETE", "/api/v1/teams/team-two/pipelines/some-pipeline", queryParams),
 								ghttp.RespondWith(204, ""),
 							),
 						)
@@ -188,7 +190,7 @@ var _ = Describe("Fly CLI", func() {
 
 					It("succeeds if the user says yes", func() {
 						yes()
-						Eventually(sess).Should(gbytes.Say("`some-pipeline` deleted"))
+						Eventually(sess).Should(gbytes.Say("`some-pipeline/branch:master` deleted"))
 						Eventually(sess).Should(gexec.Exit(0))
 					})
 				})
@@ -197,7 +199,7 @@ var _ = Describe("Fly CLI", func() {
 					BeforeEach(func() {
 						atcServer.AppendHandlers(
 							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("DELETE", "/api/v1/teams/team-two/pipelines/some-pipeline"),
+								ghttp.VerifyRequest("DELETE", "/api/v1/teams/team-two/pipelines/some-pipeline", queryParams),
 								ghttp.RespondWith(404, ""),
 							),
 						)
@@ -205,7 +207,7 @@ var _ = Describe("Fly CLI", func() {
 
 					It("writes that it did not exist and exits successfully", func() {
 						yes()
-						Eventually(sess).Should(gbytes.Say("`some-pipeline` does not exist"))
+						Eventually(sess).Should(gbytes.Say("`some-pipeline/branch:master` does not exist"))
 						Eventually(sess).Should(gexec.Exit(0))
 					})
 				})

@@ -80,7 +80,7 @@ var _ = Describe("Fly CLI", func() {
 			JustBeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/config"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/config", "instance_vars=%7B%22branch%22%3A%22master%22%7D"),
 						ghttp.RespondWithJSONEncoded(200, atc.ConfigResponse{Config: config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
 					),
 				)
@@ -88,7 +88,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when there are groups", func() {
 				It("prints the config as yaml to stdout", func() {
-					flyCmd := exec.Command(flyPath, "-t", targetName, "checklist", "-p", "some-pipeline")
+					flyCmd := exec.Command(flyPath, "-t", targetName, "checklist", "-p", "some-pipeline/branch:master")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
@@ -98,15 +98,15 @@ var _ = Describe("Fly CLI", func() {
 
 					Expect(string(sess.Out.Contents())).To(Equal(fmt.Sprintf(
 						`#- some-group
-job-1: concourse.check %s main some-pipeline job-1
-job-2: concourse.check %s main some-pipeline job-2
+job-1: concourse.check %s main some-pipeline/branch:master job-1
+job-2: concourse.check %s main some-pipeline/branch:master job-2
 
 #- some-other-group
-job-3: concourse.check %s main some-pipeline job-3
-job-4: concourse.check %s main some-pipeline job-4
+job-3: concourse.check %s main some-pipeline/branch:master job-3
+job-4: concourse.check %s main some-pipeline/branch:master job-4
 
 #- misc
-some-orphaned-job: concourse.check %s main some-pipeline some-orphaned-job
+some-orphaned-job: concourse.check %s main some-pipeline/branch:master some-orphaned-job
 
 `, atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL(), atcServer.URL())))
 				})
@@ -128,7 +128,7 @@ some-orphaned-job: concourse.check %s main some-pipeline some-orphaned-job
 				})
 
 				It("prints the config as yaml to stdout, and uses the pipeline name as header", func() {
-					flyCmd := exec.Command(flyPath, "-t", targetName, "checklist", "-p", "some-pipeline")
+					flyCmd := exec.Command(flyPath, "-t", targetName, "checklist", "-p", "some-pipeline/branch:master")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
@@ -137,9 +137,9 @@ some-orphaned-job: concourse.check %s main some-pipeline some-orphaned-job
 					Expect(sess.ExitCode()).To(Equal(0))
 
 					Expect(string(sess.Out.Contents())).To(Equal(fmt.Sprintf(
-						`#- some-pipeline
-job-1: concourse.check %s main some-pipeline job-1
-job-2: concourse.check %s main some-pipeline job-2
+						`#- some-pipeline/branch:master
+job-1: concourse.check %s main some-pipeline/branch:master job-1
+job-2: concourse.check %s main some-pipeline/branch:master job-2
 
 `, atcServer.URL(), atcServer.URL())))
 				})

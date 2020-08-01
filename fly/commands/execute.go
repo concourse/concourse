@@ -110,8 +110,8 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	var build atc.Build
 	var buildURL *url.URL
 
-	if command.InputsFrom.PipelineName != "" {
-		build, err = target.Team().CreatePipelineBuild(atc.PipelineRef{Name: command.InputsFrom.PipelineName}, plan)
+	if command.InputsFrom.PipelineRef.Name != "" {
+		build, err = target.Team().CreatePipelineBuild(command.InputsFrom.PipelineRef, plan)
 		if err != nil {
 			return err
 		}

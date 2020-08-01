@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -49,7 +50,15 @@ func getBuildIDFromURL(target rc.Target, urlParam string) (int, error) {
 	}
 
 	if urlMap["pipelines"] != "" && urlMap["jobs"] != "" {
-		build, err := GetBuild(client, target.Team(), urlMap["jobs"], urlMap["builds"], atc.PipelineRef{Name: urlMap["pipelines"]})
+		pipelineRef := atc.PipelineRef{Name: urlMap["pipelines"]}
+		if instanceVars := u.Query().Get("instance_vars"); instanceVars != "" {
+			err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
+			if err != nil {
+				err = fmt.Errorf("Failed to parse query params in (%s, %s)", urlParam, target.URL())
+				return 0, err
+			}
+		}
+		build, err := GetBuild(client, target.Team(), urlMap["jobs"], urlMap["builds"], pipelineRef)
 
 		if err != nil {
 			return 0, err
@@ -81,7 +90,7 @@ func (command *WatchCommand) Execute(args []string) error {
 	var buildId int
 	client := target.Client()
 	if command.Job.JobName != "" || command.Build == "" && command.Url == "" {
-		build, err := GetBuild(client, target.Team(), command.Job.JobName, command.Build, atc.PipelineRef{Name: command.Job.PipelineName})
+		build, err := GetBuild(client, target.Team(), command.Job.JobName, command.Build, command.Job.PipelineRef)
 		if err != nil {
 			return err
 		}
