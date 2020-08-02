@@ -37,7 +37,7 @@ func (command *EnableResourceVersionCommand) Execute([]string) error {
 		enabled := latestResourceVer.Enabled
 
 		if !enabled {
-			enabled, err = team.EnableResourceVersion(atc.PipelineRef{Name: command.Resource.PipelineName}, command.Resource.ResourceName, latestResourceVer.ID)
+			enabled, err = team.EnableResourceVersion(command.Resource.PipelineRef, command.Resource.ResourceName, latestResourceVer.ID)
 			if err != nil {
 				return err
 			}
@@ -49,9 +49,9 @@ func (command *EnableResourceVersionCommand) Execute([]string) error {
 				return err
 			}
 
-			fmt.Printf("enabled '%s/%s' with version %s\n", command.Resource.PipelineName, command.Resource.ResourceName, string(enableVersionBytes))
+			fmt.Printf("enabled '%s/%s' with version %s\n", command.Resource.PipelineRef.String(), command.Resource.ResourceName, string(enableVersionBytes))
 		} else {
-			displayhelpers.Failf("could not enable '%s/%s', make sure the resource version exists\n", command.Resource.PipelineName, command.Resource.ResourceName)
+			displayhelpers.Failf("could not enable '%s/%s', make sure the resource version exists\n", command.Resource.PipelineRef.String(), command.Resource.ResourceName)
 		}
 	}
 

@@ -73,7 +73,7 @@ func GetBuild(client concourse.Client, team concourse.Team, jobName string, buil
 }
 
 func GetLatestResourceVersion(team concourse.Team, resource flaghelpers.ResourceFlag, version atc.Version) (atc.ResourceVersion, error) {
-	versions, _, found, err := team.ResourceVersions(atc.PipelineRef{Name: resource.PipelineName}, resource.ResourceName, concourse.Page{}, version)
+	versions, _, found, err := team.ResourceVersions(resource.PipelineRef, resource.ResourceName, concourse.Page{}, version)
 
 	if err != nil {
 		return atc.ResourceVersion{}, err

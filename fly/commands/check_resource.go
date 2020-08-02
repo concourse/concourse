@@ -43,13 +43,13 @@ func (command *CheckResourceCommand) Execute(args []string) error {
 		}
 	}
 
-	check, found, err := target.Team().CheckResource(atc.PipelineRef{Name: command.Resource.PipelineName}, command.Resource.ResourceName, version)
+	check, found, err := target.Team().CheckResource(command.Resource.PipelineRef, command.Resource.ResourceName, version)
 	if err != nil {
 		return err
 	}
 
 	if !found {
-		return fmt.Errorf("pipeline '%s' or resource '%s' not found\n", command.Resource.PipelineName, command.Resource.ResourceName)
+		return fmt.Errorf("pipeline '%s' or resource '%s' not found\n", command.Resource.PipelineRef.String(), command.Resource.ResourceName)
 	}
 
 	var checkID = strconv.Itoa(check.ID)
@@ -97,7 +97,7 @@ func (command *CheckResourceCommand) Execute(args []string) error {
 }
 
 func (command *CheckResourceCommand) checkParent(target rc.Target) error {
-	resource, found, err := target.Team().Resource(atc.PipelineRef{Name: command.Resource.PipelineName}, command.Resource.ResourceName)
+	resource, found, err := target.Team().Resource(command.Resource.PipelineRef, command.Resource.ResourceName)
 	if err != nil {
 		return err
 	}
@@ -106,13 +106,13 @@ func (command *CheckResourceCommand) checkParent(target rc.Target) error {
 		return fmt.Errorf("resource '%s' not found\n", command.Resource.ResourceName)
 	}
 
-	resourceTypes, found, err := target.Team().VersionedResourceTypes(atc.PipelineRef{Name: command.Resource.PipelineName})
+	resourceTypes, found, err := target.Team().VersionedResourceTypes(command.Resource.PipelineRef)
 	if err != nil {
 		return err
 	}
 
 	if !found {
-		return fmt.Errorf("pipeline '%s' not found\n", command.Resource.PipelineName)
+		return fmt.Errorf("pipeline '%s' not found\n", command.Resource.PipelineRef.String())
 	}
 
 	parentType, found := command.findParent(resource, resourceTypes)
@@ -123,7 +123,7 @@ func (command *CheckResourceCommand) checkParent(target rc.Target) error {
 	cmd := &CheckResourceTypeCommand{
 		ResourceType: flaghelpers.ResourceFlag{
 			ResourceName: parentType.Name,
-			PipelineName: command.Resource.PipelineName,
+			PipelineRef:  command.Resource.PipelineRef,
 		},
 	}
 

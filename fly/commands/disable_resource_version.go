@@ -37,7 +37,7 @@ func (command *DisableResourceVersionCommand) Execute([]string) error {
 		disabled := !latestResourceVer.Enabled
 
 		if !disabled {
-			disabled, err = team.DisableResourceVersion(atc.PipelineRef{Name: command.Resource.PipelineName}, command.Resource.ResourceName, latestResourceVer.ID)
+			disabled, err = team.DisableResourceVersion(command.Resource.PipelineRef, command.Resource.ResourceName, latestResourceVer.ID)
 			if err != nil {
 				return err
 			}
@@ -49,9 +49,9 @@ func (command *DisableResourceVersionCommand) Execute([]string) error {
 				return err
 			}
 
-			fmt.Printf("disabled '%s/%s' with version %s\n", command.Resource.PipelineName, command.Resource.ResourceName, string(disableVersionBytes))
+			fmt.Printf("disabled '%s/%s' with version %s\n", command.Resource.PipelineRef.String(), command.Resource.ResourceName, string(disableVersionBytes))
 		} else {
-			displayhelpers.Failf("could not disable '%s/%s', make sure the resource version exists\n", command.Resource.PipelineName, command.Resource.ResourceName)
+			displayhelpers.Failf("could not disable '%s/%s', make sure the resource version exists\n", command.Resource.PipelineRef.String(), command.Resource.ResourceName)
 		}
 	}
 

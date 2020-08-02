@@ -285,7 +285,10 @@ var _ = Describe("Helper Functions", func() {
 		var resourceVersions []atc.ResourceVersion
 
 		resource := flaghelpers.ResourceFlag{
-			PipelineName: "mypipeline",
+			PipelineRef: atc.PipelineRef{
+				Name:         "mypipeline",
+				InstanceVars: atc.InstanceVars{"branch": "master"},
+			},
 			ResourceName: "myresource",
 		}
 

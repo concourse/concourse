@@ -3,22 +3,42 @@ package flaghelpers
 import (
 	"errors"
 	"strings"
+
+	"github.com/concourse/concourse/atc"
 )
 
 type ResourceFlag struct {
-	PipelineName string
+	PipelineRef  atc.PipelineRef
 	ResourceName string
 }
 
-func (resource *ResourceFlag) UnmarshalFlag(value string) error {
-	vs := strings.SplitN(value, "/", 2)
+func (flag *ResourceFlag) UnmarshalFlag(value string) error {
+	flag.PipelineRef = atc.PipelineRef{}
 
-	if len(vs) != 2 {
+	resourceNameIdx := strings.LastIndex(value, "/")
+	if resourceNameIdx == -1 {
 		return errors.New("argument format should be <pipeline>/<resource>")
 	}
 
-	resource.PipelineName = vs[0]
-	resource.ResourceName = vs[1]
+	flag.ResourceName = value[resourceNameIdx+1:]
+	if warnings := atc.ValidateIdentifier(flag.ResourceName, "resource"); warnings != nil {
+		return errors.New("argument format should be <pipeline>/<key:value>/<resource>")
+	}
+
+	vs := strings.SplitN(value[:resourceNameIdx], "/", 2)
+	flag.PipelineRef.Name = vs[0]
+	if len(vs) == 2 {
+		instanceVars := atc.InstanceVars{}
+		for _, instanceVar := range strings.Split(vs[1], ",") {
+			kv := strings.SplitN(strings.TrimSpace(instanceVar), ":", 2)
+			if len(kv) == 2 {
+				instanceVars[kv[0]] = kv[1]
+			} else {
+				return errors.New("argument format should be <pipeline>/<key:value>/<resource>")
+			}
+		}
+		flag.PipelineRef.InstanceVars = instanceVars
+	}
 
 	return nil
 }

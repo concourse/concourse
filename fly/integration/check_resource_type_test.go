@@ -17,10 +17,12 @@ import (
 
 var _ = Describe("CheckResourceType", func() {
 	var (
-		flyCmd          *exec.Cmd
-		check           atc.Check
-		resourceTypes   atc.VersionedResourceTypes
-		expectedHeaders ui.TableRow
+		flyCmd              *exec.Cmd
+		check               atc.Check
+		resourceTypes       atc.VersionedResourceTypes
+		expectedURL         string
+		expectedQueryParams string
+		expectedHeaders     ui.TableRow
 	)
 
 	BeforeEach(func() {
@@ -42,6 +44,9 @@ var _ = Describe("CheckResourceType", func() {
 			},
 		}}
 
+		expectedURL = "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresource/check"
+		expectedQueryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+
 		expectedHeaders = ui.TableRow{
 			{Contents: "id", Color: color.New(color.Bold)},
 			{Contents: "name", Color: color.New(color.Bold)},
@@ -52,10 +57,10 @@ var _ = Describe("CheckResourceType", func() {
 
 	Context("when version is specified", func() {
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresource/check"
+
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.VerifyRequest("POST", expectedURL, expectedQueryParams),
 					ghttp.VerifyJSON(`{"from":{"ref":"fake-ref"}}`),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, check),
 				),
@@ -64,7 +69,7 @@ var _ = Describe("CheckResourceType", func() {
 
 		It("sends check resource request to ATC", func() {
 			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "-f", "ref:fake-ref", "--shallow", "-a")
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/branch:master/myresource", "-f", "ref:fake-ref", "--shallow", "-a")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -90,10 +95,9 @@ var _ = Describe("CheckResourceType", func() {
 
 	Context("when version is omitted", func() {
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresource/check"
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.VerifyRequest("POST", expectedURL, expectedQueryParams),
 					ghttp.VerifyJSON(`{"from":null}`),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, check),
 				),
@@ -102,7 +106,7 @@ var _ = Describe("CheckResourceType", func() {
 
 		It("sends check resource request to ATC", func() {
 			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "--shallow", "-a")
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/branch:master/myresource", "--shallow", "-a")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -128,10 +132,9 @@ var _ = Describe("CheckResourceType", func() {
 
 	Context("when the check succeed", func() {
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresource/check"
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.VerifyRequest("POST", expectedURL, expectedQueryParams),
 					ghttp.VerifyJSON(`{"from":null}`),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, check),
 				),
@@ -150,7 +153,7 @@ var _ = Describe("CheckResourceType", func() {
 
 		It("sends check resource request to ATC", func() {
 			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "--shallow")
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/branch:master/myresource", "--shallow")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -175,10 +178,9 @@ var _ = Describe("CheckResourceType", func() {
 
 	Context("when the check fail", func() {
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresource/check"
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.VerifyRequest("POST", expectedURL, expectedQueryParams),
 					ghttp.VerifyJSON(`{"from":null}`),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, check),
 				),
@@ -198,7 +200,7 @@ var _ = Describe("CheckResourceType", func() {
 
 		It("sends check resource request to ATC", func() {
 			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "--shallow")
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/branch:master/myresource", "--shallow")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -226,7 +228,7 @@ var _ = Describe("CheckResourceType", func() {
 		BeforeEach(func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/mypipeline/resource-types"),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/mypipeline/resource-types", expectedQueryParams),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, resourceTypes),
 				),
 				ghttp.CombineHandlers(
@@ -234,11 +236,11 @@ var _ = Describe("CheckResourceType", func() {
 					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Info{Version: atcVersion, WorkerVersion: workerVersion}),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/mypipeline/resource-types"),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/mypipeline/resource-types", expectedQueryParams),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, resourceTypes),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresourcetype/check"),
+					ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresourcetype/check", expectedQueryParams),
 					ghttp.VerifyJSON(`{"from":null}`),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Check{
 						ID:     987,
@@ -257,7 +259,7 @@ var _ = Describe("CheckResourceType", func() {
 					}),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresource/check"),
+					ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresource/check", expectedQueryParams),
 					ghttp.VerifyJSON(`{"from":null}`),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, check),
 				),
@@ -266,7 +268,7 @@ var _ = Describe("CheckResourceType", func() {
 
 		It("sends check resource request to ATC", func() {
 			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "-a")
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/branch:master/myresource", "-a")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -306,7 +308,7 @@ var _ = Describe("CheckResourceType", func() {
 		BeforeEach(func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/mypipeline/resource-types"),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/mypipeline/resource-types", expectedQueryParams),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, resourceTypes),
 				),
 				ghttp.CombineHandlers(
@@ -314,11 +316,11 @@ var _ = Describe("CheckResourceType", func() {
 					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Info{Version: atcVersion, WorkerVersion: workerVersion}),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/mypipeline/resource-types"),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/mypipeline/resource-types", expectedQueryParams),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, resourceTypes),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresourcetype/check"),
+					ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresourcetype/check", expectedQueryParams),
 					ghttp.VerifyJSON(`{"from":null}`),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Check{
 						ID:     987,
@@ -341,7 +343,7 @@ var _ = Describe("CheckResourceType", func() {
 
 		It("sends check resource request to ATC", func() {
 			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "-a")
+				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/branch:master/myresource", "-a")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -367,39 +369,37 @@ var _ = Describe("CheckResourceType", func() {
 
 	Context("when pipeline or resource-type is not found", func() {
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresource/check"
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.VerifyRequest("POST", expectedURL, expectedQueryParams),
 					ghttp.RespondWithJSONEncoded(http.StatusNotFound, ""),
 				),
 			)
 		})
 
 		It("fails with error", func() {
-			flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "--shallow")
+			flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/branch:master/myresource", "--shallow")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(sess).Should(gexec.Exit(1))
 
-			Expect(sess.Err).To(gbytes.Say("pipeline 'mypipeline' or resource-type 'myresource' not found"))
+			Expect(sess.Err).To(gbytes.Say("pipeline 'mypipeline/branch:master' or resource-type 'myresource' not found"))
 		})
 	})
 
 	Context("When resource-type check returns internal server error", func() {
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresource/check"
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.VerifyRequest("POST", expectedURL, expectedQueryParams),
 					ghttp.RespondWith(http.StatusInternalServerError, "unknown server error"),
 				),
 			)
 		})
 
 		It("outputs error in response body", func() {
-			flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "--shallow")
+			flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/branch:master/myresource", "--shallow")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 

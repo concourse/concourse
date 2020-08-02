@@ -28,13 +28,14 @@ func (command *PinResourceCommand) Execute([]string) error {
 
 	team := target.Team()
 
+	pipelineRef := command.Resource.PipelineRef
 	if command.Version != nil {
 		latestResourceVersion, err := GetLatestResourceVersion(team, command.Resource, *command.Version)
 		if err != nil {
 			return err
 		}
 
-		pinned, err := team.PinResourceVersion(atc.PipelineRef{Name: command.Resource.PipelineName}, command.Resource.ResourceName, latestResourceVersion.ID)
+		pinned, err := team.PinResourceVersion(pipelineRef, command.Resource.ResourceName, latestResourceVersion.ID)
 
 		if err != nil {
 			return err
@@ -46,14 +47,14 @@ func (command *PinResourceCommand) Execute([]string) error {
 				return err
 			}
 
-			fmt.Printf("pinned '%s/%s' with version %s\n", command.Resource.PipelineName, command.Resource.ResourceName, string(versionBytes))
+			fmt.Printf("pinned '%s/%s' with version %s\n", pipelineRef.String(), command.Resource.ResourceName, string(versionBytes))
 		} else {
-			displayhelpers.Failf("could not pin '%s/%s', make sure the resource exists\n", command.Resource.PipelineName, command.Resource.ResourceName)
+			displayhelpers.Failf("could not pin '%s/%s', make sure the resource exists\n", pipelineRef.String(), command.Resource.ResourceName)
 		}
 	}
 
 	if command.Comment != "" {
-		saved, err := team.SetPinComment(atc.PipelineRef{Name: command.Resource.PipelineName}, command.Resource.ResourceName, command.Comment)
+		saved, err := team.SetPinComment(pipelineRef, command.Resource.ResourceName, command.Comment)
 
 		if err != nil {
 			return err
@@ -62,7 +63,7 @@ func (command *PinResourceCommand) Execute([]string) error {
 		if saved {
 			fmt.Printf("pin comment '%s' is saved\n", command.Comment)
 		} else {
-			displayhelpers.Failf("could not save comment, make sure '%s/%s' is pinned\n", command.Resource.PipelineName, command.Resource.ResourceName)
+			displayhelpers.Failf("could not save comment, make sure '%s/%s' is pinned\n", pipelineRef.String(), command.Resource.ResourceName)
 		}
 	}
 
