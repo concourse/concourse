@@ -18,7 +18,7 @@ import Ansi.Log
 import Array
 import Build.StepTree.Models as Models
 import Build.StepTree.StepTree as StepTree
-import Concourse exposing (BuildStep(..), HookedPlan)
+import Concourse exposing (BuildStep(..), HookedPlan, JsonValue(..))
 import Dict
 import Expect exposing (..)
 import Routes
@@ -35,6 +35,8 @@ all =
         , initPut
         , initAggregate
         , initAggregateNested
+        , initAcross
+        , initAcrossNested
         , initInParallel
         , initInParallelNested
         , initOnSuccess
@@ -309,6 +311,156 @@ initAggregateNested =
                           <|
                             [ Models.Task (someStep "task-c-id" "task-c" Models.StepStateSucceeded)
                             , Models.Task (someStep "task-d-id" "task-d" Models.StepStatePending)
+                            ]
+                        ]
+                    )
+        ]
+
+
+initAcross : Test
+initAcross =
+    let
+        { tree, foci } =
+            StepTree.init Routes.HighlightNothing
+                emptyResources
+                { id = "across-id"
+                , step =
+                    BuildStepAcross
+                        { vars = [ "var" ]
+                        , steps =
+                            [ ( [ JsonString "v1" ]
+                              , { id = "task-a-id", step = BuildStepTask "task-a" }
+                              )
+                            , ( [ JsonString "v2" ]
+                              , { id = "task-b-id", step = BuildStepTask "task-b" }
+                              )
+                            ]
+                        }
+                }
+    in
+    describe "init with Across"
+        [ test "the tree" <|
+            \_ ->
+                Expect.equal
+                    (Models.Across [ "var" ]
+                        [ [ JsonString "v1" ], [ JsonString "v2" ] ]
+                        [ False, False ]
+                        (someStep "across-id" "var" Models.StepStatePending)
+                        << Array.fromList
+                     <|
+                        [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
+                        , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
+                        ]
+                    )
+                    tree
+        , test "using the focus on root step" <|
+            \_ ->
+                assertFocus "across-id"
+                    foci
+                    tree
+                    (\s -> { s | state = Models.StepStateSucceeded })
+                    (Models.Across [ "var" ]
+                        [ [ JsonString "v1" ], [ JsonString "v2" ] ]
+                        [ False, False ]
+                        (someStep "across-id" "var" Models.StepStateSucceeded)
+                        << Array.fromList
+                     <|
+                        [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
+                        , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
+                        ]
+                    )
+        , test "using the focus on child step" <|
+            \_ ->
+                assertFocus "task-a-id"
+                    foci
+                    tree
+                    (\s -> { s | state = Models.StepStateSucceeded })
+                    (Models.Across [ "var" ]
+                        [ [ JsonString "v1" ], [ JsonString "v2" ] ]
+                        [ False, False ]
+                        (someStep "across-id" "var" Models.StepStatePending)
+                        << Array.fromList
+                     <|
+                        [ Models.Task (someStep "task-a-id" "task-a" Models.StepStateSucceeded)
+                        , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
+                        ]
+                    )
+        ]
+
+
+initAcrossNested : Test
+initAcrossNested =
+    let
+        { tree, foci } =
+            StepTree.init Routes.HighlightNothing
+                emptyResources
+                { id = "across-id"
+                , step =
+                    BuildStepAcross
+                        { vars = [ "var1" ]
+                        , steps =
+                            [ ( [ JsonString "a1" ]
+                              , { id = "nested-across-id"
+                                , step =
+                                    BuildStepAcross
+                                        { vars = [ "var2" ]
+                                        , steps =
+                                            [ ( [ JsonString "b1" ]
+                                              , { id = "task-a-id", step = BuildStepTask "task-a" }
+                                              )
+                                            , ( [ JsonString "b2" ]
+                                              , { id = "task-b-id", step = BuildStepTask "task-b" }
+                                              )
+                                            ]
+                                        }
+                                }
+                              )
+                            ]
+                        }
+                }
+    in
+    describe "init with nested Across"
+        [ test "the tree" <|
+            \_ ->
+                Expect.equal
+                    (Models.Across [ "var1" ]
+                        [ [ JsonString "a1" ] ]
+                        [ False ]
+                        (someStep "across-id" "var1" Models.StepStatePending)
+                        << Array.fromList
+                     <|
+                        [ Models.Across [ "var2" ]
+                            [ [ JsonString "b1" ], [ JsonString "b2" ] ]
+                            [ False, False ]
+                            (someStep "nested-across-id" "var2" Models.StepStatePending)
+                            << Array.fromList
+                          <|
+                            [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
+                            , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
+                            ]
+                        ]
+                    )
+                    tree
+        , test "using the focuses for nested elements" <|
+            \_ ->
+                assertFocus "task-a-id"
+                    foci
+                    tree
+                    (\s -> { s | state = Models.StepStateSucceeded })
+                    (Models.Across [ "var1" ]
+                        [ [ JsonString "a1" ] ]
+                        [ False ]
+                        (someStep "across-id" "var1" Models.StepStatePending)
+                        << Array.fromList
+                     <|
+                        [ Models.Across [ "var2" ]
+                            [ [ JsonString "b1" ], [ JsonString "b2" ] ]
+                            [ False, False ]
+                            (someStep "nested-across-id" "var2" Models.StepStatePending)
+                            << Array.fromList
+                          <|
+                            [ Models.Task (someStep "task-a-id" "task-a" Models.StepStateSucceeded)
+                            , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
                             ]
                         ]
                     )
@@ -633,28 +785,6 @@ initTimeout =
         ]
 
 
-updateStep : (Models.Step -> Models.Step) -> Models.StepTree -> Models.StepTree
-updateStep f tree =
-    case tree of
-        Models.Task step ->
-            Models.Task (f step)
-
-        Models.SetPipeline step ->
-            Models.SetPipeline (f step)
-
-        Models.LoadVar step ->
-            Models.LoadVar (f step)
-
-        Models.Get step ->
-            Models.Get (f step)
-
-        Models.Put step ->
-            Models.Put (f step)
-
-        _ ->
-            tree
-
-
 assertFocus :
     Routes.StepID
     -> Dict.Dict Routes.StepID Models.StepFocus
@@ -670,7 +800,7 @@ assertFocus id foci tree update expected =
         Just focus ->
             Expect.equal
                 expected
-                (focus (updateStep update) tree)
+                (focus (Models.map update) tree)
 
 
 cookedLog : Ansi.Log.Model
