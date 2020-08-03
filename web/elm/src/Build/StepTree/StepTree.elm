@@ -116,10 +116,15 @@ init hl resources buildPlan =
                 resources
                 buildPlan
                 (plan.vars |> String.join ", ")
-                (Across
-                    plan.vars
-                    values
-                    (plans |> List.map (planIsHighlighted hl))
+                (\step substeps ->
+                    Across
+                        plan.vars
+                        values
+                        (plans |> List.map (planIsHighlighted hl))
+                        step
+                        (substeps
+                            |> Array.map (map (\s -> { s | expanded = True }))
+                        )
                 )
                 (plans |> Array.fromList)
 

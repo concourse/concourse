@@ -37,6 +37,7 @@ all =
         , initAggregateNested
         , initAcross
         , initAcrossNested
+        , initAcrossWithDo
         , initInParallel
         , initInParallelNested
         , initOnSuccess
@@ -68,6 +69,11 @@ someVersionedStep version id name state =
     , start = Nothing
     , finish = Nothing
     }
+
+
+someExpandedStep : Routes.StepID -> Models.StepName -> Models.StepState -> Models.Step
+someExpandedStep id name state =
+    someStep id name state |> (\s -> { s | expanded = True })
 
 
 emptyResources : Concourse.BuildResources
@@ -348,8 +354,8 @@ initAcross =
                         (someStep "across-id" "var" Models.StepStatePending)
                         << Array.fromList
                      <|
-                        [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
-                        , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
+                        [ Models.Task (someExpandedStep "task-a-id" "task-a" Models.StepStatePending)
+                        , Models.Task (someExpandedStep "task-b-id" "task-b" Models.StepStatePending)
                         ]
                     )
                     tree
@@ -365,8 +371,8 @@ initAcross =
                         (someStep "across-id" "var" Models.StepStateSucceeded)
                         << Array.fromList
                      <|
-                        [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
-                        , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
+                        [ Models.Task (someExpandedStep "task-a-id" "task-a" Models.StepStatePending)
+                        , Models.Task (someExpandedStep "task-b-id" "task-b" Models.StepStatePending)
                         ]
                     )
         , test "using the focus on child step" <|
@@ -381,8 +387,8 @@ initAcross =
                         (someStep "across-id" "var" Models.StepStatePending)
                         << Array.fromList
                      <|
-                        [ Models.Task (someStep "task-a-id" "task-a" Models.StepStateSucceeded)
-                        , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
+                        [ Models.Task (someExpandedStep "task-a-id" "task-a" Models.StepStateSucceeded)
+                        , Models.Task (someExpandedStep "task-b-id" "task-b" Models.StepStatePending)
                         ]
                     )
         ]
@@ -432,11 +438,11 @@ initAcrossNested =
                         [ Models.Across [ "var2" ]
                             [ [ JsonString "b1" ], [ JsonString "b2" ] ]
                             [ False, False ]
-                            (someStep "nested-across-id" "var2" Models.StepStatePending)
+                            (someExpandedStep "nested-across-id" "var2" Models.StepStatePending)
                             << Array.fromList
                           <|
-                            [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
-                            , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
+                            [ Models.Task (someExpandedStep "task-a-id" "task-a" Models.StepStatePending)
+                            , Models.Task (someExpandedStep "task-b-id" "task-b" Models.StepStatePending)
                             ]
                         ]
                     )
@@ -456,14 +462,60 @@ initAcrossNested =
                         [ Models.Across [ "var2" ]
                             [ [ JsonString "b1" ], [ JsonString "b2" ] ]
                             [ False, False ]
-                            (someStep "nested-across-id" "var2" Models.StepStatePending)
+                            (someExpandedStep "nested-across-id" "var2" Models.StepStatePending)
                             << Array.fromList
                           <|
-                            [ Models.Task (someStep "task-a-id" "task-a" Models.StepStateSucceeded)
-                            , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
+                            [ Models.Task (someExpandedStep "task-a-id" "task-a" Models.StepStateSucceeded)
+                            , Models.Task (someExpandedStep "task-b-id" "task-b" Models.StepStatePending)
                             ]
                         ]
                     )
+        ]
+
+
+initAcrossWithDo : Test
+initAcrossWithDo =
+    let
+        { tree, foci } =
+            StepTree.init Routes.HighlightNothing
+                emptyResources
+                { id = "across-id"
+                , step =
+                    BuildStepAcross
+                        { vars = [ "var" ]
+                        , steps =
+                            [ ( [ JsonString "v1" ]
+                              , { id = "do-id"
+                                , step =
+                                    BuildStepDo <|
+                                        Array.fromList
+                                            [ { id = "task-a-id", step = BuildStepTask "task-a" }
+                                            , { id = "task-b-id", step = BuildStepTask "task-b" }
+                                            ]
+                                }
+                              )
+                            ]
+                        }
+                }
+    in
+    describe "init Across with Do substep"
+        [ test "does not expand substeps" <|
+            \_ ->
+                Expect.equal
+                    (Models.Across [ "var" ]
+                        [ [ JsonString "v1" ] ]
+                        [ False ]
+                        (someStep "across-id" "var" Models.StepStatePending)
+                        << Array.fromList
+                     <|
+                        [ Models.Do <|
+                            Array.fromList
+                                [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
+                                , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
+                                ]
+                        ]
+                    )
+                    tree
         ]
 
 
