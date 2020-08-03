@@ -494,10 +494,10 @@ type FakeTeam struct {
 	nameReturnsOnCall map[int]struct {
 		result1 string
 	}
-	OrderingPipelinesStub        func([]string) error
+	OrderingPipelinesStub        func(atc.OrderPipelinesRequest) error
 	orderingPipelinesMutex       sync.RWMutex
 	orderingPipelinesArgsForCall []struct {
-		arg1 []string
+		arg1 atc.OrderPipelinesRequest
 	}
 	orderingPipelinesReturns struct {
 		result1 error
@@ -2931,18 +2931,13 @@ func (fake *FakeTeam) NameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeTeam) OrderingPipelines(arg1 []string) error {
-	var arg1Copy []string
-	if arg1 != nil {
-		arg1Copy = make([]string, len(arg1))
-		copy(arg1Copy, arg1)
-	}
+func (fake *FakeTeam) OrderingPipelines(arg1 atc.OrderPipelinesRequest) error {
 	fake.orderingPipelinesMutex.Lock()
 	ret, specificReturn := fake.orderingPipelinesReturnsOnCall[len(fake.orderingPipelinesArgsForCall)]
 	fake.orderingPipelinesArgsForCall = append(fake.orderingPipelinesArgsForCall, struct {
-		arg1 []string
-	}{arg1Copy})
-	fake.recordInvocation("OrderingPipelines", []interface{}{arg1Copy})
+		arg1 atc.OrderPipelinesRequest
+	}{arg1})
+	fake.recordInvocation("OrderingPipelines", []interface{}{arg1})
 	fake.orderingPipelinesMutex.Unlock()
 	if fake.OrderingPipelinesStub != nil {
 		return fake.OrderingPipelinesStub(arg1)
@@ -2960,13 +2955,13 @@ func (fake *FakeTeam) OrderingPipelinesCallCount() int {
 	return len(fake.orderingPipelinesArgsForCall)
 }
 
-func (fake *FakeTeam) OrderingPipelinesCalls(stub func([]string) error) {
+func (fake *FakeTeam) OrderingPipelinesCalls(stub func(atc.OrderPipelinesRequest) error) {
 	fake.orderingPipelinesMutex.Lock()
 	defer fake.orderingPipelinesMutex.Unlock()
 	fake.OrderingPipelinesStub = stub
 }
 
-func (fake *FakeTeam) OrderingPipelinesArgsForCall(i int) []string {
+func (fake *FakeTeam) OrderingPipelinesArgsForCall(i int) atc.OrderPipelinesRequest {
 	fake.orderingPipelinesMutex.RLock()
 	defer fake.orderingPipelinesMutex.RUnlock()
 	argsForCall := fake.orderingPipelinesArgsForCall[i]

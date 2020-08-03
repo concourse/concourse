@@ -70,7 +70,7 @@ type Team interface {
 	ListVolumes() ([]atc.Volume, error)
 	CreateBuild(plan atc.Plan) (atc.Build, error)
 	Builds(page Page) ([]atc.Build, Pagination, error)
-	OrderingPipelines(pipelineNames []string) error // FIXME 5808
+	OrderingPipelines(pipelineRefs atc.OrderPipelinesRequest) error
 
 	CreateArtifact(io.Reader, string, []string) (atc.WorkerArtifact, error)
 	GetArtifact(int) (io.ReadCloser, error)

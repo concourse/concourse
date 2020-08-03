@@ -27,14 +27,51 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			Context("when the pipeline exists", func() {
+				var requestBody atc.OrderPipelinesRequest
+
 				BeforeEach(func() {
+					requestBody = atc.OrderPipelinesRequest{
+						{Name: "awesome-pipeline"},
+						{Name: "awesome-pipeline-2"},
+					}
+				})
+
+				JustBeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyJSONRepresenting([]string{"awesome-pipeline", "awesome-pipeline-2"}),
+							ghttp.VerifyJSONRepresenting(requestBody),
 							ghttp.VerifyRequest("PUT", path),
 							ghttp.RespondWith(http.StatusOK, nil),
 						),
 					)
+				})
+
+				Context("with instanced pipelines", func() {
+
+					BeforeEach(func() {
+						requestBody = atc.OrderPipelinesRequest{
+							{Name: "awesome-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}},
+							{Name: "awesome-pipeline", InstanceVars: atc.InstanceVars{"branch": "feature/bar"}},
+						}
+					})
+
+					It("orders the pipeline instances", func() {
+						Expect(func() {
+							flyCmd := exec.Command(flyPath, "-t", targetName, "order-pipelines", "-p", "awesome-pipeline/branch:master", "-p", "awesome-pipeline/branch:feature/bar")
+
+							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+							Expect(err).NotTo(HaveOccurred())
+
+							<-sess.Exited
+							Expect(sess.ExitCode()).To(Equal(0))
+							Eventually(sess).Should(gbytes.Say(`ordered pipelines`))
+							Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline/branch:master`))
+							Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline/branch:feature/bar`))
+
+						}).To(Change(func() int {
+							return len(atcServer.ReceivedRequests())
+						}).By(2))
+					})
 				})
 
 				It("orders the pipeline", func() {

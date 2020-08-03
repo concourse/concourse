@@ -42,7 +42,7 @@ type Team interface {
 	Pipeline(pipelineRef atc.PipelineRef) (Pipeline, bool, error)
 	Pipelines() ([]Pipeline, error)
 	PublicPipelines() ([]Pipeline, error)
-	OrderPipelines([]string) error
+	OrderPipelines([]atc.PipelineRef) error
 
 	CreateOneOffBuild() (Build, error)
 	CreateStartedBuild(plan atc.Plan) (Build, error)
@@ -626,7 +626,7 @@ func (t *team) PublicPipelines() ([]Pipeline, error) {
 	return pipelines, nil
 }
 
-func (t *team) OrderPipelines(pipelineNames []string) error {
+func (t *team) OrderPipelines(pipelineRefs []atc.PipelineRef) error {
 	tx, err := t.conn.Begin()
 	if err != nil {
 		return err
@@ -634,12 +634,14 @@ func (t *team) OrderPipelines(pipelineNames []string) error {
 
 	defer Rollback(tx)
 
-	for i, name := range pipelineNames {
+	for i, pipelineRef := range pipelineRefs {
+		instanceVarsPayload, _ := json.Marshal(pipelineRef.InstanceVars)
 		pipelineUpdate, err := psql.Update("pipelines").
 			Set("ordering", i).
 			Where(sq.Eq{
-				"name":    name,
-				"team_id": t.id,
+				"team_id":       t.id,
+				"name":          pipelineRef.Name,
+				"instance_vars": instanceVarsPayload,
 			}).
 			RunWith(tx).
 			Exec()
@@ -651,7 +653,7 @@ func (t *team) OrderPipelines(pipelineNames []string) error {
 			return err
 		}
 		if updatedPipelines == 0 {
-			return fmt.Errorf("pipeline %s does not exist", name)
+			return fmt.Errorf("pipeline %s does not exist", pipelineRef.String())
 		}
 	}
 

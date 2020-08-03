@@ -263,10 +263,10 @@ type FakeTeam struct {
 	nameReturnsOnCall map[int]struct {
 		result1 string
 	}
-	OrderPipelinesStub        func([]string) error
+	OrderPipelinesStub        func([]atc.PipelineRef) error
 	orderPipelinesMutex       sync.RWMutex
 	orderPipelinesArgsForCall []struct {
-		arg1 []string
+		arg1 []atc.PipelineRef
 	}
 	orderPipelinesReturns struct {
 		result1 error
@@ -1553,16 +1553,16 @@ func (fake *FakeTeam) NameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeTeam) OrderPipelines(arg1 []string) error {
-	var arg1Copy []string
+func (fake *FakeTeam) OrderPipelines(arg1 []atc.PipelineRef) error {
+	var arg1Copy []atc.PipelineRef
 	if arg1 != nil {
-		arg1Copy = make([]string, len(arg1))
+		arg1Copy = make([]atc.PipelineRef, len(arg1))
 		copy(arg1Copy, arg1)
 	}
 	fake.orderPipelinesMutex.Lock()
 	ret, specificReturn := fake.orderPipelinesReturnsOnCall[len(fake.orderPipelinesArgsForCall)]
 	fake.orderPipelinesArgsForCall = append(fake.orderPipelinesArgsForCall, struct {
-		arg1 []string
+		arg1 []atc.PipelineRef
 	}{arg1Copy})
 	fake.recordInvocation("OrderPipelines", []interface{}{arg1Copy})
 	fake.orderPipelinesMutex.Unlock()
@@ -1582,13 +1582,13 @@ func (fake *FakeTeam) OrderPipelinesCallCount() int {
 	return len(fake.orderPipelinesArgsForCall)
 }
 
-func (fake *FakeTeam) OrderPipelinesCalls(stub func([]string) error) {
+func (fake *FakeTeam) OrderPipelinesCalls(stub func([]atc.PipelineRef) error) {
 	fake.orderPipelinesMutex.Lock()
 	defer fake.orderPipelinesMutex.Unlock()
 	fake.OrderPipelinesStub = stub
 }
 
-func (fake *FakeTeam) OrderPipelinesArgsForCall(i int) []string {
+func (fake *FakeTeam) OrderPipelinesArgsForCall(i int) []atc.PipelineRef {
 	fake.orderPipelinesMutex.RLock()
 	defer fake.orderPipelinesMutex.RUnlock()
 	argsForCall := fake.orderPipelinesArgsForCall[i]
