@@ -844,7 +844,7 @@ var _ = Describe("Builder", func() {
 
 					ensureLocalVar := func(i int, name string, value interface{}) {
 						_, _, _, delegate := fakeStepFactory.TaskStepArgsForCall(i)
-						val, found, err := delegate.Variables().Get(vars.VariableDefinition{Name: ".:" + name})
+						val, found, err := delegate.Variables().Get(vars.VariableDefinition{Ref: vars.VariableReference{Source: ".", Path: name}})
 						Expect(err).ToNot(HaveOccurred())
 						Expect(found).To(BeTrue())
 						Expect(val).To(Equal(value))
