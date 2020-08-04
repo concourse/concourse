@@ -64,6 +64,7 @@ type DomID
     | PinBar
     | PipelineStatusIcon PipelinesSection Concourse.PipelineIdentifier
     | PipelineCardPauseToggle PipelinesSection Concourse.PipelineIdentifier
+    | TopBarFavoritedIcon DatabaseID
     | TopBarPauseToggle Concourse.PipelineIdentifier
     | VisibilityButton PipelinesSection Concourse.PipelineIdentifier
     | PipelineCardFavoritedIcon PipelinesSection DatabaseID

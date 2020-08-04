@@ -115,6 +115,15 @@ update message model =
             , [ Effects.SaveFavoritedPipelines <| favoritedPipelines ]
             )
 
+        Click (TopBarFavoritedIcon pipelineID) ->
+            let
+                favoritedPipelines =
+                    toggle pipelineID model.favoritedPipelines
+            in
+            ( { model | favoritedPipelines = favoritedPipelines }
+            , [ Effects.SaveFavoritedPipelines <| favoritedPipelines ]
+            )
+
         Hover (Just (SideBarPipeline section pipelineID)) ->
             ( model
             , [ Effects.GetViewportOf
