@@ -129,6 +129,8 @@ type RunCommand struct {
 
 	ExternalURL flag.URL `long:"external-url" description:"URL used to reach any ATC from the outside world."`
 
+	RegistryMirrorURL flag.URL `long:"registry-mirror-url" description:"URL of a registry mirror"`
+
 	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
 	ConcurrentRequestLimits   map[wrappa.LimitedRoute]int `long:"concurrent-request-limit" description:"Limit the number of concurrent requests to an API endpoint (Example: ListAllJobs:5)"`
@@ -1581,6 +1583,7 @@ func (cmd *RunCommand) constructEngine(
 		stepFactory,
 		builder.NewDelegateFactory(),
 		cmd.ExternalURL.String(),
+		cmd.RegistryMirrorURL.String(),
 		secretManager,
 		cmd.varSourcePool,
 		cmd.EnableRedactSecrets,

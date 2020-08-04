@@ -17,6 +17,7 @@ type StepMetadata struct {
 	ResourceConfigID      int
 	BaseResourceTypeID    int
 	ExternalURL           string
+	RegistryMirrorURL     string
 }
 
 func (metadata StepMetadata) Env() []string {
@@ -56,6 +57,10 @@ func (metadata StepMetadata) Env() []string {
 
 	if metadata.ExternalURL != "" {
 		env = append(env, "ATC_EXTERNAL_URL="+metadata.ExternalURL)
+	}
+
+	if metadata.RegistryMirrorURL != "" {
+		env = append(env, "REGISTRY_MIRROR_URL="+metadata.RegistryMirrorURL)
 	}
 
 	return env

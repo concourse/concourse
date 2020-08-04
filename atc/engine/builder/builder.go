@@ -43,27 +43,30 @@ func NewStepBuilder(
 	stepFactory StepFactory,
 	delegateFactory DelegateFactory,
 	externalURL string,
+	registryMirrorURL string,
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 	redactSecrets bool,
 ) *stepBuilder {
 	return &stepBuilder{
-		stepFactory:     stepFactory,
-		delegateFactory: delegateFactory,
-		externalURL:     externalURL,
-		globalSecrets:   secrets,
-		varSourcePool:   varSourcePool,
-		redactSecrets:   redactSecrets,
+		stepFactory:       stepFactory,
+		delegateFactory:   delegateFactory,
+		externalURL:       externalURL,
+		registryMirrorURL: registryMirrorURL,
+		globalSecrets:     secrets,
+		varSourcePool:     varSourcePool,
+		redactSecrets:     redactSecrets,
 	}
 }
 
 type stepBuilder struct {
-	stepFactory     StepFactory
-	delegateFactory DelegateFactory
-	externalURL     string
-	globalSecrets   creds.Secrets
-	varSourcePool   creds.VarSourcePool
-	redactSecrets   bool
+	stepFactory       StepFactory
+	delegateFactory   DelegateFactory
+	externalURL       string
+	registryMirrorURL string
+	globalSecrets     creds.Secrets
+	varSourcePool     creds.VarSourcePool
+	redactSecrets     bool
 }
 
 func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec.Step, error) {
@@ -325,6 +328,7 @@ func (builder *stepBuilder) buildGetStep(build db.Build, plan atc.Plan, credVars
 	stepMetadata := builder.stepMetadata(
 		build,
 		builder.externalURL,
+		builder.registryMirrorURL,
 	)
 
 	return builder.stepFactory.GetStep(
@@ -347,6 +351,7 @@ func (builder *stepBuilder) buildPutStep(build db.Build, plan atc.Plan, credVars
 	stepMetadata := builder.stepMetadata(
 		build,
 		builder.externalURL,
+		builder.registryMirrorURL,
 	)
 
 	return builder.stepFactory.PutStep(
@@ -394,6 +399,7 @@ func (builder *stepBuilder) buildTaskStep(build db.Build, plan atc.Plan, credVar
 	stepMetadata := builder.stepMetadata(
 		build,
 		builder.externalURL,
+		builder.registryMirrorURL,
 	)
 
 	return builder.stepFactory.TaskStep(
@@ -409,6 +415,7 @@ func (builder *stepBuilder) buildSetPipelineStep(build db.Build, plan atc.Plan, 
 	stepMetadata := builder.stepMetadata(
 		build,
 		builder.externalURL,
+		builder.registryMirrorURL,
 	)
 
 	return builder.stepFactory.SetPipelineStep(
@@ -423,6 +430,7 @@ func (builder *stepBuilder) buildLoadVarStep(build db.Build, plan atc.Plan, cred
 	stepMetadata := builder.stepMetadata(
 		build,
 		builder.externalURL,
+		builder.registryMirrorURL,
 	)
 
 	return builder.stepFactory.LoadVarStep(
@@ -480,16 +488,18 @@ func (builder *stepBuilder) containerMetadata(
 func (builder *stepBuilder) stepMetadata(
 	build db.Build,
 	externalURL string,
+	registryMirrorURL string,
 ) exec.StepMetadata {
 	return exec.StepMetadata{
-		BuildID:      build.ID(),
-		BuildName:    build.Name(),
-		TeamID:       build.TeamID(),
-		TeamName:     build.TeamName(),
-		JobID:        build.JobID(),
-		JobName:      build.JobName(),
-		PipelineID:   build.PipelineID(),
-		PipelineName: build.PipelineName(),
-		ExternalURL:  externalURL,
+		BuildID:           build.ID(),
+		BuildName:         build.Name(),
+		TeamID:            build.TeamID(),
+		TeamName:          build.TeamName(),
+		JobID:             build.JobID(),
+		JobName:           build.JobName(),
+		PipelineID:        build.PipelineID(),
+		PipelineName:      build.PipelineName(),
+		ExternalURL:       externalURL,
+		RegistryMirrorURL: registryMirrorURL,
 	}
 }
