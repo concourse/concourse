@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
-	"runtime"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -1006,11 +1005,6 @@ this is super secure
 
 				It("parses the config from stdin and sends it to the ATC", func() {
 					Expect(func() {
-						if runtime.GOOS == "windows" {
-							// Ignore this test case on windows.
-							return
-						}
-
 						flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-c", "-")
 
 						stdin, err := flyCmd.StdinPipe()
