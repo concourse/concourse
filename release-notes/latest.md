@@ -22,3 +22,7 @@
 #### <sub><sup><a name="5846" href="#5810">:link:</a></sup></sub> feature
 
 * @evanchaoli Enhanced build log page as well as `fly watch` to display worker name for `get/put/task` steps. #5846
+
+#### <sub><sup><a name="5146" href="#5146">:link:</a></sup></sub> feature
+
+* Refactor TSA to use Concourse's gclient which has a configurable timeout Issue: #5146 PR: #5845

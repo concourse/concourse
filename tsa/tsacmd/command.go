@@ -51,7 +51,8 @@ type TSACommand struct {
 	TokenURL     flag.URL `long:"token-url" required:"true" description:"Token endpoint of the auth server"`
 	Scopes       []string `long:"scope" description:"Scopes to request from the auth server"`
 
-	HeartbeatInterval time.Duration `long:"heartbeat-interval" default:"30s" description:"interval on which to heartbeat workers to the ATC"`
+	HeartbeatInterval    time.Duration `long:"heartbeat-interval" default:"30s" description:"interval on which to heartbeat workers to the ATC"`
+	GardenRequestTimeout time.Duration `long:"garden-request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
 
 	ClusterName    string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
 	LogClusterName bool   `long:"log-cluster-name" description:"Log cluster name."`
@@ -133,14 +134,15 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 	httpClient := oauth2.NewClient(ctx, tokenSource)
 
 	server := &server{
-		logger:            logger,
-		heartbeatInterval: cmd.HeartbeatInterval,
-		cprInterval:       1 * time.Second,
-		atcEndpointPicker: atcEndpointPicker,
-		forwardHost:       cmd.PeerAddress,
-		config:            config,
-		httpClient:        httpClient,
-		sessionTeam:       sessionAuthTeam,
+		logger:               logger,
+		heartbeatInterval:    cmd.HeartbeatInterval,
+		cprInterval:          1 * time.Second,
+		atcEndpointPicker:    atcEndpointPicker,
+		forwardHost:          cmd.PeerAddress,
+		config:               config,
+		httpClient:           httpClient,
+		sessionTeam:          sessionAuthTeam,
+		gardenRequestTimeout: cmd.GardenRequestTimeout,
 	}
 	// Starts a goroutine whose purpose is to listen to the
 	// SIGHUP syscall and reload configuration upon receiving the signal.
