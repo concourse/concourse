@@ -116,7 +116,7 @@ var _ = BeforeEach(func() {
 
 	fakeAccess = new(accessorfakes.FakeAccess)
 	fakeAccessor = new(accessorfakes.FakeAccessFactory)
-	fakeAccessor.CreateReturns(fakeAccess)
+	fakeAccessor.CreateReturns(fakeAccess, nil)
 
 	fakePipeline = new(dbfakes.FakePipeline)
 	dbTeam.PipelineReturns(fakePipeline, true, nil)
@@ -219,9 +219,6 @@ var _ = BeforeEach(func() {
 		"some-action",
 		handler,
 		fakeAccessor,
-		new(accessorfakes.FakeTokenVerifier),
-		new(accessorfakes.FakeTeamFetcher),
-		new(accessorfakes.FakeUserTracker),
 		new(auditorfakes.FakeAuditor),
 		map[string]string{},
 	)

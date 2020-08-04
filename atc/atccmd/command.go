@@ -61,6 +61,7 @@ import (
 	"github.com/concourse/concourse/web"
 	"github.com/concourse/flag"
 	"github.com/concourse/retryhttp"
+	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/cppforlife/go-semi-semantic/version"
 	multierror "github.com/hashicorp/go-multierror"
@@ -103,7 +104,6 @@ var flyClientSecret = "Zmx5"
 
 var workerAvailabilityPollingInterval = 5 * time.Second
 var workerStatusPublishInterval = 1 * time.Minute
-var BatcherInterval = 15 * time.Second
 
 type ATCCommand struct {
 	RunCommand RunCommand `command:"run"`
@@ -717,12 +717,23 @@ func (cmd *RunCommand) constructAPIMembers(
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
 	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
+	dbAccessTokenFactory := db.NewAccessTokenFactory(dbConn)
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
 
-	tokenVerifier := cmd.constructTokenVerifier(httpClient)
+	tokenVerifier := cmd.constructTokenVerifier(dbAccessTokenFactory)
+
+	teamsCacher := accessor.NewTeamsCacher(
+		logger,
+		dbConn.Bus(),
+		teamFactory,
+		time.Minute,
+		time.Minute,
+	)
 
 	accessFactory := accessor.NewAccessFactory(
+		tokenVerifier,
+		teamsCacher,
 		cmd.SystemClaimKey,
 		cmd.SystemClaimValues,
 	)
@@ -749,8 +760,6 @@ func (cmd *RunCommand) constructAPIMembers(
 		credsManagers,
 		accessFactory,
 		dbWall,
-		tokenVerifier,
-		dbConn.Bus(),
 		policyChecker,
 	)
 	if err != nil {
@@ -765,6 +774,8 @@ func (cmd *RunCommand) constructAPIMembers(
 	authHandler, err := cmd.constructAuthHandler(
 		logger,
 		storage,
+		dbAccessTokenFactory,
+		userFactory,
 	)
 	if err != nil {
 		return nil, err
@@ -1095,6 +1106,7 @@ func (cmd *RunCommand) gcComponents(
 	dbContainerRepository := db.NewContainerRepository(gcConn)
 	dbArtifactLifecycle := db.NewArtifactLifecycle(gcConn)
 	dbCheckLifecycle := db.NewCheckLifecycle(gcConn)
+	dbAccessTokenLifecycle := db.NewAccessTokenLifecycle(gcConn)
 	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(gcConn)
 	dbBuildFactory := db.NewBuildFactory(gcConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(gcConn, lockFactory)
@@ -1114,6 +1126,7 @@ func (cmd *RunCommand) gcComponents(
 		atc.ComponentCollectorContainers:        gc.NewContainerCollector(dbContainerRepository, cmd.GC.MissingGracePeriod, cmd.GC.HijackGracePeriod),
 		atc.ComponentCollectorCheckSessions:     gc.NewResourceConfigCheckSessionCollector(resourceConfigCheckSessionLifecycle),
 		atc.ComponentCollectorPipelines:         gc.NewPipelineCollector(dbPipelineLifecycle),
+		atc.ComponentCollectorAccessTokens:      gc.NewAccessTokensCollector(dbAccessTokenLifecycle, jwt.DefaultLeeway),
 	}
 
 	var components []RunnableComponent
@@ -1642,6 +1655,8 @@ func (cmd *RunCommand) constructLegacyHandler(
 func (cmd *RunCommand) constructAuthHandler(
 	logger lager.Logger,
 	storage storage.Storage,
+	accessTokenFactory db.AccessTokenFactory,
+	userFactory db.UserFactory,
 ) (http.Handler, error) {
 
 	issuerPath, _ := url.Parse("/sky/issuer")
@@ -1668,7 +1683,14 @@ func (cmd *RunCommand) constructAuthHandler(
 		return nil, err
 	}
 
-	return dexServer, nil
+	return token.StoreAccessToken(
+		logger.Session("dex-server"),
+		dexServer,
+		token.Factory{},
+		token.NewClaimsParser(),
+		accessTokenFactory,
+		userFactory,
+	), nil
 }
 
 func (cmd *RunCommand) constructLoginHandler(
@@ -1702,6 +1724,7 @@ func (cmd *RunCommand) constructLoginHandler(
 	skyServer, err := skyserver.NewSkyServer(&skyserver.SkyConfig{
 		Logger:          logger.Session("sky"),
 		TokenMiddleware: middleware,
+		TokenParser:     token.Factory{},
 		OAuthConfig:     oauth2Config,
 		HTTPClient:      httpClient,
 	})
@@ -1712,17 +1735,17 @@ func (cmd *RunCommand) constructLoginHandler(
 	return skyserver.NewSkyHandler(skyServer), nil
 }
 
-func (cmd *RunCommand) constructTokenVerifier(httpClient *http.Client) accessor.TokenVerifier {
-
-	publicKeyPath, _ := url.Parse("/sky/issuer/keys")
-	publicKeyURL := cmd.ExternalURL.URL.ResolveReference(publicKeyPath)
+func (cmd *RunCommand) constructTokenVerifier(accessTokenFactory db.AccessTokenFactory) accessor.TokenVerifier {
 
 	validClients := []string{flyClientID}
 	for clientId, _ := range cmd.Auth.AuthFlags.Clients {
 		validClients = append(validClients, clientId)
 	}
 
-	return accessor.NewVerifier(httpClient, publicKeyURL, validClients)
+	MiB := 1024 * 1024
+	claimsCacher := accessor.NewClaimsCacher(accessTokenFactory, 1 * MiB)
+
+	return accessor.NewVerifier(claimsCacher, validClients)
 }
 
 func (cmd *RunCommand) constructAPIHandler(
@@ -1745,8 +1768,6 @@ func (cmd *RunCommand) constructAPIHandler(
 	credsManagers creds.Managers,
 	accessFactory accessor.AccessFactory,
 	dbWall db.Wall,
-	tokenVerifier accessor.TokenVerifier,
-	notifications db.NotificationsBus,
 	policyChecker *policy.Checker,
 ) (http.Handler, error) {
 
@@ -1768,21 +1789,6 @@ func (cmd *RunCommand) constructAPIHandler(
 		cmd.Auditor.EnableWorkerAuditLog,
 		cmd.Auditor.EnableVolumeAuditLog,
 		logger,
-	)
-
-	batcher := accessor.NewBatcher(
-		logger,
-		dbUserFactory,
-		BatcherInterval,
-		100,
-	)
-
-	cacher := accessor.NewCacher(
-		logger,
-		notifications,
-		teamFactory,
-		time.Minute,
-		time.Minute,
 	)
 
 	customRoles, err := cmd.parseCustomRoles()
@@ -1808,9 +1814,6 @@ func (cmd *RunCommand) constructAPIHandler(
 		wrappa.NewAccessorWrappa(
 			logger,
 			accessFactory,
-			tokenVerifier,
-			cacher,
-			batcher,
 			aud,
 			customRoles,
 		),

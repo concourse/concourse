@@ -3,7 +3,6 @@ package skyserver_test
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"encoding/json"
 	"net/http/httptest"
 	"testing"
 
@@ -15,11 +14,11 @@ import (
 	"github.com/concourse/concourse/skymarshal/token/tokenfakes"
 	"github.com/onsi/gomega/ghttp"
 	"golang.org/x/oauth2"
-	"gopkg.in/square/go-jose.v2"
 )
 
 var (
 	fakeTokenMiddleware *tokenfakes.FakeMiddleware
+	fakeTokenParser     *tokenfakes.FakeParser
 	skyServer           *httptest.Server
 	dexServer           *ghttp.Server
 	signingKey          *rsa.PrivateKey
@@ -35,6 +34,7 @@ var _ = BeforeEach(func() {
 	var err error
 
 	fakeTokenMiddleware = new(tokenfakes.FakeMiddleware)
+	fakeTokenParser = new(tokenfakes.FakeParser)
 
 	dexServer = ghttp.NewTLSServer()
 
@@ -57,6 +57,7 @@ var _ = BeforeEach(func() {
 	config = &skyserver.SkyConfig{
 		Logger:          lagertest.NewTestLogger("sky"),
 		TokenMiddleware: fakeTokenMiddleware,
+		TokenParser:     fakeTokenParser,
 		OAuthConfig:     oauthConfig,
 		HTTPClient:      dexServer.HTTPTestServer.Client(),
 	}
@@ -71,28 +72,3 @@ var _ = AfterEach(func() {
 	skyServer.Close()
 	dexServer.Close()
 })
-
-func newToken(raw map[string]interface{}) string {
-
-	claims, err := json.Marshal(raw)
-	Expect(err).NotTo(HaveOccurred())
-
-	signingKey := jose.SigningKey{
-		Algorithm: jose.RS256,
-		Key:       signingKey,
-	}
-
-	var signerOpts = &jose.SignerOptions{}
-	signerOpts.WithHeader("kid", "kid")
-
-	signer, err := jose.NewSigner(signingKey, signerOpts)
-	Expect(err).NotTo(HaveOccurred())
-
-	object, err := signer.Sign([]byte(claims))
-	Expect(err).NotTo(HaveOccurred())
-
-	token, err := object.CompactSerialize()
-	Expect(err).NotTo(HaveOccurred())
-
-	return token
-}

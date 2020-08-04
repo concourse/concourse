@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Cacher", func() {
+var _ = Describe("TeamsCacher", func() {
 	var (
 		fakeNotifications *accessorfakes.FakeNotifications
 		fakeTeamFactory   *dbfakes.FakeTeamFactory
@@ -38,7 +38,7 @@ var _ = Describe("Cacher", func() {
 	})
 
 	JustBeforeEach(func() {
-		teamFetcher = accessor.NewCacher(lager.NewLogger("test"), fakeNotifications, fakeTeamFactory, time.Minute, time.Minute)
+		teamFetcher = accessor.NewTeamsCacher(lager.NewLogger("test"), fakeNotifications, fakeTeamFactory, time.Minute, time.Minute)
 		fetchedTeams, err = teamFetcher.GetTeams()
 		Expect(err).NotTo(HaveOccurred())
 	})

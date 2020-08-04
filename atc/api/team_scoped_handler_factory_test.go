@@ -11,7 +11,6 @@ import (
 
 	"github.com/concourse/concourse/atc/api"
 	"github.com/concourse/concourse/atc/api/accessor"
-	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/auditor/auditorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -46,9 +45,6 @@ var _ = Describe("TeamScopedHandlerFactory", func() {
 			"some-action",
 			innerHandler,
 			fakeAccessor,
-			new(accessorfakes.FakeTokenVerifier),
-			new(accessorfakes.FakeTeamFetcher),
-			new(accessorfakes.FakeUserTracker),
 			new(auditorfakes.FakeAuditor),
 			map[string]string{},
 		)

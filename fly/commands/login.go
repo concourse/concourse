@@ -206,12 +206,7 @@ func (command *LoginCommand) passwordGrant(client concourse.Client, username, pa
 		return "", "", err
 	}
 
-	idToken, ok := token.Extra("id_token").(string)
-	if !ok {
-		return "", "", errors.New("invalid id_token")
-	}
-
-	return token.TokenType, idToken, nil
+	return token.TokenType, token.AccessToken, nil
 }
 
 func (command *LoginCommand) authCodeGrant(targetUrl string, browserOnly bool, isRawMode bool) (string, string, error) {

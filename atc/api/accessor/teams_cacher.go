@@ -16,21 +16,21 @@ type Notifications interface {
 	Unlisten(string, chan bool) error
 }
 
-type cacher struct {
+type teamsCacher struct {
 	logger        lager.Logger
 	cache         *cache.Cache
 	notifications Notifications
 	teamFactory   db.TeamFactory
 }
 
-func NewCacher(
+func NewTeamsCacher(
 	logger lager.Logger,
 	notifications Notifications,
 	teamFactory db.TeamFactory,
 	expiration time.Duration,
 	cleanupInterval time.Duration,
-) *cacher {
-	c := &cacher{
+) *teamsCacher {
+	c := &teamsCacher{
 		logger:        logger,
 		cache:         cache.New(expiration, cleanupInterval),
 		notifications: notifications,
@@ -42,7 +42,7 @@ func NewCacher(
 	return c
 }
 
-func (c *cacher) GetTeams() ([]db.Team, error) {
+func (c *teamsCacher) GetTeams() ([]db.Team, error) {
 	if teams, found := c.cache.Get(atc.TeamCacheName); found {
 		return teams.([]db.Team), nil
 	}
@@ -57,7 +57,7 @@ func (c *cacher) GetTeams() ([]db.Team, error) {
 	return teams, nil
 }
 
-func (c *cacher) waitForNotifications() {
+func (c *teamsCacher) waitForNotifications() {
 	notifier, err := c.notifications.Listen(atc.TeamCacheChannel)
 	if err != nil {
 		c.logger.Error("failed-to-listen-for-team-cache", err)

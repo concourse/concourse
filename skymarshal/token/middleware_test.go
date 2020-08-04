@@ -1,7 +1,6 @@
 package token_test
 
 import (
-	"fmt"
 	"time"
 
 	"net/http"
@@ -38,10 +37,7 @@ var _ = Describe("Token Middleware", func() {
 			var result string
 
 			BeforeEach(func() {
-				r.AddCookie(&http.Cookie{Name: "skymarshal_auth0", Value: "blah0"})
-				r.AddCookie(&http.Cookie{Name: "skymarshal_auth1", Value: "blah1"})
-				r.AddCookie(&http.Cookie{Name: "skymarshal_auth2", Value: "blah2"})
-				r.AddCookie(&http.Cookie{Name: "skymarshal_auth3", Value: "blah3"})
+				r.AddCookie(&http.Cookie{Name: "skymarshal_auth", Value: "blah"})
 			})
 
 			JustBeforeEach(func() {
@@ -49,7 +45,7 @@ var _ = Describe("Token Middleware", func() {
 			})
 
 			It("gets the token from the request", func() {
-				Expect(result).To(Equal("blah0blah1blah2blah3"))
+				Expect(result).To(Equal("blah"))
 			})
 		})
 
@@ -62,7 +58,7 @@ var _ = Describe("Token Middleware", func() {
 				cookies := w.Result().Cookies()
 				Expect(cookies).To(HaveLen(1))
 
-				Expect(cookies[0].Name).To(Equal("skymarshal_auth0"))
+				Expect(cookies[0].Name).To(Equal("skymarshal_auth"))
 				Expect(cookies[0].Expires.Unix()).To(Equal(expiry.Unix()))
 				Expect(cookies[0].Value).To(Equal("blah"))
 			})
@@ -75,12 +71,9 @@ var _ = Describe("Token Middleware", func() {
 
 			It("clears the token from the cookie", func() {
 				cookies := w.Result().Cookies()
-				Expect(cookies).To(HaveLen(15))
-
-				for i := 0; i < token.NumCookies; i++ {
-					Expect(cookies[i].Name).To(Equal(fmt.Sprintf("skymarshal_auth%d", i)))
-					Expect(cookies[i].Value).To(Equal(""))
-				}
+				Expect(cookies).To(HaveLen(1))
+				Expect(cookies[0].Name).To(Equal("skymarshal_auth"))
+				Expect(cookies[0].Value).To(Equal(""))
 			})
 		})
 	})

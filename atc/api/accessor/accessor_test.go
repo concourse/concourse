@@ -221,6 +221,7 @@ var _ = Describe("Accessor", func() {
 
 			verification.HasToken = true
 			verification.IsTokenValid = true
+
 			verification.RawClaims = map[string]interface{}{
 				"groups": []interface{}{"some-group"},
 				"federated_claims": map[string]interface{}{

@@ -50,16 +50,13 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 			"some-action",
 			innerHandler,
 			fakeAccessor,
-			new(accessorfakes.FakeTokenVerifier),
-			new(accessorfakes.FakeTeamFetcher),
-			new(accessorfakes.FakeUserTracker),
 			new(auditorfakes.FakeAuditor),
 			map[string]string{},
 		)
 	})
 
 	JustBeforeEach(func() {
-		fakeAccessor.CreateReturns(fakeaccess)
+		fakeAccessor.CreateReturns(fakeaccess, nil)
 		server = httptest.NewServer(handler)
 
 		request, err := http.NewRequest("POST", server.URL+"?:team_name=some-team&:build_id=55", nil)

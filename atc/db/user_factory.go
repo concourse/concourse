@@ -12,7 +12,6 @@ type UserFactory interface {
 	CreateOrUpdateUser(username, connector, sub string) error
 	GetAllUsers() ([]User, error)
 	GetAllUsersByLoginDate(LastLogin time.Time) ([]User, error)
-	BatchUpsertUsers(users map[string]User) error
 }
 
 type userFactory struct {
@@ -26,16 +25,6 @@ func NewUserFactory(conn Conn) UserFactory {
 }
 
 func (f *userFactory) CreateOrUpdateUser(username, connector, sub string) error {
-	return f.BatchUpsertUsers(map[string]User{
-		sub: user{
-			name:      username,
-			connector: connector,
-			sub:       sub,
-		},
-	})
-}
-
-func (f *userFactory) BatchUpsertUsers(userMap map[string]User) error {
 	tx, err := f.conn.Begin()
 
 	if err != nil {
@@ -44,11 +33,8 @@ func (f *userFactory) BatchUpsertUsers(userMap map[string]User) error {
 	defer Rollback(tx)
 
 	builder := psql.Insert("users").
-		Columns("username", "connector", "sub")
-
-	for _, user := range userMap {
-		builder = builder.Values(user.Name(), user.Connector(), user.Sub())
-	}
+		Columns("username", "connector", "sub").
+		Values(username, connector, sub)
 
 	_, err = builder.Suffix(`ON CONFLICT (sub) DO UPDATE SET
 					username = EXCLUDED.username,

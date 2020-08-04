@@ -82,52 +82,18 @@ var _ = Describe("Teams API", func() {
 					"groups": []string{}, "users": []string{"local:username"},
 				},
 			})
+
+			fakeAccess.IsAuthorizedReturnsOnCall(0, true)
+			fakeAccess.IsAuthorizedReturnsOnCall(1, false)
+			fakeAccess.IsAuthorizedReturnsOnCall(2, true)
 		})
 
-		Context("when the requester is an admin", func() {
+		Context("when the database call succeeds", func() {
 			BeforeEach(func() {
-				fakeAccess.IsAdminReturns(true)
-
-				dbTeamFactory.GetTeamsReturns([]db.Team{fakeTeamOne, fakeTeamTwo, fakeTeamThree}, nil)
-
-			})
-
-			It("should return all teams", func() {
-				body, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(body).To(MatchJSON(`[
- 					{
- 						"id": 5,
- 						"name": "avengers",
-						"auth": { "owner":{"users":["local:username"],"groups":[]}}
- 					},
- 					{
- 						"id": 9,
- 						"name": "aliens",
-						"auth": { "owner":{"users":["local:username"],"groups":[]}}
-					},
- 					{
- 						"id": 22,
- 						"name": "predators",
-						"auth": { "owner":{"users":["local:username"],"groups":[]}}
-					}
- 				]`))
-			})
-		})
-
-		Context("when the requester is NOT an admin", func() {
-			BeforeEach(func() {
-				fakeAccess.IsAdminReturns(false)
-
-				fakeAccess.IsAuthorizedReturnsOnCall(0, true)
-				fakeAccess.IsAuthorizedReturnsOnCall(1, false)
-				fakeAccess.IsAuthorizedReturnsOnCall(2, true)
-
 				dbTeamFactory.GetTeamsReturns([]db.Team{fakeTeamOne, fakeTeamTwo, fakeTeamThree}, nil)
 			})
 
-			It("should return only the teams the user is authorized for", func() {
+			It("should return the teams the user is authorized for", func() {
 				body, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -146,7 +112,7 @@ var _ = Describe("Teams API", func() {
 			})
 		})
 
-		Context("when the database returns an error", func() {
+		Context("when the database call returns an error", func() {
 			var disaster error
 
 			BeforeEach(func() {
