@@ -128,6 +128,7 @@ func (client *client) FindTeam(teamName string) (Team, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	switch resp.StatusCode {
 	case http.StatusOK:
