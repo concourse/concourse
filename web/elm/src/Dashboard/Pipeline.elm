@@ -295,7 +295,7 @@ footerView :
 footerView userState favoritedPipelines pipeline now hovered existingJobs =
     let
         spacer =
-            Html.div [ style "width" "13.5px" ] []
+            Html.div [ style "width" "12px" ] []
 
         pipelineId =
             { pipelineName = pipeline.name

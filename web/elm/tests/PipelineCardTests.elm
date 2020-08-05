@@ -2092,7 +2092,7 @@ all =
                             |> Query.children []
                             |> Expect.all
                                 [ Query.count (Expect.equal 5)
-                                , Query.index 1 >> Query.has [ style "width" "13.5px" ]
+                                , Query.index 1 >> Query.has [ style "width" "12px" ]
                                 ]
                 , test "there is medium spacing between the eye and the favorited icon" <|
                     \_ ->
@@ -2114,7 +2114,7 @@ all =
                             |> Query.children []
                             |> Expect.all
                                 [ Query.count (Expect.equal 5)
-                                , Query.index 3 >> Query.has [ style "width" "13.5px" ]
+                                , Query.index 3 >> Query.has [ style "width" "12px" ]
                                 ]
                 , describe "pause toggle"
                     [ test "the right section has a 20px square pause button on the left" <|
