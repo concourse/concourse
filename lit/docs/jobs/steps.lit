@@ -571,6 +571,22 @@ by configuring \reference{schema.step.on_failure} or
         The identifier specifies the name of the pipeline to configure. It will
         be configured within the current team and be created \italic{unpaused}.
 
+        Pipelines configured with the \code{set_pipeline} step are tied to the job that
+        configured them, and will be automatically archived in the following scenarios:
+        \list{
+          When the job runs a successful build which did not configure the pipeline (i.e.
+          the \code{set_pipeline} step was removed).
+        }{
+          When the job is removed from its pipeline configuration (see
+          \reference{schema.job.old_name} for renaming instead of removing).
+        }{
+          When the job's pipeline is archived or destroyed.
+        }
+        This means any job that uses \code{set_pipeline} should set all still-desired
+        pipelines in each build, rather than setting them one-by-one through many builds.
+
+        See \reference{fly-archive-pipeline} for what happens when a pipeline is archived.
+
         \example-toggle{One pipeline reconfiguring another}{
           This is a way to ensure a pipeline stays up to date with its definition in
           a source code repository, eliminating the need to manually run
