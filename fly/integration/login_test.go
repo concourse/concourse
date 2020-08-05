@@ -25,20 +25,7 @@ import (
 var _ = Describe("login Command", func() {
 	var (
 		loginATCServer *ghttp.Server
-		tmpDir         string
 	)
-
-	BeforeEach(func() {
-		var err error
-		tmpDir, err = ioutil.TempDir("", "fly-test")
-		Expect(err).ToNot(HaveOccurred())
-
-		os.Setenv("HOME", tmpDir)
-	})
-
-	AfterEach(func() {
-		os.RemoveAll(tmpDir)
-	})
 
 	Describe("login with no target name", func() {
 		var (

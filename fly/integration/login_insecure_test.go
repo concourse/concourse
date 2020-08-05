@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"os"
 	"os/exec"
 
 	. "github.com/onsi/ginkgo"
@@ -142,7 +141,6 @@ var _ = Describe("login -k Command", func() {
 
 			Context("with --ca-cert", func() {
 				var (
-					tmpDir  string
 					sslCert string
 				)
 
@@ -165,11 +163,6 @@ var _ = Describe("login -k Command", func() {
 						tokenHandler(),
 						userInfoHandler(),
 					)
-
-					tmpDir, err = ioutil.TempDir("", "fly-test")
-					Expect(err).NotTo(HaveOccurred())
-
-					os.Setenv("HOME", tmpDir)
 				})
 
 				It("succeeds", func() {
@@ -195,15 +188,14 @@ var _ = Describe("login -k Command", func() {
 		Context("to existing target with invalid SSL certificate", func() {
 			Context("when 'insecure' is not set", func() {
 				BeforeEach(func() {
-					flyrcContents := `targets:
-  some-target:
-    api: ` + loginATCServer.URL() + `
-    team: main
-    ca_cert: some-ca-cert
-    token:
-      type: Bearer
-      value: some-token`
-					ioutil.WriteFile(homeDir+"/.flyrc", []byte(flyrcContents), 0777)
+					createFlyRc(rc.Targets{
+						"some-target": {
+							API:      loginATCServer.URL(),
+							TeamName: "main",
+							CACert:   "some-ca-cert",
+							Token:    &rc.TargetToken{Type: "Bearer", Value: validAccessToken(date(2020, 1, 1))},
+						},
+					})
 				})
 
 				Context("with -k", func() {

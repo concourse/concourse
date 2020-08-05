@@ -1,12 +1,10 @@
 package integration_test
 
 import (
-	"io/ioutil"
 	"net/http"
-	"os"
 	"os/exec"
-	"path/filepath"
 
+	"github.com/concourse/concourse/fly/rc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -16,40 +14,22 @@ import (
 
 var _ = Describe("status Command", func() {
 	var (
-		tmpDir string
-		flyrc  string
 		flyCmd *exec.Cmd
 	)
+
 	BeforeEach(func() {
-		var err error
-		tmpDir, err = ioutil.TempDir("", "fly-test")
-		Expect(err).ToNot(HaveOccurred())
-
-		os.Setenv("HOME", tmpDir)
-		flyrc = filepath.Join(userHomeDir(), ".flyrc")
-
-		flyFixtureData := []byte(`
-targets:
-  with-token:
-    api: ` + atcServer.URL() + `
-    team: test
-    token:
-      type: Bearer
-      value: some-nice-opaque-access-token
-  without-token:
-    api: https://example.com/another-test
-    team: test
-    token:
-      type: ""
-      value: ""
-`)
-
-		err = ioutil.WriteFile(flyrc, flyFixtureData, 0600)
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		os.RemoveAll(tmpDir)
+		createFlyRc(rc.Targets{
+			"with-token": {
+				API:      atcServer.URL(),
+				TeamName: "test",
+				Token:    &rc.TargetToken{Type: "Bearer", Value: validAccessToken(date(2020, 1, 1))},
+			},
+			"without-token": {
+				API:      "https://example.com/another-test",
+				TeamName: "test",
+				Token:    &rc.TargetToken{},
+			},
+		})
 	})
 
 	Context("status with no target name", func() {
@@ -83,7 +63,7 @@ targets:
 				)
 			})
 
-			It("command exist with 0", func() {
+			It("the command succeeds", func() {
 				flyCmd = exec.Command(flyPath, "-t", "with-token", "status")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
