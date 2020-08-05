@@ -16,7 +16,7 @@ import (
 type TargetsCommand struct{}
 
 func (command *TargetsCommand) Execute([]string) error {
-	flyYAML, err := rc.LoadTargets()
+	targets, err := rc.LoadTargets()
 	if err != nil {
 		return err
 	}
@@ -30,7 +30,7 @@ func (command *TargetsCommand) Execute([]string) error {
 		},
 	}
 
-	for targetName, targetValues := range flyYAML.Targets {
+	for targetName, targetValues := range targets {
 		expirationTime := getExpirationFromString(targetValues.Token)
 
 		row := ui.TableRow{

@@ -21,7 +21,7 @@ func (name *TargetName) Complete(match string) []flags.Completion {
 	}
 
 	names := []string{}
-	for name := range flyTargets.Targets {
+	for name := range flyTargets {
 		if strings.HasPrefix(string(name), match) {
 			names = append(names, string(name))
 		}
