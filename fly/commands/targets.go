@@ -1,15 +1,13 @@
 package commands
 
 import (
-	"fmt"
 	"os"
 	"sort"
-	"strconv"
 	"time"
 
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/concourse/concourse/skymarshal/token"
 	"github.com/fatih/color"
 )
 
@@ -48,43 +46,15 @@ func (command *TargetsCommand) Execute([]string) error {
 	return table.Render(os.Stdout, Fly.PrintTableHeaders)
 }
 
-func getExpirationFromString(token *rc.TargetToken) string {
-	if token == nil || token.Type == "" || token.Value == "" {
+func getExpirationFromString(ttoken *rc.TargetToken) string {
+	if ttoken == nil || ttoken.Type == "" || ttoken.Value == "" {
 		return "n/a"
 	}
 
-	parsedToken, err := jwt.Parse(token.Value, func(token *jwt.Token) (interface{}, error) {
-		return "", token.Claims.Valid()
-	})
-
-	if err != nil && err.Error() != jwt.ErrInvalidKeyType.Error() {
-		return fmt.Sprintf("n/a: %s", err)
+	expiry, err := token.Factory{}.ParseExpiry(ttoken.Value)
+	if err != nil {
+		return "n/a: invalid token"
 	}
 
-	claims := parsedToken.Claims.(jwt.MapClaims)
-	expClaim, ok := claims["exp"]
-	if !ok {
-		return "n/a"
-	}
-
-	var intSeconds int64
-
-	floatSeconds, ok := expClaim.(float64)
-	if ok {
-		intSeconds = int64(floatSeconds)
-	} else {
-		stringSeconds, ok := expClaim.(string)
-		if !ok {
-			return "n/a"
-		}
-		var err error
-		intSeconds, err = strconv.ParseInt(stringSeconds, 10, 64)
-		if err != nil {
-			return "n/a"
-		}
-	}
-
-	unixSeconds := time.Unix(intSeconds, 0).UTC()
-
-	return unixSeconds.Format(time.RFC1123)
+	return expiry.UTC().Format(time.RFC1123)
 }
