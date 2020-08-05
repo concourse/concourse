@@ -566,12 +566,6 @@ by configuring \reference{schema.step.on_failure} or
   }{
     \schema-group{\code{set_pipeline} step}{set-pipeline-step}{
       \required-attribute{set_pipeline}{identifier}{
-        \warn{
-          The \code{set_pipeline} step was introduced in Concourse v5.8.0. It
-          is considered an \bold{experimental} feature until its associated
-          \link{RFC}{https://github.com/concourse/rfcs/pull/31} is resolved.
-        }
-
         Configures a \reference{pipelines}{pipeline}.
 
         The identifier specifies the name of the pipeline to configure. It will
