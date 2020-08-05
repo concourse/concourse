@@ -7,6 +7,11 @@ resources:
       pipeline.yml: |
         ---
         jobs:
+        # The sp job is required so the pipeline is not GC'd after `set_pipeline: self`
+        - name: sp
+          plan:
+          - set_pipeline: self
+            file: does-not-matter
         - name: normal-job
           public: true
           plan:
