@@ -966,6 +966,7 @@ dashboardView :
         , userState : UserState.UserState
         , turbulenceImgSrc : String
         , pipelineRunningKeyframes : String
+        , favoritedPipelines : Set Concourse.DatabaseID
     }
     -> Model
     -> Html Message
@@ -1106,6 +1107,7 @@ pipelinesView :
         | userState : UserState.UserState
         , hovered : HoverState.HoverState
         , pipelineRunningKeyframes : String
+        , favoritedPipelines : Set Concourse.DatabaseID
     }
     ->
         { b

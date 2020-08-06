@@ -103,6 +103,10 @@ type alias StickyHeaderConfig =
     }
 
 
+type alias DatabaseID =
+    Int
+
+
 stickyHeaderConfig : StickyHeaderConfig
 stickyHeaderConfig =
     { pageHeaderHeight = Views.Styles.pageHeaderHeight

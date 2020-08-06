@@ -303,11 +303,7 @@ pipelineFavourite fav =
     [ style "background-image" <|
         Assets.backgroundImage <|
             Just <|
-                if fav.filled then
-                    Assets.StarIconFilled
-
-                else
-                    Assets.StarIconUnfilled
+                Assets.FavoritedToggleIcon fav.filled
     , style "background-repeat" "no-repeat"
     , style "background-position" "50% 50%"
     , style "height" <| String.fromFloat starWidth ++ "px"

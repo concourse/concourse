@@ -96,7 +96,16 @@ update message model =
         Click SideBarResizeHandle ->
             ( { model | draggingSideBar = True }, [] )
 
-        Click (SideBarStarIcon pipelineID) ->
+        Click (SideBarFavoritedIcon pipelineID) ->
+            let
+                favoritedPipelines =
+                    toggle pipelineID model.favoritedPipelines
+            in
+            ( { model | favoritedPipelines = favoritedPipelines }
+            , [ Effects.SaveFavoritedPipelines <| favoritedPipelines ]
+            )
+
+        Click (PipelineCardFavoritedIcon pipelineID) ->
             let
                 favoritedPipelines =
                     toggle pipelineID model.favoritedPipelines

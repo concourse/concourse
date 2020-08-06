@@ -95,7 +95,7 @@ viewPipeline p =
             [ Html.text p.name.text ]
         , Html.div
             (Styles.pipelineFavourite p.starIcon
-                ++ [ onLeftClickStopPropagation <| Click <| SideBarStarIcon p.id ]
+                ++ [ onLeftClickStopPropagation <| Click <| SideBarFavoritedIcon p.id ]
             )
             []
         ]

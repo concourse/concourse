@@ -6,6 +6,7 @@ module Dashboard.Styles exposing
     , content
     , dropdownContainer
     , dropdownItem
+    , favoritedToggle
     , highDensityToggle
     , info
     , infoBar
@@ -740,6 +741,31 @@ searchButton =
     , style "width" "32px"
     , style "display" "inline-block"
     , style "float" "left"
+    ]
+
+
+favoritedToggle :
+    { isFavorited : Bool
+    , isHovered : Bool
+    }
+    -> List (Html.Attribute msg)
+favoritedToggle { isFavorited, isHovered } =
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just (Assets.FavoritedToggleIcon isFavorited)
+    , style "height" "20px"
+    , style "width" "20px"
+    , style "background-position" "50% 50%"
+    , style "background-repeat" "no-repeat"
+    , style "position" "relative"
+    , style "background-size" "contain"
+    , style "cursor" "pointer"
+    , style "opacity" <|
+        if isHovered || isFavorited then
+            "1"
+
+        else
+            "0.5"
     ]
 
 
