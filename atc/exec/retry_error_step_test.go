@@ -102,12 +102,6 @@ var _ = Describe("RetryErrorStep", func() {
 			It("should return retryable", func() {
 				Expect(runErr).To(Equal(Retryable{cause}))
 			})
-
-			It("logs 'timeout exceeded'", func() {
-				Expect(fakeDelegate.ErroredCallCount()).To(Equal(1))
-				_, message := fakeDelegate.ErroredArgsForCall(0)
-				Expect(message).To(Equal(fmt.Sprintf("%s, will retry ...", cause.Error())))
-			})
 		})
 
 		Context("when the inner step returns any other error", func() {
