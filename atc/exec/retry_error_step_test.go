@@ -82,7 +82,7 @@ var _ = Describe("RetryErrorStep", func() {
 				fakeStep.RunReturns(cause)
 			})
 
-			It("should return retryable", func() {
+			It("should return retriable", func() {
 				Expect(runErr).To(Equal(Retriable{cause}))
 			})
 
