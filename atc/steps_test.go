@@ -22,6 +22,7 @@ type StepTest struct {
 	StepConfig atc.StepConfig
 
 	UnknownFields map[string]*json.RawMessage
+	Err           string
 }
 
 var factoryTests = []StepTest{
@@ -407,6 +408,19 @@ var factoryTests = []StepTest{
 
 		UnknownFields: map[string]*json.RawMessage{"get": rawMessage(`"some-other-name"`)},
 	},
+	{
+		Title: "step cannot contain only modifiers",
+
+		ConfigYAML: `
+			attempts: 2
+		`,
+
+		StepConfig: &atc.RetryStep{
+			Attempts: 2,
+		},
+
+		Err: "no core step type declared (e.g. get, put, task, etc.)",
+	},
 }
 
 func (test StepTest) Run(s *StepsSuite) {
@@ -414,7 +428,12 @@ func (test StepTest) Run(s *StepsSuite) {
 
 	var step atc.Step
 	actualErr := yaml.Unmarshal([]byte(cleanIndents), &step)
-	s.NoError(actualErr)
+	if test.Err != "" {
+		s.Contains(actualErr.Error(), test.Err)
+		return
+	} else {
+		s.NoError(actualErr)
+	}
 
 	s.Equal(test.StepConfig, step.Config)
 	s.Equal(test.UnknownFields, step.UnknownFields)
