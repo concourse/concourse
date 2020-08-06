@@ -13,11 +13,11 @@ import (
 	"github.com/concourse/concourse/atc/worker/transport"
 )
 
-type Retryable struct {
+type Retriable struct {
 	Cause error
 }
 
-func (r Retryable) Error() string {
+func (r Retriable) Error() string {
 	return fmt.Sprintf("retriable: %s", r.Cause.Error())
 }
 
@@ -44,7 +44,7 @@ func (step RetryErrorStep) Run(ctx context.Context, state RunState) error {
 	if runErr != nil && step.toRetry(logger, runErr) {
 		logger.Info("retryable", lager.Data{"error": runErr.Error()})
 		step.delegate.Errored(logger, fmt.Sprintf("%s, will retry ...", runErr.Error()))
-		runErr = Retryable{runErr}
+		runErr = Retriable{runErr}
 	}
 	return runErr
 }
@@ -53,7 +53,7 @@ func (step RetryErrorStep) toRetry(logger lager.Logger, err error) bool {
 	var transportErr *transport.WorkerMissingError
 	var unreachable *transport.WorkerUnreachableError
 	re := regexp.MustCompile(`worker .+ disappeared`)
-	if ok := errors.Is(err, transportErr) || errors.Is(err, unreachable); ok {
+	if ok := errors.As(err, transportErr) || errors.As(err, unreachable); ok {
 		logger.Debug("retry-error",
 			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err.Error()})
 		return true
@@ -61,7 +61,7 @@ func (step RetryErrorStep) toRetry(logger lager.Logger, err error) bool {
 		logger.Debug("retry-error",
 			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err})
 		return true
-	} else if err == io.EOF {
+	} else if errors.Is(err, io.EOF) {
 		logger.Debug("retry-error",
 			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err.Error()})
 		return true

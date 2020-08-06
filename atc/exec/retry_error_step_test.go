@@ -83,7 +83,7 @@ var _ = Describe("RetryErrorStep", func() {
 			})
 
 			It("should return retryable", func() {
-				Expect(runErr).To(Equal(Retryable{cause}))
+				Expect(runErr).To(Equal(Retriable{cause}))
 			})
 
 			It("logs 'timeout exceeded'", func() {
@@ -100,7 +100,7 @@ var _ = Describe("RetryErrorStep", func() {
 			})
 
 			It("should return retryable", func() {
-				Expect(runErr).To(Equal(Retryable{cause}))
+				Expect(runErr).To(Equal(Retriable{cause}))
 			})
 		})
 
