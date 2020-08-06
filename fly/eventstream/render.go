@@ -12,7 +12,8 @@ import (
 )
 
 type RenderOptions struct {
-	ShowTimestamp bool
+	ShowTimestamp            bool
+	IgnoreEventParsingErrors bool
 }
 
 func Render(dst io.Writer, src eventstream.EventStream, options RenderOptions) int {
@@ -25,11 +26,20 @@ func Render(dst io.Writer, src eventstream.EventStream, options RenderOptions) i
 		if err != nil {
 			if err == io.EOF {
 				return exitStatus
+			} else if _, ok := err.(event.UnknownEventTypeError); ok && options.IgnoreEventParsingErrors {
+				dstImpl.SetTimestamp(0)
+				fmt.Fprintf(dstImpl, "failed to parse next event: %s\n", ui.ErroredColor.Sprint(err))
+				continue
+			} else if _, ok := err.(event.UnknownEventVersionError); ok && options.IgnoreEventParsingErrors {
+				dstImpl.SetTimestamp(0)
+				fmt.Fprintf(dstImpl, "failed to parse next event: %s\n", ui.ErroredColor.Sprint(err))
+				continue
 			} else {
 				dstImpl.SetTimestamp(0)
 				fmt.Fprintf(dstImpl, "failed to parse next event: %s\n", err)
 				return 255
 			}
+
 		}
 
 		switch e := ev.(type) {
