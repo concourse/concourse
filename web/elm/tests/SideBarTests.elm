@@ -55,7 +55,4 @@ model =
 
 domID : DomID
 domID =
-    SideBarPipeline AllPipelines
-        { teamName = "team"
-        , pipelineName = "pipeline"
-        }
+    SideBarPipeline AllPipelines Data.pipelineId

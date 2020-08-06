@@ -64,17 +64,17 @@ commentButtonBlue =
 
 teamName : String
 teamName =
-    "some-team"
+    Data.teamName
 
 
 pipelineName : String
 pipelineName =
-    "some-pipeline"
+    Data.pipelineName
 
 
 resourceName : String
 resourceName =
-    "some-resource"
+    Data.resourceName
 
 
 resourceIcon : String
@@ -84,29 +84,17 @@ resourceIcon =
 
 versionID : Models.VersionId
 versionID =
-    { teamName = teamName
-    , pipelineName = pipelineName
-    , resourceName = resourceName
-    , versionID = 1
-    }
+    Data.resourceVersionId 1
 
 
 otherVersionID : Models.VersionId
 otherVersionID =
-    { teamName = teamName
-    , pipelineName = pipelineName
-    , resourceName = resourceName
-    , versionID = 2
-    }
+    Data.resourceVersionId 2
 
 
 disabledVersionID : Models.VersionId
 disabledVersionID =
-    { teamName = teamName
-    , pipelineName = pipelineName
-    , resourceName = resourceName
-    , versionID = 3
-    }
+    Data.resourceVersionId 3
 
 
 version : String
@@ -210,7 +198,7 @@ all =
                 init
                     |> Application.view
                     |> .title
-                    |> Expect.equal "some-resource - Concourse"
+                    |> Expect.equal "resource - Concourse"
         , test "fetches time zone on page load" <|
             \_ ->
                 Application.init
@@ -251,21 +239,8 @@ all =
                         )
                     |> Tuple.second
                     |> Expect.all
-                        [ Common.contains
-                            (Effects.FetchResource
-                                { resourceName = resourceName
-                                , pipelineName = pipelineName
-                                , teamName = teamName
-                                }
-                            )
-                        , Common.contains
-                            (Effects.FetchVersionedResources
-                                { resourceName = resourceName
-                                , pipelineName = pipelineName
-                                , teamName = teamName
-                                }
-                                Nothing
-                            )
+                        [ Common.contains (Effects.FetchResource Data.resourceId)
+                        , Common.contains (Effects.FetchVersionedResources Data.resourceId Nothing)
                         ]
         , test "autorefresh respects expanded state" <|
             \_ ->
@@ -297,12 +272,7 @@ all =
                                 ( versionID
                                 , [ { id = 0
                                     , name = "some-build"
-                                    , job =
-                                        Just
-                                            { teamName = teamName
-                                            , pipelineName = pipelineName
-                                            , jobName = "some-job"
-                                            }
+                                    , job = Just Data.jobId
                                     , status = BuildStatusSucceeded
                                     , duration =
                                         { startedAt = Nothing
@@ -335,12 +305,7 @@ all =
                                 ( versionID
                                 , [ { id = 0
                                     , name = "some-build"
-                                    , job =
-                                        Just
-                                            { teamName = teamName
-                                            , pipelineName = pipelineName
-                                            , jobName = "some-job"
-                                            }
+                                    , job = Just Data.jobId
                                     , status = BuildStatusSucceeded
                                     , duration =
                                         { startedAt = Nothing
@@ -545,7 +510,7 @@ all =
                     , defineHoverBehaviour <|
                         let
                             urlPath =
-                                "/teams/some-team/pipelines/some-pipeline/resources/some-resource?since=1&limit=1"
+                                "/teams/team/pipelines/pipeline/resources/resource?since=1&limit=1"
                         in
                         { name = "left pagination chevron with previous page"
                         , setup =
@@ -1284,11 +1249,7 @@ all =
                 [ test "version pin states reflect resource pin state" <|
                     \_ ->
                         Resource.init
-                            { resourceId =
-                                { teamName = teamName
-                                , pipelineName = pipelineName
-                                , resourceName = resourceName
-                                }
+                            { resourceId = Data.resourceId
                             , paging = Nothing
                             }
                             |> Resource.handleCallback
@@ -1348,11 +1309,7 @@ all =
                 , test "switching pins puts both versions in transition states" <|
                     \_ ->
                         Resource.init
-                            { resourceId =
-                                { teamName = teamName
-                                , pipelineName = pipelineName
-                                , resourceName = resourceName
-                                }
+                            { resourceId = Data.resourceId
                             , paging = Nothing
                             }
                             |> Resource.handleCallback
@@ -1413,11 +1370,7 @@ all =
                 , test "successful PinResource call when switching shows new version pinned" <|
                     \_ ->
                         Resource.init
-                            { resourceId =
-                                { teamName = teamName
-                                , pipelineName = pipelineName
-                                , resourceName = resourceName
-                                }
+                            { resourceId = Data.resourceId
                             , paging = Nothing
                             }
                             |> Resource.handleDelivery (ClockTicked OneSecond (Time.millisToPosix 1000))
@@ -1482,11 +1435,7 @@ all =
                 , test "auto-refresh respects pin switching" <|
                     \_ ->
                         Resource.init
-                            { resourceId =
-                                { teamName = teamName
-                                , pipelineName = pipelineName
-                                , resourceName = resourceName
-                                }
+                            { resourceId = Data.resourceId
                             , paging = Nothing
                             }
                             |> Resource.handleDelivery (ClockTicked OneSecond (Time.millisToPosix 1000))
@@ -1700,13 +1649,7 @@ all =
                         |> clickToUnpin
                         |> Application.handleCallback (Callback.VersionUnpinned (Ok ()))
                         |> Tuple.second
-                        |> Expect.equal
-                            [ Effects.FetchResource
-                                { resourceName = resourceName
-                                , pipelineName = pipelineName
-                                , teamName = teamName
-                                }
-                            ]
+                        |> Expect.equal [ Effects.FetchResource Data.resourceId ]
             , describe "pin comment bar" <|
                 let
                     pinCommentBar =
@@ -2076,14 +2019,7 @@ all =
                                         |> givenTextareaFocused
                                         |> pressControlEnter
                                         |> Tuple.second
-                                        |> Expect.equal
-                                            [ Effects.SetPinComment
-                                                { teamName = teamName
-                                                , pipelineName = pipelineName
-                                                , resourceName = resourceName
-                                                }
-                                                "foo"
-                                            ]
+                                        |> Expect.equal [ Effects.SetPinComment Data.resourceId "foo" ]
                             , test "Command + Enter sends SaveComment msg" <|
                                 \_ ->
                                     init
@@ -2093,14 +2029,7 @@ all =
                                         |> givenTextareaFocused
                                         |> pressMetaEnter
                                         |> Tuple.second
-                                        |> Expect.equal
-                                            [ Effects.SetPinComment
-                                                { teamName = teamName
-                                                , pipelineName = pipelineName
-                                                , resourceName = resourceName
-                                                }
-                                                "foo"
-                                            ]
+                                        |> Expect.equal [ Effects.SetPinComment Data.resourceId "foo" ]
                             , test "blurring input triggers BlurTextArea msg" <|
                                 \_ ->
                                     textarea
@@ -2270,14 +2199,7 @@ all =
                                     |> update
                                         (Message.Message.Click Message.Message.SaveCommentButton)
                                     |> Tuple.second
-                                    |> Common.contains
-                                        (Effects.SetPinComment
-                                            { teamName = teamName
-                                            , pipelineName = pipelineName
-                                            , resourceName = resourceName
-                                            }
-                                            "foo"
-                                        )
+                                    |> Common.contains (Effects.SetPinComment Data.resourceId "foo")
                         , test "SaveComment msg does not make API call if comment has not changed" <|
                             \_ ->
                                 init
@@ -2363,13 +2285,7 @@ all =
                                     |> Tuple.first
                                     |> Application.handleCallback (CommentSet <| Ok ())
                                     |> Tuple.second
-                                    |> Common.contains
-                                        (Effects.FetchResource
-                                            { teamName = teamName
-                                            , pipelineName = pipelineName
-                                            , resourceName = resourceName
-                                            }
-                                        )
+                                    |> Common.contains (Effects.FetchResource Data.resourceId)
                         , test "on error, refetches data" <|
                             \_ ->
                                 init
@@ -2383,13 +2299,7 @@ all =
                                     |> Application.handleCallback
                                         (CommentSet <| Data.httpInternalServerError)
                                     |> Tuple.second
-                                    |> Common.contains
-                                        (Effects.FetchResource
-                                            { teamName = teamName
-                                            , pipelineName = pipelineName
-                                            , resourceName = resourceName
-                                            }
-                                        )
+                                    |> Common.contains (Effects.FetchResource Data.resourceId)
                         ]
                     ]
                 ]
@@ -2594,7 +2504,7 @@ all =
                                         , isAdmin = False
                                         , teams =
                                             Dict.fromList
-                                                [ ( "some-team"
+                                                [ ( "team"
                                                   , [ "member" ]
                                                   )
                                                 ]
@@ -2678,11 +2588,7 @@ all =
                             onSuccess
                                 >> Tuple.second
                                 >> Expect.equal
-                                    [ Effects.SetPinComment
-                                        { teamName = teamName
-                                        , pipelineName = pipelineName
-                                        , resourceName = resourceName
-                                        }
+                                    [ Effects.SetPinComment Data.resourceId
                                         "pinned by some-user at Jan 1 1970 12:00:00 AM"
                                     ]
                         ]
@@ -2999,13 +2905,7 @@ all =
                                     Message.Message.CheckButton True
                                 )
                             |> Tuple.second
-                            |> Expect.equal
-                                [ Effects.DoCheck
-                                    { resourceName = resourceName
-                                    , pipelineName = pipelineName
-                                    , teamName = teamName
-                                    }
-                                ]
+                            |> Expect.equal [ Effects.DoCheck Data.resourceId ]
                 , describe "while check is pending" <|
                     let
                         givenCheckInProgress : Application.Model -> Application.Model
@@ -3161,17 +3061,8 @@ all =
                                 )
                             |> Tuple.second
                             |> Expect.equal
-                                [ Effects.FetchResource
-                                    { resourceName = resourceName
-                                    , pipelineName = pipelineName
-                                    , teamName = teamName
-                                    }
-                                , Effects.FetchVersionedResources
-                                    { resourceName = resourceName
-                                    , pipelineName = pipelineName
-                                    , teamName = teamName
-                                    }
-                                    Nothing
+                                [ Effects.FetchResource Data.resourceId
+                                , Effects.FetchVersionedResources Data.resourceId Nothing
                                 ]
                 , test "when check resolves unsuccessfully, status is error" <|
                     \_ ->
@@ -3215,13 +3106,7 @@ all =
                                         Data.check Concourse.Errored
                                 )
                             |> Tuple.second
-                            |> Expect.equal
-                                [ Effects.FetchResource
-                                    { resourceName = resourceName
-                                    , pipelineName = pipelineName
-                                    , teamName = teamName
-                                    }
-                                ]
+                            |> Expect.equal [ Effects.FetchResource Data.resourceId ]
                 , test "when check returns 401, redirects to login" <|
                     \_ ->
                         init

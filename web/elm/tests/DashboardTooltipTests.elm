@@ -25,11 +25,7 @@ all =
                     }
                     { hovered =
                         Tooltip
-                            (VisibilityButton
-                                { teamName = Data.teamName
-                                , pipelineName = Data.pipelineName
-                                }
-                            )
+                            (VisibilityButton Data.pipelineId)
                             Data.elementPosition
                     }
                     |> Maybe.map .body
@@ -46,11 +42,7 @@ all =
                     }
                     { hovered =
                         Tooltip
-                            (VisibilityButton
-                                { teamName = Data.teamName
-                                , pipelineName = Data.pipelineName
-                                }
-                            )
+                            (VisibilityButton Data.pipelineId)
                             Data.elementPosition
                     }
                     |> Maybe.map .body
@@ -71,11 +63,7 @@ all =
                     }
                     { hovered =
                         Tooltip
-                            (PipelineStatusIcon
-                                { teamName = Data.teamName
-                                , pipelineName = Data.pipelineName
-                                }
-                            )
+                            (PipelineStatusIcon Data.pipelineId)
                             Data.elementPosition
                     }
                     |> Maybe.map .body

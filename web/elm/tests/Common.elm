@@ -17,6 +17,7 @@ module Common exposing
 import Application.Application as Application
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
+import Data
 import Expect exposing (Expectation)
 import Html
 import List.Extra
@@ -156,10 +157,11 @@ myBrowserFetchedTheBuild =
                     , name = "1"
                     , job =
                         Just
-                            { teamName = "other-team"
-                            , pipelineName = "yet-another-pipeline"
-                            , jobName = "job"
-                            }
+                            (Data.jobId
+                                |> Data.withTeamName "other-team"
+                                |> Data.withPipelineName "yet-another-pipeline"
+                                |> Data.withJobName "job"
+                            )
                     , status = BuildStatusStarted
                     , duration =
                         { startedAt = Nothing

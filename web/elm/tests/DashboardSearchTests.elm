@@ -46,12 +46,7 @@ hasData =
                                 Just
                                     { id = 1
                                     , name = "1"
-                                    , job =
-                                        Just
-                                            { teamName = "team1"
-                                            , pipelineName = "pipeline"
-                                            , jobName = "job"
-                                            }
+                                    , job = Just (Data.jobId |> Data.withTeamName "team1")
                                     , status = BuildStatusStarted
                                     , duration =
                                         { startedAt = Nothing

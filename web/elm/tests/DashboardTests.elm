@@ -705,12 +705,7 @@ all =
                                         Just
                                             { id = 0
                                             , name = "1"
-                                            , job =
-                                                Just
-                                                    { teamName = "team"
-                                                    , pipelineName = "pipeline"
-                                                    , jobName = "job"
-                                                    }
+                                            , job = Just Data.jobId
                                             , status = BuildStatusSucceeded
                                             , duration = { startedAt = Nothing, finishedAt = Nothing }
                                             , reapTime = Nothing
@@ -2113,12 +2108,7 @@ running j =
             Just
                 { id = 1
                 , name = "1"
-                , job =
-                    Just
-                        { teamName = "team"
-                        , pipelineName = "pipeline"
-                        , jobName = "job"
-                        }
+                , job = Just Data.jobId
                 , status = BuildStatusStarted
                 , duration =
                     { startedAt = Nothing
@@ -2149,12 +2139,7 @@ jobWithNameTransitionedAt jobName transitionedAt status =
         Just
             { id = 0
             , name = "0"
-            , job =
-                Just
-                    { teamName = "team"
-                    , pipelineName = "pipeline"
-                    , jobName = jobName
-                    }
+            , job = Just Data.jobId
             , status = status
             , duration =
                 { startedAt = Nothing
@@ -2168,12 +2153,7 @@ jobWithNameTransitionedAt jobName transitionedAt status =
                 (\t ->
                     { id = 1
                     , name = "1"
-                    , job =
-                        Just
-                            { teamName = "team"
-                            , pipelineName = "pipeline"
-                            , jobName = jobName
-                            }
+                    , job = Just Data.jobId
                     , status = status
                     , duration =
                         { startedAt = Nothing
@@ -2200,12 +2180,7 @@ circularJobs =
             Just
                 { id = 0
                 , name = "0"
-                , job =
-                    Just
-                        { teamName = "team"
-                        , pipelineName = "pipeline"
-                        , jobName = "jobA"
-                        }
+                , job = Just (Data.jobId |> Data.withJobName "jobA")
                 , status = BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing
@@ -2217,12 +2192,7 @@ circularJobs =
             Just
                 { id = 1
                 , name = "1"
-                , job =
-                    Just
-                        { teamName = "team"
-                        , pipelineName = "pipeline"
-                        , jobName = "jobA"
-                        }
+                , job = Just (Data.jobId |> Data.withJobName "jobA")
                 , status = BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing
@@ -2250,12 +2220,7 @@ circularJobs =
             Just
                 { id = 0
                 , name = "0"
-                , job =
-                    Just
-                        { teamName = "team"
-                        , pipelineName = "pipeline"
-                        , jobName = "jobB"
-                        }
+                , job = Just (Data.jobId |> Data.withJobName "jobB")
                 , status = BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing
@@ -2267,12 +2232,7 @@ circularJobs =
             Just
                 { id = 1
                 , name = "1"
-                , job =
-                    Just
-                        { teamName = "team"
-                        , pipelineName = "pipeline"
-                        , jobName = "jobB"
-                        }
+                , job = Just (Data.jobId |> Data.withJobName "jobB")
                 , status = BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing

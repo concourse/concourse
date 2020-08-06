@@ -510,11 +510,7 @@ all =
                         (Update <|
                             Hover <|
                                 Just <|
-                                    JobPreview
-                                        { teamName = "team"
-                                        , pipelineName = "pipeline-0"
-                                        , jobName = "job"
-                                        }
+                                    JobPreview (Data.jobId |> Data.withPipelineName "pipeline-0")
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -532,10 +528,7 @@ all =
                         (Update <|
                             Hover <|
                                 Just <|
-                                    PipelineWrapper
-                                        { teamName = "team"
-                                        , pipelineName = "pipeline-0"
-                                        }
+                                    PipelineWrapper (Data.pipelineId |> Data.withPipelineName "pipeline-0")
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -556,8 +549,7 @@ all =
                         (Update <|
                             Hover <|
                                 Just <|
-                                    PipelineWrapper <|
-                                        { pipelineName = "pipeline-0", teamName = "team" }
+                                    PipelineWrapper (Data.pipelineId |> Data.withPipelineName "pipeline-0")
                         )
         , test "pipeline wrapper responds to mouse out" <|
             \_ ->

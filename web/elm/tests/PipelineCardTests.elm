@@ -1262,9 +1262,9 @@ all =
 
                         domID =
                             Msgs.PipelineStatusIcon
-                                { teamName = "team"
-                                , pipelineName = "pipeline-0"
-                                }
+                                (Data.pipelineId
+                                    |> Data.withPipelineName "pipeline-0"
+                                )
                     in
                     [ test "status icon is faded sync" <|
                         \_ ->
@@ -1588,9 +1588,7 @@ all =
                 [ describe "visibility toggle" <|
                     let
                         pipelineId =
-                            { pipelineName = "pipeline"
-                            , teamName = "team"
-                            }
+                            Data.pipelineId
 
                         visibilityToggle =
                             Common.queryView
@@ -2218,11 +2216,7 @@ all =
                                        , style "opacity" "0.5"
                                        ]
                             }
-                        , hoverable =
-                            Msgs.PipelineButton
-                                { pipelineName = "pipeline"
-                                , teamName = "team"
-                                }
+                        , hoverable = Msgs.PipelineButton Data.pipelineId
                         , hoveredSelector =
                             { description = "a bright 20px square pause button with pointer cursor"
                             , selector =
@@ -2270,11 +2264,7 @@ all =
                                        , style "opacity" "0.5"
                                        ]
                             }
-                        , hoverable =
-                            Msgs.PipelineButton
-                                { pipelineName = "pipeline"
-                                , teamName = "team"
-                                }
+                        , hoverable = Msgs.PipelineButton Data.pipelineId
                         , hoveredSelector =
                             { description = "an opaque 20px square play button with pointer cursor"
                             , selector =
@@ -2307,10 +2297,7 @@ all =
                                 |> Event.expect
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
+                                            Msgs.PipelineButton Data.pipelineId
                                     )
                     , test "pause button turns into spinner on click" <|
                         \_ ->
@@ -2332,10 +2319,7 @@ all =
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
+                                            Msgs.PipelineButton Data.pipelineId
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -2357,19 +2341,10 @@ all =
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
+                                            Msgs.PipelineButton Data.pipelineId
                                     )
                                 |> Tuple.second
-                                |> Expect.equal
-                                    [ Effects.SendTogglePipelineRequest
-                                        { pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
-                                        False
-                                    ]
+                                |> Expect.equal [ Effects.SendTogglePipelineRequest Data.pipelineId False ]
                     , test "all pipelines are refetched after ok toggle call" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
@@ -2386,19 +2361,11 @@ all =
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
+                                            Msgs.PipelineButton Data.pipelineId
                                     )
                                 |> Tuple.first
                                 |> Application.handleCallback
-                                    (Callback.PipelineToggled
-                                        { pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
-                                        (Ok ())
-                                    )
+                                    (Callback.PipelineToggled Data.pipelineId (Ok ()))
                                 |> Tuple.second
                                 |> Expect.equal [ Effects.FetchAllPipelines ]
                     , test "401 toggle call redirects to login" <|
@@ -2416,19 +2383,11 @@ all =
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
+                                            Msgs.PipelineButton Data.pipelineId
                                     )
                                 |> Tuple.first
                                 |> Application.handleCallback
-                                    (Callback.PipelineToggled
-                                        { pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
-                                        Data.httpUnauthorized
-                                    )
+                                    (Callback.PipelineToggled Data.pipelineId Data.httpUnauthorized)
                                 |> Tuple.second
                                 |> Expect.equal [ Effects.RedirectToLogin ]
                     ]

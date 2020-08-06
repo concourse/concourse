@@ -111,26 +111,15 @@ iClickTheVersionThatIsPinned =
 
 
 pinnedVersionID =
-    { teamName = Data.teamName
-    , pipelineName = Data.pipelineName
-    , resourceName = Data.resourceName
-    , versionID = 0
-    }
+    Data.resourceVersionId 0
 
 
 unpinnedVersionID =
-    { teamName = Data.teamName
-    , pipelineName = Data.pipelineName
-    , resourceName = Data.resourceName
-    , versionID = 1
-    }
+    Data.resourceVersionId 1
 
 
 resourceID =
-    { teamName = Data.teamName
-    , pipelineName = Data.pipelineName
-    , resourceName = Data.resourceName
-    }
+    Data.resourceId
 
 
 myBrowserSendsAPinResourceRequest =
