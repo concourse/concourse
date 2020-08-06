@@ -112,8 +112,8 @@ github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e/go.mod h1:P
 github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 h1:9j2KbUEQn5E7MEV3enSrkJTrBC0iDbosW5gXX+Z+dLE=
 github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2/go.mod h1:0a+Ghg38uB86Dx+de84dFSkILTnBHzCpFMRnjHgSzi4=
 github.com/cockroachdb/cmux v0.0.0-20170110192607-30d10be49292/go.mod h1:qRiX68mZX1lGBkTWyp3CLcenw9I94W2dLeRvMzcn9N4=
-github.com/concourse/baggageclaim v1.7.0 h1:6l7xUOiQ770+GEpbmS+XjmcZOWW7RPT/4T2GSj22tiU=
-github.com/concourse/baggageclaim v1.7.0/go.mod h1:UdvVE2W8LgXcCz0ZdKBwUbpKZ0KN4Fx1OeY1xtZOUvY=
+github.com/concourse/baggageclaim v1.8.0 h1:nOIXTm0oIVLEc/5JbLxYe6q62h5BYdILV3gExVJ9r3M=
+github.com/concourse/baggageclaim v1.8.0/go.mod h1:UdvVE2W8LgXcCz0ZdKBwUbpKZ0KN4Fx1OeY1xtZOUvY=
 github.com/concourse/dex v0.0.0-20200730150203-821b48abfd88 h1:RGcAW/U9rGy82zm8IQMqdvUuLcESgisSTb03Yb48zZo=
 github.com/concourse/dex v0.0.0-20200730150203-821b48abfd88/go.mod h1:7xVx6jMkg5UoaGhDHp3mGdETzdVSTY8dOEG1v6ixNQc=
 github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
