@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/concourse/concourse/atc/worker/transport"
+	"io"
 
 	. "github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/worker/transport"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -81,8 +82,25 @@ var _ = Describe("RetryErrorStep", func() {
 				fakeStep.RunReturns(cause)
 			})
 
-			It("should return retriable", func() {
-				Expect(runErr).To(Equal(Retriable{cause}))
+			It("should return retryable", func() {
+				Expect(runErr).To(Equal(Retryable{cause}))
+			})
+
+			It("logs 'timeout exceeded'", func() {
+				Expect(fakeDelegate.ErroredCallCount()).To(Equal(1))
+				_, message := fakeDelegate.ErroredArgsForCall(0)
+				Expect(message).To(Equal(fmt.Sprintf("%s, will retry ...", cause.Error())))
+			})
+		})
+
+		Context("when eof error happened", func() {
+			cause := io.EOF
+			BeforeEach(func() {
+				fakeStep.RunReturns(cause)
+			})
+
+			It("should return retryable", func() {
+				Expect(runErr).To(Equal(Retryable{cause}))
 			})
 
 			It("logs 'timeout exceeded'", func() {

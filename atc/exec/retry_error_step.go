@@ -2,20 +2,22 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/concourse/concourse/atc/worker/transport"
+	"io"
 	"reflect"
 	"regexp"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/atc/worker/transport"
 )
 
-type Retriable struct {
+type Retryable struct {
 	Cause error
 }
 
-func (r Retriable) Error() string {
+func (r Retryable) Error() string {
 	return fmt.Sprintf("retriable: %s", r.Cause.Error())
 }
 
@@ -40,26 +42,30 @@ func (step RetryErrorStep) Run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 	runErr := step.Step.Run(ctx, state)
 	if runErr != nil && step.toRetry(logger, runErr) {
-		logger.Info("retriable", lager.Data{"error": runErr.Error()})
+		logger.Info("retryable", lager.Data{"error": runErr.Error()})
 		step.delegate.Errored(logger, fmt.Sprintf("%s, will retry ...", runErr.Error()))
-		runErr = Retriable{runErr}
+		runErr = Retryable{runErr}
 	}
 	return runErr
 }
 
 func (step RetryErrorStep) toRetry(logger lager.Logger, err error) bool {
-	switch err.(type) {
-	case transport.WorkerMissingError, transport.WorkerUnreachableError:
+	var transportErr *transport.WorkerMissingError
+	var unreachable *transport.WorkerUnreachableError
+	re := regexp.MustCompile(`worker .+ disappeared`)
+	if ok := errors.Is(err, transportErr) || errors.Is(err, unreachable); ok {
 		logger.Debug("retry-error",
 			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err.Error()})
 		return true
-	default:
-		re := regexp.MustCompile(`worker .+ disappeared`)
-		if re.MatchString(err.Error()) {
-			logger.Debug("retry-error",
-				lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err})
-			return true
-		}
+	} else if re.MatchString(err.Error()) {
+		logger.Debug("retry-error",
+			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err})
+		return true
+	} else if err == io.EOF {
+		logger.Debug("retry-error",
+			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err.Error()})
+		return true
+
 	}
 	return false
 }
