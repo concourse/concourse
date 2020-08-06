@@ -53,7 +53,7 @@ func (step RetryErrorStep) toRetry(logger lager.Logger, err error) bool {
 	var transportErr *transport.WorkerMissingError
 	var unreachable *transport.WorkerUnreachableError
 	re := regexp.MustCompile(`worker .+ disappeared`)
-	if ok := errors.As(err, transportErr) || errors.As(err, unreachable); ok {
+	if ok := errors.As(err, &transportErr) || errors.As(err, &unreachable); ok {
 		logger.Debug("retry-error",
 			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err.Error()})
 		return true
