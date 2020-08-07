@@ -123,8 +123,8 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 		return nil, err
 	}
 
-	if cmd.Garden.Config.Path() != "" {
-		config = cmd.Garden.Config.Path()
+	if cmd.Containerd.Config.Path() != "" {
+		config = cmd.Containerd.Config.Path()
 	} else {
 		err := writeDefaultContainerdConfig(config)
 		if err != nil {
@@ -132,8 +132,8 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 		}
 	}
 
-	if cmd.Garden.Bin != "" {
-		bin = cmd.Garden.Bin
+	if cmd.Containerd.Bin != "" {
+		bin = cmd.Containerd.Bin
 	}
 
 	command := exec.Command(bin,
@@ -150,9 +150,9 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 
 	members := grouper.Members{}
 
-	dnsServers := cmd.Garden.DNSServers
-	if cmd.Garden.DNS.Enable {
-		dnsProxyRunner, err := cmd.dnsProxyRunner(logger.Session("dns-proxy"))
+	dnsServers := cmd.Containerd.DNSServers
+	if cmd.Containerd.DNS.Enable {
+ 		dnsProxyRunner, err := cmd.dnsProxyRunner(logger.Session("dns-proxy"))
 		if err != nil {
 			return nil, err
 		}
@@ -177,11 +177,11 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 		logger,
 		cmd.bindAddr(),
 		sock,
-		cmd.Garden.RequestTimeout,
+		cmd.Containerd.RequestTimeout,
 		dnsServers,
-		cmd.ContainerNetworkPool,
-		cmd.Garden.MaxContainers,
-		cmd.Garden.DenyNetworks,
+		cmd.Containerd.NetworkPool,
+		cmd.Containerd.MaxContainers,
+		cmd.Containerd.RestrictedNetworks,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("containerd garden server runner: %w", err)

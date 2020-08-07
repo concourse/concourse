@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 
@@ -18,7 +17,8 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 )
 
-// This runs Guardian using the gdn binary
+// This prepares the Guardian runtime using the gdn binary.
+// The gdn binary exposes Guardian's functionality via a Garden server.
 func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, error) {
 	depotDir := filepath.Join(cmd.WorkDir.Path(), "depot")
 
@@ -31,10 +31,10 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 
 	members := grouper.Members{}
 
-	gdnFlags := []string{}
+	gdnConfigFlag := []string{}
 
-	if cmd.Garden.Config.Path() != "" {
-		gdnFlags = append(gdnFlags, "--config", cmd.Garden.Config.Path())
+	if cmd.Guardian.Config.Path() != "" {
+		gdnConfigFlag = append(gdnConfigFlag, "--config", cmd.Guardian.Config.Path())
 	}
 
 	gdnServerFlags := []string{
@@ -51,25 +51,9 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 		"--no-image-plugin",
 	}
 
-	for _, dnsServer := range cmd.Garden.DNSServers {
-		gdnServerFlags = append(gdnServerFlags, "--dns-server", dnsServer)
-	}
+	gdnServerFlags = append(gdnServerFlags, detectGuardianFlags(logger)...)
 
-	for _, denyNetwork := range cmd.Garden.DenyNetworks {
-		gdnServerFlags = append(gdnServerFlags, "--deny-network", denyNetwork)
-	}
-
-	if cmd.ContainerNetworkPool != "" {
-		gdnServerFlags = append(gdnServerFlags, "--network-pool", cmd.ContainerNetworkPool)
-	}
-
-	if cmd.Garden.MaxContainers != 0 {
-		gdnServerFlags = append(gdnServerFlags, "--max-containers", strconv.Itoa(cmd.Garden.MaxContainers))
-	}
-
-	gdnServerFlags = append(gdnServerFlags, detectGardenFlags(logger)...)
-
-	if cmd.Garden.DNS.Enable {
+	if cmd.Guardian.DNS.Enable {
 		dnsProxyRunner, err := cmd.dnsProxyRunner(logger.Session("dns-proxy"))
 		if err != nil {
 			return nil, err
@@ -95,11 +79,11 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 		gdnServerFlags = append(gdnServerFlags, "--allow-host-access")
 	}
 
-	gdnArgs := append(gdnFlags, append([]string{"server"}, gdnServerFlags...)...)
+	gdnArgs := append(gdnConfigFlag, append([]string{"server"}, gdnServerFlags...)...)
 
 	bin := "gdn"
-	if cmd.Garden.Bin != "" {
-		bin = cmd.Garden.Bin
+	if cmd.Guardian.Bin != "" {
+		bin = cmd.Guardian.Bin
 	}
 
 	gdnCmd := exec.Command(bin, gdnArgs...)
@@ -120,9 +104,7 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 	return grouper.NewParallel(os.Interrupt, members), nil
 }
 
-var gardenEnvPrefix = "CONCOURSE_GARDEN_"
-
-func detectGardenFlags(logger lager.Logger) []string {
+func detectGuardianFlags(logger lager.Logger) []string {
 	env := os.Environ()
 
 	flags := []string{}
@@ -136,11 +118,11 @@ func detectGardenFlags(logger lager.Logger) []string {
 		name := spl[0]
 		val := spl[1]
 
-		if !strings.HasPrefix(name, gardenEnvPrefix) {
+		if !strings.HasPrefix(name, guardianEnvPrefix) {
 			continue
 		}
 
-		strip := strings.Replace(name, gardenEnvPrefix, "", 1)
+		strip := strings.Replace(name, guardianEnvPrefix, "", 1)
 		flag := flagify(strip)
 
 		logger.Info("forwarding-garden-env-var", lager.Data{

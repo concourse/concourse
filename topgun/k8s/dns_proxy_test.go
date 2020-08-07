@@ -1,6 +1,7 @@
 package k8s_test
 
 import (
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -37,28 +38,42 @@ var _ = Describe("DNS Resolution", func() {
 		shouldWork bool
 	}
 
-	var setupDeployment = func(useContainerd bool, dnsProxyEnable, dnsServer string) {
+	const containerdRuntime = "containerd"
+	const guardianRuntime = "guardian"
+
+	var setupDeployment = func(runtime string, dnsProxyEnable, dnsServer string) {
 		args := []string{
 			`--set=worker.replicas=1`,
-			`--set-string=concourse.worker.garden.dnsProxyEnable=` + dnsProxyEnable,
+			`--set-string=concourse.worker.runtime=` + runtime,
 		}
-		if useContainerd {
-			args = append(args, "--set=worker.garden.useContainerd=true")
-		}
-		if dnsServer != "" {
-			args = append(args,
-				`--set=worker.env[0].name=CONCOURSE_GARDEN_DNS_SERVER`,
-				`--set=worker.env[0].value=`+dnsServer)
+		switch {
+		case runtime == containerdRuntime:
+			args = append(args, `--set-string=concourse.worker.containerd.dnsProxyEnable=` + dnsProxyEnable)
+			if dnsServer != "" {
+				args = append(args,
+					`--set=worker.env[0].name=CONCOURSE_CONTAINERD_DNS_SERVER`,
+					`--set=worker.env[0].value=`+dnsServer)
+			}
+		case runtime == guardianRuntime:
+			args = append(args, `--set-string=concourse.worker.garden.dnsProxyEnable=` + dnsProxyEnable)
+			if dnsServer != "" {
+				args = append(args,
+					`--set=worker.env[0].name=CONCOURSE_GARDEN_DNS_SERVER`,
+					`--set=worker.env[0].value=`+dnsServer)
+			}
+		default:
+			fmt.Errorf("Invalid runtime type %s. Test aborted.", runtime)
+			return
 		}
 
 		deployConcourseChart(releaseName, args...)
 		atc = waitAndLogin(namespace, releaseName+"-web")
 	}
 
-	expectedDnsProxyBehaviour := func(useContainerd bool) {
+	expectedDnsProxyBehaviour := func(runtime string) {
 		DescribeTable("different proxy settings",
 			func(c Case) {
-				setupDeployment(useContainerd, c.enableDnsProxy, c.dnsServer)
+				setupDeployment(runtime, c.enableDnsProxy, c.dnsServer)
 
 				sess := fly.Start("execute", "-c", "tasks/dns-proxy-task.yml", "-v", "url="+c.addressFunction())
 				<-sess.Exited
@@ -106,10 +121,10 @@ var _ = Describe("DNS Resolution", func() {
 	}
 
 	Context("with gdn backend", func() {
-		expectedDnsProxyBehaviour(false)
+		expectedDnsProxyBehaviour(guardianRuntime)
 	})
 
 	Context("with containerd backend", func() {
-		expectedDnsProxyBehaviour(true)
+		expectedDnsProxyBehaviour(containerdRuntime)
 	})
 })
