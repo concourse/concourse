@@ -93,14 +93,14 @@ func (cmd *WorkerCommand) gardenServerRunner(logger lager.Logger) (atc.Worker, i
 	var runner ifrit.Runner
 
 	switch {
-	case cmd.RuntimeConfiguration.Runtime == houdiniRuntime:
+	case cmd.Runtime == houdiniRuntime:
 		runner, err = cmd.houdiniRunner(logger)
-	case cmd.RuntimeConfiguration.Runtime == containerdRuntime:
+	case cmd.Runtime == containerdRuntime:
 		runner, err = cmd.containerdRunner(logger)
-	case cmd.RuntimeConfiguration.Runtime == guardianRuntime:
+	case cmd.Runtime == guardianRuntime:
 		runner, err = cmd.guardianRunner(logger)
 	default:
-		err = fmt.Errorf("unsupported Runtime :%s", cmd.RuntimeConfiguration.Runtime)
+		err = fmt.Errorf("unsupported Runtime :%s", cmd.Runtime)
 	}
 
 	if err != nil {
@@ -221,20 +221,20 @@ const containerdEnvPrefix = "CONCOURSE_CONTAINERD_"
 // Checks if runtime specific flags provided match the selected runtime type
 func (cmd *WorkerCommand) verifyRuntimeFlags() error {
 	switch {
-	case cmd.RuntimeConfiguration.Runtime == houdiniRuntime:
+	case cmd.Runtime == houdiniRuntime:
 		if cmd.hasFlags(guardianEnvPrefix)  || cmd.hasFlags(containerdEnvPrefix) {
 			return fmt.Errorf("cannot use %s or %s environment variables with Houdini", guardianEnvPrefix, containerdEnvPrefix)
 		}
-	case cmd.RuntimeConfiguration.Runtime == containerdRuntime:
+	case cmd.Runtime == containerdRuntime:
 		if cmd.hasFlags(guardianEnvPrefix) {
 			return fmt.Errorf("cannot use %s environment variables with Containerd", guardianEnvPrefix)
 		}
-	case cmd.RuntimeConfiguration.Runtime == guardianRuntime:
+	case cmd.Runtime == guardianRuntime:
 		if cmd.hasFlags(containerdEnvPrefix) {
 			return fmt.Errorf("cannot use %s environment variables with Guardian", containerdEnvPrefix)
 		}
 	default:
-		return fmt.Errorf("unsupported Runtime :%s", cmd.RuntimeConfiguration.Runtime)
+		return fmt.Errorf("unsupported Runtime :%s", cmd.Runtime)
 	}
 
 	return nil
