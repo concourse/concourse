@@ -348,10 +348,6 @@ var _ = Describe("V1.0 Renderer", func() {
 			BeforeEach(func() {
 				options.IgnoreEventParsingErrors = true
 			})
-			It("prints the build's run script", func() {
-				Expect(out.Contents()).To(ContainSubstring("failed to parse next event"))
-			})
-
 			It("exits with 0 exit code", func() {
 				Expect(exitStatus).To(Equal(0))
 			})
@@ -361,8 +357,3 @@ var _ = Describe("V1.0 Renderer", func() {
 	})
 
 })
-
-type someNewEvent struct{}
-
-func (someNewEvent) EventType() atc.EventType  { return "some-new-event" }
-func (someNewEvent) Version() atc.EventVersion { return "1.0" }
