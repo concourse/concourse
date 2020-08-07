@@ -23,8 +23,8 @@ type Certs struct {
 	Dir string `long:"certs-dir" description:"Directory to use when creating the resource certificates volume."`
 }
 
-type Runtime struct {
-	Type string `long:"type" default:"guardian" choice:"guardian" choice:"containerd" choice:"houdini" description:"Runtime to use with the worker. Please note that Houdini is insecure and doesn't run 'tasks' in containers."`
+type RuntimeConfiguration struct {
+	Runtime string `long:"runtime" default:"guardian" choice:"guardian" choice:"containerd" choice:"houdini" description:"Runtime to use with the worker. Please note that Houdini is insecure and doesn't run 'tasks' in containers."`
 }
 
 type GuardianRuntime struct {
@@ -93,14 +93,14 @@ func (cmd *WorkerCommand) gardenServerRunner(logger lager.Logger) (atc.Worker, i
 	var runner ifrit.Runner
 
 	switch {
-	case cmd.Runtime.Type == houdiniRuntime:
+	case cmd.RuntimeConfiguration.Runtime == houdiniRuntime:
 		runner, err = cmd.houdiniRunner(logger)
-	case cmd.Runtime.Type == containerdRuntime:
+	case cmd.RuntimeConfiguration.Runtime == containerdRuntime:
 		runner, err = cmd.containerdRunner(logger)
-	case cmd.Runtime.Type == guardianRuntime:
+	case cmd.RuntimeConfiguration.Runtime == guardianRuntime:
 		runner, err = cmd.guardianRunner(logger)
 	default:
-		err = fmt.Errorf("unsupported Runtime :%s", cmd.Runtime.Type)
+		err = fmt.Errorf("unsupported Runtime :%s", cmd.RuntimeConfiguration.Runtime)
 	}
 
 	if err != nil {
@@ -221,20 +221,20 @@ const containerdEnvPrefix = "CONCOURSE_CONTAINERD_"
 // Checks if runtime specific flags provided match the selected runtime type
 func (cmd *WorkerCommand) verifyRuntimeFlags() error {
 	switch {
-	case cmd.Runtime.Type == houdiniRuntime:
+	case cmd.RuntimeConfiguration.Runtime == houdiniRuntime:
 		if cmd.hasFlags(guardianEnvPrefix)  || cmd.hasFlags(containerdEnvPrefix) {
 			return fmt.Errorf("cannot use %s or %s environment variables with Houdini", guardianEnvPrefix, containerdEnvPrefix)
 		}
-	case cmd.Runtime.Type == containerdRuntime:
+	case cmd.RuntimeConfiguration.Runtime == containerdRuntime:
 		if cmd.hasFlags(guardianEnvPrefix) {
 			return fmt.Errorf("cannot use %s environment variables with Containerd", guardianEnvPrefix)
 		}
-	case cmd.Runtime.Type == guardianRuntime:
+	case cmd.RuntimeConfiguration.Runtime == guardianRuntime:
 		if cmd.hasFlags(containerdEnvPrefix) {
 			return fmt.Errorf("cannot use %s environment variables with Guardian", containerdEnvPrefix)
 		}
 	default:
-		return fmt.Errorf("unsupported Runtime :%s", cmd.Runtime.Type)
+		return fmt.Errorf("unsupported Runtime :%s", cmd.RuntimeConfiguration.Runtime)
 	}
 
 	return nil

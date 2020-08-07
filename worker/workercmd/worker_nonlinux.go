@@ -12,7 +12,7 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
-type Runtime struct {
+type RuntimeConfiguration struct {
 }
 
 type GuardianRuntime struct {

@@ -48,7 +48,7 @@ type WorkerCommand struct {
 
 	ConnectionDrainTimeout time.Duration `long:"connection-drain-timeout" default:"1h" description:"Duration after which a worker should give up draining forwarded connections on shutdown."`
 
-	Runtime Runtime `group:"Runtime Configuration" namespace:"runtime"`
+	RuntimeConfiguration `group:"Runtime Configuration"`
 
 	// This refers to flags relevant to the operation of the Guardian runtime.
 	// For historical reasons it is namespaced under "garden" i.e. CONCOURSE_GARDEN instead of "guardian" i.e. CONCOURSE_GUARDIAN
