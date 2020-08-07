@@ -44,7 +44,7 @@ func (s *WorkerRunnerSuite) BeforeTest(suiteName, testName string) {
 
 func (s *WorkerRunnerSuite) TestWorkDirIsCreated() {
 	s.wrkcmd.WorkDir = "somedir"
-	s.wrkcmd.Runtime.Type = "containerd"
+	s.wrkcmd.Runtime = "containerd"
 
 	_, err := s.wrkcmd.Runner([]string{})
 	s.NoError(err)

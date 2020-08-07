@@ -41,20 +41,20 @@ var _ = Describe("DNS Resolution", func() {
 	const containerdRuntime = "containerd"
 	const guardianRuntime = "guardian"
 
-	var setupDeployment = func(runtimeType string, dnsProxyEnable, dnsServer string) {
+	var setupDeployment = func(runtime string, dnsProxyEnable, dnsServer string) {
 		args := []string{
 			`--set=worker.replicas=1`,
-			`--set-string=concourse.worker.runtime.type=` + runtimeType,
+			`--set-string=concourse.worker.runtime=` + runtime,
 		}
 		switch {
-		case runtimeType == containerdRuntime:
+		case runtime == containerdRuntime:
 			args = append(args, `--set-string=concourse.worker.containerd.dnsProxyEnable=` + dnsProxyEnable)
 			if dnsServer != "" {
 				args = append(args,
 					`--set=worker.env[0].name=CONCOURSE_CONTAINERD_DNS_SERVER`,
 					`--set=worker.env[0].value=`+dnsServer)
 			}
-		case runtimeType == guardianRuntime:
+		case runtime == guardianRuntime:
 			args = append(args, `--set-string=concourse.worker.garden.dnsProxyEnable=` + dnsProxyEnable)
 			if dnsServer != "" {
 				args = append(args,
@@ -62,7 +62,7 @@ var _ = Describe("DNS Resolution", func() {
 					`--set=worker.env[0].value=`+dnsServer)
 			}
 		default:
-			fmt.Errorf("Invalid runtime type %s. Test aborted.", runtimeType)
+			fmt.Errorf("Invalid runtime type %s. Test aborted.", runtime)
 			return
 		}
 
@@ -70,10 +70,10 @@ var _ = Describe("DNS Resolution", func() {
 		atc = waitAndLogin(namespace, releaseName+"-web")
 	}
 
-	expectedDnsProxyBehaviour := func(runtimeType string) {
+	expectedDnsProxyBehaviour := func(runtime string) {
 		DescribeTable("different proxy settings",
 			func(c Case) {
-				setupDeployment(runtimeType, c.enableDnsProxy, c.dnsServer)
+				setupDeployment(runtime, c.enableDnsProxy, c.dnsServer)
 
 				sess := fly.Start("execute", "-c", "tasks/dns-proxy-task.yml", "-v", "url="+c.addressFunction())
 				<-sess.Exited
