@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"reflect"
 	"regexp"
 
@@ -52,6 +53,7 @@ func (step RetryErrorStep) Run(ctx context.Context, state RunState) error {
 func (step RetryErrorStep) toRetry(logger lager.Logger, err error) bool {
 	var transportErr *transport.WorkerMissingError
 	var unreachable *transport.WorkerUnreachableError
+	var netOpErr *net.OpError
 	re := regexp.MustCompile(`worker .+ disappeared`)
 	if ok := errors.As(err, &transportErr) || errors.As(err, &unreachable); ok {
 		logger.Debug("retry-error",
@@ -61,7 +63,7 @@ func (step RetryErrorStep) toRetry(logger lager.Logger, err error) bool {
 		logger.Debug("retry-error",
 			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err})
 		return true
-	} else if errors.Is(err, io.EOF) {
+	} else if errors.Is(err, io.EOF) || errors.As(err, &netOpErr) {
 		logger.Debug("retry-error",
 			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err.Error()})
 		return true
