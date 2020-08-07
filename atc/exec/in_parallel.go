@@ -93,8 +93,8 @@ func (step InParallelStep) Run(ctx context.Context, state RunState) error {
 		return ctx.Err()
 	}
 
-	if merr, ok := result.(*multierror.Error); ok {
-		return fmt.Errorf("one or more parallel steps errored:\n%w", merr)
+	if result != nil {
+		return result
 	}
 
 	return nil

@@ -38,7 +38,7 @@ func (o OnErrorStep) Run(ctx context.Context, state RunState) error {
 	errs = multierror.Append(errs, stepRunErr)
 
 	// for all errors that aren't caused by an Abort, run the hook
-	if ok := errors.Is(stepRunErr, context.Canceled); !ok {
+	if !errors.Is(stepRunErr, context.Canceled) {
 		err := o.hook.Run(context.Background(), state)
 		if err != nil {
 			// This causes to return both the errors as expected.
