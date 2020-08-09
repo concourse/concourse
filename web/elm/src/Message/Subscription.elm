@@ -62,6 +62,10 @@ type alias Position =
     }
 
 
+type alias DatabaseID =
+    Int
+
+
 type RawHttpResponse
     = Success
     | Timeout

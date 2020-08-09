@@ -51,11 +51,7 @@ all =
     describe "build page" <|
         let
             buildId =
-                { teamName = "t"
-                , pipelineName = "p"
-                , jobName = "j"
-                , buildName = "1"
-                }
+                Data.jobBuildId
 
             flags =
                 { turbulenceImgSrc = ""
@@ -101,18 +97,7 @@ all =
                 Application.handleCallback <|
                     Callback.BuildJobDetailsFetched <|
                         Ok
-                            { name = "j"
-                            , pipelineName = "p"
-                            , teamName = "t"
-                            , nextBuild = Nothing
-                            , finishedBuild = Nothing
-                            , transitionBuild = Nothing
-                            , paused = False
-                            , disableManualTrigger = False
-                            , inputs = []
-                            , outputs = []
-                            , groups = []
-                            }
+                            (Data.job 0 |> Data.withShortPipelineId |> Data.withName "j")
 
             fetchJobDetailsNoTrigger :
                 Application.Model
@@ -121,18 +106,11 @@ all =
                 Application.handleCallback <|
                     Callback.BuildJobDetailsFetched <|
                         Ok
-                            { name = "j"
-                            , pipelineName = "p"
-                            , teamName = "t"
-                            , nextBuild = Nothing
-                            , finishedBuild = Nothing
-                            , transitionBuild = Nothing
-                            , paused = False
-                            , disableManualTrigger = True
-                            , inputs = []
-                            , outputs = []
-                            , groups = []
-                            }
+                            (Data.job 0
+                                |> Data.withShortPipelineId
+                                |> Data.withName "j"
+                                |> Data.withDisableManualTrigger True
+                            )
 
             fetchHistory :
                 Application.Model
@@ -695,12 +673,7 @@ all =
                             Ok
                                 { id = 1
                                 , name = "1"
-                                , job =
-                                    Just
-                                        { teamName = "t"
-                                        , pipelineName = "p"
-                                        , jobName = "j"
-                                        }
+                                , job = Just Data.shortJobId
                                 , status = BuildStatusSucceeded
                                 , duration =
                                     { startedAt = buildTime
@@ -737,12 +710,7 @@ all =
                             Ok
                                 { id = 1
                                 , name = "1"
-                                , job =
-                                    Just
-                                        { teamName = "t"
-                                        , pipelineName = "p"
-                                        , jobName = "j"
-                                        }
+                                , job = Just Data.shortJobId
                                 , status = BuildStatusAborted
                                 , duration =
                                     { startedAt = Nothing
@@ -770,12 +738,7 @@ all =
                             Ok
                                 { id = 1
                                 , name = "1"
-                                , job =
-                                    Just
-                                        { teamName = "t"
-                                        , pipelineName = "p"
-                                        , jobName = "j"
-                                        }
+                                , job = Just Data.shortJobId
                                 , status = BuildStatusPending
                                 , duration =
                                     { startedAt = Nothing
@@ -959,12 +922,7 @@ all =
                             Ok
                                 { id = 1
                                 , name = "1"
-                                , job =
-                                    Just
-                                        { teamName = "team"
-                                        , pipelineName = "pipeline"
-                                        , jobName = "job"
-                                        }
+                                , job = Just Data.jobId
                                 , status = BuildStatusStarted
                                 , duration =
                                     { startedAt =
@@ -1212,13 +1170,7 @@ all =
                                 }
                         )
                     |> Tuple.second
-                    |> Expect.equal
-                        [ Effects.DoTriggerBuild
-                            { teamName = "t"
-                            , pipelineName = "p"
-                            , jobName = "j"
-                            }
-                        ]
+                    |> Expect.equal [ Effects.DoTriggerBuild Data.shortJobId ]
         , test "pressing 'R' reruns build" <|
             \_ ->
                 Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
@@ -1252,14 +1204,7 @@ all =
                                 }
                         )
                     |> Tuple.second
-                    |> Expect.equal
-                        [ Effects.RerunJobBuild
-                            { teamName = "t"
-                            , pipelineName = "p"
-                            , jobName = "j"
-                            , buildName = "1"
-                            }
-                        ]
+                    |> Expect.equal [ Effects.RerunJobBuild Data.jobBuildId ]
         , test "pressing 'R' does nothing if there is a running build" <|
             \_ ->
                 Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
@@ -1396,24 +1341,12 @@ all =
                     , fragment = Nothing
                     }
                     |> Tuple.second
-                    |> Common.contains
-                        (Effects.FetchJobBuild
-                            { teamName = "t"
-                            , pipelineName = "p"
-                            , jobName = "j"
-                            , buildName = "1"
-                            }
-                        )
+                    |> Common.contains (Effects.FetchJobBuild Data.jobBuildId)
         , test "does not reload build when highlight is modified" <|
             \_ ->
                 let
                     buildParams =
-                        { id =
-                            { teamName = "t"
-                            , pipelineName = "p"
-                            , jobName = "j"
-                            , buildName = "1"
-                            }
+                        { id = Data.jobBuildId
                         , highlight = Routes.HighlightNothing
                         }
                 in
@@ -1565,21 +1498,8 @@ all =
                 givenBuildFetched
                     >> Tuple.second
                     >> Expect.all
-                        [ Common.contains
-                            (Effects.FetchBuildHistory
-                                { teamName = "t"
-                                , pipelineName = "p"
-                                , jobName = "j"
-                                }
-                                Nothing
-                            )
-                        , Common.contains
-                            (Effects.FetchBuildJobDetails
-                                { teamName = "t"
-                                , pipelineName = "p"
-                                , jobName = "j"
-                                }
-                            )
+                        [ Common.contains (Effects.FetchBuildHistory Data.shortJobId Nothing)
+                        , Common.contains (Effects.FetchBuildJobDetails Data.shortJobId)
                         ]
             , test "header is 60px tall" <|
                 givenBuildFetched
@@ -1838,12 +1758,7 @@ all =
                                         [ Data.jobBuild BuildStatusSucceeded
                                         , { id = 2
                                           , name = "2"
-                                          , job =
-                                                Just
-                                                    { teamName = "t"
-                                                    , pipelineName = "p"
-                                                    , jobName = "j"
-                                                    }
+                                          , job = Just Data.shortJobId
                                           , status = BuildStatusSucceeded
                                           , duration =
                                                 { startedAt = Just <| Time.millisToPosix 0
@@ -1887,12 +1802,7 @@ all =
                                         [ Data.jobBuild BuildStatusSucceeded
                                         , { id = 2
                                           , name = "2"
-                                          , job =
-                                                Just
-                                                    { teamName = "t"
-                                                    , pipelineName = "p"
-                                                    , jobName = "j"
-                                                    }
+                                          , job = Just Data.shortJobId
                                           , status = BuildStatusSucceeded
                                           , duration =
                                                 { startedAt = Just <| Time.millisToPosix 0
@@ -1945,12 +1855,7 @@ all =
                                         [ Data.jobBuild BuildStatusSucceeded
                                         , { id = 2
                                           , name = "2"
-                                          , job =
-                                                Just
-                                                    { teamName = "t"
-                                                    , pipelineName = "p"
-                                                    , jobName = "j"
-                                                    }
+                                          , job = Just Data.shortJobId
                                           , status = BuildStatusSucceeded
                                           , duration =
                                                 { startedAt = Just <| Time.millisToPosix 0
@@ -1966,12 +1871,7 @@ all =
                         >> Application.handleDelivery
                             (RouteChanged <|
                                 Routes.Build
-                                    { id =
-                                        { teamName = "t"
-                                        , pipelineName = "p"
-                                        , jobName = "j"
-                                        , buildName = "2"
-                                        }
+                                    { id = Data.jobBuildId |> Data.withBuildName "2"
                                     , highlight = Routes.HighlightNothing
                                     }
                             )
@@ -1996,12 +1896,7 @@ all =
                                         [ Data.jobBuild BuildStatusSucceeded
                                         , { id = 2
                                           , name = "2"
-                                          , job =
-                                                Just
-                                                    { teamName = "t"
-                                                    , pipelineName = "p"
-                                                    , jobName = "j"
-                                                    }
+                                          , job = Just Data.shortJobId
                                           , status = BuildStatusSucceeded
                                           , duration =
                                                 { startedAt = Just <| Time.millisToPosix 0
@@ -2042,12 +1937,7 @@ all =
                                         [ Data.jobBuild BuildStatusSucceeded
                                         , { id = 2
                                           , name = "2"
-                                          , job =
-                                                Just
-                                                    { teamName = "t"
-                                                    , pipelineName = "p"
-                                                    , jobName = "j"
-                                                    }
+                                          , job = Just Data.shortJobId
                                           , status = BuildStatusSucceeded
                                           , duration =
                                                 { startedAt = Just <| Time.millisToPosix 0
@@ -2176,11 +2066,7 @@ all =
                             (Subscription.ElementVisible ( "1", True ))
                         >> Tuple.second
                         >> Expect.equal
-                            [ Effects.FetchBuildHistory
-                                { teamName = "t"
-                                , pipelineName = "p"
-                                , jobName = "j"
-                                }
+                            [ Effects.FetchBuildHistory Data.shortJobId
                                 (Just { direction = Until 1, limit = 100 })
                             ]
                 , test "scrolling to last build while fetching fetches no more" <|
@@ -2249,12 +2135,7 @@ all =
                                     , content =
                                         [ { id = 2
                                           , name = "2"
-                                          , job =
-                                                Just
-                                                    { teamName = "t"
-                                                    , pipelineName = "p"
-                                                    , jobName = "j"
-                                                    }
+                                          , job = Just Data.shortJobId
                                           , status = BuildStatusSucceeded
                                           , duration =
                                                 { startedAt = Nothing
@@ -2268,11 +2149,7 @@ all =
                             )
                         >> Tuple.second
                         >> Common.notContains
-                            (Effects.FetchBuildHistory
-                                { teamName = "t"
-                                , pipelineName = "p"
-                                , jobName = "j"
-                                }
+                            (Effects.FetchBuildHistory Data.shortJobId
                                 (Just { direction = Until 2, limit = 100 })
                             )
                 , test "if build is present in history, checks its visibility" <|
@@ -2361,12 +2238,7 @@ all =
                                     , content =
                                         [ { id = 2
                                           , name = "2"
-                                          , job =
-                                                Just
-                                                    { teamName = "t"
-                                                    , pipelineName = "p"
-                                                    , jobName = "j"
-                                                    }
+                                          , job = Just Data.shortJobId
                                           , status = BuildStatusSucceeded
                                           , duration =
                                                 { startedAt = Nothing
@@ -2380,11 +2252,7 @@ all =
                             )
                         >> Tuple.second
                         >> Expect.equal
-                            [ Effects.FetchBuildHistory
-                                { teamName = "t"
-                                , pipelineName = "p"
-                                , jobName = "j"
-                                }
+                            [ Effects.FetchBuildHistory Data.shortJobId
                                 (Just { direction = Until 2, limit = 100 })
                             ]
                 , test "trigger build button is styled as a box of the color of the build status" <|
@@ -3834,12 +3702,7 @@ all =
                                     Ok
                                         { id = 1
                                         , name = "1"
-                                        , job =
-                                            Just
-                                                { teamName = "t"
-                                                , pipelineName = "p"
-                                                , jobName = "j"
-                                                }
+                                        , job = Just Data.shortJobId
                                         , status = BuildStatusStarted
                                         , duration =
                                             { startedAt = Nothing

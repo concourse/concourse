@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -22,27 +23,50 @@ type Certs struct {
 	Dir string `long:"certs-dir" description:"Directory to use when creating the resource certificates volume."`
 }
 
-type GardenBackend struct {
-	UseHoudini    bool `long:"use-houdini"    description:"Use the insecure Houdini Garden backend."`
-	UseContainerd bool `long:"use-containerd" description:"Use the containerd backend. (experimental)"`
-
-	Bin            string        `long:"bin"        description:"Path to a garden backend executable (non-absolute names get resolved from $PATH)."`
-	Config         flag.File     `long:"config"     description:"Path to a config file to use for the Garden backend. Guardian flags as env vars, e.g. 'CONCOURSE_GARDEN_FOO_BAR=a,b' for '--foo-bar a --foo-bar b'."`
-	DNSServers     []string      `long:"dns-server" description:"DNS server IP address to use instead of automatically determined servers. Can be specified multiple times."`
-	DNS            DNSConfig     `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
-	DenyNetworks   []string      `long:"deny-network" description:"Network ranges to which traffic from containers will be restricted. Can be specified multiple times."`
-	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
-
-	MaxContainers int `long:"max-containers" default:"0" description:"Max container capacity. 0 means no limit."`
+type RuntimeConfiguration struct {
+	Runtime string `long:"runtime" default:"guardian" choice:"guardian" choice:"containerd" choice:"houdini" description:"Runtime to use with the worker. Please note that Houdini is insecure and doesn't run 'tasks' in containers."`
 }
+
+type GuardianRuntime struct {
+	Bin            string        `long:"bin"        description:"Path to a garden server executable (non-absolute names get resolved from $PATH)."`
+	Config         flag.File     `long:"config"     description:"Path to a config file to use for the Garden backend. Guardian flags as env vars, e.g. 'CONCOURSE_GARDEN_FOO_BAR=a,b' for '--foo-bar a --foo-bar b'."`
+	DNS            DNSConfig     `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
+	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to the Garden server to complete. 0 means no timeout."`
+}
+
+type ContainerdRuntime struct {
+	Config         flag.File     `long:"config"     description:"Path to a config file to use for the Containerd daemon."`
+	Bin            string        `long:"bin"        description:"Path to a containerd executable (non-absolute names get resolved from $PATH)."`
+	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Containerd to complete. 0 means no timeout."`
+
+	//TODO can DNSConfig be simplifed to just a bool rather than struct with a bool?
+	DNS                DNSConfig `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
+	DNSServers         []string  `long:"dns-server" description:"DNS server IP address to use instead of automatically determined servers. Can be specified multiple times."`
+	RestrictedNetworks []string  `long:"restricted-network" description:"Network ranges to which traffic from containers will be restricted. Can be specified multiple times."`
+	MaxContainers      int       `long:"max-containers" default:"0" description:"Max container capacity. 0 means no limit."`
+	NetworkPool        string    `long:"network-pool" default:"10.80.0.0/16" description:"Network range to use for dynamically allocated container subnets."`
+}
+
+const containerdRuntime = "containerd"
+const guardianRuntime = "guardian"
+const houdiniRuntime = "houdini"
 
 func (cmd WorkerCommand) LessenRequirements(prefix string, command *flags.Command) {
 	// configured as work-dir/volumes
 	command.FindOptionByLongName(prefix + "baggageclaim-volumes").Required = false
 }
 
-func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.Runner, error) {
+// Chooses the appropriate runtime based on CONCOURSE_RUNTIME_TYPE.
+// The runtime is represented as a Ifrit runner that must include a Garden Server process. The Garden server exposes API
+// endpoints that allow the ATC to make container related requests to the worker.
+// The runner may also include additional processes such as the runtime's daemon or a DNS proxy server.
+func (cmd *WorkerCommand) gardenServerRunner(logger lager.Logger) (atc.Worker, ifrit.Runner, error) {
 	err := cmd.checkRoot()
+	if err != nil {
+		return atc.Worker{}, nil, err
+	}
+
+	err = cmd.verifyRuntimeFlags()
 	if err != nil {
 		return atc.Worker{}, nil, err
 	}
@@ -69,12 +93,14 @@ func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.R
 	var runner ifrit.Runner
 
 	switch {
-	case cmd.Garden.UseHoudini:
+	case cmd.Runtime == houdiniRuntime:
 		runner, err = cmd.houdiniRunner(logger)
-	case cmd.Garden.UseContainerd:
+	case cmd.Runtime == containerdRuntime:
 		runner, err = cmd.containerdRunner(logger)
-	default:
+	case cmd.Runtime == guardianRuntime:
 		runner, err = cmd.guardianRunner(logger)
+	default:
+		err = fmt.Errorf("unsupported Runtime :%s", cmd.Runtime)
 	}
 
 	if err != nil {
@@ -113,7 +139,7 @@ func (cmd *WorkerCommand) checkRoot() error {
 }
 
 func (cmd *WorkerCommand) dnsProxyRunner(logger lager.Logger) (ifrit.Runner, error) {
-	server, err := cmd.Garden.DNS.Server()
+	server, err := cmd.Guardian.DNS.Server()
 	if err != nil {
 		return nil, err
 	}
@@ -174,4 +200,42 @@ func (cmd *WorkerCommand) loadResources(logger lager.Logger) ([]atc.WorkerResour
 	}
 
 	return types, nil
+}
+
+
+func (cmd *WorkerCommand) hasFlags(prefix string) bool {
+	env := os.Environ()
+
+	for _, envVar := range env {
+		if strings.HasPrefix(envVar, prefix) {
+			return true
+		}
+	}
+
+	return false
+}
+
+const guardianEnvPrefix = "CONCOURSE_GARDEN_"
+const containerdEnvPrefix = "CONCOURSE_CONTAINERD_"
+
+// Checks if runtime specific flags provided match the selected runtime type
+func (cmd *WorkerCommand) verifyRuntimeFlags() error {
+	switch {
+	case cmd.Runtime == houdiniRuntime:
+		if cmd.hasFlags(guardianEnvPrefix)  || cmd.hasFlags(containerdEnvPrefix) {
+			return fmt.Errorf("cannot use %s or %s environment variables with Houdini", guardianEnvPrefix, containerdEnvPrefix)
+		}
+	case cmd.Runtime == containerdRuntime:
+		if cmd.hasFlags(guardianEnvPrefix) {
+			return fmt.Errorf("cannot use %s environment variables with Containerd", guardianEnvPrefix)
+		}
+	case cmd.Runtime == guardianRuntime:
+		if cmd.hasFlags(containerdEnvPrefix) {
+			return fmt.Errorf("cannot use %s environment variables with Guardian", containerdEnvPrefix)
+		}
+	default:
+		return fmt.Errorf("unsupported Runtime :%s", cmd.Runtime)
+	}
+
+	return nil
 }

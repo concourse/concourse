@@ -406,7 +406,7 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineStar
-                >> then_ (itIsClickable <| Message.SideBarStarIcon 0)
+                >> then_ (itIsClickable <| Message.SideBarFavoritedIcon 0)
         , test "pipeline gets favorited when star icon is clicked" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -525,11 +525,7 @@ hasSideBar iAmLookingAtThePage =
                 , selector =
                     [ style "opacity" "0.4" ]
                 }
-            , hoverable =
-                Message.SideBarPipeline AllPipelines
-                    { pipelineName = "pipeline"
-                    , teamName = "team"
-                    }
+            , hoverable = Message.SideBarPipeline AllPipelines Data.pipelineId
             , hoveredSelector =
                 { description = "light background"
                 , selector =
@@ -1090,7 +1086,7 @@ iSeeUnfilledStarIcon =
     Query.has
         (DashboardTests.iconSelector
             { size = "18px"
-            , image = Assets.StarIconUnfilled
+            , image = Assets.FavoritedToggleIcon False
             }
         )
 
@@ -1099,7 +1095,7 @@ iSeeFilledStarIcon =
     Query.has
         (DashboardTests.iconSelector
             { size = "18px"
-            , image = Assets.StarIconFilled
+            , image = Assets.FavoritedToggleIcon True
             }
         )
 
@@ -1115,7 +1111,7 @@ iClickedTheFirstPipelineStar =
         >> Application.update
             (TopLevelMessage.Update <|
                 Message.Click <|
-                    Message.SideBarStarIcon 0
+                    Message.SideBarFavoritedIcon 0
             )
 
 
@@ -1162,19 +1158,6 @@ iAmLookingAtTheFirstPipeline =
 
 iAmLookingAtTheFirstPipelineLink =
     iAmLookingAtTheFirstPipeline >> Query.children [] >> Query.index 1
-
-
-iHoveredTheFirstPipelineLink =
-    Tuple.first
-        >> Application.update
-            (TopLevelMessage.Update <|
-                Message.Hover <|
-                    Just <|
-                        Message.SideBarPipeline AllPipelines
-                            { teamName = "team"
-                            , pipelineName = "pipeline"
-                            }
-            )
 
 
 iSeeItContainsThePipelineName =
@@ -1522,10 +1505,7 @@ iHoveredThePipelineLink =
             (TopLevelMessage.Update <|
                 Message.Hover <|
                     Just <|
-                        Message.SideBarPipeline AllPipelines
-                            { pipelineName = "pipeline"
-                            , teamName = "team"
-                            }
+                        Message.SideBarPipeline AllPipelines Data.pipelineId
             )
 
 
@@ -1629,10 +1609,7 @@ iClickAPipelineLink =
                 Subscription.RouteChanged <|
                     Routes.Pipeline
                         { groups = []
-                        , id =
-                            { pipelineName = "other-pipeline"
-                            , teamName = "team"
-                            }
+                        , id = Data.pipelineId |> Data.withPipelineName "other-pipeline"
                         }
             )
 
@@ -1673,9 +1650,9 @@ iNavigateBackToThePipelinePage =
                     Routes.Pipeline
                         { groups = []
                         , id =
-                            { pipelineName = "yet-another-pipeline"
-                            , teamName = "other-team"
-                            }
+                            Data.pipelineId
+                                |> Data.withTeamName "other-team"
+                                |> Data.withPipelineName "yet-another-pipeline"
                         }
             )
 

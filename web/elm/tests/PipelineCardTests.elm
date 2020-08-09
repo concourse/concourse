@@ -34,15 +34,14 @@ import DashboardTests
         , white
         )
 import Data
-import Dict
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
-import Http
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message as Msgs
 import Message.Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as ApplicationMsgs
+import Set
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -1263,9 +1262,9 @@ all =
 
                         domID =
                             Msgs.PipelineStatusIcon
-                                { teamName = "team"
-                                , pipelineName = "pipeline-0"
-                                }
+                                (Data.pipelineId
+                                    |> Data.withPipelineName "pipeline-0"
+                                )
                     in
                     [ test "status icon is faded sync" <|
                         \_ ->
@@ -1589,9 +1588,7 @@ all =
                 [ describe "visibility toggle" <|
                     let
                         pipelineId =
-                            { pipelineName = "pipeline"
-                            , teamName = "team"
-                            }
+                            Data.pipelineId
 
                         visibilityToggle =
                             Common.queryView
@@ -1599,7 +1596,7 @@ all =
                                 >> Query.children []
                                 >> Query.index -1
                                 >> Query.children []
-                                >> Query.index -1
+                                >> Query.index 2
 
                         openEye =
                             iconSelector
@@ -2092,8 +2089,30 @@ all =
                             |> Query.index -1
                             |> Query.children []
                             |> Expect.all
-                                [ Query.count (Expect.equal 3)
-                                , Query.index 1 >> Query.has [ style "width" "13.5px" ]
+                                [ Query.count (Expect.equal 5)
+                                , Query.index 1 >> Query.has [ style "width" "12px" ]
+                                ]
+                , test "there is medium spacing between the eye and the favorited icon" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataAndUser
+                                (apiData [ ( "team", [] ) ])
+                                (userWithRoles [ ( "team", [ "owner" ] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                )
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.find [ class "card-footer" ]
+                            |> Query.children []
+                            |> Query.index -1
+                            |> Query.children []
+                            |> Expect.all
+                                [ Query.count (Expect.equal 5)
+                                , Query.index 3 >> Query.has [ style "width" "12px" ]
                                 ]
                 , describe "pause toggle"
                     [ test "the right section has a 20px square pause button on the left" <|
@@ -2197,11 +2216,7 @@ all =
                                        , style "opacity" "0.5"
                                        ]
                             }
-                        , hoverable =
-                            Msgs.PipelineButton
-                                { pipelineName = "pipeline"
-                                , teamName = "team"
-                                }
+                        , hoverable = Msgs.PipelineButton Data.pipelineId
                         , hoveredSelector =
                             { description = "a bright 20px square pause button with pointer cursor"
                             , selector =
@@ -2249,11 +2264,7 @@ all =
                                        , style "opacity" "0.5"
                                        ]
                             }
-                        , hoverable =
-                            Msgs.PipelineButton
-                                { pipelineName = "pipeline"
-                                , teamName = "team"
-                                }
+                        , hoverable = Msgs.PipelineButton Data.pipelineId
                         , hoveredSelector =
                             { description = "an opaque 20px square play button with pointer cursor"
                             , selector =
@@ -2286,10 +2297,7 @@ all =
                                 |> Event.expect
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
+                                            Msgs.PipelineButton Data.pipelineId
                                     )
                     , test "pause button turns into spinner on click" <|
                         \_ ->
@@ -2311,10 +2319,7 @@ all =
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
+                                            Msgs.PipelineButton Data.pipelineId
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -2336,19 +2341,10 @@ all =
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
+                                            Msgs.PipelineButton Data.pipelineId
                                     )
                                 |> Tuple.second
-                                |> Expect.equal
-                                    [ Effects.SendTogglePipelineRequest
-                                        { pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
-                                        False
-                                    ]
+                                |> Expect.equal [ Effects.SendTogglePipelineRequest Data.pipelineId False ]
                     , test "all pipelines are refetched after ok toggle call" <|
                         \_ ->
                             whenOnDashboard { highDensity = False }
@@ -2365,19 +2361,11 @@ all =
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
+                                            Msgs.PipelineButton Data.pipelineId
                                     )
                                 |> Tuple.first
                                 |> Application.handleCallback
-                                    (Callback.PipelineToggled
-                                        { pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
-                                        (Ok ())
-                                    )
+                                    (Callback.PipelineToggled Data.pipelineId (Ok ()))
                                 |> Tuple.second
                                 |> Expect.equal [ Effects.FetchAllPipelines ]
                     , test "401 toggle call redirects to login" <|
@@ -2395,22 +2383,128 @@ all =
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton
-                                                { pipelineName = "pipeline"
-                                                , teamName = "team"
-                                                }
+                                            Msgs.PipelineButton Data.pipelineId
                                     )
                                 |> Tuple.first
                                 |> Application.handleCallback
-                                    (Callback.PipelineToggled
-                                        { pipelineName = "pipeline"
-                                        , teamName = "team"
-                                        }
-                                        Data.httpUnauthorized
-                                    )
+                                    (Callback.PipelineToggled Data.pipelineId Data.httpUnauthorized)
                                 |> Tuple.second
                                 |> Expect.equal [ Effects.RedirectToLogin ]
                     ]
+                , describe "favorited icon" <|
+                    let
+                        pipelineId =
+                            0
+
+                        unfilledFavoritedIcon =
+                            iconSelector
+                                { size = "20px"
+                                , image = Assets.FavoritedToggleIcon False
+                                }
+                                ++ [ style "background-size" "contain" ]
+
+                        filledFavoritedIcon =
+                            iconSelector
+                                { size = "20px"
+                                , image = Assets.FavoritedToggleIcon True
+                                }
+                                ++ [ style "background-size" "contain" ]
+
+                        favoritedToggle =
+                            Common.queryView
+                                >> Query.find [ class "card-footer" ]
+                                >> Query.children []
+                                >> Query.index -1
+                                >> Query.children []
+                                >> Query.index -1
+
+                        favoritedIconClickable setup =
+                            [ defineHoverBehaviour
+                                { name = "favorited icon toggle"
+                                , setup =
+                                    whenOnDashboard { highDensity = False }
+                                        |> setup
+                                        |> Tuple.first
+                                , query = favoritedToggle
+                                , unhoveredSelector =
+                                    { description = "faded 20px square"
+                                    , selector =
+                                        unfilledFavoritedIcon
+                                            ++ [ style "opacity" "0.5"
+                                               , style "cursor" "pointer"
+                                               ]
+                                    }
+                                , hoverable =
+                                    Msgs.PipelineCardFavoritedIcon pipelineId
+                                , hoveredSelector =
+                                    { description = "bright 20px square"
+                                    , selector =
+                                        unfilledFavoritedIcon
+                                            ++ [ style "opacity" "1"
+                                               , style "cursor" "pointer"
+                                               ]
+                                    }
+                                }
+                            , test "has click handler" <|
+                                \_ ->
+                                    whenOnDashboard { highDensity = False }
+                                        |> setup
+                                        |> Tuple.first
+                                        |> favoritedToggle
+                                        |> Event.simulate Event.click
+                                        |> Event.expect
+                                            (ApplicationMsgs.Update <|
+                                                Msgs.Click <|
+                                                    Msgs.PipelineCardFavoritedIcon
+                                                        pipelineId
+                                            )
+                            , test "click has FavoritedPipeline effect" <|
+                                \_ ->
+                                    whenOnDashboard { highDensity = False }
+                                        |> setup
+                                        |> Tuple.first
+                                        |> Application.update
+                                            (ApplicationMsgs.Update <|
+                                                Msgs.Click <|
+                                                    Msgs.PipelineCardFavoritedIcon
+                                                        pipelineId
+                                            )
+                                        |> Tuple.second
+                                        |> Expect.equal
+                                            [ Effects.SaveFavoritedPipelines <|
+                                                Set.singleton pipelineId
+                                            ]
+                            , test "favorited pipeline card has a bright filled star icon" <|
+                                \_ ->
+                                    whenOnDashboard { highDensity = False }
+                                        |> setup
+                                        |> Tuple.first
+                                        |> Application.handleDelivery
+                                            (FavoritedPipelinesReceived <|
+                                                Ok <|
+                                                    Set.singleton pipelineId
+                                            )
+                                        |> Tuple.first
+                                        |> favoritedToggle
+                                        |> Expect.all
+                                            [ Query.has filledFavoritedIcon
+                                            , Query.has [ style "opacity" "1" ]
+                                            ]
+                            ]
+                    in
+                    favoritedIconClickable
+                        (givenDataAndUser
+                            (apiData [ ( "team", [] ) ])
+                            (userWithRoles
+                                [ ( "team", [ "owner" ] ) ]
+                            )
+                            >> Tuple.first
+                            >> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                )
+                        )
                 ]
             ]
         ]

@@ -43,7 +43,7 @@ type alias PipelineIndex =
 
 
 view :
-    { a | userState : UserState }
+    { a | userState : UserState, favoritedPipelines : Set Concourse.DatabaseID }
     ->
         { dragState : DragState
         , dropState : DropState
@@ -206,7 +206,7 @@ lookupJob jobs jobId =
 
 
 pipelineCardView :
-    { a | userState : UserState }
+    { a | userState : UserState, favoritedPipelines : Set Concourse.DatabaseID }
     ->
         { b
             | dragState : DragState
@@ -335,6 +335,7 @@ pipelineCardView session params { bounds, pipeline } teamName =
                 , hovered = params.hovered
                 , pipelineRunningKeyframes = params.pipelineRunningKeyframes
                 , userState = session.userState
+                , favoritedPipelines = session.favoritedPipelines
                 }
             ]
         ]

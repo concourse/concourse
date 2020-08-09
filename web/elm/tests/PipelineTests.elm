@@ -305,9 +305,9 @@ all =
                 defaultModel =
                     Pipeline.init
                         { pipelineLocator =
-                            { teamName = "some-team"
-                            , pipelineName = "some-pipeline"
-                            }
+                            Data.pipelineId
+                                |> Data.withTeamName "some-team"
+                                |> Data.withPipelineName "some-pipeline"
                         , turbulenceImgSrc = "some-turbulence-img-src"
                         , selectedGroups = []
                         }
@@ -376,12 +376,7 @@ all =
                                 )
                             )
                         |> Tuple.second
-                        |> Common.contains
-                            (Effects.FetchPipeline
-                                { teamName = "team"
-                                , pipelineName = "pipeline"
-                                }
-                            )
+                        |> Common.contains (Effects.FetchPipeline Data.pipelineId)
             , test "on one minute timer, refreshes version" <|
                 \_ ->
                     Common.init "/teams/team/pipelines/pipeline"

@@ -1,5 +1,6 @@
 module PauseToggleTests exposing (all)
 
+import Data
 import Dict
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
@@ -15,9 +16,7 @@ all =
         [ describe "when user is unauthorized" <|
             let
                 pipeline =
-                    { pipelineName = "pipeline"
-                    , teamName = "team"
-                    }
+                    Data.pipelineId
 
                 userState =
                     UserStateLoggedIn
