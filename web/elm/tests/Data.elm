@@ -161,6 +161,7 @@ pipeline : String -> Int -> Concourse.Pipeline
 pipeline team id =
     { id = id
     , name = "pipeline-" ++ String.fromInt id
+    , instanceVars = Nothing
     , paused = False
     , archived = False
     , public = True
@@ -174,6 +175,7 @@ dashboardPipeline : Int -> Bool -> Dashboard.Group.Models.Pipeline
 dashboardPipeline id public =
     { id = id
     , name = pipelineName
+    , instanceVars = Nothing
     , teamName = teamName
     , public = public
     , isToggleLoading = False

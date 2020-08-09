@@ -360,7 +360,9 @@ myBrowserMakesTheOrderPipelinesAPICall =
     Tuple.second
         >> Common.contains
             (Effects.SendOrderPipelinesRequest "team"
-                [ "other-pipeline", "pipeline" ]
+                [ { name = "other-pipeline", instanceVars = Nothing }
+                , { name = "pipeline", instanceVars = Nothing }
+                ]
             )
 
 

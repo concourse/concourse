@@ -32,7 +32,9 @@ module Concourse exposing
     , Pipeline
     , PipelineGroup
     , PipelineIdentifier
+    , PipelineRef
     , PipelineName
+    , InstanceVars
     , Resource
     , ResourceIdentifier
     , Team
@@ -63,6 +65,7 @@ module Concourse exposing
     , encodeBuild
     , encodeJob
     , encodePipeline
+    , encodePipelineRef
     , encodeTeam
     , mapBuildPlan
     , retrieveCSRFToken
@@ -805,6 +808,16 @@ type alias PipelineName =
     String
 
 
+type alias InstanceVars =
+    Dict String String
+
+
+type alias PipelineRef =
+    { name : PipelineName
+    , instanceVars : Maybe InstanceVars
+    }
+
+
 type alias PipelineIdentifier =
     { teamName : TeamName
     , pipelineName : PipelineName
@@ -814,6 +827,7 @@ type alias PipelineIdentifier =
 type alias Pipeline =
     { id : Int
     , name : PipelineName
+    , instanceVars : Maybe InstanceVars
     , paused : Bool
     , archived : Bool
     , public : Bool
@@ -830,11 +844,35 @@ type alias PipelineGroup =
     }
 
 
+encodeInstanceVars : InstanceVars -> Json.Encode.Value
+encodeInstanceVars instanceVars =
+    Json.Encode.dict identity Json.Encode.string instanceVars
+
+
+encodeMaybeInstanceVars : Maybe InstanceVars -> Json.Encode.Value
+encodeMaybeInstanceVars maybeInstanceVars =
+    case maybeInstanceVars of
+        Nothing ->
+            Json.Encode.null
+
+        Just instanceVars ->
+            encodeInstanceVars instanceVars
+
+
+encodePipelineRef : PipelineRef -> Json.Encode.Value
+encodePipelineRef pipelineRef =
+    Json.Encode.object
+        [ ( "name", pipelineRef.name |> Json.Encode.string )
+        , ( "instance_vars", pipelineRef.instanceVars |> encodeMaybeInstanceVars )
+        ]
+
+
 encodePipeline : Pipeline -> Json.Encode.Value
 encodePipeline pipeline =
     Json.Encode.object
         [ ( "id", pipeline.id |> Json.Encode.int )
         , ( "name", pipeline.name |> Json.Encode.string )
+        , ( "instance_vars", pipeline.instanceVars |> encodeMaybeInstanceVars )
         , ( "paused", pipeline.paused |> Json.Encode.bool )
         , ( "archived", pipeline.archived |> Json.Encode.bool )
         , ( "public", pipeline.public |> Json.Encode.bool )
@@ -849,6 +887,7 @@ decodePipeline =
     Json.Decode.succeed Pipeline
         |> andMap (Json.Decode.field "id" Json.Decode.int)
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.maybe (Json.Decode.field "instance_vars" (Json.Decode.dict Json.Decode.string)))
         |> andMap (Json.Decode.field "paused" Json.Decode.bool)
         |> andMap (Json.Decode.field "archived" Json.Decode.bool)
         |> andMap (Json.Decode.field "public" Json.Decode.bool)

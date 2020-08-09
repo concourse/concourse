@@ -551,6 +551,7 @@ toDashboardPipeline : Bool -> Bool -> Concourse.Pipeline -> Pipeline
 toDashboardPipeline isStale jobsDisabled p =
     { id = p.id
     , name = p.name
+    , instanceVars = p.instanceVars
     , teamName = p.teamName
     , public = p.public
     , isToggleLoading = False
@@ -566,12 +567,20 @@ toConcoursePipeline : Pipeline -> Concourse.Pipeline
 toConcoursePipeline p =
     { id = p.id
     , name = p.name
+    , instanceVars = p.instanceVars
     , teamName = p.teamName
     , public = p.public
     , paused = p.paused
     , archived = p.archived
     , groups = []
     , backgroundImage = Maybe.Nothing
+    }
+
+
+toConcoursePipelineRef : Pipeline -> Concourse.PipelineRef
+toConcoursePipelineRef p =
+    { name = p.name
+    , instanceVars = p.instanceVars
     }
 
 
@@ -675,7 +684,7 @@ updateBody msg ( model, effects ) =
                       }
                     , effects
                         ++ [ teamPipelines
-                                |> List.map .name
+                                |> List.map toConcoursePipelineRef
                                 |> SendOrderPipelinesRequest teamName
                            , pipelines
                                 |> Dict.values

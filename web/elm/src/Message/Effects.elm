@@ -14,7 +14,7 @@ import Assets
 import Base64
 import Browser.Dom exposing (Viewport, getElement, getViewport, getViewportOf, setViewportOf)
 import Browser.Navigation as Navigation
-import Concourse exposing (DatabaseID, encodeJob, encodePipeline, encodeTeam)
+import Concourse exposing (DatabaseID, encodeJob, encodePipeline, encodePipelineRef, encodeTeam)
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Page)
 import Json.Decode
@@ -168,7 +168,7 @@ type Effect
     | SendTogglePipelineRequest Concourse.PipelineIdentifier Bool
     | ShowTooltip ( String, String )
     | ShowTooltipHd ( String, String )
-    | SendOrderPipelinesRequest String (List String)
+    | SendOrderPipelinesRequest String (List Concourse.PipelineRef)
     | SendLogOutRequest
     | GetScreenSize
     | PinTeamNames StickyHeaderConfig
@@ -461,12 +461,12 @@ runEffect effect key csrfToken =
         ShowTooltipHd ( teamName, pipelineName ) ->
             tooltipHd ( teamName, pipelineName )
 
-        SendOrderPipelinesRequest teamName pipelineNames ->
+        SendOrderPipelinesRequest teamName pipelineRefs ->
             Api.put
                 (Endpoints.OrderTeamPipelines |> Endpoints.Team teamName)
                 csrfToken
                 |> Api.withJsonBody
-                    (Json.Encode.list Json.Encode.string pipelineNames)
+                    (Json.Encode.list encodePipelineRef pipelineRefs)
                 |> Api.request
                 |> Task.attempt (PipelinesOrdered teamName)
 

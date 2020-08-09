@@ -1,6 +1,9 @@
 module Dashboard.Group.Models exposing (Group, Pipeline)
 
 
+import Concourse
+
+
 type alias Group =
     { pipelines : List Pipeline
     , teamName : String
@@ -10,6 +13,7 @@ type alias Group =
 type alias Pipeline =
     { id : Int
     , name : String
+    , instanceVars : Maybe Concourse.InstanceVars
     , teamName : String
     , public : Bool
     , isToggleLoading : Bool
