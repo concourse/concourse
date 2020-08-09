@@ -34,6 +34,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 
 		BeforeEach(func() {
 			page = concourse.Page{}
+			filter = atc.Version{}
 			expectedQuery = []string{"instance_vars=%7B%22branch%22%3A%22master%22%7D"}
 
 			expectedVersions = []atc.ResourceVersion{

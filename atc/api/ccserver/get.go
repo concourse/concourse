@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -101,30 +100,34 @@ func (s *Server) buildProject(j atc.DashboardJob) Project {
 		activity = "Sleeping"
 	}
 
-	webUrl := s.createWebUrl([]string{
-		"teams",
-		j.TeamName,
-		"pipelines",
-		j.PipelineName,
-		"jobs",
-		j.Name,
-	})
-
-	projectName := fmt.Sprintf("%s/%s", j.PipelineName, j.Name)
+	pipelineRef := atc.PipelineRef{
+		Name:         j.PipelineName,
+		InstanceVars: j.PipelineInstanceVars,
+	}
 	return Project{
 		Activity:        activity,
 		LastBuildLabel:  fmt.Sprint(j.FinishedBuild.Name),
 		LastBuildStatus: lastBuildStatus,
 		LastBuildTime:   j.FinishedBuild.EndTime.Format(time.RFC3339),
-		Name:            projectName,
-		WebUrl:          webUrl,
+		Name:            fmt.Sprintf("%s/%s", pipelineRef.String(), j.Name),
+		WebUrl:          s.createWebUrl(j.TeamName, j.PipelineName, j.Name, pipelineRef),
 	}
 }
 
-func (s *Server) createWebUrl(pathComponents []string) string {
-	for i, c := range pathComponents {
-		pathComponents[i] = url.PathEscape(c)
+func (s *Server) createWebUrl(teamName, pipelineName, jobName string, pipelineRef atc.PipelineRef) string {
+	externalURL, err := url.Parse(s.externalURL)
+	if err != nil {
+		fmt.Println("Could not parse externalURL")
 	}
 
-	return s.externalURL + "/" + strings.Join(pathComponents, "/")
+	queryParams := pipelineRef.QueryParams().Encode()
+	if queryParams != "" {
+		queryParams = "?" + queryParams
+	}
+	pipelineURL, err := url.Parse("/teams/" + teamName + "/pipelines/" + pipelineName + "/jobs/" + jobName + queryParams)
+	if err != nil {
+		fmt.Println("Could not parse pipelineURL")
+	}
+
+	return externalURL.ResolveReference(pipelineURL).String()
 }

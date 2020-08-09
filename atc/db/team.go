@@ -60,7 +60,7 @@ type Team interface {
 	IsContainerWithinTeam(string, bool) (bool, error)
 
 	FindContainerByHandle(string) (Container, bool, error)
-	FindCheckContainers(lager.Logger, string, string, creds.Secrets, creds.VarSourcePool) ([]Container, map[int]time.Time, error)
+	FindCheckContainers(lager.Logger, atc.PipelineRef, string, creds.Secrets, creds.VarSourcePool) ([]Container, map[int]time.Time, error)
 	FindContainersByMetadata(ContainerMetadata) ([]Container, error)
 	FindCreatedContainerByHandle(string) (CreatedContainer, bool, error)
 	FindWorkerForContainer(handle string) (Worker, bool, error)
@@ -806,8 +806,8 @@ func (t *team) UpdateProviderAuth(auth atc.TeamAuth) error {
 	return tx.Commit()
 }
 
-func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, resourceName string, secretManager creds.Secrets, varSourcePool creds.VarSourcePool) ([]Container, map[int]time.Time, error) {
-	pipeline, found, err := t.Pipeline(atc.PipelineRef{Name: pipelineName}) // FIXME 5808 should filter on instanced pipeline?
+func (t *team) FindCheckContainers(logger lager.Logger, pipelineRef atc.PipelineRef, resourceName string, secretManager creds.Secrets, varSourcePool creds.VarSourcePool) ([]Container, map[int]time.Time, error) {
+	pipeline, found, err := t.Pipeline(pipelineRef)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1296,13 +1296,10 @@ func scanPipeline(p *pipeline, scan scannable) error {
 	}
 
 	if instanceVars.Valid {
-		var pipelineInstanceVars atc.InstanceVars
-		err = json.Unmarshal([]byte(instanceVars.String), &pipelineInstanceVars)
+		err = json.Unmarshal([]byte(instanceVars.String), &p.instanceVars)
 		if err != nil {
 			return err
 		}
-
-		p.instanceVars = pipelineInstanceVars
 	}
 
 	return nil

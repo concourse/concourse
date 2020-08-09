@@ -30,11 +30,13 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers"),
 						ghttp.RespondWithJSONEncoded(200, []atc.Container{
 							{
-								ID:           "handle-1",
-								WorkerName:   "worker-name-1",
-								PipelineName: "pipeline-name",
-								Type:         "check",
-								ResourceName: "git-repo",
+								ID:                   "handle-1",
+								WorkerName:           "worker-name-1",
+								PipelineID:           1,
+								PipelineName:         "instanced-pipeline",
+								PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+								Type:                 "check",
+								ResourceName:         "git-repo",
 							},
 							{
 								ID:           "early-handle",
@@ -84,7 +86,11 @@ var _ = Describe("Fly CLI", func() {
                 "id": "handle-1",
                 "worker_name": "worker-name-1",
                 "type": "check",
-                "pipeline_name": "pipeline-name",
+                "pipeline_id": 1,
+                "pipeline_name": "instanced-pipeline",
+                "pipeline_instance_vars": {
+                  "branch": "master"
+                },
                 "resource_name": "git-repo"
               },
               {
@@ -138,7 +144,7 @@ var _ = Describe("Fly CLI", func() {
 					},
 					Data: []ui.TableRow{
 						{{Contents: "early-handle"}, {Contents: "worker-name-1"}, {Contents: "pipeline-name"}, {Contents: "job-name-1"}, {Contents: "3"}, {Contents: "123"}, {Contents: "get"}, {Contents: "git-repo"}, {Contents: "1.5"}},
-						{{Contents: "handle-1"}, {Contents: "worker-name-1"}, {Contents: "pipeline-name"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "check"}, {Contents: "git-repo"}, {Contents: "n/a", Color: color.New(color.Faint)}},
+						{{Contents: "handle-1"}, {Contents: "worker-name-1"}, {Contents: "instanced-pipeline/branch:master"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "check"}, {Contents: "git-repo"}, {Contents: "n/a", Color: color.New(color.Faint)}},
 						{{Contents: "other-handle"}, {Contents: "worker-name-2"}, {Contents: "pipeline-name"}, {Contents: "job-name-2"}, {Contents: "2"}, {Contents: "122"}, {Contents: "task"}, {Contents: "unit-tests"}, {Contents: "n/a", Color: color.New(color.Faint)}},
 						{{Contents: "post-handle"}, {Contents: "worker-name-3"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "142"}, {Contents: "task"}, {Contents: "one-off"}, {Contents: "n/a", Color: color.New(color.Faint)}},
 					},

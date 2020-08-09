@@ -15,9 +15,10 @@ type ContainerMetadata struct {
 	JobID      int
 	BuildID    int
 
-	PipelineName string
-	JobName      string
-	BuildName    string
+	PipelineName         string
+	PipelineInstanceVars string
+	JobName              string
+	BuildName            string
 }
 
 type ContainerType string
@@ -83,6 +84,10 @@ func (metadata ContainerMetadata) SQLMap() map[string]interface{} {
 		m["meta_pipeline_name"] = metadata.PipelineName
 	}
 
+	if metadata.PipelineInstanceVars != "" {
+		m["meta_pipeline_instance_vars"] = metadata.PipelineInstanceVars
+	}
+
 	if metadata.JobName != "" {
 		m["meta_job_name"] = metadata.JobName
 	}
@@ -104,6 +109,7 @@ var containerMetadataColumns = []string{
 	"meta_job_id",
 	"meta_build_id",
 	"meta_pipeline_name",
+	"meta_pipeline_instance_vars",
 	"meta_job_name",
 	"meta_build_name",
 }
@@ -119,6 +125,7 @@ func (metadata *ContainerMetadata) ScanTargets() []interface{} {
 		&metadata.JobID,
 		&metadata.BuildID,
 		&metadata.PipelineName,
+		&metadata.PipelineInstanceVars,
 		&metadata.JobName,
 		&metadata.BuildName,
 	}

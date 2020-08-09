@@ -536,10 +536,11 @@ var _ = Describe("Volume", func() {
 
 			Expect(createdVolume.Type()).To(Equal(db.VolumeTypeTaskCache))
 
-			pipelineName, jobName, stepName, err := createdVolume.TaskIdentifier()
+			pipelineID, pipelineRef, jobName, stepName, err := createdVolume.TaskIdentifier()
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(pipelineName).To(Equal(defaultPipeline.Name()))
+			Expect(pipelineID).To(Equal(defaultPipeline.ID()))
+			Expect(pipelineRef).To(Equal(defaultPipelineRef))
 			Expect(jobName).To(Equal(defaultJob.Name()))
 			Expect(stepName).To(Equal("some-task"))
 		})

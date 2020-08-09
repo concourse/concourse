@@ -3,8 +3,11 @@ package atc
 type Job struct {
 	ID int `json:"id"`
 
-	Name                 string `json:"name"`
-	PipelineName         string `json:"pipeline_name"`
+	Name                 string       `json:"name"`
+	PipelineID           int          `json:"pipeline_id"`
+	PipelineName         string       `json:"pipeline_name"`
+	PipelineInstanceVars InstanceVars `json:"pipeline_instance_vars,omitempty"`
+
 	TeamName             string `json:"team_name"`
 	Paused               bool   `json:"paused,omitempty"`
 	FirstLoggedBuildID   int    `json:"first_logged_build_id,omitempty"`

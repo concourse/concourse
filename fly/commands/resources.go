@@ -5,19 +5,18 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/fatih/color"
 )
 
 type ResourcesCommand struct {
-	Pipeline string `short:"p" long:"pipeline" required:"true" description:"Get resources in this pipeline"`
-	Json     bool   `long:"json" description:"Print command result as JSON"`
+	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"Get resources in this pipeline"`
+	Json     bool                     `long:"json" description:"Print command result as JSON"`
 }
 
 func (command *ResourcesCommand) Execute([]string) error {
-	pipelineName := command.Pipeline
-
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
@@ -31,7 +30,7 @@ func (command *ResourcesCommand) Execute([]string) error {
 	var headers []string
 	var resources []atc.Resource
 
-	resources, err = target.Team().ListResources(atc.PipelineRef{Name: pipelineName})
+	resources, err = target.Team().ListResources(command.Pipeline.Ref())
 	if err != nil {
 		return err
 	}

@@ -42,8 +42,7 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	pipelineRef := command.Pipeline.Ref()
-	config, _, found, err := target.Team().PipelineConfig(pipelineRef)
+	config, _, found, err := target.Team().PipelineConfig(command.Pipeline.Ref())
 	if err != nil {
 		return err
 	}

@@ -81,6 +81,7 @@ var _ = Describe("Jobs API", func() {
 					ID:           1,
 					Name:         "some-job",
 					Paused:       true,
+					PipelineID:   1,
 					PipelineName: "some-pipeline",
 					TeamName:     "some-team",
 
@@ -102,6 +103,7 @@ var _ = Describe("Jobs API", func() {
 						ID:           3,
 						Name:         "2",
 						JobName:      "some-job",
+						PipelineID:   1,
 						PipelineName: "some-pipeline",
 						TeamName:     "some-team",
 						Status:       "started",
@@ -110,6 +112,7 @@ var _ = Describe("Jobs API", func() {
 						ID:           1,
 						Name:         "1",
 						JobName:      "some-job",
+						PipelineID:   1,
 						PipelineName: "some-pipeline",
 						TeamName:     "some-team",
 						Status:       "succeeded",
@@ -141,6 +144,7 @@ var _ = Describe("Jobs API", func() {
 			{
 				"id": 1,
 				"name": "some-job",
+				"pipeline_id": 1,
 				"pipeline_name": "some-pipeline",
 				"team_name": "some-team",
 				"paused": true,
@@ -151,6 +155,7 @@ var _ = Describe("Jobs API", func() {
 					"status": "started",
 					"job_name": "some-job",
 					"api_url": "/api/v1/builds/3",
+					"pipeline_id": 1,
 					"pipeline_name": "some-pipeline"
 				},
 				"finished_build": {
@@ -160,6 +165,7 @@ var _ = Describe("Jobs API", func() {
 					"status": "succeeded",
 					"job_name": "some-job",
 					"api_url": "/api/v1/builds/1",
+					"pipeline_id": 1,
 					"pipeline_name": "some-pipeline",
 					"start_time": 1,
 					"end_time": 100
@@ -319,6 +325,7 @@ var _ = Describe("Jobs API", func() {
 					build1.IDReturns(1)
 					build1.NameReturns("1")
 					build1.JobNameReturns("some-job")
+					build1.PipelineIDReturns(1)
 					build1.PipelineNameReturns("some-pipeline")
 					build1.TeamNameReturns("some-team")
 					build1.StatusReturns(db.BuildStatusSucceeded)
@@ -329,6 +336,7 @@ var _ = Describe("Jobs API", func() {
 					build2.IDReturns(3)
 					build2.NameReturns("2")
 					build2.JobNameReturns("some-job")
+					build2.PipelineIDReturns(1)
 					build2.PipelineNameReturns("some-pipeline")
 					build2.TeamNameReturns("some-team")
 					build2.StatusReturns(db.BuildStatusStarted)
@@ -349,6 +357,7 @@ var _ = Describe("Jobs API", func() {
 						fakeJob.IDReturns(1)
 						fakeJob.PausedReturns(true)
 						fakeJob.FirstLoggedBuildIDReturns(99)
+						fakeJob.PipelineIDReturns(1)
 						fakeJob.PipelineNameReturns("some-pipeline")
 						fakeJob.NameReturns("some-job")
 						fakeJob.TagsReturns([]string{"group-1", "group-2"})
@@ -437,6 +446,7 @@ var _ = Describe("Jobs API", func() {
 								Expect(body).To(MatchJSON(`{
 							"id": 1,
 							"name": "some-job",
+							"pipeline_id": 1,
 							"pipeline_name": "some-pipeline",
 							"team_name": "some-team",
 							"paused": true,
@@ -447,6 +457,7 @@ var _ = Describe("Jobs API", func() {
 								"job_name": "some-job",
 								"status": "started",
 								"api_url": "/api/v1/builds/3",
+								"pipeline_id": 1,
 								"pipeline_name": "some-pipeline",
 								"team_name": "some-team"
 							},
@@ -456,6 +467,7 @@ var _ = Describe("Jobs API", func() {
 								"job_name": "some-job",
 								"status": "succeeded",
 								"api_url": "/api/v1/builds/1",
+								"pipeline_id": 1,
 								"pipeline_name": "some-pipeline",
 								"team_name": "some-team",
 								"start_time": 1,
@@ -928,38 +940,46 @@ var _ = Describe("Jobs API", func() {
 
 				dashboardResponse = atc.Dashboard{
 					{
-						ID:           1,
-						Name:         "job-1",
-						PipelineName: "another-pipeline",
-						TeamName:     "some-team",
-						Paused:       true,
+						ID:                   1,
+						Name:                 "job-1",
+						PipelineID:           2,
+						PipelineName:         "another-pipeline",
+						PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+						TeamName:             "some-team",
+						Paused:               true,
 						NextBuild: &atc.DashboardBuild{
-							ID:           3,
-							Name:         "2",
-							JobName:      "job-1",
-							PipelineName: "another-pipeline",
-							TeamName:     "some-team",
-							Status:       "started",
+							ID:                   3,
+							Name:                 "2",
+							JobName:              "job-1",
+							PipelineID:           2,
+							PipelineName:         "another-pipeline",
+							PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+							TeamName:             "some-team",
+							Status:               "started",
 						},
 						FinishedBuild: &atc.DashboardBuild{
-							ID:           1,
-							Name:         "1",
-							JobName:      "job-1",
-							PipelineName: "another-pipeline",
-							TeamName:     "some-team",
-							Status:       "succeeded",
-							StartTime:    time.Unix(1, 0),
-							EndTime:      time.Unix(100, 0),
+							ID:                   1,
+							Name:                 "1",
+							JobName:              "job-1",
+							PipelineID:           2,
+							PipelineName:         "another-pipeline",
+							PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+							TeamName:             "some-team",
+							Status:               "succeeded",
+							StartTime:            time.Unix(1, 0),
+							EndTime:              time.Unix(100, 0),
 						},
 						TransitionBuild: &atc.DashboardBuild{
-							ID:           5,
-							Name:         "five",
-							JobName:      "job-1",
-							PipelineName: "another-pipeline",
-							TeamName:     "some-team",
-							Status:       "failed",
-							StartTime:    time.Unix(101, 0),
-							EndTime:      time.Unix(200, 0),
+							ID:                   5,
+							Name:                 "five",
+							JobName:              "job-1",
+							PipelineID:           2,
+							PipelineName:         "another-pipeline",
+							PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+							TeamName:             "some-team",
+							Status:               "failed",
+							StartTime:            time.Unix(101, 0),
+							EndTime:              time.Unix(200, 0),
 						},
 						Inputs: []atc.DashboardJobInput{
 							{
@@ -972,21 +992,25 @@ var _ = Describe("Jobs API", func() {
 						},
 					},
 					{
-						ID:           2,
-						Name:         "job-2",
-						PipelineName: "another-pipeline",
-						TeamName:     "some-team",
-						Paused:       true,
-						NextBuild:    nil,
+						ID:                   2,
+						Name:                 "job-2",
+						PipelineID:           2,
+						PipelineName:         "another-pipeline",
+						PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+						TeamName:             "some-team",
+						Paused:               true,
+						NextBuild:            nil,
 						FinishedBuild: &atc.DashboardBuild{
-							ID:           4,
-							Name:         "1",
-							JobName:      "job-2",
-							PipelineName: "another-pipeline",
-							TeamName:     "some-team",
-							Status:       "succeeded",
-							StartTime:    time.Unix(101, 0),
-							EndTime:      time.Unix(200, 0),
+							ID:                   4,
+							Name:                 "1",
+							JobName:              "job-2",
+							PipelineID:           2,
+							PipelineName:         "another-pipeline",
+							PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+							TeamName:             "some-team",
+							Status:               "succeeded",
+							StartTime:            time.Unix(101, 0),
+							EndTime:              time.Unix(200, 0),
 						},
 						TransitionBuild: nil,
 						Inputs: []atc.DashboardJobInput{
@@ -1000,14 +1024,16 @@ var _ = Describe("Jobs API", func() {
 						},
 					},
 					{
-						ID:              3,
-						Name:            "job-3",
-						PipelineName:    "another-pipeline",
-						TeamName:        "some-team",
-						Paused:          true,
-						NextBuild:       nil,
-						FinishedBuild:   nil,
-						TransitionBuild: nil,
+						ID:                   3,
+						Name:                 "job-3",
+						PipelineID:           2,
+						PipelineName:         "another-pipeline",
+						PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+						TeamName:             "some-team",
+						Paused:               true,
+						NextBuild:            nil,
+						FinishedBuild:        nil,
+						TransitionBuild:      nil,
 						Inputs: []atc.DashboardJobInput{
 							{
 								Name:     "input-3",
@@ -1077,7 +1103,11 @@ var _ = Describe("Jobs API", func() {
 							{
 								"id": 1,
 								"name": "job-1",
+								"pipeline_id": 2,
 								"pipeline_name": "another-pipeline",
+								"pipeline_instance_vars": {
+									"branch": "master"
+								},
 								"team_name": "some-team",
 								"paused": true,
 								"next_build": {
@@ -1086,7 +1116,11 @@ var _ = Describe("Jobs API", func() {
 									"job_name": "job-1",
 									"status": "started",
 									"api_url": "/api/v1/builds/3",
+									"pipeline_id": 2,
 									"pipeline_name": "another-pipeline",
+									"pipeline_instance_vars": {
+										"branch": "master"
+									},
 									"team_name": "some-team"
 								},
 								"finished_build": {
@@ -1095,7 +1129,11 @@ var _ = Describe("Jobs API", func() {
 									"job_name": "job-1",
 									"status": "succeeded",
 									"api_url": "/api/v1/builds/1",
-									"pipeline_name":"another-pipeline",
+									"pipeline_id": 2,
+									"pipeline_name": "another-pipeline",
+									"pipeline_instance_vars": {
+										"branch": "master"
+									},
 									"team_name": "some-team",
 									"start_time": 1,
 									"end_time": 100
@@ -1106,7 +1144,11 @@ var _ = Describe("Jobs API", func() {
 									"job_name": "job-1",
 									"status": "failed",
 									"api_url": "/api/v1/builds/5",
-									"pipeline_name":"another-pipeline",
+									"pipeline_id": 2,
+									"pipeline_name": "another-pipeline",
+									"pipeline_instance_vars": {
+										"branch": "master"
+									},
 									"team_name": "some-team",
 									"start_time": 101,
 									"end_time": 200
@@ -1117,7 +1159,11 @@ var _ = Describe("Jobs API", func() {
 							{
 								"id": 2,
 								"name": "job-2",
+								"pipeline_id": 2,
 								"pipeline_name": "another-pipeline",
+								"pipeline_instance_vars": {
+									"branch": "master"
+								},
 								"team_name": "some-team",
 								"paused": true,
 								"next_build": null,
@@ -1127,7 +1173,11 @@ var _ = Describe("Jobs API", func() {
 									"job_name": "job-2",
 									"status": "succeeded",
 									"api_url": "/api/v1/builds/4",
+									"pipeline_id": 2,
 									"pipeline_name": "another-pipeline",
+									"pipeline_instance_vars": {
+										"branch": "master"
+									},
 									"team_name": "some-team",
 									"start_time": 101,
 									"end_time": 200
@@ -1138,7 +1188,11 @@ var _ = Describe("Jobs API", func() {
 							{
 								"id": 3,
 								"name": "job-3",
+								"pipeline_id": 2,
 								"pipeline_name": "another-pipeline",
+								"pipeline_instance_vars": {
+									"branch": "master"
+								},
 								"team_name": "some-team",
 								"paused": true,
 								"next_build": null,

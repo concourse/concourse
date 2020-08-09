@@ -35,23 +35,27 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Context("when resources are returned from the API", func() {
-			createResource := func(num int, pinnedVersion atc.Version, resourceType string) atc.Resource {
+			createResource := func(num int, pipelineRef atc.PipelineRef, pinnedVersion atc.Version, resourceType string) atc.Resource {
 				return atc.Resource{
-					Name:          fmt.Sprintf("resource-%d", num),
-					PinnedVersion: pinnedVersion,
-					Type:          resourceType,
+					Name:                 fmt.Sprintf("resource-%d", num),
+					PipelineID:           1,
+					PipelineName:         pipelineRef.Name,
+					PipelineInstanceVars: pipelineRef.InstanceVars,
+					TeamName:             teamName,
+					PinnedVersion:        pinnedVersion,
+					Type:                 resourceType,
 				}
 			}
 
 			BeforeEach(func() {
-				pipelineName := "pipeline"
-				flyCmd = exec.Command(flyPath, "-t", targetName, "resources", "--pipeline", pipelineName)
+				flyCmd = exec.Command(flyPath, "-t", targetName, "resources", "--pipeline", "pipeline/branch:master")
+				pipelineRef := atc.PipelineRef{Name: "pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/resources"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/resources", "instance_vars=%7B%22branch%22%3A%22master%22%7D"),
 						ghttp.RespondWithJSONEncoded(200, []atc.Resource{
-							createResource(1, nil, "time"),
-							createResource(2, atc.Version{"some": "version"}, "custom"),
+							createResource(1, pipelineRef, nil, "time"),
+							createResource(2, pipelineRef, atc.Version{"some": "version"}, "custom"),
 						}),
 					),
 				)
@@ -70,16 +74,24 @@ var _ = Describe("Fly CLI", func() {
 					Expect(sess.Out.Contents()).To(MatchJSON(`[
               {
                 "name": "resource-1",
-                "pipeline_name": "",
-                "team_name": "",
+                "pipeline_id": 1,
+                "pipeline_name": "pipeline",
+                "pipeline_instance_vars": {
+                  "branch": "master"
+                },
+                "team_name": "main",
                 "type": "time"
               },
               {
                 "name": "resource-2",
-                "pipeline_name": "",
-                "team_name": "",
+                "pipeline_id": 1,
+                "pipeline_name": "pipeline",
+                "pipeline_instance_vars": {
+                  "branch": "master"
+                },
+                "team_name": "main",
                 "type": "custom",
-								"pinned_version": {"some": "version"}
+                "pinned_version": {"some": "version"}
               }
             ]`))
 				})

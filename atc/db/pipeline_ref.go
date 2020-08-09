@@ -15,6 +15,7 @@ type PipelineRef interface {
 	PipelineID() int
 	PipelineName() string
 	PipelineInstanceVars() atc.InstanceVars
+	PipelineRef() atc.PipelineRef
 	Pipeline() (Pipeline, bool, error)
 }
 
@@ -47,6 +48,13 @@ func (r pipelineRef) PipelineName() string {
 
 func (r pipelineRef) PipelineInstanceVars() atc.InstanceVars {
 	return r.pipelineInstanceVars
+}
+
+func (r pipelineRef) PipelineRef() atc.PipelineRef {
+	return atc.PipelineRef{
+		Name:         r.pipelineName,
+		InstanceVars: r.pipelineInstanceVars,
+	}
 }
 
 func (r pipelineRef) Pipeline() (Pipeline, bool, error) {

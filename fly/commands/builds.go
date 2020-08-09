@@ -204,7 +204,11 @@ func (command *BuildsCommand) displayBuilds(builds []atc.Build) error {
 			pipelineJobCell.Contents = "one-off"
 			buildCell.Contents = "n/a"
 		} else {
-			pipelineJobCell.Contents = fmt.Sprintf("%s/%s", b.PipelineName, b.JobName)
+			pipelineRef := atc.PipelineRef{
+				Name:         b.PipelineName,
+				InstanceVars: b.PipelineInstanceVars,
+			}
+			pipelineJobCell.Contents = fmt.Sprintf("%s/%s", pipelineRef.String(), b.JobName)
 			buildCell.Contents = b.Name
 		}
 

@@ -8,4 +8,6 @@ BEGIN;
 
   DROP INDEX pipelines_name_team_id_instance_vars;
 
+  ALTER TABLE containers DROP COLUMN meta_pipeline_instance_vars;
+
 COMMIT;

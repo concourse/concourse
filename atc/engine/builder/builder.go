@@ -2,6 +2,7 @@ package builder
 
 import (
 	"code.cloudfoundry.org/lager"
+	"encoding/json"
 
 	"errors"
 	"fmt"
@@ -516,6 +517,12 @@ func (builder *stepBuilder) containerMetadata(
 		attemptStrs = append(attemptStrs, strconv.Itoa(a))
 	}
 
+	var pipelineInstanceVars string
+	if build.PipelineInstanceVars() != nil {
+		instanceVars, _ := json.Marshal(build.PipelineInstanceVars())
+		pipelineInstanceVars = string(instanceVars)
+	}
+
 	return db.ContainerMetadata{
 		Type: containerType,
 
@@ -523,9 +530,10 @@ func (builder *stepBuilder) containerMetadata(
 		JobID:      build.JobID(),
 		BuildID:    build.ID(),
 
-		PipelineName: build.PipelineName(),
-		JobName:      build.JobName(),
-		BuildName:    build.Name(),
+		PipelineName:         build.PipelineName(),
+		PipelineInstanceVars: pipelineInstanceVars,
+		JobName:              build.JobName(),
+		BuildName:            build.Name(),
 
 		StepName: stepName,
 		Attempt:  strings.Join(attemptStrs, "."),

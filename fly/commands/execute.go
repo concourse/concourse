@@ -190,7 +190,7 @@ func (command *ExecuteCommand) CreateTaskConfig(args []string) (atc.TaskConfig, 
 		command.VarsFrom,
 		command.Var,
 		command.YAMLVar,
-		nil, // FIXME 5808
+		nil,
 	)
 
 	taskTemplateEvaluated, err := taskTemplate.Evaluate(false, false)

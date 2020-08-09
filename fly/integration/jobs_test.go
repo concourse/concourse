@@ -24,10 +24,14 @@ var _ = Describe("Fly CLI", func() {
 		expectedURL := "/api/v1/teams/main/pipelines/pipeline/jobs"
 		sampleJobJsonString := `[
               {
-                "id": 0,
+                "id": 1,
                 "name": "job-1",
-                "pipeline_name": "",
-                "team_name": "",
+                "pipeline_id": 1,
+                "pipeline_name": "pipeline",
+                "pipeline_instance_vars": {
+                  "branch": "master"
+                },
+                "team_name": "main",
                 "next_build": {
                   "id": 0,
                   "team_name": "",
@@ -45,10 +49,14 @@ var _ = Describe("Fly CLI", func() {
                 "groups": null
               },
               {
-                "id": 0,
+                "id": 2,
                 "name": "job-2",
-                "pipeline_name": "",
-                "team_name": "",
+                "pipeline_id": 1,
+                "pipeline_name": "pipeline",
+                "pipeline_instance_vars": {
+                  "branch": "master"
+                },
+                "team_name": "main",
                 "paused": true,
                 "next_build": null,
                 "finished_build": {
@@ -61,10 +69,14 @@ var _ = Describe("Fly CLI", func() {
                 "groups": null
               },
               {
-                "id": 0,
+                "id": 3,
                 "name": "job-3",
-                "pipeline_name": "",
-                "team_name": "",
+                "pipeline_id": 1,
+                "pipeline_name": "pipeline",
+                "pipeline_instance_vars": {
+                  "branch": "master"
+                },
+                "team_name": "main",
                 "next_build": null,
                 "finished_build": null,
                 "groups": null
@@ -87,7 +99,7 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Context("when jobs are returned from the API", func() {
-			createJob := func(num int, paused bool, status string, nextStatus string) atc.Job {
+			createJob := func(num int, pipelineRef atc.PipelineRef, paused bool, status string, nextStatus string) atc.Job {
 				var (
 					build     *atc.Build
 					nextBuild *atc.Build
@@ -100,17 +112,27 @@ var _ = Describe("Fly CLI", func() {
 				}
 
 				return atc.Job{
-					Name:          fmt.Sprintf("job-%d", num),
-					Paused:        paused,
-					FinishedBuild: build,
-					NextBuild:     nextBuild,
+					ID:                   num,
+					Name:                 fmt.Sprintf("job-%d", num),
+					PipelineID:           1,
+					PipelineName:         pipelineRef.Name,
+					PipelineInstanceVars: pipelineRef.InstanceVars,
+					TeamName:             teamName,
+					Paused:               paused,
+					FinishedBuild:        build,
+					NextBuild:            nextBuild,
 				}
 			}
 
+			pipelineRef := atc.PipelineRef{
+				Name:         "pipeline",
+				InstanceVars: atc.InstanceVars{"branch": "master"},
+			}
+
 			sampleJobs = []atc.Job{
-				createJob(1, false, "succeeded", "started"),
-				createJob(2, true, "failed", ""),
-				createJob(3, false, "", ""),
+				createJob(1, pipelineRef, false, "succeeded", "started"),
+				createJob(2, pipelineRef, true, "failed", ""),
+				createJob(3, pipelineRef, false, "", ""),
 			}
 
 			BeforeEach(func() {

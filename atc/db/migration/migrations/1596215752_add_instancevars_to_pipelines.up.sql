@@ -12,4 +12,6 @@ BEGIN;
   ON pipelines (name, team_id, instance_vars)
   WHERE instance_vars IS NOT NULL;
 
+  ALTER TABLE containers ADD COLUMN meta_pipeline_instance_vars text DEFAULT ''::text NOT NULL;
+
 COMMIT;

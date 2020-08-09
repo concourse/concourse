@@ -94,17 +94,20 @@ var _ = Describe("Fly CLI", func() {
 				returnedStatusCode = http.StatusOK
 				returnedBuilds = []atc.Build{
 					{
-						ID:           2,
-						PipelineName: "some-pipeline",
-						JobName:      "some-job",
-						Name:         "62",
-						Status:       "started",
-						StartTime:    runningBuildStartTime.Unix(),
-						EndTime:      0,
-						TeamName:     "team1",
+						ID:                   2,
+						PipelineID:           1,
+						PipelineName:         "some-pipeline",
+						PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+						JobName:              "some-job",
+						Name:                 "62",
+						Status:               "started",
+						StartTime:            runningBuildStartTime.Unix(),
+						EndTime:              0,
+						TeamName:             "team1",
 					},
 					{
 						ID:           3,
+						PipelineID:   2,
 						PipelineName: "some-other-pipeline",
 						JobName:      "some-other-job",
 						Name:         "63",
@@ -114,34 +117,25 @@ var _ = Describe("Fly CLI", func() {
 						TeamName:     "team1",
 					},
 					{
-						ID:           1000001,
-						PipelineName: "",
-						JobName:      "",
-						Name:         "",
-						Status:       "errored",
-						StartTime:    erroredBuildStartTime.Unix(),
-						EndTime:      erroredBuildEndTime.Unix(),
-						TeamName:     "team1",
+						ID:        1000001,
+						Status:    "errored",
+						StartTime: erroredBuildStartTime.Unix(),
+						EndTime:   erroredBuildEndTime.Unix(),
+						TeamName:  "team1",
 					},
 					{
-						ID:           1002,
-						PipelineName: "",
-						JobName:      "",
-						Name:         "",
-						Status:       "aborted",
-						StartTime:    zeroTime.Unix(),
-						EndTime:      abortedBuildEndTime.Unix(),
-						TeamName:     "team1",
+						ID:        1002,
+						Status:    "aborted",
+						StartTime: zeroTime.Unix(),
+						EndTime:   abortedBuildEndTime.Unix(),
+						TeamName:  "team1",
 					},
 					{
-						ID:           39,
-						PipelineName: "",
-						JobName:      "",
-						Name:         "",
-						Status:       "pending",
-						StartTime:    0,
-						EndTime:      0,
-						TeamName:     "team1",
+						ID:        39,
+						Status:    "pending",
+						StartTime: 0,
+						EndTime:   0,
+						TeamName:  "team1",
 					},
 				}
 			})
@@ -161,7 +155,11 @@ var _ = Describe("Fly CLI", func() {
                 "status": "started",
                 "job_name": "some-job",
                 "api_url": "",
+                "pipeline_id": 1,
                 "pipeline_name": "some-pipeline",
+                "pipeline_instance_vars": {
+                  "branch": "master"
+                },
                 "start_time": 1448101815
               },
               {
@@ -171,6 +169,7 @@ var _ = Describe("Fly CLI", func() {
                 "status": "pending",
                 "job_name": "some-other-job",
                 "api_url": "",
+                "pipeline_id": 2,
                 "pipeline_name": "some-other-pipeline",
                 "start_time": 1448932815,
                 "end_time": 1448937315
@@ -211,7 +210,7 @@ var _ = Describe("Fly CLI", func() {
 					Data: []ui.TableRow{
 						{
 							{Contents: "2"},
-							{Contents: "some-pipeline/some-job"},
+							{Contents: "some-pipeline/branch:master/some-job"},
 							{Contents: "62"},
 							{Contents: "started"},
 							{Contents: runningBuildStartTime.Local().Format(timeDateLayout)},
@@ -868,15 +867,16 @@ var _ = Describe("Fly CLI", func() {
 				expectedURL = "/api/v1/teams/main/pipelines/some-pipeline/builds"
 				queryParams = []string{"instance_vars=%7B%22branch%22%3A%22master%22%7D", "limit=50"}
 				returnedStatusCode = http.StatusOK
-				returnedBuilds = []atc.Build{ // FIXME 5808
+				returnedBuilds = []atc.Build{
 					{
-						ID:           3,
-						PipelineName: "some-pipeline",
-						JobName:      "some-job",
-						Name:         "63",
-						Status:       "succeeded",
-						StartTime:    succeededBuildStartTime.Unix(),
-						EndTime:      succeededBuildEndTime.Unix(),
+						ID:                   3,
+						PipelineName:         "some-pipeline",
+						PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+						JobName:              "some-job",
+						Name:                 "63",
+						Status:               "succeeded",
+						StartTime:            succeededBuildStartTime.Unix(),
+						EndTime:              succeededBuildEndTime.Unix(),
 					},
 				}
 			})
@@ -887,7 +887,7 @@ var _ = Describe("Fly CLI", func() {
 					Data: []ui.TableRow{
 						{
 							{Contents: "3"},
-							{Contents: "some-pipeline/some-job"},
+							{Contents: "some-pipeline/branch:master/some-job"},
 							{Contents: "63"},
 							{Contents: "succeeded"},
 							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
@@ -930,13 +930,14 @@ var _ = Describe("Fly CLI", func() {
 					returnedStatusCode = http.StatusOK
 					returnedBuilds = []atc.Build{
 						{
-							ID:           3,
-							PipelineName: "some-pipeline",
-							JobName:      "some-job",
-							Name:         "63",
-							Status:       "succeeded",
-							StartTime:    succeededBuildStartTime.Unix(),
-							EndTime:      succeededBuildEndTime.Unix(),
+							ID:                   3,
+							PipelineName:         "some-pipeline",
+							PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+							JobName:              "some-job",
+							Name:                 "63",
+							Status:               "succeeded",
+							StartTime:            succeededBuildStartTime.Unix(),
+							EndTime:              succeededBuildEndTime.Unix(),
 						},
 					}
 				})
@@ -947,7 +948,7 @@ var _ = Describe("Fly CLI", func() {
 						Data: []ui.TableRow{
 							{
 								{Contents: "3"},
-								{Contents: "some-pipeline/some-job"},
+								{Contents: "some-pipeline/branch:master/some-job"},
 								{Contents: "63"},
 								{Contents: "succeeded"},
 								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},

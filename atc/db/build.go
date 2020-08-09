@@ -804,11 +804,7 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 		return BuildPreparation{}, false, nil
 	}
 
-	pipelineRef := atc.PipelineRef{
-		Name:         b.pipelineName,
-		InstanceVars: b.pipelineInstanceVars,
-	}
-	pipeline, found, err := t.Pipeline(pipelineRef)
+	pipeline, found, err := t.Pipeline(b.PipelineRef())
 	if err != nil {
 		return BuildPreparation{}, false, err
 	}

@@ -109,11 +109,11 @@ type FakeTeam struct {
 	deleteReturnsOnCall map[int]struct {
 		result1 error
 	}
-	FindCheckContainersStub        func(lager.Logger, string, string, creds.Secrets, creds.VarSourcePool) ([]db.Container, map[int]time.Time, error)
+	FindCheckContainersStub        func(lager.Logger, atc.PipelineRef, string, creds.Secrets, creds.VarSourcePool) ([]db.Container, map[int]time.Time, error)
 	findCheckContainersMutex       sync.RWMutex
 	findCheckContainersArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 string
+		arg2 atc.PipelineRef
 		arg3 string
 		arg4 creds.Secrets
 		arg5 creds.VarSourcePool
@@ -859,12 +859,12 @@ func (fake *FakeTeam) DeleteReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeTeam) FindCheckContainers(arg1 lager.Logger, arg2 string, arg3 string, arg4 creds.Secrets, arg5 creds.VarSourcePool) ([]db.Container, map[int]time.Time, error) {
+func (fake *FakeTeam) FindCheckContainers(arg1 lager.Logger, arg2 atc.PipelineRef, arg3 string, arg4 creds.Secrets, arg5 creds.VarSourcePool) ([]db.Container, map[int]time.Time, error) {
 	fake.findCheckContainersMutex.Lock()
 	ret, specificReturn := fake.findCheckContainersReturnsOnCall[len(fake.findCheckContainersArgsForCall)]
 	fake.findCheckContainersArgsForCall = append(fake.findCheckContainersArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 string
+		arg2 atc.PipelineRef
 		arg3 string
 		arg4 creds.Secrets
 		arg5 creds.VarSourcePool
@@ -887,13 +887,13 @@ func (fake *FakeTeam) FindCheckContainersCallCount() int {
 	return len(fake.findCheckContainersArgsForCall)
 }
 
-func (fake *FakeTeam) FindCheckContainersCalls(stub func(lager.Logger, string, string, creds.Secrets, creds.VarSourcePool) ([]db.Container, map[int]time.Time, error)) {
+func (fake *FakeTeam) FindCheckContainersCalls(stub func(lager.Logger, atc.PipelineRef, string, creds.Secrets, creds.VarSourcePool) ([]db.Container, map[int]time.Time, error)) {
 	fake.findCheckContainersMutex.Lock()
 	defer fake.findCheckContainersMutex.Unlock()
 	fake.FindCheckContainersStub = stub
 }
 
-func (fake *FakeTeam) FindCheckContainersArgsForCall(i int) (lager.Logger, string, string, creds.Secrets, creds.VarSourcePool) {
+func (fake *FakeTeam) FindCheckContainersArgsForCall(i int) (lager.Logger, atc.PipelineRef, string, creds.Secrets, creds.VarSourcePool) {
 	fake.findCheckContainersMutex.RLock()
 	defer fake.findCheckContainersMutex.RUnlock()
 	argsForCall := fake.findCheckContainersArgsForCall[i]

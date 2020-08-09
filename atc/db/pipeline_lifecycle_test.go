@@ -66,7 +66,7 @@ var _ = Describe("PipelineLifecycle", func() {
 							Name: "a-different-job",
 						},
 					}
-					defaultTeam.SavePipeline(atc.PipelineRef{Name: "default-pipeline"}, defaultPipelineConfig, defaultPipeline.ConfigVersion(), false)
+					defaultTeam.SavePipeline(defaultPipelineRef, defaultPipelineConfig, defaultPipeline.ConfigVersion(), false)
 				})
 
 				It("archives all child pipelines set by the deleted job", func() {

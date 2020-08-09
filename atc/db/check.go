@@ -96,7 +96,7 @@ type CheckMetadata struct {
 	TeamName             string           `json:"team_name"`
 	PipelineID           int              `json:"pipeline_id"`
 	PipelineName         string           `json:"pipeline_name"`
-	PipelineInstanceVars atc.InstanceVars `json:"pipeline_instance_vars"`
+	PipelineInstanceVars atc.InstanceVars `json:"pipeline_instance_vars,omitempty"`
 	ResourceConfigID     int              `json:"resource_config_id"`
 	BaseResourceTypeID   int              `json:"base_resource_type_id"`
 }

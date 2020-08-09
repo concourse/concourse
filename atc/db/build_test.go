@@ -2735,7 +2735,7 @@ var _ = Describe("Build", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				By("re-saving the default pipeline with the build")
-				pipeline, _, err := build.SavePipeline(atc.PipelineRef{Name: "default-pipeline"}, build.TeamID(), defaultPipelineConfig, db.ConfigVersion(1), false)
+				pipeline, _, err := build.SavePipeline(defaultPipelineRef, build.TeamID(), defaultPipelineConfig, db.ConfigVersion(1), false)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(pipeline.ParentJobID()).To(Equal(build.JobID()))
 				Expect(pipeline.ParentBuildID()).To(Equal(build.ID()))

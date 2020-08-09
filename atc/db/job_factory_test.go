@@ -22,7 +22,7 @@ var _ = Describe("Job Factory", func() {
 			otherTeam, err := teamFactory.CreateTeam(atc.Team{Name: "other-team"})
 			Expect(err).NotTo(HaveOccurred())
 
-			publicPipeline, _, err = otherTeam.SavePipeline(atc.PipelineRef{Name: "public-pipeline"}, atc.Config{
+			publicPipeline, _, err = otherTeam.SavePipeline(atc.PipelineRef{Name: "public-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}, atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "public-pipeline-job-1",
@@ -233,7 +233,9 @@ var _ = Describe("Job Factory", func() {
 				Expect(visibleJobs[0].NextBuild.ID).To(Equal(nextBuild.ID()))
 				Expect(visibleJobs[0].NextBuild.Name).To(Equal(nextBuild.Name()))
 				Expect(visibleJobs[0].NextBuild.JobName).To(Equal(nextBuild.JobName()))
+				Expect(visibleJobs[0].NextBuild.PipelineID).To(Equal(nextBuild.PipelineID()))
 				Expect(visibleJobs[0].NextBuild.PipelineName).To(Equal(nextBuild.PipelineName()))
+				Expect(visibleJobs[0].NextBuild.PipelineInstanceVars).To(Equal(nextBuild.PipelineInstanceVars()))
 				Expect(visibleJobs[0].NextBuild.TeamName).To(Equal(nextBuild.TeamName()))
 				Expect(visibleJobs[0].NextBuild.Status).To(Equal(string(nextBuild.Status())))
 				Expect(visibleJobs[0].NextBuild.StartTime).To(Equal(nextBuild.StartTime()))
@@ -242,7 +244,9 @@ var _ = Describe("Job Factory", func() {
 				Expect(visibleJobs[0].FinishedBuild.ID).To(Equal(finishedBuild.ID()))
 				Expect(visibleJobs[0].FinishedBuild.Name).To(Equal(finishedBuild.Name()))
 				Expect(visibleJobs[0].FinishedBuild.JobName).To(Equal(finishedBuild.JobName()))
+				Expect(visibleJobs[0].FinishedBuild.PipelineID).To(Equal(finishedBuild.PipelineID()))
 				Expect(visibleJobs[0].FinishedBuild.PipelineName).To(Equal(finishedBuild.PipelineName()))
+				Expect(visibleJobs[0].FinishedBuild.PipelineInstanceVars).To(Equal(finishedBuild.PipelineInstanceVars()))
 				Expect(visibleJobs[0].FinishedBuild.TeamName).To(Equal(finishedBuild.TeamName()))
 				Expect(visibleJobs[0].FinishedBuild.Status).To(Equal(string(finishedBuild.Status())))
 				Expect(visibleJobs[0].FinishedBuild.StartTime).To(Equal(finishedBuild.StartTime()))
@@ -251,7 +255,9 @@ var _ = Describe("Job Factory", func() {
 				Expect(visibleJobs[0].TransitionBuild.ID).To(Equal(transitionBuild.ID()))
 				Expect(visibleJobs[0].TransitionBuild.Name).To(Equal(transitionBuild.Name()))
 				Expect(visibleJobs[0].TransitionBuild.JobName).To(Equal(transitionBuild.JobName()))
+				Expect(visibleJobs[0].TransitionBuild.PipelineID).To(Equal(transitionBuild.PipelineID()))
 				Expect(visibleJobs[0].TransitionBuild.PipelineName).To(Equal(transitionBuild.PipelineName()))
+				Expect(visibleJobs[0].TransitionBuild.PipelineInstanceVars).To(Equal(transitionBuild.PipelineInstanceVars()))
 				Expect(visibleJobs[0].TransitionBuild.TeamName).To(Equal(transitionBuild.TeamName()))
 				Expect(visibleJobs[0].TransitionBuild.Status).To(Equal(string(transitionBuild.Status())))
 				Expect(visibleJobs[0].TransitionBuild.StartTime).To(Equal(transitionBuild.StartTime()))

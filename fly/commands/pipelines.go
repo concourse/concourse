@@ -83,7 +83,7 @@ func (command *PipelinesCommand) Execute([]string) error {
 		}
 
 		row := ui.TableRow{}
-		row = append(row, ui.TableCell{Contents: p.Name})
+		row = append(row, ui.TableCell{Contents: p.Ref().String()})
 		if command.All {
 			row = append(row, ui.TableCell{Contents: p.TeamName})
 		}

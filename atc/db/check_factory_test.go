@@ -38,6 +38,7 @@ var _ = Describe("CheckFactory", func() {
 		metadata = db.CheckMetadata{
 			TeamID:               defaultTeam.ID(),
 			TeamName:             defaultTeam.Name(),
+			PipelineID:           defaultPipeline.ID(),
 			PipelineName:         defaultPipeline.Name(),
 			PipelineInstanceVars: defaultPipeline.InstanceVars(),
 			ResourceConfigID:     resourceConfigScope.ResourceConfig().ID(),
@@ -97,6 +98,7 @@ var _ = Describe("CheckFactory", func() {
 			fakeResource.SourceReturns(atc.Source{"some": "source"})
 			fakeResource.PipelineIDReturns(defaultPipeline.ID())
 			fakeResource.PipelineNameReturns(defaultPipeline.Name())
+			fakeResource.PipelineInstanceVarsReturns(defaultPipeline.InstanceVars())
 			fakeResource.PipelineReturns(defaultPipeline, true, nil)
 
 			fakeResourceType = new(dbfakes.FakeResourceType)
@@ -106,6 +108,7 @@ var _ = Describe("CheckFactory", func() {
 			fakeResourceType.SourceReturns(atc.Source{"some": "type-source"})
 			fakeResourceType.PipelineIDReturns(defaultPipeline.ID())
 			fakeResourceType.PipelineNameReturns(defaultPipeline.Name())
+			fakeResourceType.PipelineInstanceVarsReturns(defaultPipeline.InstanceVars())
 			fakeResourceType.PipelineReturns(defaultPipeline, true, nil)
 
 			fakeResourceTypes = []db.ResourceType{fakeResourceType}
@@ -430,7 +433,7 @@ var _ = Describe("CheckFactory", func() {
 			var nonManuallyTriggeredCheck, manuallyTriggeredCheck db.Check
 
 			BeforeEach(func() {
-				defaultPipeline, _, err = defaultTeam.SavePipeline(atc.PipelineRef{Name: "default-pipeline"}, atc.Config{
+				defaultPipeline, _, err = defaultTeam.SavePipeline(defaultPipelineRef, atc.Config{
 					Resources: atc.ResourceConfigs{
 						{
 							Name: "some-resource",

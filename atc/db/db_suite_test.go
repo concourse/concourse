@@ -183,7 +183,7 @@ var _ = BeforeEach(func() {
 		},
 	}
 
-	defaultPipelineRef = atc.PipelineRef{Name: "default-pipeline"}
+	defaultPipelineRef = atc.PipelineRef{Name: "default-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 
 	defaultPipeline, _, err = defaultTeam.SavePipeline(defaultPipelineRef, defaultPipelineConfig, db.ConfigVersion(0), false)
 	Expect(err).NotTo(HaveOccurred())
