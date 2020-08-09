@@ -377,10 +377,7 @@ var _ = Describe("Hijacking", func() {
 					State:        atc.ContainerStateCreated,
 				},
 			}
-		})
-
-		BeforeEach(func() {
-			expectedQueryParams = append(expectedQueryParams, "pipeline_name=pipeline-name-1", "job_name=some-job")
+			expectedQueryParams = append([]string{}, "pipeline_name=pipeline-name-1", "job_name=some-job")
 		})
 
 		JustBeforeEach(func() {

@@ -38,6 +38,10 @@ var _ = Describe("Fly CLI", func() {
 			expectedQueryParams []string
 		)
 
+		BeforeEach(func() {
+			expectedQueryParams = []string{}
+		})
+
 		Context("make sure the command exists", func() {
 			It("calls the pin-resource command", func() {
 				flyCmd := exec.Command(flyPath, "pin-resource")
