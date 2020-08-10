@@ -33,7 +33,7 @@ func (c *checkCollector) Run(ctx context.Context) error {
 		return err
 	}
 
-	metric.ChecksDeleted.IncDelta(deleted)
+	metric.Metrics.ChecksDeleted.IncDelta(deleted)
 
 	return nil
 }

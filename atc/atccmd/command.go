@@ -526,6 +526,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		Name: "periodic-metrics",
 		Runner: metric.PeriodicallyEmit(
 			logger.Session("periodic-metrics"),
+			metric.Metrics,
 			10*time.Second,
 		),
 	})
@@ -1489,7 +1490,7 @@ func (cmd *RunCommand) constructDBConn(
 
 	// Instrument with Metrics
 	dbConn = metric.CountQueries(dbConn)
-	metric.Databases = append(metric.Databases, dbConn)
+	metric.Metrics.Databases = append(metric.Metrics.Databases, dbConn)
 
 	// Instrument with Logging
 	if cmd.LogDBQueries {

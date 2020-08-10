@@ -393,7 +393,7 @@ func (worker *gardenWorker) FindOrCreateContainer(
 			if failedErr != nil {
 				logger.Error("failed-to-mark-container-as-failed", err)
 			}
-			metric.FailedContainers.Inc()
+			metric.Metrics.FailedContainers.Inc()
 
 			logger.Error("failed-to-create-container-in-garden", err)
 			return nil, err
@@ -403,7 +403,7 @@ func (worker *gardenWorker) FindOrCreateContainer(
 
 	logger.Debug("created-container-in-garden")
 
-	metric.ContainersCreated.Inc()
+	metric.Metrics.ContainersCreated.Inc()
 	createdContainer, err = creatingContainer.Created()
 	if err != nil {
 		logger.Error("failed-to-mark-container-as-created", err)

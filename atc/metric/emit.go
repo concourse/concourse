@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 
+	"github.com/concourse/concourse/atc/db"
 	flags "github.com/jessevdk/go-flags"
 )
 
@@ -36,9 +37,60 @@ type Monitor struct {
 	eventAttributes  map[string]string
 	emissions        chan eventEmission
 	emitterFactories []EmitterFactory
+
+	Databases       []db.Conn
+	DatabaseQueries Counter
+
+	ContainersCreated Counter
+	VolumesCreated    Counter
+
+	FailedContainers Counter
+	FailedVolumes    Counter
+
+	ContainersDeleted Counter
+	VolumesDeleted    Counter
+	ChecksDeleted     Counter
+
+	JobsScheduled  Counter
+	JobsScheduling Gauge
+
+	BuildsStarted Counter
+	BuildsRunning Gauge
+
+	TasksWaiting Gauge
+
+	ChecksFinishedWithError   Counter
+	ChecksFinishedWithSuccess Counter
+	ChecksQueueSize           Gauge
+	ChecksStarted             Counter
+	ChecksEnqueued            Counter
+
+	ConcurrentRequests         map[string]*Gauge
+	ConcurrentRequestsLimitHit map[string]*Counter
 }
 
-var Metrics = &Monitor{}
+var Metrics = &Monitor{
+	DatabaseQueries:            Counter{},
+	ContainersCreated:          Counter{},
+	VolumesCreated:             Counter{},
+	FailedContainers:           Counter{},
+	FailedVolumes:              Counter{},
+	ContainersDeleted:          Counter{},
+	VolumesDeleted:             Counter{},
+	ChecksDeleted:              Counter{},
+	JobsScheduled:              Counter{},
+	JobsScheduling:             Gauge{},
+	BuildsStarted:              Counter{},
+	BuildsRunning:              Gauge{},
+	TasksWaiting:               Gauge{},
+	ChecksFinishedWithError:    Counter{},
+	ChecksFinishedWithSuccess:  Counter{},
+	ChecksQueueSize:            Gauge{},
+	ChecksStarted:              Counter{},
+	ChecksEnqueued:             Counter{},
+	ConcurrentRequests:         map[string]*Gauge{},
+	ConcurrentRequestsLimitHit: map[string]*Counter{},
+}
 
 func (m *Monitor) RegisterEmitter(factory EmitterFactory) {
 	m.emitterFactories = append(m.emitterFactories, factory)

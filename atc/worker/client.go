@@ -643,8 +643,8 @@ func (client *client) chooseTaskWorker(
 
 		// Increase task waiting only once
 		if elapsed == 0 {
-			metric.TasksWaiting.Inc()
-			defer metric.TasksWaiting.Dec()
+			metric.Metrics.TasksWaiting.Inc()
+			defer metric.Metrics.TasksWaiting.Dec()
 		}
 
 		elapsed = waitForWorker(logger,

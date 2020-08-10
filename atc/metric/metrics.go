@@ -11,36 +11,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-var Databases []db.Conn
-var DatabaseQueries = &Counter{}
-
-var ContainersCreated = &Counter{}
-var VolumesCreated = &Counter{}
-
-var FailedContainers = &Counter{}
-var FailedVolumes = &Counter{}
-
-var ContainersDeleted = &Counter{}
-var VolumesDeleted = &Counter{}
-var ChecksDeleted = &Counter{}
-
-var JobsScheduled = &Counter{}
-var JobsScheduling = &Gauge{}
-
-var BuildsStarted = &Counter{}
-var BuildsRunning = &Gauge{}
-
-var TasksWaiting = &Gauge{}
-
-var ChecksFinishedWithError = &Counter{}
-var ChecksFinishedWithSuccess = &Counter{}
-var ChecksQueueSize = &Gauge{}
-var ChecksStarted = &Counter{}
-var ChecksEnqueued = &Counter{}
-
-var ConcurrentRequests = map[string]*Gauge{}
-var ConcurrentRequestsLimitHit = map[string]*Counter{}
-
 type BuildCollectorDuration struct {
 	Duration time.Duration
 }

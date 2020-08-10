@@ -166,8 +166,8 @@ var _ = Describe("RunTaskStep", func() {
 			})
 
 			It("task waiting metrics is gauged", func() {
-				Eventually(metric.TasksWaiting.Max(), 2*time.Second).Should(Equal(float64(1)))
-				Eventually(metric.TasksWaiting.Max(), 2*time.Second).Should(Equal(float64(0)))
+				Eventually(metric.Metrics.TasksWaiting.Max(), 2*time.Second).Should(Equal(float64(1)))
+				Eventually(metric.Metrics.TasksWaiting.Max(), 2*time.Second).Should(Equal(float64(0)))
 			})
 
 			It("writes status to output writer", func() {

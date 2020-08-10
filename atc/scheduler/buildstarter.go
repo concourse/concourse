@@ -230,7 +230,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		}, nil
 	}
 
-	metric.BuildsStarted.Inc()
+	metric.Metrics.BuildsStarted.Inc()
 
 	return startResults{
 		finished: true,

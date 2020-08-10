@@ -34,8 +34,8 @@ func (wrappa ConcurrentRequestLimitsWrappa) Wrap(
 			inflight := &metric.Gauge{}
 			limitHit := &metric.Counter{}
 
-			metric.ConcurrentRequests[action] = inflight
-			metric.ConcurrentRequestsLimitHit[action] = limitHit
+			metric.Metrics.ConcurrentRequests[action] = inflight
+			metric.Metrics.ConcurrentRequestsLimitHit[action] = limitHit
 
 			wrapped[action] = wrappa.wrap(
 				pool,

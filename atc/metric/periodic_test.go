@@ -37,6 +37,7 @@ var _ = Describe("Periodic emission of metrics", func() {
 	JustBeforeEach(func() {
 		runner := metric.PeriodicallyEmit(
 			lager.NewLogger("dont care"),
+			metric.Metrics,
 			250*time.Millisecond,
 		)
 
@@ -55,7 +56,7 @@ var _ = Describe("Periodic emission of metrics", func() {
 			a.NameReturns("A")
 			b := &dbfakes.FakeConn{}
 			b.NameReturns("B")
-			metric.Databases = []db.Conn{a, b}
+			metric.Metrics.Databases = []db.Conn{a, b}
 		})
 
 		It("emits database queries", func() {
@@ -104,8 +105,8 @@ var _ = Describe("Periodic emission of metrics", func() {
 			counter := &metric.Counter{}
 			counter.IncDelta(10)
 
-			metric.ConcurrentRequests[action] = gauge
-			metric.ConcurrentRequestsLimitHit[action] = counter
+			metric.Metrics.ConcurrentRequests[action] = gauge
+			metric.Metrics.ConcurrentRequestsLimitHit[action] = counter
 		})
 
 		It("emits", func() {
@@ -145,7 +146,7 @@ var _ = Describe("Periodic emission of metrics", func() {
 		BeforeEach(func() {
 			gauge := &metric.Gauge{}
 			gauge.Set(123)
-			metric.TasksWaiting = gauge
+			metric.Metrics.TasksWaiting = *gauge
 		})
 		It("emits", func() {
 			Eventually(emitter.EmitCallCount).Should(BeNumerically(">=", 1))
