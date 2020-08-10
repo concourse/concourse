@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/url"
 
 	. "github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
@@ -93,7 +94,18 @@ var _ = Describe("RetryErrorStep", func() {
 			})
 		})
 
-		Context("when net.OpError error happened", func() {
+		Context("when url.Error error happened", func() {
+			cause := &url.Error{Op: "error", URL: "err", Err: errors.New("error")}
+			BeforeEach(func() {
+				fakeStep.RunReturns(cause)
+			})
+
+			It("should return retriable", func() {
+				Expect(runErr).To(Equal(Retriable{cause}))
+			})
+		})
+
+		Context("when net.Error error happened", func() {
 			cause := &net.OpError{Op: "read", Net: "test", Source: nil, Addr: nil, Err: errors.New("test")}
 			BeforeEach(func() {
 				fakeStep.RunReturns(cause)
