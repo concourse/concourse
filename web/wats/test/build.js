@@ -22,9 +22,9 @@ test('shows abort hooks', async t => {
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/hooks-pipeline.yml');
   await t.context.fly.run('unpause-pipeline -p some-pipeline');
 
-  await t.context.fly.run('trigger-job -j some-pipeline/on_abort');
+  await t.context.fly.run('trigger-job -j some-pipeline/on-abort');
 
-  await t.context.web.page.goto(t.context.web.route(`/teams/${t.context.teamName}/pipelines/some-pipeline/jobs/on_abort/builds/1`));
+  await t.context.web.page.goto(t.context.web.route(`/teams/${t.context.teamName}/pipelines/some-pipeline/jobs/on-abort/builds/1`));
   await t.context.web.page.setViewport({width: 1200, height: 900});
 
   await t.context.web.waitForText("say-bye-from-step");
