@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"reflect"
 	"regexp"
@@ -55,7 +54,7 @@ func (step RetryErrorStep) toRetry(logger lager.Logger, err error) bool {
 	var unreachable *transport.WorkerUnreachableError
 	var netOpErr *net.OpError
 	re := regexp.MustCompile(`worker .+ disappeared`)
-	if ok := errors.As(err, &transportErr) || errors.As(err, &unreachable); ok {
+	if ok := errors.As(err, &transportErr) || errors.As(err, &unreachable) || errors.As(err, &netOpErr); ok {
 		logger.Debug("retry-error",
 			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err.Error()})
 		return true
@@ -63,11 +62,6 @@ func (step RetryErrorStep) toRetry(logger lager.Logger, err error) bool {
 		logger.Debug("retry-error",
 			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err})
 		return true
-	} else if errors.Is(err, io.EOF) || errors.As(err, &netOpErr) {
-		logger.Debug("retry-error",
-			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err.Error()})
-		return true
-
 	}
 	return false
 }
