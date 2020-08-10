@@ -35,19 +35,25 @@ var _ = Describe("MetricsHandler", func() {
 		emitterFactory := &metricfakes.FakeEmitterFactory{}
 		emitter = &metricfakes.FakeEmitter{}
 
-		metric.RegisterEmitter(emitterFactory)
+		metric.Metrics.RegisterEmitter(emitterFactory)
 		emitterFactory.IsConfiguredReturns(true)
 		emitterFactory.NewEmitterReturns(emitter, nil)
 
-		metric.Initialize(testLogger, "test", map[string]string{}, 1000)
+		metric.Metrics.Initialize(testLogger, "test", map[string]string{}, 1000)
 
 		ts = httptest.NewServer(
-			WrapHandler(testLogger, "ApiEndpoint", http.HandlerFunc(noopHandler)))
+			WrapHandler(
+				testLogger,
+				metric.Metrics,
+				"ApiEndpoint",
+				http.HandlerFunc(noopHandler),
+			),
+		)
 	})
 
 	AfterEach(func() {
 		ts.Close()
-		metric.Deinitialize(testLogger)
+		metric.Metrics.Deinitialize(testLogger)
 	})
 
 	Context("when serving requests", func() {

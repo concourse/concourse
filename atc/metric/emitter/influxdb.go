@@ -39,7 +39,7 @@ var (
 func init() {
 	batch = make([]metric.Event, 0)
 	lastBatchTime = time.Now()
-	metric.RegisterEmitter(&InfluxDBConfig{})
+	metric.Metrics.RegisterEmitter(&InfluxDBConfig{})
 }
 
 func (config *InfluxDBConfig) Description() string { return "InfluxDB" }

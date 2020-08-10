@@ -27,10 +27,10 @@ var _ = Describe("Periodic emission of metrics", func() {
 		emitterFactory := &metricfakes.FakeEmitterFactory{}
 		emitter = &metricfakes.FakeEmitter{}
 
-		metric.RegisterEmitter(emitterFactory)
+		metric.Metrics.RegisterEmitter(emitterFactory)
 		emitterFactory.IsConfiguredReturns(true)
 		emitterFactory.NewEmitterReturns(emitter, nil)
-		metric.Initialize(testLogger, "test", map[string]string{}, 1000)
+		metric.Metrics.Initialize(testLogger, "test", map[string]string{}, 1000)
 
 	})
 
@@ -46,7 +46,7 @@ var _ = Describe("Periodic emission of metrics", func() {
 	AfterEach(func() {
 		process.Signal(os.Interrupt)
 		<-process.Wait()
-		metric.Deinitialize(nil)
+		metric.Metrics.Deinitialize(nil)
 	})
 
 	Context("database-related metrics", func() {

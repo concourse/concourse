@@ -18,11 +18,11 @@ var _ = Describe("Metrics", func() {
 		})
 
 		AfterEach(func() {
-			metric.Deinitialize(testLogger)
+			metric.Metrics.Deinitialize(testLogger)
 		})
 
 		It("emits a value for every state", func() {
-			givenNoWorkers().Emit(testLogger)
+			givenNoWorkers().Emit(testLogger, metric.Metrics)
 
 			waitForEventsOnUnsafeGlobalChannel(emitter)
 
@@ -34,7 +34,7 @@ var _ = Describe("Metrics", func() {
 
 		It("correctly emits the number of running workers", func() {
 			givenOneWorkerWithState(db.WorkerStateRunning).
-				Emit(testLogger)
+				Emit(testLogger, metric.Metrics)
 
 			waitForEventsOnUnsafeGlobalChannel(emitter)
 
@@ -80,7 +80,7 @@ func registerFakeEmitterInUnsafeGlobalMap() *smartFakeEmitter {
 	emitterFactory := new(metricfakes.FakeEmitterFactory)
 	emitterFactory.IsConfiguredReturns(true)
 	emitterFactory.NewEmitterReturns(fakeEmitter, nil)
-	metric.RegisterEmitter(emitterFactory)
-	metric.Initialize(testLogger, "test", map[string]string{}, 1000)
+	metric.Metrics.RegisterEmitter(emitterFactory)
+	metric.Metrics.Initialize(testLogger, "test", map[string]string{}, 1000)
 	return fakeEmitter
 }

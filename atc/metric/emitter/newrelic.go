@@ -51,7 +51,7 @@ type (
 )
 
 func init() {
-	metric.RegisterEmitter(&NewRelicConfig{})
+	metric.Metrics.RegisterEmitter(&NewRelicConfig{})
 }
 
 func (config *NewRelicConfig) Description() string { return "NewRelic" }

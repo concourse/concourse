@@ -80,7 +80,7 @@ func (wc *workerCollector) Run(ctx context.Context) error {
 	} else {
 		metric.WorkersState{
 			WorkerStateByName: workerStateByName,
-		}.Emit(logger)
+		}.Emit(logger, metric.Metrics)
 	}
 
 	return nil

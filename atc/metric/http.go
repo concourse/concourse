@@ -11,11 +11,18 @@ type MetricsHandler struct {
 	Logger  lager.Logger
 	Route   string
 	Handler http.Handler
+	Monitor *Monitor
 }
 
-func WrapHandler(logger lager.Logger, route string, handler http.Handler) http.Handler {
+func WrapHandler(
+	logger lager.Logger,
+	monitor *Monitor,
+	route string,
+	handler http.Handler,
+) http.Handler {
 	return MetricsHandler{
 		Logger:  logger,
+		Monitor: monitor,
 		Route:   route,
 		Handler: handler,
 	}
@@ -30,5 +37,5 @@ func (handler MetricsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		Method:     r.Method,
 		StatusCode: metrics.Code,
 		Duration:   metrics.Duration,
-	}.Emit(handler.Logger)
+	}.Emit(handler.Logger, handler.Monitor)
 }

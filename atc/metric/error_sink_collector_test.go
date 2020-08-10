@@ -16,18 +16,18 @@ var _ = Describe("ErrorSinkCollector", func() {
 	)
 
 	BeforeEach(func() {
-		errorSinkCollector = metric.NewErrorSinkCollector(testLogger)
+		errorSinkCollector = metric.NewErrorSinkCollector(testLogger, metric.Metrics)
 
 		emitterFactory := &metricfakes.FakeEmitterFactory{}
 		emitter = &metricfakes.FakeEmitter{}
-		metric.RegisterEmitter(emitterFactory)
+		metric.Metrics.RegisterEmitter(emitterFactory)
 		emitterFactory.IsConfiguredReturns(true)
 		emitterFactory.NewEmitterReturns(emitter, nil)
-		metric.Initialize(testLogger, "test", map[string]string{}, 1000)
+		metric.Metrics.Initialize(testLogger, "test", map[string]string{}, 1000)
 	})
 
 	AfterEach(func() {
-		metric.Deinitialize(nil)
+		metric.Metrics.Deinitialize(nil)
 	})
 
 	Context("Log", func() {

@@ -28,7 +28,7 @@ func PeriodicallyEmit(logger lager.Logger, interval time.Duration) ifrit.Runner 
 }
 
 func tick(logger lager.Logger) {
-	emit(
+	Metrics.emit(
 		logger.Session("database-queries"),
 		Event{
 			Name:  "database queries",
@@ -38,7 +38,7 @@ func tick(logger lager.Logger) {
 
 	if len(Databases) > 0 {
 		for _, database := range Databases {
-			emit(
+			Metrics.emit(
 				logger.Session("database-connections"),
 				Event{
 					Name:  "database connections",
@@ -51,7 +51,7 @@ func tick(logger lager.Logger) {
 		}
 	}
 
-	emit(
+	Metrics.emit(
 		logger.Session("containers-deleted"),
 		Event{
 			Name:  "containers deleted",
@@ -59,7 +59,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	Metrics.emit(
 		logger.Session("volumes-deleted"),
 		Event{
 			Name:  "volumes deleted",
@@ -67,7 +67,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	Metrics.emit(
 		logger.Session("checks-deleted"),
 		Event{
 			Name:  "checks deleted",
@@ -75,7 +75,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	Metrics.emit(
 		logger.Session("containers-created"),
 		Event{
 			Name:  "containers created",
@@ -83,7 +83,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	Metrics.emit(
 		logger.Session("volumes-created"),
 		Event{
 			Name:  "volumes created",
@@ -91,7 +91,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	Metrics.emit(
 		logger.Session("failed-containers"),
 		Event{
 			Name:  "failed containers",
@@ -99,7 +99,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	Metrics.emit(
 		logger.Session("failed-volumes"),
 		Event{
 			Name:  "failed volumes",
@@ -107,7 +107,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	Metrics.emit(
 		logger.Session("jobs-scheduled"),
 		Event{
 			Name:  "jobs scheduled",
@@ -115,7 +115,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	Metrics.emit(
 		logger.Session("jobs-scheduling"),
 		Event{
 			Name:  "jobs scheduling",
@@ -123,7 +123,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	Metrics.emit(
 		logger.Session("builds-started"),
 		Event{
 			Name:  "builds started",
@@ -131,7 +131,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	Metrics.emit(
 		logger.Session("builds-running"),
 		Event{
 			Name:  "builds running",
@@ -140,7 +140,7 @@ func tick(logger lager.Logger) {
 	)
 
 	for action, gauge := range ConcurrentRequests {
-		emit(
+		Metrics.emit(
 			logger.Session("concurrent-requests"),
 			Event{
 				Name:  "concurrent requests",
@@ -153,7 +153,7 @@ func tick(logger lager.Logger) {
 	}
 
 	for action, counter := range ConcurrentRequestsLimitHit {
-		emit(
+		Metrics.emit(
 			logger.Session("concurrent-requests-limit-hit"),
 			Event{
 				Name:  "concurrent requests limit hit",
@@ -165,7 +165,7 @@ func tick(logger lager.Logger) {
 		)
 	}
 
-	emit(
+	Metrics.emit(
 		logger.Session("tasks-waiting"),
 		Event{
 			Name:  "tasks waiting",
@@ -173,7 +173,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	Metrics.emit(
 		logger.Session("checks-finished-with-error"),
 		Event{
 			Name:  "checks finished",
@@ -184,7 +184,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	Metrics.emit(
 		logger.Session("checks-finished-with-success"),
 		Event{
 			Name:  "checks finished",
@@ -195,7 +195,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	Metrics.emit(
 
 		logger.Session("checks-started"),
 		Event{
@@ -204,7 +204,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	Metrics.emit(
 
 		logger.Session("checks-enqueued"),
 		Event{
@@ -213,7 +213,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	Metrics.emit(
 		logger.Session("checks-queue-size"),
 		Event{
 			Name:  "checks queue size",
@@ -224,7 +224,7 @@ func tick(logger lager.Logger) {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
-	emit(
+	Metrics.emit(
 		logger.Session("gc-pause-total-duration"),
 		Event{
 			Name:  "gc pause total duration",
@@ -232,7 +232,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	Metrics.emit(
 		logger.Session("mallocs"),
 		Event{
 			Name:  "mallocs",
@@ -240,7 +240,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	Metrics.emit(
 		logger.Session("frees"),
 		Event{
 			Name:  "frees",
@@ -248,7 +248,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	Metrics.emit(
 		logger.Session("goroutines"),
 		Event{
 			Name:  "goroutines",
