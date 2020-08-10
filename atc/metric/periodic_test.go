@@ -19,25 +19,28 @@ import (
 var _ = Describe("Periodic emission of metrics", func() {
 	var (
 		emitter *metricfakes.FakeEmitter
+		monitor *metric.Monitor
 
 		process ifrit.Process
 	)
 
 	BeforeEach(func() {
-		emitterFactory := &metricfakes.FakeEmitterFactory{}
 		emitter = &metricfakes.FakeEmitter{}
+		monitor = metric.NewMonitor()
 
-		metric.Metrics.RegisterEmitter(emitterFactory)
+		emitterFactory := &metricfakes.FakeEmitterFactory{}
 		emitterFactory.IsConfiguredReturns(true)
 		emitterFactory.NewEmitterReturns(emitter, nil)
-		metric.Metrics.Initialize(testLogger, "test", map[string]string{}, 1000)
+
+		monitor.RegisterEmitter(emitterFactory)
+		monitor.Initialize(testLogger, "test", map[string]string{}, 1000)
 
 	})
 
 	JustBeforeEach(func() {
 		runner := metric.PeriodicallyEmit(
 			lager.NewLogger("dont care"),
-			metric.Metrics,
+			monitor,
 			250*time.Millisecond,
 		)
 
@@ -47,7 +50,6 @@ var _ = Describe("Periodic emission of metrics", func() {
 	AfterEach(func() {
 		process.Signal(os.Interrupt)
 		<-process.Wait()
-		metric.Metrics.Deinitialize(nil)
 	})
 
 	Context("database-related metrics", func() {
@@ -56,7 +58,7 @@ var _ = Describe("Periodic emission of metrics", func() {
 			a.NameReturns("A")
 			b := &dbfakes.FakeConn{}
 			b.NameReturns("B")
-			metric.Metrics.Databases = []db.Conn{a, b}
+			monitor.Databases = []db.Conn{a, b}
 		})
 
 		It("emits database queries", func() {
@@ -105,8 +107,8 @@ var _ = Describe("Periodic emission of metrics", func() {
 			counter := &metric.Counter{}
 			counter.IncDelta(10)
 
-			metric.Metrics.ConcurrentRequests[action] = gauge
-			metric.Metrics.ConcurrentRequestsLimitHit[action] = counter
+			monitor.ConcurrentRequests[action] = gauge
+			monitor.ConcurrentRequestsLimitHit[action] = counter
 		})
 
 		It("emits", func() {
@@ -146,7 +148,7 @@ var _ = Describe("Periodic emission of metrics", func() {
 		BeforeEach(func() {
 			gauge := &metric.Gauge{}
 			gauge.Set(123)
-			metric.Metrics.TasksWaiting = *gauge
+			monitor.TasksWaiting = *gauge
 		})
 		It("emits", func() {
 			Eventually(emitter.EmitCallCount).Should(BeNumerically(">=", 1))

@@ -13,21 +13,19 @@ var _ = Describe("ErrorSinkCollector", func() {
 	var (
 		errorSinkCollector metric.ErrorSinkCollector
 		emitter            *metricfakes.FakeEmitter
+		monitor            *metric.Monitor
 	)
 
 	BeforeEach(func() {
-		errorSinkCollector = metric.NewErrorSinkCollector(testLogger, metric.Metrics)
+		emitter = &metricfakes.FakeEmitter{}
+		monitor = metric.NewMonitor()
+		errorSinkCollector = metric.NewErrorSinkCollector(testLogger, monitor)
 
 		emitterFactory := &metricfakes.FakeEmitterFactory{}
-		emitter = &metricfakes.FakeEmitter{}
-		metric.Metrics.RegisterEmitter(emitterFactory)
 		emitterFactory.IsConfiguredReturns(true)
 		emitterFactory.NewEmitterReturns(emitter, nil)
-		metric.Metrics.Initialize(testLogger, "test", map[string]string{}, 1000)
-	})
-
-	AfterEach(func() {
-		metric.Metrics.Deinitialize(nil)
+		monitor.RegisterEmitter(emitterFactory)
+		monitor.Initialize(testLogger, "test", map[string]string{}, 1000)
 	})
 
 	Context("Log", func() {

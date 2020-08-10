@@ -69,27 +69,31 @@ type Monitor struct {
 	ConcurrentRequestsLimitHit map[string]*Counter
 }
 
-var Metrics = &Monitor{
-	DatabaseQueries:            Counter{},
-	ContainersCreated:          Counter{},
-	VolumesCreated:             Counter{},
-	FailedContainers:           Counter{},
-	FailedVolumes:              Counter{},
-	ContainersDeleted:          Counter{},
-	VolumesDeleted:             Counter{},
-	ChecksDeleted:              Counter{},
-	JobsScheduled:              Counter{},
-	JobsScheduling:             Gauge{},
-	BuildsStarted:              Counter{},
-	BuildsRunning:              Gauge{},
-	TasksWaiting:               Gauge{},
-	ChecksFinishedWithError:    Counter{},
-	ChecksFinishedWithSuccess:  Counter{},
-	ChecksQueueSize:            Gauge{},
-	ChecksStarted:              Counter{},
-	ChecksEnqueued:             Counter{},
-	ConcurrentRequests:         map[string]*Gauge{},
-	ConcurrentRequestsLimitHit: map[string]*Counter{},
+var Metrics = NewMonitor()
+
+func NewMonitor() *Monitor {
+	return &Monitor{
+		DatabaseQueries:            Counter{},
+		ContainersCreated:          Counter{},
+		VolumesCreated:             Counter{},
+		FailedContainers:           Counter{},
+		FailedVolumes:              Counter{},
+		ContainersDeleted:          Counter{},
+		VolumesDeleted:             Counter{},
+		ChecksDeleted:              Counter{},
+		JobsScheduled:              Counter{},
+		JobsScheduling:             Gauge{},
+		BuildsStarted:              Counter{},
+		BuildsRunning:              Gauge{},
+		TasksWaiting:               Gauge{},
+		ChecksFinishedWithError:    Counter{},
+		ChecksFinishedWithSuccess:  Counter{},
+		ChecksQueueSize:            Gauge{},
+		ChecksStarted:              Counter{},
+		ChecksEnqueued:             Counter{},
+		ConcurrentRequests:         map[string]*Gauge{},
+		ConcurrentRequestsLimitHit: map[string]*Counter{},
+	}
 }
 
 func (m *Monitor) RegisterEmitter(factory EmitterFactory) {
@@ -154,11 +158,6 @@ func (m *Monitor) Initialize(logger lager.Logger, host string, attributes map[st
 	go m.emitLoop()
 
 	return nil
-}
-
-func (m *Monitor) Deinitialize(logger lager.Logger) {
-	close(m.emissions)
-	m.emitterFactories = nil
 }
 
 func (m *Monitor) emit(logger lager.Logger, event Event) {
