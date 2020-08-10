@@ -51,11 +51,12 @@ func (step RetryErrorStep) Run(ctx context.Context, state RunState) error {
 
 func (step RetryErrorStep) toRetry(logger lager.Logger, err error) bool {
 	var urlError *url.Error
+	var netError net.Error
 	if errors.As(err, &transport.WorkerMissingError{}) || errors.As(err, &transport.WorkerUnreachableError{}) || errors.As(err, &urlError) {
 		logger.Debug("retry-error",
 			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err.Error()})
 		return true
-	} else if _, ok := err.(net.Error); ok || regexp.MustCompile(`worker .+ disappeared`).MatchString(err.Error()) {
+	} else if errors.As(err, &netError) || regexp.MustCompile(`worker .+ disappeared`).MatchString(err.Error()) {
 		logger.Debug("retry-error",
 			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err})
 		return true
