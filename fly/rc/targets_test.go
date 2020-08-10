@@ -45,7 +45,7 @@ var _ = Describe("Targets", func() {
 			It("loads target with default team", func() {
 				targets, err := rc.LoadTargets()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(targets.Targets).To(Equal(map[rc.TargetName]rc.TargetProps{
+				Expect(targets).To(Equal(rc.Targets{
 					"some-target": {
 						API:      "http://concourse.com",
 						TeamName: atc.DefaultTeamName,
@@ -85,7 +85,7 @@ var _ = Describe("Targets", func() {
 				It("should delete target from flyrc", func() {
 					returnedTargets, err := rc.LoadTargets()
 					Expect(err).ToNot(HaveOccurred())
-					Expect(returnedTargets.Targets).To(Equal(map[rc.TargetName]rc.TargetProps{
+					Expect(returnedTargets).To(Equal(rc.Targets{
 						"new-target": {
 							API:      "some-api",
 							TeamName: "another-team",
@@ -106,7 +106,7 @@ var _ = Describe("Targets", func() {
 				It("should delete all targets from flyrc", func() {
 					returnedTargets, err := rc.LoadTargets()
 					Expect(err).ToNot(HaveOccurred())
-					Expect(returnedTargets.Targets).To(Equal(map[rc.TargetName]rc.TargetProps{}))
+					Expect(returnedTargets).To(Equal(rc.Targets{}))
 				})
 			})
 		})
@@ -134,7 +134,7 @@ var _ = Describe("Targets", func() {
 
 				targets, err := rc.LoadTargets()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(targets.Targets).To(Equal(map[rc.TargetName]rc.TargetProps{
+				Expect(targets).To(Equal(rc.Targets{
 					"some-target": {
 						API:      "new-api",
 						TeamName: "other-team",
@@ -154,7 +154,7 @@ var _ = Describe("Targets", func() {
 
 				targets, err := rc.LoadTargets()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(targets.Targets).To(Equal(map[rc.TargetName]rc.TargetProps{
+				Expect(targets).To(Equal(rc.Targets{
 					"some-other-target": {
 						API:      "http://concourse.com",
 						TeamName: "main",

@@ -26,6 +26,12 @@ func (err UnknownTargetError) Error() string {
 	return fmt.Sprintf("unknown target: %s", err.TargetName)
 }
 
+type Targets map[TargetName]TargetProps
+
+type RC struct {
+	Targets Targets `json:"targets"`
+}
+
 type TargetProps struct {
 	API      string       `json:"api"`
 	TeamName string       `json:"team"`
@@ -39,10 +45,6 @@ type TargetToken struct {
 	Value string `json:"value"`
 }
 
-type targetDetailsYAML struct {
-	Targets map[TargetName]TargetProps `json:"targets"`
-}
-
 func flyrcPath() string {
 	return filepath.Join(userHomeDir(), ".flyrc")
 }
@@ -53,7 +55,7 @@ func LogoutTarget(targetName TargetName) error {
 		return err
 	}
 
-	if target, ok := flyTargets.Targets[targetName]; ok {
+	if target, ok := flyTargets[targetName]; ok {
 		if target.Token != nil {
 			*target.Token = TargetToken{}
 		}
@@ -68,13 +70,13 @@ func DeleteTarget(targetName TargetName) error {
 		return err
 	}
 
-	delete(flyTargets.Targets, targetName)
+	delete(flyTargets, targetName)
 
 	return writeTargets(flyrcPath(), flyTargets)
 }
 
 func DeleteAllTargets() error {
-	return writeTargets(flyrcPath(), &targetDetailsYAML{})
+	return writeTargets(flyrcPath(), Targets{})
 }
 
 func UpdateTargetProps(targetName TargetName, targetProps TargetProps) error {
@@ -83,7 +85,7 @@ func UpdateTargetProps(targetName TargetName, targetProps TargetProps) error {
 		return err
 	}
 
-	target := flyTargets.Targets[targetName]
+	target := flyTargets[targetName]
 
 	if targetProps.API != "" {
 		target.API = targetProps.API
@@ -93,7 +95,7 @@ func UpdateTargetProps(targetName TargetName, targetProps TargetProps) error {
 		target.TeamName = targetProps.TeamName
 	}
 
-	flyTargets.Targets[targetName] = target
+	flyTargets[targetName] = target
 
 	return writeTargets(flyrcPath(), flyTargets)
 }
@@ -105,8 +107,8 @@ func UpdateTargetName(targetName TargetName, newTargetName TargetName) error {
 	}
 
 	if newTargetName != "" {
-		flyTargets.Targets[newTargetName] = flyTargets.Targets[targetName]
-		delete(flyTargets.Targets, targetName)
+		flyTargets[newTargetName] = flyTargets[targetName]
+		delete(flyTargets, targetName)
 	}
 
 	return writeTargets(flyrcPath(), flyTargets)
@@ -126,14 +128,14 @@ func SaveTarget(
 	}
 
 	flyrc := flyrcPath()
-	newInfo := flyTargets.Targets[targetName]
+	newInfo := flyTargets[targetName]
 	newInfo.API = api
 	newInfo.Insecure = insecure
 	newInfo.Token = token
 	newInfo.TeamName = teamName
 	newInfo.CACert = caCert
 
-	flyTargets.Targets[targetName] = newInfo
+	flyTargets[targetName] = newInfo
 	return writeTargets(flyrc, flyTargets)
 }
 
@@ -146,7 +148,7 @@ func selectTarget(selectedTarget TargetName) (TargetProps, error) {
 		return TargetProps{}, err
 	}
 
-	target, ok := flyTargets.Targets[selectedTarget]
+	target, ok := flyTargets[selectedTarget]
 	if !ok {
 		return TargetProps{}, UnknownTargetError{selectedTarget}
 	}
@@ -174,8 +176,8 @@ func userHomeDir() string {
 	panic("could not detect home directory for .flyrc")
 }
 
-func LoadTargets() (*targetDetailsYAML, error) {
-	var flyTargets targetDetailsYAML
+func LoadTargets() (Targets, error) {
+	var rc RC
 
 	flyrc := flyrcPath()
 	if _, err := os.Stat(flyrc); err == nil {
@@ -183,28 +185,29 @@ func LoadTargets() (*targetDetailsYAML, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = yaml.Unmarshal(flyTargetsBytes, &flyTargets)
+		err = yaml.Unmarshal(flyTargetsBytes, &rc)
 		if err != nil {
 			return nil, fmt.Errorf("in the file '%s': %s", flyrc, err)
 		}
 	}
 
-	if flyTargets.Targets == nil {
-		flyTargets.Targets = map[TargetName]TargetProps{}
+	targets := rc.Targets
+	if targets == nil {
+		targets = map[TargetName]TargetProps{}
 	}
 
-	for name, targetProps := range flyTargets.Targets {
+	for name, targetProps := range targets {
 		if targetProps.TeamName == "" {
 			targetProps.TeamName = atc.DefaultTeamName
-			flyTargets.Targets[name] = targetProps
+			targets[name] = targetProps
 		}
 	}
 
-	return &flyTargets, nil
+	return targets, nil
 }
 
-func writeTargets(configFileLocation string, targetsToWrite *targetDetailsYAML) error {
-	yamlBytes, err := yaml.Marshal(targetsToWrite)
+func writeTargets(configFileLocation string, targetsToWrite Targets) error {
+	yamlBytes, err := yaml.Marshal(RC{Targets: targetsToWrite})
 	if err != nil {
 		return err
 	}

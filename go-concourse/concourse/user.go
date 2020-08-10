@@ -1,6 +1,8 @@
 package concourse
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
@@ -8,17 +10,31 @@ import (
 )
 
 func (client *client) UserInfo() (atc.UserInfo, error) {
-	var connection = client.connection
+	resp, err := client.httpAgent.Send(internal.Request{
+		RequestName: atc.GetUser,
+	})
 
-	req, err := http.NewRequest("GET", connection.URL()+"/api/v1/user", nil)
 	if err != nil {
 		return atc.UserInfo{}, err
 	}
+	defer resp.Body.Close()
 
-	var userInfo atc.UserInfo
-	err = connection.SendHTTPRequest(req, false, &internal.Response{
-		Result: &userInfo,
-	})
-
-	return userInfo, err
+	switch resp.StatusCode {
+	case http.StatusOK:
+		var userInfo atc.UserInfo
+		err = json.NewDecoder(resp.Body).Decode(&userInfo)
+		if err != nil {
+			return atc.UserInfo{}, err
+		}
+		return userInfo, nil
+	case http.StatusUnauthorized:
+		return atc.UserInfo{}, ErrUnauthorized
+	default:
+		body, _ := ioutil.ReadAll(resp.Body)
+		return atc.UserInfo{}, internal.UnexpectedResponseError{
+			StatusCode: resp.StatusCode,
+			Status:     resp.Status,
+			Body:       string(body),
+		}
+	}
 }

@@ -1,13 +1,9 @@
 package integration_test
 
 import (
-	"io/ioutil"
-	"os"
 	"os/exec"
-	"path/filepath"
-	"runtime"
-	"strings"
 
+	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/fatih/color"
 
@@ -21,32 +17,19 @@ import (
 var _ = Describe("Fly CLI", func() {
 	Describe("delete target", func() {
 		Describe("valid configuration", func() {
-			var (
-				flyrc  string
-				tmpDir string
-			)
 			BeforeEach(func() {
-				var err error
-				tmpDir, err = ioutil.TempDir("", "fly-test")
-				Expect(err).NotTo(HaveOccurred())
-
-				if runtime.GOOS == "windows" {
-					os.Setenv("USERPROFILE", tmpDir)
-					os.Setenv("HOMEPATH", strings.TrimPrefix(tmpDir, os.Getenv("HOMEDRIVE")))
-				} else {
-					os.Setenv("HOME", tmpDir)
-				}
-
-				flyrc = filepath.Join(userHomeDir(), ".flyrc")
-
-				flyFixtureFile, err := os.OpenFile("./fixtures/flyrc.yml", os.O_RDONLY, 0600)
-				Expect(err).NotTo(HaveOccurred())
-
-				flyFixtureData, err := ioutil.ReadAll(flyFixtureFile)
-				Expect(err).NotTo(HaveOccurred())
-
-				err = ioutil.WriteFile(flyrc, flyFixtureData, 0600)
-				Expect(err).NotTo(HaveOccurred())
+				createFlyRc(rc.Targets{
+					"test1": {
+						API:      "https://example.com/test1",
+						TeamName: "main",
+						Token:    &rc.TargetToken{Type: "Bearer", Value: validAccessToken(date(2020, 1, 1))},
+					},
+					"test2": {
+						API:      "https://example.com/test2",
+						TeamName: "main",
+						Token:    &rc.TargetToken{Type: "Bearer", Value: validAccessToken(date(2020, 1, 2))},
+					},
+				})
 
 				flyCmd := exec.Command(flyPath, "targets")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -62,21 +45,15 @@ var _ = Describe("Fly CLI", func() {
 						{Contents: "expiry", Color: color.New(color.Bold)},
 					},
 					Data: []ui.TableRow{
-						{{Contents: "another-test"}, {Contents: "https://example.com/another-test"}, {Contents: "test"}, {Contents: "Sat, 19 Mar 2016 01:54:30 UTC"}},
-						{{Contents: "no-token"}, {Contents: "https://example.com/no-token"}, {Contents: "main"}, {Contents: "n/a"}},
-						{{Contents: "omt"}, {Contents: "https://example.com/omt"}, {Contents: "main"}, {Contents: "Mon, 21 Mar 2016 01:54:30 UTC"}},
-						{{Contents: "test"}, {Contents: "https://example.com/test"}, {Contents: "test"}, {Contents: "Fri, 25 Mar 2016 23:29:57 UTC"}},
+						{{Contents: "test1"}, {Contents: "https://example.com/test1"}, {Contents: "main"}, {Contents: "Wed, 01 Jan 2020 00:00:00 UTC"}},
+						{{Contents: "test2"}, {Contents: "https://example.com/test2"}, {Contents: "main"}, {Contents: "Thu, 02 Jan 2020 00:00:00 UTC"}},
 					},
 				}))
 			})
 
-			AfterEach(func() {
-				os.RemoveAll(tmpDir)
-			})
-
 			Context("when fly target is specified", func() {
 				It("should delete target", func() {
-					flyCmd := exec.Command(flyPath, "-t", "test", "delete-target")
+					flyCmd := exec.Command(flyPath, "-t", "test1", "delete-target")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
@@ -84,7 +61,7 @@ var _ = Describe("Fly CLI", func() {
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(0))
 
-					Expect(sess.Out).To(gbytes.Say(`deleted target: test`))
+					Expect(sess.Out).To(gbytes.Say(`deleted target: test1`))
 
 					flyCmd = exec.Command(flyPath, "targets")
 					sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -99,9 +76,7 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: "expiry", Color: color.New(color.Bold)},
 						},
 						Data: []ui.TableRow{
-							{{Contents: "another-test"}, {Contents: "https://example.com/another-test"}, {Contents: "test"}, {Contents: "Sat, 19 Mar 2016 01:54:30 UTC"}},
-							{{Contents: "no-token"}, {Contents: "https://example.com/no-token"}, {Contents: "main"}, {Contents: "n/a"}},
-							{{Contents: "omt"}, {Contents: "https://example.com/omt"}, {Contents: "main"}, {Contents: "Mon, 21 Mar 2016 01:54:30 UTC"}},
+							{{Contents: "test2"}, {Contents: "https://example.com/test2"}, {Contents: "main"}, {Contents: "Thu, 02 Jan 2020 00:00:00 UTC"}},
 						},
 					}))
 				})
@@ -109,7 +84,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when configuration all", func() {
 				It("should delete all targets", func() {
-					flyCmd := exec.Command(flyPath, "-t", "test", "delete-target", "--all")
+					flyCmd := exec.Command(flyPath, "-t", "test1", "delete-target", "--all")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
