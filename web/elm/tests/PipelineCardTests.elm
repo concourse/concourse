@@ -1291,7 +1291,7 @@ all =
                                     )
 
                         domID =
-                            Msgs.PipelineStatusIcon
+                            Msgs.PipelineStatusIcon AllPipelinesSection
                                 (Data.pipelineId
                                     |> Data.withPipelineName "pipeline-0"
                                 )
@@ -2276,7 +2276,7 @@ all =
                                        , style "opacity" "0.5"
                                        ]
                             }
-                        , hoverable = Msgs.PipelineButton Data.pipelineId
+                        , hoverable = Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
                         , hoveredSelector =
                             { description = "a bright 20px square pause button with pointer cursor"
                             , selector =
@@ -2377,7 +2377,7 @@ all =
                                        , style "opacity" "0.5"
                                        ]
                             }
-                        , hoverable = Msgs.PipelineButton Data.pipelineId
+                        , hoverable = Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
                         , hoveredSelector =
                             { description = "an opaque 20px square play button with pointer cursor"
                             , selector =
@@ -2410,7 +2410,7 @@ all =
                                 |> Event.expect
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton Data.pipelineId
+                                            Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
                                     )
                     , test "pause button turns into spinner on click" <|
                         \_ ->
@@ -2432,7 +2432,7 @@ all =
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton Data.pipelineId
+                                            Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -2454,7 +2454,7 @@ all =
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton Data.pipelineId
+                                            Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
                                     )
                                 |> Tuple.second
                                 |> Expect.equal [ Effects.SendTogglePipelineRequest Data.pipelineId False ]
@@ -2474,7 +2474,7 @@ all =
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton Data.pipelineId
+                                            Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
                                     )
                                 |> Tuple.first
                                 |> Application.handleCallback
@@ -2496,7 +2496,7 @@ all =
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton Data.pipelineId
+                                            Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
                                     )
                                 |> Tuple.first
                                 |> Application.handleCallback

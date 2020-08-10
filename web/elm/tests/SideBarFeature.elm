@@ -525,7 +525,7 @@ hasSideBar iAmLookingAtThePage =
                 , selector =
                     [ style "opacity" "0.4" ]
                 }
-            , hoverable = Message.SideBarPipeline AllPipelines Data.pipelineId
+            , hoverable = Message.SideBarPipeline AllPipelinesSection Data.pipelineId
             , hoveredSelector =
                 { description = "light background"
                 , selector =
@@ -1508,7 +1508,7 @@ iHoveredThePipelineLink =
             (TopLevelMessage.Update <|
                 Message.Hover <|
                     Just <|
-                        Message.SideBarPipeline AllPipelines Data.pipelineId
+                        Message.SideBarPipeline AllPipelinesSection Data.pipelineId
             )
 
 

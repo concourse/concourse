@@ -511,7 +511,7 @@ all =
                         (Update <|
                             Hover <|
                                 Just <|
-                                    JobPreview (Data.jobId |> Data.withPipelineName "pipeline-0")
+                                    JobPreview AllPipelinesSection (Data.jobId |> Data.withPipelineName "pipeline-0")
                         )
                     |> Tuple.first
                     |> Common.queryView

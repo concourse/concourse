@@ -55,4 +55,4 @@ model =
 
 domID : DomID
 domID =
-    SideBarPipeline AllPipelines Data.pipelineId
+    SideBarPipeline AllPipelinesSection Data.pipelineId

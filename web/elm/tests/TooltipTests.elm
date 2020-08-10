@@ -81,7 +81,7 @@ nonOverflowingViewport =
 
 domID : DomID
 domID =
-    SideBarPipeline AllPipelines Data.pipelineId
+    SideBarPipeline AllPipelinesSection Data.pipelineId
 
 
 overflowingViewport : Browser.Dom.Viewport
