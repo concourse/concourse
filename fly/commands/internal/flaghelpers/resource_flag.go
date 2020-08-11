@@ -21,8 +21,8 @@ func (flag *ResourceFlag) UnmarshalFlag(value string) error {
 	}
 
 	flag.ResourceName = value[resourceNameIdx+1:]
-	if warnings := atc.ValidateIdentifier(flag.ResourceName, "resource"); warnings != nil {
-		return errors.New("argument format should be <pipeline>/<key:value>/<resource>")
+	if flag.ResourceName == "" {
+		return errors.New("argument format should be <pipeline>/<resource>")
 	}
 
 	vs := strings.SplitN(value[:resourceNameIdx], "/", 2)

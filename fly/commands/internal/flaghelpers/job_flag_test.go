@@ -25,6 +25,13 @@ var _ = Describe("JobFlag", func() {
 			})
 		})
 
+		Context("when the job name is not specified", func() {
+			It("displays an error message", func() {
+				err := flag.UnmarshalFlag("some-pipeline/")
+				Expect(err).To(MatchError("argument format should be <pipeline>/<job>"))
+			})
+		})
+
 		Context("when a pipeline instance is specified", func() {
 
 			Context("when a pipeline ref has a single instance var", func() {
@@ -70,12 +77,6 @@ var _ = Describe("JobFlag", func() {
 				})
 			})
 
-			Context("when the job name is not specified", func() {
-				It("displays an error message", func() {
-					err := flag.UnmarshalFlag("some-pipeline/branch:master")
-					Expect(err).To(MatchError("argument format should be <pipeline>/<key:value>/<job>"))
-				})
-			})
 		})
 	})
 })

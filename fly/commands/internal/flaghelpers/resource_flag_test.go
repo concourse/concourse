@@ -22,6 +22,13 @@ var _ = Describe("ResourceFlag", func() {
 		})
 	})
 
+	Context("when the resource name is not specified", func() {
+		It("displays an error message", func() {
+			err := flag.UnmarshalFlag("some-pipeline/")
+			Expect(err).To(MatchError("argument format should be <pipeline>/<resource>"))
+		})
+	})
+
 	Context("when a pipeline instance is specified", func() {
 		Context("when a pipeline ref has a single instance var", func() {
 			It("unmarshal the flag successfully", func() {
@@ -62,13 +69,6 @@ var _ = Describe("ResourceFlag", func() {
 		Context("when the instance var is malformed", func() {
 			It("displays an error message", func() {
 				err := flag.UnmarshalFlag("some-pipeline/branch=master/resource-name")
-				Expect(err).To(MatchError("argument format should be <pipeline>/<key:value>/<resource>"))
-			})
-		})
-
-		Context("when the resource name is not specified", func() {
-			It("displays an error message", func() {
-				err := flag.UnmarshalFlag("some-pipeline/branch:master")
 				Expect(err).To(MatchError("argument format should be <pipeline>/<key:value>/<resource>"))
 			})
 		})
