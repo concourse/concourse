@@ -1,7 +1,18 @@
 @import "colors.less";
 
+pre {
+  background: @darker-grey;
+  color: @off-white;
+  line-height: 24px;
+
+  &[data-line] {
+    position: relative;
+  }
+}
+
 .token {
   &.comment,
+  &.block-comment,
   &.prolog,
   &.doctype,
   &.cdata {
@@ -13,55 +24,50 @@
     color: @grey-primary;
   }
 
-  &.selector,
-  &.quantifier,
-  &.tag {
+  &.tag,
+  &.attr-name,
+  &.namespace,
+  &.deleted {
     color: @red-primary;
   }
 
-  &.property,
+  &.function-name {
+    color: @blue-primary;
+  }
+
   &.boolean,
   &.number,
-  &.constant,
-  &.symbol,
-  &.attr-name,
-  &.deleted {
+  &.function {
     color: @amber-primary;
+  }
+
+  &.property,
+  &.class-name,
+  &.constant,
+  &.symbol {
+    color: @amber-primary;
+  }
+
+  &.selector,
+  &.important,
+  &.atrule,
+  &.keyword,
+  &.builtin {
+    color: @blue-primary;
   }
 
   &.string,
   &.char,
   &.attr-value,
-  &.builtin,
-  &.inserted {
-    color: @grey-secondary;
+  &.regex,
+  &.variable {
+    color: @green-primary;
   }
 
   &.operator,
   &.entity,
   &.url {
     color: @blue-secondary;
-  }
-
-  &.atrule,
-  &.keyword {
-    color: @blue-primary;
-  }
-
-  &.function {
-    color: @blue-primary;
-  }
-
-  &.regex,
-  &.important,
-  &.variable,
-  &.charset-punctuation {
-    color: @blue-primary;
-  }
-
-  &.escape,
-  &.charclass {
-    color: @green-primary;
   }
 
   &.important,
@@ -76,4 +82,44 @@
   &.entity {
     cursor: help;
   }
+
+  &.inserted {
+    color: @green-primary;
+  }
+}
+
+.line-highlight {
+  background: rgba(255, 255, 255, 0.1);
+
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin-top: 0.5rem; /* same as pre padding */
+
+  pointer-events: none;
+  line-height: inherit;
+  white-space: pre;
+
+  &:before,
+  &[data-end]:after {
+    content: attr(data-start);
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: @darkest-grey;
+    color: @offer-white;
+    text-align: center;
+    width: 2em;
+  }
+
+  &[data-end]:after {
+    content: attr(data-end);
+    top: auto;
+    bottom: 0;
+  }
+}
+
+.line-numbers .line-highlight:before,
+.line-numbers .line-highlight:after {
+  content: none;
 }
