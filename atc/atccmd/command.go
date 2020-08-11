@@ -277,7 +277,8 @@ func (cmd *Migration) currentDBVersion() error {
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
 		nil,
-		encryption.NewNoEncryption(),
+		nil,
+		nil,
 	)
 
 	version, err := helper.CurrentVersion()
@@ -294,7 +295,8 @@ func (cmd *Migration) supportedDBVersion() error {
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
 		nil,
-		encryption.NewNoEncryption(),
+		nil,
+		nil,
 	)
 
 	version, err := helper.SupportedVersion()
@@ -310,22 +312,21 @@ func (cmd *Migration) migrateDBToVersion() error {
 	version := cmd.MigrateDBToVersion
 
 	var newKey *encryption.Key
+	var oldKey *encryption.Key
+
 	if cmd.EncryptionKey.AEAD != nil {
 		newKey = encryption.NewKey(cmd.EncryptionKey.AEAD)
 	}
-
-	var strategy encryption.Strategy
-	if newKey != nil {
-		strategy = newKey
-	} else {
-		strategy = encryption.NewNoEncryption()
+	if cmd.OldEncryptionKey.AEAD != nil {
+		oldKey = encryption.NewKey(cmd.OldEncryptionKey.AEAD)
 	}
 
 	helper := migration.NewOpenHelper(
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
 		nil,
-		strategy,
+		newKey,
+		oldKey,
 	)
 
 	err := helper.MigrateToVersion(version)
