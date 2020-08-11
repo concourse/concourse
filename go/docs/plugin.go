@@ -278,7 +278,12 @@ func (p *Plugin) schemaAttribute(attribute string, type_ string, contentNode ast
 	} else {
 		attr := booklit.Sequence{}
 		for _, con := range p.schemaContext {
-			attr = append(attr, booklit.String(con))
+			field := con
+			if len(attr) > 0 {
+				field = "." + field
+			}
+
+			attr = append(attr, booklit.String(field))
 		}
 
 		display = booklit.Styled{
