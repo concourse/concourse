@@ -296,10 +296,10 @@ var _ = Describe("V1.0 Renderer", func() {
 		})
 	})
 
-	Context("and a SelectedWorker event is received", func() {
+	Context("when a SelectedWorker event is received", func() {
 		BeforeEach(func() {
 			receivedEvents <- event.SelectedWorker{
-				Time: time.Now().Unix(),
+				Time:       time.Now().Unix(),
 				WorkerName: "some-worker",
 			}
 		})
@@ -318,4 +318,42 @@ var _ = Describe("V1.0 Renderer", func() {
 			})
 		})
 	})
+
+	Context("when an UnknownEventTypeError or UnknownEventVersionError is received", func() {
+
+		BeforeEach(func() {
+			errors := make(chan error, 100)
+
+			stream.NextEventStub = func() (atc.Event, error) {
+				select {
+				case ev := <-errors:
+					return nil, ev
+				default:
+					return nil, io.EOF
+				}
+			}
+			errors <- event.UnknownEventTypeError{"some-event"}
+			errors <- event.UnknownEventVersionError{Type: "some-bad-version-event"}
+		})
+
+		It("prints the build's run script", func() {
+			Expect(out.Contents()).To(ContainSubstring("failed to parse next event"))
+		})
+
+		It("exits with 255 exit code", func() {
+			Expect(exitStatus).To(Equal(255))
+		})
+
+		Context("when IgnoreEventParsingErrors is configured", func() {
+			BeforeEach(func() {
+				options.IgnoreEventParsingErrors = true
+			})
+			It("exits with 0 exit code", func() {
+				Expect(exitStatus).To(Equal(0))
+			})
+
+		})
+
+	})
+
 })
