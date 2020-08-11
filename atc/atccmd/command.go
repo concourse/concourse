@@ -64,8 +64,8 @@ import (
 	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/cppforlife/go-semi-semantic/version"
-	multierror "github.com/hashicorp/go-multierror"
-	flags "github.com/jessevdk/go-flags"
+	"github.com/hashicorp/go-multierror"
+	"github.com/jessevdk/go-flags"
 	gocache "github.com/patrickmn/go-cache"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -247,7 +247,7 @@ type RunCommand struct {
 	SystemClaimKey    string   `long:"system-claim-key" default:"aud" description:"The token claim key to use when matching system-claim-values"`
 	SystemClaimValues []string `long:"system-claim-value" default:"concourse-worker" description:"Configure which token requests should be considered 'system' requests."`
 
-	EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears"`
+	EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears or a network error occurs"`
 }
 
 type Migration struct {
@@ -1738,12 +1738,12 @@ func (cmd *RunCommand) constructLoginHandler(
 func (cmd *RunCommand) constructTokenVerifier(accessTokenFactory db.AccessTokenFactory) accessor.TokenVerifier {
 
 	validClients := []string{flyClientID}
-	for clientId, _ := range cmd.Auth.AuthFlags.Clients {
+	for clientId := range cmd.Auth.AuthFlags.Clients {
 		validClients = append(validClients, clientId)
 	}
 
 	MiB := 1024 * 1024
-	claimsCacher := accessor.NewClaimsCacher(accessTokenFactory, 1 * MiB)
+	claimsCacher := accessor.NewClaimsCacher(accessTokenFactory, 1*MiB)
 
 	return accessor.NewVerifier(claimsCacher, validClients)
 }

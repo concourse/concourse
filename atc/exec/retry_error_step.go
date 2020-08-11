@@ -1,14 +1,16 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-	"github.com/concourse/concourse/atc/worker/transport"
-	"reflect"
-	"regexp"
-
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"context"
+	"errors"
+	"fmt"
+	"github.com/concourse/concourse/atc/worker/transport"
+	"net"
+	"net/url"
+	"reflect"
+	"regexp"
 )
 
 type Retriable struct {
@@ -48,18 +50,16 @@ func (step RetryErrorStep) Run(ctx context.Context, state RunState) error {
 }
 
 func (step RetryErrorStep) toRetry(logger lager.Logger, err error) bool {
-	switch err.(type) {
-	case transport.WorkerMissingError, transport.WorkerUnreachableError:
+	var urlError *url.Error
+	var netError net.Error
+	if errors.As(err, &transport.WorkerMissingError{}) || errors.As(err, &transport.WorkerUnreachableError{}) || errors.As(err, &urlError) {
 		logger.Debug("retry-error",
 			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err.Error()})
 		return true
-	default:
-		re := regexp.MustCompile(`worker .+ disappeared`)
-		if re.MatchString(err.Error()) {
-			logger.Debug("retry-error",
-				lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err})
-			return true
-		}
+	} else if errors.As(err, &netError) || regexp.MustCompile(`worker .+ disappeared`).MatchString(err.Error()) {
+		logger.Debug("retry-error",
+			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err})
+		return true
 	}
 	return false
 }

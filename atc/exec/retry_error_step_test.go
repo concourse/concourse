@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/concourse/concourse/atc/worker/transport"
+	"net"
+	"net/url"
 
 	. "github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/worker/transport"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -89,6 +91,28 @@ var _ = Describe("RetryErrorStep", func() {
 				Expect(fakeDelegate.ErroredCallCount()).To(Equal(1))
 				_, message := fakeDelegate.ErroredArgsForCall(0)
 				Expect(message).To(Equal(fmt.Sprintf("%s, will retry ...", cause.Error())))
+			})
+		})
+
+		Context("when url.Error error happened", func() {
+			cause := &url.Error{Op: "error", URL: "err", Err: errors.New("error")}
+			BeforeEach(func() {
+				fakeStep.RunReturns(cause)
+			})
+
+			It("should return retriable", func() {
+				Expect(runErr).To(Equal(Retriable{cause}))
+			})
+		})
+
+		Context("when net.Error error happened", func() {
+			cause := &net.OpError{Op: "read", Net: "test", Source: nil, Addr: nil, Err: errors.New("test")}
+			BeforeEach(func() {
+				fakeStep.RunReturns(cause)
+			})
+
+			It("should return retriable", func() {
+				Expect(runErr).To(Equal(Retriable{cause}))
 			})
 		})
 

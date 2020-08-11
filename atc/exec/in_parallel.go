@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"os"
 	"runtime/debug"
-	"strings"
+
+	"github.com/hashicorp/go-multierror"
 )
 
 // InParallelStep is a step of steps to run in parallel.
@@ -77,14 +78,14 @@ func (step InParallelStep) Run(ctx context.Context, state RunState) error {
 		executedSteps++
 	}
 
-	var errorMessages []string
+	var result error
 	for i := 0; i < executedSteps; i++ {
 		err := <-errs
 		if err != nil && !errors.Is(err, context.Canceled) {
 			// The Run context being cancelled only means that one or more steps failed, not
 			// in_parallel itself. If we return context.Canceled error messages the step will
 			// be marked as errored instead of failed, and therefore they should be ignored.
-			errorMessages = append(errorMessages, err.Error())
+			result = multierror.Append(result, err)
 		}
 	}
 
@@ -92,8 +93,8 @@ func (step InParallelStep) Run(ctx context.Context, state RunState) error {
 		return ctx.Err()
 	}
 
-	if len(errorMessages) > 0 {
-		return fmt.Errorf("one or more parallel steps errored:\n%s", strings.Join(errorMessages, "\n"))
+	if result != nil {
+		return result
 	}
 
 	return nil
