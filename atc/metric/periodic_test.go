@@ -62,10 +62,10 @@ var _ = Describe("Periodic emission of metrics", func() {
 		})
 
 		It("emits database queries", func() {
-			Eventually(emitter.EmitCallCount).Should(BeNumerically(">=", 1))
-			Expect(emitter.Invocations()["Emit"]).To(
+			Eventually(func() [][]interface{} { return emitter.Invocations()["Emit"] }).Should(
 				ContainElement(
-					ContainElement(
+					ConsistOf(
+						Not(BeNil()),
 						MatchFields(IgnoreExtras, Fields{
 							"Name": Equal("database queries"),
 						}),
@@ -74,9 +74,10 @@ var _ = Describe("Periodic emission of metrics", func() {
 			)
 
 			By("emits database connections for each pool")
-			Expect(emitter.Invocations()["Emit"]).To(
+			Eventually(func() [][]interface{} { return emitter.Invocations()["Emit"] }).Should(
 				ContainElement(
-					ContainElement(
+					ConsistOf(
+						Not(BeNil()),
 						MatchFields(IgnoreExtras, Fields{
 							"Name":       Equal("database connections"),
 							"Attributes": Equal(map[string]string{"ConnectionName": "A"}),
@@ -84,9 +85,10 @@ var _ = Describe("Periodic emission of metrics", func() {
 					),
 				),
 			)
-			Expect(emitter.Invocations()["Emit"]).To(
+			Eventually(func() [][]interface{} { return emitter.Invocations()["Emit"] }).Should(
 				ContainElement(
-					ContainElement(
+					ConsistOf(
+						Not(BeNil()),
 						MatchFields(IgnoreExtras, Fields{
 							"Name":       Equal("database connections"),
 							"Attributes": Equal(map[string]string{"ConnectionName": "B"}),
@@ -112,11 +114,10 @@ var _ = Describe("Periodic emission of metrics", func() {
 		})
 
 		It("emits", func() {
-			Eventually(emitter.EmitCallCount).Should(BeNumerically(">=", 1))
-
-			Expect(emitter.Invocations()["Emit"]).To(
+			Eventually(func() [][]interface{} { return emitter.Invocations()["Emit"] }).Should(
 				ContainElement(
-					ContainElement(
+					ConsistOf(
+						Not(BeNil()),
 						MatchFields(IgnoreExtras, Fields{
 							"Name":  Equal("concurrent requests"),
 							"Value": Equal(float64(123)),
@@ -128,9 +129,10 @@ var _ = Describe("Periodic emission of metrics", func() {
 				),
 			)
 
-			Expect(emitter.Invocations()["Emit"]).To(
+			Eventually(func() [][]interface{} { return emitter.Invocations()["Emit"] }).Should(
 				ContainElement(
-					ContainElement(
+					ConsistOf(
+						Not(BeNil()),
 						MatchFields(IgnoreExtras, Fields{
 							"Name":  Equal("concurrent requests limit hit"),
 							"Value": Equal(float64(10)),
@@ -151,10 +153,10 @@ var _ = Describe("Periodic emission of metrics", func() {
 			monitor.TasksWaiting = *gauge
 		})
 		It("emits", func() {
-			Eventually(emitter.EmitCallCount).Should(BeNumerically(">=", 1))
-			Expect(emitter.Invocations()["Emit"]).To(
+			Eventually(func() [][]interface{} { return emitter.Invocations()["Emit"] }).Should(
 				ContainElement(
-					ContainElement(
+					ConsistOf(
+						Not(BeNil()),
 						MatchFields(IgnoreExtras, Fields{
 							"Name":  Equal("tasks waiting"),
 							"Value": Equal(float64(123)),
