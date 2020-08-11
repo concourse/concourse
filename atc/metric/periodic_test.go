@@ -52,6 +52,15 @@ var _ = Describe("Periodic emission of metrics", func() {
 		<-process.Wait()
 	})
 
+	events := func() []metric.Event {
+		var events []metric.Event
+		for i := 0; i < emitter.EmitCallCount(); i++ {
+			_, event := emitter.EmitArgsForCall(i)
+			events = append(events, event)
+		}
+		return events
+	}
+
 	Context("database-related metrics", func() {
 		BeforeEach(func() {
 			a := &dbfakes.FakeConn{}
@@ -62,38 +71,29 @@ var _ = Describe("Periodic emission of metrics", func() {
 		})
 
 		It("emits database queries", func() {
-			Eventually(func() [][]interface{} { return emitter.Invocations()["Emit"] }).Should(
+			Eventually(events).Should(
 				ContainElement(
-					ConsistOf(
-						Not(BeNil()),
-						MatchFields(IgnoreExtras, Fields{
-							"Name": Equal("database queries"),
-						}),
-					),
+					MatchFields(IgnoreExtras, Fields{
+						"Name": Equal("database queries"),
+					}),
 				),
 			)
 
 			By("emits database connections for each pool")
-			Eventually(func() [][]interface{} { return emitter.Invocations()["Emit"] }).Should(
+			Eventually(events).Should(
 				ContainElement(
-					ConsistOf(
-						Not(BeNil()),
-						MatchFields(IgnoreExtras, Fields{
-							"Name":       Equal("database connections"),
-							"Attributes": Equal(map[string]string{"ConnectionName": "A"}),
-						}),
-					),
+					MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("database connections"),
+						"Attributes": Equal(map[string]string{"ConnectionName": "A"}),
+					}),
 				),
 			)
-			Eventually(func() [][]interface{} { return emitter.Invocations()["Emit"] }).Should(
+			Eventually(events).Should(
 				ContainElement(
-					ConsistOf(
-						Not(BeNil()),
-						MatchFields(IgnoreExtras, Fields{
-							"Name":       Equal("database connections"),
-							"Attributes": Equal(map[string]string{"ConnectionName": "B"}),
-						}),
-					),
+					MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("database connections"),
+						"Attributes": Equal(map[string]string{"ConnectionName": "B"}),
+					}),
 				),
 			)
 		})
@@ -114,33 +114,27 @@ var _ = Describe("Periodic emission of metrics", func() {
 		})
 
 		It("emits", func() {
-			Eventually(func() [][]interface{} { return emitter.Invocations()["Emit"] }).Should(
+			Eventually(events).Should(
 				ContainElement(
-					ConsistOf(
-						Not(BeNil()),
-						MatchFields(IgnoreExtras, Fields{
-							"Name":  Equal("concurrent requests"),
-							"Value": Equal(float64(123)),
-							"Attributes": Equal(map[string]string{
-								"action": action,
-							}),
+					MatchFields(IgnoreExtras, Fields{
+						"Name":  Equal("concurrent requests"),
+						"Value": Equal(float64(123)),
+						"Attributes": Equal(map[string]string{
+							"action": action,
 						}),
-					),
+					}),
 				),
 			)
 
-			Eventually(func() [][]interface{} { return emitter.Invocations()["Emit"] }).Should(
+			Eventually(events).Should(
 				ContainElement(
-					ConsistOf(
-						Not(BeNil()),
-						MatchFields(IgnoreExtras, Fields{
-							"Name":  Equal("concurrent requests limit hit"),
-							"Value": Equal(float64(10)),
-							"Attributes": Equal(map[string]string{
-								"action": action,
-							}),
+					MatchFields(IgnoreExtras, Fields{
+						"Name":  Equal("concurrent requests limit hit"),
+						"Value": Equal(float64(10)),
+						"Attributes": Equal(map[string]string{
+							"action": action,
 						}),
-					),
+					}),
 				),
 			)
 		})
@@ -153,15 +147,12 @@ var _ = Describe("Periodic emission of metrics", func() {
 			monitor.TasksWaiting = *gauge
 		})
 		It("emits", func() {
-			Eventually(func() [][]interface{} { return emitter.Invocations()["Emit"] }).Should(
+			Eventually(events).Should(
 				ContainElement(
-					ConsistOf(
-						Not(BeNil()),
-						MatchFields(IgnoreExtras, Fields{
-							"Name":  Equal("tasks waiting"),
-							"Value": Equal(float64(123)),
-						}),
-					),
+					MatchFields(IgnoreExtras, Fields{
+						"Name":  Equal("tasks waiting"),
+						"Value": Equal(float64(123)),
+					}),
 				),
 			)
 		})
