@@ -50,7 +50,9 @@ groupItem { selected, hovered } =
 favoritedIcon : List (Html.Attribute msg)
 favoritedIcon =
     [ style "border-left" <|
-        "1px solid rgba ( 255, 255, 255, 0.5 )"
+        "1px solid "
+            ++ Colors.background
+    , style "background-color" Colors.frame
     ]
 
 
@@ -62,6 +64,7 @@ pauseToggle isPaused =
 
         else
             "1px solid " ++ Colors.background
+    , style "background-color" Colors.frame
     ]
 
 

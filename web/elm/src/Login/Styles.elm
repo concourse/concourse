@@ -13,7 +13,9 @@ import Html.Attributes exposing (style)
 
 loginComponent : List (Html.Attribute msg)
 loginComponent =
-    [ style "max-width" "20%" ]
+    [ style "max-width" "20%"
+    , style "background-color" Colors.frame
+    ]
 
 
 loginContainer : Bool -> List (Html.Attribute msg)
