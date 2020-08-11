@@ -2,6 +2,7 @@ package k8s_test
 
 import (
 	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -48,14 +49,14 @@ var _ = Describe("DNS Resolution", func() {
 		}
 		switch {
 		case runtime == containerdRuntime:
-			args = append(args, `--set-string=concourse.worker.containerd.dnsProxyEnable=` + dnsProxyEnable)
+			args = append(args, `--set-string=concourse.worker.containerd.dnsProxyEnable=`+dnsProxyEnable)
 			if dnsServer != "" {
 				args = append(args,
 					`--set=worker.env[0].name=CONCOURSE_CONTAINERD_DNS_SERVER`,
 					`--set=worker.env[0].value=`+dnsServer)
 			}
 		case runtime == guardianRuntime:
-			args = append(args, `--set-string=concourse.worker.garden.dnsProxyEnable=` + dnsProxyEnable)
+			args = append(args, `--set-string=concourse.worker.garden.dnsProxyEnable=`+dnsProxyEnable)
 			if dnsServer != "" {
 				args = append(args,
 					`--set=worker.env[0].name=CONCOURSE_GARDEN_DNS_SERVER`,
