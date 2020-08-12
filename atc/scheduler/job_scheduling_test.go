@@ -2,6 +2,7 @@ package scheduler_test
 
 import (
 	"errors"
+	"fmt"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
@@ -271,7 +272,7 @@ func (example Example) Run() {
 	for i, build := range example.Job.Builds {
 		fakeBuild := new(dbfakes.FakeBuild)
 		fakeBuild.IDReturns(build.ID)
-		fakeBuild.NameReturns(string(build.ID))
+		fakeBuild.NameReturns(fmt.Sprint(build.ID))
 		fakeBuild.IsAbortedReturns(build.Aborted)
 		fakeBuild.RerunOfReturns(build.RerunOfBuildID)
 		fakeBuild.IsManuallyTriggeredReturns(build.ManuallyTriggered)

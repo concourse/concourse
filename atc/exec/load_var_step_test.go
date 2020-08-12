@@ -62,7 +62,7 @@ var _ = Describe("LoadVarStep", func() {
 
 		stdout, stderr *gbytes.Buffer
 
-		planID = 56
+		planID = "56"
 	)
 
 	BeforeEach(func() {
