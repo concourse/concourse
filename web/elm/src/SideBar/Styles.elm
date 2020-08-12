@@ -132,7 +132,7 @@ opacityAttr opacity =
     style "opacity" <|
         case opacity of
             Dim ->
-                "0.4"
+                "0.5"
 
             GreyedOut ->
                 "0.7"
@@ -312,6 +312,7 @@ pipelineFavourite fav =
     , style "padding" <| "0 " ++ String.fromFloat starPadding ++ "px"
     , style "flex-shrink" "0"
     , style "cursor" "pointer"
+    , opacityAttr fav.opacity
     , Attr.attribute "aria-label" "Favorite Icon"
     ]
 
