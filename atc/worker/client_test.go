@@ -257,7 +257,7 @@ var _ = Describe("Client", func() {
 			memory := uint64(1024)
 
 			buildId := 1234
-			planId := atc.PlanID(42)
+			planId := atc.PlanID("42")
 			teamId := 123
 			fakeDelegate = new(execfakes.FakeTaskDelegate)
 			fakeContainerOwner = db.NewBuildStepContainerOwner(
