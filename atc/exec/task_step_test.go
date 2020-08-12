@@ -63,7 +63,7 @@ var _ = Describe("TaskStep", func() {
 			JobID:   12345,
 		}
 
-		planID = atc.PlanID(42)
+		planID = atc.PlanID("42")
 	)
 
 	BeforeEach(func() {
@@ -123,7 +123,7 @@ var _ = Describe("TaskStep", func() {
 
 	JustBeforeEach(func() {
 		plan := atc.Plan{
-			ID:   atc.PlanID(planID),
+			ID:   planID,
 			Task: taskPlan,
 		}
 

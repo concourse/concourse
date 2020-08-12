@@ -236,7 +236,7 @@ func workerContainerDummy() worker.ContainerSpec {
 func containerOwnerDummy() db.ContainerOwner {
 	return db.NewBuildStepContainerOwner(
 		1234,
-		atc.PlanID(42),
+		atc.PlanID("42"),
 		123,
 	)
 }
