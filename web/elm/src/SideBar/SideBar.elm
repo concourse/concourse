@@ -62,6 +62,15 @@ update message model =
 
             else
                 Set.insert element set
+
+        toggleFavorite pipelineID =
+            let
+                favoritedPipelines =
+                    toggle pipelineID model.favoritedPipelines
+            in
+            ( { model | favoritedPipelines = favoritedPipelines }
+            , [ Effects.SaveFavoritedPipelines <| favoritedPipelines ]
+            )
     in
     case message of
         Click HamburgerMenu ->
@@ -98,31 +107,13 @@ update message model =
             ( { model | draggingSideBar = True }, [] )
 
         Click (SideBarFavoritedIcon pipelineID) ->
-            let
-                favoritedPipelines =
-                    toggle pipelineID model.favoritedPipelines
-            in
-            ( { model | favoritedPipelines = favoritedPipelines }
-            , [ Effects.SaveFavoritedPipelines <| favoritedPipelines ]
-            )
+            toggleFavorite pipelineID
 
         Click (PipelineCardFavoritedIcon _ pipelineID) ->
-            let
-                favoritedPipelines =
-                    toggle pipelineID model.favoritedPipelines
-            in
-            ( { model | favoritedPipelines = favoritedPipelines }
-            , [ Effects.SaveFavoritedPipelines <| favoritedPipelines ]
-            )
+            toggleFavorite pipelineID
 
         Click (TopBarFavoritedIcon pipelineID) ->
-            let
-                favoritedPipelines =
-                    toggle pipelineID model.favoritedPipelines
-            in
-            ( { model | favoritedPipelines = favoritedPipelines }
-            , [ Effects.SaveFavoritedPipelines <| favoritedPipelines ]
-            )
+            toggleFavorite pipelineID
 
         Hover (Just (SideBarPipeline section pipelineID)) ->
             ( model
