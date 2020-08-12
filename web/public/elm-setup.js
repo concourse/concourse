@@ -160,11 +160,12 @@ app.ports.deleteFromLocalStorage.subscribe(function(key) {
 
 
 const csrfTokenKey = "csrf_token";
+const favoritedPipelinesKey = "favorited_pipelines";
 window.addEventListener('storage', function(event) {
-  if (event.key === csrfTokenKey) {
-    const value = localStorage.getItem(csrfTokenKey);
+  if (event.key === csrfTokenKey || event.key === favoritedPipelinesKey) {
+    const value = localStorage.getItem(event.key);
     setTimeout(function() {
-      app.ports.receivedFromLocalStorage.send([csrfTokenKey, value]);
+      app.ports.receivedFromLocalStorage.send([event.key, value]);
     }, 0);
   }
 }, false);
