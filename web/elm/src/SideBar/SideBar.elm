@@ -309,18 +309,22 @@ allPipelinesSection model currentPipeline =
 
 favoritedPipelinesSection : Model m -> Maybe (PipelineScoped a) -> List (Html Message)
 favoritedPipelinesSection model currentPipeline =
-    if Set.isEmpty model.favoritedPipelines then
-        []
-
-    else
-        [ Html.div Styles.sectionHeader [ Html.text "favorites" ]
-        , Html.div [ id "favorites" ]
-            (model.pipelines
+    let
+        favoritedPipelines =
+            model.pipelines
                 |> RemoteData.withDefault []
                 |> List.filter
                     (\fp ->
                         Set.member fp.id model.favoritedPipelines
                     )
+    in
+    if List.isEmpty favoritedPipelines then
+        []
+
+    else
+        [ Html.div Styles.sectionHeader [ Html.text "favorites" ]
+        , Html.div [ id "favorites" ]
+            (favoritedPipelines
                 |> List.Extra.gatherEqualsBy .teamName
                 |> List.map
                     (\( p, ps ) ->

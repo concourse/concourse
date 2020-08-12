@@ -296,6 +296,11 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iDoNotSeeFavoritesSection
+        , test "does not exist when localStorage has pipelines that no longer exist" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedFavoritedPipelinesThatDoNotExist
+                >> when iAmLookingAtTheSideBar
+                >> then_ iDoNotSeeFavoritesSection
         , test "don't show teams that have no favorited pipelines" <|
             given iHaveAnOpenSideBar_
                 >> given myBrowserFetchedPipelinesFromMultipleTeams
@@ -1443,6 +1448,14 @@ myBrowserFetchedFavoritedPipelines =
         >> Application.handleDelivery
             (Subscription.FavoritedPipelinesReceived <|
                 Ok (Set.singleton 0)
+            )
+
+
+myBrowserFetchedFavoritedPipelinesThatDoNotExist =
+    Tuple.first
+        >> Application.handleDelivery
+            (Subscription.FavoritedPipelinesReceived <|
+                Ok (Set.singleton 100)
             )
 
 
