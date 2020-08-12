@@ -1142,6 +1142,17 @@ pipelinesView session params =
             params.teams
                 |> FetchResult.withDefault []
 
+        filteredGroups =
+            Filter.filterGroups
+                { pipelineJobs = params.pipelineJobs
+                , jobs = jobs
+                , query = params.query
+                , teams = teams
+                , pipelines = pipelines
+                , dashboardView = params.dashboardView
+                }
+                |> List.sortWith (Group.ordering session)
+
         ( favoritesView, offsetHeight ) =
             if params.highDensity then
                 ( Html.text "", 0 )
@@ -1149,10 +1160,8 @@ pipelinesView session params =
             else
                 let
                     favoritedPipelines =
-                        params.pipelines
-                            |> Maybe.withDefault Dict.empty
-                            |> Dict.toList
-                            |> List.concatMap Tuple.second
+                        filteredGroups
+                            |> List.concatMap .pipelines
                             |> List.filter
                                 (\fp ->
                                     Set.member fp.id session.favoritedPipelines
@@ -1202,17 +1211,6 @@ pipelinesView session params =
                                     + PipelineGridConstants.sectionSpacerHeight
                                 )
                            )
-
-        filteredGroups =
-            Filter.filterGroups
-                { pipelineJobs = params.pipelineJobs
-                , jobs = jobs
-                , query = params.query
-                , teams = teams
-                , pipelines = pipelines
-                , dashboardView = params.dashboardView
-                }
-                |> List.sortWith (Group.ordering session)
 
         groupViews =
             filteredGroups
