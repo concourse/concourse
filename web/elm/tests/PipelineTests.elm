@@ -648,8 +648,6 @@ all =
                             >> Query.find [ id "top-bar-favorited-icon" ]
                             >> Query.children []
                             >> Query.first
-                            >> Query.children []
-                            >> Query.first
                     , unhoveredSelector =
                         { description = "faded star icon"
                         , selector =
@@ -682,8 +680,6 @@ all =
                             |> Tuple.first
                             |> queryView
                             |> Query.find [ id "top-bar-favorited-icon" ]
-                            |> Query.children []
-                            |> Query.first
                             |> Query.children []
                             |> Query.first
                             |> Event.simulate Event.click

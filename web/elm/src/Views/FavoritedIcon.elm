@@ -12,24 +12,24 @@ view :
     { a
         | isHovered : Bool
         , isFavorited : Bool
-        , pipelineID : Int
+        , domID : DomID
     }
+    -> List (Html.Attribute Message)
     -> Html Message
-view params =
-    Html.div
-        []
-        [ Icon.icon
-            { sizePx = 20, image = Assets.FavoritedToggleIcon params.isFavorited }
-            [ style "opacity" <|
-                if params.isHovered || params.isFavorited then
-                    "1"
+view params attrs =
+    Icon.icon
+        { sizePx = 20, image = Assets.FavoritedToggleIcon params.isFavorited }
+        ([ style "opacity" <|
+            if params.isHovered || params.isFavorited then
+                "1"
 
-                else
-                    "0.5"
-            , style "cursor" "pointer"
-            , style "margin" "17px"
-            , onClick <| Click <| TopBarFavoritedIcon params.pipelineID
-            , onMouseEnter <| Hover <| Just <| TopBarFavoritedIcon params.pipelineID
-            , onMouseLeave <| Hover Nothing
-            ]
-        ]
+            else
+                "0.5"
+         , style "cursor" "pointer"
+         , style "background-size" "contain"
+         , onClick <| Click <| params.domID
+         , onMouseEnter <| Hover <| Just <| params.domID
+         , onMouseLeave <| Hover Nothing
+         ]
+            ++ attrs
+        )

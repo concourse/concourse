@@ -398,8 +398,9 @@ view session model =
                         { isHovered = HoverState.isHovered (TopBarFavoritedIcon <| getPipelineId model.pipeline) session.hovered
                         , isFavorited =
                             Set.member (getPipelineId model.pipeline) session.favoritedPipelines
-                        , pipelineID = getPipelineId model.pipeline
+                        , domID = TopBarFavoritedIcon <| getPipelineId model.pipeline
                         }
+                        [ style "margin" "17px" ]
                     ]
                 , if isArchived model.pipeline then
                     Html.text ""
