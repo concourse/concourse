@@ -56,14 +56,11 @@ favoritedIcon =
     ]
 
 
-pauseToggle : Bool -> List (Html.Attribute msg)
-pauseToggle isPaused =
+pauseToggle : List (Html.Attribute msg)
+pauseToggle =
     [ style "border-left" <|
-        if isPaused then
-            "1px solid rgba(255, 255, 255, 0.5)"
-
-        else
-            "1px solid " ++ Colors.background
+        "1px solid "
+            ++ Colors.background
     , style "background-color" Colors.frame
     ]
 

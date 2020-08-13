@@ -652,7 +652,7 @@ view session model =
             [ SideBar.hamburgerMenu session
             , TopBar.concourseLogo
             , breadcrumbs model
-            , Login.view session.userState model False
+            , Login.view session.userState model
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)

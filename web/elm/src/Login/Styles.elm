@@ -18,19 +18,14 @@ loginComponent =
     ]
 
 
-loginContainer : Bool -> List (Html.Attribute msg)
-loginContainer isPaused =
+loginContainer : List (Html.Attribute msg)
+loginContainer =
     [ style "position" "relative"
     , style "display" "flex"
     , style "flex-direction" "column"
     , style "border-left" <|
         "1px solid "
-            ++ (if isPaused then
-                    Colors.pausedTopbarSeparator
-
-                else
-                    Colors.background
-               )
+            ++ Colors.background
     , style "line-height" "54px"
     ]
 

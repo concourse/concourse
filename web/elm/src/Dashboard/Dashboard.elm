@@ -872,13 +872,13 @@ topBar session model =
                 else if not model.highDensity then
                     [ topBarContent [ SearchBar.view session model ]
                     , showArchivedToggleView model
-                    , Login.view session.userState model False
+                    , Login.view session.userState model
                     ]
 
                 else
                     [ topBarContent []
                     , showArchivedToggleView model
-                    , Login.view session.userState model False
+                    , Login.view session.userState model
                     ]
                )
 

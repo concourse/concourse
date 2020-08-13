@@ -407,7 +407,7 @@ view session model =
 
                   else
                     Html.div
-                        (id "top-bar-pause-toggle" :: Styles.pauseToggle displayPaused)
+                        (id "top-bar-pause-toggle" :: Styles.pauseToggle)
                         [ PauseToggle.view
                             { pipeline = model.pipelineLocator
                             , isPaused = isPaused model.pipeline
@@ -422,7 +422,7 @@ view session model =
                             , domID = TopBarPauseToggle model.pipelineLocator
                             }
                         ]
-                , Login.view session.userState model <| displayPaused
+                , Login.view session.userState model
                 ]
             , Html.div
                 (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
