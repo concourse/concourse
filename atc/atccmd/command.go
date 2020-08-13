@@ -918,6 +918,7 @@ func (cmd *RunCommand) backendComponents(
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
 	dbCheckableCounter := db.NewCheckableCounter(dbConn)
+	dbPipelineLifecycle := db.NewPipelineLifecycle(dbConn, lockFactory)
 
 	alg := algorithm.New(db.NewVersionsDB(dbConn, algorithmLimitRows, schedulerCache))
 
@@ -1065,6 +1066,7 @@ func (cmd *RunCommand) backendComponents(
 			},
 			Runnable: gc.NewBuildLogCollector(
 				dbPipelineFactory,
+				dbPipelineLifecycle,
 				500,
 				gc.NewBuildLogRetentionCalculator(
 					cmd.DefaultBuildLogsToRetain,

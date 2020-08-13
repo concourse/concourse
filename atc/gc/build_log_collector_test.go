@@ -17,14 +17,16 @@ import (
 
 var _ = Describe("BuildLogCollector", func() {
 	var (
-		buildLogCollector   GcCollector
-		fakePipelineFactory *dbfakes.FakePipelineFactory
-		batchSize           int
-		buildLogRetainCalc  BuildLogRetentionCalculator
+		buildLogCollector     GcCollector
+		fakePipelineFactory   *dbfakes.FakePipelineFactory
+		fakePipelineLifecycle *dbfakes.FakePipelineLifecycle
+		batchSize             int
+		buildLogRetainCalc    BuildLogRetentionCalculator
 	)
 
 	BeforeEach(func() {
 		fakePipelineFactory = new(dbfakes.FakePipelineFactory)
+		fakePipelineLifecycle = new(dbfakes.FakePipelineLifecycle)
 		batchSize = 5
 		buildLogRetainCalc = NewBuildLogRetentionCalculator(0, 0, 0, 0)
 	})
@@ -32,10 +34,28 @@ var _ = Describe("BuildLogCollector", func() {
 	JustBeforeEach(func() {
 		buildLogCollector = NewBuildLogCollector(
 			fakePipelineFactory,
+			fakePipelineLifecycle,
 			batchSize,
 			buildLogRetainCalc,
 			false,
 		)
+	})
+
+	It("removes build events from deleted pipelines", func() {
+		err := buildLogCollector.Run(context.TODO())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(fakePipelineLifecycle.RemoveBuildEventsForDeletedPipelinesCallCount()).To(Equal(1))
+	})
+
+	Context("when removing build events from deleted pipelines fails", func() {
+		BeforeEach(func() {
+			fakePipelineLifecycle.RemoveBuildEventsForDeletedPipelinesReturns(errors.New("error"))
+		})
+
+		It("errors", func() {
+			err := buildLogCollector.Run(context.TODO())
+			Expect(err).To(HaveOccurred())
+		})
 	})
 
 	Context("when there is a pipeline", func() {
@@ -80,6 +100,7 @@ var _ = Describe("BuildLogCollector", func() {
 				JustBeforeEach(func() {
 					buildLogCollector = NewBuildLogCollector(
 						fakePipelineFactory,
+						fakePipelineLifecycle,
 						batchSize,
 						buildLogRetainCalc,
 						true,
@@ -132,6 +153,7 @@ var _ = Describe("BuildLogCollector", func() {
 				BeforeEach(func() {
 					buildLogCollector = NewBuildLogCollector(
 						fakePipelineFactory,
+						fakePipelineLifecycle,
 						batchSize,
 						buildLogRetainCalc,
 						false,
