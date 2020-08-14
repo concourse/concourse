@@ -73,24 +73,6 @@ var Metrics = NewMonitor()
 
 func NewMonitor() *Monitor {
 	return &Monitor{
-		DatabaseQueries:            Counter{},
-		ContainersCreated:          Counter{},
-		VolumesCreated:             Counter{},
-		FailedContainers:           Counter{},
-		FailedVolumes:              Counter{},
-		ContainersDeleted:          Counter{},
-		VolumesDeleted:             Counter{},
-		ChecksDeleted:              Counter{},
-		JobsScheduled:              Counter{},
-		JobsScheduling:             Gauge{},
-		BuildsStarted:              Counter{},
-		BuildsRunning:              Gauge{},
-		TasksWaiting:               Gauge{},
-		ChecksFinishedWithError:    Counter{},
-		ChecksFinishedWithSuccess:  Counter{},
-		ChecksQueueSize:            Gauge{},
-		ChecksStarted:              Counter{},
-		ChecksEnqueued:             Counter{},
 		ConcurrentRequests:         map[string]*Gauge{},
 		ConcurrentRequestsLimitHit: map[string]*Counter{},
 	}
