@@ -25,6 +25,11 @@ type Diff struct {
 	After  interface{}
 }
 
+type DisplayDiff struct {
+	Before *DisplayConfig
+	After  *DisplayConfig
+}
+
 func name(v interface{}) string {
 	return reflect.ValueOf(v).FieldByName("Name").String()
 }
@@ -49,6 +54,24 @@ func (diff Diff) Render(to io.Writer, label string) {
 
 		payloadB, _ := yaml.Marshal(diff.After)
 
+		renderDiff(to, "", string(payloadB))
+	}
+}
+
+func (diff DisplayDiff) Render(to io.Writer) {
+	label := "display configuration"
+	if diff.Before != nil && diff.After != nil {
+		fmt.Fprintf(to, ansi.Color("%s has changed:", "yellow")+"\n", label)
+		payloadA, _ := yaml.Marshal(diff.Before)
+		payloadB, _ := yaml.Marshal(diff.After)
+		renderDiff(to, string(payloadA), string(payloadB))
+	} else if diff.Before != nil {
+		fmt.Fprintf(to, ansi.Color("%s has been removed:", "yellow")+"\n", label)
+		payloadA, _ := yaml.Marshal(diff.Before)
+		renderDiff(to, string(payloadA), "")
+	} else {
+		fmt.Fprintf(to, ansi.Color("%s has been added:", "yellow")+"\n", label)
+		payloadB, _ := yaml.Marshal(diff.After)
 		renderDiff(to, "", string(payloadB))
 	}
 }
@@ -205,6 +228,20 @@ func diffIndices(oldIndex Index, newIndex Index) Diffs {
 	return diffs
 }
 
+func diffDisplay(oldDisplay, newDisplay *DisplayConfig) (DisplayDiff, bool) {
+	if oldDisplay == nil && newDisplay == nil {
+		return DisplayDiff{
+			Before: nil,
+			After:  nil,
+		}, false
+	}
+
+	return DisplayDiff{
+		Before: oldDisplay,
+		After:  newDisplay,
+	}, practicallyDifferent(oldDisplay, newDisplay)
+}
+
 func renderDiff(to io.Writer, a, b string) {
 	diffs := difflib.Diff(strings.Split(a, "\n"), strings.Split(b, "\n"))
 	indent := gexec.NewPrefixedWriter("\b\b", to)
@@ -291,5 +328,12 @@ func (c Config) Diff(out io.Writer, newConfig Config) bool {
 			diff.Render(indent, "job")
 		}
 	}
+
+	displayDiff, diff := diffDisplay(c.Display, newConfig.Display)
+	if diff {
+		diffExists = true
+		displayDiff.Render(indent)
+	}
+
 	return diffExists
 }
