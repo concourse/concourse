@@ -263,7 +263,10 @@ func (r *resource) SetCheckSetupError(cause error) error {
 	if cause == nil {
 		_, err = psql.Update("resources").
 			Set("check_error", nil).
-			Where(sq.Eq{"id": r.ID()}).
+			Where(sq.And{
+				sq.Eq{"id": r.ID()},
+				sq.NotEq{"check_error": nil},
+			}).
 			RunWith(r.conn).
 			Exec()
 	} else {
