@@ -25,32 +25,30 @@ type Diff struct {
 	After  interface{}
 }
 
-func name(v interface{}) string {
+func name(v interface{}, nameOverride string) string {
+	if nameOverride != "" {
+		return nameOverride
+	}
 	return reflect.ValueOf(v).FieldByName("Name").String()
 }
 
-func (diff Diff) Render(to io.Writer, label string) {
-
+func (diff Diff) Render(to io.Writer, label, nameOverride string) {
+	var payloadA, payloadB []byte = []byte{}, []byte{}
+	var named, verb string
 	if diff.Before != nil && diff.After != nil {
-		fmt.Fprintf(to, ansi.Color("%s %s has changed:", "yellow")+"\n", label, name(diff.Before))
-
-		payloadA, _ := yaml.Marshal(diff.Before)
-		payloadB, _ := yaml.Marshal(diff.After)
-
-		renderDiff(to, string(payloadA), string(payloadB))
+		verb, named = "changed", name(diff.Before, nameOverride)
+		payloadA, _ = yaml.Marshal(diff.Before)
+		payloadB, _ = yaml.Marshal(diff.After)
 	} else if diff.Before != nil {
-		fmt.Fprintf(to, ansi.Color("%s %s has been removed:", "yellow")+"\n", label, name(diff.Before))
-
-		payloadA, _ := yaml.Marshal(diff.Before)
-
-		renderDiff(to, string(payloadA), "")
+		verb, named = "been removed", name(diff.Before, nameOverride)
+		payloadA, _ = yaml.Marshal(diff.Before)
 	} else {
-		fmt.Fprintf(to, ansi.Color("%s %s has been added:", "yellow")+"\n", label, name(diff.After))
-
-		payloadB, _ := yaml.Marshal(diff.After)
-
-		renderDiff(to, "", string(payloadB))
+		verb, named = "been added", name(diff.After, nameOverride)
+		payloadB, _ = yaml.Marshal(diff.After)
 	}
+
+	fmt.Fprintf(to, ansi.Color("%s %s has %s:", "yellow")+"\n", label, named, verb)
+	renderDiff(to, string(payloadA), string(payloadB))
 }
 
 type GroupIndex GroupConfigs
@@ -65,7 +63,7 @@ func (index GroupIndex) Slice() []interface{} {
 }
 
 func (index GroupIndex) FindEquivalentWithOrder(obj interface{}) (interface{}, int, bool) {
-	return GroupConfigs(index).Lookup(name(obj))
+	return GroupConfigs(index).Lookup(name(obj, ""))
 }
 
 type VarSourceIndex VarSourceConfigs
@@ -80,7 +78,7 @@ func (index VarSourceIndex) Slice() []interface{} {
 }
 
 func (index VarSourceIndex) FindEquivalent(obj interface{}) (interface{}, bool) {
-	return VarSourceConfigs(index).Lookup(name(obj))
+	return VarSourceConfigs(index).Lookup(name(obj, ""))
 }
 
 type JobIndex JobConfigs
@@ -95,7 +93,7 @@ func (index JobIndex) Slice() []interface{} {
 }
 
 func (index JobIndex) FindEquivalent(obj interface{}) (interface{}, bool) {
-	return JobConfigs(index).Lookup(name(obj))
+	return JobConfigs(index).Lookup(name(obj, ""))
 }
 
 type ResourceIndex ResourceConfigs
@@ -110,7 +108,7 @@ func (index ResourceIndex) Slice() []interface{} {
 }
 
 func (index ResourceIndex) FindEquivalent(obj interface{}) (interface{}, bool) {
-	return ResourceConfigs(index).Lookup(name(obj))
+	return ResourceConfigs(index).Lookup(name(obj, ""))
 }
 
 type ResourceTypeIndex ResourceTypes
@@ -125,7 +123,7 @@ func (index ResourceTypeIndex) Slice() []interface{} {
 }
 
 func (index ResourceTypeIndex) FindEquivalent(obj interface{}) (interface{}, bool) {
-	return ResourceTypes(index).Lookup(name(obj))
+	return ResourceTypes(index).Lookup(name(obj, ""))
 }
 
 func groupDiffIndices(oldIndex GroupIndex, newIndex GroupIndex) Diffs {
@@ -205,6 +203,28 @@ func diffIndices(oldIndex Index, newIndex Index) Diffs {
 	return diffs
 }
 
+func diffDisplay(oldDisplay, newDisplay DisplayConfig) (Diff, bool) {
+	nilDisplayConfig := DisplayConfig{}
+	if oldDisplay == nilDisplayConfig {
+		return Diff{
+			Before: nil,
+			After:  newDisplay,
+		}, true
+	} else if newDisplay == nilDisplayConfig {
+		return Diff{
+			Before: oldDisplay,
+			After:  nil,
+		}, true
+	} else if practicallyDifferent(oldDisplay, newDisplay) {
+		return Diff{
+			Before: oldDisplay,
+			After:  newDisplay,
+		}, true
+	}
+
+	return Diff{}, false
+}
+
 func renderDiff(to io.Writer, a, b string) {
 	diffs := difflib.Diff(strings.Split(a, "\n"), strings.Split(b, "\n"))
 	indent := gexec.NewPrefixedWriter("\b\b", to)
@@ -248,7 +268,7 @@ func (c Config) Diff(out io.Writer, newConfig Config) bool {
 		fmt.Fprintln(out, "groups:")
 
 		for _, diff := range groupDiffs {
-			diff.Render(indent, "group")
+			diff.Render(indent, "group", "")
 		}
 	}
 
@@ -258,7 +278,7 @@ func (c Config) Diff(out io.Writer, newConfig Config) bool {
 		fmt.Println("variable source:")
 
 		for _, diff := range varSourceDiffs {
-			diff.Render(indent, "variable source")
+			diff.Render(indent, "variable source", "")
 		}
 	}
 
@@ -268,7 +288,7 @@ func (c Config) Diff(out io.Writer, newConfig Config) bool {
 		fmt.Fprintln(out, "resources:")
 
 		for _, diff := range resourceDiffs {
-			diff.Render(indent, "resource")
+			diff.Render(indent, "resource", "")
 		}
 	}
 
@@ -278,7 +298,7 @@ func (c Config) Diff(out io.Writer, newConfig Config) bool {
 		fmt.Fprintln(out, "resource types:")
 
 		for _, diff := range resourceTypeDiffs {
-			diff.Render(indent, "resource type")
+			diff.Render(indent, "resource type", "")
 		}
 	}
 
@@ -288,8 +308,15 @@ func (c Config) Diff(out io.Writer, newConfig Config) bool {
 		fmt.Fprintln(out, "jobs:")
 
 		for _, diff := range jobDiffs {
-			diff.Render(indent, "job")
+			diff.Render(indent, "job", "")
 		}
 	}
+
+	displayDiff, diff := diffDisplay(c.Display, newConfig.Display)
+	if diff {
+		diffExists = true
+		displayDiff.Render(indent, "display", "configuration")
+	}
+
 	return diffExists
 }
