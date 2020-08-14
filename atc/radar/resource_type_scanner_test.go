@@ -300,7 +300,7 @@ var _ = Describe("ResourceTypeScanner", func() {
 							Expect(fakeResourceType.SetCheckSetupErrorCallCount()).To(Equal(1))
 
 							resourceErr := fakeResourceType.SetCheckSetupErrorArgsForCall(0)
-							Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
+							Expect(resourceErr).To(MatchError("time: invalid duration \"bad-value\""))
 						})
 
 						It("returns an error", func() {

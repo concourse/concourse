@@ -307,7 +307,7 @@ var _ = Describe("ResourceScanner", func() {
 							Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
 
 							resourceErr := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
-							Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
+							Expect(resourceErr).To(MatchError("time: invalid duration \"bad-value\""))
 						})
 
 						It("returns an error", func() {
@@ -779,7 +779,7 @@ var _ = Describe("ResourceScanner", func() {
 						Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
 
 						resourceErr := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
-						Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
+						Expect(resourceErr).To(MatchError("time: invalid duration \"bad-value\""))
 					})
 				})
 			})
@@ -808,7 +808,7 @@ var _ = Describe("ResourceScanner", func() {
 						Expect(fakeDBResource.SetCheckSetupErrorCallCount()).To(Equal(1))
 
 						resourceErr := fakeDBResource.SetCheckSetupErrorArgsForCall(0)
-						Expect(resourceErr).To(MatchError("time: invalid duration bad-value"))
+						Expect(resourceErr).To(MatchError("time: invalid duration \"bad-value\""))
 					})
 				})
 			})
