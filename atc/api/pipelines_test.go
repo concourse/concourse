@@ -45,6 +45,9 @@ var _ = Describe("Pipelines API", func() {
 				Resources: []string{"resource3", "resource4"},
 			},
 		})
+		publicPipeline.DisplayReturns(atc.DisplayConfig{
+			HeaderColor: "#FFFFFF",
+		})
 		publicPipeline.LastUpdatedReturns(time.Unix(1, 0))
 
 		anotherPublicPipeline = new(dbfakes.FakePipeline)
@@ -131,7 +134,10 @@ var _ = Describe("Pipelines API", func() {
 							"jobs": ["job3", "job4"],
 							"resources": ["resource3", "resource4"]
 						}
-					]
+					],
+					"display": {
+						"header_color": "#FFFFFF"
+					}
 				},
 				{
 					"id": 2,
@@ -140,7 +146,8 @@ var _ = Describe("Pipelines API", func() {
 					"public": true,
 					"archived": false,
 					"team_name": "another",
-					"last_updated": 1
+					"last_updated": 1,
+					"display": {}
 				}
 			]`))
 		})
@@ -283,7 +290,8 @@ var _ = Describe("Pipelines API", func() {
 								"jobs": ["job1", "job2"],
 								"resources": ["resource1", "resource2"]
 							}
-						]
+						],
+						"display": {}
 					},
 					{
 						"id": 1,
@@ -299,7 +307,10 @@ var _ = Describe("Pipelines API", func() {
 								"jobs": ["job3", "job4"],
 								"resources": ["resource3", "resource4"]
 							}
-						]
+						],
+						"display": {
+							"header_color": "#FFFFFF"
+						}
 					}
 				]`))
 			})
@@ -387,6 +398,9 @@ var _ = Describe("Pipelines API", func() {
 					Resources: []string{"resource3", "resource4"},
 				},
 			})
+			fakePipeline.DisplayReturns(atc.DisplayConfig{
+				HeaderColor: "#FFFFFF",
+			})
 			fakePipeline.LastUpdatedReturns(time.Unix(1, 0))
 		})
 
@@ -452,7 +466,10 @@ var _ = Describe("Pipelines API", func() {
 								"jobs": ["job3", "job4"],
 								"resources": ["resource3", "resource4"]
 							}
-						]
+						],
+						"display": {
+							"header_color": "#FFFFFF"
+						}
 					}`))
 			})
 		})
