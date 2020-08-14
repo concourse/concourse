@@ -168,6 +168,16 @@ type FakePipeline struct {
 	destroyReturnsOnCall map[int]struct {
 		result1 error
 	}
+	DisplayStub        func() *atc.DisplayConfig
+	displayMutex       sync.RWMutex
+	displayArgsForCall []struct {
+	}
+	displayReturns struct {
+		result1 *atc.DisplayConfig
+	}
+	displayReturnsOnCall map[int]struct {
+		result1 *atc.DisplayConfig
+	}
 	ExposeStub        func() error
 	exposeMutex       sync.RWMutex
 	exposeArgsForCall []struct {
@@ -1286,6 +1296,58 @@ func (fake *FakePipeline) DestroyReturnsOnCall(i int, result1 error) {
 	}
 	fake.destroyReturnsOnCall[i] = struct {
 		result1 error
+	}{result1}
+}
+
+func (fake *FakePipeline) Display() *atc.DisplayConfig {
+	fake.displayMutex.Lock()
+	ret, specificReturn := fake.displayReturnsOnCall[len(fake.displayArgsForCall)]
+	fake.displayArgsForCall = append(fake.displayArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Display", []interface{}{})
+	fake.displayMutex.Unlock()
+	if fake.DisplayStub != nil {
+		return fake.DisplayStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.displayReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakePipeline) DisplayCallCount() int {
+	fake.displayMutex.RLock()
+	defer fake.displayMutex.RUnlock()
+	return len(fake.displayArgsForCall)
+}
+
+func (fake *FakePipeline) DisplayCalls(stub func() *atc.DisplayConfig) {
+	fake.displayMutex.Lock()
+	defer fake.displayMutex.Unlock()
+	fake.DisplayStub = stub
+}
+
+func (fake *FakePipeline) DisplayReturns(result1 *atc.DisplayConfig) {
+	fake.displayMutex.Lock()
+	defer fake.displayMutex.Unlock()
+	fake.DisplayStub = nil
+	fake.displayReturns = struct {
+		result1 *atc.DisplayConfig
+	}{result1}
+}
+
+func (fake *FakePipeline) DisplayReturnsOnCall(i int, result1 *atc.DisplayConfig) {
+	fake.displayMutex.Lock()
+	defer fake.displayMutex.Unlock()
+	fake.DisplayStub = nil
+	if fake.displayReturnsOnCall == nil {
+		fake.displayReturnsOnCall = make(map[int]struct {
+			result1 *atc.DisplayConfig
+		})
+	}
+	fake.displayReturnsOnCall[i] = struct {
+		result1 *atc.DisplayConfig
 	}{result1}
 }
 
@@ -3083,6 +3145,8 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.deleteBuildEventsByBuildIDsMutex.RUnlock()
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
+	fake.displayMutex.RLock()
+	defer fake.displayMutex.RUnlock()
 	fake.exposeMutex.RLock()
 	defer fake.exposeMutex.RUnlock()
 	fake.getBuildsWithVersionAsInputMutex.RLock()
