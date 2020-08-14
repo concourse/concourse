@@ -14,6 +14,7 @@ func Pipeline(savedPipeline db.Pipeline) atc.Pipeline {
 		Public:      savedPipeline.Public(),
 		Archived:    savedPipeline.Archived(),
 		Groups:      savedPipeline.Groups(),
+		Display:     savedPipeline.Display(),
 		LastUpdated: savedPipeline.LastUpdated().Unix(),
 	}
 }

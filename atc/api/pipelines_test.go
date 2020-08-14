@@ -45,6 +45,9 @@ var _ = Describe("Pipelines API", func() {
 				Resources: []string{"resource3", "resource4"},
 			},
 		})
+		publicPipeline.DisplayReturns(&atc.DisplayConfig{
+			BackgroundImage: "background.jpg",
+		})
 		publicPipeline.LastUpdatedReturns(time.Unix(1, 0))
 
 		anotherPublicPipeline = new(dbfakes.FakePipeline)
@@ -131,7 +134,10 @@ var _ = Describe("Pipelines API", func() {
 							"jobs": ["job3", "job4"],
 							"resources": ["resource3", "resource4"]
 						}
-					]
+					],
+					"display": {
+						"background_image": "background.jpg"
+					}
 				},
 				{
 					"id": 2,
@@ -299,7 +305,10 @@ var _ = Describe("Pipelines API", func() {
 								"jobs": ["job3", "job4"],
 								"resources": ["resource3", "resource4"]
 							}
-						]
+						],
+						"display": {
+							"background_image": "background.jpg"
+						}
 					}
 				]`))
 			})
@@ -387,6 +396,9 @@ var _ = Describe("Pipelines API", func() {
 					Resources: []string{"resource3", "resource4"},
 				},
 			})
+			fakePipeline.DisplayReturns(&atc.DisplayConfig{
+				BackgroundImage: "background.jpg",
+			})
 			fakePipeline.LastUpdatedReturns(time.Unix(1, 0))
 		})
 
@@ -452,7 +464,10 @@ var _ = Describe("Pipelines API", func() {
 								"jobs": ["job3", "job4"],
 								"resources": ["resource3", "resource4"]
 							}
-						]
+						],
+						"display": {
+							"background_image": "background.jpg"
+						}
 					}`))
 			})
 		})
