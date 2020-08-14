@@ -24,7 +24,6 @@ type stepFactory struct {
 	defaultLimits                   atc.ContainerLimits
 	strategy                        worker.ContainerPlacementStrategy
 	lockFactory                     lock.LockFactory
-	enableRerunWhenWorkerDisappears bool
 }
 
 func NewStepFactory(
@@ -38,7 +37,6 @@ func NewStepFactory(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	lockFactory lock.LockFactory,
-	enableRerunWhenWorkerDisappears bool,
 ) *stepFactory {
 	return &stepFactory{
 		pool:                            pool,
@@ -51,7 +49,6 @@ func NewStepFactory(
 		defaultLimits:                   defaultLimits,
 		strategy:                        strategy,
 		lockFactory:                     lockFactory,
-		enableRerunWhenWorkerDisappears: enableRerunWhenWorkerDisappears,
 	}
 }
 
@@ -76,7 +73,7 @@ func (factory *stepFactory) GetStep(
 	)
 
 	getStep = exec.LogError(getStep, delegate)
-	if factory.enableRerunWhenWorkerDisappears {
+	if atc.EnableBuildRerunWhenWorkerDisappears {
 		getStep = exec.RetryError(getStep, delegate)
 	}
 	return getStep
@@ -103,7 +100,7 @@ func (factory *stepFactory) PutStep(
 	)
 
 	putStep = exec.LogError(putStep, delegate)
-	if factory.enableRerunWhenWorkerDisappears {
+	if atc.EnableBuildRerunWhenWorkerDisappears {
 		putStep = exec.RetryError(putStep, delegate)
 	}
 	return putStep
@@ -154,7 +151,7 @@ func (factory *stepFactory) TaskStep(
 	)
 
 	taskStep = exec.LogError(taskStep, delegate)
-	if factory.enableRerunWhenWorkerDisappears {
+	if atc.EnableBuildRerunWhenWorkerDisappears {
 		taskStep = exec.RetryError(taskStep, delegate)
 	}
 	return taskStep
@@ -176,7 +173,7 @@ func (factory *stepFactory) SetPipelineStep(
 	)
 
 	spStep = exec.LogError(spStep, delegate)
-	if factory.enableRerunWhenWorkerDisappears {
+	if atc.EnableBuildRerunWhenWorkerDisappears {
 		spStep = exec.RetryError(spStep, delegate)
 	}
 	return spStep
@@ -196,7 +193,7 @@ func (factory *stepFactory) LoadVarStep(
 	)
 
 	loadVarStep = exec.LogError(loadVarStep, delegate)
-	if factory.enableRerunWhenWorkerDisappears {
+	if atc.EnableBuildRerunWhenWorkerDisappears {
 		loadVarStep = exec.RetryError(loadVarStep, delegate)
 	}
 	return loadVarStep

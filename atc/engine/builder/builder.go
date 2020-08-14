@@ -2,6 +2,7 @@ package builder
 
 import (
 	"code.cloudfoundry.org/lager"
+
 	"errors"
 	"fmt"
 	"strconv"
@@ -45,7 +46,6 @@ func NewStepBuilder(
 	externalURL string,
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
-	redactSecrets bool,
 ) *stepBuilder {
 	return &stepBuilder{
 		stepFactory:     stepFactory,
@@ -53,7 +53,6 @@ func NewStepBuilder(
 		externalURL:     externalURL,
 		globalSecrets:   secrets,
 		varSourcePool:   varSourcePool,
-		redactSecrets:   redactSecrets,
 	}
 }
 
@@ -63,7 +62,6 @@ type stepBuilder struct {
 	externalURL     string
 	globalSecrets   creds.Secrets
 	varSourcePool   creds.VarSourcePool
-	redactSecrets   bool
 }
 
 func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec.Step, error) {
@@ -80,7 +78,7 @@ func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec
 	// "fly execute" generated build will have no pipeline.
 	if build.PipelineID() == 0 {
 		globalVars := creds.NewVariables(builder.globalSecrets, build.TeamName(), build.PipelineName(), false)
-		credVarsTracker = vars.NewCredVarsTracker(globalVars, builder.redactSecrets)
+		credVarsTracker = vars.NewCredVarsTracker(globalVars, atc.EnableRedactSecrets)
 	} else {
 		pipeline, found, err := build.Pipeline()
 		if err != nil {
@@ -94,7 +92,7 @@ func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec
 		if err != nil {
 			return exec.IdentityStep{}, err
 		}
-		credVarsTracker = vars.NewCredVarsTracker(varss, builder.redactSecrets)
+		credVarsTracker = vars.NewCredVarsTracker(varss, atc.EnableRedactSecrets)
 	}
 
 	return builder.buildStep(build, build.PrivatePlan(), credVarsTracker), nil
@@ -126,7 +124,7 @@ func (builder *stepBuilder) CheckStep(logger lager.Logger, check db.Check) (exec
 	if err != nil {
 		return exec.IdentityStep{}, fmt.Errorf("failed to create pipeline variables: %s", err.Error())
 	}
-	credVarsTracker := vars.NewCredVarsTracker(varss, builder.redactSecrets)
+	credVarsTracker := vars.NewCredVarsTracker(varss, atc.EnableRedactSecrets)
 	return builder.buildCheckStep(check, check.Plan(), credVarsTracker), nil
 }
 

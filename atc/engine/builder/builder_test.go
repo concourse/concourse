@@ -52,7 +52,6 @@ var _ = Describe("Builder", func() {
 				"http://example.com",
 				fakeSecretManager,
 				fakeVarSourcePool,
-				false,
 			)
 
 			planFactory = atc.NewPlanFactory(123)
@@ -908,7 +907,6 @@ var _ = Describe("Builder", func() {
 				"http://example.com",
 				fakeSecretManager,
 				fakeVarSourcePool,
-				false,
 			)
 
 			planFactory = atc.NewPlanFactory(123)
