@@ -49,6 +49,9 @@ var _ = Describe("Pipeline", func() {
 					},
 				},
 			},
+			Display: atc.DisplayConfig{
+				HeaderColor: "#FFFFFF",
+			},
 			Jobs: atc.JobConfigs{
 				{
 					Name: "job-name",
