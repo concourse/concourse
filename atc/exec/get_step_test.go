@@ -71,7 +71,7 @@ var _ = Describe("GetStep", func() {
 			PipelineName: "some-pipeline",
 		}
 
-		planID = 56
+		planID = "56"
 	)
 
 	BeforeEach(func() {
