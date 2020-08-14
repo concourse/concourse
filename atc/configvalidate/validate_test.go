@@ -106,6 +106,8 @@ var _ = Describe("ValidateConfig", func() {
 				},
 			},
 		}
+
+		atc.EnableAcrossStep = true
 	})
 
 	JustBeforeEach(func() {
@@ -1820,18 +1822,18 @@ var _ = Describe("ValidateConfig", func() {
 							},
 							Vars: []atc.AcrossVarConfig{
 								{
-									Var: "var1",
+									Var:    "var1",
 									Values: []interface{}{"v1", "v2"},
 								},
 								{
-									Var: "var2",
+									Var:         "var2",
 									MaxInFlight: &atc.MaxInFlightConfig{Limit: 2},
-									Values: []interface{}{"v1", "v2"},
+									Values:      []interface{}{"v1", "v2"},
 								},
 								{
-									Var: "var3",
+									Var:         "var3",
 									MaxInFlight: &atc.MaxInFlightConfig{All: true},
-									Values: []interface{}{"v1", "v2"},
+									Values:      []interface{}{"v1", "v2"},
 								},
 							},
 						},
@@ -1914,6 +1916,32 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].across[0].max_in_flight: must be greater than 0"))
+				})
+			})
+
+			Context("when the across step is not enabled", func() {
+				BeforeEach(func() {
+					atc.EnableAcrossStep = false
+
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.AcrossStep{
+							Step: &atc.PutStep{
+								Name: "some-resource",
+							},
+							Vars: []atc.AcrossVarConfig{
+								{
+									Var: "var",
+								},
+							},
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].across: the across step must be explicitly opted-in to using the `--enable-across-step` flag"))
 				})
 			})
 		})

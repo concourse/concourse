@@ -247,6 +247,7 @@ type RunCommand struct {
 		EnableGlobalResources                bool `long:"enable-global-resources" description:"Enable equivalent resources across pipelines and teams to share a single version history."`
 		EnableRedactSecrets                  bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
 		EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears or a network error occurs"`
+		EnableAcrossStep                     bool `long:"enable-across-step" description:"Enable the experimental across step to be used in jobs. The API is subject to change."`
 	} `group:"Feature Flags"`
 }
 
@@ -447,6 +448,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	atc.EnableGlobalResources = cmd.FeatureFlags.EnableGlobalResources
 	atc.EnableRedactSecrets = cmd.FeatureFlags.EnableRedactSecrets
 	atc.EnableBuildRerunWhenWorkerDisappears = cmd.FeatureFlags.EnableBuildRerunWhenWorkerDisappears
+	atc.EnableAcrossStep = cmd.FeatureFlags.EnableAcrossStep
 
 	//FIXME: These only need to run once for the entire binary. At the moment,
 	//they rely on state of the command.
