@@ -15,7 +15,7 @@ import (
 //go:generate counterfeiter . ListAllJobsWatcher
 
 type ListAllJobsWatcher interface {
-	WatchListAllJobs(ctx context.Context, access accessor.Access) (<-chan []watch.DashboardJobEvent, error)
+	WatchListAllJobs(ctx context.Context) (<-chan []watch.DashboardJobEvent, error)
 }
 
 type JobWatchEvent struct {
@@ -33,7 +33,7 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 	var watchEventsChan <-chan []watch.DashboardJobEvent
 	var err error
 	if watchMode {
-		watchEventsChan, err = s.listAllJobsWatcher.WatchListAllJobs(r.Context(), acc)
+		watchEventsChan, err = s.listAllJobsWatcher.WatchListAllJobs(r.Context())
 		if err == watch.ErrDisabled {
 			http.Error(w, "ListAllJobs watch endpoint is not enabled", http.StatusNotAcceptable)
 			return
@@ -74,7 +74,16 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 		}
 		eventID++
 		for events := range watchEventsChan {
-			if err := writer.WriteEvent(eventID, "patch", presentEvents(events)); err != nil {
+			var visibleEvents []JobWatchEvent
+			for _, event := range events {
+				if hasAccessTo(event, acc) {
+					visibleEvents = append(visibleEvents, presentEvent(event))
+				}
+			}
+			if len(visibleEvents) == 0 {
+				continue
+			}
+			if err := writer.WriteEvent(eventID, "patch", visibleEvents); err != nil {
 				logger.Error("failed-to-write-patch-event", err)
 				return
 			}
@@ -90,18 +99,26 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func presentEvents(events []watch.DashboardJobEvent) []JobWatchEvent {
-	presentEvents := make([]JobWatchEvent, len(events))
-	for i, event := range events {
-		presentEvent := JobWatchEvent{
-			ID:   event.ID,
-			Type: event.Type,
-		}
-		if event.Job != nil {
-			j := present.DashboardJob(event.Job.TeamName, *event.Job)
-			presentEvent.Job = &j
-		}
-		presentEvents[i] = presentEvent
+func hasAccessTo(event watch.DashboardJobEvent, access accessor.Access) bool {
+	if event.Job == nil {
+		// this means we always send DELETE events, even if the user didn't have access to the deleted pipeline.
+		// given that there's no sensitive information (just the id, which is serial anyway), I suspect this is okay
+		return true
 	}
-	return presentEvents
+	if event.Job.PipelinePublic {
+		return true
+	}
+	return access.IsAuthorized(event.Job.TeamName)
+}
+
+func presentEvent(event watch.DashboardJobEvent) JobWatchEvent {
+	presentEvent := JobWatchEvent{
+		ID:   event.ID,
+		Type: event.Type,
+	}
+	if event.Job != nil {
+		j := present.DashboardJob(event.Job.TeamName, *event.Job)
+		presentEvent.Job = &j
+	}
+	return presentEvent
 }

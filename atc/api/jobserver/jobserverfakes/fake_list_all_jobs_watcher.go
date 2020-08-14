@@ -5,17 +5,15 @@ import (
 	"context"
 	"sync"
 
-	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/jobserver"
 	"github.com/concourse/concourse/atc/db/watch"
 )
 
 type FakeListAllJobsWatcher struct {
-	WatchListAllJobsStub        func(context.Context, accessor.Access) (<-chan []watch.DashboardJobEvent, error)
+	WatchListAllJobsStub        func(context.Context) (<-chan []watch.DashboardJobEvent, error)
 	watchListAllJobsMutex       sync.RWMutex
 	watchListAllJobsArgsForCall []struct {
 		arg1 context.Context
-		arg2 accessor.Access
 	}
 	watchListAllJobsReturns struct {
 		result1 <-chan []watch.DashboardJobEvent
@@ -29,17 +27,16 @@ type FakeListAllJobsWatcher struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeListAllJobsWatcher) WatchListAllJobs(arg1 context.Context, arg2 accessor.Access) (<-chan []watch.DashboardJobEvent, error) {
+func (fake *FakeListAllJobsWatcher) WatchListAllJobs(arg1 context.Context) (<-chan []watch.DashboardJobEvent, error) {
 	fake.watchListAllJobsMutex.Lock()
 	ret, specificReturn := fake.watchListAllJobsReturnsOnCall[len(fake.watchListAllJobsArgsForCall)]
 	fake.watchListAllJobsArgsForCall = append(fake.watchListAllJobsArgsForCall, struct {
 		arg1 context.Context
-		arg2 accessor.Access
-	}{arg1, arg2})
-	fake.recordInvocation("WatchListAllJobs", []interface{}{arg1, arg2})
+	}{arg1})
+	fake.recordInvocation("WatchListAllJobs", []interface{}{arg1})
 	fake.watchListAllJobsMutex.Unlock()
 	if fake.WatchListAllJobsStub != nil {
-		return fake.WatchListAllJobsStub(arg1, arg2)
+		return fake.WatchListAllJobsStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -54,17 +51,17 @@ func (fake *FakeListAllJobsWatcher) WatchListAllJobsCallCount() int {
 	return len(fake.watchListAllJobsArgsForCall)
 }
 
-func (fake *FakeListAllJobsWatcher) WatchListAllJobsCalls(stub func(context.Context, accessor.Access) (<-chan []watch.DashboardJobEvent, error)) {
+func (fake *FakeListAllJobsWatcher) WatchListAllJobsCalls(stub func(context.Context) (<-chan []watch.DashboardJobEvent, error)) {
 	fake.watchListAllJobsMutex.Lock()
 	defer fake.watchListAllJobsMutex.Unlock()
 	fake.WatchListAllJobsStub = stub
 }
 
-func (fake *FakeListAllJobsWatcher) WatchListAllJobsArgsForCall(i int) (context.Context, accessor.Access) {
+func (fake *FakeListAllJobsWatcher) WatchListAllJobsArgsForCall(i int) context.Context {
 	fake.watchListAllJobsMutex.RLock()
 	defer fake.watchListAllJobsMutex.RUnlock()
 	argsForCall := fake.watchListAllJobsArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1
 }
 
 func (fake *FakeListAllJobsWatcher) WatchListAllJobsReturns(result1 <-chan []watch.DashboardJobEvent, result2 error) {

@@ -10,7 +10,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 )
@@ -117,20 +116,19 @@ func (w *ListAllJobsWatcher) setupTriggers() error {
 	return nil
 }
 
-func (w *ListAllJobsWatcher) WatchListAllJobs(ctx context.Context, access accessor.Access) (<-chan []DashboardJobEvent, error) {
+func (w *ListAllJobsWatcher) WatchListAllJobs(ctx context.Context) (<-chan []DashboardJobEvent, error) {
 	eventsChan := make(chan []DashboardJobEvent)
 
 	dirty := make(chan struct{})
 	var pendingEvents []DashboardJobEvent
 	var mtx sync.Mutex
-	go w.watchEvents(ctx, access, &pendingEvents, &mtx, dirty)
+	go w.watchEvents(ctx, &pendingEvents, &mtx, dirty)
 	go w.sendEvents(ctx, eventsChan, &pendingEvents, &mtx, dirty)
 	return eventsChan, nil
 }
 
 func (w *ListAllJobsWatcher) watchEvents(
 	ctx context.Context,
-	access accessor.Access,
 	pendingEvents *[]DashboardJobEvent,
 	mtx *sync.Mutex,
 	dirty chan<- struct{},
@@ -146,11 +144,7 @@ func (w *ListAllJobsWatcher) watchEvents(
 				return
 			}
 			mtx.Lock()
-			for _, evt := range evts {
-				if w.hasAccessTo(access, evt) {
-					*pendingEvents = append(*pendingEvents, evt)
-				}
-			}
+			*pendingEvents = append(*pendingEvents, evts...)
 			if len(*pendingEvents) > 0 {
 				invalidate(dirty)
 			}
@@ -223,26 +217,6 @@ func (w *ListAllJobsWatcher) terminateSubscribers() {
 		close(c)
 		delete(w.subscribers, c)
 	}
-}
-
-func (w *ListAllJobsWatcher) hasAccessTo(access accessor.Access, evt DashboardJobEvent) bool {
-	if access.IsAdmin() {
-		return true
-	}
-	if evt.Job == nil {
-		// this means we send DELETE events to all subscribers.
-		// given that there's no sensitive information (just the id, which is serial anyway), I suspect this is okay
-		return true
-	}
-	if evt.Job.PipelinePublic {
-		return true
-	}
-	for _, teamName := range access.TeamNames() {
-		if evt.Job.TeamName == teamName {
-			return true
-		}
-	}
-	return false
 }
 
 func (w *ListAllJobsWatcher) drain(notifs chan db.Notification) {

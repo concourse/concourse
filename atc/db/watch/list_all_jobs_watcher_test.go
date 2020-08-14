@@ -8,7 +8,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/watch"
@@ -82,7 +81,6 @@ var _ = Describe("ListAllJobsWatcher", func() {
 			job1     db.Job
 			job2     db.Job
 
-			access        *accessorfakes.FakeAccess
 			mtx           sync.Mutex
 			invokedEvents []watch.DashboardJobEvent
 		)
@@ -134,14 +132,11 @@ var _ = Describe("ListAllJobsWatcher", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			access = new(accessorfakes.FakeAccess)
-			access.IsAdminReturns(true)
-
 			resetInvokedEvents()
 		})
 
 		JustBeforeEach(func() {
-			eventsChan, _ := watcher.WatchListAllJobs(ctx, access)
+			eventsChan, _ := watcher.WatchListAllJobs(ctx)
 			go func() {
 				for events := range eventsChan {
 					mtx.Lock()
@@ -220,47 +215,8 @@ var _ = Describe("ListAllJobsWatcher", func() {
 			Eventually(getInvokedEvents).Should(ConsistOf(PutEvent(job1), PutEvent(job2)))
 		})
 
-		Describe("access control for non-admins", func() {
-			BeforeEach(func() {
-				access.IsAdminReturns(false)
-			})
-
-			Context("when the user has access to the team", func() {
-				BeforeEach(func() {
-					access.TeamNamesReturns([]string{"team"})
-				})
-
-				It("forwards the notification", func() {
-					job1.CreateBuild()
-					Eventually(getInvokedEvents).Should(ContainElement(PutEvent(job1)))
-				})
-			})
-
-			Context("when the user does not have access to the team", func() {
-				BeforeEach(func() {
-					access.TeamNamesReturns([]string{"other-team"})
-				})
-
-				It("does not forward the notification", func() {
-					job1.CreateBuild()
-					Consistently(getInvokedEvents).Should(BeEmpty())
-				})
-
-				Context("when the pipeline is public", func() {
-					BeforeEach(func() {
-						pipeline.Expose()
-					})
-
-					It("forwards the notification", func() {
-						job1.CreateBuild()
-						Eventually(getInvokedEvents).Should(ContainElement(PutEvent(job1)))
-					})
-				})
-			})
-		})
-
 		It("subscribers don't block the watcher if their events channel isn't drained", func() {
-			watcher.WatchListAllJobs(ctx, access)
+			watcher.WatchListAllJobs(ctx)
 
 			for i := 0; i < 100; i++ {
 				job1.CreateBuild()
@@ -272,7 +228,7 @@ var _ = Describe("ListAllJobsWatcher", func() {
 
 	It("cancelling the context halts the subscriber", func() {
 		time.AfterFunc(50*time.Millisecond, cancel)
-		eventsChan, _ := watcher.WatchListAllJobs(ctx, new(accessorfakes.FakeAccess))
+		eventsChan, _ := watcher.WatchListAllJobs(ctx)
 		Eventually(eventsChan).Should(BeClosed())
 	})
 })
