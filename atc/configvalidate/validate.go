@@ -3,6 +3,7 @@ package configvalidate
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/concourse/concourse/atc"
@@ -54,6 +55,12 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 		errorMessages = append(errorMessages, formatErr("jobs", jobsErr))
 	}
 	warnings = append(warnings, jobWarnings...)
+
+	displayWarnings, displayErr := validateDisplay(c)
+	if displayErr != nil {
+		errorMessages = append(errorMessages, formatErr("display", displayErr))
+	}
+	warnings = append(warnings, displayWarnings...)
 
 	return warnings, errorMessages
 }
@@ -384,5 +391,18 @@ func validateVarSources(c Config) ([]ConfigWarning, error) {
 		errorMessages = append(errorMessages, fmt.Sprintf("failed to order by dependency: %s", err.Error()))
 	}
 
+	return warnings, compositeErr(errorMessages)
+}
+
+func validateDisplay(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
+	var errorMessages []string
+
+	if headerColor := c.Display.HeaderColor; headerColor != "" {
+		matched, err := regexp.MatchString(`^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$`, headerColor)
+		if err != nil || !matched {
+			errorMessages = append(errorMessages, fmt.Sprintf("header color %s is not a valid hex color", headerColor))
+		}
+	}
 	return warnings, compositeErr(errorMessages)
 }
