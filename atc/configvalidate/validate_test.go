@@ -1790,7 +1790,7 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[1].load_var(a-var): repeated name"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[1].load_var(a-var): repeated var name"))
 				})
 			})
 
@@ -1891,6 +1891,67 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].across[1]: repeated var name"))
+				})
+			})
+
+			Context("when an across step shadows a var name from a parent scope", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence,
+						atc.Step{Config: &atc.LoadVarStep{
+							Name: "var1",
+							File: "unused",
+						}},
+						atc.Step{
+							Config: &atc.AcrossStep{
+								Step: &atc.PutStep{
+									Name: "some-resource",
+								},
+								Vars: []atc.AcrossVarConfig{
+									{
+										Var: "var1",
+									},
+								},
+							},
+						})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns a warning", func() {
+					Expect(errorMessages).To(BeEmpty())
+					Expect(warnings).To(HaveLen(1))
+					Expect(warnings[0].Message).To(ContainSubstring("jobs.some-other-job.plan.do[1].across[0]: shadows local var 'var1'"))
+				})
+			})
+
+			Context("when a substep of the across step shadows a var name from a parent scope", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence,
+						atc.Step{Config: &atc.LoadVarStep{
+							Name: "a",
+							File: "unused",
+						}},
+						atc.Step{
+							Config: &atc.AcrossStep{
+								Step: &atc.LoadVarStep{
+									Name: "a",
+									File: "unused",
+								},
+								Vars: []atc.AcrossVarConfig{
+									{
+										Var: "b",
+									},
+								},
+							},
+						})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns a warning", func() {
+					Expect(errorMessages).To(BeEmpty())
+					Expect(warnings).To(HaveLen(1))
+					Expect(warnings[0].Message).To(ContainSubstring("jobs.some-other-job.plan.do[1].across.load_var(a): shadows local var 'a'"))
 				})
 			})
 

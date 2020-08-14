@@ -25,9 +25,11 @@ type StepValidator struct {
 	config  Config
 	context []string
 
-	seenGetName      map[string]bool
-	seenLocalVarName map[string]bool
+	seenGetName    scope
+	localVarScopes []scope
 }
+
+type scope map[string]bool
 
 // NewStepValidator is a constructor which initializes internal data.
 //
@@ -39,10 +41,10 @@ type StepValidator struct {
 // errors like 'jobs(foo).plan.task(bar): blah blah'.
 func NewStepValidator(config Config, context []string) *StepValidator {
 	return &StepValidator{
-		config:           config,
-		context:          context,
-		seenGetName:      map[string]bool{},
-		seenLocalVarName: map[string]bool{},
+		config:         config,
+		context:        context,
+		seenGetName:    scope{},
+		localVarScopes: []scope{{}},
 	}
 }
 
@@ -203,11 +205,7 @@ func (validator *StepValidator) VisitLoadVar(step *LoadVarStep) error {
 		validator.recordWarning(*warning)
 	}
 
-	if validator.seenLocalVarName[step.Name] {
-		validator.recordError("repeated name")
-	}
-
-	validator.seenLocalVarName[step.Name] = true
+	validator.declareLocalVar(step.Name)
 
 	if step.File == "" {
 		validator.recordError("no file specified")
@@ -286,6 +284,9 @@ func (validator *StepValidator) VisitAcross(step *AcrossStep) error {
 	validator.pushContext(".across")
 	defer validator.popContext()
 
+	validator.pushLocalVarScope()
+	defer validator.popLocalVarScope()
+
 	if !EnableAcrossStep {
 		validator.recordError("the across step must be explicitly opted-in to using the `--enable-across-step` flag")
 	}
@@ -296,10 +297,8 @@ func (validator *StepValidator) VisitAcross(step *AcrossStep) error {
 
 	for i, v := range step.Vars {
 		validator.pushContext("[%d]", i)
-		if validator.seenLocalVarName[v.Var] {
-			validator.recordError("repeated var name")
-		}
-		validator.seenLocalVarName[v.Var] = true
+
+		validator.declareLocalVar(v.Var)
 
 		validator.pushContext(".max_in_flight")
 		if v.MaxInFlight != nil && !v.MaxInFlight.All && v.MaxInFlight.Limit <= 0 {
@@ -423,4 +422,38 @@ func (validator *StepValidator) pushContext(ctx string, args ...interface{}) {
 
 func (validator *StepValidator) popContext() {
 	validator.context = validator.context[0 : len(validator.context)-1]
+}
+
+func (validator *StepValidator) pushLocalVarScope() {
+	validator.localVarScopes = append(validator.localVarScopes, scope{})
+}
+
+func (validator *StepValidator) popLocalVarScope() {
+	validator.localVarScopes = validator.localVarScopes[0 : len(validator.localVarScopes)-1]
+}
+
+func (validator *StepValidator) currentLocalVarScope() scope {
+	return validator.localVarScopes[len(validator.localVarScopes)-1]
+}
+
+func (validator *StepValidator) localVarIsDeclared(name string) bool {
+	for _, scope := range validator.localVarScopes {
+		if scope[name] {
+			return true
+		}
+	}
+	return false
+}
+
+func (validator *StepValidator) declareLocalVar(name string) {
+	if validator.currentLocalVarScope()[name] {
+		validator.recordError("repeated var name")
+	} else if validator.localVarIsDeclared(name) {
+		validator.recordWarning(ConfigWarning{
+			Type:    "var_shadowed",
+			Message: validator.annotate(fmt.Sprintf("shadows local var '%s'", name)),
+		})
+	}
+
+	validator.currentLocalVarScope()[name] = true
 }
