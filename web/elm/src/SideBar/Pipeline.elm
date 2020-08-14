@@ -3,7 +3,7 @@ module SideBar.Pipeline exposing (pipeline)
 import Assets
 import Concourse
 import HoverState
-import Message.Message exposing (DomID(..), Message(..), SideBarSection(..))
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
 import Set exposing (Set)
 import SideBar.Styles as Styles
@@ -42,10 +42,10 @@ pipeline params p =
         domID =
             SideBarPipeline
                 (if params.isFavoritesSection then
-                    Favorites
+                    FavoritesSection
 
                  else
-                    AllPipelines
+                    AllPipelinesSection
                 )
                 pipelineId
 

@@ -2,7 +2,7 @@ module Message.Message exposing
     ( DomID(..)
     , DropTarget(..)
     , Message(..)
-    , SideBarSection(..)
+    , PipelinesSection(..)
     , VersionId
     , VersionToggleAction(..)
     , VisibilityAction(..)
@@ -62,10 +62,11 @@ type DomID
     | PinMenuDropDown String
     | PinButton VersionId
     | PinBar
-    | PipelineStatusIcon Concourse.PipelineIdentifier
-    | PipelineButton Concourse.PipelineIdentifier
-    | VisibilityButton Concourse.PipelineIdentifier
-    | PipelineCardFavoritedIcon DatabaseID
+    | PipelineStatusIcon PipelinesSection Concourse.PipelineIdentifier
+    | PipelineCardPauseToggle PipelinesSection Concourse.PipelineIdentifier
+    | TopBarPauseToggle Concourse.PipelineIdentifier
+    | VisibilityButton PipelinesSection Concourse.PipelineIdentifier
+    | PipelineCardFavoritedIcon PipelinesSection DatabaseID
     | FooterCliIcon Cli.Cli
     | WelcomeCardCliIcon Cli.Cli
     | CopyTokenButton
@@ -84,19 +85,19 @@ type DomID
     | VersionToggle VersionId
     | BuildTab Int String
     | PipelineWrapper Concourse.PipelineIdentifier
-    | JobPreview Concourse.JobIdentifier
+    | JobPreview PipelinesSection Concourse.JobIdentifier
     | HamburgerMenu
     | SideBarResizeHandle
-    | SideBarTeam SideBarSection String
-    | SideBarPipeline SideBarSection Concourse.PipelineIdentifier
+    | SideBarTeam PipelinesSection String
+    | SideBarPipeline PipelinesSection Concourse.PipelineIdentifier
     | SideBarFavoritedIcon DatabaseID
     | Dashboard
     | DashboardGroup String
 
 
-type SideBarSection
-    = Favorites
-    | AllPipelines
+type PipelinesSection
+    = FavoritesSection
+    | AllPipelinesSection
 
 
 type VersionToggleAction

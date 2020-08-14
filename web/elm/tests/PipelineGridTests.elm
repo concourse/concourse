@@ -8,9 +8,10 @@ import Expect
 import Json.Encode as Encode
 import Message.Callback as Callback
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Message.Subscription as Subscription exposing (Delivery(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
+import Set
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -510,7 +511,7 @@ all =
                         (Update <|
                             Hover <|
                                 Just <|
-                                    JobPreview (Data.jobId |> Data.withPipelineName "pipeline-0")
+                                    JobPreview AllPipelinesSection (Data.jobId |> Data.withPipelineName "pipeline-0")
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -622,6 +623,30 @@ all =
                         |> Query.find [ class "dashboard-team-pipelines" ]
                         |> Query.findAll [ class "drop-area" ]
                         |> Query.count (Expect.equal 2)
+            , test "renders the final drop area to the right of the last card" <|
+                \_ ->
+                    Common.init "/"
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok [ Data.pipeline "team" 0 ]
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.GotViewport Dashboard <|
+                                Ok <|
+                                    viewportWithSize 600 200
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ class "dashboard-team-pipelines" ]
+                        |> Query.findAll [ class "drop-area" ]
+                        |> Query.index -1
+                        |> hasBounds
+                            { x = 272 + 25
+                            , y = 0
+                            , width = 272 + 25
+                            , height = 268
+                            }
             , test "renders the drop area up one row when the card breaks the row, but there is space for a smaller card" <|
                 \_ ->
                     Common.init "/"
@@ -661,6 +686,186 @@ all =
                                     , height = 268
                                     }
                             ]
+            ]
+        , describe "when there are favorited pipelines" <|
+            let
+                gotFavoritedPipelines ids =
+                    Application.handleDelivery
+                        (Subscription.FavoritedPipelinesReceived <| Ok <| Set.fromList ids)
+
+                findHeader t =
+                    Query.find [ class "headers" ]
+                        >> Query.find [ class "header", containing [ text t ] ]
+            in
+            [ test "renders a favorites pipeline section" <|
+                \_ ->
+                    Common.init "/"
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.GotViewport Dashboard <|
+                                Ok <|
+                                    viewportWithSize 600 500
+                            )
+                        |> Tuple.first
+                        |> gotFavoritedPipelines [ 0 ]
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.has [ id "dashboard-favorite-pipelines" ]
+            , test "renders pipeline cards in the favorites section" <|
+                \_ ->
+                    Common.init "/"
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok [ Data.pipeline "team" 0 ]
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.GotViewport Dashboard <|
+                                Ok <|
+                                    viewportWithSize 600 500
+                            )
+                        |> Tuple.first
+                        |> gotFavoritedPipelines [ 0 ]
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ id "dashboard-favorite-pipelines" ]
+                        |> findPipelineCard "pipeline-0"
+                        |> hasBounds
+                            { x = 25
+                            , y = 60
+                            , width = 272
+                            , height = 268
+                            }
+            , test "favorite section has the height of the cards" <|
+                \_ ->
+                    Common.init "/"
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.GotViewport Dashboard <|
+                                Ok <|
+                                    viewportWithSize 300 500
+                            )
+                        |> Tuple.first
+                        |> gotFavoritedPipelines [ 0, 1 ]
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ id "dashboard-favorite-pipelines" ]
+                        |> Query.has
+                            [ style "height" <|
+                                String.fromFloat (2 * 268 + 2 * 60)
+                                    ++ "px"
+                            ]
+            , test "offsets all pipelines section by height of the favorites section" <|
+                \_ ->
+                    Common.init "/"
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.GotViewport Dashboard <|
+                                Ok <|
+                                    viewportWithSize 300 200
+                            )
+                        |> Tuple.first
+                        |> gotFavoritedPipelines [ 0, 1 ]
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ class "dashboard-team-pipelines" ]
+                        |> Query.hasNot [ class "pipeline-wrapper", containing [ text "pipeline-0" ] ]
+            , test "renders team header above the first pipeline card" <|
+                \_ ->
+                    Common.init "/"
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok [ Data.pipeline "team" 0 ]
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.GotViewport Dashboard <|
+                                Ok <|
+                                    viewportWithSize 300 200
+                            )
+                        |> Tuple.first
+                        |> gotFavoritedPipelines [ 0 ]
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ id "dashboard-favorite-pipelines" ]
+                        |> findHeader "team"
+                        |> hasBounds { x = 25, y = 0, width = 272, height = 60 }
+            , test "renders multiple teams' headers" <|
+                \_ ->
+                    Common.init "/"
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok [ Data.pipeline "team1" 0, Data.pipeline "team2" 1 ]
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.GotViewport Dashboard <|
+                                Ok <|
+                                    viewportWithSize 600 200
+                            )
+                        |> Tuple.first
+                        |> gotFavoritedPipelines [ 0, 1 ]
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ id "dashboard-favorite-pipelines" ]
+                        |> Expect.all
+                            [ findHeader "team1"
+                                >> hasBounds { x = 25, y = 0, width = 272, height = 60 }
+                            , findHeader "team2"
+                                >> hasBounds { x = 272 + 25 * 2, y = 0, width = 272, height = 60 }
+                            ]
+            , test "renders one header per team" <|
+                \_ ->
+                    Common.init "/"
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok [ Data.pipeline "team1" 0, Data.pipeline "team1" 1 ]
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.GotViewport Dashboard <|
+                                Ok <|
+                                    viewportWithSize 600 200
+                            )
+                        |> Tuple.first
+                        |> gotFavoritedPipelines [ 0, 1 ]
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ id "dashboard-favorite-pipelines" ]
+                        |> findHeader "team1"
+                        |> hasBounds { x = 25, y = 0, width = 272 * 2 + 25, height = 60 }
+            , test "renders a 'continued' header when a team spans multiple rows" <|
+                \_ ->
+                    Common.init "/"
+                        |> Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok [ Data.pipeline "team1" 0, Data.pipeline "team1" 1 ]
+                            )
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.GotViewport Dashboard <|
+                                Ok <|
+                                    viewportWithSize 300 600
+                            )
+                        |> Tuple.first
+                        |> gotFavoritedPipelines [ 0, 1 ]
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ id "dashboard-favorite-pipelines" ]
+                        |> findHeader "team1 (continued)"
+                        |> hasBounds { x = 25, y = 268 + 60, width = 272, height = 60 }
             ]
         ]
 

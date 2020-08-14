@@ -19,7 +19,7 @@ import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
 import List.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
-import Message.Message exposing (DomID(..), Message(..), SideBarSection(..))
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Message.Subscription exposing (Delivery(..))
 import RemoteData exposing (RemoteData(..), WebData)
 import ScreenSize exposing (ScreenSize(..))
@@ -30,6 +30,7 @@ import SideBar.Team as Team
 import SideBar.Views as Views
 import Tooltip
 import Views.Icon as Icon
+import Views.Styles
 
 
 type alias Model m =
@@ -77,7 +78,7 @@ update message model =
 
         Click (SideBarTeam section teamName) ->
             case section of
-                AllPipelines ->
+                AllPipelinesSection ->
                     ( { model
                         | expandedTeamsInAllPipelines =
                             toggle teamName model.expandedTeamsInAllPipelines
@@ -85,7 +86,7 @@ update message model =
                     , []
                     )
 
-                Favorites ->
+                FavoritesSection ->
                     ( { model
                         | collapsedTeamsInFavorites =
                             toggle teamName model.collapsedTeamsInFavorites
@@ -105,7 +106,7 @@ update message model =
             , [ Effects.SaveFavoritedPipelines <| favoritedPipelines ]
             )
 
-        Click (PipelineCardFavoritedIcon pipelineID) ->
+        Click (PipelineCardFavoritedIcon _ pipelineID) ->
             let
                 favoritedPipelines =
                     toggle pipelineID model.favoritedPipelines
@@ -329,7 +330,7 @@ favoritedPipelinesSection model currentPipeline =
                             |> Views.viewTeam
                     )
             )
-        , Styles.separator
+        , Views.Styles.separator 10
         ]
 
 

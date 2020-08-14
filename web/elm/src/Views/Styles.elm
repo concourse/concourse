@@ -15,6 +15,7 @@ module Views.Styles exposing
     , pauseToggle
     , pauseToggleIcon
     , pauseToggleTooltip
+    , separator
     , topBar
     )
 
@@ -242,3 +243,12 @@ pauseToggleTooltip ttp =
     , style "right" "-150%"
     , style "z-index" "1"
     ]
+
+
+separator : Float -> Html.Html msg
+separator topMargin =
+    Html.div
+        [ style "border-bottom" "1px solid black"
+        , style "margin-top" <| String.fromFloat topMargin ++ "px"
+        ]
+        []

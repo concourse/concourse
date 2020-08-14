@@ -704,7 +704,7 @@ updateBody msg ( model, effects ) =
             , effects
             )
 
-        Click (PipelineButton pipelineId) ->
+        Click (PipelineCardPauseToggle _ pipelineId) ->
             let
                 isPaused =
                     model.pipelines
@@ -724,7 +724,7 @@ updateBody msg ( model, effects ) =
                 Nothing ->
                     ( model, effects )
 
-        Click (VisibilityButton pipelineId) ->
+        Click (VisibilityButton _ pipelineId) ->
             let
                 isPublic =
                     model.pipelines
@@ -807,7 +807,7 @@ view session model =
 tooltip : { a | pipelines : Maybe (Dict String (List Pipeline)) } -> { b | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
 tooltip model { hovered } =
     case hovered of
-        HoverState.Tooltip (Message.PipelineStatusIcon _) _ ->
+        HoverState.Tooltip (Message.PipelineStatusIcon _ _) _ ->
             Just
                 { body =
                     Html.div
@@ -817,7 +817,7 @@ tooltip model { hovered } =
                 , arrow = Nothing
                 }
 
-        HoverState.Tooltip (Message.VisibilityButton pipelineId) _ ->
+        HoverState.Tooltip (Message.VisibilityButton _ pipelineId) _ ->
             model.pipelines
                 |> findPipeline pipelineId
                 |> Maybe.map
@@ -1153,6 +1153,65 @@ pipelinesView session params =
                 }
                 |> List.sortWith (Group.ordering session)
 
+        ( favoritesView, offsetHeight ) =
+            if params.highDensity then
+                ( Html.text "", 0 )
+
+            else
+                let
+                    favoritedPipelines =
+                        filteredGroups
+                            |> List.concatMap .pipelines
+                            |> List.filter
+                                (\fp ->
+                                    Set.member fp.id session.favoritedPipelines
+                                )
+                in
+                if List.isEmpty favoritedPipelines then
+                    ( Html.text "", 0 )
+
+                else
+                    let
+                        offset =
+                            PipelineGridConstants.sectionHeaderHeight
+
+                        layout =
+                            PipelineGrid.computeFavoritePipelinesLayout
+                                { pipelineLayers = params.pipelineLayers
+                                , viewportWidth = params.viewportWidth
+                                , viewportHeight = params.viewportHeight
+                                , scrollTop = params.scrollTop - offset
+                                }
+                                favoritedPipelines
+                    in
+                    Html.div []
+                        [ Html.div Styles.pipelineSectionHeader [ Html.text "favorite pipelines" ]
+                        , Group.viewFavoritePipelines
+                            session
+                            { dragState = NotDragging
+                            , dropState = NotDropping
+                            , now = params.now
+                            , hovered = session.hovered
+                            , pipelineRunningKeyframes = session.pipelineRunningKeyframes
+                            , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
+                            , pipelineLayers = params.pipelineLayers
+                            , pipelineCards = layout.pipelineCards
+                            , headers = layout.headers
+                            , groupCardsHeight = layout.height
+                            , pipelineJobs = params.pipelineJobs
+                            , jobs = jobs
+                            }
+                        , Views.Styles.separator PipelineGridConstants.sectionSpacerHeight
+                        , Html.div Styles.pipelineSectionHeader [ Html.text "all pipelines" ]
+                        ]
+                        |> (\html ->
+                                ( html
+                                , layout.height
+                                    + (2 * PipelineGridConstants.sectionHeaderHeight)
+                                    + PipelineGridConstants.sectionSpacerHeight
+                                )
+                           )
+
         groupViews =
             filteredGroups
                 |> (if params.highDensity then
@@ -1206,7 +1265,7 @@ pipelinesView session params =
                                             )
                                        )
                             )
-                            ( [], 0 )
+                            ( [], offsetHeight )
                             >> Tuple.first
                             >> List.reverse
                    )
@@ -1219,4 +1278,4 @@ pipelinesView session params =
         [ noResultsView params.query ]
 
     else
-        groupViews
+        favoritesView :: groupViews

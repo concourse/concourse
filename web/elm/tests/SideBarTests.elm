@@ -6,7 +6,7 @@ import Data
 import Expect
 import HoverState
 import Message.Effects as Effects
-import Message.Message exposing (DomID(..), Message(..), SideBarSection(..))
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import RemoteData
 import ScreenSize
 import Set
@@ -55,4 +55,4 @@ model =
 
 domID : DomID
 domID =
-    SideBarPipeline AllPipelines Data.pipelineId
+    SideBarPipeline AllPipelinesSection Data.pipelineId

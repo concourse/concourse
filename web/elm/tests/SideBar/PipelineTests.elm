@@ -8,7 +8,7 @@ import Data
 import Expect
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
-import Message.Message exposing (DomID(..), Message, SideBarSection(..))
+import Message.Message exposing (DomID(..), Message, PipelinesSection(..))
 import Set
 import SideBar.Pipeline as Pipeline
 import SideBar.Styles as Styles
@@ -160,7 +160,7 @@ all =
                         |> viewPipeline { defaultState | isFavoritesSection = False }
                         |> .domID
                         |> Expect.equal
-                            (SideBarPipeline AllPipelines Data.pipelineId)
+                            (SideBarPipeline AllPipelinesSection Data.pipelineId)
             ]
         , describe "when in favorites section"
             [ test "domID is for Favorites section" <|
@@ -169,7 +169,7 @@ all =
                         |> viewPipeline { defaultState | isFavoritesSection = True }
                         |> .domID
                         |> Expect.equal
-                            (SideBarPipeline Favorites Data.pipelineId)
+                            (SideBarPipeline FavoritesSection Data.pipelineId)
             ]
         ]
 
@@ -186,7 +186,7 @@ viewPipeline { active, hovered, favorited, isFavoritesSection } p =
     let
         hoveredDomId =
             if hovered then
-                HoverState.Hovered (SideBarPipeline AllPipelines Data.pipelineId)
+                HoverState.Hovered (SideBarPipeline AllPipelinesSection Data.pipelineId)
 
             else
                 HoverState.NoHover
