@@ -358,7 +358,7 @@ var _ = Describe("Plan", func() {
 							File:         "some-file",
 							VarFiles:     []string{"vf"},
 							Vars:         map[string]interface{}{"k1": "v1"},
-							InstanceVars: map[string]string{"branch": "feature/foo"},
+							InstanceVars: map[string]interface{}{"branch": "feature/foo"},
 						},
 					},
 					atc.Plan{

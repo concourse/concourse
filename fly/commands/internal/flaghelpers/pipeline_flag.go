@@ -2,6 +2,7 @@ package flaghelpers
 
 import (
 	"errors"
+	"gopkg.in/yaml.v2"
 	"strings"
 
 	"github.com/jessevdk/go-flags"
@@ -46,19 +47,34 @@ func (flag *PipelineFlag) UnmarshalFlag(value string) error {
 	vs := strings.SplitN(value, "/", 2)
 	if len(vs) == 2 {
 		flag.Name = vs[0]
-		flag.InstanceVars = atc.InstanceVars{}
-		instanceVars := strings.Split(vs[1], ",")
-		for _, instanceVar := range instanceVars {
-			kv := strings.SplitN(strings.TrimSpace(instanceVar), ":", 2)
-			if len(kv) == 2 {
-				flag.InstanceVars[kv[0]] = kv[1]
-			} else {
-				return errors.New("argument format should be <pipeline>/<key:value>")
-			}
+		flatInstanceVars, err := unmarshalDotNotation(vs[1])
+		if err != nil {
+			return err
+		}
+		flag.InstanceVars, err = flatInstanceVars.Expand()
+		if err != nil {
+			return err
 		}
 	}
-
 	return nil
+}
+
+func unmarshalDotNotation(value string) (atc.DotNotation, error) {
+	dn := atc.DotNotation{}
+	for _, v := range strings.Split(value, ",") {
+		kv := strings.SplitN(strings.TrimSpace(v), ":", 2)
+		if len(kv) == 2 {
+			var raw interface{}
+			err := yaml.Unmarshal([]byte(kv[1]), &raw)
+			if err != nil {
+				return nil, err
+			}
+			dn[kv[0]] = raw
+		} else {
+			return nil, errors.New("argument format should be <pipeline>/<key:value>")
+		}
+	}
+	return dn, nil
 }
 
 func (flag *PipelineFlag) Complete(match string) []flags.Completion {

@@ -70,6 +70,27 @@ var _ = Describe("JobFlag", func() {
 				})
 			})
 
+			Context("when an instance vars is complex", func() {
+				It("unmarshal the pipeline ref with instance vars correctly", func() {
+					err := flag.UnmarshalFlag("some-pipeline/foo.bar.baz:1,foo.bar.qux:2,bar.0:1,bar.1:\"2\"/job-name")
+
+					Expect(err).ToNot(HaveOccurred())
+					Expect(flag.JobName).To(Equal("job-name"))
+					Expect(flag.PipelineRef).To(Equal(PipelineRef{
+						Name: "some-pipeline",
+						InstanceVars: InstanceVars{
+							"bar": []interface{}{1, "2"},
+							"foo": map[string]interface{}{
+								"bar": map[string]interface{}{
+									"baz": 1,
+									"qux": 2,
+								},
+							},
+						},
+					}))
+				})
+			})
+
 			Context("when the instance var is malformed", func() {
 				It("displays an error message", func() {
 					err := flag.UnmarshalFlag("some-pipeline/branch=master/job-name")

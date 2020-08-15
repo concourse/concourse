@@ -46,5 +46,23 @@ var _ = Describe("PipelineFlag", func() {
 				Expect(pipelineFlag.InstanceVars).To(Equal(atc.InstanceVars{"branch": "feature/foo"}))
 			})
 		})
+
+		Context("when an instance vars is complex", func() {
+			It("unmarshal the pipeline name and instance vars correctly", func() {
+				err := pipelineFlag.UnmarshalFlag("some-pipeline/foo.bar.baz:1,foo.bar.qux:2,bar.0:1,bar.1:\"2\"")
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(pipelineFlag.Name).To(Equal("some-pipeline"))
+				Expect(pipelineFlag.InstanceVars).To(Equal(atc.InstanceVars{
+					"bar": []interface{}{1, "2"},
+					"foo": map[string]interface{}{
+						"bar": map[string]interface{}{
+							"baz": 1,
+							"qux": 2,
+						},
+					},
+				}))
+			})
+		})
 	})
 })

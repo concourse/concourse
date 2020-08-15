@@ -28,16 +28,14 @@ func (flag *ResourceFlag) UnmarshalFlag(value string) error {
 	vs := strings.SplitN(value[:resourceNameIdx], "/", 2)
 	flag.PipelineRef.Name = vs[0]
 	if len(vs) == 2 {
-		instanceVars := atc.InstanceVars{}
-		for _, instanceVar := range strings.Split(vs[1], ",") {
-			kv := strings.SplitN(strings.TrimSpace(instanceVar), ":", 2)
-			if len(kv) == 2 {
-				instanceVars[kv[0]] = kv[1]
-			} else {
-				return errors.New("argument format should be <pipeline>/<key:value>/<resource>")
-			}
+		flatInstanceVars, err := unmarshalDotNotation(vs[1])
+		if err != nil {
+			return errors.New(err.Error() + "/<resource>")
 		}
-		flag.PipelineRef.InstanceVars = instanceVars
+		flag.PipelineRef.InstanceVars, err = flatInstanceVars.Expand()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -239,7 +239,7 @@ type SetPipelinePlan struct {
 	Team         string                 `json:"team,omitempty"`
 	Vars         map[string]interface{} `json:"vars,omitempty"`
 	VarFiles     []string               `json:"var_files,omitempty"`
-	InstanceVars map[string]string      `json:"instance_vars,omitempty"`
+	InstanceVars map[string]interface{} `json:"instance_vars,omitempty"`
 }
 
 type LoadVarPlan struct {
