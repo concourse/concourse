@@ -74,6 +74,7 @@ func NewHandler(
 	interceptUpdateInterval time.Duration,
 	dbWall db.Wall,
 	clock clock.Clock,
+	enabledPipelineInstances bool,
 ) (http.Handler, error) {
 
 	absCLIDownloadsDir, err := filepath.Abs(cliDownloadsDir)
@@ -92,7 +93,7 @@ func NewHandler(
 
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL)
-	configServer := configserver.NewServer(logger, dbTeamFactory, secretManager)
+	configServer := configserver.NewServer(logger, dbTeamFactory, secretManager, enabledPipelineInstances)
 	ccServer := ccserver.NewServer(logger, dbTeamFactory, externalURL)
 	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory)
 	logLevelServer := loglevelserver.NewServer(logger, sink)

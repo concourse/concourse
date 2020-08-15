@@ -211,6 +211,7 @@ var _ = BeforeEach(func() {
 		time.Second,
 		dbWall,
 		fakeClock,
+		true,
 	)
 
 	Expect(err).NotTo(HaveOccurred())

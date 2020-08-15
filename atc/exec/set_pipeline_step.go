@@ -27,14 +27,15 @@ import (
 // SetPipelineStep sets a pipeline to current team. This step takes pipeline
 // configure file and var files from some resource in the pipeline, like git.
 type SetPipelineStep struct {
-	planID       atc.PlanID
-	plan         atc.SetPipelinePlan
-	metadata     StepMetadata
-	delegate     SetPipelineStepDelegate
-	teamFactory  db.TeamFactory
-	buildFactory db.BuildFactory
-	client       worker.Client
-	succeeded    bool
+	planID                  atc.PlanID
+	plan                    atc.SetPipelinePlan
+	metadata                StepMetadata
+	delegate                SetPipelineStepDelegate
+	teamFactory             db.TeamFactory
+	buildFactory            db.BuildFactory
+	client                  worker.Client
+	succeeded               bool
+	enablePipelineInstances bool
 }
 
 func NewSetPipelineStep(
@@ -45,15 +46,17 @@ func NewSetPipelineStep(
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
 	client worker.Client,
+	enablePipelineInstances bool,
 ) Step {
 	return &SetPipelineStep{
-		planID:       planID,
-		plan:         plan,
-		metadata:     metadata,
-		delegate:     delegate,
-		teamFactory:  teamFactory,
-		buildFactory: buildFactory,
-		client:       client,
+		planID:                  planID,
+		plan:                    plan,
+		metadata:                metadata,
+		delegate:                delegate,
+		teamFactory:             teamFactory,
+		buildFactory:            buildFactory,
+		client:                  client,
+		enablePipelineInstances: enablePipelineInstances,
 	}
 }
 
@@ -268,6 +271,10 @@ type setPipelineSource struct {
 func (s setPipelineSource) Validate() error {
 	if s.step.plan.File == "" {
 		return errors.New("file is not specified")
+	}
+
+	if !s.step.enablePipelineInstances && s.step.plan.InstanceVars != nil {
+		return errors.New("support for `instance_vars` is disabled")
 	}
 
 	return nil

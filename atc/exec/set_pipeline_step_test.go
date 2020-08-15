@@ -190,6 +190,7 @@ jobs:
 			fakeTeamFactory,
 			fakeBuildFactory,
 			fakeWorkerClient,
+			true,
 		)
 
 		stepErr = spStep.Run(ctx, state)

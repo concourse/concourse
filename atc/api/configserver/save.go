@@ -81,13 +81,18 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pipelineRef := atc.PipelineRef{Name: pipelineName}
-	if instanceVars := query.Get("instance_vars"); instanceVars != "" {
-		err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
-		if err != nil {
-			session.Error("malformed-instance-vars", err)
-			s.handleBadRequest(w, fmt.Sprintf("instance_vars is malformed: %s", err))
-			return
+	if s.enablePipelineInstances {
+		if instanceVars := query.Get("instance_vars"); instanceVars != "" {
+			err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
+			if err != nil {
+				session.Error("malformed-instance-vars", err)
+				s.handleBadRequest(w, fmt.Sprintf("instance_vars is malformed: %s", err))
+				return
+			}
 		}
+	} else if query.Get("instance_vars") != "" {
+		s.handleBadRequest(w, "support for `instance-vars` is disabled")
+		return
 	}
 
 	if checkCredentials {

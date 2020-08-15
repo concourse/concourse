@@ -248,6 +248,7 @@ type RunCommand struct {
 		EnableRedactSecrets                  bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
 		EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears or a network error occurs"`
 		EnableAcrossStep                     bool `long:"enable-across-step" description:"Enable the experimental across step to be used in jobs. The API is subject to change."`
+		EnablePipelineInstances              bool `long:"enable-pipeline-instances" description:"Enable pipeline instances"`
 	} `group:"Feature Flags"`
 }
 
@@ -1893,6 +1894,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		time.Minute,
 		dbWall,
 		clock.NewClock(),
+		cmd.EnablePipelineInstances,
 	)
 }
 

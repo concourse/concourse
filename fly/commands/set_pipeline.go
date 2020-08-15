@@ -26,7 +26,7 @@ type SetPipelineCommand struct {
 
 	VarsFrom []atc.PathFlag `short:"l"  long:"load-vars-from"  description:"Variable flag that can be used for filling in template values in configuration from a YAML file"`
 
-	InstanceVars []flaghelpers.VariablePairFlag `short:"i"  long:"instance-var"       value-name:"[NAME=STRING]"  description:"Specify a string value to set for a variable in the pipeline and an instanced pipeline identifier"`
+	InstanceVars []flaghelpers.VariablePairFlag `short:"i"  long:"instance-var"  hidden:"true"  value-name:"[NAME=STRING]"  description:"Specify a string value to set for a variable in the pipeline and an instanced pipeline identifier"`
 
 	Team string `long:"team"              description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
