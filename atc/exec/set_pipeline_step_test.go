@@ -100,14 +100,15 @@ jobs:
 		buildVars *vars.BuildVariables
 
 		stepMetadata = exec.StepMetadata{
-			TeamID:       123,
-			TeamName:     "some-team",
-			JobID:        87,
-			JobName:      "some-job",
-			BuildID:      42,
-			BuildName:    "some-build",
-			PipelineID:   4567,
-			PipelineName: "some-pipeline",
+			TeamID:               123,
+			TeamName:             "some-team",
+			JobID:                87,
+			JobName:              "some-job",
+			BuildID:              42,
+			BuildName:            "some-build",
+			PipelineID:           4567,
+			PipelineName:         "some-pipeline",
+			PipelineInstanceVars: atc.InstanceVars{"branch": "feature/foo"},
 		}
 
 		stdout, stderr *gbytes.Buffer
@@ -145,12 +146,13 @@ jobs:
 		fakePipeline = new(dbfakes.FakePipeline)
 
 		stepMetadata = exec.StepMetadata{
-			TeamID:       123,
-			TeamName:     "some-team",
-			BuildID:      42,
-			BuildName:    "some-build",
-			PipelineID:   4567,
-			PipelineName: "some-pipeline",
+			TeamID:               123,
+			TeamName:             "some-team",
+			BuildID:              42,
+			BuildName:            "some-build",
+			PipelineID:           4567,
+			PipelineName:         "some-pipeline",
+			PipelineInstanceVars: atc.InstanceVars{"branch": "feature/foo"},
 		}
 
 		fakeTeam.IDReturns(stepMetadata.TeamID)
@@ -165,8 +167,8 @@ jobs:
 
 		spPlan = &atc.SetPipelinePlan{
 			Name:         "some-pipeline",
-			InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
 			File:         "some-resource/pipeline.yml",
+			InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
 		}
 	})
 
@@ -372,9 +374,10 @@ jobs:
 			Context("when set-pipeline self", func() {
 				BeforeEach(func() {
 					spPlan = &atc.SetPipelinePlan{
-						Name: "self",
-						File: "some-resource/pipeline.yml",
-						Team: "foo-team",
+						Name:         "self",
+						File:         "some-resource/pipeline.yml",
+						Team:         "foo-team",
+						InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
 					}
 					fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
 				})
@@ -382,7 +385,10 @@ jobs:
 				It("should save the pipeline itself", func() {
 					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
 					pipelineRef, _, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
-					Expect(pipelineRef).To(Equal(atc.PipelineRef{Name: "some-pipeline"}))
+					Expect(pipelineRef).To(Equal(atc.PipelineRef{
+						Name:         "some-pipeline",
+						InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
+					}))
 				})
 
 				It("should save to the current team", func() {

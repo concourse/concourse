@@ -104,6 +104,7 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 		fmt.Fprintln(stderr, "")
 
 		step.plan.Name = step.metadata.PipelineName
+		step.plan.InstanceVars = step.metadata.PipelineInstanceVars
 		// self must be set to current team, thus ignore team.
 		step.plan.Team = ""
 	}
@@ -222,7 +223,7 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 		return nil
 	}
 
-	fmt.Fprintf(stdout, "setting pipeline: %s\n", step.plan.Name)
+	fmt.Fprintf(stdout, "setting pipeline: %s\n", pipelineRef.String())
 	step.delegate.SetPipelineChanged(logger, true)
 	parentBuild, found, err := step.buildFactory.Build(step.metadata.BuildID)
 	if err != nil {

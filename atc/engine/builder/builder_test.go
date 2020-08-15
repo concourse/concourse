@@ -97,15 +97,16 @@ var _ = Describe("Builder", func() {
 				fakeBuild.TeamIDReturns(1111)
 
 				expectedMetadata = exec.StepMetadata{
-					BuildID:      4444,
-					BuildName:    "42",
-					TeamID:       1111,
-					TeamName:     "some-team",
-					JobID:        3333,
-					JobName:      "some-job",
-					PipelineID:   2222,
-					PipelineName: "some-pipeline",
-					ExternalURL:  "http://example.com",
+					BuildID:              4444,
+					BuildName:            "42",
+					TeamID:               1111,
+					TeamName:             "some-team",
+					JobID:                3333,
+					JobName:              "some-job",
+					PipelineID:           2222,
+					PipelineName:         "some-pipeline",
+					PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+					ExternalURL:          "http://example.com",
 				}
 			})
 
@@ -970,6 +971,7 @@ var _ = Describe("Builder", func() {
 				expectedMetadata = exec.StepMetadata{
 					PipelineID:            fakePipeline.ID(),
 					PipelineName:          fakePipeline.Name(),
+					PipelineInstanceVars:  fakePipeline.InstanceVars(),
 					ResourceConfigScopeID: 4444,
 					BaseResourceTypeID:    2222,
 					ExternalURL:           "http://example.com",

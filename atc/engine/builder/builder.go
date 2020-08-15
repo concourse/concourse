@@ -424,6 +424,7 @@ func (builder *stepBuilder) buildCheckStep(check db.Check, plan atc.Plan, buildV
 		TeamName:              check.TeamName(),
 		PipelineID:            check.PipelineID(),
 		PipelineName:          check.PipelineName(),
+		PipelineInstanceVars:  check.PipelineInstanceVars(),
 		ResourceConfigScopeID: check.ResourceConfigScopeID(),
 		ResourceConfigID:      check.ResourceConfigID(),
 		BaseResourceTypeID:    check.BaseResourceTypeID(),
@@ -545,14 +546,15 @@ func (builder *stepBuilder) stepMetadata(
 	externalURL string,
 ) exec.StepMetadata {
 	return exec.StepMetadata{
-		BuildID:      build.ID(),
-		BuildName:    build.Name(),
-		TeamID:       build.TeamID(),
-		TeamName:     build.TeamName(),
-		JobID:        build.JobID(),
-		JobName:      build.JobName(),
-		PipelineID:   build.PipelineID(),
-		PipelineName: build.PipelineName(),
-		ExternalURL:  externalURL,
+		BuildID:              build.ID(),
+		BuildName:            build.Name(),
+		TeamID:               build.TeamID(),
+		TeamName:             build.TeamName(),
+		JobID:                build.JobID(),
+		JobName:              build.JobName(),
+		PipelineID:           build.PipelineID(),
+		PipelineName:         build.PipelineName(),
+		PipelineInstanceVars: build.PipelineInstanceVars(),
+		ExternalURL:          externalURL,
 	}
 }
