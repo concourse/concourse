@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/vars"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -20,8 +21,11 @@ var _ = Describe("AcrossStep", func() {
 
 		fakeDelegate *execfakes.FakeBuildStepDelegate
 
-		step  exec.InParallelStep
-		state *execfakes.FakeRunState
+		buildVars *vars.BuildVariables
+
+		step     exec.InParallelStep
+		varNames []string
+		state    *execfakes.FakeRunState
 
 		stepMetadata = exec.StepMetadata{
 			TeamID:       123,
@@ -43,17 +47,24 @@ var _ = Describe("AcrossStep", func() {
 
 		stderr = gbytes.NewBuffer()
 
+		buildVars = vars.NewBuildVariables(vars.StaticVariables{}, false)
+
 		fakeDelegate = new(execfakes.FakeBuildStepDelegate)
 		fakeDelegate.StderrReturns(stderr)
+
+		varNames = []string{"var1", "var2"}
 	})
 
 	AfterEach(func() {
 		cancel()
 	})
 
-	BeforeEach(func() {
+	JustBeforeEach(func() {
+		fakeDelegate.VariablesReturns(buildVars.NewLocalScope())
+
 		step := exec.Across(
 			step,
+			varNames,
 			fakeDelegate,
 			stepMetadata,
 		)
@@ -77,5 +88,15 @@ var _ = Describe("AcrossStep", func() {
 
 	It("finishes the step", func() {
 		Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+	})
+
+	Context("when a var shadows an existing local var", func() {
+		BeforeEach(func() {
+			buildVars.AddLocalVar("var2", 123, false)
+		})
+
+		It("logs a warning to stderr", func() {
+			Expect(stderr).To(gbytes.Say("WARNING: across step shadows local var 'var2'"))
+		})
 	})
 })

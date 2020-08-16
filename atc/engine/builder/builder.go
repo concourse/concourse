@@ -242,8 +242,14 @@ func (builder *stepBuilder) buildAcrossStep(build db.Build, plan atc.Plan, build
 		builder.externalURL,
 	)
 
+	varNames := make([]string, len(plan.Across.Vars))
+	for i, v := range plan.Across.Vars {
+		varNames[i] = v.Var
+	}
+
 	return exec.Across(
 		step,
+		varNames,
 		builder.delegateFactory.BuildStepDelegate(build, plan.ID, buildVars),
 		stepMetadata,
 	)
