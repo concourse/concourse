@@ -53,7 +53,7 @@ var _ = Describe("GetStep", func() {
 		getStep    exec.Step
 		getStepErr error
 
-		credVarsTracker vars.CredVarsTracker
+		buildVars *vars.BuildVariables
 
 		containerMetadata = db.ContainerMetadata{
 			WorkingDirectory: resource.ResourcesDir("get"),
@@ -88,7 +88,7 @@ var _ = Describe("GetStep", func() {
 		fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
 
 		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
-		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
+		buildVars = vars.NewBuildVariables(credVars, true)
 
 		artifactRepository = build.NewRepository()
 		fakeState = new(execfakes.FakeRunState)
@@ -98,7 +98,7 @@ var _ = Describe("GetStep", func() {
 		fakeDelegate = new(execfakes.FakeGetDelegate)
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
-		fakeDelegate.VariablesReturns(credVarsTracker)
+		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 

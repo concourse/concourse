@@ -97,7 +97,7 @@ jobs:
 		spStep  exec.Step
 		stepErr error
 
-		credVarsTracker vars.CredVarsTracker
+		buildVars *vars.BuildVariables
 
 		stepMetadata = exec.StepMetadata{
 			TeamID:       123,
@@ -121,7 +121,7 @@ jobs:
 		ctx = lagerctx.NewContext(ctx, testLogger)
 
 		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
-		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
+		buildVars = vars.NewBuildVariables(credVars, true)
 
 		artifactRepository = build.NewRepository()
 		state = new(execfakes.FakeRunState)
@@ -134,7 +134,7 @@ jobs:
 		stderr = gbytes.NewBuffer()
 
 		fakeDelegate = new(execfakes.FakeBuildStepDelegate)
-		fakeDelegate.VariablesReturns(credVarsTracker)
+		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdout)
 		fakeDelegate.StderrReturns(stderr)
 
@@ -349,8 +349,8 @@ jobs:
 				})
 			})
 
-			Context("when set-pipeline self", func(){
-				BeforeEach(func(){
+			Context("when set-pipeline self", func() {
+				BeforeEach(func() {
 					spPlan = &atc.SetPipelinePlan{
 						Name: "self",
 						File: "some-resource/pipeline.yml",
@@ -359,13 +359,13 @@ jobs:
 					fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
 				})
 
-				It("should save the pipeline itself", func(){
+				It("should save the pipeline itself", func() {
 					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
 					name, _, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
 					Expect(name).To(Equal("some-pipeline"))
 				})
 
-				It("should save to the current team", func(){
+				It("should save to the current team", func() {
 					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
 					_, teamId, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
 					Expect(teamId).To(Equal(fakeTeam.ID()))

@@ -49,7 +49,7 @@ var _ = Describe("TaskStep", func() {
 		taskStep exec.Step
 		stepErr  error
 
-		credVarsTracker vars.CredVarsTracker
+		buildVars *vars.BuildVariables
 
 		containerMetadata = db.ContainerMetadata{
 			WorkingDirectory: "some-artifact-root",
@@ -78,10 +78,10 @@ var _ = Describe("TaskStep", func() {
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
 
 		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
-		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
+		buildVars = vars.NewBuildVariables(credVars, true)
 
 		fakeDelegate = new(execfakes.FakeTaskDelegate)
-		fakeDelegate.VariablesReturns(credVarsTracker)
+		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 
@@ -247,8 +247,8 @@ var _ = Describe("TaskStep", func() {
 		})
 
 		It("secrets are tracked", func() {
-			mapit := vars.MapCredVarsTrackerIterator{}
-			credVarsTracker.IterateInterpolatedCreds(mapit)
+			mapit := vars.TrackedVarsMap{}
+			buildVars.IterateInterpolatedCreds(mapit)
 			Expect(mapit["source-param"]).To(Equal("super-secret-source"))
 		})
 

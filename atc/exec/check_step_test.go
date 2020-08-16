@@ -13,9 +13,10 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/vars"
 	"github.com/concourse/concourse/vars/varsfakes"
-	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/api/propagators"
+	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/api/trace/testtrace"
 
 	. "github.com/onsi/ginkgo"
@@ -25,7 +26,7 @@ import (
 var _ = Describe("CheckStep", func() {
 
 	var (
-		ctx context.Context
+		ctx    context.Context
 		cancel context.CancelFunc
 
 		fakeRunState        *execfakes.FakeRunState
@@ -96,10 +97,10 @@ var _ = Describe("CheckStep", func() {
 			BeforeEach(func() {
 				expectedErr = errors.New("creds-err")
 
-				fakeCredVarsTracker := new(varsfakes.FakeCredVarsTracker)
-				fakeCredVarsTracker.GetReturns(nil, false, expectedErr)
+				fakeVariables := new(varsfakes.FakeVariables)
+				fakeVariables.GetReturns(nil, false, expectedErr)
 
-				fakeDelegate.VariablesReturns(fakeCredVarsTracker)
+				fakeDelegate.VariablesReturns(vars.NewBuildVariables(fakeVariables, false))
 			})
 
 			It("errors", func() {
@@ -133,10 +134,10 @@ var _ = Describe("CheckStep", func() {
 			BeforeEach(func() {
 				expectedErr = errors.New("creds-err")
 
-				fakeCredVarsTracker := new(varsfakes.FakeCredVarsTracker)
-				fakeCredVarsTracker.GetReturns(nil, false, expectedErr)
+				fakeVariables := new(varsfakes.FakeVariables)
+				fakeVariables.GetReturns(nil, false, expectedErr)
 
-				fakeDelegate.VariablesReturns(fakeCredVarsTracker)
+				fakeDelegate.VariablesReturns(vars.NewBuildVariables(fakeVariables, false))
 			})
 
 			It("errors", func() {
@@ -188,9 +189,7 @@ var _ = Describe("CheckStep", func() {
 				BaseResourceTypeID: 502,
 			}
 
-			fakeCredVarsTracker := new(varsfakes.FakeCredVarsTracker)
-			fakeCredVarsTracker.GetReturns("caz", true, nil)
-			fakeDelegate.VariablesReturns(fakeCredVarsTracker)
+			fakeDelegate.VariablesReturns(vars.NewBuildVariables(vars.StaticVariables{"bar": "caz"}, false))
 		})
 
 		It("uses ResourceConfigCheckSessionOwner", func() {

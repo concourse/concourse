@@ -24,29 +24,29 @@ func NewDelegateFactory() *delegateFactory {
 
 type delegateFactory struct{}
 
-func (delegate *delegateFactory) GetDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.GetDelegate {
-	return NewGetDelegate(build, planID, credVarsTracker, clock.NewClock())
+func (delegate *delegateFactory) GetDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables) exec.GetDelegate {
+	return NewGetDelegate(build, planID, buildVars, clock.NewClock())
 }
 
-func (delegate *delegateFactory) PutDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.PutDelegate {
-	return NewPutDelegate(build, planID, credVarsTracker, clock.NewClock())
+func (delegate *delegateFactory) PutDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables) exec.PutDelegate {
+	return NewPutDelegate(build, planID, buildVars, clock.NewClock())
 }
 
-func (delegate *delegateFactory) TaskDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.TaskDelegate {
-	return NewTaskDelegate(build, planID, credVarsTracker, clock.NewClock())
+func (delegate *delegateFactory) TaskDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables) exec.TaskDelegate {
+	return NewTaskDelegate(build, planID, buildVars, clock.NewClock())
 }
 
-func (delegate *delegateFactory) CheckDelegate(check db.Check, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.CheckDelegate {
-	return NewCheckDelegate(check, planID, credVarsTracker, clock.NewClock())
+func (delegate *delegateFactory) CheckDelegate(check db.Check, planID atc.PlanID, buildVars *vars.BuildVariables) exec.CheckDelegate {
+	return NewCheckDelegate(check, planID, buildVars, clock.NewClock())
 }
 
-func (delegate *delegateFactory) BuildStepDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker) exec.BuildStepDelegate {
-	return NewBuildStepDelegate(build, planID, credVarsTracker, clock.NewClock())
+func (delegate *delegateFactory) BuildStepDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables) exec.BuildStepDelegate {
+	return NewBuildStepDelegate(build, planID, buildVars, clock.NewClock())
 }
 
-func NewGetDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker, clock clock.Clock) exec.GetDelegate {
+func NewGetDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables, clock clock.Clock) exec.GetDelegate {
 	return &getDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, credVarsTracker, clock),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, buildVars, clock),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,
@@ -146,9 +146,9 @@ func (d *getDelegate) UpdateVersion(log lager.Logger, plan atc.GetPlan, info run
 	}
 }
 
-func NewPutDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker, clock clock.Clock) exec.PutDelegate {
+func NewPutDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables, clock clock.Clock) exec.PutDelegate {
 	return &putDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, credVarsTracker, clock),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, buildVars, clock),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,
@@ -233,9 +233,9 @@ func (d *putDelegate) SaveOutput(log lager.Logger, plan atc.PutPlan, source atc.
 	}
 }
 
-func NewTaskDelegate(build db.Build, planID atc.PlanID, credVarsTracker vars.CredVarsTracker, clock clock.Clock) exec.TaskDelegate {
+func NewTaskDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables, clock clock.Clock) exec.TaskDelegate {
 	return &taskDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, credVarsTracker, clock),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, buildVars, clock),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,
@@ -299,9 +299,9 @@ func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus)
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
 }
 
-func NewCheckDelegate(check db.Check, planID atc.PlanID, credVarsTracker vars.CredVarsTracker, clock clock.Clock) exec.CheckDelegate {
+func NewCheckDelegate(check db.Check, planID atc.PlanID, buildVars *vars.BuildVariables, clock clock.Clock) exec.CheckDelegate {
 	return &checkDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(nil, planID, credVarsTracker, clock),
+		BuildStepDelegate: NewBuildStepDelegate(nil, planID, buildVars, clock),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		check:       check,
@@ -340,30 +340,30 @@ func (*checkDelegate) Errored(lager.Logger, string)                      { retur
 func NewBuildStepDelegate(
 	build db.Build,
 	planID atc.PlanID,
-	credVarsTracker vars.CredVarsTracker,
+	buildVars *vars.BuildVariables,
 	clock clock.Clock,
 ) *buildStepDelegate {
 	return &buildStepDelegate{
-		build:           build,
-		planID:          planID,
-		clock:           clock,
-		credVarsTracker: credVarsTracker,
-		stdout:          nil,
-		stderr:          nil,
+		build:     build,
+		planID:    planID,
+		clock:     clock,
+		buildVars: buildVars,
+		stdout:    nil,
+		stderr:    nil,
 	}
 }
 
 type buildStepDelegate struct {
-	build           db.Build
-	planID          atc.PlanID
-	clock           clock.Clock
-	credVarsTracker vars.CredVarsTracker
-	stderr          io.Writer
-	stdout          io.Writer
+	build     db.Build
+	planID    atc.PlanID
+	clock     clock.Clock
+	buildVars *vars.BuildVariables
+	stderr    io.Writer
+	stdout    io.Writer
 }
 
-func (delegate *buildStepDelegate) Variables() vars.CredVarsTracker {
-	return delegate.credVarsTracker
+func (delegate *buildStepDelegate) Variables() *vars.BuildVariables {
+	return delegate.buildVars
 }
 
 func (delegate *buildStepDelegate) ImageVersionDetermined(resourceCache db.UsedResourceCache) error {
@@ -386,7 +386,7 @@ func (it *credVarsIterator) YieldCred(name, value string) {
 
 func (delegate *buildStepDelegate) buildOutputFilter(str string) string {
 	it := &credVarsIterator{line: str}
-	delegate.credVarsTracker.IterateInterpolatedCreds(it)
+	delegate.buildVars.IterateInterpolatedCreds(it)
 	return it.line
 }
 
@@ -406,7 +406,7 @@ func (delegate *buildStepDelegate) RedactImageSource(source atc.Source) (atc.Sou
 
 func (delegate *buildStepDelegate) Stdout() io.Writer {
 	if delegate.stdout == nil {
-		if delegate.credVarsTracker.Enabled() {
+		if delegate.buildVars.RedactionEnabled() {
 			delegate.stdout = newDBEventWriterWithSecretRedaction(
 				delegate.build,
 				event.Origin{
@@ -432,7 +432,7 @@ func (delegate *buildStepDelegate) Stdout() io.Writer {
 
 func (delegate *buildStepDelegate) Stderr() io.Writer {
 	if delegate.stderr == nil {
-		if delegate.credVarsTracker.Enabled() {
+		if delegate.buildVars.RedactionEnabled() {
 			delegate.stderr = newDBEventWriterWithSecretRedaction(
 				delegate.build,
 				event.Origin{

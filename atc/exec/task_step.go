@@ -59,7 +59,7 @@ type TaskDelegate interface {
 	Stdout() io.Writer
 	Stderr() io.Writer
 
-	Variables() vars.CredVarsTracker
+	Variables() *vars.BuildVariables
 
 	SetTaskConfig(config atc.TaskConfig)
 

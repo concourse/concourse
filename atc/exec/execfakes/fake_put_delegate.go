@@ -96,15 +96,15 @@ type FakePutDelegate struct {
 	stdoutReturnsOnCall map[int]struct {
 		result1 io.Writer
 	}
-	VariablesStub        func() vars.CredVarsTracker
+	VariablesStub        func() *vars.BuildVariables
 	variablesMutex       sync.RWMutex
 	variablesArgsForCall []struct {
 	}
 	variablesReturns struct {
-		result1 vars.CredVarsTracker
+		result1 *vars.BuildVariables
 	}
 	variablesReturnsOnCall map[int]struct {
-		result1 vars.CredVarsTracker
+		result1 *vars.BuildVariables
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -531,7 +531,7 @@ func (fake *FakePutDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
 	}{result1}
 }
 
-func (fake *FakePutDelegate) Variables() vars.CredVarsTracker {
+func (fake *FakePutDelegate) Variables() *vars.BuildVariables {
 	fake.variablesMutex.Lock()
 	ret, specificReturn := fake.variablesReturnsOnCall[len(fake.variablesArgsForCall)]
 	fake.variablesArgsForCall = append(fake.variablesArgsForCall, struct {
@@ -554,32 +554,32 @@ func (fake *FakePutDelegate) VariablesCallCount() int {
 	return len(fake.variablesArgsForCall)
 }
 
-func (fake *FakePutDelegate) VariablesCalls(stub func() vars.CredVarsTracker) {
+func (fake *FakePutDelegate) VariablesCalls(stub func() *vars.BuildVariables) {
 	fake.variablesMutex.Lock()
 	defer fake.variablesMutex.Unlock()
 	fake.VariablesStub = stub
 }
 
-func (fake *FakePutDelegate) VariablesReturns(result1 vars.CredVarsTracker) {
+func (fake *FakePutDelegate) VariablesReturns(result1 *vars.BuildVariables) {
 	fake.variablesMutex.Lock()
 	defer fake.variablesMutex.Unlock()
 	fake.VariablesStub = nil
 	fake.variablesReturns = struct {
-		result1 vars.CredVarsTracker
+		result1 *vars.BuildVariables
 	}{result1}
 }
 
-func (fake *FakePutDelegate) VariablesReturnsOnCall(i int, result1 vars.CredVarsTracker) {
+func (fake *FakePutDelegate) VariablesReturnsOnCall(i int, result1 *vars.BuildVariables) {
 	fake.variablesMutex.Lock()
 	defer fake.variablesMutex.Unlock()
 	fake.VariablesStub = nil
 	if fake.variablesReturnsOnCall == nil {
 		fake.variablesReturnsOnCall = make(map[int]struct {
-			result1 vars.CredVarsTracker
+			result1 *vars.BuildVariables
 		})
 	}
 	fake.variablesReturnsOnCall[i] = struct {
-		result1 vars.CredVarsTracker
+		result1 *vars.BuildVariables
 	}{result1}
 }
 
