@@ -8,6 +8,7 @@ func (plan Plan) Public() *json.RawMessage {
 
 		Aggregate      *json.RawMessage `json:"aggregate,omitempty"`
 		InParallel     *json.RawMessage `json:"in_parallel,omitempty"`
+		Across         *json.RawMessage `json:"across,omitempty"`
 		Do             *json.RawMessage `json:"do,omitempty"`
 		Get            *json.RawMessage `json:"get,omitempty"`
 		Put            *json.RawMessage `json:"put,omitempty"`
@@ -36,6 +37,10 @@ func (plan Plan) Public() *json.RawMessage {
 
 	if plan.InParallel != nil {
 		public.InParallel = plan.InParallel.Public()
+	}
+
+	if plan.Across != nil {
+		public.Across = plan.Across.Public()
 	}
 
 	if plan.Do != nil {
@@ -138,6 +143,31 @@ func (plan InParallelPlan) Public() *json.RawMessage {
 		Steps:    steps,
 		Limit:    plan.Limit,
 		FailFast: plan.FailFast,
+	})
+}
+
+func (plan AcrossPlan) Public() *json.RawMessage {
+	type scopedStep struct {
+		Step   *json.RawMessage `json:"step"`
+		Values []interface{}    `json:"values"`
+	}
+
+	steps := []scopedStep{}
+	for _, step := range plan.Steps {
+		steps = append(steps, scopedStep{
+			Step:   step.Step.Public(),
+			Values: step.Values,
+		})
+	}
+
+	return enc(struct {
+		Vars        []AcrossVar  `json:"vars"`
+		Steps       []scopedStep `json:"steps"`
+		FailFast    bool         `json:"fail_fast,omitempty"`
+	}{
+		Vars:        plan.Vars,
+		Steps:       steps,
+		FailFast:    plan.FailFast,
 	})
 }
 

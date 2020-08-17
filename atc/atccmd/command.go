@@ -146,8 +146,6 @@ type RunCommand struct {
 
 	InterceptIdleTimeout time.Duration `long:"intercept-idle-timeout" default:"0m" description:"Length of time for a intercepted session to be idle before terminating."`
 
-	EnableGlobalResources bool `long:"enable-global-resources" description:"Enable equivalent resources across pipelines and teams to share a single version history."`
-
 	ComponentRunnerInterval time.Duration `long:"component-runner-interval" default:"10s" description:"Interval on which runners are kicked off for builds, locks, scans, and checks"`
 
 	LidarScannerInterval time.Duration `long:"lidar-scanner-interval" default:"10s" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
@@ -240,14 +238,17 @@ type RunCommand struct {
 		MainTeamFlags skycmd.AuthTeamFlags `group:"Authentication (Main Team)" namespace:"main-team"`
 	} `group:"Authentication"`
 
-	EnableRedactSecrets bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
-
 	ConfigRBAC flag.File `long:"config-rbac" description:"Customize RBAC role-action mapping."`
 
 	SystemClaimKey    string   `long:"system-claim-key" default:"aud" description:"The token claim key to use when matching system-claim-values"`
 	SystemClaimValues []string `long:"system-claim-value" default:"concourse-worker" description:"Configure which token requests should be considered 'system' requests."`
 
-	EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears or a network error occurs"`
+	FeatureFlags struct {
+		EnableGlobalResources                bool `long:"enable-global-resources" description:"Enable equivalent resources across pipelines and teams to share a single version history."`
+		EnableRedactSecrets                  bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
+		EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears or a network error occurs"`
+		EnableAcrossStep                     bool `long:"enable-across-step" description:"Enable the experimental across step to be used in jobs. The API is subject to change."`
+	} `group:"Feature Flags"`
 }
 
 type Migration struct {
@@ -444,7 +445,10 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		"duration": time.Now().Sub(startTime),
 	})
 
-	atc.EnableGlobalResources = cmd.EnableGlobalResources
+	atc.EnableGlobalResources = cmd.FeatureFlags.EnableGlobalResources
+	atc.EnableRedactSecrets = cmd.FeatureFlags.EnableRedactSecrets
+	atc.EnableBuildRerunWhenWorkerDisappears = cmd.FeatureFlags.EnableBuildRerunWhenWorkerDisappears
+	atc.EnableAcrossStep = cmd.FeatureFlags.EnableAcrossStep
 
 	//FIXME: These only need to run once for the entire binary. At the moment,
 	//they rely on state of the command.
@@ -1587,7 +1591,6 @@ func (cmd *RunCommand) constructEngine(
 		defaultLimits,
 		strategy,
 		lockFactory,
-		cmd.EnableBuildRerunWhenWorkerDisappears,
 	)
 
 	stepBuilder := builder.NewStepBuilder(
@@ -1596,7 +1599,6 @@ func (cmd *RunCommand) constructEngine(
 		cmd.ExternalURL.String(),
 		secretManager,
 		cmd.varSourcePool,
-		cmd.EnableRedactSecrets,
 	)
 
 	return engine.NewEngine(stepBuilder)

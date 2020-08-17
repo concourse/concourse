@@ -5,6 +5,7 @@ module Build.StepTree.StepTree exposing
     , setHighlight
     , switchTab
     , toggleStep
+    , toggleStepSubHeader
     , view
     )
 
@@ -22,17 +23,23 @@ import Build.StepTree.Models
         , StepTree(..)
         , StepTreeModel
         , TabFocus(..)
+        , TabInfo
         , Version
         , finishTree
-        , focusRetry
+        , focusTabbed
+        , isActive
         , map
+        , mostSevereStepState
+        , toggleSubHeaderExpanded
+        , treeIsActive
         , updateAt
         , wrapHook
         , wrapMultiStep
         , wrapStep
         )
 import Build.Styles as Styles
-import Concourse
+import Colors
+import Concourse exposing (JsonValue(..))
 import DateFormat
 import Dict exposing (Dict)
 import Duration
@@ -40,6 +47,8 @@ import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, id, style, target)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import Json.Encode
+import List.Extra
 import Message.Effects exposing (Effect(..), toHtmlID)
 import Message.Message exposing (DomID(..), Message(..))
 import Routes exposing (Highlight(..), StepID, showHighlight)
@@ -60,33 +69,33 @@ init :
 init hl resources buildPlan =
     case buildPlan.step of
         Concourse.BuildStepTask name ->
-            initBottom hl Task buildPlan.id name
+            initBottom hl Task buildPlan name
 
         Concourse.BuildStepArtifactInput name ->
             initBottom hl
                 (\s ->
                     ArtifactInput { s | state = StepStateSucceeded }
                 )
-                buildPlan.id
+                buildPlan
                 name
 
         Concourse.BuildStepGet name version ->
             initBottom hl
                 (Get << setupGetStep resources name version)
-                buildPlan.id
+                buildPlan
                 name
 
         Concourse.BuildStepArtifactOutput name ->
-            initBottom hl ArtifactOutput buildPlan.id name
+            initBottom hl ArtifactOutput buildPlan name
 
         Concourse.BuildStepPut name ->
-            initBottom hl Put buildPlan.id name
+            initBottom hl Put buildPlan name
 
         Concourse.BuildStepSetPipeline name ->
-            initBottom hl SetPipeline buildPlan.id name
+            initBottom hl SetPipeline buildPlan name
 
         Concourse.BuildStepLoadVar name ->
-            initBottom hl LoadVar buildPlan.id name
+            initBottom hl LoadVar buildPlan name
 
         Concourse.BuildStepAggregate plans ->
             initMultiStep hl resources buildPlan.id Aggregate plans
@@ -97,8 +106,34 @@ init hl resources buildPlan =
         Concourse.BuildStepDo plans ->
             initMultiStep hl resources buildPlan.id Do plans
 
+        Concourse.BuildStepAcross plan ->
+            let
+                ( values, plans ) =
+                    plan.steps
+                        |> List.unzip
+            in
+            initRootedMultiStep hl
+                resources
+                buildPlan
+                (plan.vars |> String.join ", ")
+                (\step substeps ->
+                    Across
+                        plan.vars
+                        values
+                        (plans |> List.map (planIsHighlighted hl))
+                        step
+                        (substeps
+                            |> Array.map (map (\s -> { s | expanded = True }))
+                        )
+                )
+                (plans |> Array.fromList)
+
         Concourse.BuildStepRetry plans ->
-            initMultiStep hl resources buildPlan.id (Retry buildPlan.id 1 Auto) plans
+            initMultiStep hl
+                resources
+                buildPlan.id
+                (Retry <| startingTab hl buildPlan.id (Array.toList plans))
+                plans
 
         Concourse.BuildStepOnSuccess hookedPlan ->
             initHookedStep hl resources OnSuccess hookedPlan
@@ -120,6 +155,46 @@ init hl resources buildPlan =
 
         Concourse.BuildStepTimeout plan ->
             initWrappedStep hl resources Timeout plan
+
+
+planIsHighlighted : Highlight -> Concourse.BuildPlan -> Bool
+planIsHighlighted hl plan =
+    case hl of
+        HighlightNothing ->
+            False
+
+        HighlightLine stepID _ ->
+            planContainsID stepID plan
+
+        HighlightRange stepID _ _ ->
+            planContainsID stepID plan
+
+
+planContainsID : StepID -> Concourse.BuildPlan -> Bool
+planContainsID stepID plan =
+    plan |> Concourse.mapBuildPlan .id |> List.member stepID
+
+
+startingTab : Highlight -> String -> List Concourse.BuildPlan -> TabInfo
+startingTab hl planID plans =
+    let
+        idx =
+            case hl of
+                HighlightNothing ->
+                    Nothing
+
+                HighlightLine stepID _ ->
+                    plans |> List.Extra.findIndex (planContainsID stepID)
+
+                HighlightRange stepID _ _ ->
+                    plans |> List.Extra.findIndex (planContainsID stepID)
+    in
+    case idx of
+        Nothing ->
+            { id = planID, tab = 0, focus = Auto }
+
+        Just tab ->
+            { id = planID, tab = tab, focus = User }
 
 
 initMultiStep :
@@ -150,51 +225,61 @@ initMultiStep hl resources planId constructor plans =
     }
 
 
+constructStep : Highlight -> Concourse.BuildPlan -> StepName -> Step
+constructStep hl plan name =
+    { id = plan.id
+    , name = name
+    , state = StepStatePending
+    , log = Ansi.Log.init Ansi.Log.Cooked
+    , error = Nothing
+    , expanded =
+        case hl of
+            HighlightNothing ->
+                False
+
+            HighlightLine stepID _ ->
+                List.member stepID (Concourse.mapBuildPlan .id plan)
+
+            HighlightRange stepID _ _ ->
+                List.member stepID (Concourse.mapBuildPlan .id plan)
+    , version = Nothing
+    , metadata = []
+    , firstOccurrence = False
+    , timestamps = Dict.empty
+    , initialize = Nothing
+    , start = Nothing
+    , finish = Nothing
+    }
+
+
 initBottom :
     Highlight
     -> (Step -> StepTree)
-    -> StepID
+    -> Concourse.BuildPlan
     -> StepName
     -> StepTreeModel
-initBottom hl create id name =
-    let
-        step =
-            { id = id
-            , name = name
-            , state = StepStatePending
-            , log = Ansi.Log.init Ansi.Log.Cooked
-            , error = Nothing
-            , expanded =
-                case hl of
-                    HighlightNothing ->
-                        False
-
-                    HighlightLine stepID _ ->
-                        if id == stepID then
-                            True
-
-                        else
-                            False
-
-                    HighlightRange stepID _ _ ->
-                        if id == stepID then
-                            True
-
-                        else
-                            False
-            , version = Nothing
-            , metadata = []
-            , firstOccurrence = False
-            , timestamps = Dict.empty
-            , initialize = Nothing
-            , start = Nothing
-            , finish = Nothing
-            }
-    in
-    { tree = create step
-    , foci = Dict.singleton id identity
+initBottom hl create plan name =
+    { tree = constructStep hl plan name |> create
+    , foci = Dict.singleton plan.id identity
     , highlight = hl
     }
+
+
+initRootedMultiStep :
+    Highlight
+    -> Concourse.BuildResources
+    -> Concourse.BuildPlan
+    -> StepName
+    -> (Step -> Array StepTree -> StepTree)
+    -> Array Concourse.BuildPlan
+    -> StepTreeModel
+initRootedMultiStep hl resources plan stepName constructor plans =
+    initMultiStep
+        hl
+        resources
+        plan.id
+        (constructStep hl plan stepName |> constructor)
+        plans
 
 
 initWrappedStep :
@@ -237,69 +322,6 @@ initHookedStep hl resources create hookedPlan =
     }
 
 
-treeIsActive : StepTree -> Bool
-treeIsActive stepTree =
-    case stepTree of
-        Aggregate trees ->
-            List.any treeIsActive (Array.toList trees)
-
-        InParallel trees ->
-            List.any treeIsActive (Array.toList trees)
-
-        Do trees ->
-            List.any treeIsActive (Array.toList trees)
-
-        OnSuccess { step } ->
-            treeIsActive step
-
-        OnFailure { step } ->
-            treeIsActive step
-
-        OnAbort { step } ->
-            treeIsActive step
-
-        OnError { step } ->
-            treeIsActive step
-
-        Ensure { step } ->
-            treeIsActive step
-
-        Try tree ->
-            treeIsActive tree
-
-        Timeout tree ->
-            treeIsActive tree
-
-        Retry _ _ _ trees ->
-            List.any treeIsActive (Array.toList trees)
-
-        Task step ->
-            stepIsActive step
-
-        SetPipeline step ->
-            stepIsActive step
-
-        LoadVar step ->
-            stepIsActive step
-
-        ArtifactInput _ ->
-            False
-
-        Get step ->
-            stepIsActive step
-
-        ArtifactOutput step ->
-            stepIsActive step
-
-        Put step ->
-            stepIsActive step
-
-
-stepIsActive : Step -> Bool
-stepIsActive =
-    isActive << .state
-
-
 setupGetStep : Concourse.BuildResources -> StepName -> Maybe Version -> Step -> Step
 setupGetStep resources name version step =
     { step
@@ -334,9 +356,14 @@ toggleStep id root =
     )
 
 
+toggleStepSubHeader : StepID -> Int -> StepTreeModel -> ( StepTreeModel, List Effect )
+toggleStepSubHeader id i root =
+    ( updateAt id (toggleSubHeaderExpanded i) root, [] )
+
+
 switchTab : StepID -> Int -> StepTreeModel -> ( StepTreeModel, List Effect )
 switchTab id tab root =
-    ( updateAt id (focusRetry tab) root, [] )
+    ( updateAt id (focusTabbed tab) root, [] )
 
 
 setHighlight : StepID -> Int -> StepTreeModel -> ( StepTreeModel, List Effect )
@@ -386,48 +413,79 @@ view :
     -> StepTreeModel
     -> Html Message
 view session model =
-    viewTree session model model.tree
+    viewTree session model model.tree 0
 
 
 viewTree :
     { timeZone : Time.Zone, hovered : HoverState.HoverState }
     -> StepTreeModel
     -> StepTree
+    -> Int
     -> Html Message
-viewTree session model tree =
+viewTree session model tree depth =
     case tree of
         Task step ->
-            viewStep model session step StepHeaderTask
+            viewStep model session depth step StepHeaderTask
 
         ArtifactInput step ->
-            viewStep model session step (StepHeaderGet False)
+            viewStep model session depth step (StepHeaderGet False)
 
         Get step ->
-            viewStep model session step (StepHeaderGet step.firstOccurrence)
+            viewStep model session depth step (StepHeaderGet step.firstOccurrence)
 
         ArtifactOutput step ->
-            viewStep model session step StepHeaderPut
+            viewStep model session depth step StepHeaderPut
 
         Put step ->
-            viewStep model session step StepHeaderPut
+            viewStep model session depth step StepHeaderPut
 
         SetPipeline step ->
-            viewStep model session step StepHeaderSetPipeline
+            viewStep model session depth step StepHeaderSetPipeline
 
         LoadVar step ->
-            viewStep model session step StepHeaderLoadVar
+            viewStep model session depth step StepHeaderLoadVar
 
         Try step ->
-            viewTree session model step
+            viewTree session model step depth
 
-        Retry id tab _ steps ->
+        Across vars vals expanded step substeps ->
+            viewStepWithBody model session depth step StepHeaderAcross <|
+                (List.map2 Tuple.pair vals expanded
+                    |> List.indexedMap
+                        (\i ( vals_, expanded_ ) ->
+                            ( vals_
+                            , expanded_
+                            , substeps |> Array.get i
+                            )
+                        )
+                    |> List.filterMap
+                        (\( vals_, expanded_, substep ) ->
+                            case substep of
+                                Nothing ->
+                                    -- impossible, but need to get rid of the Maybe
+                                    Nothing
+
+                                Just substep_ ->
+                                    Just ( vals_, expanded_, substep_ )
+                        )
+                    |> List.indexedMap
+                        (\i ( vals_, expanded_, substep ) ->
+                            let
+                                keyVals =
+                                    List.map2 Tuple.pair vars vals_
+                            in
+                            viewAcrossStepSubHeader model session step.id i keyVals expanded_ (depth + 1) substep
+                        )
+                )
+
+        Retry tabInfo steps ->
             Html.div [ class "retry" ]
                 [ Html.ul
                     (class "retry-tabs" :: Styles.retryTabList)
-                    (Array.toList <| Array.indexedMap (viewTab session id tab) steps)
-                , case Array.get (tab - 1) steps of
+                    (Array.toList <| Array.indexedMap (viewRetryTab session tabInfo) steps)
+                , case Array.get tabInfo.tab steps of
                     Just step ->
-                        viewTree session model step
+                        viewTree session model step depth
 
                     Nothing ->
                         -- impossible (bogus tab selected)
@@ -435,88 +493,210 @@ viewTree session model tree =
                 ]
 
         Timeout step ->
-            viewTree session model step
+            viewTree session model step depth
 
         Aggregate steps ->
             Html.div [ class "aggregate" ]
-                (Array.toList <| Array.map (viewSeq session model) steps)
+                (Array.toList <| Array.map (viewSeq session model depth) steps)
 
         InParallel steps ->
             Html.div [ class "parallel" ]
-                (Array.toList <| Array.map (viewSeq session model) steps)
+                (Array.toList <| Array.map (viewSeq session model depth) steps)
 
         Do steps ->
             Html.div [ class "do" ]
-                (Array.toList <| Array.map (viewSeq session model) steps)
+                (Array.toList <| Array.map (viewSeq session model depth) steps)
 
         OnSuccess { step, hook } ->
-            viewHooked session "success" model step hook
+            viewHooked session "success" model depth step hook
 
         OnFailure { step, hook } ->
-            viewHooked session "failure" model step hook
+            viewHooked session "failure" model depth step hook
 
         OnAbort { step, hook } ->
-            viewHooked session "abort" model step hook
+            viewHooked session "abort" model depth step hook
 
         OnError { step, hook } ->
-            viewHooked session "error" model step hook
+            viewHooked session "error" model depth step hook
 
         Ensure { step, hook } ->
-            viewHooked session "ensure" model step hook
+            viewHooked session "ensure" model depth step hook
 
 
-viewTab :
-    { timeZone : Time.Zone, hovered : HoverState.HoverState }
+viewAcrossStepSubHeader :
+    StepTreeModel
+    -> { timeZone : Time.Zone, hovered : HoverState.HoverState }
     -> StepID
     -> Int
+    -> List ( String, JsonValue )
+    -> Bool
     -> Int
     -> StepTree
     -> Html Message
-viewTab { hovered } id currentTab idx step =
+viewAcrossStepSubHeader model session stepID subHeaderIdx keyVals expanded depth subtree =
     let
-        tab =
-            idx + 1
+        state =
+            mostSevereStepState subtree
     in
+    Html.div
+        [ classList
+            [ ( "build-step", True )
+            , ( "inactive", not <| isActive state )
+            ]
+        , style "margin-top" "10px"
+        ]
+        [ Html.div
+            ([ class "header"
+             , class "sub-header"
+             , onClick <| Click <| StepSubHeader stepID subHeaderIdx
+             , style "z-index" <| String.fromInt <| max (maxDepth - depth) 1
+             ]
+                ++ Styles.stepHeader state
+            )
+            [ Html.div
+                [ style "display" "flex" ]
+                [ viewAcrossStepSubHeaderLabels keyVals ]
+            , Html.div
+                [ style "display" "flex" ]
+                [ viewStepStateWithoutTooltip state ]
+            ]
+        , if expanded then
+            Html.div
+                [ class "step-body"
+                , class "clearfix"
+                , style "padding-bottom" "0"
+                ]
+                [ viewTree session model subtree (depth + 1) ]
+
+          else
+            Html.text ""
+        ]
+
+
+viewAcrossStepSubHeaderLabels : List ( String, JsonValue ) -> Html Message
+viewAcrossStepSubHeaderLabels keyVals =
+    Html.div Styles.acrossStepSubHeaderLabel
+        (keyVals
+            |> List.concatMap
+                (\( k, v ) ->
+                    viewAcrossStepSubHeaderKeyValue k v
+                )
+        )
+
+
+viewAcrossStepSubHeaderKeyValue : String -> JsonValue -> List (Html Message)
+viewAcrossStepSubHeaderKeyValue key val =
+    let
+        keyValueSpan text =
+            [ Html.span
+                [ style "display" "inline-block"
+                , style "margin-right" "10px"
+                ]
+                [ Html.span [ style "color" Colors.pending ]
+                    [ Html.text <| key ++ ": " ]
+                , Html.text text
+                ]
+            ]
+    in
+    case val of
+        JsonString s ->
+            keyValueSpan s
+
+        JsonNumber n ->
+            keyValueSpan <| String.fromFloat n
+
+        JsonRaw v ->
+            keyValueSpan <| Json.Encode.encode 0 v
+
+        JsonArray l ->
+            List.indexedMap
+                (\i v ->
+                    let
+                        subKey =
+                            key ++ "[" ++ String.fromInt i ++ "]"
+                    in
+                    viewAcrossStepSubHeaderKeyValue subKey v
+                )
+                l
+                |> List.concat
+
+        JsonObject o ->
+            List.concatMap
+                (\( k, v ) ->
+                    let
+                        subKey =
+                            key ++ "." ++ k
+                    in
+                    viewAcrossStepSubHeaderKeyValue subKey v
+                )
+                o
+
+
+viewRetryTab :
+    { r | hovered : HoverState.HoverState }
+    -> TabInfo
+    -> Int
+    -> StepTree
+    -> Html Message
+viewRetryTab session tabInfo idx step =
+    viewTab session tabInfo idx (String.fromInt (idx + 1)) step
+
+
+viewTab :
+    { r | hovered : HoverState.HoverState }
+    -> TabInfo
+    -> Int
+    -> String
+    -> StepTree
+    -> Html Message
+viewTab { hovered } tabInfo tab label step =
     Html.li
         ([ classList
-            [ ( "current", currentTab == tab )
+            [ ( "current", tabInfo.tab == tab )
             , ( "inactive", not <| treeIsActive step )
             ]
-         , onMouseEnter <| Hover <| Just <| StepTab id tab
+         , onMouseEnter <| Hover <| Just <| StepTab tabInfo.id tab
          , onMouseLeave <| Hover Nothing
-         , onClick <| Click <| StepTab id tab
+         , onClick <| Click <| StepTab tabInfo.id tab
          ]
-            ++ Styles.retryTab
-                { isHovered = HoverState.isHovered (StepTab id tab) hovered
-                , isCurrent = currentTab == tab
+            ++ Styles.tab
+                { isHovered = HoverState.isHovered (StepTab tabInfo.id tab) hovered
+                , isCurrent = tabInfo.tab == tab
                 , isStarted = treeIsActive step
                 }
         )
-        [ Html.text (String.fromInt tab) ]
+        [ Html.text label ]
 
 
-viewSeq : { timeZone : Time.Zone, hovered : HoverState.HoverState } -> StepTreeModel -> StepTree -> Html Message
-viewSeq session model tree =
-    Html.div [ class "seq" ] [ viewTree session model tree ]
+viewSeq : { timeZone : Time.Zone, hovered : HoverState.HoverState } -> StepTreeModel -> Int -> StepTree -> Html Message
+viewSeq session model depth tree =
+    Html.div [ class "seq" ] [ viewTree session model tree depth ]
 
 
-viewHooked : { timeZone : Time.Zone, hovered : HoverState.HoverState } -> String -> StepTreeModel -> StepTree -> StepTree -> Html Message
-viewHooked session name model step hook =
+viewHooked : { timeZone : Time.Zone, hovered : HoverState.HoverState } -> String -> StepTreeModel -> Int -> StepTree -> StepTree -> Html Message
+viewHooked session name model depth step hook =
     Html.div [ class "hooked" ]
-        [ Html.div [ class "step" ] [ viewTree session model step ]
+        [ Html.div [ class "step" ] [ viewTree session model step depth ]
         , Html.div [ class "children" ]
-            [ Html.div [ class ("hook hook-" ++ name) ] [ viewTree session model hook ]
+            [ Html.div [ class ("hook hook-" ++ name) ] [ viewTree session model hook depth ]
             ]
         ]
 
 
-isActive : StepState -> Bool
-isActive state =
-    state /= StepStatePending && state /= StepStateCancelled
+maxDepth : Int
+maxDepth =
+    10
 
 
-viewStep : StepTreeModel -> { timeZone : Time.Zone, hovered : HoverState.HoverState } -> Step -> StepHeaderType -> Html Message
-viewStep model session { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, start, finish } headerType =
+viewStepWithBody :
+    StepTreeModel
+    -> { timeZone : Time.Zone, hovered : HoverState.HoverState }
+    -> Int
+    -> Step
+    -> StepHeaderType
+    -> List (Html Message)
+    -> Html Message
+viewStepWithBody model session depth { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, start, finish } headerType body =
     Html.div
         [ classList
             [ ( "build-step", True )
@@ -527,6 +707,7 @@ viewStep model session { id, name, log, state, error, expanded, version, metadat
         [ Html.div
             ([ class "header"
              , onClick <| Click <| StepHeader id
+             , style "z-index" <| String.fromInt <| max (maxDepth - depth) 1
              ]
                 ++ Styles.stepHeader state
             )
@@ -554,20 +735,27 @@ viewStep model session { id, name, log, state, error, expanded, version, metadat
                 [ class "step-body"
                 , class "clearfix"
                 ]
-                [ viewMetadata metadata
-                , Html.pre [ class "timestamped-logs" ] <|
+                ([ viewMetadata metadata
+                 , Html.pre [ class "timestamped-logs" ] <|
                     viewLogs log timestamps model.highlight session.timeZone id
-                , case error of
+                 , case error of
                     Nothing ->
                         Html.span [] []
 
                     Just msg ->
                         Html.span [ class "error" ] [ Html.pre [] [ Html.text msg ] ]
-                ]
+                 ]
+                    ++ body
+                )
 
           else
             Html.text ""
         ]
+
+
+viewStep : StepTreeModel -> { timeZone : Time.Zone, hovered : HoverState.HoverState } -> Int -> Step -> StepHeaderType -> Html Message
+viewStep model session depth step headerType =
+    viewStepWithBody model session depth step headerType []
 
 
 showTooltip : Tooltip.Model b -> DomID -> Bool
@@ -724,6 +912,80 @@ viewMetadata =
         >> Html.table Styles.metadataTable
 
 
+viewStepStateWithoutTooltip : StepState -> Html Message
+viewStepStateWithoutTooltip state =
+    let
+        attributes =
+            [ style "position" "relative" ]
+    in
+    case state of
+        StepStateRunning ->
+            Spinner.spinner
+                { sizePx = 14
+                , margin = "7px"
+                }
+
+        StepStatePending ->
+            Icon.icon
+                { sizePx = 28
+                , image = Assets.PendingIcon
+                }
+                (attribute "data-step-state" "pending"
+                    :: Styles.stepStatusIcon
+                    ++ attributes
+                )
+
+        StepStateInterrupted ->
+            Icon.icon
+                { sizePx = 28
+                , image = Assets.InterruptedIcon
+                }
+                (attribute "data-step-state" "interrupted"
+                    :: Styles.stepStatusIcon
+                    ++ attributes
+                )
+
+        StepStateCancelled ->
+            Icon.icon
+                { sizePx = 28
+                , image = Assets.CancelledIcon
+                }
+                (attribute "data-step-state" "cancelled"
+                    :: Styles.stepStatusIcon
+                    ++ attributes
+                )
+
+        StepStateSucceeded ->
+            Icon.icon
+                { sizePx = 28
+                , image = Assets.SuccessCheckIcon
+                }
+                (attribute "data-step-state" "succeeded"
+                    :: Styles.stepStatusIcon
+                    ++ attributes
+                )
+
+        StepStateFailed ->
+            Icon.icon
+                { sizePx = 28
+                , image = Assets.FailureTimesIcon
+                }
+                (attribute "data-step-state" "failed"
+                    :: Styles.stepStatusIcon
+                    ++ attributes
+                )
+
+        StepStateErrored ->
+            Icon.icon
+                { sizePx = 28
+                , image = Assets.ExclamationTriangleIcon
+                }
+                (attribute "data-step-state" "errored"
+                    :: Styles.stepStatusIcon
+                    ++ attributes
+                )
+
+
 viewStepState : StepState -> StepID -> List (Html Message) -> Html Message
 viewStepState state stepID tooltip =
     let
@@ -841,6 +1103,9 @@ viewStepHeaderLabel headerType stepID =
 
                 StepHeaderLoadVar ->
                     "load_var:"
+
+                StepHeaderAcross ->
+                    "across:"
         ]
 
 

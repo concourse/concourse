@@ -1,6 +1,7 @@
 module Build.Styles exposing
     ( MetadataCellType(..)
     , abortButton
+    , acrossStepSubHeaderLabel
     , body
     , buttonTooltip
     , buttonTooltipArrow
@@ -12,11 +13,11 @@ module Build.Styles exposing
     , historyItem
     , metadataCell
     , metadataTable
-    , retryTab
     , retryTabList
     , stepHeader
     , stepHeaderLabel
     , stepStatusIcon
+    , tab
     , triggerButton
     )
 
@@ -62,6 +63,7 @@ body : List (Html.Attribute msg)
 body =
     [ style "overflow-y" "auto"
     , style "outline" "none"
+    , style "position" "relative"
     , style "-webkit-overflow-scrolling" "touch"
     ]
 
@@ -221,6 +223,13 @@ stepHeaderLabel headerType =
     ]
 
 
+acrossStepSubHeaderLabel : List (Html.Attribute msg)
+acrossStepSubHeaderLabel =
+    [ style "line-height" "28px"
+    , style "padding-left" "6px"
+    ]
+
+
 stepStatusIcon : List (Html.Attribute msg)
 stepStatusIcon =
     [ style "background-size" "14px 14px"
@@ -274,20 +283,26 @@ errorLog =
     ]
 
 
-retryTabList : List (Html.Attribute msg)
-retryTabList =
-    [ style "margin" "0"
-    , style "font-size" "16px"
-    , style "line-height" "26px"
+tabList : List (Html.Attribute msg)
+tabList =
+    [ style "line-height" "26px"
     , style "background-color" Colors.background
     ]
 
 
-retryTab :
+retryTabList : List (Html.Attribute msg)
+retryTabList =
+    style "font-size" "16px"
+        :: style "margin" "0"
+        :: tabList
+
+
+tab :
     { isHovered : Bool, isCurrent : Bool, isStarted : Bool }
     -> List (Html.Attribute msg)
-retryTab { isHovered, isCurrent, isStarted } =
+tab { isHovered, isCurrent, isStarted } =
     [ style "display" "inline-block"
+    , style "position" "relative"
     , style "padding" "0 5px"
     , style "font-weight" Views.Styles.fontWeightDefault
     , style "cursor" "pointer"

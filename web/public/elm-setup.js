@@ -189,12 +189,71 @@ app.ports.syncTextareaHeight.subscribe(function(id) {
   }, 0);
 });
 
+let syncStickyBuildLogHeadersInterval;
+
+app.ports.syncStickyBuildLogHeaders.subscribe(function() {
+  if (!CSS || !CSS.supports || !CSS.supports('position', 'sticky')) {
+    return;
+  }
+  if (syncStickyBuildLogHeadersInterval != null) {
+    return;
+  }
+  const attemptToSync = () => {
+    const padding = 5;
+    const headers = document.querySelectorAll('.build-step .header:not(.loading-header)');
+    if (headers.length === 0) {
+      return false;
+    }
+    headers.forEach(header => {
+      const parentHeader = findParentHeader(header);
+      let curHeight = 0;
+      if (parentHeader != null) {
+        const parentHeight = parsePixels(parentHeader.style.top || '') || 0;
+        curHeight = parentHeight + parentHeader.offsetHeight + padding;
+      }
+      header.style.top = curHeight + 'px';
+    });
+    return true;
+  }
+
+  setTimeout(() => {
+    const success = attemptToSync();
+    if (!success) {
+      // The headers do not always exist by the time we attempt to sync.
+      // Keep trying on an interval
+      syncStickyBuildLogHeadersInterval = setInterval(() => {
+        const success = attemptToSync();
+        if (success) {
+          clearInterval(syncStickyBuildLogHeadersInterval);
+          syncStickyBuildLogHeadersInterval = null;
+        }
+      }, 250);
+    }
+  }, 50);
+});
+
+function findParentHeader(el) {
+  const closestStepBody = el.closest('.step-body');
+  if (closestStepBody == null || closestStepBody.parentElement == null) {
+    return;
+  }
+  return closestStepBody.parentElement.querySelector('.header')
+}
+
+function parsePixels(raw) {
+  raw = raw.trim();
+  if(!raw.endsWith('px')) {
+    return 0;
+  }
+  return parseFloat(raw);
+}
+
 app.ports.scrollToId.subscribe(function(params) {
   if (!params || params.length !== 2) {
     return;
   }
   const [parentId, toId] = params;
-  const padding = 10;
+  const padding = 150;
   const interval = setInterval(function() {
     const parentElem = document.getElementById(parentId);
     if (parentElem === null) {
@@ -204,11 +263,20 @@ app.ports.scrollToId.subscribe(function(params) {
     if (elem === null) {
       return;
     }
-    parentElem.scrollTop = elem.offsetTop - padding;
+    parentElem.scrollTop = offsetTop(elem, parentElem) - padding;
     setTimeout(() => app.ports.scrolledToId.send([parentId, toId]), 50)
     clearInterval(interval);
   }, 20);
 });
+
+function offsetTop(element, untilElement) {
+  let offsetTop = 0;
+  while(element && element != untilElement) {
+    offsetTop += element.offsetTop;
+    element = element.offsetParent;
+  }
+  return offsetTop;
+}
 
 app.ports.openEventStream.subscribe(function(config) {
   var buffer = [];

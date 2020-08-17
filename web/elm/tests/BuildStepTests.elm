@@ -2,6 +2,7 @@ module BuildStepTests exposing (all)
 
 import Application.Application as Application
 import Array
+import Assets
 import Build.StepTree.Models exposing (BuildEvent(..))
 import Colors
 import Common
@@ -13,18 +14,21 @@ import Common
         , then_
         , when
         )
-import Concourse
+import Concourse exposing (JsonValue(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
+import DashboardTests exposing (iconSelector)
 import Dict
 import Expect
+import Json.Encode
 import Message.Callback as Callback
 import Message.Message as Message exposing (DomID(..))
 import Message.Subscription exposing (Delivery(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
+import Routes
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (class, style, tag, text)
+import Test.Html.Selector exposing (class, containing, style, tag, text)
 import Time
 import Views.Styles
 
@@ -138,7 +142,7 @@ all =
                             , selector =
                                 [ style "background-color" Colors.background ]
                             }
-                        , hoverable = StepTab "retryStepId" 2
+                        , hoverable = StepTab "retryStepId" 1
                         , hoveredSelector =
                             { description = "lighter grey background"
                             , selector =
@@ -148,7 +152,7 @@ all =
                     , test "have click handlers" <|
                         given iVisitABuildWithARetryStep
                             >> when iAmLookingAtTheFirstTab
-                            >> then_ (itIsClickable <| StepTab "retryStepId" 1)
+                            >> then_ (itIsClickable <| StepTab "retryStepId" 0)
                     , test "have horizontal spacing" <|
                         given iVisitABuildWithARetryStep
                             >> when iAmLookingAtTheFirstTab
@@ -207,10 +211,118 @@ all =
                     ]
                 ]
             ]
+        , describe "across step"
+            [ test "shows var names" <|
+                given iVisitABuildWithAnAcrossStep
+                    >> when iAmLookingAtTheAcrossStepInTheBuildOutput
+                    >> then_ iSeeTheVarNames
+            , describe "sub headers"
+                [ test "has as many sub headers as sub steps" <|
+                    given iVisitABuildWithAnAcrossStep
+                        >> given theAcrossStepIsExpanded
+                        >> when iAmLookingAtTheAcrossSubHeaders
+                        >> then_ iSeeFourOfThem
+                , test "appears behind top-level headers" <|
+                    given iVisitABuildWithAnAcrossStep
+                        >> given theAcrossStepIsExpanded
+                        >> when iAmLookingAtTheFirstAcrossSubHeader
+                        >> then_ iSeeItAppearsBehindTopLevelHeaders
+                , test "have key-value pairs for the vars" <|
+                    given iVisitABuildWithAnAcrossStep
+                        >> given theAcrossStepIsExpanded
+                        >> when iAmLookingAtTheAcrossSubHeaders
+                        >> then_ iSeeTheKeyValuePairs
+                , test "display subtree when expanded" <|
+                    given iVisitABuildWithAnAcrossStep
+                        >> given theAcrossStepIsExpanded
+                        >> given theFirstAcrossSubHeaderIsExpanded
+                        >> when iAmLookingAtTheAcrossStepInTheBuildOutput
+                        >> then_ iSeeATaskHeader
+                , describe "shows status of subtree"
+                    [ test "pending" <|
+                        given iVisitABuildWithAnAcrossStep
+                            >> given theAcrossStepIsExpanded
+                            >> when iAmLookingAtTheFirstAcrossSubHeader
+                            >> then_ (iSeeStatusIcon Assets.PendingIcon)
+                    , test "running" <|
+                        given iVisitABuildWithAnAcrossStep
+                            >> given theAcrossStepIsExpanded
+                            >> given theFirstTaskInitialized
+                            >> when iAmLookingAtTheFirstAcrossSubHeader
+                            >> then_ iSeeASpinner
+                    , test "succeeded" <|
+                        given iVisitABuildWithAnAcrossStep
+                            >> given theAcrossStepIsExpanded
+                            >> given theFirstTaskSucceeded
+                            >> when iAmLookingAtTheFirstAcrossSubHeader
+                            >> then_ (iSeeStatusIcon Assets.SuccessCheckIcon)
+                    , test "failed" <|
+                        given iVisitABuildWithAnAcrossStep
+                            >> given theAcrossStepIsExpanded
+                            >> given theFirstTaskFailed
+                            >> when iAmLookingAtTheFirstAcrossSubHeader
+                            >> then_ (iSeeStatusIcon Assets.FailureTimesIcon)
+                    , test "errored" <|
+                        given iVisitABuildWithAnAcrossStep
+                            >> given theAcrossStepIsExpanded
+                            >> given theFirstTaskErrored
+                            >> when iAmLookingAtTheFirstAcrossSubHeader
+                            >> then_ (iSeeStatusIcon Assets.ExclamationTriangleIcon)
+                    , test "interrupted" <|
+                        given iVisitABuildWithAnAcrossStep
+                            >> given theAcrossStepIsExpanded
+                            >> given theFirstTaskIsInterrupted
+                            >> when iAmLookingAtTheFirstAcrossSubHeader
+                            >> then_ (iSeeStatusIcon Assets.InterruptedIcon)
+                    , test "cancelled" <|
+                        given iVisitABuildWithAnAcrossStep
+                            >> given theAcrossStepIsExpanded
+                            >> given theFirstTaskIsCancelled
+                            >> when iAmLookingAtTheFirstAcrossSubHeader
+                            >> then_ (iSeeStatusIcon Assets.CancelledIcon)
+                    , test "does not consider unreachable steps in retry" <|
+                        given iVisitABuildWithAnAcrossStepWrappingARetryStep
+                            >> given theAcrossStepIsExpanded
+                            >> given theFirstAttemptSucceeded
+                            >> when iAmLookingAtTheFirstAcrossSubHeader
+                            >> then_ (iSeeStatusIcon Assets.SuccessCheckIcon)
+                    , test "does not consider unreachable hook in on_failure" <|
+                        given (iVisitABuildWithAnAcrossStepWrappingAHook Concourse.BuildStepOnFailure)
+                            >> given theAcrossStepIsExpanded
+                            >> given theStepSucceeded
+                            >> when iAmLookingAtTheFirstAcrossSubHeader
+                            >> then_ (iSeeStatusIcon Assets.SuccessCheckIcon)
+                    , test "does not consider unreachable hook in on_error" <|
+                        given (iVisitABuildWithAnAcrossStepWrappingAHook Concourse.BuildStepOnError)
+                            >> given theAcrossStepIsExpanded
+                            >> given theStepSucceeded
+                            >> when iAmLookingAtTheFirstAcrossSubHeader
+                            >> then_ (iSeeStatusIcon Assets.SuccessCheckIcon)
+                    , test "does not consider unreachable hook in on_abort" <|
+                        given (iVisitABuildWithAnAcrossStepWrappingAHook Concourse.BuildStepOnAbort)
+                            >> given theAcrossStepIsExpanded
+                            >> given theStepSucceeded
+                            >> when iAmLookingAtTheFirstAcrossSubHeader
+                            >> then_ (iSeeStatusIcon Assets.SuccessCheckIcon)
+                    ]
+                , describe "complex values"
+                    [ test "displays object fields with dot notation" <|
+                        given iVisitABuildWithAnAcrossStepWithComplexValues
+                            >> given theAcrossStepIsExpanded
+                            >> when iAmLookingAtTheFirstAcrossSubHeader
+                            >> then_ iSeeTheObjectKeyValuePairs
+                    , test "displays array fields with index notation" <|
+                        given iVisitABuildWithAnAcrossStepWithComplexValues
+                            >> given theAcrossStepIsExpanded
+                            >> when iAmLookingAtTheSecondAcrossSubHeader
+                            >> then_ iSeeTheArrayKeyValuePairs
+                    ]
+                ]
+            ]
         , describe "task step"
             [ test "logs show timestamps" <|
                 given iVisitABuildWithATaskStep
-                    >> given thereIsALog
+                    >> given (thereIsALog taskStepId)
                     >> given theTaskStepIsExpanded
                     >> when iAmLookingAtTheStepBody
                     >> then_ iSeeATimestamp
@@ -236,6 +348,64 @@ iVisitABuildWithARetryStep =
     iOpenTheBuildPage
         >> myBrowserFetchedTheBuild
         >> thePlanContainsARetryStep
+
+
+iVisitABuildWithAnAcrossStep =
+    iOpenTheBuildPage
+        >> myBrowserFetchedTheBuild
+        >> thePlanContainsAnAcrossStep
+
+
+iVisitABuildWithAnAcrossStepWrappingARetryStep =
+    iOpenTheBuildPage
+        >> myBrowserFetchedTheBuild
+        >> thePlanContainsAnAcrossStepWithSubplan
+            { id = "retryStepId"
+            , step =
+                Concourse.BuildStepRetry
+                    (Array.fromList
+                        [ { id = "attempt1Id"
+                          , step =
+                                Concourse.BuildStepTask
+                                    "taskName"
+                          }
+                        , { id = "attempt2Id"
+                          , step =
+                                Concourse.BuildStepTask
+                                    "taskName"
+                          }
+                        ]
+                    )
+            }
+
+
+iVisitABuildWithAnAcrossStepWrappingAHook hook =
+    iOpenTheBuildPage
+        >> myBrowserFetchedTheBuild
+        >> thePlanContainsAnAcrossStepWithSubplan
+            { id = "retryStepId"
+            , step =
+                hook
+                    { step =
+                        { id = "stepId"
+                        , step =
+                            Concourse.BuildStepTask
+                                "taskName"
+                        }
+                    , hook =
+                        { id = "hookId"
+                        , step =
+                            Concourse.BuildStepTask
+                                "taskName"
+                        }
+                    }
+            }
+
+
+iVisitABuildWithAnAcrossStepWithComplexValues =
+    iOpenTheBuildPage
+        >> myBrowserFetchedTheBuild
+        >> thePlanContainsAnAcrossStepWithComplexValues
 
 
 iVisitABuildWithATaskStep =
@@ -283,6 +453,11 @@ theLoadVarStepIsExpanded =
         >> Application.update (Update <| Message.Click <| StepHeader setLoadVarStepId)
 
 
+theAcrossStepIsExpanded =
+    Tuple.first
+        >> Application.update (Update <| Message.Click <| StepHeader acrossStepId)
+
+
 thePlanContainsARetryStep =
     Tuple.first
         >> Application.handleCallback
@@ -304,6 +479,121 @@ thePlanContainsARetryStep =
                                       }
                                     ]
                                 )
+                      }
+                    , { inputs = []
+                      , outputs = []
+                      }
+                    )
+            )
+
+
+thePlanContainsAnAcrossStep =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.PlanAndResourcesFetched 1 <|
+                Ok
+                    ( { id = acrossStepId
+                      , step =
+                            Concourse.BuildStepAcross
+                                { vars = [ "var1", "var2" ]
+                                , steps =
+                                    [ ( [ JsonString "a1", JsonString "b1" ]
+                                      , { id = "task1Id"
+                                        , step =
+                                            Concourse.BuildStepTask
+                                                "taskName"
+                                        }
+                                      )
+                                    , ( [ JsonString "a1", JsonString "b2" ]
+                                      , { id = "task2Id"
+                                        , step =
+                                            Concourse.BuildStepTask
+                                                "taskName"
+                                        }
+                                      )
+                                    , ( [ JsonString "a2", JsonString "b1" ]
+                                      , { id = "task3Id"
+                                        , step =
+                                            Concourse.BuildStepTask
+                                                "taskName"
+                                        }
+                                      )
+                                    , ( [ JsonString "a2", JsonString "b2" ]
+                                      , { id = "task4Id"
+                                        , step =
+                                            Concourse.BuildStepTask
+                                                "taskName"
+                                        }
+                                      )
+                                    ]
+                                }
+                      }
+                    , { inputs = []
+                      , outputs = []
+                      }
+                    )
+            )
+
+
+thePlanContainsAnAcrossStepWithSubplan plan =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.PlanAndResourcesFetched 1 <|
+                Ok
+                    ( { id = acrossStepId
+                      , step =
+                            Concourse.BuildStepAcross
+                                { vars = [ "var1" ]
+                                , steps = [ ( [ JsonString "a1" ], plan ) ]
+                                }
+                      }
+                    , { inputs = []
+                      , outputs = []
+                      }
+                    )
+            )
+
+
+thePlanContainsAnAcrossStepWithComplexValues =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.PlanAndResourcesFetched 1 <|
+                Ok
+                    ( { id = acrossStepId
+                      , step =
+                            Concourse.BuildStepAcross
+                                { vars = [ "var1" ]
+                                , steps =
+                                    [ ( [ JsonObject
+                                            [ ( "f1", JsonString "v1" )
+                                            , ( "f2", JsonNumber 1 )
+                                            , ( "f3"
+                                              , JsonRaw
+                                                    (Json.Encode.object
+                                                        [ ( "abc", Json.Encode.int 123 ) ]
+                                                    )
+                                              )
+                                            ]
+                                        ]
+                                      , { id = "task1Id"
+                                        , step =
+                                            Concourse.BuildStepTask
+                                                "taskName"
+                                        }
+                                      )
+                                    , ( [ JsonArray
+                                            [ JsonString "v1"
+                                            , JsonNumber 1
+                                            ]
+                                        ]
+                                      , { id = "task2Id"
+                                        , step =
+                                            Concourse.BuildStepTask
+                                                "taskName"
+                                        }
+                                      )
+                                    ]
+                                }
                       }
                     , { inputs = []
                       , outputs = []
@@ -369,6 +659,10 @@ setLoadVarStepId =
     "loadVarStep"
 
 
+acrossStepId =
+    "acrossStep"
+
+
 thePlanContainsAGetStep =
     Tuple.first
         >> Application.handleCallback
@@ -417,6 +711,12 @@ iAmLookingAtTheRetryStepInTheBuildOutput =
         >> Query.find [ class "retry" ]
 
 
+iAmLookingAtTheAcrossStepInTheBuildOutput =
+    Tuple.first
+        >> Common.queryView
+        >> Query.find [ class "build-step", containing [ text "across:" ] ]
+
+
 iAmLookingAtTheStepBody =
     Tuple.first
         >> Common.queryView
@@ -425,6 +725,10 @@ iAmLookingAtTheStepBody =
 
 iSeeTwoChildren =
     Query.children [] >> Query.count (Expect.equal 2)
+
+
+iSeeFourOfThem =
+    Query.count (Expect.equal 4)
 
 
 iAmLookingAtTheMetadataTable =
@@ -490,6 +794,81 @@ iAmLookingAtTheTabList =
         >> Query.first
 
 
+iAmLookingAtTheAcrossSubHeaders =
+    iAmLookingAtTheAcrossStepInTheBuildOutput
+        >> Query.findAll [ class "sub-header" ]
+
+
+kvPair k v =
+    [ containing [ text k ], containing [ text v ] ]
+
+
+iSeeTheKeyValuePairs =
+    Expect.all
+        [ Query.index 0 >> Query.has (kvPair "var1" "a1" ++ kvPair "var2" "b1")
+        , Query.index 1 >> Query.has (kvPair "var1" "a1" ++ kvPair "var2" "b2")
+        , Query.index 2 >> Query.has (kvPair "var1" "a2" ++ kvPair "var2" "b1")
+        , Query.index 3 >> Query.has (kvPair "var1" "a2" ++ kvPair "var2" "b2")
+        ]
+
+
+iSeeTheObjectKeyValuePairs =
+    Query.has
+        (kvPair "var1.f1" "v1"
+            ++ kvPair "var1.f2" "1"
+            ++ kvPair "var1.f3" "{\"abc\":123}"
+        )
+
+
+iSeeTheArrayKeyValuePairs =
+    Query.has
+        (kvPair "var1[0]" "v1"
+            ++ kvPair "var1[1]" "1"
+        )
+
+
+iAmLookingAtTheFirstAcrossSubHeader =
+    iAmLookingAtTheAcrossSubHeaders >> Query.first
+
+
+iSeeItAppearsBehindTopLevelHeaders =
+    Query.has [ style "z-index" "9" ]
+
+
+iAmLookingAtTheSecondAcrossSubHeader =
+    iAmLookingAtTheAcrossSubHeaders >> Query.index 1
+
+
+theFirstAcrossSubHeaderIsExpanded =
+    Tuple.first
+        >> Application.update
+            (Update <|
+                Message.Click <|
+                    StepSubHeader acrossStepId 0
+            )
+
+
+iSeeATaskHeader =
+    Query.has [ class "header", containing [ text "task" ] ]
+
+
+iSeeASpinner =
+    Query.has
+        [ style "animation" "container-rotate 1568ms linear infinite"
+        , style "height" "14px"
+        , style "width" "14px"
+        ]
+
+
+iSeeStatusIcon asset =
+    Query.has
+        (iconSelector
+            { size = "28px"
+            , image = asset
+            }
+        )
+
+
 iSeeItIsAList =
     Query.has [ tag "ul" ]
 
@@ -542,6 +921,26 @@ iSeeALighterGreyBackground =
     Query.has [ style "background-color" Colors.paginationHover ]
 
 
+iSeeItIsSelected =
+    iSeeALighterGreyBackground
+
+
+iSeeTheSuccessColor =
+    Query.has [ style "background-color" Colors.success ]
+
+
+iSeeTheFailureColor =
+    Query.has [ style "background-color" Colors.failure ]
+
+
+iSeeTheStartedColor =
+    Query.has [ style "background-color" Colors.started ]
+
+
+iSeeTheErrorColor =
+    Query.has [ style "background-color" Colors.error ]
+
+
 iSeeItIsTransparent =
     Query.has [ style "opacity" "0.5" ]
 
@@ -558,6 +957,10 @@ iSeeTheLoadVarName =
     Query.has [ text "var-name" ]
 
 
+iSeeTheVarNames =
+    Query.has [ text "var1, var2" ]
+
+
 iAmLookingAtTheSecondTab =
     iAmLookingAtTheTabList >> Query.children [] >> Query.index 1
 
@@ -566,11 +969,93 @@ theFirstAttemptInitialized =
     taskInitialized "attempt1Id"
 
 
+theFirstAttemptSucceeded =
+    taskFinished "attempt1Id" 0
+
+
 theSecondAttemptInitialized =
     taskInitialized "attempt2Id"
 
 
+theFirstTaskInitialized =
+    taskInitialized "task1Id"
+
+
+theSecondTaskInitialized =
+    taskInitialized "task2Id"
+
+
+theFirstTaskSucceeded =
+    taskFinished "task1Id" 0
+
+
+theFirstTaskFailed =
+    taskFinished "task1Id" 1
+
+
+theFirstTaskErrored =
+    taskErrored "task1Id"
+
+
+theStepSucceeded =
+    taskFinished "stepId" 0
+
+
+theFirstTaskIsInterrupted =
+    thereIsALog "task1Id" >> buildAborted
+
+
+theFirstTaskIsCancelled =
+    buildAborted
+
+
+buildAborted =
+    taskEvent <|
+        BuildStatus BuildStatusAborted (Time.millisToPosix 0)
+
+
+taskEvent event =
+    Tuple.first
+        >> Application.handleDelivery
+            (EventsReceived <|
+                Ok
+                    [ { data = event
+                      , url = "http://localhost:8080/api/v1/builds/1/events"
+                      }
+                    ]
+            )
+
+
 taskInitialized stepId =
+    taskEvent <|
+        InitializeTask
+            { source = "stdout"
+            , id = stepId
+            }
+            (Time.millisToPosix 0)
+
+
+taskFinished stepId exitCode =
+    taskEvent <|
+        FinishTask
+            { source = "stdout"
+            , id = stepId
+            }
+            exitCode
+            (Time.millisToPosix 0)
+
+
+taskErrored stepId =
+    taskEvent <|
+        Error
+            { source = "stdout"
+            , id = stepId
+            }
+            "errored"
+            (Time.millisToPosix 0)
+
+
+thereIsALog stepId =
     Tuple.first
         >> Application.handleDelivery
             (EventsReceived <|
@@ -583,27 +1068,10 @@ taskInitialized stepId =
                                 (Time.millisToPosix 0)
                       , url = "http://localhost:8080/api/v1/builds/1/events"
                       }
-                    ]
-            )
-
-
-thereIsALog =
-    Tuple.first
-        >> Application.handleDelivery
-            (EventsReceived <|
-                Ok
-                    [ { data =
-                            InitializeTask
-                                { source = "stdout"
-                                , id = taskStepId
-                                }
-                                (Time.millisToPosix 0)
-                      , url = "http://localhost:8080/api/v1/builds/1/events"
-                      }
                     , { data =
                             StartTask
                                 { source = "stdout"
-                                , id = taskStepId
+                                , id = stepId
                                 }
                                 (Time.millisToPosix 0)
                       , url = "http://localhost:8080/api/v1/builds/1/events"
@@ -611,7 +1079,7 @@ thereIsALog =
                     , { data =
                             Log
                                 { source = "stdout"
-                                , id = taskStepId
+                                , id = stepId
                                 }
                                 "the log output"
                                 (Just <| Time.millisToPosix 1000)

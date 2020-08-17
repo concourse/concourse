@@ -110,6 +110,11 @@ func (recursor StepRecursor) VisitAggregate(step *AggregateStep) error {
 	return nil
 }
 
+// VisitAcross recurses through to the wrapped step.
+func (recursor StepRecursor) VisitAcross(step *AcrossStep) error {
+	return step.Step.Visit(recursor)
+}
+
 // VisitTimeout recurses through to the wrapped step.
 func (recursor StepRecursor) VisitTimeout(step *TimeoutStep) error {
 	return step.Step.Visit(recursor)

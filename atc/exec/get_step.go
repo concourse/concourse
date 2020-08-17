@@ -43,7 +43,7 @@ type GetDelegate interface {
 	Stdout() io.Writer
 	Stderr() io.Writer
 
-	Variables() vars.CredVarsTracker
+	Variables() *vars.BuildVariables
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)

@@ -91,6 +91,9 @@ port renderSvgIcon : String -> Cmd msg
 port syncTextareaHeight : String -> Cmd msg
 
 
+port syncStickyBuildLogHeaders : () -> Cmd msg
+
+
 port scrollToId : ( String, String ) -> Cmd msg
 
 
@@ -194,6 +197,7 @@ type Effect
     | GetViewportOf DomID
     | GetElement DomID
     | SyncTextareaHeight DomID
+    | SyncStickyBuildLogHeaders
     | SaveFavoritedPipelines (Set DatabaseID)
     | LoadFavoritedPipelines
 
@@ -651,6 +655,9 @@ runEffect effect key csrfToken =
 
         SyncTextareaHeight domID ->
             syncTextareaHeight (toHtmlID domID)
+
+        SyncStickyBuildLogHeaders ->
+            syncStickyBuildLogHeaders ()
 
 
 pipelinesSectionName : PipelinesSection -> String

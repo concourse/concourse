@@ -2616,12 +2616,12 @@ all =
                             )
                         >> Expect.all
                             [ Tuple.second
-                                >> Expect.equal
-                                    [ Effects.OpenBuildEventStream
+                                >> Common.contains
+                                    (Effects.OpenBuildEventStream
                                         { url = "/api/v1/builds/1/events"
                                         , eventTypes = [ "end", "event" ]
                                         }
-                                    ]
+                                    )
                             , Tuple.first
                                 >> Application.subscriptions
                                 >> Common.contains
@@ -2646,6 +2646,57 @@ all =
                                         )
                                     )
                             ]
+                ]
+            , describe "sync sticky build log headers" <|
+                let
+                    setup _ =
+                        Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
+                            |> fetchBuild BuildStatusStarted
+                            |> Tuple.first
+                            |> fetchHistory
+                            |> Tuple.first
+                            |> fetchJobDetails
+                            |> Tuple.first
+                in
+                [ test "on plan received" <|
+                    setup
+                        >> Application.handleCallback
+                            (Callback.PlanAndResourcesFetched 1 <|
+                                Ok <|
+                                    ( { id = "plan"
+                                      , step =
+                                            Concourse.BuildStepGet
+                                                "step"
+                                                Nothing
+                                      }
+                                    , { inputs = [], outputs = [] }
+                                    )
+                            )
+                        >> Tuple.second
+                        >> Common.contains Effects.SyncStickyBuildLogHeaders
+                , test "on header clicked" <|
+                    setup
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Click <|
+                                    Message.Message.StepHeader "plan"
+                            )
+                        >> Tuple.second
+                        >> Common.contains Effects.SyncStickyBuildLogHeaders
+                , test "on sub header clicked" <|
+                    setup
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Click <|
+                                    Message.Message.StepSubHeader "plan" 0
+                            )
+                        >> Tuple.second
+                        >> Common.contains Effects.SyncStickyBuildLogHeaders
+                , test "on window resized" <|
+                    setup
+                        >> Application.handleDelivery (WindowResized 1 2)
+                        >> Tuple.second
+                        >> Common.contains Effects.SyncStickyBuildLogHeaders
                 ]
             , describe "step header" <|
                 let

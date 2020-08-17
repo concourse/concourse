@@ -67,7 +67,7 @@ var _ = Describe("PutStep", func() {
 		putStep exec.Step
 		stepErr error
 
-		credVarsTracker vars.CredVarsTracker
+		buildVars *vars.BuildVariables
 
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
@@ -91,14 +91,14 @@ var _ = Describe("PutStep", func() {
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 
 		credVars := vars.StaticVariables{"custom-param": "source", "source-param": "super-secret-source"}
-		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
+		buildVars = vars.NewBuildVariables(credVars, true)
 
 		fakeDelegate = new(execfakes.FakePutDelegate)
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
-		fakeDelegate.VariablesReturns(vars.NewCredVarsTracker(credVarsTracker, false))
+		fakeDelegate.VariablesReturns(vars.NewBuildVariables(buildVars, false))
 
 		versionResult = runtime.VersionResult{
 			Version:  atc.Version{"some": "version"},
@@ -359,10 +359,10 @@ var _ = Describe("PutStep", func() {
 		})
 
 		It("secrets are tracked", func() {
-			mapit := vars.NewMapCredVarsTrackerIterator()
-			credVarsTracker.IterateInterpolatedCreds(mapit)
-			Expect(mapit.Data["custom-param"]).To(Equal("source"))
-			Expect(mapit.Data["source-param"]).To(Equal("super-secret-source"))
+			mapit := vars.TrackedVarsMap{}
+			buildVars.IterateInterpolatedCreds(mapit)
+			Expect(mapit["custom-param"]).To(Equal("source"))
+			Expect(mapit["source-param"]).To(Equal("super-secret-source"))
 		})
 
 		It("creates a resource with the correct source and params", func() {

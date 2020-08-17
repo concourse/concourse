@@ -1,6 +1,7 @@
 package atc
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -196,6 +197,7 @@ type StepVisitor interface {
 	VisitDo(*DoStep) error
 	VisitInParallel(*InParallelStep) error
 	VisitAggregate(*AggregateStep) error
+	VisitAcross(*AcrossStep) error
 	VisitTimeout(*TimeoutStep) error
 	VisitRetry(*RetryStep) error
 	VisitOnSuccess(*OnSuccessStep) error
@@ -239,6 +241,10 @@ var StepPrecedence = []StepDetector{
 	{
 		Key: "on_success",
 		New: func() StepConfig { return &OnSuccessStep{} },
+	},
+	{
+		Key: "across",
+		New: func() StepConfig { return &AcrossStep{} },
 	},
 	{
 		Key: "attempts",
@@ -436,6 +442,47 @@ func (c *InParallelConfig) UnmarshalJSON(payload []byte) error {
 	return nil
 }
 
+type AcrossVarConfig struct {
+	Var         string             `json:"var"`
+	Values      []interface{}      `json:"values,omitempty"`
+	MaxInFlight *MaxInFlightConfig `json:"max_in_flight,omitempty"`
+}
+
+func (config *AcrossVarConfig) UnmarshalJSON(data []byte) error {
+	// Used to avoid infinite recursion when unmarshalling.
+	type target AcrossVarConfig
+
+	var t target
+	if err := unmarshalStrict(data, &t); err != nil {
+		return err
+	}
+
+	*config = AcrossVarConfig(t)
+	return nil
+}
+
+type AcrossStep struct {
+	Step     StepConfig        `json:"-"`
+	Vars     []AcrossVarConfig `json:"across"`
+	FailFast bool              `json:"fail_fast,omitempty"`
+}
+
+func (step *AcrossStep) ParseJSON(data []byte) error {
+	return json.Unmarshal(data, step)
+}
+
+func (step *AcrossStep) Visit(v StepVisitor) error {
+	return v.VisitAcross(step)
+}
+
+func (step *AcrossStep) Wrap(sub StepConfig) {
+	step.Step = sub
+}
+
+func (step *AcrossStep) Unwrap() StepConfig {
+	return step.Step
+}
+
 type RetryStep struct {
 	Step     StepConfig `json:"-"`
 	Attempts int        `json:"attempts"`
@@ -558,6 +605,44 @@ func (step *EnsureStep) Visit(v StepVisitor) error {
 	return v.VisitEnsure(step)
 }
 
+// MaxInFlightConfig can represent either running all values in an AcrossStep
+// in parallel or a applying a limit to the sub-steps that can run at once.
+type MaxInFlightConfig struct {
+	All   bool
+	Limit int
+}
+
+const MaxInFlightAll = "all"
+
+func (c *MaxInFlightConfig) UnmarshalJSON(version []byte) error {
+	if bytes.HasPrefix(version, []byte{'"'}) {
+		var data string
+		err := json.Unmarshal(version, &data)
+		if err != nil {
+			return err
+		}
+		if data != MaxInFlightAll {
+			return fmt.Errorf("invalid max_in_flight %q", data)
+		}
+		c.All = true
+		return nil
+	}
+	err := json.Unmarshal(version, &c.Limit)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *MaxInFlightConfig) MarshalJSON() ([]byte, error) {
+	if c.All {
+		return json.Marshal(MaxInFlightAll)
+	}
+
+	return json.Marshal(c.Limit)
+}
+
 // A VersionConfig represents the choice to include every version of a
 // resource, the latest version of a resource, or a pinned (specific) one.
 type VersionConfig struct {
@@ -674,4 +759,10 @@ func (c InputsConfig) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal("")
+}
+
+func unmarshalStrict(data []byte, to interface{}) error {
+	decoder := json.NewDecoder(bytes.NewBuffer(data))
+	decoder.DisallowUnknownFields()
+	return decoder.Decode(to)
 }

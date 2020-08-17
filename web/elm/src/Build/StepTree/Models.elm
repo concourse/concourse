@@ -11,10 +11,15 @@ module Build.StepTree.Models exposing
     , StepTree(..)
     , StepTreeModel
     , TabFocus(..)
+    , TabInfo
     , Version
     , finishTree
-    , focusRetry
+    , focusTabbed
+    , isActive
     , map
+    , mostSevereStepState
+    , toggleSubHeaderExpanded
+    , treeIsActive
     , updateAt
     , wrapHook
     , wrapMultiStep
@@ -26,6 +31,8 @@ import Array exposing (Array)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus)
 import Dict exposing (Dict)
+import List.Extra
+import Ordering exposing (Ordering)
 import Routes exposing (Highlight, StepID)
 import Time
 
@@ -47,6 +54,7 @@ type StepTree
     | Put Step
     | Aggregate (Array StepTree)
     | InParallel (Array StepTree)
+    | Across (List String) (List (List Concourse.JsonValue)) (List Bool) Step (Array StepTree)
     | Do (Array StepTree)
     | OnSuccess HookedStep
     | OnFailure HookedStep
@@ -54,12 +62,19 @@ type StepTree
     | OnError HookedStep
     | Ensure HookedStep
     | Try StepTree
-    | Retry StepID Int TabFocus (Array StepTree)
+    | Retry TabInfo (Array StepTree)
     | Timeout StepTree
 
 
 type alias StepFocus =
     (StepTree -> StepTree) -> StepTree -> StepTree
+
+
+type alias TabInfo =
+    { id : StepID
+    , tab : Int
+    , focus : TabFocus
+    }
 
 
 type alias Step =
@@ -91,6 +106,127 @@ type StepState
     | StepStateSucceeded
     | StepStateFailed
     | StepStateErrored
+
+
+stepStateOrdering : Ordering StepState
+stepStateOrdering =
+    Ordering.explicit
+        [ StepStateFailed
+        , StepStateErrored
+        , StepStateInterrupted
+        , StepStateCancelled
+        , StepStateRunning
+        , StepStatePending
+        , StepStateSucceeded
+        ]
+
+
+
+-- fold does not iterate over Steps that won't be executed
+-- (e.g. hooks that aren't triggered, retry steps that aren't needed)
+
+
+fold : (Step -> b -> b) -> b -> StepTree -> b
+fold acc start stepTree =
+    let
+        iterWhile cond trees idx start_ =
+            case Array.get idx trees of
+                Nothing ->
+                    start_
+
+                Just t ->
+                    if cond t then
+                        fold acc start_ t |> iterWhile cond trees (idx + 1)
+
+                    else
+                        start_
+
+        iter =
+            iterWhile (always True)
+
+        foldHooked cond { step, hook } =
+            let
+                foldedStep =
+                    fold acc start step
+            in
+            if mostSevereStepState step |> cond then
+                fold acc foldedStep hook
+
+            else
+                foldedStep
+    in
+    case stepTree of
+        Aggregate trees ->
+            iter trees 0 start
+
+        InParallel trees ->
+            iter trees 0 start
+
+        Do trees ->
+            iter trees 0 start
+
+        Across _ _ _ step trees ->
+            acc step (iter trees 0 start)
+
+        OnSuccess hooked ->
+            foldHooked ((==) StepStateSucceeded) hooked
+
+        OnFailure hooked ->
+            foldHooked ((==) StepStateFailed) hooked
+
+        OnAbort hooked ->
+            foldHooked ((==) StepStateInterrupted) hooked
+
+        OnError hooked ->
+            foldHooked ((==) StepStateErrored) hooked
+
+        Ensure hooked ->
+            foldHooked (always True) hooked
+
+        Try tree ->
+            fold acc start tree
+
+        Timeout tree ->
+            fold acc start tree
+
+        Retry _ trees ->
+            iterWhile (mostSevereStepState >> (/=) StepStateSucceeded) trees 0 start
+
+        Task step ->
+            acc step start
+
+        SetPipeline step ->
+            acc step start
+
+        LoadVar step ->
+            acc step start
+
+        ArtifactInput step ->
+            acc step start
+
+        Get step ->
+            acc step start
+
+        ArtifactOutput step ->
+            acc step start
+
+        Put step ->
+            acc step start
+
+
+mostSevereStepState : StepTree -> StepState
+mostSevereStepState stepTree =
+    stepTree
+        |> fold
+            (\step state ->
+                case stepStateOrdering step.state state of
+                    LT ->
+                        step.state
+
+                    _ ->
+                        state
+            )
+            StepStateSucceeded
 
 
 type alias Version =
@@ -152,14 +288,29 @@ type alias Origin =
 -- model manipulation functions
 
 
-focusRetry : Int -> StepTree -> StepTree
-focusRetry tab tree =
+focusTabbed : Int -> StepTree -> StepTree
+focusTabbed tab tree =
     case tree of
-        Retry id _ _ steps ->
-            Retry id tab User steps
+        Retry tabInfo steps ->
+            Retry { tabInfo | tab = tab, focus = User } steps
 
         _ ->
             -- impossible (non-retry tab focus)
+            tree
+
+
+toggleSubHeaderExpanded : Int -> StepTree -> StepTree
+toggleSubHeaderExpanded idx tree =
+    case tree of
+        Across vars vals expanded step substeps ->
+            let
+                newExpanded =
+                    List.Extra.updateAt idx not expanded
+            in
+            Across vars vals newExpanded step substeps
+
+        _ ->
+            -- impossible (only across has sub headers)
             tree
 
 
@@ -191,6 +342,9 @@ map f tree =
 
         LoadVar step ->
             LoadVar (f step)
+
+        Across vars vals expanded step substeps ->
+            Across vars vals expanded (f step) substeps
 
         _ ->
             tree
@@ -277,7 +431,10 @@ getMultiStepIndex idx tree =
                 Do trees ->
                     trees
 
-                Retry _ _ _ trees ->
+                Retry _ trees ->
+                    trees
+
+                Across _ _ _ _ trees ->
                     trees
 
                 _ ->
@@ -305,21 +462,46 @@ setMultiStepIndex idx update tree =
         Do trees ->
             Do (Array.set idx (update (getMultiStepIndex idx tree)) trees)
 
-        Retry id tab focus trees ->
+        Retry tabInfo trees ->
             let
                 updatedSteps =
                     Array.set idx (update (getMultiStepIndex idx tree)) trees
             in
-            case focus of
+            case tabInfo.focus of
                 Auto ->
-                    Retry id (idx + 1) Auto updatedSteps
+                    Retry { tabInfo | tab = idx } updatedSteps
 
                 User ->
-                    Retry id tab User updatedSteps
+                    Retry tabInfo updatedSteps
+
+        Across vars vals expanded step trees ->
+            let
+                updatedSteps =
+                    Array.set idx (update (getMultiStepIndex idx tree)) trees
+            in
+            Across vars vals expanded step updatedSteps
 
         _ ->
             -- impossible
             tree
+
+
+treeIsActive : StepTree -> Bool
+treeIsActive stepTree =
+    case stepTree of
+        ArtifactInput _ ->
+            False
+
+        _ ->
+            stepTree
+                |> fold
+                    (\step active -> active || isActive step.state)
+                    False
+
+
+isActive : StepState -> Bool
+isActive state =
+    state /= StepStatePending && state /= StepStateCancelled
 
 
 finishTree : StepTree -> StepTree
@@ -352,6 +534,9 @@ finishTree root =
         InParallel trees ->
             InParallel (Array.map finishTree trees)
 
+        Across vars vals expanded step trees ->
+            Across vars vals expanded (finishStep step) (Array.map finishTree trees)
+
         Do trees ->
             Do (Array.map finishTree trees)
 
@@ -373,8 +558,8 @@ finishTree root =
         Try tree ->
             Try (finishTree tree)
 
-        Retry id tab focus trees ->
-            Retry id tab focus (Array.map finishTree trees)
+        Retry tabInfo trees ->
+            Retry tabInfo (Array.map finishTree trees)
 
         Timeout tree ->
             Timeout (finishTree tree)

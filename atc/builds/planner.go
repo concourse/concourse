@@ -208,6 +208,58 @@ func (visitor *planVisitor) VisitInParallel(step *atc.InParallelStep) error {
 	return nil
 }
 
+func (visitor *planVisitor) VisitAcross(step *atc.AcrossStep) error {
+	vars := make([]atc.AcrossVar, len(step.Vars))
+	for i, v := range step.Vars {
+		maxInFlight := 1
+		if v.MaxInFlight != nil {
+			maxInFlight = v.MaxInFlight.Limit
+			if v.MaxInFlight.All {
+				maxInFlight = len(v.Values)
+			}
+		}
+		vars[i] = atc.AcrossVar{
+			Var:         v.Var,
+			Values:      v.Values,
+			MaxInFlight: maxInFlight,
+		}
+	}
+
+	acrossPlan := atc.AcrossPlan{
+		Vars:        vars,
+		Steps:       []atc.VarScopedPlan{},
+		FailFast:    step.FailFast,
+	}
+	for _, vals := range cartesianProduct(step.Vars) {
+		err := step.Step.Visit(visitor)
+		if err != nil {
+			return err
+		}
+		acrossPlan.Steps = append(acrossPlan.Steps, atc.VarScopedPlan{
+			Step:  visitor.plan,
+			Values: vals,
+		})
+	}
+
+	visitor.plan = visitor.planFactory.NewPlan(acrossPlan)
+
+	return nil
+}
+
+func cartesianProduct(vars []atc.AcrossVarConfig) [][]interface{} {
+	if len(vars) == 0 {
+		return make([][]interface{}, 1)
+	}
+	var product [][]interface{}
+	subProduct := cartesianProduct(vars[:len(vars)-1])
+	for _, vec := range subProduct {
+		for _, val := range vars[len(vars)-1].Values {
+			product = append(product, append(vec, val))
+		}
+	}
+	return product
+}
+
 func (visitor *planVisitor) VisitSetPipeline(step *atc.SetPipelineStep) error {
 	visitor.plan = visitor.planFactory.NewPlan(atc.SetPipelinePlan{
 		Name:     step.Name,
