@@ -110,6 +110,10 @@ func (p *pipelineLifecycle) RemoveBuildEventsForDeletedPipelines() error {
 
 	rows.Close()
 
+	if len(idsToDelete) == 0 {
+		return nil
+	}
+
 	for _, id := range idsToDelete {
 		_, err = p.conn.Exec(fmt.Sprintf("DROP TABLE IF EXISTS pipeline_build_events_%d", id))
 		if err != nil {
