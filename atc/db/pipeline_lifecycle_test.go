@@ -91,8 +91,10 @@ var _ = Describe("PipelineLifecycle", func() {
 		)
 
 		BeforeEach(func() {
-			pipeline1 = defaultPipeline
-			pipeline2, _, _ = defaultTeam.SavePipeline("pipeline2", defaultPipelineConfig, 0, false)
+			pipeline1, _, err = defaultTeam.SavePipeline("pipeline1", defaultPipelineConfig, 0, false)
+			Expect(err).ToNot(HaveOccurred())
+			pipeline2, _, err = defaultTeam.SavePipeline("pipeline2", defaultPipelineConfig, 0, false)
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		pipelineBuildEventsExists := func(id int) bool {
@@ -104,8 +106,8 @@ var _ = Describe("PipelineLifecycle", func() {
 		}
 
 		It("drops the pipeline_build_events_x table for each deleted pipeline", func() {
-			pipeline1.Destroy()
-			pipeline2.Destroy()
+			destroy(pipeline1)
+			destroy(pipeline2)
 
 			err := pl.RemoveBuildEventsForDeletedPipelines()
 			Expect(err).ToNot(HaveOccurred())
@@ -115,20 +117,22 @@ var _ = Describe("PipelineLifecycle", func() {
 		})
 
 		It("clears the deleted_pipelines table", func() {
-			pipeline1.Destroy()
-			pl.RemoveBuildEventsForDeletedPipelines()
+			destroy(pipeline1)
+			err := pl.RemoveBuildEventsForDeletedPipelines()
+			Expect(err).ToNot(HaveOccurred())
 
 			var count int
-			err := dbConn.QueryRow("SELECT COUNT(*) FROM deleted_pipelines").Scan(&count)
+			err = dbConn.QueryRow("SELECT COUNT(*) FROM deleted_pipelines").Scan(&count)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(count).To(Equal(0))
 		})
 
 		It("is resilient to pipeline_build_events_x tables not existing", func() {
-			pipeline1.Destroy()
-			dbConn.Exec(fmt.Sprintf("DROP TABLE pipeline_build_events_%d", pipeline1.ID()))
+			destroy(pipeline1)
+			_, err := dbConn.Exec(fmt.Sprintf("DROP TABLE pipeline_build_events_%d", pipeline1.ID()))
+			Expect(err).ToNot(HaveOccurred())
 
-			err := pl.RemoveBuildEventsForDeletedPipelines()
+			err = pl.RemoveBuildEventsForDeletedPipelines()
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})

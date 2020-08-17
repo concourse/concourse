@@ -1207,7 +1207,7 @@ var _ = Describe("Pipeline", func() {
 		})
 
 		It("marks the pipeline ID in the deleted_pipelines table", func() {
-			pipeline.Destroy()
+			destroy(pipeline)
 
 			var exists bool
 			err := dbConn.QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM deleted_pipelines WHERE id = %d)", pipeline.ID())).Scan(&exists)
