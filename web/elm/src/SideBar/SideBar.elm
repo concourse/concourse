@@ -313,7 +313,7 @@ favoritedPipelinesSection model currentPipeline =
         []
 
     else
-        [ Html.div Styles.sectionHeader [ Html.text "favorites" ]
+        [ Html.div Styles.sectionHeader [ Html.text "favorite pipelines" ]
         , Html.div [ id "favorites" ]
             (favoritedPipelines
                 |> List.Extra.gatherEqualsBy .teamName

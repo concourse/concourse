@@ -1412,11 +1412,11 @@ iSeeNoSideBar =
 
 
 iSeeFavoritesSection =
-    Query.has [ text "favorites" ]
+    Query.has [ text "favorite pipelines" ]
 
 
 iDoNotSeeFavoritesSection =
-    Query.hasNot [ text "favorites" ]
+    Query.hasNot [ text "favorite pipelines" ]
 
 
 myBrowserFetchedPipelinesFromMultipleTeams =
