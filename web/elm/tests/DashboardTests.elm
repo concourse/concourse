@@ -1603,12 +1603,6 @@ all =
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.has [ text "favorite pipelines" ]
-                , test "displays all pipelines header" <|
-                    \_ ->
-                        setup { highDensity = False }
-                            |> Tuple.first
-                            |> Common.queryView
-                            |> Query.has [ text "all pipelines" ]
                 , test "does not display header when on the HD view" <|
                     \_ ->
                         setup { highDensity = True }
@@ -1631,6 +1625,48 @@ all =
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.hasNot [ text "favorite pipelines" ]
+                ]
+            , describe "all pipelines header"
+                [ test "displayed when there are pipelines" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                )
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.has [ text "all pipelines" ]
+                , test "displayed when there are no pipelines" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok []
+                                )
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.has [ text "all pipelines" ]
+                , test "not displayed when there are no teams" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated
+                                (apiData [])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok []
+                                )
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.hasNot [ text "all pipelines" ]
                 ]
             , describe "info section" <|
                 let

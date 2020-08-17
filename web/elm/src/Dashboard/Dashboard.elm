@@ -1171,7 +1171,10 @@ pipelinesView session params =
                     allPipelinesHeader =
                         Html.div Styles.pipelineSectionHeader [ Html.text "all pipelines" ]
                 in
-                if List.isEmpty favoritedPipelines then
+                if List.isEmpty filteredGroups then
+                    ( [], 0 )
+
+                else if List.isEmpty favoritedPipelines then
                     ( [ allPipelinesHeader ], PipelineGridConstants.sectionHeaderHeight )
 
                 else
