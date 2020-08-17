@@ -1,6 +1,6 @@
 module Dashboard.Filter exposing (filterGroups)
 
-import Concourse
+import Concourse exposing (DatabaseID)
 import Concourse.PipelineStatus
     exposing
         ( PipelineStatus(..)
@@ -31,6 +31,7 @@ import Parser
         , symbol
         )
 import Routes
+import Set exposing (Set)
 import Simple.Fuzzy
 
 
@@ -47,9 +48,10 @@ filterGroups :
     , teams : List Concourse.Team
     , pipelines : Dict String (List Pipeline)
     , dashboardView : Routes.DashboardView
+    , favoritedPipelines : Set DatabaseID
     }
     -> List Group
-filterGroups { pipelineJobs, jobs, query, teams, pipelines, dashboardView } =
+filterGroups { pipelineJobs, jobs, query, teams, pipelines, dashboardView, favoritedPipelines } =
     let
         groupsToFilter =
             teams
@@ -60,21 +62,21 @@ filterGroups { pipelineJobs, jobs, query, teams, pipelines, dashboardView } =
                 |> List.map
                     (\( t, p ) ->
                         { teamName = t
-                        , pipelines = List.filter (prefilter dashboardView) p
+                        , pipelines = List.filter (prefilter dashboardView favoritedPipelines) p
                         }
                     )
     in
     parseFilters query |> List.foldr (runFilter jobs pipelineJobs) groupsToFilter
 
 
-prefilter : Routes.DashboardView -> (Pipeline -> Bool)
-prefilter view =
+prefilter : Routes.DashboardView -> Set DatabaseID -> Pipeline -> Bool
+prefilter view favoritedPipelines p =
     case view of
         Routes.ViewNonArchivedPipelines ->
-            not << .archived
+            not p.archived || Set.member p.id favoritedPipelines
 
         _ ->
-            always True
+            True
 
 
 runFilter : Dict ( String, String, String ) Concourse.Job -> Dict ( String, String ) (List Concourse.JobIdentifier) -> Filter -> List Group -> List Group

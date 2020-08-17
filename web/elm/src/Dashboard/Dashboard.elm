@@ -1150,6 +1150,7 @@ pipelinesView session params =
                 , teams = teams
                 , pipelines = pipelines
                 , dashboardView = params.dashboardView
+                , favoritedPipelines = session.favoritedPipelines
                 }
                 |> List.sortWith (Group.ordering session)
 
