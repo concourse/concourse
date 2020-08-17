@@ -51,6 +51,7 @@ import Message.Message as Msgs
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as ApplicationMsgs
 import Routes
+import Set
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -1577,6 +1578,60 @@ all =
                                     [ style "flex-shrink" "0" ]
                     ]
                 ]
+            , describe "when there are favorited pipelines" <|
+                let
+                    setup params =
+                        whenOnDashboard params
+                            |> givenDataUnauthenticated
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                )
+                            |> Tuple.first
+                            |> Application.handleDelivery
+                                (Subscription.FavoritedPipelinesReceived <|
+                                    Ok <|
+                                        Set.singleton 0
+                                )
+                in
+                [ test "displays favorite pipelines header" <|
+                    \_ ->
+                        setup { highDensity = False }
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.has [ text "favorite pipelines" ]
+                , test "displays all pipelines header" <|
+                    \_ ->
+                        setup { highDensity = False }
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.has [ text "all pipelines" ]
+                , test "does not display header when on the HD view" <|
+                    \_ ->
+                        setup { highDensity = True }
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.hasNot [ text "favorite pipelines" ]
+                ]
+            , describe "when there are no favorited pipelines"
+                [ test "does not display header" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                )
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.hasNot [ text "favorite pipelines" ]
+                ]
             , describe "info section" <|
                 let
                     info =
@@ -2022,12 +2077,29 @@ iconSelector { size, image } =
 
 whenOnDashboard : { highDensity : Bool } -> Application.Model
 whenOnDashboard { highDensity } =
-    Common.init <|
-        if highDensity then
+    Common.init
+        (if highDensity then
             "/hd"
 
-        else
+         else
             "/"
+        )
+        |> Application.handleCallback
+            (Callback.GotViewport Msgs.Dashboard <|
+                Ok <|
+                    { scene =
+                        { width = 600
+                        , height = 600
+                        }
+                    , viewport =
+                        { width = 600
+                        , height = 600
+                        , x = 0
+                        , y = 0
+                        }
+                    }
+            )
+        |> Tuple.first
 
 
 whenOnDashboardViewingAllPipelines : { highDensity : Bool } -> Application.Model

@@ -1,13 +1,9 @@
 package integration_test
 
 import (
-	"io/ioutil"
-	"os"
 	"os/exec"
-	"path/filepath"
-	"runtime"
-	"strings"
 
+	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/fatih/color"
 
@@ -19,6 +15,40 @@ import (
 )
 
 var _ = Describe("logout Command", func() {
+
+	BeforeEach(func() {
+		createFlyRc(rc.Targets{
+			"test1": {
+				API:      "https://example.com/test1",
+				TeamName: "main",
+				Token:    &rc.TargetToken{Type: "Bearer", Value: validAccessToken(date(2020, 1, 1))},
+			},
+			"test2": {
+				API:      "https://example.com/test2",
+				TeamName: "main",
+				Token:    &rc.TargetToken{Type: "Bearer", Value: validAccessToken(date(2020, 1, 2))},
+			},
+		})
+
+		flyCmd := exec.Command(flyPath, "targets")
+		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+		Expect(err).NotTo(HaveOccurred())
+
+		Eventually(sess).Should(gexec.Exit(0))
+
+		Expect(sess.Out).To(PrintTable(ui.Table{
+			Headers: ui.TableRow{
+				{Contents: "name", Color: color.New(color.Bold)},
+				{Contents: "url", Color: color.New(color.Bold)},
+				{Contents: "team", Color: color.New(color.Bold)},
+				{Contents: "expiry", Color: color.New(color.Bold)},
+			},
+			Data: []ui.TableRow{
+				{{Contents: "test1"}, {Contents: "https://example.com/test1"}, {Contents: "main"}, {Contents: "Wed, 01 Jan 2020 00:00:00 UTC"}},
+				{{Contents: "test2"}, {Contents: "https://example.com/test2"}, {Contents: "main"}, {Contents: "Thu, 02 Jan 2020 00:00:00 UTC"}},
+			},
+		}))
+	})
 
 	Describe("missing parameters", func() {
 		Context("when validating parameters", func() {
@@ -49,147 +79,50 @@ var _ = Describe("logout Command", func() {
 	})
 
 	Describe("delete all", func() {
-		var (
-			flyrc  string
-			tmpDir string
-		)
+		It("removes all tokens and all targets remain in flyrc", func() {
+			flyCmd := exec.Command(flyPath, "logout", "--all")
 
-		BeforeEach(func() {
-			var err error
-			tmpDir, err = ioutil.TempDir("", "fly-test")
-			Expect(err).NotTo(HaveOccurred())
-
-			if runtime.GOOS == "windows" {
-				os.Setenv("USERPROFILE", tmpDir)
-				os.Setenv("HOMEPATH", strings.TrimPrefix(tmpDir, os.Getenv("HOMEDRIVE")))
-			} else {
-				os.Setenv("HOME", tmpDir)
-			}
-
-			flyrc = filepath.Join(userHomeDir(), ".flyrc")
-
-			flyFixtureFile, err := os.OpenFile("./fixtures/flyrc.yml", os.O_RDONLY, 0600)
-			Expect(err).NotTo(HaveOccurred())
-
-			flyFixtureData, err := ioutil.ReadAll(flyFixtureFile)
-			Expect(err).NotTo(HaveOccurred())
-
-			err = ioutil.WriteFile(flyrc, flyFixtureData, 0600)
-			Expect(err).NotTo(HaveOccurred())
-
-			flyCmd := exec.Command(flyPath, "targets")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess).Should(gexec.Exit(0))
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(0))
 
+			Expect(sess.Out).To(gbytes.Say(`logged out of all targets`))
+
+			flyCmd = exec.Command(flyPath, "targets")
+			sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(sess).Should(gexec.Exit(0))
 			Expect(sess.Out).To(PrintTable(ui.Table{
 				Headers: ui.TableRow{
 					{Contents: "name", Color: color.New(color.Bold)},
 					{Contents: "url", Color: color.New(color.Bold)},
-					{Contents: "team", Color: color.New(color.Bold)},
 					{Contents: "expiry", Color: color.New(color.Bold)},
 				},
 				Data: []ui.TableRow{
-					{{Contents: "another-test"}, {Contents: "https://example.com/another-test"}, {Contents: "test"}, {Contents: "Sat, 19 Mar 2016 01:54:30 UTC"}},
-					{{Contents: "no-token"}, {Contents: "https://example.com/no-token"}, {Contents: "main"}, {Contents: "n/a"}},
-					{{Contents: "omt"}, {Contents: "https://example.com/omt"}, {Contents: "main"}, {Contents: "Mon, 21 Mar 2016 01:54:30 UTC"}},
-					{{Contents: "test"}, {Contents: "https://example.com/test"}, {Contents: "test"}, {Contents: "Fri, 25 Mar 2016 23:29:57 UTC"}},
+					{{Contents: "test1"}, {Contents: "https://example.com/test1"}, {Contents: "main"}, {Contents: "n/a"}},
+					{{Contents: "test2"}, {Contents: "https://example.com/test2"}, {Contents: "main"}, {Contents: "n/a"}},
 				},
 			}))
-		})
-
-		AfterEach(func() {
-			os.RemoveAll(tmpDir)
-		})
-
-		Context("when it is called", func() {
-			It("removes all tokens and all targets remain in flyrc", func() {
-				flyCmd := exec.Command(flyPath, "logout", "--all")
-
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
-
-				Expect(sess.Out).To(gbytes.Say(`logged out of all targets`))
-
-				flyCmd = exec.Command(flyPath, "targets")
-				sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-
-				Eventually(sess).Should(gexec.Exit(0))
-				Expect(sess.Out).To(PrintTable(ui.Table{
-					Headers: ui.TableRow{
-						{Contents: "name", Color: color.New(color.Bold)},
-						{Contents: "url", Color: color.New(color.Bold)},
-						{Contents: "expiry", Color: color.New(color.Bold)},
-					},
-					Data: []ui.TableRow{
-						{{Contents: "another-test"}, {Contents: "https://example.com/another-test"}, {Contents: "test"}, {Contents: "n/a"}},
-						{{Contents: "no-token"}, {Contents: "https://example.com/no-token"}, {Contents: "main"}, {Contents: "n/a"}},
-						{{Contents: "omt"}, {Contents: "https://example.com/omt"}, {Contents: "main"}, {Contents: "n/a"}},
-						{{Contents: "test"}, {Contents: "https://example.com/test"}, {Contents: "test"}, {Contents: "n/a"}},
-					},
-				}))
-			})
 		})
 	})
 
 	Describe("delete one", func() {
-		var (
-			flyrc  string
-			tmpDir string
-		)
+		It("removes token of the target and the target should remain in .flyrc", func() {
+			flyCmd := exec.Command(flyPath, "logout", "-t", "test2")
 
-		BeforeEach(func() {
-			var err error
-			tmpDir, err = ioutil.TempDir("", "fly-test")
-			Expect(err).NotTo(HaveOccurred())
-
-			if runtime.GOOS == "windows" {
-				os.Setenv("USERPROFILE", tmpDir)
-				os.Setenv("HOMEPATH", strings.TrimPrefix(tmpDir, os.Getenv("HOMEDRIVE")))
-			} else {
-				os.Setenv("HOME", tmpDir)
-			}
-
-			flyrc = filepath.Join(userHomeDir(), ".flyrc")
-
-			flyFixtureFile, err := os.OpenFile("./fixtures/flyrc.yml", os.O_RDONLY, 0600)
-			Expect(err).NotTo(HaveOccurred())
-
-			flyFixtureData, err := ioutil.ReadAll(flyFixtureFile)
-			Expect(err).NotTo(HaveOccurred())
-
-			err = ioutil.WriteFile(flyrc, flyFixtureData, 0600)
-			Expect(err).NotTo(HaveOccurred())
-
-			flyCmd := exec.Command(flyPath, "targets")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess).Should(gexec.Exit(0))
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(0))
 
-			Expect(sess.Out).To(PrintTable(ui.Table{
-				Headers: ui.TableRow{
-					{Contents: "name", Color: color.New(color.Bold)},
-					{Contents: "url", Color: color.New(color.Bold)},
-					{Contents: "expiry", Color: color.New(color.Bold)},
-				},
-				Data: []ui.TableRow{
-					{{Contents: "another-test"}, {Contents: "https://example.com/another-test"}, {Contents: "test"}, {Contents: "Sat, 19 Mar 2016 01:54:30 UTC"}},
-					{{Contents: "no-token"}, {Contents: "https://example.com/no-token"}, {Contents: "main"}, {Contents: "n/a"}},
-					{{Contents: "omt"}, {Contents: "https://example.com/omt"}, {Contents: "main"}, {Contents: "Mon, 21 Mar 2016 01:54:30 UTC"}},
-					{{Contents: "test"}, {Contents: "https://example.com/test"}, {Contents: "test"}, {Contents: "Fri, 25 Mar 2016 23:29:57 UTC"}},
-				},
-			}))
-		})
+			Expect(sess.Out).To(gbytes.Say(`logged out of target: test2`))
 
-		AfterEach(func() {
-			flyCmd := exec.Command(flyPath, "targets")
-			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			flyCmd = exec.Command(flyPath, "targets")
+			sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(sess).Should(gexec.Exit(0))
@@ -197,32 +130,13 @@ var _ = Describe("logout Command", func() {
 				Headers: ui.TableRow{
 					{Contents: "name", Color: color.New(color.Bold)},
 					{Contents: "url", Color: color.New(color.Bold)},
-					{Contents: "team", Color: color.New(color.Bold)},
 					{Contents: "expiry", Color: color.New(color.Bold)},
 				},
 				Data: []ui.TableRow{
-					{{Contents: "another-test"}, {Contents: "https://example.com/another-test"}, {Contents: "test"}, {Contents: "Sat, 19 Mar 2016 01:54:30 UTC"}},
-					{{Contents: "no-token"}, {Contents: "https://example.com/no-token"}, {Contents: "main"}, {Contents: "n/a"}},
-					{{Contents: "omt"}, {Contents: "https://example.com/omt"}, {Contents: "main"}, {Contents: "n/a"}},
-					{{Contents: "test"}, {Contents: "https://example.com/test"}, {Contents: "test"}, {Contents: "Fri, 25 Mar 2016 23:29:57 UTC"}},
+					{{Contents: "test1"}, {Contents: "https://example.com/test1"}, {Contents: "main"}, {Contents: "Wed, 01 Jan 2020 00:00:00 UTC"}},
+					{{Contents: "test2"}, {Contents: "https://example.com/test2"}, {Contents: "main"}, {Contents: "n/a"}},
 				},
 			}))
-
-			os.RemoveAll(tmpDir)
-		})
-
-		Context("when it is called", func() {
-			It("removes token of the target and the target should remain in .flyrc", func() {
-				flyCmd := exec.Command(flyPath, "logout", "-t", "omt")
-
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
-
-				Expect(sess.Out).To(gbytes.Say(`logged out of target: omt`))
-			})
 		})
 	})
 })

@@ -28,7 +28,7 @@ import Html.Attributes
         )
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Effects as Effects
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
 import Set exposing (Set)
 import Time
@@ -114,9 +114,10 @@ pipelineView :
     , resourceError : Bool
     , existingJobs : List Concourse.Job
     , layers : List (List Concourse.Job)
+    , section : PipelinesSection
     }
     -> Html Message
-pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, favoritedPipelines, resourceError, existingJobs, layers } =
+pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, favoritedPipelines, resourceError, existingJobs, layers, section } =
     let
         bannerStyle =
             if pipeline.stale then
@@ -133,7 +134,7 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, favo
     in
     Html.div
         (Styles.pipelineCard
-            ++ (if not pipeline.stale then
+            ++ (if section == AllPipelinesSection && not pipeline.stale then
                     [ style "cursor" "move" ]
 
                 else
@@ -154,8 +155,8 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, favo
             previewPlaceholder
 
           else
-            bodyView hovered layers
-        , footerView userState favoritedPipelines pipeline now hovered existingJobs
+            bodyView section hovered layers
+        , footerView userState favoritedPipelines pipeline section now hovered existingJobs
         ]
 
 
@@ -277,22 +278,23 @@ headerView pipeline resourceError =
         ]
 
 
-bodyView : HoverState.HoverState -> List (List Concourse.Job) -> Html Message
-bodyView hovered layers =
+bodyView : PipelinesSection -> HoverState.HoverState -> List (List Concourse.Job) -> Html Message
+bodyView section hovered layers =
     Html.div
         (class "card-body" :: Styles.pipelineCardBody)
-        [ DashboardPreview.view hovered layers ]
+        [ DashboardPreview.view section hovered layers ]
 
 
 footerView :
     UserState
     -> Set Concourse.DatabaseID
     -> Pipeline
+    -> PipelinesSection
     -> Maybe Time.Posix
     -> HoverState.HoverState
     -> List Concourse.Job
     -> Html Message
-footerView userState favoritedPipelines pipeline now hovered existingJobs =
+footerView userState favoritedPipelines pipeline section now hovered existingJobs =
     let
         spacer =
             Html.div [ style "width" "12px" ] []
@@ -311,11 +313,12 @@ footerView userState favoritedPipelines pipeline now hovered existingJobs =
                     status == PipelineStatus.PipelineStatusPaused
                 , pipeline = pipelineId
                 , isToggleHovered =
-                    HoverState.isHovered (PipelineButton pipelineId) hovered
+                    HoverState.isHovered (PipelineCardPauseToggle section pipelineId) hovered
                 , isToggleLoading = pipeline.isToggleLoading
                 , tooltipPosition = Views.Styles.Above
                 , margin = "0"
                 , userState = userState
+                , domID = PipelineCardPauseToggle section pipelineId
                 }
 
         visibilityButton =
@@ -329,20 +332,22 @@ footerView userState favoritedPipelines pipeline now hovered existingJobs =
                             , userState = userState
                             }
                 , isHovered =
-                    HoverState.isHovered (VisibilityButton pipelineId) hovered
+                    HoverState.isHovered (VisibilityButton section pipelineId) hovered
                 , isVisibilityLoading = pipeline.isVisibilityLoading
+                , section = section
                 }
 
         favoritedIcon =
             favoritedView
                 { isFavorited = Set.member pipeline.id favoritedPipelines
-                , isHovered = HoverState.isHovered (PipelineCardFavoritedIcon pipeline.id) hovered
+                , isHovered = HoverState.isHovered (PipelineCardFavoritedIcon section pipeline.id) hovered
                 , pipelineId = pipeline.id
+                , section = section
                 }
     in
     Html.div
         (class "card-footer" :: Styles.pipelineCardFooter)
-        [ pipelineStatusView pipeline status now
+        [ pipelineStatusView section pipeline status now
         , Html.div
             [ style "display" "flex" ]
           <|
@@ -356,8 +361,8 @@ footerView userState favoritedPipelines pipeline now hovered existingJobs =
         ]
 
 
-pipelineStatusView : Pipeline -> PipelineStatus.PipelineStatus -> Maybe Time.Posix -> Html Message
-pipelineStatusView pipeline status now =
+pipelineStatusView : PipelinesSection -> Pipeline -> PipelineStatus.PipelineStatus -> Maybe Time.Posix -> Html Message
+pipelineStatusView section pipeline status now =
     let
         pipelineId =
             { pipelineName = pipeline.name
@@ -376,8 +381,8 @@ pipelineStatusView pipeline status now =
                 Icon.icon
                     { sizePx = 20, image = Assets.PipelineStatusIconJobsDisabled }
                     ([ style "opacity" "0.5"
-                     , id <| Effects.toHtmlID <| PipelineStatusIcon pipelineId
-                     , onMouseEnter <| Hover <| Just <| PipelineStatusIcon pipelineId
+                     , id <| Effects.toHtmlID <| PipelineStatusIcon section pipelineId
+                     , onMouseEnter <| Hover <| Just <| PipelineStatusIcon section pipelineId
                      ]
                         ++ Styles.pipelineStatusIcon
                     )
@@ -415,18 +420,19 @@ favoritedView :
     { isFavorited : Bool
     , isHovered : Bool
     , pipelineId : Concourse.DatabaseID
+    , section : PipelinesSection
     }
     -> Html Message
-favoritedView { isFavorited, isHovered, pipelineId } =
+favoritedView { isFavorited, isHovered, pipelineId, section } =
     Html.div
         (Styles.favoritedToggle
             { isFavorited = isFavorited
             , isHovered = isHovered
             }
-            ++ [ onMouseEnter <| Hover <| Just <| PipelineCardFavoritedIcon pipelineId
+            ++ [ onMouseEnter <| Hover <| Just <| PipelineCardFavoritedIcon section pipelineId
                , onMouseLeave <| Hover Nothing
-               , id <| Effects.toHtmlID <| PipelineCardFavoritedIcon pipelineId
-               , onClick <| Click <| PipelineCardFavoritedIcon pipelineId
+               , id <| Effects.toHtmlID <| PipelineCardFavoritedIcon section pipelineId
+               , onClick <| Click <| PipelineCardFavoritedIcon section pipelineId
                ]
         )
         []
@@ -438,14 +444,15 @@ visibilityView :
     , isClickable : Bool
     , isHovered : Bool
     , isVisibilityLoading : Bool
+    , section : PipelinesSection
     }
     -> Html Message
-visibilityView { public, pipelineId, isClickable, isHovered, isVisibilityLoading } =
+visibilityView { public, pipelineId, isClickable, isHovered, isVisibilityLoading, section } =
     if isVisibilityLoading then
         Spinner.hoverableSpinner
             { sizePx = 20
             , margin = "0"
-            , hoverable = Just <| VisibilityButton pipelineId
+            , hoverable = Just <| VisibilityButton section pipelineId
             }
 
     else
@@ -455,12 +462,12 @@ visibilityView { public, pipelineId, isClickable, isHovered, isVisibilityLoading
                 , isClickable = isClickable
                 , isHovered = isHovered
                 }
-                ++ [ onMouseEnter <| Hover <| Just <| VisibilityButton pipelineId
+                ++ [ onMouseEnter <| Hover <| Just <| VisibilityButton section pipelineId
                    , onMouseLeave <| Hover Nothing
-                   , id <| Effects.toHtmlID <| VisibilityButton pipelineId
+                   , id <| Effects.toHtmlID <| VisibilityButton section pipelineId
                    ]
                 ++ (if isClickable then
-                        [ onClick <| Click <| VisibilityButton pipelineId ]
+                        [ onClick <| Click <| VisibilityButton section pipelineId ]
 
                     else
                         []

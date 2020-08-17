@@ -101,7 +101,7 @@ func LoadTargetFromURL(url, team string, tracing bool) (Target, TargetName, erro
 		return nil, "", err
 	}
 
-	for name, props := range flyTargets.Targets {
+	for name, props := range flyTargets {
 		if props.API == url && props.TeamName == team {
 			target, err := LoadTarget(name, tracing)
 			return target, name, err

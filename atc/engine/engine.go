@@ -240,7 +240,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 	case err = <-done:
 		logger.Debug("engine-build-done")
 		if err != nil {
-			if _, ok := err.(exec.Retriable); ok {
+			if ok := errors.As(err, &exec.Retriable{}); ok {
 				return
 			}
 		}

@@ -1,21 +1,27 @@
 package integration_test
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"testing"
 	"time"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/skymarshal/token"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
+	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 var flyPath string
@@ -67,7 +73,7 @@ func tokenHandler() http.HandlerFunc {
 		ghttp.VerifyRequest("POST", "/sky/issuer/token"),
 		ghttp.RespondWithJSONEncoded(
 			200,
-			token(),
+			oauthToken(),
 		),
 	)
 }
@@ -86,11 +92,39 @@ func userInfoHandler() http.HandlerFunc {
 	)
 }
 
-func token() map[string]string {
+func validAccessToken(expiry time.Time) string {
+	accessToken, err := token.Factory{}.GenerateAccessToken(db.Claims{
+		Claims: jwt.Claims{Expiry: jwt.NewNumericDate(expiry)}},
+	)
+	if err != nil {
+		panic(err)
+	}
+	return accessToken
+}
+
+func oauthToken() map[string]string {
 	return map[string]string{
 		"token_type":   "Bearer",
-		"access_token": "some-access-token",
+		"access_token": validAccessToken(time.Now()),
 		"id_token":     "some-token",
+	}
+}
+
+func date(year int, month time.Month, day int) time.Time {
+	return time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
+}
+
+func createFlyRc(targets rc.Targets) {
+	flyrc := filepath.Join(homeDir, ".flyrc")
+
+	flyrcBytes, err := json.Marshal(rc.RC{Targets: targets})
+	if err != nil {
+		panic(err)
+	}
+
+	err = ioutil.WriteFile(flyrc, flyrcBytes, 0600)
+	if err != nil {
+		panic(err)
 	}
 }
 

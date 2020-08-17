@@ -11,6 +11,32 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
+type TasksWaitingLabels struct {
+	TeamId     string
+	WorkerTags string
+	Platform   string
+}
+
+type TasksWaitingDuration struct {
+	Labels   TasksWaitingLabels
+	Duration time.Duration
+}
+
+func (event TasksWaitingDuration) Emit(logger lager.Logger) {
+	Metrics.emit(
+		logger.Session("tasks-waiting-duration"),
+		Event{
+			Name:  "tasks waiting duration",
+			Value: event.Duration.Seconds(),
+			Attributes: map[string]string{
+				"teamId":     event.Labels.TeamId,
+				"workerTags": event.Labels.WorkerTags,
+				"platform":   event.Labels.Platform,
+			},
+		},
+	)
+}
+
 type BuildCollectorDuration struct {
 	Duration time.Duration
 }

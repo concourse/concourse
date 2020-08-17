@@ -40,13 +40,13 @@ all =
                 \_ ->
                     layout 2 [ ( 1, 1 ), ( 1, 1 ) ]
                         |> Expect.equal
-                            [ { width = 1
-                              , height = 1
+                            [ { spannedColumns = 1
+                              , spannedRows = 1
                               , column = 1
                               , row = 1
                               }
-                            , { width = 1
-                              , height = 1
+                            , { spannedColumns = 1
+                              , spannedRows = 1
                               , column = 2
                               , row = 1
                               }
@@ -55,13 +55,13 @@ all =
                 \_ ->
                     layout 1 [ ( 1, 1 ), ( 1, 1 ) ]
                         |> Expect.equal
-                            [ { width = 1
-                              , height = 1
+                            [ { spannedColumns = 1
+                              , spannedRows = 1
                               , column = 1
                               , row = 1
                               }
-                            , { width = 1
-                              , height = 1
+                            , { spannedColumns = 1
+                              , spannedRows = 1
                               , column = 1
                               , row = 2
                               }
@@ -70,13 +70,13 @@ all =
                 \_ ->
                     layout 2 [ ( 2, 1 ), ( 1, 1 ) ]
                         |> Expect.equal
-                            [ { width = 2
-                              , height = 1
+                            [ { spannedColumns = 2
+                              , spannedRows = 1
                               , column = 1
                               , row = 1
                               }
-                            , { width = 1
-                              , height = 1
+                            , { spannedColumns = 1
+                              , spannedRows = 1
                               , column = 1
                               , row = 2
                               }
@@ -85,13 +85,13 @@ all =
                 \_ ->
                     layout 2 [ ( 1, 1 ), ( 2, 1 ) ]
                         |> Expect.equal
-                            [ { width = 1
-                              , height = 1
+                            [ { spannedColumns = 1
+                              , spannedRows = 1
                               , column = 1
                               , row = 1
                               }
-                            , { width = 2
-                              , height = 1
+                            , { spannedColumns = 2
+                              , spannedRows = 1
                               , column = 1
                               , row = 2
                               }
@@ -100,8 +100,8 @@ all =
                 \_ ->
                     layout 1 [ ( 2, 1 ) ]
                         |> Expect.equal
-                            [ { width = 2
-                              , height = 1
+                            [ { spannedColumns = 2
+                              , spannedRows = 1
                               , column = 1
                               , row = 1
                               }
@@ -110,33 +110,33 @@ all =
                 \_ ->
                     layout 1 [ ( 1, 2 ), ( 1, 1 ) ]
                         |> Expect.equal
-                            [ { width = 1
-                              , height = 2
+                            [ { spannedColumns = 1
+                              , spannedRows = 2
                               , column = 1
                               , row = 1
                               }
-                            , { width = 1
-                              , height = 1
+                            , { spannedColumns = 1
+                              , spannedRows = 1
                               , column = 1
                               , row = 3
                               }
                             ]
-            , test "the height of a row is the height of the tallest card in the row" <|
+            , test "the spannedRows of a row is the spannedRows of the tallest card in the row" <|
                 \_ ->
                     layout 2 [ ( 1, 2 ), ( 1, 1 ), ( 1, 1 ) ]
                         |> Expect.equal
-                            [ { width = 1
-                              , height = 2
+                            [ { spannedColumns = 1
+                              , spannedRows = 2
                               , column = 1
                               , row = 1
                               }
-                            , { width = 1
-                              , height = 1
+                            , { spannedColumns = 1
+                              , spannedRows = 1
                               , column = 2
                               , row = 1
                               }
-                            , { width = 1
-                              , height = 1
+                            , { spannedColumns = 1
+                              , spannedRows = 1
                               , column = 1
                               , row = 3
                               }

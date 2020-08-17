@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 )
 
 // OnAbortStep will run one step, and then a second step if the first step
@@ -31,7 +32,7 @@ func (o OnAbortStep) Run(ctx context.Context, state RunState) error {
 		return nil
 	}
 
-	if stepRunErr == context.Canceled {
+	if errors.Is(stepRunErr, context.Canceled) {
 		// run only on abort, not timeout
 		o.hook.Run(context.Background(), state)
 	}

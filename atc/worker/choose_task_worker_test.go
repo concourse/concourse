@@ -2,10 +2,13 @@ package worker_test
 
 import (
 	"bytes"
-	"code.cloudfoundry.org/garden"
 	"context"
-	"github.com/concourse/concourse/atc/metric"
+	"strconv"
+	"strings"
 	"time"
+
+	"code.cloudfoundry.org/garden"
+	"github.com/concourse/concourse/atc/metric"
 
 	"code.cloudfoundry.org/lager/lagertest"
 
@@ -166,8 +169,15 @@ var _ = Describe("RunTaskStep", func() {
 			})
 
 			It("task waiting metrics is gauged", func() {
-				Eventually(metric.Metrics.TasksWaiting.Max(), 2*time.Second).Should(Equal(float64(1)))
-				Eventually(metric.Metrics.TasksWaiting.Max(), 2*time.Second).Should(Equal(float64(0)))
+				labels := metric.TasksWaitingLabels{
+					TeamId:     strconv.Itoa(fakeWorkerSpec.TeamID),
+					WorkerTags: strings.Join(fakeContainerSpec.Tags, "_"),
+					Platform:   fakeWorkerSpec.Platform,
+				}
+				// Verify that when one task is waiting the gauge is increased...
+				Eventually(metric.Metrics.TasksWaiting[labels].Max(), 2*time.Second).Should(Equal(float64(1)))
+				// and then decreased.
+				Eventually(metric.Metrics.TasksWaiting[labels].Max(), 2*time.Second).Should(Equal(float64(0)))
 			})
 
 			It("writes status to output writer", func() {
@@ -236,7 +246,7 @@ func workerContainerDummy() worker.ContainerSpec {
 func containerOwnerDummy() db.ContainerOwner {
 	return db.NewBuildStepContainerOwner(
 		1234,
-		atc.PlanID(42),
+		atc.PlanID("42"),
 		123,
 	)
 }

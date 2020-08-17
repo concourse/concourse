@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
@@ -38,7 +39,7 @@ func (ts *TimeoutStep) Run(ctx context.Context, state RunState) error {
 	defer cancel()
 
 	err = ts.step.Run(timeoutCtx, state)
-	if err == context.DeadlineExceeded {
+	if errors.Is(err, context.DeadlineExceeded) {
 		ts.timedOut = true
 		return nil
 	}

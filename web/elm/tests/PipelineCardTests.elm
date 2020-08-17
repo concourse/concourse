@@ -38,7 +38,7 @@ import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import Message.Callback as Callback
 import Message.Effects as Effects
-import Message.Message as Msgs
+import Message.Message as Msgs exposing (DomID(..), PipelinesSection(..))
 import Message.Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as ApplicationMsgs
 import Set
@@ -209,7 +209,7 @@ all =
                         , style "height" "47px"
                         ]
             ]
-        , test "has 'move' cursor when not searching and result fetched" <|
+        , test "is draggable when in all pipelines section and result is not stale" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
@@ -225,8 +225,35 @@ all =
                         [ class "card"
                         , containing [ text "pipeline" ]
                         ]
-                    |> Query.has [ style "cursor" "move" ]
-        , test "does not have 'move' cursor when rendering based on cache" <|
+                    |> Expect.all
+                        [ Query.has [ attribute <| Attr.attribute "draggable" "true" ]
+                        , Query.has [ style "cursor" "move" ]
+                        ]
+        , test "is not draggable when in favorites section" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (FavoritedPipelinesReceived <| Ok <| Set.singleton 0)
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.findAll
+                        [ class "card"
+                        , containing [ text "pipeline" ]
+                        ]
+                    |> Query.first
+                    |> Expect.all
+                        [ Query.hasNot [ attribute <| Attr.attribute "draggable" "true" ]
+                        , Query.hasNot [ style "cursor" "move" ]
+                        ]
+        , test "is not draggable when rendering based on the cache" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
@@ -242,7 +269,10 @@ all =
                         [ class "card"
                         , containing [ text "pipeline" ]
                         ]
-                    |> Query.hasNot [ style "cursor" "move" ]
+                    |> Expect.all
+                        [ Query.hasNot [ attribute <| Attr.attribute "draggable" "true" ]
+                        , Query.hasNot [ style "cursor" "move" ]
+                        ]
         , test "fills available space" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
@@ -1261,7 +1291,7 @@ all =
                                     )
 
                         domID =
-                            Msgs.PipelineStatusIcon
+                            Msgs.PipelineStatusIcon AllPipelinesSection
                                 (Data.pipelineId
                                     |> Data.withPipelineName "pipeline-0"
                                 )
@@ -1592,7 +1622,8 @@ all =
 
                         visibilityToggle =
                             Common.queryView
-                                >> Query.find [ class "card-footer" ]
+                                >> Query.findAll [ class "card-footer" ]
+                                >> Query.first
                                 >> Query.children []
                                 >> Query.index -1
                                 >> Query.children []
@@ -1629,7 +1660,7 @@ all =
                                                ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton pipelineId
+                                    Msgs.VisibilityButton AllPipelinesSection pipelineId
                                 , hoveredSelector =
                                     { description = "bright 20px square"
                                     , selector =
@@ -1649,7 +1680,7 @@ all =
                                         |> Event.expect
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton
+                                                    Msgs.VisibilityButton AllPipelinesSection
                                                         pipelineId
                                             )
                             , test "click has HidePipeline effect" <|
@@ -1660,7 +1691,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton
+                                                    Msgs.VisibilityButton AllPipelinesSection
                                                         pipelineId
                                             )
                                         |> Tuple.second
@@ -1670,6 +1701,35 @@ all =
                                                 pipelineId
                                             ]
                             , defineHoverBehaviour
+                                { name = "open eye toggle in favorites section"
+                                , setup =
+                                    whenOnDashboard { highDensity = False }
+                                        |> Application.handleDelivery
+                                            (Message.Subscription.FavoritedPipelinesReceived <| Ok <| Set.singleton 0)
+                                        |> Tuple.first
+                                        |> setup
+                                        |> Tuple.first
+                                , query = visibilityToggle
+                                , unhoveredSelector =
+                                    { description = "faded 20px square"
+                                    , selector =
+                                        openEye
+                                            ++ [ style "opacity" "0.5"
+                                               , style "cursor" "pointer"
+                                               ]
+                                    }
+                                , hoverable =
+                                    Msgs.VisibilityButton FavoritesSection pipelineId
+                                , hoveredSelector =
+                                    { description = "bright 20px square"
+                                    , selector =
+                                        openEye
+                                            ++ [ style "opacity" "1"
+                                               , style "cursor" "pointer"
+                                               ]
+                                    }
+                                }
+                            , defineHoverBehaviour
                                 { name = "visibility spinner"
                                 , setup =
                                     whenOnDashboard { highDensity = False }
@@ -1678,7 +1738,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton
+                                                    Msgs.VisibilityButton AllPipelinesSection
                                                         pipelineId
                                             )
                                         |> Tuple.first
@@ -1693,7 +1753,7 @@ all =
                                         ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton pipelineId
+                                    Msgs.VisibilityButton AllPipelinesSection pipelineId
                                 , hoveredSelector =
                                     { description = "20px spinner"
                                     , selector =
@@ -1712,7 +1772,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton
+                                                    Msgs.VisibilityButton AllPipelinesSection
                                                         pipelineId
                                             )
                                         |> Tuple.first
@@ -1733,7 +1793,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton
+                                                    Msgs.VisibilityButton AllPipelinesSection
                                                         pipelineId
                                             )
                                         |> Tuple.first
@@ -1754,7 +1814,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton
+                                                    Msgs.VisibilityButton AllPipelinesSection
                                                         pipelineId
                                             )
                                         |> Tuple.first
@@ -1786,7 +1846,7 @@ all =
                                                ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton pipelineId
+                                    Msgs.VisibilityButton AllPipelinesSection pipelineId
                                 , hoveredSelector =
                                     { description = "faded 20px square"
                                     , selector =
@@ -1824,7 +1884,7 @@ all =
                                                ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton pipelineId
+                                    Msgs.VisibilityButton AllPipelinesSection pipelineId
                                 , hoveredSelector =
                                     { description = "bright 20px square"
                                     , selector =
@@ -1844,7 +1904,7 @@ all =
                                         |> Event.expect
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton
+                                                    Msgs.VisibilityButton AllPipelinesSection
                                                         pipelineId
                                             )
                             , test "click has ExposePipeline effect" <|
@@ -1855,7 +1915,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton
+                                                    Msgs.VisibilityButton AllPipelinesSection
                                                         pipelineId
                                             )
                                         |> Tuple.second
@@ -1873,7 +1933,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton
+                                                    Msgs.VisibilityButton AllPipelinesSection
                                                         pipelineId
                                             )
                                         |> Tuple.first
@@ -1888,7 +1948,7 @@ all =
                                         ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton pipelineId
+                                    Msgs.VisibilityButton AllPipelinesSection pipelineId
                                 , hoveredSelector =
                                     { description = "20px spinner"
                                     , selector =
@@ -1907,7 +1967,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton
+                                                    Msgs.VisibilityButton AllPipelinesSection
                                                         pipelineId
                                             )
                                         |> Tuple.first
@@ -1928,7 +1988,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton
+                                                    Msgs.VisibilityButton AllPipelinesSection
                                                         pipelineId
                                             )
                                         |> Tuple.first
@@ -1960,7 +2020,7 @@ all =
                                                ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton pipelineId
+                                    Msgs.VisibilityButton AllPipelinesSection pipelineId
                                 , hoveredSelector =
                                     { description = "faded 20px square"
                                     , selector =
@@ -2216,7 +2276,60 @@ all =
                                        , style "opacity" "0.5"
                                        ]
                             }
-                        , hoverable = Msgs.PipelineButton Data.pipelineId
+                        , hoverable = Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
+                        , hoveredSelector =
+                            { description = "a bright 20px square pause button with pointer cursor"
+                            , selector =
+                                iconSelector
+                                    { size = "20px"
+                                    , image = Assets.PauseIcon
+                                    }
+                                    ++ [ style "cursor" "pointer"
+                                       , style "opacity" "1"
+                                       ]
+                            }
+                        }
+                    , defineHoverBehaviour
+                        { name = "pause button in favorites section"
+                        , setup =
+                            whenOnDashboard { highDensity = False }
+                                |> givenDataAndUser
+                                    (apiData [ ( "team", [] ) ])
+                                    (userWithRoles [ ( "team", [ "owner" ] ) ])
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.AllPipelinesFetched <|
+                                        Ok
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                    )
+                                |> Tuple.first
+                                |> Application.handleDelivery
+                                    (Message.Subscription.FavoritedPipelinesReceived <| Ok <| Set.singleton 0)
+                                |> Tuple.first
+                        , query =
+                            Common.queryView
+                                >> Query.findAll [ class "card-footer" ]
+                                >> Query.first
+                                >> Query.children []
+                                >> Query.index -1
+                                >> Query.children []
+                                >> Query.index 0
+                        , unhoveredSelector =
+                            { description = "a faded 20px square pause button with pointer cursor"
+                            , selector =
+                                iconSelector
+                                    { size = "20px"
+                                    , image = Assets.PauseIcon
+                                    }
+                                    ++ [ style "cursor" "pointer"
+                                       , style "opacity" "0.5"
+                                       ]
+                            }
+                        , hoverable =
+                            Msgs.PipelineCardPauseToggle FavoritesSection
+                                { pipelineName = "pipeline"
+                                , teamName = "team"
+                                }
                         , hoveredSelector =
                             { description = "a bright 20px square pause button with pointer cursor"
                             , selector =
@@ -2264,7 +2377,7 @@ all =
                                        , style "opacity" "0.5"
                                        ]
                             }
-                        , hoverable = Msgs.PipelineButton Data.pipelineId
+                        , hoverable = Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
                         , hoveredSelector =
                             { description = "an opaque 20px square play button with pointer cursor"
                             , selector =
@@ -2297,7 +2410,7 @@ all =
                                 |> Event.expect
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton Data.pipelineId
+                                            Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
                                     )
                     , test "pause button turns into spinner on click" <|
                         \_ ->
@@ -2319,7 +2432,7 @@ all =
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton Data.pipelineId
+                                            Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -2341,7 +2454,7 @@ all =
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton Data.pipelineId
+                                            Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
                                     )
                                 |> Tuple.second
                                 |> Expect.equal [ Effects.SendTogglePipelineRequest Data.pipelineId False ]
@@ -2361,7 +2474,7 @@ all =
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton Data.pipelineId
+                                            Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
                                     )
                                 |> Tuple.first
                                 |> Application.handleCallback
@@ -2383,7 +2496,7 @@ all =
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineButton Data.pipelineId
+                                            Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
                                     )
                                 |> Tuple.first
                                 |> Application.handleCallback
@@ -2412,7 +2525,8 @@ all =
 
                         favoritedToggle =
                             Common.queryView
-                                >> Query.find [ class "card-footer" ]
+                                >> Query.findAll [ class "card-footer" ]
+                                >> Query.first
                                 >> Query.children []
                                 >> Query.index -1
                                 >> Query.children []
@@ -2435,7 +2549,7 @@ all =
                                                ]
                                     }
                                 , hoverable =
-                                    Msgs.PipelineCardFavoritedIcon pipelineId
+                                    Msgs.PipelineCardFavoritedIcon AllPipelinesSection pipelineId
                                 , hoveredSelector =
                                     { description = "bright 20px square"
                                     , selector =
@@ -2456,6 +2570,7 @@ all =
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
                                                     Msgs.PipelineCardFavoritedIcon
+                                                        AllPipelinesSection
                                                         pipelineId
                                             )
                             , test "click has FavoritedPipeline effect" <|
@@ -2467,6 +2582,7 @@ all =
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
                                                     Msgs.PipelineCardFavoritedIcon
+                                                        AllPipelinesSection
                                                         pipelineId
                                             )
                                         |> Tuple.second

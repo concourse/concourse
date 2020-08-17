@@ -146,7 +146,7 @@ handleEvent event ( model, effects ) =
             )
 
         SelectedWorker origin output time ->
-            ( updateStep origin.id (setRunning << appendStepLog ("\u{001b}[1mselected worker: \u{001b}[0m" ++ output ++ "\n") time) model
+            ( updateStep origin.id (setRunning << appendStepLog ("\u{001B}[1mselected worker: \u{001B}[0m" ++ output ++ "\n") time) model
             , effects
             )
 
