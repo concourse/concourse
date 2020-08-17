@@ -187,7 +187,6 @@ var _ = Describe("PrometheusEmitter", func() {
 		}
 	})
 
-
 	JustBeforeEach(func() {
 		prometheusEmitter, err = prometheusConfig.NewEmitter()
 	})
@@ -196,6 +195,11 @@ var _ = Describe("PrometheusEmitter", func() {
 		prometheusEmitter.Emit(logger, metric.Event{
 			Name:  "tasks waiting",
 			Value: 4,
+			Attributes: map[string]string{
+				"teamId":     "42",
+				"workerTags": "tester",
+				"platform":   "darwin",
+			},
 		})
 
 		res, _ := http.Get(fmt.Sprintf("http://%s:%s/metrics", prometheusConfig.BindIP, prometheusConfig.BindPort))
@@ -203,7 +207,7 @@ var _ = Describe("PrometheusEmitter", func() {
 		body, _ := ioutil.ReadAll(res.Body)
 
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		Expect(string(body)).To(ContainSubstring("concourse_tasks_waiting 4"))
+		Expect(string(body)).To(ContainSubstring("concourse_tasks_waiting{platform=\"darwin\",teamId=\"42\",workerTags=\"tester\"} 4"))
 		Expect(err).To(BeNil())
 	})
 })
