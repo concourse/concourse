@@ -1535,7 +1535,7 @@ all =
                                     [ text "running" ]
                     , test "when not running, status text shows age" <|
                         \_ ->
-                            Common.init "/"
+                            whenOnDashboard { highDensity = False }
                                 |> Application.handleCallback
                                     (Callback.AllJobsFetched <|
                                         Ok

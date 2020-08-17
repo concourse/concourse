@@ -57,11 +57,20 @@ all =
                 [ class "dashboard-team-pipelines"
                 , style "height" <| String.fromInt height ++ "px"
                 ]
+
+        loadDashboardWithSize width height =
+            Common.init "/"
+                |> Application.handleCallback
+                    (Callback.GotViewport Dashboard <|
+                        Ok <|
+                            viewportWithSize width height
+                    )
+                |> Tuple.first
     in
     describe "dashboard rendering"
         [ test "renders the pipelines container as position relative" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 600 600
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
@@ -92,20 +101,20 @@ all =
                     |> Common.contains (GetViewportOf Dashboard)
         , test "fetches the viewport of the scrollable area when the window is resized" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 600 600
                     |> Application.handleDelivery
                         (Subscription.WindowResized 800 600)
                     |> Tuple.second
                     |> Common.contains (GetViewportOf Dashboard)
         , test "fetches the viewport of the scrollable area when the sidebar is opened" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 600 600
                     |> Application.update (Update <| Click HamburgerMenu)
                     |> Tuple.second
                     |> Common.contains (GetViewportOf Dashboard)
         , test "fetches the viewport of the scrollable area when the sidebar state is loaded" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 600 600
                     |> Application.handleDelivery
                         (SideBarStateReceived
                             (Ok
@@ -118,16 +127,10 @@ all =
                     |> Common.contains (GetViewportOf Dashboard)
         , test "renders pipeline cards in a single column grid when the viewport is narrow" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 300 600
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
-                        )
-                    |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.GotViewport Dashboard <|
-                            Ok <|
-                                viewportWithSize 300 600
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -150,16 +153,10 @@ all =
                         ]
         , test "renders pipeline cards in a multi-column grid when the viewport is wide" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 650 200
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
-                        )
-                    |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.GotViewport Dashboard <|
-                            Ok <|
-                                viewportWithSize 650 200
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -182,16 +179,10 @@ all =
                         ]
         , test "ignores viewport updates for DOM elements other than the dashboard" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 650 200
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
-                        )
-                    |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.GotViewport Dashboard <|
-                            Ok <|
-                                viewportWithSize 650 200
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -220,7 +211,7 @@ all =
                         ]
         , test "pipelines with many jobs are rendered as cards spanning several rows" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 600 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
@@ -230,12 +221,6 @@ all =
                         (Callback.AllJobsFetched <|
                             Ok <|
                                 jobsWithHeight 0 15
-                        )
-                    |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.GotViewport Dashboard <|
-                            Ok <|
-                                viewportWithSize 600 300
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -259,7 +244,7 @@ all =
                         ]
         , test "pipelines with many dependant jobs are rendered as spanning multiple columns" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 950 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
@@ -269,12 +254,6 @@ all =
                         (Callback.AllJobsFetched <|
                             Ok <|
                                 jobsWithDepth 0 15
-                        )
-                    |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.GotViewport Dashboard <|
-                            Ok <|
-                                viewportWithSize 950 300
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -297,16 +276,10 @@ all =
                         ]
         , test "wraps cards to the next row" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 600 500
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team" 2 ]
-                        )
-                    |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.GotViewport Dashboard <|
-                            Ok <|
-                                viewportWithSize 600 500
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -337,32 +310,20 @@ all =
                         ]
         , test "sets the container height to the height of the cards" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 300 600
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
-                        )
-                    |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.GotViewport Dashboard <|
-                            Ok <|
-                                viewportWithSize 300 600
                         )
                     |> Tuple.first
                     |> Common.queryView
                     |> containerHasHeight ((268 + 25) * 2)
         , test "doesn't render rows below the viewport" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 300 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team" 2 ]
-                        )
-                    |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.GotViewport Dashboard <|
-                            Ok <|
-                                viewportWithSize 300 200
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -370,7 +331,7 @@ all =
                     |> Query.hasNot [ class "pipeline-wrapper", containing [ text "pipeline-2" ] ]
         , test "body has a scroll handler" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 300 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team" 2 ]
@@ -400,24 +361,18 @@ all =
                         )
         , test "rows are hidden as they are scrolled out of view" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 600 200
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team" 2 ]
                         )
                     |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.GotViewport Dashboard <|
-                            Ok <|
-                                viewportWithSize 600 250
-                        )
-                    |> Tuple.first
                     |> Application.update
                         (Update <|
                             Scrolled
-                                { scrollTop = 600
+                                { scrollTop = 700
                                 , scrollHeight = 3240
-                                , clientHeight = 250
+                                , clientHeight = 200
                                 }
                         )
                     |> Tuple.first
@@ -426,7 +381,7 @@ all =
                     |> Query.hasNot [ class "pipeline-wrapper", containing [ text "pipeline-0" ] ]
         , test "tall cards are not hidden when only its top row is scrolled out of view" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 600 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0 ]
@@ -438,18 +393,12 @@ all =
                                 jobsWithHeight 0 30
                         )
                     |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.GotViewport Dashboard <|
-                            Ok <|
-                                viewportWithSize 600 250
-                        )
-                    |> Tuple.first
                     |> Application.update
                         (Update <|
                             Scrolled
                                 { scrollTop = 600
                                 , scrollHeight = 3240
-                                , clientHeight = 250
+                                , clientHeight = 300
                                 }
                         )
                     |> Tuple.first
@@ -458,16 +407,10 @@ all =
                     |> Query.has [ class "pipeline-wrapper", containing [ text "pipeline-0" ] ]
         , test "groups that are outside the viewport have no visible pipelines" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 300 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team-2" 2 ]
-                        )
-                    |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.GotViewport Dashboard <|
-                            Ok <|
-                                viewportWithSize 300 200
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -475,16 +418,10 @@ all =
                     |> Query.hasNot [ class "pipeline-wrapper" ]
         , test "groups that are scrolled into view have visible pipelines" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 300 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team-2" 2 ]
-                        )
-                    |> Tuple.first
-                    |> Application.handleCallback
-                        (Callback.GotViewport Dashboard <|
-                            Ok <|
-                                viewportWithSize 300 200
                         )
                     |> Tuple.first
                     |> Application.update
@@ -501,7 +438,7 @@ all =
                     |> Query.has [ class "pipeline-wrapper", containing [ text "pipeline-2" ] ]
         , test "pipeline wrapper has a z-index of 1 when hovering over a job" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 300 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0 ]
@@ -519,7 +456,7 @@ all =
                     |> Query.has [ class "pipeline-wrapper", style "z-index" "1" ]
         , test "pipeline wrapper has a z-index of 1 when hovering over the wrapper" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 300 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0 ]
@@ -537,7 +474,7 @@ all =
                     |> Query.has [ class "pipeline-wrapper", style "z-index" "1" ]
         , test "pipeline wrapper responds to mouse over" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 300 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0 ]
@@ -554,7 +491,7 @@ all =
                         )
         , test "pipeline wrapper responds to mouse out" <|
             \_ ->
-                Common.init "/"
+                loadDashboardWithSize 300 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok [ Data.pipeline "team" 0 ]
@@ -567,16 +504,10 @@ all =
         , describe "drop areas" <|
             [ test "renders a drop area over each pipeline card" <|
                 \_ ->
-                    Common.init "/"
+                    loadDashboardWithSize 600 500
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team" 2 ]
-                            )
-                        |> Tuple.first
-                        |> Application.handleCallback
-                            (Callback.GotViewport Dashboard <|
-                                Ok <|
-                                    viewportWithSize 600 500
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -607,16 +538,10 @@ all =
                             ]
             , test "does not render drop areas for rows that are not visible" <|
                 \_ ->
-                    Common.init "/"
+                    loadDashboardWithSize 300 300
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team" 2 ]
-                            )
-                        |> Tuple.first
-                        |> Application.handleCallback
-                            (Callback.GotViewport Dashboard <|
-                                Ok <|
-                                    viewportWithSize 300 200
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -625,16 +550,10 @@ all =
                         |> Query.count (Expect.equal 2)
             , test "renders the final drop area to the right of the last card" <|
                 \_ ->
-                    Common.init "/"
+                    loadDashboardWithSize 600 300
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok [ Data.pipeline "team" 0 ]
-                            )
-                        |> Tuple.first
-                        |> Application.handleCallback
-                            (Callback.GotViewport Dashboard <|
-                                Ok <|
-                                    viewportWithSize 600 200
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -649,7 +568,7 @@ all =
                             }
             , test "renders the drop area up one row when the card breaks the row, but there is space for a smaller card" <|
                 \_ ->
-                    Common.init "/"
+                    loadDashboardWithSize 600 500
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
@@ -659,12 +578,6 @@ all =
                             (Callback.AllJobsFetched <|
                                 Ok <|
                                     jobsWithDepth 1 15
-                            )
-                        |> Tuple.first
-                        |> Application.handleCallback
-                            (Callback.GotViewport Dashboard <|
-                                Ok <|
-                                    viewportWithSize 600 500
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -699,16 +612,10 @@ all =
             in
             [ test "renders a favorites pipeline section" <|
                 \_ ->
-                    Common.init "/"
+                    loadDashboardWithSize 600 500
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
-                            )
-                        |> Tuple.first
-                        |> Application.handleCallback
-                            (Callback.GotViewport Dashboard <|
-                                Ok <|
-                                    viewportWithSize 600 500
                             )
                         |> Tuple.first
                         |> gotFavoritedPipelines [ 0 ]
@@ -717,16 +624,10 @@ all =
                         |> Query.has [ id "dashboard-favorite-pipelines" ]
             , test "renders pipeline cards in the favorites section" <|
                 \_ ->
-                    Common.init "/"
+                    loadDashboardWithSize 600 500
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok [ Data.pipeline "team" 0 ]
-                            )
-                        |> Tuple.first
-                        |> Application.handleCallback
-                            (Callback.GotViewport Dashboard <|
-                                Ok <|
-                                    viewportWithSize 600 500
                             )
                         |> Tuple.first
                         |> gotFavoritedPipelines [ 0 ]
@@ -742,16 +643,10 @@ all =
                             }
             , test "favorite section has the height of the cards" <|
                 \_ ->
-                    Common.init "/"
+                    loadDashboardWithSize 300 500
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
-                            )
-                        |> Tuple.first
-                        |> Application.handleCallback
-                            (Callback.GotViewport Dashboard <|
-                                Ok <|
-                                    viewportWithSize 300 500
                             )
                         |> Tuple.first
                         |> gotFavoritedPipelines [ 0, 1 ]
@@ -765,16 +660,10 @@ all =
                             ]
             , test "offsets all pipelines section by height of the favorites section" <|
                 \_ ->
-                    Common.init "/"
+                    loadDashboardWithSize 300 200
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
-                            )
-                        |> Tuple.first
-                        |> Application.handleCallback
-                            (Callback.GotViewport Dashboard <|
-                                Ok <|
-                                    viewportWithSize 300 200
                             )
                         |> Tuple.first
                         |> gotFavoritedPipelines [ 0, 1 ]
@@ -784,16 +673,10 @@ all =
                         |> Query.hasNot [ class "pipeline-wrapper", containing [ text "pipeline-0" ] ]
             , test "renders team header above the first pipeline card" <|
                 \_ ->
-                    Common.init "/"
+                    loadDashboardWithSize 300 200
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok [ Data.pipeline "team" 0 ]
-                            )
-                        |> Tuple.first
-                        |> Application.handleCallback
-                            (Callback.GotViewport Dashboard <|
-                                Ok <|
-                                    viewportWithSize 300 200
                             )
                         |> Tuple.first
                         |> gotFavoritedPipelines [ 0 ]
@@ -804,16 +687,10 @@ all =
                         |> hasBounds { x = 25, y = 0, width = 272, height = 60 }
             , test "renders multiple teams' headers" <|
                 \_ ->
-                    Common.init "/"
+                    loadDashboardWithSize 600 200
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok [ Data.pipeline "team1" 0, Data.pipeline "team2" 1 ]
-                            )
-                        |> Tuple.first
-                        |> Application.handleCallback
-                            (Callback.GotViewport Dashboard <|
-                                Ok <|
-                                    viewportWithSize 600 200
                             )
                         |> Tuple.first
                         |> gotFavoritedPipelines [ 0, 1 ]
@@ -828,16 +705,10 @@ all =
                             ]
             , test "renders one header per team" <|
                 \_ ->
-                    Common.init "/"
+                    loadDashboardWithSize 600 200
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok [ Data.pipeline "team1" 0, Data.pipeline "team1" 1 ]
-                            )
-                        |> Tuple.first
-                        |> Application.handleCallback
-                            (Callback.GotViewport Dashboard <|
-                                Ok <|
-                                    viewportWithSize 600 200
                             )
                         |> Tuple.first
                         |> gotFavoritedPipelines [ 0, 1 ]
@@ -848,16 +719,10 @@ all =
                         |> hasBounds { x = 25, y = 0, width = 272 * 2 + 25, height = 60 }
             , test "renders a 'continued' header when a team spans multiple rows" <|
                 \_ ->
-                    Common.init "/"
+                    loadDashboardWithSize 300 600
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok [ Data.pipeline "team1" 0, Data.pipeline "team1" 1 ]
-                            )
-                        |> Tuple.first
-                        |> Application.handleCallback
-                            (Callback.GotViewport Dashboard <|
-                                Ok <|
-                                    viewportWithSize 300 600
                             )
                         |> Tuple.first
                         |> gotFavoritedPipelines [ 0, 1 ]
