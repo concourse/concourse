@@ -33,8 +33,13 @@ type opaInput struct {
 	Input policy.PolicyCheckInput `json:"input"`
 }
 
+type opaOuptut struct {
+	Allowed *bool    `json:"allowed,omitempty"`
+	Reasons []string `json:"reasons,omitempty"`
+}
+
 type opaResult struct {
-	Result *bool `json:"result,omitempty"`
+	Result *opaOuptut `json:"result,omitempty"`
 }
 
 type opa struct {
@@ -42,18 +47,18 @@ type opa struct {
 	logger lager.Logger
 }
 
-func (c opa) Check(input policy.PolicyCheckInput) (bool, error) {
+func (c opa) Check(input policy.PolicyCheckInput) (policy.PolicyCheckOutput, error) {
 	data := opaInput{input}
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
-		return false, err
+		return policy.FailedPolicyCheck(), nil
 	}
 
 	c.logger.Debug("opa-check", lager.Data{"input": string(jsonBytes)})
 
 	req, err := http.NewRequest("POST", c.config.URL, bytes.NewBuffer(jsonBytes))
 	if err != nil {
-		return false, err
+		return policy.FailedPolicyCheck(), nil
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -61,31 +66,34 @@ func (c opa) Check(input policy.PolicyCheckInput) (bool, error) {
 	client.Timeout = c.config.Timeout
 	resp, err := client.Do(req)
 	if err != nil {
-		return false, err
+		return policy.FailedPolicyCheck(), err
 	}
 	defer resp.Body.Close()
 
 	statusCode := resp.StatusCode
 	if statusCode != http.StatusOK {
-		return false, fmt.Errorf("opa returned status: %d", statusCode)
+		return policy.FailedPolicyCheck(), fmt.Errorf("opa returned status: %d", statusCode)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return false, fmt.Errorf("opa returned no response: %s", err.Error())
+		return policy.FailedPolicyCheck(), fmt.Errorf("opa returned no response: %s", err.Error())
 	}
 
 	result := &opaResult{}
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		return false, fmt.Errorf("opa returned bad response: %s", err.Error())
+		return policy.FailedPolicyCheck(), fmt.Errorf("opa returned bad response: %s", err.Error())
 	}
 
 	// If no result returned, meaning that the requested policy decision is
 	// undefined OPA, then consider as pass.
 	if result.Result == nil {
-		return true, nil
+		return policy.PassedPolicyCheck(), nil
 	}
 
-	return *result.Result, nil
+	return policy.PolicyCheckOutput{
+		Allowed: *result.Result.Allowed,
+		Reasons: result.Result.Reasons,
+	}, nil
 }

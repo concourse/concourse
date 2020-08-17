@@ -218,14 +218,14 @@ func (worker *gardenWorker) imagePolicyCheck(
 	metadata db.ContainerMetadata,
 	containerSpec ContainerSpec,
 	resourceTypes atc.VersionedResourceTypes,
-) (bool, error) {
+) (policy.PolicyCheckOutput, error) {
 	if worker.policyChecker == nil {
-		return true, nil
+		return policy.PassedPolicyCheck(), nil
 	}
 
 	// Actions in skip list will not go through policy check.
 	if !worker.policyChecker.ShouldCheckAction(policy.ActionUseImage) {
-		return true, nil
+		return policy.PassedPolicyCheck(), nil
 	}
 
 	imageSpec := containerSpec.ImageSpec
@@ -248,17 +248,17 @@ func (worker *gardenWorker) imagePolicyCheck(
 		// If resource type not found, then it should be a built-in resource
 		// type, and could skip policy check.
 		if _, ok := imageInfo["image_type"]; !ok {
-			return true, nil
+			return policy.PassedPolicyCheck(), nil
 		}
 	} else {
 		// Ignore other images as policy checker cannot do much on them.
-		return true, nil
+		return policy.PassedPolicyCheck(), nil
 	}
 
 	if originalSource, ok := imageInfo["image_source"].(atc.Source); ok {
 		redactedSource, err := delegate.RedactImageSource(originalSource)
 		if err != nil {
-			return false, err
+			return policy.FailedPolicyCheck(), err
 		}
 		imageInfo["image_source"] = redactedSource
 	}
@@ -292,12 +292,14 @@ func (worker *gardenWorker) FindOrCreateContainer(
 		err               error
 	)
 
-	pass, err := worker.imagePolicyCheck(ctx, delegate, metadata, containerSpec, resourceTypes)
+	result, err := worker.imagePolicyCheck(ctx, delegate, metadata, containerSpec, resourceTypes)
 	if err != nil {
 		return nil, err
 	}
-	if !pass {
-		return nil, policy.PolicyCheckNotPass{}
+	if !result.Allowed {
+		return nil, policy.PolicyCheckNotPass{
+			Reasons: result.Reasons,
+		}
 	}
 
 	// ensure either creatingContainer or createdContainer exists
