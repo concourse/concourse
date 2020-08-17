@@ -35,7 +35,11 @@ func (command *GetTeamCommand) Execute(args []string) error {
 	}
 
 	if command.JSON {
-		if err := displayhelpers.JsonPrint(team); err != nil {
+		err := displayhelpers.JsonPrint(map[string]interface{}{
+			"name": team.Name(),
+			"auth": team.Auth(),
+		})
+		if err != nil {
 			return err
 		}
 		return nil
