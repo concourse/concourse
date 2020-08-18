@@ -741,18 +741,22 @@ by configuring \reference{schema.step.on_failure} or
         value.
       }
 
-      \optional-attribute{format}{`detect` | `json` | `yaml` | `yml` | `raw`}{
-        \italic{Default \code{detect}.} The format of the file's content.
+      \optional-attribute{format}{`json` | `yaml` | `yml` | `trim` | `raw`}{
+        The format of the file's content.
 
-        If set to \code{detect}, the format will be inferred from the file
-        extension.
+        If unset, Concourse will try to detect the format from the file
+        extension. If the file format cannot be determined, Concourse will
+        fallback to \code{trim}.
 
         If set to \code{json}, \code{yaml}, or \code{yml}, the file content
         will be parsed accordingly and the resulting structure will be the
         value of the var.
 
-        If set to \code{raw}, the file content will be the value of the var as
-        a single string value.
+        If set to \code{trim}, the var will be set to the content of the file
+        with any trailing and leading whitespace removed.
+
+        If set to \code{raw}, the var will be set to the content of the file
+        without modification (i.e. with any existing whitespace).
 
         \example-toggle{Loading a var with multiple fields}{
           Let's say we have a task, \code{generate-creds}, which produces a
