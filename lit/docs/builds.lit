@@ -199,4 +199,6 @@ sure you intercept while it's running, if you want to debug.
 
   If the \code{--job} flag is specified and \code{--build} is omitted, the most
   recent build of the specified job will be selected.
+
+  If there is a mismatch between the \code{fly} and \code{web} versions, it is possible to run into \code{failed to parse next event: unknown event type} error. The \code{--ignore-event-parsing-errors} flag can be passed to ignore such errors. 
 }
