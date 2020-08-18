@@ -175,9 +175,9 @@ var _ = Describe("RunTaskStep", func() {
 					Platform:   fakeWorkerSpec.Platform,
 				}
 				// Verify that when one task is waiting the gauge is increased...
-				Eventually(metric.TasksWaiting[labels].Max(), 2*time.Second).Should(Equal(float64(1)))
+				Eventually(metric.Metrics.TasksWaiting[labels].Max(), 2*time.Second).Should(Equal(float64(1)))
 				// and then decreased.
-				Eventually(metric.TasksWaiting[labels].Max(), 2*time.Second).Should(Equal(float64(0)))
+				Eventually(metric.Metrics.TasksWaiting[labels].Max(), 2*time.Second).Should(Equal(float64(0)))
 			})
 
 			It("writes status to output writer", func() {

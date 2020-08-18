@@ -91,7 +91,7 @@ func serializeLabels(labels *prometheus.Labels) string {
 }
 
 func init() {
-	metric.RegisterEmitter(&PrometheusConfig{})
+	metric.Metrics.RegisterEmitter(&PrometheusConfig{})
 }
 
 func (config *PrometheusConfig) Description() string { return "Prometheus" }

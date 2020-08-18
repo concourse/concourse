@@ -68,8 +68,8 @@ func (bt *Tracker) Run(ctx context.Context) error {
 
 				defer bt.running.Delete(build.ID())
 
-				metric.BuildsRunning.Inc()
-				defer metric.BuildsRunning.Dec()
+				metric.Metrics.BuildsRunning.Inc()
+				defer metric.Metrics.BuildsRunning.Dec()
 
 				bt.engine.NewBuild(build).Run(
 					lagerctx.NewContext(

@@ -6,12 +6,14 @@ import (
 )
 
 type ErrorSinkCollector struct {
-	logger lager.Logger
+	logger  lager.Logger
+	monitor *Monitor
 }
 
-func NewErrorSinkCollector(logger lager.Logger) ErrorSinkCollector {
+func NewErrorSinkCollector(logger lager.Logger, m *Monitor) ErrorSinkCollector {
 	return ErrorSinkCollector{
-		logger: logger,
+		logger:  logger,
+		monitor: m,
 	}
 }
 
@@ -27,5 +29,5 @@ func (c *ErrorSinkCollector) Log(f lager.LogFormat) {
 	ErrorLog{
 		Value:   1,
 		Message: f.Message,
-	}.Emit(c.logger)
+	}.Emit(c.logger, c.monitor)
 }

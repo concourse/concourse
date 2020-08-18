@@ -399,7 +399,7 @@ func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 	}
 	cmd.CredentialManagers = managerConfigs
 
-	metric.WireEmitters(metricsGroup)
+	metric.Metrics.WireEmitters(metricsGroup)
 
 	policy.WireCheckers(policyChecksGroup)
 
@@ -460,7 +460,10 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 	// Register the sink that collects error metrics
 	if cmd.Metrics.CaptureErrorMetrics {
-		errorSinkCollector := metric.NewErrorSinkCollector(logger)
+		errorSinkCollector := metric.NewErrorSinkCollector(
+			logger,
+			metric.Metrics,
+		)
 		logger.RegisterSink(&errorSinkCollector)
 	}
 
@@ -527,6 +530,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		Name: "periodic-metrics",
 		Runner: metric.PeriodicallyEmit(
 			logger.Session("periodic-metrics"),
+			metric.Metrics,
 			10*time.Second,
 		),
 	})
@@ -1274,7 +1278,7 @@ func (cmd *RunCommand) constructWebHandler(logger lager.Logger) (http.Handler, e
 	if err != nil {
 		return nil, err
 	}
-	return metric.WrapHandler(logger, "web", webHandler), nil
+	return metric.WrapHandler(logger, metric.Metrics, "web", webHandler), nil
 }
 
 func (cmd *RunCommand) skyHttpClient() (*http.Client, error) {
@@ -1473,7 +1477,7 @@ func (cmd *RunCommand) configureMetrics(logger lager.Logger) error {
 		host, _ = os.Hostname()
 	}
 
-	return metric.Initialize(logger.Session("metrics"), host, cmd.Metrics.Attributes, cmd.Metrics.BufferSize)
+	return metric.Metrics.Initialize(logger.Session("metrics"), host, cmd.Metrics.Attributes, cmd.Metrics.BufferSize)
 }
 
 func (cmd *RunCommand) constructDBConn(
@@ -1490,7 +1494,7 @@ func (cmd *RunCommand) constructDBConn(
 
 	// Instrument with Metrics
 	dbConn = metric.CountQueries(dbConn)
-	metric.Databases = append(metric.Databases, dbConn)
+	metric.Metrics.Databases = append(metric.Metrics.Databases, dbConn)
 
 	// Instrument with Logging
 	if cmd.LogDBQueries {

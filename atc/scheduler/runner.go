@@ -112,9 +112,9 @@ func (s *Runner) Run(ctx context.Context) error {
 }
 
 func (s *Runner) scheduleJob(ctx context.Context, logger lager.Logger, job db.SchedulerJob) error {
-	metric.JobsScheduling.Inc()
-	defer metric.JobsScheduling.Dec()
-	defer metric.JobsScheduled.Inc()
+	metric.Metrics.JobsScheduling.Inc()
+	defer metric.Metrics.JobsScheduling.Dec()
+	defer metric.Metrics.JobsScheduled.Inc()
 
 	logger = logger.Session("schedule-job", lager.Data{"job": job.Name()})
 	spanCtx, span := tracing.StartSpan(ctx, "schedule-job", tracing.Attrs{

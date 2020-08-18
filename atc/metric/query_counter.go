@@ -18,19 +18,19 @@ type countingConn struct {
 }
 
 func (e *countingConn) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	DatabaseQueries.Inc()
+	Metrics.DatabaseQueries.Inc()
 
 	return e.Conn.Query(query, args...)
 }
 
 func (e *countingConn) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
-	DatabaseQueries.Inc()
+	Metrics.DatabaseQueries.Inc()
 
 	return e.Conn.QueryRow(query, args...)
 }
 
 func (e *countingConn) Exec(query string, args ...interface{}) (sql.Result, error) {
-	DatabaseQueries.Inc()
+	Metrics.DatabaseQueries.Inc()
 
 	return e.Conn.Exec(query, args...)
 }
@@ -49,19 +49,19 @@ type countingTx struct {
 }
 
 func (e *countingTx) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	DatabaseQueries.Inc()
+	Metrics.DatabaseQueries.Inc()
 
 	return e.Tx.Query(query, args...)
 }
 
 func (e *countingTx) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
-	DatabaseQueries.Inc()
+	Metrics.DatabaseQueries.Inc()
 
 	return e.Tx.QueryRow(query, args...)
 }
 
 func (e *countingTx) Exec(query string, args ...interface{}) (sql.Result, error) {
-	DatabaseQueries.Inc()
+	Metrics.DatabaseQueries.Inc()
 
 	return e.Tx.Exec(query, args...)
 }

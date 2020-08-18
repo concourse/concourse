@@ -155,7 +155,7 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 		s.logger.Debug("check-already-exists")
 	}
 
-	metric.ChecksEnqueued.Inc()
+	metric.Metrics.ChecksEnqueued.Inc()
 
 	return nil
 }

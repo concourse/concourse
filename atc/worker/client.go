@@ -654,12 +654,12 @@ func (client *client) chooseTaskWorker(
 
 		// Increase task waiting only once
 		if elapsed == 0 {
-			_, ok := metric.TasksWaiting[tasksWaitingLabels]
+			_, ok := metric.Metrics.TasksWaiting[tasksWaitingLabels]
 			if !ok {
-				metric.TasksWaiting[tasksWaitingLabels] = &metric.Gauge{}
+				metric.Metrics.TasksWaiting[tasksWaitingLabels] = &metric.Gauge{}
 			}
-			metric.TasksWaiting[tasksWaitingLabels].Inc()
-			defer metric.TasksWaiting[tasksWaitingLabels].Dec()
+			metric.Metrics.TasksWaiting[tasksWaitingLabels].Inc()
+			defer metric.Metrics.TasksWaiting[tasksWaitingLabels].Dec()
 		}
 
 		elapsed = waitForWorker(logger,

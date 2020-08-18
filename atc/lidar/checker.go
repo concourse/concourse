@@ -57,7 +57,7 @@ func (c *checker) Run(ctx context.Context) error {
 		return err
 	}
 
-	metric.ChecksQueueSize.Set(int64(len(checks)))
+	metric.Metrics.ChecksQueueSize.Set(int64(len(checks)))
 
 	if len(checks) == 0 {
 		return nil

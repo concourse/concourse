@@ -436,15 +436,15 @@ func (c *engineCheck) clearRunState() {
 }
 
 func (c *engineCheck) trackStarted(logger lager.Logger) {
-	metric.ChecksStarted.Inc()
+	metric.Metrics.ChecksStarted.Inc()
 }
 
 func (c *engineCheck) trackFinished(logger lager.Logger) {
 	switch c.check.Status() {
 	case db.CheckStatusErrored:
-		metric.ChecksFinishedWithError.Inc()
+		metric.Metrics.ChecksFinishedWithError.Inc()
 	case db.CheckStatusSucceeded:
-		metric.ChecksFinishedWithSuccess.Inc()
+		metric.Metrics.ChecksFinishedWithSuccess.Inc()
 	default:
 		logger.Info("unexpected-check-status", lager.Data{"status": c.check.Status()})
 	}

@@ -23,7 +23,7 @@ type DogstatsDBConfig struct {
 }
 
 func init() {
-	metric.RegisterEmitter(&DogstatsDBConfig{})
+	metric.Metrics.RegisterEmitter(&DogstatsDBConfig{})
 }
 
 func (config *DogstatsDBConfig) Description() string { return "Datadog" }
