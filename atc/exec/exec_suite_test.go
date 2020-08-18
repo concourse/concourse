@@ -1,6 +1,7 @@
 package exec_test
 
 import (
+	"github.com/concourse/concourse/atc"
 	"testing"
 
 	"code.cloudfoundry.org/lager/lagertest"
@@ -41,4 +42,6 @@ var _ = BeforeSuite(func() {
 	fakePolicyAgentFactory.DescriptionReturns("fakeAgent")
 
 	policy.RegisterAgent(fakePolicyAgentFactory)
+
+	atc.EnablePipelineInstances = true
 })

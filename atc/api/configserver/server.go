@@ -7,22 +7,19 @@ import (
 )
 
 type Server struct {
-	logger                  lager.Logger
-	teamFactory             db.TeamFactory
-	secretManager           creds.Secrets
-	enablePipelineInstances bool
+	logger        lager.Logger
+	teamFactory   db.TeamFactory
+	secretManager creds.Secrets
 }
 
 func NewServer(
 	logger lager.Logger,
 	teamFactory db.TeamFactory,
 	secretManager creds.Secrets,
-	enablePipelineInstances bool,
 ) *Server {
 	return &Server{
-		logger:                  logger,
-		teamFactory:             teamFactory,
-		secretManager:           secretManager,
-		enablePipelineInstances: enablePipelineInstances,
+		logger:        logger,
+		teamFactory:   teamFactory,
+		secretManager: secretManager,
 	}
 }

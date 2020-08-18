@@ -91,9 +91,9 @@ var _ = Describe("PipelineLifecycle", func() {
 		)
 
 		BeforeEach(func() {
-			pipeline1, _, err = defaultTeam.SavePipeline("pipeline1", defaultPipelineConfig, 0, false)
+			pipeline1, _, err = defaultTeam.SavePipeline(atc.PipelineRef{Name: "pipeline1"}, defaultPipelineConfig, 0, false)
 			Expect(err).ToNot(HaveOccurred())
-			pipeline2, _, err = defaultTeam.SavePipeline("pipeline2", defaultPipelineConfig, 0, false)
+			pipeline2, _, err = defaultTeam.SavePipeline(atc.PipelineRef{Name: "pipeline2"}, defaultPipelineConfig, 0, false)
 			Expect(err).ToNot(HaveOccurred())
 		})
 

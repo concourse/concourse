@@ -851,14 +851,15 @@ var _ = Describe("Builder", func() {
 						Expect(*plan.Task).To(Equal(atc.TaskPlan{Name: "some-task"}))
 						Expect(stepMetadata).To(Equal(expectedMetadata))
 						Expect(containerMetadata).To(Equal(db.ContainerMetadata{
-							Type:         db.ContainerTypeTask,
-							StepName:     "some-task",
-							PipelineID:   2222,
-							PipelineName: "some-pipeline",
-							JobID:        3333,
-							JobName:      "some-job",
-							BuildID:      4444,
-							BuildName:    "42",
+							Type:                 db.ContainerTypeTask,
+							StepName:             "some-task",
+							PipelineID:           2222,
+							PipelineName:         "some-pipeline",
+							PipelineInstanceVars: "{\"branch\":\"master\"}",
+							JobID:                3333,
+							JobName:              "some-job",
+							BuildID:              4444,
+							BuildName:            "42",
 						}))
 					})
 

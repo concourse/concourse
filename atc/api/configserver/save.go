@@ -81,7 +81,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pipelineRef := atc.PipelineRef{Name: pipelineName}
-	if s.enablePipelineInstances {
+	if atc.EnablePipelineInstances {
 		if instanceVars := query.Get("instance_vars"); instanceVars != "" {
 			err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
 			if err != nil {
