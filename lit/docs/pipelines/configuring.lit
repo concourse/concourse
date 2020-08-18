@@ -22,6 +22,18 @@ Pipelines are configured entirely via the \reference{fly-cli}. There is no GUI.
   If you accept then Concourse's pipeline configuration will switch to the
   pipeline definition in the YAML file specified.
 
+  The \code{-c} or \code{--config} flag can also take in the value \code{-} to
+  indicate reading from \code{stdin}:
+
+  \codeblock{bash}{{
+  $ cat pipeline.yml | fly -t example set-pipeline \\
+      --pipeline my-pipeline \\
+      --config -
+  }}
+
+  Note that reading from \code{stdin} disables the confirmation prompt - the
+  pipeline will be set automatically.
+
   \section{
     \title{Providing static values for vars}{pipeline-static-vars}
 
