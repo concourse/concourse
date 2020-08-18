@@ -62,6 +62,15 @@ update message model =
 
             else
                 Set.insert element set
+
+        toggleFavorite pipelineID =
+            let
+                favoritedPipelines =
+                    toggle pipelineID model.favoritedPipelines
+            in
+            ( { model | favoritedPipelines = favoritedPipelines }
+            , [ Effects.SaveFavoritedPipelines <| favoritedPipelines ]
+            )
     in
     case message of
         Click HamburgerMenu ->
@@ -98,22 +107,13 @@ update message model =
             ( { model | draggingSideBar = True }, [] )
 
         Click (SideBarFavoritedIcon pipelineID) ->
-            let
-                favoritedPipelines =
-                    toggle pipelineID model.favoritedPipelines
-            in
-            ( { model | favoritedPipelines = favoritedPipelines }
-            , [ Effects.SaveFavoritedPipelines <| favoritedPipelines ]
-            )
+            toggleFavorite pipelineID
 
         Click (PipelineCardFavoritedIcon _ pipelineID) ->
-            let
-                favoritedPipelines =
-                    toggle pipelineID model.favoritedPipelines
-            in
-            ( { model | favoritedPipelines = favoritedPipelines }
-            , [ Effects.SaveFavoritedPipelines <| favoritedPipelines ]
-            )
+            toggleFavorite pipelineID
+
+        Click (TopBarFavoritedIcon pipelineID) ->
+            toggleFavorite pipelineID
 
         Hover (Just (SideBarPipeline section pipelineID)) ->
             ( model
@@ -300,18 +300,22 @@ allPipelinesSection model currentPipeline =
 
 favoritedPipelinesSection : Model m -> Maybe (PipelineScoped a) -> List (Html Message)
 favoritedPipelinesSection model currentPipeline =
-    if Set.isEmpty model.favoritedPipelines then
-        []
-
-    else
-        [ Html.div Styles.sectionHeader [ Html.text "favorites" ]
-        , Html.div [ id "favorites" ]
-            (model.pipelines
+    let
+        favoritedPipelines =
+            model.pipelines
                 |> RemoteData.withDefault []
                 |> List.filter
                     (\fp ->
                         Set.member fp.id model.favoritedPipelines
                     )
+    in
+    if List.isEmpty favoritedPipelines then
+        []
+
+    else
+        [ Html.div Styles.sectionHeader [ Html.text "favorite pipelines" ]
+        , Html.div [ id "favorites" ]
+            (favoritedPipelines
                 |> List.Extra.gatherEqualsBy .teamName
                 |> List.map
                     (\( p, ps ) ->

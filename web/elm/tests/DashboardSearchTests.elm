@@ -217,7 +217,7 @@ missingData =
     Test.describe "when not all data has come in" <|
         [ Test.test "does not render 'no results' when awaiting pipelines" <|
             \_ ->
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
                         (Callback.AllJobsFetched <|
                             Ok []

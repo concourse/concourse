@@ -872,13 +872,13 @@ topBar session model =
                 else if not model.highDensity then
                     [ topBarContent [ SearchBar.view session model ]
                     , showArchivedToggleView model
-                    , Login.view session.userState model False
+                    , Login.view session.userState model
                     ]
 
                 else
                     [ topBarContent []
                     , showArchivedToggleView model
-                    , Login.view session.userState model False
+                    , Login.view session.userState model
                     ]
                )
 
@@ -1150,12 +1150,13 @@ pipelinesView session params =
                 , teams = teams
                 , pipelines = pipelines
                 , dashboardView = params.dashboardView
+                , favoritedPipelines = session.favoritedPipelines
                 }
                 |> List.sortWith (Group.ordering session)
 
-        ( favoritesView, offsetHeight ) =
+        ( headerView, offsetHeight ) =
             if params.highDensity then
-                ( Html.text "", 0 )
+                ( [], 0 )
 
             else
                 let
@@ -1166,9 +1167,15 @@ pipelinesView session params =
                                 (\fp ->
                                     Set.member fp.id session.favoritedPipelines
                                 )
+
+                    allPipelinesHeader =
+                        Html.div Styles.pipelineSectionHeader [ Html.text "all pipelines" ]
                 in
-                if List.isEmpty favoritedPipelines then
-                    ( Html.text "", 0 )
+                if List.isEmpty filteredGroups then
+                    ( [], 0 )
+
+                else if List.isEmpty favoritedPipelines then
+                    ( [ allPipelinesHeader ], PipelineGridConstants.sectionHeaderHeight )
 
                 else
                     let
@@ -1184,26 +1191,25 @@ pipelinesView session params =
                                 }
                                 favoritedPipelines
                     in
-                    Html.div []
-                        [ Html.div Styles.pipelineSectionHeader [ Html.text "favorite pipelines" ]
-                        , Group.viewFavoritePipelines
-                            session
-                            { dragState = NotDragging
-                            , dropState = NotDropping
-                            , now = params.now
-                            , hovered = session.hovered
-                            , pipelineRunningKeyframes = session.pipelineRunningKeyframes
-                            , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
-                            , pipelineLayers = params.pipelineLayers
-                            , pipelineCards = layout.pipelineCards
-                            , headers = layout.headers
-                            , groupCardsHeight = layout.height
-                            , pipelineJobs = params.pipelineJobs
-                            , jobs = jobs
-                            }
-                        , Views.Styles.separator PipelineGridConstants.sectionSpacerHeight
-                        , Html.div Styles.pipelineSectionHeader [ Html.text "all pipelines" ]
-                        ]
+                    [ Html.div Styles.pipelineSectionHeader [ Html.text "favorite pipelines" ]
+                    , Group.viewFavoritePipelines
+                        session
+                        { dragState = NotDragging
+                        , dropState = NotDropping
+                        , now = params.now
+                        , hovered = session.hovered
+                        , pipelineRunningKeyframes = session.pipelineRunningKeyframes
+                        , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
+                        , pipelineLayers = params.pipelineLayers
+                        , pipelineCards = layout.pipelineCards
+                        , headers = layout.headers
+                        , groupCardsHeight = layout.height
+                        , pipelineJobs = params.pipelineJobs
+                        , jobs = jobs
+                        }
+                    , Views.Styles.separator PipelineGridConstants.sectionSpacerHeight
+                    , allPipelinesHeader
+                    ]
                         |> (\html ->
                                 ( html
                                 , layout.height
@@ -1278,4 +1284,4 @@ pipelinesView session params =
         [ noResultsView params.query ]
 
     else
-        favoritesView :: groupViews
+        headerView ++ groupViews

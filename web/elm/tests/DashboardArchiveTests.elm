@@ -7,10 +7,13 @@ import Common
 import Data
 import Html.Attributes as Attr
 import Message.Callback as Callback
+import Message.Message exposing (DomID(..))
+import Message.Subscription as Subscription
 import Routes
+import Set
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (attribute, class, containing, style, tag, text)
+import Test.Html.Selector exposing (attribute, class, containing, id, style, tag, text)
 import Url
 
 
@@ -144,7 +147,7 @@ all =
                 ]
             ]
         , describe "when viewing only non-archived pipelines"
-            [ test "archived pipelines are not rendered" <|
+            [ test "archived pipelines are not rendered in all pipelines section" <|
                 \_ ->
                     init "/" Nothing
                         |> Application.handleCallback
@@ -158,6 +161,55 @@ all =
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.hasNot [ class "pipeline-wrapper", containing [ text "archived-pipeline" ] ]
+            , describe "when an archived pipeline is favorited" <|
+                let
+                    setup =
+                        init "/" Nothing
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ Data.pipeline "team" 1
+                                            |> Data.withName "archived-pipeline"
+                                            |> Data.withArchived True
+                                        ]
+                                )
+                            |> Tuple.first
+                            |> Application.handleDelivery
+                                (Subscription.FavoritedPipelinesReceived <|
+                                    Ok <|
+                                        Set.singleton 1
+                                )
+                            |> Tuple.first
+                in
+                [ test "still rendered in favorites section" <|
+                    \_ ->
+                        setup
+                            |> Common.queryView
+                            |> Query.find [ id "dashboard-favorite-pipelines" ]
+                            |> Query.has [ class "pipeline-wrapper", containing [ text "archived-pipeline" ] ]
+                , test "still rendered in all pipelines section" <|
+                    \_ ->
+                        setup
+                            |> Common.queryView
+                            |> Query.find [ class "dashboard-team-group" ]
+                            |> Query.has [ class "pipeline-wrapper", containing [ text "archived-pipeline" ] ]
+                ]
+            , describe "when a team has only archived pipelines"
+                [ test "it shows the no pipeline set card" <|
+                    \_ ->
+                        init "/" Nothing
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ Data.pipeline "team" 1
+                                            |> Data.withName "archived-pipeline"
+                                            |> Data.withArchived True
+                                        ]
+                                )
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.has [ text "no pipeline set" ]
+                ]
             ]
         , describe "when viewing all pipelines"
             [ test "archived pipelines are rendered" <|
@@ -194,6 +246,22 @@ init path query =
         , query = query
         , fragment = Nothing
         }
+        |> Tuple.first
+        |> Application.handleCallback
+            (Callback.GotViewport Dashboard <|
+                Ok <|
+                    { scene =
+                        { width = 600
+                        , height = 600
+                        }
+                    , viewport =
+                        { width = 600
+                        , height = 600
+                        , x = 0
+                        , y = 0
+                        }
+                    }
+            )
         |> Tuple.first
 
 

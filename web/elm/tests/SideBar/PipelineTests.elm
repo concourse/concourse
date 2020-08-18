@@ -47,15 +47,15 @@ all =
                                 , opacity = Styles.Bright
                                 }
                 , describe "when not favorited"
-                    [ test "displays an unfilled star icon" <|
+                    [ test "displays a dim unfilled star icon" <|
                         \_ ->
                             pipeline
                                 |> viewPipeline { defaultState | active = True, hovered = True }
                                 |> .starIcon
-                                |> Expect.equal { opacity = Styles.Bright, filled = False }
+                                |> Expect.equal { opacity = Styles.Dim, filled = False }
                     ]
                 , describe "when favorited"
-                    [ test "displays a filled star icon" <|
+                    [ test "displays a bright filled star icon" <|
                         \_ ->
                             pipeline
                                 |> viewPipeline

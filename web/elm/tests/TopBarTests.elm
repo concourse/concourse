@@ -323,10 +323,6 @@ all =
                 )
                 [ it "has blue background" <|
                     Query.has [ style "background-color" pausedBlue ]
-                , it "draws almost-white line to the left of login container" <|
-                    Query.find [ id "login-container" ]
-                        >> Query.has
-                            [ style "border-left" <| "1px solid " ++ almostWhite ]
                 ]
             , context "when pipeline is archived"
                 (Application.handleCallback

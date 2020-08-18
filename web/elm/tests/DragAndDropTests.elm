@@ -2,6 +2,7 @@ module DragAndDropTests exposing (all)
 
 import Application.Application as Application
 import Common exposing (given, then_, when)
+import DashboardTests exposing (whenOnDashboard)
 import Data
 import Dict exposing (Dict)
 import Expect exposing (Expectation)
@@ -170,7 +171,7 @@ all =
 
 
 iVisitedTheDashboard _ =
-    Common.init "/"
+    whenOnDashboard { highDensity = False }
 
 
 myBrowserFetchedOnePipeline =

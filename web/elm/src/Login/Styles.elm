@@ -13,22 +13,19 @@ import Html.Attributes exposing (style)
 
 loginComponent : List (Html.Attribute msg)
 loginComponent =
-    [ style "max-width" "20%" ]
+    [ style "max-width" "20%"
+    , style "background-color" Colors.frame
+    ]
 
 
-loginContainer : Bool -> List (Html.Attribute msg)
-loginContainer isPaused =
+loginContainer : List (Html.Attribute msg)
+loginContainer =
     [ style "position" "relative"
     , style "display" "flex"
     , style "flex-direction" "column"
     , style "border-left" <|
         "1px solid "
-            ++ (if isPaused then
-                    Colors.pausedTopbarSeparator
-
-                else
-                    Colors.background
-               )
+            ++ Colors.background
     , style "line-height" "54px"
     ]
 

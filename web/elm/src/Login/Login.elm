@@ -33,15 +33,15 @@ update msg ( model, effects ) =
             ( model, effects )
 
 
-view : UserState -> Model r -> Bool -> Html Message
-view userState model isPaused =
+view : UserState -> Model r -> Html Message
+view userState model =
     Html.div
         (id "login-component" :: Styles.loginComponent)
-        (viewLoginState userState model.isUserMenuExpanded isPaused)
+        (viewLoginState userState model.isUserMenuExpanded)
 
 
-viewLoginState : UserState -> Bool -> Bool -> List (Html Message)
-viewLoginState userState isUserMenuExpanded isPaused =
+viewLoginState : UserState -> Bool -> List (Html Message)
+viewLoginState userState isUserMenuExpanded =
     case userState of
         UserStateUnknown ->
             []
@@ -53,7 +53,7 @@ viewLoginState userState isUserMenuExpanded isPaused =
                  , id "login-container"
                  , onClick <| Click LoginButton
                  ]
-                    ++ Styles.loginContainer isPaused
+                    ++ Styles.loginContainer
                 )
                 [ Html.div
                     (id "login-item" :: Styles.loginItem)
@@ -69,7 +69,7 @@ viewLoginState userState isUserMenuExpanded isPaused =
                 ([ id "login-container"
                  , onClick <| Click UserMenu
                  ]
-                    ++ Styles.loginContainer isPaused
+                    ++ Styles.loginContainer
                 )
                 [ Html.div (id "user-id" :: Styles.loginItem)
                     (Html.div

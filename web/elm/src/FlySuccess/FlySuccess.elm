@@ -138,7 +138,7 @@ view userState model =
             [ Html.div
                 (id "top-bar-app" :: Views.Styles.topBar False)
                 [ TopBar.concourseLogo
-                , Login.view userState model False
+                , Login.view userState model
                 ]
             , Html.div
                 (id "page-below-top-bar"

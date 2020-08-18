@@ -50,12 +50,14 @@ import Pipeline.PinMenu.PinMenu as PinMenu
 import Pipeline.Styles as Styles
 import RemoteData exposing (WebData)
 import Routes
+import Set
 import SideBar.SideBar as SideBar
 import StrictEvents exposing (onLeftClickOrShiftLeftClick)
 import Svg
 import Svg.Attributes as SvgAttributes
 import Tooltip
 import UpdateMsg exposing (UpdateMsg)
+import Views.FavoritedIcon as FavoritedIcon
 import Views.PauseToggle as PauseToggle
 import Views.Styles
 import Views.TopBar as TopBar
@@ -391,12 +393,21 @@ view session model =
                 , TopBar.concourseLogo
                 , TopBar.breadcrumbs route
                 , PinMenu.viewPinMenu session model
+                , Html.div (id "top-bar-favorited-icon" :: Styles.favoritedIcon)
+                    [ FavoritedIcon.view
+                        { isHovered = HoverState.isHovered (TopBarFavoritedIcon <| getPipelineId model.pipeline) session.hovered
+                        , isFavorited =
+                            Set.member (getPipelineId model.pipeline) session.favoritedPipelines
+                        , domID = TopBarFavoritedIcon <| getPipelineId model.pipeline
+                        }
+                        [ style "margin" "17px" ]
+                    ]
                 , if isArchived model.pipeline then
                     Html.text ""
 
                   else
                     Html.div
-                        (id "top-bar-pause-toggle" :: Styles.pauseToggle displayPaused)
+                        (id "top-bar-pause-toggle" :: Styles.pauseToggle)
                         [ PauseToggle.view
                             { pipeline = model.pipelineLocator
                             , isPaused = isPaused model.pipeline
@@ -411,7 +422,7 @@ view session model =
                             , domID = TopBarPauseToggle model.pipelineLocator
                             }
                         ]
-                , Login.view session.userState model <| displayPaused
+                , Login.view session.userState model
                 ]
             , Html.div
                 (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
@@ -426,6 +437,11 @@ view session model =
 tooltip : Model -> a -> Maybe Tooltip.Tooltip
 tooltip _ _ =
     Nothing
+
+
+getPipelineId : WebData Concourse.Pipeline -> Int
+getPipelineId p =
+    RemoteData.withDefault -1 (RemoteData.map .id p)
 
 
 isPaused : WebData Concourse.Pipeline -> Bool

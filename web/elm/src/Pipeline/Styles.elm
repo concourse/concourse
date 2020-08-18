@@ -1,5 +1,6 @@
 module Pipeline.Styles exposing
     ( cliIcon
+    , favoritedIcon
     , groupItem
     , groupsBar
     , pauseToggle
@@ -46,14 +47,21 @@ groupItem { selected, hovered } =
            )
 
 
-pauseToggle : Bool -> List (Html.Attribute msg)
-pauseToggle isPaused =
+favoritedIcon : List (Html.Attribute msg)
+favoritedIcon =
     [ style "border-left" <|
-        if isPaused then
-            "1px solid rgba(255, 255, 255, 0.5)"
+        "1px solid "
+            ++ Colors.background
+    , style "background-color" Colors.frame
+    ]
 
-        else
-            "1px solid #3d3c3c"
+
+pauseToggle : List (Html.Attribute msg)
+pauseToggle =
+    [ style "border-left" <|
+        "1px solid "
+            ++ Colors.background
+    , style "background-color" Colors.frame
     ]
 
 

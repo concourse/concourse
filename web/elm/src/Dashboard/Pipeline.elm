@@ -1,6 +1,5 @@
 module Dashboard.Pipeline exposing
-    ( favoritedView
-    , hdPipelineView
+    ( hdPipelineView
     , pipelineNotSetView
     , pipelineStatus
     , pipelineView
@@ -33,6 +32,7 @@ import Routes
 import Set exposing (Set)
 import Time
 import UserState exposing (UserState)
+import Views.FavoritedIcon
 import Views.Icon as Icon
 import Views.PauseToggle as PauseToggle
 import Views.Spinner as Spinner
@@ -338,12 +338,12 @@ footerView userState favoritedPipelines pipeline section now hovered existingJob
                 }
 
         favoritedIcon =
-            favoritedView
+            Views.FavoritedIcon.view
                 { isFavorited = Set.member pipeline.id favoritedPipelines
                 , isHovered = HoverState.isHovered (PipelineCardFavoritedIcon section pipeline.id) hovered
-                , pipelineId = pipeline.id
-                , section = section
+                , domID = PipelineCardFavoritedIcon section pipeline.id
                 }
+                [ id <| Effects.toHtmlID <| PipelineCardFavoritedIcon section pipeline.id ]
     in
     Html.div
         (class "card-footer" :: Styles.pipelineCardFooter)
@@ -414,28 +414,6 @@ pipelineStatusView section pipeline status now =
                 transitionView now status
             ]
         )
-
-
-favoritedView :
-    { isFavorited : Bool
-    , isHovered : Bool
-    , pipelineId : Concourse.DatabaseID
-    , section : PipelinesSection
-    }
-    -> Html Message
-favoritedView { isFavorited, isHovered, pipelineId, section } =
-    Html.div
-        (Styles.favoritedToggle
-            { isFavorited = isFavorited
-            , isHovered = isHovered
-            }
-            ++ [ onMouseEnter <| Hover <| Just <| PipelineCardFavoritedIcon section pipelineId
-               , onMouseLeave <| Hover Nothing
-               , id <| Effects.toHtmlID <| PipelineCardFavoritedIcon section pipelineId
-               , onClick <| Click <| PipelineCardFavoritedIcon section pipelineId
-               ]
-        )
-        []
 
 
 visibilityView :

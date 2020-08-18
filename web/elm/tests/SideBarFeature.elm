@@ -296,6 +296,11 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheSideBar
                 >> then_ iDoNotSeeFavoritesSection
+        , test "does not exist when localStorage has pipelines that no longer exist" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedFavoritedPipelinesThatDoNotExist
+                >> when iAmLookingAtTheSideBar
+                >> then_ iDoNotSeeFavoritesSection
         , test "don't show teams that have no favorited pipelines" <|
             given iHaveAnOpenSideBar_
                 >> given myBrowserFetchedPipelinesFromMultipleTeams
@@ -523,7 +528,7 @@ hasSideBar iAmLookingAtThePage =
             , unhoveredSelector =
                 { description = "grey"
                 , selector =
-                    [ style "opacity" "0.4" ]
+                    [ style "opacity" "0.5" ]
                 }
             , hoverable = Message.SideBarPipeline AllPipelinesSection Data.pipelineId
             , hoveredSelector =
@@ -1146,7 +1151,7 @@ iSeeItIsGreyedOut =
 
 
 iSeeItIsDim =
-    Query.has [ style "opacity" "0.4" ]
+    Query.has [ style "opacity" "0.5" ]
 
 
 iAmLookingAtThePipelineList =
@@ -1407,11 +1412,11 @@ iSeeNoSideBar =
 
 
 iSeeFavoritesSection =
-    Query.has [ text "favorites" ]
+    Query.has [ text "favorite pipelines" ]
 
 
 iDoNotSeeFavoritesSection =
-    Query.hasNot [ text "favorites" ]
+    Query.hasNot [ text "favorite pipelines" ]
 
 
 myBrowserFetchedPipelinesFromMultipleTeams =
@@ -1443,6 +1448,14 @@ myBrowserFetchedFavoritedPipelines =
         >> Application.handleDelivery
             (Subscription.FavoritedPipelinesReceived <|
                 Ok (Set.singleton 0)
+            )
+
+
+myBrowserFetchedFavoritedPipelinesThatDoNotExist =
+    Tuple.first
+        >> Application.handleDelivery
+            (Subscription.FavoritedPipelinesReceived <|
+                Ok (Set.singleton 100)
             )
 
 

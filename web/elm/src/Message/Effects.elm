@@ -710,6 +710,9 @@ toHtmlID domId =
         ResourceCommentTextarea ->
             "resource_comment"
 
+        TopBarFavoritedIcon _ ->
+            "top-bar-favorited-icon"
+
         _ ->
             ""
 

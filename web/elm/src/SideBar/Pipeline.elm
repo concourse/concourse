@@ -51,6 +51,9 @@ pipeline params p =
 
         isHovered =
             HoverState.isHovered domID params.hovered
+
+        isFavorited =
+            Set.member p.id params.favoritedPipelines
     in
     { icon =
         { asset =
@@ -96,12 +99,12 @@ pipeline params p =
     , domID = domID
     , starIcon =
         { opacity =
-            if isCurrent || isHovered then
+            if isFavorited then
                 Styles.Bright
 
             else
                 Styles.Dim
-        , filled = Set.member p.id params.favoritedPipelines
+        , filled = isFavorited
         }
     , id = p.id
     }
