@@ -13,6 +13,7 @@ import (
 
 type buildLogCollector struct {
 	pipelineFactory             db.PipelineFactory
+	pipelineLifecycle           db.PipelineLifecycle
 	batchSize                   int
 	drainerConfigured           bool
 	buildLogRetentionCalculator BuildLogRetentionCalculator
@@ -20,12 +21,14 @@ type buildLogCollector struct {
 
 func NewBuildLogCollector(
 	pipelineFactory db.PipelineFactory,
+	pipelineLifecycle db.PipelineLifecycle,
 	batchSize int,
 	buildLogRetentionCalculator BuildLogRetentionCalculator,
 	drainerConfigured bool,
 ) *buildLogCollector {
 	return &buildLogCollector{
 		pipelineFactory:             pipelineFactory,
+		pipelineLifecycle:           pipelineLifecycle,
 		batchSize:                   batchSize,
 		drainerConfigured:           drainerConfigured,
 		buildLogRetentionCalculator: buildLogRetentionCalculator,
@@ -37,6 +40,12 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 
 	logger.Debug("start")
 	defer logger.Debug("done")
+
+	err := br.pipelineLifecycle.RemoveBuildEventsForDeletedPipelines()
+	if err != nil {
+		logger.Error("failed-to-remove-build-events-for-deleted-pipelines", err)
+		return err
+	}
 
 	pipelines, err := br.pipelineFactory.AllPipelines()
 	if err != nil {

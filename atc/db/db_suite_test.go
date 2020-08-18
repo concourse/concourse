@@ -201,6 +201,11 @@ var _ = BeforeEach(func() {
 	logger = lagertest.NewTestLogger("test")
 })
 
+func destroy(d interface{ Destroy() error }) {
+	err := d.Destroy()
+	Expect(err).ToNot(HaveOccurred())
+}
+
 var _ = AfterEach(func() {
 	err := dbConn.Close()
 	Expect(err).NotTo(HaveOccurred())

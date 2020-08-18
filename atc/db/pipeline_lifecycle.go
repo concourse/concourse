@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -11,6 +12,7 @@ import (
 
 type PipelineLifecycle interface {
 	ArchiveAbandonedPipelines() error
+	RemoveBuildEventsForDeletedPipelines() error
 }
 
 func NewPipelineLifecycle(conn Conn, lockFactory lock.LockFactory) PipelineLifecycle {
@@ -83,6 +85,48 @@ func archivePipelines(tx Tx, conn Conn, lockFactory lock.LockFactory, rows *sql.
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (p *pipelineLifecycle) RemoveBuildEventsForDeletedPipelines() error {
+	rows, err := psql.Select("id").
+		From("deleted_pipelines").
+		RunWith(p.conn).
+		Query()
+	if err != nil {
+		return err
+	}
+
+	var idsToDelete []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return err
+		}
+		idsToDelete = append(idsToDelete, id)
+	}
+
+	rows.Close()
+
+	if len(idsToDelete) == 0 {
+		return nil
+	}
+
+	for _, id := range idsToDelete {
+		_, err = p.conn.Exec(fmt.Sprintf("DROP TABLE IF EXISTS pipeline_build_events_%d", id))
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = psql.Delete("deleted_pipelines").
+		Where(sq.Eq{"id": idsToDelete}).
+		RunWith(p.conn).
+		Exec()
+	if err != nil {
+		return err
 	}
 
 	return nil

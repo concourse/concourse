@@ -41,16 +41,8 @@ var _ = Describe("Team", func() {
 
 	Describe("Delete", func() {
 		var err error
-		var otherTeamPipeline db.Pipeline
 
 		BeforeEach(func() {
-			otherTeamPipeline, _, err = otherTeam.SavePipeline("fake-pipeline", atc.Config{
-				Jobs: atc.JobConfigs{
-					{Name: "job-name"},
-				},
-			}, db.ConfigVersion(1), false)
-			Expect(err).ToNot(HaveOccurred())
-
 			err = otherTeam.Delete()
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -65,13 +57,6 @@ var _ = Describe("Team", func() {
 		It("drops the team_build_events_ID table", func() {
 			var exists bool
 			err := dbConn.QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'team_build_events_%d')", otherTeam.ID())).Scan(&exists)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(exists).To(BeFalse())
-		})
-
-		It("drops the teams pipeline_build_events_ID table", func() {
-			var exists bool
-			err := dbConn.QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'pipeline_build_events_%d')", otherTeamPipeline.ID())).Scan(&exists)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(exists).To(BeFalse())
 		})

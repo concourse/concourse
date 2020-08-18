@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
@@ -1203,6 +1204,15 @@ var _ = Describe("Pipeline", func() {
 			_, found, err = team.Pipeline(pipeline.Name())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeFalse())
+		})
+
+		It("marks the pipeline ID in the deleted_pipelines table", func() {
+			destroy(pipeline)
+
+			var exists bool
+			err := dbConn.QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM deleted_pipelines WHERE id = %d)", pipeline.ID())).Scan(&exists)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists).To(BeTrue(), "did not mark the pipeline id in deleted_pipelines")
 		})
 	})
 
