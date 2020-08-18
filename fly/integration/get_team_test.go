@@ -109,7 +109,7 @@ var _ = Describe("Fly CLI", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Eventually(sess).Should(gexec.Exit(0))
 
-					Expect(sess.Out.Contents()).To(MatchJSON(`{"name": "myTeam", "auth": {"owner": {"groups": [], "users": ["local:username"] }}}`))
+					Expect(sess.Out.Contents()).To(MatchJSON(`{"id": 1, "name": "myTeam", "auth": {"owner": {"groups": [], "users": ["local:username"] }}}`))
 				})
 			})
 		})

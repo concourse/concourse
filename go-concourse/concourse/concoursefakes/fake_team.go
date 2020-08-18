@@ -348,6 +348,16 @@ type FakeTeam struct {
 		result1 bool
 		result2 error
 	}
+	IDStub        func() int
+	iDMutex       sync.RWMutex
+	iDArgsForCall []struct {
+	}
+	iDReturns struct {
+		result1 int
+	}
+	iDReturnsOnCall map[int]struct {
+		result1 int
+	}
 	JobStub        func(string, string) (atc.Job, bool, error)
 	jobMutex       sync.RWMutex
 	jobArgsForCall []struct {
@@ -2243,6 +2253,58 @@ func (fake *FakeTeam) HidePipelineReturnsOnCall(i int, result1 bool, result2 err
 	}{result1, result2}
 }
 
+func (fake *FakeTeam) ID() int {
+	fake.iDMutex.Lock()
+	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
+	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ID", []interface{}{})
+	fake.iDMutex.Unlock()
+	if fake.IDStub != nil {
+		return fake.IDStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.iDReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeTeam) IDCallCount() int {
+	fake.iDMutex.RLock()
+	defer fake.iDMutex.RUnlock()
+	return len(fake.iDArgsForCall)
+}
+
+func (fake *FakeTeam) IDCalls(stub func() int) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
+	fake.IDStub = stub
+}
+
+func (fake *FakeTeam) IDReturns(result1 int) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
+	fake.IDStub = nil
+	fake.iDReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeTeam) IDReturnsOnCall(i int, result1 int) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
+	fake.IDStub = nil
+	if fake.iDReturnsOnCall == nil {
+		fake.iDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.iDReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
 func (fake *FakeTeam) Job(arg1 string, arg2 string) (atc.Job, bool, error) {
 	fake.jobMutex.Lock()
 	ret, specificReturn := fake.jobReturnsOnCall[len(fake.jobArgsForCall)]
@@ -4035,6 +4097,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.getContainerMutex.RUnlock()
 	fake.hidePipelineMutex.RLock()
 	defer fake.hidePipelineMutex.RUnlock()
+	fake.iDMutex.RLock()
+	defer fake.iDMutex.RUnlock()
 	fake.jobMutex.RLock()
 	defer fake.jobMutex.RUnlock()
 	fake.jobBuildMutex.RLock()

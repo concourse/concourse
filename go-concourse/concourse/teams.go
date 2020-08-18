@@ -138,6 +138,7 @@ func (client *client) FindTeam(teamName string) (Team, error) {
 		}
 		return &team{
 			name:       atcTeam.Name,
+			id:         atcTeam.ID,
 			connection: client.connection,
 			httpAgent:  client.httpAgent,
 			auth:       atcTeam.Auth,
