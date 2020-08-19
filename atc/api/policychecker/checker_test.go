@@ -147,6 +147,9 @@ var _ = Describe("PolicyChecker", func() {
 
 			Context("when every is ok", func() {
 				BeforeEach(func() {
+					fakeAccess.TeamRolesReturns(map[string][]string{
+						"some-team": []string{"some-role"},
+					})
 					fakeAccess.ClaimsReturns(accessor.Claims{UserName: "some-user"})
 					body := bytes.NewBuffer([]byte("a: b"))
 					fakeRequest = httptest.NewRequest("PUT", "/something?:team_name=some-team&:pipeline_name=some-pipeline", body)
@@ -169,6 +172,7 @@ var _ = Describe("PolicyChecker", func() {
 						Action:         "some-action",
 						User:           "some-user",
 						Team:           "some-team",
+						Roles:          []string{"some-role"},
 						Pipeline:       "some-pipeline",
 						Data:           map[string]interface{}{"a": "b"},
 					}))
