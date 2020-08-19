@@ -110,11 +110,11 @@ func (s *Server) buildProject(j atc.DashboardJob) Project {
 		LastBuildStatus: lastBuildStatus,
 		LastBuildTime:   j.FinishedBuild.EndTime.Format(time.RFC3339),
 		Name:            fmt.Sprintf("%s/%s", pipelineRef.String(), j.Name),
-		WebUrl:          s.createWebUrl(j.TeamName, j.PipelineName, j.Name, pipelineRef),
+		WebUrl:          s.createWebUrl(j.TeamName, j.Name, pipelineRef),
 	}
 }
 
-func (s *Server) createWebUrl(teamName, pipelineName, jobName string, pipelineRef atc.PipelineRef) string {
+func (s *Server) createWebUrl(teamName, jobName string, pipelineRef atc.PipelineRef) string {
 	externalURL, err := url.Parse(s.externalURL)
 	if err != nil {
 		fmt.Println("Could not parse externalURL")
@@ -124,7 +124,7 @@ func (s *Server) createWebUrl(teamName, pipelineName, jobName string, pipelineRe
 	if queryParams != "" {
 		queryParams = "?" + queryParams
 	}
-	pipelineURL, err := url.Parse("/teams/" + teamName + "/pipelines/" + pipelineName + "/jobs/" + jobName + queryParams)
+	pipelineURL, err := url.Parse("/teams/" + teamName + "/pipelines/" + pipelineRef.Name + "/jobs/" + jobName + queryParams)
 	if err != nil {
 		fmt.Println("Could not parse pipelineURL")
 	}
