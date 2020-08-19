@@ -15,7 +15,7 @@ type YamlTemplateWithParams struct {
 	templateVariablesFiles []atc.PathFlag
 	templateVariables      []flaghelpers.VariablePairFlag
 	yamlTemplateVariables  []flaghelpers.YAMLVariablePairFlag
-	instanceVariables      []flaghelpers.VariablePairFlag
+	instanceVariables      []flaghelpers.InstanceVarPairFlag
 }
 
 func NewYamlTemplateWithParams(
@@ -23,7 +23,7 @@ func NewYamlTemplateWithParams(
 	templateVariablesFiles []atc.PathFlag,
 	templateVariables []flaghelpers.VariablePairFlag,
 	yamlTemplateVariables []flaghelpers.YAMLVariablePairFlag,
-	instanceVariables []flaghelpers.VariablePairFlag,
+	instanceVariables []flaghelpers.InstanceVarPairFlag,
 ) YamlTemplateWithParams {
 	return YamlTemplateWithParams{
 		filePath:               filePath,
