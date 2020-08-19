@@ -49,6 +49,12 @@ configured multiple times with different parameters
   credential manager will return the value of the \code{value} field if
   present. This is useful for simple single-value credentials where typing
   \code{((foo.value))} would feel verbose.
+
+  The \italic{secret-path} and \italic{secret-field} may be surrounded by
+  double quotes \code{"..."} if they contain special characters like \code{.}
+  and \code{:}. For instance, \code{((source:"my.secret"."field:1"))} will set
+  the \italic{secret-path} to \code{my.secret} and the \italic{secret-field} to
+  \code{field:1}.
 }
 
 \section{
