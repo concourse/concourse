@@ -36,7 +36,7 @@ var _ = Describe("Watch Test", func() {
 	)
 
 	BeforeEach(func() {
-		cmd.EnableWatchEndpoints = true
+		cmd.FeatureFlags.EnableWatchEndpoints = true
 	})
 
 	JustBeforeEach(func() {
@@ -64,7 +64,7 @@ var _ = Describe("Watch Test", func() {
 
 	Context("when watch endpoints are not enabled", func() {
 		BeforeEach(func() {
-			cmd.EnableWatchEndpoints = false
+			cmd.FeatureFlags.EnableWatchEndpoints = false
 		})
 
 		It("errors when trying to watch ListAllJobs", func() {
