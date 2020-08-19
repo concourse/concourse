@@ -118,9 +118,24 @@ metrics pipeline.
     # TYPE concourse_locks_held gauge
     concourse_locks_held{type="Batch"} 0
     concourse_locks_held{type="DatabaseMigration"} 0
+    # HELP concourse_tasks_wait_duration Elapsed time waiting for execution
+    # TYPE concourse_tasks_wait_duration histogram
+    concourse_tasks_wait_duration_bucket{platform="linux",teamId="1",workerTags="",le="1"} 0
+    concourse_tasks_wait_duration_bucket{platform="linux",teamId="1",workerTags="",le="15"} 0
+    concourse_tasks_wait_duration_bucket{platform="linux",teamId="1",workerTags="",le="30"} 0
+    concourse_tasks_wait_duration_bucket{platform="linux",teamId="1",workerTags="",le="60"} 0
+    concourse_tasks_wait_duration_bucket{platform="linux",teamId="1",workerTags="",le="120"} 1
+    concourse_tasks_wait_duration_bucket{platform="linux",teamId="1",workerTags="",le="180"} 1
+    concourse_tasks_wait_duration_bucket{platform="linux",teamId="1",workerTags="",le="240"} 1
+    concourse_tasks_wait_duration_bucket{platform="linux",teamId="1",workerTags="",le="300"} 1
+    concourse_tasks_wait_duration_bucket{platform="linux",teamId="1",workerTags="",le="600"} 1
+    concourse_tasks_wait_duration_bucket{platform="linux",teamId="1",workerTags="",le="1200"} 1
+    concourse_tasks_wait_duration_bucket{platform="linux",teamId="1",workerTags="",le="+Inf"} 1
+    concourse_tasks_wait_duration_sum{platform="linux",teamId="1",workerTags=""} 60.0001929
+    concourse_tasks_wait_duration_count{platform="linux",teamId="1",workerTags=""} 1
     # HELP concourse_tasks_waiting Number of Concourse tasks currently waiting.
     # TYPE concourse_tasks_waiting gauge
-    concourse_tasks_waiting 3
+    concourse_tasks_waiting{platform="linux",teamId="1",workerTags=""} 2
     # HELP concourse_workers_containers Number of containers per worker
     # TYPE concourse_workers_containers gauge
     concourse_workers_containers{platform="linux",tags="",team="",worker="39d19eebdddb"} 0
