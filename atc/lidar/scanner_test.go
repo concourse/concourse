@@ -105,6 +105,7 @@ var _ = Describe("Scanner", func() {
 
 				Context("when the resource parent type is a base type", func() {
 					BeforeEach(func() {
+						fakeCheckFactory.ResourceTypesReturns([]db.ResourceType{}, nil)
 						fakeResource.TypeReturns("some-type")
 					})
 
@@ -134,7 +135,7 @@ var _ = Describe("Scanner", func() {
 							})
 
 							It("creates a check", func() {
-								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
+								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
 							})
 
 							It("clears the check error", func() {
@@ -167,8 +168,8 @@ var _ = Describe("Scanner", func() {
 							})
 
 							It("creates a check", func() {
-								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
-								_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(1)
+								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+								_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 								Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
 							})
 
@@ -188,7 +189,7 @@ var _ = Describe("Scanner", func() {
 							})
 
 							It("creates a check", func() {
-								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
+								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
 								_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 								Expect(fromVersion).To(BeNil())
 							})
