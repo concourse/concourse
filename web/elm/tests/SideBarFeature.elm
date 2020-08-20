@@ -162,6 +162,11 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheHamburgerIcon
                 >> then_ iSeeItIsBright
+        , test "background does not become lighter when opened but there are no pipelines" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedNoPipelines
+                >> when iAmLookingAtTheHamburgerMenu
+                >> then_ iSeeADarkerBackground
         , test "browser toggles sidebar state on click" <|
             when iHaveAnOpenSideBar_
                 >> given iClickedTheHamburgerIcon
@@ -312,6 +317,29 @@ hasSideBar iAmLookingAtThePage =
                 >> given myBrowserFetchedFavoritedPipelines
                 >> when iAmLookingAtTheTeamInTheFavoritesSection
                 >> then_ iSeeItIsExpanded
+        ]
+    , describe "archived pipelines" <|
+        [ test "not displayed in sidebar" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedArchivedAndNonArchivedPipelines
+                >> when iAmLookingAtTheSideBar
+                >> then_ iDoNotSeeTheArchivedPipeline
+        , test "if also favorited, is displayed in sidebar" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedArchivedAndNonArchivedPipelines
+                >> given myBrowserFetchedFavoritedPipelines
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeTheArchivedPipeline
+        , test "if all pipelines are archived, does not show sidebar" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedOnlyArchivedPipelines
+                >> when iAmLookingAtTheSideBar
+                >> then_ iSeeNoSideBar
+        , test "if all pipelines are archived, sidebar is not clickable" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedOnlyArchivedPipelines
+                >> when iAmLookingAtTheHamburgerMenu
+                >> then_ itIsNotClickable
         ]
     , describe "teams list" <|
         [ test "sidebar contains pipeline groups" <|
@@ -1441,6 +1469,36 @@ myBrowserFetchedPipelines =
                     , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
                     ]
             )
+
+
+myBrowserFetchedArchivedAndNonArchivedPipelines =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.AllPipelinesFetched <|
+                Ok
+                    [ Data.pipeline "team" 0 |> Data.withName "archived" |> Data.withArchived True
+                    , Data.pipeline "team" 1 |> Data.withName "non-archived"
+                    ]
+            )
+
+
+myBrowserFetchedOnlyArchivedPipelines =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.AllPipelinesFetched <|
+                Ok
+                    [ Data.pipeline "team" 0 |> Data.withName "archived1" |> Data.withArchived True
+                    , Data.pipeline "team" 1 |> Data.withName "archived2" |> Data.withArchived True
+                    ]
+            )
+
+
+iDoNotSeeTheArchivedPipeline =
+    Query.hasNot [ text "archived" ]
+
+
+iSeeTheArchivedPipeline =
+    Query.has [ text "archived" ]
 
 
 myBrowserFetchedFavoritedPipelines =
