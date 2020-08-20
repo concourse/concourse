@@ -46,12 +46,14 @@ func (c *checker) Check(action string, acc accessor.Access, req *http.Request) (
 		return true, nil
 	}
 
+	team := req.FormValue(":team_name")
 	input := policy.PolicyCheckInput{
-		HttpMethod:     req.Method,
-		Action:         action,
-		User:           acc.Claims().UserName,
-		Team:           req.FormValue(":team_name"),
-		Pipeline:       req.FormValue(":pipeline_name"),
+		HttpMethod: req.Method,
+		Action:     action,
+		User:       acc.Claims().UserName,
+		Roles:      acc.TeamRoles()[team],
+		Team:       team,
+		Pipeline:   req.FormValue(":pipeline_name"),
 	}
 
 	switch ct := req.Header.Get("Content-type"); ct {
