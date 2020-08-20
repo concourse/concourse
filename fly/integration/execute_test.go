@@ -35,7 +35,7 @@ var _ = Describe("Fly CLI", func() {
 
 	var streaming chan struct{}
 	var events chan atc.Event
-	var uploadingBits <-chan struct{}
+	var uploadedBits chan struct{}
 
 	var expectedPlan atc.Plan
 	var taskPlan atc.Plan
@@ -128,17 +128,14 @@ run:
 
 	AfterEach(func() {
 		os.RemoveAll(tmpdir)
+		close(uploadedBits)
 	})
 
 	JustBeforeEach(func() {
-		uploading := make(chan struct{})
-		uploadingBits = uploading
-
+		uploadedBits = make(chan struct{}, 5) // at most there should only be 2 uploads
 		atcServer.RouteToHandler("POST", "/api/v1/teams/main/artifacts",
 			ghttp.CombineHandlers(
 				func(w http.ResponseWriter, req *http.Request) {
-					close(uploading)
-
 					gr, err := gzip.NewReader(req.Body)
 					Expect(err).NotTo(HaveOccurred())
 
@@ -153,6 +150,8 @@ run:
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(hdr.Name).To(MatchRegexp("(./)?task.yml$"))
+
+					uploadedBits <- struct{}{}
 				},
 				ghttp.RespondWith(201, `{"id":125}`),
 			),
@@ -243,7 +242,7 @@ run:
 		<-sess.Exited
 		Expect(sess.ExitCode()).To(Equal(0))
 
-		Expect(uploadingBits).To(BeClosed())
+		Expect(uploadedBits).To(HaveLen(1))
 	})
 
 	Context("when there is a pipeline job with the same input", func() {
@@ -362,15 +361,11 @@ run: {}
 	})
 
 	Context("when the build config is valid", func() {
-		var (
-			count int
-		)
 		JustBeforeEach(func() {
-			count = 0
 			atcServer.RouteToHandler("POST", "/api/v1/teams/main/artifacts",
 				ghttp.CombineHandlers(
 					func(w http.ResponseWriter, req *http.Request) {
-						count++
+						uploadedBits <- struct{}{}
 					},
 					ghttp.RespondWith(201, `{"id":125}`),
 				),
@@ -394,7 +389,7 @@ run: {}
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
 
-				Expect(count).To(Equal(1))
+				Expect(uploadedBits).To(HaveLen(1))
 			})
 		})
 
@@ -473,7 +468,7 @@ run:
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(0))
 
-					Expect(count).To(Equal(2))
+					Expect(uploadedBits).To(HaveLen(2))
 				})
 			})
 
@@ -529,7 +524,7 @@ run:
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
 
-					Expect(count).To(Equal(1))
+					Expect(uploadedBits).To(HaveLen(1))
 				})
 			})
 		})
@@ -554,7 +549,7 @@ run:
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
 
-				Expect(uploadingBits).To(BeClosed())
+				Expect(uploadedBits).To(HaveLen(1))
 			})
 		})
 	})
@@ -587,13 +582,9 @@ run:
 
 		Context("when arguments not include --include-ignored", func() {
 			It("by default apply .gitignore", func() {
-				uploading := make(chan struct{})
-				uploadingBits = uploading
 				atcServer.RouteToHandler("POST", "/api/v1/teams/main/artifacts",
 					ghttp.CombineHandlers(
 						func(w http.ResponseWriter, req *http.Request) {
-							close(uploading)
-
 							gr, err := gzip.NewReader(req.Body)
 							Expect(err).NotTo(HaveOccurred())
 
@@ -612,11 +603,12 @@ run:
 							}
 
 							Expect(matchFound).To(Equal(false))
+
+							uploadedBits <- struct{}{}
 						},
 						ghttp.RespondWith(201, `{"id":125}`),
 					),
 				)
-
 				flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath)
 				flyCmd.Dir = buildDir
 
@@ -631,19 +623,15 @@ run:
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
 
-				Expect(uploadingBits).To(BeClosed())
+				Expect(uploadedBits).To(HaveLen(1))
 			})
 		})
 
 		Context("when arguments include --include-ignored", func() {
 			It("uploading with everything", func() {
-				uploading := make(chan struct{})
-				uploadingBits = uploading
 				atcServer.RouteToHandler("POST", "/api/v1/teams/main/artifacts",
 					ghttp.CombineHandlers(
 						func(w http.ResponseWriter, req *http.Request) {
-							close(uploading)
-
 							Expect(req.FormValue("platform")).To(Equal("some-platform"))
 
 							gr, err := gzip.NewReader(req.Body)
@@ -664,10 +652,12 @@ run:
 							}
 
 							Expect(matchFound).To(Equal(true))
+							uploadedBits <- struct{}{}
 						},
 						ghttp.RespondWith(201, `{"id":125}`),
 					),
 				)
+
 				flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "--include-ignored")
 				flyCmd.Dir = buildDir
 
@@ -682,7 +672,7 @@ run:
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
 
-				Expect(uploadingBits).To(BeClosed())
+				Expect(uploadedBits).To(HaveLen(1))
 			})
 		})
 	})
@@ -709,7 +699,7 @@ run:
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
 
-			Expect(uploadingBits).To(BeClosed())
+			Expect(uploadedBits).To(HaveLen(1))
 		})
 	})
 
@@ -735,7 +725,7 @@ run:
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
 
-			Expect(uploadingBits).To(BeClosed())
+			Expect(uploadedBits).To(HaveLen(1))
 		})
 	})
 
@@ -825,13 +815,12 @@ run:
 		})
 
 		It("shouldn't upload the current directory", func() {
-			count := 0
 			atcServer.RouteToHandler("POST", "/api/v1/teams/main/artifacts",
 				ghttp.CombineHandlers(
 					func(w http.ResponseWriter, req *http.Request) {
-						count++
+						uploadedBits <- struct{}{}
 					},
-					ghttp.RespondWith(201, `{"id": 123}`),
+					ghttp.RespondWith(201, `{"id":125}`),
 				),
 			)
 
@@ -845,7 +834,7 @@ run:
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
-			Expect(count).To(Equal(0))
+			Expect(uploadedBits).To(HaveLen(0))
 		})
 	})
 
@@ -908,7 +897,7 @@ run:
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
 
-				Expect(uploadingBits).To(BeClosed())
+				Expect(uploadedBits).To(HaveLen(1))
 			})
 		})
 
@@ -935,7 +924,7 @@ run:
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
 
-				Expect(uploadingBits).To(BeClosed())
+				Expect(uploadedBits).To(HaveLen(1))
 			})
 		})
 	})
@@ -973,13 +962,13 @@ run:
 
 		Context("When some required inputs are not passed", func() {
 			It("Prints an error", func() {
-				flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-i", "something=.")
+				flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-i", "fixture=.")
 				flyCmd.Dir = buildDir
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(sess.Err).Should(gbytes.Say("missing required input `fixture`"))
+				Eventually(sess.Err).Should(gbytes.Say("missing required input `something`"))
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
@@ -1025,7 +1014,7 @@ run:
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
 
-			Expect(uploadingBits).To(BeClosed())
+			Expect(uploadedBits).To(HaveLen(1))
 		})
 	})
 
@@ -1087,7 +1076,7 @@ run:
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
 
-			Expect(uploadingBits).To(BeClosed())
+			Expect(uploadedBits).To(HaveLen(1))
 		})
 	})
 
@@ -1118,7 +1107,7 @@ run:
 
 					Eventually(streaming).Should(BeClosed())
 
-					Eventually(uploadingBits).Should(BeClosed())
+					Expect(uploadedBits).To(HaveLen(1))
 
 					sess.Signal(os.Interrupt)
 
@@ -1142,7 +1131,7 @@ run:
 
 					Eventually(streaming).Should(BeClosed())
 
-					Eventually(uploadingBits).Should(BeClosed())
+					Expect(uploadedBits).To(HaveLen(1))
 
 					sess.Signal(syscall.SIGTERM)
 
@@ -1174,7 +1163,7 @@ run:
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
 
-			Expect(uploadingBits).To(BeClosed())
+			Expect(uploadedBits).To(HaveLen(1))
 		})
 	})
 
@@ -1194,7 +1183,7 @@ run:
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(1))
 
-			Expect(uploadingBits).To(BeClosed())
+			Expect(uploadedBits).To(HaveLen(1))
 		})
 	})
 
@@ -1214,7 +1203,7 @@ run:
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(2))
 
-			Expect(uploadingBits).To(BeClosed())
+			Expect(uploadedBits).To(HaveLen(1))
 		})
 	})
 })
