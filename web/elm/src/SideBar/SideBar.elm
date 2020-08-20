@@ -211,10 +211,7 @@ view : Model m -> Maybe (PipelineScoped a) -> Html Message
 view model currentPipeline =
     if
         model.sideBarState.isOpen
-            && not
-                (RemoteData.map List.isEmpty model.pipelines
-                    |> RemoteData.withDefault True
-                )
+            && hasVisiblePipelines model
             && (model.screenSize /= ScreenSize.Mobile)
     then
         let
@@ -284,7 +281,7 @@ allPipelinesSection model currentPipeline =
                 (\( p, ps ) ->
                     Team.team
                         { hovered = model.hovered
-                        , pipelines = p :: ps
+                        , pipelines = (p :: ps) |> List.filter (isPipelineVisible model)
                         , currentPipeline = currentPipeline
                         , favoritedPipelines = model.favoritedPipelines
                         , isFavoritesSection = False
@@ -338,14 +335,7 @@ favoritedPipelinesSection model currentPipeline =
         ]
 
 
-hamburgerMenu :
-    { a
-        | screenSize : ScreenSize
-        , pipelines : WebData (List Concourse.Pipeline)
-        , sideBarState : SideBarState
-        , hovered : HoverState.HoverState
-    }
-    -> Html Message
+hamburgerMenu : Model m -> Html Message
 hamburgerMenu model =
     if model.screenSize == Mobile then
         Html.text ""
@@ -353,8 +343,7 @@ hamburgerMenu model =
     else
         let
             isHamburgerClickable =
-                RemoteData.map (not << List.isEmpty) model.pipelines
-                    |> RemoteData.withDefault False
+                hasVisiblePipelines model
         in
         Html.div
             (id "hamburger-menu"
@@ -383,3 +372,15 @@ hamburgerMenu model =
                     }
                 )
             ]
+
+
+hasVisiblePipelines : Model m -> Bool
+hasVisiblePipelines model =
+    model.pipelines
+        |> RemoteData.map (List.any (isPipelineVisible model))
+        |> RemoteData.withDefault False
+
+
+isPipelineVisible : { a | favoritedPipelines : Set Concourse.DatabaseID } -> Concourse.Pipeline -> Bool
+isPipelineVisible { favoritedPipelines } p =
+    not p.archived || Set.member p.id favoritedPipelines
