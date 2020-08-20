@@ -162,6 +162,11 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> when iAmLookingAtTheHamburgerIcon
                 >> then_ iSeeItIsBright
+        , test "background does not become lighter when opened but there are no pipelines" <|
+            given iHaveAnOpenSideBar_
+                >> given myBrowserFetchedNoPipelines
+                >> when iAmLookingAtTheHamburgerMenu
+                >> then_ iSeeADarkerBackground
         , test "browser toggles sidebar state on click" <|
             when iHaveAnOpenSideBar_
                 >> given iClickedTheHamburgerIcon

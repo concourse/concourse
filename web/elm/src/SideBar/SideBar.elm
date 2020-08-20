@@ -348,7 +348,7 @@ hamburgerMenu model =
         Html.div
             (id "hamburger-menu"
                 :: Styles.hamburgerMenu
-                    { isSideBarOpen = model.sideBarState.isOpen
+                    { isSideBarOpen = model.sideBarState.isOpen && isHamburgerClickable
                     , isClickable = isHamburgerClickable
                     }
                 ++ [ onMouseEnter <| Hover <| Just HamburgerMenu
