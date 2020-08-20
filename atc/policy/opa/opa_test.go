@@ -43,10 +43,38 @@ var _ = Describe("Policy checker", func() {
 			}))
 		})
 
-		It("should be allowed", func() {
+		It("should return an error", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(result.Allowed).To(BeTrue())
+			Expect(err).To(MatchError(ContainSubstring("opa returned invalid response")))
+			Expect(result.Allowed).To(BeFalse())
+		})
+	})
+
+	Context("when OPA returns an empty result", func() {
+		BeforeEach(func() {
+			fakeOpa = httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, `{ "result": {} }`)
+			}))
+		})
+
+		It("should return an error", func() {
+			result, err := agent.Check(policy.PolicyCheckInput{})
+			Expect(err).To(MatchError(ContainSubstring("opa returned invalid response")))
+			Expect(result.Allowed).To(BeFalse())
+		})
+	})
+
+	Context("when OPA returns no allowed field", func() {
+		BeforeEach(func() {
+			fakeOpa = httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, `{ "result": { "reasons": [ "a policy says you can't do that" ] }}`)
+			}))
+		})
+
+		It("should return an error", func() {
+			result, err := agent.Check(policy.PolicyCheckInput{})
+			Expect(err).To(MatchError(ContainSubstring("opa returned invalid response")))
+			Expect(result.Allowed).To(BeFalse())
 		})
 	})
 

@@ -51,14 +51,14 @@ func (c opa) Check(input policy.PolicyCheckInput) (policy.PolicyCheckOutput, err
 	data := opaInput{input}
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
-		return policy.FailedPolicyCheck(), nil
+		return policy.FailedPolicyCheck(), err
 	}
 
 	c.logger.Debug("opa-check", lager.Data{"input": string(jsonBytes)})
 
 	req, err := http.NewRequest("POST", c.config.URL, bytes.NewBuffer(jsonBytes))
 	if err != nil {
-		return policy.FailedPolicyCheck(), nil
+		return policy.FailedPolicyCheck(), err
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -86,10 +86,8 @@ func (c opa) Check(input policy.PolicyCheckInput) (policy.PolicyCheckOutput, err
 		return policy.FailedPolicyCheck(), fmt.Errorf("opa returned bad response: %s", err.Error())
 	}
 
-	// If no result returned, meaning that the requested policy decision is
-	// undefined OPA, then consider as pass.
-	if result.Result == nil {
-		return policy.PassedPolicyCheck(), nil
+	if result.Result == nil || result.Result.Allowed == nil {
+		return policy.FailedPolicyCheck(), fmt.Errorf("opa returned invalid response: %s", body)
 	}
 
 	return policy.PolicyCheckOutput{
