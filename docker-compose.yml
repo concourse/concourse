@@ -52,3 +52,4 @@ services:
       # so we can reach Garden/Baggageclaim for debugging
       CONCOURSE_BIND_IP: 0.0.0.0
       CONCOURSE_BAGGAGECLAIM_BIND_IP: 0.0.0.0
+      CONCOURSE_GARDEN_DNS_PROXY_ENABLE: "true"
