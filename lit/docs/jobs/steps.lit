@@ -565,11 +565,21 @@ by configuring \reference{schema.step.on_failure} or
     }
   }{
     \schema-group{\code{set_pipeline} step}{set-pipeline-step}{
-      \required-attribute{set_pipeline}{identifier}{
+      \required-attribute{set_pipeline}{identifier | `self`}{
         Configures a \reference{pipelines}{pipeline}.
 
-        The identifier specifies the name of the pipeline to configure. It will
-        be configured within the current team and be created \italic{unpaused}.
+        The identifier specifies the name of the pipeline to configure. Unless
+        \reference{schema.step.set-pipeline-step.team} is set, it will be configured
+        within the current team and be created \italic{unpaused}. If set to \code{self},
+        the current pipeline will update its own config.
+
+        \warn{
+          \code{set_pipeline: self} was introduced in Concourse v6.5.0. It is
+          considered an \bold{experimental} feature and may be removed at any
+          time. Contribute to the associated
+          \link{discussion}{https://github.com/concourse/concourse/discussions/5732}
+          with feedback.
+        }
 
         Pipelines configured with the \code{set_pipeline} step are tied to the job that
         configured them, and will be automatically archived in the following scenarios:
