@@ -1726,7 +1726,7 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                , test """page contents lay out vertically, filling available 
+                , test """page contents lay out vertically, filling available
                           space without scrolling horizontally""" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
@@ -2787,7 +2787,7 @@ all =
                         givenBuildStarted
                             >> Tuple.first
                             >> Application.handleCallback
-                                (Callback.PlanAndResourcesFetched 307 <|
+                                (Callback.PlanAndResourcesFetched 1 <|
                                     Ok <|
                                         ( { id = "plan"
                                           , step =
@@ -3679,6 +3679,22 @@ all =
                         >> Query.find [ class "header" ]
                         >> Query.has
                             [ style "border" <| "1px solid " ++ Colors.started ]
+                , test "set_pipeline step that changed something has a yellow text" <|
+                    fetchPlanWithSetPipelineStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.SetPipelineChanged
+                                                { source = "stdout", id = "plan" }
+                                                True
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.has changedSetPipelineStepLabel
                 , test "network error on first event shows passport officer" <|
                     let
                         imgUrl =
@@ -3892,6 +3908,14 @@ taskStepLabel =
 
 setPipelineStepLabel =
     [ style "color" Colors.pending
+    , style "line-height" "28px"
+    , style "padding-left" "6px"
+    , containing [ text "set_pipeline:" ]
+    ]
+
+
+changedSetPipelineStepLabel =
+    [ style "color" Colors.started
     , style "line-height" "28px"
     , style "padding-left" "6px"
     , containing [ text "set_pipeline:" ]

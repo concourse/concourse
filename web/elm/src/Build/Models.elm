@@ -70,6 +70,6 @@ type StepHeaderType
     = StepHeaderPut
     | StepHeaderGet Bool
     | StepHeaderTask
-    | StepHeaderSetPipeline
+    | StepHeaderSetPipeline Bool
     | StepHeaderLoadVar
     | StepHeaderAcross

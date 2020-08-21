@@ -215,6 +215,11 @@ handleEvent event ( model, effects ) =
             , effects
             )
 
+        SetPipelineChanged origin changed ->
+            ( updateStep origin.id (setSetPipelineChanged changed) model
+            , effects
+            )
+
         BuildStatus status _ ->
             let
                 newSt =
@@ -336,6 +341,11 @@ setStepStart time tree =
 setStepFinish : Maybe Time.Posix -> StepTree -> StepTree
 setStepFinish mtime tree =
     StepTree.map (\step -> { step | finish = mtime }) tree
+
+
+setSetPipelineChanged : Bool -> StepTree -> StepTree
+setSetPipelineChanged changed tree =
+    StepTree.map (\step -> { step | changed = changed }) tree
 
 
 view :

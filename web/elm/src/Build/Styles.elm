@@ -216,6 +216,9 @@ stepHeaderLabel headerType =
             StepHeaderGet True ->
                 Colors.started
 
+            StepHeaderSetPipeline True ->
+                Colors.started
+
             _ ->
                 Colors.pending
     , style "line-height" "28px"

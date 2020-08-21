@@ -244,7 +244,7 @@ constructStep hl plan name =
                 List.member stepID (Concourse.mapBuildPlan .id plan)
     , version = Nothing
     , metadata = []
-    , firstOccurrence = False
+    , changed = False
     , timestamps = Dict.empty
     , initialize = Nothing
     , start = Nothing
@@ -326,7 +326,7 @@ setupGetStep : Concourse.BuildResources -> StepName -> Maybe Version -> Step -> 
 setupGetStep resources name version step =
     { step
         | version = version
-        , firstOccurrence = isFirstOccurrence resources.inputs name
+        , changed = isFirstOccurrence resources.inputs name
     }
 
 
@@ -431,7 +431,7 @@ viewTree session model tree depth =
             viewStep model session depth step (StepHeaderGet False)
 
         Get step ->
-            viewStep model session depth step (StepHeaderGet step.firstOccurrence)
+            viewStep model session depth step (StepHeaderGet step.changed)
 
         ArtifactOutput step ->
             viewStep model session depth step StepHeaderPut
@@ -440,7 +440,7 @@ viewTree session model tree depth =
             viewStep model session depth step StepHeaderPut
 
         SetPipeline step ->
-            viewStep model session depth step StepHeaderSetPipeline
+            viewStep model session depth step (StepHeaderSetPipeline step.changed)
 
         LoadVar step ->
             viewStep model session depth step StepHeaderLoadVar
@@ -1098,7 +1098,7 @@ viewStepHeaderLabel headerType stepID =
                 StepHeaderTask ->
                     "task:"
 
-                StepHeaderSetPipeline ->
+                StepHeaderSetPipeline _ ->
                     "set_pipeline:"
 
                 StepHeaderLoadVar ->
