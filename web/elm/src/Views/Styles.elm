@@ -16,6 +16,7 @@ module Views.Styles exposing
     , pauseToggleIcon
     , pauseToggleTooltip
     , topBar
+    , topBarColor
     )
 
 import Assets
@@ -66,48 +67,54 @@ pageIncludingTopBar =
 
 pageBelowTopBar : Routes.Route -> List (Html.Attribute msg)
 pageBelowTopBar route =
-    style "padding-top" "54px"
-        :: (case route of
-                Routes.FlySuccess _ _ ->
-                    [ style "height" "100%" ]
+    case route of
+        Routes.FlySuccess _ _ ->
+            [ style "height" "100%"
+            , style "padding-top" "54px"
+            ]
 
-                Routes.Resource _ ->
-                    [ style "box-sizing" "border-box"
-                    , style "height" "100%"
-                    , style "display" "flex"
-                    ]
+        Routes.Resource _ ->
+            [ style "box-sizing" "border-box"
+            , style "height" "100%"
+            , style "padding-top" "54px"
+            , style "display" "flex"
+            ]
 
-                Routes.Pipeline _ ->
-                    [ style "box-sizing" "border-box"
-                    , style "height" "100%"
-                    , style "display" "flex"
-                    ]
+        Routes.Pipeline _ ->
+            [ style "box-sizing" "border-box"
+            , style "height" "100%"
+            , style "padding-top" "90px"
+            , style "display" "flex"
+            ]
 
-                Routes.Dashboard _ ->
-                    [ style "box-sizing" "border-box"
-                    , style "display" "flex"
-                    , style "height" "100%"
-                    , style "padding-bottom" "50px"
-                    ]
+        Routes.Dashboard _ ->
+            [ style "box-sizing" "border-box"
+            , style "display" "flex"
+            , style "height" "100%"
+            , style "padding-top" "54px"
+            , style "padding-bottom" "50px"
+            ]
 
-                Routes.Build _ ->
-                    [ style "box-sizing" "border-box"
-                    , style "height" "100%"
-                    , style "display" "flex"
-                    ]
+        Routes.Build _ ->
+            [ style "box-sizing" "border-box"
+            , style "height" "100%"
+            , style "padding-top" "54px"
+            , style "display" "flex"
+            ]
 
-                Routes.OneOffBuild _ ->
-                    [ style "box-sizing" "border-box"
-                    , style "height" "100%"
-                    , style "display" "flex"
-                    ]
+        Routes.OneOffBuild _ ->
+            [ style "box-sizing" "border-box"
+            , style "height" "100%"
+            , style "padding-top" "54px"
+            , style "display" "flex"
+            ]
 
-                Routes.Job _ ->
-                    [ style "box-sizing" "border-box"
-                    , style "height" "100%"
-                    , style "display" "flex"
-                    ]
-           )
+        Routes.Job _ ->
+            [ style "box-sizing" "border-box"
+            , style "height" "100%"
+            , style "padding-top" "54px"
+            , style "display" "flex"
+            ]
 
 
 topBar : Bool -> List (Html.Attribute msg)
@@ -125,6 +132,26 @@ topBar isPaused =
 
         else
             Colors.frame
+    , style "border-bottom" <| "1px solid " ++ Colors.frame
+    ]
+
+
+topBarColor : Maybe String -> List (Html.Attribute msg)
+topBarColor color =
+    [ style "position" "fixed"
+    , style "top" "54px"
+    , style "width" "100%"
+    , style "height" "36px"
+    , style "z-index" "999"
+    , style "display" "flex"
+    , style "justify-content" "space-between"
+    , style "background-color" <|
+        case color of
+            Just clr ->
+                clr
+
+            Nothing ->
+                Colors.frame
     , style "border-bottom" <| "1px solid " ++ Colors.frame
     ]
 

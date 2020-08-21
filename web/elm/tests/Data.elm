@@ -164,6 +164,7 @@ pipeline team id =
     , archived = False
     , public = True
     , teamName = team
+    , display = { headerColor = Nothing }
     , groups = []
     }
 

@@ -413,6 +413,9 @@ view session model =
                 , Login.view session.userState model <| displayPaused
                 ]
             , Html.div
+                (id "top-bar-color" :: Views.Styles.topBarColor (headerColor <| model.pipeline))
+                []
+            , Html.div
                 (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
               <|
                 [ SideBar.view session (Just model.pipelineLocator)
@@ -435,6 +438,16 @@ isPaused p =
 isArchived : WebData Concourse.Pipeline -> Bool
 isArchived p =
     RemoteData.withDefault False (RemoteData.map .archived p)
+
+
+headerColor : WebData Concourse.Pipeline -> Maybe String
+headerColor pipeline =
+    case pipeline of
+        RemoteData.Success p ->
+            p.display.headerColor
+
+        _ ->
+            Nothing
 
 
 viewSubPage :

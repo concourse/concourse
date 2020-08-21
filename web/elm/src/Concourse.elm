@@ -19,6 +19,7 @@ module Concourse exposing
     , CheckStatus(..)
     , ClusterInfo
     , DatabaseID
+    , Display
     , HookedPlan
     , Job
     , JobBuildIdentifier
@@ -72,6 +73,7 @@ import Dict exposing (Dict)
 import Json.Decode
 import Json.Decode.Extra exposing (andMap)
 import Json.Encode
+import Json.Encode.Extra
 import Time
 
 
@@ -698,6 +700,7 @@ type alias Pipeline =
     , public : Bool
     , teamName : TeamName
     , groups : List PipelineGroup
+    , display : Display
     }
 
 
@@ -706,6 +709,10 @@ type alias PipelineGroup =
     , jobs : List String
     , resources : List String
     }
+
+
+type alias Display =
+    { headerColor : Maybe String }
 
 
 encodePipeline : Pipeline -> Json.Encode.Value
@@ -718,6 +725,7 @@ encodePipeline pipeline =
         , ( "public", pipeline.public |> Json.Encode.bool )
         , ( "team_name", pipeline.teamName |> Json.Encode.string )
         , ( "groups", pipeline.groups |> Json.Encode.list encodePipelineGroup )
+        , ( "display", pipeline.display |> encodeDisplay )
         ]
 
 
@@ -731,6 +739,7 @@ decodePipeline =
         |> andMap (Json.Decode.field "public" Json.Decode.bool)
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)
         |> andMap (defaultTo [] <| Json.Decode.field "groups" (Json.Decode.list decodePipelineGroup))
+        |> andMap (Json.Decode.field "display" decodeDisplay)
 
 
 encodePipelineGroup : PipelineGroup -> Json.Encode.Value
@@ -748,6 +757,18 @@ decodePipelineGroup =
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (defaultTo [] <| Json.Decode.field "jobs" <| Json.Decode.list Json.Decode.string)
         |> andMap (defaultTo [] <| Json.Decode.field "resources" <| Json.Decode.list Json.Decode.string)
+
+
+encodeDisplay : Display -> Json.Encode.Value
+encodeDisplay display =
+    Json.Encode.object
+        [ ( "header_color", display.headerColor |> Json.Encode.Extra.maybe Json.Encode.string ) ]
+
+
+decodeDisplay : Json.Decode.Decoder Display
+decodeDisplay =
+    Json.Decode.succeed Display
+        |> andMap (Json.Decode.maybe (Json.Decode.field "header_color" Json.Decode.string))
 
 
 

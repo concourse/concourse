@@ -522,12 +522,12 @@ all =
                         |> Query.each
                             (Query.has [ style "display" "inline-block" ])
             , describe "top bar positioning"
-                [ testTopBarPositioning "Dashboard" "/"
-                , testTopBarPositioning "Pipeline" "/teams/team/pipelines/pipeline"
-                , testTopBarPositioning "Job" "/teams/team/pipelines/pipeline/jobs/job"
-                , testTopBarPositioning "Build" "/teams/team/pipelines/pipeline/jobs/job/builds/build"
-                , testTopBarPositioning "Resource" "/teams/team/pipelines/pipeline/resources/resource"
-                , testTopBarPositioning "FlySuccess" "/fly_success"
+                [ testTopBarPositioning "Dashboard" "/" "54px"
+                , testTopBarPositioning "Pipeline" "/teams/team/pipelines/pipeline" "90px"
+                , testTopBarPositioning "Job" "/teams/team/pipelines/pipeline/jobs/job" "54px"
+                , testTopBarPositioning "Build" "/teams/team/pipelines/pipeline/jobs/job/builds/build" "54px"
+                , testTopBarPositioning "Resource" "/teams/team/pipelines/pipeline/resources/resource" "54px"
+                , testTopBarPositioning "FlySuccess" "/fly_success" "54px"
                 ]
             , rspecStyleDescribe "when on job page"
                 (Common.init "/teams/team/pipeline/pipeline/jobs/job/builds/1")
@@ -683,8 +683,8 @@ givenMultiplePinnedResources =
         >> Tuple.first
 
 
-testTopBarPositioning : String -> String -> Test
-testTopBarPositioning pageName url =
+testTopBarPositioning : String -> String -> String -> Test
+testTopBarPositioning pageName url topPadding =
     describe pageName
         [ test "whole page fills the whole screen" <|
             \_ ->
@@ -700,7 +700,7 @@ testTopBarPositioning pageName url =
                     |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.has
-                        [ style "padding-top" "54px"
+                        [ style "padding-top" topPadding
                         , style "height" "100%"
                         ]
         ]
