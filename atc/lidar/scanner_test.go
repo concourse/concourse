@@ -105,7 +105,8 @@ var _ = Describe("Scanner", func() {
 
 				Context("when the resource parent type is a base type", func() {
 					BeforeEach(func() {
-						fakeResource.TypeReturns("base-type")
+						fakeCheckFactory.ResourceTypesReturns([]db.ResourceType{}, nil)
+						fakeResource.TypeReturns("some-type")
 					})
 
 					Context("when the check interval is parseable", func() {
