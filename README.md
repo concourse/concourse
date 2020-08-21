@@ -1,5 +1,10 @@
 # Concourse: the continuous thing-doer.
 
+[![Discord](https://img.shields.io/discord/219899946617274369.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/MeRxXKW)
+[![Build](https://ci.concourse-ci.org/api/v1/teams/main/pipelines/concourse/badge)](https://ci.concourse-ci.org/teams/main/pipelines/concourse)
+[![Contributors](https://img.shields.io/github/contributors/concourse/concourse)](https://github.com/concourse/concourse/graphs/contributors)
+[![Help Wanted](https://img.shields.io/github/labels/concourse/concourse/help%20wanted)](https://github.com/concourse/concourse/labels/help%20wanted)
+
 Concourse is an automation system written in Go. It is most commonly used for
 CI/CD, and is built to scale to any kind of automation pipeline, from simple to
 complex.
