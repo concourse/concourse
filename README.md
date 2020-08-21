@@ -30,8 +30,8 @@ of things to automate grows and shrinks over time.
 Because v10 is really an alias for a ton of separate features, there's a lot
 to keep track of - here's an overview:
 
-| Feature | RFC | Status |
-| -------- | ------- | --- | ----- |
+| Feature                  | RFC              | Status |
+| ------------------------ | ---------------- | ------ |
 | `set_pipeline` step      | ✔ [#31][rfc-31]  | ✔ v5.8.0 (experimental), TODO: [#5814][issue-5814] |
 | Var sources for creds    | ✔ [#39][rfc-39]  | ✔ v5.8.0 (experimental), TODO: [#5813][issue-5813] |
 | Archiving pipelines      | ✔ [#33][rfc-33]  | ✔ v6.5.0 |
