@@ -39,6 +39,8 @@ const (
 	// finished putting something
 	EventTypeFinishPut atc.EventType = "finish-put"
 
+	EventTypeSetPipelineChanged atc.EventType = "set-pipeline-changed"
+
 	// initialize step
 	EventTypeInitialize atc.EventType = "initialize"
 

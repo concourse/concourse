@@ -24,7 +24,7 @@ type StepFactory interface {
 	PutStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.PutDelegate) exec.Step
 	TaskStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.TaskDelegate) exec.Step
 	CheckStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.CheckDelegate) exec.Step
-	SetPipelineStep(atc.Plan, exec.StepMetadata, exec.BuildStepDelegate) exec.Step
+	SetPipelineStep(atc.Plan, exec.StepMetadata, exec.SetPipelineStepDelegate) exec.Step
 	LoadVarStep(atc.Plan, exec.StepMetadata, exec.BuildStepDelegate) exec.Step
 	ArtifactInputStep(atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step
 	ArtifactOutputStep(atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step
@@ -38,6 +38,7 @@ type DelegateFactory interface {
 	TaskDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.TaskDelegate
 	CheckDelegate(db.Check, atc.PlanID, *vars.BuildVariables) exec.CheckDelegate
 	BuildStepDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.BuildStepDelegate
+	SetPipelineStepDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.SetPipelineStepDelegate
 }
 
 func NewStepBuilder(
@@ -468,7 +469,7 @@ func (builder *stepBuilder) buildSetPipelineStep(build db.Build, plan atc.Plan, 
 	return builder.stepFactory.SetPipelineStep(
 		plan,
 		stepMetadata,
-		builder.delegateFactory.BuildStepDelegate(build, plan.ID, buildVars),
+		builder.delegateFactory.SetPipelineStepDelegate(build, plan.ID, buildVars),
 	)
 }
 

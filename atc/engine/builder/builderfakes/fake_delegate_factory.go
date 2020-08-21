@@ -64,6 +64,19 @@ type FakeDelegateFactory struct {
 	putDelegateReturnsOnCall map[int]struct {
 		result1 exec.PutDelegate
 	}
+	SetPipelineStepDelegateStub        func(db.Build, atc.PlanID, *vars.BuildVariables) exec.SetPipelineStepDelegate
+	setPipelineStepDelegateMutex       sync.RWMutex
+	setPipelineStepDelegateArgsForCall []struct {
+		arg1 db.Build
+		arg2 atc.PlanID
+		arg3 *vars.BuildVariables
+	}
+	setPipelineStepDelegateReturns struct {
+		result1 exec.SetPipelineStepDelegate
+	}
+	setPipelineStepDelegateReturnsOnCall map[int]struct {
+		result1 exec.SetPipelineStepDelegate
+	}
 	TaskDelegateStub        func(db.Build, atc.PlanID, *vars.BuildVariables) exec.TaskDelegate
 	taskDelegateMutex       sync.RWMutex
 	taskDelegateArgsForCall []struct {
@@ -329,6 +342,68 @@ func (fake *FakeDelegateFactory) PutDelegateReturnsOnCall(i int, result1 exec.Pu
 	}{result1}
 }
 
+func (fake *FakeDelegateFactory) SetPipelineStepDelegate(arg1 db.Build, arg2 atc.PlanID, arg3 *vars.BuildVariables) exec.SetPipelineStepDelegate {
+	fake.setPipelineStepDelegateMutex.Lock()
+	ret, specificReturn := fake.setPipelineStepDelegateReturnsOnCall[len(fake.setPipelineStepDelegateArgsForCall)]
+	fake.setPipelineStepDelegateArgsForCall = append(fake.setPipelineStepDelegateArgsForCall, struct {
+		arg1 db.Build
+		arg2 atc.PlanID
+		arg3 *vars.BuildVariables
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("SetPipelineStepDelegate", []interface{}{arg1, arg2, arg3})
+	fake.setPipelineStepDelegateMutex.Unlock()
+	if fake.SetPipelineStepDelegateStub != nil {
+		return fake.SetPipelineStepDelegateStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.setPipelineStepDelegateReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeDelegateFactory) SetPipelineStepDelegateCallCount() int {
+	fake.setPipelineStepDelegateMutex.RLock()
+	defer fake.setPipelineStepDelegateMutex.RUnlock()
+	return len(fake.setPipelineStepDelegateArgsForCall)
+}
+
+func (fake *FakeDelegateFactory) SetPipelineStepDelegateCalls(stub func(db.Build, atc.PlanID, *vars.BuildVariables) exec.SetPipelineStepDelegate) {
+	fake.setPipelineStepDelegateMutex.Lock()
+	defer fake.setPipelineStepDelegateMutex.Unlock()
+	fake.SetPipelineStepDelegateStub = stub
+}
+
+func (fake *FakeDelegateFactory) SetPipelineStepDelegateArgsForCall(i int) (db.Build, atc.PlanID, *vars.BuildVariables) {
+	fake.setPipelineStepDelegateMutex.RLock()
+	defer fake.setPipelineStepDelegateMutex.RUnlock()
+	argsForCall := fake.setPipelineStepDelegateArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeDelegateFactory) SetPipelineStepDelegateReturns(result1 exec.SetPipelineStepDelegate) {
+	fake.setPipelineStepDelegateMutex.Lock()
+	defer fake.setPipelineStepDelegateMutex.Unlock()
+	fake.SetPipelineStepDelegateStub = nil
+	fake.setPipelineStepDelegateReturns = struct {
+		result1 exec.SetPipelineStepDelegate
+	}{result1}
+}
+
+func (fake *FakeDelegateFactory) SetPipelineStepDelegateReturnsOnCall(i int, result1 exec.SetPipelineStepDelegate) {
+	fake.setPipelineStepDelegateMutex.Lock()
+	defer fake.setPipelineStepDelegateMutex.Unlock()
+	fake.SetPipelineStepDelegateStub = nil
+	if fake.setPipelineStepDelegateReturnsOnCall == nil {
+		fake.setPipelineStepDelegateReturnsOnCall = make(map[int]struct {
+			result1 exec.SetPipelineStepDelegate
+		})
+	}
+	fake.setPipelineStepDelegateReturnsOnCall[i] = struct {
+		result1 exec.SetPipelineStepDelegate
+	}{result1}
+}
+
 func (fake *FakeDelegateFactory) TaskDelegate(arg1 db.Build, arg2 atc.PlanID, arg3 *vars.BuildVariables) exec.TaskDelegate {
 	fake.taskDelegateMutex.Lock()
 	ret, specificReturn := fake.taskDelegateReturnsOnCall[len(fake.taskDelegateArgsForCall)]
@@ -402,6 +477,8 @@ func (fake *FakeDelegateFactory) Invocations() map[string][][]interface{} {
 	defer fake.getDelegateMutex.RUnlock()
 	fake.putDelegateMutex.RLock()
 	defer fake.putDelegateMutex.RUnlock()
+	fake.setPipelineStepDelegateMutex.RLock()
+	defer fake.setPipelineStepDelegateMutex.RUnlock()
 	fake.taskDelegateMutex.RLock()
 	defer fake.taskDelegateMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

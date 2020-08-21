@@ -44,6 +44,10 @@ func (delegate *delegateFactory) BuildStepDelegate(build db.Build, planID atc.Pl
 	return NewBuildStepDelegate(build, planID, buildVars, clock.NewClock())
 }
 
+func (delegate *delegateFactory) SetPipelineStepDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables) exec.SetPipelineStepDelegate {
+	return NewSetPipelineStepDelegate(build, planID, buildVars, clock.NewClock())
+}
+
 func NewGetDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables, clock clock.Clock) exec.GetDelegate {
 	return &getDelegate{
 		BuildStepDelegate: NewBuildStepDelegate(build, planID, buildVars, clock),
@@ -360,6 +364,43 @@ type buildStepDelegate struct {
 	buildVars *vars.BuildVariables
 	stderr    io.Writer
 	stdout    io.Writer
+}
+
+func NewSetPipelineStepDelegate(
+	build db.Build,
+	planID atc.PlanID,
+	buildVars *vars.BuildVariables,
+	clock clock.Clock,
+) *setPipelineStepDelegate {
+	return &setPipelineStepDelegate{
+		buildStepDelegate{
+			build:     build,
+			planID:    planID,
+			clock:     clock,
+			buildVars: buildVars,
+			stdout:    nil,
+			stderr:    nil,
+		},
+	}
+}
+
+type setPipelineStepDelegate struct {
+	buildStepDelegate
+}
+
+func (delegate *setPipelineStepDelegate) SetPipelineChanged(logger lager.Logger, changed bool) {
+	err := delegate.build.SaveEvent(event.SetPipelineChanged{
+		Origin: event.Origin{
+			ID: event.OriginID(delegate.planID),
+		},
+		Changed: changed,
+	})
+	if err != nil {
+		logger.Error("failed-to-save-set-pipeline-changed-event", err)
+		return
+	}
+
+	logger.Debug("set pipeline changed")
 }
 
 func (delegate *buildStepDelegate) Variables() *vars.BuildVariables {

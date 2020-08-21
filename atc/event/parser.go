@@ -43,6 +43,7 @@ func init() {
 	RegisterEvent(InitializePut{})
 	RegisterEvent(StartPut{})
 	RegisterEvent(FinishPut{})
+	RegisterEvent(SetPipelineChanged{})
 	RegisterEvent(Status{})
 	RegisterEvent(SelectedWorker{})
 	RegisterEvent(Log{})
