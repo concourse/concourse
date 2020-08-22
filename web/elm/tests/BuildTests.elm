@@ -3023,6 +3023,13 @@ all =
                         >> Event.simulate Event.mouseEnter
                         >> Event.toResult
                         >> Expect.err
+                , test "hovering over a normal set_pipeline step label does nothing" <|
+                    fetchPlanWithSetPipelineStep
+                        >> Common.queryView
+                        >> Query.find setPipelineStepLabel
+                        >> Event.simulate Event.mouseEnter
+                        >> Event.toResult
+                        >> Expect.err
                 , describe "first-occurrence get step label hover behaviour"
                     [ test "first-occurrence get step label has no tooltip" <|
                         fetchPlanWithGetStepWithFirstOccurrence
@@ -3695,6 +3702,33 @@ all =
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.has changedSetPipelineStepLabel
+                , test "set_pipeline step that changed something tooltip appears after 1 second" <|
+                    fetchPlanWithSetPipelineStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.SetPipelineChanged
+                                                { source = "stdout", id = "plan" }
+                                                True
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Application.handleDelivery
+                            (ClockTicked OneSecond <|
+                                Time.millisToPosix 0
+                            )
+                        >> Tuple.first
+                        >> hoverSetPipelineChangedLabel
+                        >> Application.handleDelivery
+                            (ClockTicked OneSecond <|
+                                Time.millisToPosix 1
+                            )
+                        >> Tuple.second
+                        >> Common.contains
+                            (Effects.GetViewportOf setPipelineChangedLabelID)
                 , test "network error on first event shows passport officer" <|
                     let
                         imgUrl =
@@ -3933,6 +3967,7 @@ loadVarStepLabel =
 firstOccurrenceLabelID =
     Message.Message.ChangedStepLabel
         "foo"
+        "new version"
 
 
 hoverFirstOccurrenceLabel =
@@ -3940,6 +3975,16 @@ hoverFirstOccurrenceLabel =
         (Msgs.Update <| Message.Message.Hover <| Just firstOccurrenceLabelID)
         >> Tuple.first
 
+setPipelineChangedLabelID =
+    Message.Message.ChangedStepLabel
+        "foo"
+        "pipeline config changed"
+
+
+hoverSetPipelineChangedLabel =
+    Application.update
+        (Msgs.Update <| Message.Message.Hover <| Just setPipelineChangedLabelID)
+        >> Tuple.first
 
 tooltipGreyHex : String
 tooltipGreyHex =

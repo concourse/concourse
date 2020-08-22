@@ -245,7 +245,7 @@ changedStepTooltip =
     [ style "background-color" Colors.tooltipBackground
     , style "padding" "5px"
     , style "z-index" "100"
-    , style "width" "6em"
+    , style "width" "fit-content"
     , style "pointer-events" "none"
     ]
         ++ Application.Styles.disableInteraction

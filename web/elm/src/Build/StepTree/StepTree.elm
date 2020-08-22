@@ -1074,16 +1074,22 @@ viewStepHeaderLabel : StepHeaderType -> StepID -> Html Message
 viewStepHeaderLabel headerType stepID =
     let
         eventHandlers =
-            if headerType == StepHeaderGet True then
-                [ onMouseLeave <| Hover Nothing
-                , onMouseEnter <| Hover <| Just <| ChangedStepLabel stepID
-                ]
+            case headerType of
+                StepHeaderGet True ->
+                    [ onMouseLeave <| Hover Nothing
+                    , onMouseEnter <| Hover <| Just <| ChangedStepLabel stepID "new version"
+                    ]
 
-            else
-                []
+                StepHeaderSetPipeline True ->
+                    [ onMouseLeave <| Hover Nothing
+                    , onMouseEnter <| Hover <| Just <| ChangedStepLabel stepID "pipeline config changed"
+                    ]
+
+                _ ->
+                    []
     in
     Html.div
-        (id (toHtmlID <| ChangedStepLabel stepID)
+        (id (toHtmlID <| ChangedStepLabel stepID "")
             :: Styles.stepHeaderLabel headerType
             ++ eventHandlers
         )
