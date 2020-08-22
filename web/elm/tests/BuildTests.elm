@@ -3931,7 +3931,7 @@ loadVarStepLabel =
 
 
 firstOccurrenceLabelID =
-    Message.Message.FirstOccurrenceGetStepLabel
+    Message.Message.ChangedStepLabel
         "foo"
 
 

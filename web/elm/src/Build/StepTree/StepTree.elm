@@ -1076,14 +1076,14 @@ viewStepHeaderLabel headerType stepID =
         eventHandlers =
             if headerType == StepHeaderGet True then
                 [ onMouseLeave <| Hover Nothing
-                , onMouseEnter <| Hover <| Just <| FirstOccurrenceGetStepLabel stepID
+                , onMouseEnter <| Hover <| Just <| ChangedStepLabel stepID
                 ]
 
             else
                 []
     in
     Html.div
-        (id (toHtmlID <| FirstOccurrenceGetStepLabel stepID)
+        (id (toHtmlID <| ChangedStepLabel stepID)
             :: Styles.stepHeaderLabel headerType
             ++ eventHandlers
         )

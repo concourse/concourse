@@ -5,10 +5,10 @@ module Build.Styles exposing
     , body
     , buttonTooltip
     , buttonTooltipArrow
+    , changedStepTooltip
     , durationTooltip
     , durationTooltipArrow
     , errorLog
-    , firstOccurrenceTooltip
     , header
     , historyItem
     , metadataCell
@@ -240,8 +240,8 @@ stepStatusIcon =
     ]
 
 
-firstOccurrenceTooltip : List (Html.Attribute msg)
-firstOccurrenceTooltip =
+changedStepTooltip : List (Html.Attribute msg)
+changedStepTooltip =
     [ style "background-color" Colors.tooltipBackground
     , style "padding" "5px"
     , style "z-index" "100"
