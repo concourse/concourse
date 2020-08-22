@@ -47,20 +47,20 @@ to keep track of - here's an overview:
 | Var source prototypes    |                  | ⚠ Needs RFC |
 | Notifier prototypes      | 🚧 [#28][rfc-28] | ⚠ RFC not ready |
 
-The Concourse team at VMware will be working through this backlog for the
-forseeable future, but in the interest of growing a healthy community of
-contributors we strongly encourage anyone interested in this to volunteer! We
-can leverage the highly parallelizeable aspect of v10 being many orthogonal
-features to get this done much more quickly.
+The Concourse team at VMware will be working on these features, however in the
+interest of growing a healthy community of contributors we would really
+appreciate any volunteers. This roadmap is very easy to parallelize, as it is
+comprised of many orthogonal features, so the faster we can power through it,
+the faster we can all benefit. We want these for our own pipelines too! 😆
 
-If you'd like to get involved, hop in [Discord][discord] or leave a comment
-on any of the issues linked above and we can coordinate. We're more than
-happy to help out, answer questions, and pick up any work that you don't feel
-comfortable doing (e.g. UI).
+If you'd like to get involved, hop in [Discord][discord] or leave a comment on
+any of the issues linked above so we can coordinate. We're more than happy to
+help figure things out or pick up any work that you don't feel comfortable
+doing (e.g. UI, unfamiliar parts, etc.).
 
-Thanks to everyone who has helped out, and thanks to our users for their
-patience while we figure out how to support such common functionality the
-"Concoursey way!" 🙏
+Thanks to everyone who has contributed so far, whether in code or in the
+community, and thanks to everyone for their patience while we figure out how to
+support such common functionality the "Concoursey way!" 🙏
 
 [issue-5813]: https://github.com/concourse/concourse/issues/5813
 [issue-5814]: https://github.com/concourse/concourse/issues/5814
