@@ -207,6 +207,7 @@ type PutPlan struct {
 type CheckPlan struct {
 	Type        string  `json:"type"`
 	Name        string  `json:"name,omitempty"`
+	Resource    string  `json:"resource"` // XXX(check-refactor): make sure you remember to use this
 	Source      Source  `json:"source"`
 	Tags        Tags    `json:"tags,omitempty"`
 	Timeout     string  `json:"timeout,omitempty"`

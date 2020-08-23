@@ -946,11 +946,9 @@ var _ = Describe("Builder", func() {
 				fakeCheck.BaseResourceTypeIDReturns(2222)
 
 				expectedMetadata = exec.StepMetadata{
-					PipelineID:            fakePipeline.ID(),
-					PipelineName:          fakePipeline.Name(),
-					ResourceConfigScopeID: 4444,
-					BaseResourceTypeID:    2222,
-					ExternalURL:           "http://example.com",
+					PipelineID:   fakePipeline.ID(),
+					PipelineName: fakePipeline.Name(),
+					ExternalURL:  "http://example.com",
 				}
 			})
 

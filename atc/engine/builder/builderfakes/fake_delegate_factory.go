@@ -25,11 +25,11 @@ type FakeDelegateFactory struct {
 	buildStepDelegateReturnsOnCall map[int]struct {
 		result1 exec.BuildStepDelegate
 	}
-	CheckDelegateStub        func(db.Check, atc.PlanID, *vars.BuildVariables) exec.CheckDelegate
+	CheckDelegateStub        func(db.Check, atc.Plan, *vars.BuildVariables) exec.CheckDelegate
 	checkDelegateMutex       sync.RWMutex
 	checkDelegateArgsForCall []struct {
 		arg1 db.Check
-		arg2 atc.PlanID
+		arg2 atc.Plan
 		arg3 *vars.BuildVariables
 	}
 	checkDelegateReturns struct {
@@ -156,12 +156,12 @@ func (fake *FakeDelegateFactory) BuildStepDelegateReturnsOnCall(i int, result1 e
 	}{result1}
 }
 
-func (fake *FakeDelegateFactory) CheckDelegate(arg1 db.Check, arg2 atc.PlanID, arg3 *vars.BuildVariables) exec.CheckDelegate {
+func (fake *FakeDelegateFactory) CheckDelegate(arg1 db.Check, arg2 atc.Plan, arg3 *vars.BuildVariables) exec.CheckDelegate {
 	fake.checkDelegateMutex.Lock()
 	ret, specificReturn := fake.checkDelegateReturnsOnCall[len(fake.checkDelegateArgsForCall)]
 	fake.checkDelegateArgsForCall = append(fake.checkDelegateArgsForCall, struct {
 		arg1 db.Check
-		arg2 atc.PlanID
+		arg2 atc.Plan
 		arg3 *vars.BuildVariables
 	}{arg1, arg2, arg3})
 	fake.recordInvocation("CheckDelegate", []interface{}{arg1, arg2, arg3})
@@ -182,13 +182,13 @@ func (fake *FakeDelegateFactory) CheckDelegateCallCount() int {
 	return len(fake.checkDelegateArgsForCall)
 }
 
-func (fake *FakeDelegateFactory) CheckDelegateCalls(stub func(db.Check, atc.PlanID, *vars.BuildVariables) exec.CheckDelegate) {
+func (fake *FakeDelegateFactory) CheckDelegateCalls(stub func(db.Check, atc.Plan, *vars.BuildVariables) exec.CheckDelegate) {
 	fake.checkDelegateMutex.Lock()
 	defer fake.checkDelegateMutex.Unlock()
 	fake.CheckDelegateStub = stub
 }
 
-func (fake *FakeDelegateFactory) CheckDelegateArgsForCall(i int) (db.Check, atc.PlanID, *vars.BuildVariables) {
+func (fake *FakeDelegateFactory) CheckDelegateArgsForCall(i int) (db.Check, atc.Plan, *vars.BuildVariables) {
 	fake.checkDelegateMutex.RLock()
 	defer fake.checkDelegateMutex.RUnlock()
 	argsForCall := fake.checkDelegateArgsForCall[i]

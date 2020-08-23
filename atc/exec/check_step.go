@@ -16,16 +16,17 @@ import (
 )
 
 type CheckStep struct {
-	planID            atc.PlanID
-	plan              atc.CheckPlan
-	metadata          StepMetadata
-	containerMetadata db.ContainerMetadata
-	resourceFactory   resource.ResourceFactory
-	strategy          worker.ContainerPlacementStrategy
-	pool              worker.Pool
-	delegate          CheckDelegate
-	succeeded         bool
-	workerClient      worker.Client
+	planID                atc.PlanID
+	plan                  atc.CheckPlan
+	metadata              StepMetadata
+	containerMetadata     db.ContainerMetadata
+	resourceFactory       resource.ResourceFactory
+	resourceConfigFactory db.ResourceConfigFactory
+	strategy              worker.ContainerPlacementStrategy
+	pool                  worker.Pool
+	delegate              CheckDelegate
+	succeeded             bool
+	workerClient          worker.Client
 }
 
 //go:generate counterfeiter . CheckDelegate
@@ -33,7 +34,7 @@ type CheckStep struct {
 type CheckDelegate interface {
 	BuildStepDelegate
 
-	SaveVersions(db.SpanContext, []atc.Version) error
+	SaveVersions(db.SpanContext, db.ResourceConfig, []atc.Version) error
 }
 
 func NewCheckStep(
@@ -41,6 +42,7 @@ func NewCheckStep(
 	plan atc.CheckPlan,
 	metadata StepMetadata,
 	resourceFactory resource.ResourceFactory,
+	resourceConfigFactory db.ResourceConfigFactory,
 	containerMetadata db.ContainerMetadata,
 	strategy worker.ContainerPlacementStrategy,
 	pool worker.Pool,
@@ -48,15 +50,16 @@ func NewCheckStep(
 	client worker.Client,
 ) *CheckStep {
 	return &CheckStep{
-		planID:            planID,
-		plan:              plan,
-		metadata:          metadata,
-		resourceFactory:   resourceFactory,
-		containerMetadata: containerMetadata,
-		pool:              pool,
-		strategy:          strategy,
-		delegate:          delegate,
-		workerClient:      client,
+		planID:                planID,
+		plan:                  plan,
+		metadata:              metadata,
+		resourceFactory:       resourceFactory,
+		resourceConfigFactory: resourceConfigFactory,
+		containerMetadata:     containerMetadata,
+		pool:                  pool,
+		strategy:              strategy,
+		delegate:              delegate,
+		workerClient:          client,
 	}
 }
 
@@ -123,9 +126,16 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		Max: 1 * time.Hour,
 	}
 
+	// XXX(check-refactor): this might possibly get GC'd - do we need an owner or
+	// a use?
+	resourceConfig, err := step.resourceConfigFactory.FindOrCreateResourceConfig(step.plan.Type, source, resourceTypes)
+	if err != nil {
+		return fmt.Errorf("create resource config: %w", err)
+	}
+
 	owner := db.NewResourceConfigCheckSessionContainerOwner(
-		step.metadata.ResourceConfigID,
-		step.metadata.BaseResourceTypeID,
+		resourceConfig.ID(),
+		resourceConfig.OriginBaseResourceType().ID,
 		expires,
 	)
 
@@ -158,7 +168,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		return fmt.Errorf("run check step: %w", err)
 	}
 
-	err = step.delegate.SaveVersions(db.NewSpanContext(ctx), result.Versions)
+	err = step.delegate.SaveVersions(db.NewSpanContext(ctx), resourceConfig, result.Versions)
 	if err != nil {
 		return fmt.Errorf("save versions: %w", err)
 	}

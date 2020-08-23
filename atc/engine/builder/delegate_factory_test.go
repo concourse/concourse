@@ -292,27 +292,130 @@ var _ = Describe("DelegateFactory", func() {
 
 	Describe("CheckDelegate", func() {
 		var (
+			plan      atc.Plan
 			delegate  exec.CheckDelegate
 			fakeCheck *dbfakes.FakeCheck
-			versions  []atc.Version
+
+			fakeResourceConfig      *dbfakes.FakeResourceConfig
+			fakeResourceConfigScope *dbfakes.FakeResourceConfigScope
+			versions                []atc.Version
 		)
 
 		BeforeEach(func() {
+			plan = atc.Plan{
+				ID:    "some-plan-id",
+				Check: &atc.CheckPlan{},
+			}
+
 			fakeCheck = new(dbfakes.FakeCheck)
 
-			delegate = builder.NewCheckDelegate(fakeCheck, "some-plan-id", buildVars, fakeClock)
+			delegate = builder.NewCheckDelegate(fakeCheck, plan, buildVars, fakeClock)
+
+			fakeResourceConfig = new(dbfakes.FakeResourceConfig)
+			fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)
+			fakeResourceConfig.FindOrCreateScopeReturns(fakeResourceConfigScope, nil)
+
 			versions = []atc.Version{{"some": "version"}}
 		})
 
 		Describe("SaveVersions", func() {
-			JustBeforeEach(func() {
-				Expect(delegate.SaveVersions(nil, versions)).To(Succeed())
+			var saveErr error
+
+			BeforeEach(func() {
+				saveErr = nil
 			})
 
-			It("saves an event", func() {
-				Expect(fakeCheck.SaveVersionsCallCount()).To(Equal(1))
-				_, actualVersions := fakeCheck.SaveVersionsArgsForCall(0)
+			JustBeforeEach(func() {
+				saveErr = delegate.SaveVersions(nil, fakeResourceConfig, versions)
+			})
+
+			It("saves the versions to the scope", func() {
+				Expect(saveErr).ToNot(HaveOccurred())
+
+				Expect(fakeResourceConfig.FindOrCreateScopeCallCount()).To(Equal(1))
+				resource := fakeResourceConfig.FindOrCreateScopeArgsForCall(0)
+				Expect(resource).To(BeNil())
+
+				Expect(fakeResourceConfigScope.SaveVersionsCallCount()).To(Equal(1))
+				_, actualVersions := fakeResourceConfigScope.SaveVersionsArgsForCall(0)
 				Expect(actualVersions).To(Equal(versions))
+			})
+
+			Context("when saving for a resource", func() {
+				var (
+					fakePipeline *dbfakes.FakePipeline
+					fakeResource *dbfakes.FakeResource
+				)
+
+				BeforeEach(func() {
+					plan.Check.Resource = "some-resource"
+
+					fakePipeline = new(dbfakes.FakePipeline)
+					fakeCheck.PipelineReturns(fakePipeline, true, nil)
+
+					fakeResource = new(dbfakes.FakeResource)
+					fakePipeline.ResourceReturns(fakeResource, true, nil)
+				})
+
+				It("succeeds", func() {
+					Expect(saveErr).ToNot(HaveOccurred())
+				})
+
+				It("looks up the resource on the pipeline", func() {
+					Expect(fakePipeline.ResourceCallCount()).To(Equal(1))
+					resourceName := fakePipeline.ResourceArgsForCall(0)
+					Expect(resourceName).To(Equal("some-resource"))
+				})
+
+				It("creates a scope for the resource", func() {
+					Expect(fakeResourceConfig.FindOrCreateScopeCallCount()).To(Equal(1))
+					resource := fakeResourceConfig.FindOrCreateScopeArgsForCall(0)
+					Expect(resource).To(Equal(fakeResource))
+				})
+
+				Context("after saving the versions", func() {
+					BeforeEach(func() {
+						fakeResource.SetResourceConfigScopeStub = func(db.ResourceConfigScope) error {
+							Expect(fakeResourceConfigScope.SaveVersionsCallCount()).To(Equal(1))
+							return nil
+						}
+					})
+
+					It("assigns the scope to the resource", func() {
+						Expect(fakeResource.SetResourceConfigScopeCallCount()).To(Equal(1))
+
+						scope := fakeResource.SetResourceConfigScopeArgsForCall(0)
+						Expect(scope).To(Equal(fakeResourceConfigScope))
+					})
+				})
+
+				Context("when the pipeline is not found", func() {
+					BeforeEach(func() {
+						fakeCheck.PipelineReturns(nil, false, nil)
+					})
+
+					It("returns an error", func() {
+						Expect(saveErr).To(HaveOccurred())
+					})
+
+					It("does not create a scope", func() {
+						Expect(fakeResourceConfig.FindOrCreateScopeCallCount()).To(BeZero())
+					})
+				})
+
+				Context("when the resource is not found", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceReturns(nil, false, nil)
+					})
+
+					It("returns an error", func() {
+						Expect(saveErr).To(HaveOccurred())
+					})
+
+					It("does not create a scope", func() {
+						Expect(fakeResourceConfig.FindOrCreateScopeCallCount()).To(BeZero())
+					})
+				})
 			})
 		})
 	})

@@ -28,21 +28,18 @@ type FakeResourceConfig struct {
 	createdByResourceCacheReturnsOnCall map[int]struct {
 		result1 db.UsedResourceCache
 	}
-	FindResourceConfigScopeByIDStub        func(int, db.Resource) (db.ResourceConfigScope, bool, error)
-	findResourceConfigScopeByIDMutex       sync.RWMutex
-	findResourceConfigScopeByIDArgsForCall []struct {
-		arg1 int
-		arg2 db.Resource
+	FindOrCreateScopeStub        func(db.Resource) (db.ResourceConfigScope, error)
+	findOrCreateScopeMutex       sync.RWMutex
+	findOrCreateScopeArgsForCall []struct {
+		arg1 db.Resource
 	}
-	findResourceConfigScopeByIDReturns struct {
+	findOrCreateScopeReturns struct {
 		result1 db.ResourceConfigScope
-		result2 bool
-		result3 error
+		result2 error
 	}
-	findResourceConfigScopeByIDReturnsOnCall map[int]struct {
+	findOrCreateScopeReturnsOnCall map[int]struct {
 		result1 db.ResourceConfigScope
-		result2 bool
-		result3 error
+		result2 error
 	}
 	IDStub        func() int
 	iDMutex       sync.RWMutex
@@ -172,71 +169,67 @@ func (fake *FakeResourceConfig) CreatedByResourceCacheReturnsOnCall(i int, resul
 	}{result1}
 }
 
-func (fake *FakeResourceConfig) FindResourceConfigScopeByID(arg1 int, arg2 db.Resource) (db.ResourceConfigScope, bool, error) {
-	fake.findResourceConfigScopeByIDMutex.Lock()
-	ret, specificReturn := fake.findResourceConfigScopeByIDReturnsOnCall[len(fake.findResourceConfigScopeByIDArgsForCall)]
-	fake.findResourceConfigScopeByIDArgsForCall = append(fake.findResourceConfigScopeByIDArgsForCall, struct {
-		arg1 int
-		arg2 db.Resource
-	}{arg1, arg2})
-	fake.recordInvocation("FindResourceConfigScopeByID", []interface{}{arg1, arg2})
-	fake.findResourceConfigScopeByIDMutex.Unlock()
-	if fake.FindResourceConfigScopeByIDStub != nil {
-		return fake.FindResourceConfigScopeByIDStub(arg1, arg2)
+func (fake *FakeResourceConfig) FindOrCreateScope(arg1 db.Resource) (db.ResourceConfigScope, error) {
+	fake.findOrCreateScopeMutex.Lock()
+	ret, specificReturn := fake.findOrCreateScopeReturnsOnCall[len(fake.findOrCreateScopeArgsForCall)]
+	fake.findOrCreateScopeArgsForCall = append(fake.findOrCreateScopeArgsForCall, struct {
+		arg1 db.Resource
+	}{arg1})
+	fake.recordInvocation("FindOrCreateScope", []interface{}{arg1})
+	fake.findOrCreateScopeMutex.Unlock()
+	if fake.FindOrCreateScopeStub != nil {
+		return fake.FindOrCreateScopeStub(arg1)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
+		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findResourceConfigScopeByIDReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+	fakeReturns := fake.findOrCreateScopeReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeResourceConfig) FindResourceConfigScopeByIDCallCount() int {
-	fake.findResourceConfigScopeByIDMutex.RLock()
-	defer fake.findResourceConfigScopeByIDMutex.RUnlock()
-	return len(fake.findResourceConfigScopeByIDArgsForCall)
+func (fake *FakeResourceConfig) FindOrCreateScopeCallCount() int {
+	fake.findOrCreateScopeMutex.RLock()
+	defer fake.findOrCreateScopeMutex.RUnlock()
+	return len(fake.findOrCreateScopeArgsForCall)
 }
 
-func (fake *FakeResourceConfig) FindResourceConfigScopeByIDCalls(stub func(int, db.Resource) (db.ResourceConfigScope, bool, error)) {
-	fake.findResourceConfigScopeByIDMutex.Lock()
-	defer fake.findResourceConfigScopeByIDMutex.Unlock()
-	fake.FindResourceConfigScopeByIDStub = stub
+func (fake *FakeResourceConfig) FindOrCreateScopeCalls(stub func(db.Resource) (db.ResourceConfigScope, error)) {
+	fake.findOrCreateScopeMutex.Lock()
+	defer fake.findOrCreateScopeMutex.Unlock()
+	fake.FindOrCreateScopeStub = stub
 }
 
-func (fake *FakeResourceConfig) FindResourceConfigScopeByIDArgsForCall(i int) (int, db.Resource) {
-	fake.findResourceConfigScopeByIDMutex.RLock()
-	defer fake.findResourceConfigScopeByIDMutex.RUnlock()
-	argsForCall := fake.findResourceConfigScopeByIDArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+func (fake *FakeResourceConfig) FindOrCreateScopeArgsForCall(i int) db.Resource {
+	fake.findOrCreateScopeMutex.RLock()
+	defer fake.findOrCreateScopeMutex.RUnlock()
+	argsForCall := fake.findOrCreateScopeArgsForCall[i]
+	return argsForCall.arg1
 }
 
-func (fake *FakeResourceConfig) FindResourceConfigScopeByIDReturns(result1 db.ResourceConfigScope, result2 bool, result3 error) {
-	fake.findResourceConfigScopeByIDMutex.Lock()
-	defer fake.findResourceConfigScopeByIDMutex.Unlock()
-	fake.FindResourceConfigScopeByIDStub = nil
-	fake.findResourceConfigScopeByIDReturns = struct {
+func (fake *FakeResourceConfig) FindOrCreateScopeReturns(result1 db.ResourceConfigScope, result2 error) {
+	fake.findOrCreateScopeMutex.Lock()
+	defer fake.findOrCreateScopeMutex.Unlock()
+	fake.FindOrCreateScopeStub = nil
+	fake.findOrCreateScopeReturns = struct {
 		result1 db.ResourceConfigScope
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeResourceConfig) FindResourceConfigScopeByIDReturnsOnCall(i int, result1 db.ResourceConfigScope, result2 bool, result3 error) {
-	fake.findResourceConfigScopeByIDMutex.Lock()
-	defer fake.findResourceConfigScopeByIDMutex.Unlock()
-	fake.FindResourceConfigScopeByIDStub = nil
-	if fake.findResourceConfigScopeByIDReturnsOnCall == nil {
-		fake.findResourceConfigScopeByIDReturnsOnCall = make(map[int]struct {
+func (fake *FakeResourceConfig) FindOrCreateScopeReturnsOnCall(i int, result1 db.ResourceConfigScope, result2 error) {
+	fake.findOrCreateScopeMutex.Lock()
+	defer fake.findOrCreateScopeMutex.Unlock()
+	fake.FindOrCreateScopeStub = nil
+	if fake.findOrCreateScopeReturnsOnCall == nil {
+		fake.findOrCreateScopeReturnsOnCall = make(map[int]struct {
 			result1 db.ResourceConfigScope
-			result2 bool
-			result3 error
+			result2 error
 		})
 	}
-	fake.findResourceConfigScopeByIDReturnsOnCall[i] = struct {
+	fake.findOrCreateScopeReturnsOnCall[i] = struct {
 		result1 db.ResourceConfigScope
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeResourceConfig) ID() int {
@@ -350,8 +343,8 @@ func (fake *FakeResourceConfig) Invocations() map[string][][]interface{} {
 	defer fake.createdByBaseResourceTypeMutex.RUnlock()
 	fake.createdByResourceCacheMutex.RLock()
 	defer fake.createdByResourceCacheMutex.RUnlock()
-	fake.findResourceConfigScopeByIDMutex.RLock()
-	defer fake.findResourceConfigScopeByIDMutex.RUnlock()
+	fake.findOrCreateScopeMutex.RLock()
+	defer fake.findOrCreateScopeMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
 	fake.originBaseResourceTypeMutex.RLock()

@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
@@ -49,7 +48,7 @@ type ResourceConfig interface {
 	CreatedByBaseResourceType() *UsedBaseResourceType
 	OriginBaseResourceType() *UsedBaseResourceType
 
-	FindResourceConfigScopeByID(int, Resource) (ResourceConfigScope, bool, error)
+	FindOrCreateScope(Resource) (ResourceConfigScope, error)
 }
 
 type resourceConfig struct {
@@ -73,55 +72,31 @@ func (r *resourceConfig) OriginBaseResourceType() *UsedBaseResourceType {
 	return r.createdByResourceCache.ResourceConfig().OriginBaseResourceType()
 }
 
-func (r *resourceConfig) FindResourceConfigScopeByID(resourceConfigScopeID int, resource Resource) (ResourceConfigScope, bool, error) {
-	var (
-		id           int
-		rcID         int
-		rID          sql.NullString
-		checkErrBlob sql.NullString
-	)
-
-	err := psql.Select("id, resource_id, resource_config_id, check_error").
-		From("resource_config_scopes").
-		Where(sq.Eq{
-			"id":                 resourceConfigScopeID,
-			"resource_config_id": r.id,
-		}).
-		RunWith(r.conn).
-		QueryRow().
-		Scan(&id, &rID, &rcID, &checkErrBlob)
+func (r *resourceConfig) FindOrCreateScope(resource Resource) (ResourceConfigScope, error) {
+	tx, err := r.conn.Begin()
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, false, nil
-		}
-		return nil, false, err
+		return nil, err
 	}
 
-	var uniqueResource Resource
-	if rID.Valid {
-		var resourceID int
-		resourceID, err = strconv.Atoi(rID.String)
-		if err != nil {
-			return nil, false, err
-		}
+	defer Rollback(tx)
 
-		if resource.ID() == resourceID {
-			uniqueResource = resource
-		}
+	scope, err := findOrCreateResourceConfigScope(
+		tx,
+		r.conn,
+		r.lockFactory,
+		r,
+		resource,
+	)
+	if err != nil {
+		return nil, err
 	}
 
-	var checkErr error
-	if checkErrBlob.Valid {
-		checkErr = errors.New(checkErrBlob.String)
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
 	}
 
-	return &resourceConfigScope{
-		id:             id,
-		resource:       uniqueResource,
-		resourceConfig: r,
-		checkError:     checkErr,
-		conn:           r.conn,
-		lockFactory:    r.lockFactory}, true, nil
+	return scope, nil
 }
 
 func (r *ResourceConfigDescriptor) findOrCreate(tx Tx, lockFactory lock.LockFactory, conn Conn) (ResourceConfig, error) {

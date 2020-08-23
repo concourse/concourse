@@ -36,7 +36,7 @@ type DelegateFactory interface {
 	GetDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.GetDelegate
 	PutDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.PutDelegate
 	TaskDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.TaskDelegate
-	CheckDelegate(db.Check, atc.PlanID, *vars.BuildVariables) exec.CheckDelegate
+	CheckDelegate(db.Check, atc.Plan, *vars.BuildVariables) exec.CheckDelegate
 	BuildStepDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.BuildStepDelegate
 	SetPipelineStepDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.SetPipelineStepDelegate
 }
@@ -419,21 +419,18 @@ func (builder *stepBuilder) buildCheckStep(check db.Check, plan atc.Plan, buildV
 	}
 
 	stepMetadata := exec.StepMetadata{
-		TeamID:                check.TeamID(),
-		TeamName:              check.TeamName(),
-		PipelineID:            check.PipelineID(),
-		PipelineName:          check.PipelineName(),
-		ResourceConfigScopeID: check.ResourceConfigScopeID(),
-		ResourceConfigID:      check.ResourceConfigID(),
-		BaseResourceTypeID:    check.BaseResourceTypeID(),
-		ExternalURL:           builder.externalURL,
+		TeamID:       check.TeamID(),
+		TeamName:     check.TeamName(),
+		PipelineID:   check.PipelineID(),
+		PipelineName: check.PipelineName(),
+		ExternalURL:  builder.externalURL,
 	}
 
 	return builder.stepFactory.CheckStep(
 		plan,
 		stepMetadata,
 		containerMetadata,
-		builder.delegateFactory.CheckDelegate(check, plan.ID, buildVars),
+		builder.delegateFactory.CheckDelegate(check, plan, buildVars),
 	)
 }
 

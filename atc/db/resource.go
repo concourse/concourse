@@ -62,6 +62,8 @@ type Resource interface {
 	UnpinVersion() error
 
 	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
+	SetResourceConfigScope(ResourceConfigScope) error
+
 	SetCheckSetupError(error) error
 	NotifyScan() error
 
@@ -186,6 +188,50 @@ func (r *resource) Reload() (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (r *resource) SetResourceConfigScope(scope ResourceConfigScope) error {
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	results, err := psql.Update("resources").
+		Set("resource_config_id", scope.ResourceConfig().ID()).
+		Set("resource_config_scope_id", scope.ID()).
+		Where(sq.Eq{"id": r.id}).
+		Where(sq.Or{
+			sq.Eq{"resource_config_id": nil},
+			sq.Eq{"resource_config_scope_id": nil},
+			sq.NotEq{"resource_config_id": scope.ResourceConfig().ID()},
+			sq.NotEq{"resource_config_scope_id": scope.ID()},
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := results.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected > 0 {
+		err = requestScheduleForJobsUsingResource(tx, r.id)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.VersionedResourceTypes) (ResourceConfigScope, error) {

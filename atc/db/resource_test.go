@@ -338,6 +338,113 @@ var _ = Describe("Resource", func() {
 		})
 	})
 
+	Describe("SetResourceConfigScope", func() {
+		var pipeline db.Pipeline
+		var resource db.Resource
+		var scope db.ResourceConfigScope
+
+		BeforeEach(func() {
+			config := atc.Config{
+				Resources: atc.ResourceConfigs{
+					{
+						Name:   "some-resource",
+						Type:   defaultWorkerResourceType.Type,
+						Source: atc.Source{"some": "repository"},
+					},
+					{
+						Name:   "some-other-resource",
+						Type:   defaultWorkerResourceType.Type,
+						Source: atc.Source{"some": "other-repository"},
+					},
+				},
+				Jobs: atc.JobConfigs{
+					{
+						Name: "using-resource",
+						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name: "some-resource",
+								},
+							},
+						},
+					},
+					{
+						Name: "not-using-resource",
+						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name: "some-other-resource",
+								},
+							},
+						},
+					},
+				},
+			}
+
+			var err error
+
+			var created bool
+			pipeline, created, err = defaultTeam.SavePipeline(
+				"some-pipeline-with-two-jobs",
+				config,
+				0,
+				false,
+			)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(created).To(BeTrue())
+
+			var found bool
+			resource, found, err = pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(resource.Type(), resource.Source(), atc.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			scope, err = resourceConfig.FindOrCreateScope(resource)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("associates the resource to the config and scope", func() {
+			Expect(resource.ResourceConfigID()).To(BeZero())
+			Expect(resource.ResourceConfigScopeID()).To(BeZero())
+
+			Expect(resource.SetResourceConfigScope(scope)).To(Succeed())
+
+			_, err := resource.Reload()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(resource.ResourceConfigID()).To(Equal(scope.ResourceConfig().ID()))
+			Expect(resource.ResourceConfigScopeID()).To(Equal(scope.ID()))
+		})
+
+		It("requests scheduling for downstream jobs", func() {
+			job, found, err := pipeline.Job("using-resource")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			otherJob, found, err := pipeline.Job("not-using-resource")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			requestedSchedule := job.ScheduleRequestedTime()
+			otherRequestedSchedule := otherJob.ScheduleRequestedTime()
+
+			Expect(resource.SetResourceConfigScope(scope)).To(Succeed())
+
+			found, err = job.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			found, err = otherJob.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
+			Expect(otherJob.ScheduleRequestedTime()).Should(Equal(otherRequestedSchedule))
+		})
+	})
+
 	Describe("SetResourceConfig", func() {
 		var pipeline db.Pipeline
 		var config atc.Config

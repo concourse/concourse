@@ -119,6 +119,7 @@ func (factory *stepFactory) CheckStep(
 		*plan.Check,
 		stepMetadata,
 		factory.resourceFactory,
+		factory.resourceConfigFactory,
 		containerMetadata,
 		worker.NewRandomPlacementStrategy(),
 		factory.pool,

@@ -3,149 +3,119 @@ package db_test
 import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("ResourceConfig", func() {
-	Describe("FindResourceConfigScopeByID", func() {
-		var pipeline db.Pipeline
-		var resourceTypes atc.VersionedResourceTypes
+	var resourceConfig db.ResourceConfig
 
+	Context("when non-unique", func() {
 		BeforeEach(func() {
-			atc.EnableGlobalResources = true
+			types, err := defaultPipeline.ResourceTypes()
+			Expect(err).ToNot(HaveOccurred())
 
-			config := atc.Config{
-				Resources: atc.ResourceConfigs{
-					{
-						Name:   "some-resource",
-						Type:   "some-type",
-						Source: atc.Source{"some": "repository"},
-					},
-				},
-			}
-
-			var created bool
-			var err error
-			pipeline, created, err = defaultTeam.SavePipeline(
-				"pipeline-one-resource",
-				config,
-				0,
-				false,
+			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
+				defaultWorkerResourceType.Type,
+				atc.Source{"some": "source"},
+				types.Deserialize(),
 			)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(created).To(BeTrue())
-
-			resourceTypes = atc.VersionedResourceTypes{}
 		})
 
-		Context("when a shared resource config scope exists", func() {
-			var (
-				scope    db.ResourceConfigScope
-				resource db.Resource
-			)
+		Describe("FindOrCreateScope", func() {
+			Context("given no resource", func() {
+				It("finds or creates a global scope", func() {
+					createdScope, err := resourceConfig.FindOrCreateScope(nil)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(createdScope.Resource()).To(BeNil())
+					Expect(createdScope.ResourceConfig().ID()).To(Equal(resourceConfig.ID()))
 
-			BeforeEach(func() {
-				setupTx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
-
-				brt := db.BaseResourceType{
-					Name: "some-type",
-				}
-
-				_, err = brt.FindOrCreate(setupTx, false)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(setupTx.Commit()).To(Succeed())
-
-				var found bool
-				resource, found, err = pipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				scope, err = resource.SetResourceConfig(atc.Source{"some": "repository"}, resourceTypes)
-				Expect(err).ToNot(HaveOccurred())
+					foundScope, err := resourceConfig.FindOrCreateScope(nil)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(foundScope.ID()).To(Equal(createdScope.ID()))
+				})
 			})
 
-			It("returns the resource config scope without it scoped to any resource", func() {
-				newScope, found, err := scope.ResourceConfig().FindResourceConfigScopeByID(scope.ID(), resource)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(newScope.ID()).To(Equal(scope.ID()))
-				Expect(newScope.ResourceConfig().ID()).To(Equal(scope.ResourceConfig().ID()))
-				Expect(newScope.Resource()).To(BeNil())
-			})
-		})
+			Context("given a resource", func() {
+				Context("with global resources disabled", func() {
+					BeforeEach(func() {
+						// XXX(check-refactor): make this non global
+						atc.EnableGlobalResources = false
+					})
 
-		Context("when a unique resource config scope exists", func() {
-			var (
-				scope    db.ResourceConfigScope
-				resource db.Resource
-			)
+					It("finds or creates a unique scope", func() {
+						createdScope, err := resourceConfig.FindOrCreateScope(defaultResource)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(createdScope.Resource()).ToNot(BeNil())
+						Expect(createdScope.Resource().ID()).To(Equal(defaultResource.ID()))
+						Expect(createdScope.ResourceConfig().ID()).To(Equal(resourceConfig.ID()))
 
-			BeforeEach(func() {
-				setupTx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
+						foundScope, err := resourceConfig.FindOrCreateScope(defaultResource)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(foundScope.ID()).To(Equal(createdScope.ID()))
+					})
+				})
 
-				brt := db.BaseResourceType{
-					Name: "some-type",
-				}
+				Context("with global resources enabled", func() {
+					BeforeEach(func() {
+						atc.EnableGlobalResources = true
+					})
 
-				_, err = brt.FindOrCreate(setupTx, true)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(setupTx.Commit()).To(Succeed())
+					It("finds or creates a global scope", func() {
+						createdScope, err := resourceConfig.FindOrCreateScope(defaultResource)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(createdScope.Resource()).To(BeNil())
+						Expect(createdScope.ResourceConfig().ID()).To(Equal(resourceConfig.ID()))
 
-				var found bool
-				resource, found, err = pipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				scope, err = resource.SetResourceConfig(atc.Source{"some": "repository"}, resourceTypes)
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("returns the resource config scope with it scoped to a resource", func() {
-				newScope, found, err := scope.ResourceConfig().FindResourceConfigScopeByID(scope.ID(), resource)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(newScope.ID()).To(Equal(scope.ID()))
-				Expect(newScope.ResourceConfig().ID()).To(Equal(scope.ResourceConfig().ID()))
-				Expect(newScope.Resource().ID()).To(Equal(resource.ID()))
+						foundScope, err := resourceConfig.FindOrCreateScope(defaultResource)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(foundScope.ID()).To(Equal(createdScope.ID()))
+					})
+				})
 			})
 		})
+	})
 
-		Context("when the resource config scope does not exist", func() {
-			var (
-				resourceConfig db.ResourceConfig
-				resource       db.Resource
+	Context("when using a unique base resource type", func() {
+		BeforeEach(func() {
+			types, err := defaultPipeline.ResourceTypes()
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
+				uniqueWorkerResourceType.Type,
+				atc.Source{"some": "source"},
+				types.Deserialize(),
 			)
+			Expect(err).ToNot(HaveOccurred())
+		})
 
-			BeforeEach(func() {
-				setupTx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
+		Describe("FindOrCreateScope", func() {
+			Context("given no resource", func() {
+				It("finds or creates a global scope", func() {
+					createdScope, err := resourceConfig.FindOrCreateScope(nil)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(createdScope.Resource()).To(BeNil())
+					Expect(createdScope.ResourceConfig().ID()).To(Equal(resourceConfig.ID()))
 
-				brt := db.BaseResourceType{
-					Name: "some-type",
-				}
-
-				_, err = brt.FindOrCreate(setupTx, false)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(setupTx.Commit()).To(Succeed())
-
-				resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig("some-type", atc.Source{"some": "repository"}, resourceTypes)
-				Expect(err).ToNot(HaveOccurred())
-
-				var found bool
-				resource, found, err = pipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
+					foundScope, err := resourceConfig.FindOrCreateScope(nil)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(foundScope.ID()).To(Equal(createdScope.ID()))
+				})
 			})
 
-			It("returns false", func() {
-				newScope, found, err := resourceConfig.FindResourceConfigScopeByID(123, resource)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeFalse())
-				Expect(newScope).To(BeNil())
+			Context("given a resource", func() {
+				It("finds or creates a unique scope", func() {
+					createdScope, err := resourceConfig.FindOrCreateScope(defaultResource)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(createdScope.Resource()).ToNot(BeNil())
+					Expect(createdScope.Resource().ID()).To(Equal(defaultResource.ID()))
+					Expect(createdScope.ResourceConfig().ID()).To(Equal(resourceConfig.ID()))
+
+					foundScope, err := resourceConfig.FindOrCreateScope(defaultResource)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(foundScope.ID()).To(Equal(createdScope.ID()))
+				})
 			})
 		})
 	})

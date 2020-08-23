@@ -7,6 +7,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
@@ -29,13 +30,15 @@ var _ = Describe("CheckStep", func() {
 		ctx    context.Context
 		cancel context.CancelFunc
 
-		fakeRunState        *execfakes.FakeRunState
-		fakeResourceFactory *resourcefakes.FakeResourceFactory
-		fakeResource        *resourcefakes.FakeResource
-		fakePool            *workerfakes.FakePool
-		fakeStrategy        *workerfakes.FakeContainerPlacementStrategy
-		fakeDelegate        *execfakes.FakeCheckDelegate
-		fakeClient          *workerfakes.FakeClient
+		fakeRunState              *execfakes.FakeRunState
+		fakeResourceFactory       *resourcefakes.FakeResourceFactory
+		fakeResource              *resourcefakes.FakeResource
+		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
+		fakeResourceConfig        *dbfakes.FakeResourceConfig
+		fakePool                  *workerfakes.FakePool
+		fakeStrategy              *workerfakes.FakeContainerPlacementStrategy
+		fakeDelegate              *execfakes.FakeCheckDelegate
+		fakeClient                *workerfakes.FakeClient
 
 		stepMetadata      exec.StepMetadata
 		checkStep         *exec.CheckStep
@@ -60,6 +63,15 @@ var _ = Describe("CheckStep", func() {
 		containerMetadata = db.ContainerMetadata{}
 
 		fakeResourceFactory.NewResourceReturns(fakeResource)
+
+		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
+		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
+		fakeResourceConfig.IDReturns(501)
+		fakeResourceConfig.OriginBaseResourceTypeReturns(&db.UsedBaseResourceType{
+			ID:   502,
+			Name: "some-base-resource-type",
+		})
+		fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
 	})
 
 	AfterEach(func() {
@@ -74,6 +86,7 @@ var _ = Describe("CheckStep", func() {
 			checkPlan,
 			stepMetadata,
 			fakeResourceFactory,
+			fakeResourceConfigFactory,
 			containerMetadata,
 			fakeStrategy,
 			fakePool,
@@ -165,16 +178,19 @@ var _ = Describe("CheckStep", func() {
 			resTypes := atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{
+						Type: "base-type",
 						Source: atc.Source{
 							"foo": "((bar))",
 						},
 					},
+					Version: atc.Version{"some": "type-version"},
 				},
 			}
 
 			checkPlan = atc.CheckPlan{
 				Timeout:                "10s",
 				Type:                   "resource-type",
+				Source:                 atc.Source{"some": "source"},
 				Tags:                   []string{"tag"},
 				VersionedResourceTypes: resTypes,
 			}
@@ -184,9 +200,7 @@ var _ = Describe("CheckStep", func() {
 			}
 
 			stepMetadata = exec.StepMetadata{
-				TeamID:             345,
-				ResourceConfigID:   501,
-				BaseResourceTypeID: 502,
+				TeamID: 345,
 			}
 
 			fakeDelegate.VariablesReturns(vars.NewBuildVariables(vars.StaticVariables{"bar": "caz"}, false))
@@ -330,10 +344,45 @@ var _ = Describe("CheckStep", func() {
 			})
 
 			It("propagates span context to delegate", func() {
-				spanContext, _ := fakeDelegate.SaveVersionsArgsForCall(0)
+				spanContext, _, _ := fakeDelegate.SaveVersionsArgsForCall(0)
 				traceID := span.SpanContext().TraceIDString()
 				traceParent := spanContext.Get(propagators.TraceparentHeader)
 				Expect(traceParent).To(ContainSubstring(traceID))
+			})
+		})
+
+		Context("having RunCheckStep succeed", func() {
+			BeforeEach(func() {
+				fakeClient.RunCheckStepReturns(worker.CheckResult{
+					Versions: []atc.Version{
+						{"version": "1"},
+						{"version": "2"},
+					},
+				}, nil)
+			})
+
+			It("saves the versions to the config", func() {
+				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
+				type_, source, types := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
+				Expect(type_).To(Equal("resource-type"))
+				Expect(source).To(Equal(atc.Source{"some": "source"}))
+				Expect(types).To(Equal(atc.VersionedResourceTypes{
+					{
+						ResourceType: atc.ResourceType{
+							Type:   "base-type",
+							Source: atc.Source{"foo": "caz"},
+						},
+						Version: atc.Version{"some": "type-version"},
+					},
+				}))
+
+				spanContext, resourceConfig, versions := fakeDelegate.SaveVersionsArgsForCall(0)
+				Expect(spanContext).To(Equal(db.SpanContext{}))
+				Expect(resourceConfig).To(Equal(fakeResourceConfig))
+				Expect(versions).To(Equal([]atc.Version{
+					{"version": "1"},
+					{"version": "2"},
+				}))
 			})
 		})
 

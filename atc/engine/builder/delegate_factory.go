@@ -2,6 +2,7 @@ package builder
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"strings"
 	"time"
@@ -36,8 +37,8 @@ func (delegate *delegateFactory) TaskDelegate(build db.Build, planID atc.PlanID,
 	return NewTaskDelegate(build, planID, buildVars, clock.NewClock())
 }
 
-func (delegate *delegateFactory) CheckDelegate(check db.Check, planID atc.PlanID, buildVars *vars.BuildVariables) exec.CheckDelegate {
-	return NewCheckDelegate(check, planID, buildVars, clock.NewClock())
+func (delegate *delegateFactory) CheckDelegate(check db.Check, plan atc.Plan, buildVars *vars.BuildVariables) exec.CheckDelegate {
+	return NewCheckDelegate(check, plan, buildVars, clock.NewClock())
 }
 
 func (delegate *delegateFactory) BuildStepDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables) exec.BuildStepDelegate {
@@ -303,12 +304,13 @@ func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus)
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
 }
 
-func NewCheckDelegate(check db.Check, planID atc.PlanID, buildVars *vars.BuildVariables, clock clock.Clock) exec.CheckDelegate {
+func NewCheckDelegate(check db.Check, plan atc.Plan, buildVars *vars.BuildVariables, clock clock.Clock) exec.CheckDelegate {
 	return &checkDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(nil, planID, buildVars, clock),
+		BuildStepDelegate: NewBuildStepDelegate(nil, plan.ID, buildVars, clock),
 
-		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		check:       check,
+		plan:        plan.Check,
+		eventOrigin: event.Origin{ID: event.OriginID(plan.ID)},
 		clock:       clock,
 	}
 }
@@ -317,12 +319,52 @@ type checkDelegate struct {
 	exec.BuildStepDelegate
 
 	check       db.Check
+	plan        *atc.CheckPlan
 	eventOrigin event.Origin
 	clock       clock.Clock
 }
 
-func (d *checkDelegate) SaveVersions(spanContext db.SpanContext, versions []atc.Version) error {
-	return d.check.SaveVersions(spanContext, versions)
+func (d *checkDelegate) SaveVersions(spanContext db.SpanContext, resourceConfig db.ResourceConfig, versions []atc.Version) error {
+	var resource db.Resource
+	if d.plan.Resource != "" {
+		pipeline, found, err := d.check.Pipeline()
+		if err != nil {
+			return fmt.Errorf("get build pipeline: %w", err)
+		}
+
+		if !found {
+			// pipeline removed
+			return fmt.Errorf("pipeline removed")
+		}
+
+		resource, found, err = pipeline.Resource(d.plan.Resource)
+		if err != nil {
+			return fmt.Errorf("get pipeline resource: %w", err)
+		}
+
+		if !found {
+			return fmt.Errorf("resource removed")
+		}
+	}
+
+	scope, err := resourceConfig.FindOrCreateScope(resource)
+	if err != nil {
+		return fmt.Errorf("find or create scope: %w", err)
+	}
+
+	err = scope.SaveVersions(spanContext, versions)
+	if err != nil {
+		return fmt.Errorf("save versions: %w", err)
+	}
+
+	if resource != nil {
+		err = resource.SetResourceConfigScope(scope)
+		if err != nil {
+			return fmt.Errorf("set resource config scope: %w", err)
+		}
+	}
+
+	return nil
 }
 
 type discardCloser struct {
