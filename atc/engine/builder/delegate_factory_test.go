@@ -292,9 +292,8 @@ var _ = Describe("DelegateFactory", func() {
 
 	Describe("CheckDelegate", func() {
 		var (
-			plan      atc.Plan
-			delegate  exec.CheckDelegate
-			fakeCheck *dbfakes.FakeCheck
+			plan     atc.Plan
+			delegate exec.CheckDelegate
 
 			fakeResourceConfig      *dbfakes.FakeResourceConfig
 			fakeResourceConfigScope *dbfakes.FakeResourceConfigScope
@@ -307,9 +306,7 @@ var _ = Describe("DelegateFactory", func() {
 				Check: &atc.CheckPlan{},
 			}
 
-			fakeCheck = new(dbfakes.FakeCheck)
-
-			delegate = builder.NewCheckDelegate(fakeCheck, plan, buildVars, fakeClock)
+			delegate = builder.NewCheckDelegate(fakeBuild, plan, buildVars, fakeClock)
 
 			fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 			fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)
@@ -351,7 +348,7 @@ var _ = Describe("DelegateFactory", func() {
 					plan.Check.Resource = "some-resource"
 
 					fakePipeline = new(dbfakes.FakePipeline)
-					fakeCheck.PipelineReturns(fakePipeline, true, nil)
+					fakeBuild.PipelineReturns(fakePipeline, true, nil)
 
 					fakeResource = new(dbfakes.FakeResource)
 					fakePipeline.ResourceReturns(fakeResource, true, nil)
@@ -391,7 +388,7 @@ var _ = Describe("DelegateFactory", func() {
 
 				Context("when the pipeline is not found", func() {
 					BeforeEach(func() {
-						fakeCheck.PipelineReturns(nil, false, nil)
+						fakeBuild.PipelineReturns(nil, false, nil)
 					})
 
 					It("returns an error", func() {

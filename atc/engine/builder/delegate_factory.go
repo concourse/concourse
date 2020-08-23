@@ -37,8 +37,8 @@ func (delegate *delegateFactory) TaskDelegate(build db.Build, planID atc.PlanID,
 	return NewTaskDelegate(build, planID, buildVars, clock.NewClock())
 }
 
-func (delegate *delegateFactory) CheckDelegate(check db.Check, plan atc.Plan, buildVars *vars.BuildVariables) exec.CheckDelegate {
-	return NewCheckDelegate(check, plan, buildVars, clock.NewClock())
+func (delegate *delegateFactory) CheckDelegate(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.CheckDelegate {
+	return NewCheckDelegate(build, plan, buildVars, clock.NewClock())
 }
 
 func (delegate *delegateFactory) BuildStepDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables) exec.BuildStepDelegate {
@@ -304,11 +304,11 @@ func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus)
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
 }
 
-func NewCheckDelegate(check db.Check, plan atc.Plan, buildVars *vars.BuildVariables, clock clock.Clock) exec.CheckDelegate {
+func NewCheckDelegate(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables, clock clock.Clock) exec.CheckDelegate {
 	return &checkDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(nil, plan.ID, buildVars, clock),
+		BuildStepDelegate: NewBuildStepDelegate(build, plan.ID, buildVars, clock),
 
-		check:       check,
+		build:       build,
 		plan:        plan.Check,
 		eventOrigin: event.Origin{ID: event.OriginID(plan.ID)},
 		clock:       clock,
@@ -318,7 +318,7 @@ func NewCheckDelegate(check db.Check, plan atc.Plan, buildVars *vars.BuildVariab
 type checkDelegate struct {
 	exec.BuildStepDelegate
 
-	check       db.Check
+	build       db.Build
 	plan        *atc.CheckPlan
 	eventOrigin event.Origin
 	clock       clock.Clock
@@ -327,7 +327,7 @@ type checkDelegate struct {
 func (d *checkDelegate) SaveVersions(spanContext db.SpanContext, resourceConfig db.ResourceConfig, versions []atc.Version) error {
 	var resource db.Resource
 	if d.plan.Resource != "" {
-		pipeline, found, err := d.check.Pipeline()
+		pipeline, found, err := d.build.Pipeline()
 		if err != nil {
 			return fmt.Errorf("get build pipeline: %w", err)
 		}

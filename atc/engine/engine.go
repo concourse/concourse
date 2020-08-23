@@ -39,7 +39,6 @@ type Runnable interface {
 
 type StepBuilder interface {
 	BuildStep(lager.Logger, db.Build) (exec.Step, error)
-	CheckStep(lager.Logger, db.Check) (exec.Step, error)
 
 	BuildStepErrored(lager.Logger, db.Build, error)
 }

@@ -36,7 +36,7 @@ type DelegateFactory interface {
 	GetDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.GetDelegate
 	PutDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.PutDelegate
 	TaskDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.TaskDelegate
-	CheckDelegate(db.Check, atc.Plan, *vars.BuildVariables) exec.CheckDelegate
+	CheckDelegate(db.Build, atc.Plan, *vars.BuildVariables) exec.CheckDelegate
 	BuildStepDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.BuildStepDelegate
 	SetPipelineStepDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.SetPipelineStepDelegate
 }
@@ -103,32 +103,6 @@ func (builder *stepBuilder) BuildStepErrored(logger lager.Logger, build db.Build
 	builder.delegateFactory.BuildStepDelegate(build, build.PrivatePlan().ID, nil).Errored(logger, err.Error())
 }
 
-func (builder *stepBuilder) CheckStep(logger lager.Logger, check db.Check) (exec.Step, error) {
-
-	if check == nil {
-		return exec.IdentityStep{}, errors.New("must provide a check")
-	}
-
-	if check.Schema() != supportedSchema {
-		return exec.IdentityStep{}, errors.New("schema not supported")
-	}
-
-	pipeline, found, err := check.Pipeline()
-	if err != nil {
-		return exec.IdentityStep{}, errors.New(fmt.Sprintf("failed to find pipeline: %s", err.Error()))
-	}
-	if !found {
-		return exec.IdentityStep{}, errors.New("pipeline not found")
-	}
-
-	varss, err := pipeline.Variables(logger, builder.globalSecrets, builder.varSourcePool)
-	if err != nil {
-		return exec.IdentityStep{}, fmt.Errorf("failed to create pipeline variables: %s", err.Error())
-	}
-	buildVars := vars.NewBuildVariables(varss, atc.EnableRedactSecrets)
-	return builder.buildCheckStep(check, check.Plan(), buildVars), nil
-}
-
 func (builder *stepBuilder) buildStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
 	if plan.Aggregate != nil {
 		return builder.buildAggregateStep(build, plan, buildVars)
@@ -184,6 +158,10 @@ func (builder *stepBuilder) buildStep(build db.Build, plan atc.Plan, buildVars *
 
 	if plan.LoadVar != nil {
 		return builder.buildLoadVarStep(build, plan, buildVars)
+	}
+
+	if plan.Check != nil {
+		return builder.buildCheckStep(build, plan, buildVars)
 	}
 
 	if plan.Get != nil {
@@ -412,25 +390,24 @@ func (builder *stepBuilder) buildPutStep(build db.Build, plan atc.Plan, buildVar
 	)
 }
 
-func (builder *stepBuilder) buildCheckStep(check db.Check, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+func (builder *stepBuilder) buildCheckStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+	containerMetadata := builder.containerMetadata(
+		build,
+		db.ContainerTypeCheck,
+		plan.Check.Name,
+		plan.Attempts,
+	)
 
-	containerMetadata := db.ContainerMetadata{
-		Type: db.ContainerTypeCheck,
-	}
-
-	stepMetadata := exec.StepMetadata{
-		TeamID:       check.TeamID(),
-		TeamName:     check.TeamName(),
-		PipelineID:   check.PipelineID(),
-		PipelineName: check.PipelineName(),
-		ExternalURL:  builder.externalURL,
-	}
+	stepMetadata := builder.stepMetadata(
+		build,
+		builder.externalURL,
+	)
 
 	return builder.stepFactory.CheckStep(
 		plan,
 		stepMetadata,
 		containerMetadata,
-		builder.delegateFactory.CheckDelegate(check, plan, buildVars),
+		builder.delegateFactory.CheckDelegate(build, plan, buildVars),
 	)
 }
 
