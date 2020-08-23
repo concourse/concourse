@@ -35,6 +35,7 @@ var _ = Describe("CheckStep", func() {
 		fakeResource              *resourcefakes.FakeResource
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 		fakeResourceConfig        *dbfakes.FakeResourceConfig
+		fakeResourceConfigScope   *dbfakes.FakeResourceConfigScope
 		fakePool                  *workerfakes.FakePool
 		fakeStrategy              *workerfakes.FakeContainerPlacementStrategy
 		fakeDelegate              *execfakes.FakeCheckDelegate
@@ -72,6 +73,9 @@ var _ = Describe("CheckStep", func() {
 			Name: "some-base-resource-type",
 		})
 		fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
+
+		fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)
+		fakeDelegate.FindOrCreateScopeReturns(fakeResourceConfigScope, nil)
 	})
 
 	AfterEach(func() {
@@ -343,8 +347,8 @@ var _ = Describe("CheckStep", func() {
 				tracing.Configured = false
 			})
 
-			It("propagates span context to delegate", func() {
-				spanContext, _, _ := fakeDelegate.SaveVersionsArgsForCall(0)
+			It("propagates span context to scope", func() {
+				spanContext, _ := fakeResourceConfigScope.SaveVersionsArgsForCall(0)
 				traceID := span.SpanContext().TraceIDString()
 				traceParent := spanContext.Get(propagators.TraceparentHeader)
 				Expect(traceParent).To(ContainSubstring(traceID))
@@ -361,7 +365,7 @@ var _ = Describe("CheckStep", func() {
 				}, nil)
 			})
 
-			It("saves the versions to the config", func() {
+			It("saves the versions to the config scope", func() {
 				Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
 				type_, source, types := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
 				Expect(type_).To(Equal("resource-type"))
@@ -376,13 +380,32 @@ var _ = Describe("CheckStep", func() {
 					},
 				}))
 
-				spanContext, resourceConfig, versions := fakeDelegate.SaveVersionsArgsForCall(0)
+				Expect(fakeDelegate.FindOrCreateScopeCallCount()).To(Equal(1))
+				config := fakeDelegate.FindOrCreateScopeArgsForCall(0)
+				Expect(config).To(Equal(fakeResourceConfig))
+
+				spanContext, versions := fakeResourceConfigScope.SaveVersionsArgsForCall(0)
 				Expect(spanContext).To(Equal(db.SpanContext{}))
-				Expect(resourceConfig).To(Equal(fakeResourceConfig))
 				Expect(versions).To(Equal([]atc.Version{
 					{"version": "1"},
 					{"version": "2"},
 				}))
+			})
+
+			Context("after saving", func() {
+				BeforeEach(func() {
+					fakeResourceConfigScope.SaveVersionsStub = func(db.SpanContext, []atc.Version) error {
+						Expect(fakeDelegate.PointToSavedVersionsCallCount()).To(BeZero())
+						return nil
+					}
+				})
+
+				It("points the resource or resource type to the scope", func() {
+					Expect(fakeResourceConfigScope.SaveVersionsCallCount()).To(Equal(1))
+					Expect(fakeDelegate.PointToSavedVersionsCallCount()).To(Equal(1))
+					scope := fakeDelegate.PointToSavedVersionsArgsForCall(0)
+					Expect(scope).To(Equal(fakeResourceConfigScope))
+				})
 			})
 		})
 
@@ -406,7 +429,7 @@ var _ = Describe("CheckStep", func() {
 			BeforeEach(func() {
 				expectedErr = errors.New("save-versions-err")
 
-				fakeDelegate.SaveVersionsReturns(expectedErr)
+				fakeResourceConfigScope.SaveVersionsReturns(expectedErr)
 			})
 
 			It("errors", func() {

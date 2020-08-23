@@ -19,6 +19,19 @@ type FakeCheckDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
+	FindOrCreateScopeStub        func(db.ResourceConfig) (db.ResourceConfigScope, error)
+	findOrCreateScopeMutex       sync.RWMutex
+	findOrCreateScopeArgsForCall []struct {
+		arg1 db.ResourceConfig
+	}
+	findOrCreateScopeReturns struct {
+		result1 db.ResourceConfigScope
+		result2 error
+	}
+	findOrCreateScopeReturnsOnCall map[int]struct {
+		result1 db.ResourceConfigScope
+		result2 error
+	}
 	FinishedStub        func(lager.Logger, bool)
 	finishedMutex       sync.RWMutex
 	finishedArgsForCall []struct {
@@ -41,6 +54,17 @@ type FakeCheckDelegate struct {
 	initializingArgsForCall []struct {
 		arg1 lager.Logger
 	}
+	PointToSavedVersionsStub        func(db.ResourceConfigScope) error
+	pointToSavedVersionsMutex       sync.RWMutex
+	pointToSavedVersionsArgsForCall []struct {
+		arg1 db.ResourceConfigScope
+	}
+	pointToSavedVersionsReturns struct {
+		result1 error
+	}
+	pointToSavedVersionsReturnsOnCall map[int]struct {
+		result1 error
+	}
 	RedactImageSourceStub        func(atc.Source) (atc.Source, error)
 	redactImageSourceMutex       sync.RWMutex
 	redactImageSourceArgsForCall []struct {
@@ -53,19 +77,6 @@ type FakeCheckDelegate struct {
 	redactImageSourceReturnsOnCall map[int]struct {
 		result1 atc.Source
 		result2 error
-	}
-	SaveVersionsStub        func(db.SpanContext, db.ResourceConfig, []atc.Version) error
-	saveVersionsMutex       sync.RWMutex
-	saveVersionsArgsForCall []struct {
-		arg1 db.SpanContext
-		arg2 db.ResourceConfig
-		arg3 []atc.Version
-	}
-	saveVersionsReturns struct {
-		result1 error
-	}
-	saveVersionsReturnsOnCall map[int]struct {
-		result1 error
 	}
 	SelectedWorkerStub        func(lager.Logger, string)
 	selectedWorkerMutex       sync.RWMutex
@@ -142,6 +153,69 @@ func (fake *FakeCheckDelegate) ErroredArgsForCall(i int) (lager.Logger, string) 
 	defer fake.erroredMutex.RUnlock()
 	argsForCall := fake.erroredArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeCheckDelegate) FindOrCreateScope(arg1 db.ResourceConfig) (db.ResourceConfigScope, error) {
+	fake.findOrCreateScopeMutex.Lock()
+	ret, specificReturn := fake.findOrCreateScopeReturnsOnCall[len(fake.findOrCreateScopeArgsForCall)]
+	fake.findOrCreateScopeArgsForCall = append(fake.findOrCreateScopeArgsForCall, struct {
+		arg1 db.ResourceConfig
+	}{arg1})
+	fake.recordInvocation("FindOrCreateScope", []interface{}{arg1})
+	fake.findOrCreateScopeMutex.Unlock()
+	if fake.FindOrCreateScopeStub != nil {
+		return fake.FindOrCreateScopeStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.findOrCreateScopeReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeCheckDelegate) FindOrCreateScopeCallCount() int {
+	fake.findOrCreateScopeMutex.RLock()
+	defer fake.findOrCreateScopeMutex.RUnlock()
+	return len(fake.findOrCreateScopeArgsForCall)
+}
+
+func (fake *FakeCheckDelegate) FindOrCreateScopeCalls(stub func(db.ResourceConfig) (db.ResourceConfigScope, error)) {
+	fake.findOrCreateScopeMutex.Lock()
+	defer fake.findOrCreateScopeMutex.Unlock()
+	fake.FindOrCreateScopeStub = stub
+}
+
+func (fake *FakeCheckDelegate) FindOrCreateScopeArgsForCall(i int) db.ResourceConfig {
+	fake.findOrCreateScopeMutex.RLock()
+	defer fake.findOrCreateScopeMutex.RUnlock()
+	argsForCall := fake.findOrCreateScopeArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeCheckDelegate) FindOrCreateScopeReturns(result1 db.ResourceConfigScope, result2 error) {
+	fake.findOrCreateScopeMutex.Lock()
+	defer fake.findOrCreateScopeMutex.Unlock()
+	fake.FindOrCreateScopeStub = nil
+	fake.findOrCreateScopeReturns = struct {
+		result1 db.ResourceConfigScope
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCheckDelegate) FindOrCreateScopeReturnsOnCall(i int, result1 db.ResourceConfigScope, result2 error) {
+	fake.findOrCreateScopeMutex.Lock()
+	defer fake.findOrCreateScopeMutex.Unlock()
+	fake.FindOrCreateScopeStub = nil
+	if fake.findOrCreateScopeReturnsOnCall == nil {
+		fake.findOrCreateScopeReturnsOnCall = make(map[int]struct {
+			result1 db.ResourceConfigScope
+			result2 error
+		})
+	}
+	fake.findOrCreateScopeReturnsOnCall[i] = struct {
+		result1 db.ResourceConfigScope
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeCheckDelegate) Finished(arg1 lager.Logger, arg2 bool) {
@@ -267,6 +341,66 @@ func (fake *FakeCheckDelegate) InitializingArgsForCall(i int) lager.Logger {
 	return argsForCall.arg1
 }
 
+func (fake *FakeCheckDelegate) PointToSavedVersions(arg1 db.ResourceConfigScope) error {
+	fake.pointToSavedVersionsMutex.Lock()
+	ret, specificReturn := fake.pointToSavedVersionsReturnsOnCall[len(fake.pointToSavedVersionsArgsForCall)]
+	fake.pointToSavedVersionsArgsForCall = append(fake.pointToSavedVersionsArgsForCall, struct {
+		arg1 db.ResourceConfigScope
+	}{arg1})
+	fake.recordInvocation("PointToSavedVersions", []interface{}{arg1})
+	fake.pointToSavedVersionsMutex.Unlock()
+	if fake.PointToSavedVersionsStub != nil {
+		return fake.PointToSavedVersionsStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.pointToSavedVersionsReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeCheckDelegate) PointToSavedVersionsCallCount() int {
+	fake.pointToSavedVersionsMutex.RLock()
+	defer fake.pointToSavedVersionsMutex.RUnlock()
+	return len(fake.pointToSavedVersionsArgsForCall)
+}
+
+func (fake *FakeCheckDelegate) PointToSavedVersionsCalls(stub func(db.ResourceConfigScope) error) {
+	fake.pointToSavedVersionsMutex.Lock()
+	defer fake.pointToSavedVersionsMutex.Unlock()
+	fake.PointToSavedVersionsStub = stub
+}
+
+func (fake *FakeCheckDelegate) PointToSavedVersionsArgsForCall(i int) db.ResourceConfigScope {
+	fake.pointToSavedVersionsMutex.RLock()
+	defer fake.pointToSavedVersionsMutex.RUnlock()
+	argsForCall := fake.pointToSavedVersionsArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeCheckDelegate) PointToSavedVersionsReturns(result1 error) {
+	fake.pointToSavedVersionsMutex.Lock()
+	defer fake.pointToSavedVersionsMutex.Unlock()
+	fake.PointToSavedVersionsStub = nil
+	fake.pointToSavedVersionsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCheckDelegate) PointToSavedVersionsReturnsOnCall(i int, result1 error) {
+	fake.pointToSavedVersionsMutex.Lock()
+	defer fake.pointToSavedVersionsMutex.Unlock()
+	fake.PointToSavedVersionsStub = nil
+	if fake.pointToSavedVersionsReturnsOnCall == nil {
+		fake.pointToSavedVersionsReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.pointToSavedVersionsReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeCheckDelegate) RedactImageSource(arg1 atc.Source) (atc.Source, error) {
 	fake.redactImageSourceMutex.Lock()
 	ret, specificReturn := fake.redactImageSourceReturnsOnCall[len(fake.redactImageSourceArgsForCall)]
@@ -328,73 +462,6 @@ func (fake *FakeCheckDelegate) RedactImageSourceReturnsOnCall(i int, result1 atc
 		result1 atc.Source
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakeCheckDelegate) SaveVersions(arg1 db.SpanContext, arg2 db.ResourceConfig, arg3 []atc.Version) error {
-	var arg3Copy []atc.Version
-	if arg3 != nil {
-		arg3Copy = make([]atc.Version, len(arg3))
-		copy(arg3Copy, arg3)
-	}
-	fake.saveVersionsMutex.Lock()
-	ret, specificReturn := fake.saveVersionsReturnsOnCall[len(fake.saveVersionsArgsForCall)]
-	fake.saveVersionsArgsForCall = append(fake.saveVersionsArgsForCall, struct {
-		arg1 db.SpanContext
-		arg2 db.ResourceConfig
-		arg3 []atc.Version
-	}{arg1, arg2, arg3Copy})
-	fake.recordInvocation("SaveVersions", []interface{}{arg1, arg2, arg3Copy})
-	fake.saveVersionsMutex.Unlock()
-	if fake.SaveVersionsStub != nil {
-		return fake.SaveVersionsStub(arg1, arg2, arg3)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.saveVersionsReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeCheckDelegate) SaveVersionsCallCount() int {
-	fake.saveVersionsMutex.RLock()
-	defer fake.saveVersionsMutex.RUnlock()
-	return len(fake.saveVersionsArgsForCall)
-}
-
-func (fake *FakeCheckDelegate) SaveVersionsCalls(stub func(db.SpanContext, db.ResourceConfig, []atc.Version) error) {
-	fake.saveVersionsMutex.Lock()
-	defer fake.saveVersionsMutex.Unlock()
-	fake.SaveVersionsStub = stub
-}
-
-func (fake *FakeCheckDelegate) SaveVersionsArgsForCall(i int) (db.SpanContext, db.ResourceConfig, []atc.Version) {
-	fake.saveVersionsMutex.RLock()
-	defer fake.saveVersionsMutex.RUnlock()
-	argsForCall := fake.saveVersionsArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
-}
-
-func (fake *FakeCheckDelegate) SaveVersionsReturns(result1 error) {
-	fake.saveVersionsMutex.Lock()
-	defer fake.saveVersionsMutex.Unlock()
-	fake.SaveVersionsStub = nil
-	fake.saveVersionsReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeCheckDelegate) SaveVersionsReturnsOnCall(i int, result1 error) {
-	fake.saveVersionsMutex.Lock()
-	defer fake.saveVersionsMutex.Unlock()
-	fake.SaveVersionsStub = nil
-	if fake.saveVersionsReturnsOnCall == nil {
-		fake.saveVersionsReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.saveVersionsReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeCheckDelegate) SelectedWorker(arg1 lager.Logger, arg2 string) {
@@ -621,16 +688,18 @@ func (fake *FakeCheckDelegate) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.erroredMutex.RLock()
 	defer fake.erroredMutex.RUnlock()
+	fake.findOrCreateScopeMutex.RLock()
+	defer fake.findOrCreateScopeMutex.RUnlock()
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
 	fake.imageVersionDeterminedMutex.RLock()
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	fake.initializingMutex.RLock()
 	defer fake.initializingMutex.RUnlock()
+	fake.pointToSavedVersionsMutex.RLock()
+	defer fake.pointToSavedVersionsMutex.RUnlock()
 	fake.redactImageSourceMutex.RLock()
 	defer fake.redactImageSourceMutex.RUnlock()
-	fake.saveVersionsMutex.RLock()
-	defer fake.saveVersionsMutex.RUnlock()
 	fake.selectedWorkerMutex.RLock()
 	defer fake.selectedWorkerMutex.RUnlock()
 	fake.startingMutex.RLock()

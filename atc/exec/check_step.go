@@ -34,7 +34,8 @@ type CheckStep struct {
 type CheckDelegate interface {
 	BuildStepDelegate
 
-	SaveVersions(db.SpanContext, db.ResourceConfig, []atc.Version) error
+	FindOrCreateScope(db.ResourceConfig) (db.ResourceConfigScope, error)
+	PointToSavedVersions(db.ResourceConfigScope) error
 }
 
 func NewCheckStep(
@@ -126,13 +127,48 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		Max: 1 * time.Hour,
 	}
 
-	// XXX(check-refactor): this might possibly get GC'd - do we need an owner or
-	// a use?
+	// XXX(check-refactor): this might get GC'd - do we need an owner or a use?
+	//
+	// associating it to the resource would keep it alive, but we don't want to
+	// do that too early because it'll leave a brief period where a resource a
+	// config set but no no version history, which will cause flickering with
+	// frequent credential rotation
 	resourceConfig, err := step.resourceConfigFactory.FindOrCreateResourceConfig(step.plan.Type, source, resourceTypes)
 	if err != nil {
 		return fmt.Errorf("create resource config: %w", err)
 	}
 
+	// XXX(global-resources): remove this when we don't have to worry about
+	// global resources anymore (i.e. when time resource becomes time var source
+	// and IAM is handled via var source prototypes)
+	scope, err := step.delegate.FindOrCreateScope(resourceConfig)
+	if err != nil {
+		return fmt.Errorf("create resource config scope: %w", err)
+	}
+
+	// XXX(check-refactor): no-op if already checked recently and just return
+	// latest version
+	//
+	// need to add interval to the plan, which takes a bit more surgery than i'd
+	// like to do right now
+	// if time.Now().After(scope.LastCheckEndTime().Add(step.plan.Interval)) {
+	// }
+
+	fromVersion := step.plan.FromVersion
+	if fromVersion == nil {
+		latestVersion, found, err := scope.LatestVersion()
+		if err != nil {
+			return fmt.Errorf("get latest version: %w", err)
+		}
+
+		if found {
+			fromVersion = atc.Version(latestVersion.Version())
+		}
+	}
+
+	// XXX(check-refactor): this can be turned into NewBuildStepContainerOwner
+	// now, but we should understand the performance implications first - it'll
+	// mean a lot more container churn
 	owner := db.NewResourceConfigCheckSessionContainerOwner(
 		resourceConfig.ID(),
 		resourceConfig.OriginBaseResourceType().ID,
@@ -142,7 +178,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 	checkable := step.resourceFactory.NewResource(
 		source,
 		nil,
-		step.plan.FromVersion,
+		fromVersion,
 	)
 
 	imageSpec := worker.ImageFetcherSpec{
@@ -168,9 +204,16 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		return fmt.Errorf("run check step: %w", err)
 	}
 
-	err = step.delegate.SaveVersions(db.NewSpanContext(ctx), resourceConfig, result.Versions)
+	err = scope.SaveVersions(db.NewSpanContext(ctx), result.Versions)
 	if err != nil {
 		return fmt.Errorf("save versions: %w", err)
+	}
+
+	// XXX(global-resources): set config instead of scope once scopes are
+	// eliminated
+	err = step.delegate.PointToSavedVersions(scope)
+	if err != nil {
+		return fmt.Errorf("update resource config scope: %w", err)
 	}
 
 	step.succeeded = true

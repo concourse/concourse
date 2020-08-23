@@ -322,77 +322,128 @@ type checkDelegate struct {
 	plan        *atc.CheckPlan
 	eventOrigin event.Origin
 	clock       clock.Clock
+
+	// stashed away just so we don't have to query them multiple times
+	cachedPipeline     db.Pipeline
+	cachedResource     db.Resource
+	cachedResourceType db.ResourceType
 }
 
-func (d *checkDelegate) SaveVersions(spanContext db.SpanContext, resourceConfig db.ResourceConfig, versions []atc.Version) error {
-	var pipeline db.Pipeline
-	var resource db.Resource
-	var resourceType db.ResourceType
-	if d.plan.UpdateResource != "" || d.plan.UpdateResourceType != "" {
-		var found bool
-		var err error
-		pipeline, found, err = d.build.Pipeline()
-		if err != nil {
-			return fmt.Errorf("get build pipeline: %w", err)
-		}
-
-		if !found {
-			// pipeline removed
-			return fmt.Errorf("pipeline removed")
-		}
-	}
-
-	if d.plan.UpdateResource != "" {
-		var found bool
-		var err error
-		resource, found, err = pipeline.Resource(d.plan.UpdateResource)
-		if err != nil {
-			return fmt.Errorf("get pipeline resource: %w", err)
-		}
-
-		if !found {
-			return fmt.Errorf("resource removed")
-		}
-	}
-
-	if d.plan.UpdateResourceType != "" {
-		var found bool
-		var err error
-		resourceType, found, err = pipeline.ResourceType(d.plan.UpdateResourceType)
-		if err != nil {
-			return fmt.Errorf("get pipeline resource: %w", err)
-		}
-
-		if !found {
-			return fmt.Errorf("resource removed")
-		}
-	}
-
-	scope, err := resourceConfig.FindOrCreateScope(resource)
+func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.ResourceConfigScope, error) {
+	resource, _, err := d.resource()
 	if err != nil {
-		return fmt.Errorf("find or create scope: %w", err)
+		return nil, fmt.Errorf("get resource: %w", err)
 	}
 
-	err = scope.SaveVersions(spanContext, versions)
+	scope, err := config.FindOrCreateScope(resource) // ignore found, nil is ok
 	if err != nil {
-		return fmt.Errorf("save versions: %w", err)
+		return nil, fmt.Errorf("find or create scope: %w", err)
 	}
 
-	if resource != nil {
-		err = resource.SetResourceConfigScope(scope)
+	return scope, nil
+}
+
+func (d *checkDelegate) PointToSavedVersions(scope db.ResourceConfigScope) error {
+	resource, found, err := d.resource()
+	if err != nil {
+		return fmt.Errorf("get resource: %w", err)
+	}
+
+	if found {
+		err := resource.SetResourceConfigScope(scope)
 		if err != nil {
-			return fmt.Errorf("set resource config scope: %w", err)
+			return fmt.Errorf("set resource scope: %w", err)
 		}
 	}
 
-	if resourceType != nil {
-		err = resourceType.SetResourceConfigScope(scope)
+	resourceType, found, err := d.resourceType()
+	if err != nil {
+		return fmt.Errorf("get resource type: %w", err)
+	}
+
+	if found {
+		err := resourceType.SetResourceConfigScope(scope)
 		if err != nil {
-			return fmt.Errorf("set resource config scope: %w", err)
+			return fmt.Errorf("set resource type scope: %w", err)
 		}
 	}
 
 	return nil
+}
+
+func (d *checkDelegate) pipeline() (db.Pipeline, error) {
+	if d.cachedPipeline != nil {
+		return d.cachedPipeline, nil
+	}
+
+	pipeline, found, err := d.build.Pipeline()
+	if err != nil {
+		return nil, fmt.Errorf("get build pipeline: %w", err)
+	}
+
+	if !found {
+		return nil, fmt.Errorf("pipeline not found")
+	}
+
+	d.cachedPipeline = pipeline
+
+	return d.cachedPipeline, nil
+}
+
+func (d *checkDelegate) resource() (db.Resource, bool, error) {
+	if d.plan.UpdateResource == "" {
+		return nil, false, nil
+	}
+
+	if d.cachedResource != nil {
+		return d.cachedResource, true, nil
+	}
+
+	pipeline, err := d.pipeline()
+	if err != nil {
+		return nil, false, err
+	}
+
+	resource, found, err := pipeline.Resource(d.plan.UpdateResource)
+	if err != nil {
+		return nil, false, fmt.Errorf("get pipeline resource: %w", err)
+	}
+
+	if !found {
+		return nil, false, fmt.Errorf("resource '%s' deleted", d.plan.UpdateResource)
+	}
+
+	d.cachedResource = resource
+
+	return d.cachedResource, true, nil
+}
+
+func (d *checkDelegate) resourceType() (db.ResourceType, bool, error) {
+	if d.plan.UpdateResourceType == "" {
+		return nil, false, nil
+	}
+
+	if d.cachedResourceType != nil {
+		return d.cachedResourceType, true, nil
+	}
+
+	pipeline, err := d.pipeline()
+	if err != nil {
+		return nil, false, err
+	}
+
+	resourceType, found, err := pipeline.ResourceType(d.plan.UpdateResourceType)
+	if err != nil {
+		return nil, false, fmt.Errorf("get pipeline resource type: %w", err)
+	}
+
+	if !found {
+		return nil, false, fmt.Errorf("resource type '%s' deleted", d.plan.UpdateResourceType)
+	}
+
+	d.cachedResourceType = resourceType
+
+	return d.cachedResourceType, true, nil
 }
 
 type discardCloser struct {

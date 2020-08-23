@@ -85,9 +85,7 @@ func (c *checkFactory) NotifyChecker() error {
 	return c.conn.Bus().Notify(atc.ComponentLidarChecker)
 }
 
-func (c *checkFactory) AcquireScanningLock(
-	logger lager.Logger,
-) (lock.Lock, bool, error) {
+func (c *checkFactory) AcquireScanningLock(logger lager.Logger) (lock.Lock, bool, error) {
 	return c.lockFactory.Acquire(
 		logger,
 		lock.NewResourceScanningLockID(),

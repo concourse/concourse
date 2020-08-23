@@ -143,6 +143,7 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 		return nil
 	}
 
+	// XXX(check-refactor): don't forget this: check from pinned version if set
 	version := checkable.CurrentPinnedVersion()
 
 	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, s.logger), checkable, resourceTypes, version, false)
