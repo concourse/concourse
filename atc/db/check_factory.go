@@ -39,6 +39,8 @@ type Checkable interface {
 		atc.VersionedResourceTypes,
 	) (ResourceConfigScope, error)
 
+	CheckPlan(atc.Version, time.Duration, atc.VersionedResourceTypes) atc.CheckPlan
+
 	SetCheckSetupError(error) error
 }
 
@@ -99,6 +101,7 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 
 	parentType, found := resourceTypes.Parent(checkable)
 	if found {
+		// XXX(check-refactor): this seems important
 		if parentType.Version() == nil {
 			return nil, false, fmt.Errorf("resource type '%s' has no version", parentType.Name())
 		}
@@ -153,17 +156,13 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		}
 	}
 
-	plan := atc.Plan{
-		Check: &atc.CheckPlan{
-			Name:        checkable.Name(),
-			Type:        checkable.Type(),
-			Source:      checkable.Source(),
-			Tags:        checkable.Tags(),
-			Timeout:     timeout.String(),
-			FromVersion: fromVersion,
+	checkPlan := checkable.CheckPlan(fromVersion, timeout, filteredTypes)
 
-			VersionedResourceTypes: filteredTypes,
-		},
+	plan := atc.Plan{
+		// XXX(check-refactor): use plan factory
+		ID: atc.PlanID("TODO"),
+
+		Check: &checkPlan,
 	}
 
 	meta := CheckMetadata{

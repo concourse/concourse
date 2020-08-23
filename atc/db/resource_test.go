@@ -445,6 +445,36 @@ var _ = Describe("Resource", func() {
 		})
 	})
 
+	Describe("CheckPlan", func() {
+		It("returns a plan which will update the resource", func() {
+			vrts := atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "some-type",
+						Type:   "some-base-type",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
+				},
+			}
+
+			Expect(defaultResource.CheckPlan(atc.Version{"some": "version"}, 10*time.Second, vrts)).To(Equal(atc.CheckPlan{
+				Name:   defaultResource.Name(),
+				Type:   defaultResource.Type(),
+				Source: defaultResource.Source(),
+				Tags:   defaultResource.Tags(),
+
+				FromVersion: atc.Version{"some": "version"},
+
+				Timeout: "10s",
+
+				VersionedResourceTypes: vrts,
+
+				UpdateResource: defaultResource.Name(),
+			}))
+		})
+	})
+
 	Describe("SetResourceConfig", func() {
 		var pipeline db.Pipeline
 		var config atc.Config

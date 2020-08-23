@@ -64,6 +64,8 @@ type Resource interface {
 	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
 	SetResourceConfigScope(ResourceConfigScope) error
 
+	CheckPlan(atc.Version, time.Duration, atc.VersionedResourceTypes) atc.CheckPlan
+
 	SetCheckSetupError(error) error
 	NotifyScan() error
 
@@ -301,6 +303,29 @@ func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.Versio
 	}
 
 	return resourceConfigScope, nil
+}
+
+func (r *resource) CheckPlan(from atc.Version, timeout time.Duration, resourceTypes atc.VersionedResourceTypes) atc.CheckPlan {
+	return atc.CheckPlan{
+		Name:   r.Name(),
+		Type:   r.Type(),
+		Source: r.Source(),
+		Tags:   r.Tags(),
+
+		FromVersion: from,
+
+		// XXX(check-refactor): this is awkward because it could theoretically be
+		// set to r.CheckTimeout(), but the system-wide default is handled outside
+		// and passed in here.
+		//
+		// can we respect the system-wide default at runtime instead of having it
+		// passed in and required?
+		Timeout: timeout.String(),
+
+		VersionedResourceTypes: resourceTypes,
+
+		UpdateResource: r.Name(),
+	}
 }
 
 func (r *resource) SetCheckSetupError(cause error) error {

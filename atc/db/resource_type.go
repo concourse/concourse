@@ -47,7 +47,18 @@ type ResourceType interface {
 
 	HasWebhook() bool
 
+	SetResourceConfigScope(ResourceConfigScope) error
+
+	// XXX(check-refactor): might be able to remove this as we trend towards
+	// doing resource type checks only within build plans
+	//
+	// this is only needed because LIDAR still queues a build for each resource
+	// type - once it's inlined into the build plan this can go away, and we can
+	// rely on the 'check' step to do it
 	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
+
+	CheckPlan(atc.Version, time.Duration, atc.VersionedResourceTypes) atc.CheckPlan
+
 	SetCheckSetupError(error) error
 
 	Version() atc.Version
@@ -142,7 +153,7 @@ var resourceTypesQuery = psql.Select(
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
 	LeftJoin("resource_configs c ON c.id = r.resource_config_id").
-	LeftJoin("resource_config_scopes ro ON ro.resource_config_id = c.id").
+	LeftJoin("resource_config_scopes ro ON ro.resource_config_id = c.id"). // XXX(check-refactor) it's a little weird that this can technically find a scope for a resource, but it really shouldn't matter
 	LeftJoin(`LATERAL (
 		SELECT rcv.*
 		FROM resource_config_versions rcv
@@ -215,6 +226,23 @@ func (t *resourceType) Reload() (bool, error) {
 	return true, nil
 }
 
+func (r *resourceType) SetResourceConfigScope(scope ResourceConfigScope) error {
+	_, err := psql.Update("resource_types").
+		Set("resource_config_id", scope.ResourceConfig().ID()).
+		Where(sq.Eq{"id": r.id}).
+		Where(sq.Or{
+			sq.Eq{"resource_config_id": nil},
+			sq.NotEq{"resource_config_id": scope.ResourceConfig().ID()},
+		}).
+		RunWith(r.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (t *resourceType) SetResourceConfig(source atc.Source, resourceTypes atc.VersionedResourceTypes) (ResourceConfigScope, error) {
 	resourceConfigDescriptor, err := constructResourceConfigDescriptor(t.type_, source, resourceTypes)
 	if err != nil {
@@ -256,6 +284,29 @@ func (t *resourceType) SetResourceConfig(source atc.Source, resourceTypes atc.Ve
 	}
 
 	return resourceConfigScope, nil
+}
+
+func (r *resourceType) CheckPlan(from atc.Version, timeout time.Duration, resourceTypes atc.VersionedResourceTypes) atc.CheckPlan {
+	return atc.CheckPlan{
+		Name:   r.Name(),
+		Type:   r.Type(),
+		Source: r.Source(),
+		Tags:   r.Tags(),
+
+		FromVersion: from,
+
+		// XXX(check-refactor): this is awkward because it could theoretically be
+		// set to r.CheckTimeout(), but the system-wide default is handled outside
+		// and passed in here.
+		//
+		// can we respect the system-wide default at runtime instead of having it
+		// passed in and required?
+		Timeout: timeout.String(),
+
+		VersionedResourceTypes: resourceTypes,
+
+		UpdateResourceType: r.Name(),
+	}
 }
 
 func (t *resourceType) SetCheckSetupError(cause error) error {

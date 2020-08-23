@@ -325,9 +325,13 @@ type checkDelegate struct {
 }
 
 func (d *checkDelegate) SaveVersions(spanContext db.SpanContext, resourceConfig db.ResourceConfig, versions []atc.Version) error {
+	var pipeline db.Pipeline
 	var resource db.Resource
-	if d.plan.Resource != "" {
-		pipeline, found, err := d.build.Pipeline()
+	var resourceType db.ResourceType
+	if d.plan.UpdateResource != "" || d.plan.UpdateResourceType != "" {
+		var found bool
+		var err error
+		pipeline, found, err = d.build.Pipeline()
 		if err != nil {
 			return fmt.Errorf("get build pipeline: %w", err)
 		}
@@ -336,8 +340,25 @@ func (d *checkDelegate) SaveVersions(spanContext db.SpanContext, resourceConfig 
 			// pipeline removed
 			return fmt.Errorf("pipeline removed")
 		}
+	}
 
-		resource, found, err = pipeline.Resource(d.plan.Resource)
+	if d.plan.UpdateResource != "" {
+		var found bool
+		var err error
+		resource, found, err = pipeline.Resource(d.plan.UpdateResource)
+		if err != nil {
+			return fmt.Errorf("get pipeline resource: %w", err)
+		}
+
+		if !found {
+			return fmt.Errorf("resource removed")
+		}
+	}
+
+	if d.plan.UpdateResourceType != "" {
+		var found bool
+		var err error
+		resourceType, found, err = pipeline.ResourceType(d.plan.UpdateResourceType)
 		if err != nil {
 			return fmt.Errorf("get pipeline resource: %w", err)
 		}
@@ -359,6 +380,13 @@ func (d *checkDelegate) SaveVersions(spanContext db.SpanContext, resourceConfig 
 
 	if resource != nil {
 		err = resource.SetResourceConfigScope(scope)
+		if err != nil {
+			return fmt.Errorf("set resource config scope: %w", err)
+		}
+	}
+
+	if resourceType != nil {
+		err = resourceType.SetResourceConfigScope(scope)
 		if err != nil {
 			return fmt.Errorf("set resource config scope: %w", err)
 		}

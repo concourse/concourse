@@ -207,11 +207,21 @@ type PutPlan struct {
 type CheckPlan struct {
 	Type        string  `json:"type"`
 	Name        string  `json:"name,omitempty"`
-	Resource    string  `json:"resource"` // XXX(check-refactor): make sure you remember to use this
 	Source      Source  `json:"source"`
 	Tags        Tags    `json:"tags,omitempty"`
 	Timeout     string  `json:"timeout,omitempty"`
 	FromVersion Version `json:"from_version,omitempty"`
+
+	UpdateResource string `json:"update_resource"`
+
+	// XXX(check-refactor): we should be able to remove this as part of removing
+	// VersionedResourceTypes; it's necessary because it's currently the only way
+	// VersionedResourceTypes actually finds the versions (see
+	// resourceTypesQuery)
+	//
+	// removing it now is a little tricky because TaskPlan doesn't even know its
+	// image or image type until runtime (see TaskPlan comment)
+	UpdateResourceType string `json:"update_resource_type"`
 
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 }
@@ -231,6 +241,9 @@ type TaskPlan struct {
 	OutputMapping     map[string]string `json:"output_mapping,omitempty"`
 	ImageArtifactName string            `json:"image,omitempty"`
 
+	// XXX(check-refactor): this one's a bit harder to eliminate, because we
+	// don't even know what checks to pre-populate, because the config isn't
+	// known until runtime
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 }
 

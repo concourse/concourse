@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"errors"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -381,6 +382,68 @@ var _ = Describe("ResourceType", func() {
 			It("returns the version", func() {
 				Expect(resourceType.Version()).To(Equal(atc.Version{"version": "2"}))
 			})
+		})
+	})
+
+	Describe("SetResourceConfigScope", func() {
+		var resourceType db.ResourceType
+		var scope db.ResourceConfigScope
+
+		BeforeEach(func() {
+			resourceType = defaultResourceType
+
+			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(resourceType.Type(), resourceType.Source(), atc.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			scope, err = resourceConfig.FindOrCreateScope(nil)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("associates the resource to the config and scope", func() {
+			Expect(resourceType.ResourceConfigScopeID()).To(BeZero())
+
+			Expect(resourceType.SetResourceConfigScope(scope)).To(Succeed())
+
+			_, err := resourceType.Reload()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(resourceType.ResourceConfigScopeID()).To(Equal(scope.ID()))
+		})
+	})
+
+	Describe("CheckPlan", func() {
+		var resourceType db.ResourceType
+
+		BeforeEach(func() {
+			resourceType = defaultResourceType
+		})
+
+		It("returns a plan which will update the resource type", func() {
+			vrts := atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "some-type",
+						Type:   "some-base-type",
+						Source: atc.Source{"some": "source"},
+					},
+					Version: atc.Version{"some": "version"},
+				},
+			}
+
+			Expect(resourceType.CheckPlan(atc.Version{"some": "version"}, 10*time.Second, vrts)).To(Equal(atc.CheckPlan{
+				Name:   resourceType.Name(),
+				Type:   resourceType.Type(),
+				Source: resourceType.Source(),
+				Tags:   resourceType.Tags(),
+
+				FromVersion: atc.Version{"some": "version"},
+
+				Timeout: "10s",
+
+				VersionedResourceTypes: vrts,
+
+				UpdateResourceType: resourceType.Name(),
+			}))
 		})
 	})
 })
