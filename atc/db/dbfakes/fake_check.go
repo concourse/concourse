@@ -28,18 +28,6 @@ type FakeCheck struct {
 		result2 bool
 		result3 error
 	}
-	AllCheckablesStub        func() ([]db.Checkable, error)
-	allCheckablesMutex       sync.RWMutex
-	allCheckablesArgsForCall []struct {
-	}
-	allCheckablesReturns struct {
-		result1 []db.Checkable
-		result2 error
-	}
-	allCheckablesReturnsOnCall map[int]struct {
-		result1 []db.Checkable
-		result2 error
-	}
 	BaseResourceTypeIDStub        func() int
 	baseResourceTypeIDMutex       sync.RWMutex
 	baseResourceTypeIDArgsForCall []struct {
@@ -347,61 +335,6 @@ func (fake *FakeCheck) AcquireTrackingLockReturnsOnCall(i int, result1 lock.Lock
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
-}
-
-func (fake *FakeCheck) AllCheckables() ([]db.Checkable, error) {
-	fake.allCheckablesMutex.Lock()
-	ret, specificReturn := fake.allCheckablesReturnsOnCall[len(fake.allCheckablesArgsForCall)]
-	fake.allCheckablesArgsForCall = append(fake.allCheckablesArgsForCall, struct {
-	}{})
-	fake.recordInvocation("AllCheckables", []interface{}{})
-	fake.allCheckablesMutex.Unlock()
-	if fake.AllCheckablesStub != nil {
-		return fake.AllCheckablesStub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.allCheckablesReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeCheck) AllCheckablesCallCount() int {
-	fake.allCheckablesMutex.RLock()
-	defer fake.allCheckablesMutex.RUnlock()
-	return len(fake.allCheckablesArgsForCall)
-}
-
-func (fake *FakeCheck) AllCheckablesCalls(stub func() ([]db.Checkable, error)) {
-	fake.allCheckablesMutex.Lock()
-	defer fake.allCheckablesMutex.Unlock()
-	fake.AllCheckablesStub = stub
-}
-
-func (fake *FakeCheck) AllCheckablesReturns(result1 []db.Checkable, result2 error) {
-	fake.allCheckablesMutex.Lock()
-	defer fake.allCheckablesMutex.Unlock()
-	fake.AllCheckablesStub = nil
-	fake.allCheckablesReturns = struct {
-		result1 []db.Checkable
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeCheck) AllCheckablesReturnsOnCall(i int, result1 []db.Checkable, result2 error) {
-	fake.allCheckablesMutex.Lock()
-	defer fake.allCheckablesMutex.Unlock()
-	fake.AllCheckablesStub = nil
-	if fake.allCheckablesReturnsOnCall == nil {
-		fake.allCheckablesReturnsOnCall = make(map[int]struct {
-			result1 []db.Checkable
-			result2 error
-		})
-	}
-	fake.allCheckablesReturnsOnCall[i] = struct {
-		result1 []db.Checkable
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeCheck) BaseResourceTypeID() int {
@@ -1636,8 +1569,6 @@ func (fake *FakeCheck) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.acquireTrackingLockMutex.RLock()
 	defer fake.acquireTrackingLockMutex.RUnlock()
-	fake.allCheckablesMutex.RLock()
-	defer fake.allCheckablesMutex.RUnlock()
 	fake.baseResourceTypeIDMutex.RLock()
 	defer fake.baseResourceTypeIDMutex.RUnlock()
 	fake.checkErrorMutex.RLock()

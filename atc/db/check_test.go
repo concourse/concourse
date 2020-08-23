@@ -12,11 +12,10 @@ import (
 
 var _ = Describe("Check", func() {
 	var (
-		err                     error
-		created                 bool
-		check                   db.Check
-		resourceConfigScope     db.ResourceConfigScope
-		resourceTypeConfigScope db.ResourceConfigScope
+		err                 error
+		created             bool
+		check               db.Check
+		resourceConfigScope db.ResourceConfigScope
 	)
 
 	BeforeEach(func() {
@@ -33,9 +32,6 @@ var _ = Describe("Check", func() {
 		Expect(setupTx.Commit()).To(Succeed())
 
 		resourceConfigScope, err = defaultResource.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
-		Expect(err).NotTo(HaveOccurred())
-
-		resourceTypeConfigScope, err = defaultResourceType.SetResourceConfig(atc.Source{"some": "type-repository"}, atc.VersionedResourceTypes{})
 		Expect(err).NotTo(HaveOccurred())
 
 		metadata := db.CheckMetadata{
@@ -141,65 +137,6 @@ var _ = Describe("Check", func() {
 
 			Expect(defaultResource.LastCheckEndTime()).To(BeTemporally("~", time.Now(), time.Second))
 			Expect(defaultResource.CheckError()).To(Equal(errors.New("nope")))
-		})
-	})
-
-	Describe("AllCheckables", func() {
-		var checkables []db.Checkable
-
-		Context("with resources", func() {
-			JustBeforeEach(func() {
-				checkables, err = check.AllCheckables()
-			})
-
-			It("succeeds", func() {
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("includes any resources that point to the scope", func() {
-				defaultResource.Reload()
-
-				Expect(checkables).To(HaveLen(1))
-				Expect(checkables[0]).To(Equal(defaultResource))
-			})
-		})
-
-		Context("with resource types", func() {
-			BeforeEach(func() {
-
-				metadata := db.CheckMetadata{
-					TeamID:             defaultTeam.ID(),
-					TeamName:           defaultTeam.Name(),
-					PipelineName:       defaultPipeline.Name(),
-					ResourceConfigID:   resourceConfigScope.ResourceConfig().ID(),
-					BaseResourceTypeID: resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
-				}
-
-				check, created, err = checkFactory.CreateCheck(
-					resourceTypeConfigScope.ID(),
-					false,
-					atc.Plan{},
-					metadata,
-					map[string]string{"fake": "span"},
-				)
-				Expect(created).To(BeTrue())
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			JustBeforeEach(func() {
-				checkables, err = check.AllCheckables()
-			})
-
-			It("succeeds", func() {
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("includes any resource type that point to the scope", func() {
-				defaultResourceType.Reload()
-
-				Expect(checkables).To(HaveLen(1))
-				Expect(checkables[0]).To(Equal(defaultResourceType))
-			})
 		})
 	})
 

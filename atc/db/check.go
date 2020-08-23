@@ -47,7 +47,6 @@ type Check interface {
 	FinishWithError(err error) error
 
 	SaveVersions(SpanContext, []atc.Version) error
-	AllCheckables() ([]Checkable, error)
 	AcquireTrackingLock(lager.Logger) (lock.Lock, bool, error)
 	Reload() (bool, error)
 
@@ -262,69 +261,6 @@ func (c *check) AcquireTrackingLock(logger lager.Logger) (lock.Lock, bool, error
 		logger,
 		lock.NewResourceConfigCheckingLockID(c.ResourceConfigID()),
 	)
-}
-
-func (c *check) AllCheckables() ([]Checkable, error) {
-	var checkables []Checkable
-
-	tx, err := c.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer Rollback(tx)
-	rows, err := resourcesQuery.
-		Where(sq.Eq{
-			"r.resource_config_scope_id": c.resourceConfigScopeID,
-		}).
-		RunWith(tx).
-		Query()
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer Close(rows)
-
-	for rows.Next() {
-		r := newEmptyResource(c.conn, c.lockFactory)
-		err = scanResource(r, rows)
-		if err != nil {
-			return nil, err
-		}
-
-		checkables = append(checkables, r)
-	}
-
-	rows, err = resourceTypesQuery.
-		Where(sq.Eq{
-			"ro.id": c.resourceConfigScopeID,
-		}).
-		RunWith(tx).
-		Query()
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer Close(rows)
-
-	for rows.Next() {
-		r := newEmptyResourceType(c.conn, c.lockFactory)
-		err = scanResourceType(r, rows)
-		if err != nil {
-			return nil, err
-		}
-
-		checkables = append(checkables, r)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	return checkables, nil
 }
 
 func (c *check) SaveVersions(spanContext SpanContext, versions []atc.Version) error {

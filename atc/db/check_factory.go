@@ -45,7 +45,6 @@ type Checkable interface {
 //go:generate counterfeiter . CheckFactory
 
 type CheckFactory interface {
-	Check(int) (Check, bool, error)
 	StartedChecks() ([]Check, error)
 	CreateCheck(int, bool, atc.Plan, CheckMetadata, SpanContext) (Check, bool, error)
 	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.Version, bool) (Check, bool, error)
@@ -92,24 +91,6 @@ func (c *checkFactory) AcquireScanningLock(
 		logger,
 		lock.NewResourceScanningLockID(),
 	)
-}
-
-func (c *checkFactory) Check(id int) (Check, bool, error) {
-	check := newEmptyCheck(c.conn, c.lockFactory)
-	row := checksQuery.
-		Where(sq.Eq{"c.id": id}).
-		RunWith(c.conn).
-		QueryRow()
-
-	err := scanCheck(check, row)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, false, nil
-		}
-		return nil, false, err
-	}
-
-	return check, true, nil
 }
 
 func (c *checkFactory) StartedChecks() ([]Check, error) {

@@ -44,36 +44,6 @@ var _ = Describe("CheckFactory", func() {
 		}
 	})
 
-	Describe("Check", func() {
-		var created, found bool
-		var check, foundCheck db.Check
-
-		BeforeEach(func() {
-			check, created, err = checkFactory.CreateCheck(
-				resourceConfigScope.ID(),
-				false,
-				atc.Plan{Check: &atc.CheckPlan{Name: "some-name", Type: "some-type"}},
-				metadata,
-				map[string]string{"fake": "span"},
-			)
-			Expect(created).To(BeTrue())
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		JustBeforeEach(func() {
-			foundCheck, found, err = checkFactory.Check(check.ID())
-		})
-
-		It("succeeds", func() {
-			Expect(found).To(BeTrue())
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("returns the db check", func() {
-			Expect(foundCheck).To(Equal(check))
-		})
-	})
-
 	Describe("TryCreateCheck", func() {
 
 		var (
