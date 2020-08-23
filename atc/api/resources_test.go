@@ -749,7 +749,6 @@ var _ = Describe("Resources API", func() {
 				})
 				resourceType1.CheckErrorReturns(nil)
 				resourceType1.CheckSetupErrorReturns(nil)
-				resourceType1.UniqueVersionHistoryReturns(true)
 
 				resourceType2 := new(dbfakes.FakeResourceType)
 				resourceType2.IDReturns(2)
@@ -814,7 +813,6 @@ var _ = Describe("Resources API", func() {
 					"tags": ["tag1"],
 					"params": {"param-key-1": "param-value-1"},
 					"source": {"source-key-1": "source-value-1"},
-					"unique_version_history": true,
 					"version": {
 						"version-key-1": "version-value-1",
 						"version-key-2": "version-value-2"
@@ -865,7 +863,6 @@ var _ = Describe("Resources API", func() {
 				"tags": ["tag1"],
 				"params": {"param-key-1": "param-value-1"},
 				"source": {"source-key-1": "source-value-1"},
-				"unique_version_history": true,
 				"version": {
 					"version-key-1": "version-value-1",
 					"version-key-2": "version-value-2"

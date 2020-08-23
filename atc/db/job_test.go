@@ -1518,7 +1518,7 @@ var _ = Describe("Job", func() {
 					Name:  "name1",
 					Value: "value1",
 				},
-			}, resourceConfigScope.ResourceConfig(), atc.VersionedResourceTypes{})
+			}, resourceConfigScope.ResourceConfig())
 			Expect(err).NotTo(HaveOccurred())
 
 			reversions, _, found, err := resource.Versions(db.Page{Limit: 3}, nil)

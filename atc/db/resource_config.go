@@ -288,27 +288,17 @@ func findOrCreateResourceConfigScope(
 	lockFactory lock.LockFactory,
 	resourceConfig ResourceConfig,
 	resource Resource,
-	resourceType string,
-	resourceTypes atc.VersionedResourceTypes,
 ) (ResourceConfigScope, error) {
-
-	var unique bool
 	var uniqueResource Resource
 	var resourceID *int
 
 	if resource != nil {
+		var unique bool
 		if !atc.EnableGlobalResources {
 			unique = true
 		} else {
-			customType, found := resourceTypes.Lookup(resourceType)
-			if found {
-				unique = customType.UniqueVersionHistory
-			} else {
-				baseType := resourceConfig.CreatedByBaseResourceType()
-				if baseType == nil {
-					return nil, ErrResourceConfigHasNoType
-				}
-				unique = baseType.UniqueVersionHistory
+			if brt := resourceConfig.CreatedByBaseResourceType(); brt != nil {
+				unique = brt.UniqueVersionHistory
 			}
 		}
 
@@ -351,7 +341,7 @@ func findOrCreateResourceConfigScope(
 		if err != nil {
 			return nil, err
 		}
-	} else if unique && resource != nil {
+	} else if uniqueResource != nil {
 		// delete outdated scopes for resource
 		_, err := psql.Delete("resource_config_scopes").
 			Where(sq.And{

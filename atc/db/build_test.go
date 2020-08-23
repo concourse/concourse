@@ -1092,10 +1092,9 @@ var _ = Describe("Build", func() {
 						resourceTypes = atc.VersionedResourceTypes{
 							{
 								ResourceType: atc.ResourceType{
-									Name:                 "given-type",
-									Source:               atc.Source{"some": "source"},
-									Type:                 "some-type",
-									UniqueVersionHistory: true,
+									Name:   "given-type",
+									Source: atc.Source{"some": "source"},
+									Type:   "some-type",
 								},
 								Version: atc.Version{"some-resource-type": "version"},
 							},
@@ -1204,7 +1203,7 @@ var _ = Describe("Build", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// This version should not be returned by the Resources method because it has a check order of 0
-			created, err := resource1.SaveUncheckedVersion(atc.Version{"ver": "not-returned"}, nil, resourceConfigScope1.ResourceConfig(), atc.VersionedResourceTypes{})
+			created, err := resource1.SaveUncheckedVersion(atc.Version{"ver": "not-returned"}, nil, resourceConfigScope1.ResourceConfig())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(created).To(BeTrue())
 		})

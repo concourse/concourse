@@ -52,7 +52,7 @@ type Resource interface {
 
 	ResourceConfigVersionID(atc.Version) (int, bool, error)
 	Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error)
-	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig, atc.VersionedResourceTypes) (bool, error)
+	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig) (bool, error)
 	UpdateMetadata(atc.Version, ResourceConfigMetadataFields) (bool, error)
 
 	EnableVersion(rcvID int) error
@@ -219,7 +219,7 @@ func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.Versio
 		return nil, err
 	}
 
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r, r.type_, resourceTypes)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r)
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +281,7 @@ func (r *resource) SetCheckSetupError(cause error) error {
 }
 
 // XXX: only used for tests
-func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields, resourceConfig ResourceConfig, resourceTypes atc.VersionedResourceTypes) (bool, error) {
+func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields, resourceConfig ResourceConfig) (bool, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return false, err
@@ -289,7 +289,7 @@ func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceCo
 
 	defer Rollback(tx)
 
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r, r.type_, resourceTypes)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r)
 	if err != nil {
 		return false, err
 	}

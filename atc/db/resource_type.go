@@ -42,7 +42,6 @@ type ResourceType interface {
 	LastCheckEndTime() time.Time
 	CheckSetupError() error
 	CheckError() error
-	UniqueVersionHistory() bool
 	CurrentPinnedVersion() atc.Version
 	ResourceConfigScopeID() int
 
@@ -89,14 +88,13 @@ func (resourceTypes ResourceTypes) Deserialize() atc.VersionedResourceTypes {
 	for _, t := range resourceTypes {
 		versionedResourceTypes = append(versionedResourceTypes, atc.VersionedResourceType{
 			ResourceType: atc.ResourceType{
-				Name:                 t.Name(),
-				Type:                 t.Type(),
-				Source:               t.Source(),
-				Privileged:           t.Privileged(),
-				CheckEvery:           t.CheckEvery(),
-				Tags:                 t.Tags(),
-				Params:               t.Params(),
-				UniqueVersionHistory: t.UniqueVersionHistory(),
+				Name:       t.Name(),
+				Type:       t.Type(),
+				Source:     t.Source(),
+				Privileged: t.Privileged(),
+				CheckEvery: t.CheckEvery(),
+				Tags:       t.Tags(),
+				Params:     t.Params(),
 			},
 			Version: t.Version(),
 		})
@@ -110,14 +108,13 @@ func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
 
 	for _, r := range resourceTypes {
 		configs = append(configs, atc.ResourceType{
-			Name:                 r.Name(),
-			Type:                 r.Type(),
-			Source:               r.Source(),
-			Privileged:           r.Privileged(),
-			CheckEvery:           r.CheckEvery(),
-			Tags:                 r.Tags(),
-			Params:               r.Params(),
-			UniqueVersionHistory: r.UniqueVersionHistory(),
+			Name:       r.Name(),
+			Type:       r.Type(),
+			Source:     r.Source(),
+			Privileged: r.Privileged(),
+			CheckEvery: r.CheckEvery(),
+			Tags:       r.Tags(),
+			Params:     r.Params(),
 		})
 	}
 
@@ -174,7 +171,6 @@ type resourceType struct {
 	lastCheckEndTime      time.Time
 	checkSetupError       error
 	checkError            error
-	uniqueVersionHistory  bool
 }
 
 func (t *resourceType) ID() int                       { return t.id }
@@ -192,7 +188,6 @@ func (t *resourceType) Params() atc.Params            { return t.params }
 func (t *resourceType) Tags() atc.Tags                { return t.tags }
 func (t *resourceType) CheckSetupError() error        { return t.checkSetupError }
 func (t *resourceType) CheckError() error             { return t.checkError }
-func (t *resourceType) UniqueVersionHistory() bool    { return t.uniqueVersionHistory }
 func (t *resourceType) ResourceConfigScopeID() int    { return t.resourceConfigScopeID }
 
 func (t *resourceType) Version() atc.Version              { return t.version }
@@ -250,7 +245,7 @@ func (t *resourceType) SetResourceConfig(source atc.Source, resourceTypes atc.Ve
 	}
 
 	// A nil value is passed into the Resource object parameter because we always want resource type versions to be shared
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, t.conn, t.lockFactory, resourceConfig, nil, t.type_, resourceTypes)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, t.conn, t.lockFactory, resourceConfig, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +327,6 @@ func scanResourceType(t *resourceType, row scannable) error {
 	t.privileged = config.Privileged
 	t.tags = config.Tags
 	t.checkEvery = config.CheckEvery
-	t.uniqueVersionHistory = config.UniqueVersionHistory
 
 	if checkErr.Valid {
 		t.checkSetupError = errors.New(checkErr.String)

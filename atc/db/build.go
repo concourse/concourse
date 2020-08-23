@@ -1046,7 +1046,7 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, b.conn, b.lockFactory, resourceConfig, resource, resourceType, resourceTypes)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, b.conn, b.lockFactory, resourceConfig, resource)
 	if err != nil {
 		return err
 	}
