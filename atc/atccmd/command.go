@@ -958,7 +958,6 @@ func (cmd *RunCommand) backendComponents(
 	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
-	dbCheckableCounter := db.NewCheckableCounter(dbConn)
 	dbPipelineLifecycle := db.NewPipelineLifecycle(dbConn, lockFactory)
 
 	alg := algorithm.New(db.NewVersionsDB(dbConn, algorithmLimitRows, schedulerCache))
@@ -1056,22 +1055,6 @@ func (cmd *RunCommand) backendComponents(
 				cmd.GlobalResourceCheckTimeout,
 				cmd.ResourceCheckingInterval,
 				cmd.ResourceWithWebhookCheckingInterval,
-			),
-		},
-		{
-			Component: atc.Component{
-				Name:     atc.ComponentLidarChecker,
-				Interval: cmd.LidarCheckerInterval,
-			},
-			Runnable: lidar.NewChecker(
-				logger.Session(atc.ComponentLidarChecker),
-				dbCheckFactory,
-				engine,
-				lidar.CheckRateCalculator{
-					MaxChecksPerSecond:       cmd.MaxChecksPerSecond,
-					ResourceCheckingInterval: cmd.ResourceCheckingInterval,
-					CheckableCounter:         dbCheckableCounter,
-				},
 			),
 		},
 		{

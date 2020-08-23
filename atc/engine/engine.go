@@ -25,7 +25,6 @@ import (
 
 type Engine interface {
 	NewBuild(db.Build) Runnable
-	NewCheck(db.Check) Runnable
 
 	Drain(context.Context)
 }
@@ -77,16 +76,6 @@ func (engine *engine) Drain(ctx context.Context) {
 func (engine *engine) NewBuild(build db.Build) Runnable {
 	return NewBuild(
 		build,
-		engine.builder,
-		engine.release,
-		engine.trackedStates,
-		engine.waitGroup,
-	)
-}
-
-func (engine *engine) NewCheck(check db.Check) Runnable {
-	return NewCheck(
-		check,
 		engine.builder,
 		engine.release,
 		engine.trackedStates,
@@ -317,135 +306,4 @@ func (b *engineBuild) runState() exec.RunState {
 func (b *engineBuild) clearRunState() {
 	id := fmt.Sprintf("build:%v", b.build.ID())
 	b.trackedStates.Delete(id)
-}
-
-func NewCheck(
-	check db.Check,
-	builder StepBuilder,
-	release chan bool,
-	trackedStates *sync.Map,
-	waitGroup *sync.WaitGroup,
-) Runnable {
-	return &engineCheck{
-		check:   check,
-		builder: builder,
-
-		release:       release,
-		trackedStates: trackedStates,
-		waitGroup:     waitGroup,
-	}
-}
-
-type engineCheck struct {
-	check   db.Check
-	builder StepBuilder
-
-	release       chan bool
-	trackedStates *sync.Map
-	waitGroup     *sync.WaitGroup
-}
-
-func (c *engineCheck) Run(ctx context.Context) {
-	c.waitGroup.Add(1)
-	defer c.waitGroup.Done()
-
-	logger := lagerctx.FromContext(ctx).WithData(lager.Data{
-		"check": c.check.ID(),
-	})
-
-	lock, acquired, err := c.check.AcquireTrackingLock(logger)
-	if err != nil {
-		logger.Error("failed-to-get-lock", err)
-		return
-	}
-
-	if !acquired {
-		logger.Debug("check-already-tracked")
-		return
-	}
-
-	defer lock.Release()
-
-	err = c.check.Start()
-	if err != nil {
-		logger.Error("failed-to-start-check", err)
-		return
-	}
-
-	c.trackStarted(logger)
-	defer c.trackFinished(logger)
-
-	step, err := c.builder.CheckStep(logger, c.check)
-	if err != nil {
-		logger.Error("failed-to-create-check-step", err)
-		c.check.FinishWithError(fmt.Errorf("create check step: %w", err))
-		return
-	}
-
-	logger.Info("running")
-
-	state := c.runState()
-	defer c.clearRunState()
-
-	done := make(chan error)
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				err = fmt.Errorf("panic in engine check step run %s: %v", lager.Data{
-					"team_name":     c.check.TeamName(),
-					"pipeline_name": c.check.PipelineName(),
-				}, r)
-
-				fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
-				logger.Error("panic-in-engine-check-step-run", err)
-
-				done <- err
-			}
-		}()
-		ctx := lagerctx.NewContext(ctx, logger)
-		ctx = policy.RecordTeamAndPipeline(ctx, c.check.TeamName(), c.check.PipelineName())
-		done <- step.Run(ctx, state)
-	}()
-
-	select {
-	case <-c.release:
-		logger.Info("releasing")
-
-	case err = <-done:
-		if err != nil {
-			logger.Info("errored", lager.Data{"error": err.Error()})
-			c.check.FinishWithError(fmt.Errorf("run check step: %w", err))
-		} else {
-			logger.Info("succeeded")
-			if err = c.check.Finish(); err != nil {
-				logger.Error("failed-to-finish-check", err)
-			}
-		}
-	}
-}
-
-func (c *engineCheck) runState() exec.RunState {
-	id := fmt.Sprintf("check:%v", c.check.ID())
-	existingState, _ := c.trackedStates.LoadOrStore(id, exec.NewRunState())
-	return existingState.(exec.RunState)
-}
-
-func (c *engineCheck) clearRunState() {
-	id := fmt.Sprintf("check:%v", c.check.ID())
-	c.trackedStates.Delete(id)
-}
-
-func (c *engineCheck) trackStarted(logger lager.Logger) {
-	metric.Metrics.ChecksStarted.Inc()
-}
-
-func (c *engineCheck) trackFinished(logger lager.Logger) {
-	switch c.check.Status() {
-	case db.CheckStatusErrored:
-		metric.Metrics.ChecksFinishedWithError.Inc()
-	case db.CheckStatusSucceeded:
-		metric.Metrics.ChecksFinishedWithSuccess.Inc()
-	default:
-		logger.Info("unexpected-check-status", lager.Data{"status": c.check.Status()})
-	}
 }
