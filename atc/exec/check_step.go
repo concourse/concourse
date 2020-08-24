@@ -186,6 +186,11 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		Delegate:      step.delegate,
 	}
 
+	_, err = scope.UpdateLastCheckStartTime()
+	if err != nil {
+		return fmt.Errorf("update check end time: %w", err)
+	}
+
 	result, err := step.workerClient.RunCheckStep(
 		ctx,
 		logger,
@@ -207,6 +212,11 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 	err = scope.SaveVersions(db.NewSpanContext(ctx), result.Versions)
 	if err != nil {
 		return fmt.Errorf("save versions: %w", err)
+	}
+
+	_, err = scope.UpdateLastCheckEndTime()
+	if err != nil {
+		return fmt.Errorf("update check end time: %w", err)
 	}
 
 	// XXX(global-resources): set config instead of scope once scopes are

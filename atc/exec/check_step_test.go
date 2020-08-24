@@ -392,12 +392,31 @@ var _ = Describe("CheckStep", func() {
 				}))
 			})
 
+			Context("before running the check", func() {
+				BeforeEach(func() {
+					fakeResourceConfigScope.UpdateLastCheckStartTimeStub = func() (bool, error) {
+						Expect(fakeClient.RunCheckStepCallCount()).To(Equal(0))
+						return true, nil
+					}
+				})
+
+				It("updates the scope's last check start time", func() {
+					Expect(fakeResourceConfigScope.UpdateLastCheckStartTimeCallCount()).To(Equal(1))
+					Expect(fakeClient.RunCheckStepCallCount()).To(Equal(1))
+				})
+			})
+
 			Context("after saving", func() {
 				BeforeEach(func() {
 					fakeResourceConfigScope.SaveVersionsStub = func(db.SpanContext, []atc.Version) error {
 						Expect(fakeDelegate.PointToSavedVersionsCallCount()).To(BeZero())
+						Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(0))
 						return nil
 					}
+				})
+
+				It("updates the scope's last check end time", func() {
+					Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(1))
 				})
 
 				It("points the resource or resource type to the scope", func() {

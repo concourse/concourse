@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
@@ -36,10 +35,7 @@ type ResourceConfigScope interface {
 		logger lager.Logger,
 	) (lock.Lock, bool, error)
 
-	UpdateLastCheckStartTime(
-		interval time.Duration,
-		immediate bool,
-	) (bool, error)
+	UpdateLastCheckStartTime() (bool, error)
 
 	UpdateLastCheckEndTime() (bool, error)
 }
@@ -201,10 +197,7 @@ func (r *resourceConfigScope) AcquireResourceCheckingLock(
 	)
 }
 
-func (r *resourceConfigScope) UpdateLastCheckStartTime(
-	interval time.Duration,
-	immediate bool,
-) (bool, error) {
+func (r *resourceConfigScope) UpdateLastCheckStartTime() (bool, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return false, err
@@ -212,19 +205,11 @@ func (r *resourceConfigScope) UpdateLastCheckStartTime(
 
 	defer Rollback(tx)
 
-	params := []interface{}{r.id}
-
-	condition := ""
-	if !immediate {
-		condition = "AND now() - last_check_start_time > ($2 || ' SECONDS')::INTERVAL"
-		params = append(params, interval.Seconds())
-	}
-
 	updated, err := checkIfRowsUpdated(tx, `
-			UPDATE resource_config_scopes
-			SET last_check_start_time = now()
-			WHERE id = $1
-		`+condition, params...)
+		UPDATE resource_config_scopes
+		SET last_check_start_time = now()
+		WHERE id = $1
+	`, r.id)
 	if err != nil {
 		return false, err
 	}
@@ -250,10 +235,10 @@ func (r *resourceConfigScope) UpdateLastCheckEndTime() (bool, error) {
 	defer Rollback(tx)
 
 	updated, err := checkIfRowsUpdated(tx, `
-			UPDATE resource_config_scopes
-			SET last_check_end_time = now()
-			WHERE id = $1
-		`, r.id)
+		UPDATE resource_config_scopes
+		SET last_check_end_time = now()
+		WHERE id = $1
+	`, r.id)
 	if err != nil {
 		return false, err
 	}
