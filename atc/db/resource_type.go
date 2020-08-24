@@ -46,12 +46,6 @@ type ResourceType interface {
 
 	HasWebhook() bool
 
-	// XXX(check-refactor): we should be able to remove this, but unfortunately a
-	// ton of db tests rely on it. i've started a refactor to clean up the db
-	// package, but it's definitely going to take some time - there's a lot of
-	// debt there.
-	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
-
 	SetResourceConfigScope(ResourceConfigScope) error
 
 	CheckPlan(atc.Version, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
@@ -252,49 +246,6 @@ func (r *resourceType) SetResourceConfigScope(scope ResourceConfigScope) error {
 	}
 
 	return nil
-}
-
-func (t *resourceType) SetResourceConfig(source atc.Source, resourceTypes atc.VersionedResourceTypes) (ResourceConfigScope, error) {
-	resourceConfigDescriptor, err := constructResourceConfigDescriptor(t.type_, source, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
-	tx, err := t.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer Rollback(tx)
-
-	resourceConfig, err := resourceConfigDescriptor.findOrCreate(tx, t.lockFactory, t.conn)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = psql.Update("resource_types").
-		Set("resource_config_id", resourceConfig.ID()).
-		Where(sq.Eq{
-			"id": t.id,
-		}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return nil, err
-	}
-
-	// A nil value is passed into the Resource object parameter because we always want resource type versions to be shared
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, t.conn, t.lockFactory, resourceConfig, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	return resourceConfigScope, nil
 }
 
 func (r *resourceType) CheckPlan(from atc.Version, interval time.Duration, resourceTypes ResourceTypes, sourceDefaults atc.Source) atc.CheckPlan {

@@ -31,11 +31,6 @@ type Checkable interface {
 
 	HasWebhook() bool
 
-	SetResourceConfig(
-		atc.Source,
-		atc.VersionedResourceTypes,
-	) (ResourceConfigScope, error)
-
 	CheckPlan(atc.Version, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
 	CreateBuild(context.Context, bool) (Build, bool, error)
 }
