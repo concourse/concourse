@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,9 +11,11 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/runtime"
@@ -344,15 +347,40 @@ func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.Resource
 }
 
 // XXX(check-refactor): unit tests
-func (d *checkDelegate) WaitAndRun(scope db.ResourceConfigScope) (bool, error) {
-	if d.build.IsManuallyTriggered() {
-		// do not delay manually triggered checks (or builds)
-		return true, nil
+//
+// XXX(check-refactor): this would be a great place to add a lock!
+//
+// acquire lock (blocking), refresh last check end time, check if interval has
+// elapsed, if not release lock and false, if so return lock
+//
+// if lock cannot be acquired immediately, wait for the check to complete
+func (d *checkDelegate) WaitAndRun(ctx context.Context, scope db.ResourceConfigScope) (lock.Lock, bool, error) {
+	logger := lagerctx.FromContext(ctx)
+
+	var err error
+
+	var interval time.Duration
+	if d.plan.Interval != "" {
+		interval, err = time.ParseDuration(d.plan.Interval)
+		if err != nil {
+			return nil, false, err
+		}
 	}
 
-	interval, err := time.ParseDuration(d.plan.Interval)
-	if err != nil {
-		return false, err
+	var lock lock.Lock
+	for {
+		var acquired bool
+		lock, acquired, err = scope.AcquireResourceCheckingLock(logger)
+		if err != nil {
+			return nil, false, fmt.Errorf("acquire lock: %w", err)
+		}
+
+		if acquired {
+			break
+		}
+
+		// XXX(check-refactor): it would be nice to just do a blocking acquire
+		d.clock.Sleep(time.Second)
 	}
 
 	// XXX(check-refactor): one interesting thing we could do here is literally
@@ -361,11 +389,28 @@ func (d *checkDelegate) WaitAndRun(scope db.ResourceConfigScope) (bool, error) {
 	// then all of checking would be modeled as rate limiting. we'd just make
 	// sure a build was running for each resource and keep queueing up another
 	// when the last one finishes.
-	if d.clock.Now().Before(scope.LastCheckEndTime().Add(interval)) {
-		// skip if we've already checked within the interval
 
-		// XXX(check-refactor): we could potentially sleep here until time has
-		// elapsed
+	end, err := scope.LastCheckEndTime()
+	if err != nil {
+		if releaseErr := lock.Release(); releaseErr != nil {
+			logger.Error("failed-to-release-lock", releaseErr)
+		}
+
+		return nil, false, fmt.Errorf("get last check end time: %w", err)
+	}
+
+	runAt := end.Add(interval)
+
+	shouldRun := false
+	if d.build.IsManuallyTriggered() {
+		// do not delay manually triggered checks (or builds)
+		shouldRun = true
+	} else if !d.clock.Now().Before(runAt) {
+		// run if we're past the last check end time
+		shouldRun = true
+	} else {
+		// XXX(check-refactor): we could potentially sleep here until runAt is
+		// reached.
 		//
 		// then the check build queueing logic is to just make sure there's a build
 		// running for every resource, without having to check if intervals have
@@ -374,12 +419,20 @@ func (d *checkDelegate) WaitAndRun(scope db.ResourceConfigScope) (bool, error) {
 		// this could be expanded upon to short-circuit the waiting with events
 		// triggered webhooks so that webhooks are super responsive - rather than
 		// queueing a build, it would just wake up a goroutine
-
-		return false, nil
 	}
 
-	// XXX(check-refactor): enforce rate limiting too
-	return true, nil
+	if !shouldRun {
+		err := lock.Release()
+		if err != nil {
+			return nil, false, fmt.Errorf("release lock: %w", err)
+		}
+
+		return nil, false, nil
+	}
+
+	// XXX(check-refactor): enforce global rate limiting
+
+	return lock, true, nil
 }
 
 func (d *checkDelegate) PointToSavedVersions(scope db.ResourceConfigScope) error {

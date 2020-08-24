@@ -1,6 +1,7 @@
 package builder_test
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -15,6 +16,8 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
@@ -413,16 +416,21 @@ var _ = Describe("DelegateFactory", func() {
 		})
 
 		Describe("WaitAndRun", func() {
+			var fakeLock *lockfakes.FakeLock
+
+			var lock lock.Lock
 			var run bool
+			var runErr error
 
 			BeforeEach(func() {
 				run = false
+
+				fakeLock = new(lockfakes.FakeLock)
+				fakeResourceConfigScope.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
 			})
 
 			JustBeforeEach(func() {
-				var err error
-				run, err = delegate.WaitAndRun(fakeResourceConfigScope)
-				Expect(err).ToNot(HaveOccurred())
+				lock, run, runErr = delegate.WaitAndRun(context.TODO(), fakeResourceConfigScope)
 			})
 
 			Context("when the build is manually triggered", func() {
@@ -433,6 +441,10 @@ var _ = Describe("DelegateFactory", func() {
 				It("returns true", func() {
 					Expect(run).To(BeTrue())
 				})
+
+				It("returns the lock", func() {
+					Expect(lock).To(Equal(fakeLock))
+				})
 			})
 
 			Context("with an interval configured", func() {
@@ -442,9 +454,27 @@ var _ = Describe("DelegateFactory", func() {
 					plan.Check.Interval = interval.String()
 				})
 
+				Context("when getting the interval errors", func() {
+					BeforeEach(func() {
+						fakeResourceConfigScope.LastCheckEndTimeReturns(time.Time{}, errors.New("oh no"))
+					})
+
+					It("returns an error", func() {
+						Expect(runErr).To(HaveOccurred())
+					})
+
+					It("returns false", func() {
+						Expect(run).To(BeFalse())
+					})
+
+					It("releases the lock", func() {
+						Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+					})
+				})
+
 				Context("when the interval has not elapsed since the last check", func() {
 					BeforeEach(func() {
-						fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(-(interval - 1)))
+						fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(-(interval - 1)), nil)
 					})
 
 					It("returns false", func() {
@@ -454,11 +484,15 @@ var _ = Describe("DelegateFactory", func() {
 
 				Context("when the interval has elapsed since the last check", func() {
 					BeforeEach(func() {
-						fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(-interval))
+						fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(-interval), nil)
 					})
 
 					It("returns true", func() {
 						Expect(run).To(BeTrue())
+					})
+
+					It("returns the lock", func() {
+						Expect(lock).To(Equal(fakeLock))
 					})
 				})
 			})

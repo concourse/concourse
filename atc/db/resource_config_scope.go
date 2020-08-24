@@ -25,7 +25,6 @@ type ResourceConfigScope interface {
 	Resource() Resource
 	ResourceConfig() ResourceConfig
 	CheckError() error
-	LastCheckEndTime() time.Time
 
 	SaveVersions(SpanContext, []atc.Version) error
 	FindVersion(atc.Version) (ResourceConfigVersion, bool, error)
@@ -38,15 +37,16 @@ type ResourceConfigScope interface {
 	) (lock.Lock, bool, error)
 
 	UpdateLastCheckStartTime() (bool, error)
+
+	LastCheckEndTime() (time.Time, error)
 	UpdateLastCheckEndTime() (bool, error)
 }
 
 type resourceConfigScope struct {
-	id               int
-	resource         Resource
-	resourceConfig   ResourceConfig
-	checkError       error
-	lastCheckEndTime time.Time
+	id             int
+	resource       Resource
+	resourceConfig ResourceConfig
+	checkError     error
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -56,7 +56,21 @@ func (r *resourceConfigScope) ID() int                        { return r.id }
 func (r *resourceConfigScope) Resource() Resource             { return r.resource }
 func (r *resourceConfigScope) ResourceConfig() ResourceConfig { return r.resourceConfig }
 func (r *resourceConfigScope) CheckError() error              { return r.checkError }
-func (r *resourceConfigScope) LastCheckEndTime() time.Time    { return r.lastCheckEndTime }
+
+func (r *resourceConfigScope) LastCheckEndTime() (time.Time, error) {
+	var lastCheckEndTime time.Time
+	err := psql.Select("last_check_end_time").
+		From("resource_config_scopes").
+		Where(sq.Eq{"id": r.id}).
+		RunWith(r.conn).
+		QueryRow().
+		Scan(&lastCheckEndTime)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return lastCheckEndTime, nil
+}
 
 // SaveVersions stores a list of version in the db for a resource config
 // Each version will also have its check order field updated and the

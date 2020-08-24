@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
@@ -35,7 +36,7 @@ type CheckDelegate interface {
 	BuildStepDelegate
 
 	FindOrCreateScope(db.ResourceConfig) (db.ResourceConfigScope, error)
-	WaitAndRun(db.ResourceConfigScope) (bool, error)
+	WaitAndRun(context.Context, db.ResourceConfigScope) (lock.Lock, bool, error)
 	PointToSavedVersions(db.ResourceConfigScope) error
 }
 
@@ -122,12 +123,19 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		return fmt.Errorf("create resource config scope: %w", err)
 	}
 
-	run, err := step.delegate.WaitAndRun(scope)
+	lock, run, err := step.delegate.WaitAndRun(ctx, scope)
 	if err != nil {
 		return fmt.Errorf("wait: %w", err)
 	}
 
 	if run {
+		defer func() {
+			err := lock.Release()
+			if err != nil {
+				logger.Error("failed-to-release-lock", err)
+			}
+		}()
+
 		// get the latest version AFTER waiting!
 		//
 		// XXX(check-refactor): it's actually cool that we don't get the latest

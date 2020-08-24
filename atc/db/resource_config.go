@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
@@ -288,9 +287,8 @@ func findOrCreateResourceConfigScope(
 
 	var scopeID int
 	var checkErr error
-	var lastCheckEndTime time.Time
 
-	rows, err := psql.Select("id, check_error, last_check_end_time").
+	rows, err := psql.Select("id, check_error").
 		From("resource_config_scopes").
 		Where(sq.Eq{
 			"resource_id":        resourceID,
@@ -305,7 +303,7 @@ func findOrCreateResourceConfigScope(
 	if rows.Next() {
 		var checkErrBlob sql.NullString
 
-		err = rows.Scan(&scopeID, &checkErrBlob, &lastCheckEndTime)
+		err = rows.Scan(&scopeID, &checkErrBlob)
 		if err != nil {
 			return nil, err
 		}
@@ -339,11 +337,11 @@ func findOrCreateResourceConfigScope(
 				ON CONFLICT (resource_id, resource_config_id) WHERE resource_id IS NOT NULL DO UPDATE SET
 					resource_id = ?,
 					resource_config_id = ?
-				RETURNING id, last_check_end_time
+				RETURNING id
 			`, resource.ID(), resourceConfig.ID()).
 			RunWith(tx).
 			QueryRow().
-			Scan(&scopeID, &lastCheckEndTime)
+			Scan(&scopeID)
 		if err != nil {
 			return nil, err
 		}
@@ -354,23 +352,22 @@ func findOrCreateResourceConfigScope(
 			Suffix(`
 				ON CONFLICT (resource_config_id) WHERE resource_id IS NULL DO UPDATE SET
 					resource_config_id = ?
-				RETURNING id, last_check_end_time
+				RETURNING id
 			`, resourceConfig.ID()).
 			RunWith(tx).
 			QueryRow().
-			Scan(&scopeID, &lastCheckEndTime)
+			Scan(&scopeID)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return &resourceConfigScope{
-		id:               scopeID,
-		resource:         uniqueResource,
-		resourceConfig:   resourceConfig,
-		checkError:       checkErr,
-		lastCheckEndTime: lastCheckEndTime,
-		conn:             conn,
-		lockFactory:      lockFactory,
+		id:             scopeID,
+		resource:       uniqueResource,
+		resourceConfig: resourceConfig,
+		checkError:     checkErr,
+		conn:           conn,
+		lockFactory:    lockFactory,
 	}, nil
 }

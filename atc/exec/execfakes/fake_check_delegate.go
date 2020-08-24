@@ -2,12 +2,14 @@
 package execfakes
 
 import (
+	"context"
 	"io"
 	"sync"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/vars"
 )
@@ -119,18 +121,21 @@ type FakeCheckDelegate struct {
 	variablesReturnsOnCall map[int]struct {
 		result1 *vars.BuildVariables
 	}
-	WaitAndRunStub        func(db.ResourceConfigScope) (bool, error)
+	WaitAndRunStub        func(context.Context, db.ResourceConfigScope) (lock.Lock, bool, error)
 	waitAndRunMutex       sync.RWMutex
 	waitAndRunArgsForCall []struct {
-		arg1 db.ResourceConfigScope
+		arg1 context.Context
+		arg2 db.ResourceConfigScope
 	}
 	waitAndRunReturns struct {
-		result1 bool
-		result2 error
+		result1 lock.Lock
+		result2 bool
+		result3 error
 	}
 	waitAndRunReturnsOnCall map[int]struct {
-		result1 bool
-		result2 error
+		result1 lock.Lock
+		result2 bool
+		result3 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -696,22 +701,23 @@ func (fake *FakeCheckDelegate) VariablesReturnsOnCall(i int, result1 *vars.Build
 	}{result1}
 }
 
-func (fake *FakeCheckDelegate) WaitAndRun(arg1 db.ResourceConfigScope) (bool, error) {
+func (fake *FakeCheckDelegate) WaitAndRun(arg1 context.Context, arg2 db.ResourceConfigScope) (lock.Lock, bool, error) {
 	fake.waitAndRunMutex.Lock()
 	ret, specificReturn := fake.waitAndRunReturnsOnCall[len(fake.waitAndRunArgsForCall)]
 	fake.waitAndRunArgsForCall = append(fake.waitAndRunArgsForCall, struct {
-		arg1 db.ResourceConfigScope
-	}{arg1})
-	fake.recordInvocation("WaitAndRun", []interface{}{arg1})
+		arg1 context.Context
+		arg2 db.ResourceConfigScope
+	}{arg1, arg2})
+	fake.recordInvocation("WaitAndRun", []interface{}{arg1, arg2})
 	fake.waitAndRunMutex.Unlock()
 	if fake.WaitAndRunStub != nil {
-		return fake.WaitAndRunStub(arg1)
+		return fake.WaitAndRunStub(arg1, arg2)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1, ret.result2, ret.result3
 	}
 	fakeReturns := fake.waitAndRunReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
 func (fake *FakeCheckDelegate) WaitAndRunCallCount() int {
@@ -720,43 +726,46 @@ func (fake *FakeCheckDelegate) WaitAndRunCallCount() int {
 	return len(fake.waitAndRunArgsForCall)
 }
 
-func (fake *FakeCheckDelegate) WaitAndRunCalls(stub func(db.ResourceConfigScope) (bool, error)) {
+func (fake *FakeCheckDelegate) WaitAndRunCalls(stub func(context.Context, db.ResourceConfigScope) (lock.Lock, bool, error)) {
 	fake.waitAndRunMutex.Lock()
 	defer fake.waitAndRunMutex.Unlock()
 	fake.WaitAndRunStub = stub
 }
 
-func (fake *FakeCheckDelegate) WaitAndRunArgsForCall(i int) db.ResourceConfigScope {
+func (fake *FakeCheckDelegate) WaitAndRunArgsForCall(i int) (context.Context, db.ResourceConfigScope) {
 	fake.waitAndRunMutex.RLock()
 	defer fake.waitAndRunMutex.RUnlock()
 	argsForCall := fake.waitAndRunArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeCheckDelegate) WaitAndRunReturns(result1 bool, result2 error) {
+func (fake *FakeCheckDelegate) WaitAndRunReturns(result1 lock.Lock, result2 bool, result3 error) {
 	fake.waitAndRunMutex.Lock()
 	defer fake.waitAndRunMutex.Unlock()
 	fake.WaitAndRunStub = nil
 	fake.waitAndRunReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
-func (fake *FakeCheckDelegate) WaitAndRunReturnsOnCall(i int, result1 bool, result2 error) {
+func (fake *FakeCheckDelegate) WaitAndRunReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
 	fake.waitAndRunMutex.Lock()
 	defer fake.waitAndRunMutex.Unlock()
 	fake.WaitAndRunStub = nil
 	if fake.waitAndRunReturnsOnCall == nil {
 		fake.waitAndRunReturnsOnCall = make(map[int]struct {
-			result1 bool
-			result2 error
+			result1 lock.Lock
+			result2 bool
+			result3 error
 		})
 	}
 	fake.waitAndRunReturnsOnCall[i] = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
+		result1 lock.Lock
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeCheckDelegate) Invocations() map[string][][]interface{} {

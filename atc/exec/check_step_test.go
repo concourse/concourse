@@ -8,6 +8,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
@@ -180,8 +181,11 @@ var _ = Describe("CheckStep", func() {
 	})
 
 	Context("with a reasonable configuration", func() {
+		var fakeLock *lockfakes.FakeLock
+
 		BeforeEach(func() {
-			fakeDelegate.WaitAndRunReturns(true, nil)
+			fakeLock = new(lockfakes.FakeLock)
+			fakeDelegate.WaitAndRunReturns(fakeLock, true, nil)
 
 			resTypes := atc.VersionedResourceTypes{
 				{
@@ -429,6 +433,20 @@ var _ = Describe("CheckStep", func() {
 					Expect(fakeDelegate.PointToSavedVersionsCallCount()).To(Equal(1))
 					scope := fakeDelegate.PointToSavedVersionsArgsForCall(0)
 					Expect(scope).To(Equal(fakeResourceConfigScope))
+				})
+			})
+
+			Context("after pointing the resource type to the scope", func() {
+				BeforeEach(func() {
+					fakeDelegate.PointToSavedVersionsStub = func(db.ResourceConfigScope) error {
+						Expect(fakeLock.ReleaseCallCount()).To(Equal(0))
+						return nil
+					}
+				})
+
+				It("releases the lock", func() {
+					Expect(fakeDelegate.PointToSavedVersionsCallCount()).To(Equal(1))
+					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 				})
 			})
 		})
