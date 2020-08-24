@@ -104,7 +104,8 @@ var _ = Describe("CheckStep", func() {
 	Context("having credentials in the config", func() {
 		BeforeEach(func() {
 			checkPlan = atc.CheckPlan{
-				Source: atc.Source{"some": "((super-secret-source))"},
+				Source:  atc.Source{"some": "((super-secret-source))"},
+				Timeout: "1m",
 			}
 		})
 
@@ -141,6 +142,7 @@ var _ = Describe("CheckStep", func() {
 
 			checkPlan = atc.CheckPlan{
 				Source:                 atc.Source{"some": "super-secret-source"},
+				Timeout:                "1m",
 				VersionedResourceTypes: resTypes,
 			}
 		})
@@ -179,6 +181,8 @@ var _ = Describe("CheckStep", func() {
 
 	Context("with a reasonable configuration", func() {
 		BeforeEach(func() {
+			fakeDelegate.WaitAndRunReturns(true, nil)
+
 			resTypes := atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{
@@ -348,6 +352,7 @@ var _ = Describe("CheckStep", func() {
 			})
 
 			It("propagates span context to scope", func() {
+				Expect(fakeResourceConfigScope.SaveVersionsCallCount()).To(Equal(1))
 				spanContext, _ := fakeResourceConfigScope.SaveVersionsArgsForCall(0)
 				traceID := span.SpanContext().TraceIDString()
 				traceParent := spanContext.Get(propagators.TraceparentHeader)

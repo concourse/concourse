@@ -427,7 +427,7 @@ var _ = Describe("ResourceType", func() {
 		})
 
 		It("returns a plan which will update the resource type", func() {
-			Expect(resourceType.CheckPlan(atc.Version{"some": "version"}, 10*time.Second, resourceTypes)).To(Equal(atc.CheckPlan{
+			Expect(resourceType.CheckPlan(atc.Version{"some": "version"}, time.Minute, 10*time.Second, resourceTypes)).To(Equal(atc.CheckPlan{
 				Name:   resourceType.Name(),
 				Type:   resourceType.Type(),
 				Source: resourceType.Source(),
@@ -435,7 +435,8 @@ var _ = Describe("ResourceType", func() {
 
 				FromVersion: atc.Version{"some": "version"},
 
-				Timeout: "10s",
+				Interval: "1m0s",
+				Timeout:  "10s",
 
 				VersionedResourceTypes: resourceTypes.Deserialize(),
 

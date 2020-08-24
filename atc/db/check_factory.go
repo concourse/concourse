@@ -37,7 +37,7 @@ type Checkable interface {
 		atc.VersionedResourceTypes,
 	) (ResourceConfigScope, error)
 
-	CheckPlan(atc.Version, time.Duration, ResourceTypes) atc.CheckPlan
+	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes) atc.CheckPlan
 	CreateBuild(bool) (Build, bool, error)
 
 	SetCheckSetupError(error) error
@@ -57,9 +57,12 @@ type checkFactory struct {
 	conn        Conn
 	lockFactory lock.LockFactory
 
-	secrets             creds.Secrets
-	varSourcePool       creds.VarSourcePool
-	defaultCheckTimeout time.Duration
+	secrets       creds.Secrets
+	varSourcePool creds.VarSourcePool
+
+	defaultCheckTimeout             time.Duration
+	defaultCheckInterval            time.Duration
+	defaultWithWebhookCheckInterval time.Duration
 }
 
 func NewCheckFactory(
@@ -68,14 +71,19 @@ func NewCheckFactory(
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 	defaultCheckTimeout time.Duration,
+	defaultCheckInterval time.Duration,
+	defaultWithWebhookCheckInterval time.Duration,
 ) CheckFactory {
 	return &checkFactory{
 		conn:        conn,
 		lockFactory: lockFactory,
 
-		secrets:             secrets,
-		varSourcePool:       varSourcePool,
-		defaultCheckTimeout: defaultCheckTimeout,
+		secrets:       secrets,
+		varSourcePool: varSourcePool,
+
+		defaultCheckTimeout:             defaultCheckTimeout,
+		defaultCheckInterval:            defaultCheckInterval,
+		defaultWithWebhookCheckInterval: defaultWithWebhookCheckInterval,
 	}
 }
 
@@ -103,15 +111,31 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		}
 	}
 
+	interval := c.defaultCheckInterval
+	if checkable.HasWebhook() {
+		interval = c.defaultWithWebhookCheckInterval
+	}
+	if every := checkable.CheckEvery(); every != "" {
+		interval, err = time.ParseDuration(every)
+		if err != nil {
+			return nil, false, fmt.Errorf("check interval: %s", err)
+		}
+	}
+
+	if time.Now().Before(checkable.LastCheckEndTime().Add(interval)) {
+		// skip creating the check if its interval hasn't elapsed yet
+		return nil, false, nil
+	}
+
 	timeout := c.defaultCheckTimeout
 	if to := checkable.CheckTimeout(); to != "" {
 		timeout, err = time.ParseDuration(to)
 		if err != nil {
-			return nil, false, err
+			return nil, false, fmt.Errorf("check timeout: %s", err)
 		}
 	}
 
-	checkPlan := checkable.CheckPlan(from, timeout, resourceTypes.Filter(checkable))
+	checkPlan := checkable.CheckPlan(from, interval, timeout, resourceTypes.Filter(checkable))
 
 	plan := atc.Plan{
 		// XXX(check-refactor): use plan factory

@@ -30,6 +30,8 @@ var _ = Describe("DelegateFactory", func() {
 		fakeResource *dbfakes.FakeResource
 		fakeClock    *fakeclock.FakeClock
 		buildVars    *vars.BuildVariables
+
+		now = time.Date(1991, 6, 3, 5, 30, 0, 0, time.UTC)
 	)
 
 	BeforeEach(func() {
@@ -38,7 +40,7 @@ var _ = Describe("DelegateFactory", func() {
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakePipeline = new(dbfakes.FakePipeline)
 		fakeResource = new(dbfakes.FakeResource)
-		fakeClock = fakeclock.NewFakeClock(time.Unix(123456789, 0))
+		fakeClock = fakeclock.NewFakeClock(now)
 		credVars := vars.StaticVariables{
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
@@ -71,7 +73,7 @@ var _ = Describe("DelegateFactory", func() {
 				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 				Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.FinishGet{
 					Origin:          event.Origin{ID: event.OriginID("some-plan-id")},
-					Time:            123456789,
+					Time:            now.Unix(),
 					ExitStatus:      int(exitStatus),
 					FetchedVersion:  info.Version,
 					FetchedMetadata: info.Metadata,
@@ -181,7 +183,7 @@ var _ = Describe("DelegateFactory", func() {
 				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 				Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.FinishPut{
 					Origin:          event.Origin{ID: event.OriginID("some-plan-id")},
-					Time:            123456789,
+					Time:            now.Unix(),
 					ExitStatus:      int(exitStatus),
 					CreatedVersion:  info.Version,
 					CreatedMetadata: info.Metadata,
@@ -410,6 +412,58 @@ var _ = Describe("DelegateFactory", func() {
 			})
 		})
 
+		Describe("WaitAndRun", func() {
+			var run bool
+
+			BeforeEach(func() {
+				run = false
+			})
+
+			JustBeforeEach(func() {
+				var err error
+				run, err = delegate.WaitAndRun(fakeResourceConfigScope)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			Context("when the build is manually triggered", func() {
+				BeforeEach(func() {
+					fakeBuild.IsManuallyTriggeredReturns(true)
+				})
+
+				It("returns true", func() {
+					Expect(run).To(BeTrue())
+				})
+			})
+
+			Context("with an interval configured", func() {
+				var interval time.Duration = time.Minute
+
+				BeforeEach(func() {
+					plan.Check.Interval = interval.String()
+				})
+
+				Context("when the interval has not elapsed since the last check", func() {
+					BeforeEach(func() {
+						fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(-(interval - 1)))
+					})
+
+					It("returns false", func() {
+						Expect(run).To(BeFalse())
+					})
+				})
+
+				Context("when the interval has elapsed since the last check", func() {
+					BeforeEach(func() {
+						fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(-interval))
+					})
+
+					It("returns true", func() {
+						Expect(run).To(BeTrue())
+					})
+				})
+			})
+		})
+
 		Describe("PointToSavedVersions", func() {
 			var pointErr error
 
@@ -616,7 +670,7 @@ var _ = Describe("DelegateFactory", func() {
 					It("saves a log event", func() {
 						Expect(fakeBuild.SaveEventCallCount()).To(Equal(2))
 						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
-							Time:    123456789,
+							Time:    now.Unix(),
 							Payload: "hello\n",
 							Origin: event.Origin{
 								Source: event.OriginSourceStdout,
@@ -624,7 +678,7 @@ var _ = Describe("DelegateFactory", func() {
 							},
 						}))
 						Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
-							Time:    123456789,
+							Time:    now.Unix(),
 							Payload: "world",
 							Origin: event.Origin{
 								Source: event.OriginSourceStdout,
@@ -678,7 +732,7 @@ var _ = Describe("DelegateFactory", func() {
 					It("saves a log event", func() {
 						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
-							Time:    123456789,
+							Time:    now.Unix(),
 							Payload: "hello\n",
 							Origin: event.Origin{
 								Source: event.OriginSourceStderr,
@@ -716,7 +770,7 @@ var _ = Describe("DelegateFactory", func() {
 				It("saves it with the current time", func() {
 					Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 					Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Error{
-						Time:    123456789,
+						Time:    now.Unix(),
 						Message: "fake error message",
 						Origin: event.Origin{
 							ID: "some-plan-id",
@@ -765,7 +819,7 @@ var _ = Describe("DelegateFactory", func() {
 
 					Expect(fakeBuild.SaveEventCallCount()).To(Equal(3))
 					Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
-						Time:    123456789,
+						Time:    now.Unix(),
 						Payload: "1\r",
 						Origin: event.Origin{
 							Source: event.OriginSourceStdout,
@@ -773,7 +827,7 @@ var _ = Describe("DelegateFactory", func() {
 						},
 					}))
 					Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
-						Time:    123456789,
+						Time:    now.Unix(),
 						Payload: "2\r",
 						Origin: event.Origin{
 							Source: event.OriginSourceStdout,
@@ -781,7 +835,7 @@ var _ = Describe("DelegateFactory", func() {
 						},
 					}))
 					Expect(fakeBuild.SaveEventArgsForCall(2)).To(Equal(event.Log{
-						Time:    123456789,
+						Time:    now.Unix(),
 						Payload: "3\r",
 						Origin: event.Origin{
 							Source: event.OriginSourceStdout,
@@ -808,7 +862,7 @@ var _ = Describe("DelegateFactory", func() {
 
 					Expect(fakeBuild.SaveEventCallCount()).To(Equal(3))
 					Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
-						Time:    123456789,
+						Time:    now.Unix(),
 						Payload: "1\r",
 						Origin: event.Origin{
 							Source: event.OriginSourceStderr,
@@ -816,7 +870,7 @@ var _ = Describe("DelegateFactory", func() {
 						},
 					}))
 					Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
-						Time:    123456789,
+						Time:    now.Unix(),
 						Payload: "2\r",
 						Origin: event.Origin{
 							Source: event.OriginSourceStderr,
@@ -824,7 +878,7 @@ var _ = Describe("DelegateFactory", func() {
 						},
 					}))
 					Expect(fakeBuild.SaveEventArgsForCall(2)).To(Equal(event.Log{
-						Time:    123456789,
+						Time:    now.Unix(),
 						Payload: "3\r",
 						Origin: event.Origin{
 							Source: event.OriginSourceStderr,
@@ -860,7 +914,7 @@ var _ = Describe("DelegateFactory", func() {
 						Expect(writtenBytes).To(Equal(len("ok super-secret-source ok")))
 						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
-							Time:    123456789,
+							Time:    now.Unix(),
 							Payload: "ok ((redacted)) ok",
 							Origin: event.Origin{
 								Source: event.OriginSourceStdout,
@@ -885,7 +939,7 @@ var _ = Describe("DelegateFactory", func() {
 						Expect(writtenBytes).To(Equal(len(logLines)))
 						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
-							Time:    123456789,
+							Time:    now.Unix(),
 							Payload: "ok((redacted))ok\nok((redacted))ok\nok((redacted))ok\n",
 							Origin: event.Origin{
 								Source: event.OriginSourceStdout,
@@ -906,7 +960,7 @@ var _ = Describe("DelegateFactory", func() {
 					It("should be redacted", func() {
 						Expect(fakeBuild.SaveEventCallCount()).To(Equal(2))
 						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
-							Time:    123456789,
+							Time:    now.Unix(),
 							Payload: "ok((redacted))ok\n",
 							Origin: event.Origin{
 								Source: event.OriginSourceStdout,
@@ -914,7 +968,7 @@ var _ = Describe("DelegateFactory", func() {
 							},
 						}))
 						Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
-							Time:    123456789,
+							Time:    now.Unix(),
 							Payload: "ok((redacted))ok\nok((redacted))ok\n",
 							Origin: event.Origin{
 								Source: event.OriginSourceStdout,
@@ -938,7 +992,7 @@ var _ = Describe("DelegateFactory", func() {
 						Expect(writtenBytes).To(Equal(len("ok super-secret-source ok")))
 						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
-							Time:    123456789,
+							Time:    now.Unix(),
 							Payload: "ok ((redacted)) ok",
 							Origin: event.Origin{
 								Source: event.OriginSourceStderr,
@@ -963,7 +1017,7 @@ var _ = Describe("DelegateFactory", func() {
 						Expect(writtenBytes).To(Equal(len(logLines)))
 						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
-							Time:    123456789,
+							Time:    now.Unix(),
 							Payload: "{\nok((redacted))ok\nok((redacted))ok\nok((redacted))ok\n}\n",
 							Origin: event.Origin{
 								Source: event.OriginSourceStderr,
@@ -984,7 +1038,7 @@ var _ = Describe("DelegateFactory", func() {
 					It("should be redacted", func() {
 						Expect(fakeBuild.SaveEventCallCount()).To(Equal(2))
 						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
-							Time:    123456789,
+							Time:    now.Unix(),
 							Payload: "ok((redacted))ok\n",
 							Origin: event.Origin{
 								Source: event.OriginSourceStderr,
@@ -992,7 +1046,7 @@ var _ = Describe("DelegateFactory", func() {
 							},
 						}))
 						Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
-							Time:    123456789,
+							Time:    now.Unix(),
 							Payload: "ok((redacted))ok\nok((redacted))ok\n",
 							Origin: event.Origin{
 								Source: event.OriginSourceStderr,

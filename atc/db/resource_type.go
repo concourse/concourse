@@ -57,7 +57,7 @@ type ResourceType interface {
 	// rely on the 'check' step to do it
 	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
 
-	CheckPlan(atc.Version, time.Duration, ResourceTypes) atc.CheckPlan
+	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes) atc.CheckPlan
 	CreateBuild(bool) (Build, bool, error)
 
 	SetCheckSetupError(error) error
@@ -287,7 +287,7 @@ func (t *resourceType) SetResourceConfig(source atc.Source, resourceTypes atc.Ve
 	return resourceConfigScope, nil
 }
 
-func (r *resourceType) CheckPlan(from atc.Version, timeout time.Duration, resourceTypes ResourceTypes) atc.CheckPlan {
+func (r *resourceType) CheckPlan(from atc.Version, interval, timeout time.Duration, resourceTypes ResourceTypes) atc.CheckPlan {
 	return atc.CheckPlan{
 		Name:   r.Name(),
 		Type:   r.Type(),
@@ -296,13 +296,18 @@ func (r *resourceType) CheckPlan(from atc.Version, timeout time.Duration, resour
 
 		FromVersion: from,
 
-		// XXX(check-refactor): this is awkward because it could theoretically be
-		// set to r.CheckTimeout(), but the system-wide default is handled outside
-		// and passed in here.
+		// XXX(check-refactor): these two are awkward because it could
+		// theoretically be set to r.CheckTimeout(), but the system-wide default is
+		// handled outside and passed in here.
 		//
-		// can we respect the system-wide default at runtime instead of having it
-		// passed in and required?
-		Timeout: timeout.String(),
+		// should we respect the system-wide default at runtime instead of having
+		// these passed in and making them required?
+		//
+		// also it would be nice if they could be time.Duration, but timeout is
+		// already a string, and i don't want to break old builds. i guess we could
+		// write a custom unmarshaler that handles both.
+		Interval: interval.String(),
+		Timeout:  timeout.String(),
 
 		VersionedResourceTypes: resourceTypes.Deserialize(),
 

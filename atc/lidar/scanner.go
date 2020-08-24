@@ -7,7 +7,6 @@ import (
 	"runtime/debug"
 	"strconv"
 	"sync"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -22,28 +21,19 @@ func NewScanner(
 	logger lager.Logger,
 	checkFactory db.CheckFactory,
 	secrets creds.Secrets,
-	defaultCheckTimeout time.Duration,
-	defaultCheckInterval time.Duration,
-	defaultWithWebhookCheckInterval time.Duration,
 ) *scanner {
 	return &scanner{
-		logger:                          logger,
-		checkFactory:                    checkFactory,
-		secrets:                         secrets,
-		defaultCheckTimeout:             defaultCheckTimeout,
-		defaultCheckInterval:            defaultCheckInterval,
-		defaultWithWebhookCheckInterval: defaultWithWebhookCheckInterval,
+		logger:       logger,
+		checkFactory: checkFactory,
+		secrets:      secrets,
 	}
 }
 
 type scanner struct {
 	logger lager.Logger
 
-	checkFactory                    db.CheckFactory
-	secrets                         creds.Secrets
-	defaultCheckTimeout             time.Duration
-	defaultCheckInterval            time.Duration
-	defaultWithWebhookCheckInterval time.Duration
+	checkFactory db.CheckFactory
+	secrets      creds.Secrets
 }
 
 func (s *scanner) Run(ctx context.Context) error {
@@ -125,22 +115,6 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 				return errors.Wrapf(err, "parent type '%v' error", parentType.Name())
 			}
 		}
-	}
-
-	interval := s.defaultCheckInterval
-	if checkable.HasWebhook() {
-		interval = s.defaultWithWebhookCheckInterval
-	}
-	if every := checkable.CheckEvery(); every != "" {
-		interval, err = time.ParseDuration(every)
-		if err != nil {
-			s.logger.Error("failed-to-parse-check-every", err)
-			return err
-		}
-	}
-
-	if time.Now().Before(checkable.LastCheckEndTime().Add(interval)) {
-		return nil
 	}
 
 	// XXX(check-refactor): don't forget this: check from pinned version if set

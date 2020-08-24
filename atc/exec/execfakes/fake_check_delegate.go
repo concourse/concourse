@@ -119,6 +119,19 @@ type FakeCheckDelegate struct {
 	variablesReturnsOnCall map[int]struct {
 		result1 *vars.BuildVariables
 	}
+	WaitAndRunStub        func(db.ResourceConfigScope) (bool, error)
+	waitAndRunMutex       sync.RWMutex
+	waitAndRunArgsForCall []struct {
+		arg1 db.ResourceConfigScope
+	}
+	waitAndRunReturns struct {
+		result1 bool
+		result2 error
+	}
+	waitAndRunReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -683,6 +696,69 @@ func (fake *FakeCheckDelegate) VariablesReturnsOnCall(i int, result1 *vars.Build
 	}{result1}
 }
 
+func (fake *FakeCheckDelegate) WaitAndRun(arg1 db.ResourceConfigScope) (bool, error) {
+	fake.waitAndRunMutex.Lock()
+	ret, specificReturn := fake.waitAndRunReturnsOnCall[len(fake.waitAndRunArgsForCall)]
+	fake.waitAndRunArgsForCall = append(fake.waitAndRunArgsForCall, struct {
+		arg1 db.ResourceConfigScope
+	}{arg1})
+	fake.recordInvocation("WaitAndRun", []interface{}{arg1})
+	fake.waitAndRunMutex.Unlock()
+	if fake.WaitAndRunStub != nil {
+		return fake.WaitAndRunStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.waitAndRunReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeCheckDelegate) WaitAndRunCallCount() int {
+	fake.waitAndRunMutex.RLock()
+	defer fake.waitAndRunMutex.RUnlock()
+	return len(fake.waitAndRunArgsForCall)
+}
+
+func (fake *FakeCheckDelegate) WaitAndRunCalls(stub func(db.ResourceConfigScope) (bool, error)) {
+	fake.waitAndRunMutex.Lock()
+	defer fake.waitAndRunMutex.Unlock()
+	fake.WaitAndRunStub = stub
+}
+
+func (fake *FakeCheckDelegate) WaitAndRunArgsForCall(i int) db.ResourceConfigScope {
+	fake.waitAndRunMutex.RLock()
+	defer fake.waitAndRunMutex.RUnlock()
+	argsForCall := fake.waitAndRunArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeCheckDelegate) WaitAndRunReturns(result1 bool, result2 error) {
+	fake.waitAndRunMutex.Lock()
+	defer fake.waitAndRunMutex.Unlock()
+	fake.WaitAndRunStub = nil
+	fake.waitAndRunReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCheckDelegate) WaitAndRunReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.waitAndRunMutex.Lock()
+	defer fake.waitAndRunMutex.Unlock()
+	fake.WaitAndRunStub = nil
+	if fake.waitAndRunReturnsOnCall == nil {
+		fake.waitAndRunReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.waitAndRunReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeCheckDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -710,6 +786,8 @@ func (fake *FakeCheckDelegate) Invocations() map[string][][]interface{} {
 	defer fake.stdoutMutex.RUnlock()
 	fake.variablesMutex.RLock()
 	defer fake.variablesMutex.RUnlock()
+	fake.waitAndRunMutex.RLock()
+	defer fake.waitAndRunMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

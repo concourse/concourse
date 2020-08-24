@@ -25,16 +25,12 @@ import (
 var _ = Describe("Engine", func() {
 	var (
 		fakeBuild       *dbfakes.FakeBuild
-		fakeCheck       *dbfakes.FakeCheck
 		fakeStepBuilder *enginefakes.FakeStepBuilder
 	)
 
 	BeforeEach(func() {
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeBuild.IDReturns(128)
-
-		fakeCheck = new(dbfakes.FakeCheck)
-		fakeCheck.IDReturns(128)
 
 		fakeStepBuilder = new(enginefakes.FakeStepBuilder)
 	})

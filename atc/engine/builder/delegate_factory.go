@@ -343,6 +343,45 @@ func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.Resource
 	return scope, nil
 }
 
+// XXX(check-refactor): unit tests
+func (d *checkDelegate) WaitAndRun(scope db.ResourceConfigScope) (bool, error) {
+	if d.build.IsManuallyTriggered() {
+		// do not delay manually triggered checks (or builds)
+		return true, nil
+	}
+
+	interval, err := time.ParseDuration(d.plan.Interval)
+	if err != nil {
+		return false, err
+	}
+
+	// XXX(check-refactor): one interesting thing we could do here is literally
+	// wait until the interval elapses.
+	//
+	// then all of checking would be modeled as rate limiting. we'd just make
+	// sure a build was running for each resource and keep queueing up another
+	// when the last one finishes.
+	if d.clock.Now().Before(scope.LastCheckEndTime().Add(interval)) {
+		// skip if we've already checked within the interval
+
+		// XXX(check-refactor): we could potentially sleep here until time has
+		// elapsed
+		//
+		// then the check build queueing logic is to just make sure there's a build
+		// running for every resource, without having to check if intervals have
+		// elapsed.
+		//
+		// this could be expanded upon to short-circuit the waiting with events
+		// triggered webhooks so that webhooks are super responsive - rather than
+		// queueing a build, it would just wake up a goroutine
+
+		return false, nil
+	}
+
+	// XXX(check-refactor): enforce rate limiting too
+	return true, nil
+}
+
 func (d *checkDelegate) PointToSavedVersions(scope db.ResourceConfigScope) error {
 	resource, found, err := d.resource()
 	if err != nil {

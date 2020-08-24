@@ -209,8 +209,10 @@ type CheckPlan struct {
 	Name        string  `json:"name,omitempty"`
 	Source      Source  `json:"source"`
 	Tags        Tags    `json:"tags,omitempty"`
-	Timeout     string  `json:"timeout,omitempty"`
 	FromVersion Version `json:"from_version,omitempty"`
+
+	Interval string `json:"interval,omitempty"`
+	Timeout  string `json:"timeout,omitempty"`
 
 	UpdateResource string `json:"update_resource"`
 

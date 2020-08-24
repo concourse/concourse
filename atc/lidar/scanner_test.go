@@ -40,9 +40,6 @@ var _ = Describe("Scanner", func() {
 			logger,
 			fakeCheckFactory,
 			fakeSecrets,
-			time.Minute*1,
-			time.Minute*1,
-			time.Minute*10,
 		)
 	})
 
@@ -109,99 +106,74 @@ var _ = Describe("Scanner", func() {
 						fakeResource.TypeReturns("some-type")
 					})
 
-					Context("when the check interval is parseable", func() {
+					Context("when the last check end time is past our interval", func() {
+						It("creates a check", func() {
+							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+						})
+
+						It("clears the check error", func() {
+							Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
+							Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
+						})
+
+						It("sends a notification for the checker to run", func() {
+							Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
+						})
+
+						Context("when try creating a check panic", func() {
+							BeforeEach(func() {
+								fakeCheckFactory.TryCreateCheckStub = func(context.Context, db.Checkable, db.ResourceTypes, atc.Version, bool) (db.Build, bool, error) {
+									panic("something went wrong")
+								}
+							})
+
+							It("recover from the panic", func() {
+								Expect(err).ToNot(HaveOccurred())
+								Eventually(fakeResource.SetCheckSetupErrorCallCount).Should(Equal(1))
+								Eventually(fakeResource.SetCheckSetupErrorArgsForCall(0).Error).Should(ContainSubstring("something went wrong"))
+							})
+						})
+					})
+
+					Context("when the checkable has a pinned version", func() {
 						BeforeEach(func() {
-							fakeResource.CheckEveryReturns("10s")
+							fakeResource.CurrentPinnedVersionReturns(atc.Version{"some": "version"})
 						})
 
-						Context("when the last check end time is within our interval", func() {
-							BeforeEach(func() {
-								fakeResource.LastCheckEndTimeReturns(time.Now())
-							})
-
-							It("does not check", func() {
-								Expect(fakeCheckFactory.CreateCheckCallCount()).To(Equal(0))
-							})
-
-							It("clears the check error", func() {
-								Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
-								Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
-							})
+						It("creates a check", func() {
+							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+							_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
 						})
 
-						Context("when the last check end time is past our interval", func() {
-							BeforeEach(func() {
-								fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Hour))
-							})
-
-							It("creates a check", func() {
-								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-							})
-
-							It("clears the check error", func() {
-								Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
-								Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
-							})
-
-							It("sends a notification for the checker to run", func() {
-								Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
-							})
-
-							Context("when try creating a check panic", func() {
-								BeforeEach(func() {
-									fakeCheckFactory.TryCreateCheckStub = func(context.Context, db.Checkable, db.ResourceTypes, atc.Version, bool) (db.Check, bool, error) {
-										panic("something went wrong")
-									}
-								})
-
-								It("recover from the panic", func() {
-									Expect(err).ToNot(HaveOccurred())
-									Eventually(fakeResource.SetCheckSetupErrorCallCount).Should(Equal(1))
-									Eventually(fakeResource.SetCheckSetupErrorArgsForCall(0).Error).Should(ContainSubstring("something went wrong"))
-								})
-							})
+						It("clears the check error", func() {
+							Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
+							Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
 						})
 
-						Context("when the checkable has a pinned version", func() {
-							BeforeEach(func() {
-								fakeResource.CurrentPinnedVersionReturns(atc.Version{"some": "version"})
-							})
+						It("sends a notification for the checker to run", func() {
+							Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
+						})
+					})
 
-							It("creates a check", func() {
-								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-								_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
-								Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
-							})
-
-							It("clears the check error", func() {
-								Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
-								Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
-							})
-
-							It("sends a notification for the checker to run", func() {
-								Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
-							})
+					Context("when the checkable does not have a pinned version", func() {
+						BeforeEach(func() {
+							fakeResource.CurrentPinnedVersionReturns(nil)
 						})
 
-						Context("when the checkable does not have a pinned version", func() {
-							BeforeEach(func() {
-								fakeResource.CurrentPinnedVersionReturns(nil)
-							})
+						It("creates a check", func() {
+							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+							_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							Expect(fromVersion).To(BeNil())
+						})
 
-							It("creates a check", func() {
-								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-								_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
-								Expect(fromVersion).To(BeNil())
-							})
+						It("clears the check error", func() {
+							Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
+							Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
+						})
 
-							It("clears the check error", func() {
-								Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
-								Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
-							})
-
-							It("sends a notification for the checker to run", func() {
-								Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
-							})
+						It("sends a notification for the checker to run", func() {
+							Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
 						})
 					})
 				})
@@ -216,7 +188,7 @@ var _ = Describe("Scanner", func() {
 
 					Context("when it fails to create a check for parent resource", func() {
 						BeforeEach(func() {
-							fakeResourceType.CheckEveryReturns("not-a-duration")
+							fakeCheckFactory.TryCreateCheckReturns(nil, false, errors.New("nope"))
 						})
 
 						It("sets the check error", func() {
@@ -226,37 +198,30 @@ var _ = Describe("Scanner", func() {
 							Expect(err.Error()).To(ContainSubstring("parent type 'custom-type' error:"))
 						})
 
-						It("does not create a check", func() {
-							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(0))
+						It("does not create another check", func() {
+							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1)) // ...not 2
 						})
 					})
 
-					Context("when the parent type requires a check", func() {
+					Context("when the parent type has a version", func() {
 						BeforeEach(func() {
-							fakeResourceType.LastCheckEndTimeReturns(time.Now().Add(-time.Hour))
-							fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Hour))
+							fakeResourceType.VersionReturns(atc.Version{"some": "version"})
 						})
 
-						Context("when the parent type has a version", func() {
-							BeforeEach(func() {
-								fakeResourceType.VersionReturns(atc.Version{"some": "version"})
-							})
+						It("creates a check for both the parent and the resource", func() {
+							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
 
-							It("creates a check for both the parent and the resource", func() {
-								Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
+							_, checkable, _, _, manuallyTriggered := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							Expect(checkable).To(Equal(fakeResourceType))
+							Expect(manuallyTriggered).To(BeFalse())
 
-								_, checkable, _, _, manuallyTriggered := fakeCheckFactory.TryCreateCheckArgsForCall(0)
-								Expect(checkable).To(Equal(fakeResourceType))
-								Expect(manuallyTriggered).To(BeFalse())
+							_, checkable, _, _, manuallyTriggered = fakeCheckFactory.TryCreateCheckArgsForCall(1)
+							Expect(checkable).To(Equal(fakeResource))
+							Expect(manuallyTriggered).To(BeFalse())
+						})
 
-								_, checkable, _, _, manuallyTriggered = fakeCheckFactory.TryCreateCheckArgsForCall(1)
-								Expect(checkable).To(Equal(fakeResource))
-								Expect(manuallyTriggered).To(BeFalse())
-							})
-
-							It("sends a notification for the checker to run", func() {
-								Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
-							})
+						It("sends a notification for the checker to run", func() {
+							Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
 						})
 					})
 				})
@@ -308,46 +273,6 @@ var _ = Describe("Scanner", func() {
 				checked = append(checked, checkable.Name())
 
 				Expect(checked).To(ConsistOf([]string{fakeResourceType.Name(), fakeResource1.Name(), fakeResource2.Name()}))
-			})
-		})
-
-		Context("Default with webhook check interval", func() {
-			var fakeResource *dbfakes.FakeResource
-			BeforeEach(func() {
-				fakeResource = new(dbfakes.FakeResource)
-				fakeResource.NameReturns("some-name")
-				fakeResource.TagsReturns([]string{"tag-a", "tag-b"})
-				fakeResource.SourceReturns(atc.Source{"some": "source"})
-				fakeResource.TypeReturns("base-type")
-				fakeResource.CheckEveryReturns("")
-				fakeCheckFactory.ResourcesReturns([]db.Resource{fakeResource}, nil)
-
-			})
-
-			Context("resource has webhook", func() {
-				BeforeEach(func() {
-					fakeResource.HasWebhookReturns(true)
-				})
-
-				Context("last check is 9 minutes ago", func() {
-					BeforeEach(func() {
-						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Minute * 9))
-					})
-
-					It("does not create a check", func() {
-						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(0))
-					})
-				})
-
-				Context("last check is 11 minutes ago", func() {
-					BeforeEach(func() {
-						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Minute * 11))
-					})
-
-					It("does not create a check", func() {
-						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
-					})
-				})
 			})
 		})
 	})

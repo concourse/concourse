@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"encoding/json"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
@@ -24,6 +25,7 @@ type ResourceConfigScope interface {
 	Resource() Resource
 	ResourceConfig() ResourceConfig
 	CheckError() error
+	LastCheckEndTime() time.Time
 
 	SaveVersions(SpanContext, []atc.Version) error
 	FindVersion(atc.Version) (ResourceConfigVersion, bool, error)
@@ -40,10 +42,11 @@ type ResourceConfigScope interface {
 }
 
 type resourceConfigScope struct {
-	id             int
-	resource       Resource
-	resourceConfig ResourceConfig
-	checkError     error
+	id               int
+	resource         Resource
+	resourceConfig   ResourceConfig
+	checkError       error
+	lastCheckEndTime time.Time
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -53,6 +56,7 @@ func (r *resourceConfigScope) ID() int                        { return r.id }
 func (r *resourceConfigScope) Resource() Resource             { return r.resource }
 func (r *resourceConfigScope) ResourceConfig() ResourceConfig { return r.resourceConfig }
 func (r *resourceConfigScope) CheckError() error              { return r.checkError }
+func (r *resourceConfigScope) LastCheckEndTime() time.Time    { return r.lastCheckEndTime }
 
 // SaveVersions stores a list of version in the db for a resource config
 // Each version will also have its check order field updated and the

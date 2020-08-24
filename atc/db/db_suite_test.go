@@ -66,7 +66,9 @@ var (
 	logger                    *lagertest.TestLogger
 	lockFactory               lock.LockFactory
 
-	defaultCheckTimeout = time.Minute
+	defaultCheckInterval        = time.Minute
+	defaultWebhookCheckInterval = time.Hour
+	defaultCheckTimeout         = 5 * time.Minute
 
 	fullMetadata = db.ContainerMetadata{
 		Type: db.ContainerTypeTask,
@@ -119,7 +121,7 @@ var _ = BeforeEach(func() {
 	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
 	resourceCacheFactory = db.NewResourceCacheFactory(dbConn, lockFactory)
 	taskCacheFactory = db.NewTaskCacheFactory(dbConn)
-	checkFactory = db.NewCheckFactory(dbConn, lockFactory, fakeSecrets, fakeVarSourcePool, defaultCheckTimeout)
+	checkFactory = db.NewCheckFactory(dbConn, lockFactory, fakeSecrets, fakeVarSourcePool, defaultCheckTimeout, defaultCheckInterval, defaultWebhookCheckInterval)
 	workerBaseResourceTypeFactory = db.NewWorkerBaseResourceTypeFactory(dbConn)
 	workerTaskCacheFactory = db.NewWorkerTaskCacheFactory(dbConn)
 	userFactory = db.NewUserFactory(dbConn)

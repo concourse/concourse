@@ -35,6 +35,7 @@ type CheckDelegate interface {
 	BuildStepDelegate
 
 	FindOrCreateScope(db.ResourceConfig) (db.ResourceConfigScope, error)
+	WaitAndRun(db.ResourceConfigScope) (bool, error)
 	PointToSavedVersions(db.ResourceConfigScope) error
 }
 
@@ -85,6 +86,11 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		"step-name": step.plan.Name,
 	})
 
+	timeout, err := time.ParseDuration(step.plan.Timeout)
+	if err != nil {
+		return fmt.Errorf("parse timeout: %w", err)
+	}
+
 	variables := step.delegate.Variables()
 
 	source, err := creds.NewSource(variables, step.plan.Source).Evaluate()
@@ -97,11 +103,86 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		return fmt.Errorf("resource types creds evaluation: %w", err)
 	}
 
-	timeout, err := time.ParseDuration(step.plan.Timeout)
+	// XXX(check-refactor): this might get GC'd - do we need an owner or a use?
+	//
+	// associating it to the resource would keep it alive, but we don't want to
+	// do that too early because it'll leave a brief period where a resource a
+	// config set but no no version history, which will cause flickering with
+	// frequent credential rotation
+	resourceConfig, err := step.resourceConfigFactory.FindOrCreateResourceConfig(step.plan.Type, source, resourceTypes)
 	if err != nil {
-		return fmt.Errorf("timeout parse: %w", err)
+		return fmt.Errorf("create resource config: %w", err)
 	}
 
+	// XXX(global-resources): remove this when we don't have to worry about
+	// global resources anymore (i.e. when time resource becomes time var source
+	// and IAM is handled via var source prototypes)
+	scope, err := step.delegate.FindOrCreateScope(resourceConfig)
+	if err != nil {
+		return fmt.Errorf("create resource config scope: %w", err)
+	}
+
+	run, err := step.delegate.WaitAndRun(scope)
+	if err != nil {
+		return fmt.Errorf("wait: %w", err)
+	}
+
+	if run {
+		// get the latest version AFTER waiting!
+		//
+		// XXX(check-refactor): it's actually cool that we don't get the latest
+		// version until here, because it means if someone else checked while we
+		// were waiting we'll pick up the new version
+		fromVersion := step.plan.FromVersion
+		if fromVersion == nil {
+			latestVersion, found, err := scope.LatestVersion()
+			if err != nil {
+				return fmt.Errorf("get latest version: %w", err)
+			}
+
+			if found {
+				fromVersion = atc.Version(latestVersion.Version())
+			}
+		}
+
+		_, err = scope.UpdateLastCheckStartTime()
+		if err != nil {
+			return fmt.Errorf("update check end time: %w", err)
+		}
+
+		result, err := step.runCheck(ctx, logger, timeout, resourceConfig, source, resourceTypes, fromVersion)
+		if err != nil {
+			return fmt.Errorf("run check: %w", err)
+		}
+
+		err = scope.SaveVersions(db.NewSpanContext(ctx), result.Versions)
+		if err != nil {
+			return fmt.Errorf("save versions: %w", err)
+		}
+
+		_, err = scope.UpdateLastCheckEndTime()
+		if err != nil {
+			return fmt.Errorf("update check end time: %w", err)
+		}
+	}
+
+	// XXX(global-resources): set config instead of scope once scopes are
+	// eliminated
+	err = step.delegate.PointToSavedVersions(scope)
+	if err != nil {
+		return fmt.Errorf("update resource config scope: %w", err)
+	}
+
+	step.succeeded = true
+
+	return nil
+}
+
+func (step *CheckStep) Succeeded() bool {
+	return step.succeeded
+}
+
+func (step *CheckStep) runCheck(ctx context.Context, logger lager.Logger, timeout time.Duration, resourceConfig db.ResourceConfig, source atc.Source, resourceTypes atc.VersionedResourceTypes, fromVersion atc.Version) (worker.CheckResult, error) {
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: step.plan.Type,
@@ -127,45 +208,6 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		Max: 1 * time.Hour,
 	}
 
-	// XXX(check-refactor): this might get GC'd - do we need an owner or a use?
-	//
-	// associating it to the resource would keep it alive, but we don't want to
-	// do that too early because it'll leave a brief period where a resource a
-	// config set but no no version history, which will cause flickering with
-	// frequent credential rotation
-	resourceConfig, err := step.resourceConfigFactory.FindOrCreateResourceConfig(step.plan.Type, source, resourceTypes)
-	if err != nil {
-		return fmt.Errorf("create resource config: %w", err)
-	}
-
-	// XXX(global-resources): remove this when we don't have to worry about
-	// global resources anymore (i.e. when time resource becomes time var source
-	// and IAM is handled via var source prototypes)
-	scope, err := step.delegate.FindOrCreateScope(resourceConfig)
-	if err != nil {
-		return fmt.Errorf("create resource config scope: %w", err)
-	}
-
-	// XXX(check-refactor): no-op if already checked recently and just return
-	// latest version
-	//
-	// need to add interval to the plan, which takes a bit more surgery than i'd
-	// like to do right now
-	// if time.Now().After(scope.LastCheckEndTime().Add(step.plan.Interval)) {
-	// }
-
-	fromVersion := step.plan.FromVersion
-	if fromVersion == nil {
-		latestVersion, found, err := scope.LatestVersion()
-		if err != nil {
-			return fmt.Errorf("get latest version: %w", err)
-		}
-
-		if found {
-			fromVersion = atc.Version(latestVersion.Version())
-		}
-	}
-
 	// XXX(check-refactor): this can be turned into NewBuildStepContainerOwner
 	// now, but we should understand the performance implications first - it'll
 	// mean a lot more container churn
@@ -186,11 +228,6 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		Delegate:      step.delegate,
 	}
 
-	_, err = scope.UpdateLastCheckStartTime()
-	if err != nil {
-		return fmt.Errorf("update check end time: %w", err)
-	}
-
 	result, err := step.workerClient.RunCheckStep(
 		ctx,
 		logger,
@@ -206,31 +243,8 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		checkable,
 	)
 	if err != nil {
-		return fmt.Errorf("run check step: %w", err)
+		return worker.CheckResult{}, fmt.Errorf("run check step: %w", err)
 	}
 
-	err = scope.SaveVersions(db.NewSpanContext(ctx), result.Versions)
-	if err != nil {
-		return fmt.Errorf("save versions: %w", err)
-	}
-
-	_, err = scope.UpdateLastCheckEndTime()
-	if err != nil {
-		return fmt.Errorf("update check end time: %w", err)
-	}
-
-	// XXX(global-resources): set config instead of scope once scopes are
-	// eliminated
-	err = step.delegate.PointToSavedVersions(scope)
-	if err != nil {
-		return fmt.Errorf("update resource config scope: %w", err)
-	}
-
-	step.succeeded = true
-
-	return nil
-}
-
-func (step *CheckStep) Succeeded() bool {
-	return step.succeeded
+	return result, nil
 }
