@@ -20,12 +20,12 @@ type FakeCheckable struct {
 	checkEveryReturnsOnCall map[int]struct {
 		result1 string
 	}
-	CheckPlanStub        func(atc.Version, time.Duration, atc.VersionedResourceTypes) atc.CheckPlan
+	CheckPlanStub        func(atc.Version, time.Duration, db.ResourceTypes) atc.CheckPlan
 	checkPlanMutex       sync.RWMutex
 	checkPlanArgsForCall []struct {
 		arg1 atc.Version
 		arg2 time.Duration
-		arg3 atc.VersionedResourceTypes
+		arg3 db.ResourceTypes
 	}
 	checkPlanReturns struct {
 		result1 atc.CheckPlan
@@ -42,6 +42,21 @@ type FakeCheckable struct {
 	}
 	checkTimeoutReturnsOnCall map[int]struct {
 		result1 string
+	}
+	CreateBuildStub        func(bool) (db.Build, bool, error)
+	createBuildMutex       sync.RWMutex
+	createBuildArgsForCall []struct {
+		arg1 bool
+	}
+	createBuildReturns struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}
+	createBuildReturnsOnCall map[int]struct {
+		result1 db.Build
+		result2 bool
+		result3 error
 	}
 	CurrentPinnedVersionStub        func() atc.Version
 	currentPinnedVersionMutex       sync.RWMutex
@@ -258,13 +273,13 @@ func (fake *FakeCheckable) CheckEveryReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeCheckable) CheckPlan(arg1 atc.Version, arg2 time.Duration, arg3 atc.VersionedResourceTypes) atc.CheckPlan {
+func (fake *FakeCheckable) CheckPlan(arg1 atc.Version, arg2 time.Duration, arg3 db.ResourceTypes) atc.CheckPlan {
 	fake.checkPlanMutex.Lock()
 	ret, specificReturn := fake.checkPlanReturnsOnCall[len(fake.checkPlanArgsForCall)]
 	fake.checkPlanArgsForCall = append(fake.checkPlanArgsForCall, struct {
 		arg1 atc.Version
 		arg2 time.Duration
-		arg3 atc.VersionedResourceTypes
+		arg3 db.ResourceTypes
 	}{arg1, arg2, arg3})
 	fake.recordInvocation("CheckPlan", []interface{}{arg1, arg2, arg3})
 	fake.checkPlanMutex.Unlock()
@@ -284,13 +299,13 @@ func (fake *FakeCheckable) CheckPlanCallCount() int {
 	return len(fake.checkPlanArgsForCall)
 }
 
-func (fake *FakeCheckable) CheckPlanCalls(stub func(atc.Version, time.Duration, atc.VersionedResourceTypes) atc.CheckPlan) {
+func (fake *FakeCheckable) CheckPlanCalls(stub func(atc.Version, time.Duration, db.ResourceTypes) atc.CheckPlan) {
 	fake.checkPlanMutex.Lock()
 	defer fake.checkPlanMutex.Unlock()
 	fake.CheckPlanStub = stub
 }
 
-func (fake *FakeCheckable) CheckPlanArgsForCall(i int) (atc.Version, time.Duration, atc.VersionedResourceTypes) {
+func (fake *FakeCheckable) CheckPlanArgsForCall(i int) (atc.Version, time.Duration, db.ResourceTypes) {
 	fake.checkPlanMutex.RLock()
 	defer fake.checkPlanMutex.RUnlock()
 	argsForCall := fake.checkPlanArgsForCall[i]
@@ -370,6 +385,72 @@ func (fake *FakeCheckable) CheckTimeoutReturnsOnCall(i int, result1 string) {
 	fake.checkTimeoutReturnsOnCall[i] = struct {
 		result1 string
 	}{result1}
+}
+
+func (fake *FakeCheckable) CreateBuild(arg1 bool) (db.Build, bool, error) {
+	fake.createBuildMutex.Lock()
+	ret, specificReturn := fake.createBuildReturnsOnCall[len(fake.createBuildArgsForCall)]
+	fake.createBuildArgsForCall = append(fake.createBuildArgsForCall, struct {
+		arg1 bool
+	}{arg1})
+	fake.recordInvocation("CreateBuild", []interface{}{arg1})
+	fake.createBuildMutex.Unlock()
+	if fake.CreateBuildStub != nil {
+		return fake.CreateBuildStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.createBuildReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeCheckable) CreateBuildCallCount() int {
+	fake.createBuildMutex.RLock()
+	defer fake.createBuildMutex.RUnlock()
+	return len(fake.createBuildArgsForCall)
+}
+
+func (fake *FakeCheckable) CreateBuildCalls(stub func(bool) (db.Build, bool, error)) {
+	fake.createBuildMutex.Lock()
+	defer fake.createBuildMutex.Unlock()
+	fake.CreateBuildStub = stub
+}
+
+func (fake *FakeCheckable) CreateBuildArgsForCall(i int) bool {
+	fake.createBuildMutex.RLock()
+	defer fake.createBuildMutex.RUnlock()
+	argsForCall := fake.createBuildArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeCheckable) CreateBuildReturns(result1 db.Build, result2 bool, result3 error) {
+	fake.createBuildMutex.Lock()
+	defer fake.createBuildMutex.Unlock()
+	fake.CreateBuildStub = nil
+	fake.createBuildReturns = struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeCheckable) CreateBuildReturnsOnCall(i int, result1 db.Build, result2 bool, result3 error) {
+	fake.createBuildMutex.Lock()
+	defer fake.createBuildMutex.Unlock()
+	fake.CreateBuildStub = nil
+	if fake.createBuildReturnsOnCall == nil {
+		fake.createBuildReturnsOnCall = make(map[int]struct {
+			result1 db.Build
+			result2 bool
+			result3 error
+		})
+	}
+	fake.createBuildReturnsOnCall[i] = struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeCheckable) CurrentPinnedVersion() atc.Version {
@@ -1187,6 +1268,8 @@ func (fake *FakeCheckable) Invocations() map[string][][]interface{} {
 	defer fake.checkPlanMutex.RUnlock()
 	fake.checkTimeoutMutex.RLock()
 	defer fake.checkTimeoutMutex.RUnlock()
+	fake.createBuildMutex.RLock()
+	defer fake.createBuildMutex.RUnlock()
 	fake.currentPinnedVersionMutex.RLock()
 	defer fake.currentPinnedVersionMutex.RUnlock()
 	fake.hasWebhookMutex.RLock()

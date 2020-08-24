@@ -40,12 +40,12 @@ type FakeResource struct {
 	checkEveryReturnsOnCall map[int]struct {
 		result1 string
 	}
-	CheckPlanStub        func(atc.Version, time.Duration, atc.VersionedResourceTypes) atc.CheckPlan
+	CheckPlanStub        func(atc.Version, time.Duration, db.ResourceTypes) atc.CheckPlan
 	checkPlanMutex       sync.RWMutex
 	checkPlanArgsForCall []struct {
 		arg1 atc.Version
 		arg2 time.Duration
-		arg3 atc.VersionedResourceTypes
+		arg3 db.ResourceTypes
 	}
 	checkPlanReturns struct {
 		result1 atc.CheckPlan
@@ -92,6 +92,21 @@ type FakeResource struct {
 	}
 	configPinnedVersionReturnsOnCall map[int]struct {
 		result1 atc.Version
+	}
+	CreateBuildStub        func(bool) (db.Build, bool, error)
+	createBuildMutex       sync.RWMutex
+	createBuildArgsForCall []struct {
+		arg1 bool
+	}
+	createBuildReturns struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}
+	createBuildReturnsOnCall map[int]struct {
+		result1 db.Build
+		result2 bool
+		result3 error
 	}
 	CurrentPinnedVersionStub        func() atc.Version
 	currentPinnedVersionMutex       sync.RWMutex
@@ -633,13 +648,13 @@ func (fake *FakeResource) CheckEveryReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResource) CheckPlan(arg1 atc.Version, arg2 time.Duration, arg3 atc.VersionedResourceTypes) atc.CheckPlan {
+func (fake *FakeResource) CheckPlan(arg1 atc.Version, arg2 time.Duration, arg3 db.ResourceTypes) atc.CheckPlan {
 	fake.checkPlanMutex.Lock()
 	ret, specificReturn := fake.checkPlanReturnsOnCall[len(fake.checkPlanArgsForCall)]
 	fake.checkPlanArgsForCall = append(fake.checkPlanArgsForCall, struct {
 		arg1 atc.Version
 		arg2 time.Duration
-		arg3 atc.VersionedResourceTypes
+		arg3 db.ResourceTypes
 	}{arg1, arg2, arg3})
 	fake.recordInvocation("CheckPlan", []interface{}{arg1, arg2, arg3})
 	fake.checkPlanMutex.Unlock()
@@ -659,13 +674,13 @@ func (fake *FakeResource) CheckPlanCallCount() int {
 	return len(fake.checkPlanArgsForCall)
 }
 
-func (fake *FakeResource) CheckPlanCalls(stub func(atc.Version, time.Duration, atc.VersionedResourceTypes) atc.CheckPlan) {
+func (fake *FakeResource) CheckPlanCalls(stub func(atc.Version, time.Duration, db.ResourceTypes) atc.CheckPlan) {
 	fake.checkPlanMutex.Lock()
 	defer fake.checkPlanMutex.Unlock()
 	fake.CheckPlanStub = stub
 }
 
-func (fake *FakeResource) CheckPlanArgsForCall(i int) (atc.Version, time.Duration, atc.VersionedResourceTypes) {
+func (fake *FakeResource) CheckPlanArgsForCall(i int) (atc.Version, time.Duration, db.ResourceTypes) {
 	fake.checkPlanMutex.RLock()
 	defer fake.checkPlanMutex.RUnlock()
 	argsForCall := fake.checkPlanArgsForCall[i]
@@ -901,6 +916,72 @@ func (fake *FakeResource) ConfigPinnedVersionReturnsOnCall(i int, result1 atc.Ve
 	fake.configPinnedVersionReturnsOnCall[i] = struct {
 		result1 atc.Version
 	}{result1}
+}
+
+func (fake *FakeResource) CreateBuild(arg1 bool) (db.Build, bool, error) {
+	fake.createBuildMutex.Lock()
+	ret, specificReturn := fake.createBuildReturnsOnCall[len(fake.createBuildArgsForCall)]
+	fake.createBuildArgsForCall = append(fake.createBuildArgsForCall, struct {
+		arg1 bool
+	}{arg1})
+	fake.recordInvocation("CreateBuild", []interface{}{arg1})
+	fake.createBuildMutex.Unlock()
+	if fake.CreateBuildStub != nil {
+		return fake.CreateBuildStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.createBuildReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeResource) CreateBuildCallCount() int {
+	fake.createBuildMutex.RLock()
+	defer fake.createBuildMutex.RUnlock()
+	return len(fake.createBuildArgsForCall)
+}
+
+func (fake *FakeResource) CreateBuildCalls(stub func(bool) (db.Build, bool, error)) {
+	fake.createBuildMutex.Lock()
+	defer fake.createBuildMutex.Unlock()
+	fake.CreateBuildStub = stub
+}
+
+func (fake *FakeResource) CreateBuildArgsForCall(i int) bool {
+	fake.createBuildMutex.RLock()
+	defer fake.createBuildMutex.RUnlock()
+	argsForCall := fake.createBuildArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeResource) CreateBuildReturns(result1 db.Build, result2 bool, result3 error) {
+	fake.createBuildMutex.Lock()
+	defer fake.createBuildMutex.Unlock()
+	fake.CreateBuildStub = nil
+	fake.createBuildReturns = struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeResource) CreateBuildReturnsOnCall(i int, result1 db.Build, result2 bool, result3 error) {
+	fake.createBuildMutex.Lock()
+	defer fake.createBuildMutex.Unlock()
+	fake.CreateBuildStub = nil
+	if fake.createBuildReturnsOnCall == nil {
+		fake.createBuildReturnsOnCall = make(map[int]struct {
+			result1 db.Build
+			result2 bool
+			result3 error
+		})
+	}
+	fake.createBuildReturnsOnCall[i] = struct {
+		result1 db.Build
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeResource) CurrentPinnedVersion() atc.Version {
@@ -2819,6 +2900,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.configMutex.RUnlock()
 	fake.configPinnedVersionMutex.RLock()
 	defer fake.configPinnedVersionMutex.RUnlock()
+	fake.createBuildMutex.RLock()
+	defer fake.createBuildMutex.RUnlock()
 	fake.currentPinnedVersionMutex.RLock()
 	defer fake.currentPinnedVersionMutex.RUnlock()
 	fake.disableVersionMutex.RLock()

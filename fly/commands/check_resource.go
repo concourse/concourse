@@ -43,7 +43,7 @@ func (command *CheckResourceCommand) Execute(args []string) error {
 		}
 	}
 
-	check, found, err := target.Team().CheckResource(command.Resource.PipelineName, command.Resource.ResourceName, version)
+	build, found, err := target.Team().CheckResource(command.Resource.PipelineName, command.Resource.ResourceName, version)
 	if err != nil {
 		return err
 	}
@@ -52,19 +52,19 @@ func (command *CheckResourceCommand) Execute(args []string) error {
 		return fmt.Errorf("pipeline '%s' or resource '%s' not found\n", command.Resource.PipelineName, command.Resource.ResourceName)
 	}
 
-	var checkID = strconv.Itoa(check.ID)
+	var buildID = strconv.Itoa(build.ID)
 
 	if !command.Async {
-		for check.Status == "started" {
+		for build.Status == "started" {
 			time.Sleep(time.Second)
 
-			check, found, err = target.Client().Check(checkID)
+			build, found, err = target.Client().Build(buildID)
 			if err != nil {
 				return err
 			}
 
 			if !found {
-				return fmt.Errorf("check '%s' not found\n", checkID)
+				return fmt.Errorf("check '%s' not found\n", buildID)
 			}
 		}
 	}
@@ -74,22 +74,20 @@ func (command *CheckResourceCommand) Execute(args []string) error {
 			{Contents: "id", Color: color.New(color.Bold)},
 			{Contents: "name", Color: color.New(color.Bold)},
 			{Contents: "status", Color: color.New(color.Bold)},
-			{Contents: "check_error", Color: color.New(color.Bold)},
 		},
 	}
 
 	table.Data = append(table.Data, []ui.TableCell{
-		{Contents: checkID},
+		{Contents: buildID},
 		{Contents: command.Resource.ResourceName},
-		{Contents: check.Status},
-		{Contents: check.CheckError},
+		{Contents: build.Status},
 	})
 
 	if err = table.Render(os.Stdout, Fly.PrintTableHeaders); err != nil {
 		return err
 	}
 
-	if check.Status == "errored" {
+	if build.Status != "started" && build.Status != "succeeded" {
 		os.Exit(1)
 	}
 

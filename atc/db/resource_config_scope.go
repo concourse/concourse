@@ -36,7 +36,6 @@ type ResourceConfigScope interface {
 	) (lock.Lock, bool, error)
 
 	UpdateLastCheckStartTime() (bool, error)
-
 	UpdateLastCheckEndTime() (bool, error)
 }
 

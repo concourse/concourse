@@ -2,8 +2,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -39,7 +37,8 @@ type Checkable interface {
 		atc.VersionedResourceTypes,
 	) (ResourceConfigScope, error)
 
-	CheckPlan(atc.Version, time.Duration, atc.VersionedResourceTypes) atc.CheckPlan
+	CheckPlan(atc.Version, time.Duration, ResourceTypes) atc.CheckPlan
+	CreateBuild(bool) (Build, bool, error)
 
 	SetCheckSetupError(error) error
 }
@@ -47,8 +46,7 @@ type Checkable interface {
 //go:generate counterfeiter . CheckFactory
 
 type CheckFactory interface {
-	CreateCheck(int, bool, atc.Plan, CheckMetadata, SpanContext) (Check, bool, error)
-	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.Version, bool) (Check, bool, error)
+	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.Version, bool) (Build, bool, error)
 	Resources() ([]Resource, error)
 	ResourceTypes() ([]ResourceType, error)
 	AcquireScanningLock(lager.Logger) (lock.Lock, bool, error)
@@ -92,7 +90,7 @@ func (c *checkFactory) AcquireScanningLock(logger lager.Logger) (lock.Lock, bool
 	)
 }
 
-func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, resourceTypes ResourceTypes, fromVersion atc.Version, manuallyTriggered bool) (Check, bool, error) {
+func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, resourceTypes ResourceTypes, from atc.Version, manuallyTriggered bool) (Build, bool, error) {
 	logger := lagerctx.FromContext(ctx)
 
 	var err error
@@ -113,48 +111,7 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		}
 	}
 
-	pp, found, err := checkable.Pipeline()
-	if err != nil {
-		return nil, false, fmt.Errorf("failed to reload pipeline: %s", err.Error())
-	}
-	if !found {
-		return nil, false, fmt.Errorf("pipeline not found")
-	}
-
-	varss, err := pp.Variables(logger, c.secrets, c.varSourcePool)
-	if err != nil {
-		return nil, false, err
-	}
-
-	source, err := creds.NewSource(varss, checkable.Source()).Evaluate()
-	if err != nil {
-		return nil, false, err
-	}
-
-	filteredTypes := resourceTypes.Filter(checkable).Deserialize()
-	versionedResourceTypes, err := creds.NewVersionedResourceTypes(varss, filteredTypes).Evaluate()
-	if err != nil {
-		return nil, false, err
-	}
-
-	// This could have changed based on new variable interpolation so update it
-	resourceConfigScope, err := checkable.SetResourceConfig(source, versionedResourceTypes)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if fromVersion == nil {
-		rcv, found, err := resourceConfigScope.LatestVersion()
-		if err != nil {
-			return nil, false, err
-		}
-
-		if found {
-			fromVersion = atc.Version(rcv.Version())
-		}
-	}
-
-	checkPlan := checkable.CheckPlan(fromVersion, timeout, filteredTypes)
+	checkPlan := checkable.CheckPlan(from, timeout, resourceTypes.Filter(checkable))
 
 	plan := atc.Plan{
 		// XXX(check-refactor): use plan factory
@@ -163,124 +120,32 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		Check: &checkPlan,
 	}
 
-	meta := CheckMetadata{
-		TeamID:             checkable.TeamID(),
-		TeamName:           checkable.TeamName(),
-		PipelineName:       checkable.PipelineName(),
-		PipelineID:         checkable.PipelineID(),
-		ResourceConfigID:   resourceConfigScope.ResourceConfig().ID(),
-		BaseResourceTypeID: resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
-	}
-
-	check, created, err := c.CreateCheck(
-		resourceConfigScope.ID(),
-		manuallyTriggered,
-		plan,
-		meta,
-		NewSpanContext(ctx),
-	)
+	// XXX(check-refactor): pass ctx and create build with span context
+	build, created, err := checkable.CreateBuild(manuallyTriggered)
 	if err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("create build: %w", err)
 	}
 
-	return check, created, nil
-}
+	if !created {
+		return nil, false, nil
+	}
 
-func (c *checkFactory) CreateCheck(
-	resourceConfigScopeID int,
-	manuallyTriggered bool,
-	plan atc.Plan,
-	meta CheckMetadata,
-	sc SpanContext,
-) (Check, bool, error) {
-	tx, err := c.conn.Begin()
+	started, err := build.Start(plan)
 	if err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("start build: %w", err)
 	}
 
-	defer Rollback(tx)
+	logger.Info("created-build", lager.Data{
+		"build":   build.ID(),
+		"started": started,
+	})
 
-	planPayload, err := json.Marshal(plan)
+	_, err = build.Reload()
 	if err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("reload build: %w", err)
 	}
 
-	es := c.conn.EncryptionStrategy()
-	encryptedPayload, nonce, err := es.Encrypt(planPayload)
-	if err != nil {
-		return nil, false, err
-	}
-
-	metadata, err := json.Marshal(meta)
-	if err != nil {
-		return nil, false, err
-	}
-
-	spanContext, err := json.Marshal(sc)
-	if err != nil {
-		return nil, false, err
-	}
-
-	var id int
-	var createTime time.Time
-	err = psql.Insert("checks").
-		Columns(
-			"resource_config_scope_id",
-			"schema",
-			"status",
-			"manually_triggered",
-			"plan",
-			"nonce",
-			"metadata",
-			"span_context",
-		).
-		Values(
-			resourceConfigScopeID,
-			schema,
-			CheckStatusStarted,
-			manuallyTriggered,
-			encryptedPayload,
-			nonce,
-			metadata,
-			spanContext,
-		).
-		Suffix(`
-			ON CONFLICT DO NOTHING
-			RETURNING id, create_time
-		`).
-		RunWith(tx).
-		QueryRow().
-		Scan(&id, &createTime)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, false, nil
-		}
-		return nil, false, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, false, err
-	}
-
-	return &check{
-		id:                    id,
-		resourceConfigScopeID: resourceConfigScopeID,
-		schema:                schema,
-		status:                CheckStatusStarted,
-		plan:                  plan,
-		createTime:            createTime,
-		metadata:              meta,
-
-		pipelineRef: pipelineRef{
-			conn:         c.conn,
-			lockFactory:  c.lockFactory,
-			pipelineID:   meta.PipelineID,
-			pipelineName: meta.PipelineName,
-		},
-
-		spanContext: sc,
-	}, true, err
+	return build, true, nil
 }
 
 func (c *checkFactory) Resources() ([]Resource, error) {

@@ -413,24 +413,21 @@ var _ = Describe("ResourceType", func() {
 
 	Describe("CheckPlan", func() {
 		var resourceType db.ResourceType
+		var resourceTypes db.ResourceTypes
 
 		BeforeEach(func() {
-			resourceType = defaultResourceType
+			var err error
+			var found bool
+			resourceType, found, err = pipeline.ResourceType("some-type")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			resourceTypes, err = pipeline.ResourceTypes()
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("returns a plan which will update the resource type", func() {
-			vrts := atc.VersionedResourceTypes{
-				{
-					ResourceType: atc.ResourceType{
-						Name:   "some-type",
-						Type:   "some-base-type",
-						Source: atc.Source{"some": "source"},
-					},
-					Version: atc.Version{"some": "version"},
-				},
-			}
-
-			Expect(resourceType.CheckPlan(atc.Version{"some": "version"}, 10*time.Second, vrts)).To(Equal(atc.CheckPlan{
+			Expect(resourceType.CheckPlan(atc.Version{"some": "version"}, 10*time.Second, resourceTypes)).To(Equal(atc.CheckPlan{
 				Name:   resourceType.Name(),
 				Type:   resourceType.Type(),
 				Source: resourceType.Source(),
@@ -440,10 +437,47 @@ var _ = Describe("ResourceType", func() {
 
 				Timeout: "10s",
 
-				VersionedResourceTypes: vrts,
+				VersionedResourceTypes: resourceTypes.Deserialize(),
 
 				UpdateResourceType: resourceType.Name(),
 			}))
+		})
+	})
+
+	Describe("CreateBuild", func() {
+		var resourceType db.ResourceType
+		var manuallyTriggered bool
+
+		var build db.Build
+		var created bool
+
+		BeforeEach(func() {
+			resourceType = defaultResourceType
+			manuallyTriggered = false
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			build, created, err = resourceType.CreateBuild(manuallyTriggered)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("creates a one-off build", func() {
+			Expect(created).To(BeTrue())
+			Expect(build).ToNot(BeNil())
+			Expect(build.PipelineID()).To(Equal(defaultResource.PipelineID()))
+			Expect(build.TeamID()).To(Equal(defaultResource.TeamID()))
+			Expect(build.IsManuallyTriggered()).To(BeFalse())
+		})
+
+		Context("when manually triggered", func() {
+			BeforeEach(func() {
+				manuallyTriggered = true
+			})
+
+			It("creates a manually triggered one-off build", func() {
+				Expect(build.IsManuallyTriggered()).To(BeTrue())
+			})
 		})
 	})
 })

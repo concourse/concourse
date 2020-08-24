@@ -680,17 +680,18 @@ var _ = Describe("Resources API", func() {
 					})
 
 					Context("when checking creates a new check", func() {
-						var fakeCheck *dbfakes.FakeCheck
+						var fakeBuild *dbfakes.FakeBuild
 
 						BeforeEach(func() {
-							fakeCheck = new(dbfakes.FakeCheck)
-							fakeCheck.IDReturns(10)
-							fakeCheck.StatusReturns("started")
-							fakeCheck.CreateTimeReturns(time.Date(2000, 01, 01, 0, 0, 0, 0, time.UTC))
-							fakeCheck.StartTimeReturns(time.Date(2001, 01, 01, 0, 0, 0, 0, time.UTC))
-							fakeCheck.EndTimeReturns(time.Date(2002, 01, 01, 0, 0, 0, 0, time.UTC))
+							fakeBuild = new(dbfakes.FakeBuild)
+							fakeBuild.IDReturns(10)
+							fakeBuild.NameReturns("some-name")
+							fakeBuild.TeamNameReturns("some-team")
+							fakeBuild.StatusReturns("started")
+							fakeBuild.StartTimeReturns(time.Date(2001, 01, 01, 0, 0, 0, 0, time.UTC))
+							fakeBuild.EndTimeReturns(time.Date(2002, 01, 01, 0, 0, 0, 0, time.UTC))
 
-							dbCheckFactory.TryCreateCheckReturns(fakeCheck, true, nil)
+							dbCheckFactory.TryCreateCheckReturns(fakeBuild, true, nil)
 						})
 
 						It("notify checker", func() {
@@ -701,8 +702,10 @@ var _ = Describe("Resources API", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusCreated))
 							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
                  "id": 10,
+								 "name": "some-name",
+								 "team_name": "some-team",
 								 "status": "started",
-								 "create_time": 946684800,
+								 "api_url": "/api/v1/builds/10",
 								 "start_time": 978307200,
 								 "end_time": 1009843200
 							}`))
@@ -1342,17 +1345,18 @@ var _ = Describe("Resources API", func() {
 					})
 
 					Context("when checking creates a new check", func() {
-						var fakeCheck *dbfakes.FakeCheck
+						var fakeBuild *dbfakes.FakeBuild
 
 						BeforeEach(func() {
-							fakeCheck = new(dbfakes.FakeCheck)
-							fakeCheck.IDReturns(10)
-							fakeCheck.StatusReturns("started")
-							fakeCheck.CreateTimeReturns(time.Date(2000, 01, 01, 0, 0, 0, 0, time.UTC))
-							fakeCheck.StartTimeReturns(time.Date(2001, 01, 01, 0, 0, 0, 0, time.UTC))
-							fakeCheck.EndTimeReturns(time.Date(2002, 01, 01, 0, 0, 0, 0, time.UTC))
+							fakeBuild = new(dbfakes.FakeBuild)
+							fakeBuild.IDReturns(10)
+							fakeBuild.NameReturns("some-name")
+							fakeBuild.TeamNameReturns("some-team")
+							fakeBuild.StatusReturns("started")
+							fakeBuild.StartTimeReturns(time.Date(2001, 01, 01, 0, 0, 0, 0, time.UTC))
+							fakeBuild.EndTimeReturns(time.Date(2002, 01, 01, 0, 0, 0, 0, time.UTC))
 
-							dbCheckFactory.TryCreateCheckReturns(fakeCheck, true, nil)
+							dbCheckFactory.TryCreateCheckReturns(fakeBuild, true, nil)
 						})
 
 						It("notify checker", func() {
@@ -1363,8 +1367,10 @@ var _ = Describe("Resources API", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusCreated))
 							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
                  "id": 10,
+								 "name": "some-name",
+								 "team_name": "some-team",
 								 "status": "started",
-								 "create_time": 946684800,
+								 "api_url": "/api/v1/builds/10",
 								 "start_time": 978307200,
 								 "end_time": 1009843200
 							}`))
@@ -1480,17 +1486,18 @@ var _ = Describe("Resources API", func() {
 					})
 
 					Context("when checking creates a new check", func() {
-						var fakeCheck *dbfakes.FakeCheck
+						var fakeBuild *dbfakes.FakeBuild
 
 						BeforeEach(func() {
-							fakeCheck = new(dbfakes.FakeCheck)
-							fakeCheck.IDReturns(10)
-							fakeCheck.StatusReturns("started")
-							fakeCheck.CreateTimeReturns(time.Date(2000, 01, 01, 0, 0, 0, 0, time.UTC))
-							fakeCheck.StartTimeReturns(time.Date(2001, 01, 01, 0, 0, 0, 0, time.UTC))
-							fakeCheck.EndTimeReturns(time.Date(2002, 01, 01, 0, 0, 0, 0, time.UTC))
+							fakeBuild = new(dbfakes.FakeBuild)
+							fakeBuild.IDReturns(10)
+							fakeBuild.NameReturns("some-name")
+							fakeBuild.TeamNameReturns("some-team")
+							fakeBuild.StatusReturns("started")
+							fakeBuild.StartTimeReturns(time.Date(2001, 01, 01, 0, 0, 0, 0, time.UTC))
+							fakeBuild.EndTimeReturns(time.Date(2002, 01, 01, 0, 0, 0, 0, time.UTC))
 
-							dbCheckFactory.TryCreateCheckReturns(fakeCheck, true, nil)
+							dbCheckFactory.TryCreateCheckReturns(fakeBuild, true, nil)
 						})
 
 						It("notify checker", func() {
@@ -1501,8 +1508,10 @@ var _ = Describe("Resources API", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusCreated))
 							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
                  "id": 10,
+								 "name": "some-name",
+								 "team_name": "some-team",
 								 "status": "started",
-								 "create_time": 946684800,
+								 "api_url": "/api/v1/builds/10",
 								 "start_time": 978307200,
 								 "end_time": 1009843200
 							}`))

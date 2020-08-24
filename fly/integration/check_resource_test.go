@@ -18,17 +18,17 @@ import (
 var _ = Describe("CheckResource", func() {
 	var (
 		flyCmd          *exec.Cmd
-		check           atc.Check
+		build           atc.Build
 		resource        atc.Resource
 		resourceTypes   atc.VersionedResourceTypes
 		expectedHeaders ui.TableRow
 	)
 
 	BeforeEach(func() {
-		check = atc.Check{
-			ID:         123,
-			Status:     "started",
-			CreateTime: 100000000000,
+		build = atc.Build{
+			ID:        123,
+			Status:    "started",
+			StartTime: 100000000000,
 		}
 
 		resource = atc.Resource{
@@ -47,7 +47,6 @@ var _ = Describe("CheckResource", func() {
 			{Contents: "id", Color: color.New(color.Bold)},
 			{Contents: "name", Color: color.New(color.Bold)},
 			{Contents: "status", Color: color.New(color.Bold)},
-			{Contents: "check_error", Color: color.New(color.Bold)},
 		}
 	})
 
@@ -59,7 +58,7 @@ var _ = Describe("CheckResource", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", expectedURL),
 					ghttp.VerifyJSON(`{"from":{"ref":"fake-ref"}}`),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, check),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, build),
 				),
 			)
 		})
@@ -79,7 +78,6 @@ var _ = Describe("CheckResource", func() {
 							{Contents: "123"},
 							{Contents: "myresource"},
 							{Contents: "started"},
-							{Contents: ""},
 						},
 					},
 				}))
@@ -97,7 +95,7 @@ var _ = Describe("CheckResource", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", expectedURL),
 					ghttp.VerifyJSON(`{"from":null}`),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, check),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, build),
 				),
 			)
 		})
@@ -117,7 +115,6 @@ var _ = Describe("CheckResource", func() {
 							{Contents: "123"},
 							{Contents: "myresource"},
 							{Contents: "started"},
-							{Contents: ""},
 						},
 					},
 				}))
@@ -135,16 +132,15 @@ var _ = Describe("CheckResource", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", expectedURL),
 					ghttp.VerifyJSON(`{"from":null}`),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, check),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, build),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/checks/123"),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Check{
-						ID:         123,
-						Status:     "succeeded",
-						CreateTime: 100000000000,
-						StartTime:  100000000000,
-						EndTime:    100000000000,
+					ghttp.VerifyRequest("GET", "/api/v1/builds/123"),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{
+						ID:        123,
+						Status:    "succeeded",
+						StartTime: 100000000000,
+						EndTime:   100000000000,
 					}),
 				),
 			)
@@ -165,7 +161,6 @@ var _ = Describe("CheckResource", func() {
 							{Contents: "123"},
 							{Contents: "myresource"},
 							{Contents: "succeeded"},
-							{Contents: ""},
 						},
 					},
 				}))
@@ -183,17 +178,15 @@ var _ = Describe("CheckResource", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", expectedURL),
 					ghttp.VerifyJSON(`{"from":null}`),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, check),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, build),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/checks/123"),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Check{
-						ID:         123,
-						Status:     "errored",
-						CreateTime: 100000000000,
-						StartTime:  100000000000,
-						EndTime:    100000000000,
-						CheckError: "some-check-error",
+					ghttp.VerifyRequest("GET", "/api/v1/builds/123"),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{
+						ID:        123,
+						Status:    "errored",
+						StartTime: 100000000000,
+						EndTime:   100000000000,
 					}),
 				),
 			)
@@ -214,7 +207,6 @@ var _ = Describe("CheckResource", func() {
 							{Contents: "123"},
 							{Contents: "myresource"},
 							{Contents: "errored"},
-							{Contents: "some-check-error"},
 						},
 					},
 				}))
@@ -247,26 +239,24 @@ var _ = Describe("CheckResource", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresourcetype/check"),
 					ghttp.VerifyJSON(`{"from":null}`),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Check{
+					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{
 						ID:     987,
 						Status: "started",
 					}),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/checks/987"),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Check{
-						ID:         987,
-						Status:     "succeeded",
-						CreateTime: 100000000000,
-						StartTime:  100000000000,
-						EndTime:    100000000000,
-						CheckError: "",
+					ghttp.VerifyRequest("GET", "/api/v1/builds/987"),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{
+						ID:        987,
+						Status:    "succeeded",
+						StartTime: 100000000000,
+						EndTime:   100000000000,
 					}),
 				),
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/mypipeline/resources/myresource/check"),
 					ghttp.VerifyJSON(`{"from":null}`),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, check),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, build),
 				),
 			)
 		})
@@ -286,7 +276,6 @@ var _ = Describe("CheckResource", func() {
 							{Contents: "987"},
 							{Contents: "myresourcetype"},
 							{Contents: "succeeded"},
-							{Contents: ""},
 						},
 					},
 				}))
@@ -298,7 +287,6 @@ var _ = Describe("CheckResource", func() {
 							{Contents: "123"},
 							{Contents: "myresource"},
 							{Contents: "started"},
-							{Contents: ""},
 						},
 					},
 				}))
@@ -331,20 +319,18 @@ var _ = Describe("CheckResource", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresourcetype/check"),
 					ghttp.VerifyJSON(`{"from":null}`),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Check{
+					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{
 						ID:     987,
 						Status: "started",
 					}),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/checks/987"),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Check{
-						ID:         987,
-						Status:     "errored",
-						CreateTime: 100000000000,
-						StartTime:  100000000000,
-						EndTime:    100000000000,
-						CheckError: "failed to check",
+					ghttp.VerifyRequest("GET", "/api/v1/builds/987"),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{
+						ID:        987,
+						Status:    "errored",
+						StartTime: 100000000000,
+						EndTime:   100000000000,
 					}),
 				),
 			)
@@ -365,7 +351,6 @@ var _ = Describe("CheckResource", func() {
 							{Contents: "987"},
 							{Contents: "myresourcetype"},
 							{Contents: "errored"},
-							{Contents: "failed to check"},
 						},
 					},
 				}))
@@ -383,7 +368,7 @@ var _ = Describe("CheckResource", func() {
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", expectedURL),
 					ghttp.VerifyJSON(`{"from":{"ref1":"fake-ref-1","ref2":"fake-ref-2"}}`),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, check),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, build),
 				),
 			)
 		})

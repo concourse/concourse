@@ -47,7 +47,7 @@ func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		check, created, err := s.checkFactory.TryCreateCheck(
+		build, created, err := s.checkFactory.TryCreateCheck(
 			lagerctx.NewContext(context.Background(), logger),
 			dbResourceType,
 			dbResourceTypes,
@@ -76,7 +76,7 @@ func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
 
 		w.WriteHeader(http.StatusCreated)
 
-		err = json.NewEncoder(w).Encode(present.Check(check))
+		err = json.NewEncoder(w).Encode(present.Build(build))
 		if err != nil {
 			logger.Error("failed-to-encode-check", err)
 			w.WriteHeader(http.StatusInternalServerError)

@@ -57,7 +57,8 @@ type ResourceType interface {
 	// rely on the 'check' step to do it
 	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
 
-	CheckPlan(atc.Version, time.Duration, atc.VersionedResourceTypes) atc.CheckPlan
+	CheckPlan(atc.Version, time.Duration, ResourceTypes) atc.CheckPlan
+	CreateBuild(bool) (Build, bool, error)
 
 	SetCheckSetupError(error) error
 
@@ -286,7 +287,7 @@ func (t *resourceType) SetResourceConfig(source atc.Source, resourceTypes atc.Ve
 	return resourceConfigScope, nil
 }
 
-func (r *resourceType) CheckPlan(from atc.Version, timeout time.Duration, resourceTypes atc.VersionedResourceTypes) atc.CheckPlan {
+func (r *resourceType) CheckPlan(from atc.Version, timeout time.Duration, resourceTypes ResourceTypes) atc.CheckPlan {
 	return atc.CheckPlan{
 		Name:   r.Name(),
 		Type:   r.Type(),
@@ -303,10 +304,38 @@ func (r *resourceType) CheckPlan(from atc.Version, timeout time.Duration, resour
 		// passed in and required?
 		Timeout: timeout.String(),
 
-		VersionedResourceTypes: resourceTypes,
+		VersionedResourceTypes: resourceTypes.Deserialize(),
 
 		UpdateResourceType: r.Name(),
 	}
+}
+
+func (r *resourceType) CreateBuild(manuallyTriggered bool) (Build, bool, error) {
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer Rollback(tx)
+
+	build := newEmptyBuild(r.conn, r.lockFactory)
+	err = createBuild(tx, build, map[string]interface{}{
+		"name":               sq.Expr("nextval('one_off_name')"),
+		"pipeline_id":        r.pipelineID,
+		"team_id":            r.teamID,
+		"status":             BuildStatusPending,
+		"manually_triggered": manuallyTriggered,
+	})
+	if err != nil {
+		return nil, false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
+	return build, true, nil
 }
 
 func (t *resourceType) SetCheckSetupError(cause error) error {

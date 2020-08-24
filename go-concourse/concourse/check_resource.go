@@ -10,7 +10,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (team *team) CheckResource(pipelineName string, resourceName string, version atc.Version) (atc.Check, bool, error) {
+func (team *team) CheckResource(pipelineName string, resourceName string, version atc.Version) (atc.Build, bool, error) {
 
 	params := rata.Params{
 		"pipeline_name": pipelineName,
@@ -18,11 +18,11 @@ func (team *team) CheckResource(pipelineName string, resourceName string, versio
 		"team_name":     team.name,
 	}
 
-	var check atc.Check
+	var build atc.Build
 
 	jsonBytes, err := json.Marshal(atc.CheckRequestBody{From: version})
 	if err != nil {
-		return check, false, err
+		return build, false, err
 	}
 
 	err = team.connection.Send(internal.Request{
@@ -31,21 +31,21 @@ func (team *team) CheckResource(pipelineName string, resourceName string, versio
 		Body:        bytes.NewBuffer(jsonBytes),
 		Header:      http.Header{"Content-Type": []string{"application/json"}},
 	}, &internal.Response{
-		Result: &check,
+		Result: &build,
 	})
 
 	switch e := err.(type) {
 	case nil:
-		return check, true, nil
+		return build, true, nil
 	case internal.ResourceNotFoundError:
-		return check, false, nil
+		return build, false, nil
 	case internal.UnexpectedResponseError:
 		if e.StatusCode == http.StatusInternalServerError {
-			return check, false, GenericError{e.Body}
+			return build, false, GenericError{e.Body}
 		} else {
-			return check, false, err
+			return build, false, err
 		}
 	default:
-		return check, false, err
+		return build, false, err
 	}
 }
