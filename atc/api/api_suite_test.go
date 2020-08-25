@@ -24,6 +24,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/gc/gcfakes"
+	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/atc/wrappa"
 
@@ -159,7 +160,7 @@ var _ = BeforeEach(func() {
 	checkWorkerTeamAccessHandlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(dbWorkerFactory)
 
 	fakePolicyChecker = new(policycheckerfakes.FakePolicyChecker)
-	fakePolicyChecker.CheckReturns(true, nil)
+	fakePolicyChecker.CheckReturns(policy.PassedPolicyCheck(), nil)
 
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewPolicyCheckWrappa(logger, fakePolicyChecker),

@@ -22,7 +22,7 @@ var _ = Describe("PolicyChecker", func() {
 		policyFilter policy.Filter
 		fakeAccess   *accessorfakes.FakeAccess
 		fakeRequest  *http.Request
-		pass         bool
+		result       policy.PolicyCheckOutput
 		checkErr     error
 	)
 
@@ -42,7 +42,7 @@ var _ = Describe("PolicyChecker", func() {
 		policyCheck, err := policy.Initialize(testLogger, "some-cluster", "some-version", policyFilter)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(policyCheck).ToNot(BeNil())
-		pass, checkErr = policychecker.NewApiPolicyChecker(policyCheck).Check("some-action", fakeAccess, fakeRequest)
+		result, checkErr = policychecker.NewApiPolicyChecker(policyCheck).Check("some-action", fakeAccess, fakeRequest)
 	})
 
 	Context("when system action", func() {
@@ -51,7 +51,7 @@ var _ = Describe("PolicyChecker", func() {
 		})
 		It("should pass", func() {
 			Expect(checkErr).ToNot(HaveOccurred())
-			Expect(pass).To(BeTrue())
+			Expect(result.Allowed).To(BeTrue())
 		})
 		It("Agent should not be called", func() {
 			Expect(fakePolicyAgent.CheckCallCount()).To(Equal(0))
@@ -69,7 +69,7 @@ var _ = Describe("PolicyChecker", func() {
 			})
 			It("should pass", func() {
 				Expect(checkErr).ToNot(HaveOccurred())
-				Expect(pass).To(BeTrue())
+				Expect(result.Allowed).To(BeTrue())
 			})
 			It("Agent should not be called", func() {
 				Expect(fakePolicyAgent.CheckCallCount()).To(Equal(0))
@@ -83,7 +83,7 @@ var _ = Describe("PolicyChecker", func() {
 			})
 			It("should pass", func() {
 				Expect(checkErr).ToNot(HaveOccurred())
-				Expect(pass).To(BeTrue())
+				Expect(result.Allowed).To(BeTrue())
 			})
 			It("Agent should not be called", func() {
 				Expect(fakePolicyAgent.CheckCallCount()).To(Equal(0))
@@ -98,7 +98,7 @@ var _ = Describe("PolicyChecker", func() {
 			})
 			It("should pass", func() {
 				Expect(checkErr).ToNot(HaveOccurred())
-				Expect(pass).To(BeTrue())
+				Expect(result.Allowed).To(BeTrue())
 			})
 			It("Agent should not be called", func() {
 				Expect(fakePolicyAgent.CheckCallCount()).To(Equal(0))
@@ -121,7 +121,7 @@ var _ = Describe("PolicyChecker", func() {
 				It("should error", func() {
 					Expect(checkErr).To(HaveOccurred())
 					Expect(checkErr.Error()).To(Equal(`invalid character 'h' looking for beginning of value`))
-					Expect(pass).To(BeFalse())
+					Expect(result.Allowed).To(BeFalse())
 				})
 				It("Agent should not be called", func() {
 					Expect(fakePolicyAgent.CheckCallCount()).To(Equal(0))
@@ -138,7 +138,7 @@ var _ = Describe("PolicyChecker", func() {
 				It("should error", func() {
 					Expect(checkErr).To(HaveOccurred())
 					Expect(checkErr.Error()).To(Equal(`error converting YAML to JSON: yaml: line 3: could not find expected ':'`))
-					Expect(pass).To(BeFalse())
+					Expect(result.Allowed).To(BeFalse())
 				})
 				It("Agent should not be called", func() {
 					Expect(fakePolicyAgent.CheckCallCount()).To(Equal(0))
@@ -186,35 +186,39 @@ var _ = Describe("PolicyChecker", func() {
 
 				Context("when Agent says pass", func() {
 					BeforeEach(func() {
-						fakePolicyAgent.CheckReturns(true, nil)
+						fakePolicyAgent.CheckReturns(policy.PassedPolicyCheck(), nil)
 					})
 
 					It("it should pass", func() {
 						Expect(checkErr).ToNot(HaveOccurred())
-						Expect(pass).To(BeTrue())
+						Expect(result.Allowed).To(BeTrue())
 					})
 				})
 
 				Context("when Agent says not-pass", func() {
 					BeforeEach(func() {
-						fakePolicyAgent.CheckReturns(false, nil)
+						fakePolicyAgent.CheckReturns(policy.PolicyCheckOutput{
+							Allowed: false,
+							Reasons: []string{"a policy says you can't do that"},
+						}, nil)
 					})
 
 					It("should not pass", func() {
 						Expect(checkErr).ToNot(HaveOccurred())
-						Expect(pass).To(BeFalse())
+						Expect(result.Allowed).To(BeFalse())
+						Expect(result.Reasons).To(ConsistOf("a policy says you can't do that"))
 					})
 				})
 
 				Context("when Agent says error", func() {
 					BeforeEach(func() {
-						fakePolicyAgent.CheckReturns(false, errors.New("some-error"))
+						fakePolicyAgent.CheckReturns(policy.FailedPolicyCheck(), errors.New("some-error"))
 					})
 
 					It("should not pass", func() {
 						Expect(checkErr).To(HaveOccurred())
 						Expect(checkErr.Error()).To(Equal("some-error"))
-						Expect(pass).To(BeFalse())
+						Expect(result.Allowed).To(BeFalse())
 					})
 				})
 			})

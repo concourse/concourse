@@ -10,10 +10,12 @@ import (
 
 const ActionUseImage = "UseImage"
 
-type PolicyCheckNotPass struct{}
+type PolicyCheckNotPass struct {
+	Reasons []string
+}
 
 func (e PolicyCheckNotPass) Error() string {
-	return "policy check rejected"
+	return fmt.Sprintf("policy check failed: %s", strings.Join(e.Reasons, ", "))
 }
 
 type Filter struct {
@@ -35,13 +37,34 @@ type PolicyCheckInput struct {
 	Data           interface{} `json:"data,omitempty"`
 }
 
+type PolicyCheckOutput struct {
+	Allowed bool
+	Reasons []string
+}
+
+// FailedPolicyCheck creates a generic failed check
+func FailedPolicyCheck() PolicyCheckOutput {
+	return PolicyCheckOutput{
+		Allowed: false,
+		Reasons: []string{},
+	}
+}
+
+// PassedPolicyCheck creates a generic passed check
+func PassedPolicyCheck() PolicyCheckOutput {
+	return PolicyCheckOutput{
+		Allowed: true,
+		Reasons: []string{},
+	}
+}
+
 //go:generate counterfeiter . Agent
 
 // Agent should be implemented by policy agents.
 type Agent interface {
 	// Check returns true if passes policy check. If not goes through policy
 	// check, just return true.
-	Check(PolicyCheckInput) (bool, error)
+	Check(PolicyCheckInput) (PolicyCheckOutput, error)
 }
 
 //go:generate counterfeiter . AgentFactory
@@ -137,7 +160,7 @@ func inArray(array []string, target string) bool {
 	return found
 }
 
-func (c *Checker) Check(input PolicyCheckInput) (bool, error) {
+func (c *Checker) Check(input PolicyCheckInput) (PolicyCheckOutput, error) {
 	input.Service = "concourse"
 	input.ClusterName = clusterName
 	input.ClusterVersion = clusterVersion

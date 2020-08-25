@@ -10,6 +10,7 @@ import (
 
 	"github.com/concourse/concourse/atc/api/policychecker"
 	"github.com/concourse/concourse/atc/api/policychecker/policycheckerfakes"
+	"github.com/concourse/concourse/atc/policy"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -63,7 +64,7 @@ var _ = Describe("Handler", func() {
 
 		Context("policy check passes", func() {
 			BeforeEach(func() {
-				fakePolicyChecker.CheckReturns(true, nil)
+				fakePolicyChecker.CheckReturns(policy.PassedPolicyCheck(), nil)
 			})
 
 			It("calls the inner handler", func() {
@@ -73,7 +74,10 @@ var _ = Describe("Handler", func() {
 
 		Context("policy check doesn't pass", func() {
 			BeforeEach(func() {
-				fakePolicyChecker.CheckReturns(false, nil)
+				fakePolicyChecker.CheckReturns(policy.PolicyCheckOutput{
+					Allowed: false,
+					Reasons: []string{"a policy says you can't do that", "another policy also says you can't do that"},
+				}, nil)
 			})
 
 			It("return http forbidden", func() {
@@ -81,7 +85,7 @@ var _ = Describe("Handler", func() {
 
 				msg, err := ioutil.ReadAll(responseWriter.Body)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(string(msg)).To(Equal("policy check not pass"))
+				Expect(string(msg)).To(Equal("policy check failed: a policy says you can't do that, another policy also says you can't do that"))
 			})
 
 			It("not call the inner handler", func() {
@@ -91,7 +95,7 @@ var _ = Describe("Handler", func() {
 
 		Context("policy check errors", func() {
 			BeforeEach(func() {
-				fakePolicyChecker.CheckReturns(false, errors.New("some-error"))
+				fakePolicyChecker.CheckReturns(policy.FailedPolicyCheck(), errors.New("some-error"))
 			})
 
 			It("return http bad request", func() {

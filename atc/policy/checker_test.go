@@ -75,14 +75,14 @@ var _ = Describe("Policy checker", func() {
 			Context("Check", func() {
 				var (
 					input    policy.PolicyCheckInput
-					pass     bool
+					output   policy.PolicyCheckOutput
 					checkErr error
 				)
 				BeforeEach(func() {
 					input = policy.PolicyCheckInput{}
 				})
 				JustBeforeEach(func() {
-					pass, checkErr = checker.Check(input)
+					output, checkErr = checker.Check(input)
 				})
 
 				It("agent should be called", func() {
@@ -99,35 +99,52 @@ var _ = Describe("Policy checker", func() {
 
 				Context("when agent says pass", func() {
 					BeforeEach(func() {
-						fakeAgent.CheckReturns(true, nil)
+						fakeAgent.CheckReturns(policy.PassedPolicyCheck(), nil)
 					})
 
 					It("it should pass", func() {
 						Expect(checkErr).ToNot(HaveOccurred())
-						Expect(pass).To(BeTrue())
+						Expect(output.Allowed).To(BeTrue())
 					})
 				})
 
 				Context("when agent says not-pass", func() {
 					BeforeEach(func() {
-						fakeAgent.CheckReturns(false, nil)
+						fakeAgent.CheckReturns(policy.FailedPolicyCheck(), nil)
 					})
 
 					It("should not pass", func() {
 						Expect(checkErr).ToNot(HaveOccurred())
-						Expect(pass).To(BeFalse())
+						Expect(output.Allowed).To(BeFalse())
+					})
+				})
+
+				Context("when agent includes reasons", func() {
+					BeforeEach(func() {
+						fakeAgent.CheckReturns(
+							policy.PolicyCheckOutput{
+								Allowed: false,
+								Reasons: []string{"a policy says you can't do that"},
+							},
+							nil,
+						)
+					})
+
+					It("should include reasons", func() {
+						Expect(checkErr).ToNot(HaveOccurred())
+						Expect(output.Reasons).To(ConsistOf("a policy says you can't do that"))
 					})
 				})
 
 				Context("when agent says error", func() {
 					BeforeEach(func() {
-						fakeAgent.CheckReturns(false, errors.New("some-error"))
+						fakeAgent.CheckReturns(policy.FailedPolicyCheck(), errors.New("some-error"))
 					})
 
 					It("should not pass", func() {
 						Expect(checkErr).To(HaveOccurred())
 						Expect(checkErr.Error()).To(Equal("some-error"))
-						Expect(pass).To(BeFalse())
+						Expect(output.Allowed).To(BeFalse())
 					})
 				})
 			})

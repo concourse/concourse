@@ -7,6 +7,7 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/policy"
 )
 
 func NewHandler(
@@ -34,15 +35,18 @@ func (h policyCheckingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	acc := accessor.GetAccessor(r)
 
 	if h.policyChecker != nil {
-		pass, err := h.policyChecker.Check(h.action, acc, r)
+		result, err := h.policyChecker.Check(h.action, acc, r)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, fmt.Sprintf("policy check error: %s", err.Error()))
 			return
 		}
-		if !pass {
+		if !result.Allowed {
 			w.WriteHeader(http.StatusForbidden)
-			fmt.Fprintf(w, "policy check not pass")
+			policyCheckErr := policy.PolicyCheckNotPass{
+				Reasons: result.Reasons,
+			}
+			fmt.Fprintf(w, policyCheckErr.Error())
 			return
 		}
 	}
