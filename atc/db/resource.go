@@ -342,15 +342,36 @@ func (r *resource) CreateBuild(manuallyTriggered bool) (Build, bool, error) {
 
 	defer Rollback(tx)
 
-	build := newEmptyBuild(r.conn, r.lockFactory)
-	err = createBuild(tx, build, map[string]interface{}{
+	params := map[string]interface{}{
 		"name":               sq.Expr("nextval('one_off_name')"),
 		"pipeline_id":        r.pipelineID,
 		"team_id":            r.teamID,
 		"status":             BuildStatusPending,
 		"manually_triggered": manuallyTriggered,
-	})
+	}
+
+	if !manuallyTriggered {
+		params["resource_id"] = r.id
+	}
+
+	_, err = psql.Delete("builds").
+		Where(sq.Eq{
+			"resource_id": r.id,
+			"completed":   true,
+		}).
+		RunWith(tx).
+		Exec()
 	if err != nil {
+		return nil, false, fmt.Errorf("delete previous build: %w", err)
+	}
+
+	build := newEmptyBuild(r.conn, r.lockFactory)
+	err = createBuild(tx, build, params)
+	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
+			return nil, false, nil
+		}
+
 		return nil, false, err
 	}
 

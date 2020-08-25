@@ -510,6 +510,41 @@ var _ = Describe("Resource", func() {
 			It("creates a manually triggered one-off build", func() {
 				Expect(build.IsManuallyTriggered()).To(BeTrue())
 			})
+
+			It("can create another build", func() {
+				anotherBuild, created, err := defaultResource.CreateBuild(manuallyTriggered)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeTrue())
+				Expect(anotherBuild.ID()).ToNot(Equal(build.ID()))
+			})
+		})
+
+		Context("when not manually triggered", func() {
+			BeforeEach(func() {
+				manuallyTriggered = false
+			})
+
+			It("cannot create another build", func() {
+				anotherBuild, created, err := defaultResource.CreateBuild(manuallyTriggered)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeFalse())
+				Expect(anotherBuild).To(BeNil())
+			})
+
+			Describe("after the first build completes", func() {
+				It("can create another build after deleting the completed build", func() {
+					Expect(build.Finish(db.BuildStatusSucceeded)).To(Succeed())
+
+					anotherBuild, created, err := defaultResource.CreateBuild(manuallyTriggered)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(created).To(BeTrue())
+					Expect(anotherBuild.ID()).ToNot(Equal(build.ID()))
+
+					found, err := build.Reload()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeFalse())
+				})
+			})
 		})
 	})
 
