@@ -152,7 +152,7 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 
 	dnsServers := cmd.Containerd.DNSServers
 	if cmd.Containerd.DNS.Enable {
- 		dnsProxyRunner, err := cmd.dnsProxyRunner(logger.Session("dns-proxy"))
+		dnsProxyRunner, err := cmd.dnsProxyRunner(logger.Session("dns-proxy"))
 		if err != nil {
 			return nil, err
 		}

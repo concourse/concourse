@@ -74,9 +74,6 @@ var _ = Describe("DNS Resolution", func() {
 	expectedDnsProxyBehaviour := func(runtime string) {
 		DescribeTable("different proxy settings",
 			func(c Case) {
-				if runtime == containerdRuntime && c.enableDnsProxy == "false" {
-					Skip("Skip test until https://github.com/concourse/concourse/issues/5967 is resolv'ed :P")
-				}
 				setupDeployment(runtime, c.enableDnsProxy, c.dnsServer)
 
 				sess := fly.Start("execute", "-c", "tasks/dns-proxy-task.yml", "-v", "url="+c.addressFunction())
