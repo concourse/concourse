@@ -233,6 +233,10 @@ func (t *resourceType) Reload() (bool, error) {
 	return true, nil
 }
 
+func (r *resourceType) SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 func (r *resourceType) SetResourceConfigScope(scope ResourceConfigScope) error {
 	_, err := psql.Update("resource_types").
 		Set("resource_config_id", scope.ResourceConfig().ID()).

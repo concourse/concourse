@@ -9,6 +9,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbtest"
 	gocache "github.com/patrickmn/go-cache"
 )
 
@@ -731,29 +732,37 @@ var _ = Describe("VersionsDB", func() {
 
 	Describe("FindVersionOfResource", func() {
 		var (
-			queryVersion, dbVersion atc.Version
-			resourceVersion         db.ResourceVersion
-			found                   bool
-		)
+			scenario     dbtest.Scenario
+			queryVersion atc.Version
 
-		BeforeEach(func() {
-			dbVersion = atc.Version{"tag": "v1", "commit": "v2"}
-		})
+			resourceVersion db.ResourceVersion
+			found           bool
+		)
 
 		JustBeforeEach(func() {
 			var err error
-			resourceVersion, found, err = vdb.FindVersionOfResource(ctx, defaultResource.ID(), queryVersion)
+			resourceVersion, found, err = vdb.FindVersionOfResource(
+				ctx,
+				scenario.Resource("some-resource").ID(),
+				queryVersion,
+			)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("when trying to find version by providing a matched partial version", func() {
+			var (
+				dbVersion atc.Version
+			)
 
 			BeforeEach(func() {
-				resourceScope, err := defaultResource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
-				Expect(err).NotTo(HaveOccurred())
+				dbVersion = atc.Version{"tag": "v1", "commit": "v2"}
 
-				err = resourceScope.SaveVersions(db.NewSpanContext(ctx), []atc.Version{dbVersion})
-				Expect(err).NotTo(HaveOccurred())
+				scenario = dbtest.Setup(
+					builder.WithResourceVersions(
+						"some-resource",
+						dbVersion,
+					),
+				)
 
 				queryVersion = atc.Version{"tag": "v1"}
 			})
