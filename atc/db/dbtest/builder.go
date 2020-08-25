@@ -12,10 +12,30 @@ import (
 	uuid "github.com/nu7hatch/gouuid"
 )
 
-const GlobalBaseResourceType = "global-base-type"
+const BaseResourceType = "global-base-type"
 const UniqueBaseResourceType = "unique-base-type"
 
-type JobInputs map[string]atc.Version
+type JobInputs []JobInput
+
+type JobInput struct {
+	Name            string
+	Version         atc.Version
+	PassedBuilds    []db.Build
+	FirstOccurrence bool
+
+	ResolveError string
+}
+
+func (inputs JobInputs) Lookup(name string) (JobInput, bool) {
+	for _, i := range inputs {
+		if i.Name == name {
+			return i, true
+		}
+	}
+
+	return JobInput{}, false
+}
+
 type JobOutputs map[string]atc.Version
 
 type Builder struct {
@@ -70,11 +90,32 @@ func (builder Builder) WithPipeline(config atc.Config) SetupFunc {
 			return err
 		}
 
-		// XXX: set up workers with base resource types?
-
 		scenario.Pipeline = p
 		return nil
 	}
+}
+
+func (builder Builder) WithBaseWorker() SetupFunc {
+	return builder.WithWorker(atc.Worker{
+		Name: unique("worker"),
+
+		GardenAddr:      unique("garden-addr"),
+		BaggageclaimURL: unique("baggageclaim-url"),
+
+		ResourceTypes: []atc.WorkerResourceType{
+			{
+				Type:    BaseResourceType,
+				Image:   "/path/to/global/image",
+				Version: "some-global-type-version",
+			},
+			{
+				Type:                 UniqueBaseResourceType,
+				Image:                "/path/to/unique/image",
+				Version:              "some-unique-type-version",
+				UniqueVersionHistory: true,
+			},
+		},
+	})
 }
 
 func (builder Builder) WithResourceVersions(resourceName string, versions ...atc.Version) SetupFunc {
@@ -84,7 +125,7 @@ func (builder Builder) WithResourceVersions(resourceName string, versions ...atc
 				Resources: atc.ResourceConfigs{
 					{
 						Name:   resourceName,
-						Type:   GlobalBaseResourceType,
+						Type:   BaseResourceType,
 						Source: atc.Source{"some": "source"},
 					},
 				},
@@ -94,28 +135,8 @@ func (builder Builder) WithResourceVersions(resourceName string, versions ...atc
 			}
 		}
 
-		// bootstrap workers to ensure base resource type exists
 		if len(scenario.Workers) == 0 {
-			err := builder.WithWorker(atc.Worker{
-				Name: unique("worker"),
-
-				GardenAddr:      unique("garden-addr"),
-				BaggageclaimURL: unique("baggageclaim-url"),
-
-				ResourceTypes: []atc.WorkerResourceType{
-					{
-						Type:    GlobalBaseResourceType,
-						Image:   "/path/to/global/image",
-						Version: "some-global-type-version",
-					},
-					{
-						Type:                 UniqueBaseResourceType,
-						Image:                "/path/to/unique/image",
-						Version:              "some-unique-type-version",
-						UniqueVersionHistory: true,
-					},
-				},
-			})(scenario)
+			err := builder.WithBaseWorker()(scenario)
 			if err != nil {
 				return fmt.Errorf("bootstrap workers: %w", err)
 			}
@@ -163,10 +184,172 @@ func (builder Builder) WithResourceVersions(resourceName string, versions ...atc
 	}
 }
 
-func (builder Builder) WithJobBuild(assign *db.Build, jobName string, inputs JobInputs, outputs JobOutputs) SetupFunc {
+func (builder Builder) WithResourceTypeVersions(resourceTypeName string, versions ...atc.Version) SetupFunc {
+	return func(scenario *Scenario) error {
+		if scenario.Pipeline == nil {
+			err := builder.WithPipeline(atc.Config{
+				ResourceTypes: atc.ResourceTypes{
+					{
+						Name:   resourceTypeName,
+						Type:   BaseResourceType,
+						Source: atc.Source{"some": "source"},
+					},
+				},
+			})(scenario)
+			if err != nil {
+				return fmt.Errorf("bootstrap pipeline: %w", err)
+			}
+		}
+
+		if len(scenario.Workers) == 0 {
+			err := builder.WithBaseWorker()(scenario)
+			if err != nil {
+				return fmt.Errorf("bootstrap workers: %w", err)
+			}
+		}
+
+		resourceType, found, err := scenario.Pipeline.ResourceType(resourceTypeName)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return fmt.Errorf("resource type '%s' not configured in pipeline", resourceTypeName)
+		}
+
+		resourceTypes, err := scenario.Pipeline.ResourceTypes()
+		if err != nil {
+			return fmt.Errorf("get pipeline resource types: %w", err)
+		}
+
+		resourceConfig, err := builder.ResourceConfigFactory.FindOrCreateResourceConfig(
+			resourceType.Type(),
+			resourceType.Source(),
+			resourceTypes.Filter(resourceType).Deserialize(),
+		)
+		if err != nil {
+			return fmt.Errorf("find or create resource config: %w", err)
+		}
+
+		scope, err := resourceConfig.FindOrCreateScope(nil)
+		if err != nil {
+			return fmt.Errorf("find or create scope: %w", err)
+		}
+
+		err = scope.SaveVersions(db.SpanContext{}, versions)
+		if err != nil {
+			return fmt.Errorf("save versions: %w", err)
+		}
+
+		resourceType.SetResourceConfigScope(scope)
+		if err != nil {
+			return fmt.Errorf("set resource scope: %w", err)
+		}
+
+		return nil
+	}
+}
+
+func (builder Builder) WithPendingJobBuild(assign *db.Build, jobName string) SetupFunc {
 	return func(scenario *Scenario) error {
 		if scenario.Pipeline == nil {
 			return fmt.Errorf("no pipeline set in scenario")
+		}
+
+		job, found, err := scenario.Pipeline.Job(jobName)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return fmt.Errorf("job '%s' not configured in pipeline", jobName)
+		}
+
+		build, err := job.CreateBuild()
+		if err != nil {
+			return fmt.Errorf("create build: %w", err)
+		}
+
+		*assign = build
+
+		return nil
+	}
+}
+
+func (builder Builder) WithNextInputMapping(jobName string, inputs JobInputs) SetupFunc {
+	return func(scenario *Scenario) error {
+		if scenario.Pipeline == nil {
+			return fmt.Errorf("no pipeline set in scenario")
+		}
+
+		job, found, err := scenario.Pipeline.Job(jobName)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return fmt.Errorf("job '%s' not configured in pipeline", jobName)
+		}
+
+		jobInputs, err := job.AlgorithmInputs()
+		if err != nil {
+			return fmt.Errorf("get job inputs: %w", err)
+		}
+
+		var hasErrors bool
+		mapping := db.InputMapping{}
+		for _, input := range jobInputs {
+			i, found := inputs.Lookup(input.Name)
+			if !found {
+				return fmt.Errorf("no version specified for input '%s'", input.Name)
+			}
+
+			buildIDs := []int{}
+			for _, build := range i.PassedBuilds {
+				buildIDs = append(buildIDs, build.ID())
+			}
+
+			mapping[input.Name] = db.InputResult{
+				Input: &db.AlgorithmInput{
+					AlgorithmVersion: db.AlgorithmVersion{
+						Version:    db.ResourceVersion(md5Version(i.Version)),
+						ResourceID: input.ResourceID,
+					},
+					FirstOccurrence: i.FirstOccurrence,
+				},
+				PassedBuildIDs: buildIDs,
+				ResolveError:   db.ResolutionFailure(i.ResolveError),
+			}
+
+			if i.ResolveError != "" {
+				hasErrors = true
+			}
+		}
+
+		err = job.SaveNextInputMapping(mapping, !hasErrors)
+		if err != nil {
+			return fmt.Errorf("save job input mapping: %w", err)
+		}
+
+		return nil
+	}
+}
+
+func (builder Builder) WithJobBuild(assign *db.Build, jobName string, inputs JobInputs, outputs JobOutputs) SetupFunc {
+	return func(scenario *Scenario) error {
+		var build db.Build
+		scenario.Run(
+			builder.WithPendingJobBuild(&build, jobName),
+			builder.WithNextInputMapping(jobName, inputs),
+		)
+
+		_, inputsReady, err := build.AdoptInputsAndPipes()
+		if err != nil {
+			return fmt.Errorf("adopt inputs and pipes: %w", err)
+		}
+
+		if !inputsReady {
+			return fmt.Errorf("inputs not available?")
 		}
 
 		job, found, err := scenario.Pipeline.Job(jobName)
@@ -183,52 +366,9 @@ func (builder Builder) WithJobBuild(assign *db.Build, jobName string, inputs Job
 			return fmt.Errorf("get pipeline resource types: %w", err)
 		}
 
-		jobInputs, err := job.AlgorithmInputs()
-		if err != nil {
-			return fmt.Errorf("get job inputs: %w", err)
-		}
-
 		jobOutputs, err := job.Outputs()
 		if err != nil {
 			return fmt.Errorf("get job outputs: %w", err)
-		}
-
-		mapping := db.InputMapping{}
-		for _, input := range jobInputs {
-			version, found := inputs[input.Name]
-			if !found {
-				return fmt.Errorf("no version specified for input '%s'", input.Name)
-			}
-
-			mapping[input.Name] = db.InputResult{
-				Input: &db.AlgorithmInput{
-					AlgorithmVersion: db.AlgorithmVersion{
-						Version:    db.ResourceVersion(md5Version(version)),
-						ResourceID: input.ResourceID,
-					},
-				},
-			}
-		}
-
-		err = job.SaveNextInputMapping(mapping, true)
-		if err != nil {
-			return fmt.Errorf("save job input mapping: %w", err)
-		}
-
-		build, err := job.CreateBuild()
-		if err != nil {
-			return fmt.Errorf("create job build: %w", err)
-		}
-
-		*assign = build
-
-		_, inputsReady, err := build.AdoptInputsAndPipes()
-		if err != nil {
-			return fmt.Errorf("adopt inputs and pipes: %w", err)
-		}
-
-		if !inputsReady {
-			return fmt.Errorf("inputs not available?")
 		}
 
 		for _, output := range jobOutputs {
@@ -259,6 +399,17 @@ func (builder Builder) WithJobBuild(assign *db.Build, jobName string, inputs Job
 				return fmt.Errorf("save build output: %w", err)
 			}
 		}
+
+		found, err = build.Reload()
+		if err != nil {
+			return fmt.Errorf("reload build: %w", err)
+		}
+
+		if !found {
+			return fmt.Errorf("build disappeared")
+		}
+
+		*assign = build
 
 		return nil
 	}

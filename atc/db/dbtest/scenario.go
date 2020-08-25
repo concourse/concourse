@@ -14,14 +14,17 @@ type Scenario struct {
 
 type SetupFunc func(*Scenario) error
 
-func Setup(setup ...SetupFunc) Scenario {
-	scenario := Scenario{}
+func Setup(setup ...SetupFunc) *Scenario {
+	scenario := &Scenario{}
+	scenario.Run(setup...)
+	return scenario
+}
+
+func (scenario *Scenario) Run(setup ...SetupFunc) {
 	for _, f := range setup {
-		err := f(&scenario)
+		err := f(scenario)
 		Expect(err).ToNot(HaveOccurred())
 	}
-
-	return scenario
 }
 
 func (scenario Scenario) Job(name string) db.Job {

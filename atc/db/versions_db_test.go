@@ -732,7 +732,7 @@ var _ = Describe("VersionsDB", func() {
 
 	Describe("FindVersionOfResource", func() {
 		var (
-			scenario     dbtest.Scenario
+			scenario     *dbtest.Scenario
 			queryVersion atc.Version
 
 			resourceVersion db.ResourceVersion
@@ -758,10 +758,7 @@ var _ = Describe("VersionsDB", func() {
 				dbVersion = atc.Version{"tag": "v1", "commit": "v2"}
 
 				scenario = dbtest.Setup(
-					builder.WithResourceVersions(
-						"some-resource",
-						dbVersion,
-					),
+					builder.WithResourceVersions("some-resource", dbVersion),
 				)
 
 				queryVersion = atc.Version{"tag": "v1"}
