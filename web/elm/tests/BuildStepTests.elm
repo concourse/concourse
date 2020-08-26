@@ -327,6 +327,13 @@ all =
                     >> when iAmLookingAtTheStepBody
                     >> then_ iSeeATimestamp
             ]
+        , describe "check step"
+            [ test "should show resource name" <|
+                given iVisitABuildWithACheckStep
+                    >> given theCheckStepIsExpanded
+                    >> when iAmLookingAtTheStepBody
+                    >> then_ iSeeTheResourceName
+            ]
         , describe "set-pipeline step"
             [ test "should show pipeline name" <|
                 given iVisitABuildWithASetPipelineStep
@@ -427,6 +434,12 @@ iVisitABuildWithASetPipelineStep =
         >> thePlanContainsASetPipelineStep
 
 
+iVisitABuildWithACheckStep =
+    iOpenTheBuildPage
+        >> myBrowserFetchedTheBuild
+        >> thePlanContainsACheckStep
+
+
 iVisitABuildWithALoadVarStep =
     iOpenTheBuildPage
         >> myBrowserFetchedTheBuild
@@ -446,6 +459,11 @@ theTaskStepIsExpanded =
 theSetPipelineStepIsExpanded =
     Tuple.first
         >> Application.update (Update <| Message.Click <| StepHeader setPipelineStepId)
+
+
+theCheckStepIsExpanded =
+    Tuple.first
+        >> Application.update (Update <| Message.Click <| StepHeader checkStepId)
 
 
 theLoadVarStepIsExpanded =
@@ -638,6 +656,25 @@ thePlanContainsASetPipelineStep =
 
 setPipelineStepId =
     "setPipelineStep"
+
+
+thePlanContainsACheckStep =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.PlanAndResourcesFetched 1 <|
+                Ok
+                    ( { id = checkStepId
+                      , step = Concourse.BuildStepCheck "resource-name"
+                      }
+                    , { inputs = []
+                      , outputs = []
+                      }
+                    )
+            )
+
+
+checkStepId =
+    "checkStep"
 
 
 thePlanContainsALoadVarStep =
@@ -951,6 +988,10 @@ iSeeATimestamp =
 
 iSeeThePipelineName =
     Query.has [ text "pipeline-name" ]
+
+
+iSeeTheResourceName =
+    Query.has [ text "resource-name" ]
 
 
 iSeeTheLoadVarName =

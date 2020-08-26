@@ -79,6 +79,9 @@ init hl resources buildPlan =
                 buildPlan
                 name
 
+        Concourse.BuildStepCheck name ->
+            initBottom hl Check buildPlan name
+
         Concourse.BuildStepGet name version ->
             initBottom hl
                 (Get << setupGetStep resources name version)
@@ -429,6 +432,9 @@ viewTree session model tree depth =
 
         ArtifactInput step ->
             viewStep model session depth step (StepHeaderGet False)
+
+        Check step ->
+            viewStep model session depth step StepHeaderCheck
 
         Get step ->
             viewStep model session depth step (StepHeaderGet step.changed)
@@ -1103,6 +1109,9 @@ viewStepHeaderLabel headerType stepID =
 
                 StepHeaderTask ->
                     "task:"
+
+                StepHeaderCheck ->
+                    "check:"
 
                 StepHeaderSetPipeline _ ->
                     "set_pipeline:"
