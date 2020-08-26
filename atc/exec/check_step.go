@@ -153,8 +153,9 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		}
 
 		result, err := step.runCheck(ctx, logger, timeout, resourceConfig, source, resourceTypes, fromVersion)
-		// XXX(check-refactor): set check error
-		// scope.SetCheckError(err)
+		if setErr := scope.SetCheckError(err); setErr != nil {
+			logger.Error("failed-to-set-check-error", setErr)
+		}
 		if err != nil {
 			return fmt.Errorf("run check: %w", err)
 		}
@@ -232,7 +233,7 @@ func (step *CheckStep) runCheck(ctx context.Context, logger lager.Logger, timeou
 		Delegate:      step.delegate,
 	}
 
-	result, err := step.workerClient.RunCheckStep(
+	return step.workerClient.RunCheckStep(
 		ctx,
 		logger,
 		owner,
@@ -246,9 +247,4 @@ func (step *CheckStep) runCheck(ctx context.Context, logger lager.Logger, timeou
 		timeout,
 		checkable,
 	)
-	if err != nil {
-		return worker.CheckResult{}, fmt.Errorf("run check step: %w", err)
-	}
-
-	return result, nil
 }
