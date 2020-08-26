@@ -2,12 +2,17 @@ package flaghelpers
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 )
 
 type ResourceFlag struct {
 	PipelineName string
 	ResourceName string
+}
+
+func (flag ResourceFlag) String() string {
+	return fmt.Sprintf("%s/%s", flag.PipelineName, flag.ResourceName)
 }
 
 func (resource *ResourceFlag) UnmarshalFlag(value string) error {

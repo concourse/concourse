@@ -127,7 +127,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		return err
 	}
 
-	fmt.Printf("executing build %d at %s \n", build.ID, clientURL.ResolveReference(buildURL))
+	fmt.Printf("executing build %d at %s\n", build.ID, clientURL.ResolveReference(buildURL))
 
 	terminate := make(chan os.Signal, 1)
 

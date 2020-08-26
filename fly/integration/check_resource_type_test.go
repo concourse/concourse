@@ -5,8 +5,7 @@ import (
 	"os/exec"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/fly/ui"
-	"github.com/fatih/color"
+	"github.com/concourse/concourse/atc/event"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -17,10 +16,9 @@ import (
 
 var _ = Describe("CheckResourceType", func() {
 	var (
-		flyCmd          *exec.Cmd
-		build           atc.Build
-		resourceTypes   atc.VersionedResourceTypes
-		expectedHeaders ui.TableRow
+		flyCmd        *exec.Cmd
+		build         atc.Build
+		resourceTypes atc.VersionedResourceTypes
 	)
 
 	BeforeEach(func() {
@@ -40,13 +38,6 @@ var _ = Describe("CheckResourceType", func() {
 				Type: "mybaseresourcetype",
 			},
 		}}
-
-		expectedHeaders = ui.TableRow{
-			{Contents: "id", Color: color.New(color.Bold)},
-			{Contents: "name", Color: color.New(color.Bold)},
-			{Contents: "status", Color: color.New(color.Bold)},
-			{Contents: "check_error", Color: color.New(color.Bold)},
-		}
 	})
 
 	Context("when version is specified", func() {
@@ -68,18 +59,7 @@ var _ = Describe("CheckResourceType", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(sess).Should(gexec.Exit(0))
-
-				Eventually(sess.Out).Should(PrintTable(ui.Table{
-					Headers: expectedHeaders,
-					Data: []ui.TableRow{
-						{
-							{Contents: "123"},
-							{Contents: "myresource"},
-							{Contents: "started"},
-						},
-					},
-				}))
-
+				Eventually(sess.Out).Should(gbytes.Say("checking mypipeline/myresource in build 123"))
 			}).To(Change(func() int {
 				return len(atcServer.ReceivedRequests())
 			}).By(2))
@@ -105,26 +85,21 @@ var _ = Describe("CheckResourceType", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(sess).Should(gexec.Exit(0))
-
-				Eventually(sess.Out).Should(PrintTable(ui.Table{
-					Headers: expectedHeaders,
-					Data: []ui.TableRow{
-						{
-							{Contents: "123"},
-							{Contents: "myresource"},
-							{Contents: "started"},
-						},
-					},
-				}))
-
+				Eventually(sess.Out).Should(gbytes.Say("checking mypipeline/myresource in build 123"))
 			}).To(Change(func() int {
 				return len(atcServer.ReceivedRequests())
 			}).By(2))
 		})
 	})
 
-	Context("when the check succeed", func() {
+	Context("when running without --async", func() {
+		var streaming chan struct{}
+		var events chan atc.Event
+
 		BeforeEach(func() {
+			streaming = make(chan struct{})
+			events = make(chan atc.Event)
+
 			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresource/check"
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
@@ -132,83 +107,19 @@ var _ = Describe("CheckResourceType", func() {
 					ghttp.VerifyJSON(`{"from":null}`),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, build),
 				),
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/builds/123"),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{
-						ID:        123,
-						Status:    "succeeded",
-						StartTime: 100000000000,
-						EndTime:   100000000000,
-					}),
-				),
+				BuildEventsHandler(123, streaming, events),
 			)
 		})
 
-		It("sends check resource request to ATC", func() {
+		It("checks and watches the build", func() {
 			Expect(func() {
 				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "--shallow")
+
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
+				Eventually(sess.Out).Should(gbytes.Say("checking mypipeline/myresource in build 123"))
 
-				Eventually(sess).Should(gexec.Exit(0))
-
-				Eventually(sess.Out).Should(PrintTable(ui.Table{
-					Headers: expectedHeaders,
-					Data: []ui.TableRow{
-						{
-							{Contents: "123"},
-							{Contents: "myresource"},
-							{Contents: "succeeded"},
-						},
-					},
-				}))
-
-			}).To(Change(func() int {
-				return len(atcServer.ReceivedRequests())
-			}).By(3))
-		})
-	})
-
-	Context("when the check fail", func() {
-		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresource/check"
-			atcServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", expectedURL),
-					ghttp.VerifyJSON(`{"from":null}`),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, build),
-				),
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/builds/123"),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{
-						ID:        123,
-						Status:    "errored",
-						StartTime: 100000000000,
-						EndTime:   100000000000,
-					}),
-				),
-			)
-		})
-
-		It("sends check resource request to ATC", func() {
-			Expect(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "check-resource-type", "-r", "mypipeline/myresource", "--shallow")
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-
-				Eventually(sess).Should(gexec.Exit(1))
-
-				Eventually(sess.Out).Should(PrintTable(ui.Table{
-					Headers: expectedHeaders,
-					Data: []ui.TableRow{
-						{
-							{Contents: "123"},
-							{Contents: "myresource"},
-							{Contents: "errored"},
-						},
-					},
-				}))
-
+				AssertEvents(sess, streaming, events)
 			}).To(Change(func() int {
 				return len(atcServer.ReceivedRequests())
 			}).By(3))
@@ -216,7 +127,13 @@ var _ = Describe("CheckResourceType", func() {
 	})
 
 	Context("when recursive check succeeds", func() {
+		var parentStreaming chan struct{}
+		var parentEvents chan atc.Event
+
 		BeforeEach(func() {
+			parentStreaming = make(chan struct{})
+			parentEvents = make(chan atc.Event)
+
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/mypipeline/resource-types"),
@@ -238,15 +155,7 @@ var _ = Describe("CheckResourceType", func() {
 						Status: "started",
 					}),
 				),
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/builds/987"),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{
-						ID:        987,
-						Status:    "succeeded",
-						StartTime: 100000000000,
-						EndTime:   100000000000,
-					}),
-				),
+				BuildEventsHandler(987, parentStreaming, parentEvents),
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresource/check"),
 					ghttp.VerifyJSON(`{"from":null}`),
@@ -261,30 +170,15 @@ var _ = Describe("CheckResourceType", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
+				Eventually(sess.Out).Should(gbytes.Say("checking mypipeline/myresourcetype in build 987"))
+
+				parentEvents <- event.Log{Payload: "sup"}
+				Eventually(sess.Out).Should(gbytes.Say("sup"))
+				close(parentEvents)
+
+				Eventually(sess.Out).Should(gbytes.Say("checking mypipeline/myresource in build 123"))
+
 				Eventually(sess).Should(gexec.Exit(0))
-
-				Eventually(sess.Out).Should(PrintTable(ui.Table{
-					Headers: expectedHeaders,
-					Data: []ui.TableRow{
-						{
-							{Contents: "987"},
-							{Contents: "myresourcetype"},
-							{Contents: "succeeded"},
-						},
-					},
-				}))
-
-				Eventually(sess.Out).Should(PrintTable(ui.Table{
-					Headers: expectedHeaders,
-					Data: []ui.TableRow{
-						{
-							{Contents: "123"},
-							{Contents: "myresource"},
-							{Contents: "started"},
-						},
-					},
-				}))
-
 			}).To(Change(func() int {
 				return len(atcServer.ReceivedRequests())
 			}).By(7))
@@ -292,7 +186,13 @@ var _ = Describe("CheckResourceType", func() {
 	})
 
 	Context("when recursive check fails", func() {
+		var parentStreaming chan struct{}
+		var parentEvents chan atc.Event
+
 		BeforeEach(func() {
+			parentStreaming = make(chan struct{})
+			parentEvents = make(chan atc.Event)
+
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/mypipeline/resource-types"),
@@ -314,15 +214,7 @@ var _ = Describe("CheckResourceType", func() {
 						Status: "started",
 					}),
 				),
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/builds/987"),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Build{
-						ID:        987,
-						Status:    "errored",
-						StartTime: 100000000000,
-						EndTime:   100000000000,
-					}),
-				),
+				BuildEventsHandler(987, parentStreaming, parentEvents),
 			)
 		})
 
@@ -332,19 +224,8 @@ var _ = Describe("CheckResourceType", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(sess).Should(gexec.Exit(1))
-
-				Eventually(sess.Out).Should(PrintTable(ui.Table{
-					Headers: expectedHeaders,
-					Data: []ui.TableRow{
-						{
-							{Contents: "987"},
-							{Contents: "myresourcetype"},
-							{Contents: "errored"},
-						},
-					},
-				}))
-
+				Eventually(sess.Out).Should(gbytes.Say("checking mypipeline/myresourcetype in build 987"))
+				AssertErrorEvents(sess, parentStreaming, parentEvents)
 			}).To(Change(func() int {
 				return len(atcServer.ReceivedRequests())
 			}).By(6))

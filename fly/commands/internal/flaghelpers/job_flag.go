@@ -15,6 +15,10 @@ type JobFlag struct {
 	JobName      string
 }
 
+func (flag JobFlag) String() string {
+	return fmt.Sprintf("%s/%s", flag.PipelineName, flag.JobName)
+}
+
 func (job *JobFlag) UnmarshalFlag(value string) error {
 	vs := strings.SplitN(value, "/", -1)
 
