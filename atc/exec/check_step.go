@@ -104,12 +104,6 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		return fmt.Errorf("resource types creds evaluation: %w", err)
 	}
 
-	// XXX(check-refactor): this might get GC'd - do we need an owner or a use?
-	//
-	// associating it to the resource would keep it alive, but we don't want to
-	// do that too early because it'll leave a brief period where a resource a
-	// config set but no no version history, which will cause flickering with
-	// frequent credential rotation
 	resourceConfig, err := step.resourceConfigFactory.FindOrCreateResourceConfig(step.plan.Type, source, resourceTypes)
 	if err != nil {
 		return fmt.Errorf("create resource config: %w", err)
@@ -159,6 +153,8 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		}
 
 		result, err := step.runCheck(ctx, logger, timeout, resourceConfig, source, resourceTypes, fromVersion)
+		// XXX(check-refactor): set check error
+		// scope.SetCheckError(err)
 		if err != nil {
 			return fmt.Errorf("run check: %w", err)
 		}

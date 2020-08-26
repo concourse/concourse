@@ -3,6 +3,7 @@ package dbfakes
 
 import (
 	"sync"
+	"time"
 
 	"github.com/concourse/concourse/atc/db"
 )
@@ -50,6 +51,16 @@ type FakeResourceConfig struct {
 	}
 	iDReturnsOnCall map[int]struct {
 		result1 int
+	}
+	LastReferencedStub        func() time.Time
+	lastReferencedMutex       sync.RWMutex
+	lastReferencedArgsForCall []struct {
+	}
+	lastReferencedReturns struct {
+		result1 time.Time
+	}
+	lastReferencedReturnsOnCall map[int]struct {
+		result1 time.Time
 	}
 	OriginBaseResourceTypeStub        func() *db.UsedBaseResourceType
 	originBaseResourceTypeMutex       sync.RWMutex
@@ -284,6 +295,58 @@ func (fake *FakeResourceConfig) IDReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
+func (fake *FakeResourceConfig) LastReferenced() time.Time {
+	fake.lastReferencedMutex.Lock()
+	ret, specificReturn := fake.lastReferencedReturnsOnCall[len(fake.lastReferencedArgsForCall)]
+	fake.lastReferencedArgsForCall = append(fake.lastReferencedArgsForCall, struct {
+	}{})
+	fake.recordInvocation("LastReferenced", []interface{}{})
+	fake.lastReferencedMutex.Unlock()
+	if fake.LastReferencedStub != nil {
+		return fake.LastReferencedStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.lastReferencedReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResourceConfig) LastReferencedCallCount() int {
+	fake.lastReferencedMutex.RLock()
+	defer fake.lastReferencedMutex.RUnlock()
+	return len(fake.lastReferencedArgsForCall)
+}
+
+func (fake *FakeResourceConfig) LastReferencedCalls(stub func() time.Time) {
+	fake.lastReferencedMutex.Lock()
+	defer fake.lastReferencedMutex.Unlock()
+	fake.LastReferencedStub = stub
+}
+
+func (fake *FakeResourceConfig) LastReferencedReturns(result1 time.Time) {
+	fake.lastReferencedMutex.Lock()
+	defer fake.lastReferencedMutex.Unlock()
+	fake.LastReferencedStub = nil
+	fake.lastReferencedReturns = struct {
+		result1 time.Time
+	}{result1}
+}
+
+func (fake *FakeResourceConfig) LastReferencedReturnsOnCall(i int, result1 time.Time) {
+	fake.lastReferencedMutex.Lock()
+	defer fake.lastReferencedMutex.Unlock()
+	fake.LastReferencedStub = nil
+	if fake.lastReferencedReturnsOnCall == nil {
+		fake.lastReferencedReturnsOnCall = make(map[int]struct {
+			result1 time.Time
+		})
+	}
+	fake.lastReferencedReturnsOnCall[i] = struct {
+		result1 time.Time
+	}{result1}
+}
+
 func (fake *FakeResourceConfig) OriginBaseResourceType() *db.UsedBaseResourceType {
 	fake.originBaseResourceTypeMutex.Lock()
 	ret, specificReturn := fake.originBaseResourceTypeReturnsOnCall[len(fake.originBaseResourceTypeArgsForCall)]
@@ -347,6 +410,8 @@ func (fake *FakeResourceConfig) Invocations() map[string][][]interface{} {
 	defer fake.findOrCreateScopeMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
+	fake.lastReferencedMutex.RLock()
+	defer fake.lastReferencedMutex.RUnlock()
 	fake.originBaseResourceTypeMutex.RLock()
 	defer fake.originBaseResourceTypeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

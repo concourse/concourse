@@ -11,11 +11,16 @@ import (
 
 type resourceConfigCollector struct {
 	configFactory db.ResourceConfigFactory
+	gracePeriod   time.Duration
 }
 
-func NewResourceConfigCollector(configFactory db.ResourceConfigFactory) *resourceConfigCollector {
+func NewResourceConfigCollector(
+	configFactory db.ResourceConfigFactory,
+	gracePeriod time.Duration,
+) *resourceConfigCollector {
 	return &resourceConfigCollector{
 		configFactory: configFactory,
+		gracePeriod:   gracePeriod,
 	}
 }
 
@@ -32,5 +37,5 @@ func (rcuc *resourceConfigCollector) Run(ctx context.Context) error {
 		}.Emit(logger)
 	}()
 
-	return rcuc.configFactory.CleanUnreferencedConfigs()
+	return rcuc.configFactory.CleanUnreferencedConfigs(rcuc.gracePeriod)
 }

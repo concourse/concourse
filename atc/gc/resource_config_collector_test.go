@@ -2,8 +2,10 @@ package gc_test
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/gc"
@@ -14,9 +16,10 @@ import (
 
 var _ = Describe("ResourceConfigCollector", func() {
 	var collector GcCollector
+	var gracePeriod = time.Hour
 
 	BeforeEach(func() {
-		collector = gc.NewResourceConfigCollector(resourceConfigFactory)
+		collector = gc.NewResourceConfigCollector(resourceConfigFactory, gracePeriod)
 	})
 
 	Describe("Run", func() {
@@ -56,7 +59,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 					workerFactory := db.NewWorkerFactory(dbConn)
 					defaultWorkerPayload := atc.Worker{
 						ResourceTypes: []atc.WorkerResourceType{
-							atc.WorkerResourceType{
+							{
 								Type:    "some-base-type",
 								Image:   "/path/to/image",
 								Version: "some-brt-version",
@@ -77,57 +80,6 @@ var _ = Describe("ResourceConfigCollector", func() {
 					Expect(countResourceConfigs()).ToNot(BeZero())
 					Expect(collector.Run(context.TODO())).To(Succeed())
 					Expect(countResourceConfigs()).ToNot(BeZero())
-				})
-			})
-
-			Context("when the config is no longer referenced in resource config check sessions", func() {
-				ownerExpiries := db.ContainerOwnerExpiries{
-					Min: 5 * time.Minute,
-					Max: 10 * time.Minute,
-				}
-
-				BeforeEach(func() {
-					resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
-						"some-base-type",
-						atc.Source{
-							"some": "source",
-						},
-						atc.VersionedResourceTypes{},
-					)
-					Expect(err).NotTo(HaveOccurred())
-
-					workerFactory := db.NewWorkerFactory(dbConn)
-					defaultWorkerPayload := atc.Worker{
-						ResourceTypes: []atc.WorkerResourceType{
-							atc.WorkerResourceType{
-								Type:    "some-base-type",
-								Image:   "/path/to/image",
-								Version: "some-brt-version",
-							},
-						},
-						Name:            "default-worker",
-						GardenAddr:      "1.2.3.4:7777",
-						BaggageclaimURL: "5.6.7.8:7878",
-					}
-					worker, err := workerFactory.SaveWorker(defaultWorkerPayload, 0)
-					Expect(err).NotTo(HaveOccurred())
-
-					_, err = worker.CreateContainer(db.NewResourceConfigCheckSessionContainerOwner(resourceConfig.ID(), resourceConfig.OriginBaseResourceType().ID, ownerExpiries), db.ContainerMetadata{})
-					Expect(err).NotTo(HaveOccurred())
-
-					tx, err := dbConn.Begin()
-					Expect(err).NotTo(HaveOccurred())
-					defer tx.Rollback()
-					_, err = psql.Delete("resource_config_check_sessions").
-						RunWith(tx).Exec()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(tx.Commit()).To(Succeed())
-				})
-
-				It("cleans up the config", func() {
-					Expect(countResourceConfigs()).NotTo(BeZero())
-					Expect(collector.Run(context.TODO())).To(Succeed())
-					Expect(countResourceConfigs()).To(BeZero())
 				})
 			})
 
@@ -170,10 +122,8 @@ var _ = Describe("ResourceConfigCollector", func() {
 					tx, err := dbConn.Begin()
 					Expect(err).NotTo(HaveOccurred())
 					defer tx.Rollback()
-					_, err = psql.Delete("resource_cache_uses").
-						RunWith(tx).Exec()
-					_, err = psql.Delete("resource_caches").
-						RunWith(tx).Exec()
+					_, err = psql.Delete("resource_cache_uses").RunWith(tx).Exec()
+					_, err = psql.Delete("resource_caches").RunWith(tx).Exec()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(tx.Commit()).To(Succeed())
 				})
@@ -202,20 +152,34 @@ var _ = Describe("ResourceConfigCollector", func() {
 			})
 
 			Context("when config is not referenced in resources", func() {
+				var resourceConfig db.ResourceConfig
+
 				BeforeEach(func() {
-					_, err := resourceConfigFactory.FindOrCreateResourceConfig(
+					var err error
+					resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 						"some-base-type",
 						atc.Source{"some": "source"},
 						atc.VersionedResourceTypes{},
 					)
 					Expect(err).NotTo(HaveOccurred())
-					_, err = usedResource.Reload()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(usedResource.ResourceConfigID()).To(BeZero())
 				})
 
-				It("cleans up the config", func() {
+				It("spares the config until the grace period elapses", func() {
 					Expect(countResourceConfigs()).NotTo(BeZero())
+					Expect(collector.Run(context.TODO())).To(Succeed())
+					Expect(countResourceConfigs()).NotTo(BeZero())
+
+					// tightly coupled but better than a flaky sleep test. :/
+					_, err := psql.Update("resource_configs").
+						Set(
+							"last_referenced",
+							sq.Expr(fmt.Sprintf("now() - '%d seconds'::interval", int(gracePeriod.Seconds()))),
+						).
+						Where(sq.Eq{"id": resourceConfig.ID()}).
+						RunWith(dbConn).
+						Exec()
+					Expect(err).ToNot(HaveOccurred())
+
 					Expect(collector.Run(context.TODO())).To(Succeed())
 					Expect(countResourceConfigs()).To(BeZero())
 				})
@@ -238,8 +202,11 @@ var _ = Describe("ResourceConfigCollector", func() {
 			})
 
 			Context("when config is not referenced in resource types", func() {
+				var resourceConfig db.ResourceConfig
+
 				BeforeEach(func() {
-					_, err := resourceConfigFactory.FindOrCreateResourceConfig(
+					var err error
+					resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 						"some-base-type",
 						atc.Source{"some": "source-type"},
 						atc.VersionedResourceTypes{},
@@ -249,8 +216,22 @@ var _ = Describe("ResourceConfigCollector", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("cleans up the config", func() {
+				It("spares the config until the grace period elapses", func() {
 					Expect(countResourceConfigs()).NotTo(BeZero())
+					Expect(collector.Run(context.TODO())).To(Succeed())
+					Expect(countResourceConfigs()).NotTo(BeZero())
+
+					// tightly coupled but better than a flaky sleep test. :/
+					_, err := psql.Update("resource_configs").
+						Set(
+							"last_referenced",
+							sq.Expr(fmt.Sprintf("now() - '%d seconds'::interval", int(gracePeriod.Seconds()))),
+						).
+						Where(sq.Eq{"id": resourceConfig.ID()}).
+						RunWith(dbConn).
+						Exec()
+					Expect(err).ToNot(HaveOccurred())
+
 					Expect(collector.Run(context.TODO())).To(Succeed())
 					Expect(countResourceConfigs()).To(BeZero())
 				})

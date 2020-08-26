@@ -1136,10 +1136,19 @@ func (cmd *RunCommand) gcComponents(
 
 	dbVolumeRepository := db.NewVolumeRepository(gcConn)
 
+	// set the 'unreferenced resource config' grace period to be the longer than
+	// the check timeout, just to make sure it doesn't get removed out from under
+	// a running check
+	//
+	// 5 minutes is arbitrary - this really shouldn't matter a whole lot, but
+	// exposing a config specifically for it is a little risky, since you don't
+	// want to set it too low.
+	unreferencedConfigGracePeriod := cmd.GlobalResourceCheckTimeout + 5*time.Minute
+
 	collectors := map[string]component.Runnable{
 		atc.ComponentCollectorBuilds:            gc.NewBuildCollector(dbBuildFactory),
 		atc.ComponentCollectorWorkers:           gc.NewWorkerCollector(dbWorkerLifecycle),
-		atc.ComponentCollectorResourceConfigs:   gc.NewResourceConfigCollector(dbResourceConfigFactory),
+		atc.ComponentCollectorResourceConfigs:   gc.NewResourceConfigCollector(dbResourceConfigFactory, unreferencedConfigGracePeriod),
 		atc.ComponentCollectorResourceCaches:    gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
 		atc.ComponentCollectorResourceCacheUses: gc.NewResourceCacheUseCollector(dbResourceCacheLifecycle),
 		atc.ComponentCollectorArtifacts:         gc.NewArtifactCollector(dbArtifactLifecycle),

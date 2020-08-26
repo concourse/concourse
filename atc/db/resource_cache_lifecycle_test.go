@@ -324,7 +324,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				err = resourceConfigCheckSessionLifecycle.CleanInactiveResourceConfigCheckSessions()
 				Expect(err).ToNot(HaveOccurred())
 
-				err = resourceConfigFactory.CleanUnreferencedConfigs()
+				err = resourceConfigFactory.CleanUnreferencedConfigs(0)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(countResourceCaches()).ToNot(BeZero())
