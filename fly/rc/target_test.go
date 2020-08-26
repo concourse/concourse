@@ -104,6 +104,7 @@ AA9WjQKZ7aKQRUzkuxCkPfAyAw7xzvjoyVGM5mKf5p/AfbdynMk2OmufTqj/ZA1k
 				Expect((*base).TLSClientConfig).To(Equal(&tls.Config{
 					InsecureSkipVerify: true,
 					RootCAs:            nil,
+					Certificates:       []tls.Certificate{},
 				}))
 			})
 		})
@@ -154,6 +155,7 @@ AA9WjQKZ7aKQRUzkuxCkPfAyAw7xzvjoyVGM5mKf5p/AfbdynMk2OmufTqj/ZA1k
 				Expect((*base).TLSClientConfig).To(Equal(&tls.Config{
 					InsecureSkipVerify: false,
 					RootCAs:            expectedCaCertPool,
+					Certificates:       []tls.Certificate{},
 				}))
 			})
 		})
@@ -170,6 +172,9 @@ AA9WjQKZ7aKQRUzkuxCkPfAyAw7xzvjoyVGM5mKf5p/AfbdynMk2OmufTqj/ZA1k
 				nil,
 				"ca-cert",
 				nil,
+				"",
+				"",
+				[]tls.Certificate{},
 				true,
 				fakeClient,
 			).FindTeam("the-team")
