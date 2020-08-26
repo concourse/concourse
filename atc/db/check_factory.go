@@ -122,7 +122,7 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		}
 	}
 
-	if time.Now().Before(checkable.LastCheckEndTime().Add(interval)) {
+	if !manuallyTriggered && time.Now().Before(checkable.LastCheckEndTime().Add(interval)) {
 		// skip creating the check if its interval hasn't elapsed yet
 		return nil, false, nil
 	}

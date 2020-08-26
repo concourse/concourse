@@ -61,7 +61,7 @@ var _ = Describe("CheckFactory", func() {
 			fakeResourceType.PipelineReturns(defaultPipeline, true, nil)
 
 			fakeResourceTypes = db.ResourceTypes{fakeResourceType}
-			manuallyTriggered = true
+			manuallyTriggered = false
 		})
 
 		JustBeforeEach(func() {
@@ -107,6 +107,17 @@ var _ = Describe("CheckFactory", func() {
 				It("does not create a build for the resource", func() {
 					Expect(fakeResource.CheckPlanCallCount()).To(Equal(0))
 					Expect(fakeResource.CreateBuildCallCount()).To(Equal(0))
+				})
+
+				Context("but the check is manually triggered", func() {
+					BeforeEach(func() {
+						manuallyTriggered = true
+					})
+
+					It("creates the build anyway", func() {
+						Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
+						Expect(fakeResource.CreateBuildCallCount()).To(Equal(1))
+					})
 				})
 			})
 
