@@ -538,22 +538,6 @@ func (d *checkDelegate) resourceType() (db.ResourceType, bool, error) {
 	return d.cachedResourceType, true, nil
 }
 
-type discardCloser struct {
-}
-
-func (d discardCloser) Write(p []byte) (int, error) {
-	return len(p), nil
-}
-
-func (d discardCloser) Close() error {
-	return nil
-}
-
-func (*checkDelegate) Stdout() io.Writer                                 { return discardCloser{} }
-func (*checkDelegate) Stderr() io.Writer                                 { return discardCloser{} }
-func (*checkDelegate) ImageVersionDetermined(db.UsedResourceCache) error { return nil }
-func (*checkDelegate) Errored(lager.Logger, string)                      { return }
-
 func NewBuildStepDelegate(
 	build db.Build,
 	planID atc.PlanID,

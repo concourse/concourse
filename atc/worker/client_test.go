@@ -10,6 +10,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/compression/compressionfakes"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -226,15 +227,25 @@ var _ = Describe("Client", func() {
 	Describe("RunCheckStep", func() {
 
 		var (
-			result           worker.CheckResult
-			err, expectedErr error
-			fakeResource     *resourcefakes.FakeResource
-			fakeDelegate     *execfakes.FakeBuildStepDelegate
+			result            worker.CheckResult
+			err, expectedErr  error
+			fakeResource      *resourcefakes.FakeResource
+			fakeDelegate      *execfakes.FakeBuildStepDelegate
+			fakeEventDelegate *runtimefakes.FakeStartingEventDelegate
+			fakeProcessSpec   runtime.ProcessSpec
 		)
 
 		BeforeEach(func() {
 			fakeResource = new(resourcefakes.FakeResource)
 			fakeDelegate = new(execfakes.FakeBuildStepDelegate)
+			fakeEventDelegate = new(runtimefakes.FakeStartingEventDelegate)
+			stdout := new(gbytes.Buffer)
+			stderr := new(gbytes.Buffer)
+			fakeProcessSpec = runtime.ProcessSpec{
+				Path:         "/opt/resource/out",
+				StdoutWriter: stdout,
+				StderrWriter: stderr,
+			}
 		})
 
 		JustBeforeEach(func() {
@@ -258,8 +269,10 @@ var _ = Describe("Client", func() {
 				fakeStrategy,
 				metadata,
 				imageSpec,
-				1*time.Nanosecond,
+				fakeProcessSpec,
+				fakeEventDelegate,
 				fakeResource,
+				1*time.Nanosecond,
 			)
 		})
 
@@ -281,6 +294,7 @@ var _ = Describe("Client", func() {
 
 			BeforeEach(func() {
 				fakeWorker = new(workerfakes.FakeWorker)
+				fakeWorker.NameReturns("some-worker")
 				fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
 			})
 
@@ -303,15 +317,10 @@ var _ = Describe("Client", func() {
 					fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 				})
 
-				Context("check failing", func() {
-					BeforeEach(func() {
-						expectedErr = errors.New("check-err")
-						fakeResource.CheckReturns(nil, expectedErr)
-					})
-
-					It("errors", func() {
-						Expect(errors.Is(err, expectedErr)).To(BeTrue())
-					})
+				It("emits a selected worker event", func() {
+					Expect(fakeEventDelegate.SelectedWorkerCallCount()).To(Equal(1))
+					_, name := fakeEventDelegate.SelectedWorkerArgsForCall(0)
+					Expect(name).To(Equal("some-worker"))
 				})
 
 				It("runs check w/ timeout", func() {
@@ -324,15 +333,28 @@ var _ = Describe("Client", func() {
 				It("uses the right executable path in the proc spec", func() {
 					_, processSpec, _ := fakeResource.CheckArgsForCall(0)
 
-					Expect(processSpec).To(Equal(runtime.ProcessSpec{
-						Path: "/opt/resource/check",
-					}))
+					Expect(processSpec).To(Equal(fakeProcessSpec))
 				})
 
 				It("uses the container as the runner", func() {
 					_, _, container := fakeResource.CheckArgsForCall(0)
 
 					Expect(container).To(Equal(fakeContainer))
+				})
+
+				Context("prior to running the check", func() {
+					BeforeEach(func() {
+						fakeEventDelegate.StartingStub = func(lager.Logger) {
+							Expect(fakeResource.CheckCallCount()).To(Equal(0))
+							return
+						}
+					})
+
+					It("emits a starting event", func() {
+						Expect(fakeEventDelegate.SelectedWorkerCallCount()).To(Equal(1))
+						_, name := fakeEventDelegate.SelectedWorkerArgsForCall(0)
+						Expect(name).To(Equal("some-worker"))
+					})
 				})
 
 				Context("succeeding", func() {
@@ -347,9 +369,19 @@ var _ = Describe("Client", func() {
 						Expect(result.Versions[0]).To(Equal(atc.Version{"version": "1"}))
 					})
 				})
+
+				Context("check erroring", func() {
+					BeforeEach(func() {
+						expectedErr = errors.New("check-err")
+						fakeResource.CheckReturns(nil, expectedErr)
+					})
+
+					It("errors", func() {
+						Expect(errors.Is(err, expectedErr)).To(BeTrue())
+					})
+				})
 			})
 		})
-
 	})
 
 	Describe("RunGetStep", func() {

@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 )
@@ -51,7 +52,7 @@ func NewCheckStep(
 	pool worker.Pool,
 	delegate CheckDelegate,
 	client worker.Client,
-) *CheckStep {
+) Step {
 	return &CheckStep{
 		planID:                planID,
 		plan:                  plan,
@@ -86,6 +87,8 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 	logger = logger.Session("check-step", lager.Data{
 		"step-name": step.plan.Name,
 	})
+
+	step.delegate.Initializing(logger)
 
 	timeout, err := time.ParseDuration(step.plan.Timeout)
 	if err != nil {
@@ -156,6 +159,10 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		if setErr := scope.SetCheckError(err); setErr != nil {
 			logger.Error("failed-to-set-check-error", setErr)
 		}
+		if _, ok := err.(runtime.ErrResourceScriptFailed); ok {
+			step.delegate.Finished(logger, false)
+			return nil
+		}
 		if err != nil {
 			return fmt.Errorf("run check: %w", err)
 		}
@@ -179,6 +186,8 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 	}
 
 	step.succeeded = true
+
+	step.delegate.Finished(logger, step.succeeded)
 
 	return nil
 }
@@ -233,6 +242,12 @@ func (step *CheckStep) runCheck(ctx context.Context, logger lager.Logger, timeou
 		Delegate:      step.delegate,
 	}
 
+	processSpec := runtime.ProcessSpec{
+		Path:         "/opt/resource/check",
+		StdoutWriter: step.delegate.Stdout(),
+		StderrWriter: step.delegate.Stderr(),
+	}
+
 	return step.workerClient.RunCheckStep(
 		ctx,
 		logger,
@@ -244,7 +259,10 @@ func (step *CheckStep) runCheck(ctx context.Context, logger lager.Logger, timeou
 		step.containerMetadata,
 		imageSpec,
 
-		timeout,
+		processSpec,
+		step.delegate,
 		checkable,
+
+		timeout,
 	)
 }

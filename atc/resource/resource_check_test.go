@@ -1,8 +1,10 @@
 package resource_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"io"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/resource"
@@ -18,6 +20,8 @@ var _ = Describe("Resource Check", func() {
 		ctx             context.Context
 		someProcessSpec runtime.ProcessSpec
 		fakeRunnable    runtimefakes.FakeRunner
+
+		fakeStdout, fakeStderr io.Writer
 
 		checkVersions []atc.Version
 
@@ -38,6 +42,13 @@ var _ = Describe("Resource Check", func() {
 		params = atc.Params{"some": "params"}
 
 		someProcessSpec.Path = "some/fake/path"
+		someProcessSpec.Args = []string{"some", "args"}
+
+		fakeStdout = bytes.NewBufferString("out")
+		someProcessSpec.StdoutWriter = fakeStdout
+
+		fakeStderr = bytes.NewBufferString("err")
+		someProcessSpec.StderrWriter = fakeStderr
 
 		resource = resourceFactory.NewResource(source, params, version)
 	})
@@ -61,10 +72,10 @@ var _ = Describe("Resource Check", func() {
 
 			Expect(actualCtx).To(Equal(ctx))
 			Expect(actualSpecPath).To(Equal(someProcessSpec.Path))
-			Expect(actualArgs).To(BeNil())
+			Expect(actualArgs).To(Equal(someProcessSpec.Args))
 			Expect(actualInput).To(Equal(signature))
 			Expect(actualVersionResultRef).To(Equal(&checkVersions))
-			Expect(actualSpecStdErrWriter).To(BeNil())
+			Expect(actualSpecStdErrWriter).To(Equal(fakeStderr))
 			Expect(actualRecoverableBool).To(BeFalse())
 		})
 

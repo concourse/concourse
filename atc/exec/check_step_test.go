@@ -1,8 +1,10 @@
 package exec_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"io"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -11,7 +13,9 @@ import (
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/tracing"
@@ -42,8 +46,10 @@ var _ = Describe("CheckStep", func() {
 		fakeDelegate              *execfakes.FakeCheckDelegate
 		fakeClient                *workerfakes.FakeClient
 
+		fakeStdout, fakeStderr io.Writer
+
 		stepMetadata      exec.StepMetadata
-		checkStep         *exec.CheckStep
+		checkStep         exec.Step
 		checkPlan         atc.CheckPlan
 		containerMetadata db.ContainerMetadata
 
@@ -60,6 +66,12 @@ var _ = Describe("CheckStep", func() {
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakeDelegate = new(execfakes.FakeCheckDelegate)
 		fakeClient = new(workerfakes.FakeClient)
+
+		fakeStdout = bytes.NewBufferString("out")
+		fakeDelegate.StdoutReturns(fakeStdout)
+
+		fakeStderr = bytes.NewBufferString("err")
+		fakeDelegate.StderrReturns(fakeStderr)
 
 		stepMetadata = exec.StepMetadata{}
 		containerMetadata = db.ContainerMetadata{}
@@ -218,129 +230,142 @@ var _ = Describe("CheckStep", func() {
 			fakeDelegate.VariablesReturns(vars.NewBuildVariables(vars.StaticVariables{"bar": "caz"}, false))
 		})
 
-		It("uses ResourceConfigCheckSessionOwner", func() {
-			_, _, owner, _, _, _, _, _, _, _ := fakeClient.RunCheckStepArgsForCall(0)
-			expected := db.NewResourceConfigCheckSessionContainerOwner(
-				501,
-				502,
-				db.ContainerOwnerExpiries{Min: 5 * time.Minute, Max: 1 * time.Hour},
-			)
-
-			Expect(owner).To(Equal(expected))
+		It("emits an Initializing event", func() {
+			Expect(fakeDelegate.InitializingCallCount()).To(Equal(1))
 		})
 
-		Context("uses containerspec", func() {
+		Describe("running the check step", func() {
+			var runCtx context.Context
+			var owner db.ContainerOwner
 			var containerSpec worker.ContainerSpec
+			var workerSpec worker.WorkerSpec
+			var strategy worker.ContainerPlacementStrategy
+			var metadata db.ContainerMetadata
+			var imageSpec worker.ImageFetcherSpec
+			var processSpec runtime.ProcessSpec
+			var startEventDelegate runtime.StartingEventDelegate
+			var resource resource.Resource
+			var timeout time.Duration
 
 			JustBeforeEach(func() {
-				_, _, _, containerSpec, _, _, _, _, _, _ = fakeClient.RunCheckStepArgsForCall(0)
+				Expect(fakeClient.RunCheckStepCallCount()).To(Equal(1), "check step should have run")
+				runCtx, _, owner, containerSpec, workerSpec, strategy, metadata, imageSpec, processSpec, startEventDelegate, resource, timeout = fakeClient.RunCheckStepArgsForCall(0)
 			})
 
-			It("with certs volume mount", func() {
-				Expect(containerSpec.BindMounts).To(HaveLen(1))
-				mount := containerSpec.BindMounts[0]
+			It("uses ResourceConfigCheckSessionOwner", func() {
+				expected := db.NewResourceConfigCheckSessionContainerOwner(
+					501,
+					502,
+					db.ContainerOwnerExpiries{Min: 5 * time.Minute, Max: 1 * time.Hour},
+				)
 
-				_, ok := mount.(*worker.CertsVolumeMount)
-				Expect(ok).To(BeTrue())
+				Expect(owner).To(Equal(expected))
 			})
 
-			It("with imagespec w/ resource type", func() {
-				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
-					ResourceType: "resource-type",
+			It("passes the process spec", func() {
+				Expect(processSpec).To(Equal(runtime.ProcessSpec{
+					Path:         "/opt/resource/check",
+					StdoutWriter: fakeStdout,
+					StderrWriter: fakeStderr,
 				}))
 			})
 
-			It("with tags set", func() {
-				Expect(containerSpec.Tags).To(ConsistOf("tag"))
+			It("passes the delegate as the start event delegate", func() {
+				Expect(startEventDelegate).To(Equal(fakeDelegate))
 			})
 
-			It("with teamid set", func() {
-				Expect(containerSpec.TeamID).To(Equal(345))
-			})
+			Context("uses containerspec", func() {
+				It("with certs volume mount", func() {
+					Expect(containerSpec.BindMounts).To(HaveLen(1))
+					mount := containerSpec.BindMounts[0]
 
-			It("with env vars", func() {
-				Expect(containerSpec.Env).To(ContainElement("BUILD_TEAM_ID=345"))
-			})
-
-			Context("when tracing is enabled", func() {
-				var buildSpan trace.Span
-
-				BeforeEach(func() {
-					tracing.ConfigureTraceProvider(testTraceProvider{})
-					ctx, buildSpan = tracing.StartSpan(ctx, "lidar", nil)
+					_, ok := mount.(*worker.CertsVolumeMount)
+					Expect(ok).To(BeTrue())
 				})
 
-				It("propagates span context to the worker client", func() {
-					ctx, _, _, _, _, _, _, _, _, _ := fakeClient.RunCheckStepArgsForCall(0)
-					span, ok := tracing.FromContext(ctx).(*testtrace.Span)
-					Expect(ok).To(BeTrue(), "no testtrace.Span in context")
-					Expect(span.ParentSpanID()).To(Equal(buildSpan.SpanContext().SpanID))
+				It("with imagespec w/ resource type", func() {
+					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
+						ResourceType: "resource-type",
+					}))
 				})
 
-				It("populates the TRACEPARENT env var", func() {
-					Expect(containerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
+				It("with tags set", func() {
+					Expect(containerSpec.Tags).To(ConsistOf("tag"))
 				})
 
-				AfterEach(func() {
-					tracing.Configured = false
+				It("with teamid set", func() {
+					Expect(containerSpec.TeamID).To(Equal(345))
+				})
+
+				It("with env vars", func() {
+					Expect(containerSpec.Env).To(ContainElement("BUILD_TEAM_ID=345"))
+				})
+
+				Context("when tracing is enabled", func() {
+					BeforeEach(func() {
+						tracing.ConfigureTraceProvider(testTraceProvider{})
+					})
+
+					AfterEach(func() {
+						tracing.Configured = false
+					})
+
+					It("propagates span context to the worker client", func() {
+						spanCtx, buildSpan := tracing.StartSpan(runCtx, "lidar", nil)
+						span, ok := tracing.FromContext(spanCtx).(*testtrace.Span)
+						Expect(ok).To(BeTrue(), "no testtrace.Span in context")
+						Expect(span.ParentSpanID()).To(Equal(buildSpan.SpanContext().SpanID))
+					})
+
+					It("populates the TRACEPARENT env var", func() {
+						Expect(containerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
+					})
 				})
 			})
-		})
 
-		Context("uses workerspec", func() {
-			var workerSpec worker.WorkerSpec
+			Context("uses workerspec", func() {
+				It("with resource type", func() {
+					Expect(workerSpec.ResourceType).To(Equal("resource-type"))
+				})
 
-			JustBeforeEach(func() {
-				_, _, _, _, workerSpec, _, _, _, _, _ = fakeClient.RunCheckStepArgsForCall(0)
+				It("with tags", func() {
+					Expect(workerSpec.Tags).To(ConsistOf("tag"))
+				})
+
+				It("with resource types", func() {
+					Expect(workerSpec.ResourceTypes).To(HaveLen(1))
+					interpolatedResourceType := workerSpec.ResourceTypes[0]
+
+					Expect(interpolatedResourceType.Source).To(Equal(atc.Source{"foo": "caz"}))
+				})
+
+				It("with teamid", func() {
+					Expect(workerSpec.TeamID).To(Equal(345))
+				})
 			})
 
-			It("with resource type", func() {
-				Expect(workerSpec.ResourceType).To(Equal("resource-type"))
+			It("uses container placement strategy", func() {
+				Expect(strategy).To(Equal(fakeStrategy))
 			})
 
-			It("with tags", func() {
-				Expect(workerSpec.Tags).To(ConsistOf("tag"))
+			It("uses container metadata", func() {
+				Expect(metadata).To(Equal(containerMetadata))
 			})
 
-			It("with resource types", func() {
-				Expect(workerSpec.ResourceTypes).To(HaveLen(1))
-				interpolatedResourceType := workerSpec.ResourceTypes[0]
+			It("uses interpolated resource types", func() {
+				Expect(imageSpec.ResourceTypes).To(HaveLen(1))
+				interpolatedResourceType := imageSpec.ResourceTypes[0]
 
 				Expect(interpolatedResourceType.Source).To(Equal(atc.Source{"foo": "caz"}))
 			})
 
-			It("with teamid", func() {
-				Expect(workerSpec.TeamID).To(Equal(345))
+			It("uses the timeout parsed", func() {
+				Expect(timeout).To(Equal(10 * time.Second))
 			})
-		})
 
-		It("uses container placement strategy", func() {
-			_, _, _, _, _, strategy, _, _, _, _ := fakeClient.RunCheckStepArgsForCall(0)
-			Expect(strategy).To(Equal(fakeStrategy))
-		})
-
-		It("uses container metadata", func() {
-			_, _, _, _, _, _, metadata, _, _, _ := fakeClient.RunCheckStepArgsForCall(0)
-			Expect(metadata).To(Equal(containerMetadata))
-		})
-
-		It("uses interpolated resource types", func() {
-			_, _, _, _, _, _, _, imageSpec, _, _ := fakeClient.RunCheckStepArgsForCall(0)
-
-			Expect(imageSpec.ResourceTypes).To(HaveLen(1))
-			interpolatedResourceType := imageSpec.ResourceTypes[0]
-
-			Expect(interpolatedResourceType.Source).To(Equal(atc.Source{"foo": "caz"}))
-		})
-
-		It("uses the timeout parsed", func() {
-			_, _, _, _, _, _, _, _, timeout, _ := fakeClient.RunCheckStepArgsForCall(0)
-			Expect(timeout).To(Equal(10 * time.Second))
-		})
-
-		It("uses the resource created", func() {
-			_, _, _, _, _, _, _, _, _, resource := fakeClient.RunCheckStepArgsForCall(0)
-			Expect(resource).To(Equal(fakeResource))
+			It("uses the resource created", func() {
+				Expect(resource).To(Equal(fakeResource))
+			})
 		})
 
 		Context("with tracing configured", func() {
@@ -405,6 +430,12 @@ var _ = Describe("CheckStep", func() {
 				Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
 				err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
 				Expect(err).To(BeNil())
+			})
+
+			It("emits a successful Finished event", func() {
+				Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+				_, succeeded := fakeDelegate.FinishedArgsForCall(0)
+				Expect(succeeded).To(BeTrue())
 			})
 
 			Context("before running the check", func() {
@@ -474,6 +505,31 @@ var _ = Describe("CheckStep", func() {
 				Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
 				err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
 				Expect(err).To(Equal(expectedErr))
+			})
+
+			// Finished is for script success/failure, whereas this is an error
+			It("does not emit a Finished event", func() {
+				Expect(fakeDelegate.FinishedCallCount()).To(Equal(0))
+			})
+
+			Context("with a script failure", func() {
+				BeforeEach(func() {
+					fakeClient.RunCheckStepReturns(worker.CheckResult{}, runtime.ErrResourceScriptFailed{
+						ExitStatus: 42,
+					})
+				})
+
+				It("does not error", func() {
+					// don't return an error - the script output has already been
+					// printed, and emitting an errored event would double it up
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("emits a failed Finished event", func() {
+					Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+					_, succeeded := fakeDelegate.FinishedArgsForCall(0)
+					Expect(succeeded).To(BeFalse())
+				})
 			})
 		})
 

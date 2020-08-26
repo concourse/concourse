@@ -127,6 +127,10 @@ func (factory *stepFactory) CheckStep(
 		factory.client,
 	)
 
+	checkStep = exec.LogError(checkStep, delegate)
+	if atc.EnableBuildRerunWhenWorkerDisappears {
+		checkStep = exec.RetryError(checkStep, delegate)
+	}
 	return checkStep
 }
 
