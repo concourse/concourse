@@ -61,7 +61,12 @@ type Resource interface {
 	PinVersion(rcvID int) (bool, error)
 	UnpinVersion() error
 
+	// XXX(check-refactor): we should be able to remove this, but unfortunately a
+	// ton of db tests rely on it. i've started a refactor to clean up the db
+	// package, but it's definitely going to take some time - there's a lot of
+	// debt there.
 	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
+
 	SetResourceConfigScope(ResourceConfigScope) error
 
 	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes) atc.CheckPlan

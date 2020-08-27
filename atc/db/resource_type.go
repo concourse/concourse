@@ -47,15 +47,13 @@ type ResourceType interface {
 
 	HasWebhook() bool
 
-	SetResourceConfigScope(ResourceConfigScope) error
-
-	// XXX(check-refactor): might be able to remove this as we trend towards
-	// doing resource type checks only within build plans
-	//
-	// this is only needed because LIDAR still queues a build for each resource
-	// type - once it's inlined into the build plan this can go away, and we can
-	// rely on the 'check' step to do it
+	// XXX(check-refactor): we should be able to remove this, but unfortunately a
+	// ton of db tests rely on it. i've started a refactor to clean up the db
+	// package, but it's definitely going to take some time - there's a lot of
+	// debt there.
 	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
+
+	SetResourceConfigScope(ResourceConfigScope) error
 
 	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes) atc.CheckPlan
 	CreateBuild(bool) (Build, bool, error)
@@ -154,7 +152,7 @@ var resourceTypesQuery = psql.Select(
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
 	LeftJoin("resource_configs c ON c.id = r.resource_config_id").
-	LeftJoin("resource_config_scopes ro ON ro.resource_config_id = c.id"). // XXX(check-refactor) it's a little weird that this can technically find a scope for a resource, but it really shouldn't matter
+	LeftJoin("resource_config_scopes ro ON ro.resource_config_id = c.id").
 	LeftJoin(`LATERAL (
 		SELECT rcv.*
 		FROM resource_config_versions rcv

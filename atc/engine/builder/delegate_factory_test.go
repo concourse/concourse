@@ -454,24 +454,6 @@ var _ = Describe("DelegateFactory", func() {
 					plan.Check.Interval = interval.String()
 				})
 
-				Context("when getting the interval errors", func() {
-					BeforeEach(func() {
-						fakeResourceConfigScope.LastCheckEndTimeReturns(time.Time{}, errors.New("oh no"))
-					})
-
-					It("returns an error", func() {
-						Expect(runErr).To(HaveOccurred())
-					})
-
-					It("returns false", func() {
-						Expect(run).To(BeFalse())
-					})
-
-					It("releases the lock", func() {
-						Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
-					})
-				})
-
 				Context("when the interval has not elapsed since the last check", func() {
 					BeforeEach(func() {
 						fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(-(interval - 1)), nil)
@@ -493,6 +475,20 @@ var _ = Describe("DelegateFactory", func() {
 
 					It("returns the lock", func() {
 						Expect(lock).To(Equal(fakeLock))
+					})
+				})
+
+				Context("when getting the interval errors", func() {
+					BeforeEach(func() {
+						fakeResourceConfigScope.LastCheckEndTimeReturns(time.Time{}, errors.New("oh no"))
+					})
+
+					It("returns an error", func() {
+						Expect(runErr).To(HaveOccurred())
+					})
+
+					It("releases the lock", func() {
+						Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 					})
 				})
 			})

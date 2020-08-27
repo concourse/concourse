@@ -346,14 +346,6 @@ func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.Resource
 	return scope, nil
 }
 
-// XXX(check-refactor): unit tests
-//
-// XXX(check-refactor): this would be a great place to add a lock!
-//
-// acquire lock (blocking), refresh last check end time, check if interval has
-// elapsed, if not release lock and false, if so return lock
-//
-// if lock cannot be acquired immediately, wait for the check to complete
 func (d *checkDelegate) WaitAndRun(ctx context.Context, scope db.ResourceConfigScope) (lock.Lock, bool, error) {
 	logger := lagerctx.FromContext(ctx)
 
@@ -379,7 +371,6 @@ func (d *checkDelegate) WaitAndRun(ctx context.Context, scope db.ResourceConfigS
 			break
 		}
 
-		// XXX(check-refactor): it would be nice to just do a blocking acquire
 		d.clock.Sleep(time.Second)
 	}
 

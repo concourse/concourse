@@ -112,9 +112,11 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		return fmt.Errorf("create resource config: %w", err)
 	}
 
-	// XXX(global-resources): remove this when we don't have to worry about
-	// global resources anymore (i.e. when time resource becomes time var source
-	// and IAM is handled via var source prototypes)
+	// XXX(check-refactor): we should remove scopes as soon as it's safe to do
+	// so, i.e. global resources is on by default. i think this can be done when
+	// time resource becomes time var source (resolving thundering herd problem)
+	// and IAM is handled via var source prototypes (resolving unintentionally
+	// shared history problem)
 	scope, err := step.delegate.FindOrCreateScope(resourceConfig)
 	if err != nil {
 		return fmt.Errorf("create resource config scope: %w", err)
@@ -133,11 +135,6 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 			}
 		}()
 
-		// get the latest version AFTER waiting!
-		//
-		// XXX(check-refactor): it's actually cool that we don't get the latest
-		// version until here, because it means if someone else checked while we
-		// were waiting we'll pick up the new version
 		fromVersion := step.plan.FromVersion
 		if fromVersion == nil {
 			latestVersion, found, err := scope.LatestVersion()
@@ -178,8 +175,6 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		}
 	}
 
-	// XXX(global-resources): set config instead of scope once scopes are
-	// eliminated
 	err = step.delegate.PointToSavedVersions(scope)
 	if err != nil {
 		return fmt.Errorf("update resource config scope: %w", err)

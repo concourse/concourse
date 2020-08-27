@@ -234,6 +234,43 @@ var _ = Describe("CheckStep", func() {
 			Expect(fakeDelegate.InitializingCallCount()).To(Equal(1))
 		})
 
+		Context("when given a from version", func() {
+			BeforeEach(func() {
+				checkPlan.FromVersion = atc.Version{"from": "version"}
+			})
+
+			It("constructs the resource with the version", func() {
+				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
+				_, _, fromVersion := fakeResourceFactory.NewResourceArgsForCall(0)
+				Expect(fromVersion).To(Equal(checkPlan.FromVersion))
+			})
+		})
+
+		Context("when not given a from version", func() {
+			var fakeVersion *dbfakes.FakeResourceConfigVersion
+
+			BeforeEach(func() {
+				checkPlan.FromVersion = nil
+
+				fakeVersion = new(dbfakes.FakeResourceConfigVersion)
+				fakeVersion.VersionReturns(db.Version{"latest": "version"})
+				fakeResourceConfigScope.LatestVersionStub = func() (db.ResourceConfigVersion, bool, error) {
+					Expect(fakeDelegate.WaitAndRunCallCount()).To(
+						Equal(1),
+						"should have gotten latest version after waiting, not before",
+					)
+
+					return fakeVersion, true, nil
+				}
+			})
+
+			It("finds the latest version itself - it's strong, independent check step who dont need no plan", func() {
+				Expect(fakeResourceFactory.NewResourceCallCount()).To(Equal(1))
+				_, _, fromVersion := fakeResourceFactory.NewResourceArgsForCall(0)
+				Expect(fromVersion).To(Equal(atc.Version{"latest": "version"}))
+			})
+		})
+
 		Describe("running the check step", func() {
 			var runCtx context.Context
 			var owner db.ContainerOwner
