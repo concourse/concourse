@@ -427,54 +427,34 @@ func (event GarbageCollectionContainerCollectorJobDropped) Emit(logger lager.Log
 }
 
 type BuildStarted struct {
-	PipelineName string
-	JobName      string
-	BuildName    string
-	BuildID      int
-	TeamName     string
+	Build db.Build
 }
 
 func (event BuildStarted) Emit(logger lager.Logger) {
 	Metrics.emit(
 		logger.Session("build-started"),
 		Event{
-			Name:  "build started",
-			Value: float64(event.BuildID),
-			Attributes: map[string]string{
-				"pipeline":   event.PipelineName,
-				"job":        event.JobName,
-				"build_name": event.BuildName,
-				"build_id":   strconv.Itoa(event.BuildID),
-				"team_name":  event.TeamName,
-			},
+			Name:       "build started",
+			Value:      float64(event.Build.ID()),
+			Attributes: event.Build.TracingAttrs(),
 		},
 	)
 }
 
 type BuildFinished struct {
-	PipelineName  string
-	JobName       string
-	BuildName     string
-	BuildID       int
-	BuildStatus   db.BuildStatus
-	BuildDuration time.Duration
-	TeamName      string
+	Build db.Build
 }
 
 func (event BuildFinished) Emit(logger lager.Logger) {
+	attrs := event.Build.TracingAttrs()
+	attrs["build_status"] = event.Build.Status().String()
+
 	Metrics.emit(
 		logger.Session("build-finished"),
 		Event{
-			Name:  "build finished",
-			Value: ms(event.BuildDuration),
-			Attributes: map[string]string{
-				"pipeline":     event.PipelineName,
-				"job":          event.JobName,
-				"build_name":   event.BuildName,
-				"build_id":     strconv.Itoa(event.BuildID),
-				"build_status": string(event.BuildStatus),
-				"team_name":    event.TeamName,
-			},
+			Name:       "build finished",
+			Value:      ms(event.Build.EndTime().Sub(event.Build.StartTime())),
+			Attributes: attrs,
 		},
 	)
 }

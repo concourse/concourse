@@ -57,6 +57,10 @@ const (
 	BuildStatusErrored   BuildStatus = "errored"
 )
 
+func (status BuildStatus) String() string {
+	return string(status)
+}
+
 var buildsQuery = psql.Select(`
 		b.id,
 		b.name,
