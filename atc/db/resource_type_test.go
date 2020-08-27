@@ -440,7 +440,7 @@ var _ = Describe("ResourceType", func() {
 
 				VersionedResourceTypes: resourceTypes.Deserialize(),
 
-				UpdateResourceType: resourceType.Name(),
+				ResourceType: resourceType.Name(),
 			}))
 		})
 	})

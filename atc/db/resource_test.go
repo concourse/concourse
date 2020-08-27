@@ -474,7 +474,7 @@ var _ = Describe("Resource", func() {
 
 				VersionedResourceTypes: resourceTypes.Deserialize(),
 
-				UpdateResource: resource.Name(),
+				Resource: resource.Name(),
 			}))
 		})
 	})

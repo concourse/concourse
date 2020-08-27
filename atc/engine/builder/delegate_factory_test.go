@@ -331,7 +331,7 @@ var _ = Describe("DelegateFactory", func() {
 
 			Context("without a resource", func() {
 				BeforeEach(func() {
-					plan.Check.UpdateResource = ""
+					plan.Check.Resource = ""
 				})
 
 				It("succeeds", func() {
@@ -356,7 +356,7 @@ var _ = Describe("DelegateFactory", func() {
 				)
 
 				BeforeEach(func() {
-					plan.Check.UpdateResource = "some-resource"
+					plan.Check.Resource = "some-resource"
 
 					fakePipeline = new(dbfakes.FakePipeline)
 					fakeBuild.PipelineReturns(fakePipeline, true, nil)
@@ -522,7 +522,7 @@ var _ = Describe("DelegateFactory", func() {
 				)
 
 				BeforeEach(func() {
-					plan.Check.UpdateResource = "some-resource"
+					plan.Check.Resource = "some-resource"
 
 					fakePipeline = new(dbfakes.FakePipeline)
 					fakeBuild.PipelineReturns(fakePipeline, true, nil)
@@ -575,7 +575,7 @@ var _ = Describe("DelegateFactory", func() {
 				)
 
 				BeforeEach(func() {
-					plan.Check.UpdateResourceType = "some-resource-type"
+					plan.Check.ResourceType = "some-resource-type"
 
 					fakePipeline = new(dbfakes.FakePipeline)
 					fakeBuild.PipelineReturns(fakePipeline, true, nil)

@@ -330,7 +330,7 @@ func (r *resource) CheckPlan(from atc.Version, interval, timeout time.Duration, 
 
 		VersionedResourceTypes: resourceTypes.Deserialize(),
 
-		UpdateResource: r.Name(),
+		Resource: r.Name(),
 	}
 }
 
