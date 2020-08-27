@@ -12,6 +12,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"go.opentelemetry.io/otel/api/trace"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -19,6 +20,7 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -589,6 +591,19 @@ func (delegate *setPipelineStepDelegate) SetPipelineChanged(logger lager.Logger,
 	}
 
 	logger.Debug("set pipeline changed")
+}
+
+func (delegate *buildStepDelegate) StartSpan(
+	ctx context.Context,
+	component string,
+	extraAttrs tracing.Attrs,
+) (context.Context, trace.Span) {
+	attrs := delegate.build.TracingAttrs()
+	for k, v := range extraAttrs {
+		attrs[k] = v
+	}
+
+	return tracing.StartSpan(ctx, component, attrs)
 }
 
 func (delegate *buildStepDelegate) Variables() *vars.BuildVariables {

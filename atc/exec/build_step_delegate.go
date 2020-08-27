@@ -1,18 +1,23 @@
 package exec
 
 import (
+	"context"
 	"io"
 
 	"code.cloudfoundry.org/lager"
+	"go.opentelemetry.io/otel/api/trace"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 )
 
 //go:generate counterfeiter . BuildStepDelegate
 
 type BuildStepDelegate interface {
+	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
+
 	ImageVersionDetermined(db.UsedResourceCache) error
 	RedactImageSource(source atc.Source) (atc.Source, error)
 

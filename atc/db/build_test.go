@@ -5,13 +5,16 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	gocache "github.com/patrickmn/go-cache"
@@ -55,9 +58,184 @@ var _ = Describe("Build", func() {
 	})
 
 	It("has no plan on creation", func() {
-		var err error
+		build, err := team.CreateOneOffBuild()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(build.HasPlan()).To(BeFalse())
+	})
+
+	Describe("LagerData", func() {
+		var build db.Build
+
+		var data lager.Data
+
+		JustBeforeEach(func() {
+			data = build.LagerData()
+		})
+
+		Context("for a one-off build", func() {
+			BeforeEach(func() {
+				var err error
+				build, err = team.CreateOneOffBuild()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("includes build and team info", func() {
+				Expect(data).To(Equal(lager.Data{
+					"build_id": build.ID(),
+					"build":    build.Name(),
+					"team":     build.TeamName(),
+				}))
+			})
+		})
+
+		Context("for a job build", func() {
+			BeforeEach(func() {
+				var err error
+				build, err = defaultJob.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("includes build, team, pipeline, and job info", func() {
+				Expect(data).To(Equal(lager.Data{
+					"build_id": build.ID(),
+					"build":    build.Name(),
+					"team":     build.TeamName(),
+					"pipeline": build.PipelineName(),
+					"job":      build.JobName(),
+				}))
+			})
+		})
+
+		Context("for a resource build", func() {
+			BeforeEach(func() {
+				var err error
+				var created bool
+				build, created, err = defaultResource.CreateBuild(false)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeTrue())
+			})
+
+			It("includes build, team, and pipeline", func() {
+				Expect(data).To(Equal(lager.Data{
+					"build_id": build.ID(),
+					"build":    build.Name(),
+					"team":     build.TeamName(),
+					"pipeline": build.PipelineName(),
+				}))
+			})
+		})
+	})
+
+	Describe("SyslogTag", func() {
+		var build db.Build
+
+		var originID event.OriginID = "some-origin"
+		var tag string
+
+		JustBeforeEach(func() {
+			tag = build.SyslogTag(originID)
+		})
+
+		Context("for a one-off build", func() {
+			BeforeEach(func() {
+				var err error
+				build, err = team.CreateOneOffBuild()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("includes build and team info", func() {
+				Expect(tag).To(Equal(fmt.Sprintf("%s/%d/%s", team.Name(), build.ID(), originID)))
+			})
+		})
+
+		Context("for a job build", func() {
+			BeforeEach(func() {
+				var err error
+				build, err = defaultJob.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("includes build, team, pipeline, and job info", func() {
+				Expect(tag).To(Equal(fmt.Sprintf("%s/%s/%s/%s/%s", defaultJob.TeamName(), defaultJob.PipelineName(), defaultJob.Name(), build.Name(), originID)))
+			})
+		})
+
+		Context("for a resource build", func() {
+			BeforeEach(func() {
+				var err error
+				var created bool
+				build, created, err = defaultResource.CreateBuild(false)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeTrue())
+			})
+
+			It("includes build, team, and pipeline", func() {
+				Expect(tag).To(Equal(fmt.Sprintf("%s/%s/%d/%s", defaultResource.TeamName(), defaultResource.PipelineName(), build.ID(), originID)))
+			})
+		})
+	})
+
+	Describe("TracingAttrs", func() {
+		var build db.Build
+
+		var attrs tracing.Attrs
+
+		JustBeforeEach(func() {
+			attrs = build.TracingAttrs()
+		})
+
+		Context("for a one-off build", func() {
+			BeforeEach(func() {
+				var err error
+				build, err = team.CreateOneOffBuild()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("includes build and team info", func() {
+				Expect(attrs).To(Equal(tracing.Attrs{
+					"build_id": strconv.Itoa(build.ID()),
+					"build":    build.Name(),
+					"team":     build.TeamName(),
+				}))
+			})
+		})
+
+		Context("for a job build", func() {
+			BeforeEach(func() {
+				var err error
+				build, err = defaultJob.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("includes build, team, pipeline, and job info", func() {
+				Expect(attrs).To(Equal(tracing.Attrs{
+					"build_id": strconv.Itoa(build.ID()),
+					"build":    build.Name(),
+					"team":     build.TeamName(),
+					"pipeline": build.PipelineName(),
+					"job":      build.JobName(),
+				}))
+			})
+		})
+
+		Context("for a resource build", func() {
+			BeforeEach(func() {
+				var err error
+				var created bool
+				build, created, err = defaultResource.CreateBuild(false)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeTrue())
+			})
+
+			It("includes build, team, and pipeline", func() {
+				Expect(attrs).To(Equal(tracing.Attrs{
+					"build_id": strconv.Itoa(build.ID()),
+					"build":    build.Name(),
+					"team":     build.TeamName(),
+					"pipeline": build.PipelineName(),
+				}))
+			})
+		})
 	})
 
 	Describe("Reload", func() {

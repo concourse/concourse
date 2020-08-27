@@ -23,7 +23,6 @@ import (
 	"github.com/concourse/concourse/vars/varsfakes"
 	"go.opentelemetry.io/otel/api/propagators"
 	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/api/trace/testtrace"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -44,6 +43,7 @@ var _ = Describe("CheckStep", func() {
 		fakePool                  *workerfakes.FakePool
 		fakeStrategy              *workerfakes.FakeContainerPlacementStrategy
 		fakeDelegate              *execfakes.FakeCheckDelegate
+		spanCtx                   context.Context
 		fakeClient                *workerfakes.FakeClient
 
 		fakeStdout, fakeStderr io.Writer
@@ -66,6 +66,9 @@ var _ = Describe("CheckStep", func() {
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakeDelegate = new(execfakes.FakeCheckDelegate)
 		fakeClient = new(workerfakes.FakeClient)
+
+		spanCtx = context.Background()
+		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
 
 		fakeStdout = bytes.NewBufferString("out")
 		fakeDelegate.StdoutReturns(fakeStdout)
@@ -339,8 +342,13 @@ var _ = Describe("CheckStep", func() {
 				})
 
 				Context("when tracing is enabled", func() {
+					var buildSpan trace.Span
+
 					BeforeEach(func() {
 						tracing.ConfigureTraceProvider(testTraceProvider{})
+
+						spanCtx, buildSpan = tracing.StartSpan(ctx, "build", nil)
+						fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
 					})
 
 					AfterEach(func() {
@@ -348,10 +356,7 @@ var _ = Describe("CheckStep", func() {
 					})
 
 					It("propagates span context to the worker client", func() {
-						spanCtx, buildSpan := tracing.StartSpan(runCtx, "lidar", nil)
-						span, ok := tracing.FromContext(spanCtx).(*testtrace.Span)
-						Expect(ok).To(BeTrue(), "no testtrace.Span in context")
-						Expect(span.ParentSpanID()).To(Equal(buildSpan.SpanContext().SpanID))
+						Expect(runCtx).To(Equal(spanCtx))
 					})
 
 					It("populates the TRACEPARENT env var", func() {
@@ -406,11 +411,13 @@ var _ = Describe("CheckStep", func() {
 		})
 
 		Context("with tracing configured", func() {
-			var span trace.Span
+			var buildSpan trace.Span
 
 			BeforeEach(func() {
 				tracing.ConfigureTraceProvider(&tracing.TestTraceProvider{})
-				ctx, span = tracing.StartSpan(context.Background(), "fake-operation", nil)
+
+				spanCtx, buildSpan = tracing.StartSpan(context.Background(), "fake-operation", nil)
+				fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
 			})
 
 			AfterEach(func() {
@@ -420,7 +427,7 @@ var _ = Describe("CheckStep", func() {
 			It("propagates span context to scope", func() {
 				Expect(fakeResourceConfigScope.SaveVersionsCallCount()).To(Equal(1))
 				spanContext, _ := fakeResourceConfigScope.SaveVersionsArgsForCall(0)
-				traceID := span.SpanContext().TraceIDString()
+				traceID := buildSpan.SpanContext().TraceIDString()
 				traceParent := spanContext.Get(propagators.TraceparentHeader)
 				Expect(traceParent).To(ContainSubstring(traceID))
 			})

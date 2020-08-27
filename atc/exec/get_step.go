@@ -16,6 +16,7 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 type ErrPipelineNotFound struct {
@@ -37,6 +38,8 @@ func (e ErrResourceNotFound) Error() string {
 //go:generate counterfeiter . GetDelegate
 
 type GetDelegate interface {
+	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
+
 	ImageVersionDetermined(db.UsedResourceCache) error
 	RedactImageSource(source atc.Source) (atc.Source, error)
 
@@ -92,14 +95,11 @@ func NewGetStep(
 		workerClient:         client,
 	}
 }
+
 func (step *GetStep) Run(ctx context.Context, state RunState) error {
-	ctx, span := tracing.StartSpan(ctx, "get", tracing.Attrs{
-		"team":     step.metadata.TeamName,
-		"pipeline": step.metadata.PipelineName,
-		"job":      step.metadata.JobName,
-		"build":    step.metadata.BuildName,
-		"resource": step.plan.Resource,
+	ctx, span := step.delegate.StartSpan(ctx, "get", tracing.Attrs{
 		"name":     step.plan.Name,
+		"resource": step.plan.Resource,
 	})
 
 	err := step.run(ctx, state)
@@ -112,7 +112,6 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("get-step", lager.Data{
 		"step-name": step.plan.Name,
-		"job-id":    step.metadata.JobID,
 	})
 
 	step.delegate.Initializing(logger)

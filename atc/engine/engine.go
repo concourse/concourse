@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"runtime/debug"
-	"strconv"
 	"sync"
 	"time"
 
@@ -114,11 +113,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 	b.waitGroup.Add(1)
 	defer b.waitGroup.Done()
 
-	logger := lagerctx.FromContext(ctx).WithData(lager.Data{
-		"build":    b.build.ID(),
-		"pipeline": b.build.PipelineName(),
-		"job":      b.build.JobName(),
-	})
+	logger := lagerctx.FromContext(ctx).WithData(b.build.LagerData())
 
 	lock, acquired, err := b.build.AcquireTrackingLock(logger, time.Minute)
 	if err != nil {
@@ -157,13 +152,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 
 	defer notifier.Close()
 
-	ctx, span := tracing.StartSpanFollowing(ctx, b.build, "build", tracing.Attrs{
-		"team":     b.build.TeamName(),
-		"pipeline": b.build.PipelineName(),
-		"job":      b.build.JobName(),
-		"build":    b.build.Name(),
-		"build_id": strconv.Itoa(b.build.ID()),
-	})
+	ctx, span := tracing.StartSpanFollowing(ctx, b.build, "build", b.build.TracingAttrs())
 	defer span.End()
 
 	step, err := b.builder.BuildStep(logger, b.build)
@@ -204,10 +193,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				err = fmt.Errorf("panic in engine build step run %s: %v", lager.Data{
-					"team_name":     b.build.TeamName(),
-					"pipeline_name": b.build.PipelineName(),
-				}, r)
+				err = fmt.Errorf("panic in engine build step run %d: %v", b.build.ID(), r)
 
 				fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
 				logger.Error("panic-in-engine-build-step-run", err)

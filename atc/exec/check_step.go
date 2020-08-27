@@ -68,13 +68,21 @@ func NewCheckStep(
 }
 
 func (step *CheckStep) Run(ctx context.Context, state RunState) error {
-	ctx, span := tracing.StartSpan(ctx, "check", tracing.Attrs{
-		"team":     step.metadata.TeamName,
-		"pipeline": step.metadata.PipelineName,
-		"job":      step.metadata.JobName,
-		"build":    step.metadata.BuildName,
-		"name":     step.plan.Name,
-	})
+	attrs := tracing.Attrs{
+		"name":          step.plan.Name,
+		"resource":      step.plan.Resource,
+		"resource_type": step.plan.ResourceType,
+	}
+
+	if step.plan.Resource != "" {
+		attrs["resource"] = step.plan.Resource
+	}
+
+	if step.plan.ResourceType != "" {
+		attrs["resource_type"] = step.plan.ResourceType
+	}
+
+	ctx, span := step.delegate.StartSpan(ctx, "check", attrs)
 
 	err := step.run(ctx, state)
 	tracing.End(span, err)

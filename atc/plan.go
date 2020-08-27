@@ -108,6 +108,10 @@ func (plan *Plan) Each(f func(*Plan)) {
 
 type PlanID string
 
+func (id PlanID) String() string {
+	return string(id)
+}
+
 type ArtifactInputPlan struct {
 	ArtifactID int    `json:"artifact_id"`
 	Name       string `json:"name"`

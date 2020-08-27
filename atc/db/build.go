@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -17,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/tracing"
 )
 
 const schema = "exec.v2"
@@ -104,10 +106,13 @@ type Build interface {
 
 	ID() int
 	Name() string
-	JobID() int
-	JobName() string
+
 	TeamID() int
 	TeamName() string
+
+	JobID() int
+	JobName() string
+
 	Schema() string
 	PrivatePlan() atc.Plan
 	PublicPlan() *json.RawMessage
@@ -125,6 +130,11 @@ type Build interface {
 	RerunOf() int
 	RerunOfName() string
 	RerunNumber() int
+
+	LagerData() lager.Data
+	TracingAttrs() tracing.Attrs
+
+	SyslogTag(event.OriginID) string
 
 	Reload() (bool, error)
 
@@ -224,6 +234,66 @@ type ResourceNotFoundInPipeline struct {
 
 func (r ResourceNotFoundInPipeline) Error() string {
 	return fmt.Sprintf("resource %s not found in pipeline %s", r.Resource, r.Pipeline)
+}
+
+// SyslogTag returns a string to be set as a tag on syslog events pertaining to
+// the build.
+func (b *build) SyslogTag(origin event.OriginID) string {
+	segments := []string{b.teamName}
+
+	if b.pipelineID != 0 {
+		segments = append(segments, b.pipelineName)
+	}
+
+	if b.jobID != 0 {
+		segments = append(segments, b.jobName, b.name)
+	} else {
+		segments = append(segments, strconv.Itoa(b.id))
+	}
+
+	segments = append(segments, origin.String())
+
+	return strings.Join(segments, "/")
+}
+
+// LagerData returns attributes which are to be emitted in logs pertaining to
+// the build.
+func (b *build) LagerData() lager.Data {
+	data := lager.Data{
+		"build_id": b.id,
+		"build":    b.name,
+		"team":     b.teamName,
+	}
+
+	if b.pipelineID != 0 {
+		data["pipeline"] = b.pipelineName
+	}
+
+	if b.jobID != 0 {
+		data["job"] = b.jobName
+	}
+
+	return data
+}
+
+// TracingAttrs returns attributes which are to be emitted in spans and
+// metrics pertaining to the build.
+func (b *build) TracingAttrs() tracing.Attrs {
+	data := tracing.Attrs{
+		"build":    b.name,
+		"build_id": strconv.Itoa(b.id),
+		"team":     b.teamName,
+	}
+
+	if b.pipelineID != 0 {
+		data["pipeline"] = b.pipelineName
+	}
+
+	if b.jobID != 0 {
+		data["job"] = b.jobName
+	}
+
+	return data
 }
 
 func (b *build) ID() int                      { return b.id }

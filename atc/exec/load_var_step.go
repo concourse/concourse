@@ -66,13 +66,8 @@ func (err InvalidLocalVarFile) Error() string {
 }
 
 func (step *LoadVarStep) Run(ctx context.Context, state RunState) error {
-	ctx, span := tracing.StartSpan(ctx, "load_var", tracing.Attrs{
-		"team":     step.metadata.TeamName,
-		"pipeline": step.metadata.PipelineName,
-		"job":      step.metadata.JobName,
-		"build":    step.metadata.BuildName,
-		"name":     step.plan.Name,
-		"file":     step.plan.File,
+	ctx, span := step.delegate.StartSpan(ctx, "load_var", tracing.Attrs{
+		"name": step.plan.Name,
 	})
 
 	err := step.run(ctx, state)

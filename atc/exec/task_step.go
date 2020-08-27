@@ -19,6 +19,7 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 // MissingInputsError is returned when any of the task's required inputs are
@@ -53,6 +54,8 @@ func (err TaskImageSourceParametersError) Error() string {
 //go:generate counterfeiter . TaskDelegate
 
 type TaskDelegate interface {
+	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
+
 	ImageVersionDetermined(db.UsedResourceCache) error
 	RedactImageSource(source atc.Source) (atc.Source, error)
 
@@ -125,12 +128,8 @@ func NewTaskStep(
 // task's entire working directory is registered as an StreamableArtifactSource under the
 // name of the task.
 func (step *TaskStep) Run(ctx context.Context, state RunState) error {
-	ctx, span := tracing.StartSpan(ctx, "task", tracing.Attrs{
-		"team":     step.metadata.TeamName,
-		"pipeline": step.metadata.PipelineName,
-		"job":      step.metadata.JobName,
-		"build":    step.metadata.BuildName,
-		"name":     step.plan.Name,
+	ctx, span := step.delegate.StartSpan(ctx, "task", tracing.Attrs{
+		"name": step.plan.Name,
 	})
 
 	err := step.run(ctx, state)

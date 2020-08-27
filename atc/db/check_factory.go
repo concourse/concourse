@@ -154,15 +154,12 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		return nil, false, nil
 	}
 
-	started, err := build.Start(plan)
+	_, err = build.Start(plan)
 	if err != nil {
 		return nil, false, fmt.Errorf("start build: %w", err)
 	}
 
-	logger.Info("created-build", lager.Data{
-		"build":   build.ID(),
-		"started": started,
-	})
+	logger.Info("created-build", build.LagerData())
 
 	_, err = build.Reload()
 	if err != nil {

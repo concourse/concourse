@@ -1,27 +1,26 @@
 package exec_test
 
 import (
-	"code.cloudfoundry.org/lager/lagerctx"
-	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
-
 	"context"
 	"errors"
 	"io"
 
-	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/exec/build/buildfakes"
-	"github.com/onsi/gomega/gbytes"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel/api/trace"
 
+	"code.cloudfoundry.org/lager/lagerctx"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/atc/exec/build/buildfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/vars"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("SetPipelineStep", func() {
@@ -80,12 +79,13 @@ jobs:
 		cancel     func()
 		testLogger *lagertest.TestLogger
 
-		fakeDelegate     *execfakes.FakeSetPipelineStepDelegate
 		fakeTeamFactory  *dbfakes.FakeTeamFactory
 		fakeBuildFactory *dbfakes.FakeBuildFactory
 		fakeBuild        *dbfakes.FakeBuild
 		fakeTeam         *dbfakes.FakeTeam
 		fakePipeline     *dbfakes.FakePipeline
+		spanCtx          context.Context
+		fakeDelegate     *execfakes.FakeSetPipelineStepDelegate
 
 		fakeWorkerClient *workerfakes.FakeClient
 
@@ -137,6 +137,9 @@ jobs:
 		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdout)
 		fakeDelegate.StderrReturns(stderr)
+
+		spanCtx = context.Background()
+		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
 
 		fakeTeamFactory = new(dbfakes.FakeTeamFactory)
 		fakeBuildFactory = new(dbfakes.FakeBuildFactory)
