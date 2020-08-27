@@ -76,6 +76,14 @@ var _ = Describe("ClaimsCacher", func() {
 		_, _, err := claimsCacher.GetAccessToken("token")
 		Expect(err).To(HaveOccurred())
 	})
+
+	It("fetches claims from the DB concurrently", func() {
+		// this is designed purely to trigger the race detector
+		go claimsCacher.GetAccessToken("token1")
+		go claimsCacher.GetAccessToken("token2")
+		go claimsCacher.GetAccessToken("token3")
+		Eventually(fakeAccessTokenFetcher.GetAccessTokenCallCount).Should(Equal(3))
+	})
 })
 
 func stringWithLen(l int) string {

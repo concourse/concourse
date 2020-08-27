@@ -2,6 +2,7 @@ package accessor
 
 import (
 	"encoding/json"
+	"sync"
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/golang/groupcache/lru"
@@ -18,6 +19,7 @@ type claimsCacher struct {
 
 	cache          *lru.Cache
 	cacheSizeBytes int
+	mu             sync.Mutex // lru.Cache is not safe for concurrent access
 }
 
 func NewClaimsCacher(
@@ -38,6 +40,9 @@ func NewClaimsCacher(
 }
 
 func (c *claimsCacher) GetAccessToken(rawToken string) (db.AccessToken, bool, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	claims, found := c.cache.Get(rawToken)
 	if found {
 		entry, _ := claims.(claimsCacheEntry)
