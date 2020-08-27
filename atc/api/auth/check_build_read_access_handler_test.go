@@ -40,8 +40,11 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 
 		build = new(dbfakes.FakeBuild)
 		pipeline = new(dbfakes.FakePipeline)
+		build.PipelineIDReturns(41)
 		build.PipelineReturns(pipeline, true, nil)
+		build.TeamIDReturns(42)
 		build.TeamNameReturns("some-team")
+		build.JobIDReturns(43)
 		build.JobNameReturns("some-job")
 	})
 
@@ -158,12 +161,20 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
+				Context("when the build is not for a pipeline", func() {
+					BeforeEach(func() {
+						build.PipelineIDReturns(0)
+					})
+					It("return 403", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					})
+				})
 				Context("when pipeline is not found", func() {
 					BeforeEach(func() {
 						build.PipelineReturns(nil, false, nil)
 					})
-					It("return 500", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					It("return 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 					})
 				})
 			})
@@ -202,12 +213,20 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
+				Context("when the build is not for a pipeline", func() {
+					BeforeEach(func() {
+						build.PipelineIDReturns(0)
+					})
+					It("return 401", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					})
+				})
 				Context("when pipeline is not found", func() {
 					BeforeEach(func() {
 						build.PipelineReturns(nil, false, nil)
 					})
-					It("return 500", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					It("return 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 					})
 				})
 			})
@@ -236,6 +255,17 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 				BeforeEach(func() {
 					pipeline.PublicReturns(true)
 					build.PipelineReturns(pipeline, true, nil)
+				})
+
+				Context("when the build is not for a job", func() {
+					BeforeEach(func() {
+						build.JobIDReturns(0)
+						build.JobNameReturns("")
+					})
+
+					It("returns "+fmt.Sprint(status), func() {
+						Expect(response.StatusCode).To(Equal(status))
+					})
 				})
 
 				Context("and job is public", func() {
@@ -277,7 +307,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 						pipeline.JobReturns(nil, false, nil)
 					})
 
-					It("returns not found", func() {
+					It("return 404", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 					})
 				})

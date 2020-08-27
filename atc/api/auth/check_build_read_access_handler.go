@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -78,52 +79,72 @@ func (h checkBuildReadAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 
 	acc := accessor.GetAccessor(r)
 
-	if !acc.IsAuthenticated() || !acc.IsAuthorized(build.TeamName()) {
-		pipeline, found, err := build.Pipeline()
-		if err != nil {
+	allow, err := h.allow(build, acc)
+	if err != nil {
+		if err == errDisappeared {
+			w.WriteHeader(http.StatusNotFound)
+		} else {
 			w.WriteHeader(http.StatusInternalServerError)
-			return
 		}
-
-		if !found {
-			h.rejector.Unauthorized(w, r)
-			return
-		}
-
-		if !pipeline.Public() {
-			if acc.IsAuthenticated() {
-				h.rejector.Forbidden(w, r)
-				return
-			}
-
-			h.rejector.Unauthorized(w, r)
-			return
-		}
-
-		if !h.allowPrivateJob {
-			job, found, err := pipeline.Job(build.JobName())
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			if !found {
-				w.WriteHeader(http.StatusNotFound)
-				return
-			}
-
-			if !job.Public() {
-				if acc.IsAuthenticated() {
-					h.rejector.Forbidden(w, r)
-					return
-				}
-
-				h.rejector.Unauthorized(w, r)
-				return
-			}
-		}
+		return
 	}
 
-	ctx := context.WithValue(r.Context(), BuildContextKey, build)
-	h.delegateHandler.ServeHTTP(w, r.WithContext(ctx))
+	if allow {
+		ctx := context.WithValue(r.Context(), BuildContextKey, build)
+		h.delegateHandler.ServeHTTP(w, r.WithContext(ctx))
+	} else if acc.IsAuthenticated() {
+		h.rejector.Forbidden(w, r)
+	} else {
+		h.rejector.Unauthorized(w, r)
+	}
+}
+
+// this is mainly to avoid a monstrosity like bool, bool, error; it's handled
+// above
+var errDisappeared = errors.New("internal: build parent disappeared")
+
+func (h checkBuildReadAccessHandler) allow(build db.Build, acc accessor.Access) (bool, error) {
+	if acc.IsAuthenticated() && acc.IsAuthorized(build.TeamName()) {
+		return true, nil
+	}
+
+	if build.PipelineID() == 0 {
+		return false, nil
+	}
+
+	pipeline, found, err := build.Pipeline()
+	if err != nil {
+		return false, err
+	}
+
+	if !found {
+		return false, errDisappeared
+	}
+
+	if !pipeline.Public() {
+		return false, nil
+	}
+
+	if h.allowPrivateJob {
+		return true, nil
+	}
+
+	if build.JobID() == 0 {
+		return false, nil
+	}
+
+	job, found, err := pipeline.Job(build.JobName())
+	if err != nil {
+		return false, err
+	}
+
+	if !found {
+		return false, errDisappeared
+	}
+
+	if job.Public() {
+		return true, nil
+	}
+
+	return false, nil
 }
