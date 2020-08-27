@@ -83,7 +83,7 @@ var _ = Describe("Build", func() {
 				Expect(data).To(Equal(lager.Data{
 					"build_id": build.ID(),
 					"build":    build.Name(),
-					"team":     build.TeamName(),
+					"team":     team.Name(),
 				}))
 			})
 		})
@@ -101,7 +101,7 @@ var _ = Describe("Build", func() {
 					"build":    build.Name(),
 					"team":     build.TeamName(),
 					"pipeline": build.PipelineName(),
-					"job":      build.JobName(),
+					"job":      defaultJob.Name(),
 				}))
 			})
 		})
@@ -121,6 +121,7 @@ var _ = Describe("Build", func() {
 					"build":    build.Name(),
 					"team":     build.TeamName(),
 					"pipeline": build.PipelineName(),
+					"resource": defaultResource.Name(),
 				}))
 			})
 		})
@@ -170,7 +171,7 @@ var _ = Describe("Build", func() {
 			})
 
 			It("includes build, team, and pipeline", func() {
-				Expect(tag).To(Equal(fmt.Sprintf("%s/%s/%d/%s", defaultResource.TeamName(), defaultResource.PipelineName(), build.ID(), originID)))
+				Expect(tag).To(Equal(fmt.Sprintf("%s/%s/%s/%d/%s", defaultResource.TeamName(), defaultResource.PipelineName(), defaultResource.Name(), build.ID(), originID)))
 			})
 		})
 	})
@@ -195,7 +196,7 @@ var _ = Describe("Build", func() {
 				Expect(attrs).To(Equal(tracing.Attrs{
 					"build_id": strconv.Itoa(build.ID()),
 					"build":    build.Name(),
-					"team":     build.TeamName(),
+					"team":     team.Name(),
 				}))
 			})
 		})
@@ -213,7 +214,7 @@ var _ = Describe("Build", func() {
 					"build":    build.Name(),
 					"team":     build.TeamName(),
 					"pipeline": build.PipelineName(),
-					"job":      build.JobName(),
+					"job":      defaultJob.Name(),
 				}))
 			})
 		})
@@ -233,6 +234,7 @@ var _ = Describe("Build", func() {
 					"build":    build.Name(),
 					"team":     build.TeamName(),
 					"pipeline": build.PipelineName(),
+					"resource": defaultResource.Name(),
 				}))
 			})
 		})

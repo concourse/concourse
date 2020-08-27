@@ -65,6 +65,7 @@ var buildsQuery = psql.Select(`
 		b.id,
 		b.name,
 		b.job_id,
+		b.resource_id,
 		b.team_id,
 		b.status,
 		b.manually_triggered,
@@ -77,6 +78,7 @@ var buildsQuery = psql.Select(`
 		b.end_time,
 		b.reap_time,
 		j.name,
+		r.name,
 		b.pipeline_id,
 		p.name,
 		t.name,
@@ -86,15 +88,16 @@ var buildsQuery = psql.Select(`
 		b.completed,
 		b.inputs_ready,
 		b.rerun_of,
-		r.name,
+		rb.name,
 		b.rerun_number,
 		b.span_context
 	`).
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
+	JoinClause("LEFT OUTER JOIN resources r ON b.resource_id = r.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
 	JoinClause("LEFT OUTER JOIN teams t ON b.team_id = t.id").
-	JoinClause("LEFT OUTER JOIN builds r ON r.id = b.rerun_of")
+	JoinClause("LEFT OUTER JOIN builds rb ON rb.id = b.rerun_of")
 
 var minMaxIdQuery = psql.Select("COALESCE(MAX(b.id), 0)", "COALESCE(MIN(b.id), 0)").
 	From("builds as b")
@@ -116,6 +119,9 @@ type Build interface {
 
 	JobID() int
 	JobName() string
+
+	ResourceID() int
+	ResourceName() string
 
 	Schema() string
 	PrivatePlan() atc.Plan
@@ -201,6 +207,9 @@ type build struct {
 	jobID   int
 	jobName string
 
+	resourceID   int
+	resourceName string
+
 	isManuallyTriggered bool
 
 	rerunOf     int
@@ -251,6 +260,8 @@ func (b *build) SyslogTag(origin event.OriginID) string {
 
 	if b.jobID != 0 {
 		segments = append(segments, b.jobName, b.name)
+	} else if b.resourceID != 0 {
+		segments = append(segments, b.resourceName, strconv.Itoa(b.id))
 	} else {
 		segments = append(segments, strconv.Itoa(b.id))
 	}
@@ -277,6 +288,10 @@ func (b *build) LagerData() lager.Data {
 		data["job"] = b.jobName
 	}
 
+	if b.resourceID != 0 {
+		data["resource"] = b.resourceName
+	}
+
 	return data
 }
 
@@ -284,8 +299,8 @@ func (b *build) LagerData() lager.Data {
 // metrics pertaining to the build.
 func (b *build) TracingAttrs() tracing.Attrs {
 	data := tracing.Attrs{
-		"build":    b.name,
 		"build_id": strconv.Itoa(b.id),
+		"build":    b.name,
 		"team":     b.teamName,
 	}
 
@@ -297,6 +312,10 @@ func (b *build) TracingAttrs() tracing.Attrs {
 		data["job"] = b.jobName
 	}
 
+	if b.resourceID != 0 {
+		data["resource"] = b.resourceName
+	}
+
 	return data
 }
 
@@ -304,6 +323,8 @@ func (b *build) ID() int                      { return b.id }
 func (b *build) Name() string                 { return b.name }
 func (b *build) JobID() int                   { return b.jobID }
 func (b *build) JobName() string              { return b.jobName }
+func (b *build) ResourceID() int              { return b.resourceID }
+func (b *build) ResourceName() string         { return b.resourceName }
 func (b *build) TeamID() int                  { return b.teamID }
 func (b *build) TeamName() string             { return b.teamName }
 func (b *build) IsManuallyTriggered() bool    { return b.isManuallyTriggered }
@@ -1668,18 +1689,19 @@ func buildEventSeq(buildid int) string {
 
 func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) error {
 	var (
-		jobID, pipelineID, rerunOf, rerunNumber                             sql.NullInt64
-		schema, privatePlan, jobName, pipelineName, publicPlan, rerunOfName sql.NullString
-		createTime, startTime, endTime, reapTime                            pq.NullTime
-		nonce, spanContext                                                  sql.NullString
-		drained, aborted, completed                                         bool
-		status                                                              string
+		jobID, resourceID, pipelineID, rerunOf, rerunNumber                               sql.NullInt64
+		schema, privatePlan, jobName, resourceName, pipelineName, publicPlan, rerunOfName sql.NullString
+		createTime, startTime, endTime, reapTime                                          pq.NullTime
+		nonce, spanContext                                                                sql.NullString
+		drained, aborted, completed                                                       bool
+		status                                                                            string
 	)
 
 	err := row.Scan(
 		&b.id,
 		&b.name,
 		&jobID,
+		&resourceID,
 		&b.teamID,
 		&status,
 		&b.isManuallyTriggered,
@@ -1692,6 +1714,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		&endTime,
 		&reapTime,
 		&jobName,
+		&resourceName,
 		&pipelineID,
 		&pipelineName,
 		&b.teamName,
@@ -1710,10 +1733,12 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	}
 
 	b.status = BuildStatus(status)
-	b.jobName = jobName.String
 	b.jobID = int(jobID.Int64)
-	b.pipelineName = pipelineName.String
+	b.jobName = jobName.String
+	b.resourceID = int(resourceID.Int64)
+	b.resourceName = resourceName.String
 	b.pipelineID = int(pipelineID.Int64)
+	b.pipelineName = pipelineName.String
 	b.schema = schema.String
 	b.createTime = createTime.Time
 	b.startTime = startTime.Time

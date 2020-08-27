@@ -426,6 +426,26 @@ type FakeBuild struct {
 	rerunOfNameReturnsOnCall map[int]struct {
 		result1 string
 	}
+	ResourceIDStub        func() int
+	resourceIDMutex       sync.RWMutex
+	resourceIDArgsForCall []struct {
+	}
+	resourceIDReturns struct {
+		result1 int
+	}
+	resourceIDReturnsOnCall map[int]struct {
+		result1 int
+	}
+	ResourceNameStub        func() string
+	resourceNameMutex       sync.RWMutex
+	resourceNameArgsForCall []struct {
+	}
+	resourceNameReturns struct {
+		result1 string
+	}
+	resourceNameReturnsOnCall map[int]struct {
+		result1 string
+	}
 	ResourcesStub        func() ([]db.BuildInput, []db.BuildOutput, error)
 	resourcesMutex       sync.RWMutex
 	resourcesArgsForCall []struct {
@@ -2646,6 +2666,110 @@ func (fake *FakeBuild) RerunOfNameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeBuild) ResourceID() int {
+	fake.resourceIDMutex.Lock()
+	ret, specificReturn := fake.resourceIDReturnsOnCall[len(fake.resourceIDArgsForCall)]
+	fake.resourceIDArgsForCall = append(fake.resourceIDArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ResourceID", []interface{}{})
+	fake.resourceIDMutex.Unlock()
+	if fake.ResourceIDStub != nil {
+		return fake.ResourceIDStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.resourceIDReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) ResourceIDCallCount() int {
+	fake.resourceIDMutex.RLock()
+	defer fake.resourceIDMutex.RUnlock()
+	return len(fake.resourceIDArgsForCall)
+}
+
+func (fake *FakeBuild) ResourceIDCalls(stub func() int) {
+	fake.resourceIDMutex.Lock()
+	defer fake.resourceIDMutex.Unlock()
+	fake.ResourceIDStub = stub
+}
+
+func (fake *FakeBuild) ResourceIDReturns(result1 int) {
+	fake.resourceIDMutex.Lock()
+	defer fake.resourceIDMutex.Unlock()
+	fake.ResourceIDStub = nil
+	fake.resourceIDReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeBuild) ResourceIDReturnsOnCall(i int, result1 int) {
+	fake.resourceIDMutex.Lock()
+	defer fake.resourceIDMutex.Unlock()
+	fake.ResourceIDStub = nil
+	if fake.resourceIDReturnsOnCall == nil {
+		fake.resourceIDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.resourceIDReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeBuild) ResourceName() string {
+	fake.resourceNameMutex.Lock()
+	ret, specificReturn := fake.resourceNameReturnsOnCall[len(fake.resourceNameArgsForCall)]
+	fake.resourceNameArgsForCall = append(fake.resourceNameArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ResourceName", []interface{}{})
+	fake.resourceNameMutex.Unlock()
+	if fake.ResourceNameStub != nil {
+		return fake.ResourceNameStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.resourceNameReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) ResourceNameCallCount() int {
+	fake.resourceNameMutex.RLock()
+	defer fake.resourceNameMutex.RUnlock()
+	return len(fake.resourceNameArgsForCall)
+}
+
+func (fake *FakeBuild) ResourceNameCalls(stub func() string) {
+	fake.resourceNameMutex.Lock()
+	defer fake.resourceNameMutex.Unlock()
+	fake.ResourceNameStub = stub
+}
+
+func (fake *FakeBuild) ResourceNameReturns(result1 string) {
+	fake.resourceNameMutex.Lock()
+	defer fake.resourceNameMutex.Unlock()
+	fake.ResourceNameStub = nil
+	fake.resourceNameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuild) ResourceNameReturnsOnCall(i int, result1 string) {
+	fake.resourceNameMutex.Lock()
+	defer fake.resourceNameMutex.Unlock()
+	fake.ResourceNameStub = nil
+	if fake.resourceNameReturnsOnCall == nil {
+		fake.resourceNameReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.resourceNameReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeBuild) Resources() ([]db.BuildInput, []db.BuildOutput, error) {
 	fake.resourcesMutex.Lock()
 	ret, specificReturn := fake.resourcesReturnsOnCall[len(fake.resourcesArgsForCall)]
@@ -3699,6 +3823,10 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.rerunOfMutex.RUnlock()
 	fake.rerunOfNameMutex.RLock()
 	defer fake.rerunOfNameMutex.RUnlock()
+	fake.resourceIDMutex.RLock()
+	defer fake.resourceIDMutex.RUnlock()
+	fake.resourceNameMutex.RLock()
+	defer fake.resourceNameMutex.RUnlock()
 	fake.resourcesMutex.RLock()
 	defer fake.resourcesMutex.RUnlock()
 	fake.resourcesCheckedMutex.RLock()

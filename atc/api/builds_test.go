@@ -174,7 +174,16 @@ var _ = Describe("Builds API", func() {
 			build2.EndTimeReturns(time.Unix(200, 0))
 			build2.ReapTimeReturns(time.Unix(400, 0))
 
-			returnedBuilds = []db.Build{build1, build2}
+			build3 := new(dbfakes.FakeBuild)
+			build3.IDReturns(5)
+			build3.NameReturns("1")
+			build3.ResourceNameReturns("resource1")
+			build3.PipelineNameReturns("pipeline1")
+			build3.TeamNameReturns("some-team")
+			build3.StatusReturns(db.BuildStatusSucceeded)
+			build3.StartTimeReturns(time.Unix(101, 0))
+
+			returnedBuilds = []db.Build{build1, build2, build3}
 			fakeAccess.TeamNamesReturns([]string{"some-team"})
 		})
 
@@ -278,6 +287,16 @@ var _ = Describe("Builds API", func() {
 							"start_time": 101,
 							"end_time": 200,
 							"reap_time": 400
+						},
+						{
+							"id": 5,
+							"name": "1",
+							"resource_name": "resource1",
+							"pipeline_name": "pipeline1",
+							"team_name": "some-team",
+							"status": "succeeded",
+							"api_url": "/api/v1/builds/5",
+							"start_time": 101
 						}
 					]`))
 				})
@@ -403,6 +422,16 @@ var _ = Describe("Builds API", func() {
 							"start_time": 101,
 							"end_time": 200,
 							"reap_time": 400
+						},
+						{
+							"id": 5,
+							"name": "1",
+							"resource_name": "resource1",
+							"pipeline_name": "pipeline1",
+							"team_name": "some-team",
+							"status": "succeeded",
+							"api_url": "/api/v1/builds/5",
+							"start_time": 101
 						}
 					]`))
 				})
