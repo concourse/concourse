@@ -51,6 +51,20 @@ func (event BuildCollectorDuration) Emit(logger lager.Logger) {
 	)
 }
 
+type VersionReaperDuration struct {
+	Duration time.Duration
+}
+
+func (event VersionReaperDuration) Emit(logger lager.Logger) {
+	Metrics.emit(
+		logger.Session("gc-version-reaper-duration"),
+		Event{
+			Name:  "gc: version reaper duration (ms)",
+			Value: ms(event.Duration),
+		},
+	)
+}
+
 type WorkerCollectorDuration struct {
 	Duration time.Duration
 }

@@ -196,6 +196,9 @@ type RunCommand struct {
 		HijackGracePeriod      time.Duration `long:"hijack-grace-period" default:"5m" description:"Period after which hijacked containers will be garbage collected"`
 		FailedGracePeriod      time.Duration `long:"failed-grace-period" default:"120h" description:"Period after which failed containers will be garbage collected"`
 		CheckRecyclePeriod     time.Duration `long:"check-recycle-period" default:"1m" description:"Period after which to reap checks that are completed."`
+
+		MaxVersionsPerResource int           `long:"max-versions-per-resource" default:"0" description:"Max versions to retain for a resource. 0 means unlimited"`
+		VersionReapInterval    time.Duration `long:"version-reap-interval" default:"30m" description:"Period after which to reap versions of resources"`
 	} `group:"Garbage Collection" namespace:"gc"`
 
 	BuildTrackerInterval time.Duration `long:"build-tracker-interval" default:"10s" description:"Interval on which to run build tracking."`
@@ -499,7 +502,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	gcConn, err := cmd.constructDBConn(retryingDriverName, logger, 5, "gc", lockFactory)
+	gcConn, err := cmd.constructDBConn(retryingDriverName, logger, 6, "gc", lockFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -1147,6 +1150,16 @@ func (cmd *RunCommand) gcComponents(
 				Interval: cmd.GC.Interval,
 			},
 			Runnable: collector,
+		})
+	}
+
+	if cmd.GC.MaxVersionsPerResource > 0 {
+		components = append(components, RunnableComponent{
+			Component: atc.Component{
+				Name:     "resource-version-reaper",
+				Interval: cmd.GC.VersionReapInterval,
+			},
+			Runnable: gc.NewVersionReaper(gcConn, cmd.GC.MaxVersionsPerResource),
 		})
 	}
 
