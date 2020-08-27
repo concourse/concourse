@@ -44,16 +44,34 @@ func DetermineInputs(
 		return nil, nil, nil, nil, err
 	}
 
-	if len(localInputMappings) == 0 && inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
+	if inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
 		wd, err := os.Getwd()
 		if err != nil {
 			return nil, nil, nil, nil, err
 		}
 
-		localInputMappings = append(localInputMappings, flaghelpers.InputPairFlag{
-			Name: filepath.Base(wd),
-			Path: ".",
-		})
+		required := false
+		for _, input := range taskInputs {
+			if input.Name == filepath.Base(wd) {
+				required = true
+				break
+			}
+		}
+
+		provided := false
+		for _, input := range localInputMappings {
+			if input.Name == filepath.Base(wd) {
+				provided = true
+				break
+			}
+		}
+
+		if required && !provided {
+			localInputMappings = append(localInputMappings, flaghelpers.InputPairFlag{
+				Name: filepath.Base(wd),
+				Path: ".",
+			})
+		}
 	}
 
 	inputsFromLocal, err := GenerateLocalInputs(fact, team, localInputMappings, includeIgnored, platform)

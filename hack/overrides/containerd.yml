@@ -9,3 +9,5 @@ services:
   worker:
     environment:
       CONCOURSE_RUNTIME: containerd
+      CONCOURSE_GARDEN_DNS_PROXY_ENABLE: ~
+      CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: "true"
