@@ -15,6 +15,7 @@ test.beforeEach(async t => {
   context.web = await Web.build(url, username, password);
   context.succeeded = false;
   t.context = context;
+  t.timeout(300000) // 5 minutes
 });
 
 test.afterEach(async t => {

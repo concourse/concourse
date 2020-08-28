@@ -16,6 +16,8 @@ test.afterEach.always(async t => {
 });
 
 test('running pipelines', async t => {
+  t.timeout(300000) // 5 minutes
+
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/smoke-pipeline.yml');
   await t.context.fly.run('unpause-pipeline -p some-pipeline');
 
@@ -45,6 +47,7 @@ test('running one-off builds', async t => {
 });
 
 test('reaching the internet', async t => {
+  t.timeout(300000) // 5 minutes
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/smoke-internet-pipeline.yml');
   await t.context.fly.run('unpause-pipeline -p some-pipeline');
 

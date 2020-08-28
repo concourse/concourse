@@ -19,6 +19,7 @@ const versionInPinBarSelector = '#pin-bar table';
 const topBarPinIconSelector = '#pin-icon';
 
 test('can unpin from top bar when pinned version is not in the versions list', async t => {
+  t.timeout(30000) // 5 minutes
   await setupPipeline(t);
   await pinVersion(t);
   await resetVersionsList(t);

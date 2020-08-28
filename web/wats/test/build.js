@@ -48,6 +48,7 @@ test('shows abort hooks', async t => {
 });
 
 test('can be switched between', async t => {
+  t.timeout(300000) // 5 minutes
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
   await t.context.fly.run('unpause-pipeline -p some-pipeline');
 
