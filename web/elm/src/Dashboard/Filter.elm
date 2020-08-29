@@ -42,8 +42,8 @@ type alias Filter =
 
 
 filterGroups :
-    { pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
-    , jobs : Dict ( String, String, String ) Concourse.Job
+    { pipelineJobs : Dict ( String, Int ) (List Concourse.JobIdentifier)
+    , jobs : Dict ( String, Int, String ) Concourse.Job
     , query : String
     , teams : List Concourse.Team
     , pipelines : Dict String (List Pipeline)
@@ -79,7 +79,7 @@ prefilter view favoritedPipelines p =
             True
 
 
-runFilter : Dict ( String, String, String ) Concourse.Job -> Dict ( String, String ) (List Concourse.JobIdentifier) -> Filter -> List Group -> List Group
+runFilter : Dict ( String, Int, String ) Concourse.Job -> Dict ( String, Int ) (List Concourse.JobIdentifier) -> Filter -> List Group -> List Group
 runFilter jobs existingJobs f =
     let
         negater =
@@ -105,18 +105,18 @@ runFilter jobs existingJobs f =
                 >> List.filter (.pipelines >> List.isEmpty >> not)
 
 
-lookupJob : Dict ( String, String, String ) Concourse.Job -> Concourse.JobIdentifier -> Maybe Concourse.Job
+lookupJob : Dict ( String, Int, String ) Concourse.Job -> Concourse.JobIdentifier -> Maybe Concourse.Job
 lookupJob jobs jobId =
     jobs
-        |> Dict.get ( jobId.teamName, jobId.pipelineName, jobId.jobName )
+        |> Dict.get ( jobId.teamName, jobId.pipelineId, jobId.jobName )
 
 
-pipelineFilter : PipelineFilter -> Dict ( String, String, String ) Concourse.Job -> Dict ( String, String ) (List Concourse.JobIdentifier) -> Pipeline -> Bool
+pipelineFilter : PipelineFilter -> Dict ( String, Int, String ) Concourse.Job -> Dict ( String, Int ) (List Concourse.JobIdentifier) -> Pipeline -> Bool
 pipelineFilter pf jobs existingJobs pipeline =
     let
         jobsForPipeline =
             existingJobs
-                |> Dict.get ( pipeline.teamName, pipeline.name )
+                |> Dict.get ( pipeline.teamName, pipeline.id )
                 |> Maybe.withDefault []
                 |> List.filterMap (lookupJob jobs)
     in

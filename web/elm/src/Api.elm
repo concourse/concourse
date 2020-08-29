@@ -17,6 +17,7 @@ import Concourse.Pagination exposing (Page, Paginated)
 import Http
 import Json.Decode exposing (Decoder)
 import Json.Encode
+import Routes
 import Task exposing (Task)
 import Url.Builder
 
@@ -45,45 +46,45 @@ request { endpoint, method, headers, body, expect, query } =
         |> Http.toTask
 
 
-get : Endpoint -> Request ()
-get endpoint =
+get : Endpoint -> Maybe Concourse.InstanceVars -> Request ()
+get endpoint instanceVars =
     { method = "GET"
     , headers = []
     , endpoint = endpoint
-    , query = []
+    , query = Routes.instanceVarsToQueryParams instanceVars
     , body = Http.emptyBody
     , expect = ignoreResponse
     }
 
 
-paginatedGet : Endpoint -> Maybe Page -> Decoder a -> Request (Paginated a)
-paginatedGet endpoint page decoder =
+paginatedGet : Endpoint -> Maybe Page -> Decoder a -> Maybe Concourse.InstanceVars -> Request (Paginated a)
+paginatedGet endpoint page decoder instanceVars =
     { method = "GET"
     , headers = []
     , endpoint = endpoint
-    , query = Api.Pagination.params page
+    , query = List.append (Api.Pagination.params page) (Routes.instanceVarsToQueryParams instanceVars)
     , body = Http.emptyBody
     , expect = Http.expectStringResponse (parsePagination decoder)
     }
 
 
-post : Endpoint -> Concourse.CSRFToken -> Request ()
-post endpoint csrfToken =
+post : Endpoint -> Concourse.CSRFToken -> Maybe Concourse.InstanceVars -> Request ()
+post endpoint csrfToken instanceVars =
     { method = "POST"
     , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
     , endpoint = endpoint
-    , query = []
+    , query = Routes.instanceVarsToQueryParams instanceVars
     , body = Http.emptyBody
     , expect = ignoreResponse
     }
 
 
-put : Endpoint -> Concourse.CSRFToken -> Request ()
-put endpoint csrfToken =
+put : Endpoint -> Concourse.CSRFToken -> Maybe Concourse.InstanceVars -> Request ()
+put endpoint csrfToken instanceVars =
     { method = "PUT"
     , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
     , endpoint = endpoint
-    , query = []
+    , query = Routes.instanceVarsToQueryParams instanceVars
     , body = Http.emptyBody
     , expect = ignoreResponse
     }

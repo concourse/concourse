@@ -235,13 +235,13 @@ itListensForDragStart : Query.Single TopLevelMessage -> Expectation
 itListensForDragStart =
     Event.simulate (Event.custom "dragstart" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragStart "team" "pipeline")
+            (TopLevelMessage.Update <| Message.DragStart "team" 0)
 
 
 iAmDraggingTheFirstPipelineCard =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragStart "team" "pipeline")
+            (TopLevelMessage.Update <| Message.DragStart "team" 0)
 
 
 itIsInvisible =
@@ -282,7 +282,7 @@ iAmLookingAtTheFinalDropArea =
 itListensForDragEnter =
     Event.simulate (Event.custom "dragenter" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragOver <| After "pipeline")
+            (TopLevelMessage.Update <| Message.DragOver <| After 0)
 
 
 
@@ -296,13 +296,13 @@ itListensForDragEnter =
 itListensForDragOverPreventingDefault =
     Event.simulate (Event.custom "dragover" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragOver <| After "pipeline")
+            (TopLevelMessage.Update <| Message.DragOver <| After 0)
 
 
 iAmDraggingOverTheThirdDropArea =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragOver <| After "other-pipeline")
+            (TopLevelMessage.Update <| Message.DragOver <| After 0)
 
 
 iAmLookingAtTheTeamHeader =

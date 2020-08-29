@@ -1127,7 +1127,9 @@ all =
                         (Callback.BuildJobDetailsFetched <|
                             Ok
                                 { name = ""
+                                , pipelineId = -1
                                 , pipelineName = "p"
+                                , pipelineInstanceVars = Nothing
                                 , teamName = "t"
                                 , nextBuild = Nothing
                                 , finishedBuild = Nothing
@@ -1181,7 +1183,9 @@ all =
                         (Callback.BuildJobDetailsFetched <|
                             Ok
                                 { name = ""
+                                , pipelineId = -1
                                 , pipelineName = "p"
+                                , pipelineInstanceVars = Nothing
                                 , teamName = "t"
                                 , nextBuild = Nothing
                                 , finishedBuild = Nothing
@@ -1215,7 +1219,9 @@ all =
                         (Callback.BuildJobDetailsFetched <|
                             Ok
                                 { name = ""
+                                , pipelineId = -1
                                 , pipelineName = "p"
+                                , pipelineInstanceVars = Nothing
                                 , teamName = "t"
                                 , nextBuild = Nothing
                                 , finishedBuild = Nothing
@@ -1341,7 +1347,7 @@ all =
                     , fragment = Nothing
                     }
                     |> Tuple.second
-                    |> Common.contains (Effects.FetchJobBuild Data.jobBuildId)
+                    |> Common.contains (Effects.FetchJobBuild (Data.jobBuildId |> Data.withPipelineId -1))
         , test "does not reload build when highlight is modified" <|
             \_ ->
                 let

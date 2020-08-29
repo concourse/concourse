@@ -8,6 +8,8 @@ module Routes exposing
     , buildRoute
     , extractPid
     , extractQuery
+    , flattenInstanceVars
+    , instanceVarsToQueryParams
     , jobRoute
     , parsePath
     , pipelineRoute
@@ -20,6 +22,8 @@ import Concourse
 import Concourse.Pagination as Pagination exposing (Direction(..))
 import Api.Pagination
 import Dict
+import Json.Decode
+import Json.Encode
 import Maybe.Extra
 import Url
 import Url.Builder as Builder
@@ -99,11 +103,13 @@ type alias Transition =
 build : Parser (Route -> a) a
 build =
     let
-        buildHelper teamName pipelineName jobName buildName h =
+        buildHelper teamName pipelineName jobName buildName h instanceVars =
             Build
                 { id =
                     { teamName = teamName
+                    , pipelineId = -1
                     , pipelineName = pipelineName
+                    , pipelineInstanceVars = parseInstanceVars instanceVars
                     , jobName = jobName
                     , buildName = buildName
                     }
@@ -120,6 +126,7 @@ build =
             </> s "builds"
             </> string
             </> fragment parseHighlight
+            <?> Query.string "instance_vars"
         )
 
 
@@ -152,11 +159,13 @@ parsePage from to limit =
 resource : Parser (Route -> a) a
 resource =
     let
-        resourceHelper teamName pipelineName resourceName from to limit =
+        resourceHelper teamName pipelineName resourceName from to limit instanceVars =
             Resource
                 { id =
                     { teamName = teamName
+                    , pipelineId = -1
                     , pipelineName = pipelineName
+                    , pipelineInstanceVars = parseInstanceVars instanceVars
                     , resourceName = resourceName
                     }
                 , page = parsePage from to limit
@@ -172,17 +181,20 @@ resource =
             <?> Query.int "from"
             <?> Query.int "to"
             <?> Query.int "limit"
+            <?> Query.string "instance_vars"
         )
 
 
 job : Parser (Route -> a) a
 job =
     let
-        jobHelper teamName pipelineName jobName from to limit =
+        jobHelper teamName pipelineName jobName from to limit instanceVars =
             Job
                 { id =
                     { teamName = teamName
+                    , pipelineId = -1
                     , pipelineName = pipelineName
+                    , pipelineInstanceVars = parseInstanceVars instanceVars
                     , jobName = jobName
                     }
                 , page = parsePage from to limit
@@ -198,17 +210,20 @@ job =
             <?> Query.int "from"
             <?> Query.int "to"
             <?> Query.int "limit"
+            <?> Query.string "instance_vars"
         )
 
 
 pipeline : Parser (Route -> a) a
 pipeline =
     map
-        (\t p g ->
+        (\t p g iv ->
             Pipeline
                 { id =
                     { teamName = t
+                    , pipelineId = -1
                     , pipelineName = p
+                    , pipelineInstanceVars = parseInstanceVars iv
                     }
                 , groups = g
                 }
@@ -218,7 +233,39 @@ pipeline =
             </> s "pipelines"
             </> string
             <?> Query.custom "group" identity
+            <?> Query.string "instance_vars"
         )
+
+
+parseInstanceVars : Maybe String -> Maybe Concourse.InstanceVars
+parseInstanceVars instanceVars =
+    case instanceVars of
+        Nothing ->
+            Nothing
+
+        Just iv ->
+            case Json.Decode.decodeString Concourse.decodeInstanceVars iv of
+                Ok value ->
+                    Just value
+
+                Err _ ->
+                    Nothing
+
+
+flattenInstanceVars : Maybe Concourse.InstanceVars -> String
+flattenInstanceVars instanceVars =
+    case instanceVars of
+        Nothing ->
+            ""
+
+        Just iv ->
+            iv
+                |> Dict.toList
+                |> List.indexedMap
+                    (\index ( k, v ) ->
+                        Concourse.jsonValueToDotNotation k v
+                    )
+                |> String.join ","
 
 
 dashboard : Parser (Route -> a) a
@@ -268,7 +315,9 @@ buildRoute id name jobId =
             Build
                 { id =
                     { teamName = j.teamName
+                    , pipelineId = j.pipelineId
                     , pipelineName = j.pipelineName
+                    , pipelineInstanceVars = j.pipelineInstanceVars
                     , jobName = j.jobName
                     , buildName = name
                     }
@@ -284,16 +333,26 @@ jobRoute j =
     Job
         { id =
             { teamName = j.teamName
+            , pipelineId = j.pipelineId
             , pipelineName = j.pipelineName
+            , pipelineInstanceVars = j.pipelineInstanceVars
             , jobName = j.name
             }
         , page = Nothing
         }
 
 
-pipelineRoute : { a | name : String, teamName : String } -> Route
+pipelineRoute : { a | id : Int, name : String, instanceVars : Maybe Concourse.InstanceVars, teamName : String } -> Route
 pipelineRoute p =
-    Pipeline { id = { teamName = p.teamName, pipelineName = p.name }, groups = [] }
+    Pipeline
+        { id =
+            { teamName = p.teamName
+            , pipelineId = p.id
+            , pipelineName = p.name
+            , pipelineInstanceVars = p.instanceVars
+            }
+        , groups = []
+        }
 
 
 showHighlight : Highlight -> String
@@ -426,7 +485,7 @@ toString route =
                 , "pipelines"
                 , id.pipelineName
                 ]
-                (groups |> List.map (Builder.string "group"))
+                (List.append (groups |> List.map (Builder.string "group")) (instanceVarsToQueryParams id.pipelineInstanceVars))
 
         Dashboard { searchType, dashboardView } ->
             let
@@ -486,13 +545,28 @@ extractPid : Route -> Maybe Concourse.PipelineIdentifier
 extractPid route =
     case route of
         Build { id } ->
-            Just { teamName = id.teamName, pipelineName = id.pipelineName }
+            Just
+                { teamName = id.teamName
+                , pipelineId = id.pipelineId
+                , pipelineName = id.pipelineName
+                , pipelineInstanceVars = id.pipelineInstanceVars
+                }
 
         Job { id } ->
-            Just { teamName = id.teamName, pipelineName = id.pipelineName }
+            Just
+                { teamName = id.teamName
+                , pipelineId = id.pipelineId
+                , pipelineName = id.pipelineName
+                , pipelineInstanceVars = id.pipelineInstanceVars
+                }
 
         Resource { id } ->
-            Just { teamName = id.teamName, pipelineName = id.pipelineName }
+            Just
+                { teamName = id.teamName
+                , pipelineId = id.pipelineId
+                , pipelineName = id.pipelineName
+                , pipelineInstanceVars = id.pipelineInstanceVars
+                }
 
         Pipeline { id } ->
             Just id

@@ -935,7 +935,9 @@ all =
                                 (Callback.AllResourcesFetched <|
                                     Ok
                                         [ { teamName = "team"
+                                          , pipelineId = 0
                                           , pipelineName = "pipeline"
+                                          , pipelineInstanceVars = Nothing
                                           , name = "resource"
                                           , failingToCheck = True
                                           , checkError = ""
@@ -1040,7 +1042,7 @@ all =
                                         job BuildStatusErrored
                                 in
                                 Ok
-                                    [ { baseJob | pipelineName = "other-pipeline" } ]
+                                    [ { baseJob | pipelineId = 1, pipelineName = "other-pipeline" } ]
                             )
                         |> Tuple.first
                         |> Common.queryView

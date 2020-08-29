@@ -1683,7 +1683,10 @@ iClickAPipelineLink =
                 Subscription.RouteChanged <|
                     Routes.Pipeline
                         { groups = []
-                        , id = Data.pipelineId |> Data.withPipelineName "other-pipeline"
+                        , id =
+                            Data.pipelineId
+                                |> Data.withPipelineId 1
+                                |> Data.withPipelineName "other-pipeline"
                         }
             )
 
@@ -1726,6 +1729,7 @@ iNavigateBackToThePipelinePage =
                         , id =
                             Data.pipelineId
                                 |> Data.withTeamName "other-team"
+                                |> Data.withPipelineId 3
                                 |> Data.withPipelineName "yet-another-pipeline"
                         }
             )

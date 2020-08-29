@@ -181,7 +181,9 @@ pinMenu { hovered } model =
                                     Routes.Resource
                                         { id =
                                             { teamName = pipeline.teamName
+                                            , pipelineId = pipeline.pipelineId
                                             , pipelineName = pipeline.pipelineName
+                                            , pipelineInstanceVars = pipeline.pipelineInstanceVars
                                             , resourceName = resourceName
                                             }
                                         , page = Nothing

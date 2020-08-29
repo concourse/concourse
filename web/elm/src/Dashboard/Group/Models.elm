@@ -1,6 +1,5 @@
 module Dashboard.Group.Models exposing (Group, Pipeline)
 
-
 import Concourse
 
 

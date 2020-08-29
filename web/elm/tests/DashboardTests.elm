@@ -699,7 +699,9 @@ all =
                         (Callback.AllJobsFetched <|
                             Ok
                                 [ { name = "job"
+                                  , pipelineId = 0
                                   , pipelineName = "pipeline"
+                                  , pipelineInstanceVars = Nothing
                                   , teamName = "team"
                                   , nextBuild = Nothing
                                   , finishedBuild =
@@ -2002,7 +2004,7 @@ all =
                         (Callback.AllJobsFetched <| Ok [])
                     |> Tuple.first
                     |> Application.update
-                        (ApplicationMsgs.Update <| Msgs.DragStart "team" "pipeline")
+                        (ApplicationMsgs.Update <| Msgs.DragStart "team" 0)
                     |> Tuple.first
                     |> Application.handleDelivery
                         (ClockTicked FiveSeconds <|
@@ -2240,7 +2242,9 @@ job =
 jobWithNameTransitionedAt : String -> Maybe Time.Posix -> BuildStatus -> Concourse.Job
 jobWithNameTransitionedAt jobName transitionedAt status =
     { name = jobName
+    , pipelineId = 0
     , pipelineName = "pipeline"
+    , pipelineInstanceVars = Nothing
     , teamName = "team"
     , nextBuild = Nothing
     , finishedBuild =
@@ -2281,7 +2285,9 @@ jobWithNameTransitionedAt jobName transitionedAt status =
 circularJobs : List Concourse.Job
 circularJobs =
     [ { name = "jobA"
+      , pipelineId = 0
       , pipelineName = "pipeline"
+      , pipelineInstanceVars = Nothing
       , teamName = "team"
       , nextBuild = Nothing
       , finishedBuild =
@@ -2321,7 +2327,9 @@ circularJobs =
       , groups = []
       }
     , { name = "jobB"
+      , pipelineId = 0
       , pipelineName = "pipeline"
+      , pipelineInstanceVars = Nothing
       , teamName = "team"
       , nextBuild = Nothing
       , finishedBuild =

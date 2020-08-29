@@ -19,12 +19,10 @@ func (flag *InstanceVarPairFlag) UnmarshalFlag(value string) error {
 
 	flag.Name = vs[0]
 
-	var raw interface{}
-	err := yaml.Unmarshal([]byte(vs[1]), &raw)
+	err := yaml.Unmarshal([]byte(vs[1]), &flag.Value)
 	if err != nil {
 		return err
 	}
-	flag.Value = raw
 
 	return nil
 }

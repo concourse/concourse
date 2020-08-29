@@ -221,7 +221,7 @@ dashboardWithJob j =
             (Callback.AllJobsFetched <|
                 Ok
                     [ j
-                    , { j | pipelineName = "other" }
+                    , { j | pipelineId = 1, pipelineName = "other" }
                     ]
             )
         |> Tuple.first
@@ -255,7 +255,9 @@ findJobPreview =
 job : Concourse.Job
 job =
     { name = "job"
+    , pipelineId = 0
     , pipelineName = "pipeline"
+    , pipelineInstanceVars = Nothing
     , teamName = "team"
     , nextBuild = Nothing
     , finishedBuild = Nothing

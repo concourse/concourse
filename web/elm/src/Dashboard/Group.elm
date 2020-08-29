@@ -51,13 +51,13 @@ view :
         , now : Maybe Time.Posix
         , hovered : HoverState.HoverState
         , pipelineRunningKeyframes : String
-        , pipelinesWithResourceErrors : Set ( String, String )
-        , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
+        , pipelinesWithResourceErrors : Set ( String, Int )
+        , pipelineLayers : Dict ( String, Int ) (List (List Concourse.JobIdentifier))
         , pipelineCards : List PipelineGrid.PipelineCard
         , dropAreas : List PipelineGrid.DropArea
         , groupCardsHeight : Float
-        , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
-        , jobs : Dict ( String, String, String ) Concourse.Job
+        , pipelineJobs : Dict ( String, Int ) (List Concourse.JobIdentifier)
+        , jobs : Dict ( String, Int, String ) Concourse.Job
         }
     -> Group
     -> Html Message
@@ -131,13 +131,13 @@ viewFavoritePipelines :
         , now : Maybe Time.Posix
         , hovered : HoverState.HoverState
         , pipelineRunningKeyframes : String
-        , pipelinesWithResourceErrors : Set ( String, String )
-        , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
+        , pipelinesWithResourceErrors : Set ( String, Int )
+        , pipelineLayers : Dict ( String, Int ) (List (List Concourse.JobIdentifier))
         , pipelineCards : List PipelineGrid.PipelineCard
         , headers : List PipelineGrid.Header
         , groupCardsHeight : Float
-        , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
-        , jobs : Dict ( String, String, String ) Concourse.Job
+        , pipelineJobs : Dict ( String, Int ) (List Concourse.JobIdentifier)
+        , jobs : Dict ( String, Int, String ) Concourse.Job
         }
     -> Html Message
 viewFavoritePipelines session params =
@@ -190,9 +190,9 @@ tag { userState } g =
 
 hdView :
     { pipelineRunningKeyframes : String
-    , pipelinesWithResourceErrors : Set ( String, String )
-    , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
-    , jobs : Dict ( String, String, String ) Concourse.Job
+    , pipelinesWithResourceErrors : Set ( String, Int )
+    , pipelineJobs : Dict ( String, Int ) (List Concourse.JobIdentifier)
+    , jobs : Dict ( String, Int, String ) Concourse.Job
     }
     -> { a | userState : UserState }
     -> Group
@@ -221,10 +221,10 @@ hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, jo
                                 , pipelineRunningKeyframes = pipelineRunningKeyframes
                                 , resourceError =
                                     pipelinesWithResourceErrors
-                                        |> Set.member ( p.teamName, p.name )
+                                        |> Set.member ( p.teamName, p.id )
                                 , existingJobs =
                                     pipelineJobs
-                                        |> Dict.get ( p.teamName, p.name )
+                                        |> Dict.get ( p.teamName, p.id )
                                         |> Maybe.withDefault []
                                         |> List.filterMap (lookupJob jobs)
                                 }
@@ -256,10 +256,10 @@ pipelineNotSetView =
         ]
 
 
-lookupJob : Dict ( String, String, String ) Concourse.Job -> Concourse.JobIdentifier -> Maybe Concourse.Job
+lookupJob : Dict ( String, Int, String ) Concourse.Job -> Concourse.JobIdentifier -> Maybe Concourse.Job
 lookupJob jobs jobId =
     jobs
-        |> Dict.get ( jobId.teamName, jobId.pipelineName, jobId.jobName )
+        |> Dict.get ( jobId.teamName, jobId.pipelineId, jobId.jobName )
 
 
 pipelineCardView :
@@ -271,10 +271,10 @@ pipelineCardView :
             , now : Maybe Time.Posix
             , hovered : HoverState.HoverState
             , pipelineRunningKeyframes : String
-            , pipelinesWithResourceErrors : Set ( String, String )
-            , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
-            , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
-            , jobs : Dict ( String, String, String ) Concourse.Job
+            , pipelinesWithResourceErrors : Set ( String, Int )
+            , pipelineLayers : Dict ( String, Int ) (List (List Concourse.JobIdentifier))
+            , pipelineJobs : Dict ( String, Int ) (List Concourse.JobIdentifier)
+            , jobs : Dict ( String, Int, String ) Concourse.Job
         }
     -> PipelinesSection
     ->
@@ -307,8 +307,10 @@ pipelineCardView session params section { bounds, pipeline } teamName =
             Hover <|
                 Just <|
                     PipelineWrapper
-                        { pipelineName = pipeline.name
-                        , teamName = pipeline.teamName
+                        { teamName = pipeline.teamName
+                        , pipelineId = pipeline.id
+                        , pipelineName = pipeline.name
+                        , pipelineInstanceVars = pipeline.instanceVars
                         }
          , onMouseOut <| Hover Nothing
          ]
@@ -321,8 +323,10 @@ pipelineCardView session params section { bounds, pipeline } teamName =
             ++ (let
                     hoverStyle id =
                         if
-                            (id.pipelineName == pipeline.name)
-                                && (id.teamName == pipeline.teamName)
+                            (id.teamName == pipeline.teamName)
+                                && (id.pipelineId == pipeline.id)
+                                && (id.pipelineName == pipeline.name)
+                                && (id.pipelineInstanceVars == pipeline.instanceVars)
                         then
                             [ style "z-index" "1" ]
 
@@ -352,14 +356,14 @@ pipelineCardView session params section { bounds, pipeline } teamName =
                             "event.dataTransfer.setData('text/plain', '');"
                         , draggable "true"
                         , on "dragstart"
-                            (Json.Decode.succeed (DragStart pipeline.teamName pipeline.name))
+                            (Json.Decode.succeed (DragStart pipeline.teamName pipeline.id))
                         , on "dragend" (Json.Decode.succeed DragEnd)
                         ]
 
                     else
                         []
                    )
-                ++ (if params.dragState == Dragging pipeline.teamName pipeline.name then
+                ++ (if params.dragState == Dragging pipeline.teamName pipeline.id then
                         [ style "width" "0"
                         , style "margin" "0 12.5px"
                         , style "overflow" "hidden"
@@ -380,15 +384,15 @@ pipelineCardView session params section { bounds, pipeline } teamName =
                 , pipeline = pipeline
                 , resourceError =
                     params.pipelinesWithResourceErrors
-                        |> Set.member ( pipeline.teamName, pipeline.name )
+                        |> Set.member ( pipeline.teamName, pipeline.id )
                 , existingJobs =
                     params.pipelineJobs
-                        |> Dict.get ( pipeline.teamName, pipeline.name )
+                        |> Dict.get ( pipeline.teamName, pipeline.id )
                         |> Maybe.withDefault []
                         |> List.filterMap (lookupJob params.jobs)
                 , layers =
                     params.pipelineLayers
-                        |> Dict.get ( pipeline.teamName, pipeline.name )
+                        |> Dict.get ( pipeline.teamName, pipeline.id )
                         |> Maybe.withDefault []
                         |> List.map (List.filterMap <| lookupJob params.jobs)
                 , hovered = params.hovered

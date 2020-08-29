@@ -15,22 +15,22 @@ insertAt idx x xs =
             x :: xs
 
 
-dragPipeline : String -> DropTarget -> List Pipeline -> List Pipeline
+dragPipeline : Int -> DropTarget -> List Pipeline -> List Pipeline
 dragPipeline pipeline target pipelines =
     let
-        pipelineIndex name =
-            pipelines |> List.Extra.findIndex (.name >> (==) name)
+        pipelineIndex id =
+            pipelines |> List.Extra.findIndex (.id >> (==) id)
 
         fromIndex =
             pipelineIndex pipeline
 
         toIndex =
             case target of
-                Before name ->
-                    pipelineIndex name
+                Before id ->
+                    pipelineIndex id
 
-                After name ->
-                    pipelineIndex name |> Maybe.map ((+) 1)
+                After id ->
+                    pipelineIndex id |> Maybe.map ((+) 1)
     in
     case ( fromIndex, toIndex ) of
         ( Just from, Just to ) ->

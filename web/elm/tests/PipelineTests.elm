@@ -402,7 +402,7 @@ all =
                                 )
                             )
                         |> Tuple.second
-                        |> Common.contains (Effects.FetchPipeline Data.pipelineId)
+                        |> Common.contains (Effects.FetchPipeline (Data.pipelineId |> Data.withPipelineId -1))
             , test "on one minute timer, refreshes version" <|
                 \_ ->
                     Common.init "/teams/team/pipelines/pipeline"

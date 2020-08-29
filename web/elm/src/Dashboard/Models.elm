@@ -25,9 +25,9 @@ type alias Model =
             { now : Maybe Time.Posix
             , highDensity : Bool
             , query : String
-            , pipelinesWithResourceErrors : Set ( String, String )
-            , jobs : FetchResult (Dict ( String, String, String ) Concourse.Job)
-            , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
+            , pipelinesWithResourceErrors : Set ( String, Int )
+            , jobs : FetchResult (Dict ( String, Int, String ) Concourse.Job)
+            , pipelineLayers : Dict ( String, Int ) (List (List Concourse.JobIdentifier))
             , teams : FetchResult (List Concourse.Team)
             , dragState : DragState
             , dropState : DropState
@@ -42,7 +42,7 @@ type alias Model =
             , viewportWidth : Float
             , viewportHeight : Float
             , scrollTop : Float
-            , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
+            , pipelineJobs : Dict ( String, Int ) (List Concourse.JobIdentifier)
             , effectsToRetry : List Effect
             }
         )
@@ -55,7 +55,7 @@ type FetchError
 
 type DragState
     = NotDragging
-    | Dragging Concourse.TeamName Concourse.PipelineName
+    | Dragging Concourse.TeamName Int
 
 
 type DropState

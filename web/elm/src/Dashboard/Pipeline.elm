@@ -72,7 +72,7 @@ hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs
         ([ class "card"
          , attribute "data-pipeline-name" pipeline.name
          , attribute "data-team-name" pipeline.teamName
-         , onMouseEnter <| TooltipHd pipeline.name pipeline.teamName
+         , onMouseEnter <| TooltipHd pipeline.teamName pipeline.id
          , href <| Routes.toString <| Routes.pipelineRoute pipeline
          ]
             ++ Styles.pipelineCardHd (pipelineStatus existingJobs pipeline)
@@ -261,7 +261,7 @@ headerView pipeline resourceError =
         [ href <| Routes.toString <| Routes.pipelineRoute pipeline, draggable "false" ]
         [ Html.div
             ([ class "card-header"
-             , onMouseEnter <| Tooltip pipeline.name pipeline.teamName
+             , onMouseEnter <| Tooltip pipeline.teamName pipeline.id
              ]
                 ++ Styles.pipelineCardHeader
             )
@@ -300,8 +300,10 @@ footerView userState favoritedPipelines pipeline section now hovered existingJob
             Html.div [ style "width" "12px" ] []
 
         pipelineId =
-            { pipelineName = pipeline.name
-            , teamName = pipeline.teamName
+            { teamName = pipeline.teamName
+            , pipelineId = pipeline.id
+            , pipelineName = pipeline.name
+            , pipelineInstanceVars = pipeline.instanceVars
             }
 
         status =
@@ -365,8 +367,10 @@ pipelineStatusView : PipelinesSection -> Pipeline -> PipelineStatus.PipelineStat
 pipelineStatusView section pipeline status now =
     let
         pipelineId =
-            { pipelineName = pipeline.name
-            , teamName = pipeline.teamName
+            { teamName = pipeline.teamName
+            , pipelineId = pipeline.id
+            , pipelineName = pipeline.name
+            , pipelineInstanceVars = pipeline.instanceVars
             }
     in
     Html.div
