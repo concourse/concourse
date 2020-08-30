@@ -239,17 +239,16 @@ pipeline =
 
 parseInstanceVars : Maybe String -> Maybe Concourse.InstanceVars
 parseInstanceVars instanceVars =
-    case instanceVars of
-        Nothing ->
-            Nothing
+    instanceVars
+        |> Maybe.andThen
+            (\iv ->
+                case Json.Decode.decodeString Concourse.decodeInstanceVars iv of
+                    Ok value ->
+                        Just value
 
-        Just iv ->
-            case Json.Decode.decodeString Concourse.decodeInstanceVars iv of
-                Ok value ->
-                    Just value
-
-                Err _ ->
-                    Nothing
+                    Err _ ->
+                        Nothing
+            )
 
 
 flattenInstanceVars : Maybe Concourse.InstanceVars -> String
@@ -262,7 +261,7 @@ flattenInstanceVars instanceVars =
             iv
                 |> Dict.toList
                 |> List.indexedMap
-                    (\index ( k, v ) ->
+                    (\_ ( k, v ) ->
                         Concourse.jsonValueToDotNotation k v
                     )
                 |> String.join ","

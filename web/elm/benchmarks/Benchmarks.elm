@@ -142,8 +142,10 @@ buildView session model =
                 (currentJob model
                     |> Maybe.map
                         (\j ->
-                            { pipelineName = j.pipelineName
-                            , teamName = j.teamName
+                            { teamName = j.teamName
+                            , pipelineId = j.pipelineId
+                            , pipelineName = j.pipelineName
+                            , pipelineInstanceVars = j.pipelineInstanceVars
                             }
                         )
                 )
@@ -847,6 +849,8 @@ sampleJob : String -> List String -> Concourse.Job
 sampleJob name passed =
     { name = name
     , pipelineName = "pipeline"
+    , pipelineId = 0
+    , pipelineInstanceVars = Nothing
     , teamName = "team"
     , nextBuild = Nothing
     , finishedBuild = Nothing
@@ -969,7 +973,9 @@ jobByName jobs job =
 
         Nothing ->
             { name = ""
+            , pipelineId = -1
             , pipelineName = ""
+            , pipelineInstanceVars = Nothing
             , teamName = ""
             , nextBuild = Nothing
             , finishedBuild = Nothing

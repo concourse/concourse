@@ -495,7 +495,7 @@ jsonValueToDotNotation prefix json =
             else
                 dict
                     |> List.indexedMap
-                        (\index ( k, v ) ->
+                        (\_ ( k, v ) ->
                             jsonValueToDotNotation (prefix ++ "." ++ k) v
                         )
                     |> String.join ","
