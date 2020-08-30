@@ -1,7 +1,9 @@
 package validatepipelinehelpers
 
 import (
+	"errors"
 	"fmt"
+
 	"github.com/concourse/concourse/atc"
 
 	"github.com/concourse/concourse/atc/configvalidate"
@@ -45,7 +47,7 @@ func Validate(yamlTemplate templatehelpers.YamlTemplateWithParams, strict bool, 
 	}
 
 	if len(errorMessages) > 0 || (strict && len(warnings) > 0) {
-		displayhelpers.Failf("configuration invalid")
+		return errors.New("configuration invalid")
 	}
 
 	if output {
