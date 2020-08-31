@@ -17,31 +17,34 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-builds")
 
 	var (
-		err     error
-		from    int
-		to      int
-		limit   int
-		useDate bool
+		err  error
+		from int
+		to   int
 	)
 
-	timestamps := r.FormValue(atc.PaginationQueryTimestamps)
-	if timestamps != "" {
-		useDate = true
+	page := db.Page{}
+
+	urlLimit := r.FormValue(atc.PaginationQueryLimit)
+	page.Limit, _ = strconv.Atoi(urlLimit)
+	if page.Limit == 0 {
+		page.Limit = atc.PaginationAPIDefaultLimit
 	}
 
 	urlFrom := r.FormValue(atc.PaginationQueryFrom)
-	from, _ = strconv.Atoi(urlFrom)
-
+	if urlFrom != "" {
+		from, _ = strconv.Atoi(urlFrom)
+		page.From = db.NewIntPtr(from)
+	}
 	urlTo := r.FormValue(atc.PaginationQueryTo)
-	to, _ = strconv.Atoi(urlTo)
-
-	urlLimit := r.FormValue(atc.PaginationQueryLimit)
-	limit, _ = strconv.Atoi(urlLimit)
-	if limit == 0 {
-		limit = atc.PaginationAPIDefaultLimit
+	if urlTo != "" {
+		to, _ = strconv.Atoi(urlTo)
+		page.To = db.NewIntPtr(to)
 	}
 
-	page := db.Page{From: from, To: to, Limit: limit, UseDate: useDate}
+	timestamps := r.FormValue(atc.PaginationQueryTimestamps)
+	if timestamps != "" {
+		page.UseDate = true
+	}
 
 	var builds []db.Build
 	var pagination db.Pagination
@@ -88,7 +91,7 @@ func (s *Server) addNextLink(w http.ResponseWriter, page db.Page) {
 		`<%s/api/v1/builds?%s=%d&%s=%d>; rel="%s"`,
 		s.externalURL,
 		atc.PaginationQueryTo,
-		page.To,
+		*page.To,
 		atc.PaginationQueryLimit,
 		page.Limit,
 		atc.LinkRelNext,
@@ -100,7 +103,7 @@ func (s *Server) addPreviousLink(w http.ResponseWriter, page db.Page) {
 		`<%s/api/v1/builds?%s=%d&%s=%d>; rel="%s"`,
 		s.externalURL,
 		atc.PaginationQueryFrom,
-		page.From,
+		*page.From,
 		atc.PaginationQueryLimit,
 		page.Limit,
 		atc.LinkRelPrevious,

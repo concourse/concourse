@@ -44,16 +44,23 @@ func (s *Server) ListResourceVersions(pipeline db.Pipeline) http.Handler {
 		teamName := r.FormValue(":team_name")
 
 		urlFrom := r.FormValue(atc.PaginationQueryFrom)
-		from, _ = strconv.Atoi(urlFrom)
-
 		urlTo := r.FormValue(atc.PaginationQueryTo)
-		to, _ = strconv.Atoi(urlTo)
 
 		urlLimit := r.FormValue(atc.PaginationQueryLimit)
 
 		limit, _ = strconv.Atoi(urlLimit)
 		if limit == 0 {
 			limit = atc.PaginationAPIDefaultLimit
+		}
+
+		page := db.Page{Limit: limit}
+		if urlFrom != "" {
+			from, _ = strconv.Atoi(urlFrom)
+			page.From = db.NewIntPtr(from)
+		}
+		if urlTo != "" {
+			to, _ = strconv.Atoi(urlTo)
+			page.To = db.NewIntPtr(to)
 		}
 
 		resource, found, err := pipeline.Resource(resourceName)
@@ -69,11 +76,7 @@ func (s *Server) ListResourceVersions(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		versions, pagination, found, err := resource.Versions(db.Page{
-			From:  from,
-			To:    to,
-			Limit: limit,
-		}, versionFilter)
+		versions, pagination, found, err := resource.Versions(page, versionFilter)
 		if err != nil {
 			logger.Error("failed-to-get-resource-config-versions", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -119,7 +122,7 @@ func (s *Server) addNextLink(w http.ResponseWriter, teamName, pipelineName, reso
 		pipelineName,
 		resourceName,
 		atc.PaginationQueryTo,
-		page.To,
+		*page.To,
 		atc.PaginationQueryLimit,
 		page.Limit,
 		atc.LinkRelNext,
@@ -134,7 +137,7 @@ func (s *Server) addPreviousLink(w http.ResponseWriter, teamName, pipelineName, 
 		pipelineName,
 		resourceName,
 		atc.PaginationQueryFrom,
-		page.From,
+		*page.From,
 		atc.PaginationQueryLimit,
 		page.Limit,
 		atc.LinkRelPrevious,

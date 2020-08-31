@@ -94,7 +94,7 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 
 	from := job.FirstLoggedBuildID()
 	limit := br.batchSize
-	page := &db.Page{From: from, Limit: limit}
+	page := &db.Page{From: &from, Limit: limit}
 	for page != nil {
 		builds, pagination, err := job.Builds(*page)
 		if err != nil {

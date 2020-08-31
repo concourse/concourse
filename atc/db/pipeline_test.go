@@ -2061,7 +2061,7 @@ var _ = Describe("Pipeline", func() {
 			Context("only to", func() {
 				It("returns only those before and including to", func() {
 					returnedBuilds, _, err := pipeline.BuildsWithTime(db.Page{
-						To:    int(builds[2].StartTime().Unix()),
+						To:    db.NewIntPtr(int(builds[2].StartTime().Unix())),
 						Limit: 50,
 					})
 
@@ -2073,7 +2073,7 @@ var _ = Describe("Pipeline", func() {
 			Context("only from", func() {
 				It("returns only those after from", func() {
 					returnedBuilds, _, err := pipeline.BuildsWithTime(db.Page{
-						From:  int(builds[1].StartTime().Unix()),
+						From:  db.NewIntPtr(int(builds[1].StartTime().Unix())),
 						Limit: 50,
 					})
 
@@ -2085,8 +2085,8 @@ var _ = Describe("Pipeline", func() {
 			Context("from and to", func() {
 				It("returns only elements in the range", func() {
 					returnedBuilds, _, err := pipeline.BuildsWithTime(db.Page{
-						From:  int(builds[1].StartTime().Unix()),
-						To:    int(builds[2].StartTime().Unix()),
+						From:  db.NewIntPtr(int(builds[1].StartTime().Unix())),
+						To:    db.NewIntPtr(int(builds[2].StartTime().Unix())),
 						Limit: 50,
 					})
 					Expect(err).NotTo(HaveOccurred())

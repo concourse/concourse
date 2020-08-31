@@ -1,8 +1,8 @@
 package db
 
 type Page struct {
-	From int // inclusive
-	To   int // inclusive
+	From *int // inclusive
+	To   *int // inclusive
 
 	Limit   int
 	UseDate bool
@@ -13,3 +13,6 @@ type Pagination struct {
 	Older *Page
 }
 
+func NewIntPtr(i int) *int {
+	return &i
+}

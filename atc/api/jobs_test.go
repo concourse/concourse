@@ -1237,8 +1237,6 @@ var _ = Describe("Jobs API", func() {
 
 						page := fakeJob.BuildsArgsForCall(0)
 						Expect(page).To(Equal(db.Page{
-							From:  0,
-							To:    0,
 							Limit: 100,
 						}))
 					})
@@ -1254,8 +1252,8 @@ var _ = Describe("Jobs API", func() {
 
 						page := fakeJob.BuildsArgsForCall(0)
 						Expect(page).To(Equal(db.Page{
-							From:  2,
-							To:    3,
+							From:  db.NewIntPtr(2),
+							To:    db.NewIntPtr(3),
 							Limit: 8,
 						}))
 					})
@@ -1364,8 +1362,8 @@ var _ = Describe("Jobs API", func() {
 					Context("when next/previous pages are available", func() {
 						BeforeEach(func() {
 							fakeJob.BuildsReturns(returnedBuilds, db.Pagination{
-								Newer: &db.Page{From: 4, Limit: 2},
-								Older: &db.Page{To: 2, Limit: 2},
+								Newer: &db.Page{From: db.NewIntPtr(4), Limit: 2},
+								Older: &db.Page{To: db.NewIntPtr(2), Limit: 2},
 							}, nil)
 						})
 

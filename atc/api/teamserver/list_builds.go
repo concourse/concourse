@@ -26,19 +26,23 @@ func (s *Server) ListTeamBuilds(w http.ResponseWriter, r *http.Request) {
 	timestamps := r.FormValue(atc.PaginationQueryTimestamps)
 
 	urlFrom := r.FormValue(atc.PaginationQueryFrom)
-	from, _ = strconv.Atoi(urlFrom)
-
 	urlTo := r.FormValue(atc.PaginationQueryTo)
-	to, _ = strconv.Atoi(urlTo)
 
 	urlLimit := r.FormValue(atc.PaginationQueryLimit)
-
 	limit, _ = strconv.Atoi(urlLimit)
 	if limit == 0 {
 		limit = atc.PaginationAPIDefaultLimit
 	}
 
-	page := db.Page{From: from, To: to, Limit: limit}
+	page := db.Page{Limit: limit}
+	if urlFrom != "" {
+		from, _ = strconv.Atoi(urlFrom)
+		page.From = db.NewIntPtr(from)
+	}
+	if urlTo != "" {
+		to, _ = strconv.Atoi(urlTo)
+		page.To = db.NewIntPtr(to)
+	}
 
 	team, found, err := s.teamFactory.FindTeam(teamName)
 	if err != nil {
@@ -92,7 +96,7 @@ func (s *Server) addNextLink(w http.ResponseWriter, teamName string, page db.Pag
 		s.externalURL,
 		teamName,
 		atc.PaginationQueryTo,
-		page.To,
+		*page.To,
 		atc.PaginationQueryLimit,
 		page.Limit,
 		atc.LinkRelNext,
@@ -105,7 +109,7 @@ func (s *Server) addPreviousLink(w http.ResponseWriter, teamName string, page db
 		s.externalURL,
 		teamName,
 		atc.PaginationQueryFrom,
-		page.From,
+		*page.From,
 		atc.PaginationQueryLimit,
 		page.Limit,
 		atc.LinkRelPrevious,

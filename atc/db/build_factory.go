@@ -166,9 +166,9 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 
 	defer Rollback(tx)
 
-	if page.From != 0 {
+	if page.From != nil {
 		fromRow, err := buildsQuery.
-			Where(sq.Expr("b.start_time >= to_timestamp(" + strconv.Itoa(page.From) + ")")).
+			Where(sq.Expr("b.start_time >= to_timestamp(" + strconv.Itoa(*page.From) + ")")).
 			OrderBy("COALESCE(b.rerun_of, b.id) ASC, b.id ASC").
 			Limit(1).
 			RunWith(tx).
@@ -194,16 +194,16 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 				return nil, Pagination{}, err
 			}
 
-			newPage.From = build.ID()
+			newPage.From = NewIntPtr(build.ID())
 		}
 		if !found {
 			return []Build{}, Pagination{}, nil
 		}
 	}
 
-	if page.To != 0 {
+	if page.To != nil {
 		untilRow, err := buildsQuery.
-			Where(sq.Expr("b.start_time <= to_timestamp(" + strconv.Itoa(page.To) + ")")).
+			Where(sq.Expr("b.start_time <= to_timestamp(" + strconv.Itoa(*page.To) + ")")).
 			OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC").
 			Limit(1).
 			RunWith(tx).
@@ -226,7 +226,7 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 				return nil, Pagination{}, err
 			}
 
-			newPage.To = build.ID()
+			newPage.To = NewIntPtr(build.ID())
 		}
 		if !found {
 			return []Build{}, Pagination{}, nil
@@ -259,27 +259,27 @@ func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page P
 
 	buildsQuery = buildsQuery.Limit(uint64(page.Limit))
 
-	if page.From == 0 && page.To == 0 { // none
+	if page.From == nil && page.To == nil { // none
 		buildsQuery = buildsQuery.
 			OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC")
-	} else if page.From != 0 && page.To == 0 { // only from
+	} else if page.From != nil && page.To == nil { // only from
 		buildsQuery = buildsQuery.
-			Where(sq.GtOrEq{"b.id": uint64(page.From)}).
+			Where(sq.GtOrEq{"b.id": uint64(*page.From)}).
 			OrderBy("COALESCE(b.rerun_of, b.id) ASC, b.id ASC")
 		reverse = true
-	} else if page.From == 0 && page.To != 0 { // only to
+	} else if page.From == nil && page.To != nil { // only to
 		buildsQuery = buildsQuery.
-			Where(sq.LtOrEq{"b.id": page.To}).
+			Where(sq.LtOrEq{"b.id": uint64(*page.To)}).
 			OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC")
-	} else if page.From != 0 && page.To != 0 { // both
-		if page.From > page.To {
+	} else if page.From != nil && page.To != nil { // both
+		if *page.From > *page.To {
 			return nil, Pagination{}, fmt.Errorf("Invalid range boundaries")
 		}
 
 		buildsQuery = buildsQuery.Where(
 			sq.And{
-				sq.GtOrEq{"b.id": uint64(page.From)},
-				sq.LtOrEq{"b.id": uint64(page.To)},
+				sq.GtOrEq{"b.id": uint64(*page.From)},
+				sq.LtOrEq{"b.id": uint64(*page.To)},
 			}).
 			OrderBy("COALESCE(b.rerun_of, b.id) ASC, b.id ASC")
 	}
@@ -330,7 +330,7 @@ func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page P
 		return builds, Pagination{}, err
 	} else if err == nil {
 		pagination.Older = &Page{
-			To:    build.id,
+			To:    &build.id,
 			Limit: page.Limit,
 		}
 	}
@@ -348,7 +348,7 @@ func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page P
 		return builds, Pagination{}, err
 	} else if err == nil {
 		pagination.Newer = &Page{
-			From:  build.id,
+			From:  &build.id,
 			Limit: page.Limit,
 		}
 	}

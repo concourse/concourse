@@ -413,7 +413,7 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 	}
 
 	var rows *sql.Rows
-	if page.From != 0 {
+	if page.From != nil {
 		rows, err = tx.Query(fmt.Sprintf(`
 			SELECT sub.*
 				FROM (
@@ -424,18 +424,18 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 				LIMIT $3
 			) sub
 			ORDER BY sub.check_order DESC
-		`, query), r.id, page.From, page.Limit, filterJSON)
+		`, query), r.id, *page.From, page.Limit, filterJSON)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
-	} else if page.To != 0 {
+	} else if page.To != nil {
 		rows, err = tx.Query(fmt.Sprintf(`
 			%s
 				AND version @> $4
 				AND v.check_order <= (SELECT check_order FROM resource_config_versions WHERE id = $2)
 			ORDER BY v.check_order DESC
 			LIMIT $3
-		`, query), r.id, page.To, page.Limit, filterJSON)
+		`, query), r.id, *page.To, page.Limit, filterJSON)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
@@ -515,7 +515,7 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 		return nil, Pagination{}, false, err
 	} else if err == nil {
 		pagination.Older = &Page{
-			To:    olderRCVId,
+			To:    &olderRCVId,
 			Limit: page.Limit,
 		}
 	}
@@ -532,7 +532,7 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 		return nil, Pagination{}, false, err
 	} else if err == nil {
 		pagination.Newer = &Page{
-			From:  newerRCVId,
+			From:  &newerRCVId,
 			Limit: page.Limit,
 		}
 	}

@@ -30,15 +30,22 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 		timestamps := r.FormValue(atc.PaginationQueryTimestamps)
 
 		urlFrom := r.FormValue(atc.PaginationQueryFrom)
-		from, _ = strconv.Atoi(urlFrom)
-
 		urlTo := r.FormValue(atc.PaginationQueryTo)
-		to, _ = strconv.Atoi(urlTo)
 
 		urlLimit := r.FormValue(atc.PaginationQueryLimit)
 		limit, _ = strconv.Atoi(urlLimit)
 		if limit == 0 {
 			limit = atc.PaginationAPIDefaultLimit
+		}
+
+		page := db.Page{Limit: limit}
+		if urlFrom != "" {
+			from, _ = strconv.Atoi(urlFrom)
+			page.From = db.NewIntPtr(from)
+		}
+		if urlTo != "" {
+			to, _ = strconv.Atoi(urlTo)
+			page.To = db.NewIntPtr(to)
 		}
 
 		job, found, err := pipeline.Job(jobName)
@@ -54,18 +61,10 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 		}
 
 		if timestamps == "" {
-			builds, pagination, err = job.Builds(db.Page{
-				From:  from,
-				To:    to,
-				Limit: limit,
-			})
+			builds, pagination, err = job.Builds(page)
 		} else {
-			builds, pagination, err = job.BuildsWithTime(db.Page{
-				From:    from,
-				To:      to,
-				Limit:   limit,
-				UseDate: true,
-			})
+			page.UseDate = true
+			builds, pagination, err = job.BuildsWithTime(page)
 		}
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
@@ -104,7 +103,7 @@ func (s *Server) addNextLink(w http.ResponseWriter, teamName, pipelineName, jobN
 		pipelineName,
 		jobName,
 		atc.PaginationQueryTo,
-		page.To,
+		*page.To,
 		atc.PaginationQueryLimit,
 		page.Limit,
 		atc.LinkRelNext,
@@ -119,7 +118,7 @@ func (s *Server) addPreviousLink(w http.ResponseWriter, teamName, pipelineName, 
 		pipelineName,
 		jobName,
 		atc.PaginationQueryFrom,
-		page.From,
+		*page.From,
 		atc.PaginationQueryLimit,
 		page.Limit,
 		atc.LinkRelPrevious,

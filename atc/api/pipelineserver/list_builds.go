@@ -28,10 +28,7 @@ func (s *Server) ListPipelineBuilds(pipeline db.Pipeline) http.Handler {
 		timestamps := r.FormValue(atc.PaginationQueryTimestamps)
 
 		urlFrom := r.FormValue(atc.PaginationQueryFrom)
-		from, _ = strconv.Atoi(urlFrom)
-
 		urlTo := r.FormValue(atc.PaginationQueryTo)
-		to, _ = strconv.Atoi(urlTo)
 
 		urlLimit := r.FormValue(atc.PaginationQueryLimit)
 
@@ -40,7 +37,15 @@ func (s *Server) ListPipelineBuilds(pipeline db.Pipeline) http.Handler {
 			limit = atc.PaginationAPIDefaultLimit
 		}
 
-		page := db.Page{From: from, To: to, Limit: limit}
+		page := db.Page{Limit: limit}
+		if urlFrom != "" {
+			from, _ = strconv.Atoi(urlFrom)
+			page.From = db.NewIntPtr(from)
+		}
+		if urlTo != "" {
+			to, _ = strconv.Atoi(urlTo)
+			page.To = db.NewIntPtr(to)
+		}
 
 		if timestamps == "" {
 			builds, pagination, err = pipeline.Builds(page)
@@ -50,6 +55,7 @@ func (s *Server) ListPipelineBuilds(pipeline db.Pipeline) http.Handler {
 				return
 			}
 		} else {
+			page.UseDate = true
 			builds, pagination, err = pipeline.BuildsWithTime(page)
 			if err != nil {
 				logger.Error("failed-to-get-pipeline-builds-in-range", err)
@@ -90,7 +96,7 @@ func (s *Server) addNextLink(w http.ResponseWriter, teamName, pipelineName strin
 		teamName,
 		pipelineName,
 		atc.PaginationQueryTo,
-		page.To,
+		*page.To,
 		atc.PaginationQueryLimit,
 		page.Limit,
 		atc.LinkRelNext,
@@ -104,7 +110,7 @@ func (s *Server) addPreviousLink(w http.ResponseWriter, teamName, pipelineName s
 		teamName,
 		pipelineName,
 		atc.PaginationQueryFrom,
-		page.From,
+		*page.From,
 		atc.PaginationQueryLimit,
 		page.Limit,
 		atc.LinkRelPrevious,

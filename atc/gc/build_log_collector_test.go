@@ -107,12 +107,10 @@ var _ = Describe("BuildLogCollector", func() {
 					)
 				})
 				BeforeEach(func() {
-					page1 := db.Page{From: 5, Limit: 5}
-					page2 := db.Page{From: 10, Limit: 5}
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == page1 {
-							return []db.Build{sbDrained(9, false), sbDrained(8, false), sbDrained(7, true), sbDrained(6, false), sbDrained(5, true)}, db.Pagination{Newer: &page2}, nil
-						} else if page == (db.Page{From: 10, Limit: 5}) {
+						if *page.From == 5 {
+							return []db.Build{sbDrained(9, false), sbDrained(8, false), sbDrained(7, true), sbDrained(6, false), sbDrained(5, true)}, db.Pagination{Newer: &db.Page{From: db.NewIntPtr(10), Limit: 5}}, nil
+						} else if *page.From == 10 {
 							return []db.Build{sbDrained(11, true), sbDrained(10, true)}, db.Pagination{}, nil
 						}
 						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
@@ -160,12 +158,10 @@ var _ = Describe("BuildLogCollector", func() {
 						buildLogRetainCalc,
 						false,
 					)
-					page1 := db.Page{From: 5, Limit: 5}
-					page2 := db.Page{From: 10, Limit: 5}
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == page1 {
-							return []db.Build{sbDrained(9, true), sbDrained(8, false), sbDrained(7, false), sbDrained(6, true), sbDrained(5, false)}, db.Pagination{Newer: &page2}, nil
-						} else if page == page2 {
+						if *page.From == 5 {
+							return []db.Build{sbDrained(9, true), sbDrained(8, false), sbDrained(7, false), sbDrained(6, true), sbDrained(5, false)}, db.Pagination{Newer: &db.Page{From: db.NewIntPtr(10), Limit: 5}}, nil
+						} else if *page.From == 10 {
 							return []db.Build{sbDrained(10, true)}, db.Pagination{}, nil
 						}
 						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
@@ -193,7 +189,7 @@ var _ = Describe("BuildLogCollector", func() {
 
 				BeforeEach(func() {
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{From: 5, Limit: 5}) {
+						if *page.From == 5 {
 							return []db.Build{sbDrained(8, false), sbDrained(7, true), sbDrained(6, false), sbDrained(5, false)}, db.Pagination{}, nil
 						}
 						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
@@ -222,7 +218,7 @@ var _ = Describe("BuildLogCollector", func() {
 
 				BeforeEach(func() {
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{From: 5, Limit: 5}) {
+						if *page.From == 5 {
 							return []db.Build{sbDrained(8, false), sbDrained(7, true), sbDrained(6, false), sbDrained(5, false)}, db.Pagination{}, nil
 						}
 						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
@@ -245,18 +241,16 @@ var _ = Describe("BuildLogCollector", func() {
 					fakeJob.ConfigReturns(atc.JobConfig{
 						BuildLogsToRetain: 3,
 					}, nil)
-					page1 := db.Page{From: 5, Limit: 5}
-					page2 := db.Page{From: 10, Limit: 5}
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == page1 {
+						if *page.From == 5 {
 							return []db.Build{
 								runningBuild(9),
 								runningBuild(8),
 								sb(7),
 								sb(6),
 								sb(5),
-							}, db.Pagination{Newer: &page2}, nil
-						} else if page == page2 {
+							}, db.Pagination{Newer: &db.Page{From: db.NewIntPtr(10), Limit: 5}}, nil
+						} else if *page.From == 10 {
 							return []db.Build{sb(10)}, db.Pagination{}, nil
 						} else {
 							Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
@@ -290,7 +284,7 @@ var _ = Describe("BuildLogCollector", func() {
 			Context("when no builds need to be reaped", func() {
 				BeforeEach(func() {
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{From: 5, Limit: 5}) {
+						if *page.From == 5 {
 							return []db.Build{runningBuild(5)}, db.Pagination{}, nil
 						} else {
 							Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
@@ -353,7 +347,7 @@ var _ = Describe("BuildLogCollector", func() {
 			Context("when only count is set", func() {
 				BeforeEach(func() {
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{From: 5, Limit: 5}) {
+						if *page.From == 5 {
 							return []db.Build{sbTime(6, time.Now().Add(-23*time.Hour)), sbTime(5, time.Now().Add(-49*time.Hour))}, db.Pagination{}, nil
 						}
 						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
@@ -384,7 +378,7 @@ var _ = Describe("BuildLogCollector", func() {
 			Context("when only date is set", func() {
 				BeforeEach(func() {
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{From: 5, Limit: 5}) {
+						if *page.From == 5 {
 							return []db.Build{sbTime(6, time.Now().Add(-23*time.Hour)), sbTime(5, time.Now().Add(-49*time.Hour))}, db.Pagination{}, nil
 						}
 						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
@@ -413,7 +407,7 @@ var _ = Describe("BuildLogCollector", func() {
 			Context("when count and date are set > 0", func() {
 				BeforeEach(func() {
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{From: 5, Limit: 5}) {
+						if *page.From == 5 {
 							return []db.Build{sbTime(6, time.Now().Add(-23*time.Hour)), sbTime(5, time.Now().Add(-49*time.Hour))}, db.Pagination{}, nil
 						}
 						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
@@ -444,7 +438,7 @@ var _ = Describe("BuildLogCollector", func() {
 			Context("when only date is set", func() {
 				BeforeEach(func() {
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == (db.Page{From: 5, Limit: 5}) {
+						if *page.From == 5 {
 							return []db.Build{sbTime(6, time.Now().Add(-23*time.Hour)), sbTime(5, time.Now().Add(-49*time.Hour))}, db.Pagination{}, nil
 						}
 						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
@@ -482,15 +476,15 @@ var _ = Describe("BuildLogCollector", func() {
 						},
 					}, nil)
 
-					page1 := db.Page{From: 5, Limit: 5}
-					page2 := db.Page{From: 10, Limit: 5}
-					page3 := db.Page{From: 15, Limit: 5}
+					page1 := db.Page{From: db.NewIntPtr(5), Limit: 5}
+					page2 := db.Page{From: db.NewIntPtr(10), Limit: 5}
+					page3 := db.Page{From: db.NewIntPtr(15), Limit: 5}
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == page1 {
+						if *page.From == *page1.From {
 							return []db.Build{sb(9), successBuild(8), sb(7), reapedBuild(6), reapedBuild(5)}, db.Pagination{Newer: &page2}, nil
-						} else if page == page2 {
+						} else if *page.From == *page2.From {
 							return []db.Build{sb(14), successBuild(13), sb(12), sb(11), sb(10)}, db.Pagination{Newer: &page3}, nil
-						} else if page == page3 {
+						} else if *page.From == *page3.From {
 							return []db.Build{sb(18), sb(17), sb(16), sb(15)}, db.Pagination{}, nil
 						}
 						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
@@ -534,15 +528,15 @@ var _ = Describe("BuildLogCollector", func() {
 						},
 					}, nil)
 
-					page1 := db.Page{From: 5, Limit: 5}
-					page2 := db.Page{From: 10, Limit: 5}
-					page3 := db.Page{From: 15, Limit: 5}
+					page1 := db.Page{From: db.NewIntPtr(5), Limit: 5}
+					page2 := db.Page{From: db.NewIntPtr(10), Limit: 5}
+					page3 := db.Page{From: db.NewIntPtr(15), Limit: 5}
 					fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-						if page == page1 {
+						if *page.From == *page1.From {
 							return []db.Build{sb(9), successBuild(8), sb(7), reapedBuild(6), reapedBuild(5)}, db.Pagination{Newer: &page2}, nil
-						} else if page == page2 {
+						} else if *page.From == *page2.From {
 							return []db.Build{sb(14), successBuild(13), successBuild(12), sb(11), successBuild(10)}, db.Pagination{Newer: &page3}, nil
-						} else if page == page3 {
+						} else if *page.From == *page3.From {
 							return []db.Build{successBuild(18), sb(17), sb(16), successBuild(15)}, db.Pagination{}, nil
 						}
 						Fail(fmt.Sprintf("Builds called with unexpected argument: page=%#v", page))
@@ -628,7 +622,7 @@ var _ = Describe("BuildLogCollector", func() {
 						buildLogRetainCalc = NewBuildLogRetentionCalculator(3, 3, 0, 0)
 
 						fakeJob.BuildsStub = func(page db.Page) ([]db.Build, db.Pagination, error) {
-							if page == (db.Page{From: 1, Limit: 5}) {
+							if *page.From == 1 {
 								return []db.Build{sb(4), sb(3), sb(2), sb(1)}, db.Pagination{}, nil
 							}
 
