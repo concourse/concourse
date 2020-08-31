@@ -981,6 +981,39 @@ jobs:
 							})
 						})
 					})
+
+					Context("there is a problem fetching the team", func() {
+						BeforeEach(func() {
+							request.Header.Set("Content-Type", "application/json")
+
+							payload, err := json.Marshal(pipelineConfig)
+							Expect(err).NotTo(HaveOccurred())
+
+							request.Body = gbytes.BufferWithBytes(payload)
+						})
+
+						Context("when the team is not found", func() {
+							BeforeEach(func() {
+								dbTeamFactory.FindTeamReturns(nil, false, nil)
+							})
+
+							It("returns 404", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+							})
+						})
+
+						Context("when finding the team fails", func() {
+							BeforeEach(func() {
+								dbTeamFactory.FindTeamReturns(nil, false, errors.New("failed"))
+							})
+
+							It("returns 500", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+							})
+						})
+					})
+
+
 				})
 
 				Context("when the Content-Type is unsupported", func() {
