@@ -2058,10 +2058,10 @@ var _ = Describe("Pipeline", func() {
 
 		Context("when providing boundaries", func() {
 
-			Context("only until", func() {
-				It("returns only those after until", func() {
+			Context("only to", func() {
+				It("returns only those before and including to", func() {
 					returnedBuilds, _, err := pipeline.BuildsWithTime(db.Page{
-						Until: int(builds[2].StartTime().Unix()),
+						To:    int(builds[2].StartTime().Unix()),
 						Limit: 50,
 					})
 
@@ -2070,10 +2070,10 @@ var _ = Describe("Pipeline", func() {
 				})
 			})
 
-			Context("only since", func() {
-				It("returns only those before since", func() {
+			Context("only from", func() {
+				It("returns only those after from", func() {
 					returnedBuilds, _, err := pipeline.BuildsWithTime(db.Page{
-						Since: int(builds[1].StartTime().Unix()),
+						From:  int(builds[1].StartTime().Unix()),
 						Limit: 50,
 					})
 
@@ -2082,11 +2082,11 @@ var _ = Describe("Pipeline", func() {
 				})
 			})
 
-			Context("since and until", func() {
+			Context("from and to", func() {
 				It("returns only elements in the range", func() {
 					returnedBuilds, _, err := pipeline.BuildsWithTime(db.Page{
-						Until: int(builds[2].StartTime().Unix()),
-						Since: int(builds[1].StartTime().Unix()),
+						From:  int(builds[1].StartTime().Unix()),
+						To:    int(builds[2].StartTime().Unix()),
 						Limit: 50,
 					})
 					Expect(err).NotTo(HaveOccurred())

@@ -5,8 +5,6 @@ const (
 	LinkRelPrevious = "previous"
 
 	PaginationQueryTimestamps = "timestamps"
-	PaginationQuerySince      = "since"
-	PaginationQueryUntil      = "until"
 	PaginationQueryFrom       = "from"
 	PaginationQueryTo         = "to"
 	PaginationQueryLimit      = "limit"

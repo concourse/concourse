@@ -85,7 +85,7 @@ var _ = Describe("Job", func() {
 					Name: "job-2",
 				},
 				{
-					Name: "non-triggerable-job",
+					Name:                 "non-triggerable-job",
 					DisableManualTrigger: true,
 				},
 			},
@@ -367,53 +367,53 @@ var _ = Describe("Job", func() {
 			})
 		})
 
-		Context("with no since/until", func() {
+		Context("with no from/to", func() {
 			It("returns the first page, with the given limit, and a next page", func() {
 				buildsPage, pagination, err := someJob.Builds(db.Page{Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildsPage).To(Equal([]db.Build{builds[9], builds[8]}))
-				Expect(pagination.Previous).To(BeNil())
-				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[8].ID(), Limit: 2}))
+				Expect(pagination.Newer).To(BeNil())
+				Expect(pagination.Older).To(Equal(&db.Page{To: builds[7].ID(), Limit: 2}))
 			})
 		})
 
-		Context("with a since that places it in the middle of the builds", func() {
+		Context("with a to that places it in the middle of the builds", func() {
 			It("returns the builds, with previous/next pages", func() {
-				buildsPage, pagination, err := someJob.Builds(db.Page{Since: builds[6].ID(), Limit: 2})
+				buildsPage, pagination, err := someJob.Builds(db.Page{To: builds[6].ID(), Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
-				Expect(buildsPage).To(Equal([]db.Build{builds[5], builds[4]}))
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: builds[5].ID(), Limit: 2}))
-				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[4].ID(), Limit: 2}))
+				Expect(buildsPage).To(Equal([]db.Build{builds[6], builds[5]}))
+				Expect(pagination.Newer).To(Equal(&db.Page{From: builds[7].ID(), Limit: 2}))
+				Expect(pagination.Older).To(Equal(&db.Page{To: builds[4].ID(), Limit: 2}))
 			})
 		})
 
-		Context("with a since that places it at the end of the builds", func() {
+		Context("with a to that places it at the end of the builds", func() {
 			It("returns the builds, with previous/next pages", func() {
-				buildsPage, pagination, err := someJob.Builds(db.Page{Since: builds[2].ID(), Limit: 2})
+				buildsPage, pagination, err := someJob.Builds(db.Page{To: builds[1].ID(), Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildsPage).To(Equal([]db.Build{builds[1], builds[0]}))
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: builds[1].ID(), Limit: 2}))
-				Expect(pagination.Next).To(BeNil())
+				Expect(pagination.Newer).To(Equal(&db.Page{From: builds[2].ID(), Limit: 2}))
+				Expect(pagination.Older).To(BeNil())
 			})
 		})
 
-		Context("with an until that places it in the middle of the builds", func() {
+		Context("with a from that places it in the middle of the builds", func() {
 			It("returns the builds, with previous/next pages", func() {
-				buildsPage, pagination, err := someJob.Builds(db.Page{Until: builds[6].ID(), Limit: 2})
+				buildsPage, pagination, err := someJob.Builds(db.Page{From: builds[6].ID(), Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
-				Expect(buildsPage).To(Equal([]db.Build{builds[8], builds[7]}))
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: builds[8].ID(), Limit: 2}))
-				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[7].ID(), Limit: 2}))
+				Expect(buildsPage).To(Equal([]db.Build{builds[7], builds[6]}))
+				Expect(pagination.Newer).To(Equal(&db.Page{From: builds[8].ID(), Limit: 2}))
+				Expect(pagination.Older).To(Equal(&db.Page{To: builds[5].ID(), Limit: 2}))
 			})
 		})
 
-		Context("with a until that places it at the beginning of the builds", func() {
+		Context("with a from that places it at the beginning of the builds", func() {
 			It("returns the builds, with previous/next pages", func() {
-				buildsPage, pagination, err := someJob.Builds(db.Page{Until: builds[7].ID(), Limit: 2})
+				buildsPage, pagination, err := someJob.Builds(db.Page{From: builds[8].ID(), Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildsPage).To(Equal([]db.Build{builds[9], builds[8]}))
-				Expect(pagination.Previous).To(BeNil())
-				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[8].ID(), Limit: 2}))
+				Expect(pagination.Newer).To(BeNil())
+				Expect(pagination.Older).To(Equal(&db.Page{To: builds[7].ID(), Limit: 2}))
 			})
 		})
 	})
@@ -485,10 +485,10 @@ var _ = Describe("Job", func() {
 		})
 
 		Context("when providing boundaries", func() {
-			Context("only until", func() {
-				It("returns only those after until", func() {
+			Context("only to", func() {
+				It("returns only those before to", func() {
 					returnedBuilds, _, err := job.BuildsWithTime(db.Page{
-						Until: int(builds[2].StartTime().Unix()),
+						To:    int(builds[2].StartTime().Unix()),
 						Limit: 50,
 					})
 
@@ -497,10 +497,10 @@ var _ = Describe("Job", func() {
 				})
 			})
 
-			Context("only since", func() {
-				It("returns only those before since", func() {
+			Context("only from", func() {
+				It("returns only those after from", func() {
 					returnedBuilds, _, err := job.BuildsWithTime(db.Page{
-						Since: int(builds[1].StartTime().Unix()),
+						From:  int(builds[1].StartTime().Unix()),
 						Limit: 50,
 					})
 
@@ -509,11 +509,11 @@ var _ = Describe("Job", func() {
 				})
 			})
 
-			Context("since and until", func() {
+			Context("from and to", func() {
 				It("returns only elements in the range", func() {
 					returnedBuilds, _, err := job.BuildsWithTime(db.Page{
-						Until: int(builds[2].StartTime().Unix()),
-						Since: int(builds[1].StartTime().Unix()),
+						From:  int(builds[1].StartTime().Unix()),
+						To:    int(builds[2].StartTime().Unix()),
 						Limit: 50,
 					})
 					Expect(err).NotTo(HaveOccurred())

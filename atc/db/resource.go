@@ -413,33 +413,7 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 	}
 
 	var rows *sql.Rows
-	if page.Until != 0 {
-		rows, err = tx.Query(fmt.Sprintf(`
-			SELECT sub.*
-				FROM (
-						%s
-					AND version @> $4
-					AND v.check_order > (SELECT check_order FROM resource_config_versions WHERE id = $2)
-				ORDER BY v.check_order ASC
-				LIMIT $3
-			) sub
-			ORDER BY sub.check_order DESC
-		`, query), r.id, page.Until, page.Limit, filterJSON)
-		if err != nil {
-			return nil, Pagination{}, false, err
-		}
-	} else if page.Since != 0 {
-		rows, err = tx.Query(fmt.Sprintf(`
-			%s
-				AND version @> $4
-				AND v.check_order < (SELECT check_order FROM resource_config_versions WHERE id = $2)
-			ORDER BY v.check_order DESC
-			LIMIT $3
-		`, query), r.id, page.Since, page.Limit, filterJSON)
-		if err != nil {
-			return nil, Pagination{}, false, err
-		}
-	} else if page.To != 0 {
+	if page.From != 0 {
 		rows, err = tx.Query(fmt.Sprintf(`
 			SELECT sub.*
 				FROM (
@@ -450,18 +424,18 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 				LIMIT $3
 			) sub
 			ORDER BY sub.check_order DESC
-		`, query), r.id, page.To, page.Limit, filterJSON)
+		`, query), r.id, page.From, page.Limit, filterJSON)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
-	} else if page.From != 0 {
+	} else if page.To != 0 {
 		rows, err = tx.Query(fmt.Sprintf(`
 			%s
 				AND version @> $4
 				AND v.check_order <= (SELECT check_order FROM resource_config_versions WHERE id = $2)
 			ORDER BY v.check_order DESC
 			LIMIT $3
-		`, query), r.id, page.From, page.Limit, filterJSON)
+		`, query), r.id, page.To, page.Limit, filterJSON)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
@@ -524,41 +498,48 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 		return nil, Pagination{}, true, nil
 	}
 
-	var minCheckOrder int
-	var maxCheckOrder int
+	newestRCVCheckOrder := checkOrderRVs[0]
+	oldestRCVCheckOrder := checkOrderRVs[len(checkOrderRVs)-1]
 
+	var pagination Pagination
+
+	var olderRCVId int
 	err = tx.QueryRow(`
-		SELECT COALESCE(MAX(v.check_order), 0) as maxCheckOrder,
-			COALESCE(MIN(v.check_order), 0) as minCheckOrder
+		SELECT v.id
 		FROM resource_config_versions v, resources r
-		WHERE r.id = $1 AND v.resource_config_scope_id = r.resource_config_scope_id
-	`, r.id).Scan(&maxCheckOrder, &minCheckOrder)
-	if err != nil {
+		WHERE v.check_order < $2 AND r.id = $1 AND v.resource_config_scope_id = r.resource_config_scope_id
+		ORDER BY v.check_order DESC
+		LIMIT 1
+	`, r.id, oldestRCVCheckOrder.CheckOrder).Scan(&olderRCVId)
+	if err != nil && err != sql.ErrNoRows {
 		return nil, Pagination{}, false, err
+	} else if err == nil {
+		pagination.Older = &Page{
+			To:    olderRCVId,
+			Limit: page.Limit,
+		}
 	}
 
-	firstRCVCheckOrder := checkOrderRVs[0]
-	lastRCVCheckOrder := checkOrderRVs[len(checkOrderRVs)-1]
+	var newerRCVId int
+	err = tx.QueryRow(`
+		SELECT v.id
+		FROM resource_config_versions v, resources r
+		WHERE v.check_order > $2 AND r.id = $1 AND v.resource_config_scope_id = r.resource_config_scope_id
+		ORDER BY v.check_order ASC
+		LIMIT 1
+	`, r.id, newestRCVCheckOrder.CheckOrder).Scan(&newerRCVId)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, Pagination{}, false, err
+	} else if err == nil {
+		pagination.Newer = &Page{
+			From:  newerRCVId,
+			Limit: page.Limit,
+		}
+	}
 
 	err = tx.Commit()
 	if err != nil {
 		return nil, Pagination{}, false, nil
-	}
-
-	var pagination Pagination
-
-	if firstRCVCheckOrder.CheckOrder < maxCheckOrder {
-		pagination.Previous = &Page{
-			Until: firstRCVCheckOrder.ResourceConfigVersionID,
-			Limit: page.Limit,
-		}
-	}
-
-	if lastRCVCheckOrder.CheckOrder > minCheckOrder {
-		pagination.Next = &Page{
-			Since: lastRCVCheckOrder.ResourceConfigVersionID,
-			Limit: page.Limit,
-		}
 	}
 
 	return rvs, pagination, true, nil

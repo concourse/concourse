@@ -229,8 +229,6 @@ var _ = Describe("Versions API", func() {
 
 						page, versionFilter := fakeResource.VersionsArgsForCall(0)
 						Expect(page).To(Equal(db.Page{
-							Since: 0,
-							Until: 0,
 							From:  0,
 							To:    0,
 							Limit: 100,
@@ -241,7 +239,7 @@ var _ = Describe("Versions API", func() {
 
 				Context("when all the params are passed", func() {
 					BeforeEach(func() {
-						queryParams = "?since=2&until=3&from=5&to=7&limit=8&filter=ref:foo&filter=some-ref:blah"
+						queryParams = "?from=5&to=7&limit=8&filter=ref:foo&filter=some-ref:blah"
 					})
 
 					It("passes them through", func() {
@@ -249,8 +247,6 @@ var _ = Describe("Versions API", func() {
 
 						page, versionFilter := fakeResource.VersionsArgsForCall(0)
 						Expect(page).To(Equal(db.Page{
-							Since: 2,
-							Until: 3,
 							From:  5,
 							To:    7,
 							Limit: 8,
@@ -406,15 +402,15 @@ var _ = Describe("Versions API", func() {
 						BeforeEach(func() {
 							fakePipeline.NameReturns("some-pipeline")
 							fakeResource.VersionsReturns(returnedVersions, db.Pagination{
-								Previous: &db.Page{Until: 4, Limit: 2},
-								Next:     &db.Page{Since: 2, Limit: 2},
+								Newer: &db.Page{From: 4, Limit: 2},
+								Older: &db.Page{To: 2, Limit: 2},
 							}, true, nil)
 						})
 
 						It("returns Link headers per rfc5988", func() {
 							Expect(response.Header["Link"]).To(ConsistOf([]string{
-								fmt.Sprintf(`<%s/api/v1/teams/a-team/pipelines/some-pipeline/resources/some-resource/versions?until=4&limit=2>; rel="previous"`, externalURL),
-								fmt.Sprintf(`<%s/api/v1/teams/a-team/pipelines/some-pipeline/resources/some-resource/versions?since=2&limit=2>; rel="next"`, externalURL),
+								fmt.Sprintf(`<%s/api/v1/teams/a-team/pipelines/some-pipeline/resources/some-resource/versions?from=4&limit=2>; rel="previous"`, externalURL),
+								fmt.Sprintf(`<%s/api/v1/teams/a-team/pipelines/some-pipeline/resources/some-resource/versions?to=2&limit=2>; rel="next"`, externalURL),
 							}))
 						})
 					})

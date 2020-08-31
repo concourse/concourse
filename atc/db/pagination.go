@@ -1,9 +1,6 @@
 package db
 
 type Page struct {
-	Since int // exclusive
-	Until int // exclusive
-
 	From int // inclusive
 	To   int // inclusive
 
@@ -12,6 +9,7 @@ type Page struct {
 }
 
 type Pagination struct {
-	Previous *Page
-	Next     *Page
+	Newer *Page
+	Older *Page
 }
+

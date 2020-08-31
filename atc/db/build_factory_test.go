@@ -527,11 +527,23 @@ var _ = Describe("BuildFactory", func() {
 			Expect(started).To(BeTrue())
 		})
 
-		Describe("with a future date as Page.Since", func() {
+		It("returns builds started in the given timespan", func() {
+			page := db.Page{
+				Limit:   10,
+				From:    int(time.Now().Unix() - 10000),
+				To:      int(time.Now().Unix() + 10),
+				UseDate: true,
+			}
+			builds, _, err := buildFactory.AllBuilds(page)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(builds)).To(Equal(2))
+		})
+
+		Describe("with a future date as Page.From", func() {
 			It("should return nothing", func() {
 				page := db.Page{
 					Limit:   10,
-					Since:   int(time.Now().Unix() + 10),
+					From:    int(time.Now().Unix() + 10),
 					UseDate: true,
 				}
 				builds, _, err := buildFactory.AllBuilds(page)
@@ -540,11 +552,11 @@ var _ = Describe("BuildFactory", func() {
 			})
 		})
 
-		Describe("with a very old date as Page.Until", func() {
+		Describe("with a very old date as Page.To", func() {
 			It("should return nothing", func() {
 				page := db.Page{
 					Limit:   10,
-					Until:   int(time.Now().Unix() - 10000),
+					To:      int(time.Now().Unix() - 10000),
 					UseDate: true,
 				}
 				builds, _, err := buildFactory.AllBuilds(page)

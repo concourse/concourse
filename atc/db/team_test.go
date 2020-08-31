@@ -1081,8 +1081,8 @@ var _ = Describe("Team", func() {
 				builds, pagination, err := team.PrivateAndPublicBuilds(db.Page{Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(pagination.Next).To(BeNil())
-				Expect(pagination.Previous).To(BeNil())
+				Expect(pagination.Older).To(BeNil())
+				Expect(pagination.Newer).To(BeNil())
 				Expect(builds).To(BeEmpty())
 			})
 		})
@@ -1130,10 +1130,10 @@ var _ = Describe("Team", func() {
 				Expect(builds[0]).To(Equal(allBuilds[4]))
 				Expect(builds[1]).To(Equal(allBuilds[3]))
 
-				Expect(pagination.Previous).To(BeNil())
-				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[3].ID(), Limit: 2}))
+				Expect(pagination.Newer).To(BeNil())
+				Expect(pagination.Older).To(Equal(&db.Page{To: allBuilds[2].ID(), Limit: 2}))
 
-				builds, pagination, err = team.PrivateAndPublicBuilds(*pagination.Next)
+				builds, pagination, err = team.PrivateAndPublicBuilds(*pagination.Older)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(len(builds)).To(Equal(2))
@@ -1141,26 +1141,26 @@ var _ = Describe("Team", func() {
 				Expect(builds[0]).To(Equal(allBuilds[2]))
 				Expect(builds[1]).To(Equal(allBuilds[1]))
 
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].ID(), Limit: 2}))
-				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].ID(), Limit: 2}))
+				Expect(pagination.Newer).To(Equal(&db.Page{From: allBuilds[3].ID(), Limit: 2}))
+				Expect(pagination.Older).To(Equal(&db.Page{To: allBuilds[0].ID(), Limit: 2}))
 
-				builds, pagination, err = team.PrivateAndPublicBuilds(*pagination.Next)
+				builds, pagination, err = team.PrivateAndPublicBuilds(*pagination.Older)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(len(builds)).To(Equal(1))
 				Expect(builds[0]).To(Equal(allBuilds[0]))
 
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[0].ID(), Limit: 2}))
-				Expect(pagination.Next).To(BeNil())
+				Expect(pagination.Newer).To(Equal(&db.Page{From: allBuilds[1].ID(), Limit: 2}))
+				Expect(pagination.Older).To(BeNil())
 
-				builds, pagination, err = team.PrivateAndPublicBuilds(*pagination.Previous)
+				builds, pagination, err = team.PrivateAndPublicBuilds(*pagination.Newer)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(len(builds)).To(Equal(2))
 				Expect(builds[0]).To(Equal(allBuilds[2]))
 				Expect(builds[1]).To(Equal(allBuilds[1]))
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: allBuilds[2].ID(), Limit: 2}))
-				Expect(pagination.Next).To(Equal(&db.Page{Since: allBuilds[1].ID(), Limit: 2}))
+				Expect(pagination.Newer).To(Equal(&db.Page{From: allBuilds[3].ID(), Limit: 2}))
+				Expect(pagination.Older).To(Equal(&db.Page{To: allBuilds[0].ID(), Limit: 2}))
 			})
 
 			Context("when there are builds that belong to different teams", func() {
@@ -1302,10 +1302,10 @@ var _ = Describe("Team", func() {
 		})
 
 		Context("When providing boundaries", func() {
-			Context("only until", func() {
-				It("returns only those before until", func() {
+			Context("only to", func() {
+				It("returns only those before to", func() {
 					returnedBuilds, _, err := team.BuildsWithTime(db.Page{
-						Until: int(builds[2].StartTime().Unix()),
+						To:    int(builds[2].StartTime().Unix()),
 						Limit: 50,
 					})
 
@@ -1314,10 +1314,10 @@ var _ = Describe("Team", func() {
 				})
 			})
 
-			Context("only since", func() {
-				It("returns only those after since", func() {
+			Context("only from", func() {
+				It("returns only those after from", func() {
 					returnedBuilds, _, err := team.BuildsWithTime(db.Page{
-						Since: int(builds[1].StartTime().Unix()),
+						From:  int(builds[1].StartTime().Unix()),
 						Limit: 50,
 					})
 
@@ -1326,11 +1326,11 @@ var _ = Describe("Team", func() {
 				})
 			})
 
-			Context("since and until", func() {
+			Context("from and to", func() {
 				It("returns only elements in the range", func() {
 					returnedBuilds, _, err := team.BuildsWithTime(db.Page{
-						Until: int(builds[2].StartTime().Unix()),
-						Since: int(builds[1].StartTime().Unix()),
+						From:  int(builds[1].StartTime().Unix()),
+						To:    int(builds[2].StartTime().Unix()),
 						Limit: 50,
 					})
 					Expect(err).NotTo(HaveOccurred())
@@ -1395,33 +1395,33 @@ var _ = Describe("Team", func() {
 		})
 
 		Context("when limiting the range of build ids", func() {
-			Context("specifying only until", func() {
-				It("returns all builds after the specified id", func() {
-					builds, _, err := team.Builds(db.Page{Limit: 50, Until: secondBuild.ID()})
+			Context("specifying only from", func() {
+				It("returns all builds after and including the specified id", func() {
+					builds, _, err := team.Builds(db.Page{Limit: 50, From: secondBuild.ID()})
 					Expect(err).NotTo(HaveOccurred())
-					Expect(builds).To(ConsistOf(thirdBuild))
+					Expect(builds).To(ConsistOf(secondBuild, thirdBuild))
 				})
 			})
 
-			Context("specifying only since", func() {
-				It("returns all builds before the specified id", func() {
-					builds, _, err := team.Builds(db.Page{Limit: 50, Since: secondBuild.ID()})
+			Context("specifying only to", func() {
+				It("returns all builds before and including the specified id", func() {
+					builds, _, err := team.Builds(db.Page{Limit: 50, To: secondBuild.ID()})
 					Expect(err).NotTo(HaveOccurred())
-					Expect(builds).To(ConsistOf(oneOffBuild, build))
+					Expect(builds).To(ConsistOf(oneOffBuild, build, secondBuild))
 				})
 			})
 
-			Context("specifying both since and until", func() {
+			Context("specifying both from and to", func() {
 				It("returns all builds within range of ids", func() {
-					builds, _, err := team.Builds(db.Page{Limit: 50, Since: thirdBuild.ID(), Until: build.ID()})
+					builds, _, err := team.Builds(db.Page{Limit: 50, From: build.ID(), To: thirdBuild.ID()})
 					Expect(err).NotTo(HaveOccurred())
-					Expect(builds).To(ConsistOf(secondBuild))
+					Expect(builds).To(ConsistOf(build, secondBuild, thirdBuild))
 				})
 			})
 
-			Context("specifying since greater than the biggest ID in the database", func() {
+			Context("specifying from greater than the biggest ID in the database", func() {
 				It("returns no rows error", func() {
-					builds, _, err := team.Builds(db.Page{Limit: 50, Until: thirdBuild.ID() + 1})
+					builds, _, err := team.Builds(db.Page{Limit: 50, From: thirdBuild.ID() + 1})
 					Expect(err).ToNot(HaveOccurred())
 					Expect(builds).To(BeEmpty())
 				})
@@ -1429,7 +1429,7 @@ var _ = Describe("Team", func() {
 
 			Context("specifying invalid boundaries", func() {
 				It("should fail", func() {
-					_, _, err := team.Builds(db.Page{Limit: 50, Since: secondBuild.ID(), Until: thirdBuild.ID()})
+					_, _, err := team.Builds(db.Page{Limit: 50, From: thirdBuild.ID(), To: secondBuild.ID()})
 					Expect(err).To(HaveOccurred())
 				})
 			})

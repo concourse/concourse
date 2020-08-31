@@ -1237,8 +1237,8 @@ var _ = Describe("Jobs API", func() {
 
 						page := fakeJob.BuildsArgsForCall(0)
 						Expect(page).To(Equal(db.Page{
-							Since: 0,
-							Until: 0,
+							From:  0,
+							To:    0,
 							Limit: 100,
 						}))
 					})
@@ -1246,7 +1246,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when all the params are passed", func() {
 					BeforeEach(func() {
-						queryParams = "?since=2&until=3&limit=8"
+						queryParams = "?from=2&to=3&limit=8"
 					})
 
 					It("passes them through", func() {
@@ -1254,8 +1254,8 @@ var _ = Describe("Jobs API", func() {
 
 						page := fakeJob.BuildsArgsForCall(0)
 						Expect(page).To(Equal(db.Page{
-							Since: 2,
-							Until: 3,
+							From:  2,
+							To:    3,
 							Limit: 8,
 						}))
 					})
@@ -1364,15 +1364,15 @@ var _ = Describe("Jobs API", func() {
 					Context("when next/previous pages are available", func() {
 						BeforeEach(func() {
 							fakeJob.BuildsReturns(returnedBuilds, db.Pagination{
-								Previous: &db.Page{Until: 4, Limit: 2},
-								Next:     &db.Page{Since: 2, Limit: 2},
+								Newer: &db.Page{From: 4, Limit: 2},
+								Older: &db.Page{To: 2, Limit: 2},
 							}, nil)
 						})
 
 						It("returns Link headers per rfc5988", func() {
 							Expect(response.Header["Link"]).To(ConsistOf([]string{
-								fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?until=4&limit=2>; rel="previous"`, externalURL),
-								fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?since=2&limit=2>; rel="next"`, externalURL),
+								fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?from=4&limit=2>; rel="previous"`, externalURL),
+								fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?to=2&limit=2>; rel="next"`, externalURL),
 							}))
 						})
 					})

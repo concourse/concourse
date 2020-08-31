@@ -24,18 +24,18 @@ type BuildFactory interface {
 }
 
 type buildFactory struct {
-	conn                     Conn
-	lockFactory              lock.LockFactory
-	oneOffGracePeriod        time.Duration
-	failedGracePeriod        time.Duration
+	conn              Conn
+	lockFactory       lock.LockFactory
+	oneOffGracePeriod time.Duration
+	failedGracePeriod time.Duration
 }
 
 func NewBuildFactory(conn Conn, lockFactory lock.LockFactory, oneOffGracePeriod time.Duration, failedGracePeriod time.Duration) BuildFactory {
 	return &buildFactory{
-		conn:                     conn,
-		lockFactory:              lockFactory,
-		oneOffGracePeriod:        oneOffGracePeriod,
-		failedGracePeriod:        failedGracePeriod,
+		conn:              conn,
+		lockFactory:       lockFactory,
+		oneOffGracePeriod: oneOffGracePeriod,
+		failedGracePeriod: failedGracePeriod,
 	}
 }
 
@@ -166,9 +166,9 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 
 	defer Rollback(tx)
 
-	if page.Since != 0 {
-		sinceRow, err := buildsQuery.
-			Where(sq.Expr("b.start_time >= to_timestamp(" + strconv.Itoa(page.Since) + ")")).
+	if page.From != 0 {
+		fromRow, err := buildsQuery.
+			Where(sq.Expr("b.start_time >= to_timestamp(" + strconv.Itoa(page.From) + ")")).
 			OrderBy("COALESCE(b.rerun_of, b.id) ASC, b.id ASC").
 			Limit(1).
 			RunWith(tx).
@@ -183,33 +183,27 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 			return nil, Pagination{}, err
 		}
 
-		defer sinceRow.Close()
+		defer fromRow.Close()
 
 		found := false
-		for sinceRow.Next() {
+		for fromRow.Next() {
 			found = true
 			build := newEmptyBuild(conn, lockFactory)
-			err = scanBuild(build, sinceRow, conn.EncryptionStrategy())
+			err = scanBuild(build, fromRow, conn.EncryptionStrategy())
 			if err != nil {
 				return nil, Pagination{}, err
 			}
 
-			// Subtracting one in order to make the range inclusive
-			// of the current build.ID() since the getBuildsWithPagination
-			// is exclusive.
-			//
-			// Setting `Until` instead of `Since` to adapt to the point
-			// of view of pagination.
-			newPage.Until = build.ID() - 1
+			newPage.From = build.ID()
 		}
 		if !found {
 			return []Build{}, Pagination{}, nil
 		}
 	}
 
-	if page.Until != 0 {
+	if page.To != 0 {
 		untilRow, err := buildsQuery.
-			Where(sq.Expr("b.start_time <= to_timestamp(" + strconv.Itoa(page.Until) + ")")).
+			Where(sq.Expr("b.start_time <= to_timestamp(" + strconv.Itoa(page.To) + ")")).
 			OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC").
 			Limit(1).
 			RunWith(tx).
@@ -232,13 +226,7 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 				return nil, Pagination{}, err
 			}
 
-			// Adding one in order to make the range inclusive
-			// of the current build.ID() Since the getBuildsWithPagination
-			// is exclusive.
-			//
-			// Setting `Since` instead of `Until` to adapt to the point
-			// of view of pagination.
-			newPage.Since = build.ID() + 1
+			newPage.To = build.ID()
 		}
 		if !found {
 			return []Build{}, Pagination{}, nil
@@ -260,6 +248,8 @@ func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page P
 		reverse bool
 	)
 
+	origBuildsQuery := buildsQuery
+
 	tx, err := conn.Begin()
 	if err != nil {
 		return nil, Pagination{}, err
@@ -269,27 +259,27 @@ func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page P
 
 	buildsQuery = buildsQuery.Limit(uint64(page.Limit))
 
-	if page.Since == 0 && page.Until == 0 { // none
+	if page.From == 0 && page.To == 0 { // none
 		buildsQuery = buildsQuery.
 			OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC")
-	} else if page.Until != 0 && page.Since == 0 { // only until
+	} else if page.From != 0 && page.To == 0 { // only from
 		buildsQuery = buildsQuery.
-			Where(sq.Gt{"b.id": uint64(page.Until)}).
+			Where(sq.GtOrEq{"b.id": uint64(page.From)}).
 			OrderBy("COALESCE(b.rerun_of, b.id) ASC, b.id ASC")
 		reverse = true
-	} else if page.Since != 0 && page.Until == 0 { // only since
+	} else if page.From == 0 && page.To != 0 { // only to
 		buildsQuery = buildsQuery.
-			Where(sq.Lt{"b.id": page.Since}).
+			Where(sq.LtOrEq{"b.id": page.To}).
 			OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC")
-	} else if page.Until != 0 && page.Since != 0 { // both
-		if page.Until > page.Since {
+	} else if page.From != 0 && page.To != 0 { // both
+		if page.From > page.To {
 			return nil, Pagination{}, fmt.Errorf("Invalid range boundaries")
 		}
 
 		buildsQuery = buildsQuery.Where(
 			sq.And{
-				sq.Gt{"b.id": uint64(page.Until)},
-				sq.Lt{"b.id": uint64(page.Since)},
+				sq.GtOrEq{"b.id": uint64(page.From)},
+				sq.LtOrEq{"b.id": uint64(page.To)},
 			}).
 			OrderBy("COALESCE(b.rerun_of, b.id) ASC, b.id ASC")
 	}
@@ -322,36 +312,50 @@ func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page P
 		return builds, Pagination{}, nil
 	}
 
-	var minID, maxID int
-	err = minMaxIdQuery.
+	newestBuild := builds[0]
+	oldestBuild := builds[len(builds)-1]
+
+	var pagination Pagination
+
+	row := origBuildsQuery.
+		Where(sq.Lt{"b.id": oldestBuild.ID()}).
+		OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC").
+		Limit(1).
 		RunWith(tx).
-		QueryRow().
-		Scan(&maxID, &minID)
-	if err != nil {
-		return nil, Pagination{}, err
+		QueryRow()
+
+	build := newEmptyBuild(conn, lockFactory)
+	err = scanBuild(build, row, conn.EncryptionStrategy())
+	if err != nil && err != sql.ErrNoRows {
+		return builds, Pagination{}, err
+	} else if err == nil {
+		pagination.Older = &Page{
+			To:    build.id,
+			Limit: page.Limit,
+		}
+	}
+
+	row = origBuildsQuery.
+		Where(sq.Gt{"b.id": newestBuild.ID()}).
+		OrderBy("COALESCE(b.rerun_of, b.id) ASC, b.id ASC").
+		Limit(1).
+		RunWith(tx).
+		QueryRow()
+
+	build = newEmptyBuild(conn, lockFactory)
+	err = scanBuild(build, row, conn.EncryptionStrategy())
+	if err != nil && err != sql.ErrNoRows {
+		return builds, Pagination{}, err
+	} else if err == nil {
+		pagination.Newer = &Page{
+			From:  build.id,
+			Limit: page.Limit,
+		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
 		return nil, Pagination{}, err
-	}
-
-	first := builds[0]
-	last := builds[len(builds)-1]
-
-	var pagination Pagination
-	if first.ID() < maxID {
-		pagination.Previous = &Page{
-			Until: first.ID(),
-			Limit: page.Limit,
-		}
-	}
-
-	if last.ID() > minID {
-		pagination.Next = &Page{
-			Since: last.ID(),
-			Limit: page.Limit,
-		}
 	}
 
 	return builds, pagination, nil
