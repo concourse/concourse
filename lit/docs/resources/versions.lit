@@ -34,7 +34,7 @@ behavior}{https://github.com/concourse/git-resource#check-check-for-new-commits}
 \section{
   \title{Version Pinning}{version-pinning}
 
-  A regular job workflow is to use the latest version of a resource in order to
+  A common job workflow is to use the latest version of a resource in order to
   trigger new builds. This works most of the time until you run into a
   situation where you need to run the job using an old version of a resource.
   Concourse provides a solution to this, which is called resource pinning.
