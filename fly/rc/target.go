@@ -539,15 +539,27 @@ func loadCACertPool(caCert string) (cert *x509.CertPool, err error) {
 
 func loadClientCertificate(clientCertificateLocation string, clientKeyLocation string) (cert []tls.Certificate, err error) {
 	if clientCertificateLocation == "" {
-		return []tls.Certificate{}, nil
-	} else {
-		clientCertData, err := tls.LoadX509KeyPair(clientCertificateLocation, clientKeyLocation)
-		if err != nil {
+		if clientKeyLocation != "" {
+			err = errors.New("A client key may not be declared without defining a client certificate")
+
 			return []tls.Certificate{}, err
 		}
 
-		cert = []tls.Certificate{clientCertData}
+		return []tls.Certificate{}, nil
 	}
+
+	if clientCertificateLocation != "" && clientKeyLocation == "" {
+		err = errors.New("A client certificate may not be declared without defining a client key")
+
+		return []tls.Certificate{}, err
+	}
+
+	clientCertData, err := tls.LoadX509KeyPair(clientCertificateLocation, clientKeyLocation)
+	if err != nil {
+		return []tls.Certificate{}, err
+	}
+
+	cert = []tls.Certificate{clientCertData}
 
 	return cert, nil
 }
