@@ -123,10 +123,10 @@ stickyHeaderConfig =
 type Effect
     = FetchJob Concourse.JobIdentifier
     | FetchJobs Concourse.PipelineIdentifier
-    | FetchJobBuilds Concourse.JobIdentifier (Maybe Page)
+    | FetchJobBuilds Concourse.JobIdentifier Page
     | FetchResource Concourse.ResourceIdentifier
     | FetchCheck Int
-    | FetchVersionedResources Concourse.ResourceIdentifier (Maybe Page)
+    | FetchVersionedResources Concourse.ResourceIdentifier Page
     | FetchResources Concourse.PipelineIdentifier
     | FetchBuildResources Concourse.BuildId
     | FetchPipeline Concourse.PipelineIdentifier
@@ -225,7 +225,7 @@ runEffect effect key csrfToken =
         FetchJobBuilds id page ->
             Api.paginatedGet
                 (Endpoints.JobBuildsList |> Endpoints.Job id)
-                page
+                (Just page)
                 Concourse.decodeBuild
                 |> Api.request
                 |> Task.attempt JobBuildsFetched
@@ -242,13 +242,13 @@ runEffect effect key csrfToken =
                 |> Api.request
                 |> Task.attempt Checked
 
-        FetchVersionedResources id paging ->
+        FetchVersionedResources id page ->
             Api.paginatedGet
                 (Endpoints.ResourceVersionsList |> Endpoints.Resource id)
-                paging
+                (Just page)
                 Concourse.decodeVersionedResource
                 |> Api.request
-                |> Task.map (\b -> ( paging, b ))
+                |> Task.map (\b -> ( Just page, b ))
                 |> Task.attempt VersionedResourcesFetched
 
         FetchResources id ->

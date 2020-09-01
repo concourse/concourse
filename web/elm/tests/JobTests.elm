@@ -739,7 +739,7 @@ all =
             , defineHoverBehaviour <|
                 let
                     urlPath =
-                        "/teams/team/pipelines/pipeline/jobs/job?since=1&limit=1"
+                        "/teams/team/pipelines/pipeline/jobs/job?from=1&limit=1"
                 in
                 { name = "left pagination chevron with previous page"
                 , setup =
@@ -764,7 +764,7 @@ all =
                             ]
 
                         prevPage =
-                            { direction = Since 1
+                            { direction = From 1
                             , limit = 1
                             }
                     in
@@ -773,8 +773,7 @@ all =
                             (JobBuildsFetched <|
                                 Ok
                                     { pagination =
-                                        { previousPage =
-                                            Just prevPage
+                                        { previousPage = Just prevPage
                                         , nextPage = Nothing
                                         }
                                     , content = builds
@@ -854,25 +853,24 @@ all =
                 ]
             , test "JobBuildsFetched" <|
                 \_ ->
-                    let
-                        bwr =
-                            defaultModel.buildsWithResources
-                    in
                     Expect.equal
                         { defaultModel
                             | currentPage =
-                                Just
-                                    { direction = Concourse.Pagination.Since 124
-                                    , limit = 1
-                                    }
+                                { direction = Concourse.Pagination.To 123
+                                , limit = 1
+                                }
                             , buildsWithResources =
-                                { bwr
-                                    | content =
+                                RemoteData.Success
+                                    { content =
                                         [ { build = someBuild
                                           , resources = Nothing
                                           }
                                         ]
-                                }
+                                    , pagination =
+                                        { previousPage = Nothing
+                                        , nextPage = Nothing
+                                        }
+                                    }
                         }
                     <|
                         Tuple.first <|
@@ -1006,7 +1004,7 @@ all =
                         )
                     >> Tuple.second
                     >> Expect.all
-                        [ Common.contains (Effects.FetchJobBuilds jobInfo Nothing)
+                        [ Common.contains (Effects.FetchJobBuilds jobInfo { direction = ToMostRecent, limit = 100 })
                         , Common.contains (Effects.FetchJob jobInfo)
                         ]
             , test "on one-second timer, updates build timestamps" <|

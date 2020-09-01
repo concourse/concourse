@@ -34,34 +34,28 @@ type alias Page =
 
 
 type Direction
-    = Since Int
-    | Until Int
-    | From Int
+    = From Int
     | To Int
+    | ToMostRecent
 
 
-directionEqual : Direction -> Direction -> Bool
-directionEqual d1 d2 =
-    case ( d1, d2 ) of
-        ( Since p1, Since p2 ) ->
-            p1 == p2
 
-        ( Until p1, Until p2 ) ->
-            p1 == p2
-
-        ( From p1, From p2 ) ->
-            p1 == p2
-
-        ( To p1, To p2 ) ->
-            p1 == p2
-
-        ( _, _ ) ->
-            False
+--directionEqual : Direction -> Direction -> Bool
+--directionEqual d1 d2 =
+--    case ( d1, d2 ) of
+--        ( From p1, From p2 ) ->
+--            p1 == p2
+--
+--        ( To p1, To p2 ) ->
+--            p1 == p2
+--
+--        ( _, _ ) ->
+--            False
 
 
 equal : Page -> Page -> Bool
-equal one two =
-    directionEqual one.direction two.direction
+equal =
+    (==)
 
 
 chevronContainer : List (Html.Attribute msg)

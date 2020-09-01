@@ -6,7 +6,7 @@ import Assets
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
-import Concourse.Pagination exposing (Direction(..))
+import Concourse.Pagination exposing (Direction(..), Page)
 import DashboardTests
     exposing
         ( almostBlack
@@ -240,7 +240,10 @@ all =
                     |> Tuple.second
                     |> Expect.all
                         [ Common.contains (Effects.FetchResource Data.resourceId)
-                        , Common.contains (Effects.FetchVersionedResources Data.resourceId Nothing)
+                        , Common.contains
+                            (Effects.FetchVersionedResources Data.resourceId
+                                Resource.startingPage
+                            )
                         ]
         , test "autorefresh respects expanded state" <|
             \_ ->
@@ -510,7 +513,7 @@ all =
                     , defineHoverBehaviour <|
                         let
                             urlPath =
-                                "/teams/team/pipelines/pipeline/resources/resource?since=1&limit=1"
+                                "/teams/team/pipelines/pipeline/resources/resource?from=100&limit=1"
                         in
                         { name = "left pagination chevron with previous page"
                         , setup =
@@ -3062,7 +3065,7 @@ all =
                             |> Tuple.second
                             |> Expect.equal
                                 [ Effects.FetchResource Data.resourceId
-                                , Effects.FetchVersionedResources Data.resourceId Nothing
+                                , Effects.FetchVersionedResources Data.resourceId Resource.startingPage
                                 ]
                 , test "when check resolves unsuccessfully, status is error" <|
                     \_ ->
@@ -3543,12 +3546,12 @@ givenVersionsWithPagination =
                   , pagination =
                         { previousPage =
                             Just
-                                { direction = Since 1
+                                { direction = From 100
                                 , limit = 1
                                 }
                         , nextPage =
                             Just
-                                { direction = Since 100
+                                { direction = To 1
                                 , limit = 1
                                 }
                         }
