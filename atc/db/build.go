@@ -660,11 +660,30 @@ func (b *build) Delete() (bool, error) {
 // Setting status as aborted will also make Start() return false in case where
 // build was aborted before it was started.
 func (b *build) MarkAsAborted() error {
-	_, err := psql.Update("builds").
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	_, err = psql.Update("builds").
 		Set("aborted", true).
 		Where(sq.Eq{"id": b.id}).
-		RunWith(b.conn).
+		RunWith(tx).
 		Exec()
+	if err != nil {
+		return err
+	}
+
+	if b.status == BuildStatusPending {
+		err = requestSchedule(tx, b.jobID)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return err
 	}
