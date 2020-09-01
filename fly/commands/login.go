@@ -150,34 +150,12 @@ func (command *LoginCommand) Execute(args []string) error {
 
 	fmt.Println("")
 
-	verifyTarget, err := rc.NewAuthenticatedTarget("verify",
-		client.URL(),
-		command.TeamName,
-		command.Insecure,
-		&rc.TargetToken{
-			Type:  tokenType,
-			Value: tokenValue,
-		},
-		target.CACert(),
-		false)
+	err = command.verifyTeamExists(client.URL(), rc.TargetToken{
+		Type:  tokenType,
+		Value: tokenValue,
+	}, target.CACert())
 	if err != nil {
 		return err
-	}
-
-	userInfo, err := verifyTarget.Client().UserInfo()
-	if err != nil {
-		return err
-	}
-
-	if !userInfo.IsAdmin {
-		if userInfo.Teams != nil {
-			_, ok := userInfo.Teams[command.TeamName]
-			if !ok {
-				return errors.New("you are not a member of '" + command.TeamName + "' or the team does not exist")
-			}
-		} else {
-			return errors.New("unable to verify role on team")
-		}
 	}
 
 	return command.saveTarget(
@@ -525,4 +503,50 @@ func (command *LoginCommand) legacyAuth(target rc.Target, browserOnly bool, isRa
 	}
 
 	return "", "", nil
+}
+
+func (command *LoginCommand) verifyTeamExists(clientUrl string, token rc.TargetToken, caCert string) error {
+	verifyTarget, err := rc.NewAuthenticatedTarget("verify",
+		clientUrl,
+		command.TeamName,
+		command.Insecure,
+		&token,
+		caCert,
+		false)
+	if err != nil {
+		return err
+	}
+
+	userInfo, err := verifyTarget.Client().UserInfo()
+	if err != nil {
+		return err
+	}
+
+	if !userInfo.IsAdmin {
+		if userInfo.Teams != nil {
+			_, ok := userInfo.Teams[command.TeamName]
+			if !ok {
+				return errors.New("you are not a member of '" + command.TeamName + "' or the team does not exist")
+			}
+		} else {
+			return errors.New("unable to verify role on team")
+		}
+	} else {
+		teams, err := verifyTarget.Client().ListTeams()
+		if err != nil {
+			return err
+		}
+		var found bool
+		for _, team := range teams {
+			if team.Name == command.TeamName {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return errors.New("team '" + command.TeamName + "' does not exist")
+		}
+	}
+
+	return nil
 }

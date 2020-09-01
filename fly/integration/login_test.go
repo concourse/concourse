@@ -709,7 +709,7 @@ var _ = Describe("login Command", func() {
 		})
 
 		Context("when logging in as an admin user", func() {
-			It("can login to any team", func() {
+			It("can login to any team that exists", func() {
 				loginATCServer.AppendHandlers(
 					infoHandler(),
 					tokenHandler(),
@@ -718,6 +718,21 @@ var _ = Describe("login Command", func() {
 						ghttp.RespondWithJSONEncoded(200, map[string]interface{}{
 							"user_name": "admin_user",
 							"is_admin":  true,
+						}),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams"),
+						ghttp.RespondWithJSONEncoded(200, []atc.Team{
+							{
+								ID:   1,
+								Name: "any-team",
+								Auth: atc.TeamAuth{
+									"owner": map[string][]string{
+										"groups": []string{},
+										"users":  []string{},
+									},
+								},
+							},
 						}),
 					),
 				)
@@ -731,6 +746,44 @@ var _ = Describe("login Command", func() {
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
+			})
+			It("fails to login if the team does not exist", func() {
+				loginATCServer.AppendHandlers(
+					infoHandler(),
+					tokenHandler(),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/user"),
+						ghttp.RespondWithJSONEncoded(200, map[string]interface{}{
+							"user_name": "admin_user",
+							"is_admin":  true,
+						}),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams"),
+						ghttp.RespondWithJSONEncoded(200, []atc.Team{
+							{
+								ID:   1,
+								Name: "main",
+								Auth: atc.TeamAuth{
+									"owner": map[string][]string{
+										"groups": []string{},
+										"users":  []string{},
+									},
+								},
+							},
+						}),
+					),
+				)
+
+				flyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "doesNotExist", "-u", "admin_user", "-p", "pass")
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Err).Should(gbytes.Say("error: team 'doesNotExist' does not exist"))
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
 			})
 		})
 	})

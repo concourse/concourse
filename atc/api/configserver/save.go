@@ -101,7 +101,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 
 	if !found {
 		session.Debug("team-not-found")
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
