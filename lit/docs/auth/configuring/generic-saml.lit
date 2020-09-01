@@ -10,15 +10,26 @@ A Concourse server can authenticate against any valid SAML auth provider.
 
   First you'll need to create a client with your SAML provider.
 
-  The callback URL must be the URL of your Concourse server
-  with \code{/sky/issuer/callback} appended. This address must be reachable by
-  your SAML provider - it can't be \code{localhost}.
+  The SAML Assertion Consumer Service (ACS) URL and the Audince URI (SP Entity ID)
+  must be the URL of your Concourse server with \code{/sky/issuer/callback} appended.
+  This address should be reachable by concourse users - can be an internal URL
+  and does not have to be publicly reachable.
 
   For example, Concourse's own CI server's callback URL would be:
 
   \codeblock{bash}{{{
   https://ci.concourse-ci.org/sky/issuer/callback
   }}}
+
+  Attribute statments that you define in the SAML provider need to be mapped in concourse:
+
+  \codeblock{bash}{{{
+  CONCOURSE_SAML_USERNAME_ATTR=name   # default
+  CONCOURSE_SAML_EMAIL_ATTR=email     # default
+  CONCOURSE_SAML_GROUPS_ATTR=groups   # default
+  }}}
+
+  Finally, the SAML provider will generate a SSO URL and a CA certificate.
 
   A typical \reference{web-node} env config may look something like this:
 
