@@ -56,6 +56,7 @@ func (r *resourceVersionReaper) getResourceConfigScopesToReap(ctx context.Contex
 		Where(sq.NotEq{
 			"check_order": 0,
 		}).
+		GroupBy("resource_config_scope_id").
 		Having(sq.Gt{
 			"count(*)": r.maxVersionsPerResource,
 		}).
