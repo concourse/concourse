@@ -602,7 +602,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			)
 		})
 
-		Context("when since, until, and limit are 0", func() {
+		Context("when from, to, and limit are 0", func() {
 			BeforeEach(func() {
 			})
 
@@ -614,13 +614,13 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 		})
 
-		Context("when since is specified", func() {
+		Context("when from is specified", func() {
 			BeforeEach(func() {
-				expectedQuery = fmt.Sprint("since=24")
+				expectedQuery = fmt.Sprint("from=24")
 			})
 
-			It("calls to get all builds since that id", func() {
-				builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{Since: 24})
+			It("calls to get all builds from that id", func() {
+				builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{From: 24})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(builds).To(Equal(expectedBuilds))
@@ -628,11 +628,11 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 			Context("and limit is specified", func() {
 				BeforeEach(func() {
-					expectedQuery = fmt.Sprint("since=24&limit=5")
+					expectedQuery = fmt.Sprint("from=24&limit=5")
 				})
 
 				It("appends limit to the url", func() {
-					builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{Since: 24, Limit: 5})
+					builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{From: 24, Limit: 5})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(builds).To(Equal(expectedBuilds))
@@ -640,13 +640,13 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 		})
 
-		Context("when until is specified", func() {
+		Context("when to is specified", func() {
 			BeforeEach(func() {
-				expectedQuery = fmt.Sprint("until=26")
+				expectedQuery = fmt.Sprint("to=26")
 			})
 
-			It("calls to get all builds until that id", func() {
-				builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{Until: 26})
+			It("calls to get all builds to that id", func() {
+				builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{To: 26})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(builds).To(Equal(expectedBuilds))
@@ -654,11 +654,11 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 			Context("and limit is specified", func() {
 				BeforeEach(func() {
-					expectedQuery = fmt.Sprint("until=26&limit=15")
+					expectedQuery = fmt.Sprint("to=26&limit=15")
 				})
 
 				It("appends limit to the url", func() {
-					builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{Until: 26, Limit: 15})
+					builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{To: 26, Limit: 15})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(builds).To(Equal(expectedBuilds))
@@ -666,13 +666,13 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 		})
 
-		Context("when since and until are both specified", func() {
+		Context("when from and to are both specified", func() {
 			BeforeEach(func() {
-				expectedQuery = fmt.Sprint("until=26&since=24")
+				expectedQuery = fmt.Sprint("to=26&from=24")
 			})
 
-			It("sends both since and until", func() {
-				builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{Since: 24, Until: 26})
+			It("sends both from and to", func() {
+				builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{From: 24, To: 26})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(builds).To(Equal(expectedBuilds))
@@ -721,8 +721,8 @@ var _ = Describe("ATC Handler Pipelines", func() {
 							ghttp.VerifyRequest("GET", expectedURL),
 							ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds, http.Header{
 								"Link": []string{
-									`<http://some-url.com/api/v1/teams/some-team/pipelines/some-pipeline/builds?since=452&limit=123>; rel="previous"`,
-									`<http://some-url.com/api/v1/teams/some-team/pipelines/some-pipeline/builds?until=254&limit=456>; rel="next"`,
+									`<http://some-url.com/api/v1/teams/some-team/pipelines/some-pipeline/builds?from=452&limit=123>; rel="previous"`,
+									`<http://some-url.com/api/v1/teams/some-team/pipelines/some-pipeline/builds?to=254&limit=456>; rel="next"`,
 								},
 							}),
 						),
@@ -733,8 +733,8 @@ var _ = Describe("ATC Handler Pipelines", func() {
 					_, pagination, _, err := team.PipelineBuilds("mypipeline", concourse.Page{})
 					Expect(err).ToNot(HaveOccurred())
 
-					Expect(pagination.Previous).To(Equal(&concourse.Page{Since: 452, Limit: 123}))
-					Expect(pagination.Next).To(Equal(&concourse.Page{Until: 254, Limit: 456}))
+					Expect(pagination.Previous).To(Equal(&concourse.Page{From: 452, Limit: 123}))
+					Expect(pagination.Next).To(Equal(&concourse.Page{To: 254, Limit: 456}))
 				})
 			})
 		})

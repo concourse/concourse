@@ -250,14 +250,14 @@ func (command *BuildsCommand) validateBuildArguments(timeSince time.Time, page c
 		if err != nil {
 			return page, errors.New("Since time should be in the format: " + inputTimeLayout)
 		}
-		page.Since = int(timeSince.Unix())
+		page.From = int(timeSince.Unix())
 	}
 	if command.Until != "" {
 		timeUntil, err = time.ParseInLocation(inputTimeLayout, command.Until, time.Now().Location())
 		if err != nil {
 			return page, errors.New("Until time should be in the format: " + inputTimeLayout)
 		}
-		page.Until = int(timeUntil.Unix())
+		page.To = int(timeUntil.Unix())
 	}
 	if timeSince.After(timeUntil) && command.Since != "" && command.Until != "" {
 		return page, errors.New("Cannot have --since after --until")

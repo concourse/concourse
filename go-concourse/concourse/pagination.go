@@ -43,8 +43,8 @@ func paginationFromHeaders(header http.Header) (Pagination, error) {
 }
 
 type Page struct {
-	Since      int
-	Until      int
+	From       int
+	To         int
 	Limit      int
 	Timestamps bool
 }
@@ -57,8 +57,8 @@ func pageFromURI(uri string) (Page, error) {
 		return Page{}, err
 	}
 	params := url.Query()
-	page.Since, _ = strconv.Atoi(params.Get("since"))
-	page.Until, _ = strconv.Atoi(params.Get("until"))
+	page.From, _ = strconv.Atoi(params.Get("from"))
+	page.To, _ = strconv.Atoi(params.Get("to"))
 	page.Limit, _ = strconv.Atoi(params.Get("limit"))
 
 	return page, nil
@@ -66,12 +66,12 @@ func pageFromURI(uri string) (Page, error) {
 
 func (p Page) QueryParams() url.Values {
 	queryParams := url.Values{}
-	if p.Until > 0 {
-		queryParams.Add("until", strconv.Itoa(p.Until))
+	if p.From > 0 {
+		queryParams.Add("from", strconv.Itoa(p.From))
 	}
 
-	if p.Since > 0 {
-		queryParams.Add("since", strconv.Itoa(p.Since))
+	if p.To > 0 {
+		queryParams.Add("to", strconv.Itoa(p.To))
 	}
 
 	if p.Limit > 0 {
