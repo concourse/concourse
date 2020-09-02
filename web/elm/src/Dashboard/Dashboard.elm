@@ -571,6 +571,7 @@ toConcoursePipeline p =
     , paused = p.paused
     , archived = p.archived
     , groups = []
+    , backgroundImage = Maybe.Nothing
     }
 
 

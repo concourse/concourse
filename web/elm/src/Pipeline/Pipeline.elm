@@ -454,6 +454,33 @@ isArchived p =
     RemoteData.withDefault False (RemoteData.map .archived p)
 
 
+backgroundImage : WebData Concourse.Pipeline -> List (Html.Attribute msg)
+backgroundImage pipeline =
+    case pipeline of
+        RemoteData.Success p ->
+            case p.backgroundImage of
+                Just bg ->
+                    [ style "background-image" <|
+                        "url(\""
+                            ++ bg
+                            ++ "\")"
+                    , style "background-repeat" "no-repeat"
+                    , style "background-size" "cover"
+                    , style "background-position" "center"
+                    , style "opacity" "30%"
+                    , style "filter" "grayscale(1)"
+                    , style "width" "100%"
+                    , style "height" "100%"
+                    , style "position" "absolute"
+                    ]
+
+                _ ->
+                    []
+
+        _ ->
+            []
+
+
 viewSubPage :
     { a | hovered : HoverState.HoverState, version : String }
     -> Model
@@ -467,8 +494,12 @@ viewSubPage session model =
         , style "flex-grow" "1"
         ]
         [ viewGroupsBar session model
-        , Html.div [ class "pipeline-content" ]
-            [ Svg.svg
+        , Html.div
+            [ class "pipeline-content" ]
+            [ Html.div
+                (id "pipeline-background" :: backgroundImage model.pipeline)
+                []
+            , Svg.svg
                 [ SvgAttributes.class "pipeline-graph test" ]
                 []
             , Html.div
