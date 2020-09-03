@@ -374,8 +374,8 @@ func (step *TaskStep) containerSpec(logger lager.Logger, repository *build.Repos
 
 	var limits worker.ContainerLimits
 	if config.Limits != nil {
-		limits.CPU = config.Limits.CPU
-		limits.Memory = config.Limits.Memory
+		limits.CPU = (*uint64)(config.Limits.CPU)
+		limits.Memory = (*uint64)(config.Limits.Memory)
 	}
 
 	containerSpec := worker.ContainerSpec{

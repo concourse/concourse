@@ -1405,10 +1405,19 @@ func (cmd *RunCommand) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Conf
 }
 
 func (cmd *RunCommand) parseDefaultLimits() (atc.ContainerLimits, error) {
-	return atc.ParseContainerLimits(map[string]interface{}{
-		"cpu":    cmd.DefaultCpuLimit,
-		"memory": cmd.DefaultMemoryLimit,
-	})
+	limits := atc.ContainerLimits{}
+	if cmd.DefaultCpuLimit != nil {
+		cpu := atc.CPULimit(*cmd.DefaultCpuLimit)
+		limits.CPU = &cpu
+	}
+	if cmd.DefaultMemoryLimit != nil {
+		memory, err := atc.ParseMemoryLimit(*cmd.DefaultMemoryLimit)
+		if err != nil {
+			return atc.ContainerLimits{}, err
+		}
+		limits.Memory = &memory
+	}
+	return limits, nil
 }
 
 func (cmd *RunCommand) defaultBindIP() net.IP {

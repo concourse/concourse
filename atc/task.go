@@ -38,11 +38,6 @@ type TaskConfig struct {
 	Caches []TaskCacheConfig `json:"caches,omitempty"`
 }
 
-type ContainerLimits struct {
-	CPU    *uint64 `json:"cpu,omitempty"`
-	Memory *uint64 `json:"memory,omitempty"`
-}
-
 type ImageResource struct {
 	Type   string `json:"type"`
 	Source Source `json:"source"`
