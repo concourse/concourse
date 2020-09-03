@@ -31,7 +31,6 @@ var _ = Describe("Builder", func() {
 			fakeStepFactory   *builderfakes.FakeStepFactory
 			fakeSecretManager *credsfakes.FakeSecrets
 			fakeVarSourcePool *credsfakes.FakeVarSourcePool
-			delegateFactory   builder.DelegateFactory
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
@@ -43,11 +42,9 @@ var _ = Describe("Builder", func() {
 			fakeStepFactory = new(builderfakes.FakeStepFactory)
 			fakeSecretManager = new(credsfakes.FakeSecrets)
 			fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
-			delegateFactory = builder.NewDelegateFactory()
 
 			stepBuilder = builder.NewStepBuilder(
 				fakeStepFactory,
-				delegateFactory,
 				"http://example.com",
 				fakeSecretManager,
 				fakeVarSourcePool,

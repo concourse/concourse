@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 
 	"errors"
@@ -30,39 +31,29 @@ type StepFactory interface {
 	ArtifactOutputStep(atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step
 }
 
-//go:generate counterfeiter . DelegateFactory
-
-type DelegateFactory interface {
-	GetDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.GetDelegate
-	PutDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.PutDelegate
-	TaskDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.TaskDelegate
-	CheckDelegate(db.Build, atc.Plan, *vars.BuildVariables) exec.CheckDelegate
-	BuildStepDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.BuildStepDelegate
-	SetPipelineStepDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.SetPipelineStepDelegate
-}
-
 func NewStepBuilder(
 	stepFactory StepFactory,
-	delegateFactory DelegateFactory,
 	externalURL string,
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 ) *stepBuilder {
 	return &stepBuilder{
-		stepFactory:     stepFactory,
-		delegateFactory: delegateFactory,
-		externalURL:     externalURL,
-		globalSecrets:   secrets,
-		varSourcePool:   varSourcePool,
+		stepFactory:   stepFactory,
+		externalURL:   externalURL,
+		globalSecrets: secrets,
+		varSourcePool: varSourcePool,
+
+		clock: clock.NewClock(),
 	}
 }
 
 type stepBuilder struct {
-	stepFactory     StepFactory
-	delegateFactory DelegateFactory
-	externalURL     string
-	globalSecrets   creds.Secrets
-	varSourcePool   creds.VarSourcePool
+	stepFactory   StepFactory
+	externalURL   string
+	globalSecrets creds.Secrets
+	varSourcePool creds.VarSourcePool
+
+	clock clock.Clock
 }
 
 func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec.Step, error) {
@@ -100,7 +91,7 @@ func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec
 }
 
 func (builder *stepBuilder) BuildStepErrored(logger lager.Logger, build db.Build, err error) {
-	builder.delegateFactory.BuildStepDelegate(build, build.PrivatePlan().ID, nil).Errored(logger, err.Error())
+	NewBuildStepDelegate(build, build.PrivatePlan().ID, nil, builder.clock).Errored(logger, err.Error())
 }
 
 func (builder *stepBuilder) buildStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
@@ -229,7 +220,7 @@ func (builder *stepBuilder) buildAcrossStep(build db.Build, plan atc.Plan, build
 	return exec.Across(
 		step,
 		varNames,
-		builder.delegateFactory.BuildStepDelegate(build, plan.ID, buildVars),
+		NewBuildStepDelegate(build, plan.ID, buildVars, builder.clock),
 		stepMetadata,
 	)
 }
@@ -364,7 +355,7 @@ func (builder *stepBuilder) buildGetStep(build db.Build, plan atc.Plan, buildVar
 		plan,
 		stepMetadata,
 		containerMetadata,
-		builder.delegateFactory.GetDelegate(build, plan.ID, buildVars),
+		NewGetDelegate(build, plan.ID, buildVars, builder.clock),
 	)
 }
 
@@ -386,7 +377,7 @@ func (builder *stepBuilder) buildPutStep(build db.Build, plan atc.Plan, buildVar
 		plan,
 		stepMetadata,
 		containerMetadata,
-		builder.delegateFactory.PutDelegate(build, plan.ID, buildVars),
+		NewPutDelegate(build, plan.ID, buildVars, builder.clock),
 	)
 }
 
@@ -407,7 +398,7 @@ func (builder *stepBuilder) buildCheckStep(build db.Build, plan atc.Plan, buildV
 		plan,
 		stepMetadata,
 		containerMetadata,
-		builder.delegateFactory.CheckDelegate(build, plan, buildVars),
+		NewCheckDelegate(build, plan, buildVars, builder.clock),
 	)
 }
 
@@ -429,7 +420,7 @@ func (builder *stepBuilder) buildTaskStep(build db.Build, plan atc.Plan, buildVa
 		plan,
 		stepMetadata,
 		containerMetadata,
-		builder.delegateFactory.TaskDelegate(build, plan.ID, buildVars),
+		NewTaskDelegate(build, plan.ID, buildVars, builder.clock),
 	)
 }
 
@@ -443,7 +434,7 @@ func (builder *stepBuilder) buildSetPipelineStep(build db.Build, plan atc.Plan, 
 	return builder.stepFactory.SetPipelineStep(
 		plan,
 		stepMetadata,
-		builder.delegateFactory.SetPipelineStepDelegate(build, plan.ID, buildVars),
+		NewSetPipelineStepDelegate(build, plan.ID, buildVars, builder.clock),
 	)
 }
 
@@ -457,7 +448,7 @@ func (builder *stepBuilder) buildLoadVarStep(build db.Build, plan atc.Plan, buil
 	return builder.stepFactory.LoadVarStep(
 		plan,
 		stepMetadata,
-		builder.delegateFactory.BuildStepDelegate(build, plan.ID, buildVars),
+		NewBuildStepDelegate(build, plan.ID, buildVars, builder.clock),
 	)
 }
 
@@ -466,7 +457,7 @@ func (builder *stepBuilder) buildArtifactInputStep(build db.Build, plan atc.Plan
 	return builder.stepFactory.ArtifactInputStep(
 		plan,
 		build,
-		builder.delegateFactory.BuildStepDelegate(build, plan.ID, buildVars),
+		NewBuildStepDelegate(build, plan.ID, buildVars, builder.clock),
 	)
 }
 
@@ -475,7 +466,7 @@ func (builder *stepBuilder) buildArtifactOutputStep(build db.Build, plan atc.Pla
 	return builder.stepFactory.ArtifactOutputStep(
 		plan,
 		build,
-		builder.delegateFactory.BuildStepDelegate(build, plan.ID, buildVars),
+		NewBuildStepDelegate(build, plan.ID, buildVars, builder.clock),
 	)
 }
 
