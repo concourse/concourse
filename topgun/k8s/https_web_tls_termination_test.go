@@ -92,14 +92,14 @@ var _ = Describe("Web HTTP or HTTPS(TLS) termination at web node", func() {
 			})
 
 			It("fly login fails when NOT using the correct CA", func() {
-				sess := fly.Start("login", "-u", "test", "-p", "test",
-					"--ca-cert", "certs/wrong-ca.crt",
-					"-c", "https://"+atc.Address(),
-				)
-				<-sess.Exited
-
-				Expect(sess.ExitCode()).ToNot(Equal(0))
-				Expect(sess.Err).To(gbytes.Say(`x509: certificate signed by unknown authority`))
+				Eventually(func() *gbytes.Buffer {
+					sess := fly.Start("login", "-u", "test", "-p", "test",
+						"--ca-cert", "certs/wrong-ca.crt",
+						"-c", "https://"+atc.Address(),
+					)
+					<-sess.Exited
+					return sess.Err
+				}).Should(gbytes.Say(`x509: certificate signed by unknown authority`))
 			})
 		})
 
