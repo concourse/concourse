@@ -38,6 +38,7 @@ func (command *DestroyPipelineCommand) Execute(args []string) error {
 	}
 
 	var team concourse.Team
+
 	if command.Team != "" {
 		team, err = target.FindTeam(command.Team)
 		if err != nil {

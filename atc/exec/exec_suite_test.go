@@ -1,7 +1,6 @@
 package exec_test
 
 import (
-	"github.com/concourse/concourse/atc"
 	"testing"
 
 	"code.cloudfoundry.org/lager/lagertest"
@@ -10,6 +9,7 @@ import (
 	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/api/trace/testtrace"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
 )

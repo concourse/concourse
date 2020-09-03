@@ -2,14 +2,16 @@ package commands
 
 import (
 	"errors"
+	"strings"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/commands/internal/setpipelinehelpers"
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/go-concourse/concourse"
+
 	"github.com/mgutz/ansi"
-	"strings"
 )
 
 type SetPipelineCommand struct {
