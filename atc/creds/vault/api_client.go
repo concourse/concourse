@@ -58,7 +58,34 @@ func NewAPIClient(logger lager.Logger, apiURL string, tlsConfig TLSConfig, authC
 // Read must be called after a successful login has occurred or an
 // un-authorized client will be used.
 func (ac *APIClient) Read(path string) (*vaultapi.Secret, error) {
-	return ac.client().Logical().Read(path)
+	// Check if path is kv1 or kv2
+	path = sanitizePath(path)
+	mountPath, kv2, err := isKVv2(path, ac.client())
+	if err != nil {
+		return nil, err
+	}
+
+	// If the path is under a kv2 mount, add the /data/ path to the prefix
+	if kv2 {
+		path = addPrefixToVKVPath(path, mountPath, "data")
+	}
+
+	secret, err := ac.client().Logical().Read(path)
+	if err != nil || secret == nil {
+		return secret, err
+	}
+
+	// Need to discard the metadata object and pull the v2 data field up to match kv1
+	if kv2 {
+		if data, ok := secret.Data["data"]; ok && data != nil {
+			secret.Data = data.(map[string]interface{})
+		} else {
+			// Return a nil secret object if the secret was deleted, but not destroyed
+			return nil, nil
+		}
+	}
+
+	return secret, err
 }
 
 func (ac *APIClient) loginParams() map[string]interface{} {
