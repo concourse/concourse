@@ -248,7 +248,7 @@ tooltip { hovered } =
                         Tooltip.Right (Styles.tooltipArrowSize - Styles.tooltipOffset)
                     , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
                     }
-                , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.frame }
+                , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.tooltipBackground }
                 }
 
         HoverState.Tooltip (SideBarPipeline _ pipelineID) _ ->
@@ -263,7 +263,7 @@ tooltip { hovered } =
                                 - Styles.tooltipOffset
                     , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
                     }
-                , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.frame }
+                , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.tooltipBackground }
                 }
 
         _ ->

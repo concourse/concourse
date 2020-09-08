@@ -57,8 +57,8 @@ tooltipOffset =
 
 sideBar : { r | width : Float } -> List (Html.Attribute msg)
 sideBar { width } =
-    [ style "border-right" <| "1px solid " ++ Colors.frame
-    , style "background-color" Colors.sideBar
+    [ style "border-right" <| "1px solid " ++ Colors.border
+    , style "background-color" Colors.sideBarBackground
     , style "width" <| String.fromFloat width ++ "px"
     , style "overflow-y" "auto"
     , style "height" "100%"
@@ -229,7 +229,7 @@ pipelineName { opacity, weight } =
     , style "padding" "5px 2.5px"
     , style "margin-left" "5px"
     , style "flex-grow" "1"
-    , style "color" "#FFFFFF"
+    , style "color" Colors.white
     , opacityAttr opacity
     , fontWeightAttr weight
     ]
@@ -239,7 +239,7 @@ hamburgerMenu :
     { isSideBarOpen : Bool, isClickable : Bool }
     -> List (Html.Attribute msg)
 hamburgerMenu { isSideBarOpen, isClickable } =
-    [ style "border-right" <| "1px solid " ++ Colors.frame
+    [ style "border-right" <| "1px solid " ++ Colors.border
     , style "opacity" "1"
     , style "cursor" <|
         if isClickable then
@@ -249,10 +249,10 @@ hamburgerMenu { isSideBarOpen, isClickable } =
             "default"
     , style "background-color" <|
         if isSideBarOpen then
-            Colors.sideBar
+            Colors.sideBarBackground
 
         else
-            Colors.frame
+            Colors.hamburgerClosedBackground
     ]
 
 
@@ -330,7 +330,7 @@ tooltip top left =
 
 tooltipBody : List (Html.Attribute msg)
 tooltipBody =
-    [ style "background-color" Colors.frame
+    [ style "background-color" Colors.tooltipBackground
     , style "padding-right" "10px"
     , style "font-size" "12px"
     , style "display" "flex"

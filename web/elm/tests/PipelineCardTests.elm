@@ -2,6 +2,7 @@ module PipelineCardTests exposing (all)
 
 import Application.Application as Application
 import Assets
+import ColorValues
 import Colors
 import Common exposing (defineHoverBehaviour, isColorWithStripes)
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -151,12 +152,12 @@ all =
                     header
                         >> Expect.all
                             [ Query.has [ text "no pipeline set" ]
-                            , Query.has [ style "color" white ]
+                            , Query.has [ style "color" ColorValues.grey20 ]
                             ]
                 , test "has dark grey background and 12.5px padding" <|
                     header
                         >> Query.has
-                            [ style "background-color" darkGrey
+                            [ style "background-color" ColorValues.grey90
                             , style "padding" "12.5px"
                             ]
                 , test "text is larger and wider spaced" <|
@@ -185,7 +186,7 @@ all =
                         >> Query.has [ style "flex-grow" "1" ]
                 , test "has dark grey background" <|
                     body
-                        >> Query.has [ style "background-color" darkGrey ]
+                        >> Query.has [ style "background-color" ColorValues.grey90 ]
                 , test "has 2px margins above and below" <|
                     body
                         >> Query.has [ style "margin" "2px 0" ]
@@ -196,7 +197,7 @@ all =
                             , Query.children []
                                 >> Query.first
                                 >> Query.has
-                                    [ style "background-color" middleGrey
+                                    [ style "background-color" ColorValues.grey80
                                     , style "flex-grow" "1"
                                     ]
                             ]
@@ -205,7 +206,7 @@ all =
                 noPipelinesCard
                     >> Query.find [ class "card-footer" ]
                     >> Query.has
-                        [ style "background-color" darkGrey
+                        [ style "background-color" ColorValues.grey90
                         , style "height" "47px"
                         ]
             ]
@@ -318,13 +319,13 @@ all =
             in
             [ test "has dark grey background" <|
                 header
-                    >> Query.has [ style "background-color" darkGrey ]
+                    >> Query.has [ style "background-color" ColorValues.grey90 ]
             , test "has larger, spaced-out white text" <|
                 header
                     >> Query.has
                         [ style "font-size" "1.5em"
                         , style "letter-spacing" "0.1em"
-                        , style "color" white
+                        , style "color" ColorValues.grey20
                         ]
             , test "has 12.5px padding" <|
                 header
@@ -437,7 +438,7 @@ all =
                                 BuildStatusSucceeded
                                 True
                             |> findBanner
-                            |> isColorWithStripes { thin = green, thick = darkGrey }
+                            |> isColorWithStripes { thin = green, thick = ColorValues.grey90 }
                 , test "is grey when pipeline is pending" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
@@ -460,7 +461,7 @@ all =
                                 BuildStatusStarted
                                 True
                             |> findBanner
-                            |> isColorWithStripes { thin = lightGrey, thick = darkGrey }
+                            |> isColorWithStripes { thin = lightGrey, thick = ColorValues.grey90 }
                 , test "is red when pipeline is failing" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
@@ -476,7 +477,7 @@ all =
                                 BuildStatusFailed
                                 True
                             |> findBanner
-                            |> isColorWithStripes { thin = red, thick = darkGrey }
+                            |> isColorWithStripes { thin = red, thick = ColorValues.grey90 }
                 , test "is amber when pipeline is erroring" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
@@ -492,7 +493,7 @@ all =
                                 BuildStatusErrored
                                 True
                             |> findBanner
-                            |> isColorWithStripes { thin = amber, thick = darkGrey }
+                            |> isColorWithStripes { thin = amber, thick = ColorValues.grey90 }
                 , test "is brown when pipeline is aborted" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
@@ -508,7 +509,7 @@ all =
                                 BuildStatusAborted
                                 True
                             |> findBanner
-                            |> isColorWithStripes { thin = brown, thick = darkGrey }
+                            |> isColorWithStripes { thin = brown, thick = ColorValues.grey90 }
                 , describe "status priorities" <|
                     let
                         givenTwoJobs :
@@ -663,7 +664,7 @@ all =
                                     BuildStatusSucceeded
                                     True
                                 |> findBanner
-                                |> isColorWithStripes { thin = green, thick = darkGrey }
+                                |> isColorWithStripes { thin = green, thick = ColorValues.grey90 }
                     , test "is grey when pipeline is pending" <|
                         \_ ->
                             whenOnDashboard { highDensity = True }
@@ -686,7 +687,7 @@ all =
                                     BuildStatusStarted
                                     True
                                 |> findBanner
-                                |> isColorWithStripes { thin = lightGrey, thick = darkGrey }
+                                |> isColorWithStripes { thin = lightGrey, thick = ColorValues.grey90 }
                     , test "is red when pipeline is failing" <|
                         \_ ->
                             whenOnDashboard { highDensity = True }
@@ -702,7 +703,7 @@ all =
                                     BuildStatusFailed
                                     True
                                 |> findBanner
-                                |> isColorWithStripes { thin = red, thick = darkGrey }
+                                |> isColorWithStripes { thin = red, thick = ColorValues.grey90 }
                     , test "is amber when pipeline is erroring" <|
                         \_ ->
                             whenOnDashboard { highDensity = True }
@@ -718,7 +719,7 @@ all =
                                     BuildStatusErrored
                                     True
                                 |> findBanner
-                                |> isColorWithStripes { thin = amber, thick = darkGrey }
+                                |> isColorWithStripes { thin = amber, thick = ColorValues.grey90 }
                     , test "is brown when pipeline is aborted" <|
                         \_ ->
                             whenOnDashboard { highDensity = True }
@@ -734,7 +735,7 @@ all =
                                     BuildStatusAborted
                                     True
                                 |> findBanner
-                                |> isColorWithStripes { thin = brown, thick = darkGrey }
+                                |> isColorWithStripes { thin = brown, thick = ColorValues.grey90 }
                     , describe "status priorities" <|
                         let
                             givenTwoJobs :
@@ -881,7 +882,7 @@ all =
             , test "no pipelines card has dark grey background" <|
                 noPipelines
                     >> noPipelinesCard
-                    >> Query.has [ style "background-color" darkGrey ]
+                    >> Query.has [ style "background-color" ColorValues.grey90 ]
             , test "card has larger tighter font" <|
                 setup
                     >> card
@@ -1070,7 +1071,7 @@ all =
             [ test "has dark grey background" <|
                 setup
                     >> findBody
-                    >> Query.has [ style "background-color" darkGrey ]
+                    >> Query.has [ style "background-color" ColorValues.grey90 ]
             , test "has 2px margin above and below" <|
                 setup
                     >> findBody
@@ -1113,7 +1114,7 @@ all =
             in
             [ test "has dark grey background" <|
                 \_ ->
-                    hasStyle "background-color" darkGrey
+                    hasStyle "background-color" ColorValues.grey90
             , test "has medium padding" <|
                 \_ ->
                     hasStyle "padding" "13.5px"
@@ -1402,7 +1403,7 @@ all =
                                 |> Tuple.first
                                 |> Common.queryView
                                 |> Query.find [ class "card-body" ]
-                                |> Query.has [ style "background-color" middleGrey ]
+                                |> Query.has [ style "background-color" ColorValues.grey90 ]
                     , test "job data is cleared" <|
                         \_ ->
                             setup
@@ -1451,7 +1452,7 @@ all =
                                 |> Tuple.first
                                 |> Common.queryView
                                 |> Query.find [ class "card-body" ]
-                                |> Query.has [ style "background-color" middleGrey ]
+                                |> Query.has [ style "background-color" ColorValues.grey90 ]
                     , test "there is no pause button" <|
                         \_ ->
                             setup

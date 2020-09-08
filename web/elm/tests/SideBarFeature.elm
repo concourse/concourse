@@ -3,6 +3,7 @@ module SideBarFeature exposing (all)
 import Application.Application as Application
 import Assets
 import Base64
+import ColorValues
 import Colors
 import Common
     exposing
@@ -931,11 +932,11 @@ iClickedTheHamburgerIcon =
 
 
 iSeeALighterBackground =
-    Query.has [ style "background-color" "#333333" ]
+    Query.has [ style "background-color" ColorValues.grey90 ]
 
 
 iSeeADarkerBackground =
-    Query.has [ style "background-color" Colors.frame ]
+    Query.has [ style "background-color" ColorValues.grey100 ]
 
 
 iSeeTwoChildren =
@@ -980,11 +981,11 @@ iAmLookingAtTheSideBar =
 
 
 iSeeADividingLineBelow =
-    Query.has [ style "border-bottom" <| "1px solid " ++ Colors.frame ]
+    Query.has [ style "border-bottom" <| "1px solid " ++ ColorValues.black ]
 
 
 iSeeADividingLineToTheRight =
-    Query.has [ style "border-right" <| "1px solid " ++ Colors.frame ]
+    Query.has [ style "border-right" <| "1px solid " ++ ColorValues.black ]
 
 
 iSeeItIs275PxWide =
@@ -1400,14 +1401,9 @@ iAmLookingAtTheHamburgerIcon =
 
 iSeeADarkDividingLineToTheRight =
     Query.has
-        [ style "border-right" <| "1px solid " ++ Colors.frame
+        [ style "border-right" <| "1px solid " ++ ColorValues.black
         , style "opacity" "1"
         ]
-
-
-iSeeAWhiteDividingLineToTheRight =
-    Query.has
-        [ style "border-right" <| "1px solid " ++ Colors.pausedTopbarSeparator ]
 
 
 itIsHoverable domID =

@@ -3,6 +3,7 @@ module PipelineTests exposing (all)
 import Application.Application as Application
 import Assets
 import Char
+import Colors
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse.Cli exposing (Cli(..))
 import DashboardTests exposing (iconSelector)

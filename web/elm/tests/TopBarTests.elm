@@ -3,6 +3,7 @@ module TopBarTests exposing (all)
 import Application.Application as Application
 import Assets
 import Char
+import ColorValues
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse
 import Dashboard.SearchBar as SearchBar
@@ -93,7 +94,7 @@ topBarHeight =
 
 searchBarBorder : String
 searchBarBorder =
-    "1px solid " ++ searchBarGrey
+    "1px solid " ++ ColorValues.grey60
 
 
 searchBarGrey : String
@@ -375,7 +376,7 @@ all =
                             >> Query.has
                                 [ style "position" "absolute"
                                 , style "top" "55px"
-                                , style "background-color" backgroundGrey
+                                , style "background-color" ColorValues.grey100
                                 , style "height" topBarHeight
                                 , style "width" "100%"
                                 , style "border-top" <| "1px solid " ++ borderGrey
@@ -659,7 +660,7 @@ all =
                     Query.find [ id SearchBar.searchInputId ]
                         >> Query.has
                             [ style "border" searchBarBorder
-                            , style "color" "#ffffff"
+                            , style "color" ColorValues.grey20
                             , style "font-size" "1.15em"
                             , style "font-family" Views.Styles.fontFamilyDefault
                             ]
@@ -726,7 +727,7 @@ all =
                     Query.find [ id "search-clear" ]
                         >> Query.has
                             [ style "border" "0"
-                            , style "color" searchBarGrey
+                            , style "color" ColorValues.grey60
                             ]
                 , it "clear search button is positioned appropriately" <|
                     Query.find [ id "search-clear" ]
@@ -1697,10 +1698,10 @@ testDropdown selecteds notSelecteds =
                     (\idx ->
                         [ it ("has the first element highlighted " ++ String.fromInt idx) <|
                             Query.index idx
-                                >> Query.has [ style "background-color" "#1e1d1d" ]
+                                >> Query.has [ style "background-color" ColorValues.grey90 ]
                         , it ("has white text " ++ String.fromInt idx) <|
                             Query.index idx
-                                >> Query.has [ style "color" "#ffffff" ]
+                                >> Query.has [ style "color" ColorValues.grey30 ]
                         ]
                     )
                     selecteds
@@ -1714,10 +1715,10 @@ testDropdown selecteds notSelecteds =
                     (\idx ->
                         [ it ("has the other elements not highlighted " ++ String.fromInt idx) <|
                             Query.index idx
-                                >> Query.has [ style "background-color" dropdownBackgroundGrey ]
+                                >> Query.has [ style "background-color" ColorValues.grey80 ]
                         , it ("have light grey text " ++ String.fromInt idx) <|
                             Query.index idx
-                                >> Query.has [ style "color" "#9b9b9b" ]
+                                >> Query.has [ style "color" ColorValues.grey40 ]
                         ]
                     )
                     notSelecteds

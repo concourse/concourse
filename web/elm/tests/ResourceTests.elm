@@ -3,6 +3,7 @@ module ResourceTests exposing (all)
 import Application.Application as Application
 import Application.Models exposing (Session)
 import Assets
+import ColorValues
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -915,7 +916,7 @@ all =
                             |> queryView
                             |> Query.find pinBarTooltipSelector
                             |> Query.has
-                                [ style "background-color" tooltipGreyHex ]
+                                [ style "background-color" ColorValues.grey20 ]
                 , test "pin bar tooltip has a bit of padding around text" <|
                     \_ ->
                         init
@@ -2125,7 +2126,7 @@ all =
                             \_ ->
                                 saveButton
                                     |> Query.has
-                                        [ style "border" "1px solid #ffffff"
+                                        [ style "border" ("1px solid " ++ ColorValues.white)
                                         , style "color" "#e6e7e8"
                                         ]
                         , test "has a grey border and text when the comment has not changed" <|
@@ -3728,7 +3729,7 @@ versionTooltipSelector : List Selector
 versionTooltipSelector =
     [ style "position" "absolute"
     , style "bottom" "25px"
-    , style "background-color" tooltipGreyHex
+    , style "background-color" ColorValues.grey20
     , style "z-index" "2"
     , style "padding" "5px"
     , style "width" "170px"

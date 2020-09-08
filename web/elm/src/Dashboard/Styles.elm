@@ -179,7 +179,7 @@ noPipelineCardTextHd =
 
 noPipelineCardHeader : List (Html.Attribute msg)
 noPipelineCardHeader =
-    [ style "color" Colors.dashboardText
+    [ style "color" Colors.dashboardPipelineHeaderText
     , style "background-color" Colors.card
     , style "font-size" "1.5em"
     , style "letter-spacing" "0.1em"
@@ -191,7 +191,7 @@ noPipelineCardHeader =
 pipelineCardHeader : List (Html.Attribute msg)
 pipelineCardHeader =
     [ style "background-color" Colors.card
-    , style "color" Colors.dashboardText
+    , style "color" Colors.dashboardPipelineHeaderText
     , style "font-size" "1.5em"
     , style "letter-spacing" "0.1em"
     , style "padding" "12.5px"
@@ -242,7 +242,7 @@ cardFooter =
 
 previewPlaceholder : List (Html.Attribute msg)
 previewPlaceholder =
-    [ style "background-color" Colors.background
+    [ style "background-color" Colors.noPipelinesPlaceholderBackground
     , style "flex-grow" "1"
     ]
 
@@ -403,7 +403,7 @@ infoBar { hideLegend, screenSize } =
     , style "bottom" "0"
     , style "line-height" "35px"
     , style "padding" "7.5px 30px"
-    , style "background-color" Colors.frame
+    , style "background-color" Colors.infoBarBackground
     , style "width" "100%"
     , style "box-sizing" "border-box"
     , style "display" "flex"
@@ -464,7 +464,7 @@ showArchivedToggle : List (Html.Attribute msg)
 showArchivedToggle =
     [ style "margin-right" "10px"
     , style "padding-left" "10px"
-    , style "border-left" <| "1px solid " ++ Colors.background
+    , style "border-left" <| "1px solid " ++ Colors.showArchivedButtonBorder
     ]
 
 
@@ -633,7 +633,7 @@ searchInput screenSize =
     , style "min-height" "30px"
     , style "padding" "0 42px"
     , style "border" <| "1px solid " ++ Colors.inputOutline
-    , style "color" Colors.dashboardText
+    , style "color" Colors.dropdownItemInputText
     , style "font-size" "1.15em"
     , style "font-family" Views.Styles.fontFamilyDefault
     , style "outline" "0"
@@ -670,8 +670,8 @@ dropdownItem isSelected =
     let
         coloration =
             if isSelected then
-                [ style "background-color" Colors.frame
-                , style "color" Colors.dashboardText
+                [ style "background-color" Colors.dropdownItemSelectedBackground
+                , style "color" Colors.dropdownItemSelectedText
                 ]
 
             else
@@ -842,7 +842,7 @@ jobPreviewLink =
 clusterName : List (Html.Attribute msg)
 clusterName =
     [ style "font-size" "21px"
-    , style "color" "#ffffff"
+    , style "color" Colors.white
     , style "letter-spacing" "0.1em"
     , style "margin-left" "10px"
     ]
