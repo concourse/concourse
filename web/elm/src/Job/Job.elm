@@ -7,6 +7,7 @@ module Job.Job exposing
     , handleCallback
     , handleDelivery
     , init
+    , startingPage
     , subscriptions
     , tooltip
     , update
@@ -85,8 +86,8 @@ type alias BuildWithResources =
     }
 
 
-jobBuildsPerPage : Int
-jobBuildsPerPage =
+pageLimit : Int
+pageLimit =
     100
 
 
@@ -98,7 +99,7 @@ type alias Flags =
 
 startingPage : Page
 startingPage =
-    { limit = jobBuildsPerPage
+    { limit = pageLimit
     , direction = Concourse.Pagination.ToMostRecent
     }
 
@@ -111,8 +112,6 @@ init flags =
 
         model =
             { jobIdentifier = flags.jobId
-
-            -- TODO: make Loading?
             , job = RemoteData.NotAsked
             , pausedChanging = False
             , buildsWithResources = RemoteData.Loading
@@ -187,8 +186,8 @@ handleCallback callback ( model, effects ) =
                            ]
             )
 
-        JobBuildsFetched (Ok builds) ->
-            handleJobBuildsFetched builds ( model, effects )
+        JobBuildsFetched (Ok ( requestedPage, builds )) ->
+            handleJobBuildsFetched requestedPage builds ( model, effects )
 
         JobFetched (Ok job) ->
             ( { model | job = RemoteData.Success job }
@@ -305,7 +304,7 @@ permalink builds =
     case List.head builds of
         Nothing ->
             { direction = Concourse.Pagination.ToMostRecent
-            , limit = jobBuildsPerPage
+            , limit = pageLimit
             }
 
         Just build ->
@@ -373,8 +372,8 @@ updateResourcesIfNeeded bwr =
             Just <| FetchBuildResources bwr.build.id
 
 
-handleJobBuildsFetched : Paginated Concourse.Build -> ET Model
-handleJobBuildsFetched paginatedBuilds ( model, effects ) =
+handleJobBuildsFetched : Page -> Paginated Concourse.Build -> ET Model
+handleJobBuildsFetched requestedPage paginatedBuilds ( model, effects ) =
     let
         newPage =
             permalink paginatedBuilds.content
@@ -382,12 +381,29 @@ handleJobBuildsFetched paginatedBuilds ( model, effects ) =
         newBWRs =
             setExistingResources paginatedBuilds model
     in
-    ( { model
-        | buildsWithResources = RemoteData.Success newBWRs
-        , currentPage = newPage
-      }
-    , effects ++ List.filterMap updateResourcesIfNeeded newBWRs.content
-    )
+    if
+        Concourse.Pagination.isPreviousPage requestedPage
+            && (List.length paginatedBuilds.content < pageLimit)
+    then
+        ( model
+        , effects
+            ++ [ FetchJobBuilds model.jobIdentifier startingPage
+               , NavigateTo <|
+                    Routes.toString <|
+                        Routes.Job
+                            { id = model.jobIdentifier
+                            , page = Just startingPage
+                            }
+               ]
+        )
+
+    else
+        ( { model
+            | buildsWithResources = RemoteData.Success newBWRs
+            , currentPage = newPage
+          }
+        , effects ++ List.filterMap updateResourcesIfNeeded newBWRs.content
+        )
 
 
 isRunning : Concourse.Build -> Bool

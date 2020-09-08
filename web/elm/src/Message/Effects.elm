@@ -228,6 +228,7 @@ runEffect effect key csrfToken =
                 (Just page)
                 Concourse.decodeBuild
                 |> Api.request
+                |> Task.map (\b -> ( page, b ))
                 |> Task.attempt JobBuildsFetched
 
         FetchResource id ->
@@ -248,7 +249,7 @@ runEffect effect key csrfToken =
                 (Just page)
                 Concourse.decodeVersionedResource
                 |> Api.request
-                |> Task.map (\b -> ( Just page, b ))
+                |> Task.map (\b -> ( page, b ))
                 |> Task.attempt VersionedResourcesFetched
 
         FetchResources id ->

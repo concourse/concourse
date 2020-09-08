@@ -355,28 +355,35 @@ handleCallback callback session ( model, effects ) =
                     }
 
                 newModel =
-                    \newPage ->
-                        { model
+                    \newPage newEffects ->
+                        ( { model
                             | versions = resourceVersions
                             , currentPage = newPage
-                        }
-
-                chosenModelWith =
-                    \requestedPageUnwrapped ->
-                        if Concourse.Pagination.equal model.currentPage requestedPageUnwrapped then
-                            newModel <| requestedPageUnwrapped
-
-                        else
-                            model
+                          }
+                        , newEffects
+                        )
             in
-            case requestedPage of
-                Nothing ->
-                    ( newModel fetchedPage, effects )
+            if
+                Concourse.Pagination.isPreviousPage requestedPage
+                    && (List.length resourceVersions.content < pageLimit)
+            then
+                -- otherwise a new version would show up as a single element page
+                newModel startingPage <|
+                    effects
+                        ++ [ FetchVersionedResources model.resourceIdentifier startingPage
+                           , NavigateTo <|
+                                Routes.toString <|
+                                    Routes.Resource
+                                        { id = model.resourceIdentifier
+                                        , page = Just startingPage
+                                        }
+                           ]
 
-                Just requestedPageUnwrapped ->
-                    ( chosenModelWith requestedPageUnwrapped
-                    , effects
-                    )
+            else if Concourse.Pagination.equal model.currentPage requestedPage then
+                newModel requestedPage effects
+
+            else
+                ( model, effects )
 
         InputToFetched (Ok ( versionID, builds )) ->
             ( updateVersion versionID (\v -> { v | inputTo = builds }) model

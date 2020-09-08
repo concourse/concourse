@@ -209,12 +209,14 @@ all =
                                         ]
                                 in
                                 Ok
-                                    { pagination =
-                                        { previousPage = Nothing
-                                        , nextPage = Nothing
-                                        }
-                                    , content = builds
-                                    }
+                                    ( Job.startingPage
+                                    , { pagination =
+                                            { previousPage = Nothing
+                                            , nextPage = Nothing
+                                            }
+                                      , content = builds
+                                      }
+                                    )
                             )
                         >> Tuple.first
                         >> queryView
@@ -512,12 +514,14 @@ all =
                                     ]
                             in
                             Ok
-                                { pagination =
-                                    { previousPage = Nothing
-                                    , nextPage = Nothing
-                                    }
-                                , content = builds
-                                }
+                                ( Job.startingPage
+                                , { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage = Nothing
+                                        }
+                                  , content = builds
+                                  }
+                                )
                         )
                     >> Tuple.first
                     >> queryView
@@ -548,12 +552,14 @@ all =
                                     ]
                             in
                             Ok
-                                { pagination =
-                                    { previousPage = Nothing
-                                    , nextPage = Nothing
-                                    }
-                                , content = builds
-                                }
+                                ( Job.startingPage
+                                , { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage = Nothing
+                                        }
+                                  , content = builds
+                                  }
+                                )
                         )
                     >> Tuple.first
                     >> queryView
@@ -603,12 +609,14 @@ all =
                                     ]
                             in
                             Ok
-                                { pagination =
-                                    { previousPage = Nothing
-                                    , nextPage = Nothing
-                                    }
-                                , content = builds
-                                }
+                                ( Job.startingPage
+                                , { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage = Nothing
+                                        }
+                                  , content = builds
+                                  }
+                                )
                         )
                     >> Tuple.first
                     >> queryView
@@ -687,12 +695,14 @@ all =
                                     ]
                             in
                             Ok
-                                { pagination =
-                                    { previousPage = Nothing
-                                    , nextPage = Nothing
-                                    }
-                                , content = builds
-                                }
+                                ( Job.startingPage
+                                , { pagination =
+                                        { previousPage = Nothing
+                                        , nextPage = Nothing
+                                        }
+                                  , content = builds
+                                  }
+                                )
                         )
                     >> Tuple.first
                     >> queryView
@@ -772,12 +782,14 @@ all =
                         |> Application.handleCallback
                             (JobBuildsFetched <|
                                 Ok
-                                    { pagination =
-                                        { previousPage = Just prevPage
-                                        , nextPage = Nothing
-                                        }
-                                    , content = builds
-                                    }
+                                    ( Job.startingPage
+                                    , { pagination =
+                                            { previousPage = Just prevPage
+                                            , nextPage = Nothing
+                                            }
+                                      , content = builds
+                                      }
+                                    )
                             )
                         |> Tuple.first
                 , query =
@@ -833,6 +845,30 @@ all =
                     }
                 , hoverable = Message.Message.PreviousPageButton
                 }
+            , test "pagination previous page loads most recent page if less than 100 entries" <|
+                \_ ->
+                    init { disabled = False, paused = False } ()
+                        |> Application.handleCallback
+                            (JobBuildsFetched <|
+                                Ok
+                                    ( { direction = From 1, limit = 100 }
+                                    , { pagination =
+                                            { previousPage = Nothing
+                                            , nextPage = Nothing
+                                            }
+                                      , content = []
+                                      }
+                                    )
+                            )
+                        |> Tuple.second
+                        |> Common.contains
+                            (Effects.FetchJobBuilds
+                                { teamName = "team"
+                                , pipelineName = "pipeline"
+                                , jobName = "job"
+                                }
+                                Job.startingPage
+                            )
             , describe "When fetching builds"
                 [ test "says no builds" <|
                     \_ ->
@@ -840,12 +876,14 @@ all =
                             |> Application.handleCallback
                                 (JobBuildsFetched <|
                                     Ok
-                                        { pagination =
-                                            { previousPage = Nothing
-                                            , nextPage = Nothing
-                                            }
-                                        , content = []
-                                        }
+                                        ( Job.startingPage
+                                        , { pagination =
+                                                { previousPage = Nothing
+                                                , nextPage = Nothing
+                                                }
+                                          , content = []
+                                          }
+                                        )
                                 )
                             |> Tuple.first
                             |> queryView
@@ -877,12 +915,14 @@ all =
                             Job.handleCallback
                                 (JobBuildsFetched <|
                                     Ok
-                                        { content = [ someBuild ]
-                                        , pagination =
-                                            { previousPage = Nothing
-                                            , nextPage = Nothing
-                                            }
-                                        }
+                                        ( Job.startingPage
+                                        , { content = [ someBuild ]
+                                          , pagination =
+                                                { previousPage = Nothing
+                                                , nextPage = Nothing
+                                                }
+                                          }
+                                        )
                                 )
                                 ( defaultModel, [] )
             , test "JobBuildsFetched error" <|
@@ -1012,12 +1052,14 @@ all =
                     >> Application.handleCallback
                         (Callback.JobBuildsFetched <|
                             Ok
-                                { content = [ someBuild ]
-                                , pagination =
-                                    { nextPage = Nothing
-                                    , previousPage = Nothing
-                                    }
-                                }
+                                ( Job.startingPage
+                                , { content = [ someBuild ]
+                                  , pagination =
+                                        { nextPage = Nothing
+                                        , previousPage = Nothing
+                                        }
+                                  }
+                                )
                         )
                     >> Tuple.first
                     >> Application.update
@@ -1039,12 +1081,14 @@ all =
                     >> Application.handleCallback
                         (Callback.JobBuildsFetched <|
                             Ok
-                                { content = [ someBuild ]
-                                , pagination =
-                                    { nextPage = Nothing
-                                    , previousPage = Nothing
-                                    }
-                                }
+                                ( Job.startingPage
+                                , { content = [ someBuild ]
+                                  , pagination =
+                                        { nextPage = Nothing
+                                        , previousPage = Nothing
+                                        }
+                                  }
+                                )
                         )
                     >> Tuple.first
                     >> Application.update

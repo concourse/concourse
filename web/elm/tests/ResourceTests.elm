@@ -6,7 +6,7 @@ import Assets
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
-import Concourse.Pagination exposing (Direction(..), Page)
+import Concourse.Pagination exposing (Direction(..), Page, Pagination)
 import DashboardTests
     exposing
         ( almostBlack
@@ -573,6 +573,22 @@ all =
                             }
                         , hoverable = Message.Message.PreviousPageButton
                         }
+                    , test "pagination previous loads most recent if less than 100 entries" <|
+                        \_ ->
+                            init
+                                |> givenResourceIsNotPinned
+                                |> givenVersionsWithPages
+                                     { direction = From 1, limit = 100 }
+                                    { nextPage = Nothing, previousPage = Nothing }
+                                |> Tuple.second
+                                |> Common.contains
+                                    (Effects.FetchVersionedResources
+                                        { teamName = teamName
+                                        , pipelineName = pipelineName
+                                        , resourceName = resourceName
+                                        }
+                                        Resource.startingPage
+                                    )
                     ]
                 ]
             ]
@@ -1275,7 +1291,7 @@ all =
                             |> Resource.handleCallback
                                 (Callback.VersionedResourcesFetched <|
                                     Ok
-                                        ( Nothing
+                                        ( Resource.startingPage
                                         , { content =
                                                 [ { id = versionID.versionID
                                                   , version = Dict.fromList [ ( "version", version ) ]
@@ -1335,7 +1351,7 @@ all =
                             |> Resource.handleCallback
                                 (Callback.VersionedResourcesFetched <|
                                     Ok
-                                        ( Nothing
+                                        ( Resource.startingPage
                                         , { content =
                                                 [ { id = versionID.versionID
                                                   , version = Dict.fromList [ ( "version", version ) ]
@@ -1397,7 +1413,7 @@ all =
                             |> Resource.handleCallback
                                 (Callback.VersionedResourcesFetched <|
                                     Ok
-                                        ( Nothing
+                                        ( Resource.startingPage
                                         , { content =
                                                 [ { id = versionID.versionID
                                                   , version = Dict.fromList [ ( "version", version ) ]
@@ -1462,7 +1478,7 @@ all =
                             |> Resource.handleCallback
                                 (Callback.VersionedResourcesFetched <|
                                     Ok
-                                        ( Nothing
+                                        ( Resource.startingPage
                                         , { content =
                                                 [ { id = versionID.versionID
                                                   , version = Dict.fromList [ ( "version", version ) ]
@@ -3487,12 +3503,12 @@ clickToDisable vid =
         >> Tuple.first
 
 
-givenVersionsWithoutPagination : Application.Model -> Application.Model
-givenVersionsWithoutPagination =
+givenVersionsWithPages : Page -> Concourse.Pagination.Pagination -> Application.Model -> ( Application.Model, List Effects.Effect )
+givenVersionsWithPages requestedPage pagination =
     Application.handleCallback
         (Callback.VersionedResourcesFetched <|
             Ok
-                ( Nothing
+                ( requestedPage
                 , { content =
                         [ { id = versionID.versionID
                           , version = Dict.fromList [ ( "version", version ) ]
@@ -3510,54 +3526,35 @@ givenVersionsWithoutPagination =
                           , enabled = False
                           }
                         ]
-                  , pagination =
-                        { previousPage = Nothing
-                        , nextPage = Nothing
-                        }
+                  , pagination = pagination
                   }
                 )
         )
+
+
+givenVersionsWithoutPagination : Application.Model -> Application.Model
+givenVersionsWithoutPagination =
+    givenVersionsWithPages Resource.startingPage
+        { previousPage = Nothing
+        , nextPage = Nothing
+        }
         >> Tuple.first
 
 
 givenVersionsWithPagination : Application.Model -> Application.Model
 givenVersionsWithPagination =
-    Application.handleCallback
-        (Callback.VersionedResourcesFetched <|
-            Ok
-                ( Nothing
-                , { content =
-                        [ { id = versionID.versionID
-                          , version = Dict.fromList [ ( "version", version ) ]
-                          , metadata = []
-                          , enabled = True
-                          }
-                        , { id = otherVersionID.versionID
-                          , version = Dict.fromList [ ( "version", otherVersion ) ]
-                          , metadata = []
-                          , enabled = True
-                          }
-                        , { id = disabledVersionID.versionID
-                          , version = Dict.fromList [ ( "version", disabledVersion ) ]
-                          , metadata = []
-                          , enabled = False
-                          }
-                        ]
-                  , pagination =
-                        { previousPage =
-                            Just
-                                { direction = From 100
-                                , limit = 1
-                                }
-                        , nextPage =
-                            Just
-                                { direction = To 1
-                                , limit = 1
-                                }
-                        }
-                  }
-                )
-        )
+    givenVersionsWithPages Resource.startingPage
+        { previousPage =
+            Just
+                { direction = From 100
+                , limit = 1
+                }
+        , nextPage =
+            Just
+                { direction = To 1
+                , limit = 1
+                }
+        }
         >> Tuple.first
 
 
