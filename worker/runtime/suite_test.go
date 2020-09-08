@@ -18,4 +18,5 @@ func TestSuite(t *testing.T) {
 	suite.Run(t, &RootfsManagerSuite{Assertions: require.New(t)})
 	suite.Run(t, &UserNamespaceSuite{Assertions: require.New(t)})
 	suite.Run(t, &TimeoutLockSuite{Assertions: require.New(t)})
+	suite.Run(t, &ResolveconfParserSuite{Assertions: require.New(t)})
 }

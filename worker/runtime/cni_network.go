@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/concourse/concourse/worker/runtime/iptables"
 	"github.com/containerd/containerd"
@@ -47,10 +48,6 @@ const (
 )
 
 var (
-	// defaultNameServers is the default set of nameservers used.
-	//
-	defaultNameServers = []string{"8.8.8.8"}
-
 	// defaultCNINetworkConfig is the default configuration for the CNI network
 	// created to put concourse containers into.
 	//
@@ -112,7 +109,9 @@ func WithCNIBinariesDir(dir string) CNINetworkOpt {
 //
 func WithNameServers(nameservers []string) CNINetworkOpt {
 	return func(n *cniNetwork) {
-		n.nameServers = nameservers
+		for _, ns := range nameservers {
+			n.nameServers = append(n.nameServers, "nameserver "+ns)
+		}
 	}
 }
 
@@ -177,7 +176,6 @@ func NewCNINetwork(opts ...CNINetworkOpt) (*cniNetwork, error) {
 	n := &cniNetwork{
 		binariesDir: binariesDir,
 		config:      defaultCNINetworkConfig,
-		nameServers: defaultNameServers,
 	}
 
 	for _, opt := range opts {
@@ -207,7 +205,7 @@ func NewCNINetwork(opts ...CNINetworkOpt) (*cniNetwork, error) {
 		n.ipt, err = iptables.New()
 
 		if err != nil {
-			return nil, fmt.Errorf("failed to initialized iptables")
+			return nil, fmt.Errorf("failed to initialize iptables")
 		}
 	}
 
@@ -227,9 +225,14 @@ func (n cniNetwork) SetupMounts(handle string) ([]specs.Mount, error) {
 		return nil, fmt.Errorf("creating /etc/hosts: %w", err)
 	}
 
+	resolvContents, err := n.generateResolvConfContents()
+	if err != nil {
+		return nil, fmt.Errorf("generating resolv.conf: %w", err)
+	}
+
 	resolvConf, err := n.store.Create(
 		filepath.Join(handle, "/resolv.conf"),
-		n.generateResolvConfContents(),
+		resolvContents,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("creating /etc/resolv.conf: %w", err)
@@ -273,13 +276,18 @@ func (n cniNetwork) SetupRestrictedNetworks() error {
 	return nil
 }
 
-func (n cniNetwork) generateResolvConfContents() []byte {
+func (n cniNetwork) generateResolvConfContents() ([]byte, error) {
 	contents := ""
-	for _, n := range n.nameServers {
-		contents = contents + "nameserver " + n + "\n"
+	resolvConfEntries := n.nameServers
+	var err error
+
+	if len(n.nameServers) == 0 {
+		resolvConfEntries, err = ParseHostResolveConf("/etc/resolv.conf")
 	}
 
-	return []byte(contents)
+	contents = strings.Join(resolvConfEntries, "\n")
+
+	return []byte(contents), err
 }
 
 func (n cniNetwork) Add(ctx context.Context, task containerd.Task) error {

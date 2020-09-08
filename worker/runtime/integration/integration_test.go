@@ -491,7 +491,7 @@ func (s *IntegrationSuite) TestCustomDNS() {
 	s.NoError(err)
 
 	s.Equal(exitCode, 0)
-	expectedDNSServer := "nameserver 1.1.1.1\nnameserver 1.2.3.4\n"
+	expectedDNSServer := "nameserver 1.1.1.1\nnameserver 1.2.3.4"
 	s.Equal(expectedDNSServer, buf.String())
 }
 
