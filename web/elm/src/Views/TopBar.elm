@@ -100,13 +100,13 @@ breadcrumbSeparator =
         [ Html.text "/" ]
 
 
-pipelineBreadcumb : Concourse.PipelineIdentifier -> Html Message
-pipelineBreadcumb pipelineId =
+pipelineBreadcrumb : Concourse.Pipeline -> Html Message
+pipelineBreadcrumb pipeline =
     Html.a
         ([ id "breadcrumb-pipeline"
          , href <|
             Routes.toString <|
-                Routes.Pipeline { id = pipelineId, groups = [] }
+                Routes.Pipeline { id = pipeline.id, groups = [] }
          ]
             ++ Styles.breadcrumbItem True
         )
@@ -116,7 +116,7 @@ pipelineBreadcumb pipelineId =
                 , widthPx = 28
                 , heightPx = 16
                 }
-            , name = pipelineId.pipelineName
+            , name = pipeline.name
             }
         )
 

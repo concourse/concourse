@@ -19,7 +19,7 @@ all =
     describe "top-level application"
         [ test "should subscribe to clicks from the not-automatically-linked boxes in the pipeline, and the token return" <|
             \_ ->
-                Common.init "/teams/t/pipelines/p/"
+                Common.init "/pipelines/1"
                     |> Application.subscriptions
                     |> Expect.all
                         [ Common.contains Subscription.OnNonHrefLinkClicked
@@ -27,7 +27,7 @@ all =
                         ]
         , test "subscribes to the favorited pipelines response" <|
             \_ ->
-                Common.init "/teams/t/pipelines/p/"
+                Common.init "/pipelines/1"
                     |> Application.subscriptions
                     |> Common.contains Subscription.OnFavoritedPipelinesReceived
         , test "loads favorited pipelines on init" <|
@@ -42,7 +42,7 @@ all =
                     { protocol = Url.Http
                     , host = ""
                     , port_ = Nothing
-                    , path = "/teams/t/pipelines/p/"
+                    , path = "/pipelines/1"
                     , query = Nothing
                     , fragment = Nothing
                     }
@@ -50,7 +50,7 @@ all =
                     |> Common.contains Effects.LoadFavoritedPipelines
         , test "clicking a not-automatically-linked box in the pipeline redirects" <|
             \_ ->
-                Common.init "/teams/t/pipelines/p/"
+                Common.init "/pipelines/1"
                     |> Application.update
                         (Msgs.DeliveryReceived <|
                             NonHrefLinkClicked "/foo/bar"
@@ -59,10 +59,6 @@ all =
                     |> Expect.equal [ Effects.LoadExternal "/foo/bar" ]
         , test "received token is passed to all subsequent requests" <|
             \_ ->
-                let
-                    pipelineIdentifier =
-                        { pipelineName = "p", teamName = "t" }
-                in
                 Common.init "/"
                     |> Application.update
                         (Msgs.DeliveryReceived <|
@@ -75,7 +71,7 @@ all =
                     |> Expect.equal "real-token"
         , test "subscribes to mouse events when dragging the side bar handle" <|
             \_ ->
-                Common.init "/teams/t/pipelines/p/jobs/j"
+                Common.init "/pipelines/1/jobs/j"
                     |> Application.update
                         (Msgs.Update <|
                             Click SideBarResizeHandle
@@ -88,7 +84,7 @@ all =
                         ]
         , test "cannot select text when dragging sidebar" <|
             \_ ->
-                Common.init "/teams/t/pipelines/p/jobs/j"
+                Common.init "/pipelines/1/jobs/j"
                     |> Application.update
                         (Msgs.Update <|
                             Click SideBarResizeHandle
@@ -105,12 +101,12 @@ all =
                         ]
         , test "can select text when not dragging sidebar" <|
             \_ ->
-                Common.init "/teams/t/pipelines/p/jobs/j"
+                Common.init "/pipelines/1/jobs/j"
                     |> Common.queryView
                     |> Query.hasNot [ style "user-select" "none" ]
         , test "page-wrapper fills height" <|
             \_ ->
-                Common.init "/teams/t/pipelines/p/jobs/j"
+                Common.init "/pipelines/1/jobs/j"
                     |> Application.update
                         (Msgs.Update <|
                             Click SideBarResizeHandle

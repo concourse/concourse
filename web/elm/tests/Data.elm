@@ -21,7 +21,6 @@ module Data exposing
     , resourceName
     , resourceVersionId
     , shortJobId
-    , shortPipelineId
     , shortResourceId
     , teamName
     , version
@@ -29,16 +28,29 @@ module Data exposing
     , withArchived
     , withBackgroundImage
     , withBuildName
+    , withCheckError
     , withDisableManualTrigger
+    , withDuration
+    , withFailingToCheck
+    , withFinishedBuild
     , withGroups
+    , withHovered
+    , withIcon
+    , withId
+    , withJob
     , withJobName
+    , withLastChecked
     , withName
+    , withNextBuild
     , withPaused
+    , withPinComment
+    , withPinnedInConfig
+    , withPipelineId
     , withPipelineName
     , withPublic
+    , withReapTime
     , withResourceName
     , withShortJobId
-    , withShortPipelineId
     , withShortResourceId
     , withTeamName
     )
@@ -48,6 +60,7 @@ import Concourse
 import Concourse.BuildStatus as BuildStatus
 import Dashboard.Group.Models
 import Dict exposing (Dict)
+import HoverState
 import Http
 import Json.Encode
 import Test.Html.Event as Event
@@ -141,20 +154,51 @@ check status =
             }
 
 
-resource : String -> Concourse.Resource
+resource : Maybe String -> Concourse.Resource
 resource pinnedVersion =
     { teamName = teamName
     , pipelineName = pipelineName
+    , pipelineId = pipelineId
     , name = resourceName
     , failingToCheck = False
     , checkError = ""
     , checkSetupError = ""
     , lastChecked = Nothing
-    , pinnedVersion = Just <| version pinnedVersion
+    , pinnedVersion = Maybe.map version pinnedVersion
     , pinnedInConfig = False
     , pinComment = Nothing
     , icon = Nothing
     }
+
+
+withLastChecked : Maybe Time.Posix -> { r | lastChecked : Maybe Time.Posix } -> { r | lastChecked : Maybe Time.Posix }
+withLastChecked t r =
+    { r | lastChecked = t }
+
+
+withCheckError : String -> { r | checkError : String } -> { r | checkError : String }
+withCheckError e r =
+    { r | checkError = e }
+
+
+withFailingToCheck : Bool -> { r | failingToCheck : Bool } -> { r | failingToCheck : Bool }
+withFailingToCheck f r =
+    { r | failingToCheck = f }
+
+
+withPinnedInConfig : Bool -> { r | pinnedInConfig : Bool } -> { r | pinnedInConfig : Bool }
+withPinnedInConfig p r =
+    { r | pinnedInConfig = p }
+
+
+withPinComment : Maybe String -> { r | pinComment : Maybe String } -> { r | pinComment : Maybe String }
+withPinComment p r =
+    { r | pinComment = p }
+
+
+withIcon : Maybe String -> { r | icon : Maybe String } -> { r | icon : Maybe String }
+withIcon i r =
+    { r | icon = i }
 
 
 pipeline : String -> Int -> Concourse.Pipeline
@@ -218,6 +262,7 @@ withBackgroundImage bg p =
 job : Int -> Concourse.Job
 job pipelineID =
     { name = jobName
+    , pipelineId = pipelineID
     , pipelineName = "pipeline-" ++ String.fromInt pipelineID
     , teamName = teamName
     , nextBuild = Nothing
@@ -251,6 +296,11 @@ withJobName name p =
     { p | jobName = name }
 
 
+withJob : Maybe Concourse.JobIdentifier -> { r | job : Maybe Concourse.JobIdentifier } -> { r | job : Maybe Concourse.JobIdentifier }
+withJob j b =
+    { b | job = j }
+
+
 withResourceName : String -> { r | resourceName : String } -> { r | resourceName : String }
 withResourceName name p =
     { p | resourceName = name }
@@ -259,6 +309,37 @@ withResourceName name p =
 withBuildName : String -> { r | buildName : String } -> { r | buildName : String }
 withBuildName name p =
     { p | buildName = name }
+
+
+withFinishedBuild : Maybe Concourse.Build -> { r | finishedBuild : Maybe Concourse.Build } -> { r | finishedBuild : Maybe Concourse.Build }
+withFinishedBuild build j =
+    { j | finishedBuild = build }
+
+
+withNextBuild : Maybe Concourse.Build -> { r | nextBuild : Maybe Concourse.Build } -> { r | nextBuild : Maybe Concourse.Build }
+withNextBuild build j =
+    { j | nextBuild = build }
+
+
+withId : Int -> { r | id : Int } -> { r | id : Int }
+withId id j =
+    { j | id = id }
+
+
+type alias Duration =
+    { startedAt : Maybe Time.Posix
+    , finishedAt : Maybe Time.Posix
+    }
+
+
+withDuration : Duration -> { r | duration : Duration } -> { r | duration : Duration }
+withDuration d b =
+    { b | duration = d }
+
+
+withReapTime : Maybe Time.Posix -> { r | reapTime : Maybe Time.Posix } -> { r | reapTime : Maybe Time.Posix }
+withReapTime t b =
+    { b | reapTime = t }
 
 
 jobName =
@@ -281,17 +362,12 @@ buildName =
     "1"
 
 
-withShortPipelineId =
-    withPipelineName "p"
-        >> withTeamName "t"
-
-
 withShortJobId =
-    withShortPipelineId >> withJobName "j"
+    withJobName "j"
 
 
 withShortResourceId =
-    withShortPipelineId >> withResourceName "r"
+    withResourceName "r"
 
 
 versionedResource : String -> Int -> Concourse.VersionedResource
@@ -310,20 +386,17 @@ version v =
 
 pipelineId : Concourse.PipelineIdentifier
 pipelineId =
-    { teamName = teamName
-    , pipelineName = pipelineName
-    }
+    1
 
 
-shortPipelineId : Concourse.PipelineIdentifier
-shortPipelineId =
-    pipelineId |> withShortPipelineId
+withPipelineId : Concourse.DatabaseID -> { r | pipelineId : Concourse.DatabaseID } -> { r | pipelineId : Concourse.DatabaseID }
+withPipelineId id p =
+    { p | pipelineId = id }
 
 
 jobId : Concourse.JobIdentifier
 jobId =
-    { teamName = teamName
-    , pipelineName = pipelineName
+    { pipelineId = pipelineId
     , jobName = jobName
     }
 
@@ -335,8 +408,7 @@ shortJobId =
 
 resourceId : Concourse.ResourceIdentifier
 resourceId =
-    { teamName = teamName
-    , pipelineName = pipelineName
+    { pipelineId = pipelineId
     , resourceName = resourceName
     }
 
@@ -348,8 +420,7 @@ shortResourceId =
 
 resourceVersionId : Int -> Concourse.VersionedResourceIdentifier
 resourceVersionId v =
-    { teamName = teamName
-    , pipelineName = pipelineName
+    { pipelineId = pipelineId
     , resourceName = resourceName
     , versionID = v
     }
@@ -367,8 +438,7 @@ jobBuildId =
 
 longJobBuildId : Concourse.JobBuildIdentifier
 longJobBuildId =
-    { teamName = teamName
-    , pipelineName = pipelineName
+    { pipelineId = pipelineId
     , jobName = jobName
     , buildName = buildName
     }
@@ -378,6 +448,7 @@ jobBuild : BuildStatus.BuildStatus -> Concourse.Build
 jobBuild status =
     { id = 1
     , name = buildName
+    , teamName = "t"
     , job = Just (jobId |> withShortJobId)
     , status = status
     , duration =
@@ -430,3 +501,8 @@ leftClickEvent =
             , ( "shiftKey", Json.Encode.bool False )
             , ( "button", Json.Encode.int 0 )
             ]
+
+
+withHovered : HoverState.HoverState -> { r | hovered : HoverState.HoverState } -> { r | hovered : HoverState.HoverState }
+withHovered hs v =
+    { v | hovered = hs }

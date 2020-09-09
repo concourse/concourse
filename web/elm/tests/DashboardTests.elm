@@ -698,26 +698,15 @@ all =
                     |> Application.handleCallback
                         (Callback.AllJobsFetched <|
                             Ok
-                                [ { name = "job"
-                                  , pipelineName = "pipeline"
-                                  , teamName = "team"
-                                  , nextBuild = Nothing
-                                  , finishedBuild =
-                                        Just
-                                            { id = 0
-                                            , name = "1"
-                                            , job = Just Data.jobId
-                                            , status = BuildStatusSucceeded
-                                            , duration = { startedAt = Nothing, finishedAt = Nothing }
-                                            , reapTime = Nothing
-                                            }
-                                  , transitionBuild = Nothing
-                                  , paused = False
-                                  , disableManualTrigger = False
-                                  , inputs = []
-                                  , outputs = []
-                                  , groups = []
-                                  }
+                                [ Data.job 1
+                                    |> Data.withTeamName "team"
+                                    |> Data.withPipelineName "pipeline"
+                                    |> Data.withFinishedBuild
+                                        (Data.jobBuild BuildStatusSucceeded
+                                            |> Data.withTeamName "team"
+                                            |> Data.withJob (Just Data.jobId)
+                                            |> Just
+                                        )
                                 ]
                         )
                     |> Tuple.first
@@ -726,7 +715,7 @@ all =
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok
-                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -740,7 +729,7 @@ all =
                         [ tag "a" ]
                     |> Query.has
                         [ attribute <|
-                            Attr.href "/teams/team/pipelines/pipeline/jobs/job/builds/1"
+                            Attr.href "/pipelines/1/jobs/job/builds/1"
                         ]
         , test "HD view redirects to no pipelines view when there are no pipelines" <|
             \_ ->
@@ -2210,21 +2199,8 @@ apiData pipelines =
 
 
 running : Concourse.Job -> Concourse.Job
-running j =
-    { j
-        | nextBuild =
-            Just
-                { id = 1
-                , name = "1"
-                , job = Just Data.jobId
-                , status = BuildStatusStarted
-                , duration =
-                    { startedAt = Nothing
-                    , finishedAt = Nothing
-                    }
-                , reapTime = Nothing
-                }
-    }
+running =
+    Data.withNextBuild (Data.jobBuild BuildStatusStarted |> Just)
 
 
 otherJob : BuildStatus -> Concourse.Job
@@ -2240,12 +2216,14 @@ job =
 jobWithNameTransitionedAt : String -> Maybe Time.Posix -> BuildStatus -> Concourse.Job
 jobWithNameTransitionedAt jobName transitionedAt status =
     { name = jobName
+    , pipelineId = 1
     , pipelineName = "pipeline"
     , teamName = "team"
     , nextBuild = Nothing
     , finishedBuild =
         Just
             { id = 0
+            , teamName = "team"
             , name = "0"
             , job = Just Data.jobId
             , status = status
@@ -2260,6 +2238,7 @@ jobWithNameTransitionedAt jobName transitionedAt status =
             |> Maybe.map
                 (\t ->
                     { id = 1
+                    , teamName = "team"
                     , name = "1"
                     , job = Just Data.jobId
                     , status = status
@@ -2281,6 +2260,7 @@ jobWithNameTransitionedAt jobName transitionedAt status =
 circularJobs : List Concourse.Job
 circularJobs =
     [ { name = "jobA"
+      , pipelineId = 1
       , pipelineName = "pipeline"
       , teamName = "team"
       , nextBuild = Nothing
@@ -2288,6 +2268,7 @@ circularJobs =
             Just
                 { id = 0
                 , name = "0"
+                , teamName = "team"
                 , job = Just (Data.jobId |> Data.withJobName "jobA")
                 , status = BuildStatusSucceeded
                 , duration =
@@ -2300,6 +2281,7 @@ circularJobs =
             Just
                 { id = 1
                 , name = "1"
+                , teamName = "team"
                 , job = Just (Data.jobId |> Data.withJobName "jobA")
                 , status = BuildStatusSucceeded
                 , duration =
@@ -2321,6 +2303,7 @@ circularJobs =
       , groups = []
       }
     , { name = "jobB"
+      , pipelineId = 1
       , pipelineName = "pipeline"
       , teamName = "team"
       , nextBuild = Nothing
@@ -2328,6 +2311,7 @@ circularJobs =
             Just
                 { id = 0
                 , name = "0"
+                , teamName = "team"
                 , job = Just (Data.jobId |> Data.withJobName "jobB")
                 , status = BuildStatusSucceeded
                 , duration =
@@ -2340,6 +2324,7 @@ circularJobs =
             Just
                 { id = 1
                 , name = "1"
+                , teamName = "team"
                 , job = Just (Data.jobId |> Data.withJobName "jobB")
                 , status = BuildStatusSucceeded
                 , duration =

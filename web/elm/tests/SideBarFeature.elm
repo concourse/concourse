@@ -439,7 +439,7 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineStar
-                >> then_ (itIsClickable <| Message.SideBarFavoritedIcon 0)
+                >> then_ (itIsClickable <| Message.SideBarFavoritedIcon 1)
         , test "pipeline gets favorited when star icon is clicked" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -857,8 +857,8 @@ apiDataLoads =
         >> Application.handleCallback
             (Callback.AllPipelinesFetched <|
                 Ok
-                    [ Data.pipeline "team" 0 |> Data.withName "pipeline"
-                    , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
+                    [ Data.pipeline "team" 1 |> Data.withName "pipeline"
+                    , Data.pipeline "team" 2 |> Data.withName "other-pipeline"
                     ]
             )
 
@@ -869,8 +869,8 @@ dataRefreshes =
         >> Application.handleCallback
             (Callback.AllPipelinesFetched <|
                 Ok
-                    [ Data.pipeline "team" 0 |> Data.withName "pipeline"
-                    , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
+                    [ Data.pipeline "team" 1 |> Data.withName "pipeline"
+                    , Data.pipeline "team" 2 |> Data.withName "other-pipeline"
                     ]
             )
 
@@ -1083,10 +1083,7 @@ iSeeItHasAValidPipelineId =
     Query.has
         [ id <|
             (pipelinesSectionName AllPipelinesSection
-                ++ "_"
-                ++ Base64.encode "team"
-                ++ "_"
-                ++ Base64.encode "pipeline"
+                ++ "_1"
             )
         ]
 
@@ -1147,7 +1144,7 @@ iClickedTheFirstPipelineStar =
         >> Application.update
             (TopLevelMessage.Update <|
                 Message.Click <|
-                    Message.SideBarFavoritedIcon 0
+                    Message.SideBarFavoritedIcon 1
             )
 
 
@@ -1210,7 +1207,7 @@ iAmLookingAtTheTeamName =
 
 iSeeItIsALinkToTheFirstPipeline =
     Query.has
-        [ tag "a", attribute <| Attr.href "/teams/team/pipelines/pipeline" ]
+        [ tag "a", attribute <| Attr.href "/pipelines/1" ]
 
 
 iToggledToHighDensity =
@@ -1378,7 +1375,7 @@ iOpenedThePipelinePage _ =
         { protocol = Url.Http
         , host = ""
         , port_ = Nothing
-        , path = "/teams/other-team/pipelines/yet-another-pipeline"
+        , path = "/pipelines/4"
         , query = Nothing
         , fragment = Nothing
         }
@@ -1452,10 +1449,10 @@ myBrowserFetchedPipelinesFromMultipleTeams =
         >> Application.handleCallback
             (Callback.AllPipelinesFetched <|
                 Ok
-                    [ Data.pipeline "team" 0 |> Data.withName "pipeline"
-                    , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
-                    , Data.pipeline "team" 2 |> Data.withName "yet-another-pipeline"
-                    , Data.pipeline "other-team" 3 |> Data.withName "yet-another-pipeline"
+                    [ Data.pipeline "team" 1 |> Data.withName "pipeline"
+                    , Data.pipeline "team" 2 |> Data.withName "other-pipeline"
+                    , Data.pipeline "team" 3 |> Data.withName "yet-another-pipeline"
+                    , Data.pipeline "other-team" 4 |> Data.withName "yet-another-pipeline"
                     ]
             )
 
@@ -1465,8 +1462,8 @@ myBrowserFetchedPipelines =
         >> Application.handleCallback
             (Callback.AllPipelinesFetched <|
                 Ok
-                    [ Data.pipeline "team" 0 |> Data.withName "pipeline"
-                    , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
+                    [ Data.pipeline "team" 1 |> Data.withName "pipeline"
+                    , Data.pipeline "team" 2 |> Data.withName "other-pipeline"
                     ]
             )
 
@@ -1476,8 +1473,8 @@ myBrowserFetchedArchivedAndNonArchivedPipelines =
         >> Application.handleCallback
             (Callback.AllPipelinesFetched <|
                 Ok
-                    [ Data.pipeline "team" 0 |> Data.withName "archived" |> Data.withArchived True
-                    , Data.pipeline "team" 1 |> Data.withName "non-archived"
+                    [ Data.pipeline "team" 1 |> Data.withName "archived" |> Data.withArchived True
+                    , Data.pipeline "team" 2 |> Data.withName "non-archived"
                     ]
             )
 
@@ -1487,8 +1484,8 @@ myBrowserFetchedOnlyArchivedPipelines =
         >> Application.handleCallback
             (Callback.AllPipelinesFetched <|
                 Ok
-                    [ Data.pipeline "team" 0 |> Data.withName "archived1" |> Data.withArchived True
-                    , Data.pipeline "team" 1 |> Data.withName "archived2" |> Data.withArchived True
+                    [ Data.pipeline "team" 1 |> Data.withName "archived1" |> Data.withArchived True
+                    , Data.pipeline "team" 2 |> Data.withName "archived2" |> Data.withArchived True
                     ]
             )
 
@@ -1505,7 +1502,7 @@ myBrowserFetchedFavoritedPipelines =
     Tuple.first
         >> Application.handleDelivery
             (Subscription.FavoritedPipelinesReceived <|
-                Ok (Set.singleton 0)
+                Ok (Set.singleton 1)
             )
 
 
@@ -1672,7 +1669,7 @@ iSeeItAlignsWithTheTeamName =
 iSeeItIsALinkToThePipeline =
     Query.has
         [ tag "a"
-        , attribute <| Attr.href "/teams/team/pipelines/pipeline"
+        , attribute <| Attr.href "/pipelines/1"
         ]
 
 
@@ -1683,7 +1680,7 @@ iClickAPipelineLink =
                 Subscription.RouteChanged <|
                     Routes.Pipeline
                         { groups = []
-                        , id = Data.pipelineId |> Data.withPipelineName "other-pipeline"
+                        , id = 2
                         }
             )
 
@@ -1723,10 +1720,7 @@ iNavigateBackToThePipelinePage =
                 Subscription.RouteChanged <|
                     Routes.Pipeline
                         { groups = []
-                        , id =
-                            Data.pipelineId
-                                |> Data.withTeamName "other-team"
-                                |> Data.withPipelineName "yet-another-pipeline"
+                        , id = 3
                         }
             )
 
@@ -1775,6 +1769,7 @@ iAmLookingAtAOneOffBuildPageOnANonPhoneScreen =
                 (Ok
                     { id = 1
                     , name = "1"
+                    , teamName = "t"
                     , job = Nothing
                     , status = BuildStatusStarted
                     , duration = { startedAt = Nothing, finishedAt = Nothing }
@@ -1786,7 +1781,7 @@ iAmLookingAtAOneOffBuildPageOnANonPhoneScreen =
         >> Application.handleCallback
             (Callback.AllPipelinesFetched
                 (Ok
-                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                    [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                 )
             )
         >> Tuple.first
@@ -1824,7 +1819,7 @@ iOpenTheJobPage _ =
         { protocol = Url.Http
         , host = ""
         , port_ = Nothing
-        , path = "/teams/other-team/pipelines/yet-another-pipeline/jobs/job"
+        , path = "/pipelines/4/jobs/job"
         , query = Nothing
         , fragment = Nothing
         }
@@ -1841,7 +1836,7 @@ iOpenTheResourcePage _ =
         { protocol = Url.Http
         , host = ""
         , port_ = Nothing
-        , path = "/teams/other-team/pipelines/yet-another-pipeline/resources/r"
+        , path = "/pipelines/4/resources/r"
         , query = Nothing
         , fragment = Nothing
         }

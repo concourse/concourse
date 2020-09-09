@@ -41,18 +41,21 @@ all =
 
 iAmOnTheResourcePage _ =
     Common.init
-        ("/teams/"
-            ++ Data.teamName
-            ++ "/pipelines/"
-            ++ Data.pipelineName
+        ("/pipelines/"
+            ++ String.fromInt Data.pipelineId
             ++ "/resources/"
             ++ Data.resourceName
         )
+        |> Application.handleCallback
+            (Callback.AllPipelinesFetched <|
+                Ok [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+            )
+        |> Tuple.first
 
 
 theResourceIsAlreadyPinned =
     Application.handleCallback
-        (Callback.ResourceFetched <| Ok <| Data.resource pinnedVersion)
+        (Callback.ResourceFetched <| Ok <| Data.resource (Just pinnedVersion))
         >> Tuple.first
         >> Application.handleCallback
             (Callback.VersionedResourcesFetched <|

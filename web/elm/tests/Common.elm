@@ -155,12 +155,12 @@ myBrowserFetchedTheBuild =
                 Ok
                     { id = 1
                     , name = "1"
+                    , teamName = "other-team"
                     , job =
                         Just
                             (Data.jobId
-                                |> Data.withTeamName "other-team"
-                                |> Data.withPipelineName "yet-another-pipeline"
                                 |> Data.withJobName "job"
+                                |> Data.withPipelineId 4
                             )
                     , status = BuildStatusStarted
                     , duration =

@@ -192,8 +192,7 @@ all =
                                 { session
                                     | pipelines =
                                         RemoteData.Success
-                                            [ Data.pipeline jobId.teamName 0
-                                                |> Data.withName jobId.pipelineName
+                                            [ Data.pipeline Data.teamName 1
                                                 |> Data.withArchived True
                                             ]
                                 }
@@ -392,13 +391,11 @@ model =
 
 build : Concourse.Build
 build =
-    { id = 0
-    , name = "0"
-    , job = Just jobId
-    , status = model.status
-    , duration = model.duration
-    , reapTime = Nothing
-    }
+    Data.jobBuild model.status
+        |> Data.withId 0
+        |> Data.withName "0"
+        |> Data.withJob (Just jobId)
+        |> Data.withDuration model.duration
 
 
 jobId : Concourse.JobIdentifier

@@ -63,6 +63,13 @@ flags =
     }
 
 
+pipelineFetched pipeline =
+    Application.handleCallback (Callback.PipelineFetched (Ok <| pipeline))
+        >> Tuple.first
+        >> Application.handleCallback (Callback.AllPipelinesFetched (Ok <| [ pipeline ]))
+        >> Tuple.first
+
+
 all : Test
 all =
     describe "Pipeline"
@@ -85,7 +92,7 @@ all =
                         { protocol = Url.Http
                         , host = ""
                         , port_ = Nothing
-                        , path = "/teams/team/pipelines/pipeline"
+                        , path = "/pipelines/1"
                         , query = Just "group=other-group"
                         , fragment = Nothing
                         }
@@ -93,7 +100,7 @@ all =
                         |> Application.handleCallback
                             (Callback.PipelineFetched
                                 (Ok <|
-                                    (Data.pipeline "team" 0
+                                    (Data.pipeline "team" 1
                                         |> Data.withName "pipeline"
                                         |> Data.withGroups groups
                                     )
@@ -194,7 +201,7 @@ all =
                                                 [ text "group"
                                                 , attribute <|
                                                     Attr.href
-                                                        "/teams/team/pipelines/pipeline?group=group"
+                                                        "/pipelines/1?group=group"
                                                 , tag "a"
                                                 ]
                                         , Query.index 1
@@ -202,7 +209,7 @@ all =
                                                 [ text "other-group"
                                                 , attribute <|
                                                     Attr.href
-                                                        "/teams/team/pipelines/pipeline?group=other-group"
+                                                        "/pipelines/1?group=other-group"
                                                 , tag "a"
                                                 ]
                                         ]
@@ -269,7 +276,7 @@ all =
             ]
         , test "pipeline view fills available space" <|
             \_ ->
-                Common.init "/teams/team/pipelines/pipeline"
+                Common.init "/pipelines/1"
                     |> Common.queryView
                     |> Query.find [ id "pipeline-container" ]
                     |> Query.has [ style "flex-grow" "1" ]
@@ -285,7 +292,7 @@ all =
                     { protocol = Url.Http
                     , host = ""
                     , port_ = Nothing
-                    , path = "teams/team/pipelines/pipeline"
+                    , path = "pipelines/1"
                     , query = Nothing
                     , fragment = Nothing
                     }
@@ -293,12 +300,13 @@ all =
                     |> Common.contains Effects.GetScreenSize
         , test "subscribes to screen resizes" <|
             \_ ->
-                Common.init "/teams/team/pipelines/pipelineName"
+                Common.init "/pipelines/1"
                     |> Application.subscriptions
                     |> Common.contains Subscription.OnWindowResize
         , test "title should include the pipeline name" <|
             \_ ->
-                Common.init "/teams/team/pipelines/pipelineName"
+                Common.init "/pipelines/1"
+                    |> pipelineFetched (Data.pipeline "team" 1 |> Data.withName "pipelineName")
                     |> Application.view
                     |> .title
                     |> Expect.equal "pipelineName - Concourse"
@@ -330,10 +338,7 @@ all =
                 defaultModel : Pipeline.Model
                 defaultModel =
                     Pipeline.init
-                        { pipelineLocator =
-                            Data.pipelineId
-                                |> Data.withTeamName "some-team"
-                                |> Data.withPipelineName "some-pipeline"
+                        { pipelineLocator = Data.pipelineId
                         , turbulenceImgSrc = "some-turbulence-img-src"
                         , selectedGroups = []
                         }
@@ -341,7 +346,7 @@ all =
             in
             [ test "CLI icons at bottom right" <|
                 \_ ->
-                    Common.init "/teams/team/pipelines/pipeline"
+                    Common.init "/pipelines/1"
                         |> Common.queryView
                         |> Query.find [ class "cli-downloads" ]
                         |> Query.children []
@@ -385,7 +390,7 @@ all =
                             ]
             , test "pipeline subscribes to 1s, 5s, and 1m timers" <|
                 \_ ->
-                    Common.init "/teams/team/pipelines/pipeline"
+                    Common.init "/pipelines/1"
                         |> Application.subscriptions
                         |> Expect.all
                             [ Common.contains (Subscription.OnClockTick OneSecond)
@@ -394,7 +399,7 @@ all =
                             ]
             , test "on five second timer, refreshes pipeline" <|
                 \_ ->
-                    Common.init "/teams/team/pipelines/pipeline"
+                    Common.init "/pipelines/1"
                         |> Application.update
                             (Msgs.DeliveryReceived
                                 (ClockTicked FiveSeconds <|
@@ -405,7 +410,7 @@ all =
                         |> Common.contains (Effects.FetchPipeline Data.pipelineId)
             , test "on one minute timer, refreshes version" <|
                 \_ ->
-                    Common.init "/teams/team/pipelines/pipeline"
+                    Common.init "/pipelines/1"
                         |> Application.update
                             (Msgs.DeliveryReceived
                                 (ClockTicked OneMinute <|
@@ -430,7 +435,7 @@ all =
                 in
                 [ test "Legend has definition for pinned resource color" <|
                     \_ ->
-                        Common.init "/teams/team/pipelines/pipeline"
+                        Common.init "/pipelines/1"
                             |> Common.queryView
                             |> Query.find [ id "legend" ]
                             |> Query.children []
@@ -450,7 +455,7 @@ all =
                                 ]
                 , test "HideLegendTimerTicked" <|
                     \_ ->
-                        Common.init "/teams/team/pipelines/pipeline"
+                        Common.init "/pipelines/1"
                             |> clockTick
                             |> Common.queryView
                             |> Query.find [ id "legend" ]
@@ -458,13 +463,13 @@ all =
                             |> Query.count (Expect.equal 20)
                 , test "HideLegendTimeTicked reaches timeout" <|
                     \_ ->
-                        Common.init "/teams/team/pipelines/pipeline"
+                        Common.init "/pipelines/1"
                             |> clockTickALot 11
                             |> Common.queryView
                             |> Query.hasNot [ id "legend" ]
                 , test "Mouse action after legend hidden reshows legend" <|
                     \_ ->
-                        Common.init "/teams/team/pipelines/pipeline"
+                        Common.init "/pipelines/1"
                             |> clockTickALot 11
                             |> Application.update (Msgs.DeliveryReceived <| Moused { x = 0, y = 0 })
                             |> Tuple.first
@@ -472,7 +477,7 @@ all =
                             |> Query.has [ id "legend" ]
                 ]
             , rspecStyleDescribe "when on pipeline page"
-                (Common.init "/teams/team/pipelines/pipeline")
+                (Common.init "/pipelines/1")
                 [ it "shows a pin icon on top bar" <|
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -520,13 +525,13 @@ all =
                 ]
             , test "top bar lays out contents horizontally" <|
                 \_ ->
-                    Common.init "/teams/team/pipelines/pipeline"
+                    Common.init "/pipelines/1"
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has [ style "display" "inline-block" ]
             , test "top bar maximizes spacing between the left and right navs" <|
                 \_ ->
-                    Common.init "/teams/team/pipelines/pipeline"
+                    Common.init "/pipelines/1"
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has
@@ -535,7 +540,7 @@ all =
                             ]
             , test "top bar is sticky" <|
                 \_ ->
-                    Common.init "/teams/team/pipelines/pipeline"
+                    Common.init "/pipelines/1"
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has
@@ -544,7 +549,7 @@ all =
                             ]
             , test "breadcrumb items are laid out horizontally" <|
                 \_ ->
-                    Common.init "/teams/team/pipelines/pipeline"
+                    Common.init "/pipelines/1"
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumbs" ]
@@ -553,14 +558,14 @@ all =
                             (Query.has [ style "display" "inline-block" ])
             , describe "top bar positioning"
                 [ testTopBarPositioning "Dashboard" "/"
-                , testTopBarPositioning "Pipeline" "/teams/team/pipelines/pipeline"
-                , testTopBarPositioning "Job" "/teams/team/pipelines/pipeline/jobs/job"
-                , testTopBarPositioning "Build" "/teams/team/pipelines/pipeline/jobs/job/builds/build"
-                , testTopBarPositioning "Resource" "/teams/team/pipelines/pipeline/resources/resource"
+                , testTopBarPositioning "Pipeline" "/pipelines/1"
+                , testTopBarPositioning "Job" "/pipelines/1/jobs/job"
+                , testTopBarPositioning "Build" "/pipelines/1/jobs/job/builds/build"
+                , testTopBarPositioning "Resource" "/pipelines/1/resources/resource"
                 , testTopBarPositioning "FlySuccess" "/fly_success"
                 ]
             , rspecStyleDescribe "when on job page"
-                (Common.init "/teams/team/pipeline/pipeline/jobs/job/builds/1")
+                (Common.init "/pipelines/1/jobs/job/builds/1")
                 [ it "shows no pin icon on top bar when viewing build page" <|
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -568,11 +573,11 @@ all =
                 ]
             , test "top nav bar is blue when pipeline is paused" <|
                 \_ ->
-                    Common.init "/teams/team/pipelines/pipeline"
+                    Common.init "/pipelines/1"
                         |> Application.handleCallback
                             (Callback.PipelineFetched
                                 (Ok <|
-                                    (Data.pipeline "team" 0
+                                    (Data.pipeline "team" 1
                                         |> Data.withName "pipeline"
                                         |> Data.withPaused True
                                     )
@@ -584,11 +589,11 @@ all =
                         |> Query.has [ style "background-color" "#3498db" ]
             , test "top nav bar isn't blue when pipeline is archived" <|
                 \_ ->
-                    Common.init "/teams/team/pipelines/pipeline"
+                    Common.init "/pipelines/1"
                         |> Application.handleCallback
                             (Callback.PipelineFetched
                                 (Ok <|
-                                    (Data.pipeline "team" 0
+                                    (Data.pipeline "team" 1
                                         |> Data.withName "pipeline"
                                         |> Data.withPaused True
                                         |> Data.withArchived True
@@ -601,7 +606,8 @@ all =
                         |> Query.hasNot [ style "background-color" "#3498db" ]
             , test "breadcrumb list is laid out horizontally" <|
                 \_ ->
-                    Common.init "/teams/team/pipelines/pipeline"
+                    Common.init "/pipelines/1"
+                        |> pipelineFetched (Data.pipeline "team" 1 |> Data.withName "pipeline")
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumbs" ]
@@ -611,14 +617,16 @@ all =
                             ]
             , test "pipeline breadcrumb is laid out horizontally" <|
                 \_ ->
-                    Common.init "/teams/team/pipelines/pipeline"
+                    Common.init "/pipelines/1"
+                        |> pipelineFetched (Data.pipeline "team" 1 |> Data.withName "pipeline")
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumb-pipeline" ]
                         |> Query.has [ style "display" "inline-block" ]
             , test "top bar has pipeline breadcrumb with icon rendered first" <|
                 \_ ->
-                    Common.init "/teams/team/pipelines/pipeline"
+                    Common.init "/pipelines/1"
+                        |> pipelineFetched (Data.pipeline "team" 1 |> Data.withName "pipeline")
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumb-pipeline" ]
@@ -627,7 +635,8 @@ all =
                         |> Query.has pipelineBreadcrumbSelector
             , test "top bar has pipeline name after pipeline icon" <|
                 \_ ->
-                    Common.init "/teams/team/pipelines/pipeline"
+                    Common.init "/pipelines/1"
+                        |> pipelineFetched (Data.pipeline "team" 1 |> Data.withName "pipeline")
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumb-pipeline" ]
@@ -635,24 +644,18 @@ all =
             , describe "top bar star icon" <|
                 let
                     givenFavoritedPipelinesFetched =
-                        Common.init "/teams/t/pipelines/p"
-                            |> Application.handleCallback
-                                (Callback.PipelineFetched
-                                    (Ok <|
-                                        Data.pipeline "team" 0
-                                    )
-                                )
-                            |> Tuple.first
+                        Common.init "/pipelines/1"
+                            |> pipelineFetched (Data.pipeline "team" 1 |> Data.withName "pipeline")
                             |> Application.handleDelivery
                                 (Subscription.FavoritedPipelinesReceived <|
                                     Ok <|
-                                        Set.singleton 0
+                                        Set.singleton 1
                                 )
 
                     favMsg =
                         Msgs.Update <|
                             Message.Message.Click <|
-                                Message.Message.TopBarFavoritedIcon 0
+                                Message.Message.TopBarFavoritedIcon 1
 
                     iSeeStarUnfilled =
                         Query.has
@@ -666,7 +669,7 @@ all =
                 in
                 [ defineHoverBehaviour
                     { name = "star icon"
-                    , setup = Common.init "teams/t/pipelines/p"
+                    , setup = Common.init "/pipelines/1"
                     , query =
                         queryView
                             >> Query.find [ id "top-bar-favorited-icon" ]
@@ -716,7 +719,7 @@ all =
                                 (Msgs.Update <|
                                     Message.Message.Click <|
                                         Message.Message.TopBarFavoritedIcon
-                                            0
+                                            1
                                 )
                             |> Tuple.second
                             |> Expect.equal
@@ -731,7 +734,7 @@ all =
                                 (Msgs.Update <|
                                     Message.Message.Click <|
                                         Message.Message.TopBarFavoritedIcon
-                                            0
+                                            1
                                 )
                             |> Tuple.first
                             |> Common.queryView

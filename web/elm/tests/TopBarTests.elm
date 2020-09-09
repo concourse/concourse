@@ -135,7 +135,13 @@ all : Test
 all =
     describe "TopBar"
         [ rspecStyleDescribe "when on pipeline page"
-            (Common.init "/teams/team/pipelines/pipeline")
+            (Common.init "/pipelines/1"
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                    )
+                |> Tuple.first
+            )
             [ context "when login state unknown"
                 queryView
                 [ it "shows concourse logo" <|
@@ -169,7 +175,7 @@ all =
                             [ tag "a"
                             , attribute <|
                                 Attr.href
-                                    "/teams/team/pipelines/pipeline"
+                                    "/pipelines/1"
                             ]
                     ]
                 , it "has dark grey background" <|
@@ -349,7 +355,7 @@ all =
                 ]
             ]
         , rspecStyleDescribe "rendering user menus on clicks"
-            (Common.init "/teams/team/pipelines/pipeline")
+            (Common.init "/pipelines/1")
             [ it "shows user menu when ToggleUserMenu msg is received" <|
                 Application.handleCallback
                     (Callback.UserFetched <| Ok sampleUser)
@@ -407,7 +413,7 @@ all =
                     >> Query.has [ text "login" ]
             ]
         , rspecStyleDescribe "login component when user is logged out"
-            (Common.init "/teams/team/pipelines/pipeline"
+            (Common.init "/pipelines/1"
                 |> Application.handleCallback
                     (Callback.LoggedOut (Ok ()))
                 |> Tuple.first
@@ -455,7 +461,12 @@ all =
                     >> Expect.equal [ Effects.RedirectToLogin ]
             ]
         , rspecStyleDescribe "rendering top bar on build page"
-            (Common.init "/teams/team/pipelines/pipeline/jobs/job/builds/1"
+            (Common.init "/pipelines/1/jobs/job/builds/1"
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                    )
+                |> Tuple.first
                 |> queryView
             )
             [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
@@ -468,7 +479,7 @@ all =
                         [ tag "a"
                         , attribute <|
                             Attr.href
-                                "/teams/team/pipelines/pipeline"
+                                "/pipelines/1"
                         ]
             , context "job breadcrumb"
                 (Query.find [ id "breadcrumb-job" ])
@@ -486,7 +497,12 @@ all =
                 ]
             ]
         , rspecStyleDescribe "rendering top bar on resource page"
-            (Common.init "/teams/team/pipelines/pipeline/resources/resource"
+            (Common.init "/pipelines/1/resources/resource"
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                    )
+                |> Tuple.first
                 |> queryView
             )
             [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
@@ -499,7 +515,7 @@ all =
                         [ tag "a"
                         , attribute <|
                             Attr.href
-                                "/teams/team/pipelines/pipeline"
+                                "/pipelines/1"
                         ]
             , it "there is a / between pipeline and resource in breadcrumb" <|
                 Query.find [ id "breadcrumbs" ]
@@ -529,7 +545,12 @@ all =
                         [ text "resource" ]
             ]
         , rspecStyleDescribe "rendering top bar on job page"
-            (Common.init "/teams/team/pipelines/pipeline/jobs/job"
+            (Common.init "/pipelines/1/jobs/job"
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                    )
+                |> Tuple.first
                 |> queryView
             )
             [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
@@ -542,7 +563,7 @@ all =
                         [ tag "a"
                         , attribute <|
                             Attr.href
-                                "/teams/team/pipelines/pipeline"
+                                "/pipelines/1"
                         ]
             , it "there is a / between pipeline and job in breadcrumb" <|
                 Query.find [ id "breadcrumbs" ]
@@ -576,7 +597,7 @@ all =
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok
-                            [ Data.pipeline "team1" 0 |> Data.withName "pipeline" ]
+                            [ Data.pipeline "team1" 1 |> Data.withName "pipeline" ]
                     )
                 |> Tuple.first
             )
@@ -620,7 +641,7 @@ all =
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok
-                            [ Data.pipeline "team1" 0 |> Data.withName "pipeline" ]
+                            [ Data.pipeline "team1" 1 |> Data.withName "pipeline" ]
                     )
                 |> Tuple.first
             )
@@ -1299,7 +1320,7 @@ all =
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok
-                            [ Data.pipeline "team1" 0 |> Data.withName "pipeline" ]
+                            [ Data.pipeline "team1" 1 |> Data.withName "pipeline" ]
                     )
                 |> Tuple.first
             )
@@ -1313,11 +1334,11 @@ all =
         , describe "pause toggle" <|
             let
                 givenPipelinePaused =
-                    Common.init "/teams/t/pipelines/p"
+                    Common.init "/pipelines/1"
                         |> Application.handleCallback
                             (Callback.PipelineFetched <|
                                 Ok
-                                    (Data.pipeline "t" 0
+                                    (Data.pipeline "t" 1
                                         |> Data.withName "p"
                                         |> Data.withPaused True
                                     )
@@ -1357,7 +1378,7 @@ all =
                         >> Tuple.first
 
                 pipelineIdentifier =
-                    Data.shortPipelineId
+                    Data.pipelineId
 
                 toggleMsg =
                     ApplicationMsgs.Update <|

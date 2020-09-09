@@ -1,5 +1,7 @@
 module DashboardTooltipTests exposing (all)
 
+import Application.Models exposing (Session)
+import Common
 import Dashboard.Dashboard as Dashboard
 import Data
 import Dict
@@ -7,6 +9,7 @@ import Expect
 import HoverState exposing (HoverState(..))
 import Html
 import Message.Message exposing (DomID(..), PipelinesSection(..))
+import RemoteData exposing (RemoteData(..))
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (text)
@@ -21,12 +24,14 @@ all =
                     { pipelines =
                         Just <|
                             Dict.fromList
-                                [ ( "team", [ Data.dashboardPipeline 0 True ] ) ]
+                                [ ( "team", [ Data.dashboardPipeline 1 True ] ) ]
                     }
-                    { hovered =
-                        Tooltip
-                            (VisibilityButton AllPipelinesSection Data.pipelineId)
-                            Data.elementPosition
+                    { session
+                        | hovered =
+                            Tooltip
+                                (VisibilityButton AllPipelinesSection Data.pipelineId)
+                                Data.elementPosition
+                        , pipelines = Success [ Data.pipeline "team" 1 ]
                     }
                     |> Maybe.map .body
                     |> Maybe.withDefault (Html.text "")
@@ -38,12 +43,14 @@ all =
                     { pipelines =
                         Just <|
                             Dict.fromList
-                                [ ( "team", [ Data.dashboardPipeline 0 False ] ) ]
+                                [ ( "team", [ Data.dashboardPipeline 1 False ] ) ]
                     }
-                    { hovered =
-                        Tooltip
-                            (VisibilityButton AllPipelinesSection Data.pipelineId)
-                            Data.elementPosition
+                    { session
+                        | hovered =
+                            Tooltip
+                                (VisibilityButton AllPipelinesSection Data.pipelineId)
+                                Data.elementPosition
+                        , pipelines = Success [ Data.pipeline "team" 1 ]
                     }
                     |> Maybe.map .body
                     |> Maybe.withDefault (Html.text "")
@@ -53,7 +60,7 @@ all =
             \_ ->
                 let
                     p =
-                        Data.dashboardPipeline 0 True
+                        Data.dashboardPipeline 1 True
                 in
                 Dashboard.tooltip
                     { pipelines =
@@ -61,13 +68,19 @@ all =
                             Dict.fromList
                                 [ ( "team", [ { p | jobsDisabled = True } ] ) ]
                     }
-                    { hovered =
-                        Tooltip
-                            (PipelineStatusIcon AllPipelinesSection Data.pipelineId)
-                            Data.elementPosition
+                    { session
+                        | hovered =
+                            Tooltip
+                                (PipelineStatusIcon AllPipelinesSection Data.pipelineId)
+                                Data.elementPosition
+                        , pipelines = Success [ Data.pipeline "team" 1 ]
                     }
                     |> Maybe.map .body
                     |> Maybe.withDefault (Html.text "")
                     |> Query.fromHtml
                     |> Query.has [ text "disabled" ]
         ]
+
+
+session =
+    Common.init "/" |> .session

@@ -87,7 +87,7 @@ all =
                     >> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok
-                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                         )
                     >> Tuple.first
                     >> Application.handleDelivery
@@ -217,7 +217,7 @@ all =
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok
-                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -237,11 +237,11 @@ all =
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok
-                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                         )
                     |> Tuple.first
                     |> Application.handleDelivery
-                        (FavoritedPipelinesReceived <| Ok <| Set.singleton 0)
+                        (FavoritedPipelinesReceived <| Ok <| Set.singleton 1)
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.findAll
@@ -261,7 +261,7 @@ all =
                     |> Application.handleDelivery
                         (CachedPipelinesReceived <|
                             Ok
-                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -281,7 +281,7 @@ all =
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok
-                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -306,7 +306,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                    [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -364,7 +364,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                        [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                 )
                             |> Tuple.first
                             |> Common.queryView
@@ -378,7 +378,7 @@ all =
                             |> Application.handleDelivery
                                 (CachedPipelinesReceived <|
                                     Ok
-                                        [ Data.pipeline "team" 0
+                                        [ Data.pipeline "team" 1
                                             |> Data.withName "pipeline"
                                             |> Data.withPaused True
                                         ]
@@ -395,7 +395,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 0
+                                        [ Data.pipeline "team" 1
                                             |> Data.withName "pipeline"
                                             |> Data.withArchived True
                                             |> Data.withPaused True
@@ -413,7 +413,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 0
+                                        [ Data.pipeline "team" 1
                                             |> Data.withName "pipeline"
                                             |> Data.withPaused True
                                         ]
@@ -447,7 +447,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                        [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                 )
                             |> Tuple.first
                             |> Common.queryView
@@ -530,7 +530,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -574,7 +574,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                        [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                 )
                             |> Tuple.first
                             |> Common.queryView
@@ -590,7 +590,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -604,7 +604,7 @@ all =
                                 |> Application.handleDelivery
                                     (CachedPipelinesReceived <|
                                         Ok
-                                            [ Data.pipeline "team" 0
+                                            [ Data.pipeline "team" 1
                                                 |> Data.withName "pipeline"
                                                 |> Data.withPaused True
                                             ]
@@ -621,7 +621,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0
+                                            [ Data.pipeline "team" 1
                                                 |> Data.withName "pipeline"
                                                 |> Data.withArchived True
                                                 |> Data.withPaused True
@@ -639,7 +639,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0
+                                            [ Data.pipeline "team" 1
                                                 |> Data.withName "pipeline"
                                                 |> Data.withPaused True
                                             ]
@@ -673,7 +673,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -756,7 +756,7 @@ all =
                                     |> Application.handleCallback
                                         (Callback.AllPipelinesFetched <|
                                             Ok
-                                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                         )
                                     |> Tuple.first
                                     |> Common.queryView
@@ -804,7 +804,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                    [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -934,18 +934,8 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllResourcesFetched <|
                                     Ok
-                                        [ { teamName = "team"
-                                          , pipelineName = "pipeline"
-                                          , name = "resource"
-                                          , failingToCheck = True
-                                          , checkError = ""
-                                          , checkSetupError = ""
-                                          , lastChecked = Nothing
-                                          , pinnedVersion = Nothing
-                                          , pinnedInConfig = False
-                                          , pinComment = Nothing
-                                          , icon = Nothing
-                                          }
+                                        [ Data.resource Nothing
+                                            |> Data.withFailingToCheck True
                                         ]
                                 )
                             |> Tuple.first
@@ -954,7 +944,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                        [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                 )
                             |> Tuple.first
                             |> Common.queryView
@@ -1030,7 +1020,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                    [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Application.handleCallback
@@ -1040,7 +1030,7 @@ all =
                                         job BuildStatusErrored
                                 in
                                 Ok
-                                    [ { baseJob | pipelineName = "other-pipeline" } ]
+                                    [ { baseJob | pipelineName = "other-pipeline", pipelineId = 2 } ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -1058,7 +1048,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                    [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -1104,7 +1094,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                    [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -1130,7 +1120,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                    [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -1151,7 +1141,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                    [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -1180,7 +1170,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0
+                                            [ Data.pipeline "team" 1
                                                 |> Data.withName "pipeline"
                                                 |> Data.withPaused True
                                             ]
@@ -1234,7 +1224,7 @@ all =
                                 |> Application.handleDelivery
                                     (CachedPipelinesReceived <|
                                         Ok
-                                            [ Data.pipeline "team" 0
+                                            [ Data.pipeline "team" 1
                                                 |> Data.withName "pipeline"
                                                 |> Data.withPaused True
                                             ]
@@ -1282,7 +1272,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 ]
+                                            [ Data.pipeline "team" 1 ]
                                     )
                                 |> Tuple.first
                                 |> Application.handleCallback
@@ -1291,10 +1281,7 @@ all =
                                     )
 
                         domID =
-                            Msgs.PipelineStatusIcon AllPipelinesSection
-                                (Data.pipelineId
-                                    |> Data.withPipelineName "pipeline-0"
-                                )
+                            Msgs.PipelineStatusIcon AllPipelinesSection Data.pipelineId
                     in
                     [ test "status icon is faded sync" <|
                         \_ ->
@@ -1426,7 +1413,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0
+                                            [ Data.pipeline "team" 1
                                                 |> Data.withArchived True
                                             ]
                                     )
@@ -1552,7 +1539,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> afterSeconds 1
@@ -1705,7 +1692,7 @@ all =
                                 , setup =
                                     whenOnDashboard { highDensity = False }
                                         |> Application.handleDelivery
-                                            (Message.Subscription.FavoritedPipelinesReceived <| Ok <| Set.singleton 0)
+                                            (Message.Subscription.FavoritedPipelinesReceived <| Ok <| Set.singleton 1)
                                         |> Tuple.first
                                         |> setup
                                         |> Tuple.first
@@ -2053,7 +2040,7 @@ all =
                                     >> Application.handleCallback
                                         (Callback.AllPipelinesFetched <|
                                             Ok
-                                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                         )
 
                             whenAuthorizedNonPublic =
@@ -2066,7 +2053,7 @@ all =
                                     >> Application.handleCallback
                                         (Callback.AllPipelinesFetched <|
                                             Ok
-                                                [ Data.pipeline "team" 0
+                                                [ Data.pipeline "team" 1
                                                     |> Data.withName "pipeline"
                                                     |> Data.withPublic False
                                                 ]
@@ -2089,7 +2076,7 @@ all =
                                     >> Application.handleCallback
                                         (Callback.AllPipelinesFetched <|
                                             Ok
-                                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                         )
 
                             whenUnauthorizedNonPublic =
@@ -2102,7 +2089,7 @@ all =
                                     >> Application.handleCallback
                                         (Callback.AllPipelinesFetched <|
                                             Ok
-                                                [ Data.pipeline "team" 0
+                                                [ Data.pipeline "team" 1
                                                     |> Data.withName "pipeline"
                                                     |> Data.withPublic False
                                                 ]
@@ -2123,7 +2110,7 @@ all =
                                     >> Application.handleCallback
                                         (Callback.AllPipelinesFetched <|
                                             Ok
-                                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                         )
                         in
                         [ describe "on public pipeline" <|
@@ -2140,7 +2127,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                        [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                 )
                             |> Tuple.first
                             |> Common.queryView
@@ -2162,7 +2149,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                        [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                 )
                             |> Tuple.first
                             |> Common.queryView
@@ -2185,7 +2172,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -2210,7 +2197,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -2232,7 +2219,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -2255,7 +2242,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                         , query =
@@ -2300,11 +2287,11 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Application.handleDelivery
-                                    (Message.Subscription.FavoritedPipelinesReceived <| Ok <| Set.singleton 0)
+                                    (Message.Subscription.FavoritedPipelinesReceived <| Ok <| Set.singleton 1)
                                 |> Tuple.first
                         , query =
                             Common.queryView
@@ -2350,7 +2337,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0
+                                            [ Data.pipeline "team" 1
                                                 |> Data.withName "pipeline"
                                                 |> Data.withPaused True
                                             ]
@@ -2397,7 +2384,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -2423,7 +2410,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Application.update
@@ -2445,7 +2432,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Application.update
@@ -2465,7 +2452,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Application.update
@@ -2487,7 +2474,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Application.update
@@ -2504,7 +2491,7 @@ all =
                 , describe "favorited icon" <|
                     let
                         pipelineId =
-                            0
+                            1
 
                         unfilledFavoritedIcon =
                             iconSelector
@@ -2595,7 +2582,13 @@ all =
                                         |> Application.handleDelivery
                                             (FavoritedPipelinesReceived <|
                                                 Ok <|
-                                                    Set.singleton pipelineId
+                                                    Set.singleton 1
+                                            )
+                                        |> Tuple.first
+                                        |> Application.handleCallback
+                                            (Callback.AllPipelinesFetched <|
+                                                Ok <|
+                                                    [ Data.pipeline "team" 1 ]
                                             )
                                         |> Tuple.first
                                         |> favoritedToggle
@@ -2615,7 +2608,7 @@ all =
                             >> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                        [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                 )
                         )
                 ]

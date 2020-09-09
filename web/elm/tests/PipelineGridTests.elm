@@ -73,7 +73,7 @@ all =
                 loadDashboardWithSize 600 600
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                            Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2 ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -130,20 +130,20 @@ all =
                 loadDashboardWithSize 300 600
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                            Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2 ]
                         )
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
                     |> Expect.all
-                        [ findPipelineCard "pipeline-0"
+                        [ findPipelineCard "pipeline-1"
                             >> hasBounds
                                 { x = 25
                                 , y = 0
                                 , width = 272
                                 , height = 268
                                 }
-                        , findPipelineCard "pipeline-1"
+                        , findPipelineCard "pipeline-2"
                             >> hasBounds
                                 { x = 25
                                 , y = 268 + 25
@@ -156,20 +156,20 @@ all =
                 loadDashboardWithSize 650 200
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                            Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2 ]
                         )
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
                     |> Expect.all
-                        [ findPipelineCard "pipeline-0"
+                        [ findPipelineCard "pipeline-1"
                             >> hasBounds
                                 { x = 25
                                 , y = 0
                                 , width = 272
                                 , height = 268
                                 }
-                        , findPipelineCard "pipeline-1"
+                        , findPipelineCard "pipeline-2"
                             >> hasBounds
                                 { x = 25 * 2 + 272
                                 , y = 0
@@ -182,7 +182,7 @@ all =
                 loadDashboardWithSize 650 200
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                            Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2 ]
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -194,14 +194,14 @@ all =
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
                     |> Expect.all
-                        [ findPipelineCard "pipeline-0"
+                        [ findPipelineCard "pipeline-1"
                             >> hasBounds
                                 { x = 25
                                 , y = 0
                                 , width = 272
                                 , height = 268
                                 }
-                        , findPipelineCard "pipeline-1"
+                        , findPipelineCard "pipeline-2"
                             >> hasBounds
                                 { x = 25 * 2 + 272
                                 , y = 0
@@ -214,26 +214,26 @@ all =
                 loadDashboardWithSize 600 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                            Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2 ]
                         )
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.AllJobsFetched <|
                             Ok <|
-                                jobsWithHeight 0 15
+                                jobsWithHeight 1 15
                         )
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
                     |> Expect.all
-                        [ findPipelineCard "pipeline-0"
+                        [ findPipelineCard "pipeline-1"
                             >> hasBounds
                                 { x = 25
                                 , y = 0
                                 , width = 272
                                 , height = 268 * 2 + 25
                                 }
-                        , findPipelineCard "pipeline-1"
+                        , findPipelineCard "pipeline-2"
                             >> hasBounds
                                 { x = 25 * 2 + 272
                                 , y = 0
@@ -247,26 +247,26 @@ all =
                 loadDashboardWithSize 950 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                            Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2 ]
                         )
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.AllJobsFetched <|
                             Ok <|
-                                jobsWithDepth 0 15
+                                jobsWithDepth 1 15
                         )
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
                     |> Expect.all
-                        [ findPipelineCard "pipeline-0"
+                        [ findPipelineCard "pipeline-1"
                             >> hasBounds
                                 { x = 25
                                 , y = 0
                                 , width = 272 * 2 + 25
                                 , height = 268
                                 }
-                        , findPipelineCard "pipeline-1"
+                        , findPipelineCard "pipeline-2"
                             >> hasBounds
                                 { x = 25 + 2 * (272 + 25)
                                 , y = 0
@@ -279,27 +279,27 @@ all =
                 loadDashboardWithSize 600 500
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team" 2 ]
+                            Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2, Data.pipeline "team" 3 ]
                         )
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
                     |> Expect.all
-                        [ findPipelineCard "pipeline-0"
+                        [ findPipelineCard "pipeline-1"
                             >> hasBounds
                                 { x = 25
                                 , y = 0
                                 , width = 272
                                 , height = 268
                                 }
-                        , findPipelineCard "pipeline-1"
+                        , findPipelineCard "pipeline-2"
                             >> hasBounds
                                 { x = 25 * 2 + 272
                                 , y = 0
                                 , width = 272
                                 , height = 268
                                 }
-                        , findPipelineCard "pipeline-2"
+                        , findPipelineCard "pipeline-3"
                             >> hasBounds
                                 { x = 25
                                 , y = 268 + 25
@@ -313,7 +313,7 @@ all =
                 loadDashboardWithSize 300 600
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                            Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2 ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -323,18 +323,18 @@ all =
                 loadDashboardWithSize 300 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team" 2 ]
+                            Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2, Data.pipeline "team" 3 ]
                         )
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
-                    |> Query.hasNot [ class "pipeline-wrapper", containing [ text "pipeline-2" ] ]
+                    |> Query.hasNot [ class "pipeline-wrapper", containing [ text "pipeline-3" ] ]
         , test "body has a scroll handler" <|
             \_ ->
                 loadDashboardWithSize 300 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team" 2 ]
+                            Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2, Data.pipeline "team" 3 ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -364,7 +364,7 @@ all =
                 loadDashboardWithSize 600 200
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team" 2 ]
+                            Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2, Data.pipeline "team" 3 ]
                         )
                     |> Tuple.first
                     |> Application.update
@@ -378,19 +378,19 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
-                    |> Query.hasNot [ class "pipeline-wrapper", containing [ text "pipeline-0" ] ]
+                    |> Query.hasNot [ class "pipeline-wrapper", containing [ text "pipeline-1" ] ]
         , test "tall cards are not hidden when only its top row is scrolled out of view" <|
             \_ ->
                 loadDashboardWithSize 600 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0 ]
+                            Ok [ Data.pipeline "team" 1 ]
                         )
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.AllJobsFetched <|
                             Ok <|
-                                jobsWithHeight 0 30
+                                jobsWithHeight 1 30
                         )
                     |> Tuple.first
                     |> Application.update
@@ -404,13 +404,13 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
-                    |> Query.has [ class "pipeline-wrapper", containing [ text "pipeline-0" ] ]
+                    |> Query.has [ class "pipeline-wrapper", containing [ text "pipeline-1" ] ]
         , test "groups that are outside the viewport have no visible pipelines" <|
             \_ ->
                 loadDashboardWithSize 300 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team-2" 2 ]
+                            Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2, Data.pipeline "team-2" 3 ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -421,7 +421,7 @@ all =
                 loadDashboardWithSize 300 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team-2" 2 ]
+                            Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2, Data.pipeline "team-2" 3 ]
                         )
                     |> Tuple.first
                     |> Application.update
@@ -435,20 +435,20 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ id "team-2" ]
-                    |> Query.has [ class "pipeline-wrapper", containing [ text "pipeline-2" ] ]
+                    |> Query.has [ class "pipeline-wrapper", containing [ text "pipeline-3" ] ]
         , test "pipeline wrapper has a z-index of 1 when hovering over a job" <|
             \_ ->
                 loadDashboardWithSize 300 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0 ]
+                            Ok [ Data.pipeline "team" 1 ]
                         )
                     |> Tuple.first
                     |> Application.update
                         (Update <|
                             Hover <|
                                 Just <|
-                                    JobPreview AllPipelinesSection (Data.jobId |> Data.withPipelineName "pipeline-0")
+                                    JobPreview AllPipelinesSection Data.jobId
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -459,14 +459,14 @@ all =
                 loadDashboardWithSize 300 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0 ]
+                            Ok [ Data.pipeline "team" 1 ]
                         )
                     |> Tuple.first
                     |> Application.update
                         (Update <|
                             Hover <|
                                 Just <|
-                                    PipelineWrapper (Data.pipelineId |> Data.withPipelineName "pipeline-0")
+                                    PipelineWrapper Data.pipelineId
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -477,7 +477,7 @@ all =
                 loadDashboardWithSize 300 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0 ]
+                            Ok [ Data.pipeline "team" 1 ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -487,14 +487,14 @@ all =
                         (Update <|
                             Hover <|
                                 Just <|
-                                    PipelineWrapper (Data.pipelineId |> Data.withPipelineName "pipeline-0")
+                                    PipelineWrapper Data.pipelineId
                         )
         , test "pipeline wrapper responds to mouse out" <|
             \_ ->
                 loadDashboardWithSize 300 300
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
-                            Ok [ Data.pipeline "team" 0 ]
+                            Ok [ Data.pipeline "team" 1 ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -507,7 +507,7 @@ all =
                     loadDashboardWithSize 600 500
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
-                                Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team" 2 ]
+                                Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2, Data.pipeline "team" 3 ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -541,7 +541,7 @@ all =
                     loadDashboardWithSize 300 300
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
-                                Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1, Data.pipeline "team" 2 ]
+                                Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2, Data.pipeline "team" 3 ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -553,7 +553,7 @@ all =
                     loadDashboardWithSize 600 300
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
-                                Ok [ Data.pipeline "team" 0 ]
+                                Ok [ Data.pipeline "team" 1 ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -571,13 +571,13 @@ all =
                     loadDashboardWithSize 600 500
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
-                                Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                                Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2 ]
                             )
                         |> Tuple.first
                         |> Application.handleCallback
                             (Callback.AllJobsFetched <|
                                 Ok <|
-                                    jobsWithDepth 1 15
+                                    jobsWithDepth 2 15
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -615,10 +615,10 @@ all =
                     loadDashboardWithSize 600 500
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
-                                Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                                Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2 ]
                             )
                         |> Tuple.first
-                        |> gotFavoritedPipelines [ 0 ]
+                        |> gotFavoritedPipelines [ 1 ]
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.has [ id "dashboard-favorite-pipelines" ]
@@ -627,14 +627,14 @@ all =
                     loadDashboardWithSize 600 500
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
-                                Ok [ Data.pipeline "team" 0 ]
+                                Ok [ Data.pipeline "team" 1 ]
                             )
                         |> Tuple.first
-                        |> gotFavoritedPipelines [ 0 ]
+                        |> gotFavoritedPipelines [ 1 ]
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "dashboard-favorite-pipelines" ]
-                        |> findPipelineCard "pipeline-0"
+                        |> findPipelineCard "pipeline-1"
                         |> hasBounds
                             { x = 25
                             , y = 60
@@ -646,10 +646,10 @@ all =
                     loadDashboardWithSize 300 500
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
-                                Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                                Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2 ]
                             )
                         |> Tuple.first
-                        |> gotFavoritedPipelines [ 0, 1 ]
+                        |> gotFavoritedPipelines [ 1, 2 ]
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "dashboard-favorite-pipelines" ]
@@ -663,23 +663,23 @@ all =
                     loadDashboardWithSize 300 200
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
-                                Ok [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                                Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2 ]
                             )
                         |> Tuple.first
-                        |> gotFavoritedPipelines [ 0, 1 ]
+                        |> gotFavoritedPipelines [ 1, 2 ]
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ class "dashboard-team-pipelines" ]
-                        |> Query.hasNot [ class "pipeline-wrapper", containing [ text "pipeline-0" ] ]
+                        |> Query.hasNot [ class "pipeline-wrapper", containing [ text "pipeline-2" ] ]
             , test "renders team header above the first pipeline card" <|
                 \_ ->
                     loadDashboardWithSize 300 200
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
-                                Ok [ Data.pipeline "team" 0 ]
+                                Ok [ Data.pipeline "team" 1 ]
                             )
                         |> Tuple.first
-                        |> gotFavoritedPipelines [ 0 ]
+                        |> gotFavoritedPipelines [ 1 ]
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "dashboard-favorite-pipelines" ]
@@ -690,10 +690,10 @@ all =
                     loadDashboardWithSize 600 200
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
-                                Ok [ Data.pipeline "team1" 0, Data.pipeline "team2" 1 ]
+                                Ok [ Data.pipeline "team1" 1, Data.pipeline "team2" 2 ]
                             )
                         |> Tuple.first
-                        |> gotFavoritedPipelines [ 0, 1 ]
+                        |> gotFavoritedPipelines [ 1, 2 ]
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "dashboard-favorite-pipelines" ]
@@ -708,10 +708,10 @@ all =
                     loadDashboardWithSize 600 200
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
-                                Ok [ Data.pipeline "team1" 0, Data.pipeline "team1" 1 ]
+                                Ok [ Data.pipeline "team1" 1, Data.pipeline "team1" 1 ]
                             )
                         |> Tuple.first
-                        |> gotFavoritedPipelines [ 0, 1 ]
+                        |> gotFavoritedPipelines [ 1, 2 ]
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "dashboard-favorite-pipelines" ]
@@ -722,10 +722,10 @@ all =
                     loadDashboardWithSize 300 600
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
-                                Ok [ Data.pipeline "team1" 0, Data.pipeline "team1" 1 ]
+                                Ok [ Data.pipeline "team1" 1, Data.pipeline "team1" 1 ]
                             )
                         |> Tuple.first
-                        |> gotFavoritedPipelines [ 0, 1 ]
+                        |> gotFavoritedPipelines [ 1, 2 ]
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "dashboard-favorite-pipelines" ]

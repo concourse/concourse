@@ -66,6 +66,7 @@ all =
                                     [ JE.object
                                         [ ( "team_name", JE.string "team" )
                                         , ( "pipeline_name", JE.string "pipeline" )
+                                        , ( "pipeline_id", JE.int 1 )
                                         , ( "name", JE.string "test" )
                                         , ( "type", JE.string "type" )
                                         , ( "pinned_version"

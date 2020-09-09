@@ -42,34 +42,15 @@ hasData =
             |> Application.handleCallback
                 (Callback.AllJobsFetched <|
                     Ok
-                        [ { name = "job"
-                          , pipelineName = "pipeline1"
-                          , teamName = "team1"
-                          , nextBuild =
-                                Just
-                                    { id = 1
-                                    , name = "1"
-                                    , job =
-                                        Just
-                                            (Data.jobId
-                                                |> Data.withTeamName "team1"
-                                                |> Data.withPipelineName "pipeline1"
-                                            )
-                                    , status = BuildStatusStarted
-                                    , duration =
-                                        { startedAt = Nothing
-                                        , finishedAt = Nothing
-                                        }
-                                    , reapTime = Nothing
-                                    }
-                          , finishedBuild = Nothing
-                          , transitionBuild = Nothing
-                          , paused = False
-                          , disableManualTrigger = False
-                          , inputs = []
-                          , outputs = []
-                          , groups = []
-                          }
+                        [ Data.job 1
+                            |> Data.withName "job"
+                            |> Data.withPipelineName "pipeline1"
+                            |> Data.withTeamName "team1"
+                            |> Data.withNextBuild
+                                (Data.jobBuild BuildStatusStarted
+                                    |> Data.withJob (Just Data.jobId)
+                                    |> Just
+                                )
                         ]
                 )
             |> Tuple.first
@@ -84,8 +65,8 @@ hasData =
             |> Application.handleCallback
                 (Callback.AllPipelinesFetched <|
                     Ok
-                        [ Data.pipeline "team1" 0 |> Data.withName "pipeline1"
-                        , Data.pipeline "team1" 1 |> Data.withName "pipeline2"
+                        [ Data.pipeline "team1" 1 |> Data.withName "pipeline1"
+                        , Data.pipeline "team1" 2 |> Data.withName "pipeline2"
                         ]
                 )
             |> Tuple.first
@@ -176,7 +157,7 @@ hasData =
                 >> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok
-                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                     )
                 >> Tuple.first
                 >> Application.update
@@ -195,7 +176,7 @@ hasData =
             (Application.handleDelivery
                 (Subscription.FavoritedPipelinesReceived <|
                     Ok <|
-                        Set.fromList [ 0, 1 ]
+                        Set.fromList [ 1, 2 ]
                 )
             )
             [ it "applies the filter to the favorites section" <|

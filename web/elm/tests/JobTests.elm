@@ -46,7 +46,7 @@ all =
             [ describe "while page is loading"
                 [ test "title includes job name" <|
                     \_ ->
-                        Common.init "/teams/team/pipelines/pipeline/jobs/job"
+                        Common.init "/pipelines/1/jobs/job"
                             |> Application.view
                             |> .title
                             |> Expect.equal "job - Concourse"
@@ -62,7 +62,7 @@ all =
                             { protocol = Url.Http
                             , host = ""
                             , port_ = Nothing
-                            , path = "/teams/team/pipelines/pipeline/jobs/job"
+                            , path = "/pipelines/1/jobs/job"
                             , query = Nothing
                             , fragment = Nothing
                             }
@@ -80,7 +80,7 @@ all =
                             { protocol = Url.Http
                             , host = ""
                             , port_ = Nothing
-                            , path = "/teams/team/pipelines/pipeline/jobs/job"
+                            , path = "/pipelines/1/jobs/job"
                             , query = Nothing
                             , fragment = Nothing
                             }
@@ -88,7 +88,7 @@ all =
                             |> Common.contains Effects.FetchAllPipelines
                 , test "shows two spinners before anything has loaded" <|
                     \_ ->
-                        Common.init "/teams/team/pipelines/pipeline/jobs/job"
+                        Common.init "/pipelines/1/jobs/job"
                             |> queryView
                             |> Query.findAll loadingIndicatorSelector
                             |> Query.count (Expect.equal 2)
@@ -328,7 +328,7 @@ all =
                             >> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 0
+                                        [ Data.pipeline "team" 1
                                             |> Data.withName "pipeline"
                                             |> Data.withArchived True
                                         ]
@@ -517,7 +517,7 @@ all =
             , defineHoverBehaviour <|
                 let
                     urlPath =
-                        "/teams/team/pipelines/pipeline/jobs/job?from=1&limit=1"
+                        "/pipelines/1/jobs/job?from=1&limit=1"
                 in
                 { name = "left pagination chevron with previous page"
                 , setup =
@@ -877,16 +877,11 @@ someJobInfo =
 
 someBuild : Build
 someBuild =
-    { id = 123
-    , name = "45"
-    , job = Just someJobInfo
-    , status = BuildStatusSucceeded
-    , duration =
-        { startedAt = Just <| Time.millisToPosix 0
-        , finishedAt = Just <| Time.millisToPosix 0
-        }
-    , reapTime = Just <| Time.millisToPosix 0
-    }
+    Data.jobBuild BuildStatusSucceeded
+        |> Data.withId 123
+        |> Data.withName "45"
+        |> Data.withJob (Just someJobInfo)
+        |> Data.withReapTime (Just <| Time.millisToPosix 0)
 
 
 jobInfo : Concourse.JobIdentifier
@@ -896,16 +891,14 @@ jobInfo =
 
 builds : List Build
 builds =
-    [ { id = 0
-      , name = "0"
-      , job = Just jobInfo
-      , status = BuildStatusSucceeded
-      , duration =
+    [ Data.jobBuild BuildStatusSucceeded
+        |> Data.withId 0
+        |> Data.withName "0"
+        |> Data.withJob (Just jobInfo)
+        |> Data.withDuration
             { startedAt = Nothing
             , finishedAt = Nothing
             }
-      , reapTime = Nothing
-      }
     ]
 
 
@@ -921,18 +914,11 @@ buildsWithEmptyPagination =
 
 someJob : Concourse.Job
 someJob =
-    { name = "some-job"
-    , pipelineName = "some-pipeline"
-    , teamName = "some-team"
-    , nextBuild = Nothing
-    , finishedBuild = Just someBuild
-    , transitionBuild = Nothing
-    , paused = False
-    , disableManualTrigger = False
-    , inputs = []
-    , outputs = []
-    , groups = []
-    }
+    Data.job 1
+        |> Data.withName "some-job"
+        |> Data.withPipelineName "some-pipeline"
+        |> Data.withTeamName "some-team"
+        |> Data.withFinishedBuild (Just someBuild)
 
 
 defaultModel : Job.Model
@@ -946,22 +932,18 @@ defaultModel =
 
 init : { disabled : Bool, paused : Bool } -> () -> Application.Model
 init { disabled, paused } _ =
-    Common.init "/teams/team/pipelines/pipeline/jobs/job"
+    Common.init "/pipelines/1/jobs/job"
         |> Application.handleCallback
             (JobFetched <|
                 Ok
-                    { name = "job"
-                    , pipelineName = "pipeline"
-                    , teamName = "team"
-                    , nextBuild = Nothing
-                    , finishedBuild = Just someBuild
-                    , transitionBuild = Nothing
-                    , paused = paused
-                    , disableManualTrigger = disabled
-                    , inputs = []
-                    , outputs = []
-                    , groups = []
-                    }
+                    (Data.job 1
+                        |> Data.withName "job"
+                        |> Data.withPipelineName "pipeline"
+                        |> Data.withTeamName "team"
+                        |> Data.withFinishedBuild (Just someBuild)
+                        |> Data.withPaused paused
+                        |> Data.withDisableManualTrigger disabled
+                    )
             )
         |> Tuple.first
 

@@ -172,7 +172,7 @@ all =
                 dashboardWithJobInFavoritesSection =
                     dashboardWithJob
                         >> Application.handleDelivery
-                            (Subscription.FavoritedPipelinesReceived <| Ok <| Set.singleton 0)
+                            (Subscription.FavoritedPipelinesReceived <| Ok <| Set.singleton 1)
                         >> Tuple.first
 
                 findJobPreviewInFavoritesSection =
@@ -235,8 +235,8 @@ dashboardWithJob j =
         |> Application.handleCallback
             (Callback.AllPipelinesFetched <|
                 Ok
-                    [ Data.pipeline "team" 0 |> Data.withName "pipeline"
-                    , Data.pipeline "team" 1 |> Data.withName "other"
+                    [ Data.pipeline "team" 1 |> Data.withName "pipeline"
+                    , Data.pipeline "team" 2 |> Data.withName "other"
                     ]
             )
         |> Tuple.first
@@ -254,48 +254,31 @@ findJobPreview =
 
 job : Concourse.Job
 job =
-    { name = "job"
-    , pipelineName = "pipeline"
-    , teamName = "team"
-    , nextBuild = Nothing
-    , finishedBuild = Nothing
-    , transitionBuild = Nothing
-    , paused = False
-    , disableManualTrigger = False
-    , inputs = []
-    , outputs = []
-    , groups = []
-    }
+    Data.job 1 |> Data.withPipelineName "pipeline"
 
 
 withNextBuild : Concourse.Job -> Concourse.Job
 withNextBuild j =
-    { j
-        | nextBuild =
-            Just
-                { id = 2
-                , name = "2"
-                , job = Just jobId
-                , status = BuildStatusStarted
-                , duration = { startedAt = Nothing, finishedAt = Nothing }
-                , reapTime = Nothing
-                }
-    }
+    Data.withNextBuild
+        (Data.jobBuild BuildStatusStarted
+            |> Data.withId 2
+            |> Data.withName "2"
+            |> Data.withJob (Just jobId)
+            |> Just
+        )
+        j
 
 
 withStatus : BuildStatus -> Concourse.Job -> Concourse.Job
 withStatus status j =
-    { j
-        | finishedBuild =
-            Just
-                { id = 1
-                , name = "1"
-                , job = Just jobId
-                , status = status
-                , duration = { startedAt = Nothing, finishedAt = Nothing }
-                , reapTime = Nothing
-                }
-    }
+    Data.withFinishedBuild
+        (Data.jobBuild status
+            |> Data.withId 1
+            |> Data.withName "1"
+            |> Data.withJob (Just jobId)
+            |> Just
+        )
+        j
 
 
 isPaused : Concourse.Job -> Concourse.Job
