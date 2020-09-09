@@ -47,7 +47,6 @@ import Html.Events
         )
 import Http
 import Job.Styles as Styles
-import List.Extra
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
@@ -176,8 +175,7 @@ handleCallback callback ( model, effects ) =
                                 Routes.toString <|
                                     Routes.Build
                                         { id =
-                                            { teamName = job.teamName
-                                            , pipelineName = job.pipelineName
+                                            { pipelineId = job.pipelineId
                                             , jobName = job.jobName
                                             , buildName = build.name
                                             }
@@ -431,17 +429,13 @@ view session model =
             (id "top-bar-app" :: Views.Styles.topBar False)
             [ SideBar.hamburgerMenu session
             , TopBar.concourseLogo
-            , TopBar.breadcrumbs route
+            , TopBar.breadcrumbs session route
             , Login.view session.userState model
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
             [ SideBar.view session
-                (Just
-                    { pipelineName = model.jobIdentifier.pipelineName
-                    , teamName = model.jobIdentifier.teamName
-                    }
-                )
+                (SideBar.lookupPipeline model.jobIdentifier.pipelineId session)
             , viewMainJobsSection session model
             ]
         ]
@@ -456,9 +450,9 @@ viewMainJobsSection : Session -> Model -> Html Message
 viewMainJobsSection session model =
     let
         archived =
-            isPipelineArchived
-                session.pipelines
-                model.jobIdentifier
+            SideBar.lookupPipeline model.jobIdentifier.pipelineId session
+                |> Maybe.map .archived
+                |> Maybe.withDefault False
     in
     Html.div
         [ class "with-fixed-header"
@@ -596,18 +590,6 @@ viewMainJobsSection session model =
             _ ->
                 LoadingIndicator.view
         ]
-
-
-isPipelineArchived :
-    WebData (List Concourse.Pipeline)
-    -> Concourse.JobIdentifier
-    -> Bool
-isPipelineArchived pipelines { pipelineName, teamName } =
-    pipelines
-        |> RemoteData.withDefault []
-        |> List.Extra.find (\p -> p.name == pipelineName && p.teamName == teamName)
-        |> Maybe.map .archived
-        |> Maybe.withDefault False
 
 
 headerBuildStatus : Maybe Concourse.Build -> BuildStatus

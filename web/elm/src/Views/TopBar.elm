@@ -3,6 +3,7 @@ module Views.TopBar exposing
     , concourseLogo
     )
 
+import Application.Models exposing (Session)
 import Assets
 import Concourse
 import Html exposing (Html)
@@ -14,6 +15,7 @@ import Html.Attributes
         )
 import Message.Message exposing (DomID(..), Message(..))
 import Routes
+import SideBar.SideBar exposing (lookupPipeline)
 import Url
 import Views.Styles as Styles
 
@@ -23,45 +25,52 @@ concourseLogo =
     Html.a (href "/" :: Styles.concourseLogo) []
 
 
-breadcrumbs : Routes.Route -> Html Message
-breadcrumbs route =
+breadcrumbs : Session -> Routes.Route -> Html Message
+breadcrumbs session route =
     Html.div
         (id "breadcrumbs" :: Styles.breadcrumbContainer)
     <|
         case route of
             Routes.Pipeline { id } ->
-                [ pipelineBreadcumb
-                    { teamName = id.teamName
-                    , pipelineName = id.pipelineName
-                    }
-                ]
+                case lookupPipeline id session of
+                    Nothing ->
+                        []
+
+                    Just pipeline ->
+                        [ pipelineBreadcrumb pipeline ]
 
             Routes.Build { id } ->
-                [ pipelineBreadcumb
-                    { teamName = id.teamName
-                    , pipelineName = id.pipelineName
-                    }
-                , breadcrumbSeparator
-                , jobBreadcrumb id.jobName
-                ]
+                case lookupPipeline id.pipelineId session of
+                    Nothing ->
+                        []
+
+                    Just pipeline ->
+                        [ pipelineBreadcrumb pipeline
+                        , breadcrumbSeparator
+                        , jobBreadcrumb id.jobName
+                        ]
 
             Routes.Resource { id } ->
-                [ pipelineBreadcumb
-                    { teamName = id.teamName
-                    , pipelineName = id.pipelineName
-                    }
-                , breadcrumbSeparator
-                , resourceBreadcrumb id.resourceName
-                ]
+                case lookupPipeline id.pipelineId session of
+                    Nothing ->
+                        []
+
+                    Just pipeline ->
+                        [ pipelineBreadcrumb pipeline
+                        , breadcrumbSeparator
+                        , resourceBreadcrumb id.resourceName
+                        ]
 
             Routes.Job { id } ->
-                [ pipelineBreadcumb
-                    { teamName = id.teamName
-                    , pipelineName = id.pipelineName
-                    }
-                , breadcrumbSeparator
-                , jobBreadcrumb id.jobName
-                ]
+                case lookupPipeline id.pipelineId session of
+                    Nothing ->
+                        []
+
+                    Just pipeline ->
+                        [ pipelineBreadcrumb pipeline
+                        , breadcrumbSeparator
+                        , jobBreadcrumb id.jobName
+                        ]
 
             _ ->
                 []

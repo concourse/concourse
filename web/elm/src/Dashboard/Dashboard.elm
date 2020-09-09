@@ -191,8 +191,8 @@ buffers =
     ]
 
 
-handleCallback : Callback -> ET Model
-handleCallback callback ( model, effects ) =
+handleCallback : Callback -> Session -> ET Model
+handleCallback callback session ( model, effects ) =
     (case callback of
         AllTeamsFetched (Err _) ->
             ( { model | teamsError = Just Failed }
@@ -230,8 +230,7 @@ handleCallback callback ( model, effects ) =
                     allJobsInEntireCluster
                         |> List.map
                             (\job ->
-                                ( ( job.teamName
-                                  , job.pipelineName
+                                ( ( job.pipelineId
                                   , job.name
                                   )
                                 , job
@@ -315,7 +314,7 @@ handleCallback callback ( model, effects ) =
                 | pipelinesWithResourceErrors =
                     resources
                         |> List.filter .failingToCheck
-                        |> List.map (\r -> ( r.teamName, r.pipelineName ))
+                        |> List.map (\r -> r.pipelineId)
                         |> Set.fromList
                 , resourcesError = Nothing
               }
@@ -392,6 +391,7 @@ handleCallback callback ( model, effects ) =
 
         VisibilityChanged Hide pipelineId (Ok ()) ->
             ( updatePipeline
+                session
                 (\p -> { p | public = False, isVisibilityLoading = False })
                 pipelineId
                 model
@@ -400,6 +400,7 @@ handleCallback callback ( model, effects ) =
 
         VisibilityChanged Hide pipelineId (Err _) ->
             ( updatePipeline
+                session
                 (\p -> { p | public = True, isVisibilityLoading = False })
                 pipelineId
                 model
@@ -408,6 +409,7 @@ handleCallback callback ( model, effects ) =
 
         VisibilityChanged Expose pipelineId (Ok ()) ->
             ( updatePipeline
+                session
                 (\p -> { p | public = True, isVisibilityLoading = False })
                 pipelineId
                 model
@@ -416,6 +418,7 @@ handleCallback callback ( model, effects ) =
 
         VisibilityChanged Expose pipelineId (Err _) ->
             ( updatePipeline
+                session
                 (\p -> { p | public = False, isVisibilityLoading = False })
                 pipelineId
                 model
@@ -438,31 +441,45 @@ handleCallback callback ( model, effects ) =
 
 
 updatePipeline :
-    (Pipeline -> Pipeline)
+    Session
+    -> (Pipeline -> Pipeline)
     -> Concourse.PipelineIdentifier
     -> Model
     -> Model
-updatePipeline updater pipelineId model =
+updatePipeline session updater pipelineId model =
     { model
         | pipelines =
-            model.pipelines
-                |> Maybe.map
-                    (Dict.update pipelineId.teamName
-                        (Maybe.map
-                            (List.Extra.updateIf
-                                (\p -> p.name == pipelineId.pipelineName)
-                                updater
+            case SideBar.lookupPipeline pipelineId session of
+                Nothing ->
+                    model.pipelines
+
+                Just pipeline ->
+                    model.pipelines
+                        |> Maybe.map
+                            (Dict.update pipeline.teamName
+                                (Maybe.map
+                                    (List.Extra.updateIf
+                                        (\p -> p.id == pipeline.id)
+                                        updater
+                                    )
+                                )
                             )
-                        )
-                    )
     }
 
 
-findPipeline : Concourse.PipelineIdentifier -> Maybe (Dict String (List Pipeline)) -> Maybe Pipeline
-findPipeline pipelineId pipelines =
-    pipelines
-        |> Maybe.andThen (Dict.get pipelineId.teamName)
-        |> Maybe.andThen (List.Extra.find (.name >> (==) pipelineId.pipelineName))
+findPipeline :
+    Session
+    -> Concourse.PipelineIdentifier
+    -> Maybe (Dict String (List Pipeline))
+    -> Maybe Pipeline
+findPipeline session pipelineId pipelines =
+    case ( pipelines, SideBar.lookupPipeline pipelineId session ) of
+        ( Just teamPipelines, Just pipeline ) ->
+            Dict.get pipeline.teamName teamPipelines
+                |> Maybe.andThen (List.Extra.find (.id >> (==) pipeline.id))
+
+        _ ->
+            Nothing
 
 
 handleDelivery : Delivery -> ET Model
@@ -510,8 +527,7 @@ handleDeliveryBody delivery ( model, effects ) =
                     jobs
                         |> List.map
                             (\job ->
-                                ( ( job.teamName
-                                  , job.pipelineName
+                                ( ( job.pipelineId
                                   , job.name
                                   )
                                 , job
@@ -610,11 +626,10 @@ precomputeJobMetadata model =
                 |> Dict.values
 
         pipelineJobs =
-            allJobs |> groupBy (\j -> ( j.teamName, j.pipelineName ))
+            allJobs |> groupBy (\j -> j.pipelineId)
 
         jobToId job =
-            { teamName = job.teamName
-            , pipelineName = job.pipelineName
+            { pipelineId = job.pipelineId
             , jobName = job.name
             }
     in
@@ -635,11 +650,11 @@ precomputeJobMetadata model =
 
 update : Session -> Message -> ET Model
 update session msg =
-    SearchBar.update session msg >> updateBody msg
+    SearchBar.update session msg >> updateBody session msg
 
 
-updateBody : Message -> ET Model
-updateBody msg ( model, effects ) =
+updateBody : Session -> Message -> ET Model
+updateBody session msg ( model, effects ) =
     case msg of
         DragStart teamName pipelineName ->
             ( { model | dragState = Models.Dragging teamName pipelineName }, effects )
@@ -709,12 +724,13 @@ updateBody msg ( model, effects ) =
             let
                 isPaused =
                     model.pipelines
-                        |> findPipeline pipelineId
+                        |> findPipeline session pipelineId
                         |> Maybe.map .paused
             in
             case isPaused of
                 Just ip ->
                     ( updatePipeline
+                        session
                         (\p -> { p | isToggleLoading = True })
                         pipelineId
                         model
@@ -729,12 +745,13 @@ updateBody msg ( model, effects ) =
             let
                 isPublic =
                     model.pipelines
-                        |> findPipeline pipelineId
+                        |> findPipeline session pipelineId
                         |> Maybe.map .public
             in
             case isPublic of
                 Just public ->
                     ( updatePipeline
+                        session
                         (\p -> { p | isVisibilityLoading = True })
                         pipelineId
                         model
@@ -805,9 +822,12 @@ view session model =
         ]
 
 
-tooltip : { a | pipelines : Maybe (Dict String (List Pipeline)) } -> { b | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
-tooltip model { hovered } =
-    case hovered of
+tooltip :
+    { a | pipelines : Maybe (Dict String (List Pipeline)) }
+    -> Session
+    -> Maybe Tooltip.Tooltip
+tooltip model session =
+    case session.hovered of
         HoverState.Tooltip (Message.PipelineStatusIcon _ _) _ ->
             Just
                 { body =
@@ -820,7 +840,7 @@ tooltip model { hovered } =
 
         HoverState.Tooltip (Message.VisibilityButton _ pipelineId) _ ->
             model.pipelines
-                |> findPipeline pipelineId
+                |> findPipeline session pipelineId
                 |> Maybe.map
                     (\p ->
                         { body =
@@ -961,14 +981,7 @@ showTurbulence model =
 
 
 dashboardView :
-    { a
-        | hovered : HoverState.HoverState
-        , screenSize : ScreenSize
-        , userState : UserState.UserState
-        , turbulenceImgSrc : String
-        , pipelineRunningKeyframes : String
-        , favoritedPipelines : Set Concourse.DatabaseID
-    }
+    Session
     -> Model
     -> Html Message
 dashboardView session model =
@@ -1104,29 +1117,24 @@ turbulenceView path =
 
 
 pipelinesView :
-    { a
-        | userState : UserState.UserState
-        , hovered : HoverState.HoverState
-        , pipelineRunningKeyframes : String
-        , favoritedPipelines : Set Concourse.DatabaseID
-    }
+    Session
     ->
         { b
             | teams : FetchResult (List Concourse.Team)
             , query : String
             , highDensity : Bool
             , dashboardView : Routes.DashboardView
-            , pipelinesWithResourceErrors : Set ( String, String )
-            , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
+            , pipelinesWithResourceErrors : Set Concourse.DatabaseID
+            , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
             , pipelines : Maybe (Dict String (List Pipeline))
-            , jobs : FetchResult (Dict ( String, String, String ) Concourse.Job)
+            , jobs : FetchResult (Dict ( Concourse.DatabaseID, String ) Concourse.Job)
             , dragState : DragState
             , dropState : DropState
             , now : Maybe Time.Posix
             , viewportWidth : Float
             , viewportHeight : Float
             , scrollTop : Float
-            , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
+            , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
         }
     -> List (Html Message)
 pipelinesView session params =
@@ -1198,8 +1206,6 @@ pipelinesView session params =
                         { dragState = NotDragging
                         , dropState = NotDropping
                         , now = params.now
-                        , hovered = session.hovered
-                        , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                         , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                         , pipelineLayers = params.pipelineLayers
                         , pipelineCards = layout.pipelineCards
@@ -1252,8 +1258,6 @@ pipelinesView session params =
                                     { dragState = params.dragState
                                     , dropState = params.dropState
                                     , now = params.now
-                                    , hovered = session.hovered
-                                    , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                                     , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                                     , pipelineLayers = params.pipelineLayers
                                     , pipelineCards = layout.pipelineCards

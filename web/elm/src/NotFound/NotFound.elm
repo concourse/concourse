@@ -58,7 +58,7 @@ view session model =
             (id "top-bar-app" :: Views.Styles.topBar False)
             [ SideBar.hamburgerMenu session
             , TopBar.concourseLogo
-            , TopBar.breadcrumbs model.route
+            , TopBar.breadcrumbs session model.route
             , Login.view session.userState model
             ]
         , Html.div

@@ -57,6 +57,7 @@ import Svg
 import Svg.Attributes as SvgAttributes
 import Tooltip
 import UpdateMsg exposing (UpdateMsg)
+import UserState
 import Views.FavoritedIcon as FavoritedIcon
 import Views.PauseToggle as PauseToggle
 import Views.Styles
@@ -368,7 +369,12 @@ subscriptions =
 
 documentTitle : Model -> String
 documentTitle model =
-    model.pipelineLocator.pipelineName
+    case model.pipeline of
+        RemoteData.Success pipeline ->
+            pipeline.name
+
+        _ ->
+            ""
 
 
 view : Session -> Model -> Html Message
@@ -391,7 +397,7 @@ view session model =
                 (id "top-bar-app" :: Views.Styles.topBar displayPaused)
                 [ SideBar.hamburgerMenu session
                 , TopBar.concourseLogo
-                , TopBar.breadcrumbs route
+                , TopBar.breadcrumbs session route
                 , PinMenu.viewPinMenu session model
                 , Html.div (id "top-bar-favorited-icon" :: Styles.favoritedIcon)
                     [ FavoritedIcon.view
@@ -409,7 +415,17 @@ view session model =
                     Html.div
                         (id "top-bar-pause-toggle" :: Styles.pauseToggle)
                         [ PauseToggle.view
-                            { pipeline = model.pipelineLocator
+                            { isClickable =
+                                model.pipeline
+                                    |> RemoteData.map
+                                        (\{ teamName } ->
+                                            UserState.isAnonymous session.userState
+                                                || UserState.isMember
+                                                    { teamName = teamName
+                                                    , userState = session.userState
+                                                    }
+                                        )
+                                    |> RemoteData.withDefault False
                             , isPaused = isPaused model.pipeline
                             , isToggleHovered =
                                 HoverState.isHovered
@@ -418,7 +434,6 @@ view session model =
                             , isToggleLoading = model.isToggleLoading
                             , tooltipPosition = Views.Styles.Below
                             , margin = "17px"
-                            , userState = session.userState
                             , domID = TopBarPauseToggle model.pipelineLocator
                             }
                         ]
@@ -427,11 +442,25 @@ view session model =
             , Html.div
                 (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
               <|
-                [ SideBar.view session (Just model.pipelineLocator)
+                [ SideBar.view session
+                    (model.pipeline
+                        |> RemoteData.toMaybe
+                        |> fallbackTo (SideBar.lookupPipeline model.pipelineLocator session)
+                    )
                 , viewSubPage session model
                 ]
             ]
         ]
+
+
+fallbackTo : Maybe a -> Maybe a -> Maybe a
+fallbackTo fallback orig =
+    case orig of
+        Just _ ->
+            orig
+
+        Nothing ->
+            fallback
 
 
 tooltip : Model -> a -> Maybe Tooltip.Tooltip

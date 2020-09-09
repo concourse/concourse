@@ -7,6 +7,7 @@ module Dashboard.Group exposing
     , viewFavoritePipelines
     )
 
+import Application.Models exposing (Session)
 import Concourse
 import Dashboard.Group.Models exposing (Group, Pipeline)
 import Dashboard.Group.Tag as Tag
@@ -44,20 +45,18 @@ type alias PipelineIndex =
 
 
 view :
-    { a | userState : UserState, favoritedPipelines : Set Concourse.DatabaseID }
+    Session
     ->
         { dragState : DragState
         , dropState : DropState
         , now : Maybe Time.Posix
-        , hovered : HoverState.HoverState
-        , pipelineRunningKeyframes : String
-        , pipelinesWithResourceErrors : Set ( String, String )
-        , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
+        , pipelinesWithResourceErrors : Set Concourse.DatabaseID
+        , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
         , pipelineCards : List PipelineGrid.PipelineCard
         , dropAreas : List PipelineGrid.DropArea
         , groupCardsHeight : Float
-        , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
-        , jobs : Dict ( String, String, String ) Concourse.Job
+        , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
+        , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
         }
     -> Group
     -> Html Message
@@ -124,20 +123,18 @@ view session params g =
 
 
 viewFavoritePipelines :
-    { a | userState : UserState, favoritedPipelines : Set Concourse.DatabaseID }
+    Session
     ->
         { dragState : DragState
         , dropState : DropState
         , now : Maybe Time.Posix
-        , hovered : HoverState.HoverState
-        , pipelineRunningKeyframes : String
-        , pipelinesWithResourceErrors : Set ( String, String )
-        , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
+        , pipelinesWithResourceErrors : Set Concourse.DatabaseID
+        , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
         , pipelineCards : List PipelineGrid.PipelineCard
         , headers : List PipelineGrid.Header
         , groupCardsHeight : Float
-        , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
-        , jobs : Dict ( String, String, String ) Concourse.Job
+        , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
+        , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
         }
     -> Html Message
 viewFavoritePipelines session params =
@@ -190,9 +187,9 @@ tag { userState } g =
 
 hdView :
     { pipelineRunningKeyframes : String
-    , pipelinesWithResourceErrors : Set ( String, String )
-    , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
-    , jobs : Dict ( String, String, String ) Concourse.Job
+    , pipelinesWithResourceErrors : Set Concourse.DatabaseID
+    , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
+    , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
     }
     -> { a | userState : UserState }
     -> Group
@@ -221,10 +218,10 @@ hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, jo
                                 , pipelineRunningKeyframes = pipelineRunningKeyframes
                                 , resourceError =
                                     pipelinesWithResourceErrors
-                                        |> Set.member ( p.teamName, p.name )
+                                        |> Set.member p.id
                                 , existingJobs =
                                     pipelineJobs
-                                        |> Dict.get ( p.teamName, p.name )
+                                        |> Dict.get p.id
                                         |> Maybe.withDefault []
                                         |> List.filterMap (lookupJob jobs)
                                 }
@@ -256,25 +253,23 @@ pipelineNotSetView =
         ]
 
 
-lookupJob : Dict ( String, String, String ) Concourse.Job -> Concourse.JobIdentifier -> Maybe Concourse.Job
+lookupJob : Dict ( Concourse.DatabaseID, String ) Concourse.Job -> Concourse.JobIdentifier -> Maybe Concourse.Job
 lookupJob jobs jobId =
     jobs
-        |> Dict.get ( jobId.teamName, jobId.pipelineName, jobId.jobName )
+        |> Dict.get ( jobId.pipelineId, jobId.jobName )
 
 
 pipelineCardView :
-    { a | userState : UserState, favoritedPipelines : Set Concourse.DatabaseID }
+    Session
     ->
         { b
             | dragState : DragState
             , dropState : DropState
             , now : Maybe Time.Posix
-            , hovered : HoverState.HoverState
-            , pipelineRunningKeyframes : String
-            , pipelinesWithResourceErrors : Set ( String, String )
-            , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
-            , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
-            , jobs : Dict ( String, String, String ) Concourse.Job
+            , pipelinesWithResourceErrors : Set Concourse.DatabaseID
+            , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
+            , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
+            , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
         }
     -> PipelinesSection
     ->
@@ -306,10 +301,7 @@ pipelineCardView session params section { bounds, pipeline } teamName =
          , onMouseOver <|
             Hover <|
                 Just <|
-                    PipelineWrapper
-                        { pipelineName = pipeline.name
-                        , teamName = pipeline.teamName
-                        }
+                    PipelineWrapper pipeline.id
          , onMouseOut <| Hover Nothing
          ]
             ++ (if params.dragState /= NotDragging then
@@ -320,21 +312,18 @@ pipelineCardView session params section { bounds, pipeline } teamName =
                )
             ++ (let
                     hoverStyle id =
-                        if
-                            (id.pipelineName == pipeline.name)
-                                && (id.teamName == pipeline.teamName)
-                        then
+                        if id == pipeline.id then
                             [ style "z-index" "1" ]
 
                         else
                             []
                 in
-                case HoverState.hoveredElement params.hovered of
+                case HoverState.hoveredElement session.hovered of
                     Just (JobPreview _ jobID) ->
-                        hoverStyle jobID
+                        hoverStyle jobID.pipelineId
 
-                    Just (PipelineWrapper pipelineID) ->
-                        hoverStyle pipelineID
+                    Just (PipelineWrapper pipelineId) ->
+                        hoverStyle pipelineId
 
                     _ ->
                         []
@@ -375,26 +364,24 @@ pipelineCardView session params section { bounds, pipeline } teamName =
                         [ style "opacity" "1" ]
                    )
             )
-            [ Pipeline.pipelineView
+            [ Pipeline.pipelineView session
                 { now = params.now
                 , pipeline = pipeline
                 , resourceError =
                     params.pipelinesWithResourceErrors
-                        |> Set.member ( pipeline.teamName, pipeline.name )
+                        |> Set.member pipeline.id
                 , existingJobs =
                     params.pipelineJobs
-                        |> Dict.get ( pipeline.teamName, pipeline.name )
+                        |> Dict.get pipeline.id
                         |> Maybe.withDefault []
                         |> List.filterMap (lookupJob params.jobs)
                 , layers =
                     params.pipelineLayers
-                        |> Dict.get ( pipeline.teamName, pipeline.name )
+                        |> Dict.get pipeline.id
                         |> Maybe.withDefault []
                         |> List.map (List.filterMap <| lookupJob params.jobs)
-                , hovered = params.hovered
-                , pipelineRunningKeyframes = params.pipelineRunningKeyframes
-                , userState = session.userState
-                , favoritedPipelines = session.favoritedPipelines
+                , hovered = session.hovered
+                , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                 , section = section
                 }
             ]

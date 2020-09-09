@@ -32,8 +32,8 @@ import Message.Subscription
         , Interval(..)
         , Subscription(..)
         )
-import RemoteData exposing (WebData)
 import Routes
+import SideBar.SideBar as SideBar
 import StrictEvents exposing (DeltaMode(..))
 import Time
 
@@ -45,12 +45,19 @@ historyId =
 
 header : Session -> Model r -> Views.Header
 header session model =
+    let
+        archived =
+            model.job
+                |> Maybe.andThen (\j -> SideBar.lookupPipeline j.pipelineId session)
+                |> Maybe.map .archived
+                |> Maybe.withDefault False
+    in
     { leftWidgets =
         [ Views.Title model.name model.job
         , Views.Duration (duration session model)
         ]
     , rightWidgets =
-        if isPipelineArchived session.pipelines model.job then
+        if archived then
             []
 
         else
@@ -124,23 +131,6 @@ header session model =
     , backgroundColor = model.status
     , tabs = tabs model
     }
-
-
-isPipelineArchived :
-    WebData (List Concourse.Pipeline)
-    -> Maybe Concourse.JobIdentifier
-    -> Bool
-isPipelineArchived pipelines jobId =
-    case jobId of
-        Just { pipelineName, teamName } ->
-            pipelines
-                |> RemoteData.withDefault []
-                |> List.Extra.find (\p -> p.name == pipelineName && p.teamName == teamName)
-                |> Maybe.map .archived
-                |> Maybe.withDefault False
-
-        Nothing ->
-            False
 
 
 tabs : Model r -> List Views.BuildTab
@@ -452,8 +442,7 @@ update msg ( model, effects ) =
                         |> Maybe.map
                             (\j ->
                                 RerunJobBuild
-                                    { teamName = j.teamName
-                                    , pipelineName = j.pipelineName
+                                    { pipelineId = j.pipelineId
                                     , jobName = j.jobName
                                     , buildName = model.name
                                     }

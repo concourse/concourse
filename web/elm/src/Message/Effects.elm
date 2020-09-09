@@ -677,23 +677,21 @@ toHtmlID domId =
         SideBarTeam section t ->
             pipelinesSectionName section ++ "_" ++ Base64.encode t
 
-        SideBarPipeline section p ->
-            pipelinesSectionName section ++ "_" ++ Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
-
-        PipelineStatusIcon section p ->
+        SideBarPipeline section pipelineId ->
             pipelinesSectionName section
                 ++ "_"
-                ++ Base64.encode p.teamName
+                ++ String.fromInt pipelineId
+
+        PipelineStatusIcon section pipelineId ->
+            pipelinesSectionName section
                 ++ "_"
-                ++ Base64.encode p.pipelineName
+                ++ String.fromInt pipelineId
                 ++ "_status"
 
-        VisibilityButton section p ->
+        VisibilityButton section pipelineId ->
             pipelinesSectionName section
                 ++ "_"
-                ++ Base64.encode p.teamName
-                ++ "_"
-                ++ Base64.encode p.pipelineName
+                ++ String.fromInt pipelineId
                 ++ "_visibility"
 
         ChangedStepLabel stepID _ ->

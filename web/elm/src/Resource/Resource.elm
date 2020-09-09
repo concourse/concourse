@@ -255,8 +255,7 @@ handleCallback callback session ( model, effects ) =
             ( { model
                 | pageStatus = Ok ()
                 , resourceIdentifier =
-                    { teamName = resource.teamName
-                    , pipelineName = resource.pipelineName
+                    { pipelineId = resource.pipelineId
                     , resourceName = resource.name
                     }
                 , checkStatus =
@@ -335,8 +334,7 @@ handleCallback callback session ( model, effects ) =
 
                                         Nothing ->
                                             { id =
-                                                { teamName = model.resourceIdentifier.teamName
-                                                , pipelineName = model.resourceIdentifier.pipelineName
+                                                { pipelineId = model.resourceIdentifier.pipelineId
                                                 , resourceName = model.resourceIdentifier.resourceName
                                                 , versionID = vr.id
                                                 }
@@ -861,17 +859,13 @@ view session model =
             (id "top-bar-app" :: Views.Styles.topBar False)
             [ SideBar.hamburgerMenu session
             , TopBar.concourseLogo
-            , TopBar.breadcrumbs route
+            , TopBar.breadcrumbs session route
             , Login.view session.userState model
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
             [ SideBar.view session
-                (Just
-                    { pipelineName = model.resourceIdentifier.pipelineName
-                    , teamName = model.resourceIdentifier.teamName
-                    }
-                )
+                (SideBar.lookupPipeline model.resourceIdentifier.pipelineId session)
             , if model.pageStatus == Err Models.Empty then
                 Html.text ""
 
@@ -897,9 +891,9 @@ header : Session -> Model -> Html Message
 header session model =
     let
         archived =
-            isPipelineArchived
-                session.pipelines
-                model.resourceIdentifier
+            SideBar.lookupPipeline model.resourceIdentifier.pipelineId session
+                |> Maybe.map .archived
+                |> Maybe.withDefault False
 
         lastCheckedView =
             case ( model.now, model.lastChecked, archived ) of
@@ -948,35 +942,35 @@ body :
     -> Model
     -> Html Message
 body session model =
-    let
-        sectionModel =
-            { checkStatus = model.checkStatus
-            , checkSetupError = model.checkSetupError
-            , checkError = model.checkError
-            , hovered = session.hovered
-            , userState = session.userState
-            , teamName = model.resourceIdentifier.teamName
-            }
+    case SideBar.lookupPipeline model.resourceIdentifier.pipelineId session of
+        Nothing ->
+            Html.text ""
 
-        archived =
-            isPipelineArchived
-                session.pipelines
-                model.resourceIdentifier
-    in
-    Html.div
-        (id "body" :: Resource.Styles.body)
-    <|
-        (if model.pinnedVersion == NotPinned then
-            if archived then
-                []
+        Just pipeline ->
+            let
+                sectionModel =
+                    { checkStatus = model.checkStatus
+                    , checkSetupError = model.checkSetupError
+                    , checkError = model.checkError
+                    , hovered = session.hovered
+                    , userState = session.userState
+                    , teamName = pipeline.teamName
+                    }
+            in
+            Html.div
+                (id "body" :: Resource.Styles.body)
+            <|
+                (if model.pinnedVersion == NotPinned then
+                    if pipeline.archived then
+                        []
 
-            else
-                [ checkSection sectionModel ]
+                    else
+                        [ checkSection sectionModel ]
 
-         else
-            [ pinTools session model ]
-        )
-            ++ [ viewVersionedResources session model ]
+                 else
+                    [ pinTools session model pipeline ]
+                )
+                    ++ [ viewVersionedResources session model pipeline ]
 
 
 paginationMenu :
@@ -1237,18 +1231,17 @@ checkButton ({ hovered, userState, checkStatus } as params) =
 commentBar :
     { a
         | userState : UserState
-        , pipelines : WebData (List Concourse.Pipeline)
         , hovered : HoverState.HoverState
     }
     ->
         { b
             | pinnedVersion : Models.PinnedVersion
-            , resourceIdentifier : Concourse.ResourceIdentifier
             , pinCommentLoading : Bool
             , isEditing : Bool
         }
+    -> Concourse.Pipeline
     -> Html Message
-commentBar session { resourceIdentifier, pinnedVersion, pinCommentLoading, isEditing } =
+commentBar session { pinnedVersion, pinCommentLoading, isEditing } pipeline =
     case pinnedVersion of
         PinnedDynamicallyTo commentState _ ->
             Html.div
@@ -1262,14 +1255,10 @@ commentBar session { resourceIdentifier, pinnedVersion, pinCommentLoading, isEdi
                         Resource.Styles.commentBarMessageIcon
                         :: (if
                                 UserState.isMember
-                                    { teamName = resourceIdentifier.teamName
+                                    { teamName = pipeline.teamName
                                     , userState = session.userState
                                     }
-                                    && not
-                                        (isPipelineArchived
-                                            session.pipelines
-                                            resourceIdentifier
-                                        )
+                                    && not pipeline.archived
                             then
                                 [ Html.textarea
                                     ([ id (toHtmlID ResourceCommentTextarea)
@@ -1357,7 +1346,6 @@ saveButton commentState pinCommentLoading hovered =
 pinTools :
     { s
         | hovered : HoverState.HoverState
-        , pipelines : WebData (List Concourse.Pipeline)
         , userState : UserState
     }
     ->
@@ -1367,31 +1355,26 @@ pinTools :
             , pinCommentLoading : Bool
             , isEditing : Bool
         }
+    -> Concourse.Pipeline
     -> Html Message
-pinTools session model =
+pinTools session model pipeline =
     let
         pinBarVersion =
             Pinned.stable model.pinnedVersion
     in
     Html.div
         (id "pin-tools" :: Resource.Styles.pinTools (ME.isJust pinBarVersion))
-        [ pinBar session model
-        , commentBar session model
+        [ pinBar session model pipeline
+        , commentBar session model pipeline
         ]
 
 
 pinBar :
-    { a
-        | hovered : HoverState.HoverState
-        , pipelines : WebData (List Concourse.Pipeline)
-    }
-    ->
-        { b
-            | pinnedVersion : Models.PinnedVersion
-            , resourceIdentifier : Concourse.ResourceIdentifier
-        }
+    { a | hovered : HoverState.HoverState }
+    -> { b | pinnedVersion : Models.PinnedVersion }
+    -> Concourse.Pipeline
     -> Html Message
-pinBar { hovered, pipelines } { pinnedVersion, resourceIdentifier } =
+pinBar { hovered } { pinnedVersion } pipeline =
     let
         pinBarVersion =
             Pinned.stable pinnedVersion
@@ -1417,9 +1400,7 @@ pinBar { hovered, pipelines } { pinnedVersion, resourceIdentifier } =
                     False
 
         archived =
-            isPipelineArchived
-                pipelines
-                resourceIdentifier
+            pipeline.archived
     in
     Html.div
         (attrList
@@ -1472,37 +1453,17 @@ pinBar { hovered, pipelines } { pinnedVersion, resourceIdentifier } =
         )
 
 
-isPipelineArchived :
-    WebData (List Concourse.Pipeline)
-    -> Concourse.ResourceIdentifier
-    -> Bool
-isPipelineArchived pipelines { pipelineName, teamName } =
-    pipelines
-        |> RemoteData.withDefault []
-        |> List.Extra.find (\p -> p.name == pipelineName && p.teamName == teamName)
-        |> Maybe.map .archived
-        |> Maybe.withDefault False
-
-
 viewVersionedResources :
-    { a
-        | hovered : HoverState.HoverState
-        , pipelines : WebData (List Concourse.Pipeline)
-    }
+    { a | hovered : HoverState.HoverState }
     ->
         { b
             | versions : Paginated Models.Version
             , pinnedVersion : Models.PinnedVersion
             , resourceIdentifier : Concourse.ResourceIdentifier
         }
+    -> Concourse.Pipeline
     -> Html Message
-viewVersionedResources { hovered, pipelines } model =
-    let
-        archived =
-            isPipelineArchived
-                pipelines
-                model.resourceIdentifier
-    in
+viewVersionedResources { hovered } model pipeline =
     model
         |> versions
         |> List.map
@@ -1511,7 +1472,7 @@ viewVersionedResources { hovered, pipelines } model =
                     { version = v
                     , pinnedVersion = model.pinnedVersion
                     , hovered = hovered
-                    , archived = archived
+                    , archived = pipeline.archived
                     }
             )
         |> Html.ul [ class "list list-collapsable list-enableDisable resource-versions" ]
@@ -1832,8 +1793,7 @@ viewBuildsByJob buildDict jobName =
                             link =
                                 Routes.Build
                                     { id =
-                                        { teamName = job.teamName
-                                        , pipelineName = job.pipelineName
+                                        { pipelineId = job.pipelineId
                                         , jobName = job.jobName
                                         , buildName = build.name
                                         }

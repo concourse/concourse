@@ -651,19 +651,14 @@ view session model =
             (id "top-bar-app" :: Views.Styles.topBar False)
             [ SideBar.hamburgerMenu session
             , TopBar.concourseLogo
-            , breadcrumbs model
+            , breadcrumbs session model
             , Login.view session.userState model
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
             [ SideBar.view session
                 (model.job
-                    |> Maybe.map
-                        (\j ->
-                            { pipelineName = j.pipelineName
-                            , teamName = j.teamName
-                            }
-                        )
+                    |> Maybe.andThen (\j -> SideBar.lookupPipeline j.pipelineId session)
                 )
             , viewBuildPage session model
             ]
@@ -690,18 +685,18 @@ tooltip _ { hovered } =
             Nothing
 
 
-breadcrumbs : Model -> Html Message
-breadcrumbs model =
+breadcrumbs : Session -> Model -> Html Message
+breadcrumbs session model =
     case ( model.job, model.page ) of
         ( Just jobId, _ ) ->
-            TopBar.breadcrumbs <|
+            TopBar.breadcrumbs session <|
                 Routes.Job
                     { id = jobId
                     , page = Nothing
                     }
 
         ( _, JobBuildPage buildId ) ->
-            TopBar.breadcrumbs <|
+            TopBar.breadcrumbs session <|
                 Routes.Build
                     { id = buildId
                     , highlight = model.highlight

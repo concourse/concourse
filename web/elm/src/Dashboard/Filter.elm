@@ -42,8 +42,8 @@ type alias Filter =
 
 
 filterGroups :
-    { pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
-    , jobs : Dict ( String, String, String ) Concourse.Job
+    { pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
+    , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
     , query : String
     , teams : List Concourse.Team
     , pipelines : Dict String (List Pipeline)
@@ -79,7 +79,12 @@ prefilter view favoritedPipelines p =
             True
 
 
-runFilter : Dict ( String, String, String ) Concourse.Job -> Dict ( String, String ) (List Concourse.JobIdentifier) -> Filter -> List Group -> List Group
+runFilter :
+    Dict ( Concourse.DatabaseID, String ) Concourse.Job
+    -> Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
+    -> Filter
+    -> List Group
+    -> List Group
 runFilter jobs existingJobs f =
     let
         negater =
@@ -105,18 +110,23 @@ runFilter jobs existingJobs f =
                 >> List.filter (.pipelines >> List.isEmpty >> not)
 
 
-lookupJob : Dict ( String, String, String ) Concourse.Job -> Concourse.JobIdentifier -> Maybe Concourse.Job
+lookupJob : Dict ( Concourse.DatabaseID, String ) Concourse.Job -> Concourse.JobIdentifier -> Maybe Concourse.Job
 lookupJob jobs jobId =
     jobs
-        |> Dict.get ( jobId.teamName, jobId.pipelineName, jobId.jobName )
+        |> Dict.get ( jobId.pipelineId, jobId.jobName )
 
 
-pipelineFilter : PipelineFilter -> Dict ( String, String, String ) Concourse.Job -> Dict ( String, String ) (List Concourse.JobIdentifier) -> Pipeline -> Bool
+pipelineFilter :
+    PipelineFilter
+    -> Dict ( Concourse.DatabaseID, String ) Concourse.Job
+    -> Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
+    -> Pipeline
+    -> Bool
 pipelineFilter pf jobs existingJobs pipeline =
     let
         jobsForPipeline =
             existingJobs
-                |> Dict.get ( pipeline.teamName, pipeline.name )
+                |> Dict.get pipeline.id
                 |> Maybe.withDefault []
                 |> List.filterMap (lookupJob jobs)
     in

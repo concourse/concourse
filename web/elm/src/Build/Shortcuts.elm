@@ -204,8 +204,7 @@ handleKeyPressed keyEvent ( model, effects ) =
                                 |> Maybe.map
                                     (\j ->
                                         RerunJobBuild
-                                            { teamName = j.teamName
-                                            , pipelineName = j.pipelineName
+                                            { pipelineId = j.pipelineId
                                             , jobName = j.jobName
                                             , buildName = newModel.name
                                             }

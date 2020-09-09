@@ -3,6 +3,7 @@ module SideBar.SideBar exposing
     , hamburgerMenu
     , handleCallback
     , handleDelivery
+    , lookupPipeline
     , tooltip
     , update
     , view
@@ -49,7 +50,7 @@ type alias Model m =
 type alias PipelineScoped a =
     { a
         | teamName : String
-        , pipelineName : String
+        , name : String
     }
 
 
@@ -133,17 +134,23 @@ update message model =
             ( model, [] )
 
 
-handleCallback : Callback -> WebData (PipelineScoped a) -> ET (Model m)
-handleCallback callback currentPipeline ( model, effects ) =
+handleCallback : Callback -> Maybe Concourse.PipelineIdentifier -> ET (Model m)
+handleCallback callback currentPipelineId ( model, effects ) =
     case callback of
         AllPipelinesFetched (Ok pipelines) ->
             ( { model
                 | pipelines = Success pipelines
                 , expandedTeamsInAllPipelines =
-                    case ( model.pipelines, currentPipeline ) of
-                        ( NotAsked, Success { teamName } ) ->
-                            model.expandedTeamsInAllPipelines
-                                |> Set.insert teamName
+                    case ( model.pipelines, currentPipelineId ) of
+                        -- First time receiving AllPipelines response
+                        ( NotAsked, Just pipelineId ) ->
+                            case searchPipelines pipelineId pipelines of
+                                Just { teamName } ->
+                                    model.expandedTeamsInAllPipelines
+                                        |> Set.insert teamName
+
+                                Nothing ->
+                                    model.expandedTeamsInAllPipelines
 
                         _ ->
                             model.expandedTeamsInAllPipelines
@@ -154,8 +161,8 @@ handleCallback callback currentPipeline ( model, effects ) =
         BuildFetched (Ok build) ->
             ( { model
                 | expandedTeamsInAllPipelines =
-                    case ( currentPipeline, build.job ) of
-                        ( NotAsked, Just { teamName } ) ->
+                    case ( currentPipelineId, build.job, build ) of
+                        ( Nothing, Just _, { teamName } ) ->
                             model.expandedTeamsInAllPipelines
                                 |> Set.insert teamName
 
@@ -238,8 +245,8 @@ view model currentPipeline =
 
 
 tooltip : Model m -> Maybe Tooltip.Tooltip
-tooltip { hovered } =
-    case hovered of
+tooltip model =
+    case model.hovered of
         HoverState.Tooltip (SideBarTeam _ teamName) _ ->
             Just
                 { body = Html.div Styles.tooltipBody [ Html.text teamName ]
@@ -252,19 +259,22 @@ tooltip { hovered } =
                 }
 
         HoverState.Tooltip (SideBarPipeline _ pipelineID) _ ->
-            Just
-                { body = Html.div Styles.tooltipBody [ Html.text pipelineID.pipelineName ]
-                , attachPosition =
-                    { direction =
-                        Tooltip.Right <|
-                            Styles.tooltipArrowSize
-                                + (Styles.starPadding * 2)
-                                + Styles.starWidth
-                                - Styles.tooltipOffset
-                    , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
-                    }
-                , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.frame }
-                }
+            lookupPipeline pipelineID model
+                |> Maybe.map
+                    (\{ name } ->
+                        { body = Html.div Styles.tooltipBody [ Html.text name ]
+                        , attachPosition =
+                            { direction =
+                                Tooltip.Right <|
+                                    Styles.tooltipArrowSize
+                                        + (Styles.starPadding * 2)
+                                        + Styles.starWidth
+                                        - Styles.tooltipOffset
+                            , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
+                            }
+                        , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.frame }
+                        }
+                    )
 
         _ ->
             Nothing
@@ -384,3 +394,24 @@ hasVisiblePipelines model =
 isPipelineVisible : { a | favoritedPipelines : Set Concourse.DatabaseID } -> Concourse.Pipeline -> Bool
 isPipelineVisible { favoritedPipelines } p =
     not p.archived || Set.member p.id favoritedPipelines
+
+
+lookupPipeline :
+    Concourse.PipelineIdentifier
+    -> { b | pipelines : WebData (List Concourse.Pipeline) }
+    -> Maybe Concourse.Pipeline
+lookupPipeline pipelineId { pipelines } =
+    case pipelines of
+        Success ps ->
+            searchPipelines pipelineId ps
+
+        _ ->
+            Nothing
+
+
+searchPipelines :
+    Concourse.PipelineIdentifier
+    -> List Concourse.Pipeline
+    -> Maybe Concourse.Pipeline
+searchPipelines pipelineId ps =
+    List.Extra.find (.id >> (==) pipelineId) ps

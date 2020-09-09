@@ -5,6 +5,7 @@ module Dashboard.Pipeline exposing
     , pipelineView
     )
 
+import Application.Models exposing (Session)
 import Assets
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -29,9 +30,10 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
-import Set exposing (Set)
+import Set
+import SideBar.SideBar as SideBar
 import Time
-import UserState exposing (UserState)
+import UserState
 import Views.FavoritedIcon
 import Views.Icon as Icon
 import Views.PauseToggle as PauseToggle
@@ -105,19 +107,19 @@ hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs
 
 
 pipelineView :
-    { now : Maybe Time.Posix
-    , pipeline : Pipeline
-    , hovered : HoverState.HoverState
-    , pipelineRunningKeyframes : String
-    , userState : UserState
-    , favoritedPipelines : Set Concourse.DatabaseID
-    , resourceError : Bool
-    , existingJobs : List Concourse.Job
-    , layers : List (List Concourse.Job)
-    , section : PipelinesSection
-    }
+    Session
+    ->
+        { now : Maybe Time.Posix
+        , pipeline : Pipeline
+        , hovered : HoverState.HoverState
+        , pipelineRunningKeyframes : String
+        , resourceError : Bool
+        , existingJobs : List Concourse.Job
+        , layers : List (List Concourse.Job)
+        , section : PipelinesSection
+        }
     -> Html Message
-pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, favoritedPipelines, resourceError, existingJobs, layers, section } =
+pipelineView session { now, pipeline, hovered, pipelineRunningKeyframes, resourceError, existingJobs, layers, section } =
     let
         bannerStyle =
             if pipeline.stale then
@@ -156,7 +158,7 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, favo
 
           else
             bodyView section hovered layers
-        , footerView userState favoritedPipelines pipeline section now hovered existingJobs
+        , footerView session pipeline section now hovered existingJobs
         ]
 
 
@@ -286,60 +288,60 @@ bodyView section hovered layers =
 
 
 footerView :
-    UserState
-    -> Set Concourse.DatabaseID
+    Session
     -> Pipeline
     -> PipelinesSection
     -> Maybe Time.Posix
     -> HoverState.HoverState
     -> List Concourse.Job
     -> Html Message
-footerView userState favoritedPipelines pipeline section now hovered existingJobs =
+footerView session pipeline section now hovered existingJobs =
     let
         spacer =
             Html.div [ style "width" "12px" ] []
-
-        pipelineId =
-            { pipelineName = pipeline.name
-            , teamName = pipeline.teamName
-            }
 
         status =
             pipelineStatus existingJobs pipeline
 
         pauseToggle =
             PauseToggle.view
-                { isPaused =
+                { isClickable =
+                    UserState.isAnonymous session.userState
+                        || UserState.isMember
+                            { teamName = pipeline.teamName
+                            , userState = session.userState
+                            }
+                , isPaused =
                     status == PipelineStatus.PipelineStatusPaused
-                , pipeline = pipelineId
+                , pipeline = SideBar.lookupPipeline pipeline.id session
                 , isToggleHovered =
-                    HoverState.isHovered (PipelineCardPauseToggle section pipelineId) hovered
+                    HoverState.isHovered (PipelineCardPauseToggle section pipeline.id) hovered
                 , isToggleLoading = pipeline.isToggleLoading
                 , tooltipPosition = Views.Styles.Above
                 , margin = "0"
-                , userState = userState
-                , domID = PipelineCardPauseToggle section pipelineId
+                , userState = session.userState
+                , domID = PipelineCardPauseToggle section pipeline.id
                 }
 
         visibilityButton =
             visibilityView
                 { public = pipeline.public
-                , pipelineId = pipelineId
+                , pipelineId = pipeline.id
                 , isClickable =
-                    UserState.isAnonymous userState
+                    UserState.isAnonymous session.userState
                         || UserState.isMember
                             { teamName = pipeline.teamName
-                            , userState = userState
+                            , userState = session.userState
                             }
                 , isHovered =
-                    HoverState.isHovered (VisibilityButton section pipelineId) hovered
+                    HoverState.isHovered (VisibilityButton section pipeline.id) hovered
                 , isVisibilityLoading = pipeline.isVisibilityLoading
                 , section = section
                 }
 
         favoritedIcon =
             Views.FavoritedIcon.view
-                { isFavorited = Set.member pipeline.id favoritedPipelines
+                { isFavorited = Set.member pipeline.id session.favoritedPipelines
                 , isHovered = HoverState.isHovered (PipelineCardFavoritedIcon section pipeline.id) hovered
                 , domID = PipelineCardFavoritedIcon section pipeline.id
                 }
@@ -363,12 +365,6 @@ footerView userState favoritedPipelines pipeline section now hovered existingJob
 
 pipelineStatusView : PipelinesSection -> Pipeline -> PipelineStatus.PipelineStatus -> Maybe Time.Posix -> Html Message
 pipelineStatusView section pipeline status now =
-    let
-        pipelineId =
-            { pipelineName = pipeline.name
-            , teamName = pipeline.teamName
-            }
-    in
     Html.div
         [ style "display" "flex"
         , class "pipeline-status"
@@ -381,8 +377,8 @@ pipelineStatusView section pipeline status now =
                 Icon.icon
                     { sizePx = 20, image = Assets.PipelineStatusIconJobsDisabled }
                     ([ style "opacity" "0.5"
-                     , id <| Effects.toHtmlID <| PipelineStatusIcon section pipelineId
-                     , onMouseEnter <| Hover <| Just <| PipelineStatusIcon section pipelineId
+                     , id <| Effects.toHtmlID <| PipelineStatusIcon section pipeline.id
+                     , onMouseEnter <| Hover <| Just <| PipelineStatusIcon section pipeline.id
                      ]
                         ++ Styles.pipelineStatusIcon
                     )

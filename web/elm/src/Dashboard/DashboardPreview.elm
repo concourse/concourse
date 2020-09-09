@@ -47,8 +47,7 @@ viewJob section hovered job =
 
         jobId =
             { jobName = job.name
-            , pipelineName = job.pipelineName
-            , teamName = job.teamName
+            , pipelineId = job.pipelineId
             }
     in
     Html.div

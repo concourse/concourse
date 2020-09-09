@@ -253,29 +253,23 @@ sideBarHandleCallback callback ( model, effects ) =
                 |> (case model.subModel of
                         SubPage.ResourceModel { resourceIdentifier } ->
                             SideBar.handleCallback callback <|
-                                RemoteData.Success resourceIdentifier
+                                Just resourceIdentifier.pipelineId
 
                         SubPage.PipelineModel { pipelineLocator } ->
                             SideBar.handleCallback callback <|
-                                RemoteData.Success pipelineLocator
+                                Just pipelineLocator
 
                         SubPage.JobModel { jobIdentifier } ->
                             SideBar.handleCallback callback <|
-                                RemoteData.Success jobIdentifier
+                                Just jobIdentifier.pipelineId
 
                         SubPage.BuildModel buildModel ->
-                            SideBar.handleCallback callback
-                                (case buildModel.job of
-                                    Just j ->
-                                        RemoteData.Success j
-
-                                    Nothing ->
-                                        RemoteData.NotAsked
-                                )
+                            SideBar.handleCallback callback <|
+                                Maybe.map .pipelineId buildModel.job
 
                         _ ->
                             SideBar.handleCallback callback <|
-                                RemoteData.NotAsked
+                                Nothing
                    )
                 |> Tooltip.handleCallback callback
     in
