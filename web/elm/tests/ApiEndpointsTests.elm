@@ -29,43 +29,43 @@ testEndpoints =
                     E.BasePipeline
                         |> basePipelineEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline"
+                        |> Expect.equal "/api/v1/pipelines/1"
             , test "Pause" <|
                 \_ ->
                     E.PausePipeline
                         |> basePipelineEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/pause"
+                        |> Expect.equal "/api/v1/pipelines/1/pause"
             , test "Unpause" <|
                 \_ ->
                     E.UnpausePipeline
                         |> basePipelineEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/unpause"
+                        |> Expect.equal "/api/v1/pipelines/1/unpause"
             , test "Expose" <|
                 \_ ->
                     E.ExposePipeline
                         |> basePipelineEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/expose"
+                        |> Expect.equal "/api/v1/pipelines/1/expose"
             , test "Hide" <|
                 \_ ->
                     E.HidePipeline
                         |> basePipelineEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/hide"
+                        |> Expect.equal "/api/v1/pipelines/1/hide"
             , test "JobsList" <|
                 \_ ->
                     E.PipelineJobsList
                         |> basePipelineEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/jobs"
+                        |> Expect.equal "/api/v1/pipelines/1/jobs"
             , test "ResourcesList" <|
                 \_ ->
                     E.PipelineResourcesList
                         |> basePipelineEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/resources"
+                        |> Expect.equal "/api/v1/pipelines/1/resources"
             ]
         , test "JobsList" <|
             \_ ->
@@ -82,25 +82,25 @@ testEndpoints =
                     E.BaseJob
                         |> baseJobEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/jobs/job"
+                        |> Expect.equal "/api/v1/pipelines/1/jobs/job"
             , test "Pause" <|
                 \_ ->
                     E.PauseJob
                         |> baseJobEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/jobs/job/pause"
+                        |> Expect.equal "/api/v1/pipelines/1/jobs/job/pause"
             , test "Unpause" <|
                 \_ ->
                     E.UnpauseJob
                         |> baseJobEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/jobs/job/unpause"
+                        |> Expect.equal "/api/v1/pipelines/1/jobs/job/unpause"
             , test "BuildsList" <|
                 \_ ->
                     E.JobBuildsList
                         |> baseJobEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/jobs/job/builds"
+                        |> Expect.equal "/api/v1/pipelines/1/jobs/job/builds"
             ]
         , test "JobBuild" <|
             \_ ->
@@ -108,11 +108,10 @@ testEndpoints =
                     (Data.jobBuildId
                         |> Data.withBuildName "build"
                         |> Data.withJobName "job"
-                        |> Data.withPipelineName "pipeline"
-                        |> Data.withTeamName "team"
+                        |> Data.withPipelineId 1
                     )
                     |> toPath
-                    |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/jobs/job/builds/build"
+                    |> Expect.equal "/api/v1/pipelines/1/jobs/job/builds/build"
         , describe "Build" <|
             let
                 baseBuildEndpoint =
@@ -170,31 +169,31 @@ testEndpoints =
                     E.BaseResource
                         |> baseResourceEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/resources/resource"
+                        |> Expect.equal "/api/v1/pipelines/1/resources/resource"
             , test "VersionsList" <|
                 \_ ->
                     E.ResourceVersionsList
                         |> baseResourceEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/resources/resource/versions"
+                        |> Expect.equal "/api/v1/pipelines/1/resources/resource/versions"
             , test "Unpin" <|
                 \_ ->
                     E.UnpinResource
                         |> baseResourceEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/resources/resource/unpin"
+                        |> Expect.equal "/api/v1/pipelines/1/resources/resource/unpin"
             , test "Check" <|
                 \_ ->
                     E.CheckResource
                         |> baseResourceEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/resources/resource/check"
+                        |> Expect.equal "/api/v1/pipelines/1/resources/resource/check"
             , test "PinComment" <|
                 \_ ->
                     E.PinResourceComment
                         |> baseResourceEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/resources/resource/pin_comment"
+                        |> Expect.equal "/api/v1/pipelines/1/resources/resource/pin_comment"
             ]
         , describe "ResourceVersion" <|
             let
@@ -206,31 +205,31 @@ testEndpoints =
                     E.ResourceVersionInputTo
                         |> baseVersionEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/resources/resource/versions/1/input_to"
+                        |> Expect.equal "/api/v1/pipelines/1/resources/resource/versions/1/input_to"
             , test "OutputOf" <|
                 \_ ->
                     E.ResourceVersionOutputOf
                         |> baseVersionEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/resources/resource/versions/1/output_of"
+                        |> Expect.equal "/api/v1/pipelines/1/resources/resource/versions/1/output_of"
             , test "Pin" <|
                 \_ ->
                     E.PinResourceVersion
                         |> baseVersionEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/resources/resource/versions/1/pin"
+                        |> Expect.equal "/api/v1/pipelines/1/resources/resource/versions/1/pin"
             , test "Enable" <|
                 \_ ->
                     E.EnableResourceVersion
                         |> baseVersionEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/resources/resource/versions/1/enable"
+                        |> Expect.equal "/api/v1/pipelines/1/resources/resource/versions/1/enable"
             , test "Disable" <|
                 \_ ->
                     E.DisableResourceVersion
                         |> baseVersionEndpoint
                         |> toPath
-                        |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/resources/resource/versions/1/disable"
+                        |> Expect.equal "/api/v1/pipelines/1/resources/resource/versions/1/disable"
             ]
         , test "Check" <|
             \_ ->

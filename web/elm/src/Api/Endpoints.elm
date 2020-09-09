@@ -9,7 +9,7 @@ module Api.Endpoints exposing
     , toString
     )
 
-import Concourse
+import Concourse exposing (DatabaseID)
 import Url.Builder
 
 
@@ -89,14 +89,14 @@ baseSkyPath =
     [ "sky" ]
 
 
-pipelinePath : { r | pipelineName : String, teamName : String } -> List String
-pipelinePath { pipelineName, teamName } =
-    basePath ++ [ "teams", teamName, "pipelines", pipelineName ]
+pipelinePath : DatabaseID -> List String
+pipelinePath pipelineId =
+    basePath ++ [ "pipelines", String.fromInt pipelineId ]
 
 
-resourcePath : { r | pipelineName : String, teamName : String, resourceName : String } -> List String
-resourcePath { pipelineName, teamName, resourceName } =
-    pipelinePath { pipelineName = pipelineName, teamName = teamName }
+resourcePath : { r | pipelineId : DatabaseID, resourceName : String } -> List String
+resourcePath { pipelineId, resourceName } =
+    pipelinePath pipelineId
         ++ [ "resources", resourceName ]
 
 
@@ -118,10 +118,10 @@ toPath endpoint =
             basePath ++ [ "jobs" ]
 
         Job id subEndpoint ->
-            pipelinePath id ++ [ "jobs", id.jobName ] ++ jobEndpointToPath subEndpoint
+            pipelinePath id.pipelineId ++ [ "jobs", id.jobName ] ++ jobEndpointToPath subEndpoint
 
         JobBuild id ->
-            pipelinePath id ++ [ "jobs", id.jobName, "builds", id.buildName ]
+            pipelinePath id.pipelineId ++ [ "jobs", id.jobName, "builds", id.buildName ]
 
         Build id subEndpoint ->
             basePath ++ [ "builds", String.fromInt id ] ++ buildEndpointToPath subEndpoint
