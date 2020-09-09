@@ -299,9 +299,6 @@ handleCallback callback session ( model, effects ) =
 
         VersionedResourcesFetched (Ok ( requestedPage, paginated )) ->
             let
-                fetchedPage =
-                    permalink paginated.content
-
                 resourceVersions =
                     { pagination = paginated.pagination
                     , content =
@@ -802,20 +799,6 @@ updateVersion versionID updateFunc model =
             model.versions
     in
     { model | versions = { resourceVersions | content = newVersionsContent } }
-
-
-permalink : List Concourse.VersionedResource -> Page
-permalink versionedResources =
-    case List.head versionedResources of
-        Nothing ->
-            { direction = Concourse.Pagination.ToMostRecent
-            , limit = 100
-            }
-
-        Just version ->
-            { direction = Concourse.Pagination.To version.id
-            , limit = List.length versionedResources
-            }
 
 
 documentTitle : Model -> String

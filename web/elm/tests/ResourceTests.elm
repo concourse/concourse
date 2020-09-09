@@ -10,7 +10,6 @@ import Concourse.Pagination exposing (Direction(..), Page, Pagination)
 import DashboardTests
     exposing
         ( almostBlack
-        , darkGrey
         , iconSelector
         , middleGrey
         )
@@ -19,7 +18,6 @@ import Dict
 import Expect exposing (..)
 import HoverState
 import Html.Attributes as Attr
-import Http
 import Keyboard
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
@@ -55,11 +53,6 @@ import Time
 import Url
 import UserState exposing (UserState(..))
 import Views.Styles
-
-
-commentButtonBlue : String
-commentButtonBlue =
-    "#196ac8"
 
 
 teamName : String
@@ -115,16 +108,6 @@ disabledVersion =
 purpleHex : String
 purpleHex =
     "#5c3bd1"
-
-
-fadedBlackHex : String
-fadedBlackHex =
-    "#1e1d1d80"
-
-
-almostWhiteHex : String
-almostWhiteHex =
-    "#e6e7e8"
 
 
 lightGreyHex : String
@@ -575,11 +558,13 @@ all =
                         }
                     , test "pagination previous loads most recent if less than 100 entries" <|
                         \_ ->
+                            let
+                                previousPage =
+                                    { direction = From 1, limit = 100 }
+                            in
                             init
                                 |> givenResourceIsNotPinned
-                                |> givenVersionsWithPages
-                                     { direction = From 1, limit = 100 }
-                                    { nextPage = Nothing, previousPage = Nothing }
+                                |> givenVersionsWithPages previousPage emptyPagination
                                 |> Tuple.second
                                 |> Common.contains
                                     (Effects.FetchVersionedResources
@@ -1309,10 +1294,7 @@ all =
                                                   , enabled = False
                                                   }
                                                 ]
-                                          , pagination =
-                                                { previousPage = Nothing
-                                                , nextPage = Nothing
-                                                }
+                                          , pagination = emptyPagination
                                           }
                                         )
                                 )
@@ -1369,10 +1351,7 @@ all =
                                                   , enabled = False
                                                   }
                                                 ]
-                                          , pagination =
-                                                { previousPage = Nothing
-                                                , nextPage = Nothing
-                                                }
+                                          , pagination = emptyPagination
                                           }
                                         )
                                 )
@@ -1431,10 +1410,7 @@ all =
                                                   , enabled = False
                                                   }
                                                 ]
-                                          , pagination =
-                                                { previousPage = Nothing
-                                                , nextPage = Nothing
-                                                }
+                                          , pagination = emptyPagination
                                           }
                                         )
                                 )
@@ -1496,10 +1472,7 @@ all =
                                                   , enabled = False
                                                   }
                                                 ]
-                                          , pagination =
-                                                { previousPage = Nothing
-                                                , nextPage = Nothing
-                                                }
+                                          , pagination = emptyPagination
                                           }
                                         )
                                 )
@@ -3503,6 +3476,11 @@ clickToDisable vid =
         >> Tuple.first
 
 
+emptyPagination : Pagination
+emptyPagination =
+    { nextPage = Nothing, previousPage = Nothing }
+
+
 givenVersionsWithPages : Page -> Concourse.Pagination.Pagination -> Application.Model -> ( Application.Model, List Effects.Effect )
 givenVersionsWithPages requestedPage pagination =
     Application.handleCallback
@@ -3534,10 +3512,7 @@ givenVersionsWithPages requestedPage pagination =
 
 givenVersionsWithoutPagination : Application.Model -> Application.Model
 givenVersionsWithoutPagination =
-    givenVersionsWithPages Resource.startingPage
-        { previousPage = Nothing
-        , nextPage = Nothing
-        }
+    givenVersionsWithPages Resource.startingPage emptyPagination
         >> Tuple.first
 
 
@@ -3707,11 +3682,6 @@ hasCheckbox =
 purpleOutlineSelector : List Selector
 purpleOutlineSelector =
     [ style "border" <| "1px solid " ++ purpleHex ]
-
-
-redOutlineSelector : List Selector
-redOutlineSelector =
-    [ style "border" <| "1px solid " ++ failureRed ]
 
 
 findLast : List Selector -> Query.Single msg -> Query.Single msg
