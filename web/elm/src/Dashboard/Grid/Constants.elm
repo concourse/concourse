@@ -1,4 +1,4 @@
-module Dashboard.PipelineGrid.Constants exposing
+module Dashboard.Grid.Constants exposing
     ( cardHeight
     , cardWidth
     , headerHeight

@@ -1,4 +1,4 @@
-module PipelineGridTests exposing (all)
+module DashboardGridTests exposing (all)
 
 import Application.Application as Application
 import Common

@@ -1,4 +1,4 @@
-module Dashboard.PipelineGrid.Layout exposing (Card, cardSize, layout)
+module Dashboard.Grid.Layout exposing (Card, cardSize, layout)
 
 
 type alias GridSpan =

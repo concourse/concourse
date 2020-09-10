@@ -9,12 +9,12 @@ module Dashboard.Group exposing
 
 import Application.Models exposing (Session)
 import Concourse
+import Dashboard.Grid as Grid
+import Dashboard.Grid.Constants as GridConstants
 import Dashboard.Group.Models exposing (Group, Pipeline)
 import Dashboard.Group.Tag as Tag
 import Dashboard.Models exposing (DragState(..), DropState(..))
 import Dashboard.Pipeline as Pipeline
-import Dashboard.PipelineGrid as PipelineGrid
-import Dashboard.PipelineGrid.Constants as PipelineGridConstants
 import Dashboard.Styles as Styles
 import Dict exposing (Dict)
 import HoverState
@@ -52,8 +52,8 @@ view :
         , now : Maybe Time.Posix
         , pipelinesWithResourceErrors : Set Concourse.DatabaseID
         , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
-        , pipelineCards : List PipelineGrid.PipelineCard
-        , dropAreas : List PipelineGrid.DropArea
+        , pipelineCards : List Grid.Card
+        , dropAreas : List Grid.DropArea
         , groupCardsHeight : Float
         , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
         , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
@@ -93,7 +93,7 @@ view session params g =
         [ Html.div
             [ style "display" "flex"
             , style "align-items" "center"
-            , style "margin-bottom" (String.fromInt PipelineGridConstants.padding ++ "px")
+            , style "margin-bottom" (String.fromInt GridConstants.padding ++ "px")
             , class <| .sectionHeaderClass Effects.stickyHeaderConfig
             ]
             (Html.div
@@ -130,8 +130,8 @@ viewFavoritePipelines :
         , now : Maybe Time.Posix
         , pipelinesWithResourceErrors : Set Concourse.DatabaseID
         , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
-        , pipelineCards : List PipelineGrid.PipelineCard
-        , headers : List PipelineGrid.Header
+        , pipelineCards : List Grid.Card
+        , headers : List Grid.Header
         , groupCardsHeight : Float
         , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
         , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
@@ -273,7 +273,7 @@ pipelineCardView :
         }
     -> PipelinesSection
     ->
-        { bounds : PipelineGrid.Bounds
+        { bounds : Grid.Bounds
         , pipeline : Pipeline
         }
     -> String
@@ -388,7 +388,7 @@ pipelineCardView session params section { bounds, pipeline } teamName =
         ]
 
 
-pipelineDropAreaView : DragState -> String -> PipelineGrid.Bounds -> DropTarget -> Html Message
+pipelineDropAreaView : DragState -> String -> Grid.Bounds -> DropTarget -> Html Message
 pipelineDropAreaView dragState name { x, y, width, height } target =
     let
         active =
@@ -423,7 +423,7 @@ pipelineDropAreaView dragState name { x, y, width, height } target =
         []
 
 
-headerView : PipelineGrid.Bounds -> String -> Html Message
+headerView : Grid.Bounds -> String -> Html Message
 headerView { x, y, width, height } header =
     Html.div
         [ class "header"

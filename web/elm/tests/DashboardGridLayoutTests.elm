@@ -1,13 +1,13 @@
-module PipelineGridLayoutTests exposing (all)
+module DashboardGridLayoutTests exposing (all)
 
-import Dashboard.PipelineGrid.Layout exposing (cardSize, layout)
+import Dashboard.Grid.Layout exposing (cardSize, layout)
 import Expect
 import Test exposing (Test, describe, test, todo)
 
 
 all : Test
 all =
-    describe "pipeline grid layout"
+    describe "dashboard grid layout"
         [ describe "card size"
             [ test "is wide when pipeline has more than 12 layers of jobs" <|
                 \_ ->

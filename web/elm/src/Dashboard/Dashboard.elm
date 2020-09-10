@@ -16,6 +16,8 @@ import Dashboard.DashboardPreview as DashboardPreview
 import Dashboard.Drag as Drag
 import Dashboard.Filter as Filter
 import Dashboard.Footer as Footer
+import Dashboard.Grid as Grid
+import Dashboard.Grid.Constants as GridConstants
 import Dashboard.Group as Group
 import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Models as Models
@@ -26,8 +28,6 @@ import Dashboard.Models as Models
         , FetchError(..)
         , Model
         )
-import Dashboard.PipelineGrid as PipelineGrid
-import Dashboard.PipelineGrid.Constants as PipelineGridConstants
 import Dashboard.RequestBuffer as RequestBuffer exposing (Buffer(..))
 import Dashboard.SearchBar as SearchBar
 import Dashboard.Styles as Styles
@@ -1184,15 +1184,15 @@ pipelinesView session params =
                     ( [], 0 )
 
                 else if List.isEmpty favoritedPipelines then
-                    ( [ allPipelinesHeader ], PipelineGridConstants.sectionHeaderHeight )
+                    ( [ allPipelinesHeader ], GridConstants.sectionHeaderHeight )
 
                 else
                     let
                         offset =
-                            PipelineGridConstants.sectionHeaderHeight
+                            GridConstants.sectionHeaderHeight
 
                         layout =
-                            PipelineGrid.computeFavoritePipelinesLayout
+                            Grid.computeFavoritePipelinesLayout
                                 { pipelineLayers = params.pipelineLayers
                                 , viewportWidth = params.viewportWidth
                                 , viewportHeight = params.viewportHeight
@@ -1214,14 +1214,14 @@ pipelinesView session params =
                         , pipelineJobs = params.pipelineJobs
                         , jobs = jobs
                         }
-                    , Views.Styles.separator PipelineGridConstants.sectionSpacerHeight
+                    , Views.Styles.separator GridConstants.sectionSpacerHeight
                     , allPipelinesHeader
                     ]
                         |> (\html ->
                                 ( html
                                 , layout.height
-                                    + (2 * PipelineGridConstants.sectionHeaderHeight)
-                                    + PipelineGridConstants.sectionSpacerHeight
+                                    + (2 * GridConstants.sectionHeaderHeight)
+                                    + GridConstants.sectionSpacerHeight
                                 )
                            )
 
@@ -1243,7 +1243,7 @@ pipelinesView session params =
                             (\g ( htmlList, totalOffset ) ->
                                 let
                                     layout =
-                                        PipelineGrid.computeLayout
+                                        Grid.computeLayout
                                             { dragState = params.dragState
                                             , dropState = params.dropState
                                             , pipelineLayers = params.pipelineLayers
@@ -1271,8 +1271,8 @@ pipelinesView session params =
                                             ( html :: htmlList
                                             , totalOffset
                                                 + layout.height
-                                                + PipelineGridConstants.headerHeight
-                                                + PipelineGridConstants.padding
+                                                + GridConstants.headerHeight
+                                                + GridConstants.padding
                                             )
                                        )
                             )

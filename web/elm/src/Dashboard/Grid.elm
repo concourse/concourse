@@ -1,24 +1,24 @@
-module Dashboard.PipelineGrid exposing
+module Dashboard.Grid exposing
     ( Bounds
+    , Card
     , DropArea
     , Header
-    , PipelineCard
     , computeFavoritePipelinesLayout
     , computeLayout
     )
 
 import Concourse
 import Dashboard.Drag exposing (dragPipeline)
-import Dashboard.Group.Models exposing (Group, Pipeline)
-import Dashboard.Models exposing (DragState(..), DropState(..))
-import Dashboard.PipelineGrid.Constants
+import Dashboard.Grid.Constants
     exposing
         ( cardHeight
         , cardWidth
         , headerHeight
         , padding
         )
-import Dashboard.PipelineGrid.Layout as Layout
+import Dashboard.Grid.Layout as Layout
+import Dashboard.Group.Models exposing (Group, Pipeline)
+import Dashboard.Models exposing (DragState(..), DropState(..))
 import Dict exposing (Dict)
 import List.Extra
 import Message.Message exposing (DomID(..), DropTarget(..), Message(..))
@@ -33,7 +33,7 @@ type alias Bounds =
     }
 
 
-type alias PipelineCard =
+type alias Card =
     { bounds : Bounds
     , pipeline : Pipeline
     }
@@ -61,7 +61,7 @@ computeLayout :
     }
     -> Group
     ->
-        { pipelineCards : List PipelineCard
+        { pipelineCards : List Card
         , dropAreas : List DropArea
         , height : Float
         }
@@ -215,7 +215,7 @@ computeFavoritePipelinesLayout :
     }
     -> List Pipeline
     ->
-        { pipelineCards : List PipelineCard
+        { pipelineCards : List Card
         , headers : List Header
         , height : Float
         }
