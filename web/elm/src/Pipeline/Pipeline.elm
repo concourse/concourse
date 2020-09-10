@@ -458,24 +458,9 @@ backgroundImage : WebData Concourse.Pipeline -> List (Html.Attribute msg)
 backgroundImage pipeline =
     case pipeline of
         RemoteData.Success p ->
-            case p.backgroundImage of
-                Just bg ->
-                    [ style "background-image" <|
-                        "url(\""
-                            ++ bg
-                            ++ "\")"
-                    , style "background-repeat" "no-repeat"
-                    , style "background-size" "cover"
-                    , style "background-position" "center"
-                    , style "opacity" "30%"
-                    , style "filter" "grayscale(1)"
-                    , style "width" "100%"
-                    , style "height" "100%"
-                    , style "position" "absolute"
-                    ]
-
-                _ ->
-                    []
+            p.backgroundImage
+                |> Maybe.map Styles.pipelineBackground
+                |> Maybe.withDefault []
 
         _ ->
             []
