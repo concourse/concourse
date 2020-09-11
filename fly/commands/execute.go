@@ -66,6 +66,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		command.InputsFrom,
 		command.IncludeIgnored,
 		taskConfig.Platform,
+		command.Tags,
 	)
 	if err != nil {
 		return err

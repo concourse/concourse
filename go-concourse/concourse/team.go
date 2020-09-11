@@ -71,7 +71,7 @@ type Team interface {
 	Builds(page Page) ([]atc.Build, Pagination, error)
 	OrderingPipelines(pipelineNames []string) error
 
-	CreateArtifact(io.Reader, string) (atc.WorkerArtifact, error)
+	CreateArtifact(io.Reader, string, []string) (atc.WorkerArtifact, error)
 	GetArtifact(int) (io.ReadCloser, error)
 }
 
