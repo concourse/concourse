@@ -37,6 +37,7 @@ require (
 	github.com/fatih/color v1.9.0
 	github.com/felixge/httpsnoop v1.0.1
 	github.com/gobuffalo/packr v1.13.7
+	github.com/gobwas/glob v0.2.3
 	github.com/gogo/googleapis v1.3.1 // indirect
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e

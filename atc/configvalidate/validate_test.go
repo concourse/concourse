@@ -31,7 +31,7 @@ var _ = Describe("ValidateConfig", func() {
 				},
 				{
 					Name: "some-other-group",
-					Jobs: []string{"some-empty-job"},
+					Jobs: []string{"some-empty-*"},
 				},
 			},
 
@@ -262,14 +262,14 @@ var _ = Describe("ValidateConfig", func() {
 			BeforeEach(func() {
 				config.Groups = append(config.Groups, atc.GroupConfig{
 					Name: "bogus",
-					Jobs: []string{"bogus-job"},
+					Jobs: []string{"bogus-*"},
 				})
 			})
 
 			It("returns an error", func() {
 				Expect(errorMessages).To(HaveLen(1))
 				Expect(errorMessages[0]).To(ContainSubstring("invalid groups:"))
-				Expect(errorMessages[0]).To(ContainSubstring("unknown job 'bogus-job'"))
+				Expect(errorMessages[0]).To(ContainSubstring("no jobs match 'bogus-*' for group 'bogus'"))
 			})
 		})
 
@@ -324,6 +324,21 @@ var _ = Describe("ValidateConfig", func() {
 				Expect(errorLines).To(HaveLen(2))
 				Expect(errorLines[0]).To(ContainSubstring("invalid groups:"))
 				Expect(errorLines[1]).To(ContainSubstring("group 'some-group' appears 4 times. Duplicate names are not allowed."))
+			})
+		})
+
+		Context("when a group has and invalid glob expression", func() {
+			BeforeEach(func() {
+				config.Groups = append(config.Groups, atc.GroupConfig{
+					Name: "a-group",
+					Jobs: []string{"some-bad-glob-[0-9"},
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid groups:"))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid glob expression 'some-bad-glob-[0-9' for group 'a-group'"))
 			})
 		})
 	})
