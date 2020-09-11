@@ -66,8 +66,8 @@ Here's a quick example demonstrating common YAML syntax:
   If you find yourself repeating configuration throughout your pipeline, it may
   be a sign that Concourse is missing some kind of abstraction to make your
   pipeline less verbose. If you have the time and are interested in helping out
-  with Concourse's design, feedback of this sort is welcome in the
-  \link{forums}{https://discuss.concourse-ci.org}!
+  with Concourse's design, feedback of this sort is welcome in \link{GitHub
+  Discussions}{https://github.com/concourse/concourse/discussions}!
 }
 
 \section{

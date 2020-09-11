@@ -10,15 +10,18 @@ Even if you're just getting started with Concourse you can contribute in
 a few ways:
 
 \list{
-  \bold{Discuss and Share} your experiences with Concourse in our
-  \link{Discord forums}{https://discuss.concourse-ci.org/}
+  \bold{Discuss and Share} your experiences with Concourse in \link{GitHub
+  Discussions}{https://github.com/concourse/concourse/discussions} or
+  \link{Discord}{https://discord.gg/MeRxXKW}.
 }{
   \bold{Blog about Concourse}. We would love to hear how you got started with Concourse,
   the type of pipelines you're building, or any tips & tricks that you can share with
   the community.
 }{
-  \bold{Answer questions} about Concourse in the \link{Support}{https://discuss.concourse-ci.org/c/support}
-   section of our forums or on \link{Stack Overflow}{https://stackoverflow.com/questions/tagged/concourse}
+  \bold{Answer questions} about Concourse in the
+  \link{Help}{https://github.com/concourse/concourse/discussions?discussions_q=category%3AHelp}
+  category or on \link{Stack
+  Overflow}{https://stackoverflow.com/questions/tagged/concourse}.
 }
 
 As you become more comfortable with Concourse, you might be interested

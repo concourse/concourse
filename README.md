@@ -84,19 +84,3 @@ The content layout for the site is qute simple, and for the most part self-expla
 $ make blog/concourse.zip
 # and then upload it in the Ghost admin UI
 ```
-
-# Updating the Discourse Theme
-
-```sh
-$ gem install discourse_theme
-$ discourse_theme watch concourse
-? What is the root URL of your Discourse site? https://discuss.concourse-ci.org
-? Would you like this site name stored in /home/.../.discourse_theme? Yes
-» Using api key from /home/.../.discourse_theme
-? How would you like to sync this theme? Select a different theme
-? Which theme would you like to sync with? Concourse (id:12)
-» Uploading theme from /home/alex/src/docs/discourse
-✔ Theme uploaded (id:12)
-» Watching for changes in /home/alex/src/docs/discourse...
-^C✘ Interrupted
-```
