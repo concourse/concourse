@@ -15,10 +15,6 @@ type versionReaper struct {
 }
 
 func NewVersionReaper(conn db.Conn, maxVersionsPerResource int) *versionReaper {
-	if maxVersionsPerResource < 100 {
-		maxVersionsPerResource = 100
-	}
-
 	return &versionReaper{
 		conn:                   conn,
 		maxVersionsPerResource: maxVersionsPerResource,
