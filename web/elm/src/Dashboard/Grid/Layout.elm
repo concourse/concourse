@@ -1,11 +1,11 @@
-module Dashboard.Grid.Layout exposing (Card, cardSize, layout)
+module Dashboard.Grid.Layout exposing (GridElement, cardSize, layout)
 
 
 type alias GridSpan =
     Int
 
 
-type alias Card =
+type alias GridElement =
     { spannedColumns : GridSpan
     , spannedRows : GridSpan
     , column : Int
@@ -32,7 +32,7 @@ cardSize ( w, h ) =
     )
 
 
-layout : Int -> List ( GridSpan, GridSpan ) -> List Card
+layout : Int -> List ( GridSpan, GridSpan ) -> List GridElement
 layout numColumns cardSizes =
     cardSizes
         |> List.foldl

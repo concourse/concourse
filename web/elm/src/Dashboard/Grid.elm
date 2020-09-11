@@ -88,14 +88,14 @@ computeLayout params g =
         isVisible_ =
             isVisible params.viewportHeight params.scrollTop rowHeight
 
-        cards =
+        gridElements =
             orderedPipelines
                 |> previewSizes params.pipelineLayers
                 |> List.map Layout.cardSize
                 |> Layout.layout numColumns
 
         numRows =
-            cards
+            gridElements
                 |> List.map (\c -> c.row + c.spannedRows - 1)
                 |> List.maximum
                 |> Maybe.withDefault 1
@@ -106,18 +106,18 @@ computeLayout params g =
                 + padding
                 * toFloat numRows
 
-        cardLookup =
-            cards
+        gridElementLookup =
+            gridElements
                 |> List.map2 Tuple.pair orderedPipelines
-                |> List.map (\( pipeline, card ) -> ( pipeline.id, card ))
+                |> List.map (\( pipeline, gridElement ) -> ( pipeline.id, gridElement ))
                 |> Dict.fromList
 
-        prevAndCurrentCards =
-            cards
-                |> List.map2 Tuple.pair (Nothing :: (cards |> List.map Just))
+        prevAndCurrentGridElement =
+            gridElements
+                |> List.map2 Tuple.pair (Nothing :: (gridElements |> List.map Just))
 
         cardBounds =
-            boundsForCell
+            boundsForGridElement
                 { colGap = padding
                 , rowGap = padding
                 , offsetX = padding
@@ -128,11 +128,11 @@ computeLayout params g =
             cardBounds >> (\b -> { b | x = b.x - padding, width = b.width + padding })
 
         dropAreas =
-            (prevAndCurrentCards
+            (prevAndCurrentGridElement
                 |> List.map2 Tuple.pair g.pipelines
-                |> List.filter (\( _, ( _, card ) ) -> isVisible_ card)
+                |> List.filter (\( _, ( _, gridElement ) ) -> isVisible_ gridElement)
                 |> List.map
-                    (\( pipeline, ( prevCard, card ) ) ->
+                    (\( pipeline, ( prevGridElement, gridElement ) ) ->
                         let
                             boundsToRightOf otherCard =
                                 dropAreaBounds
@@ -142,24 +142,24 @@ computeLayout params g =
                                     }
 
                             bounds =
-                                case prevCard of
-                                    Just otherCard ->
+                                case prevGridElement of
+                                    Just otherGridElement ->
                                         if
-                                            (otherCard.row < card.row)
-                                                && (otherCard.column + otherCard.spannedColumns <= numColumns)
+                                            (otherGridElement.row < gridElement.row)
+                                                && (otherGridElement.column + otherGridElement.spannedColumns <= numColumns)
                                         then
-                                            boundsToRightOf otherCard
+                                            boundsToRightOf otherGridElement
 
                                         else
-                                            dropAreaBounds card
+                                            dropAreaBounds gridElement
 
                                     Nothing ->
-                                        dropAreaBounds card
+                                        dropAreaBounds gridElement
                         in
                         { bounds = bounds, target = Before pipeline.name }
                     )
             )
-                ++ (case List.head (List.reverse (List.map2 Tuple.pair cards g.pipelines)) of
+                ++ (case List.head (List.reverse (List.map2 Tuple.pair gridElements g.pipelines)) of
                         Just ( lastCard, lastPipeline ) ->
                             if not (isVisible_ lastCard) then
                                 []
@@ -183,7 +183,7 @@ computeLayout params g =
             g.pipelines
                 |> List.map
                     (\pipeline ->
-                        cardLookup
+                        gridElementLookup
                             |> Dict.get pipeline.id
                             |> Maybe.withDefault
                                 { row = 0
@@ -230,14 +230,14 @@ computeFavoritePipelinesLayout params pipelines =
         isVisible_ =
             isVisible params.viewportHeight params.scrollTop rowHeight
 
-        cards =
+        gridElements =
             pipelines
                 |> previewSizes params.pipelineLayers
                 |> List.map Layout.cardSize
                 |> Layout.layout numColumns
 
         numRows =
-            cards
+            gridElements
                 |> List.map (\c -> c.row + c.spannedRows - 1)
                 |> List.maximum
                 |> Maybe.withDefault 1
@@ -246,7 +246,7 @@ computeFavoritePipelinesLayout params pipelines =
             toFloat numRows * rowHeight
 
         cardBounds =
-            boundsForCell
+            boundsForGridElement
                 { colGap = padding
                 , rowGap = headerHeight
                 , offsetX = padding
@@ -254,7 +254,7 @@ computeFavoritePipelinesLayout params pipelines =
                 }
 
         pipelineCards =
-            cards
+            gridElements
                 |> List.map2 Tuple.pair pipelines
                 |> List.filter (\( _, card ) -> isVisible_ card)
                 |> List.map
@@ -355,15 +355,15 @@ isVisible viewportHeight scrollTop rowHeight { row, spannedRows } =
         && (row <= numRowsOffset + numRowsVisible)
 
 
-boundsForCell :
+boundsForGridElement :
     { colGap : Float
     , rowGap : Float
     , offsetX : Float
     , offsetY : Float
     }
-    -> Layout.Card
+    -> Layout.GridElement
     -> Bounds
-boundsForCell { colGap, rowGap, offsetX, offsetY } card =
+boundsForGridElement { colGap, rowGap, offsetX, offsetY } elem =
     let
         colWidth =
             cardWidth + colGap
@@ -371,16 +371,16 @@ boundsForCell { colGap, rowGap, offsetX, offsetY } card =
         rowHeight =
             cardHeight + rowGap
     in
-    { x = (toFloat card.column - 1) * colWidth + offsetX
-    , y = (toFloat card.row - 1) * rowHeight + offsetY
+    { x = (toFloat elem.column - 1) * colWidth + offsetX
+    , y = (toFloat elem.row - 1) * rowHeight + offsetY
     , width =
         cardWidth
-            * toFloat card.spannedColumns
+            * toFloat elem.spannedColumns
             + colGap
-            * (toFloat card.spannedColumns - 1)
+            * (toFloat elem.spannedColumns - 1)
     , height =
         cardHeight
-            * toFloat card.spannedRows
+            * toFloat elem.spannedRows
             + rowGap
-            * (toFloat card.spannedRows - 1)
+            * (toFloat elem.spannedRows - 1)
     }
