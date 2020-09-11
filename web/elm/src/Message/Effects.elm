@@ -695,8 +695,8 @@ toHtmlID domId =
                 ++ Base64.encode p.pipelineName
                 ++ "_visibility"
 
-        FirstOccurrenceGetStepLabel stepID ->
-            stepID ++ "_first_occurrence"
+        ChangedStepLabel stepID _ ->
+            stepID ++ "_changed"
 
         StepState stepID ->
             stepID ++ "_state"

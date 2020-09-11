@@ -317,9 +317,9 @@ handleDelivery session delivery ( model, effects ) =
             ( { model | now = Just time }
             , effects
                 ++ (case session.hovered of
-                        HoverState.Hovered (FirstOccurrenceGetStepLabel stepID) ->
+                        HoverState.Hovered (ChangedStepLabel stepID text) ->
                             [ GetViewportOf
-                                (FirstOccurrenceGetStepLabel stepID)
+                                (ChangedStepLabel stepID text)
                             ]
 
                         HoverState.Hovered (StepState stepID) ->
@@ -673,12 +673,12 @@ view session model =
 tooltip : Model -> { a | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
 tooltip _ { hovered } =
     case hovered of
-        HoverState.Tooltip (FirstOccurrenceGetStepLabel _) _ ->
+        HoverState.Tooltip (ChangedStepLabel _ text) _ ->
             Just
                 { body =
                     Html.div
-                        Styles.firstOccurrenceTooltip
-                        [ Html.text "new version" ]
+                        Styles.changedStepTooltip
+                        [ Html.text text ]
                 , attachPosition =
                     { direction = Tooltip.Top
                     , alignment = Tooltip.Start
@@ -774,13 +774,13 @@ body session ({ prep, output, authorized, showHelp } as params) =
 projectOntoBuildPage : HoverState.HoverState -> HoverState.HoverState
 projectOntoBuildPage hovered =
     case hovered of
-        HoverState.Hovered (FirstOccurrenceGetStepLabel _) ->
+        HoverState.Hovered (ChangedStepLabel _ _) ->
             hovered
 
-        HoverState.TooltipPending (FirstOccurrenceGetStepLabel _) ->
+        HoverState.TooltipPending (ChangedStepLabel _ _) ->
             hovered
 
-        HoverState.Tooltip (FirstOccurrenceGetStepLabel _) _ ->
+        HoverState.Tooltip (ChangedStepLabel _ _) _ ->
             hovered
 
         HoverState.Hovered (StepState _) ->

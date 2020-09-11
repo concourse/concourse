@@ -86,7 +86,7 @@ type alias Step =
     , expanded : Bool
     , version : Maybe Version
     , metadata : List MetadataField
-    , firstOccurrence : Bool
+    , changed : Bool
     , timestamps : Dict Int Time.Posix
     , initialize : Maybe Time.Posix
     , start : Maybe Time.Posix
@@ -270,6 +270,7 @@ type BuildEvent
     | InitializePut Origin Time.Posix
     | StartPut Origin Time.Posix
     | FinishPut Origin Int Concourse.Version Concourse.Metadata (Maybe Time.Posix)
+    | SetPipelineChanged Origin Bool
     | Log Origin String (Maybe Time.Posix)
     | SelectedWorker Origin String (Maybe Time.Posix)
     | Error Origin String Time.Posix

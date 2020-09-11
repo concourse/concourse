@@ -92,12 +92,12 @@ type FakeStepFactory struct {
 	putStepReturnsOnCall map[int]struct {
 		result1 exec.Step
 	}
-	SetPipelineStepStub        func(atc.Plan, exec.StepMetadata, exec.BuildStepDelegate) exec.Step
+	SetPipelineStepStub        func(atc.Plan, exec.StepMetadata, exec.SetPipelineStepDelegate) exec.Step
 	setPipelineStepMutex       sync.RWMutex
 	setPipelineStepArgsForCall []struct {
 		arg1 atc.Plan
 		arg2 exec.StepMetadata
-		arg3 exec.BuildStepDelegate
+		arg3 exec.SetPipelineStepDelegate
 	}
 	setPipelineStepReturns struct {
 		result1 exec.Step
@@ -498,13 +498,13 @@ func (fake *FakeStepFactory) PutStepReturnsOnCall(i int, result1 exec.Step) {
 	}{result1}
 }
 
-func (fake *FakeStepFactory) SetPipelineStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 exec.BuildStepDelegate) exec.Step {
+func (fake *FakeStepFactory) SetPipelineStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 exec.SetPipelineStepDelegate) exec.Step {
 	fake.setPipelineStepMutex.Lock()
 	ret, specificReturn := fake.setPipelineStepReturnsOnCall[len(fake.setPipelineStepArgsForCall)]
 	fake.setPipelineStepArgsForCall = append(fake.setPipelineStepArgsForCall, struct {
 		arg1 atc.Plan
 		arg2 exec.StepMetadata
-		arg3 exec.BuildStepDelegate
+		arg3 exec.SetPipelineStepDelegate
 	}{arg1, arg2, arg3})
 	fake.recordInvocation("SetPipelineStep", []interface{}{arg1, arg2, arg3})
 	fake.setPipelineStepMutex.Unlock()
@@ -524,13 +524,13 @@ func (fake *FakeStepFactory) SetPipelineStepCallCount() int {
 	return len(fake.setPipelineStepArgsForCall)
 }
 
-func (fake *FakeStepFactory) SetPipelineStepCalls(stub func(atc.Plan, exec.StepMetadata, exec.BuildStepDelegate) exec.Step) {
+func (fake *FakeStepFactory) SetPipelineStepCalls(stub func(atc.Plan, exec.StepMetadata, exec.SetPipelineStepDelegate) exec.Step) {
 	fake.setPipelineStepMutex.Lock()
 	defer fake.setPipelineStepMutex.Unlock()
 	fake.SetPipelineStepStub = stub
 }
 
-func (fake *FakeStepFactory) SetPipelineStepArgsForCall(i int) (atc.Plan, exec.StepMetadata, exec.BuildStepDelegate) {
+func (fake *FakeStepFactory) SetPipelineStepArgsForCall(i int) (atc.Plan, exec.StepMetadata, exec.SetPipelineStepDelegate) {
 	fake.setPipelineStepMutex.RLock()
 	defer fake.setPipelineStepMutex.RUnlock()
 	argsForCall := fake.setPipelineStepArgsForCall[i]

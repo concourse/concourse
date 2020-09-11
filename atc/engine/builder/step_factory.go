@@ -14,16 +14,16 @@ import (
 )
 
 type stepFactory struct {
-	pool                            worker.Pool
-	client                          worker.Client
-	resourceFactory                 resource.ResourceFactory
-	teamFactory                     db.TeamFactory
-	buildFactory                    db.BuildFactory
-	resourceCacheFactory            db.ResourceCacheFactory
-	resourceConfigFactory           db.ResourceConfigFactory
-	defaultLimits                   atc.ContainerLimits
-	strategy                        worker.ContainerPlacementStrategy
-	lockFactory                     lock.LockFactory
+	pool                  worker.Pool
+	client                worker.Client
+	resourceFactory       resource.ResourceFactory
+	teamFactory           db.TeamFactory
+	buildFactory          db.BuildFactory
+	resourceCacheFactory  db.ResourceCacheFactory
+	resourceConfigFactory db.ResourceConfigFactory
+	defaultLimits         atc.ContainerLimits
+	strategy              worker.ContainerPlacementStrategy
+	lockFactory           lock.LockFactory
 }
 
 func NewStepFactory(
@@ -39,16 +39,16 @@ func NewStepFactory(
 	lockFactory lock.LockFactory,
 ) *stepFactory {
 	return &stepFactory{
-		pool:                            pool,
-		client:                          client,
-		resourceFactory:                 resourceFactory,
-		teamFactory:                     teamFactory,
-		buildFactory:                    buildFactory,
-		resourceCacheFactory:            resourceCacheFactory,
-		resourceConfigFactory:           resourceConfigFactory,
-		defaultLimits:                   defaultLimits,
-		strategy:                        strategy,
-		lockFactory:                     lockFactory,
+		pool:                  pool,
+		client:                client,
+		resourceFactory:       resourceFactory,
+		teamFactory:           teamFactory,
+		buildFactory:          buildFactory,
+		resourceCacheFactory:  resourceCacheFactory,
+		resourceConfigFactory: resourceConfigFactory,
+		defaultLimits:         defaultLimits,
+		strategy:              strategy,
+		lockFactory:           lockFactory,
 	}
 }
 
@@ -160,7 +160,7 @@ func (factory *stepFactory) TaskStep(
 func (factory *stepFactory) SetPipelineStep(
 	plan atc.Plan,
 	stepMetadata exec.StepMetadata,
-	delegate exec.BuildStepDelegate,
+	delegate exec.SetPipelineStepDelegate,
 ) exec.Step {
 	spStep := exec.NewSetPipelineStep(
 		plan.ID,

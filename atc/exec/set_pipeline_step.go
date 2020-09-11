@@ -30,7 +30,7 @@ type SetPipelineStep struct {
 	planID       atc.PlanID
 	plan         atc.SetPipelinePlan
 	metadata     StepMetadata
-	delegate     BuildStepDelegate
+	delegate     SetPipelineStepDelegate
 	teamFactory  db.TeamFactory
 	buildFactory db.BuildFactory
 	client       worker.Client
@@ -41,7 +41,7 @@ func NewSetPipelineStep(
 	planID atc.PlanID,
 	plan atc.SetPipelinePlan,
 	metadata StepMetadata,
-	delegate BuildStepDelegate,
+	delegate SetPipelineStepDelegate,
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
 	client worker.Client,
@@ -212,12 +212,14 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 		if err != nil {
 			return err
 		}
+		step.delegate.SetPipelineChanged(logger, false)
 		step.succeeded = true
 		step.delegate.Finished(logger, true)
 		return nil
 	}
 
 	fmt.Fprintf(stdout, "setting pipeline: %s\n", step.plan.Name)
+	step.delegate.SetPipelineChanged(logger, true)
 	parentBuild, found, err := step.buildFactory.Build(step.metadata.BuildID)
 	if err != nil {
 		return err

@@ -27,3 +27,10 @@ type BuildStepDelegate interface {
 	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
 }
+
+//go:generate counterfeiter . SetPipelineStepDelegate
+
+type SetPipelineStepDelegate interface {
+	BuildStepDelegate
+	SetPipelineChanged(lager.Logger, bool)
+}

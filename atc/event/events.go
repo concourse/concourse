@@ -176,6 +176,14 @@ type FinishPut struct {
 func (FinishPut) EventType() atc.EventType  { return EventTypeFinishPut }
 func (FinishPut) Version() atc.EventVersion { return "5.1" }
 
+type SetPipelineChanged struct {
+	Origin  Origin `json:"origin"`
+	Changed bool   `json:"changed"`
+}
+
+func (SetPipelineChanged) EventType() atc.EventType  { return EventTypeSetPipelineChanged }
+func (SetPipelineChanged) Version() atc.EventVersion { return "1.0" }
+
 type Initialize struct {
 	Origin Origin `json:"origin"`
 	Time   int64  `json:"time,omitempty"`

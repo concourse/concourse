@@ -186,6 +186,14 @@ decodeBuildEvent =
                     "finish-put" ->
                         Json.Decode.field "data" (decodeFinishResource FinishPut)
 
+                    "set-pipeline-changed" ->
+                        Json.Decode.field
+                            "data"
+                            (Json.Decode.map2 SetPipelineChanged
+                                (Json.Decode.field "origin" decodeOrigin)
+                                (Json.Decode.field "changed" Json.Decode.bool)
+                            )
+
                     unknown ->
                         Json.Decode.fail ("unknown event type: " ++ unknown)
             )

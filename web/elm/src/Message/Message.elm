@@ -56,7 +56,7 @@ type DomID
     | EditButton
     | SaveCommentButton
     | ResourceCommentTextarea
-    | FirstOccurrenceGetStepLabel StepID
+    | ChangedStepLabel StepID String
     | StepState StepID
     | PinIcon
     | PinMenuDropDown String

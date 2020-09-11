@@ -80,7 +80,7 @@ jobs:
 		cancel     func()
 		testLogger *lagertest.TestLogger
 
-		fakeDelegate     *execfakes.FakeBuildStepDelegate
+		fakeDelegate     *execfakes.FakeSetPipelineStepDelegate
 		fakeTeamFactory  *dbfakes.FakeTeamFactory
 		fakeBuildFactory *dbfakes.FakeBuildFactory
 		fakeBuild        *dbfakes.FakeBuild
@@ -133,7 +133,7 @@ jobs:
 		stdout = gbytes.NewBuffer()
 		stderr = gbytes.NewBuffer()
 
-		fakeDelegate = new(execfakes.FakeBuildStepDelegate)
+		fakeDelegate = new(execfakes.FakeSetPipelineStepDelegate)
 		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdout)
 		fakeDelegate.StderrReturns(stderr)
@@ -287,6 +287,12 @@ jobs:
 						Expect(stdout).To(gbytes.Say("no diff found."))
 					})
 
+					It("should send a set pipeline changed event", func() {
+						Expect(fakeDelegate.SetPipelineChangedCallCount()).To(Equal(1))
+						_, changed := fakeDelegate.SetPipelineChangedArgsForCall(0)
+						Expect(changed).To(BeFalse())
+					})
+
 					It("should update the job and build id", func() {
 						Expect(fakePipeline.SetParentIDsCallCount()).To(Equal(1))
 						jobID, buildID := fakePipeline.SetParentIDsArgsForCall(0)
@@ -303,6 +309,12 @@ jobs:
 
 					It("should log diff", func() {
 						Expect(stdout).To(gbytes.Say("job some-job has changed:"))
+					})
+
+					It("should send a set pipeline changed event", func() {
+						Expect(fakeDelegate.SetPipelineChangedCallCount()).To(Equal(1))
+						_, changed := fakeDelegate.SetPipelineChangedArgsForCall(0)
+						Expect(changed).To(BeTrue())
 					})
 				})
 

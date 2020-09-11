@@ -5,10 +5,10 @@ module Build.Styles exposing
     , body
     , buttonTooltip
     , buttonTooltipArrow
+    , changedStepTooltip
     , durationTooltip
     , durationTooltipArrow
     , errorLog
-    , firstOccurrenceTooltip
     , header
     , historyItem
     , metadataCell
@@ -216,6 +216,9 @@ stepHeaderLabel headerType =
             StepHeaderGet True ->
                 Colors.started
 
+            StepHeaderSetPipeline True ->
+                Colors.started
+
             _ ->
                 Colors.pending
     , style "line-height" "28px"
@@ -237,12 +240,12 @@ stepStatusIcon =
     ]
 
 
-firstOccurrenceTooltip : List (Html.Attribute msg)
-firstOccurrenceTooltip =
+changedStepTooltip : List (Html.Attribute msg)
+changedStepTooltip =
     [ style "background-color" Colors.tooltipBackground
     , style "padding" "5px"
     , style "z-index" "100"
-    , style "width" "6em"
+    , style "width" "fit-content"
     , style "pointer-events" "none"
     ]
         ++ Application.Styles.disableInteraction

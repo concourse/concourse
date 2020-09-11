@@ -244,7 +244,7 @@ constructStep hl plan name =
                 List.member stepID (Concourse.mapBuildPlan .id plan)
     , version = Nothing
     , metadata = []
-    , firstOccurrence = False
+    , changed = False
     , timestamps = Dict.empty
     , initialize = Nothing
     , start = Nothing
@@ -326,7 +326,7 @@ setupGetStep : Concourse.BuildResources -> StepName -> Maybe Version -> Step -> 
 setupGetStep resources name version step =
     { step
         | version = version
-        , firstOccurrence = isFirstOccurrence resources.inputs name
+        , changed = isFirstOccurrence resources.inputs name
     }
 
 
@@ -431,7 +431,7 @@ viewTree session model tree depth =
             viewStep model session depth step (StepHeaderGet False)
 
         Get step ->
-            viewStep model session depth step (StepHeaderGet step.firstOccurrence)
+            viewStep model session depth step (StepHeaderGet step.changed)
 
         ArtifactOutput step ->
             viewStep model session depth step StepHeaderPut
@@ -440,7 +440,7 @@ viewTree session model tree depth =
             viewStep model session depth step StepHeaderPut
 
         SetPipeline step ->
-            viewStep model session depth step StepHeaderSetPipeline
+            viewStep model session depth step (StepHeaderSetPipeline step.changed)
 
         LoadVar step ->
             viewStep model session depth step StepHeaderLoadVar
@@ -1074,16 +1074,22 @@ viewStepHeaderLabel : StepHeaderType -> StepID -> Html Message
 viewStepHeaderLabel headerType stepID =
     let
         eventHandlers =
-            if headerType == StepHeaderGet True then
-                [ onMouseLeave <| Hover Nothing
-                , onMouseEnter <| Hover <| Just <| FirstOccurrenceGetStepLabel stepID
-                ]
+            case headerType of
+                StepHeaderGet True ->
+                    [ onMouseLeave <| Hover Nothing
+                    , onMouseEnter <| Hover <| Just <| ChangedStepLabel stepID "new version"
+                    ]
 
-            else
-                []
+                StepHeaderSetPipeline True ->
+                    [ onMouseLeave <| Hover Nothing
+                    , onMouseEnter <| Hover <| Just <| ChangedStepLabel stepID "pipeline config changed"
+                    ]
+
+                _ ->
+                    []
     in
     Html.div
-        (id (toHtmlID <| FirstOccurrenceGetStepLabel stepID)
+        (id (toHtmlID <| ChangedStepLabel stepID "")
             :: Styles.stepHeaderLabel headerType
             ++ eventHandlers
         )
@@ -1098,7 +1104,7 @@ viewStepHeaderLabel headerType stepID =
                 StepHeaderTask ->
                     "task:"
 
-                StepHeaderSetPipeline ->
+                StepHeaderSetPipeline _ ->
                     "set_pipeline:"
 
                 StepHeaderLoadVar ->
