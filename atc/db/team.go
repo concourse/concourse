@@ -350,16 +350,29 @@ func savePipeline(
 	buildID sql.NullInt64,
 ) (int, bool, error) {
 
-	instanceVarPayload, _ := json.Marshal(pipelineRef.InstanceVars)
+	var instanceVars sql.NullString
+	if pipelineRef.InstanceVars != nil {
+		bytes, _ := json.Marshal(pipelineRef.InstanceVars)
+		instanceVars = sql.NullString{
+			String: string(bytes),
+			Valid:  true,
+		}
+	}
+
+	pipelineRefWhereClause := sq.Eq{
+		"team_id":       teamID,
+		"name":          pipelineRef.Name,
+		"instance_vars": instanceVars,
+	}
 
 	var existingConfig bool
-	err := tx.QueryRow(`SELECT EXISTS (
-		SELECT 1
-		FROM pipelines
-		WHERE team_id = $1
-		AND name = $2
-		AND instance_vars = $3
-	)`, teamID, pipelineRef.Name, instanceVarPayload).Scan(&existingConfig)
+	err := psql.Select("1").
+		From("pipelines").
+		Where(pipelineRefWhereClause).
+		Prefix("SELECT EXISTS (").Suffix(")").
+		RunWith(tx).
+		QueryRow().
+		Scan(&existingConfig)
 	if err != nil {
 		return 0, false, err
 	}
@@ -400,7 +413,7 @@ func savePipeline(
 				"team_id":         teamID,
 				"parent_job_id":   jobID,
 				"parent_build_id": buildID,
-				"instance_vars":   instanceVarPayload,
+				"instance_vars":   instanceVars,
 			}).
 			Suffix("RETURNING id").
 			RunWith(tx).
@@ -420,11 +433,9 @@ func savePipeline(
 			Set("last_updated", sq.Expr("now()")).
 			Set("parent_job_id", jobID).
 			Set("parent_build_id", buildID).
-			Where(sq.Eq{
-				"name":          pipelineRef.Name,
-				"version":       from,
-				"team_id":       teamID,
-				"instance_vars": instanceVarPayload,
+			Where(sq.And{
+				pipelineRefWhereClause,
+				sq.Eq{"version": from},
 			})
 
 		if buildID.Valid {
@@ -438,13 +449,11 @@ func savePipeline(
 		if err != nil {
 			if err == sql.ErrNoRows {
 				var currentParentBuildID sql.NullInt64
-				err = tx.QueryRow(`
-					SELECT parent_build_id
-					FROM pipelines
-					WHERE team_id = $1
-					AND name = $2
-					AND instance_vars = $3 `,
-					teamID, pipelineRef.Name, instanceVarPayload).
+				err := psql.Select("parent_build_id").
+					From("pipelines").
+					Where(pipelineRefWhereClause).
+					RunWith(tx).
+					QueryRow().
 					Scan(&currentParentBuildID)
 				if err != nil {
 					return 0, false, err
@@ -562,14 +571,22 @@ func (t *team) SavePipeline(
 func (t *team) Pipeline(pipelineRef atc.PipelineRef) (Pipeline, bool, error) {
 	pipeline := newPipeline(t.conn, t.lockFactory)
 
-	instanceVarsPayload, _ := json.Marshal(pipelineRef.InstanceVars)
+	var instanceVars sql.NullString
+	if pipelineRef.InstanceVars != nil {
+		bytes, _ := json.Marshal(pipelineRef.InstanceVars)
+		instanceVars = sql.NullString{
+			String: string(bytes),
+			Valid:  true,
+		}
+	}
+
 	err := scanPipeline(
 		pipeline,
 		pipelinesQuery.
 			Where(sq.Eq{
 				"p.team_id":       t.id,
 				"p.name":          pipelineRef.Name,
-				"p.instance_vars": instanceVarsPayload,
+				"p.instance_vars": instanceVars,
 			}).
 			RunWith(t.conn).
 			QueryRow(),
@@ -635,13 +652,21 @@ func (t *team) OrderPipelines(pipelineRefs []atc.PipelineRef) error {
 	defer Rollback(tx)
 
 	for i, pipelineRef := range pipelineRefs {
-		instanceVarsPayload, _ := json.Marshal(pipelineRef.InstanceVars)
+		var instanceVars sql.NullString
+		if pipelineRef.InstanceVars != nil {
+			bytes, _ := json.Marshal(pipelineRef.InstanceVars)
+			instanceVars = sql.NullString{
+				String: string(bytes),
+				Valid:  true,
+			}
+		}
+
 		pipelineUpdate, err := psql.Update("pipelines").
 			Set("ordering", i).
 			Where(sq.Eq{
 				"team_id":       t.id,
 				"name":          pipelineRef.Name,
-				"instance_vars": instanceVarsPayload,
+				"instance_vars": instanceVars,
 			}).
 			RunWith(tx).
 			Exec()
