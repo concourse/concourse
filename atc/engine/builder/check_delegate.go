@@ -15,7 +15,19 @@ import (
 	"github.com/concourse/concourse/vars"
 )
 
-func NewCheckDelegate(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables, clock clock.Clock) exec.CheckDelegate {
+//go:generate counterfeiter . RateLimiter
+
+type RateLimiter interface {
+	Wait(context.Context) error
+}
+
+func NewCheckDelegate(
+	build db.Build,
+	plan atc.Plan,
+	buildVars *vars.BuildVariables,
+	clock clock.Clock,
+	limiter RateLimiter,
+) exec.CheckDelegate {
 	return &checkDelegate{
 		BuildStepDelegate: NewBuildStepDelegate(build, plan.ID, buildVars, clock),
 
@@ -23,6 +35,8 @@ func NewCheckDelegate(build db.Build, plan atc.Plan, buildVars *vars.BuildVariab
 		plan:        plan.Check,
 		eventOrigin: event.Origin{ID: event.OriginID(plan.ID)},
 		clock:       clock,
+
+		limiter: limiter,
 	}
 }
 
@@ -38,6 +52,8 @@ type checkDelegate struct {
 	cachedPipeline     db.Pipeline
 	cachedResource     db.Resource
 	cachedResourceType db.ResourceType
+
+	limiter RateLimiter
 }
 
 func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.ResourceConfigScope, error) {
@@ -82,13 +98,6 @@ func (d *checkDelegate) WaitAndRun(ctx context.Context, scope db.ResourceConfigS
 		d.clock.Sleep(time.Second)
 	}
 
-	// XXX(check-refactor): one interesting thing we could do here is literally
-	// wait until the interval elapses.
-	//
-	// then all of checking would be modeled as rate limiting. we'd just make
-	// sure a build was running for each resource and keep queueing up another
-	// when the last one finishes.
-
 	end, err := scope.LastCheckEndTime()
 	if err != nil {
 		if releaseErr := lock.Release(); releaseErr != nil {
@@ -102,7 +111,7 @@ func (d *checkDelegate) WaitAndRun(ctx context.Context, scope db.ResourceConfigS
 
 	shouldRun := false
 	if d.build.IsManuallyTriggered() {
-		// do not delay manually triggered checks (or builds)
+		// ignore interval for manually triggered builds
 		shouldRun = true
 	} else if !d.clock.Now().Before(runAt) {
 		// run if we're past the last check end time
@@ -116,8 +125,8 @@ func (d *checkDelegate) WaitAndRun(ctx context.Context, scope db.ResourceConfigS
 		// elapsed.
 		//
 		// this could be expanded upon to short-circuit the waiting with events
-		// triggered webhooks so that webhooks are super responsive - rather than
-		// queueing a build, it would just wake up a goroutine
+		// triggered by webhooks so that webhooks are super responsive: rather than
+		// queueing a build, it would just wake up a goroutine.
 	}
 
 	if !shouldRun {
@@ -129,7 +138,14 @@ func (d *checkDelegate) WaitAndRun(ctx context.Context, scope db.ResourceConfigS
 		return nil, false, nil
 	}
 
-	// XXX(check-refactor): enforce global rate limiting
+	// rate limit periodic resource checks so worker load (plus load on external
+	// services) isn't too spiky
+	if !d.build.IsManuallyTriggered() && d.plan.Resource != "" {
+		err = d.limiter.Wait(ctx)
+		if err != nil {
+			return nil, false, fmt.Errorf("rate limit: %w", err)
+		}
+	}
 
 	return lock, true, nil
 }

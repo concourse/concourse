@@ -29,6 +29,7 @@ var _ = Describe("Builder", func() {
 			err error
 
 			fakeStepFactory   *builderfakes.FakeStepFactory
+			fakeRateLimiter   *builderfakes.FakeRateLimiter
 			fakeSecretManager *credsfakes.FakeSecrets
 			fakeVarSourcePool *credsfakes.FakeVarSourcePool
 
@@ -40,6 +41,7 @@ var _ = Describe("Builder", func() {
 
 		BeforeEach(func() {
 			fakeStepFactory = new(builderfakes.FakeStepFactory)
+			fakeRateLimiter = new(builderfakes.FakeRateLimiter)
 			fakeSecretManager = new(credsfakes.FakeSecrets)
 			fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 
@@ -48,6 +50,7 @@ var _ = Describe("Builder", func() {
 				"http://example.com",
 				fakeSecretManager,
 				fakeVarSourcePool,
+				fakeRateLimiter,
 			)
 
 			planFactory = atc.NewPlanFactory(123)

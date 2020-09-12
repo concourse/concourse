@@ -36,12 +36,14 @@ func NewStepBuilder(
 	externalURL string,
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
+	rateLimiter RateLimiter,
 ) *stepBuilder {
 	return &stepBuilder{
 		stepFactory:   stepFactory,
 		externalURL:   externalURL,
 		globalSecrets: secrets,
 		varSourcePool: varSourcePool,
+		rateLimiter:   rateLimiter,
 
 		clock: clock.NewClock(),
 	}
@@ -52,6 +54,7 @@ type stepBuilder struct {
 	externalURL   string
 	globalSecrets creds.Secrets
 	varSourcePool creds.VarSourcePool
+	rateLimiter   RateLimiter
 
 	clock clock.Clock
 }
@@ -398,7 +401,7 @@ func (builder *stepBuilder) buildCheckStep(build db.Build, plan atc.Plan, buildV
 		plan,
 		stepMetadata,
 		containerMetadata,
-		NewCheckDelegate(build, plan, buildVars, builder.clock),
+		NewCheckDelegate(build, plan, buildVars, builder.clock, builder.rateLimiter),
 	)
 }
 

@@ -9,16 +9,16 @@ type Clock interface {
 	Until(time.Time) time.Duration
 }
 
-type clock struct{}
+type realClock struct{}
 
-func NewClock() clock {
-	return clock{}
+func NewClock() realClock {
+	return realClock{}
 }
 
-func (c *clock) Now() time.Time {
+func (c *realClock) Now() time.Time {
 	return time.Now()
 }
 
-func (c *clock) Until(t time.Time) time.Duration {
+func (c *realClock) Until(t time.Time) time.Duration {
 	return time.Until(t)
 }

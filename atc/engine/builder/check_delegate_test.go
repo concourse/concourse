@@ -15,15 +15,17 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/engine/builder"
+	"github.com/concourse/concourse/atc/engine/builder/builderfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("CheckDelegate", func() {
 	var (
-		fakeBuild *dbfakes.FakeBuild
-		fakeClock *fakeclock.FakeClock
-		buildVars *vars.BuildVariables
+		fakeBuild       *dbfakes.FakeBuild
+		fakeClock       *fakeclock.FakeClock
+		fakeRateLimiter *builderfakes.FakeRateLimiter
+		buildVars       *vars.BuildVariables
 
 		now = time.Date(1991, 6, 3, 5, 30, 0, 0, time.UTC)
 
@@ -37,6 +39,7 @@ var _ = Describe("CheckDelegate", func() {
 	BeforeEach(func() {
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeClock = fakeclock.NewFakeClock(now)
+		fakeRateLimiter = new(builderfakes.FakeRateLimiter)
 		credVars := vars.StaticVariables{
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
@@ -48,7 +51,7 @@ var _ = Describe("CheckDelegate", func() {
 			Check: &atc.CheckPlan{},
 		}
 
-		delegate = builder.NewCheckDelegate(fakeBuild, plan, buildVars, fakeClock)
+		delegate = builder.NewCheckDelegate(fakeBuild, plan, buildVars, fakeClock, fakeRateLimiter)
 
 		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 		fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)
@@ -228,6 +231,36 @@ var _ = Describe("CheckDelegate", func() {
 				It("releases the lock", func() {
 					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 				})
+			})
+		})
+
+		Context("when running for a resource", func() {
+			BeforeEach(func() {
+				plan.Check.Resource = "some-resource"
+			})
+
+			It("rate limits", func() {
+				Expect(fakeRateLimiter.WaitCallCount()).To(Equal(1))
+			})
+
+			Context("but the build is manually triggered", func() {
+				BeforeEach(func() {
+					fakeBuild.IsManuallyTriggeredReturns(true)
+				})
+
+				It("does not rate limit", func() {
+					Expect(fakeRateLimiter.WaitCallCount()).To(Equal(0))
+				})
+			})
+		})
+
+		Context("when not running for a resource", func() {
+			BeforeEach(func() {
+				plan.Check.Resource = ""
+			})
+
+			It("does not rate limit", func() {
+				Expect(fakeRateLimiter.WaitCallCount()).To(Equal(0))
 			})
 		})
 	})

@@ -1014,6 +1014,13 @@ func (cmd *RunCommand) backendComponents(
 		return nil, err
 	}
 
+	rateLimiter := db.NewResourceCheckRateLimiter(
+		dbConn,
+		cmd.ResourceCheckingInterval,
+		time.Minute,
+		clock.NewClock(),
+	)
+
 	engine := cmd.constructEngine(
 		pool,
 		workerClient,
@@ -1026,6 +1033,7 @@ func (cmd *RunCommand) backendComponents(
 		defaultLimits,
 		buildContainerStrategy,
 		lockFactory,
+		rateLimiter,
 	)
 
 	// In case that a user configures resource-checking-interval, but forgets to
@@ -1599,6 +1607,7 @@ func (cmd *RunCommand) constructEngine(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	lockFactory lock.LockFactory,
+	rateLimiter builder.RateLimiter,
 ) engine.Engine {
 
 	stepFactory := builder.NewStepFactory(
@@ -1619,6 +1628,7 @@ func (cmd *RunCommand) constructEngine(
 		cmd.ExternalURL.String(),
 		secretManager,
 		cmd.varSourcePool,
+		rateLimiter,
 	)
 
 	return engine.NewEngine(stepBuilder)
