@@ -375,6 +375,11 @@ func savePipeline(
 		return 0, false, err
 	}
 
+	displayPayload, err := json.Marshal(config.Display)
+	if err != nil {
+		return 0, false, err
+	}
+
 	var pipelineID int
 	if !existingConfig {
 		err = psql.Insert("pipelines").
@@ -382,6 +387,7 @@ func savePipeline(
 				"name":            pipelineName,
 				"groups":          groupsPayload,
 				"var_sources":     encryptedVarSourcesPayload,
+				"display":         displayPayload,
 				"nonce":           nonce,
 				"version":         sq.Expr("nextval('config_version_seq')"),
 				"ordering":        sq.Expr("currval('pipelines_id_seq')"),
@@ -403,6 +409,7 @@ func savePipeline(
 			Set("archived", false).
 			Set("groups", groupsPayload).
 			Set("var_sources", encryptedVarSourcesPayload).
+			Set("display", displayPayload).
 			Set("nonce", nonce).
 			Set("version", sq.Expr("nextval('config_version_seq')")).
 			Set("last_updated", sq.Expr("now()")).
@@ -1221,13 +1228,14 @@ func scanPipeline(p *pipeline, scan scannable) error {
 	var (
 		groups        sql.NullString
 		varSources    sql.NullString
+		display       sql.NullString
 		nonce         sql.NullString
 		nonceStr      *string
 		lastUpdated   pq.NullTime
 		parentJobID   sql.NullInt64
 		parentBuildID sql.NullInt64
 	)
-	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &p.archived, &lastUpdated, &parentJobID, &parentBuildID)
+	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &display, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &p.archived, &lastUpdated, &parentJobID, &parentBuildID)
 	if err != nil {
 		return err
 	}
@@ -1248,6 +1256,16 @@ func scanPipeline(p *pipeline, scan scannable) error {
 
 	if nonce.Valid {
 		nonceStr = &nonce.String
+	}
+
+	if display.Valid {
+		var displayConfig *atc.DisplayConfig
+		err = json.Unmarshal([]byte(display.String), &displayConfig)
+		if err != nil {
+			return err
+		}
+
+		p.display = displayConfig
 	}
 
 	if varSources.Valid {

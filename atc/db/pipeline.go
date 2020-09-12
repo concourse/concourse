@@ -44,6 +44,7 @@ type Pipeline interface {
 	ParentBuildID() int
 	Groups() atc.GroupConfigs
 	VarSources() atc.VarSourceConfigs
+	Display() *atc.DisplayConfig
 	ConfigVersion() ConfigVersion
 	Config() (atc.Config, error)
 	Public() bool
@@ -107,6 +108,7 @@ type pipeline struct {
 	parentBuildID int
 	groups        atc.GroupConfigs
 	varSources    atc.VarSourceConfigs
+	display       *atc.DisplayConfig
 	configVersion ConfigVersion
 	paused        bool
 	public        bool
@@ -125,6 +127,7 @@ var pipelinesQuery = psql.Select(`
 		p.name,
 		p.groups,
 		p.var_sources,
+		p.display,
 		p.nonce,
 		p.version,
 		p.team_id,
@@ -155,6 +158,7 @@ func (p *pipeline) ParentBuildID() int       { return p.parentBuildID }
 func (p *pipeline) Groups() atc.GroupConfigs { return p.groups }
 
 func (p *pipeline) VarSources() atc.VarSourceConfigs { return p.varSources }
+func (p *pipeline) Display() *atc.DisplayConfig      { return p.display }
 func (p *pipeline) ConfigVersion() ConfigVersion     { return p.configVersion }
 func (p *pipeline) Public() bool                     { return p.public }
 func (p *pipeline) Paused() bool                     { return p.paused }
@@ -268,6 +272,7 @@ func (p *pipeline) Config() (atc.Config, error) {
 		Resources:     resources.Configs(),
 		ResourceTypes: resourceTypes.Configs(),
 		Jobs:          jobConfigs,
+		Display:       p.Display(),
 	}
 
 	return config, nil

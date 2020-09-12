@@ -2059,4 +2059,58 @@ var _ = Describe("ValidateConfig", func() {
 			})
 		})
 	})
+
+	Describe("validating display config", func() {
+		Context("when the background image is a valid http URL", func() {
+			BeforeEach(func() {
+				config.Display = &atc.DisplayConfig{
+					BackgroundImage: "http://example.com/image.jpg",
+				}
+			})
+
+			It("does not return an error", func() {
+				Expect(errorMessages).To(HaveLen(0))
+			})
+		})
+
+		Context("when the background image is a valid relative URL", func() {
+			BeforeEach(func() {
+				config.Display = &atc.DisplayConfig{
+					BackgroundImage: "public/images/image.jpg",
+				}
+			})
+
+			It("does not return an error", func() {
+				Expect(errorMessages).To(HaveLen(0))
+			})
+		})
+
+		Context("when the background image uses an unsupported scheme", func() {
+			BeforeEach(func() {
+				config.Display = &atc.DisplayConfig{
+					BackgroundImage: "data:image/png;base64, iVBORw0KGgoA",
+				}
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid display config:"))
+				Expect(errorMessages[0]).To(ContainSubstring("background_image scheme must be either http, https or relative"))
+			})
+		})
+
+		Context("when the background image is an invalid URL", func() {
+			BeforeEach(func() {
+				config.Display = &atc.DisplayConfig{
+					BackgroundImage: "://example.com",
+				}
+			})
+
+			It("returns an error", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("invalid display config:"))
+				Expect(errorMessages[0]).To(ContainSubstring("background_image is not a valid URL: ://example.com"))
+			})
+		})
+	})
 })

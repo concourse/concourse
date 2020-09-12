@@ -27,6 +27,7 @@ module Data exposing
     , version
     , versionedResource
     , withArchived
+    , withBackgroundImage
     , withBuildName
     , withDisableManualTrigger
     , withGroups
@@ -165,6 +166,7 @@ pipeline team id =
     , public = True
     , teamName = team
     , groups = []
+    , backgroundImage = Maybe.Nothing
     }
 
 
@@ -206,6 +208,11 @@ withName name p =
 withGroups : List Concourse.PipelineGroup -> { r | groups : List Concourse.PipelineGroup } -> { r | groups : List Concourse.PipelineGroup }
 withGroups groups p =
     { p | groups = groups }
+
+
+withBackgroundImage : String -> { r | backgroundImage : Maybe String } -> { r | backgroundImage : Maybe String }
+withBackgroundImage bg p =
+    { p | backgroundImage = Just bg }
 
 
 job : Int -> Concourse.Job

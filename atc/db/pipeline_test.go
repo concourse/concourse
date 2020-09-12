@@ -50,6 +50,9 @@ var _ = Describe("Pipeline", func() {
 					},
 				},
 			},
+			Display: &atc.DisplayConfig{
+				BackgroundImage: "background.jpg",
+			},
 			Jobs: atc.JobConfigs{
 				{
 					Name: "job-name",
