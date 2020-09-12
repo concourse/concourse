@@ -132,10 +132,10 @@ isPipelineArchived :
     -> Bool
 isPipelineArchived pipelines jobId =
     case jobId of
-        Just { pipelineId, pipelineName, pipelineInstanceVars, teamName } ->
+        Just { pipelineName, teamName } ->
             pipelines
                 |> RemoteData.withDefault []
-                |> List.Extra.find (\p -> p.id == pipelineId && p.name == pipelineName && p.instanceVars == pipelineInstanceVars && p.teamName == teamName)
+                |> List.Extra.find (\p -> p.name == pipelineName && p.teamName == teamName)
                 |> Maybe.map .archived
                 |> Maybe.withDefault False
 
@@ -453,9 +453,7 @@ update msg ( model, effects ) =
                             (\j ->
                                 RerunJobBuild
                                     { teamName = j.teamName
-                                    , pipelineId = j.pipelineId
                                     , pipelineName = j.pipelineName
-                                    , pipelineInstanceVars = j.pipelineInstanceVars
                                     , jobName = j.jobName
                                     , buildName = model.name
                                     }

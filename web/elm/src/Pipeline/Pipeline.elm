@@ -173,15 +173,7 @@ handleCallback callback ( model, effects ) =
     in
     case callback of
         PipelineFetched (Ok pipeline) ->
-            ( { model
-                | pipeline = RemoteData.Success pipeline
-                , pipelineLocator =
-                    { teamName = pipeline.teamName
-                    , pipelineId = pipeline.id
-                    , pipelineName = pipeline.name
-                    , pipelineInstanceVars = pipeline.instanceVars
-                    }
-              }
+            ( { model | pipeline = RemoteData.Success pipeline }
             , effects
                 ++ [ FetchJobs model.pipelineLocator
                    , FetchResources model.pipelineLocator

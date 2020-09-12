@@ -231,7 +231,7 @@ handleCallback callback ( model, effects ) =
                         |> List.map
                             (\job ->
                                 ( ( job.teamName
-                                  , job.pipelineId
+                                  , job.pipelineName
                                   , job.name
                                   )
                                 , job
@@ -315,7 +315,7 @@ handleCallback callback ( model, effects ) =
                 | pipelinesWithResourceErrors =
                     resources
                         |> List.filter .failingToCheck
-                        |> List.map (\r -> ( r.teamName, r.pipelineId ))
+                        |> List.map (\r -> ( r.teamName, r.pipelineName ))
                         |> Set.fromList
                 , resourcesError = Nothing
               }
@@ -450,7 +450,7 @@ updatePipeline updater pipelineId model =
                     (Dict.update pipelineId.teamName
                         (Maybe.map
                             (List.Extra.updateIf
-                                (\p -> p.id == pipelineId.pipelineId)
+                                (\p -> p.name == pipelineId.pipelineName)
                                 updater
                             )
                         )
@@ -462,7 +462,7 @@ findPipeline : Concourse.PipelineIdentifier -> Maybe (Dict String (List Pipeline
 findPipeline pipelineId pipelines =
     pipelines
         |> Maybe.andThen (Dict.get pipelineId.teamName)
-        |> Maybe.andThen (List.Extra.find (.id >> (==) pipelineId.pipelineId))
+        |> Maybe.andThen (List.Extra.find (.name >> (==) pipelineId.pipelineName))
 
 
 handleDelivery : Delivery -> ET Model
@@ -511,7 +511,7 @@ handleDeliveryBody delivery ( model, effects ) =
                         |> List.map
                             (\job ->
                                 ( ( job.teamName
-                                  , job.pipelineId
+                                  , job.pipelineName
                                   , job.name
                                   )
                                 , job
@@ -551,7 +551,6 @@ toDashboardPipeline : Bool -> Bool -> Concourse.Pipeline -> Pipeline
 toDashboardPipeline isStale jobsDisabled p =
     { id = p.id
     , name = p.name
-    , instanceVars = p.instanceVars
     , teamName = p.teamName
     , public = p.public
     , isToggleLoading = False
@@ -567,20 +566,12 @@ toConcoursePipeline : Pipeline -> Concourse.Pipeline
 toConcoursePipeline p =
     { id = p.id
     , name = p.name
-    , instanceVars = p.instanceVars
     , teamName = p.teamName
     , public = p.public
     , paused = p.paused
     , archived = p.archived
     , groups = []
     , backgroundImage = Maybe.Nothing
-    }
-
-
-toConcoursePipelineRef : Pipeline -> Concourse.PipelineRef
-toConcoursePipelineRef p =
-    { name = p.name
-    , instanceVars = p.instanceVars
     }
 
 
@@ -619,13 +610,11 @@ precomputeJobMetadata model =
                 |> Dict.values
 
         pipelineJobs =
-            allJobs |> groupBy (\j -> ( j.teamName, j.pipelineId ))
+            allJobs |> groupBy (\j -> ( j.teamName, j.pipelineName ))
 
         jobToId job =
             { teamName = job.teamName
-            , pipelineId = job.pipelineId
             , pipelineName = job.pipelineName
-            , pipelineInstanceVars = job.pipelineInstanceVars
             , jobName = job.name
             }
     in
@@ -652,27 +641,27 @@ update session msg =
 updateBody : Message -> ET Model
 updateBody msg ( model, effects ) =
     case msg of
-        DragStart teamName pipelineId ->
-            ( { model | dragState = Models.Dragging teamName pipelineId }, effects )
+        DragStart teamName pipelineName ->
+            ( { model | dragState = Models.Dragging teamName pipelineName }, effects )
 
         DragOver target ->
             ( { model | dropState = Models.Dropping target }, effects )
 
-        TooltipHd pipelineId teamName ->
-            ( model, effects ++ [ ShowTooltipHd ( pipelineId, teamName ) ] )
+        TooltipHd pipelineName teamName ->
+            ( model, effects ++ [ ShowTooltipHd ( pipelineName, teamName ) ] )
 
-        Tooltip pipelineId teamName ->
-            ( model, effects ++ [ ShowTooltip ( pipelineId, teamName ) ] )
+        Tooltip pipelineName teamName ->
+            ( model, effects ++ [ ShowTooltip ( pipelineName, teamName ) ] )
 
         DragEnd ->
             case ( model.dragState, model.dropState ) of
-                ( Dragging teamName pipelineId, Dropping target ) ->
+                ( Dragging teamName pipelineName, Dropping target ) ->
                     let
                         teamPipelines =
                             model.pipelines
                                 |> Maybe.andThen (Dict.get teamName)
                                 |> Maybe.withDefault []
-                                |> Drag.dragPipeline pipelineId target
+                                |> Drag.dragPipeline pipelineName target
 
                         pipelines =
                             model.pipelines
@@ -686,7 +675,7 @@ updateBody msg ( model, effects ) =
                       }
                     , effects
                         ++ [ teamPipelines
-                                |> List.map toConcoursePipelineRef
+                                |> List.map .name
                                 |> SendOrderPipelinesRequest teamName
                            , pipelines
                                 |> Dict.values
@@ -1127,17 +1116,17 @@ pipelinesView :
             , query : String
             , highDensity : Bool
             , dashboardView : Routes.DashboardView
-            , pipelinesWithResourceErrors : Set ( String, Int )
-            , pipelineLayers : Dict ( String, Int ) (List (List Concourse.JobIdentifier))
+            , pipelinesWithResourceErrors : Set ( String, String )
+            , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
             , pipelines : Maybe (Dict String (List Pipeline))
-            , jobs : FetchResult (Dict ( String, Int, String ) Concourse.Job)
+            , jobs : FetchResult (Dict ( String, String, String ) Concourse.Job)
             , dragState : DragState
             , dropState : DropState
             , now : Maybe Time.Posix
             , viewportWidth : Float
             , viewportHeight : Float
             , scrollTop : Float
-            , pipelineJobs : Dict ( String, Int ) (List Concourse.JobIdentifier)
+            , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
         }
     -> List (Html Message)
 pipelinesView session params =

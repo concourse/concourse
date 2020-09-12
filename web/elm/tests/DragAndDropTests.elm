@@ -235,13 +235,13 @@ itListensForDragStart : Query.Single TopLevelMessage -> Expectation
 itListensForDragStart =
     Event.simulate (Event.custom "dragstart" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragStart "team" 0)
+            (TopLevelMessage.Update <| Message.DragStart "team" "pipeline")
 
 
 iAmDraggingTheFirstPipelineCard =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragStart "team" 0)
+            (TopLevelMessage.Update <| Message.DragStart "team" "pipeline")
 
 
 itIsInvisible =
@@ -282,7 +282,7 @@ iAmLookingAtTheFinalDropArea =
 itListensForDragEnter =
     Event.simulate (Event.custom "dragenter" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragOver <| After 0)
+            (TopLevelMessage.Update <| Message.DragOver <| After "pipeline")
 
 
 
@@ -296,13 +296,13 @@ itListensForDragEnter =
 itListensForDragOverPreventingDefault =
     Event.simulate (Event.custom "dragover" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragOver <| After 0)
+            (TopLevelMessage.Update <| Message.DragOver <| After "pipeline")
 
 
 iAmDraggingOverTheThirdDropArea =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragOver <| After 0)
+            (TopLevelMessage.Update <| Message.DragOver <| After "other-pipeline")
 
 
 iAmLookingAtTheTeamHeader =
@@ -360,9 +360,7 @@ myBrowserMakesTheOrderPipelinesAPICall =
     Tuple.second
         >> Common.contains
             (Effects.SendOrderPipelinesRequest "team"
-                [ { name = "other-pipeline", instanceVars = Nothing }
-                , { name = "pipeline", instanceVars = Nothing }
-                ]
+                [ "other-pipeline", "pipeline" ]
             )
 
 

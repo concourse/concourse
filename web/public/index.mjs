@@ -358,9 +358,6 @@ function createGraph(svg, jobs, resources) {
   for (var i in resources) {
     var resource = resources[i];
     resourceURLs[resource.name] = "/teams/"+resource.team_name+"/pipelines/"+resource.pipeline_name+"/resources/"+encodeURIComponent(resource.name);
-    if (resource.pipeline_instance_vars !== undefined) {
-      resourceURLs[resource.name] = resourceURLs[resource.name]+"?instance_vars="+encodeURIComponent(JSON.stringify(resource.pipeline_instance_vars))
-    }
     resourceFailing[resource.name] = resource.failing_to_check;
     resourcePinned[resource.name] = resource.pinned_version;
     resourceIcons[resource.name] = resource.icon;
@@ -380,9 +377,6 @@ function createGraph(svg, jobs, resources) {
     } else if (job.finished_build) {
       var build = job.finished_build
       url = "/teams/"+build.team_name+"/pipelines/"+build.pipeline_name+"/jobs/"+encodeURIComponent(build.job_name)+"/builds/"+build.name;
-    }
-    if (job.pipeline_instance_vars !== undefined) {
-      url = url+"?instance_vars="+encodeURIComponent(JSON.stringify(job.pipeline_instance_vars))
     }
 
     var status;

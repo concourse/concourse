@@ -34,7 +34,6 @@ module Data exposing
     , withJobName
     , withName
     , withPaused
-    , withPipelineId
     , withPipelineName
     , withPublic
     , withResourceName
@@ -145,9 +144,7 @@ check status =
 resource : String -> Concourse.Resource
 resource pinnedVersion =
     { teamName = teamName
-    , pipelineId = pipelineDatabaseId
     , pipelineName = pipelineName
-    , pipelineInstanceVars = Nothing
     , name = resourceName
     , failingToCheck = False
     , checkError = ""
@@ -164,7 +161,6 @@ pipeline : String -> Int -> Concourse.Pipeline
 pipeline team id =
     { id = id
     , name = "pipeline-" ++ String.fromInt id
-    , instanceVars = Nothing
     , paused = False
     , archived = False
     , public = True
@@ -178,7 +174,6 @@ dashboardPipeline : Int -> Bool -> Dashboard.Group.Models.Pipeline
 dashboardPipeline id public =
     { id = id
     , name = pipelineName
-    , instanceVars = Nothing
     , teamName = teamName
     , public = public
     , isToggleLoading = False
@@ -223,9 +218,7 @@ withBackgroundImage bg p =
 job : Int -> Concourse.Job
 job pipelineID =
     { name = jobName
-    , pipelineId = pipelineID
     , pipelineName = "pipeline-" ++ String.fromInt pipelineID
-    , pipelineInstanceVars = Nothing
     , teamName = teamName
     , nextBuild = Nothing
     , finishedBuild = Nothing
@@ -246,11 +239,6 @@ withDisableManualTrigger disableManualTrigger p =
 withTeamName : String -> { r | teamName : String } -> { r | teamName : String }
 withTeamName name p =
     { p | teamName = name }
-
-
-withPipelineId : Int -> { r | pipelineId : Int } -> { r | pipelineId : Int }
-withPipelineId id p =
-    { p | pipelineId = id }
 
 
 withPipelineName : String -> { r | pipelineName : String } -> { r | pipelineName : String }
@@ -281,10 +269,6 @@ teamName =
     "team"
 
 
-pipelineDatabaseId =
-    0
-
-
 pipelineName =
     "pipeline"
 
@@ -298,8 +282,7 @@ buildName =
 
 
 withShortPipelineId =
-    withPipelineId pipelineDatabaseId
-        >> withPipelineName "p"
+    withPipelineName "p"
         >> withTeamName "t"
 
 
@@ -328,9 +311,7 @@ version v =
 pipelineId : Concourse.PipelineIdentifier
 pipelineId =
     { teamName = teamName
-    , pipelineId = pipelineDatabaseId
     , pipelineName = pipelineName
-    , pipelineInstanceVars = Nothing
     }
 
 
@@ -342,9 +323,7 @@ shortPipelineId =
 jobId : Concourse.JobIdentifier
 jobId =
     { teamName = teamName
-    , pipelineId = pipelineDatabaseId
     , pipelineName = pipelineName
-    , pipelineInstanceVars = Nothing
     , jobName = jobName
     }
 
@@ -357,9 +336,7 @@ shortJobId =
 resourceId : Concourse.ResourceIdentifier
 resourceId =
     { teamName = teamName
-    , pipelineId = pipelineDatabaseId
     , pipelineName = pipelineName
-    , pipelineInstanceVars = Nothing
     , resourceName = resourceName
     }
 
@@ -372,9 +349,7 @@ shortResourceId =
 resourceVersionId : Int -> Concourse.VersionedResourceIdentifier
 resourceVersionId v =
     { teamName = teamName
-    , pipelineId = pipelineDatabaseId
     , pipelineName = pipelineName
-    , pipelineInstanceVars = Nothing
     , resourceName = resourceName
     , versionID = v
     }
@@ -393,9 +368,7 @@ jobBuildId =
 longJobBuildId : Concourse.JobBuildIdentifier
 longJobBuildId =
     { teamName = teamName
-    , pipelineId = pipelineDatabaseId
     , pipelineName = pipelineName
-    , pipelineInstanceVars = Nothing
     , jobName = jobName
     , buildName = buildName
     }

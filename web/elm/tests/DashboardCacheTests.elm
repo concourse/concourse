@@ -255,10 +255,10 @@ all =
                         )
                     |> Tuple.first
                     |> Application.update
-                        (TopLevelMessage.Update <| Message.DragStart "team" 0)
+                        (TopLevelMessage.Update <| Message.DragStart "team" "pipeline-0")
                     |> Tuple.first
                     |> Application.update
-                        (TopLevelMessage.Update <| Message.DragOver <| After 1)
+                        (TopLevelMessage.Update <| Message.DragOver <| After "pipeline-1")
                     |> Tuple.first
                     |> Application.update
                         (TopLevelMessage.Update <| Message.DragEnd)

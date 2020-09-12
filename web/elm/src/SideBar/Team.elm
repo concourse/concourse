@@ -14,7 +14,6 @@ type alias PipelineScoped a =
     { a
         | teamName : String
         , pipelineName : String
-        , pipelineInstanceVars : Maybe Concourse.InstanceVars
     }
 
 

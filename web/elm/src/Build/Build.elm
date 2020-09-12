@@ -656,7 +656,15 @@ view session model =
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
-            [ SideBar.view session model.job
+            [ SideBar.view session
+                (model.job
+                    |> Maybe.map
+                        (\j ->
+                            { pipelineName = j.pipelineName
+                            , teamName = j.teamName
+                            }
+                        )
+                )
             , viewBuildPage session model
             ]
         ]

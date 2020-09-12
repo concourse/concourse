@@ -205,9 +205,7 @@ handleKeyPressed keyEvent ( model, effects ) =
                                     (\j ->
                                         RerunJobBuild
                                             { teamName = j.teamName
-                                            , pipelineId = j.pipelineId
                                             , pipelineName = j.pipelineName
-                                            , pipelineInstanceVars = j.pipelineInstanceVars
                                             , jobName = j.jobName
                                             , buildName = newModel.name
                                             }

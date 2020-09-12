@@ -65,7 +65,6 @@ all =
                                 JE.list identity
                                     [ JE.object
                                         [ ( "team_name", JE.string "team" )
-                                        , ( "pipeline_id", JE.int 0 )
                                         , ( "pipeline_name", JE.string "pipeline" )
                                         , ( "name", JE.string "test" )
                                         , ( "type", JE.string "type" )

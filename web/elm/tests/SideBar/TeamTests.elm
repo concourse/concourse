@@ -319,11 +319,7 @@ team { active, expanded, hovered, hasFavorited, isFavoritesSection } =
             [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
 
         pipelineIdentifier =
-            { teamName = "team"
-            , pipelineId = 0
-            , pipelineName = "pipeline"
-            , pipelineInstanceVars = Nothing
-            }
+            { teamName = "team", pipelineName = "pipeline" }
 
         activePipeline =
             if active then

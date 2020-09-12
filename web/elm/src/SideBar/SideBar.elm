@@ -22,7 +22,6 @@ import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Message.Subscription exposing (Delivery(..))
 import RemoteData exposing (RemoteData(..), WebData)
-import Routes
 import ScreenSize exposing (ScreenSize(..))
 import Set exposing (Set)
 import SideBar.State exposing (SideBarState)
@@ -51,7 +50,6 @@ type alias PipelineScoped a =
     { a
         | teamName : String
         , pipelineName : String
-        , pipelineInstanceVars : Maybe Concourse.InstanceVars
     }
 
 
@@ -202,8 +200,8 @@ handleDelivery delivery ( model, effects ) =
                 []
             )
 
-        FavoritedPipelinesReceived (Ok pipelineIds) ->
-            ( { model | favoritedPipelines = pipelineIds }, effects )
+        FavoritedPipelinesReceived (Ok pipelines) ->
+            ( { model | favoritedPipelines = pipelines }, effects )
 
         _ ->
             ( model, effects )
@@ -241,15 +239,6 @@ view model currentPipeline =
 
 tooltip : Model m -> Maybe Tooltip.Tooltip
 tooltip { hovered } =
-    let
-        pipelineDisplayName id =
-            case id.pipelineInstanceVars of
-                Nothing ->
-                    id.pipelineName
-
-                Just _ ->
-                    id.pipelineName ++ "/" ++ Routes.flattenInstanceVars id.pipelineInstanceVars
-    in
     case hovered of
         HoverState.Tooltip (SideBarTeam _ teamName) _ ->
             Just
@@ -264,7 +253,7 @@ tooltip { hovered } =
 
         HoverState.Tooltip (SideBarPipeline _ pipelineID) _ ->
             Just
-                { body = Html.div Styles.tooltipBody [ Html.text (pipelineDisplayName pipelineID) ]
+                { body = Html.div Styles.tooltipBody [ Html.text pipelineID.pipelineName ]
                 , attachPosition =
                     { direction =
                         Tooltip.Right <|

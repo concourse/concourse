@@ -177,9 +177,7 @@ handleCallback callback ( model, effects ) =
                                     Routes.Build
                                         { id =
                                             { teamName = job.teamName
-                                            , pipelineId = job.pipelineId
                                             , pipelineName = job.pipelineName
-                                            , pipelineInstanceVars = job.pipelineInstanceVars
                                             , jobName = job.jobName
                                             , buildName = build.name
                                             }
@@ -192,16 +190,7 @@ handleCallback callback ( model, effects ) =
             handleJobBuildsFetched requestedPage builds ( model, effects )
 
         JobFetched (Ok job) ->
-            ( { model
-                | job = RemoteData.Success job
-                , jobIdentifier =
-                    { teamName = job.teamName
-                    , pipelineId = job.pipelineId
-                    , pipelineName = job.pipelineName
-                    , pipelineInstanceVars = job.pipelineInstanceVars
-                    , jobName = job.name
-                    }
-              }
+            ( { model | job = RemoteData.Success job }
             , effects
             )
 
@@ -447,7 +436,12 @@ view session model =
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
-            [ SideBar.view session (Just model.jobIdentifier)
+            [ SideBar.view session
+                (Just
+                    { pipelineName = model.jobIdentifier.pipelineName
+                    , teamName = model.jobIdentifier.teamName
+                    }
+                )
             , viewMainJobsSection session model
             ]
         ]
@@ -608,10 +602,10 @@ isPipelineArchived :
     WebData (List Concourse.Pipeline)
     -> Concourse.JobIdentifier
     -> Bool
-isPipelineArchived pipelines { pipelineId, pipelineName, pipelineInstanceVars, teamName } =
+isPipelineArchived pipelines { pipelineName, teamName } =
     pipelines
         |> RemoteData.withDefault []
-        |> List.Extra.find (\p -> p.id == pipelineId && p.name == pipelineName && p.instanceVars == pipelineInstanceVars && p.teamName == teamName)
+        |> List.Extra.find (\p -> p.name == pipelineName && p.teamName == teamName)
         |> Maybe.map .archived
         |> Maybe.withDefault False
 

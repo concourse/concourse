@@ -631,13 +631,6 @@ viewAcrossStepSubHeaderKeyValue key val =
                 )
                 o
 
-        JsonBool b ->
-            if b then
-                keyValueSpan "true"
-
-            else
-                keyValueSpan "false"
-
 
 viewRetryTab :
     { r | hovered : HoverState.HoverState }

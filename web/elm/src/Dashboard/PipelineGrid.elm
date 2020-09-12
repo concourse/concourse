@@ -54,7 +54,7 @@ type alias Header =
 computeLayout :
     { dragState : DragState
     , dropState : DropState
-    , pipelineLayers : Dict ( String, Int ) (List (List Concourse.JobIdentifier))
+    , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
     , viewportWidth : Float
     , viewportHeight : Float
     , scrollTop : Float
@@ -156,7 +156,7 @@ computeLayout params g =
                                     Nothing ->
                                         dropAreaBounds card
                         in
-                        { bounds = bounds, target = Before pipeline.id }
+                        { bounds = bounds, target = Before pipeline.name }
                     )
             )
                 ++ (case List.head (List.reverse (List.map2 Tuple.pair cards g.pipelines)) of
@@ -171,7 +171,7 @@ computeLayout params g =
                                                 | column = lastCard.column + lastCard.spannedColumns
                                                 , spannedColumns = 1
                                             }
-                                  , target = After lastPipeline.id
+                                  , target = After lastPipeline.name
                                   }
                                 ]
 
@@ -208,7 +208,7 @@ computeLayout params g =
 
 
 computeFavoritePipelinesLayout :
-    { pipelineLayers : Dict ( String, Int ) (List (List Concourse.JobIdentifier))
+    { pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
     , viewportWidth : Float
     , viewportHeight : Float
     , scrollTop : Float
@@ -322,13 +322,13 @@ computeFavoritePipelinesLayout params pipelines =
 
 
 previewSizes :
-    Dict ( String, Int ) (List (List Concourse.JobIdentifier))
+    Dict ( String, String ) (List (List Concourse.JobIdentifier))
     -> List Pipeline
     -> List ( Int, Int )
 previewSizes pipelineLayers =
     List.map
         (\pipeline ->
-            Dict.get ( pipeline.teamName, pipeline.id ) pipelineLayers
+            Dict.get ( pipeline.teamName, pipeline.name ) pipelineLayers
                 |> Maybe.withDefault []
         )
         >> List.map

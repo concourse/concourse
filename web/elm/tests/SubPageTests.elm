@@ -32,7 +32,7 @@ all =
                         (NotFoundModel
                             (notFound
                                 (Routes.Job
-                                    { id = Data.shortJobId |> Data.withPipelineId -1
+                                    { id = Data.shortJobId
                                     , page = Nothing
                                     }
                                 )
@@ -48,7 +48,7 @@ all =
                         (NotFoundModel
                             (notFound
                                 (Routes.Resource
-                                    { id = Data.shortResourceId |> Data.withPipelineId -1
+                                    { id = Data.shortResourceId
                                     , page = Nothing
                                     }
                                 )
@@ -79,7 +79,7 @@ all =
                         (NotFoundModel
                             (notFound
                                 (Routes.Pipeline
-                                    { id = Data.shortPipelineId |> Data.withPipelineId -1
+                                    { id = Data.shortPipelineId
                                     , groups = []
                                     }
                                 )

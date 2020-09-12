@@ -47,9 +47,7 @@ viewJob section hovered job =
 
         jobId =
             { jobName = job.name
-            , pipelineId = job.pipelineId
             , pipelineName = job.pipelineName
-            , pipelineInstanceVars = job.pipelineInstanceVars
             , teamName = job.teamName
             }
     in

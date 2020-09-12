@@ -1260,9 +1260,7 @@ all =
                                 (Callback.ResourceFetched <|
                                     Ok
                                         { teamName = teamName
-                                        , pipelineId = 0
                                         , pipelineName = pipelineName
-                                        , pipelineInstanceVars = Nothing
                                         , name = resourceName
                                         , failingToCheck = False
                                         , checkError = ""
@@ -1319,9 +1317,7 @@ all =
                                 (Callback.ResourceFetched <|
                                     Ok
                                         { teamName = teamName
-                                        , pipelineId = 0
                                         , pipelineName = pipelineName
-                                        , pipelineInstanceVars = Nothing
                                         , name = resourceName
                                         , failingToCheck = False
                                         , checkError = ""
@@ -1380,9 +1376,7 @@ all =
                                 (Callback.ResourceFetched <|
                                     Ok
                                         { teamName = teamName
-                                        , pipelineId = 0
                                         , pipelineName = pipelineName
-                                        , pipelineInstanceVars = Nothing
                                         , name = resourceName
                                         , failingToCheck = False
                                         , checkError = ""
@@ -1444,9 +1438,7 @@ all =
                                 (Callback.ResourceFetched <|
                                     Ok
                                         { teamName = teamName
-                                        , pipelineId = 0
                                         , pipelineName = pipelineName
-                                        , pipelineInstanceVars = Nothing
                                         , name = resourceName
                                         , failingToCheck = False
                                         , checkError = ""
@@ -1490,9 +1482,7 @@ all =
                                 (Callback.ResourceFetched <|
                                     Ok
                                         { teamName = teamName
-                                        , pipelineId = 0
                                         , pipelineName = pipelineName
-                                        , pipelineInstanceVars = Nothing
                                         , name = resourceName
                                         , failingToCheck = False
                                         , checkError = ""
@@ -3195,9 +3185,7 @@ all =
                                 (Callback.ResourceFetched <|
                                     Ok
                                         { teamName = teamName
-                                        , pipelineId = 0
                                         , pipelineName = pipelineName
-                                        , pipelineInstanceVars = Nothing
                                         , name = resourceName
                                         , failingToCheck = False
                                         , checkError = ""
@@ -3226,9 +3214,7 @@ all =
                                 (Callback.ResourceFetched <|
                                     Ok
                                         { teamName = teamName
-                                        , pipelineId = 0
                                         , pipelineName = pipelineName
-                                        , pipelineInstanceVars = Nothing
                                         , name = resourceName
                                         , failingToCheck = False
                                         , checkError = ""
@@ -3268,9 +3254,7 @@ all =
                             (Callback.ResourceFetched <|
                                 Ok
                                     { teamName = teamName
-                                    , pipelineId = 0
                                     , pipelineName = pipelineName
-                                    , pipelineInstanceVars = Nothing
                                     , name = resourceName
                                     , failingToCheck = True
                                     , checkError = "some error"
@@ -3358,9 +3342,7 @@ givenResourcePinnedStatically =
         (Callback.ResourceFetched <|
             Ok
                 { teamName = teamName
-                , pipelineId = 0
                 , pipelineName = pipelineName
-                , pipelineInstanceVars = Nothing
                 , name = resourceName
                 , failingToCheck = False
                 , checkError = ""
@@ -3381,9 +3363,7 @@ givenResourcePinnedDynamically =
         (Callback.ResourceFetched <|
             Ok
                 { teamName = teamName
-                , pipelineId = 0
                 , pipelineName = pipelineName
-                , pipelineInstanceVars = Nothing
                 , name = resourceName
                 , failingToCheck = False
                 , checkError = ""
@@ -3404,9 +3384,7 @@ whenResourceLoadsWithPinnedComment =
         (Callback.ResourceFetched <|
             Ok
                 { teamName = teamName
-                , pipelineId = 0
                 , pipelineName = pipelineName
-                , pipelineInstanceVars = Nothing
                 , name = resourceName
                 , failingToCheck = False
                 , checkError = ""
@@ -3432,9 +3410,7 @@ givenResourceIsNotPinned =
         (Callback.ResourceFetched <|
             Ok
                 { teamName = teamName
-                , pipelineId = 0
                 , pipelineName = pipelineName
-                , pipelineInstanceVars = Nothing
                 , name = resourceName
                 , failingToCheck = False
                 , checkError = ""
@@ -3455,9 +3431,7 @@ givenResourceHasIcon =
         (Callback.ResourceFetched <|
             Ok
                 { teamName = teamName
-                , pipelineId = 0
                 , pipelineName = pipelineName
-                , pipelineInstanceVars = Nothing
                 , name = resourceName
                 , failingToCheck = False
                 , checkError = ""

@@ -14,7 +14,6 @@ type alias PipelineScoped a =
     { a
         | teamName : String
         , pipelineName : String
-        , pipelineInstanceVars : Maybe Concourse.InstanceVars
     }
 
 
@@ -32,19 +31,13 @@ pipeline params p =
         isCurrent =
             case params.currentPipeline of
                 Just cp ->
-                    (cp.teamName == p.teamName)
-                        && (cp.pipelineName == p.name)
-                        && (cp.pipelineInstanceVars == p.instanceVars)
+                    cp.pipelineName == p.name && cp.teamName == p.teamName
 
                 Nothing ->
                     False
 
         pipelineId =
-            { teamName = p.teamName
-            , pipelineId = p.id
-            , pipelineName = p.name
-            , pipelineInstanceVars = p.instanceVars
-            }
+            { pipelineName = p.name, teamName = p.teamName }
 
         domID =
             SideBarPipeline
@@ -61,14 +54,6 @@ pipeline params p =
 
         isFavorited =
             Set.member p.id params.favoritedPipelines
-
-        pipelineDisplayName =
-            case p.instanceVars of
-                Nothing ->
-                    p.name
-
-                Just _ ->
-                    p.name ++ "/" ++ Routes.flattenInstanceVars p.instanceVars
     in
     { icon =
         { asset =
@@ -91,7 +76,7 @@ pipeline params p =
 
             else
                 Styles.Dim
-        , text = pipelineDisplayName
+        , text = p.name
         , weight =
             if isCurrent then
                 Styles.Bold

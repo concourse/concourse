@@ -30,42 +30,34 @@ breadcrumbs route =
     <|
         case route of
             Routes.Pipeline { id } ->
-                [ pipelineBreadcrumb
+                [ pipelineBreadcumb
                     { teamName = id.teamName
-                    , pipelineId = id.pipelineId
                     , pipelineName = id.pipelineName
-                    , pipelineInstanceVars = id.pipelineInstanceVars
                     }
                 ]
 
             Routes.Build { id } ->
-                [ pipelineBreadcrumb
+                [ pipelineBreadcumb
                     { teamName = id.teamName
-                    , pipelineId = id.pipelineId
                     , pipelineName = id.pipelineName
-                    , pipelineInstanceVars = id.pipelineInstanceVars
                     }
                 , breadcrumbSeparator
                 , jobBreadcrumb id.jobName
                 ]
 
             Routes.Resource { id } ->
-                [ pipelineBreadcrumb
+                [ pipelineBreadcumb
                     { teamName = id.teamName
-                    , pipelineId = id.pipelineId
                     , pipelineName = id.pipelineName
-                    , pipelineInstanceVars = id.pipelineInstanceVars
                     }
                 , breadcrumbSeparator
                 , resourceBreadcrumb id.resourceName
                 ]
 
             Routes.Job { id } ->
-                [ pipelineBreadcrumb
+                [ pipelineBreadcumb
                     { teamName = id.teamName
-                    , pipelineId = id.pipelineId
                     , pipelineName = id.pipelineName
-                    , pipelineInstanceVars = id.pipelineInstanceVars
                     }
                 , breadcrumbSeparator
                 , jobBreadcrumb id.jobName
@@ -99,17 +91,8 @@ breadcrumbSeparator =
         [ Html.text "/" ]
 
 
-pipelineBreadcrumb : Concourse.PipelineIdentifier -> Html Message
-pipelineBreadcrumb pipelineId =
-    let
-        pipelineDisplayName id =
-            case id.pipelineInstanceVars of
-                Nothing ->
-                    id.pipelineName
-
-                Just _ ->
-                    id.pipelineName ++ "/" ++ Routes.flattenInstanceVars id.pipelineInstanceVars
-    in
+pipelineBreadcumb : Concourse.PipelineIdentifier -> Html Message
+pipelineBreadcumb pipelineId =
     Html.a
         ([ id "breadcrumb-pipeline"
          , href <|
@@ -124,7 +107,7 @@ pipelineBreadcrumb pipelineId =
                 , widthPx = 28
                 , heightPx = 16
                 }
-            , name = pipelineDisplayName pipelineId
+            , name = pipelineId.pipelineName
             }
         )
 
