@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/go-concourse/concourse"
 
+	"github.com/imdario/mergo"
 	"github.com/mgutz/ansi"
 )
 
@@ -84,9 +85,16 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 
 	var instanceVars atc.InstanceVars
 	if command.InstanceVars != nil {
-		instanceVars = atc.InstanceVars{}
-		for _, f := range command.InstanceVars {
-			instanceVars[f.Name] = f.Value
+		dot := &atc.DotNotation{}
+		for _, iv := range command.InstanceVars {
+			err := mergo.Merge(dot, iv.Value)
+			if err != nil {
+				return err
+			}
+		}
+		instanceVars, err = dot.Expand()
+		if err != nil {
+			return err
 		}
 	}
 
@@ -103,6 +111,6 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		CommandWarnings:  warnings,
 	}
 
-	yamlTemplateWithParams := templatehelpers.NewYamlTemplateWithParams(configPath, templateVariablesFiles, command.Var, command.YAMLVar, command.InstanceVars)
+	yamlTemplateWithParams := templatehelpers.NewYamlTemplateWithParams(configPath, templateVariablesFiles, command.Var, command.YAMLVar, instanceVars)
 	return atcConfig.Set(yamlTemplateWithParams)
 }

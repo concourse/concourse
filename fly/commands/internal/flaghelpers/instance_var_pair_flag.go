@@ -1,28 +1,31 @@
 package flaghelpers
 
 import (
-	"fmt"
+	"errors"
 	"gopkg.in/yaml.v2"
 	"strings"
+
+	"github.com/concourse/concourse/atc"
 )
 
 type InstanceVarPairFlag struct {
-	Name  string
-	Value interface{}
+	Value atc.DotNotation
 }
 
 func (flag *InstanceVarPairFlag) UnmarshalFlag(value string) error {
-	vs := strings.SplitN(value, "=", 2)
-	if len(vs) != 2 {
-		return fmt.Errorf("invalid input flag '%s' (must be name=value)", value)
+	flag.Value = atc.DotNotation{}
+	for _, v := range strings.Split(value, ",") {
+		kv := strings.SplitN(strings.TrimSpace(v), "=", 2)
+		if len(kv) == 2 {
+			var raw interface{}
+			err := yaml.Unmarshal([]byte(kv[1]), &raw)
+			if err != nil {
+				return err
+			}
+			flag.Value[kv[0]] = raw
+		} else {
+			return errors.New("argument format should be <key=value>")
+		}
 	}
-
-	flag.Name = vs[0]
-
-	err := yaml.Unmarshal([]byte(vs[1]), &flag.Value)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }

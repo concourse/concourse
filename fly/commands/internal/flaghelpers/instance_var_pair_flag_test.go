@@ -14,20 +14,12 @@ var _ = Describe("InstanceVarPairFlag", func() {
 	})
 
 	Describe("UnmarshalFlag", func() {
-		Context("when the unmarshalling the key", func() {
-			It("unmarshal the flag successfully", func() {
-				err := flag.UnmarshalFlag("branch=master")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(flag.Name).To(Equal("branch"))
-			})
-		})
-
-		Context("when the unmarshalling the value", func() {
+		Context("when the flag has a single root key", func() {
 			Context("and the value is a string", func() {
 				It("unmarshal the flag successfully", func() {
 					err := flag.UnmarshalFlag("branch=master")
 					Expect(err).ToNot(HaveOccurred())
-					Expect(flag.Value).To(Equal("master"))
+					Expect(flag.Value["branch"]).To(Equal("master"))
 				})
 			})
 
@@ -36,7 +28,7 @@ var _ = Describe("InstanceVarPairFlag", func() {
 					It("unmarshal the flag successfully", func() {
 						err := flag.UnmarshalFlag("version=1")
 						Expect(err).ToNot(HaveOccurred())
-						Expect(flag.Value).To(Equal(1))
+						Expect(flag.Value["version"]).To(Equal(1))
 					})
 				})
 
@@ -44,17 +36,40 @@ var _ = Describe("InstanceVarPairFlag", func() {
 					It("unmarshal the flag successfully", func() {
 						err := flag.UnmarshalFlag("version=\"1\"")
 						Expect(err).ToNot(HaveOccurred())
-						Expect(flag.Value).To(Equal("1"))
+						Expect(flag.Value["version"]).To(Equal("1"))
 					})
 				})
 			})
 
-			Context("and the value is a nested json", func() {
+			Context("and the value is an object", func() {
 				It("unmarshal the flag successfully", func() {
-					err := flag.UnmarshalFlag("foo={\"bar\":\"baz\",\"version\":1}")
+					err := flag.UnmarshalFlag("foo.bar=baz,foo.version=1")
 					Expect(err).ToNot(HaveOccurred())
-					Expect(flag.Value).To(Equal(map[interface{}]interface{}{"bar": "baz", "version": 1}))
+					Expect(flag.Value["foo.bar"]).To(Equal("baz"))
+					Expect(flag.Value["foo.version"]).To(Equal(1))
 				})
+			})
+
+			Context("and the value is an array", func() {
+				It("unmarshal the flag successfully", func() {
+					err := flag.UnmarshalFlag("quz.0=something,quz.1=8,quz.2=false")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(flag.Value["quz.0"]).To(Equal("something"))
+					Expect(flag.Value["quz.1"]).To(Equal(8))
+					Expect(flag.Value["quz.2"]).To(Equal(false))
+				})
+			})
+		})
+
+		Context("when the flag has a multiple root keys", func() {
+			It("unmarshal the flag successfully", func() {
+				err := flag.UnmarshalFlag("foo.bar=baz,foo.version=1,quz.0=something,quz.1=8,quz.2=false")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(flag.Value["foo.bar"]).To(Equal("baz"))
+				Expect(flag.Value["foo.version"]).To(Equal(1))
+				Expect(flag.Value["quz.0"]).To(Equal("something"))
+				Expect(flag.Value["quz.1"]).To(Equal(8))
+				Expect(flag.Value["quz.2"]).To(Equal(false))
 			})
 		})
 	})
