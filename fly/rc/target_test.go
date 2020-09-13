@@ -163,12 +163,8 @@ Lfkzl8ebb+tt0XFMUFc42WNr
 		})
 
 		Context("when there is ca-cert", func() {
-			type targetDetailsYAML struct {
-				Targets map[rc.TargetName]rc.TargetProps
-			}
-
 			BeforeEach(func() {
-				flyrcConfig := targetDetailsYAML{
+				flyrcConfig := rc.RC{
 					Targets: map[rc.TargetName]rc.TargetProps{
 						"some-target": {
 							API:      "http://concourse.com",
@@ -214,10 +210,6 @@ Lfkzl8ebb+tt0XFMUFc42WNr
 		})
 
 		Context("when there is a client certificate path and a client key path", func() {
-			type targetDetailsYAML struct {
-				Targets map[rc.TargetName]rc.TargetProps
-			}
-
 			BeforeEach(func() {
 				certPath := filepath.Join(userHomeDir(), "client.pem")
 				keyPath := filepath.Join(userHomeDir(), "client.key")
@@ -229,7 +221,7 @@ Lfkzl8ebb+tt0XFMUFc42WNr
 				err = ioutil.WriteFile(keyPath, []byte(clientKey), 0600)
 				Expect(err).ToNot(HaveOccurred())
 
-				flyrcConfig := targetDetailsYAML{
+				flyrcConfig := rc.RC{
 					Targets: map[rc.TargetName]rc.TargetProps{
 						"some-target": {
 							API:            "http://concourse.com",
@@ -267,17 +259,13 @@ Lfkzl8ebb+tt0XFMUFc42WNr
 		})
 
 		Context("when there is a client certificate path, but no client key path", func() {
-			type targetDetailsYAML struct {
-				Targets map[rc.TargetName]rc.TargetProps
-			}
-
 			BeforeEach(func() {
 				certPath := filepath.Join(userHomeDir(), "client.pem")
 
 				err := ioutil.WriteFile(certPath, []byte(clientCert), 0600)
 				Expect(err).ToNot(HaveOccurred())
 
-				flyrcConfig := targetDetailsYAML{
+				flyrcConfig := rc.RC{
 					Targets: map[rc.TargetName]rc.TargetProps{
 						"some-target": {
 							API:            "http://concourse.com",
@@ -303,17 +291,13 @@ Lfkzl8ebb+tt0XFMUFc42WNr
 		})
 
 		Context("when there is a client key path, but no client certificate path", func() {
-			type targetDetailsYAML struct {
-				Targets map[rc.TargetName]rc.TargetProps
-			}
-
 			BeforeEach(func() {
 				keyPath := filepath.Join(userHomeDir(), "client.key")
 
 				err := ioutil.WriteFile(keyPath, []byte(clientKey), 0600)
 				Expect(err).ToNot(HaveOccurred())
 
-				flyrcConfig := targetDetailsYAML{
+				flyrcConfig := rc.RC{
 					Targets: map[rc.TargetName]rc.TargetProps{
 						"some-target": {
 							API:           "http://concourse.com",
