@@ -85,7 +85,12 @@ func (builder Builder) WithPipeline(config atc.Config) SetupFunc {
 			}
 		}
 
-		p, _, err := scenario.Team.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, config, 0, false)
+		var from db.ConfigVersion
+		if scenario.Pipeline != nil {
+			from = scenario.Pipeline.ConfigVersion()
+		}
+
+		p, _, err := scenario.Team.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, config, from, false)
 		if err != nil {
 			return err
 		}
@@ -175,7 +180,7 @@ func (builder Builder) WithResourceVersions(resourceName string, versions ...atc
 			return fmt.Errorf("save versions: %w", err)
 		}
 
-		resource.SetResourceConfigScope(scope)
+		err = resource.SetResourceConfigScope(scope)
 		if err != nil {
 			return fmt.Errorf("set resource scope: %w", err)
 		}

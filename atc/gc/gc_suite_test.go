@@ -12,6 +12,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbtest"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/postgresrunner"
 	. "github.com/onsi/ginkgo"
@@ -54,8 +55,11 @@ var (
 
 	usedResource     db.Resource
 	usedResourceType db.ResourceType
-	logger           *lagertest.TestLogger
-	fakeLogFunc      = func(logger lager.Logger, id lock.LockID) {}
+
+	builder dbtest.Builder
+
+	logger      *lagertest.TestLogger
+	fakeLogFunc = func(logger lager.Logger, id lock.LockID) {}
 )
 
 var _ = BeforeSuite(func() {
@@ -74,6 +78,8 @@ var _ = BeforeEach(func() {
 	dbConn = postgresRunner.OpenConn()
 
 	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), fakeLogFunc, fakeLogFunc)
+
+	builder = dbtest.NewBuilder(dbConn, lockFactory)
 
 	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
 	buildFactory = db.NewBuildFactory(dbConn, lockFactory, 0, time.Hour)
