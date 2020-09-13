@@ -1302,181 +1302,125 @@ var _ = Describe("Build", func() {
 
 	Describe("Resources", func() {
 		var (
-			pipeline             db.Pipeline
-			job                  db.Job
-			resourceConfigScope1 db.ResourceConfigScope
-			resource1            db.Resource
-			found                bool
+			scenario      *dbtest.Scenario
+			build         db.Build
+			inputResource db.Resource
 		)
 
 		BeforeEach(func() {
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-
-			brt := db.BaseResourceType{
-				Name: "some-type",
-			}
-
-			_, err = brt.FindOrCreate(setupTx, false)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
-
 			pipelineConfig := atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
+						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name:     "some-input",
+									Resource: "some-resource",
+								},
+							},
+							{
+								Config: &atc.PutStep{
+									Name: "some-resource",
+								},
+							},
+							{
+								Config: &atc.PutStep{
+									Name: "some-other-resource",
+								},
+							},
+						},
 					},
 				},
 				Resources: atc.ResourceConfigs{
 					{
 						Name:   "some-resource",
-						Type:   "some-type",
-						Source: atc.Source{"some": "source"},
+						Type:   dbtest.BaseResourceType,
+						Source: atc.Source{"some": "source-1"},
 					},
 					{
 						Name:   "some-other-resource",
-						Type:   "some-type",
+						Type:   dbtest.BaseResourceType,
 						Source: atc.Source{"some": "source-2"},
 					},
 					{
 						Name:   "some-unused-resource",
-						Type:   "some-type",
+						Type:   dbtest.BaseResourceType,
 						Source: atc.Source{"some": "source-3"},
 					},
 				},
 			}
 
-			pipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, pipelineConfig, db.ConfigVersion(1), false)
-			Expect(err).ToNot(HaveOccurred())
+			scenario = dbtest.Setup(
+				builder.WithPipeline(pipelineConfig),
+				builder.WithResourceVersions(
+					"some-resource",
+					atc.Version{"ver": "1"},
+					atc.Version{"ver": "2"},
+				),
+				builder.WithJobBuild(&build, "some-job", dbtest.JobInputs{
+					{
+						Name:            "some-input",
+						Version:         atc.Version{"ver": "1"},
+						FirstOccurrence: true,
+					},
+				}, dbtest.JobOutputs{
+					"some-resource":       atc.Version{"ver": "2"},
+					"some-other-resource": atc.Version{"ver": "not-checked"},
+				}),
+			)
 
-			job, found, err = pipeline.Job("some-job")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			resource1, found, err = pipeline.Resource("some-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			resource2, found, err := pipeline.Resource("some-other-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			resourceConfigScope1, err = resource1.SetResourceConfig(atc.Source{"some": "source-1"}, atc.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			_, err = resource2.SetResourceConfig(atc.Source{"some": "source-2"}, atc.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resourceConfigScope1.SaveVersions(nil, []atc.Version{
-				{"ver": "1"},
-				{"ver": "2"},
-			})
-			Expect(err).ToNot(HaveOccurred())
-
-			// This version should not be returned by the Resources method because it has a check order of 0
-			created, err := resource1.SaveUncheckedVersion(atc.Version{"ver": "not-returned"}, nil, resourceConfigScope1.ResourceConfig())
-			Expect(err).ToNot(HaveOccurred())
-			Expect(created).To(BeTrue())
+			inputResource = scenario.Resource("some-resource")
 		})
 
 		It("returns build inputs and outputs", func() {
-			build, err := job.CreateBuild()
-			Expect(err).NotTo(HaveOccurred())
-
-			// save a normal 'get'
-			err = job.SaveNextInputMapping(db.InputMapping{
-				"some-input": db.InputResult{
-					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "1"})),
-							ResourceID: resource1.ID(),
-						},
-						FirstOccurrence: true,
-					},
-					PassedBuildIDs: []int{},
-				},
-			}, true)
-			Expect(err).NotTo(HaveOccurred())
-
-			_, found, err := build.AdoptInputsAndPipes()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			// save explicit output from 'put'
-			err = build.SaveOutput("some-type", atc.Source{"some": "source-2"}, atc.VersionedResourceTypes{}, atc.Version{"ver": "2"}, nil, "some-output-name", "some-other-resource")
-			Expect(err).NotTo(HaveOccurred())
-
 			inputs, outputs, err := build.Resources()
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(inputs).To(ConsistOf([]db.BuildInput{
-				{Name: "some-input", Version: atc.Version{"ver": "1"}, ResourceID: resource1.ID(), FirstOccurrence: true},
+				{
+					Name:            "some-input",
+					Version:         atc.Version{"ver": "1"},
+					ResourceID:      inputResource.ID(),
+					FirstOccurrence: true,
+				},
 			}))
 
 			Expect(outputs).To(ConsistOf([]db.BuildOutput{
 				{
-					Name:    "some-output-name",
+					Name:    "some-resource",
 					Version: atc.Version{"ver": "2"},
 				},
 			}))
 		})
 
 		Context("when the first occurrence is empty", func() {
-			var build db.Build
-
 			BeforeEach(func() {
-				var err error
-				build, err = job.CreateBuild()
-				Expect(err).NotTo(HaveOccurred())
-
-				// save a normal 'get'
-				err = job.SaveNextInputMapping(db.InputMapping{
-					"some-input": db.InputResult{
-						Input: &db.AlgorithmInput{
-							AlgorithmVersion: db.AlgorithmVersion{
-								Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "1"})),
-								ResourceID: resource1.ID(),
-							},
-							FirstOccurrence: true,
-						},
-						PassedBuildIDs: []int{},
-					},
-					"some-other-input": db.InputResult{
-						Input: &db.AlgorithmInput{
-							AlgorithmVersion: db.AlgorithmVersion{
-								Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "2"})),
-								ResourceID: resource1.ID(),
-							},
-							FirstOccurrence: true,
-						},
-						PassedBuildIDs: []int{},
-					},
-				}, true)
-				Expect(err).NotTo(HaveOccurred())
-
-				_, found, err := build.AdoptInputsAndPipes()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				_, err = psql.Update("build_resource_config_version_inputs").
+				res, err := psql.Update("build_resource_config_version_inputs").
 					Set("first_occurrence", nil).
 					Where(sq.Eq{
 						"build_id":    build.ID(),
-						"resource_id": resource1.ID(),
+						"resource_id": inputResource.ID(),
 						"version_md5": convertToMD5(atc.Version{"ver": "1"}),
 					}).
 					RunWith(dbConn).
 					Exec()
 				Expect(err).NotTo(HaveOccurred())
+				rows, err := res.RowsAffected()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(rows).To(Equal(int64(1)))
 			})
 
 			It("determines the first occurrence to be true", func() {
-				inputs, outputs, err := build.Resources()
+				inputs, _, err := build.Resources()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(outputs).To(BeEmpty())
 				Expect(inputs).To(ConsistOf([]db.BuildInput{
-					{Name: "some-input", Version: atc.Version{"ver": "1"}, ResourceID: resource1.ID(), FirstOccurrence: true},
-					{Name: "some-other-input", Version: atc.Version{"ver": "2"}, ResourceID: resource1.ID(), FirstOccurrence: true},
+					{
+						Name:            "some-input",
+						Version:         atc.Version{"ver": "1"},
+						ResourceID:      inputResource.ID(),
+						FirstOccurrence: true,
+					},
 				}))
 			})
 
@@ -1484,47 +1428,43 @@ var _ = Describe("Build", func() {
 				var newBuild db.Build
 
 				BeforeEach(func() {
-					var err error
-					newBuild, err = job.CreateBuild()
-					Expect(err).NotTo(HaveOccurred())
-
-					// save a normal 'get'
-					err = job.SaveNextInputMapping(db.InputMapping{
-						"some-input": db.InputResult{
-							Input: &db.AlgorithmInput{
-								AlgorithmVersion: db.AlgorithmVersion{
-									Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "1"})),
-									ResourceID: resource1.ID(),
-								},
-								FirstOccurrence: false,
+					scenario.Run(
+						builder.WithJobBuild(&newBuild, "some-job", dbtest.JobInputs{
+							{
+								Name:            "some-input",
+								Version:         atc.Version{"ver": "1"},
+								FirstOccurrence: true,
 							},
-							PassedBuildIDs: []int{},
-						},
-					}, true)
-					Expect(err).NotTo(HaveOccurred())
+						}, dbtest.JobOutputs{
+							"some-resource":       atc.Version{"ver": "2"},
+							"some-other-resource": atc.Version{"ver": "not-checked"},
+						}),
+					)
 
-					_, found, err := newBuild.AdoptInputsAndPipes()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					_, err = psql.Update("build_resource_config_version_inputs").
+					res, err := psql.Update("build_resource_config_version_inputs").
 						Set("first_occurrence", nil).
 						Where(sq.Eq{
 							"build_id":    newBuild.ID(),
-							"resource_id": resource1.ID(),
+							"resource_id": inputResource.ID(),
 							"version_md5": convertToMD5(atc.Version{"ver": "1"}),
 						}).
 						RunWith(dbConn).
 						Exec()
+					rows, err := res.RowsAffected()
 					Expect(err).NotTo(HaveOccurred())
+					Expect(rows).To(Equal(int64(1)))
 				})
 
 				It("determines the first occurrence to be false", func() {
-					inputs, outputs, err := newBuild.Resources()
+					inputs, _, err := newBuild.Resources()
 					Expect(err).NotTo(HaveOccurred())
-					Expect(outputs).To(BeEmpty())
 					Expect(inputs).To(ConsistOf([]db.BuildInput{
-						{Name: "some-input", Version: atc.Version{"ver": "1"}, ResourceID: resource1.ID(), FirstOccurrence: false},
+						{
+							Name:            "some-input",
+							Version:         atc.Version{"ver": "1"},
+							ResourceID:      inputResource.ID(),
+							FirstOccurrence: false,
+						},
 					}))
 				})
 			})
