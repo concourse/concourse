@@ -3,12 +3,12 @@ module Dashboard.Grid exposing
     , Card
     , DropArea
     , Header
-    , computeFavoritePipelinesLayout
+    , computeFavoritesLayout
     , computeLayout
     )
 
 import Concourse
-import Dashboard.Drag exposing (dragPipeline)
+import Dashboard.Drag exposing (dragCard)
 import Dashboard.Grid.Constants
     exposing
         ( cardHeight
@@ -17,7 +17,13 @@ import Dashboard.Grid.Constants
         , padding
         )
 import Dashboard.Grid.Layout as Layout
-import Dashboard.Group.Models exposing (Group, Pipeline)
+import Dashboard.Group.Models as Models
+    exposing
+        ( Card(..)
+        , Pipeline
+        , cardName
+        , cardTeamName
+        )
 import Dashboard.Models exposing (DragState(..), DropState(..))
 import Dict exposing (Dict)
 import List.Extra
@@ -35,7 +41,7 @@ type alias Bounds =
 
 type alias Card =
     { bounds : Bounds
-    , pipeline : Pipeline
+    , card : Models.Card
     }
 
 
@@ -59,25 +65,26 @@ computeLayout :
     , viewportHeight : Float
     , scrollTop : Float
     }
-    -> Group
+    -> Concourse.TeamName
+    -> List Models.Card
     ->
-        { pipelineCards : List Card
+        { cards : List Card
         , dropAreas : List DropArea
         , height : Float
         }
-computeLayout params g =
+computeLayout params teamName cards =
     let
-        orderedPipelines =
+        orderedCards =
             case ( params.dragState, params.dropState ) of
                 ( Dragging team pipeline, Dropping target ) ->
-                    if g.teamName == team then
-                        dragPipeline pipeline target g.pipelines
+                    if teamName == team then
+                        dragCard pipeline target cards
 
                     else
-                        g.pipelines
+                        cards
 
                 _ ->
-                    g.pipelines
+                    cards
 
         numColumns =
             max 1 (floor (params.viewportWidth / (cardWidth + padding)))
@@ -89,7 +96,7 @@ computeLayout params g =
             isVisible params.viewportHeight params.scrollTop rowHeight
 
         gridElements =
-            orderedPipelines
+            orderedCards
                 |> previewSizes params.pipelineLayers
                 |> List.map Layout.cardSize
                 |> Layout.layout numColumns
@@ -108,8 +115,8 @@ computeLayout params g =
 
         gridElementLookup =
             gridElements
-                |> List.map2 Tuple.pair orderedPipelines
-                |> List.map (\( pipeline, gridElement ) -> ( pipeline.id, gridElement ))
+                |> List.map2 Tuple.pair orderedCards
+                |> List.map (\( card, gridElement ) -> ( cardName card, gridElement ))
                 |> Dict.fromList
 
         prevAndCurrentGridElement =
@@ -129,10 +136,10 @@ computeLayout params g =
 
         dropAreas =
             (prevAndCurrentGridElement
-                |> List.map2 Tuple.pair g.pipelines
+                |> List.map2 Tuple.pair cards
                 |> List.filter (\( _, ( _, gridElement ) ) -> isVisible_ gridElement)
                 |> List.map
-                    (\( pipeline, ( prevGridElement, gridElement ) ) ->
+                    (\( card, ( prevGridElement, gridElement ) ) ->
                         let
                             boundsToRightOf otherCard =
                                 dropAreaBounds
@@ -156,22 +163,22 @@ computeLayout params g =
                                     Nothing ->
                                         dropAreaBounds gridElement
                         in
-                        { bounds = bounds, target = Before pipeline.name }
+                        { bounds = bounds, target = Before <| cardName card }
                     )
             )
-                ++ (case List.head (List.reverse (List.map2 Tuple.pair gridElements g.pipelines)) of
-                        Just ( lastCard, lastPipeline ) ->
-                            if not (isVisible_ lastCard) then
+                ++ (case List.head (List.reverse (List.map2 Tuple.pair gridElements cards)) of
+                        Just ( lastGridElement, lastCard ) ->
+                            if not (isVisible_ lastGridElement) then
                                 []
 
                             else
                                 [ { bounds =
                                         dropAreaBounds
-                                            { lastCard
-                                                | column = lastCard.column + lastCard.spannedColumns
+                                            { lastGridElement
+                                                | column = lastGridElement.column + lastGridElement.spannedColumns
                                                 , spannedColumns = 1
                                             }
-                                  , target = After lastPipeline.name
+                                  , target = After <| cardName lastCard
                                   }
                                 ]
 
@@ -179,47 +186,47 @@ computeLayout params g =
                             []
                    )
 
-        pipelineCards =
-            g.pipelines
+        gridCards =
+            cards
                 |> List.map
-                    (\pipeline ->
+                    (\card ->
                         gridElementLookup
-                            |> Dict.get pipeline.id
+                            |> Dict.get (cardName card)
                             |> Maybe.withDefault
                                 { row = 0
                                 , column = 0
                                 , spannedColumns = 0
                                 , spannedRows = 0
                                 }
-                            |> (\card -> ( pipeline, card ))
+                            |> (\gridElement -> ( card, gridElement ))
                     )
-                |> List.filter (\( _, card ) -> isVisible_ card)
+                |> List.filter (\( _, gridElement ) -> isVisible_ gridElement)
                 |> List.map
-                    (\( pipeline, card ) ->
-                        { pipeline = pipeline
-                        , bounds = cardBounds card
+                    (\( card, gridElement ) ->
+                        { card = card
+                        , bounds = cardBounds gridElement
                         }
                     )
     in
-    { pipelineCards = pipelineCards
+    { cards = gridCards
     , dropAreas = dropAreas
     , height = totalCardsHeight
     }
 
 
-computeFavoritePipelinesLayout :
+computeFavoritesLayout :
     { pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
     , viewportWidth : Float
     , viewportHeight : Float
     , scrollTop : Float
     }
-    -> List Pipeline
+    -> List Models.Card
     ->
-        { pipelineCards : List Card
+        { cards : List Card
         , headers : List Header
         , height : Float
         }
-computeFavoritePipelinesLayout params pipelines =
+computeFavoritesLayout params cards =
     let
         numColumns =
             max 1 (floor (params.viewportWidth / (cardWidth + padding)))
@@ -231,7 +238,7 @@ computeFavoritePipelinesLayout params pipelines =
             isVisible params.viewportHeight params.scrollTop rowHeight
 
         gridElements =
-            pipelines
+            cards
                 |> previewSizes params.pipelineLayers
                 |> List.map Layout.cardSize
                 |> Layout.layout numColumns
@@ -253,22 +260,22 @@ computeFavoritePipelinesLayout params pipelines =
                 , offsetY = headerHeight
                 }
 
-        pipelineCards =
+        favCards =
             gridElements
-                |> List.map2 Tuple.pair pipelines
-                |> List.filter (\( _, card ) -> isVisible_ card)
+                |> List.map2 Tuple.pair cards
+                |> List.filter (\( _, gridElement ) -> isVisible_ gridElement)
                 |> List.map
-                    (\( pipeline, card ) ->
-                        { pipeline = pipeline
-                        , bounds = cardBounds card
+                    (\( card, gridElement ) ->
+                        { card = card
+                        , bounds = cardBounds gridElement
                         }
                     )
 
         headers =
-            pipelineCards
+            favCards
                 |> List.Extra.groupWhile
                     (\c1 c2 ->
-                        (c1.pipeline.teamName == c2.pipeline.teamName)
+                        (cardTeamName c1.card == cardTeamName c2.card)
                             && (c1.bounds.y == c2.bounds.y)
                     )
                 |> List.map
@@ -286,7 +293,7 @@ computeFavoritePipelinesLayout params pipelines =
                     (\( first, last ) ( prevTeam, headers_ ) ->
                         let
                             curTeam =
-                                first.pipeline.teamName
+                                cardTeamName first.card
 
                             header =
                                 case prevTeam of
@@ -315,7 +322,7 @@ computeFavoritePipelinesLayout params pipelines =
                     ( Nothing, [] )
                 |> Tuple.second
     in
-    { pipelineCards = pipelineCards
+    { cards = favCards
     , headers = headers
     , height = totalCardsHeight
     }
@@ -323,23 +330,24 @@ computeFavoritePipelinesLayout params pipelines =
 
 previewSizes :
     Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
-    -> List Pipeline
+    -> List Models.Card
     -> List ( Int, Int )
 previewSizes pipelineLayers =
     List.map
-        (\pipeline ->
-            Dict.get pipeline.id pipelineLayers
-                |> Maybe.withDefault []
+        (\card ->
+            case card of
+                PipelineCard pipeline ->
+                    Dict.get pipeline.id pipelineLayers
+                        |> Maybe.withDefault []
+                        |> (\layers ->
+                                ( List.length layers
+                                , layers
+                                    |> List.map List.length
+                                    |> List.maximum
+                                    |> Maybe.withDefault 0
+                                )
+                           )
         )
-        >> List.map
-            (\layers ->
-                ( List.length layers
-                , layers
-                    |> List.map List.length
-                    |> List.maximum
-                    |> Maybe.withDefault 0
-                )
-            )
 
 
 isVisible : Float -> Float -> Float -> { r | row : Int, spannedRows : Int } -> Bool

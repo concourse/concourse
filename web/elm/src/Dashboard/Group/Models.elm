@@ -1,10 +1,27 @@
-module Dashboard.Group.Models exposing (Group, Pipeline)
+module Dashboard.Group.Models exposing
+    ( Card(..)
+    , Pipeline
+    , cardName
+    , cardTeamName
+    )
 
 
-type alias Group =
-    { pipelines : List Pipeline
-    , teamName : String
-    }
+type Card
+    = PipelineCard Pipeline
+
+
+cardName : Card -> String
+cardName c =
+    case c of
+        PipelineCard p ->
+            p.name
+
+
+cardTeamName : Card -> String
+cardTeamName c =
+    case c of
+        PipelineCard p ->
+            p.teamName
 
 
 type alias Pipeline =

@@ -19,7 +19,7 @@ import Dashboard.Footer as Footer
 import Dashboard.Grid as Grid
 import Dashboard.Grid.Constants as GridConstants
 import Dashboard.Group as Group
-import Dashboard.Group.Models exposing (Pipeline)
+import Dashboard.Group.Models exposing (Card(..), Pipeline, cardName)
 import Dashboard.Models as Models
     exposing
         ( DragState(..)
@@ -69,6 +69,7 @@ import Message.Subscription
         , Interval(..)
         , Subscription(..)
         )
+import Ordering
 import Routes
 import ScreenSize exposing (ScreenSize(..))
 import Set exposing (Set)
@@ -670,18 +671,29 @@ updateBody session msg ( model, effects ) =
 
         DragEnd ->
             case ( model.dragState, model.dropState ) of
-                ( Dragging teamName pipelineName, Dropping target ) ->
+                ( Dragging teamName name, Dropping target ) ->
                     let
                         teamPipelines =
                             model.pipelines
                                 |> Maybe.andThen (Dict.get teamName)
                                 |> Maybe.withDefault []
-                                |> Drag.dragPipeline pipelineName target
+                                |> List.map PipelineCard
+                                |> Drag.dragCard name target
 
                         pipelines =
                             model.pipelines
                                 |> Maybe.withDefault Dict.empty
-                                |> Dict.update teamName (always <| Just teamPipelines)
+                                |> Dict.update teamName
+                                    (always <|
+                                        Just <|
+                                            List.map
+                                                (\card ->
+                                                    case card of
+                                                        PipelineCard p ->
+                                                            p
+                                                )
+                                                teamPipelines
+                                    )
                     in
                     ( { model
                         | pipelines = Just pipelines
@@ -690,7 +702,7 @@ updateBody session msg ( model, effects ) =
                       }
                     , effects
                         ++ [ teamPipelines
-                                |> List.map .name
+                                |> List.map cardName
                                 |> SendOrderPipelinesRequest teamName
                            , pipelines
                                 |> Dict.values
@@ -1151,8 +1163,8 @@ pipelinesView session params =
             params.teams
                 |> FetchResult.withDefault []
 
-        filteredGroups =
-            Filter.filterGroups
+        filteredPipelinesByTeam =
+            Filter.filterTeams
                 { pipelineJobs = params.pipelineJobs
                 , jobs = jobs
                 , query = params.query
@@ -1161,7 +1173,12 @@ pipelinesView session params =
                 , dashboardView = params.dashboardView
                 , favoritedPipelines = session.favoritedPipelines
                 }
-                |> List.sortWith (Group.ordering session)
+                |> Dict.toList
+                |> List.sortWith (Ordering.byFieldWith (Group.ordering session) Tuple.first)
+
+        cardsByTeam =
+            filteredPipelinesByTeam
+                |> List.map (\( team, ps ) -> ( team, ps |> List.map PipelineCard ))
 
         ( headerView, offsetHeight ) =
             if params.highDensity then
@@ -1169,21 +1186,23 @@ pipelinesView session params =
 
             else
                 let
-                    favoritedPipelines =
-                        filteredGroups
-                            |> List.concatMap .pipelines
+                    favoritedCards =
+                        cardsByTeam
+                            |> List.concatMap Tuple.second
                             |> List.filter
-                                (\fp ->
-                                    Set.member fp.id session.favoritedPipelines
+                                (\c ->
+                                    case c of
+                                        PipelineCard p ->
+                                            Set.member p.id session.favoritedPipelines
                                 )
 
                     allPipelinesHeader =
                         Html.div Styles.pipelineSectionHeader [ Html.text "all pipelines" ]
                 in
-                if List.isEmpty filteredGroups then
+                if List.isEmpty cardsByTeam then
                     ( [], 0 )
 
-                else if List.isEmpty favoritedPipelines then
+                else if List.isEmpty favoritedCards then
                     ( [ allPipelinesHeader ], GridConstants.sectionHeaderHeight )
 
                 else
@@ -1192,13 +1211,13 @@ pipelinesView session params =
                             GridConstants.sectionHeaderHeight
 
                         layout =
-                            Grid.computeFavoritePipelinesLayout
+                            Grid.computeFavoritesLayout
                                 { pipelineLayers = params.pipelineLayers
                                 , viewportWidth = params.viewportWidth
                                 , viewportHeight = params.viewportHeight
                                 , scrollTop = params.scrollTop - offset
                                 }
-                                favoritedPipelines
+                                favoritedCards
                     in
                     [ Html.div Styles.pipelineSectionHeader [ Html.text "favorite pipelines" ]
                     , Group.viewFavoritePipelines
@@ -1208,12 +1227,12 @@ pipelinesView session params =
                         , now = params.now
                         , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                         , pipelineLayers = params.pipelineLayers
-                        , pipelineCards = layout.pipelineCards
-                        , headers = layout.headers
                         , groupCardsHeight = layout.height
                         , pipelineJobs = params.pipelineJobs
                         , jobs = jobs
                         }
+                        layout.headers
+                        layout.cards
                     , Views.Styles.separator GridConstants.sectionSpacerHeight
                     , allPipelinesHeader
                     ]
@@ -1226,7 +1245,7 @@ pipelinesView session params =
                            )
 
         groupViews =
-            filteredGroups
+            cardsByTeam
                 |> (if params.highDensity then
                         List.concatMap
                             (Group.hdView
@@ -1240,7 +1259,7 @@ pipelinesView session params =
 
                     else
                         List.foldl
-                            (\g ( htmlList, totalOffset ) ->
+                            (\( teamName, cards ) ( htmlList, totalOffset ) ->
                                 let
                                     layout =
                                         Grid.computeLayout
@@ -1251,7 +1270,8 @@ pipelinesView session params =
                                             , viewportHeight = params.viewportHeight
                                             , scrollTop = params.scrollTop - totalOffset
                                             }
-                                            g
+                                            teamName
+                                            cards
                                 in
                                 Group.view
                                     session
@@ -1260,13 +1280,13 @@ pipelinesView session params =
                                     , now = params.now
                                     , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                                     , pipelineLayers = params.pipelineLayers
-                                    , pipelineCards = layout.pipelineCards
                                     , dropAreas = layout.dropAreas
                                     , groupCardsHeight = layout.height
                                     , pipelineJobs = params.pipelineJobs
                                     , jobs = jobs
                                     }
-                                    g
+                                    teamName
+                                    layout.cards
                                     |> (\html ->
                                             ( html :: htmlList
                                             , totalOffset

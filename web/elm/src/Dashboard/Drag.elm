@@ -1,6 +1,6 @@
-module Dashboard.Drag exposing (drag, dragPipeline, insertAt)
+module Dashboard.Drag exposing (drag, dragCard, insertAt)
 
-import Dashboard.Group.Models exposing (Pipeline)
+import Dashboard.Group.Models exposing (Card(..), cardName)
 import List.Extra
 import Message.Message exposing (DropTarget(..))
 
@@ -15,29 +15,29 @@ insertAt idx x xs =
             x :: xs
 
 
-dragPipeline : String -> DropTarget -> List Pipeline -> List Pipeline
-dragPipeline pipeline target pipelines =
+dragCard : String -> DropTarget -> List Card -> List Card
+dragCard card target cards =
     let
-        pipelineIndex name =
-            pipelines |> List.Extra.findIndex (.name >> (==) name)
+        cardIndex name =
+            cards |> List.Extra.findIndex (cardName >> (==) name)
 
         fromIndex =
-            pipelineIndex pipeline
+            cardIndex card
 
         toIndex =
             case target of
                 Before name ->
-                    pipelineIndex name
+                    cardIndex name
 
                 After name ->
-                    pipelineIndex name |> Maybe.map ((+) 1)
+                    cardIndex name |> Maybe.map ((+) 1)
     in
     case ( fromIndex, toIndex ) of
         ( Just from, Just to ) ->
-            drag from (to + 1) pipelines
+            drag from (to + 1) cards
 
         _ ->
-            pipelines
+            cards
 
 
 drag : Int -> Int -> List a -> List a

@@ -11,7 +11,7 @@ import Application.Models exposing (Session)
 import Concourse
 import Dashboard.Grid as Grid
 import Dashboard.Grid.Constants as GridConstants
-import Dashboard.Group.Models exposing (Group, Pipeline)
+import Dashboard.Group.Models exposing (Card(..), Pipeline)
 import Dashboard.Group.Tag as Tag
 import Dashboard.Models exposing (DragState(..), DropState(..))
 import Dashboard.Pipeline as Pipeline
@@ -34,10 +34,10 @@ import Views.Spinner as Spinner
 import Views.Styles
 
 
-ordering : { a | userState : UserState } -> Ordering Group
+ordering : { a | userState : UserState } -> Ordering Concourse.TeamName
 ordering session =
     Ordering.byFieldWith Tag.ordering (tag session)
-        |> Ordering.breakTiesWith (Ordering.byField .teamName)
+        |> Ordering.breakTiesWith Ordering.natural
 
 
 type alias PipelineIndex =
@@ -52,43 +52,45 @@ view :
         , now : Maybe Time.Posix
         , pipelinesWithResourceErrors : Set Concourse.DatabaseID
         , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
-        , pipelineCards : List Grid.Card
         , dropAreas : List Grid.DropArea
         , groupCardsHeight : Float
         , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
         , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
         }
-    -> Group
+    -> Concourse.TeamName
+    -> List Grid.Card
     -> Html Message
-view session params g =
+view session params teamName cards =
     let
-        pipelineCardViews =
-            if List.isEmpty params.pipelineCards then
+        cardViews =
+            if List.isEmpty cards then
                 [ ( "not-set", Pipeline.pipelineNotSetView ) ]
 
             else
-                params.pipelineCards
+                cards
                     |> List.map
-                        (\{ bounds, pipeline } ->
-                            pipelineCardView session
-                                params
-                                AllPipelinesSection
-                                { bounds = bounds, pipeline = pipeline }
-                                g.teamName
-                                |> (\html -> ( String.fromInt pipeline.id, html ))
+                        (\{ bounds, card } ->
+                            case card of
+                                PipelineCard pipeline ->
+                                    pipelineCardView session
+                                        params
+                                        AllPipelinesSection
+                                        { bounds = bounds, pipeline = pipeline }
+                                        teamName
+                                        |> (\html -> ( String.fromInt pipeline.id, html ))
                         )
 
         dropAreaViews =
             params.dropAreas
                 |> List.map
                     (\{ bounds, target } ->
-                        pipelineDropAreaView params.dragState g.teamName bounds target
+                        pipelineDropAreaView params.dragState teamName bounds target
                     )
     in
     Html.div
-        [ id <| Effects.toHtmlID <| DashboardGroup g.teamName
+        [ id <| Effects.toHtmlID <| DashboardGroup teamName
         , class "dashboard-team-group"
-        , attribute "data-team-name" g.teamName
+        , attribute "data-team-name" teamName
         ]
         [ Html.div
             [ style "display" "flex"
@@ -100,11 +102,11 @@ view session params g =
                 [ class "dashboard-team-name"
                 , style "font-weight" Views.Styles.fontWeightBold
                 ]
-                [ Html.text g.teamName ]
+                [ Html.text teamName ]
                 :: (Maybe.Extra.toList <|
-                        Maybe.map (Tag.view False) (tag session g)
+                        Maybe.map (Tag.view False) (tag session teamName)
                    )
-                ++ (if params.dropState == DroppingWhileApiRequestInFlight g.teamName then
+                ++ (if params.dropState == DroppingWhileApiRequestInFlight teamName then
                         [ Spinner.spinner { sizePx = 20, margin = "0 0 0 10px" } ]
 
                     else
@@ -116,9 +118,7 @@ view session params g =
             , style "position" "relative"
             , style "height" <| String.fromFloat params.groupCardsHeight ++ "px"
             ]
-            (pipelineCardViews
-                ++ [ ( "drop-areas", Html.div [ style "position" "absolute" ] dropAreaViews ) ]
-            )
+            (cardViews ++ [ ( "drop-areas", Html.div [ style "position" "absolute" ] dropAreaViews ) ])
         ]
 
 
@@ -130,29 +130,31 @@ viewFavoritePipelines :
         , now : Maybe Time.Posix
         , pipelinesWithResourceErrors : Set Concourse.DatabaseID
         , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
-        , pipelineCards : List Grid.Card
-        , headers : List Grid.Header
         , groupCardsHeight : Float
         , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
         , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
         }
+    -> List Grid.Header
+    -> List Grid.Card
     -> Html Message
-viewFavoritePipelines session params =
+viewFavoritePipelines session params headers cards =
     let
-        pipelineCardViews =
-            params.pipelineCards
+        cardViews =
+            cards
                 |> List.map
-                    (\{ bounds, pipeline } ->
-                        pipelineCardView session
-                            params
-                            FavoritesSection
-                            { bounds = bounds, pipeline = pipeline }
-                            pipeline.teamName
-                            |> (\html -> ( String.fromInt pipeline.id, html ))
+                    (\{ bounds, card } ->
+                        case card of
+                            PipelineCard pipeline ->
+                                pipelineCardView session
+                                    params
+                                    FavoritesSection
+                                    { bounds = bounds, pipeline = pipeline }
+                                    pipeline.teamName
+                                    |> (\html -> ( String.fromInt pipeline.id, html ))
                     )
 
         headerViews =
-            params.headers
+            headers
                 |> List.map
                     (\{ bounds, header } ->
                         headerView bounds header
@@ -163,7 +165,7 @@ viewFavoritePipelines session params =
         , style "position" "relative"
         , style "height" <| String.fromFloat params.groupCardsHeight ++ "px"
         ]
-        (pipelineCardViews
+        (cardViews
             ++ [ ( "headers"
                  , Html.div
                     [ style "position" "absolute"
@@ -175,11 +177,11 @@ viewFavoritePipelines session params =
         )
 
 
-tag : { a | userState : UserState } -> Group -> Maybe Tag.Tag
-tag { userState } g =
+tag : { a | userState : UserState } -> Concourse.TeamName -> Maybe Tag.Tag
+tag { userState } teamName =
     case userState of
         UserStateLoggedIn user ->
-            Tag.tag user g.teamName
+            Tag.tag user teamName
 
         _ ->
             Nothing
@@ -192,39 +194,38 @@ hdView :
     , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
     }
     -> { a | userState : UserState }
-    -> Group
+    -> ( Concourse.TeamName, List Card )
     -> List (Html Message)
-hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, jobs } session g =
+hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, jobs } session ( teamName, cards ) =
     let
-        orderedPipelines =
-            g.pipelines
-
         header =
             Html.div
                 [ class "dashboard-team-name" ]
-                [ Html.text g.teamName ]
-                :: (Maybe.Extra.toList <| Maybe.map (Tag.view True) (tag session g))
+                [ Html.text teamName ]
+                :: (Maybe.Extra.toList <| Maybe.map (Tag.view True) (tag session teamName))
 
         teamPipelines =
-            if List.isEmpty orderedPipelines then
+            if List.isEmpty cards then
                 [ pipelineNotSetView ]
 
             else
-                orderedPipelines
+                cards
                     |> List.map
-                        (\p ->
-                            Pipeline.hdPipelineView
-                                { pipeline = p
-                                , pipelineRunningKeyframes = pipelineRunningKeyframes
-                                , resourceError =
-                                    pipelinesWithResourceErrors
-                                        |> Set.member p.id
-                                , existingJobs =
-                                    pipelineJobs
-                                        |> Dict.get p.id
-                                        |> Maybe.withDefault []
-                                        |> List.filterMap (lookupJob jobs)
-                                }
+                        (\card ->
+                            case card of
+                                PipelineCard p ->
+                                    Pipeline.hdPipelineView
+                                        { pipeline = p
+                                        , pipelineRunningKeyframes = pipelineRunningKeyframes
+                                        , resourceError =
+                                            pipelinesWithResourceErrors
+                                                |> Set.member p.id
+                                        , existingJobs =
+                                            pipelineJobs
+                                                |> Dict.get p.id
+                                                |> Maybe.withDefault []
+                                                |> List.filterMap (lookupJob jobs)
+                                        }
                         )
     in
     case teamPipelines of
