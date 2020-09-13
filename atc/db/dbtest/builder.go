@@ -180,6 +180,11 @@ func (builder Builder) WithResourceVersions(resourceName string, versions ...atc
 			return fmt.Errorf("save versions: %w", err)
 		}
 
+		_, err = scope.UpdateLastCheckEndTime()
+		if err != nil {
+			return fmt.Errorf("update last check end time: %w", err)
+		}
+
 		err = resource.SetResourceConfigScope(scope)
 		if err != nil {
 			return fmt.Errorf("set resource scope: %w", err)
