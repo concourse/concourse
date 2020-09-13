@@ -19,6 +19,7 @@ import (
 type SyncCommand struct {
 	Force          bool         `long:"force" short:"f" description:"Sync even if versions already match."`
 	ATCURL         string       `long:"concourse-url" short:"c" description:"Concourse URL to sync with"`
+	Insecure       bool         `short:"k" long:"insecure" description:"Skip verification of the endpoint's SSL certificate"`
 	CACert         atc.PathFlag `long:"ca-cert" description:"Path to Concourse PEM-encoded CA certificate file."`
 	ClientCertPath atc.PathFlag `long:"client-certificate" description:"Path to a PEM-encoded client certificate file."`
 	ClientKeyPath  atc.PathFlag `long:"client-key" description:"Path to a PEM-encoded client key file."`
@@ -35,7 +36,7 @@ func (command *SyncCommand) Execute(args []string) error {
 			"dummy",
 			command.ATCURL,
 			"",
-			false,
+			command.Insecure,
 			string(command.CACert),
 			string(command.ClientCertPath),
 			string(command.ClientKeyPath),
