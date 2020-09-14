@@ -31,6 +31,7 @@ func containerdGardenServerRunner(
 	networkPool string,
 	maxContainers int,
 	restrictedNetworks []string,
+	initBin string,
 ) (ifrit.Runner, error) {
 	const (
 		graceTime = 0
@@ -66,6 +67,7 @@ func containerdGardenServerRunner(
 		runtime.WithNetwork(cniNetwork),
 		runtime.WithRequestTimeout(requestTimeout),
 		runtime.WithMaxContainers(maxContainers),
+		runtime.WithInitBinPath(initBin),
 	)
 
 	gardenBackend, err := runtime.NewGardenBackend(
@@ -182,6 +184,7 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 		cmd.Containerd.NetworkPool,
 		cmd.Containerd.MaxContainers,
 		cmd.Containerd.RestrictedNetworks,
+		cmd.Containerd.InitBin,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("containerd garden server runner: %w", err)

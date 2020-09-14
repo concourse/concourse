@@ -3,16 +3,7 @@ package spec
 import "github.com/opencontainers/runtime-spec/specs-go"
 
 var (
-	InitMount = specs.Mount{
-		Source:      "/usr/local/concourse/bin/init",
-		Destination: "/tmp/gdn-init",
-		Type:        "bind",
-		Options:     []string{"bind"},
-	}
-
-	AnyContainerMounts = []specs.Mount{
-		InitMount, // ours
-
+	DefaultContainerMounts = []specs.Mount{
 		{
 			Destination: "/proc",
 			Type:        "proc",
@@ -63,3 +54,17 @@ var (
 		},
 	}
 )
+
+func AnyContainerMounts(initBinPath string) []specs.Mount {
+	return append(
+		[]specs.Mount{
+			{
+				Source:      initBinPath,
+				Destination: "/tmp/gdn-init",
+				Type:        "bind",
+				Options:     []string{"bind"},
+			},
+		},
+		DefaultContainerMounts...,
+	)
+}
