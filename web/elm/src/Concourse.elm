@@ -814,6 +814,7 @@ type alias PipelineIdentifier =
 type alias Pipeline =
     { id : Int
     , name : PipelineName
+    , instanceVars : Dict String JsonValue
     , paused : Bool
     , archived : Bool
     , public : Bool
@@ -849,6 +850,7 @@ decodePipeline =
     Json.Decode.succeed Pipeline
         |> andMap (Json.Decode.field "id" Json.Decode.int)
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (defaultTo Dict.empty <| Json.Decode.field "instance_vars" <| Json.Decode.dict decodeJsonValue)
         |> andMap (Json.Decode.field "paused" Json.Decode.bool)
         |> andMap (Json.Decode.field "archived" Json.Decode.bool)
         |> andMap (Json.Decode.field "public" Json.Decode.bool)

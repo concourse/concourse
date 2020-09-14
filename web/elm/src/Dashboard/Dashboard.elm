@@ -568,6 +568,7 @@ toDashboardPipeline : Bool -> Bool -> Concourse.Pipeline -> Pipeline
 toDashboardPipeline isStale jobsDisabled p =
     { id = p.id
     , name = p.name
+    , instanceVars = p.instanceVars
     , teamName = p.teamName
     , public = p.public
     , isToggleLoading = False
@@ -583,6 +584,7 @@ toConcoursePipeline : Pipeline -> Concourse.Pipeline
 toConcoursePipeline p =
     { id = p.id
     , name = p.name
+    , instanceVars = p.instanceVars
     , teamName = p.teamName
     , public = p.public
     , paused = p.paused
