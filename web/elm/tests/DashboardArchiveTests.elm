@@ -160,7 +160,7 @@ all =
                             )
                         |> Tuple.first
                         |> Common.queryView
-                        |> Query.hasNot [ class "pipeline-wrapper", containing [ text "archived-pipeline" ] ]
+                        |> Query.hasNot [ class "card-wrapper", containing [ text "archived-pipeline" ] ]
             , describe "when an archived pipeline is favorited" <|
                 let
                     setup =
@@ -186,13 +186,13 @@ all =
                         setup
                             |> Common.queryView
                             |> Query.find [ id "dashboard-favorite-pipelines" ]
-                            |> Query.has [ class "pipeline-wrapper", containing [ text "archived-pipeline" ] ]
+                            |> Query.has [ class "card-wrapper", containing [ text "archived-pipeline" ] ]
                 , test "still rendered in all pipelines section" <|
                     \_ ->
                         setup
                             |> Common.queryView
                             |> Query.find [ class "dashboard-team-group" ]
-                            |> Query.has [ class "pipeline-wrapper", containing [ text "archived-pipeline" ] ]
+                            |> Query.has [ class "card-wrapper", containing [ text "archived-pipeline" ] ]
                 ]
             , describe "when a team has only archived pipelines"
                 [ test "it shows the no pipeline set card" <|
@@ -225,7 +225,7 @@ all =
                             )
                         |> Tuple.first
                         |> Common.queryView
-                        |> Query.has [ class "pipeline-wrapper", containing [ text "archived-pipeline" ] ]
+                        |> Query.has [ class "card-wrapper", containing [ text "archived-pipeline" ] ]
             ]
         ]
 

@@ -409,13 +409,13 @@ describe 'dashboard', type: :feature do
 
       def drag_and_drop(team, source, target = nil)
         page.driver.execute_script <<~EVENTS
-          $(".dashboard-team-group:contains('#{team}') .pipeline-wrapper:contains(#{source}) .dashboard-pipeline")[0].dispatchEvent(new Event('dragstart'));
+          $(".dashboard-team-group:contains('#{team}') .card-wrapper:contains(#{source}) .dashboard-pipeline")[0].dispatchEvent(new Event('dragstart'));
           #{if target.nil?
               "$('.dashboard-team-group:contains(\"#{team}\") .drop-area:last-of-type')[0].dispatchEvent(new Event('dragenter'));"
             else
-              "$('.dashboard-team-group:contains(\"#{team}\") .pipeline-wrapper:contains(#{target}) .drop-area')[0].dispatchEvent(new Event('dragenter'));"
+              "$('.dashboard-team-group:contains(\"#{team}\") .card-wrapper:contains(#{target}) .drop-area')[0].dispatchEvent(new Event('dragenter'));"
             end}
-          $(".dashboard-team-group:contains('#{team}') .pipeline-wrapper:contains(#{source}) .dashboard-pipeline")[0].dispatchEvent(new Event('dragend'));
+          $(".dashboard-team-group:contains('#{team}') .card-wrapper:contains(#{source}) .dashboard-pipeline")[0].dispatchEvent(new Event('dragend'));
         EVENTS
       end
 

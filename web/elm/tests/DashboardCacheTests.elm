@@ -98,7 +98,7 @@ all =
                         )
                     |> Tuple.first
                     |> Common.queryView
-                    |> Query.has [ class "pipeline-wrapper", containing [ text "pipeline-0" ] ]
+                    |> Query.has [ class "card-wrapper", containing [ text "pipeline-0" ] ]
         , test "renders jobs in pipelines when receive cached jobs delivery" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
@@ -115,7 +115,7 @@ all =
                         )
                     |> Tuple.first
                     |> Common.queryView
-                    |> Query.find [ class "pipeline-wrapper" ]
+                    |> Query.find [ class "card-wrapper" ]
                     |> Query.has [ class "parallel-grid" ]
         , test "ignores the job cache after fetching successfully" <|
             \_ ->
@@ -139,7 +139,7 @@ all =
                         )
                     |> Tuple.first
                     |> Common.queryView
-                    |> Query.find [ class "pipeline-wrapper" ]
+                    |> Query.find [ class "card-wrapper" ]
                     |> Query.has [ class "parallel-grid" ]
         , test "saves jobs to cache when fetched" <|
             \_ ->
@@ -228,7 +228,7 @@ all =
                         )
                     |> Tuple.first
                     |> Common.queryView
-                    |> Query.has [ class "pipeline-wrapper", containing [ text "pipeline-0" ] ]
+                    |> Query.has [ class "card-wrapper", containing [ text "pipeline-0" ] ]
         , test "does not save pipelines to cache when fetched with no change" <|
             \_ ->
                 whenOnDashboard { highDensity = False }

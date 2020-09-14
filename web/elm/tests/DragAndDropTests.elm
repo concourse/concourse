@@ -213,7 +213,7 @@ iAmLookingAtTheFirstPipelineCard =
 iAmLookingAtTheFirstPipelineCardWrapper =
     Tuple.first
         >> Common.queryView
-        >> Query.findAll [ class "pipeline-wrapper" ]
+        >> Query.findAll [ class "card-wrapper" ]
         >> Query.first
 
 

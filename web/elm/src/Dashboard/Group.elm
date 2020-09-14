@@ -281,7 +281,7 @@ pipelineCardView :
     -> Html Message
 pipelineCardView session params section { bounds, pipeline } teamName =
     Html.div
-        ([ class "pipeline-wrapper"
+        ([ class "card-wrapper"
          , style "position" "absolute"
          , style "transform"
             ("translate("

@@ -36,7 +36,7 @@ all =
             }
 
         findPipelineCard name =
-            Query.find [ class "pipeline-wrapper", containing [ text name ] ]
+            Query.find [ class "card-wrapper", containing [ text name ] ]
 
         hasBounds { x, y, width, height } =
             Query.has
@@ -328,7 +328,7 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
-                    |> Query.hasNot [ class "pipeline-wrapper", containing [ text "pipeline-3" ] ]
+                    |> Query.hasNot [ class "card-wrapper", containing [ text "pipeline-3" ] ]
         , test "body has a scroll handler" <|
             \_ ->
                 loadDashboardWithSize 300 300
@@ -378,7 +378,7 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
-                    |> Query.hasNot [ class "pipeline-wrapper", containing [ text "pipeline-1" ] ]
+                    |> Query.hasNot [ class "card-wrapper", containing [ text "pipeline-1" ] ]
         , test "tall cards are not hidden when only its top row is scrolled out of view" <|
             \_ ->
                 loadDashboardWithSize 600 300
@@ -404,7 +404,7 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
-                    |> Query.has [ class "pipeline-wrapper", containing [ text "pipeline-1" ] ]
+                    |> Query.has [ class "card-wrapper", containing [ text "pipeline-1" ] ]
         , test "groups that are outside the viewport have no visible pipelines" <|
             \_ ->
                 loadDashboardWithSize 300 300
@@ -415,7 +415,7 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ id "team-2" ]
-                    |> Query.hasNot [ class "pipeline-wrapper" ]
+                    |> Query.hasNot [ class "card-wrapper" ]
         , test "groups that are scrolled into view have visible pipelines" <|
             \_ ->
                 loadDashboardWithSize 300 300
@@ -435,7 +435,7 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ id "team-2" ]
-                    |> Query.has [ class "pipeline-wrapper", containing [ text "pipeline-3" ] ]
+                    |> Query.has [ class "card-wrapper", containing [ text "pipeline-3" ] ]
         , test "pipeline wrapper has a z-index of 1 when hovering over a job" <|
             \_ ->
                 loadDashboardWithSize 300 300
@@ -453,7 +453,7 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
-                    |> Query.has [ class "pipeline-wrapper", style "z-index" "1" ]
+                    |> Query.has [ class "card-wrapper", style "z-index" "1" ]
         , test "pipeline wrapper has a z-index of 1 when hovering over the wrapper" <|
             \_ ->
                 loadDashboardWithSize 300 300
@@ -471,7 +471,7 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ class "dashboard-team-pipelines" ]
-                    |> Query.has [ class "pipeline-wrapper", style "z-index" "1" ]
+                    |> Query.has [ class "card-wrapper", style "z-index" "1" ]
         , test "pipeline wrapper responds to mouse over" <|
             \_ ->
                 loadDashboardWithSize 300 300
@@ -481,7 +481,7 @@ all =
                         )
                     |> Tuple.first
                     |> Common.queryView
-                    |> Query.find [ class "pipeline-wrapper" ]
+                    |> Query.find [ class "card-wrapper" ]
                     |> Event.simulate Event.mouseOver
                     |> Event.expect
                         (Update <|
@@ -498,7 +498,7 @@ all =
                         )
                     |> Tuple.first
                     |> Common.queryView
-                    |> Query.find [ class "pipeline-wrapper" ]
+                    |> Query.find [ class "card-wrapper" ]
                     |> Event.simulate Event.mouseOut
                     |> Event.expect (Update <| Hover Nothing)
         , describe "drop areas" <|
@@ -670,7 +670,7 @@ all =
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ class "dashboard-team-pipelines" ]
-                        |> Query.hasNot [ class "pipeline-wrapper", containing [ text "pipeline-2" ] ]
+                        |> Query.hasNot [ class "card-wrapper", containing [ text "pipeline-2" ] ]
             , test "renders team header above the first pipeline card" <|
                 \_ ->
                     loadDashboardWithSize 300 200
