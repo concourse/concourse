@@ -65,6 +65,18 @@ to consult \code{fly -h} to learn the short forms.
   \code{~/.flyrc} so you don't have to pass it on every \code{login}
   invocation.
 
+  If your Concourse instance is protected by a proxy server requiring client
+  certificates, you can use \code{--client-cert} and \code{--client-key} to
+  point to where your certificate is stored. These paths will be stored in
+  \code{.flyrc} and the certificate will by attached to every request made to
+  that target.
+
+  \codeblock{bash}{{
+  $ fly -t example login -c https://ci-example.com \\
+      --client-cert ./client.pem \\
+      --client-key ./client.key
+  }}
+
   After you've logged in you can use \code{--target example} (or \code{-t
   example} for short) to run a command against the saved target \code{example}.
   For example, \code{fly -t example builds} will list the last few builds on the
