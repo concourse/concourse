@@ -2,11 +2,8 @@ package exec
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math"
-	"strconv"
 	"strings"
 
 	"code.cloudfoundry.org/lager"
@@ -111,7 +108,7 @@ func (configSource FileConfigSource) Warnings() []string {
 // OverrideParamsConfigSource is used to override params in a config source
 type OverrideParamsConfigSource struct {
 	ConfigSource TaskConfigSource
-	Params       atc.Params
+	Params       atc.TaskEnv
 	WarningList  []string
 }
 
@@ -132,22 +129,7 @@ func (configSource *OverrideParamsConfigSource) FetchConfig(ctx context.Context,
 			configSource.WarningList = append(configSource.WarningList, fmt.Sprintf("%s was defined in pipeline but missing from task file", key))
 		}
 
-		switch v := val.(type) {
-		case string:
-			taskConfig.Params[key] = v
-		case float64:
-			if math.Floor(v) == v {
-				taskConfig.Params[key] = strconv.FormatInt(int64(v), 10)
-			} else {
-				taskConfig.Params[key] = strconv.FormatFloat(v, 'f', -1, 64)
-			}
-		default:
-			bs, err := json.Marshal(val)
-			if err != nil {
-				return atc.TaskConfig{}, err
-			}
-			taskConfig.Params[key] = string(bs)
-		}
+		taskConfig.Params[key] = val
 	}
 
 	return taskConfig, nil

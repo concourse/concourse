@@ -90,11 +90,35 @@ var factoryTests = []StepTest{
 			},
 			ConfigPath:        "some-task-file",
 			Vars:              atc.Params{"some": "vars"},
-			Params:            atc.Params{"SOME": "PARAMS"},
+			Params:            atc.TaskEnv{"SOME": "PARAMS"},
 			Tags:              []string{"tag-1", "tag-2"},
 			InputMapping:      map[string]string{"generic": "specific"},
 			OutputMapping:     map[string]string{"specific": "generic"},
 			ImageArtifactName: "some-image",
+		},
+	},
+	{
+		Title: "task step with non-string params",
+
+		ConfigYAML: `
+			task: some-task
+			file: some-task-file
+			params:
+			  NUMBER: 42
+			  FLOAT: 1.5
+			  BOOL: yes
+			  OBJECT: {foo: bar}
+		`,
+
+		StepConfig: &atc.TaskStep{
+			Name:       "some-task",
+			ConfigPath: "some-task-file",
+			Params: atc.TaskEnv{
+				"NUMBER": "42",
+				"FLOAT":  "1.5",
+				"BOOL":   "true",
+				"OBJECT": `{"foo":"bar"}`,
+			},
 		},
 	},
 	{

@@ -158,26 +158,17 @@ func validateCredParams(credMgrVars vars.Variables, config atc.Config, session l
 	for _, job := range config.Jobs {
 		_ = job.StepConfig().Visit(atc.StepRecursor{
 			OnTask: func(step *atc.TaskStep) error {
-				_, err := creds.NewParams(credMgrVars, step.Params).Evaluate()
+				err := creds.NewTaskEnvValidator(credMgrVars, step.Params).Validate()
 				if err != nil {
 					errs = multierror.Append(errs, err)
 				}
 
-				if step.ConfigPath != "" {
-					// external task - we can't really validate much right now, because task yaml will be
-					// retrieved in runtime during job execution. but we can validate vars and params which will be
-					// passed to this task
-					err = creds.NewTaskParamsValidator(credMgrVars, step.Params).Validate()
-					if err != nil {
-						errs = multierror.Append(errs, err)
-					}
+				err = creds.NewTaskVarsValidator(credMgrVars, step.Vars).Validate()
+				if err != nil {
+					errs = multierror.Append(errs, err)
+				}
 
-					err = creds.NewTaskVarsValidator(credMgrVars, step.Vars).Validate()
-					if err != nil {
-						errs = multierror.Append(errs, err)
-					}
-
-				} else if step.Config != nil {
+				if step.Config != nil {
 					// embedded task - we can fully validate it, interpolating with cred mgr variables
 					var taskConfigSource exec.TaskConfigSource
 					embeddedTaskVars := []vars.Variables{credMgrVars}
