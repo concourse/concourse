@@ -28,8 +28,10 @@ module Colors exposing
     , groupBorderUnselected
     , groupsBarBackground
     , inputOutline
+    , instanceGroupBanner
     , paginationHover
     , paused
+    , pausedFaded
     , pausedTopbarSeparator
     , pending
     , pendingFaded
@@ -139,6 +141,11 @@ paused =
     "#3498db"
 
 
+pausedFaded : String
+pausedFaded =
+    "#2776ab"
+
+
 pending : String
 pending =
     "#9b9b9b"
@@ -187,6 +194,11 @@ abortedFaded =
 card : String
 card =
     "#2a2929"
+
+
+instanceGroupBanner : String
+instanceGroupBanner =
+    "#4d4d4d"
 
 
 secondaryTopBar : String
@@ -314,29 +326,53 @@ retryTabText =
     "#f5f5f5"
 
 
-statusColor : PipelineStatus -> String
-statusColor status =
-    case status of
-        PipelineStatusPaused ->
-            paused
+statusColor : Bool -> PipelineStatus -> String
+statusColor isBright status =
+    if isBright then
+        case status of
+            PipelineStatusPaused ->
+                paused
 
-        PipelineStatusArchived ->
-            background
+            PipelineStatusArchived ->
+                background
 
-        PipelineStatusSucceeded _ ->
-            success
+            PipelineStatusSucceeded _ ->
+                success
 
-        PipelineStatusPending _ ->
-            pending
+            PipelineStatusPending _ ->
+                pending
 
-        PipelineStatusFailed _ ->
-            failure
+            PipelineStatusFailed _ ->
+                failure
 
-        PipelineStatusErrored _ ->
-            error
+            PipelineStatusErrored _ ->
+                error
 
-        PipelineStatusAborted _ ->
-            aborted
+            PipelineStatusAborted _ ->
+                aborted
+
+    else
+        case status of
+            PipelineStatusPaused ->
+                pausedFaded
+
+            PipelineStatusArchived ->
+                backgroundDark
+
+            PipelineStatusSucceeded _ ->
+                successFaded
+
+            PipelineStatusPending _ ->
+                pendingFaded
+
+            PipelineStatusFailed _ ->
+                failureFaded
+
+            PipelineStatusErrored _ ->
+                errorFaded
+
+            PipelineStatusAborted _ ->
+                abortedFaded
 
 
 buildStatusColor : Bool -> BuildStatus -> String

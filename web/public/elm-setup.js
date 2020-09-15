@@ -87,7 +87,11 @@ app.ports.tooltip.subscribe(function (pipelineInfo) {
   if (card === null) {
     return;
   }
-  const title = card.querySelector('.dashboard-pipeline-name');
+  let title = card.querySelector('.dashboard-pipeline-name');
+  if (title === null) {
+    title = card.querySelector('.dashboard-group-name');
+  }
+
   if(title === null || title.offsetWidth >= title.scrollWidth) {
     return;
   }
@@ -102,7 +106,10 @@ app.ports.tooltipHd.subscribe(function (pipelineInfo) {
   if (card === null) {
     return;
   }
-  const title = card.querySelector('.dashboardhd-pipeline-name');
+  let title = card.querySelector('.dashboardhd-pipeline-name');
+  if (title === null) {
+    title = card.querySelector('.dashboardhd-group-name');
+  }
 
   if(title === null || title.offsetWidth >= title.scrollWidth){
     return;

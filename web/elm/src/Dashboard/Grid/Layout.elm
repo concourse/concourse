@@ -1,4 +1,4 @@
-module Dashboard.Grid.Layout exposing (GridElement, cardSize, layout)
+module Dashboard.Grid.Layout exposing (GridElement, GridSpan, cardSize, layout)
 
 
 type alias GridSpan =

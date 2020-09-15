@@ -708,7 +708,7 @@ all =
                     loadDashboardWithSize 600 200
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
-                                Ok [ Data.pipeline "team1" 1, Data.pipeline "team1" 1 ]
+                                Ok [ Data.pipeline "team1" 1, Data.pipeline "team1" 2 ]
                             )
                         |> Tuple.first
                         |> gotFavoritedPipelines [ 1, 2 ]
@@ -722,7 +722,7 @@ all =
                     loadDashboardWithSize 300 600
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
-                                Ok [ Data.pipeline "team1" 1, Data.pipeline "team1" 1 ]
+                                Ok [ Data.pipeline "team1" 1, Data.pipeline "team1" 2 ]
                             )
                         |> Tuple.first
                         |> gotFavoritedPipelines [ 1, 2 ]

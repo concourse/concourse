@@ -97,8 +97,7 @@ computeLayout params teamName cards =
 
         gridElements =
             orderedCards
-                |> previewSizes params.pipelineLayers
-                |> List.map Layout.cardSize
+                |> cardSizes params.pipelineLayers
                 |> Layout.layout numColumns
 
         numRows =
@@ -239,8 +238,7 @@ computeFavoritesLayout params cards =
 
         gridElements =
             cards
-                |> previewSizes params.pipelineLayers
-                |> List.map Layout.cardSize
+                |> cardSizes params.pipelineLayers
                 |> Layout.layout numColumns
 
         numRows =
@@ -328,11 +326,11 @@ computeFavoritesLayout params cards =
     }
 
 
-previewSizes :
+cardSizes :
     Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
     -> List Models.Card
-    -> List ( Int, Int )
-previewSizes pipelineLayers =
+    -> List ( Layout.GridSpan, Layout.GridSpan )
+cardSizes pipelineLayers =
     List.map
         (\card ->
             case card of
@@ -340,13 +338,17 @@ previewSizes pipelineLayers =
                     Dict.get pipeline.id pipelineLayers
                         |> Maybe.withDefault []
                         |> (\layers ->
-                                ( List.length layers
-                                , layers
-                                    |> List.map List.length
-                                    |> List.maximum
-                                    |> Maybe.withDefault 0
-                                )
+                                Layout.cardSize
+                                    ( List.length layers
+                                    , layers
+                                        |> List.map List.length
+                                        |> List.maximum
+                                        |> Maybe.withDefault 0
+                                    )
                            )
+
+                InstanceGroupCard _ _ ->
+                    ( 1, 1 )
         )
 
 

@@ -88,6 +88,7 @@ type DomID
     | BuildTab Int String
     | PipelineWrapper Concourse.PipelineIdentifier
     | JobPreview PipelinesSection Concourse.JobIdentifier
+    | PipelinePreview PipelinesSection Concourse.PipelineIdentifier
     | HamburgerMenu
     | SideBarResizeHandle
     | SideBarTeam PipelinesSection String

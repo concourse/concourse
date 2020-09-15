@@ -1,16 +1,27 @@
 module Dashboard.Styles exposing
     ( asciiArt
-    , cardBody
     , cardFooter
     , clusterName
     , content
     , dropdownContainer
     , dropdownItem
+    , emptyCardBody
     , highDensityToggle
     , info
     , infoBar
     , infoCliIcon
     , infoItem
+    , instanceGroupCard
+    , instanceGroupCardBadge
+    , instanceGroupCardBanner
+    , instanceGroupCardBannerHd
+    , instanceGroupCardBody
+    , instanceGroupCardBodyHd
+    , instanceGroupCardHd
+    , instanceGroupCardHeader
+    , instanceGroupCardNameHd
+    , instanceGroupCardPipelineBox
+    , instanceGroupName
     , jobPreview
     , jobPreviewLink
     , jobsDisabledTooltip
@@ -113,6 +124,11 @@ pipelineCard =
     ]
 
 
+instanceGroupCard : List (Html.Attribute msg)
+instanceGroupCard =
+    pipelineCard
+
+
 pipelineCardBanner :
     { status : PipelineStatus
     , pipelineRunningKeyframes : String
@@ -121,7 +137,7 @@ pipelineCardBanner :
 pipelineCardBanner { status, pipelineRunningKeyframes } =
     let
         color =
-            Colors.statusColor status
+            Colors.statusColor True status
 
         isRunning =
             Concourse.PipelineStatus.isRunning status
@@ -198,6 +214,14 @@ pipelineCardHeader =
     ]
 
 
+instanceGroupCardHeader : List (Html.Attribute msg)
+instanceGroupCardHeader =
+    pipelineCardHeader
+        ++ [ style "display" "flex"
+           , style "align-items" "center"
+           ]
+
+
 pipelineName : List (Html.Attribute msg)
 pipelineName =
     [ style "width" "245px"
@@ -207,8 +231,13 @@ pipelineName =
     ]
 
 
-cardBody : List (Html.Attribute msg)
-cardBody =
+instanceGroupName : List (Html.Attribute msg)
+instanceGroupName =
+    pipelineName
+
+
+emptyCardBody : List (Html.Attribute msg)
+emptyCardBody =
     [ style "padding" "20px 36px"
     , style "background-color" Colors.card
     , style "margin" "2px 0"
@@ -224,6 +253,59 @@ pipelineCardBody =
     , style "flex-grow" "1"
     , style "display" "flex"
     ]
+
+
+instanceGroupCardBadge : List (Html.Attribute msg)
+instanceGroupCardBadge =
+    [ style "background" "#f2f2f2"
+    , style "border-radius" "4px"
+    , style "color" "#222"
+    , style "display" "flex"
+    , style "letter-spacing" "0"
+    , style "margin-right" "8px"
+    , style "width" "20px"
+    , style "height" "20px"
+    , style "flex-shrink" "0"
+    , style "align-items" "center"
+    , style "justify-content" "center"
+    ]
+
+
+instanceGroupCardBody : List (Html.Attribute msg)
+instanceGroupCardBody =
+    [ style "background-color" Colors.card
+    , style "padding" "20px 36px"
+    , style "margin" "2px 0 0 0"
+    , style "flex-grow" "1"
+    , style "display" "flex"
+    , style "flex-direction" "column"
+    ]
+
+
+instanceGroupCardPipelineBox : String -> Bool -> PipelineStatus -> List (Html.Attribute msg)
+instanceGroupCardPipelineBox pipelineRunningKeyframes isHovered status =
+    let
+        color =
+            Colors.statusColor (not isHovered) status
+
+        isRunning =
+            Concourse.PipelineStatus.isRunning status
+    in
+    [ style "margin" "2px"
+    , style "background-color" color
+    , style "flex-grow" "1"
+    , style "display" "flex"
+    ]
+        ++ (if isRunning then
+                striped
+                    { pipelineRunningKeyframes = pipelineRunningKeyframes
+                    , thickColor = Colors.statusColor False status
+                    , thinColor = Colors.statusColor True status
+                    }
+
+            else
+                []
+           )
 
 
 pipelinePreviewGrid : List (Html.Attribute msg)
@@ -278,6 +360,43 @@ pipelineCardHd status =
     ]
 
 
+instanceGroupCardBodyHd : List (Html.Attribute msg)
+instanceGroupCardBodyHd =
+    [ style "padding" "10px"
+    , style "display" "flex"
+    , style "align-items" "center"
+    , style "min-width" "0"
+    ]
+
+
+instanceGroupCardNameHd : List (Html.Attribute msg)
+instanceGroupCardNameHd =
+    [ style "white-space" "nowrap"
+    , style "overflow" "hidden"
+    , style "text-overflow" "ellipsis"
+    ]
+
+
+instanceGroupCardHd : List (Html.Attribute msg)
+instanceGroupCardHd =
+    [ style "display" "flex"
+    , style "height" "60px"
+    , style "width" "200px"
+    , style "margin" "0 60px 4px 0"
+    , style "position" "relative"
+    , style "background-color" Colors.card
+    , style "font-size" "19px"
+    , style "letter-spacing" "1px"
+    ]
+
+
+instanceGroupCardBannerHd : List (Html.Attribute msg)
+instanceGroupCardBannerHd =
+    [ style "width" "8px"
+    , style "background-color" Colors.card
+    ]
+
+
 pipelineCardBodyHd : List (Html.Attribute msg)
 pipelineCardBodyHd =
     [ style "width" "180px"
@@ -297,7 +416,7 @@ pipelineCardBannerHd :
 pipelineCardBannerHd { status, pipelineRunningKeyframes } =
     let
         color =
-            Colors.statusColor status
+            Colors.statusColor True status
 
         isRunning =
             Concourse.PipelineStatus.isRunning status
@@ -316,6 +435,13 @@ pipelineCardBannerArchivedHd : List (Html.Attribute msg)
 pipelineCardBannerArchivedHd =
     [ style "width" "8px"
     , style "background-color" Colors.backgroundDark
+    ]
+
+
+instanceGroupCardBanner : List (Html.Attribute msg)
+instanceGroupCardBanner =
+    [ style "height" "7px"
+    , style "background-color" Colors.instanceGroupBanner
     ]
 
 
@@ -376,7 +502,7 @@ pipelineCardFooter =
 
 pipelineCardTransitionAge : PipelineStatus -> List (Html.Attribute msg)
 pipelineCardTransitionAge status =
-    [ style "color" <| Colors.statusColor status
+    [ style "color" <| Colors.statusColor True status
     , style "font-size" "18px"
     , style "line-height" "20px"
     , style "letter-spacing" "0.05em"
@@ -798,7 +924,7 @@ jobPreview job isHovered =
     ]
         ++ (if job.paused then
                 [ style "background-color" <|
-                    Colors.statusColor PipelineStatusPaused
+                    Colors.statusColor (not isHovered) PipelineStatusPaused
                 ]
 
             else

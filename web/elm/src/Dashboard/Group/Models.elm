@@ -11,6 +11,7 @@ import Dict exposing (Dict)
 
 type Card
     = PipelineCard Pipeline
+    | InstanceGroupCard Pipeline (List Pipeline)
 
 
 cardName : Card -> String
@@ -19,11 +20,17 @@ cardName c =
         PipelineCard p ->
             p.name
 
+        InstanceGroupCard p _ ->
+            p.name
+
 
 cardTeamName : Card -> String
 cardTeamName c =
     case c of
         PipelineCard p ->
+            p.teamName
+
+        InstanceGroupCard p _ ->
             p.teamName
 
 

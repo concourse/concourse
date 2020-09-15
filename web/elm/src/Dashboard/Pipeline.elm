@@ -44,7 +44,7 @@ import Views.Styles
 previewPlaceholder : Html Message
 previewPlaceholder =
     Html.div
-        (class "card-body" :: Styles.cardBody)
+        (class "card-body" :: Styles.emptyCardBody)
         [ Html.div Styles.previewPlaceholder [] ]
 
 

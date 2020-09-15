@@ -13,6 +13,7 @@ import Dashboard.Grid as Grid
 import Dashboard.Grid.Constants as GridConstants
 import Dashboard.Group.Models exposing (Card(..), Pipeline)
 import Dashboard.Group.Tag as Tag
+import Dashboard.InstanceGroup as InstanceGroup
 import Dashboard.Models exposing (DragState(..), DropState(..))
 import Dashboard.Pipeline as Pipeline
 import Dashboard.Styles as Styles
@@ -78,6 +79,15 @@ view session params teamName cards =
                                         { bounds = bounds, pipeline = pipeline }
                                         teamName
                                         |> (\html -> ( String.fromInt pipeline.id, html ))
+
+                                InstanceGroupCard p ps ->
+                                    instanceGroupCardView session
+                                        params
+                                        AllPipelinesSection
+                                        bounds
+                                        p
+                                        ps
+                                        |> (\html -> ( p.name, html ))
                         )
 
         dropAreaViews =
@@ -151,6 +161,15 @@ viewFavoritePipelines session params headers cards =
                                     { bounds = bounds, pipeline = pipeline }
                                     pipeline.teamName
                                     |> (\html -> ( String.fromInt pipeline.id, html ))
+
+                            InstanceGroupCard p ps ->
+                                instanceGroupCardView session
+                                    params
+                                    FavoritesSection
+                                    bounds
+                                    p
+                                    ps
+                                    |> (\html -> ( p.name, html ))
                     )
 
         headerViews =
@@ -226,6 +245,18 @@ hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, jo
                                                 |> Maybe.withDefault []
                                                 |> List.filterMap (lookupJob jobs)
                                         }
+
+                                InstanceGroupCard p ps ->
+                                    InstanceGroup.hdCardView
+                                        { pipeline = p
+                                        , pipelines = ps
+                                        , resourceError =
+                                            List.any
+                                                (\pipeline ->
+                                                    Set.member pipeline.id pipelinesWithResourceErrors
+                                                )
+                                                (p :: ps)
+                                        }
                         )
     in
     case teamPipelines of
@@ -244,7 +275,7 @@ hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, jo
 pipelineNotSetView : Html Message
 pipelineNotSetView =
     Html.div
-        [ class "card" ]
+        [ class "card no-pipelines-card" ]
         [ Html.div
             Styles.noPipelineCardHd
             [ Html.div
@@ -331,7 +362,7 @@ pipelineCardView session params section { bounds, pipeline } teamName =
                )
         )
         [ Html.div
-            ([ class "card"
+            ([ class "card pipeline-card"
              , style "width" "100%"
              , style "height" "100%"
              , attribute "data-pipeline-name" pipeline.name
@@ -381,6 +412,125 @@ pipelineCardView session params section { bounds, pipeline } teamName =
                         |> Dict.get pipeline.id
                         |> Maybe.withDefault []
                         |> List.map (List.filterMap <| lookupJob params.jobs)
+                , hovered = session.hovered
+                , pipelineRunningKeyframes = session.pipelineRunningKeyframes
+                , section = section
+                }
+            ]
+        ]
+
+
+instanceGroupCardView :
+    Session
+    ->
+        { b
+            | dragState : DragState
+            , dropState : DropState
+            , now : Maybe Time.Posix
+            , pipelinesWithResourceErrors : Set Concourse.DatabaseID
+            , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
+            , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
+            , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
+        }
+    -> PipelinesSection
+    -> Grid.Bounds
+    -> Pipeline
+    -> List Pipeline
+    -> Html Message
+instanceGroupCardView session params section bounds p ps =
+    Html.div
+        ([ class "card-wrapper"
+         , style "position" "absolute"
+         , style "transform"
+            ("translate("
+                ++ String.fromFloat bounds.x
+                ++ "px,"
+                ++ String.fromFloat bounds.y
+                ++ "px)"
+            )
+         , style "width" (String.fromFloat bounds.width ++ "px")
+         , style "height" (String.fromFloat bounds.height ++ "px")
+         , onMouseOver <|
+            Hover <|
+                Just <|
+                    -- TODO: no
+                    PipelineWrapper p.id
+         , onMouseOut <| Hover Nothing
+         ]
+            ++ (if params.dragState /= NotDragging then
+                    [ style "transition" "transform 0.2s ease-in-out" ]
+
+                else
+                    []
+               )
+            ++ (let
+                    hoverStyle id =
+                        if id == p.id then
+                            [ style "z-index" "1" ]
+
+                        else
+                            []
+                in
+                case HoverState.hoveredElement session.hovered of
+                    Just (JobPreview _ jobID) ->
+                        hoverStyle jobID.pipelineId
+
+                    Just (PipelineWrapper pipelineId) ->
+                        hoverStyle pipelineId
+
+                    _ ->
+                        []
+               )
+        )
+        [ Html.div
+            ([ class "card instance-group-card"
+             , style "width" "100%"
+             , style "height" "100%"
+
+             -- TODO: yes?
+             , attribute "data-pipeline-name" p.name
+             ]
+                -- TODO: no
+                ++ (if section == AllPipelinesSection && not p.stale then
+                        [ attribute
+                            "ondragstart"
+                            "event.dataTransfer.setData('text/plain', '');"
+                        , draggable "true"
+                        , on "dragstart"
+                            (Json.Decode.succeed (DragStart p.teamName p.name))
+                        , on "dragend" (Json.Decode.succeed DragEnd)
+                        ]
+
+                    else
+                        []
+                   )
+                ++ (if params.dragState == Dragging p.teamName p.name then
+                        [ style "width" "0"
+                        , style "margin" "0 12.5px"
+                        , style "overflow" "hidden"
+                        ]
+
+                    else
+                        []
+                   )
+                ++ (if params.dropState == DroppingWhileApiRequestInFlight p.teamName then
+                        [ style "opacity" "0.45", style "pointer-events" "none" ]
+
+                    else
+                        [ style "opacity" "1" ]
+                   )
+            )
+            [ InstanceGroup.cardView session
+                { pipeline = p
+                , pipelines = ps
+                , resourceError =
+                    List.any
+                        (\pipeline ->
+                            Set.member pipeline.id params.pipelinesWithResourceErrors
+                        )
+                        (p :: ps)
+                , pipelineJobs = params.pipelineJobs
+                , jobs = params.jobs
                 , hovered = session.hovered
                 , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                 , section = section

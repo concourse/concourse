@@ -679,6 +679,7 @@ updateBody session msg ( model, effects ) =
                             model.pipelines
                                 |> Maybe.andThen (Dict.get teamName)
                                 |> Maybe.withDefault []
+                                -- TODO
                                 |> List.map PipelineCard
                                 |> Drag.dragCard name target
 
@@ -692,6 +693,10 @@ updateBody session msg ( model, effects ) =
                                                 (\card ->
                                                     case card of
                                                         PipelineCard p ->
+                                                            p
+
+                                                        InstanceGroupCard p _ ->
+                                                            -- TODO
                                                             p
                                                 )
                                                 teamPipelines
@@ -1180,7 +1185,21 @@ pipelinesView session params =
 
         cardsByTeam =
             filteredPipelinesByTeam
-                |> List.map (\( team, ps ) -> ( team, ps |> List.map PipelineCard ))
+                |> List.map
+                    (\( team, teamPipelines ) ->
+                        ( team
+                        , teamPipelines
+                            |> List.Extra.gatherEqualsBy .name
+                            |> List.map
+                                (\( p, ps ) ->
+                                    if List.isEmpty ps && Dict.isEmpty p.instanceVars then
+                                        PipelineCard p
+
+                                    else
+                                        InstanceGroupCard p ps
+                                )
+                        )
+                    )
 
         ( headerView, offsetHeight ) =
             if params.highDensity then
@@ -1191,11 +1210,27 @@ pipelinesView session params =
                     favoritedCards =
                         cardsByTeam
                             |> List.concatMap Tuple.second
-                            |> List.filter
+                            |> List.filterMap
                                 (\c ->
+                                    let
+                                        isFavorited p =
+                                            Set.member p.id session.favoritedPipelines
+                                    in
                                     case c of
                                         PipelineCard p ->
-                                            Set.member p.id session.favoritedPipelines
+                                            if isFavorited p then
+                                                Just <| PipelineCard p
+
+                                            else
+                                                Nothing
+
+                                        InstanceGroupCard p ps ->
+                                            case List.filter isFavorited (p :: ps) of
+                                                x :: xs ->
+                                                    Just <| InstanceGroupCard x xs
+
+                                                [] ->
+                                                    Nothing
                                 )
 
                     allPipelinesHeader =
