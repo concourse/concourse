@@ -60,6 +60,8 @@ type checkFactory struct {
 	secrets       creds.Secrets
 	varSourcePool creds.VarSourcePool
 
+	planFactory atc.PlanFactory
+
 	defaultCheckTimeout             time.Duration
 	defaultCheckInterval            time.Duration
 	defaultWithWebhookCheckInterval time.Duration
@@ -80,6 +82,8 @@ func NewCheckFactory(
 
 		secrets:       secrets,
 		varSourcePool: varSourcePool,
+
+		planFactory: atc.NewPlanFactory(time.Now().Unix()),
 
 		defaultCheckTimeout:             defaultCheckTimeout,
 		defaultCheckInterval:            defaultCheckInterval,
@@ -105,7 +109,6 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 
 	parentType, found := resourceTypes.Parent(checkable)
 	if found {
-		// XXX(check-refactor): this seems important
 		if parentType.Version() == nil {
 			return nil, false, fmt.Errorf("resource type '%s' has no version", parentType.Name())
 		}
@@ -137,12 +140,7 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 
 	checkPlan := checkable.CheckPlan(from, interval, timeout, resourceTypes.Filter(checkable))
 
-	plan := atc.Plan{
-		// XXX(check-refactor): use plan factory
-		ID: atc.PlanID("TODO"),
-
-		Check: &checkPlan,
-	}
+	plan := c.planFactory.NewPlan(checkPlan)
 
 	build, created, err := checkable.CreateBuild(ctx, manuallyTriggered)
 	if err != nil {

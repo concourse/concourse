@@ -83,7 +83,6 @@ func (r *resourceConfigScope) SaveVersions(spanContext SpanContext, versions []a
 	return saveVersions(r.conn, r.ID(), versions, spanContext)
 }
 
-// XXX(check-refactor): this was called by Check, through the delegate
 func saveVersions(conn Conn, rcsID int, versions []atc.Version, spanContext SpanContext) error {
 	tx, err := conn.Begin()
 	if err != nil {
