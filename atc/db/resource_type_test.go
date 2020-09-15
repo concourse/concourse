@@ -1,13 +1,17 @@
 package db_test
 
 import (
+	"context"
 	"errors"
 	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel/api/propagators"
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 var _ = Describe("ResourceType", func() {
@@ -447,19 +451,21 @@ var _ = Describe("ResourceType", func() {
 
 	Describe("CreateBuild", func() {
 		var resourceType db.ResourceType
+		var ctx context.Context
 		var manuallyTriggered bool
 
 		var build db.Build
 		var created bool
 
 		BeforeEach(func() {
+			ctx = context.TODO()
 			resourceType = defaultResourceType
 			manuallyTriggered = false
 		})
 
 		JustBeforeEach(func() {
 			var err error
-			build, created, err = resourceType.CreateBuild(manuallyTriggered)
+			build, created, err = resourceType.CreateBuild(ctx, manuallyTriggered)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -469,6 +475,27 @@ var _ = Describe("ResourceType", func() {
 			Expect(build.PipelineID()).To(Equal(defaultResource.PipelineID()))
 			Expect(build.TeamID()).To(Equal(defaultResource.TeamID()))
 			Expect(build.IsManuallyTriggered()).To(BeFalse())
+		})
+
+		Context("when tracing is configured", func() {
+			var span trace.Span
+
+			BeforeEach(func() {
+				tracing.ConfigureTraceProvider(&tracing.TestTraceProvider{})
+
+				ctx, span = tracing.StartSpan(context.Background(), "fake-operation", nil)
+			})
+
+			AfterEach(func() {
+				tracing.Configured = false
+			})
+
+			It("propagates span context", func() {
+				traceID := span.SpanContext().TraceIDString()
+				buildContext := build.SpanContext()
+				traceParent := buildContext.Get(propagators.TraceparentHeader)
+				Expect(traceParent).To(ContainSubstring(traceID))
+			})
 		})
 
 		Context("when manually triggered", func() {

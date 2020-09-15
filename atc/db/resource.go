@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -70,7 +71,7 @@ type Resource interface {
 	SetResourceConfigScope(ResourceConfigScope) error
 
 	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes) atc.CheckPlan
-	CreateBuild(bool) (Build, bool, error)
+	CreateBuild(context.Context, bool) (Build, bool, error)
 
 	SetCheckSetupError(error) error
 	NotifyScan() error
@@ -339,7 +340,12 @@ func (r *resource) CheckPlan(from atc.Version, interval, timeout time.Duration, 
 	}
 }
 
-func (r *resource) CreateBuild(manuallyTriggered bool) (Build, bool, error) {
+func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool) (Build, bool, error) {
+	spanContextJSON, err := json.Marshal(NewSpanContext(ctx))
+	if err != nil {
+		return nil, false, err
+	}
+
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return nil, false, err
@@ -353,6 +359,7 @@ func (r *resource) CreateBuild(manuallyTriggered bool) (Build, bool, error) {
 		"team_id":            r.teamID,
 		"status":             BuildStatusPending,
 		"manually_triggered": manuallyTriggered,
+		"span_context":       string(spanContextJSON),
 	}
 
 	if !manuallyTriggered {

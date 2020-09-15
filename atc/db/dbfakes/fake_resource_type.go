@@ -2,6 +2,7 @@
 package dbfakes
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -64,10 +65,11 @@ type FakeResourceType struct {
 	checkTimeoutReturnsOnCall map[int]struct {
 		result1 string
 	}
-	CreateBuildStub        func(bool) (db.Build, bool, error)
+	CreateBuildStub        func(context.Context, bool) (db.Build, bool, error)
 	createBuildMutex       sync.RWMutex
 	createBuildArgsForCall []struct {
-		arg1 bool
+		arg1 context.Context
+		arg2 bool
 	}
 	createBuildReturns struct {
 		result1 db.Build
@@ -586,16 +588,17 @@ func (fake *FakeResourceType) CheckTimeoutReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) CreateBuild(arg1 bool) (db.Build, bool, error) {
+func (fake *FakeResourceType) CreateBuild(arg1 context.Context, arg2 bool) (db.Build, bool, error) {
 	fake.createBuildMutex.Lock()
 	ret, specificReturn := fake.createBuildReturnsOnCall[len(fake.createBuildArgsForCall)]
 	fake.createBuildArgsForCall = append(fake.createBuildArgsForCall, struct {
-		arg1 bool
-	}{arg1})
-	fake.recordInvocation("CreateBuild", []interface{}{arg1})
+		arg1 context.Context
+		arg2 bool
+	}{arg1, arg2})
+	fake.recordInvocation("CreateBuild", []interface{}{arg1, arg2})
 	fake.createBuildMutex.Unlock()
 	if fake.CreateBuildStub != nil {
-		return fake.CreateBuildStub(arg1)
+		return fake.CreateBuildStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -610,17 +613,17 @@ func (fake *FakeResourceType) CreateBuildCallCount() int {
 	return len(fake.createBuildArgsForCall)
 }
 
-func (fake *FakeResourceType) CreateBuildCalls(stub func(bool) (db.Build, bool, error)) {
+func (fake *FakeResourceType) CreateBuildCalls(stub func(context.Context, bool) (db.Build, bool, error)) {
 	fake.createBuildMutex.Lock()
 	defer fake.createBuildMutex.Unlock()
 	fake.CreateBuildStub = stub
 }
 
-func (fake *FakeResourceType) CreateBuildArgsForCall(i int) bool {
+func (fake *FakeResourceType) CreateBuildArgsForCall(i int) (context.Context, bool) {
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
 	argsForCall := fake.createBuildArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeResourceType) CreateBuildReturns(result1 db.Build, result2 bool, result3 error) {

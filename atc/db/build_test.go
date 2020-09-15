@@ -110,7 +110,7 @@ var _ = Describe("Build", func() {
 			BeforeEach(func() {
 				var err error
 				var created bool
-				build, created, err = defaultResource.CreateBuild(false)
+				build, created, err = defaultResource.CreateBuild(context.TODO(), false)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(created).To(BeTrue())
 			})
@@ -165,7 +165,7 @@ var _ = Describe("Build", func() {
 			BeforeEach(func() {
 				var err error
 				var created bool
-				build, created, err = defaultResource.CreateBuild(false)
+				build, created, err = defaultResource.CreateBuild(context.TODO(), false)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(created).To(BeTrue())
 			})
@@ -223,7 +223,7 @@ var _ = Describe("Build", func() {
 			BeforeEach(func() {
 				var err error
 				var created bool
-				build, created, err = defaultResource.CreateBuild(false)
+				build, created, err = defaultResource.CreateBuild(context.TODO(), false)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(created).To(BeTrue())
 			})

@@ -1,14 +1,18 @@
 package db_test
 
 import (
+	"context"
 	"errors"
 	"strconv"
 	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel/api/propagators"
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 var _ = Describe("Resource", func() {
@@ -480,17 +484,19 @@ var _ = Describe("Resource", func() {
 	})
 
 	Describe("CreateBuild", func() {
+		var ctx context.Context
 		var manuallyTriggered bool
 		var build db.Build
 		var created bool
 
 		BeforeEach(func() {
+			ctx = context.TODO()
 			manuallyTriggered = false
 		})
 
 		JustBeforeEach(func() {
 			var err error
-			build, created, err = defaultResource.CreateBuild(manuallyTriggered)
+			build, created, err = defaultResource.CreateBuild(ctx, manuallyTriggered)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -500,6 +506,27 @@ var _ = Describe("Resource", func() {
 			Expect(build.PipelineID()).To(Equal(defaultResource.PipelineID()))
 			Expect(build.TeamID()).To(Equal(defaultResource.TeamID()))
 			Expect(build.IsManuallyTriggered()).To(BeFalse())
+		})
+
+		Context("when tracing is configured", func() {
+			var span trace.Span
+
+			BeforeEach(func() {
+				tracing.ConfigureTraceProvider(&tracing.TestTraceProvider{})
+
+				ctx, span = tracing.StartSpan(context.Background(), "fake-operation", nil)
+			})
+
+			AfterEach(func() {
+				tracing.Configured = false
+			})
+
+			It("propagates span context", func() {
+				traceID := span.SpanContext().TraceIDString()
+				buildContext := build.SpanContext()
+				traceParent := buildContext.Get(propagators.TraceparentHeader)
+				Expect(traceParent).To(ContainSubstring(traceID))
+			})
 		})
 
 		Context("when manually triggered", func() {
@@ -512,7 +539,7 @@ var _ = Describe("Resource", func() {
 			})
 
 			It("can create another build", func() {
-				anotherBuild, created, err := defaultResource.CreateBuild(manuallyTriggered)
+				anotherBuild, created, err := defaultResource.CreateBuild(ctx, manuallyTriggered)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(created).To(BeTrue())
 				Expect(anotherBuild.ID()).ToNot(Equal(build.ID()))
@@ -525,7 +552,7 @@ var _ = Describe("Resource", func() {
 			})
 
 			It("cannot create another build", func() {
-				anotherBuild, created, err := defaultResource.CreateBuild(manuallyTriggered)
+				anotherBuild, created, err := defaultResource.CreateBuild(ctx, manuallyTriggered)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(created).To(BeFalse())
 				Expect(anotherBuild).To(BeNil())
@@ -535,7 +562,7 @@ var _ = Describe("Resource", func() {
 				It("can create another build after deleting the completed build", func() {
 					Expect(build.Finish(db.BuildStatusSucceeded)).To(Succeed())
 
-					anotherBuild, created, err := defaultResource.CreateBuild(manuallyTriggered)
+					anotherBuild, created, err := defaultResource.CreateBuild(ctx, manuallyTriggered)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(created).To(BeTrue())
 					Expect(anotherBuild.ID()).ToNot(Equal(build.ID()))

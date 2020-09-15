@@ -38,7 +38,7 @@ type Checkable interface {
 	) (ResourceConfigScope, error)
 
 	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes) atc.CheckPlan
-	CreateBuild(bool) (Build, bool, error)
+	CreateBuild(context.Context, bool) (Build, bool, error)
 
 	SetCheckSetupError(error) error
 }
@@ -144,8 +144,7 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		Check: &checkPlan,
 	}
 
-	// XXX(check-refactor): pass ctx and create build with span context
-	build, created, err := checkable.CreateBuild(manuallyTriggered)
+	build, created, err := checkable.CreateBuild(ctx, manuallyTriggered)
 	if err != nil {
 		return nil, false, fmt.Errorf("create build: %w", err)
 	}
