@@ -33,11 +33,13 @@ type RC struct {
 }
 
 type TargetProps struct {
-	API      string       `json:"api"`
-	TeamName string       `json:"team"`
-	Insecure bool         `json:"insecure,omitempty"`
-	Token    *TargetToken `json:"token,omitempty"`
-	CACert   string       `json:"ca_cert,omitempty"`
+	API            string       `json:"api"`
+	TeamName       string       `json:"team"`
+	Insecure       bool         `json:"insecure,omitempty"`
+	Token          *TargetToken `json:"token,omitempty"`
+	CACert         string       `json:"ca_cert,omitempty"`
+	ClientCertPath string       `json:"client_cert_path,omitempty"`
+	ClientKeyPath  string       `json:"client_key_path,omitempty"`
 }
 
 type TargetToken struct {
@@ -121,6 +123,8 @@ func SaveTarget(
 	teamName string,
 	token *TargetToken,
 	caCert string,
+	clientCertPath string,
+	clientKeyPath string,
 ) error {
 	flyTargets, err := LoadTargets()
 	if err != nil {
@@ -134,6 +138,8 @@ func SaveTarget(
 	newInfo.Token = token
 	newInfo.TeamName = teamName
 	newInfo.CACert = caCert
+	newInfo.ClientCertPath = clientCertPath
+	newInfo.ClientKeyPath = clientKeyPath
 
 	flyTargets[targetName] = newInfo
 	return writeTargets(flyrc, flyTargets)
