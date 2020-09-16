@@ -6,11 +6,10 @@ import Assets
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
-import Concourse.Pagination exposing (Direction(..))
+import Concourse.Pagination exposing (Direction(..), Page, Pagination)
 import DashboardTests
     exposing
         ( almostBlack
-        , darkGrey
         , iconSelector
         , middleGrey
         )
@@ -19,7 +18,6 @@ import Dict
 import Expect exposing (..)
 import HoverState
 import Html.Attributes as Attr
-import Http
 import Keyboard
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
@@ -55,11 +53,6 @@ import Time
 import Url
 import UserState exposing (UserState(..))
 import Views.Styles
-
-
-commentButtonBlue : String
-commentButtonBlue =
-    "#196ac8"
 
 
 teamName : String
@@ -115,16 +108,6 @@ disabledVersion =
 purpleHex : String
 purpleHex =
     "#5c3bd1"
-
-
-fadedBlackHex : String
-fadedBlackHex =
-    "#1e1d1d80"
-
-
-almostWhiteHex : String
-almostWhiteHex =
-    "#e6e7e8"
 
 
 lightGreyHex : String
@@ -240,7 +223,10 @@ all =
                     |> Tuple.second
                     |> Expect.all
                         [ Common.contains (Effects.FetchResource Data.resourceId)
-                        , Common.contains (Effects.FetchVersionedResources Data.resourceId Nothing)
+                        , Common.contains
+                            (Effects.FetchVersionedResources Data.resourceId
+                                Resource.startingPage
+                            )
                         ]
         , test "autorefresh respects expanded state" <|
             \_ ->
@@ -510,7 +496,7 @@ all =
                     , defineHoverBehaviour <|
                         let
                             urlPath =
-                                "/teams/team/pipelines/pipeline/resources/resource?since=1&limit=1"
+                                "/teams/team/pipelines/pipeline/resources/resource?from=100&limit=1"
                         in
                         { name = "left pagination chevron with previous page"
                         , setup =
@@ -570,6 +556,24 @@ all =
                             }
                         , hoverable = Message.Message.PreviousPageButton
                         }
+                    , test "pagination previous loads most recent if less than 100 entries" <|
+                        \_ ->
+                            let
+                                previousPage =
+                                    { direction = From 1, limit = 100 }
+                            in
+                            init
+                                |> givenResourceIsNotPinned
+                                |> givenVersionsWithPages previousPage emptyPagination
+                                |> Tuple.second
+                                |> Common.contains
+                                    (Effects.FetchVersionedResources
+                                        { teamName = teamName
+                                        , pipelineName = pipelineName
+                                        , resourceName = resourceName
+                                        }
+                                        Resource.startingPage
+                                    )
                     ]
                 ]
             ]
@@ -1272,7 +1276,7 @@ all =
                             |> Resource.handleCallback
                                 (Callback.VersionedResourcesFetched <|
                                     Ok
-                                        ( Nothing
+                                        ( Resource.startingPage
                                         , { content =
                                                 [ { id = versionID.versionID
                                                   , version = Dict.fromList [ ( "version", version ) ]
@@ -1290,10 +1294,7 @@ all =
                                                   , enabled = False
                                                   }
                                                 ]
-                                          , pagination =
-                                                { previousPage = Nothing
-                                                , nextPage = Nothing
-                                                }
+                                          , pagination = emptyPagination
                                           }
                                         )
                                 )
@@ -1332,7 +1333,7 @@ all =
                             |> Resource.handleCallback
                                 (Callback.VersionedResourcesFetched <|
                                     Ok
-                                        ( Nothing
+                                        ( Resource.startingPage
                                         , { content =
                                                 [ { id = versionID.versionID
                                                   , version = Dict.fromList [ ( "version", version ) ]
@@ -1350,10 +1351,7 @@ all =
                                                   , enabled = False
                                                   }
                                                 ]
-                                          , pagination =
-                                                { previousPage = Nothing
-                                                , nextPage = Nothing
-                                                }
+                                          , pagination = emptyPagination
                                           }
                                         )
                                 )
@@ -1394,7 +1392,7 @@ all =
                             |> Resource.handleCallback
                                 (Callback.VersionedResourcesFetched <|
                                     Ok
-                                        ( Nothing
+                                        ( Resource.startingPage
                                         , { content =
                                                 [ { id = versionID.versionID
                                                   , version = Dict.fromList [ ( "version", version ) ]
@@ -1412,10 +1410,7 @@ all =
                                                   , enabled = False
                                                   }
                                                 ]
-                                          , pagination =
-                                                { previousPage = Nothing
-                                                , nextPage = Nothing
-                                                }
+                                          , pagination = emptyPagination
                                           }
                                         )
                                 )
@@ -1459,7 +1454,7 @@ all =
                             |> Resource.handleCallback
                                 (Callback.VersionedResourcesFetched <|
                                     Ok
-                                        ( Nothing
+                                        ( Resource.startingPage
                                         , { content =
                                                 [ { id = versionID.versionID
                                                   , version = Dict.fromList [ ( "version", version ) ]
@@ -1477,10 +1472,7 @@ all =
                                                   , enabled = False
                                                   }
                                                 ]
-                                          , pagination =
-                                                { previousPage = Nothing
-                                                , nextPage = Nothing
-                                                }
+                                          , pagination = emptyPagination
                                           }
                                         )
                                 )
@@ -3062,7 +3054,7 @@ all =
                             |> Tuple.second
                             |> Expect.equal
                                 [ Effects.FetchResource Data.resourceId
-                                , Effects.FetchVersionedResources Data.resourceId Nothing
+                                , Effects.FetchVersionedResources Data.resourceId Resource.startingPage
                                 ]
                 , test "when check resolves unsuccessfully, status is error" <|
                     \_ ->
@@ -3484,12 +3476,17 @@ clickToDisable vid =
         >> Tuple.first
 
 
-givenVersionsWithoutPagination : Application.Model -> Application.Model
-givenVersionsWithoutPagination =
+emptyPagination : Pagination
+emptyPagination =
+    { nextPage = Nothing, previousPage = Nothing }
+
+
+givenVersionsWithPages : Page -> Concourse.Pagination.Pagination -> Application.Model -> ( Application.Model, List Effects.Effect )
+givenVersionsWithPages requestedPage pagination =
     Application.handleCallback
         (Callback.VersionedResourcesFetched <|
             Ok
-                ( Nothing
+                ( requestedPage
                 , { content =
                         [ { id = versionID.versionID
                           , version = Dict.fromList [ ( "version", version ) ]
@@ -3507,54 +3504,32 @@ givenVersionsWithoutPagination =
                           , enabled = False
                           }
                         ]
-                  , pagination =
-                        { previousPage = Nothing
-                        , nextPage = Nothing
-                        }
+                  , pagination = pagination
                   }
                 )
         )
+
+
+givenVersionsWithoutPagination : Application.Model -> Application.Model
+givenVersionsWithoutPagination =
+    givenVersionsWithPages Resource.startingPage emptyPagination
         >> Tuple.first
 
 
 givenVersionsWithPagination : Application.Model -> Application.Model
 givenVersionsWithPagination =
-    Application.handleCallback
-        (Callback.VersionedResourcesFetched <|
-            Ok
-                ( Nothing
-                , { content =
-                        [ { id = versionID.versionID
-                          , version = Dict.fromList [ ( "version", version ) ]
-                          , metadata = []
-                          , enabled = True
-                          }
-                        , { id = otherVersionID.versionID
-                          , version = Dict.fromList [ ( "version", otherVersion ) ]
-                          , metadata = []
-                          , enabled = True
-                          }
-                        , { id = disabledVersionID.versionID
-                          , version = Dict.fromList [ ( "version", disabledVersion ) ]
-                          , metadata = []
-                          , enabled = False
-                          }
-                        ]
-                  , pagination =
-                        { previousPage =
-                            Just
-                                { direction = Since 1
-                                , limit = 1
-                                }
-                        , nextPage =
-                            Just
-                                { direction = Since 100
-                                , limit = 1
-                                }
-                        }
-                  }
-                )
-        )
+    givenVersionsWithPages Resource.startingPage
+        { previousPage =
+            Just
+                { direction = From 100
+                , limit = 1
+                }
+        , nextPage =
+            Just
+                { direction = To 1
+                , limit = 1
+                }
+        }
         >> Tuple.first
 
 
@@ -3707,11 +3682,6 @@ hasCheckbox =
 purpleOutlineSelector : List Selector
 purpleOutlineSelector =
     [ style "border" <| "1px solid " ++ purpleHex ]
-
-
-redOutlineSelector : List Selector
-redOutlineSelector =
-    [ style "border" <| "1px solid " ++ failureRed ]
 
 
 findLast : List Selector -> Query.Single msg -> Query.Single msg

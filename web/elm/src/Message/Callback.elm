@@ -24,7 +24,7 @@ type Callback
     | GotCurrentTime Time.Posix
     | GotCurrentTimeZone Time.Zone
     | BuildTriggered (Fetched Concourse.Build)
-    | JobBuildsFetched (Fetched (Paginated Concourse.Build))
+    | JobBuildsFetched (Fetched ( Page, Paginated Concourse.Build ))
     | JobFetched (Fetched Concourse.Job)
     | JobsFetched (Fetched Json.Encode.Value)
     | PipelineFetched (Fetched Concourse.Pipeline)
@@ -35,7 +35,7 @@ type Callback
     | ResourcesFetched (Fetched Json.Encode.Value)
     | BuildResourcesFetched (Fetched ( Int, Concourse.BuildResources ))
     | ResourceFetched (Fetched Concourse.Resource)
-    | VersionedResourcesFetched (Fetched ( Maybe Page, Paginated Concourse.VersionedResource ))
+    | VersionedResourcesFetched (Fetched ( Page, Paginated Concourse.VersionedResource ))
     | ClusterInfoFetched (Fetched Concourse.ClusterInfo)
     | PausedToggled (Fetched ())
     | InputToFetched (Fetched ( VersionId, List Concourse.Build ))

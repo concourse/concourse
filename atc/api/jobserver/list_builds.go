@@ -17,8 +17,8 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 			builds     []db.Build
 			pagination db.Pagination
 			err        error
-			until      int
-			since      int
+			from       int
+			to         int
 			limit      int
 		)
 
@@ -29,16 +29,23 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 
 		timestamps := r.FormValue(atc.PaginationQueryTimestamps)
 
-		urlUntil := r.FormValue(atc.PaginationQueryUntil)
-		until, _ = strconv.Atoi(urlUntil)
-
-		urlSince := r.FormValue(atc.PaginationQuerySince)
-		since, _ = strconv.Atoi(urlSince)
+		urlFrom := r.FormValue(atc.PaginationQueryFrom)
+		urlTo := r.FormValue(atc.PaginationQueryTo)
 
 		urlLimit := r.FormValue(atc.PaginationQueryLimit)
 		limit, _ = strconv.Atoi(urlLimit)
 		if limit == 0 {
 			limit = atc.PaginationAPIDefaultLimit
+		}
+
+		page := db.Page{Limit: limit}
+		if urlFrom != "" {
+			from, _ = strconv.Atoi(urlFrom)
+			page.From = db.NewIntPtr(from)
+		}
+		if urlTo != "" {
+			to, _ = strconv.Atoi(urlTo)
+			page.To = db.NewIntPtr(to)
 		}
 
 		job, found, err := pipeline.Job(jobName)
@@ -54,29 +61,22 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 		}
 
 		if timestamps == "" {
-			builds, pagination, err = job.Builds(db.Page{
-				Since: since,
-				Until: until,
-				Limit: limit,
-			})
+			builds, pagination, err = job.Builds(page)
 		} else {
-			builds, pagination, err = job.BuildsWithTime(db.Page{
-				Since: since,
-				Until: until,
-				Limit: limit,
-			})
+			page.UseDate = true
+			builds, pagination, err = job.BuildsWithTime(page)
 		}
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
-		if pagination.Next != nil {
-			s.addNextLink(w, teamName, pipeline.Name(), jobName, *pagination.Next)
+		if pagination.Older != nil {
+			s.addNextLink(w, teamName, pipeline.Name(), jobName, *pagination.Older)
 		}
 
-		if pagination.Previous != nil {
-			s.addPreviousLink(w, teamName, pipeline.Name(), jobName, *pagination.Previous)
+		if pagination.Newer != nil {
+			s.addPreviousLink(w, teamName, pipeline.Name(), jobName, *pagination.Newer)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -102,8 +102,8 @@ func (s *Server) addNextLink(w http.ResponseWriter, teamName, pipelineName, jobN
 		teamName,
 		pipelineName,
 		jobName,
-		atc.PaginationQuerySince,
-		page.Since,
+		atc.PaginationQueryTo,
+		*page.To,
 		atc.PaginationQueryLimit,
 		page.Limit,
 		atc.LinkRelNext,
@@ -117,8 +117,8 @@ func (s *Server) addPreviousLink(w http.ResponseWriter, teamName, pipelineName, 
 		teamName,
 		pipelineName,
 		jobName,
-		atc.PaginationQueryUntil,
-		page.Until,
+		atc.PaginationQueryFrom,
+		*page.From,
 		atc.PaginationQueryLimit,
 		page.Limit,
 		atc.LinkRelPrevious,

@@ -449,7 +449,7 @@ var _ = Describe("Fly CLI", func() {
 					cmdArgs = append(cmdArgs, "--since", since.Format(timeLayout))
 					cmdArgs = append(cmdArgs, "--until", until.Format(timeLayout))
 
-					queryParams = fmt.Sprintf("limit=50&since=%d&until=%d&timestamps=true", since.Unix(), until.Unix())
+					queryParams = fmt.Sprintf("limit=50&from=%d&to=%d&timestamps=true", since.Unix(), until.Unix())
 				})
 
 				It("returns the builds correctly", func() {
@@ -820,7 +820,7 @@ var _ = Describe("Fly CLI", func() {
 				until = time.Date(2020, 11, 2, 0, 0, 0, 0, time.Now().Location())
 
 				expectedURL = "/api/v1/builds"
-				queryParams = fmt.Sprintf("limit=50&since=%d&until=%d&timestamps=true", since.Unix(), until.Unix())
+				queryParams = fmt.Sprintf("limit=50&from=%d&to=%d&timestamps=true", since.Unix(), until.Unix())
 				returnedStatusCode = http.StatusOK
 				returnedBuilds = []atc.Build{
 					{
@@ -969,7 +969,7 @@ var _ = Describe("Fly CLI", func() {
 					cmdArgs = append(cmdArgs, "--since", since.Format(timeLayout))
 					cmdArgs = append(cmdArgs, "--until", until.Format(timeLayout))
 
-					queryParams = fmt.Sprintf("limit=50&since=%d&until=%d&timestamps=true", since.Unix(), until.Unix())
+					queryParams = fmt.Sprintf("limit=50&from=%d&to=%d&timestamps=true", since.Unix(), until.Unix())
 				})
 
 				It("returns the builds correctly", func() {

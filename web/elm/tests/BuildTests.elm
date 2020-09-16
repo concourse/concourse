@@ -1750,7 +1750,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -1794,7 +1794,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -1847,7 +1847,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -1888,7 +1888,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -1929,7 +1929,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -1971,7 +1971,7 @@ all =
                                             { previousPage = Nothing
                                             , nextPage =
                                                 Just
-                                                    { direction = Until 1
+                                                    { direction = To 1
                                                     , limit = 100
                                                     }
                                             }
@@ -2053,7 +2053,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -2067,7 +2067,7 @@ all =
                         >> Tuple.second
                         >> Expect.equal
                             [ Effects.FetchBuildHistory Data.shortJobId
-                                (Just { direction = Until 1, limit = 100 })
+                                (Just { direction = To 1, limit = 100 })
                             ]
                 , test "scrolling to last build while fetching fetches no more" <|
                     givenBuildFetched
@@ -2079,7 +2079,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -2112,7 +2112,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -2128,7 +2128,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 2
+                                                { direction = To 2
                                                 , limit = 100
                                                 }
                                         }
@@ -2150,7 +2150,7 @@ all =
                         >> Tuple.second
                         >> Common.notContains
                             (Effects.FetchBuildHistory Data.shortJobId
-                                (Just { direction = Until 2, limit = 100 })
+                                (Just { direction = To 2, limit = 100 })
                             )
                 , test "if build is present in history, checks its visibility" <|
                     givenBuildFetched
@@ -2162,7 +2162,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -2182,7 +2182,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -2205,7 +2205,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -2231,7 +2231,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 2
+                                                { direction = To 2
                                                 , limit = 100
                                                 }
                                         }
@@ -2253,7 +2253,7 @@ all =
                         >> Tuple.second
                         >> Expect.equal
                             [ Effects.FetchBuildHistory Data.shortJobId
-                                (Just { direction = Until 2, limit = 100 })
+                                (Just { direction = To 2, limit = 100 })
                             ]
                 , test "trigger build button is styled as a box of the color of the build status" <|
                     givenHistoryAndDetailsFetched

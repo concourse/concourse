@@ -17,32 +17,34 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-builds")
 
 	var (
-		err     error
-		until   int
-		since   int
-		limit   int
-		useDate bool
+		err  error
+		from int
+		to   int
 	)
+
+	page := db.Page{}
+
+	urlLimit := r.FormValue(atc.PaginationQueryLimit)
+	page.Limit, _ = strconv.Atoi(urlLimit)
+	if page.Limit == 0 {
+		page.Limit = atc.PaginationAPIDefaultLimit
+	}
+
+	urlFrom := r.FormValue(atc.PaginationQueryFrom)
+	if urlFrom != "" {
+		from, _ = strconv.Atoi(urlFrom)
+		page.From = db.NewIntPtr(from)
+	}
+	urlTo := r.FormValue(atc.PaginationQueryTo)
+	if urlTo != "" {
+		to, _ = strconv.Atoi(urlTo)
+		page.To = db.NewIntPtr(to)
+	}
 
 	timestamps := r.FormValue(atc.PaginationQueryTimestamps)
 	if timestamps != "" {
-		useDate = true
+		page.UseDate = true
 	}
-
-	urlUntil := r.FormValue(atc.PaginationQueryUntil)
-	until, _ = strconv.Atoi(urlUntil)
-
-	urlSince := r.FormValue(atc.PaginationQuerySince)
-	since, _ = strconv.Atoi(urlSince)
-
-	urlLimit := r.FormValue(atc.PaginationQueryLimit)
-
-	limit, _ = strconv.Atoi(urlLimit)
-	if limit == 0 {
-		limit = atc.PaginationAPIDefaultLimit
-	}
-
-	page := db.Page{Until: until, Since: since, Limit: limit, UseDate: useDate}
 
 	var builds []db.Build
 	var pagination db.Pagination
@@ -60,12 +62,12 @@ func (s *Server) ListBuilds(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if pagination.Next != nil {
-		s.addNextLink(w, *pagination.Next)
+	if pagination.Older != nil {
+		s.addNextLink(w, *pagination.Older)
 	}
 
-	if pagination.Previous != nil {
-		s.addPreviousLink(w, *pagination.Previous)
+	if pagination.Newer != nil {
+		s.addPreviousLink(w, *pagination.Newer)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -88,8 +90,8 @@ func (s *Server) addNextLink(w http.ResponseWriter, page db.Page) {
 	w.Header().Add("Link", fmt.Sprintf(
 		`<%s/api/v1/builds?%s=%d&%s=%d>; rel="%s"`,
 		s.externalURL,
-		atc.PaginationQuerySince,
-		page.Since,
+		atc.PaginationQueryTo,
+		*page.To,
 		atc.PaginationQueryLimit,
 		page.Limit,
 		atc.LinkRelNext,
@@ -100,8 +102,8 @@ func (s *Server) addPreviousLink(w http.ResponseWriter, page db.Page) {
 	w.Header().Add("Link", fmt.Sprintf(
 		`<%s/api/v1/builds?%s=%d&%s=%d>; rel="%s"`,
 		s.externalURL,
-		atc.PaginationQueryUntil,
-		page.Until,
+		atc.PaginationQueryFrom,
+		*page.From,
 		atc.PaginationQueryLimit,
 		page.Limit,
 		atc.LinkRelPrevious,

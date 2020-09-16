@@ -220,8 +220,8 @@ var _ = Describe("Helper Functions", func() {
 
 						client.BuildsStub = func(page concourse.Page) ([]atc.Build, concourse.Pagination, error) {
 							var builds []atc.Build
-							if page.Since != 0 {
-								builds = allBuilds[page.Since : page.Since+page.Limit]
+							if page.To != 0 {
+								builds = allBuilds[page.To : page.To+page.Limit]
 							} else {
 								builds = allBuilds[0:page.Limit]
 							}
@@ -229,11 +229,11 @@ var _ = Describe("Helper Functions", func() {
 							pagination := concourse.Pagination{
 								Previous: &concourse.Page{
 									Limit: page.Limit,
-									Until: builds[0].ID,
+									From:  builds[0].ID,
 								},
 								Next: &concourse.Page{
 									Limit: page.Limit,
-									Since: builds[len(builds)-1].ID,
+									To:    builds[len(builds)-1].ID,
 								},
 							}
 

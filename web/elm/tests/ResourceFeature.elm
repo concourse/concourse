@@ -10,6 +10,7 @@ import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message as Message exposing (DomID(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
+import Resource.Resource as Resource
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -56,7 +57,7 @@ theResourceIsAlreadyPinned =
         >> Application.handleCallback
             (Callback.VersionedResourcesFetched <|
                 Ok
-                    ( Nothing
+                    ( Resource.startingPage
                     , { content =
                             [ Data.versionedResource pinnedVersion 0
                             , Data.versionedResource notThePinnedVersion 1

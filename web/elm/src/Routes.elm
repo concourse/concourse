@@ -18,6 +18,7 @@ module Routes exposing
 
 import Concourse
 import Concourse.Pagination as Pagination exposing (Direction(..))
+import Api.Pagination
 import Dict
 import Maybe.Extra
 import Url
@@ -130,17 +131,17 @@ oneOffBuild =
 
 
 parsePage : Maybe Int -> Maybe Int -> Maybe Int -> Maybe Pagination.Page
-parsePage since until limit =
-    case ( since, until, limit ) of
-        ( Nothing, Just u, Just l ) ->
+parsePage from to limit =
+    case ( from, to, limit ) of
+        ( Nothing, Just t, Just l ) ->
             Just
-                { direction = Pagination.Until u
+                { direction = Pagination.To t
                 , limit = l
                 }
 
-        ( Just s, Nothing, Just l ) ->
+        ( Just f, Nothing, Just l ) ->
             Just
-                { direction = Pagination.Since s
+                { direction = Pagination.From f
                 , limit = l
                 }
 
@@ -151,14 +152,14 @@ parsePage since until limit =
 resource : Parser (Route -> a) a
 resource =
     let
-        resourceHelper teamName pipelineName resourceName since until limit =
+        resourceHelper teamName pipelineName resourceName from to limit =
             Resource
                 { id =
                     { teamName = teamName
                     , pipelineName = pipelineName
                     , resourceName = resourceName
                     }
-                , page = parsePage since until limit
+                , page = parsePage from to limit
                 }
     in
     map resourceHelper
@@ -168,8 +169,8 @@ resource =
             </> string
             </> s "resources"
             </> string
-            <?> Query.int "since"
-            <?> Query.int "until"
+            <?> Query.int "from"
+            <?> Query.int "to"
             <?> Query.int "limit"
         )
 
@@ -177,14 +178,14 @@ resource =
 job : Parser (Route -> a) a
 job =
     let
-        jobHelper teamName pipelineName jobName since until limit =
+        jobHelper teamName pipelineName jobName from to limit =
             Job
                 { id =
                     { teamName = teamName
                     , pipelineName = pipelineName
                     , jobName = jobName
                     }
-                , page = parsePage since until limit
+                , page = parsePage from to limit
                 }
     in
     map jobHelper
@@ -194,8 +195,8 @@ job =
             </> string
             </> s "jobs"
             </> string
-            <?> Query.int "since"
-            <?> Query.int "until"
+            <?> Query.int "from"
+            <?> Query.int "to"
             <?> Query.int "limit"
         )
 
@@ -371,29 +372,6 @@ sitemap =
         ]
 
 
-pageToQueryParams : Maybe Pagination.Page -> List Builder.QueryParameter
-pageToQueryParams page =
-    case page of
-        Nothing ->
-            []
-
-        Just { direction, limit } ->
-            [ case direction of
-                Since id ->
-                    Builder.int "since" id
-
-                Until id ->
-                    Builder.int "until" id
-
-                From id ->
-                    Builder.int "from" id
-
-                To id ->
-                    Builder.int "to" id
-            , Builder.int "limit" limit
-            ]
-
-
 toString : Route -> String
 toString route =
     case route of
@@ -420,7 +398,7 @@ toString route =
                 , "jobs"
                 , id.jobName
                 ]
-                (pageToQueryParams page)
+                (Api.Pagination.params page)
 
         Resource { id, page } ->
             Builder.absolute
@@ -431,7 +409,7 @@ toString route =
                 , "resources"
                 , id.resourceName
                 ]
-                (pageToQueryParams page)
+                (Api.Pagination.params page)
 
         OneOffBuild { id, highlight } ->
             Builder.absolute
