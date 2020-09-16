@@ -13,46 +13,76 @@ import (
 
 	"code.cloudfoundry.org/garden/server"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/worker/backend"
-	"github.com/concourse/concourse/worker/backend/libcontainerd"
+	"code.cloudfoundry.org/localip"
+	concourseCmd "github.com/concourse/concourse/cmd"
+	"github.com/concourse/concourse/worker/runtime"
+	"github.com/concourse/concourse/worker/runtime/libcontainerd"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
-	"github.com/tedsuo/ifrit/restart"
 )
 
+// TODO This constructor could use refactoring using the functional options pattern.
 func containerdGardenServerRunner(
 	logger lager.Logger,
 	bindAddr,
 	containerdAddr string,
 	requestTimeout time.Duration,
-) ifrit.Runner {
-
+	dnsServers []string,
+	networkPool string,
+	maxContainers int,
+	restrictedNetworks []string,
+) (ifrit.Runner, error) {
 	const (
 		graceTime = 0
 		namespace = "concourse"
 	)
 
-	backend, err := backend.New(
+	backendOpts := []runtime.GardenBackendOpt{}
+	networkOpts := []runtime.CNINetworkOpt{}
+
+	if len(dnsServers) > 0 {
+		networkOpts = append(networkOpts, runtime.WithNameServers(dnsServers))
+	}
+
+	if len(restrictedNetworks) > 0 {
+		networkOpts = append(networkOpts, runtime.WithRestrictedNetworks(restrictedNetworks))
+	}
+
+	if networkPool != "" {
+		networkOpts = append(networkOpts, runtime.WithCNINetworkConfig(
+			runtime.CNINetworkConfig{
+				BridgeName:  "concourse0",
+				NetworkName: "concourse",
+				Subnet:      networkPool,
+			}))
+	}
+
+	cniNetwork, err := runtime.NewCNINetwork(networkOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("new cni network: %w", err)
+	}
+
+	backendOpts = append(backendOpts,
+		runtime.WithNetwork(cniNetwork),
+		runtime.WithRequestTimeout(requestTimeout),
+		runtime.WithMaxContainers(maxContainers),
+	)
+
+	gardenBackend, err := runtime.NewGardenBackend(
 		libcontainerd.New(containerdAddr, namespace, requestTimeout),
+		backendOpts...,
 	)
 	if err != nil {
-		panic(fmt.Errorf("containerd backend init: %w", err))
+		return nil, fmt.Errorf("containerd containerd init: %w", err)
 	}
 
 	server := server.New("tcp", bindAddr,
 		graceTime,
-		&backend,
+		&gardenBackend,
 		logger,
 	)
 
-	runner := gardenServerRunner{logger, server}
-
-	return restart.Restarter{
-		Runner: runner,
-		Load: func(prevRunner ifrit.Runner, prevErr error) ifrit.Runner {
-			return runner
-		},
-	}
+	return gardenServerRunner{logger, server}, nil
 }
 
 // writeDefaultContainerdConfig writes a default containerd configuration file
@@ -93,8 +123,8 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 		return nil, err
 	}
 
-	if cmd.Garden.Config.Path() != "" {
-		config = cmd.Garden.Config.Path()
+	if cmd.Containerd.Config.Path() != "" {
+		config = cmd.Containerd.Config.Path()
 	} else {
 		err := writeDefaultContainerdConfig(config)
 		if err != nil {
@@ -102,8 +132,8 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 		}
 	}
 
-	if cmd.Garden.Bin != "" {
-		bin = cmd.Garden.Bin
+	if cmd.Containerd.Bin != "" {
+		bin = cmd.Containerd.Bin
 	}
 
 	command := exec.Command(bin,
@@ -118,16 +148,56 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 		Pdeathsig: syscall.SIGKILL,
 	}
 
-	return grouper.NewParallel(os.Interrupt, grouper.Members{
+	members := grouper.Members{}
+
+	dnsServers := cmd.Containerd.DNSServers
+	if cmd.Containerd.DNS.Enable {
+		dnsProxyRunner, err := cmd.dnsProxyRunner(logger.Session("dns-proxy"))
+		if err != nil {
+			return nil, err
+		}
+
+		lip, err := localip.LocalIP()
+		if err != nil {
+			return nil, err
+		}
+
+		dnsServers = append(dnsServers, lip)
+
+		members = append(members, grouper.Member{
+			Name: "dns-proxy",
+			Runner: concourseCmd.NewLoggingRunner(
+				logger.Session("dns-proxy-runner"),
+				dnsProxyRunner,
+			),
+		})
+	}
+
+	gardenServerRunner, err := containerdGardenServerRunner(
+		logger,
+		cmd.bindAddr(),
+		sock,
+		cmd.Containerd.RequestTimeout,
+		dnsServers,
+		cmd.Containerd.NetworkPool,
+		cmd.Containerd.MaxContainers,
+		cmd.Containerd.RestrictedNetworks,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("containerd garden server runner: %w", err)
+	}
+
+	members = append(grouper.Members{
 		{
 			Name:   "containerd",
 			Runner: CmdRunner{command},
 		},
 		{
-			Name: "containerd-backend",
-			Runner: containerdGardenServerRunner(
-				logger, cmd.bindAddr(), sock, cmd.Garden.RequestTimeout,
-			),
+			Name:   "containerd-garden-backend",
+			Runner: gardenServerRunner,
 		},
-	}), nil
+	}, members...)
+
+	// Using the Ordered strategy to ensure containerd is up before the garden server is started
+	return grouper.NewOrdered(os.Interrupt, members), nil
 }

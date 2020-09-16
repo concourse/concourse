@@ -17,6 +17,7 @@ import (
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/tracing"
 )
 
 // LoadVarStep loads a value from a file and sets it as a build-local var.
@@ -65,6 +66,22 @@ func (err InvalidLocalVarFile) Error() string {
 }
 
 func (step *LoadVarStep) Run(ctx context.Context, state RunState) error {
+	ctx, span := tracing.StartSpan(ctx, "load_var", tracing.Attrs{
+		"team":     step.metadata.TeamName,
+		"pipeline": step.metadata.PipelineName,
+		"job":      step.metadata.JobName,
+		"build":    step.metadata.BuildName,
+		"name":     step.plan.Name,
+		"file":     step.plan.File,
+	})
+
+	err := step.run(ctx, state)
+	tracing.End(span, err)
+
+	return err
+}
+
+func (step *LoadVarStep) run(ctx context.Context, state RunState) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("load-var-step", lager.Data{
 		"step-name": step.plan.Name,
@@ -158,6 +175,8 @@ func (step *LoadVarStep) fetchVars(
 		if err != nil {
 			return nil, InvalidLocalVarFile{file, "yaml", err}
 		}
+	case "trim":
+		value = strings.TrimSpace(string(fileContent))
 	case "raw":
 		value = string(fileContent)
 	default:
@@ -180,12 +199,12 @@ func (step *LoadVarStep) fileFormat(file string) (string, error) {
 		return format, nil
 	}
 
-	return "raw", nil
+	return "trim", nil
 }
 
 func (step *LoadVarStep) isValidFormat(format string) bool {
 	switch format {
-	case "raw", "yml", "yaml", "json":
+	case "raw", "trim", "yml", "yaml", "json":
 		return true
 	}
 	return false

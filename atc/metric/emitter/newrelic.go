@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -39,6 +40,7 @@ type (
 	NewRelicConfig struct {
 		AccountID          string        `long:"newrelic-account-id" description:"New Relic Account ID"`
 		APIKey             string        `long:"newrelic-api-key" description:"New Relic Insights API Key"`
+		Url                string        `long:"newrelic-insights-api-url" default:"https://insights-collector.newrelic.com" description:"Base Url for insights Insert API"`
 		ServicePrefix      string        `long:"newrelic-service-prefix" default:"" description:"An optional prefix for emitted New Relic events"`
 		BatchSize          uint64        `long:"newrelic-batch-size" default:"2000" description:"Number of events to batch together before emitting"`
 		BatchDuration      time.Duration `long:"newrelic-batch-duration" default:"60s" description:"Length of time to wait between emitting until all currently batched events are emitted"`
@@ -49,7 +51,7 @@ type (
 )
 
 func init() {
-	metric.RegisterEmitter(&NewRelicConfig{})
+	metric.Metrics.RegisterEmitter(&NewRelicConfig{})
 }
 
 func (config *NewRelicConfig) Description() string { return "NewRelic" }
@@ -59,17 +61,18 @@ func (config *NewRelicConfig) IsConfigured() bool {
 
 func (config *NewRelicConfig) NewEmitter() (metric.Emitter, error) {
 	client := &http.Client{
-		Transport: &http.Transport{},
+		Transport: &http.Transport{ Proxy: http.ProxyFromEnvironment },
 		Timeout:   time.Minute,
 	}
 
 	return &NewRelicEmitter{
 		Client:             client,
-		Url:                "https://insights-collector.newrelic.com/v1/accounts/" + config.AccountID + "/events",
+		Url:                fmt.Sprintf("%s/v1/accounts/%s/events", config.Url, config.AccountID),
 		apikey:             config.APIKey,
 		prefix:             config.ServicePrefix,
 		containers:         new(stats),
 		volumes:            new(stats),
+		checks:             new(stats),
 		BatchSize:          int(config.BatchSize),
 		BatchDuration:      config.BatchDuration,
 		DisableCompression: config.DisableCompression,
@@ -92,6 +95,8 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 		"checks queue size",
 		"worker containers",
 		"worker volumes",
+		"concurrent requests",
+		"concurrent requests limit hit",
 		"http response time",
 		"database queries",
 		"database connections",

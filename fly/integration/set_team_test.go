@@ -2,10 +2,6 @@ package integration_test
 
 import (
 	"fmt"
-	"io"
-	"net/http"
-	"os/exec"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
@@ -13,6 +9,9 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
+	"io"
+	"net/http"
+	"os/exec"
 )
 
 var _ = Describe("Fly CLI", func() {
@@ -473,7 +472,7 @@ var _ = Describe("Fly CLI", func() {
 					It("returns an error", func() {
 						sess, err := gexec.Start(flyCmd, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 						Expect(err).ToNot(HaveOccurred())
-						Eventually(sess.Err).Should(gbytes.Say("You have not provided users and groups for the specified team."))
+						Eventually(sess.Err).Should(gbytes.Say("auth config for the team does not have users and groups configured"))
 						Eventually(sess).Should(gexec.Exit(1))
 					})
 				})
@@ -486,7 +485,20 @@ var _ = Describe("Fly CLI", func() {
 					It("returns an error", func() {
 						sess, err := gexec.Start(flyCmd, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 						Expect(err).ToNot(HaveOccurred())
-						Eventually(sess.Err).Should(gbytes.Say("You have not provided users and groups for the specified team."))
+						Eventually(sess.Err).Should(gbytes.Say("auth config for the team does not have users and groups configured"))
+						Eventually(sess).Should(gexec.Exit(1))
+					})
+				})
+
+				Context("empty auth file is provided", func() {
+					BeforeEach(func() {
+						cmdParams = []string{"-c", "fixtures/team_config_empty.yml"}
+					})
+
+					It("returns an error", func() {
+						sess, err := gexec.Start(flyCmd, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
+						Expect(err).ToNot(HaveOccurred())
+						Eventually(sess.Err).Should(gbytes.Say("auth config for the team must not be empty"))
 						Eventually(sess).Should(gexec.Exit(1))
 					})
 				})

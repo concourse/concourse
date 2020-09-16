@@ -3,6 +3,8 @@ module Dashboard.PipelineGrid.Constants exposing
     , cardWidth
     , headerHeight
     , padding
+    , sectionHeaderHeight
+    , sectionSpacerHeight
     )
 
 
@@ -24,3 +26,13 @@ padding =
 headerHeight : number
 headerHeight =
     60
+
+
+sectionHeaderHeight : number
+sectionHeaderHeight =
+    70
+
+
+sectionSpacerHeight : number
+sectionSpacerHeight =
+    30

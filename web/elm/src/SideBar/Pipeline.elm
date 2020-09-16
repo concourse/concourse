@@ -1,9 +1,11 @@
 module SideBar.Pipeline exposing (pipeline)
 
+import Assets
 import Concourse
 import HoverState
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
+import Set exposing (Set)
 import SideBar.Styles as Styles
 import SideBar.Views as Views
 
@@ -19,13 +21,15 @@ pipeline :
     { a
         | hovered : HoverState.HoverState
         , currentPipeline : Maybe (PipelineScoped b)
+        , favoritedPipelines : Set Int
+        , isFavoritesSection : Bool
     }
     -> Concourse.Pipeline
     -> Views.Pipeline
-pipeline session p =
+pipeline params p =
     let
         isCurrent =
-            case session.currentPipeline of
+            case params.currentPipeline of
                 Just cp ->
                     cp.pipelineName == p.name && cp.teamName == p.teamName
 
@@ -35,35 +39,72 @@ pipeline session p =
         pipelineId =
             { pipelineName = p.name, teamName = p.teamName }
 
+        domID =
+            SideBarPipeline
+                (if params.isFavoritesSection then
+                    FavoritesSection
+
+                 else
+                    AllPipelinesSection
+                )
+                pipelineId
+
         isHovered =
-            HoverState.isHovered (SideBarPipeline pipelineId) session.hovered
+            HoverState.isHovered domID params.hovered
+
+        isFavorited =
+            Set.member p.id params.favoritedPipelines
     in
     { icon =
-        if isCurrent || isHovered then
-            Styles.Bright
+        { asset =
+            if p.archived then
+                Assets.ArchivedPipelineIcon
 
-        else
-            Styles.Dim
-    , link =
+            else
+                Assets.BreadcrumbIcon Assets.PipelineComponent
+        , opacity =
+            if isCurrent || isHovered then
+                Styles.Bright
+
+            else
+                Styles.Dim
+        }
+    , name =
         { opacity =
             if isCurrent || isHovered then
                 Styles.Bright
 
             else
                 Styles.Dim
-        , rectangle =
+        , text = p.name
+        , weight =
             if isCurrent then
-                Styles.Dark
-
-            else if isHovered then
-                Styles.Light
+                Styles.Bold
 
             else
-                Styles.PipelineInvisible
-        , href =
-            Routes.toString <|
-                Routes.Pipeline { id = pipelineId, groups = [] }
-        , text = p.name
-        , domID = SideBarPipeline pipelineId
+                Styles.Default
         }
+    , background =
+        if isCurrent then
+            Styles.Dark
+
+        else if isHovered then
+            Styles.Light
+
+        else
+            Styles.Invisible
+    , href =
+        Routes.toString <|
+            Routes.Pipeline { id = pipelineId, groups = [] }
+    , domID = domID
+    , starIcon =
+        { opacity =
+            if isFavorited then
+                Styles.Bright
+
+            else
+                Styles.Dim
+        , filled = isFavorited
+        }
+    , id = p.id
     }

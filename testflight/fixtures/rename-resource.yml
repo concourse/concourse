@@ -1,0 +1,26 @@
+---
+resources:
+- name: some-new-resource
+  old_name: some-resource
+  type: mock
+  source:
+    no_initial_version: true
+
+jobs:
+- name: some-passing-job
+  plan:
+  - get: some-resource
+    resource: some-new-resource
+  - task: print-fetched-stuff
+    config:
+      platform: linux
+      image_resource:
+        type: mock
+        source: {mirror_self: true}
+
+      inputs:
+        - name: some-resource
+
+      run:
+        path: sh
+        args: [-c, 'echo fetched version: $(cat some-resource/version)']

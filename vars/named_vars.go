@@ -1,10 +1,5 @@
 package vars
 
-import (
-	"fmt"
-	"strings"
-)
-
 type NamedVariables map[string]Variables
 
 // Get checks var_source if presents, then forward var to underlying secret manager.
@@ -12,32 +7,28 @@ type NamedVariables map[string]Variables
 // the var_source name, and "foo" is the real var name that should be forwarded
 // to the underlying secret manager.
 func (m NamedVariables) Get(varDef VariableDefinition) (interface{}, bool, error) {
-	var sourceName, varName string
-	parts := strings.Split(varDef.Name, ":")
-	if len(parts) == 1 {
-		// No source name, then no need to query named vars.
+	if varDef.Ref.Source == "" {
 		return nil, false, nil
-	} else if len(parts) == 2 {
-		sourceName = parts[0]
-		varName = parts[1]
-	} else {
-		return nil, false, fmt.Errorf("invalid var: %s", varDef.Name)
 	}
 
-	if vars, ok := m[sourceName]; ok {
-		return vars.Get(VariableDefinition{Name: varName})
+	if vars, ok := m[varDef.Ref.Source]; ok {
+		return vars.Get(varDef)
 	}
 
-	return nil, false, fmt.Errorf("unknown var source: %s", sourceName)
+	return nil, false, MissingSourceError{Name: varDef.Ref.Name, Source: varDef.Ref.Source}
 }
 
 func (m NamedVariables) List() ([]VariableDefinition, error) {
 	var allDefs []VariableDefinition
 
-	for _, vars := range m {
+	for source, vars := range m {
 		defs, err := vars.List()
 		if err != nil {
 			return nil, err
+		}
+
+		for i, _ := range defs {
+			defs[i].Ref.Source = source
 		}
 
 		allDefs = append(allDefs, defs...)

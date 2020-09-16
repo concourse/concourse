@@ -1,9 +1,7 @@
 package ssm
 
 import (
-	"bytes"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/concourse/concourse/atc/creds"
@@ -18,10 +16,10 @@ import (
 type Ssm struct {
 	log             lager.Logger
 	api             ssmiface.SSMAPI
-	secretTemplates []*template.Template
+	secretTemplates []*creds.SecretTemplate
 }
 
-func NewSsm(log lager.Logger, api ssmiface.SSMAPI, secretTemplates []*template.Template) *Ssm {
+func NewSsm(log lager.Logger, api ssmiface.SSMAPI, secretTemplates []*creds.SecretTemplate) *Ssm {
 	return &Ssm{
 		log:             log,
 		api:             api,
@@ -33,12 +31,7 @@ func NewSsm(log lager.Logger, api ssmiface.SSMAPI, secretTemplates []*template.T
 func (s *Ssm) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 	for _, tmpl := range s.secretTemplates {
-		lPath := NewSecretLookupPathSsm(tmpl, teamName, pipelineName)
-
-		// if pipeline name is empty, double slashes may be present in the rendered template
-		// let's avoid adding these templates
-		samplePath, err := lPath.VariableToSecretPath("variable")
-		if err == nil && !strings.Contains(samplePath, "//") {
+		if lPath := creds.NewSecretLookupWithTemplate(tmpl, teamName, pipelineName); lPath != nil {
 			lookupPaths = append(lookupPaths, lPath)
 		}
 	}
@@ -107,29 +100,4 @@ func (s *Ssm) getParameterByPath(path string) (interface{}, *time.Time, bool, er
 		return nil, nil, false, nil
 	}
 	return value, nil, true, nil
-}
-
-// SecretLookupPathSsm is an implementation which returns an evaluated go text template
-type SecretLookupPathSsm struct {
-	NameTemplate *template.Template
-	TeamName     string
-	PipelineName string
-}
-
-func NewSecretLookupPathSsm(nameTemplate *template.Template, teamName string, pipelineName string) creds.SecretLookupPath {
-	return &SecretLookupPathSsm{
-		NameTemplate: nameTemplate,
-		TeamName:     teamName,
-		PipelineName: pipelineName,
-	}
-}
-
-func (sl SecretLookupPathSsm) VariableToSecretPath(varName string) (string, error) {
-	var buf bytes.Buffer
-	err := sl.NameTemplate.Execute(&buf, &SsmSecret{
-		Team:     sl.TeamName,
-		Pipeline: sl.PipelineName,
-		Secret:   varName,
-	})
-	return buf.String(), err
 }

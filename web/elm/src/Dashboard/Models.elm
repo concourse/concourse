@@ -2,6 +2,7 @@ module Dashboard.Models exposing
     ( DragState(..)
     , DropState(..)
     , Dropdown(..)
+    , FetchError(..)
     , FooterModel
     , Model
     )
@@ -11,17 +12,20 @@ import Dashboard.Group.Models
 import Dict exposing (Dict)
 import FetchResult exposing (FetchResult)
 import Login.Login as Login
+import Message.Effects exposing (Effect(..))
+import Message.Message exposing (DropTarget)
+import Routes
+import Set exposing (Set)
 import Time
 
 
 type alias Model =
     FooterModel
         (Login.Model
-            { showTurbulence : Bool
-            , now : Maybe Time.Posix
+            { now : Maybe Time.Posix
             , highDensity : Bool
             , query : String
-            , pipelinesWithResourceErrors : Dict ( String, String ) Bool
+            , pipelinesWithResourceErrors : Set ( String, String )
             , jobs : FetchResult (Dict ( String, String, String ) Concourse.Job)
             , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
             , teams : FetchResult (List Concourse.Team)
@@ -31,27 +35,33 @@ type alias Model =
             , isTeamsRequestFinished : Bool
             , isPipelinesRequestFinished : Bool
             , isResourcesRequestFinished : Bool
+            , jobsError : Maybe FetchError
+            , teamsError : Maybe FetchError
+            , resourcesError : Maybe FetchError
+            , pipelinesError : Maybe FetchError
             , viewportWidth : Float
             , viewportHeight : Float
             , scrollTop : Float
             , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
+            , effectsToRetry : List Effect
             }
         )
 
 
+type FetchError
+    = Failed
+    | Disabled
+
+
 type DragState
     = NotDragging
-    | Dragging Concourse.TeamName PipelineIndex
+    | Dragging Concourse.TeamName Concourse.PipelineName
 
 
 type DropState
     = NotDropping
-    | Dropping PipelineIndex
+    | Dropping DropTarget
     | DroppingWhileApiRequestInFlight Concourse.TeamName
-
-
-type alias PipelineIndex =
-    Int
 
 
 type alias FooterModel r =
@@ -59,9 +69,10 @@ type alias FooterModel r =
         | hideFooter : Bool
         , hideFooterCounter : Int
         , showHelp : Bool
-        , pipelines : FetchResult (List Dashboard.Group.Models.Pipeline)
+        , pipelines : Maybe (Dict String (List Dashboard.Group.Models.Pipeline))
         , dropdown : Dropdown
         , highDensity : Bool
+        , dashboardView : Routes.DashboardView
     }
 
 

@@ -3,13 +3,17 @@ package scheduler
 import (
 	"context"
 	"fmt"
+	"os"
+	"runtime/debug"
+	"strconv"
 	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
-	"github.com/concourse/concourse/atc/scheduler/algorithm"
+	"github.com/concourse/concourse/tracing"
+	"go.opentelemetry.io/otel/api/key"
 )
 
 //go:generate counterfeiter . BuildScheduler
@@ -18,14 +22,11 @@ type BuildScheduler interface {
 	Schedule(
 		ctx context.Context,
 		logger lager.Logger,
-		pipeline db.Pipeline,
-		job db.Job,
-		resources db.Resources,
-		relatedJobIDs algorithm.NameToIDMap,
+		job db.SchedulerJob,
 	) (bool, error)
 }
 
-type schedulerRunner struct {
+type Runner struct {
 	logger     lager.Logger
 	jobFactory db.JobFactory
 	scheduler  BuildScheduler
@@ -34,65 +35,31 @@ type schedulerRunner struct {
 	running            *sync.Map
 }
 
-func NewRunner(logger lager.Logger, jobFactory db.JobFactory, scheduler BuildScheduler, maxJobs uint64) Runner {
-	newGuardJobScheduling := make(chan struct{}, maxJobs)
-	return &schedulerRunner{
+func NewRunner(logger lager.Logger, jobFactory db.JobFactory, scheduler BuildScheduler, maxJobs uint64) *Runner {
+	return &Runner{
 		logger:     logger,
 		jobFactory: jobFactory,
 		scheduler:  scheduler,
 
-		guardJobScheduling: newGuardJobScheduling,
+		guardJobScheduling: make(chan struct{}, maxJobs),
 		running:            &sync.Map{},
 	}
 }
 
-func (s *schedulerRunner) Run(ctx context.Context) error {
+func (s *Runner) Run(ctx context.Context) error {
 	sLog := s.logger.Session("run")
 
 	sLog.Debug("start")
 	defer sLog.Debug("done")
+	spanCtx, span := tracing.StartSpan(ctx, "scheduler.Run", nil)
+	defer span.End()
 
 	jobs, err := s.jobFactory.JobsToSchedule()
 	if err != nil {
 		return fmt.Errorf("find jobs to schedule: %w", err)
 	}
 
-	pipelineIDToPipeline, pipelineIDToJobs, err := s.constructPipelineIDMaps(jobs)
-	if err != nil {
-		return err
-	}
-
-	for pipelineID, jobsToSchedule := range pipelineIDToJobs {
-		pipeline := pipelineIDToPipeline[pipelineID]
-
-		pLog := s.logger.Session("pipeline", lager.Data{"pipeline": pipeline.Name()})
-
-		err := s.schedulePipeline(ctx, pLog, pipeline, jobsToSchedule)
-		if err != nil {
-			pLog.Error("failed-to-schedule", err)
-		}
-	}
-
-	return nil
-}
-
-func (s *schedulerRunner) schedulePipeline(ctx context.Context, logger lager.Logger, pipeline db.Pipeline, jobsToSchedule db.Jobs) error {
-	resources, err := pipeline.Resources()
-	if err != nil {
-		return fmt.Errorf("find resources: %w", err)
-	}
-
-	jobs, err := pipeline.Jobs()
-	if err != nil {
-		return fmt.Errorf("find jobs: %w", err)
-	}
-
-	jobsMap := map[string]int{}
-	for _, job := range jobs {
-		jobsMap[job.Name()] = job.ID()
-	}
-
-	for _, j := range jobsToSchedule {
+	for _, j := range jobs {
 		if _, exists := s.running.LoadOrStore(j.ID(), true); exists {
 			// already scheduling this job
 			continue
@@ -100,15 +67,29 @@ func (s *schedulerRunner) schedulePipeline(ctx context.Context, logger lager.Log
 
 		s.guardJobScheduling <- struct{}{}
 
-		jLog := logger.Session("job", lager.Data{"job": j.Name()})
+		jLog := sLog.Session("job", lager.Data{"job": j.Name()})
 
-		go func(job db.Job) {
+		go func(job db.SchedulerJob) {
+			loggerData := lager.Data{
+				"job_id":        strconv.Itoa(job.ID()),
+				"job_name":      job.Name(),
+				"pipeline_name": job.PipelineName(),
+				"team_name":     job.TeamName(),
+			}
+			defer func() {
+				if r := recover(); r != nil {
+					err = fmt.Errorf("panic in scheduler run %s: %v", loggerData, r)
+
+					fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
+					jLog.Error("panic-in-scheduler-run", err)
+				}
+			}()
 			defer func() {
 				<-s.guardJobScheduling
 				s.running.Delete(job.ID())
 			}()
 
-			schedulingLock, acquired, err := job.AcquireSchedulingLock(logger)
+			schedulingLock, acquired, err := job.AcquireSchedulingLock(sLog)
 			if err != nil {
 				jLog.Error("failed-to-acquire-lock", err)
 				return
@@ -120,7 +101,7 @@ func (s *schedulerRunner) schedulePipeline(ctx context.Context, logger lager.Log
 
 			defer schedulingLock.Release()
 
-			err = s.scheduleJob(ctx, logger, pipeline, job, resources, jobsMap)
+			err = s.scheduleJob(spanCtx, sLog, job)
 			if err != nil {
 				jLog.Error("failed-to-schedule-job", err)
 			}
@@ -130,12 +111,18 @@ func (s *schedulerRunner) schedulePipeline(ctx context.Context, logger lager.Log
 	return nil
 }
 
-func (s *schedulerRunner) scheduleJob(ctx context.Context, logger lager.Logger, pipeline db.Pipeline, job db.Job, resources db.Resources, jobs algorithm.NameToIDMap) error {
-	metric.JobsScheduling.Inc()
-	defer metric.JobsScheduling.Dec()
-	defer metric.JobsScheduled.Inc()
+func (s *Runner) scheduleJob(ctx context.Context, logger lager.Logger, job db.SchedulerJob) error {
+	metric.Metrics.JobsScheduling.Inc()
+	defer metric.Metrics.JobsScheduling.Dec()
+	defer metric.Metrics.JobsScheduled.Inc()
 
 	logger = logger.Session("schedule-job", lager.Data{"job": job.Name()})
+	spanCtx, span := tracing.StartSpan(ctx, "schedule-job", tracing.Attrs{
+		"team":     job.TeamName(),
+		"pipeline": job.PipelineName(),
+		"job":      job.Name(),
+	})
+	defer span.End()
 
 	logger.Debug("schedule")
 
@@ -157,17 +144,15 @@ func (s *schedulerRunner) scheduleJob(ctx context.Context, logger lager.Logger, 
 	jStart := time.Now()
 
 	needsRetry, err := s.scheduler.Schedule(
-		ctx,
+		spanCtx,
 		logger,
-		pipeline,
 		job,
-		resources,
-		jobs,
 	)
 	if err != nil {
 		return fmt.Errorf("schedule job: %w", err)
 	}
 
+	span.SetAttributes(key.New("needs-retry").Bool(needsRetry))
 	if !needsRetry {
 		err = job.UpdateLastScheduled(requestedTime)
 		if err != nil {
@@ -184,32 +169,4 @@ func (s *schedulerRunner) scheduleJob(ctx context.Context, logger lager.Logger, 
 	}.Emit(logger)
 
 	return nil
-}
-
-func (s *schedulerRunner) constructPipelineIDMaps(jobs db.Jobs) (map[int]db.Pipeline, map[int]db.Jobs, error) {
-	pipelineIDToPipeline := make(map[int]db.Pipeline)
-	pipelineIDToJobs := make(map[int]db.Jobs)
-
-	for _, job := range jobs {
-		pipelineID := job.PipelineID()
-
-		_, found := pipelineIDToPipeline[pipelineID]
-		if !found {
-			pipeline, found, err := job.Pipeline()
-			if err != nil {
-				return nil, nil, fmt.Errorf("find pipeline for job: %w", err)
-			}
-
-			if !found {
-				s.logger.Info("could-not-find-pipeline-for-job", lager.Data{"job": job.Name()})
-				continue
-			}
-
-			pipelineIDToPipeline[pipelineID] = pipeline
-		}
-
-		pipelineIDToJobs[pipelineID] = append(pipelineIDToJobs[pipelineID], job)
-	}
-
-	return pipelineIDToPipeline, pipelineIDToJobs, nil
 }

@@ -150,6 +150,8 @@ func (repository *volumeRepository) RemoveMissingVolumes(gracePeriod time.Durati
 		return 0, err
 	}
 
+	defer tx.Rollback()
+
 	// Setting the foreign key constraint to deferred, meaning that the foreign
 	// key constraint will not be executed until the end of the transaction. This
 	// allows the gc query to remove any parent volumes as long as the child

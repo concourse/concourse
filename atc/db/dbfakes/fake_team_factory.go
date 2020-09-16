@@ -72,6 +72,16 @@ type FakeTeamFactory struct {
 		result1 []db.Team
 		result2 error
 	}
+	NotifyCacherStub        func() error
+	notifyCacherMutex       sync.RWMutex
+	notifyCacherArgsForCall []struct {
+	}
+	notifyCacherReturns struct {
+		result1 error
+	}
+	notifyCacherReturnsOnCall map[int]struct {
+		result1 error
+	}
 	NotifyResourceScannerStub        func() error
 	notifyResourceScannerMutex       sync.RWMutex
 	notifyResourceScannerArgsForCall []struct {
@@ -385,6 +395,58 @@ func (fake *FakeTeamFactory) GetTeamsReturnsOnCall(i int, result1 []db.Team, res
 	}{result1, result2}
 }
 
+func (fake *FakeTeamFactory) NotifyCacher() error {
+	fake.notifyCacherMutex.Lock()
+	ret, specificReturn := fake.notifyCacherReturnsOnCall[len(fake.notifyCacherArgsForCall)]
+	fake.notifyCacherArgsForCall = append(fake.notifyCacherArgsForCall, struct {
+	}{})
+	fake.recordInvocation("NotifyCacher", []interface{}{})
+	fake.notifyCacherMutex.Unlock()
+	if fake.NotifyCacherStub != nil {
+		return fake.NotifyCacherStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.notifyCacherReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeTeamFactory) NotifyCacherCallCount() int {
+	fake.notifyCacherMutex.RLock()
+	defer fake.notifyCacherMutex.RUnlock()
+	return len(fake.notifyCacherArgsForCall)
+}
+
+func (fake *FakeTeamFactory) NotifyCacherCalls(stub func() error) {
+	fake.notifyCacherMutex.Lock()
+	defer fake.notifyCacherMutex.Unlock()
+	fake.NotifyCacherStub = stub
+}
+
+func (fake *FakeTeamFactory) NotifyCacherReturns(result1 error) {
+	fake.notifyCacherMutex.Lock()
+	defer fake.notifyCacherMutex.Unlock()
+	fake.NotifyCacherStub = nil
+	fake.notifyCacherReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeTeamFactory) NotifyCacherReturnsOnCall(i int, result1 error) {
+	fake.notifyCacherMutex.Lock()
+	defer fake.notifyCacherMutex.Unlock()
+	fake.NotifyCacherStub = nil
+	if fake.notifyCacherReturnsOnCall == nil {
+		fake.notifyCacherReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.notifyCacherReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeTeamFactory) NotifyResourceScanner() error {
 	fake.notifyResourceScannerMutex.Lock()
 	ret, specificReturn := fake.notifyResourceScannerReturnsOnCall[len(fake.notifyResourceScannerArgsForCall)]
@@ -450,6 +512,8 @@ func (fake *FakeTeamFactory) Invocations() map[string][][]interface{} {
 	defer fake.getByIDMutex.RUnlock()
 	fake.getTeamsMutex.RLock()
 	defer fake.getTeamsMutex.RUnlock()
+	fake.notifyCacherMutex.RLock()
+	defer fake.notifyCacherMutex.RUnlock()
 	fake.notifyResourceScannerMutex.RLock()
 	defer fake.notifyResourceScannerMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

@@ -11,7 +11,7 @@ jobs:
   plan:
   - get: resource-using-vars
 
-  - load_var: local-var
+  - load_var: local.var
     file: resource-using-vars/data
     format: raw
 
@@ -31,4 +31,4 @@ jobs:
         args:
         - -exc
         - |
-          test "((.:local-var))" = "hello-world"
+          test "((.:"local.var"))" = "hello-world"

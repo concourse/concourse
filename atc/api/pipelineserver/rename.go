@@ -28,6 +28,12 @@ func (s *Server) RenamePipeline(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
+		var warnings []atc.ConfigWarning
+		warning := atc.ValidateIdentifier(rename.NewName, "pipeline")
+		if warning != nil {
+			warnings = append(warnings, *warning)
+		}
+
 		err = pipeline.Rename(rename.NewName)
 		if err != nil {
 			logger.Error("failed-to-update-name", err)
@@ -35,6 +41,11 @@ func (s *Server) RenamePipeline(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		w.Header().Set("Content-Type", "application/json")
+		err = json.NewEncoder(w).Encode(atc.SaveConfigResponse{Warnings: warnings})
+		if err != nil {
+			s.logger.Error("failed-to-encode-response", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	})
 }

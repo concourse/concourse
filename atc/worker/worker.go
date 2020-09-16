@@ -16,14 +16,17 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
+	"github.com/cppforlife/go-semi-semantic/version"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker/gclient"
-	"github.com/cppforlife/go-semi-semantic/version"
-	"golang.org/x/sync/errgroup"
+	"github.com/concourse/concourse/tracing"
 )
 
 const userPropertyName = "user"
@@ -57,6 +60,7 @@ type Worker interface {
 	) (Container, error)
 
 	FindVolumeForResourceCache(logger lager.Logger, resourceCache db.UsedResourceCache) (Volume, bool, error)
+	FindResourceCacheForVolume(volume Volume) (db.UsedResourceCache, bool, error)
 	FindVolumeForTaskCache(lager.Logger, int, int, string, string) (Volume, bool, error)
 	Fetch(
 		context.Context,
@@ -83,13 +87,15 @@ type Worker interface {
 }
 
 type gardenWorker struct {
-	gardenClient gclient.Client
-	volumeClient VolumeClient
-	imageFactory ImageFactory
+	gardenClient         gclient.Client
+	volumeClient         VolumeClient
+	imageFactory         ImageFactory
+	resourceCacheFactory db.ResourceCacheFactory
 	Fetcher
 	dbWorker        db.Worker
 	buildContainers int
 	helper          workerHelper
+	policyChecker   *policy.Checker
 }
 
 // NewGardenWorker constructs a Worker using the gardenWorker runtime implementation and allows container and volume
@@ -103,7 +109,9 @@ func NewGardenWorker(
 	fetcher Fetcher,
 	dbTeamFactory db.TeamFactory,
 	dbWorker db.Worker,
+	resourceCacheFactory db.ResourceCacheFactory,
 	numBuildContainers int,
+	policyChecker *policy.Checker,
 	// TODO: numBuildContainers is only needed for placement strategy but this
 	// method is called in ContainerProvider.FindOrCreateContainer as well and
 	// hence we pass in 0 values for numBuildContainers everywhere.
@@ -117,13 +125,15 @@ func NewGardenWorker(
 	}
 
 	return &gardenWorker{
-		gardenClient:    gardenClient,
-		volumeClient:    volumeClient,
-		imageFactory:    imageFactory,
-		Fetcher:         fetcher,
-		dbWorker:        dbWorker,
-		buildContainers: numBuildContainers,
-		helper:          workerHelper,
+		gardenClient:         gardenClient,
+		volumeClient:         volumeClient,
+		imageFactory:         imageFactory,
+		Fetcher:              fetcher,
+		dbWorker:             dbWorker,
+		resourceCacheFactory: resourceCacheFactory,
+		buildContainers:      numBuildContainers,
+		helper:               workerHelper,
+		policyChecker:        policyChecker,
 	}
 }
 
@@ -177,6 +187,15 @@ func (worker *gardenWorker) FindVolumeForResourceCache(logger lager.Logger, reso
 	return worker.volumeClient.FindVolumeForResourceCache(logger, resourceCache)
 }
 
+func (worker *gardenWorker) FindResourceCacheForVolume(volume Volume) (db.UsedResourceCache, bool, error) {
+	if volume.GetResourceCacheID() != 0 {
+		return worker.resourceCacheFactory.FindResourceCacheByID(volume.GetResourceCacheID())
+	} else {
+		return nil, false, nil
+	}
+
+}
+
 func (worker *gardenWorker) FindVolumeForTaskCache(logger lager.Logger, teamID int, jobID int, stepName string, path string) (Volume, bool, error) {
 	return worker.volumeClient.FindVolumeForTaskCache(logger, teamID, jobID, stepName, path)
 }
@@ -191,6 +210,68 @@ func (worker *gardenWorker) CreateVolume(logger lager.Logger, spec VolumeSpec, t
 
 func (worker *gardenWorker) LookupVolume(logger lager.Logger, handle string) (Volume, bool, error) {
 	return worker.volumeClient.LookupVolume(logger, handle)
+}
+
+func (worker *gardenWorker) imagePolicyCheck(
+	ctx context.Context,
+	delegate ImageFetchingDelegate,
+	metadata db.ContainerMetadata,
+	containerSpec ContainerSpec,
+	resourceTypes atc.VersionedResourceTypes,
+) (policy.PolicyCheckOutput, error) {
+	if worker.policyChecker == nil {
+		return policy.PassedPolicyCheck(), nil
+	}
+
+	// Actions in skip list will not go through policy check.
+	if !worker.policyChecker.ShouldCheckAction(policy.ActionUseImage) {
+		return policy.PassedPolicyCheck(), nil
+	}
+
+	imageSpec := containerSpec.ImageSpec
+
+	imageInfo := map[string]interface{}{
+		"privileged": imageSpec.Privileged,
+	}
+
+	if imageSpec.ImageResource != nil {
+		imageInfo["image_type"] = imageSpec.ImageResource.Type
+		imageInfo["image_source"] = imageSpec.ImageResource.Source
+	} else if imageSpec.ResourceType != "" {
+		for _, rt := range resourceTypes {
+			if rt.Name == imageSpec.ResourceType {
+				imageInfo["image_type"] = rt.Type
+				imageInfo["image_source"] = rt.Source
+			}
+		}
+
+		// If resource type not found, then it should be a built-in resource
+		// type, and could skip policy check.
+		if _, ok := imageInfo["image_type"]; !ok {
+			return policy.PassedPolicyCheck(), nil
+		}
+	} else {
+		// Ignore other images as policy checker cannot do much on them.
+		return policy.PassedPolicyCheck(), nil
+	}
+
+	if originalSource, ok := imageInfo["image_source"].(atc.Source); ok {
+		redactedSource, err := delegate.RedactImageSource(originalSource)
+		if err != nil {
+			return policy.FailedPolicyCheck(), err
+		}
+		imageInfo["image_source"] = redactedSource
+	}
+
+	teamName, pipelineName := policy.TeamAndPipelineFromContext(ctx)
+	input := policy.PolicyCheckInput{
+		Action:   policy.ActionUseImage,
+		Team:     teamName,
+		Pipeline: pipelineName,
+		Data:     imageInfo,
+	}
+
+	return worker.policyChecker.Check(input)
 }
 
 func (worker *gardenWorker) FindOrCreateContainer(
@@ -210,6 +291,16 @@ func (worker *gardenWorker) FindOrCreateContainer(
 		containerHandle   string
 		err               error
 	)
+
+	result, err := worker.imagePolicyCheck(ctx, delegate, metadata, containerSpec, resourceTypes)
+	if err != nil {
+		return nil, err
+	}
+	if !result.Allowed {
+		return nil, policy.PolicyCheckNotPass{
+			Reasons: result.Reasons,
+		}
+	}
 
 	// ensure either creatingContainer or createdContainer exists
 	creatingContainer, createdContainer, err = worker.dbWorker.FindContainer(owner)
@@ -304,7 +395,7 @@ func (worker *gardenWorker) FindOrCreateContainer(
 			if failedErr != nil {
 				logger.Error("failed-to-mark-container-as-failed", err)
 			}
-			metric.FailedContainers.Inc()
+			metric.Metrics.FailedContainers.Inc()
 
 			logger.Error("failed-to-create-container-in-garden", err)
 			return nil, err
@@ -314,7 +405,7 @@ func (worker *gardenWorker) FindOrCreateContainer(
 
 	logger.Debug("created-container-in-garden")
 
-	metric.ContainersCreated.Inc()
+	metric.Metrics.ContainersCreated.Inc()
 	createdContainer, err = creatingContainer.Created()
 	if err != nil {
 		logger.Error("failed-to-mark-container-as-created", err)
@@ -582,7 +673,15 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 	container db.CreatingContainer,
 	nonLocals []mountableRemoteInput,
 ) ([]VolumeMount, error) {
+
 	mounts := make([]VolumeMount, len(nonLocals))
+	if len(nonLocals) <= 0 {
+		return mounts, nil
+	}
+
+	ctx, span := tracing.StartSpan(ctx, "worker.cloneRemoteVolumes", tracing.Attrs{"container_id": container.Handle()})
+	defer span.End()
+
 	g, groupCtx := errgroup.WithContext(ctx)
 
 	for i, nonLocalInput := range nonLocals {
@@ -601,14 +700,10 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 		if err != nil {
 			return []VolumeMount{}, err
 		}
-		destData := lager.Data{
-			"dest-volume": inputVolume.Handle(),
-			"dest-worker": inputVolume.WorkerName(),
-		}
 
 		g.Go(func() error {
 			if streamable, ok := nonLocalInput.desiredArtifact.(StreamableArtifactSource); ok {
-				err = streamable.StreamTo(groupCtx, logger.Session("stream-to", destData), inputVolume)
+				err = streamable.StreamTo(groupCtx, inputVolume)
 				if err != nil {
 					return err
 				}
@@ -625,6 +720,8 @@ func (worker *gardenWorker) cloneRemoteVolumes(
 	if err := g.Wait(); err != nil {
 		return nil, err
 	}
+
+	logger.Debug("streamed-non-local-volumes", lager.Data{"volumes-streamed": len(nonLocals)})
 
 	return mounts, nil
 }

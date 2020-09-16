@@ -58,7 +58,7 @@ func (d *destroyer) DestroyContainers(workerName string, currentHandles []string
 		return err
 	}
 
-	metric.ContainersDeleted.IncDelta(deleted)
+	metric.Metrics.ContainersDeleted.IncDelta(deleted)
 	return nil
 }
 
@@ -80,7 +80,7 @@ func (d *destroyer) DestroyVolumes(workerName string, currentHandles []string) e
 		return err
 	}
 
-	metric.VolumesDeleted.IncDelta(deleted)
+	metric.Metrics.VolumesDeleted.IncDelta(deleted)
 	return nil
 }
 

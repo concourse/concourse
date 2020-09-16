@@ -1,10 +1,7 @@
 package secretsmanager
 
 import (
-	"bytes"
 	"encoding/json"
-	"strings"
-	"text/template"
 	"time"
 
 	"github.com/concourse/concourse/atc/creds"
@@ -18,10 +15,10 @@ import (
 type SecretsManager struct {
 	log             lager.Logger
 	api             secretsmanageriface.SecretsManagerAPI
-	secretTemplates []*template.Template
+	secretTemplates []*creds.SecretTemplate
 }
 
-func NewSecretsManager(log lager.Logger, api secretsmanageriface.SecretsManagerAPI, secretTemplates []*template.Template) *SecretsManager {
+func NewSecretsManager(log lager.Logger, api secretsmanageriface.SecretsManagerAPI, secretTemplates []*creds.SecretTemplate) *SecretsManager {
 	return &SecretsManager{
 		log:             log,
 		api:             api,
@@ -33,12 +30,7 @@ func NewSecretsManager(log lager.Logger, api secretsmanageriface.SecretsManagerA
 func (s *SecretsManager) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 	for _, tmpl := range s.secretTemplates {
-		lPath := NewSecretLookupPathAws(tmpl, teamName, pipelineName)
-
-		// if pipeline name is empty, double slashes may be present in the rendered template
-		// let's avoid adding these templates
-		samplePath, err := lPath.VariableToSecretPath("variable")
-		if err == nil && !strings.Contains(samplePath, "//") {
+		if lPath := creds.NewSecretLookupWithTemplate(tmpl, teamName, pipelineName); lPath != nil {
 			lookupPaths = append(lookupPaths, lPath)
 		}
 	}
@@ -61,14 +53,14 @@ func (s *SecretsManager) Get(secretPath string) (interface{}, *time.Time, bool, 
 }
 
 /*
-	Looks up secret by name. Depending on which field is filled it will either
+	Looks up secret by path. Depending on which field is filled it will either
 	return a string value (SecretString) or a map[string]interface{} (SecretBinary).
 
 	In case SecretBinary is set, it is expected to be a valid JSON object or it will error.
 */
-func (s *SecretsManager) getSecretById(name string) (interface{}, *time.Time, bool, error) {
+func (s *SecretsManager) getSecretById(path string) (interface{}, *time.Time, bool, error) {
 	value, err := s.api.GetSecretValue(&secretsmanager.GetSecretValueInput{
-		SecretId: &name,
+		SecretId: &path,
 	})
 	if err == nil {
 		switch {
@@ -94,29 +86,4 @@ func decodeJsonValue(data []byte) (map[string]interface{}, error) {
 		return nil, err
 	}
 	return values, nil
-}
-
-// SecretLookupPathAws is an implementation which returns an evaluated go text template
-type SecretLookupPathAws struct {
-	NameTemplate *template.Template
-	TeamName     string
-	PipelineName string
-}
-
-func NewSecretLookupPathAws(nameTemplate *template.Template, teamName string, pipelineName string) creds.SecretLookupPath {
-	return &SecretLookupPathAws{
-		NameTemplate: nameTemplate,
-		TeamName:     teamName,
-		PipelineName: pipelineName,
-	}
-}
-
-func (sl SecretLookupPathAws) VariableToSecretPath(varName string) (string, error) {
-	var buf bytes.Buffer
-	err := sl.NameTemplate.Execute(&buf, &Secret{
-		Team:     sl.TeamName,
-		Pipeline: sl.PipelineName,
-		Secret:   varName,
-	})
-	return buf.String(), err
 }

@@ -16,13 +16,15 @@ type Asset
     = CliIcon Cli
     | ChevronLeft
     | ChevronRight
-    | HighDensityIcon Bool
+    | ToggleSwitch Bool
     | VisibilityToggleIcon Bool
+    | FavoritedToggleIcon Bool
     | BuildFavicon (Maybe BuildStatus)
     | PinIconWhite
     | PinIconGrey
     | CheckmarkIcon
     | BreadcrumbIcon ComponentType
+    | ArchivedPipelineIcon
     | PassportOfficerIcon
     | ConcourseLogoWhite
     | CircleOutlineIcon CircleOutlineIcon
@@ -37,6 +39,8 @@ type Asset
     | FailureTimesIcon
     | ExclamationTriangleIcon
     | PipelineStatusIcon PipelineStatus
+    | PipelineStatusIconStale
+    | PipelineStatusIconJobsDisabled
     | ClippyIcon
     | UpArrow
     | DownArrow
@@ -44,8 +48,8 @@ type Asset
     | MessageIcon
     | HamburgerMenuIcon
     | PeopleIcon
-    | KeyboardArrowDown
-    | KeyboardArrowRight
+    | PlusIcon
+    | MinusIcon
     | PlayIcon
     | PauseIcon
     | PencilIcon
@@ -109,7 +113,7 @@ toPath asset =
         ChevronRight ->
             basePath ++ [ "baseline-chevron-right.svg" ]
 
-        HighDensityIcon on ->
+        ToggleSwitch on ->
             let
                 imageName =
                     if on then
@@ -118,7 +122,7 @@ toPath asset =
                     else
                         "off"
             in
-            basePath ++ [ "ic-hd-" ++ imageName ++ ".svg" ]
+            basePath ++ [ "ic-toggle-" ++ imageName ++ ".svg" ]
 
         VisibilityToggleIcon visible ->
             let
@@ -130,6 +134,17 @@ toPath asset =
                         "-off"
             in
             basePath ++ [ "baseline-visibility" ++ imageName ++ ".svg" ]
+
+        FavoritedToggleIcon isFavorited ->
+            let
+                imageName =
+                    if isFavorited then
+                        "-filled"
+
+                    else
+                        "-unfilled"
+            in
+            basePath ++ [ "star" ++ imageName ++ ".svg" ]
 
         BuildFavicon maybeStatus ->
             basePath
@@ -171,6 +186,9 @@ toPath asset =
                             "resource"
             in
             basePath ++ [ "ic-breadcrumb-" ++ imageName ++ ".svg" ]
+
+        ArchivedPipelineIcon ->
+            basePath ++ [ "ic-archived-pipeline.svg" ]
 
         PassportOfficerIcon ->
             basePath ++ [ "passport-officer-ic.svg" ]
@@ -247,11 +265,14 @@ toPath asset =
 
                         PipelineStatusErrored _ ->
                             "ic-error-orange.svg"
-
-                        PipelineStatusUnknown ->
-                            "ic-cached-grey.svg"
             in
             basePath ++ [ imageName ]
+
+        PipelineStatusIconStale ->
+            basePath ++ [ "ic-cached-grey.svg" ]
+
+        PipelineStatusIconJobsDisabled ->
+            basePath ++ [ "ic-sync.svg" ]
 
         ClippyIcon ->
             basePath ++ [ "clippy.svg" ]
@@ -274,11 +295,11 @@ toPath asset =
         PeopleIcon ->
             basePath ++ [ "baseline-people.svg" ]
 
-        KeyboardArrowDown ->
-            basePath ++ [ "baseline-keyboard-arrow-down.svg" ]
+        PlusIcon ->
+            basePath ++ [ "ic-plus.svg" ]
 
-        KeyboardArrowRight ->
-            basePath ++ [ "baseline-keyboard-arrow-right.svg" ]
+        MinusIcon ->
+            basePath ++ [ "ic-minus.svg" ]
 
         PlayIcon ->
             basePath ++ [ "ic-play-white.svg" ]

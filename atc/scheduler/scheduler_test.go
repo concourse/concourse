@@ -10,10 +10,11 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/scheduler"
-	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/concourse/concourse/atc/scheduler/schedulerfakes"
+	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel/api/trace/testtrace"
 )
 
 var _ = Describe("Scheduler", func() {
@@ -24,6 +25,7 @@ var _ = Describe("Scheduler", func() {
 		scheduler *Scheduler
 
 		disaster error
+		ctx      context.Context
 	)
 
 	BeforeEach(func() {
@@ -42,35 +44,30 @@ var _ = Describe("Scheduler", func() {
 		var (
 			fakePipeline *dbfakes.FakePipeline
 			fakeJob      *dbfakes.FakeJob
-			fakeResource *dbfakes.FakeResource
 			scheduleErr  error
-
-			expectedResources db.Resources
-			expectedJobIDs    algorithm.NameToIDMap
 		)
 
 		BeforeEach(func() {
 			fakeJob = new(dbfakes.FakeJob)
 			fakePipeline = new(dbfakes.FakePipeline)
 			fakePipeline.NameReturns("fake-pipeline")
-
-			fakeResource = new(dbfakes.FakeResource)
-			fakeResource.NameReturns("some-resource")
-
-			expectedResources = db.Resources{fakeResource}
-			expectedJobIDs = algorithm.NameToIDMap{"j1": 1}
+			ctx = context.Background()
 		})
 
 		JustBeforeEach(func() {
 			var waiter interface{ Wait() }
 
 			_, scheduleErr = scheduler.Schedule(
-				context.TODO(),
+				ctx,
 				lagertest.NewTestLogger("test"),
-				fakePipeline,
-				fakeJob,
-				expectedResources,
-				expectedJobIDs,
+				db.SchedulerJob{
+					Job: fakeJob,
+					Resources: db.SchedulerResources{
+						{
+							Name: "some-resource",
+						},
+					},
+				},
 			)
 			if waiter != nil {
 				waiter.Wait()
@@ -81,7 +78,7 @@ var _ = Describe("Scheduler", func() {
 			BeforeEach(func() {
 				fakeJob.NameReturns("some-job-1")
 
-				fakeJob.InputsReturns(nil, nil)
+				fakeJob.AlgorithmInputsReturns(nil, nil)
 			})
 
 			Context("when computing the inputs fails", func() {
@@ -115,10 +112,8 @@ var _ = Describe("Scheduler", func() {
 
 				It("computed the inputs", func() {
 					Expect(fakeAlgorithm.ComputeCallCount()).To(Equal(1))
-					_, actualJob, actualInputs, resources, relatedJobs := fakeAlgorithm.ComputeArgsForCall(0)
+					_, actualJob, actualInputs := fakeAlgorithm.ComputeArgsForCall(0)
 					Expect(actualJob.Name()).To(Equal(fakeJob.Name()))
-					Expect(resources).To(Equal(expectedResources))
-					Expect(relatedJobs).To(Equal(expectedJobIDs))
 					Expect(actualInputs).To(BeNil())
 				})
 
@@ -190,11 +185,10 @@ var _ = Describe("Scheduler", func() {
 
 							It("started all pending builds", func() {
 								Expect(fakeBuildStarter.TryStartPendingBuildsForJobCallCount()).To(Equal(1))
-								_, actualPipeline, actualJob, actualInputs, actualResources, relatedJobs := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
-								Expect(actualPipeline.Name()).To(Equal("fake-pipeline"))
+								_, actualJob, actualInputs := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
 								Expect(actualJob.Name()).To(Equal(fakeJob.Name()))
-								Expect(actualResources).To(Equal(db.Resources{fakeResource}))
-								Expect(relatedJobs).To(Equal(expectedJobIDs))
+								Expect(len(actualJob.Resources)).To(Equal(1))
+								Expect(actualJob.Resources[0].Name).To(Equal("some-resource"))
 								Expect(actualInputs).To(BeNil())
 							})
 						})
@@ -225,7 +219,7 @@ var _ = Describe("Scheduler", func() {
 		Context("when the job has one trigger: true input", func() {
 			BeforeEach(func() {
 				fakeJob.NameReturns("some-job")
-				fakeJob.InputsReturns([]atc.JobInput{
+				fakeJob.AlgorithmInputsReturns(db.InputConfigs{
 					{Name: "a", Trigger: true},
 					{Name: "b", Trigger: false},
 				}, nil)
@@ -236,12 +230,11 @@ var _ = Describe("Scheduler", func() {
 
 			It("started the builds with the correct arguments", func() {
 				Expect(fakeBuildStarter.TryStartPendingBuildsForJobCallCount()).To(Equal(1))
-				_, actualPipeline, actualJob, actualInputs, actualResources, relatedJobs := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
-				Expect(actualPipeline.Name()).To(Equal("fake-pipeline"))
+				_, actualJob, actualInputs := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
 				Expect(actualJob.Name()).To(Equal(fakeJob.Name()))
-				Expect(actualResources).To(Equal(db.Resources{fakeResource}))
-				Expect(relatedJobs).To(Equal(expectedJobIDs))
-				Expect(actualInputs).To(Equal([]atc.JobInput{
+				Expect(len(actualJob.Resources)).To(Equal(1))
+				Expect(actualJob.Resources[0].Name).To(Equal("some-resource"))
+				Expect(actualInputs).To(Equal(db.InputConfigs{
 					{Name: "a", Trigger: true},
 					{Name: "b", Trigger: false},
 				}))
@@ -416,9 +409,64 @@ var _ = Describe("Scheduler", func() {
 			})
 		})
 
+		Context("when multiple first occurrence inputs have trigger: true and tracing is configured", func() {
+			var inputCtx1, inputCtx2 context.Context
+
+			BeforeEach(func() {
+				fakeJob.NameReturns("some-job")
+				fakeJob.AlgorithmInputsReturns(db.InputConfigs{
+					{Name: "a", Trigger: true},
+					{Name: "b", Trigger: false},
+					{Name: "c", Trigger: true},
+				}, nil)
+				fakeBuildStarter.TryStartPendingBuildsForJobReturns(false, nil)
+				fakeJob.SaveNextInputMappingReturns(nil)
+
+				tracing.ConfigureTraceProvider(&tracing.TestTraceProvider{})
+
+				ctx, _ = tracing.StartSpan(context.Background(), "scheduler.Run", nil)
+				inputCtx1, _ = tracing.StartSpan(context.Background(), "checker.Run", nil)
+				inputCtx2, _ = tracing.StartSpan(context.Background(), "checker.Run", nil)
+				fakeJob.GetFullNextBuildInputsReturns([]db.BuildInput{
+					{
+						Name:            "a",
+						Version:         atc.Version{"ref": "v1"},
+						ResourceID:      11,
+						FirstOccurrence: true,
+						Context:         db.NewSpanContext(inputCtx1),
+					},
+					{
+						Name:            "b",
+						Version:         atc.Version{"ref": "v2"},
+						ResourceID:      12,
+						FirstOccurrence: false,
+					},
+					{
+						Name:            "c",
+						Version:         atc.Version{"ref": "v3"},
+						ResourceID:      13,
+						FirstOccurrence: true,
+						Context:         db.NewSpanContext(inputCtx2),
+					},
+				}, true, nil)
+			})
+
+			AfterEach(func() {
+				tracing.Configured = false
+			})
+
+			It("starts a linked span", func() {
+				pendingBuildCtx := fakeJob.EnsurePendingBuildExistsArgsForCall(0)
+				span := tracing.FromContext(pendingBuildCtx).(*testtrace.Span)
+				Expect(span.Links()).To(HaveLen(1))
+				Expect(span.Links()).To(HaveKey(tracing.FromContext(ctx).SpanContext()))
+				Expect(span.ParentSpanID()).To(Equal(tracing.FromContext(inputCtx1).SpanContext().SpanID))
+			})
+		})
+
 		Context("when the job inputs fail to fetch", func() {
 			BeforeEach(func() {
-				fakeJob.InputsReturns(nil, disaster)
+				fakeJob.AlgorithmInputsReturns(nil, disaster)
 			})
 
 			It("returns the error", func() {

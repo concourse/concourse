@@ -1,6 +1,7 @@
 module ApiEndpointsTests exposing (testEndpoints, testToString)
 
 import Api.Endpoints as E exposing (Endpoint(..), toString)
+import Data
 import Expect
 import Test exposing (Test, describe, test)
 import Url.Builder
@@ -21,10 +22,7 @@ testEndpoints =
         , describe "Pipeline" <|
             let
                 basePipelineEndpoint =
-                    Pipeline
-                        { pipelineName = "pipeline"
-                        , teamName = "team"
-                        }
+                    Pipeline Data.pipelineId
             in
             [ test "Base" <|
                 \_ ->
@@ -77,11 +75,7 @@ testEndpoints =
         , describe "Job" <|
             let
                 baseJobEndpoint =
-                    Job
-                        { jobName = "job"
-                        , pipelineName = "pipeline"
-                        , teamName = "team"
-                        }
+                    Job Data.jobId
             in
             [ test "Base" <|
                 \_ ->
@@ -111,11 +105,12 @@ testEndpoints =
         , test "JobBuild" <|
             \_ ->
                 JobBuild
-                    { buildName = "build"
-                    , jobName = "job"
-                    , pipelineName = "pipeline"
-                    , teamName = "team"
-                    }
+                    (Data.jobBuildId
+                        |> Data.withBuildName "build"
+                        |> Data.withJobName "job"
+                        |> Data.withPipelineName "pipeline"
+                        |> Data.withTeamName "team"
+                    )
                     |> toPath
                     |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/jobs/job/builds/build"
         , describe "Build" <|
@@ -168,11 +163,7 @@ testEndpoints =
         , describe "Resource" <|
             let
                 baseResourceEndpoint =
-                    Resource
-                        { resourceName = "resource"
-                        , pipelineName = "pipeline"
-                        , teamName = "team"
-                        }
+                    Resource Data.resourceId
             in
             [ test "Base" <|
                 \_ ->
@@ -208,12 +199,7 @@ testEndpoints =
         , describe "ResourceVersion" <|
             let
                 baseVersionEndpoint =
-                    ResourceVersion
-                        { versionID = 1
-                        , resourceName = "resource"
-                        , pipelineName = "pipeline"
-                        , teamName = "team"
-                        }
+                    ResourceVersion (Data.resourceVersionId 1)
             in
             [ test "InputTo" <|
                 \_ ->

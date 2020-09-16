@@ -42,11 +42,11 @@ var _ = Describe("TeamScopedHandlerFactory", func() {
 
 		handler = accessor.NewHandler(
 			logger,
+			"some-action",
 			innerHandler,
 			fakeAccessor,
-			"some-action",
 			new(auditorfakes.FakeAuditor),
-			new(dbfakes.FakeUserFactory),
+			map[string]string{},
 		)
 	})
 

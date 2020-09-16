@@ -38,14 +38,15 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 		handlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(workerFactory)
 
 		delegate = &workerDelegateHandler{}
-		checkWorkerTeamAccessHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
+		innerHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
+
 		handler = accessor.NewHandler(
 			logger,
-			checkWorkerTeamAccessHandler,
-			fakeAccessor,
 			"some-action",
+			innerHandler,
+			fakeAccessor,
 			new(auditorfakes.FakeAuditor),
-			new(dbfakes.FakeUserFactory),
+			map[string]string{},
 		)
 	})
 

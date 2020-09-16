@@ -27,6 +27,8 @@ type ResourceCacheFactory interface {
 	// method can be removed at that point. See  https://github.com/concourse/concourse/issues/534
 	UpdateResourceCacheMetadata(UsedResourceCache, []atc.MetadataField) error
 	ResourceCacheMetadata(UsedResourceCache) (ResourceConfigMetadataFields, error)
+
+	FindResourceCacheByID(id int) (UsedResourceCache, bool, error)
 }
 
 type resourceCacheFactory struct {
@@ -119,6 +121,17 @@ func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache UsedResourceC
 	}
 
 	return metadata, nil
+}
+
+func (f *resourceCacheFactory) FindResourceCacheByID(id int) (UsedResourceCache, bool, error) {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer Rollback(tx)
+
+	return findResourceCacheByID(tx, id, f.lockFactory, f.conn)
 }
 
 func findResourceCacheByID(tx Tx, resourceCacheID int, lock lock.LockFactory, conn Conn) (UsedResourceCache, bool, error) {

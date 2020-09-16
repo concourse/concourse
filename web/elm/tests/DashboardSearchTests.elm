@@ -4,11 +4,14 @@ import Application.Application as Application
 import Common exposing (queryView)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
+import DashboardTests exposing (whenOnDashboard)
 import Data
 import Expect exposing (Expectation)
 import Message.Callback as Callback
 import Message.Message
+import Message.Subscription as Subscription
 import Message.TopLevelMessage as Msgs
+import Set
 import Test exposing (Test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (class, id, style, text)
@@ -35,12 +38,12 @@ it desc expectationFunc model =
 hasData : Test
 hasData =
     describe "dashboard search"
-        (Common.init "/"
+        (whenOnDashboard { highDensity = False }
             |> Application.handleCallback
                 (Callback.AllJobsFetched <|
                     Ok
                         [ { name = "job"
-                          , pipelineName = "pipeline"
+                          , pipelineName = "pipeline1"
                           , teamName = "team1"
                           , nextBuild =
                                 Just
@@ -48,10 +51,10 @@ hasData =
                                     , name = "1"
                                     , job =
                                         Just
-                                            { teamName = "team1"
-                                            , pipelineName = "pipeline"
-                                            , jobName = "job"
-                                            }
+                                            (Data.jobId
+                                                |> Data.withTeamName "team1"
+                                                |> Data.withPipelineName "pipeline1"
+                                            )
                                     , status = BuildStatusStarted
                                     , duration =
                                         { startedAt = Nothing
@@ -81,8 +84,8 @@ hasData =
             |> Application.handleCallback
                 (Callback.AllPipelinesFetched <|
                     Ok
-                        [ Data.pipeline "team1" 0 |> Data.withName "pipeline"
-                        , Data.pipeline "team1" 1 |> Data.withName "other-pipeline"
+                        [ Data.pipeline "team1" 0 |> Data.withName "pipeline1"
+                        , Data.pipeline "team1" 1 |> Data.withName "pipeline2"
                         ]
                 )
             |> Tuple.first
@@ -136,7 +139,7 @@ hasData =
                     [ it "shows the running pipeline" <|
                         queryView
                             >> Query.find [ class "card" ]
-                            >> Query.has [ text "pipeline" ]
+                            >> Query.has [ text "pipeline1" ]
                     ]
                 ]
             ]
@@ -188,6 +191,24 @@ hasData =
                     , style "font-size" "13px"
                     , style "margin-top" "20px"
                     ]
+        , context "when there are favorited pipelines"
+            (Application.handleDelivery
+                (Subscription.FavoritedPipelinesReceived <|
+                    Ok <|
+                        Set.fromList [ 0, 1 ]
+                )
+            )
+            [ it "applies the filter to the favorites section" <|
+                Tuple.first
+                    >> Application.update
+                        (Msgs.Update <|
+                            Message.Message.FilterMsg "pipeline1"
+                        )
+                    >> Tuple.first
+                    >> queryView
+                    >> Query.find [ id "dashboard-favorite-pipelines" ]
+                    >> Query.hasNot [ text "pipeline2" ]
+            ]
         ]
 
 
@@ -196,7 +217,7 @@ missingData =
     Test.describe "when not all data has come in" <|
         [ Test.test "does not render 'no results' when awaiting pipelines" <|
             \_ ->
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
                         (Callback.AllJobsFetched <|
                             Ok []

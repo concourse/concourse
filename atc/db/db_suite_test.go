@@ -59,6 +59,7 @@ var (
 	otherWorkerPayload        atc.Worker
 	defaultResourceType       db.ResourceType
 	defaultResource           db.Resource
+	defaultPipelineConfig     atc.Config
 	defaultPipeline           db.Pipeline
 	defaultJob                db.Job
 	logger                    *lagertest.TestLogger
@@ -105,7 +106,7 @@ var _ = BeforeEach(func() {
 	fakeSecrets = new(credsfakes.FakeSecrets)
 	fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 	componentFactory = db.NewComponentFactory(dbConn)
-	buildFactory = db.NewBuildFactory(dbConn, lockFactory, 5*time.Minute)
+	buildFactory = db.NewBuildFactory(dbConn, lockFactory, 5*time.Minute, 5*time.Minute)
 	volumeRepository = db.NewVolumeRepository(dbConn)
 	containerRepository = db.NewContainerRepository(dbConn)
 	teamFactory = db.NewTeamFactory(dbConn, lockFactory)
@@ -155,7 +156,7 @@ var _ = BeforeEach(func() {
 	otherWorker, err = workerFactory.SaveWorker(otherWorkerPayload, 0)
 	Expect(err).NotTo(HaveOccurred())
 
-	defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atc.Config{
+	defaultPipelineConfig = atc.Config{
 		Jobs: atc.JobConfigs{
 			{
 				Name: "some-job",
@@ -179,7 +180,9 @@ var _ = BeforeEach(func() {
 				},
 			},
 		},
-	}, db.ConfigVersion(0), false)
+	}
+
+	defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", defaultPipelineConfig, db.ConfigVersion(0), false)
 	Expect(err).NotTo(HaveOccurred())
 
 	var found bool
@@ -197,6 +200,11 @@ var _ = BeforeEach(func() {
 
 	logger = lagertest.NewTestLogger("test")
 })
+
+func destroy(d interface{ Destroy() error }) {
+	err := d.Destroy()
+	Expect(err).ToNot(HaveOccurred())
+}
 
 var _ = AfterEach(func() {
 	err := dbConn.Close()

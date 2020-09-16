@@ -37,7 +37,7 @@ type alias Model =
         , pinnedVersion : PinnedVersion
         , now : Maybe Time.Posix
         , resourceIdentifier : Concourse.ResourceIdentifier
-        , currentPage : Maybe Page
+        , currentPage : Page
         , versions : Paginated Version
         , pinCommentLoading : Bool
         , textAreaFocused : Bool

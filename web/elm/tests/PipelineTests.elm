@@ -3,8 +3,10 @@ module PipelineTests exposing (all)
 import Application.Application as Application
 import Assets
 import Char
-import Common exposing (defineHoverBehaviour)
+import Common exposing (defineHoverBehaviour, queryView)
+import Concourse
 import Concourse.Cli exposing (Cli(..))
+import DashboardTests exposing (iconSelector)
 import Data
 import Expect exposing (..)
 import Html.Attributes as Attr
@@ -21,6 +23,7 @@ import Message.Subscription as Subscription
 import Message.TopLevelMessage as Msgs
 import Pipeline.Pipeline as Pipeline exposing (update)
 import Routes
+import Set
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -299,15 +302,38 @@ all =
                     |> Application.view
                     |> .title
                     |> Expect.equal "pipelineName - Concourse"
+        , test "pipeline background should be set from display config" <|
+            \_ ->
+                Common.init "/teams/team/pipelines/pipelineName"
+                    |> Application.handleCallback
+                        (Callback.PipelineFetched
+                            (Ok <|
+                                (Data.pipeline "team" 0
+                                    |> Data.withName "pipeline"
+                                    |> Data.withBackgroundImage "some-background.jpg"
+                                )
+                            )
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ id "pipeline-background" ]
+                    |> Query.has
+                        [ style "background-image" "url(\"some-background.jpg\")"
+                        , style "background-repeat" "no-repeat"
+                        , style "background-size" "cover"
+                        , style "background-position" "center"
+                        , style "opacity" "30%"
+                        , style "filter" "grayscale(1)"
+                        ]
         , describe "update" <|
             let
                 defaultModel : Pipeline.Model
                 defaultModel =
                     Pipeline.init
                         { pipelineLocator =
-                            { teamName = "some-team"
-                            , pipelineName = "some-pipeline"
-                            }
+                            Data.pipelineId
+                                |> Data.withTeamName "some-team"
+                                |> Data.withPipelineName "some-pipeline"
                         , turbulenceImgSrc = "some-turbulence-img-src"
                         , selectedGroups = []
                         }
@@ -376,12 +402,7 @@ all =
                                 )
                             )
                         |> Tuple.second
-                        |> Common.contains
-                            (Effects.FetchPipeline
-                                { teamName = "team"
-                                , pipelineName = "pipeline"
-                                }
-                            )
+                        |> Common.contains (Effects.FetchPipeline Data.pipelineId)
             , test "on one minute timer, refreshes version" <|
                 \_ ->
                     Common.init "/teams/team/pipelines/pipeline"
@@ -445,7 +466,7 @@ all =
                     \_ ->
                         Common.init "/teams/team/pipelines/pipeline"
                             |> clockTickALot 11
-                            |> Application.update (Msgs.DeliveryReceived Moused)
+                            |> Application.update (Msgs.DeliveryReceived <| Moused { x = 0, y = 0 })
                             |> Tuple.first
                             |> Common.queryView
                             |> Query.has [ id "legend" ]
@@ -456,6 +477,10 @@ all =
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
                         >> Query.has [ id "pin-icon" ]
+                , it "shows a star icon on top bar" <|
+                    Common.queryView
+                        >> Query.find [ id "top-bar-app" ]
+                        >> Query.has [ id "top-bar-favorited-icon" ]
                 , it "top bar has a dark grey background" <|
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -557,6 +582,23 @@ all =
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has [ style "background-color" "#3498db" ]
+            , test "top nav bar isn't blue when pipeline is archived" <|
+                \_ ->
+                    Common.init "/teams/team/pipelines/pipeline"
+                        |> Application.handleCallback
+                            (Callback.PipelineFetched
+                                (Ok <|
+                                    (Data.pipeline "team" 0
+                                        |> Data.withName "pipeline"
+                                        |> Data.withPaused True
+                                        |> Data.withArchived True
+                                    )
+                                )
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.find [ id "top-bar-app" ]
+                        |> Query.hasNot [ style "background-color" "#3498db" ]
             , test "breadcrumb list is laid out horizontally" <|
                 \_ ->
                     Common.init "/teams/team/pipelines/pipeline"
@@ -590,6 +632,111 @@ all =
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.find [ id "breadcrumb-pipeline" ]
                         |> Query.has [ text "pipeline" ]
+            , describe "top bar star icon" <|
+                let
+                    givenFavoritedPipelinesFetched =
+                        Common.init "/teams/t/pipelines/p"
+                            |> Application.handleCallback
+                                (Callback.PipelineFetched
+                                    (Ok <|
+                                        Data.pipeline "team" 0
+                                    )
+                                )
+                            |> Tuple.first
+                            |> Application.handleDelivery
+                                (Subscription.FavoritedPipelinesReceived <|
+                                    Ok <|
+                                        Set.singleton 0
+                                )
+
+                    favMsg =
+                        Msgs.Update <|
+                            Message.Message.Click <|
+                                Message.Message.TopBarFavoritedIcon 0
+
+                    iSeeStarUnfilled =
+                        Query.has
+                            (iconSelector
+                                { size = "20px"
+                                , image =
+                                    Assets.FavoritedToggleIcon
+                                        False
+                                }
+                            )
+                in
+                [ defineHoverBehaviour
+                    { name = "star icon"
+                    , setup = Common.init "teams/t/pipelines/p"
+                    , query =
+                        queryView
+                            >> Query.find [ id "top-bar-favorited-icon" ]
+                            >> Query.children []
+                            >> Query.first
+                    , unhoveredSelector =
+                        { description = "faded star icon"
+                        , selector =
+                            [ style "opacity" "0.5"
+                            , style "cursor" "pointer"
+                            , style "margin" "17px"
+                            ]
+                                ++ iconSelector
+                                    { size = "20px"
+                                    , image = Assets.FavoritedToggleIcon False
+                                    }
+                        }
+                    , hoveredSelector =
+                        { description = "bright star icon"
+                        , selector =
+                            [ style "opacity" "1"
+                            , style "cursor" "pointer"
+                            , style "margin" "17px"
+                            ]
+                                ++ iconSelector
+                                    { size = "20px"
+                                    , image = Assets.FavoritedToggleIcon False
+                                    }
+                        }
+                    , hoverable = Message.Message.TopBarFavoritedIcon -1
+                    }
+                , test "favoriting icon has click handler" <|
+                    \_ ->
+                        givenFavoritedPipelinesFetched
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ id "top-bar-favorited-icon" ]
+                            |> Query.children []
+                            |> Query.first
+                            |> Event.simulate Event.click
+                            |> Event.expect favMsg
+                , test "click has FavoritedPipeline effect" <|
+                    \_ ->
+                        givenFavoritedPipelinesFetched
+                            |> Tuple.first
+                            |> Application.update
+                                (Msgs.Update <|
+                                    Message.Message.Click <|
+                                        Message.Message.TopBarFavoritedIcon
+                                            0
+                                )
+                            |> Tuple.second
+                            |> Expect.equal
+                                [ Effects.SaveFavoritedPipelines <|
+                                    Set.empty
+                                ]
+                , test "clicking favorited icon unfills the filled star" <|
+                    \_ ->
+                        givenFavoritedPipelinesFetched
+                            |> Tuple.first
+                            |> Application.update
+                                (Msgs.Update <|
+                                    Message.Message.Click <|
+                                        Message.Message.TopBarFavoritedIcon
+                                            0
+                                )
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> iSeeStarUnfilled
+                ]
             ]
         ]
 

@@ -4,12 +4,18 @@ module Views.Styles exposing
     , breadcrumbContainer
     , breadcrumbItem
     , concourseLogo
+    , defaultFont
+    , fontFamilyDefault
+    , fontWeightBold
+    , fontWeightDefault
+    , fontWeightLight
     , pageBelowTopBar
     , pageHeaderHeight
     , pageIncludingTopBar
     , pauseToggle
     , pauseToggleIcon
     , pauseToggleTooltip
+    , separator
     , topBar
     )
 
@@ -20,6 +26,34 @@ import Html.Attributes exposing (style)
 import Routes
 
 
+defaultFont : List (Html.Attribute msg)
+defaultFont =
+    [ style "font-size" "12px"
+    , style "font-family" fontFamilyDefault
+    , style "font-weight" fontWeightDefault
+    ]
+
+
+fontFamilyDefault : String
+fontFamilyDefault =
+    "Inconsolata,monospace"
+
+
+fontWeightLight : String
+fontWeightLight =
+    "400"
+
+
+fontWeightDefault : String
+fontWeightDefault =
+    "700"
+
+
+fontWeightBold : String
+fontWeightBold =
+    "900"
+
+
 pageHeaderHeight : Float
 pageHeaderHeight =
     54
@@ -27,9 +61,7 @@ pageHeaderHeight =
 
 pageIncludingTopBar : List (Html.Attribute msg)
 pageIncludingTopBar =
-    [ style "-webkit-font-smoothing" "antialiased"
-    , style "font-weight" "700"
-    , style "height" "100%"
+    [ style "height" "100%"
     ]
 
 
@@ -88,7 +120,6 @@ topBar isPaused =
     , style "z-index" "999"
     , style "display" "flex"
     , style "justify-content" "space-between"
-    , style "font-weight" "700"
     , style "background-color" <|
         if isPaused then
             Colors.paused
@@ -115,29 +146,36 @@ concourseLogo =
 
 breadcrumbContainer : List (Html.Attribute msg)
 breadcrumbContainer =
-    [ style "flex-grow" "1" ]
+    [ style "flex-grow" "1"
+    , style "display" "flex"
+    ]
 
 
-breadcrumbComponent : Assets.ComponentType -> List (Html.Attribute msg)
-breadcrumbComponent componentType =
+breadcrumbComponent :
+    { component : Assets.ComponentType
+    , widthPx : Float
+    , heightPx : Float
+    }
+    -> List (Html.Attribute msg)
+breadcrumbComponent { component, widthPx, heightPx } =
     [ style "background-image" <|
         Assets.backgroundImage <|
             Just <|
-                Assets.BreadcrumbIcon componentType
+                Assets.BreadcrumbIcon component
     , style "background-repeat" "no-repeat"
     , style "background-size" "contain"
+    , style "background-position" "center"
     , style "display" "inline-block"
-    , style "vertical-align" "middle"
-    , style "height" "16px"
-    , style "width" "32px"
+    , style "height" <| String.fromFloat heightPx ++ "px"
+    , style "width" <| String.fromFloat widthPx ++ "px"
     , style "margin-right" "10px"
     ]
 
 
 breadcrumbItem : Bool -> List (Html.Attribute msg)
 breadcrumbItem clickable =
-    [ style "display" "inline-block"
-    , style "vertical-align" "middle"
+    [ style "display" "inline-flex"
+    , style "align-items" "center"
     , style "font-size" "18px"
     , style "padding" "0 10px"
     , style "line-height" "54px"
@@ -205,3 +243,12 @@ pauseToggleTooltip ttp =
     , style "right" "-150%"
     , style "z-index" "1"
     ]
+
+
+separator : Float -> Html.Html msg
+separator topMargin =
+    Html.div
+        [ style "border-bottom" "1px solid black"
+        , style "margin-top" <| String.fromFloat topMargin ++ "px"
+        ]
+        []

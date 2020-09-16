@@ -42,6 +42,7 @@ var _ = Describe("Worker", func() {
 		fakeImage                 *workerfakes.FakeImage
 		fakeDBWorker              *dbfakes.FakeWorker
 		fakeDBVolumeRepository    *dbfakes.FakeVolumeRepository
+		fakeResourceCacheFactory  *dbfakes.FakeResourceCacheFactory
 		fakeDBTeamFactory         *dbfakes.FakeTeamFactory
 		fakeDBTeam                *dbfakes.FakeTeam
 		fakeCreatingContainer     *dbfakes.FakeCreatingContainer
@@ -106,6 +107,7 @@ var _ = Describe("Worker", func() {
 		fakeCreatedContainer.HandleReturns("some-handle")
 
 		fakeDBVolumeRepository = new(dbfakes.FakeVolumeRepository)
+		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
 		fakeDBTeamFactory = new(dbfakes.FakeTeamFactory)
 		fakeDBTeam = new(dbfakes.FakeTeam)
@@ -270,7 +272,9 @@ var _ = Describe("Worker", func() {
 			fakeFetcher,
 			fakeDBTeamFactory,
 			fakeDBWorker,
+			fakeResourceCacheFactory,
 			0,
+			nil,
 		)
 	})
 
@@ -1365,15 +1369,16 @@ var _ = Describe("Worker", func() {
 
 				It("streams remote inputs into newly created container volumes", func() {
 					Expect(fakeRemoteInputAS.StreamToCallCount()).To(Equal(1))
-					_, _, ad := fakeRemoteInputAS.StreamToArgsForCall(0)
+					_, ad := fakeRemoteInputAS.StreamToArgsForCall(0)
 
-					err := ad.StreamIn(context.TODO(), ".", bytes.NewBufferString("some-stream"))
+					err := ad.StreamIn(context.TODO(), ".", baggageclaim.GzipEncoding, bytes.NewBufferString("some-stream"))
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(fakeRemoteInputContainerVolume.StreamInCallCount()).To(Equal(1))
 
-					_, dst, from := fakeRemoteInputContainerVolume.StreamInArgsForCall(0)
+					_, dst, encoding, from := fakeRemoteInputContainerVolume.StreamInArgsForCall(0)
 					Expect(dst).To(Equal("."))
+					Expect(encoding).To(Equal(baggageclaim.GzipEncoding))
 					Expect(ioutil.ReadAll(from)).To(Equal([]byte("some-stream")))
 				})
 

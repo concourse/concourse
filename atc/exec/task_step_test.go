@@ -15,8 +15,11 @@ import (
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 	"github.com/onsi/gomega/gbytes"
+	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/api/trace/testtrace"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -46,7 +49,7 @@ var _ = Describe("TaskStep", func() {
 		taskStep exec.Step
 		stepErr  error
 
-		credVarsTracker vars.CredVarsTracker
+		buildVars *vars.BuildVariables
 
 		containerMetadata = db.ContainerMetadata{
 			WorkingDirectory: "some-artifact-root",
@@ -60,7 +63,7 @@ var _ = Describe("TaskStep", func() {
 			JobID:   12345,
 		}
 
-		planID = atc.PlanID(42)
+		planID = atc.PlanID("42")
 	)
 
 	BeforeEach(func() {
@@ -75,10 +78,10 @@ var _ = Describe("TaskStep", func() {
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
 
 		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
-		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
+		buildVars = vars.NewBuildVariables(credVars, true)
 
 		fakeDelegate = new(execfakes.FakeTaskDelegate)
-		fakeDelegate.VariablesReturns(credVarsTracker)
+		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 
@@ -120,7 +123,7 @@ var _ = Describe("TaskStep", func() {
 
 	JustBeforeEach(func() {
 		plan := atc.Plan{
-			ID:   atc.PlanID(planID),
+			ID:   planID,
 			Task: taskPlan,
 		}
 
@@ -154,7 +157,7 @@ var _ = Describe("TaskStep", func() {
 					Params:  atc.Params{"some": "params"},
 					Version: atc.Version{"some": "version"},
 				},
-				Limits: atc.ContainerLimits{
+				Limits: &atc.ContainerLimits{
 					CPU:    &cpu,
 					Memory: &memory,
 				},
@@ -216,12 +219,37 @@ var _ = Describe("TaskStep", func() {
 				})
 			})
 
+			Context("when tracing is enabled", func() {
+				var buildSpan trace.Span
+
+				BeforeEach(func() {
+					tracing.ConfigureTraceProvider(testTraceProvider{})
+					ctx, buildSpan = tracing.StartSpan(ctx, "build", nil)
+				})
+
+				It("propagates span context to the worker client", func() {
+					ctx, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+					span, ok := tracing.FromContext(ctx).(*testtrace.Span)
+					Expect(ok).To(BeTrue(), "no testtrace.Span in context")
+					Expect(span.ParentSpanID()).To(Equal(buildSpan.SpanContext().SpanID))
+				})
+
+				It("populates the TRACEPARENT env var", func() {
+					_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+
+					Expect(containerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
+				})
+
+				AfterEach(func() {
+					tracing.Configured = false
+				})
+			})
 		})
 
 		It("secrets are tracked", func() {
-			mapit := vars.NewMapCredVarsTrackerIterator()
-			credVarsTracker.IterateInterpolatedCreds(mapit)
-			Expect(mapit.Data["source-param"]).To(Equal("super-secret-source"))
+			mapit := vars.TrackedVarsMap{}
+			buildVars.IterateInterpolatedCreds(mapit)
+			Expect(mapit["source-param"]).To(Equal("super-secret-source"))
 		})
 
 		It("creates a containerSpec with the correct parameters", func() {

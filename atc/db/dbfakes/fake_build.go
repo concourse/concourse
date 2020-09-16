@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
+	"go.opentelemetry.io/otel/api/propagators"
 )
 
 type FakeBuild struct {
@@ -427,6 +428,18 @@ type FakeBuild struct {
 		result2 []db.BuildOutput
 		result3 error
 	}
+	ResourcesCheckedStub        func() (bool, error)
+	resourcesCheckedMutex       sync.RWMutex
+	resourcesCheckedArgsForCall []struct {
+	}
+	resourcesCheckedReturns struct {
+		result1 bool
+		result2 error
+	}
+	resourcesCheckedReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	SaveEventStub        func(atc.Event) error
 	saveEventMutex       sync.RWMutex
 	saveEventArgsForCall []struct {
@@ -466,6 +479,25 @@ type FakeBuild struct {
 	saveOutputReturnsOnCall map[int]struct {
 		result1 error
 	}
+	SavePipelineStub        func(string, int, atc.Config, db.ConfigVersion, bool) (db.Pipeline, bool, error)
+	savePipelineMutex       sync.RWMutex
+	savePipelineArgsForCall []struct {
+		arg1 string
+		arg2 int
+		arg3 atc.Config
+		arg4 db.ConfigVersion
+		arg5 bool
+	}
+	savePipelineReturns struct {
+		result1 db.Pipeline
+		result2 bool
+		result3 error
+	}
+	savePipelineReturnsOnCall map[int]struct {
+		result1 db.Pipeline
+		result2 bool
+		result3 error
+	}
 	SchemaStub        func() string
 	schemaMutex       sync.RWMutex
 	schemaArgsForCall []struct {
@@ -497,6 +529,16 @@ type FakeBuild struct {
 	}
 	setInterceptibleReturnsOnCall map[int]struct {
 		result1 error
+	}
+	SpanContextStub        func() propagators.Supplier
+	spanContextMutex       sync.RWMutex
+	spanContextArgsForCall []struct {
+	}
+	spanContextReturns struct {
+		result1 propagators.Supplier
+	}
+	spanContextReturnsOnCall map[int]struct {
+		result1 propagators.Supplier
 	}
 	StartStub        func(atc.Plan) (bool, error)
 	startMutex       sync.RWMutex
@@ -2577,6 +2619,61 @@ func (fake *FakeBuild) ResourcesReturnsOnCall(i int, result1 []db.BuildInput, re
 	}{result1, result2, result3}
 }
 
+func (fake *FakeBuild) ResourcesChecked() (bool, error) {
+	fake.resourcesCheckedMutex.Lock()
+	ret, specificReturn := fake.resourcesCheckedReturnsOnCall[len(fake.resourcesCheckedArgsForCall)]
+	fake.resourcesCheckedArgsForCall = append(fake.resourcesCheckedArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ResourcesChecked", []interface{}{})
+	fake.resourcesCheckedMutex.Unlock()
+	if fake.ResourcesCheckedStub != nil {
+		return fake.ResourcesCheckedStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.resourcesCheckedReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeBuild) ResourcesCheckedCallCount() int {
+	fake.resourcesCheckedMutex.RLock()
+	defer fake.resourcesCheckedMutex.RUnlock()
+	return len(fake.resourcesCheckedArgsForCall)
+}
+
+func (fake *FakeBuild) ResourcesCheckedCalls(stub func() (bool, error)) {
+	fake.resourcesCheckedMutex.Lock()
+	defer fake.resourcesCheckedMutex.Unlock()
+	fake.ResourcesCheckedStub = stub
+}
+
+func (fake *FakeBuild) ResourcesCheckedReturns(result1 bool, result2 error) {
+	fake.resourcesCheckedMutex.Lock()
+	defer fake.resourcesCheckedMutex.Unlock()
+	fake.ResourcesCheckedStub = nil
+	fake.resourcesCheckedReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBuild) ResourcesCheckedReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.resourcesCheckedMutex.Lock()
+	defer fake.resourcesCheckedMutex.Unlock()
+	fake.ResourcesCheckedStub = nil
+	if fake.resourcesCheckedReturnsOnCall == nil {
+		fake.resourcesCheckedReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.resourcesCheckedReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeBuild) SaveEvent(arg1 atc.Event) error {
 	fake.saveEventMutex.Lock()
 	ret, specificReturn := fake.saveEventReturnsOnCall[len(fake.saveEventArgsForCall)]
@@ -2763,6 +2860,76 @@ func (fake *FakeBuild) SaveOutputReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeBuild) SavePipeline(arg1 string, arg2 int, arg3 atc.Config, arg4 db.ConfigVersion, arg5 bool) (db.Pipeline, bool, error) {
+	fake.savePipelineMutex.Lock()
+	ret, specificReturn := fake.savePipelineReturnsOnCall[len(fake.savePipelineArgsForCall)]
+	fake.savePipelineArgsForCall = append(fake.savePipelineArgsForCall, struct {
+		arg1 string
+		arg2 int
+		arg3 atc.Config
+		arg4 db.ConfigVersion
+		arg5 bool
+	}{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("SavePipeline", []interface{}{arg1, arg2, arg3, arg4, arg5})
+	fake.savePipelineMutex.Unlock()
+	if fake.SavePipelineStub != nil {
+		return fake.SavePipelineStub(arg1, arg2, arg3, arg4, arg5)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.savePipelineReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeBuild) SavePipelineCallCount() int {
+	fake.savePipelineMutex.RLock()
+	defer fake.savePipelineMutex.RUnlock()
+	return len(fake.savePipelineArgsForCall)
+}
+
+func (fake *FakeBuild) SavePipelineCalls(stub func(string, int, atc.Config, db.ConfigVersion, bool) (db.Pipeline, bool, error)) {
+	fake.savePipelineMutex.Lock()
+	defer fake.savePipelineMutex.Unlock()
+	fake.SavePipelineStub = stub
+}
+
+func (fake *FakeBuild) SavePipelineArgsForCall(i int) (string, int, atc.Config, db.ConfigVersion, bool) {
+	fake.savePipelineMutex.RLock()
+	defer fake.savePipelineMutex.RUnlock()
+	argsForCall := fake.savePipelineArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+}
+
+func (fake *FakeBuild) SavePipelineReturns(result1 db.Pipeline, result2 bool, result3 error) {
+	fake.savePipelineMutex.Lock()
+	defer fake.savePipelineMutex.Unlock()
+	fake.SavePipelineStub = nil
+	fake.savePipelineReturns = struct {
+		result1 db.Pipeline
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeBuild) SavePipelineReturnsOnCall(i int, result1 db.Pipeline, result2 bool, result3 error) {
+	fake.savePipelineMutex.Lock()
+	defer fake.savePipelineMutex.Unlock()
+	fake.SavePipelineStub = nil
+	if fake.savePipelineReturnsOnCall == nil {
+		fake.savePipelineReturnsOnCall = make(map[int]struct {
+			result1 db.Pipeline
+			result2 bool
+			result3 error
+		})
+	}
+	fake.savePipelineReturnsOnCall[i] = struct {
+		result1 db.Pipeline
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakeBuild) Schema() string {
 	fake.schemaMutex.Lock()
 	ret, specificReturn := fake.schemaReturnsOnCall[len(fake.schemaArgsForCall)]
@@ -2932,6 +3099,58 @@ func (fake *FakeBuild) SetInterceptibleReturnsOnCall(i int, result1 error) {
 	}
 	fake.setInterceptibleReturnsOnCall[i] = struct {
 		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuild) SpanContext() propagators.Supplier {
+	fake.spanContextMutex.Lock()
+	ret, specificReturn := fake.spanContextReturnsOnCall[len(fake.spanContextArgsForCall)]
+	fake.spanContextArgsForCall = append(fake.spanContextArgsForCall, struct {
+	}{})
+	fake.recordInvocation("SpanContext", []interface{}{})
+	fake.spanContextMutex.Unlock()
+	if fake.SpanContextStub != nil {
+		return fake.SpanContextStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.spanContextReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) SpanContextCallCount() int {
+	fake.spanContextMutex.RLock()
+	defer fake.spanContextMutex.RUnlock()
+	return len(fake.spanContextArgsForCall)
+}
+
+func (fake *FakeBuild) SpanContextCalls(stub func() propagators.Supplier) {
+	fake.spanContextMutex.Lock()
+	defer fake.spanContextMutex.Unlock()
+	fake.SpanContextStub = stub
+}
+
+func (fake *FakeBuild) SpanContextReturns(result1 propagators.Supplier) {
+	fake.spanContextMutex.Lock()
+	defer fake.spanContextMutex.Unlock()
+	fake.SpanContextStub = nil
+	fake.spanContextReturns = struct {
+		result1 propagators.Supplier
+	}{result1}
+}
+
+func (fake *FakeBuild) SpanContextReturnsOnCall(i int, result1 propagators.Supplier) {
+	fake.spanContextMutex.Lock()
+	defer fake.spanContextMutex.Unlock()
+	fake.SpanContextStub = nil
+	if fake.spanContextReturnsOnCall == nil {
+		fake.spanContextReturnsOnCall = make(map[int]struct {
+			result1 propagators.Supplier
+		})
+	}
+	fake.spanContextReturnsOnCall[i] = struct {
+		result1 propagators.Supplier
 	}{result1}
 }
 
@@ -3283,18 +3502,24 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.rerunOfNameMutex.RUnlock()
 	fake.resourcesMutex.RLock()
 	defer fake.resourcesMutex.RUnlock()
+	fake.resourcesCheckedMutex.RLock()
+	defer fake.resourcesCheckedMutex.RUnlock()
 	fake.saveEventMutex.RLock()
 	defer fake.saveEventMutex.RUnlock()
 	fake.saveImageResourceVersionMutex.RLock()
 	defer fake.saveImageResourceVersionMutex.RUnlock()
 	fake.saveOutputMutex.RLock()
 	defer fake.saveOutputMutex.RUnlock()
+	fake.savePipelineMutex.RLock()
+	defer fake.savePipelineMutex.RUnlock()
 	fake.schemaMutex.RLock()
 	defer fake.schemaMutex.RUnlock()
 	fake.setDrainedMutex.RLock()
 	defer fake.setDrainedMutex.RUnlock()
 	fake.setInterceptibleMutex.RLock()
 	defer fake.setInterceptibleMutex.RUnlock()
+	fake.spanContextMutex.RLock()
+	defer fake.spanContextMutex.RUnlock()
 	fake.startMutex.RLock()
 	defer fake.startMutex.RUnlock()
 	fake.startTimeMutex.RLock()

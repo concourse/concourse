@@ -23,6 +23,7 @@ module DashboardTests exposing
     , running
     , userWithRoles
     , whenOnDashboard
+    , whenOnDashboardViewingAllPipelines
     , white
     )
 
@@ -49,6 +50,8 @@ import Message.Effects as Effects
 import Message.Message as Msgs
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as ApplicationMsgs
+import Routes
+import Set
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -245,39 +248,11 @@ all =
                 Common.init "/"
                     |> Application.handleCallback
                         (Callback.AllTeamsFetched <|
-                            Err <|
-                                Http.BadStatus
-                                    { url = "http://example.com"
-                                    , status =
-                                        { code = 401
-                                        , message = "unauthorized"
-                                        }
-                                    , headers = Dict.empty
-                                    , body = ""
-                                    }
+                            Data.httpUnauthorized
                         )
                     |> Tuple.second
                     |> Expect.equal [ Effects.RedirectToLogin ]
-        , test "shows turbulence view if the all resources call gives a bad status error" <|
-            \_ ->
-                Common.init "/"
-                    |> Application.handleCallback
-                        (Callback.AllResourcesFetched <|
-                            Err <|
-                                Http.BadStatus
-                                    { url = "http://example.com"
-                                    , status =
-                                        { code = 500
-                                        , message = "internal server error"
-                                        }
-                                    , headers = Dict.empty
-                                    , body = ""
-                                    }
-                        )
-                    |> Tuple.first
-                    |> Common.queryView
-                    |> Query.has [ text "experiencing turbulence" ]
-        , test "shows turbulence view if the all jobs call gives a bad status error" <|
+        , test "retries the request after 1 second if ListAllJobs call gives a 503" <|
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
@@ -286,8 +261,59 @@ all =
                                 Http.BadStatus
                                     { url = "http://example.com"
                                     , status =
-                                        { code = 500
-                                        , message = "internal server error"
+                                        { code = 503
+                                        , message = "service unavailable"
+                                        }
+                                    , headers = Dict.empty
+                                    , body = ""
+                                    }
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked OneSecond <|
+                            Time.millisToPosix 1000
+                        )
+                    |> Tuple.second
+                    |> Expect.equal [ Effects.FetchAllJobs ]
+        , test "only retries the request once per 503 response" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <|
+                            Err <|
+                                Http.BadStatus
+                                    { url = "http://example.com"
+                                    , status =
+                                        { code = 503
+                                        , message = "service unavailable"
+                                        }
+                                    , headers = Dict.empty
+                                    , body = ""
+                                    }
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked OneSecond <|
+                            Time.millisToPosix 1000
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked OneSecond <|
+                            Time.millisToPosix 1000
+                        )
+                    |> Tuple.second
+                    |> Expect.equal []
+        , test "does not show turbulence screen on 503" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <|
+                            Err <|
+                                Http.BadStatus
+                                    { url = "http://example.com"
+                                    , status =
+                                        { code = 503
+                                        , message = "service unavailable"
                                         }
                                     , headers = Dict.empty
                                     , body = ""
@@ -295,23 +321,94 @@ all =
                         )
                     |> Tuple.first
                     |> Common.queryView
+                    |> Query.hasNot [ text "experiencing turbulence" ]
+        , test "shows turbulence view if the all teams call gives a bad status error" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllTeamsFetched <| Data.httpInternalServerError)
+                    |> Tuple.first
+                    |> Common.queryView
                     |> Query.has [ text "experiencing turbulence" ]
+        , test "recovers from turbulence view if all teams call succeeds" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllTeamsFetched <| Data.httpInternalServerError)
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllTeamsFetched <| Ok [])
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.hasNot [ text "experiencing turbulence" ]
+        , test "shows turbulence view if the all resources call gives a bad status error" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllResourcesFetched <| Data.httpInternalServerError)
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has [ text "experiencing turbulence" ]
+        , test "recovers from turbulence view if all resources call succeeds" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllResourcesFetched <| Data.httpInternalServerError)
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllResourcesFetched <| Ok [])
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.hasNot [ text "experiencing turbulence" ]
+        , test "shows turbulence view if the all jobs call gives a bad status error" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <| Data.httpInternalServerError)
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has [ text "experiencing turbulence" ]
+        , test "recovers from turbulence view if all jobs call succeeds" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <| Data.httpInternalServerError)
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <| Ok [])
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.hasNot [ text "experiencing turbulence" ]
         , test "shows turbulence view if the all pipelines call gives a bad status error" <|
             \_ ->
                 Common.init "/"
                     |> Application.handleCallback
-                        (Callback.AllPipelinesFetched <|
-                            Err <|
-                                Http.BadStatus
-                                    { url = "http://example.com"
-                                    , status =
-                                        { code = 500
-                                        , message = "internal server error"
-                                        }
-                                    , headers = Dict.empty
-                                    , body = ""
-                                    }
-                        )
+                        (Callback.AllPipelinesFetched <| Data.httpInternalServerError)
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has [ text "experiencing turbulence" ]
+        , test "recovers from turbulence view if all pipelines call succeeds" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <| Data.httpInternalServerError)
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <| Ok [])
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.hasNot [ text "experiencing turbulence" ]
+        , test "does not recover from turbulence view if some endpoints are still errored" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <| Data.httpInternalServerError)
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <| Data.httpInternalServerError)
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <| Ok [])
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.has [ text "experiencing turbulence" ]
@@ -347,6 +444,34 @@ all =
                     |> Common.queryView
                     |> Query.find [ id "top-bar-app" ]
                     |> Query.has [ style "height" "54px" ]
+        , describe "loading section" <|
+            [ test "has a loading section when awaiting API data" <|
+                \_ ->
+                    Common.init "/"
+                        |> Common.queryView
+                        |> Query.has [ class "loading" ]
+            , test "centers spinner" <|
+                \_ ->
+                    Common.init "/"
+                        |> Common.queryView
+                        |> Query.has
+                            [ style "display" "flex"
+                            , style "justify-content" "center"
+                            , style "align-items" "center"
+                            , style "width" "100%"
+                            , style "height" "100%"
+                            ]
+            , test "contains a spinner" <|
+                \_ ->
+                    Common.init "/"
+                        |> Common.queryView
+                        |> Query.find [ class "loading" ]
+                        |> Query.has
+                            [ style "animation" "container-rotate 1568ms linear infinite"
+                            , style "height" "36px"
+                            , style "width" "36px"
+                            ]
+            ]
         , test "high density view has no vertical scroll" <|
             \_ ->
                 whenOnDashboard { highDensity = True }
@@ -515,12 +640,6 @@ all =
                     |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.hasNot [ style "padding-bottom" "50px" ]
-        , test "top bar has bold font" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> Common.queryView
-                    |> Query.find [ id "top-bar-app" ]
-                    |> Query.has [ style "font-weight" "700" ]
         , test "logging out causes pipeline list to reload" <|
             let
                 showsLoadingState : Application.Model -> Expectation
@@ -587,12 +706,7 @@ all =
                                         Just
                                             { id = 0
                                             , name = "1"
-                                            , job =
-                                                Just
-                                                    { teamName = "team"
-                                                    , pipelineName = "pipeline"
-                                                    , jobName = "job"
-                                                    }
+                                            , job = Just Data.jobId
                                             , status = BuildStatusSucceeded
                                             , duration = { startedAt = Nothing, finishedAt = Nothing }
                                             , reapTime = Nothing
@@ -1376,6 +1490,10 @@ all =
                             hdToggle
                                 |> Query.has
                                     [ style "text-transform" "uppercase" ]
+                    , test "displays label on the right" <|
+                        \_ ->
+                            hdToggle
+                                |> Query.has [ style "flex-direction" "row" ]
                     , test "links to HD view" <|
                         \_ ->
                             hdToggle
@@ -1388,7 +1506,7 @@ all =
                                 |> Query.has
                                     [ style "background-image" <|
                                         Assets.backgroundImage <|
-                                            Just (Assets.HighDensityIcon False)
+                                            Just (Assets.ToggleSwitch False)
                                     , style "background-size" "contain"
                                     , style "height" "20px"
                                     , style "width" "35px"
@@ -1420,7 +1538,7 @@ all =
                                 |> Query.has
                                     [ style "background-image" <|
                                         Assets.backgroundImage <|
-                                            Just (Assets.HighDensityIcon True)
+                                            Just (Assets.ToggleSwitch True)
                                     , style "background-size" "contain"
                                     , style "height" "20px"
                                     , style "width" "35px"
@@ -1459,6 +1577,96 @@ all =
                                 |> Query.has
                                     [ style "flex-shrink" "0" ]
                     ]
+                ]
+            , describe "when there are favorited pipelines" <|
+                let
+                    setup params =
+                        whenOnDashboard params
+                            |> givenDataUnauthenticated
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                )
+                            |> Tuple.first
+                            |> Application.handleDelivery
+                                (Subscription.FavoritedPipelinesReceived <|
+                                    Ok <|
+                                        Set.singleton 0
+                                )
+                in
+                [ test "displays favorite pipelines header" <|
+                    \_ ->
+                        setup { highDensity = False }
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.has [ text "favorite pipelines" ]
+                , test "does not display header when on the HD view" <|
+                    \_ ->
+                        setup { highDensity = True }
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.hasNot [ text "favorite pipelines" ]
+                ]
+            , describe "when there are no favorited pipelines"
+                [ test "does not display header" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                )
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.hasNot [ text "favorite pipelines" ]
+                ]
+            , describe "all pipelines header"
+                [ test "displayed when there are pipelines" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                )
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.has [ text "all pipelines" ]
+                , test "displayed when there are no pipelines" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok []
+                                )
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.has [ text "all pipelines" ]
+                , test "not displayed when there are no teams" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated
+                                (apiData [])
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.AllPipelinesFetched <|
+                                    Ok []
+                                )
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.hasNot [ text "all pipelines" ]
                 ]
             , describe "info section" <|
                 let
@@ -1718,7 +1926,7 @@ all =
                         |> Tuple.first
                         |> afterSeconds 6
                         |> Application.update
-                            (ApplicationMsgs.DeliveryReceived Moused)
+                            (ApplicationMsgs.DeliveryReceived <| Moused { x = 0, y = 0 })
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.has [ id "dashboard-info" ]
@@ -1775,6 +1983,18 @@ all =
                         )
                     |> Tuple.second
                     |> Common.contains Effects.FetchAllJobs
+        , test "stops polling jobs if the endpoint is disabled" <|
+            \_ ->
+                Common.init "/"
+                    |> Application.handleCallback
+                        (Callback.AllJobsFetched <| Data.httpNotImplemented)
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked FiveSeconds <|
+                            Time.millisToPosix 0
+                        )
+                    |> Tuple.second
+                    |> Common.notContains Effects.FetchAllJobs
         , test "auto refreshes jobs on next five-second tick after dropping" <|
             \_ ->
                 Common.init "/"
@@ -1782,7 +2002,7 @@ all =
                         (Callback.AllJobsFetched <| Ok [])
                     |> Tuple.first
                     |> Application.update
-                        (ApplicationMsgs.Update <| Msgs.DragStart "team" 0)
+                        (ApplicationMsgs.Update <| Msgs.DragStart "team" "pipeline")
                     |> Tuple.first
                     |> Application.handleDelivery
                         (ClockTicked FiveSeconds <|
@@ -1893,12 +2113,47 @@ iconSelector { size, image } =
 
 whenOnDashboard : { highDensity : Bool } -> Application.Model
 whenOnDashboard { highDensity } =
-    Common.init <|
-        if highDensity then
+    Common.init
+        (if highDensity then
             "/hd"
 
-        else
+         else
             "/"
+        )
+        |> Application.handleCallback
+            (Callback.GotViewport Msgs.Dashboard <|
+                Ok <|
+                    { scene =
+                        { width = 600
+                        , height = 600
+                        }
+                    , viewport =
+                        { width = 600
+                        , height = 600
+                        , x = 0
+                        , y = 0
+                        }
+                    }
+            )
+        |> Tuple.first
+
+
+whenOnDashboardViewingAllPipelines : { highDensity : Bool } -> Application.Model
+whenOnDashboardViewingAllPipelines { highDensity } =
+    whenOnDashboard { highDensity = highDensity }
+        |> Application.handleDelivery
+            (RouteChanged <|
+                Routes.Dashboard
+                    { searchType =
+                        if highDensity then
+                            Routes.HighDensity
+
+                        else
+                            Routes.Normal ""
+                    , dashboardView = Routes.ViewAllPipelines
+                    }
+            )
+        |> Tuple.first
 
 
 givenDataAndUser :
@@ -1934,18 +2189,7 @@ givenDataUnauthenticated data =
         (Callback.AllTeamsFetched <| Ok data)
         >> Tuple.first
         >> Application.handleCallback
-            (Callback.UserFetched <|
-                Err <|
-                    Http.BadStatus
-                        { url = "http://example.com"
-                        , status =
-                            { code = 401
-                            , message = ""
-                            }
-                        , headers = Dict.empty
-                        , body = ""
-                        }
-            )
+            (Callback.UserFetched <| Data.httpUnauthorized)
 
 
 givenClusterInfo :
@@ -1972,12 +2216,7 @@ running j =
             Just
                 { id = 1
                 , name = "1"
-                , job =
-                    Just
-                        { teamName = "team"
-                        , pipelineName = "pipeline"
-                        , jobName = "job"
-                        }
+                , job = Just Data.jobId
                 , status = BuildStatusStarted
                 , duration =
                     { startedAt = Nothing
@@ -2008,12 +2247,7 @@ jobWithNameTransitionedAt jobName transitionedAt status =
         Just
             { id = 0
             , name = "0"
-            , job =
-                Just
-                    { teamName = "team"
-                    , pipelineName = "pipeline"
-                    , jobName = jobName
-                    }
+            , job = Just Data.jobId
             , status = status
             , duration =
                 { startedAt = Nothing
@@ -2027,12 +2261,7 @@ jobWithNameTransitionedAt jobName transitionedAt status =
                 (\t ->
                     { id = 1
                     , name = "1"
-                    , job =
-                        Just
-                            { teamName = "team"
-                            , pipelineName = "pipeline"
-                            , jobName = jobName
-                            }
+                    , job = Just Data.jobId
                     , status = status
                     , duration =
                         { startedAt = Nothing
@@ -2059,12 +2288,7 @@ circularJobs =
             Just
                 { id = 0
                 , name = "0"
-                , job =
-                    Just
-                        { teamName = "team"
-                        , pipelineName = "pipeline"
-                        , jobName = "jobA"
-                        }
+                , job = Just (Data.jobId |> Data.withJobName "jobA")
                 , status = BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing
@@ -2076,12 +2300,7 @@ circularJobs =
             Just
                 { id = 1
                 , name = "1"
-                , job =
-                    Just
-                        { teamName = "team"
-                        , pipelineName = "pipeline"
-                        , jobName = "jobA"
-                        }
+                , job = Just (Data.jobId |> Data.withJobName "jobA")
                 , status = BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing
@@ -2109,12 +2328,7 @@ circularJobs =
             Just
                 { id = 0
                 , name = "0"
-                , job =
-                    Just
-                        { teamName = "team"
-                        , pipelineName = "pipeline"
-                        , jobName = "jobB"
-                        }
+                , job = Just (Data.jobId |> Data.withJobName "jobB")
                 , status = BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing
@@ -2126,12 +2340,7 @@ circularJobs =
             Just
                 { id = 1
                 , name = "1"
-                , job =
-                    Just
-                        { teamName = "team"
-                        , pipelineName = "pipeline"
-                        , jobName = "jobB"
-                        }
+                , job = Just (Data.jobId |> Data.withJobName "jobB")
                 , status = BuildStatusSucceeded
                 , duration =
                     { startedAt = Nothing

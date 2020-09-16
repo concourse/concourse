@@ -59,7 +59,7 @@ func (s *Server) CreateArtifact(team db.Team) http.Handler {
 			return
 		}
 
-		err = volume.StreamIn(r.Context(), "/", r.Body)
+		err = volume.StreamIn(r.Context(), "/", baggageclaim.GzipEncoding, r.Body)
 		if err != nil {
 			hLog.Error("failed-to-stream-volume-contents", err)
 			w.WriteHeader(http.StatusInternalServerError)

@@ -11,18 +11,18 @@ import (
 
 type individualResolver struct {
 	vdb         db.VersionsDB
-	inputConfig InputConfig
+	inputConfig db.InputConfig
 }
 
-func NewIndividualResolver(vdb db.VersionsDB, inputConfig InputConfig) Resolver {
+func NewIndividualResolver(vdb db.VersionsDB, inputConfig db.InputConfig) Resolver {
 	return &individualResolver{
 		vdb:         vdb,
 		inputConfig: inputConfig,
 	}
 }
 
-func (r *individualResolver) InputConfigs() InputConfigs {
-	return InputConfigs{r.inputConfig}
+func (r *individualResolver) InputConfigs() db.InputConfigs {
+	return db.InputConfigs{r.inputConfig}
 }
 
 // Handles two different configurations of a resource without passed

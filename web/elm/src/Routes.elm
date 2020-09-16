@@ -1,11 +1,11 @@
 module Routes exposing
-    ( Highlight(..)
+    ( DashboardView(..)
+    , Highlight(..)
     , Route(..)
     , SearchType(..)
     , StepID
     , Transition
     , buildRoute
-    , dashboardRoute
     , extractPid
     , extractQuery
     , jobRoute
@@ -18,6 +18,8 @@ module Routes exposing
 
 import Concourse
 import Concourse.Pagination as Pagination exposing (Direction(..))
+import Api.Pagination
+import Dict
 import Maybe.Extra
 import Url
 import Url.Builder as Builder
@@ -45,13 +47,33 @@ type Route
     | Job { id : Concourse.JobIdentifier, page : Maybe Pagination.Page }
     | OneOffBuild { id : Concourse.BuildId, highlight : Highlight }
     | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
-    | Dashboard SearchType
+    | Dashboard { searchType : SearchType, dashboardView : DashboardView }
     | FlySuccess Bool (Maybe Int)
 
 
 type SearchType
     = HighDensity
-    | Normal (Maybe String)
+    | Normal String
+
+
+type DashboardView
+    = ViewNonArchivedPipelines
+    | ViewAllPipelines
+
+
+dashboardViews : List DashboardView
+dashboardViews =
+    [ ViewNonArchivedPipelines, ViewAllPipelines ]
+
+
+dashboardViewName : DashboardView -> String
+dashboardViewName view =
+    case view of
+        ViewAllPipelines ->
+            "all"
+
+        ViewNonArchivedPipelines ->
+            "non_archived"
 
 
 type Highlight
@@ -109,17 +131,17 @@ oneOffBuild =
 
 
 parsePage : Maybe Int -> Maybe Int -> Maybe Int -> Maybe Pagination.Page
-parsePage since until limit =
-    case ( since, until, limit ) of
-        ( Nothing, Just u, Just l ) ->
+parsePage from to limit =
+    case ( from, to, limit ) of
+        ( Nothing, Just t, Just l ) ->
             Just
-                { direction = Pagination.Until u
+                { direction = Pagination.To t
                 , limit = l
                 }
 
-        ( Just s, Nothing, Just l ) ->
+        ( Just f, Nothing, Just l ) ->
             Just
-                { direction = Pagination.Since s
+                { direction = Pagination.From f
                 , limit = l
                 }
 
@@ -130,14 +152,14 @@ parsePage since until limit =
 resource : Parser (Route -> a) a
 resource =
     let
-        resourceHelper teamName pipelineName resourceName since until limit =
+        resourceHelper teamName pipelineName resourceName from to limit =
             Resource
                 { id =
                     { teamName = teamName
                     , pipelineName = pipelineName
                     , resourceName = resourceName
                     }
-                , page = parsePage since until limit
+                , page = parsePage from to limit
                 }
     in
     map resourceHelper
@@ -147,8 +169,8 @@ resource =
             </> string
             </> s "resources"
             </> string
-            <?> Query.int "since"
-            <?> Query.int "until"
+            <?> Query.int "from"
+            <?> Query.int "to"
             <?> Query.int "limit"
         )
 
@@ -156,14 +178,14 @@ resource =
 job : Parser (Route -> a) a
 job =
     let
-        jobHelper teamName pipelineName jobName since until limit =
+        jobHelper teamName pipelineName jobName from to limit =
             Job
                 { id =
                     { teamName = teamName
                     , pipelineName = pipelineName
                     , jobName = jobName
                     }
-                , page = parsePage since until limit
+                , page = parsePage from to limit
                 }
     in
     map jobHelper
@@ -173,8 +195,8 @@ job =
             </> string
             </> s "jobs"
             </> string
-            <?> Query.int "since"
-            <?> Query.int "until"
+            <?> Query.int "from"
+            <?> Query.int "to"
             <?> Query.int "limit"
         )
 
@@ -201,16 +223,29 @@ pipeline =
 
 dashboard : Parser (Route -> a) a
 dashboard =
-    oneOf
-        [ map
-            (Maybe.map (String.replace "+" " ")
-                -- https://github.com/elm/url/issues/32
-                >> Normal
-                >> Dashboard
+    map (\st view -> Dashboard { searchType = st, dashboardView = view }) <|
+        oneOf
+            [ (top <?> Query.string "search")
+                |> map
+                    (Maybe.map (String.replace "+" " ")
+                        -- https://github.com/elm/url/issues/32
+                        >> Maybe.withDefault ""
+                        >> Normal
+                    )
+            , s "hd" |> map HighDensity
+            ]
+            <?> dashboardViewQuery
+
+
+dashboardViewQuery : Query.Parser DashboardView
+dashboardViewQuery =
+    (Query.enum "view" <|
+        Dict.fromList
+            (dashboardViews
+                |> List.map (\v -> ( dashboardViewName v, v ))
             )
-            (top <?> Query.string "search")
-        , map (Dashboard HighDensity) (s "hd")
-        ]
+    )
+        |> Query.map (Maybe.withDefault ViewNonArchivedPipelines)
 
 
 flySuccess : Parser (Route -> a) a
@@ -259,15 +294,6 @@ jobRoute j =
 pipelineRoute : { a | name : String, teamName : String } -> Route
 pipelineRoute p =
     Pipeline { id = { teamName = p.teamName, pipelineName = p.name }, groups = [] }
-
-
-dashboardRoute : Bool -> Route
-dashboardRoute isHd =
-    if isHd then
-        Dashboard HighDensity
-
-    else
-        Dashboard (Normal Nothing)
 
 
 showHighlight : Highlight -> String
@@ -346,29 +372,6 @@ sitemap =
         ]
 
 
-pageToQueryParams : Maybe Pagination.Page -> List Builder.QueryParameter
-pageToQueryParams page =
-    case page of
-        Nothing ->
-            []
-
-        Just { direction, limit } ->
-            [ case direction of
-                Since id ->
-                    Builder.int "since" id
-
-                Until id ->
-                    Builder.int "until" id
-
-                From id ->
-                    Builder.int "from" id
-
-                To id ->
-                    Builder.int "to" id
-            , Builder.int "limit" limit
-            ]
-
-
 toString : Route -> String
 toString route =
     case route of
@@ -395,7 +398,7 @@ toString route =
                 , "jobs"
                 , id.jobName
                 ]
-                (pageToQueryParams page)
+                (Api.Pagination.params page)
 
         Resource { id, page } ->
             Builder.absolute
@@ -406,7 +409,7 @@ toString route =
                 , "resources"
                 , id.resourceName
                 ]
-                (pageToQueryParams page)
+                (Api.Pagination.params page)
 
         OneOffBuild { id, highlight } ->
             Builder.absolute
@@ -425,14 +428,36 @@ toString route =
                 ]
                 (groups |> List.map (Builder.string "group"))
 
-        Dashboard (Normal (Just search)) ->
-            Builder.absolute [] [ Builder.string "search" search ]
+        Dashboard { searchType, dashboardView } ->
+            let
+                path =
+                    case searchType of
+                        Normal _ ->
+                            []
 
-        Dashboard (Normal Nothing) ->
-            Builder.absolute [] []
+                        HighDensity ->
+                            [ "hd" ]
 
-        Dashboard HighDensity ->
-            Builder.absolute [ "hd" ] []
+                queryParams =
+                    (case searchType of
+                        Normal "" ->
+                            []
+
+                        Normal query ->
+                            [ Builder.string "search" query ]
+
+                        _ ->
+                            []
+                    )
+                        ++ (case dashboardView of
+                                ViewNonArchivedPipelines ->
+                                    []
+
+                                _ ->
+                                    [ Builder.string "view" <| dashboardViewName dashboardView ]
+                           )
+            in
+            Builder.absolute path queryParams
 
         FlySuccess noop flyPort ->
             Builder.absolute [ "fly_success" ] <|
@@ -479,7 +504,7 @@ extractPid route =
 extractQuery : SearchType -> String
 extractQuery route =
     case route of
-        Normal (Just q) ->
+        Normal q ->
             q
 
         _ ->

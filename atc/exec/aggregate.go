@@ -3,7 +3,10 @@ package exec
 import (
 	"context"
 	"fmt"
-	"strings"
+	"os"
+	"runtime/debug"
+
+	"github.com/hashicorp/go-multierror"
 )
 
 // AggregateStep is a step of steps to run in parallel.
@@ -22,15 +25,24 @@ func (step AggregateStep) Run(ctx context.Context, state RunState) error {
 	for _, s := range step {
 		s := s
 		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					err := fmt.Errorf("panic in aggregate step: %v", r)
+
+					fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
+					errs <- err
+				}
+			}()
+
 			errs <- s.Run(ctx, state)
 		}()
 	}
 
-	var errorMessages []string
+	var result error
 	for i := 0; i < len(step); i++ {
 		err := <-errs
 		if err != nil {
-			errorMessages = append(errorMessages, err.Error())
+			result = multierror.Append(result, err)
 		}
 	}
 
@@ -38,8 +50,8 @@ func (step AggregateStep) Run(ctx context.Context, state RunState) error {
 		return ctx.Err()
 	}
 
-	if len(errorMessages) > 0 {
-		return fmt.Errorf("one or more aggregated step errored:\n%s", strings.Join(errorMessages, "\n"))
+	if result != nil {
+		return result
 	}
 
 	return nil

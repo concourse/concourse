@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/concourse/atc/db"
+	"go.opentelemetry.io/otel/api/propagators"
 )
 
 type FakeResourceConfigVersion struct {
@@ -59,6 +60,16 @@ type FakeResourceConfigVersion struct {
 	}
 	resourceConfigScopeReturnsOnCall map[int]struct {
 		result1 db.ResourceConfigScope
+	}
+	SpanContextStub        func() propagators.Supplier
+	spanContextMutex       sync.RWMutex
+	spanContextArgsForCall []struct {
+	}
+	spanContextReturns struct {
+		result1 propagators.Supplier
+	}
+	spanContextReturnsOnCall map[int]struct {
+		result1 propagators.Supplier
 	}
 	VersionStub        func() db.Version
 	versionMutex       sync.RWMutex
@@ -337,6 +348,58 @@ func (fake *FakeResourceConfigVersion) ResourceConfigScopeReturnsOnCall(i int, r
 	}{result1}
 }
 
+func (fake *FakeResourceConfigVersion) SpanContext() propagators.Supplier {
+	fake.spanContextMutex.Lock()
+	ret, specificReturn := fake.spanContextReturnsOnCall[len(fake.spanContextArgsForCall)]
+	fake.spanContextArgsForCall = append(fake.spanContextArgsForCall, struct {
+	}{})
+	fake.recordInvocation("SpanContext", []interface{}{})
+	fake.spanContextMutex.Unlock()
+	if fake.SpanContextStub != nil {
+		return fake.SpanContextStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.spanContextReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResourceConfigVersion) SpanContextCallCount() int {
+	fake.spanContextMutex.RLock()
+	defer fake.spanContextMutex.RUnlock()
+	return len(fake.spanContextArgsForCall)
+}
+
+func (fake *FakeResourceConfigVersion) SpanContextCalls(stub func() propagators.Supplier) {
+	fake.spanContextMutex.Lock()
+	defer fake.spanContextMutex.Unlock()
+	fake.SpanContextStub = stub
+}
+
+func (fake *FakeResourceConfigVersion) SpanContextReturns(result1 propagators.Supplier) {
+	fake.spanContextMutex.Lock()
+	defer fake.spanContextMutex.Unlock()
+	fake.SpanContextStub = nil
+	fake.spanContextReturns = struct {
+		result1 propagators.Supplier
+	}{result1}
+}
+
+func (fake *FakeResourceConfigVersion) SpanContextReturnsOnCall(i int, result1 propagators.Supplier) {
+	fake.spanContextMutex.Lock()
+	defer fake.spanContextMutex.Unlock()
+	fake.SpanContextStub = nil
+	if fake.spanContextReturnsOnCall == nil {
+		fake.spanContextReturnsOnCall = make(map[int]struct {
+			result1 propagators.Supplier
+		})
+	}
+	fake.spanContextReturnsOnCall[i] = struct {
+		result1 propagators.Supplier
+	}{result1}
+}
+
 func (fake *FakeResourceConfigVersion) Version() db.Version {
 	fake.versionMutex.Lock()
 	ret, specificReturn := fake.versionReturnsOnCall[len(fake.versionArgsForCall)]
@@ -402,6 +465,8 @@ func (fake *FakeResourceConfigVersion) Invocations() map[string][][]interface{} 
 	defer fake.reloadMutex.RUnlock()
 	fake.resourceConfigScopeMutex.RLock()
 	defer fake.resourceConfigScopeMutex.RUnlock()
+	fake.spanContextMutex.RLock()
+	defer fake.spanContextMutex.RUnlock()
 	fake.versionMutex.RLock()
 	defer fake.versionMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

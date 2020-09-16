@@ -21,7 +21,7 @@ func (command *OrderPipelinesCommand) Validate() ([]string, error) {
 	var pipelines []string
 
 	for _, p := range command.Pipelines {
-		err := p.Validate()
+		_, err := p.Validate()
 		if err != nil {
 			return nil, err
 		}

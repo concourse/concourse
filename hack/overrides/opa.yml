@@ -1,0 +1,27 @@
+# opa.yml - a docker-compose override that adds 'opa' to the stack.
+#
+# ref: https://www.openpolicyagent.org/
+# ref: https://docs.docker.com/compose/extends/
+#
+version: '3'
+
+services:
+  web:
+    environment:
+      CONCOURSE_OPA_URL: http://opa:8181/v1/data/concourse/decision
+      CONCOURSE_POLICY_CHECK_FILTER_HTTP_METHODS: PUT,POST
+
+      # uncomment to configure
+      # CONCOURSE_POLICY_CHECK_FILTER_ACTION: ListWorkers,ListContainers,UseImage,SaveConfig
+      # CONCOURSE_POLICY_CHECK_FILTER_ACTION_SKIP: PausePipeline,UnpausePipeline
+
+  opa:
+    image: openpolicyagent/opa
+    command:
+    - run
+    - --server
+    - --log-level=debug
+    - --watch
+    - /concourse-opa
+    volumes:
+    - ./hack/opa:/concourse-opa

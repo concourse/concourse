@@ -2,10 +2,12 @@ package k8s_test
 
 import (
 	"fmt"
+	"time"
 
-	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("baggageclaim drivers", func() {
@@ -96,13 +98,16 @@ func baggageclaimFails(driver string, selectorFlags ...string) {
 			deployWithDriverAndSelectors(driver, selectorFlags...)
 
 			Eventually(func() []byte {
-				workerLogsSession := Start(nil, "kubectl", "logs",
-					"--namespace="+namespace, "-lapp="+namespace+"-worker")
-				<-workerLogsSession.Exited
+				var logs []byte
+				pods := getPods(namespace, metav1.ListOptions{LabelSelector: "app=" + namespace + "-worker"})
+				for _, p := range pods {
+					contents, _ := kubeClient.CoreV1().Pods(namespace).GetLogs(p.Name, &corev1.PodLogOptions{}).Do().Raw()
+					logs = append(logs, contents...)
+				}
 
-				return workerLogsSession.Out.Contents()
+				return logs
 
-			}).Should(ContainSubstring("failed-to-set-up-driver"))
+			}, 2*time.Minute, 1*time.Second).Should(ContainSubstring("failed-to-set-up-driver"))
 		})
 	})
 }

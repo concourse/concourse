@@ -5,12 +5,13 @@ import (
 	"sync"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/image"
 )
 
 type FakeImageResourceFetcherFactory struct {
-	NewImageResourceFetcherStub        func(worker.Worker, worker.ImageResource, atc.Version, int, atc.VersionedResourceTypes, worker.ImageFetchingDelegate) image.ImageResourceFetcher
+	NewImageResourceFetcherStub        func(worker.Worker, worker.ImageResource, atc.Version, int, atc.VersionedResourceTypes, worker.ImageFetchingDelegate, compression.Compression) image.ImageResourceFetcher
 	newImageResourceFetcherMutex       sync.RWMutex
 	newImageResourceFetcherArgsForCall []struct {
 		arg1 worker.Worker
@@ -19,6 +20,7 @@ type FakeImageResourceFetcherFactory struct {
 		arg4 int
 		arg5 atc.VersionedResourceTypes
 		arg6 worker.ImageFetchingDelegate
+		arg7 compression.Compression
 	}
 	newImageResourceFetcherReturns struct {
 		result1 image.ImageResourceFetcher
@@ -30,7 +32,7 @@ type FakeImageResourceFetcherFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcher(arg1 worker.Worker, arg2 worker.ImageResource, arg3 atc.Version, arg4 int, arg5 atc.VersionedResourceTypes, arg6 worker.ImageFetchingDelegate) image.ImageResourceFetcher {
+func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcher(arg1 worker.Worker, arg2 worker.ImageResource, arg3 atc.Version, arg4 int, arg5 atc.VersionedResourceTypes, arg6 worker.ImageFetchingDelegate, arg7 compression.Compression) image.ImageResourceFetcher {
 	fake.newImageResourceFetcherMutex.Lock()
 	ret, specificReturn := fake.newImageResourceFetcherReturnsOnCall[len(fake.newImageResourceFetcherArgsForCall)]
 	fake.newImageResourceFetcherArgsForCall = append(fake.newImageResourceFetcherArgsForCall, struct {
@@ -40,11 +42,12 @@ func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcher(arg1 worker
 		arg4 int
 		arg5 atc.VersionedResourceTypes
 		arg6 worker.ImageFetchingDelegate
-	}{arg1, arg2, arg3, arg4, arg5, arg6})
-	fake.recordInvocation("NewImageResourceFetcher", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
+		arg7 compression.Compression
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+	fake.recordInvocation("NewImageResourceFetcher", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	fake.newImageResourceFetcherMutex.Unlock()
 	if fake.NewImageResourceFetcherStub != nil {
-		return fake.NewImageResourceFetcherStub(arg1, arg2, arg3, arg4, arg5, arg6)
+		return fake.NewImageResourceFetcherStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	}
 	if specificReturn {
 		return ret.result1
@@ -59,17 +62,17 @@ func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherCallCount() 
 	return len(fake.newImageResourceFetcherArgsForCall)
 }
 
-func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherCalls(stub func(worker.Worker, worker.ImageResource, atc.Version, int, atc.VersionedResourceTypes, worker.ImageFetchingDelegate) image.ImageResourceFetcher) {
+func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherCalls(stub func(worker.Worker, worker.ImageResource, atc.Version, int, atc.VersionedResourceTypes, worker.ImageFetchingDelegate, compression.Compression) image.ImageResourceFetcher) {
 	fake.newImageResourceFetcherMutex.Lock()
 	defer fake.newImageResourceFetcherMutex.Unlock()
 	fake.NewImageResourceFetcherStub = stub
 }
 
-func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherArgsForCall(i int) (worker.Worker, worker.ImageResource, atc.Version, int, atc.VersionedResourceTypes, worker.ImageFetchingDelegate) {
+func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherArgsForCall(i int) (worker.Worker, worker.ImageResource, atc.Version, int, atc.VersionedResourceTypes, worker.ImageFetchingDelegate, compression.Compression) {
 	fake.newImageResourceFetcherMutex.RLock()
 	defer fake.newImageResourceFetcherMutex.RUnlock()
 	argsForCall := fake.newImageResourceFetcherArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
 }
 
 func (fake *FakeImageResourceFetcherFactory) NewImageResourceFetcherReturns(result1 image.ImageResourceFetcher) {

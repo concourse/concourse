@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/resource"
@@ -67,7 +66,7 @@ type FakeClient struct {
 		result2 bool
 		result3 error
 	}
-	RunCheckStepStub        func(context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, atc.VersionedResourceTypes, time.Duration, resource.Resource) (worker.CheckResult, error)
+	RunCheckStepStub        func(context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, worker.ImageFetcherSpec, time.Duration, resource.Resource) (worker.CheckResult, error)
 	runCheckStepMutex       sync.RWMutex
 	runCheckStepArgsForCall []struct {
 		arg1  context.Context
@@ -77,7 +76,7 @@ type FakeClient struct {
 		arg5  worker.WorkerSpec
 		arg6  worker.ContainerPlacementStrategy
 		arg7  db.ContainerMetadata
-		arg8  atc.VersionedResourceTypes
+		arg8  worker.ImageFetcherSpec
 		arg9  time.Duration
 		arg10 resource.Resource
 	}
@@ -381,7 +380,7 @@ func (fake *FakeClient) FindVolumeReturnsOnCall(i int, result1 worker.Volume, re
 	}{result1, result2, result3}
 }
 
-func (fake *FakeClient) RunCheckStep(arg1 context.Context, arg2 lager.Logger, arg3 db.ContainerOwner, arg4 worker.ContainerSpec, arg5 worker.WorkerSpec, arg6 worker.ContainerPlacementStrategy, arg7 db.ContainerMetadata, arg8 atc.VersionedResourceTypes, arg9 time.Duration, arg10 resource.Resource) (worker.CheckResult, error) {
+func (fake *FakeClient) RunCheckStep(arg1 context.Context, arg2 lager.Logger, arg3 db.ContainerOwner, arg4 worker.ContainerSpec, arg5 worker.WorkerSpec, arg6 worker.ContainerPlacementStrategy, arg7 db.ContainerMetadata, arg8 worker.ImageFetcherSpec, arg9 time.Duration, arg10 resource.Resource) (worker.CheckResult, error) {
 	fake.runCheckStepMutex.Lock()
 	ret, specificReturn := fake.runCheckStepReturnsOnCall[len(fake.runCheckStepArgsForCall)]
 	fake.runCheckStepArgsForCall = append(fake.runCheckStepArgsForCall, struct {
@@ -392,7 +391,7 @@ func (fake *FakeClient) RunCheckStep(arg1 context.Context, arg2 lager.Logger, ar
 		arg5  worker.WorkerSpec
 		arg6  worker.ContainerPlacementStrategy
 		arg7  db.ContainerMetadata
-		arg8  atc.VersionedResourceTypes
+		arg8  worker.ImageFetcherSpec
 		arg9  time.Duration
 		arg10 resource.Resource
 	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10})
@@ -414,13 +413,13 @@ func (fake *FakeClient) RunCheckStepCallCount() int {
 	return len(fake.runCheckStepArgsForCall)
 }
 
-func (fake *FakeClient) RunCheckStepCalls(stub func(context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, atc.VersionedResourceTypes, time.Duration, resource.Resource) (worker.CheckResult, error)) {
+func (fake *FakeClient) RunCheckStepCalls(stub func(context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, worker.ImageFetcherSpec, time.Duration, resource.Resource) (worker.CheckResult, error)) {
 	fake.runCheckStepMutex.Lock()
 	defer fake.runCheckStepMutex.Unlock()
 	fake.RunCheckStepStub = stub
 }
 
-func (fake *FakeClient) RunCheckStepArgsForCall(i int) (context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, atc.VersionedResourceTypes, time.Duration, resource.Resource) {
+func (fake *FakeClient) RunCheckStepArgsForCall(i int) (context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, worker.ImageFetcherSpec, time.Duration, resource.Resource) {
 	fake.runCheckStepMutex.RLock()
 	defer fake.runCheckStepMutex.RUnlock()
 	argsForCall := fake.runCheckStepArgsForCall[i]

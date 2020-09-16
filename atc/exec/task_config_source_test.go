@@ -419,28 +419,62 @@ run: {path: a/file}
 			configSource  TaskConfigSource
 			fetchedConfig atc.TaskConfig
 			fetchErr      error
+			expectAllKeys bool
 		)
 
 		JustBeforeEach(func() {
 			configSource = StaticConfigSource{Config: &taskConfig}
-			configSource = InterpolateTemplateConfigSource{ConfigSource: configSource, Vars: []vars.Variables{vars.StaticVariables(taskVars)}}
+			configSource = InterpolateTemplateConfigSource{
+				ConfigSource:  configSource,
+				Vars:          []vars.Variables{vars.StaticVariables(taskVars)},
+				ExpectAllKeys: expectAllKeys,
+			}
 			fetchedConfig, fetchErr = configSource.FetchConfig(context.TODO(), logger, repo)
 		})
 
-		It("fetches task config successfully", func() {
-			Expect(fetchErr).ToNot(HaveOccurred())
+		Context("when expect all keys", func() {
+			BeforeEach(func(){
+				expectAllKeys = true
+			})
+
+			It("fetches task config successfully", func() {
+				Expect(fetchErr).ToNot(HaveOccurred())
+			})
+
+			It("resolves task config parameters successfully", func() {
+				Expect(fetchedConfig.Run.Args).To(Equal([]string{"-al", "task-variable-value"}))
+				Expect(fetchedConfig.Params).To(Equal(atc.TaskEnv{
+					"key1": "key1-task-variable-value",
+					"key2": "key2-task-variable-value",
+				}))
+				Expect(fetchedConfig.ImageResource.Source).To(Equal(atc.Source{
+					"a":               "b",
+					"evaluated-value": "task-variable-value",
+				}))
+			})
 		})
 
-		It("resolves task config parameters successfully", func() {
-			Expect(fetchedConfig.Run.Args).To(Equal([]string{"-al", "task-variable-value"}))
-			Expect(fetchedConfig.Params).To(Equal(atc.TaskEnv{
-				"key1": "key1-task-variable-value",
-				"key2": "key2-task-variable-value",
-			}))
-			Expect(fetchedConfig.ImageResource.Source).To(Equal(atc.Source{
-				"a":               "b",
-				"evaluated-value": "task-variable-value",
-			}))
+		Context("when not expect all keys", func() {
+			BeforeEach(func(){
+				expectAllKeys = false
+				taskVars = atc.Params{}
+			})
+
+			It("fetches task config successfully", func() {
+				Expect(fetchErr).ToNot(HaveOccurred())
+			})
+
+			It("resolves task config parameters successfully", func() {
+				Expect(fetchedConfig.Run.Args).To(Equal([]string{"-al", "((task-variable-name))"}))
+				Expect(fetchedConfig.Params).To(Equal(atc.TaskEnv{
+					"key1": "key1-((task-variable-name))",
+					"key2": "key2-((task-variable-name))",
+				}))
+				Expect(fetchedConfig.ImageResource.Source).To(Equal(atc.Source{
+					"a":               "b",
+					"evaluated-value": "((task-variable-name))",
+				}))
+			})
 		})
 	})
 })

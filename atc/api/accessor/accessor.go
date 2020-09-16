@@ -42,6 +42,8 @@ type access struct {
 	systemClaimKey    string
 	systemClaimValues []string
 	teams             []db.Team
+	teamRoles         map[string][]string
+	isAdmin           bool
 }
 
 func NewAccessor(
@@ -51,78 +53,43 @@ func NewAccessor(
 	systemClaimValues []string,
 	teams []db.Team,
 ) *access {
-	return &access{
+	a := &access{
 		verification:      verification,
 		requiredRole:      requiredRole,
 		systemClaimKey:    systemClaimKey,
 		systemClaimValues: systemClaimValues,
 		teams:             teams,
 	}
+	a.computeTeamRoles()
+	return a
 }
 
-func (a *access) HasToken() bool {
-	return a.verification.HasToken
-}
 
-func (a *access) IsAuthenticated() bool {
-	return a.verification.IsTokenValid
-}
-
-func (a *access) IsAuthorized(teamName string) bool {
-
-	if a.IsAdmin() {
-		return true
-	}
-
-	for _, team := range a.TeamNames() {
-		if team == teamName {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (a *access) TeamNames() []string {
-
-	teamNames := []string{}
-
-	isAdmin := a.IsAdmin()
+func (a *access) computeTeamRoles() {
+	a.teamRoles = map[string][]string{}
 
 	for _, team := range a.teams {
-		if isAdmin || a.hasRequiredRole(team.Auth()) {
-			teamNames = append(teamNames, team.Name())
+		roles := a.rolesForTeam(team.Auth())
+		if len(roles) > 0 {
+			a.teamRoles[team.Name()] = roles
+		}
+		if team.Admin() && contains(roles, "owner") {
+			a.isAdmin = true
 		}
 	}
-
-	return teamNames
 }
 
-func (a *access) hasRequiredRole(auth atc.TeamAuth) bool {
-	for _, teamRole := range a.rolesForTeam(auth) {
-		if a.hasPermission(teamRole) {
+func contains(arr []string, val string) bool {
+	for _, v := range arr {
+		if v == val {
 			return true
 		}
 	}
 	return false
-}
-
-func (a *access) teamRoles() map[string][]string {
-
-	teamRoles := map[string][]string{}
-
-	for _, team := range a.teams {
-		if roles := a.rolesForTeam(team.Auth()); len(roles) > 0 {
-			teamRoles[team.Name()] = roles
-		}
-	}
-
-	return teamRoles
 }
 
 func (a *access) rolesForTeam(auth atc.TeamAuth) []string {
-
-	roles := []string{}
+	roleSet := map[string]bool{}
 
 	groups := a.groups()
 	connectorID := a.connectorID()
@@ -135,18 +102,18 @@ func (a *access) rolesForTeam(auth atc.TeamAuth) []string {
 
 		// backwards compatibility for allow-all-users
 		if len(userAuth) == 0 && len(groupAuth) == 0 {
-			roles = append(roles, role)
+			roleSet[role] = true
 		}
 
 		for _, user := range userAuth {
 			if userID != "" {
 				if strings.EqualFold(user, fmt.Sprintf("%v:%v", connectorID, userID)) {
-					roles = append(roles, role)
+					roleSet[role] = true
 				}
 			}
 			if userName != "" {
 				if strings.EqualFold(user, fmt.Sprintf("%v:%v", connectorID, userName)) {
-					roles = append(roles, role)
+					roleSet[role] = true
 				}
 			}
 		}
@@ -155,29 +122,59 @@ func (a *access) rolesForTeam(auth atc.TeamAuth) []string {
 			for _, claimGroup := range groups {
 				if claimGroup != "" {
 					if strings.EqualFold(group, fmt.Sprintf("%v:%v", connectorID, claimGroup)) {
-						roles = append(roles, role)
+						roleSet[role] = true
 					}
 				}
 			}
 		}
 	}
 
+	var roles []string
+	for role := range roleSet {
+		roles = append(roles, role)
+	}
 	return roles
 }
 
-func (a *access) hasPermission(role string) bool {
-	switch a.requiredRole {
-	case OwnerRole:
-		return role == OwnerRole
-	case MemberRole:
-		return role == OwnerRole || role == MemberRole
-	case OperatorRole:
-		return role == OwnerRole || role == MemberRole || role == OperatorRole
-	case ViewerRole:
-		return role == OwnerRole || role == MemberRole || role == OperatorRole || role == ViewerRole
-	default:
-		return false
+func (a *access) HasToken() bool {
+	return a.verification.HasToken
+}
+
+func (a *access) IsAuthenticated() bool {
+	return a.verification.IsTokenValid
+}
+
+func (a *access) IsAuthorized(teamName string) bool {
+	return a.isAdmin || a.hasPermission(a.teamRoles[teamName])
+}
+
+func (a *access) TeamNames() []string {
+	teamNames := []string{}
+	for _, team := range a.teams {
+		if a.isAdmin || a.hasPermission(a.teamRoles[team.Name()]) {
+			teamNames = append(teamNames, team.Name())
+		}
 	}
+
+	return teamNames
+}
+
+func (a *access) hasPermission(roles []string) bool {
+	for _, role := range roles {
+		switch a.requiredRole {
+		case OwnerRole:
+			return role == OwnerRole
+		case MemberRole:
+			return role == OwnerRole || role == MemberRole
+		case OperatorRole:
+			return role == OwnerRole || role == MemberRole || role == OperatorRole
+		case ViewerRole:
+			return role == OwnerRole || role == MemberRole || role == OperatorRole || role == ViewerRole
+		default:
+			return false
+		}
+	}
+	return false
 }
 
 func (a *access) claims() map[string]interface{} {
@@ -227,38 +224,21 @@ func (a *access) connectorID() string {
 }
 
 func (a *access) groups() []string {
+	groups := []string{}
 	if raw, ok := a.claims()["groups"]; ok {
-		if claim, ok := raw.([]string); ok {
-			return claim
-		}
-	}
-	return []string{}
-}
-
-func (a *access) adminTeams() []string {
-	var adminTeams []string
-
-	for _, team := range a.teams {
-		if team.Admin() {
-			adminTeams = append(adminTeams, team.Name())
-		}
-	}
-	return adminTeams
-}
-
-func (a *access) IsAdmin() bool {
-
-	teamRoles := a.teamRoles()
-
-	for _, adminTeam := range a.adminTeams() {
-		for _, role := range teamRoles[adminTeam] {
-			if role == "owner" {
-				return true
+		if rawGroups, ok := raw.([]interface{}); ok {
+			for _, rawGroup := range rawGroups {
+				if group, ok := rawGroup.(string); ok {
+					groups = append(groups, group)
+				}
 			}
 		}
 	}
+	return groups
+}
 
-	return false
+func (a *access) IsAdmin() bool {
+	return a.isAdmin
 }
 
 func (a *access) IsSystem() bool {
@@ -273,7 +253,7 @@ func (a *access) IsSystem() bool {
 }
 
 func (a *access) TeamRoles() map[string][]string {
-	return a.teamRoles()
+	return a.teamRoles
 }
 
 func (a *access) Claims() Claims {

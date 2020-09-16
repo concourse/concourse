@@ -43,14 +43,15 @@ var _ = Describe("CheckBuildWriteAccessHandler", func() {
 		build.TeamNameReturns("some-team")
 		build.JobNameReturns("some-job")
 
-		checkBuildWriteAccessHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
+		innerHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
+
 		handler = accessor.NewHandler(
 			logger,
-			checkBuildWriteAccessHandler,
-			fakeAccessor,
 			"some-action",
+			innerHandler,
+			fakeAccessor,
 			new(auditorfakes.FakeAuditor),
-			new(dbfakes.FakeUserFactory),
+			map[string]string{},
 		)
 	})
 

@@ -45,6 +45,38 @@ var _ = Describe("ATC Handler Jobs", func() {
 		})
 	})
 
+	Describe("client.ListAllJobs", func() {
+		var expectedJobs []atc.Job
+
+		BeforeEach(func() {
+			expectedURL := "/api/v1/jobs"
+
+			expectedJobs = []atc.Job{
+				{
+					Name:      "myjob-1",
+					NextBuild: nil,
+				},
+				{
+					Name:      "myjob-2",
+					NextBuild: nil,
+				},
+			}
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", expectedURL),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedJobs),
+				),
+			)
+		})
+
+		It("returns all jobs that belong to the account", func() {
+			jobs, err := client.ListAllJobs()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(jobs).To(Equal(expectedJobs))
+		})
+	})
+
 	Describe("Job", func() {
 		Context("when job exists", func() {
 			var (
@@ -153,7 +185,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			)
 		})
 
-		Context("when since, until, and limit are 0", func() {
+		Context("when from, to, and limit are 0", func() {
 			BeforeEach(func() {
 				expectedURL = fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds")
 			})
@@ -166,14 +198,14 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 		})
 
-		Context("when since is specified", func() {
+		Context("when from is specified", func() {
 			BeforeEach(func() {
 				expectedURL = fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds")
-				expectedQuery = fmt.Sprint("since=24")
+				expectedQuery = fmt.Sprint("from=24")
 			})
 
-			It("calls to get all builds since that id", func() {
-				builds, _, found, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{Since: 24})
+			It("calls to get all builds from that id", func() {
+				builds, _, found, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{From: 24})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(builds).To(Equal(expectedBuilds))
@@ -181,11 +213,11 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 			Context("and limit is specified", func() {
 				BeforeEach(func() {
-					expectedQuery = fmt.Sprint("since=24&limit=5")
+					expectedQuery = fmt.Sprint("from=24&limit=5")
 				})
 
 				It("appends limit to the url", func() {
-					builds, _, found, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{Since: 24, Limit: 5})
+					builds, _, found, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{From: 24, Limit: 5})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(builds).To(Equal(expectedBuilds))
@@ -193,14 +225,14 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 		})
 
-		Context("when until is specified", func() {
+		Context("when to is specified", func() {
 			BeforeEach(func() {
 				expectedURL = fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds")
-				expectedQuery = fmt.Sprint("until=26")
+				expectedQuery = fmt.Sprint("to=26")
 			})
 
-			It("calls to get all builds until that id", func() {
-				builds, _, found, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{Until: 26})
+			It("calls to get all builds to that id", func() {
+				builds, _, found, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{To: 26})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(builds).To(Equal(expectedBuilds))
@@ -208,11 +240,11 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 			Context("and limit is specified", func() {
 				BeforeEach(func() {
-					expectedQuery = fmt.Sprint("until=26&limit=15")
+					expectedQuery = fmt.Sprint("to=26&limit=15")
 				})
 
 				It("appends limit to the url", func() {
-					builds, _, found, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{Until: 26, Limit: 15})
+					builds, _, found, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{To: 26, Limit: 15})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(builds).To(Equal(expectedBuilds))
@@ -220,14 +252,14 @@ var _ = Describe("ATC Handler Jobs", func() {
 			})
 		})
 
-		Context("when since and until are both specified", func() {
+		Context("when from and to are both specified", func() {
 			BeforeEach(func() {
 				expectedURL = fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds")
-				expectedQuery = fmt.Sprint("until=26&since=24")
+				expectedQuery = fmt.Sprint("to=26&from=24")
 			})
 
-			It("sends both the since and the until", func() {
-				builds, _, found, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{Since: 24, Until: 26})
+			It("sends both the from and the to", func() {
+				builds, _, found, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{From: 24, To: 26})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(builds).To(Equal(expectedBuilds))
@@ -282,8 +314,8 @@ var _ = Describe("ATC Handler Jobs", func() {
 							ghttp.VerifyRequest("GET", expectedURL),
 							ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds, http.Header{
 								"Link": []string{
-									`<http://some-url.com/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?since=452&limit=123>; rel="previous"`,
-									`<http://some-url.com/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?until=254&limit=456>; rel="next"`,
+									`<http://some-url.com/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?from=452&limit=123>; rel="previous"`,
+									`<http://some-url.com/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?to=254&limit=456>; rel="next"`,
 								},
 							}),
 						),
@@ -294,8 +326,8 @@ var _ = Describe("ATC Handler Jobs", func() {
 					_, pagination, _, err := team.JobBuilds("mypipeline", "myjob", concourse.Page{})
 					Expect(err).ToNot(HaveOccurred())
 
-					Expect(pagination.Previous).To(Equal(&concourse.Page{Since: 452, Limit: 123}))
-					Expect(pagination.Next).To(Equal(&concourse.Page{Until: 254, Limit: 456}))
+					Expect(pagination.Previous).To(Equal(&concourse.Page{From: 452, Limit: 123}))
+					Expect(pagination.Next).To(Equal(&concourse.Page{To: 254, Limit: 456}))
 				})
 			})
 		})

@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
+	"go.opentelemetry.io/otel/api/propagators"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/encryption"
@@ -21,6 +22,7 @@ import (
 const schema = "exec.v2"
 
 var ErrAdoptRerunBuildHasNoInputs = errors.New("inputs not ready for build to rerun")
+var ErrSetByNewerBuild = errors.New("pipeline set by a newer build")
 
 type BuildInput struct {
 	Name       string
@@ -29,6 +31,12 @@ type BuildInput struct {
 
 	FirstOccurrence bool
 	ResolveError    string
+
+	Context SpanContext
+}
+
+func (bi BuildInput) SpanContext() propagators.Supplier {
+	return bi.Context
 }
 
 type BuildOutput struct {
@@ -73,7 +81,8 @@ var buildsQuery = psql.Select(`
 		b.inputs_ready,
 		b.rerun_of,
 		r.name,
-		b.rerun_number
+		b.rerun_number,
+		b.span_context
 	`).
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
@@ -119,6 +128,8 @@ type Build interface {
 
 	Reload() (bool, error)
 
+	ResourcesChecked() (bool, error)
+
 	AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error)
 
 	Interceptible() (bool, error)
@@ -149,6 +160,16 @@ type Build interface {
 
 	IsDrained() bool
 	SetDrained(bool) error
+
+	SpanContext() propagators.Supplier
+
+	SavePipeline(
+		pipelineName string,
+		teamId int,
+		config atc.Config,
+		from ConfigVersion,
+		initiallyPaused bool,
+	) (Pipeline, bool, error)
 }
 
 type build struct {
@@ -184,6 +205,8 @@ type build struct {
 	drained   bool
 	aborted   bool
 	completed bool
+
+	spanContext SpanContext
 }
 
 func newEmptyBuild(conn Conn, lockFactory lock.LockFactory) *build {
@@ -289,6 +312,29 @@ func (b *build) SetInterceptible(i bool) error {
 	return nil
 }
 
+func (b *build) ResourcesChecked() (bool, error) {
+	var notChecked bool
+	err := b.conn.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM resources r
+			JOIN job_inputs ji ON ji.resource_id = r.id
+			JOIN resource_config_scopes rs ON r.resource_config_scope_id = rs.id
+			WHERE ji.job_id = $1
+			AND rs.last_check_end_time < $2
+			AND NOT EXISTS (
+				SELECT
+				FROM resource_pins
+				WHERE resource_id = r.id
+			)
+		)`, b.jobID, b.createTime).Scan(&notChecked)
+	if err != nil {
+		return false, err
+	}
+
+	return !notChecked, nil
+}
+
 func (b *build) Start(plan atc.Plan) (bool, error) {
 	tx, err := b.conn.Begin()
 	if err != nil {
@@ -350,6 +396,11 @@ func (b *build) Start(plan atc.Plan) (bool, error) {
 		return false, err
 	}
 
+	err = b.conn.Bus().Notify(atc.ComponentBuildTracker)
+	if err != nil {
+		return false, err
+	}
+
 	return true, nil
 }
 
@@ -394,12 +445,16 @@ func (b *build) Finish(status BuildStatus) error {
 	}
 
 	if b.jobID != 0 && status == BuildStatusSucceeded {
-		_, err = psql.Delete("build_image_resource_caches birc USING builds b").
-			Where(sq.Expr("birc.build_id = b.id")).
-			Where(sq.Lt{"build_id": b.id}).
-			Where(sq.Eq{"b.job_id": b.jobID}).
-			RunWith(tx).
-			Exec()
+		_, err = tx.Exec(`WITH caches AS (
+			SELECT resource_cache_id, build_id
+			FROM build_image_resource_caches brc
+			JOIN builds b ON b.id = brc.build_id
+			WHERE b.job_id = $1
+		)
+		DELETE FROM build_image_resource_caches birc
+		USING caches c
+		WHERE c.build_id = birc.build_id AND birc.build_id < $2`,
+			b.jobID, b.id)
 		if err != nil {
 			return err
 		}
@@ -494,6 +549,32 @@ func (b *build) Finish(status BuildStatus) error {
 		if err != nil {
 			return err
 		}
+
+		// recursively archive any child pipelines. This is likely the most common case for
+		// automatic archiving so it's worth it to make the feedback more instantenous rather
+		// than relying on GC
+		pipelineRows, err := pipelinesQuery.
+			Prefix(`
+WITH RECURSIVE pipelines_to_archive AS (
+	SELECT id from pipelines where archived = false AND parent_job_id = $1 AND parent_build_id < $2
+	UNION
+	SELECT p.id from pipelines p join jobs j on p.parent_job_id = j.id join pipelines_to_archive on j.pipeline_id = pipelines_to_archive.id
+)`,
+				b.jobID, b.id,
+			).
+			Where("EXISTS(SELECT 1 FROM pipelines_to_archive pa WHERE pa.id = p.id)").
+			RunWith(tx).
+			Query()
+
+		if err != nil {
+			return err
+		}
+		defer pipelineRows.Close()
+
+		err = archivePipelines(tx, b.conn, b.lockFactory, pipelineRows)
+		if err != nil {
+			return err
+		}
 	}
 
 	if b.jobID != 0 {
@@ -579,11 +660,30 @@ func (b *build) Delete() (bool, error) {
 // Setting status as aborted will also make Start() return false in case where
 // build was aborted before it was started.
 func (b *build) MarkAsAborted() error {
-	_, err := psql.Update("builds").
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	_, err = psql.Update("builds").
 		Set("aborted", true).
 		Where(sq.Eq{"id": b.id}).
-		RunWith(b.conn).
+		RunWith(tx).
 		Exec()
+	if err != nil {
+		return err
+	}
+
+	if b.status == BuildStatusPending {
+		err = requestSchedule(tx, b.jobID)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return err
 	}
@@ -951,7 +1051,7 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	newVersion, err := saveResourceVersion(tx, resourceConfigScope.ID(), version, metadata)
+	newVersion, err := saveResourceVersion(tx, resourceConfigScope.ID(), version, metadata, nil)
 	if err != nil {
 		return err
 	}
@@ -1068,6 +1168,7 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 	}
 
 	buildInputs := []BuildInput{}
+
 	for inputName, input := range inputs {
 		var versionBlob string
 
@@ -1082,6 +1183,19 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 			QueryRow().
 			Scan(&versionBlob)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				tx.Rollback()
+
+				_, err = psql.Update("next_build_inputs").
+					Set("resolve_error", fmt.Sprintf("chosen version of input %s not available", inputName)).
+					Where(sq.Eq{
+						"job_id":     b.jobID,
+						"input_name": inputName,
+					}).
+					RunWith(b.conn).
+					Exec()
+			}
+
 			return nil, false, err
 		}
 
@@ -1227,8 +1341,18 @@ func (b *build) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
 			Scan(&versionBlob)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				return nil, false, nil
+				tx.Rollback()
+
+				_, err = psql.Update("next_build_inputs").
+					Set("resolve_error", fmt.Sprintf("chosen version of input %s not available", inputName)).
+					Where(sq.Eq{
+						"job_id":     b.jobID,
+						"input_name": inputName,
+					}).
+					RunWith(b.conn).
+					Exec()
 			}
+
 			return nil, false, err
 		}
 
@@ -1405,6 +1529,58 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	return inputs, outputs, nil
 }
 
+func (b *build) SpanContext() propagators.Supplier {
+	return b.spanContext
+}
+
+func (b *build) SavePipeline(
+	pipelineName string,
+	teamID int,
+	config atc.Config,
+	from ConfigVersion,
+	initiallyPaused bool,
+) (Pipeline, bool, error) {
+	tx, err := b.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer Rollback(tx)
+
+	jobID := newNullInt64(b.jobID)
+	buildID := newNullInt64(b.id)
+	pipelineID, isNewPipeline, err := savePipeline(tx, pipelineName, config, from, initiallyPaused, teamID, jobID, buildID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	pipeline := newPipeline(b.conn, b.lockFactory)
+	err = scanPipeline(
+		pipeline,
+		pipelinesQuery.
+			Where(sq.Eq{"p.id": pipelineID}).
+			RunWith(tx).
+			QueryRow(),
+	)
+	if err != nil {
+		return nil, false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
+	return pipeline, isNewPipeline, nil
+}
+
+func newNullInt64(i int) sql.NullInt64 {
+	return sql.NullInt64{
+		Valid: true,
+		Int64: int64(i),
+	}
+}
+
 func createBuildEventSeq(tx Tx, buildid int) error {
 	_, err := tx.Exec(fmt.Sprintf(`
 		CREATE SEQUENCE %s MINVALUE 0
@@ -1421,7 +1597,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		jobID, pipelineID, rerunOf, rerunNumber                             sql.NullInt64
 		schema, privatePlan, jobName, pipelineName, publicPlan, rerunOfName sql.NullString
 		createTime, startTime, endTime, reapTime                            pq.NullTime
-		nonce                                                               sql.NullString
+		nonce, spanContext                                                  sql.NullString
 		drained, aborted, completed                                         bool
 		status                                                              string
 	)
@@ -1453,6 +1629,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		&rerunOf,
 		&rerunOfName,
 		&rerunNumber,
+		&spanContext,
 	)
 	if err != nil {
 		return err
@@ -1499,6 +1676,13 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 
 	if publicPlan.Valid {
 		err = json.Unmarshal([]byte(publicPlan.String), &b.publicPlan)
+		if err != nil {
+			return err
+		}
+	}
+
+	if spanContext.Valid {
+		err = json.Unmarshal([]byte(spanContext.String), &b.spanContext)
 		if err != nil {
 			return err
 		}

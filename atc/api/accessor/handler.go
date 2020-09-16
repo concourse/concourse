@@ -6,61 +6,57 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/auditor"
-	"github.com/concourse/concourse/atc/db"
 )
 
 //go:generate counterfeiter net/http.Handler
 
+//go:generate counterfeiter . AccessFactory
+
+type AccessFactory interface {
+	Create(req *http.Request, role string) (Access, error)
+}
+
 func NewHandler(
 	logger lager.Logger,
+	action string,
 	handler http.Handler,
 	accessFactory AccessFactory,
-	action string,
-	aud auditor.Auditor,
-	userFactory db.UserFactory,
+	auditor auditor.Auditor,
+	customRoles map[string]string,
 ) http.Handler {
-	return accessorHandler{
+	return &accessorHandler{
 		logger:        logger,
 		handler:       handler,
 		accessFactory: accessFactory,
 		action:        action,
-		auditor:       aud,
-		userFactory:   userFactory,
+		auditor:       auditor,
+		customRoles:   customRoles,
 	}
 }
 
 type accessorHandler struct {
 	logger        lager.Logger
+	action        string
 	handler       http.Handler
 	accessFactory AccessFactory
-	action        string
 	auditor       auditor.Auditor
-	userFactory   db.UserFactory
+	customRoles   map[string]string
 }
 
-func (h accessorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *accessorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	requiredRole := h.customRoles[h.action]
+	if requiredRole == "" {
+		requiredRole = DefaultRoles[h.action]
+	}
 
-	acc, err := h.accessFactory.Create(r, h.action)
+	acc, err := h.accessFactory.Create(r, requiredRole)
 	if err != nil {
-		h.logger.Error("failed-to-create-accessor", err)
+		h.logger.Error("failed-to-construct-accessor", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	claims := acc.Claims()
-
-	if claims.Sub != "" {
-		_, err = h.userFactory.CreateOrUpdateUser(
-			claims.UserName,
-			claims.Connector,
-			claims.Sub,
-		)
-		if err != nil {
-			h.logger.Error("failed-to-update-user-activity", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-	}
 
 	ctx := context.WithValue(r.Context(), "accessor", acc)
 

@@ -3,10 +3,10 @@ package configvalidate
 import (
 	"errors"
 	"fmt"
-	"sort"
+	"net/url"
 	"strings"
-	"time"
 
+	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 )
@@ -26,25 +26,29 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 	warnings := []ConfigWarning{}
 	errorMessages := []string{}
 
-	groupsErr := validateGroups(c)
+	groupsWarnings, groupsErr := validateGroups(c)
 	if groupsErr != nil {
 		errorMessages = append(errorMessages, formatErr("groups", groupsErr))
 	}
+	warnings = append(warnings, groupsWarnings...)
 
-	resourcesErr := validateResources(c)
+	resourcesWarnings, resourcesErr := validateResources(c)
 	if resourcesErr != nil {
 		errorMessages = append(errorMessages, formatErr("resources", resourcesErr))
 	}
+	warnings = append(warnings, resourcesWarnings...)
 
-	resourceTypesErr := validateResourceTypes(c)
+	resourceTypesWarnings, resourceTypesErr := validateResourceTypes(c)
 	if resourceTypesErr != nil {
 		errorMessages = append(errorMessages, formatErr("resource types", resourceTypesErr))
 	}
+	warnings = append(warnings, resourceTypesWarnings...)
 
-	varSourcesErr := validateVarSources(c)
+	varSourcesWarnings, varSourcesErr := validateVarSources(c)
 	if varSourcesErr != nil {
 		errorMessages = append(errorMessages, formatErr("variable sources", varSourcesErr))
 	}
+	warnings = append(warnings, varSourcesWarnings...)
 
 	jobWarnings, jobsErr := validateJobs(c)
 	if jobsErr != nil {
@@ -52,10 +56,17 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 	}
 	warnings = append(warnings, jobWarnings...)
 
+	displayWarnings, displayErr := validateDisplay(c)
+	if displayErr != nil {
+		errorMessages = append(errorMessages, formatErr("display config", displayErr))
+	}
+	warnings = append(warnings, displayWarnings...)
+
 	return warnings, errorMessages
 }
 
-func validateGroups(c Config) error {
+func validateGroups(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
 	var errorMessages []string
 
 	jobsGrouped := make(map[string]bool)
@@ -65,7 +76,18 @@ func validateGroups(c Config) error {
 		jobsGrouped[job.Name] = false
 	}
 
-	for _, group := range c.Groups {
+	for i, group := range c.Groups {
+		var identifier string
+		if group.Name == "" {
+			identifier = fmt.Sprintf("groups[%d]", i)
+		} else {
+			identifier = fmt.Sprintf("groups.%s", group.Name)
+		}
+
+		warning := ValidateIdentifier(group.Name, identifier)
+		if warning != nil {
+			warnings = append(warnings, *warning)
+		}
 
 		if val, ok := groupNames[group.Name]; ok {
 			groupNames[group.Name] = val + 1
@@ -108,10 +130,11 @@ func validateGroups(c Config) error {
 		}
 	}
 
-	return compositeErr(errorMessages)
+	return warnings, compositeErr(errorMessages)
 }
 
-func validateResources(c Config) error {
+func validateResources(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
 	var errorMessages []string
 
 	names := map[string]int{}
@@ -122,6 +145,11 @@ func validateResources(c Config) error {
 			identifier = fmt.Sprintf("resources[%d]", i)
 		} else {
 			identifier = fmt.Sprintf("resources.%s", resource.Name)
+		}
+
+		warning := ValidateIdentifier(resource.Name, identifier)
+		if warning != nil {
+			warnings = append(warnings, *warning)
 		}
 
 		if other, exists := names[resource.Name]; exists {
@@ -144,10 +172,11 @@ func validateResources(c Config) error {
 
 	errorMessages = append(errorMessages, validateResourcesUnused(c)...)
 
-	return compositeErr(errorMessages)
+	return warnings, compositeErr(errorMessages)
 }
 
-func validateResourceTypes(c Config) error {
+func validateResourceTypes(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
 	var errorMessages []string
 
 	names := map[string]int{}
@@ -158,6 +187,11 @@ func validateResourceTypes(c Config) error {
 			identifier = fmt.Sprintf("resource_types[%d]", i)
 		} else {
 			identifier = fmt.Sprintf("resource_types.%s", resourceType.Name)
+		}
+
+		warning := ValidateIdentifier(resourceType.Name, identifier)
+		if warning != nil {
+			warnings = append(warnings, *warning)
 		}
 
 		if other, exists := names[resourceType.Name]; exists {
@@ -178,7 +212,7 @@ func validateResourceTypes(c Config) error {
 		}
 	}
 
-	return compositeErr(errorMessages)
+	return warnings, compositeErr(errorMessages)
 }
 
 func validateResourcesUnused(c Config) []string {
@@ -199,12 +233,16 @@ func usedResources(c Config) map[string]bool {
 	usedResources := make(map[string]bool)
 
 	for _, job := range c.Jobs {
-		for _, input := range job.Inputs() {
-			usedResources[input.Resource] = true
-		}
-		for _, output := range job.Outputs() {
-			usedResources[output.Resource] = true
-		}
+		_ = job.StepConfig().Visit(atc.StepRecursor{
+			OnGet: func(step *GetStep) error {
+				usedResources[step.ResourceName()] = true
+				return nil
+			},
+			OnPut: func(step *PutStep) error {
+				usedResources[step.ResourceName()] = true
+				return nil
+			},
+		})
 	}
 
 	return usedResources
@@ -222,6 +260,11 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 			identifier = fmt.Sprintf("jobs[%d]", i)
 		} else {
 			identifier = fmt.Sprintf("jobs.%s", job.Name)
+		}
+
+		warning := ValidateIdentifier(job.Name, identifier)
+		if warning != nil {
+			warnings = append(warnings, *warning)
 		}
 
 		if other, exists := names[job.Name]; exists {
@@ -276,439 +319,18 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 			}
 		}
 
-		planWarnings, planErrMessages := validatePlan(c, identifier+".plan", PlanConfig{Do: &job.Plan})
-		warnings = append(warnings, planWarnings...)
-		errorMessages = append(errorMessages, planErrMessages...)
+		step := job.Step()
 
-		if job.Abort != nil {
-			subIdentifier := fmt.Sprintf("%s.abort", identifier)
-			planWarnings, planErrMessages := validatePlan(c, subIdentifier, *job.Abort)
-			warnings = append(warnings, planWarnings...)
-			errorMessages = append(errorMessages, planErrMessages...)
-		}
+		validator := atc.NewStepValidator(c, []string{identifier, ".plan"})
 
-		if job.Error != nil {
-			subIdentifier := fmt.Sprintf("%s.error", identifier)
-			planWarnings, planErrMessages := validatePlan(c, subIdentifier, *job.Error)
-			warnings = append(warnings, planWarnings...)
-			errorMessages = append(errorMessages, planErrMessages...)
-		}
+		_ = validator.Validate(step)
 
-		if job.Failure != nil {
-			subIdentifier := fmt.Sprintf("%s.failure", identifier)
-			planWarnings, planErrMessages := validatePlan(c, subIdentifier, *job.Failure)
-			warnings = append(warnings, planWarnings...)
-			errorMessages = append(errorMessages, planErrMessages...)
-		}
+		warnings = append(warnings, validator.Warnings...)
 
-		if job.Ensure != nil {
-			subIdentifier := fmt.Sprintf("%s.ensure", identifier)
-			planWarnings, planErrMessages := validatePlan(c, subIdentifier, *job.Ensure)
-			warnings = append(warnings, planWarnings...)
-			errorMessages = append(errorMessages, planErrMessages...)
-		}
-
-		if job.Success != nil {
-			subIdentifier := fmt.Sprintf("%s.success", identifier)
-			planWarnings, planErrMessages := validatePlan(c, subIdentifier, *job.Success)
-			warnings = append(warnings, planWarnings...)
-			errorMessages = append(errorMessages, planErrMessages...)
-		}
-
-		encountered := map[string]int{}
-		for _, input := range job.Inputs() {
-			encountered[input.Name]++
-
-			if encountered[input.Name] == 2 {
-				errorMessages = append(
-					errorMessages,
-					fmt.Sprintf("%s has get steps with the same name: %s", identifier, input.Name),
-				)
-			}
-		}
-
-		// Within a job, each "load_var" step should have a unique name.
-		loadVarStepNames := map[string]interface{}{}
-		for _, plan := range job.Plan {
-			if plan.LoadVar != "" {
-				if _, ok := loadVarStepNames[plan.LoadVar]; ok {
-					errorMessages = append(
-						errorMessages,
-						fmt.Sprintf("%s has load_var steps with the same name: %s", identifier, plan.LoadVar),
-					)
-				}
-				loadVarStepNames[plan.LoadVar] = true
-			}
-		}
+		errorMessages = append(errorMessages, validator.Errors...)
 	}
 
 	return warnings, compositeErr(errorMessages)
-}
-
-type foundTypes struct {
-	identifier string
-	found      map[string]bool
-}
-
-func (ft *foundTypes) Find(name string) {
-	ft.found[name] = true
-}
-
-func (ft foundTypes) IsValid() (bool, string) {
-	if len(ft.found) == 0 {
-		return false, ft.identifier + " has no action specified"
-	}
-
-	if len(ft.found) > 1 {
-		types := make([]string, 0, len(ft.found))
-
-		for typee := range ft.found {
-			types = append(types, typee)
-		}
-
-		sort.Strings(types)
-
-		return false, fmt.Sprintf("%s has multiple actions specified (%s)", ft.identifier, strings.Join(types, ", "))
-	}
-
-	return true, ""
-}
-
-func validatePlan(c Config, identifier string, plan PlanConfig) ([]ConfigWarning, []string) {
-	foundTypes := foundTypes{
-		identifier: identifier,
-		found:      make(map[string]bool),
-	}
-
-	if plan.Get != "" {
-		foundTypes.Find("get")
-	}
-
-	if plan.Put != "" {
-		foundTypes.Find("put")
-	}
-
-	if plan.Task != "" {
-		foundTypes.Find("task")
-	}
-
-	if plan.SetPipeline != "" {
-		foundTypes.Find("set_pipeline")
-	}
-
-	if plan.LoadVar != "" {
-		foundTypes.Find("load_var")
-	}
-
-	if plan.Do != nil {
-		foundTypes.Find("do")
-	}
-
-	if plan.Aggregate != nil {
-		foundTypes.Find("aggregate")
-	}
-
-	if plan.InParallel != nil {
-		foundTypes.Find("parallel")
-	}
-
-	if plan.Try != nil {
-		foundTypes.Find("try")
-	}
-
-	if valid, message := foundTypes.IsValid(); !valid {
-		return []ConfigWarning{}, []string{message}
-	}
-
-	var errorMessages []string
-	var warnings []ConfigWarning
-
-	switch {
-	case plan.Do != nil:
-		for i, plan := range *plan.Do {
-			subIdentifier := fmt.Sprintf("%s[%d]", identifier, i)
-			planWarnings, planErrMessages := validatePlan(c, subIdentifier, plan)
-			warnings = append(warnings, planWarnings...)
-			errorMessages = append(errorMessages, planErrMessages...)
-		}
-
-	case plan.Aggregate != nil:
-		warnings = append(warnings, ConfigWarning{
-			Type:    "pipeline",
-			Message: identifier + " : aggregate is deprecated and will be removed in a future version",
-		})
-		for i, plan := range *plan.Aggregate {
-			subIdentifier := fmt.Sprintf("%s.aggregate[%d]", identifier, i)
-			planWarnings, planErrMessages := validatePlan(c, subIdentifier, plan)
-			warnings = append(warnings, planWarnings...)
-			errorMessages = append(errorMessages, planErrMessages...)
-		}
-
-	case plan.InParallel != nil:
-		for i, plan := range plan.InParallel.Steps {
-			subIdentifier := fmt.Sprintf("%s.in_parallel[%d]", identifier, i)
-			planWarnings, planErrMessages := validatePlan(c, subIdentifier, plan)
-			warnings = append(warnings, planWarnings...)
-			errorMessages = append(errorMessages, planErrMessages...)
-		}
-
-	case plan.Get != "":
-		identifier = fmt.Sprintf("%s.get.%s", identifier, plan.Get)
-
-		errorMessages = append(errorMessages, validateInapplicableFields(
-			[]string{"privileged", "config", "file"},
-			plan, identifier)...,
-		)
-
-		if plan.Resource != "" {
-			_, found := c.Resources.Lookup(plan.Resource)
-			if !found {
-				errorMessages = append(
-					errorMessages,
-					fmt.Sprintf(
-						"%s refers to a resource that does not exist ('%s')",
-						identifier,
-						plan.Resource,
-					),
-				)
-			}
-		} else {
-			_, found := c.Resources.Lookup(plan.Get)
-			if !found {
-				errorMessages = append(
-					errorMessages,
-					fmt.Sprintf(
-						"%s refers to a resource that does not exist",
-						identifier,
-					),
-				)
-			}
-		}
-
-		for _, job := range plan.Passed {
-			jobConfig, found := c.Jobs.Lookup(job)
-			if !found {
-				errorMessages = append(
-					errorMessages,
-					fmt.Sprintf(
-						"%s.passed references an unknown job ('%s')",
-						identifier,
-						job,
-					),
-				)
-			} else {
-				foundResource := false
-
-				for _, input := range jobConfig.Inputs() {
-					if input.Resource == plan.ResourceName() {
-						foundResource = true
-						break
-					}
-				}
-
-				for _, output := range jobConfig.Outputs() {
-					if output.Resource == plan.ResourceName() {
-						foundResource = true
-						break
-					}
-				}
-
-				if !foundResource {
-					errorMessages = append(
-						errorMessages,
-						fmt.Sprintf(
-							"%s.passed references a job ('%s') which doesn't interact with the resource ('%s')",
-							identifier,
-							job,
-							plan.Get,
-						),
-					)
-				}
-			}
-		}
-
-	case plan.Put != "":
-		identifier = fmt.Sprintf("%s.put.%s", identifier, plan.Put)
-
-		errorMessages = append(errorMessages, validateInapplicableFields(
-			[]string{"passed", "trigger", "privileged", "config", "file"},
-			plan, identifier)...,
-		)
-
-		if plan.Resource != "" {
-			_, found := c.Resources.Lookup(plan.Resource)
-			if !found {
-				errorMessages = append(
-					errorMessages,
-					fmt.Sprintf(
-						"%s refers to a resource that does not exist ('%s')",
-						identifier,
-						plan.Resource,
-					),
-				)
-			}
-		} else {
-			_, found := c.Resources.Lookup(plan.Put)
-			if !found {
-				errorMessages = append(
-					errorMessages,
-					fmt.Sprintf(
-						"%s refers to a resource that does not exist",
-						identifier,
-					),
-				)
-			}
-		}
-
-	case plan.Task != "":
-		identifier = fmt.Sprintf("%s.task.%s", identifier, plan.Task)
-
-		if plan.TaskConfig == nil && plan.File == "" {
-			errorMessages = append(errorMessages, identifier+" does not specify any task configuration")
-		}
-
-		if plan.TaskConfig != nil && (plan.TaskConfig.RootfsURI != "" || plan.TaskConfig.ImageResource != nil) && plan.ImageArtifactName != "" {
-			warnings = append(warnings, ConfigWarning{
-				Type:    "pipeline",
-				Message: identifier + " specifies an image artifact to use as the container's image but also specifies an image or image resource in the task configuration; the image artifact takes precedence",
-			})
-		}
-
-		if plan.TaskConfig != nil && plan.File != "" {
-			errorMessages = append(errorMessages, identifier+" specifies both `file` and `config` in a task step")
-		}
-
-		if plan.TaskConfig != nil {
-			if err := plan.TaskConfig.Validate(); err != nil {
-				messages := strings.Split(err.Error(), "\n")
-				for _, message := range messages {
-					errorMessages = append(errorMessages, fmt.Sprintf("%s %s", identifier, strings.TrimSpace(message)))
-				}
-			}
-		}
-
-		errorMessages = append(errorMessages, validateInapplicableFields(
-			[]string{"resource", "passed", "trigger"},
-			plan, identifier)...,
-		)
-
-	case plan.SetPipeline != "":
-		identifier = fmt.Sprintf("%s.set_pipeline.%s", identifier, plan.SetPipeline)
-
-		if plan.File == "" {
-			errorMessages = append(errorMessages, identifier+" does not specify any pipeline configuration")
-		}
-
-	case plan.LoadVar != "":
-		identifier = fmt.Sprintf("%s.load_var.%s", identifier, plan.LoadVar)
-
-		if plan.File == "" {
-			errorMessages = append(errorMessages, identifier+" does not specify any file")
-		}
-
-	case plan.Try != nil:
-		subIdentifier := fmt.Sprintf("%s.try", identifier)
-		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Try)
-		warnings = append(warnings, planWarnings...)
-		errorMessages = append(errorMessages, planErrMessages...)
-	}
-
-	if plan.Abort != nil {
-		subIdentifier := fmt.Sprintf("%s.abort", identifier)
-		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Abort)
-		warnings = append(warnings, planWarnings...)
-		errorMessages = append(errorMessages, planErrMessages...)
-	}
-
-	if plan.Error != nil {
-		subIdentifier := fmt.Sprintf("%s.error", identifier)
-		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Error)
-		warnings = append(warnings, planWarnings...)
-		errorMessages = append(errorMessages, planErrMessages...)
-	}
-
-	if plan.Ensure != nil {
-		subIdentifier := fmt.Sprintf("%s.ensure", identifier)
-		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Ensure)
-		warnings = append(warnings, planWarnings...)
-		errorMessages = append(errorMessages, planErrMessages...)
-	}
-
-	if plan.Success != nil {
-		subIdentifier := fmt.Sprintf("%s.success", identifier)
-		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Success)
-		warnings = append(warnings, planWarnings...)
-		errorMessages = append(errorMessages, planErrMessages...)
-	}
-
-	if plan.Failure != nil {
-		subIdentifier := fmt.Sprintf("%s.failure", identifier)
-		planWarnings, planErrMessages := validatePlan(c, subIdentifier, *plan.Failure)
-		warnings = append(warnings, planWarnings...)
-		errorMessages = append(errorMessages, planErrMessages...)
-	}
-
-	if plan.Timeout != "" {
-		_, err := time.ParseDuration(plan.Timeout)
-		if err != nil {
-			subIdentifier := fmt.Sprintf("%s.timeout", identifier)
-			errorMessages = append(errorMessages, subIdentifier+fmt.Sprintf(" refers to a duration that could not be parsed ('%s')", plan.Timeout))
-		}
-	}
-
-	if plan.Attempts < 0 {
-		subIdentifier := fmt.Sprintf("%s.attempts", identifier)
-		errorMessages = append(errorMessages, subIdentifier+fmt.Sprintf(" has an invalid number of attempts (%d)", plan.Attempts))
-	}
-
-	return warnings, errorMessages
-}
-
-func validateInapplicableFields(inapplicableFields []string, plan PlanConfig, identifier string) []string {
-	var errorMessages []string
-	var foundInapplicableFields []string
-
-	for _, field := range inapplicableFields {
-		switch field {
-		case "resource":
-			if plan.Resource != "" {
-				foundInapplicableFields = append(foundInapplicableFields, field)
-			}
-		case "passed":
-			if len(plan.Passed) != 0 {
-				foundInapplicableFields = append(foundInapplicableFields, field)
-			}
-		case "trigger":
-			if plan.Trigger {
-				foundInapplicableFields = append(foundInapplicableFields, field)
-			}
-		case "privileged":
-			if plan.Privileged {
-				foundInapplicableFields = append(foundInapplicableFields, field)
-			}
-		case "config":
-			if plan.TaskConfig != nil {
-				foundInapplicableFields = append(foundInapplicableFields, field)
-			}
-		case "file":
-			if plan.File != "" {
-				foundInapplicableFields = append(foundInapplicableFields, field)
-			}
-		}
-	}
-
-	if len(foundInapplicableFields) > 0 {
-		errorMessages = append(
-			errorMessages,
-			fmt.Sprintf(
-				"%s has invalid fields specified (%s)",
-				identifier,
-				strings.Join(foundInapplicableFields, ", "),
-			),
-		)
-	}
-
-	return errorMessages
 }
 
 func compositeErr(errorMessages []string) error {
@@ -719,41 +341,80 @@ func compositeErr(errorMessages []string) error {
 	return errors.New(strings.Join(errorMessages, "\n"))
 }
 
-func validateVarSources(c Config) error {
+func validateVarSources(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
+	var errorMessages []string
+
 	names := map[string]interface{}{}
 
-	for _, cm := range c.VarSources {
-		factory := creds.ManagerFactories()[cm.Type]
-		if factory == nil {
-			return fmt.Errorf("unknown credential manager type: %s", cm.Type)
+	for i, cm := range c.VarSources {
+		var identifier string
+		if cm.Name == "" {
+			identifier = fmt.Sprintf("var_sources[%d]", i)
+		} else {
+			identifier = fmt.Sprintf("var_sources.%s", cm.Name)
 		}
 
-		// TODO: this check should eventually be removed once all credential managers
-		// are supported in pipeline. - @evanchaoli
-		switch cm.Type {
-		case "vault", "dummy":
-		default:
-			return fmt.Errorf("credential manager type %s is not supported in pipeline yet", cm.Type)
+		warning := ValidateIdentifier(cm.Name, identifier)
+		if warning != nil {
+			warnings = append(warnings, *warning)
 		}
 
-		if _, ok := names[cm.Name]; ok {
-			return fmt.Errorf("duplicate var_source name: %s", cm.Name)
-		}
-		names[cm.Name] = 0
+		if factory, exists := creds.ManagerFactories()[cm.Type]; exists {
+			// TODO: this check should eventually be removed once all credential managers
+			// are supported in pipeline. - @evanchaoli
+			switch cm.Type {
+			case "vault", "dummy", "ssm":
+			default:
+				errorMessages = append(errorMessages, fmt.Sprintf("credential manager type %s is not supported in pipeline yet", cm.Type))
+			}
 
-		manager, err := factory.NewInstance(cm.Config)
-		if err != nil {
-			return fmt.Errorf("failed to create credential manager %s: %s", cm.Name, err.Error())
-		}
-		err = manager.Validate()
-		if err != nil {
-			return fmt.Errorf("credential manager %s is invalid: %s", cm.Name, err.Error())
+			if _, ok := names[cm.Name]; ok {
+				errorMessages = append(errorMessages, fmt.Sprintf("duplicate var_source name: %s", cm.Name))
+			}
+			names[cm.Name] = 0
+
+			if manager, err := factory.NewInstance(cm.Config); err == nil {
+				err = manager.Validate()
+				if err != nil {
+					errorMessages = append(errorMessages, fmt.Sprintf("credential manager %s is invalid: %s", cm.Name, err.Error()))
+				}
+			} else {
+				errorMessages = append(errorMessages, fmt.Sprintf("failed to create credential manager %s: %s", cm.Name, err.Error()))
+			}
+		} else {
+			errorMessages = append(errorMessages, fmt.Sprintf("unknown credential manager type: %s", cm.Type))
 		}
 	}
 
 	if _, err := c.VarSources.OrderByDependency(); err != nil {
-		return err
+		errorMessages = append(errorMessages, fmt.Sprintf("failed to order by dependency: %s", err.Error()))
 	}
 
-	return nil
+	return warnings, compositeErr(errorMessages)
+}
+
+func validateDisplay(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
+
+	if c.Display == nil {
+		return warnings, nil
+	}
+
+	url, err := url.Parse(c.Display.BackgroundImage)
+
+	if err != nil {
+		return warnings, fmt.Errorf("background_image is not a valid URL: %s", c.Display.BackgroundImage)
+	}
+
+	switch url.Scheme {
+	case "https":
+	case "http":
+	case "":
+		break
+	default:
+		return warnings, fmt.Errorf("background_image scheme must be either http, https or relative")
+	}
+
+	return warnings, nil
 }

@@ -472,12 +472,12 @@ func (c *volumeClient) findOrCreateVolume(
 				logger.Error("failed-to-mark-volume-as-failed", failedErr)
 			}
 
-			metric.FailedVolumes.Inc()
+			metric.Metrics.FailedVolumes.Inc()
 
 			return nil, err
 		}
 
-		metric.VolumesCreated.Inc()
+		metric.Metrics.VolumesCreated.Inc()
 	}
 
 	createdVolume, err = creatingVolume.Created()

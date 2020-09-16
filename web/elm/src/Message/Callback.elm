@@ -1,7 +1,4 @@
-module Message.Callback exposing
-    ( Callback(..)
-    , TooltipPolicy(..)
-    )
+module Message.Callback exposing (Callback(..))
 
 import Browser.Dom
 import Concourse
@@ -15,7 +12,6 @@ import Message.Message
         , VersionToggleAction
         , VisibilityAction
         )
-import Message.ScrollDirection exposing (ScrollDirection)
 import Time
 
 
@@ -28,7 +24,7 @@ type Callback
     | GotCurrentTime Time.Posix
     | GotCurrentTimeZone Time.Zone
     | BuildTriggered (Fetched Concourse.Build)
-    | JobBuildsFetched (Fetched (Paginated Concourse.Build))
+    | JobBuildsFetched (Fetched ( Page, Paginated Concourse.Build ))
     | JobFetched (Fetched Concourse.Job)
     | JobsFetched (Fetched Json.Encode.Value)
     | PipelineFetched (Fetched Concourse.Pipeline)
@@ -39,7 +35,7 @@ type Callback
     | ResourcesFetched (Fetched Json.Encode.Value)
     | BuildResourcesFetched (Fetched ( Int, Concourse.BuildResources ))
     | ResourceFetched (Fetched Concourse.Resource)
-    | VersionedResourcesFetched (Fetched ( Maybe Page, Paginated Concourse.VersionedResource ))
+    | VersionedResourcesFetched (Fetched ( Page, Paginated Concourse.VersionedResource ))
     | ClusterInfoFetched (Fetched Concourse.ClusterInfo)
     | PausedToggled (Fetched ())
     | InputToFetched (Fetched ( VersionId, List Concourse.Build ))
@@ -62,11 +58,5 @@ type Callback
     | BuildAborted (Fetched ())
     | VisibilityChanged VisibilityAction Concourse.PipelineIdentifier (Fetched ())
     | AllPipelinesFetched (Fetched (List Concourse.Pipeline))
-    | GotViewport DomID TooltipPolicy (Result Browser.Dom.Error Browser.Dom.Viewport)
+    | GotViewport DomID (Result Browser.Dom.Error Browser.Dom.Viewport)
     | GotElement (Result Browser.Dom.Error Browser.Dom.Element)
-    | ScrollCompleted ScrollDirection String
-
-
-type TooltipPolicy
-    = AlwaysShow
-    | OnlyShowWhenOverflowing

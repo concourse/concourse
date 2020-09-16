@@ -4,6 +4,7 @@ module Dashboard.Dashboard exposing
     , handleDelivery
     , init
     , subscriptions
+    , tooltip
     , update
     , view
     )
@@ -17,7 +18,14 @@ import Dashboard.Filter as Filter
 import Dashboard.Footer as Footer
 import Dashboard.Group as Group
 import Dashboard.Group.Models exposing (Pipeline)
-import Dashboard.Models as Models exposing (DragState(..), DropState(..), Dropdown(..), Model)
+import Dashboard.Models as Models
+    exposing
+        ( DragState(..)
+        , DropState(..)
+        , Dropdown(..)
+        , FetchError(..)
+        , Model
+        )
 import Dashboard.PipelineGrid as PipelineGrid
 import Dashboard.PipelineGrid.Constants as PipelineGridConstants
 import Dashboard.RequestBuffer as RequestBuffer exposing (Buffer(..))
@@ -44,9 +52,10 @@ import Html.Events
         ( onMouseEnter
         , onMouseLeave
         )
+import Http
 import List.Extra
 import Login.Login as Login
-import Message.Callback exposing (Callback(..), TooltipPolicy(..))
+import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..), toHtmlID)
 import Message.Message as Message
     exposing
@@ -62,25 +71,35 @@ import Message.Subscription
         )
 import Routes
 import ScreenSize exposing (ScreenSize(..))
+import Set exposing (Set)
 import SideBar.SideBar as SideBar
 import StrictEvents exposing (onScroll)
 import Time
+import Tooltip
 import UserState
+import Views.Spinner as Spinner
 import Views.Styles
+import Views.Toggle as Toggle
 
 
-init : Routes.SearchType -> ( Model, List Effect )
-init searchType =
-    ( { showTurbulence = False
-      , now = Nothing
+type alias Flags =
+    { searchType : Routes.SearchType
+    , dashboardView : Routes.DashboardView
+    }
+
+
+init : Flags -> ( Model, List Effect )
+init f =
+    ( { now = Nothing
       , hideFooter = False
       , hideFooterCounter = 0
       , showHelp = False
-      , highDensity = searchType == Routes.HighDensity
-      , query = Routes.extractQuery searchType
-      , pipelinesWithResourceErrors = Dict.empty
+      , highDensity = f.searchType == Routes.HighDensity
+      , query = Routes.extractQuery f.searchType
+      , dashboardView = f.dashboardView
+      , pipelinesWithResourceErrors = Set.empty
       , jobs = None
-      , pipelines = None
+      , pipelines = Nothing
       , pipelineLayers = Dict.empty
       , teams = None
       , isUserMenuExpanded = False
@@ -91,10 +110,15 @@ init searchType =
       , isTeamsRequestFinished = False
       , isResourcesRequestFinished = False
       , isPipelinesRequestFinished = False
+      , jobsError = Nothing
+      , teamsError = Nothing
+      , resourcesError = Nothing
+      , pipelinesError = Nothing
       , viewportWidth = 0
       , viewportHeight = 0
       , scrollTop = 0
       , pipelineJobs = Dict.empty
+      , effectsToRetry = []
       }
     , [ FetchAllTeams
       , PinTeamNames Message.Effects.stickyHeaderConfig
@@ -105,7 +129,7 @@ init searchType =
       , LoadCachedJobs
       , LoadCachedPipelines
       , LoadCachedTeams
-      , GetViewportOf Dashboard AlwaysShow
+      , GetViewportOf Dashboard
       ]
     )
 
@@ -147,7 +171,7 @@ buffers =
                 _ ->
                     False
         )
-        (.dragState >> (/=) NotDragging)
+        (\model -> model.dragState /= NotDragging || model.jobsError == Just Disabled)
         { get = \m -> m.isJobsRequestFinished
         , set = \f m -> { m | isJobsRequestFinished = f }
         }
@@ -171,14 +195,19 @@ handleCallback : Callback -> ET Model
 handleCallback callback ( model, effects ) =
     (case callback of
         AllTeamsFetched (Err _) ->
-            ( { model | showTurbulence = True }, effects )
+            ( { model | teamsError = Just Failed }
+            , effects
+            )
 
         AllTeamsFetched (Ok teams) ->
             let
                 newTeams =
                     Fetched teams
             in
-            ( { model | teams = newTeams }
+            ( { model
+                | teams = newTeams
+                , teamsError = Nothing
+              }
             , effects
                 ++ (if newTeams |> changedFrom model.teams then
                         [ SaveCachedTeams teams ]
@@ -219,7 +248,10 @@ handleCallback callback ( model, effects ) =
                         |> FetchResult.map (Dict.toList >> List.map Tuple.first)
 
                 newModel =
-                    { model | jobs = newJobs }
+                    { model
+                        | jobs = newJobs
+                        , jobsError = Nothing
+                    }
             in
             if mapToJobIds newJobs |> changedFrom (mapToJobIds model.jobs) then
                 ( newModel |> precomputeJobMetadata
@@ -234,37 +266,77 @@ handleCallback callback ( model, effects ) =
             else
                 ( newModel, effects )
 
-        AllJobsFetched (Err _) ->
-            ( { model | showTurbulence = True }, effects )
+        AllJobsFetched (Err err) ->
+            case err of
+                Http.BadStatus { status } ->
+                    case status.code of
+                        501 ->
+                            ( { model
+                                | jobsError = Just Disabled
+                                , jobs = Fetched Dict.empty
+                                , pipelines =
+                                    model.pipelines
+                                        |> Maybe.map
+                                            (Dict.map
+                                                (\_ l ->
+                                                    List.map
+                                                        (\p ->
+                                                            { p | jobsDisabled = True }
+                                                        )
+                                                        l
+                                                )
+                                            )
+                              }
+                            , effects ++ [ DeleteCachedJobs ]
+                            )
+
+                        503 ->
+                            ( { model
+                                | effectsToRetry =
+                                    model.effectsToRetry
+                                        ++ (if List.member FetchAllJobs model.effectsToRetry then
+                                                []
+
+                                            else
+                                                [ FetchAllJobs ]
+                                           )
+                              }
+                            , effects
+                            )
+
+                        _ ->
+                            ( { model | jobsError = Just Failed }, effects )
+
+                _ ->
+                    ( { model | jobsError = Just Failed }, effects )
 
         AllResourcesFetched (Ok resources) ->
             ( { model
                 | pipelinesWithResourceErrors =
                     resources
-                        |> List.foldr
-                            (\r ->
-                                Dict.update ( r.teamName, r.pipelineName )
-                                    (Maybe.withDefault False
-                                        >> (||) r.failingToCheck
-                                        >> Just
-                                    )
-                            )
-                            model.pipelinesWithResourceErrors
+                        |> List.filter .failingToCheck
+                        |> List.map (\r -> ( r.teamName, r.pipelineName ))
+                        |> Set.fromList
+                , resourcesError = Nothing
               }
             , effects
             )
 
         AllResourcesFetched (Err _) ->
-            ( { model | showTurbulence = True }, effects )
+            ( { model | resourcesError = Just Failed }, effects )
 
         AllPipelinesFetched (Ok allPipelinesInEntireCluster) ->
             let
                 newPipelines =
                     allPipelinesInEntireCluster
-                        |> List.map toDashboardPipeline
-                        |> Fetched
+                        |> List.map (toDashboardPipeline False (model.jobsError == Just Disabled))
+                        |> groupBy .teamName
+                        |> Just
             in
-            ( { model | pipelines = newPipelines }
+            ( { model
+                | pipelines = newPipelines
+                , pipelinesError = Nothing
+              }
             , effects
                 ++ (if List.isEmpty allPipelinesInEntireCluster then
                         [ ModifyUrl "/" ]
@@ -272,7 +344,7 @@ handleCallback callback ( model, effects ) =
                     else
                         []
                    )
-                ++ (if newPipelines |> changedFrom model.pipelines then
+                ++ (if newPipelines |> pipelinesChangedFrom model.pipelines then
                         [ SaveCachedPipelines allPipelinesInEntireCluster ]
 
                     else
@@ -281,24 +353,30 @@ handleCallback callback ( model, effects ) =
             )
 
         AllPipelinesFetched (Err _) ->
-            ( { model | showTurbulence = True }, effects )
+            ( { model | pipelinesError = Just Failed }, effects )
 
         PipelinesOrdered teamName _ ->
             ( model, effects ++ [ FetchPipelines teamName ] )
 
-        PipelinesFetched (Ok _) ->
-            ( { model | dropState = NotDropping }, effects )
-
-        PipelinesFetched (Err _) ->
-            ( { model | showTurbulence = True }, effects )
+        PipelinesFetched _ ->
+            ( { model | dropState = NotDropping }
+            , effects
+            )
 
         LoggedOut (Ok ()) ->
             ( model
             , effects
                 ++ [ NavigateTo <|
                         Routes.toString <|
-                            Routes.dashboardRoute <|
-                                model.highDensity
+                            Routes.Dashboard
+                                { searchType =
+                                    if model.highDensity then
+                                        Routes.HighDensity
+
+                                    else
+                                        Routes.Normal model.query
+                                , dashboardView = model.dashboardView
+                                }
                    , FetchAllTeams
                    , FetchAllResources
                    , FetchAllJobs
@@ -344,7 +422,7 @@ handleCallback callback ( model, effects ) =
             , effects
             )
 
-        GotViewport Dashboard _ (Ok viewport) ->
+        GotViewport Dashboard (Ok viewport) ->
             ( { model
                 | viewportWidth = viewport.viewport.width
                 , viewportHeight = viewport.viewport.height
@@ -368,14 +446,23 @@ updatePipeline updater pipelineId model =
     { model
         | pipelines =
             model.pipelines
-                |> FetchResult.map
-                    (List.Extra.updateIf
-                        (\p ->
-                            p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName
+                |> Maybe.map
+                    (Dict.update pipelineId.teamName
+                        (Maybe.map
+                            (List.Extra.updateIf
+                                (\p -> p.name == pipelineId.pipelineName)
+                                updater
+                            )
                         )
-                        updater
                     )
     }
+
+
+findPipeline : Concourse.PipelineIdentifier -> Maybe (Dict String (List Pipeline)) -> Maybe Pipeline
+findPipeline pipelineId pipelines =
+    pipelines
+        |> Maybe.andThen (Dict.get pipelineId.teamName)
+        |> Maybe.andThen (List.Extra.find (.name >> (==) pipelineId.pipelineName))
 
 
 handleDelivery : Delivery -> ET Model
@@ -390,23 +477,29 @@ handleDeliveryBody : Delivery -> ET Model
 handleDeliveryBody delivery ( model, effects ) =
     case delivery of
         ClockTicked OneSecond time ->
-            ( { model | now = Just time }, effects )
+            ( { model | now = Just time, effectsToRetry = [] }, model.effectsToRetry )
 
         WindowResized _ _ ->
-            ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )
+            ( model, effects ++ [ GetViewportOf Dashboard ] )
 
         SideBarStateReceived _ ->
-            ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )
+            ( model, effects ++ [ GetViewportOf Dashboard ] )
 
         CachedPipelinesReceived (Ok pipelines) ->
-            let
-                newPipelines =
-                    pipelines
-                        |> List.map toDashboardPipeline
-                        |> Cached
-            in
-            if newPipelines |> changedFrom model.pipelines then
-                ( { model | pipelines = newPipelines }, effects )
+            if model.pipelines == Nothing then
+                ( { model
+                    | pipelines =
+                        pipelines
+                            |> List.map
+                                (toDashboardPipeline
+                                    True
+                                    (model.jobsError == Just Disabled)
+                                )
+                            |> groupBy .teamName
+                            |> Just
+                  }
+                , effects
+                )
 
             else
                 ( model, effects )
@@ -454,8 +547,8 @@ handleDeliveryBody delivery ( model, effects ) =
             ( model, effects )
 
 
-toDashboardPipeline : Concourse.Pipeline -> Pipeline
-toDashboardPipeline p =
+toDashboardPipeline : Bool -> Bool -> Concourse.Pipeline -> Pipeline
+toDashboardPipeline isStale jobsDisabled p =
     { id = p.id
     , name = p.name
     , teamName = p.teamName
@@ -464,6 +557,8 @@ toDashboardPipeline p =
     , isVisibilityLoading = False
     , paused = p.paused
     , archived = p.archived
+    , stale = isStale
+    , jobsDisabled = jobsDisabled
     }
 
 
@@ -476,7 +571,23 @@ toConcoursePipeline p =
     , paused = p.paused
     , archived = p.archived
     , groups = []
+    , backgroundImage = Maybe.Nothing
     }
+
+
+pipelinesChangedFrom :
+    Maybe (Dict String (List Pipeline))
+    -> Maybe (Dict String (List Pipeline))
+    -> Bool
+pipelinesChangedFrom ps qs =
+    let
+        project =
+            Maybe.map <|
+                Dict.values
+                    >> List.concat
+                    >> List.map (\x -> { x | stale = True })
+    in
+    project ps /= project qs
 
 
 groupBy : (a -> comparable) -> List a -> Dict comparable (List a)
@@ -530,11 +641,11 @@ update session msg =
 updateBody : Message -> ET Model
 updateBody msg ( model, effects ) =
     case msg of
-        DragStart teamName index ->
-            ( { model | dragState = Models.Dragging teamName index }, effects )
+        DragStart teamName pipelineName ->
+            ( { model | dragState = Models.Dragging teamName pipelineName }, effects )
 
-        DragOver _ index ->
-            ( { model | dropState = Models.Dropping index }, effects )
+        DragOver target ->
+            ( { model | dropState = Models.Dropping target }, effects )
 
         TooltipHd pipelineName teamName ->
             ( model, effects ++ [ ShowTooltipHd ( pipelineName, teamName ) ] )
@@ -543,69 +654,62 @@ updateBody msg ( model, effects ) =
             ( model, effects ++ [ ShowTooltip ( pipelineName, teamName ) ] )
 
         DragEnd ->
-            case model.dragState of
-                Dragging teamName dragIdx ->
+            case ( model.dragState, model.dropState ) of
+                ( Dragging teamName pipelineName, Dropping target ) ->
                     let
-                        teamStartIndex =
+                        teamPipelines =
                             model.pipelines
-                                |> FetchResult.withDefault []
-                                |> List.Extra.findIndex (\p -> p.teamName == teamName)
+                                |> Maybe.andThen (Dict.get teamName)
+                                |> Maybe.withDefault []
+                                |> Drag.dragPipeline pipelineName target
 
                         pipelines =
-                            case teamStartIndex of
-                                Just teamStartIdx ->
-                                    model.pipelines
-                                        |> FetchResult.withDefault []
-                                        |> Drag.drag
-                                            (teamStartIdx + dragIdx)
-                                            (teamStartIdx
-                                                + (case model.dropState of
-                                                    Dropping dropIdx ->
-                                                        dropIdx
-
-                                                    _ ->
-                                                        dragIdx + 1
-                                                  )
-                                            )
-
-                                _ ->
-                                    model.pipelines |> FetchResult.withDefault []
+                            model.pipelines
+                                |> Maybe.withDefault Dict.empty
+                                |> Dict.update teamName (always <| Just teamPipelines)
                     in
                     ( { model
-                        | pipelines = Fetched pipelines
+                        | pipelines = Just pipelines
                         , dragState = NotDragging
                         , dropState = DroppingWhileApiRequestInFlight teamName
                       }
                     , effects
-                        ++ [ pipelines
-                                |> List.filter (.teamName >> (==) teamName)
+                        ++ [ teamPipelines
                                 |> List.map .name
                                 |> SendOrderPipelinesRequest teamName
                            , pipelines
+                                |> Dict.values
+                                |> List.concat
                                 |> List.map toConcoursePipeline
                                 |> SaveCachedPipelines
                            ]
                     )
 
                 _ ->
-                    ( model, effects )
+                    ( { model
+                        | dragState = NotDragging
+                        , dropState = NotDropping
+                      }
+                    , effects
+                    )
+
+        Hover (Just domID) ->
+            ( model, effects ++ [ GetViewportOf domID ] )
 
         Click LogoutButton ->
             ( { model
                 | teams = None
-                , pipelines = None
+                , pipelines = Nothing
                 , jobs = None
               }
             , effects
             )
 
-        Click (PipelineButton pipelineId) ->
+        Click (PipelineCardPauseToggle _ pipelineId) ->
             let
                 isPaused =
                     model.pipelines
-                        |> FetchResult.withDefault []
-                        |> List.Extra.find
-                            (\p -> p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName)
+                        |> findPipeline pipelineId
                         |> Maybe.map .paused
             in
             case isPaused of
@@ -621,13 +725,11 @@ updateBody msg ( model, effects ) =
                 Nothing ->
                     ( model, effects )
 
-        Click (VisibilityButton pipelineId) ->
+        Click (VisibilityButton _ pipelineId) ->
             let
                 isPublic =
                     model.pipelines
-                        |> FetchResult.withDefault []
-                        |> List.Extra.find
-                            (\p -> p.teamName == pipelineId.teamName && p.name == pipelineId.pipelineName)
+                        |> findPipeline pipelineId
                         |> Maybe.map .public
             in
             case isPublic of
@@ -649,7 +751,7 @@ updateBody msg ( model, effects ) =
                     ( model, effects )
 
         Click HamburgerMenu ->
-            ( model, effects ++ [ GetViewportOf Dashboard AlwaysShow ] )
+            ( model, effects ++ [ GetViewportOf Dashboard ] )
 
         Scrolled scrollState ->
             ( { model | scrollTop = scrollState.scrollTop }, effects )
@@ -703,6 +805,46 @@ view session model =
         ]
 
 
+tooltip : { a | pipelines : Maybe (Dict String (List Pipeline)) } -> { b | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
+tooltip model { hovered } =
+    case hovered of
+        HoverState.Tooltip (Message.PipelineStatusIcon _ _) _ ->
+            Just
+                { body =
+                    Html.div
+                        Styles.jobsDisabledTooltip
+                        [ Html.text "automatic job monitoring disabled" ]
+                , attachPosition = { direction = Tooltip.Top, alignment = Tooltip.Start }
+                , arrow = Nothing
+                }
+
+        HoverState.Tooltip (Message.VisibilityButton _ pipelineId) _ ->
+            model.pipelines
+                |> findPipeline pipelineId
+                |> Maybe.map
+                    (\p ->
+                        { body =
+                            Html.div
+                                Styles.visibilityTooltip
+                                [ Html.text <|
+                                    if p.public then
+                                        "hide pipeline"
+
+                                    else
+                                        "expose pipeline"
+                                ]
+                        , attachPosition =
+                            { direction = Tooltip.Top
+                            , alignment = Tooltip.End
+                            }
+                        , arrow = Nothing
+                        }
+                    )
+
+        _ ->
+            Nothing
+
+
 topBar : Session -> Model -> Html Message
 topBar session model =
     Html.div
@@ -729,13 +871,24 @@ topBar session model =
                     [ SearchBar.view session model ]
 
                 else if not model.highDensity then
-                    [ SearchBar.view session model
-                    , Login.view session.userState model False
+                    [ topBarContent [ SearchBar.view session model ]
+                    , showArchivedToggleView model
+                    , Login.view session.userState model
                     ]
 
                 else
-                    [ Login.view session.userState model False ]
+                    [ topBarContent []
+                    , showArchivedToggleView model
+                    , Login.view session.userState model
+                    ]
                )
+
+
+topBarContent : List (Html Message) -> Html Message
+topBarContent content =
+    Html.div
+        (id "top-bar-content" :: Styles.topBarContent)
+        content
 
 
 clusterNameView : Session -> Html Message
@@ -745,6 +898,68 @@ clusterNameView session =
         [ Html.text session.clusterName ]
 
 
+showArchivedToggleView :
+    { a
+        | pipelines : Maybe (Dict String (List Pipeline))
+        , query : String
+        , highDensity : Bool
+        , dashboardView : Routes.DashboardView
+    }
+    -> Html Message
+showArchivedToggleView model =
+    let
+        noPipelines =
+            model.pipelines
+                |> Maybe.withDefault Dict.empty
+                |> Dict.values
+                |> List.all List.isEmpty
+
+        on =
+            model.dashboardView == Routes.ViewAllPipelines
+    in
+    if noPipelines then
+        Html.text ""
+
+    else
+        Toggle.toggleSwitch
+            { ariaLabel = "Toggle whether archived pipelines are displayed"
+            , hrefRoute =
+                Routes.Dashboard
+                    { searchType =
+                        if model.highDensity then
+                            Routes.HighDensity
+
+                        else
+                            Routes.Normal model.query
+                    , dashboardView =
+                        if on then
+                            Routes.ViewNonArchivedPipelines
+
+                        else
+                            Routes.ViewAllPipelines
+                    }
+            , text = "show archived"
+            , textDirection = Toggle.Left
+            , on = on
+            , styles = Styles.showArchivedToggle
+            }
+
+
+showTurbulence :
+    { a
+        | jobsError : Maybe FetchError
+        , teamsError : Maybe FetchError
+        , resourcesError : Maybe FetchError
+        , pipelinesError : Maybe FetchError
+    }
+    -> Bool
+showTurbulence model =
+    (model.jobsError == Just Failed)
+        || (model.teamsError == Just Failed)
+        || (model.resourcesError == Just Failed)
+        || (model.pipelinesError == Just Failed)
+
+
 dashboardView :
     { a
         | hovered : HoverState.HoverState
@@ -752,11 +967,12 @@ dashboardView :
         , userState : UserState.UserState
         , turbulenceImgSrc : String
         , pipelineRunningKeyframes : String
+        , favoritedPipelines : Set Concourse.DatabaseID
     }
     -> Model
     -> Html Message
 dashboardView session model =
-    if model.showTurbulence then
+    if showTurbulence model then
         turbulenceView session.turbulenceImgSrc
 
     else
@@ -766,14 +982,30 @@ dashboardView session model =
                 :: onScroll Scrolled
                 :: Styles.content model.highDensity
             )
-            (welcomeCard session model :: pipelinesView session model)
+            (case model.pipelines of
+                Nothing ->
+                    [ loadingView ]
+
+                Just pipelines ->
+                    if pipelines |> Dict.values |> List.all List.isEmpty then
+                        welcomeCard session :: pipelinesView session model
+
+                    else
+                        Html.text "" :: pipelinesView session model
+            )
+
+
+loadingView : Html Message
+loadingView =
+    Html.div
+        (class "loading" :: Styles.loadingView)
+        [ Spinner.spinner { sizePx = 36, margin = "0" } ]
 
 
 welcomeCard :
     { a | hovered : HoverState.HoverState, userState : UserState.UserState }
-    -> { b | pipelines : FetchResult (List Pipeline) }
     -> Html Message
-welcomeCard session { pipelines } =
+welcomeCard session =
     let
         cliIcon : HoverState.HoverState -> Cli.Cli -> Html Message
         cliIcon hoverable cli =
@@ -794,49 +1026,34 @@ welcomeCard session { pipelines } =
                         }
                 )
                 []
-
-        noPipelines =
-            case pipelines of
-                None ->
-                    False
-
-                Cached p ->
-                    List.isEmpty p
-
-                Fetched p ->
-                    List.isEmpty p
     in
-    if noPipelines then
-        Html.div
-            (id "welcome-card" :: Styles.welcomeCard)
+    Html.div
+        (id "welcome-card" :: Styles.welcomeCard)
+        [ Html.div
+            Styles.welcomeCardTitle
+            [ Html.text Text.welcome ]
+        , Html.div
+            Styles.welcomeCardBody
+          <|
             [ Html.div
-                Styles.welcomeCardTitle
-                [ Html.text Text.welcome ]
-            , Html.div
-                Styles.welcomeCardBody
+                [ style "display" "flex"
+                , style "align-items" "center"
+                ]
               <|
                 [ Html.div
-                    [ style "display" "flex"
-                    , style "align-items" "center"
-                    ]
-                  <|
-                    [ Html.div
-                        [ style "margin-right" "10px" ]
-                        [ Html.text Text.cliInstructions ]
-                    ]
-                        ++ List.map (cliIcon session.hovered) Cli.clis
-                , Html.div
-                    []
-                    [ Html.text Text.setPipelineInstructions ]
+                    [ style "margin-right" "10px" ]
+                    [ Html.text Text.cliInstructions ]
                 ]
-                    ++ loginInstruction session.userState
-            , Html.pre
-                Styles.asciiArt
-                [ Html.text Text.asciiArt ]
+                    ++ List.map (cliIcon session.hovered) Cli.clis
+            , Html.div
+                []
+                [ Html.text Text.setPipelineInstructions ]
             ]
-
-    else
-        Html.text ""
+                ++ loginInstruction session.userState
+        , Html.pre
+            Styles.asciiArt
+            [ Html.text Text.asciiArt ]
+        ]
 
 
 loginInstruction : UserState.UserState -> List (Html Message)
@@ -891,15 +1108,17 @@ pipelinesView :
         | userState : UserState.UserState
         , hovered : HoverState.HoverState
         , pipelineRunningKeyframes : String
+        , favoritedPipelines : Set Concourse.DatabaseID
     }
     ->
         { b
             | teams : FetchResult (List Concourse.Team)
             , query : String
             , highDensity : Bool
-            , pipelinesWithResourceErrors : Dict ( String, String ) Bool
+            , dashboardView : Routes.DashboardView
+            , pipelinesWithResourceErrors : Set ( String, String )
             , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
-            , pipelines : FetchResult (List Pipeline)
+            , pipelines : Maybe (Dict String (List Pipeline))
             , jobs : FetchResult (Dict ( String, String, String ) Concourse.Job)
             , dragState : DragState
             , dropState : DropState
@@ -914,8 +1133,7 @@ pipelinesView session params =
     let
         pipelines =
             params.pipelines
-                |> FetchResult.withDefault []
-                |> List.filter (not << .archived)
+                |> Maybe.withDefault Dict.empty
 
         jobs =
             params.jobs
@@ -932,19 +1150,74 @@ pipelinesView session params =
                 , query = params.query
                 , teams = teams
                 , pipelines = pipelines
+                , dashboardView = params.dashboardView
+                , favoritedPipelines = session.favoritedPipelines
                 }
                 |> List.sortWith (Group.ordering session)
 
-        isCached =
-            case ( params.pipelines, params.jobs ) of
-                ( Cached _, _ ) ->
-                    True
+        ( headerView, offsetHeight ) =
+            if params.highDensity then
+                ( [], 0 )
 
-                ( _, Cached _ ) ->
-                    True
+            else
+                let
+                    favoritedPipelines =
+                        filteredGroups
+                            |> List.concatMap .pipelines
+                            |> List.filter
+                                (\fp ->
+                                    Set.member fp.id session.favoritedPipelines
+                                )
 
-                _ ->
-                    False
+                    allPipelinesHeader =
+                        Html.div Styles.pipelineSectionHeader [ Html.text "all pipelines" ]
+                in
+                if List.isEmpty filteredGroups then
+                    ( [], 0 )
+
+                else if List.isEmpty favoritedPipelines then
+                    ( [ allPipelinesHeader ], PipelineGridConstants.sectionHeaderHeight )
+
+                else
+                    let
+                        offset =
+                            PipelineGridConstants.sectionHeaderHeight
+
+                        layout =
+                            PipelineGrid.computeFavoritePipelinesLayout
+                                { pipelineLayers = params.pipelineLayers
+                                , viewportWidth = params.viewportWidth
+                                , viewportHeight = params.viewportHeight
+                                , scrollTop = params.scrollTop - offset
+                                }
+                                favoritedPipelines
+                    in
+                    [ Html.div Styles.pipelineSectionHeader [ Html.text "favorite pipelines" ]
+                    , Group.viewFavoritePipelines
+                        session
+                        { dragState = NotDragging
+                        , dropState = NotDropping
+                        , now = params.now
+                        , hovered = session.hovered
+                        , pipelineRunningKeyframes = session.pipelineRunningKeyframes
+                        , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
+                        , pipelineLayers = params.pipelineLayers
+                        , pipelineCards = layout.pipelineCards
+                        , headers = layout.headers
+                        , groupCardsHeight = layout.height
+                        , pipelineJobs = params.pipelineJobs
+                        , jobs = jobs
+                        }
+                    , Views.Styles.separator PipelineGridConstants.sectionSpacerHeight
+                    , allPipelinesHeader
+                    ]
+                        |> (\html ->
+                                ( html
+                                , layout.height
+                                    + (2 * PipelineGridConstants.sectionHeaderHeight)
+                                    + PipelineGridConstants.sectionSpacerHeight
+                                )
+                           )
 
         groupViews =
             filteredGroups
@@ -955,7 +1228,6 @@ pipelinesView session params =
                                 , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                                 , pipelineJobs = params.pipelineJobs
                                 , jobs = jobs
-                                , isCached = isCached
                                 }
                                 session
                             )
@@ -984,13 +1256,11 @@ pipelinesView session params =
                                     , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                                     , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                                     , pipelineLayers = params.pipelineLayers
-                                    , query = params.query
                                     , pipelineCards = layout.pipelineCards
                                     , dropAreas = layout.dropAreas
                                     , groupCardsHeight = layout.height
                                     , pipelineJobs = params.pipelineJobs
                                     , jobs = jobs
-                                    , isCached = isCached
                                     }
                                     g
                                     |> (\html ->
@@ -1002,17 +1272,17 @@ pipelinesView session params =
                                             )
                                        )
                             )
-                            ( [], 0 )
+                            ( [], offsetHeight )
                             >> Tuple.first
                             >> List.reverse
                    )
     in
     if
-        (params.pipelines /= None)
+        (params.pipelines /= Nothing)
             && List.isEmpty groupViews
             && not (String.isEmpty params.query)
     then
         [ noResultsView params.query ]
 
     else
-        groupViews
+        headerView ++ groupViews

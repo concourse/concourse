@@ -7,14 +7,17 @@ import (
 	"io"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/hashicorp/go-multierror"
@@ -44,7 +47,8 @@ type Client interface {
 		workerSpec WorkerSpec,
 		strategy ContainerPlacementStrategy,
 		containerMetadata db.ContainerMetadata,
-		resourceTypes atc.VersionedResourceTypes,
+		imageFetcherSpec ImageFetcherSpec,
+		//resourceTypes atc.VersionedResourceTypes,
 		timeout time.Duration,
 		checkable resource.Resource,
 	) (CheckResult, error)
@@ -93,16 +97,27 @@ type Client interface {
 	) (GetResult, error)
 }
 
-func NewClient(pool Pool, provider WorkerProvider) *client {
+func NewClient(pool Pool,
+	provider WorkerProvider,
+	compression compression.Compression,
+	workerPollingInterval time.Duration,
+	workerStatusPublishInterval time.Duration,
+) *client {
 	return &client{
-		pool:     pool,
-		provider: provider,
+		pool:                        pool,
+		provider:                    provider,
+		compression:                 compression,
+		workerPollingInterval:       workerPollingInterval,
+		workerStatusPublishInterval: workerStatusPublishInterval,
 	}
 }
 
 type client struct {
-	pool     Pool
-	provider WorkerProvider
+	pool                        Pool
+	provider                    WorkerProvider
+	compression                 compression.Compression
+	workerPollingInterval       time.Duration
+	workerStatusPublishInterval time.Duration
 }
 
 type TaskResult struct {
@@ -128,6 +143,15 @@ type GetResult struct {
 type ImageFetcherSpec struct {
 	ResourceTypes atc.VersionedResourceTypes
 	Delegate      ImageFetchingDelegate
+}
+
+type processStatus struct {
+	processStatus int
+	processErr    error
+}
+
+var checkProcessSpec = runtime.ProcessSpec{
+	Path: "/opt/resource/check",
 }
 
 func (client *client) FindContainer(logger lager.Logger, teamID int, handle string) (Container, bool, error) {
@@ -173,10 +197,6 @@ func (client *client) CreateVolume(logger lager.Logger, volumeSpec VolumeSpec, w
 	return worker.CreateVolume(logger, volumeSpec, workerSpec.TeamID, volumeType)
 }
 
-var checkProcessSpec = runtime.ProcessSpec{
-	Path: "/opt/resource/check",
-}
-
 func (client *client) RunCheckStep(
 	ctx context.Context,
 	logger lager.Logger,
@@ -185,7 +205,7 @@ func (client *client) RunCheckStep(
 	workerSpec WorkerSpec,
 	strategy ContainerPlacementStrategy,
 	containerMetadata db.ContainerMetadata,
-	resourceTypes atc.VersionedResourceTypes,
+	imageFetcherSpec ImageFetcherSpec,
 	timeout time.Duration,
 	checkable resource.Resource,
 ) (CheckResult, error) {
@@ -204,11 +224,11 @@ func (client *client) RunCheckStep(
 	container, err := chosenWorker.FindOrCreateContainer(
 		ctx,
 		logger,
-		&NoopImageFetchingDelegate{},
+		imageFetcherSpec.Delegate,
 		owner,
 		containerMetadata,
 		containerSpec,
-		resourceTypes,
+		imageFetcherSpec.ResourceTypes,
 	)
 	if err != nil {
 		return CheckResult{}, fmt.Errorf("find or create container: %w", err)
@@ -285,6 +305,8 @@ func (client *client) RunTaskStep(
 	if err != nil {
 		return TaskResult{}, err
 	}
+
+	eventDelegate.SelectedWorker(logger, chosenWorker.Name())
 
 	// container already exited
 	exitStatusProp, _ := container.Properties()
@@ -409,6 +431,8 @@ func (client *client) RunGetStep(
 		return GetResult{}, err
 	}
 
+	eventDelegate.SelectedWorker(logger, chosenWorker.Name())
+
 	sign, err := resource.Signature()
 	if err != nil {
 		return GetResult{}, err
@@ -433,129 +457,6 @@ func (client *client) RunGetStep(
 		lockName,
 	)
 	return getResult, err
-}
-
-func (client *client) chooseTaskWorker(
-	ctx context.Context,
-	logger lager.Logger,
-	strategy ContainerPlacementStrategy,
-	lockFactory lock.LockFactory,
-	owner db.ContainerOwner,
-	containerSpec ContainerSpec,
-	workerSpec WorkerSpec,
-	outputWriter io.Writer,
-) (Worker, error) {
-	var (
-		chosenWorker      Worker
-		activeTasksLock   lock.Lock
-		elapsed           time.Duration
-		err               error
-		existingContainer bool
-	)
-
-	for {
-		if strategy.ModifiesActiveTasks() {
-			var acquired bool
-			activeTasksLock, acquired, err = lockFactory.Acquire(logger, lock.NewActiveTasksLockID())
-			if err != nil {
-				return nil, err
-			}
-
-			if !acquired {
-				time.Sleep(time.Second)
-				continue
-			}
-			existingContainer, err = client.pool.ContainerInWorker(logger, owner, containerSpec, workerSpec)
-			if err != nil {
-				release_err := activeTasksLock.Release()
-				if release_err != nil {
-					err = multierror.Append(err, release_err)
-				}
-				return nil, err
-			}
-		}
-
-		chosenWorker, err = client.pool.FindOrChooseWorkerForContainer(
-			ctx,
-			logger,
-			owner,
-			containerSpec,
-			workerSpec,
-			strategy,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if strategy.ModifiesActiveTasks() {
-			waitWorker := time.Duration(5 * time.Second) // Workers polling frequency
-
-			select {
-			case <-ctx.Done():
-				logger.Info("aborted-waiting-worker")
-				err = activeTasksLock.Release()
-				if err != nil {
-					return nil, err
-				}
-				return nil, ctx.Err()
-			default:
-			}
-
-			if chosenWorker == nil {
-				err = activeTasksLock.Release()
-				if err != nil {
-					return nil, err
-				}
-
-				if elapsed%time.Duration(time.Minute) == 0 { // Every minute report that it is still waiting
-					_, err := outputWriter.Write([]byte("All workers are busy at the moment, please stand-by.\n"))
-					if err != nil {
-						logger.Error("failed-to-report-status", err)
-					}
-				}
-
-				elapsed += waitWorker
-				time.Sleep(waitWorker)
-				continue
-			}
-
-			if !existingContainer {
-				err = chosenWorker.IncreaseActiveTasks()
-				if err != nil {
-					logger.Error("failed-to-increase-active-tasks", err)
-				}
-			}
-
-			err = activeTasksLock.Release()
-			if err != nil {
-				return nil, err
-			}
-
-			if elapsed > 0 {
-				_, err := outputWriter.Write([]byte(fmt.Sprintf("Found a free worker after waiting %s.\n", elapsed)))
-				if err != nil {
-					logger.Error("failed-to-report-status", err)
-				}
-			}
-		}
-
-		break
-	}
-
-	return chosenWorker, nil
-}
-
-func decreaseActiveTasks(logger lager.Logger, w Worker) {
-	err := w.DecreaseActiveTasks()
-	if err != nil {
-		logger.Error("failed-to-decrease-active-tasks", err)
-		return
-	}
-}
-
-type processStatus struct {
-	processStatus int
-	processErr    error
 }
 
 func (client *client) RunPutStep(
@@ -589,6 +490,8 @@ func (client *client) RunPutStep(
 	if err != nil {
 		return PutResult{}, err
 	}
+
+	eventDelegate.SelectedWorker(logger, chosenWorker.Name())
 
 	container, err := chosenWorker.FindOrCreateContainer(
 		ctx,
@@ -638,6 +541,135 @@ func (client *client) RunPutStep(
 	}, nil
 }
 
+func (client *client) StreamFileFromArtifact(
+	ctx context.Context,
+	logger lager.Logger,
+	artifact runtime.Artifact,
+	filePath string,
+) (io.ReadCloser, error) {
+	artifactVolume, found, err := client.FindVolume(logger, 0, artifact.ID())
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, baggageclaim.ErrVolumeNotFound
+	}
+
+	source := artifactSource{
+		artifact:    artifact,
+		volume:      artifactVolume,
+		compression: client.compression,
+	}
+	return source.StreamFile(ctx, filePath)
+}
+
+func (client *client) chooseTaskWorker(
+	ctx context.Context,
+	logger lager.Logger,
+	strategy ContainerPlacementStrategy,
+	lockFactory lock.LockFactory,
+	owner db.ContainerOwner,
+	containerSpec ContainerSpec,
+	workerSpec WorkerSpec,
+	outputWriter io.Writer,
+) (Worker, error) {
+	var (
+		chosenWorker    Worker
+		activeTasksLock lock.Lock
+		lockAcquired    bool
+		elapsed         time.Duration
+		err             error
+	)
+
+	started := time.Now()
+	workerPollingTicker := time.NewTicker(client.workerPollingInterval)
+	defer workerPollingTicker.Stop()
+	workerStatusPublishTicker := time.NewTicker(client.workerStatusPublishInterval)
+	defer workerStatusPublishTicker.Stop()
+
+	tasksWaitingLabels := metric.TasksWaitingLabels{
+		TeamId:     strconv.Itoa(workerSpec.TeamID),
+		WorkerTags: strings.Join(containerSpec.Tags, "_"),
+		Platform:   workerSpec.Platform,
+	}
+
+	for {
+		if chosenWorker, err = client.pool.FindOrChooseWorkerForContainer(
+			ctx,
+			logger,
+			owner,
+			containerSpec,
+			workerSpec,
+			strategy,
+		); err != nil {
+			return nil, err
+		}
+
+		if !strategy.ModifiesActiveTasks() {
+			return chosenWorker, nil
+		}
+
+		if activeTasksLock, lockAcquired, err = lockFactory.Acquire(logger, lock.NewActiveTasksLockID()); err != nil {
+			return nil, err
+		}
+
+		if !lockAcquired {
+			time.Sleep(time.Second)
+			continue
+		}
+
+		select {
+		case <-ctx.Done():
+			logger.Info("aborted-waiting-worker")
+			e := multierror.Append(err, activeTasksLock.Release(), ctx.Err())
+			return nil, e
+		default:
+		}
+
+		if chosenWorker != nil {
+			err = increaseActiveTasks(logger,
+				client.pool,
+				chosenWorker,
+				activeTasksLock,
+				owner,
+				containerSpec,
+				workerSpec)
+
+			if elapsed > 0 {
+				message := fmt.Sprintf("Found a free worker after waiting %s.\n", elapsed.Round(1*time.Second))
+				writeOutputMessage(logger, outputWriter, message)
+				metric.TasksWaitingDuration{
+					Labels:   tasksWaitingLabels,
+					Duration: elapsed,
+				}.Emit(logger)
+			}
+
+			return chosenWorker, err
+		}
+
+		err := activeTasksLock.Release()
+		if err != nil {
+			return nil, err
+		}
+
+		// Increase task waiting only once
+		if elapsed == 0 {
+			_, ok := metric.Metrics.TasksWaiting[tasksWaitingLabels]
+			if !ok {
+				metric.Metrics.TasksWaiting[tasksWaitingLabels] = &metric.Gauge{}
+			}
+			metric.Metrics.TasksWaiting[tasksWaitingLabels].Inc()
+			defer metric.Metrics.TasksWaiting[tasksWaitingLabels].Dec()
+		}
+
+		elapsed = waitForWorker(logger,
+			workerPollingTicker,
+			workerStatusPublishTicker,
+			outputWriter,
+			started)
+	}
+}
+
 // TODO (runtime) don't modify spec inside here, Specs don't change after you write them
 func (client *client) wireInputsAndCaches(logger lager.Logger, spec *ContainerSpec) error {
 	var inputs []InputSource
@@ -658,7 +690,7 @@ func (client *client) wireInputsAndCaches(logger lager.Logger, spec *ContainerSp
 				return fmt.Errorf("volume not found for artifact id %v type %T", artifact.ID(), artifact)
 			}
 
-			source := NewStreamableArtifactSource(artifact, artifactVolume)
+			source := NewStreamableArtifactSource(artifact, artifactVolume, client.compression)
 			inputs = append(inputs, inputSource{source, path})
 		}
 	}
@@ -679,33 +711,79 @@ func (client *client) wireImageVolume(logger lager.Logger, spec *ImageSpec) erro
 		return fmt.Errorf("volume not found for artifact id %v type %T", imageArtifact.ID(), imageArtifact)
 	}
 
-	spec.ImageArtifactSource = NewStreamableArtifactSource(imageArtifact, artifactVolume)
+	spec.ImageArtifactSource = NewStreamableArtifactSource(imageArtifact, artifactVolume, client.compression)
 
 	return nil
 }
 
-func (client *client) StreamFileFromArtifact(
-	ctx context.Context,
-	logger lager.Logger,
-	artifact runtime.Artifact,
-	filePath string,
-) (io.ReadCloser, error) {
-	artifactVolume, found, err := client.FindVolume(logger, 0, artifact.ID())
+func decreaseActiveTasks(logger lager.Logger, w Worker) {
+	err := w.DecreaseActiveTasks()
 	if err != nil {
-		return nil, err
+		logger.Error("failed-to-decrease-active-tasks", err)
+		return
 	}
-	if !found {
-		return nil, baggageclaim.ErrVolumeNotFound
-	}
-
-	source := artifactSource{
-		artifact: artifact,
-		volume:   artifactVolume,
-	}
-	return source.StreamFile(ctx, logger, filePath)
 }
 
 func lockName(resourceJSON []byte, workerName string) string {
 	jsonRes := append(resourceJSON, []byte(workerName)...)
 	return fmt.Sprintf("%x", sha256.Sum256(jsonRes))
+}
+
+func waitForWorker(
+	logger lager.Logger,
+	waitForWorkerTicker, workerStatusTicker *time.Ticker,
+	outputWriter io.Writer,
+	started time.Time) (elapsed time.Duration) {
+
+	select {
+	case <-waitForWorkerTicker.C:
+		elapsed = time.Since(started)
+
+	case <-workerStatusTicker.C:
+		message := "All workers are busy at the moment, please stand-by.\n"
+		writeOutputMessage(logger, outputWriter, message)
+		elapsed = time.Since(started)
+	}
+
+	return elapsed
+}
+
+func writeOutputMessage(logger lager.Logger, outputWriter io.Writer, message string) {
+	_, err := outputWriter.Write([]byte(message))
+	if err != nil {
+		logger.Error("failed-to-report-status", err)
+	}
+}
+
+func increaseActiveTasks(
+	logger lager.Logger,
+	pool Pool,
+	chosenWorker Worker,
+	activeTasksLock lock.Lock,
+	owner db.ContainerOwner,
+	containerSpec ContainerSpec,
+	workerSpec WorkerSpec) (err error) {
+
+	var existingContainer bool
+	defer release(activeTasksLock, err)
+
+	existingContainer, err = pool.ContainerInWorker(logger, owner, workerSpec)
+	if err != nil {
+		return err
+	}
+
+	if !existingContainer {
+		if err = chosenWorker.IncreaseActiveTasks(); err != nil {
+			logger.Error("failed-to-increase-active-tasks", err)
+		}
+	}
+
+	return err
+}
+
+func release(activeTasksLock lock.Lock, err error) {
+	releaseErr := activeTasksLock.Release()
+	if releaseErr != nil {
+		err = multierror.Append(err, releaseErr)
+	}
 }

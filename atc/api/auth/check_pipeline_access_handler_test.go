@@ -42,14 +42,15 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 		fakeaccess = new(accessorfakes.FakeAccess)
 
 		delegate = &pipelineDelegateHandler{}
-		checkPipelineAccessHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
+		innerHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
+
 		handler = accessor.NewHandler(
 			logger,
-			checkPipelineAccessHandler,
-			fakeAccessor,
 			"some-action",
+			innerHandler,
+			fakeAccessor,
 			new(auditorfakes.FakeAuditor),
-			new(dbfakes.FakeUserFactory),
+			map[string]string{},
 		)
 	})
 

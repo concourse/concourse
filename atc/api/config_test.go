@@ -76,27 +76,33 @@ var _ = Describe("Config API", func() {
 					Name:   "some-job",
 					Public: true,
 					Serial: true,
-					Plan: atc.PlanSequence{
+					PlanSequence: []atc.Step{
 						{
-							Get:      "some-input",
-							Resource: "some-resource",
-							Params:   atc.Params{"some-param": "some-value"},
+							Config: &atc.GetStep{
+								Name:     "some-input",
+								Resource: "some-resource",
+								Params:   atc.Params{"some-param": "some-value"},
+							},
 						},
 						{
-							Task:       "some-task",
-							Privileged: true,
-							TaskConfig: &atc.TaskConfig{
-								Platform:  "linux",
-								RootfsURI: "some-image",
-								Run: atc.TaskRunConfig{
-									Path: "/path/to/run",
+							Config: &atc.TaskStep{
+								Name:       "some-task",
+								Privileged: true,
+								Config: &atc.TaskConfig{
+									Platform:  "linux",
+									RootfsURI: "some-image",
+									Run: atc.TaskRunConfig{
+										Path: "/path/to/run",
+									},
 								},
 							},
 						},
 						{
-							Put:      "some-output",
-							Resource: "some-resource",
-							Params:   atc.Params{"some-param": "some-value"},
+							Config: &atc.PutStep{
+								Name:     "some-output",
+								Resource: "some-resource",
+								Params:   atc.Params{"some-param": "some-value"},
+							},
 						},
 					},
 				},
@@ -196,6 +202,15 @@ var _ = Describe("Config API", func() {
 							})
 						})
 					})
+
+					Context("when the pipeline is archived", func() {
+						BeforeEach(func() {
+							fakePipeline.ArchivedReturns(true)
+						})
+						It("returns 404", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+						})
+					})
 				})
 
 				Context("when the pipeline is not found", func() {
@@ -276,6 +291,41 @@ var _ = Describe("Config API", func() {
 			BeforeEach(func() {
 				fakeAccess.IsAuthenticatedReturns(true)
 				fakeAccess.IsAuthorizedReturns(true)
+			})
+
+			Context("when an identifier is invalid", func() {
+
+				BeforeEach(func() {
+					var err error
+					request, err = requestGenerator.CreateRequest(atc.SaveConfig, rata.Params{
+						"team_name":     "_team",
+						"pipeline_name": "_pipeline",
+					}, nil)
+					Expect(err).NotTo(HaveOccurred())
+
+					request.Header.Set("Content-Type", "application/json")
+
+					payload, err := json.Marshal(pipelineConfig)
+					Expect(err).NotTo(HaveOccurred())
+
+					request.Body = gbytes.BufferWithBytes(payload)
+				})
+
+				It("returns warnings in the response body", func() {
+					Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							{
+								"warnings": [
+									{
+										"type": "invalid_identifier",
+										"message": "pipeline: '_pipeline' is not a valid identifier: must start with a lowercase letter"
+									},
+									{
+										"type": "invalid_identifier",
+										"message": "team: '_team' is not a valid identifier: must start with a lowercase letter"
+									}
+								]
+							}`))
+				})
 			})
 
 			Context("when a config version is specified", func() {
@@ -536,23 +586,27 @@ jobs:
 									Jobs: atc.JobConfigs{
 										{
 											Name: "some-job",
-											Plan: atc.PlanSequence{
+											PlanSequence: []atc.Step{
 												{
-													Get: "some-resource",
+													Config: &atc.GetStep{
+														Name: "some-resource",
+													},
 												},
 												{
-													Task: "some-task",
-													TaskConfig: &atc.TaskConfig{
-														Platform: "linux",
+													Config: &atc.TaskStep{
+														Name: "some-task",
+														Config: &atc.TaskConfig{
+															Platform: "linux",
 
-														Run: atc.TaskRunConfig{
-															Path: "ls",
-														},
+															Run: atc.TaskRunConfig{
+																Path: "ls",
+															},
 
-														Params: atc.TaskEnv{
-															"FOO": "true",
-															"BAR": "1",
-															"BAZ": "1.9",
+															Params: atc.TaskEnv{
+																"FOO": "true",
+																"BAR": "1",
+																"BAZ": "1.9",
+															},
 														},
 													},
 												},
@@ -713,6 +767,31 @@ jobs:
 								ExpectCredsValidationPass()
 								ExpectCredsValidationFail()
 							})
+
+							Context("when it contains nested task that uses external config file and params in task vars", func() {
+								BeforeEach(func() {
+									payload = `---
+resources:
+- name: some-resource
+  type: some-type
+  check_every: 10s
+jobs:
+- name: some-job
+  plan:
+  - get: some-resource
+  - do:
+    - task: some-task
+      file: some-resource/config.yml
+      vars:
+        FOO: ((BAR))`
+
+									request.Header.Set("Content-Type", "application/x-yaml")
+									request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
+								})
+
+								ExpectCredsValidationPass()
+								ExpectCredsValidationFail()
+							})
 						})
 
 						Context("when it contains credentials to be interpolated", func() {
@@ -749,21 +828,25 @@ jobs:
 									Jobs: atc.JobConfigs{
 										{
 											Name: "some-job",
-											Plan: atc.PlanSequence{
+											PlanSequence: []atc.Step{
 												{
-													Get: "some-resource",
+													Config: &atc.GetStep{
+														Name: "some-resource",
+													},
 												},
 												{
-													Task: "some-task",
-													TaskConfig: &atc.TaskConfig{
-														Platform: "linux",
+													Config: &atc.TaskStep{
+														Name: "some-task",
+														Config: &atc.TaskConfig{
+															Platform: "linux",
 
-														Run: atc.TaskRunConfig{
-															Path: "ls",
-														},
+															Run: atc.TaskRunConfig{
+																Path: "ls",
+															},
 
-														Params: atc.TaskEnv{
-															"FOO": "((BAR))",
+															Params: atc.TaskEnv{
+																"FOO": "((BAR))",
+															},
 														},
 													},
 												},
@@ -898,6 +981,39 @@ jobs:
 							})
 						})
 					})
+
+					Context("there is a problem fetching the team", func() {
+						BeforeEach(func() {
+							request.Header.Set("Content-Type", "application/json")
+
+							payload, err := json.Marshal(pipelineConfig)
+							Expect(err).NotTo(HaveOccurred())
+
+							request.Body = gbytes.BufferWithBytes(payload)
+						})
+
+						Context("when the team is not found", func() {
+							BeforeEach(func() {
+								dbTeamFactory.FindTeamReturns(nil, false, nil)
+							})
+
+							It("returns 404", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+							})
+						})
+
+						Context("when finding the team fails", func() {
+							BeforeEach(func() {
+								dbTeamFactory.FindTeamReturns(nil, false, errors.New("failed"))
+							})
+
+							It("returns 500", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+							})
+						})
+					})
+
+
 				})
 
 				Context("when the Content-Type is unsupported", func() {
@@ -934,7 +1050,7 @@ jobs:
 								{
 									"name":   "some-job",
 									"public": true,
-									"plan":   atc.PlanSequence{},
+									"plan":   []atc.Step{},
 								},
 							},
 						})
@@ -962,9 +1078,9 @@ jobs:
 						Expect(savedConfig).To(Equal(atc.Config{
 							Jobs: atc.JobConfigs{
 								{
-									Name:   "some-job",
-									Public: true,
-									Plan:   atc.PlanSequence{},
+									Name:         "some-job",
+									Public:       true,
+									PlanSequence: []atc.Step{},
 								},
 							},
 						}))
@@ -984,7 +1100,7 @@ jobs:
 								{
 									"name":  "some-job",
 									"pubic": true,
-									"plan":  atc.PlanSequence{},
+									"plan":  []atc.Step{},
 								},
 							},
 						})

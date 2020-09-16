@@ -42,6 +42,7 @@ var _ = Describe("Scanner", func() {
 			fakeSecrets,
 			time.Minute*1,
 			time.Minute*1,
+			time.Minute*10,
 		)
 	})
 
@@ -104,7 +105,8 @@ var _ = Describe("Scanner", func() {
 
 				Context("when the resource parent type is a base type", func() {
 					BeforeEach(func() {
-						fakeResource.TypeReturns("base-type")
+						fakeCheckFactory.ResourceTypesReturns([]db.ResourceType{}, nil)
+						fakeResource.TypeReturns("some-type")
 					})
 
 					Context("when the check interval is parseable", func() {
@@ -143,6 +145,20 @@ var _ = Describe("Scanner", func() {
 
 							It("sends a notification for the checker to run", func() {
 								Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
+							})
+
+							Context("when try creating a check panic", func() {
+								BeforeEach(func() {
+									fakeCheckFactory.TryCreateCheckStub = func(context.Context, db.Checkable, db.ResourceTypes, atc.Version, bool) (db.Check, bool, error) {
+										panic("something went wrong")
+									}
+								})
+
+								It("recover from the panic", func() {
+									Expect(err).ToNot(HaveOccurred())
+									Eventually(fakeResource.SetCheckSetupErrorCallCount).Should(Equal(1))
+									Eventually(fakeResource.SetCheckSetupErrorArgsForCall(0).Error).Should(ContainSubstring("something went wrong"))
+								})
 							})
 						})
 
@@ -292,6 +308,46 @@ var _ = Describe("Scanner", func() {
 				checked = append(checked, checkable.Name())
 
 				Expect(checked).To(ConsistOf([]string{fakeResourceType.Name(), fakeResource1.Name(), fakeResource2.Name()}))
+			})
+		})
+
+		Context("Default with webhook check interval", func() {
+			var fakeResource *dbfakes.FakeResource
+			BeforeEach(func() {
+				fakeResource = new(dbfakes.FakeResource)
+				fakeResource.NameReturns("some-name")
+				fakeResource.TagsReturns([]string{"tag-a", "tag-b"})
+				fakeResource.SourceReturns(atc.Source{"some": "source"})
+				fakeResource.TypeReturns("base-type")
+				fakeResource.CheckEveryReturns("")
+				fakeCheckFactory.ResourcesReturns([]db.Resource{fakeResource}, nil)
+
+			})
+
+			Context("resource has webhook", func() {
+				BeforeEach(func() {
+					fakeResource.HasWebhookReturns(true)
+				})
+
+				Context("last check is 9 minutes ago", func() {
+					BeforeEach(func() {
+						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Minute * 9))
+					})
+
+					It("does not create a check", func() {
+						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(0))
+					})
+				})
+
+				Context("last check is 11 minutes ago", func() {
+					BeforeEach(func() {
+						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-time.Minute * 11))
+					})
+
+					It("does not create a check", func() {
+						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+					})
+				})
 			})
 		})
 	})

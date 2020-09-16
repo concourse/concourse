@@ -7,19 +7,33 @@
 #
 version: '3'
 
+volumes:
+  elasticsearch-data:
 services:
   web:
     environment:
       CONCOURSE_TRACING_JAEGER_COMPONENT: atc
-      CONCOURSE_TRACING_JAEGER_ENDPOINT: http://jaeger:14268/api/traces
+      CONCOURSE_TRACING_JAEGER_ENDPOINT: http://oc-agent:14268/api/traces
+
+  oc-agent:
+    image: omnition/opencensus-agent:0.1.11
+    volumes:
+    - ./hack/oc-agent:/etc/config
+    command:
+      - --config=/etc/config/config.yml
 
   jaeger:
     image: jaegertracing/all-in-one:1.14
     command:
       - --sampling.strategies-file=/etc/jaeger/sampling_strategies.json
       - --log-level=debug
+    restart: on-failure
     environment:
       COLLECTOR_ZIPKIN_HTTP_PORT: 9411
+      SPAN_STORAGE_TYPE: elasticsearch
+      ES_SERVER_URLS: http://elasticsearch:9200
+      ES_TAGS_AS_FIELDS_ALL: "true"
+      ES_NUM_REPLICAS: 0
     ports:
       - '14268:14268'
       - '25000:16686'
@@ -28,3 +42,20 @@ services:
       - '6831:6831/udp'
       - '6832:6832/udp'
       - '9411:9411'
+
+  elasticsearch:
+    image: elasticsearch:7.6.1
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    ports:
+      - '9200:9200'
+      - '9300:9300'
+    environment:
+      discovery.type: single-node
+
+  kibana:
+    image: kibana:7.6.1
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - '5601:5601'

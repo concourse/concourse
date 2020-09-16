@@ -24,12 +24,12 @@ import (
 
 var _ = Describe("DelegateFactory", func() {
 	var (
-		logger          *lagertest.TestLogger
-		fakeBuild       *dbfakes.FakeBuild
-		fakePipeline    *dbfakes.FakePipeline
-		fakeResource    *dbfakes.FakeResource
-		fakeClock       *fakeclock.FakeClock
-		credVarsTracker vars.CredVarsTracker
+		logger       *lagertest.TestLogger
+		fakeBuild    *dbfakes.FakeBuild
+		fakePipeline *dbfakes.FakePipeline
+		fakeResource *dbfakes.FakeResource
+		fakeClock    *fakeclock.FakeClock
+		buildVars    *vars.BuildVariables
 	)
 
 	BeforeEach(func() {
@@ -43,7 +43,7 @@ var _ = Describe("DelegateFactory", func() {
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
 		}
-		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
+		buildVars = vars.NewBuildVariables(credVars, true)
 	})
 
 	Describe("GetDelegate", func() {
@@ -59,7 +59,7 @@ var _ = Describe("DelegateFactory", func() {
 				Metadata: []atc.MetadataField{{Name: "baz", Value: "shmaz"}},
 			}
 
-			delegate = builder.NewGetDelegate(fakeBuild, "some-plan-id", credVarsTracker, fakeClock)
+			delegate = builder.NewGetDelegate(fakeBuild, "some-plan-id", buildVars, fakeClock)
 		})
 
 		Describe("Finished", func() {
@@ -169,7 +169,7 @@ var _ = Describe("DelegateFactory", func() {
 				Metadata: []atc.MetadataField{{Name: "baz", Value: "shmaz"}},
 			}
 
-			delegate = builder.NewPutDelegate(fakeBuild, "some-plan-id", credVarsTracker, fakeClock)
+			delegate = builder.NewPutDelegate(fakeBuild, "some-plan-id", buildVars, fakeClock)
 		})
 
 		Describe("Finished", func() {
@@ -228,7 +228,7 @@ var _ = Describe("DelegateFactory", func() {
 		)
 
 		BeforeEach(func() {
-			delegate = builder.NewTaskDelegate(fakeBuild, "some-plan-id", credVarsTracker, fakeClock)
+			delegate = builder.NewTaskDelegate(fakeBuild, "some-plan-id", buildVars, fakeClock)
 			someConfig = atc.TaskConfig{
 				Platform: "some-platform",
 				Run: atc.TaskRunConfig{
@@ -300,18 +300,18 @@ var _ = Describe("DelegateFactory", func() {
 		BeforeEach(func() {
 			fakeCheck = new(dbfakes.FakeCheck)
 
-			delegate = builder.NewCheckDelegate(fakeCheck, "some-plan-id", credVarsTracker, fakeClock)
+			delegate = builder.NewCheckDelegate(fakeCheck, "some-plan-id", buildVars, fakeClock)
 			versions = []atc.Version{{"some": "version"}}
 		})
 
 		Describe("SaveVersions", func() {
 			JustBeforeEach(func() {
-				Expect(delegate.SaveVersions(versions)).To(Succeed())
+				Expect(delegate.SaveVersions(nil, versions)).To(Succeed())
 			})
 
 			It("saves an event", func() {
 				Expect(fakeCheck.SaveVersionsCallCount()).To(Equal(1))
-				actualVersions := fakeCheck.SaveVersionsArgsForCall(0)
+				_, actualVersions := fakeCheck.SaveVersionsArgsForCall(0)
 				Expect(actualVersions).To(Equal(versions))
 			})
 		})
@@ -323,7 +323,7 @@ var _ = Describe("DelegateFactory", func() {
 		)
 
 		BeforeEach(func() {
-			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", credVarsTracker, fakeClock)
+			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", buildVars, fakeClock)
 		})
 
 		Describe("Initializing", func() {
@@ -525,8 +525,8 @@ var _ = Describe("DelegateFactory", func() {
 		Describe("No line buffer without secrets redaction", func() {
 			BeforeEach(func() {
 				credVars := vars.StaticVariables{}
-				credVarsTracker = vars.NewCredVarsTracker(credVars, false)
-				delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", credVarsTracker, fakeClock)
+				buildVars = vars.NewBuildVariables(credVars, false)
+				delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", buildVars, fakeClock)
 			})
 
 			Context("Stdout", func() {
@@ -624,8 +624,8 @@ var _ = Describe("DelegateFactory", func() {
 			)
 
 			BeforeEach(func() {
-				delegate.Variables().Get(vars.VariableDefinition{Name: "source-param"})
-				delegate.Variables().Get(vars.VariableDefinition{Name: "git-key"})
+				delegate.Variables().Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "source-param"}})
+				delegate.Variables().Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "git-key"}})
 			})
 
 			Context("Stdout", func() {

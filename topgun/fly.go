@@ -181,9 +181,14 @@ func FetchToken(webURL, username, password string) (*oauth2.Token, error) {
 	oauth2Config := oauth2.Config{
 		ClientID:     "fly",
 		ClientSecret: "Zmx5",
-		Endpoint:     oauth2.Endpoint{TokenURL: webURL + "/sky/token"},
+		Endpoint:     oauth2.Endpoint{TokenURL: webURL + "/sky/issuer/token"},
 		Scopes:       []string{"openid", "profile", "email", "federated:id"},
 	}
 
-	return oauth2Config.PasswordCredentialsToken(context.Background(), username, password)
+	token, err := oauth2Config.PasswordCredentialsToken(context.Background(), username, password)
+	if err != nil {
+		return nil, err
+	}
+
+	return token, nil
 }

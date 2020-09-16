@@ -18,6 +18,7 @@ type stepFactory struct {
 	client                worker.Client
 	resourceFactory       resource.ResourceFactory
 	teamFactory           db.TeamFactory
+	buildFactory          db.BuildFactory
 	resourceCacheFactory  db.ResourceCacheFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	defaultLimits         atc.ContainerLimits
@@ -30,6 +31,7 @@ func NewStepFactory(
 	client worker.Client,
 	resourceFactory resource.ResourceFactory,
 	teamFactory db.TeamFactory,
+	buildFactory db.BuildFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	defaultLimits atc.ContainerLimits,
@@ -41,6 +43,7 @@ func NewStepFactory(
 		client:                client,
 		resourceFactory:       resourceFactory,
 		teamFactory:           teamFactory,
+		buildFactory:          buildFactory,
 		resourceCacheFactory:  resourceCacheFactory,
 		resourceConfigFactory: resourceConfigFactory,
 		defaultLimits:         defaultLimits,
@@ -69,7 +72,11 @@ func (factory *stepFactory) GetStep(
 		factory.client,
 	)
 
-	return exec.LogError(getStep, delegate)
+	getStep = exec.LogError(getStep, delegate)
+	if atc.EnableBuildRerunWhenWorkerDisappears {
+		getStep = exec.RetryError(getStep, delegate)
+	}
+	return getStep
 }
 
 func (factory *stepFactory) PutStep(
@@ -92,7 +99,11 @@ func (factory *stepFactory) PutStep(
 		delegate,
 	)
 
-	return exec.LogError(putStep, delegate)
+	putStep = exec.LogError(putStep, delegate)
+	if atc.EnableBuildRerunWhenWorkerDisappears {
+		putStep = exec.RetryError(putStep, delegate)
+	}
+	return putStep
 }
 
 func (factory *stepFactory) CheckStep(
@@ -139,13 +150,17 @@ func (factory *stepFactory) TaskStep(
 		factory.lockFactory,
 	)
 
-	return exec.LogError(taskStep, delegate)
+	taskStep = exec.LogError(taskStep, delegate)
+	if atc.EnableBuildRerunWhenWorkerDisappears {
+		taskStep = exec.RetryError(taskStep, delegate)
+	}
+	return taskStep
 }
 
 func (factory *stepFactory) SetPipelineStep(
 	plan atc.Plan,
 	stepMetadata exec.StepMetadata,
-	delegate exec.BuildStepDelegate,
+	delegate exec.SetPipelineStepDelegate,
 ) exec.Step {
 	spStep := exec.NewSetPipelineStep(
 		plan.ID,
@@ -153,10 +168,15 @@ func (factory *stepFactory) SetPipelineStep(
 		stepMetadata,
 		delegate,
 		factory.teamFactory,
+		factory.buildFactory,
 		factory.client,
 	)
 
-	return exec.LogError(spStep, delegate)
+	spStep = exec.LogError(spStep, delegate)
+	if atc.EnableBuildRerunWhenWorkerDisappears {
+		spStep = exec.RetryError(spStep, delegate)
+	}
+	return spStep
 }
 
 func (factory *stepFactory) LoadVarStep(
@@ -172,7 +192,11 @@ func (factory *stepFactory) LoadVarStep(
 		factory.client,
 	)
 
-	return exec.LogError(loadVarStep, delegate)
+	loadVarStep = exec.LogError(loadVarStep, delegate)
+	if atc.EnableBuildRerunWhenWorkerDisappears {
+		loadVarStep = exec.RetryError(loadVarStep, delegate)
+	}
+	return loadVarStep
 }
 
 func (factory *stepFactory) ArtifactInputStep(

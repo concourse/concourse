@@ -145,6 +145,11 @@ handleEvent event ( model, effects ) =
             , effects
             )
 
+        SelectedWorker origin output time ->
+            ( updateStep origin.id (setRunning << appendStepLog ("\u{001B}[1mselected worker: \u{001B}[0m" ++ output ++ "\n") time) model
+            , effects
+            )
+
         Error origin message time ->
             ( updateStep origin.id (setStepError message time) model
             , effects
@@ -207,6 +212,11 @@ handleEvent event ( model, effects ) =
 
         FinishPut origin exitStatus version metadata time ->
             ( updateStep origin.id (finishStep (exitStatus == 0) time << setResourceInfo version metadata) model
+            , effects
+            )
+
+        SetPipelineChanged origin changed ->
+            ( updateStep origin.id (setSetPipelineChanged changed) model
             , effects
             )
 
@@ -331,6 +341,11 @@ setStepStart time tree =
 setStepFinish : Maybe Time.Posix -> StepTree -> StepTree
 setStepFinish mtime tree =
     StepTree.map (\step -> { step | finish = mtime }) tree
+
+
+setSetPipelineChanged : Bool -> StepTree -> StepTree
+setSetPipelineChanged changed tree =
+    StepTree.map (\step -> { step | changed = changed }) tree
 
 
 view :

@@ -3,10 +3,11 @@ module DashboardCacheTests exposing (all)
 import Application.Application as Application
 import Common
 import Concourse.BuildStatus exposing (BuildStatus(..))
+import DashboardTests exposing (whenOnDashboard)
 import Data
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
-import Message.Message as Message
+import Message.Message as Message exposing (DropTarget(..))
 import Message.Subscription as Subscription exposing (Delivery(..))
 import Message.TopLevelMessage as TopLevelMessage
 import Test exposing (Test, describe, test)
@@ -74,22 +75,22 @@ all =
                     |> Common.contains LoadCachedTeams
         , test "subscribes to receive cached jobs" <|
             \_ ->
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.subscriptions
                     |> Common.contains Subscription.OnCachedJobsReceived
         , test "subscribes to receive cached pipelines" <|
             \_ ->
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.subscriptions
                     |> Common.contains Subscription.OnCachedPipelinesReceived
         , test "subscribes to receive cached teams" <|
             \_ ->
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.subscriptions
                     |> Common.contains Subscription.OnCachedTeamsReceived
         , test "renders pipelines when receive cached pipelines delivery" <|
             \_ ->
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.handleDelivery
                         (CachedPipelinesReceived <|
                             Ok <|
@@ -100,7 +101,7 @@ all =
                     |> Query.has [ class "pipeline-wrapper", containing [ text "pipeline-0" ] ]
         , test "renders jobs in pipelines when receive cached jobs delivery" <|
             \_ ->
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.handleDelivery
                         (CachedPipelinesReceived <|
                             Ok <|
@@ -116,20 +117,9 @@ all =
                     |> Common.queryView
                     |> Query.find [ class "pipeline-wrapper" ]
                     |> Query.has [ class "parallel-grid" ]
-        , test "renders team sections when receive cached teams delivery" <|
-            \_ ->
-                Common.init "/"
-                    |> Application.handleDelivery
-                        (CachedTeamsReceived <|
-                            Ok <|
-                                [ { id = 0, name = "team-0" } ]
-                        )
-                    |> Tuple.first
-                    |> Common.queryView
-                    |> Query.has [ class "dashboard-team-group", containing [ text "team-0" ] ]
         , test "ignores the job cache after fetching successfully" <|
             \_ ->
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.handleDelivery
                         (CachedPipelinesReceived <|
                             Ok <|
@@ -153,7 +143,7 @@ all =
                     |> Query.has [ class "parallel-grid" ]
         , test "saves jobs to cache when fetched" <|
             \_ ->
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
                         (AllJobsFetched <|
                             Ok <|
@@ -174,7 +164,7 @@ all =
                             , nextBuild = Just <| Data.jobBuild BuildStatusSucceeded
                         }
                 in
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
                         (AllJobsFetched <|
                             Ok <|
@@ -184,7 +174,7 @@ all =
                     |> Common.contains (SaveCachedJobs [ jobWithoutBuild ])
         , test "does not save jobs to cache when fetched with no change" <|
             \_ ->
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.handleDelivery
                         (CachedJobsReceived <|
                             Ok <|
@@ -204,7 +194,7 @@ all =
                     firstNJobs n =
                         List.range 0 (n - 1) |> List.map Data.job
                 in
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
                         (AllJobsFetched <|
                             Ok <|
@@ -214,7 +204,7 @@ all =
                     |> Common.contains (SaveCachedJobs <| firstNJobs 1000)
         , test "saves pipelines to cache when fetched" <|
             \_ ->
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
                         (AllPipelinesFetched <|
                             Ok <|
@@ -222,9 +212,26 @@ all =
                         )
                     |> Tuple.second
                     |> Common.contains (SaveCachedPipelines [ Data.pipeline "team" 0 ])
+        , test "ignores cached pipelines if we've already fetched from network" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Application.handleCallback
+                        (AllPipelinesFetched <|
+                            Ok <|
+                                [ Data.pipeline "team" 0 ]
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (CachedPipelinesReceived <|
+                            Ok <|
+                                []
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.has [ class "pipeline-wrapper", containing [ text "pipeline-0" ] ]
         , test "does not save pipelines to cache when fetched with no change" <|
             \_ ->
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.handleDelivery
                         (CachedPipelinesReceived <|
                             Ok <|
@@ -240,7 +247,7 @@ all =
                     |> Common.notContains (SaveCachedPipelines [ Data.pipeline "team" 0 ])
         , test "saves pipelines to cache when re-ordered" <|
             \_ ->
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
                         (AllPipelinesFetched <|
                             Ok <|
@@ -248,10 +255,10 @@ all =
                         )
                     |> Tuple.first
                     |> Application.update
-                        (TopLevelMessage.Update <| Message.DragStart "team" 0)
+                        (TopLevelMessage.Update <| Message.DragStart "team" "pipeline-0")
                     |> Tuple.first
                     |> Application.update
-                        (TopLevelMessage.Update <| Message.DragOver "team" 2)
+                        (TopLevelMessage.Update <| Message.DragOver <| After "pipeline-1")
                     |> Tuple.first
                     |> Application.update
                         (TopLevelMessage.Update <| Message.DragEnd)
@@ -259,7 +266,7 @@ all =
                     |> Common.contains (SaveCachedPipelines [ Data.pipeline "team" 1, Data.pipeline "team" 0 ])
         , test "saves teams to cache when fetched" <|
             \_ ->
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
                         (AllTeamsFetched <|
                             Ok <|
@@ -269,7 +276,7 @@ all =
                     |> Common.contains (SaveCachedTeams [ { id = 0, name = "team-0" } ])
         , test "does not save teams to cache when fetched with no change" <|
             \_ ->
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.handleDelivery
                         (CachedTeamsReceived <|
                             Ok <|
@@ -285,21 +292,21 @@ all =
                     |> Common.notContains (SaveCachedPipelines [ Data.pipeline "team" 0 ])
         , test "deletes cached pipelines on logged out" <|
             \_ ->
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
                         (LoggedOut <| Ok ())
                     |> Tuple.second
                     |> Common.contains DeleteCachedPipelines
         , test "deletes cached jobs on logged out" <|
             \_ ->
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
                         (LoggedOut <| Ok ())
                     |> Tuple.second
                     |> Common.contains DeleteCachedJobs
         , test "deletes cached teams on logged out" <|
             \_ ->
-                Common.init "/"
+                whenOnDashboard { highDensity = False }
                     |> Application.handleCallback
                         (LoggedOut <| Ok ())
                     |> Tuple.second

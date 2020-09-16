@@ -12,8 +12,14 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
-type GardenBackend struct {
-	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
+type RuntimeConfiguration struct {
+}
+
+type GuardianRuntime struct {
+	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to the Garden server to complete. 0 means no timeout."`
+}
+
+type ContainerdRuntime struct {
 }
 
 type Certs struct{}
@@ -23,7 +29,7 @@ func (cmd WorkerCommand) LessenRequirements(prefix string, command *flags.Comman
 	command.FindOptionByLongName(prefix + "baggageclaim-volumes").Required = false
 }
 
-func (cmd *WorkerCommand) gardenRunner(logger lager.Logger) (atc.Worker, ifrit.Runner, error) {
+func (cmd *WorkerCommand) gardenServerRunner(logger lager.Logger) (atc.Worker, ifrit.Runner, error) {
 	worker := cmd.Worker.Worker()
 	worker.Platform = runtime.GOOS
 	var err error

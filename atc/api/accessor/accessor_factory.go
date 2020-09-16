@@ -1,72 +1,55 @@
 package accessor
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/concourse/concourse/atc/db"
 )
 
-//go:generate counterfeiter . Verifier
+//go:generate counterfeiter . TokenVerifier
 
-type Verifier interface {
-	Verify(*http.Request) (map[string]interface{}, error)
+type TokenVerifier interface {
+	Verify(req *http.Request) (map[string]interface{}, error)
 }
 
-//go:generate counterfeiter . AccessFactory
+//go:generate counterfeiter .  TeamFetcher
 
-type AccessFactory interface {
-	Create(*http.Request, string) (Access, error)
+type TeamFetcher interface {
+	GetTeams() ([]db.Team, error)
 }
 
 func NewAccessFactory(
-	verifier Verifier,
-	teamFactory db.TeamFactory,
+	tokenVerifier TokenVerifier,
+	teamFetcher TeamFetcher,
 	systemClaimKey string,
 	systemClaimValues []string,
-	customRoles map[string]string,
 ) AccessFactory {
 	return &accessFactory{
-		verifier:          verifier,
-		teamFactory:       teamFactory,
+		tokenVerifier:     tokenVerifier,
+		teamFetcher:       teamFetcher,
 		systemClaimKey:    systemClaimKey,
 		systemClaimValues: systemClaimValues,
-		customRoles:       customRoles,
 	}
 }
 
 type accessFactory struct {
-	verifier          Verifier
-	teamFactory       db.TeamFactory
+	tokenVerifier     TokenVerifier
+	teamFetcher       TeamFetcher
 	systemClaimKey    string
 	systemClaimValues []string
-	customRoles       map[string]string
 }
 
-func (a *accessFactory) Create(r *http.Request, action string) (Access, error) {
-
-	role := a.customRoles[action]
-
-	if role == "" {
-		role = DefaultRoles[action]
-	}
-
-	verification := a.verify(r)
-
-	if !verification.IsTokenValid {
-		return NewAccessor(verification, role, a.systemClaimKey, a.systemClaimValues, nil), nil
-	}
-
-	teams, err := a.teamFactory.GetTeams()
+func (a *accessFactory) Create(req *http.Request, role string) (Access, error) {
+	teams, err := a.teamFetcher.GetTeams()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fetch teams: %w", err)
 	}
-
-	return NewAccessor(verification, role, a.systemClaimKey, a.systemClaimValues, teams), nil
+	return NewAccessor(a.verifyToken(req), role, a.systemClaimKey, a.systemClaimValues, teams), nil
 }
 
-func (a *accessFactory) verify(r *http.Request) Verification {
-
-	claims, err := a.verifier.Verify(r)
+func (a *accessFactory) verifyToken(req *http.Request) Verification {
+	claims, err := a.tokenVerifier.Verify(req)
 	if err != nil {
 		switch err {
 		case ErrVerificationNoToken:

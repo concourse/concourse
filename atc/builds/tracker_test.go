@@ -1,123 +1,161 @@
 package builds_test
 
 import (
+	"context"
+	"testing"
 	"time"
 
-	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/concourse/concourse/atc/builds"
+	"github.com/concourse/concourse/atc/component"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/enginefakes"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
-var _ = Describe("Tracker", func() {
-	var (
-		fakeBuildFactory *dbfakes.FakeBuildFactory
-		fakeEngine       *enginefakes.FakeEngine
+type TrackerSuite struct {
+	suite.Suite
+	*require.Assertions
 
-		tracker *builds.Tracker
-		logger  *lagertest.TestLogger
+	fakeBuildFactory *dbfakes.FakeBuildFactory
+	fakeEngine       *enginefakes.FakeEngine
+
+	tracker *builds.Tracker
+}
+
+func TestTracker(t *testing.T) {
+	suite.Run(t, &TrackerSuite{
+		Assertions: require.New(t),
+	})
+}
+
+func (s *TrackerSuite) SetupTest() {
+	s.fakeBuildFactory = new(dbfakes.FakeBuildFactory)
+	s.fakeEngine = new(enginefakes.FakeEngine)
+
+	s.tracker = builds.NewTracker(
+		s.fakeBuildFactory,
+		s.fakeEngine,
 	)
+}
 
-	BeforeEach(func() {
-		fakeBuildFactory = new(dbfakes.FakeBuildFactory)
-		fakeEngine = new(enginefakes.FakeEngine)
+func (s *TrackerSuite) TestTrackRunsStartedBuilds() {
+	startedBuilds := []db.Build{}
+	for i := 0; i < 3; i++ {
+		fakeBuild := new(dbfakes.FakeBuild)
+		fakeBuild.IDReturns(i + 1)
+		startedBuilds = append(startedBuilds, fakeBuild)
+	}
 
-		logger = lagertest.NewTestLogger("test")
+	s.fakeBuildFactory.GetAllStartedBuildsReturns(startedBuilds, nil)
 
-		tracker = builds.NewTracker(
-			logger,
-			fakeBuildFactory,
-			fakeEngine,
-		)
-	})
+	running := make(chan db.Build, 3)
+	s.fakeEngine.NewBuildStub = func(build db.Build) engine.Runnable {
+		engineBuild := new(enginefakes.FakeRunnable)
+		engineBuild.RunStub = func(context.Context) {
+			running <- build
+		}
 
-	Describe("Track", func() {
-		var inFlightBuilds []*dbfakes.FakeBuild
-		var engineBuilds chan *enginefakes.FakeRunnable
+		return engineBuild
+	}
 
-		var trackErr error
+	err := s.tracker.Run(context.TODO())
+	s.NoError(err)
 
-		BeforeEach(func() {
-			fakeBuild1 := new(dbfakes.FakeBuild)
-			fakeBuild1.IDReturns(1)
-			fakeBuild2 := new(dbfakes.FakeBuild)
-			fakeBuild2.IDReturns(2)
-			fakeBuild3 := new(dbfakes.FakeBuild)
-			fakeBuild3.IDReturns(3)
+	ranBuilds := []db.Build{
+		<-running,
+		<-running,
+		<-running,
+	}
+	s.ElementsMatch(startedBuilds, ranBuilds)
+}
 
-			inFlightBuilds = []*dbfakes.FakeBuild{
-				fakeBuild1,
-				fakeBuild2,
-				fakeBuild3,
+func (s *TrackerSuite) TestTrackerDoesntCrashWhenOneBuildPanic() {
+	startedBuilds := []db.Build{}
+	fakeBuild1 := new(dbfakes.FakeBuild)
+	fakeBuild1.IDReturns(1)
+	startedBuilds = append(startedBuilds, fakeBuild1)
+
+	// build 2 and 3 are normal running build
+	for i := 1; i < 3; i++ {
+		fakeBuild := new(dbfakes.FakeBuild)
+		fakeBuild.IDReturns(i + 1)
+		startedBuilds = append(startedBuilds, fakeBuild)
+	}
+
+	s.fakeBuildFactory.GetAllStartedBuildsReturns(startedBuilds, nil)
+
+	running := make(chan db.Build, 3)
+	s.fakeEngine.NewBuildStub = func(build db.Build) engine.Runnable {
+		fakeEngineBuild := new(enginefakes.FakeRunnable)
+		fakeEngineBuild.RunStub = func(context.Context) {
+			if build.ID() == 1 {
+				panic("something went wrong")
+			} else {
+				running <- build
 			}
+		}
 
-			returnedBuilds := []db.Build{
-				inFlightBuilds[0],
-				inFlightBuilds[1],
-				inFlightBuilds[2],
-			}
+		return fakeEngineBuild
+	}
 
-			fakeBuildFactory.GetAllStartedBuildsReturns(returnedBuilds, nil)
+	err := s.tracker.Run(context.TODO())
+	s.NoError(err)
 
-			builds := make(chan *enginefakes.FakeRunnable, 3)
-			engineBuilds = builds
-			fakeEngine.NewBuildStub = func(build db.Build) engine.Runnable {
-				engineBuild := new(enginefakes.FakeRunnable)
-				builds <- engineBuild
-				return engineBuild
-			}
-		})
+	ranBuilds := []db.Build{
+		<-running,
+		<-running,
+	}
+	s.ElementsMatch([]db.Build{
+		startedBuilds[1],
+		startedBuilds[2],
+	}, ranBuilds)
 
-		JustBeforeEach(func() {
-			trackErr = tracker.Track()
-		})
+	s.Eventually(func() bool { return fakeBuild1.FinishCallCount() == 1 }, time.Second, 10*time.Millisecond)
+	s.Eventually(func() bool { return fakeBuild1.FinishArgsForCall(0) == db.BuildStatusErrored }, time.Second, 10*time.Millisecond)
+}
 
-		It("succeeds", func() {
-			Expect(trackErr).NotTo(HaveOccurred())
-		})
+func (s *TrackerSuite) TestTrackDoesntTrackAlreadyRunningBuilds() {
+	fakeBuild := new(dbfakes.FakeBuild)
+	fakeBuild.IDReturns(1)
+	s.fakeBuildFactory.GetAllStartedBuildsReturns([]db.Build{fakeBuild}, nil)
 
-		It("runs all currently in-flight builds", func() {
-			Eventually((<-engineBuilds).RunCallCount).Should(Equal(1))
-			Eventually((<-engineBuilds).RunCallCount).Should(Equal(1))
-			Eventually((<-engineBuilds).RunCallCount).Should(Equal(1))
-		})
+	wait := make(chan struct{})
+	defer close(wait)
 
-		Context("when a build is already being tracked", func() {
-			BeforeEach(func() {
-				fakeBuild := new(dbfakes.FakeBuild)
-				fakeBuild.IDReturns(1)
+	running := make(chan db.Build, 3)
+	s.fakeEngine.NewBuildStub = func(build db.Build) engine.Runnable {
+		engineBuild := new(enginefakes.FakeRunnable)
+		engineBuild.RunStub = func(context.Context) {
+			running <- build
+			<-wait
+		}
 
-				fakeEngine.NewBuildStub = func(build db.Build) engine.Runnable {
-					time.Sleep(time.Second)
-					return new(enginefakes.FakeRunnable)
-				}
+		return engineBuild
+	}
 
-				fakeBuildFactory.GetAllStartedBuildsReturns([]db.Build{
-					fakeBuild,
-					fakeBuild,
-				}, nil)
-			})
+	err := s.tracker.Run(context.TODO())
+	s.NoError(err)
 
-			It("succeeds", func() {
-				Expect(trackErr).NotTo(HaveOccurred())
-			})
+	<-running
 
-			It("runs only one pending build", func() {
-				Eventually(fakeEngine.NewBuildCallCount).Should(Equal(1))
-			})
-		})
-	})
+	err = s.tracker.Run(context.TODO())
+	s.NoError(err)
 
-	Describe("Release", func() {
-		It("releases all builds tracked by engine", func() {
-			tracker.Release()
+	select {
+	case <-running:
+		s.Fail("another build was started!")
+	case <-time.After(100 * time.Millisecond):
+	}
+}
 
-			Expect(fakeEngine.ReleaseAllCallCount()).To(Equal(1))
-		})
-	})
-})
+func (s *TrackerSuite) TestTrackerDrainsEngine() {
+	var _ component.Drainable = s.tracker
+
+	ctx := context.TODO()
+	s.tracker.Drain(ctx)
+	s.Equal(1, s.fakeEngine.DrainCallCount())
+	s.Equal(ctx, s.fakeEngine.DrainArgsForCall(0))
+}

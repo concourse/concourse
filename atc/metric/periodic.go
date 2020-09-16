@@ -9,7 +9,7 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
-func PeriodicallyEmit(logger lager.Logger, interval time.Duration) ifrit.Runner {
+func PeriodicallyEmit(logger lager.Logger, m *Monitor, interval time.Duration) ifrit.Runner {
 	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
@@ -21,24 +21,24 @@ func PeriodicallyEmit(logger lager.Logger, interval time.Duration) ifrit.Runner 
 			case <-signals:
 				return nil
 			case <-ticker.C:
-				tick(logger.Session("tick"))
+				tick(logger.Session("tick"), m)
 			}
 		}
 	})
 }
 
-func tick(logger lager.Logger) {
-	emit(
+func tick(logger lager.Logger, m *Monitor) {
+	m.emit(
 		logger.Session("database-queries"),
 		Event{
 			Name:  "database queries",
-			Value: DatabaseQueries.Delta(),
+			Value: m.DatabaseQueries.Delta(),
 		},
 	)
 
-	if len(Databases) > 0 {
-		for _, database := range Databases {
-			emit(
+	if len(m.Databases) > 0 {
+		for _, database := range m.Databases {
+			m.emit(
 				logger.Session("database-connections"),
 				Event{
 					Name:  "database connections",
@@ -51,146 +51,187 @@ func tick(logger lager.Logger) {
 		}
 	}
 
-	emit(
+	m.emit(
 		logger.Session("containers-deleted"),
 		Event{
 			Name:  "containers deleted",
-			Value: ContainersDeleted.Delta(),
+			Value: m.ContainersDeleted.Delta(),
 		},
 	)
 
-	emit(
+	m.emit(
 		logger.Session("volumes-deleted"),
 		Event{
 			Name:  "volumes deleted",
-			Value: VolumesDeleted.Delta(),
+			Value: m.VolumesDeleted.Delta(),
 		},
 	)
 
-	emit(
+	m.emit(
 		logger.Session("checks-deleted"),
 		Event{
 			Name:  "checks deleted",
-			Value: ChecksDeleted.Delta(),
+			Value: m.ChecksDeleted.Delta(),
 		},
 	)
 
-	emit(
+	m.emit(
 		logger.Session("containers-created"),
 		Event{
 			Name:  "containers created",
-			Value: ContainersCreated.Delta(),
+			Value: m.ContainersCreated.Delta(),
 		},
 	)
 
-	emit(
+	m.emit(
 		logger.Session("volumes-created"),
 		Event{
 			Name:  "volumes created",
-			Value: VolumesCreated.Delta(),
+			Value: m.VolumesCreated.Delta(),
 		},
 	)
 
-	emit(
+	m.emit(
 		logger.Session("failed-containers"),
 		Event{
 			Name:  "failed containers",
-			Value: FailedContainers.Delta(),
+			Value: m.FailedContainers.Delta(),
 		},
 	)
 
-	emit(
+	m.emit(
 		logger.Session("failed-volumes"),
 		Event{
 			Name:  "failed volumes",
-			Value: FailedVolumes.Delta(),
+			Value: m.FailedVolumes.Delta(),
 		},
 	)
 
-	emit(
+	m.emit(
 		logger.Session("jobs-scheduled"),
 		Event{
 			Name:  "jobs scheduled",
-			Value: JobsScheduled.Delta(),
+			Value: m.JobsScheduled.Delta(),
 		},
 	)
 
-	emit(
+	m.emit(
 		logger.Session("jobs-scheduling"),
 		Event{
 			Name:  "jobs scheduling",
-			Value: JobsScheduling.Max(),
+			Value: m.JobsScheduling.Max(),
 		},
 	)
 
-	emit(
+	m.emit(
 		logger.Session("builds-started"),
 		Event{
 			Name:  "builds started",
-			Value: BuildsStarted.Delta(),
+			Value: m.BuildsStarted.Delta(),
 		},
 	)
 
-	emit(
+	m.emit(
 		logger.Session("builds-running"),
 		Event{
 			Name:  "builds running",
-			Value: BuildsRunning.Max(),
+			Value: m.BuildsRunning.Max(),
 		},
 	)
 
-	emit(
+	for action, gauge := range m.ConcurrentRequests {
+		m.emit(
+			logger.Session("concurrent-requests"),
+			Event{
+				Name:  "concurrent requests",
+				Value: gauge.Max(),
+				Attributes: map[string]string{
+					"action": action,
+				},
+			},
+		)
+	}
+
+	for action, counter := range m.ConcurrentRequestsLimitHit {
+		m.emit(
+			logger.Session("concurrent-requests-limit-hit"),
+			Event{
+				Name:  "concurrent requests limit hit",
+				Value: counter.Delta(),
+				Attributes: map[string]string{
+					"action": action,
+				},
+			},
+		)
+	}
+
+	for labels, gauge := range m.TasksWaiting {
+		m.emit(
+			logger.Session("tasks-waiting"),
+			Event{
+				Name:  "tasks waiting",
+				Value: gauge.Max(),
+				Attributes: map[string]string{
+					"teamId":     labels.TeamId,
+					"workerTags": labels.WorkerTags,
+					"platform":   labels.Platform,
+				},
+			},
+		)
+	}
+
+	m.emit(
 		logger.Session("checks-finished-with-error"),
 		Event{
 			Name:  "checks finished",
-			Value: ChecksFinishedWithError.Delta(),
+			Value: m.ChecksFinishedWithError.Delta(),
 			Attributes: map[string]string{
 				"status": "error",
 			},
 		},
 	)
 
-	emit(
+	m.emit(
 		logger.Session("checks-finished-with-success"),
 		Event{
 			Name:  "checks finished",
-			Value: ChecksFinishedWithSuccess.Delta(),
+			Value: m.ChecksFinishedWithSuccess.Delta(),
 			Attributes: map[string]string{
 				"status": "success",
 			},
 		},
 	)
 
-	emit(
+	m.emit(
 
 		logger.Session("checks-started"),
 		Event{
 			Name:  "checks started",
-			Value: ChecksStarted.Delta(),
+			Value: m.ChecksStarted.Delta(),
 		},
 	)
 
-	emit(
+	m.emit(
 
 		logger.Session("checks-enqueued"),
 		Event{
 			Name:  "checks enqueued",
-			Value: ChecksEnqueued.Delta(),
+			Value: m.ChecksEnqueued.Delta(),
 		},
 	)
 
-	emit(
+	m.emit(
 		logger.Session("checks-queue-size"),
 		Event{
 			Name:  "checks queue size",
-			Value: ChecksQueueSize.Max(),
+			Value: m.ChecksQueueSize.Max(),
 		},
 	)
 
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
-	emit(
+	m.emit(
 		logger.Session("gc-pause-total-duration"),
 		Event{
 			Name:  "gc pause total duration",
@@ -198,7 +239,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	m.emit(
 		logger.Session("mallocs"),
 		Event{
 			Name:  "mallocs",
@@ -206,7 +247,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	m.emit(
 		logger.Session("frees"),
 		Event{
 			Name:  "frees",
@@ -214,7 +255,7 @@ func tick(logger lager.Logger) {
 		},
 	)
 
-	emit(
+	m.emit(
 		logger.Session("goroutines"),
 		Event{
 			Name:  "goroutines",

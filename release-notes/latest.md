@@ -1,42 +1,35 @@
-#### <sub><sup><a name="4950" href="#4950">:link:</a></sup></sub> feature, breaking
+#### <sub><sup><a name="5830" href="#5830">:link:</a></sup></sub> fix
 
-* "Have you tried logging out and logging back in?"
-            - Probably every concourse operator at some point
+* Fix a validation issue where a step can be set with 0 attempts causing the ATC to panic. #5830
 
-  In the old login flow, concourse used to take all your upstream third party info (think github username, teams, etc) figure out what teams you're on, and encode those into your auth token. The problem with this approach is that every time you change your team config, you need to log out and log back in. 
+#### <sub><sup><a name="5842" href="#5842">:link:</a></sup></sub> feature
 
-  So now concourse doesn't do this anymore. Now we use a token directly from dex, the out-of-the-box identity provider that ships with concourse. If you're interested in the details you can check out [the issue](https://github.com/concourse/concourse/issues/2936).
+* Added recover for panic error that used to crash the cluster. Now it should be less easy to panic (we hope!) and if it does, panic error could be found on Stderr and log. #5842
 
-  NOTE: this is a breaking change. You'll neeed to add a couple required flags at startup `CONCOURSE_CLIENT_SECRET` and `CONCOURSE_TSA_CLIENT_SECRET`. And, yes, you will need to log out and log back in one last time.
+#### <sub><sup><a name="5810" href="#5810">:link:</a></sup></sub> feature
 
-#### <sub><sup><a name="5305" href="#5305">:link:</a></sup></sub> feature
+* Reduce the allowed character set for Concourse valid identifiers. Only prints warnings instead of errors as a first step. #5810
+* Add `--team` flag for `fly pause-pipeline` command. #5917
+* Add `--team` flag for `fly hide-pipeline` command. #5917
 
-* We've updated the way that hijacked containers get garbage collected
+#### <sub><sup><a name="5854" href="#5854">:link:</a></sup></sub> feature
 
-  We are no longer relying on garden to clean up hijacked containers. Instead, we have implemented this functionality in concourse itself. This makes it much more portable to different container backends.
+* Automatically archive pipelines set by a set_pipeline step that meets one of the following criteria: #5854
+  * set_pipeline step is removed from job
+  * Job that set pipeline is deleted
+  * Parent pipeline is deleted
 
-#### <sub><sup><a name="5375" href="#5375">:link:</a></sup></sub> fix
+#### <sub><sup><a name="5846" href="#5810">:link:</a></sup></sub> feature
 
-* Fix rendering pipeline previews on the dashboard on Safari. #5375
+* @evanchaoli Enhanced build log page as well as `fly watch` to display worker name for `get/put/task` steps. #5846
 
-#### <sub><sup><a name="5377" href="#5377">:link:</a></sup></sub> fix
+#### <sub><sup><a name="5146" href="#5146">:link:</a></sup></sub> feature
 
-* Fix pipeline tooltips being hidden behind other cards. #5377
+* Refactor TSA to use Concourse's gclient which has a configurable timeout Issue: #5146 PR: #5845
 
-#### <sub><sup><a name="5384" href="#5384">:link:</a></sup></sub> fix
+#### <sub><sup><a name="5981" href="#5981">:link:</a></sup></sub> feature
 
-* Fix log highlighting on the one-off-build page. Previously, highlighting any log lines would cause the page to reload. #5384
+* Enhance `task_waiting` metric to export labels in Prometheus for: platform, worker tags and team of the tasks awaiting execution.
 
-#### <sub><sup><a name="5392" href="#5392">:link:</a></sup></sub> fix
-
-* Fix regression which inhibited scrolling through the build history list. #5392
-
-#### <sub><sup><a name="5397" href="#5397">:link:</a></sup></sub> feature, breaking
-
-* @pnsantos updated the Material Design icon library version to `5.0.45`.
-
-  **note:** some icons changed names (e.g. `mdi-github-circle` was changed to `mdi-github`) so after this update you might have to update some `icon:` references
-
-#### <sub><sup><a name="5410" href="#5410">:link:</a></sup></sub> feature
-
-* We've moved the "pin comment" field in the Resource view to the top of the page (next to the currently pinned version). The comment can be edited inline.
+  A new metric called `tasks_wait_duration_bucket` is also added to express as quantiles the average time spent by tasks awaiting execution. PR: #5981
+  ![Example graph for the task wait time histograms.](https://user-images.githubusercontent.com/40891147/89990749-189d2600-dc83-11ea-8fde-ae579fdb0a0a.png)

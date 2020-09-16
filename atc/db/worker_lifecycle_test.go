@@ -174,7 +174,7 @@ var _ = Describe("Worker Lifecycle", func() {
 						err = dbBuild.Finish(s)
 						Expect(err).ToNot(HaveOccurred())
 					}
-					_, err = dbWorker.CreateContainer(db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4), defaultTeam.ID()), db.ContainerMetadata{})
+					_, err = dbWorker.CreateContainer(db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID("4"), defaultTeam.ID()), db.ContainerMetadata{})
 					Expect(err).ToNot(HaveOccurred())
 
 					_, found, err := workerFactory.GetWorker(atcWorker.Name)
@@ -207,7 +207,7 @@ var _ = Describe("Worker Lifecycle", func() {
 					Expect(err).ToNot(HaveOccurred())
 				}
 
-				_, err := dbWorker.CreateContainer(db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4), defaultTeam.ID()), db.ContainerMetadata{})
+				_, err := dbWorker.CreateContainer(db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID("4"), defaultTeam.ID()), db.ContainerMetadata{})
 				Expect(err).ToNot(HaveOccurred())
 
 				_, found, err := workerFactory.GetWorker(atcWorker.Name)
@@ -419,7 +419,7 @@ var _ = Describe("Worker Lifecycle", func() {
 						Expect(err).ToNot(HaveOccurred())
 					}
 
-					_, err = dbWorker.CreateContainer(db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4), defaultTeam.ID()), db.ContainerMetadata{})
+					_, err = dbWorker.CreateContainer(db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID("4"), defaultTeam.ID()), db.ContainerMetadata{})
 					Expect(err).ToNot(HaveOccurred())
 
 					_, found, err := workerFactory.GetWorker(atcWorker.Name)
@@ -453,7 +453,7 @@ var _ = Describe("Worker Lifecycle", func() {
 					Expect(err).ToNot(HaveOccurred())
 				}
 
-				_, err := dbWorker.CreateContainer(db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID(4), defaultTeam.ID()), db.ContainerMetadata{})
+				_, err := dbWorker.CreateContainer(db.NewBuildStepContainerOwner(dbBuild.ID(), atc.PlanID("4"), defaultTeam.ID()), db.ContainerMetadata{})
 				Expect(err).ToNot(HaveOccurred())
 
 				_, found, err := workerFactory.GetWorker(atcWorker.Name)

@@ -2,13 +2,17 @@ package worker_test
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"context"
 	"errors"
 	"io"
 	"io/ioutil"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/DataDog/zstd"
+	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/atc/compression"
+	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/worker"
@@ -26,6 +30,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 		fakeArtifact    *runtimefakes.FakeArtifact
 
 		artifactSource worker.StreamableArtifactSource
+		comp           compression.Compression
 		testLogger     lager.Logger
 
 		disaster error
@@ -35,8 +40,9 @@ var _ = Describe("StreamableArtifactSource", func() {
 		fakeArtifact = new(runtimefakes.FakeArtifact)
 		fakeVolume = new(workerfakes.FakeVolume)
 		fakeDestination = new(workerfakes.FakeArtifactDestination)
+		comp = compression.NewGzipCompression()
 
-		artifactSource = worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume)
+		artifactSource = worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume, comp)
 		testLogger = lager.NewLogger("test")
 		disaster = errors.New("disaster")
 	})
@@ -53,7 +59,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 		})
 
 		JustBeforeEach(func() {
-			streamToErr = artifactSource.StreamTo(context.TODO(), testLogger, fakeDestination)
+			streamToErr = artifactSource.StreamTo(context.TODO(), fakeDestination)
 		})
 
 		Context("when ArtifactSource can successfully stream to ArtifactDestination", func() {
@@ -61,12 +67,14 @@ var _ = Describe("StreamableArtifactSource", func() {
 			It("calls StreamOut and StreamIn with the correct params", func() {
 				Expect(fakeVolume.StreamOutCallCount()).To(Equal(1))
 
-				_, actualPath := fakeVolume.StreamOutArgsForCall(0)
+				_, actualPath, encoding := fakeVolume.StreamOutArgsForCall(0)
 				Expect(actualPath).To(Equal("."))
+				Expect(encoding).To(Equal(baggageclaim.GzipEncoding))
 
-				_, actualPath, actualStreamedOutBits := fakeDestination.StreamInArgsForCall(0)
+				_, actualPath, encoding, actualStreamedOutBits := fakeDestination.StreamInArgsForCall(0)
 				Expect(actualPath).To(Equal("."))
 				Expect(actualStreamedOutBits).To(Equal(outStream))
+				Expect(encoding).To(Equal(baggageclaim.GzipEncoding))
 			})
 
 			It("does not return an err", func() {
@@ -103,7 +111,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 		)
 
 		JustBeforeEach(func() {
-			streamFileReader, streamFileErr = artifactSource.StreamFile(context.TODO(), testLogger, "some-file")
+			streamFileReader, streamFileErr = artifactSource.StreamFile(context.TODO(), "some-file")
 		})
 
 		Context("when ArtifactSource can successfully stream a file out", func() {
@@ -115,10 +123,10 @@ var _ = Describe("StreamableArtifactSource", func() {
 			BeforeEach(func() {
 				tgzBuffer = gbytes.NewBuffer()
 				fakeVolume.StreamOutReturns(tgzBuffer, nil)
-				zstdWriter := zstd.NewWriter(tgzBuffer)
-				defer zstdWriter.Close()
+				gzipWriter := gzip.NewWriter(tgzBuffer)
+				defer gzipWriter.Close()
 
-				tarWriter := tar.NewWriter(zstdWriter)
+				tarWriter := tar.NewWriter(gzipWriter)
 				defer tarWriter.Close()
 
 				err := tarWriter.WriteHeader(&tar.Header{
@@ -136,8 +144,9 @@ var _ = Describe("StreamableArtifactSource", func() {
 				Expect(streamFileErr).NotTo(HaveOccurred())
 
 				Expect(ioutil.ReadAll(streamFileReader)).To(Equal([]byte(fileContent)))
-				_, path := fakeVolume.StreamOutArgsForCall(0)
+				_, path, encoding := fakeVolume.StreamOutArgsForCall(0)
 				Expect(path).To(Equal("some-file"))
+				Expect(encoding).To(Equal(baggageclaim.GzipEncoding))
 			})
 
 			It("closes the stream from the volume", func() {
@@ -162,21 +171,6 @@ var _ = Describe("StreamableArtifactSource", func() {
 				It("returns the error", func() {
 					Expect(streamFileErr).To(Equal(disaster))
 				})
-
-			})
-
-			Context("when the file is not found in the tar archive", func() {
-				var (
-					tgzBuffer *gbytes.Buffer
-				)
-				BeforeEach(func() {
-					tgzBuffer = gbytes.NewBuffer()
-					fakeVolume.StreamOutReturns(tgzBuffer, nil)
-				})
-
-				It("returns ErrFileNotFound", func() {
-					Expect(streamFileErr).To(MatchError(runtime.FileNotFoundError{Path: "some-file"}))
-				})
 			})
 		})
 	})
@@ -199,16 +193,61 @@ var _ = Describe("StreamableArtifactSource", func() {
 			actualVolume, actualFound, actualErr = artifactSource.ExistsOn(testLogger, fakeWorker)
 		})
 
-		It("calls Worker.LookupVolume with the the correct params", func() {
-			_, actualArtifactID := fakeWorker.LookupVolumeArgsForCall(0)
-			Expect(actualArtifactID).To(Equal(fakeArtifact.ID()))
+		Context("when the volume belongs to the worker passed in", func() {
+			BeforeEach(func() {
+				fakeWorker.NameReturns("some-foo-worker-name")
+				fakeVolume.WorkerNameReturns("some-foo-worker-name")
+			})
+			It("returns the volume", func() {
+				Expect(actualFound).To(BeTrue())
+				Expect(actualVolume).To(Equal(fakeVolume))
+				Expect(actualErr).ToNot(HaveOccurred())
+			})
 		})
+		Context("when the volume doesn't belong to the worker passed in", func() {
+			BeforeEach(func() {
+				fakeWorker.NameReturns("some-foo-worker-name")
+				fakeVolume.WorkerNameReturns("some-other-foo-worker-name")
+			})
+			Context("when the volume has a resource cache", func() {
+				var fakeResourceCache db.UsedResourceCache
 
-		It("returns the response of Worker.LookupVolume", func() {
-			Expect(actualVolume).To(Equal(fakeVolume))
-			Expect(actualFound).To(BeTrue())
-			Expect(actualErr).To(Equal(disaster))
+				BeforeEach(func() {
+					fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
+					fakeWorker.FindResourceCacheForVolumeReturns(fakeResourceCache, true, nil)
 
+				})
+
+				It("queries the worker's local volume for the resourceCache", func() {
+					_, actualResourceCache := fakeWorker.FindVolumeForResourceCacheArgsForCall(0)
+					Expect(actualResourceCache).To(Equal(fakeResourceCache))
+				})
+
+				Context("when the resource cache has a local volume on the worker", func() {
+					var localFakeVolume worker.Volume
+					BeforeEach(func() {
+						localFakeVolume = new(workerfakes.FakeVolume)
+						fakeWorker.FindVolumeForResourceCacheReturns(localFakeVolume, true, nil)
+					})
+					It("returns worker's local volume for the resourceCache", func() {
+						Expect(actualFound).To(BeTrue())
+						Expect(actualVolume).To(Equal(localFakeVolume))
+						Expect(actualErr).ToNot(HaveOccurred())
+					})
+				})
+
+			})
+
+			Context("when the volume does NOT have a resource cache", func() {
+				BeforeEach(func() {
+					fakeWorker.FindResourceCacheForVolumeReturns(nil, false, nil)
+
+				})
+				It("returns not found", func() {
+					Expect(actualFound).To(BeFalse())
+					Expect(actualErr).ToNot(HaveOccurred())
+				})
+			})
 		})
 	})
 

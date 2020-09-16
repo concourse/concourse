@@ -1,8 +1,6 @@
 package testflight_test
 
 import (
-	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,7 +21,6 @@ import (
 	"github.com/concourse/concourse/go-concourse/concourse"
 	uuid "github.com/nu7hatch/gouuid"
 	"github.com/onsi/gomega/gexec"
-	"golang.org/x/oauth2"
 )
 
 const testflightFlyTarget = "tf"
@@ -99,7 +96,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	}, 2*time.Minute, time.Second).Should(gexec.Exit(0))
 
 	fly("-t", adminFlyTarget, "set-team", "--non-interactive", "-n", teamName, "--local-user", config.ATCUsername)
-	wait(spawnFlyLogin(testflightFlyTarget, "-n", teamName))
+	wait(spawnFlyLogin(testflightFlyTarget, "-n", teamName), false)
 
 	for _, ps := range flyTable("-t", adminFlyTarget, "pipelines") {
 		name := ps["name"]
@@ -178,41 +175,20 @@ func randomPipelineName() string {
 
 func fly(argv ...string) *gexec.Session {
 	sess := spawnFly(argv...)
-	wait(sess)
+	wait(sess, false)
 	return sess
 }
 
 func flyIn(dir string, argv ...string) *gexec.Session {
 	sess := spawnFlyIn(dir, argv...)
-	wait(sess)
+	wait(sess, false)
 	return sess
 }
 
-func concourseClient() concourse.Client {
-	token, err := fetchToken(config.ATCURL, config.ATCUsername, config.ATCPassword)
-	Expect(err).NotTo(HaveOccurred())
-
-	httpClient := &http.Client{
-		Transport: &oauth2.Transport{
-			Source: oauth2.StaticTokenSource(token),
-			Base: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			},
-		},
-	}
-
-	return concourse.NewClient(config.ATCURL, httpClient, false)
-}
-
-func fetchToken(atcURL string, username, password string) (*oauth2.Token, error) {
-	oauth2Config := oauth2.Config{
-		ClientID:     "fly",
-		ClientSecret: "Zmx5",
-		Endpoint:     oauth2.Endpoint{TokenURL: atcURL + "/sky/issuer/token"},
-		Scopes:       []string{"openid", "profile", "email", "federated:id"},
-	}
-
-	return oauth2Config.PasswordCredentialsToken(context.Background(), username, password)
+func flyUnsafe(argv ...string) *gexec.Session {
+	sess := spawnFly(argv...)
+	wait(sess, true)
+	return sess
 }
 
 func spawnFlyLogin(target string, args ...string) *gexec.Session {
@@ -244,9 +220,11 @@ func spawnIn(dir string, argc string, argv ...string) *gexec.Session {
 	return session
 }
 
-func wait(session *gexec.Session) {
+func wait(session *gexec.Session, allowNonZero bool) {
 	<-session.Exited
-	Expect(session.ExitCode()).To(Equal(0), "Output: "+string(session.Out.Contents()))
+	if !allowNonZero {
+		Expect(session.ExitCode()).To(Equal(0), "Output: "+string(session.Out.Contents()))
+	}
 }
 
 var colSplit = regexp.MustCompile(`\s{2,}`)

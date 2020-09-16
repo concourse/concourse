@@ -24,6 +24,12 @@ type PrometheusEmitter struct {
 	buildsStarted prometheus.Counter
 	buildsRunning prometheus.Gauge
 
+	concurrentRequestsLimitHit *prometheus.CounterVec
+	concurrentRequests         *prometheus.GaugeVec
+
+	tasksWaiting         *prometheus.GaugeVec
+	tasksWaitingDuration *prometheus.HistogramVec
+
 	buildDurationsVec *prometheus.HistogramVec
 	buildsAborted     prometheus.Counter
 	buildsErrored     prometheus.Counter
@@ -85,7 +91,7 @@ func serializeLabels(labels *prometheus.Labels) string {
 }
 
 func init() {
-	metric.RegisterEmitter(&PrometheusConfig{})
+	metric.Metrics.RegisterEmitter(&PrometheusConfig{})
 }
 
 func (config *PrometheusConfig) Description() string { return "Prometheus" }
@@ -150,6 +156,38 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		Help:      "Number of Concourse builds currently running.",
 	})
 	prometheus.MustRegister(buildsRunning)
+
+	concurrentRequestsLimitHit := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "concourse",
+		Subsystem: "concurrent_requests",
+		Name:      "limit_hit_total",
+		Help:      "Total number of requests rejected because the server was already serving too many concurrent requests.",
+	}, []string{"action"})
+	prometheus.MustRegister(concurrentRequestsLimitHit)
+
+	concurrentRequests := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "concourse",
+		Name:      "concurrent_requests",
+		Help:      "Number of concurrent requests being served by endpoints that have a specified limit of concurrent requests.",
+	}, []string{"action"})
+	prometheus.MustRegister(concurrentRequests)
+
+	tasksWaiting := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "concourse",
+		Subsystem: "tasks",
+		Name:      "waiting",
+		Help:      "Number of Concourse tasks currently waiting.",
+	}, []string{"teamId", "workerTags", "platform"})
+	prometheus.MustRegister(tasksWaiting)
+
+	tasksWaitingDuration := prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: "concourse",
+		Subsystem: "tasks",
+		Name:      "wait_duration",
+		Help:      "Elapsed time waiting for execution",
+		Buckets:   []float64{1, 15, 30, 60, 120, 180, 240, 300, 600, 1200},
+	}, []string{"teamId", "workerTags", "platform"})
+	prometheus.MustRegister(tasksWaitingDuration)
 
 	buildsFinished := prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "concourse",
@@ -367,6 +405,12 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		buildsStarted: buildsStarted,
 		buildsRunning: buildsRunning,
 
+		concurrentRequestsLimitHit: concurrentRequestsLimitHit,
+		concurrentRequests:         concurrentRequests,
+
+		tasksWaiting:         tasksWaiting,
+		tasksWaitingDuration: tasksWaitingDuration,
+
 		buildDurationsVec: buildDurationsVec,
 		buildsAborted:     buildsAborted,
 		buildsErrored:     buildsErrored,
@@ -427,6 +471,25 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.buildsStarted.Add(event.Value)
 	case "builds running":
 		emitter.buildsRunning.Set(event.Value)
+	case "concurrent requests limit hit":
+		emitter.concurrentRequestsLimitHit.WithLabelValues(event.Attributes["action"]).Add(event.Value)
+	case "concurrent requests":
+		emitter.concurrentRequests.
+			WithLabelValues(event.Attributes["action"]).Set(event.Value)
+	case "tasks waiting":
+		emitter.tasksWaiting.
+			WithLabelValues(
+				event.Attributes["teamId"],
+				event.Attributes["workerTags"],
+				event.Attributes["platform"],
+			).Set(event.Value)
+	case "tasks waiting duration":
+		emitter.tasksWaitingDuration.
+			WithLabelValues(
+				event.Attributes["teamId"],
+				event.Attributes["workerTags"],
+				event.Attributes["platform"],
+			).Observe(event.Value)
 	case "build finished":
 		emitter.buildFinishedMetrics(logger, event)
 	case "worker containers":

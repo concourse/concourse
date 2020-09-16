@@ -2,16 +2,42 @@ package atc
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/jessevdk/go-flags"
 )
 
+const tempFilePattern = "___dash-stdin-path-flag___"
+
 type PathFlag string
 
 func (path *PathFlag) UnmarshalFlag(value string) error {
 	if value == "" {
+		return nil
+	}
+
+	if value == "-" {
+		_, err := os.Stat("/dev/stdin")
+		if err == nil {
+			*path = PathFlag("/dev/stdin")
+			return nil
+		}
+
+		tempf, err := ioutil.TempFile("", tempFilePattern)
+		if err != nil {
+			return fmt.Errorf("failed to create a temp file")
+		}
+		defer tempf.Close()
+
+		_, err = io.Copy(tempf, os.Stdin)
+		if err != nil {
+			return fmt.Errorf("failed to write temp file: %s", err.Error())
+		}
+		*path = PathFlag(tempf.Name())
 		return nil
 	}
 
@@ -41,4 +67,8 @@ func (path *PathFlag) Complete(match string) []flags.Completion {
 	}
 
 	return comps
+}
+
+func (path *PathFlag) FromStdin() bool {
+	return *path == "/dev/stdin" || strings.Index(string(*path), tempFilePattern) >= 0
 }

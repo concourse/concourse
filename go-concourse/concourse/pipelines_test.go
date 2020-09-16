@@ -49,6 +49,44 @@ var _ = Describe("ATC Handler Pipelines", func() {
 		})
 	})
 
+	Describe("ArchivePipeline", func() {
+		Context("when the pipeline exists", func() {
+			BeforeEach(func() {
+				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/archive"
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, ""),
+					),
+				)
+			})
+
+			It("return true and no error", func() {
+				found, err := team.ArchivePipeline("mypipeline")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+		})
+
+		Context("when the pipeline doesn't exist", func() {
+			BeforeEach(func() {
+				expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/archive"
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.RespondWithJSONEncoded(http.StatusNotFound, ""),
+					),
+				)
+			})
+
+			It("returns false and no error", func() {
+				found, err := team.ArchivePipeline("mypipeline")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+	})
+
 	Describe("UnpausePipeline", func() {
 		Context("when the pipeline exists", func() {
 			BeforeEach(func() {
@@ -401,23 +439,60 @@ var _ = Describe("ATC Handler Pipelines", func() {
 	})
 
 	Describe("RenamePipeline", func() {
-		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/rename"
+		var (
+			expectedURL         string
+			expectedRequestBody string
+			expectedResponse    atc.SaveConfigResponse
+		)
+
+		BeforeEach(func() {
+			expectedURL = "/api/v1/teams/some-team/pipelines/mypipeline/rename"
+			expectedRequestBody = `{"name":"newpipelinename"}`
+			expectedResponse = atc.SaveConfigResponse{
+				Errors:   nil,
+				Warnings: []atc.ConfigWarning{},
+			}
+		})
 
 		Context("when the pipeline exists", func() {
-			BeforeEach(func() {
+			JustBeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", expectedURL),
-						ghttp.VerifyJSON(`{"name":"newpipelinename"}`),
-						ghttp.RespondWith(http.StatusNoContent, ""),
+						ghttp.VerifyJSON(expectedRequestBody),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedResponse),
 					),
 				)
 			})
 
 			It("renames the pipeline when called", func() {
-				renamed, err := team.RenamePipeline("mypipeline", "newpipelinename")
+				renamed, _, err := team.RenamePipeline("mypipeline", "newpipelinename")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(renamed).To(BeTrue())
+			})
+
+			Context("when the pipeline identifier is invalid", func() {
+
+				BeforeEach(func() {
+					expectedRequestBody = `{"name":"_newpipelinename"}`
+					expectedResponse = atc.SaveConfigResponse{
+						Errors: nil,
+						Warnings: []atc.ConfigWarning{
+							{
+								Type:    "invalid_identifier",
+								Message: "pipeline: '_newpipelinename' is not a valid identifier",
+							},
+						},
+					}
+				})
+
+				It("returns a warning", func() {
+					renamed, warnings, err := team.RenamePipeline("mypipeline", "_newpipelinename")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(renamed).To(BeTrue())
+					Expect(warnings).To(HaveLen(1))
+					Expect(warnings[0].Message).To(ContainSubstring("pipeline: '_newpipelinename' is not a valid identifier"))
+				})
 			})
 		})
 
@@ -429,7 +504,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 
 			It("returns false and no error", func() {
-				renamed, err := team.RenamePipeline("mypipeline", "newpipelinename")
+				renamed, _, err := team.RenamePipeline("mypipeline", "newpipelinename")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(renamed).To(BeFalse())
 			})
@@ -443,7 +518,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 
 			It("returns an error", func() {
-				renamed, err := team.RenamePipeline("mypipeline", "newpipelinename")
+				renamed, _, err := team.RenamePipeline("mypipeline", "newpipelinename")
 				Expect(err).To(MatchError(ContainSubstring("418 I'm a teapot")))
 				Expect(renamed).To(BeFalse())
 			})
@@ -527,7 +602,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			)
 		})
 
-		Context("when since, until, and limit are 0", func() {
+		Context("when from, to, and limit are 0", func() {
 			BeforeEach(func() {
 			})
 
@@ -539,13 +614,13 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 		})
 
-		Context("when since is specified", func() {
+		Context("when from is specified", func() {
 			BeforeEach(func() {
-				expectedQuery = fmt.Sprint("since=24")
+				expectedQuery = fmt.Sprint("from=24")
 			})
 
-			It("calls to get all builds since that id", func() {
-				builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{Since: 24})
+			It("calls to get all builds from that id", func() {
+				builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{From: 24})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(builds).To(Equal(expectedBuilds))
@@ -553,11 +628,11 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 			Context("and limit is specified", func() {
 				BeforeEach(func() {
-					expectedQuery = fmt.Sprint("since=24&limit=5")
+					expectedQuery = fmt.Sprint("from=24&limit=5")
 				})
 
 				It("appends limit to the url", func() {
-					builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{Since: 24, Limit: 5})
+					builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{From: 24, Limit: 5})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(builds).To(Equal(expectedBuilds))
@@ -565,13 +640,13 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 		})
 
-		Context("when until is specified", func() {
+		Context("when to is specified", func() {
 			BeforeEach(func() {
-				expectedQuery = fmt.Sprint("until=26")
+				expectedQuery = fmt.Sprint("to=26")
 			})
 
-			It("calls to get all builds until that id", func() {
-				builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{Until: 26})
+			It("calls to get all builds to that id", func() {
+				builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{To: 26})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(builds).To(Equal(expectedBuilds))
@@ -579,11 +654,11 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 			Context("and limit is specified", func() {
 				BeforeEach(func() {
-					expectedQuery = fmt.Sprint("until=26&limit=15")
+					expectedQuery = fmt.Sprint("to=26&limit=15")
 				})
 
 				It("appends limit to the url", func() {
-					builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{Until: 26, Limit: 15})
+					builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{To: 26, Limit: 15})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(builds).To(Equal(expectedBuilds))
@@ -591,13 +666,13 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 		})
 
-		Context("when since and until are both specified", func() {
+		Context("when from and to are both specified", func() {
 			BeforeEach(func() {
-				expectedQuery = fmt.Sprint("until=26&since=24")
+				expectedQuery = fmt.Sprint("to=26&from=24")
 			})
 
-			It("sends both since and until", func() {
-				builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{Since: 24, Until: 26})
+			It("sends both from and to", func() {
+				builds, _, found, err := team.PipelineBuilds("mypipeline", concourse.Page{From: 24, To: 26})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(builds).To(Equal(expectedBuilds))
@@ -646,8 +721,8 @@ var _ = Describe("ATC Handler Pipelines", func() {
 							ghttp.VerifyRequest("GET", expectedURL),
 							ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds, http.Header{
 								"Link": []string{
-									`<http://some-url.com/api/v1/teams/some-team/pipelines/some-pipeline/builds?since=452&limit=123>; rel="previous"`,
-									`<http://some-url.com/api/v1/teams/some-team/pipelines/some-pipeline/builds?until=254&limit=456>; rel="next"`,
+									`<http://some-url.com/api/v1/teams/some-team/pipelines/some-pipeline/builds?from=452&limit=123>; rel="previous"`,
+									`<http://some-url.com/api/v1/teams/some-team/pipelines/some-pipeline/builds?to=254&limit=456>; rel="next"`,
 								},
 							}),
 						),
@@ -658,8 +733,8 @@ var _ = Describe("ATC Handler Pipelines", func() {
 					_, pagination, _, err := team.PipelineBuilds("mypipeline", concourse.Page{})
 					Expect(err).ToNot(HaveOccurred())
 
-					Expect(pagination.Previous).To(Equal(&concourse.Page{Since: 452, Limit: 123}))
-					Expect(pagination.Next).To(Equal(&concourse.Page{Until: 254, Limit: 456}))
+					Expect(pagination.Previous).To(Equal(&concourse.Page{From: 452, Limit: 123}))
+					Expect(pagination.Next).To(Equal(&concourse.Page{To: 254, Limit: 456}))
 				})
 			})
 		})

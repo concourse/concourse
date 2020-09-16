@@ -40,12 +40,16 @@ type Pipeline interface {
 	Name() string
 	TeamID() int
 	TeamName() string
+	ParentJobID() int
+	ParentBuildID() int
 	Groups() atc.GroupConfigs
 	VarSources() atc.VarSourceConfigs
+	Display() *atc.DisplayConfig
 	ConfigVersion() ConfigVersion
 	Config() (atc.Config, error)
 	Public() bool
 	Paused() bool
+	Archived() bool
 	LastUpdated() time.Time
 
 	CheckPaused() (bool, error)
@@ -85,10 +89,14 @@ type Pipeline interface {
 	Pause() error
 	Unpause() error
 
+	Archive() error
+
 	Destroy() error
 	Rename(string) error
 
 	Variables(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
+
+	SetParentIDs(jobID, buildID int) error
 }
 
 type pipeline struct {
@@ -96,11 +104,15 @@ type pipeline struct {
 	name          string
 	teamID        int
 	teamName      string
+	parentJobID   int
+	parentBuildID int
 	groups        atc.GroupConfigs
 	varSources    atc.VarSourceConfigs
+	display       *atc.DisplayConfig
 	configVersion ConfigVersion
 	paused        bool
 	public        bool
+	archived      bool
 	lastUpdated   time.Time
 
 	conn        Conn
@@ -115,13 +127,17 @@ var pipelinesQuery = psql.Select(`
 		p.name,
 		p.groups,
 		p.var_sources,
+		p.display,
 		p.nonce,
 		p.version,
 		p.team_id,
 		t.name,
 		p.paused,
 		p.public,
-		p.last_updated
+		p.archived,
+		p.last_updated,
+		p.parent_job_id,
+		p.parent_build_id
 	`).
 	From("pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id")
@@ -137,12 +153,16 @@ func (p *pipeline) ID() int                  { return p.id }
 func (p *pipeline) Name() string             { return p.name }
 func (p *pipeline) TeamID() int              { return p.teamID }
 func (p *pipeline) TeamName() string         { return p.teamName }
+func (p *pipeline) ParentJobID() int         { return p.parentJobID }
+func (p *pipeline) ParentBuildID() int       { return p.parentBuildID }
 func (p *pipeline) Groups() atc.GroupConfigs { return p.groups }
 
 func (p *pipeline) VarSources() atc.VarSourceConfigs { return p.varSources }
+func (p *pipeline) Display() *atc.DisplayConfig      { return p.display }
 func (p *pipeline) ConfigVersion() ConfigVersion     { return p.configVersion }
 func (p *pipeline) Public() bool                     { return p.public }
 func (p *pipeline) Paused() bool                     { return p.paused }
+func (p *pipeline) Archived() bool                   { return p.archived }
 func (p *pipeline) LastUpdated() time.Time           { return p.lastUpdated }
 
 // IMPORTANT: This method is broken with the new resource config versions changes
@@ -252,6 +272,7 @@ func (p *pipeline) Config() (atc.Config, error) {
 		Resources:     resources.Configs(),
 		ResourceTypes: resourceTypes.Configs(),
 		Jobs:          jobConfigs,
+		Display:       p.Display(),
 	}
 
 	return config, nil
@@ -621,6 +642,50 @@ func (p *pipeline) Unpause() error {
 	return tx.Commit()
 }
 
+func (p *pipeline) Archive() error {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+	err = p.archive(tx)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (p *pipeline) archive(tx Tx) error {
+	_, err := psql.Update("pipelines").
+		Set("archived", true).
+		Set("last_updated", sq.Expr("now()")).
+		Set("paused", true).
+		Set("version", 0).
+		Where(sq.Eq{
+			"id": p.id,
+		}).
+		RunWith(tx).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	err = p.clearConfigForJobsInPipeline(tx)
+	if err != nil {
+		return err
+	}
+
+	err = p.clearConfigForResourcesInPipeline(tx)
+	if err != nil {
+		return err
+	}
+
+	return p.clearConfigForResourceTypesInPipeline(tx)
+}
+
 func (p *pipeline) Hide() error {
 	_, err := psql.Update("pipelines").
 		Set("public", false).
@@ -658,14 +723,35 @@ func (p *pipeline) Rename(name string) error {
 }
 
 func (p *pipeline) Destroy() error {
-	_, err := psql.Delete("pipelines").
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	_, err = psql.Delete("pipelines").
 		Where(sq.Eq{
 			"id": p.id,
 		}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Exec()
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	_, err = psql.Insert("deleted_pipelines").
+		Columns("id").
+		Values(p.id).
+		RunWith(tx).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
@@ -682,6 +768,8 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	defer tx.Rollback()
 
 	rows, err := psql.Select("v.id, v.check_order, r.id, v.resource_config_scope_id, o.build_id, b.job_id").
 		From("build_resource_config_version_outputs o").
@@ -1045,9 +1133,10 @@ func (p *pipeline) getBuildsFrom(tx Tx, col string) (map[string]Build, error) {
 func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, varSourcePool creds.VarSourcePool) (vars.Variables, error) {
 	globalVars := creds.NewVariables(globalSecrets, p.TeamName(), p.Name(), false)
 	namedVarsMap := vars.NamedVariables{}
+
 	// It's safe to add NamedVariables to allVars via an array here, because
 	// a map is passed by reference.
-	allVars := vars.NewMultiVars([]vars.Variables{globalVars, namedVarsMap})
+	allVars := vars.NewMultiVars([]vars.Variables{namedVarsMap, globalVars})
 
 	orderedVarSources, err := p.varSources.OrderByDependency()
 	if err != nil {
@@ -1084,6 +1173,43 @@ func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, v
 	}
 
 	return allVars, nil
+}
+
+func (p *pipeline) SetParentIDs(jobID, buildID int) error {
+	if jobID <= 0 || buildID <= 0 {
+		return errors.New("job and build id cannot be negative or zero-value")
+	}
+
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	result, err := psql.Update("pipelines").
+		Set("parent_job_id", jobID).
+		Set("parent_build_id", buildID).
+		Where(sq.Eq{
+			"id": p.id,
+		}).
+		Where(sq.Or{sq.Lt{"parent_build_id": buildID}, sq.Eq{"parent_build_id": nil}}).
+		RunWith(tx).
+		Exec()
+
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return ErrSetByNewerBuild
+	}
+
+	return tx.Commit()
 }
 
 func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, error) {
@@ -1162,6 +1288,48 @@ func requestScheduleForJobsInPipeline(tx Tx, pipelineID int) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (p *pipeline) clearConfigForJobsInPipeline(tx Tx) error {
+	_, err := psql.Update("jobs").
+		Set("config", nil).
+		Set("nonce", nil).
+		Where(sq.Eq{"pipeline_id": p.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *pipeline) clearConfigForResourcesInPipeline(tx Tx) error {
+	_, err := psql.Update("resources").
+		Set("config", nil).
+		Set("nonce", nil).
+		Where(sq.Eq{"pipeline_id": p.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *pipeline) clearConfigForResourceTypesInPipeline(tx Tx) error {
+	_, err := psql.Update("resource_types").
+		Set("config", nil).
+		Set("nonce", nil).
+		Where(sq.Eq{"pipeline_id": p.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
 	}
 
 	return nil

@@ -25,6 +25,7 @@ import Test.Html.Selector
         , text
         )
 import Url
+import Views.Styles
 
 
 
@@ -245,6 +246,11 @@ copyTokenButton =
     body >> Query.find [ id "copy-token" ]
 
 
+copyTokenInput : Query
+copyTokenInput =
+    body >> Query.find [ id "manual-copy-token" ]
+
+
 sendTokenButton : Query
 sendTokenButton =
     body >> Query.find [ id "send-token" ]
@@ -312,16 +318,6 @@ listensForTokenResponse setup =
 
 
 
--- top bar
-
-
-topBarProperty : Property
-topBarProperty =
-    property topBar "has bold font" <|
-        Query.has [ style "font-weight" "700" ]
-
-
-
 -- card
 
 
@@ -366,11 +362,8 @@ cardLayout =
 
 cardStyle : Property
 cardStyle =
-    property successCard "has smooth, non-bold font" <|
-        Query.has
-            [ style "-webkit-font-smoothing" "antialiased"
-            , style "font-weight" "400"
-            ]
+    property successCard "has light font" <|
+        Query.has [ style "font-weight" Views.Styles.fontWeightLight ]
 
 
 
@@ -385,11 +378,9 @@ titleText =
 
 titleStyle : Property
 titleStyle =
-    property title "has bold 18px font" <|
+    property title "has 18px font" <|
         Query.has
-            [ style "font-size" "18px"
-            , style "font-weight" "700"
-            ]
+            [ style "font-size" "18px" ]
 
 
 titleProperties : List Property
@@ -442,6 +433,30 @@ bodyParagraphPositions =
     property body "paragraphs have 5px margin above and below" <|
         Query.findAll [ tag "p" ]
             >> Query.each (Query.has [ style "margin" "5px 0" ])
+
+
+
+-- body on any type of failure
+
+
+copyLinkInput : Property
+copyLinkInput =
+    property body "label gives instructions for manual copying" <|
+        Query.children []
+            >> Expect.all
+                [ Query.index 1
+                    >> Query.has
+                        [ text "copy token here" ]
+                , Query.index 1
+                    >> Query.children [ tag "input" ]
+                    >> Query.first
+                    >> Query.has
+                        [ attribute <| Attr.value authToken
+                        , style "white-space" "nowrap"
+                        , style "overflow" "hidden"
+                        , style "text-overflow" "ellipsis"
+                        ]
+                ]
 
 
 
@@ -742,7 +757,6 @@ all =
     describe "Fly login success page"
         [ describe "page load"
             [ whenOnFlySuccessPage |> listensForTokenResponse ]
-        , describe "top bar" <| tests allCases [ topBarProperty ]
         , describe "card" cardTests
         , describe "title" titleTests
         , describe "token sending"
@@ -759,16 +773,38 @@ all =
                     ]
             , invalidFlyPort |> firstParagraphFailureText
             , invalidFlyPort |> secondParagraphErrorText
+            , invalidFlyPort |> copyLinkInput
             , tokenSendBlocked |> firstParagraphBlockedText
             , tokenSendBlocked |> secondParagraphBlockedText
+            , tokenSendBlocked |> copyLinkInput
             , tokenSendFailed |> firstParagraphFailureText
             , tokenSendFailed |> secondParagraphFailureText
+            , tokenSendFailed |> copyLinkInput
             , tokenCopied |> firstParagraphFailureText
             , tokenCopied |> secondParagraphFailureText
             , whenOnFlySuccessPage |> bodyPendingText
             , whenOnFlySuccessPage |> bodyNoButton
             , tokenSendSuccess |> firstParagraphSuccessText
             , tokenSendSuccess |> secondParagraphSuccessText
+            ]
+        , describe "copy token input"
+            [ defineHoverBehaviour
+                { name = "copy token input"
+                , setup = steps tokenSendFailed () |> Tuple.first
+                , query = copyTokenInput
+                , unhoveredSelector =
+                    { description =
+                        "same background as card"
+                    , selector = [ style "background-color" darkGrey ]
+                    }
+                , hoverable =
+                    Message.Message.CopyTokenInput
+                , hoveredSelector =
+                    { description = "darker background"
+                    , selector =
+                        [ style "background-color" darkerGrey ]
+                    }
+                }
             ]
         , describe "copy token button"
             [ describe "always" <|

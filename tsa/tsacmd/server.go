@@ -20,14 +20,15 @@ import (
 const maxForwards = 2
 
 type server struct {
-	logger            lager.Logger
-	atcEndpointPicker tsa.EndpointPicker
-	heartbeatInterval time.Duration
-	cprInterval       time.Duration
-	forwardHost       string
-	config            *ssh.ServerConfig
-	httpClient        *http.Client
-	sessionTeam       *sessionTeam
+	logger               lager.Logger
+	atcEndpointPicker    tsa.EndpointPicker
+	heartbeatInterval    time.Duration
+	cprInterval          time.Duration
+	gardenRequestTimeout time.Duration
+	forwardHost          string
+	config               *ssh.ServerConfig
+	httpClient           *http.Client
+	sessionTeam          *sessionTeam
 }
 
 type sessionTeam struct {

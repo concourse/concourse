@@ -13,9 +13,11 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
+	"os/signal"
+	"syscall"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/skymarshal/token"
 	"github.com/concourse/concourse/tsa"
 	"github.com/concourse/flag"
 	"github.com/tedsuo/ifrit"
@@ -49,7 +51,8 @@ type TSACommand struct {
 	TokenURL     flag.URL `long:"token-url" required:"true" description:"Token endpoint of the auth server"`
 	Scopes       []string `long:"scope" description:"Scopes to request from the auth server"`
 
-	HeartbeatInterval time.Duration `long:"heartbeat-interval" default:"30s" description:"interval on which to heartbeat workers to the ATC"`
+	HeartbeatInterval    time.Duration `long:"heartbeat-interval" default:"30s" description:"interval on which to heartbeat workers to the ATC"`
+	GardenRequestTimeout time.Duration `long:"garden-request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
 
 	ClusterName    string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
 	LogClusterName bool   `long:"log-cluster-name" description:"Log cluster name."`
@@ -128,19 +131,56 @@ func (cmd *TSACommand) Runner(args []string) (ifrit.Runner, error) {
 	ctx := context.Background()
 
 	tokenSource := authConfig.TokenSource(ctx)
-	idTokenSource := token.NewTokenSource(tokenSource)
-	httpClient := oauth2.NewClient(ctx, idTokenSource)
+	httpClient := oauth2.NewClient(ctx, tokenSource)
 
 	server := &server{
-		logger:            logger,
-		heartbeatInterval: cmd.HeartbeatInterval,
-		cprInterval:       1 * time.Second,
-		atcEndpointPicker: atcEndpointPicker,
-		forwardHost:       cmd.PeerAddress,
-		config:            config,
-		httpClient:        httpClient,
-		sessionTeam:       sessionAuthTeam,
+		logger:               logger,
+		heartbeatInterval:    cmd.HeartbeatInterval,
+		cprInterval:          1 * time.Second,
+		atcEndpointPicker:    atcEndpointPicker,
+		forwardHost:          cmd.PeerAddress,
+		config:               config,
+		httpClient:           httpClient,
+		sessionTeam:          sessionAuthTeam,
+		gardenRequestTimeout: cmd.GardenRequestTimeout,
 	}
+	// Starts a goroutine whose purpose is to listen to the
+	// SIGHUP syscall and reload configuration upon receiving the signal.
+	// For now it only reloads the TSACommand.AuthorizedKeys but
+	// other configuration can potentially be added.
+	go func() {
+		reloadWorkerKeys := make(chan os.Signal, 1)
+		defer close(reloadWorkerKeys)
+		signal.Notify(reloadWorkerKeys, syscall.SIGHUP)
+		for {
+
+			// Block until a signal is received.
+			<-reloadWorkerKeys
+
+			logger.Info("reloading-config")
+
+			err := cmd.AuthorizedKeys.Reload()
+			if err != nil {
+				logger.Error("failed to reload authorized keys file : %s", err)
+				continue
+			}
+
+			teamAuthorizedKeys, err = cmd.loadTeamAuthorizedKeys()
+			if err != nil {
+				logger.Error("failed to load team authorized keys : %s", err)
+				continue
+			}
+
+			// Reconfigure the SSH server with the new keys
+			config, err := cmd.configureSSHServer(sessionAuthTeam, cmd.AuthorizedKeys.Keys, teamAuthorizedKeys)
+			if err != nil {
+				logger.Error("failed to configure SSH server: %s", err)
+				continue
+			}
+
+			server.config = config
+		}
+	}()
 
 	return serverRunner{logger, server, listenAddr}, nil
 }

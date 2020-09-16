@@ -19,8 +19,6 @@ func (s *Server) ListResourceVersions(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
 			err   error
-			until int
-			since int
 			from  int
 			to    int
 			limit int
@@ -45,23 +43,24 @@ func (s *Server) ListResourceVersions(pipeline db.Pipeline) http.Handler {
 		resourceName := r.FormValue(":resource_name")
 		teamName := r.FormValue(":team_name")
 
-		urlUntil := r.FormValue(atc.PaginationQueryUntil)
-		until, _ = strconv.Atoi(urlUntil)
-
-		urlSince := r.FormValue(atc.PaginationQuerySince)
-		since, _ = strconv.Atoi(urlSince)
-
 		urlFrom := r.FormValue(atc.PaginationQueryFrom)
-		from, _ = strconv.Atoi(urlFrom)
-
 		urlTo := r.FormValue(atc.PaginationQueryTo)
-		to, _ = strconv.Atoi(urlTo)
 
 		urlLimit := r.FormValue(atc.PaginationQueryLimit)
 
 		limit, _ = strconv.Atoi(urlLimit)
 		if limit == 0 {
 			limit = atc.PaginationAPIDefaultLimit
+		}
+
+		page := db.Page{Limit: limit}
+		if urlFrom != "" {
+			from, _ = strconv.Atoi(urlFrom)
+			page.From = db.NewIntPtr(from)
+		}
+		if urlTo != "" {
+			to, _ = strconv.Atoi(urlTo)
+			page.To = db.NewIntPtr(to)
 		}
 
 		resource, found, err := pipeline.Resource(resourceName)
@@ -77,13 +76,7 @@ func (s *Server) ListResourceVersions(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		versions, pagination, found, err := resource.Versions(db.Page{
-			Until: until,
-			Since: since,
-			From:  from,
-			To:    to,
-			Limit: limit,
-		}, versionFilter)
+		versions, pagination, found, err := resource.Versions(page, versionFilter)
 		if err != nil {
 			logger.Error("failed-to-get-resource-config-versions", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -96,12 +89,12 @@ func (s *Server) ListResourceVersions(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		if pagination.Next != nil {
-			s.addNextLink(w, teamName, pipeline.Name(), resourceName, *pagination.Next)
+		if pagination.Older != nil {
+			s.addNextLink(w, teamName, pipeline.Name(), resourceName, *pagination.Older)
 		}
 
-		if pagination.Previous != nil {
-			s.addPreviousLink(w, teamName, pipeline.Name(), resourceName, *pagination.Previous)
+		if pagination.Newer != nil {
+			s.addPreviousLink(w, teamName, pipeline.Name(), resourceName, *pagination.Newer)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -128,8 +121,8 @@ func (s *Server) addNextLink(w http.ResponseWriter, teamName, pipelineName, reso
 		teamName,
 		pipelineName,
 		resourceName,
-		atc.PaginationQuerySince,
-		page.Since,
+		atc.PaginationQueryTo,
+		*page.To,
 		atc.PaginationQueryLimit,
 		page.Limit,
 		atc.LinkRelNext,
@@ -143,8 +136,8 @@ func (s *Server) addPreviousLink(w http.ResponseWriter, teamName, pipelineName, 
 		teamName,
 		pipelineName,
 		resourceName,
-		atc.PaginationQueryUntil,
-		page.Until,
+		atc.PaginationQueryFrom,
+		*page.From,
 		atc.PaginationQueryLimit,
 		page.Limit,
 		atc.LinkRelPrevious,

@@ -40,18 +40,22 @@ var _ = Describe("Resource Config Scope", func() {
 			Jobs: atc.JobConfigs{
 				{
 					Name: "some-job",
-					Plan: atc.PlanSequence{
+					PlanSequence: []atc.Step{
 						{
-							Get: "some-resource",
+							Config: &atc.GetStep{
+								Name: "some-resource",
+							},
 						},
 					},
 				},
 				{
 					Name: "downstream-job",
-					Plan: atc.PlanSequence{
+					PlanSequence: []atc.Step{
 						{
-							Get:    "some-resource",
-							Passed: []string{"some-job"},
+							Config: &atc.GetStep{
+								Name:   "some-resource",
+								Passed: []string{"some-job"},
+							},
 						},
 					},
 				},
@@ -85,7 +89,7 @@ var _ = Describe("Resource Config Scope", func() {
 
 		// XXX: Can make test more resilient if there is a method that gives all versions by descending check order
 		It("ensures versioned resources have the correct check_order", func() {
-			err := resourceScope.SaveVersions(originalVersionSlice)
+			err := resourceScope.SaveVersions(nil, originalVersionSlice)
 			Expect(err).ToNot(HaveOccurred())
 
 			latestVR, found, err := resourceScope.LatestVersion()
@@ -100,7 +104,7 @@ var _ = Describe("Resource Config Scope", func() {
 				{"ref": "v3"},
 			}
 
-			err = resourceScope.SaveVersions(pretendCheckResults)
+			err = resourceScope.SaveVersions(nil, pretendCheckResults)
 			Expect(err).ToNot(HaveOccurred())
 
 			latestVR, found, err = resourceScope.LatestVersion()
@@ -120,7 +124,7 @@ var _ = Describe("Resource Config Scope", func() {
 					{"ref": "v3"},
 				}
 
-				err := resourceScope.SaveVersions(originalVersionSlice)
+				err := resourceScope.SaveVersions(nil, originalVersionSlice)
 				Expect(err).ToNot(HaveOccurred())
 
 				latestVR, found, err := resourceScope.LatestVersion()
@@ -132,7 +136,7 @@ var _ = Describe("Resource Config Scope", func() {
 			})
 
 			It("does not change the check order", func() {
-				err := resourceScope.SaveVersions(newVersionSlice)
+				err := resourceScope.SaveVersions(nil, newVersionSlice)
 				Expect(err).ToNot(HaveOccurred())
 
 				latestVR, found, err := resourceScope.LatestVersion()
@@ -145,7 +149,7 @@ var _ = Describe("Resource Config Scope", func() {
 
 			Context("when a new version is added", func() {
 				It("requests schedule on the jobs that use the resource", func() {
-					err := resourceScope.SaveVersions(originalVersionSlice)
+					err := resourceScope.SaveVersions(nil, originalVersionSlice)
 					Expect(err).ToNot(HaveOccurred())
 
 					job, found, err := pipeline.Job("some-job")
@@ -158,7 +162,7 @@ var _ = Describe("Resource Config Scope", func() {
 						{"ref": "v0"},
 						{"ref": "v3"},
 					}
-					err = resourceScope.SaveVersions(newVersions)
+					err = resourceScope.SaveVersions(nil, newVersions)
 					Expect(err).ToNot(HaveOccurred())
 
 					found, err = job.Reload()
@@ -169,7 +173,7 @@ var _ = Describe("Resource Config Scope", func() {
 				})
 
 				It("does not request schedule on the jobs that use the resource but through passed constraints", func() {
-					err := resourceScope.SaveVersions(originalVersionSlice)
+					err := resourceScope.SaveVersions(nil, originalVersionSlice)
 					Expect(err).ToNot(HaveOccurred())
 
 					job, found, err := pipeline.Job("downstream-job")
@@ -182,7 +186,7 @@ var _ = Describe("Resource Config Scope", func() {
 						{"ref": "v0"},
 						{"ref": "v3"},
 					}
-					err = resourceScope.SaveVersions(newVersions)
+					err = resourceScope.SaveVersions(nil, newVersions)
 					Expect(err).ToNot(HaveOccurred())
 
 					found, err = job.Reload()
@@ -193,7 +197,7 @@ var _ = Describe("Resource Config Scope", func() {
 				})
 
 				It("does not request schedule on the jobs that do not use the resource", func() {
-					err := resourceScope.SaveVersions(originalVersionSlice)
+					err := resourceScope.SaveVersions(nil, originalVersionSlice)
 					Expect(err).ToNot(HaveOccurred())
 
 					job, found, err := pipeline.Job("some-other-job")
@@ -206,7 +210,7 @@ var _ = Describe("Resource Config Scope", func() {
 						{"ref": "v0"},
 						{"ref": "v3"},
 					}
-					err = resourceScope.SaveVersions(newVersions)
+					err = resourceScope.SaveVersions(nil, newVersions)
 					Expect(err).ToNot(HaveOccurred())
 
 					found, err = job.Reload()
@@ -229,7 +233,7 @@ var _ = Describe("Resource Config Scope", func() {
 					{"ref": "v3"},
 				}
 
-				err := resourceScope.SaveVersions(originalVersionSlice)
+				err := resourceScope.SaveVersions(nil, originalVersionSlice)
 				Expect(err).ToNot(HaveOccurred())
 
 				var found bool
@@ -244,7 +248,7 @@ var _ = Describe("Resource Config Scope", func() {
 			})
 
 			It("disabled versions do not affect fetching the latest version", func() {
-				err := resourceScope.SaveVersions([]atc.Version{{"version": "1"}})
+				err := resourceScope.SaveVersions(nil, []atc.Version{{"version": "1"}})
 				Expect(err).ToNot(HaveOccurred())
 
 				savedRCV, found, err := resourceScope.LatestVersion()
@@ -271,7 +275,7 @@ var _ = Describe("Resource Config Scope", func() {
 			})
 
 			It("saving versioned resources updates the latest versioned resource", func() {
-				err := resourceScope.SaveVersions([]atc.Version{{"ref": "4"}, {"ref": "5"}})
+				err := resourceScope.SaveVersions(nil, []atc.Version{{"ref": "4"}, {"ref": "5"}})
 				Expect(err).ToNot(HaveOccurred())
 
 				savedVR, found, err := resourceScope.LatestVersion()
@@ -290,7 +294,7 @@ var _ = Describe("Resource Config Scope", func() {
 				{"ref": "v3"},
 			}
 
-			err := resourceScope.SaveVersions(originalVersionSlice)
+			err := resourceScope.SaveVersions(nil, originalVersionSlice)
 			Expect(err).ToNot(HaveOccurred())
 		})
 

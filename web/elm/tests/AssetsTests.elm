@@ -45,17 +45,17 @@ toStringTests =
                 ChevronRight
                     |> toString
                     |> Expect.equal "/public/images/baseline-chevron-right.svg"
-        , describe "HighDensityIcon"
+        , describe "ToggleSwitch"
             [ test "On" <|
                 \_ ->
-                    HighDensityIcon True
+                    ToggleSwitch True
                         |> toString
-                        |> Expect.equal "/public/images/ic-hd-on.svg"
+                        |> Expect.equal "/public/images/ic-toggle-on.svg"
             , test "Off" <|
                 \_ ->
-                    HighDensityIcon False
+                    ToggleSwitch False
                         |> toString
-                        |> Expect.equal "/public/images/ic-hd-off.svg"
+                        |> Expect.equal "/public/images/ic-toggle-off.svg"
             ]
         , describe "VisibilityToggleIcon"
             [ test "Visible" <|
@@ -138,6 +138,11 @@ toStringTests =
                         |> toString
                         |> Expect.equal "/public/images/ic-breadcrumb-resource.svg"
             ]
+        , test "ArchivedPipelineIcon" <|
+            \_ ->
+                ArchivedPipelineIcon
+                    |> toString
+                    |> Expect.equal "/public/images/ic-archived-pipeline.svg"
         , test "PassportOfficerIcon" <|
             \_ ->
                 PassportOfficerIcon
@@ -257,13 +262,12 @@ toStringTests =
                         |> PipelineStatusIcon
                         |> toString
                         |> Expect.equal "/public/images/ic-error-orange.svg"
-            , test "Unknown" <|
-                \_ ->
-                    PipelineStatusUnknown
-                        |> PipelineStatusIcon
-                        |> toString
-                        |> Expect.equal "/public/images/ic-cached-grey.svg"
             ]
+        , test "PipelineStatusIconStale" <|
+            \_ ->
+                PipelineStatusIconStale
+                    |> toString
+                    |> Expect.equal "/public/images/ic-cached-grey.svg"
         , test "ClippyIcon" <|
             \_ ->
                 ClippyIcon
@@ -299,16 +303,16 @@ toStringTests =
                 PeopleIcon
                     |> toString
                     |> Expect.equal "/public/images/baseline-people.svg"
-        , test "KeyboardArrowDown" <|
+        , test "PlusIcon" <|
             \_ ->
-                KeyboardArrowDown
+                PlusIcon
                     |> toString
-                    |> Expect.equal "/public/images/baseline-keyboard-arrow-down.svg"
-        , test "KeyboardArrowRight" <|
+                    |> Expect.equal "/public/images/ic-plus.svg"
+        , test "MinusIcon" <|
             \_ ->
-                KeyboardArrowRight
+                MinusIcon
                     |> toString
-                    |> Expect.equal "/public/images/baseline-keyboard-arrow-right.svg"
+                    |> Expect.equal "/public/images/ic-minus.svg"
         , test "PlayIcon" <|
             \_ ->
                 PlayIcon

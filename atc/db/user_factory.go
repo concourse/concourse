@@ -9,7 +9,7 @@ import (
 //go:generate counterfeiter . UserFactory
 
 type UserFactory interface {
-	CreateOrUpdateUser(username, connector, sub string) (User, error)
+	CreateOrUpdateUser(username, connector, sub string) error
 	GetAllUsers() ([]User, error)
 	GetAllUsersByLoginDate(LastLogin time.Time) ([]User, error)
 }
@@ -18,31 +18,41 @@ type userFactory struct {
 	conn Conn
 }
 
-func (f *userFactory) CreateOrUpdateUser(username, connector, sub string) (User, error) {
+func NewUserFactory(conn Conn) UserFactory {
+	return &userFactory{
+		conn: conn,
+	}
+}
+
+func (f *userFactory) CreateOrUpdateUser(username, connector, sub string) error {
 	tx, err := f.conn.Begin()
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer Rollback(tx)
 
-	u, err := user{
-		name:      username,
-		connector: connector,
-		sub:       sub,
-	}.create(tx)
+	builder := psql.Insert("users").
+		Columns("username", "connector", "sub").
+		Values(username, connector, sub)
 
+	_, err = builder.Suffix(`ON CONFLICT (sub) DO UPDATE SET
+					username = EXCLUDED.username,
+					connector = EXCLUDED.connector,
+					sub = EXCLUDED.sub,
+					last_login = now()`).
+		RunWith(tx).
+		Exec()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = tx.Commit()
-
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return u, nil
+	return nil
 }
 
 func (f *userFactory) GetAllUsers() ([]User, error) {
@@ -98,10 +108,4 @@ func (f *userFactory) GetAllUsersByLoginDate(lastLogin time.Time) ([]User, error
 		users = append(users, currUser)
 	}
 	return users, nil
-}
-
-func NewUserFactory(conn Conn) UserFactory {
-	return &userFactory{
-		conn: conn,
-	}
 }

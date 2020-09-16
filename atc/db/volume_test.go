@@ -449,8 +449,8 @@ var _ = Describe("Volume", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			resourceConfigScope.SaveVersions([]atc.Version{atc.Version{"some": "version"}})
-			resourceConfigScope.SaveVersions([]atc.Version{atc.Version{"some-custom-type": "version"}})
+			resourceConfigScope.SaveVersions(nil, []atc.Version{atc.Version{"some": "version"}})
+			resourceConfigScope.SaveVersions(nil, []atc.Version{atc.Version{"some-custom-type": "version"}})
 
 			creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
 				Type:     "get",

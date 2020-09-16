@@ -41,6 +41,25 @@ type FakeTaskDelegate struct {
 	initializingArgsForCall []struct {
 		arg1 lager.Logger
 	}
+	RedactImageSourceStub        func(atc.Source) (atc.Source, error)
+	redactImageSourceMutex       sync.RWMutex
+	redactImageSourceArgsForCall []struct {
+		arg1 atc.Source
+	}
+	redactImageSourceReturns struct {
+		result1 atc.Source
+		result2 error
+	}
+	redactImageSourceReturnsOnCall map[int]struct {
+		result1 atc.Source
+		result2 error
+	}
+	SelectedWorkerStub        func(lager.Logger, string)
+	selectedWorkerMutex       sync.RWMutex
+	selectedWorkerArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 string
+	}
 	SetTaskConfigStub        func(atc.TaskConfig)
 	setTaskConfigMutex       sync.RWMutex
 	setTaskConfigArgsForCall []struct {
@@ -71,15 +90,15 @@ type FakeTaskDelegate struct {
 	stdoutReturnsOnCall map[int]struct {
 		result1 io.Writer
 	}
-	VariablesStub        func() vars.CredVarsTracker
+	VariablesStub        func() *vars.BuildVariables
 	variablesMutex       sync.RWMutex
 	variablesArgsForCall []struct {
 	}
 	variablesReturns struct {
-		result1 vars.CredVarsTracker
+		result1 *vars.BuildVariables
 	}
 	variablesReturnsOnCall map[int]struct {
-		result1 vars.CredVarsTracker
+		result1 *vars.BuildVariables
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -238,6 +257,101 @@ func (fake *FakeTaskDelegate) InitializingArgsForCall(i int) lager.Logger {
 	defer fake.initializingMutex.RUnlock()
 	argsForCall := fake.initializingArgsForCall[i]
 	return argsForCall.arg1
+}
+
+func (fake *FakeTaskDelegate) RedactImageSource(arg1 atc.Source) (atc.Source, error) {
+	fake.redactImageSourceMutex.Lock()
+	ret, specificReturn := fake.redactImageSourceReturnsOnCall[len(fake.redactImageSourceArgsForCall)]
+	fake.redactImageSourceArgsForCall = append(fake.redactImageSourceArgsForCall, struct {
+		arg1 atc.Source
+	}{arg1})
+	fake.recordInvocation("RedactImageSource", []interface{}{arg1})
+	fake.redactImageSourceMutex.Unlock()
+	if fake.RedactImageSourceStub != nil {
+		return fake.RedactImageSourceStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.redactImageSourceReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTaskDelegate) RedactImageSourceCallCount() int {
+	fake.redactImageSourceMutex.RLock()
+	defer fake.redactImageSourceMutex.RUnlock()
+	return len(fake.redactImageSourceArgsForCall)
+}
+
+func (fake *FakeTaskDelegate) RedactImageSourceCalls(stub func(atc.Source) (atc.Source, error)) {
+	fake.redactImageSourceMutex.Lock()
+	defer fake.redactImageSourceMutex.Unlock()
+	fake.RedactImageSourceStub = stub
+}
+
+func (fake *FakeTaskDelegate) RedactImageSourceArgsForCall(i int) atc.Source {
+	fake.redactImageSourceMutex.RLock()
+	defer fake.redactImageSourceMutex.RUnlock()
+	argsForCall := fake.redactImageSourceArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeTaskDelegate) RedactImageSourceReturns(result1 atc.Source, result2 error) {
+	fake.redactImageSourceMutex.Lock()
+	defer fake.redactImageSourceMutex.Unlock()
+	fake.RedactImageSourceStub = nil
+	fake.redactImageSourceReturns = struct {
+		result1 atc.Source
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTaskDelegate) RedactImageSourceReturnsOnCall(i int, result1 atc.Source, result2 error) {
+	fake.redactImageSourceMutex.Lock()
+	defer fake.redactImageSourceMutex.Unlock()
+	fake.RedactImageSourceStub = nil
+	if fake.redactImageSourceReturnsOnCall == nil {
+		fake.redactImageSourceReturnsOnCall = make(map[int]struct {
+			result1 atc.Source
+			result2 error
+		})
+	}
+	fake.redactImageSourceReturnsOnCall[i] = struct {
+		result1 atc.Source
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTaskDelegate) SelectedWorker(arg1 lager.Logger, arg2 string) {
+	fake.selectedWorkerMutex.Lock()
+	fake.selectedWorkerArgsForCall = append(fake.selectedWorkerArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("SelectedWorker", []interface{}{arg1, arg2})
+	fake.selectedWorkerMutex.Unlock()
+	if fake.SelectedWorkerStub != nil {
+		fake.SelectedWorkerStub(arg1, arg2)
+	}
+}
+
+func (fake *FakeTaskDelegate) SelectedWorkerCallCount() int {
+	fake.selectedWorkerMutex.RLock()
+	defer fake.selectedWorkerMutex.RUnlock()
+	return len(fake.selectedWorkerArgsForCall)
+}
+
+func (fake *FakeTaskDelegate) SelectedWorkerCalls(stub func(lager.Logger, string)) {
+	fake.selectedWorkerMutex.Lock()
+	defer fake.selectedWorkerMutex.Unlock()
+	fake.SelectedWorkerStub = stub
+}
+
+func (fake *FakeTaskDelegate) SelectedWorkerArgsForCall(i int) (lager.Logger, string) {
+	fake.selectedWorkerMutex.RLock()
+	defer fake.selectedWorkerMutex.RUnlock()
+	argsForCall := fake.selectedWorkerArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeTaskDelegate) SetTaskConfig(arg1 atc.TaskConfig) {
@@ -406,7 +520,7 @@ func (fake *FakeTaskDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
 	}{result1}
 }
 
-func (fake *FakeTaskDelegate) Variables() vars.CredVarsTracker {
+func (fake *FakeTaskDelegate) Variables() *vars.BuildVariables {
 	fake.variablesMutex.Lock()
 	ret, specificReturn := fake.variablesReturnsOnCall[len(fake.variablesArgsForCall)]
 	fake.variablesArgsForCall = append(fake.variablesArgsForCall, struct {
@@ -429,32 +543,32 @@ func (fake *FakeTaskDelegate) VariablesCallCount() int {
 	return len(fake.variablesArgsForCall)
 }
 
-func (fake *FakeTaskDelegate) VariablesCalls(stub func() vars.CredVarsTracker) {
+func (fake *FakeTaskDelegate) VariablesCalls(stub func() *vars.BuildVariables) {
 	fake.variablesMutex.Lock()
 	defer fake.variablesMutex.Unlock()
 	fake.VariablesStub = stub
 }
 
-func (fake *FakeTaskDelegate) VariablesReturns(result1 vars.CredVarsTracker) {
+func (fake *FakeTaskDelegate) VariablesReturns(result1 *vars.BuildVariables) {
 	fake.variablesMutex.Lock()
 	defer fake.variablesMutex.Unlock()
 	fake.VariablesStub = nil
 	fake.variablesReturns = struct {
-		result1 vars.CredVarsTracker
+		result1 *vars.BuildVariables
 	}{result1}
 }
 
-func (fake *FakeTaskDelegate) VariablesReturnsOnCall(i int, result1 vars.CredVarsTracker) {
+func (fake *FakeTaskDelegate) VariablesReturnsOnCall(i int, result1 *vars.BuildVariables) {
 	fake.variablesMutex.Lock()
 	defer fake.variablesMutex.Unlock()
 	fake.VariablesStub = nil
 	if fake.variablesReturnsOnCall == nil {
 		fake.variablesReturnsOnCall = make(map[int]struct {
-			result1 vars.CredVarsTracker
+			result1 *vars.BuildVariables
 		})
 	}
 	fake.variablesReturnsOnCall[i] = struct {
-		result1 vars.CredVarsTracker
+		result1 *vars.BuildVariables
 	}{result1}
 }
 
@@ -469,6 +583,10 @@ func (fake *FakeTaskDelegate) Invocations() map[string][][]interface{} {
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	fake.initializingMutex.RLock()
 	defer fake.initializingMutex.RUnlock()
+	fake.redactImageSourceMutex.RLock()
+	defer fake.redactImageSourceMutex.RUnlock()
+	fake.selectedWorkerMutex.RLock()
+	defer fake.selectedWorkerMutex.RUnlock()
 	fake.setTaskConfigMutex.RLock()
 	defer fake.setTaskConfigMutex.RUnlock()
 	fake.startingMutex.RLock()

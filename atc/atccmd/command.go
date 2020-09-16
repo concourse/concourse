@@ -1,8 +1,7 @@
 package atccmd
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
@@ -19,6 +18,7 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api"
@@ -26,8 +26,12 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/buildserver"
 	"github.com/concourse/concourse/atc/api/containerserver"
+	"github.com/concourse/concourse/atc/api/pipelineserver"
+	"github.com/concourse/concourse/atc/api/policychecker"
 	"github.com/concourse/concourse/atc/auditor"
 	"github.com/concourse/concourse/atc/builds"
+	"github.com/concourse/concourse/atc/component"
+	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/noop"
 	"github.com/concourse/concourse/atc/db"
@@ -38,12 +42,11 @@ import (
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/gc"
 	"github.com/concourse/concourse/atc/lidar"
-	"github.com/concourse/concourse/atc/lockrunner"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/scheduler"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
-	"github.com/concourse/concourse/atc/scheduler/factory"
 	"github.com/concourse/concourse/atc/syslog"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/image"
@@ -58,9 +61,11 @@ import (
 	"github.com/concourse/concourse/web"
 	"github.com/concourse/flag"
 	"github.com/concourse/retryhttp"
+	"gopkg.in/square/go-jose.v2/jwt"
+
 	"github.com/cppforlife/go-semi-semantic/version"
-	multierror "github.com/hashicorp/go-multierror"
-	flags "github.com/jessevdk/go-flags"
+	"github.com/hashicorp/go-multierror"
+	"github.com/jessevdk/go-flags"
 	gocache "github.com/patrickmn/go-cache"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -73,6 +78,9 @@ import (
 
 	// dynamically registered metric emitters
 	_ "github.com/concourse/concourse/atc/metric/emitter"
+
+	// dynamically registered policy checkers
+	_ "github.com/concourse/concourse/atc/policy/opa"
 
 	// dynamically registered credential managers
 	_ "github.com/concourse/concourse/atc/creds/conjur"
@@ -93,6 +101,9 @@ var retryingDriverName = "too-many-connections-retrying"
 
 var flyClientID = "fly"
 var flyClientSecret = "Zmx5"
+
+var workerAvailabilityPollingInterval = 5 * time.Second
+var workerStatusPublishInterval = 1 * time.Minute
 
 type ATCCommand struct {
 	RunCommand RunCommand `command:"run"`
@@ -120,8 +131,9 @@ type RunCommand struct {
 
 	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
-	APIMaxOpenConnections     int `long:"api-max-conns" description:"The maximum number of open connections for the api connection pool." default:"10"`
-	BackendMaxOpenConnections int `long:"backend-max-conns" description:"The maximum number of open connections for the backend connection pool." default:"50"`
+	ConcurrentRequestLimits   map[wrappa.LimitedRoute]int `long:"concurrent-request-limit" description:"Limit the number of concurrent requests to an API endpoint (Example: ListAllJobs:5)"`
+	APIMaxOpenConnections     int                         `long:"api-max-conns" description:"The maximum number of open connections for the api connection pool." default:"10"`
+	BackendMaxOpenConnections int                         `long:"backend-max-conns" description:"The maximum number of open connections for the backend connection pool." default:"50"`
 
 	CredentialManagement creds.CredentialManagementConfig `group:"Credential Management"`
 	CredentialManagers   creds.Managers
@@ -134,29 +146,24 @@ type RunCommand struct {
 
 	InterceptIdleTimeout time.Duration `long:"intercept-idle-timeout" default:"0m" description:"Length of time for a intercepted session to be idle before terminating."`
 
-	EnableGlobalResources bool `long:"enable-global-resources" description:"Enable equivalent resources across pipelines and teams to share a single version history."`
-
-	LidarScannerInterval time.Duration `long:"lidar-scanner-interval" default:"1m" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
-	LidarCheckerInterval time.Duration `long:"lidar-checker-interval" default:"10s" description:"Interval on which the resource checker runs any scheduled checks"`
-
 	ComponentRunnerInterval time.Duration `long:"component-runner-interval" default:"10s" description:"Interval on which runners are kicked off for builds, locks, scans, and checks"`
 
-	GlobalResourceCheckTimeout time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
-	ResourceCheckingInterval   time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
+	LidarScannerInterval time.Duration `long:"lidar-scanner-interval" default:"10s" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
+	LidarCheckerInterval time.Duration `long:"lidar-checker-interval" default:"10s" description:"Interval on which the resource checker runs any scheduled checks"`
+
+	GlobalResourceCheckTimeout          time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
+	ResourceCheckingInterval            time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
+	ResourceWithWebhookCheckingInterval time.Duration `long:"resource-with-webhook-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources that has webhook defined."`
+	MaxChecksPerSecond                  int           `long:"max-checks-per-second" description:"Maximum number of checks that can be started per second. If not specified, this will be calculated as (# of resources)/(resource checking interval). -1 value will remove this maximum limit of checks per second."`
 
 	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" description:"Method by which a worker is selected during container placement."`
 	MaxActiveTasksPerWorker           int           `long:"max-active-tasks-per-worker" default:"0" description:"Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit."`
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
+	StreamingArtifactsCompression     string        `long:"streaming-artifacts-compression" default:"gzip" choice:"gzip" choice:"zstd" description:"Compression algorithm for internal streaming."`
 
 	GardenRequestTimeout time.Duration `long:"garden-request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
 
 	CLIArtifactsDir flag.Dir `long:"cli-artifacts-dir" description:"Directory containing downloadable CLI binaries."`
-
-	Worker struct {
-		GardenURL       flag.URL          `long:"garden-url"       description:"A Garden API endpoint to register as a worker."`
-		BaggageclaimURL flag.URL          `long:"baggageclaim-url" description:"A Baggageclaim API endpoint to register with the worker."`
-		ResourceTypes   map[string]string `long:"resource"         description:"A resource type to advertise for the worker. Can be specified multiple times." value-name:"TYPE:IMAGE"`
-	} `group:"Static Worker (optional)" namespace:"worker"`
 
 	Metrics struct {
 		HostName            string            `long:"metrics-host-name" description:"Host string to attach to emitted metrics."`
@@ -165,10 +172,11 @@ type RunCommand struct {
 		CaptureErrorMetrics bool              `long:"capture-error-metrics" description:"Enable capturing of error log metrics"`
 	} `group:"Metrics & Diagnostics"`
 
-	Tracing struct {
-		Jaeger      tracing.Jaeger
-		Stackdriver tracing.Stackdriver
-	} `group:"Tracing" namespace:"tracing"`
+	Tracing tracing.Config `group:"Tracing" namespace:"tracing"`
+
+	PolicyCheckers struct {
+		Filter policy.Filter
+	} `group:"Policy Checking"`
 
 	Server struct {
 		XFrameOptions string `long:"x-frame-options" default:"deny" description:"The value to set for X-Frame-Options."`
@@ -185,7 +193,8 @@ type RunCommand struct {
 
 		OneOffBuildGracePeriod time.Duration `long:"one-off-grace-period" default:"5m" description:"Period after which one-off build containers will be garbage-collected."`
 		MissingGracePeriod     time.Duration `long:"missing-grace-period" default:"5m" description:"Period after which to reap containers and volumes that were created but went missing from the worker."`
-		HijackGracePeriod      time.Duration `long:"hijack-grace-period" default:"10m" description:"Period after which hijacked containers will be garbage collected"`
+		HijackGracePeriod      time.Duration `long:"hijack-grace-period" default:"5m" description:"Period after which hijacked containers will be garbage collected"`
+		FailedGracePeriod      time.Duration `long:"failed-grace-period" default:"120h" description:"Period after which failed containers will be garbage collected"`
 		CheckRecyclePeriod     time.Duration `long:"check-recycle-period" default:"1m" description:"Period after which to reap checks that are completed."`
 	} `group:"Garbage Collection" namespace:"gc"`
 
@@ -229,17 +238,23 @@ type RunCommand struct {
 		MainTeamFlags skycmd.AuthTeamFlags `group:"Authentication (Main Team)" namespace:"main-team"`
 	} `group:"Authentication"`
 
-	EnableRedactSecrets bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
-
 	ConfigRBAC flag.File `long:"config-rbac" description:"Customize RBAC role-action mapping."`
 
 	SystemClaimKey    string   `long:"system-claim-key" default:"aud" description:"The token claim key to use when matching system-claim-values"`
 	SystemClaimValues []string `long:"system-claim-value" default:"concourse-worker" description:"Configure which token requests should be considered 'system' requests."`
+
+	FeatureFlags struct {
+		EnableGlobalResources                bool `long:"enable-global-resources" description:"Enable equivalent resources across pipelines and teams to share a single version history."`
+		EnableRedactSecrets                  bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
+		EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears or a network error occurs"`
+		EnableAcrossStep                     bool `long:"enable-across-step" description:"Enable the experimental across step to be used in jobs. The API is subject to change."`
+	} `group:"Feature Flags"`
 }
 
 type Migration struct {
 	Postgres           flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 	EncryptionKey      flag.Cipher         `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
+	OldEncryptionKey   flag.Cipher         `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
 	CurrentDBVersion   bool                `long:"current-db-version" description:"Print the current database version and exit"`
 	SupportedDBVersion bool                `long:"supported-db-version" description:"Print the max supported database version and exit"`
 	MigrateDBToVersion int                 `long:"migrate-db-to-version" description:"Migrate to the specified database version and exit"`
@@ -255,7 +270,10 @@ func (m *Migration) Execute(args []string) error {
 	if m.MigrateDBToVersion > 0 {
 		return m.migrateDBToVersion()
 	}
-	return errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
+	if m.OldEncryptionKey.AEAD != nil {
+		return m.rotateEncryptionKey()
+	}
+	return errors.New("must specify one of `--current-db-version`, `--supported-db-version`, `--migrate-db-to-version`, or `--old-encryption-key`")
 
 }
 
@@ -264,7 +282,8 @@ func (cmd *Migration) currentDBVersion() error {
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
 		nil,
-		encryption.NewNoEncryption(),
+		nil,
+		nil,
 	)
 
 	version, err := helper.CurrentVersion()
@@ -281,7 +300,8 @@ func (cmd *Migration) supportedDBVersion() error {
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
 		nil,
-		encryption.NewNoEncryption(),
+		nil,
+		nil,
 	)
 
 	version, err := helper.SupportedVersion()
@@ -297,22 +317,21 @@ func (cmd *Migration) migrateDBToVersion() error {
 	version := cmd.MigrateDBToVersion
 
 	var newKey *encryption.Key
+	var oldKey *encryption.Key
+
 	if cmd.EncryptionKey.AEAD != nil {
 		newKey = encryption.NewKey(cmd.EncryptionKey.AEAD)
 	}
-
-	var strategy encryption.Strategy
-	if newKey != nil {
-		strategy = newKey
-	} else {
-		strategy = encryption.NewNoEncryption()
+	if cmd.OldEncryptionKey.AEAD != nil {
+		oldKey = encryption.NewKey(cmd.OldEncryptionKey.AEAD)
 	}
 
 	helper := migration.NewOpenHelper(
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
 		nil,
-		strategy,
+		newKey,
+		oldKey,
 	)
 
 	err := helper.MigrateToVersion(version)
@@ -324,14 +343,44 @@ func (cmd *Migration) migrateDBToVersion() error {
 	return nil
 }
 
+func (cmd *Migration) rotateEncryptionKey() error {
+	var newKey *encryption.Key
+	var oldKey *encryption.Key
+
+	if cmd.EncryptionKey.AEAD != nil {
+		newKey = encryption.NewKey(cmd.EncryptionKey.AEAD)
+	}
+	if cmd.OldEncryptionKey.AEAD != nil {
+		oldKey = encryption.NewKey(cmd.OldEncryptionKey.AEAD)
+	}
+
+	helper := migration.NewOpenHelper(
+		defaultDriverName,
+		cmd.Postgres.ConnectionString(),
+		nil,
+		newKey,
+		oldKey,
+	)
+
+	version, err := helper.CurrentVersion()
+	if err != nil {
+		return err
+	}
+
+	return helper.MigrateToVersion(version)
+}
+
 func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
 	cmd.RunCommand.WireDynamicFlags(commandFlags)
 }
 
 func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
-	var metricsGroup *flags.Group
-	var credsGroup *flags.Group
-	var authGroup *flags.Group
+	var (
+		metricsGroup      *flags.Group
+		policyChecksGroup *flags.Group
+		credsGroup        *flags.Group
+		authGroup         *flags.Group
+	)
 
 	groups := commandFlags.Groups()
 	for i := 0; i < len(groups); i++ {
@@ -345,11 +394,15 @@ func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 			metricsGroup = group
 		}
 
+		if policyChecksGroup == nil && group.ShortDescription == "Policy Checking" {
+			policyChecksGroup = group
+		}
+
 		if authGroup == nil && group.ShortDescription == "Authentication" {
 			authGroup = group
 		}
 
-		if metricsGroup != nil && credsGroup != nil && authGroup != nil {
+		if metricsGroup != nil && credsGroup != nil && authGroup != nil && policyChecksGroup != nil {
 			break
 		}
 
@@ -358,6 +411,10 @@ func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 
 	if metricsGroup == nil {
 		panic("could not find Metrics & Diagnostics group for registering emitters")
+	}
+
+	if policyChecksGroup == nil {
+		panic("could not find Policy Checking group for registering policy checkers")
 	}
 
 	if credsGroup == nil {
@@ -374,7 +431,9 @@ func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 	}
 	cmd.CredentialManagers = managerConfigs
 
-	metric.WireEmitters(metricsGroup)
+	metric.Metrics.WireEmitters(metricsGroup)
+
+	policy.WireCheckers(policyChecksGroup)
 
 	skycmd.WireConnectors(authGroup)
 	skycmd.WireTeamConnectors(authGroup.Find("Authentication (Main Team)"))
@@ -418,7 +477,10 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		"duration": time.Now().Sub(startTime),
 	})
 
-	atc.EnableGlobalResources = cmd.EnableGlobalResources
+	atc.EnableGlobalResources = cmd.FeatureFlags.EnableGlobalResources
+	atc.EnableRedactSecrets = cmd.FeatureFlags.EnableRedactSecrets
+	atc.EnableBuildRerunWhenWorkerDisappears = cmd.FeatureFlags.EnableBuildRerunWhenWorkerDisappears
+	atc.EnableAcrossStep = cmd.FeatureFlags.EnableAcrossStep
 
 	//FIXME: These only need to run once for the entire binary. At the moment,
 	//they rely on state of the command.
@@ -430,26 +492,16 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 	// Register the sink that collects error metrics
 	if cmd.Metrics.CaptureErrorMetrics {
-		errorSinkCollector := metric.NewErrorSinkCollector(logger)
+		errorSinkCollector := metric.NewErrorSinkCollector(
+			logger,
+			metric.Metrics,
+		)
 		logger.RegisterSink(&errorSinkCollector)
 	}
 
-	// Prepare distributed tracing facilities
-	switch {
-	case cmd.Tracing.Jaeger.IsConfigured():
-		exp, err := cmd.Tracing.Jaeger.Exporter()
-		if err != nil {
-			return nil, err
-		}
-
-		tracing.ConfigureTracer(exp)
-	case cmd.Tracing.Stackdriver.IsConfigured():
-		exp, err := cmd.Tracing.Stackdriver.Exporter()
-		if err != nil {
-			return nil, err
-		}
-
-		tracing.ConfigureTracer(exp)
+	err = cmd.Tracing.Prepare()
+	if err != nil {
+		return nil, err
 	}
 
 	http.HandleFunc("/debug/connections", func(w http.ResponseWriter, r *http.Request) {
@@ -494,7 +546,12 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	cmd.varSourcePool = creds.NewVarSourcePool(5*time.Minute, clock.NewClock())
+	cmd.varSourcePool = creds.NewVarSourcePool(
+		logger.Session("var-source-pool"),
+		5*time.Minute,
+		1*time.Minute,
+		clock.NewClock(),
+	)
 
 	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager)
 	if err != nil {
@@ -505,6 +562,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		Name: "periodic-metrics",
 		Runner: metric.PeriodicallyEmit(
 			logger.Session("periodic-metrics"),
+			metric.Metrics,
 			10*time.Second,
 		),
 	})
@@ -526,6 +584,8 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		for _, closer := range []Closer{lockConn, apiConn, backendConn, gcConn, storage} {
 			closer.Close()
 		}
+
+		cmd.varSourcePool.Close()
 	}
 
 	return run(grouper.NewParallel(os.Interrupt, members), onReady, onExit), nil
@@ -551,22 +611,68 @@ func (cmd *RunCommand) constructMembers(
 		}()
 	}
 
-	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory, secretManager)
+	policyChecker, err := policy.Initialize(logger, cmd.Server.ClusterName, concourse.Version, cmd.PolicyCheckers.Filter)
 	if err != nil {
 		return nil, err
 	}
 
-	backendMembers, err := cmd.constructBackendMembers(logger, backendConn, lockFactory, secretManager)
+	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory, secretManager, policyChecker)
 	if err != nil {
 		return nil, err
 	}
 
-	gcMembers, err := cmd.constructGCMember(logger, gcConn, lockFactory)
+	backendComponents, err := cmd.backendComponents(logger, backendConn, lockFactory, secretManager, policyChecker)
 	if err != nil {
 		return nil, err
 	}
 
-	return append(apiMembers, append(backendMembers, gcMembers...)...), nil
+	gcComponents, err := cmd.gcComponents(logger, gcConn, lockFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	// use backendConn so that the Component objects created by the factory uses
+	// the backend connection pool when reloading.
+	componentFactory := db.NewComponentFactory(backendConn)
+	bus := backendConn.Bus()
+
+	members := apiMembers
+	components := append(backendComponents, gcComponents...)
+	for _, c := range components {
+		dbComponent, err := componentFactory.CreateOrUpdate(c.Component)
+		if err != nil {
+			return nil, err
+		}
+
+		componentLogger := logger.Session(c.Component.Name)
+
+		members = append(members, grouper.Member{
+			Name: c.Component.Name,
+			Runner: &component.Runner{
+				Logger:    componentLogger,
+				Interval:  cmd.ComponentRunnerInterval,
+				Component: dbComponent,
+				Bus:       bus,
+				Schedulable: &component.Coordinator{
+					Locker:    lockFactory,
+					Component: dbComponent,
+					Runnable:  c.Runnable,
+				},
+			},
+		})
+
+		if drainable, ok := c.Runnable.(component.Drainable); ok {
+			members = append(members, grouper.Member{
+				Name: c.Component.Name + "-drainer",
+				Runner: drainRunner{
+					logger:  componentLogger.Session("drain"),
+					drainer: drainable,
+				},
+			})
+		}
+	}
+
+	return members, nil
 }
 
 func (cmd *RunCommand) constructAPIMembers(
@@ -576,6 +682,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
+	policyChecker *policy.Checker,
 ) ([]grouper.Member, error) {
 
 	httpClient, err := cmd.skyHttpClient()
@@ -619,11 +726,12 @@ func (cmd *RunCommand) constructAPIMembers(
 		return nil, err
 	}
 
+	compressionLib := compression.NewGzipCompression()
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
 		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
 		resourceFetcher,
-		image.NewImageFactory(imageResourceFetcherFactory),
+		image.NewImageFactory(imageResourceFetcherFactory, compressionLib),
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		dbWorkerBaseResourceTypeFactory,
@@ -635,10 +743,11 @@ func (cmd *RunCommand) constructAPIMembers(
 		workerVersion,
 		cmd.BaggageclaimResponseHeaderTimeout,
 		cmd.GardenRequestTimeout,
+		policyChecker,
 	)
 
 	pool := worker.NewPool(workerProvider)
-	workerClient := worker.NewClient(pool, workerProvider)
+	workerClient := worker.NewClient(pool, workerProvider, compressionLib, workerAvailabilityPollingInterval, workerStatusPublishInterval)
 
 	credsManagers := cmd.CredentialManagers
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
@@ -646,22 +755,27 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbResourceFactory := db.NewResourceFactory(dbConn, lockFactory)
 	dbContainerRepository := db.NewContainerRepository(dbConn)
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
-	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
+	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
 	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
+	dbAccessTokenFactory := db.NewAccessTokenFactory(dbConn)
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
 
-	customRoles, err := cmd.parseCustomRoles(logger)
-	if err != nil {
-		return nil, err
-	}
+	tokenVerifier := cmd.constructTokenVerifier(dbAccessTokenFactory)
+
+	teamsCacher := accessor.NewTeamsCacher(
+		logger,
+		dbConn.Bus(),
+		teamFactory,
+		time.Minute,
+		time.Minute,
+	)
 
 	accessFactory := accessor.NewAccessFactory(
-		cmd.constructTokenVerifier(httpClient),
-		teamFactory,
+		tokenVerifier,
+		teamsCacher,
 		cmd.SystemClaimKey,
 		cmd.SystemClaimValues,
-		customRoles,
 	)
 
 	middleware := token.NewMiddleware(cmd.Auth.AuthFlags.SecureCookies)
@@ -686,6 +800,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		credsManagers,
 		accessFactory,
 		dbWall,
+		policyChecker,
 	)
 	if err != nil {
 		return nil, err
@@ -699,6 +814,8 @@ func (cmd *RunCommand) constructAPIMembers(
 	authHandler, err := cmd.constructAuthHandler(
 		logger,
 		storage,
+		dbAccessTokenFactory,
+		userFactory,
 	)
 	if err != nil {
 		return nil, err
@@ -805,12 +922,13 @@ func (cmd *RunCommand) constructAPIMembers(
 	return members, nil
 }
 
-func (cmd *RunCommand) constructBackendMembers(
+func (cmd *RunCommand) backendComponents(
 	logger lager.Logger,
 	dbConn db.Conn,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
-) ([]grouper.Member, error) {
+	policyChecker *policy.Checker,
+) ([]RunnableComponent, error) {
 
 	if cmd.Syslog.Address != "" && cmd.Syslog.Transport == "" {
 		return nil, fmt.Errorf("syslog Drainer is misconfigured, cannot configure a drainer without a transport")
@@ -835,6 +953,15 @@ func (cmd *RunCommand) constructBackendMembers(
 		resourceFetcher,
 	)
 
+	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
+	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
+	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
+	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
+	dbCheckableCounter := db.NewCheckableCounter(dbConn)
+	dbPipelineLifecycle := db.NewPipelineLifecycle(dbConn, lockFactory)
+
+	alg := algorithm.New(db.NewVersionsDB(dbConn, algorithmLimitRows, schedulerCache))
+
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
 	dbTaskCacheFactory := db.NewTaskCacheFactory(dbConn)
 	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
@@ -845,11 +972,17 @@ func (cmd *RunCommand) constructBackendMembers(
 		return nil, err
 	}
 
+	var compressionLib compression.Compression
+	if cmd.StreamingArtifactsCompression == "zstd" {
+		compressionLib = compression.NewZstdCompression()
+	} else {
+		compressionLib = compression.NewGzipCompression()
+	}
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
 		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
 		resourceFetcher,
-		image.NewImageFactory(imageResourceFetcherFactory),
+		image.NewImageFactory(imageResourceFetcherFactory, compressionLib),
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		dbWorkerBaseResourceTypeFactory,
@@ -861,10 +994,15 @@ func (cmd *RunCommand) constructBackendMembers(
 		workerVersion,
 		cmd.BaggageclaimResponseHeaderTimeout,
 		cmd.GardenRequestTimeout,
+		policyChecker,
 	)
 
 	pool := worker.NewPool(workerProvider)
-	workerClient := worker.NewClient(pool, workerProvider)
+	workerClient := worker.NewClient(pool,
+		workerProvider,
+		compressionLib,
+		workerAvailabilityPollingInterval,
+		workerStatusPublishInterval)
 
 	defaultLimits, err := cmd.parseDefaultLimits()
 	if err != nil {
@@ -881,6 +1019,7 @@ func (cmd *RunCommand) constructBackendMembers(
 		workerClient,
 		resourceFactory,
 		teamFactory,
+		dbBuildFactory,
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		secretManager,
@@ -889,80 +1028,85 @@ func (cmd *RunCommand) constructBackendMembers(
 		lockFactory,
 	)
 
-	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
-	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
-	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
-
-	componentFactory := db.NewComponentFactory(dbConn)
-
-	err = cmd.configureComponentIntervals(componentFactory)
-	if err != nil {
-		return nil, err
+	// In case that a user configures resource-checking-interval, but forgets to
+	// configure resource-with-webhook-checking-interval, keep both checking-
+	// intervals consistent. Even if both intervals are configured, there is no
+	// reason webhooked resources take shorter checking interval than normal
+	// resources.
+	if cmd.ResourceWithWebhookCheckingInterval < cmd.ResourceCheckingInterval {
+		logger.Info("update-resource-with-webhook-checking-interval",
+			lager.Data{
+				"oldValue": cmd.ResourceWithWebhookCheckingInterval,
+				"newValue": cmd.ResourceCheckingInterval,
+			})
+		cmd.ResourceWithWebhookCheckingInterval = cmd.ResourceCheckingInterval
 	}
 
-	alg := algorithm.New(db.NewVersionsDB(dbConn, algorithmLimitRows, schedulerCache))
-	bus := dbConn.Bus()
-
-	members := []grouper.Member{
-		{Name: "lidar", Runner: lidar.NewRunner(
-			logger.Session("lidar"),
-			clock.NewClock(),
-			lidar.NewScanner(
+	components := []RunnableComponent{
+		{
+			Component: atc.Component{
+				Name:     atc.ComponentLidarScanner,
+				Interval: cmd.LidarScannerInterval,
+			},
+			Runnable: lidar.NewScanner(
 				logger.Session(atc.ComponentLidarScanner),
 				dbCheckFactory,
 				secretManager,
 				cmd.GlobalResourceCheckTimeout,
 				cmd.ResourceCheckingInterval,
+				cmd.ResourceWithWebhookCheckingInterval,
 			),
-			lidar.NewChecker(
+		},
+		{
+			Component: atc.Component{
+				Name:     atc.ComponentLidarChecker,
+				Interval: cmd.LidarCheckerInterval,
+			},
+			Runnable: lidar.NewChecker(
 				logger.Session(atc.ComponentLidarChecker),
 				dbCheckFactory,
 				engine,
+				lidar.CheckRateCalculator{
+					MaxChecksPerSecond:       cmd.MaxChecksPerSecond,
+					ResourceCheckingInterval: cmd.ResourceCheckingInterval,
+					CheckableCounter:         dbCheckableCounter,
+				},
 			),
-			cmd.ComponentRunnerInterval,
-			bus,
-			lockFactory,
-			componentFactory,
-		)},
-		{Name: atc.ComponentScheduler, Runner: scheduler.NewIntervalRunner(
-			logger.Session("scheduler-interval-runner"),
-			clock.NewClock(),
-			lockFactory,
-			componentFactory,
-			scheduler.NewRunner(
+		},
+		{
+			Component: atc.Component{
+				Name:     atc.ComponentScheduler,
+				Interval: 10 * time.Second,
+			},
+			Runnable: scheduler.NewRunner(
 				logger.Session("scheduler"),
 				dbJobFactory,
 				&scheduler.Scheduler{
 					Algorithm: alg,
 					BuildStarter: scheduler.NewBuildStarter(
-						factory.NewBuildFactory(
+						builds.NewPlanner(
 							atc.NewPlanFactory(time.Now().Unix()),
 						),
 						alg),
 				},
 				cmd.JobSchedulingMaxInFlight,
 			),
-			cmd.ComponentRunnerInterval,
-		)},
-		{Name: atc.ComponentBuildTracker, Runner: builds.NewRunner(
-			logger.Session("tracker-runner"),
-			clock.NewClock(),
-			builds.NewTracker(
-				logger.Session(atc.ComponentBuildTracker),
-				dbBuildFactory,
-				engine,
-			),
-			cmd.ComponentRunnerInterval,
-			bus,
-			lockFactory,
-			componentFactory,
-		)},
-		// run separately so as to not preempt critical GC
-		{Name: atc.ComponentBuildReaper, Runner: lockrunner.NewRunner(
-			logger.Session(atc.ComponentBuildReaper),
-			gc.NewBuildLogCollector(
+		},
+		{
+			Component: atc.Component{
+				Name:     atc.ComponentBuildTracker,
+				Interval: cmd.BuildTrackerInterval,
+			},
+			Runnable: builds.NewTracker(dbBuildFactory, engine),
+		},
+		{
+			Component: atc.Component{
+				Name:     atc.ComponentBuildReaper,
+				Interval: 30 * time.Second,
+			},
+			Runnable: gc.NewBuildLogCollector(
 				dbPipelineFactory,
+				dbPipelineLifecycle,
 				500,
 				gc.NewBuildLogRetentionCalculator(
 					cmd.DefaultBuildLogsToRetain,
@@ -972,59 +1116,47 @@ func (cmd *RunCommand) constructBackendMembers(
 				),
 				syslogDrainConfigured,
 			),
-			atc.ComponentBuildReaper,
-			lockFactory,
-			componentFactory,
-			clock.NewClock(),
-			cmd.ComponentRunnerInterval,
-		)},
+		},
 	}
 
 	if syslogDrainConfigured {
-		members = append(members, grouper.Member{
-			Name: atc.ComponentSyslogDrainer, Runner: lockrunner.NewRunner(
-				logger.Session(atc.ComponentSyslogDrainer),
-				syslog.NewDrainer(
-					cmd.Syslog.Transport,
-					cmd.Syslog.Address,
-					cmd.Syslog.Hostname,
-					cmd.Syslog.CACerts,
-					dbBuildFactory,
-				),
-				atc.ComponentSyslogDrainer,
-				lockFactory,
-				componentFactory,
-				clock.NewClock(),
-				cmd.ComponentRunnerInterval,
-			)},
-		)
+		components = append(components, RunnableComponent{
+			Component: atc.Component{
+				Name:     atc.ComponentSyslogDrainer,
+				Interval: cmd.Syslog.DrainInterval,
+			},
+			Runnable: syslog.NewDrainer(
+				cmd.Syslog.Transport,
+				cmd.Syslog.Address,
+				cmd.Syslog.Hostname,
+				cmd.Syslog.CACerts,
+				dbBuildFactory,
+			),
+		})
 	}
-	if cmd.Worker.GardenURL.URL != nil {
-		members = cmd.appendStaticWorker(logger, dbWorkerFactory, members)
-	}
-	return members, nil
+
+	return components, err
 }
 
-func (cmd *RunCommand) constructGCMember(
+func (cmd *RunCommand) gcComponents(
 	logger lager.Logger,
 	gcConn db.Conn,
 	lockFactory lock.LockFactory,
-) ([]grouper.Member, error) {
-	var members []grouper.Member
-
-	componentFactory := db.NewComponentFactory(gcConn)
+) ([]RunnableComponent, error) {
 	dbWorkerLifecycle := db.NewWorkerLifecycle(gcConn)
 	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(gcConn)
 	dbContainerRepository := db.NewContainerRepository(gcConn)
 	dbArtifactLifecycle := db.NewArtifactLifecycle(gcConn)
 	dbCheckLifecycle := db.NewCheckLifecycle(gcConn)
+	dbAccessTokenLifecycle := db.NewAccessTokenLifecycle(gcConn)
 	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(gcConn)
-	dbBuildFactory := db.NewBuildFactory(gcConn, lockFactory, cmd.GC.OneOffBuildGracePeriod)
+	dbBuildFactory := db.NewBuildFactory(gcConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(gcConn, lockFactory)
+	dbPipelineLifecycle := db.NewPipelineLifecycle(gcConn, lockFactory)
 
 	dbVolumeRepository := db.NewVolumeRepository(gcConn)
 
-	collectors := map[string]lockrunner.Task{
+	collectors := map[string]component.Runnable{
 		atc.ComponentCollectorBuilds:            gc.NewBuildCollector(dbBuildFactory),
 		atc.ComponentCollectorWorkers:           gc.NewWorkerCollector(dbWorkerLifecycle),
 		atc.ComponentCollectorResourceConfigs:   gc.NewResourceConfigCollector(dbResourceConfigFactory),
@@ -1035,28 +1167,25 @@ func (cmd *RunCommand) constructGCMember(
 		atc.ComponentCollectorVolumes:           gc.NewVolumeCollector(dbVolumeRepository, cmd.GC.MissingGracePeriod),
 		atc.ComponentCollectorContainers:        gc.NewContainerCollector(dbContainerRepository, cmd.GC.MissingGracePeriod, cmd.GC.HijackGracePeriod),
 		atc.ComponentCollectorCheckSessions:     gc.NewResourceConfigCheckSessionCollector(resourceConfigCheckSessionLifecycle),
-		atc.ComponentCollectorVarSources:        gc.NewCollectorTask(cmd.varSourcePool.(gc.Collector)),
+		atc.ComponentCollectorPipelines:         gc.NewPipelineCollector(dbPipelineLifecycle),
+		atc.ComponentCollectorAccessTokens:      gc.NewAccessTokensCollector(dbAccessTokenLifecycle, jwt.DefaultLeeway),
 	}
 
+	var components []RunnableComponent
 	for collectorName, collector := range collectors {
-		members = append(members, grouper.Member{
-			Name: collectorName, Runner: lockrunner.NewRunner(
-				logger.Session(collectorName),
-				collector,
-				collectorName,
-				lockFactory,
-				componentFactory,
-				clock.NewClock(),
-				cmd.ComponentRunnerInterval,
-			)},
-		)
+		components = append(components, RunnableComponent{
+			Component: atc.Component{
+				Name:     collectorName,
+				Interval: cmd.GC.Interval,
+			},
+			Runnable: collector,
+		})
 	}
 
-	return members, nil
+	return components, nil
 }
 
 func (cmd *RunCommand) validateCustomRoles() error {
-
 	path := cmd.ConfigRBAC.Path()
 	if path == "" {
 		return nil
@@ -1092,7 +1221,7 @@ func (cmd *RunCommand) validateCustomRoles() error {
 	return nil
 }
 
-func (cmd *RunCommand) parseCustomRoles(logger lager.Logger) (map[string]string, error) {
+func (cmd *RunCommand) parseCustomRoles() (map[string]string, error) {
 	mapping := map[string]string{}
 
 	path := cmd.ConfigRBAC.Path()
@@ -1183,7 +1312,7 @@ func (cmd *RunCommand) constructWebHandler(logger lager.Logger) (http.Handler, e
 	if err != nil {
 		return nil, err
 	}
-	return metric.WrapHandler(logger, "web", webHandler), nil
+	return metric.WrapHandler(logger, metric.Metrics, "web", webHandler), nil
 }
 
 func (cmd *RunCommand) skyHttpClient() (*http.Client, error) {
@@ -1382,7 +1511,7 @@ func (cmd *RunCommand) configureMetrics(logger lager.Logger) error {
 		host, _ = os.Hostname()
 	}
 
-	return metric.Initialize(logger.Session("metrics"), host, cmd.Metrics.Attributes, cmd.Metrics.BufferSize)
+	return metric.Metrics.Initialize(logger.Session("metrics"), host, cmd.Metrics.Attributes, cmd.Metrics.BufferSize)
 }
 
 func (cmd *RunCommand) constructDBConn(
@@ -1399,7 +1528,7 @@ func (cmd *RunCommand) constructDBConn(
 
 	// Instrument with Metrics
 	dbConn = metric.CountQueries(dbConn)
-	metric.Databases = append(metric.Databases, dbConn)
+	metric.Metrics.Databases = append(metric.Metrics.Databases, dbConn)
 
 	// Instrument with Logging
 	if cmd.LogDBQueries {
@@ -1467,7 +1596,7 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 		return fmt.Errorf("default team auth not configured: %v", err)
 	}
 
-	err = team.UpdateProviderAuth(atc.TeamAuth(auth))
+	err = team.UpdateProviderAuth(auth)
 	if err != nil {
 		return err
 	}
@@ -1475,69 +1604,12 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 	return nil
 }
 
-func (cmd *RunCommand) configureComponentIntervals(componentFactory db.ComponentFactory) error {
-	return componentFactory.UpdateIntervals(
-		[]atc.Component{
-			{
-				Name:     atc.ComponentBuildTracker,
-				Interval: cmd.BuildTrackerInterval,
-			}, {
-				Name:     atc.ComponentScheduler,
-				Interval: 10 * time.Second,
-			}, {
-				Name:     atc.ComponentLidarChecker,
-				Interval: cmd.LidarCheckerInterval,
-			}, {
-				Name:     atc.ComponentLidarScanner,
-				Interval: cmd.LidarScannerInterval,
-			}, {
-				Name:     atc.ComponentBuildReaper,
-				Interval: 30 * time.Second,
-			}, {
-				Name:     atc.ComponentSyslogDrainer,
-				Interval: cmd.Syslog.DrainInterval,
-			}, {
-				Name:     atc.ComponentCollectorArtifacts,
-				Interval: cmd.GC.Interval,
-			}, {
-				Name:     atc.ComponentCollectorBuilds,
-				Interval: cmd.GC.Interval,
-			}, {
-				Name:     atc.ComponentCollectorChecks,
-				Interval: cmd.GC.Interval,
-			}, {
-				Name:     atc.ComponentCollectorCheckSessions,
-				Interval: cmd.GC.Interval,
-			}, {
-				Name:     atc.ComponentCollectorContainers,
-				Interval: cmd.GC.Interval,
-			}, {
-				Name:     atc.ComponentCollectorResourceCaches,
-				Interval: cmd.GC.Interval,
-			}, {
-				Name:     atc.ComponentCollectorResourceCacheUses,
-				Interval: cmd.GC.Interval,
-			}, {
-				Name:     atc.ComponentCollectorResourceConfigs,
-				Interval: cmd.GC.Interval,
-			}, {
-				Name:     atc.ComponentCollectorVolumes,
-				Interval: cmd.GC.Interval,
-			}, {
-				Name:     atc.ComponentCollectorWorkers,
-				Interval: cmd.GC.Interval,
-			}, {
-				Name:     atc.ComponentCollectorVarSources,
-				Interval: 60 * time.Second,
-			},
-		})
-}
-
 func (cmd *RunCommand) constructEngine(
 	workerPool worker.Pool,
 	workerClient worker.Client,
 	resourceFactory resource.ResourceFactory,
 	teamFactory db.TeamFactory,
+	buildFactory db.BuildFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	secretManager creds.Secrets,
@@ -1551,6 +1623,7 @@ func (cmd *RunCommand) constructEngine(
 		workerClient,
 		resourceFactory,
 		teamFactory,
+		buildFactory,
 		resourceCacheFactory,
 		resourceConfigFactory,
 		defaultLimits,
@@ -1564,7 +1637,6 @@ func (cmd *RunCommand) constructEngine(
 		cmd.ExternalURL.String(),
 		secretManager,
 		cmd.varSourcePool,
-		cmd.EnableRedactSecrets,
 	)
 
 	return engine.NewEngine(stepBuilder)
@@ -1623,6 +1695,8 @@ func (cmd *RunCommand) constructLegacyHandler(
 func (cmd *RunCommand) constructAuthHandler(
 	logger lager.Logger,
 	storage storage.Storage,
+	accessTokenFactory db.AccessTokenFactory,
+	userFactory db.UserFactory,
 ) (http.Handler, error) {
 
 	issuerPath, _ := url.Parse("/sky/issuer")
@@ -1630,11 +1704,6 @@ func (cmd *RunCommand) constructAuthHandler(
 
 	issuerURL := cmd.ExternalURL.URL.ResolveReference(issuerPath)
 	redirectURL := cmd.ExternalURL.URL.ResolveReference(redirectPath)
-
-	signingKey, err := loadOrGenerateSigningKey(cmd.Auth.AuthFlags.SigningKey)
-	if err != nil {
-		return nil, err
-	}
 
 	// Add public fly client
 	cmd.Auth.AuthFlags.Clients[flyClientID] = flyClientSecret
@@ -1647,14 +1716,21 @@ func (cmd *RunCommand) constructAuthHandler(
 		IssuerURL:   issuerURL.String(),
 		RedirectURL: redirectURL.String(),
 		WebHostURL:  "/sky/issuer",
-		SigningKey:  signingKey,
+		SigningKey:  cmd.Auth.AuthFlags.SigningKey.PrivateKey,
 		Storage:     storage,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return dexServer, nil
+	return token.StoreAccessToken(
+		logger.Session("dex-server"),
+		dexServer,
+		token.Factory{},
+		token.NewClaimsParser(),
+		accessTokenFactory,
+		userFactory,
+	), nil
 }
 
 func (cmd *RunCommand) constructLoginHandler(
@@ -1688,6 +1764,7 @@ func (cmd *RunCommand) constructLoginHandler(
 	skyServer, err := skyserver.NewSkyServer(&skyserver.SkyConfig{
 		Logger:          logger.Session("sky"),
 		TokenMiddleware: middleware,
+		TokenParser:     token.Factory{},
 		OAuthConfig:     oauth2Config,
 		HTTPClient:      httpClient,
 	})
@@ -1698,17 +1775,17 @@ func (cmd *RunCommand) constructLoginHandler(
 	return skyserver.NewSkyHandler(skyServer), nil
 }
 
-func (cmd *RunCommand) constructTokenVerifier(httpClient *http.Client) accessor.Verifier {
-
-	publicKeyPath, _ := url.Parse("/sky/issuer/keys")
-	publicKeyURL := cmd.ExternalURL.URL.ResolveReference(publicKeyPath)
+func (cmd *RunCommand) constructTokenVerifier(accessTokenFactory db.AccessTokenFactory) accessor.TokenVerifier {
 
 	validClients := []string{flyClientID}
-	for clientId, _ := range cmd.Auth.AuthFlags.Clients {
+	for clientId := range cmd.Auth.AuthFlags.Clients {
 		validClients = append(validClients, clientId)
 	}
 
-	return accessor.NewVerifier(httpClient, publicKeyURL, validClients)
+	MiB := 1024 * 1024
+	claimsCacher := accessor.NewClaimsCacher(accessTokenFactory, 1*MiB)
+
+	return accessor.NewVerifier(claimsCacher, validClients)
 }
 
 func (cmd *RunCommand) constructAPIHandler(
@@ -1731,12 +1808,15 @@ func (cmd *RunCommand) constructAPIHandler(
 	credsManagers creds.Managers,
 	accessFactory accessor.AccessFactory,
 	dbWall db.Wall,
+	policyChecker *policy.Checker,
 ) (http.Handler, error) {
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(teamFactory)
 	checkBuildReadAccessHandlerFactory := auth.NewCheckBuildReadAccessHandlerFactory(dbBuildFactory)
 	checkBuildWriteAccessHandlerFactory := auth.NewCheckBuildWriteAccessHandlerFactory(dbBuildFactory)
 	checkWorkerTeamAccessHandlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(dbWorkerFactory)
+
+	rejectArchivedHandlerFactory := pipelineserver.NewRejectArchivedHandlerFactory(teamFactory)
 
 	aud := auditor.NewAuditor(
 		cmd.Auditor.EnableBuildAuditLog,
@@ -1750,16 +1830,33 @@ func (cmd *RunCommand) constructAPIHandler(
 		cmd.Auditor.EnableVolumeAuditLog,
 		logger,
 	)
+
+	customRoles, err := cmd.parseCustomRoles()
+	if err != nil {
+		return nil, err
+	}
+
 	apiWrapper := wrappa.MultiWrappa{
+		wrappa.NewConcurrentRequestLimitsWrappa(
+			logger,
+			wrappa.NewConcurrentRequestPolicy(cmd.ConcurrentRequestLimits),
+		),
 		wrappa.NewAPIMetricsWrappa(logger),
+		wrappa.NewPolicyCheckWrappa(logger, policychecker.NewApiPolicyChecker(policyChecker)),
 		wrappa.NewAPIAuthWrappa(
 			checkPipelineAccessHandlerFactory,
 			checkBuildReadAccessHandlerFactory,
 			checkBuildWriteAccessHandlerFactory,
 			checkWorkerTeamAccessHandlerFactory,
 		),
+		wrappa.NewRejectArchivedWrappa(rejectArchivedHandlerFactory),
 		wrappa.NewConcourseVersionWrappa(concourse.Version),
-		wrappa.NewAccessorWrappa(logger, accessFactory, aud, dbUserFactory),
+		wrappa.NewAccessorWrappa(
+			logger,
+			accessFactory,
+			aud,
+			customRoles,
+		),
 		wrappa.NewCompressionWrappa(logger),
 	}
 
@@ -1824,42 +1921,23 @@ func (h tlsRedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (cmd *RunCommand) appendStaticWorker(
-	logger lager.Logger,
-	workerFactory db.WorkerFactory,
-	members []grouper.Member,
-) []grouper.Member {
-	var resourceTypes []atc.WorkerResourceType
-	for t, resourcePath := range cmd.Worker.ResourceTypes {
-		resourceTypes = append(resourceTypes, atc.WorkerResourceType{
-			Type:  t,
-			Image: resourcePath,
-		})
-	}
-
-	return append(members,
-		grouper.Member{
-			Name: "static-worker",
-			Runner: worker.NewHardcoded(
-				logger,
-				workerFactory,
-				clock.NewClock(),
-				cmd.Worker.GardenURL.URL.Host,
-				cmd.Worker.BaggageclaimURL.String(),
-				resourceTypes,
-			),
-		},
-	)
-}
-
 func (cmd *RunCommand) isTLSEnabled() bool {
 	return cmd.TLSBindPort != 0
 }
 
-func loadOrGenerateSigningKey(keyFlag *flag.PrivateKey) (*rsa.PrivateKey, error) {
-	if keyFlag != nil && keyFlag.PrivateKey != nil {
-		return keyFlag.PrivateKey, nil
-	}
+type drainRunner struct {
+	logger  lager.Logger
+	drainer component.Drainable
+}
 
-	return rsa.GenerateKey(rand.Reader, 2048)
+func (runner drainRunner) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
+	close(ready)
+	<-signals
+	runner.drainer.Drain(lagerctx.NewContext(context.Background(), runner.logger))
+	return nil
+}
+
+type RunnableComponent struct {
+	atc.Component
+	component.Runnable
 }

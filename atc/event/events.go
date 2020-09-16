@@ -90,6 +90,15 @@ type Status struct {
 func (Status) EventType() atc.EventType  { return EventTypeStatus }
 func (Status) Version() atc.EventVersion { return "1.0" }
 
+type SelectedWorker struct {
+	Time       int64  `json:"time"`
+	Origin     Origin `json:"origin"`
+	WorkerName string `json:"selected_worker"`
+}
+
+func (SelectedWorker) EventType() atc.EventType  { return EventTypeSelectedWorker }
+func (SelectedWorker) Version() atc.EventVersion { return "1.0" }
+
 type Log struct {
 	Time    int64  `json:"time"`
 	Origin  Origin `json:"origin"`
@@ -166,6 +175,14 @@ type FinishPut struct {
 
 func (FinishPut) EventType() atc.EventType  { return EventTypeFinishPut }
 func (FinishPut) Version() atc.EventVersion { return "5.1" }
+
+type SetPipelineChanged struct {
+	Origin  Origin `json:"origin"`
+	Changed bool   `json:"changed"`
+}
+
+func (SetPipelineChanged) EventType() atc.EventType  { return EventTypeSetPipelineChanged }
+func (SetPipelineChanged) Version() atc.EventVersion { return "1.0" }
 
 type Initialize struct {
 	Origin Origin `json:"origin"`

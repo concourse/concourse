@@ -1,6 +1,6 @@
 module Dashboard.Filter exposing (filterGroups)
 
-import Concourse
+import Concourse exposing (DatabaseID)
 import Concourse.PipelineStatus
     exposing
         ( PipelineStatus(..)
@@ -30,6 +30,8 @@ import Parser
         , succeed
         , symbol
         )
+import Routes
+import Set exposing (Set)
 import Simple.Fuzzy
 
 
@@ -44,33 +46,37 @@ filterGroups :
     , jobs : Dict ( String, String, String ) Concourse.Job
     , query : String
     , teams : List Concourse.Team
-    , pipelines : List Pipeline
+    , pipelines : Dict String (List Pipeline)
+    , dashboardView : Routes.DashboardView
+    , favoritedPipelines : Set DatabaseID
     }
     -> List Group
-filterGroups { pipelineJobs, jobs, query, teams, pipelines } =
+filterGroups { pipelineJobs, jobs, query, teams, pipelines, dashboardView, favoritedPipelines } =
     let
         groupsToFilter =
-            pipelines
-                |> List.foldr
-                    (\p ->
-                        Dict.update p.teamName
-                            (Maybe.withDefault []
-                                >> (::) p
-                                >> Just
-                            )
-                    )
-                    (teams
-                        |> List.map (\team -> ( team.name, [] ))
-                        |> Dict.fromList
-                    )
+            teams
+                |> List.map (\t -> ( t.name, [] ))
+                |> Dict.fromList
+                |> Dict.union pipelines
                 |> Dict.toList
-                |> List.map (\( k, v ) -> { teamName = k, pipelines = v })
+                |> List.map
+                    (\( t, p ) ->
+                        { teamName = t
+                        , pipelines = List.filter (prefilter dashboardView favoritedPipelines) p
+                        }
+                    )
     in
-    if query == "" then
-        groupsToFilter
+    parseFilters query |> List.foldr (runFilter jobs pipelineJobs) groupsToFilter
 
-    else
-        parseFilters query |> List.foldr (runFilter jobs pipelineJobs) groupsToFilter
+
+prefilter : Routes.DashboardView -> Set DatabaseID -> Pipeline -> Bool
+prefilter view favoritedPipelines p =
+    case view of
+        Routes.ViewNonArchivedPipelines ->
+            not p.archived || Set.member p.id favoritedPipelines
+
+        _ ->
+            True
 
 
 runFilter : Dict ( String, String, String ) Concourse.Job -> Dict ( String, String ) (List Concourse.JobIdentifier) -> Filter -> List Group -> List Group
@@ -118,10 +124,10 @@ pipelineFilter pf jobs existingJobs pipeline =
         Status sf ->
             case sf of
                 PipelineStatus ps ->
-                    pipeline |> Pipeline.pipelineStatus False jobsForPipeline |> equal ps
+                    pipeline |> Pipeline.pipelineStatus jobsForPipeline |> equal ps
 
                 PipelineRunning ->
-                    pipeline |> Pipeline.pipelineStatus False jobsForPipeline |> isRunning
+                    pipeline |> Pipeline.pipelineStatus jobsForPipeline |> isRunning
 
         FuzzyName term ->
             pipeline.name |> Simple.Fuzzy.match term

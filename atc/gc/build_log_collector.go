@@ -13,6 +13,7 @@ import (
 
 type buildLogCollector struct {
 	pipelineFactory             db.PipelineFactory
+	pipelineLifecycle           db.PipelineLifecycle
 	batchSize                   int
 	drainerConfigured           bool
 	buildLogRetentionCalculator BuildLogRetentionCalculator
@@ -20,12 +21,14 @@ type buildLogCollector struct {
 
 func NewBuildLogCollector(
 	pipelineFactory db.PipelineFactory,
+	pipelineLifecycle db.PipelineLifecycle,
 	batchSize int,
 	buildLogRetentionCalculator BuildLogRetentionCalculator,
 	drainerConfigured bool,
 ) *buildLogCollector {
 	return &buildLogCollector{
 		pipelineFactory:             pipelineFactory,
+		pipelineLifecycle:           pipelineLifecycle,
 		batchSize:                   batchSize,
 		drainerConfigured:           drainerConfigured,
 		buildLogRetentionCalculator: buildLogRetentionCalculator,
@@ -37,6 +40,12 @@ func (br *buildLogCollector) Run(ctx context.Context) error {
 
 	logger.Debug("start")
 	defer logger.Debug("done")
+
+	err := br.pipelineLifecycle.RemoveBuildEventsForDeletedPipelines()
+	if err != nil {
+		logger.Error("failed-to-remove-build-events-for-deleted-pipelines", err)
+		return err
+	}
 
 	pipelines, err := br.pipelineFactory.AllPipelines()
 	if err != nil {
@@ -82,28 +91,15 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 	}
 
 	buildsToConsiderDeleting := []db.Build{}
-	// FirstLoggedBuildID points to the smallest build id that is not reaped.
-	// We will use db.Page as query criteria to fetch builds, and "Until" is
-	// excluded, thus until should be FirstLoggedBuildID-1.
-	until := job.FirstLoggedBuildID() - 1
-	if until < 0 {
-		until = 0
-	}
-	limit := br.batchSize
 
-	returnedBatch := br.batchSize
-	for returnedBatch == br.batchSize {
-		// Returned builds will be ordered by id desc.
-		builds, _, err := job.Builds(
-			db.Page{Until: until, Limit: limit},
-		)
+	from := job.FirstLoggedBuildID()
+	limit := br.batchSize
+	page := &db.Page{From: &from, Limit: limit}
+	for page != nil {
+		builds, pagination, err := job.Builds(*page)
 		if err != nil {
 			logger.Error("failed-to-get-job-builds-to-delete", err)
 			return err
-		}
-		returnedBatch = len(builds)
-		if returnedBatch == 0 {
-			break
 		}
 
 		buildsOfBatch := []db.Build{}
@@ -117,7 +113,7 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 		}
 		buildsToConsiderDeleting = append(buildsOfBatch, buildsToConsiderDeleting...)
 
-		until = builds[0].ID()
+		page = pagination.Newer
 	}
 
 	logger.Debug("after-first-round-filter", lager.Data{
@@ -212,7 +208,7 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 		return err
 	}
 
-	if firstLoggedBuildID+1 != job.FirstLoggedBuildID() {
+	if firstLoggedBuildID > job.FirstLoggedBuildID() {
 		err = job.UpdateFirstLoggedBuildID(firstLoggedBuildID)
 		if err != nil {
 			logger.Error("failed-to-update-first-logged-build-id", err)

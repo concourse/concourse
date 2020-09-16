@@ -18,6 +18,7 @@ module Concourse exposing
     , CheckIdentifier
     , CheckStatus(..)
     , ClusterInfo
+    , DatabaseID
     , HookedPlan
     , Job
     , JobBuildIdentifier
@@ -25,6 +26,7 @@ module Concourse exposing
     , JobInput
     , JobName
     , JobOutput
+    , JsonValue(..)
     , Metadata
     , MetadataField
     , Pipeline
@@ -62,6 +64,7 @@ module Concourse exposing
     , encodeJob
     , encodePipeline
     , encodeTeam
+    , mapBuildPlan
     , retrieveCSRFToken
     )
 
@@ -71,6 +74,7 @@ import Dict exposing (Dict)
 import Json.Decode
 import Json.Decode.Extra exposing (andMap)
 import Json.Encode
+import Json.Encode.Extra
 import Time
 
 
@@ -80,6 +84,10 @@ import Time
 
 type alias AuthToken =
     String
+
+
+type alias DatabaseID =
+    Int
 
 
 decodeAuthToken : Json.Decode.Decoder AuthToken
@@ -332,6 +340,70 @@ type alias BuildPlan =
     }
 
 
+mapBuildPlan : (BuildPlan -> a) -> BuildPlan -> List a
+mapBuildPlan fn plan =
+    fn plan
+        :: (case plan.step of
+                BuildStepTask _ ->
+                    []
+
+                BuildStepSetPipeline _ ->
+                    []
+
+                BuildStepLoadVar _ ->
+                    []
+
+                BuildStepArtifactInput _ ->
+                    []
+
+                BuildStepPut _ ->
+                    []
+
+                BuildStepGet _ _ ->
+                    []
+
+                BuildStepArtifactOutput _ ->
+                    []
+
+                BuildStepAggregate plans ->
+                    List.concatMap (mapBuildPlan fn) (Array.toList plans)
+
+                BuildStepInParallel plans ->
+                    List.concatMap (mapBuildPlan fn) (Array.toList plans)
+
+                BuildStepAcross { steps } ->
+                    List.concatMap (mapBuildPlan fn)
+                        (steps |> List.map Tuple.second)
+
+                BuildStepDo plans ->
+                    List.concatMap (mapBuildPlan fn) (Array.toList plans)
+
+                BuildStepOnSuccess { step, hook } ->
+                    mapBuildPlan fn step ++ mapBuildPlan fn hook
+
+                BuildStepOnFailure { step, hook } ->
+                    mapBuildPlan fn step ++ mapBuildPlan fn hook
+
+                BuildStepOnAbort { step, hook } ->
+                    mapBuildPlan fn step ++ mapBuildPlan fn hook
+
+                BuildStepOnError { step, hook } ->
+                    mapBuildPlan fn step ++ mapBuildPlan fn hook
+
+                BuildStepEnsure { step, hook } ->
+                    mapBuildPlan fn step ++ mapBuildPlan fn hook
+
+                BuildStepTry step ->
+                    mapBuildPlan fn step
+
+                BuildStepRetry plans ->
+                    List.concatMap (mapBuildPlan fn) (Array.toList plans)
+
+                BuildStepTimeout step ->
+                    mapBuildPlan fn step
+           )
+
+
 type alias StepName =
     String
 
@@ -346,6 +418,7 @@ type BuildStep
     | BuildStepPut StepName
     | BuildStepAggregate (Array BuildPlan)
     | BuildStepInParallel (Array BuildPlan)
+    | BuildStepAcross AcrossPlan
     | BuildStepDo (Array BuildPlan)
     | BuildStepOnSuccess HookedPlan
     | BuildStepOnFailure HookedPlan
@@ -360,6 +433,38 @@ type BuildStep
 type alias HookedPlan =
     { step : BuildPlan
     , hook : BuildPlan
+    }
+
+
+type JsonValue
+    = JsonString String
+    | JsonNumber Float
+    | JsonObject (List ( String, JsonValue ))
+    | JsonArray (List JsonValue)
+    | JsonRaw Json.Decode.Value
+
+
+decodeJsonValue : Json.Decode.Decoder JsonValue
+decodeJsonValue =
+    Json.Decode.oneOf
+        [ Json.Decode.keyValuePairs decodeSimpleJsonValue |> Json.Decode.map JsonObject
+        , Json.Decode.list decodeSimpleJsonValue |> Json.Decode.map JsonArray
+        , decodeSimpleJsonValue
+        ]
+
+
+decodeSimpleJsonValue : Json.Decode.Decoder JsonValue
+decodeSimpleJsonValue =
+    Json.Decode.oneOf
+        [ Json.Decode.string |> Json.Decode.map JsonString
+        , Json.Decode.float |> Json.Decode.map JsonNumber
+        , Json.Decode.value |> Json.Decode.map JsonRaw
+        ]
+
+
+type alias AcrossPlan =
+    { vars : List String
+    , steps : List ( List JsonValue, BuildPlan )
     }
 
 
@@ -414,6 +519,8 @@ decodeBuildPlan_ =
                     lazy (\_ -> decodeBuildSetPipeline)
                 , Json.Decode.field "load_var" <|
                     lazy (\_ -> decodeBuildStepLoadVar)
+                , Json.Decode.field "across" <|
+                    lazy (\_ -> decodeBuildStepAcross)
                 ]
             )
 
@@ -540,6 +647,25 @@ decodeBuildStepLoadVar : Json.Decode.Decoder BuildStep
 decodeBuildStepLoadVar =
     Json.Decode.succeed BuildStepLoadVar
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+
+
+decodeBuildStepAcross : Json.Decode.Decoder BuildStep
+decodeBuildStepAcross =
+    Json.Decode.map BuildStepAcross
+        (Json.Decode.succeed AcrossPlan
+            |> andMap
+                (Json.Decode.field "vars" <|
+                    Json.Decode.list <|
+                        Json.Decode.field "name" Json.Decode.string
+                )
+            |> andMap
+                (Json.Decode.field "steps" <|
+                    Json.Decode.list <|
+                        Json.Decode.map2 Tuple.pair
+                            (Json.Decode.field "values" <| Json.Decode.list decodeJsonValue)
+                            (Json.Decode.field "step" decodeBuildPlan_)
+                )
+        )
 
 
 
@@ -693,6 +819,7 @@ type alias Pipeline =
     , public : Bool
     , teamName : TeamName
     , groups : List PipelineGroup
+    , backgroundImage : Maybe String
     }
 
 
@@ -713,6 +840,7 @@ encodePipeline pipeline =
         , ( "public", pipeline.public |> Json.Encode.bool )
         , ( "team_name", pipeline.teamName |> Json.Encode.string )
         , ( "groups", pipeline.groups |> Json.Encode.list encodePipelineGroup )
+        , ( "display", Json.Encode.object [ ( "background_image", pipeline.backgroundImage |> Json.Encode.Extra.maybe Json.Encode.string ) ] )
         ]
 
 
@@ -726,6 +854,7 @@ decodePipeline =
         |> andMap (Json.Decode.field "public" Json.Decode.bool)
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)
         |> andMap (defaultTo [] <| Json.Decode.field "groups" (Json.Decode.list decodePipelineGroup))
+        |> andMap (Json.Decode.maybe (Json.Decode.at [ "display", "background_image" ] Json.Decode.string))
 
 
 encodePipelineGroup : PipelineGroup -> Json.Encode.Value

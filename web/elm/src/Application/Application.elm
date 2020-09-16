@@ -11,11 +11,13 @@ module Application.Application exposing
     )
 
 import Application.Models exposing (Session)
+import Application.Styles as Styles
 import Browser
 import Concourse
 import EffectTransformer exposing (ET)
 import HoverState
 import Html
+import Html.Attributes exposing (id, style)
 import Http
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
@@ -60,7 +62,12 @@ init flags url =
     let
         route =
             Routes.parsePath url
-                |> Maybe.withDefault (Routes.Dashboard (Routes.Normal Nothing))
+                |> Maybe.withDefault
+                    (Routes.Dashboard
+                        { searchType = Routes.Normal ""
+                        , dashboardView = Routes.ViewNonArchivedPipelines
+                        }
+                    )
 
         session =
             { userState = UserStateUnknown
@@ -72,11 +79,17 @@ init flags url =
             , csrfToken = flags.csrfToken
             , authToken = flags.authToken
             , pipelineRunningKeyframes = flags.pipelineRunningKeyframes
-            , expandedTeams = Set.empty
+            , expandedTeamsInAllPipelines = Set.empty
+            , collapsedTeamsInFavorites = Set.empty
             , pipelines = RemoteData.NotAsked
-            , isSideBarOpen = False
+            , sideBarState =
+                { isOpen = False
+                , width = 275
+                }
+            , draggingSideBar = False
             , screenSize = ScreenSize.Desktop
             , timeZone = Time.utc
+            , favoritedPipelines = Set.empty
             }
 
         ( subModel, subEffects ) =
@@ -100,7 +113,12 @@ init flags url =
                 ]
     in
     ( model
-    , [ FetchUser, GetScreenSize, LoadSideBarState, FetchClusterInfo ]
+    , [ FetchUser
+      , GetScreenSize
+      , LoadSideBarState
+      , LoadFavoritedPipelines
+      , FetchClusterInfo
+      ]
         ++ handleTokenEffect
         ++ subEffects
     )
@@ -434,9 +452,25 @@ view model =
     in
     { title = title ++ " - Concourse"
     , body =
-        [ Tooltip.view model.session
-        , Html.map Update body
-        ]
+        List.map (Html.map Update)
+            [ SubPage.tooltip model.subModel model.session
+                |> Maybe.map (Tooltip.view model.session)
+                |> Maybe.withDefault (Html.text "")
+            , SideBar.tooltip model.session
+                |> Maybe.map (Tooltip.view model.session)
+                |> Maybe.withDefault (Html.text "")
+            , Html.div
+                (id "page-wrapper"
+                    :: style "height" "100%"
+                    :: (if model.session.draggingSideBar then
+                            Styles.disableInteraction
+
+                        else
+                            []
+                       )
+                )
+                [ body ]
+            ]
     }
 
 
@@ -445,8 +479,17 @@ subscriptions model =
     [ OnNonHrefLinkClicked
     , OnTokenReceived
     , OnSideBarStateReceived
+    , OnFavoritedPipelinesReceived
     , OnWindowResize
     ]
+        ++ (if model.session.draggingSideBar then
+                [ OnMouse
+                , OnMouseUp
+                ]
+
+            else
+                []
+           )
         ++ SubPage.subscriptions model.subModel
 
 

@@ -45,6 +45,9 @@ var _ = Describe("Pipelines API", func() {
 				Resources: []string{"resource3", "resource4"},
 			},
 		})
+		publicPipeline.DisplayReturns(&atc.DisplayConfig{
+			BackgroundImage: "background.jpg",
+		})
 		publicPipeline.LastUpdatedReturns(time.Unix(1, 0))
 
 		anotherPublicPipeline = new(dbfakes.FakePipeline)
@@ -59,6 +62,7 @@ var _ = Describe("Pipelines API", func() {
 		privatePipeline.IDReturns(3)
 		privatePipeline.PausedReturns(false)
 		privatePipeline.PublicReturns(false)
+		privatePipeline.ArchivedReturns(true)
 		privatePipeline.TeamNameReturns("main")
 		privatePipeline.NameReturns("private-pipeline")
 		privatePipeline.GroupsReturns(atc.GroupConfigs{
@@ -130,7 +134,10 @@ var _ = Describe("Pipelines API", func() {
 							"jobs": ["job3", "job4"],
 							"resources": ["resource3", "resource4"]
 						}
-					]
+					],
+					"display": {
+						"background_image": "background.jpg"
+					}
 				},
 				{
 					"id": 2,
@@ -273,7 +280,7 @@ var _ = Describe("Pipelines API", func() {
 						"name": "private-pipeline",
 						"paused": false,
 						"public": false,
-						"archived": false,
+						"archived": true,
 						"team_name": "main",
 						"last_updated": 1,
 						"groups": [
@@ -298,7 +305,10 @@ var _ = Describe("Pipelines API", func() {
 								"jobs": ["job3", "job4"],
 								"resources": ["resource3", "resource4"]
 							}
-						]
+						],
+						"display": {
+							"background_image": "background.jpg"
+						}
 					}
 				]`))
 			})
@@ -386,6 +396,9 @@ var _ = Describe("Pipelines API", func() {
 					Resources: []string{"resource3", "resource4"},
 				},
 			})
+			fakePipeline.DisplayReturns(&atc.DisplayConfig{
+				BackgroundImage: "background.jpg",
+			})
 			fakePipeline.LastUpdatedReturns(time.Unix(1, 0))
 		})
 
@@ -451,7 +464,10 @@ var _ = Describe("Pipelines API", func() {
 								"jobs": ["job3", "job4"],
 								"resources": ["resource3", "resource4"]
 							}
-						]
+						],
+						"display": {
+							"background_image": "background.jpg"
+						}
 					}`))
 			})
 		})
@@ -941,6 +957,52 @@ var _ = Describe("Pipelines API", func() {
 		})
 	})
 
+	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/archive", func() {
+		var response *http.Response
+
+		BeforeEach(func() {
+			fakeAccess.IsAuthenticatedReturns(true)
+			fakeAccess.IsAuthorizedReturns(true)
+			dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+			fakeTeam.PipelineReturns(dbPipeline, true, nil)
+		})
+
+		JustBeforeEach(func() {
+			request, _ := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/archive", nil)
+			var err error
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns 200", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+		})
+
+		It("archives the pipeline", func() {
+			Expect(dbPipeline.ArchiveCallCount()).To(Equal(1), "Archive() called the wrong number of times")
+		})
+
+		Context("when archiving the pipeline fails due to the DB", func() {
+			BeforeEach(func() {
+				dbPipeline.ArchiveReturns(errors.New("pq: a db error"))
+			})
+
+			It("gives a server error", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+		})
+
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+	})
+
 	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/unpause", func() {
 		var response *http.Response
 
@@ -991,7 +1053,7 @@ var _ = Describe("Pipelines API", func() {
 					})
 				})
 
-				Context("when unpausing the pipeline fails", func() {
+				Context("when unpausing the pipeline fails for an unknown reason", func() {
 					BeforeEach(func() {
 						fakeTeam.PipelineReturns(dbPipeline, true, nil)
 						dbPipeline.UnpauseReturns(errors.New("welp"))
@@ -1499,11 +1561,16 @@ var _ = Describe("Pipelines API", func() {
 
 	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/rename", func() {
 		var response *http.Response
+		var requestBody string
+
+		BeforeEach(func() {
+			requestBody = `{"name":"some-new-name"}`
+		})
 
 		JustBeforeEach(func() {
 			var err error
 
-			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/rename", bytes.NewBufferString(`{"name":"some-new-name"}`))
+			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/rename", bytes.NewBufferString(requestBody))
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(request)
@@ -1532,13 +1599,32 @@ var _ = Describe("Pipelines API", func() {
 					Expect(pipelineName).To(Equal("a-pipeline"))
 				})
 
-				It("returns 204", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
 				It("renames the pipeline to the name provided", func() {
 					Expect(dbPipeline.RenameCallCount()).To(Equal(1))
 					Expect(dbPipeline.RenameArgsForCall(0)).To(Equal("some-new-name"))
+				})
+
+				Context("when a warning occurs", func() {
+
+					BeforeEach(func() {
+						requestBody = `{"name":"_some-new-name"}`
+					})
+
+					It("returns a warning in the response body", func() {
+						Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							{
+								"warnings": [
+									{
+										"type": "invalid_identifier",
+										"message": "pipeline: '_some-new-name' is not a valid identifier: must start with a lowercase letter"
+									}
+								]
+							}`))
+					})
 				})
 
 				Context("when an error occurs on update", func() {
@@ -1625,8 +1711,6 @@ var _ = Describe("Pipelines API", func() {
 
 					page := fakePipeline.BuildsArgsForCall(0)
 					Expect(page).To(Equal(db.Page{
-						Since: 0,
-						Until: 0,
 						Limit: 100,
 					}))
 				})
@@ -1634,7 +1718,7 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("when all the params are passed", func() {
 				BeforeEach(func() {
-					queryParams = "?since=2&until=3&limit=8"
+					queryParams = "?from=2&to=3&limit=8"
 				})
 
 				It("passes them through", func() {
@@ -1642,8 +1726,8 @@ var _ = Describe("Pipelines API", func() {
 
 					page := fakePipeline.BuildsArgsForCall(0)
 					Expect(page).To(Equal(db.Page{
-						Since: 2,
-						Until: 3,
+						From:  db.NewIntPtr(2),
+						To:    db.NewIntPtr(3),
 						Limit: 8,
 					}))
 				})
@@ -1723,15 +1807,15 @@ var _ = Describe("Pipelines API", func() {
 				Context("when next/previous pages are available", func() {
 					BeforeEach(func() {
 						fakePipeline.BuildsReturns(returnedBuilds, db.Pagination{
-							Previous: &db.Page{Until: 4, Limit: 2},
-							Next:     &db.Page{Since: 2, Limit: 2},
+							Newer: &db.Page{From: db.NewIntPtr(4), Limit: 2},
+							Older: &db.Page{To: db.NewIntPtr(2), Limit: 2},
 						}, nil)
 					})
 
 					It("returns Link headers per rfc5988", func() {
 						Expect(response.Header["Link"]).To(ConsistOf([]string{
-							fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/builds?until=4&limit=2>; rel="previous"`, externalURL),
-							fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/builds?since=2&limit=2>; rel="next"`, externalURL),
+							fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/builds?from=4&limit=2>; rel="previous"`, externalURL),
+							fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/builds?to=2&limit=2>; rel="next"`, externalURL),
 						}))
 					})
 				})

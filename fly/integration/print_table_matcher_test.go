@@ -12,7 +12,8 @@ import (
 )
 
 type PrintTableMatcher struct {
-	table ui.Table
+	table        ui.Table
+	printHeaders bool
 
 	actual   string
 	expected string
@@ -20,6 +21,10 @@ type PrintTableMatcher struct {
 
 func PrintTable(table ui.Table) *PrintTableMatcher {
 	return &PrintTableMatcher{table: table}
+}
+
+func PrintTableWithHeaders(table ui.Table) *PrintTableMatcher {
+	return &PrintTableMatcher{table: table, printHeaders: true}
 }
 
 func (matcher *PrintTableMatcher) Match(actual interface{}) (bool, error) {
@@ -49,7 +54,7 @@ func (matcher *PrintTableMatcher) Match(actual interface{}) (bool, error) {
 		return false, err
 	}
 
-	err = matcher.table.Render(buf, false)
+	err = matcher.table.Render(buf, matcher.printHeaders)
 	if err != nil {
 		return false, err
 	}

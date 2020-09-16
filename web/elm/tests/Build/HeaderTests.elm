@@ -9,6 +9,7 @@ import Build.StepTree.Models as STModels
 import Common
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
+import Data
 import Expect
 import HoverState
 import Keyboard
@@ -181,13 +182,23 @@ all =
                             |> Header.update (Message.Click Message.RerunBuildButton)
                             |> Tuple.second
                             |> Common.contains
-                                (Effects.RerunJobBuild <|
-                                    { teamName = "team"
-                                    , pipelineName = "pipeline"
-                                    , jobName = "job"
-                                    , buildName = model.name
-                                    }
+                                (Effects.RerunJobBuild
+                                    (Data.longJobBuildId |> Data.withBuildName model.name)
                                 )
+                , test "archived pipeline's have no right widgets" <|
+                    \_ ->
+                        { model | status = BuildStatusSucceeded, job = Just jobId }
+                            |> Header.header
+                                { session
+                                    | pipelines =
+                                        RemoteData.Success
+                                            [ Data.pipeline jobId.teamName 0
+                                                |> Data.withName jobId.pipelineName
+                                                |> Data.withArchived True
+                                            ]
+                                }
+                            |> .rightWidgets
+                            |> Expect.equal []
                 ]
             ]
         , test "stops fetching history once current build appears" <|
@@ -314,13 +325,7 @@ all =
                                 }
                         )
                     |> Header.changeToBuild
-                        (Models.JobBuildPage
-                            { teamName = "team"
-                            , pipelineName = "pipeline"
-                            , jobName = "job"
-                            , buildName = "1"
-                            }
-                        )
+                        (Models.JobBuildPage Data.longJobBuildId)
                     |> Tuple.first
                     |> Header.header session
                     |> Expect.all
@@ -345,10 +350,15 @@ all =
 
 session : Session
 session =
-    { expandedTeams = Set.empty
+    { expandedTeamsInAllPipelines = Set.empty
+    , collapsedTeamsInFavorites = Set.empty
     , pipelines = RemoteData.NotAsked
     , hovered = HoverState.NoHover
-    , isSideBarOpen = False
+    , sideBarState =
+        { isOpen = False
+        , width = 275
+        }
+    , draggingSideBar = False
     , screenSize = ScreenSize.Desktop
     , userState = UserState.UserStateLoggedOut
     , clusterName = ""
@@ -359,6 +369,7 @@ session =
     , authToken = ""
     , pipelineRunningKeyframes = ""
     , timeZone = Time.utc
+    , favoritedPipelines = Set.empty
     }
 
 
@@ -392,7 +403,4 @@ build =
 
 jobId : Concourse.JobIdentifier
 jobId =
-    { teamName = "team"
-    , pipelineName = "pipeline"
-    , jobName = "job"
-    }
+    Data.jobId

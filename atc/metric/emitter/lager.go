@@ -14,7 +14,7 @@ type LagerConfig struct {
 }
 
 func init() {
-	metric.RegisterEmitter(&LagerConfig{})
+	metric.Metrics.RegisterEmitter(&LagerConfig{})
 }
 
 func (config *LagerConfig) Description() string { return "Lager" }

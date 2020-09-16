@@ -5,6 +5,7 @@ module StrictEvents exposing
     , onLeftClick
     , onLeftClickNoPreventDefault
     , onLeftClickOrShiftLeftClick
+    , onLeftClickStopPropagation
     , onLeftMouseDown
     , onLeftMouseDownCapturing
     , onScroll
@@ -38,16 +39,21 @@ type DeltaMode
 
 onLeftClick : msg -> Html.Attribute msg
 onLeftClick msg =
-    onLeftClickCapturing True (Json.Decode.succeed ()) (always msg)
+    onLeftClickCapturing True False (Json.Decode.succeed ()) (always msg)
+
+
+onLeftClickStopPropagation : msg -> Html.Attribute msg
+onLeftClickStopPropagation msg =
+    onLeftClickCapturing True True (Json.Decode.succeed ()) (always msg)
 
 
 onLeftClickNoPreventDefault : msg -> Html.Attribute msg
 onLeftClickNoPreventDefault msg =
-    onLeftClickCapturing False (Json.Decode.succeed ()) (always msg)
+    onLeftClickCapturing False False (Json.Decode.succeed ()) (always msg)
 
 
-onLeftClickCapturing : Bool -> Json.Decode.Decoder x -> (x -> msg) -> Html.Attribute msg
-onLeftClickCapturing preventDefault captured msg =
+onLeftClickCapturing : Bool -> Bool -> Json.Decode.Decoder x -> (x -> msg) -> Html.Attribute msg
+onLeftClickCapturing preventDefault stopPropagation captured msg =
     Html.Events.custom "click"
         (assertNoModifier
             |> Json.Decode.andThen
@@ -58,7 +64,7 @@ onLeftClickCapturing preventDefault captured msg =
                                 Json.Decode.map
                                     (\x ->
                                         { message = msg x
-                                        , stopPropagation = False
+                                        , stopPropagation = stopPropagation
                                         , preventDefault = preventDefault
                                         }
                                     )

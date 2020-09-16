@@ -55,6 +55,8 @@ var (
 	heartbeatInterval = 1 * time.Second
 	tsaProcess        ifrit.Process
 
+	gardenRequestTimeout = 3 * time.Second
+
 	gardenAddr  string
 	fakeBackend *gfakes.FakeBackend
 
@@ -158,6 +160,7 @@ var _ = BeforeEach(func() {
 		"--client-secret", "some-client-secret",
 		"--token-url", authServer.URL()+"/token",
 		"--atc-url", atcServer.URL(),
+		"--garden-request-timeout", gardenRequestTimeout.String(),
 		"--heartbeat-interval", heartbeatInterval.String(),
 	)
 

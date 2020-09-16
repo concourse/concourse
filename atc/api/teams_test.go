@@ -82,52 +82,18 @@ var _ = Describe("Teams API", func() {
 					"groups": []string{}, "users": []string{"local:username"},
 				},
 			})
+
+			fakeAccess.IsAuthorizedReturnsOnCall(0, true)
+			fakeAccess.IsAuthorizedReturnsOnCall(1, false)
+			fakeAccess.IsAuthorizedReturnsOnCall(2, true)
 		})
 
-		Context("when the requester is an admin", func() {
+		Context("when the database call succeeds", func() {
 			BeforeEach(func() {
-				fakeAccess.IsAdminReturns(true)
-
-				dbTeamFactory.GetTeamsReturns([]db.Team{fakeTeamOne, fakeTeamTwo, fakeTeamThree}, nil)
-
-			})
-
-			It("should return all teams", func() {
-				body, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(body).To(MatchJSON(`[
- 					{
- 						"id": 5,
- 						"name": "avengers",
-						"auth": { "owner":{"users":["local:username"],"groups":[]}}
- 					},
- 					{
- 						"id": 9,
- 						"name": "aliens",
-						"auth": { "owner":{"users":["local:username"],"groups":[]}}
-					},
- 					{
- 						"id": 22,
- 						"name": "predators",
-						"auth": { "owner":{"users":["local:username"],"groups":[]}}
-					}
- 				]`))
-			})
-		})
-
-		Context("when the requester is NOT an admin", func() {
-			BeforeEach(func() {
-				fakeAccess.IsAdminReturns(false)
-
-				fakeAccess.IsAuthorizedReturnsOnCall(0, true)
-				fakeAccess.IsAuthorizedReturnsOnCall(1, false)
-				fakeAccess.IsAuthorizedReturnsOnCall(2, true)
-
 				dbTeamFactory.GetTeamsReturns([]db.Team{fakeTeamOne, fakeTeamTwo, fakeTeamThree}, nil)
 			})
 
-			It("should return only the teams the user is authorized for", func() {
+			It("should return the teams the user is authorized for", func() {
 				body, err := ioutil.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -146,7 +112,7 @@ var _ = Describe("Teams API", func() {
 			})
 		})
 
-		Context("when the database returns an error", func() {
+		Context("when the database call returns an error", func() {
 			var disaster error
 
 			BeforeEach(func() {
@@ -288,19 +254,25 @@ var _ = Describe("Teams API", func() {
 	Describe("PUT /api/v1/teams/:team_name", func() {
 		var (
 			response *http.Response
+			teamAuth atc.TeamAuth
 			atcTeam  atc.Team
+			path     string
 		)
 
 		BeforeEach(func() {
 			fakeTeam.IDReturns(5)
 			fakeTeam.NameReturns("some-team")
 
-			atcTeam = atc.Team{}
+			teamAuth = atc.TeamAuth{
+				"owner": map[string][]string{
+					"groups": {}, "users": {"local:username"},
+				},
+			}
+			atcTeam = atc.Team{Auth: teamAuth}
+			path = fmt.Sprintf("%s/api/v1/teams/some-team", server.URL)
 		})
 
 		JustBeforeEach(func() {
-			path := fmt.Sprintf("%s/api/v1/teams/some-team", server.URL)
-
 			var err error
 			request, err := http.NewRequest("PUT", path, jsonEncode(atcTeam))
 			Expect(err).NotTo(HaveOccurred())
@@ -339,6 +311,36 @@ var _ = Describe("Teams API", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
+				Context("when provider auth is empty", func() {
+					BeforeEach(func() {
+						atcTeam = atc.Team{}
+						dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+					})
+
+					It("does not update provider auth", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						Expect(fakeTeam.UpdateProviderAuthCallCount()).To(Equal(0))
+					})
+				})
+
+				Context("when provider auth is invalid", func() {
+					BeforeEach(func() {
+						atcTeam = atc.Team{
+							Auth: atc.TeamAuth{
+								"owner": {
+									//"users": []string{},
+									//"groups": []string{},
+								},
+							},
+						}
+						dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+					})
+
+					It("does not update provider auth", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						Expect(fakeTeam.UpdateProviderAuthCallCount()).To(Equal(0))
+					})
+				})
 			})
 		}
 
@@ -364,7 +366,12 @@ var _ = Describe("Teams API", func() {
 					createdTeam := dbTeamFactory.CreateTeamArgsForCall(0)
 					Expect(createdTeam).To(Equal(atc.Team{
 						Name: "some-team",
+						Auth: teamAuth,
 					}))
+				})
+
+				It("delete the teams in cache", func() {
+					Expect(dbTeamFactory.NotifyCacherCallCount()).To(Equal(1))
 				})
 
 				Context("when it fails to create team", func() {
@@ -374,6 +381,33 @@ var _ = Describe("Teams API", func() {
 
 					It("returns a 500 Internal Server error", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+
+					It("does not delete the teams in cache", func() {
+						Expect(dbTeamFactory.NotifyCacherCallCount()).To(Equal(0))
+					})
+				})
+
+				Context("when the team's name is an invalid identifier", func() {
+					BeforeEach(func() {
+						path = fmt.Sprintf("%s/api/v1/teams/_some-team", server.URL)
+						fakeTeam.NameReturns("_some-team")
+					})
+
+					It("returns a warning in the response body", func() {
+						Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+								{
+									"warnings": [
+										{
+											"type": "invalid_identifier",
+											"message": "team: '_some-team' is not a valid identifier: must start with a lowercase letter"
+										}
+									],
+									"team": {
+										"id": 5,
+										"name": "_some-team"
+									}
+								}`))
 					})
 				})
 			})
@@ -521,13 +555,14 @@ var _ = Describe("Teams API", func() {
 
 	Describe("PUT /api/v1/teams/:team_name/rename", func() {
 		var response *http.Response
+		var requestBody string
 		var teamName string
 
 		JustBeforeEach(func() {
 			request, err := http.NewRequest(
 				"PUT",
 				server.URL+"/api/v1/teams/"+teamName+"/rename",
-				bytes.NewBufferString(`{"name":"some-new-name"}`),
+				bytes.NewBufferString(requestBody),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -536,6 +571,7 @@ var _ = Describe("Teams API", func() {
 		})
 
 		BeforeEach(func() {
+			requestBody = `{"name":"some-new-name"}`
 			fakeTeam.IDReturns(2)
 		})
 
@@ -561,8 +597,27 @@ var _ = Describe("Teams API", func() {
 					Expect(fakeTeam.RenameArgsForCall(0)).To(Equal("some-new-name"))
 				})
 
-				It("returns 204 no content", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				Context("when a warning occurs", func() {
+
+					BeforeEach(func() {
+						requestBody = `{"name":"_some-new-name"}`
+					})
+
+					It("returns a warning in the response body", func() {
+						Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							{
+								"warnings": [
+								{
+									"type": "invalid_identifier",
+									"message": "team: '_some-new-name' is not a valid identifier: must start with a lowercase letter"
+								}
+								]
+							}`))
+					})
 				})
 			})
 
@@ -584,8 +639,8 @@ var _ = Describe("Teams API", func() {
 					Expect(fakeTeam.RenameArgsForCall(0)).To(Equal("some-new-name"))
 				})
 
-				It("returns 204 no content", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 			})
 
@@ -658,8 +713,6 @@ var _ = Describe("Teams API", func() {
 
 					page := fakeTeam.BuildsArgsForCall(0)
 					Expect(page).To(Equal(db.Page{
-						Since: 0,
-						Until: 0,
 						Limit: 100,
 					}))
 				})
@@ -667,7 +720,7 @@ var _ = Describe("Teams API", func() {
 
 			Context("when all the params are passed", func() {
 				BeforeEach(func() {
-					queryParams = "?since=2&until=3&limit=8"
+					queryParams = "?from=2&to=3&limit=8"
 				})
 
 				It("passes them through", func() {
@@ -675,8 +728,8 @@ var _ = Describe("Teams API", func() {
 
 					page := fakeTeam.BuildsArgsForCall(0)
 					Expect(page).To(Equal(db.Page{
-						Since: 2,
-						Until: 3,
+						From:  db.NewIntPtr(2),
+						To:    db.NewIntPtr(3),
 						Limit: 8,
 					}))
 				})
@@ -756,15 +809,15 @@ var _ = Describe("Teams API", func() {
 				Context("when next/previous pages are available", func() {
 					BeforeEach(func() {
 						fakeTeam.BuildsReturns(returnedBuilds, db.Pagination{
-							Previous: &db.Page{Until: 4, Limit: 2},
-							Next:     &db.Page{Since: 2, Limit: 2},
+							Newer: &db.Page{From: db.NewIntPtr(4), Limit: 2},
+							Older: &db.Page{To: db.NewIntPtr(2), Limit: 2},
 						}, nil)
 					})
 
 					It("returns Link headers per rfc5988", func() {
 						Expect(response.Header["Link"]).To(ConsistOf([]string{
-							fmt.Sprintf(`<%s/api/v1/teams/some-team/builds?until=4&limit=2>; rel="previous"`, externalURL),
-							fmt.Sprintf(`<%s/api/v1/teams/some-team/builds?since=2&limit=2>; rel="next"`, externalURL),
+							fmt.Sprintf(`<%s/api/v1/teams/some-team/builds?from=4&limit=2>; rel="previous"`, externalURL),
+							fmt.Sprintf(`<%s/api/v1/teams/some-team/builds?to=2&limit=2>; rel="next"`, externalURL),
 						}))
 					})
 				})

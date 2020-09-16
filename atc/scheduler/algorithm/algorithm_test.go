@@ -1975,57 +1975,6 @@ var _ = DescribeTable("Input resolving",
 		},
 	}),
 
-	Entry("resolves to the api pinned version when it exists", Example{
-		DB: DB{
-			Resources: []DBRow{
-				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2, Pinned: true},
-				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
-				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
-			},
-		},
-
-		Inputs: Inputs{
-			{
-				Name:     "resource-x",
-				Resource: "resource-x",
-			},
-		},
-
-		Result: Result{
-			OK: true,
-			Values: map[string]string{
-				"resource-x": "rxv2",
-			},
-		},
-	}),
-
-	Entry("resolves to the pinned version when both api pinned and get step pinned versions exists", Example{
-		DB: DB{
-			Resources: []DBRow{
-				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
-				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2, Pinned: true},
-				{Resource: "resource-x", Version: "rxv3", CheckOrder: 3},
-				{Resource: "resource-x", Version: "rxv4", CheckOrder: 4},
-			},
-		},
-
-		Inputs: Inputs{
-			{
-				Name:     "resource-x",
-				Resource: "resource-x",
-				Version:  Version{Pinned: "rxv1"},
-			},
-		},
-
-		Result: Result{
-			OK: true,
-			Values: map[string]string{
-				"resource-x": "rxv1",
-			},
-		},
-	}),
-
 	Entry("check orders take precedence over version ID", Example{
 		DB: DB{
 			Resources: []DBRow{
@@ -3223,6 +3172,72 @@ var _ = DescribeTable("Input resolving",
 			HasNext: true,
 			Values: map[string]string{
 				"resource-x": "rxv3",
+			},
+		},
+	}),
+
+	Entry("if the chosen version for an input with passed constraints does not exist, it will not select that version", Example{
+		DB: DB{
+			BuildInputs: []DBRow{
+				{Job: "another-job", BuildID: 100, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "another-job", BuildID: 101, Resource: "resource-x", Version: "rxv2", CheckOrder: 2, DoNotInsertVersion: true},
+			},
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Passed:   []string{"another-job"},
+			},
+		},
+
+		Result: Result{
+			OK: true,
+			Values: map[string]string{
+				"resource-x": "rxv1",
+			},
+		},
+	}),
+
+	Entry("if there are multiple inputs with the same passed constraint job and the chosen version from a build does not exist, it will not use that build", Example{
+		DB: DB{
+			BuildInputs: []DBRow{
+				{Job: "another-job", BuildID: 100, Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Job: "another-job", BuildID: 101, Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+
+				{Job: "another-job", BuildID: 100, Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+				{Job: "another-job", BuildID: 101, Resource: "resource-y", Version: "ryv2", CheckOrder: 2, DoNotInsertVersion: true},
+			},
+
+			Resources: []DBRow{
+				{Resource: "resource-x", Version: "rxv1", CheckOrder: 1},
+				{Resource: "resource-x", Version: "rxv2", CheckOrder: 2},
+				{Resource: "resource-y", Version: "ryv1", CheckOrder: 1},
+			},
+		},
+
+		Inputs: Inputs{
+			{
+				Name:     "resource-x",
+				Resource: "resource-x",
+				Passed:   []string{"another-job"},
+			},
+			{
+				Name:     "resource-y",
+				Resource: "resource-y",
+				Passed:   []string{"another-job"},
+			},
+		},
+
+		Result: Result{
+			OK: true,
+			Values: map[string]string{
+				"resource-x": "rxv1",
+				"resource-y": "ryv1",
 			},
 		},
 	}),

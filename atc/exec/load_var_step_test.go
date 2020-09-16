@@ -4,21 +4,20 @@ import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
 	"context"
-	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/exec/build/buildfakes"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
-	"github.com/concourse/concourse/vars/varsfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/atc/exec/build/buildfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/vars"
 )
 
-const plainString = "pv"
+const plainString = "  pv  \n\n"
 
 const yamlString = `
 k1: yv1
@@ -49,7 +48,7 @@ var _ = Describe("LoadVarStep", func() {
 		spStep  exec.Step
 		stepErr error
 
-		credVarsTracker vars.CredVarsTracker
+		buildVars *vars.BuildVariables
 
 		stepMetadata = exec.StepMetadata{
 			TeamID:       123,
@@ -62,7 +61,7 @@ var _ = Describe("LoadVarStep", func() {
 
 		stdout, stderr *gbytes.Buffer
 
-		planID = 56
+		planID = "56"
 	)
 
 	BeforeEach(func() {
@@ -71,7 +70,7 @@ var _ = Describe("LoadVarStep", func() {
 		ctx = lagerctx.NewContext(ctx, testLogger)
 
 		credVars := vars.StaticVariables{}
-		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
+		buildVars = vars.NewBuildVariables(credVars, true)
 
 		artifactRepository = build.NewRepository()
 		state = new(execfakes.FakeRunState)
@@ -84,7 +83,7 @@ var _ = Describe("LoadVarStep", func() {
 		stderr = gbytes.NewBuffer()
 
 		fakeDelegate = new(execfakes.FakeBuildStepDelegate)
-		fakeDelegate.VariablesReturns(credVarsTracker)
+		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdout)
 		fakeDelegate.StderrReturns(stderr)
 
@@ -128,6 +127,28 @@ var _ = Describe("LoadVarStep", func() {
 			})
 		})
 
+		Context("when format is trim", func() {
+			BeforeEach(func() {
+				loadVarPlan = &atc.LoadVarPlan{
+					Name:   "some-var",
+					File:   "some-resource/a.diff",
+					Format: "trim",
+				}
+
+				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
+			})
+
+			It("step should not fail", func() {
+				Expect(stepErr).ToNot(HaveOccurred())
+			})
+
+			It("should var parsed correctly", func() {
+				value, err := vars.NewTemplate([]byte("((.:some-var))")).Evaluate(buildVars, vars.EvaluateOpts{})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(string(value)).To(Equal("pv\n"))
+			})
+		})
+
 		Context("when format is raw", func() {
 			BeforeEach(func() {
 				loadVarPlan = &atc.LoadVarPlan{
@@ -144,9 +165,9 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
+				value, err := vars.NewTemplate([]byte("((.:some-var))")).Evaluate(buildVars, vars.EvaluateOpts{})
 				Expect(err).ToNot(HaveOccurred())
-				Expect(string(value)).To(Equal("pv\n"))
+				Expect(string(value)).To(Equal("\"  pv  \\n\\n\"\n"))
 			})
 		})
 
@@ -166,7 +187,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
+				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(buildVars, vars.EvaluateOpts{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(value)).To(Equal("jv1jv2\n"))
 			})
@@ -188,7 +209,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
+				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(buildVars, vars.EvaluateOpts{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(value)).To(Equal("yv1yv2\n"))
 			})
@@ -210,7 +231,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
+				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(buildVars, vars.EvaluateOpts{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(value)).To(Equal("yv1yv2\n"))
 			})
@@ -232,8 +253,8 @@ var _ = Describe("LoadVarStep", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
 			})
 
-			It("should var parsed correctly as raw", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
+			It("should var parsed correctly as trim", func() {
+				value, err := vars.NewTemplate([]byte("((.:some-var))")).Evaluate(buildVars, vars.EvaluateOpts{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(value)).To(Equal("pv\n"))
 			})
@@ -254,7 +275,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
+				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(buildVars, vars.EvaluateOpts{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(value)).To(Equal("jv1jv2\n"))
 			})
@@ -275,7 +296,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
+				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(buildVars, vars.EvaluateOpts{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(value)).To(Equal("yv1yv2\n"))
 			})
@@ -296,7 +317,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(credVarsTracker, vars.EvaluateOpts{})
+				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(buildVars, vars.EvaluateOpts{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(value)).To(Equal("yv1yv2\n"))
 			})
@@ -338,13 +359,6 @@ var _ = Describe("LoadVarStep", func() {
 	})
 
 	Context("reveal", func() {
-		var fakeCredVarsTracker *varsfakes.FakeCredVarsTracker
-
-		BeforeEach(func() {
-			fakeCredVarsTracker = new(varsfakes.FakeCredVarsTracker)
-			fakeDelegate.VariablesReturns(fakeCredVarsTracker)
-		})
-
 		Context("when reveal is not specified", func() {
 			BeforeEach(func() {
 				loadVarPlan = &atc.LoadVarPlan{
@@ -355,8 +369,9 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("local var should be redacted", func() {
-				_, _, redact := fakeCredVarsTracker.AddLocalVarArgsForCall(0)
-				Expect(redact).To(BeTrue())
+				mapit := vars.TrackedVarsMap{}
+				buildVars.IterateInterpolatedCreds(mapit)
+				Expect(mapit).To(HaveKey("some-var"))
 			})
 		})
 
@@ -371,8 +386,9 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("local var should be redacted", func() {
-				_, _, redact := fakeCredVarsTracker.AddLocalVarArgsForCall(0)
-				Expect(redact).To(BeTrue())
+				mapit := vars.TrackedVarsMap{}
+				buildVars.IterateInterpolatedCreds(mapit)
+				Expect(mapit).To(HaveKey("some-var"))
 			})
 		})
 
@@ -387,8 +403,9 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("local var should not be redacted", func() {
-				_, _, redact := fakeCredVarsTracker.AddLocalVarArgsForCall(0)
-				Expect(redact).To(BeFalse())
+				mapit := vars.TrackedVarsMap{}
+				buildVars.IterateInterpolatedCreds(mapit)
+				Expect(mapit).ToNot(HaveKey("some-var"))
 			})
 		})
 	})

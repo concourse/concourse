@@ -69,7 +69,16 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pipelineName := rata.Param(r, "pipeline_name")
+	warning := atc.ValidateIdentifier(pipelineName, "pipeline")
+	if warning != nil {
+		warnings = append(warnings, *warning)
+	}
+
 	teamName := rata.Param(r, "team_name")
+	warning = atc.ValidateIdentifier(teamName, "team")
+	if warning != nil {
+		warnings = append(warnings, *warning)
+	}
 
 	if checkCredentials {
 		variables := creds.NewVariables(s.secretManager, teamName, pipelineName, false)
@@ -92,7 +101,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 
 	if !found {
 		session.Debug("team-not-found")
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
@@ -147,40 +156,47 @@ func validateCredParams(credMgrVars vars.Variables, config atc.Config, session l
 	}
 
 	for _, job := range config.Jobs {
-		for _, plan := range job.Plan {
-			_, err := creds.NewParams(credMgrVars, plan.Params).Evaluate()
-			if err != nil {
-				errs = multierror.Append(errs, err)
-			}
-
-			if plan.File != "" {
-				// external task - we can't really validate much right now, because task yaml will be
-				// retrieved in runtime during job execution. but we can validate vars and params which will be
-				// passed to this task
-				err = creds.NewTaskParamsValidator(credMgrVars, plan.Params).Validate()
+		_ = job.StepConfig().Visit(atc.StepRecursor{
+			OnTask: func(step *atc.TaskStep) error {
+				_, err := creds.NewParams(credMgrVars, step.Params).Evaluate()
 				if err != nil {
 					errs = multierror.Append(errs, err)
 				}
 
-				err = creds.NewTaskVarsValidator(credMgrVars, plan.Vars).Validate()
-				if err != nil {
-					errs = multierror.Append(errs, err)
+				if step.ConfigPath != "" {
+					// external task - we can't really validate much right now, because task yaml will be
+					// retrieved in runtime during job execution. but we can validate vars and params which will be
+					// passed to this task
+					err = creds.NewTaskParamsValidator(credMgrVars, step.Params).Validate()
+					if err != nil {
+						errs = multierror.Append(errs, err)
+					}
+
+					err = creds.NewTaskVarsValidator(credMgrVars, step.Vars).Validate()
+					if err != nil {
+						errs = multierror.Append(errs, err)
+					}
+
+				} else if step.Config != nil {
+					// embedded task - we can fully validate it, interpolating with cred mgr variables
+					var taskConfigSource exec.TaskConfigSource
+					embeddedTaskVars := []vars.Variables{credMgrVars}
+					taskConfigSource = exec.StaticConfigSource{Config: step.Config}
+					taskConfigSource = exec.InterpolateTemplateConfigSource{
+						ConfigSource:  taskConfigSource,
+						Vars:          embeddedTaskVars,
+						ExpectAllKeys: true,
+					}
+					taskConfigSource = exec.ValidatingConfigSource{ConfigSource: taskConfigSource}
+					_, err = taskConfigSource.FetchConfig(context.TODO(), session, nil)
+					if err != nil {
+						errs = multierror.Append(errs, err)
+					}
 				}
 
-			} else if plan.TaskConfig != nil {
-				// embedded task - we can fully validate it, interpolating with cred mgr variables
-				var taskConfigSource exec.TaskConfigSource
-				embeddedTaskVars := []vars.Variables{credMgrVars}
-				taskConfigSource = exec.StaticConfigSource{Config: plan.TaskConfig}
-				taskConfigSource = exec.InterpolateTemplateConfigSource{ConfigSource: taskConfigSource, Vars: embeddedTaskVars}
-				taskConfigSource = exec.ValidatingConfigSource{ConfigSource: taskConfigSource}
-				_, err = taskConfigSource.FetchConfig(context.TODO(), session, nil)
-				if err != nil {
-					errs = multierror.Append(errs, err)
-				}
-			}
-
-		}
+				return nil
+			},
+		})
 	}
 
 	if errs != nil {

@@ -1,6 +1,7 @@
 module FlySuccess.Text exposing
     ( Paragraph
     , copyTokenButton
+    , copyTokenInput
     , firstParagraph
     , flyLoginLinkDescription
     , flyLoginLinkText
@@ -91,6 +92,11 @@ copyTokenButton buttonState =
 
     else
         "copy token to clipboard"
+
+
+copyTokenInput : String
+copyTokenInput =
+    "copy token here"
 
 
 sendTokenButton : String

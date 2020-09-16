@@ -1,9 +1,11 @@
 package jobserver
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -64,7 +66,13 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 			resource, found := resources.Lookup(input.Resource)
 			if found {
 				version := resource.CurrentPinnedVersion()
-				_, _, err := s.checkFactory.TryCreateCheck(logger, resource, resourceTypes, version, true)
+				_, _, err := s.checkFactory.TryCreateCheck(
+					lagerctx.NewContext(context.Background(), logger),
+					resource,
+					resourceTypes,
+					version,
+					true,
+				)
 				if err != nil {
 					logger.Error("failed-to-create-check", err)
 				}

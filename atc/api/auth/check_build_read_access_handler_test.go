@@ -2,6 +2,7 @@ package auth_test
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 
@@ -102,13 +103,15 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 
 	Context("AnyJobHandler", func() {
 		BeforeEach(func() {
-			checkBuildReadAccessHandler := handlerFactory.AnyJobHandler(delegate, auth.UnauthorizedRejector{})
-			handler = accessor.NewHandler(logger,
-				checkBuildReadAccessHandler,
-				fakeAccessor,
+			innerHandler := handlerFactory.AnyJobHandler(delegate, auth.UnauthorizedRejector{})
+
+			handler = accessor.NewHandler(
+				logger,
 				"some-action",
+				innerHandler,
+				fakeAccessor,
 				new(auditorfakes.FakeAuditor),
-				new(dbfakes.FakeUserFactory),
+				map[string]string{},
 			)
 		})
 
@@ -216,13 +219,15 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 
 		BeforeEach(func() {
 			fakeJob = new(dbfakes.FakeJob)
-			checkBuildReadAccessHandler := handlerFactory.CheckIfPrivateJobHandler(delegate, auth.UnauthorizedRejector{})
-			handler = accessor.NewHandler(logger,
-				checkBuildReadAccessHandler,
-				fakeAccessor,
+			innerHandler := handlerFactory.CheckIfPrivateJobHandler(delegate, auth.UnauthorizedRejector{})
+
+			handler = accessor.NewHandler(
+				logger,
 				"some-action",
+				innerHandler,
+				fakeAccessor,
 				new(auditorfakes.FakeAuditor),
-				new(dbfakes.FakeUserFactory),
+				map[string]string{},
 			)
 		})
 
@@ -252,7 +257,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 						pipeline.JobReturns(fakeJob, true, nil)
 					})
 
-					It("returns "+string(status), func() {
+					It("returns "+fmt.Sprint(status), func() {
 						Expect(response.StatusCode).To(Equal(status))
 					})
 				})
@@ -284,7 +289,7 @@ var _ = Describe("CheckBuildReadAccessHandler", func() {
 					build.PipelineReturns(pipeline, true, nil)
 				})
 
-				It("returns "+string(status), func() {
+				It("returns "+fmt.Sprint(status), func() {
 					Expect(response.StatusCode).To(Equal(status))
 				})
 			})

@@ -1,23 +1,23 @@
 module Build.Styles exposing
     ( MetadataCellType(..)
     , abortButton
+    , acrossStepSubHeaderLabel
     , body
     , buttonTooltip
     , buttonTooltipArrow
+    , changedStepTooltip
     , durationTooltip
     , durationTooltipArrow
     , errorLog
-    , firstOccurrenceTooltip
-    , firstOccurrenceTooltipArrow
     , header
     , historyItem
     , metadataCell
     , metadataTable
-    , retryTab
     , retryTabList
     , stepHeader
     , stepHeaderLabel
     , stepStatusIcon
+    , tab
     , triggerButton
     )
 
@@ -29,6 +29,7 @@ import Concourse.BuildStatus exposing (BuildStatus(..))
 import Dashboard.Styles exposing (striped)
 import Html
 import Html.Attributes exposing (style)
+import Views.Styles
 
 
 header : BuildStatus -> List (Html.Attribute msg)
@@ -62,6 +63,7 @@ body : List (Html.Attribute msg)
 body =
     [ style "overflow-y" "auto"
     , style "outline" "none"
+    , style "position" "relative"
     , style "-webkit-overflow-scrolling" "touch"
     ]
 
@@ -165,9 +167,6 @@ buttonTooltip width =
     , style "width" <| String.fromInt width ++ "px"
     , style "color" Colors.text
     , style "background-color" Colors.frame
-    , style "font-size" "12px"
-    , style "font-family" "Inconsolata,monospace"
-    , style "font-weight" "700"
     , style "padding" "10px"
     , style "text-align" "right"
     , style "pointer-events" "none"
@@ -176,6 +175,7 @@ buttonTooltip width =
     -- ^ need a value greater than 0 (inherited from .fixed-header) since this
     -- element is earlier in the document than the build tabs
     ]
+        ++ Views.Styles.defaultFont
 
 
 stepHeader : StepState -> List (Html.Attribute msg)
@@ -216,9 +216,19 @@ stepHeaderLabel headerType =
             StepHeaderGet True ->
                 Colors.started
 
+            StepHeaderSetPipeline True ->
+                Colors.started
+
             _ ->
                 Colors.pending
     , style "line-height" "28px"
+    , style "padding-left" "6px"
+    ]
+
+
+acrossStepSubHeaderLabel : List (Html.Attribute msg)
+acrossStepSubHeaderLabel =
+    [ style "line-height" "28px"
     , style "padding-left" "6px"
     ]
 
@@ -230,34 +240,15 @@ stepStatusIcon =
     ]
 
 
-firstOccurrenceTooltip : Float -> Float -> List (Html.Attribute msg)
-firstOccurrenceTooltip bottom left =
-    [ style "position" "fixed"
-    , style "left" <| String.fromFloat left ++ "px"
-    , style "bottom" <| String.fromFloat bottom ++ "px"
-    , style "background-color" Colors.tooltipBackground
+changedStepTooltip : List (Html.Attribute msg)
+changedStepTooltip =
+    [ style "background-color" Colors.tooltipBackground
     , style "padding" "5px"
     , style "z-index" "100"
-    , style "width" "6em"
+    , style "width" "fit-content"
     , style "pointer-events" "none"
     ]
         ++ Application.Styles.disableInteraction
-
-
-firstOccurrenceTooltipArrow : Float -> Float -> Float -> List (Html.Attribute msg)
-firstOccurrenceTooltipArrow bottom left width =
-    [ style "position" "fixed"
-    , style "left" <| String.fromFloat (left + width / 2) ++ "px"
-    , style "bottom" <| String.fromFloat bottom ++ "px"
-    , style "margin-bottom" "-5px"
-    , style "margin-left" "-5px"
-    , style "width" "0"
-    , style "height" "0"
-    , style "border-top" <| "5px solid " ++ Colors.tooltipBackground
-    , style "border-left" "5px solid transparent"
-    , style "border-right" "5px solid transparent"
-    , style "z-index" "100"
-    ]
 
 
 durationTooltip : List (Html.Attribute msg)
@@ -295,22 +286,28 @@ errorLog =
     ]
 
 
-retryTabList : List (Html.Attribute msg)
-retryTabList =
-    [ style "margin" "0"
-    , style "font-size" "16px"
-    , style "line-height" "26px"
+tabList : List (Html.Attribute msg)
+tabList =
+    [ style "line-height" "26px"
     , style "background-color" Colors.background
     ]
 
 
-retryTab :
+retryTabList : List (Html.Attribute msg)
+retryTabList =
+    style "font-size" "16px"
+        :: style "margin" "0"
+        :: tabList
+
+
+tab :
     { isHovered : Bool, isCurrent : Bool, isStarted : Bool }
     -> List (Html.Attribute msg)
-retryTab { isHovered, isCurrent, isStarted } =
+tab { isHovered, isCurrent, isStarted } =
     [ style "display" "inline-block"
+    , style "position" "relative"
     , style "padding" "0 5px"
-    , style "font-weight" "700"
+    , style "font-weight" Views.Styles.fontWeightDefault
     , style "cursor" "pointer"
     , style "color" Colors.retryTabText
     , style "background-color" <|

@@ -14,7 +14,8 @@ type ChecklistCommand struct {
 }
 
 func (command *ChecklistCommand) Validate() error {
-	return command.Pipeline.Validate()
+	_, err := command.Pipeline.Validate()
+	return err
 }
 
 func (command *ChecklistCommand) Execute([]string) error {

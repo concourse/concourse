@@ -6,8 +6,9 @@ import (
 	"io"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/DataDog/zstd"
+	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/tracing"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -29,74 +30,105 @@ type StreamableArtifactSource interface {
 	// StreamTo copies the data from the source to the destination. Note that
 	// this potentially uses a lot of network transfer, for larger artifacts, as
 	// the ATC will effectively act as a middleman.
-	StreamTo(context.Context, lager.Logger, ArtifactDestination) error
+	StreamTo(context.Context, ArtifactDestination) error
 
 	// StreamFile returns the contents of a single file in the artifact source.
 	// This is used for loading a task's configuration at runtime.
-	//
-	// If the file cannot be found, FileNotFoundError should be returned.
-	StreamFile(context.Context, lager.Logger, string) (io.ReadCloser, error)
+	StreamFile(context.Context, string) (io.ReadCloser, error)
 }
 
 type artifactSource struct {
-	artifact runtime.Artifact
-	volume   Volume
+	artifact    runtime.Artifact
+	volume      Volume
+	compression compression.Compression
 }
 
-func NewStreamableArtifactSource(artifact runtime.Artifact, volume Volume) StreamableArtifactSource {
-	return &artifactSource{artifact: artifact, volume: volume}
+func NewStreamableArtifactSource(
+	artifact runtime.Artifact,
+	volume Volume,
+	compression compression.Compression,
+) StreamableArtifactSource {
+	return &artifactSource{
+		artifact:    artifact,
+		volume:      volume,
+		compression: compression,
+	}
 }
 
-// TODO: figure out if we want logging before and after streams, I remove logger from private methods
 func (source *artifactSource) StreamTo(
 	ctx context.Context,
-	logger lager.Logger,
 	destination ArtifactDestination,
 ) error {
-	out, err := source.volume.StreamOut(ctx, ".")
+	ctx, span := tracing.StartSpan(ctx, "artifactSource.StreamTo", nil)
+	defer span.End()
+
+	_, outSpan := tracing.StartSpan(ctx, "volume.StreamOut", tracing.Attrs{
+		"origin-volume": source.volume.Handle(),
+		"origin-worker": source.volume.WorkerName(),
+	})
+	defer outSpan.End()
+	out, err := source.volume.StreamOut(ctx, ".", source.compression.Encoding())
+
 	if err != nil {
+		tracing.End(outSpan, err)
 		return err
 	}
 
 	defer out.Close()
 
-	err = destination.StreamIn(ctx, ".", out)
-	if err != nil {
-		return err
-	}
-	return nil
+	err = destination.StreamIn(ctx, ".", source.compression.Encoding(), out)
+
+	return err
 }
 
-// TODO: figure out if we want logging before and after streams, I remove logger from private methods
 func (source *artifactSource) StreamFile(
 	ctx context.Context,
-	logger lager.Logger,
 	filepath string,
 ) (io.ReadCloser, error) {
-	out, err := source.volume.StreamOut(ctx, filepath)
+	out, err := source.volume.StreamOut(ctx, filepath, source.compression.Encoding())
 	if err != nil {
 		return nil, err
 	}
 
-	zstdReader := zstd.NewReader(out)
-	tarReader := tar.NewReader(zstdReader)
+	compressionReader, err := source.compression.NewReader(out)
+	if err != nil {
+		return nil, err
+	}
+	tarReader := tar.NewReader(compressionReader)
 
 	_, err = tarReader.Next()
 	if err != nil {
-		return nil, runtime.FileNotFoundError{Path: filepath}
+		return nil, err
 	}
 
 	return fileReadMultiCloser{
 		reader: tarReader,
 		closers: []io.Closer{
 			out,
-			zstdReader,
+			compressionReader,
 		},
 	}, nil
 }
 
+// Returns volume if it belongs to the worker
+//  otherwise, if the volume has a Resource Cache
+//  it checks the worker for a local volume corresponding to the Resource Cache.
+//  Note: The returned volume may have a different handle than the ArtifactSource's inner volume handle.
 func (source *artifactSource) ExistsOn(logger lager.Logger, worker Worker) (Volume, bool, error) {
-	return worker.LookupVolume(logger, source.artifact.ID())
+	if source.volume.WorkerName() == worker.Name() {
+		return source.volume, true, nil
+	}
+
+	resourceCache, found, err := worker.FindResourceCacheForVolume(source.volume)
+	if err != nil {
+		return nil, false, err
+	}
+	if found {
+		return worker.FindVolumeForResourceCache(logger, resourceCache)
+	} else {
+		return nil, false, nil
+	}
+
 }
 
 type cacheArtifactSource struct {

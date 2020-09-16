@@ -21,12 +21,12 @@ func (command *LogoutCommand) Execute(args []string) error {
 		fmt.Println("logged out of target: " + Fly.Target)
 	} else if Fly.Target == "" && command.All {
 
-		flyYAML, err := rc.LoadTargets()
+		targets, err := rc.LoadTargets()
 		if err != nil {
 			return err
 		}
 
-		for targetName := range flyYAML.Targets {
+		for targetName := range targets {
 			if err := rc.LogoutTarget(targetName); err != nil {
 				return err
 			}

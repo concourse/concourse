@@ -1,11 +1,9 @@
 package integration_test
 
 import (
-	"io/ioutil"
-	"os"
 	"os/exec"
-	"path/filepath"
 
+	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/fatih/color"
 	"github.com/onsi/gomega/gbytes"
@@ -17,38 +15,39 @@ import (
 
 var _ = Describe("Fly CLI", func() {
 	var (
-		flyCmd       *exec.Cmd
-		flyrc        string
-		tmpDir       string
-		flyrcFixture string
+		flyCmd  *exec.Cmd
+		targets rc.Targets
 	)
 
 	JustBeforeEach(func() {
-		var err error
-		tmpDir, err = ioutil.TempDir("", "fly-test")
-		Expect(err).NotTo(HaveOccurred())
-
-		os.Setenv("HOME", tmpDir)
-		flyrc = filepath.Join(userHomeDir(), ".flyrc")
-
-		flyFixtureFile, err := os.OpenFile(flyrcFixture, os.O_RDONLY, 0600)
-		Expect(err).NotTo(HaveOccurred())
-
-		flyFixtureData, err := ioutil.ReadAll(flyFixtureFile)
-		Expect(err).NotTo(HaveOccurred())
-
-		err = ioutil.WriteFile(flyrc, flyFixtureData, 0600)
-		Expect(err).NotTo(HaveOccurred())
+		createFlyRc(targets)
 
 		flyCmd = exec.Command(flyPath, "targets")
 	})
 
 	BeforeEach(func() {
-		flyrcFixture = "./fixtures/flyrc.yml"
-	})
-
-	AfterEach(func() {
-		os.RemoveAll(tmpDir)
+		targets = rc.Targets{
+			"another-test": {
+				API:      "https://example.com/another-test",
+				TeamName: "test",
+				Token:    &rc.TargetToken{Type: "Bearer", Value: validAccessToken(date(2020, 1, 1))},
+			},
+			"no-token": {
+				API:      "https://example.com/no-token",
+				TeamName: "main",
+				Token:    nil,
+			},
+			"omt": {
+				API:      "https://example.com/omt",
+				TeamName: "main",
+				Token:    &rc.TargetToken{Type: "Bearer", Value: validAccessToken(date(2020, 1, 2))},
+			},
+			"test": {
+				API:      "https://example.com/test",
+				TeamName: "test",
+				Token:    &rc.TargetToken{Type: "Bearer", Value: validAccessToken(date(2020, 1, 3))},
+			},
+		}
 	})
 
 	Describe("targets", func() {
@@ -67,10 +66,10 @@ var _ = Describe("Fly CLI", func() {
 						{Contents: "expiry", Color: color.New(color.Bold)},
 					},
 					Data: []ui.TableRow{
-						{{Contents: "another-test"}, {Contents: "https://example.com/another-test"}, {Contents: "test"}, {Contents: "Sat, 19 Mar 2016 01:54:30 UTC"}},
+						{{Contents: "another-test"}, {Contents: "https://example.com/another-test"}, {Contents: "test"}, {Contents: "Wed, 01 Jan 2020 00:00:00 UTC"}},
 						{{Contents: "no-token"}, {Contents: "https://example.com/no-token"}, {Contents: "main"}, {Contents: "n/a"}},
-						{{Contents: "omt"}, {Contents: "https://example.com/omt"}, {Contents: "main"}, {Contents: "Mon, 21 Mar 2016 01:54:30 UTC"}},
-						{{Contents: "test"}, {Contents: "https://example.com/test"}, {Contents: "test"}, {Contents: "Fri, 25 Mar 2016 23:29:57 UTC"}},
+						{{Contents: "omt"}, {Contents: "https://example.com/omt"}, {Contents: "main"}, {Contents: "Thu, 02 Jan 2020 00:00:00 UTC"}},
+						{{Contents: "test"}, {Contents: "https://example.com/test"}, {Contents: "test"}, {Contents: "Fri, 03 Jan 2020 00:00:00 UTC"}},
 					},
 				}))
 			})
@@ -78,22 +77,27 @@ var _ = Describe("Fly CLI", func() {
 
 		Context("when the .flyrc contains a target with an invalid token", func() {
 			BeforeEach(func() {
-				flyrcFixture = "./fixtures/flyrc-badtoken.yml"
+				targets = rc.Targets{
+					"test": {
+						API:   "https://example.com/test",
+						Token: &rc.TargetToken{Type: "Bearer", Value: "banana"},
+					},
+				}
 			})
 
-			It("shows error message from jwt parsing library but does not fail", func() {
+			It("indicates the token is invalid", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(sess).Should(gexec.Exit(0))
 
-				Expect(sess).Should(gbytes.Say("n/a: token contains an invalid number of segments"))
+				Expect(sess).Should(gbytes.Say("n/a: invalid token"))
 			})
 		})
 
 		Context("when no targets are available", func() {
 			BeforeEach(func() {
-				os.RemoveAll(flyrc)
+				createFlyRc(nil)
 			})
 
 			It("prints an empty table", func() {

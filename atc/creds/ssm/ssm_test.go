@@ -1,10 +1,10 @@
 package ssm_test
 
 import (
-	"code.cloudfoundry.org/lager/lagertest"
 	"errors"
 	"strconv"
-	"text/template"
+
+	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/concourse/atc/creds"
 
@@ -91,14 +91,14 @@ var _ = Describe("Ssm", func() {
 	var mockService MockSsmService
 
 	JustBeforeEach(func() {
-		varDef = vars.VariableDefinition{Name: "cheery"}
-		t1, err := template.New("test").Parse(DefaultPipelineSecretTemplate)
+		varDef = vars.VariableDefinition{Ref: vars.VariableReference{Path: "cheery"}}
+		t1, err := creds.BuildSecretTemplate("t1", DefaultPipelineSecretTemplate)
 		Expect(t1).NotTo(BeNil())
 		Expect(err).To(BeNil())
-		t2, err := template.New("test").Parse(DefaultTeamSecretTemplate)
+		t2, err := creds.BuildSecretTemplate("t2", DefaultTeamSecretTemplate)
 		Expect(t2).NotTo(BeNil())
 		Expect(err).To(BeNil())
-		ssmAccess = NewSsm(lagertest.NewTestLogger("ssm_test"), &mockService, []*template.Template{t1, t2})
+		ssmAccess = NewSsm(lagertest.NewTestLogger("ssm_test"), &mockService, []*creds.SecretTemplate{t1, t2})
 		variables = creds.NewVariables(ssmAccess, "alpha", "bogus", false)
 		Expect(ssmAccess).NotTo(BeNil())
 		mockService.stubGetParameter = func(input string) (string, error) {
@@ -132,7 +132,7 @@ var _ = Describe("Ssm", func() {
 					},
 				}
 			}
-			value, found, err := variables.Get(vars.VariableDefinition{Name: "user"})
+			value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "user"}})
 			Expect(value).To(BeEquivalentTo(map[string]interface{}{
 				"name": "yours",
 				"pass": "truely",

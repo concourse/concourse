@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -48,7 +49,7 @@ func (s *Server) GetArtifact(team db.Team) http.Handler {
 			return
 		}
 
-		reader, err := workerVolume.StreamOut(r.Context(), "/")
+		reader, err := workerVolume.StreamOut(r.Context(), "/", baggageclaim.GzipEncoding)
 		if err != nil {
 			logger.Error("failed-to-stream-volume-contents", err)
 			w.WriteHeader(http.StatusInternalServerError)

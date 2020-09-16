@@ -5,6 +5,7 @@ module SubPage.SubPage exposing
     , handleNotFound
     , init
     , subscriptions
+    , tooltip
     , update
     , urlUpdate
     , view
@@ -34,6 +35,7 @@ import Pipeline.Pipeline as Pipeline
 import Resource.Models
 import Resource.Resource as Resource
 import Routes
+import Tooltip
 import UpdateMsg exposing (UpdateMsg)
 
 
@@ -88,8 +90,11 @@ init session route =
                 }
                 |> Tuple.mapFirst PipelineModel
 
-        Routes.Dashboard searchType ->
-            Dashboard.init searchType
+        Routes.Dashboard { searchType, dashboardView } ->
+            Dashboard.init
+                { searchType = searchType
+                , dashboardView = dashboardView
+                }
                 |> Tuple.mapFirst DashboardModel
 
         Routes.FlySuccess noop flyPort ->
@@ -203,7 +208,14 @@ handleCallback callback session =
 handleLoggedOut : ET { a | isUserMenuExpanded : Bool }
 handleLoggedOut ( m, effs ) =
     ( { m | isUserMenuExpanded = False }
-    , effs ++ [ NavigateTo <| Routes.toString <| Routes.dashboardRoute False ]
+    , effs
+        ++ [ NavigateTo <|
+                Routes.toString <|
+                    Routes.Dashboard
+                        { searchType = Routes.Normal ""
+                        , dashboardView = Routes.ViewNonArchivedPipelines
+                        }
+           ]
     )
 
 
@@ -301,9 +313,14 @@ urlUpdate routes =
                 identity
         )
         (case routes.to of
-            Routes.Dashboard st ->
+            Routes.Dashboard { searchType, dashboardView } ->
                 Tuple.mapFirst
-                    (\dm -> { dm | highDensity = st == Routes.HighDensity })
+                    (\dm ->
+                        { dm
+                            | highDensity = searchType == Routes.HighDensity
+                            , dashboardView = dashboardView
+                        }
+                    )
 
             _ ->
                 identity
@@ -349,6 +366,31 @@ view ({ userState } as session) mdl =
             ( FlySuccess.documentTitle
             , FlySuccess.view userState model
             )
+
+
+tooltip : Model -> Session -> Maybe Tooltip.Tooltip
+tooltip mdl =
+    case mdl of
+        BuildModel model ->
+            Build.tooltip model
+
+        JobModel model ->
+            Job.tooltip model
+
+        PipelineModel model ->
+            Pipeline.tooltip model
+
+        ResourceModel model ->
+            Resource.tooltip model
+
+        DashboardModel model ->
+            Dashboard.tooltip model
+
+        NotFoundModel model ->
+            NotFound.tooltip model
+
+        FlySuccessModel model ->
+            FlySuccess.tooltip model
 
 
 subscriptions : Model -> List Subscription

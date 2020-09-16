@@ -27,6 +27,21 @@ type FakeResourceCacheFactory struct {
 		result1 db.UsedResourceCache
 		result2 error
 	}
+	FindResourceCacheByIDStub        func(int) (db.UsedResourceCache, bool, error)
+	findResourceCacheByIDMutex       sync.RWMutex
+	findResourceCacheByIDArgsForCall []struct {
+		arg1 int
+	}
+	findResourceCacheByIDReturns struct {
+		result1 db.UsedResourceCache
+		result2 bool
+		result3 error
+	}
+	findResourceCacheByIDReturnsOnCall map[int]struct {
+		result1 db.UsedResourceCache
+		result2 bool
+		result3 error
+	}
 	ResourceCacheMetadataStub        func(db.UsedResourceCache) (db.ResourceConfigMetadataFields, error)
 	resourceCacheMetadataMutex       sync.RWMutex
 	resourceCacheMetadataArgsForCall []struct {
@@ -122,6 +137,72 @@ func (fake *FakeResourceCacheFactory) FindOrCreateResourceCacheReturnsOnCall(i i
 		result1 db.UsedResourceCache
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeResourceCacheFactory) FindResourceCacheByID(arg1 int) (db.UsedResourceCache, bool, error) {
+	fake.findResourceCacheByIDMutex.Lock()
+	ret, specificReturn := fake.findResourceCacheByIDReturnsOnCall[len(fake.findResourceCacheByIDArgsForCall)]
+	fake.findResourceCacheByIDArgsForCall = append(fake.findResourceCacheByIDArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	fake.recordInvocation("FindResourceCacheByID", []interface{}{arg1})
+	fake.findResourceCacheByIDMutex.Unlock()
+	if fake.FindResourceCacheByIDStub != nil {
+		return fake.FindResourceCacheByIDStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.findResourceCacheByIDReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeResourceCacheFactory) FindResourceCacheByIDCallCount() int {
+	fake.findResourceCacheByIDMutex.RLock()
+	defer fake.findResourceCacheByIDMutex.RUnlock()
+	return len(fake.findResourceCacheByIDArgsForCall)
+}
+
+func (fake *FakeResourceCacheFactory) FindResourceCacheByIDCalls(stub func(int) (db.UsedResourceCache, bool, error)) {
+	fake.findResourceCacheByIDMutex.Lock()
+	defer fake.findResourceCacheByIDMutex.Unlock()
+	fake.FindResourceCacheByIDStub = stub
+}
+
+func (fake *FakeResourceCacheFactory) FindResourceCacheByIDArgsForCall(i int) int {
+	fake.findResourceCacheByIDMutex.RLock()
+	defer fake.findResourceCacheByIDMutex.RUnlock()
+	argsForCall := fake.findResourceCacheByIDArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeResourceCacheFactory) FindResourceCacheByIDReturns(result1 db.UsedResourceCache, result2 bool, result3 error) {
+	fake.findResourceCacheByIDMutex.Lock()
+	defer fake.findResourceCacheByIDMutex.Unlock()
+	fake.FindResourceCacheByIDStub = nil
+	fake.findResourceCacheByIDReturns = struct {
+		result1 db.UsedResourceCache
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeResourceCacheFactory) FindResourceCacheByIDReturnsOnCall(i int, result1 db.UsedResourceCache, result2 bool, result3 error) {
+	fake.findResourceCacheByIDMutex.Lock()
+	defer fake.findResourceCacheByIDMutex.Unlock()
+	fake.FindResourceCacheByIDStub = nil
+	if fake.findResourceCacheByIDReturnsOnCall == nil {
+		fake.findResourceCacheByIDReturnsOnCall = make(map[int]struct {
+			result1 db.UsedResourceCache
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findResourceCacheByIDReturnsOnCall[i] = struct {
+		result1 db.UsedResourceCache
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeResourceCacheFactory) ResourceCacheMetadata(arg1 db.UsedResourceCache) (db.ResourceConfigMetadataFields, error) {
@@ -258,6 +339,8 @@ func (fake *FakeResourceCacheFactory) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.findOrCreateResourceCacheMutex.RLock()
 	defer fake.findOrCreateResourceCacheMutex.RUnlock()
+	fake.findResourceCacheByIDMutex.RLock()
+	defer fake.findResourceCacheByIDMutex.RUnlock()
 	fake.resourceCacheMetadataMutex.RLock()
 	defer fake.resourceCacheMetadataMutex.RUnlock()
 	fake.updateResourceCacheMetadataMutex.RLock()

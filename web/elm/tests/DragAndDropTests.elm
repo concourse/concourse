@@ -2,6 +2,7 @@ module DragAndDropTests exposing (all)
 
 import Application.Application as Application
 import Common exposing (given, then_, when)
+import DashboardTests exposing (whenOnDashboard)
 import Data
 import Dict exposing (Dict)
 import Expect exposing (Expectation)
@@ -9,7 +10,7 @@ import Http
 import Json.Encode as Encode
 import Message.Callback as Callback
 import Message.Effects as Effects
-import Message.Message as Message
+import Message.Message as Message exposing (DropTarget(..))
 import Message.Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as TopLevelMessage exposing (TopLevelMessage)
 import Test exposing (Test, describe, test)
@@ -166,20 +167,11 @@ all =
                 >> given iDropThePipelineCard
                 >> when orderPipelinesFails
                 >> then_ myBrowserMakesTheFetchPipelinesAPICall
-        , test "failed to fetch team's pipelines displays turbulence view" <|
-            given
-                iVisitedTheDashboard
-                >> given myBrowserFetchedTwoPipelines
-                >> given iAmDraggingTheFirstPipelineCard
-                >> given iAmDraggingOverTheThirdDropArea
-                >> given iDropThePipelineCard
-                >> when dashboardFailsToRefreshPipelines
-                >> then_ iSeeTheTurbulenceView
         ]
 
 
 iVisitedTheDashboard _ =
-    Common.init "/"
+    whenOnDashboard { highDensity = False }
 
 
 myBrowserFetchedOnePipeline =
@@ -243,13 +235,13 @@ itListensForDragStart : Query.Single TopLevelMessage -> Expectation
 itListensForDragStart =
     Event.simulate (Event.custom "dragstart" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragStart "team" 0)
+            (TopLevelMessage.Update <| Message.DragStart "team" "pipeline")
 
 
 iAmDraggingTheFirstPipelineCard =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragStart "team" 0)
+            (TopLevelMessage.Update <| Message.DragStart "team" "pipeline")
 
 
 itIsInvisible =
@@ -290,7 +282,7 @@ iAmLookingAtTheFinalDropArea =
 itListensForDragEnter =
     Event.simulate (Event.custom "dragenter" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragOver "team" 2)
+            (TopLevelMessage.Update <| Message.DragOver <| After "pipeline")
 
 
 
@@ -304,19 +296,13 @@ itListensForDragEnter =
 itListensForDragOverPreventingDefault =
     Event.simulate (Event.custom "dragover" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragOver "team" 2)
-
-
-iAmDraggingOverTheSecondDropArea =
-    Tuple.first
-        >> Application.update
-            (TopLevelMessage.Update <| Message.DragOver "team" 2)
+            (TopLevelMessage.Update <| Message.DragOver <| After "pipeline")
 
 
 iAmDraggingOverTheThirdDropArea =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragOver "team" 3)
+            (TopLevelMessage.Update <| Message.DragOver <| After "other-pipeline")
 
 
 iAmLookingAtTheTeamHeader =
@@ -341,12 +327,6 @@ iSeeASpinner =
 
 iSeeAllCardsHaveOpacity =
     Query.each (Query.has [ style "opacity" "0.5" ])
-
-
-iSeeTheTurbulenceView =
-    Tuple.first
-        >> Common.queryView
-        >> Query.has [ text "experiencing turbulence" ]
 
 
 iDoNotSeeASpinner =
@@ -399,16 +379,7 @@ orderPipelinesSucceeds =
 orderPipelinesFails =
     Tuple.first
         >> Application.handleCallback
-            (Callback.PipelinesOrdered "team" <|
-                Err
-                    (Http.BadStatus
-                        { url = "http://localhost:8080"
-                        , status = { code = 500, message = "could not find pipeline" }
-                        , headers = Dict.empty
-                        , body = ""
-                        }
-                    )
-            )
+            (Callback.PipelinesOrdered "team" <| Data.httpInternalServerError)
 
 
 dashboardRefreshPipelines =
@@ -425,16 +396,7 @@ dashboardRefreshPipelines =
 dashboardFailsToRefreshPipelines =
     Tuple.first
         >> Application.handleCallback
-            (Callback.PipelinesFetched <|
-                Err
-                    (Http.BadStatus
-                        { url = "http://localhost:8080"
-                        , status = { code = 500, message = "could not find pipeline" }
-                        , headers = Dict.empty
-                        , body = ""
-                        }
-                    )
-            )
+            (Callback.PipelinesFetched <| Data.httpInternalServerError)
 
 
 fiveSecondsPasses =

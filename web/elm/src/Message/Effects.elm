@@ -1,5 +1,6 @@
 port module Message.Effects exposing
     ( Effect(..)
+    , pipelinesSectionName
     , renderPipeline
     , renderSvgIcon
     , runEffect
@@ -11,18 +12,19 @@ import Api
 import Api.Endpoints as Endpoints
 import Assets
 import Base64
-import Browser.Dom exposing (Element, Viewport, getElement, getViewport, getViewportOf, setViewportOf)
+import Browser.Dom exposing (Viewport, getElement, getViewport, getViewportOf, setViewportOf)
 import Browser.Navigation as Navigation
-import Concourse exposing (encodeJob, encodePipeline, encodeTeam)
+import Concourse exposing (DatabaseID, encodeJob, encodePipeline, encodeTeam)
 import Concourse.BuildStatus exposing (BuildStatus)
 import Concourse.Pagination exposing (Page)
 import Json.Decode
 import Json.Encode
 import Maybe exposing (Maybe)
-import Message.Callback exposing (Callback(..), TooltipPolicy(..))
+import Message.Callback exposing (Callback(..))
 import Message.Message
     exposing
         ( DomID(..)
+        , PipelinesSection(..)
         , VersionToggleAction(..)
         , VisibilityAction(..)
         )
@@ -30,6 +32,7 @@ import Message.ScrollDirection exposing (ScrollDirection(..))
 import Message.Storage
     exposing
         ( deleteFromLocalStorage
+        , favoritedPipelinesKey
         , jobsKey
         , loadFromLocalStorage
         , loadFromSessionStorage
@@ -42,6 +45,8 @@ import Message.Storage
         )
 import Process
 import Routes
+import Set exposing (Set)
+import SideBar.State exposing (SideBarState, encodeSideBarState)
 import Task
 import Time
 import Views.Styles
@@ -86,6 +91,12 @@ port renderSvgIcon : String -> Cmd msg
 port syncTextareaHeight : String -> Cmd msg
 
 
+port syncStickyBuildLogHeaders : () -> Cmd msg
+
+
+port scrollToId : ( String, String ) -> Cmd msg
+
+
 type alias StickyHeaderConfig =
     { pageHeaderHeight : Float
     , pageBodyClass : String
@@ -93,6 +104,10 @@ type alias StickyHeaderConfig =
     , sectionClass : String
     , sectionBodyClass : String
     }
+
+
+type alias DatabaseID =
+    Int
 
 
 stickyHeaderConfig : StickyHeaderConfig
@@ -108,10 +123,10 @@ stickyHeaderConfig =
 type Effect
     = FetchJob Concourse.JobIdentifier
     | FetchJobs Concourse.PipelineIdentifier
-    | FetchJobBuilds Concourse.JobIdentifier (Maybe Page)
+    | FetchJobBuilds Concourse.JobIdentifier Page
     | FetchResource Concourse.ResourceIdentifier
     | FetchCheck Int
-    | FetchVersionedResources Concourse.ResourceIdentifier (Maybe Page)
+    | FetchVersionedResources Concourse.ResourceIdentifier Page
     | FetchResources Concourse.PipelineIdentifier
     | FetchBuildResources Concourse.BuildId
     | FetchPipeline Concourse.PipelineIdentifier
@@ -168,7 +183,7 @@ type Effect
     | ChangeVisibility VisibilityAction Concourse.PipelineIdentifier
     | SaveToken String
     | LoadToken
-    | SaveSideBarState Bool
+    | SaveSideBarState SideBarState
     | LoadSideBarState
     | SaveCachedJobs (List Concourse.Job)
     | LoadCachedJobs
@@ -179,9 +194,12 @@ type Effect
     | SaveCachedTeams (List Concourse.Team)
     | LoadCachedTeams
     | DeleteCachedTeams
-    | GetViewportOf DomID TooltipPolicy
+    | GetViewportOf DomID
     | GetElement DomID
     | SyncTextareaHeight DomID
+    | SyncStickyBuildLogHeaders
+    | SaveFavoritedPipelines (Set DatabaseID)
+    | LoadFavoritedPipelines
 
 
 type alias VersionId =
@@ -207,9 +225,10 @@ runEffect effect key csrfToken =
         FetchJobBuilds id page ->
             Api.paginatedGet
                 (Endpoints.JobBuildsList |> Endpoints.Job id)
-                page
+                (Just page)
                 Concourse.decodeBuild
                 |> Api.request
+                |> Task.map (\b -> ( page, b ))
                 |> Task.attempt JobBuildsFetched
 
         FetchResource id ->
@@ -224,13 +243,13 @@ runEffect effect key csrfToken =
                 |> Api.request
                 |> Task.attempt Checked
 
-        FetchVersionedResources id paging ->
+        FetchVersionedResources id page ->
             Api.paginatedGet
                 (Endpoints.ResourceVersionsList |> Endpoints.Resource id)
-                paging
+                (Just page)
                 Concourse.decodeVersionedResource
                 |> Api.request
-                |> Task.map (\b -> ( paging, b ))
+                |> Task.map (\b -> ( page, b ))
                 |> Task.attempt VersionedResourcesFetched
 
         FetchResources id ->
@@ -585,8 +604,8 @@ runEffect effect key csrfToken =
         LoadToken ->
             loadFromLocalStorage tokenKey
 
-        SaveSideBarState isOpen ->
-            saveToSessionStorage ( sideBarStateKey, Json.Encode.bool isOpen )
+        SaveSideBarState state ->
+            saveToSessionStorage ( sideBarStateKey, encodeSideBarState state )
 
         LoadSideBarState ->
             loadFromSessionStorage sideBarStateKey
@@ -609,6 +628,15 @@ runEffect effect key csrfToken =
         DeleteCachedPipelines ->
             deleteFromLocalStorage pipelinesKey
 
+        SaveFavoritedPipelines pipelineIDs ->
+            saveToLocalStorage
+                ( favoritedPipelinesKey
+                , pipelineIDs |> Json.Encode.set Json.Encode.int
+                )
+
+        LoadFavoritedPipelines ->
+            loadFromLocalStorage favoritedPipelinesKey
+
         SaveCachedTeams teams ->
             saveToLocalStorage ( teamsKey, teams |> Json.Encode.list encodeTeam )
 
@@ -618,9 +646,9 @@ runEffect effect key csrfToken =
         DeleteCachedTeams ->
             deleteFromLocalStorage teamsKey
 
-        GetViewportOf domID tooltipPolicy ->
+        GetViewportOf domID ->
             Browser.Dom.getViewportOf (toHtmlID domID)
-                |> Task.attempt (GotViewport domID tooltipPolicy)
+                |> Task.attempt (GotViewport domID)
 
         GetElement domID ->
             Browser.Dom.getElement (toHtmlID domID)
@@ -629,18 +657,47 @@ runEffect effect key csrfToken =
         SyncTextareaHeight domID ->
             syncTextareaHeight (toHtmlID domID)
 
+        SyncStickyBuildLogHeaders ->
+            syncStickyBuildLogHeaders ()
+
+
+pipelinesSectionName : PipelinesSection -> String
+pipelinesSectionName section =
+    case section of
+        FavoritesSection ->
+            "Favorites"
+
+        AllPipelinesSection ->
+            "AllPipelines"
+
 
 toHtmlID : DomID -> String
 toHtmlID domId =
     case domId of
-        SideBarTeam t ->
-            Base64.encode t
+        SideBarTeam section t ->
+            pipelinesSectionName section ++ "_" ++ Base64.encode t
 
-        SideBarPipeline p ->
-            Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
+        SideBarPipeline section p ->
+            pipelinesSectionName section ++ "_" ++ Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
 
-        FirstOccurrenceGetStepLabel stepID ->
-            stepID ++ "_first_occurrence"
+        PipelineStatusIcon section p ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ Base64.encode p.teamName
+                ++ "_"
+                ++ Base64.encode p.pipelineName
+                ++ "_status"
+
+        VisibilityButton section p ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ Base64.encode p.teamName
+                ++ "_"
+                ++ Base64.encode p.pipelineName
+                ++ "_visibility"
+
+        ChangedStepLabel stepID _ ->
+            stepID ++ "_changed"
 
         StepState stepID ->
             stepID ++ "_state"
@@ -654,52 +711,46 @@ toHtmlID domId =
         ResourceCommentTextarea ->
             "resource_comment"
 
+        TopBarFavoritedIcon _ ->
+            "top-bar-favorited-icon"
+
         _ ->
             ""
 
 
-scrollToIdPadding : Float
-scrollToIdPadding =
-    60
-
-
 scroll : ScrollDirection -> String -> Cmd Callback
 scroll direction id =
-    (case direction of
+    case direction of
         ToTop ->
-            scrollCoordsSimple id (always 0) (always 0)
+            scrollCoords id (always 0) (always 0)
+                |> Task.attempt (\_ -> EmptyCallback)
 
         Down ->
-            scrollCoordsSimple id (always 0) (.viewport >> .y >> (+) 60)
+            scrollCoords id (always 0) (.viewport >> .y >> (+) 60)
+                |> Task.attempt (\_ -> EmptyCallback)
 
         Up ->
-            scrollCoordsSimple id (always 0) (.viewport >> .y >> (+) -60)
+            scrollCoords id (always 0) (.viewport >> .y >> (+) -60)
+                |> Task.attempt (\_ -> EmptyCallback)
 
         ToBottom ->
-            scrollCoordsSimple id (always 0) (.scene >> .height)
+            scrollCoords id (always 0) (.scene >> .height)
+                |> Task.attempt (\_ -> EmptyCallback)
 
         Sideways delta ->
-            scrollCoordsSimple id (.viewport >> .x >> (+) -delta) (always 0)
+            scrollCoords id (.viewport >> .x >> (+) -delta) (always 0)
+                |> Task.attempt (\_ -> EmptyCallback)
 
         ToId toId ->
-            scrollCoords toId
-                id
-                (\{ srcElem, parentElem } ->
-                    parentElem.viewport.x + srcElem.element.x - parentElem.element.x - scrollToIdPadding
-                )
-                (\{ srcElem, parentElem } ->
-                    parentElem.viewport.y + srcElem.element.y - parentElem.element.y - scrollToIdPadding
-                )
-    )
-        |> Task.attempt (\_ -> ScrollCompleted direction id)
+            scrollToId ( id, toId )
 
 
-scrollCoordsSimple :
+scrollCoords :
     String
     -> (Viewport -> Float)
     -> (Viewport -> Float)
     -> Task.Task Browser.Dom.Error ()
-scrollCoordsSimple id getX getY =
+scrollCoords id getX getY =
     getViewportOf id
         |> Task.andThen
             (\viewport ->
@@ -707,50 +758,4 @@ scrollCoordsSimple id getX getY =
                     id
                     (getX viewport)
                     (getY viewport)
-            )
-
-
-scrollCoords :
-    String
-    -> String
-    -> ({ srcElem : Element, parentElem : Element } -> Float)
-    -> ({ srcElem : Element, parentElem : Element } -> Float)
-    -> Task.Task Browser.Dom.Error ()
-scrollCoords srcId idOfThingToScroll getX getY =
-    Task.sequence [ getElement srcId, getElement idOfThingToScroll ]
-        |> Task.andThen
-            (\elems ->
-                getViewportOf idOfThingToScroll
-                    |> Task.andThen
-                        (\parentViewport ->
-                            Task.succeed
-                                { elems = elems
-                                , parentViewport = parentViewport
-                                }
-                        )
-            )
-        |> Task.andThen
-            (\{ elems, parentViewport } ->
-                case elems of
-                    [ srcInfo, parentInfo ] ->
-                        let
-                            info =
-                                { srcElem = srcInfo
-
-                                -- https://github.com/elm/browser/issues/86
-                                , parentElem =
-                                    { parentInfo
-                                        | viewport = parentViewport.viewport
-                                        , scene = parentViewport.scene
-                                    }
-                                }
-                        in
-                        setViewportOf
-                            idOfThingToScroll
-                            (getX info)
-                            (getY info)
-
-                    _ ->
-                        Task.fail <|
-                            Browser.Dom.NotFound "unexpected number of elements"
             )

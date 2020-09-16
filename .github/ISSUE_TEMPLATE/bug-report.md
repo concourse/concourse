@@ -9,14 +9,23 @@ assignees: ''
 
 ## Summary
 
-> A brief summary of the problem.
+<!--
+A brief summary of the problem.
+-->
 
 ## Steps to reproduce
 
-> Starting from `docker-compose up`, what steps can be followed to reproduce
-> the problem?
->
-> Please use https://gist.github.com for large snippets!
+<!--
+All bug reports must have steps to reproduce, starting from the instructions in
+CONTRIBUTING.md for running Concourse locally:
+
+https://github.com/concourse/concourse/blob/master/CONTRIBUTING.md#running-concourse
+
+Starting from `docker-compose up`, what steps can be followed to reproduce the
+problem?
+
+Please use https://gist.github.com for large snippets!
+-->
 
 ## Expected results
 

@@ -1,46 +1,84 @@
 module SideBar.Styles exposing
-    ( Arrow(..)
+    ( Background(..)
+    , FontWeight(..)
     , Opacity(..)
-    , PipelineBackingRectangle(..)
-    , TeamBackingRectangle(..)
-    , arrow
+    , collapseIcon
     , column
     , hamburgerIcon
     , hamburgerMenu
     , iconGroup
     , opacityAttr
     , pipeline
+    , pipelineFavourite
     , pipelineIcon
-    , pipelineLink
+    , pipelineName
+    , sectionHeader
     , sideBar
+    , sideBarHandle
+    , starPadding
+    , starWidth
     , team
     , teamHeader
     , teamIcon
     , teamName
     , tooltip
-    , tooltipArrow
+    , tooltipArrowSize
     , tooltipBody
+    , tooltipOffset
     )
 
 import Assets
 import Colors
 import Html
-import Html.Attributes exposing (style)
+import Html.Attributes as Attr exposing (style)
 import Views.Icon as Icon
+import Views.Styles
 
 
-sideBar : List (Html.Attribute msg)
-sideBar =
+starPadding : Float
+starPadding =
+    10
+
+
+starWidth : Float
+starWidth =
+    18
+
+
+tooltipArrowSize : Float
+tooltipArrowSize =
+    15
+
+
+tooltipOffset : Float
+tooltipOffset =
+    3
+
+
+sideBar : { r | width : Float } -> List (Html.Attribute msg)
+sideBar { width } =
     [ style "border-right" <| "1px solid " ++ Colors.frame
     , style "background-color" Colors.sideBar
-    , style "width" "275px"
+    , style "width" <| String.fromFloat width ++ "px"
     , style "overflow-y" "auto"
     , style "height" "100%"
     , style "flex-shrink" "0"
-    , style "padding-right" "10px"
     , style "box-sizing" "border-box"
     , style "padding-bottom" "10px"
     , style "-webkit-overflow-scrolling" "touch"
+    , style "position" "relative"
+    ]
+
+
+sideBarHandle : { r | width : Float } -> List (Html.Attribute msg)
+sideBarHandle { width } =
+    [ style "position" "fixed"
+    , style "width" "10px"
+    , style "height" "100%"
+    , style "top" "0"
+    , style "left" <| String.fromFloat (width - 5) ++ "px"
+    , style "z-index" "2"
+    , style "cursor" "col-resize"
     ]
 
 
@@ -51,11 +89,23 @@ column =
     ]
 
 
-teamHeader : List (Html.Attribute msg)
-teamHeader =
+sectionHeader : List (Html.Attribute msg)
+sectionHeader =
+    [ style "font-size" "14px"
+    , style "overflow" "hidden"
+    , style "white-space" "nowrap"
+    , style "text-overflow" "ellipsis"
+    , style "padding" "15px 5px 5px 10px"
+    , fontWeightAttr Bold
+    ]
+
+
+teamHeader : { a | background : Background } -> List (Html.Attribute msg)
+teamHeader { background } =
     [ style "display" "flex"
     , style "cursor" "pointer"
     , style "align-items" "center"
+    , backgroundAttr background
     ]
 
 
@@ -82,7 +132,7 @@ opacityAttr opacity =
     style "opacity" <|
         case opacity of
             Dim ->
-                "0.3"
+                "0.5"
 
             GreyedOut ->
                 "0.7"
@@ -94,32 +144,21 @@ opacityAttr opacity =
 teamIcon : Opacity -> Html.Html msg
 teamIcon opacity =
     Icon.icon
-        { sizePx = 20
+        { sizePx = 18
         , image = Assets.PeopleIcon
         }
-        [ style "margin-left" "10px"
+        [ style "margin-left" "8px"
         , style "background-size" "contain"
         , style "flex-shrink" "0"
         , opacityAttr opacity
         ]
 
 
-type Arrow
-    = Right
-    | Down
-
-
-arrow : { opacity : Opacity, icon : Arrow } -> Html.Html msg
-arrow { opacity, icon } =
+collapseIcon : { opacity : Opacity, asset : Assets.Asset } -> Html.Html msg
+collapseIcon { opacity, asset } =
     Icon.icon
-        { sizePx = 12
-        , image =
-            case icon of
-                Right ->
-                    Assets.KeyboardArrowRight
-
-                Down ->
-                    Assets.KeyboardArrowDown
+        { sizePx = 10
+        , image = asset
         }
         [ style "margin-left" "10px"
         , style "flex-shrink" "0"
@@ -127,68 +166,73 @@ arrow { opacity, icon } =
         ]
 
 
-type TeamBackingRectangle
-    = TeamInvisible
-    | GreyWithLightBorder
-
-
 teamName :
-    { a | opacity : Opacity, rectangle : TeamBackingRectangle }
+    { a | opacity : Opacity }
     -> List (Html.Attribute msg)
-teamName { opacity, rectangle } =
+teamName { opacity } =
     [ style "font-size" "14px"
-    , style "padding" "2.5px"
-    , style "margin-left" "7.5px"
+    , style "padding" "5px 2.5px"
+    , style "margin-left" "5px"
     , style "white-space" "nowrap"
     , style "overflow" "hidden"
     , style "text-overflow" "ellipsis"
     , style "flex-grow" "1"
     , opacityAttr opacity
+    , fontWeightAttr Bold
     ]
-        ++ (case rectangle of
-                TeamInvisible ->
-                    [ style "border" <| "1px solid " ++ Colors.sideBar
-                    ]
-
-                GreyWithLightBorder ->
-                    [ style "border" "1px solid #525151"
-                    , style "background-color" "#3A3A3A"
-                    ]
-           )
 
 
-type PipelineBackingRectangle
+type Background
     = Dark
     | Light
-    | PipelineInvisible
+    | Invisible
 
 
-pipelineLink :
-    { a | opacity : Opacity, rectangle : PipelineBackingRectangle }
+backgroundAttr : Background -> Html.Attribute msg
+backgroundAttr background =
+    style "background-color" <|
+        case background of
+            Dark ->
+                Colors.sideBarActive
+
+            Light ->
+                Colors.sideBarHovered
+
+            Invisible ->
+                "inherit"
+
+
+type FontWeight
+    = Default
+    | Bold
+
+
+fontWeightAttr : FontWeight -> Html.Attribute msg
+fontWeightAttr weight =
+    style "font-weight" <|
+        case weight of
+            Default ->
+                Views.Styles.fontWeightDefault
+
+            Bold ->
+                Views.Styles.fontWeightBold
+
+
+pipelineName :
+    { a | opacity : Opacity, weight : FontWeight }
     -> List (Html.Attribute msg)
-pipelineLink { opacity, rectangle } =
+pipelineName { opacity, weight } =
     [ style "font-size" "14px"
     , style "white-space" "nowrap"
     , style "overflow" "hidden"
     , style "text-overflow" "ellipsis"
-    , style "padding" "2.5px"
+    , style "padding" "5px 2.5px"
+    , style "margin-left" "5px"
     , style "flex-grow" "1"
+    , style "color" "#FFFFFF"
     , opacityAttr opacity
+    , fontWeightAttr weight
     ]
-        ++ (case rectangle of
-                Dark ->
-                    [ style "border" <| "1px solid " ++ Colors.groupBorderSelected
-                    , style "background-color" Colors.sideBarActive
-                    ]
-
-                Light ->
-                    [ style "border" "1px solid #525151"
-                    , style "background-color" "#3A3A3A"
-                    ]
-
-                PipelineInvisible ->
-                    [ style "border" <| "1px solid " ++ Colors.sideBar ]
-           )
 
 
 hamburgerMenu :
@@ -228,26 +272,48 @@ team =
     [ style "padding-top" "5px", style "line-height" "1.2" ] ++ column
 
 
-pipeline : List (Html.Attribute msg)
-pipeline =
+pipeline : { a | background : Background } -> List (Html.Attribute msg)
+pipeline { background } =
     [ style "display" "flex"
     , style "align-items" "center"
+    , style "margin-top" "2px"
+    , backgroundAttr background
     ]
 
 
-pipelineIcon : Opacity -> List (Html.Attribute msg)
-pipelineIcon opacity =
+pipelineIcon : { asset : Assets.Asset, opacity : Opacity } -> List (Html.Attribute msg)
+pipelineIcon { asset, opacity } =
     [ style "background-image" <|
         Assets.backgroundImage <|
-            Just <|
-                Assets.BreadcrumbIcon Assets.PipelineComponent
+            Just asset
     , style "background-repeat" "no-repeat"
-    , style "height" "16px"
-    , style "width" "32px"
+    , style "height" "18px"
+    , style "width" "18px"
     , style "background-size" "contain"
+    , style "background-position" "center"
     , style "margin-left" "28px"
     , style "flex-shrink" "0"
     , opacityAttr opacity
+    ]
+
+
+pipelineFavourite : { opacity : Opacity, filled : Bool } -> List (Html.Attribute msg)
+pipelineFavourite fav =
+    [ style "background-image" <|
+        Assets.backgroundImage <|
+            Just <|
+                Assets.FavoritedToggleIcon fav.filled
+    , style "background-repeat" "no-repeat"
+    , style "background-position" "50% 50%"
+    , style "height" <| String.fromFloat starWidth ++ "px"
+    , style "width" <| String.fromFloat starWidth ++ "px"
+    , style "background-size" "contain"
+    , style "background-origin" "content-box"
+    , style "padding" <| "0 " ++ String.fromFloat starPadding ++ "px"
+    , style "flex-shrink" "0"
+    , style "cursor" "pointer"
+    , opacityAttr fav.opacity
+    , Attr.attribute "aria-label" "Favorite Icon"
     ]
 
 
@@ -262,14 +328,6 @@ tooltip top left =
     ]
 
 
-tooltipArrow : List (Html.Attribute msg)
-tooltipArrow =
-    [ style "border-right" <| "15px solid " ++ Colors.frame
-    , style "border-top" "15px solid transparent"
-    , style "border-bottom" "15px solid transparent"
-    ]
-
-
 tooltipBody : List (Html.Attribute msg)
 tooltipBody =
     [ style "background-color" Colors.frame
@@ -277,4 +335,5 @@ tooltipBody =
     , style "font-size" "12px"
     , style "display" "flex"
     , style "align-items" "center"
+    , style "height" "30px"
     ]

@@ -14,12 +14,13 @@ type RenamePipelineCommand struct {
 }
 
 func (command *RenamePipelineCommand) Validate() error {
-	err := command.Pipeline.Validate()
+	_, err := command.Pipeline.Validate()
 	if err != nil {
 		return err
 	}
 
-	return command.Name.Validate()
+	_, err = command.Name.Validate()
+	return err
 }
 
 func (command *RenamePipelineCommand) Execute([]string) error {
@@ -41,9 +42,13 @@ func (command *RenamePipelineCommand) Execute([]string) error {
 	oldName := string(command.Pipeline)
 	newName := string(command.Name)
 
-	found, err := target.Team().RenamePipeline(oldName, newName)
+	found, warnings, err := target.Team().RenamePipeline(oldName, newName)
 	if err != nil {
 		return err
+	}
+
+	if len(warnings) > 0 {
+		displayhelpers.ShowWarnings(warnings)
 	}
 
 	if !found {

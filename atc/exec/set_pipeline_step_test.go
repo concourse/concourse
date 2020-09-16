@@ -3,14 +3,16 @@ package exec_test
 import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
 	"context"
 	"errors"
+	"io"
+
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/build/buildfakes"
 	"github.com/onsi/gomega/gbytes"
-	"io"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -51,18 +53,20 @@ jobs:
 		Jobs: atc.JobConfigs{
 			{
 				Name: "some-job",
-				Plan: atc.PlanSequence{
+				PlanSequence: []atc.Step{
 					{
-						Task: "some-task",
-						TaskConfig: &atc.TaskConfig{
-							Platform: "linux",
-							ImageResource: &atc.ImageResource{
-								Type:   "registry-image",
-								Source: atc.Source{"repository": "busybox"},
-							},
-							Run: atc.TaskRunConfig{
-								Path: "echo",
-								Args: []string{"hello"},
+						Config: &atc.TaskStep{
+							Name: "some-task",
+							Config: &atc.TaskConfig{
+								Platform: "linux",
+								ImageResource: &atc.ImageResource{
+									Type:   "registry-image",
+									Source: atc.Source{"repository": "busybox"},
+								},
+								Run: atc.TaskRunConfig{
+									Path: "echo",
+									Args: []string{"hello"},
+								},
 							},
 						},
 					},
@@ -76,10 +80,12 @@ jobs:
 		cancel     func()
 		testLogger *lagertest.TestLogger
 
-		fakeDelegate    *execfakes.FakeBuildStepDelegate
-		fakeTeamFactory *dbfakes.FakeTeamFactory
-		fakeTeam        *dbfakes.FakeTeam
-		fakePipeline    *dbfakes.FakePipeline
+		fakeDelegate     *execfakes.FakeSetPipelineStepDelegate
+		fakeTeamFactory  *dbfakes.FakeTeamFactory
+		fakeBuildFactory *dbfakes.FakeBuildFactory
+		fakeBuild        *dbfakes.FakeBuild
+		fakeTeam         *dbfakes.FakeTeam
+		fakePipeline     *dbfakes.FakePipeline
 
 		fakeWorkerClient *workerfakes.FakeClient
 
@@ -91,11 +97,13 @@ jobs:
 		spStep  exec.Step
 		stepErr error
 
-		credVarsTracker vars.CredVarsTracker
+		buildVars *vars.BuildVariables
 
 		stepMetadata = exec.StepMetadata{
 			TeamID:       123,
 			TeamName:     "some-team",
+			JobID:        87,
+			JobName:      "some-job",
 			BuildID:      42,
 			BuildName:    "some-build",
 			PipelineID:   4567,
@@ -104,7 +112,7 @@ jobs:
 
 		stdout, stderr *gbytes.Buffer
 
-		planID = 56
+		planID = "56"
 	)
 
 	BeforeEach(func() {
@@ -113,7 +121,7 @@ jobs:
 		ctx = lagerctx.NewContext(ctx, testLogger)
 
 		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
-		credVarsTracker = vars.NewCredVarsTracker(credVars, true)
+		buildVars = vars.NewBuildVariables(credVars, true)
 
 		artifactRepository = build.NewRepository()
 		state = new(execfakes.FakeRunState)
@@ -125,18 +133,32 @@ jobs:
 		stdout = gbytes.NewBuffer()
 		stderr = gbytes.NewBuffer()
 
-		fakeDelegate = new(execfakes.FakeBuildStepDelegate)
-		fakeDelegate.VariablesReturns(credVarsTracker)
+		fakeDelegate = new(execfakes.FakeSetPipelineStepDelegate)
+		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdout)
 		fakeDelegate.StderrReturns(stderr)
 
 		fakeTeamFactory = new(dbfakes.FakeTeamFactory)
+		fakeBuildFactory = new(dbfakes.FakeBuildFactory)
+		fakeBuild = new(dbfakes.FakeBuild)
 		fakeTeam = new(dbfakes.FakeTeam)
 		fakePipeline = new(dbfakes.FakePipeline)
 
-		fakeTeam.NameReturns("some-team")
+		stepMetadata = exec.StepMetadata{
+			TeamID:       123,
+			TeamName:     "some-team",
+			BuildID:      42,
+			BuildName:    "some-build",
+			PipelineID:   4567,
+			PipelineName: "some-pipeline",
+		}
+
+		fakeTeam.IDReturns(stepMetadata.TeamID)
+		fakeTeam.NameReturns(stepMetadata.TeamName)
+
 		fakePipeline.NameReturns("some-pipeline")
 		fakeTeamFactory.GetByIDReturns(fakeTeam)
+		fakeBuildFactory.BuildReturns(fakeBuild, true, nil)
 
 		fakeWorkerClient = new(workerfakes.FakeClient)
 
@@ -162,6 +184,7 @@ jobs:
 			stepMetadata,
 			fakeDelegate,
 			fakeTeamFactory,
+			fakeBuildFactory,
 			fakeWorkerClient,
 		)
 
@@ -233,12 +256,12 @@ jobs:
 			Context("when specified pipeline not found", func() {
 				BeforeEach(func() {
 					fakeTeam.PipelineReturns(nil, false, nil)
-					fakeTeam.SavePipelineReturns(fakePipeline, true, nil)
+					fakeBuild.SavePipelineReturns(fakePipeline, true, nil)
 				})
 
-				It("should save the pipeline un-paused", func() {
-					Expect(fakeTeam.SavePipelineCallCount()).To(Equal(1))
-					name, _, _, paused := fakeTeam.SavePipelineArgsForCall(0)
+				It("should save the pipeline", func() {
+					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
+					name, _, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
 					Expect(name).To(Equal("some-pipeline"))
 					Expect(paused).To(BeFalse())
 				})
@@ -251,44 +274,77 @@ jobs:
 			Context("when specified pipeline exists already", func() {
 				BeforeEach(func() {
 					fakeTeam.PipelineReturns(fakePipeline, true, nil)
-					fakeTeam.SavePipelineReturns(fakePipeline, false, nil)
+					fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
 				})
 
 				Context("when no diff", func() {
 					BeforeEach(func() {
 						fakePipeline.ConfigReturns(pipelineObject, nil)
+						fakePipeline.SetParentIDsReturns(nil)
 					})
 
 					It("should log no-diff", func() {
 						Expect(stdout).To(gbytes.Say("no diff found."))
 					})
+
+					It("should send a set pipeline changed event", func() {
+						Expect(fakeDelegate.SetPipelineChangedCallCount()).To(Equal(1))
+						_, changed := fakeDelegate.SetPipelineChangedArgsForCall(0)
+						Expect(changed).To(BeFalse())
+					})
+
+					It("should update the job and build id", func() {
+						Expect(fakePipeline.SetParentIDsCallCount()).To(Equal(1))
+						jobID, buildID := fakePipeline.SetParentIDsArgsForCall(0)
+						Expect(jobID).To(Equal(stepMetadata.JobID))
+						Expect(buildID).To(Equal(stepMetadata.BuildID))
+					})
 				})
 
 				Context("when there are some diff", func() {
 					BeforeEach(func() {
-						pipelineObject.Jobs[0].Plan[0].TaskConfig.Run.Args = []string{"hello world"}
+						pipelineObject.Jobs[0].PlanSequence[0].Config.(*atc.TaskStep).Config.Run.Args = []string{"hello world"}
 						fakePipeline.ConfigReturns(pipelineObject, nil)
 					})
 
 					It("should log diff", func() {
 						Expect(stdout).To(gbytes.Say("job some-job has changed:"))
 					})
+
+					It("should send a set pipeline changed event", func() {
+						Expect(fakeDelegate.SetPipelineChangedCallCount()).To(Equal(1))
+						_, changed := fakeDelegate.SetPipelineChangedArgsForCall(0)
+						Expect(changed).To(BeTrue())
+					})
 				})
 
 				Context("when SavePipeline fails", func() {
 					BeforeEach(func() {
-						fakeTeam.SavePipelineReturns(nil, false, errors.New("failed to save"))
+						fakeBuild.SavePipelineReturns(nil, false, errors.New("failed to save"))
 					})
 
 					It("should return error", func() {
 						Expect(stepErr).To(HaveOccurred())
 						Expect(stepErr.Error()).To(Equal("failed to save"))
 					})
+
+					Context("due to the pipeline being set by a newer build", func() {
+						BeforeEach(func() {
+							fakeBuild.SavePipelineReturns(nil, false, db.ErrSetByNewerBuild)
+						})
+						It("logs a warning", func() {
+							Expect(stderr).To(gbytes.Say("WARNING: the pipeline was not saved because it was already saved by a newer build"))
+						})
+						It("does not fail the step", func() {
+							Expect(stepErr).ToNot(HaveOccurred())
+							Expect(spStep.Succeeded()).To(BeTrue())
+						})
+					})
 				})
 
 				It("should save the pipeline un-paused", func() {
-					Expect(fakeTeam.SavePipelineCallCount()).To(Equal(1))
-					name, _, _, paused := fakeTeam.SavePipelineArgsForCall(0)
+					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
+					name, _, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
 					Expect(name).To(Equal("some-pipeline"))
 					Expect(paused).To(BeFalse())
 				})
@@ -302,6 +358,150 @@ jobs:
 					Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 					_, succeeded := fakeDelegate.FinishedArgsForCall(0)
 					Expect(succeeded).To(BeTrue())
+				})
+			})
+
+			Context("when set-pipeline self", func() {
+				BeforeEach(func() {
+					spPlan = &atc.SetPipelinePlan{
+						Name: "self",
+						File: "some-resource/pipeline.yml",
+						Team: "foo-team",
+					}
+					fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
+				})
+
+				It("should save the pipeline itself", func() {
+					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
+					name, _, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+					Expect(name).To(Equal("some-pipeline"))
+				})
+
+				It("should save to the current team", func() {
+					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
+					_, teamId, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+					Expect(teamId).To(Equal(fakeTeam.ID()))
+				})
+
+				It("should print an experimental message", func() {
+					Expect(stderr).To(gbytes.Say("WARNING: 'set_pipeline: self' is experimental"))
+					Expect(stderr).To(gbytes.Say("contribute to discussion #5732"))
+					Expect(stderr).To(gbytes.Say("discussions/5732"))
+				})
+			})
+
+			Context("when team is configured", func() {
+				var (
+					fakeUserCurrentTeam *dbfakes.FakeTeam
+				)
+
+				BeforeEach(func() {
+					fakeUserCurrentTeam = new(dbfakes.FakeTeam)
+					fakeUserCurrentTeam.IDReturns(111)
+					fakeUserCurrentTeam.NameReturns("main")
+					fakeUserCurrentTeam.AdminReturns(false)
+
+					stepMetadata.TeamID = fakeUserCurrentTeam.ID()
+					stepMetadata.TeamName = fakeUserCurrentTeam.Name()
+					fakeTeamFactory.FindTeamReturnsOnCall(
+						0,
+						fakeUserCurrentTeam, true, nil,
+					)
+				})
+
+				Context("when team is set to the empty string", func() {
+					BeforeEach(func() {
+						fakeBuild.PipelineReturns(fakePipeline, true, nil)
+						fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
+						spPlan.Team = ""
+					})
+
+					It("should finish successfully", func() {
+						Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+						_, succeeded := fakeDelegate.FinishedArgsForCall(0)
+						Expect(succeeded).To(BeTrue())
+					})
+				})
+
+				Context("when team does not exist", func() {
+					BeforeEach(func() {
+						spPlan.Team = "not-found"
+						fakeTeamFactory.FindTeamReturnsOnCall(
+							1,
+							nil, false, nil,
+						)
+					})
+
+					It("should return error", func() {
+						Expect(stepErr).To(HaveOccurred())
+						Expect(stepErr.Error()).To(Equal("team not-found not found"))
+					})
+				})
+
+				Context("when team exists", func() {
+					Context("when the target team is the current team", func() {
+						BeforeEach(func() {
+							spPlan.Team = fakeUserCurrentTeam.Name()
+							fakeTeamFactory.FindTeamReturnsOnCall(
+								1,
+								fakeUserCurrentTeam, true, nil,
+							)
+
+							fakeBuild.PipelineReturns(fakePipeline, true, nil)
+							fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
+						})
+
+						It("should finish successfully", func() {
+							_, teamID, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+							Expect(teamID).To(Equal(fakeUserCurrentTeam.ID()))
+							Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+							_, succeeded := fakeDelegate.FinishedArgsForCall(0)
+							Expect(succeeded).To(BeTrue())
+						})
+
+						It("should print an experimental message", func() {
+							Expect(stderr).To(gbytes.Say("WARNING: specifying the team"))
+							Expect(stderr).To(gbytes.Say("contribute to discussion #5731"))
+							Expect(stderr).To(gbytes.Say("discussions/5731"))
+						})
+					})
+
+					Context("when the team is not the current team", func() {
+						BeforeEach(func() {
+							spPlan.Team = fakeTeam.Name()
+							fakeTeamFactory.FindTeamReturnsOnCall(
+								1,
+								fakeTeam, true, nil,
+							)
+						})
+
+						Context("when the current team is an admin team", func() {
+							BeforeEach(func() {
+								fakeUserCurrentTeam.AdminReturns(true)
+
+								fakeBuild.PipelineReturns(fakePipeline, true, nil)
+								fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
+							})
+
+							It("should finish successfully", func() {
+								_, teamID, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+								Expect(teamID).To(Equal(fakeTeam.ID()))
+								Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+								_, succeeded := fakeDelegate.FinishedArgsForCall(0)
+								Expect(succeeded).To(BeTrue())
+							})
+						})
+
+						Context("when the current team is not an admin team", func() {
+							It("should return error", func() {
+
+								Expect(stepErr).To(HaveOccurred())
+								Expect(stepErr.Error()).To(Equal(
+									"only main team can set another team's pipeline",
+								))
+							})
+						})
+					})
 				})
 			})
 		})

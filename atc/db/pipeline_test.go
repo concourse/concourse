@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
@@ -49,6 +50,9 @@ var _ = Describe("Pipeline", func() {
 					},
 				},
 			},
+			Display: &atc.DisplayConfig{
+				BackgroundImage: "background.jpg",
+			},
 			Jobs: atc.JobConfigs{
 				{
 					Name: "job-name",
@@ -59,37 +63,45 @@ var _ = Describe("Pipeline", func() {
 
 					SerialGroups: []string{"serial-group"},
 
-					Plan: atc.PlanSequence{
+					PlanSequence: []atc.Step{
 						{
-							Put: "some-resource",
-							Params: atc.Params{
-								"some-param": "some-value",
+							Config: &atc.PutStep{
+								Name: "some-resource",
+								Params: atc.Params{
+									"some-param": "some-value",
+								},
 							},
 						},
 						{
-							Get:      "some-input",
-							Resource: "some-resource",
-							Params: atc.Params{
-								"some-param": "some-value",
-							},
-							Passed:  []string{"job-1", "job-2"},
-							Trigger: true,
-						},
-						{
-							Task:       "some-task",
-							Privileged: true,
-							File:       "some/config/path.yml",
-							TaskConfig: &atc.TaskConfig{
-								RootfsURI: "some-image",
+							Config: &atc.GetStep{
+								Name:     "some-input",
+								Resource: "some-resource",
+								Params: atc.Params{
+									"some-param": "some-value",
+								},
+								Passed:  []string{"job-1", "job-2"},
+								Trigger: true,
 							},
 						},
 						{
-							SetPipeline: "some-pipeline",
-							File:        "some-file",
-							VarFiles:    []string{"var-file1", "var-file2"},
-							Vars: map[string]interface{}{
-								"k1": "v1",
-								"k2": "v2",
+							Config: &atc.TaskStep{
+								Name:       "some-task",
+								Privileged: true,
+								ConfigPath: "some/config/path.yml",
+								Config: &atc.TaskConfig{
+									RootfsURI: "some-image",
+								},
+							},
+						},
+						{
+							Config: &atc.SetPipelineStep{
+								Name:     "some-pipeline",
+								File:     "some-file",
+								VarFiles: []string{"var-file1", "var-file2"},
+								Vars: map[string]interface{}{
+									"k1": "v1",
+									"k2": "v2",
+								},
 							},
 						},
 					},
@@ -214,6 +226,67 @@ var _ = Describe("Pipeline", func() {
 			It("pauses the pipeline", func() {
 				Expect(pipeline.Paused()).To(BeTrue())
 			})
+		})
+	})
+
+	Describe("Archive", func() {
+		var initialLastUpdated time.Time
+
+		BeforeEach(func() {
+			initialLastUpdated = pipeline.LastUpdated()
+		})
+
+		JustBeforeEach(func() {
+			pipeline.Archive()
+			pipeline.Reload()
+		})
+
+		It("archives the pipeline", func() {
+			Expect(pipeline.Archived()).To(BeTrue(), "pipeline was not archived")
+		})
+
+		It("updates last updated", func() {
+			lastUpdated := pipeline.LastUpdated()
+
+			Expect(lastUpdated).To(BeTemporally(">", initialLastUpdated))
+		})
+
+		It("resets the pipeline version to zero", func() {
+			version := pipeline.ConfigVersion()
+
+			Expect(version).To(Equal(db.ConfigVersion(0)))
+		})
+
+		It("removes the config of each job", func() {
+			jobs, err := pipeline.Jobs()
+			Expect(err).ToNot(HaveOccurred())
+
+			jobConfigs, err := jobs.Configs()
+			emptyJobConfigs := make(atc.JobConfigs, len(pipelineConfig.Jobs))
+			Expect(jobConfigs).To(Equal(emptyJobConfigs))
+		})
+
+		It("removes the config of each resource", func() {
+			resources, err := pipeline.Resources()
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceConfigs := resources.Configs()
+
+			emptyResourceConfigs := make(atc.ResourceConfigs, len(pipelineConfig.Resources))
+			Expect(resourceConfigs).To(Equal(emptyResourceConfigs))
+		})
+
+		It("removes the config of each resource_type", func() {
+			resourceTypes, err := pipeline.ResourceTypes()
+			Expect(err).ToNot(HaveOccurred())
+
+			resourceTypeConfigs := resourceTypes.Configs()
+
+			emptyResourceTypeConfigs := atc.ResourceTypes{
+				{Name: "some-other-resource-type", Type: "base-type"},
+				{Name: "some-resource-type", Type: "base-type"},
+			}
+			Expect(resourceTypeConfigs).To(Equal(emptyResourceTypeConfigs))
 		})
 	})
 
@@ -427,28 +500,34 @@ var _ = Describe("Pipeline", func() {
 
 						SerialGroups: []string{"serial-group"},
 
-						Plan: atc.PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Put: "some-resource",
-								Params: atc.Params{
-									"some-param": "some-value",
+								Config: &atc.PutStep{
+									Name: "some-resource",
+									Params: atc.Params{
+										"some-param": "some-value",
+									},
 								},
 							},
 							{
-								Get:      "some-input",
-								Resource: "some-resource",
-								Params: atc.Params{
-									"some-param": "some-value",
+								Config: &atc.GetStep{
+									Name:     "some-input",
+									Resource: "some-resource",
+									Params: atc.Params{
+										"some-param": "some-value",
+									},
+									Passed:  []string{"job-1", "job-2"},
+									Trigger: true,
 								},
-								Passed:  []string{"job-1", "job-2"},
-								Trigger: true,
 							},
 							{
-								Task:       "some-task",
-								Privileged: true,
-								File:       "some/config/path.yml",
-								TaskConfig: &atc.TaskConfig{
-									RootfsURI: "some-image",
+								Config: &atc.TaskStep{
+									Name:       "some-task",
+									Privileged: true,
+									ConfigPath: "some/config/path.yml",
+									Config: &atc.TaskConfig{
+										RootfsURI: "some-image",
+									},
 								},
 							},
 						},
@@ -643,14 +722,14 @@ var _ = Describe("Pipeline", func() {
 				Expect(found).To(BeFalse())
 
 				By("including saved versioned resources of the current pipeline")
-				err = resourceConfigScope.SaveVersions([]atc.Version{atc.Version{"version": "1"}})
+				err = resourceConfigScope.SaveVersions(nil, []atc.Version{atc.Version{"version": "1"}})
 				Expect(err).ToNot(HaveOccurred())
 
 				savedVR1, found, err := resourceConfigScope.LatestVersion()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				err = resourceConfigScope.SaveVersions([]atc.Version{atc.Version{"version": "2"}})
+				err = resourceConfigScope.SaveVersions(nil, []atc.Version{atc.Version{"version": "2"}})
 				Expect(err).ToNot(HaveOccurred())
 
 				savedVR2, found, err := resourceConfigScope.LatestVersion()
@@ -695,7 +774,7 @@ var _ = Describe("Pipeline", func() {
 				}))
 
 				By("not including saved versioned resources of other pipelines")
-				err = otherPipelineResourceConfigScope.SaveVersions([]atc.Version{atc.Version{"version": "1"}})
+				err = otherPipelineResourceConfigScope.SaveVersions(nil, []atc.Version{atc.Version{"version": "1"}})
 				Expect(err).ToNot(HaveOccurred())
 
 				_, found, err = otherPipelineResourceConfigScope.LatestVersion()
@@ -1008,14 +1087,14 @@ var _ = Describe("Pipeline", func() {
 			Expect(found).To(BeFalse())
 
 			By("including saved versioned resources of the current pipeline")
-			err = resourceConfigScope.SaveVersions([]atc.Version{{"version": "1"}})
+			err = resourceConfigScope.SaveVersions(nil, []atc.Version{{"version": "1"}})
 			Expect(err).ToNot(HaveOccurred())
 
 			savedVR1, found, err := resourceConfigScope.LatestVersion()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			err = resourceConfigScope.SaveVersions([]atc.Version{{"version": "2"}})
+			err = resourceConfigScope.SaveVersions(nil, []atc.Version{{"version": "2"}})
 			Expect(err).ToNot(HaveOccurred())
 
 			savedVR2, found, err := resourceConfigScope.LatestVersion()
@@ -1029,7 +1108,7 @@ var _ = Describe("Pipeline", func() {
 			_, _, err = otherDBPipeline.Resource("some-other-resource")
 			Expect(err).ToNot(HaveOccurred())
 
-			err = otherPipelineResourceConfigScope.SaveVersions([]atc.Version{{"version": "1"}, {"version": "2"}, {"version": "3"}})
+			err = otherPipelineResourceConfigScope.SaveVersions(nil, []atc.Version{{"version": "1"}, {"version": "2"}, {"version": "3"}})
 			Expect(err).ToNot(HaveOccurred())
 
 			otherPipelineSavedVR, found, err := otherPipelineResourceConfigScope.LatestVersion()
@@ -1073,7 +1152,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("populating resource versions")
-			err = resourceConfigScope.SaveVersions([]atc.Version{
+			err = resourceConfigScope.SaveVersions(nil, []atc.Version{
 				{
 					"key": "value",
 				},
@@ -1128,6 +1207,15 @@ var _ = Describe("Pipeline", func() {
 			_, found, err = team.Pipeline(pipeline.Name())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeFalse())
+		})
+
+		It("marks the pipeline ID in the deleted_pipelines table", func() {
+			destroy(pipeline)
+
+			var exists bool
+			err := dbConn.QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM deleted_pipelines WHERE id = %d)", pipeline.ID())).Scan(&exists)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists).To(BeTrue(), "did not mark the pipeline id in deleted_pipelines")
 		})
 	})
 
@@ -1440,7 +1528,7 @@ var _ = Describe("Pipeline", func() {
 			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfigScope.SaveVersions([]atc.Version{atc.Version{"version": "v1"}})
+			err = resourceConfigScope.SaveVersions(nil, []atc.Version{atc.Version{"version": "v1"}})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = job.SaveNextInputMapping(db.InputMapping{
@@ -1464,7 +1552,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			err = resourceConfigScope.SaveVersions([]atc.Version{
+			err = resourceConfigScope.SaveVersions(nil, []atc.Version{
 				{"version": "v2"},
 				{"version": "v3"},
 				{"version": "v4"},
@@ -1592,7 +1680,7 @@ var _ = Describe("Pipeline", func() {
 			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfigScope.SaveVersions([]atc.Version{
+			err = resourceConfigScope.SaveVersions(nil, []atc.Version{
 				{"version": "v3"},
 				{"version": "v4"},
 			})
@@ -1800,7 +1888,7 @@ var _ = Describe("Pipeline", func() {
 			resourceTypeScope, err := resourceType.SetResourceConfig(atc.Source{"some": "type-source"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceTypeScope.SaveVersions([]atc.Version{
+			err = resourceTypeScope.SaveVersions(nil, []atc.Version{
 				atc.Version{"version": "1"},
 				atc.Version{"version": "2"},
 			})
@@ -1809,12 +1897,12 @@ var _ = Describe("Pipeline", func() {
 			otherResourceTypeScope, err := otherResourceType.SetResourceConfig(atc.Source{"some": "other-type-source"}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = otherResourceTypeScope.SaveVersions([]atc.Version{
+			err = otherResourceTypeScope.SaveVersions(nil, []atc.Version{
 				atc.Version{"version": "3"},
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = otherResourceTypeScope.SaveVersions([]atc.Version{
+			err = otherResourceTypeScope.SaveVersions(nil, []atc.Version{
 				atc.Version{"version": "3"},
 				atc.Version{"version": "5"},
 			})
@@ -1852,7 +1940,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			version := atc.Version{"version": "1"}
-			err = resourceConfig.SaveVersions([]atc.Version{
+			err = resourceConfig.SaveVersions(nil, []atc.Version{
 				version,
 			})
 			Expect(err).ToNot(HaveOccurred())
@@ -1973,10 +2061,10 @@ var _ = Describe("Pipeline", func() {
 
 		Context("when providing boundaries", func() {
 
-			Context("only until", func() {
-				It("returns only those after until", func() {
+			Context("only to", func() {
+				It("returns only those before and including to", func() {
 					returnedBuilds, _, err := pipeline.BuildsWithTime(db.Page{
-						Until: int(builds[2].StartTime().Unix()),
+						To:    db.NewIntPtr(int(builds[2].StartTime().Unix())),
 						Limit: 50,
 					})
 
@@ -1985,10 +2073,10 @@ var _ = Describe("Pipeline", func() {
 				})
 			})
 
-			Context("only since", func() {
-				It("returns only those before since", func() {
+			Context("only from", func() {
+				It("returns only those after from", func() {
 					returnedBuilds, _, err := pipeline.BuildsWithTime(db.Page{
-						Since: int(builds[1].StartTime().Unix()),
+						From:  db.NewIntPtr(int(builds[1].StartTime().Unix())),
 						Limit: 50,
 					})
 
@@ -1997,11 +2085,11 @@ var _ = Describe("Pipeline", func() {
 				})
 			})
 
-			Context("since and until", func() {
+			Context("from and to", func() {
 				It("returns only elements in the range", func() {
 					returnedBuilds, _, err := pipeline.BuildsWithTime(db.Page{
-						Until: int(builds[2].StartTime().Unix()),
-						Since: int(builds[1].StartTime().Unix()),
+						From:  db.NewIntPtr(int(builds[1].StartTime().Unix())),
+						To:    db.NewIntPtr(int(builds[2].StartTime().Unix())),
 						Limit: 50,
 					})
 					Expect(err).NotTo(HaveOccurred())
@@ -2013,44 +2101,61 @@ var _ = Describe("Pipeline", func() {
 
 	Describe("Variables", func() {
 		var (
+			fakeGlobalSecrets *credsfakes.FakeSecrets
+			pool              creds.VarSourcePool
+
 			pvars vars.Variables
 			err   error
 		)
+
+		BeforeEach(func() {
+			pool = creds.NewVarSourcePool(logger, 1*time.Minute, 1*time.Second, clock.NewClock())
+		})
+
+		AfterEach(func() {
+			pool.Close()
+		})
+
 		JustBeforeEach(func() {
-			fakeSecrets = new(credsfakes.FakeSecrets)
-			fakeSecrets.GetStub = func(key string) (interface{}, *time.Time, bool, error) {
+			fakeGlobalSecrets = new(credsfakes.FakeSecrets)
+			fakeGlobalSecrets.GetStub = func(key string) (interface{}, *time.Time, bool, error) {
 				if key == "gk" {
 					return "gv", nil, true, nil
 				}
 				return nil, nil, false, nil
 			}
-			varSourcePool := creds.NewVarSourcePool(1*time.Minute, clock.NewClock())
-			pvars, err = pipeline.Variables(logger, fakeSecrets, varSourcePool)
+
+			pvars, err = pipeline.Variables(logger, fakeGlobalSecrets, pool)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("should get var from pipeline var source", func() {
-			v, found, err := pvars.Get(vars.VariableDefinition{Name: "some-var-source:pk"})
+			v, found, err := pvars.Get(vars.VariableDefinition{Ref: vars.VariableReference{Source: "some-var-source", Path: "pk"}})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(v.(string)).To(Equal("pv"))
 		})
 
 		It("should not get pipeline var 'pk' without specifying var_source name", func() {
-			_, found, err := pvars.Get(vars.VariableDefinition{Name: "pk"})
+			_, found, err := pvars.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "pk"}})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})
 
+		It("should not get from global secrets if found in the pipeline var source", func() {
+			pvars.Get(vars.VariableDefinition{Ref: vars.VariableReference{Source: "some-var-source", Path: "pk"}})
+			Expect(fakeGlobalSecrets.GetCallCount()).To(Equal(0))
+		})
+
 		It("should get var from global var source", func() {
-			v, found, err := pvars.Get(vars.VariableDefinition{Name: "gk"})
+			v, found, err := pvars.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "gk"}})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(v.(string)).To(Equal("gv"))
 		})
 
 		It("should not get var 'foo'", func() {
-			_, found, err := pvars.Get(vars.VariableDefinition{Name: "foo"})
+			_, found, err := pvars.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "foo"}})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})
@@ -2074,10 +2179,56 @@ var _ = Describe("Pipeline", func() {
 			// The second var source is configured with vars that needs to be interpolated
 			// from "some-var-source".
 			It("should get pipeline var 'pk' from the second var_source", func() {
-				v, found, err := pvars.Get(vars.VariableDefinition{Name: "second-var-source:pk"})
+				v, found, err := pvars.Get(vars.VariableDefinition{Ref: vars.VariableReference{Source: "second-var-source", Path: "pk"}})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(v.(string)).To(Equal("pv"))
+			})
+		})
+	})
+
+	Describe("SetParentIDs", func() {
+		It("sets the parent_job_id and parent_build_id fields", func() {
+			jobID := 123
+			buildID := 456
+			Expect(pipeline.SetParentIDs(jobID, buildID)).To(Succeed())
+
+			found, err := pipeline.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(pipeline.ParentJobID()).To(Equal(jobID))
+			Expect(pipeline.ParentBuildID()).To(Equal(buildID))
+		})
+
+		It("returns an error if job or build ID are less than or equal to zero", func() {
+			err := pipeline.SetParentIDs(0, 0)
+			Expect(err).To(MatchError("job and build id cannot be negative or zero-value"))
+			err = pipeline.SetParentIDs(-1, -6)
+			Expect(err).To(MatchError("job and build id cannot be negative or zero-value"))
+		})
+
+		Context("pipeline was saved by a newer build", func() {
+			It("returns ErrSetByNewerBuild", func() {
+				By("setting the build ID to a high number")
+				pipeline.SetParentIDs(1, 60)
+
+				By("trying to set the build ID to a lower number")
+				err := pipeline.SetParentIDs(1, 2)
+				Expect(err).To(MatchError(db.ErrSetByNewerBuild))
+			})
+		})
+
+		Context("pipeline was previously saved by team.SavePipeline", func() {
+			It("successfully updates the parent build and job IDs", func() {
+				By("using the defaultPipeline saved by defaultTeam at the suite level")
+				Expect(defaultPipeline.ParentJobID()).To(Equal(0), "should be zero if sql value is null")
+				Expect(defaultPipeline.ParentBuildID()).To(Equal(0), "should be zero if sql value is null")
+
+				err := defaultPipeline.SetParentIDs(1, 6)
+				Expect(err).ToNot(HaveOccurred())
+				defaultPipeline.Reload()
+				Expect(defaultPipeline.ParentJobID()).To(Equal(1), "should be zero if sql value is null")
+				Expect(defaultPipeline.ParentBuildID()).To(Equal(6), "should be zero if sql value is null")
 			})
 		})
 	})

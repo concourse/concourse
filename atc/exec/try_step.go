@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 )
 
 // TryStep wraps another step, ignores its errors, and always succeeds.
@@ -22,7 +23,7 @@ func Try(step Step) Step {
 // error.
 func (ts *TryStep) Run(ctx context.Context, state RunState) error {
 	err := ts.step.Run(ctx, state)
-	if err == context.Canceled {
+	if errors.Is(err, context.Canceled) {
 		ts.aborted = true
 		// propagate aborts but not timeouts
 		return err

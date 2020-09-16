@@ -1,6 +1,7 @@
 package worker_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/compression/compressionfakes"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
@@ -36,14 +38,18 @@ var _ = Describe("Client", func() {
 		client          worker.Client
 		fakeLock        *lockfakes.FakeLock
 		fakeLockFactory *lockfakes.FakeLockFactory
+		fakeCompression *compressionfakes.FakeCompression
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 		fakePool = new(workerfakes.FakePool)
 		fakeProvider = new(workerfakes.FakeWorkerProvider)
+		fakeCompression = new(compressionfakes.FakeCompression)
+		workerPolling := 1 * time.Second
+		workerStatus := 2 * time.Second
 
-		client = worker.NewClient(fakePool, fakeProvider)
+		client = worker.NewClient(fakePool, fakeProvider, fakeCompression, workerPolling, workerStatus)
 	})
 
 	Describe("FindContainer", func() {
@@ -223,10 +229,12 @@ var _ = Describe("Client", func() {
 			result           worker.CheckResult
 			err, expectedErr error
 			fakeResource     *resourcefakes.FakeResource
+			fakeDelegate     *execfakes.FakeBuildStepDelegate
 		)
 
 		BeforeEach(func() {
 			fakeResource = new(resourcefakes.FakeResource)
+			fakeDelegate = new(execfakes.FakeBuildStepDelegate)
 		})
 
 		JustBeforeEach(func() {
@@ -236,6 +244,11 @@ var _ = Describe("Client", func() {
 			workerSpec := worker.WorkerSpec{}
 			fakeResourceTypes := atc.VersionedResourceTypes{}
 
+			imageSpec := worker.ImageFetcherSpec{
+				Delegate:      fakeDelegate,
+				ResourceTypes: fakeResourceTypes,
+			}
+
 			result, err = client.RunCheckStep(
 				context.Background(),
 				logger,
@@ -244,7 +257,7 @@ var _ = Describe("Client", func() {
 				workerSpec,
 				fakeStrategy,
 				metadata,
-				fakeResourceTypes,
+				imageSpec,
 				1*time.Nanosecond,
 				fakeResource,
 			)
@@ -429,6 +442,10 @@ var _ = Describe("Client", func() {
 			Expect(actualStrategy).To(Equal(fakeStrategy))
 		})
 
+		It("invokes the SelectedWorker Event on the delegate", func() {
+			Expect(fakeEventDelegate.SelectedWorkerCallCount()).Should((Equal(1)))
+		})
+
 		Context("worker is chosen", func() {
 			BeforeEach(func() {
 				fakePool.FindOrChooseWorkerReturns(fakeChosenWorker, nil)
@@ -436,6 +453,8 @@ var _ = Describe("Client", func() {
 
 			It("invokes the Starting Event on the delegate", func() {
 				Expect(fakeEventDelegate.StartingCallCount()).Should((Equal(1)))
+				_, actualWorkerName := fakeEventDelegate.SelectedWorkerArgsForCall(0)
+				Expect(actualWorkerName).To(Equal(fakeChosenWorker.Name()))
 			})
 
 			It("calls Fetch on the worker", func() {
@@ -522,7 +541,7 @@ var _ = Describe("Client", func() {
 			memory := uint64(1024)
 
 			buildId := 1234
-			planId := atc.PlanID(42)
+			planId := atc.PlanID("42")
 			teamId := 123
 			fakeDelegate = new(execfakes.FakeTaskDelegate)
 			fakeContainerOwner = db.NewBuildStepContainerOwner(
@@ -565,9 +584,11 @@ var _ = Describe("Client", func() {
 				ResourceTypes: atc.VersionedResourceTypes{},
 			}
 			fakeTaskProcessSpec = runtime.ProcessSpec{
-				Path: "/some/path",
-				Args: []string{"some", "args"},
-				Dir:  "/some/dir",
+				Path:         "/some/path",
+				Args:         []string{"some", "args"},
+				Dir:          "/some/dir",
+				StdoutWriter: new(bytes.Buffer),
+				StderrWriter: new(bytes.Buffer),
 			}
 			fakeContainer = new(workerfakes.FakeContainer)
 			fakeContainer.PropertiesReturns(garden.Properties{"concourse:exit-status": "0"}, nil)
@@ -624,6 +645,12 @@ var _ = Describe("Client", func() {
 			It("chooses a worker", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
+				_, actualWorkerName := fakeEventDelegate.SelectedWorkerArgsForCall(0)
+				Expect(actualWorkerName).To(Equal(fakeWorker.Name()))
+			})
+
+			It("invokes the SelectedWorker Event on the delegate", func() {
+				Expect(fakeEventDelegate.SelectedWorkerCallCount()).Should((Equal(1)))
 			})
 
 			Context("when 'limit-active-tasks' strategy is chosen", func() {
@@ -658,7 +685,7 @@ var _ = Describe("Client", func() {
 						cancel()
 					})
 					It("exits releasing the lock", func() {
-						Expect(err).To(Equal(context.Canceled))
+						Expect(err.Error()).To(ContainSubstring(context.Canceled.Error()))
 						Expect(fakeLock.ReleaseCallCount()).To(Equal(fakeLockFactory.AcquireCallCount()))
 					})
 				})
@@ -682,6 +709,10 @@ var _ = Describe("Client", func() {
 
 				It("returns the error", func() {
 					Expect(err).To(Equal(workerDisaster))
+				})
+
+				It("should not invokes the SelectedWorker Event on the delegate", func() {
+					Expect(fakeEventDelegate.SelectedWorkerCallCount()).Should((Equal(0)))
 				})
 			})
 
@@ -1340,6 +1371,12 @@ var _ = Describe("Client", func() {
 			Expect(actualContainerSpec).To(Equal(containerSpec))
 			Expect(actualWorkerSpec).To(Equal(workerSpec))
 			Expect(strategy).To(Equal(fakeStrategy))
+		})
+
+		It("invokes the SelectedWorker Event on the delegate", func() {
+			Expect(fakeEventDelegate.SelectedWorkerCallCount()).Should((Equal(1)))
+			_, actualWorkerName := fakeEventDelegate.SelectedWorkerArgsForCall(0)
+			Expect(actualWorkerName).To(Equal(fakeChosenWorker.Name()))
 		})
 
 		Context("worker is chosen", func() {

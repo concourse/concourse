@@ -26,9 +26,13 @@ func (command *RenameTeamCommand) Execute([]string) error {
 
 	teamName := command.Team.Name()
 
-	found, err := target.Team().RenameTeam(teamName, command.NewTeamName)
+	found, warnings, err := target.Team().RenameTeam(teamName, command.NewTeamName)
 	if err != nil {
 		return err
+	}
+
+	if len(warnings) > 0 {
+		displayhelpers.ShowWarnings(warnings)
 	}
 
 	if !found {

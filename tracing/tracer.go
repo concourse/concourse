@@ -2,15 +2,28 @@ package tracing
 
 import (
 	"context"
-	"fmt"
 
+	"go.opentelemetry.io/otel/api/core"
 	"go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/api/key"
+	"go.opentelemetry.io/otel/api/propagators"
 	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/api/trace/testtrace"
 	export "go.opentelemetry.io/otel/sdk/export/trace"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc/codes"
 )
+
+type TestTraceProvider struct {
+	tracer *testtrace.Tracer
+}
+
+func (tp *TestTraceProvider) Tracer(name string) trace.Tracer {
+	if tp.tracer == nil {
+		tp.tracer = testtrace.NewTracer()
+	}
+	return tp.tracer
+}
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 go.opentelemetry.io/otel/api/trace.Tracer
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 go.opentelemetry.io/otel/api/trace.Provider
@@ -23,6 +36,29 @@ import (
 //
 //
 var Configured bool
+
+type Config struct {
+	Jaeger      Jaeger
+	Stackdriver Stackdriver
+}
+
+func (c Config) Prepare() error {
+	var exp export.SpanSyncer
+	var err error
+	switch {
+	case c.Jaeger.IsConfigured():
+		exp, err = c.Jaeger.Exporter()
+	case c.Stackdriver.IsConfigured():
+		exp, err = c.Stackdriver.Exporter()
+	}
+	if err != nil {
+		return err
+	}
+	if exp != nil {
+		ConfigureTraceProvider(TraceProvider(exp))
+	}
+	return nil
+}
 
 // StartSpan creates a span, giving back a context that has itself added as the
 // parent span.
@@ -62,6 +98,73 @@ func StartSpan(
 	component string,
 	attrs Attrs,
 ) (context.Context, trace.Span) {
+	return startSpan(ctx, component, attrs)
+}
+
+func FromContext(ctx context.Context) trace.Span {
+	return trace.SpanFromContext(ctx)
+}
+
+func Inject(ctx context.Context, supplier propagators.Supplier) {
+	propagators.TraceContext{}.Inject(ctx, supplier)
+}
+
+type WithSpanContext interface {
+	SpanContext() propagators.Supplier
+}
+
+func StartSpanFollowing(
+	ctx context.Context,
+	following WithSpanContext,
+	component string,
+	attrs Attrs,
+) (context.Context, trace.Span) {
+	supplier := following.SpanContext()
+	var spanContext core.SpanContext
+	if supplier == nil {
+		spanContext = core.EmptySpanContext()
+	} else {
+		spanContext, _ = propagators.TraceContext{}.Extract(
+			context.TODO(),
+			following.SpanContext(),
+		)
+	}
+
+	return startSpan(
+		ctx,
+		component,
+		attrs,
+		trace.FollowsFrom(spanContext),
+	)
+}
+
+func StartSpanLinkedToFollowing(
+	linked context.Context,
+	following WithSpanContext,
+	component string,
+	attrs Attrs,
+) (context.Context, trace.Span) {
+	followingSpanContext, _ := propagators.TraceContext{}.Extract(
+		context.TODO(),
+		following.SpanContext(),
+	)
+	linkedSpanContext := trace.SpanFromContext(linked).SpanContext()
+
+	return startSpan(
+		context.Background(),
+		component,
+		attrs,
+		trace.FollowsFrom(followingSpanContext),
+		trace.LinkedTo(linkedSpanContext),
+	)
+}
+
+func startSpan(
+	ctx context.Context,
+	component string,
+	attrs Attrs,
+	opts ...trace.StartOption,
+) (context.Context, trace.Span) {
 	if !Configured {
 		return ctx, trace.NoopSpan{}
 	}
@@ -69,6 +172,7 @@ func StartSpan(
 	ctx, span := global.TraceProvider().Tracer("concourse").Start(
 		ctx,
 		component,
+		opts...,
 	)
 
 	if len(attrs) != 0 {
@@ -86,31 +190,31 @@ func End(span trace.Span, err error) {
 	if err != nil {
 		span.SetStatus(codes.Internal)
 		span.SetAttributes(
-			key.New("error").String(err.Error()),
+			key.New("error-message").String(err.Error()),
 		)
 	}
 
 	span.End()
 }
 
-// ConfigureTracer configures the sdk to use a given exporter.
+// ConfigureTraceProvider configures the sdk to use a given trace provider.
 //
 // By default, a noop tracer is registered, thus, it's safe to call StartSpan
 // and other related methods even before `ConfigureTracer` it called.
 //
-func ConfigureTracer(exporter export.SpanSyncer) error {
-	tp, err := sdktrace.NewProvider(sdktrace.WithConfig(
+func ConfigureTraceProvider(tp trace.Provider) {
+	global.SetTraceProvider(tp)
+	Configured = true
+}
+
+func TraceProvider(exporter export.SpanSyncer) trace.Provider {
+	// the only way NewProvider can error is if exporter is nil, but
+	// this method is never called in such circumstances.
+	provider, _ := sdktrace.NewProvider(sdktrace.WithConfig(
 		sdktrace.Config{
 			DefaultSampler: sdktrace.AlwaysSample(),
 		}),
 		sdktrace.WithSyncer(exporter),
 	)
-	if err != nil {
-		return fmt.Errorf("failed to configure trace provider: %w", err)
-	}
-
-	global.SetTraceProvider(tp)
-	Configured = true
-
-	return nil
+	return provider
 }

@@ -25,6 +25,7 @@ type alias Model =
             (ShortcutsModel
                 { shiftDown : Bool
                 , highlight : Highlight
+                , isScrollToIdInProgress : Bool
                 , authorized : Bool
                 , output : CurrentOutput
                 , prep : Maybe Concourse.BuildPrep
@@ -69,5 +70,6 @@ type StepHeaderType
     = StepHeaderPut
     | StepHeaderGet Bool
     | StepHeaderTask
-    | StepHeaderSetPipeline
+    | StepHeaderSetPipeline Bool
     | StepHeaderLoadVar
+    | StepHeaderAcross

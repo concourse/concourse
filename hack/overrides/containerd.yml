@@ -8,4 +8,6 @@ version: '3'
 services:
   worker:
     environment:
-      CONCOURSE_GARDEN_USE_CONTAINERD: "true"
+      CONCOURSE_RUNTIME: containerd
+      CONCOURSE_GARDEN_DNS_PROXY_ENABLE: ~
+      CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: "true"

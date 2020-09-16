@@ -60,6 +60,16 @@ type FakeResource struct {
 	checkTimeoutReturnsOnCall map[int]struct {
 		result1 string
 	}
+	ConfigStub        func() atc.ResourceConfig
+	configMutex       sync.RWMutex
+	configArgsForCall []struct {
+	}
+	configReturns struct {
+		result1 atc.ResourceConfig
+	}
+	configReturnsOnCall map[int]struct {
+		result1 atc.ResourceConfig
+	}
 	ConfigPinnedVersionStub        func() atc.Version
 	configPinnedVersionMutex       sync.RWMutex
 	configPinnedVersionArgsForCall []struct {
@@ -101,6 +111,16 @@ type FakeResource struct {
 	}
 	enableVersionReturnsOnCall map[int]struct {
 		result1 error
+	}
+	HasWebhookStub        func() bool
+	hasWebhookMutex       sync.RWMutex
+	hasWebhookArgsForCall []struct {
+	}
+	hasWebhookReturns struct {
+		result1 bool
+	}
+	hasWebhookReturnsOnCall map[int]struct {
+		result1 bool
 	}
 	IDStub        func() int
 	iDMutex       sync.RWMutex
@@ -694,6 +714,58 @@ func (fake *FakeResource) CheckTimeoutReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeResource) Config() atc.ResourceConfig {
+	fake.configMutex.Lock()
+	ret, specificReturn := fake.configReturnsOnCall[len(fake.configArgsForCall)]
+	fake.configArgsForCall = append(fake.configArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Config", []interface{}{})
+	fake.configMutex.Unlock()
+	if fake.ConfigStub != nil {
+		return fake.ConfigStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.configReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResource) ConfigCallCount() int {
+	fake.configMutex.RLock()
+	defer fake.configMutex.RUnlock()
+	return len(fake.configArgsForCall)
+}
+
+func (fake *FakeResource) ConfigCalls(stub func() atc.ResourceConfig) {
+	fake.configMutex.Lock()
+	defer fake.configMutex.Unlock()
+	fake.ConfigStub = stub
+}
+
+func (fake *FakeResource) ConfigReturns(result1 atc.ResourceConfig) {
+	fake.configMutex.Lock()
+	defer fake.configMutex.Unlock()
+	fake.ConfigStub = nil
+	fake.configReturns = struct {
+		result1 atc.ResourceConfig
+	}{result1}
+}
+
+func (fake *FakeResource) ConfigReturnsOnCall(i int, result1 atc.ResourceConfig) {
+	fake.configMutex.Lock()
+	defer fake.configMutex.Unlock()
+	fake.ConfigStub = nil
+	if fake.configReturnsOnCall == nil {
+		fake.configReturnsOnCall = make(map[int]struct {
+			result1 atc.ResourceConfig
+		})
+	}
+	fake.configReturnsOnCall[i] = struct {
+		result1 atc.ResourceConfig
+	}{result1}
+}
+
 func (fake *FakeResource) ConfigPinnedVersion() atc.Version {
 	fake.configPinnedVersionMutex.Lock()
 	ret, specificReturn := fake.configPinnedVersionReturnsOnCall[len(fake.configPinnedVersionArgsForCall)]
@@ -915,6 +987,58 @@ func (fake *FakeResource) EnableVersionReturnsOnCall(i int, result1 error) {
 	}
 	fake.enableVersionReturnsOnCall[i] = struct {
 		result1 error
+	}{result1}
+}
+
+func (fake *FakeResource) HasWebhook() bool {
+	fake.hasWebhookMutex.Lock()
+	ret, specificReturn := fake.hasWebhookReturnsOnCall[len(fake.hasWebhookArgsForCall)]
+	fake.hasWebhookArgsForCall = append(fake.hasWebhookArgsForCall, struct {
+	}{})
+	fake.recordInvocation("HasWebhook", []interface{}{})
+	fake.hasWebhookMutex.Unlock()
+	if fake.HasWebhookStub != nil {
+		return fake.HasWebhookStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.hasWebhookReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResource) HasWebhookCallCount() int {
+	fake.hasWebhookMutex.RLock()
+	defer fake.hasWebhookMutex.RUnlock()
+	return len(fake.hasWebhookArgsForCall)
+}
+
+func (fake *FakeResource) HasWebhookCalls(stub func() bool) {
+	fake.hasWebhookMutex.Lock()
+	defer fake.hasWebhookMutex.Unlock()
+	fake.HasWebhookStub = stub
+}
+
+func (fake *FakeResource) HasWebhookReturns(result1 bool) {
+	fake.hasWebhookMutex.Lock()
+	defer fake.hasWebhookMutex.Unlock()
+	fake.HasWebhookStub = nil
+	fake.hasWebhookReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeResource) HasWebhookReturnsOnCall(i int, result1 bool) {
+	fake.hasWebhookMutex.Lock()
+	defer fake.hasWebhookMutex.Unlock()
+	fake.HasWebhookStub = nil
+	if fake.hasWebhookReturnsOnCall == nil {
+		fake.hasWebhookReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.hasWebhookReturnsOnCall[i] = struct {
+		result1 bool
 	}{result1}
 }
 
@@ -2545,6 +2669,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.checkSetupErrorMutex.RUnlock()
 	fake.checkTimeoutMutex.RLock()
 	defer fake.checkTimeoutMutex.RUnlock()
+	fake.configMutex.RLock()
+	defer fake.configMutex.RUnlock()
 	fake.configPinnedVersionMutex.RLock()
 	defer fake.configPinnedVersionMutex.RUnlock()
 	fake.currentPinnedVersionMutex.RLock()
@@ -2553,6 +2679,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.disableVersionMutex.RUnlock()
 	fake.enableVersionMutex.RLock()
 	defer fake.enableVersionMutex.RUnlock()
+	fake.hasWebhookMutex.RLock()
+	defer fake.hasWebhookMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
 	fake.iconMutex.RLock()

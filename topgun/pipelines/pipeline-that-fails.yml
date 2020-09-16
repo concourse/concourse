@@ -9,4 +9,4 @@ jobs:
             type: registry-image
             source: {repository: busybox}
           run:
-            path: false
+            path: "false"

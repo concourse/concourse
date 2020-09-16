@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/lib/pq"
+	"go.opentelemetry.io/otel/api/propagators"
 )
 
 type CheckStatus string
@@ -39,15 +40,18 @@ type Check interface {
 	EndTime() time.Time
 	Status() CheckStatus
 	CheckError() error
+	ManuallyTriggered() bool
 
 	Start() error
 	Finish() error
 	FinishWithError(err error) error
 
-	SaveVersions([]atc.Version) error
+	SaveVersions(SpanContext, []atc.Version) error
 	AllCheckables() ([]Checkable, error)
 	AcquireTrackingLock(lager.Logger) (lock.Lock, bool, error)
 	Reload() (bool, error)
+
+	SpanContext() propagators.Supplier
 }
 
 var checksQuery = psql.Select(
@@ -62,6 +66,8 @@ var checksQuery = psql.Select(
 	"c.nonce",
 	"c.check_error",
 	"c.metadata",
+	"c.span_context",
+	"c.manually_triggered",
 ).
 	From("checks c")
 
@@ -71,6 +77,7 @@ type check struct {
 	id                    int
 	resourceConfigScopeID int
 	metadata              CheckMetadata
+	manuallyTriggered     bool
 
 	status     CheckStatus
 	schema     string
@@ -80,6 +87,8 @@ type check struct {
 	createTime time.Time
 	startTime  time.Time
 	endTime    time.Time
+
+	spanContext SpanContext
 }
 
 type CheckMetadata struct {
@@ -104,6 +113,7 @@ func (c *check) CreateTime() time.Time      { return c.createTime }
 func (c *check) StartTime() time.Time       { return c.startTime }
 func (c *check) EndTime() time.Time         { return c.endTime }
 func (c *check) CheckError() error          { return c.checkError }
+func (c *check) ManuallyTriggered() bool    { return c.manuallyTriggered }
 
 func (c *check) TeamID() int {
 	return c.metadata.TeamID
@@ -317,8 +327,12 @@ func (c *check) AllCheckables() ([]Checkable, error) {
 	return checkables, nil
 }
 
-func (c *check) SaveVersions(versions []atc.Version) error {
-	return saveVersions(c.conn, c.resourceConfigScopeID, versions)
+func (c *check) SaveVersions(spanContext SpanContext, versions []atc.Version) error {
+	return saveVersions(c.conn, c.resourceConfigScopeID, versions, spanContext)
+}
+
+func (c *check) SpanContext() propagators.Supplier {
+	return c.spanContext
 }
 
 func scanCheck(c *check, row scannable) error {
@@ -326,7 +340,7 @@ func scanCheck(c *check, row scannable) error {
 		createTime, startTime, endTime  pq.NullTime
 		schema, plan, nonce, checkError sql.NullString
 		status                          string
-		metadata                        sql.NullString
+		metadata, spanContext           sql.NullString
 	)
 
 	err := row.Scan(
@@ -341,6 +355,8 @@ func scanCheck(c *check, row scannable) error {
 		&nonce,
 		&checkError,
 		&metadata,
+		&spanContext,
+		&c.manuallyTriggered,
 	)
 	if err != nil {
 		return err
@@ -366,6 +382,13 @@ func scanCheck(c *check, row scannable) error {
 
 	if len(metadata.String) > 0 {
 		err = json.Unmarshal([]byte(metadata.String), &c.metadata)
+		if err != nil {
+			return err
+		}
+	}
+
+	if spanContext.Valid {
+		err = json.Unmarshal([]byte(spanContext.String), &c.spanContext)
 		if err != nil {
 			return err
 		}

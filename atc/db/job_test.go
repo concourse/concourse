@@ -1,13 +1,16 @@
 package db_test
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel/api/propagators"
 )
 
 var _ = Describe("Job", func() {
@@ -30,28 +33,34 @@ var _ = Describe("Job", func() {
 
 					Public: true,
 
-					Plan: atc.PlanSequence{
+					PlanSequence: []atc.Step{
 						{
-							Put: "some-resource",
-							Params: atc.Params{
-								"some-param": "some-value",
+							Config: &atc.PutStep{
+								Name: "some-resource",
+								Params: atc.Params{
+									"some-param": "some-value",
+								},
 							},
 						},
 						{
-							Get:      "some-input",
-							Resource: "some-resource",
-							Params: atc.Params{
-								"some-param": "some-value",
+							Config: &atc.GetStep{
+								Name:     "some-input",
+								Resource: "some-resource",
+								Params: atc.Params{
+									"some-param": "some-value",
+								},
+								Passed:  []string{"job-1", "job-2"},
+								Trigger: true,
 							},
-							Passed:  []string{"job-1", "job-2"},
-							Trigger: true,
 						},
 						{
-							Task:       "some-task",
-							Privileged: true,
-							File:       "some/config/path.yml",
-							TaskConfig: &atc.TaskConfig{
-								RootfsURI: "some-image",
+							Config: &atc.TaskStep{
+								Name:       "some-task",
+								Privileged: true,
+								ConfigPath: "some/config/path.yml",
+								Config: &atc.TaskConfig{
+									RootfsURI: "some-image",
+								},
 							},
 						},
 					},
@@ -74,6 +83,10 @@ var _ = Describe("Job", func() {
 				},
 				{
 					Name: "job-2",
+				},
+				{
+					Name:                 "non-triggerable-job",
+					DisableManualTrigger: true,
 				},
 			},
 			Resources: atc.ResourceConfigs{
@@ -118,6 +131,26 @@ var _ = Describe("Job", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(otherJob.Public()).To(BeFalse())
+			})
+		})
+	})
+
+	Describe("DisableManualTrigger", func() {
+		Context("when the config has disable_manual_trigger set to true", func() {
+			It("returns true", func() {
+				nonTriggerableJob, found, err := pipeline.Job("non-triggerable-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(nonTriggerableJob.DisableManualTrigger()).To(BeTrue())
+			})
+		})
+
+		Context("when the config does not have disable_manual_trigger set", func() {
+			It("returns false", func() {
+				otherJob, found, err := pipeline.Job("some-other-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(otherJob.DisableManualTrigger()).To(BeFalse())
 			})
 		})
 	})
@@ -334,53 +367,53 @@ var _ = Describe("Job", func() {
 			})
 		})
 
-		Context("with no since/until", func() {
+		Context("with no from/to", func() {
 			It("returns the first page, with the given limit, and a next page", func() {
 				buildsPage, pagination, err := someJob.Builds(db.Page{Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildsPage).To(Equal([]db.Build{builds[9], builds[8]}))
-				Expect(pagination.Previous).To(BeNil())
-				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[8].ID(), Limit: 2}))
+				Expect(pagination.Newer).To(BeNil())
+				Expect(pagination.Older).To(Equal(&db.Page{To: db.NewIntPtr(builds[7].ID()), Limit: 2}))
 			})
 		})
 
-		Context("with a since that places it in the middle of the builds", func() {
+		Context("with a to that places it in the middle of the builds", func() {
 			It("returns the builds, with previous/next pages", func() {
-				buildsPage, pagination, err := someJob.Builds(db.Page{Since: builds[6].ID(), Limit: 2})
+				buildsPage, pagination, err := someJob.Builds(db.Page{To: db.NewIntPtr(builds[6].ID()), Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
-				Expect(buildsPage).To(Equal([]db.Build{builds[5], builds[4]}))
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: builds[5].ID(), Limit: 2}))
-				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[4].ID(), Limit: 2}))
+				Expect(buildsPage).To(Equal([]db.Build{builds[6], builds[5]}))
+				Expect(pagination.Newer).To(Equal(&db.Page{From: db.NewIntPtr(builds[7].ID()), Limit: 2}))
+				Expect(pagination.Older).To(Equal(&db.Page{To: db.NewIntPtr(builds[4].ID()), Limit: 2}))
 			})
 		})
 
-		Context("with a since that places it at the end of the builds", func() {
+		Context("with a to that places it at the end of the builds", func() {
 			It("returns the builds, with previous/next pages", func() {
-				buildsPage, pagination, err := someJob.Builds(db.Page{Since: builds[2].ID(), Limit: 2})
+				buildsPage, pagination, err := someJob.Builds(db.Page{To: db.NewIntPtr(builds[1].ID()), Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildsPage).To(Equal([]db.Build{builds[1], builds[0]}))
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: builds[1].ID(), Limit: 2}))
-				Expect(pagination.Next).To(BeNil())
+				Expect(pagination.Newer).To(Equal(&db.Page{From: db.NewIntPtr(builds[2].ID()), Limit: 2}))
+				Expect(pagination.Older).To(BeNil())
 			})
 		})
 
-		Context("with an until that places it in the middle of the builds", func() {
+		Context("with a from that places it in the middle of the builds", func() {
 			It("returns the builds, with previous/next pages", func() {
-				buildsPage, pagination, err := someJob.Builds(db.Page{Until: builds[6].ID(), Limit: 2})
+				buildsPage, pagination, err := someJob.Builds(db.Page{From: db.NewIntPtr(builds[6].ID()), Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
-				Expect(buildsPage).To(Equal([]db.Build{builds[8], builds[7]}))
-				Expect(pagination.Previous).To(Equal(&db.Page{Until: builds[8].ID(), Limit: 2}))
-				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[7].ID(), Limit: 2}))
+				Expect(buildsPage).To(Equal([]db.Build{builds[7], builds[6]}))
+				Expect(pagination.Newer).To(Equal(&db.Page{From: db.NewIntPtr(builds[8].ID()), Limit: 2}))
+				Expect(pagination.Older).To(Equal(&db.Page{To: db.NewIntPtr(builds[5].ID()), Limit: 2}))
 			})
 		})
 
-		Context("with a until that places it at the beginning of the builds", func() {
+		Context("with a from that places it at the beginning of the builds", func() {
 			It("returns the builds, with previous/next pages", func() {
-				buildsPage, pagination, err := someJob.Builds(db.Page{Until: builds[7].ID(), Limit: 2})
+				buildsPage, pagination, err := someJob.Builds(db.Page{From: db.NewIntPtr(builds[8].ID()), Limit: 2})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(buildsPage).To(Equal([]db.Build{builds[9], builds[8]}))
-				Expect(pagination.Previous).To(BeNil())
-				Expect(pagination.Next).To(Equal(&db.Page{Since: builds[8].ID(), Limit: 2}))
+				Expect(pagination.Newer).To(BeNil())
+				Expect(pagination.Older).To(Equal(&db.Page{To: db.NewIntPtr(builds[7].ID()), Limit: 2}))
 			})
 		})
 	})
@@ -452,10 +485,10 @@ var _ = Describe("Job", func() {
 		})
 
 		Context("when providing boundaries", func() {
-			Context("only until", func() {
-				It("returns only those after until", func() {
+			Context("only to", func() {
+				It("returns only those before to", func() {
 					returnedBuilds, _, err := job.BuildsWithTime(db.Page{
-						Until: int(builds[2].StartTime().Unix()),
+						To:    db.NewIntPtr(int(builds[2].StartTime().Unix())),
 						Limit: 50,
 					})
 
@@ -464,10 +497,10 @@ var _ = Describe("Job", func() {
 				})
 			})
 
-			Context("only since", func() {
-				It("returns only those before since", func() {
+			Context("only from", func() {
+				It("returns only those after from", func() {
 					returnedBuilds, _, err := job.BuildsWithTime(db.Page{
-						Since: int(builds[1].StartTime().Unix()),
+						From:  db.NewIntPtr(int(builds[1].StartTime().Unix())),
 						Limit: 50,
 					})
 
@@ -476,11 +509,11 @@ var _ = Describe("Job", func() {
 				})
 			})
 
-			Context("since and until", func() {
+			Context("from and to", func() {
 				It("returns only elements in the range", func() {
 					returnedBuilds, _, err := job.BuildsWithTime(db.Page{
-						Until: int(builds[2].StartTime().Unix()),
-						Since: int(builds[1].StartTime().Unix()),
+						From:  db.NewIntPtr(int(builds[1].StartTime().Unix())),
+						To:    db.NewIntPtr(int(builds[2].StartTime().Unix())),
 						Limit: 50,
 					})
 					Expect(err).NotTo(HaveOccurred())
@@ -655,28 +688,34 @@ var _ = Describe("Job", func() {
 
 							RawMaxInFlight: 2,
 
-							Plan: atc.PlanSequence{
+							PlanSequence: []atc.Step{
 								{
-									Put: "some-resource",
-									Params: atc.Params{
-										"some-param": "some-value",
+									Config: &atc.PutStep{
+										Name: "some-resource",
+										Params: atc.Params{
+											"some-param": "some-value",
+										},
 									},
 								},
 								{
-									Get:      "some-input",
-									Resource: "some-resource",
-									Params: atc.Params{
-										"some-param": "some-value",
+									Config: &atc.GetStep{
+										Name:     "some-input",
+										Resource: "some-resource",
+										Params: atc.Params{
+											"some-param": "some-value",
+										},
+										Passed:  []string{"job-1", "job-2"},
+										Trigger: true,
 									},
-									Passed:  []string{"job-1", "job-2"},
-									Trigger: true,
 								},
 								{
-									Task:       "some-task",
-									Privileged: true,
-									File:       "some/config/path.yml",
-									TaskConfig: &atc.TaskConfig{
-										RootfsURI: "some-image",
+									Config: &atc.TaskStep{
+										Name:       "some-task",
+										Privileged: true,
+										ConfigPath: "some/config/path.yml",
+										Config: &atc.TaskConfig{
+											RootfsURI: "some-image",
+										},
 									},
 								},
 							},
@@ -732,28 +771,34 @@ var _ = Describe("Job", func() {
 
 							RawMaxInFlight: 2,
 
-							Plan: atc.PlanSequence{
+							PlanSequence: []atc.Step{
 								{
-									Put: "some-resource",
-									Params: atc.Params{
-										"some-param": "some-value",
+									Config: &atc.PutStep{
+										Name: "some-resource",
+										Params: atc.Params{
+											"some-param": "some-value",
+										},
 									},
 								},
 								{
-									Get:      "some-input",
-									Resource: "some-resource",
-									Params: atc.Params{
-										"some-param": "some-value",
+									Config: &atc.GetStep{
+										Name:     "some-input",
+										Resource: "some-resource",
+										Params: atc.Params{
+											"some-param": "some-value",
+										},
+										Passed:  []string{"job-1", "job-2"},
+										Trigger: true,
 									},
-									Passed:  []string{"job-1", "job-2"},
-									Trigger: true,
 								},
 								{
-									Task:       "some-task",
-									Privileged: true,
-									File:       "some/config/path.yml",
-									TaskConfig: &atc.TaskConfig{
-										RootfsURI: "some-image",
+									Config: &atc.TaskStep{
+										Name:       "some-task",
+										Privileged: true,
+										ConfigPath: "some/config/path.yml",
+										Config: &atc.TaskConfig{
+											RootfsURI: "some-image",
+										},
 									},
 								},
 							},
@@ -817,7 +862,9 @@ var _ = Describe("Job", func() {
 
 			Context("when the job config doesn't specify max in flight", func() {
 				BeforeEach(func() {
-					pipeline, created, err := team.SavePipeline("other-pipeline", atc.Config{
+					var created bool
+					var err error
+					pipeline, created, err = team.SavePipeline("other-pipeline", atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name: "some-job",
@@ -839,11 +886,41 @@ var _ = Describe("Job", func() {
 				})
 
 				Context("when build exists", func() {
-					It("sets the build to scheduled", func() {
-						Expect(schedulingErr).ToNot(HaveOccurred())
-						Expect(scheduleFound).To(BeTrue())
-						Expect(reloadFound).To(BeTrue())
-						Expect(schedulingBuild.IsScheduled()).To(BeTrue())
+					Context("when the pipeline is paused", func() {
+						BeforeEach(func() {
+							err := pipeline.Pause()
+							Expect(err).ToNot(HaveOccurred())
+						})
+
+						It("returns false", func() {
+							Expect(schedulingErr).ToNot(HaveOccurred())
+							Expect(scheduleFound).To(BeFalse())
+							Expect(reloadFound).To(BeTrue())
+							Expect(schedulingBuild.IsScheduled()).To(BeFalse())
+						})
+					})
+
+					Context("when the job is paused", func() {
+						BeforeEach(func() {
+							err := job.Pause()
+							Expect(err).ToNot(HaveOccurred())
+						})
+
+						It("returns false", func() {
+							Expect(schedulingErr).ToNot(HaveOccurred())
+							Expect(scheduleFound).To(BeFalse())
+							Expect(reloadFound).To(BeTrue())
+							Expect(schedulingBuild.IsScheduled()).To(BeFalse())
+						})
+					})
+
+					Context("when the pipeline and job is not paused", func() {
+						It("sets the build to scheduled", func() {
+							Expect(schedulingErr).ToNot(HaveOccurred())
+							Expect(scheduleFound).To(BeTrue())
+							Expect(reloadFound).To(BeTrue())
+							Expect(schedulingBuild.IsScheduled()).To(BeTrue())
+						})
 					})
 				})
 
@@ -1207,6 +1284,7 @@ var _ = Describe("Job", func() {
 			job                 db.Job
 			resourceConfigScope db.ResourceConfigScope
 			resource            db.Resource
+			spanContext         db.SpanContext
 		)
 
 		BeforeEach(func() {
@@ -1226,23 +1304,29 @@ var _ = Describe("Job", func() {
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
-						Plan: atc.PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Get:      "some-input",
-								Resource: "some-resource",
-								Passed:   []string{"job-1", "job-2"},
-								Trigger:  true,
+								Config: &atc.GetStep{
+									Name:     "some-input",
+									Resource: "some-resource",
+									Passed:   []string{"job-1", "job-2"},
+									Trigger:  true,
+								},
 							},
 							{
-								Get:      "some-input-2",
-								Resource: "some-resource",
-								Passed:   []string{"job-1"},
-								Trigger:  true,
+								Config: &atc.GetStep{
+									Name:     "some-input-2",
+									Resource: "some-resource",
+									Passed:   []string{"job-1"},
+									Trigger:  true,
+								},
 							},
 							{
-								Get:      "some-input-3",
-								Resource: "some-resource",
-								Trigger:  true,
+								Config: &atc.GetStep{
+									Name:     "some-input-3",
+									Resource: "some-resource",
+									Trigger:  true,
+								},
 							},
 						},
 					},
@@ -1275,11 +1359,15 @@ var _ = Describe("Job", func() {
 			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfigScope.SaveVersions([]atc.Version{
-				{"version": "v1"},
-				{"version": "v2"},
-				{"version": "v3"},
-			})
+			spanContext = db.SpanContext{"fake": "version"}
+			err = resourceConfigScope.SaveVersions(
+				spanContext,
+				[]atc.Version{
+					{"version": "v1"},
+					{"version": "v2"},
+					{"version": "v3"},
+				},
+			)
 			Expect(err).NotTo(HaveOccurred())
 
 			reversions, _, found, err := resource.Versions(db.Page{Limit: 3}, nil)
@@ -1356,18 +1444,21 @@ var _ = Describe("Job", func() {
 						ResourceID:      resource.ID(),
 						Version:         atc.Version{"version": "v1"},
 						FirstOccurrence: false,
+						Context:         spanContext,
 					},
 					{
 						Name:            "some-input-2",
 						ResourceID:      resource.ID(),
 						Version:         atc.Version{"version": "v2"},
 						FirstOccurrence: false,
+						Context:         spanContext,
 					},
 					{
 						Name:            "some-input-3",
 						ResourceID:      resource.ID(),
 						Version:         atc.Version{"version": "v3"},
 						FirstOccurrence: false,
+						Context:         spanContext,
 					},
 				}
 
@@ -1414,7 +1505,7 @@ var _ = Describe("Job", func() {
 			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{}, atc.VersionedResourceTypes{})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = resourceConfigScope.SaveVersions([]atc.Version{
+			err = resourceConfigScope.SaveVersions(nil, []atc.Version{
 				{"version": "v1"},
 				{"version": "v2"},
 				{"version": "v3"},
@@ -1877,7 +1968,7 @@ var _ = Describe("Job", func() {
 	Describe("EnsurePendingBuildExists", func() {
 		Context("when only a started build exists", func() {
 			It("creates a build and updates the next build for the job", func() {
-				err := job.EnsurePendingBuildExists()
+				err := job.EnsurePendingBuildExists(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 
 				pendingBuilds, err := job.GetPendingBuilds()
@@ -1889,11 +1980,33 @@ var _ = Describe("Job", func() {
 				Expect(pendingBuilds[0].ID()).To(Equal(nextBuild.ID()))
 			})
 
+			Context("when tracing is configured", func() {
+				BeforeEach(func() {
+					tracing.ConfigureTraceProvider(&tracing.TestTraceProvider{})
+				})
+
+				AfterEach(func() {
+					tracing.Configured = false
+				})
+
+				It("propagates span context", func() {
+					ctx, span := tracing.StartSpan(context.Background(), "fake-operation", nil)
+					traceID := span.SpanContext().TraceIDString()
+
+					job.EnsurePendingBuildExists(ctx)
+
+					pendingBuilds, _ := job.GetPendingBuilds()
+					spanContext := pendingBuilds[0].SpanContext()
+					traceParent := spanContext.Get(propagators.TraceparentHeader)
+					Expect(traceParent).To(ContainSubstring(traceID))
+				})
+			})
+
 			It("doesn't create another build the second time it's called", func() {
-				err := job.EnsurePendingBuildExists()
+				err := job.EnsurePendingBuildExists(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 
-				err = job.EnsurePendingBuildExists()
+				err = job.EnsurePendingBuildExists(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 
 				builds2, err := job.GetPendingBuilds()
@@ -2074,6 +2187,475 @@ var _ = Describe("Job", func() {
 		})
 	})
 
+	Describe("AlgorithmInputs", func() {
+		var inputsJob db.Job
+		var inputsPipeline db.Pipeline
+		var inputs db.InputConfigs
+
+		JustBeforeEach(func() {
+			var err error
+			inputs, err = inputsJob.AlgorithmInputs()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when there is an input configured for the job", func() {
+			BeforeEach(func() {
+				var err error
+				inputsPipeline, _, err = team.SavePipeline("inputs-pipeline", atc.Config{
+					Jobs: atc.JobConfigs{
+						{
+							Name: "some-job",
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name:     "some-input",
+										Resource: "some-resource",
+										Params: atc.Params{
+											"some-param": "some-value",
+										},
+										Passed:  []string{"job-1", "job-2"},
+										Trigger: true,
+										Version: &atc.VersionConfig{Every: true},
+									},
+								},
+							},
+						},
+						{
+							Name: "job-1",
+						},
+						{
+							Name: "job-2",
+						},
+					},
+					Resources: atc.ResourceConfigs{
+						{
+							Name: "some-resource",
+							Type: "some-type",
+						},
+					},
+				}, db.ConfigVersion(0), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				var found bool
+				inputsJob, found, err = inputsPipeline.Job("some-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("returns the input for the job", func() {
+				job1, found, err := inputsPipeline.Job("job-1")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				job2, found, err := inputsPipeline.Job("job-2")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				someResource, found, err := inputsPipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(inputs).To(Equal(db.InputConfigs{
+					{
+						Name:       "some-input",
+						JobID:      inputsJob.ID(),
+						ResourceID: someResource.ID(),
+						Passed: db.JobSet{
+							job1.ID(): true,
+							job2.ID(): true,
+						},
+						UseEveryVersion: true,
+						Trigger:         true,
+					},
+				}))
+			})
+		})
+
+		Context("when the input is pinned through the get step", func() {
+			BeforeEach(func() {
+				var err error
+				inputsPipeline, _, err = team.SavePipeline("inputs-pipeline", atc.Config{
+					Jobs: atc.JobConfigs{
+						{
+							Name: "some-job",
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name:     "some-pinned-input",
+										Resource: "some-resource",
+										Version:  &atc.VersionConfig{Pinned: atc.Version{"input": "pinned"}},
+									},
+								},
+							},
+						},
+					},
+					Resources: atc.ResourceConfigs{
+						{
+							Name:   "some-resource",
+							Type:   "some-type",
+							Source: atc.Source{"some": "source"},
+						},
+					},
+				}, db.ConfigVersion(0), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				var found bool
+				inputsJob, found, err = inputsPipeline.Job("some-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("pins the inputs to that version", func() {
+				someResource, found, err := inputsPipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(inputs).To(Equal(db.InputConfigs{
+					{
+						Name:          "some-pinned-input",
+						JobID:         inputsJob.ID(),
+						ResourceID:    someResource.ID(),
+						PinnedVersion: atc.Version{"input": "pinned"},
+					},
+				}))
+			})
+
+			Context("when the input is also pinned through the api", func() {
+				BeforeEach(func() {
+					pinnedResource, found, err := inputsPipeline.Resource("some-resource")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					setupTx, err := dbConn.Begin()
+					Expect(err).ToNot(HaveOccurred())
+
+					brt := db.BaseResourceType{
+						Name: "some-type",
+					}
+
+					_, err = brt.FindOrCreate(setupTx, false)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(setupTx.Commit()).To(Succeed())
+
+					resourceConfigScope, err := pinnedResource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
+					Expect(err).ToNot(HaveOccurred())
+
+					err = resourceConfigScope.SaveVersions(nil, []atc.Version{
+						{"api": "pinned"},
+					})
+					Expect(err).NotTo(HaveOccurred())
+
+					versionID, found, err := pinnedResource.ResourceConfigVersionID(atc.Version{"api": "pinned"})
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					pinned, err := pinnedResource.PinVersion(versionID)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(pinned).To(BeTrue())
+				})
+
+				It("resolves the pinned version to the version pinned through the get step", func() {
+					someResource, found, err := inputsPipeline.Resource("some-resource")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					Expect(inputs).To(Equal(db.InputConfigs{
+						{
+							Name:          "some-pinned-input",
+							JobID:         inputsJob.ID(),
+							ResourceID:    someResource.ID(),
+							PinnedVersion: atc.Version{"input": "pinned"},
+						},
+					}))
+				})
+			})
+		})
+
+		Context("when the input is pinned through the resource config", func() {
+			BeforeEach(func() {
+				var err error
+				inputsPipeline, _, err = team.SavePipeline("inputs-pipeline", atc.Config{
+					Jobs: atc.JobConfigs{
+						{
+							Name: "some-job",
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name:     "some-pinned-input",
+										Resource: "some-resource",
+									},
+								},
+							},
+						},
+					},
+					Resources: atc.ResourceConfigs{
+						{
+							Name:    "some-resource",
+							Type:    "some-type",
+							Source:  atc.Source{"some": "source"},
+							Version: atc.Version{"some": "version"},
+						},
+					},
+				}, db.ConfigVersion(0), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				var found bool
+				inputsJob, found, err = inputsPipeline.Job("some-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("pins the inputs to that version", func() {
+				someResource, found, err := inputsPipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(inputs).To(Equal(db.InputConfigs{
+					{
+						Name:          "some-pinned-input",
+						JobID:         inputsJob.ID(),
+						ResourceID:    someResource.ID(),
+						PinnedVersion: atc.Version{"some": "version"},
+					},
+				}))
+			})
+		})
+
+		Context("when the input is pinned through the api", func() {
+			BeforeEach(func() {
+				var err error
+				inputsPipeline, _, err = team.SavePipeline("inputs-pipeline", atc.Config{
+					Jobs: atc.JobConfigs{
+						{
+							Name: "some-job",
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name:     "some-pinned-input",
+										Resource: "some-resource",
+									},
+								},
+							},
+						},
+					},
+					Resources: atc.ResourceConfigs{
+						{
+							Name:   "some-resource",
+							Type:   "some-type",
+							Source: atc.Source{"some": "source"},
+						},
+					},
+				}, db.ConfigVersion(0), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				var found bool
+				inputsJob, found, err = inputsPipeline.Job("some-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				pinnedResource, found, err := inputsPipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				setupTx, err := dbConn.Begin()
+				Expect(err).ToNot(HaveOccurred())
+
+				brt := db.BaseResourceType{
+					Name: "some-type",
+				}
+
+				_, err = brt.FindOrCreate(setupTx, false)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(setupTx.Commit()).To(Succeed())
+
+				resourceConfigScope, err := pinnedResource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
+				Expect(err).ToNot(HaveOccurred())
+
+				err = resourceConfigScope.SaveVersions(nil, []atc.Version{
+					{"some": "version"},
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				versionID, found, err := pinnedResource.ResourceConfigVersionID(atc.Version{"some": "version"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				pinned, err := pinnedResource.PinVersion(versionID)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(pinned).To(BeTrue())
+			})
+
+			It("pins the inputs to that version", func() {
+				someResource, found, err := inputsPipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(inputs).To(Equal(db.InputConfigs{
+					{
+						Name:          "some-pinned-input",
+						JobID:         inputsJob.ID(),
+						ResourceID:    someResource.ID(),
+						PinnedVersion: atc.Version{"some": "version"},
+					},
+				}))
+			})
+		})
+
+		Context("when there are multiple inputs", func() {
+			BeforeEach(func() {
+				var err error
+				inputsPipeline, _, err = team.SavePipeline("inputs-pipeline", atc.Config{
+					Jobs: atc.JobConfigs{
+						{
+							Name: "some-job",
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name:     "some-input",
+										Resource: "some-resource",
+										Trigger:  true,
+										Version:  &atc.VersionConfig{Every: true},
+									},
+								},
+								{
+									Config: &atc.GetStep{
+										Name: "some-resource",
+									},
+								},
+								{
+									Config: &atc.GetStep{
+										Name:    "some-other-resource",
+										Trigger: true,
+										Version: &atc.VersionConfig{Latest: true},
+									},
+								},
+							},
+						},
+						{
+							Name: "some-other-job",
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name:     "other-job-resource",
+										Resource: "some-resource",
+									},
+								},
+							},
+						},
+					},
+					Resources: atc.ResourceConfigs{
+						{
+							Name: "some-resource",
+							Type: "some-type",
+						},
+						{
+							Name: "some-other-resource",
+							Type: "some-type",
+						},
+					},
+				}, db.ConfigVersion(0), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				var found bool
+				inputsJob, found, err = inputsPipeline.Job("some-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("returns all the inputs correctly", func() {
+				someResource, found, err := inputsPipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				someOtherResource, found, err := inputsPipeline.Resource("some-other-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(inputs).To(HaveLen(3))
+				Expect(inputs).To(ConsistOf(
+					db.InputConfig{
+						Name:            "some-input",
+						JobID:           inputsJob.ID(),
+						ResourceID:      someResource.ID(),
+						UseEveryVersion: true,
+						Trigger:         true,
+					},
+					db.InputConfig{
+						Name:       "some-resource",
+						JobID:      inputsJob.ID(),
+						ResourceID: someResource.ID(),
+					},
+					db.InputConfig{
+						Name:       "some-other-resource",
+						JobID:      inputsJob.ID(),
+						ResourceID: someOtherResource.ID(),
+						Trigger:    true,
+					}))
+			})
+		})
+
+		Context("when the job has puts and tasks", func() {
+			BeforeEach(func() {
+				var err error
+				inputsPipeline, _, err = team.SavePipeline("inputs-pipeline", atc.Config{
+					Jobs: atc.JobConfigs{
+						{
+							Name: "some-job",
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.PutStep{
+										Name: "some-resource",
+									},
+								},
+								{
+									Config: &atc.TaskStep{
+										Name:       "some-task",
+										Privileged: true,
+										ConfigPath: "some/config/path.yml",
+										Config: &atc.TaskConfig{
+											RootfsURI: "some-image",
+										},
+									},
+								},
+								{
+									Config: &atc.GetStep{
+										Name: "some-resource",
+									},
+								},
+							},
+						},
+					},
+					Resources: atc.ResourceConfigs{
+						{
+							Name: "some-resource",
+							Type: "some-type",
+						},
+					},
+				}, db.ConfigVersion(0), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				var found bool
+				inputsJob, found, err = inputsPipeline.Job("some-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("only returns the gets (inputs to the job)", func() {
+				someResource, found, err := inputsPipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				Expect(inputs).To(Equal(db.InputConfigs{
+					{
+						Name:       "some-resource",
+						JobID:      inputsJob.ID(),
+						ResourceID: someResource.ID(),
+					},
+				}))
+			})
+		})
+	})
+
 	Describe("Inputs", func() {
 		var inputsJob db.Job
 
@@ -2082,49 +2664,63 @@ var _ = Describe("Job", func() {
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
-						Plan: atc.PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Put: "some-resource",
-							},
-							{
-								Get:      "some-input",
-								Resource: "some-resource",
-								Params: atc.Params{
-									"some-param": "some-value",
-								},
-								Passed:  []string{"job-1", "job-2"},
-								Trigger: true,
-								Version: &atc.VersionConfig{Every: true},
-							},
-							{
-								Task:       "some-task",
-								Privileged: true,
-								File:       "some/config/path.yml",
-								TaskConfig: &atc.TaskConfig{
-									RootfsURI: "some-image",
+								Config: &atc.PutStep{
+									Name: "some-resource",
 								},
 							},
 							{
-								Get: "some-resource",
+								Config: &atc.GetStep{
+									Name:     "some-input",
+									Resource: "some-resource",
+									Params: atc.Params{
+										"some-param": "some-value",
+									},
+									Passed:  []string{"job-1", "job-2"},
+									Trigger: true,
+									Version: &atc.VersionConfig{Every: true},
+								},
 							},
 							{
-								Get:      "some-other-input",
-								Resource: "some-resource",
-								Version:  &atc.VersionConfig{Latest: true},
+								Config: &atc.TaskStep{
+									Name:       "some-task",
+									Privileged: true,
+									ConfigPath: "some/config/path.yml",
+									Config: &atc.TaskConfig{
+										RootfsURI: "some-image",
+									},
+								},
 							},
 							{
-								Get:     "some-other-resource",
-								Trigger: true,
-								Version: &atc.VersionConfig{Pinned: atc.Version{"pinned": "version"}},
+								Config: &atc.GetStep{
+									Name: "some-resource",
+								},
+							},
+							{
+								Config: &atc.GetStep{
+									Name:     "some-other-input",
+									Resource: "some-resource",
+									Version:  &atc.VersionConfig{Latest: true},
+								},
+							},
+							{
+								Config: &atc.GetStep{
+									Name:    "some-other-resource",
+									Trigger: true,
+									Version: &atc.VersionConfig{Pinned: atc.Version{"pinned": "version"}},
+								},
 							},
 						},
 					},
 					{
 						Name: "some-other-job",
-						Plan: atc.PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Get:      "other-job-resource",
-								Resource: "some-resource",
+								Config: &atc.GetStep{
+									Name:     "other-job-resource",
+									Resource: "some-resource",
+								},
 							},
 						},
 					},
@@ -2193,37 +2789,49 @@ var _ = Describe("Job", func() {
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
-						Plan: atc.PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Put: "some-other-resource",
-							},
-							{
-								Task:       "some-task",
-								Privileged: true,
-								File:       "some/config/path.yml",
-								TaskConfig: &atc.TaskConfig{
-									RootfsURI: "some-image",
+								Config: &atc.PutStep{
+									Name: "some-other-resource",
 								},
 							},
 							{
-								Get: "some-resource",
+								Config: &atc.TaskStep{
+									Name:       "some-task",
+									Privileged: true,
+									ConfigPath: "some/config/path.yml",
+									Config: &atc.TaskConfig{
+										RootfsURI: "some-image",
+									},
+								},
 							},
 							{
-								Put:      "some-output",
-								Resource: "some-resource",
+								Config: &atc.GetStep{
+									Name: "some-resource",
+								},
 							},
 							{
-								Put:      "some-other-output",
-								Resource: "some-resource",
+								Config: &atc.PutStep{
+									Name:     "some-output",
+									Resource: "some-resource",
+								},
+							},
+							{
+								Config: &atc.PutStep{
+									Name:     "some-other-output",
+									Resource: "some-resource",
+								},
 							},
 						},
 					},
 					{
 						Name: "some-other-job",
-						Plan: atc.PlanSequence{
+						PlanSequence: []atc.Step{
 							{
-								Put:      "other-job-resource",
-								Resource: "some-resource",
+								Config: &atc.PutStep{
+									Name:     "other-job-resource",
+									Resource: "some-resource",
+								},
 							},
 						},
 					},

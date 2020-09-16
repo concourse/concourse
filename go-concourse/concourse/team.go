@@ -14,18 +14,19 @@ type Team interface {
 
 	Auth() atc.TeamAuth
 
-	CreateOrUpdate(team atc.Team) (atc.Team, bool, bool, error)
-	RenameTeam(teamName, name string) (bool, error)
+	CreateOrUpdate(team atc.Team) (atc.Team, bool, bool, []ConfigWarning, error)
+	RenameTeam(teamName, name string) (bool, []ConfigWarning, error)
 	DestroyTeam(teamName string) error
 
 	Pipeline(name string) (atc.Pipeline, bool, error)
 	PipelineBuilds(pipelineName string, page Page) ([]atc.Build, Pagination, bool, error)
 	DeletePipeline(pipelineName string) (bool, error)
 	PausePipeline(pipelineName string) (bool, error)
+	ArchivePipeline(pipelineName string) (bool, error)
 	UnpausePipeline(pipelineName string) (bool, error)
 	ExposePipeline(pipelineName string) (bool, error)
 	HidePipeline(pipelineName string) (bool, error)
-	RenamePipeline(pipelineName, name string) (bool, error)
+	RenamePipeline(pipelineName, name string) (bool, []ConfigWarning, error)
 	ListPipelines() ([]atc.Pipeline, error)
 	PipelineConfig(pipelineName string) (atc.Config, string, bool, error)
 	CreateOrUpdatePipelineConfig(pipelineName string, configVersion string, passedConfig []byte, checkCredentials bool) (bool, bool, []ConfigWarning, error)

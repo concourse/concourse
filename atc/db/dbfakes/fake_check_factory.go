@@ -2,6 +2,7 @@
 package dbfakes
 
 import (
+	"context"
 	"sync"
 
 	"code.cloudfoundry.org/lager"
@@ -41,13 +42,14 @@ type FakeCheckFactory struct {
 		result2 bool
 		result3 error
 	}
-	CreateCheckStub        func(int, bool, atc.Plan, db.CheckMetadata) (db.Check, bool, error)
+	CreateCheckStub        func(int, bool, atc.Plan, db.CheckMetadata, db.SpanContext) (db.Check, bool, error)
 	createCheckMutex       sync.RWMutex
 	createCheckArgsForCall []struct {
 		arg1 int
 		arg2 bool
 		arg3 atc.Plan
 		arg4 db.CheckMetadata
+		arg5 db.SpanContext
 	}
 	createCheckReturns struct {
 		result1 db.Check
@@ -105,10 +107,10 @@ type FakeCheckFactory struct {
 		result1 []db.Check
 		result2 error
 	}
-	TryCreateCheckStub        func(lager.Logger, db.Checkable, db.ResourceTypes, atc.Version, bool) (db.Check, bool, error)
+	TryCreateCheckStub        func(context.Context, db.Checkable, db.ResourceTypes, atc.Version, bool) (db.Check, bool, error)
 	tryCreateCheckMutex       sync.RWMutex
 	tryCreateCheckArgsForCall []struct {
-		arg1 lager.Logger
+		arg1 context.Context
 		arg2 db.Checkable
 		arg3 db.ResourceTypes
 		arg4 atc.Version
@@ -260,7 +262,7 @@ func (fake *FakeCheckFactory) CheckReturnsOnCall(i int, result1 db.Check, result
 	}{result1, result2, result3}
 }
 
-func (fake *FakeCheckFactory) CreateCheck(arg1 int, arg2 bool, arg3 atc.Plan, arg4 db.CheckMetadata) (db.Check, bool, error) {
+func (fake *FakeCheckFactory) CreateCheck(arg1 int, arg2 bool, arg3 atc.Plan, arg4 db.CheckMetadata, arg5 db.SpanContext) (db.Check, bool, error) {
 	fake.createCheckMutex.Lock()
 	ret, specificReturn := fake.createCheckReturnsOnCall[len(fake.createCheckArgsForCall)]
 	fake.createCheckArgsForCall = append(fake.createCheckArgsForCall, struct {
@@ -268,11 +270,12 @@ func (fake *FakeCheckFactory) CreateCheck(arg1 int, arg2 bool, arg3 atc.Plan, ar
 		arg2 bool
 		arg3 atc.Plan
 		arg4 db.CheckMetadata
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("CreateCheck", []interface{}{arg1, arg2, arg3, arg4})
+		arg5 db.SpanContext
+	}{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("CreateCheck", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.createCheckMutex.Unlock()
 	if fake.CreateCheckStub != nil {
-		return fake.CreateCheckStub(arg1, arg2, arg3, arg4)
+		return fake.CreateCheckStub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -287,17 +290,17 @@ func (fake *FakeCheckFactory) CreateCheckCallCount() int {
 	return len(fake.createCheckArgsForCall)
 }
 
-func (fake *FakeCheckFactory) CreateCheckCalls(stub func(int, bool, atc.Plan, db.CheckMetadata) (db.Check, bool, error)) {
+func (fake *FakeCheckFactory) CreateCheckCalls(stub func(int, bool, atc.Plan, db.CheckMetadata, db.SpanContext) (db.Check, bool, error)) {
 	fake.createCheckMutex.Lock()
 	defer fake.createCheckMutex.Unlock()
 	fake.CreateCheckStub = stub
 }
 
-func (fake *FakeCheckFactory) CreateCheckArgsForCall(i int) (int, bool, atc.Plan, db.CheckMetadata) {
+func (fake *FakeCheckFactory) CreateCheckArgsForCall(i int) (int, bool, atc.Plan, db.CheckMetadata, db.SpanContext) {
 	fake.createCheckMutex.RLock()
 	defer fake.createCheckMutex.RUnlock()
 	argsForCall := fake.createCheckArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
 func (fake *FakeCheckFactory) CreateCheckReturns(result1 db.Check, result2 bool, result3 error) {
@@ -546,11 +549,11 @@ func (fake *FakeCheckFactory) StartedChecksReturnsOnCall(i int, result1 []db.Che
 	}{result1, result2}
 }
 
-func (fake *FakeCheckFactory) TryCreateCheck(arg1 lager.Logger, arg2 db.Checkable, arg3 db.ResourceTypes, arg4 atc.Version, arg5 bool) (db.Check, bool, error) {
+func (fake *FakeCheckFactory) TryCreateCheck(arg1 context.Context, arg2 db.Checkable, arg3 db.ResourceTypes, arg4 atc.Version, arg5 bool) (db.Check, bool, error) {
 	fake.tryCreateCheckMutex.Lock()
 	ret, specificReturn := fake.tryCreateCheckReturnsOnCall[len(fake.tryCreateCheckArgsForCall)]
 	fake.tryCreateCheckArgsForCall = append(fake.tryCreateCheckArgsForCall, struct {
-		arg1 lager.Logger
+		arg1 context.Context
 		arg2 db.Checkable
 		arg3 db.ResourceTypes
 		arg4 atc.Version
@@ -574,13 +577,13 @@ func (fake *FakeCheckFactory) TryCreateCheckCallCount() int {
 	return len(fake.tryCreateCheckArgsForCall)
 }
 
-func (fake *FakeCheckFactory) TryCreateCheckCalls(stub func(lager.Logger, db.Checkable, db.ResourceTypes, atc.Version, bool) (db.Check, bool, error)) {
+func (fake *FakeCheckFactory) TryCreateCheckCalls(stub func(context.Context, db.Checkable, db.ResourceTypes, atc.Version, bool) (db.Check, bool, error)) {
 	fake.tryCreateCheckMutex.Lock()
 	defer fake.tryCreateCheckMutex.Unlock()
 	fake.TryCreateCheckStub = stub
 }
 
-func (fake *FakeCheckFactory) TryCreateCheckArgsForCall(i int) (lager.Logger, db.Checkable, db.ResourceTypes, atc.Version, bool) {
+func (fake *FakeCheckFactory) TryCreateCheckArgsForCall(i int) (context.Context, db.Checkable, db.ResourceTypes, atc.Version, bool) {
 	fake.tryCreateCheckMutex.RLock()
 	defer fake.tryCreateCheckMutex.RUnlock()
 	argsForCall := fake.tryCreateCheckArgsForCall[i]

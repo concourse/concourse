@@ -2,12 +2,12 @@ package scheduler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/scheduler/algorithm"
+	"github.com/concourse/concourse/tracing"
 )
 
 //go:generate counterfeiter . Algorithm
@@ -16,9 +16,7 @@ type Algorithm interface {
 	Compute(
 		context.Context,
 		db.Job,
-		[]atc.JobInput,
-		db.Resources,
-		algorithm.NameToIDMap,
+		db.InputConfigs,
 	) (db.InputMapping, bool, bool, error)
 }
 
@@ -30,17 +28,14 @@ type Scheduler struct {
 func (s *Scheduler) Schedule(
 	ctx context.Context,
 	logger lager.Logger,
-	pipeline db.Pipeline,
-	job db.Job,
-	resources db.Resources,
-	relatedJobs algorithm.NameToIDMap,
+	job db.SchedulerJob,
 ) (bool, error) {
-	jobInputs, err := job.Inputs()
+	jobInputs, err := job.AlgorithmInputs()
 	if err != nil {
 		return false, fmt.Errorf("inputs: %w", err)
 	}
 
-	inputMapping, resolved, runAgain, err := s.Algorithm.Compute(ctx, job, jobInputs, resources, relatedJobs)
+	inputMapping, resolved, runAgain, err := s.Algorithm.Compute(ctx, job, jobInputs)
 	if err != nil {
 		return false, fmt.Errorf("compute inputs: %w", err)
 	}
@@ -57,19 +52,19 @@ func (s *Scheduler) Schedule(
 		return false, fmt.Errorf("save next input mapping: %w", err)
 	}
 
-	err = s.ensurePendingBuildExists(logger, job, jobInputs, resources)
+	err = s.ensurePendingBuildExists(ctx, logger, job, jobInputs)
 	if err != nil {
 		return false, err
 	}
 
-	return s.BuildStarter.TryStartPendingBuildsForJob(logger, pipeline, job, jobInputs, resources, relatedJobs)
+	return s.BuildStarter.TryStartPendingBuildsForJob(logger, job, jobInputs)
 }
 
 func (s *Scheduler) ensurePendingBuildExists(
+	ctx context.Context,
 	logger lager.Logger,
-	job db.Job,
-	jobInputs []atc.JobInput,
-	resources db.Resources,
+	job db.SchedulerJob,
+	jobInputs db.InputConfigs,
 ) error {
 	buildInputs, satisfiableInputs, err := job.GetFullNextBuildInputs()
 	if err != nil {
@@ -94,7 +89,20 @@ func (s *Scheduler) ensurePendingBuildExists(
 		if ok && inputSource.FirstOccurrence {
 			hasNewInputs = true
 			if inputConfig.Trigger {
-				err := job.EnsurePendingBuildExists()
+				version, _ := json.Marshal(inputSource.Version)
+				spanCtx, _ := tracing.StartSpanLinkedToFollowing(
+					ctx,
+					inputSource,
+					"job.EnsurePendingBuildExists",
+					tracing.Attrs{
+						"team":     job.TeamName(),
+						"pipeline": job.PipelineName(),
+						"job":      job.Name(),
+						"input":    inputSource.Name,
+						"version":  string(version),
+					},
+				)
+				err := job.EnsurePendingBuildExists(spanCtx)
 				if err != nil {
 					return fmt.Errorf("ensure pending build exists: %w", err)
 				}

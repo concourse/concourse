@@ -8,19 +8,15 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/scheduler"
-	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
 
 type FakeBuildScheduler struct {
-	ScheduleStub        func(context.Context, lager.Logger, db.Pipeline, db.Job, db.Resources, algorithm.NameToIDMap) (bool, error)
+	ScheduleStub        func(context.Context, lager.Logger, db.SchedulerJob) (bool, error)
 	scheduleMutex       sync.RWMutex
 	scheduleArgsForCall []struct {
 		arg1 context.Context
 		arg2 lager.Logger
-		arg3 db.Pipeline
-		arg4 db.Job
-		arg5 db.Resources
-		arg6 algorithm.NameToIDMap
+		arg3 db.SchedulerJob
 	}
 	scheduleReturns struct {
 		result1 bool
@@ -34,21 +30,18 @@ type FakeBuildScheduler struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildScheduler) Schedule(arg1 context.Context, arg2 lager.Logger, arg3 db.Pipeline, arg4 db.Job, arg5 db.Resources, arg6 algorithm.NameToIDMap) (bool, error) {
+func (fake *FakeBuildScheduler) Schedule(arg1 context.Context, arg2 lager.Logger, arg3 db.SchedulerJob) (bool, error) {
 	fake.scheduleMutex.Lock()
 	ret, specificReturn := fake.scheduleReturnsOnCall[len(fake.scheduleArgsForCall)]
 	fake.scheduleArgsForCall = append(fake.scheduleArgsForCall, struct {
 		arg1 context.Context
 		arg2 lager.Logger
-		arg3 db.Pipeline
-		arg4 db.Job
-		arg5 db.Resources
-		arg6 algorithm.NameToIDMap
-	}{arg1, arg2, arg3, arg4, arg5, arg6})
-	fake.recordInvocation("Schedule", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
+		arg3 db.SchedulerJob
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Schedule", []interface{}{arg1, arg2, arg3})
 	fake.scheduleMutex.Unlock()
 	if fake.ScheduleStub != nil {
-		return fake.ScheduleStub(arg1, arg2, arg3, arg4, arg5, arg6)
+		return fake.ScheduleStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -63,17 +56,17 @@ func (fake *FakeBuildScheduler) ScheduleCallCount() int {
 	return len(fake.scheduleArgsForCall)
 }
 
-func (fake *FakeBuildScheduler) ScheduleCalls(stub func(context.Context, lager.Logger, db.Pipeline, db.Job, db.Resources, algorithm.NameToIDMap) (bool, error)) {
+func (fake *FakeBuildScheduler) ScheduleCalls(stub func(context.Context, lager.Logger, db.SchedulerJob) (bool, error)) {
 	fake.scheduleMutex.Lock()
 	defer fake.scheduleMutex.Unlock()
 	fake.ScheduleStub = stub
 }
 
-func (fake *FakeBuildScheduler) ScheduleArgsForCall(i int) (context.Context, lager.Logger, db.Pipeline, db.Job, db.Resources, algorithm.NameToIDMap) {
+func (fake *FakeBuildScheduler) ScheduleArgsForCall(i int) (context.Context, lager.Logger, db.SchedulerJob) {
 	fake.scheduleMutex.RLock()
 	defer fake.scheduleMutex.RUnlock()
 	argsForCall := fake.scheduleArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeBuildScheduler) ScheduleReturns(result1 bool, result2 error) {

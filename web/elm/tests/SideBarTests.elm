@@ -5,9 +5,8 @@ import Common
 import Data
 import Expect
 import HoverState
-import Message.Callback as Callback exposing (TooltipPolicy(..))
 import Message.Effects as Effects
-import Message.Message exposing (DomID(..), Message(..))
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import RemoteData
 import ScreenSize
 import Set
@@ -25,7 +24,7 @@ all =
                         |> SideBar.update (Hover <| Just domID)
                         |> Tuple.second
                         |> Common.contains
-                            (Effects.GetViewportOf domID OnlyShowWhenOverflowing)
+                            (Effects.GetViewportOf domID)
             , test "does not ask browser for viewport otherwise" <|
                 \_ ->
                     model
@@ -38,19 +37,22 @@ all =
 
 model : SideBar.Model {}
 model =
-    { expandedTeams = Set.fromList [ "team" ]
+    { expandedTeamsInAllPipelines = Set.fromList [ "team" ]
+    , collapsedTeamsInFavorites = Set.empty
     , pipelines =
         RemoteData.Success
             [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
     , hovered = HoverState.NoHover
-    , isSideBarOpen = True
+    , sideBarState =
+        { isOpen = True
+        , width = 275
+        }
+    , draggingSideBar = False
     , screenSize = ScreenSize.Desktop
+    , favoritedPipelines = Set.empty
     }
 
 
 domID : DomID
 domID =
-    SideBarPipeline
-        { teamName = "team"
-        , pipelineName = "pipeline"
-        }
+    SideBarPipeline AllPipelinesSection Data.pipelineId

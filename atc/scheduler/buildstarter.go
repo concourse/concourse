@@ -8,7 +8,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
-	"github.com/concourse/concourse/atc/scheduler/algorithm"
 )
 
 //go:generate counterfeiter . BuildStarter
@@ -16,60 +15,54 @@ import (
 type BuildStarter interface {
 	TryStartPendingBuildsForJob(
 		logger lager.Logger,
-		pipeline db.Pipeline,
-		job db.Job,
-		inputs []atc.JobInput,
-		resources db.Resources,
-		relatedJobs algorithm.NameToIDMap,
+		job db.SchedulerJob,
+		inputs db.InputConfigs,
 	) (bool, error)
 }
 
-//go:generate counterfeiter . BuildFactory
+//go:generate counterfeiter . BuildPlanner
 
-type BuildFactory interface {
-	Create(atc.JobConfig, atc.ResourceConfigs, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
+type BuildPlanner interface {
+	Create(atc.StepConfig, db.SchedulerResources, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
 }
 
 type Build interface {
 	db.Build
 
-	IsReadyToDetermineInputs(lager.Logger) bool
+	IsReadyToDetermineInputs(lager.Logger) (bool, error)
 	BuildInputs(context.Context) ([]db.BuildInput, bool, error)
 }
 
 func NewBuildStarter(
-	factory BuildFactory,
+	planner BuildPlanner,
 	algorithm Algorithm,
 ) BuildStarter {
 	return &buildStarter{
-		factory:   factory,
+		planner:   planner,
 		algorithm: algorithm,
 	}
 }
 
 type buildStarter struct {
-	factory   BuildFactory
+	planner   BuildPlanner
 	algorithm Algorithm
 }
 
 func (s *buildStarter) TryStartPendingBuildsForJob(
 	logger lager.Logger,
-	pipeline db.Pipeline,
-	job db.Job,
-	jobInputs []atc.JobInput,
-	resources db.Resources,
-	relatedJobs algorithm.NameToIDMap,
+	job db.SchedulerJob,
+	jobInputs db.InputConfigs,
 ) (bool, error) {
 	nextPendingBuilds, err := job.GetPendingBuilds()
 	if err != nil {
 		return false, fmt.Errorf("get pending builds: %w", err)
 	}
 
-	buildsToSchedule := s.constructBuilds(job, jobInputs, resources, relatedJobs, nextPendingBuilds)
+	buildsToSchedule := s.constructBuilds(job, jobInputs, nextPendingBuilds)
 
 	var needsRetry bool
 	for _, nextSchedulableBuild := range buildsToSchedule {
-		results, err := s.tryStartNextPendingBuild(logger, pipeline, nextSchedulableBuild, job, resources)
+		results, err := s.tryStartNextPendingBuild(logger, nextSchedulableBuild, job)
 		if err != nil {
 			return false, err
 		}
@@ -104,18 +97,16 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 	return needsRetry, nil
 }
 
-func (s *buildStarter) constructBuilds(job db.Job, jobInputs []atc.JobInput, resources db.Resources, relatedJobIDs map[string]int, builds []db.Build) []Build {
+func (s *buildStarter) constructBuilds(job db.Job, jobInputs db.InputConfigs, builds []db.Build) []Build {
 	var buildsToSchedule []Build
 
 	for _, nextPendingBuild := range builds {
 		if nextPendingBuild.IsManuallyTriggered() {
 			buildsToSchedule = append(buildsToSchedule, &manualTriggerBuild{
-				Build:         nextPendingBuild,
-				algorithm:     s.algorithm,
-				job:           job,
-				jobInputs:     jobInputs,
-				resources:     resources,
-				relatedJobIDs: relatedJobIDs,
+				Build:     nextPendingBuild,
+				algorithm: s.algorithm,
+				job:       job,
+				jobInputs: jobInputs,
 			})
 		} else if nextPendingBuild.RerunOf() != 0 {
 			buildsToSchedule = append(buildsToSchedule, &rerunBuild{
@@ -140,10 +131,8 @@ type startResults struct {
 
 func (s *buildStarter) tryStartNextPendingBuild(
 	logger lager.Logger,
-	pipeline db.Pipeline,
 	nextPendingBuild Build,
-	job db.Job,
-	resources db.Resources,
+	job db.SchedulerJob,
 ) (startResults, error) {
 	logger = logger.Session("try-start-next-pending-build", lager.Data{
 		"build-id":   nextPendingBuild.ID(),
@@ -163,21 +152,6 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		}, nil
 	}
 
-	pipelinePaused, err := pipeline.CheckPaused()
-	if err != nil {
-		return startResults{}, fmt.Errorf("check pipeline paused: %w", err)
-	}
-
-	if pipelinePaused {
-		logger.Debug("pipeline-paused")
-		return startResults{}, nil
-	}
-
-	if job.Paused() {
-		logger.Debug("job-paused")
-		return startResults{}, nil
-	}
-
 	scheduled, err := job.ScheduleBuild(nextPendingBuild)
 	if err != nil {
 		return startResults{}, fmt.Errorf("schedule build: %w", err)
@@ -190,7 +164,11 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		}, nil
 	}
 
-	readyToDetermineInputs := nextPendingBuild.IsReadyToDetermineInputs(logger)
+	readyToDetermineInputs, err := nextPendingBuild.IsReadyToDetermineInputs(logger)
+	if err != nil {
+		return startResults{}, fmt.Errorf("ready to determine inputs: %w", err)
+	}
+
 	if !readyToDetermineInputs {
 		return startResults{
 			scheduled:              scheduled,
@@ -215,27 +193,12 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		}, nil
 	}
 
-	resourceTypes, err := pipeline.ResourceTypes()
-	if err != nil {
-		return startResults{}, fmt.Errorf("find resource types: %w", err)
-	}
-
-	resourceConfigs := atc.ResourceConfigs{}
-	for _, v := range resources {
-		resourceConfigs = append(resourceConfigs, atc.ResourceConfig{
-			Name:   v.Name(),
-			Type:   v.Type(),
-			Source: v.Source(),
-			Tags:   v.Tags(),
-		})
-	}
-
 	config, err := job.Config()
 	if err != nil {
 		return startResults{}, fmt.Errorf("config: %w", err)
 	}
 
-	plan, err := s.factory.Create(config, resourceConfigs, resourceTypes.Deserialize(), buildInputs)
+	plan, err := s.planner.Create(config.StepConfig(), job.Resources, job.ResourceTypes, buildInputs)
 	if err != nil {
 		logger.Error("failed-to-create-build-plan", err)
 
@@ -267,7 +230,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		}, nil
 	}
 
-	metric.BuildsStarted.Inc()
+	metric.Metrics.BuildsStarted.Inc()
 
 	return startResults{
 		finished: true,

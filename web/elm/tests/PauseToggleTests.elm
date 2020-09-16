@@ -1,6 +1,8 @@
 module PauseToggleTests exposing (all)
 
+import Data
 import Dict
+import Message.Message exposing (DomID(..), PipelinesSection(..))
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (containing, style, tag, text)
@@ -15,9 +17,7 @@ all =
         [ describe "when user is unauthorized" <|
             let
                 pipeline =
-                    { pipelineName = "pipeline"
-                    , teamName = "team"
-                    }
+                    Data.pipelineId
 
                 userState =
                     UserStateLoggedIn
@@ -39,6 +39,7 @@ all =
                         , margin = ""
                         , userState = userState
                         , tooltipPosition = Styles.Above
+                        , domID = PipelineCardPauseToggle AllPipelinesSection pipeline
                         }
                         |> Query.fromHtml
                         |> Query.has [ style "opacity" "0.2" ]
@@ -52,6 +53,7 @@ all =
                         , margin = ""
                         , userState = userState
                         , tooltipPosition = Styles.Above
+                        , domID = PipelineCardPauseToggle AllPipelinesSection pipeline
                         }
                         |> Query.fromHtml
                         |> Query.has
@@ -79,6 +81,7 @@ all =
                         , margin = ""
                         , userState = userState
                         , tooltipPosition = Styles.Below
+                        , domID = PipelineCardPauseToggle AllPipelinesSection pipeline
                         }
                         |> Query.fromHtml
                         |> Query.has

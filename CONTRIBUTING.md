@@ -85,6 +85,9 @@ indeed submitting a code change. Cheers! 🍻
     `release-notes/` directory! For formatting and style examples,
     see previous release notes in the same directory.
 
+  * Run [goimports](https://pkg.go.dev/golang.org/x/tools/cmd/goimports)
+    to ensure your code follows our code style guidelines.
+
   * *Optional: check out our [Go style guide][style-guide]!*
 
 * Putting this all together, here is a sample anatomy of an ideal commit:
@@ -93,13 +96,13 @@ indeed submitting a code change. Cheers! 🍻
      i       ii         iii
      |       |           |
     web: structure: add var declarations
-    
+
     Since scripts are run in module mode, they follow the "strict mode"
     semantics. Variables must be declared prior to being assigned (e.g. - iv
     cannot have `x = 1` without declaring x (using var, let, or const)
-    
+
     concourse/concourse#5131 -------------------------------------------- v
-    
+
     Signed-off-by: Aidan Oldershaw <aoldershaw@pivotal.io> -------------- vi
     ```
 
@@ -111,6 +114,11 @@ indeed submitting a code change. Cheers! 🍻
     1. [sign-off line](#signing-your-work)
 
 * When you're ready, [submit a pull request][how-to-pr]!
+
+  * You will be invited to join `Contributors` team under `Concourse` org on
+    Github. Upon accepting the invite you will be able to login to our CI and
+    manage the build of your pull request in
+    [PRs pipeline](https://ci.concourse-ci.org/teams/contributor/pipelines/prs).
 
 ### Structure and Behaviour
 
@@ -174,8 +182,13 @@ $ fly -t dev login -c http://localhost:8080 -u test -p test
 ```
 
 **Create an example pipeline that runs a hello world job every minute:**
+[concourse/examples](https://github.com/concourse/examples) provides a collection
+of example Concourse pipelines. Use its `time-triggered.yml` pipeline to create a
+hello world job:
+
 ```sh
-$ fly -t dev set-pipeline -p example -c examples/hello-world-every-minute.yml
+$ git clone git@github.com:concourse/examples.git
+$ fly -t dev set-pipeline -p example -c examples/time-triggered.yml
 ```
 
 **Unpause the example pipeline:**
@@ -293,7 +306,7 @@ $ ./hack/trace worker --listen 2345
 
 After this is done, the final step is to connect your IDE to the debugger with the following parameters:
 * host: `localhost`
-* port: `2345` 
+* port: `2345`
 
 For GoLand you can do so by going to Run | Edit Configurations… | + | Go Remote and fill in the parameters.
 
@@ -396,10 +409,21 @@ files are created. This is to ensure that the migrations always run in order.
 There is a utility provided to generate migration files, located at
 `atc/db/migration/cli`.
 
-To generate a migration:
+To generate a migration, you have two options:
+
+#### The short way
+
+Use the `create-migration` script:
+
+```sh
+$ ./atc/scripts/create-migration my_migration_name
+# or if you want a go migration,
+$ ./atc/scripts/create-migration my_migration_name go
+```
+
+#### The long way
 
 1. Build the CLI:
-
 ```sh
 $ cd atc/db/migration
 $ go build -o mig ./cli
@@ -565,6 +589,43 @@ Kubernetes-related testing are all end-to-end, living under `topgun/k8s`. They
 require access to a real Kubernetes cluster with access granted through a
 properly configured `~/.kube/config` file.
 
+[`kind`] is a great choice when it comes to running a local Kubernetes cluster -
+all you need is `docker`, and the `kind` CLI. If you wish to run the tests with
+a high degree of concurrency, it's advised to have multiple kubernetes nodes.
+This can be achieved with the following `kind` config:
+
+```yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+- role: worker
+- role: worker
+- role: worker
+- role: worker
+```
+
+
+With the cluster up, the next step is to have a proper [Tiller] setup (the tests
+still run with Helm 2):
+
+
+```bash
+kubectl create serviceaccount \
+	--namespace kube-system \
+	tiller
+
+kubectl create clusterrolebinding \
+	tiller-cluster-rule \
+	--clusterrole=cluster-admin \
+	--serviceaccount=kube-system:tiller
+
+helm init \
+	--service-account tiller \
+	--upgrade
+```
+
+
 The tests require a few environment variables to be set:
 
 - `CONCOURSE_IMAGE_TAG` or `CONCOURSE_IMAGE_DIGEST`: the tag or digest to use
@@ -576,11 +637,19 @@ to define the postgres chart that Concourse depends on.
 - `CONCOURSE_CHART_DIR`: location in the filesystem where a copy of [`the Concourse Helm
 chart`][concourse-helm-chart] exists.
 
+
 With those set, go to `topgun/k8s` and run Ginkgo:
 
 ```sh
+# run the test cases serially
 ginkgo .
+
+# run the test cases with a concurrency level of 16
+ginkgo -nodes=16 .
 ```
+
+[`kind`]: https://kind.sigs.k8s.io/
+[Tiller]: https://v2.helm.sh/docs/install/
 
 
 ### A note on `topgun`
@@ -714,4 +783,3 @@ pushed commits without the signature.
 [helm-charts]: https://github.com/helm/charts/blob/master/README.md
 [fav-commit]: https://dhwthompson.com/2019/my-favourite-git-commit
 [sb-changes]: https://medium.com/@kentbeck_7670/bs-changes-e574bc396aaa
-

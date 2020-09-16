@@ -2,6 +2,7 @@ port module Message.Storage exposing
     ( Key
     , Value
     , deleteFromLocalStorage
+    , favoritedPipelinesKey
     , jobsKey
     , loadFromLocalStorage
     , loadFromSessionStorage
@@ -49,7 +50,7 @@ port receivedFromSessionStorage : (( Key, Value ) -> msg) -> Sub msg
 
 sideBarStateKey : Key
 sideBarStateKey =
-    "is_sidebar_open"
+    "side_bar_state"
 
 
 tokenKey : Key
@@ -70,3 +71,8 @@ pipelinesKey =
 teamsKey : Key
 teamsKey =
     "teams"
+
+
+favoritedPipelinesKey : Key
+favoritedPipelinesKey =
+    "favorited_pipelines"

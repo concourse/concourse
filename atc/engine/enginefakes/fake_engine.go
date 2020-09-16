@@ -2,14 +2,19 @@
 package enginefakes
 
 import (
+	"context"
 	"sync"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/engine"
 )
 
 type FakeEngine struct {
+	DrainStub        func(context.Context)
+	drainMutex       sync.RWMutex
+	drainArgsForCall []struct {
+		arg1 context.Context
+	}
 	NewBuildStub        func(db.Build) engine.Runnable
 	newBuildMutex       sync.RWMutex
 	newBuildArgsForCall []struct {
@@ -32,13 +37,39 @@ type FakeEngine struct {
 	newCheckReturnsOnCall map[int]struct {
 		result1 engine.Runnable
 	}
-	ReleaseAllStub        func(lager.Logger)
-	releaseAllMutex       sync.RWMutex
-	releaseAllArgsForCall []struct {
-		arg1 lager.Logger
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeEngine) Drain(arg1 context.Context) {
+	fake.drainMutex.Lock()
+	fake.drainArgsForCall = append(fake.drainArgsForCall, struct {
+		arg1 context.Context
+	}{arg1})
+	fake.recordInvocation("Drain", []interface{}{arg1})
+	fake.drainMutex.Unlock()
+	if fake.DrainStub != nil {
+		fake.DrainStub(arg1)
+	}
+}
+
+func (fake *FakeEngine) DrainCallCount() int {
+	fake.drainMutex.RLock()
+	defer fake.drainMutex.RUnlock()
+	return len(fake.drainArgsForCall)
+}
+
+func (fake *FakeEngine) DrainCalls(stub func(context.Context)) {
+	fake.drainMutex.Lock()
+	defer fake.drainMutex.Unlock()
+	fake.DrainStub = stub
+}
+
+func (fake *FakeEngine) DrainArgsForCall(i int) context.Context {
+	fake.drainMutex.RLock()
+	defer fake.drainMutex.RUnlock()
+	argsForCall := fake.drainArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeEngine) NewBuild(arg1 db.Build) engine.Runnable {
@@ -161,46 +192,15 @@ func (fake *FakeEngine) NewCheckReturnsOnCall(i int, result1 engine.Runnable) {
 	}{result1}
 }
 
-func (fake *FakeEngine) ReleaseAll(arg1 lager.Logger) {
-	fake.releaseAllMutex.Lock()
-	fake.releaseAllArgsForCall = append(fake.releaseAllArgsForCall, struct {
-		arg1 lager.Logger
-	}{arg1})
-	fake.recordInvocation("ReleaseAll", []interface{}{arg1})
-	fake.releaseAllMutex.Unlock()
-	if fake.ReleaseAllStub != nil {
-		fake.ReleaseAllStub(arg1)
-	}
-}
-
-func (fake *FakeEngine) ReleaseAllCallCount() int {
-	fake.releaseAllMutex.RLock()
-	defer fake.releaseAllMutex.RUnlock()
-	return len(fake.releaseAllArgsForCall)
-}
-
-func (fake *FakeEngine) ReleaseAllCalls(stub func(lager.Logger)) {
-	fake.releaseAllMutex.Lock()
-	defer fake.releaseAllMutex.Unlock()
-	fake.ReleaseAllStub = stub
-}
-
-func (fake *FakeEngine) ReleaseAllArgsForCall(i int) lager.Logger {
-	fake.releaseAllMutex.RLock()
-	defer fake.releaseAllMutex.RUnlock()
-	argsForCall := fake.releaseAllArgsForCall[i]
-	return argsForCall.arg1
-}
-
 func (fake *FakeEngine) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.drainMutex.RLock()
+	defer fake.drainMutex.RUnlock()
 	fake.newBuildMutex.RLock()
 	defer fake.newBuildMutex.RUnlock()
 	fake.newCheckMutex.RLock()
 	defer fake.newCheckMutex.RUnlock()
-	fake.releaseAllMutex.RLock()
-	defer fake.releaseAllMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -2,7 +2,10 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
+	"runtime/debug"
 	"strconv"
 	"sync"
 	"time"
@@ -14,6 +17,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/tracing"
 )
 
@@ -22,13 +26,14 @@ import (
 type Engine interface {
 	NewBuild(db.Build) Runnable
 	NewCheck(db.Check) Runnable
-	ReleaseAll(lager.Logger)
+
+	Drain(context.Context)
 }
 
 //go:generate counterfeiter . Runnable
 
 type Runnable interface {
-	Run(logger lager.Logger)
+	Run(context.Context)
 }
 
 //go:generate counterfeiter . StepBuilder
@@ -56,25 +61,21 @@ type engine struct {
 	waitGroup     *sync.WaitGroup
 }
 
-func (engine *engine) ReleaseAll(logger lager.Logger) {
-	logger.Info("calling-release-on-builds")
+func (engine *engine) Drain(ctx context.Context) {
+	logger := lagerctx.FromContext(ctx)
+
+	logger.Info("start")
+	defer logger.Info("done")
 
 	close(engine.release)
 
-	logger.Info("waiting-on-builds")
+	logger.Info("waiting")
 
 	engine.waitGroup.Wait()
-
-	logger.Info("finished-waiting-on-builds")
 }
 
 func (engine *engine) NewBuild(build db.Build) Runnable {
-
-	ctx, cancel := context.WithCancel(context.Background())
-
 	return NewBuild(
-		ctx,
-		cancel,
 		build,
 		engine.builder,
 		engine.release,
@@ -84,12 +85,7 @@ func (engine *engine) NewBuild(build db.Build) Runnable {
 }
 
 func (engine *engine) NewCheck(check db.Check) Runnable {
-
-	ctx, cancel := context.WithCancel(context.Background())
-
 	return NewCheck(
-		ctx,
-		cancel,
 		check,
 		engine.builder,
 		engine.release,
@@ -99,8 +95,6 @@ func (engine *engine) NewCheck(check db.Check) Runnable {
 }
 
 func NewBuild(
-	ctx context.Context,
-	cancel func(),
 	build db.Build,
 	builder StepBuilder,
 	release chan bool,
@@ -108,9 +102,6 @@ func NewBuild(
 	waitGroup *sync.WaitGroup,
 ) Runnable {
 	return &engineBuild{
-		ctx:    ctx,
-		cancel: cancel,
-
 		build:   build,
 		builder: builder,
 
@@ -121,9 +112,6 @@ func NewBuild(
 }
 
 type engineBuild struct {
-	ctx    context.Context
-	cancel func()
-
 	build   db.Build
 	builder StepBuilder
 
@@ -134,11 +122,11 @@ type engineBuild struct {
 	pipelineCredMgrs []creds.Manager
 }
 
-func (b *engineBuild) Run(logger lager.Logger) {
+func (b *engineBuild) Run(ctx context.Context) {
 	b.waitGroup.Add(1)
 	defer b.waitGroup.Done()
 
-	logger = logger.WithData(lager.Data{
+	logger := lagerctx.FromContext(ctx).WithData(lager.Data{
 		"build":    b.build.ID(),
 		"pipeline": b.build.PipelineName(),
 		"job":      b.build.JobName(),
@@ -181,7 +169,7 @@ func (b *engineBuild) Run(logger lager.Logger) {
 
 	defer notifier.Close()
 
-	ctx, span := tracing.StartSpan(b.ctx, "build", tracing.Attrs{
+	ctx, span := tracing.StartSpanFollowing(ctx, b.build, "build", tracing.Attrs{
 		"team":     b.build.TeamName(),
 		"pipeline": b.build.PipelineName(),
 		"job":      b.build.JobName(),
@@ -210,6 +198,8 @@ func (b *engineBuild) Run(logger lager.Logger) {
 	state := b.runState()
 	defer b.clearRunState()
 
+	ctx, cancel := context.WithCancel(ctx)
+
 	noleak := make(chan bool)
 	defer close(noleak)
 
@@ -218,13 +208,28 @@ func (b *engineBuild) Run(logger lager.Logger) {
 		case <-noleak:
 		case <-notifier.Notify():
 			logger.Info("aborting")
-			b.cancel()
+			cancel()
 		}
 	}()
 
 	done := make(chan error)
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				err = fmt.Errorf("panic in engine build step run %s: %v", lager.Data{
+					"team_name":     b.build.TeamName(),
+					"pipeline_name": b.build.PipelineName(),
+				}, r)
+
+				fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
+				logger.Error("panic-in-engine-build-step-run", err)
+
+				done <- err
+			}
+		}()
+
 		ctx := lagerctx.NewContext(ctx, logger)
+		ctx = policy.RecordTeamAndPipeline(ctx, b.build.TeamName(), b.build.PipelineName())
 		done <- step.Run(ctx, state)
 	}()
 
@@ -234,12 +239,17 @@ func (b *engineBuild) Run(logger lager.Logger) {
 
 	case err = <-done:
 		logger.Debug("engine-build-done")
+		if err != nil {
+			if ok := errors.As(err, &exec.Retriable{}); ok {
+				return
+			}
+		}
 		b.finish(logger.Session("finish"), err, step.Succeeded())
 	}
 }
 
 func (b *engineBuild) finish(logger lager.Logger, err error, succeeded bool) {
-	if err == context.Canceled {
+	if errors.Is(err, context.Canceled) {
 		b.saveStatus(logger, atc.StatusAborted)
 		logger.Info("aborted")
 
@@ -310,8 +320,6 @@ func (b *engineBuild) clearRunState() {
 }
 
 func NewCheck(
-	ctx context.Context,
-	cancel func(),
 	check db.Check,
 	builder StepBuilder,
 	release chan bool,
@@ -319,9 +327,6 @@ func NewCheck(
 	waitGroup *sync.WaitGroup,
 ) Runnable {
 	return &engineCheck{
-		ctx:    ctx,
-		cancel: cancel,
-
 		check:   check,
 		builder: builder,
 
@@ -332,9 +337,6 @@ func NewCheck(
 }
 
 type engineCheck struct {
-	ctx    context.Context
-	cancel func()
-
 	check   db.Check
 	builder StepBuilder
 
@@ -343,11 +345,11 @@ type engineCheck struct {
 	waitGroup     *sync.WaitGroup
 }
 
-func (c *engineCheck) Run(logger lager.Logger) {
+func (c *engineCheck) Run(ctx context.Context) {
 	c.waitGroup.Add(1)
 	defer c.waitGroup.Done()
 
-	logger = logger.WithData(lager.Data{
+	logger := lagerctx.FromContext(ctx).WithData(lager.Data{
 		"check": c.check.ID(),
 	})
 
@@ -387,7 +389,21 @@ func (c *engineCheck) Run(logger lager.Logger) {
 
 	done := make(chan error)
 	go func() {
-		ctx := lagerctx.NewContext(c.ctx, logger)
+		defer func() {
+			if r := recover(); r != nil {
+				err = fmt.Errorf("panic in engine check step run %s: %v", lager.Data{
+					"team_name":     c.check.TeamName(),
+					"pipeline_name": c.check.PipelineName(),
+				}, r)
+
+				fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
+				logger.Error("panic-in-engine-check-step-run", err)
+
+				done <- err
+			}
+		}()
+		ctx := lagerctx.NewContext(ctx, logger)
+		ctx = policy.RecordTeamAndPipeline(ctx, c.check.TeamName(), c.check.PipelineName())
 		done <- step.Run(ctx, state)
 	}()
 
@@ -420,15 +436,15 @@ func (c *engineCheck) clearRunState() {
 }
 
 func (c *engineCheck) trackStarted(logger lager.Logger) {
-	metric.ChecksStarted.Inc()
+	metric.Metrics.ChecksStarted.Inc()
 }
 
 func (c *engineCheck) trackFinished(logger lager.Logger) {
 	switch c.check.Status() {
 	case db.CheckStatusErrored:
-		metric.ChecksFinishedWithError.Inc()
+		metric.Metrics.ChecksFinishedWithError.Inc()
 	case db.CheckStatusSucceeded:
-		metric.ChecksFinishedWithSuccess.Inc()
+		metric.Metrics.ChecksFinishedWithSuccess.Inc()
 	default:
 		logger.Info("unexpected-check-status", lager.Data{"status": c.check.Status()})
 	}

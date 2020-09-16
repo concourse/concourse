@@ -3,6 +3,7 @@ module Colors exposing
     , abortedFaded
     , asciiArt
     , background
+    , backgroundDark
     , bottomBarText
     , buildStatusColor
     , buildTooltipText
@@ -42,6 +43,7 @@ module Colors exposing
     , sectionHeader
     , sideBar
     , sideBarActive
+    , sideBarHovered
     , started
     , startedFaded
     , statusColor
@@ -105,6 +107,11 @@ white =
 background : String
 background =
     "#3d3c3c"
+
+
+backgroundDark : String
+backgroundDark =
+    "#323232"
 
 
 started : String
@@ -292,6 +299,11 @@ sideBarActive =
     "#272727"
 
 
+sideBarHovered : String
+sideBarHovered =
+    "#444444"
+
+
 errorLog : String
 errorLog =
     "#e74c3c"
@@ -322,9 +334,6 @@ statusColor status =
 
         PipelineStatusAborted _ ->
             aborted
-
-        PipelineStatusUnknown ->
-            unknown
 
 
 buildStatusColor : Bool -> BuildStatus -> String

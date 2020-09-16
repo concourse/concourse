@@ -2,9 +2,6 @@
 
 let color = require('color');
 
-// search box border
-// team name color
-
 module.exports = {
   "base00": color("#1E1D1D"),
   "base01": color("#2A2929"),
@@ -12,7 +9,7 @@ module.exports = {
   "base03": color("#504B4B"),
   "base04": color("#868585"),
 
-  "white": color("#ffffff"),
+  "white": color("#FFFFFF"),
 
   "green": color("#11C560"),
   "green2": color("#419867"),
@@ -25,5 +22,6 @@ module.exports = {
   "brown": color("#8B572A"),
   "brown2": color("#6A401C"),
   "grey": color("#9B9B9B"),
-  "grey2": color("#7A7373")
+  "grey2": color("#7A7373"),
+  "yellow": color("#F1C40F"),
 }
