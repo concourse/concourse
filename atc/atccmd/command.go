@@ -548,6 +548,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 	cmd.varSourcePool = creds.NewVarSourcePool(
 		logger.Session("var-source-pool"),
+		cmd.CredentialManagement,
 		5*time.Minute,
 		1*time.Minute,
 		clock.NewClock(),
@@ -1283,12 +1284,7 @@ func (cmd *RunCommand) secretManager(logger lager.Logger) (creds.Secrets, error)
 		break
 	}
 
-	result := secretsFactory.NewSecrets()
-	result = creds.NewRetryableSecrets(result, cmd.CredentialManagement.RetryConfig)
-	if cmd.CredentialManagement.CacheConfig.Enabled {
-		result = creds.NewCachedSecrets(result, cmd.CredentialManagement.CacheConfig)
-	}
-	return result, nil
+	return cmd.CredentialManagement.NewSecrets(secretsFactory), nil
 }
 
 func (cmd *RunCommand) newKey() *encryption.Key {

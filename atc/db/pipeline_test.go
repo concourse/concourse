@@ -2109,7 +2109,19 @@ var _ = Describe("Pipeline", func() {
 		)
 
 		BeforeEach(func() {
-			pool = creds.NewVarSourcePool(logger, 1*time.Minute, 1*time.Second, clock.NewClock())
+			credentialManagement := creds.CredentialManagementConfig{
+				RetryConfig: creds.SecretRetryConfig{
+					Attempts: 5,
+					Interval: time.Second,
+				},
+				CacheConfig: creds.SecretCacheConfig{
+					Enabled:          true,
+					Duration:         time.Minute,
+					DurationNotFound: time.Minute,
+					PurgeInterval:    time.Minute * 10,
+				},
+			}
+			pool = creds.NewVarSourcePool(logger, credentialManagement, 1*time.Minute, 1*time.Second, clock.NewClock())
 		})
 
 		AfterEach(func() {

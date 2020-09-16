@@ -27,6 +27,16 @@ type CredentialManagementConfig struct {
 	CacheConfig SecretCacheConfig
 }
 
+// NewSecrets creates a Secrets object from secretsFactory based on configs.
+func (c CredentialManagementConfig) NewSecrets(secretsFactory SecretsFactory) Secrets {
+	result := secretsFactory.NewSecrets()
+	result = NewRetryableSecrets(result, c.RetryConfig)
+	if c.CacheConfig.Enabled {
+		result = NewCachedSecrets(result, c.CacheConfig)
+	}
+	return result
+}
+
 type HealthResponse struct {
 	Response interface{} `json:"response,omitempty"`
 	Error    string      `json:"error,omitempty"`
