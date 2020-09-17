@@ -225,7 +225,7 @@ type TaskPlan struct {
 	Config     *TaskConfig `json:"config,omitempty"`
 	Vars       Params      `json:"vars,omitempty"`
 
-	Params            Params            `json:"params,omitempty"`
+	Params            TaskEnv           `json:"params,omitempty"`
 	InputMapping      map[string]string `json:"input_mapping,omitempty"`
 	OutputMapping     map[string]string `json:"output_mapping,omitempty"`
 	ImageArtifactName string            `json:"image,omitempty"`

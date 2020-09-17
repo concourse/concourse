@@ -5,21 +5,21 @@ import (
 	"github.com/concourse/concourse/vars"
 )
 
-type TaskParamsValidator struct {
+type TaskEnvValidator struct {
 	variablesResolver vars.Variables
-	rawTaskParams     atc.Params
+	rawTaskEnv        atc.TaskEnv
 }
 
-func NewTaskParamsValidator(variables vars.Variables, params atc.Params) TaskParamsValidator {
-	return TaskParamsValidator{
+func NewTaskEnvValidator(variables vars.Variables, params atc.TaskEnv) TaskEnvValidator {
+	return TaskEnvValidator{
 		variablesResolver: variables,
-		rawTaskParams:     params,
+		rawTaskEnv:        params,
 	}
 }
 
-func (s TaskParamsValidator) Validate() error {
+func (s TaskEnvValidator) Validate() error {
 	var params atc.TaskEnv
-	return evaluate(s.variablesResolver, s.rawTaskParams, &params)
+	return evaluate(s.variablesResolver, s.rawTaskEnv, &params)
 }
 
 type TaskVarsValidator struct {

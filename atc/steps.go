@@ -340,7 +340,7 @@ type TaskStep struct {
 	Privileged        bool              `json:"privileged,omitempty"`
 	ConfigPath        string            `json:"file,omitempty"`
 	Config            *TaskConfig       `json:"config,omitempty"`
-	Params            Params            `json:"params,omitempty"`
+	Params            TaskEnv           `json:"params,omitempty"`
 	Vars              Params            `json:"vars,omitempty"`
 	Tags              Tags              `json:"tags,omitempty"`
 	InputMapping      map[string]string `json:"input_mapping,omitempty"`
