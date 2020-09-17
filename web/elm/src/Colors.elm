@@ -320,6 +320,9 @@ statusColor status =
         PipelineStatusPaused ->
             paused
 
+        PipelineStatusArchived ->
+            background
+
         PipelineStatusSucceeded _ ->
             success
 

@@ -1185,7 +1185,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = PipelineStatusPaused |> Assets.PipelineStatusIcon
+                                        , image = Assets.PipelineStatusIconPaused
                                         }
                                         ++ [ style "background-size" "contain" ]
                                     )
@@ -1457,7 +1457,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = PipelineStatusPending True |> Assets.PipelineStatusIcon
+                                        , image = Assets.PipelineStatusIconPending
                                         }
                                         ++ [ style "background-size" "contain" ]
                                     )
@@ -1499,7 +1499,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = PipelineStatusSucceeded Running |> Assets.PipelineStatusIcon
+                                        , image = Assets.PipelineStatusIconSucceeded
                                         }
                                         ++ [ style "background-size" "contain" ]
                                     )
@@ -1559,7 +1559,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = PipelineStatusFailed Running |> Assets.PipelineStatusIcon
+                                        , image = Assets.PipelineStatusIconFailed
                                         }
                                         ++ [ style "background-size" "contain" ]
                                     )
@@ -1582,7 +1582,7 @@ all =
                             |> Query.has
                                 (iconSelector
                                     { size = "20px"
-                                    , image = PipelineStatusAborted Running |> Assets.PipelineStatusIcon
+                                    , image = Assets.PipelineStatusIconAborted
                                     }
                                     ++ [ style "background-size" "contain" ]
                                 )
@@ -1596,7 +1596,7 @@ all =
                             |> Query.has
                                 (iconSelector
                                     { size = "20px"
-                                    , image = PipelineStatusErrored Running |> Assets.PipelineStatusIcon
+                                    , image = Assets.PipelineStatusIconErrored
                                     }
                                     ++ [ style "background-size" "contain" ]
                                 )

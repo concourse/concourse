@@ -1258,7 +1258,7 @@ all =
                                             >> Query.has
                                                 (iconSelector
                                                     { size = "20px"
-                                                    , image = PipelineStatusPending True |> Assets.PipelineStatusIcon
+                                                    , image = Assets.PipelineStatusIconPending
                                                     }
                                                 )
                                         , Query.index 1
@@ -1273,7 +1273,7 @@ all =
                                             >> Query.has
                                                 (iconSelector
                                                     { size = "20px"
-                                                    , image = PipelineStatusPaused |> Assets.PipelineStatusIcon
+                                                    , image = Assets.PipelineStatusIconPaused
                                                     }
                                                 )
                                         , Query.index 1

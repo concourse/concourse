@@ -16,6 +16,7 @@ type StatusDetails
 
 type PipelineStatus
     = PipelineStatusPaused
+    | PipelineStatusArchived
     | PipelineStatusAborted StatusDetails
     | PipelineStatusErrored StatusDetails
     | PipelineStatusFailed StatusDetails
@@ -27,6 +28,9 @@ equal : PipelineStatus -> PipelineStatus -> Bool
 equal ps1 ps2 =
     case ( ps1, ps2 ) of
         ( PipelineStatusPaused, PipelineStatusPaused ) ->
+            True
+
+        ( PipelineStatusArchived, PipelineStatusArchived ) ->
             True
 
         ( PipelineStatusAborted _, PipelineStatusAborted _ ) ->
@@ -54,6 +58,9 @@ show status =
         PipelineStatusPaused ->
             "paused"
 
+        PipelineStatusArchived ->
+            "archived"
+
         PipelineStatusAborted _ ->
             "aborted"
 
@@ -74,6 +81,9 @@ isRunning : PipelineStatus -> Bool
 isRunning status =
     case status of
         PipelineStatusPaused ->
+            False
+
+        PipelineStatusArchived ->
             False
 
         PipelineStatusAborted details ->

@@ -217,9 +217,14 @@ legendItem : PipelineStatus -> Html Message
 legendItem status =
     Html.div
         Styles.legendItem
-        [ Icon.icon
-            { sizePx = 20, image = Assets.PipelineStatusIcon status }
-            Styles.pipelineStatusIcon
+        [ case Assets.pipelineStatusIcon status of
+            Just asset ->
+                Icon.icon
+                    { sizePx = 20, image = asset }
+                    Styles.pipelineStatusIcon
+
+            Nothing ->
+                Html.text ""
         , Html.div [ style "width" "10px" ] []
         , Html.text <| PipelineStatus.show status
         ]

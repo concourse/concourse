@@ -225,44 +225,6 @@ toStringTests =
                 ExclamationTriangleIcon
                     |> toString
                     |> Expect.equal "/public/images/ic-exclamation-triangle.svg"
-        , describe "PipelineStatusIcon"
-            [ test "Paused" <|
-                \_ ->
-                    PipelineStatusPaused
-                        |> PipelineStatusIcon
-                        |> toString
-                        |> Expect.equal "/public/images/ic-pause-blue.svg"
-            , test "Pending" <|
-                \_ ->
-                    PipelineStatusPending True
-                        |> PipelineStatusIcon
-                        |> toString
-                        |> Expect.equal "/public/images/ic-pending-grey.svg"
-            , test "Succeeded" <|
-                \_ ->
-                    PipelineStatusSucceeded Running
-                        |> PipelineStatusIcon
-                        |> toString
-                        |> Expect.equal "/public/images/ic-running-green.svg"
-            , test "Failed" <|
-                \_ ->
-                    PipelineStatusFailed Running
-                        |> PipelineStatusIcon
-                        |> toString
-                        |> Expect.equal "/public/images/ic-failing-red.svg"
-            , test "Aborted" <|
-                \_ ->
-                    PipelineStatusAborted Running
-                        |> PipelineStatusIcon
-                        |> toString
-                        |> Expect.equal "/public/images/ic-aborted-brown.svg"
-            , test "Errored" <|
-                \_ ->
-                    PipelineStatusErrored Running
-                        |> PipelineStatusIcon
-                        |> toString
-                        |> Expect.equal "/public/images/ic-error-orange.svg"
-            ]
         , test "PipelineStatusIconStale" <|
             \_ ->
                 PipelineStatusIconStale

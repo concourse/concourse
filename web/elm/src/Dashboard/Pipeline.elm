@@ -164,7 +164,10 @@ pipelineView session { now, pipeline, hovered, pipelineRunningKeyframes, resourc
 
 pipelineStatus : List Concourse.Job -> Pipeline -> PipelineStatus.PipelineStatus
 pipelineStatus jobs pipeline =
-    if pipeline.paused then
+    if pipeline.archived then
+        PipelineStatus.PipelineStatusArchived
+
+    else if pipeline.paused then
         PipelineStatus.PipelineStatusPaused
 
     else
@@ -389,9 +392,14 @@ pipelineStatusView section pipeline status now =
                     Styles.pipelineStatusIcon
 
               else
-                Icon.icon
-                    { sizePx = 20, image = Assets.PipelineStatusIcon status }
-                    Styles.pipelineStatusIcon
+                case Assets.pipelineStatusIcon status of
+                    Just asset ->
+                        Icon.icon
+                            { sizePx = 20, image = asset }
+                            Styles.pipelineStatusIcon
+
+                    Nothing ->
+                        Html.text ""
             , if pipeline.jobsDisabled then
                 Html.div
                     (class "build-duration"
