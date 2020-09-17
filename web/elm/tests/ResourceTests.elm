@@ -557,8 +557,7 @@ all =
                                 |> Tuple.second
                                 |> Common.contains
                                     (Effects.FetchVersionedResources
-                                        { teamName = teamName
-                                        , pipelineName = pipelineName
+                                        { pipelineId = 1
                                         , resourceName = resourceName
                                         }
                                         Resource.startingPage

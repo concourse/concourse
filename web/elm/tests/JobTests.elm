@@ -616,8 +616,7 @@ all =
                         |> Tuple.second
                         |> Common.contains
                             (Effects.FetchJobBuilds
-                                { teamName = "team"
-                                , pipelineName = "pipeline"
+                                { pipelineId = 1
                                 , jobName = "job"
                                 }
                                 Job.startingPage
@@ -871,8 +870,7 @@ someJobInfo : Concourse.JobIdentifier
 someJobInfo =
     Data.jobId
         |> Data.withJobName "some-job"
-        |> Data.withPipelineName "some-pipeline"
-        |> Data.withTeamName "some-team"
+        |> Data.withPipelineId 1
 
 
 someBuild : Build

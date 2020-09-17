@@ -47,6 +47,7 @@ import Html.Events
         )
 import Http
 import Job.Styles as Styles
+import List.Extra
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))

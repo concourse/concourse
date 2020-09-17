@@ -312,7 +312,7 @@ all =
                     |> Expect.equal "pipelineName - Concourse"
         , test "pipeline background should be set from display config" <|
             \_ ->
-                Common.init "/teams/team/pipelines/pipelineName"
+                Common.init "/pipelines/1"
                     |> Application.handleCallback
                         (Callback.PipelineFetched
                             (Ok <|
