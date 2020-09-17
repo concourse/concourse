@@ -682,6 +682,13 @@ toHtmlID domId =
                 ++ "_"
                 ++ String.fromInt pipelineId
 
+        SideBarInstanceGroup section teamName groupName ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ Base64.encode teamName
+                ++ "_"
+                ++ Base64.encode groupName
+
         PipelineStatusIcon section pipelineId ->
             pipelinesSectionName section
                 ++ "_"

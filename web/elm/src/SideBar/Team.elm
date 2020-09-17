@@ -2,9 +2,12 @@ module SideBar.Team exposing (team)
 
 import Assets
 import Concourse
+import Dict
 import HoverState
+import List.Extra
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Set exposing (Set)
+import SideBar.InstanceGroup as InstanceGroup
 import SideBar.Pipeline as Pipeline
 import SideBar.Styles as Styles
 import SideBar.Views as Views
@@ -27,11 +30,11 @@ team :
     }
     -> { name : String, isExpanded : Bool }
     -> Views.Team
-team session t =
+team params t =
     let
         domID =
             SideBarTeam
-                (if session.isFavoritesSection then
+                (if params.isFavoritesSection then
                     FavoritesSection
 
                  else
@@ -40,10 +43,10 @@ team session t =
                 t.name
 
         isHovered =
-            HoverState.isHovered domID session.hovered
+            HoverState.isHovered domID params.hovered
 
         isCurrent =
-            (session.currentPipeline |> Maybe.map .teamName) == Just t.name
+            (params.currentPipeline |> Maybe.map .teamName) == Just t.name
     in
     { icon =
         if isCurrent then
@@ -82,7 +85,17 @@ team session t =
         , domID = domID
         }
     , isExpanded = t.isExpanded
-    , pipelines = List.map (Pipeline.pipeline session) session.pipelines
+    , listItems =
+        params.pipelines
+            |> List.Extra.gatherEqualsBy .name
+            |> List.map
+                (\( p, ps ) ->
+                    if List.isEmpty ps && Dict.isEmpty p.instanceVars then
+                        Pipeline.pipeline params p |> Views.PipelineListItem
+
+                    else
+                        InstanceGroup.instanceGroup params p ps |> Views.InstanceGroupListItem
+                )
     , background =
         if isHovered then
             Styles.Light

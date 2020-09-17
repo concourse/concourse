@@ -72,6 +72,9 @@ policy domID =
         SideBarTeam _ _ ->
             OnlyShowWhenOverflowing
 
+        SideBarInstanceGroup _ _ _ ->
+            OnlyShowWhenOverflowing
+
         _ ->
             AlwaysShow
 

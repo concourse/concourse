@@ -93,6 +93,7 @@ type DomID
     | SideBarResizeHandle
     | SideBarTeam PipelinesSection String
     | SideBarPipeline PipelinesSection Concourse.PipelineIdentifier
+    | SideBarInstanceGroup PipelinesSection Concourse.TeamName String
     | SideBarFavoritedIcon DatabaseID
     | Dashboard
     | DashboardGroup String

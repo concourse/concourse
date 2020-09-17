@@ -13,7 +13,7 @@ import Common
         , then_
         , when
         )
-import Concourse
+import Concourse exposing (JsonValue(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import DashboardTests exposing (iconSelector)
 import Data
@@ -567,6 +567,101 @@ hasSideBar iAmLookingAtThePage =
                     ]
                 }
             }
+        , describe "instance group list item" <|
+            let
+                iHaveAnOpenSideBarWithAnInstanceGroup =
+                    iHaveAnOpenSideBar_
+                        >> myBrowserFetchedAnInstanceGroup
+            in
+            [ test "lays out horizontally" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroup
+                    >> then_ iSeeItLaysOutHorizontally
+            , test "centers contents" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroup
+                    >> then_ iSeeItCentersContents
+            , test "has padding" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroup
+                    >> then_ iSeeItHasProperPadding
+            , test "has badge on the left" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroupBadge
+                    >> then_ iSeeABadge
+            , test "badge has left margin" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroupBadge
+                    >> then_ iSeeItHasLeftMargin
+            , test "badge does not shrink when group name is long" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroupBadge
+                    >> then_ iSeeItDoesNotShrink
+            , test "badge is dim" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroupBadge
+                    >> then_ iSeeItIsDim
+            , test "link has padding" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroupLink
+                    >> then_ iSeeItHasProperPadding
+            , test "link contains text of group name" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroupLink
+                    >> then_ iSeeItContainsTheGroupName
+
+            -- TODO
+            --, test "link is a link to the group" <|
+            --    given iHaveAnOpenSideBar_
+            --        >> given iClickedThePipelineGroup
+            --        >> when iAmLookingAtTheFirstPipeline
+            --        >> then_ iSeeItIsALinkToTheFirstPipeline
+            , test "link has medium font" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroupLink
+                    >> then_ iSeeMediumFont
+            , test "link will ellipsize if it is too long" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroupLink
+                    >> then_ iSeeItEllipsizesLongText
+            , test "link will have a valid id" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroup
+                    >> then_ iSeeItHasAValidInstanceGroupId
+            , defineHoverBehaviour
+                { name = "instance group"
+                , setup =
+                    iHaveAnOpenSideBarWithAnInstanceGroup ()
+                        |> iClickedThePipelineGroup
+                        |> Tuple.first
+                , query = (\a -> ( a, [] )) >> iAmLookingAtTheFirstInstanceGroup
+                , unhoveredSelector =
+                    { description = "grey"
+                    , selector =
+                        [ style "opacity" "0.5" ]
+                    }
+                , hoverable = Message.SideBarInstanceGroup AllPipelinesSection "team" "group"
+                , hoveredSelector =
+                    { description = "light background"
+                    , selector =
+                        [ style "opacity" "1"
+                        , style "background-color" Colors.sideBarHovered
+                        ]
+                    }
+                }
+            ]
         , test "subscribes to 5-second tick" <|
             given iAmLookingAtThePage
                 >> then_ myBrowserNotifiesEveryFiveSeconds
@@ -1088,6 +1183,18 @@ iSeeItHasAValidPipelineId =
         ]
 
 
+iSeeItHasAValidInstanceGroupId =
+    Query.has
+        [ id <|
+            (pipelinesSectionName AllPipelinesSection
+                ++ "_"
+                ++ Base64.encode "team"
+                ++ "_"
+                ++ Base64.encode "group"
+            )
+        ]
+
+
 iSeeItScrollsIndependently =
     Query.has [ style "overflow-y" "auto" ]
 
@@ -1189,12 +1296,24 @@ iAmLookingAtTheFirstPipeline =
     iAmLookingAtThePipelineList >> Query.children [] >> Query.index 1 >> Query.children [] >> Query.first
 
 
+iAmLookingAtTheFirstInstanceGroup =
+    iAmLookingAtTheFirstPipeline
+
+
 iAmLookingAtTheFirstPipelineLink =
     iAmLookingAtTheFirstPipeline >> Query.children [] >> Query.index 1
 
 
+iAmLookingAtTheFirstInstanceGroupLink =
+    iAmLookingAtTheFirstInstanceGroup >> Query.children [] >> Query.index 1
+
+
 iSeeItContainsThePipelineName =
     Query.has [ text "pipeline" ]
+
+
+iSeeItContainsTheGroupName =
+    Query.has [ text "group" ]
 
 
 iAmLookingAtTheTeamHeader =
@@ -1273,6 +1392,10 @@ iAmLookingAtTheFirstPipelineIcon =
     iAmLookingAtTheFirstPipeline >> Query.children [] >> Query.first
 
 
+iAmLookingAtTheFirstInstanceGroupBadge =
+    iAmLookingAtTheFirstInstanceGroup >> Query.children [] >> Query.first
+
+
 iAmLookingAtTheFirstPipelineStar =
     iAmLookingAtTheFirstPipeline
         >> Query.findAll [ attribute <| Attr.attribute "aria-label" "Favorite Icon" ]
@@ -1297,6 +1420,13 @@ iSeeAPipelineIcon =
         , style "width" "18px"
         , style "background-size" "contain"
         , style "background-position" "center"
+        ]
+
+
+iSeeABadge =
+    Query.has
+        [ style "font-size" "12px"
+        , containing [ text "3" ]
         ]
 
 
@@ -1464,6 +1594,24 @@ myBrowserFetchedPipelines =
                 Ok
                     [ Data.pipeline "team" 1 |> Data.withName "pipeline"
                     , Data.pipeline "team" 2 |> Data.withName "other-pipeline"
+                    ]
+            )
+
+
+myBrowserFetchedAnInstanceGroup =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.AllPipelinesFetched <|
+                Ok
+                    [ Data.pipeline "team" 1
+                        |> Data.withName "group"
+                        |> Data.withInstanceVars (Dict.fromList [ ( "version", JsonString "1" ) ])
+                    , Data.pipeline "team" 2
+                        |> Data.withName "group"
+                        |> Data.withInstanceVars (Dict.fromList [ ( "version", JsonString "2" ) ])
+                    , Data.pipeline "team" 3
+                        |> Data.withName "group"
+                        |> Data.withInstanceVars Dict.empty
                     ]
             )
 

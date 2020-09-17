@@ -7,6 +7,8 @@ module SideBar.Styles exposing
     , hamburgerIcon
     , hamburgerMenu
     , iconGroup
+    , instanceGroup
+    , instanceGroupBadge
     , opacityAttr
     , pipeline
     , pipelineFavourite
@@ -281,6 +283,11 @@ pipeline { background } =
     ]
 
 
+instanceGroup : { a | background : Background } -> List (Html.Attribute msg)
+instanceGroup =
+    pipeline
+
+
 pipelineIcon : { asset : Assets.Asset, opacity : Opacity } -> List (Html.Attribute msg)
 pipelineIcon { asset, opacity } =
     [ style "background-image" <|
@@ -295,6 +302,34 @@ pipelineIcon { asset, opacity } =
     , style "flex-shrink" "0"
     , opacityAttr opacity
     ]
+
+
+instanceGroupBadge : { count : Int, opacity : Opacity } -> Html.Html msg
+instanceGroupBadge { count, opacity } =
+    let
+        ( text, fontSize ) =
+            if count > 99 then
+                ( "99+", "10px" )
+
+            else
+                ( String.fromInt count, "12px" )
+    in
+    Html.div
+        [ style "background" "#f2f2f2"
+        , style "border-radius" "4px"
+        , style "color" "#222"
+        , style "display" "flex"
+        , style "align-items" "center"
+        , style "justify-content" "center"
+        , style "letter-spacing" "0"
+        , style "height" "18px"
+        , style "width" "18px"
+        , style "margin-left" "28px"
+        , style "flex-shrink" "0"
+        , style "font-size" fontSize
+        , opacityAttr opacity
+        ]
+        [ Html.text text ]
 
 
 pipelineFavourite : { opacity : Opacity, filled : Bool } -> List (Html.Attribute msg)

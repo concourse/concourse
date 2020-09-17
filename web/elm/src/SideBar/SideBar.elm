@@ -276,6 +276,16 @@ tooltip model =
                         }
                     )
 
+        HoverState.Tooltip (SideBarInstanceGroup _ _ name) _ ->
+            Just
+                { body = Html.div Styles.tooltipBody [ Html.text name ]
+                , attachPosition =
+                    { direction = Tooltip.Right <| Styles.tooltipArrowSize - Styles.tooltipOffset
+                    , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
+                    }
+                , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.frame }
+                }
+
         _ ->
             Nothing
 
@@ -308,6 +318,9 @@ allPipelinesSection model currentPipeline =
 favoritedPipelinesSection : Model m -> Maybe (PipelineScoped a) -> List (Html Message)
 favoritedPipelinesSection model currentPipeline =
     let
+        -- TODO: if only a pipeline without instance vars is favourited
+        -- (despite it being a part of an instance group), should we display it
+        -- as an instance group item or a pipeline item
         favoritedPipelines =
             model.pipelines
                 |> RemoteData.withDefault []

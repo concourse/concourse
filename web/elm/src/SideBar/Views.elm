@@ -1,4 +1,10 @@
-module SideBar.Views exposing (Pipeline, Team, viewTeam)
+module SideBar.Views exposing
+    ( InstanceGroup
+    , Pipeline
+    , Team
+    , TeamListItem(..)
+    , viewTeam
+    )
 
 import Assets
 import HoverState exposing (TooltipPosition(..))
@@ -23,7 +29,7 @@ type alias Team =
         , domID : DomID
         }
     , isExpanded : Bool
-    , pipelines : List Pipeline
+    , listItems : List TeamListItem
     , background : Styles.Background
     }
 
@@ -48,11 +54,16 @@ viewTeam team =
                 [ Html.text team.name.text ]
             ]
         , if team.isExpanded then
-            Html.div Styles.column <| List.map viewPipeline team.pipelines
+            Html.div Styles.column <| List.map viewListItem team.listItems
 
           else
             Html.text ""
         ]
+
+
+type TeamListItem
+    = PipelineListItem Pipeline
+    | InstanceGroupListItem InstanceGroup
 
 
 type alias Pipeline =
@@ -73,6 +84,22 @@ type alias Pipeline =
         , filled : Bool
         }
     , id : Int
+    }
+
+
+type alias InstanceGroup =
+    { name :
+        { opacity : Styles.Opacity
+        , text : String
+        , weight : Styles.FontWeight
+        }
+    , background : Styles.Background
+    , href : String
+    , domID : DomID
+    , badge :
+        { count : Int
+        , opacity : Styles.Opacity
+        }
     }
 
 
@@ -99,3 +126,31 @@ viewPipeline p =
             )
             []
         ]
+
+
+viewInstanceGroup : InstanceGroup -> Html Message
+viewInstanceGroup ig =
+    Html.a
+        (Styles.instanceGroup ig
+            ++ [ href <| ig.href
+               , onMouseEnter <| Hover <| Just <| ig.domID
+               , onMouseLeave <| Hover Nothing
+               ]
+        )
+        [ Styles.instanceGroupBadge ig.badge
+        , Html.div
+            (id (toHtmlID ig.domID)
+                :: Styles.pipelineName ig.name
+            )
+            [ Html.text ig.name.text ]
+        ]
+
+
+viewListItem : TeamListItem -> Html Message
+viewListItem item =
+    case item of
+        PipelineListItem p ->
+            viewPipeline p
+
+        InstanceGroupListItem ps ->
+            viewInstanceGroup ps
