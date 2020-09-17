@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -52,6 +53,10 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 	}
 
 	gdnServerFlags = append(gdnServerFlags, detectGuardianFlags(logger)...)
+	gdnServerFlags = append(gdnServerFlags,
+		"--max-containers", strconv.Itoa(cmd.Guardian.MaxContainers),
+		"--network-pool", cmd.Guardian.NetworkPool,
+	)
 
 	if cmd.Guardian.DNS.Enable {
 		dnsProxyRunner, err := cmd.dnsProxyRunner(logger.Session("dns-proxy"))
@@ -104,6 +109,7 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 	return grouper.NewParallel(os.Interrupt, members), nil
 }
 
+// This won't detect flags listed in the GuardianRuntime struct
 func detectGuardianFlags(logger lager.Logger) []string {
 	env := os.Environ()
 
