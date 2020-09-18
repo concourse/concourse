@@ -28,6 +28,7 @@ var _ = Describe("Builder", func() {
 
 			fakeStepFactory *builderfakes.FakeStepFactory
 			fakeRateLimiter *builderfakes.FakeRateLimiter
+			fakeJob           *dbfakes.FakeJob
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
@@ -36,6 +37,7 @@ var _ = Describe("Builder", func() {
 		)
 
 		BeforeEach(func() {
+			fakeJob = new(dbfakes.FakeJob)
 			fakeStepFactory = new(builderfakes.FakeStepFactory)
 
 			fakeRateLimiter = new(builderfakes.FakeRateLimiter)
@@ -858,7 +860,7 @@ var _ = Describe("Builder", func() {
 							},
 						}
 
-						expectedPlan, err = planner.Create(step, nil, nil, nil)
+						expectedPlan, err = planner.Create(fakeJob, step, nil, nil, nil)
 						Expect(err).ToNot(HaveOccurred())
 					})
 
