@@ -12,7 +12,7 @@ import (
 func (team *team) ListJobs(pipelineName string) ([]atc.Job, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	var jobs []atc.Job
@@ -41,7 +41,7 @@ func (team *team) Job(pipelineName, jobName string) (atc.Job, bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"job_name":      jobName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	var job atc.Job
@@ -65,7 +65,7 @@ func (team *team) JobBuilds(pipelineName string, jobName string, page Page) ([]a
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"job_name":      jobName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	var builds []atc.Build
@@ -98,7 +98,7 @@ func (team *team) PauseJob(pipelineName string, jobName string) (bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"job_name":      jobName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	err := team.connection.Send(internal.Request{
@@ -120,7 +120,7 @@ func (team *team) UnpauseJob(pipelineName string, jobName string) (bool, error) 
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"job_name":      jobName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	err := team.connection.Send(internal.Request{
@@ -142,7 +142,7 @@ func (team *team) ScheduleJob(pipelineName string, jobName string) (bool, error)
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"job_name":      jobName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	err := team.connection.Send(internal.Request{
@@ -162,7 +162,7 @@ func (team *team) ScheduleJob(pipelineName string, jobName string) (bool, error)
 
 func (team *team) ClearTaskCache(pipelineName string, jobName string, stepName string, cachePath string) (int64, error) {
 	params := rata.Params{
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 		"pipeline_name": pipelineName,
 		"job_name":      jobName,
 		"step_name":     stepName,

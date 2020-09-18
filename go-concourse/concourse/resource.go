@@ -10,7 +10,7 @@ func (team *team) Resource(pipelineName string, resourceName string) (atc.Resour
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"resource_name": resourceName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	var resource atc.Resource
@@ -33,7 +33,7 @@ func (team *team) Resource(pipelineName string, resourceName string) (atc.Resour
 func (team *team) ListResources(pipelineName string) ([]atc.Resource, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	var resources []atc.Resource

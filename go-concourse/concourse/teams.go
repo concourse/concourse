@@ -24,7 +24,7 @@ type setTeamResponse struct {
 // CreateOrUpdate creates or updates team teamName with the settings provided in passedTeam.
 // passedTeam should reflect the desired state of team's configuration.
 func (team *team) CreateOrUpdate(passedTeam atc.Team) (atc.Team, bool, bool, []ConfigWarning, error) {
-	params := rata.Params{"team_name": team.name}
+	params := rata.Params{"team_name": team.Name()}
 
 	buffer := &bytes.Buffer{}
 	err := json.NewEncoder(buffer).Encode(passedTeam)
@@ -137,11 +137,9 @@ func (client *client) FindTeam(teamName string) (Team, error) {
 			return nil, err
 		}
 		return &team{
-			name:       atcTeam.Name,
-			id:         atcTeam.ID,
+			atcTeam:    atcTeam,
 			connection: client.connection,
 			httpAgent:  client.httpAgent,
-			auth:       atcTeam.Auth,
 		}, nil
 	case http.StatusForbidden:
 		return nil, fmt.Errorf("you do not have a role on team '%s'", teamName)

@@ -41,7 +41,7 @@ var _ = Describe("ATC Handler Teams", func() {
 			It("returns the requested team", func() {
 				team, err := client.FindTeam(teamName)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(team.Name()).To(Equal(teamName))
+				Expect(team.Name(),).To(Equal(teamName))
 				Expect(team.Auth()).To(Equal(expectedAuth))
 			})
 		})

@@ -16,7 +16,7 @@ func (team *team) ResourceVersions(pipelineName string, resourceName string, pag
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"resource_name": resourceName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	var resourceVersions []atc.ResourceVersion
@@ -66,7 +66,7 @@ func (team *team) UnpinResource(pipelineName string, resourceName string) (bool,
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"resource_name": resourceName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	err := team.connection.Send(internal.Request{
@@ -88,7 +88,7 @@ func (team *team) SetPinComment(pipelineName string, resourceName string, commen
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"resource_name": resourceName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	pinComment := atc.SetPinCommentRequestBody{
@@ -126,7 +126,7 @@ func (team *team) sendResourceVersion(pipelineName string, resourceName string, 
 		"pipeline_name":              pipelineName,
 		"resource_name":              resourceName,
 		"resource_config_version_id": strconv.Itoa(resourceVersionID),
-		"team_name":                  team.name,
+		"team_name":                  team.Name(),
 	}
 
 	err := team.connection.Send(internal.Request{
