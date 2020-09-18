@@ -60,6 +60,30 @@ type FakeResourceType struct {
 	currentPinnedVersionReturnsOnCall map[int]struct {
 		result1 atc.Version
 	}
+	DefaultsStub        func() atc.Source
+	defaultsMutex       sync.RWMutex
+	defaultsArgsForCall []struct {
+	}
+	defaultsReturns struct {
+		result1 atc.Source
+	}
+	defaultsReturnsOnCall map[int]struct {
+		result1 atc.Source
+	}
+	FindParentBaseResourceTypeStub        func() (*db.UsedBaseResourceType, bool, error)
+	findParentBaseResourceTypeMutex       sync.RWMutex
+	findParentBaseResourceTypeArgsForCall []struct {
+	}
+	findParentBaseResourceTypeReturns struct {
+		result1 *db.UsedBaseResourceType
+		result2 bool
+		result3 error
+	}
+	findParentBaseResourceTypeReturnsOnCall map[int]struct {
+		result1 *db.UsedBaseResourceType
+		result2 bool
+		result3 error
+	}
 	HasWebhookStub        func() bool
 	hasWebhookMutex       sync.RWMutex
 	hasWebhookArgsForCall []struct {
@@ -543,6 +567,116 @@ func (fake *FakeResourceType) CurrentPinnedVersionReturnsOnCall(i int, result1 a
 	fake.currentPinnedVersionReturnsOnCall[i] = struct {
 		result1 atc.Version
 	}{result1}
+}
+
+func (fake *FakeResourceType) Defaults() atc.Source {
+	fake.defaultsMutex.Lock()
+	ret, specificReturn := fake.defaultsReturnsOnCall[len(fake.defaultsArgsForCall)]
+	fake.defaultsArgsForCall = append(fake.defaultsArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Defaults", []interface{}{})
+	fake.defaultsMutex.Unlock()
+	if fake.DefaultsStub != nil {
+		return fake.DefaultsStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.defaultsReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResourceType) DefaultsCallCount() int {
+	fake.defaultsMutex.RLock()
+	defer fake.defaultsMutex.RUnlock()
+	return len(fake.defaultsArgsForCall)
+}
+
+func (fake *FakeResourceType) DefaultsCalls(stub func() atc.Source) {
+	fake.defaultsMutex.Lock()
+	defer fake.defaultsMutex.Unlock()
+	fake.DefaultsStub = stub
+}
+
+func (fake *FakeResourceType) DefaultsReturns(result1 atc.Source) {
+	fake.defaultsMutex.Lock()
+	defer fake.defaultsMutex.Unlock()
+	fake.DefaultsStub = nil
+	fake.defaultsReturns = struct {
+		result1 atc.Source
+	}{result1}
+}
+
+func (fake *FakeResourceType) DefaultsReturnsOnCall(i int, result1 atc.Source) {
+	fake.defaultsMutex.Lock()
+	defer fake.defaultsMutex.Unlock()
+	fake.DefaultsStub = nil
+	if fake.defaultsReturnsOnCall == nil {
+		fake.defaultsReturnsOnCall = make(map[int]struct {
+			result1 atc.Source
+		})
+	}
+	fake.defaultsReturnsOnCall[i] = struct {
+		result1 atc.Source
+	}{result1}
+}
+
+func (fake *FakeResourceType) FindParentBaseResourceType() (*db.UsedBaseResourceType, bool, error) {
+	fake.findParentBaseResourceTypeMutex.Lock()
+	ret, specificReturn := fake.findParentBaseResourceTypeReturnsOnCall[len(fake.findParentBaseResourceTypeArgsForCall)]
+	fake.findParentBaseResourceTypeArgsForCall = append(fake.findParentBaseResourceTypeArgsForCall, struct {
+	}{})
+	fake.recordInvocation("FindParentBaseResourceType", []interface{}{})
+	fake.findParentBaseResourceTypeMutex.Unlock()
+	if fake.FindParentBaseResourceTypeStub != nil {
+		return fake.FindParentBaseResourceTypeStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.findParentBaseResourceTypeReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeResourceType) FindParentBaseResourceTypeCallCount() int {
+	fake.findParentBaseResourceTypeMutex.RLock()
+	defer fake.findParentBaseResourceTypeMutex.RUnlock()
+	return len(fake.findParentBaseResourceTypeArgsForCall)
+}
+
+func (fake *FakeResourceType) FindParentBaseResourceTypeCalls(stub func() (*db.UsedBaseResourceType, bool, error)) {
+	fake.findParentBaseResourceTypeMutex.Lock()
+	defer fake.findParentBaseResourceTypeMutex.Unlock()
+	fake.FindParentBaseResourceTypeStub = stub
+}
+
+func (fake *FakeResourceType) FindParentBaseResourceTypeReturns(result1 *db.UsedBaseResourceType, result2 bool, result3 error) {
+	fake.findParentBaseResourceTypeMutex.Lock()
+	defer fake.findParentBaseResourceTypeMutex.Unlock()
+	fake.FindParentBaseResourceTypeStub = nil
+	fake.findParentBaseResourceTypeReturns = struct {
+		result1 *db.UsedBaseResourceType
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeResourceType) FindParentBaseResourceTypeReturnsOnCall(i int, result1 *db.UsedBaseResourceType, result2 bool, result3 error) {
+	fake.findParentBaseResourceTypeMutex.Lock()
+	defer fake.findParentBaseResourceTypeMutex.Unlock()
+	fake.FindParentBaseResourceTypeStub = nil
+	if fake.findParentBaseResourceTypeReturnsOnCall == nil {
+		fake.findParentBaseResourceTypeReturnsOnCall = make(map[int]struct {
+			result1 *db.UsedBaseResourceType
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findParentBaseResourceTypeReturnsOnCall[i] = struct {
+		result1 *db.UsedBaseResourceType
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeResourceType) HasWebhook() bool {
@@ -1679,6 +1813,10 @@ func (fake *FakeResourceType) Invocations() map[string][][]interface{} {
 	defer fake.checkTimeoutMutex.RUnlock()
 	fake.currentPinnedVersionMutex.RLock()
 	defer fake.currentPinnedVersionMutex.RUnlock()
+	fake.defaultsMutex.RLock()
+	defer fake.defaultsMutex.RUnlock()
+	fake.findParentBaseResourceTypeMutex.RLock()
+	defer fake.findParentBaseResourceTypeMutex.RUnlock()
 	fake.hasWebhookMutex.RLock()
 	defer fake.hasWebhookMutex.RUnlock()
 	fake.iDMutex.RLock()
