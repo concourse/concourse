@@ -8,12 +8,12 @@ A Concourse server can authenticate against any valid SAML auth provider.
 \section{
   \title{Authentication}{generic-saml-authentication}
 
-  First you'll need to create a client with your SAML provider.
+  First you'll need to create an application with your SAML provider. Note that
+  the terminology used for configuring an application may may vary between SAML
+  providers - this document uses Okta's terminology.
 
-  The SAML Assertion Consumer Service (ACS) URL and the Audince URI (SP Entity ID)
-  must be the URL of your Concourse server with \code{/sky/issuer/callback} appended.
-  This address should be reachable by Concourse users - can be an internal URL
-  and does not have to be publicly reachable.
+  SAML Assertion Consumer Service (ACS) URL must be the URL of your
+  Concourse server with \code{/sky/issuer/callback} appended.
 
   For example, Concourse's own CI server's callback URL would be:
 
@@ -21,7 +21,10 @@ A Concourse server can authenticate against any valid SAML auth provider.
   https://ci.concourse-ci.org/sky/issuer/callback
   }}}
 
-  Attribute statments that you define in the SAML provider need to be mapped in concourse:
+  Audience URI (SP Entity ID) must match \code{CONCOURSE_SAML_ENTITY_ISSUER},
+  which defaults to the URL of your Concourse server with \code{/sky/issuer/callback} appended.
+
+  Attribute statements that you define in the SAML provider can be remapped in Concourse:
 
   \codeblock{bash}{{{
   CONCOURSE_SAML_USERNAME_ATTR=name   # default
@@ -29,7 +32,9 @@ A Concourse server can authenticate against any valid SAML auth provider.
   CONCOURSE_SAML_GROUPS_ATTR=groups   # default
   }}}
 
-  Finally, the SAML provider will generate a SSO URL and a CA certificate required by Concourse.
+  Finally, the SAML provider will generate a SSO URL, a CA certificate, and an
+  Identity Provider Issuer. These values correspond with \code{CONCOURSE_SAML_SSO_URL},
+  \code{CONCOURSE_SAML_CA_CERT}, and \code{CONCOURSE_SAML_SSO_ISSUER} respectively.
 
   A typical \reference{web-node} env config may look something like this:
 
@@ -37,6 +42,7 @@ A Concourse server can authenticate against any valid SAML auth provider.
   CONCOURSE_SAML_DISPLAY_NAME=Okta
   CONCOURSE_SAML_SSO_URL=https://acme.okta.com/app/Y/Z/sso/saml
   CONCOURSE_SAML_CA_CERT=/path/to/ca_cert
+  CONCOURSE_SAML_SSO_ISSUER=http://www.okta.com/X
   }}}
 
   Consult \code{concourse web --help} for a full list of flags with
