@@ -210,25 +210,16 @@ func findResourceConfigByID(tx Tx, resourceConfigID int, lockFactory lock.LockFa
 	}
 
 	if brtIDString.Valid {
-		var brtName string
-		var unique bool
 		brtID, err := strconv.Atoi(brtIDString.String)
 		if err != nil {
 			return nil, false, err
 		}
-
-		err = psql.Select("name, unique_version_history").
-			From("base_resource_types").
-			Where(sq.Eq{"id": brtID}).
-			RunWith(tx).
-			QueryRow().
-			Scan(&brtName, &unique)
-		if err != nil {
-			return nil, false, err
+		brt := BaseResourceType{Id: brtID}
+		ubrt, found, err := brt.Find(tx)
+		if err != nil || !found {
+			return nil, found, err
 		}
-
-		rc.createdByBaseResourceType = &UsedBaseResourceType{brtID, brtName, unique}
-
+		rc.createdByBaseResourceType = ubrt
 	} else if cacheIDString.Valid {
 		cacheID, err := strconv.Atoi(cacheIDString.String)
 		if err != nil {

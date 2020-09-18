@@ -103,6 +103,8 @@ type Job interface {
 
 	SetHasNewInputs(bool) error
 	HasNewInputs() bool
+
+	FindBaseResourceType(string) (*UsedBaseResourceType, bool, error)
 }
 
 var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.public", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.team_id", "t.name", "j.nonce", "j.tags", "j.has_new_inputs", "j.schedule_requested", "j.max_in_flight", "j.disable_manual_trigger").
@@ -1370,6 +1372,11 @@ func (j *job) isPipelineOrJobPaused(tx Tx) (bool, error) {
 	}
 
 	return paused, nil
+}
+
+func (j *job) FindBaseResourceType(name string) (*UsedBaseResourceType, bool, error) {
+	brt := BaseResourceType{Name: name}
+	return brt.Find(j.conn)
 }
 
 func scanJob(j *job, row scannable) error {

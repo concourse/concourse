@@ -62,13 +62,6 @@ func (resources SchedulerResources) Lookup(name string) (SchedulerResource, bool
 }
 
 func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
-	tx, err := j.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer tx.Rollback()
-
 	rows, err := jobsQuery.
 		Where(sq.Expr("j.schedule_requested > j.last_scheduled")).
 		Where(sq.Eq{
@@ -76,7 +69,7 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 			"j.paused": false,
 			"p.paused": false,
 		}).
-		RunWith(tx).
+		RunWith(j.conn).
 		Query()
 	if err != nil {
 		return nil, err
@@ -90,7 +83,7 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 	var schedulerJobs SchedulerJobs
 	pipelineResourceTypes := make(map[int]ResourceTypes)
 	for _, job := range jobs {
-		rows, err := tx.Query(`WITH inputs AS (
+		rows, err := j.conn.Query(`WITH inputs AS (
 				SELECT ji.resource_id from job_inputs ji where ji.job_id = $1
 				UNION
 				SELECT jo.resource_id from job_outputs jo where jo.job_id = $1
@@ -147,7 +140,7 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 			rows, err := resourceTypesQuery.
 				Where(sq.Eq{"r.pipeline_id": job.PipelineID()}).
 				OrderBy("r.name").
-				RunWith(tx).
+				RunWith(j.conn).
 				Query()
 			if err != nil {
 				return nil, err
@@ -173,11 +166,6 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 			Resources:     schedulerResources,
 			ResourceTypes: resourceTypes.Deserialize(),
 		})
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
 	}
 
 	return schedulerJobs, nil

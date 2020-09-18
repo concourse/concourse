@@ -142,11 +142,13 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 
 	var err error
 
+	checkableResource := checkable.Source()
 	parentType, found := resourceTypes.Parent(checkable)
 	if found {
 		if parentType.Version() == nil {
 			return nil, false, fmt.Errorf("resource type '%s' has no version", parentType.Name())
 		}
+		checkableResource = parentType.Defaults().Merge(checkableResource)
 	}
 
 	timeout := c.defaultCheckTimeout

@@ -16,6 +16,7 @@ func NewPlanner(planFactory atc.PlanFactory) Planner {
 }
 
 func (planner Planner) Create(
+	job db.Job,
 	planConfig atc.StepConfig,
 	resources db.SchedulerResources,
 	resourceTypes atc.VersionedResourceTypes,
@@ -24,6 +25,7 @@ func (planner Planner) Create(
 	visitor := &planVisitor{
 		planFactory: planner.planFactory,
 
+		job:           job,
 		resources:     resources,
 		resourceTypes: resourceTypes,
 		inputs:        inputs,
@@ -40,6 +42,7 @@ func (planner Planner) Create(
 type planVisitor struct {
 	planFactory atc.PlanFactory
 
+	job           db.Job
 	resources     db.SchedulerResources
 	resourceTypes atc.VersionedResourceTypes
 	inputs        []db.BuildInput
@@ -48,6 +51,18 @@ type planVisitor struct {
 }
 
 func (visitor *planVisitor) VisitTask(step *atc.TaskStep) error {
+	if step.Config != nil && step.Config.ImageResource != nil {
+		parentType, found := visitor.resourceTypes.Lookup(step.Config.ImageResource.Type)
+		if found {
+			step.Config.ImageResource.Source = parentType.Defaults.Merge(step.Config.ImageResource.Source)
+		} else {
+			ubrt, found, _ := visitor.job.FindBaseResourceType(step.Config.ImageResource.Type)
+			if found {
+				step.Config.ImageResource.Source = ubrt.Defaults.Merge(step.Config.ImageResource.Source)
+			}
+		}
+	}
+
 	visitor.plan = visitor.planFactory.NewPlan(atc.TaskPlan{
 		Name:              step.Name,
 		Privileged:        step.Privileged,
@@ -89,6 +104,11 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 		return VersionNotProvidedError{step.Name}
 	}
 
+	parentType, found := visitor.resourceTypes.Lookup(resource.Type)
+	if found {
+		resource.Source = parentType.Defaults.Merge(resource.Source)
+	}
+
 	visitor.plan = visitor.planFactory.NewPlan(atc.GetPlan{
 		Name: step.Name,
 
@@ -116,6 +136,11 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 	resource, found := visitor.resources.Lookup(resourceName)
 	if !found {
 		return UnknownResourceError{resourceName}
+	}
+
+	parentType, found := visitor.resourceTypes.Lookup(resource.Type)
+	if found {
+		resource.Source = parentType.Defaults.Merge(resource.Source)
 	}
 
 	atcPutPlan := atc.PutPlan{
@@ -226,9 +251,9 @@ func (visitor *planVisitor) VisitAcross(step *atc.AcrossStep) error {
 	}
 
 	acrossPlan := atc.AcrossPlan{
-		Vars:        vars,
-		Steps:       []atc.VarScopedPlan{},
-		FailFast:    step.FailFast,
+		Vars:     vars,
+		Steps:    []atc.VarScopedPlan{},
+		FailFast: step.FailFast,
 	}
 	for _, vals := range cartesianProduct(step.Vars) {
 		err := step.Step.Visit(visitor)
@@ -236,7 +261,7 @@ func (visitor *planVisitor) VisitAcross(step *atc.AcrossStep) error {
 			return err
 		}
 		acrossPlan.Steps = append(acrossPlan.Steps, atc.VarScopedPlan{
-			Step:  visitor.plan,
+			Step:   visitor.plan,
 			Values: vals,
 		})
 	}
