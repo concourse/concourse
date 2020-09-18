@@ -9,6 +9,7 @@
 \include-section{configuring/ldap.lit}
 \include-section{configuring/generic-oidc.lit}
 \include-section{configuring/generic-oauth.lit}
+\include-section{configuring/generic-saml.lit}
 \split-sections
 
 The very first thing to configure with Concourse is how users will log in, and
