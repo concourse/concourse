@@ -4,12 +4,15 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/vars"
 	"github.com/lib/pq"
 	"go.opentelemetry.io/otel/api/propagators"
 )
@@ -45,6 +48,8 @@ type Check interface {
 	Start() error
 	Finish() error
 	FinishWithError(err error) error
+
+	Variables(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
 
 	SaveVersions(SpanContext, []atc.Version) error
 	AllCheckables() ([]Checkable, error)
@@ -255,6 +260,19 @@ func (c *check) finish(status CheckStatus, checkError error) error {
 	c.status = status
 
 	return nil
+}
+
+// Variables creates variables for this check by delegating to the pipeline's variables.
+func (c *check) Variables(logger lager.Logger, globalSecrets creds.Secrets, varSourcePool creds.VarSourcePool) (vars.Variables, error) {
+	pipeline, found, err := c.Pipeline()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find pipeline: %w", err)
+	}
+	if !found {
+		return nil, errors.New("pipeline not found")
+	}
+
+	return pipeline.Variables(logger, globalSecrets, varSourcePool)
 }
 
 func (c *check) AcquireTrackingLock(logger lager.Logger) (lock.Lock, bool, error) {

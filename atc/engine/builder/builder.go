@@ -4,7 +4,6 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -60,27 +59,12 @@ func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec
 		return exec.IdentityStep{}, errors.New("schema not supported")
 	}
 
-	var buildVars *vars.BuildVariables
-
-	// "fly execute" generated build will have no pipeline.
-	if build.PipelineID() == 0 {
-		globalVars := creds.NewVariables(builder.globalSecrets, build.TeamName(), build.PipelineName(), false)
-		buildVars = vars.NewBuildVariables(globalVars, atc.EnableRedactSecrets)
-	} else {
-		pipeline, found, err := build.Pipeline()
-		if err != nil {
-			return exec.IdentityStep{}, errors.New(fmt.Sprintf("failed to find pipeline: %s", err.Error()))
-		}
-		if !found {
-			return exec.IdentityStep{}, errors.New("pipeline not found")
-		}
-
-		varss, err := pipeline.Variables(logger, builder.globalSecrets, builder.varSourcePool)
-		if err != nil {
-			return exec.IdentityStep{}, err
-		}
-		buildVars = vars.NewBuildVariables(varss, atc.EnableRedactSecrets)
+	v, err := build.Variables(logger, builder.globalSecrets, builder.varSourcePool)
+	if err != nil {
+		return exec.IdentityStep{}, err
 	}
+
+	buildVars := vars.NewBuildVariables(v, atc.EnableRedactSecrets)
 
 	return builder.buildStep(build, build.PrivatePlan(), buildVars), nil
 }
@@ -95,19 +79,12 @@ func (builder *stepBuilder) CheckStep(logger lager.Logger, check db.Check) (exec
 		return exec.IdentityStep{}, errors.New("schema not supported")
 	}
 
-	pipeline, found, err := check.Pipeline()
+	v, err := check.Variables(logger, builder.globalSecrets, builder.varSourcePool)
 	if err != nil {
-		return exec.IdentityStep{}, errors.New(fmt.Sprintf("failed to find pipeline: %s", err.Error()))
-	}
-	if !found {
-		return exec.IdentityStep{}, errors.New("pipeline not found")
+		return exec.IdentityStep{}, err
 	}
 
-	varss, err := pipeline.Variables(logger, builder.globalSecrets, builder.varSourcePool)
-	if err != nil {
-		return exec.IdentityStep{}, fmt.Errorf("failed to create pipeline variables: %s", err.Error())
-	}
-	buildVars := vars.NewBuildVariables(varss, atc.EnableRedactSecrets)
+	buildVars := vars.NewBuildVariables(v, atc.EnableRedactSecrets)
 	return builder.buildCheckStep(check, check.Plan(), buildVars), nil
 }
 
