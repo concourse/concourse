@@ -16,6 +16,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	. "github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/enginefakes"
+	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 
@@ -299,6 +300,11 @@ var _ = Describe("Engine", func() {
 
 							It("closes the notifier", func() {
 								Expect(fakeNotifier.CloseCallCount()).To(Equal(1))
+							})
+
+							It("saves an error event", func() {
+								Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+								Expect(fakeBuild.SaveEventArgsForCall(0).EventType()).To(Equal(event.EventTypeError))
 							})
 						})
 					})

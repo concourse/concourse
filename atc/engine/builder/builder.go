@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 
 	"errors"
@@ -84,10 +83,6 @@ func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec
 	}
 
 	return builder.buildStep(build, build.PrivatePlan(), buildVars), nil
-}
-
-func (builder *stepBuilder) BuildStepErrored(logger lager.Logger, build db.Build, err error) {
-	NewBuildStepDelegate(build, build.PrivatePlan().ID, nil, clock.NewClock()).Errored(logger, err.Error())
 }
 
 func (builder *stepBuilder) CheckStep(logger lager.Logger, check db.Check) (exec.Step, error) {

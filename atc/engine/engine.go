@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/policy"
@@ -41,8 +42,6 @@ type Runnable interface {
 type StepBuilder interface {
 	BuildStep(lager.Logger, db.Build) (exec.Step, error)
 	CheckStep(lager.Logger, db.Check) (exec.Step, error)
-
-	BuildStepErrored(lager.Logger, db.Build, error)
 }
 
 func NewEngine(builder StepBuilder) Engine {
@@ -182,10 +181,9 @@ func (b *engineBuild) Run(ctx context.Context) {
 	if err != nil {
 		logger.Error("failed-to-build-step", err)
 
-		// Fails the build if BuildStep returned error. Because some unrecoverable error,
-		// like pipeline var_source is wrong, will cause a build to never start
-		// to run.
-		b.builder.BuildStepErrored(logger, b.build, err)
+		// Fails the build if BuildStep returned an error because such unrecoverable
+		// errors will cause a build to never start to run.
+		b.buildStepErrored(logger, err.Error())
 		b.finish(logger.Session("finish"), err, false)
 
 		return
@@ -245,6 +243,19 @@ func (b *engineBuild) Run(ctx context.Context) {
 			}
 		}
 		b.finish(logger.Session("finish"), err, step.Succeeded())
+	}
+}
+
+func (b *engineBuild) buildStepErrored(logger lager.Logger, message string) {
+	err := b.build.SaveEvent(event.Error{
+		Message: message,
+		Origin: event.Origin{
+			ID: event.OriginID(b.build.PrivatePlan().ID),
+		},
+		Time: time.Now().Unix(),
+	})
+	if err != nil {
+		logger.Error("failed-to-save-error-event", err)
 	}
 }
 
