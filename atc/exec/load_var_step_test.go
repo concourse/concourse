@@ -1,9 +1,10 @@
 package exec_test
 
 import (
+	"context"
+
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
-	"context"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -37,7 +38,9 @@ var _ = Describe("LoadVarStep", func() {
 		cancel     func()
 		testLogger *lagertest.TestLogger
 
-		fakeDelegate     *execfakes.FakeBuildStepDelegate
+		fakeDelegate        *execfakes.FakeBuildStepDelegate
+		fakeDelegateFactory *execfakes.FakeBuildStepDelegateFactory
+
 		fakeWorkerClient *workerfakes.FakeClient
 
 		loadVarPlan        *atc.LoadVarPlan
@@ -87,6 +90,9 @@ var _ = Describe("LoadVarStep", func() {
 		fakeDelegate.StdoutReturns(stdout)
 		fakeDelegate.StderrReturns(stderr)
 
+		fakeDelegateFactory = new(execfakes.FakeBuildStepDelegateFactory)
+		fakeDelegateFactory.BuildStepDelegateReturns(fakeDelegate)
+
 		fakeWorkerClient = new(workerfakes.FakeClient)
 	})
 
@@ -104,7 +110,7 @@ var _ = Describe("LoadVarStep", func() {
 			plan.ID,
 			*plan.LoadVar,
 			stepMetadata,
-			fakeDelegate,
+			fakeDelegateFactory,
 			fakeWorkerClient,
 		)
 

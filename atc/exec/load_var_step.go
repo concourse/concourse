@@ -22,27 +22,27 @@ import (
 
 // LoadVarStep loads a value from a file and sets it as a build-local var.
 type LoadVarStep struct {
-	planID    atc.PlanID
-	plan      atc.LoadVarPlan
-	metadata  StepMetadata
-	delegate  BuildStepDelegate
-	client    worker.Client
-	succeeded bool
+	planID          atc.PlanID
+	plan            atc.LoadVarPlan
+	metadata        StepMetadata
+	delegateFactory BuildStepDelegateFactory
+	client          worker.Client
+	succeeded       bool
 }
 
 func NewLoadVarStep(
 	planID atc.PlanID,
 	plan atc.LoadVarPlan,
 	metadata StepMetadata,
-	delegate BuildStepDelegate,
+	delegateFactory BuildStepDelegateFactory,
 	client worker.Client,
 ) Step {
 	return &LoadVarStep{
-		planID:   planID,
-		plan:     plan,
-		metadata: metadata,
-		delegate: delegate,
-		client:   client,
+		planID:          planID,
+		plan:            plan,
+		metadata:        metadata,
+		delegateFactory: delegateFactory,
+		client:          client,
 	}
 }
 
@@ -88,16 +88,18 @@ func (step *LoadVarStep) run(ctx context.Context, state RunState) error {
 		"job-id":    step.metadata.JobID,
 	})
 
-	step.delegate.Initializing(logger)
-	stdout := step.delegate.Stdout()
-	stderr := step.delegate.Stderr()
+	delegate := step.delegateFactory.BuildStepDelegate()
+
+	delegate.Initializing(logger)
+	stdout := delegate.Stdout()
+	stderr := delegate.Stderr()
 
 	fmt.Fprintln(stderr, "\x1b[1;33mWARNING: the load_var step is experimental and subject to change!\x1b[0m")
 	fmt.Fprintln(stderr, "")
 	fmt.Fprintln(stderr, "\x1b[33mfollow RFC #27 for updates: https://github.com/concourse/rfcs/pull/27\x1b[0m")
 	fmt.Fprintln(stderr, "")
 
-	step.delegate.Starting(logger)
+	delegate.Starting(logger)
 
 	value, err := step.fetchVars(ctx, logger, step.plan.File, state)
 	if err != nil {
@@ -105,11 +107,11 @@ func (step *LoadVarStep) run(ctx context.Context, state RunState) error {
 	}
 	fmt.Fprintf(stdout, "var %s fetched.\n", step.plan.Name)
 
-	step.delegate.Variables().AddLocalVar(step.plan.Name, value, !step.plan.Reveal)
+	delegate.Variables().AddLocalVar(step.plan.Name, value, !step.plan.Reveal)
 	fmt.Fprintf(stdout, "added var %s to build.\n", step.plan.Name)
 
 	step.succeeded = true
-	step.delegate.Finished(logger, step.succeeded)
+	delegate.Finished(logger, step.succeeded)
 
 	return nil
 }

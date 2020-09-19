@@ -23,9 +23,15 @@ type CheckStep struct {
 	resourceFactory   resource.ResourceFactory
 	strategy          worker.ContainerPlacementStrategy
 	pool              worker.Pool
-	delegate          CheckDelegate
+	delegateFactory   CheckDelegateFactory
 	succeeded         bool
 	workerClient      worker.Client
+}
+
+//go:generate counterfeiter . CheckDelegateFactory
+
+type CheckDelegateFactory interface {
+	CheckDelegate() CheckDelegate
 }
 
 //go:generate counterfeiter . CheckDelegate
@@ -44,7 +50,7 @@ func NewCheckStep(
 	containerMetadata db.ContainerMetadata,
 	strategy worker.ContainerPlacementStrategy,
 	pool worker.Pool,
-	delegate CheckDelegate,
+	delegateFactory CheckDelegateFactory,
 	client worker.Client,
 ) *CheckStep {
 	return &CheckStep{
@@ -55,7 +61,7 @@ func NewCheckStep(
 		containerMetadata: containerMetadata,
 		pool:              pool,
 		strategy:          strategy,
-		delegate:          delegate,
+		delegateFactory:   delegateFactory,
 		workerClient:      client,
 	}
 }
@@ -81,7 +87,8 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		"step-name": step.plan.Name,
 	})
 
-	variables := step.delegate.Variables()
+	delegate := step.delegateFactory.CheckDelegate()
+	variables := delegate.Variables()
 
 	source, err := creds.NewSource(variables, step.plan.Source).Evaluate()
 	if err != nil {
@@ -137,7 +144,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 
 	imageSpec := worker.ImageFetcherSpec{
 		ResourceTypes: resourceTypes,
-		Delegate:      step.delegate,
+		Delegate:      delegate,
 	}
 
 	result, err := step.workerClient.RunCheckStep(
@@ -158,7 +165,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		return fmt.Errorf("run check step: %w", err)
 	}
 
-	err = step.delegate.SaveVersions(db.NewSpanContext(ctx), result.Versions)
+	err = delegate.SaveVersions(db.NewSpanContext(ctx), result.Versions)
 	if err != nil {
 		return fmt.Errorf("save versions: %w", err)
 	}

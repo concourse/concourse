@@ -38,8 +38,9 @@ var _ = Describe("TaskStep", func() {
 
 		fakeLockFactory *lockfakes.FakeLockFactory
 
-		fakeDelegate *execfakes.FakeTaskDelegate
-		taskPlan     *atc.TaskPlan
+		fakeDelegate        *execfakes.FakeTaskDelegate
+		fakeDelegateFactory *execfakes.FakeTaskDelegateFactory
+		taskPlan            *atc.TaskPlan
 
 		interpolatedResourceTypes atc.VersionedResourceTypes
 
@@ -84,6 +85,9 @@ var _ = Describe("TaskStep", func() {
 		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
+
+		fakeDelegateFactory = new(execfakes.FakeTaskDelegateFactory)
+		fakeDelegateFactory.TaskDelegateReturns(fakeDelegate)
 
 		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
@@ -136,7 +140,7 @@ var _ = Describe("TaskStep", func() {
 			containerMetadata,
 			fakeStrategy,
 			fakeClient,
-			fakeDelegate,
+			fakeDelegateFactory,
 			fakeLockFactory,
 		)
 

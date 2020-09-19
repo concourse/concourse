@@ -80,7 +80,9 @@ jobs:
 		cancel     func()
 		testLogger *lagertest.TestLogger
 
-		fakeDelegate     *execfakes.FakeSetPipelineStepDelegate
+		fakeDelegate        *execfakes.FakeSetPipelineStepDelegate
+		fakeDelegateFactory *execfakes.FakeSetPipelineStepDelegateFactory
+
 		fakeTeamFactory  *dbfakes.FakeTeamFactory
 		fakeBuildFactory *dbfakes.FakeBuildFactory
 		fakeBuild        *dbfakes.FakeBuild
@@ -138,6 +140,9 @@ jobs:
 		fakeDelegate.StdoutReturns(stdout)
 		fakeDelegate.StderrReturns(stderr)
 
+		fakeDelegateFactory = new(execfakes.FakeSetPipelineStepDelegateFactory)
+		fakeDelegateFactory.SetPipelineStepDelegateReturns(fakeDelegate)
+
 		fakeTeamFactory = new(dbfakes.FakeTeamFactory)
 		fakeBuildFactory = new(dbfakes.FakeBuildFactory)
 		fakeBuild = new(dbfakes.FakeBuild)
@@ -182,7 +187,7 @@ jobs:
 			plan.ID,
 			*plan.SetPipeline,
 			stepMetadata,
-			fakeDelegate,
+			fakeDelegateFactory,
 			fakeTeamFactory,
 			fakeBuildFactory,
 			fakeWorkerClient,

@@ -14,12 +14,12 @@ import (
 )
 
 var _ = Describe("AcrossStep", func() {
-
 	var (
 		ctx    context.Context
 		cancel func()
 
-		fakeDelegate *execfakes.FakeBuildStepDelegate
+		fakeDelegateFactory *execfakes.FakeBuildStepDelegateFactory
+		fakeDelegate        *execfakes.FakeBuildStepDelegate
 
 		buildVars *vars.BuildVariables
 
@@ -52,6 +52,9 @@ var _ = Describe("AcrossStep", func() {
 		fakeDelegate = new(execfakes.FakeBuildStepDelegate)
 		fakeDelegate.StderrReturns(stderr)
 
+		fakeDelegateFactory = new(execfakes.FakeBuildStepDelegateFactory)
+		fakeDelegateFactory.BuildStepDelegateReturns(fakeDelegate)
+
 		varNames = []string{"var1", "var2"}
 	})
 
@@ -65,7 +68,7 @@ var _ = Describe("AcrossStep", func() {
 		step := exec.Across(
 			step,
 			varNames,
-			fakeDelegate,
+			fakeDelegateFactory,
 			stepMetadata,
 		)
 

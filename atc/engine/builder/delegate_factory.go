@@ -18,34 +18,43 @@ import (
 	"github.com/concourse/concourse/vars"
 )
 
-func NewDelegateFactory() *delegateFactory {
-	return &delegateFactory{}
+type DelegateFactory struct {
+	build     db.Build
+	check     db.Check
+	planID    atc.PlanID
+	buildVars *vars.BuildVariables
 }
 
-type delegateFactory struct{}
-
-func (delegate *delegateFactory) GetDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables) exec.GetDelegate {
-	return NewGetDelegate(build, planID, buildVars, clock.NewClock())
+func buildDelegateFactory(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables) DelegateFactory {
+	return DelegateFactory{build: build, planID: planID, buildVars: buildVars}
 }
 
-func (delegate *delegateFactory) PutDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables) exec.PutDelegate {
-	return NewPutDelegate(build, planID, buildVars, clock.NewClock())
+func checkDelegateFactory(check db.Check, planID atc.PlanID, buildVars *vars.BuildVariables) DelegateFactory {
+	return DelegateFactory{check: check, planID: planID, buildVars: buildVars}
 }
 
-func (delegate *delegateFactory) TaskDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables) exec.TaskDelegate {
-	return NewTaskDelegate(build, planID, buildVars, clock.NewClock())
+func (delegate DelegateFactory) GetDelegate() exec.GetDelegate {
+	return NewGetDelegate(delegate.build, delegate.planID, delegate.buildVars, clock.NewClock())
 }
 
-func (delegate *delegateFactory) CheckDelegate(check db.Check, planID atc.PlanID, buildVars *vars.BuildVariables) exec.CheckDelegate {
-	return NewCheckDelegate(check, planID, buildVars, clock.NewClock())
+func (delegate DelegateFactory) PutDelegate() exec.PutDelegate {
+	return NewPutDelegate(delegate.build, delegate.planID, delegate.buildVars, clock.NewClock())
 }
 
-func (delegate *delegateFactory) BuildStepDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables) exec.BuildStepDelegate {
-	return NewBuildStepDelegate(build, planID, buildVars, clock.NewClock())
+func (delegate DelegateFactory) TaskDelegate() exec.TaskDelegate {
+	return NewTaskDelegate(delegate.build, delegate.planID, delegate.buildVars, clock.NewClock())
 }
 
-func (delegate *delegateFactory) SetPipelineStepDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables) exec.SetPipelineStepDelegate {
-	return NewSetPipelineStepDelegate(build, planID, buildVars, clock.NewClock())
+func (delegate DelegateFactory) CheckDelegate() exec.CheckDelegate {
+	return NewCheckDelegate(delegate.check, delegate.planID, delegate.buildVars, clock.NewClock())
+}
+
+func (delegate DelegateFactory) BuildStepDelegate() exec.BuildStepDelegate {
+	return NewBuildStepDelegate(delegate.build, delegate.planID, delegate.buildVars, clock.NewClock())
+}
+
+func (delegate DelegateFactory) SetPipelineStepDelegate() exec.SetPipelineStepDelegate {
+	return NewSetPipelineStepDelegate(delegate.build, delegate.planID, delegate.buildVars, clock.NewClock())
 }
 
 func NewGetDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables, clock clock.Clock) exec.GetDelegate {

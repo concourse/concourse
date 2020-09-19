@@ -16,8 +16,10 @@ var _ = Describe("LogErrorStep", func() {
 		ctx    context.Context
 		cancel func()
 
-		fakeStep     *execfakes.FakeStep
-		fakeDelegate *execfakes.FakeBuildStepDelegate
+		fakeStep *execfakes.FakeStep
+
+		fakeDelegate        *execfakes.FakeBuildStepDelegate
+		fakeDelegateFactory *execfakes.FakeBuildStepDelegateFactory
 
 		repo  *build.Repository
 		state *execfakes.FakeRunState
@@ -30,12 +32,14 @@ var _ = Describe("LogErrorStep", func() {
 
 		fakeStep = new(execfakes.FakeStep)
 		fakeDelegate = new(execfakes.FakeBuildStepDelegate)
+		fakeDelegateFactory = new(execfakes.FakeBuildStepDelegateFactory)
+		fakeDelegateFactory.BuildStepDelegateReturns(fakeDelegate)
 
 		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactRepositoryReturns(repo)
 
-		step = LogError(fakeStep, fakeDelegate)
+		step = LogError(fakeStep, fakeDelegateFactory)
 	})
 
 	AfterEach(func() {

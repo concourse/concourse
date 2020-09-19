@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 
 	"errors"
@@ -20,49 +21,35 @@ const supportedSchema = "exec.v2"
 //go:generate counterfeiter . StepFactory
 
 type StepFactory interface {
-	GetStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.GetDelegate) exec.Step
-	PutStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.PutDelegate) exec.Step
-	TaskStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.TaskDelegate) exec.Step
-	CheckStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, exec.CheckDelegate) exec.Step
-	SetPipelineStep(atc.Plan, exec.StepMetadata, exec.SetPipelineStepDelegate) exec.Step
-	LoadVarStep(atc.Plan, exec.StepMetadata, exec.BuildStepDelegate) exec.Step
-	ArtifactInputStep(atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step
-	ArtifactOutputStep(atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step
-}
-
-//go:generate counterfeiter . DelegateFactory
-
-type DelegateFactory interface {
-	GetDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.GetDelegate
-	PutDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.PutDelegate
-	TaskDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.TaskDelegate
-	CheckDelegate(db.Check, atc.PlanID, *vars.BuildVariables) exec.CheckDelegate
-	BuildStepDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.BuildStepDelegate
-	SetPipelineStepDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.SetPipelineStepDelegate
+	GetStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, DelegateFactory) exec.Step
+	PutStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, DelegateFactory) exec.Step
+	TaskStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, DelegateFactory) exec.Step
+	CheckStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, DelegateFactory) exec.Step
+	SetPipelineStep(atc.Plan, exec.StepMetadata, DelegateFactory) exec.Step
+	LoadVarStep(atc.Plan, exec.StepMetadata, DelegateFactory) exec.Step
+	ArtifactInputStep(atc.Plan, db.Build) exec.Step
+	ArtifactOutputStep(atc.Plan, db.Build) exec.Step
 }
 
 func NewStepBuilder(
 	stepFactory StepFactory,
-	delegateFactory DelegateFactory,
 	externalURL string,
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 ) *stepBuilder {
 	return &stepBuilder{
-		stepFactory:     stepFactory,
-		delegateFactory: delegateFactory,
-		externalURL:     externalURL,
-		globalSecrets:   secrets,
-		varSourcePool:   varSourcePool,
+		stepFactory:   stepFactory,
+		externalURL:   externalURL,
+		globalSecrets: secrets,
+		varSourcePool: varSourcePool,
 	}
 }
 
 type stepBuilder struct {
-	stepFactory     StepFactory
-	delegateFactory DelegateFactory
-	externalURL     string
-	globalSecrets   creds.Secrets
-	varSourcePool   creds.VarSourcePool
+	stepFactory   StepFactory
+	externalURL   string
+	globalSecrets creds.Secrets
+	varSourcePool creds.VarSourcePool
 }
 
 func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec.Step, error) {
@@ -100,7 +87,7 @@ func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec
 }
 
 func (builder *stepBuilder) BuildStepErrored(logger lager.Logger, build db.Build, err error) {
-	builder.delegateFactory.BuildStepDelegate(build, build.PrivatePlan().ID, nil).Errored(logger, err.Error())
+	NewBuildStepDelegate(build, build.PrivatePlan().ID, nil, clock.NewClock()).Errored(logger, err.Error())
 }
 
 func (builder *stepBuilder) CheckStep(logger lager.Logger, check db.Check) (exec.Step, error) {
@@ -199,11 +186,11 @@ func (builder *stepBuilder) buildStep(build db.Build, plan atc.Plan, buildVars *
 	}
 
 	if plan.ArtifactInput != nil {
-		return builder.buildArtifactInputStep(build, plan, buildVars)
+		return builder.buildArtifactInputStep(build, plan)
 	}
 
 	if plan.ArtifactOutput != nil {
-		return builder.buildArtifactOutputStep(build, plan, buildVars)
+		return builder.buildArtifactOutputStep(build, plan)
 	}
 
 	return exec.IdentityStep{}
@@ -251,7 +238,7 @@ func (builder *stepBuilder) buildAcrossStep(build db.Build, plan atc.Plan, build
 	return exec.Across(
 		step,
 		varNames,
-		builder.delegateFactory.BuildStepDelegate(build, plan.ID, buildVars),
+		buildDelegateFactory(build, plan.ID, buildVars),
 		stepMetadata,
 	)
 }
@@ -386,7 +373,7 @@ func (builder *stepBuilder) buildGetStep(build db.Build, plan atc.Plan, buildVar
 		plan,
 		stepMetadata,
 		containerMetadata,
-		builder.delegateFactory.GetDelegate(build, plan.ID, buildVars),
+		buildDelegateFactory(build, plan.ID, buildVars),
 	)
 }
 
@@ -408,7 +395,7 @@ func (builder *stepBuilder) buildPutStep(build db.Build, plan atc.Plan, buildVar
 		plan,
 		stepMetadata,
 		containerMetadata,
-		builder.delegateFactory.PutDelegate(build, plan.ID, buildVars),
+		buildDelegateFactory(build, plan.ID, buildVars),
 	)
 }
 
@@ -433,7 +420,7 @@ func (builder *stepBuilder) buildCheckStep(check db.Check, plan atc.Plan, buildV
 		plan,
 		stepMetadata,
 		containerMetadata,
-		builder.delegateFactory.CheckDelegate(check, plan.ID, buildVars),
+		checkDelegateFactory(check, plan.ID, buildVars),
 	)
 }
 
@@ -455,7 +442,7 @@ func (builder *stepBuilder) buildTaskStep(build db.Build, plan atc.Plan, buildVa
 		plan,
 		stepMetadata,
 		containerMetadata,
-		builder.delegateFactory.TaskDelegate(build, plan.ID, buildVars),
+		buildDelegateFactory(build, plan.ID, buildVars),
 	)
 }
 
@@ -469,7 +456,7 @@ func (builder *stepBuilder) buildSetPipelineStep(build db.Build, plan atc.Plan, 
 	return builder.stepFactory.SetPipelineStep(
 		plan,
 		stepMetadata,
-		builder.delegateFactory.SetPipelineStepDelegate(build, plan.ID, buildVars),
+		buildDelegateFactory(build, plan.ID, buildVars),
 	)
 }
 
@@ -483,25 +470,21 @@ func (builder *stepBuilder) buildLoadVarStep(build db.Build, plan atc.Plan, buil
 	return builder.stepFactory.LoadVarStep(
 		plan,
 		stepMetadata,
-		builder.delegateFactory.BuildStepDelegate(build, plan.ID, buildVars),
+		buildDelegateFactory(build, plan.ID, buildVars),
 	)
 }
 
-func (builder *stepBuilder) buildArtifactInputStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
-
+func (builder *stepBuilder) buildArtifactInputStep(build db.Build, plan atc.Plan) exec.Step {
 	return builder.stepFactory.ArtifactInputStep(
 		plan,
 		build,
-		builder.delegateFactory.BuildStepDelegate(build, plan.ID, buildVars),
 	)
 }
 
-func (builder *stepBuilder) buildArtifactOutputStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
-
+func (builder *stepBuilder) buildArtifactOutputStep(build db.Build, plan atc.Plan) exec.Step {
 	return builder.stepFactory.ArtifactOutputStep(
 		plan,
 		build,
-		builder.delegateFactory.BuildStepDelegate(build, plan.ID, buildVars),
 	)
 }
 

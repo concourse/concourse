@@ -1629,7 +1629,6 @@ func (cmd *RunCommand) constructEngine(
 
 	stepBuilder := builder.NewStepBuilder(
 		stepFactory,
-		builder.NewDelegateFactory(),
 		cmd.ExternalURL.String(),
 		secretManager,
 		cmd.varSourcePool,

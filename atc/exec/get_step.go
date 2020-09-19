@@ -34,6 +34,12 @@ func (e ErrResourceNotFound) Error() string {
 	return fmt.Sprintf("resource '%s' not found", e.ResourceName)
 }
 
+//go:generate counterfeiter . GetDelegateFactory
+
+type GetDelegateFactory interface {
+	GetDelegate() GetDelegate
+}
+
 //go:generate counterfeiter . GetDelegate
 
 type GetDelegate interface {
@@ -65,7 +71,7 @@ type GetStep struct {
 	resourceCacheFactory db.ResourceCacheFactory
 	strategy             worker.ContainerPlacementStrategy
 	workerClient         worker.Client
-	delegate             GetDelegate
+	delegateFactory      GetDelegateFactory
 	succeeded            bool
 }
 
@@ -77,7 +83,7 @@ func NewGetStep(
 	resourceFactory resource.ResourceFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	strategy worker.ContainerPlacementStrategy,
-	delegate GetDelegate,
+	delegateFactory GetDelegateFactory,
 	client worker.Client,
 ) Step {
 	return &GetStep{
@@ -88,7 +94,7 @@ func NewGetStep(
 		resourceFactory:      resourceFactory,
 		resourceCacheFactory: resourceCacheFactory,
 		strategy:             strategy,
-		delegate:             delegate,
+		delegateFactory:      delegateFactory,
 		workerClient:         client,
 	}
 }
@@ -115,9 +121,10 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 		"job-id":    step.metadata.JobID,
 	})
 
-	step.delegate.Initializing(logger)
+	delegate := step.delegateFactory.GetDelegate()
+	delegate.Initializing(logger)
 
-	variables := step.delegate.Variables()
+	variables := delegate.Variables()
 
 	source, err := creds.NewSource(variables, step.plan.Source).Evaluate()
 	if err != nil {
@@ -157,7 +164,7 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 
 	imageSpec := worker.ImageFetcherSpec{
 		ResourceTypes: resourceTypes,
-		Delegate:      step.delegate,
+		Delegate:      delegate,
 	}
 
 	resourceCache, err := step.resourceCacheFactory.FindOrCreateResourceCache(
@@ -176,8 +183,8 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 	processSpec := runtime.ProcessSpec{
 		Path:         "/opt/resource/in",
 		Args:         []string{resource.ResourcesDir("get")},
-		StdoutWriter: step.delegate.Stdout(),
-		StderrWriter: step.delegate.Stderr(),
+		StdoutWriter: delegate.Stdout(),
+		StderrWriter: delegate.Stderr(),
 	}
 
 	resourceToGet := step.resourceFactory.NewResource(
@@ -198,7 +205,7 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 		step.containerMetadata,
 		imageSpec,
 		processSpec,
-		step.delegate,
+		delegate,
 		resourceCache,
 		resourceToGet,
 	)
@@ -213,13 +220,13 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 		)
 
 		if step.plan.Resource != "" {
-			step.delegate.UpdateVersion(logger, step.plan, getResult.VersionResult)
+			delegate.UpdateVersion(logger, step.plan, getResult.VersionResult)
 		}
 
 		step.succeeded = true
 	}
 
-	step.delegate.Finished(
+	delegate.Finished(
 		logger,
 		ExitStatus(getResult.ExitStatus),
 		getResult.VersionResult,

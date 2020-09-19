@@ -35,6 +35,7 @@ var _ = Describe("CheckStep", func() {
 		fakePool            *workerfakes.FakePool
 		fakeStrategy        *workerfakes.FakeContainerPlacementStrategy
 		fakeDelegate        *execfakes.FakeCheckDelegate
+		fakeDelegateFactory *execfakes.FakeCheckDelegateFactory
 		fakeClient          *workerfakes.FakeClient
 
 		stepMetadata      exec.StepMetadata
@@ -53,6 +54,7 @@ var _ = Describe("CheckStep", func() {
 		fakeResource = new(resourcefakes.FakeResource)
 		fakePool = new(workerfakes.FakePool)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
+		fakeDelegateFactory = new(execfakes.FakeCheckDelegateFactory)
 		fakeDelegate = new(execfakes.FakeCheckDelegate)
 		fakeClient = new(workerfakes.FakeClient)
 
@@ -60,6 +62,7 @@ var _ = Describe("CheckStep", func() {
 		containerMetadata = db.ContainerMetadata{}
 
 		fakeResourceFactory.NewResourceReturns(fakeResource)
+		fakeDelegateFactory.CheckDelegateReturns(fakeDelegate)
 	})
 
 	AfterEach(func() {
@@ -77,7 +80,7 @@ var _ = Describe("CheckStep", func() {
 			containerMetadata,
 			fakeStrategy,
 			fakePool,
-			fakeDelegate,
+			fakeDelegateFactory,
 			fakeClient,
 		)
 

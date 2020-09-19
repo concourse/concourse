@@ -1,16 +1,17 @@
 package exec
 
 import (
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
 	"context"
 	"errors"
 	"fmt"
-	"github.com/concourse/concourse/atc/worker/transport"
 	"net"
 	"net/url"
 	"reflect"
 	"regexp"
+
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/atc/worker/transport"
 )
 
 type Retriable struct {
@@ -21,20 +22,16 @@ func (r Retriable) Error() string {
 	return fmt.Sprintf("retriable: %s", r.Cause.Error())
 }
 
-type RetryErrorStepDelegate interface {
-	Errored(lager.Logger, string)
-}
-
 type RetryErrorStep struct {
 	Step
 
-	delegate RetryErrorStepDelegate
+	delegateFactory BuildStepDelegateFactory
 }
 
-func RetryError(step Step, delegate RetryErrorStepDelegate) Step {
+func RetryError(step Step, delegateFactory BuildStepDelegateFactory) Step {
 	return RetryErrorStep{
-		Step:     step,
-		delegate: delegate,
+		Step:            step,
+		delegateFactory: delegateFactory,
 	}
 }
 
@@ -43,7 +40,8 @@ func (step RetryErrorStep) Run(ctx context.Context, state RunState) error {
 	runErr := step.Step.Run(ctx, state)
 	if runErr != nil && step.toRetry(logger, runErr) {
 		logger.Info("retriable", lager.Data{"error": runErr.Error()})
-		step.delegate.Errored(logger, fmt.Sprintf("%s, will retry ...", runErr.Error()))
+		delegate := step.delegateFactory.BuildStepDelegate()
+		delegate.Errored(logger, fmt.Sprintf("%s, will retry ...", runErr.Error()))
 		runErr = Retriable{runErr}
 	}
 	return runErr

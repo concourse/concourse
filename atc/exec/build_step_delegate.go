@@ -10,6 +10,12 @@ import (
 	"github.com/concourse/concourse/vars"
 )
 
+//go:generate counterfeiter . BuildStepDelegateFactory
+
+type BuildStepDelegateFactory interface {
+	BuildStepDelegate() BuildStepDelegate
+}
+
 //go:generate counterfeiter . BuildStepDelegate
 
 type BuildStepDelegate interface {
@@ -26,6 +32,12 @@ type BuildStepDelegate interface {
 	Finished(lager.Logger, bool)
 	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
+}
+
+//go:generate counterfeiter . SetPipelineStepDelegateFactory
+
+type SetPipelineStepDelegateFactory interface {
+	SetPipelineStepDelegate() SetPipelineStepDelegate
 }
 
 //go:generate counterfeiter . SetPipelineStepDelegate

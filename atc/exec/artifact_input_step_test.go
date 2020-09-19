@@ -3,13 +3,11 @@ package exec_test
 import (
 	"context"
 	"errors"
-	"io/ioutil"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -20,8 +18,7 @@ var _ = Describe("ArtifactInputStep", func() {
 		ctx    context.Context
 		cancel func()
 
-		state    exec.RunState
-		delegate *execfakes.FakeBuildStepDelegate
+		state exec.RunState
 
 		step             exec.Step
 		stepErr          error
@@ -35,14 +32,11 @@ var _ = Describe("ArtifactInputStep", func() {
 
 		state = exec.NewRunState()
 
-		delegate = new(execfakes.FakeBuildStepDelegate)
-		delegate.StdoutReturns(ioutil.Discard)
-
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeWorkerClient = new(workerfakes.FakeClient)
 
 		plan = atc.Plan{ArtifactInput: &atc.ArtifactInputPlan{34, "some-input-artifact-name"}}
-		step = exec.NewArtifactInputStep(plan, fakeBuild, fakeWorkerClient, delegate)
+		step = exec.NewArtifactInputStep(plan, fakeBuild, fakeWorkerClient)
 	})
 
 	AfterEach(func() {

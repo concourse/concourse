@@ -4,7 +4,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/builds"
-	"github.com/concourse/concourse/vars"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -32,7 +31,6 @@ var _ = Describe("Builder", func() {
 			fakeStepFactory   *builderfakes.FakeStepFactory
 			fakeSecretManager *credsfakes.FakeSecrets
 			fakeVarSourcePool *credsfakes.FakeVarSourcePool
-			delegateFactory   builder.DelegateFactory
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
@@ -44,11 +42,9 @@ var _ = Describe("Builder", func() {
 			fakeStepFactory = new(builderfakes.FakeStepFactory)
 			fakeSecretManager = new(credsfakes.FakeSecrets)
 			fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
-			delegateFactory = builder.NewDelegateFactory()
 
 			stepBuilder = builder.NewStepBuilder(
 				fakeStepFactory,
-				delegateFactory,
 				"http://example.com",
 				fakeSecretManager,
 				fakeVarSourcePool,
@@ -840,40 +836,6 @@ var _ = Describe("Builder", func() {
 							BuildName:    "42",
 						}))
 					})
-
-					ensureLocalVar := func(i int, name string, value interface{}) {
-						_, _, _, delegate := fakeStepFactory.TaskStepArgsForCall(i)
-						val, found, err := delegate.Variables().Get(vars.VariableDefinition{Ref: vars.VariableReference{Source: ".", Path: name}})
-						Expect(err).ToNot(HaveOccurred())
-						Expect(found).To(BeTrue())
-						Expect(val).To(Equal(value))
-					}
-
-					It("runs each step with the correct local vars", func() {
-						ensureLocalVar(0, "var1", "a1")
-						ensureLocalVar(0, "var2", "b1")
-						ensureLocalVar(0, "var3", "c1")
-
-						ensureLocalVar(1, "var1", "a1")
-						ensureLocalVar(1, "var2", "b2")
-						ensureLocalVar(1, "var3", "c1")
-
-						ensureLocalVar(2, "var1", "a2")
-						ensureLocalVar(2, "var2", "b1")
-						ensureLocalVar(2, "var3", "c1")
-
-						ensureLocalVar(3, "var1", "a2")
-						ensureLocalVar(3, "var2", "b2")
-						ensureLocalVar(3, "var3", "c1")
-					})
-
-					It("runs each step with their own local var scope", func() {
-						_, _, _, delegate := fakeStepFactory.TaskStepArgsForCall(0)
-						delegate.Variables().AddLocalVar("var1", "modified", false)
-
-						// Other steps remain unchanged
-						ensureLocalVar(1, "var1", "a1")
-					})
 				})
 			})
 		})
@@ -887,7 +849,6 @@ var _ = Describe("Builder", func() {
 			fakeStepFactory   *builderfakes.FakeStepFactory
 			fakeSecretManager *credsfakes.FakeSecrets
 			fakeVarSourcePool *credsfakes.FakeVarSourcePool
-			delegateFactory   builder.DelegateFactory
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
@@ -899,11 +860,9 @@ var _ = Describe("Builder", func() {
 			fakeStepFactory = new(builderfakes.FakeStepFactory)
 			fakeSecretManager = new(credsfakes.FakeSecrets)
 			fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
-			delegateFactory = builder.NewDelegateFactory()
 
 			stepBuilder = builder.NewStepBuilder(
 				fakeStepFactory,
-				delegateFactory,
 				"http://example.com",
 				fakeSecretManager,
 				fakeVarSourcePool,

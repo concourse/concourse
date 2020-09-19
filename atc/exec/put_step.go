@@ -16,6 +16,12 @@ import (
 	"github.com/concourse/concourse/vars"
 )
 
+//go:generate counterfeiter . PutDelegateFactory
+
+type PutDelegateFactory interface {
+	PutDelegate() PutDelegate
+}
+
 //go:generate counterfeiter . PutDelegate
 
 type PutDelegate interface {
@@ -47,7 +53,7 @@ type PutStep struct {
 	resourceConfigFactory db.ResourceConfigFactory
 	strategy              worker.ContainerPlacementStrategy
 	workerClient          worker.Client
-	delegate              PutDelegate
+	delegateFactory       PutDelegateFactory
 	succeeded             bool
 }
 
@@ -60,7 +66,7 @@ func NewPutStep(
 	resourceConfigFactory db.ResourceConfigFactory,
 	strategy worker.ContainerPlacementStrategy,
 	workerClient worker.Client,
-	delegate PutDelegate,
+	delegateFactory PutDelegateFactory,
 ) Step {
 	return &PutStep{
 		planID:                planID,
@@ -71,7 +77,7 @@ func NewPutStep(
 		resourceConfigFactory: resourceConfigFactory,
 		workerClient:          workerClient,
 		strategy:              strategy,
-		delegate:              delegate,
+		delegateFactory:       delegateFactory,
 	}
 }
 
@@ -106,9 +112,10 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 		"job-id":    step.metadata.JobID,
 	})
 
-	step.delegate.Initializing(logger)
+	delegate := step.delegateFactory.PutDelegate()
+	delegate.Initializing(logger)
 
-	variables := step.delegate.Variables()
+	variables := delegate.Variables()
 
 	source, err := creds.NewSource(variables, step.plan.Source).Evaluate()
 	if err != nil {
@@ -175,14 +182,14 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 
 	imageSpec := worker.ImageFetcherSpec{
 		ResourceTypes: resourceTypes,
-		Delegate:      step.delegate,
+		Delegate:      delegate,
 	}
 
 	processSpec := runtime.ProcessSpec{
 		Path:         "/opt/resource/out",
 		Args:         []string{resource.ResourcesDir("put")},
-		StdoutWriter: step.delegate.Stdout(),
-		StderrWriter: step.delegate.Stderr(),
+		StdoutWriter: delegate.Stdout(),
+		StderrWriter: delegate.Stderr(),
 	}
 
 	resourceToPut := step.resourceFactory.NewResource(source, params, nil)
@@ -197,7 +204,7 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 		step.containerMetadata,
 		imageSpec,
 		processSpec,
-		step.delegate,
+		delegate,
 		resourceToPut,
 	)
 	if err != nil {
@@ -206,7 +213,7 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 	}
 
 	if result.ExitStatus != 0 {
-		step.delegate.Finished(logger, ExitStatus(result.ExitStatus), runtime.VersionResult{})
+		delegate.Finished(logger, ExitStatus(result.ExitStatus), runtime.VersionResult{})
 		return nil
 	}
 
@@ -214,14 +221,14 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 	// step.plan.Resource maps to an actual resource that may have been used outside of a pipeline context.
 	// Hence, if it was used outside the pipeline context, we don't want to save the output.
 	if step.plan.Resource != "" {
-		step.delegate.SaveOutput(logger, step.plan, source, resourceTypes, versionResult)
+		delegate.SaveOutput(logger, step.plan, source, resourceTypes, versionResult)
 	}
 
 	state.StoreResult(step.planID, versionResult)
 
 	step.succeeded = true
 
-	step.delegate.Finished(logger, 0, versionResult)
+	delegate.Finished(logger, 0, versionResult)
 
 	return nil
 

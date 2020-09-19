@@ -41,7 +41,8 @@ var _ = Describe("GetStep", func() {
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 		fakeResourceCache        *dbfakes.FakeUsedResourceCache
 
-		fakeDelegate *execfakes.FakeGetDelegate
+		fakeDelegate        *execfakes.FakeGetDelegate
+		fakeDelegateFactory *execfakes.FakeGetDelegateFactory
 
 		getPlan *atc.GetPlan
 
@@ -102,6 +103,9 @@ var _ = Describe("GetStep", func() {
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 
+		fakeDelegateFactory = new(execfakes.FakeGetDelegateFactory)
+		fakeDelegateFactory.GetDelegateReturns(fakeDelegate)
+
 		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
@@ -156,7 +160,7 @@ var _ = Describe("GetStep", func() {
 			fakeResourceFactory,
 			fakeResourceCacheFactory,
 			fakeStrategy,
-			fakeDelegate,
+			fakeDelegateFactory,
 			fakeClient,
 		)
 

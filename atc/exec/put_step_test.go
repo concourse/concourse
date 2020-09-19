@@ -38,6 +38,7 @@ var _ = Describe("PutStep", func() {
 		fakeResource              *resourcefakes.FakeResource
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 		fakeDelegate              *execfakes.FakePutDelegate
+		fakeDelegateFactory       *execfakes.FakePutDelegateFactory
 		putPlan                   *atc.PutPlan
 
 		fakeArtifact        *runtimefakes.FakeArtifact
@@ -99,6 +100,9 @@ var _ = Describe("PutStep", func() {
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 		fakeDelegate.VariablesReturns(vars.NewBuildVariables(buildVars, false))
+
+		fakeDelegateFactory = new(execfakes.FakePutDelegateFactory)
+		fakeDelegateFactory.PutDelegateReturns(fakeDelegate)
 
 		versionResult = runtime.VersionResult{
 			Version:  atc.Version{"some": "version"},
@@ -182,7 +186,7 @@ var _ = Describe("PutStep", func() {
 			fakeResourceConfigFactory,
 			fakeStrategy,
 			fakeClient,
-			fakeDelegate,
+			fakeDelegateFactory,
 		)
 
 		stepErr = putStep.Run(ctx, state)

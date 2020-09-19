@@ -16,22 +16,22 @@ type AcrossStep struct {
 	InParallelStep
 	varNames []string
 
-	delegate BuildStepDelegate
-	metadata StepMetadata
+	delegateFactory BuildStepDelegateFactory
+	metadata        StepMetadata
 }
 
 // Across constructs an AcrossStep.
 func Across(
 	step InParallelStep,
 	varNames []string,
-	delegate BuildStepDelegate,
+	delegateFactory BuildStepDelegateFactory,
 	metadata StepMetadata,
 ) AcrossStep {
 	return AcrossStep{
-		InParallelStep: step,
-		varNames:       varNames,
-		delegate:       delegate,
-		metadata:       metadata,
+		InParallelStep:  step,
+		varNames:        varNames,
+		delegateFactory: delegateFactory,
+		metadata:        metadata,
 	}
 }
 
@@ -43,9 +43,11 @@ func (step AcrossStep) Run(ctx context.Context, state RunState) error {
 		"job-id": step.metadata.JobID,
 	})
 
-	step.delegate.Initializing(logger)
+	delegate := step.delegateFactory.BuildStepDelegate()
 
-	stderr := step.delegate.Stderr()
+	delegate.Initializing(logger)
+
+	stderr := delegate.Stderr()
 
 	fmt.Fprintln(stderr, "\x1b[1;33mWARNING: the across step is experimental and subject to change!\x1b[0m")
 	fmt.Fprintln(stderr, "")
@@ -53,7 +55,7 @@ func (step AcrossStep) Run(ctx context.Context, state RunState) error {
 	fmt.Fprintln(stderr, "")
 
 	for _, varName := range step.varNames {
-		_, found, _ := step.delegate.Variables().Get(vars.VariableDefinition{
+		_, found, _ := delegate.Variables().Get(vars.VariableDefinition{
 			Ref: vars.VariableReference{Source: ".", Path: varName},
 		})
 		if found {
@@ -61,14 +63,14 @@ func (step AcrossStep) Run(ctx context.Context, state RunState) error {
 		}
 	}
 
-	step.delegate.Starting(logger)
+	delegate.Starting(logger)
 
 	err := step.InParallelStep.Run(ctx, state)
 	if err != nil {
 		return err
 	}
 
-	step.delegate.Finished(logger, step.Succeeded())
+	delegate.Finished(logger, step.Succeeded())
 
 	return nil
 }
