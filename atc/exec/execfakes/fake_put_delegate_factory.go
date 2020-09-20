@@ -8,9 +8,10 @@ import (
 )
 
 type FakePutDelegateFactory struct {
-	PutDelegateStub        func() exec.PutDelegate
+	PutDelegateStub        func(exec.RunState) exec.PutDelegate
 	putDelegateMutex       sync.RWMutex
 	putDelegateArgsForCall []struct {
+		arg1 exec.RunState
 	}
 	putDelegateReturns struct {
 		result1 exec.PutDelegate
@@ -22,15 +23,16 @@ type FakePutDelegateFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakePutDelegateFactory) PutDelegate() exec.PutDelegate {
+func (fake *FakePutDelegateFactory) PutDelegate(arg1 exec.RunState) exec.PutDelegate {
 	fake.putDelegateMutex.Lock()
 	ret, specificReturn := fake.putDelegateReturnsOnCall[len(fake.putDelegateArgsForCall)]
 	fake.putDelegateArgsForCall = append(fake.putDelegateArgsForCall, struct {
-	}{})
-	fake.recordInvocation("PutDelegate", []interface{}{})
+		arg1 exec.RunState
+	}{arg1})
+	fake.recordInvocation("PutDelegate", []interface{}{arg1})
 	fake.putDelegateMutex.Unlock()
 	if fake.PutDelegateStub != nil {
-		return fake.PutDelegateStub()
+		return fake.PutDelegateStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -45,10 +47,17 @@ func (fake *FakePutDelegateFactory) PutDelegateCallCount() int {
 	return len(fake.putDelegateArgsForCall)
 }
 
-func (fake *FakePutDelegateFactory) PutDelegateCalls(stub func() exec.PutDelegate) {
+func (fake *FakePutDelegateFactory) PutDelegateCalls(stub func(exec.RunState) exec.PutDelegate) {
 	fake.putDelegateMutex.Lock()
 	defer fake.putDelegateMutex.Unlock()
 	fake.PutDelegateStub = stub
+}
+
+func (fake *FakePutDelegateFactory) PutDelegateArgsForCall(i int) exec.RunState {
+	fake.putDelegateMutex.RLock()
+	defer fake.putDelegateMutex.RUnlock()
+	argsForCall := fake.putDelegateArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakePutDelegateFactory) PutDelegateReturns(result1 exec.PutDelegate) {

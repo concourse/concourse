@@ -7,13 +7,12 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/vars"
 )
 
 //go:generate counterfeiter . BuildStepDelegateFactory
 
 type BuildStepDelegateFactory interface {
-	BuildStepDelegate() BuildStepDelegate
+	BuildStepDelegate(state RunState) BuildStepDelegate
 }
 
 //go:generate counterfeiter . BuildStepDelegate
@@ -25,8 +24,6 @@ type BuildStepDelegate interface {
 	Stdout() io.Writer
 	Stderr() io.Writer
 
-	Variables() *vars.BuildVariables
-
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, bool)
@@ -37,7 +34,7 @@ type BuildStepDelegate interface {
 //go:generate counterfeiter . SetPipelineStepDelegateFactory
 
 type SetPipelineStepDelegateFactory interface {
-	SetPipelineStepDelegate() SetPipelineStepDelegate
+	SetPipelineStepDelegate(state RunState) SetPipelineStepDelegate
 }
 
 //go:generate counterfeiter . SetPipelineStepDelegate

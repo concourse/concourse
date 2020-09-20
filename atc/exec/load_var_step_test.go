@@ -2,6 +2,7 @@ package exec_test
 
 import (
 	"context"
+	"strings"
 
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
@@ -15,7 +16,6 @@ import (
 	"github.com/concourse/concourse/atc/exec/build/buildfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
-	"github.com/concourse/concourse/vars"
 )
 
 const plainString = "  pv  \n\n"
@@ -51,8 +51,6 @@ var _ = Describe("LoadVarStep", func() {
 		spStep  exec.Step
 		stepErr error
 
-		buildVars *vars.BuildVariables
-
 		stepMetadata = exec.StepMetadata{
 			TeamID:       123,
 			TeamName:     "some-team",
@@ -72,9 +70,6 @@ var _ = Describe("LoadVarStep", func() {
 		ctx, cancel = context.WithCancel(context.Background())
 		ctx = lagerctx.NewContext(ctx, testLogger)
 
-		credVars := vars.StaticVariables{}
-		buildVars = vars.NewBuildVariables(credVars, true)
-
 		artifactRepository = build.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactRepositoryReturns(artifactRepository)
@@ -86,7 +81,6 @@ var _ = Describe("LoadVarStep", func() {
 		stderr = gbytes.NewBuffer()
 
 		fakeDelegate = new(execfakes.FakeBuildStepDelegate)
-		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdout)
 		fakeDelegate.StderrReturns(stderr)
 
@@ -95,6 +89,14 @@ var _ = Describe("LoadVarStep", func() {
 
 		fakeWorkerClient = new(workerfakes.FakeClient)
 	})
+
+	expectLocalVarAdded := func(expectKey string, expectValue interface{}, expectRedact bool) {
+		Expect(state.AddLocalVarCallCount()).To(Equal(1))
+		k, v, redact := state.AddLocalVarArgsForCall(0)
+		Expect(k).To(Equal(expectKey))
+		Expect(v).To(Equal(expectValue))
+		Expect(redact).To(Equal(expectRedact))
+	}
 
 	AfterEach(func() {
 		cancel()
@@ -149,9 +151,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var))")).Evaluate(buildVars, vars.EvaluateOpts{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(value)).To(Equal("pv\n"))
+				expectLocalVarAdded("some-var", strings.TrimSpace(plainString), true)
 			})
 		})
 
@@ -171,9 +171,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var))")).Evaluate(buildVars, vars.EvaluateOpts{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(value)).To(Equal("\"  pv  \\n\\n\"\n"))
+				expectLocalVarAdded("some-var", plainString, true)
 			})
 		})
 
@@ -193,9 +191,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(buildVars, vars.EvaluateOpts{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(value)).To(Equal("jv1jv2\n"))
+				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "jv1", "k2": "jv2"}, true)
 			})
 		})
 
@@ -215,9 +211,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(buildVars, vars.EvaluateOpts{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(value)).To(Equal("yv1yv2\n"))
+				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2"}, true)
 			})
 		})
 
@@ -237,9 +231,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(buildVars, vars.EvaluateOpts{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(value)).To(Equal("yv1yv2\n"))
+				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2"}, true)
 			})
 		})
 	})
@@ -260,9 +252,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("should var parsed correctly as trim", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var))")).Evaluate(buildVars, vars.EvaluateOpts{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(value)).To(Equal("pv\n"))
+				expectLocalVarAdded("some-var", strings.TrimSpace(plainString), true)
 			})
 		})
 
@@ -281,9 +271,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(buildVars, vars.EvaluateOpts{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(value)).To(Equal("jv1jv2\n"))
+				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "jv1", "k2": "jv2"}, true)
 			})
 		})
 
@@ -302,9 +290,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(buildVars, vars.EvaluateOpts{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(value)).To(Equal("yv1yv2\n"))
+				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2"}, true)
 			})
 		})
 
@@ -323,9 +309,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("should var parsed correctly", func() {
-				value, err := vars.NewTemplate([]byte("((.:some-var.k1))((.:some-var.k2))")).Evaluate(buildVars, vars.EvaluateOpts{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(value)).To(Equal("yv1yv2\n"))
+				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2"}, true)
 			})
 		})
 	})
@@ -375,9 +359,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("local var should be redacted", func() {
-				mapit := vars.TrackedVarsMap{}
-				buildVars.IterateInterpolatedCreds(mapit)
-				Expect(mapit).To(HaveKey("some-var"))
+				expectLocalVarAdded("some-var", strings.TrimSpace(plainString), true)
 			})
 		})
 
@@ -392,9 +374,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("local var should be redacted", func() {
-				mapit := vars.TrackedVarsMap{}
-				buildVars.IterateInterpolatedCreds(mapit)
-				Expect(mapit).To(HaveKey("some-var"))
+				expectLocalVarAdded("some-var", strings.TrimSpace(plainString), true)
 			})
 		})
 
@@ -409,9 +389,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("local var should not be redacted", func() {
-				mapit := vars.TrackedVarsMap{}
-				buildVars.IterateInterpolatedCreds(mapit)
-				Expect(mapit).ToNot(HaveKey("some-var"))
+				expectLocalVarAdded("some-var", strings.TrimSpace(plainString), false)
 			})
 		})
 	})

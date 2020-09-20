@@ -15,51 +15,49 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/vars"
 )
 
 type DelegateFactory struct {
-	build     db.Build
-	check     db.Check
-	planID    atc.PlanID
-	buildVars *vars.BuildVariables
+	build  db.Build
+	check  db.Check
+	planID atc.PlanID
 }
 
-func buildDelegateFactory(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables) DelegateFactory {
-	return DelegateFactory{build: build, planID: planID, buildVars: buildVars}
+func buildDelegateFactory(build db.Build, planID atc.PlanID) DelegateFactory {
+	return DelegateFactory{build: build, planID: planID}
 }
 
-func checkDelegateFactory(check db.Check, planID atc.PlanID, buildVars *vars.BuildVariables) DelegateFactory {
-	return DelegateFactory{check: check, planID: planID, buildVars: buildVars}
+func checkDelegateFactory(check db.Check, planID atc.PlanID) DelegateFactory {
+	return DelegateFactory{check: check, planID: planID}
 }
 
-func (delegate DelegateFactory) GetDelegate() exec.GetDelegate {
-	return NewGetDelegate(delegate.build, delegate.planID, delegate.buildVars, clock.NewClock())
+func (delegate DelegateFactory) GetDelegate(state exec.RunState) exec.GetDelegate {
+	return NewGetDelegate(delegate.build, delegate.planID, state, clock.NewClock())
 }
 
-func (delegate DelegateFactory) PutDelegate() exec.PutDelegate {
-	return NewPutDelegate(delegate.build, delegate.planID, delegate.buildVars, clock.NewClock())
+func (delegate DelegateFactory) PutDelegate(state exec.RunState) exec.PutDelegate {
+	return NewPutDelegate(delegate.build, delegate.planID, state, clock.NewClock())
 }
 
-func (delegate DelegateFactory) TaskDelegate() exec.TaskDelegate {
-	return NewTaskDelegate(delegate.build, delegate.planID, delegate.buildVars, clock.NewClock())
+func (delegate DelegateFactory) TaskDelegate(state exec.RunState) exec.TaskDelegate {
+	return NewTaskDelegate(delegate.build, delegate.planID, state, clock.NewClock())
 }
 
-func (delegate DelegateFactory) CheckDelegate() exec.CheckDelegate {
-	return NewCheckDelegate(delegate.check, delegate.planID, delegate.buildVars, clock.NewClock())
+func (delegate DelegateFactory) CheckDelegate(state exec.RunState) exec.CheckDelegate {
+	return NewCheckDelegate(delegate.check, delegate.planID, state, clock.NewClock())
 }
 
-func (delegate DelegateFactory) BuildStepDelegate() exec.BuildStepDelegate {
-	return NewBuildStepDelegate(delegate.build, delegate.planID, delegate.buildVars, clock.NewClock())
+func (delegate DelegateFactory) BuildStepDelegate(state exec.RunState) exec.BuildStepDelegate {
+	return NewBuildStepDelegate(delegate.build, delegate.planID, state, clock.NewClock())
 }
 
-func (delegate DelegateFactory) SetPipelineStepDelegate() exec.SetPipelineStepDelegate {
-	return NewSetPipelineStepDelegate(delegate.build, delegate.planID, delegate.buildVars, clock.NewClock())
+func (delegate DelegateFactory) SetPipelineStepDelegate(state exec.RunState) exec.SetPipelineStepDelegate {
+	return NewSetPipelineStepDelegate(delegate.build, delegate.planID, state, clock.NewClock())
 }
 
-func NewGetDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables, clock clock.Clock) exec.GetDelegate {
+func NewGetDelegate(build db.Build, planID atc.PlanID, state exec.RunState, clock clock.Clock) exec.GetDelegate {
 	return &getDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, buildVars, clock),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,
@@ -159,9 +157,9 @@ func (d *getDelegate) UpdateVersion(log lager.Logger, plan atc.GetPlan, info run
 	}
 }
 
-func NewPutDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables, clock clock.Clock) exec.PutDelegate {
+func NewPutDelegate(build db.Build, planID atc.PlanID, state exec.RunState, clock clock.Clock) exec.PutDelegate {
 	return &putDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, buildVars, clock),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,
@@ -246,9 +244,9 @@ func (d *putDelegate) SaveOutput(log lager.Logger, plan atc.PutPlan, source atc.
 	}
 }
 
-func NewTaskDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables, clock clock.Clock) exec.TaskDelegate {
+func NewTaskDelegate(build db.Build, planID atc.PlanID, state exec.RunState, clock clock.Clock) exec.TaskDelegate {
 	return &taskDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, buildVars, clock),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,
@@ -312,9 +310,9 @@ func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus)
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
 }
 
-func NewCheckDelegate(check db.Check, planID atc.PlanID, buildVars *vars.BuildVariables, clock clock.Clock) exec.CheckDelegate {
+func NewCheckDelegate(check db.Check, planID atc.PlanID, state exec.RunState, clock clock.Clock) exec.CheckDelegate {
 	return &checkDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(nil, planID, buildVars, clock),
+		BuildStepDelegate: NewBuildStepDelegate(nil, planID, state, clock),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		check:       check,
@@ -353,55 +351,50 @@ func (*checkDelegate) Errored(lager.Logger, string)                      { retur
 func NewBuildStepDelegate(
 	build db.Build,
 	planID atc.PlanID,
-	buildVars *vars.BuildVariables,
+	state exec.RunState,
 	clock clock.Clock,
 ) *buildStepDelegate {
 	return &buildStepDelegate{
-		build:     build,
-		planID:    planID,
-		clock:     clock,
-		buildVars: buildVars,
-		stdout:    nil,
-		stderr:    nil,
+		build:  build,
+		planID: planID,
+		clock:  clock,
+		state:  state,
+		stdout: nil,
+		stderr: nil,
 	}
 }
 
 type buildStepDelegate struct {
-	build     db.Build
-	planID    atc.PlanID
-	clock     clock.Clock
-	buildVars *vars.BuildVariables
-	stderr    io.Writer
-	stdout    io.Writer
+	build  db.Build
+	planID atc.PlanID
+	clock  clock.Clock
+	state  exec.RunState
+	stderr io.Writer
+	stdout io.Writer
 }
 
 func NewSetPipelineStepDelegate(
 	build db.Build,
 	planID atc.PlanID,
-	buildVars *vars.BuildVariables,
+	state exec.RunState,
 	clock clock.Clock,
 ) *setPipelineStepDelegate {
 	return &setPipelineStepDelegate{
-		buildStepDelegate{
-			build:     build,
-			planID:    planID,
-			clock:     clock,
-			buildVars: buildVars,
-			stdout:    nil,
-			stderr:    nil,
-		},
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock),
+		build:             build,
+		eventOrigin:       event.Origin{ID: event.OriginID(planID)},
 	}
 }
 
 type setPipelineStepDelegate struct {
-	buildStepDelegate
+	exec.BuildStepDelegate
+	build       db.Build
+	eventOrigin event.Origin
 }
 
 func (delegate *setPipelineStepDelegate) SetPipelineChanged(logger lager.Logger, changed bool) {
 	err := delegate.build.SaveEvent(event.SetPipelineChanged{
-		Origin: event.Origin{
-			ID: event.OriginID(delegate.planID),
-		},
+		Origin:  delegate.eventOrigin,
 		Changed: changed,
 	})
 	if err != nil {
@@ -410,10 +403,6 @@ func (delegate *setPipelineStepDelegate) SetPipelineChanged(logger lager.Logger,
 	}
 
 	logger.Debug("set pipeline changed")
-}
-
-func (delegate *buildStepDelegate) Variables() *vars.BuildVariables {
-	return delegate.buildVars
 }
 
 func (delegate *buildStepDelegate) ImageVersionDetermined(resourceCache db.UsedResourceCache) error {
@@ -436,7 +425,7 @@ func (it *credVarsIterator) YieldCred(name, value string) {
 
 func (delegate *buildStepDelegate) buildOutputFilter(str string) string {
 	it := &credVarsIterator{line: str}
-	delegate.buildVars.IterateInterpolatedCreds(it)
+	delegate.state.IterateInterpolatedCreds(it)
 	return it.line
 }
 
@@ -455,53 +444,55 @@ func (delegate *buildStepDelegate) RedactImageSource(source atc.Source) (atc.Sou
 }
 
 func (delegate *buildStepDelegate) Stdout() io.Writer {
-	if delegate.stdout == nil {
-		if delegate.buildVars.RedactionEnabled() {
-			delegate.stdout = newDBEventWriterWithSecretRedaction(
-				delegate.build,
-				event.Origin{
-					Source: event.OriginSourceStdout,
-					ID:     event.OriginID(delegate.planID),
-				},
-				delegate.clock,
-				delegate.buildOutputFilter,
-			)
-		} else {
-			delegate.stdout = newDBEventWriter(
-				delegate.build,
-				event.Origin{
-					Source: event.OriginSourceStdout,
-					ID:     event.OriginID(delegate.planID),
-				},
-				delegate.clock,
-			)
-		}
+	if delegate.stdout != nil {
+		return delegate.stdout
+	}
+	if delegate.state.RedactionEnabled() {
+		delegate.stdout = newDBEventWriterWithSecretRedaction(
+			delegate.build,
+			event.Origin{
+				Source: event.OriginSourceStdout,
+				ID:     event.OriginID(delegate.planID),
+			},
+			delegate.clock,
+			delegate.buildOutputFilter,
+		)
+	} else {
+		delegate.stdout = newDBEventWriter(
+			delegate.build,
+			event.Origin{
+				Source: event.OriginSourceStdout,
+				ID:     event.OriginID(delegate.planID),
+			},
+			delegate.clock,
+		)
 	}
 	return delegate.stdout
 }
 
 func (delegate *buildStepDelegate) Stderr() io.Writer {
-	if delegate.stderr == nil {
-		if delegate.buildVars.RedactionEnabled() {
-			delegate.stderr = newDBEventWriterWithSecretRedaction(
-				delegate.build,
-				event.Origin{
-					Source: event.OriginSourceStderr,
-					ID:     event.OriginID(delegate.planID),
-				},
-				delegate.clock,
-				delegate.buildOutputFilter,
-			)
-		} else {
-			delegate.stderr = newDBEventWriter(
-				delegate.build,
-				event.Origin{
-					Source: event.OriginSourceStderr,
-					ID:     event.OriginID(delegate.planID),
-				},
-				delegate.clock,
-			)
-		}
+	if delegate.stderr != nil {
+		return delegate.stderr
+	}
+	if delegate.state.RedactionEnabled() {
+		delegate.stderr = newDBEventWriterWithSecretRedaction(
+			delegate.build,
+			event.Origin{
+				Source: event.OriginSourceStderr,
+				ID:     event.OriginID(delegate.planID),
+			},
+			delegate.clock,
+			delegate.buildOutputFilter,
+		)
+	} else {
+		delegate.stderr = newDBEventWriter(
+			delegate.build,
+			event.Origin{
+				Source: event.OriginSourceStderr,
+				ID:     event.OriginID(delegate.planID),
+			},
+			delegate.clock,
+		)
 	}
 	return delegate.stderr
 }

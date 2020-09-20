@@ -40,7 +40,7 @@ func (step RetryErrorStep) Run(ctx context.Context, state RunState) error {
 	runErr := step.Step.Run(ctx, state)
 	if runErr != nil && step.toRetry(logger, runErr) {
 		logger.Info("retriable", lager.Data{"error": runErr.Error()})
-		delegate := step.delegateFactory.BuildStepDelegate()
+		delegate := step.delegateFactory.BuildStepDelegate(state)
 		delegate.Errored(logger, fmt.Sprintf("%s, will retry ...", runErr.Error()))
 		runErr = Retriable{runErr}
 	}

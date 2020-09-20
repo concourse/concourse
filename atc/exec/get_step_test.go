@@ -54,8 +54,6 @@ var _ = Describe("GetStep", func() {
 		getStep    exec.Step
 		getStepErr error
 
-		buildVars *vars.BuildVariables
-
 		containerMetadata = db.ContainerMetadata{
 			WorkingDirectory: resource.ResourcesDir("get"),
 			PipelineID:       4567,
@@ -88,9 +86,6 @@ var _ = Describe("GetStep", func() {
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
 
-		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
-		buildVars = vars.NewBuildVariables(credVars, true)
-
 		artifactRepository = build.NewRepository()
 		fakeState = new(execfakes.FakeRunState)
 
@@ -99,7 +94,6 @@ var _ = Describe("GetStep", func() {
 		fakeDelegate = new(execfakes.FakeGetDelegate)
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
-		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 
@@ -116,6 +110,8 @@ var _ = Describe("GetStep", func() {
 				Version: atc.Version{"some-custom": "version"},
 			},
 		}
+
+		fakeState.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
 
 		interpolatedResourceTypes = atc.VersionedResourceTypes{
 			{

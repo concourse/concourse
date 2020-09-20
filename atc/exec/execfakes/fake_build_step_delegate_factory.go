@@ -8,9 +8,10 @@ import (
 )
 
 type FakeBuildStepDelegateFactory struct {
-	BuildStepDelegateStub        func() exec.BuildStepDelegate
+	BuildStepDelegateStub        func(exec.RunState) exec.BuildStepDelegate
 	buildStepDelegateMutex       sync.RWMutex
 	buildStepDelegateArgsForCall []struct {
+		arg1 exec.RunState
 	}
 	buildStepDelegateReturns struct {
 		result1 exec.BuildStepDelegate
@@ -22,15 +23,16 @@ type FakeBuildStepDelegateFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBuildStepDelegateFactory) BuildStepDelegate() exec.BuildStepDelegate {
+func (fake *FakeBuildStepDelegateFactory) BuildStepDelegate(arg1 exec.RunState) exec.BuildStepDelegate {
 	fake.buildStepDelegateMutex.Lock()
 	ret, specificReturn := fake.buildStepDelegateReturnsOnCall[len(fake.buildStepDelegateArgsForCall)]
 	fake.buildStepDelegateArgsForCall = append(fake.buildStepDelegateArgsForCall, struct {
-	}{})
-	fake.recordInvocation("BuildStepDelegate", []interface{}{})
+		arg1 exec.RunState
+	}{arg1})
+	fake.recordInvocation("BuildStepDelegate", []interface{}{arg1})
 	fake.buildStepDelegateMutex.Unlock()
 	if fake.BuildStepDelegateStub != nil {
-		return fake.BuildStepDelegateStub()
+		return fake.BuildStepDelegateStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -45,10 +47,17 @@ func (fake *FakeBuildStepDelegateFactory) BuildStepDelegateCallCount() int {
 	return len(fake.buildStepDelegateArgsForCall)
 }
 
-func (fake *FakeBuildStepDelegateFactory) BuildStepDelegateCalls(stub func() exec.BuildStepDelegate) {
+func (fake *FakeBuildStepDelegateFactory) BuildStepDelegateCalls(stub func(exec.RunState) exec.BuildStepDelegate) {
 	fake.buildStepDelegateMutex.Lock()
 	defer fake.buildStepDelegateMutex.Unlock()
 	fake.BuildStepDelegateStub = stub
+}
+
+func (fake *FakeBuildStepDelegateFactory) BuildStepDelegateArgsForCall(i int) exec.RunState {
+	fake.buildStepDelegateMutex.RLock()
+	defer fake.buildStepDelegateMutex.RUnlock()
+	argsForCall := fake.buildStepDelegateArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeBuildStepDelegateFactory) BuildStepDelegateReturns(result1 exec.BuildStepDelegate) {

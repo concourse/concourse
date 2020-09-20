@@ -8,9 +8,10 @@ import (
 )
 
 type FakeTaskDelegateFactory struct {
-	TaskDelegateStub        func() exec.TaskDelegate
+	TaskDelegateStub        func(exec.RunState) exec.TaskDelegate
 	taskDelegateMutex       sync.RWMutex
 	taskDelegateArgsForCall []struct {
+		arg1 exec.RunState
 	}
 	taskDelegateReturns struct {
 		result1 exec.TaskDelegate
@@ -22,15 +23,16 @@ type FakeTaskDelegateFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTaskDelegateFactory) TaskDelegate() exec.TaskDelegate {
+func (fake *FakeTaskDelegateFactory) TaskDelegate(arg1 exec.RunState) exec.TaskDelegate {
 	fake.taskDelegateMutex.Lock()
 	ret, specificReturn := fake.taskDelegateReturnsOnCall[len(fake.taskDelegateArgsForCall)]
 	fake.taskDelegateArgsForCall = append(fake.taskDelegateArgsForCall, struct {
-	}{})
-	fake.recordInvocation("TaskDelegate", []interface{}{})
+		arg1 exec.RunState
+	}{arg1})
+	fake.recordInvocation("TaskDelegate", []interface{}{arg1})
 	fake.taskDelegateMutex.Unlock()
 	if fake.TaskDelegateStub != nil {
-		return fake.TaskDelegateStub()
+		return fake.TaskDelegateStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -45,10 +47,17 @@ func (fake *FakeTaskDelegateFactory) TaskDelegateCallCount() int {
 	return len(fake.taskDelegateArgsForCall)
 }
 
-func (fake *FakeTaskDelegateFactory) TaskDelegateCalls(stub func() exec.TaskDelegate) {
+func (fake *FakeTaskDelegateFactory) TaskDelegateCalls(stub func(exec.RunState) exec.TaskDelegate) {
 	fake.taskDelegateMutex.Lock()
 	defer fake.taskDelegateMutex.Unlock()
 	fake.TaskDelegateStub = stub
+}
+
+func (fake *FakeTaskDelegateFactory) TaskDelegateArgsForCall(i int) exec.RunState {
+	fake.taskDelegateMutex.RLock()
+	defer fake.taskDelegateMutex.RUnlock()
+	argsForCall := fake.taskDelegateArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeTaskDelegateFactory) TaskDelegateReturns(result1 exec.TaskDelegate) {

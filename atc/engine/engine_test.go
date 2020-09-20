@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
@@ -19,6 +20,7 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/vars"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -29,6 +31,9 @@ var _ = Describe("Engine", func() {
 		fakeBuild       *dbfakes.FakeBuild
 		fakeCheck       *dbfakes.FakeCheck
 		fakeStepBuilder *enginefakes.FakeStepBuilder
+
+		fakeGlobalCreds   *credsfakes.FakeSecrets
+		fakeVarSourcePool *credsfakes.FakeVarSourcePool
 	)
 
 	BeforeEach(func() {
@@ -39,6 +44,9 @@ var _ = Describe("Engine", func() {
 		fakeCheck.IDReturns(128)
 
 		fakeStepBuilder = new(enginefakes.FakeStepBuilder)
+
+		fakeGlobalCreds = new(credsfakes.FakeSecrets)
+		fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 	})
 
 	Describe("NewBuild", func() {
@@ -48,7 +56,7 @@ var _ = Describe("Engine", func() {
 		)
 
 		BeforeEach(func() {
-			engine = NewEngine(fakeStepBuilder)
+			engine = NewEngine(fakeStepBuilder, fakeGlobalCreds, fakeVarSourcePool)
 		})
 
 		JustBeforeEach(func() {
@@ -67,7 +75,7 @@ var _ = Describe("Engine", func() {
 		)
 
 		BeforeEach(func() {
-			engine = NewEngine(fakeStepBuilder)
+			engine = NewEngine(fakeStepBuilder, fakeGlobalCreds, fakeVarSourcePool)
 		})
 
 		JustBeforeEach(func() {
@@ -95,6 +103,8 @@ var _ = Describe("Engine", func() {
 			build = NewBuild(
 				fakeBuild,
 				fakeStepBuilder,
+				fakeGlobalCreds,
+				fakeVarSourcePool,
 				release,
 				trackedStates,
 				waitGroup,
@@ -163,128 +173,170 @@ var _ = Describe("Engine", func() {
 								Expect(fakeNotifier.CloseCallCount()).To(Equal(1))
 							})
 
-							Context("when the build is released", func() {
+							Context("when getting the build vars succeeds", func() {
+								var invokedState chan exec.RunState
+
 								BeforeEach(func() {
-									readyToRelease := make(chan bool)
+									fakeBuild.VariablesReturns(vars.StaticVariables{"foo": "bar"}, nil)
 
-									go func() {
-										<-readyToRelease
-										release <- true
-									}()
-
-									fakeStep.RunStub = func(context.Context, exec.RunState) error {
-										close(readyToRelease)
-										<-time.After(time.Hour)
+									invokedState = make(chan exec.RunState, 1)
+									fakeStep.RunStub = func(ctx context.Context, state exec.RunState) error {
+										invokedState <- state
 										return nil
 									}
 								})
 
-								It("does not finish the build", func() {
-									waitGroup.Wait()
-									Expect(fakeBuild.FinishCallCount()).To(Equal(0))
-								})
-							})
+								It("runs the step with the build variables", func() {
+									state := <-invokedState
 
-							Context("when the build is aborted", func() {
-								BeforeEach(func() {
-									readyToAbort := make(chan bool)
-
-									go func() {
-										<-readyToAbort
-										abort <- struct{}{}
-									}()
-
-									fakeStep.RunStub = func(context.Context, exec.RunState) error {
-										close(readyToAbort)
-										<-time.After(time.Second)
-										return nil
-									}
+									val, found, err := state.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "foo"}})
+									Expect(err).ToNot(HaveOccurred())
+									Expect(found).To(BeTrue())
+									Expect(val).To(Equal("bar"))
 								})
 
-								It("cancels the context given to the step", func() {
-									waitGroup.Wait()
-									stepCtx, _ := fakeStep.RunArgsForCall(0)
-									Expect(stepCtx.Done()).To(BeClosed())
-								})
-							})
-
-							Context("when the build finishes without error", func() {
-								BeforeEach(func() {
-									fakeStep.RunReturns(nil)
-								})
-
-								Context("when the build finishes successfully", func() {
+								Context("when the build is released", func() {
 									BeforeEach(func() {
-										fakeStep.SucceededReturns(true)
+										readyToRelease := make(chan bool)
+
+										go func() {
+											<-readyToRelease
+											release <- true
+										}()
+
+										fakeStep.RunStub = func(context.Context, exec.RunState) error {
+											close(readyToRelease)
+											<-time.After(time.Hour)
+											return nil
+										}
+									})
+
+									It("does not finish the build", func() {
+										waitGroup.Wait()
+										Expect(fakeBuild.FinishCallCount()).To(Equal(0))
+									})
+								})
+
+								Context("when the build is aborted", func() {
+									BeforeEach(func() {
+										readyToAbort := make(chan bool)
+
+										go func() {
+											<-readyToAbort
+											abort <- struct{}{}
+										}()
+
+										fakeStep.RunStub = func(context.Context, exec.RunState) error {
+											close(readyToAbort)
+											<-time.After(time.Second)
+											return nil
+										}
+									})
+
+									It("cancels the context given to the step", func() {
+										waitGroup.Wait()
+										stepCtx, _ := fakeStep.RunArgsForCall(0)
+										Expect(stepCtx.Done()).To(BeClosed())
+									})
+								})
+
+								Context("when the build finishes without error", func() {
+									BeforeEach(func() {
+										fakeStep.RunReturns(nil)
+									})
+
+									Context("when the build finishes successfully", func() {
+										BeforeEach(func() {
+											fakeStep.SucceededReturns(true)
+										})
+
+										It("finishes the build", func() {
+											waitGroup.Wait()
+											Expect(fakeBuild.FinishCallCount()).To(Equal(1))
+											Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusSucceeded))
+										})
+									})
+
+									Context("when the build finishes woefully", func() {
+										BeforeEach(func() {
+											fakeStep.SucceededReturns(false)
+										})
+
+										It("finishes the build", func() {
+											waitGroup.Wait()
+											Expect(fakeBuild.FinishCallCount()).To(Equal(1))
+											Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusFailed))
+										})
+									})
+								})
+
+								Context("when the build finishes with error", func() {
+									BeforeEach(func() {
+										fakeStep.RunReturns(errors.New("nope"))
 									})
 
 									It("finishes the build", func() {
 										waitGroup.Wait()
 										Expect(fakeBuild.FinishCallCount()).To(Equal(1))
-										Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusSucceeded))
+										Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusErrored))
 									})
 								})
 
-								Context("when the build finishes woefully", func() {
+								Context("when the build finishes with cancelled error", func() {
 									BeforeEach(func() {
-										fakeStep.SucceededReturns(false)
+										fakeStep.RunReturns(context.Canceled)
 									})
 
 									It("finishes the build", func() {
 										waitGroup.Wait()
 										Expect(fakeBuild.FinishCallCount()).To(Equal(1))
-										Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusFailed))
+										Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusAborted))
+									})
+								})
+
+								Context("when the build finishes with a wrapped cancelled error", func() {
+									BeforeEach(func() {
+										fakeStep.RunReturns(fmt.Errorf("but im not a wrapper: %w", context.Canceled))
+									})
+
+									It("finishes the build", func() {
+										waitGroup.Wait()
+										Expect(fakeBuild.FinishCallCount()).To(Equal(1))
+										Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusAborted))
+									})
+								})
+
+								Context("when the build panics", func() {
+									BeforeEach(func() {
+										fakeStep.RunStub = func(context.Context, exec.RunState) error {
+											panic("something went wrong")
+										}
+									})
+
+									It("finishes the build with error", func() {
+										waitGroup.Wait()
+										Expect(fakeBuild.FinishCallCount()).To(Equal(1))
+										Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusErrored))
 									})
 								})
 							})
 
-							Context("when the build finishes with error", func() {
+							Context("when getting the build vars fails", func() {
 								BeforeEach(func() {
-									fakeStep.RunReturns(errors.New("nope"))
+									fakeBuild.VariablesReturns(nil, errors.New("ruh roh"))
 								})
 
-								It("finishes the build", func() {
-									waitGroup.Wait()
-									Expect(fakeBuild.FinishCallCount()).To(Equal(1))
-									Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusErrored))
-								})
-							})
-
-							Context("when the build finishes with cancelled error", func() {
-								BeforeEach(func() {
-									fakeStep.RunReturns(context.Canceled)
+								It("releases the lock", func() {
+									Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 								})
 
-								It("finishes the build", func() {
-									waitGroup.Wait()
-									Expect(fakeBuild.FinishCallCount()).To(Equal(1))
-									Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusAborted))
-								})
-							})
-
-							Context("when the build finishes with a wrapped cancelled error", func() {
-								BeforeEach(func() {
-									fakeStep.RunReturns(fmt.Errorf("but im not a wrapper: %w", context.Canceled))
+								It("closes the notifier", func() {
+									Expect(fakeNotifier.CloseCallCount()).To(Equal(1))
 								})
 
-								It("finishes the build", func() {
-									waitGroup.Wait()
-									Expect(fakeBuild.FinishCallCount()).To(Equal(1))
-									Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusAborted))
-								})
-							})
-
-							Context("when the build panic", func() {
-								BeforeEach(func() {
-									fakeStep.RunStub = func(context.Context, exec.RunState) error {
-										panic("something went wrong")
-									}
-								})
-
-								It("finishes the build with error", func() {
-									waitGroup.Wait()
-									Expect(fakeBuild.FinishCallCount()).To(Equal(1))
-									Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusErrored))
+								It("saves an error event", func() {
+									Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+									Expect(fakeBuild.SaveEventArgsForCall(0).EventType()).To(Equal(event.EventTypeError))
 								})
 							})
 						})
@@ -396,6 +448,8 @@ var _ = Describe("Engine", func() {
 			check = NewCheck(
 				fakeCheck,
 				fakeStepBuilder,
+				fakeGlobalCreds,
+				fakeVarSourcePool,
 				release,
 				trackedStates,
 				waitGroup,
@@ -441,78 +495,112 @@ var _ = Describe("Engine", func() {
 							fakeStepBuilder.CheckStepReturns(fakeStep, nil)
 						})
 
-						It("releases the lock", func() {
-							waitGroup.Wait()
-							Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
-						})
+						Context("when getting the check vars succeeds", func() {
+							var invokedState chan exec.RunState
 
-						Context("when the check is released", func() {
 							BeforeEach(func() {
-								readyToRelease := make(chan bool)
+								fakeCheck.VariablesReturns(vars.StaticVariables{"foo": "bar"}, nil)
 
-								go func() {
-									<-readyToRelease
-									release <- true
-								}()
-
-								fakeStep.RunStub = func(context.Context, exec.RunState) error {
-									close(readyToRelease)
-									<-time.After(time.Hour)
+								invokedState = make(chan exec.RunState, 1)
+								fakeStep.RunStub = func(ctx context.Context, state exec.RunState) error {
+									invokedState <- state
 									return nil
 								}
 							})
 
-							It("does not finish the check", func() {
+							It("runs the step with the check variables", func() {
+								state := <-invokedState
+
+								val, found, err := state.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "foo"}})
+								Expect(err).ToNot(HaveOccurred())
+								Expect(found).To(BeTrue())
+								Expect(val).To(Equal("bar"))
+							})
+
+							It("releases the lock", func() {
 								waitGroup.Wait()
-								Expect(fakeCheck.FinishCallCount()).To(Equal(0))
+								Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+							})
+
+							Context("when the check is released", func() {
+								BeforeEach(func() {
+									readyToRelease := make(chan bool)
+
+									go func() {
+										<-readyToRelease
+										release <- true
+									}()
+
+									fakeStep.RunStub = func(context.Context, exec.RunState) error {
+										close(readyToRelease)
+										<-time.After(time.Hour)
+										return nil
+									}
+								})
+
+								It("does not finish the check", func() {
+									waitGroup.Wait()
+									Expect(fakeCheck.FinishCallCount()).To(Equal(0))
+								})
+							})
+
+							Context("when the check finishes without error", func() {
+								BeforeEach(func() {
+									fakeStep.RunReturns(nil)
+								})
+
+								It("finishes the check", func() {
+									waitGroup.Wait()
+									Expect(fakeCheck.FinishCallCount()).To(Equal(1))
+								})
+							})
+
+							Context("when the check finishes with error", func() {
+								BeforeEach(func() {
+									fakeStep.RunReturns(errors.New("nope"))
+								})
+
+								It("finishes the check", func() {
+									waitGroup.Wait()
+									Expect(fakeCheck.FinishWithErrorCallCount()).To(Equal(1))
+									Expect(fakeCheck.FinishWithErrorArgsForCall(0)).To(Equal(fmt.Errorf("run check step: %w", errors.New("nope"))))
+								})
+							})
+
+							Context("when the check panic", func() {
+								BeforeEach(func() {
+									fakeStep.RunStub = func(context.Context, exec.RunState) error {
+										panic("something went wrong")
+									}
+								})
+
+								It("finishes the check with panic error", func() {
+									waitGroup.Wait()
+									Expect(fakeCheck.FinishWithErrorCallCount()).To(Equal(1))
+									Expect(fakeCheck.FinishWithErrorArgsForCall(0).Error()).To(ContainSubstring("something went wrong"))
+								})
+							})
+
+							Context("when the check finishes with cancelled error", func() {
+								BeforeEach(func() {
+									fakeStep.RunReturns(context.Canceled)
+								})
+
+								It("finishes the check", func() {
+									waitGroup.Wait()
+									Expect(fakeCheck.FinishWithErrorCallCount()).To(Equal(1))
+								})
 							})
 						})
 
-						Context("when the check finishes without error", func() {
+						Context("when getting the check vars fails", func() {
 							BeforeEach(func() {
-								fakeStep.RunReturns(nil)
+								fakeCheck.VariablesReturns(nil, errors.New("ruh roh"))
 							})
 
-							It("finishes the check", func() {
-								waitGroup.Wait()
-								Expect(fakeCheck.FinishCallCount()).To(Equal(1))
-							})
-						})
-
-						Context("when the check finishes with error", func() {
-							BeforeEach(func() {
-								fakeStep.RunReturns(errors.New("nope"))
-							})
-
-							It("finishes the check", func() {
-								waitGroup.Wait()
-								Expect(fakeCheck.FinishWithErrorCallCount()).To(Equal(1))
-								Expect(fakeCheck.FinishWithErrorArgsForCall(0)).To(Equal(fmt.Errorf("run check step: %w", errors.New("nope"))))
-							})
-						})
-
-						Context("when the check panic", func() {
-							BeforeEach(func() {
-								fakeStep.RunStub = func(context.Context, exec.RunState) error {
-									panic("something went wrong")
-								}
-							})
-
-							It("finishes the check with panic error", func() {
-								waitGroup.Wait()
-								Expect(fakeCheck.FinishWithErrorCallCount()).To(Equal(1))
-								Expect(fakeCheck.FinishWithErrorArgsForCall(0).Error()).To(ContainSubstring("something went wrong"))
-							})
-						})
-
-						Context("when the check finishes with cancelled error", func() {
-							BeforeEach(func() {
-								fakeStep.RunReturns(context.Canceled)
-							})
-
-							It("finishes the check", func() {
-								waitGroup.Wait()
-								Expect(fakeCheck.FinishWithErrorCallCount()).To(Equal(1))
+							It("releases the lock", func() {
+								Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+								Expect(fakeCheck.FinishWithErrorArgsForCall(0)).To(MatchError("create run state: ruh roh"))
 							})
 						})
 					})

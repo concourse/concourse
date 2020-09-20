@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
+	"github.com/concourse/concourse/vars"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -33,7 +34,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
-		state = exec.NewRunState()
+		state = exec.NewRunState(vars.StaticVariables{}, false)
 
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeBuild.TeamIDReturns(4)

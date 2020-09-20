@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine/builder"
@@ -28,9 +27,7 @@ var _ = Describe("Builder", func() {
 		var (
 			err error
 
-			fakeStepFactory   *builderfakes.FakeStepFactory
-			fakeSecretManager *credsfakes.FakeSecrets
-			fakeVarSourcePool *credsfakes.FakeVarSourcePool
+			fakeStepFactory *builderfakes.FakeStepFactory
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
@@ -40,14 +37,10 @@ var _ = Describe("Builder", func() {
 
 		BeforeEach(func() {
 			fakeStepFactory = new(builderfakes.FakeStepFactory)
-			fakeSecretManager = new(credsfakes.FakeSecrets)
-			fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 
 			stepBuilder = builder.NewStepBuilder(
 				fakeStepFactory,
 				"http://example.com",
-				fakeSecretManager,
-				fakeVarSourcePool,
 			)
 
 			planFactory = atc.NewPlanFactory(123)
@@ -846,9 +839,7 @@ var _ = Describe("Builder", func() {
 		var (
 			err error
 
-			fakeStepFactory   *builderfakes.FakeStepFactory
-			fakeSecretManager *credsfakes.FakeSecrets
-			fakeVarSourcePool *credsfakes.FakeVarSourcePool
+			fakeStepFactory *builderfakes.FakeStepFactory
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
@@ -858,14 +849,10 @@ var _ = Describe("Builder", func() {
 
 		BeforeEach(func() {
 			fakeStepFactory = new(builderfakes.FakeStepFactory)
-			fakeSecretManager = new(credsfakes.FakeSecrets)
-			fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 
 			stepBuilder = builder.NewStepBuilder(
 				fakeStepFactory,
 				"http://example.com",
-				fakeSecretManager,
-				fakeVarSourcePool,
 			)
 
 			planFactory = atc.NewPlanFactory(123)

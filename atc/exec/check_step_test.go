@@ -14,7 +14,6 @@ import (
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
-	"github.com/concourse/concourse/vars/varsfakes"
 	"go.opentelemetry.io/otel/api/propagators"
 	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/api/trace/testtrace"
@@ -100,10 +99,7 @@ var _ = Describe("CheckStep", func() {
 			BeforeEach(func() {
 				expectedErr = errors.New("creds-err")
 
-				fakeVariables := new(varsfakes.FakeVariables)
-				fakeVariables.GetReturns(nil, false, expectedErr)
-
-				fakeDelegate.VariablesReturns(vars.NewBuildVariables(fakeVariables, false))
+				fakeRunState.GetReturns(nil, false, expectedErr)
 			})
 
 			It("errors", func() {
@@ -137,10 +133,7 @@ var _ = Describe("CheckStep", func() {
 			BeforeEach(func() {
 				expectedErr = errors.New("creds-err")
 
-				fakeVariables := new(varsfakes.FakeVariables)
-				fakeVariables.GetReturns(nil, false, expectedErr)
-
-				fakeDelegate.VariablesReturns(vars.NewBuildVariables(fakeVariables, false))
+				fakeRunState.GetReturns(nil, false, expectedErr)
 			})
 
 			It("errors", func() {
@@ -192,7 +185,7 @@ var _ = Describe("CheckStep", func() {
 				BaseResourceTypeID: 502,
 			}
 
-			fakeDelegate.VariablesReturns(vars.NewBuildVariables(vars.StaticVariables{"bar": "caz"}, false))
+			fakeRunState.GetStub = vars.StaticVariables{"bar": "caz"}.Get
 		})
 
 		It("uses ResourceConfigCheckSessionOwner", func() {

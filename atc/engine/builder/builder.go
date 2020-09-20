@@ -8,10 +8,8 @@ import (
 	"strings"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/vars"
 )
 
 const supportedSchema = "exec.v2"
@@ -32,22 +30,17 @@ type StepFactory interface {
 func NewStepBuilder(
 	stepFactory StepFactory,
 	externalURL string,
-	secrets creds.Secrets,
-	varSourcePool creds.VarSourcePool,
 ) *stepBuilder {
 	return &stepBuilder{
-		stepFactory:   stepFactory,
-		externalURL:   externalURL,
-		globalSecrets: secrets,
-		varSourcePool: varSourcePool,
+		stepFactory: stepFactory,
+		externalURL: externalURL,
 	}
 }
 
 type stepBuilder struct {
-	stepFactory   StepFactory
-	externalURL   string
-	globalSecrets creds.Secrets
-	varSourcePool creds.VarSourcePool
+	stepFactory     StepFactory
+	delegateFactory DelegateFactory
+	externalURL     string
 }
 
 func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec.Step, error) {
@@ -59,18 +52,10 @@ func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec
 		return exec.IdentityStep{}, errors.New("schema not supported")
 	}
 
-	v, err := build.Variables(logger, builder.globalSecrets, builder.varSourcePool)
-	if err != nil {
-		return exec.IdentityStep{}, err
-	}
-
-	buildVars := vars.NewBuildVariables(v, atc.EnableRedactSecrets)
-
-	return builder.buildStep(build, build.PrivatePlan(), buildVars), nil
+	return builder.buildStep(build, build.PrivatePlan()), nil
 }
 
 func (builder *stepBuilder) CheckStep(logger lager.Logger, check db.Check) (exec.Step, error) {
-
 	if check == nil {
 		return exec.IdentityStep{}, errors.New("must provide a check")
 	}
@@ -79,82 +64,76 @@ func (builder *stepBuilder) CheckStep(logger lager.Logger, check db.Check) (exec
 		return exec.IdentityStep{}, errors.New("schema not supported")
 	}
 
-	v, err := check.Variables(logger, builder.globalSecrets, builder.varSourcePool)
-	if err != nil {
-		return exec.IdentityStep{}, err
-	}
-
-	buildVars := vars.NewBuildVariables(v, atc.EnableRedactSecrets)
-	return builder.buildCheckStep(check, check.Plan(), buildVars), nil
+	return builder.buildCheckStep(check, check.Plan()), nil
 }
 
-func (builder *stepBuilder) buildStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+func (builder *stepBuilder) buildStep(build db.Build, plan atc.Plan) exec.Step {
 	if plan.Aggregate != nil {
-		return builder.buildAggregateStep(build, plan, buildVars)
+		return builder.buildAggregateStep(build, plan)
 	}
 
 	if plan.InParallel != nil {
-		return builder.buildParallelStep(build, plan, buildVars)
+		return builder.buildParallelStep(build, plan)
 	}
 
 	if plan.Across != nil {
-		return builder.buildAcrossStep(build, plan, buildVars)
+		return builder.buildAcrossStep(build, plan)
 	}
 
 	if plan.Do != nil {
-		return builder.buildDoStep(build, plan, buildVars)
+		return builder.buildDoStep(build, plan)
 	}
 
 	if plan.Timeout != nil {
-		return builder.buildTimeoutStep(build, plan, buildVars)
+		return builder.buildTimeoutStep(build, plan)
 	}
 
 	if plan.Try != nil {
-		return builder.buildTryStep(build, plan, buildVars)
+		return builder.buildTryStep(build, plan)
 	}
 
 	if plan.OnAbort != nil {
-		return builder.buildOnAbortStep(build, plan, buildVars)
+		return builder.buildOnAbortStep(build, plan)
 	}
 
 	if plan.OnError != nil {
-		return builder.buildOnErrorStep(build, plan, buildVars)
+		return builder.buildOnErrorStep(build, plan)
 	}
 
 	if plan.OnSuccess != nil {
-		return builder.buildOnSuccessStep(build, plan, buildVars)
+		return builder.buildOnSuccessStep(build, plan)
 	}
 
 	if plan.OnFailure != nil {
-		return builder.buildOnFailureStep(build, plan, buildVars)
+		return builder.buildOnFailureStep(build, plan)
 	}
 
 	if plan.Ensure != nil {
-		return builder.buildEnsureStep(build, plan, buildVars)
+		return builder.buildEnsureStep(build, plan)
 	}
 
 	if plan.Task != nil {
-		return builder.buildTaskStep(build, plan, buildVars)
+		return builder.buildTaskStep(build, plan)
 	}
 
 	if plan.SetPipeline != nil {
-		return builder.buildSetPipelineStep(build, plan, buildVars)
+		return builder.buildSetPipelineStep(build, plan)
 	}
 
 	if plan.LoadVar != nil {
-		return builder.buildLoadVarStep(build, plan, buildVars)
+		return builder.buildLoadVarStep(build, plan)
 	}
 
 	if plan.Get != nil {
-		return builder.buildGetStep(build, plan, buildVars)
+		return builder.buildGetStep(build, plan)
 	}
 
 	if plan.Put != nil {
-		return builder.buildPutStep(build, plan, buildVars)
+		return builder.buildPutStep(build, plan)
 	}
 
 	if plan.Retry != nil {
-		return builder.buildRetryStep(build, plan, buildVars)
+		return builder.buildRetryStep(build, plan)
 	}
 
 	if plan.ArtifactInput != nil {
@@ -168,35 +147,33 @@ func (builder *stepBuilder) buildStep(build db.Build, plan atc.Plan, buildVars *
 	return exec.IdentityStep{}
 }
 
-func (builder *stepBuilder) buildAggregateStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+func (builder *stepBuilder) buildAggregateStep(build db.Build, plan atc.Plan) exec.Step {
 
 	agg := exec.AggregateStep{}
 
 	for _, innerPlan := range *plan.Aggregate {
 		innerPlan.Attempts = plan.Attempts
-		step := builder.buildStep(build, innerPlan, buildVars)
+		step := builder.buildStep(build, innerPlan)
 		agg = append(agg, step)
 	}
 
 	return agg
 }
 
-func (builder *stepBuilder) buildParallelStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+func (builder *stepBuilder) buildParallelStep(build db.Build, plan atc.Plan) exec.Step {
 
 	var steps []exec.Step
 
 	for _, innerPlan := range plan.InParallel.Steps {
 		innerPlan.Attempts = plan.Attempts
-		step := builder.buildStep(build, innerPlan, buildVars)
+		step := builder.buildStep(build, innerPlan)
 		steps = append(steps, step)
 	}
 
 	return exec.InParallel(steps, plan.InParallel.Limit, plan.InParallel.FailFast)
 }
 
-func (builder *stepBuilder) buildAcrossStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
-	step := builder.buildAcrossInParallelStep(build, 0, *plan.Across, buildVars)
-
+func (builder *stepBuilder) buildAcrossStep(build db.Build, plan atc.Plan) exec.Step {
 	stepMetadata := builder.stepMetadata(
 		build,
 		builder.externalURL,
@@ -246,88 +223,87 @@ func (builder *stepBuilder) buildAcrossInParallelStep(build db.Build, varIndex i
 	return exec.InParallel(substeps, plan.Vars[varIndex].MaxInFlight, plan.FailFast)
 }
 
-func (builder *stepBuilder) buildDoStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
-
+func (builder *stepBuilder) buildDoStep(build db.Build, plan atc.Plan) exec.Step {
 	var step exec.Step = exec.IdentityStep{}
 
 	for i := len(*plan.Do) - 1; i >= 0; i-- {
 		innerPlan := (*plan.Do)[i]
 		innerPlan.Attempts = plan.Attempts
-		previous := builder.buildStep(build, innerPlan, buildVars)
+		previous := builder.buildStep(build, innerPlan)
 		step = exec.OnSuccess(previous, step)
 	}
 
 	return step
 }
 
-func (builder *stepBuilder) buildTimeoutStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+func (builder *stepBuilder) buildTimeoutStep(build db.Build, plan atc.Plan) exec.Step {
 	innerPlan := plan.Timeout.Step
 	innerPlan.Attempts = plan.Attempts
-	step := builder.buildStep(build, innerPlan, buildVars)
+	step := builder.buildStep(build, innerPlan)
 	return exec.Timeout(step, plan.Timeout.Duration)
 }
 
-func (builder *stepBuilder) buildTryStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+func (builder *stepBuilder) buildTryStep(build db.Build, plan atc.Plan) exec.Step {
 	innerPlan := plan.Try.Step
 	innerPlan.Attempts = plan.Attempts
-	step := builder.buildStep(build, innerPlan, buildVars)
+	step := builder.buildStep(build, innerPlan)
 	return exec.Try(step)
 }
 
-func (builder *stepBuilder) buildOnAbortStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+func (builder *stepBuilder) buildOnAbortStep(build db.Build, plan atc.Plan) exec.Step {
 	plan.OnAbort.Step.Attempts = plan.Attempts
-	step := builder.buildStep(build, plan.OnAbort.Step, buildVars)
+	step := builder.buildStep(build, plan.OnAbort.Step)
 	plan.OnAbort.Next.Attempts = plan.Attempts
-	next := builder.buildStep(build, plan.OnAbort.Next, buildVars)
+	next := builder.buildStep(build, plan.OnAbort.Next)
 	return exec.OnAbort(step, next)
 }
 
-func (builder *stepBuilder) buildOnErrorStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+func (builder *stepBuilder) buildOnErrorStep(build db.Build, plan atc.Plan) exec.Step {
 	plan.OnError.Step.Attempts = plan.Attempts
-	step := builder.buildStep(build, plan.OnError.Step, buildVars)
+	step := builder.buildStep(build, plan.OnError.Step)
 	plan.OnError.Next.Attempts = plan.Attempts
-	next := builder.buildStep(build, plan.OnError.Next, buildVars)
+	next := builder.buildStep(build, plan.OnError.Next)
 	return exec.OnError(step, next)
 }
 
-func (builder *stepBuilder) buildOnSuccessStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+func (builder *stepBuilder) buildOnSuccessStep(build db.Build, plan atc.Plan) exec.Step {
 	plan.OnSuccess.Step.Attempts = plan.Attempts
-	step := builder.buildStep(build, plan.OnSuccess.Step, buildVars)
+	step := builder.buildStep(build, plan.OnSuccess.Step)
 	plan.OnSuccess.Next.Attempts = plan.Attempts
-	next := builder.buildStep(build, plan.OnSuccess.Next, buildVars)
+	next := builder.buildStep(build, plan.OnSuccess.Next)
 	return exec.OnSuccess(step, next)
 }
 
-func (builder *stepBuilder) buildOnFailureStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+func (builder *stepBuilder) buildOnFailureStep(build db.Build, plan atc.Plan) exec.Step {
 	plan.OnFailure.Step.Attempts = plan.Attempts
-	step := builder.buildStep(build, plan.OnFailure.Step, buildVars)
+	step := builder.buildStep(build, plan.OnFailure.Step)
 	plan.OnFailure.Next.Attempts = plan.Attempts
-	next := builder.buildStep(build, plan.OnFailure.Next, buildVars)
+	next := builder.buildStep(build, plan.OnFailure.Next)
 	return exec.OnFailure(step, next)
 }
 
-func (builder *stepBuilder) buildEnsureStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+func (builder *stepBuilder) buildEnsureStep(build db.Build, plan atc.Plan) exec.Step {
 	plan.Ensure.Step.Attempts = plan.Attempts
-	step := builder.buildStep(build, plan.Ensure.Step, buildVars)
+	step := builder.buildStep(build, plan.Ensure.Step)
 	plan.Ensure.Next.Attempts = plan.Attempts
-	next := builder.buildStep(build, plan.Ensure.Next, buildVars)
+	next := builder.buildStep(build, plan.Ensure.Next)
 	return exec.Ensure(step, next)
 }
 
-func (builder *stepBuilder) buildRetryStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+func (builder *stepBuilder) buildRetryStep(build db.Build, plan atc.Plan) exec.Step {
 	steps := []exec.Step{}
 
 	for index, innerPlan := range *plan.Retry {
 		innerPlan.Attempts = append(plan.Attempts, index+1)
 
-		step := builder.buildStep(build, innerPlan, buildVars)
+		step := builder.buildStep(build, innerPlan)
 		steps = append(steps, step)
 	}
 
 	return exec.Retry(steps...)
 }
 
-func (builder *stepBuilder) buildGetStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+func (builder *stepBuilder) buildGetStep(build db.Build, plan atc.Plan) exec.Step {
 
 	containerMetadata := builder.containerMetadata(
 		build,
@@ -345,11 +321,11 @@ func (builder *stepBuilder) buildGetStep(build db.Build, plan atc.Plan, buildVar
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan.ID, buildVars),
+		buildDelegateFactory(build, plan.ID),
 	)
 }
 
-func (builder *stepBuilder) buildPutStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+func (builder *stepBuilder) buildPutStep(build db.Build, plan atc.Plan) exec.Step {
 
 	containerMetadata := builder.containerMetadata(
 		build,
@@ -367,11 +343,11 @@ func (builder *stepBuilder) buildPutStep(build db.Build, plan atc.Plan, buildVar
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan.ID, buildVars),
+		buildDelegateFactory(build, plan.ID),
 	)
 }
 
-func (builder *stepBuilder) buildCheckStep(check db.Check, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+func (builder *stepBuilder) buildCheckStep(check db.Check, plan atc.Plan) exec.Step {
 
 	containerMetadata := db.ContainerMetadata{
 		Type: db.ContainerTypeCheck,
@@ -392,11 +368,11 @@ func (builder *stepBuilder) buildCheckStep(check db.Check, plan atc.Plan, buildV
 		plan,
 		stepMetadata,
 		containerMetadata,
-		checkDelegateFactory(check, plan.ID, buildVars),
+		checkDelegateFactory(check, plan.ID),
 	)
 }
 
-func (builder *stepBuilder) buildTaskStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+func (builder *stepBuilder) buildTaskStep(build db.Build, plan atc.Plan) exec.Step {
 
 	containerMetadata := builder.containerMetadata(
 		build,
@@ -414,11 +390,11 @@ func (builder *stepBuilder) buildTaskStep(build db.Build, plan atc.Plan, buildVa
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan.ID, buildVars),
+		buildDelegateFactory(build, plan.ID),
 	)
 }
 
-func (builder *stepBuilder) buildSetPipelineStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+func (builder *stepBuilder) buildSetPipelineStep(build db.Build, plan atc.Plan) exec.Step {
 
 	stepMetadata := builder.stepMetadata(
 		build,
@@ -428,11 +404,11 @@ func (builder *stepBuilder) buildSetPipelineStep(build db.Build, plan atc.Plan, 
 	return builder.stepFactory.SetPipelineStep(
 		plan,
 		stepMetadata,
-		buildDelegateFactory(build, plan.ID, buildVars),
+		buildDelegateFactory(build, plan.ID),
 	)
 }
 
-func (builder *stepBuilder) buildLoadVarStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+func (builder *stepBuilder) buildLoadVarStep(build db.Build, plan atc.Plan) exec.Step {
 
 	stepMetadata := builder.stepMetadata(
 		build,
@@ -442,7 +418,7 @@ func (builder *stepBuilder) buildLoadVarStep(build db.Build, plan atc.Plan, buil
 	return builder.stepFactory.LoadVarStep(
 		plan,
 		stepMetadata,
-		buildDelegateFactory(build, plan.ID, buildVars),
+		buildDelegateFactory(build, plan.ID),
 	)
 }
 

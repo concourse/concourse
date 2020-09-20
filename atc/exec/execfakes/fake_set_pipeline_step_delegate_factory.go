@@ -8,9 +8,10 @@ import (
 )
 
 type FakeSetPipelineStepDelegateFactory struct {
-	SetPipelineStepDelegateStub        func() exec.SetPipelineStepDelegate
+	SetPipelineStepDelegateStub        func(exec.RunState) exec.SetPipelineStepDelegate
 	setPipelineStepDelegateMutex       sync.RWMutex
 	setPipelineStepDelegateArgsForCall []struct {
+		arg1 exec.RunState
 	}
 	setPipelineStepDelegateReturns struct {
 		result1 exec.SetPipelineStepDelegate
@@ -22,15 +23,16 @@ type FakeSetPipelineStepDelegateFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeSetPipelineStepDelegateFactory) SetPipelineStepDelegate() exec.SetPipelineStepDelegate {
+func (fake *FakeSetPipelineStepDelegateFactory) SetPipelineStepDelegate(arg1 exec.RunState) exec.SetPipelineStepDelegate {
 	fake.setPipelineStepDelegateMutex.Lock()
 	ret, specificReturn := fake.setPipelineStepDelegateReturnsOnCall[len(fake.setPipelineStepDelegateArgsForCall)]
 	fake.setPipelineStepDelegateArgsForCall = append(fake.setPipelineStepDelegateArgsForCall, struct {
-	}{})
-	fake.recordInvocation("SetPipelineStepDelegate", []interface{}{})
+		arg1 exec.RunState
+	}{arg1})
+	fake.recordInvocation("SetPipelineStepDelegate", []interface{}{arg1})
 	fake.setPipelineStepDelegateMutex.Unlock()
 	if fake.SetPipelineStepDelegateStub != nil {
-		return fake.SetPipelineStepDelegateStub()
+		return fake.SetPipelineStepDelegateStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -45,10 +47,17 @@ func (fake *FakeSetPipelineStepDelegateFactory) SetPipelineStepDelegateCallCount
 	return len(fake.setPipelineStepDelegateArgsForCall)
 }
 
-func (fake *FakeSetPipelineStepDelegateFactory) SetPipelineStepDelegateCalls(stub func() exec.SetPipelineStepDelegate) {
+func (fake *FakeSetPipelineStepDelegateFactory) SetPipelineStepDelegateCalls(stub func(exec.RunState) exec.SetPipelineStepDelegate) {
 	fake.setPipelineStepDelegateMutex.Lock()
 	defer fake.setPipelineStepDelegateMutex.Unlock()
 	fake.SetPipelineStepDelegateStub = stub
+}
+
+func (fake *FakeSetPipelineStepDelegateFactory) SetPipelineStepDelegateArgsForCall(i int) exec.RunState {
+	fake.setPipelineStepDelegateMutex.RLock()
+	defer fake.setPipelineStepDelegateMutex.RUnlock()
+	argsForCall := fake.setPipelineStepDelegateArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeSetPipelineStepDelegateFactory) SetPipelineStepDelegateReturns(result1 exec.SetPipelineStepDelegate) {

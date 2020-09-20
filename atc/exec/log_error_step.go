@@ -43,7 +43,7 @@ func (step LogErrorStep) Run(ctx context.Context, state RunState) error {
 
 	logger.Info("errored", lager.Data{"error": runErr.Error()})
 
-	delegate := step.delegateFactory.BuildStepDelegate()
+	delegate := step.delegateFactory.BuildStepDelegate(state)
 	delegate.Errored(logger, message)
 
 	return runErr

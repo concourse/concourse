@@ -53,7 +53,7 @@ func (err TaskImageSourceParametersError) Error() string {
 //go:generate counterfeiter . TaskDelegateFactory
 
 type TaskDelegateFactory interface {
-	TaskDelegate() TaskDelegate
+	TaskDelegate(state RunState) TaskDelegate
 }
 
 //go:generate counterfeiter . TaskDelegate
@@ -64,8 +64,6 @@ type TaskDelegate interface {
 
 	Stdout() io.Writer
 	Stderr() io.Writer
-
-	Variables() *vars.BuildVariables
 
 	SetTaskConfig(config atc.TaskConfig)
 
@@ -152,9 +150,8 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 		"job-id":    step.metadata.JobID,
 	})
 
-	delegate := step.delegateFactory.TaskDelegate()
-	variables := delegate.Variables()
-	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
+	delegate := step.delegateFactory.TaskDelegate(state)
+	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
 		return err
 	}
@@ -175,13 +172,13 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 				ExpectAllKeys: false,
 			}
 		}
-		taskVars = []vars.Variables{variables}
+		taskVars = []vars.Variables{state}
 	} else {
 		// embedded task - first we take it
 		taskConfigSource = StaticConfigSource{Config: step.plan.Config}
 
 		// for interpolation - use just cred variables
-		taskVars = []vars.Variables{variables}
+		taskVars = []vars.Variables{state}
 	}
 
 	// override params

@@ -50,8 +50,6 @@ var _ = Describe("TaskStep", func() {
 		taskStep exec.Step
 		stepErr  error
 
-		buildVars *vars.BuildVariables
-
 		containerMetadata = db.ContainerMetadata{
 			WorkingDirectory: "some-artifact-root",
 			Type:             db.ContainerTypeTask,
@@ -78,11 +76,7 @@ var _ = Describe("TaskStep", func() {
 
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
 
-		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
-		buildVars = vars.NewBuildVariables(credVars, true)
-
 		fakeDelegate = new(execfakes.FakeTaskDelegate)
-		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 
@@ -92,6 +86,8 @@ var _ = Describe("TaskStep", func() {
 		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactRepositoryReturns(repo)
+
+		state.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
 
 		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
@@ -248,12 +244,6 @@ var _ = Describe("TaskStep", func() {
 					tracing.Configured = false
 				})
 			})
-		})
-
-		It("secrets are tracked", func() {
-			mapit := vars.TrackedVarsMap{}
-			buildVars.IterateInterpolatedCreds(mapit)
-			Expect(mapit["source-param"]).To(Equal("super-secret-source"))
 		})
 
 		It("creates a containerSpec with the correct parameters", func() {

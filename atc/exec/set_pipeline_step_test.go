@@ -99,8 +99,6 @@ jobs:
 		spStep  exec.Step
 		stepErr error
 
-		buildVars *vars.BuildVariables
-
 		stepMetadata = exec.StepMetadata{
 			TeamID:       123,
 			TeamName:     "some-team",
@@ -122,12 +120,11 @@ jobs:
 		ctx, cancel = context.WithCancel(context.Background())
 		ctx = lagerctx.NewContext(ctx, testLogger)
 
-		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
-		buildVars = vars.NewBuildVariables(credVars, true)
-
 		artifactRepository = build.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactRepositoryReturns(artifactRepository)
+
+		state.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
 
 		fakeSource = new(buildfakes.FakeRegisterableArtifact)
 		artifactRepository.RegisterArtifact("some-resource", fakeSource)
@@ -136,7 +133,6 @@ jobs:
 		stderr = gbytes.NewBuffer()
 
 		fakeDelegate = new(execfakes.FakeSetPipelineStepDelegate)
-		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdout)
 		fakeDelegate.StderrReturns(stderr)
 

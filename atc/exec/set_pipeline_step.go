@@ -80,11 +80,10 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 		"job-id":    step.metadata.JobID,
 	})
 
-	delegate := step.delegateFactory.SetPipelineStepDelegate()
+	delegate := step.delegateFactory.SetPipelineStepDelegate(state)
 	delegate.Initializing(logger)
 
-	variables := delegate.Variables()
-	interpolatedPlan, err := creds.NewSetPipelinePlan(variables, step.plan).Evaluate()
+	interpolatedPlan, err := creds.NewSetPipelinePlan(state, step.plan).Evaluate()
 	if err != nil {
 		return err
 	}

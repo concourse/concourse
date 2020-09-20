@@ -29,7 +29,9 @@ var _ = Describe("DelegateFactory", func() {
 		fakePipeline *dbfakes.FakePipeline
 		fakeResource *dbfakes.FakeResource
 		fakeClock    *fakeclock.FakeClock
-		buildVars    *vars.BuildVariables
+		runState     exec.RunState
+
+		credVars vars.StaticVariables
 	)
 
 	BeforeEach(func() {
@@ -39,11 +41,13 @@ var _ = Describe("DelegateFactory", func() {
 		fakePipeline = new(dbfakes.FakePipeline)
 		fakeResource = new(dbfakes.FakeResource)
 		fakeClock = fakeclock.NewFakeClock(time.Unix(123456789, 0))
-		credVars := vars.StaticVariables{
+
+		credVars = vars.StaticVariables{
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
 		}
-		buildVars = vars.NewBuildVariables(credVars, true)
+
+		runState = exec.NewRunState(credVars, true)
 	})
 
 	Describe("GetDelegate", func() {
@@ -59,7 +63,7 @@ var _ = Describe("DelegateFactory", func() {
 				Metadata: []atc.MetadataField{{Name: "baz", Value: "shmaz"}},
 			}
 
-			delegate = builder.NewGetDelegate(fakeBuild, "some-plan-id", buildVars, fakeClock)
+			delegate = builder.NewGetDelegate(fakeBuild, "some-plan-id", runState, fakeClock)
 		})
 
 		Describe("Finished", func() {
@@ -169,7 +173,7 @@ var _ = Describe("DelegateFactory", func() {
 				Metadata: []atc.MetadataField{{Name: "baz", Value: "shmaz"}},
 			}
 
-			delegate = builder.NewPutDelegate(fakeBuild, "some-plan-id", buildVars, fakeClock)
+			delegate = builder.NewPutDelegate(fakeBuild, "some-plan-id", runState, fakeClock)
 		})
 
 		Describe("Finished", func() {
@@ -228,7 +232,7 @@ var _ = Describe("DelegateFactory", func() {
 		)
 
 		BeforeEach(func() {
-			delegate = builder.NewTaskDelegate(fakeBuild, "some-plan-id", buildVars, fakeClock)
+			delegate = builder.NewTaskDelegate(fakeBuild, "some-plan-id", runState, fakeClock)
 			someConfig = atc.TaskConfig{
 				Platform: "some-platform",
 				Run: atc.TaskRunConfig{
@@ -300,7 +304,7 @@ var _ = Describe("DelegateFactory", func() {
 		BeforeEach(func() {
 			fakeCheck = new(dbfakes.FakeCheck)
 
-			delegate = builder.NewCheckDelegate(fakeCheck, "some-plan-id", buildVars, fakeClock)
+			delegate = builder.NewCheckDelegate(fakeCheck, "some-plan-id", runState, fakeClock)
 			versions = []atc.Version{{"some": "version"}}
 		})
 
@@ -323,7 +327,7 @@ var _ = Describe("DelegateFactory", func() {
 		)
 
 		BeforeEach(func() {
-			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", buildVars, fakeClock)
+			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock)
 		})
 
 		Describe("Initializing", func() {
@@ -524,9 +528,8 @@ var _ = Describe("DelegateFactory", func() {
 
 		Describe("No line buffer without secrets redaction", func() {
 			BeforeEach(func() {
-				credVars := vars.StaticVariables{}
-				buildVars = vars.NewBuildVariables(credVars, false)
-				delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", buildVars, fakeClock)
+				runState = exec.NewRunState(credVars, false)
+				delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock)
 			})
 
 			Context("Stdout", func() {
@@ -624,8 +627,11 @@ var _ = Describe("DelegateFactory", func() {
 			)
 
 			BeforeEach(func() {
-				delegate.Variables().Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "source-param"}})
-				delegate.Variables().Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "git-key"}})
+				runState = exec.NewRunState(credVars, true)
+				delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock)
+
+				runState.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "source-param"}})
+				runState.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "git-key"}})
 			})
 
 			Context("Stdout", func() {

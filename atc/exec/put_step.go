@@ -13,13 +13,12 @@ import (
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
-	"github.com/concourse/concourse/vars"
 )
 
 //go:generate counterfeiter . PutDelegateFactory
 
 type PutDelegateFactory interface {
-	PutDelegate() PutDelegate
+	PutDelegate(state RunState) PutDelegate
 }
 
 //go:generate counterfeiter . PutDelegate
@@ -30,8 +29,6 @@ type PutDelegate interface {
 
 	Stdout() io.Writer
 	Stderr() io.Writer
-
-	Variables() *vars.BuildVariables
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
@@ -112,22 +109,20 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 		"job-id":    step.metadata.JobID,
 	})
 
-	delegate := step.delegateFactory.PutDelegate()
+	delegate := step.delegateFactory.PutDelegate(state)
 	delegate.Initializing(logger)
 
-	variables := delegate.Variables()
-
-	source, err := creds.NewSource(variables, step.plan.Source).Evaluate()
+	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
 	if err != nil {
 		return err
 	}
 
-	params, err := creds.NewParams(variables, step.plan.Params).Evaluate()
+	params, err := creds.NewParams(state, step.plan.Params).Evaluate()
 	if err != nil {
 		return err
 	}
 
-	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
+	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
 		return err
 	}

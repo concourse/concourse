@@ -15,7 +15,6 @@ import (
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
-	"github.com/concourse/concourse/vars"
 )
 
 type ErrPipelineNotFound struct {
@@ -37,7 +36,7 @@ func (e ErrResourceNotFound) Error() string {
 //go:generate counterfeiter . GetDelegateFactory
 
 type GetDelegateFactory interface {
-	GetDelegate() GetDelegate
+	GetDelegate(state RunState) GetDelegate
 }
 
 //go:generate counterfeiter . GetDelegate
@@ -48,8 +47,6 @@ type GetDelegate interface {
 
 	Stdout() io.Writer
 	Stderr() io.Writer
-
-	Variables() *vars.BuildVariables
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
@@ -121,22 +118,20 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 		"job-id":    step.metadata.JobID,
 	})
 
-	delegate := step.delegateFactory.GetDelegate()
+	delegate := step.delegateFactory.GetDelegate(state)
 	delegate.Initializing(logger)
 
-	variables := delegate.Variables()
-
-	source, err := creds.NewSource(variables, step.plan.Source).Evaluate()
+	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
 	if err != nil {
 		return err
 	}
 
-	params, err := creds.NewParams(variables, step.plan.Params).Evaluate()
+	params, err := creds.NewParams(state, step.plan.Params).Evaluate()
 	if err != nil {
 		return err
 	}
 
-	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
+	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
 		return err
 	}

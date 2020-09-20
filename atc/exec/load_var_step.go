@@ -88,7 +88,7 @@ func (step *LoadVarStep) run(ctx context.Context, state RunState) error {
 		"job-id":    step.metadata.JobID,
 	})
 
-	delegate := step.delegateFactory.BuildStepDelegate()
+	delegate := step.delegateFactory.BuildStepDelegate(state)
 
 	delegate.Initializing(logger)
 	stdout := delegate.Stdout()
@@ -107,7 +107,7 @@ func (step *LoadVarStep) run(ctx context.Context, state RunState) error {
 	}
 	fmt.Fprintf(stdout, "var %s fetched.\n", step.plan.Name)
 
-	delegate.Variables().AddLocalVar(step.plan.Name, value, !step.plan.Reveal)
+	state.AddLocalVar(step.plan.Name, value, !step.plan.Reveal)
 	fmt.Fprintf(stdout, "added var %s to build.\n", step.plan.Name)
 
 	step.succeeded = true

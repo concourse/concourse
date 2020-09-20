@@ -31,7 +31,7 @@ type CheckStep struct {
 //go:generate counterfeiter . CheckDelegateFactory
 
 type CheckDelegateFactory interface {
-	CheckDelegate() CheckDelegate
+	CheckDelegate(state RunState) CheckDelegate
 }
 
 //go:generate counterfeiter . CheckDelegate
@@ -87,15 +87,14 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		"step-name": step.plan.Name,
 	})
 
-	delegate := step.delegateFactory.CheckDelegate()
-	variables := delegate.Variables()
+	delegate := step.delegateFactory.CheckDelegate(state)
 
-	source, err := creds.NewSource(variables, step.plan.Source).Evaluate()
+	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
 	if err != nil {
 		return fmt.Errorf("resource config creds evaluation: %w", err)
 	}
 
-	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
+	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
 		return fmt.Errorf("resource types creds evaluation: %w", err)
 	}
