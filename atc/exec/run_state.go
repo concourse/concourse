@@ -10,7 +10,7 @@ import (
 )
 
 type runState struct {
-	vars *vars.BuildVariables
+	vars *buildVariables
 
 	artifacts *build.Repository
 	results   *sync.Map
@@ -18,7 +18,7 @@ type runState struct {
 
 func NewRunState(credVars vars.Variables, enableRedaction bool) RunState {
 	return &runState{
-		vars: vars.NewBuildVariables(credVars, enableRedaction),
+		vars: newBuildVariables(credVars, enableRedaction),
 
 		artifacts: build.NewRepository(),
 		results:   &sync.Map{},
