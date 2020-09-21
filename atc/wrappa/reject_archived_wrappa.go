@@ -97,7 +97,6 @@ func (rw *RejectArchivedWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListAllJobs,
 			atc.ListAllResources,
 			atc.ListTeams,
-			atc.MainJobBadge,
 			atc.GetWall,
 			atc.GetLogLevel,
 			atc.SetLogLevel,

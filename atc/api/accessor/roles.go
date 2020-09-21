@@ -37,7 +37,6 @@ var DefaultRoles = map[string]string{
 	atc.ScheduleJob:                   OperatorRole,
 	atc.GetVersionsDB:                 ViewerRole,
 	atc.JobBadge:                      ViewerRole,
-	atc.MainJobBadge:                  ViewerRole,
 	atc.ClearTaskCache:                OperatorRole,
 	atc.ListAllResources:              ViewerRole,
 	atc.ListResources:                 ViewerRole,

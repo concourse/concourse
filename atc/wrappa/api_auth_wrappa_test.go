@@ -184,7 +184,6 @@ var _ = Describe("APIAuthWrappa", func() {
 				atc.ListAllJobs:          authenticateIfTokenProvided(inputHandlers[atc.ListAllJobs]),
 				atc.ListAllResources:     authenticateIfTokenProvided(inputHandlers[atc.ListAllResources]),
 				atc.ListTeams:            authenticateIfTokenProvided(inputHandlers[atc.ListTeams]),
-				atc.MainJobBadge:         authenticateIfTokenProvided(inputHandlers[atc.MainJobBadge]),
 				atc.GetWall:              authenticateIfTokenProvided(inputHandlers[atc.GetWall]),
 
 				// authenticated and is admin
