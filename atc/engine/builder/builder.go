@@ -179,48 +179,21 @@ func (builder *stepBuilder) buildAcrossStep(build db.Build, plan atc.Plan) exec.
 		builder.externalURL,
 	)
 
-	varNames := make([]string, len(plan.Across.Vars))
-	for i, v := range plan.Across.Vars {
-		varNames[i] = v.Var
+	steps := make([]exec.ScopedStep, len(plan.Across.Steps))
+	for i, s := range plan.Across.Steps {
+		steps[i] = exec.ScopedStep{
+			Step:   builder.buildStep(build, s.Step),
+			Values: s.Values,
+		}
 	}
 
 	return exec.Across(
-		step,
-		varNames,
-		buildDelegateFactory(build, plan.ID, buildVars),
+		plan.Across.Vars,
+		steps,
+		plan.Across.FailFast,
+		buildDelegateFactory(build, plan.ID),
 		stepMetadata,
 	)
-}
-
-func (builder *stepBuilder) buildAcrossInParallelStep(build db.Build, varIndex int, plan atc.AcrossPlan, buildVars *vars.BuildVariables) exec.InParallelStep {
-	if varIndex == len(plan.Vars)-1 {
-		var steps []exec.Step
-		for _, step := range plan.Steps {
-			scopedBuildVars := buildVars.NewLocalScope()
-			for i, v := range plan.Vars {
-				// Don't redact because the `list` operation of a var_source should return identifiers
-				// which should be publicly accessible. For static across steps, the static list is
-				// embedded directly in the pipeline
-				scopedBuildVars.AddLocalVar(v.Var, step.Values[i], false)
-			}
-			steps = append(steps, builder.buildStep(build, step.Step, scopedBuildVars))
-		}
-		return exec.InParallel(steps, plan.Vars[varIndex].MaxInFlight, plan.FailFast)
-	}
-	stepsPerValue := 1
-	for _, v := range plan.Vars[varIndex+1:] {
-		stepsPerValue *= len(v.Values)
-	}
-	numValues := len(plan.Vars[varIndex].Values)
-	substeps := make([]exec.Step, numValues)
-	for i := range substeps {
-		startIndex := i * stepsPerValue
-		endIndex := (i + 1) * stepsPerValue
-		planCopy := plan
-		planCopy.Steps = plan.Steps[startIndex:endIndex]
-		substeps[i] = builder.buildAcrossInParallelStep(build, varIndex+1, planCopy, buildVars)
-	}
-	return exec.InParallel(substeps, plan.Vars[varIndex].MaxInFlight, plan.FailFast)
 }
 
 func (builder *stepBuilder) buildDoStep(build db.Build, plan atc.Plan) exec.Step {

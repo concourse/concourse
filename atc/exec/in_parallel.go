@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"runtime/debug"
+	"sync/atomic"
 
 	"github.com/hashicorp/go-multierror"
 )
@@ -40,27 +41,55 @@ func InParallel(steps []Step, limit int, failFast bool) InParallelStep {
 // After all steps finish, their errors (if any) will be collected and returned as a
 // single error.
 func (step InParallelStep) Run(ctx context.Context, state RunState) error {
+	_, err := parallelExecutor{
+		stepName: "parallel",
+
+		maxInFlight: step.limit,
+		failFast:    step.failFast,
+		count:       len(step.steps),
+
+		runFunc: func(ctx context.Context, i int) (bool, error) {
+			err := step.steps[i].Run(ctx, state)
+			if err != nil {
+				return false, err
+			}
+			return step.steps[i].Succeeded(), nil
+		},
+	}.run(ctx)
+	return err
+}
+
+type parallelExecutor struct {
+	stepName string
+
+	maxInFlight int
+	failFast    bool
+	count       int
+
+	runFunc func(ctx context.Context, i int) (bool, error)
+}
+
+func (p parallelExecutor) run(ctx context.Context) (bool, error) {
 	var (
-		errs          = make(chan error, len(step.steps))
-		sem           = make(chan bool, step.limit)
+		errs          = make(chan error, p.count)
+		sem           = make(chan bool, p.maxInFlight)
 		executedSteps int
 	)
 
 	runCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	for _, s := range step.steps {
-		s := s
+	var numFailures uint32 = 0
+	for i := 0; i < p.count; i++ {
+		i := i
 		sem <- true
-
 		if runCtx.Err() != nil {
 			break
 		}
-
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
-					err := fmt.Errorf("panic in parallel step: %v", r)
+					err := fmt.Errorf("panic in %s step: %v", p.stepName, r)
 
 					fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
 					errs <- err
@@ -70,10 +99,14 @@ func (step InParallelStep) Run(ctx context.Context, state RunState) error {
 				<-sem
 			}()
 
-			errs <- s.Run(runCtx, state)
-			if !s.Succeeded() && step.failFast {
-				cancel()
+			succeeded, err := p.runFunc(runCtx, i)
+			if !succeeded {
+				atomic.AddUint32(&numFailures, 1)
+				if p.failFast {
+					cancel()
+				}
 			}
+			errs <- err
 		}()
 		executedSteps++
 	}
@@ -90,14 +123,15 @@ func (step InParallelStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	if ctx.Err() != nil {
-		return ctx.Err()
+		return false, ctx.Err()
 	}
 
 	if result != nil {
-		return result
+		return false, result
 	}
 
-	return nil
+	allStepsSuccessful := atomic.LoadUint32(&numFailures) == 0
+	return allStepsSuccessful, nil
 }
 
 // Succeeded is true if all of the steps' Succeeded is true
