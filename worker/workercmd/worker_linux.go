@@ -32,6 +32,10 @@ type GuardianRuntime struct {
 	Config         flag.File     `long:"config"     description:"Path to a config file to use for the Garden backend. Guardian flags as env vars, e.g. 'CONCOURSE_GARDEN_FOO_BAR=a,b' for '--foo-bar a --foo-bar b'."`
 	DNS            DNSConfig     `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
 	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to the Garden server to complete. 0 means no timeout."`
+
+	//Guardian specific flags - these are passed along as-is to the gdn binary as options. The defaults have been defined to suite Concourse.
+	MaxContainers  int           `long:"max-containers" default:"250" description:"Max container capacity. 0 means no limit."`
+	NetworkPool    string        `long:"network-pool" default:"10.80.0.0/16" description:"Network range to use for dynamically allocated container subnets."`
 }
 
 type ContainerdRuntime struct {
@@ -43,7 +47,7 @@ type ContainerdRuntime struct {
 	DNS                DNSConfig `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
 	DNSServers         []string  `long:"dns-server" description:"DNS server IP address to use instead of automatically determined servers. Can be specified multiple times."`
 	RestrictedNetworks []string  `long:"restricted-network" description:"Network ranges to which traffic from containers will be restricted. Can be specified multiple times."`
-	MaxContainers      int       `long:"max-containers" default:"0" description:"Max container capacity. 0 means no limit."`
+	MaxContainers      int       `long:"max-containers" default:"250" description:"Max container capacity. 0 means no limit."`
 	NetworkPool        string    `long:"network-pool" default:"10.80.0.0/16" description:"Network range to use for dynamically allocated container subnets."`
 }
 
