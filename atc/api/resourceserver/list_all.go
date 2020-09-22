@@ -38,7 +38,6 @@ func (s *Server) ListAllResources(w http.ResponseWriter, r *http.Request) {
 			present.Resource(
 				resource,
 				true,
-				resource.TeamName(),
 			),
 		)
 	}

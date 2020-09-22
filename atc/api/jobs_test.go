@@ -360,6 +360,7 @@ var _ = Describe("Jobs API", func() {
 						fakeJob.PipelineIDReturns(1)
 						fakeJob.PipelineNameReturns("some-pipeline")
 						fakeJob.NameReturns("some-job")
+						fakeJob.TeamNameReturns("some-team")
 						fakeJob.TagsReturns([]string{"group-1", "group-2"})
 						fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
 
@@ -1524,6 +1525,7 @@ var _ = Describe("Jobs API", func() {
 			Context("when getting the job succeeds", func() {
 				BeforeEach(func() {
 					fakeJob.NameReturns("some-job")
+					fakeJob.TeamNameReturns("some-team")
 					fakePipeline.JobReturns(fakeJob, true, nil)
 				})
 

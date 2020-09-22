@@ -7,10 +7,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func DashboardJob(
-	teamName string,
-	job atc.DashboardJob,
-) atc.Job {
+func DashboardJob(job atc.DashboardJob) atc.Job {
 	var presentedNextBuild, presentedFinishedBuild, presentedTransitionBuild *atc.Build
 
 	if job.NextBuild != nil {
@@ -45,7 +42,7 @@ func DashboardJob(
 		PipelineID:           job.PipelineID,
 		PipelineName:         job.PipelineName,
 		PipelineInstanceVars: job.PipelineInstanceVars,
-		TeamName:             teamName,
+		TeamName:             job.TeamName,
 		Paused:               job.Paused,
 		HasNewInputs:         job.HasNewInputs,
 

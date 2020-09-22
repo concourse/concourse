@@ -34,10 +34,7 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 	for _, job := range dashboard {
 		jobs = append(
 			jobs,
-			present.DashboardJob(
-				job.TeamName,
-				job,
-			),
+			present.DashboardJob(job),
 		)
 	}
 

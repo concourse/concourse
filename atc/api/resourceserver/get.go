@@ -33,7 +33,6 @@ func (s *Server) GetResource(pipeline db.Pipeline) http.Handler {
 		resource := present.Resource(
 			dbResource,
 			acc.IsAuthorized(teamName),
-			teamName,
 		)
 
 		w.Header().Set("Content-Type", "application/json")

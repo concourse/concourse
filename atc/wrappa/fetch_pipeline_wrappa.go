@@ -152,7 +152,7 @@ func (f fetchPipelineByNameHandler) ServeHTTP(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	pipeline, found, err := dbTeam.Pipeline(pipelineName)
+	pipeline, found, err := dbTeam.Pipeline(atc.PipelineRef{Name: pipelineName})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

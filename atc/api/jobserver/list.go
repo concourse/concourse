@@ -23,15 +23,10 @@ func (s *Server) ListJobs(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		teamName := r.FormValue(":team_name")
-
 		for _, job := range dashboard {
 			jobs = append(
 				jobs,
-				present.DashboardJob(
-					teamName,
-					job,
-				),
+				present.DashboardJob(job),
 			)
 		}
 

@@ -6,7 +6,6 @@ import (
 )
 
 func Job(
-	teamName string,
 	job db.Job,
 	inputs []atc.JobInput,
 	outputs []atc.JobOutput,
@@ -56,7 +55,7 @@ func Job(
 		PipelineID:           job.PipelineID(),
 		PipelineName:         job.PipelineName(),
 		PipelineInstanceVars: job.PipelineInstanceVars(),
-		TeamName:             teamName,
+		TeamName:             job.TeamName(),
 		DisableManualTrigger: job.DisableManualTrigger(),
 		Paused:               job.Paused(),
 		FirstLoggedBuildID:   job.FirstLoggedBuildID(),
