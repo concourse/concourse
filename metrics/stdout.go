@@ -3,8 +3,9 @@ package metrics
 import (
 	"fmt"
 	"os"
+	"time"
 
-	"go.opentelemetry.io/otel/exporter/metric/stdout"
+	"go.opentelemetry.io/otel/exporters/metric/stdout"
 	"go.opentelemetry.io/otel/sdk/metric/controller/push"
 )
 
@@ -21,7 +22,7 @@ func (s Stdout) IsConfigured() bool {
 func (p *Stdout) Init() (err error) {
 	p.controller, err = stdout.NewExportPipeline(stdout.Config{
 		Writer: os.Stdout,
-	})
+	}, 1*time.Minute)
 	if err != nil {
 		err = fmt.Errorf("stdout init: %w", err)
 		return

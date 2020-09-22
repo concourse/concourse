@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/lib/pq"
-	"go.opentelemetry.io/otel/api/propagators"
+	"go.opentelemetry.io/otel/api/propagation"
 )
 
 type CheckStatus string
@@ -51,7 +51,7 @@ type Check interface {
 	AcquireTrackingLock(lager.Logger) (lock.Lock, bool, error)
 	Reload() (bool, error)
 
-	SpanContext() propagators.Supplier
+	SpanContext() propagation.HTTPSupplier
 }
 
 var checksQuery = psql.Select(
@@ -331,7 +331,7 @@ func (c *check) SaveVersions(spanContext SpanContext, versions []atc.Version) er
 	return saveVersions(c.conn, c.resourceConfigScopeID, versions, spanContext)
 }
 
-func (c *check) SpanContext() propagators.Supplier {
+func (c *check) SpanContext() propagation.HTTPSupplier {
 	return c.spanContext
 }
 

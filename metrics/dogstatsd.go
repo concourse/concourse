@@ -3,8 +3,9 @@ package metrics
 import (
 	"fmt"
 	"os"
+	"time"
 
-	"go.opentelemetry.io/otel/exporter/metric/dogstatsd"
+	"go.opentelemetry.io/otel/exporters/metric/dogstatsd"
 	"go.opentelemetry.io/otel/sdk/metric/controller/push"
 )
 
@@ -21,7 +22,7 @@ func (d *Dogstatsd) Init() (err error) {
 		config = dogstatsd.Config{Writer: os.Stdout}
 	}
 
-	d.controller, err = dogstatsd.NewExportPipeline(config)
+	d.controller, err = dogstatsd.NewExportPipeline(config, 1*time.Minute)
 	if err != nil {
 		err = fmt.Errorf("dogstatsd initialization: %w", err)
 		return

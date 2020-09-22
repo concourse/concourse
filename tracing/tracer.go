@@ -3,10 +3,9 @@ package tracing
 import (
 	"context"
 
-	"go.opentelemetry.io/otel/api/core"
 	"go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/api/key"
-	"go.opentelemetry.io/otel/api/propagators"
+	"go.opentelemetry.io/otel/api/propagation"
 	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/api/trace/testtrace"
 	export "go.opentelemetry.io/otel/sdk/export/trace"
@@ -105,12 +104,12 @@ func FromContext(ctx context.Context) trace.Span {
 	return trace.SpanFromContext(ctx)
 }
 
-func Inject(ctx context.Context, supplier propagators.Supplier) {
-	propagators.TraceContext{}.Inject(ctx, supplier)
+func Inject(ctx context.Context, supplier propagation.HTTPSupplier) {
+	trace.TraceContext{}.Inject(ctx, supplier)
 }
 
 type WithSpanContext interface {
-	SpanContext() propagators.Supplier
+	SpanContext() propagation.HTTPSupplier
 }
 
 func StartSpanFollowing(
@@ -119,22 +118,22 @@ func StartSpanFollowing(
 	component string,
 	attrs Attrs,
 ) (context.Context, trace.Span) {
-	supplier := following.SpanContext()
-	var spanContext core.SpanContext
-	if supplier == nil {
-		spanContext = core.EmptySpanContext()
-	} else {
-		spanContext, _ = propagators.TraceContext{}.Extract(
-			context.TODO(),
-			following.SpanContext(),
-		)
-	}
+	// supplier := following.SpanContext()
+	// var spanContext core.SpanContext
+	// if supplier == nil {
+	// 	spanContext = core.EmptySpanContext()
+	// } else {
+	// 	spanContext = trace.TraceContext{}.Extract(
+	// 		context.TODO(),
+	// 		following.SpanContext(),
+	// 	)
+	// }
 
 	return startSpan(
 		ctx,
 		component,
 		attrs,
-		trace.FollowsFrom(spanContext),
+		// trace.FollowsFrom(spanContext),
 	)
 }
 
@@ -144,17 +143,17 @@ func StartSpanLinkedToFollowing(
 	component string,
 	attrs Attrs,
 ) (context.Context, trace.Span) {
-	followingSpanContext, _ := propagators.TraceContext{}.Extract(
-		context.TODO(),
-		following.SpanContext(),
-	)
+	// followingSpanContext := trace.TraceContext{}.Extract(
+	// 	context.TODO(),
+	// 	following.SpanContext(),
+	// )
 	linkedSpanContext := trace.SpanFromContext(linked).SpanContext()
 
 	return startSpan(
 		context.Background(),
 		component,
 		attrs,
-		trace.FollowsFrom(followingSpanContext),
+		// trace.FollowsFrom(followingSpanContext),
 		trace.LinkedTo(linkedSpanContext),
 	)
 }

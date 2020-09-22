@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/concourse/flag"
-	"go.opentelemetry.io/otel/exporter/metric/prometheus"
+	"go.opentelemetry.io/otel/exporters/metric/prometheus"
 	"go.opentelemetry.io/otel/sdk/metric/controller/push"
 )
 

@@ -15,7 +15,7 @@ import (
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 	"github.com/concourse/concourse/vars/varsfakes"
-	"go.opentelemetry.io/otel/api/propagators"
+	"go.opentelemetry.io/otel/api/propagation"
 	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/api/trace/testtrace"
 
@@ -332,7 +332,7 @@ var _ = Describe("CheckStep", func() {
 			It("propagates span context to delegate", func() {
 				spanContext, _ := fakeDelegate.SaveVersionsArgsForCall(0)
 				traceID := span.SpanContext().TraceIDString()
-				traceParent := spanContext.Get(propagators.TraceparentHeader)
+				traceParent := spanContext.Get(propagation.TraceparentHeader)
 				Expect(traceParent).To(ContainSubstring(traceID))
 			})
 		})

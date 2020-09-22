@@ -11,7 +11,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
-	"go.opentelemetry.io/otel/api/propagators"
+	"go.opentelemetry.io/otel/api/propagation"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/encryption"
@@ -35,7 +35,7 @@ type BuildInput struct {
 	Context SpanContext
 }
 
-func (bi BuildInput) SpanContext() propagators.Supplier {
+func (bi BuildInput) SpanContext() propagation.HTTPSupplier {
 	return bi.Context
 }
 
@@ -161,7 +161,7 @@ type Build interface {
 	IsDrained() bool
 	SetDrained(bool) error
 
-	SpanContext() propagators.Supplier
+	SpanContext() propagation.HTTPSupplier
 
 	SavePipeline(
 		pipelineName string,
@@ -1529,7 +1529,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	return inputs, outputs, nil
 }
 
-func (b *build) SpanContext() propagators.Supplier {
+func (b *build) SpanContext() propagation.HTTPSupplier {
 	return b.spanContext
 }
 
