@@ -5,8 +5,8 @@ import "github.com/tedsuo/rata"
 type MultiWrappa []Wrappa
 
 func (wrappas MultiWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
-	for _, w := range wrappas {
-		handlers = w.Wrap(handlers)
+	for i := len(wrappas) - 1; i >= 0; i-- {
+		handlers = wrappas[i].Wrap(handlers)
 	}
 
 	return handlers

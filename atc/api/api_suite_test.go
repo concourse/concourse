@@ -164,14 +164,14 @@ var _ = BeforeEach(func() {
 	fakePolicyChecker.CheckReturns(policy.PassedPolicyCheck(), nil)
 
 	apiWrapper := wrappa.MultiWrappa{
-		wrappa.NewPolicyCheckWrappa(logger, fakePolicyChecker),
+		wrappa.FetchPipelineWrappa{TeamFactory: dbTeamFactory},
 		wrappa.NewAPIAuthWrappa(
 			checkPipelineAccessHandlerFactory,
 			checkBuildReadAccessHandlerFactory,
 			checkBuildWriteAccessHandlerFactory,
 			checkWorkerTeamAccessHandlerFactory,
 		),
-		wrappa.FetchPipelineWrappa{TeamFactory: dbTeamFactory},
+		wrappa.NewPolicyCheckWrappa(logger, fakePolicyChecker),
 	}
 
 	handler, err := api.NewHandler(

@@ -1835,28 +1835,28 @@ func (cmd *RunCommand) constructAPIHandler(
 	}
 
 	apiWrapper := wrappa.MultiWrappa{
-		wrappa.NewConcurrentRequestLimitsWrappa(
-			logger,
-			wrappa.NewConcurrentRequestPolicy(cmd.ConcurrentRequestLimits),
-		),
-		wrappa.NewAPIMetricsWrappa(logger),
-		wrappa.NewPolicyCheckWrappa(logger, policychecker.NewApiPolicyChecker(policyChecker)),
-		wrappa.NewAPIAuthWrappa(
-			checkPipelineAccessHandlerFactory,
-			checkBuildReadAccessHandlerFactory,
-			checkBuildWriteAccessHandlerFactory,
-			checkWorkerTeamAccessHandlerFactory,
-		),
-		wrappa.NewRejectArchivedWrappa(rejectArchivedHandlerFactory),
-		wrappa.FetchPipelineWrappa{TeamFactory: teamFactory},
-		wrappa.NewConcourseVersionWrappa(concourse.Version),
+		wrappa.NewCompressionWrappa(logger),
 		wrappa.NewAccessorWrappa(
 			logger,
 			accessFactory,
 			aud,
 			customRoles,
 		),
-		wrappa.NewCompressionWrappa(logger),
+		wrappa.NewConcourseVersionWrappa(concourse.Version),
+		wrappa.FetchPipelineWrappa{TeamFactory: teamFactory},
+		wrappa.NewRejectArchivedWrappa(rejectArchivedHandlerFactory),
+		wrappa.NewAPIAuthWrappa(
+			checkPipelineAccessHandlerFactory,
+			checkBuildReadAccessHandlerFactory,
+			checkBuildWriteAccessHandlerFactory,
+			checkWorkerTeamAccessHandlerFactory,
+		),
+		wrappa.NewPolicyCheckWrappa(logger, policychecker.NewApiPolicyChecker(policyChecker)),
+		wrappa.NewAPIMetricsWrappa(logger),
+		wrappa.NewConcurrentRequestLimitsWrappa(
+			logger,
+			wrappa.NewConcurrentRequestPolicy(cmd.ConcurrentRequestLimits),
+		),
 	}
 
 	return api.NewHandler(
