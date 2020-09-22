@@ -15,12 +15,15 @@ RUN grep '^replace' go.mod || go mod download
 COPY . .
 RUN go build -gcflags=all="-N -l" -o /usr/local/concourse/bin/concourse \
       ./cmd/concourse
+RUN set -x && \
+      go build --tags 'netgo osusergo' -a -ldflags '-extldflags "-static"' -o /tmp/fly ./fly && \
+      tar -C /tmp -czf /usr/local/concourse/fly-assets/fly-$(go env GOOS)-$(go env GOARCH).tgz fly && \
+      rm /tmp/fly
 VOLUME /src
 
 
 # build the init executable for containerd
-RUN  set -x && \
-	gcc -O2 -static -o /usr/local/concourse/bin/init ./cmd/init/init.c
+RUN gcc -O2 -static -o /usr/local/concourse/bin/init ./cmd/init/init.c
 
 
 # generate keys (with 1024 bits just so they generate faster)
