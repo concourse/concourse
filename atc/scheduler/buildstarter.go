@@ -23,7 +23,7 @@ type BuildStarter interface {
 //go:generate counterfeiter . BuildPlanner
 
 type BuildPlanner interface {
-	Create(db.Job, atc.StepConfig, db.SchedulerResources, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
+	Create(atc.StepConfig, db.SchedulerResources, atc.VersionedResourceTypes, []db.BuildInput) (atc.Plan, error)
 }
 
 type Build interface {
@@ -198,7 +198,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		return startResults{}, fmt.Errorf("config: %w", err)
 	}
 
-	plan, err := s.planner.Create(job, config.StepConfig(), job.Resources, job.ResourceTypes, buildInputs)
+	plan, err := s.planner.Create(config.StepConfig(), job.Resources, job.ResourceTypes, buildInputs)
 	if err != nil {
 		logger.Error("failed-to-create-build-plan", err)
 

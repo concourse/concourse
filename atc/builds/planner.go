@@ -16,7 +16,6 @@ func NewPlanner(planFactory atc.PlanFactory) Planner {
 }
 
 func (planner Planner) Create(
-	job db.Job,
 	planConfig atc.StepConfig,
 	resources db.SchedulerResources,
 	resourceTypes atc.VersionedResourceTypes,
@@ -25,7 +24,6 @@ func (planner Planner) Create(
 	visitor := &planVisitor{
 		planFactory: planner.planFactory,
 
-		job:           job,
 		resources:     resources,
 		resourceTypes: resourceTypes,
 		inputs:        inputs,
@@ -42,7 +40,6 @@ func (planner Planner) Create(
 type planVisitor struct {
 	planFactory atc.PlanFactory
 
-	job           db.Job
 	resources     db.SchedulerResources
 	resourceTypes atc.VersionedResourceTypes
 	inputs        []db.BuildInput
@@ -51,16 +48,8 @@ type planVisitor struct {
 }
 
 func (visitor *planVisitor) VisitTask(step *atc.TaskStep) error {
-	if step.Config != nil && step.Config.ImageResource != nil {
-		parentType, found := visitor.resourceTypes.Lookup(step.Config.ImageResource.Type)
-		if found {
-			step.Config.ImageResource.Source = parentType.Defaults.Merge(step.Config.ImageResource.Source)
-		} else {
-			ubrt, found, _ := visitor.job.FindBaseResourceType(step.Config.ImageResource.Type)
-			if found {
-				step.Config.ImageResource.Source = ubrt.Defaults.Merge(step.Config.ImageResource.Source)
-			}
-		}
+	if step.Config != nil {
+		step.Config.ImageResource.AppSourceDefaults(visitor.resourceTypes)
 	}
 
 	visitor.plan = visitor.planFactory.NewPlan(atc.TaskPlan{
@@ -104,10 +93,7 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 		return VersionNotProvidedError{step.Name}
 	}
 
-	parentType, found := visitor.resourceTypes.Lookup(resource.Type)
-	if found {
-		resource.Source = parentType.Defaults.Merge(resource.Source)
-	}
+	resource.ApplySourceDefaults(visitor.resourceTypes)
 
 	visitor.plan = visitor.planFactory.NewPlan(atc.GetPlan{
 		Name: step.Name,
@@ -138,10 +124,7 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 		return UnknownResourceError{resourceName}
 	}
 
-	parentType, found := visitor.resourceTypes.Lookup(resource.Type)
-	if found {
-		resource.Source = parentType.Defaults.Merge(resource.Source)
-	}
+	resource.ApplySourceDefaults(visitor.resourceTypes)
 
 	atcPutPlan := atc.PutPlan{
 		Type:     resource.Type,

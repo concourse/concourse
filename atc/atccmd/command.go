@@ -249,6 +249,8 @@ type RunCommand struct {
 		EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears or a network error occurs"`
 		EnableAcrossStep                     bool `long:"enable-across-step" description:"Enable the experimental across step to be used in jobs. The API is subject to change."`
 	} `group:"Feature Flags"`
+
+	BaseResourceTypeDefaults flag.File `long:"base-resource-type-defaults" description:"Base resource type defaults"`
 }
 
 type Migration struct {
@@ -481,6 +483,21 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	atc.EnableRedactSecrets = cmd.FeatureFlags.EnableRedactSecrets
 	atc.EnableBuildRerunWhenWorkerDisappears = cmd.FeatureFlags.EnableBuildRerunWhenWorkerDisappears
 	atc.EnableAcrossStep = cmd.FeatureFlags.EnableAcrossStep
+
+	if cmd.BaseResourceTypeDefaults.Path() != "" {
+		content, err := ioutil.ReadFile(cmd.BaseResourceTypeDefaults.Path())
+		if err != nil {
+			return nil, err
+		}
+
+		defaults := map[string]atc.Source{}
+		err = yaml.Unmarshal(content, &defaults)
+		if err != nil {
+			return nil, err
+		}
+
+		atc.LoadBaseResourceTypeDefaults(defaults)
+	}
 
 	//FIXME: These only need to run once for the entire binary. At the moment,
 	//they rely on state of the command.
