@@ -22,7 +22,7 @@ func (rw *RejectArchivedWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 	for name, handler := range handlers {
 		newHandler := handler
 
-		switch name {
+		switch atc.RouteAction(name) {
 		case
 			atc.PausePipeline,
 			atc.UnpausePipeline,

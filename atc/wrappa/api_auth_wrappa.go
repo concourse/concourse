@@ -35,7 +35,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 	for name, handler := range handlers {
 		newHandler := handler
 
-		switch name {
+		switch atc.RouteAction(name) {
 		// pipeline is public or authorized
 		case atc.GetBuild,
 			atc.BuildResources:

@@ -113,6 +113,10 @@ const (
 	ClearWall = "ClearWall"
 )
 
+func RouteAction(name string) string {
+	return name
+}
+
 const (
 	ClearTaskCacheQueryPath = "cache_path"
 	SaveConfigCheckCreds    = "check_creds"

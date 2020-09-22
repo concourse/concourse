@@ -21,7 +21,7 @@ func (wrappa CompressionWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 	wrapped := rata.Handlers{}
 
 	for name, handler := range handlers {
-		switch name {
+		switch atc.RouteAction(name) {
 		// always gzip for events
 		case atc.BuildEvents:
 			gzipEnforcedHandler, err := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(0))

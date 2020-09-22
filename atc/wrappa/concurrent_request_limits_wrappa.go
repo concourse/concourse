@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/tedsuo/rata"
 )
@@ -28,7 +29,8 @@ func (wrappa ConcurrentRequestLimitsWrappa) Wrap(
 ) rata.Handlers {
 	wrapped := rata.Handlers{}
 
-	for action, handler := range handlers {
+	for name, handler := range handlers {
+		action := atc.RouteAction(name)
 		pool, found := wrappa.concurrentRequestPolicy.HandlerPool(action)
 		if found {
 			inflight := &metric.Gauge{}
@@ -37,13 +39,13 @@ func (wrappa ConcurrentRequestLimitsWrappa) Wrap(
 			metric.Metrics.ConcurrentRequests[action] = inflight
 			metric.Metrics.ConcurrentRequestsLimitHit[action] = limitHit
 
-			wrapped[action] = wrappa.wrap(
+			wrapped[name] = wrappa.wrap(
 				pool,
 				handler,
 				inflight, limitHit,
 			)
 		} else {
-			wrapped[action] = handler
+			wrapped[name] = handler
 		}
 	}
 

@@ -2,6 +2,7 @@ package wrappa
 
 import (
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/auditor"
 	"github.com/tedsuo/rata"
@@ -34,7 +35,7 @@ func (w *AccessorWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 	for name, handler := range handlers {
 		wrapped[name] = accessor.NewHandler(
 			w.logger,
-			name,
+			atc.RouteAction(name),
 			handler,
 			w.accessFactory,
 			w.auditor,
