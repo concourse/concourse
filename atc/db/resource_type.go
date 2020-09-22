@@ -62,8 +62,6 @@ type ResourceType interface {
 
 	SetCheckSetupError(error) error
 
-	FindParentBaseResourceType() (*UsedBaseResourceType, bool, error)
-
 	Version() atc.Version
 
 	Reload() (bool, error)
@@ -106,9 +104,9 @@ func (resourceTypes ResourceTypes) Deserialize() atc.VersionedResourceTypes {
 		if found {
 			source = parentType.Defaults().Merge(source)
 		} else {
-			parentType, found, _ := t.FindParentBaseResourceType()
+			defaults, found := atc.FindBaseResourceTypeDefaults(t.Type())
 			if found {
-				source = parentType.Defaults.Merge(source)
+				source = defaults.Merge(source)
 			}
 		}
 
@@ -386,11 +384,6 @@ func (t *resourceType) SetCheckSetupError(cause error) error {
 	}
 
 	return err
-}
-
-func (t *resourceType) FindParentBaseResourceType() (*UsedBaseResourceType, bool, error) {
-	brt := BaseResourceType{Name: t.Type()}
-	return brt.Find(t.conn)
 }
 
 func scanResourceType(t *resourceType, row scannable) error {

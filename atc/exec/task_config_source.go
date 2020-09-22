@@ -105,6 +105,27 @@ func (configSource FileConfigSource) Warnings() []string {
 	return []string{}
 }
 
+// BaseResourceTypeDefaultsApplySource applies base resource type defaults to image_source.
+type BaseResourceTypeDefaultsApplySource struct {
+	ConfigSource  TaskConfigSource
+	ResourceTypes atc.VersionedResourceTypes
+}
+
+func (configSource BaseResourceTypeDefaultsApplySource) FetchConfig(ctx context.Context, logger lager.Logger, repo *build.Repository) (atc.TaskConfig, error) {
+	config, err := configSource.ConfigSource.FetchConfig(ctx, logger, repo)
+	if err != nil {
+		return config, err
+	}
+
+	config.ImageResource.AppSourceDefaults(configSource.ResourceTypes)
+
+	return config, nil
+}
+
+func (configSource BaseResourceTypeDefaultsApplySource) Warnings() []string {
+	return []string{}
+}
+
 // OverrideParamsConfigSource is used to override params in a config source
 type OverrideParamsConfigSource struct {
 	ConfigSource TaskConfigSource

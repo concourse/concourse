@@ -2,7 +2,6 @@ package builds_test
 
 import (
 	"encoding/json"
-	"github.com/concourse/concourse/atc/db/dbfakes"
 	"testing"
 
 	"github.com/concourse/concourse/atc"
@@ -742,11 +741,7 @@ var factoryTests = []PlannerTest{
 func (test PlannerTest) Run(s *PlannerSuite) {
 	factory := builds.NewPlanner(atc.NewPlanFactory(0))
 
-	var fakeJob *dbfakes.FakeJob
-	fakeJob = new(dbfakes.FakeJob)
-	fakeJob.FindBaseResourceTypeReturns(nil, false, nil)
-
-	actualPlan, actualErr := factory.Create(fakeJob, test.Config, resources, resourceTypes, test.Inputs)
+	actualPlan, actualErr := factory.Create(test.Config, resources, resourceTypes, test.Inputs)
 
 	if test.Err != nil {
 		s.Equal(test.Err, actualErr)
