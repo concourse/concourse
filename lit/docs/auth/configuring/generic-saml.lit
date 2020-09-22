@@ -9,7 +9,7 @@ A Concourse server can authenticate against any valid SAML auth provider.
   \title{Authentication}{generic-saml-authentication}
 
   First you'll need to create an application with your SAML provider. Note that
-  the terminology used for configuring an application may may vary between SAML
+  the terminology used for configuring an application may vary between SAML
   providers - this document uses Okta's terminology.
 
   SAML Assertion Consumer Service (ACS) URL must be the URL of your
