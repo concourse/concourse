@@ -1,7 +1,6 @@
 package pipelineserver_test
 
 import (
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -19,9 +18,7 @@ var _ = Describe("Rejected Archived Handler", func() {
 		server   *httptest.Server
 		delegate *delegateHandler
 
-		dbTeamFactory *dbfakes.FakeTeamFactory
-		fakeTeam      *dbfakes.FakeTeam
-		fakePipeline  *dbfakes.FakePipeline
+		fakePipeline *dbfakes.FakePipeline
 
 		handler http.Handler
 	)
@@ -29,12 +26,13 @@ var _ = Describe("Rejected Archived Handler", func() {
 	BeforeEach(func() {
 		delegate = &delegateHandler{}
 
-		dbTeamFactory = new(dbfakes.FakeTeamFactory)
-		fakeTeam = new(dbfakes.FakeTeam)
 		fakePipeline = new(dbfakes.FakePipeline)
 
-		handlerFactory := pipelineserver.NewRejectArchivedHandlerFactory(dbTeamFactory)
-		handler = handlerFactory.RejectArchived(delegate.GetHandler(fakePipeline))
+		handlerFactory := pipelineserver.RejectArchivedHandlerFactory{}
+		handler = wrapHandler{
+			delegate:        handlerFactory.RejectArchived(delegate.GetHandler(fakePipeline)),
+			contextPipeline: fakePipeline,
+		}
 	})
 
 	JustBeforeEach(func() {
@@ -51,67 +49,25 @@ var _ = Describe("Rejected Archived Handler", func() {
 		server.Close()
 	})
 
-	Context("when a team is found", func() {
+	Context("when a pipeline is archived", func() {
 		BeforeEach(func() {
-			dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+			fakePipeline.ArchivedReturns(true)
 		})
-		Context("when a pipeline is found", func() {
-			BeforeEach(func() {
-				fakeTeam.PipelineReturns(fakePipeline, true, nil)
-			})
-			Context("when a pipeline is archived", func() {
-				BeforeEach(func() {
-					fakePipeline.ArchivedReturns(true)
-				})
-				It("returns 409", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusConflict))
-				})
-				It("returns an error in the body", func() {
-					body, err := ioutil.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(body).To(ContainSubstring("action not allowed for an archived pipeline"))
-				})
-			})
-			Context("when a pipeline is not archived", func() {
-				BeforeEach(func() {
-					fakePipeline.ArchivedReturns(false)
-				})
-				It("returns the delegate handler", func() {
-					Expect(delegate.IsCalled).To(BeTrue())
-				})
-			})
+		It("returns 409", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusConflict))
 		})
-		Context("when a pipeline is not found", func() {
-			BeforeEach(func() {
-				fakeTeam.PipelineReturns(nil, false, nil)
-			})
-			It("returns 404", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-			})
-		})
-		Context("when getting a pipeline returns an error", func() {
-			BeforeEach(func() {
-				fakeTeam.PipelineReturns(nil, false, errors.New("some error"))
-			})
-			It("returns 500", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-			})
+		It("returns an error in the body", func() {
+			body, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(body).To(ContainSubstring("action not allowed for an archived pipeline"))
 		})
 	})
-	Context("when a team is not found", func() {
+	Context("when a pipeline is not archived", func() {
 		BeforeEach(func() {
-			dbTeamFactory.FindTeamReturns(nil, false, nil)
+			fakePipeline.ArchivedReturns(false)
 		})
-		It("returns 404", func() {
-			Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-		})
-	})
-	Context("when finding a team returns an error", func() {
-		BeforeEach(func() {
-			dbTeamFactory.FindTeamReturns(nil, false, errors.New("some error"))
-		})
-		It("returns 500", func() {
-			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+		It("returns the delegate handler", func() {
+			Expect(delegate.IsCalled).To(BeTrue())
 		})
 	})
 })

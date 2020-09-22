@@ -2,84 +2,39 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db"
 )
 
-type CheckPipelineAccessHandlerFactory interface {
-	HandlerFor(pipelineScopedHandler http.Handler, rejector Rejector) http.Handler
+type CheckPipelineAccessHandlerFactory struct {
 }
 
-type checkPipelineAccessHandlerFactory struct {
-	teamFactory db.TeamFactory
-}
-
-func NewCheckPipelineAccessHandlerFactory(
-	teamFactory db.TeamFactory,
-) *checkPipelineAccessHandlerFactory {
-	return &checkPipelineAccessHandlerFactory{
-		teamFactory: teamFactory,
-	}
-}
-
-func (f *checkPipelineAccessHandlerFactory) HandlerFor(
+func (f *CheckPipelineAccessHandlerFactory) HandlerFor(
 	delegateHandler http.Handler,
 	rejector Rejector,
 ) http.Handler {
 	return checkPipelineAccessHandler{
 		rejector:        rejector,
-		teamFactory:     f.teamFactory,
 		delegateHandler: delegateHandler,
 	}
 }
 
 type checkPipelineAccessHandler struct {
 	rejector        Rejector
-	teamFactory     db.TeamFactory
 	delegateHandler http.Handler
 }
 
 func (h checkPipelineAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	teamName := r.FormValue(":team_name")
-	pipelineName := r.FormValue(":pipeline_name")
-	pipelineRef := atc.PipelineRef{Name: pipelineName}
-	if instanceVars := r.URL.Query().Get("instance_vars"); instanceVars != "" {
-		err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-	}
-
-	team, found, err := h.teamFactory.FindTeam(teamName)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	if !found {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	pipeline, found, err := team.Pipeline(pipelineRef)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	if !found {
-		w.WriteHeader(http.StatusNotFound)
-		return
+	pipeline, ok := r.Context().Value(PipelineContextKey).(db.Pipeline)
+	if !ok {
+		panic("missing pipeline")
 	}
 
 	acc := accessor.GetAccessor(r)
 
-	if acc.IsAuthorized(teamName) || pipeline.Public() {
+	if acc.IsAuthorized(pipeline.TeamName()) || pipeline.Public() {
 		ctx := context.WithValue(r.Context(), PipelineContextKey, pipeline)
 		h.delegateHandler.ServeHTTP(w, r.WithContext(ctx))
 		return

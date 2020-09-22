@@ -23,12 +23,9 @@ var _ = Describe("APIAuthWrappa", func() {
 	)
 
 	BeforeEach(func() {
-		fakeTeamFactory := new(dbfakes.FakeTeamFactory)
 		workerFactory := new(dbfakes.FakeWorkerFactory)
 		fakeBuildFactory = new(dbfakes.FakeBuildFactory)
-		fakeCheckPipelineAccessHandlerFactory = auth.NewCheckPipelineAccessHandlerFactory(
-			fakeTeamFactory,
-		)
+		fakeCheckPipelineAccessHandlerFactory = auth.CheckPipelineAccessHandlerFactory{}
 		rejector = auth.UnauthorizedRejector{}
 
 		fakeCheckBuildReadAccessHandlerFactory = auth.NewCheckBuildReadAccessHandlerFactory(fakeBuildFactory)

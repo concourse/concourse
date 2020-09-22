@@ -1,7 +1,7 @@
 package auth_test
 
 import (
-	"errors"
+	"context"
 	"net/http"
 	"net/http/httptest"
 
@@ -27,7 +27,7 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 		handler     http.Handler
 
 		fakeAccessor *accessorfakes.FakeAccessFactory
-		fakeaccess   *accessorfakes.FakeAccess
+		fakeAccess   *accessorfakes.FakeAccess
 	)
 
 	BeforeEach(func() {
@@ -37,28 +37,28 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 
 		pipeline = new(dbfakes.FakePipeline)
 
-		handlerFactory := auth.NewCheckPipelineAccessHandlerFactory(teamFactory)
+		handlerFactory := auth.CheckPipelineAccessHandlerFactory{}
 		fakeAccessor = new(accessorfakes.FakeAccessFactory)
-		fakeaccess = new(accessorfakes.FakeAccess)
+		fakeAccess = new(accessorfakes.FakeAccess)
 
 		delegate = &pipelineDelegateHandler{}
 		innerHandler := handlerFactory.HandlerFor(delegate, auth.UnauthorizedRejector{})
 
-		handler = accessor.NewHandler(
+		handler = wrapContext(pipeline, accessor.NewHandler(
 			logger,
 			"some-action",
 			innerHandler,
 			fakeAccessor,
 			new(auditorfakes.FakeAuditor),
 			map[string]string{},
-		)
+		))
 	})
 
 	JustBeforeEach(func() {
-		fakeAccessor.CreateReturns(fakeaccess, nil)
+		fakeAccessor.CreateReturns(fakeAccess, nil)
 		server = httptest.NewServer(handler)
 
-		request, err := http.NewRequest("POST", server.URL+"?:team_name=some-team&:pipeline_name=some-pipeline", nil)
+		request, err := http.NewRequest("POST", server.URL, nil)
 		Expect(err).NotTo(HaveOccurred())
 
 		response, err = new(http.Client).Do(request)
@@ -69,35 +69,30 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 		server.Close()
 	})
 
-	Context("When team is not returned", func() {
-		Context("when it returns an error", func() {
-			BeforeEach(func() {
-				teamFactory.FindTeamReturns(nil, false, errors.New("some-error"))
-			})
-			It("returns an interneral server error", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-			})
-		})
-		Context("when team is not found", func() {
-			BeforeEach(func() {
-				teamFactory.FindTeamReturns(nil, false, nil)
-			})
-			It("returns not found error", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-			})
+	Context("when pipeline is public", func() {
+		BeforeEach(func() {
+			pipeline.PublicReturns(true)
 		})
 
+		It("calls pipelineScopedHandler with pipelineDB in context", func() {
+			Expect(delegate.IsCalled).To(BeTrue())
+			Expect(delegate.ContextPipelineDB).To(BeIdenticalTo(pipeline))
+		})
+
+		It("returns 200 OK", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+		})
 	})
 
-	Context("when pipeline exists", func() {
+	Context("when pipeline is private", func() {
 		BeforeEach(func() {
-			pipeline.NameReturns("some-pipeline")
-			team.PipelineReturns(pipeline, true, nil)
+			pipeline.PublicReturns(false)
 		})
 
-		Context("when pipeline is public", func() {
+		Context("and authorized", func() {
 			BeforeEach(func() {
-				pipeline.PublicReturns(true)
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
 			})
 
 			It("calls pipelineScopedHandler with pipelineDB in context", func() {
@@ -110,80 +105,30 @@ var _ = Describe("CheckPipelineAccessHandler", func() {
 			})
 		})
 
-		Context("when pipeline is private", func() {
+		Context("and unauthorized", func() {
 			BeforeEach(func() {
-				pipeline.PublicReturns(false)
+				fakeAccess.IsAuthorizedReturns(false)
 			})
 
-			Context("and authorized", func() {
+			Context("and is authenticated", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthenticatedReturns(true)
-					fakeaccess.IsAuthorizedReturns(true)
+					fakeAccess.IsAuthenticatedReturns(true)
 				})
 
-				It("calls pipelineScopedHandler with pipelineDB in context", func() {
-					Expect(delegate.IsCalled).To(BeTrue())
-					Expect(delegate.ContextPipelineDB).To(BeIdenticalTo(pipeline))
-				})
-
-				It("returns 200 OK", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				It("returns 403 Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 			})
 
-			Context("and unauthorized", func() {
+			Context("and not authenticated", func() {
 				BeforeEach(func() {
-					fakeaccess.IsAuthorizedReturns(false)
+					fakeAccess.IsAuthenticatedReturns(false)
 				})
 
-				Context("and is authenticated", func() {
-					BeforeEach(func() {
-						fakeaccess.IsAuthenticatedReturns(true)
-					})
-
-					It("returns 403 Forbidden", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
-					})
-				})
-
-				Context("and not authenticated", func() {
-					BeforeEach(func() {
-						fakeaccess.IsAuthenticatedReturns(false)
-					})
-
-					It("returns 401 Unauthorized", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-					})
+				It("returns 401 Unauthorized", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
 				})
 			})
-		})
-	})
-
-	Context("when pipeline does not exist", func() {
-		BeforeEach(func() {
-			team.PipelineReturns(nil, false, nil)
-		})
-
-		It("returns 404", func() {
-			Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-		})
-
-		It("does not call the scoped handler", func() {
-			Expect(delegate.IsCalled).To(BeFalse())
-		})
-	})
-
-	Context("when getting pipeline fails", func() {
-		BeforeEach(func() {
-			team.PipelineReturns(nil, false, errors.New("disaster"))
-		})
-
-		It("returns 500", func() {
-			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-		})
-
-		It("does not call the scoped handler", func() {
-			Expect(delegate.IsCalled).To(BeFalse())
 		})
 	})
 })
@@ -196,4 +141,11 @@ type pipelineDelegateHandler struct {
 func (handler *pipelineDelegateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	handler.IsCalled = true
 	handler.ContextPipelineDB = r.Context().Value(auth.PipelineContextKey).(db.Pipeline)
+}
+
+func wrapContext(pipeline db.Pipeline, handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		newCtx := context.WithValue(r.Context(), auth.PipelineContextKey, pipeline)
+		handler.ServeHTTP(w, r.WithContext(newCtx))
+	})
 }

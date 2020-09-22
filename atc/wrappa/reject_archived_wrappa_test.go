@@ -3,7 +3,6 @@ package wrappa_test
 import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/pipelineserver"
-	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/wrappa"
 	"github.com/tedsuo/rata"
 
@@ -18,8 +17,7 @@ var _ = Describe("RejectArchivedWrappa", func() {
 	)
 
 	BeforeEach(func() {
-		fakeTeamFactory := new(dbfakes.FakeTeamFactory)
-		raHandlerFactory = pipelineserver.NewRejectArchivedHandlerFactory(fakeTeamFactory)
+		raHandlerFactory = pipelineserver.RejectArchivedHandlerFactory{}
 		raWrappa = wrappa.NewRejectArchivedWrappa(raHandlerFactory)
 	})
 

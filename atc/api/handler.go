@@ -80,7 +80,7 @@ func NewHandler(
 		return nil, err
 	}
 
-	pipelineHandlerFactory := pipelineserver.NewScopedHandlerFactory(dbTeamFactory)
+	pipelineHandlerFactory := pipelineserver.ScopedHandlerFactory{}
 	buildHandlerFactory := buildserver.NewScopedHandlerFactory(logger)
 	teamHandlerFactory := NewTeamScopedHandlerFactory(logger, dbTeamFactory)
 
@@ -105,7 +105,7 @@ func NewHandler(
 	wallServer := wallserver.NewServer(dbWall, logger)
 
 	handlers := map[string]http.Handler{
-		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
+		atc.GetConfig:  pipelineHandlerFactory.HandlerFor(configServer.GetConfig),
 		atc.SaveConfig: http.HandlerFunc(configServer.SaveConfig),
 
 		atc.GetCC: http.HandlerFunc(ccServer.GetCC),
