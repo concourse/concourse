@@ -2,8 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"encoding/json"
-	"github.com/concourse/concourse/atc"
 
 	sq "github.com/Masterminds/squirrel"
 )
@@ -15,7 +13,6 @@ import (
 // It is removed by gc.BaseResourceTypeCollector, once there are no references
 // to it from worker_base_resource_types.
 type BaseResourceType struct {
-	Id   int
 	Name string // The name of the type, e.g. 'git'.
 }
 
@@ -29,7 +26,6 @@ type UsedBaseResourceType struct {
 	ID                   int    // The ID of the BaseResourceType.
 	Name                 string // The name of the type, e.g. 'git'.
 	UniqueVersionHistory bool   // If set to true, will create unique version histories for each of the resources using this base resource type
-	Defaults             atc.Source
 }
 
 // FindOrCreate looks for an existing BaseResourceType and creates it if it
@@ -49,20 +45,14 @@ func (brt BaseResourceType) FindOrCreate(tx Tx, unique bool) (*UsedBaseResourceT
 
 func (brt BaseResourceType) Find(runner sq.Runner) (*UsedBaseResourceType, bool, error) {
 	var id int
-	var name string
 	var unique bool
-	var defaultsString sql.NullString
-	sb := psql.Select("id, name, unique_version_history, defaults").
-		From("base_resource_types")
-	if brt.Id > 0 {
-		sb = sb.Where(sq.Eq{"id": brt.Id})
-	} else {
-		sb = sb.Where(sq.Eq{"name": brt.Name})
-	}
-	err := sb.Suffix("FOR SHARE").
+	err := psql.Select("id, unique_version_history").
+		From("base_resource_types").
+		Where(sq.Eq{"name": brt.Name}).
+		Suffix("FOR SHARE").
 		RunWith(runner).
 		QueryRow().
-		Scan(&id, &name, &unique, &defaultsString)
+		Scan(&id, &unique)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -71,15 +61,7 @@ func (brt BaseResourceType) Find(runner sq.Runner) (*UsedBaseResourceType, bool,
 		return nil, false, err
 	}
 
-	var defaults atc.Source
-	if defaultsString.Valid {
-		err := json.Unmarshal([]byte(defaultsString.String), &defaults)
-		if err != nil {
-			return nil, false, err
-		}
-	}
-
-	return &UsedBaseResourceType{ID: id, Name: name, UniqueVersionHistory: unique, Defaults: defaults}, true, nil
+	return &UsedBaseResourceType{ID: id, Name: brt.Name, UniqueVersionHistory: unique}, true, nil
 }
 
 func (brt BaseResourceType) create(tx Tx, unique bool) (*UsedBaseResourceType, error) {

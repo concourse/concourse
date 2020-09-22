@@ -144,21 +144,6 @@ type FakeJob struct {
 	ensurePendingBuildExistsReturnsOnCall map[int]struct {
 		result1 error
 	}
-	FindBaseResourceTypeStub        func(string) (*db.UsedBaseResourceType, bool, error)
-	findBaseResourceTypeMutex       sync.RWMutex
-	findBaseResourceTypeArgsForCall []struct {
-		arg1 string
-	}
-	findBaseResourceTypeReturns struct {
-		result1 *db.UsedBaseResourceType
-		result2 bool
-		result3 error
-	}
-	findBaseResourceTypeReturnsOnCall map[int]struct {
-		result1 *db.UsedBaseResourceType
-		result2 bool
-		result3 error
-	}
 	FinishedAndNextBuildStub        func() (db.Build, db.Build, error)
 	finishedAndNextBuildMutex       sync.RWMutex
 	finishedAndNextBuildArgsForCall []struct {
@@ -1099,72 +1084,6 @@ func (fake *FakeJob) EnsurePendingBuildExistsReturnsOnCall(i int, result1 error)
 	fake.ensurePendingBuildExistsReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
-}
-
-func (fake *FakeJob) FindBaseResourceType(arg1 string) (*db.UsedBaseResourceType, bool, error) {
-	fake.findBaseResourceTypeMutex.Lock()
-	ret, specificReturn := fake.findBaseResourceTypeReturnsOnCall[len(fake.findBaseResourceTypeArgsForCall)]
-	fake.findBaseResourceTypeArgsForCall = append(fake.findBaseResourceTypeArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("FindBaseResourceType", []interface{}{arg1})
-	fake.findBaseResourceTypeMutex.Unlock()
-	if fake.FindBaseResourceTypeStub != nil {
-		return fake.FindBaseResourceTypeStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	fakeReturns := fake.findBaseResourceTypeReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
-}
-
-func (fake *FakeJob) FindBaseResourceTypeCallCount() int {
-	fake.findBaseResourceTypeMutex.RLock()
-	defer fake.findBaseResourceTypeMutex.RUnlock()
-	return len(fake.findBaseResourceTypeArgsForCall)
-}
-
-func (fake *FakeJob) FindBaseResourceTypeCalls(stub func(string) (*db.UsedBaseResourceType, bool, error)) {
-	fake.findBaseResourceTypeMutex.Lock()
-	defer fake.findBaseResourceTypeMutex.Unlock()
-	fake.FindBaseResourceTypeStub = stub
-}
-
-func (fake *FakeJob) FindBaseResourceTypeArgsForCall(i int) string {
-	fake.findBaseResourceTypeMutex.RLock()
-	defer fake.findBaseResourceTypeMutex.RUnlock()
-	argsForCall := fake.findBaseResourceTypeArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeJob) FindBaseResourceTypeReturns(result1 *db.UsedBaseResourceType, result2 bool, result3 error) {
-	fake.findBaseResourceTypeMutex.Lock()
-	defer fake.findBaseResourceTypeMutex.Unlock()
-	fake.FindBaseResourceTypeStub = nil
-	fake.findBaseResourceTypeReturns = struct {
-		result1 *db.UsedBaseResourceType
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeJob) FindBaseResourceTypeReturnsOnCall(i int, result1 *db.UsedBaseResourceType, result2 bool, result3 error) {
-	fake.findBaseResourceTypeMutex.Lock()
-	defer fake.findBaseResourceTypeMutex.Unlock()
-	fake.FindBaseResourceTypeStub = nil
-	if fake.findBaseResourceTypeReturnsOnCall == nil {
-		fake.findBaseResourceTypeReturnsOnCall = make(map[int]struct {
-			result1 *db.UsedBaseResourceType
-			result2 bool
-			result3 error
-		})
-	}
-	fake.findBaseResourceTypeReturnsOnCall[i] = struct {
-		result1 *db.UsedBaseResourceType
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
 }
 
 func (fake *FakeJob) FinishedAndNextBuild() (db.Build, db.Build, error) {
@@ -2838,8 +2757,6 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.disableManualTriggerMutex.RUnlock()
 	fake.ensurePendingBuildExistsMutex.RLock()
 	defer fake.ensurePendingBuildExistsMutex.RUnlock()
-	fake.findBaseResourceTypeMutex.RLock()
-	defer fake.findBaseResourceTypeMutex.RUnlock()
 	fake.finishedAndNextBuildMutex.RLock()
 	defer fake.finishedAndNextBuildMutex.RUnlock()
 	fake.firstLoggedBuildIDMutex.RLock()
