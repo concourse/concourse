@@ -12,7 +12,7 @@ import (
 	"github.com/vbauerster/mpb/v4"
 )
 
-func Upload(bar *mpb.Bar, team concourse.Team, path string, includeIgnored bool, platform string) (atc.WorkerArtifact, error) {
+func Upload(bar *mpb.Bar, team concourse.Team, path string, includeIgnored bool, platform string, tags []string) (atc.WorkerArtifact, error) {
 	files := getFiles(path, includeIgnored)
 
 	archiveStream, archiveWriter := io.Pipe()
@@ -21,7 +21,7 @@ func Upload(bar *mpb.Bar, team concourse.Team, path string, includeIgnored bool,
 		archiveWriter.CloseWithError(tgzfs.Compress(archiveWriter, path, files...))
 	}()
 
-	return team.CreateArtifact(bar.ProxyReader(archiveStream), platform)
+	return team.CreateArtifact(bar.ProxyReader(archiveStream), platform, tags)
 }
 
 func getFiles(dir string, includeIgnored bool) []string {

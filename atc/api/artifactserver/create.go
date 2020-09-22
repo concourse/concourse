@@ -23,6 +23,7 @@ func (s *Server) CreateArtifact(team db.Team) http.Handler {
 		workerSpec := worker.WorkerSpec{
 			TeamID:   team.ID(),
 			Platform: r.FormValue("platform"),
+			Tags:     r.Form["tags"],
 		}
 
 		volumeSpec := worker.VolumeSpec{
