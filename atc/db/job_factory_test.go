@@ -1067,3 +1067,47 @@ var _ = Describe("Job Factory", func() {
 		})
 	})
 })
+
+var _ = Context("SchedulerResource", func() {
+	var resource db.SchedulerResource
+
+	BeforeEach(func() {
+		resource = db.SchedulerResource{
+			Name: "some-name",
+			Type: "some-type",
+			Source: atc.Source{
+				"some-key": "some-value",
+			},
+		}
+	})
+
+	Context("ApplySourceDefaults", func() {
+		var resourceTypes atc.VersionedResourceTypes
+
+		BeforeEach(func() {
+			resourceTypes = atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Name:     "some-type",
+						Defaults: atc.Source{"default-key": "default-value"},
+					},
+				},
+			}
+		})
+
+		JustBeforeEach(func() {
+			resource.ApplySourceDefaults(resourceTypes)
+		})
+
+		It("should applied defaults", func() {
+			Expect(resource).To(Equal(db.SchedulerResource{
+				Name: "some-name",
+				Type: "some-type",
+				Source: atc.Source{
+					"some-key":    "some-value",
+					"default-key": "default-value",
+				},
+			}))
+		})
+	})
+})

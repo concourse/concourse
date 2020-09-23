@@ -57,6 +57,7 @@ var _ = Describe("CheckFactory", func() {
 			fakeResourceType.TypeReturns("some-base-type")
 			fakeResourceType.TagsReturns([]string{"some-tag"})
 			fakeResourceType.SourceReturns(atc.Source{"some": "type-source"})
+			fakeResourceType.DefaultsReturns(atc.Source{"some-default": "some-default-value"})
 			fakeResourceType.PipelineIDReturns(defaultPipeline.ID())
 			fakeResourceType.PipelineNameReturns(defaultPipeline.Name())
 			fakeResourceType.PipelineInstanceVarsReturns(defaultPipeline.InstanceVars())
