@@ -1,6 +1,8 @@
 package db
 
 import (
+	"database/sql"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc/db/lock"
 )
@@ -11,6 +13,7 @@ type PipelineFactory interface {
 	VisiblePipelines([]string) ([]Pipeline, error)
 	AllPipelines() ([]Pipeline, error)
 	PipelinesToSchedule() ([]Pipeline, error)
+	GetPipeline(int) (Pipeline, bool, error)
 }
 
 type pipelineFactory struct {
@@ -93,4 +96,19 @@ func (f *pipelineFactory) PipelinesToSchedule() ([]Pipeline, error) {
 	}
 
 	return scanPipelines(f.conn, f.lockFactory, rows)
+}
+
+func (f *pipelineFactory) GetPipeline(id int) (Pipeline, bool, error) {
+	row := pipelinesQuery.
+		Where(sq.Eq{"p.id": id}).
+		RunWith(f.conn).
+		QueryRow()
+	p := newPipeline(f.conn, f.lockFactory)
+	if err := scanPipeline(p, row); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+	return p, true, nil
 }

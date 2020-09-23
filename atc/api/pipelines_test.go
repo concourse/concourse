@@ -1817,6 +1817,7 @@ var _ = Describe("Pipelines API", func() {
 
 				Context("when next/previous pages are available", func() {
 					BeforeEach(func() {
+						fakePipeline.IDReturns(123)
 						fakePipeline.BuildsReturns(returnedBuilds, db.Pagination{
 							Newer: &db.Page{From: db.NewIntPtr(4), Limit: 2},
 							Older: &db.Page{To: db.NewIntPtr(2), Limit: 2},
@@ -1825,23 +1826,9 @@ var _ = Describe("Pipelines API", func() {
 
 					It("returns Link headers per rfc5988", func() {
 						Expect(response.Header["Link"]).To(ConsistOf([]string{
-							fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/builds?from=4&limit=2>; rel="previous"`, externalURL),
-							fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/builds?to=2&limit=2>; rel="next"`, externalURL),
+							fmt.Sprintf(`<%s/api/v1/pipelines/123/builds?from=4&limit=2>; rel="previous"`, externalURL),
+							fmt.Sprintf(`<%s/api/v1/pipelines/123/builds?to=2&limit=2>; rel="next"`, externalURL),
 						}))
-					})
-
-					Context("and pipeline is instanced", func() {
-						BeforeEach(func() {
-							fakePipeline.InstanceVarsReturns(atc.InstanceVars{"branch": "master"})
-						})
-
-						It("returns Link headers per rfc5988", func() {
-							link := fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/builds?`, externalURL)
-							Expect(response.Header["Link"]).To(ConsistOf([]string{
-								link + `to=2&limit=2&instance_vars=%7B%22branch%22%3A%22master%22%7D>; rel="next"`,
-								link + `from=4&limit=2&instance_vars=%7B%22branch%22%3A%22master%22%7D>; rel="previous"`,
-							}))
-						})
 					})
 				})
 			})

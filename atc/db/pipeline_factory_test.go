@@ -135,4 +135,19 @@ var _ = Describe("Pipeline Factory", func() {
 			Expect(pipelines[2].Name()).To(Equal(pipeline3.Name()))
 		})
 	})
+
+	Describe("GetPipeline", func() {
+		It("returns the pipeline by its ID", func() {
+			pipeline, found, err := pipelineFactory.GetPipeline(defaultPipeline.ID())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(pipeline).To(Equal(defaultPipeline))
+		})
+
+		It("returns not found if pipeline doesn't exist", func() {
+			_, found, err := pipelineFactory.GetPipeline(1234567890)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeFalse())
+		})
+	})
 })

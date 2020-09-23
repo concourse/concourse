@@ -1215,8 +1215,8 @@ this is super secure
 						}).By(4))
 					})
 				}
-				
-				Context("when updating an existing pipeline", func(){
+
+				Context("when updating an existing pipeline", func() {
 					BeforeEach(func() {
 						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 						Expect(err).NotTo(HaveOccurred())
@@ -1235,7 +1235,7 @@ this is super secure
 
 						atcServer.RouteToHandler("GET", path_get, ghttp.RespondWithJSONEncoded(http.StatusOK,
 							atc.Pipeline{Name: "awesome-pipeline", Paused: true, TeamName: "main"}))
-						
+
 						config.Resources[0].Name = "updated-name"
 					})
 
@@ -1261,7 +1261,7 @@ this is super secure
 
 						atcServer.RouteToHandler("GET", path_get, ghttp.RespondWithJSONEncoded(http.StatusOK,
 							atc.Pipeline{Name: "awesome-pipeline", Paused: true, TeamName: "main"}))
-						
+
 						config.Resources[0].Name = "updated-name"
 					})
 

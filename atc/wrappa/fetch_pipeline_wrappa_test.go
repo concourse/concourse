@@ -18,23 +18,29 @@ import (
 
 var _ = Describe("FetchPipelineWrappa", func() {
 	var (
-		fpWrappa        wrappa.FetchPipelineWrappa
-		fakeTeamFactory *dbfakes.FakeTeamFactory
-		fakeTeam        *dbfakes.FakeTeam
-		fakePipeline    *dbfakes.FakePipeline
+		fpWrappa            wrappa.FetchPipelineWrappa
+		fakeTeamFactory     *dbfakes.FakeTeamFactory
+		fakePipelineFactory *dbfakes.FakePipelineFactory
+		fakeTeam            *dbfakes.FakeTeam
+		fakePipeline        *dbfakes.FakePipeline
 
 		server   *httptest.Server
 		response *http.Response
 
+		params   string
 		endpoint string
 		handler  *spyHandler
 	)
 
 	BeforeEach(func() {
 		fakeTeamFactory = new(dbfakes.FakeTeamFactory)
+		fakePipelineFactory = new(dbfakes.FakePipelineFactory)
 		fakeTeam = new(dbfakes.FakeTeam)
 		fakePipeline = new(dbfakes.FakePipeline)
-		fpWrappa = wrappa.FetchPipelineWrappa{TeamFactory: fakeTeamFactory}
+		fpWrappa = wrappa.FetchPipelineWrappa{
+			TeamFactory:     fakeTeamFactory,
+			PipelineFactory: fakePipelineFactory,
+		}
 
 		handler = &spyHandler{}
 	})
@@ -43,17 +49,73 @@ var _ = Describe("FetchPipelineWrappa", func() {
 		handlers := fpWrappa.Wrap(rata.Handlers{endpoint: handler})
 		server = httptest.NewServer(handlers[endpoint])
 
-		request, err := http.NewRequest("POST", server.URL+"?:team_name=some-team&:pipeline_name=some-pipeline", nil)
+		request, err := http.NewRequest("POST", server.URL+"?"+params, nil)
 		Expect(err).NotTo(HaveOccurred())
 
 		response, err = new(http.Client).Do(request)
 		Expect(err).NotTo(HaveOccurred())
-
 	})
 
-	Describe("fetching by team+pipeline name", func() {
+	Describe("fetching by pipeline id", func() {
+		BeforeEach(func() {
+			endpoint = atc.GetPipelineByPipelineID
+			params = ":pipeline_id=100"
+		})
+
+		Context("when the pipeline exists", func() {
+			BeforeEach(func() {
+				fakePipelineFactory.GetPipelineReturns(fakePipeline, true, nil)
+				fakePipeline.IDReturns(100)
+			})
+
+			It("looks up the pipeline by the right id", func() {
+				Expect(fakePipelineFactory.GetPipelineCallCount()).To(Equal(1))
+				Expect(fakePipelineFactory.GetPipelineArgsForCall(0)).To(Equal(100))
+			})
+
+			It("returns 200", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("stores the pipeline on the request context", func() {
+				Expect(handler.called).To(BeTrue())
+				Expect(handler.pipeline).To(BeIdenticalTo(fakePipeline))
+			})
+		})
+
+		Context("when the pipeline does not exist", func() {
+			BeforeEach(func() {
+				fakePipelineFactory.GetPipelineReturns(nil, false, nil)
+			})
+
+			It("returns 404", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			})
+
+			It("does not call the scoped handler", func() {
+				Expect(handler.called).To(BeFalse())
+			})
+		})
+
+		Context("when finding the pipeline fails", func() {
+			BeforeEach(func() {
+				fakePipelineFactory.GetPipelineReturns(nil, false, errors.New("error"))
+			})
+
+			It("returns 500", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+
+			It("does not call the scoped handler", func() {
+				Expect(handler.called).To(BeFalse())
+			})
+		})
+	})
+
+	Describe("fetching by team name+pipeline ref", func() {
 		BeforeEach(func() {
 			endpoint = atc.GetPipeline
+			params = ":team_name=some-team&:pipeline_name=some-pipeline"
 		})
 
 		Context("when the team exists", func() {
@@ -75,16 +137,46 @@ var _ = Describe("FetchPipelineWrappa", func() {
 
 				It("looks up the pipeline by the right name", func() {
 					Expect(fakeTeam.PipelineCallCount()).To(Equal(1))
-					Expect(fakeTeam.PipelineArgsForCall(0)).To(Equal("some-pipeline"))
+					Expect(fakeTeam.PipelineArgsForCall(0)).To(Equal(atc.PipelineRef{Name: "some-pipeline"}))
 				})
 
 				It("returns 200", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
-				It("calls the scoped handler", func() {
+				It("stores the pipeline on the request context", func() {
 					Expect(handler.called).To(BeTrue())
 					Expect(handler.pipeline).To(BeIdenticalTo(fakePipeline))
+				})
+
+				Context("when querying using instance vars", func() {
+					Context("when the instance vars are valid JSON", func() {
+						BeforeEach(func() {
+							params += "&instance_vars=%7B%22some%22%3A%20%22var%22%7D"
+						})
+
+						It("succeeds", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusOK))
+						})
+
+						It("looks up the pipeline using the instance vars", func() {
+							Expect(fakeTeam.PipelineArgsForCall(0)).To(Equal(atc.PipelineRef{
+								Name: "some-pipeline",
+								InstanceVars: atc.InstanceVars{
+									"some": "var",
+								},
+							}))
+						})
+					})
+					Context("when the instance vars are invalid JSON", func() {
+						BeforeEach(func() {
+							params += "&instance_vars=blah"
+						})
+
+						It("returns a bad request error", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						})
+					})
 				})
 			})
 

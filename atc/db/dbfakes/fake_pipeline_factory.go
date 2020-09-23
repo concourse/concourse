@@ -20,6 +20,21 @@ type FakePipelineFactory struct {
 		result1 []db.Pipeline
 		result2 error
 	}
+	GetPipelineStub        func(int) (db.Pipeline, bool, error)
+	getPipelineMutex       sync.RWMutex
+	getPipelineArgsForCall []struct {
+		arg1 int
+	}
+	getPipelineReturns struct {
+		result1 db.Pipeline
+		result2 bool
+		result3 error
+	}
+	getPipelineReturnsOnCall map[int]struct {
+		result1 db.Pipeline
+		result2 bool
+		result3 error
+	}
 	PipelinesToScheduleStub        func() ([]db.Pipeline, error)
 	pipelinesToScheduleMutex       sync.RWMutex
 	pipelinesToScheduleArgsForCall []struct {
@@ -102,6 +117,72 @@ func (fake *FakePipelineFactory) AllPipelinesReturnsOnCall(i int, result1 []db.P
 		result1 []db.Pipeline
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakePipelineFactory) GetPipeline(arg1 int) (db.Pipeline, bool, error) {
+	fake.getPipelineMutex.Lock()
+	ret, specificReturn := fake.getPipelineReturnsOnCall[len(fake.getPipelineArgsForCall)]
+	fake.getPipelineArgsForCall = append(fake.getPipelineArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	fake.recordInvocation("GetPipeline", []interface{}{arg1})
+	fake.getPipelineMutex.Unlock()
+	if fake.GetPipelineStub != nil {
+		return fake.GetPipelineStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.getPipelineReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakePipelineFactory) GetPipelineCallCount() int {
+	fake.getPipelineMutex.RLock()
+	defer fake.getPipelineMutex.RUnlock()
+	return len(fake.getPipelineArgsForCall)
+}
+
+func (fake *FakePipelineFactory) GetPipelineCalls(stub func(int) (db.Pipeline, bool, error)) {
+	fake.getPipelineMutex.Lock()
+	defer fake.getPipelineMutex.Unlock()
+	fake.GetPipelineStub = stub
+}
+
+func (fake *FakePipelineFactory) GetPipelineArgsForCall(i int) int {
+	fake.getPipelineMutex.RLock()
+	defer fake.getPipelineMutex.RUnlock()
+	argsForCall := fake.getPipelineArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakePipelineFactory) GetPipelineReturns(result1 db.Pipeline, result2 bool, result3 error) {
+	fake.getPipelineMutex.Lock()
+	defer fake.getPipelineMutex.Unlock()
+	fake.GetPipelineStub = nil
+	fake.getPipelineReturns = struct {
+		result1 db.Pipeline
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakePipelineFactory) GetPipelineReturnsOnCall(i int, result1 db.Pipeline, result2 bool, result3 error) {
+	fake.getPipelineMutex.Lock()
+	defer fake.getPipelineMutex.Unlock()
+	fake.GetPipelineStub = nil
+	if fake.getPipelineReturnsOnCall == nil {
+		fake.getPipelineReturnsOnCall = make(map[int]struct {
+			result1 db.Pipeline
+			result2 bool
+			result3 error
+		})
+	}
+	fake.getPipelineReturnsOnCall[i] = struct {
+		result1 db.Pipeline
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakePipelineFactory) PipelinesToSchedule() ([]db.Pipeline, error) {
@@ -232,6 +313,8 @@ func (fake *FakePipelineFactory) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.allPipelinesMutex.RLock()
 	defer fake.allPipelinesMutex.RUnlock()
+	fake.getPipelineMutex.RLock()
+	defer fake.getPipelineMutex.RUnlock()
 	fake.pipelinesToScheduleMutex.RLock()
 	defer fake.pipelinesToScheduleMutex.RUnlock()
 	fake.visiblePipelinesMutex.RLock()

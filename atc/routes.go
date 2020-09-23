@@ -1,6 +1,10 @@
 package atc
 
-import "github.com/tedsuo/rata"
+import (
+	"strings"
+
+	"github.com/tedsuo/rata"
+)
 
 const (
 	SaveConfig = "SaveConfig"
@@ -111,10 +115,52 @@ const (
 	SetWall   = "SetWall"
 	GetWall   = "GetWall"
 	ClearWall = "ClearWall"
+
+	GetConfigByPipelineID                     = "GetConfigByPipelineID"
+	ListJobsByPipelineID                      = "ListJobsByPipelineID"
+	GetJobByPipelineID                        = "GetJobByPipelineID"
+	ListJobBuildsByPipelineID                 = "ListJobBuildsByPipelineID"
+	CreateJobBuildByPipelineID                = "CreateJobBuildByPipelineID"
+	RerunJobBuildByPipelineID                 = "RerunJobBuildByPipelineID"
+	ListJobInputsByPipelineID                 = "ListJobInputsByPipelineID"
+	GetJobBuildByPipelineID                   = "GetJobBuildByPipelineID"
+	PauseJobByPipelineID                      = "PauseJobByPipelineID"
+	UnpauseJobByPipelineID                    = "UnpauseJobByPipelineID"
+	ScheduleJobByPipelineID                   = "ScheduleJobByPipelineID"
+	JobBadgeByPipelineID                      = "JobBadgeByPipelineID"
+	ClearTaskCacheByPipelineID                = "ClearTaskCacheByPipelineID"
+	GetPipelineByPipelineID                   = "GetPipelineByPipelineID"
+	DeletePipelineByPipelineID                = "DeletePipelineByPipelineID"
+	PausePipelineByPipelineID                 = "PausePipelineByPipelineID"
+	ArchivePipelineByPipelineID               = "ArchivePipelineByPipelineID"
+	UnpausePipelineByPipelineID               = "UnpausePipelineByPipelineID"
+	ExposePipelineByPipelineID                = "ExposePipelineByPipelineID"
+	HidePipelineByPipelineID                  = "HidePipelineByPipelineID"
+	GetVersionsDBByPipelineID                 = "GetVersionsDBByPipelineID"
+	RenamePipelineByPipelineID                = "RenamePipelineByPipelineID"
+	ListPipelineBuildsByPipelineID            = "ListPipelineBuildsByPipelineID"
+	CreatePipelineBuildByPipelineID           = "CreatePipelineBuildByPipelineID"
+	PipelineBadgeByPipelineID                 = "PipelineBadgeByPipelineID"
+	ListResourcesByPipelineID                 = "ListResourcesByPipelineID"
+	ListResourceTypesByPipelineID             = "ListResourceTypesByPipelineID"
+	GetResourceByPipelineID                   = "GetResourceByPipelineID"
+	CheckResourceByPipelineID                 = "CheckResourceByPipelineID"
+	CheckResourceWebHookByPipelineID          = "CheckResourceWebHookByPipelineID"
+	CheckResourceTypeByPipelineID             = "CheckResourceTypeByPipelineID"
+	ListResourceVersionsByPipelineID          = "ListResourceVersionsByPipelineID"
+	GetResourceVersionByPipelineID            = "GetResourceVersionByPipelineID"
+	EnableResourceVersionByPipelineID         = "EnableResourceVersionByPipelineID"
+	DisableResourceVersionByPipelineID        = "DisableResourceVersionByPipelineID"
+	PinResourceVersionByPipelineID            = "PinResourceVersionByPipelineID"
+	UnpinResourceByPipelineID                 = "UnpinResourceByPipelineID"
+	SetPinCommentOnResourceByPipelineID       = "SetPinCommentOnResourceByPipelineID"
+	ListBuildsWithVersionAsInputByPipelineID  = "ListBuildsWithVersionAsInputByPipelineID"
+	ListBuildsWithVersionAsOutputByPipelineID = "ListBuildsWithVersionAsOutputByPipelineID"
+	GetResourceCausalityByPipelineID          = "GetResourceCausalityByPipelineID"
 )
 
 func RouteAction(name string) string {
-	return name
+	return strings.TrimSuffix(name, "ByPipelineID")
 }
 
 const (
@@ -232,4 +278,46 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/wall", Method: "GET", Name: GetWall},
 	{Path: "/api/v1/wall", Method: "PUT", Name: SetWall},
 	{Path: "/api/v1/wall", Method: "DELETE", Name: ClearWall},
+
+	{Path: "/api/v1/pipelines/:pipeline_id/config", Method: "GET", Name: GetConfigByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/jobs", Method: "GET", Name: ListJobsByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/jobs/:job_name", Method: "GET", Name: GetJobByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/jobs/:job_name/builds", Method: "GET", Name: ListJobBuildsByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/jobs/:job_name/builds", Method: "POST", Name: CreateJobBuildByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/jobs/:job_name/builds/:build_name", Method: "POST", Name: RerunJobBuildByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/jobs/:job_name/inputs", Method: "GET", Name: ListJobInputsByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/jobs/:job_name/builds/:build_name", Method: "GET", Name: GetJobBuildByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/jobs/:job_name/pause", Method: "PUT", Name: PauseJobByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/jobs/:job_name/unpause", Method: "PUT", Name: UnpauseJobByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/jobs/:job_name/schedule", Method: "PUT", Name: ScheduleJobByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/jobs/:job_name/badge", Method: "GET", Name: JobBadgeByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/jobs/:job_name/tasks/:step_name/cache", Method: "DELETE", Name: ClearTaskCacheByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id", Method: "GET", Name: GetPipelineByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id", Method: "DELETE", Name: DeletePipelineByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/pause", Method: "PUT", Name: PausePipelineByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/archive", Method: "PUT", Name: ArchivePipelineByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/unpause", Method: "PUT", Name: UnpausePipelineByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/expose", Method: "PUT", Name: ExposePipelineByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/hide", Method: "PUT", Name: HidePipelineByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/versions-db", Method: "GET", Name: GetVersionsDBByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/rename", Method: "PUT", Name: RenamePipelineByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/builds", Method: "GET", Name: ListPipelineBuildsByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/builds", Method: "POST", Name: CreatePipelineBuildByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/badge", Method: "GET", Name: PipelineBadgeByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/resources", Method: "GET", Name: ListResourcesByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/resource-types", Method: "GET", Name: ListResourceTypesByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/resources/:resource_name", Method: "GET", Name: GetResourceByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/resources/:resource_name/check", Method: "POST", Name: CheckResourceByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/resources/:resource_name/check/webhook", Method: "POST", Name: CheckResourceWebHookByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/resource-types/:resource_type_name/check", Method: "POST", Name: CheckResourceTypeByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/resources/:resource_name/versions", Method: "GET", Name: ListResourceVersionsByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/resources/:resource_name/versions/:resource_config_version_id", Method: "GET", Name: GetResourceVersionByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/resources/:resource_name/versions/:resource_config_version_id/enable", Method: "PUT", Name: EnableResourceVersionByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/resources/:resource_name/versions/:resource_config_version_id/disable", Method: "PUT", Name: DisableResourceVersionByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/resources/:resource_name/versions/:resource_config_version_id/pin", Method: "PUT", Name: PinResourceVersionByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/resources/:resource_name/unpin", Method: "PUT", Name: UnpinResourceByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/resources/:resource_name/pin_comment", Method: "PUT", Name: SetPinCommentOnResourceByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/resources/:resource_name/versions/:resource_config_version_id/input_to", Method: "GET", Name: ListBuildsWithVersionAsInputByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/resources/:resource_name/versions/:resource_config_version_id/output_of", Method: "GET", Name: ListBuildsWithVersionAsOutputByPipelineID},
+	{Path: "/api/v1/pipelines/:pipeline_id/resources/:resource_name/versions/:resource_version_id/causality", Method: "GET", Name: GetResourceCausalityByPipelineID},
 })

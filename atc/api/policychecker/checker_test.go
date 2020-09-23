@@ -2,6 +2,7 @@ package policychecker_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -9,7 +10,9 @@ import (
 
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
+	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/policychecker"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
 
@@ -151,74 +154,107 @@ var _ = Describe("PolicyChecker", func() {
 						"some-team": []string{"some-role"},
 					})
 					fakeAccess.ClaimsReturns(accessor.Claims{UserName: "some-user"})
-					body := bytes.NewBuffer([]byte("a: b"))
-					fakeRequest = httptest.NewRequest("PUT", "/something?:team_name=some-team&:pipeline_name=some-pipeline", body)
-					fakeRequest.Header.Add("Content-type", "application/x-yaml")
-					fakeRequest.ParseForm()
 				})
 
-				It("should not error", func() {
-					Expect(checkErr).ToNot(HaveOccurred())
-				})
-				It("Agent should be called", func() {
-					Expect(fakePolicyAgent.CheckCallCount()).To(Equal(1))
-				})
-				It("Agent should take correct input", func() {
-					Expect(fakePolicyAgent.CheckArgsForCall(0)).To(Equal(policy.PolicyCheckInput{
-						Service:        "concourse",
-						ClusterName:    "some-cluster",
-						ClusterVersion: "some-version",
-						HttpMethod:     "PUT",
-						Action:         "some-action",
-						User:           "some-user",
-						Team:           "some-team",
-						Roles:          []string{"some-role"},
-						Pipeline:       "some-pipeline",
-						Data:           map[string]interface{}{"a": "b"},
-					}))
-				})
-
-				It("request body should still be readable", func() {
-					body, err := ioutil.ReadAll(fakeRequest.Body)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(body).To(Equal([]byte("a: b")))
-				})
-
-				Context("when Agent says pass", func() {
+				Context("when the API endpoint is a team endpoint", func() {
 					BeforeEach(func() {
-						fakePolicyAgent.CheckReturns(policy.PassedPolicyCheck(), nil)
+						body := bytes.NewBuffer([]byte("a: b"))
+						fakeRequest = httptest.NewRequest("PUT", "/something?:team_name=some-team", body)
+						fakeRequest.Header.Add("Content-type", "application/x-yaml")
+						fakeRequest.ParseForm()
 					})
 
-					It("it should pass", func() {
+					It("should not error", func() {
 						Expect(checkErr).ToNot(HaveOccurred())
-						Expect(result.Allowed).To(BeTrue())
+					})
+					It("Agent should be called", func() {
+						Expect(fakePolicyAgent.CheckCallCount()).To(Equal(1))
+					})
+					It("Agent should take correct input", func() {
+						Expect(fakePolicyAgent.CheckArgsForCall(0)).To(Equal(policy.PolicyCheckInput{
+							Service:        "concourse",
+							ClusterName:    "some-cluster",
+							ClusterVersion: "some-version",
+							HttpMethod:     "PUT",
+							Action:         "some-action",
+							User:           "some-user",
+							Team:           "some-team",
+							Roles:          []string{"some-role"},
+							Data:           map[string]interface{}{"a": "b"},
+						}))
+					})
+
+					It("request body should still be readable", func() {
+						body, err := ioutil.ReadAll(fakeRequest.Body)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(body).To(Equal([]byte("a: b")))
+					})
+
+					Context("when Agent says pass", func() {
+						BeforeEach(func() {
+							fakePolicyAgent.CheckReturns(policy.PassedPolicyCheck(), nil)
+						})
+
+						It("it should pass", func() {
+							Expect(checkErr).ToNot(HaveOccurred())
+							Expect(result.Allowed).To(BeTrue())
+						})
+					})
+
+					Context("when Agent says not-pass", func() {
+						BeforeEach(func() {
+							fakePolicyAgent.CheckReturns(policy.PolicyCheckOutput{
+								Allowed: false,
+								Reasons: []string{"a policy says you can't do that"},
+							}, nil)
+						})
+
+						It("should not pass", func() {
+							Expect(checkErr).ToNot(HaveOccurred())
+							Expect(result.Allowed).To(BeFalse())
+							Expect(result.Reasons).To(ConsistOf("a policy says you can't do that"))
+						})
+					})
+
+					Context("when Agent says error", func() {
+						BeforeEach(func() {
+							fakePolicyAgent.CheckReturns(policy.FailedPolicyCheck(), errors.New("some-error"))
+						})
+
+						It("should not pass", func() {
+							Expect(checkErr).To(HaveOccurred())
+							Expect(checkErr.Error()).To(Equal("some-error"))
+							Expect(result.Allowed).To(BeFalse())
+						})
 					})
 				})
 
-				Context("when Agent says not-pass", func() {
+				Context("when the API endpoint is a pipeline endpoint", func() {
 					BeforeEach(func() {
-						fakePolicyAgent.CheckReturns(policy.PolicyCheckOutput{
-							Allowed: false,
-							Reasons: []string{"a policy says you can't do that"},
-						}, nil)
+						pipeline := new(dbfakes.FakePipeline)
+						pipeline.TeamNameReturns("some-team")
+						pipeline.NameReturns("some-pipeline")
+						ctx := context.WithValue(context.Background(), auth.PipelineContextKey, pipeline)
+
+						body := bytes.NewBuffer([]byte("a: b"))
+						fakeRequest = httptest.NewRequest("PUT", "/something", body)
+						fakeRequest.Header.Add("Content-type", "application/x-yaml")
+						fakeRequest = fakeRequest.WithContext(ctx)
 					})
 
-					It("should not pass", func() {
-						Expect(checkErr).ToNot(HaveOccurred())
-						Expect(result.Allowed).To(BeFalse())
-						Expect(result.Reasons).To(ConsistOf("a policy says you can't do that"))
-					})
-				})
-
-				Context("when Agent says error", func() {
-					BeforeEach(func() {
-						fakePolicyAgent.CheckReturns(policy.FailedPolicyCheck(), errors.New("some-error"))
-					})
-
-					It("should not pass", func() {
-						Expect(checkErr).To(HaveOccurred())
-						Expect(checkErr.Error()).To(Equal("some-error"))
-						Expect(result.Allowed).To(BeFalse())
+					It("Agent should take correct input", func() {
+						Expect(fakePolicyAgent.CheckArgsForCall(0)).To(Equal(policy.PolicyCheckInput{
+							Service:        "concourse",
+							ClusterName:    "some-cluster",
+							ClusterVersion: "some-version",
+							HttpMethod:     "PUT",
+							Action:         "some-action",
+							User:           "some-user",
+							Team:           "some-team",
+							Pipeline:       "some-pipeline",
+							Roles:          []string{"some-role"},
+							Data:           map[string]interface{}{"a": "b"},
+						}))
 					})
 				})
 			})

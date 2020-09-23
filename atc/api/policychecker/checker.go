@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/atc/db"
 	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/atc/api/accessor"
@@ -47,14 +49,23 @@ func (c *checker) Check(action string, acc accessor.Access, req *http.Request) (
 		return policy.PassedPolicyCheck(), nil
 	}
 
-	team := req.FormValue(":team_name")
+	var (
+		teamName     string
+		pipelineName string
+	)
+	if pipeline, ok := req.Context().Value(auth.PipelineContextKey).(db.Pipeline); ok {
+		teamName = pipeline.TeamName()
+		pipelineName = pipeline.Name()
+	} else {
+		teamName = req.FormValue(":team_name")
+	}
 	input := policy.PolicyCheckInput{
 		HttpMethod: req.Method,
 		Action:     action,
 		User:       acc.Claims().UserName,
-		Roles:      acc.TeamRoles()[team],
-		Team:       team,
-		Pipeline:   req.FormValue(":pipeline_name"),
+		Roles:      acc.TeamRoles()[teamName],
+		Team:       teamName,
+		Pipeline:   pipelineName,
 	}
 
 	switch ct := req.Header.Get("Content-type"); ct {

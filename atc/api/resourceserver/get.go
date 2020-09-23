@@ -14,7 +14,7 @@ func (s *Server) GetResource(pipeline db.Pipeline) http.Handler {
 	logger := s.logger.Session("get-resource")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resourceName := r.FormValue(":resource_name")
-		teamName := r.FormValue(":team_name")
+		teamName := pipeline.TeamName()
 
 		dbResource, found, err := pipeline.Resource(resourceName)
 		if err != nil {

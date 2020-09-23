@@ -29,18 +29,18 @@ var _ = Describe("RejectArchivedWrappa", func() {
 		}
 
 		rejectArchivedRoutes := []string{
-			atc.PausePipeline,
-			atc.UnpausePipeline,
-			atc.CreateJobBuild,
-			atc.ScheduleJob,
-			atc.CheckResource,
-			atc.CheckResourceType,
-			atc.DisableResourceVersion,
-			atc.EnableResourceVersion,
-			atc.PinResourceVersion,
-			atc.UnpinResource,
-			atc.SetPinCommentOnResource,
-			atc.RerunJobBuild,
+			atc.PausePipeline, atc.PausePipelineByPipelineID,
+			atc.UnpausePipeline, atc.UnpausePipelineByPipelineID,
+			atc.CreateJobBuild, atc.CreateJobBuildByPipelineID,
+			atc.ScheduleJob, atc.ScheduleJobByPipelineID,
+			atc.CheckResource, atc.CheckResourceByPipelineID,
+			atc.CheckResourceType, atc.CheckResourceTypeByPipelineID,
+			atc.DisableResourceVersion, atc.DisableResourceVersionByPipelineID,
+			atc.EnableResourceVersion, atc.EnableResourceVersionByPipelineID,
+			atc.PinResourceVersion, atc.PinResourceVersionByPipelineID,
+			atc.UnpinResource, atc.UnpinResourceByPipelineID,
+			atc.SetPinCommentOnResource, atc.SetPinCommentOnResourceByPipelineID,
+			atc.RerunJobBuild, atc.RerunJobBuildByPipelineID,
 		}
 
 		rejectArchivedLookup := make(map[string]bool)

@@ -115,6 +115,7 @@ var _ = Describe("Config API", func() {
 			request  *http.Request
 			response *http.Response
 		)
+		var fakePipeline *dbfakes.FakePipeline
 
 		BeforeEach(func() {
 			var err error
@@ -123,6 +124,31 @@ var _ = Describe("Config API", func() {
 				"pipeline_name": "something-else",
 			}, nil)
 			Expect(err).NotTo(HaveOccurred())
+
+			fakePipeline = new(dbfakes.FakePipeline)
+			fakePipeline.IDReturns(1)
+			fakePipeline.NameReturns("something-else")
+			fakePipeline.ConfigVersionReturns(1)
+			fakePipeline.GroupsReturns(atc.GroupConfigs{
+				{
+					Name:      "some-group",
+					Jobs:      []string{"some-job"},
+					Resources: []string{"some-resource"},
+				},
+			})
+			fakePipeline.VarSourcesReturns(atc.VarSourceConfigs{
+				{
+					Name: "some",
+					Type: "dummy",
+					Config: map[string]interface{}{
+						"vars": map[string]interface{}{},
+					},
+				},
+			})
+
+			fakeTeam := new(dbfakes.FakeTeam)
+			fakeTeam.PipelineReturns(fakePipeline, true, nil)
+			dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -137,179 +163,50 @@ var _ = Describe("Config API", func() {
 				fakeAccess.IsAuthorizedReturns(true)
 			})
 
-			Context("when the team is found", func() {
-				var fakeTeam *dbfakes.FakeTeam
+			Context("when the pipeline config is found", func() {
 				BeforeEach(func() {
-					fakeTeam = new(dbfakes.FakeTeam)
-					fakeTeam.NameReturns("a-team")
-					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+					fakePipeline.ConfigReturns(pipelineConfig, nil)
 				})
 
-				Context("when the pipeline is found", func() {
-					var fakePipeline *dbfakes.FakePipeline
-					BeforeEach(func() {
-						fakePipeline = new(dbfakes.FakePipeline)
-						fakePipeline.NameReturns("something-else")
-						fakePipeline.ConfigVersionReturns(1)
-						fakePipeline.GroupsReturns(atc.GroupConfigs{
-							{
-								Name:      "some-group",
-								Jobs:      []string{"some-job"},
-								Resources: []string{"some-resource"},
-							},
-						})
-						fakePipeline.VarSourcesReturns(atc.VarSourceConfigs{
-							{
-								Name: "some",
-								Type: "dummy",
-								Config: map[string]interface{}{
-									"vars": map[string]interface{}{},
-								},
-							},
-						})
-						fakeTeam.PipelineReturns(fakePipeline, true, nil)
-					})
-
-					Context("when instance vars ar specified", func() {
-						Context("when instance vars are malformed", func() {
-							BeforeEach(func() {
-								query := request.URL.Query()
-								query.Add("instance_vars", "{")
-								request.URL.RawQuery = query.Encode()
-							})
-
-							It("returns 400", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-							})
-
-							It("returns Content-Type 'application/json'", func() {
-								expectedHeaderEntries := map[string]string{
-									"Content-Type": "application/json",
-								}
-								Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
-							})
-
-							It("returns an error in the response body", func() {
-								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
-										{
-											"errors": [
-												"instance_vars is malformed: unexpected end of JSON input"
-											]
-										}`))
-							})
-
-							It("doesn't find the pipeline", func() {
-								Expect(dbTeam.PipelineCallCount()).To(Equal(0))
-							})
-						})
-
-						Context("when instance vars is valid", func() {
-							BeforeEach(func() {
-								query := request.URL.Query()
-								query.Add("instance_vars", "{\"branch\":\"feature\"}")
-								request.URL.RawQuery = query.Encode()
-
-								fakePipeline.InstanceVarsReturns(atc.InstanceVars{"branch": "feature"})
-							})
-
-							It("finds the pipeline", func() {
-								Expect(fakeTeam.PipelineCallCount()).To(Equal(1))
-
-								ref := fakeTeam.PipelineArgsForCall(0)
-								Expect(ref).To(Equal(atc.PipelineRef{
-									Name:         "something-else",
-									InstanceVars: atc.InstanceVars{"branch": "feature"},
-								}))
-							})
-						})
-					})
-
-					Context("when the pipeline config is found", func() {
-						BeforeEach(func() {
-							fakePipeline.ConfigReturns(pipelineConfig, nil)
-						})
-
-						It("returns 200", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusOK))
-						})
-
-						It("returns Content-Type 'application/json' and config version as X-Concourse-Config-Version", func() {
-							expectedHeaderEntries := map[string]string{
-								"Content-Type":          "application/json",
-								atc.ConfigVersionHeader: "1",
-							}
-							Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
-						})
-
-						It("returns the config", func() {
-							var actualConfigResponse atc.ConfigResponse
-							err := json.NewDecoder(response.Body).Decode(&actualConfigResponse)
-							Expect(err).NotTo(HaveOccurred())
-
-							Expect(actualConfigResponse).To(Equal(atc.ConfigResponse{
-								Config: pipelineConfig,
-							}))
-						})
-
-						Context("when finding the config fails", func() {
-							BeforeEach(func() {
-								fakePipeline.ConfigReturns(atc.Config{}, errors.New("fail"))
-							})
-
-							It("returns 500", func() {
-								Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-							})
-						})
-					})
-
-					Context("when the pipeline is archived", func() {
-						BeforeEach(func() {
-							fakePipeline.ArchivedReturns(true)
-						})
-						It("returns 404", func() {
-							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-						})
-					})
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
-				Context("when the pipeline is not found", func() {
-					BeforeEach(func() {
-						fakeTeam.PipelineReturns(nil, false, nil)
-					})
-
-					It("returns 404", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-					})
+				It("returns Content-Type 'application/json' and config version as X-Concourse-Config-Version", func() {
+					expectedHeaderEntries := map[string]string{
+						"Content-Type":          "application/json",
+						atc.ConfigVersionHeader: "1",
+					}
+					Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 				})
 
-				Context("when finding the pipeline fails", func() {
-					BeforeEach(func() {
-						fakeTeam.PipelineReturns(nil, false, errors.New("failed"))
-					})
+				It("returns the config", func() {
+					var actualConfigResponse atc.ConfigResponse
+					err := json.NewDecoder(response.Body).Decode(&actualConfigResponse)
+					Expect(err).NotTo(HaveOccurred())
 
-					It("returns 500", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-					})
+					Expect(actualConfigResponse).To(Equal(atc.ConfigResponse{
+						Config: pipelineConfig,
+					}))
 				})
 			})
 
-			Context("when the team is not found", func() {
+			Context("when finding the config fails", func() {
 				BeforeEach(func() {
-					dbTeamFactory.FindTeamReturns(nil, false, nil)
-				})
-
-				It("returns 404", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-			})
-
-			Context("when finding the team fails", func() {
-				BeforeEach(func() {
-					dbTeamFactory.FindTeamReturns(nil, false, errors.New("failed"))
+					fakePipeline.ConfigReturns(atc.Config{}, errors.New("fail"))
 				})
 
 				It("returns 500", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when the pipeline is archived", func() {
+				BeforeEach(func() {
+					fakePipeline.ArchivedReturns(true)
+				})
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
 		})
@@ -1123,7 +1020,6 @@ jobs:
 							})
 						})
 					})
-
 
 				})
 

@@ -2,7 +2,9 @@ package wrappa
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/auth"
@@ -11,7 +13,8 @@ import (
 )
 
 type FetchPipelineWrappa struct {
-	TeamFactory db.TeamFactory
+	TeamFactory     db.TeamFactory
+	PipelineFactory db.PipelineFactory
 }
 
 func (wrappa FetchPipelineWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
@@ -62,7 +65,11 @@ func (wrappa FetchPipelineWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListBuildsWithVersionAsInput,
 			atc.ListBuildsWithVersionAsOutput,
 			atc.GetResourceCausality:
-			newHandler = fetchPipelineByNameHandler{handler: handler, teamFactory: wrappa.TeamFactory}
+			newHandler = fetchPipelineHandler{
+				handler:         handler,
+				teamFactory:     wrappa.TeamFactory,
+				pipelineFactory: wrappa.PipelineFactory,
+			}
 
 		case atc.SaveConfig,
 			atc.GetBuild,
@@ -127,42 +134,88 @@ func (wrappa FetchPipelineWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 	return wrapped
 }
 
-type fetchPipelineByNameHandler struct {
-	teamFactory db.TeamFactory
-	handler     http.Handler
+type fetchPipelineHandler struct {
+	teamFactory     db.TeamFactory
+	pipelineFactory db.PipelineFactory
+	handler         http.Handler
 }
 
-func (f fetchPipelineByNameHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	teamName := r.FormValue(":team_name")
-	pipelineName := r.FormValue(":pipeline_name")
-
+func (f fetchPipelineHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, ok := r.Context().Value(auth.PipelineContextKey).(db.Pipeline)
 	if ok {
 		f.handler.ServeHTTP(w, r)
 		return
 	}
-	dbTeam, found, err := f.teamFactory.FindTeam(teamName)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+
+	var (
+		pipeline   db.Pipeline
+		statusCode statusCode
+	)
+
+	pipelineID := r.FormValue(":pipeline_id")
+	if pipelineID != "" {
+		pipeline, statusCode = f.fetchPipelineByID(pipelineID)
+	} else {
+		teamName := r.FormValue(":team_name")
+		pipelineName := r.FormValue(":pipeline_name")
+
+		pipelineRef := atc.PipelineRef{Name: pipelineName}
+		if instanceVars := r.URL.Query().Get("instance_vars"); instanceVars != "" {
+			err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+		}
+
+		pipeline, statusCode = f.fetchPipelineByRef(teamName, pipelineRef)
 	}
 
-	if !found {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	pipeline, found, err := dbTeam.Pipeline(atc.PipelineRef{Name: pipelineName})
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	if !found {
-		w.WriteHeader(http.StatusNotFound)
+	if statusCode != 0 {
+		w.WriteHeader(statusCode)
 		return
 	}
 
 	newCtx := context.WithValue(r.Context(), auth.PipelineContextKey, pipeline)
 	f.handler.ServeHTTP(w, r.WithContext(newCtx))
+}
+
+type statusCode = int
+
+func (f fetchPipelineHandler) fetchPipelineByID(rawPipelineID string) (db.Pipeline, statusCode) {
+	pipelineID, err := strconv.Atoi(rawPipelineID)
+	if err != nil {
+		return nil, http.StatusBadRequest
+	}
+
+	pipeline, found, err := f.pipelineFactory.GetPipeline(pipelineID)
+	if err != nil {
+		return nil, http.StatusInternalServerError
+	}
+	if !found {
+		return nil, http.StatusNotFound
+	}
+
+	return pipeline, 0
+
+}
+
+func (f fetchPipelineHandler) fetchPipelineByRef(teamName string, pipelineRef atc.PipelineRef) (db.Pipeline, statusCode) {
+	dbTeam, found, err := f.teamFactory.FindTeam(teamName)
+	if err != nil {
+		return nil, http.StatusInternalServerError
+	}
+	if !found {
+		return nil, http.StatusNotFound
+	}
+
+	pipeline, found, err := dbTeam.Pipeline(pipelineRef)
+	if err != nil {
+		return nil, http.StatusInternalServerError
+	}
+	if !found {
+		return nil, http.StatusNotFound
+	}
+
+	return pipeline, 0
 }

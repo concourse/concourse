@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/auth/authfakes"
 	"github.com/concourse/concourse/atc/auditor/auditorfakes"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -23,6 +24,7 @@ var _ = Describe("CheckAuthorizationHandler", func() {
 		fakeAccessor *accessorfakes.FakeAccessFactory
 		fakeaccess   *accessorfakes.FakeAccess
 		fakeRejector *authfakes.FakeRejector
+		fakePipeline *dbfakes.FakePipeline
 
 		server *httptest.Server
 		client *http.Client
@@ -39,6 +41,7 @@ var _ = Describe("CheckAuthorizationHandler", func() {
 		fakeAccessor = new(accessorfakes.FakeAccessFactory)
 		fakeaccess = new(accessorfakes.FakeAccess)
 		fakeRejector = new(authfakes.FakeRejector)
+		fakePipeline = new(dbfakes.FakePipeline)
 
 		fakeRejector.UnauthorizedStub = func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "nope", http.StatusUnauthorized)
@@ -53,25 +56,29 @@ var _ = Describe("CheckAuthorizationHandler", func() {
 			fakeRejector,
 		)
 
-		server = httptest.NewServer(accessor.NewHandler(
+		server = httptest.NewServer(wrapContext(fakePipeline, accessor.NewHandler(
 			logger,
 			"some-action",
 			innerHandler,
 			fakeAccessor,
 			new(auditorfakes.FakeAuditor),
 			map[string]string{},
-		))
+		)))
 
 		client = &http.Client{
 			Transport: &http.Transport{},
 		}
 	})
 
+	AfterEach(func() {
+		server.Close()
+	})
+
 	JustBeforeEach(func() {
 		fakeAccessor.CreateReturns(fakeaccess, nil)
 	})
 
-	Context("when a request is made", func() {
+	Context("when a request is made to a /teams/... endpoint", func() {
 		var request *http.Request
 		var response *http.Response
 
@@ -136,6 +143,22 @@ var _ = Describe("CheckAuthorizationHandler", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(responseBody)).To(Equal("nope\n"))
 			})
+		})
+	})
+
+	Context("when a request is made to a /pipelines/... endpoint", func() {
+		It("checks the authorization using the team of the pipeline", func() {
+			fakeaccess.IsAuthenticatedReturns(true)
+			fakePipeline.TeamNameReturns("some-team")
+
+			request, err := http.NewRequest("GET", server.URL+"/pipelines/1", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(fakeaccess.IsAuthorizedCallCount()).To(Equal(1))
+			Expect(fakeaccess.IsAuthorizedArgsForCall(0)).To(Equal("some-team"))
 		})
 	})
 })
