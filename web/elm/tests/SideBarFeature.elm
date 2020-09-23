@@ -1851,7 +1851,7 @@ iNavigateToTheDashboard =
             (TopLevelMessage.DeliveryReceived <|
                 Subscription.RouteChanged <|
                     Routes.Dashboard
-                        { searchType = Routes.Normal ""
+                        { searchType = Routes.Normal "" Nothing
                         , dashboardView = Routes.ViewNonArchivedPipelines
                         }
             )

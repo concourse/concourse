@@ -64,7 +64,7 @@ init flags url =
             Routes.parsePath url
                 |> Maybe.withDefault
                     (Routes.Dashboard
-                        { searchType = Routes.Normal ""
+                        { searchType = Routes.Normal "" Nothing
                         , dashboardView = Routes.ViewNonArchivedPipelines
                         }
                     )

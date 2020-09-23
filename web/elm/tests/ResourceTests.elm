@@ -176,7 +176,7 @@ all =
                         [ Effects.NavigateTo <|
                             Routes.toString <|
                                 Routes.Dashboard <|
-                                    { searchType = Routes.Normal ""
+                                    { searchType = Routes.Normal "" Nothing
                                     , dashboardView = Routes.ViewNonArchivedPipelines
                                     }
                         ]

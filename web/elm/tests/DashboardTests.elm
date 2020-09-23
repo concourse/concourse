@@ -2138,7 +2138,7 @@ whenOnDashboardViewingAllPipelines { highDensity } =
                             Routes.HighDensity
 
                         else
-                            Routes.Normal ""
+                            Routes.Normal "" Nothing
                     , dashboardView = Routes.ViewAllPipelines
                     }
             )

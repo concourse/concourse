@@ -15,6 +15,7 @@ import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (attribute, class, containing, id, style, tag, text)
 import Url
+import Url.Builder exposing (toQuery)
 
 
 all : Test
@@ -83,7 +84,7 @@ all =
                             |> Query.has
                                 [ routeHref <|
                                     Routes.Dashboard
-                                        { searchType = Routes.Normal ""
+                                        { searchType = Routes.Normal "" Nothing
                                         , dashboardView = Routes.ViewAllPipelines
                                         }
                                 ]
@@ -105,7 +106,7 @@ all =
                             |> Query.has
                                 [ routeHref <|
                                     Routes.Dashboard
-                                        { searchType = Routes.Normal ""
+                                        { searchType = Routes.Normal "" Nothing
                                         , dashboardView = Routes.ViewNonArchivedPipelines
                                         }
                                 ]
@@ -127,7 +128,20 @@ all =
                             |> Query.has
                                 [ routeHref <|
                                     Routes.Dashboard
-                                        { searchType = Routes.Normal "test"
+                                        { searchType = Routes.Normal "test" Nothing
+                                        , dashboardView = Routes.ViewAllPipelines
+                                        }
+                                ]
+                ]
+            , describe "when viewing an instance group" <|
+                [ test "does not clear the instance group" <|
+                    \_ ->
+                        setupQuery "/" (Just "team=team&group=group")
+                            |> Query.find toggleSwitch
+                            |> Query.has
+                                [ routeHref <|
+                                    Routes.Dashboard
+                                        { searchType = Routes.Normal "" <| Just { teamName = "team", name = "group" }
                                         , dashboardView = Routes.ViewAllPipelines
                                         }
                                 ]

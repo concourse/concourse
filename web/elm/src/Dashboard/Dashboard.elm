@@ -97,6 +97,7 @@ init f =
       , showHelp = False
       , highDensity = f.searchType == Routes.HighDensity
       , query = Routes.extractQuery f.searchType
+      , instanceGroup = Routes.extractInstanceGroup f.searchType
       , dashboardView = f.dashboardView
       , pipelinesWithResourceErrors = Set.empty
       , jobs = None
@@ -374,7 +375,7 @@ handleCallback callback session ( model, effects ) =
                                         Routes.HighDensity
 
                                     else
-                                        Routes.Normal model.query
+                                        Routes.Normal model.query model.instanceGroup
                                 , dashboardView = model.dashboardView
                                 }
                    , FetchAllTeams
@@ -937,14 +938,7 @@ clusterNameView session =
         [ Html.text session.clusterName ]
 
 
-showArchivedToggleView :
-    { a
-        | pipelines : Maybe (Dict String (List Pipeline))
-        , query : String
-        , highDensity : Bool
-        , dashboardView : Routes.DashboardView
-    }
-    -> Html Message
+showArchivedToggleView : Model -> Html Message
 showArchivedToggleView model =
     let
         noPipelines =
@@ -969,7 +963,7 @@ showArchivedToggleView model =
                             Routes.HighDensity
 
                         else
-                            Routes.Normal model.query
+                            Routes.Normal model.query model.instanceGroup
                     , dashboardView =
                         if on then
                             Routes.ViewNonArchivedPipelines

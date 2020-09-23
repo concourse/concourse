@@ -73,6 +73,7 @@ type alias FooterModel r =
         , dropdown : Dropdown
         , highDensity : Bool
         , dashboardView : Routes.DashboardView
+        , instanceGroup : Maybe Concourse.InstanceGroupIdentifier
     }
 
 

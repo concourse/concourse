@@ -20,6 +20,7 @@ module Concourse exposing
     , ClusterInfo
     , DatabaseID
     , HookedPlan
+    , InstanceGroupIdentifier
     , Job
     , JobBuildIdentifier
     , JobIdentifier
@@ -874,6 +875,12 @@ decodePipelineGroup =
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (defaultTo [] <| Json.Decode.field "jobs" <| Json.Decode.list Json.Decode.string)
         |> andMap (defaultTo [] <| Json.Decode.field "resources" <| Json.Decode.list Json.Decode.string)
+
+
+type alias InstanceGroupIdentifier =
+    { teamName : TeamName
+    , name : PipelineName
+    }
 
 
 
