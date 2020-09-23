@@ -2,6 +2,8 @@ package spec
 
 import "github.com/opencontainers/runtime-spec/specs-go"
 
+const DefaultInitBinPath = "/usr/local/concourse/bin/init"
+
 var (
 	DefaultContainerMounts = []specs.Mount{
 		{

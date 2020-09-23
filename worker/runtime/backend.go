@@ -141,6 +141,12 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 		b.userNamespace = NewUserNamespace()
 	}
 
+	// Because the garden server is created programmatically in the integration tests, add
+	// a sane default path
+	if b.initBinPath == "" {
+		b.initBinPath = bespec.DefaultInitBinPath
+	}
+
 	return b, nil
 }
 
