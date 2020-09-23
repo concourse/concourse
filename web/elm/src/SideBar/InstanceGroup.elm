@@ -29,6 +29,7 @@ instanceGroup :
 instanceGroup params p ps =
     let
         isCurrent =
+            -- TODO: it's also active if we're on the instance group view
             case params.currentPipeline of
                 Just cp ->
                     List.any
@@ -80,7 +81,13 @@ instanceGroup params p ps =
 
         else
             Styles.Invisible
-    , href = "TODO"
+    , href =
+        -- TODO: if we're already on the dashboard, we don't want to lose the query/dashboardView
+        Routes.toString <|
+            Routes.Dashboard
+                { searchType = Routes.Normal "" <| Just { teamName = p.teamName, name = p.name }
+                , dashboardView = Routes.ViewNonArchivedPipelines
+                }
     , domID = domID
     , badge =
         { count = List.length (p :: ps)

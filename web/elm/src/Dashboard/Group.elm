@@ -28,6 +28,7 @@ import Maybe.Extra
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), DropTarget(..), Message(..), PipelinesSection(..))
 import Ordering exposing (Ordering)
+import Routes
 import Set exposing (Set)
 import Time
 import UserState exposing (UserState(..))
@@ -57,6 +58,8 @@ view :
         , groupCardsHeight : Float
         , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
         , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
+        , dashboardView : Routes.DashboardView
+        , query : String
         }
     -> Concourse.TeamName
     -> List Grid.Card
@@ -143,6 +146,8 @@ viewFavoritePipelines :
         , groupCardsHeight : Float
         , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
         , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
+        , dashboardView : Routes.DashboardView
+        , query : String
         }
     -> List Grid.Header
     -> List Grid.Card
@@ -211,11 +216,13 @@ hdView :
     , pipelinesWithResourceErrors : Set Concourse.DatabaseID
     , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
     , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
+    , dashboardView : Routes.DashboardView
+    , query : String
     }
     -> { a | userState : UserState }
     -> ( Concourse.TeamName, List Card )
     -> List (Html Message)
-hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, jobs } session ( teamName, cards ) =
+hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, jobs, dashboardView, query } session ( teamName, cards ) =
     let
         header =
             Html.div
@@ -256,6 +263,8 @@ hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, jo
                                                     Set.member pipeline.id pipelinesWithResourceErrors
                                                 )
                                                 (p :: ps)
+                                        , dashboardView = dashboardView
+                                        , query = query
                                         }
                         )
     in
@@ -431,6 +440,8 @@ instanceGroupCardView :
             , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
             , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
             , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
+            , dashboardView : Routes.DashboardView
+            , query : String
         }
     -> PipelinesSection
     -> Grid.Bounds
@@ -534,6 +545,8 @@ instanceGroupCardView session params section bounds p ps =
                 , hovered = session.hovered
                 , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                 , section = section
+                , dashboardView = params.dashboardView
+                , query = params.query
                 }
             ]
         ]

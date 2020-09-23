@@ -1129,27 +1129,7 @@ turbulenceView path =
         ]
 
 
-pipelinesView :
-    Session
-    ->
-        { b
-            | teams : FetchResult (List Concourse.Team)
-            , query : String
-            , highDensity : Bool
-            , dashboardView : Routes.DashboardView
-            , pipelinesWithResourceErrors : Set Concourse.DatabaseID
-            , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
-            , pipelines : Maybe (Dict String (List Pipeline))
-            , jobs : FetchResult (Dict ( Concourse.DatabaseID, String ) Concourse.Job)
-            , dragState : DragState
-            , dropState : DropState
-            , now : Maybe Time.Posix
-            , viewportWidth : Float
-            , viewportHeight : Float
-            , scrollTop : Float
-            , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
-        }
-    -> List (Html Message)
+pipelinesView : Session -> Model -> List (Html Message)
 pipelinesView session params =
     let
         pipelines =
@@ -1261,6 +1241,8 @@ pipelinesView session params =
                         , groupCardsHeight = layout.height
                         , pipelineJobs = params.pipelineJobs
                         , jobs = jobs
+                        , dashboardView = params.dashboardView
+                        , query = params.query
                         }
                         layout.headers
                         layout.cards
@@ -1284,6 +1266,8 @@ pipelinesView session params =
                                 , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                                 , pipelineJobs = params.pipelineJobs
                                 , jobs = jobs
+                                , dashboardView = params.dashboardView
+                                , query = params.query
                                 }
                                 session
                             )
@@ -1315,6 +1299,8 @@ pipelinesView session params =
                                     , groupCardsHeight = layout.height
                                     , pipelineJobs = params.pipelineJobs
                                     , jobs = jobs
+                                    , dashboardView = params.dashboardView
+                                    , query = params.query
                                     }
                                     teamName
                                     layout.cards

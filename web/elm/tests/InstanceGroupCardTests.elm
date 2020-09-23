@@ -43,6 +43,7 @@ import Message.Effects as Effects
 import Message.Message as Msgs exposing (DomID(..), PipelinesSection(..))
 import Message.Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as ApplicationMsgs
+import Routes
 import Set
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
@@ -120,6 +121,34 @@ all =
                     |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
                     |> Common.queryView
                     |> Query.has [ class "card", class "instance-group-card" ]
+        , test "links to instance group view" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                    |> Common.queryView
+                    |> findCard
+                    |> Query.has
+                        [ Common.routeHref <|
+                            Routes.Dashboard
+                                { searchType = Routes.Normal "" <| Just { teamName = "team", name = "group" }
+                                , dashboardView = Routes.ViewNonArchivedPipelines
+                                }
+                        ]
+        , test "link maintains search filter and dashboard view" <|
+            \_ ->
+                whenOnDashboardViewingAllPipelines { highDensity = False }
+                    |> Application.update (ApplicationMsgs.Update <| Msgs.FilterMsg "g")
+                    |> Tuple.first
+                    |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                    |> Common.queryView
+                    |> findCard
+                    |> Query.has
+                        [ Common.routeHref <|
+                            Routes.Dashboard
+                                { searchType = Routes.Normal "g" <| Just { teamName = "team", name = "group" }
+                                , dashboardView = Routes.ViewAllPipelines
+                                }
+                        ]
         , test "fills available space" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
@@ -407,6 +436,34 @@ all =
                             |> Common.queryView
                             |> findCard
                             |> Query.has [ style "border-top" <| "30px solid " ++ Colors.resourceError ]
+                , test "links to instance group view" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = True }
+                            |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                            |> Common.queryView
+                            |> findCard
+                            |> Query.has
+                                [ Common.routeHref <|
+                                    Routes.Dashboard
+                                        { searchType = Routes.Normal "" <| Just { teamName = "team", name = "group" }
+                                        , dashboardView = Routes.ViewNonArchivedPipelines
+                                        }
+                                ]
+                , test "link maintains search filter and dashboard view" <|
+                    \_ ->
+                        whenOnDashboardViewingAllPipelines { highDensity = True }
+                            |> Application.update (ApplicationMsgs.Update <| Msgs.FilterMsg "g")
+                            |> Tuple.first
+                            |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                            |> Common.queryView
+                            |> findCard
+                            |> Query.has
+                                [ Common.routeHref <|
+                                    Routes.Dashboard
+                                        { searchType = Routes.Normal "g" <| Just { teamName = "team", name = "group" }
+                                        , dashboardView = Routes.ViewAllPipelines
+                                        }
+                                ]
                 ]
             ]
         , describe "when pipeline instances are favorited" <|

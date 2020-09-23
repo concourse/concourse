@@ -10,6 +10,7 @@ module Common exposing
     , notContains
     , pipelineRunningKeyframes
     , queryView
+    , routeHref
     , then_
     , when
     )
@@ -20,15 +21,17 @@ import Concourse.BuildStatus exposing (BuildStatus(..))
 import Data
 import Expect exposing (Expectation)
 import Html
+import Html.Attributes as Attr
 import List.Extra
 import Message.Callback as Callback
 import Message.Effects exposing (Effect)
 import Message.Message exposing (DomID, Message(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
+import Routes
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (Selector, style)
+import Test.Html.Selector exposing (Selector, attribute, style)
 import Url
 
 
@@ -64,6 +67,11 @@ notContains x xs =
 
     else
         Expect.pass
+
+
+routeHref : Routes.Route -> Test.Html.Selector.Selector
+routeHref =
+    Routes.toString >> Attr.href >> attribute
 
 
 isColorWithStripes :

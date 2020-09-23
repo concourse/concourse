@@ -82,7 +82,7 @@ all =
                         setup "/"
                             |> Query.find toggleSwitch
                             |> Query.has
-                                [ routeHref <|
+                                [ Common.routeHref <|
                                     Routes.Dashboard
                                         { searchType = Routes.Normal "" Nothing
                                         , dashboardView = Routes.ViewAllPipelines
@@ -104,7 +104,7 @@ all =
                         setupQuery "/" (Just "view=all")
                             |> Query.find toggleSwitch
                             |> Query.has
-                                [ routeHref <|
+                                [ Common.routeHref <|
                                     Routes.Dashboard
                                         { searchType = Routes.Normal "" Nothing
                                         , dashboardView = Routes.ViewNonArchivedPipelines
@@ -126,7 +126,7 @@ all =
                         setupQuery "/" (Just "search=test")
                             |> Query.find toggleSwitch
                             |> Query.has
-                                [ routeHref <|
+                                [ Common.routeHref <|
                                     Routes.Dashboard
                                         { searchType = Routes.Normal "test" Nothing
                                         , dashboardView = Routes.ViewAllPipelines
@@ -139,7 +139,7 @@ all =
                         setupQuery "/" (Just "team=team&group=group")
                             |> Query.find toggleSwitch
                             |> Query.has
-                                [ routeHref <|
+                                [ Common.routeHref <|
                                     Routes.Dashboard
                                         { searchType = Routes.Normal "" <| Just { teamName = "team", name = "group" }
                                         , dashboardView = Routes.ViewAllPipelines
@@ -152,7 +152,7 @@ all =
                         setup "/hd"
                             |> Query.find toggleSwitch
                             |> Query.has
-                                [ routeHref <|
+                                [ Common.routeHref <|
                                     Routes.Dashboard
                                         { searchType = Routes.HighDensity
                                         , dashboardView = Routes.ViewAllPipelines
@@ -277,8 +277,3 @@ init path query =
                     }
             )
         |> Tuple.first
-
-
-routeHref : Routes.Route -> Test.Html.Selector.Selector
-routeHref =
-    Routes.toString >> Attr.href >> attribute

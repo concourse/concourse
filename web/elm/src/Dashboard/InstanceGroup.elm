@@ -42,15 +42,22 @@ hdCardView :
     { pipeline : Pipeline
     , pipelines : List Pipeline
     , resourceError : Bool
+    , dashboardView : Routes.DashboardView
+    , query : String
     }
     -> Html Message
-hdCardView { pipeline, pipelines, resourceError } =
+hdCardView { pipeline, pipelines, resourceError, dashboardView, query } =
     Html.a
         ([ class "card"
          , attribute "data-pipeline-name" pipeline.name
          , attribute "data-team-name" pipeline.teamName
          , onMouseEnter <| TooltipHd pipeline.name pipeline.teamName
-         , href <| Routes.toString <| Routes.pipelineRoute pipeline
+         , href <|
+            Routes.toString <|
+                Routes.Dashboard
+                    { searchType = Routes.Normal query <| Just { teamName = pipeline.teamName, name = pipeline.name }
+                    , dashboardView = dashboardView
+                    }
          ]
             ++ Styles.instanceGroupCardHd
         )
@@ -82,9 +89,11 @@ cardView :
         , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
         , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
         , section : PipelinesSection
+        , dashboardView : Routes.DashboardView
+        , query : String
         }
     -> Html Message
-cardView session { pipeline, pipelines, hovered, pipelineRunningKeyframes, resourceError, pipelineJobs, jobs, section } =
+cardView session { pipeline, pipelines, hovered, pipelineRunningKeyframes, resourceError, pipelineJobs, jobs, section, dashboardView, query } =
     Html.div
         (Styles.instanceGroupCard
             -- TODO
@@ -102,16 +111,22 @@ cardView session { pipeline, pipelines, hovered, pipelineRunningKeyframes, resou
                )
         )
         [ Html.div (class "banner" :: Styles.instanceGroupCardBanner) []
-        , headerView pipeline pipelines resourceError
+        , headerView dashboardView query pipeline pipelines resourceError
         , bodyView pipelineRunningKeyframes section hovered (pipeline :: pipelines) pipelineJobs jobs
         ]
 
 
-headerView : Pipeline -> List Pipeline -> Bool -> Html Message
-headerView pipeline pipelines resourceError =
+headerView : Routes.DashboardView -> String -> Pipeline -> List Pipeline -> Bool -> Html Message
+headerView dashboardView query pipeline pipelines resourceError =
     Html.a
-        -- TODO
-        [ href <| Routes.toString <| Routes.pipelineRoute pipeline, draggable "false" ]
+        [ href <|
+            Routes.toString <|
+                Routes.Dashboard
+                    { searchType = Routes.Normal query <| Just { teamName = pipeline.teamName, name = pipeline.name }
+                    , dashboardView = dashboardView
+                    }
+        , draggable "false"
+        ]
         [ Html.div
             ([ class "card-header"
              , onMouseEnter <| Tooltip pipeline.name pipeline.teamName

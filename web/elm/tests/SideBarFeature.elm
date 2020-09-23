@@ -618,13 +618,11 @@ hasSideBar iAmLookingAtThePage =
                     >> given iClickedThePipelineGroup
                     >> when iAmLookingAtTheFirstInstanceGroupLink
                     >> then_ iSeeItContainsTheGroupName
-
-            -- TODO
-            --, test "link is a link to the group" <|
-            --    given iHaveAnOpenSideBar_
-            --        >> given iClickedThePipelineGroup
-            --        >> when iAmLookingAtTheFirstPipeline
-            --        >> then_ iSeeItIsALinkToTheFirstPipeline
+            , test "link is a link to the group" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroup
+                    >> then_ iSeeItIsALinkToTheFirstInstanceGroup
             , test "link has medium font" <|
                 given iHaveAnOpenSideBarWithAnInstanceGroup
                     >> given iClickedThePipelineGroup
@@ -1327,6 +1325,17 @@ iAmLookingAtTheTeamName =
 iSeeItIsALinkToTheFirstPipeline =
     Query.has
         [ tag "a", attribute <| Attr.href "/pipelines/1" ]
+
+
+iSeeItIsALinkToTheFirstInstanceGroup =
+    Query.has
+        [ tag "a"
+        , Common.routeHref <|
+            Routes.Dashboard
+                { searchType = Routes.Normal "" <| Just { teamName = "team", name = "group" }
+                , dashboardView = Routes.ViewNonArchivedPipelines
+                }
+        ]
 
 
 iToggledToHighDensity =
