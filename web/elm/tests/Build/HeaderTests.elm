@@ -19,6 +19,7 @@ import Message.Effects as Effects
 import Message.Message as Message
 import Message.Subscription as Subscription
 import RemoteData
+import Routes
 import ScreenSize
 import Set
 import Test exposing (Test, describe, test)
@@ -369,6 +370,7 @@ session =
     , pipelineRunningKeyframes = ""
     , timeZone = Time.utc
     , favoritedPipelines = Set.empty
+    , route = Routes.Build { id = Data.jobBuildId, highlight = Routes.HighlightNothing }
     }
 
 

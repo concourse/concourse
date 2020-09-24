@@ -8,6 +8,7 @@ import HoverState
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import RemoteData
+import Routes
 import ScreenSize
 import Set
 import SideBar.SideBar as SideBar
@@ -50,6 +51,11 @@ model =
     , draggingSideBar = False
     , screenSize = ScreenSize.Desktop
     , favoritedPipelines = Set.empty
+    , route =
+        Routes.Dashboard
+            { searchType = Routes.Normal "" Nothing
+            , dashboardView = Routes.ViewNonArchivedPipelines
+            }
     }
 
 

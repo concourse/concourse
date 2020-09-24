@@ -23,6 +23,7 @@ import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Message.Subscription exposing (Delivery(..))
 import RemoteData exposing (RemoteData(..), WebData)
+import Routes
 import ScreenSize exposing (ScreenSize(..))
 import Set exposing (Set)
 import SideBar.State exposing (SideBarState)
@@ -44,6 +45,7 @@ type alias Model m =
             , draggingSideBar : Bool
             , screenSize : ScreenSize.ScreenSize
             , favoritedPipelines : Set Concourse.DatabaseID
+            , route : Routes.Route
         }
 
 
@@ -134,23 +136,18 @@ update message model =
             ( model, [] )
 
 
-handleCallback : Callback -> Maybe Concourse.PipelineIdentifier -> ET (Model m)
-handleCallback callback currentPipelineId ( model, effects ) =
+handleCallback : Callback -> ET (Model m)
+handleCallback callback ( model, effects ) =
     case callback of
         AllPipelinesFetched (Ok pipelines) ->
             ( { model
                 | pipelines = Success pipelines
                 , expandedTeamsInAllPipelines =
-                    case ( model.pipelines, currentPipelineId ) of
+                    case ( model.pipelines, curPipeline pipelines model.route ) of
                         -- First time receiving AllPipelines response
-                        ( NotAsked, Just pipelineId ) ->
-                            case searchPipelines pipelineId pipelines of
-                                Just { teamName } ->
-                                    model.expandedTeamsInAllPipelines
-                                        |> Set.insert teamName
-
-                                Nothing ->
-                                    model.expandedTeamsInAllPipelines
+                        ( NotAsked, Just { teamName } ) ->
+                            model.expandedTeamsInAllPipelines
+                                |> Set.insert teamName
 
                         _ ->
                             model.expandedTeamsInAllPipelines
@@ -161,8 +158,9 @@ handleCallback callback currentPipelineId ( model, effects ) =
         BuildFetched (Ok build) ->
             ( { model
                 | expandedTeamsInAllPipelines =
-                    case ( currentPipelineId, build.job, build ) of
-                        ( Nothing, Just _, { teamName } ) ->
+                    case ( model.route, build.job, build ) of
+                        -- One-off build page for a job build should still expand team in sidebar
+                        ( Routes.OneOffBuild _, Just _, { teamName } ) ->
                             model.expandedTeamsInAllPipelines
                                 |> Set.insert teamName
 
@@ -230,6 +228,8 @@ view model currentPipeline =
         in
         Html.div
             (id "side-bar" :: Styles.sideBar newState)
+            -- I'd love to use the curPipeline function instead of passing it in to view,
+            -- but that doesn't work for OneOffBuilds that point to a JobBuild
             (favoritedPipelinesSection model currentPipeline
                 ++ allPipelinesSection model currentPipeline
                 ++ [ Html.div
@@ -428,3 +428,22 @@ searchPipelines :
     -> Maybe Concourse.Pipeline
 searchPipelines pipelineId ps =
     List.Extra.find (.id >> (==) pipelineId) ps
+
+
+curPipeline : List Concourse.Pipeline -> Routes.Route -> Maybe Concourse.Pipeline
+curPipeline pipelines route =
+    case route of
+        Routes.Build { id } ->
+            searchPipelines id.pipelineId pipelines
+
+        Routes.Resource { id } ->
+            searchPipelines id.pipelineId pipelines
+
+        Routes.Job { id } ->
+            searchPipelines id.pipelineId pipelines
+
+        Routes.Pipeline { id } ->
+            searchPipelines id pipelines
+
+        _ ->
+            Nothing
