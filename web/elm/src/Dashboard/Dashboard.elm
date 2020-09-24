@@ -660,8 +660,8 @@ update session msg =
 updateBody : Session -> Message -> ET Model
 updateBody session msg ( model, effects ) =
     case msg of
-        DragStart teamName pipelineName ->
-            ( { model | dragState = Models.Dragging teamName pipelineName }, effects )
+        DragStart teamName cardId ->
+            ( { model | dragState = Models.Dragging teamName cardId }, effects )
 
         DragOver target ->
             ( { model | dropState = Models.Dropping target }, effects )

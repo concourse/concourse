@@ -1,6 +1,7 @@
 module Dashboard.Group.Models exposing
     ( Card(..)
     , Pipeline
+    , cardIdentifier
     , cardName
     , cardTeamName
     )
@@ -12,6 +13,16 @@ import Dict exposing (Dict)
 type Card
     = PipelineCard Pipeline
     | InstanceGroupCard Pipeline (List Pipeline)
+
+
+cardIdentifier : Card -> Int
+cardIdentifier c =
+    case c of
+        PipelineCard p ->
+            p.id
+
+        InstanceGroupCard p _ ->
+            p.id
 
 
 cardName : Card -> String

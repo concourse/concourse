@@ -1,6 +1,6 @@
 module Dashboard.Drag exposing (drag, dragCard, insertAt)
 
-import Dashboard.Group.Models exposing (Card(..), cardName)
+import Dashboard.Group.Models exposing (Card(..), cardIdentifier)
 import List.Extra
 import Message.Message exposing (DropTarget(..))
 
@@ -15,14 +15,14 @@ insertAt idx x xs =
             x :: xs
 
 
-dragCard : String -> DropTarget -> List Card -> List Card
-dragCard card target cards =
+dragCard : Int -> DropTarget -> List Card -> List Card
+dragCard cardId target cards =
     let
-        cardIndex name =
-            cards |> List.Extra.findIndex (cardName >> (==) name)
+        cardIndex id =
+            cards |> List.Extra.findIndex (cardIdentifier >> (==) id)
 
         fromIndex =
-            cardIndex card
+            cardIndex cardId
 
         toIndex =
             case target of

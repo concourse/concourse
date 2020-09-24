@@ -21,7 +21,7 @@ import Dashboard.Group.Models as Models
     exposing
         ( Card(..)
         , Pipeline
-        , cardName
+        , cardIdentifier
         , cardTeamName
         )
 import Dashboard.Models exposing (DragState(..), DropState(..))
@@ -76,9 +76,9 @@ computeLayout params teamName cards =
     let
         orderedCards =
             case ( params.dragState, params.dropState ) of
-                ( Dragging team pipeline, Dropping target ) ->
+                ( Dragging team cardId, Dropping target ) ->
                     if teamName == team then
-                        dragCard pipeline target cards
+                        dragCard cardId target cards
 
                     else
                         cards
@@ -115,7 +115,7 @@ computeLayout params teamName cards =
         gridElementLookup =
             gridElements
                 |> List.map2 Tuple.pair orderedCards
-                |> List.map (\( card, gridElement ) -> ( cardName card, gridElement ))
+                |> List.map (\( card, gridElement ) -> ( cardIdentifier card, gridElement ))
                 |> Dict.fromList
 
         prevAndCurrentGridElement =
@@ -162,7 +162,7 @@ computeLayout params teamName cards =
                                     Nothing ->
                                         dropAreaBounds gridElement
                         in
-                        { bounds = bounds, target = Before <| cardName card }
+                        { bounds = bounds, target = Before <| cardIdentifier card }
                     )
             )
                 ++ (case List.head (List.reverse (List.map2 Tuple.pair gridElements cards)) of
@@ -177,7 +177,7 @@ computeLayout params teamName cards =
                                                 | column = lastGridElement.column + lastGridElement.spannedColumns
                                                 , spannedColumns = 1
                                             }
-                                  , target = After <| cardName lastCard
+                                  , target = After <| cardIdentifier lastCard
                                   }
                                 ]
 
@@ -190,7 +190,7 @@ computeLayout params teamName cards =
                 |> List.map
                     (\card ->
                         gridElementLookup
-                            |> Dict.get (cardName card)
+                            |> Dict.get (cardIdentifier card)
                             |> Maybe.withDefault
                                 { row = 0
                                 , column = 0

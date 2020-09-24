@@ -382,14 +382,14 @@ pipelineCardView session params section { bounds, pipeline } teamName =
                             "event.dataTransfer.setData('text/plain', '');"
                         , draggable "true"
                         , on "dragstart"
-                            (Json.Decode.succeed (DragStart pipeline.teamName pipeline.name))
+                            (Json.Decode.succeed (DragStart pipeline.teamName pipeline.id))
                         , on "dragend" (Json.Decode.succeed DragEnd)
                         ]
 
                     else
                         []
                    )
-                ++ (if params.dragState == Dragging pipeline.teamName pipeline.name then
+                ++ (if params.dragState == Dragging pipeline.teamName pipeline.id then
                         [ style "width" "0"
                         , style "margin" "0 12.5px"
                         , style "overflow" "hidden"
@@ -508,14 +508,14 @@ instanceGroupCardView session params section bounds p ps =
                             "event.dataTransfer.setData('text/plain', '');"
                         , draggable "true"
                         , on "dragstart"
-                            (Json.Decode.succeed (DragStart p.teamName p.name))
+                            (Json.Decode.succeed (DragStart p.teamName p.id))
                         , on "dragend" (Json.Decode.succeed DragEnd)
                         ]
 
                     else
                         []
                    )
-                ++ (if params.dragState == Dragging p.teamName p.name then
+                ++ (if params.dragState == Dragging p.teamName p.id then
                         [ style "width" "0"
                         , style "margin" "0 12.5px"
                         , style "overflow" "hidden"

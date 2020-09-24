@@ -178,7 +178,7 @@ myBrowserFetchedOnePipeline =
     Application.handleCallback
         (Callback.AllPipelinesFetched <|
             Ok
-                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
         )
 
 
@@ -186,8 +186,8 @@ myBrowserFetchedTwoPipelines =
     Application.handleCallback
         (Callback.AllPipelinesFetched <|
             Ok
-                [ Data.pipeline "team" 0 |> Data.withName "pipeline"
-                , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
+                [ Data.pipeline "team" 1 |> Data.withName "pipeline"
+                , Data.pipeline "team" 2 |> Data.withName "other-pipeline"
                 ]
         )
 
@@ -196,9 +196,9 @@ myBrowserFetchedPipelinesFromMultipleTeams =
     Application.handleCallback
         (Callback.AllPipelinesFetched <|
             Ok
-                [ Data.pipeline "team" 0 |> Data.withName "pipeline"
-                , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
-                , Data.pipeline "other-team" 2 |> Data.withName "third-pipeline"
+                [ Data.pipeline "team" 1 |> Data.withName "pipeline"
+                , Data.pipeline "team" 2 |> Data.withName "other-pipeline"
+                , Data.pipeline "other-team" 3 |> Data.withName "third-pipeline"
                 ]
         )
 
@@ -235,13 +235,13 @@ itListensForDragStart : Query.Single TopLevelMessage -> Expectation
 itListensForDragStart =
     Event.simulate (Event.custom "dragstart" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragStart "team" "pipeline")
+            (TopLevelMessage.Update <| Message.DragStart "team" 1)
 
 
 iAmDraggingTheFirstPipelineCard =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragStart "team" "pipeline")
+            (TopLevelMessage.Update <| Message.DragStart "team" 1)
 
 
 itIsInvisible =
@@ -282,7 +282,7 @@ iAmLookingAtTheFinalDropArea =
 itListensForDragEnter =
     Event.simulate (Event.custom "dragenter" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragOver <| After "pipeline")
+            (TopLevelMessage.Update <| Message.DragOver <| After 1)
 
 
 
@@ -296,13 +296,13 @@ itListensForDragEnter =
 itListensForDragOverPreventingDefault =
     Event.simulate (Event.custom "dragover" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragOver <| After "pipeline")
+            (TopLevelMessage.Update <| Message.DragOver <| After 1)
 
 
 iAmDraggingOverTheThirdDropArea =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragOver <| After "other-pipeline")
+            (TopLevelMessage.Update <| Message.DragOver <| After 2)
 
 
 iAmLookingAtTheTeamHeader =

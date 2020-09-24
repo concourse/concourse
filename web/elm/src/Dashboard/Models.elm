@@ -55,7 +55,7 @@ type FetchError
 
 type DragState
     = NotDragging
-    | Dragging Concourse.TeamName Concourse.PipelineName
+    | Dragging Concourse.TeamName Int
 
 
 type DropState

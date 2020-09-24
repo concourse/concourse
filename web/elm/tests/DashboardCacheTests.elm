@@ -251,19 +251,19 @@ all =
                     |> Application.handleCallback
                         (AllPipelinesFetched <|
                             Ok <|
-                                [ Data.pipeline "team" 0, Data.pipeline "team" 1 ]
+                                [ Data.pipeline "team" 1, Data.pipeline "team" 2 ]
                         )
                     |> Tuple.first
                     |> Application.update
-                        (TopLevelMessage.Update <| Message.DragStart "team" "pipeline-0")
+                        (TopLevelMessage.Update <| Message.DragStart "team" 1)
                     |> Tuple.first
                     |> Application.update
-                        (TopLevelMessage.Update <| Message.DragOver <| After "pipeline-1")
+                        (TopLevelMessage.Update <| Message.DragOver <| After 2)
                     |> Tuple.first
                     |> Application.update
                         (TopLevelMessage.Update <| Message.DragEnd)
                     |> Tuple.second
-                    |> Common.contains (SaveCachedPipelines [ Data.pipeline "team" 1, Data.pipeline "team" 0 ])
+                    |> Common.contains (SaveCachedPipelines [ Data.pipeline "team" 2, Data.pipeline "team" 1 ])
         , test "saves teams to cache when fetched" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
