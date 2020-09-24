@@ -445,5 +445,13 @@ curPipeline pipelines route =
         Routes.Pipeline { id } ->
             searchPipelines id pipelines
 
+        Routes.Dashboard { searchType } ->
+            case searchType of
+                Routes.Normal _ (Just { teamName, name }) ->
+                    List.Extra.find (\p -> p.name == name && p.teamName == teamName) pipelines
+
+                _ ->
+                    Nothing
+
         _ ->
             Nothing

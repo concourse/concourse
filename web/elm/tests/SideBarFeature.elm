@@ -759,6 +759,25 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
     ]
 
 
+hasCurrentInstanceGroupInSideBar : List Test
+hasCurrentInstanceGroupInSideBar =
+    [ test "team containing current instance group expands when opening sidebar" <|
+        given iAmViewingTheDashboardForAnInstanceGroup
+            >> given iAmOnANonPhoneScreen
+            >> given myBrowserFetchedAnInstanceGroup
+            >> given iClickedTheHamburgerIcon
+            >> when iAmLookingAtThePipelineGroup
+            >> then_ iSeeOneChild
+    , test "current instance group name has grey background" <|
+        given iAmViewingTheDashboardForAnInstanceGroup
+            >> given iAmOnANonPhoneScreen
+            >> given myBrowserFetchedAnInstanceGroup
+            >> given iClickedTheHamburgerIcon
+            >> when iAmLookingAtTheFirstInstanceGroup
+            >> then_ iSeeADarkGreyBackground
+    ]
+
+
 all : Test
 all =
     describe "sidebar"
@@ -780,6 +799,7 @@ all =
                     >> when iAmLookingAtTheLeftHandSectionOfTheTopBar
                     >> then_ iSeeItLaysOutHorizontally
             ]
+        , describe "dashboard page current instance group" <| hasCurrentInstanceGroupInSideBar
         , describe "loading pipeline page" <| pageLoadIsSideBarCompatible iOpenedThePipelinePage
         , describe "on pipeline page" <| hasSideBar (when iOpenedThePipelinePage)
         , describe "pipeline page current pipeline" <|
@@ -920,6 +940,12 @@ iAmViewingTheDashboard =
         >> dataRefreshes
 
 
+iAmViewingTheDashboardForAnInstanceGroup =
+    iVisitTheDashboard
+        >> iNavigateToTheInstanceGroup
+        >> teamDataLoads
+
+
 iVisitTheDashboard _ =
     Application.init
         { turbulenceImgSrc = ""
@@ -937,7 +963,7 @@ iVisitTheDashboard _ =
         }
 
 
-apiDataLoads =
+teamDataLoads =
     Tuple.first
         >> Application.handleCallback
             (Callback.AllTeamsFetched <|
@@ -946,6 +972,10 @@ apiDataLoads =
                     , { name = "other-team", id = 1 }
                     ]
             )
+
+
+apiDataLoads =
+    teamDataLoads
         >> Tuple.first
         >> Application.handleCallback
             (Callback.AllPipelinesFetched <|
@@ -1345,6 +1375,18 @@ iToggledToHighDensity =
                 Subscription.RouteChanged <|
                     Routes.Dashboard
                         { searchType = Routes.HighDensity
+                        , dashboardView = Routes.ViewNonArchivedPipelines
+                        }
+            )
+
+
+iNavigateToTheInstanceGroup =
+    Tuple.first
+        >> Application.update
+            (TopLevelMessage.DeliveryReceived <|
+                Subscription.RouteChanged <|
+                    Routes.Dashboard
+                        { searchType = Routes.Normal "" <| Just { teamName = "team", name = "group" }
                         , dashboardView = Routes.ViewNonArchivedPipelines
                         }
             )

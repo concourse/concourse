@@ -29,7 +29,6 @@ instanceGroup :
 instanceGroup params p ps =
     let
         isCurrent =
-            -- TODO: it's also active if we're on the instance group view
             case params.currentPipeline of
                 Just cp ->
                     List.any

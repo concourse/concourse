@@ -835,7 +835,7 @@ view session model =
                     "50px"
             ]
           <|
-            [ SideBar.view session Nothing
+            [ SideBar.view session model.instanceGroup
             , dashboardView session model
             ]
         , Footer.view session model
