@@ -118,23 +118,11 @@ func StartSpanFollowing(
 	component string,
 	attrs Attrs,
 ) (context.Context, trace.Span) {
-	// supplier := following.SpanContext()
-	// var spanContext core.SpanContext
-	// if supplier == nil {
-	// 	spanContext = core.EmptySpanContext()
-	// } else {
-	// 	spanContext = trace.TraceContext{}.Extract(
-	// 		context.TODO(),
-	// 		following.SpanContext(),
-	// 	)
-	// }
+	if supplier := following.SpanContext(); supplier != nil {
+		ctx = trace.TraceContext{}.Extract(ctx, supplier)
+	}
 
-	return startSpan(
-		ctx,
-		component,
-		attrs,
-		// trace.FollowsFrom(spanContext),
-	)
+	return startSpan(ctx, component, attrs)
 }
 
 func StartSpanLinkedToFollowing(
