@@ -11,11 +11,10 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
-	"github.com/tedsuo/rata"
 )
 
 type Deleter struct {
-	ATCEndpoint *rata.RequestGenerator
+	ATCEndpoint atc.Endpoint
 	HTTPClient  *http.Client
 }
 
@@ -25,7 +24,7 @@ func (l *Deleter) Delete(ctx context.Context, worker atc.Worker) error {
 	logger.Info("start")
 	defer logger.Info("end")
 
-	request, err := l.ATCEndpoint.CreateRequest(atc.DeleteWorker, rata.Params{
+	request, err := l.ATCEndpoint.CreateRequest(atc.DeleteWorker, map[string]string{
 		"worker_name": worker.Name,
 	}, nil)
 	if err != nil {

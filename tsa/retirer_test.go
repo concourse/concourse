@@ -12,7 +12,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/tedsuo/rata"
 )
 
 var _ = Describe("Retirer", func() {
@@ -32,7 +31,7 @@ var _ = Describe("Retirer", func() {
 
 		fakeATC = ghttp.NewServer()
 
-		atcEndpoint := rata.NewRequestGenerator(fakeATC.URL(), atc.Routes)
+		atcEndpoint := atc.NewEndpoint(fakeATC.URL())
 
 		token := &oauth2.Token{TokenType: "Bearer", AccessToken: "yo"}
 		httpClient := oauth2.NewClient(oauth2.NoContext, oauth2.StaticTokenSource(token))

@@ -22,7 +22,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/tedsuo/rata"
 	"golang.org/x/oauth2"
 )
 
@@ -138,14 +137,14 @@ var _ = Describe("Heartbeater", func() {
 
 		pickCallCount := 0
 		atcEndpointPicker = new(tsafakes.FakeEndpointPicker)
-		atcEndpointPicker.PickStub = func() *rata.RequestGenerator {
+		atcEndpointPicker.PickStub = func() atc.Endpoint {
 			pickCallCount++
 
 			if pickCallCount%2 == 0 {
-				return rata.NewRequestGenerator(fakeATC2.URL(), atc.Routes)
+				return atc.NewEndpoint(fakeATC2.URL())
 			}
 
-			return rata.NewRequestGenerator(fakeATC1.URL(), atc.Routes)
+			return atc.NewEndpoint(fakeATC1.URL())
 		}
 
 		token := &oauth2.Token{TokenType: "Bearer", AccessToken: "yo"}

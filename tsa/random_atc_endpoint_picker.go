@@ -6,17 +6,16 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/flag"
-	"github.com/tedsuo/rata"
 )
 
 type randomATCEndpointPicker struct {
-	ATCEndpoints []*rata.RequestGenerator
+	ATCEndpoints []atc.Endpoint
 }
 
 func NewRandomATCEndpointPicker(atcURLFlags []flag.URL) EndpointPicker {
-	atcEndpoints := []*rata.RequestGenerator{}
+	atcEndpoints := []atc.Endpoint{}
 	for _, f := range atcURLFlags {
-		atcEndpoints = append(atcEndpoints, rata.NewRequestGenerator(f.String(), atc.Routes))
+		atcEndpoints = append(atcEndpoints, atc.NewEndpoint(f.String()))
 	}
 
 	rand.Seed(time.Now().Unix())
@@ -26,6 +25,6 @@ func NewRandomATCEndpointPicker(atcURLFlags []flag.URL) EndpointPicker {
 	}
 }
 
-func (p *randomATCEndpointPicker) Pick() *rata.RequestGenerator {
+func (p *randomATCEndpointPicker) Pick() atc.Endpoint {
 	return p.ATCEndpoints[rand.Intn(len(p.ATCEndpoints))]
 }

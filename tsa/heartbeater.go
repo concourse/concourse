@@ -15,12 +15,11 @@ import (
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/worker/gclient"
-	"github.com/tedsuo/rata"
 )
 
 //go:generate counterfeiter . EndpointPicker
 type EndpointPicker interface {
-	Pick() *rata.RequestGenerator
+	Pick() atc.Endpoint
 }
 
 type Heartbeater struct {
@@ -189,9 +188,11 @@ func (heartbeater *Heartbeater) heartbeat(logger lager.Logger) HeartbeatStatus {
 		return HeartbeatStatusUnhealthy
 	}
 
-	request, err := heartbeater.atcEndpointPicker.Pick().CreateRequest(atc.HeartbeatWorker, rata.Params{
-		"worker_name": heartbeater.registration.Name,
-	}, bytes.NewBuffer(payload))
+	request, err := heartbeater.atcEndpointPicker.Pick().CreateRequest(
+		atc.HeartbeatWorker,
+		map[string]string{"worker_name": heartbeater.registration.Name},
+		bytes.NewBuffer(payload),
+	)
 	if err != nil {
 		logger.Error("failed-to-construct-request", err)
 		return HeartbeatStatusUnhealthy
