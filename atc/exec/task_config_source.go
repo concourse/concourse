@@ -117,7 +117,7 @@ func (configSource BaseResourceTypeDefaultsApplySource) FetchConfig(ctx context.
 		return config, err
 	}
 
-	config.ImageResource.AppSourceDefaults(configSource.ResourceTypes)
+	config.ImageResource.ApplySourceDefaults(configSource.ResourceTypes)
 
 	return config, nil
 }
