@@ -51,7 +51,7 @@ type ImageResource struct {
 	Version Version `json:"version,omitempty"`
 }
 
-func (ir *ImageResource) AppSourceDefaults(resourceTypes VersionedResourceTypes) {
+func (ir *ImageResource) ApplySourceDefaults(resourceTypes VersionedResourceTypes) {
 	if ir == nil {
 		return
 	}
