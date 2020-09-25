@@ -8,13 +8,12 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
-	"github.com/tedsuo/rata"
 )
 
 func (team *team) CreateArtifact(src io.Reader, platform string, tags []string) (atc.WorkerArtifact, error) {
 	var artifact atc.WorkerArtifact
 
-	params := rata.Params{
+	params := map[string]string{
 		"team_name": team.Name(),
 	}
 
@@ -32,7 +31,7 @@ func (team *team) CreateArtifact(src io.Reader, platform string, tags []string) 
 }
 
 func (team *team) GetArtifact(artifactID int) (io.ReadCloser, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"team_name":   team.Name(),
 		"artifact_id": strconv.Itoa(artifactID),
 	}

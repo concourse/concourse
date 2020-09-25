@@ -5,11 +5,10 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
-	"github.com/tedsuo/rata"
 )
 
 func (team *team) BuildInputsForJob(pipelineRef atc.PipelineRef, jobName string) ([]atc.BuildInput, bool, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"pipeline_name": pipelineRef.Name,
 		"job_name":      jobName,
 		"team_name":     team.Name(),
@@ -35,7 +34,7 @@ func (team *team) BuildInputsForJob(pipelineRef atc.PipelineRef, jobName string)
 }
 
 func (team *team) BuildsWithVersionAsInput(pipelineRef atc.PipelineRef, resourceName string, resourceVersionID int) ([]atc.Build, bool, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"pipeline_name":              pipelineRef.Name,
 		"resource_name":              resourceName,
 		"resource_config_version_id": strconv.Itoa(resourceVersionID),

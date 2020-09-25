@@ -7,12 +7,11 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
-	"github.com/tedsuo/rata"
 )
 
 func (team *team) CheckResourceType(pipelineRef atc.PipelineRef, resourceTypeName string, version atc.Version) (atc.Build, bool, error) {
 
-	params := rata.Params{
+	params := map[string]string{
 		"pipeline_name":      pipelineRef.Name,
 		"resource_type_name": resourceTypeName,
 		"team_name":          team.Name(),

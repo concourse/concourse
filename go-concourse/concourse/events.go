@@ -4,7 +4,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/eventstream"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
-	"github.com/tedsuo/rata"
 )
 
 type Events interface {
@@ -15,7 +14,7 @@ type Events interface {
 func (client *client) BuildEvents(buildID string) (Events, error) {
 	sseEvents, err := client.connection.ConnectToEventStream(internal.Request{
 		RequestName: atc.BuildEvents,
-		Params: rata.Params{
+		Params: map[string]string{
 			"build_id": buildID,
 		},
 	})

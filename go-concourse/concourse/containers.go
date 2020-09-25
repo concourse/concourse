@@ -5,14 +5,13 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
-	"github.com/tedsuo/rata"
 )
 
 func (team *team) ListContainers(queryList map[string]string) ([]atc.Container, error) {
 	var containers []atc.Container
 	urlValues := url.Values{}
 
-	params := rata.Params{
+	params := map[string]string{
 		"team_name": team.Name(),
 	}
 	for k, v := range queryList {
@@ -31,7 +30,7 @@ func (team *team) ListContainers(queryList map[string]string) ([]atc.Container, 
 func (team *team) GetContainer(handle string) (atc.Container, error) {
 	var container atc.Container
 
-	params := rata.Params{
+	params := map[string]string{
 		"id":        handle,
 		"team_name": team.Name(),
 	}

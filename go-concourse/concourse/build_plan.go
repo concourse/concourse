@@ -5,11 +5,10 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
-	"github.com/tedsuo/rata"
 )
 
 func (client *client) BuildPlan(buildID int) (atc.PublicBuildPlan, bool, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"build_id": strconv.Itoa(buildID),
 	}
 

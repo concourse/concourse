@@ -13,7 +13,6 @@ import (
 	"log"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/tedsuo/rata"
 	"github.com/vito/go-sse/sse"
 )
 
@@ -31,7 +30,7 @@ type Connection interface {
 
 type Request struct {
 	RequestName        string
-	Params             rata.Params
+	Params             map[string]string
 	Query              url.Values
 	Header             http.Header
 	Body               io.Reader
@@ -50,7 +49,7 @@ type connection struct {
 	httpClient *http.Client
 	tracing    bool
 
-	requestGenerator *rata.RequestGenerator
+	endpoint atc.Endpoint
 }
 
 // Deprecated
@@ -66,7 +65,7 @@ func NewConnection(apiURL string, httpClient *http.Client, tracing bool) Connect
 		httpClient: httpClient,
 		tracing:    tracing,
 
-		requestGenerator: rata.NewRequestGenerator(apiURL, atc.Routes),
+		endpoint: atc.NewEndpoint(apiURL),
 	}
 }
 
@@ -157,7 +156,7 @@ func (connection *connection) ConnectToEventStream(passedRequest Request) (*sse.
 func (connection *connection) createHTTPRequest(passedRequest Request) (*http.Request, error) {
 	body := connection.getBody(passedRequest)
 
-	req, err := connection.requestGenerator.CreateRequest(
+	req, err := connection.endpoint.CreateRequest(
 		passedRequest.RequestName,
 		passedRequest.Params,
 		body,
