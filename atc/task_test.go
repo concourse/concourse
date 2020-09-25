@@ -404,13 +404,13 @@ var _ = Context("ImageResource", func() {
 	var imageResource *atc.ImageResource
 	var resourceTypes atc.VersionedResourceTypes
 
-	Context("AppSourceDefaults", func() {
+	Context("ApplySourceDefaults", func() {
 		BeforeEach(func() {
 			resourceTypes = atc.VersionedResourceTypes{}
 		})
 
 		JustBeforeEach(func() {
-			imageResource.AppSourceDefaults(resourceTypes)
+			imageResource.ApplySourceDefaults(resourceTypes)
 		})
 
 		Context("when imageResource is nil", func() {
