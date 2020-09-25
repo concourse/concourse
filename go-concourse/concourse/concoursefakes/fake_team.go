@@ -10,6 +10,16 @@ import (
 )
 
 type FakeTeam struct {
+	ATCTeamStub        func() atc.Team
+	aTCTeamMutex       sync.RWMutex
+	aTCTeamArgsForCall []struct {
+	}
+	aTCTeamReturns struct {
+		result1 atc.Team
+	}
+	aTCTeamReturnsOnCall map[int]struct {
+		result1 atc.Team
+	}
 	ArchivePipelineStub        func(string) (bool, error)
 	archivePipelineMutex       sync.RWMutex
 	archivePipelineArgsForCall []struct {
@@ -348,6 +358,16 @@ type FakeTeam struct {
 	hidePipelineReturnsOnCall map[int]struct {
 		result1 bool
 		result2 error
+	}
+	IDStub        func() int
+	iDMutex       sync.RWMutex
+	iDArgsForCall []struct {
+	}
+	iDReturns struct {
+		result1 int
+	}
+	iDReturnsOnCall map[int]struct {
+		result1 int
 	}
 	JobStub        func(string, string) (atc.Job, bool, error)
 	jobMutex       sync.RWMutex
@@ -747,6 +767,58 @@ type FakeTeam struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeTeam) ATCTeam() atc.Team {
+	fake.aTCTeamMutex.Lock()
+	ret, specificReturn := fake.aTCTeamReturnsOnCall[len(fake.aTCTeamArgsForCall)]
+	fake.aTCTeamArgsForCall = append(fake.aTCTeamArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ATCTeam", []interface{}{})
+	fake.aTCTeamMutex.Unlock()
+	if fake.ATCTeamStub != nil {
+		return fake.ATCTeamStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.aTCTeamReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeTeam) ATCTeamCallCount() int {
+	fake.aTCTeamMutex.RLock()
+	defer fake.aTCTeamMutex.RUnlock()
+	return len(fake.aTCTeamArgsForCall)
+}
+
+func (fake *FakeTeam) ATCTeamCalls(stub func() atc.Team) {
+	fake.aTCTeamMutex.Lock()
+	defer fake.aTCTeamMutex.Unlock()
+	fake.ATCTeamStub = stub
+}
+
+func (fake *FakeTeam) ATCTeamReturns(result1 atc.Team) {
+	fake.aTCTeamMutex.Lock()
+	defer fake.aTCTeamMutex.Unlock()
+	fake.ATCTeamStub = nil
+	fake.aTCTeamReturns = struct {
+		result1 atc.Team
+	}{result1}
+}
+
+func (fake *FakeTeam) ATCTeamReturnsOnCall(i int, result1 atc.Team) {
+	fake.aTCTeamMutex.Lock()
+	defer fake.aTCTeamMutex.Unlock()
+	fake.ATCTeamStub = nil
+	if fake.aTCTeamReturnsOnCall == nil {
+		fake.aTCTeamReturnsOnCall = make(map[int]struct {
+			result1 atc.Team
+		})
+	}
+	fake.aTCTeamReturnsOnCall[i] = struct {
+		result1 atc.Team
+	}{result1}
 }
 
 func (fake *FakeTeam) ArchivePipeline(arg1 string) (bool, error) {
@@ -2248,6 +2320,58 @@ func (fake *FakeTeam) HidePipelineReturnsOnCall(i int, result1 bool, result2 err
 		result1 bool
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeTeam) ID() int {
+	fake.iDMutex.Lock()
+	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
+	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ID", []interface{}{})
+	fake.iDMutex.Unlock()
+	if fake.IDStub != nil {
+		return fake.IDStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.iDReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeTeam) IDCallCount() int {
+	fake.iDMutex.RLock()
+	defer fake.iDMutex.RUnlock()
+	return len(fake.iDArgsForCall)
+}
+
+func (fake *FakeTeam) IDCalls(stub func() int) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
+	fake.IDStub = stub
+}
+
+func (fake *FakeTeam) IDReturns(result1 int) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
+	fake.IDStub = nil
+	fake.iDReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeTeam) IDReturnsOnCall(i int, result1 int) {
+	fake.iDMutex.Lock()
+	defer fake.iDMutex.Unlock()
+	fake.IDStub = nil
+	if fake.iDReturnsOnCall == nil {
+		fake.iDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.iDReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
 }
 
 func (fake *FakeTeam) Job(arg1 string, arg2 string) (atc.Job, bool, error) {
@@ -3996,6 +4120,8 @@ func (fake *FakeTeam) VersionedResourceTypesReturnsOnCall(i int, result1 atc.Ver
 func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.aTCTeamMutex.RLock()
+	defer fake.aTCTeamMutex.RUnlock()
 	fake.archivePipelineMutex.RLock()
 	defer fake.archivePipelineMutex.RUnlock()
 	fake.authMutex.RLock()
@@ -4042,6 +4168,8 @@ func (fake *FakeTeam) Invocations() map[string][][]interface{} {
 	defer fake.getContainerMutex.RUnlock()
 	fake.hidePipelineMutex.RLock()
 	defer fake.hidePipelineMutex.RUnlock()
+	fake.iDMutex.RLock()
+	defer fake.iDMutex.RUnlock()
 	fake.jobMutex.RLock()
 	defer fake.jobMutex.RUnlock()
 	fake.jobBuildMutex.RLock()

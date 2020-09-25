@@ -14,7 +14,7 @@ import (
 func (team *team) Pipeline(pipelineName string) (atc.Pipeline, bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	var pipeline atc.Pipeline
@@ -37,7 +37,7 @@ func (team *team) Pipeline(pipelineName string) (atc.Pipeline, bool, error) {
 
 func (team *team) OrderingPipelines(pipelines []string) error {
 	params := rata.Params{
-		"team_name": team.name,
+		"team_name": team.Name(),
 	}
 
 	buffer := &bytes.Buffer{}
@@ -58,7 +58,7 @@ func (team *team) OrderingPipelines(pipelines []string) error {
 
 func (team *team) ListPipelines() ([]atc.Pipeline, error) {
 	params := rata.Params{
-		"team_name": team.name,
+		"team_name": team.Name(),
 	}
 
 	var pipelines []atc.Pipeline
@@ -96,7 +96,7 @@ func (team *team) CreatePipelineBuild(pipelineName string, plan atc.Plan) (atc.B
 		RequestName: atc.CreatePipelineBuild,
 		Body:        buffer,
 		Params: rata.Params{
-			"team_name":     team.name,
+			"team_name":     team.Name(),
 			"pipeline_name": pipelineName,
 		},
 		Header: http.Header{
@@ -135,7 +135,7 @@ func (team *team) HidePipeline(pipelineName string) (bool, error) {
 func (team *team) managePipeline(pipelineName string, endpoint string) (bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 	err := team.connection.Send(internal.Request{
 		RequestName: endpoint,
@@ -155,7 +155,7 @@ func (team *team) managePipeline(pipelineName string, endpoint string) (bool, er
 func (team *team) RenamePipeline(pipelineName, name string) (bool, []ConfigWarning, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	jsonBytes, err := json.Marshal(atc.RenameRequest{NewName: name})
@@ -186,7 +186,7 @@ func (team *team) RenamePipeline(pipelineName, name string) (bool, []ConfigWarni
 func (team *team) PipelineBuilds(pipelineName string, page Page) ([]atc.Build, Pagination, bool, error) {
 	params := rata.Params{
 		"pipeline_name": pipelineName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	var builds []atc.Build

@@ -11,8 +11,9 @@ import (
 
 type Team interface {
 	Name() string
-
+    ID() int
 	Auth() atc.TeamAuth
+	ATCTeam() atc.Team
 
 	CreateOrUpdate(team atc.Team) (atc.Team, bool, bool, []ConfigWarning, error)
 	RenameTeam(teamName, name string) (bool, []ConfigWarning, error)
@@ -76,23 +77,30 @@ type Team interface {
 }
 
 type team struct {
-	name       string
+	atcTeam    atc.Team
 	connection internal.Connection //Deprecated
 	httpAgent  internal.HTTPAgent
-	auth       atc.TeamAuth
 }
 
 func (team *team) Name() string {
-	return team.name
+	return team.atcTeam.Name
+}
+
+func (team *team) ID() int {
+	return team.atcTeam.ID
+}
+
+func (team *team) Auth() atc.TeamAuth {
+	return team.atcTeam.Auth
+}
+
+func (team *team) ATCTeam() atc.Team {
+	return team.atcTeam
 }
 
 func (client *client) Team(name string) Team {
 	return &team{
-		name:       name,
+		atcTeam:    atc.Team{Name: name},
 		connection: client.connection,
 	}
-}
-
-func (team *team) Auth() atc.TeamAuth {
-	return team.auth
 }

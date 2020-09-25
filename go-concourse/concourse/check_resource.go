@@ -15,7 +15,7 @@ func (team *team) CheckResource(pipelineName string, resourceName string, versio
 	params := rata.Params{
 		"pipeline_name": pipelineName,
 		"resource_name": resourceName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	var check atc.Check
