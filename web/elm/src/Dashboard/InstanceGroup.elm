@@ -33,6 +33,7 @@ import Time
 import UserState
 import Views.FavoritedIcon
 import Views.Icon as Icon
+import Views.InstanceGroupBadge as InstanceGroupBadge
 import Views.PauseToggle as PauseToggle
 import Views.Spinner as Spinner
 import Views.Styles
@@ -64,7 +65,7 @@ hdCardView { pipeline, pipelines, resourceError, dashboardView, query } =
     <|
         [ Html.div
             Styles.instanceGroupCardBodyHd
-            [ badgeView (pipeline :: pipelines)
+            [ InstanceGroupBadge.view <| List.length (pipeline :: pipelines)
             , Html.div
                 (class "dashboardhd-group-name" :: Styles.instanceGroupCardNameHd)
                 [ Html.text pipeline.name ]
@@ -133,7 +134,7 @@ headerView dashboardView query pipeline pipelines resourceError =
              ]
                 ++ Styles.instanceGroupCardHeader
             )
-            [ badgeView (pipeline :: pipelines)
+            [ InstanceGroupBadge.view <| List.length (pipeline :: pipelines)
             , Html.div
                 (class "dashboard-group-name" :: Styles.instanceGroupName)
                 [ Html.text pipeline.name
@@ -143,26 +144,6 @@ headerView dashboardView query pipeline pipelines resourceError =
                 []
             ]
         ]
-
-
-badgeView : List Pipeline -> Html Message
-badgeView pipelines =
-    let
-        numPipelines =
-            List.length pipelines
-
-        ( text, fontSize ) =
-            if numPipelines <= 99 then
-                ( String.fromInt numPipelines, "14px" )
-
-            else
-                ( "99+", "11px" )
-    in
-    Html.div
-        (Styles.instanceGroupCardBadge
-            ++ [ style "font-size" fontSize ]
-        )
-        [ Html.text text ]
 
 
 bodyView :

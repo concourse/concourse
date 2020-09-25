@@ -14,9 +14,11 @@ import Html.Attributes
         , id
         )
 import Message.Message exposing (DomID(..), Message(..))
+import RemoteData
 import Routes
 import SideBar.SideBar exposing (lookupPipeline)
 import Url
+import Views.InstanceGroupBadge as InstanceGroupBadge
 import Views.Styles as Styles
 
 
@@ -72,6 +74,14 @@ breadcrumbs session route =
                         , jobBreadcrumb id.jobName
                         ]
 
+            Routes.Dashboard { searchType } ->
+                case searchType of
+                    Routes.Normal _ (Just ig) ->
+                        [ instanceGroupBreadcrumb session ig ]
+
+                    _ ->
+                        [ clusterNameBreadcrumb session ]
+
             _ ->
                 []
 
@@ -98,6 +108,39 @@ breadcrumbSeparator =
     Html.li
         (class "breadcrumb-separator" :: Styles.breadcrumbItem False)
         [ Html.text "/" ]
+
+
+instanceGroupBreadcrumb : Session -> Concourse.InstanceGroupIdentifier -> Html Message
+instanceGroupBreadcrumb session ig =
+    let
+        numPipelines =
+            session.pipelines
+                |> RemoteData.withDefault []
+                |> List.filter (\p -> p.name == ig.name && p.teamName == ig.teamName)
+                |> List.length
+    in
+    Html.a
+        (id "breadcrumb-instance-group"
+            :: (href <|
+                    Routes.toString <|
+                        -- TODO: don't lose prev state
+                        Routes.Dashboard
+                            { searchType = Routes.Normal "" <| Just ig
+                            , dashboardView = Routes.ViewNonArchivedPipelines
+                            }
+               )
+            :: Styles.breadcrumbItem True
+        )
+        [ InstanceGroupBadge.view numPipelines
+        , Html.text ig.name
+        ]
+
+
+clusterNameBreadcrumb : Session -> Html Message
+clusterNameBreadcrumb session =
+    Html.div
+        Styles.clusterName
+        [ Html.text session.clusterName ]
 
 
 pipelineBreadcrumb : Concourse.Pipeline -> Html Message

@@ -175,8 +175,14 @@ legend session model =
                     , PipelineStatusAborted PipelineStatus.Running
                     , PipelineStatusSucceeded PipelineStatus.Running
                     ]
-                ++ legendSeparator session.screenSize
-                ++ [ toggleView model ]
+                ++ (case model.instanceGroup of
+                        Nothing ->
+                            legendSeparator session.screenSize
+                                ++ [ toggleView model ]
+
+                        _ ->
+                            []
+                   )
 
 
 concourseInfo :

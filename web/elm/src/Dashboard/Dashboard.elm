@@ -81,6 +81,7 @@ import UserState
 import Views.Spinner as Spinner
 import Views.Styles
 import Views.Toggle as Toggle
+import Views.TopBar as TopBar
 
 
 type alias Flags =
@@ -375,7 +376,7 @@ handleCallback callback session ( model, effects ) =
                                         Routes.HighDensity
 
                                     else
-                                        Routes.Normal model.query model.instanceGroup
+                                        Routes.Normal model.query Nothing
                                 , dashboardView = model.dashboardView
                                 }
                    , FetchAllTeams
@@ -892,8 +893,8 @@ topBar session model =
     <|
         [ Html.div [ style "display" "flex", style "align-items" "center" ]
             [ SideBar.hamburgerMenu session
-            , Html.a (href "/" :: Views.Styles.concourseLogo) []
-            , clusterNameView session
+            , TopBar.concourseLogo
+            , TopBar.breadcrumbs session session.route
             ]
         ]
             ++ (let
@@ -929,13 +930,6 @@ topBarContent content =
     Html.div
         (id "top-bar-content" :: Styles.topBarContent)
         content
-
-
-clusterNameView : Session -> Html Message
-clusterNameView session =
-    Html.div
-        Styles.clusterName
-        [ Html.text session.clusterName ]
 
 
 showArchivedToggleView : Model -> Html Message
@@ -1014,10 +1008,10 @@ dashboardView session model =
 
                 Just pipelines ->
                     if pipelines |> Dict.values |> List.all List.isEmpty then
-                        welcomeCard session :: pipelinesView session model
+                        welcomeCard session :: dashboardCardsView session model
 
                     else
-                        Html.text "" :: pipelinesView session model
+                        Html.text "" :: dashboardCardsView session model
             )
 
 
@@ -1129,8 +1123,18 @@ turbulenceView path =
         ]
 
 
-pipelinesView : Session -> Model -> List (Html Message)
-pipelinesView session params =
+dashboardCardsView : Session -> Model -> List (Html Message)
+dashboardCardsView session model =
+    case model.instanceGroup of
+        Nothing ->
+            regularCardsView session model
+
+        Just ig ->
+            instanceGroupCardsView session model ig
+
+
+regularCardsView : Session -> Model -> List (Html Message)
+regularCardsView session params =
     let
         pipelines =
             params.pipelines
@@ -1157,7 +1161,7 @@ pipelinesView session params =
                 |> Dict.toList
                 |> List.sortWith (Ordering.byFieldWith (Group.ordering session) Tuple.first)
 
-        cardsByTeam =
+        teamCards =
             filteredPipelinesByTeam
                 |> List.map
                     (\( team, teamPipelines ) ->
@@ -1174,6 +1178,51 @@ pipelinesView session params =
                                 )
                         )
                     )
+    in
+    cardsView session params teamCards
+
+
+instanceGroupCardsView : Session -> Model -> Concourse.InstanceGroupIdentifier -> List (Html Message)
+instanceGroupCardsView session model { teamName, name } =
+    let
+        pipelines =
+            model.pipelines
+                |> Maybe.withDefault Dict.empty
+
+        jobs =
+            model.jobs
+                |> FetchResult.withDefault Dict.empty
+
+        pipelineInstances =
+            pipelines
+                |> Dict.get teamName
+                |> Maybe.map (List.filter (.name >> (==) name))
+                |> Maybe.withDefault []
+
+        filteredPipelines =
+            Filter.filterTeams
+                { pipelineJobs = model.pipelineJobs
+                , jobs = jobs
+                , query = model.query
+                , teams = []
+                , pipelines = Dict.fromList [ ( teamName, pipelineInstances ) ]
+                , dashboardView = model.dashboardView
+                , favoritedPipelines = session.favoritedPipelines
+                }
+                |> Dict.toList
+                |> List.head
+                |> Maybe.map Tuple.second
+                |> Maybe.withDefault []
+    in
+    cardsView session model [ ( "", filteredPipelines |> List.map PipelineCard ) ]
+
+
+cardsView : Session -> Model -> List ( String, List Card ) -> List (Html Message)
+cardsView session params teamCards =
+    let
+        jobs =
+            params.jobs
+                |> FetchResult.withDefault Dict.empty
 
         ( headerView, offsetHeight ) =
             if params.highDensity then
@@ -1182,7 +1231,7 @@ pipelinesView session params =
             else
                 let
                     favoritedCards =
-                        cardsByTeam
+                        teamCards
                             |> List.concatMap Tuple.second
                             |> List.filterMap
                                 (\c ->
@@ -1210,7 +1259,7 @@ pipelinesView session params =
                     allPipelinesHeader =
                         Html.div Styles.pipelineSectionHeader [ Html.text "all pipelines" ]
                 in
-                if List.isEmpty cardsByTeam then
+                if List.isEmpty teamCards then
                     ( [], 0 )
 
                 else if List.isEmpty favoritedCards then
@@ -1258,7 +1307,7 @@ pipelinesView session params =
                            )
 
         groupViews =
-            cardsByTeam
+            teamCards
                 |> (if params.highDensity then
                         List.concatMap
                             (Group.hdView

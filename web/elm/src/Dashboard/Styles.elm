@@ -1,7 +1,6 @@
 module Dashboard.Styles exposing
     ( asciiArt
     , cardFooter
-    , clusterName
     , content
     , dropdownContainer
     , dropdownItem
@@ -963,15 +962,6 @@ jobPreview job isHovered =
 jobPreviewLink : List (Html.Attribute msg)
 jobPreviewLink =
     [ style "flex-grow" "1" ]
-
-
-clusterName : List (Html.Attribute msg)
-clusterName =
-    [ style "font-size" "21px"
-    , style "color" "#ffffff"
-    , style "letter-spacing" "0.1em"
-    , style "margin-left" "10px"
-    ]
 
 
 loadingView : List (Html.Attribute msg)

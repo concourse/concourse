@@ -3,12 +3,14 @@ module Views.Styles exposing
     , breadcrumbComponent
     , breadcrumbContainer
     , breadcrumbItem
+    , clusterName
     , concourseLogo
     , defaultFont
     , fontFamilyDefault
     , fontWeightBold
     , fontWeightDefault
     , fontWeightLight
+    , instanceGroupBadge
     , pageBelowTopBar
     , pageHeaderHeight
     , pageIncludingTopBar
@@ -144,6 +146,15 @@ concourseLogo =
     ]
 
 
+clusterName : List (Html.Attribute msg)
+clusterName =
+    [ style "font-size" "21px"
+    , style "color" "#ffffff"
+    , style "letter-spacing" "0.1em"
+    , style "margin-left" "10px"
+    ]
+
+
 breadcrumbContainer : List (Html.Attribute msg)
 breadcrumbContainer =
     [ style "flex-grow" "1"
@@ -252,3 +263,19 @@ separator topMargin =
         , style "margin-top" <| String.fromFloat topMargin ++ "px"
         ]
         []
+
+
+instanceGroupBadge : List (Html.Attribute msg)
+instanceGroupBadge =
+    [ style "background" "#f2f2f2"
+    , style "border-radius" "4px"
+    , style "color" "#222"
+    , style "display" "flex"
+    , style "letter-spacing" "0"
+    , style "margin-right" "8px"
+    , style "width" "20px"
+    , style "height" "20px"
+    , style "flex-shrink" "0"
+    , style "align-items" "center"
+    , style "justify-content" "center"
+    ]

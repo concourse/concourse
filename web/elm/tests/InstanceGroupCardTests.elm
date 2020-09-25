@@ -7,6 +7,12 @@ import Common exposing (defineHoverBehaviour, isColorWithStripes)
 import Concourse exposing (Job, JsonValue(..), Pipeline)
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
+import DashboardInstanceGroupTests
+    exposing
+        ( archived
+        , gotPipelines
+        , pipelineInstance
+        )
 import DashboardTests
     exposing
         ( afterSeconds
@@ -83,37 +89,6 @@ all =
 
             firstCol =
                 Query.first
-
-            gotPipelines : List ( Pipeline, List Job ) -> Application.Model -> Application.Model
-            gotPipelines data =
-                Application.handleCallback
-                    (Callback.AllJobsFetched <| Ok (data |> List.concatMap Tuple.second))
-                    >> Tuple.first
-                    >> givenDataUnauthenticated [ { id = 1, name = "team" } ]
-                    >> Tuple.first
-                    >> Application.handleCallback
-                        (Callback.AllPipelinesFetched <| Ok (data |> List.map Tuple.first))
-                    >> Tuple.first
-
-            pipelineInstance : BuildStatus -> Bool -> Int -> ( Concourse.Pipeline, List Concourse.Job )
-            pipelineInstance status isRunning id =
-                let
-                    jobFunc =
-                        if isRunning then
-                            job >> running
-
-                        else
-                            job
-                in
-                ( Data.pipeline "team" id
-                    |> Data.withName "group"
-                    |> Data.withInstanceVars (Dict.fromList [ ( "version", JsonNumber <| toFloat id ) ])
-                , [ status |> jobFunc |> Data.withPipelineId id ]
-                )
-
-            archived : ( Concourse.Pipeline, a ) -> ( Concourse.Pipeline, a )
-            archived ( p, j ) =
-                ( p |> Data.withArchived True, j )
         in
         [ test "displays an instance group card when there's a single pipeline with instance vars" <|
             \_ ->
