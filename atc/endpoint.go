@@ -30,3 +30,7 @@ func (rae *rataEndpoint) CreateRequest(
 		body,
 	)
 }
+
+func CreatePathForRoute(action string, params map[string]string) (string, error) {
+	return Routes.CreatePathForRoute(action, rata.Params(params))
+}

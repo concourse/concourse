@@ -12,7 +12,6 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/tedsuo/rata"
 )
 
 var _ = Describe("Fly CLI", func() {
@@ -48,7 +47,7 @@ var _ = Describe("Fly CLI", func() {
 			var path string
 			BeforeEach(func() {
 				var err error
-				path, err = atc.Routes.CreatePathForRoute(atc.GetTeam, rata.Params{"team_name": "myTeam"})
+				path, err = atc.CreatePathForRoute(atc.GetTeam, map[string]string{"team_name": "myTeam"})
 				Expect(err).NotTo(HaveOccurred())
 			})
 

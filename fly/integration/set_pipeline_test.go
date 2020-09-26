@@ -17,7 +17,6 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/tedsuo/rata"
 	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/atc"
@@ -149,7 +148,7 @@ var _ = Describe("Fly CLI", func() {
 					Jobs: atc.JobConfigs{},
 				}
 
-				path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+				path, err := atc.CreatePathForRoute(atc.GetConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 				Expect(err).NotTo(HaveOccurred())
 
 				atcServer.AppendHandlers(
@@ -207,10 +206,10 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when configuring with old-style templated value succeeds", func() {
 				BeforeEach(func() {
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
-					path_get, err := atc.Routes.CreatePathForRoute(atc.GetPipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path_get, err := atc.CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					config = atc.Config{
@@ -312,7 +311,7 @@ var _ = Describe("Fly CLI", func() {
 							Jobs: atc.JobConfigs{},
 						}
 
-						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+						path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 						Expect(err).NotTo(HaveOccurred())
 
 						atcServer.RouteToHandler("PUT", path,
@@ -418,7 +417,7 @@ this is super secure
 						},
 					}
 
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
@@ -439,7 +438,7 @@ this is super secure
 						),
 					)
 
-					path_get, err := atc.Routes.CreatePathForRoute(atc.GetPipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path_get, err := atc.CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("GET", path_get,
@@ -504,7 +503,7 @@ this is super secure
 						},
 					}
 
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
@@ -525,7 +524,7 @@ this is super secure
 						),
 					)
 
-					path_get, err := atc.Routes.CreatePathForRoute(atc.GetPipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path_get, err := atc.CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("GET", path_get,
@@ -592,7 +591,7 @@ this is super secure
 						},
 					}
 
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
@@ -613,7 +612,7 @@ this is super secure
 						),
 					)
 
-					path_get, err := atc.Routes.CreatePathForRoute(atc.GetPipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path_get, err := atc.CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("GET", path_get,
@@ -669,7 +668,7 @@ this is super secure
 
 					Context("when the variable does not exist in the credentials manager", func() {
 						BeforeEach(func() {
-							path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+							path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 							Expect(err).NotTo(HaveOccurred())
 
 							configResponse := atc.SaveConfigResponse{Errors: []string{"some-error"}}
@@ -737,14 +736,14 @@ this is super secure
 
 				changedConfig = config
 
-				path, err := atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+				path, err := atc.CreatePathForRoute(atc.GetConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 				Expect(err).NotTo(HaveOccurred())
 
 				atcServer.RouteToHandler("GET", path,
 					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ConfigResponse{Config: config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
 				)
 
-				path_get, err := atc.Routes.CreatePathForRoute(atc.GetPipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+				path_get, err := atc.CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 				Expect(err).NotTo(HaveOccurred())
 
 				atcServer.RouteToHandler("GET", path_get,
@@ -827,7 +826,7 @@ this is super secure
 						},
 					}
 
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
@@ -903,7 +902,7 @@ this is super secure
 					changedConfig.Jobs[0].Serial = false
 					changedConfig.Jobs = append(changedConfig.Jobs[:2], newJob)
 
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
@@ -1152,7 +1151,7 @@ this is super secure
 
 			Context("when configuring fails", func() {
 				BeforeEach(func() {
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
@@ -1215,13 +1214,13 @@ this is super secure
 						}).By(4))
 					})
 				}
-				
-				Context("when updating an existing pipeline", func(){
+
+				Context("when updating an existing pipeline", func() {
 					BeforeEach(func() {
-						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+						path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 						Expect(err).NotTo(HaveOccurred())
 
-						path_get, err := atc.Routes.CreatePathForRoute(atc.GetPipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+						path_get, err := atc.CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 						Expect(err).NotTo(HaveOccurred())
 
 						atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
@@ -1235,7 +1234,7 @@ this is super secure
 
 						atcServer.RouteToHandler("GET", path_get, ghttp.RespondWithJSONEncoded(http.StatusOK,
 							atc.Pipeline{Name: "awesome-pipeline", Paused: true, TeamName: "main"}))
-						
+
 						config.Resources[0].Name = "updated-name"
 					})
 
@@ -1244,10 +1243,10 @@ this is super secure
 
 				Context("when the pipeline is being created for the first time", func() {
 					BeforeEach(func() {
-						path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+						path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 						Expect(err).NotTo(HaveOccurred())
 
-						path_get, err := atc.Routes.CreatePathForRoute(atc.GetPipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+						path_get, err := atc.CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 						Expect(err).NotTo(HaveOccurred())
 
 						atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
@@ -1261,7 +1260,7 @@ this is super secure
 
 						atcServer.RouteToHandler("GET", path_get, ghttp.RespondWithJSONEncoded(http.StatusOK,
 							atc.Pipeline{Name: "awesome-pipeline", Paused: true, TeamName: "main"}))
-						
+
 						config.Resources[0].Name = "updated-name"
 					})
 
@@ -1271,7 +1270,7 @@ this is super secure
 
 			Context("when the server returns warnings", func() {
 				BeforeEach(func() {
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
@@ -1333,7 +1332,7 @@ this is super secure
 
 			Context("when the server rejects the request", func() {
 				BeforeEach(func() {
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path, func(w http.ResponseWriter, r *http.Request) {

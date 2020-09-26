@@ -11,7 +11,6 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/tedsuo/rata"
 )
 
 var _ = Describe("Fly CLI", func() {
@@ -24,10 +23,10 @@ var _ = Describe("Fly CLI", func() {
 				err         error
 			)
 			BeforeEach(func() {
-				mainPath, err = atc.Routes.CreatePathForRoute(atc.UnpausePipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+				mainPath, err = atc.CreatePathForRoute(atc.UnpausePipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 				Expect(err).NotTo(HaveOccurred())
 
-				otherPath, err = atc.Routes.CreatePathForRoute(atc.UnpausePipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "other-team"})
+				otherPath, err = atc.CreatePathForRoute(atc.UnpausePipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "other-team"})
 				Expect(err).NotTo(HaveOccurred())
 
 				queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
@@ -183,10 +182,10 @@ var _ = Describe("Fly CLI", func() {
 		)
 
 		BeforeEach(func() {
-			somePath, err = atc.Routes.CreatePathForRoute(atc.UnpausePipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+			somePath, err = atc.CreatePathForRoute(atc.UnpausePipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 			Expect(err).NotTo(HaveOccurred())
 
-			someOtherPath, err = atc.Routes.CreatePathForRoute(atc.UnpausePipeline, rata.Params{"pipeline_name": "more-awesome-pipeline", "team_name": "main"})
+			someOtherPath, err = atc.CreatePathForRoute(atc.UnpausePipeline, map[string]string{"pipeline_name": "more-awesome-pipeline", "team_name": "main"})
 			Expect(err).NotTo(HaveOccurred())
 
 			atcServer.AppendHandlers(

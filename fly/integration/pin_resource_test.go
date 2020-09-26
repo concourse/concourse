@@ -11,7 +11,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/tedsuo/rata"
 
 	"github.com/onsi/gomega/gexec"
 )
@@ -61,14 +60,14 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when the resource version json string is specified", func() {
 				BeforeEach(func() {
-					getPath, err = atc.Routes.CreatePathForRoute(atc.ListResourceVersions, rata.Params{
+					getPath, err = atc.CreatePathForRoute(atc.ListResourceVersions, map[string]string{
 						"pipeline_name": pipelineName,
 						"team_name":     teamName,
 						"resource_name": resourceName,
 					})
 					Expect(err).NotTo(HaveOccurred())
 
-					pinPath, err = atc.Routes.CreatePathForRoute(atc.PinResourceVersion, rata.Params{
+					pinPath, err = atc.CreatePathForRoute(atc.PinResourceVersion, map[string]string{
 						"pipeline_name":              pipelineName,
 						"team_name":                  teamName,
 						"resource_name":              resourceName,
@@ -163,7 +162,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when pin comment is provided", func() {
 				BeforeEach(func() {
-					commentPath, err = atc.Routes.CreatePathForRoute(atc.SetPinCommentOnResource, rata.Params{
+					commentPath, err = atc.CreatePathForRoute(atc.SetPinCommentOnResource, map[string]string{
 						"pipeline_name": pipelineName,
 						"team_name":     teamName,
 						"resource_name": resourceName,

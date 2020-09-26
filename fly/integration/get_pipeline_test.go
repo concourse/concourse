@@ -11,7 +11,6 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/tedsuo/rata"
 	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/atc"
@@ -122,7 +121,7 @@ var _ = Describe("Fly CLI", func() {
 
 				BeforeEach(func() {
 					var err error
-					path, err = atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "some-pipeline", "team_name": "main"})
+					path, err = atc.CreatePathForRoute(atc.GetConfig, map[string]string{"pipeline_name": "some-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"

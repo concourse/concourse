@@ -11,7 +11,6 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/tedsuo/rata"
 )
 
 var _ = Describe("Fly CLI", func() {
@@ -29,7 +28,7 @@ var _ = Describe("Fly CLI", func() {
 		)
 
 		BeforeEach(func() {
-			path, err = atc.Routes.CreatePathForRoute(atc.UnpinResource, rata.Params{
+			path, err = atc.CreatePathForRoute(atc.UnpinResource, map[string]string{
 				"pipeline_name": pipelineName,
 				"team_name":     teamName,
 				"resource_name": resourceName,

@@ -14,7 +14,6 @@ import (
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/gorilla/websocket"
 	"github.com/mgutz/ansi"
-	"github.com/tedsuo/rata"
 )
 
 type ProcessIO struct {
@@ -24,18 +23,18 @@ type ProcessIO struct {
 }
 
 type Hijacker struct {
-	tlsConfig        *tls.Config
-	requestGenerator *rata.RequestGenerator
-	token            *rc.TargetToken
-	interval         time.Duration
+	tlsConfig *tls.Config
+	endpoint  atc.Endpoint
+	token     *rc.TargetToken
+	interval  time.Duration
 }
 
-func New(tlsConfig *tls.Config, requestGenerator *rata.RequestGenerator, token *rc.TargetToken) *Hijacker {
+func New(tlsConfig *tls.Config, endpoint atc.Endpoint, token *rc.TargetToken) *Hijacker {
 	return &Hijacker{
-		tlsConfig:        tlsConfig,
-		requestGenerator: requestGenerator,
-		token:            token,
-		interval:         10 * time.Second,
+		tlsConfig: tlsConfig,
+		endpoint:  endpoint,
+		token:     token,
+		interval:  10 * time.Second,
 	}
 }
 
@@ -83,9 +82,9 @@ func (h *Hijacker) Hijack(teamName, handle string, spec atc.HijackProcessSpec, p
 }
 
 func (h *Hijacker) hijackRequestParts(teamName, handle string) (string, http.Header, error) {
-	hijackReq, err := h.requestGenerator.CreateRequest(
+	hijackReq, err := h.endpoint.CreateRequest(
 		atc.HijackContainer,
-		rata.Params{"id": handle, "team_name": teamName},
+		map[string]string{"id": handle, "team_name": teamName},
 		nil,
 	)
 

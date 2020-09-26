@@ -8,7 +8,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/tedsuo/rata"
 
 	"github.com/gorilla/websocket"
 	"github.com/onsi/gomega/gbytes"
@@ -80,13 +79,13 @@ var _ = Describe("Hijacker", func() {
 				InsecureSkipVerify: true,
 			}
 
-			reqGenerator := rata.NewRequestGenerator(server.URL(), atc.Routes)
+			endpoint := atc.NewEndpoint(server.URL())
 
 			stdin := gbytes.NewBuffer()
 			stdout := gbytes.NewBuffer()
 			stderr := gbytes.NewBuffer()
 
-			h := hijacker.New(tlsConfig, reqGenerator, nil)
+			h := hijacker.New(tlsConfig, endpoint, nil)
 			_, err := h.Hijack("some-team", "hello", atc.HijackProcessSpec{
 				Path: "/bin/echo",
 				Args: []string{"hello", "world"},
