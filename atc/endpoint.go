@@ -34,3 +34,15 @@ func (rae *rataEndpoint) CreateRequest(
 func CreatePathForRoute(action string, params map[string]string) (string, error) {
 	return Routes.CreatePathForRoute(action, rata.Params(params))
 }
+
+func NewRouter(handlers map[string]http.Handler) (http.Handler, error) {
+	routes := rata.Routes{}
+	for action, _ := range handlers {
+		for _, route := range Routes {
+			if route.Name == action {
+				routes = append(routes, route)
+			}
+		}
+	}
+	return rata.NewRouter(routes, handlers)
+}

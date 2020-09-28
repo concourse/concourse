@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/auditor/auditorfakes"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/tedsuo/rata"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,11 +18,10 @@ import (
 
 var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 	var (
-		response      *http.Response
-		server        *httptest.Server
-		delegate      *workerDelegateHandler
-		workerFactory *dbfakes.FakeWorkerFactory
-		handler       http.Handler
+		responseRecorder *httptest.ResponseRecorder
+		delegate         *workerDelegateHandler
+		workerFactory    *dbfakes.FakeWorkerFactory
+		handler          http.Handler
 
 		fakeAccessor *accessorfakes.FakeAccessFactory
 		fakeaccess   *accessorfakes.FakeAccess
@@ -52,32 +50,20 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 
 	JustBeforeEach(func() {
 		fakeAccessor.CreateReturns(fakeaccess, nil)
-		routes := rata.Routes{}
-		for _, route := range atc.Routes {
-			if route.Name == atc.RetireWorker {
-				routes = append(routes, route)
-			}
-		}
-
-		router, err := rata.NewRouter(routes, map[string]http.Handler{
+		router, err := atc.NewRouter(map[string]http.Handler{
 			atc.RetireWorker: handler,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		server = httptest.NewServer(router)
 
-		requestGenerator := rata.NewRequestGenerator(server.URL, atc.Routes)
-		request, err := requestGenerator.CreateRequest(atc.RetireWorker, rata.Params{
-			"worker_name": "some-worker",
-			"team_name":   "some-team",
-		}, nil)
+		request, err := atc.NewEndpoint("http://example").
+			CreateRequest(atc.RetireWorker, map[string]string{
+				"worker_name": "some-worker",
+				"team_name":   "some-team",
+			}, nil)
 		Expect(err).NotTo(HaveOccurred())
 
-		response, err = new(http.Client).Do(request)
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	var _ = AfterEach(func() {
-		server.Close()
+		responseRecorder = httptest.NewRecorder()
+		router.ServeHTTP(responseRecorder, request)
 	})
 
 	Context("when not authenticated", func() {
@@ -86,7 +72,7 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 		})
 
 		It("returns 401", func() {
-			Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			Expect(responseRecorder.Code).To(Equal(http.StatusUnauthorized))
 		})
 
 		It("does not call the scoped handler", func() {
@@ -116,10 +102,10 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 
 				It("calls worker delegate", func() {
 					Expect(delegate.IsCalled).To(BeTrue())
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
+					Expect(responseRecorder.Code).To(Equal(http.StatusOK))
 				})
 				It("returns 200", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
+					Expect(responseRecorder.Code).To(Equal(http.StatusOK))
 				})
 			})
 
@@ -134,7 +120,7 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 
 				It("calls worker delegate", func() {
 					Expect(delegate.IsCalled).To(BeTrue())
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
+					Expect(responseRecorder.Code).To(Equal(http.StatusOK))
 				})
 			})
 
@@ -152,7 +138,7 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 				})
 
 				It("returns 403 Forbidden", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					Expect(responseRecorder.Code).To(Equal(http.StatusForbidden))
 				})
 			})
 		})
@@ -173,10 +159,10 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 
 				It("calls worker delegate", func() {
 					Expect(delegate.IsCalled).To(BeTrue())
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
+					Expect(responseRecorder.Code).To(Equal(http.StatusOK))
 				})
 				It("returns 200", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
+					Expect(responseRecorder.Code).To(Equal(http.StatusOK))
 				})
 			})
 
@@ -190,7 +176,7 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 				})
 
 				It("returns 403 Forbidden", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					Expect(responseRecorder.Code).To(Equal(http.StatusForbidden))
 				})
 			})
 		})
@@ -205,7 +191,7 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 			})
 
 			It("returns 404 Not found", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				Expect(responseRecorder.Code).To(Equal(http.StatusNotFound))
 			})
 		})
 
@@ -215,7 +201,7 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 			})
 
 			It("returns 500", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				Expect(responseRecorder.Code).To(Equal(http.StatusInternalServerError))
 			})
 
 			It("does not call the scoped handler", func() {
