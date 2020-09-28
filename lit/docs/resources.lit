@@ -27,7 +27,7 @@ with the following schema.
   }
 
   \required-attribute{source}{config}{
-    The location of the resource. This varies by resource type, and is a black
+    The configuration for the resource. This varies by resource type, and is a black
     box to Concourse; it is blindly passed to the resource at runtime.
 
     To use \code{git} as an example, the source may contain the repo URI, the
@@ -38,7 +38,7 @@ with the following schema.
 
     You can find the source for the resource types provided with Concourse at the
     \link{Concourse GitHub
-    organization}{https://github.com/concourse?query=-resource}.
+    organization}{https://github.com/concourse?q=-resource}.
   }
 
   \optional-attribute{old_name}{identifier}{

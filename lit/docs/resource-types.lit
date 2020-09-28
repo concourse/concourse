@@ -40,7 +40,7 @@ A pipeline's resource types are listed under
   }
 
   \required-attribute{source}{config}{
-    The location of the resource type's resource. This varies
+    The configuration for the resource type's resource. This varies
     by resource type, and is a black box to Concourse; it is blindly passed to
     the resource at runtime.
 
@@ -90,6 +90,67 @@ A pipeline's resource types are listed under
     \reference{global-resources} is enabled. When set to \code{true}, resources
     using this resource type will have a version history that is unique to the
     resource, rather than sharing a global version history.
+  }
+
+  \optional-attribute{defaults}{config}{
+    The default configuration for the resource type. This varies
+    by resource type, and is a black box to Concourse; it is merged with
+    (duplicate fields are overwritten by) \reference{schema.resource.source}
+    and passed to the resource at runtime.
+
+    \example-toggle{Setting default configuration for resources}{
+      \codeblock{yaml}{{{
+        resource_types:
+        - name: gcs
+          type: registry-image
+          source:
+            repository: frodenas/gcs-resource
+          defaults:
+            json_key: ((default_key))
+
+        resources:
+        - name: bucket-a
+          type: gcs
+          source:
+            bucket: a
+
+        - name: bucket-b
+          type: gcs
+          source:
+            bucket: b
+
+        - name: bucket-c
+          type: gcs
+          source:
+            bucket: c
+            json_key: ((different_key))
+      }}}
+    }
+
+    \example-toggle{Overriding default resource types}{
+      Since it's possible to overwrite the base resource types, it can be
+      used to give defaults to resources at the pipeline level.
+
+      \codeblock{yaml}{{{
+      resource_types:
+      - name: registry-image
+        type: registry-image
+        source:
+          repository: concourse/registry-image-resource
+        defaults:
+          registry_mirror:
+            host: https://registry.mirror.example.com
+
+      resources:
+      - name: mirrored-image
+        type: registry-image
+        source:
+          repository: busybox
+      }}}
+
+      Alternatively, the web node can be configured to use
+      \reference{resource-defaults}{defaults for base resource types}
+    }
   }
 }
 
