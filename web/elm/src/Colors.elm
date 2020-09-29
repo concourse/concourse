@@ -130,7 +130,7 @@ dashboardPipelineHeaderText =
 
 dropdownItemInputText : String
 dropdownItemInputText =
-    ColorValues.grey20
+    ColorValues.grey30
 
 
 dropdownItemSelectedText : String

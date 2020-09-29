@@ -82,29 +82,14 @@ pausedBlue =
     "#3498db"
 
 
-almostWhite : String
-almostWhite =
-    "rgba(255, 255, 255, 0.5)"
-
-
 topBarHeight : String
 topBarHeight =
     "54px"
 
 
-searchBarBorder : String
-searchBarBorder =
-    "1px solid " ++ ColorValues.grey60
-
-
-searchBarGrey : String
-searchBarGrey =
-    "#504b4b"
-
-
-dropdownBackgroundGrey : String
-dropdownBackgroundGrey =
-    "#2e2e2e"
+searchBarBorder : String -> String
+searchBarBorder color =
+    "1px solid " ++ color
 
 
 searchBarHeight : String
@@ -603,10 +588,9 @@ all =
                     >> queryView
                     >> Query.find [ id "search-input-field" ]
                     >> Query.has [ attribute <| Attr.value "" ]
-            , it "clear search button has full opacity when there is a query" <|
+            , it "clear search button shows up when there is a query" <|
                 queryView
-                    >> Query.find [ id "search-clear" ]
-                    >> Query.has [ style "opacity" "1" ]
+                    >> Query.has [ id "search-clear" ]
             ]
         , rspecStyleDescribe "rendering search bar on dashboard page"
             (Common.init "/"
@@ -642,7 +626,8 @@ all =
                         >> Query.has [ tag "input" ]
                 , it "renders search bar with transparent background to remove white of search bar" <|
                     Query.find [ id SearchBar.searchInputId ]
-                        >> Query.has [ style "background-color" "transparent" ]
+                        >> Query.has
+                            [ style "background-color" ColorValues.grey90 ]
                 , it "search bar does not use browser's built-in autocomplete" <|
                     Query.find [ id SearchBar.searchInputId ]
                         >> Query.has
@@ -659,8 +644,8 @@ all =
                 , it "styles search border and input text colour" <|
                     Query.find [ id SearchBar.searchInputId ]
                         >> Query.has
-                            [ style "border" searchBarBorder
-                            , style "color" ColorValues.grey20
+                            [ style "border" <| searchBarBorder ColorValues.grey60
+                            , style "color" ColorValues.grey30
                             , style "font-size" "1.15em"
                             , style "font-family" Views.Styles.fontFamilyDefault
                             ]
@@ -676,7 +661,12 @@ all =
                         >> Query.has [ style "outline" "0" ]
                 , it "has placeholder text" <|
                     Query.find [ id SearchBar.searchInputId ]
-                        >> Query.has [ tag "input", attribute <| Attr.placeholder "search" ]
+                        >> Query.has
+                            [ tag "input"
+                            , attribute <|
+                                Attr.placeholder
+                                    "filter pipelines by name, status, or team"
+                            ]
                 , it "has a wrapper for top bar content" <|
                     Query.has
                         [ id "top-bar-content"
@@ -708,37 +698,9 @@ all =
                             [ Query.has [ style "margin" "12px" ]
                             , Query.hasNot [ style "height" "56px" ]
                             ]
-                , it "has a clear search button container" <|
+                , it "does not show clear search when there's no search query" <|
                     Query.find [ id "search-container" ]
-                        >> Query.has [ id "search-clear" ]
-                , it "positions the clear search button correctly" <|
-                    Query.find [ id "search-container" ]
-                        >> Query.has [ id "search-clear" ]
-                , it "has the appropriate background image for clear search and is in correct position" <|
-                    Query.find [ id "search-clear" ]
-                        >> Query.has
-                            [ style "background-image" <|
-                                Assets.backgroundImage <|
-                                    Just Assets.CloseIcon
-                            , style "background-position" "10px 10px"
-                            , style "background-repeat" "no-repeat"
-                            ]
-                , it "clear search button has no border and renders text appropriately" <|
-                    Query.find [ id "search-clear" ]
-                        >> Query.has
-                            [ style "border" "0"
-                            , style "color" ColorValues.grey60
-                            ]
-                , it "clear search button is positioned appropriately" <|
-                    Query.find [ id "search-clear" ]
-                        >> Query.has
-                            [ style "position" "absolute"
-                            , style "right" "0"
-                            , style "padding" "17px"
-                            ]
-                , it "sets opacity for the clear search button to low when there is no text" <|
-                    Query.find [ id "search-clear" ]
-                        >> Query.has [ style "opacity" "0.2" ]
+                        >> Query.hasNot [ id "search-clear" ]
                 ]
             , context "when mobile sized"
                 (Application.handleCallback
@@ -787,7 +749,12 @@ all =
                                 >> Query.has [ tag "input" ]
                         , it "has placeholder text" <|
                             Query.find [ id SearchBar.searchInputId ]
-                                >> Query.has [ tag "input", attribute <| Attr.placeholder "search" ]
+                                >> Query.has
+                                    [ tag "input"
+                                    , attribute <|
+                                        Attr.placeholder
+                                            "filter pipelines by name, status, or team"
+                                    ]
                         , it "has a search container" <|
                             Query.has [ id "search-container" ]
                         , it "positions the search container appropriately" <|
@@ -805,18 +772,9 @@ all =
                                     [ Query.has [ style "margin" "12px" ]
                                     , Query.hasNot [ style "height" "56px" ]
                                     ]
-                        , it "has a clear search button container" <|
+                        , it "does not show clear search when there's no search query" <|
                             Query.find [ id "search-container" ]
-                                >> Query.has [ id "search-clear" ]
-                        , it "has the appropriate background image for clear search and is in correct position" <|
-                            Query.find [ id "search-clear" ]
-                                >> Query.has
-                                    [ style "background-image" <|
-                                        Assets.backgroundImage <|
-                                            Just Assets.CloseIcon
-                                    , style "background-position" "10px 10px"
-                                    , style "background-repeat" "no-repeat"
-                                    ]
+                                >> Query.hasNot [ id "search-clear" ]
                         , it "hides the login component" <|
                             Query.hasNot [ id "login-component" ]
                         ]
@@ -889,6 +847,8 @@ all =
                                 Query.hasNot [ id "login-component" ]
                             , it "should not display a dropdown of options" <|
                                 Query.hasNot [ id "search-dropdown" ]
+                            , it "has a clear search button container" <|
+                                Query.has [ id "search-clear" ]
                             ]
                         ]
                     ]
@@ -911,12 +871,8 @@ all =
                     )
                 |> Tuple.first
             )
-            [ it
-                ("shows the list of statuses when "
-                    ++ "`status:` is typed in the search bar"
-                )
-              <|
-                Application.update
+            [ context "the search clear button"
+                (Application.update
                     (ApplicationMsgs.Update Msgs.FocusMsg)
                     >> Tuple.first
                     >> Application.update
@@ -924,36 +880,73 @@ all =
                             Msgs.FilterMsg "status:"
                         )
                     >> Tuple.first
-                    >> queryView
-                    >> Query.find [ id "search-dropdown" ]
-                    >> Query.findAll [ tag "li" ]
-                    >> Expect.all
-                        [ Query.count (Expect.equal 7)
-                        , Query.index 0 >> Query.has [ text "status: paused" ]
-                        , Query.index 1 >> Query.has [ text "status: pending" ]
-                        , Query.index 2 >> Query.has [ text "status: failed" ]
-                        , Query.index 3 >> Query.has [ text "status: errored" ]
-                        , Query.index 4 >> Query.has [ text "status: aborted" ]
-                        , Query.index 5 >> Query.has [ text "status: running" ]
-                        , Query.index 6 >> Query.has [ text "status: succeeded" ]
-                        ]
-            , it "after typing `status: pending` the dropdown is empty" <|
-                Application.update
+                )
+                [ it "clear search button has no border and renders text appropriately" <|
+                    queryView
+                        >> Query.has [ id "search-clear" ]
+                , it "styles search border and input text colour" <|
+                    queryView
+                        >> Query.find [ id SearchBar.searchInputId ]
+                        >> Query.has
+                            [ style "border" <| searchBarBorder ColorValues.grey30
+                            , style "color" ColorValues.grey30
+                            , style "font-size" "1.15em"
+                            , style "font-family" Views.Styles.fontFamilyDefault
+                            ]
+                , it "has a clear search button container" <|
+                    queryView
+                        >> Query.find [ id "search-clear" ]
+                        >> Query.has
+                            [ style "border" "0"
+                            , style "color" "transparent"
+                            ]
+                , it "clear search button is positioned appropriately" <|
+                    queryView
+                        >> Query.find [ id "search-clear" ]
+                        >> Query.has
+                            [ style "position" "absolute"
+                            , style "right" "0"
+                            , style "padding" "17px"
+                            ]
+                ]
+            , context "when focusing the search bar"
+                (Application.update
                     (ApplicationMsgs.Update Msgs.FocusMsg)
                     >> Tuple.first
                     >> Application.update
                         (ApplicationMsgs.Update <| Msgs.FilterMsg "status:")
                     >> Tuple.first
-                    >> Application.update
+                )
+                [ it
+                    ("shows the list of statuses when "
+                        ++ "`status:` is typed in the search bar"
+                    )
+                  <|
+                    queryView
+                        >> Query.find [ id "search-dropdown" ]
+                        >> Query.findAll [ tag "li" ]
+                        >> Expect.all
+                            [ Query.count (Expect.equal 7)
+                            , Query.index 0 >> Query.has [ text "status: paused" ]
+                            , Query.index 1 >> Query.has [ text "status: pending" ]
+                            , Query.index 2 >> Query.has [ text "status: failed" ]
+                            , Query.index 3 >> Query.has [ text "status: errored" ]
+                            , Query.index 4 >> Query.has [ text "status: aborted" ]
+                            , Query.index 5 >> Query.has [ text "status: running" ]
+                            , Query.index 6 >> Query.has [ text "status: succeeded" ]
+                            ]
+                , it "after typing `status: pending` the dropdown is empty" <|
+                    Application.update
                         (ApplicationMsgs.Update <|
                             Msgs.FilterMsg "status: pending"
                         )
-                    >> Tuple.first
-                    >> queryView
-                    >> Query.findAll [ id "search-dropdown" ]
-                    >> Query.first
-                    >> Query.children []
-                    >> Query.count (Expect.equal 0)
+                        >> Tuple.first
+                        >> queryView
+                        >> Query.findAll [ id "search-dropdown" ]
+                        >> Query.first
+                        >> Query.children []
+                        >> Query.count (Expect.equal 0)
+                ]
             ]
         , rspecStyleDescribe "when search query is `status:`"
             (Application.init
@@ -1649,7 +1642,8 @@ testDropdown selecteds notSelecteds =
             , it "have no bullet points" <|
                 eachHasStyle "list-style-type" "none"
             , it "have the same border style as the search bar" <|
-                eachHasStyle "border" searchBarBorder
+                eachHasStyle "border" <|
+                    searchBarBorder ColorValues.grey60
             , it "are vertically aligned flush to each other" <|
                 eachHasStyle "margin-top" "-1px"
             , it "have slightly larger font" <|
