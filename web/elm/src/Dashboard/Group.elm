@@ -73,13 +73,16 @@ view session params teamName cards =
             else
                 cards
                     |> List.map
-                        (\{ bounds, card } ->
+                        (\{ bounds, headerHeight, card } ->
                             case card of
                                 PipelineCard pipeline ->
                                     pipelineCardView session
                                         params
                                         AllPipelinesSection
-                                        { bounds = bounds, pipeline = pipeline }
+                                        { bounds = bounds
+                                        , headerHeight = headerHeight
+                                        , pipeline = pipeline
+                                        }
                                         teamName
                                         |> (\html -> ( String.fromInt pipeline.id, html ))
 
@@ -87,7 +90,9 @@ view session params teamName cards =
                                     instanceGroupCardView session
                                         params
                                         AllPipelinesSection
-                                        bounds
+                                        { bounds = bounds
+                                        , headerHeight = headerHeight
+                                        }
                                         p
                                         ps
                                         |> (\html -> ( p.name, html ))
@@ -157,13 +162,16 @@ viewFavoritePipelines session params headers cards =
         cardViews =
             cards
                 |> List.map
-                    (\{ bounds, card } ->
+                    (\{ bounds, card, headerHeight } ->
                         case card of
                             PipelineCard pipeline ->
                                 pipelineCardView session
                                     params
                                     FavoritesSection
-                                    { bounds = bounds, pipeline = pipeline }
+                                    { bounds = bounds
+                                    , pipeline = pipeline
+                                    , headerHeight = headerHeight
+                                    }
                                     pipeline.teamName
                                     |> (\html -> ( String.fromInt pipeline.id, html ))
 
@@ -171,7 +179,9 @@ viewFavoritePipelines session params headers cards =
                                 instanceGroupCardView session
                                     params
                                     FavoritesSection
-                                    bounds
+                                    { bounds = bounds
+                                    , headerHeight = headerHeight
+                                    }
                                     p
                                     ps
                                     |> (\html -> ( p.name, html ))
@@ -316,10 +326,11 @@ pipelineCardView :
     ->
         { bounds : Grid.Bounds
         , pipeline : Pipeline
+        , headerHeight : Float
         }
     -> String
     -> Html Message
-pipelineCardView session params section { bounds, pipeline } teamName =
+pipelineCardView session params section { bounds, headerHeight, pipeline } teamName =
     Html.div
         ([ class "card-wrapper"
          , style "position" "absolute"
@@ -421,6 +432,7 @@ pipelineCardView session params section { bounds, pipeline } teamName =
                         |> Dict.get pipeline.id
                         |> Maybe.withDefault []
                         |> List.map (List.filterMap <| lookupJob params.jobs)
+                , headerHeight = headerHeight
                 , hovered = session.hovered
                 , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                 , section = section
@@ -444,11 +456,11 @@ instanceGroupCardView :
             , query : String
         }
     -> PipelinesSection
-    -> Grid.Bounds
+    -> { bounds : Grid.Bounds, headerHeight : Float }
     -> Pipeline
     -> List Pipeline
     -> Html Message
-instanceGroupCardView session params section bounds p ps =
+instanceGroupCardView session params section { bounds, headerHeight } p ps =
     Html.div
         ([ class "card-wrapper"
          , style "position" "absolute"
@@ -545,6 +557,7 @@ instanceGroupCardView session params section bounds p ps =
                 , hovered = session.hovered
                 , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                 , section = section
+                , headerHeight = headerHeight
                 , dashboardView = params.dashboardView
                 , query = params.query
                 }

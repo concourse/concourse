@@ -92,9 +92,10 @@ cardView :
         , section : PipelinesSection
         , dashboardView : Routes.DashboardView
         , query : String
+        , headerHeight : Float
         }
     -> Html Message
-cardView session { pipeline, pipelines, hovered, pipelineRunningKeyframes, resourceError, pipelineJobs, jobs, section, dashboardView, query } =
+cardView session { pipeline, pipelines, hovered, pipelineRunningKeyframes, resourceError, pipelineJobs, jobs, section, dashboardView, query, headerHeight } =
     Html.div
         (Styles.instanceGroupCard
             -- TODO
@@ -112,13 +113,13 @@ cardView session { pipeline, pipelines, hovered, pipelineRunningKeyframes, resou
                )
         )
         [ Html.div (class "banner" :: Styles.instanceGroupCardBanner) []
-        , headerView dashboardView query pipeline pipelines resourceError
+        , headerView dashboardView query pipeline pipelines resourceError headerHeight
         , bodyView pipelineRunningKeyframes section hovered (pipeline :: pipelines) pipelineJobs jobs
         ]
 
 
-headerView : Routes.DashboardView -> String -> Pipeline -> List Pipeline -> Bool -> Html Message
-headerView dashboardView query pipeline pipelines resourceError =
+headerView : Routes.DashboardView -> String -> Pipeline -> List Pipeline -> Bool -> Float -> Html Message
+headerView dashboardView query pipeline pipelines resourceError headerHeight =
     Html.a
         [ href <|
             Routes.toString <|
@@ -132,7 +133,7 @@ headerView dashboardView query pipeline pipelines resourceError =
             ([ class "card-header"
              , onMouseEnter <| Tooltip pipeline.name pipeline.teamName
              ]
-                ++ Styles.instanceGroupCardHeader
+                ++ Styles.instanceGroupCardHeader headerHeight
             )
             [ InstanceGroupBadge.view <| List.length (pipeline :: pipelines)
             , Html.div

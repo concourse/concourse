@@ -1336,7 +1336,7 @@ cardsView session params teamCards =
                                 let
                                     startingOffset =
                                         totalOffset
-                                            + GridConstants.headerHeight
+                                            + GridConstants.groupHeaderHeight
                                             + GridConstants.padding
 
                                     layout =

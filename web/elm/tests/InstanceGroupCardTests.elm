@@ -159,13 +159,6 @@ all =
                             , style "color" white
                             , containing [ text "group" ]
                             ]
-            , test "has 12.5px padding" <|
-                \_ ->
-                    whenOnDashboard { highDensity = False }
-                        |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
-                        |> Common.queryView
-                        |> findHeader
-                        |> Query.has [ style "padding" "12.5px" ]
             , test "text does not overflow or wrap" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }

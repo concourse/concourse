@@ -1,7 +1,8 @@
 module Dashboard.Grid.Constants exposing
-    ( cardHeight
+    ( cardBodyHeight
+    , cardHeaderHeight
     , cardWidth
-    , headerHeight
+    , groupHeaderHeight
     , padding
     , sectionHeaderHeight
     , sectionSpacerHeight
@@ -13,9 +14,9 @@ cardWidth =
     272
 
 
-cardHeight : number
-cardHeight =
-    268
+cardBodyHeight : number
+cardBodyHeight =
+    268 - cardHeaderHeight 1
 
 
 padding : number
@@ -23,8 +24,13 @@ padding =
     25
 
 
-headerHeight : number
-headerHeight =
+cardHeaderHeight : number -> number
+cardHeaderHeight numRows =
+    20 + 30 * numRows
+
+
+groupHeaderHeight : number
+groupHeaderHeight =
     60
 
 

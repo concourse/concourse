@@ -21,6 +21,7 @@ module Dashboard.Styles exposing
     , instanceGroupCardNameHd
     , instanceGroupCardPipelineBox
     , instanceGroupName
+    , instanceVar
     , jobPreview
     , jobPreviewLink
     , jobsDisabledTooltip
@@ -168,7 +169,7 @@ noPipelineCard =
     [ style "display" "flex"
     , style "flex-direction" "column"
     , style "width" <| String.fromInt GridConstants.cardWidth ++ "px"
-    , style "height" <| String.fromInt GridConstants.cardHeight ++ "px"
+    , style "height" <| String.fromInt (GridConstants.cardBodyHeight + GridConstants.cardHeaderHeight 1) ++ "px"
     , style "margin-left" <| String.fromInt GridConstants.padding ++ "px"
     ]
 
@@ -203,19 +204,26 @@ noPipelineCardHeader =
     ]
 
 
-pipelineCardHeader : List (Html.Attribute msg)
-pipelineCardHeader =
+cardHeaderCommon : Float -> List (Html.Attribute msg)
+cardHeaderCommon height =
     [ style "background-color" Colors.card
     , style "color" Colors.dashboardText
     , style "font-size" "1.5em"
     , style "letter-spacing" "0.1em"
-    , style "padding" "12.5px"
+    , style "padding" "10px 12.5px"
+    , style "height" <| String.fromFloat height ++ "px"
+    , style "box-sizing" "border-box"
     ]
 
 
-instanceGroupCardHeader : List (Html.Attribute msg)
-instanceGroupCardHeader =
-    pipelineCardHeader
+pipelineCardHeader : Float -> List (Html.Attribute msg)
+pipelineCardHeader height =
+    cardHeaderCommon height
+
+
+instanceGroupCardHeader : Float -> List (Html.Attribute msg)
+instanceGroupCardHeader height =
+    cardHeaderCommon height
         ++ [ style "display" "flex"
            , style "align-items" "center"
            ]
@@ -227,7 +235,13 @@ pipelineName =
     , style "white-space" "nowrap"
     , style "overflow" "hidden"
     , style "text-overflow" "ellipsis"
+    , style "padding" "2.5px 0"
     ]
+
+
+instanceVar : List (Html.Attribute msg)
+instanceVar =
+    pipelineName ++ [ style "letter-spacing" "0.05em" ]
 
 
 instanceGroupName : List (Html.Attribute msg)

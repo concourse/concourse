@@ -65,6 +65,7 @@ module Concourse exposing
     , encodeJob
     , encodePipeline
     , encodeTeam
+    , flattenJson
     , mapBuildPlan
     , retrieveCSRFToken
     )
@@ -461,6 +462,42 @@ decodeSimpleJsonValue =
         , Json.Decode.float |> Json.Decode.map JsonNumber
         , Json.Decode.value |> Json.Decode.map JsonRaw
         ]
+
+
+flattenJson : String -> JsonValue -> List ( String, String )
+flattenJson key val =
+    case val of
+        JsonString s ->
+            [ ( key, s ) ]
+
+        JsonNumber n ->
+            [ ( key, String.fromFloat n ) ]
+
+        JsonRaw v ->
+            [ ( key, Json.Encode.encode 0 v ) ]
+
+        JsonArray l ->
+            List.indexedMap
+                (\i v ->
+                    let
+                        subKey =
+                            key ++ "[" ++ String.fromInt i ++ "]"
+                    in
+                    flattenJson subKey v
+                )
+                l
+                |> List.concat
+
+        JsonObject o ->
+            List.concatMap
+                (\( k, v ) ->
+                    let
+                        subKey =
+                            key ++ "." ++ k
+                    in
+                    flattenJson subKey v
+                )
+                o
 
 
 type alias AcrossPlan =

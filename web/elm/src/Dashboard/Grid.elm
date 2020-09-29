@@ -7,13 +7,14 @@ module Dashboard.Grid exposing
     , computeLayout
     )
 
-import Concourse
+import Concourse exposing (flattenJson)
 import Dashboard.Drag as Drag
 import Dashboard.Grid.Constants
     exposing
-        ( cardHeight
+        ( cardBodyHeight
+        , cardHeaderHeight
         , cardWidth
-        , headerHeight
+        , groupHeaderHeight
         , padding
         )
 import Dashboard.Grid.Layout as Layout
@@ -40,6 +41,7 @@ type alias Bounds =
 
 type alias Card =
     { bounds : Bounds
+    , headerHeight : Float
     , gridElement : Layout.GridElement
     , card : Models.Card
     }
@@ -176,7 +178,7 @@ computeLayout params teamName cards =
     , dropAreas = allDropAreas |> List.filter (isVisible params)
     , height =
         if List.isEmpty cards then
-            cardHeight + padding
+            cardHeaderHeight 1 + cardBodyHeight + padding
 
         else
             result.totalHeight
@@ -200,9 +202,9 @@ computeFavoritesLayout params cards =
         result =
             computeCards
                 { colGap = padding
-                , rowGap = headerHeight
+                , rowGap = groupHeaderHeight
                 , offsetX = padding
-                , offsetY = headerHeight
+                , offsetY = groupHeaderHeight
                 }
                 params
                 cards
@@ -247,9 +249,9 @@ computeFavoritesLayout params cards =
                         , { header = header
                           , bounds =
                                 { x = first.bounds.x
-                                , y = first.bounds.y - headerHeight
+                                , y = first.bounds.y - groupHeaderHeight
                                 , width = last.bounds.x + cardWidth - first.bounds.x
-                                , height = headerHeight
+                                , height = groupHeaderHeight
                                 }
                           }
                             :: headers_
@@ -306,28 +308,26 @@ cardBounds :
     , offsetX : Float
     , offsetY : Float
     }
+    -> Float
     -> Layout.GridElement
+    -> Float
     -> Bounds
-cardBounds { colGap, rowGap, offsetX, offsetY } elem =
+cardBounds { colGap, rowGap, offsetX, offsetY } y elem headerHeight =
     let
         colWidth =
             cardWidth + colGap
-
-        rowHeight =
-            cardHeight + rowGap
     in
     { x = (toFloat elem.column - 1) * colWidth + offsetX
-    , y = (toFloat elem.row - 1) * rowHeight + offsetY
+    , y = y + offsetY
     , width =
         cardWidth
             * toFloat elem.spannedColumns
             + colGap
             * (toFloat elem.spannedColumns - 1)
     , height =
-        cardHeight
-            * toFloat elem.spannedRows
-            + rowGap
-            * (toFloat elem.spannedRows - 1)
+        headerHeight
+            + (cardBodyHeight * toFloat elem.spannedRows)
+            + (rowGap * (toFloat elem.spannedRows - 1))
     }
 
 
@@ -370,13 +370,19 @@ computeCards config params cards =
         |> List.foldl
             (\( first, rest ) state ->
                 let
+                    headerHeight =
+                        maxBy (numHeaderRows << .card) first rest
+                            |> cardHeaderHeight
+                            |> toFloat
+
                     curCards =
                         (first :: rest)
                             |> List.map
                                 (\{ card, gridElement } ->
                                     { card = card
+                                    , headerHeight = headerHeight
                                     , gridElement = gridElement
-                                    , bounds = cardBounds config gridElement
+                                    , bounds = cardBounds config state.totalHeight gridElement headerHeight
                                     }
                                 )
 
@@ -395,3 +401,30 @@ computeCards config params cards =
             , allCards = []
             , numColumns = numColumns
             }
+
+
+numHeaderRows : Models.Card -> Int
+numHeaderRows card =
+    case card of
+        Models.PipelineCard pipeline ->
+            if Dict.isEmpty pipeline.instanceVars then
+                1
+
+            else
+                pipeline.instanceVars
+                    |> Dict.toList
+                    |> List.concatMap (\( k, v ) -> flattenJson k v)
+                    |> List.length
+
+        Models.InstanceGroupCard _ _ ->
+            1
+
+
+maxBy : (a -> comparable) -> a -> List a -> comparable
+maxBy fn first rest =
+    case List.map fn rest |> List.maximum of
+        Nothing ->
+            fn first
+
+        Just restMax ->
+            max (fn first) restMax

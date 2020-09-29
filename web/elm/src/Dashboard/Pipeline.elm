@@ -7,12 +7,14 @@ module Dashboard.Pipeline exposing
 
 import Application.Models exposing (Session)
 import Assets
-import Concourse
+import Colors
+import Concourse exposing (flattenJson)
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.DashboardPreview as DashboardPreview
 import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Styles as Styles
+import Dict
 import Duration
 import HoverState
 import Html exposing (Html)
@@ -117,9 +119,10 @@ pipelineView :
         , existingJobs : List Concourse.Job
         , layers : List (List Concourse.Job)
         , section : PipelinesSection
+        , headerHeight : Float
         }
     -> Html Message
-pipelineView session { now, pipeline, hovered, pipelineRunningKeyframes, resourceError, existingJobs, layers, section } =
+pipelineView session { now, pipeline, hovered, pipelineRunningKeyframes, resourceError, existingJobs, layers, section, headerHeight } =
     let
         bannerStyle =
             if pipeline.stale then
@@ -152,7 +155,7 @@ pipelineView session { now, pipeline, hovered, pipelineRunningKeyframes, resourc
         [ Html.div
             (class "banner" :: bannerStyle)
             []
-        , headerView pipeline resourceError
+        , headerView pipeline resourceError headerHeight
         , if pipeline.jobsDisabled || pipeline.archived then
             previewPlaceholder
 
@@ -260,26 +263,46 @@ transition =
     .transitionBuild >> Maybe.andThen (.duration >> .finishedAt)
 
 
-headerView : Pipeline -> Bool -> Html Message
-headerView pipeline resourceError =
+headerView : Pipeline -> Bool -> Float -> Html Message
+headerView pipeline resourceError headerHeight =
+    let
+        rows =
+            if Dict.isEmpty pipeline.instanceVars then
+                -- TODO: there can be empty instance vars in an instance group
+                [ Html.div
+                    (class "dashboard-pipeline-name" :: Styles.pipelineName)
+                    [ Html.text pipeline.name ]
+                ]
+
+            else
+                pipeline.instanceVars
+                    |> Dict.toList
+                    |> List.concatMap (\( k, v ) -> flattenJson k v)
+                    |> List.map
+                        (\( k, v ) ->
+                            -- TODO: tooltip on overflow
+                            Html.div
+                                (class "instance-var" :: Styles.instanceVar)
+                                [ Html.span [ style "color" Colors.pending ]
+                                    [ Html.text <| k ++ ": " ]
+                                , Html.span [] [ Html.text v ]
+                                ]
+                        )
+
+        resourceErrorElem =
+            Html.div
+                [ classList [ ( "dashboard-resource-error", resourceError ) ] ]
+                []
+    in
     Html.a
         [ href <| Routes.toString <| Routes.pipelineRoute pipeline, draggable "false" ]
         [ Html.div
             ([ class "card-header"
              , onMouseEnter <| Tooltip pipeline.name pipeline.teamName
              ]
-                ++ Styles.pipelineCardHeader
+                ++ Styles.pipelineCardHeader headerHeight
             )
-            [ Html.div
-                (class "dashboard-pipeline-name" :: Styles.pipelineName)
-                [ Html.text pipeline.name ]
-            , Html.div
-                [ classList
-                    [ ( "dashboard-resource-error", resourceError )
-                    ]
-                ]
-                []
-            ]
+            (rows ++ [ resourceErrorElem ])
         ]
 
 

@@ -153,12 +153,9 @@ all =
                             [ Query.has [ text "no pipeline set" ]
                             , Query.has [ style "color" white ]
                             ]
-                , test "has dark grey background and 12.5px padding" <|
+                , test "has dark grey background" <|
                     header
-                        >> Query.has
-                            [ style "background-color" darkGrey
-                            , style "padding" "12.5px"
-                            ]
+                        >> Query.has [ style "background-color" darkGrey ]
                 , test "text is larger and wider spaced" <|
                     header
                         >> Query.has
@@ -326,9 +323,6 @@ all =
                         , style "letter-spacing" "0.1em"
                         , style "color" white
                         ]
-            , test "has 12.5px padding" <|
-                header
-                    >> Query.has [ style "padding" "12.5px" ]
             , test "text does not overflow or wrap" <|
                 header
                     >> Query.children []

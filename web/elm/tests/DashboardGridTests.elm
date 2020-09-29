@@ -231,7 +231,7 @@ all =
                                 { x = 25
                                 , y = 0
                                 , width = 272
-                                , height = 268 * 2 + 25
+                                , height = 50 + 218 * 2 + 25
                                 }
                         , findPipelineCard "pipeline-2"
                             >> hasBounds
@@ -240,7 +240,7 @@ all =
                                 , width = 272
                                 , height = 268
                                 }
-                        , containerHasHeight <| (268 + 25) * 2
+                        , containerHasHeight <| 50 + (218 + 25) * 2
                         ]
         , test "pipelines with many dependant jobs are rendered as spanning multiple columns" <|
             \_ ->

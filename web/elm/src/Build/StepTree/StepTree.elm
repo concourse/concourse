@@ -39,7 +39,7 @@ import Build.StepTree.Models
         )
 import Build.Styles as Styles
 import Colors
-import Concourse exposing (JsonValue(..))
+import Concourse exposing (JsonValue, flattenJson)
 import DateFormat
 import Dict exposing (Dict)
 import Duration
@@ -47,7 +47,6 @@ import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, id, style, target)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
-import Json.Encode
 import List.Extra
 import Message.Effects exposing (Effect(..), toHtmlID)
 import Message.Message exposing (DomID(..), Message(..))
@@ -579,57 +578,20 @@ viewAcrossStepSubHeaderLabels keyVals =
         (keyVals
             |> List.concatMap
                 (\( k, v ) ->
-                    viewAcrossStepSubHeaderKeyValue k v
+                    flattenJson k v
+                        |> List.map
+                            (\( key, val ) ->
+                                Html.span
+                                    [ style "display" "inline-block"
+                                    , style "margin-right" "10px"
+                                    ]
+                                    [ Html.span [ style "color" Colors.pending ]
+                                        [ Html.text <| key ++ ": " ]
+                                    , Html.text val
+                                    ]
+                            )
                 )
         )
-
-
-viewAcrossStepSubHeaderKeyValue : String -> JsonValue -> List (Html Message)
-viewAcrossStepSubHeaderKeyValue key val =
-    let
-        keyValueSpan text =
-            [ Html.span
-                [ style "display" "inline-block"
-                , style "margin-right" "10px"
-                ]
-                [ Html.span [ style "color" Colors.pending ]
-                    [ Html.text <| key ++ ": " ]
-                , Html.text text
-                ]
-            ]
-    in
-    case val of
-        JsonString s ->
-            keyValueSpan s
-
-        JsonNumber n ->
-            keyValueSpan <| String.fromFloat n
-
-        JsonRaw v ->
-            keyValueSpan <| Json.Encode.encode 0 v
-
-        JsonArray l ->
-            List.indexedMap
-                (\i v ->
-                    let
-                        subKey =
-                            key ++ "[" ++ String.fromInt i ++ "]"
-                    in
-                    viewAcrossStepSubHeaderKeyValue subKey v
-                )
-                l
-                |> List.concat
-
-        JsonObject o ->
-            List.concatMap
-                (\( k, v ) ->
-                    let
-                        subKey =
-                            key ++ "." ++ k
-                    in
-                    viewAcrossStepSubHeaderKeyValue subKey v
-                )
-                o
 
 
 viewRetryTab :
