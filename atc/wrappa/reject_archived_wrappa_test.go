@@ -27,8 +27,8 @@ var _ = Describe("RejectArchivedWrappa", func() {
 	It("wraps endpoints", func() {
 		inputHandlers := map[string]http.Handler{}
 
-		for _, route := range atc.Routes {
-			inputHandlers[route.Name] = &stupidHandler{}
+		for _, routeName := range atc.RouteNames() {
+			inputHandlers[routeName] = &stupidHandler{}
 		}
 
 		rejectArchivedRoutes := []string{

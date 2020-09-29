@@ -38,8 +38,8 @@ var _ = Describe("ConcourseVersionWrappa", func() {
 		BeforeEach(func() {
 			inputHandlers = map[string]http.Handler{}
 
-			for _, route := range atc.Routes {
-				inputHandlers[route.Name] = &stupidHandler{}
+			for _, routeName := range atc.RouteNames() {
+				inputHandlers[routeName] = &stupidHandler{}
 			}
 
 			expectedHandlers = map[string]http.Handler{}

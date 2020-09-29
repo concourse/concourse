@@ -87,9 +87,6 @@ var _ = Describe("Heartbeater", func() {
 		fakeATC1 = ghttp.NewServer()
 		fakeATC2 = ghttp.NewServer()
 
-		registerRoute, found := atc.Routes.FindRouteByName(atc.RegisterWorker)
-		Expect(found).To(BeTrue())
-
 		registered := make(chan registration, 100)
 		registrations = registered
 
@@ -97,7 +94,7 @@ var _ = Describe("Heartbeater", func() {
 		heartbeats = heartbeated
 
 		verifyRegister = ghttp.CombineHandlers(
-			ghttp.VerifyRequest(registerRoute.Method, registerRoute.Path),
+			ghttp.VerifyRequest("POST", "/api/v1/workers"),
 			func(w http.ResponseWriter, r *http.Request) {
 				var worker atc.Worker
 				Expect(r.Header.Get("Authorization")).To(Equal("Bearer yo"))

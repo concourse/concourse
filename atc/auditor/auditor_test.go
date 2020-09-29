@@ -79,8 +79,8 @@ var _ = Describe("Audit", func() {
 			EnableVolumeAuditLog = true
 		})
 		It("all routes are handled and does not panic", func() {
-			for _, route := range atc.Routes {
-				aud.Audit(route.Name, userName, req)
+			for _, routeName := range atc.RouteNames() {
+				aud.Audit(routeName, userName, req)
 			}
 			logs := logger.Logs()
 			Expect(len(logs)).ToNot(Equal(0))

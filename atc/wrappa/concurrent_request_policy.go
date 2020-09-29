@@ -28,8 +28,8 @@ func (lr *LimitedRoute) UnmarshalFlag(value string) error {
 }
 
 func isValidAction(action string) bool {
-	for _, route := range atc.Routes {
-		if route.Name == action {
+	for _, routeName := range atc.RouteNames() {
+		if routeName == action {
 			return true
 		}
 	}
