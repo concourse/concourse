@@ -27,8 +27,6 @@ type Message
     | DragStart String Int
     | DragOver DropTarget
     | DragEnd
-    | Tooltip String String
-    | TooltipHd String String
       -- Resource
     | EditComment String
     | FocusTextArea
@@ -62,6 +60,10 @@ type DomID
     | PinMenuDropDown String
     | PinButton VersionId
     | PinBar
+    | PipelineCardName PipelinesSection Concourse.PipelineIdentifier
+    | InstanceGroupCardName PipelinesSection Concourse.TeamName String
+    | PipelineCardNameHD Concourse.PipelineIdentifier
+    | InstanceGroupCardNameHD Concourse.TeamName String
     | PipelineStatusIcon PipelinesSection Concourse.PipelineIdentifier
     | PipelineCardPauseToggle PipelinesSection Concourse.PipelineIdentifier
     | TopBarFavoritedIcon DatabaseID

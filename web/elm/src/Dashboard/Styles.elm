@@ -1,6 +1,7 @@
 module Dashboard.Styles exposing
     ( asciiArt
     , cardFooter
+    , cardTooltip
     , content
     , dropdownContainer
     , dropdownItem
@@ -24,6 +25,7 @@ module Dashboard.Styles exposing
     , instanceVar
     , jobPreview
     , jobPreviewLink
+    , jobPreviewTooltip
     , jobsDisabledTooltip
     , legend
     , legendItem
@@ -927,6 +929,22 @@ jobsDisabledTooltip =
     [ style "background-color" Colors.tooltipBackground
     , style "padding" "2.5px"
     ]
+
+
+cardTooltip : List (Html.Attribute msg)
+cardTooltip =
+    [ style "position" "absolute"
+    , style "left" "100%"
+    , style "padding" "6px 15px 6px 6px"
+    , style "background-color" "#000"
+    , style "font-size" "13px"
+    , style "white-space" "nowrap"
+    ]
+
+
+jobPreviewTooltip : List (Html.Attribute msg)
+jobPreviewTooltip =
+    cardTooltip
 
 
 jobPreview : Concourse.Job -> Bool -> List (Html.Attribute msg)

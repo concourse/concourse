@@ -667,12 +667,6 @@ updateBody session msg ( model, effects ) =
         DragOver target ->
             ( { model | dropState = Models.Dropping target }, effects )
 
-        TooltipHd pipelineName teamName ->
-            ( model, effects ++ [ ShowTooltipHd ( pipelineName, teamName ) ] )
-
-        Tooltip pipelineName teamName ->
-            ( model, effects ++ [ ShowTooltip ( pipelineName, teamName ) ] )
-
         DragEnd ->
             case ( model.dragState, model.dropState ) of
                 ( Dragging teamName name, Dropping target ) ->
@@ -890,6 +884,70 @@ tooltip model session =
                         , arrow = Nothing
                         }
                     )
+
+        HoverState.Tooltip (Message.JobPreview _ jobId) _ ->
+            Just
+                { body =
+                    Html.div
+                        Styles.jobPreviewTooltip
+                        [ Html.text jobId.jobName ]
+                , attachPosition = { direction = Tooltip.Right 0, alignment = Tooltip.Middle 30 }
+                , arrow = Just { size = 15, color = "#000" }
+                }
+
+        HoverState.Tooltip (Message.PipelineCardName _ pipelineId) _ ->
+            model.pipelines
+                |> findPipeline session pipelineId
+                |> Maybe.map
+                    (\p ->
+                        { body =
+                            Html.div
+                                Styles.cardTooltip
+                                [ Html.text p.name ]
+                        , attachPosition =
+                            { direction = Tooltip.Right 0
+                            , alignment = Tooltip.Middle 30
+                            }
+                        , arrow = Just { size = 15, color = "#000" }
+                        }
+                    )
+
+        HoverState.Tooltip (Message.PipelineCardNameHD pipelineId) _ ->
+            model.pipelines
+                |> findPipeline session pipelineId
+                |> Maybe.map
+                    (\p ->
+                        { body =
+                            Html.div
+                                Styles.cardTooltip
+                                [ Html.text p.name ]
+                        , attachPosition =
+                            { direction = Tooltip.Right 0
+                            , alignment = Tooltip.Middle 30
+                            }
+                        , arrow = Just { size = 15, color = "#000" }
+                        }
+                    )
+
+        HoverState.Tooltip (Message.InstanceGroupCardName _ _ groupName) _ ->
+            Just
+                { body =
+                    Html.div
+                        Styles.cardTooltip
+                        [ Html.text groupName ]
+                , attachPosition = { direction = Tooltip.Right 0, alignment = Tooltip.Middle 30 }
+                , arrow = Just { size = 15, color = "#000" }
+                }
+
+        HoverState.Tooltip (Message.InstanceGroupCardNameHD _ groupName) _ ->
+            Just
+                { body =
+                    Html.div
+                        Styles.cardTooltip
+                        [ Html.text groupName ]
+                , attachPosition = { direction = Tooltip.Right 0, alignment = Tooltip.Middle 30 }
+                , arrow = Just { size = 15, color = "#000" }
+                }
 
         _ ->
             Nothing

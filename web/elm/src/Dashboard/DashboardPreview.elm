@@ -6,11 +6,13 @@ import Dashboard.Styles as Styles
 import Dict exposing (Dict)
 import HoverState
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, href)
+import Html.Attributes exposing (attribute, class, href, id)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
 import List.Extra
+import Message.Effects exposing (toHtmlID)
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
+import Tooltip
 
 
 view : PipelinesSection -> HoverState.HoverState -> List (List Concourse.Job) -> Html Message
@@ -49,17 +51,13 @@ viewJob section hovered job =
             { jobName = job.name
             , pipelineId = job.pipelineId
             }
+
+        domId =
+            JobPreview section jobId
     in
     Html.div
-        (attribute "data-tooltip" job.name
-            :: Styles.jobPreview job
-                (HoverState.isHovered
-                    (JobPreview section jobId)
-                    hovered
-                )
-            ++ [ onMouseEnter <| Hover <| Just <| JobPreview section jobId
-               , onMouseLeave <| Hover Nothing
-               ]
+        (Tooltip.hoverAttrs domId
+            ++ Styles.jobPreview job (HoverState.isHovered domId hovered)
         )
         [ Html.a
             (href (Routes.toString buildRoute) :: Styles.jobPreviewLink)

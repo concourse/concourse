@@ -10,6 +10,7 @@ import DashboardTests exposing (whenOnDashboard)
 import Data
 import Expect
 import Message.Callback as Callback
+import Message.Effects exposing (toHtmlID)
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Message.Subscription as Subscription
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
@@ -24,7 +25,12 @@ import Url
 all : Test
 all =
     describe "job boxes in dashboard pipeline preview"
-        [ test "fills available space" <|
+        [ test "has dom id" <|
+            \_ ->
+                job
+                    |> viewJob
+                    |> Query.has [ id <| toHtmlID <| JobPreview AllPipelinesSection Data.jobId ]
+        , test "fills available space" <|
             \_ ->
                 job
                     |> viewJob

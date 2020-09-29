@@ -79,6 +79,96 @@ all =
                     |> Maybe.withDefault (Html.text "")
                     |> Query.fromHtml
                     |> Query.has [ text "disabled" ]
+        , test "displays job name when hovering over job" <|
+            \_ ->
+                Dashboard.tooltip
+                    { pipelines = Nothing }
+                    { session
+                        | hovered =
+                            Tooltip
+                                (JobPreview AllPipelinesSection (Data.jobId |> Data.withJobName "my-job"))
+                                Data.elementPosition
+                    }
+                    |> Maybe.map .body
+                    |> Maybe.withDefault (Html.text "")
+                    |> Query.fromHtml
+                    |> Query.has [ text "my-job" ]
+        , test "displays pipeline name when hovering over pipeline card" <|
+            \_ ->
+                let
+                    p =
+                        Data.dashboardPipeline 1 True
+                            |> Data.withName "my-pipeline"
+                in
+                Dashboard.tooltip
+                    { pipelines =
+                        Just <|
+                            Dict.fromList
+                                [ ( "team", [ p ] ) ]
+                    }
+                    { session
+                        | hovered =
+                            Tooltip
+                                (PipelineCardName AllPipelinesSection Data.pipelineId)
+                                Data.elementPosition
+                        , pipelines = Success [ Data.pipeline "team" 1 |> Data.withName "my-pipeline" ]
+                    }
+                    |> Maybe.map .body
+                    |> Maybe.withDefault (Html.text "")
+                    |> Query.fromHtml
+                    |> Query.has [ text "my-pipeline" ]
+        , test "displays pipeline name when hovering over pipeline card in HD view" <|
+            \_ ->
+                let
+                    p =
+                        Data.dashboardPipeline 1 True
+                            |> Data.withName "my-pipeline"
+                in
+                Dashboard.tooltip
+                    { pipelines =
+                        Just <|
+                            Dict.fromList
+                                [ ( "team", [ p ] ) ]
+                    }
+                    { session
+                        | hovered =
+                            Tooltip
+                                (PipelineCardNameHD Data.pipelineId)
+                                Data.elementPosition
+                        , pipelines = Success [ Data.pipeline "team" 1 |> Data.withName "my-pipeline" ]
+                    }
+                    |> Maybe.map .body
+                    |> Maybe.withDefault (Html.text "")
+                    |> Query.fromHtml
+                    |> Query.has [ text "my-pipeline" ]
+        , test "displays group name when hovering over instance group card" <|
+            \_ ->
+                Dashboard.tooltip
+                    { pipelines = Nothing }
+                    { session
+                        | hovered =
+                            Tooltip
+                                (InstanceGroupCardName AllPipelinesSection "my-team" "my-group")
+                                Data.elementPosition
+                    }
+                    |> Maybe.map .body
+                    |> Maybe.withDefault (Html.text "")
+                    |> Query.fromHtml
+                    |> Query.has [ text "my-group" ]
+        , test "displays group name when hovering over instance group card in HD view" <|
+            \_ ->
+                Dashboard.tooltip
+                    { pipelines = Nothing }
+                    { session
+                        | hovered =
+                            Tooltip
+                                (InstanceGroupCardNameHD "my-team" "my-group")
+                                Data.elementPosition
+                    }
+                    |> Maybe.map .body
+                    |> Maybe.withDefault (Html.text "")
+                    |> Query.fromHtml
+                    |> Query.has [ text "my-group" ]
         ]
 
 

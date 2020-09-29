@@ -4,6 +4,7 @@ module Tooltip exposing
     , Model
     , Tooltip
     , handleCallback
+    , hoverAttrs
     , view
     )
 
@@ -11,10 +12,11 @@ import Browser.Dom
 import EffectTransformer exposing (ET)
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (id, style)
+import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
-import Message.Message exposing (DomID(..), Message)
+import Message.Message exposing (DomID(..), Message(..))
 
 
 type alias Model m =
@@ -63,6 +65,14 @@ type Alignment
     | End
 
 
+hoverAttrs : DomID -> List (Html.Attribute Message)
+hoverAttrs domID =
+    [ id (Effects.toHtmlID domID)
+    , onMouseEnter <| Hover <| Just domID
+    , onMouseLeave <| Hover Nothing
+    ]
+
+
 policy : DomID -> TooltipCondition
 policy domID =
     case domID of
@@ -73,6 +83,18 @@ policy domID =
             OnlyShowWhenOverflowing
 
         SideBarInstanceGroup _ _ _ ->
+            OnlyShowWhenOverflowing
+
+        PipelineCardName _ _ ->
+            OnlyShowWhenOverflowing
+
+        InstanceGroupCardName _ _ _ ->
+            OnlyShowWhenOverflowing
+
+        PipelineCardNameHD _ ->
+            OnlyShowWhenOverflowing
+
+        InstanceGroupCardNameHD _ _ ->
             OnlyShowWhenOverflowing
 
         _ ->

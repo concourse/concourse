@@ -30,6 +30,7 @@ import Routes
 import Set
 import SideBar.SideBar as SideBar
 import Time
+import Tooltip
 import UserState
 import Views.FavoritedIcon
 import Views.Icon as Icon
@@ -52,7 +53,6 @@ hdCardView { pipeline, pipelines, resourceError, dashboardView, query } =
         ([ class "card"
          , attribute "data-pipeline-name" pipeline.name
          , attribute "data-team-name" pipeline.teamName
-         , onMouseEnter <| TooltipHd pipeline.name pipeline.teamName
          , href <|
             Routes.toString <|
                 Routes.Dashboard
@@ -67,7 +67,10 @@ hdCardView { pipeline, pipelines, resourceError, dashboardView, query } =
             Styles.instanceGroupCardBodyHd
             [ InstanceGroupBadge.view <| List.length (pipeline :: pipelines)
             , Html.div
-                (class "dashboardhd-group-name" :: Styles.instanceGroupCardNameHd)
+                (class "dashboardhd-group-name"
+                    :: Styles.instanceGroupCardNameHd
+                    ++ Tooltip.hoverAttrs (InstanceGroupCardNameHD pipeline.teamName pipeline.name)
+                )
                 [ Html.text pipeline.name ]
             ]
         ]
@@ -113,13 +116,13 @@ cardView session { pipeline, pipelines, hovered, pipelineRunningKeyframes, resou
                )
         )
         [ Html.div (class "banner" :: Styles.instanceGroupCardBanner) []
-        , headerView dashboardView query pipeline pipelines resourceError headerHeight
+        , headerView section dashboardView query pipeline pipelines resourceError headerHeight
         , bodyView pipelineRunningKeyframes section hovered (pipeline :: pipelines) pipelineJobs jobs
         ]
 
 
-headerView : Routes.DashboardView -> String -> Pipeline -> List Pipeline -> Bool -> Float -> Html Message
-headerView dashboardView query pipeline pipelines resourceError headerHeight =
+headerView : PipelinesSection -> Routes.DashboardView -> String -> Pipeline -> List Pipeline -> Bool -> Float -> Html Message
+headerView section dashboardView query pipeline pipelines resourceError headerHeight =
     Html.a
         [ href <|
             Routes.toString <|
@@ -130,14 +133,13 @@ headerView dashboardView query pipeline pipelines resourceError headerHeight =
         , draggable "false"
         ]
         [ Html.div
-            ([ class "card-header"
-             , onMouseEnter <| Tooltip pipeline.name pipeline.teamName
-             ]
-                ++ Styles.instanceGroupCardHeader headerHeight
-            )
+            (class "card-header" :: Styles.instanceGroupCardHeader headerHeight)
             [ InstanceGroupBadge.view <| List.length (pipeline :: pipelines)
             , Html.div
-                (class "dashboard-group-name" :: Styles.instanceGroupName)
+                (class "dashboard-group-name"
+                    :: Styles.instanceGroupName
+                    ++ Tooltip.hoverAttrs (InstanceGroupCardName section pipeline.teamName pipeline.name)
+                )
                 [ Html.text pipeline.name
                 ]
             , Html.div

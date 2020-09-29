@@ -45,7 +45,7 @@ import Set
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (attribute, class, containing, style, tag, text)
+import Test.Html.Selector exposing (attribute, class, containing, id, style, tag, text)
 import Time
 
 
@@ -332,6 +332,24 @@ all =
                         , style "white-space" "nowrap"
                         , style "overflow" "hidden"
                         , style "text-overflow" "ellipsis"
+                        ]
+            , test "is hoverable" <|
+                header
+                    >> Query.find [ class "dashboard-pipeline-name" ]
+                    >> Event.simulate Event.mouseEnter
+                    >> Event.expect
+                        (ApplicationMsgs.Update <|
+                            Msgs.Hover <|
+                                Just <|
+                                    Msgs.PipelineCardName Msgs.AllPipelinesSection 1
+                        )
+            , test "has html id" <|
+                header
+                    >> Query.find [ class "dashboard-pipeline-name" ]
+                    >> Query.has
+                        [ id <|
+                            Effects.toHtmlID <|
+                                Msgs.PipelineCardName Msgs.AllPipelinesSection 1
                         ]
             ]
         , describe "colored banner" <|
@@ -876,6 +894,26 @@ all =
                 noPipelines
                     >> noPipelinesCard
                     >> Query.has [ style "background-color" darkGrey ]
+            , test "card name is hoverable" <|
+                setup
+                    >> card
+                    >> Query.find [ class "dashboardhd-pipeline-name" ]
+                    >> Event.simulate Event.mouseEnter
+                    >> Event.expect
+                        (ApplicationMsgs.Update <|
+                            Msgs.Hover <|
+                                Just <|
+                                    Msgs.PipelineCardNameHD 1
+                        )
+            , test "card name has html id" <|
+                setup
+                    >> card
+                    >> Query.find [ class "dashboardhd-pipeline-name" ]
+                    >> Query.has
+                        [ id <|
+                            Effects.toHtmlID <|
+                                Msgs.PipelineCardNameHD 1
+                        ]
             , test "card has larger tighter font" <|
                 setup
                     >> card

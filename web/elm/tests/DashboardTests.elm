@@ -723,12 +723,9 @@ all =
                         [ class "dashboard-team-group"
                         , attribute <| Attr.attribute "data-team-name" "team"
                         ]
-                    |> Query.find
-                        [ attribute <| Attr.attribute "data-tooltip" "job" ]
-                    |> Query.find
-                        [ tag "a" ]
                     |> Query.has
-                        [ attribute <|
+                        [ tag "a"
+                        , attribute <|
                             Attr.href "/pipelines/1/jobs/job/builds/1"
                         ]
         , test "HD view redirects to no pipelines view when there are no pipelines" <|

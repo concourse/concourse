@@ -140,6 +140,10 @@ all =
                         , style "flex-direction" "column"
                         ]
         , describe "header" <|
+            let
+                findName =
+                    Query.find [ class "dashboard-group-name" ]
+            in
             [ test "has dark grey background" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
@@ -171,17 +175,32 @@ all =
                             , style "overflow" "hidden"
                             , style "text-overflow" "ellipsis"
                             ]
-            , test "triggers tooltip on mouseenter" <|
+            , test "name is hoverable" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
                         |> Common.queryView
                         |> findHeader
+                        |> findName
                         |> Event.simulate Event.mouseEnter
                         |> Event.expect
                             (ApplicationMsgs.Update <|
-                                Msgs.Tooltip "group" "team"
+                                Msgs.Hover <|
+                                    Just <|
+                                        Msgs.InstanceGroupCardName AllPipelinesSection "team" "group"
                             )
+            , test "name has html id" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                        |> Common.queryView
+                        |> findHeader
+                        |> findName
+                        |> Query.has
+                            [ id <|
+                                Effects.toHtmlID <|
+                                    Msgs.InstanceGroupCardName AllPipelinesSection "team" "group"
+                            ]
             , test "displays resource error if any pipeline has an error" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
@@ -370,7 +389,11 @@ all =
                 -- TODO: tooltip? data-tooltip or in Elm?
                 -- TODO: reordering
                 ]
-            , describe "HD view"
+            , describe "HD view" <|
+                let
+                    findName =
+                        Query.find [ class "dashboardhd-group-name" ]
+                in
                 [ test "shows the badge" <|
                     \_ ->
                         whenOnDashboard { highDensity = True }
@@ -431,6 +454,31 @@ all =
                                         { searchType = Routes.Normal "g" <| Just { teamName = "team", name = "group" }
                                         , dashboardView = Routes.ViewAllPipelines
                                         }
+                                ]
+                , test "name is hoverable" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = True }
+                            |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                            |> Common.queryView
+                            |> findCard
+                            |> findName
+                            |> Event.simulate Event.mouseEnter
+                            |> Event.expect
+                                (ApplicationMsgs.Update <|
+                                    Msgs.Hover <|
+                                        Just <|
+                                            Msgs.InstanceGroupCardNameHD "team" "group"
+                                )
+                , test "name has html id" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = True }
+                            |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                            |> Common.queryView
+                            |> findCard
+                            |> Query.has
+                                [ id <|
+                                    Effects.toHtmlID <|
+                                        Msgs.InstanceGroupCardNameHD "team" "group"
                                 ]
                 ]
             ]

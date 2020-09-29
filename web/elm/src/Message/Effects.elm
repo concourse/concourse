@@ -58,12 +58,6 @@ port renderPipeline : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd msg
 port pinTeamNames : StickyHeaderConfig -> Cmd msg
 
 
-port tooltip : ( String, String ) -> Cmd msg
-
-
-port tooltipHd : ( String, String ) -> Cmd msg
-
-
 port resetPipelineFocus : () -> Cmd msg
 
 
@@ -166,8 +160,6 @@ type Effect
     | SetPinComment Concourse.ResourceIdentifier String
     | SendTokenToFly String Int
     | SendTogglePipelineRequest Concourse.PipelineIdentifier Bool
-    | ShowTooltip ( String, String )
-    | ShowTooltipHd ( String, String )
     | SendOrderPipelinesRequest String (List String)
     | SendLogOutRequest
     | GetScreenSize
@@ -455,12 +447,6 @@ runEffect effect key csrfToken =
                 |> Api.request
                 |> Task.attempt (PipelineToggled id)
 
-        ShowTooltip ( teamName, pipelineName ) ->
-            tooltip ( teamName, pipelineName )
-
-        ShowTooltipHd ( teamName, pipelineName ) ->
-            tooltipHd ( teamName, pipelineName )
-
         SendOrderPipelinesRequest teamName pipelineNames ->
             Api.put
                 (Endpoints.OrderTeamPipelines |> Endpoints.Team teamName)
@@ -700,6 +686,39 @@ toHtmlID domId =
                 ++ "_"
                 ++ String.fromInt pipelineId
                 ++ "_visibility"
+
+        PipelineCardName section pipelineId ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ String.fromInt pipelineId
+                ++ "_name"
+
+        PipelineCardNameHD pipelineId ->
+            "HD_"
+                ++ String.fromInt pipelineId
+                ++ "_name"
+
+        InstanceGroupCardName section teamName groupName ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ Base64.encode teamName
+                ++ "_"
+                ++ Base64.encode groupName
+                ++ "_name"
+
+        InstanceGroupCardNameHD teamName groupName ->
+            "HD_"
+                ++ Base64.encode teamName
+                ++ "_"
+                ++ Base64.encode groupName
+                ++ "_name"
+
+        JobPreview section jobId ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ String.fromInt jobId.pipelineId
+                ++ "_jobs_"
+                ++ jobId.jobName
 
         ChangedStepLabel stepID _ ->
             stepID ++ "_changed"

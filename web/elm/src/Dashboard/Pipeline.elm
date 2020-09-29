@@ -35,6 +35,7 @@ import Routes
 import Set
 import SideBar.SideBar as SideBar
 import Time
+import Tooltip
 import UserState
 import Views.FavoritedIcon
 import Views.Icon as Icon
@@ -76,7 +77,6 @@ hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs
         ([ class "card"
          , attribute "data-pipeline-name" pipeline.name
          , attribute "data-team-name" pipeline.teamName
-         , onMouseEnter <| TooltipHd pipeline.name pipeline.teamName
          , href <| Routes.toString <| Routes.pipelineRoute pipeline
          ]
             ++ Styles.pipelineCardHd (pipelineStatus existingJobs pipeline)
@@ -97,7 +97,10 @@ hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs
             )
             []
         , Html.div
-            (class "dashboardhd-pipeline-name" :: Styles.pipelineCardBodyHd)
+            (class "dashboardhd-pipeline-name"
+                :: Styles.pipelineCardBodyHd
+                ++ Tooltip.hoverAttrs (PipelineCardNameHD pipeline.id)
+            )
             [ Html.text pipeline.name ]
         ]
             ++ (if resourceError then
@@ -155,7 +158,7 @@ pipelineView session { now, pipeline, hovered, pipelineRunningKeyframes, resourc
         [ Html.div
             (class "banner" :: bannerStyle)
             []
-        , headerView pipeline resourceError headerHeight
+        , headerView section pipeline resourceError headerHeight
         , if pipeline.jobsDisabled || pipeline.archived then
             previewPlaceholder
 
@@ -263,14 +266,17 @@ transition =
     .transitionBuild >> Maybe.andThen (.duration >> .finishedAt)
 
 
-headerView : Pipeline -> Bool -> Float -> Html Message
-headerView pipeline resourceError headerHeight =
+headerView : PipelinesSection -> Pipeline -> Bool -> Float -> Html Message
+headerView section pipeline resourceError headerHeight =
     let
         rows =
             if Dict.isEmpty pipeline.instanceVars then
                 -- TODO: there can be empty instance vars in an instance group
                 [ Html.div
-                    (class "dashboard-pipeline-name" :: Styles.pipelineName)
+                    (class "dashboard-pipeline-name"
+                        :: Styles.pipelineName
+                        ++ Tooltip.hoverAttrs (PipelineCardName section pipeline.id)
+                    )
                     [ Html.text pipeline.name ]
                 ]
 
@@ -297,11 +303,7 @@ headerView pipeline resourceError headerHeight =
     Html.a
         [ href <| Routes.toString <| Routes.pipelineRoute pipeline, draggable "false" ]
         [ Html.div
-            ([ class "card-header"
-             , onMouseEnter <| Tooltip pipeline.name pipeline.teamName
-             ]
-                ++ Styles.pipelineCardHeader headerHeight
-            )
+            (class "card-header" :: Styles.pipelineCardHeader headerHeight)
             (rows ++ [ resourceErrorElem ])
         ]
 
