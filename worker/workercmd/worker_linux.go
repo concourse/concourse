@@ -32,6 +32,7 @@ type GuardianRuntime struct {
 	DNS            DNSConfig     `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
 	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to the Garden server to complete. 0 means no timeout."`
 
+  Config         flag.File     `long:"config"     description:"Path to a config file to use for the Garden backend. e.g. 'foo-bar=a,b' for '--foo-bar a --foo-bar b'."`
 	BinaryFlags GdnBinaryFlags
 }
 
