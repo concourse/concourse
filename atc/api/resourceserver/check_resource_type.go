@@ -10,12 +10,11 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/tedsuo/rata"
 )
 
 func (s *Server) CheckResourceType(dbPipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resourceTypeName := rata.Param(r, "resource_type_name")
+		resourceTypeName := atc.GetParam(r, "resource_type_name")
 
 		logger := s.logger.Session("check-resource-type", lager.Data{
 			"resource-type": resourceTypeName,

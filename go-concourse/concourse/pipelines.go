@@ -8,11 +8,10 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
-	"github.com/tedsuo/rata"
 )
 
 func (team *team) Pipeline(pipelineRef atc.PipelineRef) (atc.Pipeline, bool, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"pipeline_name": pipelineRef.Name,
 		"team_name":     team.Name(),
 	}
@@ -37,7 +36,7 @@ func (team *team) Pipeline(pipelineRef atc.PipelineRef) (atc.Pipeline, bool, err
 }
 
 func (team *team) OrderingPipelines(pipelineRefs atc.OrderPipelinesRequest) error {
-	params := rata.Params{
+	params := map[string]string{
 		"team_name": team.Name(),
 	}
 
@@ -58,7 +57,7 @@ func (team *team) OrderingPipelines(pipelineRefs atc.OrderPipelinesRequest) erro
 }
 
 func (team *team) ListPipelines() ([]atc.Pipeline, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"team_name": team.Name(),
 	}
 
@@ -96,7 +95,7 @@ func (team *team) CreatePipelineBuild(pipelineRef atc.PipelineRef, plan atc.Plan
 	err = team.connection.Send(internal.Request{
 		RequestName: atc.CreatePipelineBuild,
 		Body:        buffer,
-		Params: rata.Params{
+		Params: map[string]string{
 			"team_name":     team.Name(),
 			"pipeline_name": pipelineRef.Name,
 		},
@@ -135,7 +134,7 @@ func (team *team) HidePipeline(pipelineRef atc.PipelineRef) (bool, error) {
 }
 
 func (team *team) managePipeline(pipelineRef atc.PipelineRef, endpoint string) (bool, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"pipeline_name": pipelineRef.Name,
 		"team_name":     team.Name(),
 	}
@@ -156,7 +155,7 @@ func (team *team) managePipeline(pipelineRef atc.PipelineRef, endpoint string) (
 }
 
 func (team *team) RenamePipeline(pipelineRef atc.PipelineRef, name string) (bool, []ConfigWarning, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"pipeline_name": pipelineRef.Name,
 		"team_name":     team.Name(),
 	}
@@ -188,7 +187,7 @@ func (team *team) RenamePipeline(pipelineRef atc.PipelineRef, name string) (bool
 }
 
 func (team *team) PipelineBuilds(pipelineRef atc.PipelineRef, page Page) ([]atc.Build, Pagination, bool, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"pipeline_name": pipelineRef.Name,
 		"team_name":     team.Name(),
 	}

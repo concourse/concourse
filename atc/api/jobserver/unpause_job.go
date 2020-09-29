@@ -3,14 +3,14 @@ package jobserver
 import (
 	"net/http"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/tedsuo/rata"
 )
 
 func (s *Server) UnpauseJob(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session("unpause-job")
-		jobName := rata.Param(r, "job_name")
+		jobName := atc.GetParam(r, "job_name")
 
 		job, found, err := pipeline.Job(jobName)
 		if err != nil {

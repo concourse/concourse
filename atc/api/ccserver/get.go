@@ -11,7 +11,6 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/tedsuo/rata"
 )
 
 type Project struct {
@@ -30,7 +29,7 @@ type ProjectsContainer struct {
 
 func (s *Server) GetCC(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("get-cc")
-	teamName := rata.Param(r, "team_name")
+	teamName := atc.GetParam(r, "team_name")
 
 	team, found, err := s.teamFactory.FindTeam(teamName)
 

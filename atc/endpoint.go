@@ -46,3 +46,7 @@ func NewRouter(handlers map[string]http.Handler) (http.Handler, error) {
 	}
 	return rata.NewRouter(routes, handlers)
 }
+
+func GetParam(r *http.Request, paramName string) string {
+	return rata.Param(r, paramName)
+}

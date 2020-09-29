@@ -14,7 +14,6 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/testhelpers"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/tedsuo/rata"
 	"sigs.k8s.io/yaml"
 
 	// load dummy credential manager
@@ -26,12 +25,12 @@ import (
 
 var _ = Describe("Config API", func() {
 	var (
-		pipelineConfig   atc.Config
-		requestGenerator *rata.RequestGenerator
+		pipelineConfig atc.Config
+		endpoint       atc.Endpoint
 	)
 
 	BeforeEach(func() {
-		requestGenerator = rata.NewRequestGenerator(server.URL, atc.Routes)
+		endpoint = atc.NewEndpoint(server.URL)
 
 		pipelineConfig = atc.Config{
 			Groups: atc.GroupConfigs{
@@ -118,7 +117,7 @@ var _ = Describe("Config API", func() {
 
 		BeforeEach(func() {
 			var err error
-			request, err = requestGenerator.CreateRequest(atc.GetConfig, rata.Params{
+			request, err = endpoint.CreateRequest(atc.GetConfig, map[string]string{
 				"team_name":     "a-team",
 				"pipeline_name": "something-else",
 			}, nil)
@@ -333,7 +332,7 @@ var _ = Describe("Config API", func() {
 
 		BeforeEach(func() {
 			var err error
-			request, err = requestGenerator.CreateRequest(atc.SaveConfig, rata.Params{
+			request, err = endpoint.CreateRequest(atc.SaveConfig, map[string]string{
 				"team_name":     "a-team",
 				"pipeline_name": "a-pipeline",
 			}, nil)
@@ -356,7 +355,7 @@ var _ = Describe("Config API", func() {
 
 				BeforeEach(func() {
 					var err error
-					request, err = requestGenerator.CreateRequest(atc.SaveConfig, rata.Params{
+					request, err = endpoint.CreateRequest(atc.SaveConfig, map[string]string{
 						"team_name":     "_team",
 						"pipeline_name": "_pipeline",
 					}, nil)
@@ -1123,7 +1122,6 @@ jobs:
 							})
 						})
 					})
-
 
 				})
 

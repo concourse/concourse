@@ -31,7 +31,6 @@ import (
 	"github.com/concourse/concourse/atc/mainredirect"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/wrappa"
-	"github.com/tedsuo/rata"
 )
 
 func NewHandler(
@@ -131,10 +130,7 @@ func NewHandler(
 		atc.UnpauseJob:     pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob),
 		atc.ScheduleJob:    pipelineHandlerFactory.HandlerFor(jobServer.ScheduleJob),
 		atc.JobBadge:       pipelineHandlerFactory.HandlerFor(jobServer.JobBadge),
-		atc.MainJobBadge: mainredirect.Handler{
-			Routes: atc.Routes,
-			Route:  atc.JobBadge,
-		},
+		atc.MainJobBadge:   mainredirect.Handler{Route: atc.JobBadge},
 
 		atc.ClearTaskCache: pipelineHandlerFactory.HandlerFor(jobServer.ClearTaskCache),
 

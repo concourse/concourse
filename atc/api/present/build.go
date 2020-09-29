@@ -5,12 +5,11 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/tedsuo/rata"
 )
 
 func Build(build db.Build) atc.Build {
 
-	apiURL, err := atc.Routes.CreatePathForRoute(atc.GetBuild, rata.Params{
+	apiURL, err := atc.CreatePathForRoute(atc.GetBuild, map[string]string{
 		"build_id":  strconv.Itoa(build.ID()),
 		"team_name": build.TeamName(),
 	})

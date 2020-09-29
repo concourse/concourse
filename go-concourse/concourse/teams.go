@@ -10,7 +10,6 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
-	"github.com/tedsuo/rata"
 )
 
 var ErrDestroyRefused = errors.New("not-permitted-to-destroy-as-requested")
@@ -24,7 +23,7 @@ type setTeamResponse struct {
 // CreateOrUpdate creates or updates team teamName with the settings provided in passedTeam.
 // passedTeam should reflect the desired state of team's configuration.
 func (team *team) CreateOrUpdate(passedTeam atc.Team) (atc.Team, bool, bool, []ConfigWarning, error) {
-	params := rata.Params{"team_name": team.Name()}
+	params := map[string]string{"team_name": team.Name()}
 
 	buffer := &bytes.Buffer{}
 	err := json.NewEncoder(buffer).Encode(passedTeam)
@@ -61,7 +60,7 @@ func (team *team) CreateOrUpdate(passedTeam atc.Team) (atc.Team, bool, bool, []C
 
 // DestroyTeam destroys the team with the name given as argument.
 func (team *team) DestroyTeam(teamName string) error {
-	params := rata.Params{"team_name": teamName}
+	params := map[string]string{"team_name": teamName}
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.DestroyTeam,
 		Params:      params,
@@ -78,7 +77,7 @@ func (team *team) DestroyTeam(teamName string) error {
 }
 
 func (team *team) RenameTeam(teamName, name string) (bool, []ConfigWarning, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"team_name": teamName,
 	}
 
@@ -122,7 +121,7 @@ func (client *client) FindTeam(teamName string) (Team, error) {
 	var atcTeam atc.Team
 	resp, err := client.httpAgent.Send(internal.Request{
 		RequestName: atc.GetTeam,
-		Params:      rata.Params{"team_name": teamName},
+		Params:      map[string]string{"team_name": teamName},
 	})
 
 	if err != nil {

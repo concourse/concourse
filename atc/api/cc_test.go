@@ -10,7 +10,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/testhelpers"
-	"github.com/tedsuo/rata"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,18 +17,18 @@ import (
 
 var _ = Describe("cc.xml", func() {
 	var (
-		requestGenerator *rata.RequestGenerator
+		endpoint atc.Endpoint
 	)
 
 	BeforeEach(func() {
-		requestGenerator = rata.NewRequestGenerator(server.URL, atc.Routes)
+		endpoint = atc.NewEndpoint(server.URL)
 	})
 
 	Describe("GET /api/v1/teams/:team_name/cc.xml", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {
-			req, err := requestGenerator.CreateRequest(atc.GetCC, rata.Params{
+			req, err := endpoint.CreateRequest(atc.GetCC, map[string]string{
 				"team_name": "a-team",
 			}, nil)
 			Expect(err).NotTo(HaveOccurred())

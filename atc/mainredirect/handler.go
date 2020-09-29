@@ -4,18 +4,15 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/tedsuo/rata"
+	"github.com/concourse/concourse/atc"
 )
 
 type Handler struct {
-	Routes rata.Routes
-	Route  string
+	Route string
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	params := rata.Params{
-		"team_name": "main",
-	}
+	params := map[string]string{"team_name": "main"}
 
 	for k, vs := range r.URL.Query() {
 		if strings.HasPrefix(k, ":") {
@@ -23,7 +20,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	path, err := h.Routes.CreatePathForRoute(h.Route, params)
+	path, err := atc.CreatePathForRoute(h.Route, params)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

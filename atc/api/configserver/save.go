@@ -15,7 +15,6 @@ import (
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/vars"
 	"github.com/hashicorp/go-multierror"
-	"github.com/tedsuo/rata"
 )
 
 func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
@@ -68,13 +67,13 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pipelineName := rata.Param(r, "pipeline_name")
+	pipelineName := atc.GetParam(r, "pipeline_name")
 	warning := atc.ValidateIdentifier(pipelineName, "pipeline")
 	if warning != nil {
 		warnings = append(warnings, *warning)
 	}
 
-	teamName := rata.Param(r, "team_name")
+	teamName := atc.GetParam(r, "team_name")
 	warning = atc.ValidateIdentifier(teamName, "team")
 	if warning != nil {
 		warnings = append(warnings, *warning)

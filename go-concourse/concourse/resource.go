@@ -3,11 +3,10 @@ package concourse
 import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
-	"github.com/tedsuo/rata"
 )
 
 func (team *team) Resource(pipelineRef atc.PipelineRef, resourceName string) (atc.Resource, bool, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"pipeline_name": pipelineRef.Name,
 		"resource_name": resourceName,
 		"team_name":     team.Name(),
@@ -32,7 +31,7 @@ func (team *team) Resource(pipelineRef atc.PipelineRef, resourceName string) (at
 }
 
 func (team *team) ListResources(pipelineRef atc.PipelineRef) ([]atc.Resource, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"pipeline_name": pipelineRef.Name,
 		"team_name":     team.Name(),
 	}

@@ -8,13 +8,12 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/tedsuo/rata"
 )
 
 func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("get-config")
-	teamName := rata.Param(r, "team_name")
-	pipelineName := rata.Param(r, "pipeline_name")
+	teamName := atc.GetParam(r, "team_name")
+	pipelineName := atc.GetParam(r, "pipeline_name")
 	pipelineRef := atc.PipelineRef{Name: pipelineName}
 	if instanceVars := r.URL.Query().Get("instance_vars"); instanceVars != "" {
 		err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)

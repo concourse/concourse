@@ -9,11 +9,10 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
-	"github.com/tedsuo/rata"
 )
 
 func (team *team) ResourceVersions(pipelineRef atc.PipelineRef, resourceName string, page Page, filter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"pipeline_name": pipelineRef.Name,
 		"resource_name": resourceName,
 		"team_name":     team.Name(),
@@ -63,7 +62,7 @@ func (team *team) PinResourceVersion(pipelineRef atc.PipelineRef, resourceName s
 }
 
 func (team *team) UnpinResource(pipelineRef atc.PipelineRef, resourceName string) (bool, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"pipeline_name": pipelineRef.Name,
 		"resource_name": resourceName,
 		"team_name":     team.Name(),
@@ -86,7 +85,7 @@ func (team *team) UnpinResource(pipelineRef atc.PipelineRef, resourceName string
 }
 
 func (team *team) SetPinComment(pipelineRef atc.PipelineRef, resourceName string, comment string) (bool, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"pipeline_name": pipelineRef.Name,
 		"resource_name": resourceName,
 		"team_name":     team.Name(),
@@ -124,7 +123,7 @@ func (team *team) SetPinComment(pipelineRef atc.PipelineRef, resourceName string
 }
 
 func (team *team) sendResourceVersion(pipelineRef atc.PipelineRef, resourceName string, resourceVersionID int, resourceVersionReq string) (bool, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"pipeline_name":              pipelineRef.Name,
 		"resource_name":              resourceName,
 		"resource_config_version_id": strconv.Itoa(resourceVersionID),

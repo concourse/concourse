@@ -9,7 +9,6 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
-	"github.com/tedsuo/rata"
 )
 
 type PruneWorkerError struct {
@@ -37,7 +36,7 @@ func (client *client) SaveWorker(worker atc.Worker, ttl *time.Duration) (*atc.Wo
 		return nil, fmt.Errorf("Unable to marshal worker: %s", err)
 	}
 
-	params := rata.Params{}
+	params := map[string]string{}
 	if ttl != nil {
 		params["ttl"] = ttl.String()
 	}
@@ -55,7 +54,7 @@ func (client *client) SaveWorker(worker atc.Worker, ttl *time.Duration) (*atc.Wo
 }
 
 func (client *client) PruneWorker(workerName string) error {
-	params := rata.Params{"worker_name": workerName}
+	params := map[string]string{"worker_name": workerName}
 	err := client.connection.Send(internal.Request{
 		RequestName: atc.PruneWorker,
 		Params:      params,
@@ -81,7 +80,7 @@ func (client *client) PruneWorker(workerName string) error {
 }
 
 func (client *client) LandWorker(workerName string) error {
-	params := rata.Params{"worker_name": workerName}
+	params := map[string]string{"worker_name": workerName}
 	err := client.connection.Send(internal.Request{
 		RequestName: atc.LandWorker,
 		Params:      params,

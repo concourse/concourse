@@ -6,11 +6,10 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
-	"github.com/tedsuo/rata"
 )
 
 func (team *team) ListJobs(pipelineRef atc.PipelineRef) ([]atc.Job, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"pipeline_name": pipelineRef.Name,
 		"team_name":     team.Name(),
 	}
@@ -39,7 +38,7 @@ func (client *client) ListAllJobs() ([]atc.Job, error) {
 }
 
 func (team *team) Job(pipelineRef atc.PipelineRef, jobName string) (atc.Job, bool, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"pipeline_name": pipelineRef.Name,
 		"job_name":      jobName,
 		"team_name":     team.Name(),
@@ -64,7 +63,7 @@ func (team *team) Job(pipelineRef atc.PipelineRef, jobName string) (atc.Job, boo
 }
 
 func (team *team) JobBuilds(pipelineRef atc.PipelineRef, jobName string, page Page) ([]atc.Build, Pagination, bool, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"pipeline_name": pipelineRef.Name,
 		"job_name":      jobName,
 		"team_name":     team.Name(),
@@ -97,7 +96,7 @@ func (team *team) JobBuilds(pipelineRef atc.PipelineRef, jobName string, page Pa
 }
 
 func (team *team) PauseJob(pipelineRef atc.PipelineRef, jobName string) (bool, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"pipeline_name": pipelineRef.Name,
 		"job_name":      jobName,
 		"team_name":     team.Name(),
@@ -120,7 +119,7 @@ func (team *team) PauseJob(pipelineRef atc.PipelineRef, jobName string) (bool, e
 }
 
 func (team *team) UnpauseJob(pipelineRef atc.PipelineRef, jobName string) (bool, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"pipeline_name": pipelineRef.Name,
 		"job_name":      jobName,
 		"team_name":     team.Name(),
@@ -143,7 +142,7 @@ func (team *team) UnpauseJob(pipelineRef atc.PipelineRef, jobName string) (bool,
 }
 
 func (team *team) ScheduleJob(pipelineRef atc.PipelineRef, jobName string) (bool, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"pipeline_name": pipelineRef.Name,
 		"job_name":      jobName,
 		"team_name":     team.Name(),
@@ -166,7 +165,7 @@ func (team *team) ScheduleJob(pipelineRef atc.PipelineRef, jobName string) (bool
 }
 
 func (team *team) ClearTaskCache(pipelineRef atc.PipelineRef, jobName string, stepName string, cachePath string) (int64, error) {
-	params := rata.Params{
+	params := map[string]string{
 		"team_name":     team.Name(),
 		"pipeline_name": pipelineRef.Name,
 		"job_name":      jobName,

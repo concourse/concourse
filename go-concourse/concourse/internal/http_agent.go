@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/tedsuo/rata"
 )
 
 type HTTPAgent interface {
@@ -20,7 +19,7 @@ type httpAgent struct {
 	httpClient *http.Client
 	tracing    bool
 
-	requestGenerator *rata.RequestGenerator
+	endpoint atc.Endpoint
 }
 
 func NewHTTPAgent(apiURL string, httpClient *http.Client, tracing bool) HTTPAgent {
@@ -35,7 +34,7 @@ func NewHTTPAgent(apiURL string, httpClient *http.Client, tracing bool) HTTPAgen
 		httpClient: httpClient,
 		tracing:    tracing,
 
-		requestGenerator: rata.NewRequestGenerator(apiURL, atc.Routes),
+		endpoint: atc.NewEndpoint(apiURL),
 	}
 }
 
@@ -79,7 +78,7 @@ func (a *httpAgent) send(req *http.Request) (http.Response, error) {
 func (a *httpAgent) createHTTPRequest(request Request) (*http.Request, error) {
 	body := a.getBody(request)
 
-	req, err := a.requestGenerator.CreateRequest(
+	req, err := a.endpoint.CreateRequest(
 		request.RequestName,
 		request.Params,
 		body,
