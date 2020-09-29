@@ -350,35 +350,12 @@ pipelineCardView session params section { bounds, headerHeight, pipeline } teamN
             (String.fromFloat bounds.height
                 ++ "px"
             )
-         , onMouseOver <|
-            Hover <|
-                Just <|
-                    PipelineWrapper pipeline.id
-         , onMouseOut <| Hover Nothing
          ]
             ++ (if params.dragState /= NotDragging then
                     [ style "transition" "transform 0.2s ease-in-out" ]
 
                 else
                     []
-               )
-            ++ (let
-                    hoverStyle id =
-                        if id == pipeline.id then
-                            [ style "z-index" "1" ]
-
-                        else
-                            []
-                in
-                case HoverState.hoveredElement session.hovered of
-                    Just (JobPreview _ jobID) ->
-                        hoverStyle jobID.pipelineId
-
-                    Just (PipelineWrapper pipelineId) ->
-                        hoverStyle pipelineId
-
-                    _ ->
-                        []
                )
         )
         [ Html.div
@@ -473,12 +450,6 @@ instanceGroupCardView session params section { bounds, headerHeight } p ps =
             )
          , style "width" (String.fromFloat bounds.width ++ "px")
          , style "height" (String.fromFloat bounds.height ++ "px")
-         , onMouseOver <|
-            Hover <|
-                Just <|
-                    -- TODO: no
-                    PipelineWrapper p.id
-         , onMouseOut <| Hover Nothing
          ]
             ++ (if params.dragState /= NotDragging then
                     [ style "transition" "transform 0.2s ease-in-out" ]
@@ -486,32 +457,11 @@ instanceGroupCardView session params section { bounds, headerHeight } p ps =
                 else
                     []
                )
-            ++ (let
-                    hoverStyle id =
-                        if id == p.id then
-                            [ style "z-index" "1" ]
-
-                        else
-                            []
-                in
-                case HoverState.hoveredElement session.hovered of
-                    Just (JobPreview _ jobID) ->
-                        hoverStyle jobID.pipelineId
-
-                    Just (PipelineWrapper pipelineId) ->
-                        hoverStyle pipelineId
-
-                    _ ->
-                        []
-               )
         )
         [ Html.div
             ([ class "card instance-group-card"
              , style "width" "100%"
              , style "height" "100%"
-
-             -- TODO: yes?
-             , attribute "data-pipeline-name" p.name
              ]
                 -- TODO: no
                 ++ (if section == AllPipelinesSection && not p.stale then

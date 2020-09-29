@@ -88,7 +88,6 @@ type DomID
     | VersionHeader VersionId
     | VersionToggle VersionId
     | BuildTab Int String
-    | PipelineWrapper Concourse.PipelineIdentifier
     | JobPreview PipelinesSection Concourse.JobIdentifier
     | PipelinePreview PipelinesSection Concourse.PipelineIdentifier
     | HamburgerMenu
