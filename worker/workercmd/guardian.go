@@ -107,8 +107,9 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 
 	gdnArgs := append(gdnConfigFlag, append([]string{"server"}, gdnServerFlags...)...)
 
+	var configFlags GdnBinaryFlags
 	if cmd.Guardian.Config != "" {
-		configFlags, err := getGdnFlagsFromConfig(cmd.Guardian.Config.Path())
+		configFlags, err = getGdnFlagsFromConfig(cmd.Guardian.Config.Path())
 		if err != nil {
 			return nil, err
 		}
