@@ -109,11 +109,11 @@ type FakeTeam struct {
 	deleteReturnsOnCall map[int]struct {
 		result1 error
 	}
-	FindCheckContainersStub        func(lager.Logger, string, string, creds.Secrets, creds.VarSourcePool) ([]db.Container, map[int]time.Time, error)
+	FindCheckContainersStub        func(lager.Logger, atc.PipelineRef, string, creds.Secrets, creds.VarSourcePool) ([]db.Container, map[int]time.Time, error)
 	findCheckContainersMutex       sync.RWMutex
 	findCheckContainersArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 string
+		arg2 atc.PipelineRef
 		arg3 string
 		arg4 creds.Secrets
 		arg5 creds.VarSourcePool
@@ -263,10 +263,10 @@ type FakeTeam struct {
 	nameReturnsOnCall map[int]struct {
 		result1 string
 	}
-	OrderPipelinesStub        func([]string) error
+	OrderPipelinesStub        func([]atc.PipelineRef) error
 	orderPipelinesMutex       sync.RWMutex
 	orderPipelinesArgsForCall []struct {
-		arg1 []string
+		arg1 []atc.PipelineRef
 	}
 	orderPipelinesReturns struct {
 		result1 error
@@ -274,10 +274,10 @@ type FakeTeam struct {
 	orderPipelinesReturnsOnCall map[int]struct {
 		result1 error
 	}
-	PipelineStub        func(string) (db.Pipeline, bool, error)
+	PipelineStub        func(atc.PipelineRef) (db.Pipeline, bool, error)
 	pipelineMutex       sync.RWMutex
 	pipelineArgsForCall []struct {
-		arg1 string
+		arg1 atc.PipelineRef
 	}
 	pipelineReturns struct {
 		result1 db.Pipeline
@@ -339,10 +339,10 @@ type FakeTeam struct {
 	renameReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SavePipelineStub        func(string, atc.Config, db.ConfigVersion, bool) (db.Pipeline, bool, error)
+	SavePipelineStub        func(atc.PipelineRef, atc.Config, db.ConfigVersion, bool) (db.Pipeline, bool, error)
 	savePipelineMutex       sync.RWMutex
 	savePipelineArgsForCall []struct {
-		arg1 string
+		arg1 atc.PipelineRef
 		arg2 atc.Config
 		arg3 db.ConfigVersion
 		arg4 bool
@@ -859,12 +859,12 @@ func (fake *FakeTeam) DeleteReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeTeam) FindCheckContainers(arg1 lager.Logger, arg2 string, arg3 string, arg4 creds.Secrets, arg5 creds.VarSourcePool) ([]db.Container, map[int]time.Time, error) {
+func (fake *FakeTeam) FindCheckContainers(arg1 lager.Logger, arg2 atc.PipelineRef, arg3 string, arg4 creds.Secrets, arg5 creds.VarSourcePool) ([]db.Container, map[int]time.Time, error) {
 	fake.findCheckContainersMutex.Lock()
 	ret, specificReturn := fake.findCheckContainersReturnsOnCall[len(fake.findCheckContainersArgsForCall)]
 	fake.findCheckContainersArgsForCall = append(fake.findCheckContainersArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 string
+		arg2 atc.PipelineRef
 		arg3 string
 		arg4 creds.Secrets
 		arg5 creds.VarSourcePool
@@ -887,13 +887,13 @@ func (fake *FakeTeam) FindCheckContainersCallCount() int {
 	return len(fake.findCheckContainersArgsForCall)
 }
 
-func (fake *FakeTeam) FindCheckContainersCalls(stub func(lager.Logger, string, string, creds.Secrets, creds.VarSourcePool) ([]db.Container, map[int]time.Time, error)) {
+func (fake *FakeTeam) FindCheckContainersCalls(stub func(lager.Logger, atc.PipelineRef, string, creds.Secrets, creds.VarSourcePool) ([]db.Container, map[int]time.Time, error)) {
 	fake.findCheckContainersMutex.Lock()
 	defer fake.findCheckContainersMutex.Unlock()
 	fake.FindCheckContainersStub = stub
 }
 
-func (fake *FakeTeam) FindCheckContainersArgsForCall(i int) (lager.Logger, string, string, creds.Secrets, creds.VarSourcePool) {
+func (fake *FakeTeam) FindCheckContainersArgsForCall(i int) (lager.Logger, atc.PipelineRef, string, creds.Secrets, creds.VarSourcePool) {
 	fake.findCheckContainersMutex.RLock()
 	defer fake.findCheckContainersMutex.RUnlock()
 	argsForCall := fake.findCheckContainersArgsForCall[i]
@@ -1553,16 +1553,16 @@ func (fake *FakeTeam) NameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeTeam) OrderPipelines(arg1 []string) error {
-	var arg1Copy []string
+func (fake *FakeTeam) OrderPipelines(arg1 []atc.PipelineRef) error {
+	var arg1Copy []atc.PipelineRef
 	if arg1 != nil {
-		arg1Copy = make([]string, len(arg1))
+		arg1Copy = make([]atc.PipelineRef, len(arg1))
 		copy(arg1Copy, arg1)
 	}
 	fake.orderPipelinesMutex.Lock()
 	ret, specificReturn := fake.orderPipelinesReturnsOnCall[len(fake.orderPipelinesArgsForCall)]
 	fake.orderPipelinesArgsForCall = append(fake.orderPipelinesArgsForCall, struct {
-		arg1 []string
+		arg1 []atc.PipelineRef
 	}{arg1Copy})
 	fake.recordInvocation("OrderPipelines", []interface{}{arg1Copy})
 	fake.orderPipelinesMutex.Unlock()
@@ -1582,13 +1582,13 @@ func (fake *FakeTeam) OrderPipelinesCallCount() int {
 	return len(fake.orderPipelinesArgsForCall)
 }
 
-func (fake *FakeTeam) OrderPipelinesCalls(stub func([]string) error) {
+func (fake *FakeTeam) OrderPipelinesCalls(stub func([]atc.PipelineRef) error) {
 	fake.orderPipelinesMutex.Lock()
 	defer fake.orderPipelinesMutex.Unlock()
 	fake.OrderPipelinesStub = stub
 }
 
-func (fake *FakeTeam) OrderPipelinesArgsForCall(i int) []string {
+func (fake *FakeTeam) OrderPipelinesArgsForCall(i int) []atc.PipelineRef {
 	fake.orderPipelinesMutex.RLock()
 	defer fake.orderPipelinesMutex.RUnlock()
 	argsForCall := fake.orderPipelinesArgsForCall[i]
@@ -1618,11 +1618,11 @@ func (fake *FakeTeam) OrderPipelinesReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeTeam) Pipeline(arg1 string) (db.Pipeline, bool, error) {
+func (fake *FakeTeam) Pipeline(arg1 atc.PipelineRef) (db.Pipeline, bool, error) {
 	fake.pipelineMutex.Lock()
 	ret, specificReturn := fake.pipelineReturnsOnCall[len(fake.pipelineArgsForCall)]
 	fake.pipelineArgsForCall = append(fake.pipelineArgsForCall, struct {
-		arg1 string
+		arg1 atc.PipelineRef
 	}{arg1})
 	fake.recordInvocation("Pipeline", []interface{}{arg1})
 	fake.pipelineMutex.Unlock()
@@ -1642,13 +1642,13 @@ func (fake *FakeTeam) PipelineCallCount() int {
 	return len(fake.pipelineArgsForCall)
 }
 
-func (fake *FakeTeam) PipelineCalls(stub func(string) (db.Pipeline, bool, error)) {
+func (fake *FakeTeam) PipelineCalls(stub func(atc.PipelineRef) (db.Pipeline, bool, error)) {
 	fake.pipelineMutex.Lock()
 	defer fake.pipelineMutex.Unlock()
 	fake.PipelineStub = stub
 }
 
-func (fake *FakeTeam) PipelineArgsForCall(i int) string {
+func (fake *FakeTeam) PipelineArgsForCall(i int) atc.PipelineRef {
 	fake.pipelineMutex.RLock()
 	defer fake.pipelineMutex.RUnlock()
 	argsForCall := fake.pipelineArgsForCall[i]
@@ -1920,11 +1920,11 @@ func (fake *FakeTeam) RenameReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeTeam) SavePipeline(arg1 string, arg2 atc.Config, arg3 db.ConfigVersion, arg4 bool) (db.Pipeline, bool, error) {
+func (fake *FakeTeam) SavePipeline(arg1 atc.PipelineRef, arg2 atc.Config, arg3 db.ConfigVersion, arg4 bool) (db.Pipeline, bool, error) {
 	fake.savePipelineMutex.Lock()
 	ret, specificReturn := fake.savePipelineReturnsOnCall[len(fake.savePipelineArgsForCall)]
 	fake.savePipelineArgsForCall = append(fake.savePipelineArgsForCall, struct {
-		arg1 string
+		arg1 atc.PipelineRef
 		arg2 atc.Config
 		arg3 db.ConfigVersion
 		arg4 bool
@@ -1947,13 +1947,13 @@ func (fake *FakeTeam) SavePipelineCallCount() int {
 	return len(fake.savePipelineArgsForCall)
 }
 
-func (fake *FakeTeam) SavePipelineCalls(stub func(string, atc.Config, db.ConfigVersion, bool) (db.Pipeline, bool, error)) {
+func (fake *FakeTeam) SavePipelineCalls(stub func(atc.PipelineRef, atc.Config, db.ConfigVersion, bool) (db.Pipeline, bool, error)) {
 	fake.savePipelineMutex.Lock()
 	defer fake.savePipelineMutex.Unlock()
 	fake.SavePipelineStub = stub
 }
 
-func (fake *FakeTeam) SavePipelineArgsForCall(i int) (string, atc.Config, db.ConfigVersion, bool) {
+func (fake *FakeTeam) SavePipelineArgsForCall(i int) (atc.PipelineRef, atc.Config, db.ConfigVersion, bool) {
 	fake.savePipelineMutex.RLock()
 	defer fake.savePipelineMutex.RUnlock()
 	argsForCall := fake.savePipelineArgsForCall[i]

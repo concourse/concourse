@@ -64,7 +64,7 @@ jobs:
 				It("should NOT be able to set pipelines", func() {
 					ccClient := login(atcURL, "v-user", "v-user")
 
-					_, _, _, err := ccClient.Team(team.Name).CreateOrUpdatePipelineConfig("pipeline-new", "0", pipelineData, false)
+					_, _, _, err := ccClient.Team(team.Name).CreateOrUpdatePipelineConfig(atc.PipelineRef{Name: "pipeline-new"}, "0", pipelineData, false)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(Equal("forbidden"))
 				})
@@ -82,7 +82,7 @@ jobs:
 				It("should NOT be able to set pipelines", func() {
 					ccClient := login(atcURL, "po-user", "po-user")
 
-					_, _, _, err := ccClient.Team(team.Name).CreateOrUpdatePipelineConfig("pipeline-new", "0", pipelineData, false)
+					_, _, _, err := ccClient.Team(team.Name).CreateOrUpdatePipelineConfig(atc.PipelineRef{Name: "pipeline-new"}, "0", pipelineData, false)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(Equal("forbidden"))
 				})
@@ -100,7 +100,7 @@ jobs:
 				It("should be able to set pipelines", func() {
 					ccClient := login(atcURL, "m-user", "m-user")
 
-					_, _, _, err := ccClient.Team(team.Name).CreateOrUpdatePipelineConfig("pipeline-new", "0", pipelineData, false)
+					_, _, _, err := ccClient.Team(team.Name).CreateOrUpdatePipelineConfig(atc.PipelineRef{Name: "pipeline-new"}, "0", pipelineData, false)
 					Expect(err).ToNot(HaveOccurred())
 				})
 			})
@@ -117,7 +117,7 @@ jobs:
 				It("should be able to set pipelines", func() {
 					ccClient := login(atcURL, "o-user", "o-user")
 
-					_, _, _, err := ccClient.Team(team.Name).CreateOrUpdatePipelineConfig("pipeline-new", "0", pipelineData, false)
+					_, _, _, err := ccClient.Team(team.Name).CreateOrUpdatePipelineConfig(atc.PipelineRef{Name: "pipeline-new"}, "0", pipelineData, false)
 					Expect(err).ToNot(HaveOccurred())
 				})
 
@@ -227,7 +227,7 @@ viewer:
 			It("viewer should be able to set pipelines", func() {
 				ccClient := login(atcURL, "v-user", "v-user")
 
-				_, _, _, err := ccClient.Team(team.Name).CreateOrUpdatePipelineConfig("pipeline-new", "0", pipelineData, false)
+				_, _, _, err := ccClient.Team(team.Name).CreateOrUpdatePipelineConfig(atc.PipelineRef{Name: "pipeline-new"}, "0", pipelineData, false)
 				Expect(err).ToNot(HaveOccurred())
 			})
 		})

@@ -46,10 +46,11 @@ var (
 
 	teamFactory db.TeamFactory
 
-	defaultTeam     db.Team
-	defaultPipeline db.Pipeline
-	defaultJob      db.Job
-	defaultBuild    db.Build
+	defaultTeam        db.Team
+	defaultPipeline    db.Pipeline
+	defaultPipelineRef atc.PipelineRef
+	defaultJob         db.Job
+	defaultBuild       db.Build
 
 	usedResource     db.Resource
 	usedResourceType db.ResourceType
@@ -108,7 +109,8 @@ var _ = BeforeEach(func() {
 		},
 	}
 
-	defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", atcConfig, db.ConfigVersion(0), false)
+	defaultPipelineRef = atc.PipelineRef{Name: "default-pipeline"}
+	defaultPipeline, _, err = defaultTeam.SavePipeline(defaultPipelineRef, atcConfig, db.ConfigVersion(0), false)
 	Expect(err).NotTo(HaveOccurred())
 
 	var found bool

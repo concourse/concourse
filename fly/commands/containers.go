@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
@@ -54,10 +55,14 @@ func (command *ContainersCommand) Execute([]string) error {
 	}
 
 	for _, c := range containers {
+		pipelineRef := atc.PipelineRef{
+			Name:         c.PipelineName,
+			InstanceVars: c.PipelineInstanceVars,
+		}
 		row := ui.TableRow{
 			{Contents: c.ID},
 			{Contents: c.WorkerName},
-			stringOrDefault(c.PipelineName),
+			stringOrDefault(pipelineRef.String()),
 			stringOrDefault(c.JobName),
 			stringOrDefault(c.BuildName),
 			buildIDOrNone(c.BuildID),

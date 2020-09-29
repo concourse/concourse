@@ -11,12 +11,14 @@ import (
 var _ = Describe("set-pipeline Step", func() {
 	var (
 		createdPipelineName string
+		currentInstanceVars string
 		currentTeamName     string
 		currentFlyTarget    string
 	)
 
 	BeforeEach(func() {
 		createdPipelineName = randomPipelineName()
+		currentInstanceVars = ""
 	})
 
 	JustBeforeEach(func() {
@@ -42,7 +44,7 @@ var _ = Describe("set-pipeline Step", func() {
 		})
 
 		AfterEach(func() {
-			fly("destroy-pipeline", "-n", "-p", createdPipelineName)
+			fly("destroy-pipeline", "-n", "-p", createdPipelineName+currentInstanceVars)
 		})
 
 		It("sets the other pipeline", func() {
@@ -60,6 +62,29 @@ var _ = Describe("set-pipeline Step", func() {
 			By("should trigger the second pipeline job successfully")
 			execS = fly("trigger-job", "-w", "-j", createdPipelineName+"/normal-job")
 			Expect(execS.Out).To(gbytes.Say("hello world"))
+		})
+
+		Context("when setting pipeline with instance vars", func() {
+			BeforeEach(func() {
+				currentInstanceVars = "/greetings:instanced-pipeline"
+			})
+
+			It("sets the other pipeline as instanced pipeline", func() {
+				By("second pipeline should initially not exist")
+				execS := spawnFly("get-pipeline", "-p", createdPipelineName+currentInstanceVars)
+				<-execS.Exited
+				Expect(execS).To(gexec.Exit(1))
+				Expect(execS.Err).To(gbytes.Say("pipeline not found"))
+
+				By("set-pipeline step should succeed")
+				execS = fly("trigger-job", "-w", "-j", pipelineName+"/sp-with-instance-vars")
+				Expect(execS.Out).To(gbytes.Say("setting pipeline: " + createdPipelineName + currentInstanceVars))
+				Expect(execS.Out).To(gbytes.Say("done"))
+
+				By("should trigger the second pipeline job successfully")
+				execS = fly("trigger-job", "-w", "-j", createdPipelineName+currentInstanceVars+"/normal-job")
+				Expect(execS.Out).To(gbytes.Say("instanced-pipeline"))
+			})
 		})
 	})
 

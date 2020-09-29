@@ -6,9 +6,9 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (team *team) Resource(pipelineName string, resourceName string) (atc.Resource, bool, error) {
+func (team *team) Resource(pipelineRef atc.PipelineRef, resourceName string) (atc.Resource, bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
+		"pipeline_name": pipelineRef.Name,
 		"resource_name": resourceName,
 		"team_name":     team.Name(),
 	}
@@ -17,6 +17,7 @@ func (team *team) Resource(pipelineName string, resourceName string) (atc.Resour
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.GetResource,
 		Params:      params,
+		Query:       pipelineRef.QueryParams(),
 	}, &internal.Response{
 		Result: &resource,
 	})
@@ -30,9 +31,9 @@ func (team *team) Resource(pipelineName string, resourceName string) (atc.Resour
 	}
 }
 
-func (team *team) ListResources(pipelineName string) ([]atc.Resource, error) {
+func (team *team) ListResources(pipelineRef atc.PipelineRef) ([]atc.Resource, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
+		"pipeline_name": pipelineRef.Name,
 		"team_name":     team.Name(),
 	}
 
@@ -40,6 +41,7 @@ func (team *team) ListResources(pipelineName string) ([]atc.Resource, error) {
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.ListResources,
 		Params:      params,
+		Query:       pipelineRef.QueryParams(),
 	}, &internal.Response{
 		Result: &resources,
 	})

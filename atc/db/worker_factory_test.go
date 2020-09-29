@@ -570,7 +570,7 @@ var _ = Describe("WorkerFactory", func() {
 					}
 
 					var err error
-					otherPipeline, _, err := defaultTeam.SavePipeline("other-pipeline", atc.Config{
+					otherPipeline, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "other-pipeline"}, atc.Config{
 						Resources: atc.ResourceConfigs{
 							{
 								Name: "some-resource",

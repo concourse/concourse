@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"os/exec"
+	"strings"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/ui"
@@ -16,11 +17,12 @@ import (
 var _ = Describe("Fly CLI", func() {
 	Describe("resource-versions", func() {
 		var (
-			flyCmd *exec.Cmd
+			flyCmd      *exec.Cmd
+			queryParams = []string{"instance_vars=%7B%22branch%22%3A%22master%22%7D", "limit=50"}
 		)
 
 		BeforeEach(func() {
-			flyCmd = exec.Command(flyPath, "-t", targetName, "resource-versions", "-r", "pipeline/foo")
+			flyCmd = exec.Command(flyPath, "-t", targetName, "resource-versions", "-r", "pipeline/branch:master/foo")
 		})
 
 		Context("when pipelines are returned from the API", func() {
@@ -28,7 +30,7 @@ var _ = Describe("Fly CLI", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/resources/foo/versions"),
+							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/resources/foo/versions", strings.Join(queryParams, "&")),
 							ghttp.RespondWithJSONEncoded(200, []atc.ResourceVersion{
 								{ID: 3, Version: atc.Version{"version": "3", "another": "field"}, Enabled: true},
 								{ID: 2, Version: atc.Version{"version": "2", "another": "field"}, Enabled: false},
@@ -93,7 +95,7 @@ var _ = Describe("Fly CLI", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/resources/foo/versions"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/resources/foo/versions", strings.Join(queryParams, "&")),
 						ghttp.RespondWith(500, ""),
 					),
 				)

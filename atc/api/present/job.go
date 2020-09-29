@@ -53,7 +53,9 @@ func Job(
 		ID: job.ID(),
 
 		Name:                 job.Name(),
+		PipelineID:           job.PipelineID(),
 		PipelineName:         job.PipelineName(),
+		PipelineInstanceVars: job.PipelineInstanceVars(),
 		TeamName:             teamName,
 		DisableManualTrigger: job.DisableManualTrigger(),
 		Paused:               job.Paused(),

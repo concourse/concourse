@@ -29,7 +29,7 @@ var _ = Describe("ResourceConfig", func() {
 			var created bool
 			var err error
 			pipeline, created, err = defaultTeam.SavePipeline(
-				"pipeline-one-resource",
+				atc.PipelineRef{Name: "pipeline-one-resource"},
 				config,
 				0,
 				false,

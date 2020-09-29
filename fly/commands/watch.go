@@ -1,11 +1,13 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
 	"strconv"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/eventstream"
 	"github.com/concourse/concourse/fly/rc"
@@ -48,7 +50,15 @@ func getBuildIDFromURL(target rc.Target, urlParam string) (int, error) {
 	}
 
 	if urlMap["pipelines"] != "" && urlMap["jobs"] != "" {
-		build, err := GetBuild(client, target.Team(), urlMap["jobs"], urlMap["builds"], urlMap["pipelines"])
+		pipelineRef := atc.PipelineRef{Name: urlMap["pipelines"]}
+		if instanceVars := u.Query().Get("instance_vars"); instanceVars != "" {
+			err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
+			if err != nil {
+				err = fmt.Errorf("Failed to parse query params in (%s, %s)", urlParam, target.URL())
+				return 0, err
+			}
+		}
+		build, err := GetBuild(client, target.Team(), urlMap["jobs"], urlMap["builds"], pipelineRef)
 
 		if err != nil {
 			return 0, err
@@ -80,7 +90,7 @@ func (command *WatchCommand) Execute(args []string) error {
 	var buildId int
 	client := target.Client()
 	if command.Job.JobName != "" || command.Build == "" && command.Url == "" {
-		build, err := GetBuild(client, target.Team(), command.Job.JobName, command.Build, command.Job.PipelineName)
+		build, err := GetBuild(client, target.Team(), command.Job.JobName, command.Build, command.Job.PipelineRef)
 		if err != nil {
 			return err
 		}

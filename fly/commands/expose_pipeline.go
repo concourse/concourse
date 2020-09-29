@@ -23,8 +23,6 @@ func (command *ExposePipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	pipelineName := string(command.Pipeline)
-
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
@@ -35,15 +33,16 @@ func (command *ExposePipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	found, err := target.Team().ExposePipeline(pipelineName)
+	pipelineRef := command.Pipeline.Ref()
+	found, err := target.Team().ExposePipeline(pipelineRef)
 	if err != nil {
 		return err
 	}
 
 	if found {
-		fmt.Printf("exposed '%s'\n", pipelineName)
+		fmt.Printf("exposed '%s'\n", pipelineRef.String())
 	} else {
-		displayhelpers.Failf("pipeline '%s' not found\n", pipelineName)
+		displayhelpers.Failf("pipeline '%s' not found\n", pipelineRef.String())
 	}
 
 	return nil

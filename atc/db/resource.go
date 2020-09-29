@@ -81,6 +81,7 @@ var resourcesQuery = psql.Select(
 	"r.resource_config_id",
 	"r.resource_config_scope_id",
 	"p.name",
+	"p.instance_vars",
 	"t.id",
 	"t.name",
 	"rs.check_error",
@@ -704,9 +705,10 @@ func scanResource(r *resource, row scannable) error {
 		checkErr, rcsCheckErr, nonce, rcID, rcScopeID, pinnedVersion, pinComment sql.NullString
 		lastCheckStartTime, lastCheckEndTime                                     pq.NullTime
 		pinnedThroughConfig                                                      sql.NullBool
+		pipelineInstanceVars                                                     sql.NullString
 	)
 
-	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &r.teamID, &r.teamName, &rcsCheckErr, &pinnedVersion, &pinComment, &pinnedThroughConfig)
+	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName, &rcsCheckErr, &pinnedVersion, &pinComment, &pinnedThroughConfig)
 	if err != nil {
 		return err
 	}
@@ -784,6 +786,14 @@ func scanResource(r *resource, row scannable) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if pipelineInstanceVars.Valid {
+		err = json.Unmarshal([]byte(pipelineInstanceVars.String), &r.pipelineInstanceVars)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	return nil

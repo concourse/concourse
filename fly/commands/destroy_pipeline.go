@@ -48,8 +48,8 @@ func (command *DestroyPipelineCommand) Execute(args []string) error {
 		team = target.Team()
 	}
 
-	pipelineName := string(command.Pipeline)
-	fmt.Printf("!!! this will remove all data for pipeline `%s`\n\n", pipelineName)
+	pipelineRef := command.Pipeline.Ref()
+	fmt.Printf("!!! this will remove all data for pipeline `%s`\n\n", pipelineRef.String())
 
 	confirm := command.SkipInteractive
 	if !confirm {
@@ -60,15 +60,15 @@ func (command *DestroyPipelineCommand) Execute(args []string) error {
 		}
 	}
 
-	found, err := team.DeletePipeline(pipelineName)
+	found, err := team.DeletePipeline(pipelineRef)
 	if err != nil {
 		return err
 	}
 
 	if !found {
-		fmt.Printf("`%s` does not exist\n", pipelineName)
+		fmt.Printf("`%s` does not exist\n", pipelineRef.String())
 	} else {
-		fmt.Printf("`%s` deleted\n", pipelineName)
+		fmt.Printf("`%s` deleted\n", pipelineRef.String())
 	}
 
 	return nil

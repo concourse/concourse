@@ -18,7 +18,7 @@ import (
 )
 
 type ATCConfig struct {
-	PipelineName     string
+	PipelineRef      atc.PipelineRef
 	Team             concourse.Team
 	TargetName       rc.TargetName
 	Target           string
@@ -47,7 +47,7 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 		return err
 	}
 
-	existingConfig, existingConfigVersion, _, err := atcConfig.Team.PipelineConfig(atcConfig.PipelineName)
+	existingConfig, existingConfigVersion, _, err := atcConfig.Team.PipelineConfig(atcConfig.PipelineRef)
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 	}
 
 	created, updated, warnings, err := atcConfig.Team.CreateOrUpdatePipelineConfig(
-		atcConfig.PipelineName,
+		atcConfig.PipelineRef,
 		existingConfigVersion,
 		evaluatedTemplate,
 		atcConfig.CheckCredentials,
@@ -92,7 +92,7 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 		return err
 	}
 
-	updatedConfig, found, err := atcConfig.Team.Pipeline(atcConfig.PipelineName)
+	updatedConfig, found, err := atcConfig.Team.Pipeline(atcConfig.PipelineRef)
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 }
 
 func (atcConfig ATCConfig) UnpausePipelineCommand() string {
-	return fmt.Sprintf("%s -t %s unpause-pipeline -p %s", os.Args[0], atcConfig.TargetName, atcConfig.PipelineName)
+	return fmt.Sprintf("%s -t %s unpause-pipeline -p %s", os.Args[0], atcConfig.TargetName, atcConfig.PipelineRef.String())
 }
 
 func (atcConfig ATCConfig) showPipelineUpdateResult(created bool, updated bool, paused bool) {
@@ -121,7 +121,11 @@ func (atcConfig ATCConfig) showPipelineUpdateResult(created bool, updated bool, 
 			fmt.Println("Could not parse targetURL")
 		}
 
-		pipelineURL, err := url.Parse("/teams/" + atcConfig.Team.Name() + "/pipelines/" + atcConfig.PipelineName)
+		queryParams := atcConfig.PipelineRef.QueryParams().Encode()
+		if queryParams != "" {
+			queryParams = "?" + queryParams
+		}
+		pipelineURL, err := url.Parse("/teams/" + atcConfig.Team.Name() + "/pipelines/" + atcConfig.PipelineRef.Name + queryParams)
 		if err != nil {
 			fmt.Println("Could not parse pipelineURL")
 		}
