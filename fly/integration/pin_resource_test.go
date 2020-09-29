@@ -161,6 +161,17 @@ var _ = Describe("Fly CLI", func() {
 				})
 			})
 
+			Context("when no resource version is specified", func() {
+				It("asks the user to specify a version", func() {
+					flyCmd := exec.Command(flyPath, "-t", targetName, "pin-resource", "-r", pipelineResource)
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess).Should(gexec.Exit(1))
+					Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("v", "version") + "' was not specified"))
+				})
+			})
+
 			Context("when pin comment is provided", func() {
 				BeforeEach(func() {
 					commentPath, err = atc.Routes.CreatePathForRoute(atc.SetPinCommentOnResource, rata.Params{

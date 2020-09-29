@@ -3,6 +3,7 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
