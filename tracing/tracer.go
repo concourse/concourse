@@ -37,6 +37,7 @@ func (tp *TestTraceProvider) Tracer(name string) trace.Tracer {
 var Configured bool
 
 type Config struct {
+	Honeycomb   Honeycomb
 	Jaeger      Jaeger
 	Stackdriver Stackdriver
 }
@@ -45,6 +46,8 @@ func (c Config) Prepare() error {
 	var exp export.SpanSyncer
 	var err error
 	switch {
+	case c.Honeycomb.IsConfigured():
+		exp, err = c.Honeycomb.Exporter()
 	case c.Jaeger.IsConfigured():
 		exp, err = c.Jaeger.Exporter()
 	case c.Stackdriver.IsConfigured():
