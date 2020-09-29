@@ -538,7 +538,7 @@ all =
                             ]
             , test "does not render drop areas for rows that are not visible" <|
                 \_ ->
-                    loadDashboardWithSize 300 300
+                    loadDashboardWithSize 300 400
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok [ Data.pipeline "team" 1, Data.pipeline "team" 2, Data.pipeline "team" 3 ]

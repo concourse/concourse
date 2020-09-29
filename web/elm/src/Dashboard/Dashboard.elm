@@ -680,10 +680,19 @@ updateBody session msg ( model, effects ) =
                         teamPipelines =
                             model.pipelines
                                 |> Maybe.andThen (Dict.get teamName)
-                                |> Maybe.withDefault []
                                 -- TODO
+                                |> Maybe.withDefault []
                                 |> List.map PipelineCard
-                                |> Drag.dragCard name target
+                                |> (\cards ->
+                                        cards
+                                            |> (case Drag.dragCardIndices name target cards of
+                                                    Just ( from, to ) ->
+                                                        Drag.drag from to
+
+                                                    _ ->
+                                                        identity
+                                               )
+                                   )
 
                         pipelines =
                             model.pipelines
@@ -1325,6 +1334,11 @@ cardsView session params teamCards =
                         List.foldl
                             (\( teamName, cards ) ( htmlList, totalOffset ) ->
                                 let
+                                    startingOffset =
+                                        totalOffset
+                                            + GridConstants.headerHeight
+                                            + GridConstants.padding
+
                                     layout =
                                         Grid.computeLayout
                                             { dragState = params.dragState
@@ -1332,7 +1346,7 @@ cardsView session params teamCards =
                                             , pipelineLayers = params.pipelineLayers
                                             , viewportWidth = params.viewportWidth
                                             , viewportHeight = params.viewportHeight
-                                            , scrollTop = params.scrollTop - totalOffset
+                                            , scrollTop = params.scrollTop - startingOffset
                                             }
                                             teamName
                                             cards
@@ -1355,10 +1369,7 @@ cardsView session params teamCards =
                                     layout.cards
                                     |> (\html ->
                                             ( html :: htmlList
-                                            , totalOffset
-                                                + layout.height
-                                                + GridConstants.headerHeight
-                                                + GridConstants.padding
+                                            , startingOffset + layout.height
                                             )
                                        )
                             )

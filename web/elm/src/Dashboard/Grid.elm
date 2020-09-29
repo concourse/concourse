@@ -8,7 +8,7 @@ module Dashboard.Grid exposing
     )
 
 import Concourse
-import Dashboard.Drag exposing (dragCard)
+import Dashboard.Drag as Drag
 import Dashboard.Grid.Constants
     exposing
         ( cardHeight
@@ -20,7 +20,6 @@ import Dashboard.Grid.Layout as Layout
 import Dashboard.Group.Models as Models
     exposing
         ( Card(..)
-        , Pipeline
         , cardIdentifier
         , cardTeamName
         )
@@ -41,6 +40,7 @@ type alias Bounds =
 
 type alias Card =
     { bounds : Bounds
+    , gridElement : Layout.GridElement
     , card : Models.Card
     }
 
@@ -74,142 +74,112 @@ computeLayout :
         }
 computeLayout params teamName cards =
     let
-        orderedCards =
+        dragIndices =
             case ( params.dragState, params.dropState ) of
                 ( Dragging team cardId, Dropping target ) ->
                     if teamName == team then
-                        dragCard cardId target cards
+                        Drag.dragCardIndices cardId target cards
 
                     else
-                        cards
+                        Nothing
+
+                _ ->
+                    Nothing
+
+        orderedCards =
+            case dragIndices of
+                Just ( from, to ) ->
+                    Drag.drag from to cards
 
                 _ ->
                     cards
 
-        numColumns =
-            max 1 (floor (params.viewportWidth / (cardWidth + padding)))
-
-        rowHeight =
-            cardHeight + padding
-
-        isVisible_ =
-            isVisible params.viewportHeight params.scrollTop rowHeight
-
-        gridElements =
-            orderedCards
-                |> cardSizes params.pipelineLayers
-                |> Layout.layout numColumns
-
-        numRows =
-            gridElements
-                |> List.map (\c -> c.row + c.spannedRows - 1)
-                |> List.maximum
-                |> Maybe.withDefault 1
-
-        totalCardsHeight =
-            toFloat numRows
-                * cardHeight
-                + padding
-                * toFloat numRows
-
-        gridElementLookup =
-            gridElements
-                |> List.map2 Tuple.pair orderedCards
-                |> List.map (\( card, gridElement ) -> ( cardIdentifier card, gridElement ))
-                |> Dict.fromList
-
-        prevAndCurrentGridElement =
-            gridElements
-                |> List.map2 Tuple.pair (Nothing :: (gridElements |> List.map Just))
-
-        cardBounds =
-            boundsForGridElement
+        result =
+            computeCards
                 { colGap = padding
                 , rowGap = padding
                 , offsetX = padding
                 , offsetY = 0
                 }
+                params
+                orderedCards
 
-        dropAreaBounds =
-            cardBounds >> (\b -> { b | x = b.x - padding, width = b.width + padding })
+        dropAreaBounds bounds =
+            { bounds | x = bounds.x - padding, width = bounds.width + padding }
 
-        dropAreas =
-            (prevAndCurrentGridElement
+        boundsToRightOf otherBounds =
+            { otherBounds
+                | x = otherBounds.x + otherBounds.width
+                , y = otherBounds.y
+                , width = cardWidth + padding
+                , height = otherBounds.height
+            }
+
+        cardDropAreas =
+            result.allCards
                 |> List.map2 Tuple.pair cards
-                |> List.filter (\( _, ( _, gridElement ) ) -> isVisible_ gridElement)
-                |> List.map
-                    (\( card, ( prevGridElement, gridElement ) ) ->
+                |> List.foldl
+                    (\( origCard, { bounds, gridElement } as curCard ) ( dropAreas, prevDropArea ) ->
                         let
-                            boundsToRightOf otherCard =
-                                dropAreaBounds
-                                    { otherCard
-                                        | column = otherCard.column + otherCard.spannedColumns
-                                        , spannedColumns = 1
-                                    }
-
-                            bounds =
-                                case prevGridElement of
-                                    Just otherGridElement ->
+                            curBounds =
+                                case prevDropArea of
+                                    Just prev ->
                                         if
-                                            (otherGridElement.row < gridElement.row)
-                                                && (otherGridElement.column + otherGridElement.spannedColumns <= numColumns)
+                                            (prev.gridElement.row < gridElement.row)
+                                                && (prev.gridElement.column + prev.gridElement.spannedColumns <= result.numColumns)
                                         then
-                                            boundsToRightOf otherGridElement
+                                            boundsToRightOf prev.bounds
 
                                         else
-                                            dropAreaBounds gridElement
+                                            dropAreaBounds bounds
 
                                     Nothing ->
-                                        dropAreaBounds gridElement
-                        in
-                        { bounds = bounds, target = Before <| cardIdentifier card }
-                    )
-            )
-                ++ (case List.head (List.reverse (List.map2 Tuple.pair gridElements cards)) of
-                        Just ( lastGridElement, lastCard ) ->
-                            if not (isVisible_ lastGridElement) then
-                                []
+                                        dropAreaBounds bounds
 
-                            else
-                                [ { bounds =
-                                        dropAreaBounds
-                                            { lastGridElement
-                                                | column = lastGridElement.column + lastGridElement.spannedColumns
-                                                , spannedColumns = 1
-                                            }
-                                  , target = After <| cardIdentifier lastCard
-                                  }
-                                ]
+                            curDropArea =
+                                { bounds = curBounds, target = Before <| cardIdentifier origCard }
+                        in
+                        ( curDropArea :: dropAreas, Just curCard )
+                    )
+                    ( [], Nothing )
+                |> Tuple.first
+                |> List.reverse
+
+        allDropAreas =
+            cardDropAreas
+                ++ (case List.Extra.last result.allCards of
+                        Just { bounds, card } ->
+                            [ { bounds = boundsToRightOf bounds
+                              , target = After <| cardIdentifier card
+                              }
+                            ]
 
                         Nothing ->
                             []
                    )
 
-        gridCards =
-            cards
-                |> List.map
-                    (\card ->
-                        gridElementLookup
-                            |> Dict.get (cardIdentifier card)
-                            |> Maybe.withDefault
-                                { row = 0
-                                , column = 0
-                                , spannedColumns = 0
-                                , spannedRows = 0
-                                }
-                            |> (\gridElement -> ( card, gridElement ))
-                    )
-                |> List.filter (\( _, gridElement ) -> isVisible_ gridElement)
-                |> List.map
-                    (\( card, gridElement ) ->
-                        { card = card
-                        , bounds = cardBounds gridElement
-                        }
-                    )
+        -- Due to a quirk with animations + Html.keyed, the cards need to remain
+        -- in the same order even when we display the drag'n'drop preview - otherwise,
+        -- the animation is cut short in one direction
+        cardsWithOriginalOrder =
+            result.allCards
+                |> (case dragIndices of
+                        Just idxs ->
+                            Drag.reverseIndices (List.length result.allCards) idxs
+                                |> (\( revFrom, revTo ) -> Drag.drag revFrom revTo)
+
+                        _ ->
+                            identity
+                   )
     in
-    { cards = gridCards
-    , dropAreas = dropAreas
-    , height = totalCardsHeight
+    { cards = cardsWithOriginalOrder |> List.filter (isVisible params)
+    , dropAreas = allDropAreas |> List.filter (isVisible params)
+    , height =
+        if List.isEmpty cards then
+            cardHeight + padding
+
+        else
+            result.totalHeight
     }
 
 
@@ -227,50 +197,18 @@ computeFavoritesLayout :
         }
 computeFavoritesLayout params cards =
     let
-        numColumns =
-            max 1 (floor (params.viewportWidth / (cardWidth + padding)))
-
-        rowHeight =
-            cardHeight + headerHeight
-
-        isVisible_ =
-            isVisible params.viewportHeight params.scrollTop rowHeight
-
-        gridElements =
-            cards
-                |> cardSizes params.pipelineLayers
-                |> Layout.layout numColumns
-
-        numRows =
-            gridElements
-                |> List.map (\c -> c.row + c.spannedRows - 1)
-                |> List.maximum
-                |> Maybe.withDefault 1
-
-        totalCardsHeight =
-            toFloat numRows * rowHeight
-
-        cardBounds =
-            boundsForGridElement
+        result =
+            computeCards
                 { colGap = padding
                 , rowGap = headerHeight
                 , offsetX = padding
                 , offsetY = headerHeight
                 }
-
-        favCards =
-            gridElements
-                |> List.map2 Tuple.pair cards
-                |> List.filter (\( _, gridElement ) -> isVisible_ gridElement)
-                |> List.map
-                    (\( card, gridElement ) ->
-                        { card = card
-                        , bounds = cardBounds gridElement
-                        }
-                    )
+                params
+                cards
 
         headers =
-            favCards
+            result.allCards
                 |> List.Extra.groupWhile
                     (\c1 c2 ->
                         (cardTeamName c1.card == cardTeamName c2.card)
@@ -320,9 +258,9 @@ computeFavoritesLayout params cards =
                     ( Nothing, [] )
                 |> Tuple.second
     in
-    { cards = favCards
-    , headers = headers
-    , height = totalCardsHeight
+    { cards = result.allCards |> List.filter (isVisible params)
+    , headers = headers |> List.filter (isVisible params)
+    , height = result.totalHeight
     }
 
 
@@ -352,20 +290,17 @@ cardSizes pipelineLayers =
         )
 
 
-isVisible : Float -> Float -> Float -> { r | row : Int, spannedRows : Int } -> Bool
-isVisible viewportHeight scrollTop rowHeight { row, spannedRows } =
+isVisible : { a | scrollTop : Float, viewportHeight : Float } -> { b | bounds : Bounds } -> Bool
+isVisible { viewportHeight, scrollTop } { bounds } =
     let
-        numRowsVisible =
-            ceiling (viewportHeight / rowHeight) + 1
-
-        numRowsOffset =
-            floor (scrollTop / rowHeight)
+        leeway =
+            100
     in
-    (numRowsOffset < row + spannedRows)
-        && (row <= numRowsOffset + numRowsVisible)
+    (bounds.y + bounds.height >= scrollTop - leeway)
+        && (bounds.y <= scrollTop + viewportHeight + leeway)
 
 
-boundsForGridElement :
+cardBounds :
     { colGap : Float
     , rowGap : Float
     , offsetX : Float
@@ -373,7 +308,7 @@ boundsForGridElement :
     }
     -> Layout.GridElement
     -> Bounds
-boundsForGridElement { colGap, rowGap, offsetX, offsetY } elem =
+cardBounds { colGap, rowGap, offsetX, offsetY } elem =
     let
         colWidth =
             cardWidth + colGap
@@ -394,3 +329,69 @@ boundsForGridElement { colGap, rowGap, offsetX, offsetY } elem =
             + rowGap
             * (toFloat elem.spannedRows - 1)
     }
+
+
+computeCards :
+    { colGap : Float
+    , rowGap : Float
+    , offsetX : Float
+    , offsetY : Float
+    }
+    ->
+        { a
+            | viewportWidth : Float
+            , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
+        }
+    -> List Models.Card
+    ->
+        { totalHeight : Float
+        , allCards : List Card
+        , numColumns : Int
+        }
+computeCards config params cards =
+    let
+        numColumns =
+            max 1 (floor (params.viewportWidth / (cardWidth + padding)))
+
+        gridElements =
+            cards
+                |> cardSizes params.pipelineLayers
+                |> Layout.layout numColumns
+    in
+    cards
+        |> List.map2
+            (\gridElement card ->
+                { gridElement = gridElement
+                , card = card
+                }
+            )
+            gridElements
+        |> List.Extra.groupWhile (\a b -> a.gridElement.row == b.gridElement.row)
+        |> List.foldl
+            (\( first, rest ) state ->
+                let
+                    curCards =
+                        (first :: rest)
+                            |> List.map
+                                (\{ card, gridElement } ->
+                                    { card = card
+                                    , gridElement = gridElement
+                                    , bounds = cardBounds config gridElement
+                                    }
+                                )
+
+                    curRowHeight =
+                        curCards
+                            |> List.map (\{ bounds } -> bounds.height + config.rowGap)
+                            |> List.maximum
+                            |> Maybe.withDefault 0
+                in
+                { state
+                    | totalHeight = state.totalHeight + curRowHeight
+                    , allCards = state.allCards ++ curCards
+                }
+            )
+            { totalHeight = 0
+            , allCards = []
+            , numColumns = numColumns
+            }
