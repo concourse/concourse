@@ -3,7 +3,10 @@ package atc
 import (
 	"io"
 	"net/http"
+	"regexp"
+	"strings"
 
+	"github.com/gorilla/mux"
 	"github.com/tedsuo/rata"
 )
 
@@ -270,17 +273,22 @@ func CreatePathForRoute(action string, params map[string]string) (string, error)
 }
 
 func NewRouter(handlers map[string]http.Handler) (http.Handler, error) {
-	routes := rata.Routes{}
-	for action, _ := range handlers {
+	r := mux.NewRouter()
+	for action, handler := range handlers {
 		for _, route := range Routes {
 			if route.Name == action {
-				routes = append(routes, route)
+				path := regexp.MustCompile(`:([^/]+)(/?)`).
+					ReplaceAll([]byte(route.Path), []byte("{$1}$2"))
+				r.Path(string(path)).
+					Handler(handler).
+					Name(action).
+					Methods(route.Method)
 			}
 		}
 	}
-	return rata.NewRouter(routes, handlers)
+	return r, nil
 }
 
 func GetParam(r *http.Request, paramName string) string {
-	return rata.Param(r, paramName)
+	return mux.Vars(r)[strings.TrimPrefix(paramName, ":")]
 }
