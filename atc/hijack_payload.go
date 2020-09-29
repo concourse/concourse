@@ -28,8 +28,9 @@ type HijackInput struct {
 }
 
 type HijackOutput struct {
-	Stdout     []byte `json:"stdout,omitempty"`
-	Stderr     []byte `json:"stderr,omitempty"`
-	Error      string `json:"error,omitempty"`
-	ExitStatus *int   `json:"exit_status,omitempty"`
+	Stdout             []byte `json:"stdout,omitempty"`
+	Stderr             []byte `json:"stderr,omitempty"`
+	Error              string `json:"error,omitempty"`
+	ExitStatus         *int   `json:"exit_status,omitempty"`
+	ExecutableNotFound bool   `json:"executable_not_found,omitempty"`
 }
