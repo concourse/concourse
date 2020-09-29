@@ -5,7 +5,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/metric"
-	"github.com/tedsuo/rata"
 )
 
 type ConcurrentRequestLimitsWrappa struct {
@@ -24,9 +23,9 @@ func NewConcurrentRequestLimitsWrappa(
 }
 
 func (wrappa ConcurrentRequestLimitsWrappa) Wrap(
-	handlers rata.Handlers,
-) rata.Handlers {
-	wrapped := rata.Handlers{}
+	handlers map[string]http.Handler,
+) map[string]http.Handler {
+	wrapped := map[string]http.Handler{}
 
 	for action, handler := range handlers {
 		pool, found := wrappa.concurrentRequestPolicy.HandlerPool(action)

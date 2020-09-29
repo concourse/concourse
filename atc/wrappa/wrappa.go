@@ -1,9 +1,9 @@
 package wrappa
 
-import "github.com/tedsuo/rata"
+import "net/http"
 
 type Wrappa interface {
-	Wrap(rata.Handlers) rata.Handlers
+	Wrap(map[string]http.Handler) map[string]http.Handler
 }
 
 //go:generate counterfeiter net/http.Handler

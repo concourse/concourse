@@ -9,7 +9,6 @@ import (
 	"github.com/concourse/concourse/atc/wrappa"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/tedsuo/rata"
 )
 
 var _ = Describe("APIAuthWrappa", func() {
@@ -101,20 +100,20 @@ var _ = Describe("APIAuthWrappa", func() {
 
 	Describe("Wrap", func() {
 		var (
-			inputHandlers    rata.Handlers
-			expectedHandlers rata.Handlers
+			inputHandlers    map[string]http.Handler
+			expectedHandlers map[string]http.Handler
 
-			wrappedHandlers rata.Handlers
+			wrappedHandlers map[string]http.Handler
 		)
 
 		BeforeEach(func() {
-			inputHandlers = rata.Handlers{}
+			inputHandlers = map[string]http.Handler{}
 
 			for _, route := range atc.Routes {
 				inputHandlers[route.Name] = &stupidHandler{}
 			}
 
-			expectedHandlers = rata.Handlers{
+			expectedHandlers = map[string]http.Handler{
 
 				// authorized or public pipeline
 				atc.GetBuild:       doesNotCheckIfPrivateJob(inputHandlers[atc.GetBuild]),

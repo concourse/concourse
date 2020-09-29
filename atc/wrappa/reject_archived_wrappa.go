@@ -1,9 +1,10 @@
 package wrappa
 
 import (
+	"net/http"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/pipelineserver"
-	"github.com/tedsuo/rata"
 )
 
 type RejectArchivedWrappa struct {
@@ -16,8 +17,8 @@ func NewRejectArchivedWrappa(factory pipelineserver.RejectArchivedHandlerFactory
 	}
 }
 
-func (rw *RejectArchivedWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
-	wrapped := rata.Handlers{}
+func (rw *RejectArchivedWrappa) Wrap(handlers map[string]http.Handler) map[string]http.Handler {
+	wrapped := map[string]http.Handler{}
 
 	for name, handler := range handlers {
 		newHandler := handler

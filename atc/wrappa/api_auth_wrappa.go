@@ -1,9 +1,10 @@
 package wrappa
 
 import (
+	"net/http"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/auth"
-	"github.com/tedsuo/rata"
 )
 
 type APIAuthWrappa struct {
@@ -27,8 +28,8 @@ func NewAPIAuthWrappa(
 	}
 }
 
-func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
-	wrapped := rata.Handlers{}
+func (wrappa *APIAuthWrappa) Wrap(handlers map[string]http.Handler) map[string]http.Handler {
+	wrapped := map[string]http.Handler{}
 
 	rejector := auth.UnauthorizedRejector{}
 

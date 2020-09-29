@@ -1,10 +1,11 @@
 package wrappa
 
 import (
+	"net/http"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/auditor"
-	"github.com/tedsuo/rata"
 )
 
 func NewAccessorWrappa(
@@ -28,8 +29,8 @@ type AccessorWrappa struct {
 	customRoles   map[string]string
 }
 
-func (w *AccessorWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
-	wrapped := rata.Handlers{}
+func (w *AccessorWrappa) Wrap(handlers map[string]http.Handler) map[string]http.Handler {
+	wrapped := map[string]http.Handler{}
 
 	for name, handler := range handlers {
 		wrapped[name] = accessor.NewHandler(

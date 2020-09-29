@@ -5,7 +5,6 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/wrappa"
-	"github.com/tedsuo/rata"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -29,21 +28,21 @@ var _ = Describe("ConcourseVersionWrappa", func() {
 
 	Describe("Wrap", func() {
 		var (
-			inputHandlers rata.Handlers
+			inputHandlers map[string]http.Handler
 
-			expectedHandlers rata.Handlers
+			expectedHandlers map[string]http.Handler
 
-			wrappedHandlers rata.Handlers
+			wrappedHandlers map[string]http.Handler
 		)
 
 		BeforeEach(func() {
-			inputHandlers = rata.Handlers{}
+			inputHandlers = map[string]http.Handler{}
 
 			for _, route := range atc.Routes {
 				inputHandlers[route.Name] = &stupidHandler{}
 			}
 
-			expectedHandlers = rata.Handlers{}
+			expectedHandlers = map[string]http.Handler{}
 
 			// wrap everything
 			for route, handler := range inputHandlers {

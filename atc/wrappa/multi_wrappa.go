@@ -1,10 +1,10 @@
 package wrappa
 
-import "github.com/tedsuo/rata"
+import "net/http"
 
 type MultiWrappa []Wrappa
 
-func (wrappas MultiWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
+func (wrappas MultiWrappa) Wrap(handlers map[string]http.Handler) map[string]http.Handler {
 	for _, w := range wrappas {
 		handlers = w.Wrap(handlers)
 	}

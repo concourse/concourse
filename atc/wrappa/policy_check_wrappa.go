@@ -1,9 +1,10 @@
 package wrappa
 
 import (
+	"net/http"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/api/policychecker"
-	"github.com/tedsuo/rata"
 )
 
 func NewPolicyCheckWrappa(
@@ -18,8 +19,8 @@ type PolicyCheckWrappa struct {
 	checker policychecker.PolicyChecker
 }
 
-func (w *PolicyCheckWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
-	wrapped := rata.Handlers{}
+func (w *PolicyCheckWrappa) Wrap(handlers map[string]http.Handler) map[string]http.Handler {
+	wrapped := map[string]http.Handler{}
 
 	for name, handler := range handlers {
 		wrapped[name] = policychecker.NewHandler(w.logger, handler, name, w.checker)

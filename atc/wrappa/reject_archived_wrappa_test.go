@@ -1,11 +1,12 @@
 package wrappa_test
 
 import (
+	"net/http"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/pipelineserver"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/wrappa"
-	"github.com/tedsuo/rata"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,7 +25,7 @@ var _ = Describe("RejectArchivedWrappa", func() {
 	})
 
 	It("wraps endpoints", func() {
-		inputHandlers := rata.Handlers{}
+		inputHandlers := map[string]http.Handler{}
 
 		for _, route := range atc.Routes {
 			inputHandlers[route.Name] = &stupidHandler{}
@@ -62,7 +63,7 @@ var _ = Describe("RejectArchivedWrappa", func() {
 	})
 
 	It("panics on unknown handlers", func() {
-		inputHandlers := rata.Handlers{
+		inputHandlers := map[string]http.Handler{
 			"unknownHandler": &stupidHandler{},
 		}
 		Expect(func() { raWrappa.Wrap(inputHandlers) }).To(PanicWith("how do archived pipelines affect your endpoint?"))
