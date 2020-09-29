@@ -16,6 +16,31 @@ import (
 	concourseCmd "github.com/concourse/concourse/cmd"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
+	flags "github.com/jessevdk/go-flags"
+)
+
+// Guardian binary flags - these are passed along as-is to the gdn binary as options.
+//
+// Note: The defaults have been defined to suite Concourse, and are set manually. The go-flags method of setting
+// defaults is not used as we need to detect whether the user passed in the value or not.
+// This is needed in order to avoid unintentional overrides of user values set in the optional config file.
+// See getGdnFlagsFromStruct for details.
+type GdnBinaryFlags struct {
+	Server struct {
+		Network struct {
+			Pool string `long:"network-pool" description:"Network range to use for dynamically allocated container subnets. (default:10.80.0.0/16)"`
+		} `group:"Container Networking"`
+
+		Limits struct {
+			MaxContainers *int `long:"max-containers" description:"Maximum container capacity. 0 means no limit. (default:250)"`
+		} `group:"Limits"`
+	} `group:"server"`
+}
+
+// Defaults for GdnBinaryFlags
+const (
+	defaultGdnMaxContainers = "250"
+	defaultGdnNetworkPool   = "10.80.0.0/16"
 )
 
 // This prepares the Guardian runtime using the gdn binary.
@@ -52,11 +77,7 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 		"--no-image-plugin",
 	}
 
-	gdnServerFlags = append(gdnServerFlags, detectGuardianFlags(logger)...)
-	gdnServerFlags = append(gdnServerFlags,
-		"--max-containers", strconv.Itoa(cmd.Guardian.MaxContainers),
-		"--network-pool", cmd.Guardian.NetworkPool,
-	)
+	gdnServerFlags = append(gdnServerFlags, getGdnFlagsFromEnv(logger)...)
 
 	if cmd.Guardian.DNS.Enable {
 		dnsProxyRunner, err := cmd.dnsProxyRunner(logger.Session("dns-proxy"))
@@ -86,6 +107,16 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 
 	gdnArgs := append(gdnConfigFlag, append([]string{"server"}, gdnServerFlags...)...)
 
+	var configFlags GdnBinaryFlags
+	if cmd.Guardian.Config != "" {
+		configFlags, err = getGdnFlagsFromConfig(cmd.Guardian.Config.Path())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	gdnArgs = append(gdnArgs, cmd.getGdnFlagsFromStruct(configFlags)...)
+
 	bin := "gdn"
 	if cmd.Guardian.Bin != "" {
 		bin = cmd.Guardian.Bin
@@ -109,8 +140,9 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 	return grouper.NewParallel(os.Interrupt, members), nil
 }
 
-// This won't detect flags listed in the GuardianRuntime struct
-func detectGuardianFlags(logger lager.Logger) []string {
+// This won't detect flags listed in the GdnBinaryFlags struct because those get unset by the
+// twentythousandtonnesofcrudeoil package when passing relevant envs to go-flags
+func getGdnFlagsFromEnv(logger lager.Logger) []string {
 	env := os.Environ()
 
 	flags := []string{}
@@ -151,4 +183,40 @@ func detectGuardianFlags(logger lager.Logger) []string {
 
 func flagify(env string) string {
 	return strings.Replace(strings.ToLower(env), "_", "-", -1)
+}
+
+func getGdnFlagsFromConfig(configPath string) (GdnBinaryFlags, error) {
+	var configFlags GdnBinaryFlags
+	parser := flags.NewParser(&configFlags, flags.Default)
+	parser.NamespaceDelimiter = "-"
+
+	iniParser := flags.NewIniParser(parser)
+	err := iniParser.ParseFile(configPath)
+	if err != nil {
+		return GdnBinaryFlags{}, err
+	}
+
+	return configFlags, nil
+}
+
+// Following conditions are met in the order given
+// 1. Sets GdnBinaryFlag when it has been set by user either via env or CLI option
+// 2. Does nothing if flag is present in config.ini
+// 3. Sets default value
+func (cmd *WorkerCommand) getGdnFlagsFromStruct(configFlags GdnBinaryFlags) []string {
+	var cliFlags []string
+
+	if cmd.Guardian.BinaryFlags.Server.Limits.MaxContainers != nil {
+		cliFlags = append(cliFlags, "--max-containers", strconv.Itoa(*cmd.Guardian.BinaryFlags.Server.Limits.MaxContainers))
+	} else if configFlags.Server.Limits.MaxContainers == nil {
+		cliFlags = append(cliFlags, "--max-containers", defaultGdnMaxContainers)
+	}
+
+	if cmd.Guardian.BinaryFlags.Server.Network.Pool != "" {
+		cliFlags = append(cliFlags, "--network-pool", cmd.Guardian.BinaryFlags.Server.Network.Pool)
+	} else if configFlags.Server.Network.Pool == "" {
+		cliFlags = append(cliFlags, "--network-pool", defaultGdnNetworkPool)
+	}
+
+	return cliFlags
 }
