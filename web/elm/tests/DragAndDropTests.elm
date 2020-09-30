@@ -2,6 +2,7 @@ module DragAndDropTests exposing (all)
 
 import Application.Application as Application
 import Common exposing (given, then_, when)
+import Concourse exposing (JsonValue(..))
 import DashboardTests exposing (whenOnDashboard)
 import Data
 import Dict exposing (Dict)
@@ -82,6 +83,13 @@ all =
         , test "API call only orders pipelines on a single team" <|
             given iVisitedTheDashboard
                 >> given myBrowserFetchedPipelinesFromMultipleTeams
+                >> given iAmDraggingTheFirstPipelineCard
+                >> given iAmDraggingOverTheThirdDropArea
+                >> when iDropThePipelineCard
+                >> then_ myBrowserMakesTheOrderPipelinesAPICall
+        , test "instance group name appears once in API call" <|
+            given iVisitedTheDashboard
+                >> given myBrowserFetchedPipelinesWithInstanceVars
                 >> given iAmDraggingTheFirstPipelineCard
                 >> given iAmDraggingOverTheThirdDropArea
                 >> when iDropThePipelineCard
@@ -188,6 +196,19 @@ myBrowserFetchedTwoPipelines =
             Ok
                 [ Data.pipeline "team" 1 |> Data.withName "pipeline"
                 , Data.pipeline "team" 2 |> Data.withName "other-pipeline"
+                ]
+        )
+
+
+myBrowserFetchedPipelinesWithInstanceVars =
+    Application.handleCallback
+        (Callback.AllPipelinesFetched <|
+            Ok
+                [ Data.pipeline "team" 1 |> Data.withName "pipeline"
+                , Data.pipeline "team" 2 |> Data.withName "other-pipeline"
+                , Data.pipeline "team" 3
+                    |> Data.withName "other-pipeline"
+                    |> Data.withInstanceVars (Dict.fromList [ ( "hello", JsonString "world" ) ])
                 ]
         )
 
@@ -299,6 +320,12 @@ itListensForDragOverPreventingDefault =
             (TopLevelMessage.Update <| Message.DragOver <| After 1)
 
 
+iAmDraggingOverTheFirstDropArea =
+    Tuple.first
+        >> Application.update
+            (TopLevelMessage.Update <| Message.DragOver <| Before 0)
+
+
 iAmDraggingOverTheThirdDropArea =
     Tuple.first
         >> Application.update
@@ -350,6 +377,10 @@ iDropThePipelineCard =
     Tuple.first
         >> Application.update
             (TopLevelMessage.Update <| Message.DragEnd)
+
+
+iDropTheCard =
+    iDropThePipelineCard
 
 
 itIsTheOtherPipelineCard =

@@ -216,49 +216,31 @@ var _ = Describe("ATC Handler Pipelines", func() {
 	})
 
 	Describe("OrderingPipelines", func() {
-		Context("when the pipelines exists", func() {
+		Context("when the API call succeeds", func() {
+			orderedPipelines := []string{
+				"mypipeline1",
+				"mypipeline2",
+			}
+
 			BeforeEach(func() {
 				expectedURL := "/api/v1/teams/some-team/pipelines/ordering"
-				requestBody := atc.OrderPipelinesRequest{
-					{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}},
-					{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "feature/bar"}},
-				}
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", expectedURL),
-						ghttp.VerifyJSONRepresenting(requestBody),
+						ghttp.VerifyJSONRepresenting(orderedPipelines),
 						ghttp.RespondWith(http.StatusOK, ""),
 					),
 				)
 			})
 
 			It("return no error", func() {
-				err := team.OrderingPipelines(atc.OrderPipelinesRequest{
-					{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}},
-					{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "feature/bar"}},
-				})
+				err := team.OrderingPipelines(orderedPipelines)
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 
-		Context("when the pipeline doesn't exist", func() {
-			BeforeEach(func() {
-				expectedURL := "/api/v1/teams/some-team/pipelines/ordering"
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", expectedURL),
-						ghttp.RespondWithJSONEncoded(http.StatusInternalServerError, ""),
-					),
-				)
-			})
-			It("returns error", func() {
-				err := team.OrderingPipelines(atc.OrderPipelinesRequest{{Name: "mypipeline"}})
-				Expect(err).To(HaveOccurred())
-			})
-		})
-
-		Context("when the team doesn't exist", func() {
+		Context("when the API call errors", func() {
 			BeforeEach(func() {
 				expectedURL := "/api/v1/teams/some-team/pipelines/ordering"
 				atcServer.AppendHandlers(
@@ -269,7 +251,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 				)
 			})
 			It("returns error", func() {
-				err := team.OrderingPipelines(atc.OrderPipelinesRequest{{Name: "mypipeline"}})
+				err := team.OrderingPipelines([]string{"p"})
 				Expect(err).To(HaveOccurred())
 			})
 		})

@@ -694,12 +694,11 @@ updateBody session msg ( model, effects ) =
             case ( model.dragState, model.dropState ) of
                 ( Dragging teamName name, Dropping target ) ->
                     let
-                        teamPipelines =
+                        teamCards =
                             model.pipelines
                                 |> Maybe.andThen (Dict.get teamName)
-                                -- TODO
                                 |> Maybe.withDefault []
-                                |> List.map PipelineCard
+                                |> groupCards
                                 |> (\cards ->
                                         cards
                                             |> (case Drag.dragCardIndices name target cards of
@@ -717,17 +716,16 @@ updateBody session msg ( model, effects ) =
                                 |> Dict.update teamName
                                     (always <|
                                         Just <|
-                                            List.map
+                                            List.concatMap
                                                 (\card ->
                                                     case card of
                                                         PipelineCard p ->
-                                                            p
+                                                            [ p ]
 
-                                                        InstanceGroupCard p _ ->
-                                                            -- TODO
-                                                            p
+                                                        InstanceGroupCard p ps ->
+                                                            p :: ps
                                                 )
-                                                teamPipelines
+                                                teamCards
                                     )
                     in
                     ( { model
@@ -736,7 +734,7 @@ updateBody session msg ( model, effects ) =
                         , dropState = DroppingWhileApiRequestInFlight teamName
                       }
                     , effects
-                        ++ [ teamPipelines
+                        ++ [ teamCards
                                 |> List.map cardName
                                 |> SendOrderPipelinesRequest teamName
                            , pipelines
@@ -1294,20 +1292,24 @@ regularCardsView session params =
                 |> List.map
                     (\( team, teamPipelines ) ->
                         ( team
-                        , teamPipelines
-                            |> List.Extra.gatherEqualsBy .name
-                            |> List.map
-                                (\( p, ps ) ->
-                                    if List.isEmpty ps && Dict.isEmpty p.instanceVars then
-                                        PipelineCard p
-
-                                    else
-                                        InstanceGroupCard p ps
-                                )
+                        , groupCards teamPipelines
                         )
                     )
     in
     cardsView session params teamCards
+
+
+groupCards : List Pipeline -> List Card
+groupCards =
+    List.Extra.gatherEqualsBy .name
+        >> List.map
+            (\( p, ps ) ->
+                if List.isEmpty ps && Dict.isEmpty p.instanceVars then
+                    PipelineCard p
+
+                else
+                    InstanceGroupCard p ps
+            )
 
 
 instanceGroupCardsView : Session -> Model -> Concourse.InstanceGroupIdentifier -> List (Html Message)

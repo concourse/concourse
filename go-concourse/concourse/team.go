@@ -11,7 +11,7 @@ import (
 
 type Team interface {
 	Name() string
-    ID() int
+	ID() int
 	Auth() atc.TeamAuth
 	ATCTeam() atc.Team
 
@@ -70,7 +70,7 @@ type Team interface {
 	ListVolumes() ([]atc.Volume, error)
 	CreateBuild(plan atc.Plan) (atc.Build, error)
 	Builds(page Page) ([]atc.Build, Pagination, error)
-	OrderingPipelines(pipelineRefs atc.OrderPipelinesRequest) error
+	OrderingPipelines(pipelineNames []string) error
 
 	CreateArtifact(io.Reader, string, []string) (atc.WorkerArtifact, error)
 	GetArtifact(int) (io.ReadCloser, error)

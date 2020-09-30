@@ -5,14 +5,13 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc"
 )
 
 func (s *Server) OrderPipelines(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("order-pipelines")
 
-	var pipelinesRefs atc.OrderPipelinesRequest
-	if err := json.NewDecoder(r.Body).Decode(&pipelinesRefs); err != nil {
+	var pipelinesNames []string
+	if err := json.NewDecoder(r.Body).Decode(&pipelinesNames); err != nil {
 		logger.Error("invalid-json", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -32,10 +31,10 @@ func (s *Server) OrderPipelines(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = team.OrderPipelines(pipelinesRefs)
+	err = team.OrderPipelines(pipelinesNames)
 	if err != nil {
 		logger.Error("failed-to-order-pipelines", err, lager.Data{
-			"pipeline-refs": pipelinesRefs,
+			"pipeline_names": pipelinesNames,
 		})
 		w.WriteHeader(http.StatusInternalServerError)
 		return

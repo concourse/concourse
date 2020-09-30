@@ -894,6 +894,34 @@ var _ = Describe("Team", func() {
 				Expect(pipelines[2].Name()).To(Equal(pipeline3.Name()))
 				Expect(pipelines[2].InstanceVars()).To(BeNil())
 			})
+
+			Context("when a pipeline with the same name as an existing pipeline is created", func() {
+				var pipeline4 db.Pipeline
+
+				BeforeEach(func() {
+					var err error
+					pipeline4, _, err = team.SavePipeline(atc.PipelineRef{Name: "fake-pipeline", InstanceVars: atc.InstanceVars{"branch": "other"}}, atc.Config{
+						Jobs: atc.JobConfigs{
+							{Name: "job-name"},
+						},
+					}, db.ConfigVersion(1), false)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("returns the pipelines with the same name grouped together, ordered by creation time", func() {
+					Expect(pipelines[0].Name()).To(Equal(pipeline1.Name()))
+					Expect(pipelines[0].InstanceVars()).To(Equal(pipeline1.InstanceVars()))
+
+					Expect(pipelines[1].Name()).To(Equal(pipeline2.Name()))
+					Expect(pipelines[1].InstanceVars()).To(Equal(pipeline2.InstanceVars()))
+
+					Expect(pipelines[2].Name()).To(Equal(pipeline4.Name()))
+					Expect(pipelines[2].InstanceVars()).To(Equal(pipeline4.InstanceVars()))
+
+					Expect(pipelines[3].Name()).To(Equal(pipeline3.Name()))
+					Expect(pipelines[3].InstanceVars()).To(BeNil())
+				})
+			})
 		})
 		Context("when the team has no configured pipelines", func() {
 			It("returns no pipelines", func() {
@@ -951,54 +979,59 @@ var _ = Describe("Team", func() {
 	})
 
 	Describe("OrderPipelines", func() {
-		var pipeline1 db.Pipeline
-		var pipeline2 db.Pipeline
-		var otherPipeline1 db.Pipeline
-		var otherPipeline2 db.Pipeline
+		var (
+			instancePipeline1 db.Pipeline
+			instancePipeline2 db.Pipeline
+			pipeline1         db.Pipeline
+			pipeline2         db.Pipeline
 
-		var masterPipelineRef atc.PipelineRef
-		var branchPipelineRef atc.PipelineRef
+			otherTeamPipeline1 db.Pipeline
+			otherTeamPipeline2 db.Pipeline
+		)
 
 		BeforeEach(func() {
 			var err error
-			masterPipelineRef = atc.PipelineRef{Name: "pipeline-name", InstanceVars: atc.InstanceVars{"branch": "master"}}
-			branchPipelineRef = atc.PipelineRef{Name: "pipeline-name", InstanceVars: atc.InstanceVars{"branch": "feature/foo"}}
-
-			pipeline1, _, err = team.SavePipeline(masterPipelineRef, atc.Config{}, 0, false)
+			instancePipeline1, _, err = team.SavePipeline(atc.PipelineRef{Name: "group", InstanceVars: atc.InstanceVars{"branch": "master"}}, atc.Config{}, 0, false)
 			Expect(err).ToNot(HaveOccurred())
-			pipeline2, _, err = team.SavePipeline(branchPipelineRef, atc.Config{}, 0, false)
+			instancePipeline2, _, err = team.SavePipeline(atc.PipelineRef{Name: "group", InstanceVars: atc.InstanceVars{"branch": "feature/foo"}}, atc.Config{}, 0, false)
 			Expect(err).ToNot(HaveOccurred())
 
-			otherPipeline1, _, err = otherTeam.SavePipeline(masterPipelineRef, atc.Config{}, 0, false)
+			pipeline1, _, err = team.SavePipeline(atc.PipelineRef{Name: "pipeline1"}, atc.Config{}, 0, false)
 			Expect(err).ToNot(HaveOccurred())
-			otherPipeline2, _, err = otherTeam.SavePipeline(branchPipelineRef, atc.Config{}, 0, false)
+			pipeline2, _, err = team.SavePipeline(atc.PipelineRef{Name: "pipeline2"}, atc.Config{}, 0, false)
+			Expect(err).ToNot(HaveOccurred())
+
+			otherTeamPipeline1, _, err = otherTeam.SavePipeline(atc.PipelineRef{Name: "pipeline1"}, atc.Config{}, 0, false)
+			Expect(err).ToNot(HaveOccurred())
+			otherTeamPipeline2, _, err = otherTeam.SavePipeline(atc.PipelineRef{Name: "pipeline2"}, atc.Config{}, 0, false)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("orders pipelines that belong to team (case insensitive)", func() {
-			err := team.OrderPipelines([]atc.PipelineRef{branchPipelineRef, masterPipelineRef})
+		It("orders pipelines that belong to team", func() {
+			err := team.OrderPipelines([]string{"pipeline2", "group", "pipeline1"})
 			Expect(err).ToNot(HaveOccurred())
 
-			err = otherTeam.OrderPipelines([]atc.PipelineRef{masterPipelineRef, branchPipelineRef})
+			err = otherTeam.OrderPipelines([]string{"pipeline2", "pipeline1"})
 			Expect(err).ToNot(HaveOccurred())
 
 			orderedPipelines, err := team.Pipelines()
-
 			Expect(err).ToNot(HaveOccurred())
-			Expect(orderedPipelines).To(HaveLen(2))
+			Expect(orderedPipelines).To(HaveLen(4))
 			Expect(orderedPipelines[0].ID()).To(Equal(pipeline2.ID()))
-			Expect(orderedPipelines[1].ID()).To(Equal(pipeline1.ID()))
+			Expect(orderedPipelines[1].ID()).To(Equal(instancePipeline1.ID()))
+			Expect(orderedPipelines[2].ID()).To(Equal(instancePipeline2.ID()))
+			Expect(orderedPipelines[3].ID()).To(Equal(pipeline1.ID()))
 
 			otherTeamOrderedPipelines, err := otherTeam.Pipelines()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(otherTeamOrderedPipelines).To(HaveLen(2))
-			Expect(otherTeamOrderedPipelines[0].ID()).To(Equal(otherPipeline1.ID()))
-			Expect(otherTeamOrderedPipelines[1].ID()).To(Equal(otherPipeline2.ID()))
+			Expect(otherTeamOrderedPipelines[0].ID()).To(Equal(otherTeamPipeline2.ID()))
+			Expect(otherTeamOrderedPipelines[1].ID()).To(Equal(otherTeamPipeline1.ID()))
 		})
 
 		Context("when pipeline does not exist", func() {
-			It("returns error ", func() {
-				err := otherTeam.OrderPipelines([]atc.PipelineRef{masterPipelineRef, {Name: "pipeline-name", InstanceVars: atc.InstanceVars{"branch": "feature/bar"}}})
+			It("returns error", func() {
+				err := otherTeam.OrderPipelines([]string{"pipeline1", "invalid-pipeline"})
 				Expect(err).To(HaveOccurred())
 			})
 		})

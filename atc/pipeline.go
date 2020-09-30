@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 
 	"github.com/imdario/mergo"
 )
@@ -90,20 +91,6 @@ func (ref PipelineRef) QueryParams() url.Values {
 		return url.Values{"instance_vars": []string{string(payload)}}
 	}
 	return nil
-}
-
-type OrderPipelinesRequest []PipelineRef
-
-func (r OrderPipelinesRequest) Len() int {
-	return len(r)
-}
-
-func (r OrderPipelinesRequest) Swap(i, j int) {
-	r[i], r[j] = r[j], r[i]
-}
-
-func (r OrderPipelinesRequest) Less(i, j int) bool {
-	return r[i].String() < r[j].String()
 }
 
 func flatten(prefix string, level int, value interface{}) (map[string]interface{}, error) {
