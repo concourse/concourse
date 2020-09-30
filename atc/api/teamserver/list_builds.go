@@ -22,7 +22,7 @@ func (s *Server) ListTeamBuilds(w http.ResponseWriter, r *http.Request) {
 
 	logger := s.logger.Session("list-team-builds")
 
-	teamName := r.FormValue(":team_name")
+	teamName := atc.GetParam(r, ":team_name")
 	timestamps := r.FormValue(atc.PaginationQueryTimestamps)
 
 	urlFrom := r.FormValue(atc.PaginationQueryFrom)

@@ -3,13 +3,14 @@ package workerserver
 import (
 	"net/http"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 )
 
 func (s *Server) DeleteWorker(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("deleting-worker")
 
-	workerName := r.FormValue(":worker_name")
+	workerName := atc.GetParam(r, ":worker_name")
 	acc := accessor.GetAccessor(r)
 
 	worker, found, err := s.dbWorkerFactory.GetWorker(workerName)

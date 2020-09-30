@@ -16,7 +16,7 @@ func (s *Server) BuildResources(build db.Build) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		inputs, outputs, err := build.Resources()
 		if err != nil {
-			logger.Error("cannot-find-build", err, lager.Data{"buildID": r.FormValue(":build_id")})
+			logger.Error("cannot-find-build", err, lager.Data{"buildID": atc.GetParam(r, ":build_id")})
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

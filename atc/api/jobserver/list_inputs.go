@@ -13,7 +13,7 @@ func (s *Server) ListJobInputs(pipeline db.Pipeline) http.Handler {
 	logger := s.logger.Session("list-job-inputs")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		jobName := r.FormValue(":job_name")
+		jobName := atc.GetParam(r, ":job_name")
 
 		job, found, err := pipeline.Job(jobName)
 		if err != nil {

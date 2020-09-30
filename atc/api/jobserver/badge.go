@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"text/template"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -94,7 +95,7 @@ const badgeTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 func (s *Server) JobBadge(pipeline db.Pipeline) http.Handler {
 	logger := s.logger.Session("job-badge")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		jobName := r.FormValue(":job_name")
+		jobName := atc.GetParam(r, ":job_name")
 
 		job, found, err := pipeline.Job(jobName)
 		if err != nil {

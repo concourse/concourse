@@ -8,6 +8,7 @@ import (
 
 	"sigs.k8s.io/yaml"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/policy"
 )
@@ -47,14 +48,14 @@ func (c *checker) Check(action string, acc accessor.Access, req *http.Request) (
 		return policy.PassedPolicyCheck(), nil
 	}
 
-	team := req.FormValue(":team_name")
+	team := atc.GetParam(req, ":team_name")
 	input := policy.PolicyCheckInput{
 		HttpMethod: req.Method,
 		Action:     action,
 		User:       acc.Claims().UserName,
 		Roles:      acc.TeamRoles()[team],
 		Team:       team,
-		Pipeline:   req.FormValue(":pipeline_name"),
+		Pipeline:   atc.GetParam(req, ":pipeline_name"),
 	}
 
 	switch ct := req.Header.Get("Content-type"); ct {

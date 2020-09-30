@@ -24,8 +24,8 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 
 		logger := s.logger.Session("list-job-builds")
 
-		jobName := r.FormValue(":job_name")
-		teamName := r.FormValue(":team_name")
+		jobName := atc.GetParam(r, ":job_name")
+		teamName := atc.GetParam(r, ":team_name")
 
 		timestamps := r.FormValue(atc.PaginationQueryTimestamps)
 

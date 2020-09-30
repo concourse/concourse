@@ -290,5 +290,10 @@ func NewRouter(handlers map[string]http.Handler) (http.Handler, error) {
 }
 
 func GetParam(r *http.Request, paramName string) string {
-	return mux.Vars(r)[strings.TrimPrefix(paramName, ":")]
+	routeParam := mux.Vars(r)[strings.TrimPrefix(paramName, ":")]
+	if routeParam == "" {
+		return r.FormValue(paramName)
+	} else {
+		return routeParam
+	}
 }

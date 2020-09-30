@@ -3,6 +3,7 @@ package teamserver
 import (
 	"net/http"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 )
 
@@ -10,7 +11,7 @@ func (s *Server) DestroyTeam(w http.ResponseWriter, r *http.Request) {
 	hLog := s.logger.Session("destroy-team")
 	hLog.Debug("destroying-team")
 
-	teamName := r.FormValue(":team_name")
+	teamName := atc.GetParam(r, ":team_name")
 
 	acc := accessor.GetAccessor(r)
 	if !acc.IsAdmin() {

@@ -14,8 +14,8 @@ import (
 func (s *Server) ClearTaskCache(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session("clear-task-cache")
-		jobName := r.FormValue(":job_name")
-		stepName := r.FormValue(":step_name")
+		jobName := atc.GetParam(r, ":job_name")
+		stepName := atc.GetParam(r, ":step_name")
 		cachePath := r.FormValue(atc.ClearTaskCacheQueryPath)
 
 		job, found, err := pipeline.Job(jobName)

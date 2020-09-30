@@ -15,8 +15,8 @@ func (s *Server) ListBuildsWithVersionAsOutput(pipeline db.Pipeline) http.Handle
 	logger := s.logger.Session("list-builds-with-version-as-output")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		versionIDString := r.FormValue(":resource_config_version_id")
-		resourceName := r.FormValue(":resource_name")
+		versionIDString := atc.GetParam(r, ":resource_config_version_id")
+		resourceName := atc.GetParam(r, ":resource_name")
 		versionID, _ := strconv.Atoi(versionIDString)
 
 		resource, found, err := pipeline.Resource(resourceName)

@@ -14,7 +14,7 @@ func (s *Server) RenameTeam(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("rename-team")
 	acc := accessor.GetAccessor(r)
 
-	teamName := r.FormValue(":team_name")
+	teamName := atc.GetParam(r, ":team_name")
 	if !acc.IsAdmin() && !acc.IsAuthorized(teamName) {
 		w.WriteHeader(http.StatusForbidden)
 		return

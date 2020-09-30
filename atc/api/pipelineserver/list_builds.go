@@ -24,7 +24,7 @@ func (s *Server) ListPipelineBuilds(pipeline db.Pipeline) http.Handler {
 
 		logger := s.logger.Session("list-pipeline-builds")
 
-		teamName := r.FormValue(":team_name")
+		teamName := atc.GetParam(r, ":team_name")
 		timestamps := r.FormValue(atc.PaginationQueryTimestamps)
 
 		urlFrom := r.FormValue(atc.PaginationQueryFrom)

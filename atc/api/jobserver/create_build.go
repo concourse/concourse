@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -15,7 +16,7 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		logger := s.logger.Session("create-job-build")
 
-		jobName := r.FormValue(":job_name")
+		jobName := atc.GetParam(r, ":job_name")
 
 		job, found, err := pipeline.Job(jobName)
 		if err != nil {

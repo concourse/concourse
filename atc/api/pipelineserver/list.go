@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
@@ -11,7 +12,7 @@ import (
 
 func (s *Server) ListPipelines(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-pipelines")
-	requestTeamName := r.FormValue(":team_name")
+	requestTeamName := atc.GetParam(r, ":team_name")
 	team, found, err := s.teamFactory.FindTeam(requestTeamName)
 	if err != nil {
 		logger.Error("failed-to-get-team", err)

@@ -18,7 +18,7 @@ func (s *Server) OrderPipelines(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	teamName := r.FormValue(":team_name")
+	teamName := atc.GetParam(r, ":team_name")
 	team, found, err := s.teamFactory.FindTeam(teamName)
 	if err != nil {
 		logger.Error("failed-to-get-team", err)

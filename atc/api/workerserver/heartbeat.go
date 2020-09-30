@@ -20,7 +20,7 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 	)
 
 	logger := s.logger.Session("heartbeat-worker")
-	workerName := r.FormValue(":worker_name")
+	workerName := atc.GetParam(r, ":worker_name")
 
 	ttlStr := r.URL.Query().Get("ttl")
 	if len(ttlStr) > 0 {

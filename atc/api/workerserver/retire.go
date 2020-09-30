@@ -1,10 +1,14 @@
 package workerserver
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/concourse/concourse/atc"
+)
 
 func (s *Server) RetireWorker(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("retiring-worker")
-	workerName := r.FormValue(":worker_name")
+	workerName := atc.GetParam(r, ":worker_name")
 
 	worker, found, err := s.dbWorkerFactory.GetWorker(workerName)
 

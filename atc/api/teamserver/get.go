@@ -15,7 +15,7 @@ func (s *Server) GetTeam(w http.ResponseWriter, r *http.Request) {
 
 	hLog.Debug("getting-team")
 
-	teamName := r.FormValue(":team_name")
+	teamName := atc.GetParam(r, ":team_name")
 	team, found, err := s.teamFactory.FindTeam(teamName)
 	if err != nil {
 		hLog.Error("failed-to-get-team", err)

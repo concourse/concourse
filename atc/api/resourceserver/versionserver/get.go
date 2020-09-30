@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -13,7 +14,7 @@ func (s *Server) GetResourceVersion(pipeline db.Pipeline) http.Handler {
 	logger := s.logger.Session("get-resource-version")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		versionID, err := strconv.Atoi(r.FormValue(":resource_config_version_id"))
+		versionID, err := strconv.Atoi(atc.GetParam(r, ":resource_config_version_id"))
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return

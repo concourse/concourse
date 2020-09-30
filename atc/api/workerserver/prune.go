@@ -10,7 +10,7 @@ import (
 
 func (s *Server) PruneWorker(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("pruning-worker")
-	workerName := r.FormValue(":worker_name")
+	workerName := atc.GetParam(r, ":worker_name")
 
 	worker, found, err := s.dbWorkerFactory.GetWorker(workerName)
 	if err != nil {

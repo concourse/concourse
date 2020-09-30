@@ -6,6 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -30,7 +31,7 @@ func (f *TeamScopedHandlerFactory) HandlerFor(teamScopedHandler func(db.Team) ht
 		logger := f.logger.Session("team-scoped-handler")
 		acc := accessor.GetAccessor(r)
 
-		teamName := r.FormValue(":team_name")
+		teamName := atc.GetParam(r, ":team_name")
 
 		if acc.IsAuthorized(teamName) {
 			team, found, err := f.teamFactory.FindTeam(teamName)

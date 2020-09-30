@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/concourse/baggageclaim"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -16,7 +17,7 @@ func (s *Server) GetArtifact(team db.Team) http.Handler {
 
 		w.Header().Set("Content-Type", "application/octet-stream")
 
-		artifactID, err := strconv.Atoi(r.FormValue(":artifact_id"))
+		artifactID, err := strconv.Atoi(atc.GetParam(r, ":artifact_id"))
 		if err != nil {
 			logger.Error("failed-to-get-artifact-id", err)
 			w.WriteHeader(http.StatusInternalServerError)

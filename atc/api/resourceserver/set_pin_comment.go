@@ -11,7 +11,7 @@ import (
 
 func (s *Server) SetPinCommentOnResource(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resourceName := r.FormValue(":resource_name")
+		resourceName := atc.GetParam(r, ":resource_name")
 
 		logger := s.logger.Session("set-pin-comment-on-resource", lager.Data{
 			"resource": resourceName,

@@ -40,8 +40,8 @@ func (s *Server) ListResourceVersions(pipeline db.Pipeline) http.Handler {
 			}
 		}
 
-		resourceName := r.FormValue(":resource_name")
-		teamName := r.FormValue(":team_name")
+		resourceName := atc.GetParam(r, ":resource_name")
+		teamName := atc.GetParam(r, ":team_name")
 
 		urlFrom := r.FormValue(atc.PaginationQueryFrom)
 		urlTo := r.FormValue(atc.PaginationQueryTo)

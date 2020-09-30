@@ -83,7 +83,7 @@ func (t *interceptTimeout) Error() error {
 
 func (s *Server) HijackContainer(team db.Team) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handle := r.FormValue(":id")
+		handle := atc.GetParam(r, ":id")
 
 		hLog := s.logger.Session("hijack", lager.Data{
 			"handle": handle,

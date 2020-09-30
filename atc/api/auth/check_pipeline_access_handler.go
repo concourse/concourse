@@ -44,8 +44,8 @@ type checkPipelineAccessHandler struct {
 }
 
 func (h checkPipelineAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	teamName := r.FormValue(":team_name")
-	pipelineName := r.FormValue(":pipeline_name")
+	teamName := atc.GetParam(r, ":team_name")
+	pipelineName := atc.GetParam(r, ":pipeline_name")
 	pipelineRef := atc.PipelineRef{Name: pipelineName}
 	if instanceVars := r.URL.Query().Get("instance_vars"); instanceVars != "" {
 		err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)

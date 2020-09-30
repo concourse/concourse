@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -59,7 +60,7 @@ type checkBuildReadAccessHandler struct {
 }
 
 func (h checkBuildReadAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	buildIDStr := r.FormValue(":build_id")
+	buildIDStr := atc.GetParam(r, ":build_id")
 	buildID, err := strconv.Atoi(buildIDStr)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

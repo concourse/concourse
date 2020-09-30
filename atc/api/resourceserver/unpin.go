@@ -4,12 +4,13 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
 func (s *Server) UnpinResource(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resourceName := r.FormValue(":resource_name")
+		resourceName := atc.GetParam(r, ":resource_name")
 
 		logger := s.logger.Session("unpin-resource-version", lager.Data{
 			"resource": resourceName,

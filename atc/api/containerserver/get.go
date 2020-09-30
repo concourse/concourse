@@ -6,13 +6,14 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
 
 func (s *Server) GetContainer(team db.Team) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handle := r.FormValue(":id")
+		handle := atc.GetParam(r, ":id")
 
 		hLog := s.logger.Session("container", lager.Data{
 			"handle": handle,

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -11,7 +12,7 @@ import (
 func (s *Server) GetJob(pipeline db.Pipeline) http.Handler {
 	logger := s.logger.Session("get-job")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		jobName := r.FormValue(":job_name")
+		jobName := atc.GetParam(r, ":job_name")
 
 		job, found, err := pipeline.Job(jobName)
 		if err != nil {
@@ -46,7 +47,7 @@ func (s *Server) GetJob(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		teamName := r.FormValue(":team_name")
+		teamName := atc.GetParam(r, ":team_name")
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)

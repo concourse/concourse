@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -14,8 +15,8 @@ func (s *Server) RerunJobBuild(pipeline db.Pipeline) http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		logger := s.logger.Session("rerun-build")
 
-		jobName := r.FormValue(":job_name")
-		buildName := r.FormValue(":build_name")
+		jobName := atc.GetParam(r, ":job_name")
+		buildName := atc.GetParam(r, ":build_name")
 
 		job, found, err := pipeline.Job(jobName)
 		if err != nil {

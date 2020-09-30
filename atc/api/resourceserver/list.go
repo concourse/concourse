@@ -23,7 +23,7 @@ func (s *Server) ListResources(pipeline db.Pipeline) http.Handler {
 
 		acc := accessor.GetAccessor(r)
 		showCheckErr := acc.IsAuthenticated()
-		teamName := r.FormValue(":team_name")
+		teamName := atc.GetParam(r, ":team_name")
 
 		var presentedResources []atc.Resource
 		for _, resource := range resources {
