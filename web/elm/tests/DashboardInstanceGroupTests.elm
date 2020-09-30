@@ -233,6 +233,38 @@ all =
                             [ style "height" "80px"
                             , style "box-sizing" "border-box"
                             ]
+            , test "instance vars are hoverable" <|
+                \_ ->
+                    whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
+                        |> gotPipelines
+                            [ pipelineInstanceWithVars 1
+                                [ ( "a", JsonString "foo" ) ]
+                            ]
+                        |> Common.queryView
+                        |> findInstanceVars
+                        |> Query.first
+                        |> Event.simulate Event.mouseEnter
+                        |> Event.expect
+                            (ApplicationMsgs.Update <|
+                                Msgs.Hover <|
+                                    Just <|
+                                        Msgs.PipelineCardInstanceVar Msgs.AllPipelinesSection 1 "a" "foo"
+                            )
+            , test "instance vars values have html id" <|
+                \_ ->
+                    whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
+                        |> gotPipelines
+                            [ pipelineInstanceWithVars 1
+                                [ ( "a", JsonString "foo" ) ]
+                            ]
+                        |> Common.queryView
+                        |> findInstanceVars
+                        |> Query.first
+                        |> Query.has
+                            [ id <|
+                                Effects.toHtmlID <|
+                                    Msgs.PipelineCardInstanceVar Msgs.AllPipelinesSection 1 "a" "foo"
+                            ]
             ]
         ]
 

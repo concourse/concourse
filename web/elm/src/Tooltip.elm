@@ -97,6 +97,9 @@ policy domID =
         InstanceGroupCardNameHD _ _ ->
             OnlyShowWhenOverflowing
 
+        PipelineCardInstanceVar _ _ _ _ ->
+            OnlyShowWhenOverflowing
+
         _ ->
             AlwaysShow
 

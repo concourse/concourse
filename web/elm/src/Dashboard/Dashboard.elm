@@ -949,6 +949,16 @@ tooltip model session =
                 , arrow = Just { size = 15, color = "#000" }
                 }
 
+        HoverState.Tooltip (Message.PipelineCardInstanceVar _ _ _ value) _ ->
+            Just
+                { body =
+                    Html.div
+                        Styles.cardTooltip
+                        [ Html.text value ]
+                , attachPosition = { direction = Tooltip.Right 0, alignment = Tooltip.Middle 30 }
+                , arrow = Just { size = 15, color = "#000" }
+                }
+
         _ ->
             Nothing
 

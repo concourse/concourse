@@ -286,12 +286,14 @@ headerView section pipeline resourceError headerHeight =
                     |> List.concatMap (\( k, v ) -> flattenJson k v)
                     |> List.map
                         (\( k, v ) ->
-                            -- TODO: tooltip on overflow
                             Html.div
-                                (class "instance-var" :: Styles.instanceVar)
+                                (class "instance-var"
+                                    :: Styles.instanceVar
+                                    ++ Tooltip.hoverAttrs (PipelineCardInstanceVar section pipeline.id k v)
+                                )
                                 [ Html.span [ style "color" Colors.pending ]
                                     [ Html.text <| k ++ ": " ]
-                                , Html.span [] [ Html.text v ]
+                                , Html.text v
                                 ]
                         )
 

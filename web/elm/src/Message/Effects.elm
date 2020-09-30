@@ -713,6 +713,13 @@ toHtmlID domId =
                 ++ Base64.encode groupName
                 ++ "_name"
 
+        PipelineCardInstanceVar section pipelineId varName _ ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ String.fromInt pipelineId
+                ++ "_var_"
+                ++ Base64.encode varName
+
         JobPreview section jobId ->
             pipelinesSectionName section
                 ++ "_"
