@@ -364,7 +364,7 @@ all =
                             |> firstCol
                             |> Query.has [ style "background-color" Colors.background ]
                 , defineHoverBehaviour
-                    { name = "pending job"
+                    { name = "pending pipeline"
                     , setup =
                         whenOnDashboard { highDensity = False }
                             |> gotPipelines [ pipelineInstance BuildStatusPending False 1 ]
@@ -385,8 +385,21 @@ all =
                         , selector = [ style "background-color" Colors.pendingFaded ]
                         }
                     }
+                , test "has html id" <|
+                    \_ ->
+                        whenOnDashboard { highDensity = False }
+                            |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                            |> Common.queryView
+                            |> findBody
+                            |> rows
+                            |> firstRow
+                            |> firstCol
+                            |> Query.has
+                                [ id <|
+                                    Effects.toHtmlID <|
+                                        Msgs.PipelinePreview AllPipelinesSection 1
+                                ]
 
-                -- TODO: tooltip? data-tooltip or in Elm?
                 -- TODO: reordering
                 ]
             , describe "HD view" <|

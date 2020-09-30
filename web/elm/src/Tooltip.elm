@@ -204,7 +204,8 @@ view : Model m -> Tooltip -> Html Message
 view { hovered } { body, attachPosition, arrow } =
     case ( hovered, arrow ) of
         ( HoverState.Tooltip _ target, a ) ->
-            Html.div (position attachPosition target)
+            Html.div
+                (style "pointer-events" "none" :: position attachPosition target)
                 [ Maybe.map (arrowView attachPosition target) a |> Maybe.withDefault (Html.text "")
                 , body
                 ]

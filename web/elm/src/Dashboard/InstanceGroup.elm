@@ -194,9 +194,7 @@ bodyView pipelineRunningKeyframes section hovered pipelines pipelineJobs jobs =
                         hovered
                     )
                     (pipelineStatus curPipelineJobs p)
-                    ++ [ onMouseEnter <| Hover <| Just <| PipelinePreview section p.id
-                       , onMouseLeave <| Hover Nothing
-                       ]
+                    ++ Tooltip.hoverAttrs (PipelinePreview section p.id)
                 )
                 [ Html.a
                     [ href pipelinePage

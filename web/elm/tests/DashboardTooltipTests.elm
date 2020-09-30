@@ -2,6 +2,7 @@ module DashboardTooltipTests exposing (all)
 
 import Application.Models exposing (Session)
 import Common
+import Concourse exposing (JsonValue(..))
 import Dashboard.Dashboard as Dashboard
 import Data
 import Dict
@@ -79,7 +80,7 @@ all =
                     |> Maybe.withDefault (Html.text "")
                     |> Query.fromHtml
                     |> Query.has [ text "disabled" ]
-        , test "displays job name when hovering over job" <|
+        , test "displays job name when hovering over job preview" <|
             \_ ->
                 Dashboard.tooltip
                     { pipelines = Nothing }
@@ -93,6 +94,56 @@ all =
                     |> Maybe.withDefault (Html.text "")
                     |> Query.fromHtml
                     |> Query.has [ text "my-job" ]
+        , test "displays hyphen-separated instance vars vals when hovering over pipeline preview" <|
+            \_ ->
+                let
+                    instanceVars =
+                        Dict.fromList
+                            [ ( "a", JsonString "foo" )
+                            , ( "b", JsonString "bar" )
+                            , ( "c", JsonString "baz" )
+                            ]
+
+                    p =
+                        Data.dashboardPipeline 1 True
+                            |> Data.withInstanceVars instanceVars
+                in
+                Dashboard.tooltip
+                    { pipelines = Just <| Dict.fromList [ ( "team", [ p ] ) ] }
+                    { session
+                        | hovered =
+                            Tooltip
+                                (PipelinePreview AllPipelinesSection 1)
+                                Data.elementPosition
+                        , pipelines = Success [ Data.pipeline "team" 1 |> Data.withInstanceVars instanceVars ]
+                    }
+                    |> Maybe.map .body
+                    |> Maybe.withDefault (Html.text "")
+                    |> Query.fromHtml
+                    |> Query.has [ text "foo-bar-baz" ]
+        , test "displays empty set when pipeline has no instance vars" <|
+            \_ ->
+                let
+                    instanceVars =
+                        Dict.empty
+
+                    p =
+                        Data.dashboardPipeline 1 True
+                            |> Data.withInstanceVars instanceVars
+                in
+                Dashboard.tooltip
+                    { pipelines = Just <| Dict.fromList [ ( "team", [ p ] ) ] }
+                    { session
+                        | hovered =
+                            Tooltip
+                                (PipelinePreview AllPipelinesSection 1)
+                                Data.elementPosition
+                        , pipelines = Success [ Data.pipeline "team" 1 |> Data.withInstanceVars instanceVars ]
+                    }
+                    |> Maybe.map .body
+                    |> Maybe.withDefault (Html.text "")
+                    |> Query.fromHtml
+                    |> Query.has [ text "{}" ]
         , test "displays pipeline name when hovering over pipeline card" <|
             \_ ->
                 let

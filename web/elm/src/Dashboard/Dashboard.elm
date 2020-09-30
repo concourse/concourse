@@ -895,6 +895,34 @@ tooltip model session =
                 , arrow = Just { size = 15, color = "#000" }
                 }
 
+        HoverState.Tooltip (Message.PipelinePreview _ pipelineId) _ ->
+            SideBar.lookupPipeline pipelineId session
+                |> Maybe.map
+                    (\p ->
+                        let
+                            hyphenNotation =
+                                if Dict.isEmpty p.instanceVars then
+                                    "{}"
+
+                                else
+                                    p.instanceVars
+                                        |> Dict.toList
+                                        |> List.concatMap (\( k, v ) -> Concourse.flattenJson k v)
+                                        |> List.map Tuple.second
+                                        |> String.join "-"
+                        in
+                        { body =
+                            Html.div
+                                Styles.pipelinePreviewTooltip
+                                [ Html.text hyphenNotation ]
+                        , attachPosition =
+                            { direction = Tooltip.Right 0
+                            , alignment = Tooltip.Middle 30
+                            }
+                        , arrow = Just { size = 15, color = "#000" }
+                        }
+                    )
+
         HoverState.Tooltip (Message.PipelineCardName _ pipelineId) _ ->
             model.pipelines
                 |> findPipeline session pipelineId

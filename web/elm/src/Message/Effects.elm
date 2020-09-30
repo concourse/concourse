@@ -720,8 +720,15 @@ toHtmlID domId =
                 ++ "_var_"
                 ++ Base64.encode varName
 
+        PipelinePreview section pipelineId ->
+            "pipeline_preview_"
+                ++ pipelinesSectionName section
+                ++ "_"
+                ++ String.fromInt pipelineId
+
         JobPreview section jobId ->
-            pipelinesSectionName section
+            "job_preview_"
+                ++ pipelinesSectionName section
                 ++ "_"
                 ++ String.fromInt jobId.pipelineId
                 ++ "_jobs_"

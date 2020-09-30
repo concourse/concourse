@@ -52,6 +52,7 @@ module Dashboard.Styles exposing
     , pipelineCardTransitionAgeStale
     , pipelineName
     , pipelinePreviewGrid
+    , pipelinePreviewTooltip
     , pipelineSectionHeader
     , pipelineStatusIcon
     , previewPlaceholder
@@ -944,6 +945,11 @@ cardTooltip =
 
 jobPreviewTooltip : List (Html.Attribute msg)
 jobPreviewTooltip =
+    cardTooltip
+
+
+pipelinePreviewTooltip : List (Html.Attribute msg)
+pipelinePreviewTooltip =
     cardTooltip
 
 
