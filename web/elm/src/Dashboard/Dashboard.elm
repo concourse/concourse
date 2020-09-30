@@ -1,5 +1,6 @@
 module Dashboard.Dashboard exposing
-    ( documentTitle
+    ( changeRoute
+    , documentTitle
     , handleCallback
     , handleDelivery
     , init
@@ -63,6 +64,7 @@ import Message.Message as Message
         , Message(..)
         , VisibilityAction(..)
         )
+import Message.ScrollDirection exposing (ScrollDirection(..))
 import Message.Subscription
     exposing
         ( Delivery(..)
@@ -134,6 +136,27 @@ init f =
       , LoadCachedTeams
       , GetViewportOf Dashboard
       ]
+    )
+
+
+changeRoute : Flags -> ET Model
+changeRoute f ( model, effects ) =
+    ( { model
+        | highDensity = f.searchType == Routes.HighDensity
+        , dashboardView = f.dashboardView
+
+        -- I think we're deliberately not extracting the query from searchType
+        -- so that switching to the HD view carries the search query over?
+        -- Eventually, the HD view should have search functionality, though
+        , instanceGroup = Routes.extractInstanceGroup f.searchType
+      }
+    , effects
+        ++ (if model.instanceGroup /= Routes.extractInstanceGroup f.searchType then
+                [ Scroll ToTop <| toHtmlID Dashboard ]
+
+            else
+                []
+           )
     )
 
 
@@ -1319,7 +1342,12 @@ instanceGroupCardsView session model { teamName, name } =
                 |> Maybe.map Tuple.second
                 |> Maybe.withDefault []
     in
-    cardsView session model [ ( "", filteredPipelines |> List.map PipelineCard ) ]
+    cardsView session
+        model
+        [ ( teamName ++ " / " ++ name
+          , filteredPipelines |> List.map PipelineCard
+          )
+        ]
 
 
 cardsView : Session -> Model -> List ( String, List Card ) -> List (Html Message)
@@ -1330,7 +1358,7 @@ cardsView session params teamCards =
                 |> FetchResult.withDefault Dict.empty
 
         ( headerView, offsetHeight ) =
-            if params.highDensity then
+            if params.highDensity || params.instanceGroup /= Nothing then
                 ( [], 0 )
 
             else

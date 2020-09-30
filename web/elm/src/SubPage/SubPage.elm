@@ -313,19 +313,8 @@ urlUpdate routes =
                 identity
         )
         (case routes.to of
-            Routes.Dashboard { searchType, dashboardView } ->
-                Tuple.mapFirst
-                    (\dm ->
-                        { dm
-                            | highDensity = searchType == Routes.HighDensity
-                            , dashboardView = dashboardView
-
-                            -- I think we're deliberately not extracting the query from searchType
-                            -- so that switching to the HD view carries the search query over?
-                            -- Eventually, the HD view should have search functionality, though
-                            , instanceGroup = Routes.extractInstanceGroup searchType
-                        }
-                    )
+            Routes.Dashboard f ->
+                Dashboard.changeRoute f
 
             _ ->
                 identity

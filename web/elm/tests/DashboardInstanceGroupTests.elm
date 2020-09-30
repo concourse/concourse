@@ -34,6 +34,7 @@ import Keyboard
 import Message.Callback as Callback
 import Message.Effects as Effects
 import Message.Message as Msgs
+import Message.ScrollDirection as ScrollDirection
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as ApplicationMsgs
 import Routes exposing (DashboardView(..))
@@ -85,6 +86,30 @@ all =
                     |> Common.queryView
                     |> Query.findAll [ class "card" ]
                     |> Query.count (Expect.equal 1)
+        , test "does not display favorites section" <|
+            \_ ->
+                whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
+                    |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                    |> Application.handleDelivery
+                        (FavoritedPipelinesReceived <| Ok <| Set.singleton 1)
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Expect.all
+                        [ Query.hasNot [ text "favorite pipelines" ]
+                        , Query.findAll [ class "card" ] >> Query.count (Expect.equal 1)
+                        ]
+        , test "does not display all pipelines header" <|
+            \_ ->
+                whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
+                    |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                    |> Common.queryView
+                    |> Query.hasNot [ text "all pipelines" ]
+        , test "displays teamName / groupName in header" <|
+            \_ ->
+                whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
+                    |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                    |> Common.queryView
+                    |> Query.has [ text "team / group" ]
         , test "applies filters to cards" <|
             \_ ->
                 whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
@@ -110,6 +135,47 @@ all =
                     |> Common.queryView
                     |> Query.findAll [ class "card" ]
                     |> Query.count (Expect.equal 1)
+        , describe "navigation" <|
+            [ test "dashboard -> instance group view scrolls to top" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                        |> Application.handleDelivery
+                            (Subscription.RouteChanged <|
+                                Routes.Dashboard
+                                    { searchType = Routes.Normal "" <| Just { teamName = "team", name = "group" }
+                                    , dashboardView = Routes.ViewNonArchivedPipelines
+                                    }
+                            )
+                        |> Tuple.second
+                        |> Common.contains (Effects.Scroll ScrollDirection.ToTop "dashboard")
+            , test "instance group view -> dashboard scrolls to top" <|
+                \_ ->
+                    whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
+                        |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                        |> Application.handleDelivery
+                            (Subscription.RouteChanged <|
+                                Routes.Dashboard
+                                    { searchType = Routes.Normal "" Nothing
+                                    , dashboardView = Routes.ViewNonArchivedPipelines
+                                    }
+                            )
+                        |> Tuple.second
+                        |> Common.contains (Effects.Scroll ScrollDirection.ToTop "dashboard")
+            , test "filtering does not scroll" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                        |> Application.handleDelivery
+                            (Subscription.RouteChanged <|
+                                Routes.Dashboard
+                                    { searchType = Routes.Normal "some filter" Nothing
+                                    , dashboardView = Routes.ViewNonArchivedPipelines
+                                    }
+                            )
+                        |> Tuple.second
+                        |> Common.notContains (Effects.Scroll ScrollDirection.ToTop "dashboard")
+            ]
         , describe "breadcrumb" <|
             let
                 findBreadcrumb =
