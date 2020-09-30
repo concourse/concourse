@@ -186,7 +186,7 @@ func flagify(env string) string {
 
 func getGdnFlagsFromConfig(configPath string) (GdnBinaryFlags, error) {
 	var configFlags GdnBinaryFlags
-	parser := flags.NewParser(&configFlags, flags.Default)
+	parser := flags.NewParser(&configFlags, flags.Default | flags.IgnoreUnknown)
 	parser.NamespaceDelimiter = "-"
 
 	iniParser := flags.NewIniParser(parser)
