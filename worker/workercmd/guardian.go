@@ -7,16 +7,15 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/localip"
 	concourseCmd "github.com/concourse/concourse/cmd"
+	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
-	flags "github.com/jessevdk/go-flags"
 )
 
 // Guardian binary flags - these are passed along as-is to the gdn binary as options.
@@ -32,7 +31,7 @@ type GdnBinaryFlags struct {
 		} `group:"Container Networking"`
 
 		Limits struct {
-			MaxContainers *int `long:"max-containers" description:"Maximum container capacity. 0 means no limit. (default:250)"`
+			MaxContainers string `long:"max-containers" description:"Maximum container capacity. 0 means no limit. (default:250)"`
 		} `group:"Limits"`
 	} `group:"server"`
 }
@@ -206,9 +205,9 @@ func getGdnFlagsFromConfig(configPath string) (GdnBinaryFlags, error) {
 func (cmd *WorkerCommand) getGdnFlagsFromStruct(configFlags GdnBinaryFlags) []string {
 	var cliFlags []string
 
-	if cmd.Guardian.BinaryFlags.Server.Limits.MaxContainers != nil {
-		cliFlags = append(cliFlags, "--max-containers", strconv.Itoa(*cmd.Guardian.BinaryFlags.Server.Limits.MaxContainers))
-	} else if configFlags.Server.Limits.MaxContainers == nil {
+	if cmd.Guardian.BinaryFlags.Server.Limits.MaxContainers != "" {
+		cliFlags = append(cliFlags, "--max-containers", cmd.Guardian.BinaryFlags.Server.Limits.MaxContainers)
+	} else if configFlags.Server.Limits.MaxContainers == "" {
 		cliFlags = append(cliFlags, "--max-containers", defaultGdnMaxContainers)
 	}
 
