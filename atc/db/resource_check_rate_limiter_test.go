@@ -69,58 +69,64 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 		checkableCount++
 	}
 
-	It("rate limits while adjusting to the amount of checkables", func() {
-		By("immediately returning with 0 checkables")
-		Expect(<-wait(limiter)).To(Succeed())
-		Expect(limiter.Limit()).To(Equal(rate.Inf))
+	Context("with no static limit provided", func() {
+		BeforeEach(func() {
+			checksPerSecond = 0
+		})
 
-		By("creating one checkable")
-		createCheckable()
+		It("rate limits while adjusting to the amount of checkables", func() {
+			By("immediately returning with 0 checkables")
+			Expect(<-wait(limiter)).To(Succeed())
+			Expect(limiter.Limit()).To(Equal(rate.Inf))
 
-		By("continuing to return immediately, as the refresh interval has not elapsed")
-		Expect(<-wait(limiter)).To(Succeed())
-		Expect(limiter.Limit()).To(Equal(rate.Inf))
-
-		By("waiting for the refresh interval")
-		fakeClock.Increment(refreshInterval)
-
-		By("adjusting the limit but returning immediately for the first time")
-		Expect(<-wait(limiter)).To(Succeed())
-		Expect(limiter.Limit()).To(Equal(rate.Limit(float64(checkableCount) / checkInterval.Seconds())))
-
-		done := wait(limiter)
-		select {
-		case <-done:
-			Fail("should not have returned yet")
-		case <-time.After(100 * time.Millisecond):
-		}
-
-		By("unblocking after the rate limit elapses")
-		fakeClock.Increment(checkInterval / time.Duration(checkableCount))
-		Expect(<-done).To(Succeed())
-
-		By("creating more checkables")
-		for i := 0; i < 10; i++ {
+			By("creating one checkable")
 			createCheckable()
-		}
 
-		By("waiting for the refresh interval")
-		fakeClock.Increment(refreshInterval)
+			By("continuing to return immediately, as the refresh interval has not elapsed")
+			Expect(<-wait(limiter)).To(Succeed())
+			Expect(limiter.Limit()).To(Equal(rate.Inf))
 
-		By("adjusting the limit but returning immediately for the first time")
-		Expect(<-wait(limiter)).To(Succeed())
-		Expect(limiter.Limit()).To(Equal(rate.Limit(float64(checkableCount) / checkInterval.Seconds())))
+			By("waiting for the refresh interval")
+			fakeClock.Increment(refreshInterval)
 
-		done = wait(limiter)
-		select {
-		case <-done:
-			Fail("should not have returned yet")
-		case <-time.After(100 * time.Millisecond):
-		}
+			By("adjusting the limit but returning immediately for the first time")
+			Expect(<-wait(limiter)).To(Succeed())
+			Expect(limiter.Limit()).To(Equal(rate.Limit(float64(checkableCount) / checkInterval.Seconds())))
 
-		By("unblocking after the the new rate limit elapses")
-		fakeClock.Increment(checkInterval / time.Duration(checkableCount))
-		Expect(<-done).To(Succeed())
+			done := wait(limiter)
+			select {
+			case <-done:
+				Fail("should not have returned yet")
+			case <-time.After(100 * time.Millisecond):
+			}
+
+			By("unblocking after the rate limit elapses")
+			fakeClock.Increment(checkInterval / time.Duration(checkableCount))
+			Expect(<-done).To(Succeed())
+
+			By("creating more checkables")
+			for i := 0; i < 10; i++ {
+				createCheckable()
+			}
+
+			By("waiting for the refresh interval")
+			fakeClock.Increment(refreshInterval)
+
+			By("adjusting the limit but returning immediately for the first time")
+			Expect(<-wait(limiter)).To(Succeed())
+			Expect(limiter.Limit()).To(Equal(rate.Limit(float64(checkableCount) / checkInterval.Seconds())))
+
+			done = wait(limiter)
+			select {
+			case <-done:
+				Fail("should not have returned yet")
+			case <-time.After(100 * time.Millisecond):
+			}
+
+			By("unblocking after the the new rate limit elapses")
+			fakeClock.Increment(checkInterval / time.Duration(checkableCount))
+			Expect(<-done).To(Succeed())
+		})
 	})
 
 	Context("when a static checks per second value is provided", func() {
@@ -130,6 +136,29 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 
 		It("respects the value rather than determining it dynamically", func() {
 			Expect(limiter.Limit()).To(Equal(rate.Limit(checksPerSecond)))
+		})
+	})
+
+	Context("when a negative static checks per second value is provided", func() {
+		BeforeEach(func() {
+			checksPerSecond = -1
+		})
+
+		It("results in an infinite rate limit that ignores checkable count", func() {
+			Expect(<-wait(limiter)).To(Succeed())
+			Expect(limiter.Limit()).To(Equal(rate.Limit(rate.Inf)))
+
+			By("creating a few (ignored) checkables")
+			for i := 0; i < 10; i++ {
+				createCheckable()
+			}
+
+			By("waiting for the (ignored) refresh interval")
+			fakeClock.Increment(refreshInterval)
+
+			By("still returning immediately and retaining the infinite rate")
+			Expect(<-wait(limiter)).To(Succeed())
+			Expect(limiter.Limit()).To(Equal(rate.Limit(rate.Inf)))
 		})
 	})
 })

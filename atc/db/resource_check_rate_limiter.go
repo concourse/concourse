@@ -33,6 +33,10 @@ func NewResourceCheckRateLimiter(
 		mut:   new(sync.Mutex),
 	}
 
+	if checksPerSecond < 0 {
+		checksPerSecond = rate.Inf
+	}
+
 	if checksPerSecond != 0 {
 		limiter.checkLimiter = rate.NewLimiter(checksPerSecond, 1)
 	} else {
