@@ -13,8 +13,12 @@ setting the following env on the \reference{web-node}:
 CONCOURSE_SECRET_CACHE_ENABLED=true
 }}}
 
-By default, credentials will be cached for one minute at a time. This value can
-be increased to further reduce load on the server like so:
+Enabling secret caching will cache secrets from both
+\reference{creds}{credential managers} and from \reference{var-sources}{var
+sources}.
+
+By default, credentials will be cached for one minute at a time. This
+value can be increased to further reduce load on the server like so:
 
 \codeblock{bash}{{{
 CONCOURSE_SECRET_CACHE_DURATION=5m # increase from 1m default
