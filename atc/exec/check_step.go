@@ -37,7 +37,7 @@ type CheckDelegate interface {
 	BuildStepDelegate
 
 	FindOrCreateScope(db.ResourceConfig) (db.ResourceConfigScope, error)
-	WaitAndRun(context.Context, db.ResourceConfigScope) (lock.Lock, bool, error)
+	WaitToRun(context.Context, db.ResourceConfigScope) (lock.Lock, bool, error)
 	PointToSavedVersions(db.ResourceConfigScope) error
 }
 
@@ -130,7 +130,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		return fmt.Errorf("create resource config scope: %w", err)
 	}
 
-	lock, run, err := step.delegate.WaitAndRun(ctx, scope)
+	lock, run, err := step.delegate.WaitToRun(ctx, scope)
 	if err != nil {
 		return fmt.Errorf("wait: %w", err)
 	}

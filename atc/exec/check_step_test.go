@@ -200,7 +200,7 @@ var _ = Describe("CheckStep", func() {
 
 		BeforeEach(func() {
 			fakeLock = new(lockfakes.FakeLock)
-			fakeDelegate.WaitAndRunReturns(fakeLock, true, nil)
+			fakeDelegate.WaitToRunReturns(fakeLock, true, nil)
 
 			resTypes := atc.VersionedResourceTypes{
 				{
@@ -258,7 +258,7 @@ var _ = Describe("CheckStep", func() {
 				fakeVersion = new(dbfakes.FakeResourceConfigVersion)
 				fakeVersion.VersionReturns(db.Version{"latest": "version"})
 				fakeResourceConfigScope.LatestVersionStub = func() (db.ResourceConfigVersion, bool, error) {
-					Expect(fakeDelegate.WaitAndRunCallCount()).To(
+					Expect(fakeDelegate.WaitToRunCallCount()).To(
 						Equal(1),
 						"should have gotten latest version after waiting, not before",
 					)

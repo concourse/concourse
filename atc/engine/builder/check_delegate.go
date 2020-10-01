@@ -70,7 +70,7 @@ func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.Resource
 	return scope, nil
 }
 
-func (d *checkDelegate) WaitAndRun(ctx context.Context, scope db.ResourceConfigScope) (lock.Lock, bool, error) {
+func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigScope) (lock.Lock, bool, error) {
 	logger := lagerctx.FromContext(ctx)
 
 	var err error

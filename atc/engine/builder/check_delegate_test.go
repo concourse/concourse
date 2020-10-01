@@ -156,7 +156,7 @@ var _ = Describe("CheckDelegate", func() {
 		})
 	})
 
-	Describe("WaitAndRun", func() {
+	Describe("WaitToRun", func() {
 		var fakeLock *lockfakes.FakeLock
 
 		var lock lock.Lock
@@ -171,7 +171,7 @@ var _ = Describe("CheckDelegate", func() {
 		})
 
 		JustBeforeEach(func() {
-			lock, run, runErr = delegate.WaitAndRun(context.TODO(), fakeResourceConfigScope)
+			lock, run, runErr = delegate.WaitToRun(context.TODO(), fakeResourceConfigScope)
 		})
 
 		Context("when the build is manually triggered", func() {
