@@ -350,10 +350,8 @@ var _ = Describe("Client", func() {
 						}
 					})
 
-					It("emits a starting event", func() {
-						Expect(fakeEventDelegate.SelectedWorkerCallCount()).To(Equal(1))
-						_, name := fakeEventDelegate.SelectedWorkerArgsForCall(0)
-						Expect(name).To(Equal("some-worker"))
+					It("invokes the Starting Event on the delegate", func() {
+						Expect(fakeEventDelegate.StartingCallCount()).Should((Equal(1)))
 					})
 				})
 
@@ -485,8 +483,6 @@ var _ = Describe("Client", func() {
 
 			It("invokes the Starting Event on the delegate", func() {
 				Expect(fakeEventDelegate.StartingCallCount()).Should((Equal(1)))
-				_, actualWorkerName := fakeEventDelegate.SelectedWorkerArgsForCall(0)
-				Expect(actualWorkerName).To(Equal(fakeChosenWorker.Name()))
 			})
 
 			It("calls Fetch on the worker", func() {
