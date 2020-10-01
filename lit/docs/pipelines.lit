@@ -78,6 +78,35 @@ files} which conform to the following schema:
       }
     }
   }
+
+  \optional-attribute{display}{display_config}{
+    \warn{
+      \code{display} was introduced in Concourse v6.6.0. It is considered an
+      \bold{experimental} feature.
+    }
+
+    Visual configurations for personalizing your pipeline.
+
+    \example-toggle{Background image}{
+      The following example will display an image in the background of the pipeline
+      it is configured on.
+
+      \codeblock{yaml}{{
+      display:
+        background_image: https://avatars1.githubusercontent.com/u/7809479?s=400&v=4
+      }}
+    }
+
+    \schema{display_config}{
+      \optional-attribute{background_image}{string}{
+        Allow users to specify a custom background image which is put at 30%
+        opacity, grayscaled and blended into existing background
+
+        Uses the CSS property \code{background-image: url('blah')} so either
+        hyperlinks or \code{data:image/png;base64} etc. strings can be used.
+      }
+    }
+  }
 }
 
 \table-of-contents
