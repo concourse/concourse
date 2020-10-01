@@ -11,7 +11,7 @@ module Dashboard.Dashboard exposing
     )
 
 import Application.Models exposing (Session)
-import Concourse
+import Concourse exposing (hyphenNotation)
 import Concourse.Cli as Cli
 import Dashboard.DashboardPreview as DashboardPreview
 import Dashboard.Drag as Drag
@@ -920,22 +920,10 @@ tooltip model session =
             SideBar.lookupPipeline pipelineId session
                 |> Maybe.map
                     (\p ->
-                        let
-                            hyphenNotation =
-                                if Dict.isEmpty p.instanceVars then
-                                    "{}"
-
-                                else
-                                    p.instanceVars
-                                        |> Dict.toList
-                                        |> List.concatMap (\( k, v ) -> Concourse.flattenJson k v)
-                                        |> List.map Tuple.second
-                                        |> String.join "-"
-                        in
                         { body =
                             Html.div
                                 Styles.pipelinePreviewTooltip
-                                [ Html.text hyphenNotation ]
+                                [ Html.text <| hyphenNotation p.instanceVars ]
                         , attachPosition =
                             { direction = Tooltip.Right 0
                             , alignment = Tooltip.Middle 30

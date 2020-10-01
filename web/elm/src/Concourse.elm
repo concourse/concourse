@@ -66,6 +66,7 @@ module Concourse exposing
     , encodePipeline
     , encodeTeam
     , flattenJson
+    , hyphenNotation
     , mapBuildPlan
     , retrieveCSRFToken
     )
@@ -498,6 +499,19 @@ flattenJson key val =
                     flattenJson subKey v
                 )
                 o
+
+
+hyphenNotation : Dict String JsonValue -> String
+hyphenNotation vars =
+    if Dict.isEmpty vars then
+        "{}"
+
+    else
+        vars
+            |> Dict.toList
+            |> List.concatMap (\( k, v ) -> flattenJson k v)
+            |> List.map Tuple.second
+            |> String.join "-"
 
 
 type alias AcrossPlan =

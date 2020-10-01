@@ -176,39 +176,6 @@ all =
                         |> Tuple.second
                         |> Common.notContains (Effects.Scroll ScrollDirection.ToTop "dashboard")
             ]
-        , describe "breadcrumb" <|
-            let
-                findBreadcrumb =
-                    Query.find [ id "breadcrumbs" ]
-                        >> Query.children []
-                        >> Query.index 0
-            in
-            [ test "displays instance group name" <|
-                \_ ->
-                    whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
-                        |> gotPipelines
-                            [ pipelineInstance BuildStatusSucceeded False 1
-                            , pipelineInstance BuildStatusSucceeded False 2
-                            ]
-                        |> Common.queryView
-                        |> findBreadcrumb
-                        |> Query.has [ text "group" ]
-            , test "displays badge displaying number of pipelines" <|
-                \_ ->
-                    whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
-                        |> gotPipelines
-                            [ pipelineInstance BuildStatusSucceeded False 1
-                            , pipelineInstance BuildStatusSucceeded False 2
-                            ]
-                        |> Common.queryView
-                        |> findBreadcrumb
-                        |> Query.has
-                            [ style "width" "20px"
-                            , style "height" "20px"
-                            , style "font-size" "14px"
-                            , containing [ text "2" ]
-                            ]
-            ]
         , describe "pipeline cards" <|
             let
                 findCardWrapper =

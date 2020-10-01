@@ -5,7 +5,8 @@ module Views.TopBar exposing
 
 import Application.Models exposing (Session)
 import Assets
-import Concourse
+import Concourse exposing (hyphenNotation)
+import Dict
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -39,7 +40,7 @@ breadcrumbs session route =
                         []
 
                     Just pipeline ->
-                        [ pipelineBreadcrumb pipeline ]
+                        pipelineBreadcrumbs session pipeline
 
             Routes.Build { id } ->
                 case lookupPipeline id.pipelineId session of
@@ -47,10 +48,10 @@ breadcrumbs session route =
                         []
 
                     Just pipeline ->
-                        [ pipelineBreadcrumb pipeline
-                        , breadcrumbSeparator
-                        , jobBreadcrumb id.jobName
-                        ]
+                        pipelineBreadcrumbs session pipeline
+                            ++ [ breadcrumbSeparator
+                               , jobBreadcrumb id.jobName
+                               ]
 
             Routes.Resource { id } ->
                 case lookupPipeline id.pipelineId session of
@@ -58,10 +59,10 @@ breadcrumbs session route =
                         []
 
                     Just pipeline ->
-                        [ pipelineBreadcrumb pipeline
-                        , breadcrumbSeparator
-                        , resourceBreadcrumb id.resourceName
-                        ]
+                        pipelineBreadcrumbs session pipeline
+                            ++ [ breadcrumbSeparator
+                               , resourceBreadcrumb id.resourceName
+                               ]
 
             Routes.Job { id } ->
                 case lookupPipeline id.pipelineId session of
@@ -69,18 +70,13 @@ breadcrumbs session route =
                         []
 
                     Just pipeline ->
-                        [ pipelineBreadcrumb pipeline
-                        , breadcrumbSeparator
-                        , jobBreadcrumb id.jobName
-                        ]
+                        pipelineBreadcrumbs session pipeline
+                            ++ [ breadcrumbSeparator
+                               , jobBreadcrumb id.jobName
+                               ]
 
-            Routes.Dashboard { searchType } ->
-                case searchType of
-                    Routes.Normal _ (Just ig) ->
-                        [ instanceGroupBreadcrumb session ig ]
-
-                    _ ->
-                        [ clusterNameBreadcrumb session ]
+            Routes.Dashboard _ ->
+                [ clusterNameBreadcrumb session ]
 
             _ ->
                 []
@@ -110,32 +106,6 @@ breadcrumbSeparator =
         [ Html.text "/" ]
 
 
-instanceGroupBreadcrumb : Session -> Concourse.InstanceGroupIdentifier -> Html Message
-instanceGroupBreadcrumb session ig =
-    let
-        numPipelines =
-            session.pipelines
-                |> RemoteData.withDefault []
-                |> List.filter (\p -> p.name == ig.name && p.teamName == ig.teamName)
-                |> List.length
-    in
-    Html.a
-        (id "breadcrumb-instance-group"
-            :: (href <|
-                    Routes.toString <|
-                        -- TODO: don't lose prev state
-                        Routes.Dashboard
-                            { searchType = Routes.Normal "" <| Just ig
-                            , dashboardView = Routes.ViewNonArchivedPipelines
-                            }
-               )
-            :: Styles.breadcrumbItem True
-        )
-        [ InstanceGroupBadge.view numPipelines
-        , Html.text ig.name
-        ]
-
-
 clusterNameBreadcrumb : Session -> Html Message
 clusterNameBreadcrumb session =
     Html.div
@@ -143,8 +113,52 @@ clusterNameBreadcrumb session =
         [ Html.text session.clusterName ]
 
 
-pipelineBreadcrumb : Concourse.Pipeline -> Html Message
-pipelineBreadcrumb pipeline =
+pipelineBreadcrumbs : Session -> Concourse.Pipeline -> List (Html Message)
+pipelineBreadcrumbs session pipeline =
+    let
+        numPipelines =
+            session.pipelines
+                |> RemoteData.withDefault []
+                |> List.filter (\p -> p.name == pipeline.name && p.teamName == pipeline.teamName)
+                |> List.length
+
+        inInstanceGroup =
+            numPipelines > 1 || (not <| Dict.isEmpty pipeline.instanceVars)
+    in
+    (if inInstanceGroup then
+        [ Html.a
+            (id "breadcrumb-instance-group"
+                :: (href <|
+                        Routes.toString <|
+                            Routes.Dashboard
+                                { searchType = Routes.Normal "" <| Just { name = pipeline.name, teamName = pipeline.teamName }
+                                , dashboardView = Routes.ViewNonArchivedPipelines
+                                }
+                   )
+                :: Styles.breadcrumbItem True
+            )
+            [ InstanceGroupBadge.view numPipelines
+            , Html.text pipeline.name
+            ]
+        , breadcrumbSeparator
+        ]
+
+     else
+        []
+    )
+        ++ [ pipelineBreadcrumb inInstanceGroup pipeline ]
+
+
+pipelineBreadcrumb : Bool -> Concourse.Pipeline -> Html Message
+pipelineBreadcrumb inInstanceGroup pipeline =
+    let
+        text =
+            if inInstanceGroup then
+                hyphenNotation pipeline.instanceVars
+
+            else
+                pipeline.name
+    in
     Html.a
         ([ id "breadcrumb-pipeline"
          , href <|
@@ -159,7 +173,7 @@ pipelineBreadcrumb pipeline =
                 , widthPx = 28
                 , heightPx = 16
                 }
-            , name = pipeline.name
+            , name = text
             }
         )
 
