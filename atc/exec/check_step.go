@@ -69,9 +69,7 @@ func NewCheckStep(
 
 func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 	attrs := tracing.Attrs{
-		"name":          step.plan.Name,
-		"resource":      step.plan.Resource,
-		"resource_type": step.plan.ResourceType,
+		"name": step.plan.Name,
 	}
 
 	if step.plan.Resource != "" {
