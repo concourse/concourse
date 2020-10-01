@@ -6,10 +6,8 @@ import Dashboard.Styles as Styles
 import Dict exposing (Dict)
 import HoverState
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, href, id)
-import Html.Events exposing (onMouseEnter, onMouseLeave)
+import Html.Attributes exposing (class, href)
 import List.Extra
-import Message.Effects exposing (toHtmlID)
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
 import Tooltip

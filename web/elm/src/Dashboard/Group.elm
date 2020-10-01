@@ -18,10 +18,9 @@ import Dashboard.Models exposing (DragState(..), DropState(..))
 import Dashboard.Pipeline as Pipeline
 import Dashboard.Styles as Styles
 import Dict exposing (Dict)
-import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, draggable, id, style)
-import Html.Events exposing (on, onMouseOut, onMouseOver, preventDefaultOn, stopPropagationOn)
+import Html.Events exposing (on, preventDefaultOn, stopPropagationOn)
 import Html.Keyed
 import Json.Decode
 import Maybe.Extra
@@ -496,7 +495,7 @@ instanceGroupCardView session params section { bounds, headerHeight } p ps =
                         [ style "opacity" "1" ]
                    )
             )
-            [ InstanceGroup.cardView session
+            [ InstanceGroup.cardView
                 { pipeline = p
                 , pipelines = ps
                 , resourceError =

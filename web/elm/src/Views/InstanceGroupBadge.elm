@@ -1,6 +1,5 @@
 module Views.InstanceGroupBadge exposing (view)
 
-import Application.Models exposing (Session)
 import Html exposing (Html)
 import Html.Attributes exposing (style)
 import Message.Message exposing (Message)

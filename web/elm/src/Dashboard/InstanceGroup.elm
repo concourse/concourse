@@ -1,15 +1,11 @@
 module Dashboard.InstanceGroup exposing (cardView, hdCardView)
 
-import Application.Models exposing (Session)
-import Assets
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
-import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Pipeline exposing (pipelineStatus)
 import Dashboard.Styles as Styles
 import Dict exposing (Dict)
-import Duration
 import HoverState
 import Html exposing (Html)
 import Html.Attributes
@@ -19,25 +15,13 @@ import Html.Attributes
         , classList
         , draggable
         , href
-        , id
         , style
         )
-import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import List.Extra
-import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
-import Set
-import SideBar.SideBar as SideBar
-import Time
 import Tooltip
-import UserState
-import Views.FavoritedIcon
-import Views.Icon as Icon
 import Views.InstanceGroupBadge as InstanceGroupBadge
-import Views.PauseToggle as PauseToggle
-import Views.Spinner as Spinner
-import Views.Styles
 
 
 hdCardView :
@@ -83,25 +67,22 @@ hdCardView { pipeline, pipelines, resourceError, dashboardView, query } =
 
 
 cardView :
-    Session
-    ->
-        { pipeline : Pipeline
-        , pipelines : List Pipeline
-        , hovered : HoverState.HoverState
-        , pipelineRunningKeyframes : String
-        , resourceError : Bool
-        , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
-        , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
-        , section : PipelinesSection
-        , dashboardView : Routes.DashboardView
-        , query : String
-        , headerHeight : Float
-        }
+    { pipeline : Pipeline
+    , pipelines : List Pipeline
+    , hovered : HoverState.HoverState
+    , pipelineRunningKeyframes : String
+    , resourceError : Bool
+    , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
+    , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
+    , section : PipelinesSection
+    , dashboardView : Routes.DashboardView
+    , query : String
+    , headerHeight : Float
+    }
     -> Html Message
-cardView session { pipeline, pipelines, hovered, pipelineRunningKeyframes, resourceError, pipelineJobs, jobs, section, dashboardView, query, headerHeight } =
+cardView { pipeline, pipelines, hovered, pipelineRunningKeyframes, resourceError, pipelineJobs, jobs, section, dashboardView, query, headerHeight } =
     Html.div
         (Styles.instanceGroupCard
-            -- TODO
             ++ (if section == AllPipelinesSection && not pipeline.stale then
                     [ style "cursor" "move" ]
 

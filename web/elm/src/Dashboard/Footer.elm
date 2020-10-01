@@ -1,7 +1,6 @@
 module Dashboard.Footer exposing (handleDelivery, view)
 
 import Assets
-import Concourse
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Group.Models exposing (Pipeline)

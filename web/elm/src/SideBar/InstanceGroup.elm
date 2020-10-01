@@ -1,11 +1,9 @@
 module SideBar.InstanceGroup exposing (instanceGroup)
 
-import Assets
 import Concourse
 import HoverState
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
-import Set exposing (Set)
 import SideBar.Styles as Styles
 import SideBar.Views as Views
 
@@ -81,7 +79,6 @@ instanceGroup params p ps =
         else
             Styles.Invisible
     , href =
-        -- TODO: if we're already on the dashboard, we don't want to lose the query/dashboardView
         Routes.toString <|
             Routes.Dashboard
                 { searchType = Routes.Normal "" <| Just { teamName = p.teamName, name = p.name }

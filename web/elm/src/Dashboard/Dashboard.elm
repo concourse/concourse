@@ -74,10 +74,9 @@ import Message.Subscription
 import Ordering
 import Routes
 import ScreenSize exposing (ScreenSize(..))
-import Set exposing (Set)
+import Set
 import SideBar.SideBar as SideBar
 import StrictEvents exposing (onScroll)
-import Time
 import Tooltip
 import UserState
 import Views.Spinner as Spinner
