@@ -19,12 +19,12 @@ test.afterEach.always(async t => {
 });
 
 test('shows abort hooks', async t => {
-  await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/hooks-pipeline.yml');
+  const pipelineId = await t.context.fly.setPipeline('some-pipeline', 'fixtures/hooks-pipeline.yml');
   await t.context.fly.run('unpause-pipeline -p some-pipeline');
 
   await t.context.fly.run('trigger-job -j some-pipeline/on_abort');
 
-  await t.context.web.page.goto(t.context.web.route(`/teams/${t.context.teamName}/pipelines/some-pipeline/jobs/on_abort/builds/1`));
+  await t.context.web.page.goto(t.context.web.route(`/pipelines/${pipelineId}/jobs/on_abort/builds/1`));
   await t.context.web.page.setViewport({width: 1200, height: 900});
 
   await t.context.web.waitForText("say-bye-from-step");
@@ -48,13 +48,13 @@ test('shows abort hooks', async t => {
 });
 
 test('can be switched between', async t => {
-  await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
+  const pipelineId = await t.context.fly.setPipeline('some-pipeline', 'fixtures/states-pipeline.yml');
   await t.context.fly.run('unpause-pipeline -p some-pipeline');
 
   await t.context.fly.run('trigger-job -w -j some-pipeline/passing');
   await t.context.fly.run('trigger-job -w -j some-pipeline/passing');
 
-  await t.context.web.page.goto(t.context.web.route(`/teams/${t.context.teamName}/pipelines/some-pipeline/jobs/passing/builds/1`));
+  await t.context.web.page.goto(t.context.web.route(`/pipelines/${pipelineId}/jobs/passing/builds/1`));
 
   await t.context.web.clickAndWait('#builds li:nth-child(1) a', '[data-build-name="2"]');
   t.regex(await t.context.web.text(), /passing #2/);

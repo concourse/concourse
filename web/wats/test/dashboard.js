@@ -32,9 +32,9 @@ test('does not show team name when unauthenticated and team has no exposed pipel
 })
 
 test('does not show team name when user is logged in another non-main team and has no exposed pipelines', async t => {
-  await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
+  await t.context.fly.setPipeline('some-pipeline', 'fixtures/states-pipeline.yml');
   await t.context.fly.run('login -n ' + t.context.guestTeamName + ' -u '+ t.context.guestUsername +' -p ' + t.context.guestPassword);
-  await t.context.fly.run('set-pipeline -n -p non-main-pipeline -c fixtures/states-pipeline.yml');
+  await t.context.fly.setPipeline('non-main-pipeline', 'fixtures/states-pipeline.yml');
 
   let web = await Web.build(t.context.url, t.context.guestUsername, t.context.guestPassword);
   await web.login(t);
@@ -51,12 +51,13 @@ test('shows pipelines in their correct order', async t => {
 
   for (var i = 0; i < pipelineOrder.length; i++) {
     let name = pipelineOrder[i];
-    await t.context.fly.run(`set-pipeline -n -p ${name} -c fixtures/states-pipeline.yml`);
+    await t.context.fly.setPipeline(name, 'fixtures/states-pipeline.yml');
   }
 
   await t.context.web.page.goto(t.context.web.route('/'));
 
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
+  await t.context.web.page.setViewport({width: 1200, height: 900});
   await t.context.web.scrollIntoView(group);
   await t.context.web.page.waitFor(`${group} .card-wrapper:nth-child(${pipelineOrder.length}) .card`);
 
@@ -70,7 +71,7 @@ test('shows pipelines in their correct order', async t => {
 });
 
 test('auto-refreshes to reflect state changes', async t => {
-  await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
+  await t.context.fly.setPipeline('some-pipeline', 'fixtures/states-pipeline.yml');
   await t.context.fly.run('unpause-pipeline -p some-pipeline');
 
   await t.context.fly.run("trigger-job -w -j some-pipeline/passing");
