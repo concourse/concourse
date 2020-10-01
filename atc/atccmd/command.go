@@ -74,6 +74,7 @@ import (
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/oauth2"
+	"golang.org/x/time/rate"
 	"gopkg.in/yaml.v2"
 
 	// dynamically registered metric emitters
@@ -1015,8 +1016,9 @@ func (cmd *RunCommand) backendComponents(
 	}
 
 	rateLimiter := db.NewResourceCheckRateLimiter(
-		dbConn,
+		rate.Limit(cmd.MaxChecksPerSecond),
 		cmd.ResourceCheckingInterval,
+		dbConn,
 		time.Minute,
 		clock.NewClock(),
 	)

@@ -15,6 +15,7 @@ import (
 var _ = Describe("ResourceCheckRateLimiter", func() {
 	var (
 		checkInterval   time.Duration
+		checksPerSecond int
 		refreshInterval time.Duration
 		fakeClock       *fakeclock.FakeClock
 
@@ -27,14 +28,23 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 
 	BeforeEach(func() {
 		checkInterval = time.Minute
+		checksPerSecond = 0
 		refreshInterval = 5 * time.Minute
 		fakeClock = fakeclock.NewFakeClock(time.Now())
 
 		checkableCount = 0
 
 		ctx = context.Background()
+	})
 
-		limiter = db.NewResourceCheckRateLimiter(dbConn, checkInterval, refreshInterval, fakeClock)
+	JustBeforeEach(func() {
+		limiter = db.NewResourceCheckRateLimiter(
+			rate.Limit(checksPerSecond),
+			checkInterval,
+			dbConn,
+			refreshInterval,
+			fakeClock,
+		)
 	})
 
 	wait := func(limiter *db.ResourceCheckRateLimiter) <-chan error {
@@ -85,7 +95,7 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 		case <-time.After(100 * time.Millisecond):
 		}
 
-		By("unblocking after the the rate limit elapses")
+		By("unblocking after the rate limit elapses")
 		fakeClock.Increment(checkInterval / time.Duration(checkableCount))
 		Expect(<-done).To(Succeed())
 
@@ -111,5 +121,15 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 		By("unblocking after the the new rate limit elapses")
 		fakeClock.Increment(checkInterval / time.Duration(checkableCount))
 		Expect(<-done).To(Succeed())
+	})
+
+	Context("when a static checks per second value is provided", func() {
+		BeforeEach(func() {
+			checksPerSecond = 42
+		})
+
+		It("respects the value rather than determining it dynamically", func() {
+			Expect(limiter.Limit()).To(Equal(rate.Limit(checksPerSecond)))
+		})
 	})
 })

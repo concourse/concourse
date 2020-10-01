@@ -11,41 +11,44 @@ import (
 )
 
 type ResourceCheckRateLimiter struct {
-	clock clock.Clock
-
-	checkInterval time.Duration
-	checkLimiter  *rate.Limiter
+	checkLimiter *rate.Limiter
 
 	refreshConn    Conn
+	checkInterval  time.Duration
 	refreshLimiter *rate.Limiter
 
-	mut *sync.Mutex
+	clock clock.Clock
+	mut   *sync.Mutex
 }
 
 func NewResourceCheckRateLimiter(
-	refreshConn Conn,
+	checksPerSecond rate.Limit,
 	checkInterval time.Duration,
+	refreshConn Conn,
 	refreshInterval time.Duration,
 	clock clock.Clock,
 ) *ResourceCheckRateLimiter {
-	return &ResourceCheckRateLimiter{
+	limiter := &ResourceCheckRateLimiter{
 		clock: clock,
-
-		checkInterval: checkInterval,
-		checkLimiter:  nil,
-
-		refreshConn:    refreshConn,
-		refreshLimiter: rate.NewLimiter(rate.Every(refreshInterval), 1),
-
-		mut: new(sync.Mutex),
+		mut:   new(sync.Mutex),
 	}
+
+	if checksPerSecond != 0 {
+		limiter.checkLimiter = rate.NewLimiter(checksPerSecond, 1)
+	} else {
+		limiter.checkInterval = checkInterval
+		limiter.refreshConn = refreshConn
+		limiter.refreshLimiter = rate.NewLimiter(rate.Every(refreshInterval), 1)
+	}
+
+	return limiter
 }
 
 func (limiter *ResourceCheckRateLimiter) Wait(ctx context.Context) error {
 	limiter.mut.Lock()
 	defer limiter.mut.Unlock()
 
-	if limiter.refreshLimiter.AllowN(limiter.clock.Now(), 1) {
+	if limiter.refreshLimiter != nil && limiter.refreshLimiter.AllowN(limiter.clock.Now(), 1) {
 		err := limiter.refreshCheckLimiter()
 		if err != nil {
 			return fmt.Errorf("refresh: %w", err)
