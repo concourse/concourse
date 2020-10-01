@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os/exec"
+	"strings"
 
 	"github.com/concourse/concourse/atc"
 	. "github.com/onsi/ginkgo"
@@ -80,8 +81,14 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Context("when a job and step name are specified", func() {
+			var (
+				expectedQueryParams []string
+				expectedURL         = "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/tasks/some-step-name/cache"
+			)
+
 			BeforeEach(func() {
-				args = append(args, "-j", "some-pipeline/some-job", "-s", "some-step-name")
+				args = append(args, "-j", "some-pipeline/branch:master/some-job", "-s", "some-step-name")
+				expectedQueryParams = []string{"instance_vars=%7B%22branch%22%3A%22master%22%7D"}
 			})
 
 			yes := func() {
@@ -95,7 +102,7 @@ var _ = Describe("Fly CLI", func() {
 			}
 
 			It("warns that it's about to do bad things", func() {
-				Eventually(sess).Should(gbytes.Say("!!! this will remove the task cache\\(s\\) for `some-pipeline/some-job`, task step `some-step-name`"))
+				Eventually(sess).Should(gbytes.Say("!!! this will remove the task cache\\(s\\) for `some-pipeline/branch:master/some-job`, task step `some-step-name`"))
 			})
 
 			It("bails out if the user says no", func() {
@@ -105,10 +112,10 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			Context("when the task step exists", func() {
-				BeforeEach(func() {
+				JustBeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/tasks/some-step-name/cache"),
+							ghttp.VerifyRequest("DELETE", expectedURL, strings.Join(expectedQueryParams, "&")),
 							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearTaskCacheResponse{CachesRemoved: 1}),
 						),
 					)
@@ -134,6 +141,7 @@ var _ = Describe("Fly CLI", func() {
 				Context("and a cache path is specified", func() {
 					BeforeEach(func() {
 						args = append(args, "-c", "path/to/cache")
+						expectedQueryParams = append(expectedQueryParams, "cache_path=path/to/cache")
 					})
 
 					It("succeeds if the user says yes", func() {
@@ -146,10 +154,10 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			Context("and the task step does not exist", func() {
-				BeforeEach(func() {
+				JustBeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/tasks/some-step-name/cache"),
+							ghttp.VerifyRequest("DELETE", expectedURL, strings.Join(expectedQueryParams, "&")),
 							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearTaskCacheResponse{CachesRemoved: 0}),
 						),
 					)
@@ -163,10 +171,10 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			Context("and the api returns an unexpected status code", func() {
-				BeforeEach(func() {
+				JustBeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/tasks/some-step-name/cache"),
+							ghttp.VerifyRequest("DELETE", expectedURL, strings.Join(expectedQueryParams, "&")),
 							ghttp.RespondWith(402, ""),
 						),
 					)

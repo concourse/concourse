@@ -10,12 +10,12 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (team *team) CheckResource(pipelineName string, resourceName string, version atc.Version) (atc.Build, bool, error) {
+func (team *team) CheckResource(pipelineRef atc.PipelineRef, resourceName string, version atc.Version) (atc.Build, bool, error) {
 
 	params := rata.Params{
-		"pipeline_name": pipelineName,
+		"pipeline_name": pipelineRef.Name,
 		"resource_name": resourceName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	var build atc.Build
@@ -28,6 +28,7 @@ func (team *team) CheckResource(pipelineName string, resourceName string, versio
 	err = team.connection.Send(internal.Request{
 		RequestName: atc.CheckResource,
 		Params:      params,
+		Query:       pipelineRef.QueryParams(),
 		Body:        bytes.NewBuffer(jsonBytes),
 		Header:      http.Header{"Content-Type": []string{"application/json"}},
 	}, &internal.Response{

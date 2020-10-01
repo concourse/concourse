@@ -26,7 +26,7 @@ var _ = Describe("Job", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		var created bool
-		pipeline, created, err = team.SavePipeline("fake-pipeline", atc.Config{
+		pipeline, created, err = team.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 			Jobs: atc.JobConfigs{
 				{
 					Name: "some-job",
@@ -212,7 +212,7 @@ var _ = Describe("Job", func() {
 		BeforeEach(func() {
 			var created bool
 			var err error
-			otherPipeline, created, err = team.SavePipeline("other-pipeline", atc.Config{
+			otherPipeline, created, err = team.SavePipeline(atc.PipelineRef{Name: "other-pipeline"}, atc.Config{
 				Jobs: atc.JobConfigs{
 					{Name: "some-job"},
 				},
@@ -442,7 +442,7 @@ var _ = Describe("Job", func() {
 					},
 				},
 			}
-			pipeline, _, err = team.SavePipeline("some-pipeline", config, db.ConfigVersion(1), false)
+			pipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, config, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
 			job, found, err = pipeline.Job("some-job")
@@ -679,7 +679,7 @@ var _ = Describe("Job", func() {
 		saveMaxInFlightPipeline := func() {
 			BeforeEach(func() {
 				var err error
-				pipeline, _, err = team.SavePipeline("fake-pipeline", atc.Config{
+				pipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
@@ -758,7 +758,7 @@ var _ = Describe("Job", func() {
 		saveSerialGroupsPipeline := func() {
 			BeforeEach(func() {
 				var err error
-				pipeline, _, err = team.SavePipeline("fake-pipeline", atc.Config{
+				pipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
@@ -864,7 +864,7 @@ var _ = Describe("Job", func() {
 				BeforeEach(func() {
 					var created bool
 					var err error
-					pipeline, created, err = team.SavePipeline("other-pipeline", atc.Config{
+					pipeline, created, err = team.SavePipeline(atc.PipelineRef{Name: "other-pipeline"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name: "some-job",
@@ -1300,7 +1300,7 @@ var _ = Describe("Job", func() {
 			Expect(setupTx.Commit()).To(Succeed())
 
 			var created bool
-			pipeline, created, err = team.SavePipeline("build-inputs-pipeline", atc.Config{
+			pipeline, created, err = team.SavePipeline(atc.PipelineRef{Name: "build-inputs-pipeline"}, atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
@@ -1544,7 +1544,7 @@ var _ = Describe("Job", func() {
 				},
 			}
 
-			pipeline2, _, err = team.SavePipeline("some-pipeline-2", config, 1, false)
+			pipeline2, _, err = team.SavePipeline(atc.PipelineRef{Name: "some-pipeline-2"}, config, 1, false)
 			Expect(err).ToNot(HaveOccurred())
 
 			resource2, found, err = pipeline2.Resource("some-resource")
@@ -1727,7 +1727,7 @@ var _ = Describe("Job", func() {
 				},
 			}
 			var err error
-			otherPipeline, _, err = team.SavePipeline("some-other-pipeline", pipelineConfig, db.ConfigVersion(1), false)
+			otherPipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "some-other-pipeline"}, pipelineConfig, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
 			build1DB, err = job.CreateBuild()
@@ -2201,7 +2201,7 @@ var _ = Describe("Job", func() {
 		Context("when there is an input configured for the job", func() {
 			BeforeEach(func() {
 				var err error
-				inputsPipeline, _, err = team.SavePipeline("inputs-pipeline", atc.Config{
+				inputsPipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "inputs-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
@@ -2274,7 +2274,7 @@ var _ = Describe("Job", func() {
 		Context("when the input is pinned through the get step", func() {
 			BeforeEach(func() {
 				var err error
-				inputsPipeline, _, err = team.SavePipeline("inputs-pipeline", atc.Config{
+				inputsPipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "inputs-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
@@ -2374,7 +2374,7 @@ var _ = Describe("Job", func() {
 		Context("when the input is pinned through the resource config", func() {
 			BeforeEach(func() {
 				var err error
-				inputsPipeline, _, err = team.SavePipeline("inputs-pipeline", atc.Config{
+				inputsPipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "inputs-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
@@ -2424,7 +2424,7 @@ var _ = Describe("Job", func() {
 		Context("when the input is pinned through the api", func() {
 			BeforeEach(func() {
 				var err error
-				inputsPipeline, _, err = team.SavePipeline("inputs-pipeline", atc.Config{
+				inputsPipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "inputs-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
@@ -2504,7 +2504,7 @@ var _ = Describe("Job", func() {
 		Context("when there are multiple inputs", func() {
 			BeforeEach(func() {
 				var err error
-				inputsPipeline, _, err = team.SavePipeline("inputs-pipeline", atc.Config{
+				inputsPipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "inputs-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
@@ -2597,7 +2597,7 @@ var _ = Describe("Job", func() {
 		Context("when the job has puts and tasks", func() {
 			BeforeEach(func() {
 				var err error
-				inputsPipeline, _, err = team.SavePipeline("inputs-pipeline", atc.Config{
+				inputsPipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "inputs-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{
 							Name: "some-job",
@@ -2660,7 +2660,7 @@ var _ = Describe("Job", func() {
 		var inputsJob db.Job
 
 		BeforeEach(func() {
-			inputsPipeline, _, err := team.SavePipeline("inputs-pipeline", atc.Config{
+			inputsPipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "inputs-pipeline"}, atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
@@ -2785,7 +2785,7 @@ var _ = Describe("Job", func() {
 		var outputsJob db.Job
 
 		BeforeEach(func() {
-			outputsPipeline, _, err := team.SavePipeline("outputs-pipeline", atc.Config{
+			outputsPipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "outputs-pipeline"}, atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",

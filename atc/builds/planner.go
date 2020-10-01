@@ -262,11 +262,12 @@ func cartesianProduct(vars []atc.AcrossVarConfig) [][]interface{} {
 
 func (visitor *planVisitor) VisitSetPipeline(step *atc.SetPipelineStep) error {
 	visitor.plan = visitor.planFactory.NewPlan(atc.SetPipelinePlan{
-		Name:     step.Name,
-		File:     step.File,
-		Team:     step.Team,
-		Vars:     step.Vars,
-		VarFiles: step.VarFiles,
+		Name:         step.Name,
+		File:         step.File,
+		Team:         step.Team,
+		Vars:         step.Vars,
+		VarFiles:     step.VarFiles,
+		InstanceVars: step.InstanceVars,
 	})
 
 	return nil

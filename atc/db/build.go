@@ -81,6 +81,7 @@ var buildsQuery = psql.Select(`
 		r.name,
 		b.pipeline_id,
 		p.name,
+		p.instance_vars,
 		t.name,
 		b.nonce,
 		b.drained,
@@ -184,7 +185,7 @@ type Build interface {
 	SpanContext() propagators.Supplier
 
 	SavePipeline(
-		pipelineName string,
+		pipelineRef atc.PipelineRef,
 		teamId int,
 		config atc.Config,
 		from ConfigVersion,
@@ -898,7 +899,7 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 		return BuildPreparation{}, false, nil
 	}
 
-	pipeline, found, err := t.Pipeline(b.pipelineName)
+	pipeline, found, err := t.Pipeline(b.PipelineRef())
 	if err != nil {
 		return BuildPreparation{}, false, err
 	}
@@ -1629,7 +1630,7 @@ func (b *build) SpanContext() propagators.Supplier {
 }
 
 func (b *build) SavePipeline(
-	pipelineName string,
+	pipelineRef atc.PipelineRef,
 	teamID int,
 	config atc.Config,
 	from ConfigVersion,
@@ -1644,7 +1645,7 @@ func (b *build) SavePipeline(
 
 	jobID := newNullInt64(b.jobID)
 	buildID := newNullInt64(b.id)
-	pipelineID, isNewPipeline, err := savePipeline(tx, pipelineName, config, from, initiallyPaused, teamID, jobID, buildID)
+	pipelineID, isNewPipeline, err := savePipeline(tx, pipelineRef, config, from, initiallyPaused, teamID, jobID, buildID)
 	if err != nil {
 		return nil, false, err
 	}
@@ -1695,6 +1696,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		nonce, spanContext                                                                sql.NullString
 		drained, aborted, completed                                                       bool
 		status                                                                            string
+		pipelineInstanceVars                                                              sql.NullString
 	)
 
 	err := row.Scan(
@@ -1717,6 +1719,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		&resourceName,
 		&pipelineID,
 		&pipelineName,
+		&pipelineInstanceVars,
 		&b.teamName,
 		&nonce,
 		&drained,
@@ -1782,6 +1785,13 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 
 	if spanContext.Valid {
 		err = json.Unmarshal([]byte(spanContext.String), &b.spanContext)
+		if err != nil {
+			return err
+		}
+	}
+
+	if pipelineInstanceVars.Valid {
+		err = json.Unmarshal([]byte(pipelineInstanceVars.String), &b.pipelineInstanceVars)
 		if err != nil {
 			return err
 		}

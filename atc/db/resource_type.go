@@ -142,6 +142,7 @@ var resourceTypesQuery = psql.Select(
 	"r.nonce",
 	"r.check_error",
 	"p.name",
+	"p.instance_vars",
 	"t.id",
 	"t.name",
 	"ro.id",
@@ -373,9 +374,10 @@ func scanResourceType(t *resourceType, row scannable) error {
 		configJSON                                   sql.NullString
 		checkErr, rcsCheckErr, rcsID, version, nonce sql.NullString
 		lastCheckStartTime, lastCheckEndTime         pq.NullTime
+		pipelineInstanceVars                         sql.NullString
 	)
 
-	err := row.Scan(&t.id, &t.pipelineID, &t.name, &t.type_, &configJSON, &version, &nonce, &checkErr, &t.pipelineName, &t.teamID, &t.teamName, &rcsID, &rcsCheckErr, &lastCheckStartTime, &lastCheckEndTime)
+	err := row.Scan(&t.id, &t.pipelineID, &t.name, &t.type_, &configJSON, &version, &nonce, &checkErr, &t.pipelineName, &pipelineInstanceVars, &t.teamID, &t.teamName, &rcsID, &rcsCheckErr, &lastCheckStartTime, &lastCheckEndTime)
 	if err != nil {
 		return err
 	}
@@ -431,6 +433,13 @@ func scanResourceType(t *resourceType, row scannable) error {
 
 	if rcsCheckErr.Valid {
 		t.checkError = errors.New(rcsCheckErr.String)
+	}
+
+	if pipelineInstanceVars.Valid {
+		err = json.Unmarshal([]byte(pipelineInstanceVars.String), &t.pipelineInstanceVars)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

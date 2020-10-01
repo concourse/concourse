@@ -35,7 +35,8 @@ func (command *GetTeamCommand) Execute(args []string) error {
 	}
 
 	if command.JSON {
-		if err := displayhelpers.JsonPrint(team); err != nil {
+		err := displayhelpers.JsonPrint(team.ATCTeam())
+		if err != nil {
 			return err
 		}
 		return nil

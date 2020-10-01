@@ -13,6 +13,8 @@ import (
 var _ = Describe("ATC Handler Build Inputs", func() {
 	Describe("BuildInputsForJob", func() {
 		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/inputs"
+		queryParams := "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+		pipelineRef := atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 
 		Context("when pipeline/job exists", func() {
 			var expectedBuildInputs []atc.BuildInput
@@ -31,14 +33,14 @@ var _ = Describe("ATC Handler Build Inputs", func() {
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.VerifyRequest("GET", expectedURL, queryParams),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuildInputs),
 					),
 				)
 			})
 
 			It("returns the input configuration for the given job", func() {
-				buildInputs, found, err := team.BuildInputsForJob("mypipeline", "myjob")
+				buildInputs, found, err := team.BuildInputsForJob(pipelineRef, "myjob")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(buildInputs).To(Equal(expectedBuildInputs))
 				Expect(found).To(BeTrue())
@@ -56,7 +58,7 @@ var _ = Describe("ATC Handler Build Inputs", func() {
 			})
 
 			It("returns false in the found value and no error", func() {
-				_, found, err := team.BuildInputsForJob("mypipeline", "myjob")
+				_, found, err := team.BuildInputsForJob(pipelineRef, "myjob")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -65,6 +67,8 @@ var _ = Describe("ATC Handler Build Inputs", func() {
 
 	Describe("BuildsWithVersionAsInput", func() {
 		expectedURL := "/api/v1/teams/some-team/pipelines/some-pipeline/resources/myresource/versions/2/input_to"
+		queryParams := "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+		pipelineRef := atc.PipelineRef{Name: "some-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 
 		var expectedBuilds []atc.Build
 
@@ -88,14 +92,14 @@ var _ = Describe("ATC Handler Build Inputs", func() {
 		})
 
 		JustBeforeEach(func() {
-			actualBuilds, found, clientErr = team.BuildsWithVersionAsInput("some-pipeline", "myresource", 2)
+			actualBuilds, found, clientErr = team.BuildsWithVersionAsInput(pipelineRef, "myresource", 2)
 		})
 
 		Context("when the server returns builds", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.VerifyRequest("GET", expectedURL, queryParams),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuilds),
 					),
 				)
@@ -112,7 +116,7 @@ var _ = Describe("ATC Handler Build Inputs", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.VerifyRequest("GET", expectedURL, queryParams),
 						ghttp.RespondWith(http.StatusNotFound, ""),
 					),
 				)
@@ -128,7 +132,7 @@ var _ = Describe("ATC Handler Build Inputs", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.VerifyRequest("GET", expectedURL, queryParams),
 						ghttp.RespondWith(http.StatusInternalServerError, ""),
 					),
 				)

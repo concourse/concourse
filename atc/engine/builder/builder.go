@@ -1,6 +1,8 @@
 package builder
 
 import (
+	"encoding/json"
+
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 
@@ -484,6 +486,12 @@ func (builder *stepBuilder) containerMetadata(
 		attemptStrs = append(attemptStrs, strconv.Itoa(a))
 	}
 
+	var pipelineInstanceVars string
+	if build.PipelineInstanceVars() != nil {
+		instanceVars, _ := json.Marshal(build.PipelineInstanceVars())
+		pipelineInstanceVars = string(instanceVars)
+	}
+
 	return db.ContainerMetadata{
 		Type: containerType,
 
@@ -491,9 +499,10 @@ func (builder *stepBuilder) containerMetadata(
 		JobID:      build.JobID(),
 		BuildID:    build.ID(),
 
-		PipelineName: build.PipelineName(),
-		JobName:      build.JobName(),
-		BuildName:    build.Name(),
+		PipelineName:         build.PipelineName(),
+		PipelineInstanceVars: pipelineInstanceVars,
+		JobName:              build.JobName(),
+		BuildName:            build.Name(),
 
 		StepName: stepName,
 		Attempt:  strings.Join(attemptStrs, "."),
@@ -505,14 +514,15 @@ func (builder *stepBuilder) stepMetadata(
 	externalURL string,
 ) exec.StepMetadata {
 	return exec.StepMetadata{
-		BuildID:      build.ID(),
-		BuildName:    build.Name(),
-		TeamID:       build.TeamID(),
-		TeamName:     build.TeamName(),
-		JobID:        build.JobID(),
-		JobName:      build.JobName(),
-		PipelineID:   build.PipelineID(),
-		PipelineName: build.PipelineName(),
-		ExternalURL:  externalURL,
+		BuildID:              build.ID(),
+		BuildName:            build.Name(),
+		TeamID:               build.TeamID(),
+		TeamName:             build.TeamName(),
+		JobID:                build.JobID(),
+		JobName:              build.JobName(),
+		PipelineID:           build.PipelineID(),
+		PipelineName:         build.PipelineName(),
+		PipelineInstanceVars: build.PipelineInstanceVars(),
+		ExternalURL:          externalURL,
 	}
 }

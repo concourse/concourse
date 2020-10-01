@@ -277,9 +277,10 @@ run:
 				taskPlan,
 			})
 
+			expectedQueryParams := "instance_vars=%7B%22branch%22%3A%22master%22%7D"
 			atcServer.RouteToHandler("POST", "/api/v1/teams/main/pipelines/some-pipeline/builds",
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/some-pipeline/builds"),
+					ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/some-pipeline/builds", expectedQueryParams),
 					testhelpers.VerifyPlan(expectedPlan),
 					func(w http.ResponseWriter, r *http.Request) {
 						http.SetCookie(w, &http.Cookie{
@@ -293,23 +294,29 @@ run:
 				),
 			)
 			atcServer.RouteToHandler("GET", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/inputs",
-				ghttp.RespondWithJSONEncoded(200, []atc.BuildInput{atc.BuildInput{Name: "fixture"}}),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/inputs", expectedQueryParams),
+					ghttp.RespondWithJSONEncoded(200, []atc.BuildInput{atc.BuildInput{Name: "fixture"}}),
+				),
 			)
 			atcServer.RouteToHandler("GET", "/api/v1/teams/main/pipelines/some-pipeline/resource-types",
-				ghttp.RespondWithJSONEncoded(200, atc.VersionedResourceTypes{
-					atc.VersionedResourceType{
-						ResourceType: atc.ResourceType{
-							Name:   "resource-type",
-							Type:   "s3",
-							Source: atc.Source{},
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/resource-types", expectedQueryParams),
+					ghttp.RespondWithJSONEncoded(200, atc.VersionedResourceTypes{
+						atc.VersionedResourceType{
+							ResourceType: atc.ResourceType{
+								Name:   "resource-type",
+								Type:   "s3",
+								Source: atc.Source{},
+							},
 						},
-					},
-				}),
+					}),
+				),
 			)
 		})
 
 		It("creates a build, streams output, and polls until completion", func() {
-			flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-j", "some-pipeline/some-job")
+			flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-j", "some-pipeline/branch:master/some-job")
 			flyCmd.Dir = buildDir
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -1041,7 +1048,7 @@ run:
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess.Err).Should(gbytes.Say("argument format should be <pipeline>/<job>"))
+			Eventually(sess.Err).Should(gbytes.Say("argument format should be <pipeline>/<key:value>/<job>"))
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(1))

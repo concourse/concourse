@@ -18,19 +18,22 @@ var _ = Describe("Fly CLI", func() {
 	Describe("hide-pipeline", func() {
 		Context("when the pipeline name is specified", func() {
 			var (
-				path string
-				err  error
+				path        string
+				queryParams string
+				err         error
 			)
 			BeforeEach(func() {
 				path, err = atc.Routes.CreatePathForRoute(atc.HidePipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": teamName})
 				Expect(err).NotTo(HaveOccurred())
+
+				queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
 			})
 
 			Context("when the pipeline exists", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("PUT", path),
+							ghttp.VerifyRequest("PUT", path, queryParams),
 							ghttp.RespondWith(http.StatusOK, nil),
 						),
 					)
@@ -38,12 +41,12 @@ var _ = Describe("Fly CLI", func() {
 
 				It("hides the pipeline", func() {
 					Expect(func() {
-						flyCmd := exec.Command(flyPath, "-t", targetName, "hide-pipeline", "-p", "awesome-pipeline")
+						flyCmd := exec.Command(flyPath, "-t", targetName, "hide-pipeline", "-p", "awesome-pipeline/branch:master")
 
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
-						Eventually(sess).Should(gbytes.Say(`hid 'awesome-pipeline'`))
+						Eventually(sess).Should(gbytes.Say(`hid 'awesome-pipeline/branch:master'`))
 
 						<-sess.Exited
 						Expect(sess.ExitCode()).To(Equal(0))
@@ -175,8 +178,8 @@ var _ = Describe("Fly CLI", func() {
 			})
 		})
 
-		Context("when specifying a pipeline name with a '/' character in it", func() {
-			It("fails and says '/' characters are not allowed", func() {
+		Context("when the pipeline flag is invalid", func() {
+			It("fails and print invalid flag error", func() {
 				flyCmd := exec.Command(flyPath, "-t", targetName, "hide-pipeline", "-p", "forbidden/pipelinename")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -185,7 +188,7 @@ var _ = Describe("Fly CLI", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
 
-				Expect(sess.Err).To(gbytes.Say("error: pipeline name cannot contain '/'"))
+				Expect(sess.Err).To(gbytes.Say("error: invalid argument for flag `-p, --pipeline'"))
 			})
 		})
 

@@ -25,15 +25,15 @@ func (command *UnpinResourceCommand) Execute([]string) error {
 
 	team := target.Team()
 
-	unpinned, err := team.UnpinResource(command.Resource.PipelineName, command.Resource.ResourceName)
+	unpinned, err := team.UnpinResource(command.Resource.PipelineRef, command.Resource.ResourceName)
 	if err != nil {
 		return err
 	}
 
 	if unpinned {
-		fmt.Printf("unpinned '%s/%s'\n", command.Resource.PipelineName, command.Resource.ResourceName)
+		fmt.Printf("unpinned '%s/%s'\n", command.Resource.PipelineRef.String(), command.Resource.ResourceName)
 	} else {
-		displayhelpers.Failf("could not find resource '%s/%s'\n", command.Resource.PipelineName, command.Resource.ResourceName)
+		displayhelpers.Failf("could not find resource '%s/%s'\n", command.Resource.PipelineRef.String(), command.Resource.ResourceName)
 	}
 
 	return nil

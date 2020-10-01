@@ -11,11 +11,15 @@ import (
 
 var _ = Describe("ATC Handler Resource", func() {
 	Describe("team.ListResources", func() {
-		var expectedResources []atc.Resource
+		var (
+			expectedResources []atc.Resource
+
+			expectedURL   = "/api/v1/teams/some-team/pipelines/some-pipeline/resources"
+			expectedQuery = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			pipelineRef   = atc.PipelineRef{Name: "some-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
+		)
 
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/some-team/pipelines/some-pipeline/resources"
-
 			expectedResources = []atc.Resource{
 				{
 					Name: "resource-1",
@@ -29,25 +33,30 @@ var _ = Describe("ATC Handler Resource", func() {
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", expectedURL),
+					ghttp.VerifyRequest("GET", expectedURL, expectedQuery),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedResources),
 				),
 			)
 		})
 
 		It("returns resources that belong to the pipeline", func() {
-			pipelines, err := team.ListResources("some-pipeline")
+			pipelines, err := team.ListResources(pipelineRef)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pipelines).To(Equal(expectedResources))
 		})
 	})
 
 	Describe("Resource", func() {
-		var expectedResource atc.Resource
+		var (
+			expectedResource atc.Resource
+			resource         atc.Resource
+			found            bool
+			clientErr        error
 
-		var resource atc.Resource
-		var found bool
-		var clientErr error
+			expectedURL   = "/api/v1/teams/some-team/pipelines/some-pipeline/resources/myresource"
+			expectedQuery = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			pipelineRef   = atc.PipelineRef{Name: "some-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
+		)
 
 		BeforeEach(func() {
 			expectedResource = atc.Resource{
@@ -56,14 +65,14 @@ var _ = Describe("ATC Handler Resource", func() {
 		})
 
 		JustBeforeEach(func() {
-			resource, found, clientErr = team.Resource("some-pipeline", "myresource")
+			resource, found, clientErr = team.Resource(pipelineRef, "myresource")
 		})
 
 		Context("when the server returns the resource", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/pipelines/some-pipeline/resources/myresource"),
+						ghttp.VerifyRequest("GET", expectedURL, expectedQuery),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedResource),
 					),
 				)
@@ -80,7 +89,7 @@ var _ = Describe("ATC Handler Resource", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/pipelines/some-pipeline/resources/myresource"),
+						ghttp.VerifyRequest("GET", expectedURL, expectedQuery),
 						ghttp.RespondWith(http.StatusNotFound, ""),
 					),
 				)
@@ -96,7 +105,7 @@ var _ = Describe("ATC Handler Resource", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/some-team/pipelines/some-pipeline/resources/myresource"),
+						ghttp.VerifyRequest("GET", expectedURL, expectedQuery),
 						ghttp.RespondWith(http.StatusInternalServerError, ""),
 					),
 				)

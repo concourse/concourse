@@ -62,6 +62,7 @@ var (
 	defaultResource           db.Resource
 	defaultPipelineConfig     atc.Config
 	defaultPipeline           db.Pipeline
+	defaultPipelineRef        atc.PipelineRef
 	defaultJob                db.Job
 	logger                    *lagertest.TestLogger
 	lockFactory               lock.LockFactory
@@ -202,7 +203,9 @@ var _ = BeforeEach(func() {
 		},
 	}
 
-	defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", defaultPipelineConfig, db.ConfigVersion(0), false)
+	defaultPipelineRef = atc.PipelineRef{Name: "default-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
+
+	defaultPipeline, _, err = defaultTeam.SavePipeline(defaultPipelineRef, defaultPipelineConfig, db.ConfigVersion(0), false)
 	Expect(err).NotTo(HaveOccurred())
 
 	var found bool

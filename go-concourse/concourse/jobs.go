@@ -9,16 +9,17 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (team *team) ListJobs(pipelineName string) ([]atc.Job, error) {
+func (team *team) ListJobs(pipelineRef atc.PipelineRef) ([]atc.Job, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
-		"team_name":     team.name,
+		"pipeline_name": pipelineRef.Name,
+		"team_name":     team.Name(),
 	}
 
 	var jobs []atc.Job
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.ListJobs,
 		Params:      params,
+		Query:       pipelineRef.QueryParams(),
 	}, &internal.Response{
 		Result: &jobs,
 	})
@@ -37,17 +38,18 @@ func (client *client) ListAllJobs() ([]atc.Job, error) {
 	return jobs, err
 }
 
-func (team *team) Job(pipelineName, jobName string) (atc.Job, bool, error) {
+func (team *team) Job(pipelineRef atc.PipelineRef, jobName string) (atc.Job, bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
+		"pipeline_name": pipelineRef.Name,
 		"job_name":      jobName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	var job atc.Job
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.GetJob,
 		Params:      params,
+		Query:       pipelineRef.QueryParams(),
 	}, &internal.Response{
 		Result: &job,
 	})
@@ -61,11 +63,11 @@ func (team *team) Job(pipelineName, jobName string) (atc.Job, bool, error) {
 	}
 }
 
-func (team *team) JobBuilds(pipelineName string, jobName string, page Page) ([]atc.Build, Pagination, bool, error) {
+func (team *team) JobBuilds(pipelineRef atc.PipelineRef, jobName string, page Page) ([]atc.Build, Pagination, bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
+		"pipeline_name": pipelineRef.Name,
 		"job_name":      jobName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	var builds []atc.Build
@@ -74,7 +76,7 @@ func (team *team) JobBuilds(pipelineName string, jobName string, page Page) ([]a
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.ListJobBuilds,
 		Params:      params,
-		Query:       page.QueryParams(),
+		Query:       merge(page.QueryParams(), pipelineRef.QueryParams()),
 	}, &internal.Response{
 		Result:  &builds,
 		Headers: &headers,
@@ -94,16 +96,17 @@ func (team *team) JobBuilds(pipelineName string, jobName string, page Page) ([]a
 	}
 }
 
-func (team *team) PauseJob(pipelineName string, jobName string) (bool, error) {
+func (team *team) PauseJob(pipelineRef atc.PipelineRef, jobName string) (bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
+		"pipeline_name": pipelineRef.Name,
 		"job_name":      jobName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.PauseJob,
 		Params:      params,
+		Query:       pipelineRef.QueryParams(),
 	}, &internal.Response{})
 
 	switch err.(type) {
@@ -116,16 +119,17 @@ func (team *team) PauseJob(pipelineName string, jobName string) (bool, error) {
 	}
 }
 
-func (team *team) UnpauseJob(pipelineName string, jobName string) (bool, error) {
+func (team *team) UnpauseJob(pipelineRef atc.PipelineRef, jobName string) (bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
+		"pipeline_name": pipelineRef.Name,
 		"job_name":      jobName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.UnpauseJob,
 		Params:      params,
+		Query:       pipelineRef.QueryParams(),
 	}, &internal.Response{})
 
 	switch err.(type) {
@@ -138,16 +142,17 @@ func (team *team) UnpauseJob(pipelineName string, jobName string) (bool, error) 
 	}
 }
 
-func (team *team) ScheduleJob(pipelineName string, jobName string) (bool, error) {
+func (team *team) ScheduleJob(pipelineRef atc.PipelineRef, jobName string) (bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
+		"pipeline_name": pipelineRef.Name,
 		"job_name":      jobName,
-		"team_name":     team.name,
+		"team_name":     team.Name(),
 	}
 
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.ScheduleJob,
 		Params:      params,
+		Query:       pipelineRef.QueryParams(),
 	}, &internal.Response{})
 
 	switch err.(type) {
@@ -160,10 +165,10 @@ func (team *team) ScheduleJob(pipelineName string, jobName string) (bool, error)
 	}
 }
 
-func (team *team) ClearTaskCache(pipelineName string, jobName string, stepName string, cachePath string) (int64, error) {
+func (team *team) ClearTaskCache(pipelineRef atc.PipelineRef, jobName string, stepName string, cachePath string) (int64, error) {
 	params := rata.Params{
-		"team_name":     team.name,
-		"pipeline_name": pipelineName,
+		"team_name":     team.Name(),
+		"pipeline_name": pipelineRef.Name,
 		"job_name":      jobName,
 		"step_name":     stepName,
 	}
@@ -182,7 +187,7 @@ func (team *team) ClearTaskCache(pipelineName string, jobName string, stepName s
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.ClearTaskCache,
 		Params:      params,
-		Query:       queryParams,
+		Query:       merge(queryParams, pipelineRef.QueryParams()),
 	}, &response)
 
 	if err != nil {

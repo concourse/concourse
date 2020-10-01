@@ -25,7 +25,7 @@ var _ = Describe("Resource", func() {
 		)
 
 		pipeline, created, err = defaultTeam.SavePipeline(
-			"pipeline-with-resources",
+			atc.PipelineRef{Name: "pipeline-with-resources"},
 			atc.Config{
 				Resources: atc.ResourceConfigs{
 					{
@@ -389,7 +389,7 @@ var _ = Describe("Resource", func() {
 
 			var created bool
 			pipeline, created, err = defaultTeam.SavePipeline(
-				"some-pipeline-with-two-jobs",
+				atc.PipelineRef{Name: "some-pipeline-with-two-jobs"},
 				config,
 				0,
 				false,
@@ -630,7 +630,7 @@ var _ = Describe("Resource", func() {
 			}
 
 			pipeline, created, err = defaultTeam.SavePipeline(
-				"pipeline-with-same-resources",
+				atc.PipelineRef{Name: "pipeline-with-same-resources"},
 				config,
 				0,
 				false,

@@ -48,7 +48,7 @@ var _ = Describe("YAML Template With Params", func() {
 				{Name: "param2", Value: "value2"},
 				{Name: "param3", Value: "value3"},
 			}
-			sampleYaml := templatehelpers.NewYamlTemplateWithParams(atc.PathFlag(filepath.Join(tmpdir, "sample.yml")), nil, vars, nil)
+			sampleYaml := templatehelpers.NewYamlTemplateWithParams(atc.PathFlag(filepath.Join(tmpdir, "sample.yml")), nil, vars, nil, nil)
 			result, err := sampleYaml.Evaluate(false, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(result)).To(Equal(`section:
@@ -64,7 +64,7 @@ var _ = Describe("YAML Template With Params", func() {
 				{Name: "param1", Value: "value1"},
 				{Name: "param2", Value: "value2"},
 			}
-			sampleYaml := templatehelpers.NewYamlTemplateWithParams(atc.PathFlag(filepath.Join(tmpdir, "sample.yml")), nil, vars, nil)
+			sampleYaml := templatehelpers.NewYamlTemplateWithParams(atc.PathFlag(filepath.Join(tmpdir, "sample.yml")), nil, vars, nil, nil)
 			result, err := sampleYaml.Evaluate(false, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(result)).To(Equal(`section:

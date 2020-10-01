@@ -1,8 +1,10 @@
 package pipelineserver
 
 import (
+	"encoding/json"
 	"net/http"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -23,6 +25,14 @@ func (pdbh *ScopedHandlerFactory) HandlerFor(pipelineScopedHandler func(db.Pipel
 	return func(w http.ResponseWriter, r *http.Request) {
 		teamName := r.FormValue(":team_name")
 		pipelineName := r.FormValue(":pipeline_name")
+		pipelineRef := atc.PipelineRef{Name: pipelineName}
+		if instanceVars := r.URL.Query().Get("instance_vars"); instanceVars != "" {
+			err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
 
 		pipeline, ok := r.Context().Value(auth.PipelineContextKey).(db.Pipeline)
 		if !ok {
@@ -37,7 +47,7 @@ func (pdbh *ScopedHandlerFactory) HandlerFor(pipelineScopedHandler func(db.Pipel
 				return
 			}
 
-			pipeline, found, err = dbTeam.Pipeline(pipelineName)
+			pipeline, found, err = dbTeam.Pipeline(pipelineRef)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return

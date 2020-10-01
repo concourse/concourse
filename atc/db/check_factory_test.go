@@ -45,6 +45,7 @@ var _ = Describe("CheckFactory", func() {
 			fakeResource.SourceReturns(atc.Source{"some": "source"})
 			fakeResource.PipelineIDReturns(defaultPipeline.ID())
 			fakeResource.PipelineNameReturns(defaultPipeline.Name())
+			fakeResource.PipelineInstanceVarsReturns(defaultPipeline.InstanceVars())
 			fakeResource.PipelineReturns(defaultPipeline, true, nil)
 			fakeResource.CheckPlanReturns(checkPlan)
 
@@ -58,6 +59,7 @@ var _ = Describe("CheckFactory", func() {
 			fakeResourceType.SourceReturns(atc.Source{"some": "type-source"})
 			fakeResourceType.PipelineIDReturns(defaultPipeline.ID())
 			fakeResourceType.PipelineNameReturns(defaultPipeline.Name())
+			fakeResourceType.PipelineInstanceVarsReturns(defaultPipeline.InstanceVars())
 			fakeResourceType.PipelineReturns(defaultPipeline, true, nil)
 
 			fakeResourceTypes = db.ResourceTypes{fakeResourceType}
