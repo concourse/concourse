@@ -627,6 +627,7 @@ var _ = Describe("Builds API", func() {
 						"name": "1",
 						"status": "succeeded",
 						"job_name": "job1",
+						"pipeline_id": 123,
 						"pipeline_name": "pipeline1",
 						"team_name": "some-team",
 						"api_url": "/api/v1/builds/1",
