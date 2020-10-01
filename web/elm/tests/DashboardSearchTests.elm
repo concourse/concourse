@@ -2,11 +2,13 @@ module DashboardSearchTests exposing (hasData, missingData)
 
 import Application.Application as Application
 import Common exposing (queryView)
-import Concourse
+import Concourse exposing (JsonValue(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import DashboardTests exposing (whenOnDashboard)
 import Data
+import Dict
 import Expect exposing (Expectation)
+import Json.Encode
 import Message.Callback as Callback
 import Message.Message
 import Message.Subscription as Subscription
@@ -14,7 +16,7 @@ import Message.TopLevelMessage as Msgs
 import Set
 import Test exposing (Test)
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (class, id, style, text)
+import Test.Html.Selector exposing (class, containing, id, style, text)
 
 
 describe : String -> model -> List (model -> Test) -> Test
@@ -67,6 +69,19 @@ hasData =
                     Ok
                         [ Data.pipeline "team1" 1 |> Data.withName "pipeline1"
                         , Data.pipeline "team1" 2 |> Data.withName "pipeline2"
+                        , Data.pipeline "team1" 3
+                            |> Data.withName "pipeline3"
+                            |> Data.withInstanceVars
+                                (Dict.fromList
+                                    [ ( "version", JsonString "6.5.x" )
+                                    , ( "properties"
+                                      , JsonArray
+                                            [ JsonNumber 123
+                                            , JsonObject [ ( "a", JsonRaw <| Json.Encode.bool True ) ]
+                                            ]
+                                      )
+                                    ]
+                                )
                         ]
                 )
             |> Tuple.first
@@ -147,6 +162,14 @@ hasData =
                     , Query.index 1
                         >> Query.has [ text "team2" ]
                     ]
+        , it "fuzzy matches by pipeline name and instance var values" <|
+            Application.update
+                (Msgs.Update <|
+                    Message.Message.FilterMsg "p3 123 65 tru"
+                )
+                >> Tuple.first
+                >> queryView
+                >> Query.has [ class "card", containing [ text "pipeline3" ] ]
         , it "centers 'no results' message when typing a string with no hits" <|
             Application.handleCallback
                 (Callback.AllTeamsFetched <|

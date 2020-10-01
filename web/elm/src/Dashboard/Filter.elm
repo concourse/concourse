@@ -1,6 +1,6 @@
 module Dashboard.Filter exposing (filterTeams)
 
-import Concourse exposing (DatabaseID)
+import Concourse exposing (DatabaseID, hyphenNotation)
 import Concourse.PipelineStatus
     exposing
         ( PipelineStatus(..)
@@ -123,7 +123,7 @@ pipelineFilter pf jobs existingJobs pipeline =
     in
     case pf of
         FuzzyName term ->
-            Simple.Fuzzy.match term pipeline.name
+            Simple.Fuzzy.match term (pipeline.name ++ hyphenNotation pipeline.instanceVars)
 
         Status sf ->
             case sf of
