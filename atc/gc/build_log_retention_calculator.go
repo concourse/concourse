@@ -52,7 +52,7 @@ func (blrc *buildLogRetentionCalculator) BuildLogsToRetain(jobConfig atc.JobConf
 
 	// If we don't have a max set, then we're done
 	if blrc.maxBuildLogsToRetain == 0 && blrc.maxDaysToRetainBuildLogs == 0 {
-		return atc.BuildLogRetention{buildLogsToRetain, minSuccessBuildLogsToRetain, daysToRetainBuildLogs}
+		return atc.BuildLogRetention{Builds: buildLogsToRetain, MinimumSucceededBuilds: minSuccessBuildLogsToRetain, Days: daysToRetainBuildLogs}
 	}
 
 	var logRetention atc.BuildLogRetention

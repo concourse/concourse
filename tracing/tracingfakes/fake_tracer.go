@@ -24,19 +24,6 @@ type FakeTracer struct {
 		result1 context.Context
 		result2 trace.Span
 	}
-	WithSpanStub        func(context.Context, string, func(ctx context.Context) error) error
-	withSpanMutex       sync.RWMutex
-	withSpanArgsForCall []struct {
-		arg1 context.Context
-		arg2 string
-		arg3 func(ctx context.Context) error
-	}
-	withSpanReturns struct {
-		result1 error
-	}
-	withSpanReturnsOnCall map[int]struct {
-		result1 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -106,75 +93,11 @@ func (fake *FakeTracer) StartReturnsOnCall(i int, result1 context.Context, resul
 	}{result1, result2}
 }
 
-func (fake *FakeTracer) WithSpan(arg1 context.Context, arg2 string, arg3 func(ctx context.Context) error) error {
-	fake.withSpanMutex.Lock()
-	ret, specificReturn := fake.withSpanReturnsOnCall[len(fake.withSpanArgsForCall)]
-	fake.withSpanArgsForCall = append(fake.withSpanArgsForCall, struct {
-		arg1 context.Context
-		arg2 string
-		arg3 func(ctx context.Context) error
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("WithSpan", []interface{}{arg1, arg2, arg3})
-	fake.withSpanMutex.Unlock()
-	if fake.WithSpanStub != nil {
-		return fake.WithSpanStub(arg1, arg2, arg3)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.withSpanReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeTracer) WithSpanCallCount() int {
-	fake.withSpanMutex.RLock()
-	defer fake.withSpanMutex.RUnlock()
-	return len(fake.withSpanArgsForCall)
-}
-
-func (fake *FakeTracer) WithSpanCalls(stub func(context.Context, string, func(ctx context.Context) error) error) {
-	fake.withSpanMutex.Lock()
-	defer fake.withSpanMutex.Unlock()
-	fake.WithSpanStub = stub
-}
-
-func (fake *FakeTracer) WithSpanArgsForCall(i int) (context.Context, string, func(ctx context.Context) error) {
-	fake.withSpanMutex.RLock()
-	defer fake.withSpanMutex.RUnlock()
-	argsForCall := fake.withSpanArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
-}
-
-func (fake *FakeTracer) WithSpanReturns(result1 error) {
-	fake.withSpanMutex.Lock()
-	defer fake.withSpanMutex.Unlock()
-	fake.WithSpanStub = nil
-	fake.withSpanReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeTracer) WithSpanReturnsOnCall(i int, result1 error) {
-	fake.withSpanMutex.Lock()
-	defer fake.withSpanMutex.Unlock()
-	fake.WithSpanStub = nil
-	if fake.withSpanReturnsOnCall == nil {
-		fake.withSpanReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.withSpanReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeTracer) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.startMutex.RLock()
 	defer fake.startMutex.RUnlock()
-	fake.withSpanMutex.RLock()
-	defer fake.withSpanMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

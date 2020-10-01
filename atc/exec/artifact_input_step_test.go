@@ -41,7 +41,7 @@ var _ = Describe("ArtifactInputStep", func() {
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeWorkerClient = new(workerfakes.FakeClient)
 
-		plan = atc.Plan{ArtifactInput: &atc.ArtifactInputPlan{34, "some-input-artifact-name"}}
+		plan = atc.Plan{ArtifactInput: &atc.ArtifactInputPlan{ArtifactID: 34, Name: "some-input-artifact-name"}}
 		step = exec.NewArtifactInputStep(plan, fakeBuild, fakeWorkerClient, delegate)
 	})
 

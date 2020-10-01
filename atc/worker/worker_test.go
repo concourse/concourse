@@ -1516,7 +1516,7 @@ var _ = Describe("Worker", func() {
 				var containerNotFoundErr error
 
 				BeforeEach(func() {
-					containerNotFoundErr = garden.ContainerNotFoundError{fakeCreatedContainer.Handle()}
+					containerNotFoundErr = garden.ContainerNotFoundError{Handle: fakeCreatedContainer.Handle()}
 					fakeGardenClient.LookupReturns(nil, containerNotFoundErr)
 				})
 

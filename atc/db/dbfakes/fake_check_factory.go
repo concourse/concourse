@@ -5,38 +5,11 @@ import (
 	"context"
 	"sync"
 
-	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
 )
 
 type FakeCheckFactory struct {
-	AcquireScanningLockStub        func(lager.Logger) (lock.Lock, bool, error)
-	acquireScanningLockMutex       sync.RWMutex
-	acquireScanningLockArgsForCall []struct {
-		arg1 lager.Logger
-	}
-	acquireScanningLockReturns struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}
-	acquireScanningLockReturnsOnCall map[int]struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}
-	NotifyCheckerStub        func() error
-	notifyCheckerMutex       sync.RWMutex
-	notifyCheckerArgsForCall []struct {
-	}
-	notifyCheckerReturns struct {
-		result1 error
-	}
-	notifyCheckerReturnsOnCall map[int]struct {
-		result1 error
-	}
 	ResourceTypesStub        func() ([]db.ResourceType, error)
 	resourceTypesMutex       sync.RWMutex
 	resourceTypesArgsForCall []struct {
@@ -82,124 +55,6 @@ type FakeCheckFactory struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeCheckFactory) AcquireScanningLock(arg1 lager.Logger) (lock.Lock, bool, error) {
-	fake.acquireScanningLockMutex.Lock()
-	ret, specificReturn := fake.acquireScanningLockReturnsOnCall[len(fake.acquireScanningLockArgsForCall)]
-	fake.acquireScanningLockArgsForCall = append(fake.acquireScanningLockArgsForCall, struct {
-		arg1 lager.Logger
-	}{arg1})
-	fake.recordInvocation("AcquireScanningLock", []interface{}{arg1})
-	fake.acquireScanningLockMutex.Unlock()
-	if fake.AcquireScanningLockStub != nil {
-		return fake.AcquireScanningLockStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
-	}
-	fakeReturns := fake.acquireScanningLockReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
-}
-
-func (fake *FakeCheckFactory) AcquireScanningLockCallCount() int {
-	fake.acquireScanningLockMutex.RLock()
-	defer fake.acquireScanningLockMutex.RUnlock()
-	return len(fake.acquireScanningLockArgsForCall)
-}
-
-func (fake *FakeCheckFactory) AcquireScanningLockCalls(stub func(lager.Logger) (lock.Lock, bool, error)) {
-	fake.acquireScanningLockMutex.Lock()
-	defer fake.acquireScanningLockMutex.Unlock()
-	fake.AcquireScanningLockStub = stub
-}
-
-func (fake *FakeCheckFactory) AcquireScanningLockArgsForCall(i int) lager.Logger {
-	fake.acquireScanningLockMutex.RLock()
-	defer fake.acquireScanningLockMutex.RUnlock()
-	argsForCall := fake.acquireScanningLockArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeCheckFactory) AcquireScanningLockReturns(result1 lock.Lock, result2 bool, result3 error) {
-	fake.acquireScanningLockMutex.Lock()
-	defer fake.acquireScanningLockMutex.Unlock()
-	fake.AcquireScanningLockStub = nil
-	fake.acquireScanningLockReturns = struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeCheckFactory) AcquireScanningLockReturnsOnCall(i int, result1 lock.Lock, result2 bool, result3 error) {
-	fake.acquireScanningLockMutex.Lock()
-	defer fake.acquireScanningLockMutex.Unlock()
-	fake.AcquireScanningLockStub = nil
-	if fake.acquireScanningLockReturnsOnCall == nil {
-		fake.acquireScanningLockReturnsOnCall = make(map[int]struct {
-			result1 lock.Lock
-			result2 bool
-			result3 error
-		})
-	}
-	fake.acquireScanningLockReturnsOnCall[i] = struct {
-		result1 lock.Lock
-		result2 bool
-		result3 error
-	}{result1, result2, result3}
-}
-
-func (fake *FakeCheckFactory) NotifyChecker() error {
-	fake.notifyCheckerMutex.Lock()
-	ret, specificReturn := fake.notifyCheckerReturnsOnCall[len(fake.notifyCheckerArgsForCall)]
-	fake.notifyCheckerArgsForCall = append(fake.notifyCheckerArgsForCall, struct {
-	}{})
-	fake.recordInvocation("NotifyChecker", []interface{}{})
-	fake.notifyCheckerMutex.Unlock()
-	if fake.NotifyCheckerStub != nil {
-		return fake.NotifyCheckerStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.notifyCheckerReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeCheckFactory) NotifyCheckerCallCount() int {
-	fake.notifyCheckerMutex.RLock()
-	defer fake.notifyCheckerMutex.RUnlock()
-	return len(fake.notifyCheckerArgsForCall)
-}
-
-func (fake *FakeCheckFactory) NotifyCheckerCalls(stub func() error) {
-	fake.notifyCheckerMutex.Lock()
-	defer fake.notifyCheckerMutex.Unlock()
-	fake.NotifyCheckerStub = stub
-}
-
-func (fake *FakeCheckFactory) NotifyCheckerReturns(result1 error) {
-	fake.notifyCheckerMutex.Lock()
-	defer fake.notifyCheckerMutex.Unlock()
-	fake.NotifyCheckerStub = nil
-	fake.notifyCheckerReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeCheckFactory) NotifyCheckerReturnsOnCall(i int, result1 error) {
-	fake.notifyCheckerMutex.Lock()
-	defer fake.notifyCheckerMutex.Unlock()
-	fake.NotifyCheckerStub = nil
-	if fake.notifyCheckerReturnsOnCall == nil {
-		fake.notifyCheckerReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.notifyCheckerReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeCheckFactory) ResourceTypes() ([]db.ResourceType, error) {
@@ -385,10 +240,6 @@ func (fake *FakeCheckFactory) TryCreateCheckReturnsOnCall(i int, result1 db.Buil
 func (fake *FakeCheckFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.acquireScanningLockMutex.RLock()
-	defer fake.acquireScanningLockMutex.RUnlock()
-	fake.notifyCheckerMutex.RLock()
-	defer fake.notifyCheckerMutex.RUnlock()
 	fake.resourceTypesMutex.RLock()
 	defer fake.resourceTypesMutex.RUnlock()
 	fake.resourcesMutex.RLock()
