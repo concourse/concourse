@@ -123,9 +123,10 @@ pipelineView :
         , layers : List (List Concourse.Job)
         , section : PipelinesSection
         , headerHeight : Float
+        , inInstanceGroupView : Bool
         }
     -> Html Message
-pipelineView session { now, pipeline, hovered, pipelineRunningKeyframes, resourceError, existingJobs, layers, section, headerHeight } =
+pipelineView session { now, pipeline, hovered, pipelineRunningKeyframes, resourceError, existingJobs, layers, section, headerHeight, inInstanceGroupView } =
     let
         bannerStyle =
             if pipeline.stale then
@@ -142,7 +143,7 @@ pipelineView session { now, pipeline, hovered, pipelineRunningKeyframes, resourc
     in
     Html.div
         (Styles.pipelineCard
-            ++ (if section == AllPipelinesSection && not pipeline.stale then
+            ++ (if section == AllPipelinesSection && not pipeline.stale && not inInstanceGroupView then
                     [ style "cursor" "move" ]
 
                 else
@@ -158,7 +159,7 @@ pipelineView session { now, pipeline, hovered, pipelineRunningKeyframes, resourc
         [ Html.div
             (class "banner" :: bannerStyle)
             []
-        , headerView section pipeline resourceError headerHeight
+        , headerView section pipeline resourceError headerHeight inInstanceGroupView
         , if pipeline.jobsDisabled || pipeline.archived then
             previewPlaceholder
 
@@ -266,12 +267,11 @@ transition =
     .transitionBuild >> Maybe.andThen (.duration >> .finishedAt)
 
 
-headerView : PipelinesSection -> Pipeline -> Bool -> Float -> Html Message
-headerView section pipeline resourceError headerHeight =
+headerView : PipelinesSection -> Pipeline -> Bool -> Float -> Bool -> Html Message
+headerView section pipeline resourceError headerHeight inInstanceGroupView =
     let
         rows =
-            if Dict.isEmpty pipeline.instanceVars then
-                -- TODO: there can be empty instance vars in an instance group
+            if not inInstanceGroupView then
                 [ Html.div
                     (class "dashboard-pipeline-name"
                         :: Styles.pipelineName
@@ -279,6 +279,9 @@ headerView section pipeline resourceError headerHeight =
                     )
                     [ Html.text pipeline.name ]
                 ]
+
+            else if Dict.isEmpty pipeline.instanceVars then
+                [ Html.div [ style "color" Colors.pending ] [ Html.text "no instance vars" ] ]
 
             else
                 pipeline.instanceVars

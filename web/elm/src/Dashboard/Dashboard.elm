@@ -1427,6 +1427,7 @@ cardsView session params teamCards =
                         , jobs = jobs
                         , dashboardView = params.dashboardView
                         , query = params.query
+                        , inInstanceGroupView = params.instanceGroup /= Nothing
                         }
                         layout.headers
                         layout.cards
@@ -1490,6 +1491,7 @@ cardsView session params teamCards =
                                     , jobs = jobs
                                     , dashboardView = params.dashboardView
                                     , query = params.query
+                                    , inInstanceGroupView = params.instanceGroup /= Nothing
                                     }
                                     teamName
                                     layout.cards

@@ -299,6 +299,17 @@ all =
                             [ style "height" "80px"
                             , style "box-sizing" "border-box"
                             ]
+            , test "when no instance vars, displays 'no vars'" <|
+                \_ ->
+                    whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
+                        |> gotPipelines [ pipelineInstanceWithVars 1 [] ]
+                        |> Common.queryView
+                        |> findCards
+                        |> Query.first
+                        |> Expect.all
+                            [ Query.has [ text "no instance vars" ]
+                            , findHeader >> Query.has [ style "height" "50px" ]
+                            ]
             , test "instance vars are hoverable" <|
                 \_ ->
                     whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
@@ -330,6 +341,19 @@ all =
                             [ id <|
                                 Effects.toHtmlID <|
                                     Msgs.PipelineCardInstanceVar Msgs.AllPipelinesSection 1 "a" "foo"
+                            ]
+            , test "is not draggable" <|
+                \_ ->
+                    whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
+                        |> gotPipelines
+                            [ pipelineInstanceWithVars 1
+                                [ ( "a", JsonString "foo" ) ]
+                            ]
+                        |> Common.queryView
+                        |> findCard
+                        |> Expect.all
+                            [ Query.hasNot [ attribute <| Attr.attribute "draggable" "true" ]
+                            , Query.hasNot [ style "cursor" "move" ]
                             ]
             ]
         ]

@@ -60,6 +60,7 @@ view :
         , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
         , dashboardView : Routes.DashboardView
         , query : String
+        , inInstanceGroupView : Bool
         }
     -> Concourse.TeamName
     -> List Grid.Card
@@ -153,6 +154,7 @@ viewFavoritePipelines :
         , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
         , dashboardView : Routes.DashboardView
         , query : String
+        , inInstanceGroupView : Bool
         }
     -> List Grid.Header
     -> List Grid.Card
@@ -321,6 +323,7 @@ pipelineCardView :
             , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
             , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
             , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
+            , inInstanceGroupView : Bool
         }
     -> PipelinesSection
     ->
@@ -364,7 +367,7 @@ pipelineCardView session params section { bounds, headerHeight, pipeline } teamN
              , style "height" "100%"
              , attribute "data-pipeline-name" pipeline.name
              ]
-                ++ (if section == AllPipelinesSection && not pipeline.stale then
+                ++ (if section == AllPipelinesSection && not pipeline.stale && not params.inInstanceGroupView then
                         [ attribute
                             "ondragstart"
                             "event.dataTransfer.setData('text/plain', '');"
@@ -413,6 +416,7 @@ pipelineCardView session params section { bounds, headerHeight, pipeline } teamN
                 , hovered = session.hovered
                 , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                 , section = section
+                , inInstanceGroupView = params.inInstanceGroupView
                 }
             ]
         ]
@@ -463,7 +467,6 @@ instanceGroupCardView session params section { bounds, headerHeight } p ps =
              , style "width" "100%"
              , style "height" "100%"
              ]
-                -- TODO: no
                 ++ (if section == AllPipelinesSection && not p.stale then
                         [ attribute
                             "ondragstart"
