@@ -38,9 +38,13 @@ Mainly, pointers to review the PR, and how they can test it.
 
 ## Release Note
 <!--
-If needed, you can leave a detailed description here which will be used to
-generate the release note for the next version of Concourse. The title of the
-PR will also be pulled into the release note.
+If needed, you can leave a list of detailed descriptions here which will be
+used to generate the release note for the next version of Concourse. The title
+of the PR will also be pulled into the release note.
+
+Example:
+* Reticulating splines is the new process Concourse uses to create the network
+  of lines between jobs.
 -->
 
 ## Contributor Checklist
