@@ -118,7 +118,7 @@ var _ = Describe("ListAllJobsWatcher", func() {
 			team, err = teamFactory.CreateTeam(atc.Team{ID: 1, Name: "team"})
 			Expect(err).ToNot(HaveOccurred())
 
-			pipeline, _, err = team.SavePipeline("pipeline", atc.Config{
+			pipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "pipeline"}, atc.Config{
 				Jobs: atc.JobConfigs{{Name: "job1"}, {Name: "job2"}},
 			}, 0, false)
 			Expect(err).ToNot(HaveOccurred())
@@ -176,7 +176,7 @@ var _ = Describe("ListAllJobsWatcher", func() {
 		})
 
 		It("notifies on job deactivated", func() {
-			team.SavePipeline("pipeline", atc.Config{
+			team.SavePipeline(atc.PipelineRef{Name: "pipeline"}, atc.Config{
 				Jobs: atc.JobConfigs{{Name: "job2"}},
 			}, pipeline.ConfigVersion(), false)
 
@@ -184,14 +184,14 @@ var _ = Describe("ListAllJobsWatcher", func() {
 		})
 
 		It("notifies on job reactivated", func() {
-			pipeline, _, _ = team.SavePipeline("pipeline", atc.Config{
+			pipeline, _, _ = team.SavePipeline(atc.PipelineRef{Name: "pipeline"}, atc.Config{
 				Jobs: atc.JobConfigs{{Name: "job2"}},
 			}, pipeline.ConfigVersion(), false)
 
 			Eventually(getInvokedEvents).Should(HaveLen(2))
 			resetInvokedEvents()
 
-			team.SavePipeline("pipeline", atc.Config{
+			team.SavePipeline(atc.PipelineRef{Name: "pipeline"}, atc.Config{
 				Jobs: atc.JobConfigs{{Name: "job1"}, {Name: "job2"}},
 			}, pipeline.ConfigVersion(), false)
 			Eventually(getInvokedEvents).Should(ConsistOf(PutEvent(job1), PutEvent(job2)))
@@ -285,6 +285,7 @@ func toDashboardJob(job db.Job) *atc.DashboardJob {
 	return &atc.DashboardJob{
 		ID:              job.ID(),
 		Name:            job.Name(),
+		PipelineID:      job.PipelineID(),
 		PipelineName:    job.PipelineName(),
 		PipelinePublic:  pipeline.Public(),
 		TeamName:        job.TeamName(),
@@ -305,6 +306,7 @@ func toDashboardBuild(build db.Build) *atc.DashboardBuild {
 		Name:         build.Name(),
 		JobName:      build.JobName(),
 		PipelineName: build.PipelineName(),
+		PipelineID:   build.PipelineID(),
 		TeamName:     build.TeamName(),
 		Status:       string(build.Status()),
 		StartTime:    build.StartTime(),

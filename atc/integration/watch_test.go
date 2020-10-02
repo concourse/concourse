@@ -45,20 +45,20 @@ var _ = Describe("Watch Test", func() {
 
 	It("can watch for changes to ListAllJobs", func() {
 		By("initiating WatchListAllJobs")
-		givenAPipeline(client, "pipeline")
+		givenAPipeline(client, atc.PipelineRef{Name: "pipeline"})
 
 		events := whenIWatchListAllJobs(client)
 		defer events.Close()
 
-		thenIReceiveInitialJobs(events, []atc.Job{getJob(client, "pipeline", "simple")})
+		thenIReceiveInitialJobs(events, []atc.Job{getJob(client, atc.PipelineRef{Name: "pipeline"}, "simple")})
 
 		By("triggering a job build")
-		whenITriggerJobBuild(client, "pipeline", "simple")
-		job := getJob(client, "pipeline", "simple")
+		whenITriggerJobBuild(client, atc.PipelineRef{Name: "pipeline"}, "simple")
+		job := getJob(client, atc.PipelineRef{Name: "pipeline"}, "simple")
 		thenIReceivePatchEvents(events, []jobserver.JobWatchEvent{putEvent(job)})
 
 		By("deleting the pipeline")
-		whenIDeletePipeline(client, "pipeline")
+		whenIDeletePipeline(client, atc.PipelineRef{Name: "pipeline"})
 		thenIReceivePatchEvents(events, []jobserver.JobWatchEvent{deleteEvent(job.ID)})
 	})
 
@@ -103,18 +103,18 @@ func thenIReceivePatchEvents(events concourse.JobsEvents, patchEvents []jobserve
 	Expect(err).ToNot(HaveOccurred())
 }
 
-func whenITriggerJobBuild(client concourse.Client, pipelineName string, jobName string) {
-	_, err := client.Team("main").CreateJobBuild(pipelineName, jobName)
+func whenITriggerJobBuild(client concourse.Client, pipelineRef atc.PipelineRef, jobName string) {
+	_, err := client.Team("main").CreateJobBuild(pipelineRef, jobName)
 	Expect(err).ToNot(HaveOccurred())
 }
 
-func whenIDeletePipeline(client concourse.Client, pipelineName string) {
-	_, err := client.Team("main").DeletePipeline(pipelineName)
+func whenIDeletePipeline(client concourse.Client, pipelineRef atc.PipelineRef) {
+	_, err := client.Team("main").DeletePipeline(pipelineRef)
 	Expect(err).ToNot(HaveOccurred())
 }
 
-func getJob(client concourse.Client, pipelineName string, jobName string) atc.Job {
-	job, found, err := client.Team("main").Job(pipelineName, jobName)
+func getJob(client concourse.Client, pipelineRef atc.PipelineRef, jobName string) atc.Job {
+	job, found, err := client.Team("main").Job(pipelineRef, jobName)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(found).To(BeTrue())
 	return job
