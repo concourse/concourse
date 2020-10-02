@@ -338,7 +338,8 @@ handleCallback callback ( model, effects ) =
                 , pipelinesError = Nothing
               }
             , effects
-                ++ (if List.isEmpty allPipelinesInEntireCluster then
+                ++ GetViewportOf Dashboard
+                :: (if List.isEmpty allPipelinesInEntireCluster then
                         [ ModifyUrl "/" ]
 
                     else
