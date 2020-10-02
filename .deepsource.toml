@@ -1,0 +1,14 @@
+version = 1
+
+test_patterns = ["**/*_test.go"]
+
+[[analyzers]]
+name = "go"
+enabled = true
+
+  [analyzers.meta]
+  import_paths = ["github.com/concourse/concourse"]
+
+[[analyzers]]
+name = "test-coverage"
+enabled = true
