@@ -2510,14 +2510,21 @@ all =
                         unfilledFavoritedIcon =
                             iconSelector
                                 { size = "20px"
-                                , image = Assets.FavoritedToggleIcon False
+                                , image = Assets.FavoritedToggleIcon False False
+                                }
+                                ++ [ style "background-size" "contain" ]
+
+                        unfilledBrightFavoritedIcon =
+                            iconSelector
+                                { size = "20px"
+                                , image = Assets.FavoritedToggleIcon False True
                                 }
                                 ++ [ style "background-size" "contain" ]
 
                         filledFavoritedIcon =
                             iconSelector
                                 { size = "20px"
-                                , image = Assets.FavoritedToggleIcon True
+                                , image = Assets.FavoritedToggleIcon True False
                                 }
                                 ++ [ style "background-size" "contain" ]
 
@@ -2542,19 +2549,15 @@ all =
                                     { description = "faded 20px square"
                                     , selector =
                                         unfilledFavoritedIcon
-                                            ++ [ style "opacity" "0.5"
-                                               , style "cursor" "pointer"
-                                               ]
+                                            ++ [ style "cursor" "pointer" ]
                                     }
                                 , hoverable =
                                     Msgs.PipelineCardFavoritedIcon AllPipelinesSection pipelineId
                                 , hoveredSelector =
                                     { description = "bright 20px square"
                                     , selector =
-                                        unfilledFavoritedIcon
-                                            ++ [ style "opacity" "1"
-                                               , style "cursor" "pointer"
-                                               ]
+                                        unfilledBrightFavoritedIcon
+                                            ++ [ style "cursor" "pointer" ]
                                     }
                                 }
                             , test "has click handler" <|
@@ -2602,7 +2605,6 @@ all =
                                         |> favoritedToggle
                                         |> Expect.all
                                             [ Query.has filledFavoritedIcon
-                                            , Query.has [ style "opacity" "1" ]
                                             ]
                             ]
                     in

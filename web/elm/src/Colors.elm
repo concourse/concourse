@@ -52,6 +52,8 @@ module Colors exposing
     , sideBarActive
     , sideBarBackground
     , sideBarHovered
+    , sideBarTextBright
+    , sideBarTextDim
     , started
     , startedFaded
     , statusColor
@@ -577,3 +579,17 @@ buildStatusColor isBright status =
 buttonDisabledGrey : String
 buttonDisabledGrey =
     "#979797"
+
+
+
+-----
+
+
+sideBarTextDim : String
+sideBarTextDim =
+    ColorValues.grey30
+
+
+sideBarTextBright : String
+sideBarTextBright =
+    ColorValues.grey20

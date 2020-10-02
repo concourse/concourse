@@ -20,7 +20,6 @@ module Views.Styles exposing
     )
 
 import Assets
-import ColorValues
 import Colors
 import Html
 import Html.Attributes exposing (style)

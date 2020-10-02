@@ -18,7 +18,7 @@ type Asset
     | ChevronRight
     | ToggleSwitch Bool
     | VisibilityToggleIcon Bool
-    | FavoritedToggleIcon Bool
+    | FavoritedToggleIcon Bool Bool
     | BuildFavicon (Maybe BuildStatus)
     | PinIconWhite
     | PinIconGrey
@@ -58,7 +58,7 @@ type Asset
 
 
 type ComponentType
-    = PipelineComponent
+    = PipelineComponent Bool
     | JobComponent
     | ResourceComponent
 
@@ -135,11 +135,14 @@ toPath asset =
             in
             basePath ++ [ "baseline-visibility" ++ imageName ++ ".svg" ]
 
-        FavoritedToggleIcon isFavorited ->
+        FavoritedToggleIcon isFavorited isBright ->
             let
                 imageName =
                     if isFavorited then
                         "-filled"
+
+                    else if isBright then
+                        "-unfilled-bright"
 
                     else
                         "-unfilled"
@@ -176,7 +179,10 @@ toPath asset =
             let
                 imageName =
                     case component of
-                        PipelineComponent ->
+                        PipelineComponent True ->
+                            "pipeline-bright"
+
+                        PipelineComponent _ ->
                             "pipeline"
 
                         JobComponent ->

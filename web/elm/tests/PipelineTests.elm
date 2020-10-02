@@ -638,6 +638,7 @@ all =
                                 , image =
                                     Assets.FavoritedToggleIcon
                                         False
+                                        False
                                 }
                             )
                 in
@@ -652,25 +653,23 @@ all =
                     , unhoveredSelector =
                         { description = "faded star icon"
                         , selector =
-                            [ style "opacity" "0.5"
-                            , style "cursor" "pointer"
+                            [ style "cursor" "pointer"
                             , style "margin" "17px"
                             ]
                                 ++ iconSelector
                                     { size = "20px"
-                                    , image = Assets.FavoritedToggleIcon False
+                                    , image = Assets.FavoritedToggleIcon False False
                                     }
                         }
                     , hoveredSelector =
                         { description = "bright star icon"
                         , selector =
-                            [ style "opacity" "1"
-                            , style "cursor" "pointer"
+                            [ style "cursor" "pointer"
                             , style "margin" "17px"
                             ]
                                 ++ iconSelector
                                     { size = "20px"
-                                    , image = Assets.FavoritedToggleIcon False
+                                    , image = Assets.FavoritedToggleIcon False True
                                     }
                         }
                     , hoverable = Message.Message.TopBarFavoritedIcon -1
@@ -727,7 +726,7 @@ pipelineBreadcrumbSelector : List Selector.Selector
 pipelineBreadcrumbSelector =
     [ style "background-image" <|
         Assets.backgroundImage <|
-            Just (Assets.BreadcrumbIcon Assets.PipelineComponent)
+            Just (Assets.BreadcrumbIcon (Assets.PipelineComponent False))
     , style "background-repeat" "no-repeat"
     ]
 

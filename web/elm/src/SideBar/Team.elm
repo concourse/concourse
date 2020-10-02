@@ -56,14 +56,7 @@ team session t =
             Styles.Dim
     , collapseIcon =
         { opacity =
-            if isCurrent then
-                Styles.Bright
-
-            else if t.isExpanded then
-                Styles.GreyedOut
-
-            else
-                Styles.Dim
+            Styles.Bright
         , asset =
             if t.isExpanded then
                 Assets.MinusIcon

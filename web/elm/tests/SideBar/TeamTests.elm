@@ -170,7 +170,7 @@ all =
         , describe "when inactive"
             [ describe "when expanded"
                 [ describe "when hovered"
-                    [ test "collapse icon is greyed out" <|
+                    [ test "collapse icon is bright" <|
                         \_ ->
                             team
                                 { defaultState
@@ -179,7 +179,7 @@ all =
                                 }
                                 |> .collapseIcon
                                 |> .opacity
-                                |> Expect.equal Styles.GreyedOut
+                                |> Expect.equal Styles.Bright
                     , test "team name is bright" <|
                         \_ ->
                             team
@@ -201,7 +201,7 @@ all =
                                 |> Expect.equal Styles.GreyedOut
                     ]
                 , describe "when unhovered"
-                    [ test "collapse icon is greyed out" <|
+                    [ test "collapse icon is bright" <|
                         \_ ->
                             team
                                 { defaultState
@@ -209,7 +209,7 @@ all =
                                 }
                                 |> .collapseIcon
                                 |> .opacity
-                                |> Expect.equal Styles.GreyedOut
+                                |> Expect.equal Styles.Bright
                     , test "team name is greyed out" <|
                         \_ ->
                             team
@@ -231,7 +231,7 @@ all =
                 ]
             , describe "when collapsed"
                 [ describe "when hovered"
-                    [ test "collapse icon is dim" <|
+                    [ test "collapse icon is bright" <|
                         \_ ->
                             team
                                 { defaultState
@@ -239,7 +239,7 @@ all =
                                 }
                                 |> .collapseIcon
                                 |> .opacity
-                                |> Expect.equal Styles.Dim
+                                |> Expect.equal Styles.Bright
                     , test "team name is bright" <|
                         \_ ->
                             team
@@ -259,12 +259,12 @@ all =
                                 |> Expect.equal Styles.GreyedOut
                     ]
                 , describe "when unhovered"
-                    [ test "collapse icon is dim" <|
+                    [ test "collapse icon is bright" <|
                         \_ ->
                             team defaultState
                                 |> .collapseIcon
                                 |> .opacity
-                                |> Expect.equal Styles.Dim
+                                |> Expect.equal Styles.Bright
                     , test "team name is greyed out" <|
                         \_ ->
                             team defaultState

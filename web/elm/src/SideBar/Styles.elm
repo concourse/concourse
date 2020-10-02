@@ -9,7 +9,7 @@ module SideBar.Styles exposing
     , iconGroup
     , opacityAttr
     , pipeline
-    , pipelineFavourite
+    , pipelineFavorite
     , pipelineIcon
     , pipelineName
     , sectionHeader
@@ -141,8 +141,22 @@ opacityAttr opacity =
                 "1"
 
 
-teamIcon : Opacity -> Html.Html msg
-teamIcon opacity =
+colorAttr : Opacity -> Html.Attribute msg
+colorAttr opacity =
+    style "color" <|
+        case opacity of
+            Dim ->
+                Colors.sideBarTextDim
+
+            GreyedOut ->
+                Colors.sideBarTextDim
+
+            Bright ->
+                Colors.sideBarTextBright
+
+
+teamIcon : Html.Html msg
+teamIcon =
     Icon.icon
         { sizePx = 18
         , image = Assets.PeopleIcon
@@ -150,26 +164,24 @@ teamIcon opacity =
         [ style "margin-left" "8px"
         , style "background-size" "contain"
         , style "flex-shrink" "0"
-        , opacityAttr opacity
         ]
 
 
 collapseIcon : { opacity : Opacity, asset : Assets.Asset } -> Html.Html msg
-collapseIcon { opacity, asset } =
+collapseIcon { asset } =
     Icon.icon
         { sizePx = 10
         , image = asset
         }
         [ style "margin-left" "10px"
         , style "flex-shrink" "0"
-        , opacityAttr opacity
         ]
 
 
 teamName :
     { a | opacity : Opacity }
     -> List (Html.Attribute msg)
-teamName { opacity } =
+teamName _ =
     [ style "font-size" "14px"
     , style "padding" "5px 2.5px"
     , style "margin-left" "5px"
@@ -177,7 +189,7 @@ teamName { opacity } =
     , style "overflow" "hidden"
     , style "text-overflow" "ellipsis"
     , style "flex-grow" "1"
-    , opacityAttr opacity
+    , style "color" Colors.sideBarTextBright
     , fontWeightAttr Bold
     ]
 
@@ -193,7 +205,7 @@ backgroundAttr background =
     style "background-color" <|
         case background of
             Dark ->
-                Colors.sideBarActive
+                Colors.sideBarHovered
 
             Light ->
                 Colors.sideBarHovered
@@ -212,7 +224,7 @@ fontWeightAttr weight =
     style "font-weight" <|
         case weight of
             Default ->
-                Views.Styles.fontWeightDefault
+                Views.Styles.fontWeightLight
 
             Bold ->
                 Views.Styles.fontWeightBold
@@ -229,8 +241,7 @@ pipelineName { opacity, weight } =
     , style "padding" "5px 2.5px"
     , style "margin-left" "5px"
     , style "flex-grow" "1"
-    , style "color" Colors.white
-    , opacityAttr opacity
+    , colorAttr opacity
     , fontWeightAttr weight
     ]
 
@@ -281,8 +292,8 @@ pipeline { background } =
     ]
 
 
-pipelineIcon : { asset : Assets.Asset, opacity : Opacity } -> List (Html.Attribute msg)
-pipelineIcon { asset, opacity } =
+pipelineIcon : { asset : Assets.Asset } -> List (Html.Attribute msg)
+pipelineIcon { asset } =
     [ style "background-image" <|
         Assets.backgroundImage <|
             Just asset
@@ -293,16 +304,15 @@ pipelineIcon { asset, opacity } =
     , style "background-position" "center"
     , style "margin-left" "28px"
     , style "flex-shrink" "0"
-    , opacityAttr opacity
     ]
 
 
-pipelineFavourite : { opacity : Opacity, filled : Bool } -> List (Html.Attribute msg)
-pipelineFavourite fav =
+pipelineFavorite : { filled : Bool, isBright : Bool } -> List (Html.Attribute msg)
+pipelineFavorite fav =
     [ style "background-image" <|
         Assets.backgroundImage <|
             Just <|
-                Assets.FavoritedToggleIcon fav.filled
+                Assets.FavoritedToggleIcon fav.filled fav.isBright
     , style "background-repeat" "no-repeat"
     , style "background-position" "50% 50%"
     , style "height" <| String.fromFloat starWidth ++ "px"
@@ -312,7 +322,6 @@ pipelineFavourite fav =
     , style "padding" <| "0 " ++ String.fromFloat starPadding ++ "px"
     , style "flex-shrink" "0"
     , style "cursor" "pointer"
-    , opacityAttr fav.opacity
     , Attr.attribute "aria-label" "Favorite Icon"
     ]
 

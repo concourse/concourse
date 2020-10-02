@@ -124,7 +124,7 @@ toStringTests =
         , describe "BreadcrumbIcon"
             [ test "Pipeline" <|
                 \_ ->
-                    BreadcrumbIcon PipelineComponent
+                    BreadcrumbIcon (PipelineComponent False)
                         |> toString
                         |> Expect.equal "/public/images/ic-breadcrumb-pipeline.svg"
             , test "Job" <|

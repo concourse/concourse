@@ -61,13 +61,10 @@ pipeline params p =
                 Assets.ArchivedPipelineIcon
 
             else
-                Assets.BreadcrumbIcon Assets.PipelineComponent
-        , opacity =
-            if isCurrent || isHovered then
-                Styles.Bright
-
-            else
-                Styles.Dim
+                Assets.BreadcrumbIcon
+                    (Assets.PipelineComponent
+                        (isHovered || isCurrent)
+                    )
         }
     , name =
         { opacity =
@@ -78,7 +75,7 @@ pipeline params p =
                 Styles.Dim
         , text = p.name
         , weight =
-            if isCurrent then
+            if isCurrent || isHovered then
                 Styles.Bold
 
             else
@@ -89,7 +86,7 @@ pipeline params p =
             Styles.Dark
 
         else if isHovered then
-            Styles.Light
+            Styles.Dark
 
         else
             Styles.Invisible
@@ -98,13 +95,8 @@ pipeline params p =
             Routes.Pipeline { id = pipelineId, groups = [] }
     , domID = domID
     , starIcon =
-        { opacity =
-            if isFavorited then
-                Styles.Bright
-
-            else
-                Styles.Dim
-        , filled = isFavorited
+        { filled = isFavorited
+        , isBright = isHovered || isCurrent
         }
     , id = p.id
     }

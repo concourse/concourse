@@ -1594,7 +1594,7 @@ pipelineBreadcrumbSelector : List Selector.Selector
 pipelineBreadcrumbSelector =
     [ style "background-image" <|
         Assets.backgroundImage <|
-            Just (Assets.BreadcrumbIcon Assets.PipelineComponent)
+            Just (Assets.BreadcrumbIcon (Assets.PipelineComponent False))
     , style "background-repeat" "no-repeat"
     ]
 

@@ -1,6 +1,5 @@
 module Pipeline.PinMenu.Views exposing
     ( Background(..)
-    , Brightness(..)
     , Distance(..)
     , Position(..)
     )
@@ -9,11 +8,6 @@ module Pipeline.PinMenu.Views exposing
 type Background
     = Dark
     | Light
-
-
-type Brightness
-    = Bright
-    | Dim
 
 
 type Position

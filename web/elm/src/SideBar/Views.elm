@@ -40,7 +40,7 @@ viewTeam team =
                    ]
             )
             [ Styles.collapseIcon team.collapseIcon
-            , Styles.teamIcon team.icon
+            , Styles.teamIcon
             , Html.div
                 (Styles.teamName team.name
                     ++ [ id <| toHtmlID team.name.domID ]
@@ -57,9 +57,7 @@ viewTeam team =
 
 type alias Pipeline =
     { icon :
-        { asset : Assets.Asset
-        , opacity : Styles.Opacity
-        }
+        { asset : Assets.Asset }
     , name :
         { opacity : Styles.Opacity
         , text : String
@@ -69,8 +67,8 @@ type alias Pipeline =
     , href : String
     , domID : DomID
     , starIcon :
-        { opacity : Styles.Opacity
-        , filled : Bool
+        { filled : Bool
+        , isBright : Bool
         }
     , id : Int
     }
@@ -94,7 +92,7 @@ viewPipeline p =
             )
             [ Html.text p.name.text ]
         , Html.div
-            (Styles.pipelineFavourite p.starIcon
+            (Styles.pipelineFavorite p.starIcon
                 ++ [ onLeftClickStopPropagation <| Click <| SideBarFavoritedIcon p.id ]
             )
             []

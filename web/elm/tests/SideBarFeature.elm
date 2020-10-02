@@ -504,7 +504,7 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineIcon
-                >> then_ iSeeItIsDim
+                >> then_ iSeeThePipelineIconIsDim
         , test "pipeline link has padding" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -545,7 +545,7 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> given iHoveredThePipelineLink
                 >> when iAmLookingAtTheFirstPipelineIcon
-                >> then_ iSeeItIsBright
+                >> then_ iSeeThePipelineIconIsBright
         , defineHoverBehaviour
             { name = "pipeline"
             , setup =
@@ -557,14 +557,14 @@ hasSideBar iAmLookingAtThePage =
             , unhoveredSelector =
                 { description = "grey"
                 , selector =
-                    [ style "opacity" "0.5" ]
+                    [ style "color" ColorValues.grey30 ]
                 }
             , hoverable = Message.SideBarPipeline AllPipelinesSection Data.pipelineId
             , hoveredSelector =
-                { description = "light background"
+                { description = "dark background and light text"
                 , selector =
-                    [ style "opacity" "1"
-                    , style "background-color" Colors.sideBarHovered
+                    [ style "background-color" Colors.sideBarHovered
+                    , style "color" ColorValues.grey20
                     ]
                 }
             }
@@ -620,13 +620,13 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
             >> given myBrowserFetchedPipelinesFromMultipleTeams
             >> when iAmLookingAtTheOtherPipelineList
             >> then_ iSeeNoPipelineNames
-    , test "current team has bright team icon" <|
+    , test "current team has team icon" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
             >> given iClickedTheHamburgerIcon
             >> when iAmLookingAtTheOtherTeamIcon
-            >> then_ iSeeItIsBright
+            >> then_ iSeeTheTeamIcon
     , test "current team name is bright" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
@@ -634,28 +634,28 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
             >> given iClickedTheHamburgerIcon
             >> given iClickedTheOtherPipelineGroup
             >> when iAmLookingAtTheOtherTeamName
-            >> then_ iSeeItIsBright
+            >> then_ iSeeTheTextIsBright
     , test "current pipeline name has grey background" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
             >> given iClickedTheHamburgerIcon
             >> when iAmLookingAtTheOtherPipeline
-            >> then_ iSeeADarkGreyBackground
+            >> then_ iSeeADarkBackground
     , test "current pipeline has bright pipeline icon" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
             >> given iClickedTheHamburgerIcon
             >> when iAmLookingAtTheOtherPipelineIcon
-            >> then_ iSeeItIsBright
+            >> then_ iSeeThePipelineIconIsBright
     , test "current pipeline name is bright" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
             >> given iClickedTheHamburgerIcon
             >> when iAmLookingAtTheOtherPipeline
-            >> then_ iSeeItIsBright
+            >> then_ iSeeTheTextIsBright
     , test "pipeline with same name on other team has invisible border" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
@@ -1120,7 +1120,7 @@ iSeeUnfilledStarIcon =
     Query.has
         (DashboardTests.iconSelector
             { size = "18px"
-            , image = Assets.FavoritedToggleIcon False
+            , image = Assets.FavoritedToggleIcon False False
             }
         )
 
@@ -1129,7 +1129,7 @@ iSeeFilledStarIcon =
     Query.has
         (DashboardTests.iconSelector
             { size = "18px"
-            , image = Assets.FavoritedToggleIcon True
+            , image = Assets.FavoritedToggleIcon True False
             }
         )
 
@@ -1169,6 +1169,30 @@ iSeeAMinusIcon =
             , image = Assets.MinusIcon
             }
         )
+
+
+iSeeThePipelineIconIsDim =
+    Query.has [ style "background-image" "url(/public/images/ic-breadcrumb-pipeline.svg)" ]
+
+
+iSeeThePipelineIconIsBright =
+    Query.has [ style "background-image" "url(/public/images/ic-breadcrumb-pipeline-bright.svg)" ]
+
+
+iSeeTheFavoritedIconIsDim =
+    Query.has [ style "background-image" "url(/public/images/star-unfilled.svg)" ]
+
+
+iSeeTheFavoritedIconIsBright =
+    Query.has [ style "background-image" "url(/public/images/star-unfilled-bright.svg)" ]
+
+
+iSeeTheTeamIcon =
+    Query.has [ style "background-image" "url(/public/images/baseline-people.svg)" ]
+
+
+iSeeTheTextIsBright =
+    Query.has [ style "color" ColorValues.grey20 ]
 
 
 iSeeItIsBright =
@@ -1295,7 +1319,7 @@ iSeeAPipelineIcon =
     Query.has
         [ style "background-image" <|
             Assets.backgroundImage <|
-                Just (Assets.BreadcrumbIcon Assets.PipelineComponent)
+                Just (Assets.BreadcrumbIcon (Assets.PipelineComponent False))
         , style "background-repeat" "no-repeat"
         , style "height" "18px"
         , style "width" "18px"
@@ -1644,7 +1668,7 @@ iAmLookingAtTheOtherTeamIcon =
         >> Query.children []
         >> Query.first
         >> Query.children []
-        >> Query.first
+        >> Query.index 1
 
 
 iAmLookingAtTheOtherPipeline =
@@ -1854,8 +1878,8 @@ iSeeAGreyBackground =
     Query.has [ style "background-color" "#353434" ]
 
 
-iSeeADarkGreyBackground =
-    Query.has [ style "background-color" "#272727" ]
+iSeeADarkBackground =
+    Query.has [ style "background-color" ColorValues.grey100 ]
 
 
 iSeeItStretches =

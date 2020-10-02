@@ -18,14 +18,8 @@ view :
     -> Html Message
 view params attrs =
     Icon.icon
-        { sizePx = 20, image = Assets.FavoritedToggleIcon params.isFavorited }
-        ([ style "opacity" <|
-            if params.isHovered || params.isFavorited then
-                "1"
-
-            else
-                "0.5"
-         , style "cursor" "pointer"
+        { sizePx = 20, image = Assets.FavoritedToggleIcon params.isFavorited params.isHovered }
+        ([ style "cursor" "pointer"
          , style "background-size" "contain"
          , onClick <| Click <| params.domID
          , onMouseEnter <| Hover <| Just <| params.domID
