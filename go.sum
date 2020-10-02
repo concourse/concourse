@@ -394,6 +394,9 @@ github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf/go.mod h
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/influxdata/influxdb1-client v0.0.0-20190118215656-f8cdb5d5f175 h1:NR6eyx+1eski3gN8uqdtjnfpmq0T3lO6HhrPheCPFFc=
 github.com/influxdata/influxdb1-client v0.0.0-20190118215656-f8cdb5d5f175/go.mod h1:qj24IKcXYK6Iy9ceXlo3Tc+vtHo9lIhSX5JddghvEPo=
+github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
+github.com/jessevdk/go-flags v1.4.1-0.20200711081900-c17162fe8fd7 h1:Ug59miTxVKVg5Oi2S5uHlKOIV5jBx4Hb2u0jIxxDaSs=
+github.com/jessevdk/go-flags v1.4.1-0.20200711081900-c17162fe8fd7/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
 github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af h1:pmfjZENx5imkbgOkpRUYLnmbU7UEFbjtDA2hxJ1ichM=
 github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af/go.mod h1:Nht3zPeWKUH0NzdCt2Blrr5ys8VGpn0CEB0cQHVjt7k=
 github.com/joefitzgerald/rainbow-reporter v0.1.0 h1:AuMG652zjdzI0YCCnXAqATtRBpGXMcAnrajcaTrSeuo=
@@ -680,8 +683,6 @@ github.com/valyala/quicktemplate v1.2.0/go.mod h1:EH+4AkTd43SvgIbQHYu59/cJyxDoOV
 github.com/valyala/tcplisten v0.0.0-20161114210144-ceec8f93295a/go.mod h1:v3UYOV9WzVtRmSR+PDvWpU/qWl4Wa5LApYYX4ZtKbio=
 github.com/vbauerster/mpb/v4 v4.6.1-0.20190319154207-3a6acfe12ac6 h1:nrfAgxqk5DJ20IK1tt0dXbT+heIiNeTmtvj+twRxCbo=
 github.com/vbauerster/mpb/v4 v4.6.1-0.20190319154207-3a6acfe12ac6/go.mod h1:bTEFEKvSeMyGvZVflCs/jDs0Jlc5RJJVSN72r0QxBJI=
-github.com/vito/go-flags v1.4.1-0.20200428200343-c7161c3bd74d h1:PjnCfyHrDAJTvOJr4q4lnxWfV3rrF3K5b5kfg1SjmW0=
-github.com/vito/go-flags v1.4.1-0.20200428200343-c7161c3bd74d/go.mod h1:07OkXRRK4EbEtvYreaZfRIqssDcoccQKxBVOBg1zgV0=
 github.com/vito/go-interact v0.0.0-20171111012221-fa338ed9e9ec h1:Klu98tQ9Z1t23gvC7p7sCmvxkZxLhBHLNyrUPsWsYFg=
 github.com/vito/go-interact v0.0.0-20171111012221-fa338ed9e9ec/go.mod h1:wPlfmglZmRWMYv/qJy3P+fK/UnoQB5ISk4txfNd9tDo=
 github.com/vito/go-sse v0.0.0-20160212001227-fd69d275caac h1:W7dFvBGUW6cNTGkOzxnb/zIPTrJiM/biDuycvlo3/ek=
