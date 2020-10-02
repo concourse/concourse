@@ -15,14 +15,22 @@ type YamlTemplateWithParams struct {
 	templateVariablesFiles []atc.PathFlag
 	templateVariables      []flaghelpers.VariablePairFlag
 	yamlTemplateVariables  []flaghelpers.YAMLVariablePairFlag
+	instanceVars           atc.InstanceVars
 }
 
-func NewYamlTemplateWithParams(filePath atc.PathFlag, templateVariablesFiles []atc.PathFlag, templateVariables []flaghelpers.VariablePairFlag, yamlTemplateVariables []flaghelpers.YAMLVariablePairFlag) YamlTemplateWithParams {
+func NewYamlTemplateWithParams(
+	filePath atc.PathFlag,
+	templateVariablesFiles []atc.PathFlag,
+	templateVariables []flaghelpers.VariablePairFlag,
+	yamlTemplateVariables []flaghelpers.YAMLVariablePairFlag,
+	instanceVars atc.InstanceVars,
+) YamlTemplateWithParams {
 	return YamlTemplateWithParams{
 		filePath:               filePath,
 		templateVariablesFiles: templateVariablesFiles,
 		templateVariables:      templateVariables,
 		yamlTemplateVariables:  yamlTemplateVariables,
+		instanceVars:           instanceVars,
 	}
 }
 
@@ -56,6 +64,9 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(
 	}
 	for _, f := range yamlTemplate.yamlTemplateVariables {
 		flagVars[f.Name] = f.Value
+	}
+	for k, iv := range yamlTemplate.instanceVars {
+		flagVars[k] = iv
 	}
 	params = append(params, flagVars)
 

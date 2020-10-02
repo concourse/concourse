@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"github.com/concourse/concourse/atc"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -212,6 +213,8 @@ var _ = BeforeEach(func() {
 		dbWall,
 		fakeClock,
 	)
+
+	atc.EnablePipelineInstances = true
 
 	Expect(err).NotTo(HaveOccurred())
 

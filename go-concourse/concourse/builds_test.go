@@ -64,12 +64,14 @@ var _ = Describe("ATC Handler Builds", func() {
 
 	Describe("CreateJobBuild", func() {
 		var (
-			pipelineName  string
+			pipelineRef   atc.PipelineRef
+			queryParams   string
 			jobName       string
 			expectedBuild atc.Build
 		)
 		BeforeEach(func() {
-			pipelineName = "mypipeline"
+			queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			pipelineRef = atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 			jobName = "myjob"
 
 			expectedBuild = atc.Build{
@@ -83,14 +85,14 @@ var _ = Describe("ATC Handler Builds", func() {
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.VerifyRequest("POST", expectedURL, queryParams),
 					ghttp.RespondWithJSONEncoded(http.StatusCreated, expectedBuild),
 				),
 			)
 		})
 
 		It("takes a pipeline and a job and creates the build", func() {
-			build, err := team.CreateJobBuild(pipelineName, jobName)
+			build, err := team.CreateJobBuild(pipelineRef, jobName)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(build).To(Equal(expectedBuild))
 		})
@@ -98,14 +100,16 @@ var _ = Describe("ATC Handler Builds", func() {
 
 	Describe("RerunJobBuild", func() {
 		var (
-			pipelineName  string
+			pipelineRef   atc.PipelineRef
+			queryParams   string
 			jobName       string
 			buildName     string
 			expectedBuild atc.Build
 		)
 
 		BeforeEach(func() {
-			pipelineName = "mypipeline"
+			queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			pipelineRef = atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 			jobName = "myjob"
 			buildName = "mybuild"
 
@@ -120,14 +124,14 @@ var _ = Describe("ATC Handler Builds", func() {
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.VerifyRequest("POST", expectedURL, queryParams),
 					ghttp.RespondWithJSONEncoded(http.StatusCreated, expectedBuild),
 				),
 			)
 		})
 
 		It("takes a pipeline and a job and creates the build", func() {
-			build, err := team.RerunJobBuild(pipelineName, jobName, buildName)
+			build, err := team.RerunJobBuild(pipelineRef, jobName, buildName)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(build).To(Equal(expectedBuild))
 		})
@@ -137,7 +141,15 @@ var _ = Describe("ATC Handler Builds", func() {
 		var (
 			expectedBuild atc.Build
 			expectedURL   string
+			queryParams   string
+			pipelineRef   atc.PipelineRef
 		)
+
+		BeforeEach(func() {
+			expectedURL = "/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds/mybuild"
+			queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			pipelineRef = atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
+		})
 
 		Context("when build exists", func() {
 			BeforeEach(func() {
@@ -149,18 +161,16 @@ var _ = Describe("ATC Handler Builds", func() {
 					APIURL:  "api/v1/builds/123",
 				}
 
-				expectedURL = "/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds/mybuild"
-
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.VerifyRequest("GET", expectedURL, queryParams),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuild),
 					),
 				)
 			})
 
 			It("returns the given build", func() {
-				build, found, err := team.JobBuild("mypipeline", "myjob", "mybuild")
+				build, found, err := team.JobBuild(pipelineRef, "myjob", "mybuild")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(build).To(Equal(expectedBuild))
@@ -169,8 +179,6 @@ var _ = Describe("ATC Handler Builds", func() {
 
 		Context("when build does not exist", func() {
 			BeforeEach(func() {
-				expectedURL = "/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds/mybuild"
-
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", expectedURL),
@@ -180,7 +188,7 @@ var _ = Describe("ATC Handler Builds", func() {
 			})
 
 			It("return false and no error", func() {
-				_, found, err := team.JobBuild("mypipeline", "myjob", "mybuild")
+				_, found, err := team.JobBuild(pipelineRef, "myjob", "mybuild")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})

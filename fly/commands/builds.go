@@ -20,15 +20,15 @@ const timeDateLayout = "2006-01-02@15:04:05-0700"
 const inputTimeLayout = "2006-01-02 15:04:05"
 
 type BuildsCommand struct {
-	AllTeams    bool                     `short:"a" long:"all-teams" description:"Show builds for the all teams that user has access to"`
-	Count       int                      `short:"c" long:"count" default:"50" description:"Number of builds you want to limit the return to"`
-	CurrentTeam bool                     `long:"current-team" description:"Show builds for the currently targeted team"`
-	Job         flaghelpers.JobFlag      `short:"j" long:"job" value-name:"PIPELINE/JOB" description:"Name of a job to get builds for"`
-	Json        bool                     `long:"json" description:"Print command result as JSON"`
-	Pipeline    flaghelpers.PipelineFlag `short:"p" long:"pipeline" description:"Name of a pipeline to get builds for"`
-	Teams       []string                 `short:"n"  long:"team" description:"Show builds for these teams"`
-	Since       string                   `long:"since" description:"Start of the range to filter builds"`
-	Until       string                   `long:"until" description:"End of the range to filter builds"`
+	AllTeams    bool                      `short:"a" long:"all-teams" description:"Show builds for the all teams that user has access to"`
+	Count       int                       `short:"c" long:"count" default:"50" description:"Number of builds you want to limit the return to"`
+	CurrentTeam bool                      `long:"current-team" description:"Show builds for the currently targeted team"`
+	Job         flaghelpers.JobFlag       `short:"j" long:"job" value-name:"PIPELINE/JOB" description:"Name of a job to get builds for"`
+	Json        bool                      `long:"json" description:"Print command result as JSON"`
+	Pipeline    *flaghelpers.PipelineFlag `short:"p" long:"pipeline" description:"Name of a pipeline to get builds for"`
+	Teams       []string                  `short:"n"  long:"team" description:"Show builds for these teams"`
+	Since       string                    `long:"since" description:"Start of the range to filter builds"`
+	Until       string                    `long:"until" description:"End of the range to filter builds"`
 }
 
 func (command *BuildsCommand) Execute([]string) error {
@@ -136,7 +136,7 @@ func (command *BuildsCommand) validateJobBuilds(builds []atc.Build, currentTeam 
 	)
 
 	builds, _, found, err = currentTeam.JobBuilds(
-		command.Job.PipelineName,
+		command.Job.PipelineRef,
 		command.Job.JobName,
 		page,
 	)
@@ -157,7 +157,7 @@ func (command *BuildsCommand) validatePipelineBuilds(builds []atc.Build, current
 
 	var found bool
 	builds, _, found, err = currentTeam.PipelineBuilds(
-		string(command.Pipeline),
+		command.Pipeline.Ref(),
 		page,
 	)
 
@@ -204,7 +204,11 @@ func (command *BuildsCommand) displayBuilds(builds []atc.Build) error {
 			pipelineJobCell.Contents = "one-off"
 			buildCell.Contents = "n/a"
 		} else {
-			pipelineJobCell.Contents = fmt.Sprintf("%s/%s", b.PipelineName, b.JobName)
+			pipelineRef := atc.PipelineRef{
+				Name:         b.PipelineName,
+				InstanceVars: b.PipelineInstanceVars,
+			}
+			pipelineJobCell.Contents = fmt.Sprintf("%s/%s", pipelineRef.String(), b.JobName)
 			buildCell.Contents = b.Name
 		}
 
@@ -309,11 +313,11 @@ func roundSecondsOffDuration(d time.Duration) time.Duration {
 }
 
 func (command *BuildsCommand) jobFlag() bool {
-	return command.Job.PipelineName != "" && command.Job.JobName != ""
+	return command.Job.PipelineRef.Name != "" && command.Job.JobName != ""
 }
 
 func (command *BuildsCommand) pipelineFlag() bool {
-	return command.Pipeline != ""
+	return command.Pipeline != nil
 }
 
 func (command *BuildsCommand) buildCap(builds []atc.Build) int {

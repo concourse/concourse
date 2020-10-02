@@ -22,13 +22,13 @@ func (command *ScheduleJobCommand) Execute(args []string) error {
 		return err
 	}
 
-	found, err := target.Team().ScheduleJob(command.Job.PipelineName, command.Job.JobName)
+	found, err := target.Team().ScheduleJob(command.Job.PipelineRef, command.Job.JobName)
 	if err != nil {
 		return err
 	}
 
 	if !found {
-		return fmt.Errorf("%s/%s not found\n", command.Job.PipelineName, command.Job.JobName)
+		return fmt.Errorf("%s/%s not found\n", command.Job.PipelineRef.String(), command.Job.JobName)
 	}
 
 	fmt.Printf("scheduled '%s'\n", command.Job.JobName)

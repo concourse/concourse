@@ -224,7 +224,7 @@ var _ = Describe("Worker Lifecycle", func() {
 
 			Context("when worker has build with uninterruptible job", func() {
 				BeforeEach(func() {
-					pipeline, created, err := defaultTeam.SavePipeline("some-pipeline", atc.Config{
+					pipeline, created, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name:          "some-job",
@@ -256,7 +256,7 @@ var _ = Describe("Worker Lifecycle", func() {
 
 			Context("when worker has build with interruptible job", func() {
 				BeforeEach(func() {
-					pipeline, created, err := defaultTeam.SavePipeline("some-pipeline", atc.Config{
+					pipeline, created, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name:          "some-job",
@@ -471,7 +471,7 @@ var _ = Describe("Worker Lifecycle", func() {
 
 			Context("when worker has build with uninterruptible job", func() {
 				BeforeEach(func() {
-					pipeline, created, err := defaultTeam.SavePipeline("some-pipeline", atc.Config{
+					pipeline, created, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name:          "some-job",
@@ -503,7 +503,7 @@ var _ = Describe("Worker Lifecycle", func() {
 
 			Context("when worker has build with interruptible job", func() {
 				BeforeEach(func() {
-					pipeline, created, err := defaultTeam.SavePipeline("some-pipeline", atc.Config{
+					pipeline, created, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name:          "some-job",

@@ -267,7 +267,7 @@ func (d dashboardFactory) buildDashboard() (atc.Dashboard, error) {
 }
 
 func (d dashboardFactory) constructJobsForDashboard() (atc.Dashboard, error) {
-	rows, err := psql.Select("j.id", "j.name", "p.name", "j.paused", "j.has_new_inputs", "j.tags", "tm.name",
+	rows, err := psql.Select("j.id", "j.name", "p.id", "p.name", "p.instance_vars", "j.paused", "j.has_new_inputs", "j.tags", "tm.name",
 		"l.id", "l.name", "l.status", "l.start_time", "l.end_time",
 		"n.id", "n.name", "n.status", "n.start_time", "n.end_time",
 		"t.id", "t.name", "t.status", "t.start_time", "t.end_time").
@@ -301,10 +301,12 @@ func (d dashboardFactory) constructJobsForDashboard() (atc.Dashboard, error) {
 	for rows.Next() {
 		var (
 			f, n, t nullableBuild
+
+			pipelineInstanceVars sql.NullString
 		)
 
 		j := atc.DashboardJob{}
-		err = rows.Scan(&j.ID, &j.Name, &j.PipelineName, &j.Paused, &j.HasNewInputs, pq.Array(&j.Groups), &j.TeamName,
+		err = rows.Scan(&j.ID, &j.Name, &j.PipelineID, &j.PipelineName, &pipelineInstanceVars, &j.Paused, &j.HasNewInputs, pq.Array(&j.Groups), &j.TeamName,
 			&f.id, &f.name, &f.status, &f.startTime, &f.endTime,
 			&n.id, &n.name, &n.status, &n.startTime, &n.endTime,
 			&t.id, &t.name, &t.status, &t.startTime, &t.endTime)
@@ -312,42 +314,55 @@ func (d dashboardFactory) constructJobsForDashboard() (atc.Dashboard, error) {
 			return nil, err
 		}
 
+		if pipelineInstanceVars.Valid {
+			err = json.Unmarshal([]byte(pipelineInstanceVars.String), &j.PipelineInstanceVars)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		if f.id.Valid {
 			j.FinishedBuild = &atc.DashboardBuild{
-				ID:           int(f.id.Int64),
-				Name:         f.name.String,
-				JobName:      j.Name,
-				PipelineName: j.PipelineName,
-				TeamName:     j.TeamName,
-				Status:       f.status.String,
-				StartTime:    f.startTime.Time,
-				EndTime:      f.endTime.Time,
+				ID:                   int(f.id.Int64),
+				Name:                 f.name.String,
+				JobName:              j.Name,
+				PipelineID:           j.PipelineID,
+				PipelineName:         j.PipelineName,
+				PipelineInstanceVars: j.PipelineInstanceVars,
+				TeamName:             j.TeamName,
+				Status:               f.status.String,
+				StartTime:            f.startTime.Time,
+				EndTime:              f.endTime.Time,
 			}
 		}
 
 		if n.id.Valid {
 			j.NextBuild = &atc.DashboardBuild{
-				ID:           int(n.id.Int64),
-				Name:         n.name.String,
-				JobName:      j.Name,
-				PipelineName: j.PipelineName,
-				TeamName:     j.TeamName,
-				Status:       n.status.String,
-				StartTime:    n.startTime.Time,
-				EndTime:      n.endTime.Time,
+				ID:                   int(n.id.Int64),
+				Name:                 n.name.String,
+				JobName:              j.Name,
+				PipelineID:           j.PipelineID,
+				PipelineName:         j.PipelineName,
+				PipelineInstanceVars: j.PipelineInstanceVars,
+				TeamName:             j.TeamName,
+				Status:               n.status.String,
+				StartTime:            n.startTime.Time,
+				EndTime:              n.endTime.Time,
 			}
 		}
 
 		if t.id.Valid {
 			j.TransitionBuild = &atc.DashboardBuild{
-				ID:           int(t.id.Int64),
-				Name:         t.name.String,
-				JobName:      j.Name,
-				PipelineName: j.PipelineName,
-				TeamName:     j.TeamName,
-				Status:       t.status.String,
-				StartTime:    t.startTime.Time,
-				EndTime:      t.endTime.Time,
+				ID:                   int(t.id.Int64),
+				Name:                 t.name.String,
+				JobName:              j.Name,
+				PipelineID:           j.PipelineID,
+				PipelineName:         j.PipelineName,
+				PipelineInstanceVars: j.PipelineInstanceVars,
+				TeamName:             j.TeamName,
+				Status:               t.status.String,
+				StartTime:            t.startTime.Time,
+				EndTime:              t.endTime.Time,
 			}
 		}
 

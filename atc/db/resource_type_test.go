@@ -19,7 +19,7 @@ var _ = Describe("ResourceType", func() {
 		)
 
 		pipeline, created, err = defaultTeam.SavePipeline(
-			"pipeline-with-types",
+			atc.PipelineRef{Name: "pipeline-with-types"},
 			atc.Config{
 				ResourceTypes: atc.ResourceTypes{
 					{
@@ -107,7 +107,7 @@ var _ = Describe("ResourceType", func() {
 				)
 
 				pipeline, created, err = defaultTeam.SavePipeline(
-					"pipeline-with-types",
+					atc.PipelineRef{Name: "pipeline-with-types"},
 					atc.Config{
 						ResourceTypes: atc.ResourceTypes{
 							{
@@ -138,7 +138,7 @@ var _ = Describe("ResourceType", func() {
 				)
 
 				pipeline, created, err = defaultTeam.SavePipeline(
-					"pipeline-with-types",
+					atc.PipelineRef{Name: "pipeline-with-types"},
 					atc.Config{
 						Resources: atc.ResourceConfigs{
 							{
@@ -184,7 +184,7 @@ var _ = Describe("ResourceType", func() {
 				)
 
 				otherPipeline, created, err := defaultTeam.SavePipeline(
-					"pipeline-with-duplicate-type-name",
+					atc.PipelineRef{Name: "pipeline-with-duplicate-type-name"},
 					atc.Config{
 						ResourceTypes: atc.ResourceTypes{
 							{
@@ -203,7 +203,7 @@ var _ = Describe("ResourceType", func() {
 				Expect(otherPipeline).NotTo(BeNil())
 
 				pipeline, created, err = defaultTeam.SavePipeline(
-					"pipeline-with-types",
+					atc.PipelineRef{Name: "pipeline-with-types"},
 					atc.Config{
 						Resources: atc.ResourceConfigs{
 							{

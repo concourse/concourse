@@ -69,17 +69,25 @@ func createContainerLocatorFromRequest(team db.Team, r *http.Request, secretMana
 		}, nil
 	}
 
+	var err error
+	pipelineRef := atc.PipelineRef{Name: query.Get("pipeline_name")}
+	if instanceVars := query.Get("instance_vars"); instanceVars != "" {
+		err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if query.Get("type") == "check" {
 		return &checkContainerLocator{
 			team:          team,
-			pipelineName:  query.Get("pipeline_name"),
+			pipelineRef:   pipelineRef,
 			resourceName:  query.Get("resource_name"),
 			secretManager: secretManager,
 			varSourcePool: varSourcePool,
 		}, nil
 	}
 
-	var err error
 	var containerType db.ContainerType
 	if query.Get("type") != "" {
 		containerType, err = db.ContainerTypeFromString(query.Get("type"))
@@ -116,9 +124,10 @@ func createContainerLocatorFromRequest(team db.Team, r *http.Request, secretMana
 			JobID:      jobID,
 			BuildID:    buildID,
 
-			PipelineName: query.Get("pipeline_name"),
-			JobName:      query.Get("job_name"),
-			BuildName:    query.Get("build_name"),
+			PipelineName:         query.Get("pipeline_name"),
+			PipelineInstanceVars: query.Get("pipeline_instance_vars"),
+			JobName:              query.Get("job_name"),
+			BuildName:            query.Get("build_name"),
 		},
 	}, nil
 }
@@ -134,14 +143,14 @@ func (l *allContainersLocator) Locate(logger lager.Logger) ([]db.Container, map[
 
 type checkContainerLocator struct {
 	team          db.Team
-	pipelineName  string
+	pipelineRef   atc.PipelineRef
 	resourceName  string
 	secretManager creds.Secrets
 	varSourcePool creds.VarSourcePool
 }
 
 func (l *checkContainerLocator) Locate(logger lager.Logger) ([]db.Container, map[int]time.Time, error) {
-	return l.team.FindCheckContainers(logger, l.pipelineName, l.resourceName, l.secretManager, l.varSourcePool)
+	return l.team.FindCheckContainers(logger, l.pipelineRef, l.resourceName, l.secretManager, l.varSourcePool)
 }
 
 type stepContainerLocator struct {

@@ -1,6 +1,7 @@
 package exec
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -13,6 +14,7 @@ type StepMetadata struct {
 	JobName               string
 	PipelineID            int
 	PipelineName          string
+	PipelineInstanceVars  map[string]interface{}
 	ResourceConfigScopeID int
 	ResourceConfigID      int
 	BaseResourceTypeID    int
@@ -52,6 +54,11 @@ func (metadata StepMetadata) Env() []string {
 
 	if metadata.PipelineName != "" {
 		env = append(env, "BUILD_PIPELINE_NAME="+metadata.PipelineName)
+	}
+
+	if metadata.PipelineInstanceVars != nil {
+		bytes, _ := json.Marshal(metadata.PipelineInstanceVars)
+		env = append(env, "BUILD_PIPELINE_INSTANCE_VARS="+string(bytes))
 	}
 
 	if metadata.ExternalURL != "" {

@@ -40,6 +40,7 @@ type Pipeline interface {
 	Name() string
 	TeamID() int
 	TeamName() string
+	InstanceVars() atc.InstanceVars
 	ParentJobID() int
 	ParentBuildID() int
 	Groups() atc.GroupConfigs
@@ -104,6 +105,7 @@ type pipeline struct {
 	name          string
 	teamID        int
 	teamName      string
+	instanceVars  atc.InstanceVars
 	parentJobID   int
 	parentBuildID int
 	groups        atc.GroupConfigs
@@ -137,7 +139,8 @@ var pipelinesQuery = psql.Select(`
 		p.archived,
 		p.last_updated,
 		p.parent_job_id,
-		p.parent_build_id
+		p.parent_build_id,
+		p.instance_vars
 	`).
 	From("pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id")
@@ -149,13 +152,14 @@ func newPipeline(conn Conn, lockFactory lock.LockFactory) *pipeline {
 	}
 }
 
-func (p *pipeline) ID() int                  { return p.id }
-func (p *pipeline) Name() string             { return p.name }
-func (p *pipeline) TeamID() int              { return p.teamID }
-func (p *pipeline) TeamName() string         { return p.teamName }
-func (p *pipeline) ParentJobID() int         { return p.parentJobID }
-func (p *pipeline) ParentBuildID() int       { return p.parentBuildID }
-func (p *pipeline) Groups() atc.GroupConfigs { return p.groups }
+func (p *pipeline) ID() int                        { return p.id }
+func (p *pipeline) Name() string                   { return p.name }
+func (p *pipeline) TeamID() int                    { return p.teamID }
+func (p *pipeline) TeamName() string               { return p.teamName }
+func (p *pipeline) ParentJobID() int               { return p.parentJobID }
+func (p *pipeline) ParentBuildID() int             { return p.parentBuildID }
+func (p *pipeline) InstanceVars() atc.InstanceVars { return p.instanceVars }
+func (p *pipeline) Groups() atc.GroupConfigs       { return p.groups }
 
 func (p *pipeline) VarSources() atc.VarSourceConfigs { return p.varSources }
 func (p *pipeline) Display() *atc.DisplayConfig      { return p.display }

@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
@@ -10,9 +11,9 @@ import (
 )
 
 type PausePipelineCommand struct {
-	Pipeline flaghelpers.PipelineFlag `short:"p"   long:"pipeline" description:"Pipeline to pause"`
-	All      bool                     `short:"a"   long:"all"      description:"Pause all pipelines"`
-	Team     string                   `long:"team"                 description:"Name of the team to which the pipeline belongs, if different from the target default"`
+	Pipeline *flaghelpers.PipelineFlag `short:"p"   long:"pipeline" description:"Pipeline to pause"`
+	All      bool                      `short:"a"   long:"all"      description:"Pause all pipelines"`
+	Team     string                    `long:"team"                 description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *PausePipelineCommand) Validate() error {
@@ -21,11 +22,11 @@ func (command *PausePipelineCommand) Validate() error {
 }
 
 func (command *PausePipelineCommand) Execute(args []string) error {
-	if string(command.Pipeline) == "" && !command.All {
+	if command.Pipeline == nil && !command.All {
 		displayhelpers.Failf("one of the flags '-p, --pipeline' or '-a, --all' is required")
 	}
 
-	if string(command.Pipeline) != "" && command.All {
+	if command.Pipeline != nil && command.All {
 		displayhelpers.Failf("only one of the flags '-p, --pipeline' or '-a, --all' is allowed")
 	}
 
@@ -54,9 +55,9 @@ func (command *PausePipelineCommand) Execute(args []string) error {
 		team = target.Team()
 	}
 
-	var pipelineNames []string
-	if string(command.Pipeline) != "" {
-		pipelineNames = []string{string(command.Pipeline)}
+	var pipelineRefs []atc.PipelineRef
+	if command.Pipeline != nil {
+		pipelineRefs = []atc.PipelineRef{command.Pipeline.Ref()}
 	}
 
 	if command.All {
@@ -66,20 +67,20 @@ func (command *PausePipelineCommand) Execute(args []string) error {
 		}
 
 		for _, pipeline := range pipelines {
-			pipelineNames = append(pipelineNames, pipeline.Name)
+			pipelineRefs = append(pipelineRefs, pipeline.Ref())
 		}
 	}
 
-	for _, pipelineName := range pipelineNames {
-		found, err := team.PausePipeline(pipelineName)
+	for _, pipelineRef := range pipelineRefs {
+		found, err := team.PausePipeline(pipelineRef)
 		if err != nil {
 			return err
 		}
 
 		if found {
-			fmt.Printf("paused '%s'\n", pipelineName)
+			fmt.Printf("paused '%s'\n", pipelineRef.String())
 		} else {
-			displayhelpers.Failf("pipeline '%s' not found\n", pipelineName)
+			displayhelpers.Failf("pipeline '%s' not found\n", pipelineRef.String())
 		}
 	}
 

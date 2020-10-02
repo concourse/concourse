@@ -18,9 +18,10 @@ var _ = Describe("Fly CLI", func() {
 	Describe("unpause-pipeline", func() {
 		Context("when the pipeline name is specified", func() {
 			var (
-				mainPath  string
-				otherPath string
-				err       error
+				mainPath    string
+				otherPath   string
+				queryParams string
+				err         error
 			)
 			BeforeEach(func() {
 				mainPath, err = atc.Routes.CreatePathForRoute(atc.UnpausePipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
@@ -28,6 +29,8 @@ var _ = Describe("Fly CLI", func() {
 
 				otherPath, err = atc.Routes.CreatePathForRoute(atc.UnpausePipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "other-team"})
 				Expect(err).NotTo(HaveOccurred())
+
+				queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
 			})
 
 			Context("when the pipeline exists", func() {
@@ -37,7 +40,7 @@ var _ = Describe("Fly CLI", func() {
 						BeforeEach(func() {
 							atcServer.AppendHandlers(
 								ghttp.CombineHandlers(
-									ghttp.VerifyRequest("PUT", mainPath),
+									ghttp.VerifyRequest("PUT", mainPath, queryParams),
 									ghttp.RespondWith(http.StatusOK, nil),
 								),
 							)
@@ -45,12 +48,12 @@ var _ = Describe("Fly CLI", func() {
 
 						It("unpauses the pipeline", func() {
 							Expect(func() {
-								flyCmd := exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "-p", "awesome-pipeline")
+								flyCmd := exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "-p", "awesome-pipeline/branch:master")
 
 								sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 								Expect(err).NotTo(HaveOccurred())
 
-								Eventually(sess).Should(gbytes.Say(`unpaused 'awesome-pipeline'`))
+								Eventually(sess).Should(gbytes.Say(`unpaused 'awesome-pipeline/branch:master'`))
 
 								<-sess.Exited
 								Expect(sess.ExitCode()).To(Equal(0))
@@ -157,8 +160,8 @@ var _ = Describe("Fly CLI", func() {
 			})
 		})
 
-		Context("when specifying a pipeline name with a '/' character in it", func() {
-			It("fails and says '/' characters are not allowed", func() {
+		Context("when the pipeline flag is invalid", func() {
+			It("fails and print invalid flag error", func() {
 				flyCmd := exec.Command(flyPath, "-t", targetName, "unpause-pipeline", "-p", "forbidden/pipelinename")
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -167,7 +170,7 @@ var _ = Describe("Fly CLI", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
 
-				Expect(sess.Err).To(gbytes.Say("error: pipeline name cannot contain '/'"))
+				Expect(sess.Err).To(gbytes.Say("error: invalid argument for flag `" + osFlag("p", "pipeline")))
 			})
 		})
 

@@ -12,9 +12,9 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (team *team) ResourceVersions(pipelineName string, resourceName string, page Page, filter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error) {
+func (team *team) ResourceVersions(pipelineRef atc.PipelineRef, resourceName string, page Page, filter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
+		"pipeline_name": pipelineRef.Name,
 		"resource_name": resourceName,
 		"team_name":     team.Name(),
 	}
@@ -30,7 +30,7 @@ func (team *team) ResourceVersions(pipelineName string, resourceName string, pag
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.ListResourceVersions,
 		Params:      params,
-		Query:       queryParams,
+		Query:       merge(queryParams, pipelineRef.QueryParams()),
 	}, &internal.Response{
 		Result:  &resourceVersions,
 		Headers: &headers,
@@ -50,21 +50,21 @@ func (team *team) ResourceVersions(pipelineName string, resourceName string, pag
 	}
 }
 
-func (team *team) DisableResourceVersion(pipelineName string, resourceName string, resourceVersionID int) (bool, error) {
-	return team.sendResourceVersion(pipelineName, resourceName, resourceVersionID, atc.DisableResourceVersion)
+func (team *team) DisableResourceVersion(pipelineRef atc.PipelineRef, resourceName string, resourceVersionID int) (bool, error) {
+	return team.sendResourceVersion(pipelineRef, resourceName, resourceVersionID, atc.DisableResourceVersion)
 }
 
-func (team *team) EnableResourceVersion(pipelineName string, resourceName string, resourceVersionID int) (bool, error) {
-	return team.sendResourceVersion(pipelineName, resourceName, resourceVersionID, atc.EnableResourceVersion)
+func (team *team) EnableResourceVersion(pipelineRef atc.PipelineRef, resourceName string, resourceVersionID int) (bool, error) {
+	return team.sendResourceVersion(pipelineRef, resourceName, resourceVersionID, atc.EnableResourceVersion)
 }
 
-func (team *team) PinResourceVersion(pipelineName string, resourceName string, resourceVersionID int) (bool, error) {
-	return team.sendResourceVersion(pipelineName, resourceName, resourceVersionID, atc.PinResourceVersion)
+func (team *team) PinResourceVersion(pipelineRef atc.PipelineRef, resourceName string, resourceVersionID int) (bool, error) {
+	return team.sendResourceVersion(pipelineRef, resourceName, resourceVersionID, atc.PinResourceVersion)
 }
 
-func (team *team) UnpinResource(pipelineName string, resourceName string) (bool, error) {
+func (team *team) UnpinResource(pipelineRef atc.PipelineRef, resourceName string) (bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
+		"pipeline_name": pipelineRef.Name,
 		"resource_name": resourceName,
 		"team_name":     team.Name(),
 	}
@@ -72,6 +72,7 @@ func (team *team) UnpinResource(pipelineName string, resourceName string) (bool,
 	err := team.connection.Send(internal.Request{
 		RequestName: atc.UnpinResource,
 		Params:      params,
+		Query:       pipelineRef.QueryParams(),
 	}, nil)
 
 	switch err.(type) {
@@ -84,9 +85,9 @@ func (team *team) UnpinResource(pipelineName string, resourceName string) (bool,
 	}
 }
 
-func (team *team) SetPinComment(pipelineName string, resourceName string, comment string) (bool, error) {
+func (team *team) SetPinComment(pipelineRef atc.PipelineRef, resourceName string, comment string) (bool, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineName,
+		"pipeline_name": pipelineRef.Name,
 		"resource_name": resourceName,
 		"team_name":     team.Name(),
 	}
@@ -107,6 +108,7 @@ func (team *team) SetPinComment(pipelineName string, resourceName string, commen
 			"Content-Type": {"application/json"},
 		},
 		Params: params,
+		Query:  pipelineRef.QueryParams(),
 		Body:   buffer,
 	}, nil)
 
@@ -121,9 +123,9 @@ func (team *team) SetPinComment(pipelineName string, resourceName string, commen
 
 }
 
-func (team *team) sendResourceVersion(pipelineName string, resourceName string, resourceVersionID int, resourceVersionReq string) (bool, error) {
+func (team *team) sendResourceVersion(pipelineRef atc.PipelineRef, resourceName string, resourceVersionID int, resourceVersionReq string) (bool, error) {
 	params := rata.Params{
-		"pipeline_name":              pipelineName,
+		"pipeline_name":              pipelineRef.Name,
 		"resource_name":              resourceName,
 		"resource_config_version_id": strconv.Itoa(resourceVersionID),
 		"team_name":                  team.Name(),
@@ -132,6 +134,7 @@ func (team *team) sendResourceVersion(pipelineName string, resourceName string, 
 	err := team.connection.Send(internal.Request{
 		RequestName: resourceVersionReq,
 		Params:      params,
+		Query:       pipelineRef.QueryParams(),
 	}, nil)
 
 	switch err.(type) {

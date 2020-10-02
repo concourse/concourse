@@ -291,11 +291,13 @@ func (plan TaskPlan) Public() *json.RawMessage {
 
 func (plan SetPipelinePlan) Public() *json.RawMessage {
 	return enc(struct {
-		Name string `json:"name"`
-		Team string `json:"team"`
+		Name         string       `json:"name"`
+		Team         string       `json:"team"`
+		InstanceVars InstanceVars `json:"instance_vars"`
 	}{
-		Name: plan.Name,
-		Team: plan.Team,
+		Name:         plan.Name,
+		Team:         plan.Team,
+		InstanceVars: plan.InstanceVars,
 	})
 }
 

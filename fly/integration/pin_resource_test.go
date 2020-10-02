@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os/exec"
+	"strings"
 
 	"github.com/concourse/concourse/atc"
 	. "github.com/onsi/ginkgo"
@@ -28,12 +29,18 @@ var _ = Describe("Fly CLI", func() {
 			resourceName                  = "resource"
 			resourceVersionID             = "42"
 			pinVersion                    = "some:value"
-			pipelineResource              = fmt.Sprintf("%s/%s", pipelineName, resourceName)
+			pipelineRef                   = atc.PipelineRef{Name: pipelineName, InstanceVars: atc.InstanceVars{"branch": "master"}}
+			pipelineResource              = fmt.Sprintf("%s/%s", pipelineRef.String(), resourceName)
 			expectedPinVersion            = atc.ResourceVersion{
 				ID:      42,
 				Version: atc.Version{"some": "value"},
 			}
+			expectedQueryParams []string
 		)
+
+		BeforeEach(func() {
+			expectedQueryParams = []string{}
+		})
 
 		Context("make sure the command exists", func() {
 			It("calls the pin-resource command", func() {
@@ -48,6 +55,10 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Context("when the resource is specified", func() {
+			BeforeEach(func() {
+				expectedQueryParams = append(expectedQueryParams, "instance_vars=%7B%22branch%22%3A%22master%22%7D")
+			})
+
 			Context("when the resource version json string is specified", func() {
 				BeforeEach(func() {
 					getPath, err = atc.Routes.CreatePathForRoute(atc.ListResourceVersions, rata.Params{
@@ -65,16 +76,17 @@ var _ = Describe("Fly CLI", func() {
 					})
 					Expect(err).NotTo(HaveOccurred())
 
+					expectedQueryParams = append(expectedQueryParams, "filter=some:value")
 				})
 
 				JustBeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", getPath, "filter=some:value"),
+							ghttp.VerifyRequest("GET", getPath, strings.Join(expectedQueryParams, "&")),
 							ghttp.RespondWithJSONEncoded(expectedGetStatus, []atc.ResourceVersion{expectedPinVersion}),
 						),
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("PUT", pinPath),
+							ghttp.VerifyRequest("PUT", pinPath, "instance_vars=%7B%22branch%22%3A%22master%22%7D"),
 							ghttp.RespondWith(expectedPutStatus, nil),
 						),
 					)

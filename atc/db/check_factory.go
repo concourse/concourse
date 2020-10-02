@@ -212,12 +212,13 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 	}
 
 	meta := CheckMetadata{
-		TeamID:             checkable.TeamID(),
-		TeamName:           checkable.TeamName(),
-		PipelineName:       checkable.PipelineName(),
-		PipelineID:         checkable.PipelineID(),
-		ResourceConfigID:   resourceConfigScope.ResourceConfig().ID(),
-		BaseResourceTypeID: resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+		TeamID:               checkable.TeamID(),
+		TeamName:             checkable.TeamName(),
+		PipelineID:           checkable.PipelineID(),
+		PipelineName:         checkable.PipelineName(),
+		PipelineInstanceVars: checkable.PipelineInstanceVars(),
+		ResourceConfigID:     resourceConfigScope.ResourceConfig().ID(),
+		BaseResourceTypeID:   resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
 	}
 
 	check, created, err := c.CreateCheck(
@@ -321,10 +322,11 @@ func (c *checkFactory) CreateCheck(
 		metadata:              meta,
 
 		pipelineRef: pipelineRef{
-			conn:         c.conn,
-			lockFactory:  c.lockFactory,
-			pipelineID:   meta.PipelineID,
-			pipelineName: meta.PipelineName,
+			conn:                 c.conn,
+			lockFactory:          c.lockFactory,
+			pipelineID:           meta.PipelineID,
+			pipelineName:         meta.PipelineName,
+			pipelineInstanceVars: meta.PipelineInstanceVars,
 		},
 
 		spanContext: sc,

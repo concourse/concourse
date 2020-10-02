@@ -4,6 +4,7 @@ package dbfakes
 import (
 	"sync"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -146,21 +147,23 @@ type FakeCreatedVolume struct {
 		result1 *db.VolumeResourceType
 		result2 error
 	}
-	TaskIdentifierStub        func() (string, string, string, error)
+	TaskIdentifierStub        func() (int, atc.PipelineRef, string, string, error)
 	taskIdentifierMutex       sync.RWMutex
 	taskIdentifierArgsForCall []struct {
 	}
 	taskIdentifierReturns struct {
-		result1 string
-		result2 string
+		result1 int
+		result2 atc.PipelineRef
 		result3 string
-		result4 error
+		result4 string
+		result5 error
 	}
 	taskIdentifierReturnsOnCall map[int]struct {
-		result1 string
-		result2 string
+		result1 int
+		result2 atc.PipelineRef
 		result3 string
-		result4 error
+		result4 string
+		result5 error
 	}
 	TeamIDStub        func() int
 	teamIDMutex       sync.RWMutex
@@ -881,7 +884,7 @@ func (fake *FakeCreatedVolume) ResourceTypeReturnsOnCall(i int, result1 *db.Volu
 	}{result1, result2}
 }
 
-func (fake *FakeCreatedVolume) TaskIdentifier() (string, string, string, error) {
+func (fake *FakeCreatedVolume) TaskIdentifier() (int, atc.PipelineRef, string, string, error) {
 	fake.taskIdentifierMutex.Lock()
 	ret, specificReturn := fake.taskIdentifierReturnsOnCall[len(fake.taskIdentifierArgsForCall)]
 	fake.taskIdentifierArgsForCall = append(fake.taskIdentifierArgsForCall, struct {
@@ -892,10 +895,10 @@ func (fake *FakeCreatedVolume) TaskIdentifier() (string, string, string, error) 
 		return fake.TaskIdentifierStub()
 	}
 	if specificReturn {
-		return ret.result1, ret.result2, ret.result3, ret.result4
+		return ret.result1, ret.result2, ret.result3, ret.result4, ret.result5
 	}
 	fakeReturns := fake.taskIdentifierReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3, fakeReturns.result4
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3, fakeReturns.result4, fakeReturns.result5
 }
 
 func (fake *FakeCreatedVolume) TaskIdentifierCallCount() int {
@@ -904,42 +907,45 @@ func (fake *FakeCreatedVolume) TaskIdentifierCallCount() int {
 	return len(fake.taskIdentifierArgsForCall)
 }
 
-func (fake *FakeCreatedVolume) TaskIdentifierCalls(stub func() (string, string, string, error)) {
+func (fake *FakeCreatedVolume) TaskIdentifierCalls(stub func() (int, atc.PipelineRef, string, string, error)) {
 	fake.taskIdentifierMutex.Lock()
 	defer fake.taskIdentifierMutex.Unlock()
 	fake.TaskIdentifierStub = stub
 }
 
-func (fake *FakeCreatedVolume) TaskIdentifierReturns(result1 string, result2 string, result3 string, result4 error) {
+func (fake *FakeCreatedVolume) TaskIdentifierReturns(result1 int, result2 atc.PipelineRef, result3 string, result4 string, result5 error) {
 	fake.taskIdentifierMutex.Lock()
 	defer fake.taskIdentifierMutex.Unlock()
 	fake.TaskIdentifierStub = nil
 	fake.taskIdentifierReturns = struct {
-		result1 string
-		result2 string
+		result1 int
+		result2 atc.PipelineRef
 		result3 string
-		result4 error
-	}{result1, result2, result3, result4}
+		result4 string
+		result5 error
+	}{result1, result2, result3, result4, result5}
 }
 
-func (fake *FakeCreatedVolume) TaskIdentifierReturnsOnCall(i int, result1 string, result2 string, result3 string, result4 error) {
+func (fake *FakeCreatedVolume) TaskIdentifierReturnsOnCall(i int, result1 int, result2 atc.PipelineRef, result3 string, result4 string, result5 error) {
 	fake.taskIdentifierMutex.Lock()
 	defer fake.taskIdentifierMutex.Unlock()
 	fake.TaskIdentifierStub = nil
 	if fake.taskIdentifierReturnsOnCall == nil {
 		fake.taskIdentifierReturnsOnCall = make(map[int]struct {
-			result1 string
-			result2 string
+			result1 int
+			result2 atc.PipelineRef
 			result3 string
-			result4 error
+			result4 string
+			result5 error
 		})
 	}
 	fake.taskIdentifierReturnsOnCall[i] = struct {
-		result1 string
-		result2 string
+		result1 int
+		result2 atc.PipelineRef
 		result3 string
-		result4 error
-	}{result1, result2, result3, result4}
+		result4 string
+		result5 error
+	}{result1, result2, result3, result4, result5}
 }
 
 func (fake *FakeCreatedVolume) TeamID() int {

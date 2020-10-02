@@ -246,6 +246,16 @@ type FakePipeline struct {
 	iDReturnsOnCall map[int]struct {
 		result1 int
 	}
+	InstanceVarsStub        func() atc.InstanceVars
+	instanceVarsMutex       sync.RWMutex
+	instanceVarsArgsForCall []struct {
+	}
+	instanceVarsReturns struct {
+		result1 atc.InstanceVars
+	}
+	instanceVarsReturnsOnCall map[int]struct {
+		result1 atc.InstanceVars
+	}
 	JobStub        func(string) (db.Job, bool, error)
 	jobMutex       sync.RWMutex
 	jobArgsForCall []struct {
@@ -1684,6 +1694,58 @@ func (fake *FakePipeline) IDReturnsOnCall(i int, result1 int) {
 	}
 	fake.iDReturnsOnCall[i] = struct {
 		result1 int
+	}{result1}
+}
+
+func (fake *FakePipeline) InstanceVars() atc.InstanceVars {
+	fake.instanceVarsMutex.Lock()
+	ret, specificReturn := fake.instanceVarsReturnsOnCall[len(fake.instanceVarsArgsForCall)]
+	fake.instanceVarsArgsForCall = append(fake.instanceVarsArgsForCall, struct {
+	}{})
+	fake.recordInvocation("InstanceVars", []interface{}{})
+	fake.instanceVarsMutex.Unlock()
+	if fake.InstanceVarsStub != nil {
+		return fake.InstanceVarsStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.instanceVarsReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakePipeline) InstanceVarsCallCount() int {
+	fake.instanceVarsMutex.RLock()
+	defer fake.instanceVarsMutex.RUnlock()
+	return len(fake.instanceVarsArgsForCall)
+}
+
+func (fake *FakePipeline) InstanceVarsCalls(stub func() atc.InstanceVars) {
+	fake.instanceVarsMutex.Lock()
+	defer fake.instanceVarsMutex.Unlock()
+	fake.InstanceVarsStub = stub
+}
+
+func (fake *FakePipeline) InstanceVarsReturns(result1 atc.InstanceVars) {
+	fake.instanceVarsMutex.Lock()
+	defer fake.instanceVarsMutex.Unlock()
+	fake.InstanceVarsStub = nil
+	fake.instanceVarsReturns = struct {
+		result1 atc.InstanceVars
+	}{result1}
+}
+
+func (fake *FakePipeline) InstanceVarsReturnsOnCall(i int, result1 atc.InstanceVars) {
+	fake.instanceVarsMutex.Lock()
+	defer fake.instanceVarsMutex.Unlock()
+	fake.InstanceVarsStub = nil
+	if fake.instanceVarsReturnsOnCall == nil {
+		fake.instanceVarsReturnsOnCall = make(map[int]struct {
+			result1 atc.InstanceVars
+		})
+	}
+	fake.instanceVarsReturnsOnCall[i] = struct {
+		result1 atc.InstanceVars
 	}{result1}
 }
 
@@ -3159,6 +3221,8 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.hideMutex.RUnlock()
 	fake.iDMutex.RLock()
 	defer fake.iDMutex.RUnlock()
+	fake.instanceVarsMutex.RLock()
+	defer fake.instanceVarsMutex.RUnlock()
 	fake.jobMutex.RLock()
 	defer fake.jobMutex.RUnlock()
 	fake.jobsMutex.RLock()

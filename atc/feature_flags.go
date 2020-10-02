@@ -5,4 +5,5 @@ var (
 	EnableRedactSecrets                  bool
 	EnableBuildRerunWhenWorkerDisappears bool
 	EnableAcrossStep                     bool
+	EnablePipelineInstances              bool
 )

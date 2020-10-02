@@ -104,7 +104,7 @@ var _ = Describe("AbortBuild", func() {
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL),
+						ghttp.VerifyRequest("GET", expectedURL, "instance_vars=%7B%22branch%22%3A%22master%22%7D"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuild),
 					),
 
@@ -117,7 +117,7 @@ var _ = Describe("AbortBuild", func() {
 
 			It("aborts the build", func() {
 				Expect(func() {
-					flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/my-job", "-b", "42")
+					flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/branch:master/my-job", "-b", "42")
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
