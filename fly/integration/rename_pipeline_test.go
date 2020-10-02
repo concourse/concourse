@@ -74,7 +74,7 @@ var _ = Describe("RenamePipeline", func() {
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(1))
 
-			Expect(sess.Err).To(gbytes.Say("error: invalid argument for flag `-o, --old-name'"))
+			Expect(sess.Err).To(gbytes.Say("error: invalid argument for flag `" + osFlag("o", "old-name")))
 		})
 	})
 
