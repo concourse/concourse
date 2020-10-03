@@ -551,6 +551,12 @@ var _ = Describe("CheckStep", func() {
 				Expect(err).To(Equal(expectedErr))
 			})
 
+			It("points the resource or resource type to the scope", func() {
+				Expect(fakeDelegate.PointToSavedVersionsCallCount()).To(Equal(1))
+				scope := fakeDelegate.PointToSavedVersionsArgsForCall(0)
+				Expect(scope).To(Equal(fakeResourceConfigScope))
+			})
+
 			// Finished is for script success/failure, whereas this is an error
 			It("does not emit a Finished event", func() {
 				Expect(fakeDelegate.FinishedCallCount()).To(Equal(0))

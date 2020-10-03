@@ -5,10 +5,12 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Checking a resource", func() {
 	var hash string
+	var checkFailure string
 
 	BeforeEach(func() {
 		u, err := uuid.NewV4()
@@ -17,15 +19,37 @@ var _ = Describe("Checking a resource", func() {
 		hash = u.String()
 	})
 
-	Context("when the resource has a base resource type", func() {
+	JustBeforeEach(func() {
+		setAndUnpausePipeline(
+			"fixtures/resource-check.yml",
+			"-v", "unique_version="+hash,
+			"-v", "check_failure="+checkFailure,
+		)
+	})
+
+	It("saves the versions", func() {
+		check := fly("check-resource", "-r", inPipeline("my-resource"))
+		Expect(check).To(gbytes.Say("my-resource"))
+		Expect(check).To(gbytes.Say("succeeded"))
+
+		versions := fly("resource-versions", "-r", inPipeline("my-resource"))
+		Expect(versions).To(gbytes.Say(hash))
+	})
+
+	Context("when checking fails", func() {
 		BeforeEach(func() {
-			setAndUnpausePipeline("fixtures/resource-with-params.yml", "-v", "unique_version="+hash)
+			checkFailure = "super broken"
 		})
 
-		It("can check a resource recursively", func() {
-			watch := fly("check-resource", "-r", inPipeline("some-git-resource"))
-			Expect(watch).To(gbytes.Say("some-git-resource"))
-			Expect(watch).To(gbytes.Say("succeeded"))
+		It("saves the error on the resource", func() {
+			check := spawnFly("check-resource", "-r", inPipeline("my-resource"))
+			<-check.Exited
+			Expect(check).To(gexec.Exit(2))
+			Expect(check).To(gbytes.Say("super broken"))
+			Expect(check).To(gbytes.Say("failed"))
+
+			resources := fly("resources", "-p", pipelineName)
+			Expect(resources).To(gbytes.Say(`resource script '/opt/resource/check \[\]' failed: exit status 1`))
 		})
 	})
 })

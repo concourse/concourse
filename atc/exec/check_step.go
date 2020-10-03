@@ -162,11 +162,16 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		if setErr := scope.SetCheckError(err); setErr != nil {
 			logger.Error("failed-to-set-check-error", setErr)
 		}
-		if _, ok := err.(runtime.ErrResourceScriptFailed); ok {
-			step.delegate.Finished(logger, false)
-			return nil
-		}
 		if err != nil {
+			if pointErr := step.delegate.PointToSavedVersions(scope); pointErr != nil {
+				return fmt.Errorf("update resource config scope: %w", pointErr)
+			}
+
+			if _, ok := err.(runtime.ErrResourceScriptFailed); ok {
+				step.delegate.Finished(logger, false)
+				return nil
+			}
+
 			return fmt.Errorf("run check: %w", err)
 		}
 
