@@ -58,15 +58,15 @@ type FakeCheckDelegate struct {
 	initializingArgsForCall []struct {
 		arg1 lager.Logger
 	}
-	PointToSavedVersionsStub        func(db.ResourceConfigScope) error
-	pointToSavedVersionsMutex       sync.RWMutex
-	pointToSavedVersionsArgsForCall []struct {
+	PointToCheckedConfigStub        func(db.ResourceConfigScope) error
+	pointToCheckedConfigMutex       sync.RWMutex
+	pointToCheckedConfigArgsForCall []struct {
 		arg1 db.ResourceConfigScope
 	}
-	pointToSavedVersionsReturns struct {
+	pointToCheckedConfigReturns struct {
 		result1 error
 	}
-	pointToSavedVersionsReturnsOnCall map[int]struct {
+	pointToCheckedConfigReturnsOnCall map[int]struct {
 		result1 error
 	}
 	RedactImageSourceStub        func(atc.Source) (atc.Source, error)
@@ -376,62 +376,62 @@ func (fake *FakeCheckDelegate) InitializingArgsForCall(i int) lager.Logger {
 	return argsForCall.arg1
 }
 
-func (fake *FakeCheckDelegate) PointToSavedVersions(arg1 db.ResourceConfigScope) error {
-	fake.pointToSavedVersionsMutex.Lock()
-	ret, specificReturn := fake.pointToSavedVersionsReturnsOnCall[len(fake.pointToSavedVersionsArgsForCall)]
-	fake.pointToSavedVersionsArgsForCall = append(fake.pointToSavedVersionsArgsForCall, struct {
+func (fake *FakeCheckDelegate) PointToCheckedConfig(arg1 db.ResourceConfigScope) error {
+	fake.pointToCheckedConfigMutex.Lock()
+	ret, specificReturn := fake.pointToCheckedConfigReturnsOnCall[len(fake.pointToCheckedConfigArgsForCall)]
+	fake.pointToCheckedConfigArgsForCall = append(fake.pointToCheckedConfigArgsForCall, struct {
 		arg1 db.ResourceConfigScope
 	}{arg1})
-	fake.recordInvocation("PointToSavedVersions", []interface{}{arg1})
-	fake.pointToSavedVersionsMutex.Unlock()
-	if fake.PointToSavedVersionsStub != nil {
-		return fake.PointToSavedVersionsStub(arg1)
+	fake.recordInvocation("PointToCheckedConfig", []interface{}{arg1})
+	fake.pointToCheckedConfigMutex.Unlock()
+	if fake.PointToCheckedConfigStub != nil {
+		return fake.PointToCheckedConfigStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.pointToSavedVersionsReturns
+	fakeReturns := fake.pointToCheckedConfigReturns
 	return fakeReturns.result1
 }
 
-func (fake *FakeCheckDelegate) PointToSavedVersionsCallCount() int {
-	fake.pointToSavedVersionsMutex.RLock()
-	defer fake.pointToSavedVersionsMutex.RUnlock()
-	return len(fake.pointToSavedVersionsArgsForCall)
+func (fake *FakeCheckDelegate) PointToCheckedConfigCallCount() int {
+	fake.pointToCheckedConfigMutex.RLock()
+	defer fake.pointToCheckedConfigMutex.RUnlock()
+	return len(fake.pointToCheckedConfigArgsForCall)
 }
 
-func (fake *FakeCheckDelegate) PointToSavedVersionsCalls(stub func(db.ResourceConfigScope) error) {
-	fake.pointToSavedVersionsMutex.Lock()
-	defer fake.pointToSavedVersionsMutex.Unlock()
-	fake.PointToSavedVersionsStub = stub
+func (fake *FakeCheckDelegate) PointToCheckedConfigCalls(stub func(db.ResourceConfigScope) error) {
+	fake.pointToCheckedConfigMutex.Lock()
+	defer fake.pointToCheckedConfigMutex.Unlock()
+	fake.PointToCheckedConfigStub = stub
 }
 
-func (fake *FakeCheckDelegate) PointToSavedVersionsArgsForCall(i int) db.ResourceConfigScope {
-	fake.pointToSavedVersionsMutex.RLock()
-	defer fake.pointToSavedVersionsMutex.RUnlock()
-	argsForCall := fake.pointToSavedVersionsArgsForCall[i]
+func (fake *FakeCheckDelegate) PointToCheckedConfigArgsForCall(i int) db.ResourceConfigScope {
+	fake.pointToCheckedConfigMutex.RLock()
+	defer fake.pointToCheckedConfigMutex.RUnlock()
+	argsForCall := fake.pointToCheckedConfigArgsForCall[i]
 	return argsForCall.arg1
 }
 
-func (fake *FakeCheckDelegate) PointToSavedVersionsReturns(result1 error) {
-	fake.pointToSavedVersionsMutex.Lock()
-	defer fake.pointToSavedVersionsMutex.Unlock()
-	fake.PointToSavedVersionsStub = nil
-	fake.pointToSavedVersionsReturns = struct {
+func (fake *FakeCheckDelegate) PointToCheckedConfigReturns(result1 error) {
+	fake.pointToCheckedConfigMutex.Lock()
+	defer fake.pointToCheckedConfigMutex.Unlock()
+	fake.PointToCheckedConfigStub = nil
+	fake.pointToCheckedConfigReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeCheckDelegate) PointToSavedVersionsReturnsOnCall(i int, result1 error) {
-	fake.pointToSavedVersionsMutex.Lock()
-	defer fake.pointToSavedVersionsMutex.Unlock()
-	fake.PointToSavedVersionsStub = nil
-	if fake.pointToSavedVersionsReturnsOnCall == nil {
-		fake.pointToSavedVersionsReturnsOnCall = make(map[int]struct {
+func (fake *FakeCheckDelegate) PointToCheckedConfigReturnsOnCall(i int, result1 error) {
+	fake.pointToCheckedConfigMutex.Lock()
+	defer fake.pointToCheckedConfigMutex.Unlock()
+	fake.PointToCheckedConfigStub = nil
+	if fake.pointToCheckedConfigReturnsOnCall == nil {
+		fake.pointToCheckedConfigReturnsOnCall = make(map[int]struct {
 			result1 error
 		})
 	}
-	fake.pointToSavedVersionsReturnsOnCall[i] = struct {
+	fake.pointToCheckedConfigReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -863,8 +863,8 @@ func (fake *FakeCheckDelegate) Invocations() map[string][][]interface{} {
 	defer fake.imageVersionDeterminedMutex.RUnlock()
 	fake.initializingMutex.RLock()
 	defer fake.initializingMutex.RUnlock()
-	fake.pointToSavedVersionsMutex.RLock()
-	defer fake.pointToSavedVersionsMutex.RUnlock()
+	fake.pointToCheckedConfigMutex.RLock()
+	defer fake.pointToCheckedConfigMutex.RUnlock()
 	fake.redactImageSourceMutex.RLock()
 	defer fake.redactImageSourceMutex.RUnlock()
 	fake.selectedWorkerMutex.RLock()

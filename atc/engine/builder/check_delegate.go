@@ -150,7 +150,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	return lock, true, nil
 }
 
-func (d *checkDelegate) PointToSavedVersions(scope db.ResourceConfigScope) error {
+func (d *checkDelegate) PointToCheckedConfig(scope db.ResourceConfigScope) error {
 	resource, found, err := d.resource()
 	if err != nil {
 		return fmt.Errorf("get resource: %w", err)

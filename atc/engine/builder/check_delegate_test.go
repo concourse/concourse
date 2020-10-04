@@ -265,7 +265,7 @@ var _ = Describe("CheckDelegate", func() {
 		})
 	})
 
-	Describe("PointToSavedVersions", func() {
+	Describe("PointToCheckedConfig", func() {
 		var pointErr error
 
 		BeforeEach(func() {
@@ -273,7 +273,7 @@ var _ = Describe("CheckDelegate", func() {
 		})
 
 		JustBeforeEach(func() {
-			pointErr = delegate.PointToSavedVersions(fakeResourceConfigScope)
+			pointErr = delegate.PointToCheckedConfig(fakeResourceConfigScope)
 		})
 
 		Context("when not checking for a resource or resource type", func() {

@@ -38,7 +38,7 @@ type CheckDelegate interface {
 
 	FindOrCreateScope(db.ResourceConfig) (db.ResourceConfigScope, error)
 	WaitToRun(context.Context, db.ResourceConfigScope) (lock.Lock, bool, error)
-	PointToSavedVersions(db.ResourceConfigScope) error
+	PointToCheckedConfig(db.ResourceConfigScope) error
 }
 
 func NewCheckStep(
@@ -163,7 +163,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 			logger.Error("failed-to-set-check-error", setErr)
 		}
 		if err != nil {
-			if pointErr := step.delegate.PointToSavedVersions(scope); pointErr != nil {
+			if pointErr := step.delegate.PointToCheckedConfig(scope); pointErr != nil {
 				return fmt.Errorf("update resource config scope: %w", pointErr)
 			}
 
@@ -186,7 +186,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		}
 	}
 
-	err = step.delegate.PointToSavedVersions(scope)
+	err = step.delegate.PointToCheckedConfig(scope)
 	if err != nil {
 		return fmt.Errorf("update resource config scope: %w", err)
 	}

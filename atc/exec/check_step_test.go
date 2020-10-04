@@ -499,7 +499,7 @@ var _ = Describe("CheckStep", func() {
 			Context("after saving", func() {
 				BeforeEach(func() {
 					fakeResourceConfigScope.SaveVersionsStub = func(db.SpanContext, []atc.Version) error {
-						Expect(fakeDelegate.PointToSavedVersionsCallCount()).To(BeZero())
+						Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(BeZero())
 						Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(0))
 						return nil
 					}
@@ -511,22 +511,22 @@ var _ = Describe("CheckStep", func() {
 
 				It("points the resource or resource type to the scope", func() {
 					Expect(fakeResourceConfigScope.SaveVersionsCallCount()).To(Equal(1))
-					Expect(fakeDelegate.PointToSavedVersionsCallCount()).To(Equal(1))
-					scope := fakeDelegate.PointToSavedVersionsArgsForCall(0)
+					Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
+					scope := fakeDelegate.PointToCheckedConfigArgsForCall(0)
 					Expect(scope).To(Equal(fakeResourceConfigScope))
 				})
 			})
 
 			Context("after pointing the resource type to the scope", func() {
 				BeforeEach(func() {
-					fakeDelegate.PointToSavedVersionsStub = func(db.ResourceConfigScope) error {
+					fakeDelegate.PointToCheckedConfigStub = func(db.ResourceConfigScope) error {
 						Expect(fakeLock.ReleaseCallCount()).To(Equal(0))
 						return nil
 					}
 				})
 
 				It("releases the lock", func() {
-					Expect(fakeDelegate.PointToSavedVersionsCallCount()).To(Equal(1))
+					Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
 					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 				})
 			})
@@ -552,8 +552,8 @@ var _ = Describe("CheckStep", func() {
 			})
 
 			It("points the resource or resource type to the scope", func() {
-				Expect(fakeDelegate.PointToSavedVersionsCallCount()).To(Equal(1))
-				scope := fakeDelegate.PointToSavedVersionsArgsForCall(0)
+				Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
+				scope := fakeDelegate.PointToCheckedConfigArgsForCall(0)
 				Expect(scope).To(Equal(fakeResourceConfigScope))
 			})
 
