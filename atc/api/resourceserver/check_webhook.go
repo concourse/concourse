@@ -81,13 +81,6 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		err = s.checkFactory.NotifyChecker()
-		if err != nil {
-			s.logger.Error("failed-to-notify-checker", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
 		w.WriteHeader(http.StatusCreated)
 
 		err = json.NewEncoder(w).Encode(present.Build(build))

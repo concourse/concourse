@@ -720,10 +720,6 @@ var _ = Describe("Resources API", func() {
 							dbCheckFactory.TryCreateCheckReturns(fakeBuild, true, nil)
 						})
 
-						It("notify checker", func() {
-							Expect(dbCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
-						})
-
 						It("returns 201", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusCreated))
 							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
@@ -1395,10 +1391,6 @@ var _ = Describe("Resources API", func() {
 							dbCheckFactory.TryCreateCheckReturns(fakeBuild, true, nil)
 						})
 
-						It("notify checker", func() {
-							Expect(dbCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
-						})
-
 						It("returns 201", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusCreated))
 							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
@@ -1534,10 +1526,6 @@ var _ = Describe("Resources API", func() {
 							fakeBuild.EndTimeReturns(time.Date(2002, 01, 01, 0, 0, 0, 0, time.UTC))
 
 							dbCheckFactory.TryCreateCheckReturns(fakeBuild, true, nil)
-						})
-
-						It("notify checker", func() {
-							Expect(dbCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
 						})
 
 						It("returns 201", func() {

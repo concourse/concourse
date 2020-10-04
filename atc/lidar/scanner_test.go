@@ -98,10 +98,6 @@ var _ = Describe("Scanner", func() {
 							Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
 						})
 
-						It("sends a notification for the checker to run", func() {
-							Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
-						})
-
 						Context("when try creating a check panic", func() {
 							BeforeEach(func() {
 								fakeCheckFactory.TryCreateCheckStub = func(context.Context, db.Checkable, db.ResourceTypes, atc.Version, bool) (db.Build, bool, error) {
@@ -132,10 +128,6 @@ var _ = Describe("Scanner", func() {
 							Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
 							Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
 						})
-
-						It("sends a notification for the checker to run", func() {
-							Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
-						})
 					})
 
 					Context("when the checkable does not have a pinned version", func() {
@@ -152,10 +144,6 @@ var _ = Describe("Scanner", func() {
 						It("clears the check error", func() {
 							Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
 							Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
-						})
-
-						It("sends a notification for the checker to run", func() {
-							Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
 						})
 					})
 				})
@@ -200,10 +188,6 @@ var _ = Describe("Scanner", func() {
 							_, checkable, _, _, manuallyTriggered = fakeCheckFactory.TryCreateCheckArgsForCall(1)
 							Expect(checkable).To(Equal(fakeResource))
 							Expect(manuallyTriggered).To(BeFalse())
-						})
-
-						It("sends a notification for the checker to run", func() {
-							Expect(fakeCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
 						})
 					})
 				})

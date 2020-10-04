@@ -80,7 +80,7 @@ func (s *scanner) Run(ctx context.Context) error {
 
 	waitGroup.Wait()
 
-	return s.checkFactory.NotifyChecker()
+	return nil
 }
 
 func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTypes db.ResourceTypes, resourceTypesChecked *sync.Map) error {

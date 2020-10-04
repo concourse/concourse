@@ -1659,10 +1659,6 @@ var _ = Describe("Jobs API", func() {
 										Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
 									})
 
-									It("notifies the checker to run", func() {
-										Expect(dbCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
-									})
-
 									It("returns the build", func() {
 										body, err := ioutil.ReadAll(response.Body)
 										Expect(err).NotTo(HaveOccurred())

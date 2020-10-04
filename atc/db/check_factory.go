@@ -48,7 +48,6 @@ type CheckFactory interface {
 	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.Version, bool) (Build, bool, error)
 	Resources() ([]Resource, error)
 	ResourceTypes() ([]ResourceType, error)
-	NotifyChecker() error
 }
 
 type checkFactory struct {
@@ -87,10 +86,6 @@ func NewCheckFactory(
 		defaultCheckInterval:            defaultCheckInterval,
 		defaultWithWebhookCheckInterval: defaultWithWebhookCheckInterval,
 	}
-}
-
-func (c *checkFactory) NotifyChecker() error {
-	return c.conn.Bus().Notify(atc.ComponentLidarChecker)
 }
 
 func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, resourceTypes ResourceTypes, from atc.Version, manuallyTriggered bool) (Build, bool, error) {
