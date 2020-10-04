@@ -5,12 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/lidar"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -25,22 +22,14 @@ var _ = Describe("Scanner", func() {
 		err error
 
 		fakeCheckFactory *dbfakes.FakeCheckFactory
-		fakeSecrets      *credsfakes.FakeSecrets
 
-		logger  *lagertest.TestLogger
 		scanner Scanner
 	)
 
 	BeforeEach(func() {
 		fakeCheckFactory = new(dbfakes.FakeCheckFactory)
-		fakeSecrets = new(credsfakes.FakeSecrets)
 
-		logger = lagertest.NewTestLogger("test")
-		scanner = lidar.NewScanner(
-			logger,
-			fakeCheckFactory,
-			fakeSecrets,
-		)
+		scanner = lidar.NewScanner(fakeCheckFactory)
 	})
 
 	JustBeforeEach(func() {
@@ -48,13 +37,6 @@ var _ = Describe("Scanner", func() {
 	})
 
 	Describe("Run", func() {
-		var fakeLock *lockfakes.FakeLock
-
-		BeforeEach(func() {
-			fakeLock = new(lockfakes.FakeLock)
-			fakeCheckFactory.AcquireScanningLockReturns(fakeLock, true, nil)
-		})
-
 		Context("when fetching resources fails", func() {
 			BeforeEach(func() {
 				fakeCheckFactory.ResourcesReturns(nil, errors.New("nope"))

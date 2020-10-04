@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
@@ -49,7 +48,6 @@ type CheckFactory interface {
 	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.Version, bool) (Build, bool, error)
 	Resources() ([]Resource, error)
 	ResourceTypes() ([]ResourceType, error)
-	AcquireScanningLock(lager.Logger) (lock.Lock, bool, error)
 	NotifyChecker() error
 }
 
@@ -93,13 +91,6 @@ func NewCheckFactory(
 
 func (c *checkFactory) NotifyChecker() error {
 	return c.conn.Bus().Notify(atc.ComponentLidarChecker)
-}
-
-func (c *checkFactory) AcquireScanningLock(logger lager.Logger) (lock.Lock, bool, error) {
-	return c.lockFactory.Acquire(
-		logger,
-		lock.NewResourceScanningLockID(),
-	)
 }
 
 func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, resourceTypes ResourceTypes, from atc.Version, manuallyTriggered bool) (Build, bool, error) {
