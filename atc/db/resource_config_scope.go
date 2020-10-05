@@ -36,11 +36,9 @@ type ResourceConfigScope interface {
 		logger lager.Logger,
 	) (lock.Lock, bool, error)
 
-	UpdateLastCheckStartTime(
-		interval time.Duration,
-		immediate bool,
-	) (bool, error)
+	UpdateLastCheckStartTime() (bool, error)
 
+	LastCheckEndTime() (time.Time, error)
 	UpdateLastCheckEndTime() (bool, error)
 }
 
@@ -58,6 +56,21 @@ func (r *resourceConfigScope) ID() int                        { return r.id }
 func (r *resourceConfigScope) Resource() Resource             { return r.resource }
 func (r *resourceConfigScope) ResourceConfig() ResourceConfig { return r.resourceConfig }
 func (r *resourceConfigScope) CheckError() error              { return r.checkError }
+
+func (r *resourceConfigScope) LastCheckEndTime() (time.Time, error) {
+	var lastCheckEndTime time.Time
+	err := psql.Select("last_check_end_time").
+		From("resource_config_scopes").
+		Where(sq.Eq{"id": r.id}).
+		RunWith(r.conn).
+		QueryRow().
+		Scan(&lastCheckEndTime)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return lastCheckEndTime, nil
+}
 
 // SaveVersions stores a list of version in the db for a resource config
 // Each version will also have its check order field updated and the
@@ -200,10 +213,7 @@ func (r *resourceConfigScope) AcquireResourceCheckingLock(
 	)
 }
 
-func (r *resourceConfigScope) UpdateLastCheckStartTime(
-	interval time.Duration,
-	immediate bool,
-) (bool, error) {
+func (r *resourceConfigScope) UpdateLastCheckStartTime() (bool, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return false, err
@@ -211,19 +221,11 @@ func (r *resourceConfigScope) UpdateLastCheckStartTime(
 
 	defer Rollback(tx)
 
-	params := []interface{}{r.id}
-
-	condition := ""
-	if !immediate {
-		condition = "AND now() - last_check_start_time > ($2 || ' SECONDS')::INTERVAL"
-		params = append(params, interval.Seconds())
-	}
-
 	updated, err := checkIfRowsUpdated(tx, `
-			UPDATE resource_config_scopes
-			SET last_check_start_time = now()
-			WHERE id = $1
-		`+condition, params...)
+		UPDATE resource_config_scopes
+		SET last_check_start_time = now()
+		WHERE id = $1
+	`, r.id)
 	if err != nil {
 		return false, err
 	}
@@ -249,10 +251,10 @@ func (r *resourceConfigScope) UpdateLastCheckEndTime() (bool, error) {
 	defer Rollback(tx)
 
 	updated, err := checkIfRowsUpdated(tx, `
-			UPDATE resource_config_scopes
-			SET last_check_end_time = now()
-			WHERE id = $1
-		`, r.id)
+		UPDATE resource_config_scopes
+		SET last_check_end_time = now()
+		WHERE id = $1
+	`, r.id)
 	if err != nil {
 		return false, err
 	}

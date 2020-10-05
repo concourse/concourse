@@ -14,11 +14,14 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 //go:generate counterfeiter . PutDelegate
 
 type PutDelegate interface {
+	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
+
 	ImageVersionDetermined(db.UsedResourceCache) error
 	RedactImageSource(source atc.Source) (atc.Source, error)
 
@@ -84,13 +87,9 @@ func NewPutStep(
 // The resource's put script is then invoked. If the context is canceled, the
 // script will be interrupted.
 func (step *PutStep) Run(ctx context.Context, state RunState) error {
-	ctx, span := tracing.StartSpan(ctx, "put", tracing.Attrs{
-		"team":     step.metadata.TeamName,
-		"pipeline": step.metadata.PipelineName,
-		"job":      step.metadata.JobName,
-		"build":    step.metadata.BuildName,
-		"resource": step.plan.Resource,
+	ctx, span := step.delegate.StartSpan(ctx, "put", tracing.Attrs{
 		"name":     step.plan.Name,
+		"resource": step.plan.Resource,
 	})
 
 	err := step.run(ctx, state)

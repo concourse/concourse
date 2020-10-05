@@ -19,7 +19,6 @@ import (
 	"github.com/concourse/concourse/vars"
 	"github.com/onsi/gomega/gbytes"
 	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/api/trace/testtrace"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -39,7 +38,9 @@ var _ = Describe("TaskStep", func() {
 		fakeLockFactory *lockfakes.FakeLockFactory
 
 		fakeDelegate *execfakes.FakeTaskDelegate
-		taskPlan     *atc.TaskPlan
+		spanCtx      context.Context
+
+		taskPlan *atc.TaskPlan
 
 		interpolatedResourceTypes atc.VersionedResourceTypes
 
@@ -84,6 +85,9 @@ var _ = Describe("TaskStep", func() {
 		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
+
+		spanCtx = context.Background()
+		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
 
 		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
@@ -224,24 +228,23 @@ var _ = Describe("TaskStep", func() {
 
 				BeforeEach(func() {
 					tracing.ConfigureTraceProvider(testTraceProvider{})
-					ctx, buildSpan = tracing.StartSpan(ctx, "build", nil)
-				})
 
-				It("propagates span context to the worker client", func() {
-					ctx, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-					span, ok := tracing.FromContext(ctx).(*testtrace.Span)
-					Expect(ok).To(BeTrue(), "no testtrace.Span in context")
-					Expect(span.ParentSpanID()).To(Equal(buildSpan.SpanContext().SpanID))
-				})
-
-				It("populates the TRACEPARENT env var", func() {
-					_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-
-					Expect(containerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
+					spanCtx, buildSpan = tracing.StartSpan(ctx, "build", nil)
+					fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
 				})
 
 				AfterEach(func() {
 					tracing.Configured = false
+				})
+
+				It("propagates span context to the worker client", func() {
+					runCtx, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+					Expect(runCtx).To(Equal(spanCtx))
+				})
+
+				It("populates the TRACEPARENT env var", func() {
+					_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+					Expect(containerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
 				})
 			})
 		})

@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/api/trace/testtrace"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -38,6 +37,7 @@ var _ = Describe("PutStep", func() {
 		fakeResource              *resourcefakes.FakeResource
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 		fakeDelegate              *execfakes.FakePutDelegate
+		spanCtx                   context.Context
 		putPlan                   *atc.PutPlan
 
 		fakeArtifact        *runtimefakes.FakeArtifact
@@ -99,6 +99,9 @@ var _ = Describe("PutStep", func() {
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 		fakeDelegate.VariablesReturns(vars.NewBuildVariables(buildVars, false))
+
+		spanCtx = context.Background()
+		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
 
 		versionResult = runtime.VersionResult{
 			Version:  atc.Version{"some": "version"},
@@ -280,7 +283,7 @@ var _ = Describe("PutStep", func() {
 		Expect(fakeClient.RunPutStepCallCount()).To(Equal(1))
 		actualContext, _, actualOwner, actualContainerSpec, actualWorkerSpec, actualStrategy, actualContainerMetadata, actualImageFetcherSpec, actualProcessSpec, actualEventDelegate, actualResource := fakeClient.RunPutStepArgsForCall(0)
 
-		Expect(actualContext).To(Equal(ctx))
+		Expect(actualContext).To(Equal(spanCtx))
 		Expect(actualOwner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID), 123)))
 		Expect(actualContainerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 			ResourceType: "some-resource-type",
@@ -323,24 +326,23 @@ var _ = Describe("PutStep", func() {
 
 		BeforeEach(func() {
 			tracing.ConfigureTraceProvider(testTraceProvider{})
-			ctx, buildSpan = tracing.StartSpan(ctx, "build", nil)
-		})
 
-		It("propagates span context to the worker client", func() {
-			ctx, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
-			span, ok := tracing.FromContext(ctx).(*testtrace.Span)
-			Expect(ok).To(BeTrue(), "no testtrace.Span in context")
-			Expect(span.ParentSpanID()).To(Equal(buildSpan.SpanContext().SpanID))
-		})
-
-		It("populates the TRACEPARENT env var", func() {
-			_, _, _, actualContainerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
-
-			Expect(actualContainerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
+			spanCtx, buildSpan = tracing.StartSpan(ctx, "build", nil)
+			fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
 		})
 
 		AfterEach(func() {
 			tracing.Configured = false
+		})
+
+		It("propagates span context to the worker client", func() {
+			actualCtx, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+			Expect(actualCtx).To(Equal(spanCtx))
+		})
+
+		It("populates the TRACEPARENT env var", func() {
+			_, _, _, actualContainerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+			Expect(actualContainerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
 		})
 	})
 

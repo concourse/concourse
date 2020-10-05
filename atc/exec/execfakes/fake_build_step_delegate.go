@@ -2,6 +2,7 @@
 package execfakes
 
 import (
+	"context"
 	"io"
 	"sync"
 
@@ -9,7 +10,9 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 type FakeBuildStepDelegate struct {
@@ -59,6 +62,21 @@ type FakeBuildStepDelegate struct {
 	selectedWorkerArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 string
+	}
+	StartSpanStub        func(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
+	startSpanMutex       sync.RWMutex
+	startSpanArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+		arg3 tracing.Attrs
+	}
+	startSpanReturns struct {
+		result1 context.Context
+		result2 trace.Span
+	}
+	startSpanReturnsOnCall map[int]struct {
+		result1 context.Context
+		result2 trace.Span
 	}
 	StartingStub        func(lager.Logger)
 	startingMutex       sync.RWMutex
@@ -349,6 +367,71 @@ func (fake *FakeBuildStepDelegate) SelectedWorkerArgsForCall(i int) (lager.Logge
 	return argsForCall.arg1, argsForCall.arg2
 }
 
+func (fake *FakeBuildStepDelegate) StartSpan(arg1 context.Context, arg2 string, arg3 tracing.Attrs) (context.Context, trace.Span) {
+	fake.startSpanMutex.Lock()
+	ret, specificReturn := fake.startSpanReturnsOnCall[len(fake.startSpanArgsForCall)]
+	fake.startSpanArgsForCall = append(fake.startSpanArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+		arg3 tracing.Attrs
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("StartSpan", []interface{}{arg1, arg2, arg3})
+	fake.startSpanMutex.Unlock()
+	if fake.StartSpanStub != nil {
+		return fake.StartSpanStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.startSpanReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeBuildStepDelegate) StartSpanCallCount() int {
+	fake.startSpanMutex.RLock()
+	defer fake.startSpanMutex.RUnlock()
+	return len(fake.startSpanArgsForCall)
+}
+
+func (fake *FakeBuildStepDelegate) StartSpanCalls(stub func(context.Context, string, tracing.Attrs) (context.Context, trace.Span)) {
+	fake.startSpanMutex.Lock()
+	defer fake.startSpanMutex.Unlock()
+	fake.StartSpanStub = stub
+}
+
+func (fake *FakeBuildStepDelegate) StartSpanArgsForCall(i int) (context.Context, string, tracing.Attrs) {
+	fake.startSpanMutex.RLock()
+	defer fake.startSpanMutex.RUnlock()
+	argsForCall := fake.startSpanArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeBuildStepDelegate) StartSpanReturns(result1 context.Context, result2 trace.Span) {
+	fake.startSpanMutex.Lock()
+	defer fake.startSpanMutex.Unlock()
+	fake.StartSpanStub = nil
+	fake.startSpanReturns = struct {
+		result1 context.Context
+		result2 trace.Span
+	}{result1, result2}
+}
+
+func (fake *FakeBuildStepDelegate) StartSpanReturnsOnCall(i int, result1 context.Context, result2 trace.Span) {
+	fake.startSpanMutex.Lock()
+	defer fake.startSpanMutex.Unlock()
+	fake.StartSpanStub = nil
+	if fake.startSpanReturnsOnCall == nil {
+		fake.startSpanReturnsOnCall = make(map[int]struct {
+			result1 context.Context
+			result2 trace.Span
+		})
+	}
+	fake.startSpanReturnsOnCall[i] = struct {
+		result1 context.Context
+		result2 trace.Span
+	}{result1, result2}
+}
+
 func (fake *FakeBuildStepDelegate) Starting(arg1 lager.Logger) {
 	fake.startingMutex.Lock()
 	fake.startingArgsForCall = append(fake.startingArgsForCall, struct {
@@ -551,6 +634,8 @@ func (fake *FakeBuildStepDelegate) Invocations() map[string][][]interface{} {
 	defer fake.redactImageSourceMutex.RUnlock()
 	fake.selectedWorkerMutex.RLock()
 	defer fake.selectedWorkerMutex.RUnlock()
+	fake.startSpanMutex.RLock()
+	defer fake.startSpanMutex.RUnlock()
 	fake.startingMutex.RLock()
 	defer fake.startingMutex.RUnlock()
 	fake.stderrMutex.RLock()

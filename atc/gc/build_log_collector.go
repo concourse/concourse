@@ -117,7 +117,7 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 	}
 
 	logger.Debug("after-first-round-filter", lager.Data{
-		"buildsToConsiderDeleting": len(buildsToConsiderDeleting),
+		"builds_to_consider_deleting": len(buildsToConsiderDeleting),
 	})
 
 	if len(buildsToConsiderDeleting) == 0 {
@@ -138,7 +138,7 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 
 		if logRetention.Days > 0 {
 			if !build.EndTime().IsZero() && build.EndTime().AddDate(0, 0, logRetention.Days).Before(time.Now()) {
-				logger.Debug("should-reap-due-to-days", lager.Data{"build_id": build.ID()})
+				logger.Debug("should-reap-due-to-days", build.LagerData())
 				buildIDsToDelete = append(buildIDsToDelete, build.ID())
 				continue
 			}
@@ -176,8 +176,8 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 	}
 
 	logger.Debug("after-second-round-filter", lager.Data{
-		"retainedBuilds":          retainedBuilds,
-		"retainedSucceededBuilds": retainedSucceededBuilds,
+		"retained_builds":           retainedBuilds,
+		"retained_succeeded_builds": retainedSucceededBuilds,
 	})
 
 	if len(buildIDsToDelete) == 0 {
@@ -189,7 +189,7 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 	// no need to update firstLoggedBuildID.
 	if retainedBuilds > logRetention.Builds {
 		logger.Debug("more-builds-to-retain", lager.Data{
-			"retainedBuilds": retainedBuilds,
+			"retained_builds": retainedBuilds,
 		})
 		delta := retainedBuilds - logRetention.Builds
 		n := len(toRetainNonSucceededBuildIDs)
@@ -199,7 +199,7 @@ func (br *buildLogCollector) reapLogsOfJob(pipeline db.Pipeline,
 	}
 
 	logger.Debug("reaping-builds", lager.Data{
-		"build-ids": buildIDsToDelete,
+		"build_ids": buildIDsToDelete,
 	})
 
 	err = pipeline.DeleteBuildEventsByBuildIDs(buildIDsToDelete)

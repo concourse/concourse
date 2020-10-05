@@ -10,22 +10,25 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 )
 
 type CheckStep struct {
-	planID            atc.PlanID
-	plan              atc.CheckPlan
-	metadata          StepMetadata
-	containerMetadata db.ContainerMetadata
-	resourceFactory   resource.ResourceFactory
-	strategy          worker.ContainerPlacementStrategy
-	pool              worker.Pool
-	delegate          CheckDelegate
-	succeeded         bool
-	workerClient      worker.Client
+	planID                atc.PlanID
+	plan                  atc.CheckPlan
+	metadata              StepMetadata
+	containerMetadata     db.ContainerMetadata
+	resourceFactory       resource.ResourceFactory
+	resourceConfigFactory db.ResourceConfigFactory
+	strategy              worker.ContainerPlacementStrategy
+	pool                  worker.Pool
+	delegate              CheckDelegate
+	succeeded             bool
+	workerClient          worker.Client
 }
 
 //go:generate counterfeiter . CheckDelegate
@@ -33,7 +36,9 @@ type CheckStep struct {
 type CheckDelegate interface {
 	BuildStepDelegate
 
-	SaveVersions(db.SpanContext, []atc.Version) error
+	FindOrCreateScope(db.ResourceConfig) (db.ResourceConfigScope, error)
+	WaitToRun(context.Context, db.ResourceConfigScope) (lock.Lock, bool, error)
+	PointToCheckedConfig(db.ResourceConfigScope) error
 }
 
 func NewCheckStep(
@@ -41,33 +46,41 @@ func NewCheckStep(
 	plan atc.CheckPlan,
 	metadata StepMetadata,
 	resourceFactory resource.ResourceFactory,
+	resourceConfigFactory db.ResourceConfigFactory,
 	containerMetadata db.ContainerMetadata,
 	strategy worker.ContainerPlacementStrategy,
 	pool worker.Pool,
 	delegate CheckDelegate,
 	client worker.Client,
-) *CheckStep {
+) Step {
 	return &CheckStep{
-		planID:            planID,
-		plan:              plan,
-		metadata:          metadata,
-		resourceFactory:   resourceFactory,
-		containerMetadata: containerMetadata,
-		pool:              pool,
-		strategy:          strategy,
-		delegate:          delegate,
-		workerClient:      client,
+		planID:                planID,
+		plan:                  plan,
+		metadata:              metadata,
+		resourceFactory:       resourceFactory,
+		resourceConfigFactory: resourceConfigFactory,
+		containerMetadata:     containerMetadata,
+		pool:                  pool,
+		strategy:              strategy,
+		delegate:              delegate,
+		workerClient:          client,
 	}
 }
 
 func (step *CheckStep) Run(ctx context.Context, state RunState) error {
-	ctx, span := tracing.StartSpan(ctx, "check", tracing.Attrs{
-		"team":     step.metadata.TeamName,
-		"pipeline": step.metadata.PipelineName,
-		"job":      step.metadata.JobName,
-		"build":    step.metadata.BuildName,
-		"name":     step.plan.Name,
-	})
+	attrs := tracing.Attrs{
+		"name": step.plan.Name,
+	}
+
+	if step.plan.Resource != "" {
+		attrs["resource"] = step.plan.Resource
+	}
+
+	if step.plan.ResourceType != "" {
+		attrs["resource_type"] = step.plan.ResourceType
+	}
+
+	ctx, span := step.delegate.StartSpan(ctx, "check", attrs)
 
 	err := step.run(ctx, state)
 	tracing.End(span, err)
@@ -81,6 +94,13 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		"step-name": step.plan.Name,
 	})
 
+	step.delegate.Initializing(logger)
+
+	timeout, err := time.ParseDuration(step.plan.Timeout)
+	if err != nil {
+		return fmt.Errorf("parse timeout: %w", err)
+	}
+
 	variables := step.delegate.Variables()
 
 	source, err := creds.NewSource(variables, step.plan.Source).Evaluate()
@@ -93,11 +113,96 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		return fmt.Errorf("resource types creds evaluation: %w", err)
 	}
 
-	timeout, err := time.ParseDuration(step.plan.Timeout)
+	resourceConfig, err := step.resourceConfigFactory.FindOrCreateResourceConfig(step.plan.Type, source, resourceTypes)
 	if err != nil {
-		return fmt.Errorf("timeout parse: %w", err)
+		return fmt.Errorf("create resource config: %w", err)
 	}
 
+	// XXX(check-refactor): we should remove scopes as soon as it's safe to do
+	// so, i.e. global resources is on by default. i think this can be done when
+	// time resource becomes time var source (resolving thundering herd problem)
+	// and IAM is handled via var source prototypes (resolving unintentionally
+	// shared history problem)
+	scope, err := step.delegate.FindOrCreateScope(resourceConfig)
+	if err != nil {
+		return fmt.Errorf("create resource config scope: %w", err)
+	}
+
+	lock, run, err := step.delegate.WaitToRun(ctx, scope)
+	if err != nil {
+		return fmt.Errorf("wait: %w", err)
+	}
+
+	if run {
+		defer func() {
+			err := lock.Release()
+			if err != nil {
+				logger.Error("failed-to-release-lock", err)
+			}
+		}()
+
+		fromVersion := step.plan.FromVersion
+		if fromVersion == nil {
+			latestVersion, found, err := scope.LatestVersion()
+			if err != nil {
+				return fmt.Errorf("get latest version: %w", err)
+			}
+
+			if found {
+				fromVersion = atc.Version(latestVersion.Version())
+			}
+		}
+
+		_, err = scope.UpdateLastCheckStartTime()
+		if err != nil {
+			return fmt.Errorf("update check end time: %w", err)
+		}
+
+		result, err := step.runCheck(ctx, logger, timeout, resourceConfig, source, resourceTypes, fromVersion)
+		if setErr := scope.SetCheckError(err); setErr != nil {
+			logger.Error("failed-to-set-check-error", setErr)
+		}
+		if err != nil {
+			if pointErr := step.delegate.PointToCheckedConfig(scope); pointErr != nil {
+				return fmt.Errorf("update resource config scope: %w", pointErr)
+			}
+
+			if _, ok := err.(runtime.ErrResourceScriptFailed); ok {
+				step.delegate.Finished(logger, false)
+				return nil
+			}
+
+			return fmt.Errorf("run check: %w", err)
+		}
+
+		err = scope.SaveVersions(db.NewSpanContext(ctx), result.Versions)
+		if err != nil {
+			return fmt.Errorf("save versions: %w", err)
+		}
+
+		_, err = scope.UpdateLastCheckEndTime()
+		if err != nil {
+			return fmt.Errorf("update check end time: %w", err)
+		}
+	}
+
+	err = step.delegate.PointToCheckedConfig(scope)
+	if err != nil {
+		return fmt.Errorf("update resource config scope: %w", err)
+	}
+
+	step.succeeded = true
+
+	step.delegate.Finished(logger, step.succeeded)
+
+	return nil
+}
+
+func (step *CheckStep) Succeeded() bool {
+	return step.succeeded
+}
+
+func (step *CheckStep) runCheck(ctx context.Context, logger lager.Logger, timeout time.Duration, resourceConfig db.ResourceConfig, source atc.Source, resourceTypes atc.VersionedResourceTypes, fromVersion atc.Version) (worker.CheckResult, error) {
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: step.plan.Type,
@@ -123,16 +228,19 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		Max: 1 * time.Hour,
 	}
 
+	// XXX(check-refactor): this can be turned into NewBuildStepContainerOwner
+	// now, but we should understand the performance implications first - it'll
+	// mean a lot more container churn
 	owner := db.NewResourceConfigCheckSessionContainerOwner(
-		step.metadata.ResourceConfigID,
-		step.metadata.BaseResourceTypeID,
+		resourceConfig.ID(),
+		resourceConfig.OriginBaseResourceType().ID,
 		expires,
 	)
 
 	checkable := step.resourceFactory.NewResource(
 		source,
 		nil,
-		step.plan.FromVersion,
+		fromVersion,
 	)
 
 	imageSpec := worker.ImageFetcherSpec{
@@ -140,7 +248,13 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		Delegate:      step.delegate,
 	}
 
-	result, err := step.workerClient.RunCheckStep(
+	processSpec := runtime.ProcessSpec{
+		Path:         "/opt/resource/check",
+		StdoutWriter: step.delegate.Stdout(),
+		StderrWriter: step.delegate.Stderr(),
+	}
+
+	return step.workerClient.RunCheckStep(
 		ctx,
 		logger,
 		owner,
@@ -151,23 +265,10 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		step.containerMetadata,
 		imageSpec,
 
-		timeout,
+		processSpec,
+		step.delegate,
 		checkable,
+
+		timeout,
 	)
-	if err != nil {
-		return fmt.Errorf("run check step: %w", err)
-	}
-
-	err = step.delegate.SaveVersions(db.NewSpanContext(ctx), result.Versions)
-	if err != nil {
-		return fmt.Errorf("save versions: %w", err)
-	}
-
-	step.succeeded = true
-
-	return nil
-}
-
-func (step *CheckStep) Succeeded() bool {
-	return step.succeeded
 }

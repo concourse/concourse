@@ -19,7 +19,6 @@ import (
 	"github.com/concourse/concourse/vars"
 	"github.com/onsi/gomega/gbytes"
 	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/api/trace/testtrace"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -42,6 +41,7 @@ var _ = Describe("GetStep", func() {
 		fakeResourceCache        *dbfakes.FakeUsedResourceCache
 
 		fakeDelegate *execfakes.FakeGetDelegate
+		spanCtx      context.Context
 
 		getPlan *atc.GetPlan
 
@@ -101,6 +101,8 @@ var _ = Describe("GetStep", func() {
 		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
+		spanCtx = context.Background()
+		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
 
 		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
@@ -163,9 +165,35 @@ var _ = Describe("GetStep", func() {
 		getStepErr = getStep.Run(ctx, fakeState)
 	})
 
-	It("calls RunGetStep with the correct ctx", func() {
+	It("propagates span context to the worker client", func() {
 		actualCtx, _, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-		Expect(actualCtx).To(Equal(ctx))
+		Expect(actualCtx).To(Equal(spanCtx))
+	})
+
+	Context("when tracing is enabled", func() {
+		var buildSpan trace.Span
+
+		BeforeEach(func() {
+			tracing.ConfigureTraceProvider(testTraceProvider{})
+
+			spanCtx, buildSpan = tracing.StartSpan(ctx, "build", nil)
+			fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
+		})
+
+		AfterEach(func() {
+			tracing.Configured = false
+		})
+
+		It("propagates span context to the worker client", func() {
+			actualCtx, _, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+			Expect(actualCtx).To(Equal(spanCtx))
+		})
+
+		It("populates the TRACEPARENT env var", func() {
+			_, _, _, actualContainerSpec, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+
+			Expect(actualContainerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
+		})
 	})
 
 	It("calls RunGetStep with the correct ContainerOwner", func() {
@@ -254,32 +282,6 @@ var _ = Describe("GetStep", func() {
 	It("calls RunGetStep with the correct Resource", func() {
 		_, _, _, _, _, _, _, _, _, _, _, actualResource := fakeClient.RunGetStepArgsForCall(0)
 		Expect(actualResource).To(Equal(fakeResource))
-	})
-
-	Context("when tracing is enabled", func() {
-		var buildSpan trace.Span
-
-		BeforeEach(func() {
-			tracing.ConfigureTraceProvider(testTraceProvider{})
-			ctx, buildSpan = tracing.StartSpan(ctx, "build", nil)
-		})
-
-		It("propagates span context to the worker client", func() {
-			ctx, _, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-			span, ok := tracing.FromContext(ctx).(*testtrace.Span)
-			Expect(ok).To(BeTrue(), "no testtrace.Span in context")
-			Expect(span.ParentSpanID()).To(Equal(buildSpan.SpanContext().SpanID))
-		})
-
-		It("populates the TRACEPARENT env var", func() {
-			_, _, _, actualContainerSpec, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-
-			Expect(actualContainerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
-		})
-
-		AfterEach(func() {
-			tracing.Configured = false
-		})
 	})
 
 	Context("when Client.RunGetStep returns an err", func() {
@@ -378,6 +380,5 @@ var _ = Describe("GetStep", func() {
 		It("does not return an err", func() {
 			Expect(getStepErr).ToNot(HaveOccurred())
 		})
-
 	})
 })

@@ -1,12 +1,17 @@
 package db_test
 
 import (
+	"context"
 	"errors"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel/api/propagators"
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 var _ = Describe("ResourceType", func() {
@@ -380,6 +385,126 @@ var _ = Describe("ResourceType", func() {
 
 			It("returns the version", func() {
 				Expect(resourceType.Version()).To(Equal(atc.Version{"version": "2"}))
+			})
+		})
+	})
+
+	Describe("SetResourceConfigScope", func() {
+		var resourceType db.ResourceType
+		var scope db.ResourceConfigScope
+
+		BeforeEach(func() {
+			resourceType = defaultResourceType
+
+			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(resourceType.Type(), resourceType.Source(), atc.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			scope, err = resourceConfig.FindOrCreateScope(nil)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("associates the resource to the config and scope", func() {
+			Expect(resourceType.ResourceConfigScopeID()).To(BeZero())
+
+			Expect(resourceType.SetResourceConfigScope(scope)).To(Succeed())
+
+			_, err := resourceType.Reload()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(resourceType.ResourceConfigScopeID()).To(Equal(scope.ID()))
+		})
+	})
+
+	Describe("CheckPlan", func() {
+		var resourceType db.ResourceType
+		var resourceTypes db.ResourceTypes
+
+		BeforeEach(func() {
+			var err error
+			var found bool
+			resourceType, found, err = pipeline.ResourceType("some-type")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			resourceTypes, err = pipeline.ResourceTypes()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns a plan which will update the resource type", func() {
+			Expect(resourceType.CheckPlan(atc.Version{"some": "version"}, time.Minute, 10*time.Second, resourceTypes)).To(Equal(atc.CheckPlan{
+				Name:   resourceType.Name(),
+				Type:   resourceType.Type(),
+				Source: resourceType.Source(),
+				Tags:   resourceType.Tags(),
+
+				FromVersion: atc.Version{"some": "version"},
+
+				Interval: "1m0s",
+				Timeout:  "10s",
+
+				VersionedResourceTypes: resourceTypes.Deserialize(),
+
+				ResourceType: resourceType.Name(),
+			}))
+		})
+	})
+
+	Describe("CreateBuild", func() {
+		var resourceType db.ResourceType
+		var ctx context.Context
+		var manuallyTriggered bool
+
+		var build db.Build
+		var created bool
+
+		BeforeEach(func() {
+			ctx = context.TODO()
+			resourceType = defaultResourceType
+			manuallyTriggered = false
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			build, created, err = resourceType.CreateBuild(ctx, manuallyTriggered)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("creates a one-off build", func() {
+			Expect(created).To(BeTrue())
+			Expect(build).ToNot(BeNil())
+			Expect(build.PipelineID()).To(Equal(defaultResource.PipelineID()))
+			Expect(build.TeamID()).To(Equal(defaultResource.TeamID()))
+			Expect(build.IsManuallyTriggered()).To(BeFalse())
+		})
+
+		Context("when tracing is configured", func() {
+			var span trace.Span
+
+			BeforeEach(func() {
+				tracing.ConfigureTraceProvider(&tracing.TestTraceProvider{})
+
+				ctx, span = tracing.StartSpan(context.Background(), "fake-operation", nil)
+			})
+
+			AfterEach(func() {
+				tracing.Configured = false
+			})
+
+			It("propagates span context", func() {
+				traceID := span.SpanContext().TraceIDString()
+				buildContext := build.SpanContext()
+				traceParent := buildContext.Get(propagators.TraceparentHeader)
+				Expect(traceParent).To(ContainSubstring(traceID))
+			})
+		})
+
+		Context("when manually triggered", func() {
+			BeforeEach(func() {
+				manuallyTriggered = true
+			})
+
+			It("creates a manually triggered one-off build", func() {
+				Expect(build.IsManuallyTriggered()).To(BeTrue())
 			})
 		})
 	})

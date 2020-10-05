@@ -6,7 +6,6 @@ const (
 	ComponentScheduler                  = "scheduler"
 	ComponentBuildTracker               = "tracker"
 	ComponentLidarScanner               = "scanner"
-	ComponentLidarChecker               = "checker"
 	ComponentBuildReaper                = "reaper"
 	ComponentSyslogDrainer              = "drainer"
 	ComponentCollectorAccessTokens      = "collector_access_tokens"

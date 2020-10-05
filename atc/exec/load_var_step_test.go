@@ -1,12 +1,14 @@
 package exec_test
 
 import (
+	"context"
+
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
-	"context"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"go.opentelemetry.io/otel/api/trace"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec"
@@ -37,8 +39,10 @@ var _ = Describe("LoadVarStep", func() {
 		cancel     func()
 		testLogger *lagertest.TestLogger
 
-		fakeDelegate     *execfakes.FakeBuildStepDelegate
 		fakeWorkerClient *workerfakes.FakeClient
+
+		spanCtx      context.Context
+		fakeDelegate *execfakes.FakeBuildStepDelegate
 
 		loadVarPlan        *atc.LoadVarPlan
 		artifactRepository *build.Repository
@@ -86,6 +90,9 @@ var _ = Describe("LoadVarStep", func() {
 		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdout)
 		fakeDelegate.StderrReturns(stderr)
+
+		spanCtx = context.Background()
+		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
 
 		fakeWorkerClient = new(workerfakes.FakeClient)
 	})

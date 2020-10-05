@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"runtime/debug"
-	"strconv"
 	"sync"
 	"time"
 
@@ -25,7 +24,6 @@ import (
 
 type Engine interface {
 	NewBuild(db.Build) Runnable
-	NewCheck(db.Check) Runnable
 
 	Drain(context.Context)
 }
@@ -40,7 +38,6 @@ type Runnable interface {
 
 type StepBuilder interface {
 	BuildStep(lager.Logger, db.Build) (exec.Step, error)
-	CheckStep(lager.Logger, db.Check) (exec.Step, error)
 
 	BuildStepErrored(lager.Logger, db.Build, error)
 }
@@ -84,16 +81,6 @@ func (engine *engine) NewBuild(build db.Build) Runnable {
 	)
 }
 
-func (engine *engine) NewCheck(check db.Check) Runnable {
-	return NewCheck(
-		check,
-		engine.builder,
-		engine.release,
-		engine.trackedStates,
-		engine.waitGroup,
-	)
-}
-
 func NewBuild(
 	build db.Build,
 	builder StepBuilder,
@@ -126,11 +113,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 	b.waitGroup.Add(1)
 	defer b.waitGroup.Done()
 
-	logger := lagerctx.FromContext(ctx).WithData(lager.Data{
-		"build":    b.build.ID(),
-		"pipeline": b.build.PipelineName(),
-		"job":      b.build.JobName(),
-	})
+	logger := lagerctx.FromContext(ctx).WithData(b.build.LagerData())
 
 	lock, acquired, err := b.build.AcquireTrackingLock(logger, time.Minute)
 	if err != nil {
@@ -169,13 +152,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 
 	defer notifier.Close()
 
-	ctx, span := tracing.StartSpanFollowing(ctx, b.build, "build", tracing.Attrs{
-		"team":     b.build.TeamName(),
-		"pipeline": b.build.PipelineName(),
-		"job":      b.build.JobName(),
-		"build":    b.build.Name(),
-		"build_id": strconv.Itoa(b.build.ID()),
-	})
+	ctx, span := tracing.StartSpanFollowing(ctx, b.build, "build", b.build.TracingAttrs())
 	defer span.End()
 
 	step, err := b.builder.BuildStep(logger, b.build)
@@ -216,10 +193,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				err = fmt.Errorf("panic in engine build step run %s: %v", lager.Data{
-					"team_name":     b.build.TeamName(),
-					"pipeline_name": b.build.PipelineName(),
-				}, r)
+				err = fmt.Errorf("panic in engine build step run %d: %v", b.build.ID(), r)
 
 				fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
 				logger.Error("panic-in-engine-build-step-run", err)
@@ -275,11 +249,7 @@ func (b *engineBuild) saveStatus(logger lager.Logger, status atc.BuildStatus) {
 
 func (b *engineBuild) trackStarted(logger lager.Logger) {
 	metric.BuildStarted{
-		PipelineName: b.build.PipelineName(),
-		JobName:      b.build.JobName(),
-		BuildName:    b.build.Name(),
-		BuildID:      b.build.ID(),
-		TeamName:     b.build.TeamName(),
+		Build: b.build,
 	}.Emit(logger)
 }
 
@@ -297,13 +267,7 @@ func (b *engineBuild) trackFinished(logger lager.Logger) {
 
 	if !b.build.IsRunning() {
 		metric.BuildFinished{
-			PipelineName:  b.build.PipelineName(),
-			JobName:       b.build.JobName(),
-			BuildName:     b.build.Name(),
-			BuildID:       b.build.ID(),
-			BuildStatus:   b.build.Status(),
-			BuildDuration: b.build.EndTime().Sub(b.build.StartTime()),
-			TeamName:      b.build.TeamName(),
+			Build: b.build,
 		}.Emit(logger)
 	}
 }
@@ -317,135 +281,4 @@ func (b *engineBuild) runState() exec.RunState {
 func (b *engineBuild) clearRunState() {
 	id := fmt.Sprintf("build:%v", b.build.ID())
 	b.trackedStates.Delete(id)
-}
-
-func NewCheck(
-	check db.Check,
-	builder StepBuilder,
-	release chan bool,
-	trackedStates *sync.Map,
-	waitGroup *sync.WaitGroup,
-) Runnable {
-	return &engineCheck{
-		check:   check,
-		builder: builder,
-
-		release:       release,
-		trackedStates: trackedStates,
-		waitGroup:     waitGroup,
-	}
-}
-
-type engineCheck struct {
-	check   db.Check
-	builder StepBuilder
-
-	release       chan bool
-	trackedStates *sync.Map
-	waitGroup     *sync.WaitGroup
-}
-
-func (c *engineCheck) Run(ctx context.Context) {
-	c.waitGroup.Add(1)
-	defer c.waitGroup.Done()
-
-	logger := lagerctx.FromContext(ctx).WithData(lager.Data{
-		"check": c.check.ID(),
-	})
-
-	lock, acquired, err := c.check.AcquireTrackingLock(logger)
-	if err != nil {
-		logger.Error("failed-to-get-lock", err)
-		return
-	}
-
-	if !acquired {
-		logger.Debug("check-already-tracked")
-		return
-	}
-
-	defer lock.Release()
-
-	err = c.check.Start()
-	if err != nil {
-		logger.Error("failed-to-start-check", err)
-		return
-	}
-
-	c.trackStarted(logger)
-	defer c.trackFinished(logger)
-
-	step, err := c.builder.CheckStep(logger, c.check)
-	if err != nil {
-		logger.Error("failed-to-create-check-step", err)
-		c.check.FinishWithError(fmt.Errorf("create check step: %w", err))
-		return
-	}
-
-	logger.Info("running")
-
-	state := c.runState()
-	defer c.clearRunState()
-
-	done := make(chan error)
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				err = fmt.Errorf("panic in engine check step run %s: %v", lager.Data{
-					"team_name":     c.check.TeamName(),
-					"pipeline_name": c.check.PipelineName(),
-				}, r)
-
-				fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
-				logger.Error("panic-in-engine-check-step-run", err)
-
-				done <- err
-			}
-		}()
-		ctx := lagerctx.NewContext(ctx, logger)
-		ctx = policy.RecordTeamAndPipeline(ctx, c.check.TeamName(), c.check.PipelineName())
-		done <- step.Run(ctx, state)
-	}()
-
-	select {
-	case <-c.release:
-		logger.Info("releasing")
-
-	case err = <-done:
-		if err != nil {
-			logger.Info("errored", lager.Data{"error": err.Error()})
-			c.check.FinishWithError(fmt.Errorf("run check step: %w", err))
-		} else {
-			logger.Info("succeeded")
-			if err = c.check.Finish(); err != nil {
-				logger.Error("failed-to-finish-check", err)
-			}
-		}
-	}
-}
-
-func (c *engineCheck) runState() exec.RunState {
-	id := fmt.Sprintf("check:%v", c.check.ID())
-	existingState, _ := c.trackedStates.LoadOrStore(id, exec.NewRunState())
-	return existingState.(exec.RunState)
-}
-
-func (c *engineCheck) clearRunState() {
-	id := fmt.Sprintf("check:%v", c.check.ID())
-	c.trackedStates.Delete(id)
-}
-
-func (c *engineCheck) trackStarted(logger lager.Logger) {
-	metric.Metrics.ChecksStarted.Inc()
-}
-
-func (c *engineCheck) trackFinished(logger lager.Logger) {
-	switch c.check.Status() {
-	case db.CheckStatusErrored:
-		metric.Metrics.ChecksFinishedWithError.Inc()
-	case db.CheckStatusSucceeded:
-		metric.Metrics.ChecksFinishedWithSuccess.Inc()
-	default:
-		logger.Info("unexpected-check-status", lager.Data{"status": c.check.Status()})
-	}
 }

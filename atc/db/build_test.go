@@ -5,13 +5,16 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	gocache "github.com/patrickmn/go-cache"
@@ -55,9 +58,186 @@ var _ = Describe("Build", func() {
 	})
 
 	It("has no plan on creation", func() {
-		var err error
+		build, err := team.CreateOneOffBuild()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(build.HasPlan()).To(BeFalse())
+	})
+
+	Describe("LagerData", func() {
+		var build db.Build
+
+		var data lager.Data
+
+		JustBeforeEach(func() {
+			data = build.LagerData()
+		})
+
+		Context("for a one-off build", func() {
+			BeforeEach(func() {
+				var err error
+				build, err = team.CreateOneOffBuild()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("includes build and team info", func() {
+				Expect(data).To(Equal(lager.Data{
+					"build_id": build.ID(),
+					"build":    build.Name(),
+					"team":     team.Name(),
+				}))
+			})
+		})
+
+		Context("for a job build", func() {
+			BeforeEach(func() {
+				var err error
+				build, err = defaultJob.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("includes build, team, pipeline, and job info", func() {
+				Expect(data).To(Equal(lager.Data{
+					"build_id": build.ID(),
+					"build":    build.Name(),
+					"team":     build.TeamName(),
+					"pipeline": build.PipelineName(),
+					"job":      defaultJob.Name(),
+				}))
+			})
+		})
+
+		Context("for a resource build", func() {
+			BeforeEach(func() {
+				var err error
+				var created bool
+				build, created, err = defaultResource.CreateBuild(context.TODO(), false)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeTrue())
+			})
+
+			It("includes build, team, and pipeline", func() {
+				Expect(data).To(Equal(lager.Data{
+					"build_id": build.ID(),
+					"build":    build.Name(),
+					"team":     build.TeamName(),
+					"pipeline": build.PipelineName(),
+					"resource": defaultResource.Name(),
+				}))
+			})
+		})
+	})
+
+	Describe("SyslogTag", func() {
+		var build db.Build
+
+		var originID event.OriginID = "some-origin"
+		var tag string
+
+		JustBeforeEach(func() {
+			tag = build.SyslogTag(originID)
+		})
+
+		Context("for a one-off build", func() {
+			BeforeEach(func() {
+				var err error
+				build, err = team.CreateOneOffBuild()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("includes build and team info", func() {
+				Expect(tag).To(Equal(fmt.Sprintf("%s/%d/%s", team.Name(), build.ID(), originID)))
+			})
+		})
+
+		Context("for a job build", func() {
+			BeforeEach(func() {
+				var err error
+				build, err = defaultJob.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("includes build, team, pipeline, and job info", func() {
+				Expect(tag).To(Equal(fmt.Sprintf("%s/%s/%s/%s/%s", defaultJob.TeamName(), defaultJob.PipelineName(), defaultJob.Name(), build.Name(), originID)))
+			})
+		})
+
+		Context("for a resource build", func() {
+			BeforeEach(func() {
+				var err error
+				var created bool
+				build, created, err = defaultResource.CreateBuild(context.TODO(), false)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeTrue())
+			})
+
+			It("includes build, team, and pipeline", func() {
+				Expect(tag).To(Equal(fmt.Sprintf("%s/%s/%s/%d/%s", defaultResource.TeamName(), defaultResource.PipelineName(), defaultResource.Name(), build.ID(), originID)))
+			})
+		})
+	})
+
+	Describe("TracingAttrs", func() {
+		var build db.Build
+
+		var attrs tracing.Attrs
+
+		JustBeforeEach(func() {
+			attrs = build.TracingAttrs()
+		})
+
+		Context("for a one-off build", func() {
+			BeforeEach(func() {
+				var err error
+				build, err = team.CreateOneOffBuild()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("includes build and team info", func() {
+				Expect(attrs).To(Equal(tracing.Attrs{
+					"build_id": strconv.Itoa(build.ID()),
+					"build":    build.Name(),
+					"team":     team.Name(),
+				}))
+			})
+		})
+
+		Context("for a job build", func() {
+			BeforeEach(func() {
+				var err error
+				build, err = defaultJob.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("includes build, team, pipeline, and job info", func() {
+				Expect(attrs).To(Equal(tracing.Attrs{
+					"build_id": strconv.Itoa(build.ID()),
+					"build":    build.Name(),
+					"team":     build.TeamName(),
+					"pipeline": build.PipelineName(),
+					"job":      defaultJob.Name(),
+				}))
+			})
+		})
+
+		Context("for a resource build", func() {
+			BeforeEach(func() {
+				var err error
+				var created bool
+				build, created, err = defaultResource.CreateBuild(context.TODO(), false)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeTrue())
+			})
+
+			It("includes build, team, and pipeline", func() {
+				Expect(attrs).To(Equal(tracing.Attrs{
+					"build_id": strconv.Itoa(build.ID()),
+					"build":    build.Name(),
+					"team":     build.TeamName(),
+					"pipeline": build.PipelineName(),
+					"resource": defaultResource.Name(),
+				}))
+			})
+		})
 	})
 
 	Describe("Reload", func() {
@@ -1092,10 +1272,9 @@ var _ = Describe("Build", func() {
 						resourceTypes = atc.VersionedResourceTypes{
 							{
 								ResourceType: atc.ResourceType{
-									Name:                 "given-type",
-									Source:               atc.Source{"some": "source"},
-									Type:                 "some-type",
-									UniqueVersionHistory: true,
+									Name:   "given-type",
+									Source: atc.Source{"some": "source"},
+									Type:   "some-type",
 								},
 								Version: atc.Version{"some-resource-type": "version"},
 							},
@@ -1204,7 +1383,7 @@ var _ = Describe("Build", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// This version should not be returned by the Resources method because it has a check order of 0
-			created, err := resource1.SaveUncheckedVersion(atc.Version{"ver": "not-returned"}, nil, resourceConfigScope1.ResourceConfig(), atc.VersionedResourceTypes{})
+			created, err := resource1.SaveUncheckedVersion(atc.Version{"ver": "not-returned"}, nil, resourceConfigScope1.ResourceConfig())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(created).To(BeTrue())
 		})

@@ -1,8 +1,10 @@
 package builder
 
 import (
-	"code.cloudfoundry.org/lager"
 	"encoding/json"
+
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 
 	"errors"
 	"fmt"
@@ -31,39 +33,32 @@ type StepFactory interface {
 	ArtifactOutputStep(atc.Plan, db.Build, exec.BuildStepDelegate) exec.Step
 }
 
-//go:generate counterfeiter . DelegateFactory
-
-type DelegateFactory interface {
-	GetDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.GetDelegate
-	PutDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.PutDelegate
-	TaskDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.TaskDelegate
-	CheckDelegate(db.Check, atc.PlanID, *vars.BuildVariables) exec.CheckDelegate
-	BuildStepDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.BuildStepDelegate
-	SetPipelineStepDelegate(db.Build, atc.PlanID, *vars.BuildVariables) exec.SetPipelineStepDelegate
-}
-
 func NewStepBuilder(
 	stepFactory StepFactory,
-	delegateFactory DelegateFactory,
 	externalURL string,
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
+	rateLimiter RateLimiter,
 ) *stepBuilder {
 	return &stepBuilder{
-		stepFactory:     stepFactory,
-		delegateFactory: delegateFactory,
-		externalURL:     externalURL,
-		globalSecrets:   secrets,
-		varSourcePool:   varSourcePool,
+		stepFactory:   stepFactory,
+		externalURL:   externalURL,
+		globalSecrets: secrets,
+		varSourcePool: varSourcePool,
+		rateLimiter:   rateLimiter,
+
+		clock: clock.NewClock(),
 	}
 }
 
 type stepBuilder struct {
-	stepFactory     StepFactory
-	delegateFactory DelegateFactory
-	externalURL     string
-	globalSecrets   creds.Secrets
-	varSourcePool   creds.VarSourcePool
+	stepFactory   StepFactory
+	externalURL   string
+	globalSecrets creds.Secrets
+	varSourcePool creds.VarSourcePool
+	rateLimiter   RateLimiter
+
+	clock clock.Clock
 }
 
 func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec.Step, error) {
@@ -101,33 +96,7 @@ func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec
 }
 
 func (builder *stepBuilder) BuildStepErrored(logger lager.Logger, build db.Build, err error) {
-	builder.delegateFactory.BuildStepDelegate(build, build.PrivatePlan().ID, nil).Errored(logger, err.Error())
-}
-
-func (builder *stepBuilder) CheckStep(logger lager.Logger, check db.Check) (exec.Step, error) {
-
-	if check == nil {
-		return exec.IdentityStep{}, errors.New("must provide a check")
-	}
-
-	if check.Schema() != supportedSchema {
-		return exec.IdentityStep{}, errors.New("schema not supported")
-	}
-
-	pipeline, found, err := check.Pipeline()
-	if err != nil {
-		return exec.IdentityStep{}, errors.New(fmt.Sprintf("failed to find pipeline: %s", err.Error()))
-	}
-	if !found {
-		return exec.IdentityStep{}, errors.New("pipeline not found")
-	}
-
-	varss, err := pipeline.Variables(logger, builder.globalSecrets, builder.varSourcePool)
-	if err != nil {
-		return exec.IdentityStep{}, fmt.Errorf("failed to create pipeline variables: %s", err.Error())
-	}
-	buildVars := vars.NewBuildVariables(varss, atc.EnableRedactSecrets)
-	return builder.buildCheckStep(check, check.Plan(), buildVars), nil
+	NewBuildStepDelegate(build, build.PrivatePlan().ID, nil, builder.clock).Errored(logger, err.Error())
 }
 
 func (builder *stepBuilder) buildStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
@@ -185,6 +154,10 @@ func (builder *stepBuilder) buildStep(build db.Build, plan atc.Plan, buildVars *
 
 	if plan.LoadVar != nil {
 		return builder.buildLoadVarStep(build, plan, buildVars)
+	}
+
+	if plan.Check != nil {
+		return builder.buildCheckStep(build, plan, buildVars)
 	}
 
 	if plan.Get != nil {
@@ -252,7 +225,7 @@ func (builder *stepBuilder) buildAcrossStep(build db.Build, plan atc.Plan, build
 	return exec.Across(
 		step,
 		varNames,
-		builder.delegateFactory.BuildStepDelegate(build, plan.ID, buildVars),
+		NewBuildStepDelegate(build, plan.ID, buildVars, builder.clock),
 		stepMetadata,
 	)
 }
@@ -387,7 +360,7 @@ func (builder *stepBuilder) buildGetStep(build db.Build, plan atc.Plan, buildVar
 		plan,
 		stepMetadata,
 		containerMetadata,
-		builder.delegateFactory.GetDelegate(build, plan.ID, buildVars),
+		NewGetDelegate(build, plan.ID, buildVars, builder.clock),
 	)
 }
 
@@ -409,33 +382,28 @@ func (builder *stepBuilder) buildPutStep(build db.Build, plan atc.Plan, buildVar
 		plan,
 		stepMetadata,
 		containerMetadata,
-		builder.delegateFactory.PutDelegate(build, plan.ID, buildVars),
+		NewPutDelegate(build, plan.ID, buildVars, builder.clock),
 	)
 }
 
-func (builder *stepBuilder) buildCheckStep(check db.Check, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+func (builder *stepBuilder) buildCheckStep(build db.Build, plan atc.Plan, buildVars *vars.BuildVariables) exec.Step {
+	containerMetadata := builder.containerMetadata(
+		build,
+		db.ContainerTypeCheck,
+		plan.Check.Name,
+		plan.Attempts,
+	)
 
-	containerMetadata := db.ContainerMetadata{
-		Type: db.ContainerTypeCheck,
-	}
-
-	stepMetadata := exec.StepMetadata{
-		TeamID:                check.TeamID(),
-		TeamName:              check.TeamName(),
-		PipelineID:            check.PipelineID(),
-		PipelineName:          check.PipelineName(),
-		PipelineInstanceVars:  check.PipelineInstanceVars(),
-		ResourceConfigScopeID: check.ResourceConfigScopeID(),
-		ResourceConfigID:      check.ResourceConfigID(),
-		BaseResourceTypeID:    check.BaseResourceTypeID(),
-		ExternalURL:           builder.externalURL,
-	}
+	stepMetadata := builder.stepMetadata(
+		build,
+		builder.externalURL,
+	)
 
 	return builder.stepFactory.CheckStep(
 		plan,
 		stepMetadata,
 		containerMetadata,
-		builder.delegateFactory.CheckDelegate(check, plan.ID, buildVars),
+		NewCheckDelegate(build, plan, buildVars, builder.clock, builder.rateLimiter),
 	)
 }
 
@@ -457,7 +425,7 @@ func (builder *stepBuilder) buildTaskStep(build db.Build, plan atc.Plan, buildVa
 		plan,
 		stepMetadata,
 		containerMetadata,
-		builder.delegateFactory.TaskDelegate(build, plan.ID, buildVars),
+		NewTaskDelegate(build, plan.ID, buildVars, builder.clock),
 	)
 }
 
@@ -471,7 +439,7 @@ func (builder *stepBuilder) buildSetPipelineStep(build db.Build, plan atc.Plan, 
 	return builder.stepFactory.SetPipelineStep(
 		plan,
 		stepMetadata,
-		builder.delegateFactory.SetPipelineStepDelegate(build, plan.ID, buildVars),
+		NewSetPipelineStepDelegate(build, plan.ID, buildVars, builder.clock),
 	)
 }
 
@@ -485,7 +453,7 @@ func (builder *stepBuilder) buildLoadVarStep(build db.Build, plan atc.Plan, buil
 	return builder.stepFactory.LoadVarStep(
 		plan,
 		stepMetadata,
-		builder.delegateFactory.BuildStepDelegate(build, plan.ID, buildVars),
+		NewBuildStepDelegate(build, plan.ID, buildVars, builder.clock),
 	)
 }
 
@@ -494,7 +462,7 @@ func (builder *stepBuilder) buildArtifactInputStep(build db.Build, plan atc.Plan
 	return builder.stepFactory.ArtifactInputStep(
 		plan,
 		build,
-		builder.delegateFactory.BuildStepDelegate(build, plan.ID, buildVars),
+		NewBuildStepDelegate(build, plan.ID, buildVars, builder.clock),
 	)
 }
 
@@ -503,7 +471,7 @@ func (builder *stepBuilder) buildArtifactOutputStep(build db.Build, plan atc.Pla
 	return builder.stepFactory.ArtifactOutputStep(
 		plan,
 		build,
-		builder.delegateFactory.BuildStepDelegate(build, plan.ID, buildVars),
+		NewBuildStepDelegate(build, plan.ID, buildVars, builder.clock),
 	)
 }
 

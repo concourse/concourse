@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/fly/eventstream"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
-	"github.com/fatih/color"
 )
 
 type CheckResourceTypeCommand struct {
@@ -44,7 +43,7 @@ func (command *CheckResourceTypeCommand) Execute(args []string) error {
 		}
 	}
 
-	check, found, err := target.Team().CheckResourceType(command.ResourceType.PipelineRef, command.ResourceType.ResourceName, version)
+	build, found, err := target.Team().CheckResourceType(command.ResourceType.PipelineRef, command.ResourceType.ResourceName, version)
 	if err != nil {
 		return err
 	}
@@ -53,45 +52,24 @@ func (command *CheckResourceTypeCommand) Execute(args []string) error {
 		return fmt.Errorf("pipeline '%s' or resource-type '%s' not found\n", command.ResourceType.PipelineRef.String(), command.ResourceType.ResourceName)
 	}
 
-	var checkID = strconv.Itoa(check.ID)
+	fmt.Printf("checking %s in build %d\n", ui.Embolden(command.ResourceType.String()), build.ID)
 
-	if !command.Async {
-		for check.Status == "started" {
-			time.Sleep(time.Second)
-
-			check, found, err = target.Client().Check(checkID)
-			if err != nil {
-				return err
-			}
-
-			if !found {
-				return fmt.Errorf("check '%s' not found\n", checkID)
-			}
-		}
+	if command.Async {
+		return nil
 	}
 
-	table := ui.Table{
-		Headers: ui.TableRow{
-			{Contents: "id", Color: color.New(color.Bold)},
-			{Contents: "name", Color: color.New(color.Bold)},
-			{Contents: "status", Color: color.New(color.Bold)},
-			{Contents: "check_error", Color: color.New(color.Bold)},
-		},
-	}
-
-	table.Data = append(table.Data, []ui.TableCell{
-		{Contents: checkID},
-		{Contents: command.ResourceType.ResourceName},
-		{Contents: check.Status},
-		{Contents: check.CheckError},
-	})
-
-	if err = table.Render(os.Stdout, Fly.PrintTableHeaders); err != nil {
+	eventSource, err := target.Client().BuildEvents(strconv.Itoa(build.ID))
+	if err != nil {
 		return err
 	}
 
-	if check.Status == "errored" {
-		os.Exit(1)
+	renderOptions := eventstream.RenderOptions{}
+
+	exitCode := eventstream.Render(os.Stdout, eventSource, renderOptions)
+	eventSource.Close()
+
+	if exitCode != 0 {
+		os.Exit(exitCode)
 	}
 
 	return nil
@@ -124,7 +102,14 @@ func (command *CheckResourceTypeCommand) checkParent(target rc.Target) error {
 		},
 	}
 
-	return cmd.Execute(nil)
+	err = cmd.Execute(nil)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println()
+
+	return nil
 }
 
 func (command *CheckResourceTypeCommand) findParent(resourceType atc.ResourceType, resourceTypes atc.VersionedResourceTypes) (atc.VersionedResourceType, bool) {

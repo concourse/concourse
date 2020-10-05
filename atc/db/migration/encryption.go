@@ -15,7 +15,6 @@ var encryptedColumns = []encryptedColumn{
 	{"resource_types", "config", "id"},
 	{"builds", "private_plan", "id"},
 	{"cert_cache", "cert", "domain"},
-	{"checks", "plan", "id"},
 	{"pipelines", "var_sources", "id"},
 }
 
@@ -232,4 +231,3 @@ func (self migrator) encryptWithNewKey(newKey *encryption.Key, oldKey *encryptio
 
 	return nil
 }
-

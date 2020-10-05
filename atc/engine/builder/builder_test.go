@@ -19,7 +19,6 @@ import (
 
 type StepBuilder interface {
 	BuildStep(lager.Logger, db.Build) (exec.Step, error)
-	CheckStep(lager.Logger, db.Check) (exec.Step, error)
 }
 
 var _ = Describe("Builder", func() {
@@ -30,9 +29,9 @@ var _ = Describe("Builder", func() {
 			err error
 
 			fakeStepFactory   *builderfakes.FakeStepFactory
+			fakeRateLimiter   *builderfakes.FakeRateLimiter
 			fakeSecretManager *credsfakes.FakeSecrets
 			fakeVarSourcePool *credsfakes.FakeVarSourcePool
-			delegateFactory   builder.DelegateFactory
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
@@ -42,16 +41,16 @@ var _ = Describe("Builder", func() {
 
 		BeforeEach(func() {
 			fakeStepFactory = new(builderfakes.FakeStepFactory)
+			fakeRateLimiter = new(builderfakes.FakeRateLimiter)
 			fakeSecretManager = new(credsfakes.FakeSecrets)
 			fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
-			delegateFactory = builder.NewDelegateFactory()
 
 			stepBuilder = builder.NewStepBuilder(
 				fakeStepFactory,
-				delegateFactory,
 				"http://example.com",
 				fakeSecretManager,
 				fakeVarSourcePool,
+				fakeRateLimiter,
 			)
 
 			planFactory = atc.NewPlanFactory(123)
@@ -581,6 +580,31 @@ var _ = Describe("Builder", func() {
 						})
 					})
 
+					Context("that contains a check step", func() {
+						BeforeEach(func() {
+							expectedPlan = planFactory.NewPlan(atc.CheckPlan{
+								Name: "some-check",
+							})
+						})
+
+						It("constructs the step correctly", func() {
+							plan, stepMetadata, containerMetadata, _ := fakeStepFactory.CheckStepArgsForCall(0)
+							Expect(plan).To(Equal(expectedPlan))
+							Expect(stepMetadata).To(Equal(expectedMetadata))
+							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
+								Type:                 db.ContainerTypeCheck,
+								StepName:             "some-check",
+								PipelineID:           2222,
+								PipelineName:         "some-pipeline",
+								PipelineInstanceVars: `{"branch":"master"}`,
+								JobID:                3333,
+								JobName:              "some-job",
+								BuildID:              4444,
+								BuildName:            "42",
+							}))
+						})
+					})
+
 					Context("that contains outputs", func() {
 						var (
 							putPlan          atc.Plan
@@ -895,132 +919,6 @@ var _ = Describe("Builder", func() {
 
 						// Other steps remain unchanged
 						ensureLocalVar(1, "var1", "a1")
-					})
-				})
-			})
-		})
-	})
-
-	Describe("CheckStep", func() {
-
-		var (
-			err error
-
-			fakeStepFactory   *builderfakes.FakeStepFactory
-			fakeSecretManager *credsfakes.FakeSecrets
-			fakeVarSourcePool *credsfakes.FakeVarSourcePool
-			delegateFactory   builder.DelegateFactory
-
-			planFactory atc.PlanFactory
-			stepBuilder StepBuilder
-
-			logger lager.Logger
-		)
-
-		BeforeEach(func() {
-			fakeStepFactory = new(builderfakes.FakeStepFactory)
-			fakeSecretManager = new(credsfakes.FakeSecrets)
-			fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
-			delegateFactory = builder.NewDelegateFactory()
-
-			stepBuilder = builder.NewStepBuilder(
-				fakeStepFactory,
-				delegateFactory,
-				"http://example.com",
-				fakeSecretManager,
-				fakeVarSourcePool,
-			)
-
-			planFactory = atc.NewPlanFactory(123)
-
-			logger = lagertest.NewTestLogger("builder-test")
-		})
-
-		Context("with no check", func() {
-			JustBeforeEach(func() {
-				_, err = stepBuilder.CheckStep(logger, nil)
-			})
-
-			It("errors", func() {
-				Expect(err).To(HaveOccurred())
-			})
-		})
-
-		Context("with a check", func() {
-			var (
-				fakePipeline *dbfakes.FakePipeline
-				fakeCheck    *dbfakes.FakeCheck
-
-				expectedPlan     atc.Plan
-				expectedMetadata exec.StepMetadata
-			)
-
-			BeforeEach(func() {
-				fakePipeline = new(dbfakes.FakePipeline)
-				fakePipeline.IDReturns(2222)
-				fakePipeline.NameReturns("some-pipeline")
-				fakePipeline.InstanceVarsReturns(atc.InstanceVars{"branch": "master"})
-
-				fakeCheck = new(dbfakes.FakeCheck)
-				fakeCheck.PipelineIDReturns(fakePipeline.ID())
-				fakeCheck.PipelineNameReturns(fakePipeline.Name())
-				fakeCheck.PipelineInstanceVarsReturns(fakePipeline.InstanceVars())
-				fakeCheck.PipelineReturns(fakePipeline, true, nil)
-				fakeCheck.ResourceConfigScopeIDReturns(4444)
-				fakeCheck.BaseResourceTypeIDReturns(2222)
-
-				expectedMetadata = exec.StepMetadata{
-					PipelineID:            fakePipeline.ID(),
-					PipelineName:          fakePipeline.Name(),
-					PipelineInstanceVars:  fakePipeline.InstanceVars(),
-					ResourceConfigScopeID: 4444,
-					BaseResourceTypeID:    2222,
-					ExternalURL:           "http://example.com",
-				}
-			})
-
-			JustBeforeEach(func() {
-				fakeCheck.PlanReturns(expectedPlan)
-
-				_, err = stepBuilder.CheckStep(logger, fakeCheck)
-			})
-
-			Context("when the check has the wrong schema", func() {
-				BeforeEach(func() {
-					fakeCheck.SchemaReturns("not-schema")
-				})
-
-				It("errors", func() {
-					Expect(err).To(HaveOccurred())
-				})
-			})
-
-			Context("when the build has the right schema", func() {
-				BeforeEach(func() {
-					fakeCheck.SchemaReturns("exec.v2")
-				})
-
-				It("always returns a plan", func() {
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				Context("with a check plan", func() {
-
-					BeforeEach(func() {
-						expectedPlan = planFactory.NewPlan(atc.CheckPlan{
-							Name:   "some-check",
-							Type:   "git",
-							Source: atc.Source{"some": "source"},
-						})
-					})
-
-					It("constructs the put correctly", func() {
-						plan, stepMetadata, containerMetadata, _ := fakeStepFactory.CheckStepArgsForCall(0)
-						Expect(plan).To(Equal(expectedPlan))
-						Expect(stepMetadata).To(Equal(expectedMetadata))
-						Expect(containerMetadata).To(Equal(db.ContainerMetadata{
-							Type: db.ContainerTypeCheck,
-						}))
 					})
 				})
 			})

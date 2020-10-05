@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -42,13 +43,22 @@ type ResourceType interface {
 	LastCheckEndTime() time.Time
 	CheckSetupError() error
 	CheckError() error
-	UniqueVersionHistory() bool
 	CurrentPinnedVersion() atc.Version
 	ResourceConfigScopeID() int
 
 	HasWebhook() bool
 
+	// XXX(check-refactor): we should be able to remove this, but unfortunately a
+	// ton of db tests rely on it. i've started a refactor to clean up the db
+	// package, but it's definitely going to take some time - there's a lot of
+	// debt there.
 	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
+
+	SetResourceConfigScope(ResourceConfigScope) error
+
+	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes) atc.CheckPlan
+	CreateBuild(context.Context, bool) (Build, bool, error)
+
 	SetCheckSetupError(error) error
 
 	Version() atc.Version
@@ -89,14 +99,13 @@ func (resourceTypes ResourceTypes) Deserialize() atc.VersionedResourceTypes {
 	for _, t := range resourceTypes {
 		versionedResourceTypes = append(versionedResourceTypes, atc.VersionedResourceType{
 			ResourceType: atc.ResourceType{
-				Name:                 t.Name(),
-				Type:                 t.Type(),
-				Source:               t.Source(),
-				Privileged:           t.Privileged(),
-				CheckEvery:           t.CheckEvery(),
-				Tags:                 t.Tags(),
-				Params:               t.Params(),
-				UniqueVersionHistory: t.UniqueVersionHistory(),
+				Name:       t.Name(),
+				Type:       t.Type(),
+				Source:     t.Source(),
+				Privileged: t.Privileged(),
+				CheckEvery: t.CheckEvery(),
+				Tags:       t.Tags(),
+				Params:     t.Params(),
 			},
 			Version: t.Version(),
 		})
@@ -110,14 +119,13 @@ func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
 
 	for _, r := range resourceTypes {
 		configs = append(configs, atc.ResourceType{
-			Name:                 r.Name(),
-			Type:                 r.Type(),
-			Source:               r.Source(),
-			Privileged:           r.Privileged(),
-			CheckEvery:           r.CheckEvery(),
-			Tags:                 r.Tags(),
-			Params:               r.Params(),
-			UniqueVersionHistory: r.UniqueVersionHistory(),
+			Name:       r.Name(),
+			Type:       r.Type(),
+			Source:     r.Source(),
+			Privileged: r.Privileged(),
+			CheckEvery: r.CheckEvery(),
+			Tags:       r.Tags(),
+			Params:     r.Params(),
 		})
 	}
 
@@ -175,7 +183,6 @@ type resourceType struct {
 	lastCheckEndTime      time.Time
 	checkSetupError       error
 	checkError            error
-	uniqueVersionHistory  bool
 }
 
 func (t *resourceType) ID() int                       { return t.id }
@@ -193,7 +200,6 @@ func (t *resourceType) Params() atc.Params            { return t.params }
 func (t *resourceType) Tags() atc.Tags                { return t.tags }
 func (t *resourceType) CheckSetupError() error        { return t.checkSetupError }
 func (t *resourceType) CheckError() error             { return t.checkError }
-func (t *resourceType) UniqueVersionHistory() bool    { return t.uniqueVersionHistory }
 func (t *resourceType) ResourceConfigScopeID() int    { return t.resourceConfigScopeID }
 
 func (t *resourceType) Version() atc.Version              { return t.version }
@@ -219,6 +225,23 @@ func (t *resourceType) Reload() (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (r *resourceType) SetResourceConfigScope(scope ResourceConfigScope) error {
+	_, err := psql.Update("resource_types").
+		Set("resource_config_id", scope.ResourceConfig().ID()).
+		Where(sq.Eq{"id": r.id}).
+		Where(sq.Or{
+			sq.Eq{"resource_config_id": nil},
+			sq.NotEq{"resource_config_id": scope.ResourceConfig().ID()},
+		}).
+		RunWith(r.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (t *resourceType) SetResourceConfig(source atc.Source, resourceTypes atc.VersionedResourceTypes) (ResourceConfigScope, error) {
@@ -251,7 +274,7 @@ func (t *resourceType) SetResourceConfig(source atc.Source, resourceTypes atc.Ve
 	}
 
 	// A nil value is passed into the Resource object parameter because we always want resource type versions to be shared
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, t.conn, t.lockFactory, resourceConfig, nil, t.type_, resourceTypes)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, t.conn, t.lockFactory, resourceConfig, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -262,6 +285,68 @@ func (t *resourceType) SetResourceConfig(source atc.Source, resourceTypes atc.Ve
 	}
 
 	return resourceConfigScope, nil
+}
+
+func (r *resourceType) CheckPlan(from atc.Version, interval, timeout time.Duration, resourceTypes ResourceTypes) atc.CheckPlan {
+	return atc.CheckPlan{
+		Name:   r.Name(),
+		Type:   r.Type(),
+		Source: r.Source(),
+		Tags:   r.Tags(),
+
+		FromVersion: from,
+
+		// XXX(check-refactor): these two are awkward because it could
+		// theoretically be set to r.CheckTimeout(), but the system-wide default is
+		// handled outside and passed in here.
+		//
+		// should we respect the system-wide default at runtime instead of having
+		// these passed in and making them required?
+		//
+		// also it would be nice if they could be time.Duration, but timeout is
+		// already a string, and i don't want to break old builds. i guess we could
+		// write a custom unmarshaler that handles both.
+		Interval: interval.String(),
+		Timeout:  timeout.String(),
+
+		VersionedResourceTypes: resourceTypes.Deserialize(),
+
+		ResourceType: r.Name(),
+	}
+}
+
+func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool) (Build, bool, error) {
+	spanContextJSON, err := json.Marshal(NewSpanContext(ctx))
+	if err != nil {
+		return nil, false, err
+	}
+
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer Rollback(tx)
+
+	build := newEmptyBuild(r.conn, r.lockFactory)
+	err = createBuild(tx, build, map[string]interface{}{
+		"name":               sq.Expr("nextval('one_off_name')"),
+		"pipeline_id":        r.pipelineID,
+		"team_id":            r.teamID,
+		"status":             BuildStatusPending,
+		"manually_triggered": manuallyTriggered,
+		"span_context":       string(spanContextJSON),
+	})
+	if err != nil {
+		return nil, false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
+	return build, true, nil
 }
 
 func (t *resourceType) SetCheckSetupError(cause error) error {
@@ -334,7 +419,6 @@ func scanResourceType(t *resourceType, row scannable) error {
 	t.privileged = config.Privileged
 	t.tags = config.Tags
 	t.checkEvery = config.CheckEvery
-	t.uniqueVersionHistory = config.UniqueVersionHistory
 
 	if checkErr.Valid {
 		t.checkSetupError = errors.New(checkErr.String)

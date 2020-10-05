@@ -16,6 +16,10 @@ type JobFlag struct {
 	JobName     string
 }
 
+func (flag JobFlag) String() string {
+	return fmt.Sprintf("%s/%s", flag.PipelineRef, flag.JobName)
+}
+
 func (flag *JobFlag) UnmarshalFlag(value string) error {
 	flag.PipelineRef = atc.PipelineRef{}
 
@@ -38,7 +42,7 @@ func (flag *JobFlag) UnmarshalFlag(value string) error {
 		}
 		flag.PipelineRef.InstanceVars, err = flatInstanceVars.Expand()
 		if err != nil {
-			return  err
+			return err
 		}
 	}
 

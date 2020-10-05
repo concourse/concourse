@@ -10,6 +10,8 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/tracing"
 	"go.opentelemetry.io/otel/api/propagators"
 )
 
@@ -274,6 +276,16 @@ type FakeBuild struct {
 	jobNameReturnsOnCall map[int]struct {
 		result1 string
 	}
+	LagerDataStub        func() lager.Data
+	lagerDataMutex       sync.RWMutex
+	lagerDataArgsForCall []struct {
+	}
+	lagerDataReturns struct {
+		result1 lager.Data
+	}
+	lagerDataReturnsOnCall map[int]struct {
+		result1 lager.Data
+	}
 	MarkAsAbortedStub        func() error
 	markAsAbortedMutex       sync.RWMutex
 	markAsAbortedArgsForCall []struct {
@@ -432,6 +444,26 @@ type FakeBuild struct {
 		result1 string
 	}
 	rerunOfNameReturnsOnCall map[int]struct {
+		result1 string
+	}
+	ResourceIDStub        func() int
+	resourceIDMutex       sync.RWMutex
+	resourceIDArgsForCall []struct {
+	}
+	resourceIDReturns struct {
+		result1 int
+	}
+	resourceIDReturnsOnCall map[int]struct {
+		result1 int
+	}
+	ResourceNameStub        func() string
+	resourceNameMutex       sync.RWMutex
+	resourceNameArgsForCall []struct {
+	}
+	resourceNameReturns struct {
+		result1 string
+	}
+	resourceNameReturnsOnCall map[int]struct {
 		result1 string
 	}
 	ResourcesStub        func() ([]db.BuildInput, []db.BuildOutput, error)
@@ -593,6 +625,17 @@ type FakeBuild struct {
 	statusReturnsOnCall map[int]struct {
 		result1 db.BuildStatus
 	}
+	SyslogTagStub        func(event.OriginID) string
+	syslogTagMutex       sync.RWMutex
+	syslogTagArgsForCall []struct {
+		arg1 event.OriginID
+	}
+	syslogTagReturns struct {
+		result1 string
+	}
+	syslogTagReturnsOnCall map[int]struct {
+		result1 string
+	}
 	TeamIDStub        func() int
 	teamIDMutex       sync.RWMutex
 	teamIDArgsForCall []struct {
@@ -612,6 +655,16 @@ type FakeBuild struct {
 	}
 	teamNameReturnsOnCall map[int]struct {
 		result1 string
+	}
+	TracingAttrsStub        func() tracing.Attrs
+	tracingAttrsMutex       sync.RWMutex
+	tracingAttrsArgsForCall []struct {
+	}
+	tracingAttrsReturns struct {
+		result1 tracing.Attrs
+	}
+	tracingAttrsReturnsOnCall map[int]struct {
+		result1 tracing.Attrs
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -1890,6 +1943,58 @@ func (fake *FakeBuild) JobNameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeBuild) LagerData() lager.Data {
+	fake.lagerDataMutex.Lock()
+	ret, specificReturn := fake.lagerDataReturnsOnCall[len(fake.lagerDataArgsForCall)]
+	fake.lagerDataArgsForCall = append(fake.lagerDataArgsForCall, struct {
+	}{})
+	fake.recordInvocation("LagerData", []interface{}{})
+	fake.lagerDataMutex.Unlock()
+	if fake.LagerDataStub != nil {
+		return fake.LagerDataStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.lagerDataReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) LagerDataCallCount() int {
+	fake.lagerDataMutex.RLock()
+	defer fake.lagerDataMutex.RUnlock()
+	return len(fake.lagerDataArgsForCall)
+}
+
+func (fake *FakeBuild) LagerDataCalls(stub func() lager.Data) {
+	fake.lagerDataMutex.Lock()
+	defer fake.lagerDataMutex.Unlock()
+	fake.LagerDataStub = stub
+}
+
+func (fake *FakeBuild) LagerDataReturns(result1 lager.Data) {
+	fake.lagerDataMutex.Lock()
+	defer fake.lagerDataMutex.Unlock()
+	fake.LagerDataStub = nil
+	fake.lagerDataReturns = struct {
+		result1 lager.Data
+	}{result1}
+}
+
+func (fake *FakeBuild) LagerDataReturnsOnCall(i int, result1 lager.Data) {
+	fake.lagerDataMutex.Lock()
+	defer fake.lagerDataMutex.Unlock()
+	fake.LagerDataStub = nil
+	if fake.lagerDataReturnsOnCall == nil {
+		fake.lagerDataReturnsOnCall = make(map[int]struct {
+			result1 lager.Data
+		})
+	}
+	fake.lagerDataReturnsOnCall[i] = struct {
+		result1 lager.Data
+	}{result1}
+}
+
 func (fake *FakeBuild) MarkAsAborted() error {
 	fake.markAsAbortedMutex.Lock()
 	ret, specificReturn := fake.markAsAbortedReturnsOnCall[len(fake.markAsAbortedArgsForCall)]
@@ -2685,6 +2790,110 @@ func (fake *FakeBuild) RerunOfNameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeBuild) ResourceID() int {
+	fake.resourceIDMutex.Lock()
+	ret, specificReturn := fake.resourceIDReturnsOnCall[len(fake.resourceIDArgsForCall)]
+	fake.resourceIDArgsForCall = append(fake.resourceIDArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ResourceID", []interface{}{})
+	fake.resourceIDMutex.Unlock()
+	if fake.ResourceIDStub != nil {
+		return fake.ResourceIDStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.resourceIDReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) ResourceIDCallCount() int {
+	fake.resourceIDMutex.RLock()
+	defer fake.resourceIDMutex.RUnlock()
+	return len(fake.resourceIDArgsForCall)
+}
+
+func (fake *FakeBuild) ResourceIDCalls(stub func() int) {
+	fake.resourceIDMutex.Lock()
+	defer fake.resourceIDMutex.Unlock()
+	fake.ResourceIDStub = stub
+}
+
+func (fake *FakeBuild) ResourceIDReturns(result1 int) {
+	fake.resourceIDMutex.Lock()
+	defer fake.resourceIDMutex.Unlock()
+	fake.ResourceIDStub = nil
+	fake.resourceIDReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeBuild) ResourceIDReturnsOnCall(i int, result1 int) {
+	fake.resourceIDMutex.Lock()
+	defer fake.resourceIDMutex.Unlock()
+	fake.ResourceIDStub = nil
+	if fake.resourceIDReturnsOnCall == nil {
+		fake.resourceIDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.resourceIDReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeBuild) ResourceName() string {
+	fake.resourceNameMutex.Lock()
+	ret, specificReturn := fake.resourceNameReturnsOnCall[len(fake.resourceNameArgsForCall)]
+	fake.resourceNameArgsForCall = append(fake.resourceNameArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ResourceName", []interface{}{})
+	fake.resourceNameMutex.Unlock()
+	if fake.ResourceNameStub != nil {
+		return fake.ResourceNameStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.resourceNameReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) ResourceNameCallCount() int {
+	fake.resourceNameMutex.RLock()
+	defer fake.resourceNameMutex.RUnlock()
+	return len(fake.resourceNameArgsForCall)
+}
+
+func (fake *FakeBuild) ResourceNameCalls(stub func() string) {
+	fake.resourceNameMutex.Lock()
+	defer fake.resourceNameMutex.Unlock()
+	fake.ResourceNameStub = stub
+}
+
+func (fake *FakeBuild) ResourceNameReturns(result1 string) {
+	fake.resourceNameMutex.Lock()
+	defer fake.resourceNameMutex.Unlock()
+	fake.ResourceNameStub = nil
+	fake.resourceNameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuild) ResourceNameReturnsOnCall(i int, result1 string) {
+	fake.resourceNameMutex.Lock()
+	defer fake.resourceNameMutex.Unlock()
+	fake.ResourceNameStub = nil
+	if fake.resourceNameReturnsOnCall == nil {
+		fake.resourceNameReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.resourceNameReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeBuild) Resources() ([]db.BuildInput, []db.BuildOutput, error) {
 	fake.resourcesMutex.Lock()
 	ret, specificReturn := fake.resourcesReturnsOnCall[len(fake.resourcesArgsForCall)]
@@ -3445,6 +3654,66 @@ func (fake *FakeBuild) StatusReturnsOnCall(i int, result1 db.BuildStatus) {
 	}{result1}
 }
 
+func (fake *FakeBuild) SyslogTag(arg1 event.OriginID) string {
+	fake.syslogTagMutex.Lock()
+	ret, specificReturn := fake.syslogTagReturnsOnCall[len(fake.syslogTagArgsForCall)]
+	fake.syslogTagArgsForCall = append(fake.syslogTagArgsForCall, struct {
+		arg1 event.OriginID
+	}{arg1})
+	fake.recordInvocation("SyslogTag", []interface{}{arg1})
+	fake.syslogTagMutex.Unlock()
+	if fake.SyslogTagStub != nil {
+		return fake.SyslogTagStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.syslogTagReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) SyslogTagCallCount() int {
+	fake.syslogTagMutex.RLock()
+	defer fake.syslogTagMutex.RUnlock()
+	return len(fake.syslogTagArgsForCall)
+}
+
+func (fake *FakeBuild) SyslogTagCalls(stub func(event.OriginID) string) {
+	fake.syslogTagMutex.Lock()
+	defer fake.syslogTagMutex.Unlock()
+	fake.SyslogTagStub = stub
+}
+
+func (fake *FakeBuild) SyslogTagArgsForCall(i int) event.OriginID {
+	fake.syslogTagMutex.RLock()
+	defer fake.syslogTagMutex.RUnlock()
+	argsForCall := fake.syslogTagArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeBuild) SyslogTagReturns(result1 string) {
+	fake.syslogTagMutex.Lock()
+	defer fake.syslogTagMutex.Unlock()
+	fake.SyslogTagStub = nil
+	fake.syslogTagReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuild) SyslogTagReturnsOnCall(i int, result1 string) {
+	fake.syslogTagMutex.Lock()
+	defer fake.syslogTagMutex.Unlock()
+	fake.SyslogTagStub = nil
+	if fake.syslogTagReturnsOnCall == nil {
+		fake.syslogTagReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.syslogTagReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeBuild) TeamID() int {
 	fake.teamIDMutex.Lock()
 	ret, specificReturn := fake.teamIDReturnsOnCall[len(fake.teamIDArgsForCall)]
@@ -3549,6 +3818,58 @@ func (fake *FakeBuild) TeamNameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeBuild) TracingAttrs() tracing.Attrs {
+	fake.tracingAttrsMutex.Lock()
+	ret, specificReturn := fake.tracingAttrsReturnsOnCall[len(fake.tracingAttrsArgsForCall)]
+	fake.tracingAttrsArgsForCall = append(fake.tracingAttrsArgsForCall, struct {
+	}{})
+	fake.recordInvocation("TracingAttrs", []interface{}{})
+	fake.tracingAttrsMutex.Unlock()
+	if fake.TracingAttrsStub != nil {
+		return fake.TracingAttrsStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.tracingAttrsReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) TracingAttrsCallCount() int {
+	fake.tracingAttrsMutex.RLock()
+	defer fake.tracingAttrsMutex.RUnlock()
+	return len(fake.tracingAttrsArgsForCall)
+}
+
+func (fake *FakeBuild) TracingAttrsCalls(stub func() tracing.Attrs) {
+	fake.tracingAttrsMutex.Lock()
+	defer fake.tracingAttrsMutex.Unlock()
+	fake.TracingAttrsStub = stub
+}
+
+func (fake *FakeBuild) TracingAttrsReturns(result1 tracing.Attrs) {
+	fake.tracingAttrsMutex.Lock()
+	defer fake.tracingAttrsMutex.Unlock()
+	fake.TracingAttrsStub = nil
+	fake.tracingAttrsReturns = struct {
+		result1 tracing.Attrs
+	}{result1}
+}
+
+func (fake *FakeBuild) TracingAttrsReturnsOnCall(i int, result1 tracing.Attrs) {
+	fake.tracingAttrsMutex.Lock()
+	defer fake.tracingAttrsMutex.Unlock()
+	fake.TracingAttrsStub = nil
+	if fake.tracingAttrsReturnsOnCall == nil {
+		fake.tracingAttrsReturnsOnCall = make(map[int]struct {
+			result1 tracing.Attrs
+		})
+	}
+	fake.tracingAttrsReturnsOnCall[i] = struct {
+		result1 tracing.Attrs
+	}{result1}
+}
+
 func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -3598,6 +3919,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.jobIDMutex.RUnlock()
 	fake.jobNameMutex.RLock()
 	defer fake.jobNameMutex.RUnlock()
+	fake.lagerDataMutex.RLock()
+	defer fake.lagerDataMutex.RUnlock()
 	fake.markAsAbortedMutex.RLock()
 	defer fake.markAsAbortedMutex.RUnlock()
 	fake.nameMutex.RLock()
@@ -3628,6 +3951,10 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.rerunOfMutex.RUnlock()
 	fake.rerunOfNameMutex.RLock()
 	defer fake.rerunOfNameMutex.RUnlock()
+	fake.resourceIDMutex.RLock()
+	defer fake.resourceIDMutex.RUnlock()
+	fake.resourceNameMutex.RLock()
+	defer fake.resourceNameMutex.RUnlock()
 	fake.resourcesMutex.RLock()
 	defer fake.resourcesMutex.RUnlock()
 	fake.resourcesCheckedMutex.RLock()
@@ -3654,10 +3981,14 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.startTimeMutex.RUnlock()
 	fake.statusMutex.RLock()
 	defer fake.statusMutex.RUnlock()
+	fake.syslogTagMutex.RLock()
+	defer fake.syslogTagMutex.RUnlock()
 	fake.teamIDMutex.RLock()
 	defer fake.teamIDMutex.RUnlock()
 	fake.teamNameMutex.RLock()
 	defer fake.teamNameMutex.RUnlock()
+	fake.tracingAttrsMutex.RLock()
+	defer fake.tracingAttrsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
