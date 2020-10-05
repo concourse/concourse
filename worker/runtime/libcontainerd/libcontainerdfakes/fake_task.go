@@ -188,6 +188,19 @@ type FakeTask struct {
 	resumeReturnsOnCall map[int]struct {
 		result1 error
 	}
+	SpecStub        func(context.Context) (*specs.Spec, error)
+	specMutex       sync.RWMutex
+	specArgsForCall []struct {
+		arg1 context.Context
+	}
+	specReturns struct {
+		result1 *specs.Spec
+		result2 error
+	}
+	specReturnsOnCall map[int]struct {
+		result1 *specs.Spec
+		result2 error
+	}
 	StartStub        func(context.Context) error
 	startMutex       sync.RWMutex
 	startArgsForCall []struct {
@@ -1087,6 +1100,69 @@ func (fake *FakeTask) ResumeReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeTask) Spec(arg1 context.Context) (*specs.Spec, error) {
+	fake.specMutex.Lock()
+	ret, specificReturn := fake.specReturnsOnCall[len(fake.specArgsForCall)]
+	fake.specArgsForCall = append(fake.specArgsForCall, struct {
+		arg1 context.Context
+	}{arg1})
+	fake.recordInvocation("Spec", []interface{}{arg1})
+	fake.specMutex.Unlock()
+	if fake.SpecStub != nil {
+		return fake.SpecStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.specReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTask) SpecCallCount() int {
+	fake.specMutex.RLock()
+	defer fake.specMutex.RUnlock()
+	return len(fake.specArgsForCall)
+}
+
+func (fake *FakeTask) SpecCalls(stub func(context.Context) (*specs.Spec, error)) {
+	fake.specMutex.Lock()
+	defer fake.specMutex.Unlock()
+	fake.SpecStub = stub
+}
+
+func (fake *FakeTask) SpecArgsForCall(i int) context.Context {
+	fake.specMutex.RLock()
+	defer fake.specMutex.RUnlock()
+	argsForCall := fake.specArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeTask) SpecReturns(result1 *specs.Spec, result2 error) {
+	fake.specMutex.Lock()
+	defer fake.specMutex.Unlock()
+	fake.SpecStub = nil
+	fake.specReturns = struct {
+		result1 *specs.Spec
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTask) SpecReturnsOnCall(i int, result1 *specs.Spec, result2 error) {
+	fake.specMutex.Lock()
+	defer fake.specMutex.Unlock()
+	fake.SpecStub = nil
+	if fake.specReturnsOnCall == nil {
+		fake.specReturnsOnCall = make(map[int]struct {
+			result1 *specs.Spec
+			result2 error
+		})
+	}
+	fake.specReturnsOnCall[i] = struct {
+		result1 *specs.Spec
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeTask) Start(arg1 context.Context) error {
 	fake.startMutex.Lock()
 	ret, specificReturn := fake.startReturnsOnCall[len(fake.startArgsForCall)]
@@ -1365,6 +1441,8 @@ func (fake *FakeTask) Invocations() map[string][][]interface{} {
 	defer fake.resizeMutex.RUnlock()
 	fake.resumeMutex.RLock()
 	defer fake.resumeMutex.RUnlock()
+	fake.specMutex.RLock()
+	defer fake.specMutex.RUnlock()
 	fake.startMutex.RLock()
 	defer fake.startMutex.RUnlock()
 	fake.statusMutex.RLock()

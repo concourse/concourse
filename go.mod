@@ -25,7 +25,7 @@ require (
 	github.com/concourse/go-archive v1.0.1
 	github.com/concourse/retryhttp v1.0.2
 	github.com/containerd/cgroups v0.0.0-20191220161829-06e718085901 // indirect
-	github.com/containerd/containerd v1.3.2
+	github.com/containerd/containerd v1.4.1
 	github.com/containerd/continuity v0.0.0-20191214063359-1097c8bae83b // indirect
 	github.com/containerd/fifo v0.0.0-20191213151349-ff969a566b00 // indirect
 	github.com/containerd/go-cni v0.0.0-20200107172653-c154a49e2c75
@@ -47,6 +47,7 @@ require (
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/groupcache v0.0.0-20191027212112-611e8accdfc9
 	github.com/google/jsonapi v0.0.0-20180618021926-5d047c6bc66b
+	github.com/google/uuid v1.1.2 // indirect
 	github.com/googleapis/gnostic v0.3.1 // indirect
 	github.com/gophercloud/gophercloud v0.10.0 // indirect
 	github.com/gorilla/context v1.1.1 // indirect
@@ -78,16 +79,16 @@ require (
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.10.0
 	github.com/opencontainers/image-spec v1.0.1 // indirect
-	github.com/opencontainers/runc v0.1.1 // indirect
-	github.com/opencontainers/runtime-spec v1.0.1
+	github.com/opencontainers/runc v1.0.0-rc92 // indirect
+	github.com/opencontainers/runtime-spec v1.0.3-0.20200728170252-4d89ac9fbff6
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/peterhellberg/link v1.0.0
-	github.com/pkg/errors v0.8.1
+	github.com/pkg/errors v0.9.1
 	github.com/pkg/term v0.0.0-20190109203006-aa71e9d9e942
 	github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35 // indirect
 	github.com/prometheus/client_golang v0.9.3
 	github.com/racksec/srslog v0.0.0-20180709174129-a4725f04ec91
-	github.com/sirupsen/logrus v1.4.2
+	github.com/sirupsen/logrus v1.6.0
 	github.com/skratchdot/open-golang v0.0.0-20160302144031-75fb7ed4208c
 	github.com/square/certstrap v1.1.1
 	github.com/stretchr/testify v1.4.0
@@ -108,7 +109,6 @@ require (
 	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f // indirect
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/sys v0.0.0-20200509044756-6aff5f38e54f // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 	google.golang.org/genproto v0.0.0-20191223191004-3caeed10a8bf // indirect
 	google.golang.org/grpc v1.26.0
