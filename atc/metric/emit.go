@@ -61,7 +61,6 @@ type Monitor struct {
 
 	ChecksFinishedWithError   Counter
 	ChecksFinishedWithSuccess Counter
-	ChecksQueueSize           Gauge
 	ChecksStarted             Counter
 	ChecksEnqueued            Counter
 

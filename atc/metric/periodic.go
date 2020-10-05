@@ -220,14 +220,6 @@ func tick(logger lager.Logger, m *Monitor) {
 		},
 	)
 
-	m.emit(
-		logger.Session("checks-queue-size"),
-		Event{
-			Name:  "checks queue size",
-			Value: m.ChecksQueueSize.Max(),
-		},
-	)
-
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
