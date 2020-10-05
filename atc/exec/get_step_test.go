@@ -19,6 +19,7 @@ import (
 	"github.com/concourse/concourse/vars"
 	"github.com/onsi/gomega/gbytes"
 	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/api/trace/tracetest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -174,7 +175,7 @@ var _ = Describe("GetStep", func() {
 		var buildSpan trace.Span
 
 		BeforeEach(func() {
-			tracing.ConfigureTraceProvider(testTraceProvider{})
+			tracing.ConfigureTraceProvider(tracetest.NewProvider())
 
 			spanCtx, buildSpan = tracing.StartSpan(ctx, "build", nil)
 			fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
@@ -312,7 +313,7 @@ var _ = Describe("GetStep", func() {
 
 		It("registers the resulting artifact in the RunState.ArtifactRepository", func() {
 			artifact, found := artifactRepository.ArtifactFor(build.ArtifactName(getPlan.Name))
-			Expect(artifact).To(Equal(runtime.GetArtifact{"some-volume-handle"}))
+			Expect(artifact).To(Equal(runtime.GetArtifact{VolumeHandle: "some-volume-handle"}))
 			Expect(found).To(BeTrue())
 		})
 

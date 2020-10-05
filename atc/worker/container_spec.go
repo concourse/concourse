@@ -52,7 +52,7 @@ type ContainerSpec struct {
 }
 
 // The below methods cause ContainerSpec to fulfill the
-// go.opentelemetry.io/otel/api/propagators.Supplier interface
+// go.opentelemetry.io/otel/api/propagation.HTTPSupplier interface
 
 func (cs *ContainerSpec) Get(key string) string {
 	for _, env := range cs.Env {

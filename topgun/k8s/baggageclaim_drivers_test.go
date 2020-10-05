@@ -1,6 +1,7 @@
 package k8s_test
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -101,7 +102,7 @@ func baggageclaimFails(driver string, selectorFlags ...string) {
 				var logs []byte
 				pods := getPods(namespace, metav1.ListOptions{LabelSelector: "app=" + namespace + "-worker"})
 				for _, p := range pods {
-					contents, _ := kubeClient.CoreV1().Pods(namespace).GetLogs(p.Name, &corev1.PodLogOptions{}).Do().Raw()
+					contents, _ := kubeClient.CoreV1().Pods(namespace).GetLogs(p.Name, &corev1.PodLogOptions{}).Do(context.TODO()).Raw()
 					logs = append(logs, contents...)
 				}
 

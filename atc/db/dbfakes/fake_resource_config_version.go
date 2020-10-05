@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/concourse/atc/db"
-	"go.opentelemetry.io/otel/api/propagators"
+	"go.opentelemetry.io/otel/api/propagation"
 )
 
 type FakeResourceConfigVersion struct {
@@ -61,15 +61,15 @@ type FakeResourceConfigVersion struct {
 	resourceConfigScopeReturnsOnCall map[int]struct {
 		result1 db.ResourceConfigScope
 	}
-	SpanContextStub        func() propagators.Supplier
+	SpanContextStub        func() propagation.HTTPSupplier
 	spanContextMutex       sync.RWMutex
 	spanContextArgsForCall []struct {
 	}
 	spanContextReturns struct {
-		result1 propagators.Supplier
+		result1 propagation.HTTPSupplier
 	}
 	spanContextReturnsOnCall map[int]struct {
-		result1 propagators.Supplier
+		result1 propagation.HTTPSupplier
 	}
 	VersionStub        func() db.Version
 	versionMutex       sync.RWMutex
@@ -348,7 +348,7 @@ func (fake *FakeResourceConfigVersion) ResourceConfigScopeReturnsOnCall(i int, r
 	}{result1}
 }
 
-func (fake *FakeResourceConfigVersion) SpanContext() propagators.Supplier {
+func (fake *FakeResourceConfigVersion) SpanContext() propagation.HTTPSupplier {
 	fake.spanContextMutex.Lock()
 	ret, specificReturn := fake.spanContextReturnsOnCall[len(fake.spanContextArgsForCall)]
 	fake.spanContextArgsForCall = append(fake.spanContextArgsForCall, struct {
@@ -371,32 +371,32 @@ func (fake *FakeResourceConfigVersion) SpanContextCallCount() int {
 	return len(fake.spanContextArgsForCall)
 }
 
-func (fake *FakeResourceConfigVersion) SpanContextCalls(stub func() propagators.Supplier) {
+func (fake *FakeResourceConfigVersion) SpanContextCalls(stub func() propagation.HTTPSupplier) {
 	fake.spanContextMutex.Lock()
 	defer fake.spanContextMutex.Unlock()
 	fake.SpanContextStub = stub
 }
 
-func (fake *FakeResourceConfigVersion) SpanContextReturns(result1 propagators.Supplier) {
+func (fake *FakeResourceConfigVersion) SpanContextReturns(result1 propagation.HTTPSupplier) {
 	fake.spanContextMutex.Lock()
 	defer fake.spanContextMutex.Unlock()
 	fake.SpanContextStub = nil
 	fake.spanContextReturns = struct {
-		result1 propagators.Supplier
+		result1 propagation.HTTPSupplier
 	}{result1}
 }
 
-func (fake *FakeResourceConfigVersion) SpanContextReturnsOnCall(i int, result1 propagators.Supplier) {
+func (fake *FakeResourceConfigVersion) SpanContextReturnsOnCall(i int, result1 propagation.HTTPSupplier) {
 	fake.spanContextMutex.Lock()
 	defer fake.spanContextMutex.Unlock()
 	fake.SpanContextStub = nil
 	if fake.spanContextReturnsOnCall == nil {
 		fake.spanContextReturnsOnCall = make(map[int]struct {
-			result1 propagators.Supplier
+			result1 propagation.HTTPSupplier
 		})
 	}
 	fake.spanContextReturnsOnCall[i] = struct {
-		result1 propagators.Supplier
+		result1 propagation.HTTPSupplier
 	}{result1}
 }
 

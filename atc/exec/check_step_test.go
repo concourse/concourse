@@ -21,8 +21,8 @@ import (
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 	"github.com/concourse/concourse/vars/varsfakes"
-	"go.opentelemetry.io/otel/api/propagators"
 	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/api/trace/tracetest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -345,7 +345,7 @@ var _ = Describe("CheckStep", func() {
 					var buildSpan trace.Span
 
 					BeforeEach(func() {
-						tracing.ConfigureTraceProvider(testTraceProvider{})
+						tracing.ConfigureTraceProvider(tracetest.NewProvider())
 
 						spanCtx, buildSpan = tracing.StartSpan(ctx, "build", nil)
 						fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
@@ -414,7 +414,7 @@ var _ = Describe("CheckStep", func() {
 			var buildSpan trace.Span
 
 			BeforeEach(func() {
-				tracing.ConfigureTraceProvider(&tracing.TestTraceProvider{})
+				tracing.ConfigureTraceProvider(tracetest.NewProvider())
 
 				spanCtx, buildSpan = tracing.StartSpan(context.Background(), "fake-operation", nil)
 				fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
@@ -427,8 +427,8 @@ var _ = Describe("CheckStep", func() {
 			It("propagates span context to scope", func() {
 				Expect(fakeResourceConfigScope.SaveVersionsCallCount()).To(Equal(1))
 				spanContext, _ := fakeResourceConfigScope.SaveVersionsArgsForCall(0)
-				traceID := buildSpan.SpanContext().TraceIDString()
-				traceParent := spanContext.Get(propagators.TraceparentHeader)
+				traceID := buildSpan.SpanContext().TraceID.String()
+				traceParent := spanContext.Get("traceparent")
 				Expect(traceParent).To(ContainSubstring(traceID))
 			})
 		})

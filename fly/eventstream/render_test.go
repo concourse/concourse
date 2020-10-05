@@ -332,7 +332,7 @@ var _ = Describe("V1.0 Renderer", func() {
 					return nil, io.EOF
 				}
 			}
-			errors <- event.UnknownEventTypeError{"some-event"}
+			errors <- event.UnknownEventTypeError{Type: "some-event"}
 			errors <- event.UnknownEventVersionError{Type: "some-bad-version-event"}
 		})
 

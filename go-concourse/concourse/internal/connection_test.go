@@ -421,10 +421,12 @@ var _ = Describe("ATC Connection", func() {
 						atcServer.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/foo"),
-								ghttp.RespondWithJSONEncoded(http.StatusNotFound, jsonapi.ErrorsPayload{[]*jsonapi.ErrorObject{
-									{Detail: "One error message's detail."},
-									{Detail: "Some other error message detail."},
-								}}),
+								ghttp.RespondWithJSONEncoded(http.StatusNotFound, jsonapi.ErrorsPayload{
+									Errors: []*jsonapi.ErrorObject{
+										{Detail: "One error message's detail."},
+										{Detail: "Some other error message detail."},
+									},
+								}),
 							),
 						)
 					})

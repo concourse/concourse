@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"go.opentelemetry.io/otel/api/propagators"
+	"go.opentelemetry.io/otel/api/trace/tracetest"
 )
 
 var _ = Describe("Job", func() {
@@ -1982,7 +1982,7 @@ var _ = Describe("Job", func() {
 
 			Context("when tracing is configured", func() {
 				BeforeEach(func() {
-					tracing.ConfigureTraceProvider(&tracing.TestTraceProvider{})
+					tracing.ConfigureTraceProvider(tracetest.NewProvider())
 				})
 
 				AfterEach(func() {
@@ -1991,13 +1991,13 @@ var _ = Describe("Job", func() {
 
 				It("propagates span context", func() {
 					ctx, span := tracing.StartSpan(context.Background(), "fake-operation", nil)
-					traceID := span.SpanContext().TraceIDString()
+					traceID := span.SpanContext().TraceID.String()
 
 					job.EnsurePendingBuildExists(ctx)
 
 					pendingBuilds, _ := job.GetPendingBuilds()
 					spanContext := pendingBuilds[0].SpanContext()
-					traceParent := spanContext.Get(propagators.TraceparentHeader)
+					traceParent := spanContext.Get("traceparent")
 					Expect(traceParent).To(ContainSubstring(traceID))
 				})
 			})
