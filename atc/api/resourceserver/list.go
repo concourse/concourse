@@ -11,8 +11,9 @@ import (
 )
 
 func (s *Server) ListResources(pipeline db.Pipeline) http.Handler {
-	logger := s.logger.Session("list-resources")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger := s.logger.Session("list-resources")
+
 		resources, err := pipeline.Resources()
 		if err != nil {
 			logger.Error("failed-to-get-dashboard-resources", err)

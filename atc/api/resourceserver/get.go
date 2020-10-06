@@ -11,10 +11,13 @@ import (
 )
 
 func (s *Server) GetResource(pipeline db.Pipeline) http.Handler {
-	logger := s.logger.Session("get-resource")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resourceName := r.FormValue(":resource_name")
 		teamName := r.FormValue(":team_name")
+
+		logger := s.logger.Session("get-resource", lager.Data{
+			"resource": resourceName,
+		})
 
 		dbResource, found, err := pipeline.Resource(resourceName)
 		if err != nil {
@@ -24,7 +27,7 @@ func (s *Server) GetResource(pipeline db.Pipeline) http.Handler {
 		}
 
 		if !found {
-			logger.Debug("resource-not-found", lager.Data{"resource": resourceName})
+			logger.Info("resource-not-found")
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}

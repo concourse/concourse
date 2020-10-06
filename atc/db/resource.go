@@ -365,23 +365,48 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool) (Bui
 
 	if !manuallyTriggered {
 		params["resource_id"] = r.id
-	}
 
-	_, err = psql.Delete("builds").
-		Where(sq.Eq{
-			"resource_id": r.id,
-			"completed":   true,
-		}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return nil, false, fmt.Errorf("delete previous build: %w", err)
+		var completed, noBuild bool
+		err = psql.Select("completed").
+			From("builds").
+			Where(sq.Eq{"resource_id": r.id}).
+			RunWith(tx).
+			QueryRow().
+			Scan(&completed)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				noBuild = true
+			} else {
+				return nil, false, err
+			}
+		}
+
+		if !noBuild && !completed {
+			// a build is already running; leave it be
+			return nil, false, nil
+		}
+
+		if completed {
+			// previous build finished; clear it out
+			_, err = psql.Delete("builds").
+				Where(sq.Eq{
+					"resource_id": r.id,
+					"completed":   true,
+				}).
+				RunWith(tx).
+				Exec()
+			if err != nil {
+				return nil, false, fmt.Errorf("delete previous build: %w", err)
+			}
+		}
 	}
 
 	build := newEmptyBuild(r.conn, r.lockFactory)
 	err = createBuild(tx, build, params)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
+			// handle unique violation, though this shouldn't ever happen due to the
+			// above checks
 			return nil, false, nil
 		}
 
