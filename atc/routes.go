@@ -3,11 +3,10 @@ package atc
 import (
 	"io"
 	"net/http"
-	"regexp"
+	"net/url"
 	"strings"
 
 	"github.com/gorilla/mux"
-	"github.com/tedsuo/rata"
 )
 
 const (
@@ -125,122 +124,179 @@ const (
 	SaveConfigCheckCreds    = "check_creds"
 )
 
-var Routes = rata.Routes([]rata.Route{
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/config", Method: "PUT", Name: SaveConfig},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/config", Method: "GET", Name: GetConfig},
+func router() *mux.Router {
+	r := mux.NewRouter()
 
-	{Path: "/api/v1/teams/:team_name/builds", Method: "POST", Name: CreateBuild},
+	r.Name(SaveConfig).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/config").Methods("PUT")
+	r.Name(GetConfig).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/config").Methods("GET")
 
-	{Path: "/api/v1/builds", Method: "GET", Name: ListBuilds},
-	{Path: "/api/v1/builds/:build_id", Method: "GET", Name: GetBuild},
-	{Path: "/api/v1/builds/:build_id/plan", Method: "GET", Name: GetBuildPlan},
-	{Path: "/api/v1/builds/:build_id/events", Method: "GET", Name: BuildEvents},
-	{Path: "/api/v1/builds/:build_id/resources", Method: "GET", Name: BuildResources},
-	{Path: "/api/v1/builds/:build_id/abort", Method: "PUT", Name: AbortBuild},
-	{Path: "/api/v1/builds/:build_id/preparation", Method: "GET", Name: GetBuildPreparation},
-	{Path: "/api/v1/builds/:build_id/artifacts", Method: "GET", Name: ListBuildArtifacts},
+	r.Name(CreateBuild).Path("/api/v1/teams/{team_name}/builds").Methods("POST")
 
-	{Path: "/api/v1/jobs", Method: "GET", Name: ListAllJobs},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs", Method: "GET", Name: ListJobs},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name", Method: "GET", Name: GetJob},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/builds", Method: "GET", Name: ListJobBuilds},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/builds", Method: "POST", Name: CreateJobBuild},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/builds/:build_name", Method: "POST", Name: RerunJobBuild},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/inputs", Method: "GET", Name: ListJobInputs},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/builds/:build_name", Method: "GET", Name: GetJobBuild},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/pause", Method: "PUT", Name: PauseJob},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/unpause", Method: "PUT", Name: UnpauseJob},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/schedule", Method: "PUT", Name: ScheduleJob},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/badge", Method: "GET", Name: JobBadge},
-	{Path: "/api/v1/pipelines/:pipeline_name/jobs/:job_name/badge", Method: "GET", Name: MainJobBadge},
+	r.Name(ListBuilds).Path("/api/v1/builds").Methods("GET")
+	r.Name(GetBuild).Path("/api/v1/builds/{build_id}").Methods("GET")
+	r.Name(GetBuildPlan).Path("/api/v1/builds/{build_id}/plan").Methods("GET")
+	r.Name(BuildEvents).Path("/api/v1/builds/{build_id}/events").Methods("GET")
+	r.Name(BuildResources).Path("/api/v1/builds/{build_id}/resources").Methods("GET")
+	r.Name(AbortBuild).Path("/api/v1/builds/{build_id}/abort").Methods("PUT")
+	r.Name(GetBuildPreparation).Path("/api/v1/builds/{build_id}/preparation").Methods("GET")
+	r.Name(ListBuildArtifacts).Path("/api/v1/builds/{build_id}/artifacts").Methods("GET")
 
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/jobs/:job_name/tasks/:step_name/cache", Method: "DELETE", Name: ClearTaskCache},
+	r.Name(ListAllJobs).Path("/api/v1/jobs").Methods("GET")
+	r.Name(ListJobs).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs").
+		Methods("GET")
+	r.Name(GetJob).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}").
+		Methods("GET")
+	r.Name(ListJobBuilds).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/builds").
+		Methods("GET")
+	r.Name(CreateJobBuild).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/builds").
+		Methods("POST")
+	r.Name(RerunJobBuild).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/builds/{build_name}").
+		Methods("POST")
+	r.Name(ListJobInputs).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/inputs").
+		Methods("GET")
+	r.Name(GetJobBuild).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/builds/{build_name}").
+		Methods("GET")
+	r.Name(PauseJob).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/pause").
+		Methods("PUT")
+	r.Name(UnpauseJob).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/unpause").
+		Methods("PUT")
+	r.Name(ScheduleJob).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/schedule").
+		Methods("PUT")
+	r.Name(JobBadge).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/badge").
+		Methods("GET")
+	r.Name(MainJobBadge).Path("/api/v1/pipelines/{pipeline_name}/jobs/{job_name}/badge").Methods("GET")
 
-	{Path: "/api/v1/pipelines", Method: "GET", Name: ListAllPipelines},
-	{Path: "/api/v1/teams/:team_name/pipelines", Method: "GET", Name: ListPipelines},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name", Method: "GET", Name: GetPipeline},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name", Method: "DELETE", Name: DeletePipeline},
-	{Path: "/api/v1/teams/:team_name/pipelines/ordering", Method: "PUT", Name: OrderPipelines},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/pause", Method: "PUT", Name: PausePipeline},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/archive", Method: "PUT", Name: ArchivePipeline},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/unpause", Method: "PUT", Name: UnpausePipeline},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/expose", Method: "PUT", Name: ExposePipeline},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/hide", Method: "PUT", Name: HidePipeline},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/versions-db", Method: "GET", Name: GetVersionsDB},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/rename", Method: "PUT", Name: RenamePipeline},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/builds", Method: "GET", Name: ListPipelineBuilds},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/builds", Method: "POST", Name: CreatePipelineBuild},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/badge", Method: "GET", Name: PipelineBadge},
+	r.Name(ClearTaskCache).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/tasks/{step_name}/cache").
+		Methods("DELETE")
 
-	{Path: "/api/v1/resources", Method: "GET", Name: ListAllResources},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources", Method: "GET", Name: ListResources},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resource-types", Method: "GET", Name: ListResourceTypes},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name", Method: "GET", Name: GetResource},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/check", Method: "POST", Name: CheckResource},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/check/webhook", Method: "POST", Name: CheckResourceWebHook},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resource-types/:resource_type_name/check", Method: "POST", Name: CheckResourceType},
+	r.Name(ListAllPipelines).Path("/api/v1/pipelines").Methods("GET")
+	r.Name(ListPipelines).Path("/api/v1/teams/{team_name}/pipelines").Methods("GET")
+	r.Name(GetPipeline).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}").Methods("GET")
+	r.Name(DeletePipeline).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}").Methods("DELETE")
+	r.Name(OrderPipelines).Path("/api/v1/teams/{team_name}/pipelines/ordering").Methods("PUT")
+	r.Name(PausePipeline).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/pause").Methods("PUT")
+	r.Name(ArchivePipeline).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/archive").Methods("PUT")
+	r.Name(UnpausePipeline).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/unpause").Methods("PUT")
+	r.Name(ExposePipeline).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/expose").Methods("PUT")
+	r.Name(HidePipeline).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/hide").Methods("PUT")
+	r.Name(GetVersionsDB).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/versions-db").Methods("GET")
+	r.Name(RenamePipeline).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/rename").Methods("PUT")
+	r.Name(ListPipelineBuilds).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/builds").Methods("GET")
+	r.Name(CreatePipelineBuild).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/builds").Methods("POST")
+	r.Name(PipelineBadge).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/badge").Methods("GET")
 
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions", Method: "GET", Name: ListResourceVersions},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id", Method: "GET", Name: GetResourceVersion},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/enable", Method: "PUT", Name: EnableResourceVersion},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/disable", Method: "PUT", Name: DisableResourceVersion},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/pin", Method: "PUT", Name: PinResourceVersion},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/unpin", Method: "PUT", Name: UnpinResource},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/pin_comment", Method: "PUT", Name: SetPinCommentOnResource},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/input_to", Method: "GET", Name: ListBuildsWithVersionAsInput},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_config_version_id/output_of", Method: "GET", Name: ListBuildsWithVersionAsOutput},
-	{Path: "/api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/causality", Method: "GET", Name: GetResourceCausality},
+	r.Name(ListAllResources).Path("/api/v1/resources").Methods("GET")
+	r.Name(ListResources).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources").
+		Methods("GET")
+	r.Name(ListResourceTypes).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resource-types").
+		Methods("GET")
+	r.Name(GetResource).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}").
+		Methods("GET")
+	r.Name(CheckResource).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/check").
+		Methods("POST")
+	r.Name(CheckResourceWebHook).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/check/webhook").
+		Methods("POST")
+	r.Name(CheckResourceType).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resource-types/{resource_type_name}/check").
+		Methods("POST")
 
-	{Path: "/api/v1/teams/:team_name/cc.xml", Method: "GET", Name: GetCC},
+	r.Name(ListResourceVersions).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/versions").
+		Methods("GET")
+	r.Name(GetResourceVersion).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/versions/{resource_config_version_id}").
+		Methods("GET")
+	r.Name(EnableResourceVersion).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/versions/{resource_config_version_id}/enable").
+		Methods("PUT")
+	r.Name(DisableResourceVersion).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/versions/{resource_config_version_id}/disable").
+		Methods("PUT")
+	r.Name(PinResourceVersion).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/versions/{resource_config_version_id}/pin").
+		Methods("PUT")
+	r.Name(UnpinResource).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/unpin").Methods("PUT")
+	r.Name(SetPinCommentOnResource).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/pin_comment").Methods("PUT")
+	r.Name(ListBuildsWithVersionAsInput).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/versions/{resource_config_version_id}/input_to").
+		Methods("GET")
+	r.Name(ListBuildsWithVersionAsOutput).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/versions/{resource_config_version_id}/output_of").
+		Methods("GET")
+	r.Name(GetResourceCausality).
+		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/versions/{resource_version_id}/causality").
+		Methods("GET")
 
-	{Path: "/api/v1/workers", Method: "GET", Name: ListWorkers},
-	{Path: "/api/v1/workers", Method: "POST", Name: RegisterWorker},
-	{Path: "/api/v1/workers/:worker_name/land", Method: "PUT", Name: LandWorker},
-	{Path: "/api/v1/workers/:worker_name/retire", Method: "PUT", Name: RetireWorker},
-	{Path: "/api/v1/workers/:worker_name/prune", Method: "PUT", Name: PruneWorker},
-	{Path: "/api/v1/workers/:worker_name/heartbeat", Method: "PUT", Name: HeartbeatWorker},
-	{Path: "/api/v1/workers/:worker_name", Method: "DELETE", Name: DeleteWorker},
+	r.Name(GetCC).Path("/api/v1/teams/{team_name}/cc.xml").Methods("GET")
 
-	{Path: "/api/v1/log-level", Method: "GET", Name: GetLogLevel},
-	{Path: "/api/v1/log-level", Method: "PUT", Name: SetLogLevel},
+	r.Name(ListWorkers).Path("/api/v1/workers").Methods("GET")
+	r.Name(RegisterWorker).Path("/api/v1/workers").Methods("POST")
+	r.Name(LandWorker).Path("/api/v1/workers/{worker_name}/land").Methods("PUT")
+	r.Name(RetireWorker).Path("/api/v1/workers/{worker_name}/retire").Methods("PUT")
+	r.Name(PruneWorker).Path("/api/v1/workers/{worker_name}/prune").Methods("PUT")
+	r.Name(HeartbeatWorker).Path("/api/v1/workers/{worker_name}/heartbeat").Methods("PUT")
+	r.Name(DeleteWorker).Path("/api/v1/workers/{worker_name}").Methods("DELETE")
 
-	{Path: "/api/v1/cli", Method: "GET", Name: DownloadCLI},
-	{Path: "/api/v1/info", Method: "GET", Name: GetInfo},
-	{Path: "/api/v1/info/creds", Method: "GET", Name: GetInfoCreds},
+	r.Name(GetLogLevel).Path("/api/v1/log-level").Methods("GET")
+	r.Name(SetLogLevel).Path("/api/v1/log-level").Methods("PUT")
 
-	{Path: "/api/v1/user", Method: "GET", Name: GetUser},
-	{Path: "/api/v1/users", Method: "GET", Name: ListActiveUsersSince},
+	r.Name(DownloadCLI).Path("/api/v1/cli").Methods("GET")
+	r.Name(GetInfo).Path("/api/v1/info").Methods("GET")
+	r.Name(GetInfoCreds).Path("/api/v1/info/creds").Methods("GET")
 
-	{Path: "/api/v1/containers/destroying", Method: "GET", Name: ListDestroyingContainers},
-	{Path: "/api/v1/containers/report", Method: "PUT", Name: ReportWorkerContainers},
-	{Path: "/api/v1/teams/:team_name/containers", Method: "GET", Name: ListContainers},
-	{Path: "/api/v1/teams/:team_name/containers/:id", Method: "GET", Name: GetContainer},
-	{Path: "/api/v1/teams/:team_name/containers/:id/hijack", Method: "GET", Name: HijackContainer},
+	r.Name(GetUser).Path("/api/v1/user").Methods("GET")
+	r.Name(ListActiveUsersSince).Path("/api/v1/users").Methods("GET")
 
-	{Path: "/api/v1/teams/:team_name/volumes", Method: "GET", Name: ListVolumes},
-	{Path: "/api/v1/volumes/destroying", Method: "GET", Name: ListDestroyingVolumes},
-	{Path: "/api/v1/volumes/report", Method: "PUT", Name: ReportWorkerVolumes},
+	r.Name(ListDestroyingContainers).Path("/api/v1/containers/destroying").Methods("GET")
+	r.Name(ReportWorkerContainers).Path("/api/v1/containers/report").Methods("PUT")
+	r.Name(ListContainers).Path("/api/v1/teams/{team_name}/containers").Methods("GET")
+	r.Name(GetContainer).Path("/api/v1/teams/{team_name}/containers/{id}").Methods("GET")
+	r.Name(HijackContainer).Path("/api/v1/teams/{team_name}/containers/{id}/hijack").Methods("GET")
 
-	{Path: "/api/v1/teams", Method: "GET", Name: ListTeams},
-	{Path: "/api/v1/teams/:team_name", Method: "GET", Name: GetTeam},
-	{Path: "/api/v1/teams/:team_name", Method: "PUT", Name: SetTeam},
-	{Path: "/api/v1/teams/:team_name/rename", Method: "PUT", Name: RenameTeam},
-	{Path: "/api/v1/teams/:team_name", Method: "DELETE", Name: DestroyTeam},
-	{Path: "/api/v1/teams/:team_name/builds", Method: "GET", Name: ListTeamBuilds},
+	r.Name(ListVolumes).Path("/api/v1/teams/{team_name}/volumes").Methods("GET")
+	r.Name(ListDestroyingVolumes).Path("/api/v1/volumes/destroying").Methods("GET")
+	r.Name(ReportWorkerVolumes).Path("/api/v1/volumes/report").Methods("PUT")
 
-	{Path: "/api/v1/teams/:team_name/artifacts", Method: "POST", Name: CreateArtifact},
-	{Path: "/api/v1/teams/:team_name/artifacts/:artifact_id", Method: "GET", Name: GetArtifact},
+	r.Name(ListTeams).Path("/api/v1/teams").Methods("GET")
+	r.Name(GetTeam).Path("/api/v1/teams/{team_name}").Methods("GET")
+	r.Name(SetTeam).Path("/api/v1/teams/{team_name}").Methods("PUT")
+	r.Name(RenameTeam).Path("/api/v1/teams/{team_name}/rename").Methods("PUT")
+	r.Name(DestroyTeam).Path("/api/v1/teams/{team_name}").Methods("DELETE")
+	r.Name(ListTeamBuilds).Path("/api/v1/teams/{team_name}/builds").Methods("GET")
 
-	{Path: "/api/v1/wall", Method: "GET", Name: GetWall},
-	{Path: "/api/v1/wall", Method: "PUT", Name: SetWall},
-	{Path: "/api/v1/wall", Method: "DELETE", Name: ClearWall},
-})
+	r.Name(CreateArtifact).Path("/api/v1/teams/{team_name}/artifacts").Methods("POST")
+	r.Name(GetArtifact).Path("/api/v1/teams/{team_name}/artifacts/{artifact_id}").Methods("GET")
+
+	r.Name(GetWall).Path("/api/v1/wall").Methods("GET")
+	r.Name(SetWall).Path("/api/v1/wall").Methods("PUT")
+	r.Name(ClearWall).Path("/api/v1/wall").Methods("DELETE")
+
+	return r
+}
 
 func RouteNames() []string {
 	names := []string{}
-	for _, route := range Routes {
-		names = append(names, route.Name)
-	}
+	router().Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
+		names = append(names, route.GetName())
+		return nil
+	})
 	return names
 }
 
@@ -249,42 +305,59 @@ type Endpoint interface {
 }
 
 func NewEndpoint(host string) Endpoint {
-	return &rataEndpoint{rata.NewRequestGenerator(host, Routes)}
+	return &endpoint{
+		host: host,
+	}
 }
 
-type rataEndpoint struct {
-	*rata.RequestGenerator
+type endpoint struct {
+	host string
 }
 
-func (rae *rataEndpoint) CreateRequest(
+func (rae *endpoint) CreateRequest(
 	action string,
 	params map[string]string,
 	body io.Reader,
 ) (*http.Request, error) {
-	return rae.RequestGenerator.CreateRequest(
-		action,
-		rata.Params(params),
-		body,
-	)
+	hostURL, err := url.Parse(rae.host)
+	if err != nil {
+		return &http.Request{}, err
+	}
+	r := router()
+	route := r.Get(action).Host(hostURL.Host)
+	pairs := []string{}
+	for key, val := range params {
+		pairs = append(pairs, key, val)
+	}
+	url, err := route.URL(pairs...)
+	if err != nil {
+		return &http.Request{}, err
+	}
+	methods, err := route.GetMethods()
+	if err != nil {
+		return &http.Request{}, err
+	}
+	return http.NewRequest(methods[0], url.String(), body)
 }
 
 func CreatePathForRoute(action string, params map[string]string) (string, error) {
-	return Routes.CreatePathForRoute(action, rata.Params(params))
+	r := router()
+	route := r.Get(action)
+	pairs := []string{}
+	for key, val := range params {
+		pairs = append(pairs, key, val)
+	}
+	path, err := route.URLPath(pairs...)
+	if err != nil {
+		return "", err
+	}
+	return path.String(), nil
 }
 
 func NewRouter(handlers map[string]http.Handler) (http.Handler, error) {
-	r := mux.NewRouter()
+	r := router()
 	for action, handler := range handlers {
-		for _, route := range Routes {
-			if route.Name == action {
-				path := regexp.MustCompile(`:([^/]+)(/?)`).
-					ReplaceAll([]byte(route.Path), []byte("{$1}$2"))
-				r.Path(string(path)).
-					Handler(handler).
-					Name(action).
-					Methods(route.Method)
-			}
-		}
+		r.Get(action).Handler(handler)
 	}
 	return r, nil
 }
