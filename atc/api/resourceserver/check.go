@@ -14,10 +14,12 @@ import (
 )
 
 func (s *Server) CheckResource(dbPipeline db.Pipeline) http.Handler {
-	logger := s.logger.Session("check-resource")
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resourceName := rata.Param(r, "resource_name")
+
+		logger := s.logger.Session("check-resource", lager.Data{
+			"resource": resourceName,
+		})
 
 		var reqBody atc.CheckRequestBody
 		err := json.NewDecoder(r.Body).Decode(&reqBody)
@@ -35,7 +37,7 @@ func (s *Server) CheckResource(dbPipeline db.Pipeline) http.Handler {
 		}
 
 		if !found {
-			logger.Debug("resource-not-found", lager.Data{"resource": resourceName})
+			logger.Info("resource-not-found")
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -55,14 +57,14 @@ func (s *Server) CheckResource(dbPipeline db.Pipeline) http.Handler {
 			true,
 		)
 		if err != nil {
-			s.logger.Error("failed-to-create-check", err)
+			logger.Error("failed-to-create-check", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))
 			return
 		}
 
 		if !created {
-			s.logger.Info("check-not-created")
+			logger.Info("check-not-created")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
