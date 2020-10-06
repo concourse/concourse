@@ -3,6 +3,7 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"sort"
 
 	"github.com/concourse/concourse/atc"
@@ -16,6 +17,7 @@ var ErrMissingPipelineName = errors.New("Need to specify atleast one pipeline na
 type OrderPipelinesCommand struct {
 	Alphabetical bool                       `short:"a"  long:"alphabetical" description:"Order all pipelines alphabetically"`
 	Pipelines    []flaghelpers.PipelineFlag `short:"p" long:"pipeline" description:"Name of pipeline to order"`
+	Team         string                     `long:"team" description:"Name of the team to which the pipeline, if different from the target default"`
 }
 
 func (command *OrderPipelinesCommand) Validate() (atc.OrderPipelinesRequest, error) {
@@ -65,7 +67,17 @@ func (command *OrderPipelinesCommand) Execute(args []string) error {
 		}
 	}
 
-	err = target.Team().OrderingPipelines(pipelineRefs)
+	var team concourse.Team
+	if command.Team != "" {
+		team, err = target.FindTeam(command.Team)
+		if err != nil {
+			return err
+		}
+	} else {
+		team = target.Team()
+	}
+
+	err = team.OrderingPipelines(pipelineRefs)
 	if err != nil {
 		displayhelpers.FailWithErrorf("failed to order pipelines", err)
 	}
