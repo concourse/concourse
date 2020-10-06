@@ -64,14 +64,18 @@ type checkFactory struct {
 	defaultWithWebhookCheckInterval time.Duration
 }
 
+type CheckDurations struct {
+	Timeout             time.Duration
+	Interval            time.Duration
+	IntervalWithWebhook time.Duration
+}
+
 func NewCheckFactory(
 	conn Conn,
 	lockFactory lock.LockFactory,
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
-	defaultCheckTimeout time.Duration,
-	defaultCheckInterval time.Duration,
-	defaultWithWebhookCheckInterval time.Duration,
+	durations CheckDurations,
 ) CheckFactory {
 	return &checkFactory{
 		conn:        conn,
@@ -82,9 +86,9 @@ func NewCheckFactory(
 
 		planFactory: atc.NewPlanFactory(time.Now().Unix()),
 
-		defaultCheckTimeout:             defaultCheckTimeout,
-		defaultCheckInterval:            defaultCheckInterval,
-		defaultWithWebhookCheckInterval: defaultWithWebhookCheckInterval,
+		defaultCheckTimeout:             durations.Timeout,
+		defaultCheckInterval:            durations.Interval,
+		defaultWithWebhookCheckInterval: durations.IntervalWithWebhook,
 	}
 }
 
