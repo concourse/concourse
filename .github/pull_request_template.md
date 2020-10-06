@@ -45,7 +45,10 @@ of the PR will also be pulled into the release note.
 Example:
 * Reticulating splines is the new process Concourse uses to create the network
   of lines between jobs.
+* Combines many short lines and curves into a network of splines.
 -->
+
+* <!-- Release note here. Delete section if not needed. -->
 
 ## Contributor Checklist
 <!--
