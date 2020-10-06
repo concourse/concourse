@@ -17,16 +17,16 @@ part-time contributors.
   repo}{https://github.com/concourse/concourse} is where the main code lives
   and where roadmap planning begins.
 }{
+  \link{GitHub Discussions}{https://github.com/concourse/concourse/discussions}
+  are used for support, announcements, sharing ideas, and general discussion.
+}{
   The \link{\code{concourse/concourse} GitHub
-  wiki}{https://github.com/concourse/concourse/wiki} is the main point of
-  discovery for all community-created resource types/tools/tutorials/etc., and
-  is also used as a contributor knowledge base.
+  wiki}{https://github.com/concourse/concourse/wiki} contains community-curated
+  lists of tools and tutorials and serves as a knowledge base for Concourse
+  users and operators.
 }{
   Our \link{blog}{https://blog.concourse-ci.org} features tutorials and updates
   from the development side.
-}{
-  The \link{Concourse forums}{https://discuss.concourse-ci.org} for support,
-  announcements, and general discussion.
 }{
   Our \link{Discord server}{https://discord.gg/MeRxXKW} is a great place to
   chat with other contributors.
@@ -69,7 +69,7 @@ Concourse is getting bigger and bigger, and we really appreciate any help we
 can get. There are many ways to contribute to Concourse; only some of them involve
 writing code! You help us out by being active in GitHub issues, voting with
 reactions for issues that matter to you, engaging in discussions while we map
-out a feature request, hanging out in our \link{forums}{http://discuss.concourse-ci.org/},
+out a feature request, hanging out in our \link{forums}{https://github.com/concourse/concourse/discussions},
 writing documentation, coming up with new designs, and of course contributing code!
 
 As a contributor, you can jump on over to \link{Contribute}{contribute.html} for
@@ -81,10 +81,14 @@ a more complete list of resources for contributors
 \section{
   \title{Security Contact}{security-contact}
 
-  To be notified of any security issues or vulnerabilities, join the
-  \link{Concourse Security mailing
-  list}{https://groups.google.com/group/concourse-security}. To report a
-  security issue, send an email to
+  To report a security issue, please send an email to
   \link{concourseteam+security@gmail.com}{mailto:concourseteam+security@gmail.com}.
+
+  Security advisories will be published as \link{\code{concourse/concourse}
+  GitHub Security
+  Advisories}{https://github.com/concourse/concourse/security/advisories} and
+  subsequently cross-posted to the \link{Concourse Security mailing
+  list}{https://groups.google.com/group/concourse-security} which you may join
+  to subscribe to security updates.
 }
 
