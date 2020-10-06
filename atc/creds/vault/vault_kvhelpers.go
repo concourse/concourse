@@ -13,15 +13,6 @@ import (
 // https://github.com/hashicorp/vault/blob/4b790d2c42f406a980230c196eeeb5b9b52a7cf1/command/kv_helpers.go#L44-L116
 
 func kvPreflightVersionRequest(client *api.Client, path string) (string, int, error) {
-	// We don't want to use a wrapping call here so save any custom value and
-	// restore after
-	currentWrappingLookupFunc := client.CurrentWrappingLookupFunc()
-	client.SetWrappingLookupFunc(nil)
-	defer client.SetWrappingLookupFunc(currentWrappingLookupFunc)
-	currentOutputCurlString := client.OutputCurlString()
-	client.SetOutputCurlString(false)
-	defer client.SetOutputCurlString(currentOutputCurlString)
-
 	r := client.NewRequest("GET", "/v1/sys/internal/ui/mounts/"+path)
 	resp, err := client.RawRequest(r)
 	if resp != nil {
