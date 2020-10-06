@@ -57,7 +57,7 @@ var _ = Describe("Worker lifecycle", func() {
 
 	AfterEach(func() {
 		atc.Close()
-		cleanup(releaseName, namespace)
+		cleanupReleases()
 	})
 
 	Context("terminating the worker", func() {

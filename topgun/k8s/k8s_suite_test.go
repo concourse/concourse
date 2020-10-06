@@ -52,6 +52,7 @@ var (
 	fly                    FlyCli
 	releaseName, namespace string
 	kubeClient             *kubernetes.Clientset
+	deployedReleases       map[string]string // map[releaseName] = namespace
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -77,6 +78,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 }, func(data []byte) {
 	err := json.Unmarshal(data, &Environment)
 	Expect(err).ToNot(HaveOccurred())
+
+	deployedReleases = make(map[string]string)
 })
 
 var _ = BeforeEach(func() {
@@ -111,6 +114,12 @@ var _ = BeforeEach(func() {
 
 	kubeClient, err = kubernetes.NewForConfig(config)
 	Expect(err).ToNot(HaveOccurred())
+})
+
+// In case one of the tests exited before entering the It block, make sure to cleanup
+// any releases that might've already been deployed
+var _ = AfterSuite(func() {
+	cleanupReleases()
 })
 
 func setReleaseNameAndNamespace(description string) {
@@ -278,6 +287,10 @@ func helmDeploy(releaseName, namespace, chartDir string, args ...string) *gexec.
 
 	sess := Start(nil, "helm", helmArgs...)
 	<-sess.Exited
+
+	if sess.ExitCode() == 0 {
+		deployedReleases[releaseName] = namespace
+	}
 	return sess
 }
 
@@ -413,9 +426,12 @@ func waitAndLogin(namespace, service string) Endpoint {
 	return atc
 }
 
-func cleanup(releaseName, namespace string) {
-	helmDestroy(releaseName, namespace)
-	Run(nil, "kubectl", "delete", "namespace", namespace, "--wait=false")
+func cleanupReleases() {
+	for releaseName, namespace := range deployedReleases {
+		helmDestroy(releaseName, namespace)
+		Run(nil, "kubectl", "delete", "namespace", namespace, "--wait=false")
+	}
+	deployedReleases = nil
 }
 
 func onPks(f func()) {

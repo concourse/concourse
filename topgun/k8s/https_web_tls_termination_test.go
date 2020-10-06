@@ -68,7 +68,7 @@ var _ = Describe("Web HTTP or HTTPS(TLS) termination at web node", func() {
 
 		AfterEach(func() {
 			atc.Close()
-			cleanup(releaseName, namespace)
+			cleanupReleases()
 		})
 
 		Context("with tls termination at web", func() {

@@ -20,7 +20,7 @@ var _ = Describe("Kubernetes credential management", func() {
 
 	AfterEach(func() {
 		atc.Close()
-		cleanup(releaseName, namespace)
+		cleanupReleases()
 	})
 
 	JustBeforeEach(func() {
