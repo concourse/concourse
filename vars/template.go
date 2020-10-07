@@ -62,7 +62,7 @@ type interpolator struct{}
 
 var (
 	pathRegex                  = regexp.MustCompile(`("[^"]*"|[^\.]+)+`)
-	interpolationRegex         = regexp.MustCompile(`\(\((([-/\.\w\pL]+\:)?[-/\.:"\w\pL]+)\)\)`)
+	interpolationRegex         = regexp.MustCompile(`\(\((([-/\.\w\pL]+\:)?[-/\.:@"\w\pL]+)\)\)`)
 	interpolationAnchoredRegex = regexp.MustCompile("\\A" + interpolationRegex.String() + "\\z")
 )
 
