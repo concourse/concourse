@@ -1341,7 +1341,7 @@ var _ = Describe("Pipeline", func() {
 				Name:     "some-resource",
 				Resource: "some-resource",
 			}))
-			Expect(actualDashboard[0].Inputs).To(ConsistOf(atc.DashboardJobInput{
+			Expect(actualDashboard[0].Inputs).To(ConsistOf(atc.JobInputSummary{
 				Name:     "some-input",
 				Resource: "some-resource",
 				Passed:   []string{"job-1", "job-2"},

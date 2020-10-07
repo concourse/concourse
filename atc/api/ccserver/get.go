@@ -82,7 +82,7 @@ func (s *Server) GetCC(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) buildProject(j atc.DashboardJob) Project {
+func (s *Server) buildProject(j atc.JobSummary) Project {
 	var lastBuildStatus string
 	switch {
 	case db.BuildStatus(j.FinishedBuild.Status) == db.BuildStatusSucceeded:

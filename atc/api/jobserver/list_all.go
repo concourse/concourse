@@ -14,7 +14,7 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 
 	acc := accessor.GetAccessor(r)
 
-	var dashboard atc.Dashboard
+	var dashboard []atc.JobSummary
 	var err error
 
 	if acc.IsAdmin() {

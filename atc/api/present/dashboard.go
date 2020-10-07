@@ -9,7 +9,7 @@ import (
 
 func DashboardJob(
 	teamName string,
-	job atc.DashboardJob,
+	job atc.JobSummary,
 ) atc.Job {
 	var presentedNextBuild, presentedFinishedBuild, presentedTransitionBuild *atc.Build
 
@@ -60,7 +60,7 @@ func DashboardJob(
 	}
 }
 
-func DashboardBuild(build atc.DashboardBuild) atc.Build {
+func DashboardBuild(build atc.BuildSummary) atc.Build {
 	apiURL, err := atc.Routes.CreatePathForRoute(atc.GetBuild, rata.Params{
 		"build_id":  strconv.Itoa(build.ID),
 		"team_name": build.TeamName,

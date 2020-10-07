@@ -2,9 +2,7 @@ package atc
 
 import "time"
 
-type Dashboard []DashboardJob
-
-type DashboardJob struct {
+type JobSummary struct {
 	ID                   int
 	Name                 string
 	PipelineID           int
@@ -14,17 +12,17 @@ type DashboardJob struct {
 	Paused               bool
 	HasNewInputs         bool
 
-	FinishedBuild   *DashboardBuild
-	NextBuild       *DashboardBuild
-	TransitionBuild *DashboardBuild
+	FinishedBuild   *BuildSummary
+	NextBuild       *BuildSummary
+	TransitionBuild *BuildSummary
 
-	Inputs  []DashboardJobInput
+	Inputs  []JobInputSummary
 	Outputs []JobOutput
 
 	Groups []string
 }
 
-type DashboardBuild struct {
+type BuildSummary struct {
 	ID                   int
 	Name                 string
 	JobName              string
@@ -38,7 +36,7 @@ type DashboardBuild struct {
 	EndTime   time.Time
 }
 
-type DashboardJobInput struct {
+type JobInputSummary struct {
 	Name     string
 	Resource string
 	Passed   []string

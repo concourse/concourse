@@ -144,7 +144,7 @@ var _ = Describe("Job Factory", func() {
 				Expect(visibleJobs[3].Name).To(Equal("public-pipeline-job-3"))
 
 				Expect(visibleJobs[0].Inputs).To(BeNil())
-				Expect(visibleJobs[1].Inputs).To(Equal([]atc.DashboardJobInput{
+				Expect(visibleJobs[1].Inputs).To(Equal([]atc.JobInputSummary{
 					{
 						Name:     "some-other-resource",
 						Resource: "some-other-resource",
@@ -154,7 +154,7 @@ var _ = Describe("Job Factory", func() {
 						Resource: "some-resource",
 					},
 				}))
-				Expect(visibleJobs[2].Inputs).To(Equal([]atc.DashboardJobInput{
+				Expect(visibleJobs[2].Inputs).To(Equal([]atc.JobInputSummary{
 					{
 						Name:     "resource",
 						Resource: "some-resource",
@@ -170,7 +170,7 @@ var _ = Describe("Job Factory", func() {
 						Passed:   []string{"public-pipeline-job-1"},
 					},
 				}))
-				Expect(visibleJobs[3].Inputs).To(Equal([]atc.DashboardJobInput{
+				Expect(visibleJobs[3].Inputs).To(Equal([]atc.JobInputSummary{
 					{
 						Name:     "some-resource",
 						Resource: "some-resource",
@@ -278,7 +278,7 @@ var _ = Describe("Job Factory", func() {
 				Expect(allJobs[4].Name).To(Equal("private-pipeline-job"))
 
 				Expect(allJobs[0].Inputs).To(BeNil())
-				Expect(allJobs[1].Inputs).To(Equal([]atc.DashboardJobInput{
+				Expect(allJobs[1].Inputs).To(Equal([]atc.JobInputSummary{
 					{
 						Name:     "some-other-resource",
 						Resource: "some-other-resource",
@@ -288,7 +288,7 @@ var _ = Describe("Job Factory", func() {
 						Resource: "some-resource",
 					},
 				}))
-				Expect(allJobs[2].Inputs).To(Equal([]atc.DashboardJobInput{
+				Expect(allJobs[2].Inputs).To(Equal([]atc.JobInputSummary{
 					{
 						Name:     "resource",
 						Resource: "some-resource",
@@ -304,14 +304,14 @@ var _ = Describe("Job Factory", func() {
 						Passed:   []string{"public-pipeline-job-1"},
 					},
 				}))
-				Expect(allJobs[3].Inputs).To(Equal([]atc.DashboardJobInput{
+				Expect(allJobs[3].Inputs).To(Equal([]atc.JobInputSummary{
 					{
 						Name:     "some-resource",
 						Resource: "some-resource",
 						Passed:   []string{"public-pipeline-job-1", "public-pipeline-job-2"},
 					},
 				}))
-				Expect(allJobs[4].Inputs).To(Equal([]atc.DashboardJobInput{
+				Expect(allJobs[4].Inputs).To(Equal([]atc.JobInputSummary{
 					{
 						Name:     "some-resource",
 						Resource: "some-resource",

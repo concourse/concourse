@@ -76,8 +76,8 @@ var _ = Describe("Jobs API", func() {
 		})
 
 		BeforeEach(func() {
-			dbJobFactory.VisibleJobsReturns(atc.Dashboard{
-				atc.DashboardJob{
+			dbJobFactory.VisibleJobsReturns([]atc.JobSummary{
+				atc.JobSummary{
 					ID:           1,
 					Name:         "some-job",
 					Paused:       true,
@@ -85,7 +85,7 @@ var _ = Describe("Jobs API", func() {
 					PipelineName: "some-pipeline",
 					TeamName:     "some-team",
 
-					Inputs: []atc.DashboardJobInput{
+					Inputs: []atc.JobInputSummary{
 						{
 							Name:     "some-input",
 							Resource: "some-input",
@@ -99,7 +99,7 @@ var _ = Describe("Jobs API", func() {
 						},
 					},
 
-					NextBuild: &atc.DashboardBuild{
+					NextBuild: &atc.BuildSummary{
 						ID:           3,
 						Name:         "2",
 						JobName:      "some-job",
@@ -108,7 +108,7 @@ var _ = Describe("Jobs API", func() {
 						TeamName:     "some-team",
 						Status:       "started",
 					},
-					FinishedBuild: &atc.DashboardBuild{
+					FinishedBuild: &atc.BuildSummary{
 						ID:           1,
 						Name:         "1",
 						JobName:      "some-job",
@@ -925,7 +925,7 @@ var _ = Describe("Jobs API", func() {
 
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs", func() {
 		var response *http.Response
-		var dashboardResponse atc.Dashboard
+		var dashboardResponse []atc.JobSummary
 
 		JustBeforeEach(func() {
 			var err error
@@ -938,7 +938,7 @@ var _ = Describe("Jobs API", func() {
 
 			BeforeEach(func() {
 
-				dashboardResponse = atc.Dashboard{
+				dashboardResponse = []atc.JobSummary{
 					{
 						ID:                   1,
 						Name:                 "job-1",
@@ -947,7 +947,7 @@ var _ = Describe("Jobs API", func() {
 						PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
 						TeamName:             "some-team",
 						Paused:               true,
-						NextBuild: &atc.DashboardBuild{
+						NextBuild: &atc.BuildSummary{
 							ID:                   3,
 							Name:                 "2",
 							JobName:              "job-1",
@@ -957,7 +957,7 @@ var _ = Describe("Jobs API", func() {
 							TeamName:             "some-team",
 							Status:               "started",
 						},
-						FinishedBuild: &atc.DashboardBuild{
+						FinishedBuild: &atc.BuildSummary{
 							ID:                   1,
 							Name:                 "1",
 							JobName:              "job-1",
@@ -969,7 +969,7 @@ var _ = Describe("Jobs API", func() {
 							StartTime:            time.Unix(1, 0),
 							EndTime:              time.Unix(100, 0),
 						},
-						TransitionBuild: &atc.DashboardBuild{
+						TransitionBuild: &atc.BuildSummary{
 							ID:                   5,
 							Name:                 "five",
 							JobName:              "job-1",
@@ -981,7 +981,7 @@ var _ = Describe("Jobs API", func() {
 							StartTime:            time.Unix(101, 0),
 							EndTime:              time.Unix(200, 0),
 						},
-						Inputs: []atc.DashboardJobInput{
+						Inputs: []atc.JobInputSummary{
 							{
 								Name:     "input-1",
 								Resource: "input-1",
@@ -1000,7 +1000,7 @@ var _ = Describe("Jobs API", func() {
 						TeamName:             "some-team",
 						Paused:               true,
 						NextBuild:            nil,
-						FinishedBuild: &atc.DashboardBuild{
+						FinishedBuild: &atc.BuildSummary{
 							ID:                   4,
 							Name:                 "1",
 							JobName:              "job-2",
@@ -1013,7 +1013,7 @@ var _ = Describe("Jobs API", func() {
 							EndTime:              time.Unix(200, 0),
 						},
 						TransitionBuild: nil,
-						Inputs: []atc.DashboardJobInput{
+						Inputs: []atc.JobInputSummary{
 							{
 								Name:     "input-2",
 								Resource: "input-2",
@@ -1034,7 +1034,7 @@ var _ = Describe("Jobs API", func() {
 						NextBuild:            nil,
 						FinishedBuild:        nil,
 						TransitionBuild:      nil,
-						Inputs: []atc.DashboardJobInput{
+						Inputs: []atc.JobInputSummary{
 							{
 								Name:     "input-3",
 								Resource: "input-3",
@@ -1205,7 +1205,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when there are no jobs in dashboard", func() {
 					BeforeEach(func() {
-						dashboardResponse = atc.Dashboard{}
+						dashboardResponse = []atc.JobSummary{}
 						fakePipeline.DashboardReturns(dashboardResponse, nil)
 					})
 					It("should return an empty array", func() {
