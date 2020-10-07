@@ -22,7 +22,7 @@ import (
 	"github.com/concourse/concourse/fly/version"
 )
 
-var _ = Describe("login Command", func() {
+var _ = FDescribe("login Command", func() {
 	var (
 		loginATCServer *ghttp.Server
 	)

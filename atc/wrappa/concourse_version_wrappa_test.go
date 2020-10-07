@@ -3,7 +3,7 @@ package wrappa_test
 import (
 	"net/http"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 	"github.com/concourse/concourse/atc/wrappa"
 
 	. "github.com/onsi/ginkgo"
@@ -38,7 +38,7 @@ var _ = Describe("ConcourseVersionWrappa", func() {
 		BeforeEach(func() {
 			inputHandlers = map[string]http.Handler{}
 
-			for _, routeName := range atc.RouteNames() {
+			for _, routeName := range routes.RouteNames() {
 				inputHandlers[routeName] = &stupidHandler{}
 			}
 

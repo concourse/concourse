@@ -6,6 +6,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/pipelineserver"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/routes"
 	"github.com/concourse/concourse/atc/wrappa"
 
 	. "github.com/onsi/ginkgo"
@@ -27,7 +28,7 @@ var _ = Describe("RejectArchivedWrappa", func() {
 	It("wraps endpoints", func() {
 		inputHandlers := map[string]http.Handler{}
 
-		for _, routeName := range atc.RouteNames() {
+		for _, routeName := range routes.RouteNames() {
 			inputHandlers[routeName] = &stupidHandler{}
 		}
 

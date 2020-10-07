@@ -6,6 +6,7 @@ import (
 	"os/exec"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -28,7 +29,7 @@ var _ = Describe("Fly CLI", func() {
 		)
 
 		BeforeEach(func() {
-			path, err = atc.CreatePathForRoute(atc.UnpinResource, map[string]string{
+			path, err = routes.Router().CreatePathForRoute(atc.UnpinResource, map[string]string{
 				"pipeline_name": pipelineName,
 				"team_name":     teamName,
 				"resource_name": resourceName,

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -60,14 +61,14 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when the resource version json string is specified", func() {
 				BeforeEach(func() {
-					getPath, err = atc.CreatePathForRoute(atc.ListResourceVersions, map[string]string{
+					getPath, err = routes.Router().CreatePathForRoute(atc.ListResourceVersions, map[string]string{
 						"pipeline_name": pipelineName,
 						"team_name":     teamName,
 						"resource_name": resourceName,
 					})
 					Expect(err).NotTo(HaveOccurred())
 
-					pinPath, err = atc.CreatePathForRoute(atc.PinResourceVersion, map[string]string{
+					pinPath, err = routes.Router().CreatePathForRoute(atc.PinResourceVersion, map[string]string{
 						"pipeline_name":              pipelineName,
 						"team_name":                  teamName,
 						"resource_name":              resourceName,
@@ -162,7 +163,7 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when pin comment is provided", func() {
 				BeforeEach(func() {
-					commentPath, err = atc.CreatePathForRoute(atc.SetPinCommentOnResource, map[string]string{
+					commentPath, err = routes.Router().CreatePathForRoute(atc.SetPinCommentOnResource, map[string]string{
 						"pipeline_name": pipelineName,
 						"team_name":     teamName,
 						"resource_name": resourceName,

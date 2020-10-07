@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -60,14 +61,14 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when the resource version json string is specified", func() {
 				BeforeEach(func() {
-					getPath, err = atc.CreatePathForRoute(atc.ListResourceVersions, map[string]string{
+					getPath, err = routes.Router().CreatePathForRoute(atc.ListResourceVersions, map[string]string{
 						"pipeline_name": pipelineName,
 						"team_name":     teamName,
 						"resource_name": resourceName,
 					})
 					Expect(err).NotTo(HaveOccurred())
 
-					disablePath, err = atc.CreatePathForRoute(atc.DisableResourceVersion, map[string]string{
+					disablePath, err = routes.Router().CreatePathForRoute(atc.DisableResourceVersion, map[string]string{
 						"pipeline_name":              pipelineName,
 						"team_name":                  teamName,
 						"resource_name":              resourceName,

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 )
 
 type LimitedRoute string
@@ -29,12 +30,12 @@ func (lr *LimitedRoute) UnmarshalFlag(value string) error {
 
 func isValidAction(action string) bool {
 	return true
-	// for _, routeName := range routes.RouteNames() {
-	// 	if routeName == action {
-	// 		return true
-	// 	}
-	// }
-	// return false
+	for _, routeName := range routes.RouteNames() {
+		if routeName == action {
+			return true
+		}
+	}
+	return false
 }
 
 //go:generate counterfeiter . ConcurrentRequestPolicy

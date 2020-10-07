@@ -3,12 +3,12 @@ package routes
 import (
 	"io"
 	"net/http"
-	"net/url"
 	"path/filepath"
 	"time"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api"
 	"github.com/concourse/concourse/atc/api/artifactserver"
@@ -33,12 +33,114 @@ import (
 	"github.com/concourse/concourse/atc/gc"
 	"github.com/concourse/concourse/atc/mainredirect"
 	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/atc/wrappa"
 	"github.com/gorilla/mux"
 )
 
-func Router() *APIRouter {
-	r := mux.NewRouter()
+func RouteNames() []string {
+	names := []string{}
+	Router().Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
+		names = append(names, route.GetName())
+		return nil
+	})
+	return names
+}
+
+type Endpoint interface {
+	CreateRequest(string, map[string]string, io.Reader) (*http.Request, error)
+}
+
+func NewEndpoint(host string) Endpoint {
+	return &endpoint{
+		host: host,
+	}
+}
+
+type endpoint struct {
+	host string
+}
+
+func (rae *endpoint) CreateRequest(
+	action string,
+	params map[string]string,
+	body io.Reader,
+) (*http.Request, error) {
+	route := Router().Get(action)
+	pairs := []string{}
+	for key, val := range params {
+		pairs = append(pairs, key, val)
+	}
+	url, err := route.URLPath(pairs...)
+	if err != nil {
+		return &http.Request{}, err
+	}
+	methods, err := route.GetMethods()
+	if err != nil {
+		return &http.Request{}, err
+	}
+	return http.NewRequest(methods[0], rae.host+url.String(), body)
+}
+
+type APIRouter struct {
+	*mux.Router
+}
+
+func (r *APIRouter) CreatePathForRoute(action string, params map[string]string) (string, error) {
+	pairs := []string{}
+	for key, val := range params {
+		pairs = append(pairs, key, val)
+	}
+	path, err := r.Get(action).URLPath(pairs...)
+	if err != nil {
+		return "", err
+	}
+	return path.String(), nil
+}
+
+type Wrappa interface {
+	Wrap(map[string]http.Handler) map[string]http.Handler
+}
+
+func NewHandler(
+	logger lager.Logger,
+
+	externalURL string,
+	clusterName string,
+
+	wrapper Wrappa,
+
+	dbTeamFactory db.TeamFactory,
+	dbPipelineFactory db.PipelineFactory,
+	dbJobFactory db.JobFactory,
+	dbResourceFactory db.ResourceFactory,
+	dbWorkerFactory db.WorkerFactory,
+	volumeRepository db.VolumeRepository,
+	containerRepository db.ContainerRepository,
+	destroyer gc.Destroyer,
+	dbBuildFactory db.BuildFactory,
+	dbCheckFactory db.CheckFactory,
+	dbResourceConfigFactory db.ResourceConfigFactory,
+	dbUserFactory db.UserFactory,
+
+	eventHandlerFactory buildserver.EventHandlerFactory,
+
+	workerClient worker.Client,
+
+	sink *lager.ReconfigurableSink,
+
+	isTLSEnabled bool,
+
+	cliDownloadsDir string,
+	version string,
+	workerVersion string,
+	secretManager creds.Secrets,
+	varSourcePool creds.VarSourcePool,
+	credsManagers creds.Managers,
+	interceptTimeoutFactory containerserver.InterceptTimeoutFactory,
+	interceptUpdateInterval time.Duration,
+	dbWall db.Wall,
+	clock clock.Clock,
+) (*APIRouter, error) {
+	r := &APIRouter{mux.NewRouter()}
 
 	r.Name(atc.SaveConfig).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/config").Methods("PUT")
 	r.Name(atc.GetConfig).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/config").Methods("GET")
@@ -201,116 +303,6 @@ func Router() *APIRouter {
 	r.Name(atc.SetWall).Path("/api/v1/wall").Methods("PUT")
 	r.Name(atc.ClearWall).Path("/api/v1/wall").Methods("DELETE")
 
-	return &APIRouter{r}
-}
-
-func RouteNames() []string {
-	names := []string{}
-	Router().Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
-		names = append(names, route.GetName())
-		return nil
-	})
-	return names
-}
-
-type Endpoint interface {
-	CreateRequest(string, map[string]string, io.Reader) (*http.Request, error)
-}
-
-func NewEndpoint(host string) Endpoint {
-	return &endpoint{
-		host: host,
-	}
-}
-
-type endpoint struct {
-	host string
-}
-
-func (rae *endpoint) CreateRequest(
-	action string,
-	params map[string]string,
-	body io.Reader,
-) (*http.Request, error) {
-	hostURL, err := url.Parse(rae.host)
-	if err != nil {
-		return &http.Request{}, err
-	}
-	r := Router()
-	route := r.Get(action).Host(hostURL.Host)
-	pairs := []string{}
-	for key, val := range params {
-		pairs = append(pairs, key, val)
-	}
-	url, err := route.URL(pairs...)
-	if err != nil {
-		return &http.Request{}, err
-	}
-	methods, err := route.GetMethods()
-	if err != nil {
-		return &http.Request{}, err
-	}
-	return http.NewRequest(methods[0], url.String(), body)
-}
-
-type APIRouter struct {
-	*mux.Router
-}
-
-func (r *APIRouter) CreatePathForRoute(action string, params map[string]string) (string, error) {
-	pairs := []string{}
-	for key, val := range params {
-		pairs = append(pairs, key, val)
-	}
-	path, err := r.Get(action).URLPath(pairs...)
-	if err != nil {
-		return "", err
-	}
-	return path.String(), nil
-}
-
-func NewHandler(
-	logger lager.Logger,
-
-	externalURL string,
-	clusterName string,
-
-	wrapper wrappa.Wrappa,
-
-	dbTeamFactory db.TeamFactory,
-	dbPipelineFactory db.PipelineFactory,
-	dbJobFactory db.JobFactory,
-	dbResourceFactory db.ResourceFactory,
-	dbWorkerFactory db.WorkerFactory,
-	volumeRepository db.VolumeRepository,
-	containerRepository db.ContainerRepository,
-	destroyer gc.Destroyer,
-	dbBuildFactory db.BuildFactory,
-	dbCheckFactory db.CheckFactory,
-	dbResourceConfigFactory db.ResourceConfigFactory,
-	dbUserFactory db.UserFactory,
-
-	eventHandlerFactory buildserver.EventHandlerFactory,
-
-	workerClient worker.Client,
-
-	sink *lager.ReconfigurableSink,
-
-	isTLSEnabled bool,
-
-	cliDownloadsDir string,
-	version string,
-	workerVersion string,
-	secretManager creds.Secrets,
-	varSourcePool creds.VarSourcePool,
-	credsManagers creds.Managers,
-	interceptTimeoutFactory containerserver.InterceptTimeoutFactory,
-	interceptUpdateInterval time.Duration,
-	dbWall db.Wall,
-	clock clock.Clock,
-) (http.Handler, error) {
-	r := Router()
-
 	absCLIDownloadsDir, err := filepath.Abs(cliDownloadsDir)
 	if err != nil {
 		return nil, err
@@ -453,4 +445,54 @@ func NewHandler(
 		r.Get(action).Handler(handler)
 	}
 	return r, nil
+}
+
+func Router() *APIRouter {
+	router, _ := NewHandler(
+		lagertest.NewTestLogger(""),
+
+		"",
+		"",
+
+		&identityWrappa{},
+
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+
+		nil,
+
+		nil,
+
+		nil,
+
+		false,
+
+		"",
+		"",
+		"",
+		nil,
+		nil,
+		nil,
+		nil,
+		0,
+		nil,
+		nil,
+	)
+	return router
+}
+
+type identityWrappa struct{}
+
+func (_ *identityWrappa) Wrap(handlers map[string]http.Handler) map[string]http.Handler {
+	return handlers
 }

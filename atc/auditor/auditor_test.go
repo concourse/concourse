@@ -5,8 +5,8 @@ import (
 
 	"code.cloudfoundry.org/lager/lagertest"
 
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/auditor"
+	"github.com/concourse/concourse/atc/routes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -79,7 +79,7 @@ var _ = Describe("Audit", func() {
 			EnableVolumeAuditLog = true
 		})
 		It("all routes are handled and does not panic", func() {
-			for _, routeName := range atc.RouteNames() {
+			for _, routeName := range routes.RouteNames() {
 				aud.Audit(routeName, userName, req)
 			}
 			logs := logger.Logs()

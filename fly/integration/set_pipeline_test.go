@@ -20,6 +20,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 )
 
 var _ = Describe("Fly CLI", func() {
@@ -148,7 +149,7 @@ var _ = Describe("Fly CLI", func() {
 					Jobs: atc.JobConfigs{},
 				}
 
-				path, err := atc.CreatePathForRoute(atc.GetConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+				path, err := routes.Router().CreatePathForRoute(atc.GetConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 				Expect(err).NotTo(HaveOccurred())
 
 				atcServer.AppendHandlers(
@@ -206,10 +207,10 @@ var _ = Describe("Fly CLI", func() {
 
 			Context("when configuring with old-style templated value succeeds", func() {
 				BeforeEach(func() {
-					path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path, err := routes.Router().CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
-					path_get, err := atc.CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path_get, err := routes.Router().CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					config = atc.Config{
@@ -311,7 +312,7 @@ var _ = Describe("Fly CLI", func() {
 							Jobs: atc.JobConfigs{},
 						}
 
-						path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+						path, err := routes.Router().CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 						Expect(err).NotTo(HaveOccurred())
 
 						atcServer.RouteToHandler("PUT", path,
@@ -417,7 +418,7 @@ this is super secure
 						},
 					}
 
-					path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path, err := routes.Router().CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
@@ -438,7 +439,7 @@ this is super secure
 						),
 					)
 
-					path_get, err := atc.CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path_get, err := routes.Router().CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("GET", path_get,
@@ -503,7 +504,7 @@ this is super secure
 						},
 					}
 
-					path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path, err := routes.Router().CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
@@ -524,7 +525,7 @@ this is super secure
 						),
 					)
 
-					path_get, err := atc.CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path_get, err := routes.Router().CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("GET", path_get,
@@ -591,7 +592,7 @@ this is super secure
 						},
 					}
 
-					path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path, err := routes.Router().CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
@@ -612,7 +613,7 @@ this is super secure
 						),
 					)
 
-					path_get, err := atc.CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path_get, err := routes.Router().CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("GET", path_get,
@@ -668,7 +669,7 @@ this is super secure
 
 					Context("when the variable does not exist in the credentials manager", func() {
 						BeforeEach(func() {
-							path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+							path, err := routes.Router().CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 							Expect(err).NotTo(HaveOccurred())
 
 							configResponse := atc.SaveConfigResponse{Errors: []string{"some-error"}}
@@ -736,14 +737,14 @@ this is super secure
 
 				changedConfig = config
 
-				path, err := atc.CreatePathForRoute(atc.GetConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+				path, err := routes.Router().CreatePathForRoute(atc.GetConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 				Expect(err).NotTo(HaveOccurred())
 
 				atcServer.RouteToHandler("GET", path,
 					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ConfigResponse{Config: config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
 				)
 
-				path_get, err := atc.CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+				path_get, err := routes.Router().CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 				Expect(err).NotTo(HaveOccurred())
 
 				atcServer.RouteToHandler("GET", path_get,
@@ -826,7 +827,7 @@ this is super secure
 						},
 					}
 
-					path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path, err := routes.Router().CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
@@ -902,7 +903,7 @@ this is super secure
 					changedConfig.Jobs[0].Serial = false
 					changedConfig.Jobs = append(changedConfig.Jobs[:2], newJob)
 
-					path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path, err := routes.Router().CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
@@ -1151,7 +1152,7 @@ this is super secure
 
 			Context("when configuring fails", func() {
 				BeforeEach(func() {
-					path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path, err := routes.Router().CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path,
@@ -1217,10 +1218,10 @@ this is super secure
 
 				Context("when updating an existing pipeline", func() {
 					BeforeEach(func() {
-						path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+						path, err := routes.Router().CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 						Expect(err).NotTo(HaveOccurred())
 
-						path_get, err := atc.CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+						path_get, err := routes.Router().CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 						Expect(err).NotTo(HaveOccurred())
 
 						atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
@@ -1243,10 +1244,10 @@ this is super secure
 
 				Context("when the pipeline is being created for the first time", func() {
 					BeforeEach(func() {
-						path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+						path, err := routes.Router().CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 						Expect(err).NotTo(HaveOccurred())
 
-						path_get, err := atc.CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+						path_get, err := routes.Router().CreatePathForRoute(atc.GetPipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 						Expect(err).NotTo(HaveOccurred())
 
 						atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
@@ -1270,7 +1271,7 @@ this is super secure
 
 			Context("when the server returns warnings", func() {
 				BeforeEach(func() {
-					path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path, err := routes.Router().CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
@@ -1332,7 +1333,7 @@ this is super secure
 
 			Context("when the server rejects the request", func() {
 				BeforeEach(func() {
-					path, err := atc.CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+					path, err := routes.Router().CreatePathForRoute(atc.SaveConfig, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 					Expect(err).NotTo(HaveOccurred())
 
 					atcServer.RouteToHandler("PUT", path, func(w http.ResponseWriter, r *http.Request) {

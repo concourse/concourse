@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os/exec"
 
+	"github.com/concourse/concourse/atc/routes"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/fatih/color"
 
@@ -36,7 +37,7 @@ var _ = Describe("Fly CLI", func() {
 			)
 
 			BeforeEach(func() {
-				path, err = atc.CreatePathForRoute(atc.ArchivePipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+				path, err = routes.Router().CreatePathForRoute(atc.ArchivePipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 				Expect(err).NotTo(HaveOccurred())
 
 				queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
@@ -190,10 +191,10 @@ var _ = Describe("Fly CLI", func() {
 			)
 
 			BeforeEach(func() {
-				somePath, err = atc.CreatePathForRoute(atc.ArchivePipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
+				somePath, err = routes.Router().CreatePathForRoute(atc.ArchivePipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": "main"})
 				Expect(err).NotTo(HaveOccurred())
 
-				someOtherPath, err = atc.CreatePathForRoute(
+				someOtherPath, err = routes.Router().CreatePathForRoute(
 					atc.ArchivePipeline,
 					map[string]string{
 						"pipeline_name": "more-awesome-pipeline",

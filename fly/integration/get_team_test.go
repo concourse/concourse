@@ -5,6 +5,7 @@ import (
 	"os/exec"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/fatih/color"
 	. "github.com/onsi/ginkgo"
@@ -47,7 +48,7 @@ var _ = Describe("Fly CLI", func() {
 			var path string
 			BeforeEach(func() {
 				var err error
-				path, err = atc.CreatePathForRoute(atc.GetTeam, map[string]string{"team_name": "myTeam"})
+				path, err = routes.Router().CreatePathForRoute(atc.GetTeam, map[string]string{"team_name": "myTeam"})
 				Expect(err).NotTo(HaveOccurred())
 			})
 

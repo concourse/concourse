@@ -174,7 +174,8 @@ var _ = BeforeEach(func() {
 		),
 	}
 
-	handler, err := routes.NewHandler(
+	var handler http.Handler
+	handler, err = routes.NewHandler(
 		logger,
 
 		externalURL,

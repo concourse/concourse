@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
@@ -22,7 +23,7 @@ var _ = Describe("Fly CLI", func() {
 				err         error
 			)
 			BeforeEach(func() {
-				path, err = atc.CreatePathForRoute(atc.PausePipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": teamName})
+				path, err = routes.Router().CreatePathForRoute(atc.PausePipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": teamName})
 				Expect(err).NotTo(HaveOccurred())
 
 				queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
@@ -90,7 +91,7 @@ var _ = Describe("Fly CLI", func() {
 				err  error
 			)
 			BeforeEach(func() {
-				path, err = atc.CreatePathForRoute(atc.PausePipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": teamName})
+				path, err = routes.Router().CreatePathForRoute(atc.PausePipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": teamName})
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -219,10 +220,10 @@ var _ = Describe("Fly CLI", func() {
 			)
 
 			BeforeEach(func() {
-				somePath, err = atc.CreatePathForRoute(atc.PausePipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": teamName})
+				somePath, err = routes.Router().CreatePathForRoute(atc.PausePipeline, map[string]string{"pipeline_name": "awesome-pipeline", "team_name": teamName})
 				Expect(err).NotTo(HaveOccurred())
 
-				someOtherPath, err = atc.CreatePathForRoute(atc.PausePipeline, map[string]string{"pipeline_name": "more-awesome-pipeline", "team_name": teamName})
+				someOtherPath, err = routes.Router().CreatePathForRoute(atc.PausePipeline, map[string]string{"pipeline_name": "more-awesome-pipeline", "team_name": teamName})
 				Expect(err).NotTo(HaveOccurred())
 
 				atcServer.AppendHandlers(

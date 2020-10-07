@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
@@ -25,13 +26,13 @@ var _ = Describe("Fly CLI", func() {
 		)
 
 		BeforeEach(func() {
-			mainPath, err = atc.CreatePathForRoute(atc.CreateJobBuild, map[string]string{"pipeline_name": "awesome-pipeline", "job_name": "awesome-job", "team_name": "main"})
+			mainPath, err = routes.Router().CreatePathForRoute(atc.CreateJobBuild, map[string]string{"pipeline_name": "awesome-pipeline", "job_name": "awesome-job", "team_name": "main"})
 			Expect(err).NotTo(HaveOccurred())
 
-			otherPath, err = atc.CreatePathForRoute(atc.CreateJobBuild, map[string]string{"pipeline_name": "awesome-pipeline", "job_name": "awesome-job", "team_name": "other-team"})
+			otherPath, err = routes.Router().CreatePathForRoute(atc.CreateJobBuild, map[string]string{"pipeline_name": "awesome-pipeline", "job_name": "awesome-job", "team_name": "other-team"})
 			Expect(err).NotTo(HaveOccurred())
 
-			otherRandomPath, err = atc.CreatePathForRoute(atc.CreateJobBuild, map[string]string{"pipeline_name": "awesome-pipeline", "job_name": "awesome-job", "team_name": "random-team"})
+			otherRandomPath, err = routes.Router().CreatePathForRoute(atc.CreateJobBuild, map[string]string{"pipeline_name": "awesome-pipeline", "job_name": "awesome-job", "team_name": "random-team"})
 			Expect(err).NotTo(HaveOccurred())
 
 			queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
