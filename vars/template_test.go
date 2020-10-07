@@ -219,6 +219,19 @@ dup-key: ((key3))
 		Expect(string(result)).To(Equal(string([]byte("bar: fuzz\n"))))
 	})
 
+	It("can interpolate keys with dot in subkey into a byte slice", func() {
+		template := NewTemplate([]byte("bar: ((secret-name.\"secret.field\"))"))
+		vars := StaticVariables{
+			"secret-name": map[string]interface{}{
+				"secret.field": "topsekrit",
+			},
+		}
+
+		result, err := template.Evaluate(vars, EvaluateOpts{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(result)).To(Equal(string([]byte("bar: topsekrit\n"))))
+	})
+
 	It("can interpolate a secret key in the middle of a string", func() {
 		template := NewTemplate([]byte("url: https://((ip))"))
 		vars := StaticVariables{

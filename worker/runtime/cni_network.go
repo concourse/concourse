@@ -174,12 +174,15 @@ func NewCNINetwork(opts ...CNINetworkOpt) (*cniNetwork, error) {
 	var err error
 
 	n := &cniNetwork{
-		binariesDir: binariesDir,
 		config:      defaultCNINetworkConfig,
 	}
 
 	for _, opt := range opts {
 		opt(n)
+	}
+
+	if n.binariesDir == "" {
+		n.binariesDir = binariesDir
 	}
 
 	if n.store == nil {

@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"code.cloudfoundry.org/clock/fakeclock"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -160,7 +161,7 @@ var _ = Describe("CheckDelegate", func() {
 	Describe("WaitToRun", func() {
 		var fakeLock *lockfakes.FakeLock
 
-		var lock lock.Lock
+		var runLock lock.Lock
 		var run bool
 		var runErr error
 
@@ -172,7 +173,7 @@ var _ = Describe("CheckDelegate", func() {
 		})
 
 		JustBeforeEach(func() {
-			lock, run, runErr = delegate.WaitToRun(context.TODO(), fakeResourceConfigScope)
+			runLock, run, runErr = delegate.WaitToRun(context.TODO(), fakeResourceConfigScope)
 		})
 
 		Context("when the build is manually triggered", func() {
@@ -185,7 +186,7 @@ var _ = Describe("CheckDelegate", func() {
 			})
 
 			It("returns the lock", func() {
-				Expect(lock).To(Equal(fakeLock))
+				Expect(runLock).To(Equal(fakeLock))
 			})
 		})
 
@@ -216,7 +217,7 @@ var _ = Describe("CheckDelegate", func() {
 				})
 
 				It("returns the lock", func() {
-					Expect(lock).To(Equal(fakeLock))
+					Expect(runLock).To(Equal(fakeLock))
 				})
 			})
 
@@ -240,8 +241,17 @@ var _ = Describe("CheckDelegate", func() {
 				plan.Check.Resource = "some-resource"
 			})
 
-			It("rate limits", func() {
-				Expect(fakeRateLimiter.WaitCallCount()).To(Equal(1))
+			Context("before acquiring the lock", func() {
+				BeforeEach(func() {
+					fakeResourceConfigScope.AcquireResourceCheckingLockStub = func(lager.Logger) (lock.Lock, bool, error) {
+						Expect(fakeRateLimiter.WaitCallCount()).To(Equal(1))
+						return fakeLock, true, nil
+					}
+				})
+
+				It("rate limits", func() {
+					Expect(fakeRateLimiter.WaitCallCount()).To(Equal(1))
+				})
 			})
 
 			Context("but the build is manually triggered", func() {

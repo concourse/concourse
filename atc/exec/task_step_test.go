@@ -19,6 +19,7 @@ import (
 	"github.com/concourse/concourse/vars"
 	"github.com/onsi/gomega/gbytes"
 	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/api/trace/tracetest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -228,7 +229,7 @@ var _ = Describe("TaskStep", func() {
 				var buildSpan trace.Span
 
 				BeforeEach(func() {
-					tracing.ConfigureTraceProvider(testTraceProvider{})
+					tracing.ConfigureTraceProvider(tracetest.NewProvider())
 
 					spanCtx, buildSpan = tracing.StartSpan(ctx, "build", nil)
 					fakeDelegate.StartSpanReturns(spanCtx, buildSpan)

@@ -1,5 +1,6 @@
 .DS_Store
 .idea
+.vscode
 *.iml
 node_modules
 *-packr.go

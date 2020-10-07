@@ -10,8 +10,8 @@ import (
 	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"go.opentelemetry.io/otel/api/propagators"
 	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/api/trace/tracetest"
 )
 
 var _ = Describe("ResourceType", func() {
@@ -377,8 +377,8 @@ var _ = Describe("ResourceType", func() {
 		Context("when the resource type has proper versions", func() {
 			BeforeEach(func() {
 				err := resourceTypeScope.SaveVersions(nil, []atc.Version{
-					atc.Version{"version": "1"},
-					atc.Version{"version": "2"},
+					{"version": "1"},
+					{"version": "2"},
 				})
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -481,7 +481,7 @@ var _ = Describe("ResourceType", func() {
 			var span trace.Span
 
 			BeforeEach(func() {
-				tracing.ConfigureTraceProvider(&tracing.TestTraceProvider{})
+				tracing.ConfigureTraceProvider(tracetest.NewProvider())
 
 				ctx, span = tracing.StartSpan(context.Background(), "fake-operation", nil)
 			})
@@ -491,9 +491,9 @@ var _ = Describe("ResourceType", func() {
 			})
 
 			It("propagates span context", func() {
-				traceID := span.SpanContext().TraceIDString()
+				traceID := span.SpanContext().TraceID.String()
 				buildContext := build.SpanContext()
-				traceParent := buildContext.Get(propagators.TraceparentHeader)
+				traceParent := buildContext.Get("traceparent")
 				Expect(traceParent).To(ContainSubstring(traceID))
 			})
 		})

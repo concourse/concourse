@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
@@ -158,6 +159,8 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			}
 		}
 
+		metric.Metrics.ChecksStarted.Inc()
+
 		_, err = scope.UpdateLastCheckStartTime()
 		if err != nil {
 			return fmt.Errorf("update check end time: %w", err)
@@ -168,6 +171,8 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			logger.Error("failed-to-set-check-error", setErr)
 		}
 		if err != nil {
+			metric.Metrics.ChecksFinishedWithError.Inc()
+
 			if pointErr := delegate.PointToCheckedConfig(scope); pointErr != nil {
 				return fmt.Errorf("update resource config scope: %w", pointErr)
 			}
@@ -179,6 +184,8 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 
 			return fmt.Errorf("run check: %w", err)
 		}
+
+		metric.Metrics.ChecksFinishedWithSuccess.Inc()
 
 		err = scope.SaveVersions(db.NewSpanContext(ctx), result.Versions)
 		if err != nil {

@@ -148,7 +148,7 @@ var _ = Describe("FetchSource", func() {
 				expectedGetResult = worker.GetResult{
 					ExitStatus:    0,
 					VersionResult: runtime.VersionResult{Metadata: expectedMetadata},
-					GetArtifact:   runtime.GetArtifact{fakeVolume.Handle()},
+					GetArtifact:   runtime.GetArtifact{VolumeHandle: fakeVolume.Handle()},
 				}
 			})
 
@@ -199,7 +199,7 @@ var _ = Describe("FetchSource", func() {
 				expectedGetResult = worker.GetResult{
 					ExitStatus:    0,
 					VersionResult: runtime.VersionResult{Metadata: expectedMetadata},
-					GetArtifact:   runtime.GetArtifact{fakeVolume.Handle()},
+					GetArtifact:   runtime.GetArtifact{VolumeHandle: fakeVolume.Handle()},
 				}
 			})
 
@@ -219,7 +219,7 @@ var _ = Describe("FetchSource", func() {
 		Context("when there is no initialized volume", func() {
 			var atcMetadata []atc.MetadataField
 			BeforeEach(func() {
-				atcMetadata = []atc.MetadataField{{"foo", "bar"}}
+				atcMetadata = []atc.MetadataField{{Name: "foo", Value: "bar"}}
 				fakeWorker.FindVolumeForResourceCacheReturns(nil, false, nil)
 				fakeResource.GetReturns(runtime.VersionResult{Metadata: atcMetadata}, nil)
 			})

@@ -11,8 +11,8 @@ import (
 	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"go.opentelemetry.io/otel/api/propagators"
 	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/api/trace/tracetest"
 )
 
 var _ = Describe("Resource", func() {
@@ -512,7 +512,7 @@ var _ = Describe("Resource", func() {
 			var span trace.Span
 
 			BeforeEach(func() {
-				tracing.ConfigureTraceProvider(&tracing.TestTraceProvider{})
+				tracing.ConfigureTraceProvider(tracetest.NewProvider())
 
 				ctx, span = tracing.StartSpan(context.Background(), "fake-operation", nil)
 			})
@@ -522,9 +522,9 @@ var _ = Describe("Resource", func() {
 			})
 
 			It("propagates span context", func() {
-				traceID := span.SpanContext().TraceIDString()
+				traceID := span.SpanContext().TraceID.String()
 				buildContext := build.SpanContext()
-				traceParent := buildContext.Get(propagators.TraceparentHeader)
+				traceParent := buildContext.Get("traceparent")
 				Expect(traceParent).To(ContainSubstring(traceID))
 			})
 		})
@@ -1583,9 +1583,9 @@ var _ = Describe("Resource", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			err = resourceScope.SaveVersions(nil, []atc.Version{
-				atc.Version{"version": "v1"},
-				atc.Version{"version": "v2"},
-				atc.Version{"version": "v3"},
+				{"version": "v1"},
+				{"version": "v2"},
+				{"version": "v3"},
 			})
 			Expect(err).ToNot(HaveOccurred())
 
@@ -1791,9 +1791,9 @@ var _ = Describe("Resource", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				err = resourceScope.SaveVersions(nil, []atc.Version{
-					atc.Version{"version": "v1"},
-					atc.Version{"version": "v2"},
-					atc.Version{"version": "v3"},
+					{"version": "v1"},
+					{"version": "v2"},
+					{"version": "v3"},
 				})
 				Expect(err).ToNot(HaveOccurred())
 

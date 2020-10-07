@@ -336,8 +336,8 @@ var _ = Describe("Image", func() {
 								Expect(actualResource).To(Equal(fakeGetResource))
 								Expect(actualContainerOwner).To(Equal(db.NewImageGetContainerOwner(fakeCreatingContainer, 123)))
 								Expect(actualImageFetcherSpec).To(Equal(worker.ImageFetcherSpec{
-									customTypes,
-									fakeImageFetchingDelegate,
+									ResourceTypes: customTypes,
+									Delegate:      fakeImageFetchingDelegate,
 								}))
 								Expect(actualResourceCache).To(Equal(fakeUsedResourceCache))
 								Expect(lockname).To(Equal("18c3de3f8ea112ba52e01f279b6cc62335b4bec2f359b9be7636a5ad7bf98f8c"))
@@ -562,8 +562,8 @@ var _ = Describe("Image", func() {
 						Expect(actualResource).To(Equal(fakeGetResource))
 						Expect(actualContainerOwner).To(Equal(db.NewImageGetContainerOwner(fakeCreatingContainer, 123)))
 						Expect(actualImageFetcherSpec).To(Equal(worker.ImageFetcherSpec{
-							customTypes,
-							fakeImageFetchingDelegate,
+							ResourceTypes: customTypes,
+							Delegate:      fakeImageFetchingDelegate,
 						}))
 						Expect(actualResourceCache).To(Equal(fakeUsedResourceCache))
 						Expect(lockname).To(Equal("18c3de3f8ea112ba52e01f279b6cc62335b4bec2f359b9be7636a5ad7bf98f8c"))

@@ -137,6 +137,7 @@ func (i interpolator) extractVarNames(value string) []string {
 
 func parseVarName(name string) VariableReference {
 	var pathPieces []string
+	var fields []string
 
 	varRef := VariableReference{Name: name}
 
@@ -151,8 +152,13 @@ func parseVarName(name string) VariableReference {
 	}
 
 	varRef.Path = strings.ReplaceAll(pathPieces[0], "\"", "")
+
 	if len(pathPieces) >= 2 {
-		varRef.Fields = pathPieces[1:]
+		for _, piece := range pathPieces[1:] {
+			fields = append(fields, strings.ReplaceAll(piece, "\"", ""))
+		}
+
+		varRef.Fields = fields
 	}
 
 	return varRef

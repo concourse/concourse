@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/api/trace/tracetest"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -327,7 +328,7 @@ var _ = Describe("PutStep", func() {
 		var buildSpan trace.Span
 
 		BeforeEach(func() {
-			tracing.ConfigureTraceProvider(testTraceProvider{})
+			tracing.ConfigureTraceProvider(tracetest.NewProvider())
 
 			spanCtx, buildSpan = tracing.StartSpan(ctx, "build", nil)
 			fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
@@ -383,7 +384,7 @@ var _ = Describe("PutStep", func() {
 		Expect(actualSource).To(Equal(atc.Source{"some": "super-secret-source"}))
 		Expect(actualResourceTypes).To(Equal(interpolatedResourceTypes))
 		Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
-		Expect(info.Metadata).To(Equal([]atc.MetadataField{{"some", "metadata"}}))
+		Expect(info.Metadata).To(Equal([]atc.MetadataField{{Name: "some", Value: "metadata"}}))
 	})
 
 	Context("when the step.Plan.Resource is blank", func() {

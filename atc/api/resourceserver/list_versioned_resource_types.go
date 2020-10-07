@@ -10,8 +10,9 @@ import (
 )
 
 func (s *Server) ListVersionedResourceTypes(pipeline db.Pipeline) http.Handler {
-	logger := s.logger.Session("list-versioned-resource-types")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger := s.logger.Session("list-versioned-resource-types")
+
 		resourceTypes, err := pipeline.ResourceTypes()
 		if err != nil {
 			logger.Error("failed-to-get-resources-types", err)

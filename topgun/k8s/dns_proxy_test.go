@@ -1,7 +1,7 @@
 package k8s_test
 
 import (
-	"fmt"
+	"log"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -63,7 +63,7 @@ var _ = Describe("DNS Resolution", func() {
 					`--set=worker.env[0].value=`+dnsServer)
 			}
 		default:
-			fmt.Errorf("Invalid runtime type %s. Test aborted.", runtime)
+			log.Fatalf("Invalid runtime type %s. Test aborted.", runtime)
 			return
 		}
 

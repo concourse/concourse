@@ -3,24 +3,23 @@ package tracing
 import (
 	"context"
 
-	"go.opentelemetry.io/otel/api/core"
 	"go.opentelemetry.io/otel/api/global"
-	"go.opentelemetry.io/otel/api/key"
-	"go.opentelemetry.io/otel/api/propagators"
+	"go.opentelemetry.io/otel/api/propagation"
 	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/api/trace/testtrace"
+	"go.opentelemetry.io/otel/api/trace/tracetest"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/label"
 	export "go.opentelemetry.io/otel/sdk/export/trace"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	"google.golang.org/grpc/codes"
 )
 
 type TestTraceProvider struct {
-	tracer *testtrace.Tracer
+	tracer *tracetest.Tracer
 }
 
 func (tp *TestTraceProvider) Tracer(name string) trace.Tracer {
 	if tp.tracer == nil {
-		tp.tracer = testtrace.NewTracer()
+		tp.tracer = &tracetest.Tracer{}
 	}
 	return tp.tracer
 }
@@ -105,12 +104,12 @@ func FromContext(ctx context.Context) trace.Span {
 	return trace.SpanFromContext(ctx)
 }
 
-func Inject(ctx context.Context, supplier propagators.Supplier) {
-	propagators.TraceContext{}.Inject(ctx, supplier)
+func Inject(ctx context.Context, supplier propagation.HTTPSupplier) {
+	trace.TraceContext{}.Inject(ctx, supplier)
 }
 
 type WithSpanContext interface {
-	SpanContext() propagators.Supplier
+	SpanContext() propagation.HTTPSupplier
 }
 
 func StartSpanFollowing(
@@ -119,23 +118,11 @@ func StartSpanFollowing(
 	component string,
 	attrs Attrs,
 ) (context.Context, trace.Span) {
-	supplier := following.SpanContext()
-	var spanContext core.SpanContext
-	if supplier == nil {
-		spanContext = core.EmptySpanContext()
-	} else {
-		spanContext, _ = propagators.TraceContext{}.Extract(
-			context.TODO(),
-			following.SpanContext(),
-		)
+	if supplier := following.SpanContext(); supplier != nil {
+		ctx = trace.TraceContext{}.Extract(ctx, supplier)
 	}
 
-	return startSpan(
-		ctx,
-		component,
-		attrs,
-		trace.FollowsFrom(spanContext),
-	)
+	return startSpan(ctx, component, attrs)
 }
 
 func StartSpanLinkedToFollowing(
@@ -144,17 +131,16 @@ func StartSpanLinkedToFollowing(
 	component string,
 	attrs Attrs,
 ) (context.Context, trace.Span) {
-	followingSpanContext, _ := propagators.TraceContext{}.Extract(
-		context.TODO(),
-		following.SpanContext(),
-	)
+	ctx := context.Background()
+	if supplier := following.SpanContext(); supplier != nil {
+		ctx = trace.TraceContext{}.Extract(ctx, supplier)
+	}
 	linkedSpanContext := trace.SpanFromContext(linked).SpanContext()
 
 	return startSpan(
-		context.Background(),
+		ctx,
 		component,
 		attrs,
-		trace.FollowsFrom(followingSpanContext),
 		trace.LinkedTo(linkedSpanContext),
 	)
 }
@@ -188,9 +174,9 @@ func End(span trace.Span, err error) {
 	}
 
 	if err != nil {
-		span.SetStatus(codes.Internal)
+		span.SetStatus(codes.Internal, "")
 		span.SetAttributes(
-			key.New("error-message").String(err.Error()),
+			label.String("error-message", err.Error()),
 		)
 	}
 

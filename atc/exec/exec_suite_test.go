@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/api/trace/testtrace"
+	"go.opentelemetry.io/otel/api/trace/tracetest"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/policy"
@@ -26,7 +26,7 @@ func (m testMetadata) Env() []string { return m }
 type testTraceProvider struct{}
 
 func (ttp testTraceProvider) Tracer(name string) trace.Tracer {
-	return testtrace.NewTracer()
+	return tracetest.NewProvider().Tracer("concourse")
 }
 
 var (

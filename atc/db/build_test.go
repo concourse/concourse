@@ -17,8 +17,8 @@ import (
 	"github.com/concourse/concourse/atc/creds/dummy"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
-	"github.com/concourse/concourse/vars"
 	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/vars"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	gocache "github.com/patrickmn/go-cache"
@@ -900,7 +900,7 @@ var _ = Describe("Build", func() {
 					},
 				})
 
-				pipeline, _, err := defaultTeam.SavePipeline(defaultPipeline.Name(), config, defaultPipeline.ConfigVersion(), false)
+				pipeline, _, err := defaultTeam.SavePipeline(defaultPipelineRef, config, defaultPipeline.ConfigVersion(), false)
 				Expect(err).ToNot(HaveOccurred())
 
 				job, found, err := pipeline.Job(defaultJob.Name())

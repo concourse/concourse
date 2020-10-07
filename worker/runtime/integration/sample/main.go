@@ -17,7 +17,7 @@ var (
 	flagWaitForSignal = flag.String("wait-for-signal", "", "wait for a sigal (sigterm|sighup)")
 	flagHttpGet       = flag.String("http-get", "", "website to perform an HTTP GET request against")
 	flagWriteTenTimes = flag.String("write-many-times", "", "writes a string to stdout many times")
-	flagCatFile = flag.String("cat", "", "writes contents of file to stdout")
+	flagCatFile       = flag.String("cat", "", "writes contents of file to stdout")
 
 	signals = map[string]os.Signal{
 		"sighup":  syscall.SIGHUP,
@@ -34,7 +34,7 @@ const defaultMessage = "hello world"
 func waitForSignal(sig string) {
 	s, found := signals[strings.ToLower(sig)]
 	if !found {
-		log.Fatal("signal %s not found - available: %v",
+		log.Fatalf("signal %s not found - available: %v",
 			sig, signals,
 		)
 	}
@@ -69,8 +69,8 @@ func writeTenTimes(content string) {
 	}
 }
 
-func catFile(pathToFile string){
-	bytes, err	:= ioutil.ReadFile(pathToFile)
+func catFile(pathToFile string) {
+	bytes, err := ioutil.ReadFile(pathToFile)
 	if err != nil {
 		log.Fatal("failed to read file ", err)
 	}

@@ -49,7 +49,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 	})
 
 	JustBeforeEach(func() {
-		plan = atc.Plan{ArtifactOutput: &atc.ArtifactOutputPlan{artifactName}}
+		plan = atc.Plan{ArtifactOutput: &atc.ArtifactOutputPlan{Name: artifactName}}
 
 		step = exec.NewArtifactOutputStep(plan, fakeBuild, fakeWorkerClient)
 		stepErr = step.Run(ctx, state)

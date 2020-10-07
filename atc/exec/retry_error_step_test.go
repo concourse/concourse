@@ -82,7 +82,7 @@ var _ = Describe("RetryErrorStep", func() {
 		})
 
 		Context("when worker disappeared", func() {
-			cause := transport.WorkerMissingError{"some-worker"}
+			cause := transport.WorkerMissingError{WorkerName: "some-worker"}
 			BeforeEach(func() {
 				fakeStep.RunReturns(cause)
 			})

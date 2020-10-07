@@ -525,8 +525,8 @@ var _ = Describe("Client", func() {
 				someGetResult = worker.GetResult{
 					ExitStatus: 0,
 					VersionResult: runtime.VersionResult{
-						atc.Version{"some-version": "some-value"},
-						[]atc.MetadataField{{"foo", "bar"}},
+						Version:  atc.Version{"some-version": "some-value"},
+						Metadata: []atc.MetadataField{{Name: "foo", Value: "bar"}},
 					},
 				}
 				someError = errors.New("some-foo-error")
