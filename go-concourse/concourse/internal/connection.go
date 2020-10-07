@@ -12,7 +12,7 @@ import (
 
 	"log"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 	"github.com/vito/go-sse/sse"
 )
 
@@ -49,7 +49,7 @@ type connection struct {
 	httpClient *http.Client
 	tracing    bool
 
-	endpoint atc.Endpoint
+	endpoint routes.Endpoint
 }
 
 // Deprecated
@@ -65,7 +65,7 @@ func NewConnection(apiURL string, httpClient *http.Client, tracing bool) Connect
 		httpClient: httpClient,
 		tracing:    tracing,
 
-		endpoint: atc.NewEndpoint(apiURL),
+		endpoint: routes.NewEndpoint(apiURL),
 	}
 }
 

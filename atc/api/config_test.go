@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/creds/noop"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/routes"
 	. "github.com/concourse/concourse/atc/testhelpers"
 	"github.com/onsi/gomega/gbytes"
 	"sigs.k8s.io/yaml"
@@ -26,11 +27,11 @@ import (
 var _ = Describe("Config API", func() {
 	var (
 		pipelineConfig atc.Config
-		endpoint       atc.Endpoint
+		endpoint       routes.Endpoint
 	)
 
 	BeforeEach(func() {
-		endpoint = atc.NewEndpoint(server.URL)
+		endpoint = routes.NewEndpoint(server.URL)
 
 		pipelineConfig = atc.Config{
 			Groups: atc.GroupConfigs{

@@ -2,6 +2,7 @@ package resourceserver
 
 import (
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -13,6 +14,7 @@ type Server struct {
 	checkFactory          db.CheckFactory
 	resourceFactory       db.ResourceFactory
 	resourceConfigFactory db.ResourceConfigFactory
+	router                present.PathBuilder
 }
 
 func NewServer(
@@ -22,6 +24,7 @@ func NewServer(
 	checkFactory db.CheckFactory,
 	resourceFactory db.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
+	router present.PathBuilder,
 ) *Server {
 	return &Server{
 		logger:                logger,
@@ -30,5 +33,6 @@ func NewServer(
 		checkFactory:          checkFactory,
 		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
+		router:                router,
 	}
 }

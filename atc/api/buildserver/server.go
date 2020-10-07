@@ -5,6 +5,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -19,6 +20,7 @@ type Server struct {
 	buildFactory        db.BuildFactory
 	eventHandlerFactory EventHandlerFactory
 	rejector            auth.Rejector
+	router              present.PathBuilder
 }
 
 func NewServer(
@@ -27,6 +29,7 @@ func NewServer(
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
 	eventHandlerFactory EventHandlerFactory,
+	router present.PathBuilder,
 ) *Server {
 	return &Server{
 		logger: logger,
@@ -38,5 +41,6 @@ func NewServer(
 		eventHandlerFactory: eventHandlerFactory,
 
 		rejector: auth.UnauthorizedRejector{},
+		router:   router,
 	}
 }

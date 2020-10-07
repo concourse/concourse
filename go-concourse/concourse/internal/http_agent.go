@@ -7,7 +7,7 @@ import (
 	"net/http/httputil"
 	"strings"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 )
 
 type HTTPAgent interface {
@@ -19,7 +19,7 @@ type httpAgent struct {
 	httpClient *http.Client
 	tracing    bool
 
-	endpoint atc.Endpoint
+	endpoint routes.Endpoint
 }
 
 func NewHTTPAgent(apiURL string, httpClient *http.Client, tracing bool) HTTPAgent {
@@ -34,7 +34,7 @@ func NewHTTPAgent(apiURL string, httpClient *http.Client, tracing bool) HTTPAgen
 		httpClient: httpClient,
 		tracing:    tracing,
 
-		endpoint: atc.NewEndpoint(apiURL),
+		endpoint: routes.NewEndpoint(apiURL),
 	}
 }
 

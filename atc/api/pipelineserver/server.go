@@ -3,6 +3,7 @@ package pipelineserver
 import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -12,6 +13,7 @@ type Server struct {
 	rejector        auth.Rejector
 	pipelineFactory db.PipelineFactory
 	externalURL     string
+	router          present.PathBuilder
 }
 
 func NewServer(
@@ -19,6 +21,7 @@ func NewServer(
 	teamFactory db.TeamFactory,
 	pipelineFactory db.PipelineFactory,
 	externalURL string,
+	router present.PathBuilder,
 ) *Server {
 	return &Server{
 		logger:          logger,
@@ -26,5 +29,6 @@ func NewServer(
 		rejector:        auth.UnauthorizedRejector{},
 		pipelineFactory: pipelineFactory,
 		externalURL:     externalURL,
+		router:          router,
 	}
 }

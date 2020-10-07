@@ -14,12 +14,13 @@ import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 	"github.com/concourse/concourse/atc/worker/gclient"
 )
 
 //go:generate counterfeiter . EndpointPicker
 type EndpointPicker interface {
-	Pick() atc.Endpoint
+	Pick() routes.Endpoint
 }
 
 type Heartbeater struct {

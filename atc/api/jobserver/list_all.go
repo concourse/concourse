@@ -37,6 +37,7 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 			present.DashboardJob(
 				job.TeamName,
 				job,
+				s.router,
 			),
 		)
 	}

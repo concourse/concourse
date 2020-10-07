@@ -13,21 +13,22 @@ func Job(
 	finishedBuild db.Build,
 	nextBuild db.Build,
 	transitionBuild db.Build,
+	pathBuilder PathBuilder,
 ) atc.Job {
 	var presentedNextBuild, presentedFinishedBuild, presentedTransitionBuild *atc.Build
 
 	if nextBuild != nil {
-		presented := Build(nextBuild)
+		presented := Build(nextBuild, pathBuilder)
 		presentedNextBuild = &presented
 	}
 
 	if finishedBuild != nil {
-		presented := Build(finishedBuild)
+		presented := Build(finishedBuild, pathBuilder)
 		presentedFinishedBuild = &presented
 	}
 
 	if transitionBuild != nil {
-		presented := Build(transitionBuild)
+		presented := Build(transitionBuild, pathBuilder)
 		presentedTransitionBuild = &presented
 	}
 

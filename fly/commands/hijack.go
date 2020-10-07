@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/commands/internal/hijacker"
@@ -155,7 +156,7 @@ func (command *HijackCommand) Execute([]string) error {
 
 	privileged := true
 
-	endpoint := atc.NewEndpoint(target.URL())
+	endpoint := routes.NewEndpoint(target.URL())
 
 	var ttySpec *atc.HijackTTYSpec
 	rows, cols, err := pty.Getsize(os.Stdout)

@@ -33,6 +33,7 @@ var _ = Describe("Archive Handler", func() {
 			new(dbfakes.FakeTeamFactory),
 			new(dbfakes.FakePipelineFactory),
 			"",
+			nil,
 		)
 		dbPipeline = new(dbfakes.FakePipeline)
 		handler = server.ArchivePipeline(dbPipeline)

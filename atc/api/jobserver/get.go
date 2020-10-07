@@ -60,6 +60,7 @@ func (s *Server) GetJob(pipeline db.Pipeline) http.Handler {
 			finished,
 			next,
 			nil,
+			s.router,
 		))
 		if err != nil {
 			logger.Error("failed-to-encode-job", err)

@@ -4,11 +4,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/present"
 )
 
 type Handler struct {
-	Route string
+	Route       string
+	PathBuilder present.PathBuilder
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -20,7 +21,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	path, err := atc.CreatePathForRoute(h.Route, params)
+	path, err := h.PathBuilder.CreatePathForRoute(h.Route, params)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

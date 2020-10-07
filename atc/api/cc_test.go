@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/routes"
 	. "github.com/concourse/concourse/atc/testhelpers"
 
 	. "github.com/onsi/ginkgo"
@@ -17,11 +18,11 @@ import (
 
 var _ = Describe("cc.xml", func() {
 	var (
-		endpoint atc.Endpoint
+		endpoint routes.Endpoint
 	)
 
 	BeforeEach(func() {
-		endpoint = atc.NewEndpoint(server.URL)
+		endpoint = routes.NewEndpoint(server.URL)
 	})
 
 	Describe("GET /api/v1/teams/:team_name/cc.xml", func() {

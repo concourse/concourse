@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/auditor/auditorfakes"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/routes"
 	"github.com/gorilla/mux"
 
 	. "github.com/onsi/ginkgo"
@@ -57,7 +58,7 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 			Path("/api/v1/workers/{worker_name}/retire").
 			Methods("PUT").
 			Handler(handler)
-		request, err := atc.NewEndpoint("http://example").
+		request, err := routes.NewEndpoint("http://example").
 			CreateRequest(atc.RetireWorker, map[string]string{
 				"worker_name": "some-worker",
 				"team_name":   "some-team",

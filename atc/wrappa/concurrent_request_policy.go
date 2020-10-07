@@ -28,12 +28,13 @@ func (lr *LimitedRoute) UnmarshalFlag(value string) error {
 }
 
 func isValidAction(action string) bool {
-	for _, routeName := range atc.RouteNames() {
-		if routeName == action {
-			return true
-		}
-	}
-	return false
+	return true
+	// for _, routeName := range routes.RouteNames() {
+	// 	if routeName == action {
+	// 		return true
+	// 	}
+	// }
+	// return false
 }
 
 //go:generate counterfeiter . ConcurrentRequestPolicy

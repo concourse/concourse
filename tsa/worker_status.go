@@ -15,10 +15,11 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 )
 
 type WorkerStatus struct {
-	ATCEndpoint      atc.Endpoint
+	ATCEndpoint      routes.Endpoint
 	HTTPClient       *http.Client
 	ContainerHandles []string
 	VolumeHandles    []string

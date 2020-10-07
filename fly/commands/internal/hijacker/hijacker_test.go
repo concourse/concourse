@@ -14,6 +14,7 @@ import (
 	"github.com/onsi/gomega/ghttp"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 	"github.com/concourse/concourse/fly/commands/internal/hijacker"
 )
 
@@ -79,7 +80,7 @@ var _ = Describe("Hijacker", func() {
 				InsecureSkipVerify: true,
 			}
 
-			endpoint := atc.NewEndpoint(server.URL())
+			endpoint := routes.NewEndpoint(server.URL())
 
 			stdin := gbytes.NewBuffer()
 			stdout := gbytes.NewBuffer()

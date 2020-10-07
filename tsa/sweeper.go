@@ -14,6 +14,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 )
 
 const (
@@ -22,7 +23,7 @@ const (
 )
 
 type Sweeper struct {
-	ATCEndpoint atc.Endpoint
+	ATCEndpoint routes.Endpoint
 	HTTPClient  *http.Client
 }
 

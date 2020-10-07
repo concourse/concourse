@@ -4,26 +4,26 @@ package tsafakes
 import (
 	"sync"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 	"github.com/concourse/concourse/tsa"
 )
 
 type FakeEndpointPicker struct {
-	PickStub        func() atc.Endpoint
+	PickStub        func() routes.Endpoint
 	pickMutex       sync.RWMutex
 	pickArgsForCall []struct {
 	}
 	pickReturns struct {
-		result1 atc.Endpoint
+		result1 routes.Endpoint
 	}
 	pickReturnsOnCall map[int]struct {
-		result1 atc.Endpoint
+		result1 routes.Endpoint
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeEndpointPicker) Pick() atc.Endpoint {
+func (fake *FakeEndpointPicker) Pick() routes.Endpoint {
 	fake.pickMutex.Lock()
 	ret, specificReturn := fake.pickReturnsOnCall[len(fake.pickArgsForCall)]
 	fake.pickArgsForCall = append(fake.pickArgsForCall, struct {
@@ -46,32 +46,32 @@ func (fake *FakeEndpointPicker) PickCallCount() int {
 	return len(fake.pickArgsForCall)
 }
 
-func (fake *FakeEndpointPicker) PickCalls(stub func() atc.Endpoint) {
+func (fake *FakeEndpointPicker) PickCalls(stub func() routes.Endpoint) {
 	fake.pickMutex.Lock()
 	defer fake.pickMutex.Unlock()
 	fake.PickStub = stub
 }
 
-func (fake *FakeEndpointPicker) PickReturns(result1 atc.Endpoint) {
+func (fake *FakeEndpointPicker) PickReturns(result1 routes.Endpoint) {
 	fake.pickMutex.Lock()
 	defer fake.pickMutex.Unlock()
 	fake.PickStub = nil
 	fake.pickReturns = struct {
-		result1 atc.Endpoint
+		result1 routes.Endpoint
 	}{result1}
 }
 
-func (fake *FakeEndpointPicker) PickReturnsOnCall(i int, result1 atc.Endpoint) {
+func (fake *FakeEndpointPicker) PickReturnsOnCall(i int, result1 routes.Endpoint) {
 	fake.pickMutex.Lock()
 	defer fake.pickMutex.Unlock()
 	fake.PickStub = nil
 	if fake.pickReturnsOnCall == nil {
 		fake.pickReturnsOnCall = make(map[int]struct {
-			result1 atc.Endpoint
+			result1 routes.Endpoint
 		})
 	}
 	fake.pickReturnsOnCall[i] = struct {
-		result1 atc.Endpoint
+		result1 routes.Endpoint
 	}{result1}
 }
 

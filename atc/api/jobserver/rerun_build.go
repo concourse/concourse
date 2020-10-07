@@ -55,7 +55,7 @@ func (s *Server) RerunJobBuild(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		err = json.NewEncoder(w).Encode(present.Build(build))
+		err = json.NewEncoder(w).Encode(present.Build(build, s.router))
 		if err != nil {
 			logger.Error("failed-to-encode-build", err)
 			w.WriteHeader(http.StatusInternalServerError)

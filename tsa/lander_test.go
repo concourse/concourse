@@ -3,6 +3,7 @@ package tsa_test
 import (
 	"context"
 
+	"github.com/concourse/concourse/atc/routes"
 	"github.com/concourse/concourse/tsa"
 	"golang.org/x/oauth2"
 
@@ -30,7 +31,7 @@ var _ = Describe("Lander", func() {
 		}
 		fakeATC = ghttp.NewServer()
 
-		atcEndpoint := atc.NewEndpoint(fakeATC.URL())
+		atcEndpoint := routes.NewEndpoint(fakeATC.URL())
 
 		token := &oauth2.Token{TokenType: "Bearer", AccessToken: "yo"}
 		httpClient := oauth2.NewClient(oauth2.NoContext, oauth2.StaticTokenSource(token))

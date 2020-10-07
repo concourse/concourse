@@ -11,10 +11,11 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 )
 
 type Deleter struct {
-	ATCEndpoint atc.Endpoint
+	ATCEndpoint routes.Endpoint
 	HTTPClient  *http.Client
 }
 

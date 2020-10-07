@@ -7,9 +7,13 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-func Build(build db.Build) atc.Build {
+type PathBuilder interface {
+	CreatePathForRoute(string, map[string]string) (string, error)
+}
 
-	apiURL, err := atc.CreatePathForRoute(atc.GetBuild, map[string]string{
+func Build(build db.Build, pathBuilder PathBuilder) atc.Build {
+
+	apiURL, err := pathBuilder.CreatePathForRoute(atc.GetBuild, map[string]string{
 		"build_id":  strconv.Itoa(build.ID()),
 		"team_name": build.TeamName(),
 	})

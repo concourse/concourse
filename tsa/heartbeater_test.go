@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/baggageclaim/baggageclaimfakes"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 	"github.com/concourse/concourse/atc/worker/gclient"
 	"github.com/concourse/concourse/atc/worker/gclient/gclientfakes"
 	. "github.com/concourse/concourse/tsa"
@@ -134,14 +135,14 @@ var _ = Describe("Heartbeater", func() {
 
 		pickCallCount := 0
 		atcEndpointPicker = new(tsafakes.FakeEndpointPicker)
-		atcEndpointPicker.PickStub = func() atc.Endpoint {
+		atcEndpointPicker.PickStub = func() routes.Endpoint {
 			pickCallCount++
 
 			if pickCallCount%2 == 0 {
-				return atc.NewEndpoint(fakeATC2.URL())
+				return routes.NewEndpoint(fakeATC2.URL())
 			}
 
-			return atc.NewEndpoint(fakeATC1.URL())
+			return routes.NewEndpoint(fakeATC1.URL())
 		}
 
 		token := &oauth2.Token{TokenType: "Bearer", AccessToken: "yo"}

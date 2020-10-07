@@ -3,6 +3,7 @@ package jobserver
 import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -15,6 +16,7 @@ type Server struct {
 	secretManager creds.Secrets
 	jobFactory    db.JobFactory
 	checkFactory  db.CheckFactory
+	router        present.PathBuilder
 }
 
 func NewServer(
@@ -23,6 +25,7 @@ func NewServer(
 	secretManager creds.Secrets,
 	jobFactory db.JobFactory,
 	checkFactory db.CheckFactory,
+	router present.PathBuilder,
 ) *Server {
 	return &Server{
 		logger:        logger,
@@ -31,5 +34,6 @@ func NewServer(
 		secretManager: secretManager,
 		jobFactory:    jobFactory,
 		checkFactory:  checkFactory,
+		router:        router,
 	}
 }

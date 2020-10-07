@@ -4,18 +4,18 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 	"github.com/concourse/flag"
 )
 
 type randomATCEndpointPicker struct {
-	ATCEndpoints []atc.Endpoint
+	ATCEndpoints []routes.Endpoint
 }
 
 func NewRandomATCEndpointPicker(atcURLFlags []flag.URL) EndpointPicker {
-	atcEndpoints := []atc.Endpoint{}
+	atcEndpoints := []routes.Endpoint{}
 	for _, f := range atcURLFlags {
-		atcEndpoints = append(atcEndpoints, atc.NewEndpoint(f.String()))
+		atcEndpoints = append(atcEndpoints, routes.NewEndpoint(f.String()))
 	}
 
 	rand.Seed(time.Now().Unix())
@@ -25,6 +25,6 @@ func NewRandomATCEndpointPicker(atcURLFlags []flag.URL) EndpointPicker {
 	}
 }
 
-func (p *randomATCEndpointPicker) Pick() atc.Endpoint {
+func (p *randomATCEndpointPicker) Pick() routes.Endpoint {
 	return p.ATCEndpoints[rand.Intn(len(p.ATCEndpoints))]
 }

@@ -80,7 +80,7 @@ func (s *Server) ListTeamBuilds(w http.ResponseWriter, r *http.Request) {
 	atc := make([]atc.Build, len(builds))
 	for i := 0; i < len(builds); i++ {
 		build := builds[i]
-		atc[i] = present.Build(build)
+		atc[i] = present.Build(build, s.router)
 	}
 
 	err = json.NewEncoder(w).Encode(atc)

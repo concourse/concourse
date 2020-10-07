@@ -88,7 +88,7 @@ func (s *Server) ListJobBuilds(pipeline db.Pipeline) http.Handler {
 
 		jobBuilds := make([]atc.Build, len(builds))
 		for i := 0; i < len(builds); i++ {
-			jobBuilds[i] = present.Build(builds[i])
+			jobBuilds[i] = present.Build(builds[i], s.router)
 		}
 
 		err = json.NewEncoder(w).Encode(jobBuilds)

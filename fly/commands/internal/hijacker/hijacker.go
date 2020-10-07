@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/routes"
 	"github.com/concourse/concourse/fly/pty"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
@@ -24,12 +25,12 @@ type ProcessIO struct {
 
 type Hijacker struct {
 	tlsConfig *tls.Config
-	endpoint  atc.Endpoint
+	endpoint  routes.Endpoint
 	token     *rc.TargetToken
 	interval  time.Duration
 }
 
-func New(tlsConfig *tls.Config, endpoint atc.Endpoint, token *rc.TargetToken) *Hijacker {
+func New(tlsConfig *tls.Config, endpoint routes.Endpoint, token *rc.TargetToken) *Hijacker {
 	return &Hijacker{
 		tlsConfig: tlsConfig,
 		endpoint:  endpoint,

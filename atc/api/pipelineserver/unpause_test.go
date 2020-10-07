@@ -30,6 +30,7 @@ var _ = Describe("Unpause Handler", func() {
 			new(dbfakes.FakeTeamFactory),
 			new(dbfakes.FakePipelineFactory),
 			"",
+			nil,
 		)
 		dbPipeline = new(dbfakes.FakePipeline)
 		handler = server.UnpausePipeline(dbPipeline)

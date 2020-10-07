@@ -9,21 +9,22 @@ import (
 func DashboardJob(
 	teamName string,
 	job atc.DashboardJob,
+	pathBuilder PathBuilder,
 ) atc.Job {
 	var presentedNextBuild, presentedFinishedBuild, presentedTransitionBuild *atc.Build
 
 	if job.NextBuild != nil {
-		presented := DashboardBuild(*job.NextBuild)
+		presented := DashboardBuild(*job.NextBuild, pathBuilder)
 		presentedNextBuild = &presented
 	}
 
 	if job.FinishedBuild != nil {
-		presented := DashboardBuild(*job.FinishedBuild)
+		presented := DashboardBuild(*job.FinishedBuild, pathBuilder)
 		presentedFinishedBuild = &presented
 	}
 
 	if job.TransitionBuild != nil {
-		presented := DashboardBuild(*job.TransitionBuild)
+		presented := DashboardBuild(*job.TransitionBuild, pathBuilder)
 		presentedTransitionBuild = &presented
 	}
 
@@ -59,8 +60,8 @@ func DashboardJob(
 	}
 }
 
-func DashboardBuild(build atc.DashboardBuild) atc.Build {
-	apiURL, err := atc.CreatePathForRoute(atc.GetBuild, map[string]string{
+func DashboardBuild(build atc.DashboardBuild, pathBuilder PathBuilder) atc.Build {
+	apiURL, err := pathBuilder.CreatePathForRoute(atc.GetBuild, map[string]string{
 		"build_id":  strconv.Itoa(build.ID),
 		"team_name": build.TeamName,
 	})

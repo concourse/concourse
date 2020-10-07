@@ -31,6 +31,7 @@ func (s *Server) ListJobs(pipeline db.Pipeline) http.Handler {
 				present.DashboardJob(
 					teamName,
 					job,
+					s.router,
 				),
 			)
 		}
