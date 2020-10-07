@@ -338,8 +338,8 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 				PipelineInstanceVars: j.PipelineInstanceVars,
 				TeamName:             j.TeamName,
 				Status:               f.status.String,
-				StartTime:            f.startTime.Time,
-				EndTime:              f.endTime.Time,
+				StartTime:            f.startTime.Time.Unix(),
+				EndTime:              f.endTime.Time.Unix(),
 			}
 		}
 
@@ -353,8 +353,8 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 				PipelineInstanceVars: j.PipelineInstanceVars,
 				TeamName:             j.TeamName,
 				Status:               n.status.String,
-				StartTime:            n.startTime.Time,
-				EndTime:              n.endTime.Time,
+				StartTime:            n.startTime.Time.Unix(),
+				EndTime:              n.endTime.Time.Unix(),
 			}
 		}
 
@@ -368,8 +368,8 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 				PipelineInstanceVars: j.PipelineInstanceVars,
 				TeamName:             j.TeamName,
 				Status:               t.status.String,
-				StartTime:            t.startTime.Time,
-				EndTime:              t.endTime.Time,
+				StartTime:            t.startTime.Time.Unix(),
+				EndTime:              t.endTime.Time.Unix(),
 			}
 		}
 
@@ -429,7 +429,7 @@ func (d dashboardFactory) fetchJobInputs() (map[int][]atc.JobInputSummary, error
 	return jobInputs, nil
 }
 
-func (d dashboardFactory) fetchJobOutputs() (map[int][]atc.JobOutput, error) {
+func (d dashboardFactory) fetchJobOutputs() (map[int][]atc.JobOutputSummary, error) {
 	rows, err := psql.Select("o.name", "r.name", "o.job_id").
 		From("job_outputs o").
 		Join("jobs j ON j.id = o.job_id").
@@ -447,11 +447,10 @@ func (d dashboardFactory) fetchJobOutputs() (map[int][]atc.JobOutput, error) {
 		return nil, err
 	}
 
-	jobOutputs := make(map[int][]atc.JobOutput)
+	jobOutputs := make(map[int][]atc.JobOutputSummary)
 	for rows.Next() {
-		var output atc.JobOutput
+		var output atc.JobOutputSummary
 		var jobID int
-
 		err = rows.Scan(&output.Name, &output.Resource, &jobID)
 		if err != nil {
 			return nil, err
@@ -463,7 +462,7 @@ func (d dashboardFactory) fetchJobOutputs() (map[int][]atc.JobOutput, error) {
 	return jobOutputs, err
 }
 
-func (d dashboardFactory) combineJobInputsAndOutputsWithDashboardJobs(dashboard []atc.JobSummary, jobInputs map[int][]atc.JobInputSummary, jobOutputs map[int][]atc.JobOutput) []atc.JobSummary {
+func (d dashboardFactory) combineJobInputsAndOutputsWithDashboardJobs(dashboard []atc.JobSummary, jobInputs map[int][]atc.JobInputSummary, jobOutputs map[int][]atc.JobOutputSummary) []atc.JobSummary {
 	var finalDashboard []atc.JobSummary
 	for _, job := range dashboard {
 		for _, input := range jobInputs[job.ID] {

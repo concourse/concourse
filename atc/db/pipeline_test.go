@@ -1337,7 +1337,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(actualDashboard[0].FinishedBuild.ID).To(Equal(secondJobBuild.ID()))
 
 			By("returning the job inputs and outputs")
-			Expect(actualDashboard[0].Outputs).To(ConsistOf(atc.JobOutput{
+			Expect(actualDashboard[0].Outputs).To(ConsistOf(atc.JobOutputSummary{
 				Name:     "some-resource",
 				Resource: "some-resource",
 			}))

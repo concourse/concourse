@@ -45,8 +45,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "",
                   "status": "succeeded",
                   "api_url": ""
-                },
-                "groups": null
+                }
               },
               {
                 "id": 2,
@@ -65,8 +64,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "",
                   "status": "failed",
                   "api_url": ""
-                },
-                "groups": null
+                }
               },
               {
                 "id": 3,
@@ -78,8 +76,7 @@ var _ = Describe("Fly CLI", func() {
                 },
                 "team_name": "main",
                 "next_build": null,
-                "finished_build": null,
-                "groups": null
+                "finished_build": null
               }
             ]`
 		var sampleJobs []atc.Job

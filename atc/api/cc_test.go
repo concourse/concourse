@@ -85,7 +85,7 @@ var _ = Describe("cc.xml", func() {
 										FinishedBuild: &atc.BuildSummary{
 											Name:    "42",
 											Status:  "succeeded",
-											EndTime: endTime,
+											EndTime: endTime.Unix(),
 										},
 									},
 								}, nil)
@@ -124,7 +124,7 @@ var _ = Describe("cc.xml", func() {
 										FinishedBuild: &atc.BuildSummary{
 											Name:    "42",
 											Status:  "aborted",
-											EndTime: endTime,
+											EndTime: endTime.Unix(),
 										},
 									},
 								}, nil)
@@ -152,7 +152,7 @@ var _ = Describe("cc.xml", func() {
 										FinishedBuild: &atc.BuildSummary{
 											Name:    "42",
 											Status:  "errored",
-											EndTime: endTime,
+											EndTime: endTime.Unix(),
 										},
 									},
 								}, nil)
@@ -180,7 +180,7 @@ var _ = Describe("cc.xml", func() {
 										FinishedBuild: &atc.BuildSummary{
 											Name:    "42",
 											Status:  "failed",
-											EndTime: endTime,
+											EndTime: endTime.Unix(),
 										},
 									},
 								}, nil)
@@ -208,7 +208,7 @@ var _ = Describe("cc.xml", func() {
 										FinishedBuild: &atc.BuildSummary{
 											Name:    "42",
 											Status:  "succeeded",
-											EndTime: endTime,
+											EndTime: endTime.Unix(),
 										},
 										NextBuild: &atc.BuildSummary{},
 									},

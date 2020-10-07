@@ -108,7 +108,7 @@ func (s *Server) buildProject(j atc.JobSummary) Project {
 		Activity:        activity,
 		LastBuildLabel:  fmt.Sprint(j.FinishedBuild.Name),
 		LastBuildStatus: lastBuildStatus,
-		LastBuildTime:   j.FinishedBuild.EndTime.Format(time.RFC3339),
+		LastBuildTime:   time.Unix(j.FinishedBuild.EndTime, 0).UTC().Format(time.RFC3339),
 		Name:            fmt.Sprintf("%s/%s", pipelineRef.String(), j.Name),
 		WebUrl:          s.createWebUrl(j.TeamName, j.Name, pipelineRef),
 	}
