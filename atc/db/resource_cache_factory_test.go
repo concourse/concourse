@@ -119,6 +119,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 			logger = lagertest.NewTestLogger("test")
 		})
+
 		It("creates resource cache in database", func() {
 			usedResourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
 				db.ForBuild(build.ID()),
@@ -269,7 +270,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 							default:
 								Expect(resourceCacheLifecycle.CleanUsesForFinishedBuilds(logger)).To(Succeed())
 								Expect(resourceCacheLifecycle.CleanUpInvalidCaches(logger)).To(Succeed())
-								Expect(resourceConfigFactory.CleanUnreferencedConfigs()).To(Succeed())
+								Expect(resourceConfigFactory.CleanUnreferencedConfigs(0)).To(Succeed())
 							}
 						}
 					}()
@@ -345,7 +346,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 			Expect(found).To(BeTrue())
 			Expect(err).ToNot(HaveOccurred())
-			Expect(actualUsedResourceCache).To(Equal(someUsedResourceCacheFromBaseResource))
+			Expect(actualUsedResourceCache.ID()).To(Equal(someUsedResourceCacheFromBaseResource.ID()))
 			Expect(actualUsedResourceCache.ResourceConfig().CreatedByBaseResourceType().Name).To(Equal("some-base-resource-type"))
 			Expect(actualUsedResourceCache.ResourceConfig().CreatedByResourceCache()).To(BeNil())
 		})
@@ -355,7 +356,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 
 			Expect(found).To(BeTrue())
 			Expect(err).ToNot(HaveOccurred())
-			Expect(actualUsedResourceCache).To(Equal(someUsedResourceCacheFromCustomResource))
+			Expect(actualUsedResourceCache.ID()).To(Equal(someUsedResourceCacheFromCustomResource.ID()))
 			Expect(actualUsedResourceCache.ResourceConfig().CreatedByResourceCache().Version()).To(Equal(atc.Version{"showme": "whatyougot"}))
 		})
 

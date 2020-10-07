@@ -40,17 +40,18 @@ type Client interface {
 	) (io.ReadCloser, error)
 
 	RunCheckStep(
-		ctx context.Context,
-		logger lager.Logger,
-		owner db.ContainerOwner,
-		containerSpec ContainerSpec,
-		workerSpec WorkerSpec,
-		strategy ContainerPlacementStrategy,
-		containerMetadata db.ContainerMetadata,
-		imageFetcherSpec ImageFetcherSpec,
-		//resourceTypes atc.VersionedResourceTypes,
-		timeout time.Duration,
-		checkable resource.Resource,
+		context.Context,
+		lager.Logger,
+		db.ContainerOwner,
+		ContainerSpec,
+		WorkerSpec,
+		ContainerPlacementStrategy,
+		db.ContainerMetadata,
+		ImageFetcherSpec,
+		runtime.ProcessSpec,
+		runtime.StartingEventDelegate,
+		resource.Resource,
+		time.Duration,
 	) (CheckResult, error)
 
 	RunTaskStep(
@@ -150,10 +151,6 @@ type processStatus struct {
 	processErr    error
 }
 
-var checkProcessSpec = runtime.ProcessSpec{
-	Path: "/opt/resource/check",
-}
-
 func (client *client) FindContainer(logger lager.Logger, teamID int, handle string) (Container, bool, error) {
 	worker, found, err := client.provider.FindWorkerForContainer(
 		logger.Session("find-worker"),
@@ -206,8 +203,10 @@ func (client *client) RunCheckStep(
 	strategy ContainerPlacementStrategy,
 	containerMetadata db.ContainerMetadata,
 	imageFetcherSpec ImageFetcherSpec,
-	timeout time.Duration,
+	processSpec runtime.ProcessSpec,
+	eventDelegate runtime.StartingEventDelegate,
 	checkable resource.Resource,
+	timeout time.Duration,
 ) (CheckResult, error) {
 	chosenWorker, err := client.pool.FindOrChooseWorkerForContainer(
 		ctx,
@@ -220,6 +219,8 @@ func (client *client) RunCheckStep(
 	if err != nil {
 		return CheckResult{}, fmt.Errorf("find or choose worker for container: %w", err)
 	}
+
+	eventDelegate.SelectedWorker(logger, chosenWorker.Name())
 
 	container, err := chosenWorker.FindOrCreateContainer(
 		ctx,
@@ -234,10 +235,12 @@ func (client *client) RunCheckStep(
 		return CheckResult{}, fmt.Errorf("find or create container: %w", err)
 	}
 
+	eventDelegate.Starting(logger)
+
 	deadline, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	versions, err := checkable.Check(deadline, checkProcessSpec, container)
+	versions, err := checkable.Check(deadline, processSpec, container)
 	if err != nil {
 		if err == context.DeadlineExceeded {
 			return CheckResult{}, fmt.Errorf("timed out after %v checking for new versions", timeout)

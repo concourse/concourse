@@ -41,11 +41,13 @@ func DashboardJob(
 	return atc.Job{
 		ID: job.ID,
 
-		Name:         job.Name,
-		PipelineName: job.PipelineName,
-		TeamName:     teamName,
-		Paused:       job.Paused,
-		HasNewInputs: job.HasNewInputs,
+		Name:                 job.Name,
+		PipelineID:           job.PipelineID,
+		PipelineName:         job.PipelineName,
+		PipelineInstanceVars: job.PipelineInstanceVars,
+		TeamName:             teamName,
+		Paused:               job.Paused,
+		HasNewInputs:         job.HasNewInputs,
 
 		Inputs:  sanitizedInputs,
 		Outputs: job.Outputs,
@@ -68,13 +70,15 @@ func DashboardBuild(build atc.DashboardBuild) atc.Build {
 	}
 
 	atcBuild := atc.Build{
-		ID:           build.ID,
-		Name:         build.Name,
-		JobName:      build.JobName,
-		PipelineName: build.PipelineName,
-		TeamName:     build.TeamName,
-		Status:       string(build.Status),
-		APIURL:       apiURL,
+		ID:                   build.ID,
+		Name:                 build.Name,
+		JobName:              build.JobName,
+		PipelineID:           build.PipelineID,
+		PipelineName:         build.PipelineName,
+		PipelineInstanceVars: build.PipelineInstanceVars,
+		TeamName:             build.TeamName,
+		Status:               string(build.Status),
+		APIURL:               apiURL,
 	}
 
 	if !build.StartTime.IsZero() {

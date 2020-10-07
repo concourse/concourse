@@ -31,9 +31,9 @@ var _ = Describe("A resource check which times out", func() {
 		It("prints an error and cancels the check", func() {
 			check := spawnFly("check-resource", "-r", inPipeline("my-resource"))
 			<-check.Exited
-			Expect(check).To(gexec.Exit(1))
-			Expect(check.Out).To(gbytes.Say("errored"))
-			Expect(check.Out).To(gbytes.Say("timed out"))
+			Expect(check).To(gexec.Exit(2))
+			Expect(check).To(gbytes.Say("timed out"))
+			Expect(check).To(gbytes.Say("errored"))
 		})
 	})
 

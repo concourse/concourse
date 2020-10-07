@@ -66,11 +66,11 @@ var _ = Describe("fly builds command", func() {
 			})
 
 			It("displays the right info", func() {
-				sess := spawnFly("builds")
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
-				Expect(sess).To(gbytes.Say(testflightExposedPipeline))
-				Expect(sess).To(gbytes.Say(testflightHiddenPipeline))
+				sess := fly("builds", "-p", testflightExposedPipeline)
+				Expect(sess).To(gbytes.Say(testflightExposedPipeline + "/some-passing-job"))
+
+				sess = fly("builds", "-p", testflightHiddenPipeline)
+				Expect(sess).To(gbytes.Say(testflightHiddenPipeline + "/some-passing-job"))
 			})
 		})
 	})
@@ -92,9 +92,7 @@ var _ = Describe("fly builds command", func() {
 				fly("trigger-job", "-j", mainExposedPipeline+"/some-passing-job", "-w")
 				fly("trigger-job", "-j", mainExposedPipeline+"/some-passing-job", "-w")
 
-				sess := spawnFly("builds", "-j", mainExposedPipeline+"/some-passing-job", "--json")
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				sess := fly("builds", "-j", mainExposedPipeline+"/some-passing-job", "--json")
 
 				err := json.Unmarshal(sess.Out.Contents(), &allDecodedBuilds)
 				Expect(err).ToNot(HaveOccurred())
@@ -104,13 +102,11 @@ var _ = Describe("fly builds command", func() {
 		It("displays only builds that happened within that range of time", func() {
 			var decodedBuilds []decodedBuild
 			withFlyTarget(adminFlyTarget, func() {
-				sess := spawnFly("builds",
+				sess := fly("builds",
 					"--until="+time.Unix(allDecodedBuilds[1].StartTime+1, 0).Local().Format(timeLayout),
 					"--since="+time.Unix(allDecodedBuilds[3].StartTime-1, 0).Local().Format(timeLayout),
 					"-j", mainExposedPipeline+"/some-passing-job",
 					"--json")
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
 
 				err := json.Unmarshal(sess.Out.Contents(), &decodedBuilds)
 				Expect(err).ToNot(HaveOccurred())
@@ -123,10 +119,7 @@ var _ = Describe("fly builds command", func() {
 	Context("when specifying values for team flag", func() {
 		It("retrieves only builds for the teams specified", func() {
 			withFlyTarget(adminFlyTarget, func() {
-				sess := spawnFly("builds", "--team=testflight")
-				<-sess.Exited
-
-				Expect(sess.ExitCode()).To(Equal(0))
+				sess := fly("builds", "--team=testflight", "--count=1000")
 				Expect(sess).To(gbytes.Say(testflightExposedPipeline))
 				Expect(sess).To(gbytes.Say("testflight"), "shows the team name")
 				Expect(sess).NotTo(gbytes.Say(mainExposedPipeline))

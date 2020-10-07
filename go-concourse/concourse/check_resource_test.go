@@ -13,22 +13,26 @@ import (
 )
 
 var _ = Describe("CheckResource", func() {
+	var (
+		expectedURL   = "/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/check"
+		expectedQuery = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+		pipelineRef   = atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
+	)
+
 	Context("when ATC request succeeds", func() {
-		var expectedCheck atc.Check
+		var expectedCheck atc.Build
 
 		BeforeEach(func() {
-			expectedCheck = atc.Check{
-				ID:         123,
-				Status:     "started",
-				CreateTime: 100000000000,
-				StartTime:  100000000000,
-				EndTime:    100000000000,
+			expectedCheck = atc.Build{
+				ID:        123,
+				Status:    "started",
+				StartTime: 100000000000,
+				EndTime:   100000000000,
 			}
 
-			expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/check"
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.VerifyRequest("POST", expectedURL, expectedQuery),
 					ghttp.VerifyJSON(`{"from":{"ref":"fake-ref"}}`),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, expectedCheck),
 				),
@@ -36,7 +40,7 @@ var _ = Describe("CheckResource", func() {
 		})
 
 		It("sends check resource request to ATC", func() {
-			check, found, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
+			check, found, err := team.CheckResource(pipelineRef, "myresource", atc.Version{"ref": "fake-ref"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(check).To(Equal(expectedCheck))
@@ -47,10 +51,9 @@ var _ = Describe("CheckResource", func() {
 
 	Context("when pipeline or resource does not exist", func() {
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/check"
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.VerifyRequest("POST", expectedURL, expectedQuery),
 					ghttp.VerifyJSON(`{"from":{"ref":"fake-ref"}}`),
 					ghttp.RespondWithJSONEncoded(http.StatusNotFound, ""),
 				),
@@ -58,7 +61,7 @@ var _ = Describe("CheckResource", func() {
 		})
 
 		It("returns a ResourceNotFoundError", func() {
-			_, found, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
+			_, found, err := team.CheckResource(pipelineRef, "myresource", atc.Version{"ref": "fake-ref"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})
@@ -66,11 +69,9 @@ var _ = Describe("CheckResource", func() {
 
 	Context("when ATC responds with an error", func() {
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/check"
-
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.VerifyRequest("POST", expectedURL, expectedQuery),
 					ghttp.VerifyJSON(`{"from":{"ref":"fake-ref"}}`),
 					ghttp.RespondWith(http.StatusBadRequest, "bad request"),
 				),
@@ -78,7 +79,7 @@ var _ = Describe("CheckResource", func() {
 		})
 
 		It("returns an error", func() {
-			_, _, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
+			_, _, err := team.CheckResource(pipelineRef, "myresource", atc.Version{"ref": "fake-ref"})
 			Expect(err).To(HaveOccurred())
 
 			Expect(err.Error()).To(ContainSubstring("bad request"))
@@ -87,11 +88,9 @@ var _ = Describe("CheckResource", func() {
 
 	Context("when ATC responds with an internal server error", func() {
 		BeforeEach(func() {
-			expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/resources/myresource/check"
-
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", expectedURL),
+					ghttp.VerifyRequest("POST", expectedURL, expectedQuery),
 					ghttp.VerifyJSON(`{"from":{"ref":"fake-ref"}}`),
 					ghttp.RespondWith(http.StatusInternalServerError, "unknown server error"),
 				),
@@ -99,7 +98,7 @@ var _ = Describe("CheckResource", func() {
 		})
 
 		It("returns an error with body", func() {
-			_, _, err := team.CheckResource("mypipeline", "myresource", atc.Version{"ref": "fake-ref"})
+			_, _, err := team.CheckResource(pipelineRef, "myresource", atc.Version{"ref": "fake-ref"})
 			Expect(err).To(HaveOccurred())
 
 			cre, ok := err.(concourse.GenericError)

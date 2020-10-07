@@ -113,7 +113,7 @@ var _ = Describe("Volumes API", func() {
 							volume5.HandleReturns("some-task-cache-handle")
 							volume5.WorkerNameReturns(fakeWorker.Name())
 							volume5.TypeReturns(db.VolumeTypeTaskCache)
-							volume5.TaskIdentifierReturns("some-pipeline", "some-job", "some-task", nil)
+							volume5.TaskIdentifierReturns(1, atc.PipelineRef{Name: "some-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}, "some-job", "some-task", nil)
 							return []db.CreatedVolume{
 								volume1,
 								volume2,
@@ -160,7 +160,9 @@ var _ = Describe("Volumes API", func() {
 		 							"version": {"some": "version"}
 		 						},
 		 						"base_resource_type": null,
+		 						"pipeline_id": 0,
 		 						"pipeline_name": "",
+		 						"pipeline_instance_vars": null,
 		 						"job_name": "",
 		 						"step_name": ""
 		 					},
@@ -176,7 +178,9 @@ var _ = Describe("Volumes API", func() {
 		 							"name": "some-base-resource-type",
 		 							"version": "some-base-version"
 		 						},
+		 						"pipeline_id": 0,
 		 						"pipeline_name": "",
+		 						"pipeline_instance_vars": null,
 		 						"job_name": "",
 		 						"step_name": ""
 		 					},
@@ -189,7 +193,9 @@ var _ = Describe("Volumes API", func() {
 		 						"parent_handle": "some-parent-handle",
 		 						"resource_type": null,
 		 						"base_resource_type": null,
+		 						"pipeline_id": 0,
 		 						"pipeline_name": "",
+		 						"pipeline_instance_vars": null,
 		 						"job_name": "",
 		 						"step_name": ""
 		 					},
@@ -202,7 +208,9 @@ var _ = Describe("Volumes API", func() {
 		 						"path": "some-path",
 		 						"resource_type": null,
 		 						"base_resource_type": null,
+		 						"pipeline_id": 0,
 		 						"pipeline_name": "",
+		 						"pipeline_instance_vars": null,
 		 						"job_name": "",
 		 						"step_name": ""
 		 					},
@@ -215,7 +223,11 @@ var _ = Describe("Volumes API", func() {
 		 						"path": "",
 		 						"resource_type": null,
 		 						"base_resource_type": null,
+		 						"pipeline_id": 1,
 		 						"pipeline_name": "some-pipeline",
+		 						"pipeline_instance_vars": {
+									"branch": "master"
+								},
 		 						"job_name": "some-job",
 		 						"step_name": "some-task"
 		 					}
@@ -272,7 +284,9 @@ var _ = Describe("Volumes API", func() {
 		 							"name": "some-base-resource-type",
 		 							"version": "some-base-version"
 		 						},
+		 						"pipeline_id": 0,
 		 						"pipeline_name": "",
+		 						"pipeline_instance_vars": null,
 		 						"job_name": "",
 		 						"step_name": ""
 		 					}]`))

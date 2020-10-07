@@ -128,19 +128,34 @@ var _ = Describe("Watching", func() {
 	})
 
 	Context("with a specific job and pipeline", func() {
-		Context("when the job has no builds", func() {
-			BeforeEach(func() {
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job"),
-						ghttp.RespondWithJSONEncoded(200, atc.Job{}),
-					),
-					eventsHandler(),
-				)
-			})
 
+		var (
+			expectedURL         string
+			expectedQueryParams string
+			expectedStatusCode  int
+			expectedResponse    interface{}
+		)
+
+		BeforeEach(func() {
+			expectedURL = "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job"
+			expectedQueryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			expectedStatusCode = http.StatusOK
+			expectedResponse = atc.Job{}
+		})
+
+		JustBeforeEach(func() {
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", expectedURL, expectedQueryParams),
+					ghttp.RespondWithJSONEncoded(expectedStatusCode, expectedResponse),
+				),
+				eventsHandler(),
+			)
+		})
+
+		Context("when the job has no builds", func() {
 			It("returns an error and exits", func() {
-				flyCmd := exec.Command(flyPath, "-t", targetName, "watch", "--job", "some-pipeline/some-job")
+				flyCmd := exec.Command(flyPath, "-t", targetName, "watch", "--job", "some-pipeline/branch:master/some-job")
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -155,87 +170,70 @@ var _ = Describe("Watching", func() {
 				didStream := make(chan struct{})
 				streaming = didStream
 
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job"),
-						ghttp.RespondWithJSONEncoded(200, atc.Job{
-							NextBuild: &atc.Build{
-								ID:      3,
-								Name:    "3",
-								Status:  "started",
-								JobName: "some-job",
-							},
-							FinishedBuild: &atc.Build{
-								ID:      2,
-								Name:    "2",
-								Status:  "failed",
-								JobName: "some-job",
-							},
-						}),
-					),
-					eventsHandler(),
-				)
+				expectedResponse = atc.Job{
+					NextBuild: &atc.Build{
+						ID:      3,
+						Name:    "3",
+						Status:  "started",
+						JobName: "some-job",
+					},
+					FinishedBuild: &atc.Build{
+						ID:      2,
+						Name:    "2",
+						Status:  "failed",
+						JobName: "some-job",
+					},
+				}
 			})
 
 			It("watches the job's next build", func() {
-				watch("--job", "some-pipeline/some-job")
+				watch("--job", "some-pipeline/branch:master/some-job")
 			})
 
 			It("watches the job's next build URL", func() {
-				watch("--url", atcServer.URL()+"/teams/main/pipelines/some-pipeline/jobs/some-job")
+				watch("--url", atcServer.URL()+"/teams/main/pipelines/some-pipeline/jobs/some-job?"+expectedQueryParams)
 			})
 		})
 
 		Context("when the job only has a finished build", func() {
 			BeforeEach(func() {
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/main/jobs/some-job"),
-						ghttp.RespondWithJSONEncoded(200, atc.Job{
-							NextBuild: nil,
-							FinishedBuild: &atc.Build{
-								ID:      3,
-								Name:    "3",
-								Status:  "failed",
-								JobName: "some-job",
-							},
-						}),
-					),
-					eventsHandler(),
-				)
+				expectedResponse = atc.Job{
+					NextBuild: nil,
+					FinishedBuild: &atc.Build{
+						ID:      3,
+						Name:    "3",
+						Status:  "failed",
+						JobName: "some-job",
+					},
+				}
 			})
 
 			It("watches the job's finished build", func() {
-				watch("--job", "main/some-job")
+				watch("--job", "some-pipeline/branch:master/some-job")
 			})
 
 			It("watches the job's finished build URL", func() {
-				watch("--url", atcServer.URL()+"/teams/main/pipelines/main/jobs/some-job")
+				watch("--url", atcServer.URL()+"/teams/main/pipelines/some-pipeline/jobs/some-job?"+expectedQueryParams)
 			})
 		})
 
 		Context("with a specific build of the job", func() {
 			BeforeEach(func() {
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/main/jobs/some-job/builds/3"),
-						ghttp.RespondWithJSONEncoded(200, atc.Build{
-							ID:      3,
-							Name:    "3",
-							Status:  "failed",
-							JobName: "some-job",
-						}),
-					),
-					eventsHandler(),
-				)
+				expectedURL = "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/builds/3"
+				expectedResponse = atc.Build{
+					ID:      3,
+					Name:    "3",
+					Status:  "failed",
+					JobName: "some-job",
+				}
 			})
 
 			It("watches the given build", func() {
-				watch("--job", "main/some-job", "--build", "3")
+				watch("--job", "some-pipeline/branch:master/some-job", "--build", "3")
 			})
 
 			It("watches the given build URL", func() {
-				watch("--url", atcServer.URL()+"/teams/main/pipelines/main/jobs/some-job/builds/3")
+				watch("--url", atcServer.URL()+"/teams/main/pipelines/some-pipeline/jobs/some-job/builds/3?"+expectedQueryParams)
 			})
 		})
 	})

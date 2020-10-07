@@ -17,13 +17,15 @@ import (
 var _ = Describe("Fly CLI", func() {
 	Describe("unpin-resource", func() {
 		var (
-			expectedStatus   int
-			path             string
-			err              error
-			teamName         = "main"
-			pipelineName     = "pipeline"
-			resourceName     = "resource"
-			pipelineResource = fmt.Sprintf("%s/%s", pipelineName, resourceName)
+			expectedStatus      int
+			path                string
+			err                 error
+			teamName            = "main"
+			pipelineName        = "pipeline"
+			resourceName        = "resource"
+			pipelineRef         = atc.PipelineRef{Name: pipelineName, InstanceVars: atc.InstanceVars{"branch": "master"}}
+			pipelineResource    = fmt.Sprintf("%s/%s", pipelineRef.String(), resourceName)
+			expectedQueryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
 		)
 
 		BeforeEach(func() {
@@ -38,7 +40,7 @@ var _ = Describe("Fly CLI", func() {
 		JustBeforeEach(func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("PUT", path),
+					ghttp.VerifyRequest("PUT", path, expectedQueryParams),
 					ghttp.RespondWith(expectedStatus, nil),
 				),
 			)

@@ -1,27 +1,26 @@
 package exec_test
 
 import (
-	"code.cloudfoundry.org/lager/lagerctx"
-	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
-
 	"context"
 	"errors"
 	"io"
 
-	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/exec/build/buildfakes"
-	"github.com/onsi/gomega/gbytes"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel/api/trace"
 
+	"code.cloudfoundry.org/lager/lagerctx"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/atc/exec/build/buildfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/vars"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("SetPipelineStep", func() {
@@ -80,14 +79,15 @@ jobs:
 		cancel     func()
 		testLogger *lagertest.TestLogger
 
-		fakeDelegate        *execfakes.FakeSetPipelineStepDelegate
-		fakeDelegateFactory *execfakes.FakeSetPipelineStepDelegateFactory
-
 		fakeTeamFactory  *dbfakes.FakeTeamFactory
 		fakeBuildFactory *dbfakes.FakeBuildFactory
 		fakeBuild        *dbfakes.FakeBuild
 		fakeTeam         *dbfakes.FakeTeam
 		fakePipeline     *dbfakes.FakePipeline
+		spanCtx          context.Context
+
+		fakeDelegate        *execfakes.FakeSetPipelineStepDelegate
+		fakeDelegateFactory *execfakes.FakeSetPipelineStepDelegateFactory
 
 		fakeWorkerClient *workerfakes.FakeClient
 
@@ -100,14 +100,15 @@ jobs:
 		stepErr error
 
 		stepMetadata = exec.StepMetadata{
-			TeamID:       123,
-			TeamName:     "some-team",
-			JobID:        87,
-			JobName:      "some-job",
-			BuildID:      42,
-			BuildName:    "some-build",
-			PipelineID:   4567,
-			PipelineName: "some-pipeline",
+			TeamID:               123,
+			TeamName:             "some-team",
+			JobID:                87,
+			JobName:              "some-job",
+			BuildID:              42,
+			BuildName:            "some-build",
+			PipelineID:           4567,
+			PipelineName:         "some-pipeline",
+			PipelineInstanceVars: atc.InstanceVars{"branch": "feature/foo"},
 		}
 
 		stdout, stderr *gbytes.Buffer
@@ -136,6 +137,9 @@ jobs:
 		fakeDelegate.StdoutReturns(stdout)
 		fakeDelegate.StderrReturns(stderr)
 
+		spanCtx = context.Background()
+		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
+
 		fakeDelegateFactory = new(execfakes.FakeSetPipelineStepDelegateFactory)
 		fakeDelegateFactory.SetPipelineStepDelegateReturns(fakeDelegate)
 
@@ -146,26 +150,29 @@ jobs:
 		fakePipeline = new(dbfakes.FakePipeline)
 
 		stepMetadata = exec.StepMetadata{
-			TeamID:       123,
-			TeamName:     "some-team",
-			BuildID:      42,
-			BuildName:    "some-build",
-			PipelineID:   4567,
-			PipelineName: "some-pipeline",
+			TeamID:               123,
+			TeamName:             "some-team",
+			BuildID:              42,
+			BuildName:            "some-build",
+			PipelineID:           4567,
+			PipelineName:         "some-pipeline",
+			PipelineInstanceVars: atc.InstanceVars{"branch": "feature/foo"},
 		}
 
 		fakeTeam.IDReturns(stepMetadata.TeamID)
 		fakeTeam.NameReturns(stepMetadata.TeamName)
 
 		fakePipeline.NameReturns("some-pipeline")
+		fakePipeline.InstanceVarsReturns(atc.InstanceVars{"branch": "feature/foo"})
 		fakeTeamFactory.GetByIDReturns(fakeTeam)
 		fakeBuildFactory.BuildReturns(fakeBuild, true, nil)
 
 		fakeWorkerClient = new(workerfakes.FakeClient)
 
 		spPlan = &atc.SetPipelinePlan{
-			Name: "some-pipeline",
-			File: "some-resource/pipeline.yml",
+			Name:         "some-pipeline",
+			File:         "some-resource/pipeline.yml",
+			InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
 		}
 	})
 
@@ -262,8 +269,11 @@ jobs:
 
 				It("should save the pipeline", func() {
 					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
-					name, _, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
-					Expect(name).To(Equal("some-pipeline"))
+					ref, _, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
+					Expect(ref).To(Equal(atc.PipelineRef{
+						Name:         "some-pipeline",
+						InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
+					}))
 					Expect(paused).To(BeFalse())
 				})
 
@@ -345,8 +355,11 @@ jobs:
 
 				It("should save the pipeline un-paused", func() {
 					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
-					name, _, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
-					Expect(name).To(Equal("some-pipeline"))
+					ref, _, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
+					Expect(ref).To(Equal(atc.PipelineRef{
+						Name:         "some-pipeline",
+						InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
+					}))
 					Expect(paused).To(BeFalse())
 				})
 
@@ -365,17 +378,21 @@ jobs:
 			Context("when set-pipeline self", func() {
 				BeforeEach(func() {
 					spPlan = &atc.SetPipelinePlan{
-						Name: "self",
-						File: "some-resource/pipeline.yml",
-						Team: "foo-team",
+						Name:         "self",
+						File:         "some-resource/pipeline.yml",
+						Team:         "foo-team",
+						InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
 					}
 					fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
 				})
 
 				It("should save the pipeline itself", func() {
 					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
-					name, _, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
-					Expect(name).To(Equal("some-pipeline"))
+					pipelineRef, _, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+					Expect(pipelineRef).To(Equal(atc.PipelineRef{
+						Name:         "some-pipeline",
+						InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
+					}))
 				})
 
 				It("should save to the current team", func() {

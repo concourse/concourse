@@ -62,7 +62,7 @@ var _ = Describe("Resolve", func() {
 		team, err := teamFactory.CreateTeam(atc.Team{Name: "algorithm"})
 		Expect(err).NotTo(HaveOccurred())
 
-		pipeline, _, err := team.SavePipeline("algorithm", atc.Config{
+		pipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "algorithm"}, atc.Config{
 			Resources: atc.ResourceConfigs{
 				{
 					Name: "r1",

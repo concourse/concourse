@@ -11,7 +11,6 @@ import (
 	"github.com/concourse/concourse/atc/api/artifactserver"
 	"github.com/concourse/concourse/atc/api/buildserver"
 	"github.com/concourse/concourse/atc/api/ccserver"
-	"github.com/concourse/concourse/atc/api/checkserver"
 	"github.com/concourse/concourse/atc/api/cliserver"
 	"github.com/concourse/concourse/atc/api/configserver"
 	"github.com/concourse/concourse/atc/api/containerserver"
@@ -86,7 +85,6 @@ func NewHandler(
 	teamHandlerFactory := NewTeamScopedHandlerFactory(logger, dbTeamFactory)
 
 	buildServer := buildserver.NewServer(logger, externalURL, dbTeamFactory, dbBuildFactory, eventHandlerFactory)
-	checkServer := checkserver.NewServer(logger, dbCheckFactory)
 	jobServer := jobserver.NewServer(logger, externalURL, secretManager, dbJobFactory, dbCheckFactory)
 	resourceServer := resourceserver.NewServer(logger, secretManager, varSourcePool, dbCheckFactory, dbResourceFactory, dbResourceConfigFactory)
 
@@ -120,8 +118,6 @@ func NewHandler(
 		atc.GetBuildPreparation: buildHandlerFactory.HandlerFor(buildServer.GetBuildPreparation),
 		atc.BuildEvents:         buildHandlerFactory.HandlerFor(buildServer.BuildEvents),
 		atc.ListBuildArtifacts:  buildHandlerFactory.HandlerFor(buildServer.GetBuildArtifacts),
-
-		atc.GetCheck: http.HandlerFunc(checkServer.GetCheck),
 
 		atc.ListAllJobs:    http.HandlerFunc(jobServer.ListAllJobs),
 		atc.ListJobs:       pipelineHandlerFactory.HandlerFor(jobServer.ListJobs),

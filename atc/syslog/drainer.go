@@ -65,12 +65,7 @@ func (d *drainer) Run(ctx context.Context) error {
 }
 
 func (d *drainer) drainBuild(logger lager.Logger, build db.Build, syslog *Syslog) error {
-	logger = logger.Session("drain-build", lager.Data{
-		"team":     build.TeamName(),
-		"pipeline": build.PipelineName(),
-		"job":      build.JobName(),
-		"build":    build.Name(),
-	})
+	logger = logger.Session("drain-build", build.LagerData())
 
 	events, err := build.Events(0)
 	if err != nil {
@@ -99,10 +94,12 @@ func (d *drainer) drainBuild(logger lager.Logger, build db.Build, syslog *Syslog
 				return err
 			}
 
-			payload := log.Payload
-			tag := build.TeamName() + "/" + build.PipelineName() + "/" + build.JobName() + "/" + build.Name() + "/" + string(log.Origin.ID)
-
-			err = syslog.Write(d.hostname, tag, time.Unix(log.Time, 0), payload)
+			err = syslog.Write(
+				d.hostname,
+				build.SyslogTag(log.Origin.ID),
+				time.Unix(log.Time, 0),
+				log.Payload,
+			)
 			if err != nil {
 				logger.Error("failed-to-write-to-server", err)
 				return err

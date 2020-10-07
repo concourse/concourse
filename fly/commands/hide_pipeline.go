@@ -25,8 +25,6 @@ func (command *HidePipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	pipelineName := string(command.Pipeline)
-
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
@@ -47,15 +45,16 @@ func (command *HidePipelineCommand) Execute(args []string) error {
 		team = target.Team()
 	}
 
-	found, err := team.HidePipeline(pipelineName)
+	pipelineRef := command.Pipeline.Ref()
+	found, err := team.HidePipeline(pipelineRef)
 	if err != nil {
 		return err
 	}
 
 	if found {
-		fmt.Printf("hid '%s'\n", pipelineName)
+		fmt.Printf("hid '%s'\n", pipelineRef.String())
 	} else {
-		displayhelpers.Failf("pipeline '%s' not found\n", pipelineName)
+		displayhelpers.Failf("pipeline '%s' not found\n", pipelineRef.String())
 	}
 
 	return nil

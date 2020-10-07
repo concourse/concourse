@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os/exec"
+	"strings"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/gorilla/websocket"
@@ -318,8 +319,9 @@ var _ = Describe("Hijacking", func() {
 
 	Context("when multiple step containers are found", func() {
 		var (
-			containerList []atc.Container
-			didHijack     chan struct{}
+			containerList       []atc.Container
+			didHijack           chan struct{}
+			expectedQueryParams []string
 		)
 
 		BeforeEach(func() {
@@ -375,12 +377,13 @@ var _ = Describe("Hijacking", func() {
 					State:        atc.ContainerStateCreated,
 				},
 			}
+			expectedQueryParams = append([]string{}, "pipeline_name=pipeline-name-1", "job_name=some-job")
 		})
 
 		JustBeforeEach(func() {
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", "pipeline_name=pipeline-name-1&job_name=some-job"),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", strings.Join(expectedQueryParams, "&")),
 					ghttp.RespondWithJSONEncoded(200, containerList),
 				),
 				hijackHandler("container-id-2", didHijack, nil, "main"),
@@ -599,7 +602,7 @@ var _ = Describe("Hijacking", func() {
 
 	Context("when hijack returns a single container", func() {
 		var (
-			containerArguments string
+			containerArguments []string
 			stepType           string
 			stepName           string
 			buildID            int
@@ -621,7 +624,7 @@ var _ = Describe("Hijacking", func() {
 			stepType = ""
 			stepName = ""
 			resourceName = ""
-			containerArguments = ""
+			containerArguments = []string{}
 			attempt = ""
 			hijackTeamName = "main"
 		})
@@ -632,7 +635,7 @@ var _ = Describe("Hijacking", func() {
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/api/v1/teams/"+hijackTeamName+"/containers", containerArguments),
+					ghttp.VerifyRequest("GET", "/api/v1/teams/"+hijackTeamName+"/containers", strings.Join(containerArguments, "&")),
 					ghttp.RespondWithJSONEncoded(200, []atc.Container{
 						{ID: "container-id-1", State: atc.ContainerStateCreated, WorkerName: "some-worker", PipelineName: pipelineName, JobName: jobName, BuildName: buildName, BuildID: buildID, Type: stepType, StepName: stepName, ResourceName: resourceName, Attempt: attempt, User: user},
 					}),
@@ -644,7 +647,7 @@ var _ = Describe("Hijacking", func() {
 		Context("when called with check container", func() {
 			BeforeEach(func() {
 				resourceName = "some-resource-name"
-				containerArguments = "type=check&resource_name=some-resource-name&pipeline_name=a-pipeline"
+				containerArguments = append(containerArguments, "type=check", "resource_name=some-resource-name", "pipeline_name=a-pipeline")
 			})
 
 			Context("when the team is 'main'", func() {
@@ -655,11 +658,23 @@ var _ = Describe("Hijacking", func() {
 					It("can accept the check resources name and a pipeline", func() {
 						hijack("--check", "a-pipeline/some-resource-name")
 					})
-				})
 
-				Context("and with url specified", func() {
 					It("hijacks the given check container by URL", func() {
 						hijack("--url", atcServer.URL()+"/teams/"+teamName+"/pipelines/a-pipeline/resources/some-resource-name")
+					})
+
+					Context("and with pipeline instance is specified", func() {
+						BeforeEach(func() {
+							containerArguments = append(containerArguments, "instance_vars=%7B%22branch%22%3A%22master%22%7D")
+						})
+
+						It("can accept the check resources name and a pipeline", func() {
+							hijack("--check", "a-pipeline/branch:master/some-resource-name")
+						})
+
+						It("hijacks the given check container by URL", func() {
+							hijack("--url", atcServer.URL()+"/teams/"+teamName+"/pipelines/a-pipeline/resources/some-resource-name"+"?instance_vars=%7B%22branch%22%3A%22master%22%7D")
+						})
 					})
 				})
 			})
@@ -691,7 +706,7 @@ var _ = Describe("Hijacking", func() {
 
 		Context("when called with a specific build id", func() {
 			BeforeEach(func() {
-				containerArguments = "build_id=2&step_name=some-step"
+				containerArguments = append(containerArguments, "build_id=2", "step_name=some-step")
 				stepType = "task"
 				stepName = "some-step"
 				buildID = 2
@@ -725,7 +740,7 @@ var _ = Describe("Hijacking", func() {
 
 		Context("when called with a specific job", func() {
 			BeforeEach(func() {
-				containerArguments = "pipeline_name=some-pipeline&job_name=some-job&step_name=some-step"
+				containerArguments = append(containerArguments, "pipeline_name=some-pipeline", "job_name=some-job", "step_name=some-step")
 				jobName = "some-job"
 				buildName = "3"
 				buildID = 13
@@ -738,13 +753,29 @@ var _ = Describe("Hijacking", func() {
 					BeforeEach(func() {
 						hijackTeamName = "main"
 					})
-					It("hijacks the job's next build with 'pipelineName/jobName'", func() {
+
+					It("hijacks the job's next build with '<pipeline>/<job>'", func() {
 						hijack("--job", "some-pipeline/some-job", "--step", "some-step")
 					})
 
 					It("hijacks the job's next build when URL is specified", func() {
 						hijack("--url", atcServer.URL()+"/teams/"+teamName+"/pipelines/some-pipeline/jobs/some-job", "--step", "some-step")
 					})
+
+					Context("when pipeline instance is specified", func() {
+						BeforeEach(func() {
+							containerArguments = append(containerArguments, "instance_vars=%7B%22branch%22%3A%22master%22%7D")
+						})
+
+						It("hijacks the job's next build with '<pipeline>/<instance_vars>/<job>'", func() {
+							hijack("--job", "some-pipeline/branch:master/some-job", "--step", "some-step")
+						})
+
+						It("hijacks the job's next build when URL is specified", func() {
+							hijack("--url", atcServer.URL()+"/teams/"+teamName+"/pipelines/some-pipeline/jobs/some-job"+"?instance_vars=%7B%22branch%22%3A%22master%22%7D", "--step", "some-step")
+						})
+					})
+
 				})
 
 				Context("When the team is 'other'", func() {
@@ -770,7 +801,7 @@ var _ = Describe("Hijacking", func() {
 
 			Context("with a specific build of the job", func() {
 				BeforeEach(func() {
-					containerArguments = "pipeline_name=some-pipeline&job_name=some-job&build_name=3&step_name=some-step"
+					containerArguments = append(containerArguments, "build_name=3")
 				})
 
 				Context("When the team is 'main'", func() {
@@ -808,7 +839,7 @@ var _ = Describe("Hijacking", func() {
 
 		Context("when called with a specific attempt number", func() {
 			BeforeEach(func() {
-				containerArguments = "pipeline_name=some-pipeline&job_name=some-job&step_name=some-step&attempt=2.4"
+				containerArguments = append(containerArguments, "pipeline_name=some-pipeline", "job_name=some-job", "step_name=some-step", "attempt=2.4")
 				jobName = "some-job"
 				buildName = "3"
 				buildID = 13
@@ -844,7 +875,7 @@ var _ = Describe("Hijacking", func() {
 
 		Context("when called with a step type", func() {
 			BeforeEach(func() {
-				containerArguments = "pipeline_name=some-pipeline&job_name=some-job&step_name=some-step&type=put"
+				containerArguments = append(containerArguments, "pipeline_name=some-pipeline", "job_name=some-job", "step_name=some-step", "type=put")
 				jobName = "some-job"
 				buildName = "3"
 				buildID = 13
@@ -863,7 +894,7 @@ var _ = Describe("Hijacking", func() {
 				path = "sh"
 				args = []string{"echo hello"}
 
-				containerArguments = "build_id=2&step_name=some-step"
+				containerArguments = append(containerArguments, "build_id=2", "step_name=some-step")
 				stepType = "task"
 				stepName = "some-step"
 				buildID = 2
@@ -877,7 +908,7 @@ var _ = Describe("Hijacking", func() {
 		Context("when hijacking yields an error", func() {
 			BeforeEach(func() {
 				resourceName = "some-resource-name"
-				containerArguments = "type=check&resource_name=some-resource-name&pipeline_name=a-pipeline"
+				containerArguments = append(containerArguments, "type=check", "resource_name=some-resource-name", "pipeline_name=a-pipeline")
 				hijackHandlerError = []string{"something went wrong"}
 			})
 

@@ -31,10 +31,6 @@ test.afterEach.always(async t => {
   await t.context.fly.cleanup();
 });
 
-async function cleanup (t) {
-  await t.context.fly.run('destroy-pipeline -n -p some-pipeline');
-};
-
 test('can fly login with browser and reuse same browser without CSRF issues', async t => {
   let flyPromise = t.context.fly.spawn(`login -c ${t.context.url}`);
   flyPromise.childProcess.stdout.on('data', async data => {
@@ -52,17 +48,17 @@ test('can fly login with browser and reuse same browser without CSRF issues', as
   await t.context.web.waitForText('your token has been transferred');
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
   await t.context.web.page.goto(t.context.web.route('/'));
-  let pipelineSelector = '.card[data-pipeline-name=some-pipeline]';
+  const group = `.dashboard-team-group[data-team-name="main"]`;
+  let pipelineSelector = `${group} .card[data-pipeline-name="some-pipeline"]`;
   let playButton = `${pipelineSelector} [style*="ic-play"]`;
   let pauseButton = `${pipelineSelector} [style*="ic-pause"]`;
-  const group = `.dashboard-team-group[data-team-name="main"]`;
   await t.context.web.scrollIntoView(group);
   await t.context.web.page.waitFor(playButton);
   await t.context.web.page.click(playButton);
   await t.context.web.page.waitForSelector(pauseButton, {timeout: 90000});
   t.pass();
 
-  cleanup(t);
+  await t.context.fly.run('destroy-pipeline -n -p some-pipeline');
 });
 
 test('password input does not autocomplete', async t => {

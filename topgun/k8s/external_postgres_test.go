@@ -40,7 +40,7 @@ var _ = Describe("External PostgreSQL", func() {
 	})
 
 	AfterEach(func() {
-		helmDestroy(pgReleaseName)
+		helmDestroy(pgReleaseName, namespace)
 		cleanup(releaseName, namespace)
 	})
 

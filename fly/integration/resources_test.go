@@ -1,7 +1,6 @@
 package integration_test
 
 import (
-	"fmt"
 	"os/exec"
 
 	"github.com/concourse/concourse/atc"
@@ -35,23 +34,50 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Context("when resources are returned from the API", func() {
-			createResource := func(num int, pinnedVersion atc.Version, resourceType string) atc.Resource {
-				return atc.Resource{
-					Name:          fmt.Sprintf("resource-%d", num),
-					PinnedVersion: pinnedVersion,
-					Type:          resourceType,
-				}
-			}
-
 			BeforeEach(func() {
-				pipelineName := "pipeline"
-				flyCmd = exec.Command(flyPath, "-t", targetName, "resources", "--pipeline", pipelineName)
+				flyCmd = exec.Command(flyPath, "-t", targetName, "resources", "--pipeline", "pipeline/branch:master")
+				pipelineRef := atc.PipelineRef{Name: "pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/resources"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/resources", "instance_vars=%7B%22branch%22%3A%22master%22%7D"),
 						ghttp.RespondWithJSONEncoded(200, []atc.Resource{
-							createResource(1, nil, "time"),
-							createResource(2, atc.Version{"some": "version"}, "custom"),
+							{
+								Name:                 "resource-1",
+								PipelineID:           1,
+								PipelineName:         pipelineRef.Name,
+								PipelineInstanceVars: pipelineRef.InstanceVars,
+								TeamName:             teamName,
+								Type:                 "time",
+							},
+							{
+								Name:                 "resource-2",
+								PipelineID:           1,
+								PipelineName:         pipelineRef.Name,
+								PipelineInstanceVars: pipelineRef.InstanceVars,
+								TeamName:             teamName,
+								Type:                 "custom",
+								PinnedVersion:        atc.Version{"some": "version"},
+							},
+							{
+								Name:                 "resource-3",
+								PipelineID:           1,
+								PipelineName:         pipelineRef.Name,
+								PipelineInstanceVars: pipelineRef.InstanceVars,
+								TeamName:             teamName,
+								Type:                 "mock",
+								FailingToCheck:       true,
+								CheckError:           "some check error",
+							},
+							{
+								Name:                 "resource-4",
+								PipelineID:           1,
+								PipelineName:         pipelineRef.Name,
+								PipelineInstanceVars: pipelineRef.InstanceVars,
+								TeamName:             teamName,
+								Type:                 "mock",
+								FailingToCheck:       true,
+								CheckSetupError:      "some check setup error",
+							},
 						}),
 					),
 				)
@@ -70,16 +96,48 @@ var _ = Describe("Fly CLI", func() {
 					Expect(sess.Out.Contents()).To(MatchJSON(`[
               {
                 "name": "resource-1",
-                "pipeline_name": "",
-                "team_name": "",
+                "pipeline_id": 1,
+                "pipeline_name": "pipeline",
+                "pipeline_instance_vars": {
+                  "branch": "master"
+                },
+                "team_name": "main",
                 "type": "time"
               },
               {
                 "name": "resource-2",
-                "pipeline_name": "",
-                "team_name": "",
+                "pipeline_id": 1,
+                "pipeline_name": "pipeline",
+                "pipeline_instance_vars": {
+                  "branch": "master"
+                },
+                "team_name": "main",
                 "type": "custom",
-								"pinned_version": {"some": "version"}
+                "pinned_version": {"some": "version"}
+              },
+              {
+                "name": "resource-3",
+                "pipeline_id": 1,
+                "pipeline_name": "pipeline",
+                "pipeline_instance_vars": {
+                  "branch": "master"
+                },
+                "team_name": "main",
+                "type": "mock",
+								"failing_to_check": true,
+								"check_error": "some check error"
+              },
+              {
+                "name": "resource-4",
+                "pipeline_id": 1,
+                "pipeline_name": "pipeline",
+                "pipeline_instance_vars": {
+                  "branch": "master"
+                },
+                "team_name": "main",
+                "type": "mock",
+								"failing_to_check": true,
+								"check_setup_error": "some check setup error"
               }
             ]`))
 				})
@@ -92,8 +150,10 @@ var _ = Describe("Fly CLI", func() {
 
 				Expect(sess.Out).To(PrintTable(ui.Table{
 					Data: []ui.TableRow{
-						{{Contents: "resource-1"}, {Contents: "time"}, {Contents: "n/a"}},
-						{{Contents: "resource-2"}, {Contents: "custom"}, {Contents: "some:version", Color: color.New(color.FgCyan)}},
+						{{Contents: "resource-1"}, {Contents: "time"}, {Contents: "n/a"}, {Contents: "ok", Color: color.New(color.FgGreen)}},
+						{{Contents: "resource-2"}, {Contents: "custom"}, {Contents: "some:version", Color: color.New(color.FgCyan)}, {Contents: "ok", Color: color.New(color.FgGreen)}},
+						{{Contents: "resource-3"}, {Contents: "mock"}, {Contents: "n/a"}, {Contents: "some check error", Color: color.New(color.FgRed)}},
+						{{Contents: "resource-4"}, {Contents: "mock"}, {Contents: "n/a"}, {Contents: "some check setup error", Color: color.New(color.FgRed, color.Bold)}},
 					},
 				}))
 			})

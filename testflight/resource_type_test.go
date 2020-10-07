@@ -36,8 +36,10 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 
 		It("can check for resources having a custom type recursively", func() {
 			checkResource := fly("check-resource", "-r", inPipeline("my-resource"))
-			Expect(checkResource).To(gbytes.Say("custom-resource-type.*succeeded"))
-			Expect(checkResource).To(gbytes.Say("my-resource.*succeeded"))
+			Expect(checkResource).To(gbytes.Say("custom-resource-type"))
+			Expect(checkResource).To(gbytes.Say("succeeded"))
+			Expect(checkResource).To(gbytes.Say("my-resource"))
+			Expect(checkResource).To(gbytes.Say("succeeded"))
 		})
 
 		It("can check for resources having a custom type shallowly and error out", func() {

@@ -353,11 +353,12 @@ func (step *TaskStep) Visit(v StepVisitor) error {
 }
 
 type SetPipelineStep struct {
-	Name     string   `json:"set_pipeline"`
-	File     string   `json:"file,omitempty"`
-	Team     string   `json:"team,omitempty"`
-	Vars     Params   `json:"vars,omitempty"`
-	VarFiles []string `json:"var_files,omitempty"`
+	Name         string       `json:"set_pipeline"`
+	File         string       `json:"file,omitempty"`
+	Team         string       `json:"team,omitempty"`
+	Vars         Params       `json:"vars,omitempty"`
+	VarFiles     []string     `json:"var_files,omitempty"`
+	InstanceVars InstanceVars `json:"instance_vars,omitempty"`
 }
 
 func (step *SetPipelineStep) Visit(v StepVisitor) error {

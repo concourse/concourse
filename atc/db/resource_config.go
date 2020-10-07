@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strconv"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
@@ -45,23 +45,36 @@ type ResourceConfigDescriptor struct {
 
 type ResourceConfig interface {
 	ID() int
+	LastReferenced() time.Time
 	CreatedByResourceCache() UsedResourceCache
 	CreatedByBaseResourceType() *UsedBaseResourceType
+
 	OriginBaseResourceType() *UsedBaseResourceType
 
-	FindResourceConfigScopeByID(int, Resource) (ResourceConfigScope, bool, error)
+	FindOrCreateScope(Resource) (ResourceConfigScope, error)
 }
 
 type resourceConfig struct {
 	id                        int
+	lastReferenced            time.Time
 	createdByResourceCache    UsedResourceCache
 	createdByBaseResourceType *UsedBaseResourceType
 	lockFactory               lock.LockFactory
 	conn                      Conn
 }
 
-func (r *resourceConfig) ID() int                                   { return r.id }
-func (r *resourceConfig) CreatedByResourceCache() UsedResourceCache { return r.createdByResourceCache }
+func (r *resourceConfig) ID() int {
+	return r.id
+}
+
+func (r *resourceConfig) LastReferenced() time.Time {
+	return r.lastReferenced
+}
+
+func (r *resourceConfig) CreatedByResourceCache() UsedResourceCache {
+	return r.createdByResourceCache
+}
+
 func (r *resourceConfig) CreatedByBaseResourceType() *UsedBaseResourceType {
 	return r.createdByBaseResourceType
 }
@@ -73,58 +86,44 @@ func (r *resourceConfig) OriginBaseResourceType() *UsedBaseResourceType {
 	return r.createdByResourceCache.ResourceConfig().OriginBaseResourceType()
 }
 
-func (r *resourceConfig) FindResourceConfigScopeByID(resourceConfigScopeID int, resource Resource) (ResourceConfigScope, bool, error) {
-	var (
-		id           int
-		rcID         int
-		rID          sql.NullString
-		checkErrBlob sql.NullString
-	)
-
-	err := psql.Select("id, resource_id, resource_config_id, check_error").
-		From("resource_config_scopes").
-		Where(sq.Eq{
-			"id":                 resourceConfigScopeID,
-			"resource_config_id": r.id,
-		}).
-		RunWith(r.conn).
-		QueryRow().
-		Scan(&id, &rID, &rcID, &checkErrBlob)
+func (r *resourceConfig) FindOrCreateScope(resource Resource) (ResourceConfigScope, error) {
+	tx, err := r.conn.Begin()
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, false, nil
-		}
-		return nil, false, err
+		return nil, err
 	}
 
-	var uniqueResource Resource
-	if rID.Valid {
-		var resourceID int
-		resourceID, err = strconv.Atoi(rID.String)
-		if err != nil {
-			return nil, false, err
-		}
+	defer Rollback(tx)
 
-		if resource.ID() == resourceID {
-			uniqueResource = resource
-		}
+	scope, err := findOrCreateResourceConfigScope(
+		tx,
+		r.conn,
+		r.lockFactory,
+		r,
+		resource,
+	)
+	if err != nil {
+		return nil, err
 	}
 
-	var checkErr error
-	if checkErrBlob.Valid {
-		checkErr = errors.New(checkErrBlob.String)
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
 	}
 
-	return &resourceConfigScope{
-		id:             id,
-		resource:       uniqueResource,
-		resourceConfig: r,
-		checkError:     checkErr,
-		conn:           r.conn,
-		lockFactory:    r.lockFactory}, true, nil
+	return scope, nil
 }
 
-func (r *ResourceConfigDescriptor) findOrCreate(tx Tx, lockFactory lock.LockFactory, conn Conn) (ResourceConfig, error) {
+func (r *resourceConfig) updateLastReferenced(tx Tx) error {
+	return psql.Update("resource_configs").
+		Set("last_referenced", sq.Expr("now()")).
+		Where(sq.Eq{"id": r.id}).
+		Suffix("RETURNING last_referenced").
+		RunWith(tx).
+		QueryRow().
+		Scan(&r.lastReferenced)
+}
+
+func (r *ResourceConfigDescriptor) findOrCreate(tx Tx, lockFactory lock.LockFactory, conn Conn) (*resourceConfig, error) {
 	rc := &resourceConfig{
 		lockFactory: lockFactory,
 		conn:        conn,
@@ -162,7 +161,7 @@ func (r *ResourceConfigDescriptor) findOrCreate(tx Tx, lockFactory lock.LockFact
 		parentID = rc.CreatedByBaseResourceType().ID
 	}
 
-	id, found, err := r.findWithParentID(tx, parentColumnName, parentID)
+	found, err := r.findWithParentID(tx, rc, parentColumnName, parentID)
 	if err != nil {
 		return nil, err
 	}
@@ -184,18 +183,15 @@ func (r *ResourceConfigDescriptor) findOrCreate(tx Tx, lockFactory lock.LockFact
 				ON CONFLICT (`+parentColumnName+`, source_hash) DO UPDATE SET
 					`+parentColumnName+` = ?,
 					source_hash = ?
-				RETURNING id
+				RETURNING id, last_referenced
 			`, parentID, hash).
 			RunWith(tx).
 			QueryRow().
-			Scan(&id)
-
+			Scan(&rc.id, &rc.lastReferenced)
 		if err != nil {
 			return nil, err
 		}
 	}
-
-	rc.id = id
 
 	return rc, nil
 }
@@ -242,7 +238,7 @@ func (r *ResourceConfigDescriptor) find(tx Tx, lockFactory lock.LockFactory, con
 		parentID = rc.createdByBaseResourceType.ID
 	}
 
-	id, found, err := r.findWithParentID(tx, parentColumnName, parentID)
+	found, err := r.findWithParentID(tx, rc, parentColumnName, parentID)
 	if err != nil {
 		return nil, false, err
 	}
@@ -251,35 +247,29 @@ func (r *ResourceConfigDescriptor) find(tx Tx, lockFactory lock.LockFactory, con
 		return nil, false, nil
 	}
 
-	rc.id = id
-
 	return rc, true, nil
 }
 
-func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, parentColumnName string, parentID int) (int, bool, error) {
-	var id int
-	var whereClause sq.Eq
-
-	err := psql.Select("id").
+func (r *ResourceConfigDescriptor) findWithParentID(tx Tx, rc *resourceConfig, parentColumnName string, parentID int) (bool, error) {
+	err := psql.Select("id", "last_referenced").
 		From("resource_configs").
 		Where(sq.Eq{
 			parentColumnName: parentID,
 			"source_hash":    mapHash(r.Source),
 		}).
-		Where(whereClause).
-		Suffix("FOR SHARE").
+		Suffix("FOR UPDATE").
 		RunWith(tx).
 		QueryRow().
-		Scan(&id)
+		Scan(&rc.id, &rc.lastReferenced)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 0, false, nil
+			return false, nil
 		}
 
-		return 0, false, err
+		return false, err
 	}
 
-	return id, true, nil
+	return true, nil
 }
 
 func findOrCreateResourceConfigScope(
@@ -288,27 +278,17 @@ func findOrCreateResourceConfigScope(
 	lockFactory lock.LockFactory,
 	resourceConfig ResourceConfig,
 	resource Resource,
-	resourceType string,
-	resourceTypes atc.VersionedResourceTypes,
 ) (ResourceConfigScope, error) {
-
-	var unique bool
 	var uniqueResource Resource
 	var resourceID *int
 
 	if resource != nil {
+		var unique bool
 		if !atc.EnableGlobalResources {
 			unique = true
 		} else {
-			customType, found := resourceTypes.Lookup(resourceType)
-			if found {
-				unique = customType.UniqueVersionHistory
-			} else {
-				baseType := resourceConfig.CreatedByBaseResourceType()
-				if baseType == nil {
-					return nil, ErrResourceConfigHasNoType
-				}
-				unique = baseType.UniqueVersionHistory
+			if brt := resourceConfig.CreatedByBaseResourceType(); brt != nil {
+				unique = brt.UniqueVersionHistory
 			}
 		}
 
@@ -351,7 +331,7 @@ func findOrCreateResourceConfigScope(
 		if err != nil {
 			return nil, err
 		}
-	} else if unique && resource != nil {
+	} else if uniqueResource != nil {
 		// delete outdated scopes for resource
 		_, err := psql.Delete("resource_config_scopes").
 			Where(sq.And{

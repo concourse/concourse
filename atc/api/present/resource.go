@@ -21,11 +21,13 @@ func Resource(resource db.Resource, showCheckError bool, teamName string) atc.Re
 	}
 
 	atcResource := atc.Resource{
-		Name:         resource.Name(),
-		PipelineName: resource.PipelineName(),
-		TeamName:     teamName,
-		Type:         resource.Type(),
-		Icon:         resource.Icon(),
+		Name:                 resource.Name(),
+		PipelineID:           resource.PipelineID(),
+		PipelineName:         resource.PipelineName(),
+		PipelineInstanceVars: resource.PipelineInstanceVars(),
+		TeamName:             teamName,
+		Type:                 resource.Type(),
+		Icon:                 resource.Icon(),
 
 		FailingToCheck:  failingToCheck,
 		CheckSetupError: checkErrString,

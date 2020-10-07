@@ -271,10 +271,13 @@ var _ = Describe("Fly CLI", func() {
 								{Name: "some-pipeline-1", Paused: false, Public: false, LastUpdated: 1},
 								{Name: "some-pipeline-2", Paused: false, Public: false, LastUpdated: 1},
 								{Name: "another-pipeline", Paused: false, Public: false, LastUpdated: 1},
+								{Name: "instanced-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}, Paused: false, Public: false, LastUpdated: 1},
+								{Name: "instanced-pipeline", InstanceVars: atc.InstanceVars{"branch": "feature/foo"}, Paused: false, Public: false, LastUpdated: 1},
 							}),
 						),
 					)
 				})
+
 				It("returns all matching pipelines", func() {
 					flyCmd = exec.Command(flyPath, "-t", targetName, "get-pipeline", "-p", "some-")
 					flyCmd.Env = append(os.Environ(), "GO_FLAGS_COMPLETION=1")
@@ -286,6 +289,22 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("some-pipeline-2"))
 					Eventually(sess.Out).ShouldNot(gbytes.Say("another-pipeline"))
 				})
+
+				It("returns all matching pipeline instances", func() {
+					flyCmd = exec.Command(flyPath, "-t", targetName, "get-pipeline", "-p", "instanced-pipeline/")
+					flyCmd.Env = append(os.Environ(), "GO_FLAGS_COMPLETION=1")
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+					Eventually(sess).Should(gexec.Exit(0))
+					Eventually(sess.Out).Should(gbytes.Say("instanced-pipeline/branch:feature/foo"))
+					Eventually(sess.Out).Should(gbytes.Say("instanced-pipeline/branch:master"))
+					Eventually(sess.Out).ShouldNot(gbytes.Say("some-pipeline-1"))
+					Eventually(sess.Out).ShouldNot(gbytes.Say("some-pipeline-2"))
+					Eventually(sess.Out).ShouldNot(gbytes.Say("another-pipeline"))
+
+				})
+
 				It("works with other application level flags", func() {
 					flyCmd = exec.Command(flyPath, "--verbose", "-t", targetName, "get-pipeline", "-p", "some-")
 					flyCmd.Env = append(os.Environ(), "GO_FLAGS_COMPLETION=1")

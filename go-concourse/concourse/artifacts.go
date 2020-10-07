@@ -11,7 +11,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-func (team *team) CreateArtifact(src io.Reader, platform string) (atc.WorkerArtifact, error) {
+func (team *team) CreateArtifact(src io.Reader, platform string, tags []string) (atc.WorkerArtifact, error) {
 	var artifact atc.WorkerArtifact
 
 	params := rata.Params{
@@ -22,7 +22,7 @@ func (team *team) CreateArtifact(src io.Reader, platform string) (atc.WorkerArti
 		Header:      http.Header{"Content-Type": {"application/octet-stream"}},
 		RequestName: atc.CreateArtifact,
 		Params:      params,
-		Query:       url.Values{"platform": {platform}},
+		Query:       url.Values{"platform": {platform}, "tags": tags},
 		Body:        src,
 	}, &internal.Response{
 		Result: &artifact,

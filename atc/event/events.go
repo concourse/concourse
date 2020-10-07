@@ -115,6 +115,10 @@ type Origin struct {
 
 type OriginID string
 
+func (id OriginID) String() string {
+	return string(id)
+}
+
 type OriginSource string
 
 const (

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -19,6 +20,7 @@ import (
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/tracing"
 )
 
 const schema = "exec.v2"
@@ -57,10 +59,15 @@ const (
 	BuildStatusErrored   BuildStatus = "errored"
 )
 
+func (status BuildStatus) String() string {
+	return string(status)
+}
+
 var buildsQuery = psql.Select(`
 		b.id,
 		b.name,
 		b.job_id,
+		b.resource_id,
 		b.team_id,
 		b.status,
 		b.manually_triggered,
@@ -73,8 +80,10 @@ var buildsQuery = psql.Select(`
 		b.end_time,
 		b.reap_time,
 		j.name,
+		r.name,
 		b.pipeline_id,
 		p.name,
+		p.instance_vars,
 		t.name,
 		b.nonce,
 		b.drained,
@@ -82,15 +91,16 @@ var buildsQuery = psql.Select(`
 		b.completed,
 		b.inputs_ready,
 		b.rerun_of,
-		r.name,
+		rb.name,
 		b.rerun_number,
 		b.span_context
 	`).
 	From("builds b").
 	JoinClause("LEFT OUTER JOIN jobs j ON b.job_id = j.id").
+	JoinClause("LEFT OUTER JOIN resources r ON b.resource_id = r.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
 	JoinClause("LEFT OUTER JOIN teams t ON b.team_id = t.id").
-	JoinClause("LEFT OUTER JOIN builds r ON r.id = b.rerun_of")
+	JoinClause("LEFT OUTER JOIN builds rb ON rb.id = b.rerun_of")
 
 var minMaxIdQuery = psql.Select("COALESCE(MAX(b.id), 0)", "COALESCE(MIN(b.id), 0)").
 	From("builds as b")
@@ -106,10 +116,16 @@ type Build interface {
 
 	ID() int
 	Name() string
-	JobID() int
-	JobName() string
+
 	TeamID() int
 	TeamName() string
+
+	JobID() int
+	JobName() string
+
+	ResourceID() int
+	ResourceName() string
+
 	Schema() string
 	PrivatePlan() atc.Plan
 	PublicPlan() *json.RawMessage
@@ -127,6 +143,11 @@ type Build interface {
 	RerunOf() int
 	RerunOfName() string
 	RerunNumber() int
+
+	LagerData() lager.Data
+	TracingAttrs() tracing.Attrs
+
+	SyslogTag(event.OriginID) string
 
 	Reload() (bool, error)
 
@@ -168,7 +189,7 @@ type Build interface {
 	SpanContext() propagators.Supplier
 
 	SavePipeline(
-		pipelineName string,
+		pipelineRef atc.PipelineRef,
 		teamId int,
 		config atc.Config,
 		from ConfigVersion,
@@ -190,6 +211,9 @@ type build struct {
 
 	jobID   int
 	jobName string
+
+	resourceID   int
+	resourceName string
 
 	isManuallyTriggered bool
 
@@ -230,10 +254,82 @@ func (r ResourceNotFoundInPipeline) Error() string {
 	return fmt.Sprintf("resource %s not found in pipeline %s", r.Resource, r.Pipeline)
 }
 
+// SyslogTag returns a string to be set as a tag on syslog events pertaining to
+// the build.
+func (b *build) SyslogTag(origin event.OriginID) string {
+	segments := []string{b.teamName}
+
+	if b.pipelineID != 0 {
+		segments = append(segments, b.pipelineName)
+	}
+
+	if b.jobID != 0 {
+		segments = append(segments, b.jobName, b.name)
+	} else if b.resourceID != 0 {
+		segments = append(segments, b.resourceName, strconv.Itoa(b.id))
+	} else {
+		segments = append(segments, strconv.Itoa(b.id))
+	}
+
+	segments = append(segments, origin.String())
+
+	return strings.Join(segments, "/")
+}
+
+// LagerData returns attributes which are to be emitted in logs pertaining to
+// the build.
+func (b *build) LagerData() lager.Data {
+	data := lager.Data{
+		"build_id": b.id,
+		"build":    b.name,
+		"team":     b.teamName,
+	}
+
+	if b.pipelineID != 0 {
+		data["pipeline"] = b.pipelineName
+	}
+
+	if b.jobID != 0 {
+		data["job"] = b.jobName
+	}
+
+	if b.resourceID != 0 {
+		data["resource"] = b.resourceName
+	}
+
+	return data
+}
+
+// TracingAttrs returns attributes which are to be emitted in spans and
+// metrics pertaining to the build.
+func (b *build) TracingAttrs() tracing.Attrs {
+	data := tracing.Attrs{
+		"build_id": strconv.Itoa(b.id),
+		"build":    b.name,
+		"team":     b.teamName,
+	}
+
+	if b.pipelineID != 0 {
+		data["pipeline"] = b.pipelineName
+	}
+
+	if b.jobID != 0 {
+		data["job"] = b.jobName
+	}
+
+	if b.resourceID != 0 {
+		data["resource"] = b.resourceName
+	}
+
+	return data
+}
+
 func (b *build) ID() int                      { return b.id }
 func (b *build) Name() string                 { return b.name }
 func (b *build) JobID() int                   { return b.jobID }
 func (b *build) JobName() string              { return b.jobName }
+func (b *build) ResourceID() int              { return b.resourceID }
+func (b *build) ResourceName() string         { return b.resourceName }
 func (b *build) TeamID() int                  { return b.teamID }
 func (b *build) TeamName() string             { return b.teamName }
 func (b *build) IsManuallyTriggered() bool    { return b.isManuallyTriggered }
@@ -826,7 +922,7 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 		return BuildPreparation{}, false, nil
 	}
 
-	pipeline, found, err := t.Pipeline(b.pipelineName)
+	pipeline, found, err := t.Pipeline(b.PipelineRef())
 	if err != nil {
 		return BuildPreparation{}, false, err
 	}
@@ -1069,7 +1165,7 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, b.conn, b.lockFactory, resourceConfig, resource, resourceType, resourceTypes)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, b.conn, b.lockFactory, resourceConfig, resource)
 	if err != nil {
 		return err
 	}
@@ -1557,7 +1653,7 @@ func (b *build) SpanContext() propagators.Supplier {
 }
 
 func (b *build) SavePipeline(
-	pipelineName string,
+	pipelineRef atc.PipelineRef,
 	teamID int,
 	config atc.Config,
 	from ConfigVersion,
@@ -1572,7 +1668,7 @@ func (b *build) SavePipeline(
 
 	jobID := newNullInt64(b.jobID)
 	buildID := newNullInt64(b.id)
-	pipelineID, isNewPipeline, err := savePipeline(tx, pipelineName, config, from, initiallyPaused, teamID, jobID, buildID)
+	pipelineID, isNewPipeline, err := savePipeline(tx, pipelineRef, config, from, initiallyPaused, teamID, jobID, buildID)
 	if err != nil {
 		return nil, false, err
 	}
@@ -1617,18 +1713,20 @@ func buildEventSeq(buildid int) string {
 
 func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) error {
 	var (
-		jobID, pipelineID, rerunOf, rerunNumber                             sql.NullInt64
-		schema, privatePlan, jobName, pipelineName, publicPlan, rerunOfName sql.NullString
-		createTime, startTime, endTime, reapTime                            pq.NullTime
-		nonce, spanContext                                                  sql.NullString
-		drained, aborted, completed                                         bool
-		status                                                              string
+		jobID, resourceID, pipelineID, rerunOf, rerunNumber                               sql.NullInt64
+		schema, privatePlan, jobName, resourceName, pipelineName, publicPlan, rerunOfName sql.NullString
+		createTime, startTime, endTime, reapTime                                          pq.NullTime
+		nonce, spanContext                                                                sql.NullString
+		drained, aborted, completed                                                       bool
+		status                                                                            string
+		pipelineInstanceVars                                                              sql.NullString
 	)
 
 	err := row.Scan(
 		&b.id,
 		&b.name,
 		&jobID,
+		&resourceID,
 		&b.teamID,
 		&status,
 		&b.isManuallyTriggered,
@@ -1641,8 +1739,10 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		&endTime,
 		&reapTime,
 		&jobName,
+		&resourceName,
 		&pipelineID,
 		&pipelineName,
+		&pipelineInstanceVars,
 		&b.teamName,
 		&nonce,
 		&drained,
@@ -1659,10 +1759,12 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	}
 
 	b.status = BuildStatus(status)
-	b.jobName = jobName.String
 	b.jobID = int(jobID.Int64)
-	b.pipelineName = pipelineName.String
+	b.jobName = jobName.String
+	b.resourceID = int(resourceID.Int64)
+	b.resourceName = resourceName.String
 	b.pipelineID = int(pipelineID.Int64)
+	b.pipelineName = pipelineName.String
 	b.schema = schema.String
 	b.createTime = createTime.Time
 	b.startTime = startTime.Time
@@ -1706,6 +1808,13 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 
 	if spanContext.Valid {
 		err = json.Unmarshal([]byte(spanContext.String), &b.spanContext)
+		if err != nil {
+			return err
+		}
+	}
+
+	if pipelineInstanceVars.Valid {
+		err = json.Unmarshal([]byte(pipelineInstanceVars.String), &b.pipelineInstanceVars)
 		if err != nil {
 			return err
 		}

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -52,7 +53,7 @@ type Resource interface {
 
 	ResourceConfigVersionID(atc.Version) (int, bool, error)
 	Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error)
-	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig, atc.VersionedResourceTypes) (bool, error)
+	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig) (bool, error)
 	UpdateMetadata(atc.Version, ResourceConfigMetadataFields) (bool, error)
 
 	EnableVersion(rcvID int) error
@@ -61,7 +62,17 @@ type Resource interface {
 	PinVersion(rcvID int) (bool, error)
 	UnpinVersion() error
 
+	// XXX(check-refactor): we should be able to remove this, but unfortunately a
+	// ton of db tests rely on it. i've started a refactor to clean up the db
+	// package, but it's definitely going to take some time - there's a lot of
+	// debt there.
 	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
+
+	SetResourceConfigScope(ResourceConfigScope) error
+
+	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes) atc.CheckPlan
+	CreateBuild(context.Context, bool) (Build, bool, error)
+
 	SetCheckSetupError(error) error
 	NotifyScan() error
 
@@ -81,6 +92,7 @@ var resourcesQuery = psql.Select(
 	"r.resource_config_id",
 	"r.resource_config_scope_id",
 	"p.name",
+	"p.instance_vars",
 	"t.id",
 	"t.name",
 	"rs.check_error",
@@ -188,6 +200,50 @@ func (r *resource) Reload() (bool, error) {
 	return true, nil
 }
 
+func (r *resource) SetResourceConfigScope(scope ResourceConfigScope) error {
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	results, err := psql.Update("resources").
+		Set("resource_config_id", scope.ResourceConfig().ID()).
+		Set("resource_config_scope_id", scope.ID()).
+		Where(sq.Eq{"id": r.id}).
+		Where(sq.Or{
+			sq.Eq{"resource_config_id": nil},
+			sq.Eq{"resource_config_scope_id": nil},
+			sq.NotEq{"resource_config_id": scope.ResourceConfig().ID()},
+			sq.NotEq{"resource_config_scope_id": scope.ID()},
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := results.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected > 0 {
+		err = requestScheduleForJobsUsingResource(tx, r.id)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.VersionedResourceTypes) (ResourceConfigScope, error) {
 	resourceConfigDescriptor, err := constructResourceConfigDescriptor(r.type_, source, resourceTypes)
 	if err != nil {
@@ -219,7 +275,7 @@ func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.Versio
 		return nil, err
 	}
 
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r, r.type_, resourceTypes)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r)
 	if err != nil {
 		return nil, err
 	}
@@ -257,6 +313,89 @@ func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.Versio
 	return resourceConfigScope, nil
 }
 
+func (r *resource) CheckPlan(from atc.Version, interval, timeout time.Duration, resourceTypes ResourceTypes) atc.CheckPlan {
+	return atc.CheckPlan{
+		Name:   r.Name(),
+		Type:   r.Type(),
+		Source: r.Source(),
+		Tags:   r.Tags(),
+
+		FromVersion: from,
+
+		// XXX(check-refactor): these two are awkward because it could
+		// theoretically be set to r.CheckTimeout(), but the system-wide default is
+		// handled outside and passed in here.
+		//
+		// should we respect the system-wide default at runtime instead of having
+		// these passed in and making them required?
+		//
+		// also it would be nice if they could be time.Duration, but timeout is
+		// already a string, and i don't want to break old builds. i guess we could
+		// write a custom unmarshaler that handles both.
+		Interval: interval.String(),
+		Timeout:  timeout.String(),
+
+		VersionedResourceTypes: resourceTypes.Deserialize(),
+
+		Resource: r.Name(),
+	}
+}
+
+func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool) (Build, bool, error) {
+	spanContextJSON, err := json.Marshal(NewSpanContext(ctx))
+	if err != nil {
+		return nil, false, err
+	}
+
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer Rollback(tx)
+
+	params := map[string]interface{}{
+		"name":               sq.Expr("nextval('one_off_name')"),
+		"pipeline_id":        r.pipelineID,
+		"team_id":            r.teamID,
+		"status":             BuildStatusPending,
+		"manually_triggered": manuallyTriggered,
+		"span_context":       string(spanContextJSON),
+	}
+
+	if !manuallyTriggered {
+		params["resource_id"] = r.id
+	}
+
+	_, err = psql.Delete("builds").
+		Where(sq.Eq{
+			"resource_id": r.id,
+			"completed":   true,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, false, fmt.Errorf("delete previous build: %w", err)
+	}
+
+	build := newEmptyBuild(r.conn, r.lockFactory)
+	err = createBuild(tx, build, params)
+	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
+			return nil, false, nil
+		}
+
+		return nil, false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
+	return build, true, nil
+}
+
 func (r *resource) SetCheckSetupError(cause error) error {
 	var err error
 
@@ -281,7 +420,7 @@ func (r *resource) SetCheckSetupError(cause error) error {
 }
 
 // XXX: only used for tests
-func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields, resourceConfig ResourceConfig, resourceTypes atc.VersionedResourceTypes) (bool, error) {
+func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields, resourceConfig ResourceConfig) (bool, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return false, err
@@ -289,7 +428,7 @@ func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceCo
 
 	defer Rollback(tx)
 
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r, r.type_, resourceTypes)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r)
 	if err != nil {
 		return false, err
 	}
@@ -704,9 +843,10 @@ func scanResource(r *resource, row scannable) error {
 		checkErr, rcsCheckErr, nonce, rcID, rcScopeID, pinnedVersion, pinComment sql.NullString
 		lastCheckStartTime, lastCheckEndTime                                     pq.NullTime
 		pinnedThroughConfig                                                      sql.NullBool
+		pipelineInstanceVars                                                     sql.NullString
 	)
 
-	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &r.teamID, &r.teamName, &rcsCheckErr, &pinnedVersion, &pinComment, &pinnedThroughConfig)
+	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName, &rcsCheckErr, &pinnedVersion, &pinComment, &pinnedThroughConfig)
 	if err != nil {
 		return err
 	}
@@ -784,6 +924,14 @@ func scanResource(r *resource, row scannable) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if pipelineInstanceVars.Valid {
+		err = json.Unmarshal([]byte(pipelineInstanceVars.String), &r.pipelineInstanceVars)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	return nil

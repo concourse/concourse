@@ -66,29 +66,23 @@ func (err InvalidLocalVarFile) Error() string {
 }
 
 func (step *LoadVarStep) Run(ctx context.Context, state RunState) error {
-	ctx, span := tracing.StartSpan(ctx, "load_var", tracing.Attrs{
-		"team":     step.metadata.TeamName,
-		"pipeline": step.metadata.PipelineName,
-		"job":      step.metadata.JobName,
-		"build":    step.metadata.BuildName,
-		"name":     step.plan.Name,
-		"file":     step.plan.File,
+	delegate := step.delegateFactory.BuildStepDelegate(state)
+	ctx, span := delegate.StartSpan(ctx, "load_var", tracing.Attrs{
+		"name": step.plan.Name,
 	})
 
-	err := step.run(ctx, state)
+	err := step.run(ctx, state, delegate)
 	tracing.End(span, err)
 
 	return err
 }
 
-func (step *LoadVarStep) run(ctx context.Context, state RunState) error {
+func (step *LoadVarStep) run(ctx context.Context, state RunState, delegate BuildStepDelegate) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("load-var-step", lager.Data{
 		"step-name": step.plan.Name,
 		"job-id":    step.metadata.JobID,
 	})
-
-	delegate := step.delegateFactory.BuildStepDelegate(state)
 
 	delegate.Initializing(logger)
 	stdout := delegate.Stdout()

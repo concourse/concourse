@@ -33,7 +33,7 @@ var _ = Describe("PipelineLifecycle", func() {
 
 			BeforeEach(func() {
 				build, _ := defaultJob.CreateBuild()
-				childPipeline, _, _ = build.SavePipeline("child-pipeline", defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
+				childPipeline, _, _ = build.SavePipeline(atc.PipelineRef{Name: "child-pipeline"}, defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
 				build.Finish(db.BuildStatusSucceeded)
 			})
 
@@ -66,7 +66,7 @@ var _ = Describe("PipelineLifecycle", func() {
 							Name: "a-different-job",
 						},
 					}
-					defaultTeam.SavePipeline("default-pipeline", defaultPipelineConfig, defaultPipeline.ConfigVersion(), false)
+					defaultTeam.SavePipeline(defaultPipelineRef, defaultPipelineConfig, defaultPipeline.ConfigVersion(), false)
 				})
 
 				It("archives all child pipelines set by the deleted job", func() {
@@ -91,9 +91,9 @@ var _ = Describe("PipelineLifecycle", func() {
 		)
 
 		BeforeEach(func() {
-			pipeline1, _, err = defaultTeam.SavePipeline("pipeline1", defaultPipelineConfig, 0, false)
+			pipeline1, _, err = defaultTeam.SavePipeline(atc.PipelineRef{Name: "pipeline1"}, defaultPipelineConfig, 0, false)
 			Expect(err).ToNot(HaveOccurred())
-			pipeline2, _, err = defaultTeam.SavePipeline("pipeline2", defaultPipelineConfig, 0, false)
+			pipeline2, _, err = defaultTeam.SavePipeline(atc.PipelineRef{Name: "pipeline2"}, defaultPipelineConfig, 0, false)
 			Expect(err).ToNot(HaveOccurred())
 		})
 

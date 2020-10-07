@@ -49,6 +49,7 @@ var _ = Describe("Resources API", func() {
 				resource1.IDReturns(1)
 				resource1.CheckSetupErrorReturns(nil)
 				resource1.CheckErrorReturns(nil)
+				resource1.PipelineIDReturns(1)
 				resource1.PipelineNameReturns("a-pipeline")
 				resource1.TeamNameReturns("some-team")
 				resource1.NameReturns("resource-1")
@@ -59,6 +60,7 @@ var _ = Describe("Resources API", func() {
 				resource2.IDReturns(2)
 				resource2.CheckErrorReturns(errors.New("sup"))
 				resource2.CheckSetupErrorReturns(nil)
+				resource2.PipelineIDReturns(1)
 				resource2.PipelineNameReturns("a-pipeline")
 				resource2.TeamNameReturns("other-team")
 				resource2.NameReturns("resource-2")
@@ -68,7 +70,9 @@ var _ = Describe("Resources API", func() {
 				resource3.IDReturns(3)
 				resource3.CheckSetupErrorReturns(errors.New("sup"))
 				resource3.CheckErrorReturns(nil)
-				resource3.PipelineNameReturns("a-pipeline")
+				resource3.PipelineIDReturns(2)
+				resource3.PipelineNameReturns("some-pipeline")
+				resource3.PipelineInstanceVarsReturns(atc.InstanceVars{"branch": "master"})
 				resource3.TeamNameReturns("another-team")
 				resource3.NameReturns("resource-3")
 				resource3.TypeReturns("type-3")
@@ -96,6 +100,7 @@ var _ = Describe("Resources API", func() {
 				Expect(body).To(MatchJSON(`[
 						{
 							"name": "resource-1",
+							"pipeline_id": 1,
 							"pipeline_name": "a-pipeline",
 							"team_name": "some-team",
 							"type": "type-1",
@@ -103,6 +108,7 @@ var _ = Describe("Resources API", func() {
 						},
 						{
 							"name": "resource-2",
+							"pipeline_id": 1,
 							"pipeline_name": "a-pipeline",
 							"team_name": "other-team",
 							"type": "type-2",
@@ -111,7 +117,11 @@ var _ = Describe("Resources API", func() {
 						},
 						{
 							"name": "resource-3",
-							"pipeline_name": "a-pipeline",
+							"pipeline_id": 2,
+							"pipeline_name": "some-pipeline",
+							"pipeline_instance_vars": {
+								"branch": "master"
+							},
 							"team_name": "another-team",
 							"type": "type-3",
 							"failing_to_check": true,
@@ -189,6 +199,7 @@ var _ = Describe("Resources API", func() {
 				resource1.IDReturns(1)
 				resource1.CheckSetupErrorReturns(nil)
 				resource1.CheckErrorReturns(nil)
+				resource1.PipelineIDReturns(1)
 				resource1.PipelineNameReturns("a-pipeline")
 				resource1.NameReturns("resource-1")
 				resource1.TypeReturns("type-1")
@@ -198,6 +209,7 @@ var _ = Describe("Resources API", func() {
 				resource2.IDReturns(2)
 				resource2.CheckErrorReturns(errors.New("sup"))
 				resource2.CheckSetupErrorReturns(nil)
+				resource2.PipelineIDReturns(1)
 				resource2.PipelineNameReturns("a-pipeline")
 				resource2.NameReturns("resource-2")
 				resource2.TypeReturns("type-2")
@@ -206,7 +218,9 @@ var _ = Describe("Resources API", func() {
 				resource3.IDReturns(3)
 				resource3.CheckErrorReturns(nil)
 				resource3.CheckSetupErrorReturns(errors.New("sup"))
-				resource3.PipelineNameReturns("a-pipeline")
+				resource3.PipelineIDReturns(2)
+				resource3.PipelineNameReturns("some-pipeline")
+				resource3.PipelineInstanceVarsReturns(atc.InstanceVars{"branch": "master"})
 				resource3.NameReturns("resource-3")
 				resource3.TypeReturns("type-3")
 
@@ -254,6 +268,7 @@ var _ = Describe("Resources API", func() {
 						Expect(body).To(MatchJSON(`[
 					{
 						"name": "resource-1",
+						"pipeline_id": 1,
 						"pipeline_name": "a-pipeline",
 						"team_name": "a-team",
 						"type": "type-1",
@@ -261,6 +276,7 @@ var _ = Describe("Resources API", func() {
 					},
 					{
 						"name": "resource-2",
+						"pipeline_id": 1,
 						"pipeline_name": "a-pipeline",
 						"team_name": "a-team",
 						"type": "type-2",
@@ -268,7 +284,11 @@ var _ = Describe("Resources API", func() {
 					},
 					{
 						"name": "resource-3",
-						"pipeline_name": "a-pipeline",
+						"pipeline_id": 2,
+						"pipeline_name": "some-pipeline",
+						"pipeline_instance_vars": {
+							"branch": "master"
+						},
 						"team_name": "a-team",
 						"type": "type-3",
 						"failing_to_check": true
@@ -302,6 +322,7 @@ var _ = Describe("Resources API", func() {
 					Expect(body).To(MatchJSON(`[
 						{
 							"name": "resource-1",
+							"pipeline_id": 1,
 							"pipeline_name": "a-pipeline",
 							"team_name": "a-team",
 							"type": "type-1",
@@ -309,6 +330,7 @@ var _ = Describe("Resources API", func() {
 						},
 						{
 							"name": "resource-2",
+							"pipeline_id": 1,
 							"pipeline_name": "a-pipeline",
 							"team_name": "a-team",
 							"type": "type-2",
@@ -317,7 +339,11 @@ var _ = Describe("Resources API", func() {
 						},
 						{
 							"name": "resource-3",
-							"pipeline_name": "a-pipeline",
+							"pipeline_id": 2,
+							"pipeline_name": "some-pipeline",
+							"pipeline_instance_vars": {
+								"branch": "master"
+							},
 							"team_name": "a-team",
 							"type": "type-3",
 							"check_setup_error": "sup",
@@ -680,31 +706,30 @@ var _ = Describe("Resources API", func() {
 					})
 
 					Context("when checking creates a new check", func() {
-						var fakeCheck *dbfakes.FakeCheck
+						var fakeBuild *dbfakes.FakeBuild
 
 						BeforeEach(func() {
-							fakeCheck = new(dbfakes.FakeCheck)
-							fakeCheck.IDReturns(10)
-							fakeCheck.StatusReturns("started")
-							fakeCheck.CreateTimeReturns(time.Date(2000, 01, 01, 0, 0, 0, 0, time.UTC))
-							fakeCheck.StartTimeReturns(time.Date(2001, 01, 01, 0, 0, 0, 0, time.UTC))
-							fakeCheck.EndTimeReturns(time.Date(2002, 01, 01, 0, 0, 0, 0, time.UTC))
+							fakeBuild = new(dbfakes.FakeBuild)
+							fakeBuild.IDReturns(10)
+							fakeBuild.NameReturns("some-name")
+							fakeBuild.TeamNameReturns("some-team")
+							fakeBuild.StatusReturns("started")
+							fakeBuild.StartTimeReturns(time.Date(2001, 01, 01, 0, 0, 0, 0, time.UTC))
+							fakeBuild.EndTimeReturns(time.Date(2002, 01, 01, 0, 0, 0, 0, time.UTC))
 
-							dbCheckFactory.TryCreateCheckReturns(fakeCheck, true, nil)
-						})
-
-						It("notify checker", func() {
-							Expect(dbCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
+							dbCheckFactory.TryCreateCheckReturns(fakeBuild, true, nil)
 						})
 
 						It("returns 201", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusCreated))
 							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
-                 "id": 10,
-								 "status": "started",
-								 "create_time": 946684800,
-								 "start_time": 978307200,
-								 "end_time": 1009843200
+								"id": 10,
+								"name": "some-name",
+								"team_name": "some-team",
+								"status": "started",
+								"api_url": "/api/v1/builds/10",
+								"start_time": 978307200,
+								"end_time": 1009843200
 							}`))
 						})
 					})
@@ -749,7 +774,6 @@ var _ = Describe("Resources API", func() {
 				})
 				resourceType1.CheckErrorReturns(nil)
 				resourceType1.CheckSetupErrorReturns(nil)
-				resourceType1.UniqueVersionHistoryReturns(true)
 
 				resourceType2 := new(dbfakes.FakeResourceType)
 				resourceType2.IDReturns(2)
@@ -814,7 +838,6 @@ var _ = Describe("Resources API", func() {
 					"tags": ["tag1"],
 					"params": {"param-key-1": "param-value-1"},
 					"source": {"source-key-1": "source-value-1"},
-					"unique_version_history": true,
 					"version": {
 						"version-key-1": "version-value-1",
 						"version-key-2": "version-value-2"
@@ -865,7 +888,6 @@ var _ = Describe("Resources API", func() {
 				"tags": ["tag1"],
 				"params": {"param-key-1": "param-value-1"},
 				"source": {"source-key-1": "source-value-1"},
-				"unique_version_history": true,
 				"version": {
 					"version-key-1": "version-value-1",
 					"version-key-2": "version-value-2"
@@ -961,6 +983,7 @@ var _ = Describe("Resources API", func() {
 					resource1 := new(dbfakes.FakeResource)
 					resource1.CheckSetupErrorReturns(errors.New("sup"))
 					resource1.CheckErrorReturns(errors.New("sup"))
+					resource1.PipelineIDReturns(1)
 					resource1.PipelineNameReturns("a-pipeline")
 					resource1.NameReturns("resource-1")
 					resource1.TypeReturns("type-1")
@@ -987,6 +1010,7 @@ var _ = Describe("Resources API", func() {
 					Expect(body).To(MatchJSON(`
 					{
 						"name": "resource-1",
+						"pipeline_id": 1,
 						"pipeline_name": "a-pipeline",
 						"team_name": "a-team",
 						"type": "type-1",
@@ -1034,6 +1058,7 @@ var _ = Describe("Resources API", func() {
 						resource1 := new(dbfakes.FakeResource)
 						resource1.CheckSetupErrorReturns(errors.New("sup"))
 						resource1.CheckErrorReturns(errors.New("sup"))
+						resource1.PipelineIDReturns(1)
 						resource1.PipelineNameReturns("a-pipeline")
 						resource1.NameReturns("resource-1")
 						resource1.TypeReturns("type-1")
@@ -1061,6 +1086,7 @@ var _ = Describe("Resources API", func() {
 						Expect(body).To(MatchJSON(`
 							{
 								"name": "resource-1",
+								"pipeline_id": 1,
 								"pipeline_name": "a-pipeline",
 								"team_name": "a-team",
 								"type": "type-1",
@@ -1076,6 +1102,7 @@ var _ = Describe("Resources API", func() {
 				Context("when the resource version is pinned via the API", func() {
 					BeforeEach(func() {
 						resource1 := new(dbfakes.FakeResource)
+						resource1.PipelineIDReturns(1)
 						resource1.PipelineNameReturns("a-pipeline")
 						resource1.NameReturns("resource-1")
 						resource1.TypeReturns("type-1")
@@ -1103,6 +1130,7 @@ var _ = Describe("Resources API", func() {
 						Expect(body).To(MatchJSON(`
 							{
 								"name": "resource-1",
+								"pipeline_id": 1,
 								"pipeline_name": "a-pipeline",
 								"team_name": "a-team",
 								"type": "type-1",
@@ -1115,6 +1143,7 @@ var _ = Describe("Resources API", func() {
 				Context("when the resource has a pin comment", func() {
 					BeforeEach(func() {
 						resource1 := new(dbfakes.FakeResource)
+						resource1.PipelineIDReturns(1)
 						resource1.PipelineNameReturns("a-pipeline")
 						resource1.NameReturns("resource-1")
 						resource1.TypeReturns("type-1")
@@ -1131,6 +1160,7 @@ var _ = Describe("Resources API", func() {
 						Expect(body).To(MatchJSON(`
 							{
 								"name": "resource-1",
+								"pipeline_id": 1,
 								"pipeline_name": "a-pipeline",
 								"team_name": "a-team",
 								"type": "type-1",
@@ -1166,6 +1196,7 @@ var _ = Describe("Resources API", func() {
 
 					resource1 := new(dbfakes.FakeResource)
 					resource1.CheckSetupErrorReturns(errors.New("sup"))
+					resource1.PipelineIDReturns(1)
 					resource1.PipelineNameReturns("a-pipeline")
 					resource1.NameReturns("resource-1")
 					resource1.TypeReturns("type-1")
@@ -1192,6 +1223,7 @@ var _ = Describe("Resources API", func() {
 					Expect(body).To(MatchJSON(`
 					{
 						"name": "resource-1",
+						"pipeline_id": 1,
 						"pipeline_name": "a-pipeline",
 						"team_name": "a-team",
 						"type": "type-1",
@@ -1345,29 +1377,28 @@ var _ = Describe("Resources API", func() {
 					})
 
 					Context("when checking creates a new check", func() {
-						var fakeCheck *dbfakes.FakeCheck
+						var fakeBuild *dbfakes.FakeBuild
 
 						BeforeEach(func() {
-							fakeCheck = new(dbfakes.FakeCheck)
-							fakeCheck.IDReturns(10)
-							fakeCheck.StatusReturns("started")
-							fakeCheck.CreateTimeReturns(time.Date(2000, 01, 01, 0, 0, 0, 0, time.UTC))
-							fakeCheck.StartTimeReturns(time.Date(2001, 01, 01, 0, 0, 0, 0, time.UTC))
-							fakeCheck.EndTimeReturns(time.Date(2002, 01, 01, 0, 0, 0, 0, time.UTC))
+							fakeBuild = new(dbfakes.FakeBuild)
+							fakeBuild.IDReturns(10)
+							fakeBuild.NameReturns("some-name")
+							fakeBuild.TeamNameReturns("some-team")
+							fakeBuild.StatusReturns("started")
+							fakeBuild.StartTimeReturns(time.Date(2001, 01, 01, 0, 0, 0, 0, time.UTC))
+							fakeBuild.EndTimeReturns(time.Date(2002, 01, 01, 0, 0, 0, 0, time.UTC))
 
-							dbCheckFactory.TryCreateCheckReturns(fakeCheck, true, nil)
-						})
-
-						It("notify checker", func() {
-							Expect(dbCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
+							dbCheckFactory.TryCreateCheckReturns(fakeBuild, true, nil)
 						})
 
 						It("returns 201", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusCreated))
 							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
                  "id": 10,
+								 "name": "some-name",
+								 "team_name": "some-team",
 								 "status": "started",
-								 "create_time": 946684800,
+								 "api_url": "/api/v1/builds/10",
 								 "start_time": 978307200,
 								 "end_time": 1009843200
 							}`))
@@ -1483,29 +1514,28 @@ var _ = Describe("Resources API", func() {
 					})
 
 					Context("when checking creates a new check", func() {
-						var fakeCheck *dbfakes.FakeCheck
+						var fakeBuild *dbfakes.FakeBuild
 
 						BeforeEach(func() {
-							fakeCheck = new(dbfakes.FakeCheck)
-							fakeCheck.IDReturns(10)
-							fakeCheck.StatusReturns("started")
-							fakeCheck.CreateTimeReturns(time.Date(2000, 01, 01, 0, 0, 0, 0, time.UTC))
-							fakeCheck.StartTimeReturns(time.Date(2001, 01, 01, 0, 0, 0, 0, time.UTC))
-							fakeCheck.EndTimeReturns(time.Date(2002, 01, 01, 0, 0, 0, 0, time.UTC))
+							fakeBuild = new(dbfakes.FakeBuild)
+							fakeBuild.IDReturns(10)
+							fakeBuild.NameReturns("some-name")
+							fakeBuild.TeamNameReturns("some-team")
+							fakeBuild.StatusReturns("started")
+							fakeBuild.StartTimeReturns(time.Date(2001, 01, 01, 0, 0, 0, 0, time.UTC))
+							fakeBuild.EndTimeReturns(time.Date(2002, 01, 01, 0, 0, 0, 0, time.UTC))
 
-							dbCheckFactory.TryCreateCheckReturns(fakeCheck, true, nil)
-						})
-
-						It("notify checker", func() {
-							Expect(dbCheckFactory.NotifyCheckerCallCount()).To(Equal(1))
+							dbCheckFactory.TryCreateCheckReturns(fakeBuild, true, nil)
 						})
 
 						It("returns 201", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusCreated))
 							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
                  "id": 10,
+								 "name": "some-name",
+								 "team_name": "some-team",
 								 "status": "started",
-								 "create_time": 946684800,
+								 "api_url": "/api/v1/builds/10",
 								 "start_time": 978307200,
 								 "end_time": 1009843200
 							}`))

@@ -49,6 +49,7 @@ type StepTree
     | SetPipeline Step
     | LoadVar Step
     | ArtifactInput Step
+    | Check Step
     | Get Step
     | ArtifactOutput Step
     | Put Step
@@ -204,6 +205,9 @@ fold acc start stepTree =
         ArtifactInput step ->
             acc step start
 
+        Check step ->
+            acc step start
+
         Get step ->
             acc step start
 
@@ -331,6 +335,9 @@ map f tree =
     case tree of
         Task step ->
             Task (f step)
+
+        Check step ->
+            Check (f step)
 
         Get step ->
             Get (f step)
@@ -513,6 +520,9 @@ finishTree root =
 
         ArtifactInput step ->
             ArtifactInput (finishStep step)
+
+        Check step ->
+            Check (finishStep step)
 
         Get step ->
             Get (finishStep step)

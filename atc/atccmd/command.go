@@ -74,6 +74,7 @@ import (
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/oauth2"
+	"golang.org/x/time/rate"
 	"gopkg.in/yaml.v2"
 
 	// dynamically registered metric emitters
@@ -149,7 +150,6 @@ type RunCommand struct {
 	ComponentRunnerInterval time.Duration `long:"component-runner-interval" default:"10s" description:"Interval on which runners are kicked off for builds, locks, scans, and checks"`
 
 	LidarScannerInterval time.Duration `long:"lidar-scanner-interval" default:"10s" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
-	LidarCheckerInterval time.Duration `long:"lidar-checker-interval" default:"10s" description:"Interval on which the resource checker runs any scheduled checks"`
 
 	GlobalResourceCheckTimeout          time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
 	ResourceCheckingInterval            time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
@@ -248,6 +248,7 @@ type RunCommand struct {
 		EnableRedactSecrets                  bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
 		EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears or a network error occurs"`
 		EnableAcrossStep                     bool `long:"enable-across-step" description:"Enable the experimental across step to be used in jobs. The API is subject to change."`
+		EnablePipelineInstances              bool `long:"enable-pipeline-instances" description:"Enable pipeline instances"`
 	} `group:"Feature Flags"`
 }
 
@@ -481,6 +482,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	atc.EnableRedactSecrets = cmd.FeatureFlags.EnableRedactSecrets
 	atc.EnableBuildRerunWhenWorkerDisappears = cmd.FeatureFlags.EnableBuildRerunWhenWorkerDisappears
 	atc.EnableAcrossStep = cmd.FeatureFlags.EnableAcrossStep
+	atc.EnablePipelineInstances = cmd.FeatureFlags.EnablePipelineInstances
 
 	//FIXME: These only need to run once for the entire binary. At the moment,
 	//they rely on state of the command.
@@ -757,7 +759,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbContainerRepository := db.NewContainerRepository(dbConn)
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
+	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.ResourceCheckingInterval, cmd.ResourceWithWebhookCheckingInterval, cmd.GlobalResourceCheckTimeout)
 	dbAccessTokenFactory := db.NewAccessTokenFactory(dbConn)
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
@@ -955,10 +957,9 @@ func (cmd *RunCommand) backendComponents(
 	)
 
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
+	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.ResourceCheckingInterval, cmd.ResourceWithWebhookCheckingInterval, cmd.GlobalResourceCheckTimeout)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
-	dbCheckableCounter := db.NewCheckableCounter(dbConn)
 	dbPipelineLifecycle := db.NewPipelineLifecycle(dbConn, lockFactory)
 
 	alg := algorithm.New(db.NewVersionsDB(dbConn, algorithmLimitRows, schedulerCache))
@@ -1015,6 +1016,14 @@ func (cmd *RunCommand) backendComponents(
 		return nil, err
 	}
 
+	rateLimiter := db.NewResourceCheckRateLimiter(
+		rate.Limit(cmd.MaxChecksPerSecond),
+		cmd.ResourceCheckingInterval,
+		dbConn,
+		time.Minute,
+		clock.NewClock(),
+	)
+
 	engine := cmd.constructEngine(
 		pool,
 		workerClient,
@@ -1027,6 +1036,7 @@ func (cmd *RunCommand) backendComponents(
 		defaultLimits,
 		buildContainerStrategy,
 		lockFactory,
+		rateLimiter,
 	)
 
 	// In case that a user configures resource-checking-interval, but forgets to
@@ -1049,30 +1059,7 @@ func (cmd *RunCommand) backendComponents(
 				Name:     atc.ComponentLidarScanner,
 				Interval: cmd.LidarScannerInterval,
 			},
-			Runnable: lidar.NewScanner(
-				logger.Session(atc.ComponentLidarScanner),
-				dbCheckFactory,
-				secretManager,
-				cmd.GlobalResourceCheckTimeout,
-				cmd.ResourceCheckingInterval,
-				cmd.ResourceWithWebhookCheckingInterval,
-			),
-		},
-		{
-			Component: atc.Component{
-				Name:     atc.ComponentLidarChecker,
-				Interval: cmd.LidarCheckerInterval,
-			},
-			Runnable: lidar.NewChecker(
-				logger.Session(atc.ComponentLidarChecker),
-				dbCheckFactory,
-				engine,
-				lidar.CheckRateCalculator{
-					MaxChecksPerSecond:       cmd.MaxChecksPerSecond,
-					ResourceCheckingInterval: cmd.ResourceCheckingInterval,
-					CheckableCounter:         dbCheckableCounter,
-				},
-			),
+			Runnable: lidar.NewScanner(dbCheckFactory),
 		},
 		{
 			Component: atc.Component{
@@ -1148,7 +1135,6 @@ func (cmd *RunCommand) gcComponents(
 	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(gcConn)
 	dbContainerRepository := db.NewContainerRepository(gcConn)
 	dbArtifactLifecycle := db.NewArtifactLifecycle(gcConn)
-	dbCheckLifecycle := db.NewCheckLifecycle(gcConn)
 	dbAccessTokenLifecycle := db.NewAccessTokenLifecycle(gcConn)
 	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(gcConn)
 	dbBuildFactory := db.NewBuildFactory(gcConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
@@ -1157,14 +1143,22 @@ func (cmd *RunCommand) gcComponents(
 
 	dbVolumeRepository := db.NewVolumeRepository(gcConn)
 
+	// set the 'unreferenced resource config' grace period to be the longer than
+	// the check timeout, just to make sure it doesn't get removed out from under
+	// a running check
+	//
+	// 5 minutes is arbitrary - this really shouldn't matter a whole lot, but
+	// exposing a config specifically for it is a little risky, since you don't
+	// want to set it too low.
+	unreferencedConfigGracePeriod := cmd.GlobalResourceCheckTimeout + 5*time.Minute
+
 	collectors := map[string]component.Runnable{
 		atc.ComponentCollectorBuilds:            gc.NewBuildCollector(dbBuildFactory),
 		atc.ComponentCollectorWorkers:           gc.NewWorkerCollector(dbWorkerLifecycle),
-		atc.ComponentCollectorResourceConfigs:   gc.NewResourceConfigCollector(dbResourceConfigFactory),
+		atc.ComponentCollectorResourceConfigs:   gc.NewResourceConfigCollector(dbResourceConfigFactory, unreferencedConfigGracePeriod),
 		atc.ComponentCollectorResourceCaches:    gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
 		atc.ComponentCollectorResourceCacheUses: gc.NewResourceCacheUseCollector(dbResourceCacheLifecycle),
 		atc.ComponentCollectorArtifacts:         gc.NewArtifactCollector(dbArtifactLifecycle),
-		atc.ComponentCollectorChecks:            gc.NewCheckCollector(dbCheckLifecycle, cmd.GC.CheckRecyclePeriod),
 		atc.ComponentCollectorVolumes:           gc.NewVolumeCollector(dbVolumeRepository, cmd.GC.MissingGracePeriod),
 		atc.ComponentCollectorContainers:        gc.NewContainerCollector(dbContainerRepository, cmd.GC.MissingGracePeriod, cmd.GC.HijackGracePeriod),
 		atc.ComponentCollectorCheckSessions:     gc.NewResourceConfigCheckSessionCollector(resourceConfigCheckSessionLifecycle),
@@ -1612,6 +1606,7 @@ func (cmd *RunCommand) constructEngine(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	lockFactory lock.LockFactory,
+	rateLimiter builder.RateLimiter,
 ) engine.Engine {
 
 	stepFactory := builder.NewStepFactory(
@@ -1630,6 +1625,7 @@ func (cmd *RunCommand) constructEngine(
 	stepBuilder := builder.NewStepBuilder(
 		stepFactory,
 		cmd.ExternalURL.String(),
+		rateLimiter,
 	)
 
 	return engine.NewEngine(stepBuilder, secretManager, cmd.varSourcePool)

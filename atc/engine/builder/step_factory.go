@@ -119,6 +119,7 @@ func (factory *stepFactory) CheckStep(
 		*plan.Check,
 		stepMetadata,
 		factory.resourceFactory,
+		factory.resourceConfigFactory,
 		containerMetadata,
 		worker.NewRandomPlacementStrategy(),
 		factory.pool,
@@ -126,6 +127,10 @@ func (factory *stepFactory) CheckStep(
 		factory.client,
 	)
 
+	checkStep = exec.LogError(checkStep, delegateFactory)
+	if atc.EnableBuildRerunWhenWorkerDisappears {
+		checkStep = exec.RetryError(checkStep, delegateFactory)
+	}
 	return checkStep
 }
 

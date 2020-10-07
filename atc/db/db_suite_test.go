@@ -52,6 +52,7 @@ var (
 	fakeClock                           dbfakes.FakeClock
 
 	defaultWorkerResourceType atc.WorkerResourceType
+	uniqueWorkerResourceType  atc.WorkerResourceType
 	defaultTeam               db.Team
 	defaultWorkerPayload      atc.Worker
 	defaultWorker             db.Worker
@@ -61,9 +62,14 @@ var (
 	defaultResource           db.Resource
 	defaultPipelineConfig     atc.Config
 	defaultPipeline           db.Pipeline
+	defaultPipelineRef        atc.PipelineRef
 	defaultJob                db.Job
 	logger                    *lagertest.TestLogger
 	lockFactory               lock.LockFactory
+
+	defaultCheckInterval        = time.Minute
+	defaultWebhookCheckInterval = time.Hour
+	defaultCheckTimeout         = 5 * time.Minute
 
 	fullMetadata = db.ContainerMetadata{
 		Type: db.ContainerTypeTask,
@@ -116,7 +122,7 @@ var _ = BeforeEach(func() {
 	resourceConfigFactory = db.NewResourceConfigFactory(dbConn, lockFactory)
 	resourceCacheFactory = db.NewResourceCacheFactory(dbConn, lockFactory)
 	taskCacheFactory = db.NewTaskCacheFactory(dbConn)
-	checkFactory = db.NewCheckFactory(dbConn, lockFactory, fakeSecrets, fakeVarSourcePool, time.Minute)
+	checkFactory = db.NewCheckFactory(dbConn, lockFactory, fakeSecrets, fakeVarSourcePool, defaultCheckTimeout, defaultCheckInterval, defaultWebhookCheckInterval)
 	workerBaseResourceTypeFactory = db.NewWorkerBaseResourceTypeFactory(dbConn)
 	workerTaskCacheFactory = db.NewWorkerTaskCacheFactory(dbConn)
 	userFactory = db.NewUserFactory(dbConn)
@@ -132,22 +138,37 @@ var _ = BeforeEach(func() {
 		Version: "some-brt-version",
 	}
 
+	uniqueWorkerResourceType = atc.WorkerResourceType{
+		Type:                 "some-unique-base-resource-type",
+		Image:                "/path/to/unique/image",
+		Version:              "some-unique-brt-version",
+		UniqueVersionHistory: true,
+	}
+
 	certsPath := "/etc/ssl/certs"
 
 	defaultWorkerPayload = atc.Worker{
-		ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
 		Name:            "default-worker",
 		GardenAddr:      "1.2.3.4:7777",
 		BaggageclaimURL: "5.6.7.8:7878",
 		CertsPath:       &certsPath,
+
+		ResourceTypes: []atc.WorkerResourceType{
+			defaultWorkerResourceType,
+			uniqueWorkerResourceType,
+		},
 	}
 
 	otherWorkerPayload = atc.Worker{
-		ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
 		Name:            "other-worker",
 		GardenAddr:      "2.3.4.5:7777",
 		BaggageclaimURL: "6.7.8.9:7878",
 		CertsPath:       &certsPath,
+
+		ResourceTypes: []atc.WorkerResourceType{
+			defaultWorkerResourceType,
+			uniqueWorkerResourceType,
+		},
 	}
 
 	defaultWorker, err = workerFactory.SaveWorker(defaultWorkerPayload, 0)
@@ -182,7 +203,9 @@ var _ = BeforeEach(func() {
 		},
 	}
 
-	defaultPipeline, _, err = defaultTeam.SavePipeline("default-pipeline", defaultPipelineConfig, db.ConfigVersion(0), false)
+	defaultPipelineRef = atc.PipelineRef{Name: "default-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
+
+	defaultPipeline, _, err = defaultTeam.SavePipeline(defaultPipelineRef, defaultPipelineConfig, db.ConfigVersion(0), false)
 	Expect(err).NotTo(HaveOccurred())
 
 	var found bool

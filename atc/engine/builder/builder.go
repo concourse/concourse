@@ -1,6 +1,8 @@
 package builder
 
 import (
+	"encoding/json"
+
 	"code.cloudfoundry.org/lager"
 
 	"errors"
@@ -23,17 +25,19 @@ type StepFactory interface {
 	CheckStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, DelegateFactory) exec.Step
 	SetPipelineStep(atc.Plan, exec.StepMetadata, DelegateFactory) exec.Step
 	LoadVarStep(atc.Plan, exec.StepMetadata, DelegateFactory) exec.Step
-	ArtifactInputStep(atc.Plan, db.Build) exec.Step
-	ArtifactOutputStep(atc.Plan, db.Build) exec.Step
+	ArtifactInputStep(atc.Plan, db.Build, DelegateFactory) exec.Step
+	ArtifactOutputStep(atc.Plan, db.Build, DelegateFactory) exec.Step
 }
 
 func NewStepBuilder(
 	stepFactory StepFactory,
 	externalURL string,
+	rateLimiter RateLimiter,
 ) *stepBuilder {
 	return &stepBuilder{
 		stepFactory: stepFactory,
 		externalURL: externalURL,
+		rateLimiter: rateLimiter,
 	}
 }
 
@@ -41,6 +45,7 @@ type stepBuilder struct {
 	stepFactory     StepFactory
 	delegateFactory DelegateFactory
 	externalURL     string
+	rateLimiter     RateLimiter
 }
 
 func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec.Step, error) {
@@ -53,18 +58,6 @@ func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec
 	}
 
 	return builder.buildStep(build, build.PrivatePlan()), nil
-}
-
-func (builder *stepBuilder) CheckStep(logger lager.Logger, check db.Check) (exec.Step, error) {
-	if check == nil {
-		return exec.IdentityStep{}, errors.New("must provide a check")
-	}
-
-	if check.Schema() != supportedSchema {
-		return exec.IdentityStep{}, errors.New("schema not supported")
-	}
-
-	return builder.buildCheckStep(check, check.Plan()), nil
 }
 
 func (builder *stepBuilder) buildStep(build db.Build, plan atc.Plan) exec.Step {
@@ -122,6 +115,10 @@ func (builder *stepBuilder) buildStep(build db.Build, plan atc.Plan) exec.Step {
 
 	if plan.LoadVar != nil {
 		return builder.buildLoadVarStep(build, plan)
+	}
+
+	if plan.Check != nil {
+		return builder.buildCheckStep(build, plan)
 	}
 
 	if plan.Get != nil {
@@ -191,7 +188,7 @@ func (builder *stepBuilder) buildAcrossStep(build db.Build, plan atc.Plan) exec.
 		plan.Across.Vars,
 		steps,
 		plan.Across.FailFast,
-		buildDelegateFactory(build, plan.ID),
+		buildDelegateFactory(build, plan, builder.rateLimiter),
 		stepMetadata,
 	)
 }
@@ -294,7 +291,7 @@ func (builder *stepBuilder) buildGetStep(build db.Build, plan atc.Plan) exec.Ste
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan.ID),
+		buildDelegateFactory(build, plan, builder.rateLimiter),
 	)
 }
 
@@ -316,32 +313,28 @@ func (builder *stepBuilder) buildPutStep(build db.Build, plan atc.Plan) exec.Ste
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan.ID),
+		buildDelegateFactory(build, plan, builder.rateLimiter),
 	)
 }
 
-func (builder *stepBuilder) buildCheckStep(check db.Check, plan atc.Plan) exec.Step {
+func (builder *stepBuilder) buildCheckStep(build db.Build, plan atc.Plan) exec.Step {
+	containerMetadata := builder.containerMetadata(
+		build,
+		db.ContainerTypeCheck,
+		plan.Check.Name,
+		plan.Attempts,
+	)
 
-	containerMetadata := db.ContainerMetadata{
-		Type: db.ContainerTypeCheck,
-	}
-
-	stepMetadata := exec.StepMetadata{
-		TeamID:                check.TeamID(),
-		TeamName:              check.TeamName(),
-		PipelineID:            check.PipelineID(),
-		PipelineName:          check.PipelineName(),
-		ResourceConfigScopeID: check.ResourceConfigScopeID(),
-		ResourceConfigID:      check.ResourceConfigID(),
-		BaseResourceTypeID:    check.BaseResourceTypeID(),
-		ExternalURL:           builder.externalURL,
-	}
+	stepMetadata := builder.stepMetadata(
+		build,
+		builder.externalURL,
+	)
 
 	return builder.stepFactory.CheckStep(
 		plan,
 		stepMetadata,
 		containerMetadata,
-		checkDelegateFactory(check, plan.ID),
+		buildDelegateFactory(build, plan, builder.rateLimiter),
 	)
 }
 
@@ -363,7 +356,7 @@ func (builder *stepBuilder) buildTaskStep(build db.Build, plan atc.Plan) exec.St
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan.ID),
+		buildDelegateFactory(build, plan, builder.rateLimiter),
 	)
 }
 
@@ -377,7 +370,7 @@ func (builder *stepBuilder) buildSetPipelineStep(build db.Build, plan atc.Plan) 
 	return builder.stepFactory.SetPipelineStep(
 		plan,
 		stepMetadata,
-		buildDelegateFactory(build, plan.ID),
+		buildDelegateFactory(build, plan, builder.rateLimiter),
 	)
 }
 
@@ -391,7 +384,7 @@ func (builder *stepBuilder) buildLoadVarStep(build db.Build, plan atc.Plan) exec
 	return builder.stepFactory.LoadVarStep(
 		plan,
 		stepMetadata,
-		buildDelegateFactory(build, plan.ID),
+		buildDelegateFactory(build, plan, builder.rateLimiter),
 	)
 }
 
@@ -399,6 +392,7 @@ func (builder *stepBuilder) buildArtifactInputStep(build db.Build, plan atc.Plan
 	return builder.stepFactory.ArtifactInputStep(
 		plan,
 		build,
+		buildDelegateFactory(build, plan, builder.rateLimiter),
 	)
 }
 
@@ -406,6 +400,7 @@ func (builder *stepBuilder) buildArtifactOutputStep(build db.Build, plan atc.Pla
 	return builder.stepFactory.ArtifactOutputStep(
 		plan,
 		build,
+		buildDelegateFactory(build, plan, builder.rateLimiter),
 	)
 }
 
@@ -420,6 +415,12 @@ func (builder *stepBuilder) containerMetadata(
 		attemptStrs = append(attemptStrs, strconv.Itoa(a))
 	}
 
+	var pipelineInstanceVars string
+	if build.PipelineInstanceVars() != nil {
+		instanceVars, _ := json.Marshal(build.PipelineInstanceVars())
+		pipelineInstanceVars = string(instanceVars)
+	}
+
 	return db.ContainerMetadata{
 		Type: containerType,
 
@@ -427,9 +428,10 @@ func (builder *stepBuilder) containerMetadata(
 		JobID:      build.JobID(),
 		BuildID:    build.ID(),
 
-		PipelineName: build.PipelineName(),
-		JobName:      build.JobName(),
-		BuildName:    build.Name(),
+		PipelineName:         build.PipelineName(),
+		PipelineInstanceVars: pipelineInstanceVars,
+		JobName:              build.JobName(),
+		BuildName:            build.Name(),
 
 		StepName: stepName,
 		Attempt:  strings.Join(attemptStrs, "."),
@@ -441,14 +443,15 @@ func (builder *stepBuilder) stepMetadata(
 	externalURL string,
 ) exec.StepMetadata {
 	return exec.StepMetadata{
-		BuildID:      build.ID(),
-		BuildName:    build.Name(),
-		TeamID:       build.TeamID(),
-		TeamName:     build.TeamName(),
-		JobID:        build.JobID(),
-		JobName:      build.JobName(),
-		PipelineID:   build.PipelineID(),
-		PipelineName: build.PipelineName(),
-		ExternalURL:  externalURL,
+		BuildID:              build.ID(),
+		BuildName:            build.Name(),
+		TeamID:               build.TeamID(),
+		TeamName:             build.TeamName(),
+		JobID:                build.JobID(),
+		JobName:              build.JobName(),
+		PipelineID:           build.PipelineID(),
+		PipelineName:         build.PipelineName(),
+		PipelineInstanceVars: build.PipelineInstanceVars(),
+		ExternalURL:          externalURL,
 	}
 }

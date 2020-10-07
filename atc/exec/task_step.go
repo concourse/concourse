@@ -19,6 +19,7 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 // MissingInputsError is returned when any of the task's required inputs are
@@ -59,6 +60,8 @@ type TaskDelegateFactory interface {
 //go:generate counterfeiter . TaskDelegate
 
 type TaskDelegate interface {
+	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
+
 	ImageVersionDetermined(db.UsedResourceCache) error
 	RedactImageSource(source atc.Source) (atc.Source, error)
 
@@ -129,28 +132,24 @@ func NewTaskStep(
 // task's entire working directory is registered as an StreamableArtifactSource under the
 // name of the task.
 func (step *TaskStep) Run(ctx context.Context, state RunState) error {
-	ctx, span := tracing.StartSpan(ctx, "task", tracing.Attrs{
-		"team":     step.metadata.TeamName,
-		"pipeline": step.metadata.PipelineName,
-		"job":      step.metadata.JobName,
-		"build":    step.metadata.BuildName,
-		"name":     step.plan.Name,
+	delegate := step.delegateFactory.TaskDelegate(state)
+	ctx, span := delegate.StartSpan(ctx, "task", tracing.Attrs{
+		"name": step.plan.Name,
 	})
 
-	err := step.run(ctx, state)
+	err := step.run(ctx, state, delegate)
 	tracing.End(span, err)
 
 	return err
 }
 
-func (step *TaskStep) run(ctx context.Context, state RunState) error {
+func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDelegate) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("task-step", lager.Data{
 		"step-name": step.plan.Name,
 		"job-id":    step.metadata.JobID,
 	})
 
-	delegate := step.delegateFactory.TaskDelegate(state)
 	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
 		return err

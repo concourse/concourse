@@ -9,11 +9,11 @@ import (
 
 var _ = Describe("PipelineRef", func() {
 	var (
-		pr       db.PipelineRef
+		pr db.PipelineRef
 	)
 
-	BeforeEach(func(){
-		pr = db.NewPipelineRef(defaultPipeline.ID(), defaultPipeline.Name(), dbConn, lockFactory)
+	BeforeEach(func() {
+		pr = db.NewPipelineRef(defaultPipeline.ID(), defaultPipeline.Name(), defaultPipeline.InstanceVars(), dbConn, lockFactory)
 	})
 
 	It("id should be correct", func() {
@@ -22,6 +22,10 @@ var _ = Describe("PipelineRef", func() {
 
 	It("name should be correct", func() {
 		Expect(pr.PipelineName()).To(Equal(defaultPipeline.Name()))
+	})
+
+	It("instance vars should be correct", func() {
+		Expect(pr.PipelineInstanceVars()).To(Equal(defaultPipeline.InstanceVars()))
 	})
 
 	It("pipeline should be correct", func() {

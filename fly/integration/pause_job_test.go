@@ -21,20 +21,24 @@ var _ = Describe("Fly CLI", func() {
 			jobName      string
 			fullJobName  string
 			apiPath      string
+			queryParams  string
+			pipelineRef  atc.PipelineRef
 		)
 
 		BeforeEach(func() {
 			pipelineName = "pipeline"
 			jobName = "job-name-potato"
-			fullJobName = fmt.Sprintf("%s/%s", pipelineName, jobName)
+			pipelineRef = atc.PipelineRef{Name: pipelineName, InstanceVars: atc.InstanceVars{"branch": "master"}}
+			fullJobName = fmt.Sprintf("%s/%s", pipelineRef.String(), jobName)
 			apiPath = fmt.Sprintf("/api/v1/teams/main/pipelines/%s/jobs/%s/pause", pipelineName, jobName)
+			queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
 		})
 
 		Context("when user is on the same team as the given pipeline/job's team", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", apiPath),
+						ghttp.VerifyRequest("PUT", apiPath, queryParams),
 						ghttp.RespondWith(http.StatusOK, nil),
 					),
 				)
@@ -54,7 +58,7 @@ var _ = Describe("Fly CLI", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", apiPath),
+						ghttp.VerifyRequest("PUT", apiPath, queryParams),
 						ghttp.RespondWith(http.StatusForbidden, nil),
 					),
 				)
@@ -80,7 +84,7 @@ var _ = Describe("Fly CLI", func() {
 						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: "other-team"}),
 					),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", apiPath),
+						ghttp.VerifyRequest("PUT", apiPath, queryParams),
 						ghttp.RespondWith(http.StatusOK, nil),
 					),
 				)
@@ -121,7 +125,7 @@ var _ = Describe("Fly CLI", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", apiPath),
+						ghttp.VerifyRequest("PUT", apiPath, queryParams),
 						ghttp.RespondWith(http.StatusInternalServerError, nil),
 					),
 				)
