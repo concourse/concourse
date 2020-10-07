@@ -242,6 +242,17 @@ dup-key: ((key3))
 		Expect(result).To(Equal([]byte("uri: nats://nats:secret@10.0.0.0:4222\n")))
 	})
 
+	It("allows @ in a var name", func() {
+		template := NewTemplate([]byte("((\"foo/bar/me.com-test@me.com/password\"))"))
+		vars := StaticVariables{
+			"foo/bar/me.com-test@me.com/password": "secret",
+		}
+
+		result, err := template.Evaluate(vars, EvaluateOpts{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(Equal([]byte("secret\n")))
+	})
+
 	It("can interpolate multiple keys of type string and int in the middle of a string", func() {
 		template := NewTemplate([]byte("address: ((ip)):((port))"))
 		vars := StaticVariables{
