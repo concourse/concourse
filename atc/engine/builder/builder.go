@@ -25,8 +25,8 @@ type StepFactory interface {
 	CheckStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, DelegateFactory) exec.Step
 	SetPipelineStep(atc.Plan, exec.StepMetadata, DelegateFactory) exec.Step
 	LoadVarStep(atc.Plan, exec.StepMetadata, DelegateFactory) exec.Step
-	ArtifactInputStep(atc.Plan, db.Build, DelegateFactory) exec.Step
-	ArtifactOutputStep(atc.Plan, db.Build, DelegateFactory) exec.Step
+	ArtifactInputStep(atc.Plan, db.Build) exec.Step
+	ArtifactOutputStep(atc.Plan, db.Build) exec.Step
 }
 
 func NewStepBuilder(
@@ -392,7 +392,6 @@ func (builder *stepBuilder) buildArtifactInputStep(build db.Build, plan atc.Plan
 	return builder.stepFactory.ArtifactInputStep(
 		plan,
 		build,
-		buildDelegateFactory(build, plan, builder.rateLimiter),
 	)
 }
 
@@ -400,7 +399,6 @@ func (builder *stepBuilder) buildArtifactOutputStep(build db.Build, plan atc.Pla
 	return builder.stepFactory.ArtifactOutputStep(
 		plan,
 		build,
-		buildDelegateFactory(build, plan, builder.rateLimiter),
 	)
 }
 
