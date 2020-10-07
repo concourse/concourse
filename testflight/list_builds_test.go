@@ -60,18 +60,12 @@ var _ = Describe("fly builds command", func() {
 	})
 
 	Context("when no flags passed", func() {
-		Context("being logged into custom team", func() {
-			JustBeforeEach(func() {
-				<-(spawnFlyLogin("-n", "testflight").Exited)
-			})
+		It("displays the right info", func() {
+			sess := fly("builds", "-p", testflightExposedPipeline)
+			Expect(sess).To(gbytes.Say(testflightExposedPipeline + "/some-passing-job"))
 
-			It("displays the right info", func() {
-				sess := fly("builds", "-p", testflightExposedPipeline)
-				Expect(sess).To(gbytes.Say(testflightExposedPipeline + "/some-passing-job"))
-
-				sess = fly("builds", "-p", testflightHiddenPipeline)
-				Expect(sess).To(gbytes.Say(testflightHiddenPipeline + "/some-passing-job"))
-			})
+			sess = fly("builds", "-p", testflightHiddenPipeline)
+			Expect(sess).To(gbytes.Say(testflightHiddenPipeline + "/some-passing-job"))
 		})
 	})
 
