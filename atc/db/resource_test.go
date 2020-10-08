@@ -501,12 +501,36 @@ var _ = Describe("Resource", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("creates a one-off build", func() {
+		It("creates a build", func() {
 			Expect(created).To(BeTrue())
 			Expect(build).ToNot(BeNil())
 			Expect(build.PipelineID()).To(Equal(defaultResource.PipelineID()))
 			Expect(build.TeamID()).To(Equal(defaultResource.TeamID()))
 			Expect(build.IsManuallyTriggered()).To(BeFalse())
+		})
+
+		It("associates the resource to the build", func() {
+			started, err := build.Start(atc.Plan{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(started).To(BeTrue())
+
+			exists, err := build.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists).To(BeTrue())
+
+			exists, err = defaultResource.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists).To(BeTrue())
+
+			Expect(defaultResource.BuildSummary()).To(Equal(&atc.BuildSummary{
+				ID:                   build.ID(),
+				Status:               atc.StatusStarted,
+				StartTime:            build.StartTime().Unix(),
+				TeamName:             defaultTeam.Name(),
+				PipelineID:           defaultPipeline.ID(),
+				PipelineName:         defaultPipeline.Name(),
+				PipelineInstanceVars: defaultPipeline.InstanceVars(),
+			}))
 		})
 
 		Context("when tracing is configured", func() {

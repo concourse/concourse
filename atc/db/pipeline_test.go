@@ -1302,7 +1302,7 @@ var _ = Describe("Pipeline", func() {
 
 			Expect(actualDashboard[0].Name).To(Equal(job.Name()))
 			Expect(actualDashboard[0].NextBuild.ID).To(Equal(firstJobBuild.ID()))
-			Expect(actualDashboard[0].NextBuild.Status).To(Equal("started"))
+			Expect(actualDashboard[0].NextBuild.Status).To(Equal(atc.StatusStarted))
 
 			By("returning a job's most recent started build even if there is a newer pending build")
 			job, found, err = pipeline.Job("job-name")

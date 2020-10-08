@@ -33,6 +33,8 @@ func Resource(resource db.Resource, showCheckError bool, teamName string) atc.Re
 		CheckSetupError: checkErrString,
 		CheckError:      rcCheckErrString,
 		PinComment:      resource.PinComment(),
+
+		Build: resource.BuildSummary(),
 	}
 
 	if !resource.LastCheckEndTime().IsZero() {

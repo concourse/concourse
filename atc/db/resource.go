@@ -51,6 +51,8 @@ type Resource interface {
 
 	CurrentPinnedVersion() atc.Version
 
+	BuildSummary() *atc.BuildSummary
+
 	ResourceConfigVersionID(atc.Version) (int, bool, error)
 	Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error)
 	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig) (bool, error)
@@ -99,10 +101,15 @@ var resourcesQuery = psql.Select(
 	"rp.version",
 	"rp.comment_text",
 	"rp.config",
+	"b.id",
+	"b.status",
+	"b.start_time",
+	"b.end_time",
 ).
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
+	LeftJoin("builds b ON b.resource_id = r.id").
 	LeftJoin("resource_config_scopes rs ON r.resource_config_scope_id = rs.id").
 	LeftJoin("resource_pins rp ON rp.resource_id = r.id").
 	Where(sq.Eq{"r.active": true})
@@ -125,6 +132,7 @@ type resource struct {
 	pinComment            string
 	resourceConfigID      int
 	resourceConfigScopeID int
+	buildSummary          *atc.BuildSummary
 }
 
 func newEmptyResource(conn Conn, lockFactory lock.LockFactory) *resource {
@@ -545,6 +553,10 @@ func (r *resource) CurrentPinnedVersion() atc.Version {
 	return nil
 }
 
+func (r *resource) BuildSummary() *atc.BuildSummary {
+	return r.buildSummary
+}
+
 func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
@@ -871,7 +883,14 @@ func scanResource(r *resource, row scannable) error {
 		pipelineInstanceVars                                                     sql.NullString
 	)
 
-	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName, &rcsCheckErr, &pinnedVersion, &pinComment, &pinnedThroughConfig)
+	var build struct {
+		id        sql.NullInt64
+		status    sql.NullString
+		startTime pq.NullTime
+		endTime   pq.NullTime
+	}
+
+	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName, &rcsCheckErr, &pinnedVersion, &pinComment, &pinnedThroughConfig, &build.id, &build.status, &build.startTime, &build.endTime)
 	if err != nil {
 		return err
 	}
@@ -956,7 +975,28 @@ func scanResource(r *resource, row scannable) error {
 		if err != nil {
 			return err
 		}
+	}
 
+	if build.id.Valid {
+		r.buildSummary = &atc.BuildSummary{
+			ID: int(build.id.Int64),
+
+			Status: atc.BuildStatus(build.status.String),
+
+			TeamName: r.teamName,
+
+			PipelineID:           r.pipelineID,
+			PipelineName:         r.pipelineName,
+			PipelineInstanceVars: r.pipelineInstanceVars,
+		}
+
+		if build.startTime.Valid {
+			r.buildSummary.StartTime = build.startTime.Time.Unix()
+		}
+
+		if build.endTime.Valid {
+			r.buildSummary.EndTime = build.endTime.Time.Unix()
+		}
 	}
 
 	return nil

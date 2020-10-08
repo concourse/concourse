@@ -65,6 +65,16 @@ var _ = Describe("Resources API", func() {
 				resource2.TeamNameReturns("other-team")
 				resource2.NameReturns("resource-2")
 				resource2.TypeReturns("type-2")
+				resource2.BuildSummaryReturns(&atc.BuildSummary{
+					ID:                   123,
+					Status:               atc.StatusSucceeded,
+					StartTime:            456,
+					EndTime:              789,
+					TeamName:             "some-team",
+					PipelineID:           99,
+					PipelineName:         "some-pipeline",
+					PipelineInstanceVars: atc.InstanceVars{"foo": 1},
+				})
 
 				resource3 := new(dbfakes.FakeResource)
 				resource3.IDReturns(3)
@@ -113,7 +123,19 @@ var _ = Describe("Resources API", func() {
 							"team_name": "other-team",
 							"type": "type-2",
 							"failing_to_check": true,
-							"check_error": "sup"
+							"check_error": "sup",
+							"build": {
+                "id": 123,
+                "status": "succeeded",
+                "start_time": 456,
+                "end_time": 789,
+                "team_name": "some-team",
+                "pipeline_id": 99,
+                "pipeline_name": "some-pipeline",
+                "pipeline_instance_vars": {
+                  "foo": 1
+                }
+							}
 						},
 						{
 							"name": "resource-3",
@@ -988,6 +1010,16 @@ var _ = Describe("Resources API", func() {
 					resource1.NameReturns("resource-1")
 					resource1.TypeReturns("type-1")
 					resource1.LastCheckEndTimeReturns(time.Unix(1513364881, 0))
+					resource1.BuildSummaryReturns(&atc.BuildSummary{
+						ID:                   123,
+						Status:               atc.StatusSucceeded,
+						StartTime:            456,
+						EndTime:              789,
+						TeamName:             "some-team",
+						PipelineID:           99,
+						PipelineName:         "some-pipeline",
+						PipelineInstanceVars: atc.InstanceVars{"foo": 1},
+					})
 
 					fakePipeline.ResourceReturns(resource1, true, nil)
 				})
@@ -1015,7 +1047,19 @@ var _ = Describe("Resources API", func() {
 						"team_name": "a-team",
 						"type": "type-1",
 						"last_checked": 1513364881,
-						"failing_to_check": true
+						"failing_to_check": true,
+						"build": {
+							"id": 123,
+							"status": "succeeded",
+							"start_time": 456,
+							"end_time": 789,
+							"team_name": "some-team",
+							"pipeline_id": 99,
+							"pipeline_name": "some-pipeline",
+							"pipeline_instance_vars": {
+								"foo": 1
+							}
+						}
 					}`))
 				})
 			})

@@ -21,6 +21,16 @@ type FakeResource struct {
 	aPIPinnedVersionReturnsOnCall map[int]struct {
 		result1 atc.Version
 	}
+	BuildSummaryStub        func() *atc.BuildSummary
+	buildSummaryMutex       sync.RWMutex
+	buildSummaryArgsForCall []struct {
+	}
+	buildSummaryReturns struct {
+		result1 *atc.BuildSummary
+	}
+	buildSummaryReturnsOnCall map[int]struct {
+		result1 *atc.BuildSummary
+	}
 	CheckErrorStub        func() error
 	checkErrorMutex       sync.RWMutex
 	checkErrorArgsForCall []struct {
@@ -565,6 +575,58 @@ func (fake *FakeResource) APIPinnedVersionReturnsOnCall(i int, result1 atc.Versi
 	}
 	fake.aPIPinnedVersionReturnsOnCall[i] = struct {
 		result1 atc.Version
+	}{result1}
+}
+
+func (fake *FakeResource) BuildSummary() *atc.BuildSummary {
+	fake.buildSummaryMutex.Lock()
+	ret, specificReturn := fake.buildSummaryReturnsOnCall[len(fake.buildSummaryArgsForCall)]
+	fake.buildSummaryArgsForCall = append(fake.buildSummaryArgsForCall, struct {
+	}{})
+	fake.recordInvocation("BuildSummary", []interface{}{})
+	fake.buildSummaryMutex.Unlock()
+	if fake.BuildSummaryStub != nil {
+		return fake.BuildSummaryStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.buildSummaryReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResource) BuildSummaryCallCount() int {
+	fake.buildSummaryMutex.RLock()
+	defer fake.buildSummaryMutex.RUnlock()
+	return len(fake.buildSummaryArgsForCall)
+}
+
+func (fake *FakeResource) BuildSummaryCalls(stub func() *atc.BuildSummary) {
+	fake.buildSummaryMutex.Lock()
+	defer fake.buildSummaryMutex.Unlock()
+	fake.BuildSummaryStub = stub
+}
+
+func (fake *FakeResource) BuildSummaryReturns(result1 *atc.BuildSummary) {
+	fake.buildSummaryMutex.Lock()
+	defer fake.buildSummaryMutex.Unlock()
+	fake.BuildSummaryStub = nil
+	fake.buildSummaryReturns = struct {
+		result1 *atc.BuildSummary
+	}{result1}
+}
+
+func (fake *FakeResource) BuildSummaryReturnsOnCall(i int, result1 *atc.BuildSummary) {
+	fake.buildSummaryMutex.Lock()
+	defer fake.buildSummaryMutex.Unlock()
+	fake.BuildSummaryStub = nil
+	if fake.buildSummaryReturnsOnCall == nil {
+		fake.buildSummaryReturnsOnCall = make(map[int]struct {
+			result1 *atc.BuildSummary
+		})
+	}
+	fake.buildSummaryReturnsOnCall[i] = struct {
+		result1 *atc.BuildSummary
 	}{result1}
 }
 
@@ -3017,6 +3079,8 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.aPIPinnedVersionMutex.RLock()
 	defer fake.aPIPinnedVersionMutex.RUnlock()
+	fake.buildSummaryMutex.RLock()
+	defer fake.buildSummaryMutex.RUnlock()
 	fake.checkErrorMutex.RLock()
 	defer fake.checkErrorMutex.RUnlock()
 	fake.checkEveryMutex.RLock()

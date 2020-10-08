@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 )
 
-var _ = Describe("Job Factory", func() {
+var _ = Describe("JobFactory", func() {
 	var jobFactory db.JobFactory
 
 	BeforeEach(func() {
@@ -237,7 +237,7 @@ var _ = Describe("Job Factory", func() {
 				Expect(visibleJobs[0].NextBuild.PipelineName).To(Equal(nextBuild.PipelineName()))
 				Expect(visibleJobs[0].NextBuild.PipelineInstanceVars).To(Equal(nextBuild.PipelineInstanceVars()))
 				Expect(visibleJobs[0].NextBuild.TeamName).To(Equal(nextBuild.TeamName()))
-				Expect(visibleJobs[0].NextBuild.Status).To(Equal(string(nextBuild.Status())))
+				Expect(visibleJobs[0].NextBuild.Status).To(Equal(atc.BuildStatus(nextBuild.Status())))
 				Expect(visibleJobs[0].NextBuild.StartTime).To(Equal(nextBuild.StartTime().Unix()))
 				Expect(visibleJobs[0].NextBuild.EndTime).To(Equal(nextBuild.EndTime().Unix()))
 
@@ -248,7 +248,7 @@ var _ = Describe("Job Factory", func() {
 				Expect(visibleJobs[0].FinishedBuild.PipelineName).To(Equal(finishedBuild.PipelineName()))
 				Expect(visibleJobs[0].FinishedBuild.PipelineInstanceVars).To(Equal(finishedBuild.PipelineInstanceVars()))
 				Expect(visibleJobs[0].FinishedBuild.TeamName).To(Equal(finishedBuild.TeamName()))
-				Expect(visibleJobs[0].FinishedBuild.Status).To(Equal(string(finishedBuild.Status())))
+				Expect(visibleJobs[0].FinishedBuild.Status).To(Equal(atc.BuildStatus(finishedBuild.Status())))
 				Expect(visibleJobs[0].FinishedBuild.StartTime).To(Equal(finishedBuild.StartTime().Unix()))
 				Expect(visibleJobs[0].FinishedBuild.EndTime).To(Equal(finishedBuild.EndTime().Unix()))
 
@@ -259,7 +259,7 @@ var _ = Describe("Job Factory", func() {
 				Expect(visibleJobs[0].TransitionBuild.PipelineName).To(Equal(transitionBuild.PipelineName()))
 				Expect(visibleJobs[0].TransitionBuild.PipelineInstanceVars).To(Equal(transitionBuild.PipelineInstanceVars()))
 				Expect(visibleJobs[0].TransitionBuild.TeamName).To(Equal(transitionBuild.TeamName()))
-				Expect(visibleJobs[0].TransitionBuild.Status).To(Equal(string(transitionBuild.Status())))
+				Expect(visibleJobs[0].TransitionBuild.Status).To(Equal(atc.BuildStatus(transitionBuild.Status())))
 				Expect(visibleJobs[0].TransitionBuild.StartTime).To(Equal(transitionBuild.StartTime().Unix()))
 				Expect(visibleJobs[0].TransitionBuild.EndTime).To(Equal(transitionBuild.EndTime().Unix()))
 			})

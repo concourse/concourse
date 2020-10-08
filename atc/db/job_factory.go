@@ -337,7 +337,7 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 				PipelineName:         j.PipelineName,
 				PipelineInstanceVars: j.PipelineInstanceVars,
 				TeamName:             j.TeamName,
-				Status:               f.status.String,
+				Status:               atc.BuildStatus(f.status.String),
 				StartTime:            f.startTime.Time.Unix(),
 				EndTime:              f.endTime.Time.Unix(),
 			}
@@ -352,7 +352,7 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 				PipelineName:         j.PipelineName,
 				PipelineInstanceVars: j.PipelineInstanceVars,
 				TeamName:             j.TeamName,
-				Status:               n.status.String,
+				Status:               atc.BuildStatus(n.status.String),
 				StartTime:            n.startTime.Time.Unix(),
 				EndTime:              n.endTime.Time.Unix(),
 			}
@@ -367,7 +367,7 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 				PipelineName:         j.PipelineName,
 				PipelineInstanceVars: j.PipelineInstanceVars,
 				TeamName:             j.TeamName,
-				Status:               t.status.String,
+				Status:               atc.BuildStatus(t.status.String),
 				StartTime:            t.startTime.Time.Unix(),
 				EndTime:              t.endTime.Time.Unix(),
 			}

@@ -24,8 +24,12 @@ type JobSummary struct {
 }
 
 type BuildSummary struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
+	ID int `json:"id"`
+
+	Status BuildStatus `json:"status"`
+
+	StartTime int64 `json:"start_time,omitempty"`
+	EndTime   int64 `json:"end_time,omitempty"`
 
 	TeamName string `json:"team_name"`
 
@@ -33,12 +37,8 @@ type BuildSummary struct {
 	PipelineName         string       `json:"pipeline_name"`
 	PipelineInstanceVars InstanceVars `json:"pipeline_instance_vars,omitempty"`
 
-	JobName string `json:"job_name"`
-
-	Status string `json:"status"`
-
-	StartTime int64 `json:"start_time,omitempty"`
-	EndTime   int64 `json:"end_time,omitempty"`
+	JobName string `json:"job_name,omitempty"`
+	Name    string `json:"name,omitempty"`
 }
 
 type JobInputSummary struct {
