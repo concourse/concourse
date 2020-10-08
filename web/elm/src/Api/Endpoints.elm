@@ -23,7 +23,6 @@ type Endpoint
     | ResourcesList
     | Resource Concourse.ResourceIdentifier ResourceEndpoint
     | ResourceVersion Concourse.VersionedResourceIdentifier ResourceVersionEndpoint
-    | Check Int
     | TeamsList
     | Team Concourse.TeamName TeamEndpoint
     | ClusterInfo
@@ -134,9 +133,6 @@ toPath endpoint =
 
         ResourceVersion id subEndpoint ->
             resourcePath id ++ [ "versions", String.fromInt id.versionID ] ++ resourceVersionEndpointToPath subEndpoint
-
-        Check id ->
-            basePath ++ [ "checks", String.fromInt id ]
 
         TeamsList ->
             basePath ++ [ "teams" ]

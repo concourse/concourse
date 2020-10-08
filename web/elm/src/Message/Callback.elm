@@ -43,7 +43,7 @@ type Callback
     | VersionPinned (Fetched ())
     | VersionUnpinned (Fetched ())
     | VersionToggled VersionToggleAction VersionId (Fetched ())
-    | Checked (Fetched Concourse.Check)
+    | Checked (Fetched Concourse.Build)
     | CommentSet (Fetched ())
     | AllTeamsFetched (Fetched (List Concourse.Team))
     | AllJobsFetched (Fetched (List Concourse.Job))

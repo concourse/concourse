@@ -3001,7 +3001,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.Checked <|
                                     Ok <|
-                                        Data.check Concourse.Succeeded
+                                        Data.build Concourse.BuildStatus.BuildStatusSucceeded
                                 )
                             |> Tuple.first
                             |> checkBar (UserStateLoggedIn sampleUser)
@@ -3027,7 +3027,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.Checked <|
                                     Ok <|
-                                        Data.check Concourse.Started
+                                        Data.build Concourse.BuildStatus.BuildStatusStarted
                                 )
                             |> Tuple.first
                             |> Application.handleDelivery
@@ -3035,7 +3035,7 @@ all =
                                     Time.millisToPosix 1000
                                 )
                             |> Tuple.second
-                            |> Common.contains (Effects.FetchCheck 0)
+                            |> Common.contains (Effects.FetchCheck 1)
                 , test "when check resolves successfully, resource and versions refresh" <|
                     \_ ->
                         init
@@ -3049,7 +3049,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.Checked <|
                                     Ok <|
-                                        Data.check Concourse.Succeeded
+                                        Data.build Concourse.BuildStatus.BuildStatusSucceeded
                                 )
                             |> Tuple.second
                             |> Expect.equal
@@ -3069,7 +3069,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.Checked <|
                                     Ok <|
-                                        Data.check Concourse.Errored
+                                        Data.build Concourse.BuildStatus.BuildStatusErrored
                                 )
                             |> Tuple.first
                             |> checkBar (UserStateLoggedIn sampleUser)
@@ -3095,7 +3095,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.Checked <|
                                     Ok <|
-                                        Data.check Concourse.Errored
+                                        Data.build Concourse.BuildStatus.BuildStatusErrored
                                 )
                             |> Tuple.second
                             |> Expect.equal [ Effects.FetchResource Data.resourceId ]

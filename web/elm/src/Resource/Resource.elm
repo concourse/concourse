@@ -474,7 +474,7 @@ handleCallback callback session ( model, effects ) =
 
         Checked (Ok { status, id }) ->
             case status of
-                Concourse.Succeeded ->
+                Concourse.BuildStatus.BuildStatusSucceeded ->
                     ( { model | checkStatus = Models.CheckingSuccessfully }
                     , effects
                         ++ [ FetchResource model.resourceIdentifier
@@ -484,12 +484,12 @@ handleCallback callback session ( model, effects ) =
                            ]
                     )
 
-                Concourse.Started ->
+                Concourse.BuildStatus.BuildStatusStarted ->
                     ( { model | checkStatus = Models.CurrentlyChecking id }
                     , effects
                     )
 
-                Concourse.Errored ->
+                _ ->
                     ( { model | checkStatus = Models.FailingToCheck }
                     , effects ++ [ FetchResource model.resourceIdentifier ]
                     )
