@@ -981,7 +981,8 @@ func scanResource(r *resource, row scannable) error {
 
 	if build.id.Valid {
 		r.buildSummary = &atc.BuildSummary{
-			ID: int(build.id.Int64),
+			ID:   int(build.id.Int64),
+			Name: fmt.Sprintf("%d", build.id.Int64),
 
 			Status: atc.BuildStatus(build.status.String),
 

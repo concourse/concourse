@@ -24,7 +24,8 @@ type JobSummary struct {
 }
 
 type BuildSummary struct {
-	ID int `json:"id"`
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 
 	Status BuildStatus `json:"status"`
 
@@ -38,7 +39,6 @@ type BuildSummary struct {
 	PipelineInstanceVars InstanceVars `json:"pipeline_instance_vars,omitempty"`
 
 	JobName string `json:"job_name,omitempty"`
-	Name    string `json:"name,omitempty"`
 }
 
 type JobInputSummary struct {

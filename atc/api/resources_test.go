@@ -67,6 +67,7 @@ var _ = Describe("Resources API", func() {
 				resource2.TypeReturns("type-2")
 				resource2.BuildSummaryReturns(&atc.BuildSummary{
 					ID:                   123,
+					Name:                 "123",
 					Status:               atc.StatusSucceeded,
 					StartTime:            456,
 					EndTime:              789,
@@ -126,6 +127,7 @@ var _ = Describe("Resources API", func() {
 							"check_error": "sup",
 							"build": {
                 "id": 123,
+								"name": "123",
                 "status": "succeeded",
                 "start_time": 456,
                 "end_time": 789,
@@ -1012,6 +1014,7 @@ var _ = Describe("Resources API", func() {
 					resource1.LastCheckEndTimeReturns(time.Unix(1513364881, 0))
 					resource1.BuildSummaryReturns(&atc.BuildSummary{
 						ID:                   123,
+						Name:                 "123",
 						Status:               atc.StatusSucceeded,
 						StartTime:            456,
 						EndTime:              789,
@@ -1050,6 +1053,7 @@ var _ = Describe("Resources API", func() {
 						"failing_to_check": true,
 						"build": {
 							"id": 123,
+							"name": "123",
 							"status": "succeeded",
 							"start_time": 456,
 							"end_time": 789,

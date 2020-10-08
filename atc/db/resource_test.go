@@ -524,6 +524,7 @@ var _ = Describe("Resource", func() {
 
 			Expect(defaultResource.BuildSummary()).To(Equal(&atc.BuildSummary{
 				ID:                   build.ID(),
+				Name:                 strconv.Itoa(build.ID()),
 				Status:               atc.StatusStarted,
 				StartTime:            build.StartTime().Unix(),
 				TeamName:             defaultTeam.Name(),
@@ -578,6 +579,7 @@ var _ = Describe("Resource", func() {
 
 				Expect(defaultResource.BuildSummary()).To(Equal(&atc.BuildSummary{
 					ID:                   build.ID(),
+					Name:                 strconv.Itoa(build.ID()),
 					Status:               atc.StatusStarted,
 					StartTime:            build.StartTime().Unix(),
 					TeamName:             defaultTeam.Name(),
@@ -627,6 +629,7 @@ var _ = Describe("Resource", func() {
 
 				Expect(defaultResource.BuildSummary()).To(Equal(&atc.BuildSummary{
 					ID:                   anotherBuild.ID(),
+					Name:                 strconv.Itoa(anotherBuild.ID()),
 					Status:               atc.StatusStarted,
 					StartTime:            anotherBuild.StartTime().Unix(),
 					TeamName:             defaultTeam.Name(),
