@@ -27,65 +27,65 @@ import (
 // SetPipelineStep sets a pipeline to current team. This step takes pipeline
 // configure file and var files from some resource in the pipeline, like git.
 type SetPipelineStep struct {
-	planID       atc.PlanID
-	plan         atc.SetPipelinePlan
-	metadata     StepMetadata
-	delegate     SetPipelineStepDelegate
-	teamFactory  db.TeamFactory
-	buildFactory db.BuildFactory
-	client       worker.Client
-	succeeded    bool
+	planID          atc.PlanID
+	plan            atc.SetPipelinePlan
+	metadata        StepMetadata
+	delegateFactory SetPipelineStepDelegateFactory
+	teamFactory     db.TeamFactory
+	buildFactory    db.BuildFactory
+	client          worker.Client
+	succeeded       bool
 }
 
 func NewSetPipelineStep(
 	planID atc.PlanID,
 	plan atc.SetPipelinePlan,
 	metadata StepMetadata,
-	delegate SetPipelineStepDelegate,
+	delegateFactory SetPipelineStepDelegateFactory,
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
 	client worker.Client,
 ) Step {
 	return &SetPipelineStep{
-		planID:       planID,
-		plan:         plan,
-		metadata:     metadata,
-		delegate:     delegate,
-		teamFactory:  teamFactory,
-		buildFactory: buildFactory,
-		client:       client,
+		planID:          planID,
+		plan:            plan,
+		metadata:        metadata,
+		delegateFactory: delegateFactory,
+		teamFactory:     teamFactory,
+		buildFactory:    buildFactory,
+		client:          client,
 	}
 }
 
 func (step *SetPipelineStep) Run(ctx context.Context, state RunState) error {
-	ctx, span := step.delegate.StartSpan(ctx, "set_pipeline", tracing.Attrs{
+	delegate := step.delegateFactory.SetPipelineStepDelegate(state)
+	ctx, span := delegate.StartSpan(ctx, "set_pipeline", tracing.Attrs{
 		"name": step.plan.Name,
 	})
 
-	err := step.run(ctx, state)
+	err := step.run(ctx, state, delegate)
 	tracing.End(span, err)
 
 	return err
 }
 
-func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
+func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate SetPipelineStepDelegate) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("set-pipeline-step", lager.Data{
 		"step-name": step.plan.Name,
 		"job-id":    step.metadata.JobID,
 	})
 
-	step.delegate.Initializing(logger)
+	delegate.Initializing(logger)
 
-	variables := step.delegate.Variables()
-	interpolatedPlan, err := creds.NewSetPipelinePlan(variables, step.plan).Evaluate()
+	interpolatedPlan, err := creds.NewSetPipelinePlan(state, step.plan).Evaluate()
 	if err != nil {
 		return err
 	}
 	step.plan = interpolatedPlan
 
-	stdout := step.delegate.Stdout()
-	stderr := step.delegate.Stderr()
+	stdout := delegate.Stdout()
+	stderr := delegate.Stderr()
 
 	fmt.Fprintln(stderr, "\x1b[1;33mWARNING: the set_pipeline step is experimental and subject to change!\x1b[0m")
 	fmt.Fprintln(stderr, "")
@@ -122,7 +122,7 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 		return err
 	}
 
-	step.delegate.Starting(logger)
+	delegate.Starting(logger)
 
 	warnings, errors := configvalidate.Validate(atcConfig)
 	for _, warning := range warnings {
@@ -130,13 +130,13 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 	}
 
 	if len(errors) > 0 {
-		fmt.Fprintln(step.delegate.Stderr(), "invalid pipeline:")
+		fmt.Fprintln(delegate.Stderr(), "invalid pipeline:")
 
 		for _, e := range errors {
 			fmt.Fprintf(stderr, "- %s", e)
 		}
 
-		step.delegate.Finished(logger, false)
+		delegate.Finished(logger, false)
 		return nil
 	}
 
@@ -212,14 +212,14 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 		if err != nil {
 			return err
 		}
-		step.delegate.SetPipelineChanged(logger, false)
+		delegate.SetPipelineChanged(logger, false)
 		step.succeeded = true
-		step.delegate.Finished(logger, true)
+		delegate.Finished(logger, true)
 		return nil
 	}
 
 	fmt.Fprintf(stdout, "setting pipeline: %s\n", pipelineRef.String())
-	step.delegate.SetPipelineChanged(logger, true)
+	delegate.SetPipelineChanged(logger, true)
 	parentBuild, found, err := step.buildFactory.Build(step.metadata.BuildID)
 	if err != nil {
 		return err
@@ -234,7 +234,7 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 		if err == db.ErrSetByNewerBuild {
 			fmt.Fprintln(stderr, "\x1b[1;33mWARNING: the pipeline was not saved because it was already saved by a newer build\x1b[0m")
 			step.succeeded = true
-			step.delegate.Finished(logger, true)
+			delegate.Finished(logger, true)
 			return nil
 		}
 		return err
@@ -243,7 +243,7 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 	fmt.Fprintf(stdout, "done\n")
 	logger.Info("saved-pipeline", lager.Data{"team": team.Name(), "pipeline": pipeline.Name()})
 	step.succeeded = true
-	step.delegate.Finished(logger, true)
+	delegate.Finished(logger, true)
 
 	return nil
 }

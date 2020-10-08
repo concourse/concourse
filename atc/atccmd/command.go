@@ -1633,12 +1633,10 @@ func (cmd *RunCommand) constructEngine(
 	stepBuilder := builder.NewStepBuilder(
 		stepFactory,
 		cmd.ExternalURL.String(),
-		secretManager,
-		cmd.varSourcePool,
 		rateLimiter,
 	)
 
-	return engine.NewEngine(stepBuilder)
+	return engine.NewEngine(stepBuilder, secretManager, cmd.varSourcePool)
 }
 
 func (cmd *RunCommand) constructHTTPHandler(

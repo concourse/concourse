@@ -13,9 +13,14 @@ import (
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
-	"github.com/concourse/concourse/vars"
 	"go.opentelemetry.io/otel/api/trace"
 )
+
+//go:generate counterfeiter . PutDelegateFactory
+
+type PutDelegateFactory interface {
+	PutDelegate(state RunState) PutDelegate
+}
 
 //go:generate counterfeiter . PutDelegate
 
@@ -27,8 +32,6 @@ type PutDelegate interface {
 
 	Stdout() io.Writer
 	Stderr() io.Writer
-
-	Variables() *vars.BuildVariables
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
@@ -50,7 +53,7 @@ type PutStep struct {
 	resourceConfigFactory db.ResourceConfigFactory
 	strategy              worker.ContainerPlacementStrategy
 	workerClient          worker.Client
-	delegate              PutDelegate
+	delegateFactory       PutDelegateFactory
 	succeeded             bool
 }
 
@@ -63,7 +66,7 @@ func NewPutStep(
 	resourceConfigFactory db.ResourceConfigFactory,
 	strategy worker.ContainerPlacementStrategy,
 	workerClient worker.Client,
-	delegate PutDelegate,
+	delegateFactory PutDelegateFactory,
 ) Step {
 	return &PutStep{
 		planID:                planID,
@@ -74,7 +77,7 @@ func NewPutStep(
 		resourceConfigFactory: resourceConfigFactory,
 		workerClient:          workerClient,
 		strategy:              strategy,
-		delegate:              delegate,
+		delegateFactory:       delegateFactory,
 	}
 }
 
@@ -87,39 +90,38 @@ func NewPutStep(
 // The resource's put script is then invoked. If the context is canceled, the
 // script will be interrupted.
 func (step *PutStep) Run(ctx context.Context, state RunState) error {
-	ctx, span := step.delegate.StartSpan(ctx, "put", tracing.Attrs{
+	delegate := step.delegateFactory.PutDelegate(state)
+	ctx, span := delegate.StartSpan(ctx, "put", tracing.Attrs{
 		"name":     step.plan.Name,
 		"resource": step.plan.Resource,
 	})
 
-	err := step.run(ctx, state)
+	err := step.run(ctx, state, delegate)
 	tracing.End(span, err)
 
 	return err
 }
 
-func (step *PutStep) run(ctx context.Context, state RunState) error {
+func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelegate) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("put-step", lager.Data{
 		"step-name": step.plan.Name,
 		"job-id":    step.metadata.JobID,
 	})
 
-	step.delegate.Initializing(logger)
+	delegate.Initializing(logger)
 
-	variables := step.delegate.Variables()
-
-	source, err := creds.NewSource(variables, step.plan.Source).Evaluate()
+	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
 	if err != nil {
 		return err
 	}
 
-	params, err := creds.NewParams(variables, step.plan.Params).Evaluate()
+	params, err := creds.NewParams(state, step.plan.Params).Evaluate()
 	if err != nil {
 		return err
 	}
 
-	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
+	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
 		return err
 	}
@@ -174,14 +176,14 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 
 	imageSpec := worker.ImageFetcherSpec{
 		ResourceTypes: resourceTypes,
-		Delegate:      step.delegate,
+		Delegate:      delegate,
 	}
 
 	processSpec := runtime.ProcessSpec{
 		Path:         "/opt/resource/out",
 		Args:         []string{resource.ResourcesDir("put")},
-		StdoutWriter: step.delegate.Stdout(),
-		StderrWriter: step.delegate.Stderr(),
+		StdoutWriter: delegate.Stdout(),
+		StderrWriter: delegate.Stderr(),
 	}
 
 	resourceToPut := step.resourceFactory.NewResource(source, params, nil)
@@ -196,7 +198,7 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 		step.containerMetadata,
 		imageSpec,
 		processSpec,
-		step.delegate,
+		delegate,
 		resourceToPut,
 	)
 	if err != nil {
@@ -205,7 +207,7 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 	}
 
 	if result.ExitStatus != 0 {
-		step.delegate.Finished(logger, ExitStatus(result.ExitStatus), runtime.VersionResult{})
+		delegate.Finished(logger, ExitStatus(result.ExitStatus), runtime.VersionResult{})
 		return nil
 	}
 
@@ -213,14 +215,14 @@ func (step *PutStep) run(ctx context.Context, state RunState) error {
 	// step.plan.Resource maps to an actual resource that may have been used outside of a pipeline context.
 	// Hence, if it was used outside the pipeline context, we don't want to save the output.
 	if step.plan.Resource != "" {
-		step.delegate.SaveOutput(logger, step.plan, source, resourceTypes, versionResult)
+		delegate.SaveOutput(logger, step.plan, source, resourceTypes, versionResult)
 	}
 
 	state.StoreResult(step.planID, versionResult)
 
 	step.succeeded = true
 
-	step.delegate.Finished(logger, 0, versionResult)
+	delegate.Finished(logger, 0, versionResult)
 
 	return nil
 

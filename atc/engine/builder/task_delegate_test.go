@@ -21,7 +21,8 @@ var _ = Describe("TaskDelegate", func() {
 		logger    *lagertest.TestLogger
 		fakeBuild *dbfakes.FakeBuild
 		fakeClock *fakeclock.FakeClock
-		buildVars *vars.BuildVariables
+
+		state exec.RunState
 
 		now = time.Date(1991, 6, 3, 5, 30, 0, 0, time.UTC)
 
@@ -39,9 +40,9 @@ var _ = Describe("TaskDelegate", func() {
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
 		}
-		buildVars = vars.NewBuildVariables(credVars, true)
+		state = exec.NewRunState(credVars, true)
 
-		delegate = builder.NewTaskDelegate(fakeBuild, "some-plan-id", buildVars, fakeClock)
+		delegate = builder.NewTaskDelegate(fakeBuild, "some-plan-id", state, fakeClock)
 		delegate.SetTaskConfig(atc.TaskConfig{
 			Platform: "some-platform",
 			Run: atc.TaskRunConfig{

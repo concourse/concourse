@@ -6,23 +6,23 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/atc/exec"
 )
 
 func NewSetPipelineStepDelegate(
 	build db.Build,
 	planID atc.PlanID,
-	buildVars *vars.BuildVariables,
+	state exec.RunState,
 	clock clock.Clock,
 ) *setPipelineStepDelegate {
 	return &setPipelineStepDelegate{
 		buildStepDelegate{
-			build:     build,
-			planID:    planID,
-			clock:     clock,
-			buildVars: buildVars,
-			stdout:    nil,
-			stderr:    nil,
+			build:  build,
+			planID: planID,
+			clock:  clock,
+			state:  state,
+			stdout: nil,
+			stderr: nil,
 		},
 	}
 }

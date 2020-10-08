@@ -38,8 +38,11 @@ var _ = Describe("PutStep", func() {
 		fakeResource              *resourcefakes.FakeResource
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 		fakeDelegate              *execfakes.FakePutDelegate
-		spanCtx                   context.Context
-		putPlan                   *atc.PutPlan
+		fakeDelegateFactory       *execfakes.FakePutDelegateFactory
+
+		spanCtx context.Context
+
+		putPlan *atc.PutPlan
 
 		fakeArtifact        *runtimefakes.FakeArtifact
 		fakeOtherArtifact   *runtimefakes.FakeArtifact
@@ -68,8 +71,6 @@ var _ = Describe("PutStep", func() {
 		putStep exec.Step
 		stepErr error
 
-		buildVars *vars.BuildVariables
-
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
 
@@ -91,15 +92,14 @@ var _ = Describe("PutStep", func() {
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
 
-		credVars := vars.StaticVariables{"custom-param": "source", "source-param": "super-secret-source"}
-		buildVars = vars.NewBuildVariables(credVars, true)
-
 		fakeDelegate = new(execfakes.FakePutDelegate)
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
-		fakeDelegate.VariablesReturns(vars.NewBuildVariables(buildVars, false))
+
+		fakeDelegateFactory = new(execfakes.FakePutDelegateFactory)
+		fakeDelegateFactory.PutDelegateReturns(fakeDelegate)
 
 		spanCtx = context.Background()
 		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
@@ -115,6 +115,8 @@ var _ = Describe("PutStep", func() {
 		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactRepositoryReturns(repo)
+
+		state.GetStub = vars.StaticVariables{"custom-param": "source", "source-param": "super-secret-source"}.Get
 
 		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
@@ -186,7 +188,7 @@ var _ = Describe("PutStep", func() {
 			fakeResourceConfigFactory,
 			fakeStrategy,
 			fakeClient,
-			fakeDelegate,
+			fakeDelegateFactory,
 		)
 
 		stepErr = putStep.Run(ctx, state)
@@ -359,13 +361,6 @@ var _ = Describe("PutStep", func() {
 			fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
 
 			fakeWorker.NameReturns("some-worker")
-		})
-
-		It("secrets are tracked", func() {
-			mapit := vars.TrackedVarsMap{}
-			buildVars.IterateInterpolatedCreds(mapit)
-			Expect(mapit["custom-param"]).To(Equal("source"))
-			Expect(mapit["source-param"]).To(Equal("super-secret-source"))
 		})
 
 		It("creates a resource with the correct source and params", func() {

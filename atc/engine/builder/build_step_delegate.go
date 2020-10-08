@@ -12,33 +12,33 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/tracing"
-	"github.com/concourse/concourse/vars"
 	"go.opentelemetry.io/otel/api/trace"
 )
 
 type buildStepDelegate struct {
-	build     db.Build
-	planID    atc.PlanID
-	clock     clock.Clock
-	buildVars *vars.BuildVariables
-	stderr    io.Writer
-	stdout    io.Writer
+	build  db.Build
+	planID atc.PlanID
+	clock  clock.Clock
+	state  exec.RunState
+	stderr io.Writer
+	stdout io.Writer
 }
 
 func NewBuildStepDelegate(
 	build db.Build,
 	planID atc.PlanID,
-	buildVars *vars.BuildVariables,
+	state exec.RunState,
 	clock clock.Clock,
 ) *buildStepDelegate {
 	return &buildStepDelegate{
-		build:     build,
-		planID:    planID,
-		clock:     clock,
-		buildVars: buildVars,
-		stdout:    nil,
-		stderr:    nil,
+		build:  build,
+		planID: planID,
+		clock:  clock,
+		state:  state,
+		stdout: nil,
+		stderr: nil,
 	}
 }
 
@@ -53,10 +53,6 @@ func (delegate *buildStepDelegate) StartSpan(
 	}
 
 	return tracing.StartSpan(ctx, component, attrs)
-}
-
-func (delegate *buildStepDelegate) Variables() *vars.BuildVariables {
-	return delegate.buildVars
 }
 
 func (delegate *buildStepDelegate) ImageVersionDetermined(resourceCache db.UsedResourceCache) error {
@@ -79,7 +75,7 @@ func (it *credVarsIterator) YieldCred(name, value string) {
 
 func (delegate *buildStepDelegate) buildOutputFilter(str string) string {
 	it := &credVarsIterator{line: str}
-	delegate.buildVars.IterateInterpolatedCreds(it)
+	delegate.state.IterateInterpolatedCreds(it)
 	return it.line
 }
 
@@ -98,53 +94,55 @@ func (delegate *buildStepDelegate) RedactImageSource(source atc.Source) (atc.Sou
 }
 
 func (delegate *buildStepDelegate) Stdout() io.Writer {
-	if delegate.stdout == nil {
-		if delegate.buildVars.RedactionEnabled() {
-			delegate.stdout = newDBEventWriterWithSecretRedaction(
-				delegate.build,
-				event.Origin{
-					Source: event.OriginSourceStdout,
-					ID:     event.OriginID(delegate.planID),
-				},
-				delegate.clock,
-				delegate.buildOutputFilter,
-			)
-		} else {
-			delegate.stdout = newDBEventWriter(
-				delegate.build,
-				event.Origin{
-					Source: event.OriginSourceStdout,
-					ID:     event.OriginID(delegate.planID),
-				},
-				delegate.clock,
-			)
-		}
+	if delegate.stdout != nil {
+		return delegate.stdout
+	}
+	if delegate.state.RedactionEnabled() {
+		delegate.stdout = newDBEventWriterWithSecretRedaction(
+			delegate.build,
+			event.Origin{
+				Source: event.OriginSourceStdout,
+				ID:     event.OriginID(delegate.planID),
+			},
+			delegate.clock,
+			delegate.buildOutputFilter,
+		)
+	} else {
+		delegate.stdout = newDBEventWriter(
+			delegate.build,
+			event.Origin{
+				Source: event.OriginSourceStdout,
+				ID:     event.OriginID(delegate.planID),
+			},
+			delegate.clock,
+		)
 	}
 	return delegate.stdout
 }
 
 func (delegate *buildStepDelegate) Stderr() io.Writer {
-	if delegate.stderr == nil {
-		if delegate.buildVars.RedactionEnabled() {
-			delegate.stderr = newDBEventWriterWithSecretRedaction(
-				delegate.build,
-				event.Origin{
-					Source: event.OriginSourceStderr,
-					ID:     event.OriginID(delegate.planID),
-				},
-				delegate.clock,
-				delegate.buildOutputFilter,
-			)
-		} else {
-			delegate.stderr = newDBEventWriter(
-				delegate.build,
-				event.Origin{
-					Source: event.OriginSourceStderr,
-					ID:     event.OriginID(delegate.planID),
-				},
-				delegate.clock,
-			)
-		}
+	if delegate.stderr != nil {
+		return delegate.stderr
+	}
+	if delegate.state.RedactionEnabled() {
+		delegate.stderr = newDBEventWriterWithSecretRedaction(
+			delegate.build,
+			event.Origin{
+				Source: event.OriginSourceStderr,
+				ID:     event.OriginID(delegate.planID),
+			},
+			delegate.clock,
+			delegate.buildOutputFilter,
+		)
+	} else {
+		delegate.stderr = newDBEventWriter(
+			delegate.build,
+			event.Origin{
+				Source: event.OriginSourceStderr,
+				ID:     event.OriginID(delegate.planID),
+			},
+			delegate.clock,
+		)
 	}
 	return delegate.stderr
 }

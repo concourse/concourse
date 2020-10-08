@@ -27,9 +27,15 @@ type CheckStep struct {
 	resourceConfigFactory db.ResourceConfigFactory
 	strategy              worker.ContainerPlacementStrategy
 	pool                  worker.Pool
-	delegate              CheckDelegate
+	delegateFactory       CheckDelegateFactory
 	succeeded             bool
 	workerClient          worker.Client
+}
+
+//go:generate counterfeiter . CheckDelegateFactory
+
+type CheckDelegateFactory interface {
+	CheckDelegate(state RunState) CheckDelegate
 }
 
 //go:generate counterfeiter . CheckDelegate
@@ -51,7 +57,7 @@ func NewCheckStep(
 	containerMetadata db.ContainerMetadata,
 	strategy worker.ContainerPlacementStrategy,
 	pool worker.Pool,
-	delegate CheckDelegate,
+	delegateFactory CheckDelegateFactory,
 	client worker.Client,
 ) Step {
 	return &CheckStep{
@@ -63,7 +69,7 @@ func NewCheckStep(
 		containerMetadata:     containerMetadata,
 		pool:                  pool,
 		strategy:              strategy,
-		delegate:              delegate,
+		delegateFactory:       delegateFactory,
 		workerClient:          client,
 	}
 }
@@ -81,35 +87,34 @@ func (step *CheckStep) Run(ctx context.Context, state RunState) error {
 		attrs["resource_type"] = step.plan.ResourceType
 	}
 
-	ctx, span := step.delegate.StartSpan(ctx, "check", attrs)
+	delegate := step.delegateFactory.CheckDelegate(state)
+	ctx, span := delegate.StartSpan(ctx, "check", attrs)
 
-	err := step.run(ctx, state)
+	err := step.run(ctx, state, delegate)
 	tracing.End(span, err)
 
 	return err
 }
 
-func (step *CheckStep) run(ctx context.Context, state RunState) error {
+func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDelegate) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("check-step", lager.Data{
 		"step-name": step.plan.Name,
 	})
 
-	step.delegate.Initializing(logger)
+	delegate.Initializing(logger)
 
 	timeout, err := time.ParseDuration(step.plan.Timeout)
 	if err != nil {
 		return fmt.Errorf("parse timeout: %w", err)
 	}
 
-	variables := step.delegate.Variables()
-
-	source, err := creds.NewSource(variables, step.plan.Source).Evaluate()
+	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
 	if err != nil {
 		return fmt.Errorf("resource config creds evaluation: %w", err)
 	}
 
-	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
+	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
 		return fmt.Errorf("resource types creds evaluation: %w", err)
 	}
@@ -124,12 +129,12 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 	// time resource becomes time var source (resolving thundering herd problem)
 	// and IAM is handled via var source prototypes (resolving unintentionally
 	// shared history problem)
-	scope, err := step.delegate.FindOrCreateScope(resourceConfig)
+	scope, err := delegate.FindOrCreateScope(resourceConfig)
 	if err != nil {
 		return fmt.Errorf("create resource config scope: %w", err)
 	}
 
-	lock, run, err := step.delegate.WaitToRun(ctx, scope)
+	lock, run, err := delegate.WaitToRun(ctx, scope)
 	if err != nil {
 		return fmt.Errorf("wait: %w", err)
 	}
@@ -161,19 +166,19 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 			return fmt.Errorf("update check end time: %w", err)
 		}
 
-		result, err := step.runCheck(ctx, logger, timeout, resourceConfig, source, resourceTypes, fromVersion)
+		result, err := step.runCheck(ctx, logger, delegate, timeout, resourceConfig, source, resourceTypes, fromVersion)
 		if setErr := scope.SetCheckError(err); setErr != nil {
 			logger.Error("failed-to-set-check-error", setErr)
 		}
 		if err != nil {
 			metric.Metrics.ChecksFinishedWithError.Inc()
 
-			if pointErr := step.delegate.PointToCheckedConfig(scope); pointErr != nil {
+			if pointErr := delegate.PointToCheckedConfig(scope); pointErr != nil {
 				return fmt.Errorf("update resource config scope: %w", pointErr)
 			}
 
 			if _, ok := err.(runtime.ErrResourceScriptFailed); ok {
-				step.delegate.Finished(logger, false)
+				delegate.Finished(logger, false)
 				return nil
 			}
 
@@ -193,14 +198,14 @@ func (step *CheckStep) run(ctx context.Context, state RunState) error {
 		}
 	}
 
-	err = step.delegate.PointToCheckedConfig(scope)
+	err = delegate.PointToCheckedConfig(scope)
 	if err != nil {
 		return fmt.Errorf("update resource config scope: %w", err)
 	}
 
 	step.succeeded = true
 
-	step.delegate.Finished(logger, step.succeeded)
+	delegate.Finished(logger, step.succeeded)
 
 	return nil
 }
@@ -209,7 +214,16 @@ func (step *CheckStep) Succeeded() bool {
 	return step.succeeded
 }
 
-func (step *CheckStep) runCheck(ctx context.Context, logger lager.Logger, timeout time.Duration, resourceConfig db.ResourceConfig, source atc.Source, resourceTypes atc.VersionedResourceTypes, fromVersion atc.Version) (worker.CheckResult, error) {
+func (step *CheckStep) runCheck(
+	ctx context.Context,
+	logger lager.Logger,
+	delegate CheckDelegate,
+	timeout time.Duration,
+	resourceConfig db.ResourceConfig,
+	source atc.Source,
+	resourceTypes atc.VersionedResourceTypes,
+	fromVersion atc.Version,
+) (worker.CheckResult, error) {
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: worker.ImageSpec{
 			ResourceType: step.plan.Type,
@@ -252,13 +266,13 @@ func (step *CheckStep) runCheck(ctx context.Context, logger lager.Logger, timeou
 
 	imageSpec := worker.ImageFetcherSpec{
 		ResourceTypes: resourceTypes,
-		Delegate:      step.delegate,
+		Delegate:      delegate,
 	}
 
 	processSpec := runtime.ProcessSpec{
 		Path:         "/opt/resource/check",
-		StdoutWriter: step.delegate.Stdout(),
-		StderrWriter: step.delegate.Stderr(),
+		StdoutWriter: delegate.Stdout(),
+		StderrWriter: delegate.Stderr(),
 	}
 
 	return step.workerClient.RunCheckStep(
@@ -273,7 +287,7 @@ func (step *CheckStep) runCheck(ctx context.Context, logger lager.Logger, timeou
 		imageSpec,
 
 		processSpec,
-		step.delegate,
+		delegate,
 		checkable,
 
 		timeout,

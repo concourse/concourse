@@ -20,7 +20,8 @@ var _ = Describe("SetPipelineStepDelegate", func() {
 		logger    *lagertest.TestLogger
 		fakeBuild *dbfakes.FakeBuild
 		fakeClock *fakeclock.FakeClock
-		buildVars *vars.BuildVariables
+
+		state exec.RunState
 
 		now      = time.Date(1991, 6, 3, 5, 30, 0, 0, time.UTC)
 		delegate exec.SetPipelineStepDelegate
@@ -35,9 +36,9 @@ var _ = Describe("SetPipelineStepDelegate", func() {
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
 		}
-		buildVars = vars.NewBuildVariables(credVars, true)
+		state = exec.NewRunState(credVars, true)
 
-		delegate = builder.NewSetPipelineStepDelegate(fakeBuild, "some-plan-id", buildVars, fakeClock)
+		delegate = builder.NewSetPipelineStepDelegate(fakeBuild, "some-plan-id", state, fakeClock)
 	})
 
 	Describe("SetPipelineChanged", func() {

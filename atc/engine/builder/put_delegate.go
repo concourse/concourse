@@ -11,12 +11,11 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/vars"
 )
 
-func NewPutDelegate(build db.Build, planID atc.PlanID, buildVars *vars.BuildVariables, clock clock.Clock) exec.PutDelegate {
+func NewPutDelegate(build db.Build, planID atc.PlanID, state exec.RunState, clock clock.Clock) exec.PutDelegate {
 	return &putDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, buildVars, clock),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,

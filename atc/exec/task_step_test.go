@@ -38,8 +38,10 @@ var _ = Describe("TaskStep", func() {
 
 		fakeLockFactory *lockfakes.FakeLockFactory
 
-		fakeDelegate *execfakes.FakeTaskDelegate
 		spanCtx      context.Context
+		fakeDelegate *execfakes.FakeTaskDelegate
+
+		fakeDelegateFactory *execfakes.FakeTaskDelegateFactory
 
 		taskPlan *atc.TaskPlan
 
@@ -50,8 +52,6 @@ var _ = Describe("TaskStep", func() {
 
 		taskStep exec.Step
 		stepErr  error
-
-		buildVars *vars.BuildVariables
 
 		containerMetadata = db.ContainerMetadata{
 			WorkingDirectory: "some-artifact-root",
@@ -79,20 +79,21 @@ var _ = Describe("TaskStep", func() {
 
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
 
-		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
-		buildVars = vars.NewBuildVariables(credVars, true)
-
 		fakeDelegate = new(execfakes.FakeTaskDelegate)
-		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 
 		spanCtx = context.Background()
 		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
 
+		fakeDelegateFactory = new(execfakes.FakeTaskDelegateFactory)
+		fakeDelegateFactory.TaskDelegateReturns(fakeDelegate)
+
 		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactRepositoryReturns(repo)
+
+		state.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
 
 		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
@@ -141,7 +142,7 @@ var _ = Describe("TaskStep", func() {
 			containerMetadata,
 			fakeStrategy,
 			fakeClient,
-			fakeDelegate,
+			fakeDelegateFactory,
 			fakeLockFactory,
 		)
 
@@ -248,12 +249,6 @@ var _ = Describe("TaskStep", func() {
 					Expect(containerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
 				})
 			})
-		})
-
-		It("secrets are tracked", func() {
-			mapit := vars.TrackedVarsMap{}
-			buildVars.IterateInterpolatedCreds(mapit)
-			Expect(mapit["source-param"]).To(Equal("super-secret-source"))
 		})
 
 		It("creates a containerSpec with the correct parameters", func() {

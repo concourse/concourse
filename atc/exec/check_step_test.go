@@ -20,7 +20,6 @@ import (
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
-	"github.com/concourse/concourse/vars/varsfakes"
 	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/api/trace/tracetest"
 
@@ -43,6 +42,7 @@ var _ = Describe("CheckStep", func() {
 		fakePool                  *workerfakes.FakePool
 		fakeStrategy              *workerfakes.FakeContainerPlacementStrategy
 		fakeDelegate              *execfakes.FakeCheckDelegate
+		fakeDelegateFactory       *execfakes.FakeCheckDelegateFactory
 		spanCtx                   context.Context
 		fakeClient                *workerfakes.FakeClient
 
@@ -64,6 +64,7 @@ var _ = Describe("CheckStep", func() {
 		fakeResource = new(resourcefakes.FakeResource)
 		fakePool = new(workerfakes.FakePool)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
+		fakeDelegateFactory = new(execfakes.FakeCheckDelegateFactory)
 		fakeDelegate = new(execfakes.FakeCheckDelegate)
 		fakeClient = new(workerfakes.FakeClient)
 
@@ -92,6 +93,8 @@ var _ = Describe("CheckStep", func() {
 
 		fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)
 		fakeDelegate.FindOrCreateScopeReturns(fakeResourceConfigScope, nil)
+
+		fakeDelegateFactory.CheckDelegateReturns(fakeDelegate)
 	})
 
 	AfterEach(func() {
@@ -110,7 +113,7 @@ var _ = Describe("CheckStep", func() {
 			containerMetadata,
 			fakeStrategy,
 			fakePool,
-			fakeDelegate,
+			fakeDelegateFactory,
 			fakeClient,
 		)
 
@@ -131,10 +134,7 @@ var _ = Describe("CheckStep", func() {
 			BeforeEach(func() {
 				expectedErr = errors.New("creds-err")
 
-				fakeVariables := new(varsfakes.FakeVariables)
-				fakeVariables.GetReturns(nil, false, expectedErr)
-
-				fakeDelegate.VariablesReturns(vars.NewBuildVariables(fakeVariables, false))
+				fakeRunState.GetReturns(nil, false, expectedErr)
 			})
 
 			It("errors", func() {
@@ -169,10 +169,7 @@ var _ = Describe("CheckStep", func() {
 			BeforeEach(func() {
 				expectedErr = errors.New("creds-err")
 
-				fakeVariables := new(varsfakes.FakeVariables)
-				fakeVariables.GetReturns(nil, false, expectedErr)
-
-				fakeDelegate.VariablesReturns(vars.NewBuildVariables(fakeVariables, false))
+				fakeRunState.GetReturns(nil, false, expectedErr)
 			})
 
 			It("errors", func() {
@@ -230,7 +227,7 @@ var _ = Describe("CheckStep", func() {
 				TeamID: 345,
 			}
 
-			fakeDelegate.VariablesReturns(vars.NewBuildVariables(vars.StaticVariables{"bar": "caz"}, false))
+			fakeRunState.GetStub = vars.StaticVariables{"bar": "caz"}.Get
 		})
 
 		It("emits an Initializing event", func() {

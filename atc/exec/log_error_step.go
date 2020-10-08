@@ -10,21 +10,17 @@ import (
 const AbortedLogMessage = "interrupted"
 const TimeoutLogMessage = "timeout exceeded"
 
-type LogErrorStepDelegate interface {
-	Errored(lager.Logger, string)
-}
-
 type LogErrorStep struct {
 	Step
 
-	delegate LogErrorStepDelegate
+	delegateFactory BuildStepDelegateFactory
 }
 
-func LogError(step Step, delegate LogErrorStepDelegate) Step {
+func LogError(step Step, delegateFactory BuildStepDelegateFactory) Step {
 	return LogErrorStep{
 		Step: step,
 
-		delegate: delegate,
+		delegateFactory: delegateFactory,
 	}
 }
 
@@ -47,7 +43,8 @@ func (step LogErrorStep) Run(ctx context.Context, state RunState) error {
 
 	logger.Info("errored", lager.Data{"error": runErr.Error()})
 
-	step.delegate.Errored(logger, message)
+	delegate := step.delegateFactory.BuildStepDelegate(state)
+	delegate.Errored(logger, message)
 
 	return runErr
 }

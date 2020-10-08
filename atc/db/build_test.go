@@ -9,12 +9,16 @@ import (
 	"strconv"
 	"time"
 
+	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/creds/dummy"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/vars"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	gocache "github.com/patrickmn/go-cache"
@@ -835,6 +839,96 @@ var _ = Describe("Build", func() {
 					childPipeline.Reload()
 					Expect(childPipeline.Archived()).To(BeFalse())
 				})
+			})
+		})
+	})
+
+	Describe("Variables", func() {
+		var (
+			globalSecrets creds.Secrets
+			varSourcePool creds.VarSourcePool
+		)
+
+		BeforeEach(func() {
+			globalSecrets = &dummy.Secrets{StaticVariables: vars.StaticVariables{"foo": "bar"}}
+
+			credentialManagement := creds.CredentialManagementConfig{
+				RetryConfig: creds.SecretRetryConfig{
+					Attempts: 5,
+					Interval: time.Second,
+				},
+				CacheConfig: creds.SecretCacheConfig{
+					Enabled:          true,
+					Duration:         time.Minute,
+					DurationNotFound: time.Minute,
+					PurgeInterval:    time.Minute * 10,
+				},
+			}
+			varSourcePool = creds.NewVarSourcePool(logger, credentialManagement, 1*time.Minute, 1*time.Second, clock.NewClock())
+		})
+
+		Context("when the build is a one-off build", func() {
+			var build db.Build
+
+			BeforeEach(func() {
+				var err error
+				build, err = defaultTeam.CreateOneOffBuild()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("fetches from the global secrets", func() {
+				v, err := build.Variables(logger, globalSecrets, varSourcePool)
+				Expect(err).ToNot(HaveOccurred())
+
+				val, found, err := v.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "foo"}})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(val).To(Equal("bar"))
+			})
+		})
+
+		Context("when the build is a job build", func() {
+			var build db.Build
+
+			BeforeEach(func() {
+				config := defaultPipelineConfig
+				config.VarSources = append(config.VarSources, atc.VarSourceConfig{
+					Name: "some-source",
+					Type: "dummy",
+					Config: map[string]interface{}{
+						"vars": map[string]interface{}{"baz": "caz"},
+					},
+				})
+
+				pipeline, _, err := defaultTeam.SavePipeline(defaultPipelineRef, config, defaultPipeline.ConfigVersion(), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				job, found, err := pipeline.Job(defaultJob.Name())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				build, err = job.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("fetches from the global secrets", func() {
+				v, err := build.Variables(logger, globalSecrets, varSourcePool)
+				Expect(err).ToNot(HaveOccurred())
+
+				val, found, err := v.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "foo"}})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(val).To(Equal("bar"))
+			})
+
+			It("fetches from the var sources", func() {
+				v, err := build.Variables(logger, globalSecrets, varSourcePool)
+				Expect(err).ToNot(HaveOccurred())
+
+				val, found, err := v.Get(vars.VariableDefinition{Ref: vars.VariableReference{Source: "some-source", Path: "baz"}})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(val).To(Equal("caz"))
 			})
 		})
 	})

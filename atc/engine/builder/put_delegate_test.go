@@ -23,7 +23,8 @@ var _ = Describe("PutDelegate", func() {
 		logger    *lagertest.TestLogger
 		fakeBuild *dbfakes.FakeBuild
 		fakeClock *fakeclock.FakeClock
-		buildVars *vars.BuildVariables
+
+		state exec.RunState
 
 		now = time.Date(1991, 6, 3, 5, 30, 0, 0, time.UTC)
 
@@ -41,14 +42,14 @@ var _ = Describe("PutDelegate", func() {
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
 		}
-		buildVars = vars.NewBuildVariables(credVars, true)
+		state = exec.NewRunState(credVars, true)
 
 		info = runtime.VersionResult{
 			Version:  atc.Version{"foo": "bar"},
 			Metadata: []atc.MetadataField{{Name: "baz", Value: "shmaz"}},
 		}
 
-		delegate = builder.NewPutDelegate(fakeBuild, "some-plan-id", buildVars, fakeClock)
+		delegate = builder.NewPutDelegate(fakeBuild, "some-plan-id", state, fakeClock)
 	})
 
 	Describe("Finished", func() {

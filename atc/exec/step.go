@@ -6,6 +6,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/vars"
 )
 
 //go:generate counterfeiter . Step
@@ -36,6 +37,13 @@ type BuildOutputFilter func(text string) string
 //go:generate counterfeiter . RunState
 
 type RunState interface {
+	vars.Variables
+	NewLocalScope() RunState
+	AddLocalVar(name string, val interface{}, redact bool)
+
+	IterateInterpolatedCreds(vars.TrackedVarsIterator)
+	RedactionEnabled() bool
+
 	ArtifactRepository() *build.Repository
 
 	Result(atc.PlanID, interface{}) bool

@@ -85,7 +85,9 @@ jobs:
 		fakeTeam         *dbfakes.FakeTeam
 		fakePipeline     *dbfakes.FakePipeline
 		spanCtx          context.Context
-		fakeDelegate     *execfakes.FakeSetPipelineStepDelegate
+
+		fakeDelegate        *execfakes.FakeSetPipelineStepDelegate
+		fakeDelegateFactory *execfakes.FakeSetPipelineStepDelegateFactory
 
 		fakeWorkerClient *workerfakes.FakeClient
 
@@ -96,8 +98,6 @@ jobs:
 
 		spStep  exec.Step
 		stepErr error
-
-		buildVars *vars.BuildVariables
 
 		stepMetadata = exec.StepMetadata{
 			TeamID:               123,
@@ -121,12 +121,11 @@ jobs:
 		ctx, cancel = context.WithCancel(context.Background())
 		ctx = lagerctx.NewContext(ctx, testLogger)
 
-		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
-		buildVars = vars.NewBuildVariables(credVars, true)
-
 		artifactRepository = build.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactRepositoryReturns(artifactRepository)
+
+		state.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
 
 		fakeSource = new(buildfakes.FakeRegisterableArtifact)
 		artifactRepository.RegisterArtifact("some-resource", fakeSource)
@@ -135,12 +134,14 @@ jobs:
 		stderr = gbytes.NewBuffer()
 
 		fakeDelegate = new(execfakes.FakeSetPipelineStepDelegate)
-		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdout)
 		fakeDelegate.StderrReturns(stderr)
 
 		spanCtx = context.Background()
 		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
+
+		fakeDelegateFactory = new(execfakes.FakeSetPipelineStepDelegateFactory)
+		fakeDelegateFactory.SetPipelineStepDelegateReturns(fakeDelegate)
 
 		fakeTeamFactory = new(dbfakes.FakeTeamFactory)
 		fakeBuildFactory = new(dbfakes.FakeBuildFactory)
@@ -189,7 +190,7 @@ jobs:
 			plan.ID,
 			*plan.SetPipeline,
 			stepMetadata,
-			fakeDelegate,
+			fakeDelegateFactory,
 			fakeTeamFactory,
 			fakeBuildFactory,
 			fakeWorkerClient,

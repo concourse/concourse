@@ -15,7 +15,6 @@ import (
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
-	"github.com/concourse/concourse/vars"
 	"go.opentelemetry.io/otel/api/trace"
 )
 
@@ -35,6 +34,12 @@ func (e ErrResourceNotFound) Error() string {
 	return fmt.Sprintf("resource '%s' not found", e.ResourceName)
 }
 
+//go:generate counterfeiter . GetDelegateFactory
+
+type GetDelegateFactory interface {
+	GetDelegate(state RunState) GetDelegate
+}
+
 //go:generate counterfeiter . GetDelegate
 
 type GetDelegate interface {
@@ -45,8 +50,6 @@ type GetDelegate interface {
 
 	Stdout() io.Writer
 	Stderr() io.Writer
-
-	Variables() *vars.BuildVariables
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
@@ -68,7 +71,7 @@ type GetStep struct {
 	resourceCacheFactory db.ResourceCacheFactory
 	strategy             worker.ContainerPlacementStrategy
 	workerClient         worker.Client
-	delegate             GetDelegate
+	delegateFactory      GetDelegateFactory
 	succeeded            bool
 }
 
@@ -80,7 +83,7 @@ func NewGetStep(
 	resourceFactory resource.ResourceFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	strategy worker.ContainerPlacementStrategy,
-	delegate GetDelegate,
+	delegateFactory GetDelegateFactory,
 	client worker.Client,
 ) Step {
 	return &GetStep{
@@ -91,44 +94,43 @@ func NewGetStep(
 		resourceFactory:      resourceFactory,
 		resourceCacheFactory: resourceCacheFactory,
 		strategy:             strategy,
-		delegate:             delegate,
+		delegateFactory:      delegateFactory,
 		workerClient:         client,
 	}
 }
 
 func (step *GetStep) Run(ctx context.Context, state RunState) error {
-	ctx, span := step.delegate.StartSpan(ctx, "get", tracing.Attrs{
+	delegate := step.delegateFactory.GetDelegate(state)
+	ctx, span := delegate.StartSpan(ctx, "get", tracing.Attrs{
 		"name":     step.plan.Name,
 		"resource": step.plan.Resource,
 	})
 
-	err := step.run(ctx, state)
+	err := step.run(ctx, state, delegate)
 	tracing.End(span, err)
 
 	return err
 }
 
-func (step *GetStep) run(ctx context.Context, state RunState) error {
+func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelegate) error {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("get-step", lager.Data{
 		"step-name": step.plan.Name,
 	})
 
-	step.delegate.Initializing(logger)
+	delegate.Initializing(logger)
 
-	variables := step.delegate.Variables()
-
-	source, err := creds.NewSource(variables, step.plan.Source).Evaluate()
+	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
 	if err != nil {
 		return err
 	}
 
-	params, err := creds.NewParams(variables, step.plan.Params).Evaluate()
+	params, err := creds.NewParams(state, step.plan.Params).Evaluate()
 	if err != nil {
 		return err
 	}
 
-	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
+	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
 		return err
 	}
@@ -156,7 +158,7 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 
 	imageSpec := worker.ImageFetcherSpec{
 		ResourceTypes: resourceTypes,
-		Delegate:      step.delegate,
+		Delegate:      delegate,
 	}
 
 	resourceCache, err := step.resourceCacheFactory.FindOrCreateResourceCache(
@@ -175,8 +177,8 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 	processSpec := runtime.ProcessSpec{
 		Path:         "/opt/resource/in",
 		Args:         []string{resource.ResourcesDir("get")},
-		StdoutWriter: step.delegate.Stdout(),
-		StderrWriter: step.delegate.Stderr(),
+		StdoutWriter: delegate.Stdout(),
+		StderrWriter: delegate.Stderr(),
 	}
 
 	resourceToGet := step.resourceFactory.NewResource(
@@ -197,7 +199,7 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 		step.containerMetadata,
 		imageSpec,
 		processSpec,
-		step.delegate,
+		delegate,
 		resourceCache,
 		resourceToGet,
 	)
@@ -212,13 +214,13 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 		)
 
 		if step.plan.Resource != "" {
-			step.delegate.UpdateVersion(logger, step.plan, getResult.VersionResult)
+			delegate.UpdateVersion(logger, step.plan, getResult.VersionResult)
 		}
 
 		step.succeeded = true
 	}
 
-	step.delegate.Finished(
+	delegate.Finished(
 		logger,
 		ExitStatus(getResult.ExitStatus),
 		getResult.VersionResult,

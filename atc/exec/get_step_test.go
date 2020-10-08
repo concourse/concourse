@@ -41,8 +41,10 @@ var _ = Describe("GetStep", func() {
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 		fakeResourceCache        *dbfakes.FakeUsedResourceCache
 
-		fakeDelegate *execfakes.FakeGetDelegate
-		spanCtx      context.Context
+		fakeDelegate        *execfakes.FakeGetDelegate
+		fakeDelegateFactory *execfakes.FakeGetDelegateFactory
+
+		spanCtx context.Context
 
 		getPlan *atc.GetPlan
 
@@ -53,8 +55,6 @@ var _ = Describe("GetStep", func() {
 
 		getStep    exec.Step
 		getStepErr error
-
-		buildVars *vars.BuildVariables
 
 		containerMetadata = db.ContainerMetadata{
 			WorkingDirectory: resource.ResourcesDir("get"),
@@ -88,9 +88,6 @@ var _ = Describe("GetStep", func() {
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
 
-		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
-		buildVars = vars.NewBuildVariables(credVars, true)
-
 		artifactRepository = build.NewRepository()
 		fakeState = new(execfakes.FakeRunState)
 
@@ -99,11 +96,13 @@ var _ = Describe("GetStep", func() {
 		fakeDelegate = new(execfakes.FakeGetDelegate)
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
-		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
 		spanCtx = context.Background()
 		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
+
+		fakeDelegateFactory = new(execfakes.FakeGetDelegateFactory)
+		fakeDelegateFactory.GetDelegateReturns(fakeDelegate)
 
 		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
@@ -115,6 +114,8 @@ var _ = Describe("GetStep", func() {
 				Version: atc.Version{"some-custom": "version"},
 			},
 		}
+
+		fakeState.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
 
 		interpolatedResourceTypes = atc.VersionedResourceTypes{
 			{
@@ -159,7 +160,7 @@ var _ = Describe("GetStep", func() {
 			fakeResourceFactory,
 			fakeResourceCacheFactory,
 			fakeStrategy,
-			fakeDelegate,
+			fakeDelegateFactory,
 			fakeClient,
 		)
 

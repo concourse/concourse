@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/policy"
@@ -38,16 +39,21 @@ type Runnable interface {
 
 type StepBuilder interface {
 	BuildStep(lager.Logger, db.Build) (exec.Step, error)
-
-	BuildStepErrored(lager.Logger, db.Build, error)
 }
 
-func NewEngine(builder StepBuilder) Engine {
+func NewEngine(
+	builder StepBuilder,
+	secrets creds.Secrets,
+	varSourcePool creds.VarSourcePool,
+) Engine {
 	return &engine{
 		builder:       builder,
 		release:       make(chan bool),
 		trackedStates: new(sync.Map),
 		waitGroup:     new(sync.WaitGroup),
+
+		globalSecrets: secrets,
+		varSourcePool: varSourcePool,
 	}
 }
 
@@ -56,6 +62,9 @@ type engine struct {
 	release       chan bool
 	trackedStates *sync.Map
 	waitGroup     *sync.WaitGroup
+
+	globalSecrets creds.Secrets
+	varSourcePool creds.VarSourcePool
 }
 
 func (engine *engine) Drain(ctx context.Context) {
@@ -75,6 +84,8 @@ func (engine *engine) NewBuild(build db.Build) Runnable {
 	return NewBuild(
 		build,
 		engine.builder,
+		engine.globalSecrets,
+		engine.varSourcePool,
 		engine.release,
 		engine.trackedStates,
 		engine.waitGroup,
@@ -84,6 +95,8 @@ func (engine *engine) NewBuild(build db.Build) Runnable {
 func NewBuild(
 	build db.Build,
 	builder StepBuilder,
+	globalSecrets creds.Secrets,
+	varSourcePool creds.VarSourcePool,
 	release chan bool,
 	trackedStates *sync.Map,
 	waitGroup *sync.WaitGroup,
@@ -91,6 +104,9 @@ func NewBuild(
 	return &engineBuild{
 		build:   build,
 		builder: builder,
+
+		globalSecrets: globalSecrets,
+		varSourcePool: varSourcePool,
 
 		release:       release,
 		trackedStates: trackedStates,
@@ -102,11 +118,12 @@ type engineBuild struct {
 	build   db.Build
 	builder StepBuilder
 
+	globalSecrets creds.Secrets
+	varSourcePool creds.VarSourcePool
+
 	release       chan bool
 	trackedStates *sync.Map
 	waitGroup     *sync.WaitGroup
-
-	pipelineCredMgrs []creds.Manager
 }
 
 func (b *engineBuild) Run(ctx context.Context) {
@@ -159,10 +176,9 @@ func (b *engineBuild) Run(ctx context.Context) {
 	if err != nil {
 		logger.Error("failed-to-build-step", err)
 
-		// Fails the build if BuildStep returned error. Because some unrecoverable error,
-		// like pipeline var_source is wrong, will cause a build to never start
-		// to run.
-		b.builder.BuildStepErrored(logger, b.build, err)
+		// Fails the build if BuildStep returned an error because such unrecoverable
+		// errors will cause a build to never start to run.
+		b.buildStepErrored(logger, err.Error())
 		b.finish(logger.Session("finish"), err, false)
 
 		return
@@ -172,7 +188,17 @@ func (b *engineBuild) Run(ctx context.Context) {
 
 	logger.Info("running")
 
-	state := b.runState()
+	state, err := b.runState(logger)
+	if err != nil {
+		logger.Error("failed-to-create-run-state", err)
+
+		// Fails the build if fetching the pipeline variables fails, as these errors
+		// are unrecoverable - e.g. if pipeline var_sources is wrong
+		b.buildStepErrored(logger, err.Error())
+		b.finish(logger.Session("finish"), err, false)
+
+		return
+	}
 	defer b.clearRunState()
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -219,6 +245,19 @@ func (b *engineBuild) Run(ctx context.Context) {
 			}
 		}
 		b.finish(logger.Session("finish"), err, step.Succeeded())
+	}
+}
+
+func (b *engineBuild) buildStepErrored(logger lager.Logger, message string) {
+	err := b.build.SaveEvent(event.Error{
+		Message: message,
+		Origin: event.Origin{
+			ID: event.OriginID(b.build.PrivatePlan().ID),
+		},
+		Time: time.Now().Unix(),
+	})
+	if err != nil {
+		logger.Error("failed-to-save-error-event", err)
 	}
 }
 
@@ -272,10 +311,18 @@ func (b *engineBuild) trackFinished(logger lager.Logger) {
 	}
 }
 
-func (b *engineBuild) runState() exec.RunState {
+func (b *engineBuild) runState(logger lager.Logger) (exec.RunState, error) {
 	id := fmt.Sprintf("build:%v", b.build.ID())
-	existingState, _ := b.trackedStates.LoadOrStore(id, exec.NewRunState())
-	return existingState.(exec.RunState)
+	existingState, ok := b.trackedStates.Load(id)
+	if ok {
+		return existingState.(exec.RunState), nil
+	}
+	credVars, err := b.build.Variables(logger, b.globalSecrets, b.varSourcePool)
+	if err != nil {
+		return nil, err
+	}
+	state, _ := b.trackedStates.LoadOrStore(id, exec.NewRunState(credVars, atc.EnableRedactSecrets))
+	return state.(exec.RunState), nil
 }
 
 func (b *engineBuild) clearRunState() {

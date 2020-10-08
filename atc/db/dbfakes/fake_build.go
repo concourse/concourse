@@ -8,10 +8,12 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/vars"
 	"go.opentelemetry.io/otel/api/propagation"
 )
 
@@ -665,6 +667,21 @@ type FakeBuild struct {
 	}
 	tracingAttrsReturnsOnCall map[int]struct {
 		result1 tracing.Attrs
+	}
+	VariablesStub        func(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
+	variablesMutex       sync.RWMutex
+	variablesArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 creds.Secrets
+		arg3 creds.VarSourcePool
+	}
+	variablesReturns struct {
+		result1 vars.Variables
+		result2 error
+	}
+	variablesReturnsOnCall map[int]struct {
+		result1 vars.Variables
+		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -3870,6 +3887,71 @@ func (fake *FakeBuild) TracingAttrsReturnsOnCall(i int, result1 tracing.Attrs) {
 	}{result1}
 }
 
+func (fake *FakeBuild) Variables(arg1 lager.Logger, arg2 creds.Secrets, arg3 creds.VarSourcePool) (vars.Variables, error) {
+	fake.variablesMutex.Lock()
+	ret, specificReturn := fake.variablesReturnsOnCall[len(fake.variablesArgsForCall)]
+	fake.variablesArgsForCall = append(fake.variablesArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 creds.Secrets
+		arg3 creds.VarSourcePool
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Variables", []interface{}{arg1, arg2, arg3})
+	fake.variablesMutex.Unlock()
+	if fake.VariablesStub != nil {
+		return fake.VariablesStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.variablesReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeBuild) VariablesCallCount() int {
+	fake.variablesMutex.RLock()
+	defer fake.variablesMutex.RUnlock()
+	return len(fake.variablesArgsForCall)
+}
+
+func (fake *FakeBuild) VariablesCalls(stub func(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)) {
+	fake.variablesMutex.Lock()
+	defer fake.variablesMutex.Unlock()
+	fake.VariablesStub = stub
+}
+
+func (fake *FakeBuild) VariablesArgsForCall(i int) (lager.Logger, creds.Secrets, creds.VarSourcePool) {
+	fake.variablesMutex.RLock()
+	defer fake.variablesMutex.RUnlock()
+	argsForCall := fake.variablesArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeBuild) VariablesReturns(result1 vars.Variables, result2 error) {
+	fake.variablesMutex.Lock()
+	defer fake.variablesMutex.Unlock()
+	fake.VariablesStub = nil
+	fake.variablesReturns = struct {
+		result1 vars.Variables
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBuild) VariablesReturnsOnCall(i int, result1 vars.Variables, result2 error) {
+	fake.variablesMutex.Lock()
+	defer fake.variablesMutex.Unlock()
+	fake.VariablesStub = nil
+	if fake.variablesReturnsOnCall == nil {
+		fake.variablesReturnsOnCall = make(map[int]struct {
+			result1 vars.Variables
+			result2 error
+		})
+	}
+	fake.variablesReturnsOnCall[i] = struct {
+		result1 vars.Variables
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -3989,6 +4071,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.teamNameMutex.RUnlock()
 	fake.tracingAttrsMutex.RLock()
 	defer fake.tracingAttrsMutex.RUnlock()
+	fake.variablesMutex.RLock()
+	defer fake.variablesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

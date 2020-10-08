@@ -26,7 +26,8 @@ var _ = Describe("CheckDelegate", func() {
 		fakeBuild       *dbfakes.FakeBuild
 		fakeClock       *fakeclock.FakeClock
 		fakeRateLimiter *builderfakes.FakeRateLimiter
-		buildVars       *vars.BuildVariables
+
+		state exec.RunState
 
 		now = time.Date(1991, 6, 3, 5, 30, 0, 0, time.UTC)
 
@@ -45,14 +46,14 @@ var _ = Describe("CheckDelegate", func() {
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
 		}
-		buildVars = vars.NewBuildVariables(credVars, true)
+		state = exec.NewRunState(credVars, true)
 
 		plan = atc.Plan{
 			ID:    "some-plan-id",
 			Check: &atc.CheckPlan{},
 		}
 
-		delegate = builder.NewCheckDelegate(fakeBuild, plan, buildVars, fakeClock, fakeRateLimiter)
+		delegate = builder.NewCheckDelegate(fakeBuild, plan, state, fakeClock, fakeRateLimiter)
 
 		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 		fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)

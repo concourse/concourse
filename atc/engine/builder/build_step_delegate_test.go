@@ -24,7 +24,9 @@ var _ = Describe("BuildStepDelegate", func() {
 		logger    *lagertest.TestLogger
 		fakeBuild *dbfakes.FakeBuild
 		fakeClock *fakeclock.FakeClock
-		buildVars *vars.BuildVariables
+		runState  exec.RunState
+
+		credVars vars.StaticVariables
 
 		now = time.Date(1991, 6, 3, 5, 30, 0, 0, time.UTC)
 
@@ -36,13 +38,13 @@ var _ = Describe("BuildStepDelegate", func() {
 
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeClock = fakeclock.NewFakeClock(now)
-		credVars := vars.StaticVariables{
+		credVars = vars.StaticVariables{
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
 		}
-		buildVars = vars.NewBuildVariables(credVars, true)
+		runState = exec.NewRunState(credVars, true)
 
-		delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", buildVars, fakeClock)
+		delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock)
 	})
 
 	Describe("Initializing", func() {
@@ -244,8 +246,8 @@ var _ = Describe("BuildStepDelegate", func() {
 	Describe("No line buffer without secrets redaction", func() {
 		BeforeEach(func() {
 			credVars := vars.StaticVariables{}
-			buildVars = vars.NewBuildVariables(credVars, false)
-			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", buildVars, fakeClock)
+			runState = exec.NewRunState(credVars, false)
+			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock)
 		})
 
 		Context("Stdout", func() {
@@ -343,8 +345,11 @@ var _ = Describe("BuildStepDelegate", func() {
 		)
 
 		BeforeEach(func() {
-			delegate.Variables().Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "source-param"}})
-			delegate.Variables().Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "git-key"}})
+			runState = exec.NewRunState(credVars, true)
+			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock)
+
+			runState.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "source-param"}})
+			runState.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "git-key"}})
 		})
 
 		Context("Stdout", func() {
