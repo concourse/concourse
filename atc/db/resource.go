@@ -109,7 +109,7 @@ var resourcesQuery = psql.Select(
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
-	LeftJoin("builds b ON b.resource_id = r.id").
+	LeftJoin("builds b ON b.id = r.build_id").
 	LeftJoin("resource_config_scopes rs ON r.resource_config_scope_id = rs.id").
 	LeftJoin("resource_pins rp ON rp.resource_id = r.id").
 	Where(sq.Eq{"r.active": true})
@@ -369,11 +369,10 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool) (Bui
 		"status":             BuildStatusPending,
 		"manually_triggered": manuallyTriggered,
 		"span_context":       string(spanContextJSON),
+		"resource_id":        r.id,
 	}
 
 	if !manuallyTriggered {
-		params["resource_id"] = r.id
-
 		var completed, noBuild bool
 		err = psql.Select("completed").
 			From("builds").
@@ -412,12 +411,15 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool) (Bui
 	build := newEmptyBuild(r.conn, r.lockFactory)
 	err = createBuild(tx, build, params)
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
-			// handle unique violation, though this shouldn't ever happen due to the
-			// above checks
-			return nil, false, nil
-		}
+		return nil, false, err
+	}
 
+	_, err = psql.Update("resources").
+		Set("build_id", build.ID()).
+		Where(sq.Eq{"id": r.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
 		return nil, false, err
 	}
 

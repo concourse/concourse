@@ -563,6 +563,30 @@ var _ = Describe("Resource", func() {
 				Expect(build.IsManuallyTriggered()).To(BeTrue())
 			})
 
+			It("associates the resource to the build", func() {
+				started, err := build.Start(atc.Plan{})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(started).To(BeTrue())
+
+				exists, err := build.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(exists).To(BeTrue())
+
+				exists, err = defaultResource.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(exists).To(BeTrue())
+
+				Expect(defaultResource.BuildSummary()).To(Equal(&atc.BuildSummary{
+					ID:                   build.ID(),
+					Status:               atc.StatusStarted,
+					StartTime:            build.StartTime().Unix(),
+					TeamName:             defaultTeam.Name(),
+					PipelineID:           defaultPipeline.ID(),
+					PipelineName:         defaultPipeline.Name(),
+					PipelineInstanceVars: defaultPipeline.InstanceVars(),
+				}))
+			})
+
 			It("can create another build", func() {
 				anotherBuild, created, err := defaultResource.CreateBuild(ctx, manuallyTriggered)
 				Expect(err).ToNot(HaveOccurred())
@@ -581,6 +605,35 @@ var _ = Describe("Resource", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(created).To(BeFalse())
 				Expect(anotherBuild).To(BeNil())
+			})
+
+			It("can create a manually triggered build", func() {
+				anotherBuild, created, err := defaultResource.CreateBuild(ctx, true)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).To(BeTrue())
+				Expect(anotherBuild.ID()).ToNot(Equal(build.ID()))
+
+				started, err := anotherBuild.Start(atc.Plan{})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(started).To(BeTrue())
+
+				exists, err := anotherBuild.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(exists).To(BeTrue())
+
+				exists, err = defaultResource.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(exists).To(BeTrue())
+
+				Expect(defaultResource.BuildSummary()).To(Equal(&atc.BuildSummary{
+					ID:                   anotherBuild.ID(),
+					Status:               atc.StatusStarted,
+					StartTime:            anotherBuild.StartTime().Unix(),
+					TeamName:             defaultTeam.Name(),
+					PipelineID:           defaultPipeline.ID(),
+					PipelineName:         defaultPipeline.Name(),
+					PipelineInstanceVars: defaultPipeline.InstanceVars(),
+				}))
 			})
 
 			Describe("after the first build completes", func() {
