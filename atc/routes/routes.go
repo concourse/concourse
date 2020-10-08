@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api"
 	"github.com/concourse/concourse/atc/api/artifactserver"
+	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/concourse/concourse/atc/api/buildserver"
 	"github.com/concourse/concourse/atc/api/ccserver"
 	"github.com/concourse/concourse/atc/api/cliserver"
@@ -142,8 +143,35 @@ func NewHandler(
 ) (*APIRouter, error) {
 	r := &APIRouter{mux.NewRouter()}
 
-	r.Name(atc.SaveConfig).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/config").Methods("PUT")
-	r.Name(atc.GetConfig).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/config").Methods("GET")
+	absCLIDownloadsDir, err := filepath.Abs(cliDownloadsDir)
+	if err != nil {
+		return nil, err
+	}
+
+	pipelineHandlerFactory := pipelineserver.NewScopedHandlerFactory(dbTeamFactory)
+	buildHandlerFactory := buildserver.NewScopedHandlerFactory(logger)
+	teamHandlerFactory := api.NewTeamScopedHandlerFactory(logger, dbTeamFactory)
+
+	buildServer := buildserver.NewServer(logger, externalURL, dbTeamFactory, dbBuildFactory, eventHandlerFactory, r)
+	jobServer := jobserver.NewServer(logger, externalURL, secretManager, dbJobFactory, dbCheckFactory, r)
+	resourceServer := resourceserver.NewServer(logger, secretManager, varSourcePool, dbCheckFactory, dbResourceFactory, dbResourceConfigFactory, r)
+
+	versionServer := versionserver.NewServer(logger, externalURL, r)
+	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL, r)
+	configServer := configserver.NewServer(logger, dbTeamFactory, secretManager)
+	ccServer := ccserver.NewServer(logger, dbTeamFactory, externalURL)
+	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory)
+	logLevelServer := loglevelserver.NewServer(logger, sink)
+	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
+	containerServer := containerserver.NewServer(logger, workerClient, secretManager, varSourcePool, interceptTimeoutFactory, interceptUpdateInterval, containerRepository, destroyer, clock)
+	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer)
+	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL, r)
+	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManagers)
+	artifactServer := artifactserver.NewServer(logger, workerClient)
+	usersServer := usersserver.NewServer(logger, dbUserFactory)
+	wallServer := wallserver.NewServer(dbWall, logger)
+
+	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(dbTeamFactory)
 
 	r.Name(atc.CreateBuild).Path("/api/v1/teams/{team_name}/builds").Methods("POST")
 
@@ -157,12 +185,39 @@ func NewHandler(
 	r.Name(atc.ListBuildArtifacts).Path("/api/v1/builds/{build_id}/artifacts").Methods("GET")
 
 	r.Name(atc.ListAllJobs).Path("/api/v1/jobs").Methods("GET")
-	r.Name(atc.ListJobs).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs").
-		Methods("GET")
-	r.Name(atc.GetJob).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}").
-		Methods("GET")
+
+	pr := r.PathPrefix("/api/v1/teams/{team_name}/pipelines/{pipeline_name}").
+		Subrouter()
+
+	pc := pr.PathPrefix("/config").Subrouter()
+	pc.Use(func(handler http.Handler) http.Handler {
+		return auth.CheckAuthorizationHandler(
+			handler,
+			auth.UnauthorizedRejector{},
+		)
+	})
+	pc.Name(atc.SaveConfig).
+		Methods("PUT").
+		HandlerFunc(configServer.SaveConfig)
+	pc.Name(atc.GetConfig).
+		Methods("GET").
+		HandlerFunc(configServer.GetConfig)
+
+	jsr := pr.Path("/jobs").Subrouter()
+	jsr.Use(func(handler http.Handler) http.Handler {
+		return checkPipelineAccessHandlerFactory.HandlerFor(
+			handler,
+			auth.UnauthorizedRejector{},
+		)
+	})
+	jsr.Name(atc.ListJobs).
+		Methods("GET").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(jobServer.ListJobs))
+
+	jr := jsr.PathPrefix("/{job_name}").Subrouter()
+	jr.Name(atc.GetJob).
+		Methods("GET").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(jobServer.GetJob))
 	r.Name(atc.ListJobBuilds).
 		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/builds").
 		Methods("GET")
@@ -303,38 +358,7 @@ func NewHandler(
 	r.Name(atc.SetWall).Path("/api/v1/wall").Methods("PUT")
 	r.Name(atc.ClearWall).Path("/api/v1/wall").Methods("DELETE")
 
-	absCLIDownloadsDir, err := filepath.Abs(cliDownloadsDir)
-	if err != nil {
-		return nil, err
-	}
-
-	pipelineHandlerFactory := pipelineserver.NewScopedHandlerFactory(dbTeamFactory)
-	buildHandlerFactory := buildserver.NewScopedHandlerFactory(logger)
-	teamHandlerFactory := api.NewTeamScopedHandlerFactory(logger, dbTeamFactory)
-
-	buildServer := buildserver.NewServer(logger, externalURL, dbTeamFactory, dbBuildFactory, eventHandlerFactory, r)
-	jobServer := jobserver.NewServer(logger, externalURL, secretManager, dbJobFactory, dbCheckFactory, r)
-	resourceServer := resourceserver.NewServer(logger, secretManager, varSourcePool, dbCheckFactory, dbResourceFactory, dbResourceConfigFactory, r)
-
-	versionServer := versionserver.NewServer(logger, externalURL, r)
-	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL, r)
-	configServer := configserver.NewServer(logger, dbTeamFactory, secretManager)
-	ccServer := ccserver.NewServer(logger, dbTeamFactory, externalURL)
-	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory)
-	logLevelServer := loglevelserver.NewServer(logger, sink)
-	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
-	containerServer := containerserver.NewServer(logger, workerClient, secretManager, varSourcePool, interceptTimeoutFactory, interceptUpdateInterval, containerRepository, destroyer, clock)
-	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer)
-	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL, r)
-	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManagers)
-	artifactServer := artifactserver.NewServer(logger, workerClient)
-	usersServer := usersserver.NewServer(logger, dbUserFactory)
-	wallServer := wallserver.NewServer(dbWall, logger)
-
 	handlers := map[string]http.Handler{
-		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
-		atc.SaveConfig: http.HandlerFunc(configServer.SaveConfig),
-
 		atc.GetCC: http.HandlerFunc(ccServer.GetCC),
 
 		atc.ListBuilds:          http.HandlerFunc(buildServer.ListBuilds),
@@ -348,8 +372,6 @@ func NewHandler(
 		atc.ListBuildArtifacts:  buildHandlerFactory.HandlerFor(buildServer.GetBuildArtifacts),
 
 		atc.ListAllJobs:    http.HandlerFunc(jobServer.ListAllJobs),
-		atc.ListJobs:       pipelineHandlerFactory.HandlerFor(jobServer.ListJobs),
-		atc.GetJob:         pipelineHandlerFactory.HandlerFor(jobServer.GetJob),
 		atc.ListJobBuilds:  pipelineHandlerFactory.HandlerFor(jobServer.ListJobBuilds),
 		atc.ListJobInputs:  pipelineHandlerFactory.HandlerFor(jobServer.ListJobInputs),
 		atc.GetJobBuild:    pipelineHandlerFactory.HandlerFor(jobServer.GetJobBuild),
