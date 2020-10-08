@@ -1270,6 +1270,7 @@ all =
                                         , pinnedInConfig = False
                                         , pinComment = Nothing
                                         , icon = Nothing
+                                        , build = Nothing
                                         }
                                 )
                                 session
@@ -1327,6 +1328,7 @@ all =
                                         , pinnedInConfig = False
                                         , pinComment = Nothing
                                         , icon = Nothing
+                                        , build = Nothing
                                         }
                                 )
                                 session
@@ -1386,6 +1388,7 @@ all =
                                         , pinnedInConfig = False
                                         , pinComment = Nothing
                                         , icon = Nothing
+                                        , build = Nothing
                                         }
                                 )
                                 session
@@ -1448,6 +1451,7 @@ all =
                                         , pinnedInConfig = False
                                         , pinComment = Nothing
                                         , icon = Nothing
+                                        , build = Nothing
                                         }
                                 )
                                 session
@@ -1492,6 +1496,7 @@ all =
                                         , pinnedInConfig = False
                                         , pinComment = Nothing
                                         , icon = Nothing
+                                        , build = Nothing
                                         }
                                 )
                                 session
@@ -3195,6 +3200,7 @@ all =
                                         , pinnedInConfig = False
                                         , pinComment = Nothing
                                         , icon = Nothing
+                                        , build = Nothing
                                         }
                                 )
                             |> Tuple.first
@@ -3226,6 +3232,7 @@ all =
                                         , pinnedInConfig = False
                                         , pinComment = Nothing
                                         , icon = Nothing
+                                        , build = Nothing
                                         }
                                 )
                             |> Tuple.first
@@ -3264,6 +3271,7 @@ all =
                                     , pinnedInConfig = False
                                     , pinComment = Nothing
                                     , icon = Nothing
+                                    , build = Nothing
                                     }
                             )
                         |> Tuple.first
@@ -3352,6 +3360,7 @@ givenResourcePinnedStatically =
                 , pinnedInConfig = True
                 , pinComment = Nothing
                 , icon = Nothing
+                , build = Nothing
                 }
         )
         >> Tuple.first
@@ -3373,6 +3382,7 @@ givenResourcePinnedDynamically =
                 , pinnedInConfig = False
                 , pinComment = Nothing
                 , icon = Nothing
+                , build = Nothing
                 }
         )
         >> Tuple.first
@@ -3395,6 +3405,7 @@ whenResourceLoadsWithPinnedComment =
                 , pinnedInConfig = False
                 , pinComment = Just "some pin comment"
                 , icon = Nothing
+                , build = Nothing
                 }
         )
 
@@ -3420,6 +3431,7 @@ givenResourceIsNotPinned =
                 , pinnedInConfig = False
                 , pinComment = Nothing
                 , icon = Nothing
+                , build = Nothing
                 }
         )
         >> Tuple.first
@@ -3441,6 +3453,7 @@ givenResourceHasIcon =
                 , pinnedInConfig = False
                 , pinComment = Nothing
                 , icon = Just resourceIcon
+                , build = Nothing
                 }
         )
         >> Tuple.first

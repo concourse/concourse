@@ -898,6 +898,7 @@ type alias Resource =
     , pinnedVersion : Maybe Version
     , pinnedInConfig : Bool
     , pinComment : Maybe String
+    , build : Maybe Build
     }
 
 
@@ -938,6 +939,7 @@ decodeResource =
         |> andMap (Json.Decode.maybe (Json.Decode.field "pinned_version" decodeVersion))
         |> andMap (defaultTo False <| Json.Decode.field "pinned_in_config" Json.Decode.bool)
         |> andMap (Json.Decode.maybe (Json.Decode.field "pin_comment" Json.Decode.string))
+        |> andMap (Json.Decode.maybe (Json.Decode.field "build" decodeBuild))
 
 
 decodeVersionedResource : Json.Decode.Decoder VersionedResource

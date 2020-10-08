@@ -945,6 +945,7 @@ all =
                                           , pinnedInConfig = False
                                           , pinComment = Nothing
                                           , icon = Nothing
+                                          , build = Nothing
                                           }
                                         ]
                                 )
