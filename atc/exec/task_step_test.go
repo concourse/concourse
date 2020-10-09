@@ -152,8 +152,8 @@ var _ = Describe("TaskStep", func() {
 	Context("when the plan has a config", func() {
 
 		BeforeEach(func() {
-			cpu := uint64(1024)
-			memory := uint64(1024)
+			cpu := atc.CPULimit(1024)
+			memory := atc.MemoryLimit(1024)
 
 			taskPlan.Config = &atc.TaskConfig{
 				Platform: "some-platform",
