@@ -153,6 +153,46 @@ func (s *RootfsManagerSuite) TestLookupUserIgnoreNonUserInfo() {
 	s.True(ok)
 }
 
+func (s *RootfsManagerSuite) TestLookupUserRootNoPasswdFileRoot() {
+	mgr := runtime.NewRootfsManager()
+
+	actualUser, ok, err := mgr.LookupUser("no-passwd-file", "root")
+	s.NoError(err)
+
+	s.True(ok)
+	expectedUser := specs.User{
+		UID: 0,
+		GID: 0,
+	}
+	s.Equal(expectedUser, actualUser)
+}
+
+func (s *RootfsManagerSuite) TestLookupUserNoPasswdFileNonRoot() {
+	mgr := runtime.NewRootfsManager()
+
+	_, _, err := mgr.LookupUser("no-passwd-file", "some_user_name")
+	s.True(errors.Is(err, os.ErrNotExist))
+}
+
+func (s *RootfsManagerSuite) TestLookupUserRootUidNotZero() {
+	mgr := runtime.NewRootfsManager()
+	s.writeEtcPasswd(`
+		#This is etc passwd
+		admin:*:0:0:System Administrator:/var/root:/bin/sh
+		root:*:1:1:Some User:/var/root:/usr/bin/false
+	`)
+
+	actualUser, ok, err := mgr.LookupUser(s.rootfsPath, "root")
+	s.NoError(err)
+
+	s.True(ok)
+	expectedUser := specs.User{
+		UID: 1,
+		GID: 1,
+	}
+	s.Equal(expectedUser, actualUser)
+}
+
 func (s *RootfsManagerSuite) writeEtcPasswd(contents string) {
 	err := os.MkdirAll(filepath.Join(s.rootfsPath, "etc"), 0755)
 	s.NoError(err)
