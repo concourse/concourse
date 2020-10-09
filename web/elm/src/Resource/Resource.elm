@@ -124,8 +124,6 @@ init flags =
             { resourceIdentifier = flags.resourceId
             , pageStatus = Err Models.Empty
             , checkStatus = Models.CheckingSuccessfully
-            , checkError = ""
-            , checkSetupError = ""
             , lastChecked = Nothing
             , pinnedVersion = NotPinned
             , currentPage = page
@@ -260,13 +258,20 @@ handleCallback callback session ( model, effects ) =
                     , resourceName = resource.name
                     }
                 , checkStatus =
-                    if resource.failingToCheck then
-                        Models.FailingToCheck
+                    case resource.build of
+                        Nothing ->
+                            Models.CheckingSuccessfully
 
-                    else
-                        Models.CheckingSuccessfully
-                , checkError = resource.checkError
-                , checkSetupError = resource.checkSetupError
+                        Just { id, status } ->
+                            case status of
+                                Concourse.BuildStatus.BuildStatusSucceeded ->
+                                    Models.CheckingSuccessfully
+
+                                Concourse.BuildStatus.BuildStatusStarted ->
+                                    Models.CurrentlyChecking id
+
+                                _ ->
+                                    Models.FailingToCheck
                 , lastChecked = resource.lastChecked
                 , icon = resource.icon
               }
@@ -951,8 +956,6 @@ body session model =
     let
         sectionModel =
             { checkStatus = model.checkStatus
-            , checkSetupError = model.checkSetupError
-            , checkError = model.checkError
             , hovered = session.hovered
             , userState = session.userState
             , teamName = model.resourceIdentifier.teamName
@@ -1091,14 +1094,12 @@ paginationMenu { hovered } model =
 checkSection :
     { a
         | checkStatus : Models.CheckStatus
-        , checkSetupError : String
-        , checkError : String
         , hovered : HoverState.HoverState
         , userState : UserState
         , teamName : String
     }
     -> Html Message
-checkSection ({ checkStatus, checkSetupError, checkError } as model) =
+checkSection ({ checkStatus } as model) =
     let
         failingToCheck =
             checkStatus == Models.FailingToCheck
@@ -1116,23 +1117,6 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
 
                 Models.CheckingSuccessfully ->
                     "checked successfully"
-
-        stepBody =
-            if failingToCheck then
-                if not (String.isEmpty checkSetupError) then
-                    [ Html.div [ class "step-body" ]
-                        [ Html.pre [] [ Html.text checkSetupError ]
-                        ]
-                    ]
-
-                else
-                    [ Html.div [ class "step-body" ]
-                        [ Html.pre [] [ Html.text checkError ]
-                        ]
-                    ]
-
-            else
-                []
 
         statusIcon =
             case checkStatus of
@@ -1174,7 +1158,7 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
                 , statusBar
                 ]
     in
-    Html.div [ class "resource-check-status" ] <| checkBar :: stepBody
+    Html.div [ class "resource-check-status" ] [ checkBar ]
 
 
 checkButton :

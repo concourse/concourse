@@ -1262,9 +1262,6 @@ all =
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
                                         , lastChecked = Nothing
                                         , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                                         , pinnedInConfig = False
@@ -1320,9 +1317,6 @@ all =
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
                                         , lastChecked = Nothing
                                         , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                                         , pinnedInConfig = False
@@ -1380,9 +1374,6 @@ all =
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
                                         , lastChecked = Nothing
                                         , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                                         , pinnedInConfig = False
@@ -1443,9 +1434,6 @@ all =
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
                                         , lastChecked = Nothing
                                         , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                                         , pinnedInConfig = False
@@ -1488,9 +1476,6 @@ all =
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
                                         , lastChecked = Nothing
                                         , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                                         , pinnedInConfig = False
@@ -3192,9 +3177,6 @@ all =
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
                                         , lastChecked = Just (Time.millisToPosix 0)
                                         , pinnedVersion = Nothing
                                         , pinnedInConfig = False
@@ -3222,9 +3204,6 @@ all =
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
                                         , lastChecked =
                                             Just
                                                 (Time.millisToPosix 0)
@@ -3254,6 +3233,30 @@ all =
                                     Attr.title "Jan 1 1970 05:00:00 AM"
                                 ]
                 ]
+            , test "check in progress refreshes on 1s interval" <|
+                \_ ->
+                    init
+                        |> Application.handleCallback
+                            (Callback.ResourceFetched <|
+                                Ok
+                                    { teamName = teamName
+                                    , pipelineName = pipelineName
+                                    , name = resourceName
+                                    , lastChecked = Nothing
+                                    , pinnedVersion = Nothing
+                                    , pinnedInConfig = False
+                                    , pinComment = Nothing
+                                    , icon = Nothing
+                                    , build = Just (Data.build Concourse.BuildStatus.BuildStatusStarted)
+                                    }
+                            )
+                        |> Tuple.first
+                        |> Application.handleDelivery
+                            (ClockTicked OneSecond <|
+                                Time.millisToPosix 1000
+                            )
+                        |> Tuple.second
+                        |> Common.contains (Effects.FetchCheck 1)
             , test "unsuccessful check shows a warning icon on the right" <|
                 \_ ->
                     init
@@ -3263,15 +3266,12 @@ all =
                                     { teamName = teamName
                                     , pipelineName = pipelineName
                                     , name = resourceName
-                                    , failingToCheck = True
-                                    , checkError = "some error"
-                                    , checkSetupError = ""
                                     , lastChecked = Nothing
                                     , pinnedVersion = Nothing
                                     , pinnedInConfig = False
                                     , pinComment = Nothing
                                     , icon = Nothing
-                                    , build = Nothing
+                                    , build = Just (Data.build Concourse.BuildStatus.BuildStatusFailed)
                                     }
                             )
                         |> Tuple.first
@@ -3283,7 +3283,6 @@ all =
                                 , image = Assets.ExclamationTriangleIcon
                                 }
                                 ++ [ style "background-size" "14px 14px"
-                                   , containing [ text "some error" ]
                                    ]
                             )
             ]
@@ -3352,9 +3351,6 @@ givenResourcePinnedStatically =
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , name = resourceName
-                , failingToCheck = False
-                , checkError = ""
-                , checkSetupError = ""
                 , lastChecked = Nothing
                 , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                 , pinnedInConfig = True
@@ -3374,9 +3370,6 @@ givenResourcePinnedDynamically =
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , name = resourceName
-                , failingToCheck = False
-                , checkError = ""
-                , checkSetupError = ""
                 , lastChecked = Nothing
                 , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                 , pinnedInConfig = False
@@ -3396,9 +3389,6 @@ whenResourceLoadsWithPinnedComment =
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , name = resourceName
-                , failingToCheck = False
-                , checkError = ""
-                , checkSetupError = ""
                 , lastChecked = Nothing
                 , pinnedVersion =
                     Just (Dict.fromList [ ( "version", version ) ])
@@ -3423,9 +3413,6 @@ givenResourceIsNotPinned =
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , name = resourceName
-                , failingToCheck = False
-                , checkError = ""
-                , checkSetupError = ""
                 , lastChecked = Just (Time.millisToPosix 0)
                 , pinnedVersion = Nothing
                 , pinnedInConfig = False
@@ -3445,9 +3432,6 @@ givenResourceHasIcon =
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , name = resourceName
-                , failingToCheck = False
-                , checkError = ""
-                , checkSetupError = ""
                 , lastChecked = Just (Time.millisToPosix 0)
                 , pinnedVersion = Nothing
                 , pinnedInConfig = False

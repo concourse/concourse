@@ -937,15 +937,12 @@ all =
                                         [ { teamName = "team"
                                           , pipelineName = "pipeline"
                                           , name = "resource"
-                                          , failingToCheck = True
-                                          , checkError = ""
-                                          , checkSetupError = ""
                                           , lastChecked = Nothing
                                           , pinnedVersion = Nothing
                                           , pinnedInConfig = False
                                           , pinComment = Nothing
                                           , icon = Nothing
-                                          , build = Nothing
+                                          , build = Just (Data.build Concourse.BuildStatus.BuildStatusFailed)
                                           }
                                         ]
                                 )

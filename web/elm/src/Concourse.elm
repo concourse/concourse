@@ -891,9 +891,6 @@ type alias Resource =
     , pipelineName : String
     , name : String
     , icon : Maybe String
-    , failingToCheck : Bool
-    , checkError : String
-    , checkSetupError : String
     , lastChecked : Maybe Time.Posix
     , pinnedVersion : Maybe Version
     , pinnedInConfig : Bool
@@ -932,9 +929,6 @@ decodeResource =
         |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (Json.Decode.maybe (Json.Decode.field "icon" Json.Decode.string))
-        |> andMap (defaultTo False <| Json.Decode.field "failing_to_check" Json.Decode.bool)
-        |> andMap (defaultTo "" <| Json.Decode.field "check_error" Json.Decode.string)
-        |> andMap (defaultTo "" <| Json.Decode.field "check_setup_error" Json.Decode.string)
         |> andMap (Json.Decode.maybe (Json.Decode.field "last_checked" (Json.Decode.map dateFromSeconds Json.Decode.int)))
         |> andMap (Json.Decode.maybe (Json.Decode.field "pinned_version" decodeVersion))
         |> andMap (defaultTo False <| Json.Decode.field "pinned_in_config" Json.Decode.bool)

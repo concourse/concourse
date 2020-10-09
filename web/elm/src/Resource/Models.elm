@@ -31,8 +31,6 @@ type alias Model =
     Login.Model
         { pageStatus : Result PageError ()
         , checkStatus : CheckStatus
-        , checkError : String
-        , checkSetupError : String
         , lastChecked : Maybe Time.Posix
         , pinnedVersion : PinnedVersion
         , now : Maybe Time.Posix
