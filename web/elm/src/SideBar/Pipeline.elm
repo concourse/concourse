@@ -56,16 +56,14 @@ pipeline params p =
             Set.member p.id params.favoritedPipelines
     in
     { icon =
-        { asset =
-            if p.archived then
-                Assets.ArchivedPipelineIcon
+        if p.archived then
+            Assets.ArchivedPipelineIcon
 
-            else
-                Assets.BreadcrumbIcon
-                    (Assets.PipelineComponent
-                        (isHovered || isCurrent)
-                    )
-        }
+        else
+            Assets.BreadcrumbIcon
+                (Assets.PipelineComponent
+                    (isHovered || isCurrent)
+                )
     , name =
         { opacity =
             if isCurrent || isHovered then

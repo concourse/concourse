@@ -292,8 +292,8 @@ pipeline { background } =
     ]
 
 
-pipelineIcon : { asset : Assets.Asset } -> List (Html.Attribute msg)
-pipelineIcon { asset } =
+pipelineIcon : Assets.Asset -> List (Html.Attribute msg)
+pipelineIcon asset =
     [ style "background-image" <|
         Assets.backgroundImage <|
             Just asset

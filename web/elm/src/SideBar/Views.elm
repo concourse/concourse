@@ -56,8 +56,7 @@ viewTeam team =
 
 
 type alias Pipeline =
-    { icon :
-        { asset : Assets.Asset }
+    { icon : Assets.Asset
     , name :
         { opacity : Styles.Opacity
         , text : String

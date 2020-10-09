@@ -43,8 +43,7 @@ all =
                             |> viewPipeline { defaultState | active = True, hovered = True }
                             |> .icon
                             |> Expect.equal
-                                { asset = Assets.BreadcrumbIcon (Assets.PipelineComponent True)
-                                }
+                                (Assets.BreadcrumbIcon (Assets.PipelineComponent True))
                 , describe "when not favorited"
                     [ test "displays a bright unfilled star icon when hovered" <|
                         \_ ->
@@ -80,8 +79,7 @@ all =
                             |> viewPipeline { defaultState | active = True, hovered = False }
                             |> .icon
                             |> Expect.equal
-                                { asset = Assets.BreadcrumbIcon (Assets.PipelineComponent True)
-                                }
+                                (Assets.BreadcrumbIcon (Assets.PipelineComponent True))
                 , describe "when unfavorited"
                     [ test "displays a dim unfilled star icon" <|
                         \_ ->
@@ -126,8 +124,7 @@ all =
                             |> viewPipeline { defaultState | active = False, hovered = True }
                             |> .icon
                             |> Expect.equal
-                                { asset = Assets.BreadcrumbIcon (Assets.PipelineComponent True)
-                                }
+                                (Assets.BreadcrumbIcon (Assets.PipelineComponent True))
                 ]
             , describe "when unhovered"
                 [ test "pipeline name is dim" <|
@@ -148,9 +145,7 @@ all =
                         pipeline
                             |> viewPipeline { defaultState | active = False, hovered = False }
                             |> .icon
-                            |> Expect.equal
-                                { asset = Assets.BreadcrumbIcon (Assets.PipelineComponent False)
-                                }
+                            |> Expect.equal (Assets.BreadcrumbIcon (Assets.PipelineComponent False))
                 ]
             , test "font weight is default" <|
                 \_ ->
@@ -167,7 +162,6 @@ all =
                         |> Data.withArchived True
                         |> viewPipeline defaultState
                         |> .icon
-                        |> .asset
                         |> Expect.equal Assets.ArchivedPipelineIcon
             ]
         , describe "when in all pipelines section"
