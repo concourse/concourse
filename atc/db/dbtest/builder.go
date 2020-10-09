@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -420,6 +421,65 @@ func (builder Builder) WithJobBuild(assign *db.Build, jobName string, inputs Job
 		}
 
 		*assign = build
+
+		return nil
+	}
+}
+
+func (builder Builder) WithCheckContainer(resourceName string, workerName string) SetupFunc {
+	return func(scenario *Scenario) error {
+		if scenario.Pipeline == nil {
+			return fmt.Errorf("no pipeline set in scenario")
+		}
+
+		if len(scenario.Workers) == 0 {
+			return fmt.Errorf("no workers set in scenario")
+		}
+
+		resource, found, err := scenario.Pipeline.Resource(resourceName)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return fmt.Errorf("resource '%s' not configured in pipeline", resourceName)
+		}
+
+		rc, found, err := builder.ResourceConfigFactory.FindResourceConfigByID(resource.ResourceConfigID())
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return fmt.Errorf("resource config '%d' not found", rc.ID())
+		}
+
+		owner := db.NewResourceConfigCheckSessionContainerOwner(
+			rc.ID(),
+			rc.OriginBaseResourceType().ID,
+			db.ContainerOwnerExpiries{
+				Min: 5 * time.Minute,
+				Max: 5 * time.Minute,
+			},
+		)
+
+		worker, found, err := builder.WorkerFactory.GetWorker(workerName)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return fmt.Errorf("worker '%d' not set in the scenario", rc.ID())
+		}
+
+		containerMetadata := db.ContainerMetadata{
+			Type: "check",
+		}
+
+		_, err = worker.CreateContainer(owner, containerMetadata)
+		if err != nil {
+			return err
+		}
 
 		return nil
 	}
