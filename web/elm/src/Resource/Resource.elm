@@ -17,8 +17,12 @@ module Resource.Resource exposing
     , viewVersionHeader
     )
 
+import Api.Endpoints as Endpoints
 import Application.Models exposing (Session)
 import Assets
+import Build.Output.Models exposing (OutputModel)
+import Build.Output.Output
+import Build.StepTree.StepTree as StepTree
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination
@@ -59,13 +63,14 @@ import Html.Events
         , onMouseOut
         , onMouseOver
         )
+import Html.Lazy
 import Http
 import Keyboard
 import List.Extra
 import Login.Login as Login
 import Maybe.Extra as ME
 import Message.Callback exposing (Callback(..))
-import Message.Effects exposing (Effect(..), toHtmlID)
+import Message.Effects as Effects exposing (Effect(..), toHtmlID)
 import Message.Message as Message
     exposing
         ( DomID(..)
@@ -137,6 +142,10 @@ init flags =
             , isUserMenuExpanded = False
             , icon = Nothing
             , isEditing = False
+            , build = Nothing
+            , authorized = True
+            , output = Nothing
+            , highlight = Routes.HighlightNothing
             }
     in
     ( model
@@ -167,6 +176,26 @@ changeToResource flags ( model, effects ) =
            , SyncTextareaHeight ResourceCommentTextarea
            ]
     )
+
+
+initBuild : Maybe Concourse.Build -> ET Model
+initBuild mbuild ( model, effects ) =
+    case mbuild of
+        Nothing ->
+            ( model, effects )
+
+        Just build ->
+            if Maybe.map .id model.build == Just build.id then
+                ( { model | build = Just build }, effects )
+
+            else
+                let
+                    ( output, outputCmd ) =
+                        Build.Output.Output.init model.highlight build
+                in
+                ( { model | build = Just build, output = Just output }
+                , effects ++ outputCmd
+                )
 
 
 updatePinnedVersion : Concourse.Resource -> Model -> Model
@@ -236,14 +265,26 @@ getUpdateMessage model =
         UpdateMsg.AOK
 
 
-subscriptions : List Subscription
-subscriptions =
+subscriptions : Model -> List Subscription
+subscriptions model =
+    let
+        buildEventsUrl =
+            model.output
+                |> Maybe.andThen .eventStreamUrlPath
+    in
     [ OnClockTick Subscription.FiveSeconds
     , OnClockTick Subscription.OneSecond
     , OnKeyDown
     , OnKeyUp
     , OnWindowResize
     ]
+        ++ (case buildEventsUrl of
+                Nothing ->
+                    []
+
+                Just url ->
+                    [ Subscription.FromEventSource ( url, [ "end", "event" ] ) ]
+           )
 
 
 handleCallback : Callback -> Session -> ET Model
@@ -286,6 +327,7 @@ handleCallback callback session ( model, effects ) =
                    )
                 ++ [ SyncTextareaHeight ResourceCommentTextarea ]
             )
+                |> initBuild resource.build
 
         ResourceFetched (Err err) ->
             case err of
@@ -530,12 +572,42 @@ handleCallback callback session ( model, effects ) =
                    ]
             )
 
+        PlanAndResourcesFetched buildId (Ok planAndResources) ->
+            updateOutput
+                (Build.Output.Output.planAndResourcesFetched
+                    buildId
+                    planAndResources
+                )
+                ( model
+                , effects
+                    ++ [ Effects.OpenBuildEventStream
+                            { url =
+                                Endpoints.BuildEventStream
+                                    |> Endpoints.Build buildId
+                                    |> Endpoints.toString []
+                            , eventTypes = [ "end", "event" ]
+                            }
+                       ]
+                )
+
+        PlanAndResourcesFetched _ (Err err) ->
+            case err of
+                Http.BadStatus { status } ->
+                    if status.code == 401 then
+                        ( { model | authorized = False }, effects )
+
+                    else
+                        ( model, effects )
+
+                _ ->
+                    ( model, effects )
+
         _ ->
             ( model, effects )
 
 
-handleDelivery : Delivery -> ET Model
-handleDelivery delivery ( model, effects ) =
+handleDelivery : { a | hovered : HoverState.HoverState } -> Delivery -> ET Model
+handleDelivery session delivery ( model, effects ) =
     case delivery of
         KeyDown keyEvent ->
             if
@@ -557,12 +629,20 @@ handleDelivery delivery ( model, effects ) =
 
         ClockTicked OneSecond time ->
             ( { model | now = Just time }
-            , case model.checkStatus of
+            , (case model.checkStatus of
                 Models.CurrentlyChecking id ->
                     effects ++ [ FetchCheck id ]
 
                 _ ->
                     effects
+              )
+                ++ (case session.hovered of
+                        HoverState.Hovered (StepState stepID) ->
+                            [ GetViewportOf (StepState stepID) ]
+
+                        _ ->
+                            []
+                   )
             )
 
         ClockTicked FiveSeconds _ ->
@@ -579,6 +659,11 @@ handleDelivery delivery ( model, effects ) =
             ( model
             , effects ++ [ SyncTextareaHeight ResourceCommentTextarea ]
             )
+
+        EventsReceived (Ok envelopes) ->
+            updateOutput
+                (Build.Output.Output.handleEnvelopes envelopes)
+                ( model, effects )
 
         _ ->
             ( model, effects )
@@ -736,6 +821,11 @@ update msg ( model, effects ) =
             ( { model | isEditing = True }
             , effects ++ [ Focus (toHtmlID ResourceCommentTextarea) ]
             )
+
+        Click (StepHeader id) ->
+            updateOutput
+                (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStep id)
+                ( model, effects )
 
         EditComment input ->
             let
@@ -949,6 +1039,7 @@ body :
         | userState : UserState
         , pipelines : WebData (List Concourse.Pipeline)
         , hovered : HoverState.HoverState
+        , timeZone : Time.Zone
     }
     -> Model
     -> Html Message
@@ -958,7 +1049,10 @@ body session model =
             { checkStatus = model.checkStatus
             , hovered = session.hovered
             , userState = session.userState
+            , timeZone = session.timeZone
             , teamName = model.resourceIdentifier.teamName
+            , authorized = model.authorized
+            , output = model.output
             }
 
         archived =
@@ -1097,6 +1191,8 @@ checkSection :
         , hovered : HoverState.HoverState
         , userState : UserState
         , teamName : String
+        , timeZone : Time.Zone
+        , output : Maybe OutputModel
     }
     -> Html Message
 checkSection ({ checkStatus } as model) =
@@ -1155,7 +1251,14 @@ checkSection ({ checkStatus } as model) =
             Html.div
                 [ style "display" "flex" ]
                 [ checkButton model
-                , statusBar
+                , Html.div Resource.Styles.checkStatus
+                    [ statusBar
+                    , Html.Lazy.lazy3
+                        viewBuildOutput
+                        model.timeZone
+                        (Build.Output.Output.filterHoverState model.hovered)
+                        model.output
+                    ]
                 ]
     in
     Html.div [ class "resource-check-status" ] [ checkBar ]
@@ -1850,3 +1953,44 @@ fetchDataForExpandedVersions model =
     model.versions.content
         |> List.filter .expanded
         |> List.concatMap (\v -> [ FetchInputTo v.id, FetchOutputOf v.id ])
+
+
+updateOutput :
+    (OutputModel -> ( OutputModel, List Effect ))
+    -> ET Model
+updateOutput updater ( model, effects ) =
+    case model.output of
+        Just output ->
+            let
+                ( newOutput, outputEffects ) =
+                    updater output
+
+                newModel =
+                    { model
+                        | output =
+                            -- model.output must be equal-by-reference
+                            -- to its previous value when passed
+                            -- into `Html.Lazy.lazy3` below.
+                            if newOutput /= output then
+                                Just newOutput
+
+                            else
+                                model.output
+                    }
+            in
+            ( newModel, effects ++ outputEffects )
+
+        _ ->
+            ( model, effects )
+
+
+viewBuildOutput : Time.Zone -> HoverState.HoverState -> Maybe OutputModel -> Html Message
+viewBuildOutput timeZone hovered output =
+    case output of
+        Just o ->
+            Build.Output.Output.view
+                { timeZone = timeZone, hovered = hovered }
+                o
+
+        Nothing ->
+            Html.div [] []

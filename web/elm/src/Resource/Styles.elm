@@ -3,6 +3,7 @@ module Resource.Styles exposing
     , checkBarStatus
     , checkButton
     , checkButtonIcon
+    , checkStatus
     , checkStatusIcon
     , commentBar
     , commentBarIconContainer
@@ -412,6 +413,14 @@ pagination =
     ]
 
 
+checkStatus : List (Html.Attribute msg)
+checkStatus =
+    [ style "display" "flex"
+    , style "flex-direction" "column"
+    , style "flex-grow" "1"
+    ]
+
+
 checkBarStatus : List (Html.Attribute msg)
 checkBarStatus =
     [ style "display" "flex"
@@ -421,6 +430,7 @@ checkBarStatus =
     , style "height" "28px"
     , style "background" Colors.sectionHeader
     , style "padding-left" "5px"
+    , style "margin-bottom" "5px"
     ]
 
 

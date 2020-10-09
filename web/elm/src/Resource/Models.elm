@@ -8,10 +8,12 @@ module Resource.Models exposing
     , VersionId
     )
 
+import Build.Output.Models exposing (OutputModel)
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Login.Login as Login
 import Pinned exposing (CommentState, ResourcePinState)
+import Routes
 import Time
 
 
@@ -41,6 +43,10 @@ type alias Model =
         , textAreaFocused : Bool
         , icon : Maybe String
         , isEditing : Bool
+        , build : Maybe Concourse.Build
+        , authorized : Bool
+        , output : Maybe OutputModel
+        , highlight : Routes.Highlight
         }
 
 

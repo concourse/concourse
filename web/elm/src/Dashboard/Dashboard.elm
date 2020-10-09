@@ -319,7 +319,7 @@ handleCallback callback ( model, effects ) =
                             False
 
                         Just { status } ->
-                            status /= Concourse.BuildStatus.BuildStatusSucceeded
+                            Concourse.BuildStatus.isBad status
             in
             ( { model
                 | pipelinesWithResourceErrors =

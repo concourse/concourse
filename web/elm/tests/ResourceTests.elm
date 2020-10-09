@@ -3,6 +3,7 @@ module ResourceTests exposing (all)
 import Application.Application as Application
 import Application.Models exposing (Session)
 import Assets
+import Build.StepTree.Models as STModels
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -1367,7 +1368,7 @@ all =
                             { resourceId = Data.resourceId
                             , paging = Nothing
                             }
-                            |> Resource.handleDelivery (ClockTicked OneSecond (Time.millisToPosix 1000))
+                            |> Resource.handleDelivery session (ClockTicked OneSecond (Time.millisToPosix 1000))
                             |> Resource.handleCallback
                                 (Callback.ResourceFetched <|
                                     Ok
@@ -1427,7 +1428,7 @@ all =
                             { resourceId = Data.resourceId
                             , paging = Nothing
                             }
-                            |> Resource.handleDelivery (ClockTicked OneSecond (Time.millisToPosix 1000))
+                            |> Resource.handleDelivery session (ClockTicked OneSecond (Time.millisToPosix 1000))
                             |> Resource.handleCallback
                                 (Callback.ResourceFetched <|
                                     Ok
@@ -3285,6 +3286,223 @@ all =
                                 ++ [ style "background-size" "14px 14px"
                                    ]
                             )
+            ]
+        , describe "check build" <|
+            let
+                baseBuild =
+                    Data.build Concourse.BuildStatus.BuildStatusFailed
+
+                resource =
+                    { teamName = teamName
+                    , pipelineName = pipelineName
+                    , name = resourceName
+                    , lastChecked = Nothing
+                    , pinnedVersion = Nothing
+                    , pinnedInConfig = False
+                    , pinComment = Nothing
+                    , icon = Nothing
+                    , build = Just baseBuild
+                    }
+            in
+            [ test "check with build fetches build plan" <|
+                \_ ->
+                    init
+                        |> Application.handleCallback
+                            (Callback.ResourceFetched <| Ok resource)
+                        |> Tuple.second
+                        |> Common.contains (Effects.FetchBuildPlan 1)
+            , test "check with build does not fetch build plan as long as build stays the same" <|
+                \_ ->
+                    init
+                        |> Application.handleCallback
+                            (Callback.ResourceFetched <| Ok resource)
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.ResourceFetched <| Ok resource)
+                        |> Tuple.second
+                        |> Common.notContains (Effects.FetchBuildPlan 1)
+            , test "check with build fetches build plan when build changes" <|
+                \_ ->
+                    init
+                        |> Application.handleCallback
+                            (Callback.ResourceFetched <| Ok resource)
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.ResourceFetched <|
+                                Ok { resource | build = Just { baseBuild | id = 2 } }
+                            )
+                        |> Tuple.second
+                        |> Common.contains (Effects.FetchBuildPlan 2)
+            , describe "build events subscription" <|
+                [ test "after build plan is received, opens event stream" <|
+                    \_ ->
+                        init
+                            |> Application.handleCallback
+                                (Callback.ResourceFetched (Ok resource))
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 1 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step = Concourse.BuildStepCheck "step"
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            |> Expect.all
+                                [ Tuple.second
+                                    >> Common.contains
+                                        (Effects.OpenBuildEventStream
+                                            { url = "/api/v1/builds/1/events"
+                                            , eventTypes = [ "end", "event" ]
+                                            }
+                                        )
+                                , Tuple.first
+                                    >> Application.subscriptions
+                                    >> Common.contains
+                                        (Subscription.FromEventSource
+                                            ( "/api/v1/builds/1/events"
+                                            , [ "end", "event" ]
+                                            )
+                                        )
+                                ]
+                , test "if build plan request fails, no event stream is opened" <|
+                    \_ ->
+                        init
+                            |> Application.handleCallback
+                                (Callback.ResourceFetched (Ok resource))
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 1 <| Data.httpUnauthorized)
+                            |> Expect.all
+                                [ Tuple.second >> Expect.equal []
+                                , Tuple.first
+                                    >> Application.subscriptions
+                                    >> Common.notContains
+                                        (Subscription.FromEventSource
+                                            ( "/api/v1/builds/1/events"
+                                            , [ "end", "event" ]
+                                            )
+                                        )
+                                ]
+                ]
+            , describe "build output" <|
+                [ test "when build is finished, renders build step tree when events are loaded" <|
+                    \_ ->
+                        init
+                            |> Application.handleCallback
+                                (Callback.ResourceFetched (Ok resource))
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 1 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            |> Tuple.first
+                            |> Application.handleDelivery
+                                (EventsReceived <|
+                                    Ok <|
+                                        [ { url = "/api/v1/builds/1/events"
+                                          , data = STModels.End
+                                          }
+                                        ]
+                                )
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ class "build-step" ]
+                            |> Query.has
+                                [ containing [ text "check:" ]
+                                , containing [ text "some-resource" ]
+                                ]
+                , test "when build is running, live streams build step tree events" <|
+                    \_ ->
+                        init
+                            |> Application.handleCallback
+                                (Callback.ResourceFetched <|
+                                    Ok
+                                        { resource
+                                            | build =
+                                                Just <| Data.build Concourse.BuildStatus.BuildStatusStarted
+                                        }
+                                )
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 1 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            |> Tuple.first
+                            |> Application.handleDelivery
+                                (EventsReceived <|
+                                    Ok <|
+                                        [ { url = "/api/v1/builds/1/events"
+                                          , data = STModels.Log { id = "plan", source = "stderr" } "hello" Nothing
+                                          }
+                                        ]
+                                )
+                            |> Tuple.first
+                            |> Application.update
+                                (Msgs.Update <|
+                                    Message.Message.Click <|
+                                        Message.Message.StepHeader "plan"
+                                )
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ class "build-step" ]
+                            |> Query.has
+                                [ containing [ text "check:" ]
+                                , containing [ text "some-resource" ]
+                                , containing [ text "hello" ]
+                                ]
+                , test "one tick after hovering step state, fetches viewport so tooltips can render" <|
+                    \_ ->
+                        init
+                            |> Application.handleCallback
+                                (Callback.ResourceFetched (Ok resource))
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 1 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            |> Tuple.first
+                            |> Application.handleDelivery
+                                (EventsReceived <|
+                                    Ok <|
+                                        [ { url = "/api/v1/builds/1/events"
+                                          , data = STModels.End
+                                          }
+                                        ]
+                                )
+                            |> Tuple.first
+                            >> Application.update
+                                (Msgs.Update <|
+                                    Message.Message.Hover <|
+                                        Just <|
+                                            Message.Message.StepState
+                                                "plan"
+                                )
+                            >> Tuple.first
+                            >> Application.handleDelivery
+                                (ClockTicked OneSecond <|
+                                    Time.millisToPosix 1
+                                )
+                            >> Tuple.second
+                            >> Common.contains
+                                (Effects.GetViewportOf <| Message.Message.StepState "plan")
+                ]
             ]
         ]
 
