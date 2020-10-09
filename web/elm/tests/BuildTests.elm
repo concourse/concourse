@@ -3664,8 +3664,7 @@ all =
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ class "header" ]
-                        >> Query.has
-                            [ style "border" <| "1px solid " ++ Colors.frame ]
+                        >> Query.has [ style "box-shadow" "inset 0 0 0 1px transparent" ]
                 , test "failing step has a red border" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
@@ -3686,7 +3685,7 @@ all =
                         >> Common.queryView
                         >> Query.find [ class "header" ]
                         >> Query.has
-                            [ style "border" <| "1px solid " ++ Colors.failure ]
+                            [ style "box-shadow" <| "inset 0 0 0 1px " ++ Colors.failure ]
                 , test "started step has a yellow border" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
@@ -3706,7 +3705,7 @@ all =
                         >> Common.queryView
                         >> Query.find [ class "header" ]
                         >> Query.has
-                            [ style "border" <| "1px solid " ++ Colors.started ]
+                            [ style "box-shadow" <| "inset 0 0 0 1px " ++ Colors.started ]
                 , test "set_pipeline step that changed something has a yellow text" <|
                     fetchPlanWithSetPipelineStep
                         >> Application.handleDelivery
