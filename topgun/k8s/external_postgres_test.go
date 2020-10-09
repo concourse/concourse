@@ -41,7 +41,7 @@ var _ = Describe("External PostgreSQL", func() {
 
 	AfterEach(func() {
 		helmDestroy(pgReleaseName, namespace)
-		cleanup(releaseName, namespace)
+		cleanupReleases()
 	})
 
 	It("can have pipelines set", func() {

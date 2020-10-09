@@ -14,7 +14,7 @@ import (
 var _ = Describe("baggageclaim drivers", func() {
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace)
+		cleanupReleases()
 	})
 
 	onPks(func() {

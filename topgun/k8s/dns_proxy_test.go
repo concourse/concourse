@@ -17,7 +17,7 @@ var _ = Describe("DNS Resolution", func() {
 	})
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace)
+		cleanupReleases()
 		atc.Close()
 	})
 
