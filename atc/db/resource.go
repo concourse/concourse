@@ -35,8 +35,6 @@ type Resource interface {
 	LastCheckStartTime() time.Time
 	LastCheckEndTime() time.Time
 	Tags() atc.Tags
-	CheckSetupError() error
-	CheckError() error
 	WebhookToken() string
 	Config() atc.ResourceConfig
 	ConfigPinnedVersion() atc.Version
@@ -75,7 +73,6 @@ type Resource interface {
 	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
 	CreateBuild(context.Context, bool) (Build, bool, error)
 
-	SetCheckSetupError(error) error
 	NotifyScan() error
 
 	Reload() (bool, error)
@@ -86,7 +83,6 @@ var resourcesQuery = psql.Select(
 	"r.name",
 	"r.type",
 	"r.config",
-	"r.check_error",
 	"rs.last_check_start_time",
 	"rs.last_check_end_time",
 	"r.pipeline_id",
@@ -97,7 +93,6 @@ var resourcesQuery = psql.Select(
 	"p.instance_vars",
 	"t.id",
 	"t.name",
-	"rs.check_error",
 	"rp.version",
 	"rp.comment_text",
 	"rp.config",
@@ -124,8 +119,6 @@ type resource struct {
 	type_                 string
 	lastCheckStartTime    time.Time
 	lastCheckEndTime      time.Time
-	checkSetupError       error
-	checkError            error
 	config                atc.ResourceConfig
 	configPinnedVersion   atc.Version
 	apiPinnedVersion      atc.Version
@@ -179,8 +172,6 @@ func (r *resource) CheckTimeout() string             { return r.config.CheckTime
 func (r *resource) LastCheckStartTime() time.Time    { return r.lastCheckStartTime }
 func (r *resource) LastCheckEndTime() time.Time      { return r.lastCheckEndTime }
 func (r *resource) Tags() atc.Tags                   { return r.config.Tags }
-func (r *resource) CheckSetupError() error           { return r.checkSetupError }
-func (r *resource) CheckError() error                { return r.checkError }
 func (r *resource) WebhookToken() string             { return r.config.WebhookToken }
 func (r *resource) Config() atc.ResourceConfig       { return r.config }
 func (r *resource) ConfigPinnedVersion() atc.Version { return r.configPinnedVersion }
@@ -429,29 +420,6 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool) (Bui
 	}
 
 	return build, true, nil
-}
-
-func (r *resource) SetCheckSetupError(cause error) error {
-	var err error
-
-	if cause == nil {
-		_, err = psql.Update("resources").
-			Set("check_error", nil).
-			Where(sq.And{
-				sq.Eq{"id": r.ID()},
-				sq.NotEq{"check_error": nil},
-			}).
-			RunWith(r.conn).
-			Exec()
-	} else {
-		_, err = psql.Update("resources").
-			Set("check_error", cause.Error()).
-			Where(sq.Eq{"id": r.ID()}).
-			RunWith(r.conn).
-			Exec()
-	}
-
-	return err
 }
 
 // XXX: only used for tests
@@ -878,11 +846,11 @@ func (r *resource) NotifyScan() error {
 
 func scanResource(r *resource, row scannable) error {
 	var (
-		configBlob                                                               sql.NullString
-		checkErr, rcsCheckErr, nonce, rcID, rcScopeID, pinnedVersion, pinComment sql.NullString
-		lastCheckStartTime, lastCheckEndTime                                     pq.NullTime
-		pinnedThroughConfig                                                      sql.NullBool
-		pipelineInstanceVars                                                     sql.NullString
+		configBlob                                        sql.NullString
+		nonce, rcID, rcScopeID, pinnedVersion, pinComment sql.NullString
+		lastCheckStartTime, lastCheckEndTime              pq.NullTime
+		pinnedThroughConfig                               sql.NullBool
+		pipelineInstanceVars                              sql.NullString
 	)
 
 	var build struct {
@@ -892,7 +860,7 @@ func scanResource(r *resource, row scannable) error {
 		endTime   pq.NullTime
 	}
 
-	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName, &rcsCheckErr, &pinnedVersion, &pinComment, &pinnedThroughConfig, &build.id, &build.status, &build.startTime, &build.endTime)
+	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName, &pinnedVersion, &pinComment, &pinnedThroughConfig, &build.id, &build.status, &build.startTime, &build.endTime)
 	if err != nil {
 		return err
 	}
@@ -944,18 +912,6 @@ func scanResource(r *resource, row scannable) error {
 		r.pinComment = pinComment.String
 	} else {
 		r.pinComment = ""
-	}
-
-	if checkErr.Valid {
-		r.checkSetupError = errors.New(checkErr.String)
-	} else {
-		r.checkSetupError = nil
-	}
-
-	if rcsCheckErr.Valid {
-		r.checkError = errors.New(rcsCheckErr.String)
-	} else {
-		r.checkError = nil
 	}
 
 	if rcID.Valid {

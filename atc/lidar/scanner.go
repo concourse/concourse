@@ -13,7 +13,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/tracing"
-	"github.com/pkg/errors"
 )
 
 func NewScanner(checkFactory db.CheckFactory) *scanner {
@@ -66,15 +65,11 @@ func (s *scanner) Run(ctx context.Context) error {
 
 					fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
 					logger.Error("panic-in-scanner-run", err)
-
-					s.setCheckError(logger, resource, err)
 				}
 			}()
 			defer waitGroup.Done()
 
-			err := s.check(spanCtx, resource, resourceTypes, resourceTypesChecked)
-			s.setCheckError(logger, resource, err)
-
+			s.check(spanCtx, resource, resourceTypes, resourceTypesChecked)
 		}(resource, resourceTypes)
 	}
 
@@ -83,7 +78,7 @@ func (s *scanner) Run(ctx context.Context) error {
 	return nil
 }
 
-func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTypes db.ResourceTypes, resourceTypesChecked *sync.Map) error {
+func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTypes db.ResourceTypes, resourceTypesChecked *sync.Map) {
 	logger := lagerctx.FromContext(ctx)
 
 	spanCtx, span := tracing.StartSpan(ctx, "scanner.check", tracing.Attrs{
@@ -99,13 +94,7 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 	if found {
 		if _, exists := resourceTypesChecked.LoadOrStore(parentType.ID(), true); !exists {
 			// only create a check for resource type if it has not been checked yet
-			err := s.check(spanCtx, parentType, resourceTypes, resourceTypesChecked)
-			s.setCheckError(logger, parentType, err)
-
-			if err != nil {
-				logger.Error("failed-to-create-type-check", err)
-				return errors.Wrapf(err, "parent type '%v' error", parentType.Name())
-			}
+			s.check(spanCtx, parentType, resourceTypes, resourceTypesChecked)
 		}
 	}
 
@@ -114,7 +103,7 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, logger), checkable, resourceTypes, version, false)
 	if err != nil {
 		logger.Error("failed-to-create-check", err)
-		return err
+		return
 	}
 
 	if !created {
@@ -123,12 +112,5 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 
 	metric.Metrics.ChecksEnqueued.Inc()
 
-	return nil
-}
-
-func (s *scanner) setCheckError(logger lager.Logger, checkable db.Checkable, err error) {
-	setErr := checkable.SetCheckSetupError(err)
-	if setErr != nil {
-		logger.Error("failed-to-set-check-error", setErr)
-	}
+	return
 }

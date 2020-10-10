@@ -167,9 +167,6 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		}
 
 		result, err := step.runCheck(ctx, logger, delegate, timeout, resourceConfig, source, resourceTypes, fromVersion)
-		if setErr := scope.SetCheckError(err); setErr != nil {
-			logger.Error("failed-to-set-check-error", setErr)
-		}
 		if err != nil {
 			metric.Metrics.ChecksFinishedWithError.Inc()
 

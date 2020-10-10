@@ -467,12 +467,6 @@ var _ = Describe("CheckStep", func() {
 				}))
 			})
 
-			It("sets the check error to nil", func() {
-				Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
-				err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
-				Expect(err).To(BeNil())
-			})
-
 			It("emits a successful Finished event", func() {
 				Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 				_, succeeded := fakeDelegate.FinishedArgsForCall(0)
@@ -540,12 +534,6 @@ var _ = Describe("CheckStep", func() {
 			It("errors", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(errors.Is(err, expectedErr)).To(BeTrue())
-			})
-
-			It("sets the check error", func() {
-				Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
-				err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
-				Expect(err).To(Equal(expectedErr))
 			})
 
 			It("points the resource or resource type to the scope", func() {

@@ -10,10 +10,6 @@ type Resource struct {
 	LastChecked          int64        `json:"last_checked,omitempty"`
 	Icon                 string       `json:"icon,omitempty"`
 
-	FailingToCheck  bool   `json:"failing_to_check,omitempty"`
-	CheckSetupError string `json:"check_setup_error,omitempty"`
-	CheckError      string `json:"check_error,omitempty"`
-
 	PinnedVersion  Version `json:"pinned_version,omitempty"`
 	PinnedInConfig bool    `json:"pinned_in_config,omitempty"`
 	PinComment     string  `json:"pin_comment,omitempty"`

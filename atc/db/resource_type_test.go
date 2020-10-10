@@ -2,7 +2,6 @@ package db_test
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -388,53 +387,6 @@ var _ = Describe("ResourceType", func() {
 						},
 					}))
 				})
-			})
-		})
-	})
-
-	Describe("SetCheckError", func() {
-		var resourceType db.ResourceType
-
-		BeforeEach(func() {
-			var err error
-			resourceType, _, err = pipeline.ResourceType("some-type")
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		Context("when the resource is first created", func() {
-			It("is not errored", func() {
-				Expect(resourceType.CheckSetupError()).To(BeNil())
-			})
-		})
-
-		Context("when a resource check is marked as errored", func() {
-			It("is then marked as errored", func() {
-				originalCause := errors.New("on fire")
-
-				err := resourceType.SetCheckSetupError(originalCause)
-				Expect(err).ToNot(HaveOccurred())
-
-				returnedResourceType, _, err := pipeline.ResourceType("some-type")
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(returnedResourceType.CheckSetupError()).To(Equal(originalCause))
-			})
-		})
-
-		Context("when a resource is cleared of check errors", func() {
-			It("is not marked as errored again", func() {
-				originalCause := errors.New("on fire")
-
-				err := resourceType.SetCheckSetupError(originalCause)
-				Expect(err).ToNot(HaveOccurred())
-
-				err = resourceType.SetCheckSetupError(nil)
-				Expect(err).ToNot(HaveOccurred())
-
-				returnedResourceType, _, err := pipeline.ResourceType("some-type")
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(returnedResourceType.CheckSetupError()).To(BeNil())
 			})
 		})
 	})

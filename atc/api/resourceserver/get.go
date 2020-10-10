@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -13,7 +12,6 @@ import (
 func (s *Server) GetResource(pipeline db.Pipeline) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resourceName := r.FormValue(":resource_name")
-		teamName := r.FormValue(":team_name")
 
 		logger := s.logger.Session("get-resource", lager.Data{
 			"resource": resourceName,
@@ -32,12 +30,7 @@ func (s *Server) GetResource(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		acc := accessor.GetAccessor(r)
-		resource := present.Resource(
-			dbResource,
-			acc.IsAuthorized(teamName),
-			teamName,
-		)
+		resource := present.Resource(dbResource)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)

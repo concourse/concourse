@@ -31,16 +31,6 @@ type FakeResource struct {
 	buildSummaryReturnsOnCall map[int]struct {
 		result1 *atc.BuildSummary
 	}
-	CheckErrorStub        func() error
-	checkErrorMutex       sync.RWMutex
-	checkErrorArgsForCall []struct {
-	}
-	checkErrorReturns struct {
-		result1 error
-	}
-	checkErrorReturnsOnCall map[int]struct {
-		result1 error
-	}
 	CheckEveryStub        func() string
 	checkEveryMutex       sync.RWMutex
 	checkEveryArgsForCall []struct {
@@ -65,16 +55,6 @@ type FakeResource struct {
 	}
 	checkPlanReturnsOnCall map[int]struct {
 		result1 atc.CheckPlan
-	}
-	CheckSetupErrorStub        func() error
-	checkSetupErrorMutex       sync.RWMutex
-	checkSetupErrorArgsForCall []struct {
-	}
-	checkSetupErrorReturns struct {
-		result1 error
-	}
-	checkSetupErrorReturnsOnCall map[int]struct {
-		result1 error
 	}
 	CheckTimeoutStub        func() string
 	checkTimeoutMutex       sync.RWMutex
@@ -373,17 +353,6 @@ type FakeResource struct {
 		result1 bool
 		result2 error
 	}
-	SetCheckSetupErrorStub        func(error) error
-	setCheckSetupErrorMutex       sync.RWMutex
-	setCheckSetupErrorArgsForCall []struct {
-		arg1 error
-	}
-	setCheckSetupErrorReturns struct {
-		result1 error
-	}
-	setCheckSetupErrorReturnsOnCall map[int]struct {
-		result1 error
-	}
 	SetPinCommentStub        func(string) error
 	setPinCommentMutex       sync.RWMutex
 	setPinCommentArgsForCall []struct {
@@ -630,58 +599,6 @@ func (fake *FakeResource) BuildSummaryReturnsOnCall(i int, result1 *atc.BuildSum
 	}{result1}
 }
 
-func (fake *FakeResource) CheckError() error {
-	fake.checkErrorMutex.Lock()
-	ret, specificReturn := fake.checkErrorReturnsOnCall[len(fake.checkErrorArgsForCall)]
-	fake.checkErrorArgsForCall = append(fake.checkErrorArgsForCall, struct {
-	}{})
-	fake.recordInvocation("CheckError", []interface{}{})
-	fake.checkErrorMutex.Unlock()
-	if fake.CheckErrorStub != nil {
-		return fake.CheckErrorStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.checkErrorReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeResource) CheckErrorCallCount() int {
-	fake.checkErrorMutex.RLock()
-	defer fake.checkErrorMutex.RUnlock()
-	return len(fake.checkErrorArgsForCall)
-}
-
-func (fake *FakeResource) CheckErrorCalls(stub func() error) {
-	fake.checkErrorMutex.Lock()
-	defer fake.checkErrorMutex.Unlock()
-	fake.CheckErrorStub = stub
-}
-
-func (fake *FakeResource) CheckErrorReturns(result1 error) {
-	fake.checkErrorMutex.Lock()
-	defer fake.checkErrorMutex.Unlock()
-	fake.CheckErrorStub = nil
-	fake.checkErrorReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeResource) CheckErrorReturnsOnCall(i int, result1 error) {
-	fake.checkErrorMutex.Lock()
-	defer fake.checkErrorMutex.Unlock()
-	fake.CheckErrorStub = nil
-	if fake.checkErrorReturnsOnCall == nil {
-		fake.checkErrorReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.checkErrorReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeResource) CheckEvery() string {
 	fake.checkEveryMutex.Lock()
 	ret, specificReturn := fake.checkEveryReturnsOnCall[len(fake.checkEveryArgsForCall)]
@@ -795,58 +712,6 @@ func (fake *FakeResource) CheckPlanReturnsOnCall(i int, result1 atc.CheckPlan) {
 	}
 	fake.checkPlanReturnsOnCall[i] = struct {
 		result1 atc.CheckPlan
-	}{result1}
-}
-
-func (fake *FakeResource) CheckSetupError() error {
-	fake.checkSetupErrorMutex.Lock()
-	ret, specificReturn := fake.checkSetupErrorReturnsOnCall[len(fake.checkSetupErrorArgsForCall)]
-	fake.checkSetupErrorArgsForCall = append(fake.checkSetupErrorArgsForCall, struct {
-	}{})
-	fake.recordInvocation("CheckSetupError", []interface{}{})
-	fake.checkSetupErrorMutex.Unlock()
-	if fake.CheckSetupErrorStub != nil {
-		return fake.CheckSetupErrorStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.checkSetupErrorReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeResource) CheckSetupErrorCallCount() int {
-	fake.checkSetupErrorMutex.RLock()
-	defer fake.checkSetupErrorMutex.RUnlock()
-	return len(fake.checkSetupErrorArgsForCall)
-}
-
-func (fake *FakeResource) CheckSetupErrorCalls(stub func() error) {
-	fake.checkSetupErrorMutex.Lock()
-	defer fake.checkSetupErrorMutex.Unlock()
-	fake.CheckSetupErrorStub = stub
-}
-
-func (fake *FakeResource) CheckSetupErrorReturns(result1 error) {
-	fake.checkSetupErrorMutex.Lock()
-	defer fake.checkSetupErrorMutex.Unlock()
-	fake.CheckSetupErrorStub = nil
-	fake.checkSetupErrorReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeResource) CheckSetupErrorReturnsOnCall(i int, result1 error) {
-	fake.checkSetupErrorMutex.Lock()
-	defer fake.checkSetupErrorMutex.Unlock()
-	fake.CheckSetupErrorStub = nil
-	if fake.checkSetupErrorReturnsOnCall == nil {
-		fake.checkSetupErrorReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.checkSetupErrorReturnsOnCall[i] = struct {
-		result1 error
 	}{result1}
 }
 
@@ -2332,66 +2197,6 @@ func (fake *FakeResource) SaveUncheckedVersionReturnsOnCall(i int, result1 bool,
 	}{result1, result2}
 }
 
-func (fake *FakeResource) SetCheckSetupError(arg1 error) error {
-	fake.setCheckSetupErrorMutex.Lock()
-	ret, specificReturn := fake.setCheckSetupErrorReturnsOnCall[len(fake.setCheckSetupErrorArgsForCall)]
-	fake.setCheckSetupErrorArgsForCall = append(fake.setCheckSetupErrorArgsForCall, struct {
-		arg1 error
-	}{arg1})
-	fake.recordInvocation("SetCheckSetupError", []interface{}{arg1})
-	fake.setCheckSetupErrorMutex.Unlock()
-	if fake.SetCheckSetupErrorStub != nil {
-		return fake.SetCheckSetupErrorStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.setCheckSetupErrorReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeResource) SetCheckSetupErrorCallCount() int {
-	fake.setCheckSetupErrorMutex.RLock()
-	defer fake.setCheckSetupErrorMutex.RUnlock()
-	return len(fake.setCheckSetupErrorArgsForCall)
-}
-
-func (fake *FakeResource) SetCheckSetupErrorCalls(stub func(error) error) {
-	fake.setCheckSetupErrorMutex.Lock()
-	defer fake.setCheckSetupErrorMutex.Unlock()
-	fake.SetCheckSetupErrorStub = stub
-}
-
-func (fake *FakeResource) SetCheckSetupErrorArgsForCall(i int) error {
-	fake.setCheckSetupErrorMutex.RLock()
-	defer fake.setCheckSetupErrorMutex.RUnlock()
-	argsForCall := fake.setCheckSetupErrorArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeResource) SetCheckSetupErrorReturns(result1 error) {
-	fake.setCheckSetupErrorMutex.Lock()
-	defer fake.setCheckSetupErrorMutex.Unlock()
-	fake.SetCheckSetupErrorStub = nil
-	fake.setCheckSetupErrorReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeResource) SetCheckSetupErrorReturnsOnCall(i int, result1 error) {
-	fake.setCheckSetupErrorMutex.Lock()
-	defer fake.setCheckSetupErrorMutex.Unlock()
-	fake.SetCheckSetupErrorStub = nil
-	if fake.setCheckSetupErrorReturnsOnCall == nil {
-		fake.setCheckSetupErrorReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.setCheckSetupErrorReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeResource) SetPinComment(arg1 string) error {
 	fake.setPinCommentMutex.Lock()
 	ret, specificReturn := fake.setPinCommentReturnsOnCall[len(fake.setPinCommentArgsForCall)]
@@ -3081,14 +2886,10 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.aPIPinnedVersionMutex.RUnlock()
 	fake.buildSummaryMutex.RLock()
 	defer fake.buildSummaryMutex.RUnlock()
-	fake.checkErrorMutex.RLock()
-	defer fake.checkErrorMutex.RUnlock()
 	fake.checkEveryMutex.RLock()
 	defer fake.checkEveryMutex.RUnlock()
 	fake.checkPlanMutex.RLock()
 	defer fake.checkPlanMutex.RUnlock()
-	fake.checkSetupErrorMutex.RLock()
-	defer fake.checkSetupErrorMutex.RUnlock()
 	fake.checkTimeoutMutex.RLock()
 	defer fake.checkTimeoutMutex.RUnlock()
 	fake.configMutex.RLock()
@@ -3143,8 +2944,6 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.resourceConfigVersionIDMutex.RUnlock()
 	fake.saveUncheckedVersionMutex.RLock()
 	defer fake.saveUncheckedVersionMutex.RUnlock()
-	fake.setCheckSetupErrorMutex.RLock()
-	defer fake.setCheckSetupErrorMutex.RUnlock()
 	fake.setPinCommentMutex.RLock()
 	defer fake.setPinCommentMutex.RUnlock()
 	fake.setResourceConfigMutex.RLock()

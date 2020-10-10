@@ -2,7 +2,6 @@ package db_test
 
 import (
 	"context"
-	"errors"
 	"strconv"
 	"time"
 
@@ -159,25 +158,20 @@ var _ = Describe("Resource", func() {
 					resourceScope, err = resource.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
 					Expect(err).NotTo(HaveOccurred())
 
-					err = resourceScope.SetCheckError(errors.New("oops"))
-					Expect(err).NotTo(HaveOccurred())
-
 					found, err = resource.Reload()
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("returns the resource config check error", func() {
+				It("returns the resource configd", func() {
 					Expect(found).To(BeTrue())
 					Expect(resource.ResourceConfigID()).To(Equal(resourceScope.ResourceConfig().ID()))
-					Expect(resource.CheckError()).To(Equal(errors.New("oops")))
 				})
 			})
 
 			Context("when the resource config id is not set on the resource", func() {
-				It("returns nil for the resource config check error", func() {
+				It("returns no resource config id", func() {
 					Expect(found).To(BeTrue())
 					Expect(resource.ResourceConfigID()).To(Equal(0))
-					Expect(resource.CheckError()).To(BeNil())
 				})
 			})
 		})
@@ -754,9 +748,6 @@ var _ = Describe("Resource", func() {
 					resourceScope1, err = resource1.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
 					Expect(err).NotTo(HaveOccurred())
 
-					err = resourceScope1.SetCheckError(errors.New("oops"))
-					Expect(err).NotTo(HaveOccurred())
-
 					found, err = resource1.Reload()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
@@ -785,8 +776,6 @@ var _ = Describe("Resource", func() {
 					})
 
 					It("has the same resource config id and resource config scope id as the first resource", func() {
-						Expect(resourceScope2.CheckError()).To(Equal(errors.New("oops")))
-
 						Expect(resource2.ResourceConfigID()).To(Equal(resourceScope2.ResourceConfig().ID()))
 						Expect(resource2.ResourceConfigScopeID()).To(Equal(resourceScope2.ID()))
 						Expect(resource1.ResourceConfigID()).To(Equal(resource2.ResourceConfigID()))
@@ -968,53 +957,6 @@ var _ = Describe("Resource", func() {
 				Expect(found).To(BeTrue())
 
 				Expect(job.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
-			})
-		})
-	})
-
-	Describe("SetCheckSetupError", func() {
-		var resource db.Resource
-
-		BeforeEach(func() {
-			var err error
-			resource, _, err = pipeline.Resource("some-resource")
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		Context("when the resource is first created", func() {
-			It("is not errored", func() {
-				Expect(resource.CheckSetupError()).To(BeNil())
-			})
-		})
-
-		Context("when a resource check is marked as errored", func() {
-			It("is then marked as errored", func() {
-				originalCause := errors.New("on fire")
-
-				err := resource.SetCheckSetupError(originalCause)
-				Expect(err).ToNot(HaveOccurred())
-
-				returnedResource, _, err := pipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(returnedResource.CheckSetupError()).To(Equal(originalCause))
-			})
-		})
-
-		Context("when a resource is cleared of check errors", func() {
-			It("is not marked as errored again", func() {
-				originalCause := errors.New("on fire")
-
-				err := resource.SetCheckSetupError(originalCause)
-				Expect(err).ToNot(HaveOccurred())
-
-				err = resource.SetCheckSetupError(nil)
-				Expect(err).ToNot(HaveOccurred())
-
-				returnedResource, _, err := pipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(returnedResource.CheckSetupError()).To(BeNil())
 			})
 		})
 	})

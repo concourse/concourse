@@ -93,22 +93,15 @@ var _ = Describe("Scanner", func() {
 							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
 						})
 
-						It("clears the check error", func() {
-							Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
-							Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
-						})
-
-						Context("when try creating a check panic", func() {
+						Context("when try creating a check panics", func() {
 							BeforeEach(func() {
 								fakeCheckFactory.TryCreateCheckStub = func(context.Context, db.Checkable, db.ResourceTypes, atc.Version, bool) (db.Build, bool, error) {
 									panic("something went wrong")
 								}
 							})
 
-							It("recover from the panic", func() {
+							It("recovers from the panic", func() {
 								Expect(err).ToNot(HaveOccurred())
-								Eventually(fakeResource.SetCheckSetupErrorCallCount).Should(Equal(1))
-								Eventually(fakeResource.SetCheckSetupErrorArgsForCall(0).Error).Should(ContainSubstring("something went wrong"))
 							})
 						})
 					})
@@ -123,11 +116,6 @@ var _ = Describe("Scanner", func() {
 							_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(fromVersion).To(Equal(atc.Version{"some": "version"}))
 						})
-
-						It("clears the check error", func() {
-							Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
-							Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
-						})
 					})
 
 					Context("when the checkable does not have a pinned version", func() {
@@ -140,11 +128,6 @@ var _ = Describe("Scanner", func() {
 							_, _, _, fromVersion, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(fromVersion).To(BeNil())
 						})
-
-						It("clears the check error", func() {
-							Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
-							Expect(fakeResource.SetCheckSetupErrorArgsForCall(0)).To(BeNil())
-						})
 					})
 				})
 
@@ -156,39 +139,16 @@ var _ = Describe("Scanner", func() {
 						fakeResourceType.PipelineIDReturns(1)
 					})
 
-					Context("when it fails to create a check for parent resource", func() {
-						BeforeEach(func() {
-							fakeCheckFactory.TryCreateCheckReturns(nil, false, errors.New("nope"))
-						})
+					It("creates a check for both the parent and the resource", func() {
+						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
 
-						It("sets the check error", func() {
-							Expect(fakeResourceType.SetCheckSetupErrorCallCount()).To(Equal(1))
-							Expect(fakeResource.SetCheckSetupErrorCallCount()).To(Equal(1))
-							err := fakeResource.SetCheckSetupErrorArgsForCall(0)
-							Expect(err.Error()).To(ContainSubstring("parent type 'custom-type' error:"))
-						})
+						_, checkable, _, _, manuallyTriggered := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+						Expect(checkable).To(Equal(fakeResourceType))
+						Expect(manuallyTriggered).To(BeFalse())
 
-						It("does not create another check", func() {
-							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1)) // ...not 2
-						})
-					})
-
-					Context("when the parent type has a version", func() {
-						BeforeEach(func() {
-							fakeResourceType.VersionReturns(atc.Version{"some": "version"})
-						})
-
-						It("creates a check for both the parent and the resource", func() {
-							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
-
-							_, checkable, _, _, manuallyTriggered := fakeCheckFactory.TryCreateCheckArgsForCall(0)
-							Expect(checkable).To(Equal(fakeResourceType))
-							Expect(manuallyTriggered).To(BeFalse())
-
-							_, checkable, _, _, manuallyTriggered = fakeCheckFactory.TryCreateCheckArgsForCall(1)
-							Expect(checkable).To(Equal(fakeResource))
-							Expect(manuallyTriggered).To(BeFalse())
-						})
+						_, checkable, _, _, manuallyTriggered = fakeCheckFactory.TryCreateCheckArgsForCall(1)
+						Expect(checkable).To(Equal(fakeResource))
+						Expect(manuallyTriggered).To(BeFalse())
 					})
 				})
 			})
