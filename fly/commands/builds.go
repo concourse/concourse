@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -185,8 +186,7 @@ func (command *BuildsCommand) displayBuilds(builds []atc.Build) error {
 	table := ui.Table{
 		Headers: ui.TableRow{
 			{Contents: "id", Color: color.New(color.Bold)},
-			{Contents: "pipeline/job", Color: color.New(color.Bold)},
-			{Contents: "build", Color: color.New(color.Bold)},
+			{Contents: "name", Color: color.New(color.Bold)},
 			{Contents: "status", Color: color.New(color.Bold)},
 			{Contents: "start", Color: color.New(color.Bold)},
 			{Contents: "end", Color: color.New(color.Bold)},
@@ -199,23 +199,33 @@ func (command *BuildsCommand) displayBuilds(builds []atc.Build) error {
 	for _, b := range builds[:buildCap] {
 		startTimeCell, endTimeCell, durationCell := populateTimeCells(time.Unix(b.StartTime, 0), time.Unix(b.EndTime, 0))
 
-		var pipelineJobCell, buildCell ui.TableCell
-		if b.PipelineName == "" {
-			pipelineJobCell.Contents = "one-off"
-			buildCell.Contents = "n/a"
-		} else {
+		var nameCell ui.TableCell
+
+		var names []string
+		if b.PipelineName != "" {
 			pipelineRef := atc.PipelineRef{
 				Name:         b.PipelineName,
 				InstanceVars: b.PipelineInstanceVars,
 			}
-			pipelineJobCell.Contents = fmt.Sprintf("%s/%s", pipelineRef.String(), b.JobName)
-			buildCell.Contents = b.Name
+
+			names = append(names, pipelineRef.String())
 		}
+
+		if b.JobName != "" {
+			names = append(names, b.JobName)
+		}
+
+		if b.ResourceName != "" {
+			names = append(names, b.ResourceName)
+		}
+
+		names = append(names, b.Name)
+
+		nameCell.Contents = strings.Join(names, "/")
 
 		table.Data = append(table.Data, []ui.TableCell{
 			{Contents: strconv.Itoa(b.ID)},
-			pipelineJobCell,
-			buildCell,
+			nameCell,
 			ui.BuildStatusCell(b.Status),
 			startTimeCell,
 			endTimeCell,

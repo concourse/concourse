@@ -62,8 +62,7 @@ var _ = Describe("Fly CLI", func() {
 
 			expectedHeaders = ui.TableRow{
 				{Contents: "id", Color: color.New(color.Bold)},
-				{Contents: "pipeline/job", Color: color.New(color.Bold)},
-				{Contents: "build", Color: color.New(color.Bold)},
+				{Contents: "name", Color: color.New(color.Bold)},
 				{Contents: "status", Color: color.New(color.Bold)},
 				{Contents: "start", Color: color.New(color.Bold)},
 				{Contents: "end", Color: color.New(color.Bold)},
@@ -106,6 +105,17 @@ var _ = Describe("Fly CLI", func() {
 						TeamName:             "team1",
 					},
 					{
+						ID:           999,
+						TeamName:     "some-team",
+						PipelineID:   1,
+						PipelineName: "some-pipeline",
+						ResourceName: "some-resource",
+						Name:         "check",
+						Status:       "succeeded",
+						StartTime:    succeededBuildStartTime.Unix(),
+						EndTime:      succeededBuildEndTime.Unix(),
+					},
+					{
 						ID:           3,
 						PipelineID:   2,
 						PipelineName: "some-other-pipeline",
@@ -118,6 +128,7 @@ var _ = Describe("Fly CLI", func() {
 					},
 					{
 						ID:        1000001,
+						Name:      "one-off",
 						Status:    "errored",
 						StartTime: erroredBuildStartTime.Unix(),
 						EndTime:   erroredBuildEndTime.Unix(),
@@ -125,6 +136,7 @@ var _ = Describe("Fly CLI", func() {
 					},
 					{
 						ID:        1002,
+						Name:      "one-off",
 						Status:    "aborted",
 						StartTime: zeroTime.Unix(),
 						EndTime:   abortedBuildEndTime.Unix(),
@@ -132,6 +144,7 @@ var _ = Describe("Fly CLI", func() {
 					},
 					{
 						ID:        39,
+						Name:      "one-off",
 						Status:    "pending",
 						StartTime: 0,
 						EndTime:   0,
@@ -163,6 +176,18 @@ var _ = Describe("Fly CLI", func() {
                 "start_time": 1448101815
               },
               {
+                "id": 999,
+                "team_name": "some-team",
+                "name": "check",
+                "status": "succeeded",
+                "resource_name": "some-resource",
+                "api_url": "",
+                "pipeline_id": 1,
+                "pipeline_name": "some-pipeline",
+                "start_time": 1448932815,
+                "end_time": 1448937315
+              },
+              {
                 "id": 3,
                 "team_name": "team1",
                 "name": "63",
@@ -177,7 +202,7 @@ var _ = Describe("Fly CLI", func() {
               {
                 "id": 1000001,
                 "team_name": "team1",
-                "name": "",
+                "name": "one-off",
                 "status": "errored",
                 "api_url": "",
                 "start_time": 1436011215,
@@ -186,7 +211,7 @@ var _ = Describe("Fly CLI", func() {
               {
                 "id": 1002,
                 "team_name": "team1",
-                "name": "",
+                "name": "one-off",
                 "status": "aborted",
                 "api_url": "",
                 "end_time": 1436021115
@@ -194,7 +219,7 @@ var _ = Describe("Fly CLI", func() {
               {
                 "id": 39,
                 "team_name": "team1",
-                "name": "",
+                "name": "one-off",
                 "status": "pending",
                 "api_url": ""
               }
@@ -210,8 +235,7 @@ var _ = Describe("Fly CLI", func() {
 					Data: []ui.TableRow{
 						{
 							{Contents: "2"},
-							{Contents: "some-pipeline/branch:master/some-job"},
-							{Contents: "62"},
+							{Contents: "some-pipeline/branch:master/some-job/62"},
 							{Contents: "started"},
 							{Contents: runningBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: "n/a"},
@@ -225,9 +249,17 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: "team1"},
 						},
 						{
+							{Contents: "999"},
+							{Contents: "some-pipeline/some-resource/check"},
+							{Contents: "succeeded"},
+							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
+							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
+							{Contents: "1h15m0s"},
+							{Contents: "some-team"},
+						},
+						{
 							{Contents: "3"},
-							{Contents: "some-other-pipeline/some-other-job"},
-							{Contents: "63"},
+							{Contents: "some-other-pipeline/some-other-job/63"},
 							{Contents: "pending"},
 							{Contents: pendingBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: pendingBuildEndTime.Local().Format(timeDateLayout)},
@@ -237,7 +269,6 @@ var _ = Describe("Fly CLI", func() {
 						{
 							{Contents: "1000001"},
 							{Contents: "one-off"},
-							{Contents: "n/a"},
 							{Contents: "errored"},
 							{Contents: erroredBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: erroredBuildEndTime.Local().Format(timeDateLayout)},
@@ -247,7 +278,6 @@ var _ = Describe("Fly CLI", func() {
 						{
 							{Contents: "1002"},
 							{Contents: "one-off"},
-							{Contents: "n/a"},
 							{Contents: "aborted"},
 							{Contents: "n/a"},
 							{Contents: abortedBuildEndTime.Local().Format(timeDateLayout)},
@@ -257,7 +287,6 @@ var _ = Describe("Fly CLI", func() {
 						{
 							{Contents: "39"},
 							{Contents: "one-off"},
-							{Contents: "n/a"},
 							{Contents: "pending"},
 							{Contents: "n/a"},
 							{Contents: "n/a"},
@@ -336,7 +365,7 @@ var _ = Describe("Fly CLI", func() {
 						ID:           39,
 						PipelineName: "",
 						JobName:      "",
-						Name:         "",
+						Name:         "one-off",
 						Status:       "pending",
 						StartTime:    0,
 						EndTime:      0,
@@ -351,7 +380,6 @@ var _ = Describe("Fly CLI", func() {
 						{
 							{Contents: "39"},
 							{Contents: "one-off"},
-							{Contents: "n/a"},
 							{Contents: "pending"},
 							{Contents: "n/a"},
 							{Contents: "n/a"},
@@ -365,7 +393,6 @@ var _ = Describe("Fly CLI", func() {
 						{
 							{Contents: "80"},
 							{Contents: "one-off"},
-							{Contents: "n/a"},
 							{Contents: "pending"},
 							{Contents: "n/a"},
 							{Contents: "n/a"},
@@ -405,8 +432,7 @@ var _ = Describe("Fly CLI", func() {
 					Data: []ui.TableRow{
 						{
 							{Contents: "3"},
-							{Contents: "some-pipeline/some-job"},
-							{Contents: "63"},
+							{Contents: "some-pipeline/some-job/63"},
 							{Contents: "succeeded"},
 							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -485,8 +511,7 @@ var _ = Describe("Fly CLI", func() {
 						Data: []ui.TableRow{
 							{
 								{Contents: "3"},
-								{Contents: "some-pipeline/some-job"},
-								{Contents: "63"},
+								{Contents: "some-pipeline/some-job/63"},
 								{Contents: "succeeded"},
 								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -525,8 +550,7 @@ var _ = Describe("Fly CLI", func() {
 					Data: []ui.TableRow{
 						{
 							{Contents: "3"},
-							{Contents: "some-pipeline/some-job"},
-							{Contents: "63"},
+							{Contents: "some-pipeline/some-job/63"},
 							{Contents: "succeeded"},
 							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -574,8 +598,7 @@ var _ = Describe("Fly CLI", func() {
 						Data: []ui.TableRow{
 							{
 								{Contents: "3"},
-								{Contents: "some-pipeline/some-job"},
-								{Contents: "63"},
+								{Contents: "some-pipeline/some-job/63"},
 								{Contents: "succeeded"},
 								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -617,8 +640,7 @@ var _ = Describe("Fly CLI", func() {
 						Data: []ui.TableRow{
 							{
 								{Contents: "3"},
-								{Contents: "some-pipeline/some-job"},
-								{Contents: "63"},
+								{Contents: "some-pipeline/some-job/63"},
 								{Contents: "succeeded"},
 								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -685,8 +707,7 @@ var _ = Describe("Fly CLI", func() {
 						Data: []ui.TableRow{
 							{
 								{Contents: "3"},
-								{Contents: "some-pipeline/some-job"},
-								{Contents: "63"},
+								{Contents: "some-pipeline/some-job/63"},
 								{Contents: "succeeded"},
 								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -696,8 +717,7 @@ var _ = Describe("Fly CLI", func() {
 
 							{
 								{Contents: "4"},
-								{Contents: "some-pipeline/some-job"},
-								{Contents: "63"},
+								{Contents: "some-pipeline/some-job/63"},
 								{Contents: "succeeded"},
 								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -784,8 +804,7 @@ var _ = Describe("Fly CLI", func() {
 					Data: []ui.TableRow{
 						{
 							{Contents: "3"},
-							{Contents: "some-pipeline/some-job"},
-							{Contents: "63"},
+							{Contents: "some-pipeline/some-job/63"},
 							{Contents: "succeeded"},
 							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -794,8 +813,7 @@ var _ = Describe("Fly CLI", func() {
 						},
 						{
 							{Contents: "4"},
-							{Contents: "some-pipeline/some-job"},
-							{Contents: "63"},
+							{Contents: "some-pipeline/some-job/63"},
 							{Contents: "succeeded"},
 							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -845,8 +863,7 @@ var _ = Describe("Fly CLI", func() {
 					Data: []ui.TableRow{
 						{
 							{Contents: "3"},
-							{Contents: "some-pipeline/some-job"},
-							{Contents: "63"},
+							{Contents: "some-pipeline/some-job/63"},
 							{Contents: "succeeded"},
 							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -887,8 +904,7 @@ var _ = Describe("Fly CLI", func() {
 					Data: []ui.TableRow{
 						{
 							{Contents: "3"},
-							{Contents: "some-pipeline/branch:master/some-job"},
-							{Contents: "63"},
+							{Contents: "some-pipeline/branch:master/some-job/63"},
 							{Contents: "succeeded"},
 							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -948,8 +964,7 @@ var _ = Describe("Fly CLI", func() {
 						Data: []ui.TableRow{
 							{
 								{Contents: "3"},
-								{Contents: "some-pipeline/branch:master/some-job"},
-								{Contents: "63"},
+								{Contents: "some-pipeline/branch:master/some-job/63"},
 								{Contents: "succeeded"},
 								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
