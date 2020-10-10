@@ -23,10 +23,9 @@ type PageError
 
 
 type CheckStatus
-    = CheckingSuccessfully
-    | CheckPending
+    = CheckPending
     | CurrentlyChecking Int
-    | FailingToCheck
+    | NotChecking
 
 
 type alias Model =

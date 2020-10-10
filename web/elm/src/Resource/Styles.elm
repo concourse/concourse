@@ -430,7 +430,6 @@ checkBarStatus =
     , style "height" "28px"
     , style "background" Colors.sectionHeader
     , style "padding-left" "5px"
-    , style "margin-bottom" "5px"
     ]
 
 

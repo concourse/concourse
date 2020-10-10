@@ -2,6 +2,7 @@ module Data exposing
     ( build
     , dashboardPipeline
     , elementPosition
+    , httpForbidden
     , httpInternalServerError
     , httpNotFound
     , httpNotImplemented
@@ -61,6 +62,20 @@ httpUnauthorized =
             { url = "http://example.com"
             , status =
                 { code = 401
+                , message = ""
+                }
+            , headers = Dict.empty
+            , body = ""
+            }
+
+
+httpForbidden : Result Http.Error a
+httpForbidden =
+    Err <|
+        Http.BadStatus
+            { url = "http://example.com"
+            , status =
+                { code = 403
                 , message = ""
                 }
             , headers = Dict.empty

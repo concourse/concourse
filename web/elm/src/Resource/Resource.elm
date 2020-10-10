@@ -128,7 +128,7 @@ init flags =
         model =
             { resourceIdentifier = flags.resourceId
             , pageStatus = Err Models.Empty
-            , checkStatus = Models.CheckingSuccessfully
+            , checkStatus = Models.NotChecking
             , lastChecked = Nothing
             , pinnedVersion = NotPinned
             , currentPage = page
@@ -301,18 +301,18 @@ handleCallback callback session ( model, effects ) =
                 , checkStatus =
                     case resource.build of
                         Nothing ->
-                            Models.CheckingSuccessfully
+                            Models.NotChecking
 
                         Just { id, status } ->
                             case status of
                                 Concourse.BuildStatus.BuildStatusSucceeded ->
-                                    Models.CheckingSuccessfully
+                                    Models.NotChecking
 
                                 Concourse.BuildStatus.BuildStatusStarted ->
                                     Models.CurrentlyChecking id
 
                                 _ ->
-                                    Models.FailingToCheck
+                                    Models.NotChecking
                 , lastChecked = resource.lastChecked
                 , icon = resource.icon
               }
@@ -519,10 +519,10 @@ handleCallback callback session ( model, effects ) =
             , effects
             )
 
-        Checked (Ok { status, id }) ->
-            case status of
+        Checked (Ok ({ status, id } as build)) ->
+            (case status of
                 Concourse.BuildStatus.BuildStatusSucceeded ->
-                    ( { model | checkStatus = Models.CheckingSuccessfully }
+                    ( { model | checkStatus = Models.NotChecking }
                     , effects
                         ++ [ FetchResource model.resourceIdentifier
                            , FetchVersionedResources
@@ -537,9 +537,11 @@ handleCallback callback session ( model, effects ) =
                     )
 
                 _ ->
-                    ( { model | checkStatus = Models.FailingToCheck }
+                    ( { model | checkStatus = Models.NotChecking }
                     , effects ++ [ FetchResource model.resourceIdentifier ]
                     )
+            )
+                |> initBuild (Just build)
 
         Checked (Err (Http.BadStatus { status })) ->
             ( model
@@ -593,7 +595,7 @@ handleCallback callback session ( model, effects ) =
         PlanAndResourcesFetched _ (Err err) ->
             case err of
                 Http.BadStatus { status } ->
-                    if status.code == 401 then
+                    if status.code == 401 || status.code == 403 then
                         ( { model | authorized = False }, effects )
 
                     else
@@ -1047,6 +1049,7 @@ body session model =
     let
         sectionModel =
             { checkStatus = model.checkStatus
+            , build = model.build
             , hovered = session.hovered
             , userState = session.userState
             , timeZone = session.timeZone
@@ -1188,61 +1191,56 @@ paginationMenu { hovered } model =
 checkSection :
     { a
         | checkStatus : Models.CheckStatus
+        , build : Maybe Concourse.Build
         , hovered : HoverState.HoverState
         , userState : UserState
         , teamName : String
         , timeZone : Time.Zone
+        , authorized : Bool
         , output : Maybe OutputModel
     }
     -> Html Message
-checkSection ({ checkStatus } as model) =
+checkSection ({ checkStatus, build } as model) =
     let
-        failingToCheck =
-            checkStatus == Models.FailingToCheck
+        spinner =
+            Spinner.spinner
+                { sizePx = 14
+                , margin = "7px"
+                }
 
-        checkMessage =
-            case checkStatus of
-                Models.FailingToCheck ->
-                    "check failed"
+        icon image =
+            Icon.icon
+                { sizePx = 28
+                , image = image
+                }
+                Resource.Styles.checkStatusIcon
 
-                Models.CheckPending ->
-                    "check pending"
+        ( checkMessage, statusIcon ) =
+            case Maybe.map .status build of
+                Nothing ->
+                    ( "not checked yet", icon Assets.PendingIcon )
 
-                Models.CurrentlyChecking _ ->
-                    "check in progress"
+                Just Concourse.BuildStatus.BuildStatusFailed ->
+                    ( "check failed", icon Assets.FailureTimesIcon )
 
-                Models.CheckingSuccessfully ->
-                    "checked successfully"
+                Just Concourse.BuildStatus.BuildStatusPending ->
+                    ( "check pending", icon Assets.PendingIcon )
 
-        statusIcon =
-            case checkStatus of
-                Models.CurrentlyChecking _ ->
-                    Spinner.spinner
-                        { sizePx = 14
-                        , margin = "7px"
-                        }
+                Just Concourse.BuildStatus.BuildStatusStarted ->
+                    ( "check in progress", spinner )
 
-                Models.CheckPending ->
-                    Spinner.spinner
-                        { sizePx = 14
-                        , margin = "7px"
-                        }
+                Just Concourse.BuildStatus.BuildStatusSucceeded ->
+                    ( "check succeeded", icon Assets.SuccessCheckIcon )
 
-                _ ->
-                    Icon.icon
-                        { sizePx = 28
-                        , image =
-                            if failingToCheck then
-                                Assets.ExclamationTriangleIcon
+                Just Concourse.BuildStatus.BuildStatusErrored ->
+                    ( "check errored", icon Assets.ExclamationTriangleIcon )
 
-                            else
-                                Assets.SuccessCheckIcon
-                        }
-                        Resource.Styles.checkStatusIcon
+                Just Concourse.BuildStatus.BuildStatusAborted ->
+                    ( "check aborted", icon Assets.InterruptedIcon )
 
         statusBar =
             Html.div
-                Resource.Styles.checkBarStatus
+                (class "resource-check-status-summary" :: Resource.Styles.checkBarStatus)
                 [ Html.h3 [] [ Html.text checkMessage ]
                 , statusIcon
                 ]
@@ -1252,12 +1250,15 @@ checkSection ({ checkStatus } as model) =
                 [ style "display" "flex" ]
                 [ checkButton model
                 , Html.div Resource.Styles.checkStatus
-                    [ statusBar
-                    , Html.Lazy.lazy3
-                        viewBuildOutput
-                        model.timeZone
-                        (Build.Output.Output.filterHoverState model.hovered)
-                        model.output
+                    [ if model.authorized then
+                        Html.Lazy.lazy3
+                            viewBuildOutput
+                            model.timeZone
+                            (Build.Output.Output.filterHoverState model.hovered)
+                            model.output
+
+                      else
+                        statusBar
                     ]
                 ]
     in
