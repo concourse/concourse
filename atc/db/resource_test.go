@@ -498,6 +498,7 @@ var _ = Describe("Resource", func() {
 		It("creates a build", func() {
 			Expect(created).To(BeTrue())
 			Expect(build).ToNot(BeNil())
+			Expect(build.Name()).To(Equal(db.CheckBuildName))
 			Expect(build.PipelineID()).To(Equal(defaultResource.PipelineID()))
 			Expect(build.TeamID()).To(Equal(defaultResource.TeamID()))
 			Expect(build.IsManuallyTriggered()).To(BeFalse())
@@ -518,7 +519,7 @@ var _ = Describe("Resource", func() {
 
 			Expect(defaultResource.BuildSummary()).To(Equal(&atc.BuildSummary{
 				ID:                   build.ID(),
-				Name:                 strconv.Itoa(build.ID()),
+				Name:                 db.CheckBuildName,
 				Status:               atc.StatusStarted,
 				StartTime:            build.StartTime().Unix(),
 				TeamName:             defaultTeam.Name(),
@@ -573,7 +574,7 @@ var _ = Describe("Resource", func() {
 
 				Expect(defaultResource.BuildSummary()).To(Equal(&atc.BuildSummary{
 					ID:                   build.ID(),
-					Name:                 strconv.Itoa(build.ID()),
+					Name:                 db.CheckBuildName,
 					Status:               atc.StatusStarted,
 					StartTime:            build.StartTime().Unix(),
 					TeamName:             defaultTeam.Name(),
@@ -623,7 +624,7 @@ var _ = Describe("Resource", func() {
 
 				Expect(defaultResource.BuildSummary()).To(Equal(&atc.BuildSummary{
 					ID:                   anotherBuild.ID(),
-					Name:                 strconv.Itoa(anotherBuild.ID()),
+					Name:                 db.CheckBuildName,
 					Status:               atc.StatusStarted,
 					StartTime:            anotherBuild.StartTime().Unix(),
 					TeamName:             defaultTeam.Name(),

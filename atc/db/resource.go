@@ -18,6 +18,8 @@ import (
 
 var ErrPinnedThroughConfig = errors.New("resource is pinned through config")
 
+const CheckBuildName = "check"
+
 //go:generate counterfeiter . Resource
 
 type Resource interface {
@@ -97,6 +99,7 @@ var resourcesQuery = psql.Select(
 	"rp.comment_text",
 	"rp.config",
 	"b.id",
+	"b.name",
 	"b.status",
 	"b.start_time",
 	"b.end_time",
@@ -354,7 +357,7 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool) (Bui
 	defer Rollback(tx)
 
 	params := map[string]interface{}{
-		"name":               sq.Expr("nextval('one_off_name')"),
+		"name":               CheckBuildName,
 		"pipeline_id":        r.pipelineID,
 		"team_id":            r.teamID,
 		"status":             BuildStatusPending,
@@ -855,12 +858,13 @@ func scanResource(r *resource, row scannable) error {
 
 	var build struct {
 		id        sql.NullInt64
+		name      sql.NullString
 		status    sql.NullString
 		startTime pq.NullTime
 		endTime   pq.NullTime
 	}
 
-	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName, &pinnedVersion, &pinComment, &pinnedThroughConfig, &build.id, &build.status, &build.startTime, &build.endTime)
+	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName, &pinnedVersion, &pinComment, &pinnedThroughConfig, &build.id, &build.name, &build.status, &build.startTime, &build.endTime)
 	if err != nil {
 		return err
 	}
@@ -938,7 +942,7 @@ func scanResource(r *resource, row scannable) error {
 	if build.id.Valid {
 		r.buildSummary = &atc.BuildSummary{
 			ID:   int(build.id.Int64),
-			Name: fmt.Sprintf("%d", build.id.Int64),
+			Name: build.name.String,
 
 			Status: atc.BuildStatus(build.status.String),
 

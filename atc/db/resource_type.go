@@ -336,7 +336,7 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool) 
 
 	build := newEmptyBuild(r.conn, r.lockFactory)
 	err = createBuild(tx, build, map[string]interface{}{
-		"name":               sq.Expr("nextval('one_off_name')"),
+		"name":               CheckBuildName,
 		"pipeline_id":        r.pipelineID,
 		"team_id":            r.teamID,
 		"status":             BuildStatusPending,

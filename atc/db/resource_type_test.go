@@ -532,6 +532,7 @@ var _ = Describe("ResourceType", func() {
 		It("creates a one-off build", func() {
 			Expect(created).To(BeTrue())
 			Expect(build).ToNot(BeNil())
+			Expect(build.Name()).To(Equal(db.CheckBuildName))
 			Expect(build.PipelineID()).To(Equal(defaultResource.PipelineID()))
 			Expect(build.TeamID()).To(Equal(defaultResource.TeamID()))
 			Expect(build.IsManuallyTriggered()).To(BeFalse())
