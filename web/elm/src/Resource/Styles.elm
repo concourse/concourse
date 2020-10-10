@@ -429,7 +429,7 @@ checkBarStatus =
     , style "flex-grow" "1"
     , style "height" "28px"
     , style "background" Colors.sectionHeader
-    , style "padding-left" "5px"
+    , style "padding-left" "6px"
     ]
 
 

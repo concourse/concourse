@@ -3286,7 +3286,7 @@ all =
                                         [ style "align-items" "center"
                                         , style "height" "28px"
                                         , style "flex-grow" "1"
-                                        , style "padding-left" "5px"
+                                        , style "padding-left" "6px"
                                         ]
                         , test "has a dark grey background" <|
                             \_ ->
