@@ -2694,6 +2694,12 @@ all =
                         |> givenThePipelineIsArchived
                         |> queryView
                         |> Query.hasNot [ class "resource-check-status" ]
+            , test "shows 'not checked yet' when there is no build yet" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> checkBar UserStateLoggedOut
+                        |> Query.has [ containing [ text "not checked yet" ] ]
             , describe "when unauthenticated"
                 [ defineHoverBehaviour
                     { name = "check button"

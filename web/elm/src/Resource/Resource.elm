@@ -1250,7 +1250,7 @@ checkSection ({ checkStatus, build } as model) =
                 [ style "display" "flex" ]
                 [ checkButton model
                 , Html.div Resource.Styles.checkStatus
-                    [ if model.authorized then
+                    [ if model.authorized && model.output /= Nothing then
                         Html.Lazy.lazy3
                             viewBuildOutput
                             model.timeZone
