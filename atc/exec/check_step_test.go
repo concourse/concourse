@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
@@ -537,6 +538,10 @@ var _ = Describe("CheckStep", func() {
 			})
 
 			It("points the resource or resource type to the scope", func() {
+				// even though we failed to check, we should still point to the new
+				// scope; it'd be kind of weird leave the resource pointing to the old
+				// scope for a substantial config change that also happens to be
+				// broken.
 				Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
 				scope := fakeDelegate.PointToCheckedConfigArgsForCall(0)
 				Expect(scope).To(Equal(fakeResourceConfigScope))
@@ -549,9 +554,9 @@ var _ = Describe("CheckStep", func() {
 
 			Context("with a script failure", func() {
 				BeforeEach(func() {
-					fakeClient.RunCheckStepReturns(worker.CheckResult{}, runtime.ErrResourceScriptFailed{
+					fakeClient.RunCheckStepReturns(worker.CheckResult{}, fmt.Errorf("wrapped: %w", runtime.ErrResourceScriptFailed{
 						ExitStatus: 42,
-					})
+					}))
 				})
 
 				It("does not error", func() {

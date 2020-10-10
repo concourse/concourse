@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -174,7 +175,8 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 				return fmt.Errorf("update resource config scope: %w", pointErr)
 			}
 
-			if _, ok := err.(runtime.ErrResourceScriptFailed); ok {
+			var scriptErr runtime.ErrResourceScriptFailed
+			if errors.As(err, &scriptErr) {
 				delegate.Finished(logger, false)
 				return nil
 			}
