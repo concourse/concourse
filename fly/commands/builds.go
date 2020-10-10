@@ -212,31 +212,11 @@ func (command *BuildsCommand) displayBuilds(builds []atc.Build) error {
 			buildCell.Contents = b.Name
 		}
 
-		var statusCell ui.TableCell
-		statusCell.Contents = b.Status
-
-		switch b.Status {
-		case "pending":
-			statusCell.Color = ui.PendingColor
-		case "started":
-			statusCell.Color = ui.StartedColor
-		case "succeeded":
-			statusCell.Color = ui.SucceededColor
-		case "failed":
-			statusCell.Color = ui.FailedColor
-		case "errored":
-			statusCell.Color = ui.ErroredColor
-		case "aborted":
-			statusCell.Color = ui.AbortedColor
-		case "paused":
-			statusCell.Color = ui.PausedColor
-		}
-
 		table.Data = append(table.Data, []ui.TableCell{
 			{Contents: strconv.Itoa(b.ID)},
 			pipelineJobCell,
 			buildCell,
-			statusCell,
+			ui.BuildStatusCell(b.Status),
 			startTimeCell,
 			endTimeCell,
 			durationCell,

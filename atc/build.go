@@ -11,11 +11,15 @@ const (
 	StatusAborted   BuildStatus = "aborted"
 )
 
+func (status BuildStatus) String() string {
+	return string(status)
+}
+
 type Build struct {
 	ID                   int           `json:"id"`
 	TeamName             string        `json:"team_name"`
 	Name                 string        `json:"name"`
-	Status               string        `json:"status"`
+	Status               BuildStatus   `json:"status"`
 	APIURL               string        `json:"api_url"`
 	JobName              string        `json:"job_name,omitempty"`
 	ResourceName         string        `json:"resource_name,omitempty"`
