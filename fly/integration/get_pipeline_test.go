@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os/exec"
 
@@ -222,6 +223,132 @@ var _ = Describe("Fly CLI", func() {
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(printedConfig).To(Equal(config))
+						})
+					})
+				})
+			})
+
+			Context("with a custom team", func() {
+				team := "diff-team"
+				BeforeEach(func() {
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/teams/%s", team)),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
+								Name: team,
+							}),
+						),
+					)
+				})
+				Context("when specifying a pipeline name", func() {
+					var (
+						path        string
+						queryParams string
+					)
+
+					BeforeEach(func() {
+						var err error
+						path, err = atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "some-pipeline", "team_name": team})
+						Expect(err).NotTo(HaveOccurred())
+
+						queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+					})
+
+					Context("when specifying pipeline vars", func() {
+
+						Context("and pipeline exists", func() {
+							BeforeEach(func() {
+								atcServer.AppendHandlers(
+									ghttp.CombineHandlers(
+										ghttp.VerifyRequest("GET", path, queryParams),
+										ghttp.RespondWithJSONEncoded(200, atc.ConfigResponse{Config: config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
+									),
+								)
+							})
+
+							It("prints the config as yaml to stdout", func() {
+								flyCmd := exec.Command(flyPath, "-t", targetName, "get-pipeline", "--pipeline", "some-pipeline/branch:master", "--team", team)
+
+								sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+								Expect(err).NotTo(HaveOccurred())
+
+								<-sess.Exited
+								Expect(sess.ExitCode()).To(Equal(0))
+
+								var printedConfig atc.Config
+								err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
+								Expect(err).NotTo(HaveOccurred())
+
+								Expect(printedConfig).To(Equal(config))
+							})
+						})
+					})
+
+					Context("and pipeline is not found", func() {
+						JustBeforeEach(func() {
+							atcServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", path),
+									ghttp.RespondWithJSONEncoded(http.StatusNotFound, ""),
+								),
+							)
+						})
+
+						It("should print pipeline not found error", func() {
+							flyCmd := exec.Command(flyPath, "-t", targetName, "get-pipeline", "--pipeline", "some-pipeline", "-j", "--team", team)
+
+							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+							Expect(err).NotTo(HaveOccurred())
+
+							<-sess.Exited
+							Expect(sess.ExitCode()).To(Equal(1))
+
+							Expect(sess.Err).To(gbytes.Say("error: pipeline not found"))
+						})
+					})
+
+					Context("when atc returns valid config", func() {
+						BeforeEach(func() {
+							atcServer.AppendHandlers(
+								ghttp.CombineHandlers(
+									ghttp.VerifyRequest("GET", path),
+									ghttp.RespondWithJSONEncoded(200, atc.ConfigResponse{Config: config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
+								),
+							)
+						})
+
+						It("prints the config as yaml to stdout", func() {
+							flyCmd := exec.Command(flyPath, "-t", targetName, "get-pipeline", "--pipeline", "some-pipeline", "--team", team)
+
+							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+							Expect(err).NotTo(HaveOccurred())
+
+							<-sess.Exited
+							Expect(sess.ExitCode()).To(Equal(0))
+
+							var printedConfig atc.Config
+							err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(printedConfig).To(Equal(config))
+						})
+
+						Context("when -j is given", func() {
+							It("prints the config as json to stdout", func() {
+								flyCmd := exec.Command(flyPath, "-t", targetName, "get-pipeline", "--pipeline", "some-pipeline", "-j", "--team", team)
+
+								sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+								Expect(err).NotTo(HaveOccurred())
+
+								<-sess.Exited
+								Expect(sess.ExitCode()).To(Equal(0))
+
+								var printedConfig atc.Config
+								err = json.Unmarshal(sess.Out.Contents(), &printedConfig)
+								Expect(err).NotTo(HaveOccurred())
+
+								Expect(printedConfig).To(Equal(config))
+							})
 						})
 					})
 				})
