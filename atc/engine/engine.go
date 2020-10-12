@@ -38,7 +38,7 @@ type Runnable interface {
 //go:generate counterfeiter . StepBuilder
 
 type StepBuilder interface {
-	BuildStep(lager.Logger, db.Build) (exec.Step, error)
+	BuildStepper(db.Build) (exec.Stepper, error)
 }
 
 func NewEngine(
@@ -172,9 +172,9 @@ func (b *engineBuild) Run(ctx context.Context) {
 	ctx, span := tracing.StartSpanFollowing(ctx, b.build, "build", b.build.TracingAttrs())
 	defer span.End()
 
-	step, err := b.builder.BuildStep(logger, b.build)
+	stepper, err := b.builder.BuildStepper(b.build)
 	if err != nil {
-		logger.Error("failed-to-build-step", err)
+		logger.Error("failed-to-construct-build-stepper", err)
 
 		// Fails the build if BuildStep returned an error because such unrecoverable
 		// errors will cause a build to never start to run.
@@ -183,12 +183,13 @@ func (b *engineBuild) Run(ctx context.Context) {
 
 		return
 	}
+
 	b.trackStarted(logger)
 	defer b.trackFinished(logger)
 
 	logger.Info("running")
 
-	state, err := b.runState(logger)
+	state, err := b.runState(logger, stepper)
 	if err != nil {
 		logger.Error("failed-to-create-run-state", err)
 
@@ -232,7 +233,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 		ctx := lagerctx.NewContext(ctx, logger)
 		ctx = policy.RecordTeamAndPipeline(ctx, b.build.TeamName(), b.build.PipelineName())
 
-		succeeded, err = step.Run(ctx, state)
+		succeeded, err = state.Run(ctx, b.build.PrivatePlan())
 	}()
 
 	select {
@@ -313,7 +314,7 @@ func (b *engineBuild) trackFinished(logger lager.Logger) {
 	}
 }
 
-func (b *engineBuild) runState(logger lager.Logger) (exec.RunState, error) {
+func (b *engineBuild) runState(logger lager.Logger, stepper exec.Stepper) (exec.RunState, error) {
 	id := fmt.Sprintf("build:%v", b.build.ID())
 	existingState, ok := b.trackedStates.Load(id)
 	if ok {
@@ -323,7 +324,7 @@ func (b *engineBuild) runState(logger lager.Logger) (exec.RunState, error) {
 	if err != nil {
 		return nil, err
 	}
-	state, _ := b.trackedStates.LoadOrStore(id, exec.NewRunState(credVars, atc.EnableRedactSecrets))
+	state, _ := b.trackedStates.LoadOrStore(id, exec.NewRunState(stepper, credVars, atc.EnableRedactSecrets))
 	return state.(exec.RunState), nil
 }
 

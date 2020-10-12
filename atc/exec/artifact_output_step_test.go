@@ -35,7 +35,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
-		state = exec.NewRunState(vars.StaticVariables{}, false)
+		state = exec.NewRunState(noopStepper, vars.StaticVariables{}, false)
 
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeBuild.TeamIDReturns(4)

@@ -42,7 +42,7 @@ var _ = Describe("PutDelegate", func() {
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
 		}
-		state = exec.NewRunState(credVars, true)
+		state = exec.NewRunState(noopStepper, credVars, true)
 
 		info = runtime.VersionResult{
 			Version:  atc.Version{"foo": "bar"},

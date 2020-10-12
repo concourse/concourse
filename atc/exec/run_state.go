@@ -1,6 +1,7 @@
 package exec
 
 import (
+	"context"
 	"reflect"
 	"sync"
 
@@ -10,14 +11,24 @@ import (
 )
 
 type runState struct {
+	stepper Stepper
+
 	vars *buildVariables
 
 	artifacts *build.Repository
 	results   *sync.Map
 }
 
-func NewRunState(credVars vars.Variables, enableRedaction bool) RunState {
+type Stepper func(atc.Plan) Step
+
+func NewRunState(
+	stepper Stepper,
+	credVars vars.Variables,
+	enableRedaction bool,
+) RunState {
 	return &runState{
+		stepper: stepper,
+
 		vars: newBuildVariables(credVars, enableRedaction),
 
 		artifacts: build.NewRepository(),
@@ -71,4 +82,8 @@ func (state *runState) AddLocalVar(name string, val interface{}, redact bool) {
 
 func (state *runState) RedactionEnabled() bool {
 	return state.vars.RedactionEnabled()
+}
+
+func (state *runState) Run(ctx context.Context, plan atc.Plan) (bool, error) {
+	return state.stepper(plan).Run(ctx, state)
 }

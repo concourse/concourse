@@ -42,7 +42,7 @@ var _ = Describe("BuildStepDelegate", func() {
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
 		}
-		runState = exec.NewRunState(credVars, true)
+		runState = exec.NewRunState(noopStepper, credVars, true)
 
 		delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock)
 	})
@@ -246,7 +246,7 @@ var _ = Describe("BuildStepDelegate", func() {
 	Describe("No line buffer without secrets redaction", func() {
 		BeforeEach(func() {
 			credVars := vars.StaticVariables{}
-			runState = exec.NewRunState(credVars, false)
+			runState = exec.NewRunState(noopStepper, credVars, false)
 			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock)
 		})
 
@@ -345,7 +345,7 @@ var _ = Describe("BuildStepDelegate", func() {
 		)
 
 		BeforeEach(func() {
-			runState = exec.NewRunState(credVars, true)
+			runState = exec.NewRunState(noopStepper, credVars, true)
 			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock)
 
 			runState.Get(vars.Reference{Path: "source-param"})

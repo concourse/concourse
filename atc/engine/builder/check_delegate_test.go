@@ -46,7 +46,7 @@ var _ = Describe("CheckDelegate", func() {
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
 		}
-		state = exec.NewRunState(credVars, true)
+		state = exec.NewRunState(noopStepper, credVars, true)
 
 		plan = atc.Plan{
 			ID:    "some-plan-id",

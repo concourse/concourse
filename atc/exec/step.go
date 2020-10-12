@@ -37,6 +37,7 @@ type BuildOutputFilter func(text string) string
 
 type RunState interface {
 	vars.Variables
+
 	NewLocalScope() RunState
 	AddLocalVar(name string, val interface{}, redact bool)
 
@@ -47,6 +48,8 @@ type RunState interface {
 
 	Result(atc.PlanID, interface{}) bool
 	StoreResult(atc.PlanID, interface{})
+
+	Run(context.Context, atc.Plan) (bool, error)
 }
 
 // ExitStatus is the resulting exit code from the process that the step ran.

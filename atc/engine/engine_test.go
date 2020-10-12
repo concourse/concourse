@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -131,12 +132,24 @@ var _ = Describe("Engine", func() {
 						})
 
 						Context("when converting the plan to a step succeeds", func() {
+							var steppedPlans chan atc.Plan
 							var fakeStep *execfakes.FakeStep
 
 							BeforeEach(func() {
 								fakeStep = new(execfakes.FakeStep)
+								fakeBuild.PrivatePlanReturns(atc.Plan{
+									ID: "build-plan",
+									LoadVar: &atc.LoadVarPlan{
+										Name: "some-var",
+										File: "some-file.yml",
+									},
+								})
 
-								fakeStepBuilder.BuildStepReturns(fakeStep, nil)
+								steppedPlans = make(chan atc.Plan, 1)
+								fakeStepBuilder.BuildStepperReturns(func(plan atc.Plan) exec.Step {
+									steppedPlans <- plan
+									return fakeStep
+								}, nil)
 							})
 
 							It("releases the lock", func() {
@@ -147,6 +160,12 @@ var _ = Describe("Engine", func() {
 							It("closes the notifier", func() {
 								waitGroup.Wait()
 								Expect(fakeNotifier.CloseCallCount()).To(Equal(1))
+							})
+
+							It("constructs a step from the build's plan", func() {
+								plan := <-steppedPlans
+								Expect(plan).ToNot(BeZero())
+								Expect(plan).To(Equal(fakeBuild.PrivatePlan())) //XXX
 							})
 
 							Context("when getting the build vars succeeds", func() {
@@ -313,7 +332,7 @@ var _ = Describe("Engine", func() {
 
 						Context("when converting the plan to a step fails", func() {
 							BeforeEach(func() {
-								fakeStepBuilder.BuildStepReturns(nil, errors.New("nope"))
+								fakeStepBuilder.BuildStepperReturns(nil, errors.New("nope"))
 							})
 
 							It("releases the lock", func() {
@@ -337,7 +356,7 @@ var _ = Describe("Engine", func() {
 						})
 
 						It("does not build the step", func() {
-							Expect(fakeStepBuilder.BuildStepCallCount()).To(BeZero())
+							Expect(fakeStepBuilder.BuildStepperCallCount()).To(BeZero())
 						})
 
 						It("releases the lock", func() {
@@ -352,7 +371,7 @@ var _ = Describe("Engine", func() {
 					})
 
 					It("does not build the step", func() {
-						Expect(fakeStepBuilder.BuildStepCallCount()).To(BeZero())
+						Expect(fakeStepBuilder.BuildStepperCallCount()).To(BeZero())
 					})
 
 					It("releases the lock", func() {
@@ -367,7 +386,7 @@ var _ = Describe("Engine", func() {
 					})
 
 					It("does not build the step", func() {
-						Expect(fakeStepBuilder.BuildStepCallCount()).To(BeZero())
+						Expect(fakeStepBuilder.BuildStepperCallCount()).To(BeZero())
 					})
 
 					It("releases the lock", func() {
@@ -381,7 +400,7 @@ var _ = Describe("Engine", func() {
 					})
 
 					It("does not build the step", func() {
-						Expect(fakeStepBuilder.BuildStepCallCount()).To(BeZero())
+						Expect(fakeStepBuilder.BuildStepperCallCount()).To(BeZero())
 					})
 
 					It("releases the lock", func() {
@@ -396,7 +415,7 @@ var _ = Describe("Engine", func() {
 				})
 
 				It("does not build the step", func() {
-					Expect(fakeStepBuilder.BuildStepCallCount()).To(BeZero())
+					Expect(fakeStepBuilder.BuildStepperCallCount()).To(BeZero())
 				})
 			})
 		})
