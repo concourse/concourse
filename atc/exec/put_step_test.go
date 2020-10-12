@@ -69,6 +69,7 @@ var _ = Describe("PutStep", func() {
 		state *execfakes.FakeRunState
 
 		putStep exec.Step
+		stepOk  bool
 		stepErr error
 
 		stdoutBuf *gbytes.Buffer
@@ -191,7 +192,7 @@ var _ = Describe("PutStep", func() {
 			fakeDelegateFactory,
 		)
 
-		stepErr = putStep.Run(ctx, state)
+		stepOk, stepErr = putStep.Run(ctx, state)
 	})
 
 	Context("inputs", func() {
@@ -393,7 +394,7 @@ var _ = Describe("PutStep", func() {
 		})
 
 		It("is successful", func() {
-			Expect(putStep.Succeeded()).To(BeTrue())
+			Expect(stepOk).To(BeTrue())
 		})
 
 		It("does not save the build output", func() {
@@ -418,7 +419,7 @@ var _ = Describe("PutStep", func() {
 		})
 
 		It("is successful", func() {
-			Expect(putStep.Succeeded()).To(BeTrue())
+			Expect(stepOk).To(BeTrue())
 		})
 	})
 
@@ -440,7 +441,7 @@ var _ = Describe("PutStep", func() {
 		})
 
 		It("is not successful", func() {
-			Expect(putStep.Succeeded()).To(BeFalse())
+			Expect(stepOk).To(BeFalse())
 		})
 	})
 
@@ -461,7 +462,7 @@ var _ = Describe("PutStep", func() {
 		})
 
 		It("is not successful", func() {
-			Expect(putStep.Succeeded()).To(BeFalse())
+			Expect(stepOk).To(BeFalse())
 		})
 	})
 })

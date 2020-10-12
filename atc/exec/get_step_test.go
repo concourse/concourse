@@ -54,6 +54,7 @@ var _ = Describe("GetStep", func() {
 		fakeState          *execfakes.FakeRunState
 
 		getStep    exec.Step
+		getStepOk  bool
 		getStepErr error
 
 		containerMetadata = db.ContainerMetadata{
@@ -164,7 +165,7 @@ var _ = Describe("GetStep", func() {
 			fakeClient,
 		)
 
-		getStepErr = getStep.Run(ctx, fakeState)
+		getStepOk, getStepErr = getStep.Run(ctx, fakeState)
 	})
 
 	It("propagates span context to the worker client", func() {
@@ -319,7 +320,7 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("marks the step as succeeded", func() {
-			Expect(getStep.Succeeded()).To(BeTrue())
+			Expect(getStepOk).To(BeTrue())
 		})
 
 		It("finishes the step via the delegate", func() {
@@ -369,7 +370,7 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("does NOT mark the step as succeeded", func() {
-			Expect(getStep.Succeeded()).To(BeFalse())
+			Expect(getStepOk).To(BeFalse())
 		})
 
 		It("finishes the step via the delegate", func() {

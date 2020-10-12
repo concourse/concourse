@@ -47,12 +47,11 @@ var _ = Describe("AcrossStep", func() {
 		stderr *gbytes.Buffer
 	)
 
-	scopedStepFactory := func(acrossVars []atc.AcrossVar, values vals) exec.ScopedStep {
+	stepRun := func(succeeded bool, values vals) func(context.Context, exec.RunState) (bool, error) {
 		started := started
 		terminate := terminate
 
-		s := new(execfakes.FakeStep)
-		s.RunStub = func(ctx context.Context, state exec.RunState) error {
+		return func(ctx context.Context, state exec.RunState) (bool, error) {
 			defer GinkgoRecover()
 			for i, v := range acrossVars {
 				val, found, _ := state.Get(vars.Reference{Source: ".", Path: v.Var})
@@ -63,14 +62,18 @@ var _ = Describe("AcrossStep", func() {
 			if c, ok := terminate[values]; ok {
 				select {
 				case err := <-c:
-					return err
+					return false, err
 				case <-ctx.Done():
-					return ctx.Err()
+					return false, ctx.Err()
 				}
 			}
-			return nil
+			return succeeded, nil
 		}
-		s.SucceededReturns(true)
+	}
+
+	scopedStepFactory := func(acrossVars []atc.AcrossVar, values vals) exec.ScopedStep {
+		s := new(execfakes.FakeStep)
+		s.RunStub = stepRun(true, values)
 		return exec.ScopedStep{
 			Values: values[:],
 			Step:   s,
@@ -148,7 +151,7 @@ var _ = Describe("AcrossStep", func() {
 	})
 
 	It("logs a warning to stderr", func() {
-		err := step.Run(ctx, state)
+		_, err := step.Run(ctx, state)
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(stderr).To(gbytes.Say("WARNING: the across step is experimental"))
@@ -179,7 +182,7 @@ var _ = Describe("AcrossStep", func() {
 		})
 
 		It("logs a warning to stderr", func() {
-			err := step.Run(ctx, state)
+			_, err := step.Run(ctx, state)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(stderr).To(gbytes.Say("WARNING: across step shadows local var 'var2'"))
@@ -235,15 +238,12 @@ var _ = Describe("AcrossStep", func() {
 			It("stops running steps after a failure", func() {
 				By("a step in the first stage failing")
 				terminate[allVals[1]] <- nil
-				steps[1].Step.(*execfakes.FakeStep).SucceededReturns(false)
+				steps[1].Step.(*execfakes.FakeStep).RunStub = stepRun(false, allVals[1])
 
-				errs := make(chan error, 1)
-				go func() {
-					errs <- step.Run(ctx, state)
-				}()
-
-				By("waiting for the step to exit")
-				Eventually(errs).Should(Receive(BeNil()))
+				By("running the step")
+				ok, err := step.Run(ctx, state)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ok).To(BeFalse())
 
 				By("ensuring not all steps were started")
 				Expect(started).ToNot(HaveLen(8))
@@ -257,18 +257,16 @@ var _ = Describe("AcrossStep", func() {
 
 			It("allows all steps to run before failing", func() {
 				By("a step in the first stage failing")
-				steps[1].Step.(*execfakes.FakeStep).SucceededReturns(false)
+				steps[1].Step.(*execfakes.FakeStep).RunStub = stepRun(false, allVals[1])
 
-				errs := make(chan error, 1)
-				go func() {
-					errs <- step.Run(ctx, state)
-				}()
-
-				By("waiting for the step to exit")
 				for _, v := range allVals {
 					terminate[v] <- nil
 				}
-				Eventually(errs).Should(Receive(BeNil()))
+
+				By("running the step")
+				ok, err := step.Run(ctx, state)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ok).To(BeFalse())
 
 				By("ensuring all steps were run")
 				Expect(started).To(HaveLen(8))
@@ -279,13 +277,13 @@ var _ = Describe("AcrossStep", func() {
 	Describe("panic recovery", func() {
 		Context("when one step panics", func() {
 			BeforeEach(func() {
-				steps[1].Step.(*execfakes.FakeStep).RunStub = func(context.Context, exec.RunState) error {
+				steps[1].Step.(*execfakes.FakeStep).RunStub = func(context.Context, exec.RunState) (bool, error) {
 					panic("something went wrong")
 				}
 			})
 
 			It("handles it gracefully", func() {
-				err := step.Run(ctx, state)
+				_, err := step.Run(ctx, state)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("something went wrong"))
 			})

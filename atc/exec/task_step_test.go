@@ -51,6 +51,7 @@ var _ = Describe("TaskStep", func() {
 		state *execfakes.FakeRunState
 
 		taskStep exec.Step
+		stepOk   bool
 		stepErr  error
 
 		containerMetadata = db.ContainerMetadata{
@@ -146,7 +147,7 @@ var _ = Describe("TaskStep", func() {
 			fakeLockFactory,
 		)
 
-		stepErr = taskStep.Run(ctx, state)
+		stepOk, stepErr = taskStep.Run(ctx, state)
 	})
 
 	Context("when the plan has a config", func() {
@@ -549,7 +550,7 @@ var _ = Describe("TaskStep", func() {
 			})
 
 			It("is not successful", func() {
-				Expect(taskStep.Succeeded()).To(BeFalse())
+				Expect(stepOk).To(BeFalse())
 			})
 		})
 
@@ -564,7 +565,7 @@ var _ = Describe("TaskStep", func() {
 			})
 
 			It("is not successful", func() {
-				Expect(taskStep.Succeeded()).To(BeFalse())
+				Expect(stepOk).To(BeFalse())
 			})
 		})
 
@@ -685,7 +686,7 @@ var _ = Describe("TaskStep", func() {
 				})
 
 				It("is not successful", func() {
-					Expect(taskStep.Succeeded()).To(BeFalse())
+					Expect(stepOk).To(BeFalse())
 				})
 			})
 		})
@@ -930,7 +931,7 @@ var _ = Describe("TaskStep", func() {
 			})
 
 			It("is not successful", func() {
-				Expect(taskStep.Succeeded()).To(BeFalse())
+				Expect(stepOk).To(BeFalse())
 			})
 		})
 
@@ -949,7 +950,7 @@ var _ = Describe("TaskStep", func() {
 			})
 
 			It("is not successful", func() {
-				Expect(taskStep.Succeeded()).To(BeFalse())
+				Expect(stepOk).To(BeFalse())
 			})
 
 			It("waits for RunTaskStep to return", func() {

@@ -52,6 +52,7 @@ var _ = Describe("LoadVarStep", func() {
 		fakeSource         *buildfakes.FakeRegisterableArtifact
 
 		spStep  exec.Step
+		stepOk  bool
 		stepErr error
 
 		stepMetadata = exec.StepMetadata{
@@ -122,7 +123,7 @@ var _ = Describe("LoadVarStep", func() {
 			fakeWorkerClient,
 		)
 
-		stepErr = spStep.Run(ctx, state)
+		stepOk, stepErr = spStep.Run(ctx, state)
 	})
 
 	Context("when format is specified", func() {
@@ -152,8 +153,9 @@ var _ = Describe("LoadVarStep", func() {
 				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
 			})
 
-			It("step should not fail", func() {
+			It("succeeds", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
 			})
 
 			It("should var parsed correctly", func() {
@@ -172,8 +174,9 @@ var _ = Describe("LoadVarStep", func() {
 				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
 			})
 
-			It("step should not fail", func() {
+			It("succeeds", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
 			})
 
 			It("should var parsed correctly", func() {
@@ -192,8 +195,9 @@ var _ = Describe("LoadVarStep", func() {
 				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: jsonString}, nil)
 			})
 
-			It("step should not fail", func() {
+			It("succeeds", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
 			})
 
 			It("should var parsed correctly", func() {
@@ -212,8 +216,9 @@ var _ = Describe("LoadVarStep", func() {
 				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: yamlString}, nil)
 			})
 
-			It("step should not fail", func() {
+			It("succeeds", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
 			})
 
 			It("should var parsed correctly", func() {
@@ -232,8 +237,9 @@ var _ = Describe("LoadVarStep", func() {
 				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: yamlString}, nil)
 			})
 
-			It("step should not fail", func() {
+			It("succeeds", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
 			})
 
 			It("should var parsed correctly", func() {
@@ -253,8 +259,9 @@ var _ = Describe("LoadVarStep", func() {
 				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: plainString}, nil)
 			})
 
-			It("step should not fail", func() {
+			It("succeeds", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
 			})
 
 			It("should var parsed correctly as trim", func() {
@@ -272,8 +279,9 @@ var _ = Describe("LoadVarStep", func() {
 				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: jsonString}, nil)
 			})
 
-			It("step should not fail", func() {
+			It("succeeds", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
 			})
 
 			It("should var parsed correctly", func() {
@@ -291,8 +299,9 @@ var _ = Describe("LoadVarStep", func() {
 				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: yamlString}, nil)
 			})
 
-			It("step should not fail", func() {
+			It("succeeds", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
 			})
 
 			It("should var parsed correctly", func() {
@@ -310,8 +319,9 @@ var _ = Describe("LoadVarStep", func() {
 				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: yamlString}, nil)
 			})
 
-			It("step should not fail", func() {
+			It("succeeds", func() {
 				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
 			})
 
 			It("should var parsed correctly", func() {

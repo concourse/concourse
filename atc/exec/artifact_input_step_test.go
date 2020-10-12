@@ -22,6 +22,7 @@ var _ = Describe("ArtifactInputStep", func() {
 		state exec.RunState
 
 		step             exec.Step
+		stepOk           bool
 		stepErr          error
 		plan             atc.Plan
 		fakeBuild        *dbfakes.FakeBuild
@@ -45,7 +46,7 @@ var _ = Describe("ArtifactInputStep", func() {
 	})
 
 	JustBeforeEach(func() {
-		stepErr = step.Run(ctx, state)
+		stepOk, stepErr = step.Run(ctx, state)
 	})
 
 	Context("when looking up the build artifact errors", func() {
@@ -135,7 +136,7 @@ var _ = Describe("ArtifactInputStep", func() {
 				})
 
 				It("succeeds", func() {
-					Expect(step.Succeeded()).To(BeTrue())
+					Expect(stepOk).To(BeTrue())
 				})
 			})
 		})
