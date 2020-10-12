@@ -89,7 +89,6 @@ type TaskStep struct {
 	workerClient      worker.Client
 	delegateFactory   TaskDelegateFactory
 	lockFactory       lock.LockFactory
-	succeeded         bool
 }
 
 func NewTaskStep(
@@ -131,19 +130,19 @@ func NewTaskStep(
 // are registered with the artifact.Repository. If no outputs are specified, the
 // task's entire working directory is registered as an StreamableArtifactSource under the
 // name of the task.
-func (step *TaskStep) Run(ctx context.Context, state RunState) error {
+func (step *TaskStep) Run(ctx context.Context, state RunState) (bool, error) {
 	delegate := step.delegateFactory.TaskDelegate(state)
 	ctx, span := delegate.StartSpan(ctx, "task", tracing.Attrs{
 		"name": step.plan.Name,
 	})
 
-	err := step.run(ctx, state, delegate)
+	ok, err := step.run(ctx, state, delegate)
 	tracing.End(span, err)
 
-	return err
+	return ok, err
 }
 
-func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDelegate) error {
+func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDelegate) (bool, error) {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("task-step", lager.Data{
 		"step-name": step.plan.Name,
@@ -152,7 +151,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	var taskConfigSource TaskConfigSource
@@ -210,7 +209,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	}
 
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if config.Limits == nil {
@@ -227,12 +226,12 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	workerSpec, err := step.workerSpec(logger, resourceTypes, repository, config)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	containerSpec, err := step.containerSpec(logger, repository, config, step.containerMetadata)
 	if err != nil {
-		return err
+		return false, err
 	}
 	tracing.Inject(ctx, &containerSpec)
 
@@ -269,10 +268,9 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		if err == context.Canceled || err == context.DeadlineExceeded {
 			step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
 		}
-		return err
+		return false, err
 	}
 
-	step.succeeded = result.ExitStatus == 0
 	delegate.Finished(logger, ExitStatus(result.ExitStatus))
 
 	step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
@@ -281,15 +279,11 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	if step.metadata.JobID != 0 {
 		err = step.registerCaches(logger, repository, config, result.VolumeMounts, step.containerMetadata)
 		if err != nil {
-			return err
+			return false, err
 		}
 	}
 
-	return nil
-}
-
-func (step *TaskStep) Succeeded() bool {
-	return step.succeeded
+	return result.ExitStatus == 0, nil
 }
 
 func (step *TaskStep) imageSpec(logger lager.Logger, repository *build.Repository, config atc.TaskConfig) (worker.ImageSpec, error) {

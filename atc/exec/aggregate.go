@@ -19,7 +19,8 @@ type AggregateStep []Step
 // It will wait for all steps to exit, even if one step fails or errors. After
 // all steps finish, their errors (if any) will be aggregated and returned as a
 // single error.
-func (step AggregateStep) Run(ctx context.Context, state RunState) error {
+func (step AggregateStep) Run(ctx context.Context, state RunState) (bool, error) {
+	oks := make(chan bool, len(step))
 	errs := make(chan error, len(step))
 
 	for _, s := range step {
@@ -34,7 +35,9 @@ func (step AggregateStep) Run(ctx context.Context, state RunState) error {
 				}
 			}()
 
-			errs <- s.Run(ctx, state)
+			ok, err := s.Run(ctx, state)
+			oks <- ok
+			errs <- err
 		}()
 	}
 
@@ -47,25 +50,17 @@ func (step AggregateStep) Run(ctx context.Context, state RunState) error {
 	}
 
 	if ctx.Err() != nil {
-		return ctx.Err()
+		return false, ctx.Err()
 	}
 
 	if result != nil {
-		return result
+		return false, result
 	}
 
-	return nil
-}
-
-// Succeeded is true if all of the steps' Succeeded is true
-func (step AggregateStep) Succeeded() bool {
-	succeeded := true
-
-	for _, step := range step {
-		if !step.Succeeded() {
-			succeeded = false
-		}
+	ok := true
+	for i := 0; i < len(step); i++ {
+		ok = ok && <-oks
 	}
 
-	return succeeded
+	return ok, nil
 }

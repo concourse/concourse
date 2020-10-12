@@ -89,20 +89,20 @@ func NewPutStep(
 //
 // The resource's put script is then invoked. If the context is canceled, the
 // script will be interrupted.
-func (step *PutStep) Run(ctx context.Context, state RunState) error {
+func (step *PutStep) Run(ctx context.Context, state RunState) (bool, error) {
 	delegate := step.delegateFactory.PutDelegate(state)
 	ctx, span := delegate.StartSpan(ctx, "put", tracing.Attrs{
 		"name":     step.plan.Name,
 		"resource": step.plan.Resource,
 	})
 
-	err := step.run(ctx, state, delegate)
+	ok, err := step.run(ctx, state, delegate)
 	tracing.End(span, err)
 
-	return err
+	return ok, err
 }
 
-func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelegate) error {
+func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelegate) (bool, error) {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("put-step", lager.Data{
 		"step-name": step.plan.Name,
@@ -113,17 +113,17 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	params, err := creds.NewParams(state, step.plan.Params).Evaluate()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	var putInputs PutInputs
@@ -143,7 +143,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	containerInputs, err := putInputs.FindAll(state.ArtifactRepository())
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	containerSpec := worker.ContainerSpec{
@@ -203,12 +203,12 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	)
 	if err != nil {
 		logger.Error("failed-to-put-resource", err)
-		return err
+		return false, err
 	}
 
 	if result.ExitStatus != 0 {
 		delegate.Finished(logger, ExitStatus(result.ExitStatus), runtime.VersionResult{})
-		return nil
+		return false, nil
 	}
 
 	versionResult := result.VersionResult
@@ -220,15 +220,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	state.StoreResult(step.planID, versionResult)
 
-	step.succeeded = true
-
 	delegate.Finished(logger, 0, versionResult)
 
-	return nil
-
-}
-
-// Succeeded returns true if the resource script exited successfully.
-func (step *PutStep) Succeeded() bool {
-	return step.succeeded
+	return true, nil
 }

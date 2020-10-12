@@ -215,36 +215,38 @@ func (b *engineBuild) Run(ctx context.Context) {
 		}
 	}()
 
-	done := make(chan error)
+	succeeded := false
+
+	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		defer func() {
 			if r := recover(); r != nil {
 				err = fmt.Errorf("panic in engine build step run %d: %v", b.build.ID(), r)
 
 				fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
 				logger.Error("panic-in-engine-build-step-run", err)
-
-				done <- err
 			}
 		}()
 
 		ctx := lagerctx.NewContext(ctx, logger)
 		ctx = policy.RecordTeamAndPipeline(ctx, b.build.TeamName(), b.build.PipelineName())
-		done <- step.Run(ctx, state)
+
+		succeeded, err = step.Run(ctx, state)
 	}()
 
 	select {
 	case <-b.release:
 		logger.Info("releasing")
 
-	case err = <-done:
-		logger.Debug("engine-build-done")
+	case <-done:
 		if err != nil {
 			if ok := errors.As(err, &exec.Retriable{}); ok {
 				return
 			}
 		}
-		b.finish(logger.Session("finish"), err, step.Succeeded())
+
+		b.finish(logger.Session("finish"), err, succeeded)
 	}
 }
 

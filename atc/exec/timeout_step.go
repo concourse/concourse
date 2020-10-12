@@ -29,26 +29,19 @@ func Timeout(step Step, duration string) *TimeoutStep {
 // the nested step's error).
 //
 // The result of the nested step's Run is returned.
-func (ts *TimeoutStep) Run(ctx context.Context, state RunState) error {
+func (ts *TimeoutStep) Run(ctx context.Context, state RunState) (bool, error) {
 	parsedDuration, err := time.ParseDuration(ts.duration)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, parsedDuration)
 	defer cancel()
 
-	err = ts.step.Run(timeoutCtx, state)
+	ok, err := ts.step.Run(timeoutCtx, state)
 	if errors.Is(err, context.DeadlineExceeded) {
-		ts.timedOut = true
-		return nil
+		return false, nil
 	}
 
-	return err
-}
-
-// Succeeded is true if the nested step completed successfully
-// and did not time out.
-func (ts *TimeoutStep) Succeeded() bool {
-	return !ts.timedOut && ts.step.Succeeded()
+	return ok, err
 }

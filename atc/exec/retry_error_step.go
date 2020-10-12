@@ -35,16 +35,16 @@ func RetryError(step Step, delegateFactory BuildStepDelegateFactory) Step {
 	}
 }
 
-func (step RetryErrorStep) Run(ctx context.Context, state RunState) error {
+func (step RetryErrorStep) Run(ctx context.Context, state RunState) (bool, error) {
 	logger := lagerctx.FromContext(ctx)
-	runErr := step.Step.Run(ctx, state)
+	runOk, runErr := step.Step.Run(ctx, state)
 	if runErr != nil && step.toRetry(logger, runErr) {
 		logger.Info("retriable", lager.Data{"error": runErr.Error()})
 		delegate := step.delegateFactory.BuildStepDelegate(state)
 		delegate.Errored(logger, fmt.Sprintf("%s, will retry ...", runErr.Error()))
 		runErr = Retriable{runErr}
 	}
-	return runErr
+	return runOk, runErr
 }
 
 func (step RetryErrorStep) toRetry(logger lager.Logger, err error) bool {

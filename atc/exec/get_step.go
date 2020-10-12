@@ -72,7 +72,6 @@ type GetStep struct {
 	strategy             worker.ContainerPlacementStrategy
 	workerClient         worker.Client
 	delegateFactory      GetDelegateFactory
-	succeeded            bool
 }
 
 func NewGetStep(
@@ -99,20 +98,20 @@ func NewGetStep(
 	}
 }
 
-func (step *GetStep) Run(ctx context.Context, state RunState) error {
+func (step *GetStep) Run(ctx context.Context, state RunState) (bool, error) {
 	delegate := step.delegateFactory.GetDelegate(state)
 	ctx, span := delegate.StartSpan(ctx, "get", tracing.Attrs{
 		"name":     step.plan.Name,
 		"resource": step.plan.Resource,
 	})
 
-	err := step.run(ctx, state, delegate)
+	ok, err := step.run(ctx, state, delegate)
 	tracing.End(span, err)
 
-	return err
+	return ok, err
 }
 
-func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelegate) error {
+func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelegate) (bool, error) {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("get-step", lager.Data{
 		"step-name": step.plan.Name,
@@ -122,22 +121,22 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	params, err := creds.NewParams(state, step.plan.Params).Evaluate()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	version, err := NewVersionSourceFromPlan(&step.plan).Version(state)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	containerSpec := worker.ContainerSpec{
@@ -171,7 +170,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	)
 	if err != nil {
 		logger.Error("failed-to-create-resource-cache", err)
-		return err
+		return false, err
 	}
 
 	processSpec := runtime.ProcessSpec{
@@ -204,9 +203,10 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		resourceToGet,
 	)
 	if err != nil {
-		return err
+		return false, err
 	}
 
+	var succeeded bool
 	if getResult.ExitStatus == 0 {
 		state.ArtifactRepository().RegisterArtifact(
 			build.ArtifactName(step.plan.Name),
@@ -217,7 +217,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 			delegate.UpdateVersion(logger, step.plan, getResult.VersionResult)
 		}
 
-		step.succeeded = true
+		succeeded = true
 	}
 
 	delegate.Finished(
@@ -226,10 +226,5 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		getResult.VersionResult,
 	)
 
-	return nil
-}
-
-// Succeeded returns true if the resource was successfully fetched.
-func (step *GetStep) Succeeded() bool {
-	return step.succeeded
+	return succeeded, nil
 }
