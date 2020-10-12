@@ -356,16 +356,6 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool) (Bui
 
 	defer Rollback(tx)
 
-	params := map[string]interface{}{
-		"name":               CheckBuildName,
-		"pipeline_id":        r.pipelineID,
-		"team_id":            r.teamID,
-		"status":             BuildStatusPending,
-		"manually_triggered": manuallyTriggered,
-		"span_context":       string(spanContextJSON),
-		"resource_id":        r.id,
-	}
-
 	if !manuallyTriggered {
 		var completed, noBuild bool
 		err = psql.Select("completed").
@@ -403,7 +393,15 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool) (Bui
 	}
 
 	build := newEmptyBuild(r.conn, r.lockFactory)
-	err = createBuild(tx, build, params)
+	err = createBuild(tx, build, map[string]interface{}{
+		"name":               CheckBuildName,
+		"pipeline_id":        r.pipelineID,
+		"team_id":            r.teamID,
+		"status":             BuildStatusPending,
+		"manually_triggered": manuallyTriggered,
+		"span_context":       string(spanContextJSON),
+		"resource_id":        r.id,
+	})
 	if err != nil {
 		return nil, false, err
 	}

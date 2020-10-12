@@ -27,16 +27,6 @@ type FakeResourceConfigScope struct {
 		result2 bool
 		result3 error
 	}
-	CheckErrorStub        func() error
-	checkErrorMutex       sync.RWMutex
-	checkErrorArgsForCall []struct {
-	}
-	checkErrorReturns struct {
-		result1 error
-	}
-	checkErrorReturnsOnCall map[int]struct {
-		result1 error
-	}
 	FindVersionStub        func(atc.Version) (db.ResourceConfigVersion, bool, error)
 	findVersionMutex       sync.RWMutex
 	findVersionArgsForCall []struct {
@@ -212,58 +202,6 @@ func (fake *FakeResourceConfigScope) AcquireResourceCheckingLockReturnsOnCall(i 
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
-}
-
-func (fake *FakeResourceConfigScope) CheckError() error {
-	fake.checkErrorMutex.Lock()
-	ret, specificReturn := fake.checkErrorReturnsOnCall[len(fake.checkErrorArgsForCall)]
-	fake.checkErrorArgsForCall = append(fake.checkErrorArgsForCall, struct {
-	}{})
-	fake.recordInvocation("CheckError", []interface{}{})
-	fake.checkErrorMutex.Unlock()
-	if fake.CheckErrorStub != nil {
-		return fake.CheckErrorStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.checkErrorReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeResourceConfigScope) CheckErrorCallCount() int {
-	fake.checkErrorMutex.RLock()
-	defer fake.checkErrorMutex.RUnlock()
-	return len(fake.checkErrorArgsForCall)
-}
-
-func (fake *FakeResourceConfigScope) CheckErrorCalls(stub func() error) {
-	fake.checkErrorMutex.Lock()
-	defer fake.checkErrorMutex.Unlock()
-	fake.CheckErrorStub = stub
-}
-
-func (fake *FakeResourceConfigScope) CheckErrorReturns(result1 error) {
-	fake.checkErrorMutex.Lock()
-	defer fake.checkErrorMutex.Unlock()
-	fake.CheckErrorStub = nil
-	fake.checkErrorReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeResourceConfigScope) CheckErrorReturnsOnCall(i int, result1 error) {
-	fake.checkErrorMutex.Lock()
-	defer fake.checkErrorMutex.Unlock()
-	fake.CheckErrorStub = nil
-	if fake.checkErrorReturnsOnCall == nil {
-		fake.checkErrorReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.checkErrorReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
 }
 
 func (fake *FakeResourceConfigScope) FindVersion(arg1 atc.Version) (db.ResourceConfigVersion, bool, error) {
@@ -782,8 +720,6 @@ func (fake *FakeResourceConfigScope) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.acquireResourceCheckingLockMutex.RLock()
 	defer fake.acquireResourceCheckingLockMutex.RUnlock()
-	fake.checkErrorMutex.RLock()
-	defer fake.checkErrorMutex.RUnlock()
 	fake.findVersionMutex.RLock()
 	defer fake.findVersionMutex.RUnlock()
 	fake.iDMutex.RLock()

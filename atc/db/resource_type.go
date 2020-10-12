@@ -334,11 +334,48 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool) 
 
 	defer Rollback(tx)
 
+	if !manuallyTriggered {
+		var completed, noBuild bool
+		err = psql.Select("completed").
+			From("builds").
+			Where(sq.Eq{"resource_type_id": r.id}).
+			RunWith(tx).
+			QueryRow().
+			Scan(&completed)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				noBuild = true
+			} else {
+				return nil, false, err
+			}
+		}
+
+		if !noBuild && !completed {
+			// a build is already running; leave it be
+			return nil, false, nil
+		}
+
+		if completed {
+			// previous build finished; clear it out
+			_, err = psql.Delete("builds").
+				Where(sq.Eq{
+					"resource_type_id": r.id,
+					"completed":        true,
+				}).
+				RunWith(tx).
+				Exec()
+			if err != nil {
+				return nil, false, fmt.Errorf("delete previous build: %w", err)
+			}
+		}
+	}
+
 	build := newEmptyBuild(r.conn, r.lockFactory)
 	err = createBuild(tx, build, map[string]interface{}{
 		"name":               CheckBuildName,
-		"pipeline_id":        r.pipelineID,
 		"team_id":            r.teamID,
+		"pipeline_id":        r.pipelineID,
+		"resource_type_id":   r.id,
 		"status":             BuildStatusPending,
 		"manually_triggered": manuallyTriggered,
 		"span_context":       string(spanContextJSON),
