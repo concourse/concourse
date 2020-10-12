@@ -176,7 +176,7 @@ func (builder Builder) WithResourceVersions(resourceName string, versions ...atc
 			return fmt.Errorf("find or create scope: %w", err)
 		}
 
-		err = scope.SaveVersions(db.SpanContext{}, versions)
+		err = scope.SaveVersions(scenario.SpanContext, versions)
 		if err != nil {
 			return fmt.Errorf("save versions: %w", err)
 		}
@@ -479,6 +479,94 @@ func (builder Builder) WithCheckContainer(resourceName string, workerName string
 		_, err = worker.CreateContainer(owner, containerMetadata)
 		if err != nil {
 			return err
+		}
+
+		return nil
+	}
+}
+
+func (builder Builder) WithSpanContext(spanContext db.SpanContext) SetupFunc {
+	return func(scenario *Scenario) error {
+		scenario.SpanContext = spanContext
+		return nil
+	}
+}
+
+func (builder Builder) WithVersionMetadata(resourceName string, version atc.Version, metadata db.ResourceConfigMetadataFields) SetupFunc {
+	return func(scenario *Scenario) error {
+		resource, found, err := scenario.Pipeline.Resource(resourceName)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return fmt.Errorf("resource '%s' not configured in pipeline", resourceName)
+		}
+
+		rc, found, err := builder.ResourceConfigFactory.FindResourceConfigByID(resource.ResourceConfigID())
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return fmt.Errorf("resource config not found for resource '%s'", resourceName)
+		}
+
+		// save metadata for v1
+		_, err = resource.SaveUncheckedVersion(version, metadata, rc)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+}
+
+func (builder Builder) WithPinnedVersion(resourceName string, pinnedVersion atc.Version) SetupFunc {
+	return func(scenario *Scenario) error {
+		resource, found, err := scenario.Pipeline.Resource(resourceName)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return fmt.Errorf("resource '%s' not configured in pipeline", resourceName)
+		}
+
+		version, found, err := resource.FindVersion(pinnedVersion)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			scenario.Run(builder.WithResourceVersions(resourceName, pinnedVersion))
+
+			reloaded, err := resource.Reload()
+			if err != nil {
+				return err
+			}
+
+			if !reloaded {
+				return fmt.Errorf("resource '%s' not reloaded", resourceName)
+			}
+
+			version, found, err = resource.FindVersion(pinnedVersion)
+			if err != nil {
+				return err
+			}
+
+			if !found {
+				return fmt.Errorf("version '%v' not able to be saved", pinnedVersion)
+			}
+		}
+
+		_, err = resource.PinVersion(version.ID())
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return fmt.Errorf("version '%v' not pinned", version)
 		}
 
 		return nil

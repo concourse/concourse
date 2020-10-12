@@ -11,6 +11,8 @@ type Scenario struct {
 	Team     db.Team
 	Pipeline db.Pipeline
 	Workers  []db.Worker
+
+	SpanContext db.SpanContext
 }
 
 type SetupFunc func(*Scenario) error
