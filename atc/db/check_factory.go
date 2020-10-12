@@ -36,7 +36,7 @@ type Checkable interface {
 		atc.VersionedResourceTypes,
 	) (ResourceConfigScope, error)
 
-	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes) atc.CheckPlan
+	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
 	CreateBuild(context.Context, bool) (Build, bool, error)
 
 	SetCheckSetupError(error) error
@@ -97,17 +97,17 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 
 	var err error
 
-	rawSource := checkable.Source()
+	sourceDefaults := atc.Source{}
 	parentType, found := resourceTypes.Parent(checkable)
 	if found {
 		if parentType.Version() == nil {
 			return nil, false, fmt.Errorf("resource type '%s' has no version", parentType.Name())
 		}
-		rawSource = parentType.Defaults().Merge(rawSource)
+		sourceDefaults = parentType.Defaults()
 	} else {
 		defaults, found := atc.FindBaseResourceTypeDefaults(checkable.Type())
 		if found {
-			rawSource = defaults.Merge(rawSource)
+			sourceDefaults = defaults
 		}
 	}
 
@@ -135,7 +135,7 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		}
 	}
 
-	checkPlan := checkable.CheckPlan(from, interval, timeout, resourceTypes.Filter(checkable))
+	checkPlan := checkable.CheckPlan(from, interval, timeout, resourceTypes.Filter(checkable), sourceDefaults)
 
 	plan := c.planFactory.NewPlan(checkPlan)
 

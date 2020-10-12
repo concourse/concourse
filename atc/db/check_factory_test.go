@@ -144,11 +144,12 @@ var _ = Describe("CheckFactory", func() {
 
 			It("creates a check plan with the default webhook interval", func() {
 				Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
-				version, interval, timeout, types := fakeResource.CheckPlanArgsForCall(0)
+				version, interval, timeout, types, defaults := fakeResource.CheckPlanArgsForCall(0)
 				Expect(version).To(Equal(atc.Version{"from": "version"}))
 				Expect(interval).To(Equal(defaultWebhookCheckInterval))
 				Expect(timeout).To(Equal(defaultCheckTimeout))
 				Expect(types).To(BeNil())
+				Expect(defaults).To(BeEmpty())
 			})
 
 			Context("when the default webhook interval has not elapsed", func() {
@@ -171,11 +172,12 @@ var _ = Describe("CheckFactory", func() {
 
 			It("sets them in the check plan", func() {
 				Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
-				version, interval, timeout, types := fakeResource.CheckPlanArgsForCall(0)
+				version, interval, timeout, types, defaults := fakeResource.CheckPlanArgsForCall(0)
 				Expect(version).To(Equal(atc.Version{"from": "version"}))
 				Expect(interval).To(Equal(42 * time.Second))
 				Expect(timeout).To(Equal(12 * time.Second))
 				Expect(types).To(BeNil())
+				Expect(defaults).To(BeEmpty())
 			})
 		})
 
@@ -205,6 +207,7 @@ var _ = Describe("CheckFactory", func() {
 				fakeResource.PipelineIDReturns(1)
 				fakeResourceType.NameReturns("custom-type")
 				fakeResourceType.PipelineIDReturns(1)
+				fakeResourceType.DefaultsReturns(atc.Source{"sdk": "sdk"})
 			})
 
 			Context("when the parent type has no version", func() {
@@ -241,11 +244,12 @@ var _ = Describe("CheckFactory", func() {
 
 					It("creates a check plan", func() {
 						Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
-						version, interval, timeout, types := fakeResource.CheckPlanArgsForCall(0)
+						version, interval, timeout, types, defaults := fakeResource.CheckPlanArgsForCall(0)
 						Expect(version).To(Equal(atc.Version{"from": "version"}))
 						Expect(interval).To(Equal(defaultCheckInterval))
 						Expect(timeout).To(Equal(defaultCheckTimeout))
 						Expect(types).To(Equal(fakeResourceTypes))
+						Expect(defaults).To(Equal(atc.Source{"sdk": "sdk"}))
 					})
 
 					It("returns the build", func() {

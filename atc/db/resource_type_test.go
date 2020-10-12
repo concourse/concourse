@@ -538,10 +538,11 @@ var _ = Describe("ResourceType", func() {
 		})
 
 		It("returns a plan which will update the resource type", func() {
-			Expect(resourceType.CheckPlan(atc.Version{"some": "version"}, time.Minute, 10*time.Second, resourceTypes)).To(Equal(atc.CheckPlan{
+			defaults := atc.Source{"sdk": "sdv"}
+			Expect(resourceType.CheckPlan(atc.Version{"some": "version"}, time.Minute, 10*time.Second, resourceTypes, defaults)).To(Equal(atc.CheckPlan{
 				Name:   resourceType.Name(),
 				Type:   resourceType.Type(),
-				Source: resourceType.Source(),
+				Source: defaults.Merge(resourceType.Source()),
 				Tags:   resourceType.Tags(),
 
 				FromVersion: atc.Version{"some": "version"},
