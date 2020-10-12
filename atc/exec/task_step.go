@@ -160,10 +160,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	if step.plan.ConfigPath != "" {
 		// external task - construct a source which reads it from file, and apply base resource type defaults.
-		taskConfigSource = BaseResourceTypeDefaultsApplySource{
-			ConfigSource:  FileConfigSource{ConfigPath: step.plan.ConfigPath, Client: step.workerClient},
-			ResourceTypes: step.plan.VersionedResourceTypes,
-		}
+		taskConfigSource = FileConfigSource{ConfigPath: step.plan.ConfigPath, Client: step.workerClient}
 
 		// for interpolation - use 'vars' from the pipeline, and then fill remaining with cred variables.
 		// this 2-phase strategy allows to interpolate 'vars' by cred variables.
@@ -191,6 +188,12 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		ConfigSource:  taskConfigSource,
 		Vars:          taskVars,
 		ExpectAllKeys: true,
+	}
+
+	// apply resource type defaults
+	taskConfigSource = BaseResourceTypeDefaultsApplySource{
+		ConfigSource:  taskConfigSource,
+		ResourceTypes: step.plan.VersionedResourceTypes,
 	}
 
 	// validate

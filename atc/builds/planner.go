@@ -48,10 +48,6 @@ type planVisitor struct {
 }
 
 func (visitor *planVisitor) VisitTask(step *atc.TaskStep) error {
-	if step.Config != nil {
-		step.Config.ImageResource.ApplySourceDefaults(visitor.resourceTypes)
-	}
-
 	visitor.plan = visitor.planFactory.NewPlan(atc.TaskPlan{
 		Name:              step.Name,
 		Privileged:        step.Privileged,
