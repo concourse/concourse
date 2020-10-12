@@ -2913,7 +2913,7 @@ all =
                             }
                         }
                     ]
-                , test "when check returns 'started', refreshes on 1s tick" <|
+                , test "when check is created, fetches resource" <|
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
@@ -2928,54 +2928,8 @@ all =
                                     Ok <|
                                         Data.build Concourse.BuildStatus.BuildStatusStarted
                                 )
-                            |> Tuple.first
-                            |> Application.handleDelivery
-                                (ClockTicked OneSecond <|
-                                    Time.millisToPosix 1000
-                                )
                             |> Tuple.second
-                            |> Common.contains (Effects.FetchCheck 1)
-                , test "when check resolves successfully, resource and versions refresh and output streams" <|
-                    \_ ->
-                        init
-                            |> givenResourceIsNotPinned
-                            |> givenUserIsAuthorized
-                            |> update
-                                (Message.Message.Click <|
-                                    Message.Message.CheckButton True
-                                )
-                            |> Tuple.first
-                            |> Application.handleCallback
-                                (Callback.Checked <|
-                                    Ok <|
-                                        Data.build Concourse.BuildStatus.BuildStatusSucceeded
-                                )
-                            |> Tuple.second
-                            |> Expect.equal
-                                [ Effects.FetchResource Data.resourceId
-                                , Effects.FetchVersionedResources Data.resourceId Resource.startingPage
-                                , Effects.FetchBuildPlan 1
-                                ]
-                , test "when check resolves unsuccessfully, resource refreshes and output streams" <|
-                    \_ ->
-                        init
-                            |> givenResourceIsNotPinned
-                            |> givenUserIsAuthorized
-                            |> update
-                                (Message.Message.Click <|
-                                    Message.Message.CheckButton True
-                                )
-                            |> Tuple.first
-                            |> Application.handleCallback
-                                (Callback.Checked <|
-                                    Ok <|
-                                        Data.build Concourse.BuildStatus.BuildStatusErrored
-                                )
-                            |> Tuple.second
-                            |> Expect.equal
-                                [ Effects.FetchResource Data.resourceId
-                                , Effects.FetchBuildPlan 1
-                                ]
+                            |> Expect.equal [ Effects.FetchResource Data.resourceId ]
                 , test "when check returns 401, redirects to login" <|
                     \_ ->
                         init
@@ -3120,30 +3074,6 @@ all =
                                     Attr.title "Jan 1 1970 05:00:00 AM"
                                 ]
                 ]
-            , test "check in progress refreshes on 1s interval" <|
-                \_ ->
-                    init
-                        |> Application.handleCallback
-                            (Callback.ResourceFetched <|
-                                Ok
-                                    { teamName = teamName
-                                    , pipelineName = pipelineName
-                                    , name = resourceName
-                                    , lastChecked = Nothing
-                                    , pinnedVersion = Nothing
-                                    , pinnedInConfig = False
-                                    , pinComment = Nothing
-                                    , icon = Nothing
-                                    , build = Just (Data.build Concourse.BuildStatus.BuildStatusStarted)
-                                    }
-                            )
-                        |> Tuple.first
-                        |> Application.handleDelivery
-                            (ClockTicked OneSecond <|
-                                Time.millisToPosix 1000
-                            )
-                        |> Tuple.second
-                        |> Common.contains (Effects.FetchCheck 1)
             ]
         , describe "check build" <|
             let
@@ -3473,6 +3403,50 @@ all =
                                 [ containing [ text "check:" ]
                                 , containing [ text "some-resource" ]
                                 , containing [ text "hello" ]
+                                ]
+                , test "when build is running and end event is received, refreshes resource and versions" <|
+                    \_ ->
+                        init
+                            |> Application.handleCallback
+                                (Callback.ResourceFetched <|
+                                    Ok
+                                        { resource
+                                            | build =
+                                                Just <| Data.build Concourse.BuildStatus.BuildStatusStarted
+                                        }
+                                )
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 1 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            |> Tuple.first
+                            |> Application.handleDelivery
+                                (EventsReceived <|
+                                    Ok <|
+                                        [ { url = "/api/v1/builds/1/events"
+                                          , data = STModels.Log { id = "plan", source = "stderr" } "hello" Nothing
+                                          }
+                                        ]
+                                )
+                            |> Tuple.first
+                            |> Application.handleDelivery
+                                (EventsReceived <|
+                                    Ok <|
+                                        [ { url = "/api/v1/builds/1/events"
+                                          , data = STModels.End
+                                          }
+                                        ]
+                                )
+                            |> Tuple.second
+                            |> Expect.all
+                                [ Common.contains (Effects.FetchResource Data.resourceId)
+                                , Common.contains (Effects.FetchVersionedResources Data.resourceId Resource.startingPage)
                                 ]
                 , test "one tick after hovering step state, fetches viewport so tooltips can render" <|
                     \_ ->

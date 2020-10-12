@@ -22,6 +22,7 @@ import Application.Models exposing (Session)
 import Assets
 import Build.Output.Models exposing (OutputModel)
 import Build.Output.Output
+import Build.StepTree.Models as STModels
 import Build.StepTree.StepTree as StepTree
 import Concourse
 import Concourse.BuildStatus
@@ -519,29 +520,8 @@ handleCallback callback session ( model, effects ) =
             , effects
             )
 
-        Checked (Ok ({ status, id } as build)) ->
-            (case status of
-                Concourse.BuildStatus.BuildStatusSucceeded ->
-                    ( { model | checkStatus = Models.NotChecking }
-                    , effects
-                        ++ [ FetchResource model.resourceIdentifier
-                           , FetchVersionedResources
-                                model.resourceIdentifier
-                                model.currentPage
-                           ]
-                    )
-
-                Concourse.BuildStatus.BuildStatusStarted ->
-                    ( { model | checkStatus = Models.CurrentlyChecking id }
-                    , effects
-                    )
-
-                _ ->
-                    ( { model | checkStatus = Models.NotChecking }
-                    , effects ++ [ FetchResource model.resourceIdentifier ]
-                    )
-            )
-                |> initBuild (Just build)
+        Checked (Ok _) ->
+            ( model, effects ++ [ FetchResource model.resourceIdentifier ] )
 
         Checked (Err (Http.BadStatus { status })) ->
             ( model
@@ -631,20 +611,12 @@ handleDelivery session delivery ( model, effects ) =
 
         ClockTicked OneSecond time ->
             ( { model | now = Just time }
-            , (case model.checkStatus of
-                Models.CurrentlyChecking id ->
-                    effects ++ [ FetchCheck id ]
+            , case session.hovered of
+                HoverState.Hovered (StepState stepID) ->
+                    [ GetViewportOf (StepState stepID) ]
 
                 _ ->
-                    effects
-              )
-                ++ (case session.hovered of
-                        HoverState.Hovered (StepState stepID) ->
-                            [ GetViewportOf (StepState stepID) ]
-
-                        _ ->
-                            []
-                   )
+                    []
             )
 
         ClockTicked FiveSeconds _ ->
@@ -663,9 +635,23 @@ handleDelivery session delivery ( model, effects ) =
             )
 
         EventsReceived (Ok envelopes) ->
+            let
+                ended =
+                    List.any (\{ data } -> data == STModels.End) envelopes
+            in
             updateOutput
                 (Build.Output.Output.handleEnvelopes envelopes)
-                ( model, effects )
+                ( model
+                , effects
+                    ++ (if ended then
+                            [ FetchResource model.resourceIdentifier
+                            , FetchVersionedResources model.resourceIdentifier model.currentPage
+                            ]
+
+                        else
+                            []
+                       )
+                )
 
         _ ->
             ( model, effects )
@@ -1283,10 +1269,10 @@ checkButton ({ hovered, userState, checkStatus } as params) =
 
         isCurrentlyChecking =
             case checkStatus of
-                Models.CurrentlyChecking _ ->
+                Models.CheckPending ->
                     True
 
-                Models.CheckPending ->
+                Models.CurrentlyChecking _ ->
                     True
 
                 _ ->
