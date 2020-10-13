@@ -66,8 +66,20 @@ var _ = Describe("TaskDelegate", func() {
 		It("calls SaveEvent with the taskConfig", func() {
 			Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 			event := fakeBuild.SaveEventArgsForCall(0)
-			b := `{"time":.*,"origin":{"id":"some-plan-id"},"config":{"platform":"some-platform","image":"","run":{"path":"some-foo-path","args":null,"dir":"some-bar-dir"},"inputs":null}}`
-			Expect(json.Marshal(event)).To(MatchRegexp(b))
+			Expect(json.Marshal(event)).To(MatchJSON(`{
+				"time": 675927000,
+				"origin": {"id": "some-plan-id"},
+				"config": {
+					"platform": "some-platform",
+					"image":"",
+					"run": {
+						"path": "some-foo-path",
+						"args": null,
+						"dir": "some-bar-dir"
+					},
+					"inputs":null
+				}
+			}`))
 		})
 	})
 
@@ -85,8 +97,20 @@ var _ = Describe("TaskDelegate", func() {
 		It("calls SaveEvent with the taskConfig", func() {
 			Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 			event := fakeBuild.SaveEventArgsForCall(0)
-			b := `{"time":.*,"origin":{"id":"some-plan-id"},"config":{"platform":"some-platform","image":"","run":{"path":"some-foo-path","args":null,"dir":"some-bar-dir"},"inputs":null}}`
-			Expect(json.Marshal(event)).To(MatchRegexp(b))
+			Expect(json.Marshal(event)).To(MatchJSON(`{
+				"time": 675927000,
+				"origin": {"id": "some-plan-id"},
+				"config": {
+					"platform": "some-platform",
+					"image":"",
+					"run": {
+						"path": "some-foo-path",
+						"args": null,
+						"dir": "some-bar-dir"
+					},
+					"inputs":null
+				}
+			}`))
 		})
 	})
 
@@ -99,6 +123,82 @@ var _ = Describe("TaskDelegate", func() {
 			Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 			event := fakeBuild.SaveEventArgsForCall(0)
 			Expect(event.EventType()).To(Equal(atc.EventType("finish-task")))
+		})
+	})
+
+	Describe("ImageCheck", func() {
+		var plan atc.Plan
+
+		BeforeEach(func() {
+			plan = atc.Plan{
+				ID: "some-sub-plan-id",
+				Check: &atc.CheckPlan{
+					Name:   "some-name",
+					Type:   "some-type",
+					Source: atc.Source{"some": "source"},
+				},
+			}
+		})
+
+		JustBeforeEach(func() {
+			delegate.ImageCheck(logger, plan)
+		})
+
+		It("saves an event", func() {
+			Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+			event := fakeBuild.SaveEventArgsForCall(0)
+			Expect(event.EventType()).To(Equal(atc.EventType("image-check")))
+			Expect(json.Marshal(event)).To(MatchJSON(`{
+				"time": 675927000,
+				"origin": {"id": "some-plan-id"},
+				"plan": {
+					"id": "some-sub-plan-id",
+					"check": {
+						"name": "some-name",
+						"type": "some-type",
+						"source": {"some": "source"}
+					}
+				}
+			}`))
+		})
+	})
+
+	Describe("ImageGet", func() {
+		var plan atc.Plan
+
+		BeforeEach(func() {
+			plan = atc.Plan{
+				ID: "some-sub-plan-id",
+				Get: &atc.GetPlan{
+					Name:    "some-name",
+					Type:    "some-type",
+					Source:  atc.Source{"some": "source"},
+					Version: &atc.Version{"some": "version"},
+				},
+			}
+		})
+
+		JustBeforeEach(func() {
+			delegate.ImageGet(logger, plan)
+		})
+
+		It("saves an event", func() {
+			Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+			event := fakeBuild.SaveEventArgsForCall(0)
+			Expect(event.EventType()).To(Equal(atc.EventType("image-get")))
+			Expect(json.Marshal(event)).To(MatchJSON(`{
+				"time": 675927000,
+				"origin": {"id": "some-plan-id"},
+				"plan": {
+					"id": "some-sub-plan-id",
+					"get": {
+						"name": "some-name",
+						"type": "some-type",
+						"source": {"some": "source"},
+						"version": {"some": "version"}
+					}
+				}
+			}`))
 		})
 	})
 })

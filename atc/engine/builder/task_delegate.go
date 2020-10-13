@@ -2,7 +2,6 @@ package builder
 
 import (
 	"io"
-	"time"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
@@ -18,6 +17,7 @@ func NewTaskDelegate(build db.Build, planID atc.PlanID, state exec.RunState, clo
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,
+		clock:       clock,
 	}
 }
 
@@ -26,6 +26,7 @@ type taskDelegate struct {
 	config      atc.TaskConfig
 	build       db.Build
 	eventOrigin event.Origin
+	clock       clock.Clock
 }
 
 func (d *taskDelegate) SetTaskConfig(config atc.TaskConfig) {
@@ -35,7 +36,7 @@ func (d *taskDelegate) SetTaskConfig(config atc.TaskConfig) {
 func (d *taskDelegate) Initializing(logger lager.Logger) {
 	err := d.build.SaveEvent(event.InitializeTask{
 		Origin:     d.eventOrigin,
-		Time:       time.Now().Unix(),
+		Time:       d.clock.Now().Unix(),
 		TaskConfig: event.ShadowTaskConfig(d.config),
 	})
 	if err != nil {
@@ -49,7 +50,7 @@ func (d *taskDelegate) Initializing(logger lager.Logger) {
 func (d *taskDelegate) Starting(logger lager.Logger) {
 	err := d.build.SaveEvent(event.StartTask{
 		Origin:     d.eventOrigin,
-		Time:       time.Now().Unix(),
+		Time:       d.clock.Now().Unix(),
 		TaskConfig: event.ShadowTaskConfig(d.config),
 	})
 	if err != nil {
@@ -67,7 +68,7 @@ func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus)
 
 	err := d.build.SaveEvent(event.FinishTask{
 		ExitStatus: int(exitStatus),
-		Time:       time.Now().Unix(),
+		Time:       d.clock.Now().Unix(),
 		Origin:     d.eventOrigin,
 	})
 	if err != nil {
@@ -76,4 +77,28 @@ func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus)
 	}
 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
+}
+
+func (d *taskDelegate) ImageCheck(logger lager.Logger, plan atc.Plan) {
+	err := d.build.SaveEvent(event.ImageCheck{
+		Time:   d.clock.Now().Unix(),
+		Origin: d.eventOrigin,
+		Plan:   plan,
+	})
+	if err != nil {
+		logger.Error("failed-to-save-image-check-event", err)
+		return
+	}
+}
+
+func (d *taskDelegate) ImageGet(logger lager.Logger, plan atc.Plan) {
+	err := d.build.SaveEvent(event.ImageGet{
+		Time:   d.clock.Now().Unix(),
+		Origin: d.eventOrigin,
+		Plan:   plan,
+	})
+	if err != nil {
+		logger.Error("failed-to-save-image-get-event", err)
+		return
+	}
 }
