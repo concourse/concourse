@@ -25,25 +25,23 @@ func newBuildVariables(credVars vars.Variables, enableRedaction bool) *buildVari
 	}
 }
 
-func (b *buildVariables) Get(varDef vars.VariableDefinition) (interface{}, bool, error) {
-	if varDef.Ref.Source == "." {
-		val, found, _ := b.localVars.Get(varDef)
+func (b *buildVariables) Get(ref vars.Reference) (interface{}, bool, error) {
+	if ref.Source == "." {
+		val, found, _ := b.localVars.Get(ref)
 		if found {
 			return val, true, nil
 		}
 	}
-	return b.parentScope.Get(varDef)
+	return b.parentScope.Get(ref)
 }
 
-func (b *buildVariables) List() ([]vars.VariableDefinition, error) {
+func (b *buildVariables) List() ([]vars.Reference, error) {
 	list, err := b.parentScope.List()
 	if err != nil {
 		return nil, err
 	}
 	for k := range b.localVars {
-		list = append(list, vars.VariableDefinition{
-			Ref: vars.Reference{Source: ".", Path: k},
-		})
+		list = append(list, vars.Reference{Source: ".", Path: k})
 	}
 	return list, nil
 }

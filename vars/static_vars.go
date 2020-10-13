@@ -4,17 +4,17 @@ type StaticVariables map[string]interface{}
 
 var _ Variables = StaticVariables{}
 
-func (v StaticVariables) Get(varDef VariableDefinition) (interface{}, bool, error) {
-	val, found := v[varDef.Ref.Path]
+func (v StaticVariables) Get(ref Reference) (interface{}, bool, error) {
+	val, found := v[ref.Path]
 	return val, found, nil
 }
 
-func (v StaticVariables) List() ([]VariableDefinition, error) {
-	var defs []VariableDefinition
+func (v StaticVariables) List() ([]Reference, error) {
+	var refs []Reference
 
 	for name, _ := range v {
-		defs = append(defs, VariableDefinition{Ref: Reference{Path: name}})
+		refs = append(refs, Reference{Path: name})
 	}
 
-	return defs, nil
+	return refs, nil
 }

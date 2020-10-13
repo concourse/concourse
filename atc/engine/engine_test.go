@@ -165,7 +165,7 @@ var _ = Describe("Engine", func() {
 								It("runs the step with the build variables", func() {
 									state := <-invokedState
 
-									val, found, err := state.Get(vars.VariableDefinition{Ref: vars.Reference{Path: "foo"}})
+									val, found, err := state.Get(vars.Reference{Path: "foo"})
 									Expect(err).ToNot(HaveOccurred())
 									Expect(found).To(BeTrue())
 									Expect(val).To(Equal("bar"))

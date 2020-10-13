@@ -73,15 +73,15 @@ type CredVarsTracker struct {
 	CredVars Variables
 }
 
-func (t *CredVarsTracker) Get(varDef VariableDefinition) (interface{}, bool, error) {
-	val, found, err := t.CredVars.Get(varDef)
+func (t *CredVarsTracker) Get(ref Reference) (interface{}, bool, error) {
+	val, found, err := t.CredVars.Get(ref)
 	if found {
-		t.Tracker.Track(varDef.Ref, val)
+		t.Tracker.Track(ref, val)
 	}
 	return val, found, err
 }
 
-func (t *CredVarsTracker) List() ([]VariableDefinition, error) {
+func (t *CredVarsTracker) List() ([]Reference, error) {
 	return t.CredVars.List()
 }
 

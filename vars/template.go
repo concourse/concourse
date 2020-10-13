@@ -194,7 +194,7 @@ func (t varsTracker) Get(varName string) (interface{}, bool, error) {
 
 	t.visitedAll[identifier(varRef)] = struct{}{}
 
-	val, found, err := t.vars.Get(VariableDefinition{Ref: varRef})
+	val, found, err := t.vars.Get(varRef)
 	if !found || err != nil {
 		t.missing[varRef.Name] = struct{}{}
 		return val, found, err
@@ -259,15 +259,15 @@ func (t varsTracker) ExtraError() error {
 		return nil
 	}
 
-	allDefs, err := t.vars.List()
+	allRefs, err := t.vars.List()
 	if err != nil {
 		return err
 	}
 
 	unusedNames := map[string]struct{}{}
 
-	for _, def := range allDefs {
-		id := identifier(def.Ref)
+	for _, ref := range allRefs {
+		id := identifier(ref)
 		if _, found := t.visitedAll[id]; !found {
 			unusedNames[id] = struct{}{}
 		}

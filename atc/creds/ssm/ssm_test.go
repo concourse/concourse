@@ -87,11 +87,11 @@ func (mock *MockSsmService) GetParametersByPathPages(input *ssm.GetParametersByP
 var _ = Describe("Ssm", func() {
 	var ssmAccess *Ssm
 	var variables vars.Variables
-	var varDef vars.VariableDefinition
+	var varRef vars.Reference
 	var mockService MockSsmService
 
 	JustBeforeEach(func() {
-		varDef = vars.VariableDefinition{Ref: vars.Reference{Path: "cheery"}}
+		varRef = vars.Reference{Path: "cheery"}
 		t1, err := creds.BuildSecretTemplate("t1", DefaultPipelineSecretTemplate)
 		Expect(t1).NotTo(BeNil())
 		Expect(err).To(BeNil())
@@ -114,7 +114,7 @@ var _ = Describe("Ssm", func() {
 
 	Describe("Get()", func() {
 		It("should get parameter if exists", func() {
-			value, found, err := variables.Get(varDef)
+			value, found, err := variables.Get(varRef)
 			Expect(value).To(BeEquivalentTo("ssm decrypted value"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -132,7 +132,7 @@ var _ = Describe("Ssm", func() {
 					},
 				}
 			}
-			value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.Reference{Path: "user"}})
+			value, found, err := variables.Get(vars.Reference{Path: "user"})
 			Expect(value).To(BeEquivalentTo(map[string]interface{}{
 				"name": "yours",
 				"pass": "truely",
@@ -145,7 +145,7 @@ var _ = Describe("Ssm", func() {
 			mockService.stubGetParameter = func(input string) (string, error) {
 				return "101", nil
 			}
-			value, found, err := variables.Get(varDef)
+			value, found, err := variables.Get(varRef)
 			Expect(value).To(BeEquivalentTo("101"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -158,7 +158,7 @@ var _ = Describe("Ssm", func() {
 				}
 				return "team decrypted value", nil
 			}
-			value, found, err := variables.Get(varDef)
+			value, found, err := variables.Get(varRef)
 			Expect(value).To(BeEquivalentTo("team decrypted value"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -166,7 +166,7 @@ var _ = Describe("Ssm", func() {
 
 		It("should return not found on error", func() {
 			mockService.stubGetParameter = nil
-			value, found, err := variables.Get(varDef)
+			value, found, err := variables.Get(varRef)
 			Expect(value).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).NotTo(BeNil())
@@ -178,7 +178,7 @@ var _ = Describe("Ssm", func() {
 				Expect(input).To(Equal("/concourse/alpha/cheery"))
 				return "team power", nil
 			}
-			value, found, err := variables.Get(varDef)
+			value, found, err := variables.Get(varRef)
 			Expect(value).To(BeEquivalentTo("team power"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())

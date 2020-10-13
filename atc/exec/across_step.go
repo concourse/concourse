@@ -64,9 +64,7 @@ func (step AcrossStep) Run(ctx context.Context, state RunState) error {
 	fmt.Fprintln(stderr, "")
 
 	for _, v := range step.vars {
-		_, found, _ := state.Get(vars.VariableDefinition{
-			Ref: vars.Reference{Source: ".", Path: v.Var},
-		})
+		_, found, _ := state.Get(vars.Reference{Source: ".", Path: v.Var})
 		if found {
 			fmt.Fprintf(stderr, "\x1b[1;33mWARNING: across step shadows local var '%s'\x1b[0m\n", v.Var)
 		}

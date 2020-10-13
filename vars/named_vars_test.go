@@ -12,7 +12,7 @@ import (
 var _ = Describe("NamedVariables", func() {
 	Describe("Get", func() {
 		It("return no value and not found if there are no sources", func() {
-			val, found, err := NamedVariables{}.Get(VariableDefinition{})
+			val, found, err := NamedVariables{}.Get(Reference{})
 			Expect(val).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).ToNot(HaveOccurred())
@@ -23,7 +23,7 @@ var _ = Describe("NamedVariables", func() {
 			vars2 := StaticVariables{"key2": "val"}
 			vars := NamedVariables{"s1": vars1, "s2": vars2}
 
-			val, found, err := vars.Get(VariableDefinition{Ref: Reference{Name: "s3:foo", Source: "s3"}})
+			val, found, err := vars.Get(Reference{Name: "s3:foo", Source: "s3"})
 			Expect(val).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).To(HaveOccurred())
@@ -36,7 +36,7 @@ var _ = Describe("NamedVariables", func() {
 			vars3 := &FakeVariables{GetErr: errors.New("fake-err")}
 			vars := NamedVariables{"s1": vars1, "s2": vars2, "s3": vars3}
 
-			val, found, err := vars.Get(VariableDefinition{Ref: Reference{Source: "s2", Path: "key2"}})
+			val, found, err := vars.Get(Reference{Source: "s2", Path: "key2"})
 			Expect(val).To(Equal("val"))
 			Expect(found).To(BeTrue())
 			Expect(err).ToNot(HaveOccurred())
@@ -51,7 +51,7 @@ var _ = Describe("NamedVariables", func() {
 			vars2 := StaticVariables{"key2": "val"}
 			vars := NamedVariables{"s1": vars1, "s2": vars2}
 
-			val, found, err := vars.Get(VariableDefinition{Ref: Reference{Name: "key1"}})
+			val, found, err := vars.Get(Reference{Name: "key1"})
 			Expect(val).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).ToNot(HaveOccurred())
@@ -62,7 +62,7 @@ var _ = Describe("NamedVariables", func() {
 			vars2 := &FakeVariables{GetErr: errors.New("fake-err")}
 			vars := NamedVariables{"s1": vars1, "s2": vars2}
 
-			val, found, err := vars.Get(VariableDefinition{Ref: Reference{Source: "s2", Name: "key3"}})
+			val, found, err := vars.Get(Reference{Source: "s2", Name: "key3"})
 			Expect(val).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).To(Equal(errors.New("fake-err")))
@@ -81,11 +81,11 @@ var _ = Describe("NamedVariables", func() {
 			}
 
 			defs, err = vars.List()
-			Expect(defs).To(ConsistOf([]VariableDefinition{
-				{Ref: Reference{Source: "s1", Path: "a"}},
-				{Ref: Reference{Source: "s1", Path: "b"}},
-				{Ref: Reference{Source: "s2", Path: "b"}},
-				{Ref: Reference{Source: "s2", Path: "c"}},
+			Expect(defs).To(ConsistOf([]Reference{
+				{Source: "s1", Path: "a"},
+				{Source: "s1", Path: "b"},
+				{Source: "s2", Path: "b"},
+				{Source: "s2", Path: "c"},
 			}))
 			Expect(err).ToNot(HaveOccurred())
 		})

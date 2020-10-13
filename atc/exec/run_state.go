@@ -47,11 +47,11 @@ func (state *runState) StoreResult(id atc.PlanID, val interface{}) {
 	state.results.Store(id, val)
 }
 
-func (state *runState) Get(varDef vars.VariableDefinition) (interface{}, bool, error) {
-	return state.vars.Get(varDef)
+func (state *runState) Get(ref vars.Reference) (interface{}, bool, error) {
+	return state.vars.Get(ref)
 }
 
-func (state *runState) List() ([]vars.VariableDefinition, error) {
+func (state *runState) List() ([]vars.Reference, error) {
 	return state.vars.List()
 }
 

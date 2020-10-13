@@ -3,8 +3,8 @@ package vars
 //go:generate counterfeiter . Variables
 
 type Variables interface {
-	Get(VariableDefinition) (interface{}, bool, error)
-	List() ([]VariableDefinition, error)
+	Get(Reference) (interface{}, bool, error)
+	List() ([]Reference, error)
 }
 
 type Reference struct {
@@ -12,10 +12,4 @@ type Reference struct {
 	Source string
 	Path   string
 	Fields []string
-}
-
-type VariableDefinition struct {
-	Ref     Reference
-	Type    string
-	Options interface{}
 }

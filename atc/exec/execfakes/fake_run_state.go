@@ -28,10 +28,10 @@ type FakeRunState struct {
 	artifactRepositoryReturnsOnCall map[int]struct {
 		result1 *build.Repository
 	}
-	GetStub        func(vars.VariableDefinition) (interface{}, bool, error)
+	GetStub        func(vars.Reference) (interface{}, bool, error)
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
-		arg1 vars.VariableDefinition
+		arg1 vars.Reference
 	}
 	getReturns struct {
 		result1 interface{}
@@ -48,16 +48,16 @@ type FakeRunState struct {
 	iterateInterpolatedCredsArgsForCall []struct {
 		arg1 vars.TrackedVarsIterator
 	}
-	ListStub        func() ([]vars.VariableDefinition, error)
+	ListStub        func() ([]vars.Reference, error)
 	listMutex       sync.RWMutex
 	listArgsForCall []struct {
 	}
 	listReturns struct {
-		result1 []vars.VariableDefinition
+		result1 []vars.Reference
 		result2 error
 	}
 	listReturnsOnCall map[int]struct {
-		result1 []vars.VariableDefinition
+		result1 []vars.Reference
 		result2 error
 	}
 	NewLocalScopeStub        func() exec.RunState
@@ -187,11 +187,11 @@ func (fake *FakeRunState) ArtifactRepositoryReturnsOnCall(i int, result1 *build.
 	}{result1}
 }
 
-func (fake *FakeRunState) Get(arg1 vars.VariableDefinition) (interface{}, bool, error) {
+func (fake *FakeRunState) Get(arg1 vars.Reference) (interface{}, bool, error) {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
-		arg1 vars.VariableDefinition
+		arg1 vars.Reference
 	}{arg1})
 	fake.recordInvocation("Get", []interface{}{arg1})
 	fake.getMutex.Unlock()
@@ -211,13 +211,13 @@ func (fake *FakeRunState) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeRunState) GetCalls(stub func(vars.VariableDefinition) (interface{}, bool, error)) {
+func (fake *FakeRunState) GetCalls(stub func(vars.Reference) (interface{}, bool, error)) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = stub
 }
 
-func (fake *FakeRunState) GetArgsForCall(i int) vars.VariableDefinition {
+func (fake *FakeRunState) GetArgsForCall(i int) vars.Reference {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	argsForCall := fake.getArgsForCall[i]
@@ -284,7 +284,7 @@ func (fake *FakeRunState) IterateInterpolatedCredsArgsForCall(i int) vars.Tracke
 	return argsForCall.arg1
 }
 
-func (fake *FakeRunState) List() ([]vars.VariableDefinition, error) {
+func (fake *FakeRunState) List() ([]vars.Reference, error) {
 	fake.listMutex.Lock()
 	ret, specificReturn := fake.listReturnsOnCall[len(fake.listArgsForCall)]
 	fake.listArgsForCall = append(fake.listArgsForCall, struct {
@@ -307,34 +307,34 @@ func (fake *FakeRunState) ListCallCount() int {
 	return len(fake.listArgsForCall)
 }
 
-func (fake *FakeRunState) ListCalls(stub func() ([]vars.VariableDefinition, error)) {
+func (fake *FakeRunState) ListCalls(stub func() ([]vars.Reference, error)) {
 	fake.listMutex.Lock()
 	defer fake.listMutex.Unlock()
 	fake.ListStub = stub
 }
 
-func (fake *FakeRunState) ListReturns(result1 []vars.VariableDefinition, result2 error) {
+func (fake *FakeRunState) ListReturns(result1 []vars.Reference, result2 error) {
 	fake.listMutex.Lock()
 	defer fake.listMutex.Unlock()
 	fake.ListStub = nil
 	fake.listReturns = struct {
-		result1 []vars.VariableDefinition
+		result1 []vars.Reference
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeRunState) ListReturnsOnCall(i int, result1 []vars.VariableDefinition, result2 error) {
+func (fake *FakeRunState) ListReturnsOnCall(i int, result1 []vars.Reference, result2 error) {
 	fake.listMutex.Lock()
 	defer fake.listMutex.Unlock()
 	fake.ListStub = nil
 	if fake.listReturnsOnCall == nil {
 		fake.listReturnsOnCall = make(map[int]struct {
-			result1 []vars.VariableDefinition
+			result1 []vars.Reference
 			result2 error
 		})
 	}
 	fake.listReturnsOnCall[i] = struct {
-		result1 []vars.VariableDefinition
+		result1 []vars.Reference
 		result2 error
 	}{result1, result2}
 }
