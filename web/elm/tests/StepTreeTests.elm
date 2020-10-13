@@ -19,7 +19,7 @@ import Array
 import Build.StepTree.Models as Models
 import Build.StepTree.StepTree as StepTree
 import Concourse exposing (BuildStep(..), HookedPlan, JsonValue(..))
-import Dict
+import Dict exposing (Dict)
 import Expect exposing (..)
 import Routes
 import Test exposing (..)
@@ -69,6 +69,8 @@ someVersionedStep version id name state =
     , initialize = Nothing
     , start = Nothing
     , finish = Nothing
+    , tabFocus = Models.Auto
+    , expandedHeaders = Dict.empty
     }
 
 
@@ -85,7 +87,7 @@ emptyResources =
 initTask : Test
 initTask =
     let
-        { tree, foci } =
+        { tree, steps } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "some-id"
@@ -95,23 +97,19 @@ initTask =
     describe "init with Task"
         [ test "the tree" <|
             \_ ->
-                Expect.equal
-                    (Models.Task (someStep "some-id" "some-name" Models.StepStatePending))
-                    tree
-        , test "using the focus" <|
+                Expect.equal (Models.Task "some-id") tree
+        , test "the step" <|
             \_ ->
-                assertFocus "some-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.Task (someStep "some-id" "some-name" Models.StepStateSucceeded))
+                assertSteps
+                    [ ( "some-id", someStep "some-id" "some-name" Models.StepStatePending ) ]
+                    steps
         ]
 
 
 initSetPipeline : Test
 initSetPipeline =
     let
-        { tree, foci } =
+        { tree, steps } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "some-id"
@@ -121,23 +119,17 @@ initSetPipeline =
     describe "init with SetPipeline"
         [ test "the tree" <|
             \_ ->
-                Expect.equal
-                    (Models.SetPipeline (someStep "some-id" "some-name" Models.StepStatePending))
-                    tree
-        , test "using the focus" <|
+                Expect.equal (Models.SetPipeline "some-id") tree
+        , test "the steps" <|
             \_ ->
-                assertFocus "some-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.SetPipeline (someStep "some-id" "some-name" Models.StepStateSucceeded))
+                assertSteps [ ( "some-id", someStep "some-id" "some-name" Models.StepStatePending ) ] steps
         ]
 
 
 initLoadVar : Test
 initLoadVar =
     let
-        { tree, foci } =
+        { tree, steps } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "some-id"
@@ -147,23 +139,17 @@ initLoadVar =
     describe "init with LoadVar"
         [ test "the tree" <|
             \_ ->
-                Expect.equal
-                    (Models.LoadVar (someStep "some-id" "some-name" Models.StepStatePending))
-                    tree
-        , test "using the focus" <|
+                Expect.equal (Models.LoadVar "some-id") tree
+        , test "the step" <|
             \_ ->
-                assertFocus "some-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.LoadVar (someStep "some-id" "some-name" Models.StepStateSucceeded))
+                assertSteps [ ( "some-id", someStep "some-id" "some-name" Models.StepStatePending ) ] steps
         ]
 
 
 initCheck : Test
 initCheck =
     let
-        { tree, foci } =
+        { tree, steps } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "some-id"
@@ -173,16 +159,10 @@ initCheck =
     describe "init with Check"
         [ test "the tree" <|
             \_ ->
-                Expect.equal
-                    (Models.Check (someStep "some-id" "some-name" Models.StepStatePending))
-                    tree
-        , test "using the focus" <|
+                Expect.equal (Models.Check "some-id") tree
+        , test "the step" <|
             \_ ->
-                assertFocus "some-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.Check (someStep "some-id" "some-name" Models.StepStateSucceeded))
+                assertSteps [ ( "some-id", someStep "some-id" "some-name" Models.StepStatePending ) ] steps
         ]
 
 
@@ -192,7 +172,7 @@ initGet =
         version =
             Dict.fromList [ ( "some", "version" ) ]
 
-        { tree, foci } =
+        { tree, steps } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "some-id"
@@ -202,23 +182,17 @@ initGet =
     describe "init with Get"
         [ test "the tree" <|
             \_ ->
-                Expect.equal
-                    (Models.Get (someVersionedStep (Just version) "some-id" "some-name" Models.StepStatePending))
-                    tree
-        , test "using the focus" <|
+                Expect.equal (Models.Get "some-id") tree
+        , test "the step" <|
             \_ ->
-                assertFocus "some-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.Get (someVersionedStep (Just version) "some-id" "some-name" Models.StepStateSucceeded))
+                assertSteps [ ( "some-id", someVersionedStep (Just version) "some-id" "some-name" Models.StepStatePending ) ] steps
         ]
 
 
 initPut : Test
 initPut =
     let
-        { tree, foci } =
+        { tree, steps } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "some-id"
@@ -228,23 +202,17 @@ initPut =
     describe "init with Put"
         [ test "the tree" <|
             \_ ->
-                Expect.equal
-                    (Models.Put (someStep "some-id" "some-name" Models.StepStatePending))
-                    tree
-        , test "using the focus" <|
+                Expect.equal (Models.Put "some-id") tree
+        , test "the step" <|
             \_ ->
-                assertFocus "some-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.Put (someStep "some-id" "some-name" Models.StepStateSucceeded))
+                assertSteps [ ( "some-id", someStep "some-id" "some-name" Models.StepStatePending ) ] steps
         ]
 
 
 initAggregate : Test
 initAggregate =
     let
-        { tree, foci } =
+        { tree, steps } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "aggregate-id"
@@ -264,31 +232,25 @@ initAggregate =
                     (Models.Aggregate
                         << Array.fromList
                      <|
-                        [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
-                        , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
+                        [ Models.Task "task-a-id"
+                        , Models.Task "task-b-id"
                         ]
                     )
                     tree
-        , test "using the focus" <|
+        , test "the steps" <|
             \_ ->
-                assertFocus "task-a-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.Aggregate
-                        << Array.fromList
-                     <|
-                        [ Models.Task (someStep "task-a-id" "task-a" Models.StepStateSucceeded)
-                        , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
-                        ]
-                    )
+                assertSteps
+                    [ ( "task-a-id", someStep "task-a-id" "task-a" Models.StepStatePending )
+                    , ( "task-b-id", someStep "task-b-id" "task-b" Models.StepStatePending )
+                    ]
+                    steps
         ]
 
 
 initAggregateNested : Test
 initAggregateNested =
     let
-        { tree, foci } =
+        { tree, steps } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "aggregate-id"
@@ -317,43 +279,33 @@ initAggregateNested =
                     (Models.Aggregate
                         << Array.fromList
                      <|
-                        [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
-                        , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
+                        [ Models.Task "task-a-id"
+                        , Models.Task "task-b-id"
                         , Models.Aggregate
                             << Array.fromList
                           <|
-                            [ Models.Task (someStep "task-c-id" "task-c" Models.StepStatePending)
-                            , Models.Task (someStep "task-d-id" "task-d" Models.StepStatePending)
+                            [ Models.Task "task-c-id"
+                            , Models.Task "task-d-id"
                             ]
                         ]
                     )
                     tree
-        , test "using the focuses for nested elements" <|
+        , test "the steps" <|
             \_ ->
-                assertFocus "task-c-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.Aggregate
-                        << Array.fromList
-                     <|
-                        [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
-                        , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
-                        , Models.Aggregate
-                            << Array.fromList
-                          <|
-                            [ Models.Task (someStep "task-c-id" "task-c" Models.StepStateSucceeded)
-                            , Models.Task (someStep "task-d-id" "task-d" Models.StepStatePending)
-                            ]
-                        ]
-                    )
+                assertSteps
+                    [ ( "task-a-id", someStep "task-a-id" "task-a" Models.StepStatePending )
+                    , ( "task-b-id", someStep "task-b-id" "task-b" Models.StepStatePending )
+                    , ( "task-c-id", someStep "task-c-id" "task-c" Models.StepStatePending )
+                    , ( "task-d-id", someStep "task-d-id" "task-d" Models.StepStatePending )
+                    ]
+                    steps
         ]
 
 
 initAcross : Test
 initAcross =
     let
-        { tree, foci } =
+        { tree, steps } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "across-id"
@@ -375,56 +327,31 @@ initAcross =
         [ test "the tree" <|
             \_ ->
                 Expect.equal
-                    (Models.Across [ "var" ]
+                    (Models.Across "across-id"
+                        [ "var" ]
                         [ [ JsonString "v1" ], [ JsonString "v2" ] ]
-                        [ False, False ]
-                        (someStep "across-id" "var" Models.StepStatePending)
                         << Array.fromList
                      <|
-                        [ Models.Task (someExpandedStep "task-a-id" "task-a" Models.StepStatePending)
-                        , Models.Task (someExpandedStep "task-b-id" "task-b" Models.StepStatePending)
+                        [ Models.Task "task-a-id"
+                        , Models.Task "task-b-id"
                         ]
                     )
                     tree
-        , test "using the focus on root step" <|
+        , test "the steps" <|
             \_ ->
-                assertFocus "across-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.Across [ "var" ]
-                        [ [ JsonString "v1" ], [ JsonString "v2" ] ]
-                        [ False, False ]
-                        (someStep "across-id" "var" Models.StepStateSucceeded)
-                        << Array.fromList
-                     <|
-                        [ Models.Task (someExpandedStep "task-a-id" "task-a" Models.StepStatePending)
-                        , Models.Task (someExpandedStep "task-b-id" "task-b" Models.StepStatePending)
-                        ]
-                    )
-        , test "using the focus on child step" <|
-            \_ ->
-                assertFocus "task-a-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.Across [ "var" ]
-                        [ [ JsonString "v1" ], [ JsonString "v2" ] ]
-                        [ False, False ]
-                        (someStep "across-id" "var" Models.StepStatePending)
-                        << Array.fromList
-                     <|
-                        [ Models.Task (someExpandedStep "task-a-id" "task-a" Models.StepStateSucceeded)
-                        , Models.Task (someExpandedStep "task-b-id" "task-b" Models.StepStatePending)
-                        ]
-                    )
+                assertSteps
+                    [ ( "across-id", someStep "across-id" "var" Models.StepStatePending )
+                    , ( "task-a-id", someExpandedStep "task-a-id" "task-a" Models.StepStatePending )
+                    , ( "task-b-id", someExpandedStep "task-b-id" "task-b" Models.StepStatePending )
+                    ]
+                    steps
         ]
 
 
 initAcrossNested : Test
 initAcrossNested =
     let
-        { tree, foci } =
+        { tree, steps } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "across-id"
@@ -456,54 +383,38 @@ initAcrossNested =
         [ test "the tree" <|
             \_ ->
                 Expect.equal
-                    (Models.Across [ "var1" ]
+                    (Models.Across "across-id"
+                        [ "var1" ]
                         [ [ JsonString "a1" ] ]
-                        [ False ]
-                        (someStep "across-id" "var1" Models.StepStatePending)
                         << Array.fromList
                      <|
-                        [ Models.Across [ "var2" ]
+                        [ Models.Across "nested-across-id"
+                            [ "var2" ]
                             [ [ JsonString "b1" ], [ JsonString "b2" ] ]
-                            [ False, False ]
-                            (someExpandedStep "nested-across-id" "var2" Models.StepStatePending)
                             << Array.fromList
                           <|
-                            [ Models.Task (someExpandedStep "task-a-id" "task-a" Models.StepStatePending)
-                            , Models.Task (someExpandedStep "task-b-id" "task-b" Models.StepStatePending)
+                            [ Models.Task "task-a-id"
+                            , Models.Task "task-b-id"
                             ]
                         ]
                     )
                     tree
-        , test "using the focuses for nested elements" <|
+        , test "the steps" <|
             \_ ->
-                assertFocus "task-a-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.Across [ "var1" ]
-                        [ [ JsonString "a1" ] ]
-                        [ False ]
-                        (someStep "across-id" "var1" Models.StepStatePending)
-                        << Array.fromList
-                     <|
-                        [ Models.Across [ "var2" ]
-                            [ [ JsonString "b1" ], [ JsonString "b2" ] ]
-                            [ False, False ]
-                            (someExpandedStep "nested-across-id" "var2" Models.StepStatePending)
-                            << Array.fromList
-                          <|
-                            [ Models.Task (someExpandedStep "task-a-id" "task-a" Models.StepStateSucceeded)
-                            , Models.Task (someExpandedStep "task-b-id" "task-b" Models.StepStatePending)
-                            ]
-                        ]
-                    )
+                assertSteps
+                    [ ( "across-id", someStep "across-id" "var1" Models.StepStatePending )
+                    , ( "nested-across-id", someExpandedStep "nested-across-id" "var2" Models.StepStatePending )
+                    , ( "task-a-id", someExpandedStep "task-a-id" "task-a" Models.StepStatePending )
+                    , ( "task-b-id", someExpandedStep "task-b-id" "task-b" Models.StepStatePending )
+                    ]
+                    steps
         ]
 
 
 initAcrossWithDo : Test
 initAcrossWithDo =
     let
-        { tree, foci } =
+        { tree, steps } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "across-id"
@@ -529,27 +440,34 @@ initAcrossWithDo =
         [ test "does not expand substeps" <|
             \_ ->
                 Expect.equal
-                    (Models.Across [ "var" ]
+                    (Models.Across "across-id"
+                        [ "var" ]
                         [ [ JsonString "v1" ] ]
-                        [ False ]
-                        (someStep "across-id" "var" Models.StepStatePending)
                         << Array.fromList
                      <|
                         [ Models.Do <|
                             Array.fromList
-                                [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
-                                , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
+                                [ Models.Task "task-a-id"
+                                , Models.Task "task-b-id"
                                 ]
                         ]
                     )
                     tree
+        , test "the steps" <|
+            \_ ->
+                assertSteps
+                    [ ( "across-id", someStep "across-id" "var" Models.StepStatePending )
+                    , ( "task-a-id", someStep "task-a-id" "task-a" Models.StepStatePending )
+                    , ( "task-b-id", someStep "task-b-id" "task-b" Models.StepStatePending )
+                    ]
+                    steps
         ]
 
 
 initInParallel : Test
 initInParallel =
     let
-        { tree, foci } =
+        { tree, steps } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "parallel-id"
@@ -569,31 +487,25 @@ initInParallel =
                     (Models.InParallel
                         << Array.fromList
                      <|
-                        [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
-                        , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
+                        [ Models.Task "task-a-id"
+                        , Models.Task "task-b-id"
                         ]
                     )
                     tree
-        , test "using the focus" <|
+        , test "the steps" <|
             \_ ->
-                assertFocus "task-a-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.InParallel
-                        << Array.fromList
-                     <|
-                        [ Models.Task (someStep "task-a-id" "task-a" Models.StepStateSucceeded)
-                        , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
-                        ]
-                    )
+                assertSteps
+                    [ ( "task-a-id", someStep "task-a-id" "task-a" Models.StepStatePending )
+                    , ( "task-b-id", someStep "task-b-id" "task-b" Models.StepStatePending )
+                    ]
+                    steps
         ]
 
 
 initInParallelNested : Test
 initInParallelNested =
     let
-        { tree, foci } =
+        { tree, steps } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "parallel-id"
@@ -622,43 +534,33 @@ initInParallelNested =
                     (Models.InParallel
                         << Array.fromList
                      <|
-                        [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
-                        , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
+                        [ Models.Task "task-a-id"
+                        , Models.Task "task-b-id"
                         , Models.InParallel
                             << Array.fromList
                           <|
-                            [ Models.Task (someStep "task-c-id" "task-c" Models.StepStatePending)
-                            , Models.Task (someStep "task-d-id" "task-d" Models.StepStatePending)
+                            [ Models.Task "task-c-id"
+                            , Models.Task "task-d-id"
                             ]
                         ]
                     )
                     tree
-        , test "using the focuses for nested elements" <|
+        , test "the steps" <|
             \_ ->
-                assertFocus "task-c-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.InParallel
-                        << Array.fromList
-                     <|
-                        [ Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
-                        , Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending)
-                        , Models.InParallel
-                            << Array.fromList
-                          <|
-                            [ Models.Task (someStep "task-c-id" "task-c" Models.StepStateSucceeded)
-                            , Models.Task (someStep "task-d-id" "task-d" Models.StepStatePending)
-                            ]
-                        ]
-                    )
+                assertSteps
+                    [ ( "task-a-id", someStep "task-a-id" "task-a" Models.StepStatePending )
+                    , ( "task-b-id", someStep "task-b-id" "task-b" Models.StepStatePending )
+                    , ( "task-c-id", someStep "task-c-id" "task-c" Models.StepStatePending )
+                    , ( "task-d-id", someStep "task-d-id" "task-d" Models.StepStatePending )
+                    ]
+                    steps
         ]
 
 
 initOnSuccess : Test
 initOnSuccess =
     let
-        { tree, foci } =
+        { tree, steps } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "on-success-id"
@@ -675,39 +577,24 @@ initOnSuccess =
                 Expect.equal
                     (Models.OnSuccess <|
                         Models.HookedStep
-                            (Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending))
-                            (Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending))
+                            (Models.Task "task-a-id")
+                            (Models.Task "task-b-id")
                     )
                     tree
-        , test "updating a step via the focus" <|
+        , test "the steps" <|
             \_ ->
-                assertFocus "task-a-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.OnSuccess <|
-                        Models.HookedStep
-                            (Models.Task (someStep "task-a-id" "task-a" Models.StepStateSucceeded))
-                            (Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending))
-                    )
-        , test "updating a hook via the focus" <|
-            \_ ->
-                assertFocus "task-b-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.OnSuccess <|
-                        Models.HookedStep
-                            (Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending))
-                            (Models.Task (someStep "task-b-id" "task-b" Models.StepStateSucceeded))
-                    )
+                assertSteps
+                    [ ( "task-a-id", someStep "task-a-id" "task-a" Models.StepStatePending )
+                    , ( "task-b-id", someStep "task-b-id" "task-b" Models.StepStatePending )
+                    ]
+                    steps
         ]
 
 
 initOnFailure : Test
 initOnFailure =
     let
-        { tree, foci } =
+        { tree, steps } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "on-success-id"
@@ -724,39 +611,24 @@ initOnFailure =
                 Expect.equal
                     (Models.OnFailure <|
                         Models.HookedStep
-                            (Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending))
-                            (Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending))
+                            (Models.Task "task-a-id")
+                            (Models.Task "task-b-id")
                     )
                     tree
-        , test "updating a step via the focus" <|
+        , test "the steps" <|
             \_ ->
-                assertFocus "task-a-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.OnFailure <|
-                        Models.HookedStep
-                            (Models.Task (someStep "task-a-id" "task-a" Models.StepStateSucceeded))
-                            (Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending))
-                    )
-        , test "updating a hook via the focus" <|
-            \_ ->
-                assertFocus "task-b-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.OnFailure <|
-                        Models.HookedStep
-                            (Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending))
-                            (Models.Task (someStep "task-b-id" "task-b" Models.StepStateSucceeded))
-                    )
+                assertSteps
+                    [ ( "task-a-id", someStep "task-a-id" "task-a" Models.StepStatePending )
+                    , ( "task-b-id", someStep "task-b-id" "task-b" Models.StepStatePending )
+                    ]
+                    steps
         ]
 
 
 initEnsure : Test
 initEnsure =
     let
-        { tree, foci } =
+        { tree, steps } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "on-success-id"
@@ -773,39 +645,24 @@ initEnsure =
                 Expect.equal
                     (Models.Ensure <|
                         Models.HookedStep
-                            (Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending))
-                            (Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending))
+                            (Models.Task "task-a-id")
+                            (Models.Task "task-b-id")
                     )
                     tree
-        , test "updating a step via the focus" <|
+        , test "the steps" <|
             \_ ->
-                assertFocus "task-a-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.Ensure <|
-                        Models.HookedStep
-                            (Models.Task (someStep "task-a-id" "task-a" Models.StepStateSucceeded))
-                            (Models.Task (someStep "task-b-id" "task-b" Models.StepStatePending))
-                    )
-        , test "updating a hook via the focus" <|
-            \_ ->
-                assertFocus "task-b-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.Ensure <|
-                        Models.HookedStep
-                            (Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending))
-                            (Models.Task (someStep "task-b-id" "task-b" Models.StepStateSucceeded))
-                    )
+                assertSteps
+                    [ ( "task-a-id", someStep "task-a-id" "task-a" Models.StepStatePending )
+                    , ( "task-b-id", someStep "task-b-id" "task-b" Models.StepStatePending )
+                    ]
+                    steps
         ]
 
 
 initTry : Test
 initTry =
     let
-        { tree, foci } =
+        { tree, steps } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "on-success-id"
@@ -818,25 +675,22 @@ initTry =
             \_ ->
                 Expect.equal
                     (Models.Try <|
-                        Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
+                        Models.Task "task-a-id"
                     )
                     tree
-        , test "updating a step via the focus" <|
+        , test "the steps" <|
             \_ ->
-                assertFocus "task-a-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.Try <|
-                        Models.Task (someStep "task-a-id" "task-a" Models.StepStateSucceeded)
-                    )
+                assertSteps
+                    [ ( "task-a-id", someStep "task-a-id" "task-a" Models.StepStatePending )
+                    ]
+                    steps
         ]
 
 
 initTimeout : Test
 initTimeout =
     let
-        { tree, foci } =
+        { tree, steps } =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "on-success-id"
@@ -849,37 +703,21 @@ initTimeout =
             \_ ->
                 Expect.equal
                     (Models.Timeout <|
-                        Models.Task (someStep "task-a-id" "task-a" Models.StepStatePending)
+                        Models.Task "task-a-id"
                     )
                     tree
-        , test "updating a step via the focus" <|
+        , test "the steps" <|
             \_ ->
-                assertFocus "task-a-id"
-                    foci
-                    tree
-                    (\s -> { s | state = Models.StepStateSucceeded })
-                    (Models.Timeout <|
-                        Models.Task (someStep "task-a-id" "task-a" Models.StepStateSucceeded)
-                    )
+                assertSteps
+                    [ ( "task-a-id", someStep "task-a-id" "task-a" Models.StepStatePending )
+                    ]
+                    steps
         ]
 
 
-assertFocus :
-    Routes.StepID
-    -> Dict.Dict Routes.StepID Models.StepFocus
-    -> Models.StepTree
-    -> (Models.Step -> Models.Step)
-    -> Models.StepTree
-    -> Expectation
-assertFocus id foci tree update expected =
-    case Dict.get id foci of
-        Nothing ->
-            Expect.true "failed" False
-
-        Just focus ->
-            Expect.equal
-                expected
-                (focus (Models.map update) tree)
+assertSteps : List ( Routes.StepID, Models.Step ) -> Dict Routes.StepID Models.Step -> Expectation
+assertSteps expected actual =
+    Expect.equalDicts (Dict.fromList expected) actual
 
 
 cookedLog : Ansi.Log.Model

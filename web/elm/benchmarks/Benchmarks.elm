@@ -723,7 +723,7 @@ sampleOldModel =
             , prep = Nothing
             , output =
                 Output
-                    { steps = steps
+                    { steps = stepsModel
                     , state = Build.Output.Models.StepsLiveUpdating
                     , eventSourceOpened = True
                     , eventStreamUrlPath = Nothing
@@ -759,7 +759,7 @@ sampleModel =
     , status = Concourse.BuildStatus.BuildStatusStarted
     , output =
         Output
-            { steps = steps
+            { steps = stepsModel
             , state = Build.Output.Models.StepsLiveUpdating
             , eventSourceOpened = True
             , eventStreamUrlPath = Nothing
@@ -817,7 +817,12 @@ log =
 
 tree : STModels.StepTree
 tree =
-    STModels.Task
+    STModels.Task "stepid"
+
+
+steps : Dict Routes.StepID STModels.Step
+steps =
+    Dict.singleton "stepid"
         { id = "stepid"
         , name = "task_step"
         , state = STModels.StepStateRunning
@@ -831,14 +836,16 @@ tree =
         , initialize = Nothing
         , start = Nothing
         , finish = Nothing
+        , tabFocus = STModels.Auto
+        , expandedHeaders = Dict.empty
         }
 
 
-steps : Maybe STModels.StepTreeModel
-steps =
+stepsModel : Maybe STModels.StepTreeModel
+stepsModel =
     Just
         { tree = tree
-        , foci = Dict.empty
+        , steps = steps
         , highlight = Routes.HighlightNothing
         }
 

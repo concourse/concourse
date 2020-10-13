@@ -3174,60 +3174,6 @@ all =
                         >> Common.queryView
                         >> Query.findAll [ text "new version" ]
                         >> Query.count (Expect.equal 1)
-                , test "artifact input step always has checkmark at the right" <|
-                    fetchPlanWithArtifactInputStep
-                        >> Common.queryView
-                        >> Query.find [ class "header" ]
-                        >> Query.children []
-                        >> Query.index -1
-                        >> Query.has
-                            (iconSelector
-                                { size = "28px"
-                                , image = Assets.SuccessCheckIcon
-                                }
-                                ++ [ style "background-size" "14px 14px" ]
-                            )
-                , test "artifact output step has pending icon while build runs" <|
-                    fetchPlanWithEnsureArtifactOutputStep
-                        >> Common.queryView
-                        >> Query.findAll [ class "header" ]
-                        >> Query.index -1
-                        >> Query.children []
-                        >> Query.index -1
-                        >> Query.has
-                            (iconSelector
-                                { size = "28px"
-                                , image = Assets.PendingIcon
-                                }
-                                ++ [ style "background-size" "14px 14px" ]
-                            )
-                , test "artifact output step has green check on finished build" <|
-                    fetchPlanWithEnsureArtifactOutputStep
-                        >> Application.handleDelivery
-                            (EventsReceived <|
-                                Ok <|
-                                    [ { url =
-                                            eventsUrl
-                                      , data =
-                                            STModels.BuildStatus
-                                                BuildStatusFailed
-                                                (Time.millisToPosix 0)
-                                      }
-                                    ]
-                            )
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.findAll [ class "header" ]
-                        >> Query.index -1
-                        >> Query.children []
-                        >> Query.index -1
-                        >> Query.has
-                            (iconSelector
-                                { size = "28px"
-                                , image = Assets.SuccessCheckIcon
-                                }
-                                ++ [ style "background-size" "14px 14px" ]
-                            )
                 , test "successful step has a checkmark at the far right" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
