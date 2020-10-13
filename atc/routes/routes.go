@@ -173,7 +173,12 @@ func NewHandler(
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(dbTeamFactory)
 
-	r.Name(atc.CreateBuild).Path("/api/v1/teams/{team_name}/builds").Methods("POST")
+	r.Use(func(handler http.Handler) http.Handler {
+		return auth.CheckAuthenticationIfProvidedHandler(
+			handler,
+			auth.UnauthorizedRejector{},
+		)
+	})
 
 	r.Name(atc.ListBuilds).Path("/api/v1/builds").Methods("GET")
 	r.Name(atc.GetBuild).Path("/api/v1/builds/{build_id}").Methods("GET")
@@ -184,167 +189,109 @@ func NewHandler(
 	r.Name(atc.GetBuildPreparation).Path("/api/v1/builds/{build_id}/preparation").Methods("GET")
 	r.Name(atc.ListBuildArtifacts).Path("/api/v1/builds/{build_id}/artifacts").Methods("GET")
 
+	r.Name(atc.ListTeams).Path("/api/v1/teams").Methods("GET")
 	r.Name(atc.ListAllJobs).Path("/api/v1/jobs").Methods("GET")
+	r.Name(atc.ListAllPipelines).Path("/api/v1/pipelines").Methods("GET")
+	r.Name(atc.ListAllResources).Path("/api/v1/resources").Methods("GET")
 
-	pr := r.PathPrefix("/api/v1/teams/{team_name}/pipelines/{pipeline_name}").
-		Subrouter()
-
-	pc := pr.PathPrefix("/config").Subrouter()
-	pc.Use(func(handler http.Handler) http.Handler {
-		return auth.CheckAuthorizationHandler(
-			handler,
+	r.Name(atc.GetCC).
+		Path("/api/v1/teams/{team_name}/cc.xml").
+		Methods("GET").
+		Handler(auth.CheckAuthorizationHandler(
+			http.HandlerFunc(ccServer.GetCC),
 			auth.UnauthorizedRejector{},
-		)
-	})
-	pc.Name(atc.SaveConfig).
+		))
+	r.Name(atc.CreateBuild).
+		Path("/api/v1/teams/{team_name}/builds").
+		Methods("POST").
+		Handler(auth.CheckAuthenticationHandler(
+			teamHandlerFactory.HandlerFor(buildServer.CreateBuild),
+			auth.UnauthorizedRejector{},
+		))
+	r.Name(atc.ListPipelines).
+		Path("/api/v1/teams/{team_name}/pipelines").
+		Methods("GET").
+		HandlerFunc(pipelineServer.ListPipelines)
+	r.Name(atc.OrderPipelines).
+		Path("/api/v1/teams/{team_name}/pipelines/ordering").
 		Methods("PUT").
-		HandlerFunc(configServer.SaveConfig)
-	pc.Name(atc.GetConfig).
-		Methods("GET").
-		HandlerFunc(configServer.GetConfig)
-
-	jsr := pr.Path("/jobs").Subrouter()
-	jsr.Use(func(handler http.Handler) http.Handler {
-		return checkPipelineAccessHandlerFactory.HandlerFor(
-			handler,
+		Handler(auth.CheckAuthorizationHandler(
+			http.HandlerFunc(pipelineServer.OrderPipelines),
 			auth.UnauthorizedRejector{},
-		)
-	})
-	jsr.Name(atc.ListJobs).
-		Methods("GET").
-		HandlerFunc(pipelineHandlerFactory.HandlerFor(jobServer.ListJobs))
+		))
 
-	jr := jsr.PathPrefix("/{job_name}").Subrouter()
-	jr.Name(atc.GetJob).
-		Methods("GET").
-		HandlerFunc(pipelineHandlerFactory.HandlerFor(jobServer.GetJob))
-	r.Name(atc.ListJobBuilds).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/builds").
+	r.Name(atc.ListWorkers).
+		Path("/api/v1/workers").
 		Methods("GET")
-	r.Name(atc.CreateJobBuild).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/builds").
+	r.Name(atc.RegisterWorker).
+		Path("/api/v1/workers").
 		Methods("POST")
-	r.Name(atc.RerunJobBuild).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/builds/{build_name}").
-		Methods("POST")
-	r.Name(atc.ListJobInputs).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/inputs").
-		Methods("GET")
-	r.Name(atc.GetJobBuild).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/builds/{build_name}").
-		Methods("GET")
-	r.Name(atc.PauseJob).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/pause").
+	r.Name(atc.LandWorker).
+		Path("/api/v1/workers/{worker_name}/land").
 		Methods("PUT")
-	r.Name(atc.UnpauseJob).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/unpause").
+	r.Name(atc.RetireWorker).
+		Path("/api/v1/workers/{worker_name}/retire").
 		Methods("PUT")
-	r.Name(atc.ScheduleJob).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/schedule").
+	r.Name(atc.PruneWorker).
+		Path("/api/v1/workers/{worker_name}/prune").
 		Methods("PUT")
-	r.Name(atc.JobBadge).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/badge").
-		Methods("GET")
-	r.Name(atc.MainJobBadge).Path("/api/v1/pipelines/{pipeline_name}/jobs/{job_name}/badge").Methods("GET")
-
-	r.Name(atc.ClearTaskCache).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/jobs/{job_name}/tasks/{step_name}/cache").
+	r.Name(atc.HeartbeatWorker).
+		Path("/api/v1/workers/{worker_name}/heartbeat").
+		Methods("PUT")
+	r.Name(atc.DeleteWorker).
+		Path("/api/v1/workers/{worker_name}").
 		Methods("DELETE")
 
-	r.Name(atc.ListAllPipelines).Path("/api/v1/pipelines").Methods("GET")
-	r.Name(atc.ListPipelines).Path("/api/v1/teams/{team_name}/pipelines").Methods("GET")
-	r.Name(atc.GetPipeline).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}").Methods("GET")
-	r.Name(atc.DeletePipeline).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}").Methods("DELETE")
-	r.Name(atc.OrderPipelines).Path("/api/v1/teams/{team_name}/pipelines/ordering").Methods("PUT")
-	r.Name(atc.PausePipeline).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/pause").Methods("PUT")
-	r.Name(atc.ArchivePipeline).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/archive").Methods("PUT")
-	r.Name(atc.UnpausePipeline).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/unpause").Methods("PUT")
-	r.Name(atc.ExposePipeline).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/expose").Methods("PUT")
-	r.Name(atc.HidePipeline).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/hide").Methods("PUT")
-	r.Name(atc.GetVersionsDB).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/versions-db").Methods("GET")
-	r.Name(atc.RenamePipeline).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/rename").Methods("PUT")
-	r.Name(atc.ListPipelineBuilds).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/builds").Methods("GET")
-	r.Name(atc.CreatePipelineBuild).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/builds").Methods("POST")
-	r.Name(atc.PipelineBadge).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/badge").Methods("GET")
-
-	r.Name(atc.ListAllResources).Path("/api/v1/resources").Methods("GET")
-	r.Name(atc.ListResources).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources").
+	r.Name(atc.GetLogLevel).
+		Path("/api/v1/log-level").
 		Methods("GET")
-	r.Name(atc.ListResourceTypes).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resource-types").
-		Methods("GET")
-	r.Name(atc.GetResource).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}").
-		Methods("GET")
-	r.Name(atc.CheckResource).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/check").
-		Methods("POST")
-	r.Name(atc.CheckResourceWebHook).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/check/webhook").
-		Methods("POST")
-	r.Name(atc.CheckResourceType).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resource-types/{resource_type_name}/check").
-		Methods("POST")
-
-	r.Name(atc.ListResourceVersions).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/versions").
-		Methods("GET")
-	r.Name(atc.GetResourceVersion).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/versions/{resource_config_version_id}").
-		Methods("GET")
-	r.Name(atc.EnableResourceVersion).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/versions/{resource_config_version_id}/enable").
+	r.Name(atc.SetLogLevel).
+		Path("/api/v1/log-level").
 		Methods("PUT")
-	r.Name(atc.DisableResourceVersion).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/versions/{resource_config_version_id}/disable").
+
+	r.Name(atc.DownloadCLI).
+		Path("/api/v1/cli").
+		Methods("GET")
+	r.Name(atc.GetInfo).
+		Path("/api/v1/info").
+		Methods("GET")
+	r.Name(atc.GetInfoCreds).
+		Path("/api/v1/info/creds").
+		Methods("GET")
+
+	r.Name(atc.GetUser).
+		Path("/api/v1/user").
+		Methods("GET")
+	r.Name(atc.ListActiveUsersSince).
+		Path("/api/v1/users").
+		Methods("GET")
+
+	r.Name(atc.ListDestroyingContainers).
+		Path("/api/v1/containers/destroying").
+		Methods("GET")
+	r.Name(atc.ReportWorkerContainers).
+		Path("/api/v1/containers/report").
 		Methods("PUT")
-	r.Name(atc.PinResourceVersion).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/versions/{resource_config_version_id}/pin").
+	r.Name(atc.ListContainers).
+		Path("/api/v1/teams/{team_name}/containers").
+		Methods("GET")
+	r.Name(atc.GetContainer).
+		Path("/api/v1/teams/{team_name}/containers/{id}").
+		Methods("GET")
+	r.Name(atc.HijackContainer).
+		Path("/api/v1/teams/{team_name}/containers/{id}/hijack").
+		Methods("GET")
+
+	r.Name(atc.ListVolumes).
+		Path("/api/v1/teams/{team_name}/volumes").
+		Methods("GET")
+	r.Name(atc.ListDestroyingVolumes).
+		Path("/api/v1/volumes/destroying").
+		Methods("GET")
+	r.Name(atc.ReportWorkerVolumes).
+		Path("/api/v1/volumes/report").
 		Methods("PUT")
-	r.Name(atc.UnpinResource).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/unpin").Methods("PUT")
-	r.Name(atc.SetPinCommentOnResource).Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/pin_comment").Methods("PUT")
-	r.Name(atc.ListBuildsWithVersionAsInput).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/versions/{resource_config_version_id}/input_to").
-		Methods("GET")
-	r.Name(atc.ListBuildsWithVersionAsOutput).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/versions/{resource_config_version_id}/output_of").
-		Methods("GET")
-	r.Name(atc.GetResourceCausality).
-		Path("/api/v1/teams/{team_name}/pipelines/{pipeline_name}/resources/{resource_name}/versions/{resource_version_id}/causality").
-		Methods("GET")
 
-	r.Name(atc.GetCC).Path("/api/v1/teams/{team_name}/cc.xml").Methods("GET")
-
-	r.Name(atc.ListWorkers).Path("/api/v1/workers").Methods("GET")
-	r.Name(atc.RegisterWorker).Path("/api/v1/workers").Methods("POST")
-	r.Name(atc.LandWorker).Path("/api/v1/workers/{worker_name}/land").Methods("PUT")
-	r.Name(atc.RetireWorker).Path("/api/v1/workers/{worker_name}/retire").Methods("PUT")
-	r.Name(atc.PruneWorker).Path("/api/v1/workers/{worker_name}/prune").Methods("PUT")
-	r.Name(atc.HeartbeatWorker).Path("/api/v1/workers/{worker_name}/heartbeat").Methods("PUT")
-	r.Name(atc.DeleteWorker).Path("/api/v1/workers/{worker_name}").Methods("DELETE")
-
-	r.Name(atc.GetLogLevel).Path("/api/v1/log-level").Methods("GET")
-	r.Name(atc.SetLogLevel).Path("/api/v1/log-level").Methods("PUT")
-
-	r.Name(atc.DownloadCLI).Path("/api/v1/cli").Methods("GET")
-	r.Name(atc.GetInfo).Path("/api/v1/info").Methods("GET")
-	r.Name(atc.GetInfoCreds).Path("/api/v1/info/creds").Methods("GET")
-
-	r.Name(atc.GetUser).Path("/api/v1/user").Methods("GET")
-	r.Name(atc.ListActiveUsersSince).Path("/api/v1/users").Methods("GET")
-
-	r.Name(atc.ListDestroyingContainers).Path("/api/v1/containers/destroying").Methods("GET")
-	r.Name(atc.ReportWorkerContainers).Path("/api/v1/containers/report").Methods("PUT")
-	r.Name(atc.ListContainers).Path("/api/v1/teams/{team_name}/containers").Methods("GET")
-	r.Name(atc.GetContainer).Path("/api/v1/teams/{team_name}/containers/{id}").Methods("GET")
-	r.Name(atc.HijackContainer).Path("/api/v1/teams/{team_name}/containers/{id}/hijack").Methods("GET")
-
-	r.Name(atc.ListVolumes).Path("/api/v1/teams/{team_name}/volumes").Methods("GET")
-	r.Name(atc.ListDestroyingVolumes).Path("/api/v1/volumes/destroying").Methods("GET")
-	r.Name(atc.ReportWorkerVolumes).Path("/api/v1/volumes/report").Methods("PUT")
-
-	r.Name(atc.ListTeams).Path("/api/v1/teams").Methods("GET")
 	r.Name(atc.GetTeam).Path("/api/v1/teams/{team_name}").Methods("GET")
 	r.Name(atc.SetTeam).Path("/api/v1/teams/{team_name}").Methods("PUT")
 	r.Name(atc.RenameTeam).Path("/api/v1/teams/{team_name}/rename").Methods("PUT")
@@ -358,11 +305,190 @@ func NewHandler(
 	r.Name(atc.SetWall).Path("/api/v1/wall").Methods("PUT")
 	r.Name(atc.ClearWall).Path("/api/v1/wall").Methods("DELETE")
 
+	pr := r.PathPrefix("/api/v1/teams/{team_name}/pipelines/{pipeline_name}").
+		Subrouter()
+	par := pr.Methods("GET").Subrouter()
+	par.Use(func(handler http.Handler) http.Handler {
+		return checkPipelineAccessHandlerFactory.HandlerFor(
+			handler,
+			auth.UnauthorizedRejector{},
+		)
+	})
+	pzr := pr.Methods("PUT", "POST", "DELETE").Subrouter()
+	pzr.Use(func(handler http.Handler) http.Handler {
+		return auth.CheckAuthorizationHandler(
+			handler,
+			auth.UnauthorizedRejector{},
+		)
+	})
+
+	pcr := pr.Path("/config").Subrouter()
+	pcr.Use(func(handler http.Handler) http.Handler {
+		return auth.CheckAuthorizationHandler(
+			handler,
+			auth.UnauthorizedRejector{},
+		)
+	})
+	pcr.Name(atc.SaveConfig).
+		Methods("PUT").
+		HandlerFunc(configServer.SaveConfig)
+	pcr.Name(atc.GetConfig).
+		Methods("GET").
+		HandlerFunc(configServer.GetConfig)
+
+	par.Name(atc.ListJobs).
+		Path("/jobs").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(jobServer.ListJobs))
+	par.Name(atc.GetJob).
+		Path("/jobs/{job_name}").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(jobServer.GetJob))
+	par.Name(atc.ListJobBuilds).
+		Path("/jobs/{job_name}/builds").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(jobServer.ListJobBuilds))
+	pzr.Name(atc.CreateJobBuild).
+		Path("/jobs/{job_name}/builds").
+		Methods("POST").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(jobServer.CreateJobBuild))
+	pzr.Name(atc.RerunJobBuild).
+		Path("/jobs/{job_name}/builds/{build_name}").
+		Methods("POST").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(jobServer.RerunJobBuild))
+	par.Name(atc.ListJobInputs).
+		Path("/jobs/{job_name}/inputs").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(jobServer.ListJobInputs))
+	par.Name(atc.GetJobBuild).
+		Path("/jobs/{job_name}/builds/{build_name}").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(jobServer.GetJobBuild))
+	pzr.Name(atc.PauseJob).
+		Path("/jobs/{job_name}/pause").
+		Methods("PUT").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(jobServer.PauseJob))
+	pzr.Name(atc.UnpauseJob).
+		Path("/jobs/{job_name}/unpause").
+		Methods("PUT").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob))
+	pzr.Name(atc.ScheduleJob).
+		Path("/jobs/{job_name}/schedule").
+		Methods("PUT").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(jobServer.ScheduleJob))
+	par.Name(atc.JobBadge).
+		Path("/jobs/{job_name}/badge").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(jobServer.JobBadge))
+	par.Name(atc.MainJobBadge).
+		Path("/jobs/{job_name}/badge").
+		Handler(mainredirect.Handler{Route: atc.JobBadge, PathBuilder: r})
+
+	pzr.Name(atc.ClearTaskCache).
+		Path("/jobs/{job_name}/tasks/{step_name}/cache").
+		Methods("DELETE").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(jobServer.ClearTaskCache))
+
+	par.Name(atc.GetPipeline).
+		Path("").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(pipelineServer.GetPipeline))
+	pzr.Name(atc.DeletePipeline).
+		Path("").
+		Methods("DELETE").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(pipelineServer.DeletePipeline))
+	pzr.Name(atc.PausePipeline).
+		Path("/pause").
+		Methods("PUT").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(pipelineServer.PausePipeline))
+	pzr.Name(atc.ArchivePipeline).
+		Path("/archive").
+		Methods("PUT").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(pipelineServer.ArchivePipeline))
+	pzr.Name(atc.UnpausePipeline).
+		Path("/unpause").
+		Methods("PUT").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(pipelineServer.UnpausePipeline))
+	pzr.Name(atc.ExposePipeline).
+		Path("/expose").
+		Methods("PUT").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(pipelineServer.ExposePipeline))
+	pzr.Name(atc.HidePipeline).
+		Path("/hide").
+		Methods("PUT").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(pipelineServer.HidePipeline))
+	par.Name(atc.GetVersionsDB).
+		Path("/versions-db").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(pipelineServer.GetVersionsDB))
+	pzr.Name(atc.RenamePipeline).
+		Path("/rename").
+		Methods("PUT").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(pipelineServer.RenamePipeline))
+	par.Name(atc.ListPipelineBuilds).
+		Path("/builds").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(pipelineServer.ListPipelineBuilds))
+	pzr.Name(atc.CreatePipelineBuild).
+		Path("/builds").
+		Methods("POST").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(pipelineServer.CreateBuild))
+	par.Name(atc.PipelineBadge).
+		Path("/badge").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(pipelineServer.PipelineBadge))
+
+	par.Name(atc.ListResources).
+		Path("/resources").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(resourceServer.ListResources))
+	par.Name(atc.ListResourceTypes).
+		Path("/resource-types").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(resourceServer.ListVersionedResourceTypes))
+	par.Name(atc.GetResource).
+		Path("/resources/{resource_name}").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(resourceServer.GetResource))
+	pzr.Name(atc.CheckResource).
+		Path("/resources/{resource_name}/check").
+		Methods("POST").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(resourceServer.CheckResource))
+	pr.Name(atc.CheckResourceWebHook).
+		Path("/resources/{resource_name}/check/webhook").
+		Methods("POST").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(resourceServer.CheckResourceWebHook))
+	pzr.Name(atc.CheckResourceType).
+		Path("/resource-types/{resource_type_name}/check").
+		Methods("POST").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(resourceServer.CheckResourceType))
+
+	par.Name(atc.ListResourceVersions).
+		Path("/resources/{resource_name}/versions").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(versionServer.ListResourceVersions))
+	par.Name(atc.GetResourceVersion).
+		Path("/resources/{resource_name}/versions/{resource_config_version_id}").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(versionServer.GetResourceVersion))
+	pzr.Name(atc.EnableResourceVersion).
+		Path("/resources/{resource_name}/versions/{resource_config_version_id}/enable").
+		Methods("PUT").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(versionServer.EnableResourceVersion))
+	pzr.Name(atc.DisableResourceVersion).
+		Path("/resources/{resource_name}/versions/{resource_config_version_id}/disable").
+		Methods("PUT").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(versionServer.DisableResourceVersion))
+	pzr.Name(atc.PinResourceVersion).
+		Path("/resources/{resource_name}/versions/{resource_config_version_id}/pin").
+		Methods("PUT").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(versionServer.PinResourceVersion))
+	pzr.Name(atc.UnpinResource).
+		Path("/resources/{resource_name}/unpin").
+		Methods("PUT").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(resourceServer.UnpinResource))
+	pzr.Name(atc.SetPinCommentOnResource).
+		Path("/resources/{resource_name}/pin_comment").
+		Methods("PUT").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(resourceServer.SetPinCommentOnResource))
+	par.Name(atc.ListBuildsWithVersionAsInput).
+		Path("/resources/{resource_name}/versions/{resource_config_version_id}/input_to").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsInput))
+	par.Name(atc.ListBuildsWithVersionAsOutput).
+		Path("/resources/{resource_name}/versions/{resource_config_version_id}/output_of").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsOutput))
+	par.Name(atc.GetResourceCausality).
+		Path("/resources/{resource_name}/versions/{resource_version_id}/causality").
+		HandlerFunc(pipelineHandlerFactory.HandlerFor(versionServer.GetCausality))
+
 	handlers := map[string]http.Handler{
-		atc.GetCC: http.HandlerFunc(ccServer.GetCC),
 
 		atc.ListBuilds:          http.HandlerFunc(buildServer.ListBuilds),
-		atc.CreateBuild:         teamHandlerFactory.HandlerFor(buildServer.CreateBuild),
 		atc.GetBuild:            buildHandlerFactory.HandlerFor(buildServer.GetBuild),
 		atc.BuildResources:      buildHandlerFactory.HandlerFor(buildServer.BuildResources),
 		atc.AbortBuild:          buildHandlerFactory.HandlerFor(buildServer.AbortBuild),
@@ -371,54 +497,11 @@ func NewHandler(
 		atc.BuildEvents:         buildHandlerFactory.HandlerFor(buildServer.BuildEvents),
 		atc.ListBuildArtifacts:  buildHandlerFactory.HandlerFor(buildServer.GetBuildArtifacts),
 
-		atc.ListAllJobs:    http.HandlerFunc(jobServer.ListAllJobs),
-		atc.ListJobBuilds:  pipelineHandlerFactory.HandlerFor(jobServer.ListJobBuilds),
-		atc.ListJobInputs:  pipelineHandlerFactory.HandlerFor(jobServer.ListJobInputs),
-		atc.GetJobBuild:    pipelineHandlerFactory.HandlerFor(jobServer.GetJobBuild),
-		atc.CreateJobBuild: pipelineHandlerFactory.HandlerFor(jobServer.CreateJobBuild),
-		atc.RerunJobBuild:  pipelineHandlerFactory.HandlerFor(jobServer.RerunJobBuild),
-		atc.PauseJob:       pipelineHandlerFactory.HandlerFor(jobServer.PauseJob),
-		atc.UnpauseJob:     pipelineHandlerFactory.HandlerFor(jobServer.UnpauseJob),
-		atc.ScheduleJob:    pipelineHandlerFactory.HandlerFor(jobServer.ScheduleJob),
-		atc.JobBadge:       pipelineHandlerFactory.HandlerFor(jobServer.JobBadge),
-		atc.MainJobBadge:   mainredirect.Handler{Route: atc.JobBadge, PathBuilder: r},
+		atc.ListAllJobs: http.HandlerFunc(jobServer.ListAllJobs),
 
-		atc.ClearTaskCache: pipelineHandlerFactory.HandlerFor(jobServer.ClearTaskCache),
+		atc.ListAllPipelines: http.HandlerFunc(pipelineServer.ListAllPipelines),
 
-		atc.ListAllPipelines:    http.HandlerFunc(pipelineServer.ListAllPipelines),
-		atc.ListPipelines:       http.HandlerFunc(pipelineServer.ListPipelines),
-		atc.GetPipeline:         pipelineHandlerFactory.HandlerFor(pipelineServer.GetPipeline),
-		atc.DeletePipeline:      pipelineHandlerFactory.HandlerFor(pipelineServer.DeletePipeline),
-		atc.OrderPipelines:      http.HandlerFunc(pipelineServer.OrderPipelines),
-		atc.PausePipeline:       pipelineHandlerFactory.HandlerFor(pipelineServer.PausePipeline),
-		atc.ArchivePipeline:     pipelineHandlerFactory.HandlerFor(pipelineServer.ArchivePipeline),
-		atc.UnpausePipeline:     pipelineHandlerFactory.HandlerFor(pipelineServer.UnpausePipeline),
-		atc.ExposePipeline:      pipelineHandlerFactory.HandlerFor(pipelineServer.ExposePipeline),
-		atc.HidePipeline:        pipelineHandlerFactory.HandlerFor(pipelineServer.HidePipeline),
-		atc.GetVersionsDB:       pipelineHandlerFactory.HandlerFor(pipelineServer.GetVersionsDB),
-		atc.RenamePipeline:      pipelineHandlerFactory.HandlerFor(pipelineServer.RenamePipeline),
-		atc.ListPipelineBuilds:  pipelineHandlerFactory.HandlerFor(pipelineServer.ListPipelineBuilds),
-		atc.CreatePipelineBuild: pipelineHandlerFactory.HandlerFor(pipelineServer.CreateBuild),
-		atc.PipelineBadge:       pipelineHandlerFactory.HandlerFor(pipelineServer.PipelineBadge),
-
-		atc.ListAllResources:        http.HandlerFunc(resourceServer.ListAllResources),
-		atc.ListResources:           pipelineHandlerFactory.HandlerFor(resourceServer.ListResources),
-		atc.ListResourceTypes:       pipelineHandlerFactory.HandlerFor(resourceServer.ListVersionedResourceTypes),
-		atc.GetResource:             pipelineHandlerFactory.HandlerFor(resourceServer.GetResource),
-		atc.UnpinResource:           pipelineHandlerFactory.HandlerFor(resourceServer.UnpinResource),
-		atc.SetPinCommentOnResource: pipelineHandlerFactory.HandlerFor(resourceServer.SetPinCommentOnResource),
-		atc.CheckResource:           pipelineHandlerFactory.HandlerFor(resourceServer.CheckResource),
-		atc.CheckResourceWebHook:    pipelineHandlerFactory.HandlerFor(resourceServer.CheckResourceWebHook),
-		atc.CheckResourceType:       pipelineHandlerFactory.HandlerFor(resourceServer.CheckResourceType),
-
-		atc.ListResourceVersions:          pipelineHandlerFactory.HandlerFor(versionServer.ListResourceVersions),
-		atc.GetResourceVersion:            pipelineHandlerFactory.HandlerFor(versionServer.GetResourceVersion),
-		atc.EnableResourceVersion:         pipelineHandlerFactory.HandlerFor(versionServer.EnableResourceVersion),
-		atc.DisableResourceVersion:        pipelineHandlerFactory.HandlerFor(versionServer.DisableResourceVersion),
-		atc.PinResourceVersion:            pipelineHandlerFactory.HandlerFor(versionServer.PinResourceVersion),
-		atc.ListBuildsWithVersionAsInput:  pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsInput),
-		atc.ListBuildsWithVersionAsOutput: pipelineHandlerFactory.HandlerFor(versionServer.ListBuildsWithVersionAsOutput),
-		atc.GetResourceCausality:          pipelineHandlerFactory.HandlerFor(versionServer.GetCausality),
+		atc.ListAllResources: http.HandlerFunc(resourceServer.ListAllResources),
 
 		atc.ListWorkers:     http.HandlerFunc(workerServer.ListWorkers),
 		atc.RegisterWorker:  http.HandlerFunc(workerServer.RegisterWorker),
