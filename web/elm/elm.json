@@ -20,7 +20,7 @@
             "elm-community/json-extra": "4.0.0",
             "elm-community/list-extra": "8.1.0",
             "elm-community/maybe-extra": "5.0.0",
-            "elm-explorations/benchmark": "1.0.1",
+            "elm-explorations/benchmark": "1.0.2",
             "fapian/elm-html-aria": "1.4.0",
             "krisajenkins/remotedata": "5.0.0",
             "matthewsj/elm-ordering": "2.0.0",
@@ -29,11 +29,11 @@
             "vito/elm-ansi": "9.0.1"
         },
         "indirect": {
-            "BrianHicks/elm-trend": "2.1.2",
-            "Skinney/murmur3": "2.0.8",
+            "BrianHicks/elm-trend": "2.1.3",
             "elm/regex": "1.0.0",
             "elm/virtual-dom": "1.0.2",
-            "mdgriffith/style-elements": "5.0.1",
+            "mdgriffith/style-elements": "5.0.2",
+            "robinheghan/murmur3": "1.0.0",
             "rtfeldman/elm-iso8601-date-strings": "1.1.2"
         }
     },
