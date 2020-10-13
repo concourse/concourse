@@ -190,9 +190,22 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			return false, fmt.Errorf("save versions: %w", err)
 		}
 
+		if len(result.Versions) > 0 {
+			state.StoreResult(step.planID, result.Versions[len(result.Versions)-1])
+		}
+
 		_, err = scope.UpdateLastCheckEndTime()
 		if err != nil {
 			return false, fmt.Errorf("update check end time: %w", err)
+		}
+	} else {
+		latestVersion, found, err := scope.LatestVersion()
+		if err != nil {
+			return false, fmt.Errorf("get latest version: %w", err)
+		}
+
+		if found {
+			state.StoreResult(step.planID, atc.Version(latestVersion.Version()))
 		}
 	}
 
