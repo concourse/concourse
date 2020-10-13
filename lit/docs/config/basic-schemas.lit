@@ -2,7 +2,7 @@
 
 \use-plugin{concourse-docs}
 
-Throughout the Concourse documentation you will find come across schema
+Throughout the Concourse documentation you will come across schema
 definitions for each API.
 
 The following are basic schema definitions that the other schemas refer to. You
