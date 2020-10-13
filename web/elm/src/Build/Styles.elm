@@ -209,18 +209,14 @@ stepHeader state =
     ]
 
 
-stepHeaderLabel : StepHeaderType -> List (Html.Attribute msg)
-stepHeaderLabel headerType =
+stepHeaderLabel : Bool -> List (Html.Attribute msg)
+stepHeaderLabel changed =
     [ style "color" <|
-        case headerType of
-            StepHeaderGet True ->
-                Colors.started
+        if changed then
+            Colors.started
 
-            StepHeaderSetPipeline True ->
-                Colors.started
-
-            _ ->
-                Colors.pending
+        else
+            Colors.pending
     , style "line-height" "28px"
     , style "padding-left" "6px"
     ]

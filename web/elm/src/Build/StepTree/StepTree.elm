@@ -450,23 +450,19 @@ viewTree session model tree depth =
             viewStep model session depth stepId StepHeaderCheck
 
         Get stepId ->
-            assumeStep model stepId <|
-                \step ->
-                    viewStep model session depth stepId (StepHeaderGet step.changed)
+            viewStep model session depth stepId StepHeaderGet
 
         Put stepId ->
             viewStep model session depth stepId StepHeaderPut
 
         ArtifactInput stepId ->
-            viewStep model session depth stepId (StepHeaderGet False)
+            viewStep model session depth stepId StepHeaderGet
 
         ArtifactOutput stepId ->
             viewStep model session depth stepId StepHeaderPut
 
         SetPipeline stepId ->
-            assumeStep model stepId <|
-                \step ->
-                    viewStep model session depth stepId (StepHeaderSetPipeline step.changed)
+            viewStep model session depth stepId StepHeaderSetPipeline
 
         LoadVar stepId ->
             viewStep model session depth stepId StepHeaderLoadVar
@@ -738,7 +734,7 @@ viewStepWithBody :
     -> StepHeaderType
     -> List (Html Message)
     -> Html Message
-viewStepWithBody model session depth { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, start, finish } headerType body =
+viewStepWithBody model session depth { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, start, finish, changed } headerType body =
     Html.div
         [ classList
             [ ( "build-step", True )
@@ -755,7 +751,7 @@ viewStepWithBody model session depth { id, name, log, state, error, expanded, ve
             )
             [ Html.div
                 [ style "display" "flex" ]
-                [ viewStepHeaderLabel headerType id
+                [ viewStepHeaderLabel headerType changed id
                 , Html.h3 [] [ Html.text name ]
                 ]
             , Html.div
@@ -1114,17 +1110,17 @@ viewStepState state stepID tooltip =
                 tooltip
 
 
-viewStepHeaderLabel : StepHeaderType -> StepID -> Html Message
-viewStepHeaderLabel headerType stepID =
+viewStepHeaderLabel : StepHeaderType -> Bool -> StepID -> Html Message
+viewStepHeaderLabel headerType changed stepID =
     let
         eventHandlers =
-            case headerType of
-                StepHeaderGet True ->
+            case ( headerType, changed ) of
+                ( StepHeaderGet, True ) ->
                     [ onMouseLeave <| Hover Nothing
                     , onMouseEnter <| Hover <| Just <| ChangedStepLabel stepID "new version"
                     ]
 
-                StepHeaderSetPipeline True ->
+                ( StepHeaderSetPipeline, True ) ->
                     [ onMouseLeave <| Hover Nothing
                     , onMouseEnter <| Hover <| Just <| ChangedStepLabel stepID "pipeline config changed"
                     ]
@@ -1134,12 +1130,12 @@ viewStepHeaderLabel headerType stepID =
     in
     Html.div
         (id (toHtmlID <| ChangedStepLabel stepID "")
-            :: Styles.stepHeaderLabel headerType
+            :: Styles.stepHeaderLabel changed
             ++ eventHandlers
         )
         [ Html.text <|
             case headerType of
-                StepHeaderGet _ ->
+                StepHeaderGet ->
                     "get:"
 
                 StepHeaderPut ->
@@ -1151,7 +1147,7 @@ viewStepHeaderLabel headerType stepID =
                 StepHeaderCheck ->
                     "check:"
 
-                StepHeaderSetPipeline _ ->
+                StepHeaderSetPipeline ->
                     "set_pipeline:"
 
                 StepHeaderLoadVar ->
