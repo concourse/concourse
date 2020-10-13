@@ -180,6 +180,12 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		taskVars = []vars.Variables{state}
 	}
 
+	// apply resource type defaults
+	taskConfigSource = BaseResourceTypeDefaultsApplySource{
+		ConfigSource:  taskConfigSource,
+		ResourceTypes: step.plan.VersionedResourceTypes,
+	}
+
 	// override params
 	taskConfigSource = &OverrideParamsConfigSource{ConfigSource: taskConfigSource, Params: step.plan.Params}
 
@@ -188,12 +194,6 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		ConfigSource:  taskConfigSource,
 		Vars:          taskVars,
 		ExpectAllKeys: true,
-	}
-
-	// apply resource type defaults
-	taskConfigSource = BaseResourceTypeDefaultsApplySource{
-		ConfigSource:  taskConfigSource,
-		ResourceTypes: step.plan.VersionedResourceTypes,
 	}
 
 	// validate
