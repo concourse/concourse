@@ -44,3 +44,5 @@ type DashboardJobInput struct {
 	Passed   []string
 	Trigger  bool
 }
+
+var DisablePublicPipelines bool

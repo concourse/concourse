@@ -2,6 +2,7 @@ package db
 
 import (
 	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
@@ -46,20 +47,23 @@ func (f *pipelineFactory) VisiblePipelines(teamNames []string) ([]Pipeline, erro
 	if err != nil {
 		return nil, err
 	}
+	var otherTeamPublicPipelines []Pipeline
 
-	rows, err = pipelinesQuery.
-		Where(sq.NotEq{"t.name": teamNames}).
-		Where(sq.Eq{"public": true}).
-		OrderBy("t.name ASC", "ordering ASC").
-		RunWith(tx).
-		Query()
-	if err != nil {
-		return nil, err
-	}
+	if !atc.DisablePublicPipelines {
+		rows, err = pipelinesQuery.
+			Where(sq.NotEq{"t.name": teamNames}).
+			Where(sq.Eq{"public": true}).
+			OrderBy("t.name ASC", "ordering ASC").
+			RunWith(tx).
+			Query()
+		if err != nil {
+			return nil, err
+		}
 
-	otherTeamPublicPipelines, err := scanPipelines(f.conn, f.lockFactory, rows)
-	if err != nil {
-		return nil, err
+		otherTeamPublicPipelines, err = scanPipelines(f.conn, f.lockFactory, rows)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = tx.Commit()

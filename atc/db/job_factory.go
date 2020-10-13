@@ -190,11 +190,18 @@ func (j *jobFactory) VisibleJobs(teamNames []string) (atc.Dashboard, error) {
 	}
 
 	defer Rollback(tx)
+	var predPublic interface{}
 
-	dashboardFactory := newDashboardFactory(tx, sq.Or{
+	predPublic = sq.Or{
 		sq.Eq{"tm.name": teamNames},
 		sq.Eq{"p.public": true},
-	})
+	}
+
+	if atc.DisablePublicPipelines {
+		predPublic = sq.Eq{"tm.name": teamNames}
+	}
+
+	dashboardFactory := newDashboardFactory(tx, predPublic)
 
 	dashboard, err := dashboardFactory.buildDashboard()
 	if err != nil {

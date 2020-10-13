@@ -1,3 +1,6 @@
+#### <sub><sup><a name="5831" href="#5831">:link:</a></sup></sub> feature
+* Operators can now hide public pipelines by passing `--disable-public-pipelines=true`. This has many optimizations to help reduce clutter and speed up atc's serving dashboard requests. Public pipelines are still reachable via direct links.  
+
 #### <sub><sup><a name="5830" href="#5830">:link:</a></sup></sub> fix
 
 * Fix a validation issue where a step can be set with 0 attempts causing the ATC to panic. #5830

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
@@ -46,14 +47,22 @@ func (r *resourceFactory) Resource(resourceID int) (Resource, bool, error) {
 }
 
 func (r *resourceFactory) VisibleResources(teamNames []string) ([]Resource, error) {
+	var predPublic sq.Sqlizer
+
+	predPublic = sq.Or{
+		sq.Eq{"t.name": teamNames},
+		sq.And{
+			sq.NotEq{"t.name": teamNames},
+			sq.Eq{"p.public": true},
+		},
+	}
+
+	if atc.DisablePublicPipelines {
+		predPublic = sq.Eq{"t.name": teamNames}
+	}
+
 	rows, err := resourcesQuery.
-		Where(sq.Or{
-			sq.Eq{"t.name": teamNames},
-			sq.And{
-				sq.NotEq{"t.name": teamNames},
-				sq.Eq{"p.public": true},
-			},
-		}).
+		Where(predPublic).
 		OrderBy("r.id ASC").
 		RunWith(r.conn).
 		Query()
