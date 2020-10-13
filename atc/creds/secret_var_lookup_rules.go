@@ -12,7 +12,7 @@ import (
 
 // SecretLookupPath transforms variable name into full secret path
 type SecretLookupPath interface {
-	VariableToSecretPath(vars.VariableReference) (vars.VariableReference, error)
+	VariableToSecretPath(vars.Reference) (vars.Reference, error)
 }
 
 // SecretLookupWithPrefix is an implementation which returns [prefix][separator][varName]
@@ -26,8 +26,8 @@ func NewSecretLookupWithPrefix(prefix string) SecretLookupPath {
 	}
 }
 
-func (sl SecretLookupWithPrefix) VariableToSecretPath(ref vars.VariableReference) (vars.VariableReference, error) {
-	return vars.VariableReference{
+func (sl SecretLookupWithPrefix) VariableToSecretPath(ref vars.Reference) (vars.Reference, error) {
+	return vars.Reference{
 		Name:   sl.Prefix + ref.Name,
 		Path:   sl.Prefix + ref.Path,
 		Fields: ref.Fields,
@@ -86,7 +86,7 @@ func NewSecretLookupWithTemplate(pathTemplate *SecretTemplate, teamName string, 
 	}
 }
 
-func (sl SecretLookupWithTemplate) VariableToSecretPath(ref vars.VariableReference) (vars.VariableReference, error) {
+func (sl SecretLookupWithTemplate) VariableToSecretPath(ref vars.Reference) (vars.Reference, error) {
 	var buf bytes.Buffer
 	data := struct {
 		Team     string
@@ -99,7 +99,7 @@ func (sl SecretLookupWithTemplate) VariableToSecretPath(ref vars.VariableReferen
 	}
 
 	err := sl.PathTemplate.Execute(&buf, &data)
-	return vars.VariableReference{
+	return vars.Reference{
 		Path: buf.String(),
 	}, err
 }

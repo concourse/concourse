@@ -38,7 +38,7 @@ var _ = Describe("Conjur", func() {
 	var mockService MockConjurService
 
 	JustBeforeEach(func() {
-		varDef = vars.VariableDefinition{Ref: vars.VariableReference{Path: "cheery"}}
+		varDef = vars.VariableDefinition{Ref: vars.Reference{Path: "cheery"}}
 		t1, err := creds.BuildSecretTemplate("t1", DefaultPipelineSecretTemplate)
 		Expect(t1).NotTo(BeNil())
 		Expect(err).To(BeNil())

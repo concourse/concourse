@@ -88,7 +88,7 @@ var _ = Describe("RunState", func() {
 		})
 
 		It("fetches from cred vars", func() {
-			val, found, err := state.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "k1"}})
+			val, found, err := state.Get(vars.VariableDefinition{Ref: vars.Reference{Path: "k1"}})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(val).To(Equal("v1"))
@@ -100,8 +100,8 @@ var _ = Describe("RunState", func() {
 			})
 
 			It("fetched variables are tracked", func() {
-				state.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "k1"}})
-				state.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "k2"}})
+				state.Get(vars.VariableDefinition{Ref: vars.Reference{Path: "k1"}})
+				state.Get(vars.VariableDefinition{Ref: vars.Reference{Path: "k2"}})
 				mapit := vars.TrackedVarsMap{}
 				state.IterateInterpolatedCreds(mapit)
 				Expect(mapit["k1"]).To(Equal("v1"))
@@ -117,8 +117,8 @@ var _ = Describe("RunState", func() {
 			})
 
 			It("fetched variables are not tracked", func() {
-				state.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "k1"}})
-				state.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "k2"}})
+				state.Get(vars.VariableDefinition{Ref: vars.Reference{Path: "k1"}})
+				state.Get(vars.VariableDefinition{Ref: vars.Reference{Path: "k2"}})
 				mapit := vars.TrackedVarsMap{}
 				state.IterateInterpolatedCreds(mapit)
 				Expect(mapit).ToNot(HaveKey("k1"))
@@ -132,9 +132,9 @@ var _ = Describe("RunState", func() {
 		It("returns list of names from multiple vars with duplicates", func() {
 			defs, err := state.List()
 			Expect(defs).To(ConsistOf([]vars.VariableDefinition{
-				{Ref: vars.VariableReference{Path: "k1"}},
-				{Ref: vars.VariableReference{Path: "k2"}},
-				{Ref: vars.VariableReference{Path: "k3"}},
+				{Ref: vars.Reference{Path: "k1"}},
+				{Ref: vars.Reference{Path: "k2"}},
+				{Ref: vars.Reference{Path: "k3"}},
 			}))
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -145,12 +145,12 @@ var _ = Describe("RunState", func() {
 
 			defs, err := state.List()
 			Expect(defs).To(ConsistOf([]vars.VariableDefinition{
-				{Ref: vars.VariableReference{Source: ".", Path: "l1"}},
-				{Ref: vars.VariableReference{Source: ".", Path: "l2"}},
+				{Ref: vars.Reference{Source: ".", Path: "l1"}},
+				{Ref: vars.Reference{Source: ".", Path: "l2"}},
 
-				{Ref: vars.VariableReference{Path: "k1"}},
-				{Ref: vars.VariableReference{Path: "k2"}},
-				{Ref: vars.VariableReference{Path: "k3"}},
+				{Ref: vars.Reference{Path: "k1"}},
+				{Ref: vars.Reference{Path: "k2"}},
+				{Ref: vars.Reference{Path: "k3"}},
 			}))
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -164,7 +164,7 @@ var _ = Describe("RunState", func() {
 			})
 
 			It("should get local value", func() {
-				val, found, err := state.Get(vars.VariableDefinition{Ref: vars.VariableReference{Source: ".", Path: "foo"}})
+				val, found, err := state.Get(vars.VariableDefinition{Ref: vars.Reference{Source: ".", Path: "foo"}})
 				Expect(err).To(BeNil())
 				Expect(found).To(BeTrue())
 				Expect(val).To(Equal("bar"))
@@ -183,14 +183,14 @@ var _ = Describe("RunState", func() {
 			})
 
 			It("should get local value", func() {
-				val, found, err := state.Get(vars.VariableDefinition{Ref: vars.VariableReference{Source: ".", Path: "foo"}})
+				val, found, err := state.Get(vars.VariableDefinition{Ref: vars.Reference{Source: ".", Path: "foo"}})
 				Expect(err).To(BeNil())
 				Expect(found).To(BeTrue())
 				Expect(val).To(Equal("bar"))
 			})
 
 			It("fetched variables are not tracked", func() {
-				state.Get(vars.VariableDefinition{Ref: vars.VariableReference{Source: ".", Path: "foo"}})
+				state.Get(vars.VariableDefinition{Ref: vars.Reference{Source: ".", Path: "foo"}})
 				mapit := vars.TrackedVarsMap{}
 				state.IterateInterpolatedCreds(mapit)
 				Expect(mapit).ToNot(ContainElement("foo"))
@@ -202,27 +202,27 @@ var _ = Describe("RunState", func() {
 		It("can access local vars from parent scope", func() {
 			state.AddLocalVar("hello", "world", false)
 			scope := state.NewLocalScope()
-			val, _, _ := scope.Get(vars.VariableDefinition{Ref: vars.VariableReference{Source: ".", Path: "hello"}})
+			val, _, _ := scope.Get(vars.VariableDefinition{Ref: vars.Reference{Source: ".", Path: "hello"}})
 			Expect(val).To(Equal("world"))
 		})
 
 		It("adding local vars does not affect the original tracker", func() {
 			scope := state.NewLocalScope()
 			scope.AddLocalVar("hello", "world", false)
-			_, found, _ := state.Get(vars.VariableDefinition{Ref: vars.VariableReference{Source: ".", Path: "hello"}})
+			_, found, _ := state.Get(vars.VariableDefinition{Ref: vars.Reference{Source: ".", Path: "hello"}})
 			Expect(found).To(BeFalse())
 		})
 
 		It("shares the underlying non-local variables", func() {
 			scope := state.NewLocalScope()
-			val, _, _ := scope.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "k1"}})
+			val, _, _ := scope.Get(vars.VariableDefinition{Ref: vars.Reference{Path: "k1"}})
 			Expect(val).To(Equal("v1"))
 		})
 
 		It("local vars added after creating the subscope are accessible", func() {
 			scope := state.NewLocalScope()
 			state.AddLocalVar("hello", "world", false)
-			val, _, _ := scope.Get(vars.VariableDefinition{Ref: vars.VariableReference{Source: ".", Path: "hello"}})
+			val, _, _ := scope.Get(vars.VariableDefinition{Ref: vars.Reference{Source: ".", Path: "hello"}})
 			Expect(val).To(Equal("world"))
 		})
 
@@ -231,7 +231,7 @@ var _ = Describe("RunState", func() {
 			scope := state.NewLocalScope()
 			scope.AddLocalVar("a", 2, false)
 
-			val, _, _ := scope.Get(vars.VariableDefinition{Ref: vars.VariableReference{Source: ".", Path: "a"}})
+			val, _, _ := scope.Get(vars.VariableDefinition{Ref: vars.Reference{Source: ".", Path: "a"}})
 			Expect(val).To(Equal(2))
 		})
 

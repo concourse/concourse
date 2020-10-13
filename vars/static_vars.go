@@ -13,7 +13,7 @@ func (v StaticVariables) List() ([]VariableDefinition, error) {
 	var defs []VariableDefinition
 
 	for name, _ := range v {
-		defs = append(defs, VariableDefinition{Ref: VariableReference{Path: name}})
+		defs = append(defs, VariableDefinition{Ref: Reference{Path: name}})
 	}
 
 	return defs, nil

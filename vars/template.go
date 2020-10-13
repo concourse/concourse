@@ -135,11 +135,11 @@ func (i interpolator) extractVarNames(value string) []string {
 	return names
 }
 
-func parseVarName(name string) VariableReference {
+func parseVarName(name string) Reference {
 	var pathPieces []string
 	var fields []string
 
-	varRef := VariableReference{Name: name}
+	varRef := Reference{Name: name}
 
 	if strings.Index(name, ":") > 0 {
 		parts := strings.SplitN(name, ":", 2)
@@ -291,7 +291,7 @@ func names(mapWithNames map[string]struct{}) []string {
 	return names
 }
 
-func identifier(varRef VariableReference) string {
+func identifier(varRef Reference) string {
 	id := varRef.Path
 
 	if varRef.Source != "" {

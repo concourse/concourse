@@ -880,7 +880,7 @@ var _ = Describe("Build", func() {
 				v, err := build.Variables(logger, globalSecrets, varSourcePool)
 				Expect(err).ToNot(HaveOccurred())
 
-				val, found, err := v.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "foo"}})
+				val, found, err := v.Get(vars.VariableDefinition{Ref: vars.Reference{Path: "foo"}})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(val).To(Equal("bar"))
@@ -915,7 +915,7 @@ var _ = Describe("Build", func() {
 				v, err := build.Variables(logger, globalSecrets, varSourcePool)
 				Expect(err).ToNot(HaveOccurred())
 
-				val, found, err := v.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "foo"}})
+				val, found, err := v.Get(vars.VariableDefinition{Ref: vars.Reference{Path: "foo"}})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(val).To(Equal("bar"))
@@ -925,7 +925,7 @@ var _ = Describe("Build", func() {
 				v, err := build.Variables(logger, globalSecrets, varSourcePool)
 				Expect(err).ToNot(HaveOccurred())
 
-				val, found, err := v.Get(vars.VariableDefinition{Ref: vars.VariableReference{Source: "some-source", Path: "baz"}})
+				val, found, err := v.Get(vars.VariableDefinition{Ref: vars.Reference{Source: "some-source", Path: "baz"}})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(val).To(Equal("caz"))

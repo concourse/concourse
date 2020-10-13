@@ -24,7 +24,7 @@ func NewTracker(on bool) *Tracker {
 	}
 }
 
-func (t *Tracker) Track(varRef VariableReference, val interface{}) {
+func (t *Tracker) Track(varRef Reference, val interface{}) {
 	if !t.Enabled {
 		return
 	}
@@ -35,18 +35,18 @@ func (t *Tracker) Track(varRef VariableReference, val interface{}) {
 	t.track(varRef, val)
 }
 
-func (t *Tracker) track(varRef VariableReference, val interface{}) {
+func (t *Tracker) track(varRef Reference, val interface{}) {
 	switch v := val.(type) {
 	case map[interface{}]interface{}:
 		for kk, vv := range v {
-			t.track(VariableReference{
+			t.track(Reference{
 				Path:   varRef.Path,
 				Fields: append(varRef.Fields, kk.(string)),
 			}, vv)
 		}
 	case map[string]interface{}:
 		for kk, vv := range v {
-			t.track(VariableReference{
+			t.track(Reference{
 				Path:   varRef.Path,
 				Fields: append(varRef.Fields, kk),
 			}, vv)

@@ -42,7 +42,7 @@ func (b *buildVariables) List() ([]vars.VariableDefinition, error) {
 	}
 	for k := range b.localVars {
 		list = append(list, vars.VariableDefinition{
-			Ref: vars.VariableReference{Source: ".", Path: k},
+			Ref: vars.Reference{Source: ".", Path: k},
 		})
 	}
 	return list, nil
@@ -64,7 +64,7 @@ func (b *buildVariables) NewLocalScope() *buildVariables {
 func (b *buildVariables) AddLocalVar(name string, val interface{}, redact bool) {
 	b.localVars[name] = val
 	if redact {
-		b.tracker.Track(vars.VariableReference{Source: ".", Path: name}, val)
+		b.tracker.Track(vars.Reference{Source: ".", Path: name}, val)
 	}
 }
 

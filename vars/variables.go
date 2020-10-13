@@ -7,7 +7,7 @@ type Variables interface {
 	List() ([]VariableDefinition, error)
 }
 
-type VariableReference struct {
+type Reference struct {
 	Name   string
 	Source string
 	Path   string
@@ -15,7 +15,7 @@ type VariableReference struct {
 }
 
 type VariableDefinition struct {
-	Ref     VariableReference
+	Ref     Reference
 	Type    string
 	Options interface{}
 }

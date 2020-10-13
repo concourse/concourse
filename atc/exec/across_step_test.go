@@ -56,7 +56,7 @@ var _ = Describe("AcrossStep", func() {
 			defer GinkgoRecover()
 			for i, v := range acrossVars {
 				val, found, _ := state.Get(vars.VariableDefinition{
-					Ref: vars.VariableReference{Source: ".", Path: v.Var},
+					Ref: vars.Reference{Source: ".", Path: v.Var},
 				})
 				Expect(found).To(BeTrue(), "unset variable "+v.Var)
 				Expect(val).To(Equal(values[i]), "invalid value for variable "+v.Var)
