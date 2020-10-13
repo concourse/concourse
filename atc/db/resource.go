@@ -54,7 +54,7 @@ type Resource interface {
 	BuildSummary() *atc.BuildSummary
 
 	Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error)
-	FindVersion(filter atc.Version) (ResourceConfigVersion, bool, error)
+	FindVersion(filter atc.Version) (ResourceConfigVersion, bool, error) // Only used in tests!!
 	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig) (bool, error)
 	UpdateMetadata(atc.Version, ResourceConfigMetadataFields) (bool, error)
 
@@ -468,6 +468,7 @@ func (r *resource) UpdateMetadata(version atc.Version, metadata ResourceConfigMe
 	return true, nil
 }
 
+// XXX: Deprecated, only used in tests
 func (r *resource) FindVersion(v atc.Version) (ResourceConfigVersion, bool, error) {
 	if r.resourceConfigScopeID == 0 {
 		return nil, false, nil

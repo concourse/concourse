@@ -573,6 +573,82 @@ func (builder Builder) WithPinnedVersion(resourceName string, pinnedVersion atc.
 	}
 }
 
+func (builder Builder) WithDisabledVersion(resourceName string, disabledVersion atc.Version) SetupFunc {
+	return func(scenario *Scenario) error {
+		resource, found, err := scenario.Pipeline.Resource(resourceName)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return fmt.Errorf("resource '%s' not configured in pipeline", resourceName)
+		}
+
+		version, found, err := resource.FindVersion(disabledVersion)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			scenario.Run(builder.WithResourceVersions(resourceName, disabledVersion))
+
+			reloaded, err := resource.Reload()
+			if err != nil {
+				return err
+			}
+
+			if !reloaded {
+				return fmt.Errorf("resource '%s' not reloaded", resourceName)
+			}
+
+			version, found, err = resource.FindVersion(disabledVersion)
+			if err != nil {
+				return err
+			}
+
+			if !found {
+				return fmt.Errorf("version '%v' not able to be saved", disabledVersion)
+			}
+		}
+
+		err = resource.DisableVersion(version.ID())
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+}
+
+func (builder Builder) WithEnabledVersion(resourceName string, enabledVersion atc.Version) SetupFunc {
+	return func(scenario *Scenario) error {
+		resource, found, err := scenario.Pipeline.Resource(resourceName)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return fmt.Errorf("resource '%s' not configured in pipeline", resourceName)
+		}
+
+		version, found, err := resource.FindVersion(enabledVersion)
+		if err != nil {
+			return err
+		}
+
+		if found {
+			err = resource.EnableVersion(version.ID())
+			if err != nil {
+				return err
+			}
+		} else {
+			scenario.Run(builder.WithResourceVersions(resourceName, enabledVersion))
+		}
+
+		return nil
+	}
+}
+
 func unique(kind string) string {
 	id, err := uuid.NewV4()
 	if err != nil {
