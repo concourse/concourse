@@ -37,7 +37,7 @@
     "build-js": "webpack --mode production",
     "test": "cd web/elm && elm-test",
     "build-less": "lessc web/assets/css/main.less web/public/main.out.css && cleancss -o web/public/main.css web/public/main.out.css && rm web/public/main.out.css",
-    "build-elm": "cd web/elm && elm make --optimize --output ../public/elm.js src/Main.elm && uglifyjs ../public/elm.js --compress \"pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe\" | uglifyjs --mangle --output=../public/elm.min.js",
+    "build-elm": "cd web/elm && elm make --optimize --output ../public/elm.js src/Main.elm && uglifyjs ../public/elm.js --compress \"pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe\" | uglifyjs --mangle --output ../public/elm.min.js",
     "build-elm-debug": "cd web/elm && elm make --debug --output ../public/elm.js src/Main.elm && uglifyjs < ../public/elm.js > ../public/elm.min.js",
     "update-mdi-svg": "./hack/update-mdi-svg \"node_modules/@mdi/svg/svg\" | tr -d '\n' > web/public/mdi-svg.min.js",
     "benchmark": "cd web/elm && elm make --optimize --output /tmp/benchmark.html benchmarks/Benchmarks.elm && node benchmarks/benchmark.js /tmp/benchmark.html"
