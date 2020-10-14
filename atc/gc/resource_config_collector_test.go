@@ -8,6 +8,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbtest"
 	"github.com/concourse/concourse/atc/gc"
 
 	. "github.com/onsi/ginkgo"
@@ -137,11 +138,18 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 			Context("when config is referenced in resources", func() {
 				BeforeEach(func() {
-					_, err := usedResource.SetResourceConfig(
-						atc.Source{"some": "source"},
-						atc.VersionedResourceTypes{},
+					dbtest.Setup(
+						builder.WithPipeline(atc.Config{
+							Resources: atc.ResourceConfigs{
+								{
+									Name:   "some-resource",
+									Type:   "some-base-type",
+									Source: atc.Source{"some": "source"},
+								},
+							},
+						}),
+						builder.WithResourceVersions("some-resource"),
 					)
-					Expect(err).NotTo(HaveOccurred())
 				})
 
 				It("preserve the config", func() {
@@ -187,11 +195,18 @@ var _ = Describe("ResourceConfigCollector", func() {
 
 			Context("when config is referenced in resource types", func() {
 				BeforeEach(func() {
-					_, err := usedResourceType.SetResourceConfig(
-						atc.Source{"some": "source-type"},
-						atc.VersionedResourceTypes{},
+					dbtest.Setup(
+						builder.WithPipeline(atc.Config{
+							ResourceTypes: atc.ResourceTypes{
+								{
+									Name:   "some-resource-type",
+									Type:   "some-base-type",
+									Source: atc.Source{"some": "source-type"},
+								},
+							},
+						}),
+						builder.WithResourceTypeVersions("some-resource-type"),
 					)
-					Expect(err).NotTo(HaveOccurred())
 				})
 
 				It("preserve the config", func() {
