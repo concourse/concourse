@@ -250,6 +250,8 @@ type RunCommand struct {
 		EnableAcrossStep                     bool `long:"enable-across-step" description:"Enable the experimental across step to be used in jobs. The API is subject to change."`
 		EnablePipelineInstances              bool `long:"enable-pipeline-instances" description:"Enable pipeline instances"`
 	} `group:"Feature Flags"`
+
+	BaseResourceTypeDefaults flag.File `long:"base-resource-type-defaults" description:"Base resource type defaults"`
 }
 
 type Migration struct {
@@ -483,6 +485,21 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	atc.EnableBuildRerunWhenWorkerDisappears = cmd.FeatureFlags.EnableBuildRerunWhenWorkerDisappears
 	atc.EnableAcrossStep = cmd.FeatureFlags.EnableAcrossStep
 	atc.EnablePipelineInstances = cmd.FeatureFlags.EnablePipelineInstances
+
+	if cmd.BaseResourceTypeDefaults.Path() != "" {
+		content, err := ioutil.ReadFile(cmd.BaseResourceTypeDefaults.Path())
+		if err != nil {
+			return nil, err
+		}
+
+		defaults := map[string]atc.Source{}
+		err = yaml.Unmarshal(content, &defaults)
+		if err != nil {
+			return nil, err
+		}
+
+		atc.LoadBaseResourceTypeDefaults(defaults)
+	}
 
 	//FIXME: These only need to run once for the entire binary. At the moment,
 	//they rely on state of the command.

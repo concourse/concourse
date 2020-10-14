@@ -26,6 +26,28 @@ func (src Source) MarshalJSON() ([]byte, error) {
 	return json.Marshal(strKeys)
 }
 
+// Merge returns a new Source that merged other into src. The original src is
+// not updated.
+func (src Source) Merge(other Source) Source {
+	if src == nil && other == nil {
+		return nil
+	}
+
+	newSource := Source{}
+	if src != nil {
+		for k, v := range src {
+			newSource[k] = v
+		}
+	}
+	if other == nil {
+		return newSource
+	}
+	for k, v := range other {
+		newSource[k] = v
+	}
+	return newSource
+}
+
 type Params map[string]interface{}
 
 func (ps Params) MarshalJSON() ([]byte, error) {

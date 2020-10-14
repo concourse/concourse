@@ -35,6 +35,7 @@ type ResourceType interface {
 	Type() string
 	Privileged() bool
 	Source() atc.Source
+	Defaults() atc.Source
 	Params() atc.Params
 	Tags() atc.Tags
 	CheckEvery() string
@@ -56,7 +57,7 @@ type ResourceType interface {
 
 	SetResourceConfigScope(ResourceConfigScope) error
 
-	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes) atc.CheckPlan
+	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
 	CreateBuild(context.Context, bool) (Build, bool, error)
 
 	SetCheckSetupError(error) error
@@ -97,11 +98,24 @@ func (resourceTypes ResourceTypes) Deserialize() atc.VersionedResourceTypes {
 	var versionedResourceTypes atc.VersionedResourceTypes
 
 	for _, t := range resourceTypes {
+		// Apply source defaults to resource types
+		source := t.Source()
+		parentType, found := resourceTypes.Parent(t)
+		if found {
+			source = parentType.Defaults().Merge(source)
+		} else {
+			defaults, found := atc.FindBaseResourceTypeDefaults(t.Type())
+			if found {
+				source = defaults.Merge(source)
+			}
+		}
+
 		versionedResourceTypes = append(versionedResourceTypes, atc.VersionedResourceType{
 			ResourceType: atc.ResourceType{
 				Name:       t.Name(),
 				Type:       t.Type(),
-				Source:     t.Source(),
+				Source:     source,
+				Defaults:   t.Defaults(),
 				Privileged: t.Privileged(),
 				CheckEvery: t.CheckEvery(),
 				Tags:       t.Tags(),
@@ -122,6 +136,7 @@ func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
 			Name:       r.Name(),
 			Type:       r.Type(),
 			Source:     r.Source(),
+			Defaults:   r.Defaults(),
 			Privileged: r.Privileged(),
 			CheckEvery: r.CheckEvery(),
 			Tags:       r.Tags(),
@@ -175,6 +190,7 @@ type resourceType struct {
 	type_                 string
 	privileged            bool
 	source                atc.Source
+	defaults              atc.Source
 	params                atc.Params
 	tags                  atc.Tags
 	version               atc.Version
@@ -196,6 +212,7 @@ func (t *resourceType) CheckTimeout() string          { return "" }
 func (r *resourceType) LastCheckStartTime() time.Time { return r.lastCheckStartTime }
 func (r *resourceType) LastCheckEndTime() time.Time   { return r.lastCheckEndTime }
 func (t *resourceType) Source() atc.Source            { return t.source }
+func (t *resourceType) Defaults() atc.Source          { return t.defaults }
 func (t *resourceType) Params() atc.Params            { return t.params }
 func (t *resourceType) Tags() atc.Tags                { return t.tags }
 func (t *resourceType) CheckSetupError() error        { return t.checkSetupError }
@@ -287,11 +304,11 @@ func (t *resourceType) SetResourceConfig(source atc.Source, resourceTypes atc.Ve
 	return resourceConfigScope, nil
 }
 
-func (r *resourceType) CheckPlan(from atc.Version, interval, timeout time.Duration, resourceTypes ResourceTypes) atc.CheckPlan {
+func (r *resourceType) CheckPlan(from atc.Version, interval, timeout time.Duration, resourceTypes ResourceTypes, sourceDefaults atc.Source) atc.CheckPlan {
 	return atc.CheckPlan{
 		Name:   r.Name(),
 		Type:   r.Type(),
-		Source: r.Source(),
+		Source: sourceDefaults.Merge(r.Source()),
 		Tags:   r.Tags(),
 
 		FromVersion: from,
@@ -415,6 +432,7 @@ func scanResourceType(t *resourceType, row scannable) error {
 	}
 
 	t.source = config.Source
+	t.defaults = config.Defaults
 	t.params = config.Params
 	t.privileged = config.Privileged
 	t.tags = config.Tags

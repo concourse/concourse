@@ -51,14 +51,21 @@ type SchedulerResource struct {
 	Source atc.Source
 }
 
-func (resources SchedulerResources) Lookup(name string) (SchedulerResource, bool) {
+func (r *SchedulerResource) ApplySourceDefaults(resourceTypes atc.VersionedResourceTypes) {
+	parentType, found := resourceTypes.Lookup(r.Type)
+	if found {
+		r.Source = parentType.Defaults.Merge(r.Source)
+	}
+}
+
+func (resources SchedulerResources) Lookup(name string) (*SchedulerResource, bool) {
 	for _, resource := range resources {
 		if resource.Name == name {
-			return resource, true
+			return &resource, true
 		}
 	}
 
-	return SchedulerResource{}, false
+	return nil, false
 }
 
 func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {

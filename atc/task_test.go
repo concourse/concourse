@@ -399,3 +399,83 @@ run: {path: a/file}
 	})
 
 })
+
+var _ = Context("ImageResource", func() {
+	var imageResource *atc.ImageResource
+	var resourceTypes atc.VersionedResourceTypes
+
+	Context("ApplySourceDefaults", func() {
+		BeforeEach(func() {
+			resourceTypes = atc.VersionedResourceTypes{}
+		})
+
+		JustBeforeEach(func() {
+			imageResource.ApplySourceDefaults(resourceTypes)
+		})
+
+		Context("when imageResource is nil", func() {
+			It("should not fail", func() {
+				Expect(imageResource).To(BeNil())
+			})
+		})
+
+		Context("when imageResource is initialized", func() {
+			BeforeEach(func() {
+				imageResource = &atc.ImageResource{
+					Type: "docker",
+					Source: atc.Source{
+						"a":               "b",
+						"evaluated-value": "((task-variable-name))",
+					},
+				}
+			})
+
+			Context("resourceTypes is empty, and no base resource type defaults configured", func() {
+				It("applied source should be identical to the original", func() {
+					Expect(imageResource.Source).To(Equal(atc.Source{
+						"a":               "b",
+						"evaluated-value": "((task-variable-name))",
+					}))
+				})
+			})
+
+			Context("resourceTypes is empty, and base resource type defaults configured", func() {
+				BeforeEach(func() {
+					atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{"docker": atc.Source{"some-key": "some-value"}})
+				})
+				AfterEach(func() {
+					atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{})
+				})
+
+				It("defaults should be added to image source", func() {
+					Expect(imageResource.Source).To(Equal(atc.Source{
+						"a":               "b",
+						"evaluated-value": "((task-variable-name))",
+						"some-key":        "some-value",
+					}))
+				})
+			})
+
+			Context("resourceTypes contains image source type", func() {
+				BeforeEach(func() {
+					resourceTypes = atc.VersionedResourceTypes{
+						{
+							ResourceType: atc.ResourceType{
+								Name:     "docker",
+								Defaults: atc.Source{"some-key": "some-value"},
+							},
+						},
+					}
+				})
+
+				It("defaults should be added to image source", func() {
+					Expect(imageResource.Source).To(Equal(atc.Source{
+						"a":               "b",
+						"evaluated-value": "((task-variable-name))",
+						"some-key":        "some-value",
+					}))
+				})
+			})
+		})
+	})
+})

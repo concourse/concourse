@@ -28,13 +28,14 @@ var _ = Describe("ResourceType", func() {
 			atc.Config{
 				ResourceTypes: atc.ResourceTypes{
 					{
-						Name:   "some-type",
-						Type:   "registry-image",
-						Source: atc.Source{"some": "repository"},
+						Name:     "some-type",
+						Type:     "registry-image",
+						Source:   atc.Source{"some": "repository"},
+						Defaults: atc.Source{"some-default-k1": "some-default-v1"},
 					},
 					{
 						Name:       "some-other-type",
-						Type:       "registry-image-ng",
+						Type:       "some-type",
 						Privileged: true,
 						Source:     atc.Source{"some": "other-repository"},
 					},
@@ -81,21 +82,26 @@ var _ = Describe("ResourceType", func() {
 					Expect(t.Name()).To(Equal("some-type"))
 					Expect(t.Type()).To(Equal("registry-image"))
 					Expect(t.Source()).To(Equal(atc.Source{"some": "repository"}))
+					Expect(t.Defaults()).To(Equal(atc.Source{"some-default-k1": "some-default-v1"}))
 					Expect(t.Version()).To(BeNil())
 				case "some-other-type":
 					Expect(t.Name()).To(Equal("some-other-type"))
-					Expect(t.Type()).To(Equal("registry-image-ng"))
+					Expect(t.Type()).To(Equal("some-type"))
 					Expect(t.Source()).To(Equal(atc.Source{"some": "other-repository"}))
+					Expect(t.Defaults()).To(BeNil())
 					Expect(t.Version()).To(BeNil())
 					Expect(t.Privileged()).To(BeTrue())
 				case "some-type-with-params":
 					Expect(t.Name()).To(Equal("some-type-with-params"))
 					Expect(t.Type()).To(Equal("s3"))
+					Expect(t.Source()).To(Equal(atc.Source{"some": "repository"}))
+					Expect(t.Defaults()).To(BeNil())
 					Expect(t.Params()).To(Equal(atc.Params{"unpack": "true"}))
 				case "some-type-with-custom-check":
 					Expect(t.Name()).To(Equal("some-type-with-custom-check"))
 					Expect(t.Type()).To(Equal("registry-image"))
 					Expect(t.Source()).To(Equal(atc.Source{"some": "repository"}))
+					Expect(t.Defaults()).To(BeNil())
 					Expect(t.Version()).To(BeNil())
 					Expect(t.CheckEvery()).To(Equal("10ms"))
 				}
@@ -283,6 +289,107 @@ var _ = Describe("ResourceType", func() {
 				Expect(tree[3].Type()).To(Equal("registry-image"))
 			})
 		})
+
+		Context("Deserialize", func() {
+			var vrts atc.VersionedResourceTypes
+			JustBeforeEach(func() {
+				vrts = resourceTypes.Deserialize()
+			})
+
+			Context("when no base resource type defaults defined", func() {
+				It("should return original resource types", func() {
+					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name:     "some-type",
+							Type:     "registry-image",
+							Source:   atc.Source{"some": "repository"},
+							Defaults: atc.Source{"some-default-k1": "some-default-v1"},
+						},
+					}))
+					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name: "some-other-type",
+							Type: "some-type",
+							Source: atc.Source{
+								"some-default-k1": "some-default-v1",
+								"some":            "other-repository",
+							},
+							Privileged: true,
+						},
+					}))
+					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name:       "some-type-with-params",
+							Type:       "s3",
+							Source:     atc.Source{"some": "repository"},
+							Defaults:   nil,
+							Privileged: false,
+							Params:     atc.Params{"unpack": "true"},
+						},
+					}))
+					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name:       "some-type-with-custom-check",
+							Type:       "registry-image",
+							Source:     atc.Source{"some": "repository"},
+							CheckEvery: "10ms",
+						},
+					}))
+				})
+			})
+
+			Context("when base resource type defaults is defined", func() {
+				BeforeEach(func() {
+					atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{"s3": atc.Source{"default-s3-key": "some-value"}})
+				})
+				AfterEach(func() {
+					atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{})
+				})
+
+				It("should return original resource types", func() {
+					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name:     "some-type",
+							Type:     "registry-image",
+							Source:   atc.Source{"some": "repository"},
+							Defaults: atc.Source{"some-default-k1": "some-default-v1"},
+						},
+					}))
+					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name: "some-other-type",
+							Type: "some-type",
+							Source: atc.Source{
+								"some-default-k1": "some-default-v1",
+								"some":            "other-repository",
+							},
+							Privileged: true,
+						},
+					}))
+					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name: "some-type-with-params",
+							Type: "s3",
+							Source: atc.Source{
+								"some":           "repository",
+								"default-s3-key": "some-value",
+							},
+							Defaults:   nil,
+							Privileged: false,
+							Params:     atc.Params{"unpack": "true"},
+						},
+					}))
+					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name:       "some-type-with-custom-check",
+							Type:       "registry-image",
+							Source:     atc.Source{"some": "repository"},
+							CheckEvery: "10ms",
+						},
+					}))
+				})
+			})
+		})
 	})
 
 	Describe("SetCheckError", func() {
@@ -431,10 +538,11 @@ var _ = Describe("ResourceType", func() {
 		})
 
 		It("returns a plan which will update the resource type", func() {
-			Expect(resourceType.CheckPlan(atc.Version{"some": "version"}, time.Minute, 10*time.Second, resourceTypes)).To(Equal(atc.CheckPlan{
+			defaults := atc.Source{"sdk": "sdv"}
+			Expect(resourceType.CheckPlan(atc.Version{"some": "version"}, time.Minute, 10*time.Second, resourceTypes, defaults)).To(Equal(atc.CheckPlan{
 				Name:   resourceType.Name(),
 				Type:   resourceType.Type(),
-				Source: resourceType.Source(),
+				Source: defaults.Merge(resourceType.Source()),
 				Tags:   resourceType.Tags(),
 
 				FromVersion: atc.Version{"some": "version"},

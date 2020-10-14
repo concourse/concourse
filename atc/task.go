@@ -46,6 +46,22 @@ type ImageResource struct {
 	Version Version `json:"version,omitempty"`
 }
 
+func (ir *ImageResource) ApplySourceDefaults(resourceTypes VersionedResourceTypes) {
+	if ir == nil {
+		return
+	}
+
+	parentType, found := resourceTypes.Lookup(ir.Type)
+	if found {
+		ir.Source = parentType.Defaults.Merge(ir.Source)
+	} else {
+		brtDefaults, found := FindBaseResourceTypeDefaults(ir.Type)
+		if found {
+			ir.Source = brtDefaults.Merge(ir.Source)
+		}
+	}
+}
+
 func NewTaskConfig(configBytes []byte) (TaskConfig, error) {
 	var config TaskConfig
 	err := yaml.UnmarshalStrict(configBytes, &config, yaml.DisallowUnknownFields)

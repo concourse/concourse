@@ -70,7 +70,7 @@ type Resource interface {
 
 	SetResourceConfigScope(ResourceConfigScope) error
 
-	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes) atc.CheckPlan
+	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
 	CreateBuild(context.Context, bool) (Build, bool, error)
 
 	SetCheckSetupError(error) error
@@ -313,11 +313,11 @@ func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.Versio
 	return resourceConfigScope, nil
 }
 
-func (r *resource) CheckPlan(from atc.Version, interval, timeout time.Duration, resourceTypes ResourceTypes) atc.CheckPlan {
+func (r *resource) CheckPlan(from atc.Version, interval, timeout time.Duration, resourceTypes ResourceTypes, sourceDefaults atc.Source) atc.CheckPlan {
 	return atc.CheckPlan{
 		Name:   r.Name(),
 		Type:   r.Type(),
-		Source: r.Source(),
+		Source: sourceDefaults.Merge(r.Source()),
 		Tags:   r.Tags(),
 
 		FromVersion: from,

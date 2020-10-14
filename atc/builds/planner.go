@@ -89,6 +89,8 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 		return VersionNotProvidedError{step.Name}
 	}
 
+	resource.ApplySourceDefaults(visitor.resourceTypes)
+
 	visitor.plan = visitor.planFactory.NewPlan(atc.GetPlan{
 		Name: step.Name,
 
@@ -117,6 +119,8 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 	if !found {
 		return UnknownResourceError{resourceName}
 	}
+
+	resource.ApplySourceDefaults(visitor.resourceTypes)
 
 	atcPutPlan := atc.PutPlan{
 		Type:     resource.Type,
@@ -226,9 +230,9 @@ func (visitor *planVisitor) VisitAcross(step *atc.AcrossStep) error {
 	}
 
 	acrossPlan := atc.AcrossPlan{
-		Vars:        vars,
-		Steps:       []atc.VarScopedPlan{},
-		FailFast:    step.FailFast,
+		Vars:     vars,
+		Steps:    []atc.VarScopedPlan{},
+		FailFast: step.FailFast,
 	}
 	for _, vals := range cartesianProduct(step.Vars) {
 		err := step.Step.Visit(visitor)
@@ -236,7 +240,7 @@ func (visitor *planVisitor) VisitAcross(step *atc.AcrossStep) error {
 			return err
 		}
 		acrossPlan.Steps = append(acrossPlan.Steps, atc.VarScopedPlan{
-			Step:  visitor.plan,
+			Step:   visitor.plan,
 			Values: vals,
 		})
 	}

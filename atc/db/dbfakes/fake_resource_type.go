@@ -31,13 +31,14 @@ type FakeResourceType struct {
 	checkEveryReturnsOnCall map[int]struct {
 		result1 string
 	}
-	CheckPlanStub        func(atc.Version, time.Duration, time.Duration, db.ResourceTypes) atc.CheckPlan
+	CheckPlanStub        func(atc.Version, time.Duration, time.Duration, db.ResourceTypes, atc.Source) atc.CheckPlan
 	checkPlanMutex       sync.RWMutex
 	checkPlanArgsForCall []struct {
 		arg1 atc.Version
 		arg2 time.Duration
 		arg3 time.Duration
 		arg4 db.ResourceTypes
+		arg5 atc.Source
 	}
 	checkPlanReturns struct {
 		result1 atc.CheckPlan
@@ -90,6 +91,16 @@ type FakeResourceType struct {
 	}
 	currentPinnedVersionReturnsOnCall map[int]struct {
 		result1 atc.Version
+	}
+	DefaultsStub        func() atc.Source
+	defaultsMutex       sync.RWMutex
+	defaultsArgsForCall []struct {
+	}
+	defaultsReturns struct {
+		result1 atc.Source
+	}
+	defaultsReturnsOnCall map[int]struct {
+		result1 atc.Source
 	}
 	HasWebhookStub        func() bool
 	hasWebhookMutex       sync.RWMutex
@@ -441,7 +452,7 @@ func (fake *FakeResourceType) CheckEveryReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) CheckPlan(arg1 atc.Version, arg2 time.Duration, arg3 time.Duration, arg4 db.ResourceTypes) atc.CheckPlan {
+func (fake *FakeResourceType) CheckPlan(arg1 atc.Version, arg2 time.Duration, arg3 time.Duration, arg4 db.ResourceTypes, arg5 atc.Source) atc.CheckPlan {
 	fake.checkPlanMutex.Lock()
 	ret, specificReturn := fake.checkPlanReturnsOnCall[len(fake.checkPlanArgsForCall)]
 	fake.checkPlanArgsForCall = append(fake.checkPlanArgsForCall, struct {
@@ -449,11 +460,12 @@ func (fake *FakeResourceType) CheckPlan(arg1 atc.Version, arg2 time.Duration, ar
 		arg2 time.Duration
 		arg3 time.Duration
 		arg4 db.ResourceTypes
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("CheckPlan", []interface{}{arg1, arg2, arg3, arg4})
+		arg5 atc.Source
+	}{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("CheckPlan", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.checkPlanMutex.Unlock()
 	if fake.CheckPlanStub != nil {
-		return fake.CheckPlanStub(arg1, arg2, arg3, arg4)
+		return fake.CheckPlanStub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1
@@ -468,17 +480,17 @@ func (fake *FakeResourceType) CheckPlanCallCount() int {
 	return len(fake.checkPlanArgsForCall)
 }
 
-func (fake *FakeResourceType) CheckPlanCalls(stub func(atc.Version, time.Duration, time.Duration, db.ResourceTypes) atc.CheckPlan) {
+func (fake *FakeResourceType) CheckPlanCalls(stub func(atc.Version, time.Duration, time.Duration, db.ResourceTypes, atc.Source) atc.CheckPlan) {
 	fake.checkPlanMutex.Lock()
 	defer fake.checkPlanMutex.Unlock()
 	fake.CheckPlanStub = stub
 }
 
-func (fake *FakeResourceType) CheckPlanArgsForCall(i int) (atc.Version, time.Duration, time.Duration, db.ResourceTypes) {
+func (fake *FakeResourceType) CheckPlanArgsForCall(i int) (atc.Version, time.Duration, time.Duration, db.ResourceTypes, atc.Source) {
 	fake.checkPlanMutex.RLock()
 	defer fake.checkPlanMutex.RUnlock()
 	argsForCall := fake.checkPlanArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
 func (fake *FakeResourceType) CheckPlanReturns(result1 atc.CheckPlan) {
@@ -724,6 +736,58 @@ func (fake *FakeResourceType) CurrentPinnedVersionReturnsOnCall(i int, result1 a
 	}
 	fake.currentPinnedVersionReturnsOnCall[i] = struct {
 		result1 atc.Version
+	}{result1}
+}
+
+func (fake *FakeResourceType) Defaults() atc.Source {
+	fake.defaultsMutex.Lock()
+	ret, specificReturn := fake.defaultsReturnsOnCall[len(fake.defaultsArgsForCall)]
+	fake.defaultsArgsForCall = append(fake.defaultsArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Defaults", []interface{}{})
+	fake.defaultsMutex.Unlock()
+	if fake.DefaultsStub != nil {
+		return fake.DefaultsStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.defaultsReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeResourceType) DefaultsCallCount() int {
+	fake.defaultsMutex.RLock()
+	defer fake.defaultsMutex.RUnlock()
+	return len(fake.defaultsArgsForCall)
+}
+
+func (fake *FakeResourceType) DefaultsCalls(stub func() atc.Source) {
+	fake.defaultsMutex.Lock()
+	defer fake.defaultsMutex.Unlock()
+	fake.DefaultsStub = stub
+}
+
+func (fake *FakeResourceType) DefaultsReturns(result1 atc.Source) {
+	fake.defaultsMutex.Lock()
+	defer fake.defaultsMutex.Unlock()
+	fake.DefaultsStub = nil
+	fake.defaultsReturns = struct {
+		result1 atc.Source
+	}{result1}
+}
+
+func (fake *FakeResourceType) DefaultsReturnsOnCall(i int, result1 atc.Source) {
+	fake.defaultsMutex.Lock()
+	defer fake.defaultsMutex.Unlock()
+	fake.DefaultsStub = nil
+	if fake.defaultsReturnsOnCall == nil {
+		fake.defaultsReturnsOnCall = make(map[int]struct {
+			result1 atc.Source
+		})
+	}
+	fake.defaultsReturnsOnCall[i] = struct {
+		result1 atc.Source
 	}{result1}
 }
 
@@ -1977,6 +2041,8 @@ func (fake *FakeResourceType) Invocations() map[string][][]interface{} {
 	defer fake.createBuildMutex.RUnlock()
 	fake.currentPinnedVersionMutex.RLock()
 	defer fake.currentPinnedVersionMutex.RUnlock()
+	fake.defaultsMutex.RLock()
+	defer fake.defaultsMutex.RUnlock()
 	fake.hasWebhookMutex.RLock()
 	defer fake.hasWebhookMutex.RUnlock()
 	fake.iDMutex.RLock()
