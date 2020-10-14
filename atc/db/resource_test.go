@@ -30,6 +30,7 @@ var _ = Describe("Resource", func() {
 				Resources: atc.ResourceConfigs{
 					{
 						Name:         "some-resource",
+						DisplayName:  "Some resource",
 						Type:         "registry-image",
 						WebhookToken: "some-token",
 						Source:       atc.Source{"some": "repository"},
@@ -37,19 +38,22 @@ var _ = Describe("Resource", func() {
 						CheckTimeout: "999m",
 					},
 					{
-						Name:   "some-other-resource",
-						Public: true,
-						Type:   "git",
-						Source: atc.Source{"some": "other-repository"},
+						Name:        "some-other-resource",
+						DisplayName: "Some other resource",
+						Public:      true,
+						Type:        "git",
+						Source:      atc.Source{"some": "other-repository"},
 					},
 					{
-						Name:   "some-secret-resource",
-						Public: false,
-						Type:   "git",
-						Source: atc.Source{"some": "((secret-repository))"},
+						Name:        "some-secret-resource",
+						DisplayName: "Some secret resource :o",
+						Public:      false,
+						Type:        "git",
+						Source:      atc.Source{"some": "((secret-repository))"},
 					},
 					{
 						Name:         "some-resource-custom-check",
+						DisplayName:  "Some resource with custom check",
 						Type:         "git",
 						Source:       atc.Source{"some": "some-repository"},
 						CheckEvery:   "10ms",
@@ -98,20 +102,24 @@ var _ = Describe("Resource", func() {
 
 				switch r.Name() {
 				case "some-resource":
+					Expect(r.DisplayName()).To(Equal("Some resource"))
 					Expect(r.Type()).To(Equal("registry-image"))
 					Expect(r.Source()).To(Equal(atc.Source{"some": "repository"}))
 					Expect(r.ConfigPinnedVersion()).To(Equal(atc.Version{"ref": "abcdef"}))
 					Expect(r.CurrentPinnedVersion()).To(Equal(r.ConfigPinnedVersion()))
 					Expect(r.HasWebhook()).To(BeTrue())
 				case "some-other-resource":
+					Expect(r.DisplayName()).To(Equal("Some other resource"))
 					Expect(r.Type()).To(Equal("git"))
 					Expect(r.Source()).To(Equal(atc.Source{"some": "other-repository"}))
 					Expect(r.HasWebhook()).To(BeFalse())
 				case "some-secret-resource":
+					Expect(r.DisplayName()).To(Equal("Some secret resource :o"))
 					Expect(r.Type()).To(Equal("git"))
 					Expect(r.Source()).To(Equal(atc.Source{"some": "((secret-repository))"}))
 					Expect(r.HasWebhook()).To(BeFalse())
 				case "some-resource-custom-check":
+					Expect(r.DisplayName()).To(Equal("Some resource with custom check"))
 					Expect(r.Type()).To(Equal("git"))
 					Expect(r.Source()).To(Equal(atc.Source{"some": "some-repository"}))
 					Expect(r.CheckEvery()).To(Equal("10ms"))

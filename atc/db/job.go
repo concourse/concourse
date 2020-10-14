@@ -58,6 +58,7 @@ type Job interface {
 
 	ID() int
 	Name() string
+	DisplayName() string
 	Paused() bool
 	FirstLoggedBuildID() int
 	TeamID() int
@@ -105,7 +106,7 @@ type Job interface {
 	HasNewInputs() bool
 }
 
-var jobsQuery = psql.Select("j.id", "j.name", "j.config", "j.paused", "j.public", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.instance_vars", "p.team_id", "t.name", "j.nonce", "j.tags", "j.has_new_inputs", "j.schedule_requested", "j.max_in_flight", "j.disable_manual_trigger").
+var jobsQuery = psql.Select("j.id", "j.name", "j.display_name", "j.config", "j.paused", "j.public", "j.first_logged_build_id", "j.pipeline_id", "p.name", "p.instance_vars", "p.team_id", "t.name", "j.nonce", "j.tags", "j.has_new_inputs", "j.schedule_requested", "j.max_in_flight", "j.disable_manual_trigger").
 	From("jobs j, pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id").
 	Where(sq.Expr("j.pipeline_id = p.id"))
@@ -125,6 +126,7 @@ type job struct {
 
 	id                    int
 	name                  string
+	display_name          string
 	paused                bool
 	public                bool
 	firstLoggedBuildID    int
@@ -186,6 +188,7 @@ func (jobs Jobs) Configs() (atc.JobConfigs, error) {
 
 func (j *job) ID() int                          { return j.id }
 func (j *job) Name() string                     { return j.name }
+func (j *job) DisplayName() string              { return j.display_name }
 func (j *job) Paused() bool                     { return j.paused }
 func (j *job) Public() bool                     { return j.public }
 func (j *job) FirstLoggedBuildID() int          { return j.firstLoggedBuildID }
@@ -1379,7 +1382,7 @@ func scanJob(j *job, row scannable) error {
 		pipelineInstanceVars sql.NullString
 	)
 
-	err := row.Scan(&j.id, &j.name, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &pipelineInstanceVars, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger)
+	err := row.Scan(&j.id, &j.name, &j.display_name, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &pipelineInstanceVars, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger)
 	if err != nil {
 		return err
 	}

@@ -27,6 +27,7 @@ type Resource interface {
 
 	ID() int
 	Name() string
+	DisplayName() string
 	Public() bool
 	TeamID() int
 	TeamName() string
@@ -77,6 +78,7 @@ type Resource interface {
 var resourcesQuery = psql.Select(
 	"r.id",
 	"r.name",
+	"r.display_name",
 	"r.type",
 	"r.config",
 	"rs.last_check_start_time",
@@ -111,6 +113,7 @@ type resource struct {
 
 	id                    int
 	name                  string
+	displayName           string
 	teamID                int
 	teamName              string
 	type_                 string
@@ -159,6 +162,7 @@ func (resources Resources) Configs() atc.ResourceConfigs {
 
 func (r *resource) ID() int                          { return r.id }
 func (r *resource) Name() string                     { return r.name }
+func (r *resource) DisplayName() string              { return r.displayName }
 func (r *resource) Public() bool                     { return r.config.Public }
 func (r *resource) TeamID() int                      { return r.teamID }
 func (r *resource) TeamName() string                 { return r.teamName }
@@ -784,7 +788,7 @@ func scanResource(r *resource, row scannable) error {
 		endTime   pq.NullTime
 	}
 
-	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName, &pinnedVersion, &pinComment, &pinnedThroughConfig, &build.id, &build.name, &build.status, &build.startTime, &build.endTime)
+	err := row.Scan(&r.id, &r.name, &r.displayName, &r.type_, &configBlob, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName, &pinnedVersion, &pinComment, &pinnedThroughConfig, &build.id, &build.name, &build.status, &build.startTime, &build.endTime)
 	if err != nil {
 		return err
 	}

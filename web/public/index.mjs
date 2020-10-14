@@ -354,6 +354,7 @@ function createGraph(svg, jobs, resources) {
   var resourceBuild = {};
   var resourcePinned = {};
   var resourceIcons = {};
+  var resourceNames = {};
 
   for (var i in resources) {
     var resource = resources[i];
@@ -361,6 +362,7 @@ function createGraph(svg, jobs, resources) {
     resourceBuild[resource.name] = resource.build;
     resourcePinned[resource.name] = resource.pinned_version;
     resourceIcons[resource.name] = resource.icon;
+    resourceNames[resource.name] = resource.hasOwnProperty('display_name') && resource.display_name != "" ? resource.display_name : resource.name;
   }
 
   for (var i in jobs) {
@@ -396,7 +398,7 @@ function createGraph(svg, jobs, resources) {
 
     graph.setNode(id, new GraphNode({
       id: id,
-      name: job.name,
+      name: job.hasOwnProperty('display_name') && job.display_name != "" ? job.display_name : job.name,
       class: classes.join(" "),
       status: status,
       url: url,
@@ -431,7 +433,7 @@ function createGraph(svg, jobs, resources) {
         addIcon(resourceIcons[output.resource], outputId);
         jobOutputNode = new GraphNode({
           id: outputId,
-          name: output.resource,
+          name: resourceNames[output.resource],
           icon: resourceIcons[output.resource],
           key: output.resource,
           class: "resource output" + resourceStatus(output.resource),
@@ -472,7 +474,7 @@ function createGraph(svg, jobs, resources) {
               addIcon(resourceIcons[input.resource], sourceInputNode);
               graph.setNode(sourceInputNode, new GraphNode({
                 id: sourceInputNode,
-                name: input.resource,
+                name: resourceNames[input.resource],
                 icon: resourceIcons[input.resource],
                 key: input.resource,
                 class: "resource constrained-input" + resourceStatus(input.resource),
@@ -515,7 +517,7 @@ function createGraph(svg, jobs, resources) {
           addIcon(resourceIcons[input.resource], inputId);
           graph.setNode(inputId, new GraphNode({
             id: inputId,
-            name: input.resource,
+            name: resourceNames[input.resource],
             icon: resourceIcons[input.resource],
             key: input.resource,
             class: "resource input" + resourceStatus(input.resource),

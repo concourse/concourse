@@ -3,6 +3,7 @@ package atc
 type Job struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
+	DisplayName          string
 
 	TeamName string `json:"team_name"`
 

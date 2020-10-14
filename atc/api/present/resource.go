@@ -8,6 +8,7 @@ import (
 func Resource(resource db.Resource) atc.Resource {
 	atcResource := atc.Resource{
 		Name:                 resource.Name(),
+		DisplayName:          resource.DisplayName(),
 		PipelineID:           resource.PipelineID(),
 		PipelineName:         resource.PipelineName(),
 		PipelineInstanceVars: resource.PipelineInstanceVars(),
