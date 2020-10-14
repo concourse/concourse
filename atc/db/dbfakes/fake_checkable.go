@@ -21,14 +21,13 @@ type FakeCheckable struct {
 	checkEveryReturnsOnCall map[int]struct {
 		result1 string
 	}
-	CheckPlanStub        func(atc.Version, time.Duration, time.Duration, db.ResourceTypes, atc.Source) atc.CheckPlan
+	CheckPlanStub        func(atc.Version, time.Duration, db.ResourceTypes, atc.Source) atc.CheckPlan
 	checkPlanMutex       sync.RWMutex
 	checkPlanArgsForCall []struct {
 		arg1 atc.Version
 		arg2 time.Duration
-		arg3 time.Duration
-		arg4 db.ResourceTypes
-		arg5 atc.Source
+		arg3 db.ResourceTypes
+		arg4 atc.Source
 	}
 	checkPlanReturns struct {
 		result1 atc.CheckPlan
@@ -286,20 +285,19 @@ func (fake *FakeCheckable) CheckEveryReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeCheckable) CheckPlan(arg1 atc.Version, arg2 time.Duration, arg3 time.Duration, arg4 db.ResourceTypes, arg5 atc.Source) atc.CheckPlan {
+func (fake *FakeCheckable) CheckPlan(arg1 atc.Version, arg2 time.Duration, arg3 db.ResourceTypes, arg4 atc.Source) atc.CheckPlan {
 	fake.checkPlanMutex.Lock()
 	ret, specificReturn := fake.checkPlanReturnsOnCall[len(fake.checkPlanArgsForCall)]
 	fake.checkPlanArgsForCall = append(fake.checkPlanArgsForCall, struct {
 		arg1 atc.Version
 		arg2 time.Duration
-		arg3 time.Duration
-		arg4 db.ResourceTypes
-		arg5 atc.Source
-	}{arg1, arg2, arg3, arg4, arg5})
-	fake.recordInvocation("CheckPlan", []interface{}{arg1, arg2, arg3, arg4, arg5})
+		arg3 db.ResourceTypes
+		arg4 atc.Source
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("CheckPlan", []interface{}{arg1, arg2, arg3, arg4})
 	fake.checkPlanMutex.Unlock()
 	if fake.CheckPlanStub != nil {
-		return fake.CheckPlanStub(arg1, arg2, arg3, arg4, arg5)
+		return fake.CheckPlanStub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
@@ -314,17 +312,17 @@ func (fake *FakeCheckable) CheckPlanCallCount() int {
 	return len(fake.checkPlanArgsForCall)
 }
 
-func (fake *FakeCheckable) CheckPlanCalls(stub func(atc.Version, time.Duration, time.Duration, db.ResourceTypes, atc.Source) atc.CheckPlan) {
+func (fake *FakeCheckable) CheckPlanCalls(stub func(atc.Version, time.Duration, db.ResourceTypes, atc.Source) atc.CheckPlan) {
 	fake.checkPlanMutex.Lock()
 	defer fake.checkPlanMutex.Unlock()
 	fake.CheckPlanStub = stub
 }
 
-func (fake *FakeCheckable) CheckPlanArgsForCall(i int) (atc.Version, time.Duration, time.Duration, db.ResourceTypes, atc.Source) {
+func (fake *FakeCheckable) CheckPlanArgsForCall(i int) (atc.Version, time.Duration, db.ResourceTypes, atc.Source) {
 	fake.checkPlanMutex.RLock()
 	defer fake.checkPlanMutex.RUnlock()
 	argsForCall := fake.checkPlanArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeCheckable) CheckPlanReturns(result1 atc.CheckPlan) {

@@ -144,10 +144,9 @@ var _ = Describe("CheckFactory", func() {
 
 			It("creates a check plan with the default webhook interval", func() {
 				Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
-				version, interval, timeout, types, defaults := fakeResource.CheckPlanArgsForCall(0)
+				version, interval, types, defaults := fakeResource.CheckPlanArgsForCall(0)
 				Expect(version).To(Equal(atc.Version{"from": "version"}))
 				Expect(interval).To(Equal(defaultWebhookCheckInterval))
-				Expect(timeout).To(Equal(defaultCheckTimeout))
 				Expect(types).To(BeNil())
 				Expect(defaults).To(BeEmpty())
 			})
@@ -164,18 +163,16 @@ var _ = Describe("CheckFactory", func() {
 			})
 		})
 
-		Context("when an interval and timeout are specified", func() {
+		Context("when an interval is specified", func() {
 			BeforeEach(func() {
 				fakeResource.CheckEveryReturns("42s")
-				fakeResource.CheckTimeoutReturns("12s")
 			})
 
-			It("sets them in the check plan", func() {
+			It("sets it in the check plan", func() {
 				Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
-				version, interval, timeout, types, defaults := fakeResource.CheckPlanArgsForCall(0)
+				version, interval, types, defaults := fakeResource.CheckPlanArgsForCall(0)
 				Expect(version).To(Equal(atc.Version{"from": "version"}))
 				Expect(interval).To(Equal(42 * time.Second))
-				Expect(timeout).To(Equal(12 * time.Second))
 				Expect(types).To(BeNil())
 				Expect(defaults).To(BeEmpty())
 			})
@@ -184,16 +181,6 @@ var _ = Describe("CheckFactory", func() {
 		Context("when the interval is not parseable", func() {
 			BeforeEach(func() {
 				fakeResource.CheckEveryReturns("not-a-duration")
-			})
-
-			It("errors", func() {
-				Expect(err).To(HaveOccurred())
-			})
-		})
-
-		Context("when the timeout is not parseable", func() {
-			BeforeEach(func() {
-				fakeResource.CheckTimeoutReturns("not-a-duration")
 			})
 
 			It("errors", func() {
@@ -244,10 +231,9 @@ var _ = Describe("CheckFactory", func() {
 
 					It("creates a check plan", func() {
 						Expect(fakeResource.CheckPlanCallCount()).To(Equal(1))
-						version, interval, timeout, types, defaults := fakeResource.CheckPlanArgsForCall(0)
+						version, interval, types, defaults := fakeResource.CheckPlanArgsForCall(0)
 						Expect(version).To(Equal(atc.Version{"from": "version"}))
 						Expect(interval).To(Equal(defaultCheckInterval))
-						Expect(timeout).To(Equal(defaultCheckTimeout))
 						Expect(types).To(Equal(fakeResourceTypes))
 						Expect(defaults).To(Equal(atc.Source{"sdk": "sdk"}))
 					})

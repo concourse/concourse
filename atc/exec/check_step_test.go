@@ -28,7 +28,6 @@ import (
 )
 
 var _ = Describe("CheckStep", func() {
-
 	var (
 		ctx    context.Context
 		cancel context.CancelFunc
@@ -45,6 +44,7 @@ var _ = Describe("CheckStep", func() {
 		fakeDelegateFactory       *execfakes.FakeCheckDelegateFactory
 		spanCtx                   context.Context
 		fakeClient                *workerfakes.FakeClient
+		defaultTimeout            = time.Hour
 
 		fakeStdout, fakeStderr io.Writer
 
@@ -116,6 +116,7 @@ var _ = Describe("CheckStep", func() {
 			fakePool,
 			fakeDelegateFactory,
 			fakeClient,
+			defaultTimeout,
 		)
 
 		stepOk, stepErr = checkStep.Run(ctx, fakeRunState)
@@ -447,6 +448,16 @@ var _ = Describe("CheckStep", func() {
 
 				It("uses the resource created", func() {
 					Expect(resource).To(Equal(fakeResource))
+				})
+
+				Context("when no timeout is given on the plan", func() {
+					BeforeEach(func() {
+						checkPlan.Timeout = ""
+					})
+
+					It("uses the default timeout", func() {
+						Expect(timeout).To(Equal(time.Hour))
+					})
 				})
 			})
 

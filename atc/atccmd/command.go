@@ -1654,6 +1654,7 @@ func (cmd *RunCommand) constructEngine(
 		defaultLimits,
 		strategy,
 		lockFactory,
+		cmd.GlobalResourceCheckTimeout,
 	)
 
 	stepBuilder := builder.NewStepBuilder(

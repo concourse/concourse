@@ -36,7 +36,7 @@ type Checkable interface {
 		atc.VersionedResourceTypes,
 	) (ResourceConfigScope, error)
 
-	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
+	CheckPlan(atc.Version, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
 	CreateBuild(context.Context, bool) (Build, bool, error)
 }
 
@@ -125,15 +125,7 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		return nil, false, nil
 	}
 
-	timeout := c.defaultCheckTimeout
-	if to := checkable.CheckTimeout(); to != "" {
-		timeout, err = time.ParseDuration(to)
-		if err != nil {
-			return nil, false, fmt.Errorf("check timeout: %s", err)
-		}
-	}
-
-	checkPlan := checkable.CheckPlan(from, interval, timeout, resourceTypes.Filter(checkable), sourceDefaults)
+	checkPlan := checkable.CheckPlan(from, interval, resourceTypes.Filter(checkable), sourceDefaults)
 
 	plan := c.planFactory.NewPlan(checkPlan)
 
