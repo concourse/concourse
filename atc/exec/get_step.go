@@ -208,6 +208,8 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	var succeeded bool
 	if getResult.ExitStatus == 0 {
+		state.StoreResult(step.planID, resourceCache)
+
 		state.ArtifactRepository().RegisterArtifact(
 			build.ArtifactName(step.plan.Name),
 			getResult.GetArtifact,

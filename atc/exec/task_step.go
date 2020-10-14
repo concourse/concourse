@@ -80,6 +80,9 @@ type TaskDelegate interface {
 	ImageGet(lager.Logger, atc.Plan)
 }
 
+// Name of the artifact fetched when using image_resource.
+const imageArtifactName = "image"
+
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
 // artifact.Repository and outputs will be added to the artifact.Repository.
 type TaskStep struct {
@@ -318,7 +321,7 @@ func (step *TaskStep) imageSpec(ctx context.Context, state RunState, delegate Ta
 			checkPlan := atc.Plan{
 				ID: checkID,
 				Check: &atc.CheckPlan{
-					Name:                   "image",
+					Name:                   imageArtifactName,
 					Type:                   config.ImageResource.Type,
 					Source:                 config.ImageResource.Source,
 					VersionedResourceTypes: step.plan.VersionedResourceTypes,
@@ -346,7 +349,7 @@ func (step *TaskStep) imageSpec(ctx context.Context, state RunState, delegate Ta
 		getPlan := atc.Plan{
 			ID: getID,
 			Get: &atc.GetPlan{
-				Name:                   "image",
+				Name:                   imageArtifactName,
 				Type:                   config.ImageResource.Type,
 				Source:                 config.ImageResource.Source,
 				Version:                &version,
@@ -366,7 +369,17 @@ func (step *TaskStep) imageSpec(ctx context.Context, state RunState, delegate Ta
 			return worker.ImageSpec{}, fmt.Errorf("image fetching failed")
 		}
 
-		art, found := fetchState.ArtifactRepository().ArtifactFor("image")
+		var cache db.UsedResourceCache
+		if !fetchState.Result(getID, &cache) {
+			return worker.ImageSpec{}, fmt.Errorf("get did not return a cache")
+		}
+
+		err = delegate.ImageVersionDetermined(cache)
+		if err != nil {
+			return worker.ImageSpec{}, fmt.Errorf("save image version: %w", err)
+		}
+
+		art, found := fetchState.ArtifactRepository().ArtifactFor(imageArtifactName)
 		if !found {
 			return worker.ImageSpec{}, fmt.Errorf("fetched artifact not found")
 		}

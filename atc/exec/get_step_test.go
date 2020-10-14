@@ -319,6 +319,13 @@ var _ = Describe("GetStep", func() {
 			Expect(found).To(BeTrue())
 		})
 
+		It("stores the resource cache as the step result", func() {
+			Expect(fakeState.StoreResultCallCount()).To(Equal(1))
+			key, val := fakeState.StoreResultArgsForCall(0)
+			Expect(key).To(Equal(atc.PlanID(planID)))
+			Expect(val).To(Equal(fakeResourceCache))
+		})
+
 		It("marks the step as succeeded", func() {
 			Expect(getStepOk).To(BeTrue())
 		})

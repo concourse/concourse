@@ -7,6 +7,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
@@ -693,6 +694,7 @@ var _ = Describe("TaskStep", func() {
 		Context("when the image_resource is specified (even if RootfsURI is configured)", func() {
 			var expectedCheckPlan, expectedGetPlan atc.Plan
 			var fakeArtifact *runtimefakes.FakeArtifact
+			var fakeResourceCache *dbfakes.FakeUsedResourceCache
 
 			BeforeEach(func() {
 				taskPlan.Config = &atc.TaskConfig{
@@ -732,21 +734,33 @@ var _ = Describe("TaskStep", func() {
 					},
 				}
 
-				childState.ResultStub = func(planID atc.PlanID, to interface{}) bool {
-					Expect(planID).To(Equal(expectedCheckPlan.ID))
+				fakeArtifact = new(runtimefakes.FakeArtifact)
+				childState.ArtifactRepository().RegisterArtifact("image", fakeArtifact)
 
-					switch x := to.(type) {
-					case *atc.Version:
-						*x = atc.Version{"some": "version"}
+				fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
+
+				childState.ResultStub = func(planID atc.PlanID, to interface{}) bool {
+					switch planID {
+					case expectedCheckPlan.ID:
+						switch x := to.(type) {
+						case *atc.Version:
+							*x = atc.Version{"some": "version"}
+						default:
+							Fail("unexpected target type")
+						}
+					case expectedGetPlan.ID:
+						switch x := to.(type) {
+						case *db.UsedResourceCache:
+							*x = fakeResourceCache
+						default:
+							Fail("unexpected target type")
+						}
 					default:
-						Fail("unexpected target type")
+						Fail("unknown result key: " + planID.String())
 					}
 
 					return true
 				}
-
-				fakeArtifact = new(runtimefakes.FakeArtifact)
-				childState.ArtifactRepository().RegisterArtifact("image", fakeArtifact)
 
 				childState.RunReturns(true, nil)
 			})
@@ -776,6 +790,12 @@ var _ = Describe("TaskStep", func() {
 					ResourceTypes: interpolatedResourceTypes,
 					Tags:          []string{"step", "tags"},
 				}))
+			})
+
+			It("calls the delegate with the image version", func() {
+				Expect(fakeDelegate.ImageVersionDeterminedCallCount()).To(Equal(1))
+				cache := fakeDelegate.ImageVersionDeterminedArgsForCall(0)
+				Expect(cache).To(Equal(fakeResourceCache))
 			})
 
 			Context("before running the check", func() {
@@ -813,9 +833,12 @@ var _ = Describe("TaskStep", func() {
 
 				It("does not run a CheckPlan", func() {
 					Expect(childState.RunCallCount()).To(Equal(1))
-					Expect(childState.ResultCallCount()).To(Equal(0))
 					_, plan := childState.RunArgsForCall(0)
 					Expect(plan).To(Equal(expectedGetPlan))
+
+					Expect(childState.ResultCallCount()).To(Equal(1))
+					planID, _ := childState.ResultArgsForCall(0)
+					Expect(planID).To(Equal(expectedGetPlan.ID))
 				})
 
 				It("does not save an ImageCheck event", func() {
