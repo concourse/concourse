@@ -24,7 +24,7 @@ func NewTracker(on bool) *Tracker {
 	}
 }
 
-func (t *Tracker) Track(varRef VariableReference, val interface{}) {
+func (t *Tracker) Track(varRef Reference, val interface{}) {
 	if !t.Enabled {
 		return
 	}
@@ -35,18 +35,18 @@ func (t *Tracker) Track(varRef VariableReference, val interface{}) {
 	t.track(varRef, val)
 }
 
-func (t *Tracker) track(varRef VariableReference, val interface{}) {
+func (t *Tracker) track(varRef Reference, val interface{}) {
 	switch v := val.(type) {
 	case map[interface{}]interface{}:
 		for kk, vv := range v {
-			t.track(VariableReference{
+			t.track(Reference{
 				Path:   varRef.Path,
 				Fields: append(varRef.Fields, kk.(string)),
 			}, vv)
 		}
 	case map[string]interface{}:
 		for kk, vv := range v {
-			t.track(VariableReference{
+			t.track(Reference{
 				Path:   varRef.Path,
 				Fields: append(varRef.Fields, kk),
 			}, vv)
@@ -73,15 +73,15 @@ type CredVarsTracker struct {
 	CredVars Variables
 }
 
-func (t *CredVarsTracker) Get(varDef VariableDefinition) (interface{}, bool, error) {
-	val, found, err := t.CredVars.Get(varDef)
+func (t *CredVarsTracker) Get(ref Reference) (interface{}, bool, error) {
+	val, found, err := t.CredVars.Get(ref)
 	if found {
-		t.Tracker.Track(varDef.Ref, val)
+		t.Tracker.Track(ref, val)
 	}
 	return val, found, err
 }
 
-func (t *CredVarsTracker) List() ([]VariableDefinition, error) {
+func (t *CredVarsTracker) List() ([]Reference, error) {
 	return t.CredVars.List()
 }
 

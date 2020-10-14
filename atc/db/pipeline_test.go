@@ -2142,32 +2142,32 @@ var _ = Describe("Pipeline", func() {
 		})
 
 		It("should get var from pipeline var source", func() {
-			v, found, err := pvars.Get(vars.VariableDefinition{Ref: vars.VariableReference{Source: "some-var-source", Path: "pk"}})
+			v, found, err := pvars.Get(vars.Reference{Source: "some-var-source", Path: "pk"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(v.(string)).To(Equal("pv"))
 		})
 
 		It("should not get pipeline var 'pk' without specifying var_source name", func() {
-			_, found, err := pvars.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "pk"}})
+			_, found, err := pvars.Get(vars.Reference{Path: "pk"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})
 
 		It("should not get from global secrets if found in the pipeline var source", func() {
-			pvars.Get(vars.VariableDefinition{Ref: vars.VariableReference{Source: "some-var-source", Path: "pk"}})
+			pvars.Get(vars.Reference{Source: "some-var-source", Path: "pk"})
 			Expect(fakeGlobalSecrets.GetCallCount()).To(Equal(0))
 		})
 
 		It("should get var from global var source", func() {
-			v, found, err := pvars.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "gk"}})
+			v, found, err := pvars.Get(vars.Reference{Path: "gk"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(v.(string)).To(Equal("gv"))
 		})
 
 		It("should not get var 'foo'", func() {
-			_, found, err := pvars.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "foo"}})
+			_, found, err := pvars.Get(vars.Reference{Path: "foo"})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})
@@ -2191,7 +2191,7 @@ var _ = Describe("Pipeline", func() {
 			// The second var source is configured with vars that needs to be interpolated
 			// from "some-var-source".
 			It("should get pipeline var 'pk' from the second var_source", func() {
-				v, found, err := pvars.Get(vars.VariableDefinition{Ref: vars.VariableReference{Source: "second-var-source", Path: "pk"}})
+				v, found, err := pvars.Get(vars.Reference{Source: "second-var-source", Path: "pk"})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(v.(string)).To(Equal("pv"))

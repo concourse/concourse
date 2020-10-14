@@ -35,7 +35,7 @@ var _ = Describe("Vault", func() {
 	var v *vault.Vault
 	var variables vars.Variables
 	var msr *MockSecretReader
-	var varFoo vars.VariableDefinition
+	var varFoo vars.Reference
 
 	BeforeEach(func() {
 
@@ -59,7 +59,7 @@ var _ = Describe("Vault", func() {
 		}
 
 		variables = creds.NewVariables(v, "team", "pipeline", false)
-		varFoo = vars.VariableDefinition{Ref: vars.VariableReference{Path: "foo"}}
+		varFoo = vars.Reference{Path: "foo"}
 	})
 
 	Describe("Get()", func() {
@@ -173,14 +173,14 @@ var _ = Describe("Vault", func() {
 			})
 
 			It("should find team secrets in the configured place", func() {
-				value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "baz"}})
+				value, found, err := variables.Get(vars.Reference{Path: "baz"})
 				Expect(value).To(BeEquivalentTo("qux"))
 				Expect(found).To(BeTrue())
 				Expect(err).To(BeNil())
 			})
 
 			It("should find static secrets in the configured place", func() {
-				value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "global"}})
+				value, found, err := variables.Get(vars.Reference{Path: "global"})
 				Expect(value).To(BeEquivalentTo("shared"))
 				Expect(found).To(BeTrue())
 				Expect(err).To(BeNil())

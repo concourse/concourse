@@ -25,25 +25,23 @@ func newBuildVariables(credVars vars.Variables, enableRedaction bool) *buildVari
 	}
 }
 
-func (b *buildVariables) Get(varDef vars.VariableDefinition) (interface{}, bool, error) {
-	if varDef.Ref.Source == "." {
-		val, found, _ := b.localVars.Get(varDef)
-		if found {
-			return val, true, nil
+func (b *buildVariables) Get(ref vars.Reference) (interface{}, bool, error) {
+	if ref.Source == "." {
+		val, found, err := b.localVars.Get(ref)
+		if found || err != nil {
+			return val, found, err
 		}
 	}
-	return b.parentScope.Get(varDef)
+	return b.parentScope.Get(ref)
 }
 
-func (b *buildVariables) List() ([]vars.VariableDefinition, error) {
+func (b *buildVariables) List() ([]vars.Reference, error) {
 	list, err := b.parentScope.List()
 	if err != nil {
 		return nil, err
 	}
 	for k := range b.localVars {
-		list = append(list, vars.VariableDefinition{
-			Ref: vars.VariableReference{Source: ".", Path: k},
-		})
+		list = append(list, vars.Reference{Source: ".", Path: k})
 	}
 	return list, nil
 }
@@ -64,7 +62,7 @@ func (b *buildVariables) NewLocalScope() *buildVariables {
 func (b *buildVariables) AddLocalVar(name string, val interface{}, redact bool) {
 	b.localVars[name] = val
 	if redact {
-		b.tracker.Track(vars.VariableReference{Source: ".", Path: name}, val)
+		b.tracker.Track(vars.Reference{Source: ".", Path: name}, val)
 	}
 }
 

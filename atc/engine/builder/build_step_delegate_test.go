@@ -348,8 +348,8 @@ var _ = Describe("BuildStepDelegate", func() {
 			runState = exec.NewRunState(credVars, true)
 			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock)
 
-			runState.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "source-param"}})
-			runState.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "git-key"}})
+			runState.Get(vars.Reference{Path: "source-param"})
+			runState.Get(vars.Reference{Path: "git-key"})
 		})
 
 		Context("Stdout", func() {
