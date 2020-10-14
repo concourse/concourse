@@ -1,6 +1,7 @@
 package dbtest
 
 import (
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	. "github.com/onsi/gomega"
 )
@@ -45,4 +46,18 @@ func (scenario Scenario) Resource(name string) db.Resource {
 	Expect(found).To(BeTrue(), "resource '%s' not found", name)
 
 	return resource
+}
+
+func (scenario Scenario) ResourceVersion(name string, version atc.Version) db.ResourceConfigVersion {
+	Expect(scenario.Pipeline).ToNot(BeNil(), "pipeline not set in scenario")
+
+	resource, found, err := scenario.Pipeline.Resource(name)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(found).To(BeTrue(), "resource '%s' not found", name)
+
+	rcv, found, err := resource.FindVersion(version)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(found).To(BeTrue(), "resource version '%v' of '%s' not found", version, name)
+
+	return rcv
 }

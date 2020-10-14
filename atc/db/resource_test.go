@@ -934,11 +934,11 @@ var _ = Describe("Resource", func() {
 		})
 	})
 
-	Describe("ResourceConfigVersion", func() {
+	Describe("FindVersion", func() {
 		var (
 			resource                   db.Resource
 			version                    atc.Version
-			rcvID                      int
+			rcv                        db.ResourceConfigVersion
 			resourceConfigVersionFound bool
 			foundErr                   error
 		)
@@ -953,7 +953,7 @@ var _ = Describe("Resource", func() {
 		})
 
 		JustBeforeEach(func() {
-			rcvID, resourceConfigVersionFound, foundErr = resource.ResourceConfigVersionID(version)
+			rcv, resourceConfigVersionFound, foundErr = resource.FindVersion(version)
 		})
 
 		Context("when the version exists", func() {
@@ -993,7 +993,7 @@ var _ = Describe("Resource", func() {
 
 				It("returns resource config version and true", func() {
 					Expect(resourceConfigVersionFound).To(BeTrue())
-					Expect(rcvID).To(Equal(resourceConfigVersion.ID()))
+					Expect(rcv.ID()).To(Equal(resourceConfigVersion.ID()))
 					Expect(foundErr).ToNot(HaveOccurred())
 				})
 			})
@@ -1005,7 +1005,7 @@ var _ = Describe("Resource", func() {
 
 				It("returns resource config version and true", func() {
 					Expect(resourceConfigVersionFound).To(BeTrue())
-					Expect(rcvID).To(Equal(resourceConfigVersion.ID()))
+					Expect(rcv.ID()).To(Equal(resourceConfigVersion.ID()))
 					Expect(foundErr).ToNot(HaveOccurred())
 				})
 			})
@@ -1021,7 +1021,7 @@ var _ = Describe("Resource", func() {
 
 				It("returns resource config version with highest order and true", func() {
 					Expect(resourceConfigVersionFound).To(BeTrue())
-					Expect(rcvID).To(Equal(resourceConfigVersion.ID()))
+					Expect(rcv.ID()).To(Equal(resourceConfigVersion.ID()))
 					Expect(foundErr).ToNot(HaveOccurred())
 				})
 			})
@@ -1037,7 +1037,7 @@ var _ = Describe("Resource", func() {
 				})
 
 				It("does not find the resource config version", func() {
-					Expect(rcvID).To(Equal(0))
+					Expect(rcv).To(BeNil())
 					Expect(resourceConfigVersionFound).To(BeFalse())
 					Expect(foundErr).ToNot(HaveOccurred())
 				})

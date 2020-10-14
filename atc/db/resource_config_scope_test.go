@@ -310,7 +310,6 @@ var _ = Describe("Resource Config Scope", func() {
 			})
 
 			It("gets the version of resource", func() {
-				Expect(latestCV.ResourceConfigScope().ID()).To(Equal(resourceScope.ID()))
 				Expect(latestCV.Version()).To(Equal(db.Version{"ref": "v1"}))
 				Expect(latestCV.CheckOrder()).To(Equal(1))
 			})

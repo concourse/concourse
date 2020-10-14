@@ -1125,153 +1125,130 @@ var _ = Describe("Build", func() {
 	})
 
 	Describe("SaveOutput", func() {
-		var pipeline db.Pipeline
-		var job db.Job
-		var resourceConfigScope db.ResourceConfigScope
+		var pipelineConfig atc.Config
+
+		var scenario *dbtest.Scenario
+		var build db.Build
+
+		var outputVersion atc.Version
 
 		BeforeEach(func() {
 			atc.EnableGlobalResources = true
 
-			pipelineConfig := atc.Config{
+			pipelineConfig = atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
+						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name: "some-resource",
+								},
+							},
+						},
+					},
+					{
+						Name: "some-other-job",
+						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name: "some-other-resource",
+								},
+							},
+						},
 					},
 				},
 				Resources: atc.ResourceConfigs{
 					{
-						Name: "some-implicit-resource",
-						Type: "some-type",
+						Name:   "some-resource",
+						Type:   dbtest.BaseResourceType,
+						Source: atc.Source{"some": "source"},
 					},
 					{
-						Name:   "some-explicit-resource",
-						Type:   "some-type",
-						Source: atc.Source{"some": "explicit-source"},
+						Name:   "some-other-resource",
+						Type:   dbtest.BaseResourceType,
+						Source: atc.Source{"some": "other-source"},
 					},
 				},
 			}
 
-			var err error
-			pipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "some-pipeline"}, pipelineConfig, db.ConfigVersion(1), false)
+			scenario = dbtest.Setup(
+				builder.WithPipeline(pipelineConfig),
+				builder.WithResourceVersions("some-resource", atc.Version{"some": "version"}),
+				builder.WithResourceVersions("some-other-resource", atc.Version{"some": "other-version"}),
+				builder.WithJobBuild(&build, "some-job", dbtest.JobInputs{
+					{
+						Name:    "some-resource",
+						Version: atc.Version{"some": "version"},
+					},
+				}, dbtest.JobOutputs{}),
+			)
+
+			outputVersion = atc.Version{"some": "new-version"}
+		})
+
+		JustBeforeEach(func() {
+			err := build.SaveOutput(
+				dbtest.BaseResourceType,
+				atc.Source{"some": "source"},
+				atc.VersionedResourceTypes{},
+				outputVersion,
+				[]db.ResourceConfigMetadataField{
+					{
+						Name:  "meta",
+						Value: "data",
+					},
+				},
+				"output-name",
+				"some-resource",
+			)
 			Expect(err).ToNot(HaveOccurred())
+		})
 
-			var found bool
-			job, found, err = pipeline.Job("some-job")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-
-			brt := db.BaseResourceType{
-				Name: "some-type",
-			}
-
-			_, err = brt.FindOrCreate(setupTx, false)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
-
-			resource, found, err := pipeline.Resource("some-explicit-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
+		AfterEach(func() {
+			atc.EnableGlobalResources = false
 		})
 
 		Context("when the version does not exist", func() {
 			It("can save a build's output", func() {
-				build, err := job.CreateBuild()
-				Expect(err).ToNot(HaveOccurred())
-
-				err = build.SaveOutput("some-type", atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{}, atc.Version{"some": "version"}, []db.ResourceConfigMetadataField{
-					{
-						Name:  "meta1",
-						Value: "data1",
-					},
-					{
-						Name:  "meta2",
-						Value: "data2",
-					},
-				}, "output-name", "some-explicit-resource")
-				Expect(err).ToNot(HaveOccurred())
-
-				rcv, found, err := resourceConfigScope.FindVersion(atc.Version{"some": "version"})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
+				rcv := scenario.ResourceVersion("some-resource", outputVersion)
+				Expect(rcv.Version()).To(Equal(db.Version(outputVersion)))
 
 				_, buildOutputs, err := build.Resources()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(buildOutputs)).To(Equal(1))
 				Expect(buildOutputs[0].Name).To(Equal("output-name"))
-				Expect(buildOutputs[0].Version).To(Equal(atc.Version(rcv.Version())))
+				Expect(buildOutputs[0].Version).To(Equal(outputVersion))
 			})
 
-			It("requests schedule on all jobs using the resource config", func() {
-				atc.EnableGlobalResources = true
+			Context("with a job in a separate team downstream of the same resource config", func() {
+				var otherScenario *dbtest.Scenario
 
-				build, err := job.CreateBuild()
-				Expect(err).ToNot(HaveOccurred())
+				var beforeTime, otherJobBeforeTime time.Time
+				var otherTeamBeforeTime, otherTeamOtherJobBeforeTime time.Time
 
-				pipelineConfig := atc.Config{
-					Jobs: atc.JobConfigs{
-						{
-							Name: "some-job",
-							PlanSequence: []atc.Step{
-								{
-									Config: &atc.GetStep{
-										Name: "some-explicit-resource",
-									},
-								},
-							},
-						},
-						{
-							Name: "other-job",
-						},
-					},
-					Resources: atc.ResourceConfigs{
-						{
-							Name:   "some-explicit-resource",
-							Type:   "some-type",
-							Source: atc.Source{"some": "explicit-source"},
-						},
-					},
-				}
+				BeforeEach(func() {
+					otherScenario = dbtest.Setup(
+						builder.WithTeam("other-team"),
+						builder.WithPipeline(pipelineConfig),
+						builder.WithResourceVersions("some-resource", atc.Version{"some": "version"}),
+						builder.WithResourceVersions("some-other-resource", atc.Version{"some": "other-version"}),
+					)
 
-				otherPipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "some-other-pipeline"}, pipelineConfig, db.ConfigVersion(1), false)
-				Expect(err).ToNot(HaveOccurred())
+					beforeTime = scenario.Job("some-job").ScheduleRequestedTime()
+					otherTeamBeforeTime = otherScenario.Job("some-job").ScheduleRequestedTime()
 
-				resource, found, err := otherPipeline.Resource("some-explicit-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
+					otherJobBeforeTime = scenario.Job("some-other-job").ScheduleRequestedTime()
+					otherTeamOtherJobBeforeTime = otherScenario.Job("some-other-job").ScheduleRequestedTime()
+				})
 
-				resourceConfigScope, err = resource.SetResourceConfig(atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{})
-				Expect(err).ToNot(HaveOccurred())
+				It("requests schedule on jobs which use the same config", func() {
+					Expect(scenario.Job("some-job").ScheduleRequestedTime()).To(BeTemporally(">", beforeTime))
+					Expect(otherScenario.Job("some-job").ScheduleRequestedTime()).To(BeTemporally(">", otherTeamBeforeTime))
 
-				requestedJob, found, err := otherPipeline.Job("some-job")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				otherJob, found, err := otherPipeline.Job("other-job")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				requestedSchedule1 := requestedJob.ScheduleRequestedTime()
-				requestedSchedule2 := otherJob.ScheduleRequestedTime()
-
-				err = build.SaveOutput("some-type", atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{}, atc.Version{"some": "version"}, []db.ResourceConfigMetadataField{}, "output-name", "some-explicit-resource")
-				Expect(err).ToNot(HaveOccurred())
-
-				found, err = requestedJob.Reload()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				found, err = otherJob.Reload()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				Expect(requestedJob.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule1))
-				Expect(otherJob.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule2))
+					Expect(scenario.Job("some-other-job").ScheduleRequestedTime()).To(BeTemporally("==", otherJobBeforeTime))
+					Expect(otherScenario.Job("some-other-job").ScheduleRequestedTime()).To(BeTemporally("==", otherTeamOtherJobBeforeTime))
+				})
 			})
 		})
 
@@ -1279,145 +1256,45 @@ var _ = Describe("Build", func() {
 			var rcv db.ResourceConfigVersion
 
 			BeforeEach(func() {
-				err := resourceConfigScope.SaveVersions(nil, []atc.Version{{"some": "version"}})
-				Expect(err).ToNot(HaveOccurred())
+				scenario.Run(
+					builder.WithResourceVersions("some-resource", outputVersion),
+				)
 
-				var found bool
-				rcv, found, err = resourceConfigScope.FindVersion(atc.Version{"some": "version"})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
+				rcv = scenario.ResourceVersion("some-resource", outputVersion)
 			})
 
 			It("does not increment the check order", func() {
-				build, err := job.CreateBuild()
-				Expect(err).ToNot(HaveOccurred())
-
-				err = build.SaveOutput("some-type", atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{}, atc.Version{"some": "version"}, []db.ResourceConfigMetadataField{
-					{
-						Name:  "meta1",
-						Value: "data1",
-					},
-					{
-						Name:  "meta2",
-						Value: "data2",
-					},
-				}, "output-name", "some-explicit-resource")
-				Expect(err).ToNot(HaveOccurred())
-
-				newRCV, found, err := resourceConfigScope.FindVersion(atc.Version{"some": "version"})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
+				newRCV := scenario.ResourceVersion("some-resource", outputVersion)
 				Expect(newRCV.CheckOrder()).To(Equal(rcv.CheckOrder()))
 			})
 
-			It("does not request schedule on all jobs using the resource config", func() {
-				build, err := job.CreateBuild()
-				Expect(err).ToNot(HaveOccurred())
+			Context("with a job in a separate team downstream of the same resource config", func() {
+				var otherScenario *dbtest.Scenario
 
-				pipelineConfig := atc.Config{
-					Jobs: atc.JobConfigs{
-						{
-							Name: "some-job",
-							PlanSequence: []atc.Step{
-								{
-									Config: &atc.GetStep{
-										Name: "some-explicit-resource",
-									},
-								},
-							},
-						},
-						{
-							Name: "other-job",
-						},
-					},
-					Resources: atc.ResourceConfigs{
-						{
-							Name:   "some-explicit-resource",
-							Type:   "some-type",
-							Source: atc.Source{"some": "explicit-source"},
-						},
-					},
-				}
-
-				otherPipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "some-other-pipeline"}, pipelineConfig, db.ConfigVersion(1), false)
-				Expect(err).ToNot(HaveOccurred())
-
-				resource, found, err := otherPipeline.Resource("some-explicit-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				resourceConfigScope, err = resource.SetResourceConfig(atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{})
-				Expect(err).ToNot(HaveOccurred())
-
-				requestedJob, found, err := otherPipeline.Job("some-job")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				requestedSchedule1 := requestedJob.ScheduleRequestedTime()
-
-				err = build.SaveOutput("some-type", atc.Source{"some": "explicit-source"}, atc.VersionedResourceTypes{}, atc.Version{"some": "version"}, []db.ResourceConfigMetadataField{}, "output-name", "some-explicit-resource")
-				Expect(err).ToNot(HaveOccurred())
-
-				found, err = requestedJob.Reload()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				Expect(requestedJob.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule1))
-			})
-		})
-
-		Context("when global resources is enabled", func() {
-			BeforeEach(func() {
-				atc.EnableGlobalResources = true
-			})
-
-			Context("using a given resource type", func() {
-				var givenType string
+				var beforeTime, otherJobBeforeTime time.Time
+				var otherTeamBeforeTime, otherTeamOtherJobBeforeTime time.Time
 
 				BeforeEach(func() {
-					givenType = "given-type"
+					otherScenario = dbtest.Setup(
+						builder.WithTeam("other-team"),
+						builder.WithPipeline(pipelineConfig),
+						builder.WithResourceVersions("some-resource", atc.Version{"some": "version"}),
+						builder.WithResourceVersions("some-other-resource", atc.Version{"some": "other-version"}),
+					)
+
+					beforeTime = scenario.Job("some-job").ScheduleRequestedTime()
+					otherTeamBeforeTime = otherScenario.Job("some-job").ScheduleRequestedTime()
+
+					otherJobBeforeTime = scenario.Job("some-other-job").ScheduleRequestedTime()
+					otherTeamOtherJobBeforeTime = otherScenario.Job("some-other-job").ScheduleRequestedTime()
 				})
 
-				Context("the resource types contain the given type", func() {
-					var resourceTypes atc.VersionedResourceTypes
+				It("does not request schedule on jobs which use the same config", func() {
+					Expect(scenario.Job("some-job").ScheduleRequestedTime()).To(BeTemporally("==", beforeTime))
+					Expect(otherScenario.Job("some-job").ScheduleRequestedTime()).To(BeTemporally("==", otherTeamBeforeTime))
 
-					BeforeEach(func() {
-						resourceTypes = atc.VersionedResourceTypes{
-							{
-								ResourceType: atc.ResourceType{
-									Name:   "given-type",
-									Source: atc.Source{"some": "source"},
-									Type:   "some-type",
-								},
-								Version: atc.Version{"some-resource-type": "version"},
-							},
-						}
-					})
-
-					Context("but the resource type is different in the db", func() {
-						var resourceName string
-
-						BeforeEach(func() {
-							resourceName = "some-explicit-resource" // type: "some-type"
-						})
-
-						It("saves the output", func() {
-							build, err := job.CreateBuild()
-							Expect(err).ToNot(HaveOccurred())
-
-							err = build.SaveOutput(
-								givenType,
-								atc.Source{"some": "explicit-source"},
-								resourceTypes,
-								atc.Version{"some": "new-version"},
-								[]db.ResourceConfigMetadataField{},
-								"output-name",
-								resourceName,
-							)
-							Expect(err).ToNot(HaveOccurred())
-						})
-					})
+					Expect(scenario.Job("some-other-job").ScheduleRequestedTime()).To(BeTemporally("==", otherJobBeforeTime))
+					Expect(otherScenario.Job("some-other-job").ScheduleRequestedTime()).To(BeTemporally("==", otherTeamOtherJobBeforeTime))
 				})
 			})
 		})

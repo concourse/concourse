@@ -53,8 +53,8 @@ type Resource interface {
 
 	BuildSummary() *atc.BuildSummary
 
-	ResourceConfigVersionID(atc.Version) (int, bool, error)
 	Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error)
+	FindVersion(filter atc.Version) (ResourceConfigVersion, bool, error)
 	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig) (bool, error)
 	UpdateMetadata(atc.Version, ResourceConfigMetadataFields) (bool, error)
 
@@ -468,33 +468,37 @@ func (r *resource) UpdateMetadata(version atc.Version, metadata ResourceConfigMe
 	return true, nil
 }
 
-func (r *resource) ResourceConfigVersionID(version atc.Version) (int, bool, error) {
-	requestedVersion, err := json.Marshal(version)
-	if err != nil {
-		return 0, false, err
+func (r *resource) FindVersion(v atc.Version) (ResourceConfigVersion, bool, error) {
+	if r.resourceConfigScopeID == 0 {
+		return nil, false, nil
 	}
 
-	var id int
+	ver := &resourceConfigVersion{
+		conn: r.conn,
+	}
 
-	err = psql.Select("rcv.id").
-		From("resource_config_versions rcv").
-		Join("resources r ON rcv.resource_config_scope_id = r.resource_config_scope_id").
-		Where(sq.Eq{"r.id": r.ID()}).
-		Where(sq.Expr("version @> ?", requestedVersion)).
-		Where(sq.NotEq{"rcv.check_order": 0}).
-		OrderBy("rcv.check_order DESC").
+	versionByte, err := json.Marshal(v)
+	if err != nil {
+		return nil, false, err
+	}
+
+	row := resourceConfigVersionQuery.
+		Where(sq.Eq{
+			"v.resource_config_scope_id": r.resourceConfigScopeID,
+		}).
+		Where(sq.Expr("v.version_md5 = md5(?)", versionByte)).
 		RunWith(r.conn).
-		QueryRow().
-		Scan(&id)
+		QueryRow()
 
+	err = scanResourceConfigVersion(ver, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 0, false, nil
+			return nil, false, nil
 		}
-		return 0, false, err
+		return nil, false, err
 	}
 
-	return id, true, nil
+	return ver, true, nil
 }
 
 func (r *resource) SetPinComment(comment string) error {

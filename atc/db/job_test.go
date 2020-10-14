@@ -2345,11 +2345,11 @@ var _ = Describe("Job", func() {
 					})
 					Expect(err).NotTo(HaveOccurred())
 
-					versionID, found, err := pinnedResource.ResourceConfigVersionID(atc.Version{"api": "pinned"})
+					version, found, err := pinnedResource.FindVersion(atc.Version{"api": "pinned"})
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					pinned, err := pinnedResource.PinVersion(versionID)
+					pinned, err := pinnedResource.PinVersion(version.ID())
 					Expect(err).NotTo(HaveOccurred())
 					Expect(pinned).To(BeTrue())
 				})
@@ -2476,11 +2476,11 @@ var _ = Describe("Job", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				versionID, found, err := pinnedResource.ResourceConfigVersionID(atc.Version{"some": "version"})
+				version, found, err := pinnedResource.FindVersion(atc.Version{"some": "version"})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				pinned, err := pinnedResource.PinVersion(versionID)
+				pinned, err := pinnedResource.PinVersion(version.ID())
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pinned).To(BeTrue())
 			})
