@@ -42,10 +42,10 @@ pinIconBackground { background, clickable } =
     , style "background-color" <|
         case background of
             Light ->
-                Colors.sideBar
+                Colors.sideBarBackground
 
             Dark ->
-                Colors.frame
+                Colors.topBarBackground
     ]
 
 

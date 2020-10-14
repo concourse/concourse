@@ -171,10 +171,10 @@ pinMenu { hovered } model =
                                         == HoverState.Hovered
                                             (PinMenuDropDown resourceName)
                                 then
-                                    Colors.sideBarActive
+                                    Colors.pinMenuHover
 
                                 else
-                                    Colors.sideBar
+                                    Colors.pinMenuBackground
                             , hoverable = True
                             , onClick =
                                 GoToRoute <|

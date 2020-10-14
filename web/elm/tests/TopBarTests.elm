@@ -99,7 +99,7 @@ searchBarHeight =
 
 searchBarWidth : String
 searchBarWidth =
-    "220px"
+    "251px"
 
 
 searchBarPadding : String
@@ -159,7 +159,7 @@ all =
                             ]
                     ]
                 , it "has dark grey background" <|
-                    Query.has [ style "background-color" backgroundGrey ]
+                    Query.has [ style "background-color" ColorValues.grey100 ]
                 , it "lays out contents horizontally" <|
                     Query.has [ style "display" "flex" ]
                 , it "maximizes spacing between the left and right navs" <|
@@ -637,7 +637,7 @@ all =
                         >> Query.has
                             [ style "background-image" <|
                                 Assets.backgroundImage <|
-                                    Just Assets.SearchIcon
+                                    Just Assets.SearchIconGrey
                             , style "background-position" "12px 8px"
                             , style "background-repeat" "no-repeat"
                             ]
@@ -645,8 +645,8 @@ all =
                     Query.find [ id SearchBar.searchInputId ]
                         >> Query.has
                             [ style "border" <| searchBarBorder ColorValues.grey60
-                            , style "color" ColorValues.grey30
-                            , style "font-size" "1.15em"
+                            , style "color" ColorValues.white
+                            , style "font-size" "12px"
                             , style "font-family" Views.Styles.fontFamilyDefault
                             ]
                 , it "renders search with appropriate size and padding" <|
@@ -721,7 +721,7 @@ all =
                         >> Query.has
                             [ style "background-image" <|
                                 Assets.backgroundImage <|
-                                    Just Assets.SearchIcon
+                                    Just Assets.SearchIconGrey
                             , style "background-position" "12px 8px"
                             , style "background-repeat" "no-repeat"
                             ]
@@ -821,7 +821,7 @@ all =
                                     >> Query.has
                                         [ style "background-image" <|
                                             Assets.backgroundImage <|
-                                                Just Assets.SearchIcon
+                                                Just Assets.SearchIconGrey
                                         , style "background-position" "12px 8px"
                                         , style "background-repeat" "no-repeat"
                                         ]
@@ -889,8 +889,7 @@ all =
                         >> Query.find [ id SearchBar.searchInputId ]
                         >> Query.has
                             [ style "border" <| searchBarBorder ColorValues.grey30
-                            , style "color" ColorValues.grey30
-                            , style "font-size" "1.15em"
+                            , style "color" ColorValues.white
                             , style "font-family" Views.Styles.fontFamilyDefault
                             ]
                 , it "has a clear search button container" <|
@@ -1528,7 +1527,7 @@ all =
                         |> queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Query.has
-                            [ style "background-color" backgroundGrey ]
+                            [ style "background-color" ColorValues.grey100 ]
             , test "successful callback turns spinner into pause button" <|
                 \_ ->
                     givenPipelinePaused
@@ -1587,7 +1586,7 @@ pipelineBreadcrumbSelector : List Selector.Selector
 pipelineBreadcrumbSelector =
     [ style "background-image" <|
         Assets.backgroundImage <|
-            Just (Assets.BreadcrumbIcon (Assets.PipelineComponent False))
+            Just (Assets.BreadcrumbIcon (Assets.PipelineComponent True))
     , style "background-repeat" "no-repeat"
     ]
 

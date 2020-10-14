@@ -10,6 +10,7 @@ module Dashboard.Dashboard exposing
     )
 
 import Application.Models exposing (Session)
+import Colors
 import Concourse
 import Concourse.Cli as Cli
 import Dashboard.DashboardPreview as DashboardPreview
@@ -1070,6 +1071,7 @@ loginInstruction userState =
                 , Html.a
                     [ href "/login"
                     , style "text-decoration" "underline"
+                    , style "color" Colors.welcomeCardText
                     ]
                     [ Html.text "here" ]
                 ]

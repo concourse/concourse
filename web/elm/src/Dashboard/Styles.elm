@@ -542,6 +542,7 @@ welcomeCardBody : List (Html.Attribute msg)
 welcomeCardBody =
     [ style "font-size" "16px"
     , style "z-index" "2"
+    , style "color" Colors.welcomeCardText
     ]
 
 
@@ -619,10 +620,10 @@ searchInput screenSize hasQuery =
                     []
 
                 Desktop ->
-                    [ style "width" "220px" ]
+                    [ style "width" "251px" ]
 
                 BigDesktop ->
-                    [ style "width" "220px" ]
+                    [ style "width" "251px" ]
 
         borderColor =
             if hasQuery then
@@ -630,19 +631,26 @@ searchInput screenSize hasQuery =
 
             else
                 ColorValues.grey60
+
+        bgImage =
+            if hasQuery then
+                Just Assets.SearchIconWhite
+
+            else
+                Just Assets.SearchIconGrey
     in
     [ style "background-color" ColorValues.grey90
     , style "background-image" <|
         Assets.backgroundImage <|
-            Just Assets.SearchIcon
+            bgImage
     , style "background-repeat" "no-repeat"
     , style "background-position" "12px 8px"
     , style "height" "30px"
     , style "min-height" "30px"
     , style "padding" "0 42px"
     , style "border" <| "1px solid " ++ borderColor
-    , style "color" Colors.dropdownItemInputText
-    , style "font-size" "1.15em"
+    , style "color" Colors.white
+    , style "font-size" "12px"
     , style "font-family" Views.Styles.fontFamilyDefault
     , style "outline" "0"
     ]
@@ -740,7 +748,7 @@ searchButton : List (Html.Attribute msg)
 searchButton =
     [ style "background-image" <|
         Assets.backgroundImage <|
-            Just Assets.SearchIcon
+            Just Assets.SearchIconGrey
     , style "background-repeat" "no-repeat"
     , style "background-position" "12px 8px"
     , style "height" "32px"
@@ -786,6 +794,7 @@ visibilityTooltip =
     [ style "background-color" Colors.tooltipBackground
     , style "white-space" "nowrap"
     , style "padding" "2.5px"
+    , style "color" Colors.tooltipText
     ]
 
 

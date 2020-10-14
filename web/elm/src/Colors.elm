@@ -41,6 +41,8 @@ module Colors exposing
     , pending
     , pendingFaded
     , pinIconHover
+    , pinMenuBackground
+    , pinMenuHover
     , pinTools
     , pinned
     , resourceError
@@ -61,8 +63,10 @@ module Colors exposing
     , successFaded
     , text
     , tooltipBackground
+    , tooltipText
     , topBarBackground
     , unknown
+    , welcomeCardText
     , white
     )
 
@@ -120,7 +124,7 @@ sectionHeader =
 
 dashboardText : String
 dashboardText =
-    "#ffffff"
+    ColorValues.white
 
 
 dashboardPipelineHeaderText : String
@@ -165,6 +169,11 @@ tooltipBackground =
     ColorValues.grey20
 
 
+tooltipText : String
+tooltipText =
+    ColorValues.grey80
+
+
 
 ----
 
@@ -181,6 +190,16 @@ pinIconHover =
 pinTools : String
 pinTools =
     "#2e2c2c"
+
+
+pinMenuBackground : String
+pinMenuBackground =
+    ColorValues.grey90
+
+
+pinMenuHover : String
+pinMenuHover =
+    ColorValues.grey100
 
 
 
@@ -229,17 +248,9 @@ started =
     "#fad43b"
 
 
-
-----
-
-
 startedFaded : String
 startedFaded =
     "#f1c40f"
-
-
-
-----
 
 
 success : String
@@ -247,17 +258,9 @@ success =
     "#11c560"
 
 
-
-----
-
-
 successFaded : String
 successFaded =
     "#419867"
-
-
-
-----
 
 
 paused : String
@@ -593,3 +596,12 @@ sideBarTextDim =
 sideBarTextBright : String
 sideBarTextBright =
     ColorValues.grey20
+
+
+
+-----
+
+
+welcomeCardText : String
+welcomeCardText =
+    ColorValues.grey30

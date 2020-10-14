@@ -53,7 +53,8 @@ type Asset
     | PlayIcon
     | PauseIcon
     | PencilIcon
-    | SearchIcon
+    | SearchIconWhite
+    | SearchIconGrey
     | CloseIcon
 
 
@@ -313,8 +314,11 @@ toPath asset =
         PauseIcon ->
             basePath ++ [ "ic-pause-white.svg" ]
 
-        SearchIcon ->
+        SearchIconWhite ->
             basePath ++ [ "ic-search-white.svg" ]
+
+        SearchIconGrey ->
+            basePath ++ [ "ic-search-grey.svg" ]
 
         CloseIcon ->
             basePath ++ [ "ic-close-white.svg" ]

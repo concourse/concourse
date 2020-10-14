@@ -3,6 +3,7 @@ module PipelineTests exposing (all)
 import Application.Application as Application
 import Assets
 import Char
+import ColorValues
 import Colors
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse.Cli exposing (Cli(..))
@@ -461,7 +462,7 @@ all =
                 , it "top bar has a dark grey background" <|
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
-                        >> Query.has [ style "background-color" "#1e1d1d" ]
+                        >> Query.has [ style "background-color" ColorValues.grey100 ]
                 , it "top bar lays out contents horizontally" <|
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -726,7 +727,7 @@ pipelineBreadcrumbSelector : List Selector.Selector
 pipelineBreadcrumbSelector =
     [ style "background-image" <|
         Assets.backgroundImage <|
-            Just (Assets.BreadcrumbIcon (Assets.PipelineComponent False))
+            Just (Assets.BreadcrumbIcon (Assets.PipelineComponent True))
     , style "background-repeat" "no-repeat"
     ]
 
