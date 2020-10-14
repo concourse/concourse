@@ -1,3 +1,4 @@
 .git
 node_modules
+web/wats/node_modules
 web/elm/elm-stuff
