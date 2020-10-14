@@ -4,7 +4,9 @@
   "main": "index.js",
   "repository": "https://github.com/concourse/concourse",
   "license": "Apache-2.0",
-  "dependencies": {},
+  "dependencies": {
+    "request": "^2.86.0"
+  },
   "devDependencies": {
     "@babel/core": "^7.8.4",
     "@babel/plugin-syntax-dynamic-import": "^7.8.3",
@@ -14,9 +16,9 @@
     "child-process-promise": "^2.2.1",
     "clean-css-cli": "^4.3.0",
     "elm": "^0.19.1",
-    "elm-analyse": "stil4m/elm-analyse#1ced133fa266fca45027e007e573badedb62a225",
+    "elm-analyse": "stil4m/elm-analyse#701b8b4013a4f057b9382d368e42adc6fe08e14e",
     "elm-format": "0.8.2",
-    "elm-test": "^0.19.1",
+    "elm-test": "^0.19.1-revision4",
     "less": "^3.10.3",
     "less-plugin-autoprefix": "^2.0.0",
     "puppeteer": "^1.20.0",
