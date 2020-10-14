@@ -778,6 +778,7 @@ func scanResource(r *resource, row scannable) error {
 		lastCheckStartTime, lastCheckEndTime              pq.NullTime
 		pinnedThroughConfig                               sql.NullBool
 		pipelineInstanceVars                              sql.NullString
+		displayName                                                              sql.NullString
 	)
 
 	var build struct {
@@ -788,7 +789,7 @@ func scanResource(r *resource, row scannable) error {
 		endTime   pq.NullTime
 	}
 
-	err := row.Scan(&r.id, &r.name, &r.displayName, &r.type_, &configBlob, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName, &pinnedVersion, &pinComment, &pinnedThroughConfig, &build.id, &build.name, &build.status, &build.startTime, &build.endTime)
+	err := row.Scan(&r.id, &r.name, &displayName, &r.type_, &configBlob, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName, &pinnedVersion, &pinComment, &pinnedThroughConfig, &build.id, &build.name, &build.status, &build.startTime, &build.endTime)
 	if err != nil {
 		return err
 	}
@@ -801,6 +802,10 @@ func scanResource(r *resource, row scannable) error {
 	var noncense *string
 	if nonce.Valid {
 		noncense = &nonce.String
+	}
+
+	if displayName.Valid {
+		r.displayName = displayName.String
 	}
 
 	if configBlob.Valid {

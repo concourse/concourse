@@ -1378,11 +1378,12 @@ func (j *job) isPipelineOrJobPaused(tx Tx) (bool, error) {
 func scanJob(j *job, row scannable) error {
 	var (
 		config               sql.NullString
+		displayName          sql.NullString
 		nonce                sql.NullString
 		pipelineInstanceVars sql.NullString
 	)
 
-	err := row.Scan(&j.id, &j.name, &j.display_name, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &pipelineInstanceVars, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger)
+	err := row.Scan(&j.id, &j.name, &displayName, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &pipelineInstanceVars, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger)
 	if err != nil {
 		return err
 	}
@@ -1393,6 +1394,10 @@ func scanJob(j *job, row scannable) error {
 
 	if config.Valid {
 		j.rawConfig = &config.String
+	}
+
+	if displayName.Valid {
+		j.display_name = displayName.String
 	}
 
 	if pipelineInstanceVars.Valid {

@@ -310,10 +310,11 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 			f, n, t nullableBuild
 
 			pipelineInstanceVars sql.NullString
+			displayName          sql.NullString
 		)
 
 		j := atc.JobSummary{}
-		err = rows.Scan(&j.ID, &j.Name, &j.DisplayName, &j.PipelineID, &j.PipelineName, &pipelineInstanceVars, &j.Paused, &j.HasNewInputs, pq.Array(&j.Groups), &j.TeamName,
+		err = rows.Scan(&j.ID, &j.Name, &displayName, &j.PipelineID, &j.PipelineName, &pipelineInstanceVars, &j.Paused, &j.HasNewInputs, pq.Array(&j.Groups), &j.TeamName,
 			&f.id, &f.name, &f.status, &f.startTime, &f.endTime,
 			&n.id, &n.name, &n.status, &n.startTime, &n.endTime,
 			&t.id, &t.name, &t.status, &t.startTime, &t.endTime)
@@ -326,6 +327,10 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 			if err != nil {
 				return nil, err
 			}
+		}
+
+		if displayName.Valid {
+			j.DisplayName = displayName.String
 		}
 
 		if f.id.Valid {
