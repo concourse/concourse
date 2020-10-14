@@ -235,11 +235,6 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		return false, err
 	}
 
-	workerSpec, err := step.workerSpec(state, imageSpec, resourceTypes, repository, config)
-	if err != nil {
-		return false, err
-	}
-
 	containerSpec, err := step.containerSpec(state, imageSpec, config, step.containerMetadata)
 	if err != nil {
 		return false, err
@@ -261,7 +256,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		logger,
 		owner,
 		containerSpec,
-		workerSpec,
+		step.workerSpec(config),
 		step.strategy,
 		step.containerMetadata,
 		worker.ImageFetcherSpec{
@@ -478,19 +473,12 @@ func (step *TaskStep) containerSpec(state RunState, imageSpec worker.ImageSpec, 
 	return containerSpec, nil
 }
 
-func (step *TaskStep) workerSpec(state RunState, imageSpec worker.ImageSpec, resourceTypes atc.VersionedResourceTypes, repository *build.Repository, config atc.TaskConfig) (worker.WorkerSpec, error) {
-	workerSpec := worker.WorkerSpec{
-		Platform:      config.Platform,
-		Tags:          step.plan.Tags,
-		TeamID:        step.metadata.TeamID,
-		ResourceTypes: resourceTypes,
+func (step *TaskStep) workerSpec(config atc.TaskConfig) worker.WorkerSpec {
+	return worker.WorkerSpec{
+		Platform: config.Platform,
+		Tags:     step.plan.Tags,
+		TeamID:   step.metadata.TeamID,
 	}
-
-	if imageSpec.ImageResource != nil {
-		workerSpec.ResourceType = imageSpec.ImageResource.Type
-	}
-
-	return workerSpec, nil
 }
 
 func (step *TaskStep) registerOutputs(logger lager.Logger, repository *build.Repository, config atc.TaskConfig, volumeMounts []worker.VolumeMount, metadata db.ContainerMetadata) {

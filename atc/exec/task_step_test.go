@@ -46,8 +46,6 @@ var _ = Describe("TaskStep", func() {
 
 		taskPlan *atc.TaskPlan
 
-		interpolatedResourceTypes atc.VersionedResourceTypes
-
 		repo       *build.Repository
 		state      *execfakes.FakeRunState
 		childState *execfakes.FakeRunState
@@ -102,35 +100,21 @@ var _ = Describe("TaskStep", func() {
 
 		state.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
 
-		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
-			{
-				ResourceType: atc.ResourceType{
-					Name:   "custom-resource",
-					Type:   "custom-type",
-					Source: atc.Source{"some-custom": "((source-param))"},
-					Params: atc.Params{"some-custom": "param"},
-				},
-				Version: atc.Version{"some-custom": "version"},
-			},
-		}
-
-		interpolatedResourceTypes = atc.VersionedResourceTypes{
-			{
-				ResourceType: atc.ResourceType{
-					Name:   "custom-resource",
-					Type:   "custom-type",
-					Source: atc.Source{"some-custom": "super-secret-source"},
-					Params: atc.Params{"some-custom": "param"},
-				},
-				Version: atc.Version{"some-custom": "version"},
-			},
-		}
-
 		taskPlan = &atc.TaskPlan{
-			Name:                   "some-task",
-			Privileged:             false,
-			Tags:                   []string{"step", "tags"},
-			VersionedResourceTypes: uninterpolatedResourceTypes,
+			Name:       "some-task",
+			Privileged: false,
+			Tags:       []string{"step", "tags"},
+			VersionedResourceTypes: atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "custom-resource",
+						Type:   "custom-type",
+						Source: atc.Source{"some-custom": "((source-param))"},
+						Params: atc.Params{"some-custom": "param"},
+					},
+					Version: atc.Version{"some-custom": "version"},
+				},
+			},
 		}
 	})
 
@@ -785,10 +769,9 @@ var _ = Describe("TaskStep", func() {
 				Expect(containerSpec.ImageSpec.ImageArtifact).To(Equal(fakeArtifact))
 
 				Expect(workerSpec).To(Equal(worker.WorkerSpec{
-					TeamID:        123,
-					Platform:      "some-platform",
-					ResourceTypes: interpolatedResourceTypes,
-					Tags:          []string{"step", "tags"},
+					TeamID:   123,
+					Platform: "some-platform",
+					Tags:     []string{"step", "tags"},
 				}))
 			})
 
@@ -897,10 +880,9 @@ var _ = Describe("TaskStep", func() {
 				Expect(containerSpec.ImageSpec.ImageURL).To(Equal("some-image"))
 
 				Expect(workerSpec).To(Equal(worker.WorkerSpec{
-					TeamID:        123,
-					Platform:      "some-platform",
-					ResourceTypes: interpolatedResourceTypes,
-					Tags:          []string{"step", "tags"},
+					TeamID:   123,
+					Platform: "some-platform",
+					Tags:     []string{"step", "tags"},
 				}))
 			})
 		})
