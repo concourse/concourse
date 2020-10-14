@@ -730,16 +730,11 @@ resource_types:
   source:
     FOO: ((BAR))
 
-resources:
-- name: some-resource
-  type: some-type
-  source:
-    foo: bar
-
 jobs:
 - name: some-job
   plan:
-  - get: some-resource`
+  - task: some-task
+    file: some/task/config.yaml`
 
 									request.Header.Set("Content-Type", "application/x-yaml")
 									request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
