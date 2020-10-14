@@ -158,12 +158,6 @@ var _ = Describe("TaskStep", func() {
 
 			taskPlan.Config = &atc.TaskConfig{
 				Platform: "some-platform",
-				ImageResource: &atc.ImageResource{
-					Type:    "docker",
-					Source:  atc.Source{"some": "secret-source-param"},
-					Params:  atc.Params{"some": "params"},
-					Version: atc.Version{"some": "version"},
-				},
 				Limits: &atc.ContainerLimits{
 					CPU:    &cpu,
 					Memory: &memory,
@@ -692,15 +686,17 @@ var _ = Describe("TaskStep", func() {
 		})
 
 		Context("when the image_resource is specified (even if RootfsURI is configured)", func() {
+			var expectedCheckPlan, expectedGetPlan atc.Plan
+			var fakeArtifact *runtimefakes.FakeArtifact
+
 			BeforeEach(func() {
 				taskPlan.Config = &atc.TaskConfig{
 					Platform:  "some-platform",
 					RootfsURI: "some-image",
 					ImageResource: &atc.ImageResource{
-						Type:    "docker",
-						Source:  atc.Source{"some": "super-secret-source"},
-						Params:  atc.Params{"some": "params"},
-						Version: atc.Version{"some": "version"},
+						Type:   "docker",
+						Source: atc.Source{"some": "super-secret-source"},
+						Params: atc.Params{"some": "params"},
 					},
 					Params: map[string]string{"SOME": "params"},
 					Run: atc.TaskRunConfig{
@@ -708,24 +704,153 @@ var _ = Describe("TaskStep", func() {
 						Args: []string{"some", "args"},
 					},
 				}
+
+				expectedCheckPlan = atc.Plan{
+					ID: planID + "/image-check",
+					Check: &atc.CheckPlan{
+						Name:                   planID.String() + "/image-check",
+						Type:                   "docker",
+						Source:                 atc.Source{"some": "super-secret-source"},
+						VersionedResourceTypes: taskPlan.VersionedResourceTypes,
+					},
+				}
+
+				expectedGetPlan = atc.Plan{
+					ID: planID + "/image-get",
+					Get: &atc.GetPlan{
+						Name:                   planID.String() + "/image-get",
+						Type:                   "docker",
+						Source:                 atc.Source{"some": "super-secret-source"},
+						Version:                &atc.Version{"some": "version"},
+						Params:                 atc.Params{"some": "params"},
+						VersionedResourceTypes: taskPlan.VersionedResourceTypes,
+					},
+				}
+
+				state.ResultStub = func(planID atc.PlanID, to interface{}) bool {
+					Expect(planID).To(Equal(expectedCheckPlan.ID))
+
+					switch x := to.(type) {
+					case *atc.Version:
+						*x = atc.Version{"some": "version"}
+					default:
+						Fail("unexpected target type")
+					}
+
+					return true
+				}
+
+				fakeArtifact = new(runtimefakes.FakeArtifact)
+				state.ArtifactRepository().RegisterArtifact(
+					build.ArtifactName(expectedGetPlan.ID),
+					fakeArtifact,
+				)
+
+				state.RunReturns(true, nil)
 			})
 
-			It("creates the specs with the image resource", func() {
+			It("succeeds", func() {
+				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
+			})
+
+			It("runs a CheckPlan to get the image version", func() {
+				Expect(state.RunCallCount()).To(Equal(2))
+
+				_, plan := state.RunArgsForCall(0)
+				Expect(plan).To(Equal(expectedCheckPlan))
+
+				_, plan = state.RunArgsForCall(1)
+				Expect(plan).To(Equal(expectedGetPlan))
+			})
+
+			It("creates the specs with the image artifact", func() {
 				_, _, _, containerSpec, workerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-				Expect(containerSpec.ImageSpec.ImageResource).To(Equal(&worker.ImageResource{
-					Type:    "docker",
-					Source:  atc.Source{"some": "super-secret-source"},
-					Params:  atc.Params{"some": "params"},
-					Version: atc.Version{"some": "version"},
-				}))
+				Expect(containerSpec.ImageSpec.ImageArtifact).To(Equal(fakeArtifact))
 
 				Expect(workerSpec).To(Equal(worker.WorkerSpec{
 					TeamID:        123,
 					Platform:      "some-platform",
 					ResourceTypes: interpolatedResourceTypes,
 					Tags:          []string{"step", "tags"},
-					ResourceType:  "docker",
 				}))
+			})
+
+			Context("before running the check", func() {
+				BeforeEach(func() {
+					fakeDelegate.ImageCheckStub = func(lager.Logger, atc.Plan) {
+						Expect(state.RunCallCount()).To(Equal(0))
+					}
+				})
+
+				It("saves an ImageCheck event", func() {
+					Expect(fakeDelegate.ImageCheckCallCount()).To(Equal(1))
+					_, plan := fakeDelegate.ImageCheckArgsForCall(0)
+					Expect(plan).To(Equal(expectedCheckPlan))
+				})
+			})
+
+			Context("before running the get", func() {
+				BeforeEach(func() {
+					fakeDelegate.ImageGetStub = func(lager.Logger, atc.Plan) {
+						Expect(state.RunCallCount()).To(Equal(1))
+					}
+				})
+
+				It("saves an ImageGet event", func() {
+					Expect(fakeDelegate.ImageGetCallCount()).To(Equal(1))
+					_, plan := fakeDelegate.ImageGetArgsForCall(0)
+					Expect(plan).To(Equal(expectedGetPlan))
+				})
+			})
+
+			Context("when a version is already provided", func() {
+				BeforeEach(func() {
+					taskPlan.Config.ImageResource.Version = atc.Version{"some": "version"}
+				})
+
+				It("does not run a CheckPlan", func() {
+					Expect(state.RunCallCount()).To(Equal(1))
+					Expect(state.ResultCallCount()).To(Equal(0))
+					_, plan := state.RunArgsForCall(0)
+					Expect(plan).To(Equal(expectedGetPlan))
+				})
+
+				It("does not save an ImageCheck event", func() {
+					Expect(fakeDelegate.ImageCheckCallCount()).To(Equal(0))
+				})
+
+				It("saves an ImageGet event", func() {
+					Expect(fakeDelegate.ImageGetCallCount()).To(Equal(1))
+					_, plan := fakeDelegate.ImageGetArgsForCall(0)
+					Expect(plan).To(Equal(expectedGetPlan))
+				})
+			})
+
+			Context("when checking the image fails", func() {
+				BeforeEach(func() {
+					state.RunStub = func(ctx context.Context, plan atc.Plan) (bool, error) {
+						if plan.ID == expectedCheckPlan.ID {
+							return false, nil
+						}
+
+						return true, nil
+					}
+				})
+
+				It("errors", func() {
+					Expect(stepErr).To(MatchError("image check failed"))
+				})
+			})
+
+			Context("when no version is returned by the check", func() {
+				BeforeEach(func() {
+					state.ResultReturns(false)
+				})
+
+				It("errors", func() {
+					Expect(stepErr).To(MatchError("check did not return a version"))
+				})
 			})
 		})
 

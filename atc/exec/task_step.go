@@ -75,6 +75,9 @@ type TaskDelegate interface {
 	Finished(lager.Logger, ExitStatus)
 	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
+
+	ImageCheck(lager.Logger, atc.Plan)
+	ImageGet(lager.Logger, atc.Plan)
 }
 
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
@@ -224,12 +227,17 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	delegate.Initializing(logger)
 
-	workerSpec, err := step.workerSpec(logger, resourceTypes, repository, config)
+	imageSpec, err := step.imageSpec(ctx, state, delegate, config)
 	if err != nil {
 		return false, err
 	}
 
-	containerSpec, err := step.containerSpec(logger, repository, config, step.containerMetadata)
+	workerSpec, err := step.workerSpec(state, imageSpec, resourceTypes, repository, config)
+	if err != nil {
+		return false, err
+	}
+
+	containerSpec, err := step.containerSpec(state, imageSpec, config, step.containerMetadata)
 	if err != nil {
 		return false, err
 	}
@@ -243,11 +251,6 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		StderrWriter: delegate.Stderr(),
 	}
 
-	imageSpec := worker.ImageFetcherSpec{
-		ResourceTypes: resourceTypes,
-		Delegate:      delegate,
-	}
-
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
 	result, err := step.workerClient.RunTaskStep(
@@ -258,7 +261,10 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		workerSpec,
 		step.strategy,
 		step.containerMetadata,
-		imageSpec,
+		worker.ImageFetcherSpec{
+			ResourceTypes: resourceTypes,
+			Delegate:      delegate,
+		},
 		processSpec,
 		delegate,
 		step.lockFactory,
@@ -286,7 +292,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	return result.ExitStatus == 0, nil
 }
 
-func (step *TaskStep) imageSpec(logger lager.Logger, repository *build.Repository, config atc.TaskConfig) (worker.ImageSpec, error) {
+func (step *TaskStep) imageSpec(ctx context.Context, state RunState, delegate TaskDelegate, config atc.TaskConfig) (worker.ImageSpec, error) {
 	imageSpec := worker.ImageSpec{
 		Privileged: bool(step.plan.Privileged),
 	}
@@ -294,7 +300,7 @@ func (step *TaskStep) imageSpec(logger lager.Logger, repository *build.Repositor
 	// Determine the source of the container image
 	// a reference to an artifact (get step, task output) ?
 	if step.plan.ImageArtifactName != "" {
-		art, found := repository.ArtifactFor(build.ArtifactName(step.plan.ImageArtifactName))
+		art, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(step.plan.ImageArtifactName))
 		if !found {
 			return worker.ImageSpec{}, MissingTaskImageSourceError{step.plan.ImageArtifactName}
 		}
@@ -303,12 +309,68 @@ func (step *TaskStep) imageSpec(logger lager.Logger, repository *build.Repositor
 
 		//an image_resource
 	} else if config.ImageResource != nil {
-		imageSpec.ImageResource = &worker.ImageResource{
-			Type:    config.ImageResource.Type,
-			Source:  config.ImageResource.Source,
-			Params:  config.ImageResource.Params,
-			Version: config.ImageResource.Version,
+		version := config.ImageResource.Version
+		if version == nil {
+			checkID := step.planID + "/image-check"
+
+			checkPlan := atc.Plan{
+				ID: checkID,
+				Check: &atc.CheckPlan{
+					Name:                   checkID.String(),
+					Type:                   config.ImageResource.Type,
+					Source:                 config.ImageResource.Source,
+					VersionedResourceTypes: step.plan.VersionedResourceTypes,
+				},
+			}
+
+			delegate.ImageCheck(lagerctx.FromContext(ctx), checkPlan)
+
+			ok, err := state.Run(ctx, checkPlan)
+			if err != nil {
+				return worker.ImageSpec{}, err
+			}
+
+			if !ok {
+				return worker.ImageSpec{}, fmt.Errorf("image check failed")
+			}
+
+			if !state.Result(checkID, &version) {
+				return worker.ImageSpec{}, fmt.Errorf("check did not return a version")
+			}
 		}
+
+		getID := step.planID + "/image-get"
+
+		getPlan := atc.Plan{
+			ID: getID,
+			Get: &atc.GetPlan{
+				Name:                   getID.String(),
+				Type:                   config.ImageResource.Type,
+				Source:                 config.ImageResource.Source,
+				Version:                &version,
+				Params:                 config.ImageResource.Params,
+				VersionedResourceTypes: step.plan.VersionedResourceTypes,
+			},
+		}
+
+		delegate.ImageGet(lagerctx.FromContext(ctx), getPlan)
+
+		ok, err := state.Run(ctx, getPlan)
+		if err != nil {
+			return worker.ImageSpec{}, err
+		}
+
+		if !ok {
+			return worker.ImageSpec{}, fmt.Errorf("image fetching failed")
+		}
+
+		art, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(getID))
+		if !found {
+			return worker.ImageSpec{}, fmt.Errorf("fetched artifact not found")
+		}
+
+		imageSpec.ImageArtifact = art
+
 		// a rootfs_uri
 	} else if config.RootfsURI != "" {
 		imageSpec.ImageURL = config.RootfsURI
@@ -317,7 +379,7 @@ func (step *TaskStep) imageSpec(logger lager.Logger, repository *build.Repositor
 	return imageSpec, nil
 }
 
-func (step *TaskStep) containerInputs(logger lager.Logger, repository *build.Repository, config atc.TaskConfig, metadata db.ContainerMetadata) (map[string]runtime.Artifact, error) {
+func (step *TaskStep) containerInputs(repository *build.Repository, config atc.TaskConfig, metadata db.ContainerMetadata) (map[string]runtime.Artifact, error) {
 	inputs := map[string]runtime.Artifact{}
 
 	var missingRequiredInputs []string
@@ -366,12 +428,7 @@ func (step *TaskStep) containerInputs(logger lager.Logger, repository *build.Rep
 	return inputs, nil
 }
 
-func (step *TaskStep) containerSpec(logger lager.Logger, repository *build.Repository, config atc.TaskConfig, metadata db.ContainerMetadata) (worker.ContainerSpec, error) {
-	imageSpec, err := step.imageSpec(logger, repository, config)
-	if err != nil {
-		return worker.ContainerSpec{}, err
-	}
-
+func (step *TaskStep) containerSpec(state RunState, imageSpec worker.ImageSpec, config atc.TaskConfig, metadata db.ContainerMetadata) (worker.ContainerSpec, error) {
 	var limits worker.ContainerLimits
 	if config.Limits != nil {
 		limits.CPU = (*uint64)(config.Limits.CPU)
@@ -392,7 +449,8 @@ func (step *TaskStep) containerSpec(logger lager.Logger, repository *build.Repos
 		Outputs: worker.OutputPaths{},
 	}
 
-	containerSpec.ArtifactByPath, err = step.containerInputs(logger, repository, config, metadata)
+	var err error
+	containerSpec.ArtifactByPath, err = step.containerInputs(state.ArtifactRepository(), config, metadata)
 	if err != nil {
 		return worker.ContainerSpec{}, err
 	}
@@ -405,17 +463,12 @@ func (step *TaskStep) containerSpec(logger lager.Logger, repository *build.Repos
 	return containerSpec, nil
 }
 
-func (step *TaskStep) workerSpec(logger lager.Logger, resourceTypes atc.VersionedResourceTypes, repository *build.Repository, config atc.TaskConfig) (worker.WorkerSpec, error) {
+func (step *TaskStep) workerSpec(state RunState, imageSpec worker.ImageSpec, resourceTypes atc.VersionedResourceTypes, repository *build.Repository, config atc.TaskConfig) (worker.WorkerSpec, error) {
 	workerSpec := worker.WorkerSpec{
 		Platform:      config.Platform,
 		Tags:          step.plan.Tags,
 		TeamID:        step.metadata.TeamID,
 		ResourceTypes: resourceTypes,
-	}
-
-	imageSpec, err := step.imageSpec(logger, repository, config)
-	if err != nil {
-		return worker.WorkerSpec{}, err
 	}
 
 	if imageSpec.ImageResource != nil {
