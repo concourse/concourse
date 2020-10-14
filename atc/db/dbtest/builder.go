@@ -77,6 +77,25 @@ func (builder Builder) WithWorker(worker atc.Worker) SetupFunc {
 	}
 }
 
+func (builder Builder) WithTeamWorker(worker atc.Worker) SetupFunc {
+	return func(scenario *Scenario) error {
+		if scenario.Team == nil {
+			err := builder.WithTeam(unique("team"))(scenario)
+			if err != nil {
+				return fmt.Errorf("bootstrap team: %w", err)
+			}
+		}
+
+		w, err := scenario.Team.SaveWorker(worker, 0)
+		if err != nil {
+			return err
+		}
+
+		scenario.Workers = append(scenario.Workers, w)
+		return nil
+	}
+}
+
 func (builder Builder) WithPipeline(config atc.Config) SetupFunc {
 	return func(scenario *Scenario) error {
 		if scenario.Team == nil {
@@ -646,6 +665,26 @@ func (builder Builder) WithEnabledVersion(resourceName string, enabledVersion at
 		}
 
 		return nil
+	}
+}
+
+func (builder Builder) WithBaseResourceType(dbConn db.Conn, resourceTypeName string) SetupFunc {
+	return func(scenario *Scenario) error {
+		setupTx, err := dbConn.Begin()
+		if err != nil {
+			return err
+		}
+
+		brt := db.BaseResourceType{
+			Name: resourceTypeName,
+		}
+
+		_, err = brt.FindOrCreate(setupTx, false)
+		if err != nil {
+			return err
+		}
+
+		return setupTx.Commit()
 	}
 }
 
