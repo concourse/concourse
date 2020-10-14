@@ -6,13 +6,11 @@ import (
 	"io/ioutil"
 	"text/template"
 	"text/template/parse"
-
-	"github.com/concourse/concourse/vars"
 )
 
 // SecretLookupPath transforms variable name into full secret path
 type SecretLookupPath interface {
-	VariableToSecretPath(vars.Reference) (vars.Reference, error)
+	VariableToSecretPath(string) (string, error)
 }
 
 // SecretLookupWithPrefix is an implementation which returns [prefix][separator][varName]
@@ -26,12 +24,8 @@ func NewSecretLookupWithPrefix(prefix string) SecretLookupPath {
 	}
 }
 
-func (sl SecretLookupWithPrefix) VariableToSecretPath(ref vars.Reference) (vars.Reference, error) {
-	return vars.Reference{
-		Name:   sl.Prefix + ref.Name,
-		Path:   sl.Prefix + ref.Path,
-		Fields: ref.Fields,
-	}, nil
+func (sl SecretLookupWithPrefix) VariableToSecretPath(path string) (string, error) {
+	return sl.Prefix + path, nil
 }
 
 // SecretLookupWithTemplate uses the given template to construct a lookup path specific
@@ -86,7 +80,7 @@ func NewSecretLookupWithTemplate(pathTemplate *SecretTemplate, teamName string, 
 	}
 }
 
-func (sl SecretLookupWithTemplate) VariableToSecretPath(ref vars.Reference) (vars.Reference, error) {
+func (sl SecretLookupWithTemplate) VariableToSecretPath(path string) (string, error) {
 	var buf bytes.Buffer
 	data := struct {
 		Team     string
@@ -95,11 +89,9 @@ func (sl SecretLookupWithTemplate) VariableToSecretPath(ref vars.Reference) (var
 	}{
 		sl.TeamName,
 		sl.PipelineName,
-		ref.Path,
+		path,
 	}
 
 	err := sl.PathTemplate.Execute(&buf, &data)
-	return vars.Reference{
-		Path: buf.String(),
-	}, err
+	return buf.String(), err
 }

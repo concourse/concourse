@@ -27,9 +27,9 @@ func newBuildVariables(credVars vars.Variables, enableRedaction bool) *buildVari
 
 func (b *buildVariables) Get(ref vars.Reference) (interface{}, bool, error) {
 	if ref.Source == "." {
-		val, found, _ := b.localVars.Get(ref)
-		if found {
-			return val, true, nil
+		val, found, err := b.localVars.Get(ref)
+		if found || err != nil {
+			return val, found, err
 		}
 	}
 	return b.parentScope.Get(ref)

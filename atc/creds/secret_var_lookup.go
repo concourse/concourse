@@ -17,29 +17,43 @@ func NewVariables(secrets Secrets, teamName string, pipelineName string, allowRo
 }
 
 func (sl VariableLookupFromSecrets) Get(ref vars.Reference) (interface{}, bool, error) {
-	// try to find a secret according to our var->secret lookup paths
-	if len(sl.LookupPaths) > 0 {
-		for _, rule := range sl.LookupPaths {
-			// prepands any additionals prefix paths to front of the path
-			secretRef, err := rule.VariableToSecretPath(ref)
-			if err != nil {
-				return nil, false, err
-			}
-			result, _, found, err := sl.Secrets.Get(secretRef.Path)
-			if err != nil {
-				return nil, false, err
-			}
-			if !found {
-				continue
-			}
-			return result, true, nil
-		}
+	val, found, err := sl.get(ref.Path)
+	if err != nil {
+		return nil, false, err
+	}
+	if !found {
 		return nil, false, nil
-	} else {
+	}
+	result, err := vars.Traverse(val, ref.Name, ref.Fields)
+	if err != nil {
+		return nil, false, err
+	}
+	return result, true, nil
+}
+
+func (sl VariableLookupFromSecrets) get(path string) (interface{}, bool, error) {
+	if len(sl.LookupPaths) == 0 {
 		// if no paths are specified (i.e. for fake & noop secret managers), then try 1-to-1 var->secret mapping
-		result, _, found, err := sl.Secrets.Get(ref.Path)
+		result, _, found, err := sl.Secrets.Get(path)
 		return result, found, err
 	}
+	// try to find a secret according to our var->secret lookup paths
+	for _, rule := range sl.LookupPaths {
+		// prepends any additional prefix paths to front of the path
+		secretPath, err := rule.VariableToSecretPath(path)
+		if err != nil {
+			return nil, false, err
+		}
+		result, _, found, err := sl.Secrets.Get(secretPath)
+		if err != nil {
+			return nil, false, err
+		}
+		if !found {
+			continue
+		}
+		return result, true, nil
+	}
+	return nil, false, nil
 }
 
 func (sl VariableLookupFromSecrets) List() ([]vars.Reference, error) {

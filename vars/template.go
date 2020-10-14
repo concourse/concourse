@@ -200,35 +200,6 @@ func (t varsTracker) Get(varName string) (interface{}, bool, error) {
 		return val, found, err
 	}
 
-	for _, seg := range varRef.Fields {
-		switch v := val.(type) {
-		case map[interface{}]interface{}:
-			var found bool
-			val, found = v[seg]
-			if !found {
-				return nil, false, MissingFieldError{
-					Name:  varName,
-					Field: seg,
-				}
-			}
-		case map[string]interface{}:
-			var found bool
-			val, found = v[seg]
-			if !found {
-				return nil, false, MissingFieldError{
-					Name:  varName,
-					Field: seg,
-				}
-			}
-		default:
-			return nil, false, InvalidFieldError{
-				Name:  varName,
-				Field: seg,
-				Value: val,
-			}
-		}
-	}
-
 	return val, true, err
 }
 
