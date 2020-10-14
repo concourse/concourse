@@ -24,7 +24,7 @@ func (sl VariableLookupFromSecrets) Get(ref vars.Reference) (interface{}, bool, 
 	if !found {
 		return nil, false, nil
 	}
-	result, err := vars.Traverse(val, ref.Name, ref.Fields)
+	result, err := vars.Traverse(val, ref.String(), ref.Fields)
 	if err != nil {
 		return nil, false, err
 	}

@@ -9,7 +9,7 @@ func (v StaticVariables) Get(ref Reference) (interface{}, bool, error) {
 	if !found {
 		return nil, false, nil
 	}
-	val, err := Traverse(val, ref.Name, ref.Fields)
+	val, err := Traverse(val, ref.String(), ref.Fields)
 	if err != nil {
 		return nil, false, err
 	}

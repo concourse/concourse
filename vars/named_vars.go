@@ -15,7 +15,7 @@ func (m NamedVariables) Get(ref Reference) (interface{}, bool, error) {
 		return vars.Get(ref)
 	}
 
-	return nil, false, MissingSourceError{Name: ref.Name, Source: ref.Source}
+	return nil, false, MissingSourceError{Name: ref.String(), Source: ref.Source}
 }
 
 func (m NamedVariables) List() ([]Reference, error) {

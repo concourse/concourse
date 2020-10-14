@@ -135,35 +135,6 @@ func (i interpolator) extractVarNames(value string) []string {
 	return names
 }
 
-func parseVarName(name string) Reference {
-	var pathPieces []string
-	var fields []string
-
-	varRef := Reference{Name: name}
-
-	if strings.Index(name, ":") > 0 {
-		parts := strings.SplitN(name, ":", 2)
-		varRef.Source = parts[0]
-
-		pathPieces = pathRegex.FindAllString(parts[1], -1)
-
-	} else {
-		pathPieces = pathRegex.FindAllString(name, -1)
-	}
-
-	varRef.Path = strings.ReplaceAll(pathPieces[0], "\"", "")
-
-	if len(pathPieces) >= 2 {
-		for _, piece := range pathPieces[1:] {
-			fields = append(fields, strings.ReplaceAll(piece, "\"", ""))
-		}
-
-		varRef.Fields = fields
-	}
-
-	return varRef
-}
-
 type varsTracker struct {
 	vars Variables
 
@@ -190,13 +161,13 @@ func newVarsTracker(vars Variables, expectAllFound, expectAllUsed bool) varsTrac
 // is var name; 2) 'foo:bar', where foo is var source name, and bar is var name;
 // 3) '.:foo', where . means a local var, foo is var name.
 func (t varsTracker) Get(varName string) (interface{}, bool, error) {
-	varRef := parseVarName(varName)
+	varRef := parseReference(varName)
 
 	t.visitedAll[identifier(varRef)] = struct{}{}
 
 	val, found, err := t.vars.Get(varRef)
 	if !found || err != nil {
-		t.missing[varRef.Name] = struct{}{}
+		t.missing[varRef.String()] = struct{}{}
 		return val, found, err
 	}
 
