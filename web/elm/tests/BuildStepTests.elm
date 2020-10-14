@@ -326,6 +326,22 @@ all =
                     >> given theTaskStepIsExpanded
                     >> when iAmLookingAtTheStepBody
                     >> then_ iSeeATimestamp
+            , test "shows image check sub-step" <|
+                given iVisitABuildWithATaskStep
+                    >> given (thereIsAnImageCheckStep taskStepId)
+                    >> given (thereIsALog imageCheckStepId)
+                    >> given theTaskStepIsExpanded
+                    >> given theImageCheckStepIsExpanded
+                    >> when iAmLookingAtTheStepBody
+                    >> then_ iSeeTheLogOutput
+            , test "shows image get sub-step" <|
+                given iVisitABuildWithATaskStep
+                    >> given (thereIsAnImageGetStep taskStepId)
+                    >> given (thereIsALog imageGetStepId)
+                    >> given theTaskStepIsExpanded
+                    >> given theImageGetStepIsExpanded
+                    >> when iAmLookingAtTheStepBody
+                    >> then_ iSeeTheLogOutput
             ]
         , describe "check step"
             [ test "should show resource name" <|
@@ -454,6 +470,16 @@ theGetStepIsExpanded =
 theTaskStepIsExpanded =
     Tuple.first
         >> Application.update (Update <| Message.Click <| StepHeader taskStepId)
+
+
+theImageCheckStepIsExpanded =
+    Tuple.first
+        >> Application.update (Update <| Message.Click <| StepHeader imageCheckStepId)
+
+
+theImageGetStepIsExpanded =
+    Tuple.first
+        >> Application.update (Update <| Message.Click <| StepHeader imageGetStepId)
 
 
 theSetPipelineStepIsExpanded =
@@ -639,6 +665,14 @@ taskStepId =
     "taskStepId"
 
 
+imageCheckStepId =
+    "imageCheckStepId"
+
+
+imageGetStepId =
+    "imageGetStepId"
+
+
 thePlanContainsASetPipelineStep =
     Tuple.first
         >> Application.handleCallback
@@ -757,7 +791,8 @@ iAmLookingAtTheAcrossStepInTheBuildOutput =
 iAmLookingAtTheStepBody =
     Tuple.first
         >> Common.queryView
-        >> Query.find [ class "build-step" ]
+        >> Query.findAll [ class "build-step" ]
+        >> Query.first
 
 
 iSeeTwoChildren =
@@ -994,6 +1029,10 @@ iSeeTheResourceName =
     Query.has [ text "resource-name" ]
 
 
+iSeeTheLogOutput =
+    Query.has [ text "the log output" ]
+
+
 iSeeTheLoadVarName =
     Query.has [ text "var-name" ]
 
@@ -1124,6 +1163,40 @@ thereIsALog stepId =
                                 }
                                 "the log output"
                                 (Just <| Time.millisToPosix 1000)
+                      , url = "http://localhost:8080/api/v1/builds/1/events"
+                      }
+                    ]
+            )
+
+
+thereIsAnImageCheckStep stepId =
+    Tuple.first
+        >> Application.handleDelivery
+            (EventsReceived <|
+                Ok
+                    [ { data =
+                            ImageCheck
+                                { source = ""
+                                , id = stepId
+                                }
+                                (Concourse.BuildPlan imageCheckStepId (Concourse.BuildStepCheck "image"))
+                      , url = "http://localhost:8080/api/v1/builds/1/events"
+                      }
+                    ]
+            )
+
+
+thereIsAnImageGetStep stepId =
+    Tuple.first
+        >> Application.handleDelivery
+            (EventsReceived <|
+                Ok
+                    [ { data =
+                            ImageGet
+                                { source = ""
+                                , id = stepId
+                                }
+                                (Concourse.BuildPlan imageGetStepId (Concourse.BuildStepGet "image" Nothing))
                       , url = "http://localhost:8080/api/v1/builds/1/events"
                       }
                     ]

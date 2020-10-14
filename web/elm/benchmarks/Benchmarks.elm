@@ -838,6 +838,8 @@ steps =
         , finish = Nothing
         , tabFocus = STModels.Auto
         , expandedHeaders = Dict.empty
+        , imageCheck = Nothing
+        , imageGet = Nothing
         }
 
 
@@ -847,6 +849,7 @@ stepsModel =
         { tree = tree
         , steps = steps
         , highlight = Routes.HighlightNothing
+        , resources = { inputs = [], outputs = [] }
         }
 
 

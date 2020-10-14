@@ -3,6 +3,8 @@ module Build.StepTree.StepTree exposing
     , finished
     , init
     , setHighlight
+    , setImageCheck
+    , setImageGet
     , switchTab
     , toggleStep
     , toggleStepSubHeader
@@ -65,36 +67,36 @@ init hl resources ({ id, step } as plan) =
     case step of
         Concourse.BuildStepTask name ->
             constructStep id name
-                |> initBottom plan hl Task
+                |> initBottom hl resources plan Task
 
         Concourse.BuildStepCheck name ->
             constructStep id name
-                |> initBottom plan hl Check
+                |> initBottom hl resources plan Check
 
         Concourse.BuildStepGet name version ->
             constructStep id name
                 |> setupGetStep resources name version
-                |> initBottom plan hl Get
+                |> initBottom hl resources plan Get
 
         Concourse.BuildStepPut name ->
             constructStep id name
-                |> initBottom plan hl Put
+                |> initBottom hl resources plan Put
 
         Concourse.BuildStepArtifactInput name ->
             constructStep id name
-                |> initBottom plan hl ArtifactInput
+                |> initBottom hl resources plan ArtifactInput
 
         Concourse.BuildStepArtifactOutput name ->
             constructStep id name
-                |> initBottom plan hl ArtifactOutput
+                |> initBottom hl resources plan ArtifactOutput
 
         Concourse.BuildStepSetPipeline name ->
             constructStep id name
-                |> initBottom plan hl SetPipeline
+                |> initBottom hl resources plan SetPipeline
 
         Concourse.BuildStepLoadVar name ->
             constructStep id name
-                |> initBottom plan hl LoadVar
+                |> initBottom hl resources plan LoadVar
 
         Concourse.BuildStepAggregate plans ->
             initMultiStep hl resources id Aggregate plans Nothing
@@ -159,6 +161,32 @@ init hl resources ({ id, step } as plan) =
             initWrappedStep hl resources Timeout subPlan
 
 
+setImageCheck : StepID -> Concourse.BuildPlan -> StepTreeModel -> StepTreeModel
+setImageCheck stepId subPlan model =
+    let
+        sub =
+            init model.highlight model.resources subPlan
+    in
+    { model
+        | steps =
+            Dict.union sub.steps model.steps
+                |> Dict.update stepId (Maybe.map (\step -> { step | imageCheck = Just sub.tree }))
+    }
+
+
+setImageGet : StepID -> Concourse.BuildPlan -> StepTreeModel -> StepTreeModel
+setImageGet stepId subPlan model =
+    let
+        sub =
+            init model.highlight model.resources subPlan
+    in
+    { model
+        | steps =
+            Dict.union sub.steps model.steps
+                |> Dict.update stepId (Maybe.map (\step -> { step | imageGet = Just sub.tree }))
+    }
+
+
 planIsHighlighted : Highlight -> Concourse.BuildPlan -> Bool
 planIsHighlighted hl plan =
     case hl of
@@ -199,11 +227,12 @@ startingTab hl plans =
             Manual tab
 
 
-initBottom : Concourse.BuildPlan -> Highlight -> (StepID -> StepTree) -> Step -> StepTreeModel
-initBottom plan hl construct step =
+initBottom : Highlight -> Concourse.BuildResources -> Concourse.BuildPlan -> (StepID -> StepTree) -> Step -> StepTreeModel
+initBottom hl resources plan construct step =
     { tree = construct plan.id
     , steps = Dict.singleton plan.id (expand plan hl step)
     , highlight = hl
+    , resources = resources
     }
 
 
@@ -237,6 +266,7 @@ initMultiStep hl resources stepId constructor plans rootStep =
             |> Array.map .steps
             |> Array.foldr Dict.union selfFoci
     , highlight = hl
+    , resources = resources
     }
 
 
@@ -257,6 +287,8 @@ constructStep stepId name =
     , finish = Nothing
     , tabFocus = Auto
     , expandedHeaders = Dict.empty
+    , imageCheck = Nothing
+    , imageGet = Nothing
     }
 
 
@@ -290,6 +322,7 @@ initWrappedStep hl resources create plan =
     { tree = create tree
     , steps = steps
     , highlight = hl
+    , resources = resources
     }
 
 
@@ -310,6 +343,7 @@ initHookedStep hl resources create hookedPlan =
     { tree = create { step = stepModel.tree, hook = hookModel.tree }
     , steps = Dict.union stepModel.steps hookModel.steps
     , highlight = hl
+    , resources = resources
     }
 
 
@@ -734,7 +768,7 @@ viewStepWithBody :
     -> StepHeaderType
     -> List (Html Message)
     -> Html Message
-viewStepWithBody model session depth { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, start, finish, changed } headerType body =
+viewStepWithBody model session depth { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, start, finish, changed, imageCheck, imageGet } headerType body =
     Html.div
         [ classList
             [ ( "build-step", True )
@@ -774,6 +808,22 @@ viewStepWithBody model session depth { id, name, log, state, error, expanded, ve
                 , class "clearfix"
                 ]
                 ([ viewMetadata metadata
+                 , case imageCheck of
+                    Just subTree ->
+                        Html.div [ class "seq" ]
+                            [ viewTree session model subTree (depth + 1)
+                            ]
+
+                    Nothing ->
+                        Html.text ""
+                 , case imageGet of
+                    Just subTree ->
+                        Html.div [ class "seq" ]
+                            [ viewTree session model subTree (depth + 1)
+                            ]
+
+                    Nothing ->
+                        Html.text ""
                  , Html.pre [ class "timestamped-logs" ] <|
                     viewLogs log timestamps model.highlight session.timeZone id
                  , case error of

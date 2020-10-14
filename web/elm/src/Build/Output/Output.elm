@@ -236,6 +236,16 @@ handleEvent event ( model, effects ) =
             in
             ( { model | steps = newSt }, effects )
 
+        ImageCheck { id } plan ->
+            ( { model | steps = Maybe.map (Build.StepTree.StepTree.setImageCheck id plan) model.steps }
+            , effects
+            )
+
+        ImageGet { id } plan ->
+            ( { model | steps = Maybe.map (Build.StepTree.StepTree.setImageGet id plan) model.steps }
+            , effects
+            )
+
         End ->
             ( { model | state = StepsComplete, eventStreamUrlPath = Nothing }
             , effects

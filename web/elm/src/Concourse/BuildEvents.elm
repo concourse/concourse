@@ -194,6 +194,20 @@ decodeBuildEvent =
                                 (Json.Decode.field "changed" Json.Decode.bool)
                             )
 
+                    "image-check" ->
+                        Json.Decode.field "data"
+                            (Json.Decode.map2 ImageCheck
+                                (Json.Decode.field "origin" decodeOrigin)
+                                (Json.Decode.field "plan" Concourse.decodeBuildPlan)
+                            )
+
+                    "image-get" ->
+                        Json.Decode.field "data"
+                            (Json.Decode.map2 ImageGet
+                                (Json.Decode.field "origin" decodeOrigin)
+                                (Json.Decode.field "plan" Concourse.decodeBuildPlan)
+                            )
+
                     unknown ->
                         Json.Decode.fail ("unknown event type: " ++ unknown)
             )

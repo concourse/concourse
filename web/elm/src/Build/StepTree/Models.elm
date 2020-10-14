@@ -37,6 +37,7 @@ type alias StepTreeModel =
     { tree : StepTree
     , steps : Dict StepID Step
     , highlight : Highlight
+    , resources : Concourse.BuildResources
     }
 
 
@@ -89,6 +90,8 @@ type alias Step =
     , finish : Maybe Time.Posix
     , tabFocus : TabFocus
     , expandedHeaders : Dict Int Bool
+    , imageCheck : Maybe StepTree
+    , imageGet : Maybe StepTree
     }
 
 
@@ -173,6 +176,8 @@ type BuildEvent
     | Log Origin String (Maybe Time.Posix)
     | SelectedWorker Origin String (Maybe Time.Posix)
     | Error Origin String Time.Posix
+    | ImageCheck Origin Concourse.BuildPlan
+    | ImageGet Origin Concourse.BuildPlan
     | End
     | Opened
     | NetworkError
