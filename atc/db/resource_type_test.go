@@ -6,6 +6,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbtest"
 	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -393,33 +394,39 @@ var _ = Describe("ResourceType", func() {
 
 	Describe("Resource type version", func() {
 		var (
-			resourceType      db.ResourceType
+			scenario          *dbtest.Scenario
 			resourceTypeScope db.ResourceConfigScope
 		)
 
 		BeforeEach(func() {
-			var err error
-			resourceType, _, err = pipeline.ResourceType("some-type")
+			scenario = dbtest.Setup(
+				builder.WithPipeline(atc.Config{
+					ResourceTypes: atc.ResourceTypes{
+						{
+							Name:   "some-type",
+							Type:   "some-base-resource-type",
+							Source: atc.Source{"some": "repository"},
+						},
+					},
+				}),
+			)
+			Expect(scenario.ResourceType("some-type").Version()).To(BeNil())
+
+			scenario.Run(builder.WithResourceTypeVersions("some-type"))
+
+			resourceTypeConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
+				scenario.ResourceType("some-type").Type(),
+				scenario.ResourceType("some-type").Source(),
+				nil,
+			)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(resourceType.Version()).To(BeNil())
 
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-
-			brt := db.BaseResourceType{
-				Name: "registry-image",
-			}
-
-			_, err = brt.FindOrCreate(setupTx, false)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
-
-			resourceTypeScope, err = resourceType.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
+			resourceTypeScope, err = resourceTypeConfig.FindOrCreateScope(nil)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		JustBeforeEach(func() {
-			reloaded, err := resourceType.Reload()
+			reloaded, err := scenario.ResourceType("some-type").Reload()
 			Expect(reloaded).To(BeTrue())
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -430,20 +437,19 @@ var _ = Describe("ResourceType", func() {
 		})
 
 		It("returns the resource config scope id", func() {
-			Expect(resourceType.ResourceConfigScopeID()).To(Equal(resourceTypeScope.ID()))
+			Expect(scenario.ResourceType("some-type").ResourceConfigScopeID()).To(Equal(resourceTypeScope.ID()))
 		})
 
 		Context("when the resource type has proper versions", func() {
 			BeforeEach(func() {
-				err := resourceTypeScope.SaveVersions(nil, []atc.Version{
-					{"version": "1"},
-					{"version": "2"},
-				})
-				Expect(err).ToNot(HaveOccurred())
+				scenario.Run(builder.WithResourceTypeVersions("some-type",
+					atc.Version{"version": "1"},
+					atc.Version{"version": "2"},
+				))
 			})
 
 			It("returns the version", func() {
-				Expect(resourceType.Version()).To(Equal(atc.Version{"version": "2"}))
+				Expect(scenario.ResourceType("some-type").Version()).To(Equal(atc.Version{"version": "2"}))
 			})
 		})
 	})
