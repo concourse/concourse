@@ -71,6 +71,16 @@ type FakeRunState struct {
 	newLocalScopeReturnsOnCall map[int]struct {
 		result1 exec.RunState
 	}
+	ParentStub        func() exec.RunState
+	parentMutex       sync.RWMutex
+	parentArgsForCall []struct {
+	}
+	parentReturns struct {
+		result1 exec.RunState
+	}
+	parentReturnsOnCall map[int]struct {
+		result1 exec.RunState
+	}
 	RedactionEnabledStub        func() bool
 	redactionEnabledMutex       sync.RWMutex
 	redactionEnabledArgsForCall []struct {
@@ -406,6 +416,58 @@ func (fake *FakeRunState) NewLocalScopeReturnsOnCall(i int, result1 exec.RunStat
 	}{result1}
 }
 
+func (fake *FakeRunState) Parent() exec.RunState {
+	fake.parentMutex.Lock()
+	ret, specificReturn := fake.parentReturnsOnCall[len(fake.parentArgsForCall)]
+	fake.parentArgsForCall = append(fake.parentArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Parent", []interface{}{})
+	fake.parentMutex.Unlock()
+	if fake.ParentStub != nil {
+		return fake.ParentStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.parentReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeRunState) ParentCallCount() int {
+	fake.parentMutex.RLock()
+	defer fake.parentMutex.RUnlock()
+	return len(fake.parentArgsForCall)
+}
+
+func (fake *FakeRunState) ParentCalls(stub func() exec.RunState) {
+	fake.parentMutex.Lock()
+	defer fake.parentMutex.Unlock()
+	fake.ParentStub = stub
+}
+
+func (fake *FakeRunState) ParentReturns(result1 exec.RunState) {
+	fake.parentMutex.Lock()
+	defer fake.parentMutex.Unlock()
+	fake.ParentStub = nil
+	fake.parentReturns = struct {
+		result1 exec.RunState
+	}{result1}
+}
+
+func (fake *FakeRunState) ParentReturnsOnCall(i int, result1 exec.RunState) {
+	fake.parentMutex.Lock()
+	defer fake.parentMutex.Unlock()
+	fake.ParentStub = nil
+	if fake.parentReturnsOnCall == nil {
+		fake.parentReturnsOnCall = make(map[int]struct {
+			result1 exec.RunState
+		})
+	}
+	fake.parentReturnsOnCall[i] = struct {
+		result1 exec.RunState
+	}{result1}
+}
+
 func (fake *FakeRunState) RedactionEnabled() bool {
 	fake.redactionEnabledMutex.Lock()
 	ret, specificReturn := fake.redactionEnabledReturnsOnCall[len(fake.redactionEnabledArgsForCall)]
@@ -630,6 +692,8 @@ func (fake *FakeRunState) Invocations() map[string][][]interface{} {
 	defer fake.listMutex.RUnlock()
 	fake.newLocalScopeMutex.RLock()
 	defer fake.newLocalScopeMutex.RUnlock()
+	fake.parentMutex.RLock()
+	defer fake.parentMutex.RUnlock()
 	fake.redactionEnabledMutex.RLock()
 	defer fake.redactionEnabledMutex.RUnlock()
 	fake.resultMutex.RLock()

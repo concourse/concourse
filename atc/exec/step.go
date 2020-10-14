@@ -50,6 +50,8 @@ type RunState interface {
 	StoreResult(atc.PlanID, interface{})
 
 	Run(context.Context, atc.Plan) (bool, error)
+
+	Parent() RunState
 }
 
 // ExitStatus is the resulting exit code from the process that the step ran.

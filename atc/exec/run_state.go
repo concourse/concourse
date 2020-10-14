@@ -17,6 +17,8 @@ type runState struct {
 
 	artifacts *build.Repository
 	results   *sync.Map
+
+	parent RunState
 }
 
 type Stepper func(atc.Plan) Step
@@ -73,7 +75,13 @@ func (state *runState) IterateInterpolatedCreds(iter vars.TrackedVarsIterator) {
 func (state *runState) NewLocalScope() RunState {
 	clone := *state
 	clone.vars = state.vars.NewLocalScope()
+	clone.artifacts = state.artifacts.NewLocalScope()
+	clone.parent = state
 	return &clone
+}
+
+func (state *runState) Parent() RunState {
+	return state.parent
 }
 
 func (state *runState) AddLocalVar(name string, val interface{}, redact bool) {

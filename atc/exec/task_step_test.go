@@ -47,8 +47,9 @@ var _ = Describe("TaskStep", func() {
 
 		interpolatedResourceTypes atc.VersionedResourceTypes
 
-		repo  *build.Repository
-		state *execfakes.FakeRunState
+		repo       *build.Repository
+		state      *execfakes.FakeRunState
+		childState *execfakes.FakeRunState
 
 		taskStep exec.Step
 		stepOk   bool
@@ -93,6 +94,10 @@ var _ = Describe("TaskStep", func() {
 		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactRepositoryReturns(repo)
+
+		childState = new(execfakes.FakeRunState)
+		childState.ArtifactRepositoryReturns(repo.NewLocalScope())
+		state.NewLocalScopeReturns(childState)
 
 		state.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
 
@@ -708,7 +713,7 @@ var _ = Describe("TaskStep", func() {
 				expectedCheckPlan = atc.Plan{
 					ID: planID + "/image-check",
 					Check: &atc.CheckPlan{
-						Name:                   planID.String() + "/image-check",
+						Name:                   "image",
 						Type:                   "docker",
 						Source:                 atc.Source{"some": "super-secret-source"},
 						VersionedResourceTypes: taskPlan.VersionedResourceTypes,
@@ -718,7 +723,7 @@ var _ = Describe("TaskStep", func() {
 				expectedGetPlan = atc.Plan{
 					ID: planID + "/image-get",
 					Get: &atc.GetPlan{
-						Name:                   planID.String() + "/image-get",
+						Name:                   "image",
 						Type:                   "docker",
 						Source:                 atc.Source{"some": "super-secret-source"},
 						Version:                &atc.Version{"some": "version"},
@@ -727,7 +732,7 @@ var _ = Describe("TaskStep", func() {
 					},
 				}
 
-				state.ResultStub = func(planID atc.PlanID, to interface{}) bool {
+				childState.ResultStub = func(planID atc.PlanID, to interface{}) bool {
 					Expect(planID).To(Equal(expectedCheckPlan.ID))
 
 					switch x := to.(type) {
@@ -741,12 +746,9 @@ var _ = Describe("TaskStep", func() {
 				}
 
 				fakeArtifact = new(runtimefakes.FakeArtifact)
-				state.ArtifactRepository().RegisterArtifact(
-					build.ArtifactName(expectedGetPlan.ID),
-					fakeArtifact,
-				)
+				childState.ArtifactRepository().RegisterArtifact("image", fakeArtifact)
 
-				state.RunReturns(true, nil)
+				childState.RunReturns(true, nil)
 			})
 
 			It("succeeds", func() {
@@ -755,12 +757,12 @@ var _ = Describe("TaskStep", func() {
 			})
 
 			It("runs a CheckPlan to get the image version", func() {
-				Expect(state.RunCallCount()).To(Equal(2))
+				Expect(childState.RunCallCount()).To(Equal(2))
 
-				_, plan := state.RunArgsForCall(0)
+				_, plan := childState.RunArgsForCall(0)
 				Expect(plan).To(Equal(expectedCheckPlan))
 
-				_, plan = state.RunArgsForCall(1)
+				_, plan = childState.RunArgsForCall(1)
 				Expect(plan).To(Equal(expectedGetPlan))
 			})
 
@@ -779,7 +781,7 @@ var _ = Describe("TaskStep", func() {
 			Context("before running the check", func() {
 				BeforeEach(func() {
 					fakeDelegate.ImageCheckStub = func(lager.Logger, atc.Plan) {
-						Expect(state.RunCallCount()).To(Equal(0))
+						Expect(childState.RunCallCount()).To(Equal(0))
 					}
 				})
 
@@ -793,7 +795,7 @@ var _ = Describe("TaskStep", func() {
 			Context("before running the get", func() {
 				BeforeEach(func() {
 					fakeDelegate.ImageGetStub = func(lager.Logger, atc.Plan) {
-						Expect(state.RunCallCount()).To(Equal(1))
+						Expect(childState.RunCallCount()).To(Equal(1))
 					}
 				})
 
@@ -810,9 +812,9 @@ var _ = Describe("TaskStep", func() {
 				})
 
 				It("does not run a CheckPlan", func() {
-					Expect(state.RunCallCount()).To(Equal(1))
-					Expect(state.ResultCallCount()).To(Equal(0))
-					_, plan := state.RunArgsForCall(0)
+					Expect(childState.RunCallCount()).To(Equal(1))
+					Expect(childState.ResultCallCount()).To(Equal(0))
+					_, plan := childState.RunArgsForCall(0)
 					Expect(plan).To(Equal(expectedGetPlan))
 				})
 
@@ -829,7 +831,7 @@ var _ = Describe("TaskStep", func() {
 
 			Context("when checking the image fails", func() {
 				BeforeEach(func() {
-					state.RunStub = func(ctx context.Context, plan atc.Plan) (bool, error) {
+					childState.RunStub = func(ctx context.Context, plan atc.Plan) (bool, error) {
 						if plan.ID == expectedCheckPlan.ID {
 							return false, nil
 						}
@@ -845,7 +847,7 @@ var _ = Describe("TaskStep", func() {
 
 			Context("when no version is returned by the check", func() {
 				BeforeEach(func() {
-					state.ResultReturns(false)
+					childState.ResultReturns(false)
 				})
 
 				It("errors", func() {

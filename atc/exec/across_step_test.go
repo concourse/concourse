@@ -51,13 +51,19 @@ var _ = Describe("AcrossStep", func() {
 		started := started
 		terminate := terminate
 
-		return func(ctx context.Context, state exec.RunState) (bool, error) {
+		return func(ctx context.Context, childState exec.RunState) (bool, error) {
 			defer GinkgoRecover()
+
+			By("having the correct var values")
 			for i, v := range acrossVars {
-				val, found, _ := state.Get(vars.Reference{Source: ".", Path: v.Var})
+				val, found, _ := childState.Get(vars.Reference{Source: ".", Path: v.Var})
 				Expect(found).To(BeTrue(), "unset variable "+v.Var)
 				Expect(val).To(Equal(values[i]), "invalid value for variable "+v.Var)
 			}
+
+			By("running with a child scope")
+			Expect(childState.Parent()).To(Equal(state))
+
 			started <- values
 			if c, ok := terminate[values]; ok {
 				select {

@@ -289,6 +289,10 @@ var _ = Describe("RunState", func() {
 	})
 
 	Describe("NewLocalScope", func() {
+		It("maintains a reference to the parent", func() {
+			Expect(state.NewLocalScope().Parent()).To(Equal(state))
+		})
+
 		It("can access local vars from parent scope", func() {
 			state.AddLocalVar("hello", "world", false)
 			scope := state.NewLocalScope()
@@ -347,11 +351,8 @@ var _ = Describe("RunState", func() {
 			Expect(dst).To(Equal("hello"))
 		})
 
-		It("shares the artifact repository between scopes", func() {
-			parent := state
-			child := parent.NewLocalScope()
-
-			Expect(child.ArtifactRepository()).To(BeIdenticalTo(parent.ArtifactRepository()))
+		It("has a local artifact scope inheriting from the outer scope", func() {
+			Expect(state.NewLocalScope().ArtifactRepository().Parent()).To(Equal(state.ArtifactRepository()))
 		})
 
 		Describe("TrackedVarsMap", func() {

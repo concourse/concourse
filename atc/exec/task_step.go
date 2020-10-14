@@ -309,6 +309,8 @@ func (step *TaskStep) imageSpec(ctx context.Context, state RunState, delegate Ta
 
 		//an image_resource
 	} else if config.ImageResource != nil {
+		fetchState := state.NewLocalScope()
+
 		version := config.ImageResource.Version
 		if version == nil {
 			checkID := step.planID + "/image-check"
@@ -316,7 +318,7 @@ func (step *TaskStep) imageSpec(ctx context.Context, state RunState, delegate Ta
 			checkPlan := atc.Plan{
 				ID: checkID,
 				Check: &atc.CheckPlan{
-					Name:                   checkID.String(),
+					Name:                   "image",
 					Type:                   config.ImageResource.Type,
 					Source:                 config.ImageResource.Source,
 					VersionedResourceTypes: step.plan.VersionedResourceTypes,
@@ -325,7 +327,7 @@ func (step *TaskStep) imageSpec(ctx context.Context, state RunState, delegate Ta
 
 			delegate.ImageCheck(lagerctx.FromContext(ctx), checkPlan)
 
-			ok, err := state.Run(ctx, checkPlan)
+			ok, err := fetchState.Run(ctx, checkPlan)
 			if err != nil {
 				return worker.ImageSpec{}, err
 			}
@@ -334,7 +336,7 @@ func (step *TaskStep) imageSpec(ctx context.Context, state RunState, delegate Ta
 				return worker.ImageSpec{}, fmt.Errorf("image check failed")
 			}
 
-			if !state.Result(checkID, &version) {
+			if !fetchState.Result(checkID, &version) {
 				return worker.ImageSpec{}, fmt.Errorf("check did not return a version")
 			}
 		}
@@ -344,7 +346,7 @@ func (step *TaskStep) imageSpec(ctx context.Context, state RunState, delegate Ta
 		getPlan := atc.Plan{
 			ID: getID,
 			Get: &atc.GetPlan{
-				Name:                   getID.String(),
+				Name:                   "image",
 				Type:                   config.ImageResource.Type,
 				Source:                 config.ImageResource.Source,
 				Version:                &version,
@@ -355,7 +357,7 @@ func (step *TaskStep) imageSpec(ctx context.Context, state RunState, delegate Ta
 
 		delegate.ImageGet(lagerctx.FromContext(ctx), getPlan)
 
-		ok, err := state.Run(ctx, getPlan)
+		ok, err := fetchState.Run(ctx, getPlan)
 		if err != nil {
 			return worker.ImageSpec{}, err
 		}
@@ -364,7 +366,7 @@ func (step *TaskStep) imageSpec(ctx context.Context, state RunState, delegate Ta
 			return worker.ImageSpec{}, fmt.Errorf("image fetching failed")
 		}
 
-		art, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(getID))
+		art, found := fetchState.ArtifactRepository().ArtifactFor("image")
 		if !found {
 			return worker.ImageSpec{}, fmt.Errorf("fetched artifact not found")
 		}
