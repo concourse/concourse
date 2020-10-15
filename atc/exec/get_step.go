@@ -45,8 +45,7 @@ type GetDelegateFactory interface {
 type GetDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
-	ImageVersionDetermined(db.UsedResourceCache) error
-	RedactImageSource(source atc.Source) (atc.Source, error)
+	FetchImage(context.Context, atc.ImageResource) (runtime.Artifact, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -129,6 +128,30 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		return false, err
 	}
 
+	workerSpec := worker.WorkerSpec{
+		Tags:   step.plan.Tags,
+		TeamID: step.metadata.TeamID,
+	}
+
+	var imageSpec worker.ImageSpec
+	resourceType, found := step.plan.VersionedResourceTypes.Lookup(step.plan.Type)
+	if found {
+		artifact, err := delegate.FetchImage(ctx, atc.ImageResource{
+			Type:   resourceType.Type,
+			Source: resourceType.Source,
+
+			VersionedResourceTypes: step.plan.VersionedResourceTypes.Without(step.plan.Type),
+		})
+		if err != nil {
+			return false, fmt.Errorf("fetch image: %w", err)
+		}
+
+		imageSpec.ImageArtifact = artifact
+	} else {
+		imageSpec.ResourceType = step.plan.Type
+		workerSpec.ResourceType = step.plan.Type
+	}
+
 	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
 		return false, err
@@ -140,25 +163,11 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	}
 
 	containerSpec := worker.ContainerSpec{
-		ImageSpec: worker.ImageSpec{
-			ResourceType: step.plan.Type,
-		},
-		TeamID: step.metadata.TeamID,
-		Env:    step.metadata.Env(),
+		ImageSpec: imageSpec,
+		TeamID:    step.metadata.TeamID,
+		Env:       step.metadata.Env(),
 	}
 	tracing.Inject(ctx, &containerSpec)
-
-	workerSpec := worker.WorkerSpec{
-		ResourceType:  step.plan.Type,
-		Tags:          step.plan.Tags,
-		TeamID:        step.metadata.TeamID,
-		ResourceTypes: resourceTypes,
-	}
-
-	imageSpec := worker.ImageFetcherSpec{
-		ResourceTypes: resourceTypes,
-		Delegate:      delegate,
-	}
 
 	resourceCache, err := step.resourceCacheFactory.FindOrCreateResourceCache(
 		db.ForBuild(step.metadata.BuildID),
@@ -196,7 +205,9 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		workerSpec,
 		step.strategy,
 		step.containerMetadata,
-		imageSpec,
+		worker.ImageFetcherSpec{
+			Delegate: worker.NoopImageFetchingDelegate{},
+		},
 		processSpec,
 		delegate,
 		resourceCache,

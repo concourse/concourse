@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/tracing"
@@ -47,8 +48,6 @@ var _ = Describe("GetStep", func() {
 		spanCtx context.Context
 
 		getPlan *atc.GetPlan
-
-		interpolatedResourceTypes atc.VersionedResourceTypes
 
 		artifactRepository *build.Repository
 		fakeState          *execfakes.FakeRunState
@@ -91,8 +90,8 @@ var _ = Describe("GetStep", func() {
 
 		artifactRepository = build.NewRepository()
 		fakeState = new(execfakes.FakeRunState)
-
 		fakeState.ArtifactRepositoryReturns(artifactRepository)
+		fakeState.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
 
 		fakeDelegate = new(execfakes.FakeGetDelegate)
 		stdoutBuf = gbytes.NewBuffer()
@@ -105,38 +104,31 @@ var _ = Describe("GetStep", func() {
 		fakeDelegateFactory = new(execfakes.FakeGetDelegateFactory)
 		fakeDelegateFactory.GetDelegateReturns(fakeDelegate)
 
-		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
-			{
-				ResourceType: atc.ResourceType{
-					Name:   "custom-resource",
-					Type:   "custom-type",
-					Source: atc.Source{"some-custom": "((source-param))"},
-				},
-				Version: atc.Version{"some-custom": "version"},
-			},
-		}
-
-		fakeState.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
-
-		interpolatedResourceTypes = atc.VersionedResourceTypes{
-			{
-				ResourceType: atc.ResourceType{
-					Name:   "custom-resource",
-					Type:   "custom-type",
-					Source: atc.Source{"some-custom": "super-secret-source"},
-				},
-				Version: atc.Version{"some-custom": "version"},
-			},
-		}
-
 		getPlan = &atc.GetPlan{
-			Name:                   "some-name",
-			Type:                   "some-resource-type",
-			Source:                 atc.Source{"some": "((source-param))"},
-			Params:                 atc.Params{"some-param": "some-value"},
-			Tags:                   []string{"some", "tags"},
-			Version:                &atc.Version{"some-version": "some-value"},
-			VersionedResourceTypes: uninterpolatedResourceTypes,
+			Name:    "some-name",
+			Type:    "some-base-type",
+			Source:  atc.Source{"some": "((source-param))"},
+			Params:  atc.Params{"some-param": "some-value"},
+			Tags:    []string{"some", "tags"},
+			Version: &atc.Version{"some-version": "some-value"},
+			VersionedResourceTypes: atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "some-custom-type",
+						Type:   "another-custom-type",
+						Source: atc.Source{"some-custom": "((source-param))"},
+					},
+					Version: atc.Version{"some-custom": "version"},
+				},
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "another-custom-type",
+						Type:   "registry-image",
+						Source: atc.Source{"another-custom": "((source-param))"},
+					},
+					Version: atc.Version{"some-custom": "version"},
+				},
+			},
 		}
 	})
 
@@ -213,7 +205,7 @@ var _ = Describe("GetStep", func() {
 		Expect(actualContainerSpec).To(Equal(
 			worker.ContainerSpec{
 				ImageSpec: worker.ImageSpec{
-					ResourceType: "some-resource-type",
+					ResourceType: "some-base-type",
 				},
 				TeamID: stepMetadata.TeamID,
 				Env:    stepMetadata.Env(),
@@ -225,12 +217,62 @@ var _ = Describe("GetStep", func() {
 		_, _, _, _, actualWorkerSpec, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
 		Expect(actualWorkerSpec).To(Equal(
 			worker.WorkerSpec{
-				ResourceType:  "some-resource-type",
-				Tags:          atc.Tags{"some", "tags"},
-				TeamID:        stepMetadata.TeamID,
-				ResourceTypes: interpolatedResourceTypes,
+				ResourceType: "some-base-type",
+				Tags:         atc.Tags{"some", "tags"},
+				TeamID:       stepMetadata.TeamID,
 			},
 		))
+	})
+
+	Context("when using a custom resource type", func() {
+		var fakeArtifact *runtimefakes.FakeArtifact
+
+		BeforeEach(func() {
+			getPlan.Type = "some-custom-type"
+
+			fakeArtifact = new(runtimefakes.FakeArtifact)
+			fakeDelegate.FetchImageReturns(fakeArtifact, nil)
+		})
+
+		It("fetches the resource type image and uses it for the container", func() {
+			Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+			_, imageResource := fakeDelegate.FetchImageArgsForCall(0)
+			Expect(imageResource).To(Equal(atc.ImageResource{
+				Type: "another-custom-type",
+				Source: atc.Source{
+					"some-custom": "((source-param))",
+				},
+				VersionedResourceTypes: atc.VersionedResourceTypes{
+					{
+						ResourceType: atc.ResourceType{
+							Name:   "another-custom-type",
+							Type:   "registry-image",
+							Source: atc.Source{"another-custom": "((source-param))"},
+						},
+						Version: atc.Version{"some-custom": "version"},
+					},
+				},
+			}))
+		})
+
+		It("calls RunGetStep with the correct WorkerSpec", func() {
+			_, _, _, _, actualWorkerSpec, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+			Expect(actualWorkerSpec).To(Equal(
+				worker.WorkerSpec{
+					Tags:   atc.Tags{"some", "tags"},
+					TeamID: stepMetadata.TeamID,
+				},
+			))
+		})
+
+		It("calls RunGetStep with the correct ImageSpec", func() {
+			_, _, _, containerSpec, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+			Expect(containerSpec.ImageSpec).To(Equal(
+				worker.ImageSpec{
+					ImageArtifact: fakeArtifact,
+				},
+			))
+		})
 	})
 
 	It("calls RunGetStep with the correct ContainerPlacementStrategy", func() {
@@ -254,8 +296,7 @@ var _ = Describe("GetStep", func() {
 		_, _, _, _, _, _, _, actualImageFetcherSpec, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
 		Expect(actualImageFetcherSpec).To(Equal(
 			worker.ImageFetcherSpec{
-				ResourceTypes: interpolatedResourceTypes,
-				Delegate:      fakeDelegate,
+				Delegate: worker.NoopImageFetchingDelegate{},
 			},
 		))
 	})
