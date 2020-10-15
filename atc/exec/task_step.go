@@ -11,7 +11,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec/build"
@@ -62,8 +61,7 @@ type TaskDelegateFactory interface {
 type TaskDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
-	ImageVersionDetermined(db.UsedResourceCache) error
-	RedactImageSource(source atc.Source) (atc.Source, error)
+	FetchImage(context.Context, atc.ImageResource) (runtime.Artifact, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -75,13 +73,7 @@ type TaskDelegate interface {
 	Finished(lager.Logger, ExitStatus)
 	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
-
-	ImageCheck(lager.Logger, atc.Plan)
-	ImageGet(lager.Logger, atc.Plan)
 }
-
-// Name of the artifact fetched when using image_resource.
-const imageArtifactName = "image"
 
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
 // artifact.Repository and outputs will be added to the artifact.Repository.
@@ -154,11 +146,6 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		"step-name": step.plan.Name,
 		"job-id":    step.metadata.JobID,
 	})
-
-	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
-	if err != nil {
-		return false, err
-	}
 
 	var taskConfigSource TaskConfigSource
 	var taskVars []vars.Variables
@@ -260,8 +247,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		step.strategy,
 		step.containerMetadata,
 		worker.ImageFetcherSpec{
-			ResourceTypes: resourceTypes,
-			Delegate:      delegate,
+			Delegate: worker.NoopImageFetchingDelegate{},
 		},
 		processSpec,
 		delegate,
@@ -307,76 +293,12 @@ func (step *TaskStep) imageSpec(ctx context.Context, state RunState, delegate Ta
 
 		//an image_resource
 	} else if config.ImageResource != nil {
-		fetchState := state.NewLocalScope()
+		res := *config.ImageResource
+		res.VersionedResourceTypes = append(res.VersionedResourceTypes, step.plan.VersionedResourceTypes...)
 
-		version := config.ImageResource.Version
-		if version == nil {
-			checkID := step.planID + "/image-check"
-
-			checkPlan := atc.Plan{
-				ID: checkID,
-				Check: &atc.CheckPlan{
-					Name:                   imageArtifactName,
-					Type:                   config.ImageResource.Type,
-					Source:                 config.ImageResource.Source,
-					VersionedResourceTypes: step.plan.VersionedResourceTypes,
-				},
-			}
-
-			delegate.ImageCheck(lagerctx.FromContext(ctx), checkPlan)
-
-			ok, err := fetchState.Run(ctx, checkPlan)
-			if err != nil {
-				return worker.ImageSpec{}, err
-			}
-
-			if !ok {
-				return worker.ImageSpec{}, fmt.Errorf("image check failed")
-			}
-
-			if !fetchState.Result(checkID, &version) {
-				return worker.ImageSpec{}, fmt.Errorf("check did not return a version")
-			}
-		}
-
-		getID := step.planID + "/image-get"
-
-		getPlan := atc.Plan{
-			ID: getID,
-			Get: &atc.GetPlan{
-				Name:                   imageArtifactName,
-				Type:                   config.ImageResource.Type,
-				Source:                 config.ImageResource.Source,
-				Version:                &version,
-				Params:                 config.ImageResource.Params,
-				VersionedResourceTypes: step.plan.VersionedResourceTypes,
-			},
-		}
-
-		delegate.ImageGet(lagerctx.FromContext(ctx), getPlan)
-
-		ok, err := fetchState.Run(ctx, getPlan)
+		art, err := delegate.FetchImage(ctx, res)
 		if err != nil {
-			return worker.ImageSpec{}, err
-		}
-
-		if !ok {
-			return worker.ImageSpec{}, fmt.Errorf("image fetching failed")
-		}
-
-		var cache db.UsedResourceCache
-		if !fetchState.Result(getID, &cache) {
-			return worker.ImageSpec{}, fmt.Errorf("get did not return a cache")
-		}
-
-		err = delegate.ImageVersionDetermined(cache)
-		if err != nil {
-			return worker.ImageSpec{}, fmt.Errorf("save image version: %w", err)
-		}
-
-		art, found := fetchState.ArtifactRepository().ArtifactFor(imageArtifactName)
-		if !found {
-			return worker.ImageSpec{}, fmt.Errorf("fetched artifact not found")
+			return worker.ImageSpec{}, fmt.Errorf("fetch image: %w", err)
 		}
 
 		imageSpec.ImageArtifact = art

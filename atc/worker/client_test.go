@@ -554,7 +554,6 @@ var _ = Describe("Client", func() {
 			fakeContainerSpec    worker.ContainerSpec
 			fakeStrategy         *workerfakes.FakeContainerPlacementStrategy
 			fakeMetadata         db.ContainerMetadata
-			fakeDelegate         *execfakes.FakeTaskDelegate
 			fakeImageFetcherSpec worker.ImageFetcherSpec
 			fakeTaskProcessSpec  runtime.ProcessSpec
 			fakeContainer        *workerfakes.FakeContainer
@@ -571,7 +570,6 @@ var _ = Describe("Client", func() {
 			buildId := 1234
 			planId := atc.PlanID("42")
 			teamId := 123
-			fakeDelegate = new(execfakes.FakeTaskDelegate)
 			fakeContainerOwner = db.NewBuildStepContainerOwner(
 				buildId,
 				planId,
@@ -608,7 +606,7 @@ var _ = Describe("Client", func() {
 				StepName:         "some-step",
 			}
 			fakeImageFetcherSpec = worker.ImageFetcherSpec{
-				Delegate:      fakeDelegate,
+				Delegate:      worker.NoopImageFetchingDelegate{},
 				ResourceTypes: atc.VersionedResourceTypes{},
 			}
 			fakeTaskProcessSpec = runtime.ProcessSpec{
@@ -753,7 +751,7 @@ var _ = Describe("Client", func() {
 			Expect(containerSpec).To(Equal(fakeContainerSpec))
 			Expect(cancel).ToNot(BeNil())
 			Expect(owner).To(Equal(fakeContainerOwner))
-			Expect(delegate).To(Equal(fakeDelegate))
+			Expect(delegate).To(Equal(worker.NoopImageFetchingDelegate{}))
 			Expect(createdMetadata).To(Equal(db.ContainerMetadata{
 				WorkingDirectory: "some-artifact-root",
 				Type:             db.ContainerTypeTask,

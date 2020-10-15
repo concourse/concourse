@@ -23,6 +23,7 @@ func NewTaskDelegate(build db.Build, planID atc.PlanID, state exec.RunState, clo
 
 type taskDelegate struct {
 	exec.BuildStepDelegate
+
 	config      atc.TaskConfig
 	build       db.Build
 	eventOrigin event.Origin
@@ -77,28 +78,4 @@ func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus)
 	}
 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus})
-}
-
-func (d *taskDelegate) ImageCheck(logger lager.Logger, plan atc.Plan) {
-	err := d.build.SaveEvent(event.ImageCheck{
-		Time:   d.clock.Now().Unix(),
-		Origin: d.eventOrigin,
-		Plan:   plan,
-	})
-	if err != nil {
-		logger.Error("failed-to-save-image-check-event", err)
-		return
-	}
-}
-
-func (d *taskDelegate) ImageGet(logger lager.Logger, plan atc.Plan) {
-	err := d.build.SaveEvent(event.ImageGet{
-		Time:   d.clock.Now().Unix(),
-		Origin: d.eventOrigin,
-		Plan:   plan,
-	})
-	if err != nil {
-		logger.Error("failed-to-save-image-get-event", err)
-		return
-	}
 }

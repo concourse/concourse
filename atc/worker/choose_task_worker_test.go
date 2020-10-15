@@ -16,7 +16,6 @@ import (
 	"github.com/concourse/concourse/atc/compression/compressionfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
-	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/worker"
@@ -201,7 +200,7 @@ func processSpecDummy(outputBuffer *bytes.Buffer) runtime.ProcessSpec {
 
 func imageFetcherDummy() worker.ImageFetcherSpec {
 	return worker.ImageFetcherSpec{
-		Delegate:      new(execfakes.FakeTaskDelegate),
+		Delegate:      worker.NoopImageFetchingDelegate{},
 		ResourceTypes: atc.VersionedResourceTypes{},
 	}
 }

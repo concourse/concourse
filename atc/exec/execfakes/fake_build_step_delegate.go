@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/tracing"
 	"go.opentelemetry.io/otel/api/trace"
 )
@@ -20,6 +21,20 @@ type FakeBuildStepDelegate struct {
 	erroredArgsForCall []struct {
 		arg1 lager.Logger
 		arg2 string
+	}
+	FetchImageStub        func(context.Context, atc.ImageResource) (runtime.Artifact, error)
+	fetchImageMutex       sync.RWMutex
+	fetchImageArgsForCall []struct {
+		arg1 context.Context
+		arg2 atc.ImageResource
+	}
+	fetchImageReturns struct {
+		result1 runtime.Artifact
+		result2 error
+	}
+	fetchImageReturnsOnCall map[int]struct {
+		result1 runtime.Artifact
+		result2 error
 	}
 	FinishedStub        func(lager.Logger, bool)
 	finishedMutex       sync.RWMutex
@@ -136,6 +151,70 @@ func (fake *FakeBuildStepDelegate) ErroredArgsForCall(i int) (lager.Logger, stri
 	defer fake.erroredMutex.RUnlock()
 	argsForCall := fake.erroredArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeBuildStepDelegate) FetchImage(arg1 context.Context, arg2 atc.ImageResource) (runtime.Artifact, error) {
+	fake.fetchImageMutex.Lock()
+	ret, specificReturn := fake.fetchImageReturnsOnCall[len(fake.fetchImageArgsForCall)]
+	fake.fetchImageArgsForCall = append(fake.fetchImageArgsForCall, struct {
+		arg1 context.Context
+		arg2 atc.ImageResource
+	}{arg1, arg2})
+	fake.recordInvocation("FetchImage", []interface{}{arg1, arg2})
+	fake.fetchImageMutex.Unlock()
+	if fake.FetchImageStub != nil {
+		return fake.FetchImageStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.fetchImageReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeBuildStepDelegate) FetchImageCallCount() int {
+	fake.fetchImageMutex.RLock()
+	defer fake.fetchImageMutex.RUnlock()
+	return len(fake.fetchImageArgsForCall)
+}
+
+func (fake *FakeBuildStepDelegate) FetchImageCalls(stub func(context.Context, atc.ImageResource) (runtime.Artifact, error)) {
+	fake.fetchImageMutex.Lock()
+	defer fake.fetchImageMutex.Unlock()
+	fake.FetchImageStub = stub
+}
+
+func (fake *FakeBuildStepDelegate) FetchImageArgsForCall(i int) (context.Context, atc.ImageResource) {
+	fake.fetchImageMutex.RLock()
+	defer fake.fetchImageMutex.RUnlock()
+	argsForCall := fake.fetchImageArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeBuildStepDelegate) FetchImageReturns(result1 runtime.Artifact, result2 error) {
+	fake.fetchImageMutex.Lock()
+	defer fake.fetchImageMutex.Unlock()
+	fake.FetchImageStub = nil
+	fake.fetchImageReturns = struct {
+		result1 runtime.Artifact
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBuildStepDelegate) FetchImageReturnsOnCall(i int, result1 runtime.Artifact, result2 error) {
+	fake.fetchImageMutex.Lock()
+	defer fake.fetchImageMutex.Unlock()
+	fake.FetchImageStub = nil
+	if fake.fetchImageReturnsOnCall == nil {
+		fake.fetchImageReturnsOnCall = make(map[int]struct {
+			result1 runtime.Artifact
+			result2 error
+		})
+	}
+	fake.fetchImageReturnsOnCall[i] = struct {
+		result1 runtime.Artifact
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeBuildStepDelegate) Finished(arg1 lager.Logger, arg2 bool) {
@@ -561,6 +640,8 @@ func (fake *FakeBuildStepDelegate) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.erroredMutex.RLock()
 	defer fake.erroredMutex.RUnlock()
+	fake.fetchImageMutex.RLock()
+	defer fake.fetchImageMutex.RUnlock()
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
 	fake.imageVersionDeterminedMutex.RLock()

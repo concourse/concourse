@@ -1,6 +1,7 @@
 package builder_test
 
 import (
+	"context"
 	"errors"
 	"io"
 	"time"
@@ -12,10 +13,15 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -24,7 +30,8 @@ var _ = Describe("BuildStepDelegate", func() {
 		logger    *lagertest.TestLogger
 		fakeBuild *dbfakes.FakeBuild
 		fakeClock *fakeclock.FakeClock
-		runState  exec.RunState
+		planID    atc.PlanID
+		runState  *execfakes.FakeRunState
 
 		credVars vars.StaticVariables
 
@@ -42,9 +49,15 @@ var _ = Describe("BuildStepDelegate", func() {
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
 		}
-		runState = exec.NewRunState(noopStepper, credVars, true)
+		planID = "some-plan-id"
 
-		delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock)
+		runState = new(execfakes.FakeRunState)
+		runState.RedactionEnabledReturns(true)
+
+		repo := build.NewRepository()
+		runState.ArtifactRepositoryReturns(repo)
+
+		delegate = builder.NewBuildStepDelegate(fakeBuild, planID, runState, fakeClock)
 	})
 
 	Describe("Initializing", func() {
@@ -71,21 +84,199 @@ var _ = Describe("BuildStepDelegate", func() {
 		})
 	})
 
-	Describe("ImageVersionDetermined", func() {
+	Describe("FetchImage", func() {
+		var expectedCheckPlan, expectedGetPlan atc.Plan
+		var fakeArtifact *runtimefakes.FakeArtifact
 		var fakeResourceCache *dbfakes.FakeUsedResourceCache
 
+		var childState *execfakes.FakeRunState
+		var imageResource atc.ImageResource
+
+		var artifact runtime.Artifact
+		var fetchErr error
+
 		BeforeEach(func() {
+			repo := build.NewRepository()
+			runState.ArtifactRepositoryReturns(repo)
+
+			childState = new(execfakes.FakeRunState)
+			childState.ArtifactRepositoryReturns(repo.NewLocalScope())
+			runState.NewLocalScopeReturns(childState)
+
+			runState.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
+
+			imageResource = atc.ImageResource{
+				Type:   "docker",
+				Source: atc.Source{"some": "super-secret-source"},
+				Params: atc.Params{"some": "params"},
+			}
+
+			expectedCheckPlan = atc.Plan{
+				ID: planID + "/image-check",
+				Check: &atc.CheckPlan{
+					Name:                   "image",
+					Type:                   "docker",
+					Source:                 atc.Source{"some": "super-secret-source"},
+					VersionedResourceTypes: imageResource.VersionedResourceTypes,
+				},
+			}
+
+			expectedGetPlan = atc.Plan{
+				ID: planID + "/image-get",
+				Get: &atc.GetPlan{
+					Name:                   "image",
+					Type:                   "docker",
+					Source:                 atc.Source{"some": "super-secret-source"},
+					Version:                &atc.Version{"some": "version"},
+					Params:                 atc.Params{"some": "params"},
+					VersionedResourceTypes: imageResource.VersionedResourceTypes,
+				},
+			}
+
+			fakeArtifact = new(runtimefakes.FakeArtifact)
+			childState.ArtifactRepository().RegisterArtifact("image", fakeArtifact)
+
 			fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
-			fakeResourceCache.IDReturns(42)
+
+			childState.ResultStub = func(planID atc.PlanID, to interface{}) bool {
+				switch planID {
+				case expectedCheckPlan.ID:
+					switch x := to.(type) {
+					case *atc.Version:
+						*x = atc.Version{"some": "version"}
+					default:
+						Fail("unexpected target type")
+					}
+				case expectedGetPlan.ID:
+					switch x := to.(type) {
+					case *db.UsedResourceCache:
+						*x = fakeResourceCache
+					default:
+						Fail("unexpected target type")
+					}
+				default:
+					Fail("unknown result key: " + planID.String())
+				}
+
+				return true
+			}
+
+			childState.RunReturns(true, nil)
 		})
 
 		JustBeforeEach(func() {
-			Expect(delegate.ImageVersionDetermined(fakeResourceCache)).To(Succeed())
+			artifact, fetchErr = delegate.FetchImage(context.TODO(), imageResource)
+		})
+
+		It("succeeds", func() {
+			Expect(fetchErr).ToNot(HaveOccurred())
+			Expect(artifact).To(Equal(fakeArtifact))
+		})
+
+		It("runs a CheckPlan to get the image version", func() {
+			Expect(childState.RunCallCount()).To(Equal(2))
+
+			_, plan := childState.RunArgsForCall(0)
+			Expect(plan).To(Equal(expectedCheckPlan))
+
+			_, plan = childState.RunArgsForCall(1)
+			Expect(plan).To(Equal(expectedGetPlan))
 		})
 
 		It("records the resource cache as an image resource for the build", func() {
 			Expect(fakeBuild.SaveImageResourceVersionCallCount()).To(Equal(1))
 			Expect(fakeBuild.SaveImageResourceVersionArgsForCall(0)).To(Equal(fakeResourceCache))
+		})
+
+		Describe("ordering", func() {
+			BeforeEach(func() {
+				fakeBuild.SaveEventStub = func(ev atc.Event) error {
+					switch ev.(type) {
+					case event.ImageCheck:
+						Expect(childState.RunCallCount()).To(Equal(0))
+					case event.ImageGet:
+						Expect(childState.RunCallCount()).To(Equal(1))
+					default:
+						Fail("unknown event type")
+					}
+					return nil
+				}
+			})
+
+			It("sends events before each run", func() {
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(2))
+				e := fakeBuild.SaveEventArgsForCall(0)
+				Expect(e).To(Equal(event.ImageCheck{
+					Time: 675927000,
+					Origin: event.Origin{
+						ID: event.OriginID(planID),
+					},
+					Plan: expectedCheckPlan,
+				}))
+
+				e = fakeBuild.SaveEventArgsForCall(1)
+				Expect(e).To(Equal(event.ImageGet{
+					Time: 675927000,
+					Origin: event.Origin{
+						ID: event.OriginID(planID),
+					},
+					Plan: expectedGetPlan,
+				}))
+			})
+		})
+
+		Context("when a version is already provided", func() {
+			BeforeEach(func() {
+				imageResource.Version = atc.Version{"some": "version"}
+			})
+
+			It("does not run a CheckPlan", func() {
+				Expect(childState.RunCallCount()).To(Equal(1))
+				_, plan := childState.RunArgsForCall(0)
+				Expect(plan).To(Equal(expectedGetPlan))
+
+				Expect(childState.ResultCallCount()).To(Equal(1))
+				planID, _ := childState.ResultArgsForCall(0)
+				Expect(planID).To(Equal(expectedGetPlan.ID))
+			})
+
+			It("only saves an ImageGet event", func() {
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+				e := fakeBuild.SaveEventArgsForCall(0)
+				Expect(e).To(Equal(event.ImageGet{
+					Time: 675927000,
+					Origin: event.Origin{
+						ID: event.OriginID(planID),
+					},
+					Plan: expectedGetPlan,
+				}))
+			})
+		})
+
+		Context("when checking the image fails", func() {
+			BeforeEach(func() {
+				childState.RunStub = func(ctx context.Context, plan atc.Plan) (bool, error) {
+					if plan.ID == expectedCheckPlan.ID {
+						return false, nil
+					}
+
+					return true, nil
+				}
+			})
+
+			It("errors", func() {
+				Expect(fetchErr).To(MatchError("image check failed"))
+			})
+		})
+
+		Context("when no version is returned by the check", func() {
+			BeforeEach(func() {
+				childState.ResultReturns(false)
+			})
+
+			It("errors", func() {
+				Expect(fetchErr).To(MatchError("check did not return a version"))
+			})
 		})
 	})
 
@@ -244,6 +435,8 @@ var _ = Describe("BuildStepDelegate", func() {
 	})
 
 	Describe("No line buffer without secrets redaction", func() {
+		var runState exec.RunState
+
 		BeforeEach(func() {
 			credVars := vars.StaticVariables{}
 			runState = exec.NewRunState(noopStepper, credVars, false)
@@ -339,6 +532,7 @@ var _ = Describe("BuildStepDelegate", func() {
 
 	Describe("Secrets redaction", func() {
 		var (
+			runState     exec.RunState
 			writer       io.Writer
 			writtenBytes int
 			writeErr     error
