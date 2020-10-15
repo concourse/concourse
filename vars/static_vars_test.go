@@ -51,4 +51,88 @@ var _ = Describe("StaticVariables", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
+
+	Describe("Flatten", func() {
+		for _, tt := range []struct {
+			desc     string
+			expanded StaticVariables
+			kvPairs  KVPairs
+		}{
+			{
+				desc: "flattens recursively",
+				expanded: StaticVariables{
+					"hello": "world",
+					"foo":   map[string]interface{}{"bar": "baz", "abc": map[interface{}]interface{}{"def": "ghi", "jkl": "mno"}},
+				},
+				kvPairs: KVPairs{
+					{Ref: VariableReference{Path: "hello"}, Value: "world"},
+					{Ref: VariableReference{Path: "foo", Fields: []string{"bar"}}, Value: "baz"},
+					{Ref: VariableReference{Path: "foo", Fields: []string{"abc", "def"}}, Value: "ghi"},
+					{Ref: VariableReference{Path: "foo", Fields: []string{"abc", "jkl"}}, Value: "mno"},
+				},
+			},
+		} {
+			tt := tt
+			It(tt.desc, func() {
+				Expect(tt.expanded.Flatten()).To(ConsistOf(tt.kvPairs))
+			})
+		}
+	})
+
+	Describe("Expand", func() {
+		for _, tt := range []struct {
+			desc     string
+			kvPairs  KVPairs
+			expanded StaticVariables
+		}{
+			{
+				desc: "merges flat elements into map",
+				kvPairs: KVPairs{
+					{Ref: VariableReference{Path: "hello"}, Value: "world"},
+					{Ref: VariableReference{Path: "foo"}, Value: map[string]interface{}{"bar": "baz"}},
+				},
+				expanded: StaticVariables{
+					"hello": "world",
+					"foo":   map[string]interface{}{"bar": "baz"},
+				},
+			},
+			{
+				desc: "merges recurses through fields",
+				kvPairs: KVPairs{
+					{Ref: VariableReference{Path: "hello", Fields: []string{"a", "b"}}, Value: "world"},
+					{Ref: VariableReference{Path: "foo"}, Value: map[string]interface{}{"bar": map[string]interface{}{"abc": "def"}}},
+					{Ref: VariableReference{Path: "foo", Fields: []string{"bar", "ghi"}}, Value: "jkl"},
+				},
+				expanded: StaticVariables{
+					"hello": map[string]interface{}{"a": map[string]interface{}{"b": "world"}},
+					"foo":   map[string]interface{}{"bar": map[string]interface{}{"abc": "def", "ghi": "jkl"}},
+				},
+			},
+			{
+				desc: "overwrites non-map nodes",
+				kvPairs: KVPairs{
+					{Ref: VariableReference{Path: "foo"}, Value: map[string]interface{}{"bar": "baz"}},
+					{Ref: VariableReference{Path: "foo", Fields: []string{"bar", "ghi"}}, Value: "jkl"},
+				},
+				expanded: StaticVariables{
+					"foo": map[string]interface{}{"bar": map[string]interface{}{"ghi": "jkl"}},
+				},
+			},
+			{
+				desc: "overwrites full nodes",
+				kvPairs: KVPairs{
+					{Ref: VariableReference{Path: "foo"}, Value: map[string]interface{}{"bar": "baz"}},
+					{Ref: VariableReference{Path: "foo"}, Value: "jkl"},
+				},
+				expanded: StaticVariables{
+					"foo": "jkl",
+				},
+			},
+		} {
+			tt := tt
+			It(tt.desc, func() {
+				Expect(tt.kvPairs.Expand()).To(Equal(tt.expanded))
+			})
+		}
+	})
 })
