@@ -117,14 +117,22 @@ var _ = Describe("PutStep", func() {
 		state = new(execfakes.FakeRunState)
 		state.ArtifactRepositoryReturns(repo)
 
-		state.GetStub = vars.StaticVariables{"custom-param": "source", "source-param": "super-secret-source"}.Get
+		state.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
 
 		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
-					Name:   "custom-resource",
-					Type:   "custom-type",
-					Source: atc.Source{"some-custom": "((custom-param))"},
+					Name:   "some-custom-type",
+					Type:   "another-custom-type",
+					Source: atc.Source{"some-custom": "((source-param))"},
+				},
+				Version: atc.Version{"some-custom": "version"},
+			},
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "another-custom-type",
+					Type:   "registry-image",
+					Source: atc.Source{"another-custom": "((source-param))"},
 				},
 				Version: atc.Version{"some-custom": "version"},
 			},
@@ -133,9 +141,17 @@ var _ = Describe("PutStep", func() {
 		interpolatedResourceTypes = atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
-					Name:   "custom-resource",
-					Type:   "custom-type",
-					Source: atc.Source{"some-custom": "source"},
+					Name:   "some-custom-type",
+					Type:   "another-custom-type",
+					Source: atc.Source{"some-custom": "super-secret-source"},
+				},
+				Version: atc.Version{"some-custom": "version"},
+			},
+			{
+				ResourceType: atc.ResourceType{
+					Name:   "another-custom-type",
+					Type:   "registry-image",
+					Source: atc.Source{"another-custom": "super-secret-source"},
 				},
 				Version: atc.Version{"some-custom": "version"},
 			},
@@ -303,16 +319,14 @@ var _ = Describe("PutStep", func() {
 		Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
 
 		Expect(actualWorkerSpec).To(Equal(worker.WorkerSpec{
-			TeamID:        123,
-			Tags:          []string{"some", "tags"},
-			ResourceType:  "some-resource-type",
-			ResourceTypes: interpolatedResourceTypes,
+			TeamID:       123,
+			Tags:         []string{"some", "tags"},
+			ResourceType: "some-resource-type",
 		}))
 		Expect(actualStrategy).To(Equal(fakeStrategy))
 
 		Expect(actualContainerMetadata).To(Equal(containerMetadata))
-		Expect(actualImageFetcherSpec.ResourceTypes).To(Equal(interpolatedResourceTypes))
-		Expect(actualImageFetcherSpec.Delegate).To(Equal(fakeDelegate))
+		Expect(actualImageFetcherSpec.Delegate).To(Equal(worker.NoopImageFetchingDelegate{}))
 
 		Expect(actualProcessSpec).To(Equal(
 			runtime.ProcessSpec{
@@ -323,6 +337,60 @@ var _ = Describe("PutStep", func() {
 			}))
 		Expect(actualEventDelegate).To(Equal(fakeDelegate))
 		Expect(actualResource).To(Equal(fakeResource))
+	})
+
+	Context("when using a custom resource type", func() {
+		var fakeArtifact *runtimefakes.FakeArtifact
+
+		BeforeEach(func() {
+			putPlan.Type = "some-custom-type"
+
+			fakeArtifact = new(runtimefakes.FakeArtifact)
+			fakeDelegate.FetchImageReturns(fakeArtifact, nil)
+		})
+
+		It("fetches the resource type image and uses it for the container", func() {
+			Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+			_, imageResource := fakeDelegate.FetchImageArgsForCall(0)
+			Expect(imageResource).To(Equal(atc.ImageResource{
+				Type: "another-custom-type",
+				Source: atc.Source{
+					"some-custom": "((source-param))",
+				},
+				VersionedResourceTypes: atc.VersionedResourceTypes{
+					{
+						ResourceType: atc.ResourceType{
+							Name:   "another-custom-type",
+							Type:   "registry-image",
+							Source: atc.Source{"another-custom": "((source-param))"},
+						},
+						Version: atc.Version{"some-custom": "version"},
+					},
+				},
+			}))
+		})
+
+		It("does not set the type in the worker spec", func() {
+			_, _, _, _, workerSpec, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+			Expect(workerSpec).To(Equal(worker.WorkerSpec{
+				Tags:   atc.Tags{"some", "tags"},
+				TeamID: stepMetadata.TeamID,
+			}))
+		})
+
+		It("sets the image artifact in the image spec", func() {
+			_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+			Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
+				ImageArtifact: fakeArtifact,
+			}))
+		})
+
+		It("uses noop delegate with fetcher", func() {
+			_, _, _, _, _, _, _, imageSpec, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+			Expect(imageSpec).To(Equal(worker.ImageFetcherSpec{
+				Delegate: worker.NoopImageFetchingDelegate{},
+			}))
+		})
 	})
 
 	Context("when tracing is enabled", func() {
