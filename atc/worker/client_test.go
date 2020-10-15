@@ -15,7 +15,6 @@ import (
 	"github.com/concourse/concourse/atc/compression/compressionfakes"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
-	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
@@ -231,14 +230,12 @@ var _ = Describe("Client", func() {
 			result            worker.CheckResult
 			err, expectedErr  error
 			fakeResource      *resourcefakes.FakeResource
-			fakeDelegate      *execfakes.FakeBuildStepDelegate
 			fakeEventDelegate *runtimefakes.FakeStartingEventDelegate
 			fakeProcessSpec   runtime.ProcessSpec
 		)
 
 		BeforeEach(func() {
 			fakeResource = new(resourcefakes.FakeResource)
-			fakeDelegate = new(execfakes.FakeBuildStepDelegate)
 			fakeEventDelegate = new(runtimefakes.FakeStartingEventDelegate)
 			stdout := new(gbytes.Buffer)
 			stderr := new(gbytes.Buffer)
@@ -247,13 +244,8 @@ var _ = Describe("Client", func() {
 				Tags:     []string{"step", "tags"},
 				TeamID:   123,
 				ImageSpec: worker.ImageSpec{
-					ImageResource: &worker.ImageResource{
-						Type:    "docker",
-						Source:  atc.Source{"some": "secret-source-param"},
-						Params:  atc.Params{"some": "params"},
-						Version: atc.Version{"some": "version"},
-					},
-					Privileged: false,
+					ResourceType: "some-base-type",
+					Privileged:   false,
 				},
 				Dir: "some-artifact-root",
 			}
@@ -268,12 +260,6 @@ var _ = Describe("Client", func() {
 			owner := new(dbfakes.FakeContainerOwner)
 			fakeStrategy := new(workerfakes.FakeContainerPlacementStrategy)
 			workerSpec := worker.WorkerSpec{}
-			fakeResourceTypes := atc.VersionedResourceTypes{}
-
-			imageSpec := worker.ImageFetcherSpec{
-				Delegate:      fakeDelegate,
-				ResourceTypes: fakeResourceTypes,
-			}
 
 			result, err = client.RunCheckStep(
 				context.Background(),
@@ -283,7 +269,6 @@ var _ = Describe("Client", func() {
 				workerSpec,
 				fakeStrategy,
 				metadata,
-				imageSpec,
 				fakeProcessSpec,
 				fakeEventDelegate,
 				fakeResource,
@@ -333,7 +318,7 @@ var _ = Describe("Client", func() {
 				})
 
 				It("locates the volume and assigns it as an ImageArtifactSource", func() {
-					_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+					_, _, _, _, containerSpec := fakeWorker.FindOrCreateContainerArgsForCall(0)
 					imageSpec := containerSpec.ImageSpec
 					Expect(imageSpec.ImageArtifactSource).To(Equal(worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume, fakeCompression)))
 				})
@@ -431,12 +416,9 @@ var _ = Describe("Client", func() {
 			containerSpec         worker.ContainerSpec
 			workerSpec            worker.WorkerSpec
 			metadata              db.ContainerMetadata
-			imageSpec             worker.ImageFetcherSpec
 			fakeChosenWorker      *workerfakes.FakeWorker
 			fakeStrategy          *workerfakes.FakeContainerPlacementStrategy
-			fakeDelegate          *workerfakes.FakeImageFetchingDelegate
 			fakeEventDelegate     *runtimefakes.FakeStartingEventDelegate
-			fakeResourceTypes     atc.VersionedResourceTypes
 			fakeContainer         *workerfakes.FakeContainer
 			fakeProcessSpec       runtime.ProcessSpec
 			fakeResource          *resourcefakes.FakeResource
@@ -457,26 +439,15 @@ var _ = Describe("Client", func() {
 				Tags:     []string{"step", "tags"},
 				TeamID:   123,
 				ImageSpec: worker.ImageSpec{
-					ImageResource: &worker.ImageResource{
-						Type:    "docker",
-						Source:  atc.Source{"some": "secret-source-param"},
-						Params:  atc.Params{"some": "params"},
-						Version: atc.Version{"some": "version"},
-					},
-					Privileged: false,
+					ResourceType: "some-base-type",
+					Privileged:   false,
 				},
 				Dir: "some-artifact-root",
 			}
 			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 			workerSpec = worker.WorkerSpec{}
 			fakeChosenWorker = new(workerfakes.FakeWorker)
-			fakeDelegate = new(workerfakes.FakeImageFetchingDelegate)
 			fakeEventDelegate = new(runtimefakes.FakeStartingEventDelegate)
-			fakeResourceTypes = atc.VersionedResourceTypes{}
-			imageSpec = worker.ImageFetcherSpec{
-				Delegate:      fakeDelegate,
-				ResourceTypes: fakeResourceTypes,
-			}
 
 			fakeResource = new(resourcefakes.FakeResource)
 			fakeContainer = new(workerfakes.FakeContainer)
@@ -507,7 +478,6 @@ var _ = Describe("Client", func() {
 				workerSpec,
 				fakeStrategy,
 				metadata,
-				imageSpec,
 				fakeProcessSpec,
 				fakeEventDelegate,
 				fakeUsedResourceCache,
@@ -542,7 +512,7 @@ var _ = Describe("Client", func() {
 
 			It("calls Fetch on the worker", func() {
 				Expect(fakeChosenWorker.FetchCallCount()).To(Equal(1))
-				_, _, actualMetadata, actualChosenWorker, actualContainerSpec, actualProcessSpec, actualResource, actualOwner, actualImageFetcherSpec, actualResourceCache, actualLockName := fakeChosenWorker.FetchArgsForCall(0)
+				_, _, actualMetadata, actualChosenWorker, actualContainerSpec, actualProcessSpec, actualResource, actualOwner, actualResourceCache, actualLockName := fakeChosenWorker.FetchArgsForCall(0)
 
 				Expect(actualMetadata).To(Equal(metadata))
 				Expect(actualChosenWorker).To(Equal(fakeChosenWorker))
@@ -550,7 +520,6 @@ var _ = Describe("Client", func() {
 				Expect(actualProcessSpec).To(Equal(fakeProcessSpec))
 				Expect(actualResource).To(Equal(fakeResource))
 				Expect(actualOwner).To(Equal(owner))
-				Expect(actualImageFetcherSpec).To(Equal(imageSpec))
 				Expect(actualResourceCache).To(Equal(fakeUsedResourceCache))
 				// Computed SHA
 				Expect(actualLockName).To(Equal("18c3de3f8ea112ba52e01f279b6cc62335b4bec2f359b9be7636a5ad7bf98f8c"))
@@ -577,7 +546,7 @@ var _ = Describe("Client", func() {
 
 				It("locates the volume and assigns it as an ImageArtifactSource", func() {
 					Expect(fakeChosenWorker.FetchCallCount()).To(Equal(1))
-					_, _, _, _, actualContainerSpec, _, _, _, _, _, _ := fakeChosenWorker.FetchArgsForCall(0)
+					_, _, _, _, actualContainerSpec, _, _, _, _, _ := fakeChosenWorker.FetchArgsForCall(0)
 					imageSpec := actualContainerSpec.ImageSpec
 					Expect(imageSpec.ImageArtifactSource).To(Equal(worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume, fakeCompression)))
 				})
@@ -630,16 +599,15 @@ var _ = Describe("Client", func() {
 			taskResult   worker.TaskResult
 			err          error
 
-			fakeWorker           *workerfakes.FakeWorker
-			fakeContainerOwner   db.ContainerOwner
-			fakeWorkerSpec       worker.WorkerSpec
-			fakeContainerSpec    worker.ContainerSpec
-			fakeStrategy         *workerfakes.FakeContainerPlacementStrategy
-			fakeMetadata         db.ContainerMetadata
-			fakeImageFetcherSpec worker.ImageFetcherSpec
-			fakeTaskProcessSpec  runtime.ProcessSpec
-			fakeContainer        *workerfakes.FakeContainer
-			fakeEventDelegate    *runtimefakes.FakeStartingEventDelegate
+			fakeWorker          *workerfakes.FakeWorker
+			fakeContainerOwner  db.ContainerOwner
+			fakeWorkerSpec      worker.WorkerSpec
+			fakeContainerSpec   worker.ContainerSpec
+			fakeStrategy        *workerfakes.FakeContainerPlacementStrategy
+			fakeMetadata        db.ContainerMetadata
+			fakeTaskProcessSpec runtime.ProcessSpec
+			fakeContainer       *workerfakes.FakeContainer
+			fakeEventDelegate   *runtimefakes.FakeStartingEventDelegate
 
 			ctx    context.Context
 			cancel func()
@@ -663,13 +631,8 @@ var _ = Describe("Client", func() {
 				Tags:     []string{"step", "tags"},
 				TeamID:   123,
 				ImageSpec: worker.ImageSpec{
-					ImageResource: &worker.ImageResource{
-						Type:    "docker",
-						Source:  atc.Source{"some": "secret-source-param"},
-						Params:  atc.Params{"some": "params"},
-						Version: atc.Version{"some": "version"},
-					},
-					Privileged: false,
+					ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
+					Privileged:          false,
 				},
 				Limits: worker.ContainerLimits{
 					CPU:    &cpu,
@@ -686,10 +649,6 @@ var _ = Describe("Client", func() {
 				WorkingDirectory: "some-artifact-root",
 				Type:             db.ContainerTypeTask,
 				StepName:         "some-step",
-			}
-			fakeImageFetcherSpec = worker.ImageFetcherSpec{
-				Delegate:      worker.NoopImageFetchingDelegate{},
-				ResourceTypes: atc.VersionedResourceTypes{},
 			}
 			fakeTaskProcessSpec = runtime.ProcessSpec{
 				Path:         "/some/path",
@@ -735,7 +694,6 @@ var _ = Describe("Client", func() {
 				fakeWorkerSpec,
 				fakeStrategy,
 				fakeMetadata,
-				fakeImageFetcherSpec,
 				fakeTaskProcessSpec,
 				fakeEventDelegate,
 				fakeLockFactory,
@@ -828,12 +786,10 @@ var _ = Describe("Client", func() {
 
 		It("finds or creates a container", func() {
 			Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-			_, cancel, delegate, owner, createdMetadata, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+			_, _, owner, createdMetadata, containerSpec := fakeWorker.FindOrCreateContainerArgsForCall(0)
 			Expect(containerSpec.Inputs).To(Equal(fakeContainerSpec.Inputs))
 			Expect(containerSpec).To(Equal(fakeContainerSpec))
-			Expect(cancel).ToNot(BeNil())
 			Expect(owner).To(Equal(fakeContainerOwner))
-			Expect(delegate).To(Equal(worker.NoopImageFetchingDelegate{}))
 			Expect(createdMetadata).To(Equal(db.ContainerMetadata{
 				WorkingDirectory: "some-artifact-root",
 				Type:             db.ContainerTypeTask,
@@ -861,7 +817,7 @@ var _ = Describe("Client", func() {
 			})
 
 			It("locates the volume and assigns it as an ImageArtifactSource", func() {
-				_, _, _, _, _, containerSpec, _ := fakeWorker.FindOrCreateContainerArgsForCall(0)
+				_, _, _, _, containerSpec := fakeWorker.FindOrCreateContainerArgsForCall(0)
 				imageSpec := containerSpec.ImageSpec
 				Expect(imageSpec.ImageArtifactSource).To(Equal(worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume, fakeCompression)))
 			})
@@ -1427,12 +1383,9 @@ var _ = Describe("Client", func() {
 			containerSpec     worker.ContainerSpec
 			workerSpec        worker.WorkerSpec
 			metadata          db.ContainerMetadata
-			imageSpec         worker.ImageFetcherSpec
 			fakeChosenWorker  *workerfakes.FakeWorker
 			fakeStrategy      *workerfakes.FakeContainerPlacementStrategy
-			fakeDelegate      *workerfakes.FakeImageFetchingDelegate
 			fakeEventDelegate *runtimefakes.FakeStartingEventDelegate
-			fakeResourceTypes atc.VersionedResourceTypes
 			fakeContainer     *workerfakes.FakeContainer
 			fakeProcessSpec   runtime.ProcessSpec
 			fakeResource      *resourcefakes.FakeResource
@@ -1453,26 +1406,15 @@ var _ = Describe("Client", func() {
 				Tags:     []string{"step", "tags"},
 				TeamID:   123,
 				ImageSpec: worker.ImageSpec{
-					ImageResource: &worker.ImageResource{
-						Type:    "docker",
-						Source:  atc.Source{"some": "secret-source-param"},
-						Params:  atc.Params{"some": "params"},
-						Version: atc.Version{"some": "version"},
-					},
-					Privileged: false,
+					ResourceType: "some-base-type",
+					Privileged:   false,
 				},
 				Dir: "some-artifact-root",
 			}
 			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 			workerSpec = worker.WorkerSpec{}
 			fakeChosenWorker = new(workerfakes.FakeWorker)
-			fakeDelegate = new(workerfakes.FakeImageFetchingDelegate)
 			fakeEventDelegate = new(runtimefakes.FakeStartingEventDelegate)
-			fakeResourceTypes = atc.VersionedResourceTypes{}
-			imageSpec = worker.ImageFetcherSpec{
-				Delegate:      fakeDelegate,
-				ResourceTypes: fakeResourceTypes,
-			}
 
 			fakeContainer = new(workerfakes.FakeContainer)
 			disasterErr = errors.New("oh no")
@@ -1502,7 +1444,6 @@ var _ = Describe("Client", func() {
 				workerSpec,
 				fakeStrategy,
 				metadata,
-				imageSpec,
 				fakeProcessSpec,
 				fakeEventDelegate,
 				fakeResource,
@@ -1533,13 +1474,11 @@ var _ = Describe("Client", func() {
 			})
 			It("finds or creates a put container on that worker", func() {
 				Expect(fakeChosenWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-				_, _, actualDelegate, actualOwner, actualMetadata, actualContainerSpec, actualResourceTypes := fakeChosenWorker.FindOrCreateContainerArgsForCall(0)
+				_, _, actualOwner, actualMetadata, actualContainerSpec := fakeChosenWorker.FindOrCreateContainerArgsForCall(0)
 
 				Expect(actualContainerSpec).To(Equal(containerSpec))
-				Expect(actualDelegate).To(Equal(fakeDelegate))
 				Expect(actualOwner).To(Equal(owner))
 				Expect(actualMetadata).To(Equal(metadata))
-				Expect(actualResourceTypes).To(Equal(fakeResourceTypes))
 			})
 
 			Describe("with an image artifact", func() {
@@ -1562,7 +1501,7 @@ var _ = Describe("Client", func() {
 				})
 
 				It("locates the volume and assigns it as an ImageArtifactSource", func() {
-					_, _, _, _, _, containerSpec, _ := fakeChosenWorker.FindOrCreateContainerArgsForCall(0)
+					_, _, _, _, containerSpec := fakeChosenWorker.FindOrCreateContainerArgsForCall(0)
 					imageSpec := containerSpec.ImageSpec
 					Expect(imageSpec.ImageArtifactSource).To(Equal(worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume, fakeCompression)))
 				})

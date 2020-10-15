@@ -34,20 +34,19 @@ var _ = Describe("RunTaskStep", func() {
 		outputBuffer *bytes.Buffer
 		ctx          context.Context
 
-		fakeWorker           *workerfakes.FakeWorker
-		fakePool             *workerfakes.FakePool
-		fakeTaskProcessSpec  runtime.ProcessSpec
-		fakeLock             *lockfakes.FakeLock
-		fakeProvider         *workerfakes.FakeWorkerProvider
-		fakeCompression      *compressionfakes.FakeCompression
-		fakeContainerOwner   db.ContainerOwner
-		fakeContainerSpec    worker.ContainerSpec
-		fakeWorkerSpec       worker.WorkerSpec
-		fakeStrategy         *workerfakes.FakeContainerPlacementStrategy
-		fakeMetadata         db.ContainerMetadata
-		fakeImageFetcherSpec worker.ImageFetcherSpec
-		fakeEventDelegate    *runtimefakes.FakeStartingEventDelegate
-		fakeLockFactory      *lockfakes.FakeLockFactory
+		fakeWorker          *workerfakes.FakeWorker
+		fakePool            *workerfakes.FakePool
+		fakeTaskProcessSpec runtime.ProcessSpec
+		fakeLock            *lockfakes.FakeLock
+		fakeProvider        *workerfakes.FakeWorkerProvider
+		fakeCompression     *compressionfakes.FakeCompression
+		fakeContainerOwner  db.ContainerOwner
+		fakeContainerSpec   worker.ContainerSpec
+		fakeWorkerSpec      worker.WorkerSpec
+		fakeStrategy        *workerfakes.FakeContainerPlacementStrategy
+		fakeMetadata        db.ContainerMetadata
+		fakeEventDelegate   *runtimefakes.FakeStartingEventDelegate
+		fakeLockFactory     *lockfakes.FakeLockFactory
 	)
 
 	Context("assign task when", func() {
@@ -64,7 +63,6 @@ var _ = Describe("RunTaskStep", func() {
 			fakeWorkerSpec = worker.WorkerSpec{}
 			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 			fakeMetadata = containerMetadataDummy()
-			fakeImageFetcherSpec = imageFetcherDummy()
 			fakeTaskProcessSpec = processSpecDummy(outputBuffer)
 			fakeEventDelegate = new(runtimefakes.FakeStartingEventDelegate)
 			fakeLockFactory = new(lockfakes.FakeLockFactory)
@@ -101,7 +99,6 @@ var _ = Describe("RunTaskStep", func() {
 					fakeWorkerSpec,
 					fakeStrategy,
 					fakeMetadata,
-					fakeImageFetcherSpec,
 					fakeTaskProcessSpec,
 					fakeEventDelegate,
 					fakeLockFactory)
@@ -151,7 +148,6 @@ var _ = Describe("RunTaskStep", func() {
 					fakeWorkerSpec,
 					fakeStrategy,
 					fakeMetadata,
-					fakeImageFetcherSpec,
 					fakeTaskProcessSpec,
 					fakeEventDelegate,
 					fakeLockFactory)
@@ -198,13 +194,6 @@ func processSpecDummy(outputBuffer *bytes.Buffer) runtime.ProcessSpec {
 	}
 }
 
-func imageFetcherDummy() worker.ImageFetcherSpec {
-	return worker.ImageFetcherSpec{
-		Delegate:      worker.NoopImageFetchingDelegate{},
-		ResourceTypes: atc.VersionedResourceTypes{},
-	}
-}
-
 func containerMetadataDummy() db.ContainerMetadata {
 	return db.ContainerMetadata{
 		WorkingDirectory: "some-artifact-root",
@@ -222,13 +211,8 @@ func workerContainerDummy() worker.ContainerSpec {
 		Tags:     []string{"step", "tags"},
 		TeamID:   123,
 		ImageSpec: worker.ImageSpec{
-			ImageResource: &worker.ImageResource{
-				Type:    "docker",
-				Source:  atc.Source{"some": "secret-source-param"},
-				Params:  atc.Params{"some": "params"},
-				Version: atc.Version{"some": "version"},
-			},
-			Privileged: false,
+			ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
+			Privileged:          false,
 		},
 		Limits: worker.ContainerLimits{
 			CPU:    &cpu,

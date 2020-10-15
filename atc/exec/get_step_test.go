@@ -166,7 +166,7 @@ var _ = Describe("GetStep", func() {
 	})
 
 	It("propagates span context to the worker client", func() {
-		actualCtx, _, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+		actualCtx, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
 		Expect(actualCtx).To(Equal(spanCtx))
 	})
 
@@ -216,19 +216,19 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("propagates span context to the worker client", func() {
-			actualCtx, _, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+			actualCtx, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
 			Expect(actualCtx).To(Equal(spanCtx))
 		})
 
 		It("populates the TRACEPARENT env var", func() {
-			_, _, _, actualContainerSpec, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+			_, _, _, actualContainerSpec, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
 
 			Expect(actualContainerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
 		})
 	})
 
 	It("calls RunGetStep with the correct ContainerOwner", func() {
-		_, _, actualContainerOwner, _, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+		_, _, actualContainerOwner, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
 		Expect(actualContainerOwner).To(Equal(db.NewBuildStepContainerOwner(
 			stepMetadata.BuildID,
 			atc.PlanID(planID),
@@ -237,7 +237,7 @@ var _ = Describe("GetStep", func() {
 	})
 
 	It("calls RunGetStep with the correct ContainerSpec", func() {
-		_, _, _, actualContainerSpec, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+		_, _, _, actualContainerSpec, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
 		Expect(actualContainerSpec).To(Equal(
 			worker.ContainerSpec{
 				ImageSpec: worker.ImageSpec{
@@ -250,7 +250,7 @@ var _ = Describe("GetStep", func() {
 	})
 
 	It("calls RunGetStep with the correct WorkerSpec", func() {
-		_, _, _, _, actualWorkerSpec, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+		_, _, _, _, actualWorkerSpec, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
 		Expect(actualWorkerSpec).To(Equal(
 			worker.WorkerSpec{
 				ResourceType: "some-base-type",
@@ -302,7 +302,7 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("calls RunGetStep with the correct WorkerSpec", func() {
-			_, _, _, _, actualWorkerSpec, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+			_, _, _, _, actualWorkerSpec, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
 			Expect(actualWorkerSpec).To(Equal(
 				worker.WorkerSpec{
 					Tags:   atc.Tags{"some", "tags"},
@@ -312,7 +312,7 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("calls RunGetStep with the correct ImageSpec", func() {
-			_, _, _, containerSpec, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+			_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
 			Expect(containerSpec.ImageSpec).To(Equal(fakeImageSpec))
 		})
 
@@ -330,12 +330,12 @@ var _ = Describe("GetStep", func() {
 	})
 
 	It("calls RunGetStep with the correct ContainerPlacementStrategy", func() {
-		_, _, _, _, _, actualStrategy, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+		_, _, _, _, _, actualStrategy, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
 		Expect(actualStrategy).To(Equal(fakeStrategy))
 	})
 
 	It("calls RunGetStep with the correct ContainerMetadata", func() {
-		_, _, _, _, _, _, actualContainerMetadata, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+		_, _, _, _, _, _, actualContainerMetadata, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
 		Expect(actualContainerMetadata).To(Equal(
 			db.ContainerMetadata{
 				PipelineID:       4567,
@@ -346,22 +346,13 @@ var _ = Describe("GetStep", func() {
 		))
 	})
 
-	It("calls RunGetStep with the correct ImageFetcherSpec", func() {
-		_, _, _, _, _, _, _, actualImageFetcherSpec, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-		Expect(actualImageFetcherSpec).To(Equal(
-			worker.ImageFetcherSpec{
-				Delegate: worker.NoopImageFetchingDelegate{},
-			},
-		))
-	})
-
 	It("calls RunGetStep with the correct StartingEventDelegate", func() {
-		_, _, _, _, _, _, _, _, _, actualEventDelegate, _, _ := fakeClient.RunGetStepArgsForCall(0)
+		_, _, _, _, _, _, _, _, actualEventDelegate, _, _ := fakeClient.RunGetStepArgsForCall(0)
 		Expect(actualEventDelegate).To(Equal(fakeDelegate))
 	})
 
 	It("calls RunGetStep with the correct ProcessSpec", func() {
-		_, _, _, _, _, _, _, _, actualProcessSpec, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+		_, _, _, _, _, _, _, actualProcessSpec, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
 		Expect(actualProcessSpec).To(Equal(
 			runtime.ProcessSpec{
 				Path:         "/opt/resource/in",
@@ -373,12 +364,12 @@ var _ = Describe("GetStep", func() {
 	})
 
 	It("calls RunGetStep with the correct ResourceCache", func() {
-		_, _, _, _, _, _, _, _, _, _, actualResourceCache, _ := fakeClient.RunGetStepArgsForCall(0)
+		_, _, _, _, _, _, _, _, _, actualResourceCache, _ := fakeClient.RunGetStepArgsForCall(0)
 		Expect(actualResourceCache).To(Equal(fakeResourceCache))
 	})
 
 	It("calls RunGetStep with the correct Resource", func() {
-		_, _, _, _, _, _, _, _, _, _, _, actualResource := fakeClient.RunGetStepArgsForCall(0)
+		_, _, _, _, _, _, _, _, _, _, actualResource := fakeClient.RunGetStepArgsForCall(0)
 		Expect(actualResource).To(Equal(fakeResource))
 	})
 

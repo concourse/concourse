@@ -260,7 +260,6 @@ var _ = Describe("CheckStep", func() {
 				var workerSpec worker.WorkerSpec
 				var strategy worker.ContainerPlacementStrategy
 				var metadata db.ContainerMetadata
-				var imageSpec worker.ImageFetcherSpec
 				var processSpec runtime.ProcessSpec
 				var startEventDelegate runtime.StartingEventDelegate
 				var resource resource.Resource
@@ -268,7 +267,7 @@ var _ = Describe("CheckStep", func() {
 
 				JustBeforeEach(func() {
 					Expect(fakeClient.RunCheckStepCallCount()).To(Equal(1), "check step should have run")
-					runCtx, _, owner, containerSpec, workerSpec, strategy, metadata, imageSpec, processSpec, startEventDelegate, resource, timeout = fakeClient.RunCheckStepArgsForCall(0)
+					runCtx, _, owner, containerSpec, workerSpec, strategy, metadata, processSpec, startEventDelegate, resource, timeout = fakeClient.RunCheckStepArgsForCall(0)
 				})
 
 				It("uses ResourceConfigCheckSessionOwner", func() {
@@ -366,12 +365,6 @@ var _ = Describe("CheckStep", func() {
 					Expect(metadata).To(Equal(containerMetadata))
 				})
 
-				It("uses noop delegate with fetcher", func() {
-					Expect(imageSpec).To(Equal(worker.ImageFetcherSpec{
-						Delegate: worker.NoopImageFetchingDelegate{},
-					}))
-				})
-
 				It("uses the timeout parsed", func() {
 					Expect(timeout).To(Equal(10 * time.Second))
 				})
@@ -441,12 +434,6 @@ var _ = Describe("CheckStep", func() {
 
 					It("sets the image spec in the container spec", func() {
 						Expect(containerSpec.ImageSpec).To(Equal(fakeImageSpec))
-					})
-
-					It("uses noop delegate with fetcher", func() {
-						Expect(imageSpec).To(Equal(worker.ImageFetcherSpec{
-							Delegate: worker.NoopImageFetchingDelegate{},
-						}))
 					})
 
 					Context("when the resource type is privileged", func() {

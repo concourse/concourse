@@ -207,9 +207,6 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 		workerSpec,
 		step.strategy,
 		step.containerMetadata,
-		worker.ImageFetcherSpec{
-			Delegate: worker.NoopImageFetchingDelegate{},
-		},
 		processSpec,
 		delegate,
 		resourceToPut,

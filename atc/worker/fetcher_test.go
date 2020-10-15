@@ -13,7 +13,6 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
@@ -25,12 +24,11 @@ import (
 
 var _ = Describe("Fetcher", func() {
 	var (
-		fakeClock             *fakeclock.FakeClock
-		fakeLockFactory       *lockfakes.FakeLockFactory
-		fetcher               worker.Fetcher
-		ctx                   context.Context
-		cancel                func()
-		fakeBuildStepDelegate *workerfakes.FakeImageFetchingDelegate
+		fakeClock       *fakeclock.FakeClock
+		fakeLockFactory *lockfakes.FakeLockFactory
+		fetcher         worker.Fetcher
+		ctx             context.Context
+		cancel          func()
 
 		fakeWorker             *workerfakes.FakeWorker
 		fakeVolume             *workerfakes.FakeVolume
@@ -65,8 +63,6 @@ var _ = Describe("Fetcher", func() {
 		)
 
 		ctx, cancel = context.WithCancel(context.Background())
-
-		fakeBuildStepDelegate = new(workerfakes.FakeImageFetchingDelegate)
 	})
 
 	JustBeforeEach(func() {
@@ -83,10 +79,6 @@ var _ = Describe("Fetcher", func() {
 			},
 			fakeResource,
 			db.NewBuildStepContainerOwner(0, "some-plan-id", 0),
-			worker.ImageFetcherSpec{
-				atc.VersionedResourceTypes{},
-				fakeBuildStepDelegate,
-			},
 			fakeUsedResourceCache,
 			"fake-lock-name",
 		)

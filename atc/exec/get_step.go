@@ -207,9 +207,6 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		workerSpec,
 		step.strategy,
 		step.containerMetadata,
-		worker.ImageFetcherSpec{
-			Delegate: worker.NoopImageFetchingDelegate{},
-		},
 		processSpec,
 		delegate,
 		resourceCache,

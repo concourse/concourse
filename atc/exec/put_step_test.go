@@ -230,7 +230,7 @@ var _ = Describe("PutStep", func() {
 			})
 
 			It("calls RunPutStep with all inputs", func() {
-				_, _, _, actualContainerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+				_, _, _, actualContainerSpec, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
 				Expect(actualContainerSpec.ArtifactByPath).To(HaveLen(3))
 				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
 				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-mounted-source"]).To(Equal(fakeMountedArtifact))
@@ -240,7 +240,7 @@ var _ = Describe("PutStep", func() {
 
 		Context("when inputs are left blank", func() {
 			It("calls RunPutStep with all inputs", func() {
-				_, _, _, actualContainerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+				_, _, _, actualContainerSpec, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
 				Expect(actualContainerSpec.ArtifactByPath).To(HaveLen(3))
 				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
 				Expect(actualContainerSpec.ArtifactByPath["/tmp/build/put/some-mounted-source"]).To(Equal(fakeMountedArtifact))
@@ -256,7 +256,7 @@ var _ = Describe("PutStep", func() {
 			})
 
 			It("calls RunPutStep with specified inputs", func() {
-				_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+				_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
 				Expect(containerSpec.ArtifactByPath).To(HaveLen(2))
 				Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
 				Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
@@ -280,7 +280,7 @@ var _ = Describe("PutStep", func() {
 				})
 
 				It("calls RunPutStep with detected inputs", func() {
-					_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+					_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
 					Expect(containerSpec.ArtifactByPath).To(HaveLen(1))
 					Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
 				})
@@ -300,7 +300,7 @@ var _ = Describe("PutStep", func() {
 				})
 
 				It("calls RunPutStep with detected inputs", func() {
-					_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+					_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
 					Expect(containerSpec.ArtifactByPath).To(HaveLen(2))
 					Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
 					Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
@@ -311,7 +311,7 @@ var _ = Describe("PutStep", func() {
 
 	It("calls workerClient -> RunPutStep with the appropriate arguments", func() {
 		Expect(fakeClient.RunPutStepCallCount()).To(Equal(1))
-		actualContext, _, actualOwner, actualContainerSpec, actualWorkerSpec, actualStrategy, actualContainerMetadata, actualImageFetcherSpec, actualProcessSpec, actualEventDelegate, actualResource := fakeClient.RunPutStepArgsForCall(0)
+		actualContext, _, actualOwner, actualContainerSpec, actualWorkerSpec, actualStrategy, actualContainerMetadata, actualProcessSpec, actualEventDelegate, actualResource := fakeClient.RunPutStepArgsForCall(0)
 
 		Expect(actualContext).To(Equal(spanCtx))
 		Expect(actualOwner).To(Equal(db.NewBuildStepContainerOwner(42, atc.PlanID(planID), 123)))
@@ -336,7 +336,6 @@ var _ = Describe("PutStep", func() {
 		Expect(actualStrategy).To(Equal(fakeStrategy))
 
 		Expect(actualContainerMetadata).To(Equal(containerMetadata))
-		Expect(actualImageFetcherSpec.Delegate).To(Equal(worker.NoopImageFetchingDelegate{}))
 
 		Expect(actualProcessSpec).To(Equal(
 			runtime.ProcessSpec{
@@ -392,7 +391,7 @@ var _ = Describe("PutStep", func() {
 		})
 
 		It("does not set the type in the worker spec", func() {
-			_, _, _, _, workerSpec, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+			_, _, _, _, workerSpec, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
 			Expect(workerSpec).To(Equal(worker.WorkerSpec{
 				Tags:   atc.Tags{"some", "tags"},
 				TeamID: stepMetadata.TeamID,
@@ -400,15 +399,8 @@ var _ = Describe("PutStep", func() {
 		})
 
 		It("sets the image spec in the container spec", func() {
-			_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+			_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
 			Expect(containerSpec.ImageSpec).To(Equal(fakeImageSpec))
-		})
-
-		It("uses noop delegate with fetcher", func() {
-			_, _, _, _, _, _, _, imageSpec, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
-			Expect(imageSpec).To(Equal(worker.ImageFetcherSpec{
-				Delegate: worker.NoopImageFetchingDelegate{},
-			}))
 		})
 
 		Context("when the resource type is privileged", func() {
@@ -439,12 +431,12 @@ var _ = Describe("PutStep", func() {
 		})
 
 		It("propagates span context to the worker client", func() {
-			actualCtx, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+			actualCtx, _, _, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
 			Expect(actualCtx).To(Equal(spanCtx))
 		})
 
 		It("populates the TRACEPARENT env var", func() {
-			_, _, _, actualContainerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+			_, _, _, actualContainerSpec, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
 			Expect(actualContainerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
 		})
 	})
@@ -468,7 +460,7 @@ var _ = Describe("PutStep", func() {
 			Expect(actualSource).To(Equal(atc.Source{"some": "super-secret-source"}))
 			Expect(actualParams).To(Equal(atc.Params{"some": "super-secret-params"}))
 
-			_, _, _, _, _, _, _, _, _, _, actualResource := fakeClient.RunPutStepArgsForCall(0)
+			_, _, _, _, _, _, _, _, _, actualResource := fakeClient.RunPutStepArgsForCall(0)
 			Expect(actualResource).To(Equal(fakeResource))
 		})
 

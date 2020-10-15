@@ -17,7 +17,6 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/metric"
-	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/tracing"
 )
 
@@ -230,10 +229,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 			}
 		}()
 
-		ctx := lagerctx.NewContext(ctx, logger)
-		ctx = policy.RecordTeamAndPipeline(ctx, b.build.TeamName(), b.build.PipelineName())
-
-		succeeded, err = state.Run(ctx, b.build.PrivatePlan())
+		succeeded, err = state.Run(lagerctx.NewContext(ctx, logger), b.build.PrivatePlan())
 	}()
 
 	select {

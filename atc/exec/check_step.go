@@ -306,16 +306,10 @@ func (step *CheckStep) runCheck(
 		containerSpec,
 		workerSpec,
 		step.strategy,
-
 		step.containerMetadata,
-		worker.ImageFetcherSpec{
-			Delegate: worker.NoopImageFetchingDelegate{},
-		},
-
 		processSpec,
 		delegate,
 		checkable,
-
 		timeout,
 	)
 }
