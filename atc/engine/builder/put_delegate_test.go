@@ -12,9 +12,9 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine/builder"
-	"github.com/concourse/concourse/atc/engine/builder/builderfakes"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/vars"
 )
@@ -24,7 +24,7 @@ var _ = Describe("PutDelegate", func() {
 		logger            *lagertest.TestLogger
 		fakeBuild         *dbfakes.FakeBuild
 		fakeClock         *fakeclock.FakeClock
-		fakePolicyChecker *builderfakes.FakePolicyChecker
+		fakePolicyChecker *policyfakes.FakeChecker
 
 		state exec.RunState
 
@@ -51,7 +51,7 @@ var _ = Describe("PutDelegate", func() {
 			Metadata: []atc.MetadataField{{Name: "baz", Value: "shmaz"}},
 		}
 
-		fakePolicyChecker = new(builderfakes.FakePolicyChecker)
+		fakePolicyChecker = new(policyfakes.FakeChecker)
 
 		delegate = builder.NewPutDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker)
 	})

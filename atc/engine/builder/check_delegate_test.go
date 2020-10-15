@@ -18,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/engine/builder/builderfakes"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -26,7 +27,7 @@ var _ = Describe("CheckDelegate", func() {
 		fakeBuild         *dbfakes.FakeBuild
 		fakeClock         *fakeclock.FakeClock
 		fakeRateLimiter   *builderfakes.FakeRateLimiter
-		fakePolicyChecker *builderfakes.FakePolicyChecker
+		fakePolicyChecker *policyfakes.FakeChecker
 
 		state exec.RunState
 
@@ -54,7 +55,7 @@ var _ = Describe("CheckDelegate", func() {
 			Check: &atc.CheckPlan{},
 		}
 
-		fakePolicyChecker = new(builderfakes.FakePolicyChecker)
+		fakePolicyChecker = new(policyfakes.FakeChecker)
 
 		delegate = builder.NewCheckDelegate(fakeBuild, plan, state, fakeClock, fakeRateLimiter, fakePolicyChecker)
 

@@ -16,12 +16,12 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine/builder"
-	"github.com/concourse/concourse/atc/engine/builder/builderfakes"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/policy"
+	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/vars"
@@ -34,7 +34,7 @@ var _ = Describe("BuildStepDelegate", func() {
 		fakeClock         *fakeclock.FakeClock
 		planID            atc.PlanID
 		runState          *execfakes.FakeRunState
-		fakePolicyChecker *builderfakes.FakePolicyChecker
+		fakePolicyChecker *policyfakes.FakeChecker
 
 		credVars vars.StaticVariables
 
@@ -60,7 +60,7 @@ var _ = Describe("BuildStepDelegate", func() {
 		repo := build.NewRepository()
 		runState.ArtifactRepositoryReturns(repo)
 
-		fakePolicyChecker = new(builderfakes.FakePolicyChecker)
+		fakePolicyChecker = new(policyfakes.FakeChecker)
 
 		delegate = builder.NewBuildStepDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker)
 	})
@@ -244,16 +244,6 @@ var _ = Describe("BuildStepDelegate", func() {
 			BeforeEach(func() {
 				fakeBuild.TeamNameReturns("some-team")
 				fakeBuild.PipelineNameReturns("some-pipeline")
-			})
-
-			Context("when there is no policy checker", func() {
-				BeforeEach(func() {
-					delegate = builder.NewBuildStepDelegate(fakeBuild, planID, runState, fakeClock, nil)
-				})
-
-				It("succeeds", func() {
-					Expect(fetchErr).ToNot(HaveOccurred())
-				})
 			})
 
 			Context("when the action does not need to be checked", func() {

@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/policy"
 )
 
 func NewTaskDelegate(
@@ -16,7 +17,7 @@ func NewTaskDelegate(
 	planID atc.PlanID,
 	state exec.RunState,
 	clock clock.Clock,
-	policyChecker PolicyChecker,
+	policyChecker policy.Checker,
 ) exec.TaskDelegate {
 	return &taskDelegate{
 		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker),

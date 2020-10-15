@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/policy"
 )
 
 const supportedSchema = "exec.v2"
@@ -31,7 +32,7 @@ func NewStepBuilder(
 	stepFactory StepFactory,
 	externalURL string,
 	rateLimiter RateLimiter,
-	policyChecker PolicyChecker,
+	policyChecker policy.Checker,
 ) *StepBuilder {
 	return &StepBuilder{
 		stepFactory:   stepFactory,
@@ -46,7 +47,7 @@ type StepBuilder struct {
 	delegateFactory DelegateFactory
 	externalURL     string
 	rateLimiter     RateLimiter
-	policyChecker   PolicyChecker
+	policyChecker   policy.Checker
 }
 
 func (builder *StepBuilder) BuildStepper(build db.Build) (exec.Stepper, error) {

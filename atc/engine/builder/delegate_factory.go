@@ -13,21 +13,14 @@ type DelegateFactory struct {
 	build         db.Build
 	plan          atc.Plan
 	rateLimiter   RateLimiter
-	policyChecker PolicyChecker
-}
-
-//go:generate counterfeiter . PolicyChecker
-
-type PolicyChecker interface {
-	ShouldCheckAction(string) bool
-	Check(policy.PolicyCheckInput) (policy.PolicyCheckOutput, error)
+	policyChecker policy.Checker
 }
 
 func buildDelegateFactory(
 	build db.Build,
 	plan atc.Plan,
 	rateLimiter RateLimiter,
-	policyChecker PolicyChecker,
+	policyChecker policy.Checker,
 ) DelegateFactory {
 	return DelegateFactory{
 		build:         build,

@@ -12,8 +12,8 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine/builder"
-	"github.com/concourse/concourse/atc/engine/builder/builderfakes"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -22,7 +22,7 @@ var _ = Describe("TaskDelegate", func() {
 		logger            *lagertest.TestLogger
 		fakeBuild         *dbfakes.FakeBuild
 		fakeClock         *fakeclock.FakeClock
-		fakePolicyChecker *builderfakes.FakePolicyChecker
+		fakePolicyChecker *policyfakes.FakeChecker
 
 		state exec.RunState
 
@@ -44,7 +44,7 @@ var _ = Describe("TaskDelegate", func() {
 		}
 		state = exec.NewRunState(noopStepper, credVars, true)
 
-		fakePolicyChecker = new(builderfakes.FakePolicyChecker)
+		fakePolicyChecker = new(policyfakes.FakeChecker)
 
 		delegate = builder.NewTaskDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker)
 		delegate.SetTaskConfig(atc.TaskConfig{

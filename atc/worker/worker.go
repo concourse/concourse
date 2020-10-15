@@ -95,7 +95,7 @@ type gardenWorker struct {
 	dbWorker        db.Worker
 	buildContainers int
 	helper          workerHelper
-	policyChecker   *policy.Checker
+	policyChecker   policy.Checker
 }
 
 // NewGardenWorker constructs a Worker using the gardenWorker runtime implementation and allows container and volume
@@ -111,7 +111,7 @@ func NewGardenWorker(
 	dbWorker db.Worker,
 	resourceCacheFactory db.ResourceCacheFactory,
 	numBuildContainers int,
-	policyChecker *policy.Checker,
+	policyChecker policy.Checker,
 	// TODO: numBuildContainers is only needed for placement strategy but this
 	// method is called in ContainerProvider.FindOrCreateContainer as well and
 	// hence we pass in 0 values for numBuildContainers everywhere.

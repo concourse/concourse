@@ -1,9 +1,10 @@
 package worker
 
 import (
-	"github.com/concourse/concourse/atc/policy"
 	"net/http"
 	"time"
+
+	"github.com/concourse/concourse/atc/policy"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
@@ -32,7 +33,7 @@ type dbWorkerProvider struct {
 	workerVersion                     version.Version
 	baggageclaimResponseHeaderTimeout time.Duration
 	gardenRequestTimeout              time.Duration
-	policyChecker *policy.Checker
+	policyChecker                     policy.Checker
 }
 
 func NewDBWorkerProvider(
@@ -50,7 +51,7 @@ func NewDBWorkerProvider(
 	workerFactory db.WorkerFactory,
 	workerVersion version.Version,
 	baggageclaimResponseHeaderTimeout, gardenRequestTimeout time.Duration,
-	policyChecker *policy.Checker,
+	policyChecker policy.Checker,
 ) WorkerProvider {
 	return &dbWorkerProvider{
 		lockFactory:                       lockFactory,
@@ -68,7 +69,7 @@ func NewDBWorkerProvider(
 		workerVersion:                     workerVersion,
 		baggageclaimResponseHeaderTimeout: baggageclaimResponseHeaderTimeout,
 		gardenRequestTimeout:              gardenRequestTimeout,
-		policyChecker: policyChecker,
+		policyChecker:                     policyChecker,
 	}
 }
 

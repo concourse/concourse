@@ -1,16 +1,16 @@
 package builder_test
 
 import (
-	"github.com/concourse/concourse/atc/builds"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/engine/builder/builderfakes"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/policy/policyfakes"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 type StepBuilder interface {
@@ -26,7 +26,7 @@ var _ = Describe("Builder", func() {
 
 			fakeStepFactory   *builderfakes.FakeStepFactory
 			fakeRateLimiter   *builderfakes.FakeRateLimiter
-			fakePolicyChecker *builderfakes.FakePolicyChecker
+			fakePolicyChecker *policyfakes.FakeChecker
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
@@ -35,7 +35,7 @@ var _ = Describe("Builder", func() {
 		BeforeEach(func() {
 			fakeStepFactory = new(builderfakes.FakeStepFactory)
 			fakeRateLimiter = new(builderfakes.FakeRateLimiter)
-			fakePolicyChecker = new(builderfakes.FakePolicyChecker)
+			fakePolicyChecker = new(policyfakes.FakeChecker)
 
 			stepBuilder = builder.NewStepBuilder(
 				fakeStepFactory,

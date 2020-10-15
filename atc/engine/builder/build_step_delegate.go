@@ -27,7 +27,7 @@ type buildStepDelegate struct {
 	state         exec.RunState
 	stderr        io.Writer
 	stdout        io.Writer
-	policyChecker PolicyChecker
+	policyChecker policy.Checker
 }
 
 func NewBuildStepDelegate(
@@ -35,7 +35,7 @@ func NewBuildStepDelegate(
 	planID atc.PlanID,
 	state exec.RunState,
 	clock clock.Clock,
-	policyChecker PolicyChecker,
+	policyChecker policy.Checker,
 ) *buildStepDelegate {
 	return &buildStepDelegate{
 		build:         build,
@@ -344,10 +344,6 @@ func (delegate *buildStepDelegate) FetchImage(
 }
 
 func (delegate *buildStepDelegate) checkImagePolicy(image atc.ImageResource, privileged bool) error {
-	if delegate.policyChecker == nil {
-		return nil
-	}
-
 	if !delegate.policyChecker.ShouldCheckAction(policy.ActionUseImage) {
 		return nil
 	}

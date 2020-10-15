@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/runtime"
 )
 
@@ -18,7 +19,7 @@ func NewPutDelegate(
 	planID atc.PlanID,
 	state exec.RunState,
 	clock clock.Clock,
-	policyChecker PolicyChecker,
+	policyChecker policy.Checker,
 ) exec.PutDelegate {
 	return &putDelegate{
 		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker),
