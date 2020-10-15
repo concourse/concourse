@@ -247,9 +247,7 @@ func (step *CheckStep) runCheck(
 		artifact, err := delegate.FetchImage(ctx, atc.ImageResource{
 			Type:   resourceType.Type,
 			Source: resourceType.Source,
-
-			VersionedResourceTypes: step.plan.VersionedResourceTypes.Without(step.plan.Type),
-		})
+		}, step.plan.VersionedResourceTypes.Without(step.plan.Type))
 		if err != nil {
 			return worker.CheckResult{}, fmt.Errorf("fetch image: %w", err)
 		}

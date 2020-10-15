@@ -704,13 +704,13 @@ var _ = Describe("TaskStep", func() {
 
 			It("fetches the image", func() {
 				Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-				_, imageResource := fakeDelegate.FetchImageArgsForCall(0)
+				_, imageResource, types := fakeDelegate.FetchImageArgsForCall(0)
 				Expect(imageResource).To(Equal(atc.ImageResource{
-					Type:                   "docker",
-					Source:                 atc.Source{"some": "super-secret-source"},
-					Params:                 atc.Params{"some": "params"},
-					VersionedResourceTypes: taskPlan.VersionedResourceTypes,
+					Type:   "docker",
+					Source: atc.Source{"some": "super-secret-source"},
+					Params: atc.Params{"some": "params"},
 				}))
+				Expect(types).To(Equal(taskPlan.VersionedResourceTypes))
 			})
 
 			It("creates the specs with the image artifact", func() {

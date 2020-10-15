@@ -351,21 +351,26 @@ var _ = Describe("PutStep", func() {
 
 		It("fetches the resource type image and uses it for the container", func() {
 			Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-			_, imageResource := fakeDelegate.FetchImageArgsForCall(0)
+
+			_, imageResource, types := fakeDelegate.FetchImageArgsForCall(0)
+
+			By("fetching the type image")
 			Expect(imageResource).To(Equal(atc.ImageResource{
 				Type: "another-custom-type",
 				Source: atc.Source{
 					"some-custom": "((source-param))",
 				},
-				VersionedResourceTypes: atc.VersionedResourceTypes{
-					{
-						ResourceType: atc.ResourceType{
-							Name:   "another-custom-type",
-							Type:   "registry-image",
-							Source: atc.Source{"another-custom": "((source-param))"},
-						},
-						Version: atc.Version{"some-custom": "version"},
+			}))
+
+			By("excluding the type from the FetchImage call")
+			Expect(types).To(Equal(atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "another-custom-type",
+						Type:   "registry-image",
+						Source: atc.Source{"another-custom": "((source-param))"},
 					},
+					Version: atc.Version{"some-custom": "version"},
 				},
 			}))
 		})

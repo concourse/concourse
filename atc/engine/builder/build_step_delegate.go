@@ -230,7 +230,11 @@ func (delegate *buildStepDelegate) Errored(logger lager.Logger, message string) 
 // exists within a local scope, so it doesn't pollute the build state.
 const imageArtifactName = "image"
 
-func (delegate *buildStepDelegate) FetchImage(ctx context.Context, image atc.ImageResource) (runtime.Artifact, error) {
+func (delegate *buildStepDelegate) FetchImage(
+	ctx context.Context,
+	image atc.ImageResource,
+	types atc.VersionedResourceTypes,
+) (runtime.Artifact, error) {
 	fetchState := delegate.state.NewLocalScope()
 
 	version := image.Version
@@ -240,10 +244,11 @@ func (delegate *buildStepDelegate) FetchImage(ctx context.Context, image atc.Ima
 		checkPlan := atc.Plan{
 			ID: checkID,
 			Check: &atc.CheckPlan{
-				Name:                   imageArtifactName,
-				Type:                   image.Type,
-				VersionedResourceTypes: image.VersionedResourceTypes,
-				Source:                 image.Source,
+				Name:   imageArtifactName,
+				Type:   image.Type,
+				Source: image.Source,
+
+				VersionedResourceTypes: types,
 			},
 		}
 
@@ -277,12 +282,13 @@ func (delegate *buildStepDelegate) FetchImage(ctx context.Context, image atc.Ima
 	getPlan := atc.Plan{
 		ID: getID,
 		Get: &atc.GetPlan{
-			Name:                   imageArtifactName,
-			Type:                   image.Type,
-			VersionedResourceTypes: image.VersionedResourceTypes,
-			Source:                 image.Source,
-			Version:                &version,
-			Params:                 image.Params,
+			Name:    imageArtifactName,
+			Type:    image.Type,
+			Source:  image.Source,
+			Version: &version,
+			Params:  image.Params,
+
+			VersionedResourceTypes: types,
 		},
 	}
 

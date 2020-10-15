@@ -91,6 +91,7 @@ var _ = Describe("BuildStepDelegate", func() {
 
 		var childState *execfakes.FakeRunState
 		var imageResource atc.ImageResource
+		var types atc.VersionedResourceTypes
 
 		var artifact runtime.Artifact
 		var fetchErr error
@@ -111,13 +112,34 @@ var _ = Describe("BuildStepDelegate", func() {
 				Params: atc.Params{"some": "params"},
 			}
 
+			types = atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "some-custom-type",
+						Type:   "another-custom-type",
+						Source: atc.Source{"some-custom": "((source-var))"},
+						Params: atc.Params{"some-custom": "((params-var))"},
+					},
+					Version: atc.Version{"some-custom": "version"},
+				},
+				{
+					ResourceType: atc.ResourceType{
+						Name:       "another-custom-type",
+						Type:       "registry-image",
+						Source:     atc.Source{"another-custom": "((source-var))"},
+						Privileged: true,
+					},
+					Version: atc.Version{"another-custom": "version"},
+				},
+			}
+
 			expectedCheckPlan = atc.Plan{
 				ID: planID + "/image-check",
 				Check: &atc.CheckPlan{
 					Name:                   "image",
 					Type:                   "docker",
 					Source:                 atc.Source{"some": "super-secret-source"},
-					VersionedResourceTypes: imageResource.VersionedResourceTypes,
+					VersionedResourceTypes: types,
 				},
 			}
 
@@ -129,7 +151,7 @@ var _ = Describe("BuildStepDelegate", func() {
 					Source:                 atc.Source{"some": "super-secret-source"},
 					Version:                &atc.Version{"some": "version"},
 					Params:                 atc.Params{"some": "params"},
-					VersionedResourceTypes: imageResource.VersionedResourceTypes,
+					VersionedResourceTypes: types,
 				},
 			}
 
@@ -165,7 +187,7 @@ var _ = Describe("BuildStepDelegate", func() {
 		})
 
 		JustBeforeEach(func() {
-			artifact, fetchErr = delegate.FetchImage(context.TODO(), imageResource)
+			artifact, fetchErr = delegate.FetchImage(context.TODO(), imageResource, types)
 		})
 
 		It("succeeds", func() {

@@ -45,7 +45,7 @@ type GetDelegateFactory interface {
 type GetDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
-	FetchImage(context.Context, atc.ImageResource) (runtime.Artifact, error)
+	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes) (runtime.Artifact, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -139,9 +139,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		artifact, err := delegate.FetchImage(ctx, atc.ImageResource{
 			Type:   resourceType.Type,
 			Source: resourceType.Source,
-
-			VersionedResourceTypes: step.plan.VersionedResourceTypes.Without(step.plan.Type),
-		})
+		}, step.plan.VersionedResourceTypes.Without(step.plan.Type))
 		if err != nil {
 			return false, fmt.Errorf("fetch image: %w", err)
 		}

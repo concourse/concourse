@@ -26,7 +26,7 @@ type BuildStepDelegate interface {
 
 	ImageVersionDetermined(db.UsedResourceCache) error
 	RedactImageSource(source atc.Source) (atc.Source, error)
-	FetchImage(context.Context, atc.ImageResource) (runtime.Artifact, error)
+	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes) (runtime.Artifact, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
