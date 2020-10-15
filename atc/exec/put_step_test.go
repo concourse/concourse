@@ -117,24 +117,29 @@ var _ = Describe("PutStep", func() {
 		state = new(execfakes.FakeRunState)
 		state.ArtifactRepositoryReturns(repo)
 
-		state.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
+		state.GetStub = vars.StaticVariables{
+			"source-var": "super-secret-source",
+			"params-var": "super-secret-params",
+		}.Get
 
 		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
 				ResourceType: atc.ResourceType{
 					Name:   "some-custom-type",
 					Type:   "another-custom-type",
-					Source: atc.Source{"some-custom": "((source-param))"},
+					Source: atc.Source{"some-custom": "((source-var))"},
+					Params: atc.Params{"some-custom": "((params-var))"},
 				},
 				Version: atc.Version{"some-custom": "version"},
 			},
 			{
 				ResourceType: atc.ResourceType{
-					Name:   "another-custom-type",
-					Type:   "registry-image",
-					Source: atc.Source{"another-custom": "((source-param))"},
+					Name:       "another-custom-type",
+					Type:       "registry-image",
+					Source:     atc.Source{"another-custom": "((source-var))"},
+					Privileged: true,
 				},
-				Version: atc.Version{"some-custom": "version"},
+				Version: atc.Version{"another-custom": "version"},
 			},
 		}
 
@@ -144,16 +149,21 @@ var _ = Describe("PutStep", func() {
 					Name:   "some-custom-type",
 					Type:   "another-custom-type",
 					Source: atc.Source{"some-custom": "super-secret-source"},
+
+					// params don't need to be interpolated because it's used for
+					// fetching, not constructing the resource config
+					Params: atc.Params{"some-custom": "((params-var))"},
 				},
 				Version: atc.Version{"some-custom": "version"},
 			},
 			{
 				ResourceType: atc.ResourceType{
-					Name:   "another-custom-type",
-					Type:   "registry-image",
-					Source: atc.Source{"another-custom": "super-secret-source"},
+					Name:       "another-custom-type",
+					Type:       "registry-image",
+					Source:     atc.Source{"another-custom": "super-secret-source"},
+					Privileged: true,
 				},
-				Version: atc.Version{"some-custom": "version"},
+				Version: atc.Version{"another-custom": "version"},
 			},
 		}
 
@@ -161,8 +171,8 @@ var _ = Describe("PutStep", func() {
 			Name:                   "some-name",
 			Resource:               "some-resource",
 			Type:                   "some-resource-type",
-			Source:                 atc.Source{"some": "((source-param))"},
-			Params:                 atc.Params{"some-param": "some-value"},
+			Source:                 atc.Source{"some": "((source-var))"},
+			Params:                 atc.Params{"some": "((params-var))"},
 			Tags:                   []string{"some", "tags"},
 			VersionedResourceTypes: uninterpolatedResourceTypes,
 		}
@@ -356,21 +366,21 @@ var _ = Describe("PutStep", func() {
 
 			By("fetching the type image")
 			Expect(imageResource).To(Equal(atc.ImageResource{
-				Type: "another-custom-type",
-				Source: atc.Source{
-					"some-custom": "((source-param))",
-				},
+				Type:   "another-custom-type",
+				Source: atc.Source{"some-custom": "((source-var))"},
+				Params: atc.Params{"some-custom": "((params-var))"},
 			}))
 
 			By("excluding the type from the FetchImage call")
 			Expect(types).To(Equal(atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{
-						Name:   "another-custom-type",
-						Type:   "registry-image",
-						Source: atc.Source{"another-custom": "((source-param))"},
+						Name:       "another-custom-type",
+						Type:       "registry-image",
+						Source:     atc.Source{"another-custom": "((source-var))"},
+						Privileged: true,
 					},
-					Version: atc.Version{"some-custom": "version"},
+					Version: atc.Version{"another-custom": "version"},
 				},
 			}))
 		})
@@ -395,6 +405,20 @@ var _ = Describe("PutStep", func() {
 			Expect(imageSpec).To(Equal(worker.ImageFetcherSpec{
 				Delegate: worker.NoopImageFetchingDelegate{},
 			}))
+		})
+
+		Context("when the resource type is privileged", func() {
+			BeforeEach(func() {
+				putPlan.Type = "another-custom-type"
+			})
+
+			It("sets the image spec to privileged", func() {
+				_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
+					ImageArtifact: fakeArtifact,
+					Privileged:    true,
+				}))
+			})
 		})
 	})
 
@@ -440,7 +464,7 @@ var _ = Describe("PutStep", func() {
 		It("creates a resource with the correct source and params", func() {
 			actualSource, actualParams, _ := fakeResourceFactory.NewResourceArgsForCall(0)
 			Expect(actualSource).To(Equal(atc.Source{"some": "super-secret-source"}))
-			Expect(actualParams).To(Equal(atc.Params{"some-param": "some-value"}))
+			Expect(actualParams).To(Equal(atc.Params{"some": "super-secret-params"}))
 
 			_, _, _, _, _, _, _, _, _, _, actualResource := fakeClient.RunPutStepArgsForCall(0)
 			Expect(actualResource).To(Equal(fakeResource))

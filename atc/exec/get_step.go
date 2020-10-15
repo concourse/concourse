@@ -139,12 +139,14 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		artifact, err := delegate.FetchImage(ctx, atc.ImageResource{
 			Type:   resourceType.Type,
 			Source: resourceType.Source,
+			Params: resourceType.Params,
 		}, step.plan.VersionedResourceTypes.Without(step.plan.Type))
 		if err != nil {
 			return false, fmt.Errorf("fetch image: %w", err)
 		}
 
 		imageSpec.ImageArtifact = artifact
+		imageSpec.Privileged = resourceType.Privileged
 	} else {
 		imageSpec.ResourceType = step.plan.Type
 		workerSpec.ResourceType = step.plan.Type

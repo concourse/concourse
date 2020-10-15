@@ -99,26 +99,29 @@ var _ = Describe("CheckStep", func() {
 		fakeDelegateFactory.CheckDelegateReturns(fakeDelegate)
 
 		checkPlan = atc.CheckPlan{
-			Timeout: "10s",
+			Name:    "some-name",
 			Type:    "some-base-type",
-			Source:  atc.Source{"some": "source"},
-			Tags:    []string{"tag"},
+			Source:  atc.Source{"some": "((source-var))"},
+			Timeout: "10s",
+			Tags:    []string{"some", "tags"},
 			VersionedResourceTypes: atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{
 						Name:   "some-custom-type",
 						Type:   "another-custom-type",
-						Source: atc.Source{"some-custom": "((source-param))"},
+						Source: atc.Source{"some-custom": "((source-var))"},
+						Params: atc.Params{"some-custom": "((params-var))"},
 					},
 					Version: atc.Version{"some-custom": "version"},
 				},
 				{
 					ResourceType: atc.ResourceType{
-						Name:   "another-custom-type",
-						Type:   "registry-image",
-						Source: atc.Source{"another-custom": "((source-param))"},
+						Name:       "another-custom-type",
+						Type:       "registry-image",
+						Source:     atc.Source{"another-custom": "((source-var))"},
+						Privileged: true,
 					},
-					Version: atc.Version{"some-custom": "version"},
+					Version: atc.Version{"another-custom": "version"},
 				},
 			},
 		}
@@ -131,7 +134,7 @@ var _ = Describe("CheckStep", func() {
 			TeamID: 345,
 		}
 
-		fakeRunState.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
+		fakeRunState.GetStub = vars.StaticVariables{"source-var": "super-secret-source"}.Get
 	})
 
 	AfterEach(func() {
@@ -306,7 +309,7 @@ var _ = Describe("CheckStep", func() {
 					})
 
 					It("with tags set", func() {
-						Expect(containerSpec.Tags).To(ConsistOf("tag"))
+						Expect(containerSpec.Tags).To(ConsistOf("some", "tags"))
 					})
 
 					It("with teamid set", func() {
@@ -347,7 +350,7 @@ var _ = Describe("CheckStep", func() {
 					})
 
 					It("with tags", func() {
-						Expect(workerSpec.Tags).To(ConsistOf("tag"))
+						Expect(workerSpec.Tags).To(ConsistOf("some", "tags"))
 					})
 
 					It("with teamid", func() {
@@ -404,28 +407,28 @@ var _ = Describe("CheckStep", func() {
 
 						By("fetching the type image")
 						Expect(imageResource).To(Equal(atc.ImageResource{
-							Type: "another-custom-type",
-							Source: atc.Source{
-								"some-custom": "((source-param))",
-							},
+							Type:   "another-custom-type",
+							Source: atc.Source{"some-custom": "((source-var))"},
+							Params: atc.Params{"some-custom": "((params-var))"},
 						}))
 
 						By("excluding the type from the FetchImage call")
 						Expect(types).To(Equal(atc.VersionedResourceTypes{
 							{
 								ResourceType: atc.ResourceType{
-									Name:   "another-custom-type",
-									Type:   "registry-image",
-									Source: atc.Source{"another-custom": "((source-param))"},
+									Name:       "another-custom-type",
+									Type:       "registry-image",
+									Source:     atc.Source{"another-custom": "((source-var))"},
+									Privileged: true,
 								},
-								Version: atc.Version{"some-custom": "version"},
+								Version: atc.Version{"another-custom": "version"},
 							},
 						}))
 					})
 
 					It("does not set the type in the worker spec", func() {
 						Expect(workerSpec).To(Equal(worker.WorkerSpec{
-							Tags:   atc.Tags{"tag"},
+							Tags:   atc.Tags{"some", "tags"},
 							TeamID: stepMetadata.TeamID,
 						}))
 					})
@@ -440,6 +443,19 @@ var _ = Describe("CheckStep", func() {
 						Expect(imageSpec).To(Equal(worker.ImageFetcherSpec{
 							Delegate: worker.NoopImageFetchingDelegate{},
 						}))
+					})
+
+					Context("when the resource type is privileged", func() {
+						BeforeEach(func() {
+							checkPlan.Type = "another-custom-type"
+						})
+
+						It("sets the image spec to privileged", func() {
+							Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
+								ImageArtifact: fakeArtifact,
+								Privileged:    true,
+							}))
+						})
 					})
 				})
 			})
@@ -485,23 +501,28 @@ var _ = Describe("CheckStep", func() {
 					Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
 					type_, source, types := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
 					Expect(type_).To(Equal("some-base-type"))
-					Expect(source).To(Equal(atc.Source{"some": "source"}))
+					Expect(source).To(Equal(atc.Source{"some": "super-secret-source"}))
 					Expect(types).To(Equal(atc.VersionedResourceTypes{
 						{
 							ResourceType: atc.ResourceType{
 								Name:   "some-custom-type",
 								Type:   "another-custom-type",
 								Source: atc.Source{"some-custom": "super-secret-source"},
+
+								// params don't need to be interpolated because it's used for
+								// fetching, not constructing the resource config
+								Params: atc.Params{"some-custom": "((params-var))"},
 							},
 							Version: atc.Version{"some-custom": "version"},
 						},
 						{
 							ResourceType: atc.ResourceType{
-								Name:   "another-custom-type",
-								Type:   "registry-image",
-								Source: atc.Source{"another-custom": "super-secret-source"},
+								Name:       "another-custom-type",
+								Type:       "registry-image",
+								Source:     atc.Source{"another-custom": "super-secret-source"},
+								Privileged: true,
 							},
-							Version: atc.Version{"some-custom": "version"},
+							Version: atc.Version{"another-custom": "version"},
 						},
 					}))
 
