@@ -31,11 +31,13 @@ func NewStepBuilder(
 	stepFactory StepFactory,
 	externalURL string,
 	rateLimiter RateLimiter,
+	policyChecker PolicyChecker,
 ) *StepBuilder {
 	return &StepBuilder{
-		stepFactory: stepFactory,
-		externalURL: externalURL,
-		rateLimiter: rateLimiter,
+		stepFactory:   stepFactory,
+		externalURL:   externalURL,
+		rateLimiter:   rateLimiter,
+		policyChecker: policyChecker,
 	}
 }
 
@@ -44,6 +46,7 @@ type StepBuilder struct {
 	delegateFactory DelegateFactory
 	externalURL     string
 	rateLimiter     RateLimiter
+	policyChecker   PolicyChecker
 }
 
 func (builder *StepBuilder) BuildStepper(build db.Build) (exec.Stepper, error) {
@@ -184,7 +187,7 @@ func (builder *StepBuilder) buildAcrossStep(build db.Build, plan atc.Plan) exec.
 		plan.Across.Vars,
 		steps,
 		plan.Across.FailFast,
-		buildDelegateFactory(build, plan, builder.rateLimiter),
+		buildDelegateFactory(build, plan, builder.rateLimiter, builder.policyChecker),
 		stepMetadata,
 	)
 }
@@ -287,7 +290,7 @@ func (builder *StepBuilder) buildGetStep(build db.Build, plan atc.Plan) exec.Ste
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan, builder.rateLimiter),
+		buildDelegateFactory(build, plan, builder.rateLimiter, builder.policyChecker),
 	)
 }
 
@@ -309,7 +312,7 @@ func (builder *StepBuilder) buildPutStep(build db.Build, plan atc.Plan) exec.Ste
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan, builder.rateLimiter),
+		buildDelegateFactory(build, plan, builder.rateLimiter, builder.policyChecker),
 	)
 }
 
@@ -330,7 +333,7 @@ func (builder *StepBuilder) buildCheckStep(build db.Build, plan atc.Plan) exec.S
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan, builder.rateLimiter),
+		buildDelegateFactory(build, plan, builder.rateLimiter, builder.policyChecker),
 	)
 }
 
@@ -352,7 +355,7 @@ func (builder *StepBuilder) buildTaskStep(build db.Build, plan atc.Plan) exec.St
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan, builder.rateLimiter),
+		buildDelegateFactory(build, plan, builder.rateLimiter, builder.policyChecker),
 	)
 }
 
@@ -366,7 +369,7 @@ func (builder *StepBuilder) buildSetPipelineStep(build db.Build, plan atc.Plan) 
 	return builder.stepFactory.SetPipelineStep(
 		plan,
 		stepMetadata,
-		buildDelegateFactory(build, plan, builder.rateLimiter),
+		buildDelegateFactory(build, plan, builder.rateLimiter, builder.policyChecker),
 	)
 }
 
@@ -380,7 +383,7 @@ func (builder *StepBuilder) buildLoadVarStep(build db.Build, plan atc.Plan) exec
 	return builder.stepFactory.LoadVarStep(
 		plan,
 		stepMetadata,
-		buildDelegateFactory(build, plan, builder.rateLimiter),
+		buildDelegateFactory(build, plan, builder.rateLimiter, builder.policyChecker),
 	)
 }
 

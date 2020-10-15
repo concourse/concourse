@@ -1062,6 +1062,7 @@ func (cmd *RunCommand) backendComponents(
 		buildContainerStrategy,
 		lockFactory,
 		rateLimiter,
+		policyChecker,
 	)
 
 	// In case that a user configures resource-checking-interval, but forgets to
@@ -1641,6 +1642,7 @@ func (cmd *RunCommand) constructEngine(
 	strategy worker.ContainerPlacementStrategy,
 	lockFactory lock.LockFactory,
 	rateLimiter builder.RateLimiter,
+	policyChecker builder.PolicyChecker,
 ) engine.Engine {
 
 	stepFactory := builder.NewStepFactory(
@@ -1661,6 +1663,7 @@ func (cmd *RunCommand) constructEngine(
 		stepFactory,
 		cmd.ExternalURL.String(),
 		rateLimiter,
+		policyChecker,
 	)
 
 	return engine.NewEngine(stepBuilder, secretManager, cmd.varSourcePool)

@@ -9,7 +9,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 )
 
@@ -26,7 +26,8 @@ type BuildStepDelegate interface {
 
 	ImageVersionDetermined(db.UsedResourceCache) error
 	RedactImageSource(source atc.Source) (atc.Source, error)
-	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes) (runtime.Artifact, error)
+
+	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer

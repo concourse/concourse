@@ -24,8 +24,9 @@ var _ = Describe("Builder", func() {
 		var (
 			err error
 
-			fakeStepFactory *builderfakes.FakeStepFactory
-			fakeRateLimiter *builderfakes.FakeRateLimiter
+			fakeStepFactory   *builderfakes.FakeStepFactory
+			fakeRateLimiter   *builderfakes.FakeRateLimiter
+			fakePolicyChecker *builderfakes.FakePolicyChecker
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
@@ -33,13 +34,14 @@ var _ = Describe("Builder", func() {
 
 		BeforeEach(func() {
 			fakeStepFactory = new(builderfakes.FakeStepFactory)
-
 			fakeRateLimiter = new(builderfakes.FakeRateLimiter)
+			fakePolicyChecker = new(builderfakes.FakePolicyChecker)
 
 			stepBuilder = builder.NewStepBuilder(
 				fakeStepFactory,
 				"http://example.com",
 				fakeRateLimiter,
+				fakePolicyChecker,
 			)
 
 			planFactory = atc.NewPlanFactory(123)

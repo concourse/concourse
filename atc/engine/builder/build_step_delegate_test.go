@@ -16,22 +16,25 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine/builder"
+	"github.com/concourse/concourse/atc/engine/builder/builderfakes"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
-	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
+	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("BuildStepDelegate", func() {
 	var (
-		logger    *lagertest.TestLogger
-		fakeBuild *dbfakes.FakeBuild
-		fakeClock *fakeclock.FakeClock
-		planID    atc.PlanID
-		runState  *execfakes.FakeRunState
+		logger            *lagertest.TestLogger
+		fakeBuild         *dbfakes.FakeBuild
+		fakeClock         *fakeclock.FakeClock
+		planID            atc.PlanID
+		runState          *execfakes.FakeRunState
+		fakePolicyChecker *builderfakes.FakePolicyChecker
 
 		credVars vars.StaticVariables
 
@@ -57,7 +60,9 @@ var _ = Describe("BuildStepDelegate", func() {
 		repo := build.NewRepository()
 		runState.ArtifactRepositoryReturns(repo)
 
-		delegate = builder.NewBuildStepDelegate(fakeBuild, planID, runState, fakeClock)
+		fakePolicyChecker = new(builderfakes.FakePolicyChecker)
+
+		delegate = builder.NewBuildStepDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker)
 	})
 
 	Describe("Initializing", func() {
@@ -92,8 +97,9 @@ var _ = Describe("BuildStepDelegate", func() {
 		var childState *execfakes.FakeRunState
 		var imageResource atc.ImageResource
 		var types atc.VersionedResourceTypes
+		var privileged bool
 
-		var artifact runtime.Artifact
+		var imageSpec worker.ImageSpec
 		var fetchErr error
 
 		BeforeEach(func() {
@@ -104,12 +110,15 @@ var _ = Describe("BuildStepDelegate", func() {
 			childState.ArtifactRepositoryReturns(repo.NewLocalScope())
 			runState.NewLocalScopeReturns(childState)
 
-			runState.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
+			runState.GetStub = vars.StaticVariables{
+				"source-var": "super-secret-source",
+				"params-var": "super-secret-params",
+			}.Get
 
 			imageResource = atc.ImageResource{
 				Type:   "docker",
-				Source: atc.Source{"some": "super-secret-source"},
-				Params: atc.Params{"some": "params"},
+				Source: atc.Source{"some": "((source-var))"},
+				Params: atc.Params{"some": "((params-var))"},
 			}
 
 			types = atc.VersionedResourceTypes{
@@ -138,7 +147,7 @@ var _ = Describe("BuildStepDelegate", func() {
 				Check: &atc.CheckPlan{
 					Name:                   "image",
 					Type:                   "docker",
-					Source:                 atc.Source{"some": "super-secret-source"},
+					Source:                 atc.Source{"some": "((source-var))"},
 					VersionedResourceTypes: types,
 				},
 			}
@@ -148,9 +157,9 @@ var _ = Describe("BuildStepDelegate", func() {
 				Get: &atc.GetPlan{
 					Name:                   "image",
 					Type:                   "docker",
-					Source:                 atc.Source{"some": "super-secret-source"},
+					Source:                 atc.Source{"some": "((source-var))"},
 					Version:                &atc.Version{"some": "version"},
-					Params:                 atc.Params{"some": "params"},
+					Params:                 atc.Params{"some": "((params-var))"},
 					VersionedResourceTypes: types,
 				},
 			}
@@ -183,16 +192,24 @@ var _ = Describe("BuildStepDelegate", func() {
 				return true
 			}
 
+			privileged = false
+
 			childState.RunReturns(true, nil)
 		})
 
 		JustBeforeEach(func() {
-			artifact, fetchErr = delegate.FetchImage(context.TODO(), imageResource, types)
+			imageSpec, fetchErr = delegate.FetchImage(context.TODO(), imageResource, types, privileged)
 		})
 
 		It("succeeds", func() {
 			Expect(fetchErr).ToNot(HaveOccurred())
-			Expect(artifact).To(Equal(fakeArtifact))
+		})
+
+		It("returns an image spec containing the artifact", func() {
+			Expect(imageSpec).To(Equal(worker.ImageSpec{
+				ImageArtifact: fakeArtifact,
+				Privileged:    false,
+			}))
 		})
 
 		It("runs a CheckPlan to get the image version", func() {
@@ -208,6 +225,135 @@ var _ = Describe("BuildStepDelegate", func() {
 		It("records the resource cache as an image resource for the build", func() {
 			Expect(fakeBuild.SaveImageResourceVersionCallCount()).To(Equal(1))
 			Expect(fakeBuild.SaveImageResourceVersionArgsForCall(0)).To(Equal(fakeResourceCache))
+		})
+
+		Context("when privileged", func() {
+			BeforeEach(func() {
+				privileged = true
+			})
+
+			It("returns a privileged image spec", func() {
+				Expect(imageSpec).To(Equal(worker.ImageSpec{
+					ImageArtifact: fakeArtifact,
+					Privileged:    true,
+				}))
+			})
+		})
+
+		Describe("policy checking", func() {
+			BeforeEach(func() {
+				fakeBuild.TeamNameReturns("some-team")
+				fakeBuild.PipelineNameReturns("some-pipeline")
+			})
+
+			Context("when there is no policy checker", func() {
+				BeforeEach(func() {
+					delegate = builder.NewBuildStepDelegate(fakeBuild, planID, runState, fakeClock, nil)
+				})
+
+				It("succeeds", func() {
+					Expect(fetchErr).ToNot(HaveOccurred())
+				})
+			})
+
+			Context("when the action does not need to be checked", func() {
+				BeforeEach(func() {
+					fakePolicyChecker.ShouldCheckActionReturns(false)
+				})
+
+				It("succeeds", func() {
+					Expect(fetchErr).ToNot(HaveOccurred())
+				})
+
+				It("checked if ActionUseImage is enabled", func() {
+					Expect(fakePolicyChecker.ShouldCheckActionCallCount()).To(Equal(1))
+					action := fakePolicyChecker.ShouldCheckActionArgsForCall(0)
+					Expect(action).To(Equal(policy.ActionUseImage))
+				})
+
+				It("does not check", func() {
+					Expect(fakePolicyChecker.CheckCallCount()).To(Equal(0))
+				})
+			})
+
+			Context("when the action needs to be checked", func() {
+				BeforeEach(func() {
+					fakePolicyChecker.ShouldCheckActionReturns(true)
+				})
+
+				Context("when the check is allowed", func() {
+					BeforeEach(func() {
+						fakePolicyChecker.CheckReturns(policy.PolicyCheckOutput{
+							Allowed: true,
+						}, nil)
+					})
+
+					It("succeeds", func() {
+						Expect(fetchErr).ToNot(HaveOccurred())
+					})
+
+					It("checked with the right values", func() {
+						Expect(fakePolicyChecker.CheckCallCount()).To(Equal(1))
+						input := fakePolicyChecker.CheckArgsForCall(0)
+						Expect(input).To(Equal(policy.PolicyCheckInput{
+							Action:   policy.ActionUseImage,
+							Team:     "some-team",
+							Pipeline: "some-pipeline",
+							Data: map[string]interface{}{
+								"image_type":   "docker",
+								"image_source": atc.Source{"some": "((source-var))"},
+								"privileged":   false,
+							},
+						}))
+					})
+
+					Context("when the image source contains credentials", func() {
+						BeforeEach(func() {
+							imageResource.Source = atc.Source{"some": "super-secret-source"}
+
+							runState.IterateInterpolatedCredsStub = func(iter vars.TrackedVarsIterator) {
+								iter.YieldCred("source-var", "super-secret-source")
+							}
+						})
+
+						It("redacts the value prior to checking", func() {
+							Expect(fakePolicyChecker.CheckCallCount()).To(Equal(1))
+							input := fakePolicyChecker.CheckArgsForCall(0)
+							Expect(input).To(Equal(policy.PolicyCheckInput{
+								Action:   policy.ActionUseImage,
+								Team:     "some-team",
+								Pipeline: "some-pipeline",
+								Data: map[string]interface{}{
+									"image_type":   "docker",
+									"image_source": atc.Source{"some": "((redacted))"},
+									"privileged":   false,
+								},
+							}))
+						})
+					})
+
+					Context("when privileged", func() {
+						BeforeEach(func() {
+							privileged = true
+						})
+
+						It("checks with privileged", func() {
+							Expect(fakePolicyChecker.CheckCallCount()).To(Equal(1))
+							input := fakePolicyChecker.CheckArgsForCall(0)
+							Expect(input).To(Equal(policy.PolicyCheckInput{
+								Action:   policy.ActionUseImage,
+								Team:     "some-team",
+								Pipeline: "some-pipeline",
+								Data: map[string]interface{}{
+									"image_type":   "docker",
+									"image_source": atc.Source{"some": "((source-var))"},
+									"privileged":   true,
+								},
+							}))
+						})
+					})
+				})
+			})
 		})
 
 		Describe("ordering", func() {
@@ -462,7 +608,7 @@ var _ = Describe("BuildStepDelegate", func() {
 		BeforeEach(func() {
 			credVars := vars.StaticVariables{}
 			runState = exec.NewRunState(noopStepper, credVars, false)
-			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock)
+			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker)
 		})
 
 		Context("Stdout", func() {
@@ -562,7 +708,7 @@ var _ = Describe("BuildStepDelegate", func() {
 
 		BeforeEach(func() {
 			runState = exec.NewRunState(noopStepper, credVars, true)
-			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock)
+			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker)
 
 			runState.Get(vars.Reference{Path: "source-param"})
 			runState.Get(vars.Reference{Path: "git-key"})

@@ -23,9 +23,10 @@ import (
 
 var _ = Describe("CheckDelegate", func() {
 	var (
-		fakeBuild       *dbfakes.FakeBuild
-		fakeClock       *fakeclock.FakeClock
-		fakeRateLimiter *builderfakes.FakeRateLimiter
+		fakeBuild         *dbfakes.FakeBuild
+		fakeClock         *fakeclock.FakeClock
+		fakeRateLimiter   *builderfakes.FakeRateLimiter
+		fakePolicyChecker *builderfakes.FakePolicyChecker
 
 		state exec.RunState
 
@@ -53,7 +54,9 @@ var _ = Describe("CheckDelegate", func() {
 			Check: &atc.CheckPlan{},
 		}
 
-		delegate = builder.NewCheckDelegate(fakeBuild, plan, state, fakeClock, fakeRateLimiter)
+		fakePolicyChecker = new(builderfakes.FakePolicyChecker)
+
+		delegate = builder.NewCheckDelegate(fakeBuild, plan, state, fakeClock, fakeRateLimiter, fakePolicyChecker)
 
 		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 		fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)

@@ -11,9 +11,15 @@ import (
 	"github.com/concourse/concourse/atc/exec"
 )
 
-func NewTaskDelegate(build db.Build, planID atc.PlanID, state exec.RunState, clock clock.Clock) exec.TaskDelegate {
+func NewTaskDelegate(
+	build db.Build,
+	planID atc.PlanID,
+	state exec.RunState,
+	clock clock.Clock,
+	policyChecker PolicyChecker,
+) exec.TaskDelegate {
 	return &taskDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,

@@ -261,19 +261,21 @@ var _ = Describe("GetStep", func() {
 	})
 
 	Context("when using a custom resource type", func() {
-		var fakeArtifact *runtimefakes.FakeArtifact
+		var fakeImageSpec worker.ImageSpec
 
 		BeforeEach(func() {
 			getPlan.Type = "some-custom-type"
 
-			fakeArtifact = new(runtimefakes.FakeArtifact)
-			fakeDelegate.FetchImageReturns(fakeArtifact, nil)
+			fakeImageSpec = worker.ImageSpec{
+				ImageArtifact: new(runtimefakes.FakeArtifact),
+			}
+
+			fakeDelegate.FetchImageReturns(fakeImageSpec, nil)
 		})
 
 		It("fetches the resource type image and uses it for the container", func() {
 			Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-
-			_, imageResource, types := fakeDelegate.FetchImageArgsForCall(0)
+			_, imageResource, types, privileged := fakeDelegate.FetchImageArgsForCall(0)
 
 			By("fetching the type image")
 			Expect(imageResource).To(Equal(atc.ImageResource{
@@ -294,6 +296,9 @@ var _ = Describe("GetStep", func() {
 					Version: atc.Version{"another-custom": "version"},
 				},
 			}))
+
+			By("not being privileged")
+			Expect(privileged).To(BeFalse())
 		})
 
 		It("calls RunGetStep with the correct WorkerSpec", func() {
@@ -308,11 +313,7 @@ var _ = Describe("GetStep", func() {
 
 		It("calls RunGetStep with the correct ImageSpec", func() {
 			_, _, _, containerSpec, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-			Expect(containerSpec.ImageSpec).To(Equal(
-				worker.ImageSpec{
-					ImageArtifact: fakeArtifact,
-				},
-			))
+			Expect(containerSpec.ImageSpec).To(Equal(fakeImageSpec))
 		})
 
 		Context("when the resource type is privileged", func() {
@@ -320,12 +321,10 @@ var _ = Describe("GetStep", func() {
 				getPlan.Type = "another-custom-type"
 			})
 
-			It("sets the image spec to privileged", func() {
-				_, _, _, containerSpec, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
-					ImageArtifact: fakeArtifact,
-					Privileged:    true,
-				}))
+			It("fetches the image with privileged", func() {
+				Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+				_, _, _, privileged := fakeDelegate.FetchImageArgsForCall(0)
+				Expect(privileged).To(BeTrue())
 			})
 		})
 	})

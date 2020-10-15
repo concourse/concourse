@@ -675,7 +675,7 @@ var _ = Describe("TaskStep", func() {
 		})
 
 		Context("when the image_resource is specified (even if RootfsURI is configured)", func() {
-			var fakeArtifact *runtimefakes.FakeArtifact
+			var fakeImageSpec worker.ImageSpec
 
 			BeforeEach(func() {
 				taskPlan.Config = &atc.TaskConfig{
@@ -693,8 +693,11 @@ var _ = Describe("TaskStep", func() {
 					},
 				}
 
-				fakeArtifact = new(runtimefakes.FakeArtifact)
-				fakeDelegate.FetchImageReturns(fakeArtifact, nil)
+				fakeImageSpec = worker.ImageSpec{
+					ImageArtifact: new(runtimefakes.FakeArtifact),
+				}
+
+				fakeDelegate.FetchImageReturns(fakeImageSpec, nil)
 			})
 
 			It("succeeds", func() {
@@ -704,24 +707,37 @@ var _ = Describe("TaskStep", func() {
 
 			It("fetches the image", func() {
 				Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
-				_, imageResource, types := fakeDelegate.FetchImageArgsForCall(0)
+				_, imageResource, types, privileged := fakeDelegate.FetchImageArgsForCall(0)
 				Expect(imageResource).To(Equal(atc.ImageResource{
 					Type:   "docker",
 					Source: atc.Source{"some": "super-secret-source"},
 					Params: atc.Params{"some": "params"},
 				}))
 				Expect(types).To(Equal(taskPlan.VersionedResourceTypes))
+				Expect(privileged).To(BeFalse())
 			})
 
 			It("creates the specs with the image artifact", func() {
 				_, _, _, containerSpec, workerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-				Expect(containerSpec.ImageSpec.ImageArtifact).To(Equal(fakeArtifact))
+				Expect(containerSpec.ImageSpec).To(Equal(fakeImageSpec))
 
 				Expect(workerSpec).To(Equal(worker.WorkerSpec{
 					TeamID:   123,
 					Platform: "some-platform",
 					Tags:     []string{"step", "tags"},
 				}))
+			})
+
+			Context("when privileged", func() {
+				BeforeEach(func() {
+					taskPlan.Privileged = true
+				})
+
+				It("fetches a privileged image", func() {
+					Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+					_, _, _, privileged := fakeDelegate.FetchImageArgsForCall(0)
+					Expect(privileged).To(BeTrue())
+				})
 			})
 		})
 

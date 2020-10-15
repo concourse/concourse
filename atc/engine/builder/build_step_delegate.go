@@ -14,18 +14,20 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/policy"
+	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"go.opentelemetry.io/otel/api/trace"
 )
 
 type buildStepDelegate struct {
-	build  db.Build
-	planID atc.PlanID
-	clock  clock.Clock
-	state  exec.RunState
-	stderr io.Writer
-	stdout io.Writer
+	build         db.Build
+	planID        atc.PlanID
+	clock         clock.Clock
+	state         exec.RunState
+	stderr        io.Writer
+	stdout        io.Writer
+	policyChecker PolicyChecker
 }
 
 func NewBuildStepDelegate(
@@ -33,14 +35,16 @@ func NewBuildStepDelegate(
 	planID atc.PlanID,
 	state exec.RunState,
 	clock clock.Clock,
+	policyChecker PolicyChecker,
 ) *buildStepDelegate {
 	return &buildStepDelegate{
-		build:  build,
-		planID: planID,
-		clock:  clock,
-		state:  state,
-		stdout: nil,
-		stderr: nil,
+		build:         build,
+		planID:        planID,
+		clock:         clock,
+		state:         state,
+		stdout:        nil,
+		stderr:        nil,
+		policyChecker: policyChecker,
 	}
 }
 
@@ -234,7 +238,13 @@ func (delegate *buildStepDelegate) FetchImage(
 	ctx context.Context,
 	image atc.ImageResource,
 	types atc.VersionedResourceTypes,
-) (runtime.Artifact, error) {
+	privileged bool,
+) (worker.ImageSpec, error) {
+	err := delegate.checkImagePolicy(image, privileged)
+	if err != nil {
+		return worker.ImageSpec{}, err
+	}
+
 	fetchState := delegate.state.NewLocalScope()
 
 	version := image.Version
@@ -260,20 +270,20 @@ func (delegate *buildStepDelegate) FetchImage(
 			Plan: checkPlan,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("save image check event: %w", err)
+			return worker.ImageSpec{}, fmt.Errorf("save image check event: %w", err)
 		}
 
 		ok, err := fetchState.Run(ctx, checkPlan)
 		if err != nil {
-			return nil, err
+			return worker.ImageSpec{}, err
 		}
 
 		if !ok {
-			return nil, fmt.Errorf("image check failed")
+			return worker.ImageSpec{}, fmt.Errorf("image check failed")
 		}
 
 		if !fetchState.Result(checkID, &version) {
-			return nil, fmt.Errorf("check did not return a version")
+			return worker.ImageSpec{}, fmt.Errorf("check did not return a version")
 		}
 	}
 
@@ -292,7 +302,7 @@ func (delegate *buildStepDelegate) FetchImage(
 		},
 	}
 
-	err := delegate.build.SaveEvent(event.ImageGet{
+	err = delegate.build.SaveEvent(event.ImageGet{
 		Time: delegate.clock.Now().Unix(),
 		Origin: event.Origin{
 			ID: event.OriginID(delegate.planID),
@@ -300,32 +310,72 @@ func (delegate *buildStepDelegate) FetchImage(
 		Plan: getPlan,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("save image get event: %w", err)
+		return worker.ImageSpec{}, fmt.Errorf("save image get event: %w", err)
 	}
 
 	ok, err := fetchState.Run(ctx, getPlan)
 	if err != nil {
-		return nil, err
+		return worker.ImageSpec{}, err
 	}
 
 	if !ok {
-		return nil, fmt.Errorf("image fetching failed")
+		return worker.ImageSpec{}, fmt.Errorf("image fetching failed")
 	}
 
 	var cache db.UsedResourceCache
 	if !fetchState.Result(getID, &cache) {
-		return nil, fmt.Errorf("get did not return a cache")
+		return worker.ImageSpec{}, fmt.Errorf("get did not return a cache")
 	}
 
 	err = delegate.build.SaveImageResourceVersion(cache)
 	if err != nil {
-		return nil, fmt.Errorf("save image version: %w", err)
+		return worker.ImageSpec{}, fmt.Errorf("save image version: %w", err)
 	}
 
 	art, found := fetchState.ArtifactRepository().ArtifactFor(imageArtifactName)
 	if !found {
-		return nil, fmt.Errorf("fetched artifact not found")
+		return worker.ImageSpec{}, fmt.Errorf("fetched artifact not found")
 	}
 
-	return art, nil
+	return worker.ImageSpec{
+		ImageArtifact: art,
+		Privileged:    privileged,
+	}, nil
+}
+
+func (delegate *buildStepDelegate) checkImagePolicy(image atc.ImageResource, privileged bool) error {
+	if delegate.policyChecker == nil {
+		return nil
+	}
+
+	if !delegate.policyChecker.ShouldCheckAction(policy.ActionUseImage) {
+		return nil
+	}
+
+	redactedSource, err := delegate.RedactImageSource(image.Source)
+	if err != nil {
+		return fmt.Errorf("redact source: %w", err)
+	}
+
+	result, err := delegate.policyChecker.Check(policy.PolicyCheckInput{
+		Action:   policy.ActionUseImage,
+		Team:     delegate.build.TeamName(),
+		Pipeline: delegate.build.PipelineName(),
+		Data: map[string]interface{}{
+			"image_type":   image.Type,
+			"image_source": redactedSource,
+			"privileged":   privileged,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("perform check: %w", err)
+	}
+
+	if !result.Allowed {
+		return policy.PolicyCheckNotPass{
+			Reasons: result.Reasons,
+		}
+	}
+
+	return nil
 }

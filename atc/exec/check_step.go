@@ -244,17 +244,19 @@ func (step *CheckStep) runCheck(
 	var imageSpec worker.ImageSpec
 	resourceType, found := step.plan.VersionedResourceTypes.Lookup(step.plan.Type)
 	if found {
-		artifact, err := delegate.FetchImage(ctx, atc.ImageResource{
+		image := atc.ImageResource{
 			Type:   resourceType.Type,
 			Source: resourceType.Source,
 			Params: resourceType.Params,
-		}, step.plan.VersionedResourceTypes.Without(step.plan.Type))
-		if err != nil {
-			return worker.CheckResult{}, fmt.Errorf("fetch image: %w", err)
 		}
 
-		imageSpec.ImageArtifact = artifact
-		imageSpec.Privileged = resourceType.Privileged
+		types := step.plan.VersionedResourceTypes.Without(step.plan.Type)
+
+		var err error
+		imageSpec, err = delegate.FetchImage(ctx, image, types, resourceType.Privileged)
+		if err != nil {
+			return worker.CheckResult{}, err
+		}
 	} else {
 		imageSpec.ResourceType = step.plan.Type
 		workerSpec.ResourceType = step.plan.Type

@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"go.opentelemetry.io/otel/api/trace"
 )
@@ -23,19 +23,20 @@ type FakeCheckDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
-	FetchImageStub        func(context.Context, atc.ImageResource, atc.VersionedResourceTypes) (runtime.Artifact, error)
+	FetchImageStub        func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)
 	fetchImageMutex       sync.RWMutex
 	fetchImageArgsForCall []struct {
 		arg1 context.Context
 		arg2 atc.ImageResource
 		arg3 atc.VersionedResourceTypes
+		arg4 bool
 	}
 	fetchImageReturns struct {
-		result1 runtime.Artifact
+		result1 worker.ImageSpec
 		result2 error
 	}
 	fetchImageReturnsOnCall map[int]struct {
-		result1 runtime.Artifact
+		result1 worker.ImageSpec
 		result2 error
 	}
 	FindOrCreateScopeStub        func(db.ResourceConfig) (db.ResourceConfigScope, error)
@@ -195,18 +196,19 @@ func (fake *FakeCheckDelegate) ErroredArgsForCall(i int) (lager.Logger, string) 
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeCheckDelegate) FetchImage(arg1 context.Context, arg2 atc.ImageResource, arg3 atc.VersionedResourceTypes) (runtime.Artifact, error) {
+func (fake *FakeCheckDelegate) FetchImage(arg1 context.Context, arg2 atc.ImageResource, arg3 atc.VersionedResourceTypes, arg4 bool) (worker.ImageSpec, error) {
 	fake.fetchImageMutex.Lock()
 	ret, specificReturn := fake.fetchImageReturnsOnCall[len(fake.fetchImageArgsForCall)]
 	fake.fetchImageArgsForCall = append(fake.fetchImageArgsForCall, struct {
 		arg1 context.Context
 		arg2 atc.ImageResource
 		arg3 atc.VersionedResourceTypes
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("FetchImage", []interface{}{arg1, arg2, arg3})
+		arg4 bool
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("FetchImage", []interface{}{arg1, arg2, arg3, arg4})
 	fake.fetchImageMutex.Unlock()
 	if fake.FetchImageStub != nil {
-		return fake.FetchImageStub(arg1, arg2, arg3)
+		return fake.FetchImageStub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -221,41 +223,41 @@ func (fake *FakeCheckDelegate) FetchImageCallCount() int {
 	return len(fake.fetchImageArgsForCall)
 }
 
-func (fake *FakeCheckDelegate) FetchImageCalls(stub func(context.Context, atc.ImageResource, atc.VersionedResourceTypes) (runtime.Artifact, error)) {
+func (fake *FakeCheckDelegate) FetchImageCalls(stub func(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = stub
 }
 
-func (fake *FakeCheckDelegate) FetchImageArgsForCall(i int) (context.Context, atc.ImageResource, atc.VersionedResourceTypes) {
+func (fake *FakeCheckDelegate) FetchImageArgsForCall(i int) (context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) {
 	fake.fetchImageMutex.RLock()
 	defer fake.fetchImageMutex.RUnlock()
 	argsForCall := fake.fetchImageArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakeCheckDelegate) FetchImageReturns(result1 runtime.Artifact, result2 error) {
+func (fake *FakeCheckDelegate) FetchImageReturns(result1 worker.ImageSpec, result2 error) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = nil
 	fake.fetchImageReturns = struct {
-		result1 runtime.Artifact
+		result1 worker.ImageSpec
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCheckDelegate) FetchImageReturnsOnCall(i int, result1 runtime.Artifact, result2 error) {
+func (fake *FakeCheckDelegate) FetchImageReturnsOnCall(i int, result1 worker.ImageSpec, result2 error) {
 	fake.fetchImageMutex.Lock()
 	defer fake.fetchImageMutex.Unlock()
 	fake.FetchImageStub = nil
 	if fake.fetchImageReturnsOnCall == nil {
 		fake.fetchImageReturnsOnCall = make(map[int]struct {
-			result1 runtime.Artifact
+			result1 worker.ImageSpec
 			result2 error
 		})
 	}
 	fake.fetchImageReturnsOnCall[i] = struct {
-		result1 runtime.Artifact
+		result1 worker.ImageSpec
 		result2 error
 	}{result1, result2}
 }

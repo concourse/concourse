@@ -13,9 +13,15 @@ import (
 	"github.com/concourse/concourse/atc/runtime"
 )
 
-func NewPutDelegate(build db.Build, planID atc.PlanID, state exec.RunState, clock clock.Clock) exec.PutDelegate {
+func NewPutDelegate(
+	build db.Build,
+	planID atc.PlanID,
+	state exec.RunState,
+	clock clock.Clock,
+	policyChecker PolicyChecker,
+) exec.PutDelegate {
 	return &putDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,
