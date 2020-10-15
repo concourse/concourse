@@ -2,7 +2,6 @@ package flaghelpers
 
 import (
 	"fmt"
-	"strings"
 )
 
 type OutputPairFlag struct {
@@ -11,13 +10,11 @@ type OutputPairFlag struct {
 }
 
 func (pair *OutputPairFlag) UnmarshalFlag(value string) error {
-	vs := strings.SplitN(value, "=", 2)
-	if len(vs) != 2 {
+	var ok bool
+	pair.Name, pair.Path, ok = parseKeyValuePair(value)
+	if !ok {
 		return fmt.Errorf("invalid output pair '%s' (must be name=path)", value)
 	}
-
-	pair.Name = vs[0]
-	pair.Path = vs[1]
 
 	return nil
 }
