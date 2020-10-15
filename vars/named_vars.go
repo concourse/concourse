@@ -15,7 +15,7 @@ func (m NamedVariables) Get(varDef VariableDefinition) (interface{}, bool, error
 		return vars.Get(varDef)
 	}
 
-	return nil, false, MissingSourceError{Name: varDef.Ref.Name, Source: varDef.Ref.Source}
+	return nil, false, MissingSourceError{Name: varDef.Ref.String(), Source: varDef.Ref.Source}
 }
 
 func (m NamedVariables) List() ([]VariableDefinition, error) {

@@ -23,7 +23,7 @@ var _ = Describe("NamedVariables", func() {
 			vars2 := StaticVariables{"key2": "val"}
 			vars := NamedVariables{"s1": vars1, "s2": vars2}
 
-			val, found, err := vars.Get(VariableDefinition{Ref: VariableReference{Name: "s3:foo", Source: "s3"}})
+			val, found, err := vars.Get(VariableDefinition{Ref: VariableReference{Source: "s3", Path: "foo"}})
 			Expect(val).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).To(HaveOccurred())
@@ -51,7 +51,7 @@ var _ = Describe("NamedVariables", func() {
 			vars2 := StaticVariables{"key2": "val"}
 			vars := NamedVariables{"s1": vars1, "s2": vars2}
 
-			val, found, err := vars.Get(VariableDefinition{Ref: VariableReference{Name: "key1"}})
+			val, found, err := vars.Get(VariableDefinition{Ref: VariableReference{Path: "key1"}})
 			Expect(val).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).ToNot(HaveOccurred())
@@ -62,7 +62,7 @@ var _ = Describe("NamedVariables", func() {
 			vars2 := &FakeVariables{GetErr: errors.New("fake-err")}
 			vars := NamedVariables{"s1": vars1, "s2": vars2}
 
-			val, found, err := vars.Get(VariableDefinition{Ref: VariableReference{Source: "s2", Name: "key3"}})
+			val, found, err := vars.Get(VariableDefinition{Ref: VariableReference{Source: "s2", Path: "key3"}})
 			Expect(val).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).To(Equal(errors.New("fake-err")))

@@ -61,7 +61,6 @@ func (t Template) interpolateRoot(obj interface{}, tracker varsTracker) (interfa
 type interpolator struct{}
 
 var (
-	pathRegex                  = regexp.MustCompile(`("[^"]*"|[^\.]+)+`)
 	interpolationRegex         = regexp.MustCompile(`\(\((([-/\.\w\pL]+\:)?[-/\.:@"\w\pL]+)\)\)`)
 	interpolationAnchoredRegex = regexp.MustCompile("\\A" + interpolationRegex.String() + "\\z")
 )
@@ -135,29 +134,6 @@ func (i interpolator) extractVarNames(value string) []string {
 	return names
 }
 
-func parseVarName(name string) VariableReference {
-	var pathPieces []string
-
-	varRef := VariableReference{Name: name}
-
-	if strings.Index(name, ":") > 0 {
-		parts := strings.SplitN(name, ":", 2)
-		varRef.Source = parts[0]
-
-		pathPieces = pathRegex.FindAllString(parts[1], -1)
-
-	} else {
-		pathPieces = pathRegex.FindAllString(name, -1)
-	}
-
-	varRef.Path = strings.ReplaceAll(pathPieces[0], "\"", "")
-	if len(pathPieces) >= 2 {
-		varRef.Fields = pathPieces[1:]
-	}
-
-	return varRef
-}
-
 type varsTracker struct {
 	vars Variables
 
@@ -184,13 +160,16 @@ func newVarsTracker(vars Variables, expectAllFound, expectAllUsed bool) varsTrac
 // is var name; 2) 'foo:bar', where foo is var source name, and bar is var name;
 // 3) '.:foo', where . means a local var, foo is var name.
 func (t varsTracker) Get(varName string) (interface{}, bool, error) {
-	varRef := parseVarName(varName)
+	varRef, err := ParseReference(varName)
+	if err != nil {
+		return nil, false, err
+	}
 
 	t.visitedAll[identifier(varRef)] = struct{}{}
 
 	val, found, err := t.vars.Get(VariableDefinition{Ref: varRef})
 	if !found || err != nil {
-		t.missing[varRef.Name] = struct{}{}
+		t.missing[varRef.String()] = struct{}{}
 		return val, found, err
 	}
 
