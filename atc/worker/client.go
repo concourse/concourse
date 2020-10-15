@@ -208,6 +208,13 @@ func (client *client) RunCheckStep(
 	checkable resource.Resource,
 	timeout time.Duration,
 ) (CheckResult, error) {
+	if containerSpec.ImageSpec.ImageArtifact != nil {
+		err := client.wireImageVolume(logger, &containerSpec.ImageSpec)
+		if err != nil {
+			return CheckResult{}, err
+		}
+	}
+
 	chosenWorker, err := client.pool.FindOrChooseWorkerForContainer(
 		ctx,
 		logger,
@@ -421,6 +428,12 @@ func (client *client) RunGetStep(
 	resourceCache db.UsedResourceCache,
 	resource resource.Resource,
 ) (GetResult, error) {
+	if containerSpec.ImageSpec.ImageArtifact != nil {
+		err := client.wireImageVolume(logger, &containerSpec.ImageSpec)
+		if err != nil {
+			return GetResult{}, err
+		}
+	}
 
 	chosenWorker, err := client.pool.FindOrChooseWorkerForContainer(
 		ctx,
@@ -475,6 +488,12 @@ func (client *client) RunPutStep(
 	eventDelegate runtime.StartingEventDelegate,
 	resource resource.Resource,
 ) (PutResult, error) {
+	if containerSpec.ImageSpec.ImageArtifact != nil {
+		err := client.wireImageVolume(logger, &containerSpec.ImageSpec)
+		if err != nil {
+			return PutResult{}, err
+		}
+	}
 
 	vr := runtime.VersionResult{}
 	err := client.wireInputsAndCaches(logger, &containerSpec)
@@ -703,7 +722,6 @@ func (client *client) wireInputsAndCaches(logger lager.Logger, spec *ContainerSp
 }
 
 func (client *client) wireImageVolume(logger lager.Logger, spec *ImageSpec) error {
-
 	imageArtifact := spec.ImageArtifact
 
 	artifactVolume, found, err := client.FindVolume(logger, 0, imageArtifact.ID())
