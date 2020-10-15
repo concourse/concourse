@@ -28,7 +28,7 @@ type ExecuteCommand struct {
 	Privileged     bool                               `short:"p" long:"privileged"                            description:"Run the task with full privileges"`
 	IncludeIgnored bool                               `          long:"include-ignored"                       description:"Including .gitignored paths. Disregards .gitignore entries and uploads everything"`
 	Inputs         []flaghelpers.InputPairFlag        `short:"i" long:"input"       value-name:"NAME=PATH"    description:"An input to provide to the task (can be specified multiple times)"`
-	InputMappings  []flaghelpers.VariablePairFlag     `short:"m" long:"input-mapping"       value-name:"[NAME=STRING]"    description:"Map a resource to a different name as task input"`
+	InputMappings  []flaghelpers.InputMappingPairFlag `short:"m" long:"input-mapping"       value-name:"[NAME=STRING]"    description:"Map a resource to a different name as task input"`
 	InputsFrom     flaghelpers.JobFlag                `short:"j" long:"inputs-from" value-name:"PIPELINE/JOB" description:"A job to base the inputs on"`
 	Outputs        []flaghelpers.OutputPairFlag       `short:"o" long:"output"      value-name:"NAME=PATH"    description:"An output to fetch from the task (can be specified multiple times)"`
 	Image          string                             `long:"image" description:"Image resource for the one-off build"`
