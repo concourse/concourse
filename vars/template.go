@@ -61,7 +61,6 @@ func (t Template) interpolateRoot(obj interface{}, tracker varsTracker) (interfa
 type interpolator struct{}
 
 var (
-	pathRegex                  = regexp.MustCompile(`("[^"]*"|[^\.]+)+`)
 	interpolationRegex         = regexp.MustCompile(`\(\((([-/\.\w\pL]+\:)?[-/\.:@"\w\pL]+)\)\)`)
 	interpolationAnchoredRegex = regexp.MustCompile("\\A" + interpolationRegex.String() + "\\z")
 )
@@ -161,7 +160,10 @@ func newVarsTracker(vars Variables, expectAllFound, expectAllUsed bool) varsTrac
 // is var name; 2) 'foo:bar', where foo is var source name, and bar is var name;
 // 3) '.:foo', where . means a local var, foo is var name.
 func (t varsTracker) Get(varName string) (interface{}, bool, error) {
-	varRef := parseReference(varName)
+	varRef, err := ParseReference(varName)
+	if err != nil {
+		return nil, false, err
+	}
 
 	t.visitedAll[identifier(varRef)] = struct{}{}
 

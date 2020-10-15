@@ -204,7 +204,7 @@ dup-key: ((key3))
 		Expect(result).To(Equal([]byte("dash: underscore\n")))
 	})
 
-	It("can interpolate keys with dot and colon into a byte slice", func() {
+	It("can interpolate quoted keys with dot and colon into a byte slice", func() {
 		template := NewTemplate([]byte("bar: ((foo:\"with.dot:colon\".buzz))"))
 		vars := NamedVariables{
 			"foo": StaticVariables{
@@ -216,10 +216,21 @@ dup-key: ((key3))
 
 		result, err := template.Evaluate(vars, EvaluateOpts{})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(result)).To(Equal(string([]byte("bar: fuzz\n"))))
+		Expect(string(result)).To(Equal("bar: fuzz\n"))
 	})
 
-	It("can interpolate keys with dot in subkey into a byte slice", func() {
+	It("can interpolate quoted keys with colon and no var source", func() {
+		template := NewTemplate([]byte("bar: ((\"with:colon\"))"))
+		vars := StaticVariables{
+			"with:colon": "foo",
+		}
+
+		result, err := template.Evaluate(vars, EvaluateOpts{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(result)).To(Equal("bar: foo\n"))
+	})
+
+	It("can interpolate quoted keys with dot in subkey into a byte slice", func() {
 		template := NewTemplate([]byte("bar: ((secret-name.\"secret.field\"))"))
 		vars := StaticVariables{
 			"secret-name": map[string]interface{}{
