@@ -236,10 +236,32 @@ func (step *CheckStep) runCheck(
 	resourceTypes atc.VersionedResourceTypes,
 	fromVersion atc.Version,
 ) (worker.CheckResult, error) {
+	workerSpec := worker.WorkerSpec{
+		Tags:   step.plan.Tags,
+		TeamID: step.metadata.TeamID,
+	}
+
+	var imageSpec worker.ImageSpec
+	resourceType, found := step.plan.VersionedResourceTypes.Lookup(step.plan.Type)
+	if found {
+		artifact, err := delegate.FetchImage(ctx, atc.ImageResource{
+			Type:   resourceType.Type,
+			Source: resourceType.Source,
+
+			VersionedResourceTypes: step.plan.VersionedResourceTypes.Without(step.plan.Type),
+		})
+		if err != nil {
+			return worker.CheckResult{}, fmt.Errorf("fetch image: %w", err)
+		}
+
+		imageSpec.ImageArtifact = artifact
+	} else {
+		imageSpec.ResourceType = step.plan.Type
+		workerSpec.ResourceType = step.plan.Type
+	}
+
 	containerSpec := worker.ContainerSpec{
-		ImageSpec: worker.ImageSpec{
-			ResourceType: step.plan.Type,
-		},
+		ImageSpec: imageSpec,
 		BindMounts: []worker.BindMountSource{
 			&worker.CertsVolumeMount{Logger: logger},
 		},
@@ -248,13 +270,6 @@ func (step *CheckStep) runCheck(
 		Env:    step.metadata.Env(),
 	}
 	tracing.Inject(ctx, &containerSpec)
-
-	workerSpec := worker.WorkerSpec{
-		ResourceType:  step.plan.Type,
-		Tags:          step.plan.Tags,
-		ResourceTypes: resourceTypes,
-		TeamID:        step.metadata.TeamID,
-	}
 
 	expires := db.ContainerOwnerExpiries{
 		Min: 5 * time.Minute,
@@ -276,11 +291,6 @@ func (step *CheckStep) runCheck(
 		fromVersion,
 	)
 
-	imageSpec := worker.ImageFetcherSpec{
-		ResourceTypes: resourceTypes,
-		Delegate:      delegate,
-	}
-
 	processSpec := runtime.ProcessSpec{
 		Path:         "/opt/resource/check",
 		StdoutWriter: delegate.Stdout(),
@@ -296,7 +306,9 @@ func (step *CheckStep) runCheck(
 		step.strategy,
 
 		step.containerMetadata,
-		imageSpec,
+		worker.ImageFetcherSpec{
+			Delegate: worker.NoopImageFetchingDelegate{},
+		},
 
 		processSpec,
 		delegate,

@@ -16,6 +16,7 @@ import (
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/tracing"
@@ -88,7 +89,7 @@ var _ = Describe("CheckStep", func() {
 		fakeResourceConfig.IDReturns(501)
 		fakeResourceConfig.OriginBaseResourceTypeReturns(&db.UsedBaseResourceType{
 			ID:   502,
-			Name: "some-base-resource-type",
+			Name: "some-base-type",
 		})
 		fakeResourceConfigFactory.FindOrCreateResourceConfigReturns(fakeResourceConfig, nil)
 
@@ -97,24 +98,29 @@ var _ = Describe("CheckStep", func() {
 
 		fakeDelegateFactory.CheckDelegateReturns(fakeDelegate)
 
-		resTypes := atc.VersionedResourceTypes{
-			{
-				ResourceType: atc.ResourceType{
-					Type: "base-type",
-					Source: atc.Source{
-						"foo": "((bar))",
-					},
-				},
-				Version: atc.Version{"some": "type-version"},
-			},
-		}
-
 		checkPlan = atc.CheckPlan{
-			Timeout:                "10s",
-			Type:                   "resource-type",
-			Source:                 atc.Source{"some": "source"},
-			Tags:                   []string{"tag"},
-			VersionedResourceTypes: resTypes,
+			Timeout: "10s",
+			Type:    "some-base-type",
+			Source:  atc.Source{"some": "source"},
+			Tags:    []string{"tag"},
+			VersionedResourceTypes: atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "some-custom-type",
+						Type:   "another-custom-type",
+						Source: atc.Source{"some-custom": "((source-param))"},
+					},
+					Version: atc.Version{"some-custom": "version"},
+				},
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "another-custom-type",
+						Type:   "registry-image",
+						Source: atc.Source{"another-custom": "((source-param))"},
+					},
+					Version: atc.Version{"some-custom": "version"},
+				},
+			},
 		}
 
 		containerMetadata = db.ContainerMetadata{
@@ -125,7 +131,7 @@ var _ = Describe("CheckStep", func() {
 			TeamID: 345,
 		}
 
-		fakeRunState.GetStub = vars.StaticVariables{"bar": "caz"}.Get
+		fakeRunState.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
 	})
 
 	AfterEach(func() {
@@ -293,9 +299,9 @@ var _ = Describe("CheckStep", func() {
 						Expect(ok).To(BeTrue())
 					})
 
-					It("with imagespec w/ resource type", func() {
+					It("uses base type for image", func() {
 						Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
-							ResourceType: "resource-type",
+							ResourceType: "some-base-type",
 						}))
 					})
 
@@ -337,18 +343,11 @@ var _ = Describe("CheckStep", func() {
 
 				Context("uses workerspec", func() {
 					It("with resource type", func() {
-						Expect(workerSpec.ResourceType).To(Equal("resource-type"))
+						Expect(workerSpec.ResourceType).To(Equal("some-base-type"))
 					})
 
 					It("with tags", func() {
 						Expect(workerSpec.Tags).To(ConsistOf("tag"))
-					})
-
-					It("with resource types", func() {
-						Expect(workerSpec.ResourceTypes).To(HaveLen(1))
-						interpolatedResourceType := workerSpec.ResourceTypes[0]
-
-						Expect(interpolatedResourceType.Source).To(Equal(atc.Source{"foo": "caz"}))
 					})
 
 					It("with teamid", func() {
@@ -364,11 +363,10 @@ var _ = Describe("CheckStep", func() {
 					Expect(metadata).To(Equal(containerMetadata))
 				})
 
-				It("uses interpolated resource types", func() {
-					Expect(imageSpec.ResourceTypes).To(HaveLen(1))
-					interpolatedResourceType := imageSpec.ResourceTypes[0]
-
-					Expect(interpolatedResourceType.Source).To(Equal(atc.Source{"foo": "caz"}))
+				It("uses noop delegate with fetcher", func() {
+					Expect(imageSpec).To(Equal(worker.ImageFetcherSpec{
+						Delegate: worker.NoopImageFetchingDelegate{},
+					}))
 				})
 
 				It("uses the timeout parsed", func() {
@@ -386,6 +384,57 @@ var _ = Describe("CheckStep", func() {
 
 					It("uses the default timeout", func() {
 						Expect(timeout).To(Equal(time.Hour))
+					})
+				})
+
+				Context("when using a custom resource type", func() {
+					var fakeArtifact *runtimefakes.FakeArtifact
+
+					BeforeEach(func() {
+						checkPlan.Type = "some-custom-type"
+
+						fakeArtifact = new(runtimefakes.FakeArtifact)
+						fakeDelegate.FetchImageReturns(fakeArtifact, nil)
+					})
+
+					It("fetches the resource type image and uses it for the container", func() {
+						Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+						_, imageResource := fakeDelegate.FetchImageArgsForCall(0)
+						Expect(imageResource).To(Equal(atc.ImageResource{
+							Type: "another-custom-type",
+							Source: atc.Source{
+								"some-custom": "((source-param))",
+							},
+							VersionedResourceTypes: atc.VersionedResourceTypes{
+								{
+									ResourceType: atc.ResourceType{
+										Name:   "another-custom-type",
+										Type:   "registry-image",
+										Source: atc.Source{"another-custom": "((source-param))"},
+									},
+									Version: atc.Version{"some-custom": "version"},
+								},
+							},
+						}))
+					})
+
+					It("does not set the type in the worker spec", func() {
+						Expect(workerSpec).To(Equal(worker.WorkerSpec{
+							Tags:   atc.Tags{"tag"},
+							TeamID: stepMetadata.TeamID,
+						}))
+					})
+
+					It("sets the image artifact in the image spec", func() {
+						Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
+							ImageArtifact: fakeArtifact,
+						}))
+					})
+
+					It("uses noop delegate with fetcher", func() {
+						Expect(imageSpec).To(Equal(worker.ImageFetcherSpec{
+							Delegate: worker.NoopImageFetchingDelegate{},
+						}))
 					})
 				})
 			})
@@ -430,15 +479,24 @@ var _ = Describe("CheckStep", func() {
 				It("saves the versions to the config scope", func() {
 					Expect(fakeResourceConfigFactory.FindOrCreateResourceConfigCallCount()).To(Equal(1))
 					type_, source, types := fakeResourceConfigFactory.FindOrCreateResourceConfigArgsForCall(0)
-					Expect(type_).To(Equal("resource-type"))
+					Expect(type_).To(Equal("some-base-type"))
 					Expect(source).To(Equal(atc.Source{"some": "source"}))
 					Expect(types).To(Equal(atc.VersionedResourceTypes{
 						{
 							ResourceType: atc.ResourceType{
-								Type:   "base-type",
-								Source: atc.Source{"foo": "caz"},
+								Name:   "some-custom-type",
+								Type:   "another-custom-type",
+								Source: atc.Source{"some-custom": "super-secret-source"},
 							},
-							Version: atc.Version{"some": "type-version"},
+							Version: atc.Version{"some-custom": "version"},
+						},
+						{
+							ResourceType: atc.ResourceType{
+								Name:   "another-custom-type",
+								Type:   "registry-image",
+								Source: atc.Source{"another-custom": "super-secret-source"},
+							},
+							Version: atc.Version{"some-custom": "version"},
 						},
 					}))
 
