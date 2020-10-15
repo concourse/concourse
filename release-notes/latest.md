@@ -33,3 +33,7 @@
 
   A new metric called `tasks_wait_duration_bucket` is also added to express as quantiles the average time spent by tasks awaiting execution. PR: #5981
   ![Example graph for the task wait time histograms.](https://user-images.githubusercontent.com/40891147/89990749-189d2600-dc83-11ea-8fde-ae579fdb0a0a.png)
+
+#### <sub><sup><a name="6111" href="#6111">:link:</a></sup></sub> bug
+
+* @mdb Running `set_pipeline` against a pipeline config YML file with no `jobs:` no longer causes runtime error. Issue: #6111 PR: #6116
