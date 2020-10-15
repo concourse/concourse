@@ -207,7 +207,7 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 	if !diffExists {
 		logger.Debug("no-diff")
 
-		fmt.Fprintf(stdout, "no diff found.\n")
+		fmt.Fprintf(stdout, "no changes to apply.\n")
 
 		if found {
 			err := pipeline.SetParentIDs(step.metadata.JobID, step.metadata.BuildID)
