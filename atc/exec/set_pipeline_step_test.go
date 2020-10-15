@@ -31,18 +31,6 @@ jobs:
 - name:
 `
 
-	const badPipelineContentWithTaskSyntax = `
----
-platform: linux
-image_resource:
-  type: registry-image
-  source: {repository: busybox}
-run:
- path: echo
- args:
-   - hello
-`
-
 	const badPipelineContentWithEmptyContent = `
 ---
 `
@@ -261,30 +249,6 @@ jobs:
 			})
 		})
 
-		Context("when pipeline file exists but has task syntax", func() {
-			BeforeEach(func() {
-				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: badPipelineContentWithTaskSyntax}, nil)
-			})
-
-			It("should not return error", func() {
-				Expect(stepErr).NotTo(HaveOccurred())
-			})
-
-			It("should log no-diff", func() {
-				Expect(stdout).To(gbytes.Say("no diff found."))
-			})
-
-			It("should send a set pipeline changed event", func() {
-				Expect(fakeDelegate.SetPipelineChangedCallCount()).To(Equal(1))
-				_, changed := fakeDelegate.SetPipelineChangedArgsForCall(0)
-				Expect(changed).To(BeFalse())
-			})
-
-			It("should not update the job and build id", func() {
-				Expect(fakePipeline.SetParentIDsCallCount()).To(Equal(0))
-			})
-		})
-
 		Context("when pipeline file exists but is empty", func() {
 			BeforeEach(func() {
 				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: badPipelineContentWithEmptyContent}, nil)
@@ -343,6 +307,30 @@ jobs:
 
 				It("should stdout have message", func() {
 					Expect(stdout).To(gbytes.Say("done"))
+				})
+
+				Context("when no diff is found", func() {
+					BeforeEach(func() {
+						fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: badPipelineContentWithEmptyContent}, nil)
+					})
+
+					It("should not return error", func() {
+						Expect(stepErr).NotTo(HaveOccurred())
+					})
+
+					It("should log no-diff", func() {
+						Expect(stdout).To(gbytes.Say("no diff found."))
+					})
+
+					It("should send a set pipeline changed event", func() {
+						Expect(fakeDelegate.SetPipelineChangedCallCount()).To(Equal(1))
+						_, changed := fakeDelegate.SetPipelineChangedArgsForCall(0)
+						Expect(changed).To(BeFalse())
+					})
+
+					It("should not update the job and build id", func() {
+						Expect(fakePipeline.SetParentIDsCallCount()).To(Equal(0))
+					})
 				})
 			})
 
