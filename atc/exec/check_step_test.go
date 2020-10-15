@@ -96,6 +96,36 @@ var _ = Describe("CheckStep", func() {
 		fakeDelegate.FindOrCreateScopeReturns(fakeResourceConfigScope, nil)
 
 		fakeDelegateFactory.CheckDelegateReturns(fakeDelegate)
+
+		resTypes := atc.VersionedResourceTypes{
+			{
+				ResourceType: atc.ResourceType{
+					Type: "base-type",
+					Source: atc.Source{
+						"foo": "((bar))",
+					},
+				},
+				Version: atc.Version{"some": "type-version"},
+			},
+		}
+
+		checkPlan = atc.CheckPlan{
+			Timeout:                "10s",
+			Type:                   "resource-type",
+			Source:                 atc.Source{"some": "source"},
+			Tags:                   []string{"tag"},
+			VersionedResourceTypes: resTypes,
+		}
+
+		containerMetadata = db.ContainerMetadata{
+			User: "test-user",
+		}
+
+		stepMetadata = exec.StepMetadata{
+			TeamID: 345,
+		}
+
+		fakeRunState.GetStub = vars.StaticVariables{"bar": "caz"}.Get
 	})
 
 	AfterEach(func() {
@@ -122,109 +152,8 @@ var _ = Describe("CheckStep", func() {
 		stepOk, stepErr = checkStep.Run(ctx, fakeRunState)
 	})
 
-	Context("having credentials in the config", func() {
-		BeforeEach(func() {
-			checkPlan = atc.CheckPlan{
-				Source:  atc.Source{"some": "((super-secret-source))"},
-				Timeout: "1m",
-			}
-		})
-
-		Context("having cred evaluation failing", func() {
-			var expectedErr error
-
-			BeforeEach(func() {
-				expectedErr = errors.New("creds-err")
-
-				fakeRunState.GetReturns(nil, false, expectedErr)
-			})
-
-			It("errors", func() {
-				Expect(stepErr).To(HaveOccurred())
-				Expect(errors.Is(stepErr, expectedErr)).To(BeTrue())
-			})
-		})
-	})
-
-	Context("having credentials in a resource type", func() {
-		BeforeEach(func() {
-			resTypes := atc.VersionedResourceTypes{
-				{
-					ResourceType: atc.ResourceType{
-						Source: atc.Source{
-							"some-custom": "((super-secret-source))",
-						},
-					},
-				},
-			}
-
-			checkPlan = atc.CheckPlan{
-				Source:                 atc.Source{"some": "super-secret-source"},
-				Timeout:                "1m",
-				VersionedResourceTypes: resTypes,
-			}
-		})
-
-		Context("having cred evaluation failing", func() {
-			var expectedErr error
-
-			BeforeEach(func() {
-				expectedErr = errors.New("creds-err")
-
-				fakeRunState.GetReturns(nil, false, expectedErr)
-			})
-
-			It("errors", func() {
-				Expect(stepErr).To(HaveOccurred())
-				Expect(errors.Is(stepErr, expectedErr)).To(BeTrue())
-			})
-		})
-	})
-
-	Context("having a timeout that fails parsing", func() {
-		BeforeEach(func() {
-			checkPlan = atc.CheckPlan{
-				Timeout: "th1s_15_n07_r1gh7",
-			}
-		})
-
-		It("errors", func() {
-			Expect(stepErr).To(HaveOccurred())
-			Expect(stepErr.Error()).To(ContainSubstring("invalid duration"))
-		})
-	})
-
 	Context("with a reasonable configuration", func() {
 		BeforeEach(func() {
-			resTypes := atc.VersionedResourceTypes{
-				{
-					ResourceType: atc.ResourceType{
-						Type: "base-type",
-						Source: atc.Source{
-							"foo": "((bar))",
-						},
-					},
-					Version: atc.Version{"some": "type-version"},
-				},
-			}
-
-			checkPlan = atc.CheckPlan{
-				Timeout:                "10s",
-				Type:                   "resource-type",
-				Source:                 atc.Source{"some": "source"},
-				Tags:                   []string{"tag"},
-				VersionedResourceTypes: resTypes,
-			}
-
-			containerMetadata = db.ContainerMetadata{
-				User: "test-user",
-			}
-
-			stepMetadata = exec.StepMetadata{
-				TeamID: 345,
-			}
-
-			fakeRunState.GetStub = vars.StaticVariables{"bar": "caz"}.Get
 		})
 
 		It("emits an Initializing event", func() {
@@ -666,6 +595,69 @@ var _ = Describe("CheckStep", func() {
 					Expect(errors.Is(stepErr, expectedErr)).To(BeTrue())
 				})
 			})
+		})
+	})
+
+	Context("having credentials in the config", func() {
+		BeforeEach(func() {
+			checkPlan.Source = atc.Source{"some": "((super-secret-source))"}
+		})
+
+		Context("having cred evaluation failing", func() {
+			var expectedErr error
+
+			BeforeEach(func() {
+				expectedErr = errors.New("creds-err")
+
+				fakeRunState.GetReturns(nil, false, expectedErr)
+			})
+
+			It("errors", func() {
+				Expect(stepErr).To(HaveOccurred())
+				Expect(errors.Is(stepErr, expectedErr)).To(BeTrue())
+			})
+		})
+	})
+
+	Context("having credentials in a resource type", func() {
+		BeforeEach(func() {
+			resTypes := atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Source: atc.Source{
+							"some-custom": "((super-secret-source))",
+						},
+					},
+				},
+			}
+
+			checkPlan.VersionedResourceTypes = resTypes
+		})
+
+		Context("having cred evaluation failing", func() {
+			var expectedErr error
+
+			BeforeEach(func() {
+				expectedErr = errors.New("creds-err")
+
+				fakeRunState.GetReturns(nil, false, expectedErr)
+			})
+
+			It("errors", func() {
+				Expect(stepErr).To(HaveOccurred())
+				Expect(errors.Is(stepErr, expectedErr)).To(BeTrue())
+			})
+		})
+	})
+
+	Context("having a timeout that fails parsing", func() {
+		BeforeEach(func() {
+			checkPlan.Timeout = "bogus"
+		})
+
+		It("errors", func() {
+			Expect(stepErr).To(HaveOccurred())
+			Expect(stepErr.Error()).To(ContainSubstring("invalid duration"))
 		})
 	})
 })
