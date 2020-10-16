@@ -2121,7 +2121,7 @@ var _ = Describe("ValidateConfig", func() {
 			})
 			It("is an invalid pipeline", func() {
 				Expect(errorMessages).To(HaveLen(1))
-				Expect(errorMessages[0]).To(ContainSubstring("no jobs found. pipeline must contain at least one job"))
+				Expect(errorMessages[0]).To(ContainSubstring("pipeline must contain at least one job"))
 			})
 
 		})
