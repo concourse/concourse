@@ -1,15 +1,14 @@
 package flaghelpers
 
 import (
+	"encoding/json"
 	"fmt"
 
-	yaml "gopkg.in/yaml.v2"
+	"github.com/concourse/concourse/vars"
+	"sigs.k8s.io/yaml"
 )
 
-type YAMLVariablePairFlag struct {
-	Name  string
-	Value interface{}
-}
+type YAMLVariablePairFlag vars.KVPair
 
 func (pair *YAMLVariablePairFlag) UnmarshalFlag(value string) error {
 	k, v, ok := parseKeyValuePair(value)
@@ -17,12 +16,20 @@ func (pair *YAMLVariablePairFlag) UnmarshalFlag(value string) error {
 		return fmt.Errorf("invalid variable pair '%s' (must be name=value)", value)
 	}
 
-	pair.Name = k
-
-	err := yaml.Unmarshal([]byte(v), &pair.Value)
+	var err error
+	pair.Ref, err = vars.ParseReference(k)
+	if err != nil {
+		return err
+	}
+	err = yaml.Unmarshal([]byte(v), &pair.Value, useNumber)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func useNumber(d *json.Decoder) *json.Decoder {
+	d.UseNumber()
+	return d
 }

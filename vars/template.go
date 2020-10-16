@@ -1,6 +1,7 @@
 package vars
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"sort"
@@ -106,7 +107,7 @@ func (i interpolator) Interpolate(node interface{}, tracker varsTracker) (interf
 				}
 
 				switch foundVal.(type) {
-				case string, int, int16, int32, int64, uint, uint16, uint32, uint64:
+				case string, int, int16, int32, int64, uint, uint16, uint32, uint64, json.Number:
 					foundValStr := fmt.Sprintf("%v", foundVal)
 					typedNode = strings.Replace(typedNode, fmt.Sprintf("((%s))", name), foundValStr, -1)
 				default:
