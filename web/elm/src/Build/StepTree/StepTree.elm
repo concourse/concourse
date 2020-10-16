@@ -768,47 +768,47 @@ viewStepWithBody :
     -> StepHeaderType
     -> List (Html Message)
     -> Html Message
-viewStepWithBody model session depth { id, name, log, state, error, expanded, version, metadata, timestamps, initialize, start, finish, changed, imageCheck, imageGet } headerType body =
+viewStepWithBody model session depth step headerType body =
     Html.div
         [ classList
             [ ( "build-step", True )
-            , ( "inactive", not <| isActive state )
+            , ( "inactive", not <| isActive step.state )
             ]
-        , attribute "data-step-name" name
+        , attribute "data-step-name" step.name
         ]
         [ Html.div
             ([ class "header"
-             , onClick <| Click <| StepHeader id
+             , onClick <| Click <| StepHeader step.id
              , style "z-index" <| String.fromInt <| max (maxDepth - depth) 1
              ]
-                ++ Styles.stepHeader state
+                ++ Styles.stepHeader step.state
             )
             [ Html.div
                 [ style "display" "flex" ]
-                [ viewStepHeaderLabel headerType changed id
-                , Html.h3 [] [ Html.text name ]
+                [ viewStepHeaderLabel headerType step.changed step.id
+                , Html.h3 [] [ Html.text step.name ]
                 ]
             , Html.div
                 [ style "display" "flex" ]
-                [ viewVersion version
+                [ viewVersion step.version
                 , viewStepState
-                    state
-                    id
+                    step.state
+                    step.id
                     (viewDurationTooltip
-                        initialize
-                        start
-                        finish
-                        (showTooltip session <| StepState id)
+                        step.initialize
+                        step.start
+                        step.finish
+                        (showTooltip session <| StepState step.id)
                     )
                 ]
             ]
-        , if expanded then
+        , if step.expanded then
             Html.div
                 [ class "step-body"
                 , class "clearfix"
                 ]
-                ([ viewMetadata metadata
-                 , case imageCheck of
+                ([ viewMetadata step.metadata
+                 , case step.imageCheck of
                     Just subTree ->
                         Html.div [ class "seq" ]
                             [ viewTree session model subTree (depth + 1)
@@ -816,7 +816,7 @@ viewStepWithBody model session depth { id, name, log, state, error, expanded, ve
 
                     Nothing ->
                         Html.text ""
-                 , case imageGet of
+                 , case step.imageGet of
                     Just subTree ->
                         Html.div [ class "seq" ]
                             [ viewTree session model subTree (depth + 1)
@@ -825,8 +825,8 @@ viewStepWithBody model session depth { id, name, log, state, error, expanded, ve
                     Nothing ->
                         Html.text ""
                  , Html.pre [ class "timestamped-logs" ] <|
-                    viewLogs log timestamps model.highlight session.timeZone id
-                 , case error of
+                    viewLogs step.log step.timestamps model.highlight session.timeZone step.id
+                 , case step.error of
                     Nothing ->
                         Html.span [] []
 
