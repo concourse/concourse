@@ -254,6 +254,11 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 
 	names := map[string]int{}
 
+	if len(c.Jobs) == 0 {
+		errorMessages = append(errorMessages, "jobs: pipeline must contain at least one job")
+		return warnings, compositeErr(errorMessages)
+	}
+
 	for i, job := range c.Jobs {
 		var identifier string
 		if job.Name == "" {

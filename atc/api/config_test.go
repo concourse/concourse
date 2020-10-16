@@ -728,7 +728,13 @@ resource_types:
 - name: some-type
   type: some-base-resource-type
   source:
-    FOO: ((BAR))`
+    FOO: ((BAR))
+
+jobs:
+- name: some-job
+  plan:
+  - task: some-task
+    file: some/task/config.yaml`
 
 									request.Header.Set("Content-Type", "application/x-yaml")
 									request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
@@ -1123,7 +1129,6 @@ jobs:
 							})
 						})
 					})
-
 
 				})
 
