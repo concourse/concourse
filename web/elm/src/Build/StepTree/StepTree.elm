@@ -52,7 +52,7 @@ import Routes exposing (Highlight(..), StepID, showHighlight)
 import StrictEvents
 import Time
 import Tooltip
-import Url exposing (fromString)
+import Url
 import Views.DictView as DictView
 import Views.Icon as Icon
 import Views.Spinner as Spinner
@@ -973,33 +973,36 @@ viewVersion version =
 
 
 viewMetadata : List MetadataField -> Html Message
-viewMetadata =
-    List.map
-        (\{ name, value } ->
-            ( Html.text name
-            , Html.pre []
-                [ case fromString value of
-                    Just _ ->
-                        Html.a
-                            [ href value
-                            , target "_blank"
-                            , style "text-decoration-line" "underline"
-                            ]
-                            [ Html.text value ]
+viewMetadata meta =
+    let
+        val value =
+            case Url.fromString value of
+                Just _ ->
+                    Html.a
+                        [ href value
+                        , target "_blank"
+                        , style "text-decoration-line" "underline"
+                        ]
+                        [ Html.text value ]
 
-                    Nothing ->
-                        Html.text value
+                Nothing ->
+                    Html.text value
+
+        tr { name, value } =
+            Html.tr []
+                [ Html.td (Styles.metadataCell Styles.Key)
+                    [ Html.text name ]
+                , Html.td (Styles.metadataCell Styles.Value)
+                    [ val value ]
                 ]
-            )
-        )
-        >> List.map
-            (\( key, value ) ->
-                Html.tr []
-                    [ Html.td (Styles.metadataCell Styles.Key) [ key ]
-                    , Html.td (Styles.metadataCell Styles.Value) [ value ]
-                    ]
-            )
-        >> Html.table Styles.metadataTable
+    in
+    if meta == [] then
+        Html.text ""
+
+    else
+        meta
+            |> List.map tr
+            |> Html.table Styles.metadataTable
 
 
 viewStepStateWithoutTooltip : StepState -> Html Message
