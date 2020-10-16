@@ -384,18 +384,6 @@ viewStepTree session steps state =
 filterHoverState : HoverState.HoverState -> HoverState.HoverState
 filterHoverState hovered =
     case hovered of
-        HoverState.Hovered (ChangedStepLabel _ _) ->
-            hovered
-
-        HoverState.TooltipPending (ChangedStepLabel _ _) ->
-            hovered
-
-        HoverState.Tooltip (ChangedStepLabel _ _) _ ->
-            hovered
-
-        HoverState.Hovered (StepState _) ->
-            hovered
-
         HoverState.TooltipPending (StepState _) ->
             hovered
 
@@ -403,12 +391,6 @@ filterHoverState hovered =
             hovered
 
         HoverState.Hovered (StepTab _ _) ->
-            hovered
-
-        HoverState.TooltipPending (StepTab _ _) ->
-            hovered
-
-        HoverState.Tooltip (StepTab _ _) _ ->
             hovered
 
         _ ->
