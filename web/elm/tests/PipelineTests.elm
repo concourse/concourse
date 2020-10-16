@@ -112,7 +112,7 @@ all =
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.has
                                     [ style "background-color" "#2b2a2a"
-                                    , style "color" "#ffffff"
+                                    , style "color" "#FFFFFF"
                                     ]
                     , test "lays out groups in a horizontal list" <|
                         \_ ->
