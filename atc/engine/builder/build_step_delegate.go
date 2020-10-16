@@ -61,10 +61,6 @@ func (delegate *buildStepDelegate) StartSpan(
 	return tracing.StartSpan(ctx, component, attrs)
 }
 
-func (delegate *buildStepDelegate) ImageVersionDetermined(resourceCache db.UsedResourceCache) error {
-	return delegate.build.SaveImageResourceVersion(resourceCache)
-}
-
 type credVarsIterator struct {
 	line string
 }
@@ -77,26 +73,6 @@ func (it *credVarsIterator) YieldCred(name, value string) {
 			it.line = strings.Replace(it.line, lineValue, "((redacted))", -1)
 		}
 	}
-}
-
-func (delegate *buildStepDelegate) buildOutputFilter(str string) string {
-	it := &credVarsIterator{line: str}
-	delegate.state.IterateInterpolatedCreds(it)
-	return it.line
-}
-
-func (delegate *buildStepDelegate) RedactImageSource(source atc.Source) (atc.Source, error) {
-	b, err := json.Marshal(&source)
-	if err != nil {
-		return source, err
-	}
-	s := delegate.buildOutputFilter(string(b))
-	newSource := atc.Source{}
-	err = json.Unmarshal([]byte(s), &newSource)
-	if err != nil {
-		return source, err
-	}
-	return newSource, nil
 }
 
 func (delegate *buildStepDelegate) Stdout() io.Writer {
@@ -348,7 +324,7 @@ func (delegate *buildStepDelegate) checkImagePolicy(image atc.ImageResource, pri
 		return nil
 	}
 
-	redactedSource, err := delegate.RedactImageSource(image.Source)
+	redactedSource, err := delegate.redactImageSource(image.Source)
 	if err != nil {
 		return fmt.Errorf("redact source: %w", err)
 	}
@@ -374,4 +350,24 @@ func (delegate *buildStepDelegate) checkImagePolicy(image atc.ImageResource, pri
 	}
 
 	return nil
+}
+
+func (delegate *buildStepDelegate) buildOutputFilter(str string) string {
+	it := &credVarsIterator{line: str}
+	delegate.state.IterateInterpolatedCreds(it)
+	return it.line
+}
+
+func (delegate *buildStepDelegate) redactImageSource(source atc.Source) (atc.Source, error) {
+	b, err := json.Marshal(&source)
+	if err != nil {
+		return source, err
+	}
+	s := delegate.buildOutputFilter(string(b))
+	newSource := atc.Source{}
+	err = json.Unmarshal([]byte(s), &newSource)
+	if err != nil {
+		return source, err
+	}
+	return newSource, nil
 }
