@@ -431,7 +431,7 @@ func cleanupReleases() {
 		helmDestroy(releaseName, namespace)
 		Run(nil, "kubectl", "delete", "namespace", namespace, "--wait=false")
 	}
-	deployedReleases = nil
+	deployedReleases = make(map[string]string)
 }
 
 func onPks(f func()) {
@@ -459,4 +459,3 @@ func onGke(f func()) {
 		f()
 	})
 }
-
