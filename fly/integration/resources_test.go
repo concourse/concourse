@@ -48,6 +48,15 @@ var _ = Describe("Fly CLI", func() {
 								PipelineInstanceVars: pipelineRef.InstanceVars,
 								TeamName:             teamName,
 								Type:                 "time",
+								Build: &atc.BuildSummary{
+									ID:                   122,
+									Name:                 "122",
+									Status:               atc.StatusSucceeded,
+									TeamName:             teamName,
+									PipelineID:           1,
+									PipelineName:         pipelineRef.Name,
+									PipelineInstanceVars: pipelineRef.InstanceVars,
+								},
 							},
 							{
 								Name:                 "resource-2",
@@ -65,8 +74,15 @@ var _ = Describe("Fly CLI", func() {
 								PipelineInstanceVars: pipelineRef.InstanceVars,
 								TeamName:             teamName,
 								Type:                 "mock",
-								FailingToCheck:       true,
-								CheckError:           "some check error",
+								Build: &atc.BuildSummary{
+									ID:                   123,
+									Name:                 "123",
+									Status:               atc.StatusFailed,
+									TeamName:             teamName,
+									PipelineID:           1,
+									PipelineName:         pipelineRef.Name,
+									PipelineInstanceVars: pipelineRef.InstanceVars,
+								},
 							},
 							{
 								Name:                 "resource-4",
@@ -75,8 +91,15 @@ var _ = Describe("Fly CLI", func() {
 								PipelineInstanceVars: pipelineRef.InstanceVars,
 								TeamName:             teamName,
 								Type:                 "mock",
-								FailingToCheck:       true,
-								CheckSetupError:      "some check setup error",
+								Build: &atc.BuildSummary{
+									ID:                   124,
+									Name:                 "124",
+									Status:               atc.StatusErrored,
+									TeamName:             teamName,
+									PipelineID:           1,
+									PipelineName:         pipelineRef.Name,
+									PipelineInstanceVars: pipelineRef.InstanceVars,
+								},
 							},
 						}),
 					),
@@ -102,7 +125,18 @@ var _ = Describe("Fly CLI", func() {
                   "branch": "master"
                 },
                 "team_name": "main",
-                "type": "time"
+                "type": "time",
+								"build": {
+									"id": 122,
+									"name": "122",
+									"pipeline_id": 1,
+									"pipeline_name": "pipeline",
+									"pipeline_instance_vars": {
+										"branch": "master"
+									},
+									"team_name": "main",
+									"status": "succeeded"
+								}
               },
               {
                 "name": "resource-2",
@@ -124,8 +158,17 @@ var _ = Describe("Fly CLI", func() {
                 },
                 "team_name": "main",
                 "type": "mock",
-								"failing_to_check": true,
-								"check_error": "some check error"
+								"build": {
+									"id": 123,
+									"name": "123",
+									"pipeline_id": 1,
+									"pipeline_name": "pipeline",
+									"pipeline_instance_vars": {
+										"branch": "master"
+									},
+									"team_name": "main",
+									"status": "failed"
+								}
               },
               {
                 "name": "resource-4",
@@ -136,8 +179,17 @@ var _ = Describe("Fly CLI", func() {
                 },
                 "team_name": "main",
                 "type": "mock",
-								"failing_to_check": true,
-								"check_setup_error": "some check setup error"
+								"build": {
+									"id": 124,
+									"name": "124",
+									"pipeline_id": 1,
+									"pipeline_name": "pipeline",
+									"pipeline_instance_vars": {
+										"branch": "master"
+									},
+									"team_name": "main",
+									"status": "errored"
+								}
               }
             ]`))
 				})
@@ -150,10 +202,10 @@ var _ = Describe("Fly CLI", func() {
 
 				Expect(sess.Out).To(PrintTable(ui.Table{
 					Data: []ui.TableRow{
-						{{Contents: "resource-1"}, {Contents: "time"}, {Contents: "n/a"}, {Contents: "ok", Color: color.New(color.FgGreen)}},
-						{{Contents: "resource-2"}, {Contents: "custom"}, {Contents: "some:version", Color: color.New(color.FgCyan)}, {Contents: "ok", Color: color.New(color.FgGreen)}},
-						{{Contents: "resource-3"}, {Contents: "mock"}, {Contents: "n/a"}, {Contents: "some check error", Color: color.New(color.FgRed)}},
-						{{Contents: "resource-4"}, {Contents: "mock"}, {Contents: "n/a"}, {Contents: "some check setup error", Color: color.New(color.FgRed, color.Bold)}},
+						{{Contents: "resource-1"}, {Contents: "time"}, {Contents: "n/a"}, {Contents: "succeeded", Color: color.New(color.FgGreen)}},
+						{{Contents: "resource-2"}, {Contents: "custom"}, {Contents: "some:version", Color: color.New(color.FgCyan)}, {Contents: "n/a", Color: color.New(color.Faint)}},
+						{{Contents: "resource-3"}, {Contents: "mock"}, {Contents: "n/a"}, {Contents: "failed", Color: color.New(color.FgRed)}},
+						{{Contents: "resource-4"}, {Contents: "mock"}, {Contents: "n/a"}, {Contents: "errored", Color: color.New(color.FgRed, color.Bold)}},
 					},
 				}))
 			})

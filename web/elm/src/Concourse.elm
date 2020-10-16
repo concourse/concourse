@@ -14,9 +14,6 @@ module Concourse exposing
     , BuildStep(..)
     , CSRFToken
     , Cause
-    , Check
-    , CheckIdentifier
-    , CheckStatus(..)
     , ClusterInfo
     , DatabaseID
     , HookedPlan
@@ -49,7 +46,6 @@ module Concourse exposing
     , decodeBuildPrep
     , decodeBuildResources
     , decodeCause
-    , decodeCheck
     , decodeInfo
     , decodeJob
     , decodeMetadata
@@ -895,13 +891,11 @@ type alias Resource =
     , pipelineName : String
     , name : String
     , icon : Maybe String
-    , failingToCheck : Bool
-    , checkError : String
-    , checkSetupError : String
     , lastChecked : Maybe Time.Posix
     , pinnedVersion : Maybe Version
     , pinnedInConfig : Bool
     , pinComment : Maybe String
+    , build : Maybe Build
     }
 
 
@@ -909,14 +903,6 @@ type alias ResourceIdentifier =
     { teamName : String
     , pipelineName : String
     , resourceName : String
-    }
-
-
-type alias CheckIdentifier =
-    { teamName : String
-    , pipelineName : String
-    , resourceName : String
-    , checkID : Int
     }
 
 
@@ -936,22 +922,6 @@ type alias VersionedResourceIdentifier =
     }
 
 
-type alias Check =
-    { id : Int
-    , status : CheckStatus
-    , createTime : Maybe Time.Posix
-    , startTime : Maybe Time.Posix
-    , endTime : Maybe Time.Posix
-    , checkError : Maybe String
-    }
-
-
-type CheckStatus
-    = Started
-    | Succeeded
-    | Errored
-
-
 decodeResource : Json.Decode.Decoder Resource
 decodeResource =
     Json.Decode.succeed Resource
@@ -959,13 +929,11 @@ decodeResource =
         |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (Json.Decode.maybe (Json.Decode.field "icon" Json.Decode.string))
-        |> andMap (defaultTo False <| Json.Decode.field "failing_to_check" Json.Decode.bool)
-        |> andMap (defaultTo "" <| Json.Decode.field "check_error" Json.Decode.string)
-        |> andMap (defaultTo "" <| Json.Decode.field "check_setup_error" Json.Decode.string)
         |> andMap (Json.Decode.maybe (Json.Decode.field "last_checked" (Json.Decode.map dateFromSeconds Json.Decode.int)))
         |> andMap (Json.Decode.maybe (Json.Decode.field "pinned_version" decodeVersion))
         |> andMap (defaultTo False <| Json.Decode.field "pinned_in_config" Json.Decode.bool)
         |> andMap (Json.Decode.maybe (Json.Decode.field "pin_comment" Json.Decode.string))
+        |> andMap (Json.Decode.maybe (Json.Decode.field "build" decodeBuild))
 
 
 decodeVersionedResource : Json.Decode.Decoder VersionedResource
@@ -975,37 +943,6 @@ decodeVersionedResource =
         |> andMap (Json.Decode.field "version" decodeVersion)
         |> andMap (defaultTo [] (Json.Decode.field "metadata" decodeMetadata))
         |> andMap (Json.Decode.field "enabled" Json.Decode.bool)
-
-
-decodeCheck : Json.Decode.Decoder Check
-decodeCheck =
-    Json.Decode.succeed Check
-        |> andMap (Json.Decode.field "id" Json.Decode.int)
-        |> andMap (Json.Decode.field "status" decodeCheckStatus)
-        |> andMap (Json.Decode.maybe (Json.Decode.field "create_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
-        |> andMap (Json.Decode.maybe (Json.Decode.field "start_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
-        |> andMap (Json.Decode.maybe (Json.Decode.field "end_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
-        |> andMap (Json.Decode.maybe (Json.Decode.field "check_error" Json.Decode.string))
-
-
-decodeCheckStatus : Json.Decode.Decoder CheckStatus
-decodeCheckStatus =
-    Json.Decode.string
-        |> Json.Decode.andThen
-            (\status ->
-                case status of
-                    "started" ->
-                        Json.Decode.succeed Started
-
-                    "succeeded" ->
-                        Json.Decode.succeed Succeeded
-
-                    "errored" ->
-                        Json.Decode.succeed Errored
-
-                    unknown ->
-                        Json.Decode.fail <| "unknown check status: " ++ unknown
-            )
 
 
 

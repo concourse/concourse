@@ -2,7 +2,6 @@ package db_test
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -392,53 +391,6 @@ var _ = Describe("ResourceType", func() {
 		})
 	})
 
-	Describe("SetCheckError", func() {
-		var resourceType db.ResourceType
-
-		BeforeEach(func() {
-			var err error
-			resourceType, _, err = pipeline.ResourceType("some-type")
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		Context("when the resource is first created", func() {
-			It("is not errored", func() {
-				Expect(resourceType.CheckSetupError()).To(BeNil())
-			})
-		})
-
-		Context("when a resource check is marked as errored", func() {
-			It("is then marked as errored", func() {
-				originalCause := errors.New("on fire")
-
-				err := resourceType.SetCheckSetupError(originalCause)
-				Expect(err).ToNot(HaveOccurred())
-
-				returnedResourceType, _, err := pipeline.ResourceType("some-type")
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(returnedResourceType.CheckSetupError()).To(Equal(originalCause))
-			})
-		})
-
-		Context("when a resource is cleared of check errors", func() {
-			It("is not marked as errored again", func() {
-				originalCause := errors.New("on fire")
-
-				err := resourceType.SetCheckSetupError(originalCause)
-				Expect(err).ToNot(HaveOccurred())
-
-				err = resourceType.SetCheckSetupError(nil)
-				Expect(err).ToNot(HaveOccurred())
-
-				returnedResourceType, _, err := pipeline.ResourceType("some-type")
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(returnedResourceType.CheckSetupError()).To(BeNil())
-			})
-		})
-	})
-
 	Describe("Resource type version", func() {
 		var (
 			resourceType      db.ResourceType
@@ -577,9 +529,11 @@ var _ = Describe("ResourceType", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("creates a one-off build", func() {
+		It("creates a build for a resource type", func() {
 			Expect(created).To(BeTrue())
 			Expect(build).ToNot(BeNil())
+			Expect(build.Name()).To(Equal(db.CheckBuildName))
+			Expect(build.ResourceTypeID()).To(Equal(resourceType.ID()))
 			Expect(build.PipelineID()).To(Equal(defaultResource.PipelineID()))
 			Expect(build.TeamID()).To(Equal(defaultResource.TeamID()))
 			Expect(build.IsManuallyTriggered()).To(BeFalse())
@@ -606,13 +560,48 @@ var _ = Describe("ResourceType", func() {
 			})
 		})
 
-		Context("when manually triggered", func() {
+		Context("when another build already exists", func() {
+			var prevBuild db.Build
+
 			BeforeEach(func() {
-				manuallyTriggered = true
+				var err error
+				var prevCreated bool
+				prevBuild, prevCreated, err = resourceType.CreateBuild(ctx, false)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(prevCreated).To(BeTrue())
 			})
 
-			It("creates a manually triggered one-off build", func() {
-				Expect(build.IsManuallyTriggered()).To(BeTrue())
+			It("does not create the second build", func() {
+				Expect(created).To(BeFalse())
+			})
+
+			Context("when manually triggered", func() {
+				BeforeEach(func() {
+					manuallyTriggered = true
+				})
+
+				It("creates a manually triggered resource build", func() {
+					Expect(created).To(BeTrue())
+					Expect(build.IsManuallyTriggered()).To(BeTrue())
+					Expect(build.ResourceTypeID()).To(Equal(resourceType.ID()))
+				})
+			})
+
+			Context("when the previous build is finished", func() {
+				BeforeEach(func() {
+					Expect(prevBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
+				})
+
+				It("creates the build", func() {
+					Expect(created).To(BeTrue())
+					Expect(build.ResourceTypeID()).To(Equal(resourceType.ID()))
+				})
+
+				It("deletes the previous build", func() {
+					found, err := prevBuild.Reload()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeFalse())
+				})
 			})
 		})
 	})

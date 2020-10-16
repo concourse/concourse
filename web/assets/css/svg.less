@@ -2,24 +2,34 @@
 
 svg {
   .node rect { fill: @base00; }
-  .node.pending rect { fill: @grey-primary; }
-  .node.succeeded rect { fill: @green-primary; }
-  .node.failed rect { fill: @red-primary; }
-  .node.errored rect { fill: @amber-primary; }
-  .node.aborted rect { fill: @brown-primary; }
-  .node.failing rect { fill: @amber-primary; }
-  .node.paused rect { fill: @blue-primary; }
-  .node.job.no-builds rect { fill: @grey-primary; }
-  .node.resource a { color: @base06; }
-  .node.pinned rect { fill: #5C3BD1; }
-  .node.constrained-input.pinned {
-    rect {
-      fill: #5C3BD1;
-      opacity: 0.8;
-    }
 
-    image {
-      opacity: 0.7;
+  .node.job {
+    &.pending rect { fill: @grey-primary; }
+    &.succeeded rect { fill: @green-primary; }
+    &.failed rect { fill: @red-primary; }
+    &.errored rect { fill: @amber-primary; }
+    &.aborted rect { fill: @brown-primary; }
+    &.paused rect { fill: @blue-primary; }
+    &.no-builds rect { fill: @grey-primary; }
+  }
+
+  .node.resource {
+    &.failed rect  { stroke: @red-primary; }
+    &.errored rect { stroke: @amber-primary; }
+    &.aborted rect { stroke: @brown-primary; }
+
+    &.active rect { fill: @grey-secondary; }
+    &.pinned rect { fill: @purple; }
+
+    &.constrained-input.pinned {
+      rect {
+        fill: @purple;
+        opacity: 0.8;
+      }
+
+      image {
+        opacity: 0.7;
+      }
     }
   }
 
@@ -31,4 +41,68 @@ svg {
   .edge.aborted { stroke: @brown-primary; }
   .edge.paused { stroke: @blue-primary; }
   .edge.trigger-false { stroke-dasharray: 5, 5; }
+}
+
+svg.pipeline-graph {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+
+  h1 {
+    margin: 5px;
+    width: 100%;
+  }
+
+  h1.resource {
+    font-size: 1.5em;
+    font-weight: normal;
+    width: 100%;
+  }
+
+  h1 a {
+    padding: 5px;
+    text-decoration: none;
+  }
+
+  .node a {
+    cursor: pointer;
+  }
+
+  .node rect {
+    shape-rendering: crispEdges;
+  }
+
+  .edge path {
+    stroke-width: 2px;
+    fill: none;
+  }
+
+  .node text {
+    fill: #fff;
+  }
+
+  .node.constrained-input {
+    text, use {
+      fill: @base04;
+    }
+
+    &.pinned {
+      text, use {
+        fill: #fff;
+        opacity: 0.7;
+      }
+    }
+
+    &.active {
+      text, use {
+        fill: #fff;
+      }
+    }
+  }
+
+  .edge.active {
+    path {
+      stroke-width: 4px;
+    }
+  }
 }

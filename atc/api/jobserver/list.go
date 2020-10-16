@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -13,26 +12,15 @@ func (s *Server) ListJobs(pipeline db.Pipeline) http.Handler {
 	logger := s.logger.Session("list-jobs")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		jobs := []atc.Job{}
-
-		dashboard, err := pipeline.Dashboard()
-
+		jobs, err := pipeline.Dashboard()
 		if err != nil {
 			logger.Error("failed-to-get-dashboard", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		teamName := r.FormValue(":team_name")
-
-		for _, job := range dashboard {
-			jobs = append(
-				jobs,
-				present.DashboardJob(
-					teamName,
-					job,
-				),
-			)
+		if jobs == nil {
+			jobs = []atc.JobSummary{}
 		}
 
 		w.Header().Set("Content-Type", "application/json")

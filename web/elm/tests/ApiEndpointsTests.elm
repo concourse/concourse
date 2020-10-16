@@ -232,11 +232,6 @@ testEndpoints =
                         |> toPath
                         |> Expect.equal "/api/v1/teams/team/pipelines/pipeline/resources/resource/versions/1/disable"
             ]
-        , test "Check" <|
-            \_ ->
-                Check 1
-                    |> toPath
-                    |> Expect.equal "/api/v1/checks/1"
         , test "TeamsList" <|
             \_ ->
                 TeamsList

@@ -238,8 +238,8 @@ runEffect effect key csrfToken =
                 |> Task.attempt ResourceFetched
 
         FetchCheck id ->
-            Api.get (Endpoints.Check id)
-                |> Api.expectJson Concourse.decodeCheck
+            Api.get (Endpoints.Build id Endpoints.BaseBuild)
+                |> Api.expectJson Concourse.decodeBuild
                 |> Api.request
                 |> Task.attempt Checked
 
@@ -420,7 +420,7 @@ runEffect effect key csrfToken =
                 csrfToken
                 |> Api.withJsonBody
                     (Json.Encode.object [ ( "from", Json.Encode.null ) ])
-                |> Api.expectJson Concourse.decodeCheck
+                |> Api.expectJson Concourse.decodeBuild
                 |> Api.request
                 |> Task.attempt Checked
 

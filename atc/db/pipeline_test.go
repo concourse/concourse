@@ -639,8 +639,6 @@ var _ = Describe("Pipeline", func() {
 		It("returns correct resource", func() {
 			Expect(resource.Name()).To(Equal("some-resource"))
 			Expect(resource.PipelineName()).To(Equal("pipeline-name"))
-			Expect(resource.CheckSetupError()).To(BeNil())
-			Expect(resource.CheckError()).To(BeNil())
 			Expect(resource.Type()).To(Equal("some-type"))
 			Expect(resource.Source()).To(Equal(atc.Source{"source-config": "some-value"}))
 		})
@@ -1302,7 +1300,7 @@ var _ = Describe("Pipeline", func() {
 
 			Expect(actualDashboard[0].Name).To(Equal(job.Name()))
 			Expect(actualDashboard[0].NextBuild.ID).To(Equal(firstJobBuild.ID()))
-			Expect(actualDashboard[0].NextBuild.Status).To(Equal("started"))
+			Expect(actualDashboard[0].NextBuild.Status).To(Equal(atc.StatusStarted))
 
 			By("returning a job's most recent started build even if there is a newer pending build")
 			job, found, err = pipeline.Job("job-name")
@@ -1337,11 +1335,11 @@ var _ = Describe("Pipeline", func() {
 			Expect(actualDashboard[0].FinishedBuild.ID).To(Equal(secondJobBuild.ID()))
 
 			By("returning the job inputs and outputs")
-			Expect(actualDashboard[0].Outputs).To(ConsistOf(atc.JobOutput{
+			Expect(actualDashboard[0].Outputs).To(ConsistOf(atc.JobOutputSummary{
 				Name:     "some-resource",
 				Resource: "some-resource",
 			}))
-			Expect(actualDashboard[0].Inputs).To(ConsistOf(atc.DashboardJobInput{
+			Expect(actualDashboard[0].Inputs).To(ConsistOf(atc.JobInputSummary{
 				Name:     "some-input",
 				Resource: "some-resource",
 				Passed:   []string{"job-1", "job-2"},

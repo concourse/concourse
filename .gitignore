@@ -11,6 +11,9 @@ web/public/bundle.js
 web/public/*.bundle.js
 web/public/main.css
 docker-compose.override.yml
+*.coverprofile
+*.coverprofile.*
+*.test
 
 ci/deployments/*/.terraform/
 ci/deployments/*/keys/gcp.json

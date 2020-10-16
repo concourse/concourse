@@ -41,15 +41,15 @@ var _ = Describe("Checking a resource", func() {
 			checkFailure = "super broken"
 		})
 
-		It("saves the error on the resource", func() {
+		It("shows the check status failed", func() {
 			check := spawnFly("check-resource", "-r", inPipeline("my-resource"))
 			<-check.Exited
-			Expect(check).To(gexec.Exit(2))
+			Expect(check).To(gexec.Exit(1))
 			Expect(check).To(gbytes.Say("super broken"))
 			Expect(check).To(gbytes.Say("failed"))
 
 			resources := fly("resources", "-p", pipelineName)
-			Expect(resources).To(gbytes.Say(`resource script '/opt/resource/check \[\]' failed: exit status 1`))
+			Expect(resources).To(gbytes.Say("failed"))
 		})
 	})
 })

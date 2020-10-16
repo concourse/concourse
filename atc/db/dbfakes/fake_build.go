@@ -468,6 +468,26 @@ type FakeBuild struct {
 	resourceNameReturnsOnCall map[int]struct {
 		result1 string
 	}
+	ResourceTypeIDStub        func() int
+	resourceTypeIDMutex       sync.RWMutex
+	resourceTypeIDArgsForCall []struct {
+	}
+	resourceTypeIDReturns struct {
+		result1 int
+	}
+	resourceTypeIDReturnsOnCall map[int]struct {
+		result1 int
+	}
+	ResourceTypeNameStub        func() string
+	resourceTypeNameMutex       sync.RWMutex
+	resourceTypeNameArgsForCall []struct {
+	}
+	resourceTypeNameReturns struct {
+		result1 string
+	}
+	resourceTypeNameReturnsOnCall map[int]struct {
+		result1 string
+	}
 	ResourcesStub        func() ([]db.BuildInput, []db.BuildOutput, error)
 	resourcesMutex       sync.RWMutex
 	resourcesArgsForCall []struct {
@@ -2911,6 +2931,110 @@ func (fake *FakeBuild) ResourceNameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeBuild) ResourceTypeID() int {
+	fake.resourceTypeIDMutex.Lock()
+	ret, specificReturn := fake.resourceTypeIDReturnsOnCall[len(fake.resourceTypeIDArgsForCall)]
+	fake.resourceTypeIDArgsForCall = append(fake.resourceTypeIDArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ResourceTypeID", []interface{}{})
+	fake.resourceTypeIDMutex.Unlock()
+	if fake.ResourceTypeIDStub != nil {
+		return fake.ResourceTypeIDStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.resourceTypeIDReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) ResourceTypeIDCallCount() int {
+	fake.resourceTypeIDMutex.RLock()
+	defer fake.resourceTypeIDMutex.RUnlock()
+	return len(fake.resourceTypeIDArgsForCall)
+}
+
+func (fake *FakeBuild) ResourceTypeIDCalls(stub func() int) {
+	fake.resourceTypeIDMutex.Lock()
+	defer fake.resourceTypeIDMutex.Unlock()
+	fake.ResourceTypeIDStub = stub
+}
+
+func (fake *FakeBuild) ResourceTypeIDReturns(result1 int) {
+	fake.resourceTypeIDMutex.Lock()
+	defer fake.resourceTypeIDMutex.Unlock()
+	fake.ResourceTypeIDStub = nil
+	fake.resourceTypeIDReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeBuild) ResourceTypeIDReturnsOnCall(i int, result1 int) {
+	fake.resourceTypeIDMutex.Lock()
+	defer fake.resourceTypeIDMutex.Unlock()
+	fake.ResourceTypeIDStub = nil
+	if fake.resourceTypeIDReturnsOnCall == nil {
+		fake.resourceTypeIDReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.resourceTypeIDReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeBuild) ResourceTypeName() string {
+	fake.resourceTypeNameMutex.Lock()
+	ret, specificReturn := fake.resourceTypeNameReturnsOnCall[len(fake.resourceTypeNameArgsForCall)]
+	fake.resourceTypeNameArgsForCall = append(fake.resourceTypeNameArgsForCall, struct {
+	}{})
+	fake.recordInvocation("ResourceTypeName", []interface{}{})
+	fake.resourceTypeNameMutex.Unlock()
+	if fake.ResourceTypeNameStub != nil {
+		return fake.ResourceTypeNameStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.resourceTypeNameReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) ResourceTypeNameCallCount() int {
+	fake.resourceTypeNameMutex.RLock()
+	defer fake.resourceTypeNameMutex.RUnlock()
+	return len(fake.resourceTypeNameArgsForCall)
+}
+
+func (fake *FakeBuild) ResourceTypeNameCalls(stub func() string) {
+	fake.resourceTypeNameMutex.Lock()
+	defer fake.resourceTypeNameMutex.Unlock()
+	fake.ResourceTypeNameStub = stub
+}
+
+func (fake *FakeBuild) ResourceTypeNameReturns(result1 string) {
+	fake.resourceTypeNameMutex.Lock()
+	defer fake.resourceTypeNameMutex.Unlock()
+	fake.ResourceTypeNameStub = nil
+	fake.resourceTypeNameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuild) ResourceTypeNameReturnsOnCall(i int, result1 string) {
+	fake.resourceTypeNameMutex.Lock()
+	defer fake.resourceTypeNameMutex.Unlock()
+	fake.ResourceTypeNameStub = nil
+	if fake.resourceTypeNameReturnsOnCall == nil {
+		fake.resourceTypeNameReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.resourceTypeNameReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeBuild) Resources() ([]db.BuildInput, []db.BuildOutput, error) {
 	fake.resourcesMutex.Lock()
 	ret, specificReturn := fake.resourcesReturnsOnCall[len(fake.resourcesArgsForCall)]
@@ -4037,6 +4161,10 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.resourceIDMutex.RUnlock()
 	fake.resourceNameMutex.RLock()
 	defer fake.resourceNameMutex.RUnlock()
+	fake.resourceTypeIDMutex.RLock()
+	defer fake.resourceTypeIDMutex.RUnlock()
+	fake.resourceTypeNameMutex.RLock()
+	defer fake.resourceTypeNameMutex.RUnlock()
 	fake.resourcesMutex.RLock()
 	defer fake.resourcesMutex.RUnlock()
 	fake.resourcesCheckedMutex.RLock()
