@@ -1,0 +1,13 @@
+---
+resources:
+  - name: some-resource
+    type: some-type
+    source:
+      a: ((source.a))
+      b: ((source.b))
+      other: (("source.a"))
+
+jobs:
+  - name: some-job
+    plan:
+      - get: some-resource
