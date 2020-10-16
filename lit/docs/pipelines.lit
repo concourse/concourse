@@ -13,8 +13,8 @@ Pipelines are configured via \reference{fly-set-pipeline} or the
 files} which conform to the following schema:
 
 \schema{pipeline}{
-  \optional-attribute{jobs}{[job]}{
-    A set of \reference{jobs}{jobs} for the pipeline to continuously schedule.
+  \required-attribute{jobs}{[job]}{
+    A set of \reference{jobs}{jobs} for the pipeline to continuously schedule. At least one job is required for a pipeline to be valid.
   }
 
   \optional-attribute{resources}{[resource]}{
