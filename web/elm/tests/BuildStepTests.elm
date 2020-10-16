@@ -21,8 +21,9 @@ import Dict
 import Expect
 import Json.Encode
 import Message.Callback as Callback
+import Message.Effects as Effects
 import Message.Message as Message exposing (DomID(..))
-import Message.Subscription exposing (Delivery(..))
+import Message.Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Routes
 import Test exposing (Test, describe, test)
@@ -330,7 +331,7 @@ all =
                 given iVisitABuildWithATaskStep
                     >> given (thereIsAnImageCheckStep taskStepId)
                     >> given (thereIsALog imageCheckStepId)
-                    >> given theTaskStepIsExpanded
+                    >> given theTaskImageFetchingIsExpanded
                     >> given theImageCheckStepIsExpanded
                     >> when iAmLookingAtTheStepBody
                     >> then_ iSeeTheLogOutput
@@ -338,10 +339,22 @@ all =
                 given iVisitABuildWithATaskStep
                     >> given (thereIsAnImageGetStep taskStepId)
                     >> given (thereIsALog imageGetStepId)
-                    >> given theTaskStepIsExpanded
+                    >> given theTaskImageFetchingIsExpanded
                     >> given theImageGetStepIsExpanded
                     >> when iAmLookingAtTheStepBody
                     >> then_ iSeeTheLogOutput
+            , test "step prep toggle gets viewport for tooltip" <|
+                given iVisitABuildWithATaskStep
+                    >> given (thereIsAnImageGetStep taskStepId)
+                    >> given iHoverOverStepPrepToggle
+                    >> given timeElapses
+                    >> then_ (itGetsViewportOf prepToggleID)
+            , test "step prep toggle shows tooltip" <|
+                given iVisitABuildWithATaskStep
+                    >> given (thereIsAnImageGetStep taskStepId)
+                    >> given iHoverOverStepPrepToggle
+                    >> given (gotViewportAndElementOf prepToggleID)
+                    >> then_ (iSeeText "initialization")
             ]
         , describe "check step"
             [ test "should show resource name" <|
@@ -365,6 +378,70 @@ all =
                     >> then_ iSeeTheLoadVarName
             ]
         ]
+
+
+gotViewportAndElementOf domID =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.GotViewport domID <|
+                Ok
+                    { scene =
+                        { width = 1
+                        , height = 0
+                        }
+                    , viewport =
+                        { width = 1
+                        , height = 0
+                        , x = 0
+                        , y = 0
+                        }
+                    }
+            )
+        >> Tuple.first
+        >> Application.handleCallback
+            (Callback.GotElement <|
+                Ok
+                    { scene =
+                        { width = 0
+                        , height = 0
+                        }
+                    , viewport =
+                        { width = 0
+                        , height = 0
+                        , x = 0
+                        , y = 0
+                        }
+                    , element =
+                        { x = 0
+                        , y = 0
+                        , width = 1
+                        , height = 1
+                        }
+                    }
+            )
+
+
+iHoverOverStepPrepToggle =
+    Tuple.first
+        >> Application.update
+            (Update <| Message.Hover <| Just prepToggleID)
+
+
+timeElapses =
+    Tuple.first
+        >> Application.handleDelivery
+            (ClockTicked OneSecond <|
+                Time.millisToPosix 0
+            )
+
+
+itGetsViewportOf domID =
+    Tuple.second
+        >> Common.contains (Effects.GetViewportOf domID)
+
+
+prepToggleID =
+    Message.StepHeaderImageFetching "foo"
 
 
 iVisitABuildWithARetryStep =
@@ -470,6 +547,11 @@ theGetStepIsExpanded =
 theTaskStepIsExpanded =
     Tuple.first
         >> Application.update (Update <| Message.Click <| StepHeader taskStepId)
+
+
+theTaskImageFetchingIsExpanded =
+    Tuple.first
+        >> Application.update (Update <| Message.Click <| StepHeaderImageFetching taskStepId)
 
 
 theImageCheckStepIsExpanded =
@@ -774,6 +856,13 @@ theGetStepReturnsMetadata =
                           }
                         ]
             )
+
+
+iSeeText str =
+    Tuple.first
+        >> Common.queryView
+        >> Query.findAll [ text str ]
+        >> Query.count (Expect.equal 1)
 
 
 iAmLookingAtTheRetryStepInTheBuildOutput =
@@ -1135,6 +1224,10 @@ taskErrored stepId =
             (Time.millisToPosix 0)
 
 
+eventsUrl =
+    "http://localhost:8080/api/v1/builds/1/events"
+
+
 thereIsALog stepId =
     Tuple.first
         >> Application.handleDelivery
@@ -1146,7 +1239,7 @@ thereIsALog stepId =
                                 , id = stepId
                                 }
                                 (Time.millisToPosix 0)
-                      , url = "http://localhost:8080/api/v1/builds/1/events"
+                      , url = eventsUrl
                       }
                     , { data =
                             StartTask
@@ -1154,7 +1247,7 @@ thereIsALog stepId =
                                 , id = stepId
                                 }
                                 (Time.millisToPosix 0)
-                      , url = "http://localhost:8080/api/v1/builds/1/events"
+                      , url = eventsUrl
                       }
                     , { data =
                             Log
@@ -1163,7 +1256,7 @@ thereIsALog stepId =
                                 }
                                 "the log output"
                                 (Just <| Time.millisToPosix 1000)
-                      , url = "http://localhost:8080/api/v1/builds/1/events"
+                      , url = eventsUrl
                       }
                     ]
             )

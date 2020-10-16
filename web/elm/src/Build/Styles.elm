@@ -11,6 +11,8 @@ module Build.Styles exposing
     , errorLog
     , header
     , historyItem
+    , imageSteps
+    , imageStepsToggle
     , metadataCell
     , metadataTable
     , retryTabList
@@ -351,3 +353,27 @@ metadataCell cell =
             , style "border-bottom" "5px solid rgb(45,45,45)"
             , style "padding" "5px"
             ]
+
+
+imageSteps : List (Html.Attribute msg)
+imageSteps =
+    [ style "padding" "10px"
+    , style "background" Colors.backgroundDark
+    ]
+
+
+imageStepsToggle : Bool -> List (Html.Attribute msg)
+imageStepsToggle expanded =
+    [ style "color" <|
+        if expanded then
+            Colors.text
+
+        else
+            Colors.pending
+    , style "background" <|
+        if expanded then
+            Colors.backgroundDark
+
+        else
+            "transparent"
+    ]

@@ -838,6 +838,7 @@ steps =
         , finish = Nothing
         , tabFocus = STModels.Auto
         , expandedHeaders = Dict.empty
+        , initializationExpanded = False
         , imageCheck = Nothing
         , imageGet = Nothing
         }

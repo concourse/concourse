@@ -7,6 +7,7 @@ module Build.StepTree.StepTree exposing
     , setImageGet
     , switchTab
     , toggleStep
+    , toggleStepImageFetching
     , toggleStepSubHeader
     , view
     )
@@ -46,6 +47,7 @@ import Html.Attributes exposing (attribute, class, classList, href, id, style, t
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Json.Encode
 import List.Extra
+import Maybe.Extra
 import Message.Effects exposing (Effect(..), toHtmlID)
 import Message.Message exposing (DomID(..), Message(..))
 import Routes exposing (Highlight(..), StepID, showHighlight)
@@ -287,6 +289,7 @@ constructStep stepId name =
     , finish = Nothing
     , tabFocus = Auto
     , expandedHeaders = Dict.empty
+    , imageFetchingExpanded = False
     , imageCheck = Nothing
     , imageGet = Nothing
     }
@@ -394,6 +397,13 @@ finishStep step =
 toggleStep : StepID -> StepTreeModel -> ( StepTreeModel, List Effect )
 toggleStep id root =
     ( updateAt id (\step -> { step | expanded = not step.expanded }) root
+    , []
+    )
+
+
+toggleStepImageFetching : StepID -> StepTreeModel -> ( StepTreeModel, List Effect )
+toggleStepImageFetching id root =
+    ( updateAt id (\step -> { step | imageFetchingExpanded = not step.imageFetchingExpanded }) root
     , []
     )
 
@@ -791,6 +801,12 @@ viewStepWithBody model session depth step headerType body =
             , Html.div
                 [ style "display" "flex" ]
                 [ viewVersion step.version
+                , case Maybe.Extra.or step.imageCheck step.imageGet of
+                    Just _ ->
+                        viewImageFetchingToggle step
+
+                    Nothing ->
+                        Html.text ""
                 , viewStepState
                     step.state
                     step.id
@@ -802,28 +818,34 @@ viewStepWithBody model session depth step headerType body =
                     )
                 ]
             ]
+        , if step.imageFetchingExpanded then
+            Html.div Styles.imageSteps
+                [ case step.imageCheck of
+                    Just subTree ->
+                        Html.div [ class "seq" ]
+                            [ viewTree session model subTree (depth + 1)
+                            ]
+
+                    Nothing ->
+                        Html.text ""
+                , case step.imageGet of
+                    Just subTree ->
+                        Html.div [ class "seq" ]
+                            [ viewTree session model subTree (depth + 1)
+                            ]
+
+                    Nothing ->
+                        Html.text ""
+                ]
+
+          else
+            Html.text ""
         , if step.expanded then
             Html.div
                 [ class "step-body"
                 , class "clearfix"
                 ]
                 ([ viewMetadata step.metadata
-                 , case step.imageCheck of
-                    Just subTree ->
-                        Html.div [ class "seq" ]
-                            [ viewTree session model subTree (depth + 1)
-                            ]
-
-                    Nothing ->
-                        Html.text ""
-                 , case step.imageGet of
-                    Just subTree ->
-                        Html.div [ class "seq" ]
-                            [ viewTree session model subTree (depth + 1)
-                            ]
-
-                    Nothing ->
-                        Html.text ""
                  , Html.pre [ class "timestamped-logs" ] <|
                     viewLogs step.log step.timestamps model.highlight session.timeZone step.id
                  , case step.error of
@@ -838,6 +860,30 @@ viewStepWithBody model session depth step headerType body =
 
           else
             Html.text ""
+        ]
+
+
+viewImageFetchingToggle : Step -> Html Message
+viewImageFetchingToggle step =
+    let
+        domId =
+            StepHeaderImageFetching step.id
+    in
+    Html.h3
+        ([ StrictEvents.onLeftClickStopPropagation (Click domId)
+         , onMouseLeave <| Hover Nothing
+         , onMouseEnter <| Hover (Just domId)
+         , id (toHtmlID domId)
+         ]
+            ++ Styles.imageStepsToggle step.imageFetchingExpanded
+        )
+        [ Icon.icon
+            { sizePx = 14
+            , image = Assets.CogsIcon
+            }
+            [ style "margin" "7px 0"
+            , style "background-size" "contain"
+            ]
         ]
 
 

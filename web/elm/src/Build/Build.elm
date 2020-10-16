@@ -317,6 +317,11 @@ handleDelivery session delivery ( model, effects ) =
             ( { model | now = Just time }
             , effects
                 ++ (case session.hovered of
+                        HoverState.Hovered (StepHeaderImageFetching stepID) ->
+                            [ GetViewportOf
+                                (StepHeaderImageFetching stepID)
+                            ]
+
                         HoverState.Hovered (ChangedStepLabel stepID text) ->
                             [ GetViewportOf
                                 (ChangedStepLabel stepID text)
@@ -439,6 +444,11 @@ update msg ( model, effects ) =
         Click (StepHeader id) ->
             updateOutput
                 (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStep id)
+                ( model, effects ++ [ SyncStickyBuildLogHeaders ] )
+
+        Click (StepHeaderImageFetching id) ->
+            updateOutput
+                (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStepImageFetching id)
                 ( model, effects ++ [ SyncStickyBuildLogHeaders ] )
 
         Click (StepSubHeader id i) ->
@@ -686,6 +696,19 @@ tooltip _ { hovered } =
                 , arrow = Just { size = 5, color = Colors.tooltipBackground }
                 }
 
+        HoverState.Tooltip (StepHeaderImageFetching _) _ ->
+            Just
+                { body =
+                    Html.div
+                        Styles.changedStepTooltip
+                        [ Html.text "initialization" ]
+                , attachPosition =
+                    { direction = Tooltip.Top
+                    , alignment = Tooltip.End
+                    }
+                , arrow = Just { size = 5, color = Colors.tooltipBackground }
+                }
+
         _ ->
             Nothing
 
@@ -769,7 +792,6 @@ body session ({ prep, output, authorized, showHelp } as params) =
 
         else
             [ NotAuthorized.view ]
-
 
 
 tombstone :
@@ -883,9 +905,9 @@ viewBuildPrep buildPrep =
                     , style "align-items" "center"
                     ]
                     [ Icon.icon
-                        { sizePx = 15, image = Assets.CogsIcon }
-                        [ style "margin" "6.5px"
-                        , style "margin-right" "0.5px"
+                        { sizePx = 14, image = Assets.CogsIcon }
+                        [ style "margin" "7px"
+                        , style "margin-right" "2px"
                         , style "background-size" "contain"
                         ]
                     , Html.h3 [] [ Html.text "preparing build" ]

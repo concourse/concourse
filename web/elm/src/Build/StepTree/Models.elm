@@ -90,6 +90,7 @@ type alias Step =
     , finish : Maybe Time.Posix
     , tabFocus : TabFocus
     , expandedHeaders : Dict Int Bool
+    , imageFetchingExpanded : Bool
     , imageCheck : Maybe StepTree
     , imageGet : Maybe StepTree
     }

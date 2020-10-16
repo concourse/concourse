@@ -77,6 +77,7 @@ type DomID
     | StepTab String Int
     | StepHeader String
     | StepSubHeader String Int
+    | StepHeaderImageFetching String
     | ShowSearchButton
     | ClearSearchButton
     | LoginButton
