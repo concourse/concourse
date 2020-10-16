@@ -39,6 +39,7 @@ type TaskConfig struct {
 }
 
 type ImageResource struct {
+	Name    string  `json:"name"`
 	Type    string  `json:"type"`
 	Source  Source  `json:"source"`
 	Version Version `json:"version,omitempty"`

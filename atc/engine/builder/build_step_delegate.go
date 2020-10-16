@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
@@ -208,7 +209,7 @@ func (delegate *buildStepDelegate) Errored(logger lager.Logger, message string) 
 
 // Name of the artifact fetched when using image_resource. Note that this only
 // exists within a local scope, so it doesn't pollute the build state.
-const imageArtifactName = "image"
+const defaultImageName = "image"
 
 func (delegate *buildStepDelegate) FetchImage(
 	ctx context.Context,
@@ -223,6 +224,11 @@ func (delegate *buildStepDelegate) FetchImage(
 
 	fetchState := delegate.state.NewLocalScope()
 
+	imageName := defaultImageName
+	if image.Name != "" {
+		imageName = image.Name
+	}
+
 	version := image.Version
 	if version == nil {
 		checkID := delegate.planID + "/image-check"
@@ -230,7 +236,7 @@ func (delegate *buildStepDelegate) FetchImage(
 		checkPlan := atc.Plan{
 			ID: checkID,
 			Check: &atc.CheckPlan{
-				Name:   imageArtifactName,
+				Name:   imageName,
 				Type:   image.Type,
 				Source: image.Source,
 
@@ -268,7 +274,7 @@ func (delegate *buildStepDelegate) FetchImage(
 	getPlan := atc.Plan{
 		ID: getID,
 		Get: &atc.GetPlan{
-			Name:    imageArtifactName,
+			Name:    imageName,
 			Type:    image.Type,
 			Source:  image.Source,
 			Version: &version,
@@ -308,7 +314,7 @@ func (delegate *buildStepDelegate) FetchImage(
 		return worker.ImageSpec{}, fmt.Errorf("save image version: %w", err)
 	}
 
-	art, found := fetchState.ArtifactRepository().ArtifactFor(imageArtifactName)
+	art, found := fetchState.ArtifactRepository().ArtifactFor(build.ArtifactName(imageName))
 	if !found {
 		return worker.ImageSpec{}, fmt.Errorf("fetched artifact not found")
 	}

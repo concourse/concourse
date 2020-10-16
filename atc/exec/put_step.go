@@ -154,6 +154,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	resourceType, found := step.plan.VersionedResourceTypes.Lookup(step.plan.Type)
 	if found {
 		image := atc.ImageResource{
+			Name:   resourceType.Name,
 			Type:   resourceType.Type,
 			Source: resourceType.Source,
 			Params: resourceType.Params,

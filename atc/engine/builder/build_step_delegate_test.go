@@ -107,8 +107,11 @@ var _ = Describe("BuildStepDelegate", func() {
 			runState.ArtifactRepositoryReturns(repo)
 
 			childState = new(execfakes.FakeRunState)
-			childState.ArtifactRepositoryReturns(repo.NewLocalScope())
 			runState.NewLocalScopeReturns(childState)
+
+			fakeArtifact = new(runtimefakes.FakeArtifact)
+			childState.ArtifactRepositoryReturns(repo.NewLocalScope())
+			childState.ArtifactRepository().RegisterArtifact("image", fakeArtifact)
 
 			runState.GetStub = vars.StaticVariables{
 				"source-var": "super-secret-source",
@@ -163,9 +166,6 @@ var _ = Describe("BuildStepDelegate", func() {
 					VersionedResourceTypes: types,
 				},
 			}
-
-			fakeArtifact = new(runtimefakes.FakeArtifact)
-			childState.ArtifactRepository().RegisterArtifact("image", fakeArtifact)
 
 			fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
 
@@ -408,6 +408,30 @@ var _ = Describe("BuildStepDelegate", func() {
 					},
 					Plan: expectedGetPlan,
 				}))
+			})
+		})
+
+		Context("when an image name is provided", func() {
+			var namedArtifact *runtimefakes.FakeArtifact
+
+			BeforeEach(func() {
+				imageResource.Name = "some-name"
+				expectedCheckPlan.Check.Name = "some-name"
+				expectedGetPlan.Get.Name = "some-name"
+
+				namedArtifact = new(runtimefakes.FakeArtifact)
+				childState.ArtifactRepositoryReturns(runState.ArtifactRepository().NewLocalScope())
+				childState.ArtifactRepository().RegisterArtifact("some-name", namedArtifact)
+			})
+
+			It("uses it for the step names", func() {
+				Expect(childState.RunCallCount()).To(Equal(2))
+				_, plan := childState.RunArgsForCall(0)
+				Expect(plan.Check.Name).To(Equal("some-name"))
+				_, plan = childState.RunArgsForCall(1)
+				Expect(plan.Get.Name).To(Equal("some-name"))
+
+				Expect(imageSpec.ImageArtifact).To(Equal(namedArtifact))
 			})
 		})
 
