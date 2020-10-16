@@ -316,8 +316,8 @@ jobs:
 						fakePipeline.SetParentIDsReturns(nil)
 					})
 
-					It("should log no-diff", func() {
-						Expect(stdout).To(gbytes.Say("no diff found."))
+					It("should log 'no changes to apply'", func() {
+						Expect(stdout).To(gbytes.Say("no changes to apply."))
 					})
 
 					It("should send a set pipeline changed event", func() {
