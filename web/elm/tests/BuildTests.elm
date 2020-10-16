@@ -3348,7 +3348,7 @@ all =
                             )
                         >> Tuple.first
                         >> Common.queryView
-                        >> Query.find [ class "header" ]
+                        >> Query.find [ id "tooltips" ]
                         >> Query.children []
                         >> Query.index -1
                         >> Query.findAll [ tag "tr" ]
@@ -3433,7 +3433,7 @@ all =
                             )
                         >> Tuple.first
                         >> Common.queryView
-                        >> Query.find [ class "header" ]
+                        >> Query.find [ id "tooltips" ]
                         >> Query.children []
                         >> Query.index -1
                         >> Query.findAll [ tag "tr" ]

@@ -9,6 +9,7 @@ module Build.StepTree.StepTree exposing
     , toggleStep
     , toggleStepImageFetching
     , toggleStepSubHeader
+    , tooltip
     , view
     )
 
@@ -807,15 +808,7 @@ viewStepWithBody model session depth step headerType body =
 
                     Nothing ->
                         Html.text ""
-                , viewStepState
-                    step.state
-                    step.id
-                    (viewDurationTooltip
-                        step.initialize
-                        step.start
-                        step.finish
-                        (showTooltip session <| StepState step.id)
-                    )
+                , viewStepState step.state step.id
                 ]
             ]
         , if step.imageFetchingExpanded then
@@ -892,16 +885,6 @@ viewStep model session depth stepId headerType =
     assumeStep model stepId <|
         \step ->
             viewStepWithBody model session depth step headerType []
-
-
-showTooltip : Tooltip.Model b -> DomID -> Bool
-showTooltip session domID =
-    case session.hovered of
-        HoverState.Tooltip x _ ->
-            x == domID
-
-        _ ->
-            False
 
 
 viewLogs :
@@ -1125,8 +1108,8 @@ viewStepStateWithoutTooltip state =
                 )
 
 
-viewStepState : StepState -> StepID -> List (Html Message) -> Html Message
-viewStepState state stepID tooltip =
+viewStepState : StepState -> StepID -> Html Message
+viewStepState state stepID =
     let
         attributes =
             [ onMouseLeave <| Hover Nothing
@@ -1143,7 +1126,7 @@ viewStepState state stepID tooltip =
                 }
 
         StepStatePending ->
-            Icon.iconWithTooltip
+            Icon.icon
                 { sizePx = 28
                 , image = Assets.PendingIcon
                 }
@@ -1151,10 +1134,9 @@ viewStepState state stepID tooltip =
                     :: Styles.stepStatusIcon
                     ++ attributes
                 )
-                tooltip
 
         StepStateInterrupted ->
-            Icon.iconWithTooltip
+            Icon.icon
                 { sizePx = 28
                 , image = Assets.InterruptedIcon
                 }
@@ -1162,10 +1144,9 @@ viewStepState state stepID tooltip =
                     :: Styles.stepStatusIcon
                     ++ attributes
                 )
-                tooltip
 
         StepStateCancelled ->
-            Icon.iconWithTooltip
+            Icon.icon
                 { sizePx = 28
                 , image = Assets.CancelledIcon
                 }
@@ -1173,10 +1154,9 @@ viewStepState state stepID tooltip =
                     :: Styles.stepStatusIcon
                     ++ attributes
                 )
-                tooltip
 
         StepStateSucceeded ->
-            Icon.iconWithTooltip
+            Icon.icon
                 { sizePx = 28
                 , image = Assets.SuccessCheckIcon
                 }
@@ -1184,10 +1164,9 @@ viewStepState state stepID tooltip =
                     :: Styles.stepStatusIcon
                     ++ attributes
                 )
-                tooltip
 
         StepStateFailed ->
-            Icon.iconWithTooltip
+            Icon.icon
                 { sizePx = 28
                 , image = Assets.FailureTimesIcon
                 }
@@ -1195,10 +1174,9 @@ viewStepState state stepID tooltip =
                     :: Styles.stepStatusIcon
                     ++ attributes
                 )
-                tooltip
 
         StepStateErrored ->
-            Icon.iconWithTooltip
+            Icon.icon
                 { sizePx = 28
                 , image = Assets.ExclamationTriangleIcon
                 }
@@ -1206,7 +1184,6 @@ viewStepState state stepID tooltip =
                     :: Styles.stepStatusIcon
                     ++ attributes
                 )
-                tooltip
 
 
 viewStepHeaderLabel : StepHeaderType -> Bool -> StepID -> Html Message
@@ -1257,41 +1234,76 @@ viewStepHeaderLabel headerType changed stepID =
         ]
 
 
-viewDurationTooltip : Maybe Time.Posix -> Maybe Time.Posix -> Maybe Time.Posix -> Bool -> List (Html Message)
-viewDurationTooltip minit mstart mfinish tooltip =
-    if tooltip then
-        case ( minit, mstart, mfinish ) of
-            ( Just initializedAt, Just startedAt, Just finishedAt ) ->
-                let
-                    initDuration =
-                        Duration.between initializedAt startedAt
+tooltip : StepTreeModel -> { a | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
+tooltip model { hovered } =
+    case hovered of
+        HoverState.Tooltip (ChangedStepLabel _ text) _ ->
+            Just
+                { body =
+                    Html.div
+                        Styles.changedStepTooltip
+                        [ Html.text text ]
+                , attachPosition =
+                    { direction = Tooltip.Top
+                    , alignment = Tooltip.Start
+                    }
+                , arrow = Just { size = 5, color = Colors.tooltipBackground }
+                }
 
-                    stepDuration =
-                        Duration.between startedAt finishedAt
-                in
-                [ Html.div
-                    [ style "position" "inherit"
-                    , style "margin-left" "-500px"
-                    ]
-                    [ Html.div
-                        Styles.durationTooltip
-                        [ DictView.view []
-                            (Dict.fromList
-                                [ ( "initialization"
-                                  , Html.text (Duration.format initDuration)
-                                  )
-                                , ( "step", Html.text (Duration.format stepDuration) )
-                                ]
-                            )
-                        ]
-                    ]
-                , Html.div
-                    Styles.durationTooltipArrow
-                    []
-                ]
+        HoverState.Tooltip (StepHeaderImageFetching _) _ ->
+            Just
+                { body =
+                    Html.div
+                        Styles.changedStepTooltip
+                        [ Html.text "initialization" ]
+                , attachPosition =
+                    { direction = Tooltip.Top
+                    , alignment = Tooltip.End
+                    }
+                , arrow = Just { size = 5, color = Colors.tooltipBackground }
+                }
 
-            _ ->
-                []
+        HoverState.Tooltip (StepState id) _ ->
+            Dict.get id model.steps
+                |> Maybe.map stepDurationTooltip
 
-    else
-        []
+        _ ->
+            Nothing
+
+
+stepDurationTooltip : Step -> Tooltip.Tooltip
+stepDurationTooltip { initialize, start, finish } =
+    { body =
+        Html.div Styles.durationTooltip
+            [ case ( initialize, start, finish ) of
+                ( Just initializedAt, Just startedAt, Just finishedAt ) ->
+                    let
+                        initDuration =
+                            Duration.between initializedAt startedAt
+
+                        stepDuration =
+                            Duration.between startedAt finishedAt
+                    in
+                    DictView.view []
+                        (Dict.fromList
+                            [ ( "initialization"
+                              , Html.text (Duration.format initDuration)
+                              )
+                            , ( "step"
+                              , Html.text (Duration.format stepDuration)
+                              )
+                            ]
+                        )
+
+                ( Nothing, Nothing, Nothing ) ->
+                    Html.text "pending"
+
+                _ ->
+                    Html.text "in progress"
+            ]
+    , attachPosition =
+        { direction = Tooltip.Top
+        , alignment = Tooltip.End
+        }
+    , arrow = Just { size = 5, color = Colors.tooltipBackground }
+    }

@@ -7,7 +7,6 @@ module Build.Styles exposing
     , buttonTooltipArrow
     , changedStepTooltip
     , durationTooltip
-    , durationTooltipArrow
     , errorLog
     , header
     , historyItem
@@ -251,29 +250,13 @@ changedStepTooltip =
 
 durationTooltip : List (Html.Attribute msg)
 durationTooltip =
-    [ style "position" "absolute"
-    , style "right" "0"
-    , style "bottom" "100%"
-    , style "background-color" Colors.tooltipBackground
+    [ style "background-color" Colors.tooltipBackground
     , style "padding" "5px"
     , style "z-index" "100"
+    , style "width" "fit-content"
     , style "pointer-events" "none"
     ]
         ++ Application.Styles.disableInteraction
-
-
-durationTooltipArrow : List (Html.Attribute msg)
-durationTooltipArrow =
-    [ style "width" "0"
-    , style "height" "0"
-    , style "left" "50%"
-    , style "top" "0px"
-    , style "margin-left" "-5px"
-    , style "border-top" <| "5px solid " ++ Colors.tooltipBackground
-    , style "border-left" "5px solid transparent"
-    , style "border-right" "5px solid transparent"
-    , style "position" "absolute"
-    ]
 
 
 errorLog : List (Html.Attribute msg)
