@@ -21,13 +21,17 @@ var _ = Describe("Fly CLI", func() {
 			flyCmd *exec.Cmd
 		)
 
-		pipelineName := "pipeline"
+		expectedURL := "/api/v1/teams/main/pipelines/pipeline/jobs"
 		sampleJobJsonString := `[
               {
-                "id": 0,
+                "id": 1,
                 "name": "job-1",
-                "pipeline_name": "",
-                "team_name": "",
+                "pipeline_id": 1,
+                "pipeline_name": "pipeline",
+                "pipeline_instance_vars": {
+                  "branch": "master"
+                },
+                "team_name": "main",
                 "next_build": {
                   "id": 0,
                   "team_name": "",
@@ -41,14 +45,17 @@ var _ = Describe("Fly CLI", func() {
                   "name": "",
                   "status": "succeeded",
                   "api_url": ""
-                },
-                "groups": null
+                }
               },
               {
-                "id": 0,
+                "id": 2,
                 "name": "job-2",
-                "pipeline_name": "",
-                "team_name": "",
+                "pipeline_id": 1,
+                "pipeline_name": "pipeline",
+                "pipeline_instance_vars": {
+                  "branch": "master"
+                },
+                "team_name": "main",
                 "paused": true,
                 "next_build": null,
                 "finished_build": {
@@ -57,17 +64,19 @@ var _ = Describe("Fly CLI", func() {
                   "name": "",
                   "status": "failed",
                   "api_url": ""
-                },
-                "groups": null
+                }
               },
               {
-                "id": 0,
+                "id": 3,
                 "name": "job-3",
-                "pipeline_name": "",
-                "team_name": "",
+                "pipeline_id": 1,
+                "pipeline_name": "pipeline",
+                "pipeline_instance_vars": {
+                  "branch": "master"
+                },
+                "team_name": "main",
                 "next_build": null,
-                "finished_build": null,
-                "groups": null
+                "finished_build": null
               }
             ]`
 		var sampleJobs []atc.Job
@@ -87,7 +96,7 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Context("when jobs are returned from the API", func() {
-			createJob := func(num int, paused bool, status string, nextStatus string) atc.Job {
+			createJob := func(num int, pipelineRef atc.PipelineRef, paused bool, status, nextStatus atc.BuildStatus) atc.Job {
 				var (
 					build     *atc.Build
 					nextBuild *atc.Build
@@ -100,24 +109,34 @@ var _ = Describe("Fly CLI", func() {
 				}
 
 				return atc.Job{
-					Name:          fmt.Sprintf("job-%d", num),
-					Paused:        paused,
-					FinishedBuild: build,
-					NextBuild:     nextBuild,
+					ID:                   num,
+					Name:                 fmt.Sprintf("job-%d", num),
+					PipelineID:           1,
+					PipelineName:         pipelineRef.Name,
+					PipelineInstanceVars: pipelineRef.InstanceVars,
+					TeamName:             teamName,
+					Paused:               paused,
+					FinishedBuild:        build,
+					NextBuild:            nextBuild,
 				}
 			}
 
+			pipelineRef := atc.PipelineRef{
+				Name:         "pipeline",
+				InstanceVars: atc.InstanceVars{"branch": "master"},
+			}
+
 			sampleJobs = []atc.Job{
-				createJob(1, false, "succeeded", "started"),
-				createJob(2, true, "failed", ""),
-				createJob(3, false, "", ""),
+				createJob(1, pipelineRef, false, atc.StatusSucceeded, atc.StatusStarted),
+				createJob(2, pipelineRef, true, atc.StatusFailed, ""),
+				createJob(3, pipelineRef, false, "", ""),
 			}
 
 			BeforeEach(func() {
-				flyCmd = exec.Command(flyPath, "-t", targetName, "jobs", "--pipeline", pipelineName)
+				flyCmd = exec.Command(flyPath, "-t", targetName, "jobs", "--pipeline", "pipeline/branch:master")
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/jobs"),
+						ghttp.VerifyRequest("GET", expectedURL, "instance_vars=%7B%22branch%22%3A%22master%22%7D"),
 						ghttp.RespondWithJSONEncoded(200, sampleJobs),
 					),
 				)
@@ -144,8 +163,8 @@ var _ = Describe("Fly CLI", func() {
 
 				Expect(sess.Out).To(PrintTable(ui.Table{
 					Data: []ui.TableRow{
-						{{Contents: "job-1"}, {Contents: "no"}, {Contents: "succeeded"}, {Contents: "started"}},
-						{{Contents: "job-2"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "failed"}, {Contents: "n/a"}},
+						{{Contents: "job-1"}, {Contents: "no"}, {Contents: "succeeded"}, {Contents: "started", Color: color.New(color.FgGreen)}},
+						{{Contents: "job-2"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "failed", Color: color.New(color.FgRed)}, {Contents: "n/a"}},
 						{{Contents: "job-3"}, {Contents: "no"}, {Contents: "n/a"}, {Contents: "n/a"}},
 					},
 				}))
@@ -157,7 +176,7 @@ var _ = Describe("Fly CLI", func() {
 				flyCmd = exec.Command(flyPath, "-t", targetName, "jobs", "-p", "pipeline")
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/jobs"),
+						ghttp.VerifyRequest("GET", expectedURL),
 						ghttp.RespondWith(500, ""),
 					),
 				)
@@ -187,7 +206,7 @@ var _ = Describe("Fly CLI", func() {
 					)
 				})
 				It("can list jobs in 'other-team'", func() {
-					flyJobCmd := exec.Command(flyPath, "-t", targetName, "jobs", "-p", pipelineName, "--team", "other-team", "--json")
+					flyJobCmd := exec.Command(flyPath, "-t", targetName, "jobs", "-p", "pipeline", "--team", "other-team", "--json")
 					sess, err := gexec.Start(flyJobCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 

@@ -6,6 +6,7 @@ import Char
 import ColorValues
 import Colors
 import Common exposing (defineHoverBehaviour, queryView)
+import Concourse
 import Concourse.Cli exposing (Cli(..))
 import DashboardTests exposing (iconSelector)
 import Data
@@ -303,6 +304,29 @@ all =
                     |> Application.view
                     |> .title
                     |> Expect.equal "pipelineName - Concourse"
+        , test "pipeline background should be set from display config" <|
+            \_ ->
+                Common.init "/teams/team/pipelines/pipelineName"
+                    |> Application.handleCallback
+                        (Callback.PipelineFetched
+                            (Ok <|
+                                (Data.pipeline "team" 0
+                                    |> Data.withName "pipeline"
+                                    |> Data.withBackgroundImage "some-background.jpg"
+                                )
+                            )
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ id "pipeline-background" ]
+                    |> Query.has
+                        [ style "background-image" "url(\"some-background.jpg\")"
+                        , style "background-repeat" "no-repeat"
+                        , style "background-size" "cover"
+                        , style "background-position" "center"
+                        , style "opacity" "30%"
+                        , style "filter" "grayscale(1)"
+                        ]
         , describe "update" <|
             let
                 defaultModel : Pipeline.Model

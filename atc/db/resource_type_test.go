@@ -1,12 +1,16 @@
 package db_test
 
 import (
-	"errors"
+	"context"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/api/trace/tracetest"
 )
 
 var _ = Describe("ResourceType", func() {
@@ -19,17 +23,18 @@ var _ = Describe("ResourceType", func() {
 		)
 
 		pipeline, created, err = defaultTeam.SavePipeline(
-			"pipeline-with-types",
+			atc.PipelineRef{Name: "pipeline-with-types"},
 			atc.Config{
 				ResourceTypes: atc.ResourceTypes{
 					{
-						Name:   "some-type",
-						Type:   "registry-image",
-						Source: atc.Source{"some": "repository"},
+						Name:     "some-type",
+						Type:     "registry-image",
+						Source:   atc.Source{"some": "repository"},
+						Defaults: atc.Source{"some-default-k1": "some-default-v1"},
 					},
 					{
 						Name:       "some-other-type",
-						Type:       "registry-image-ng",
+						Type:       "some-type",
 						Privileged: true,
 						Source:     atc.Source{"some": "other-repository"},
 					},
@@ -76,21 +81,26 @@ var _ = Describe("ResourceType", func() {
 					Expect(t.Name()).To(Equal("some-type"))
 					Expect(t.Type()).To(Equal("registry-image"))
 					Expect(t.Source()).To(Equal(atc.Source{"some": "repository"}))
+					Expect(t.Defaults()).To(Equal(atc.Source{"some-default-k1": "some-default-v1"}))
 					Expect(t.Version()).To(BeNil())
 				case "some-other-type":
 					Expect(t.Name()).To(Equal("some-other-type"))
-					Expect(t.Type()).To(Equal("registry-image-ng"))
+					Expect(t.Type()).To(Equal("some-type"))
 					Expect(t.Source()).To(Equal(atc.Source{"some": "other-repository"}))
+					Expect(t.Defaults()).To(BeNil())
 					Expect(t.Version()).To(BeNil())
 					Expect(t.Privileged()).To(BeTrue())
 				case "some-type-with-params":
 					Expect(t.Name()).To(Equal("some-type-with-params"))
 					Expect(t.Type()).To(Equal("s3"))
+					Expect(t.Source()).To(Equal(atc.Source{"some": "repository"}))
+					Expect(t.Defaults()).To(BeNil())
 					Expect(t.Params()).To(Equal(atc.Params{"unpack": "true"}))
 				case "some-type-with-custom-check":
 					Expect(t.Name()).To(Equal("some-type-with-custom-check"))
 					Expect(t.Type()).To(Equal("registry-image"))
 					Expect(t.Source()).To(Equal(atc.Source{"some": "repository"}))
+					Expect(t.Defaults()).To(BeNil())
 					Expect(t.Version()).To(BeNil())
 					Expect(t.CheckEvery()).To(Equal("10ms"))
 				}
@@ -107,7 +117,7 @@ var _ = Describe("ResourceType", func() {
 				)
 
 				pipeline, created, err = defaultTeam.SavePipeline(
-					"pipeline-with-types",
+					atc.PipelineRef{Name: "pipeline-with-types"},
 					atc.Config{
 						ResourceTypes: atc.ResourceTypes{
 							{
@@ -138,7 +148,7 @@ var _ = Describe("ResourceType", func() {
 				)
 
 				pipeline, created, err = defaultTeam.SavePipeline(
-					"pipeline-with-types",
+					atc.PipelineRef{Name: "pipeline-with-types"},
 					atc.Config{
 						Resources: atc.ResourceConfigs{
 							{
@@ -184,7 +194,7 @@ var _ = Describe("ResourceType", func() {
 				)
 
 				otherPipeline, created, err := defaultTeam.SavePipeline(
-					"pipeline-with-duplicate-type-name",
+					atc.PipelineRef{Name: "pipeline-with-duplicate-type-name"},
 					atc.Config{
 						ResourceTypes: atc.ResourceTypes{
 							{
@@ -203,7 +213,7 @@ var _ = Describe("ResourceType", func() {
 				Expect(otherPipeline).NotTo(BeNil())
 
 				pipeline, created, err = defaultTeam.SavePipeline(
-					"pipeline-with-types",
+					atc.PipelineRef{Name: "pipeline-with-types"},
 					atc.Config{
 						Resources: atc.ResourceConfigs{
 							{
@@ -278,51 +288,105 @@ var _ = Describe("ResourceType", func() {
 				Expect(tree[3].Type()).To(Equal("registry-image"))
 			})
 		})
-	})
 
-	Describe("SetCheckError", func() {
-		var resourceType db.ResourceType
-
-		BeforeEach(func() {
-			var err error
-			resourceType, _, err = pipeline.ResourceType("some-type")
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		Context("when the resource is first created", func() {
-			It("is not errored", func() {
-				Expect(resourceType.CheckSetupError()).To(BeNil())
+		Context("Deserialize", func() {
+			var vrts atc.VersionedResourceTypes
+			JustBeforeEach(func() {
+				vrts = resourceTypes.Deserialize()
 			})
-		})
 
-		Context("when a resource check is marked as errored", func() {
-			It("is then marked as errored", func() {
-				originalCause := errors.New("on fire")
-
-				err := resourceType.SetCheckSetupError(originalCause)
-				Expect(err).ToNot(HaveOccurred())
-
-				returnedResourceType, _, err := pipeline.ResourceType("some-type")
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(returnedResourceType.CheckSetupError()).To(Equal(originalCause))
+			Context("when no base resource type defaults defined", func() {
+				It("should return original resource types", func() {
+					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name:     "some-type",
+							Type:     "registry-image",
+							Source:   atc.Source{"some": "repository"},
+							Defaults: atc.Source{"some-default-k1": "some-default-v1"},
+						},
+					}))
+					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name: "some-other-type",
+							Type: "some-type",
+							Source: atc.Source{
+								"some-default-k1": "some-default-v1",
+								"some":            "other-repository",
+							},
+							Privileged: true,
+						},
+					}))
+					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name:       "some-type-with-params",
+							Type:       "s3",
+							Source:     atc.Source{"some": "repository"},
+							Defaults:   nil,
+							Privileged: false,
+							Params:     atc.Params{"unpack": "true"},
+						},
+					}))
+					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name:       "some-type-with-custom-check",
+							Type:       "registry-image",
+							Source:     atc.Source{"some": "repository"},
+							CheckEvery: "10ms",
+						},
+					}))
+				})
 			})
-		})
 
-		Context("when a resource is cleared of check errors", func() {
-			It("is not marked as errored again", func() {
-				originalCause := errors.New("on fire")
+			Context("when base resource type defaults is defined", func() {
+				BeforeEach(func() {
+					atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{"s3": atc.Source{"default-s3-key": "some-value"}})
+				})
+				AfterEach(func() {
+					atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{})
+				})
 
-				err := resourceType.SetCheckSetupError(originalCause)
-				Expect(err).ToNot(HaveOccurred())
-
-				err = resourceType.SetCheckSetupError(nil)
-				Expect(err).ToNot(HaveOccurred())
-
-				returnedResourceType, _, err := pipeline.ResourceType("some-type")
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(returnedResourceType.CheckSetupError()).To(BeNil())
+				It("should return original resource types", func() {
+					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name:     "some-type",
+							Type:     "registry-image",
+							Source:   atc.Source{"some": "repository"},
+							Defaults: atc.Source{"some-default-k1": "some-default-v1"},
+						},
+					}))
+					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name: "some-other-type",
+							Type: "some-type",
+							Source: atc.Source{
+								"some-default-k1": "some-default-v1",
+								"some":            "other-repository",
+							},
+							Privileged: true,
+						},
+					}))
+					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name: "some-type-with-params",
+							Type: "s3",
+							Source: atc.Source{
+								"some":           "repository",
+								"default-s3-key": "some-value",
+							},
+							Defaults:   nil,
+							Privileged: false,
+							Params:     atc.Params{"unpack": "true"},
+						},
+					}))
+					Expect(vrts).To(ContainElement(atc.VersionedResourceType{
+						ResourceType: atc.ResourceType{
+							Name:       "some-type-with-custom-check",
+							Type:       "registry-image",
+							Source:     atc.Source{"some": "repository"},
+							CheckEvery: "10ms",
+						},
+					}))
+				})
 			})
 		})
 	})
@@ -372,14 +436,172 @@ var _ = Describe("ResourceType", func() {
 		Context("when the resource type has proper versions", func() {
 			BeforeEach(func() {
 				err := resourceTypeScope.SaveVersions(nil, []atc.Version{
-					atc.Version{"version": "1"},
-					atc.Version{"version": "2"},
+					{"version": "1"},
+					{"version": "2"},
 				})
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("returns the version", func() {
 				Expect(resourceType.Version()).To(Equal(atc.Version{"version": "2"}))
+			})
+		})
+	})
+
+	Describe("SetResourceConfigScope", func() {
+		var resourceType db.ResourceType
+		var scope db.ResourceConfigScope
+
+		BeforeEach(func() {
+			resourceType = defaultResourceType
+
+			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(resourceType.Type(), resourceType.Source(), atc.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			scope, err = resourceConfig.FindOrCreateScope(nil)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("associates the resource to the config and scope", func() {
+			Expect(resourceType.ResourceConfigScopeID()).To(BeZero())
+
+			Expect(resourceType.SetResourceConfigScope(scope)).To(Succeed())
+
+			_, err := resourceType.Reload()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(resourceType.ResourceConfigScopeID()).To(Equal(scope.ID()))
+		})
+	})
+
+	Describe("CheckPlan", func() {
+		var resourceType db.ResourceType
+		var resourceTypes db.ResourceTypes
+
+		BeforeEach(func() {
+			var err error
+			var found bool
+			resourceType, found, err = pipeline.ResourceType("some-type")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			resourceTypes, err = pipeline.ResourceTypes()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns a plan which will update the resource type", func() {
+			defaults := atc.Source{"sdk": "sdv"}
+			Expect(resourceType.CheckPlan(atc.Version{"some": "version"}, time.Minute, 10*time.Second, resourceTypes, defaults)).To(Equal(atc.CheckPlan{
+				Name:   resourceType.Name(),
+				Type:   resourceType.Type(),
+				Source: defaults.Merge(resourceType.Source()),
+				Tags:   resourceType.Tags(),
+
+				FromVersion: atc.Version{"some": "version"},
+
+				Interval: "1m0s",
+				Timeout:  "10s",
+
+				VersionedResourceTypes: resourceTypes.Deserialize(),
+
+				ResourceType: resourceType.Name(),
+			}))
+		})
+	})
+
+	Describe("CreateBuild", func() {
+		var resourceType db.ResourceType
+		var ctx context.Context
+		var manuallyTriggered bool
+
+		var build db.Build
+		var created bool
+
+		BeforeEach(func() {
+			ctx = context.TODO()
+			resourceType = defaultResourceType
+			manuallyTriggered = false
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			build, created, err = resourceType.CreateBuild(ctx, manuallyTriggered)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("creates a build for a resource type", func() {
+			Expect(created).To(BeTrue())
+			Expect(build).ToNot(BeNil())
+			Expect(build.Name()).To(Equal(db.CheckBuildName))
+			Expect(build.ResourceTypeID()).To(Equal(resourceType.ID()))
+			Expect(build.PipelineID()).To(Equal(defaultResource.PipelineID()))
+			Expect(build.TeamID()).To(Equal(defaultResource.TeamID()))
+			Expect(build.IsManuallyTriggered()).To(BeFalse())
+		})
+
+		Context("when tracing is configured", func() {
+			var span trace.Span
+
+			BeforeEach(func() {
+				tracing.ConfigureTraceProvider(tracetest.NewProvider())
+
+				ctx, span = tracing.StartSpan(context.Background(), "fake-operation", nil)
+			})
+
+			AfterEach(func() {
+				tracing.Configured = false
+			})
+
+			It("propagates span context", func() {
+				traceID := span.SpanContext().TraceID.String()
+				buildContext := build.SpanContext()
+				traceParent := buildContext.Get("traceparent")
+				Expect(traceParent).To(ContainSubstring(traceID))
+			})
+		})
+
+		Context("when another build already exists", func() {
+			var prevBuild db.Build
+
+			BeforeEach(func() {
+				var err error
+				var prevCreated bool
+				prevBuild, prevCreated, err = resourceType.CreateBuild(ctx, false)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(prevCreated).To(BeTrue())
+			})
+
+			It("does not create the second build", func() {
+				Expect(created).To(BeFalse())
+			})
+
+			Context("when manually triggered", func() {
+				BeforeEach(func() {
+					manuallyTriggered = true
+				})
+
+				It("creates a manually triggered resource build", func() {
+					Expect(created).To(BeTrue())
+					Expect(build.IsManuallyTriggered()).To(BeTrue())
+					Expect(build.ResourceTypeID()).To(Equal(resourceType.ID()))
+				})
+			})
+
+			Context("when the previous build is finished", func() {
+				BeforeEach(func() {
+					Expect(prevBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
+				})
+
+				It("creates the build", func() {
+					Expect(created).To(BeTrue())
+					Expect(build.ResourceTypeID()).To(Equal(resourceType.ID()))
+				})
+
+				It("deletes the previous build", func() {
+					found, err := prevBuild.Reload()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeFalse())
+				})
 			})
 		})
 	})

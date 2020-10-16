@@ -3,6 +3,7 @@ package configvalidate
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/concourse/concourse/atc"
@@ -54,6 +55,12 @@ func Validate(c Config) ([]ConfigWarning, []string) {
 		errorMessages = append(errorMessages, formatErr("jobs", jobsErr))
 	}
 	warnings = append(warnings, jobWarnings...)
+
+	displayWarnings, displayErr := validateDisplay(c)
+	if displayErr != nil {
+		errorMessages = append(errorMessages, formatErr("display config", displayErr))
+	}
+	warnings = append(warnings, displayWarnings...)
 
 	return warnings, errorMessages
 }
@@ -247,6 +254,11 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 
 	names := map[string]int{}
 
+	if len(c.Jobs) == 0 {
+		errorMessages = append(errorMessages, "jobs: pipeline must contain at least one job")
+		return warnings, compositeErr(errorMessages)
+	}
+
 	for i, job := range c.Jobs {
 		var identifier string
 		if job.Name == "" {
@@ -385,4 +397,29 @@ func validateVarSources(c Config) ([]ConfigWarning, error) {
 	}
 
 	return warnings, compositeErr(errorMessages)
+}
+
+func validateDisplay(c Config) ([]ConfigWarning, error) {
+	var warnings []ConfigWarning
+
+	if c.Display == nil {
+		return warnings, nil
+	}
+
+	url, err := url.Parse(c.Display.BackgroundImage)
+
+	if err != nil {
+		return warnings, fmt.Errorf("background_image is not a valid URL: %s", c.Display.BackgroundImage)
+	}
+
+	switch url.Scheme {
+	case "https":
+	case "http":
+	case "":
+		break
+	default:
+		return warnings, fmt.Errorf("background_image scheme must be either http, https or relative")
+	}
+
+	return warnings, nil
 }

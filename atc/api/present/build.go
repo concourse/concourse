@@ -19,13 +19,16 @@ func Build(build db.Build) atc.Build {
 	}
 
 	atcBuild := atc.Build{
-		ID:           build.ID(),
-		Name:         build.Name(),
-		JobName:      build.JobName(),
-		PipelineName: build.PipelineName(),
-		TeamName:     build.TeamName(),
-		Status:       string(build.Status()),
-		APIURL:       apiURL,
+		ID:                   build.ID(),
+		Name:                 build.Name(),
+		JobName:              build.JobName(),
+		ResourceName:         build.ResourceName(),
+		PipelineID:           build.PipelineID(),
+		PipelineName:         build.PipelineName(),
+		PipelineInstanceVars: build.PipelineInstanceVars(),
+		TeamName:             build.TeamName(),
+		Status:               atc.BuildStatus(build.Status()),
+		APIURL:               apiURL,
 	}
 
 	if build.RerunOf() != 0 {

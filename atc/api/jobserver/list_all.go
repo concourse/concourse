@@ -6,7 +6,6 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
-	"github.com/concourse/concourse/atc/api/present"
 )
 
 func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
@@ -14,13 +13,12 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 
 	acc := accessor.GetAccessor(r)
 
-	var dashboard atc.Dashboard
+	var jobs []atc.JobSummary
 	var err error
-
 	if acc.IsAdmin() {
-		dashboard, err = s.jobFactory.AllActiveJobs()
+		jobs, err = s.jobFactory.AllActiveJobs()
 	} else {
-		dashboard, err = s.jobFactory.VisibleJobs(acc.TeamNames())
+		jobs, err = s.jobFactory.VisibleJobs(acc.TeamNames())
 	}
 
 	if err != nil {
@@ -29,16 +27,8 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jobs := []atc.Job{}
-
-	for _, job := range dashboard {
-		jobs = append(
-			jobs,
-			present.DashboardJob(
-				job.TeamName,
-				job,
-			),
-		)
+	if jobs == nil {
+		jobs = []atc.JobSummary{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

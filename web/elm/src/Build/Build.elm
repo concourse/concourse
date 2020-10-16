@@ -317,9 +317,9 @@ handleDelivery session delivery ( model, effects ) =
             ( { model | now = Just time }
             , effects
                 ++ (case session.hovered of
-                        HoverState.Hovered (FirstOccurrenceGetStepLabel stepID) ->
+                        HoverState.Hovered (ChangedStepLabel stepID text) ->
                             [ GetViewportOf
-                                (FirstOccurrenceGetStepLabel stepID)
+                                (ChangedStepLabel stepID text)
                             ]
 
                         HoverState.Hovered (StepState stepID) ->
@@ -673,12 +673,12 @@ view session model =
 tooltip : Model -> { a | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
 tooltip _ { hovered } =
     case hovered of
-        HoverState.Tooltip (FirstOccurrenceGetStepLabel _) _ ->
+        HoverState.Tooltip (ChangedStepLabel _ text) _ ->
             Just
                 { body =
                     Html.div
-                        Styles.firstOccurrenceTooltip
-                        [ Html.text "new version" ]
+                        Styles.changedStepTooltip
+                        [ Html.text text ]
                 , attachPosition =
                     { direction = Tooltip.Top
                     , alignment = Tooltip.Start
@@ -761,7 +761,7 @@ body session ({ prep, output, authorized, showHelp } as params) =
             , Html.Lazy.lazy3
                 viewBuildOutput
                 session.timeZone
-                (projectOntoBuildPage session.hovered)
+                (Build.Output.Output.filterHoverState session.hovered)
                 output
             , Shortcuts.keyboardHelp showHelp
             ]
@@ -770,39 +770,6 @@ body session ({ prep, output, authorized, showHelp } as params) =
         else
             [ NotAuthorized.view ]
 
-
-projectOntoBuildPage : HoverState.HoverState -> HoverState.HoverState
-projectOntoBuildPage hovered =
-    case hovered of
-        HoverState.Hovered (FirstOccurrenceGetStepLabel _) ->
-            hovered
-
-        HoverState.TooltipPending (FirstOccurrenceGetStepLabel _) ->
-            hovered
-
-        HoverState.Tooltip (FirstOccurrenceGetStepLabel _) _ ->
-            hovered
-
-        HoverState.Hovered (StepState _) ->
-            hovered
-
-        HoverState.TooltipPending (StepState _) ->
-            hovered
-
-        HoverState.Tooltip (StepState _) _ ->
-            hovered
-
-        HoverState.Hovered (StepTab _ _) ->
-            hovered
-
-        HoverState.TooltipPending (StepTab _ _) ->
-            hovered
-
-        HoverState.Tooltip (StepTab _ _) _ ->
-            hovered
-
-        _ ->
-            HoverState.NoHover
 
 
 tombstone :

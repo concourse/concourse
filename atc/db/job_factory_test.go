@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 )
 
-var _ = Describe("Job Factory", func() {
+var _ = Describe("JobFactory", func() {
 	var jobFactory db.JobFactory
 
 	BeforeEach(func() {
@@ -22,7 +22,7 @@ var _ = Describe("Job Factory", func() {
 			otherTeam, err := teamFactory.CreateTeam(atc.Team{Name: "other-team"})
 			Expect(err).NotTo(HaveOccurred())
 
-			publicPipeline, _, err = otherTeam.SavePipeline("public-pipeline", atc.Config{
+			publicPipeline, _, err = otherTeam.SavePipeline(atc.PipelineRef{Name: "public-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}, atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "public-pipeline-job-1",
@@ -104,7 +104,7 @@ var _ = Describe("Job Factory", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(publicPipeline.Expose()).To(Succeed())
 
-			_, _, err = otherTeam.SavePipeline("private-pipeline", atc.Config{
+			_, _, err = otherTeam.SavePipeline(atc.PipelineRef{Name: "private-pipeline"}, atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "private-pipeline-job",
@@ -144,34 +144,34 @@ var _ = Describe("Job Factory", func() {
 				Expect(visibleJobs[3].Name).To(Equal("public-pipeline-job-3"))
 
 				Expect(visibleJobs[0].Inputs).To(BeNil())
-				Expect(visibleJobs[1].Inputs).To(Equal([]atc.DashboardJobInput{
-					atc.DashboardJobInput{
+				Expect(visibleJobs[1].Inputs).To(Equal([]atc.JobInputSummary{
+					{
 						Name:     "some-other-resource",
 						Resource: "some-other-resource",
 					},
-					atc.DashboardJobInput{
+					{
 						Name:     "some-resource",
 						Resource: "some-resource",
 					},
 				}))
-				Expect(visibleJobs[2].Inputs).To(Equal([]atc.DashboardJobInput{
-					atc.DashboardJobInput{
+				Expect(visibleJobs[2].Inputs).To(Equal([]atc.JobInputSummary{
+					{
 						Name:     "resource",
 						Resource: "some-resource",
 					},
-					atc.DashboardJobInput{
+					{
 						Name:     "some-other-resource",
 						Resource: "some-other-resource",
 						Passed:   []string{"public-pipeline-job-1"},
 					},
-					atc.DashboardJobInput{
+					{
 						Name:     "some-resource",
 						Resource: "some-resource",
 						Passed:   []string{"public-pipeline-job-1"},
 					},
 				}))
-				Expect(visibleJobs[3].Inputs).To(Equal([]atc.DashboardJobInput{
-					atc.DashboardJobInput{
+				Expect(visibleJobs[3].Inputs).To(Equal([]atc.JobInputSummary{
+					{
 						Name:     "some-resource",
 						Resource: "some-resource",
 						Passed:   []string{"public-pipeline-job-1", "public-pipeline-job-2"},
@@ -179,18 +179,18 @@ var _ = Describe("Job Factory", func() {
 				}))
 
 				Expect(visibleJobs[0].Outputs).To(BeNil())
-				Expect(visibleJobs[1].Outputs).To(Equal([]atc.JobOutput{
-					atc.JobOutput{
+				Expect(visibleJobs[1].Outputs).To(Equal([]atc.JobOutputSummary{
+					{
 						Name:     "some-resource",
 						Resource: "some-resource",
 					},
 				}))
-				Expect(visibleJobs[2].Outputs).To(Equal([]atc.JobOutput{
-					atc.JobOutput{
+				Expect(visibleJobs[2].Outputs).To(Equal([]atc.JobOutputSummary{
+					{
 						Name:     "resource",
 						Resource: "some-resource",
 					},
-					atc.JobOutput{
+					{
 						Name:     "some-resource",
 						Resource: "some-resource",
 					},
@@ -233,29 +233,35 @@ var _ = Describe("Job Factory", func() {
 				Expect(visibleJobs[0].NextBuild.ID).To(Equal(nextBuild.ID()))
 				Expect(visibleJobs[0].NextBuild.Name).To(Equal(nextBuild.Name()))
 				Expect(visibleJobs[0].NextBuild.JobName).To(Equal(nextBuild.JobName()))
+				Expect(visibleJobs[0].NextBuild.PipelineID).To(Equal(nextBuild.PipelineID()))
 				Expect(visibleJobs[0].NextBuild.PipelineName).To(Equal(nextBuild.PipelineName()))
+				Expect(visibleJobs[0].NextBuild.PipelineInstanceVars).To(Equal(nextBuild.PipelineInstanceVars()))
 				Expect(visibleJobs[0].NextBuild.TeamName).To(Equal(nextBuild.TeamName()))
-				Expect(visibleJobs[0].NextBuild.Status).To(Equal(string(nextBuild.Status())))
-				Expect(visibleJobs[0].NextBuild.StartTime).To(Equal(nextBuild.StartTime()))
-				Expect(visibleJobs[0].NextBuild.EndTime).To(Equal(nextBuild.EndTime()))
+				Expect(visibleJobs[0].NextBuild.Status).To(Equal(atc.BuildStatus(nextBuild.Status())))
+				Expect(visibleJobs[0].NextBuild.StartTime).To(Equal(nextBuild.StartTime().Unix()))
+				Expect(visibleJobs[0].NextBuild.EndTime).To(Equal(nextBuild.EndTime().Unix()))
 
 				Expect(visibleJobs[0].FinishedBuild.ID).To(Equal(finishedBuild.ID()))
 				Expect(visibleJobs[0].FinishedBuild.Name).To(Equal(finishedBuild.Name()))
 				Expect(visibleJobs[0].FinishedBuild.JobName).To(Equal(finishedBuild.JobName()))
+				Expect(visibleJobs[0].FinishedBuild.PipelineID).To(Equal(finishedBuild.PipelineID()))
 				Expect(visibleJobs[0].FinishedBuild.PipelineName).To(Equal(finishedBuild.PipelineName()))
+				Expect(visibleJobs[0].FinishedBuild.PipelineInstanceVars).To(Equal(finishedBuild.PipelineInstanceVars()))
 				Expect(visibleJobs[0].FinishedBuild.TeamName).To(Equal(finishedBuild.TeamName()))
-				Expect(visibleJobs[0].FinishedBuild.Status).To(Equal(string(finishedBuild.Status())))
-				Expect(visibleJobs[0].FinishedBuild.StartTime).To(Equal(finishedBuild.StartTime()))
-				Expect(visibleJobs[0].FinishedBuild.EndTime).To(Equal(finishedBuild.EndTime()))
+				Expect(visibleJobs[0].FinishedBuild.Status).To(Equal(atc.BuildStatus(finishedBuild.Status())))
+				Expect(visibleJobs[0].FinishedBuild.StartTime).To(Equal(finishedBuild.StartTime().Unix()))
+				Expect(visibleJobs[0].FinishedBuild.EndTime).To(Equal(finishedBuild.EndTime().Unix()))
 
 				Expect(visibleJobs[0].TransitionBuild.ID).To(Equal(transitionBuild.ID()))
 				Expect(visibleJobs[0].TransitionBuild.Name).To(Equal(transitionBuild.Name()))
 				Expect(visibleJobs[0].TransitionBuild.JobName).To(Equal(transitionBuild.JobName()))
+				Expect(visibleJobs[0].TransitionBuild.PipelineID).To(Equal(transitionBuild.PipelineID()))
 				Expect(visibleJobs[0].TransitionBuild.PipelineName).To(Equal(transitionBuild.PipelineName()))
+				Expect(visibleJobs[0].TransitionBuild.PipelineInstanceVars).To(Equal(transitionBuild.PipelineInstanceVars()))
 				Expect(visibleJobs[0].TransitionBuild.TeamName).To(Equal(transitionBuild.TeamName()))
-				Expect(visibleJobs[0].TransitionBuild.Status).To(Equal(string(transitionBuild.Status())))
-				Expect(visibleJobs[0].TransitionBuild.StartTime).To(Equal(transitionBuild.StartTime()))
-				Expect(visibleJobs[0].TransitionBuild.EndTime).To(Equal(transitionBuild.EndTime()))
+				Expect(visibleJobs[0].TransitionBuild.Status).To(Equal(atc.BuildStatus(transitionBuild.Status())))
+				Expect(visibleJobs[0].TransitionBuild.StartTime).To(Equal(transitionBuild.StartTime().Unix()))
+				Expect(visibleJobs[0].TransitionBuild.EndTime).To(Equal(transitionBuild.EndTime().Unix()))
 			})
 		})
 
@@ -272,66 +278,66 @@ var _ = Describe("Job Factory", func() {
 				Expect(allJobs[4].Name).To(Equal("private-pipeline-job"))
 
 				Expect(allJobs[0].Inputs).To(BeNil())
-				Expect(allJobs[1].Inputs).To(Equal([]atc.DashboardJobInput{
-					atc.DashboardJobInput{
+				Expect(allJobs[1].Inputs).To(Equal([]atc.JobInputSummary{
+					{
 						Name:     "some-other-resource",
 						Resource: "some-other-resource",
 					},
-					atc.DashboardJobInput{
+					{
 						Name:     "some-resource",
 						Resource: "some-resource",
 					},
 				}))
-				Expect(allJobs[2].Inputs).To(Equal([]atc.DashboardJobInput{
-					atc.DashboardJobInput{
+				Expect(allJobs[2].Inputs).To(Equal([]atc.JobInputSummary{
+					{
 						Name:     "resource",
 						Resource: "some-resource",
 					},
-					atc.DashboardJobInput{
+					{
 						Name:     "some-other-resource",
 						Resource: "some-other-resource",
 						Passed:   []string{"public-pipeline-job-1"},
 					},
-					atc.DashboardJobInput{
+					{
 						Name:     "some-resource",
 						Resource: "some-resource",
 						Passed:   []string{"public-pipeline-job-1"},
 					},
 				}))
-				Expect(allJobs[3].Inputs).To(Equal([]atc.DashboardJobInput{
-					atc.DashboardJobInput{
+				Expect(allJobs[3].Inputs).To(Equal([]atc.JobInputSummary{
+					{
 						Name:     "some-resource",
 						Resource: "some-resource",
 						Passed:   []string{"public-pipeline-job-1", "public-pipeline-job-2"},
 					},
 				}))
-				Expect(allJobs[4].Inputs).To(Equal([]atc.DashboardJobInput{
-					atc.DashboardJobInput{
+				Expect(allJobs[4].Inputs).To(Equal([]atc.JobInputSummary{
+					{
 						Name:     "some-resource",
 						Resource: "some-resource",
 					},
 				}))
 
 				Expect(allJobs[0].Outputs).To(BeNil())
-				Expect(allJobs[1].Outputs).To(Equal([]atc.JobOutput{
-					atc.JobOutput{
+				Expect(allJobs[1].Outputs).To(Equal([]atc.JobOutputSummary{
+					{
 						Name:     "some-resource",
 						Resource: "some-resource",
 					},
 				}))
-				Expect(allJobs[2].Outputs).To(Equal([]atc.JobOutput{
-					atc.JobOutput{
+				Expect(allJobs[2].Outputs).To(Equal([]atc.JobOutputSummary{
+					{
 						Name:     "resource",
 						Resource: "some-resource",
 					},
-					atc.JobOutput{
+					{
 						Name:     "some-resource",
 						Resource: "some-resource",
 					},
 				}))
 				Expect(allJobs[3].Outputs).To(BeNil())
-				Expect(allJobs[4].Outputs).To(Equal([]atc.JobOutput{
-					atc.JobOutput{
+				Expect(allJobs[4].Outputs).To(Equal([]atc.JobOutputSummary{
+					{
 						Name:     "some-resource",
 						Resource: "some-resource",
 					},
@@ -354,7 +360,7 @@ var _ = Describe("Job Factory", func() {
 
 		Context("when the job has a requested schedule time later than the last scheduled", func() {
 			BeforeEach(func() {
-				pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+				pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
@@ -380,7 +386,7 @@ var _ = Describe("Job Factory", func() {
 
 		Context("when the job has a requested schedule time earlier than the last scheduled", func() {
 			BeforeEach(func() {
-				pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+				pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
@@ -405,7 +411,7 @@ var _ = Describe("Job Factory", func() {
 
 		Context("when the job has a requested schedule time is the same as the last scheduled", func() {
 			BeforeEach(func() {
-				pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+				pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
@@ -437,7 +443,7 @@ var _ = Describe("Job Factory", func() {
 
 		Context("when there are multiple jobs with different times", func() {
 			BeforeEach(func() {
-				pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+				pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
@@ -455,7 +461,7 @@ var _ = Describe("Job Factory", func() {
 				team, err := teamFactory.CreateTeam(atc.Team{Name: "some-team"})
 				Expect(err).ToNot(HaveOccurred())
 
-				pipeline2, _, err := team.SavePipeline("fake-pipeline-two", atc.Config{
+				pipeline2, _, err := team.SavePipeline(atc.PipelineRef{Name: "fake-pipeline-two"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-fake"},
 					},
@@ -466,7 +472,7 @@ var _ = Describe("Job Factory", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				pipeline3, _, err := team.SavePipeline("fake-pipeline-three", atc.Config{
+				pipeline3, _, err := team.SavePipeline(atc.PipelineRef{Name: "fake-pipeline-three"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-fake-two"},
 					},
@@ -495,7 +501,7 @@ var _ = Describe("Job Factory", func() {
 
 		Context("when the job is paused but has a later schedule requested time", func() {
 			BeforeEach(func() {
-				pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+				pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
@@ -523,7 +529,7 @@ var _ = Describe("Job Factory", func() {
 
 		Context("when the job is inactive but has a later schedule requested time", func() {
 			BeforeEach(func() {
-				pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+				pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
@@ -538,7 +544,7 @@ var _ = Describe("Job Factory", func() {
 				err = job1.RequestSchedule()
 				Expect(err).ToNot(HaveOccurred())
 
-				_, _, err = defaultTeam.SavePipeline("fake-pipeline", atc.Config{}, pipeline1.ConfigVersion(), false)
+				_, _, err = defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{}, pipeline1.ConfigVersion(), false)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -551,7 +557,7 @@ var _ = Describe("Job Factory", func() {
 
 		Context("when the pipeline is paused but it's job has a later schedule requested time", func() {
 			BeforeEach(func() {
-				pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+				pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
@@ -580,7 +586,7 @@ var _ = Describe("Job Factory", func() {
 		Describe("scheduler jobs resources", func() {
 			Context("when the job needed to be schedule has no resources", func() {
 				BeforeEach(func() {
-					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+					pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{Name: "job-name"},
 						},
@@ -607,7 +613,7 @@ var _ = Describe("Job Factory", func() {
 
 			Context("when the job needed to be schedule uses resources", func() {
 				BeforeEach(func() {
-					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+					pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-name",
@@ -663,7 +669,7 @@ var _ = Describe("Job Factory", func() {
 
 			Context("when multiple jobs needed to be schedule uses resources", func() {
 				BeforeEach(func() {
-					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+					pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-1",
@@ -709,7 +715,7 @@ var _ = Describe("Job Factory", func() {
 					}, db.ConfigVersion(1), false)
 					Expect(err).ToNot(HaveOccurred())
 
-					pipeline2, _, err := defaultTeam.SavePipeline("fake-pipeline-2", atc.Config{
+					pipeline2, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline-2"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-3",
@@ -804,7 +810,7 @@ var _ = Describe("Job Factory", func() {
 
 			Context("when the job needed to be schedule uses resources as puts", func() {
 				BeforeEach(func() {
-					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+					pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-name",
@@ -859,7 +865,7 @@ var _ = Describe("Job Factory", func() {
 
 			Context("when the job needed to be schedule uses the resource as a put and a get", func() {
 				BeforeEach(func() {
-					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+					pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{
 								Name: "job-name",
@@ -921,7 +927,7 @@ var _ = Describe("Job Factory", func() {
 		Describe("schedule jobs resource types", func() {
 			Context("when the pipeline for the job needed to be scheduled uses custom resource types", func() {
 				BeforeEach(func() {
-					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+					pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{Name: "job-name"},
 						},
@@ -961,7 +967,7 @@ var _ = Describe("Job Factory", func() {
 
 			Context("when multiple job from different pipelines uses custom resource types", func() {
 				BeforeEach(func() {
-					pipeline1, _, err := defaultTeam.SavePipeline("fake-pipeline", atc.Config{
+					pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{Name: "job-1"},
 							{Name: "job-2"},
@@ -975,7 +981,7 @@ var _ = Describe("Job Factory", func() {
 					}, db.ConfigVersion(1), false)
 					Expect(err).ToNot(HaveOccurred())
 
-					pipeline2, _, err := defaultTeam.SavePipeline("fake-pipeline-2", atc.Config{
+					pipeline2, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline-2"}, atc.Config{
 						Jobs: atc.JobConfigs{
 							{Name: "job-3"},
 						},
@@ -1058,6 +1064,50 @@ var _ = Describe("Job Factory", func() {
 					}))
 				})
 			})
+		})
+	})
+})
+
+var _ = Context("SchedulerResource", func() {
+	var resource db.SchedulerResource
+
+	BeforeEach(func() {
+		resource = db.SchedulerResource{
+			Name: "some-name",
+			Type: "some-type",
+			Source: atc.Source{
+				"some-key": "some-value",
+			},
+		}
+	})
+
+	Context("ApplySourceDefaults", func() {
+		var resourceTypes atc.VersionedResourceTypes
+
+		BeforeEach(func() {
+			resourceTypes = atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Name:     "some-type",
+						Defaults: atc.Source{"default-key": "default-value"},
+					},
+				},
+			}
+		})
+
+		JustBeforeEach(func() {
+			resource.ApplySourceDefaults(resourceTypes)
+		})
+
+		It("should applied defaults", func() {
+			Expect(resource).To(Equal(db.SchedulerResource{
+				Name: "some-name",
+				Type: "some-type",
+				Source: atc.Source{
+					"some-key":    "some-value",
+					"default-key": "default-value",
+				},
+			}))
 		})
 	})
 })

@@ -28,6 +28,7 @@ type GardenBackend struct {
 	network       Network
 	rootfsManager RootfsManager
 	userNamespace UserNamespace
+	initBinPath   string
 
 	maxContainers  int
 	requestTimeout time.Duration
@@ -91,6 +92,15 @@ func WithRequestTimeout(requestTimeout time.Duration) GardenBackendOpt {
 	}
 }
 
+// WithInitBinPath configures the path to the init binary that is injected into every container.
+// The init binary just sits there doing nothing until Concourse decides it's time to attach to the container
+// and exec the actual command
+func WithInitBinPath(initBinPath string) GardenBackendOpt {
+	return func(b *GardenBackend) {
+		b.initBinPath = initBinPath
+	}
+}
+
 // NewGardenBackend instantiates a GardenBackend with tweakable configurations passed as Config.
 //
 func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b GardenBackend, err error) {
@@ -129,6 +139,12 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 
 	if b.userNamespace == nil {
 		b.userNamespace = NewUserNamespace()
+	}
+
+	// Because the garden server is created programmatically in the integration tests, add
+	// a sane default path
+	if b.initBinPath == "" {
+		b.initBinPath = bespec.DefaultInitBinPath
 	}
 
 	return b, nil
@@ -208,7 +224,7 @@ func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.Cont
 		return nil, fmt.Errorf("getting uid and gid maps: %w", err)
 	}
 
-	oci, err := bespec.OciSpec(gdnSpec, maxUid, maxGid)
+	oci, err := bespec.OciSpec(b.initBinPath, gdnSpec, maxUid, maxGid)
 	if err != nil {
 		return nil, fmt.Errorf("garden spec to oci spec: %w", err)
 	}

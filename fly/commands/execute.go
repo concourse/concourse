@@ -66,6 +66,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		command.InputsFrom,
 		command.IncludeIgnored,
 		taskConfig.Platform,
+		command.Tags,
 	)
 	if err != nil {
 		return err
@@ -109,8 +110,8 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	var build atc.Build
 	var buildURL *url.URL
 
-	if command.InputsFrom.PipelineName != "" {
-		build, err = target.Team().CreatePipelineBuild(command.InputsFrom.PipelineName, plan)
+	if command.InputsFrom.PipelineRef.Name != "" {
+		build, err = target.Team().CreatePipelineBuild(command.InputsFrom.PipelineRef, plan)
 		if err != nil {
 			return err
 		}
@@ -126,7 +127,7 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		return err
 	}
 
-	fmt.Printf("executing build %d at %s \n", build.ID, clientURL.ResolveReference(buildURL))
+	fmt.Printf("executing build %d at %s\n", build.ID, clientURL.ResolveReference(buildURL))
 
 	terminate := make(chan os.Signal, 1)
 
@@ -189,6 +190,7 @@ func (command *ExecuteCommand) CreateTaskConfig(args []string) (atc.TaskConfig, 
 		command.VarsFrom,
 		command.Var,
 		command.YAMLVar,
+		nil,
 	)
 
 	taskTemplateEvaluated, err := taskTemplate.Evaluate(false, false)

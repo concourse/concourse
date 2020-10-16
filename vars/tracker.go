@@ -9,23 +9,23 @@ type TrackedVarsIterator interface {
 	YieldCred(string, string)
 }
 
-type tracker struct {
-	enabled bool
+type Tracker struct {
+	Enabled bool
 
 	// Considering in-parallel steps, a lock is need.
 	lock              sync.RWMutex
 	interpolatedCreds map[string]string
 }
 
-func newTracker(on bool) *tracker {
-	return &tracker{
-		enabled:           on,
+func NewTracker(on bool) *Tracker {
+	return &Tracker{
+		Enabled:           on,
 		interpolatedCreds: map[string]string{},
 	}
 }
 
-func (t *tracker) Track(varRef VariableReference, val interface{}) {
-	if !t.enabled {
+func (t *Tracker) Track(varRef Reference, val interface{}) {
+	if !t.Enabled {
 		return
 	}
 
@@ -35,18 +35,18 @@ func (t *tracker) Track(varRef VariableReference, val interface{}) {
 	t.track(varRef, val)
 }
 
-func (t *tracker) track(varRef VariableReference, val interface{}) {
+func (t *Tracker) track(varRef Reference, val interface{}) {
 	switch v := val.(type) {
 	case map[interface{}]interface{}:
 		for kk, vv := range v {
-			t.track(VariableReference{
+			t.track(Reference{
 				Path:   varRef.Path,
 				Fields: append(varRef.Fields, kk.(string)),
 			}, vv)
 		}
 	case map[string]interface{}:
 		for kk, vv := range v {
-			t.track(VariableReference{
+			t.track(Reference{
 				Path:   varRef.Path,
 				Fields: append(varRef.Fields, kk),
 			}, vv)
@@ -60,7 +60,7 @@ func (t *tracker) track(varRef VariableReference, val interface{}) {
 	}
 }
 
-func (t *tracker) IterateInterpolatedCreds(iter TrackedVarsIterator) {
+func (t *Tracker) IterateInterpolatedCreds(iter TrackedVarsIterator) {
 	t.lock.RLock()
 	for k, v := range t.interpolatedCreds {
 		iter.YieldCred(k, v)
@@ -68,21 +68,21 @@ func (t *tracker) IterateInterpolatedCreds(iter TrackedVarsIterator) {
 	t.lock.RUnlock()
 }
 
-type credVarsTracker struct {
-	*tracker
-	credVars Variables
+type CredVarsTracker struct {
+	*Tracker
+	CredVars Variables
 }
 
-func (t *credVarsTracker) Get(varDef VariableDefinition) (interface{}, bool, error) {
-	val, found, err := t.credVars.Get(varDef)
+func (t *CredVarsTracker) Get(ref Reference) (interface{}, bool, error) {
+	val, found, err := t.CredVars.Get(ref)
 	if found {
-		t.tracker.Track(varDef.Ref, val)
+		t.Tracker.Track(ref, val)
 	}
 	return val, found, err
 }
 
-func (t *credVarsTracker) List() ([]VariableDefinition, error) {
-	return t.credVars.List()
+func (t *CredVarsTracker) List() ([]Reference, error) {
+	return t.CredVars.List()
 }
 
 // TrackedVarsMap is a TrackedVarsIterator which populates interpolated secrets into a map.

@@ -175,7 +175,6 @@ var _ = Describe("APIAuthWrappa", func() {
 
 				//authenticateIfTokenProvided / delegating to handler
 				atc.GetInfo:              authenticateIfTokenProvided(inputHandlers[atc.GetInfo]),
-				atc.GetCheck:             authenticateIfTokenProvided(inputHandlers[atc.GetCheck]),
 				atc.DownloadCLI:          authenticateIfTokenProvided(inputHandlers[atc.DownloadCLI]),
 				atc.CheckResourceWebHook: authenticateIfTokenProvided(inputHandlers[atc.CheckResourceWebHook]),
 				atc.ListAllPipelines:     authenticateIfTokenProvided(inputHandlers[atc.ListAllPipelines]),

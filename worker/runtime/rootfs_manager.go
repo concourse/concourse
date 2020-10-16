@@ -13,10 +13,10 @@ import (
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . RootfsManager
 
-type InvalidUidError struct{
+type InvalidUidError struct {
 	UID string
 }
-type InvalidGidError struct{
+type InvalidGidError struct {
 	GID string
 }
 
@@ -27,6 +27,11 @@ func (e InvalidUidError) Error() string {
 func (e InvalidGidError) Error() string {
 	return fmt.Sprintf("invalid gid: %s", e.GID)
 }
+
+const (
+	DefaultUid = 0
+	DefaultGid = 0
+)
 
 // RootfsManager is responsible for mutating and reading from the rootfs of a
 // container.
@@ -98,10 +103,17 @@ func (r rootfsManager) SetupCwd(rootfsPath string, cwd string) error {
 func (r rootfsManager) LookupUser(rootfsPath string, username string) (specs.User, bool, error) {
 	path := filepath.Join(rootfsPath, "etc", "passwd")
 	file, err := os.Open(path)
+
+	// follow what runc and garden does - if /etc/passwd doesn't exist but the username is "root",
+	// assume it means 0:0
+	if os.IsNotExist(err) && username == "root" {
+		return specs.User{UID: DefaultUid, GID: DefaultGid}, true, nil
+	}
 	if err != nil {
 		return specs.User{}, false, err
 	}
 	defer file.Close()
+
 	bs := bufio.NewScanner(file)
 	for bs.Scan() {
 		line := bs.Text()

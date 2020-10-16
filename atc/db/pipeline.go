@@ -40,10 +40,12 @@ type Pipeline interface {
 	Name() string
 	TeamID() int
 	TeamName() string
+	InstanceVars() atc.InstanceVars
 	ParentJobID() int
 	ParentBuildID() int
 	Groups() atc.GroupConfigs
 	VarSources() atc.VarSourceConfigs
+	Display() *atc.DisplayConfig
 	ConfigVersion() ConfigVersion
 	Config() (atc.Config, error)
 	Public() bool
@@ -80,7 +82,7 @@ type Pipeline interface {
 
 	Job(name string) (Job, bool, error)
 	Jobs() (Jobs, error)
-	Dashboard() (atc.Dashboard, error)
+	Dashboard() ([]atc.JobSummary, error)
 
 	Expose() error
 	Hide() error
@@ -103,10 +105,12 @@ type pipeline struct {
 	name          string
 	teamID        int
 	teamName      string
+	instanceVars  atc.InstanceVars
 	parentJobID   int
 	parentBuildID int
 	groups        atc.GroupConfigs
 	varSources    atc.VarSourceConfigs
+	display       *atc.DisplayConfig
 	configVersion ConfigVersion
 	paused        bool
 	public        bool
@@ -125,6 +129,7 @@ var pipelinesQuery = psql.Select(`
 		p.name,
 		p.groups,
 		p.var_sources,
+		p.display,
 		p.nonce,
 		p.version,
 		p.team_id,
@@ -134,7 +139,8 @@ var pipelinesQuery = psql.Select(`
 		p.archived,
 		p.last_updated,
 		p.parent_job_id,
-		p.parent_build_id
+		p.parent_build_id,
+		p.instance_vars
 	`).
 	From("pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id")
@@ -146,15 +152,17 @@ func newPipeline(conn Conn, lockFactory lock.LockFactory) *pipeline {
 	}
 }
 
-func (p *pipeline) ID() int                  { return p.id }
-func (p *pipeline) Name() string             { return p.name }
-func (p *pipeline) TeamID() int              { return p.teamID }
-func (p *pipeline) TeamName() string         { return p.teamName }
-func (p *pipeline) ParentJobID() int         { return p.parentJobID }
-func (p *pipeline) ParentBuildID() int       { return p.parentBuildID }
-func (p *pipeline) Groups() atc.GroupConfigs { return p.groups }
+func (p *pipeline) ID() int                        { return p.id }
+func (p *pipeline) Name() string                   { return p.name }
+func (p *pipeline) TeamID() int                    { return p.teamID }
+func (p *pipeline) TeamName() string               { return p.teamName }
+func (p *pipeline) ParentJobID() int               { return p.parentJobID }
+func (p *pipeline) ParentBuildID() int             { return p.parentBuildID }
+func (p *pipeline) InstanceVars() atc.InstanceVars { return p.instanceVars }
+func (p *pipeline) Groups() atc.GroupConfigs       { return p.groups }
 
 func (p *pipeline) VarSources() atc.VarSourceConfigs { return p.varSources }
+func (p *pipeline) Display() *atc.DisplayConfig      { return p.display }
 func (p *pipeline) ConfigVersion() ConfigVersion     { return p.configVersion }
 func (p *pipeline) Public() bool                     { return p.public }
 func (p *pipeline) Paused() bool                     { return p.paused }
@@ -268,6 +276,7 @@ func (p *pipeline) Config() (atc.Config, error) {
 		Resources:     resources.Configs(),
 		ResourceTypes: resourceTypes.Configs(),
 		Jobs:          jobConfigs,
+		Display:       p.Display(),
 	}
 
 	return config, nil
@@ -572,7 +581,7 @@ func (p *pipeline) Jobs() (Jobs, error) {
 	return jobs, err
 }
 
-func (p *pipeline) Dashboard() (atc.Dashboard, error) {
+func (p *pipeline) Dashboard() ([]atc.JobSummary, error) {
 	tx, err := p.conn.Begin()
 	if err != nil {
 		return nil, err

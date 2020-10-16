@@ -3,7 +3,6 @@ package resourceserver
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
@@ -16,11 +15,13 @@ import (
 
 // CheckResourceWebHook defines a handler for process a check resource request via an access token.
 func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
-	logger := s.logger.Session("check-resource-webhook")
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resourceName := rata.Param(r, "resource_name")
 		webhookToken := r.URL.Query().Get("webhook_token")
+
+		logger := s.logger.Session("check-resource-webhook", lager.Data{
+			"resource": resourceName,
+		})
 
 		if webhookToken == "" {
 			logger.Info("no-webhook-token", lager.Data{"error": "missing webhook_token"})
@@ -30,13 +31,13 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 
 		dbResource, found, err := dbPipeline.Resource(resourceName)
 		if err != nil {
-			logger.Error("database-error", err, lager.Data{"resource-name": resourceName})
+			logger.Error("failed-to-get-resource", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		if !found {
-			logger.Info("resource-not-found", lager.Data{"error": fmt.Sprintf("Resource not found %s", resourceName)})
+			logger.Info("resource-not-found")
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -49,7 +50,7 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 		}
 		token, err := creds.NewString(variables, dbResource.WebhookToken()).Evaluate()
 		if token != webhookToken {
-			logger.Info("invalid-token", lager.Data{"error": fmt.Sprintf("invalid token for webhook %s", webhookToken)})
+			logger.Info("invalid-token", lager.Data{"token": webhookToken})
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -61,7 +62,7 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		check, created, err := s.checkFactory.TryCreateCheck(
+		build, created, err := s.checkFactory.TryCreateCheck(
 			lagerctx.NewContext(context.Background(), logger),
 			dbResource,
 			dbResourceTypes,
@@ -69,28 +70,21 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			true,
 		)
 		if err != nil {
-			s.logger.Error("failed-to-create-check", err)
+			logger.Error("failed-to-create-check", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))
 			return
 		}
 
 		if !created {
-			s.logger.Info("check-not-created")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		err = s.checkFactory.NotifyChecker()
-		if err != nil {
-			s.logger.Error("failed-to-notify-checker", err)
+			logger.Info("check-not-created")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		w.WriteHeader(http.StatusCreated)
 
-		err = json.NewEncoder(w).Encode(present.Check(check))
+		err = json.NewEncoder(w).Encode(present.Build(build))
 		if err != nil {
 			logger.Error("failed-to-encode-check", err)
 			w.WriteHeader(http.StatusInternalServerError)

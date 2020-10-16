@@ -13,12 +13,14 @@ import (
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/mattn/go-isatty"
 )
 
 type GetPipelineCommand struct {
 	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"Get configuration of this pipeline"`
 	JSON     bool                     `short:"j" long:"json"                     description:"Print config as json instead of yaml"`
+	Team     string                   `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *GetPipelineCommand) Validate() error {
@@ -32,9 +34,6 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	asJSON := command.JSON
-	pipelineName := string(command.Pipeline)
-
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
@@ -45,7 +44,18 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 		return err
 	}
 
-	config, _, found, err := target.Team().PipelineConfig(pipelineName)
+	var team concourse.Team
+
+	if command.Team != "" {
+		team, err = target.FindTeam(command.Team)
+		if err != nil {
+			return err
+		}
+	} else {
+		team = target.Team()
+	}
+
+	config, _, found, err := team.PipelineConfig(command.Pipeline.Ref())
 	if err != nil {
 		return err
 	}
@@ -54,7 +64,7 @@ func (command *GetPipelineCommand) Execute(args []string) error {
 		return errors.New("pipeline not found")
 	}
 
-	return dump(config, asJSON)
+	return dump(config, command.JSON)
 }
 
 func dump(config atc.Config, asJSON bool) error {

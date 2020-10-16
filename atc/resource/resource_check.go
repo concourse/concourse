@@ -17,14 +17,16 @@ func (resource *resource) Check(
 	if err != nil {
 		return versions, err
 	}
+
 	err = runnable.RunScript(
 		ctx,
 		spec.Path,
-		nil,
+		spec.Args,
 		input,
 		&versions,
-		nil,
+		spec.StderrWriter,
 		false,
 	)
+
 	return versions, err
 }

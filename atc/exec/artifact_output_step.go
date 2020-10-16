@@ -24,16 +24,14 @@ type ArtifactOutputStep struct {
 	plan         atc.Plan
 	build        db.Build
 	workerClient worker.Client
-	delegate     BuildStepDelegate
 	succeeded    bool
 }
 
-func NewArtifactOutputStep(plan atc.Plan, build db.Build, workerClient worker.Client, delegate BuildStepDelegate) Step {
+func NewArtifactOutputStep(plan atc.Plan, build db.Build, workerClient worker.Client) Step {
 	return &ArtifactOutputStep{
 		plan:         plan,
 		build:        build,
 		workerClient: workerClient,
-		delegate:     delegate,
 	}
 }
 

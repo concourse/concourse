@@ -108,6 +108,10 @@ func (plan *Plan) Each(f func(*Plan)) {
 
 type PlanID string
 
+func (id PlanID) String() string {
+	return string(id)
+}
+
 type ArtifactInputPlan struct {
 	ArtifactID int    `json:"artifact_id"`
 	Name       string `json:"name"`
@@ -179,66 +183,129 @@ type VarScopedPlan struct {
 type DoPlan []Plan
 
 type GetPlan struct {
+	// The name of the step.
 	Name string `json:"name,omitempty"`
 
-	Type        string   `json:"type"`
-	Resource    string   `json:"resource"`
-	Source      Source   `json:"source"`
-	Params      Params   `json:"params,omitempty"`
+	// The resource config to fetch from.
+	Type                   string                 `json:"type"`
+	Source                 Source                 `json:"source"`
+	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
+
+	// The version of the resource to fetch. One of these must be specified.
 	Version     *Version `json:"version,omitempty"`
 	VersionFrom *PlanID  `json:"version_from,omitempty"`
-	Tags        Tags     `json:"tags,omitempty"`
 
-	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
+	// Params to pass to the get operation.
+	Params Params `json:"params,omitempty"`
+
+	// A pipeline resource to update with metadata.
+	Resource string `json:"resource"`
+
+	// Worker tags to influence placement of the container.
+	Tags Tags `json:"tags,omitempty"`
 }
 
 type PutPlan struct {
-	Type     string        `json:"type"`
-	Name     string        `json:"name,omitempty"`
-	Resource string        `json:"resource"`
-	Source   Source        `json:"source"`
-	Params   Params        `json:"params,omitempty"`
-	Tags     Tags          `json:"tags,omitempty"`
-	Inputs   *InputsConfig `json:"inputs,omitempty"`
+	// The name of the step.
+	Name string `json:"name"`
 
+	// The resource config to push to.
+	Type                   string                 `json:"type"`
+	Source                 Source                 `json:"source"`
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
+
+	// Params to pass to the put operation.
+	Params Params `json:"params,omitempty"`
+
+	// Inputs to pass to the put operation.
+	Inputs *InputsConfig `json:"inputs,omitempty"`
+
+	// A pipeline resource to save the versions onto.
+	Resource string `json:"resource,omitempty"`
+
+	// Worker tags to influence placement of the container.
+	Tags Tags `json:"tags,omitempty"`
 }
 
 type CheckPlan struct {
-	Type        string  `json:"type"`
-	Name        string  `json:"name,omitempty"`
-	Source      Source  `json:"source"`
-	Tags        Tags    `json:"tags,omitempty"`
-	Timeout     string  `json:"timeout,omitempty"`
+	// The name of the step.
+	Name string `json:"name"`
+
+	// The resource config to check.
+	Type                   string                 `json:"type"`
+	Source                 Source                 `json:"source"`
+	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
+
+	// The version to check from. If not specified, defaults to the latest
+	// version of the config.
 	FromVersion Version `json:"from_version,omitempty"`
 
-	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
+	// A pipeline resource or resource type to assign the config to.
+	Resource     string `json:"resource,omitempty"`
+	ResourceType string `json:"resource_type,omitempty"`
+
+	// The interval on which to check - if it has not elapsed since the config
+	// was last checked, and the build has not been manually triggered, the check
+	// will be skipped.
+	Interval string `json:"interval,omitempty"`
+
+	// A timeout to enforce on the check operation.
+	Timeout string `json:"timeout,omitempty"`
+
+	// Worker tags to influence placement of the container.
+	Tags Tags `json:"tags,omitempty"`
 }
 
 type TaskPlan struct {
-	Name string `json:"name,omitempty"`
+	// The name of the step.
+	Name string `json:"name"`
 
+	// Run the task in 'privileged' mode. What this means depends on the
+	// platform, but typically you expose your workers to more risk by enabling
+	// this.
 	Privileged bool `json:"privileged"`
-	Tags       Tags `json:"tags,omitempty"`
 
+	// Worker tags to influence placement of the container.
+	Tags Tags `json:"tags,omitempty"`
+
+	// The task config to execute - either fetched from a path at runtime, or
+	// provided statically.
 	ConfigPath string      `json:"config_path,omitempty"`
 	Config     *TaskConfig `json:"config,omitempty"`
-	Vars       Params      `json:"vars,omitempty"`
 
-	Params            Params            `json:"params,omitempty"`
-	InputMapping      map[string]string `json:"input_mapping,omitempty"`
-	OutputMapping     map[string]string `json:"output_mapping,omitempty"`
-	ImageArtifactName string            `json:"image,omitempty"`
+	// An artifact in the build plan to use as the task's image. Overrides any
+	// image set in the task's config.
+	ImageArtifactName string `json:"image,omitempty"`
 
+	// Vars to use to parameterize the task config.
+	Vars Params `json:"vars,omitempty"`
+
+	// Params to set in the task's environment.
+	Params TaskEnv `json:"params,omitempty"`
+
+	// Remap inputs and output artifacts from task names to other names in the
+	// build plan.
+	InputMapping  map[string]string `json:"input_mapping,omitempty"`
+	OutputMapping map[string]string `json:"output_mapping,omitempty"`
+
+	// Resource types to have available for use when fetching the task's image.
+	//
+	// XXX(check-refactor): Eliminating this would be great - if we can replace
+	// image fetching with a 'check' and 'get' step and then use
+	// ImageArtifactName, we'll have everything going down one code path and we
+	// can tidy up the runtime interface substantially. Unfortunately this is
+	// difficult to do because we don't even know what image resource to fetch
+	// until the task step runs and fetches its ConfigPath.
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 }
 
 type SetPipelinePlan struct {
-	Name     string                 `json:"name"`
-	File     string                 `json:"file"`
-	Team     string                 `json:"team,omitempty"`
-	Vars     map[string]interface{} `json:"vars,omitempty"`
-	VarFiles []string               `json:"var_files,omitempty"`
+	Name         string                 `json:"name"`
+	File         string                 `json:"file"`
+	Team         string                 `json:"team,omitempty"`
+	Vars         map[string]interface{} `json:"vars,omitempty"`
+	VarFiles     []string               `json:"var_files,omitempty"`
+	InstanceVars map[string]interface{} `json:"instance_vars,omitempty"`
 }
 
 type LoadVarPlan struct {

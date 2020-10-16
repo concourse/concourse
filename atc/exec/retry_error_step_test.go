@@ -20,8 +20,10 @@ var _ = Describe("RetryErrorStep", func() {
 		ctx    context.Context
 		cancel func()
 
-		fakeStep     *execfakes.FakeStep
-		fakeDelegate *execfakes.FakeBuildStepDelegate
+		fakeStep *execfakes.FakeStep
+
+		fakeDelegate        *execfakes.FakeBuildStepDelegate
+		fakeDelegateFactory *execfakes.FakeBuildStepDelegateFactory
 
 		repo  *build.Repository
 		state *execfakes.FakeRunState
@@ -34,12 +36,14 @@ var _ = Describe("RetryErrorStep", func() {
 
 		fakeStep = new(execfakes.FakeStep)
 		fakeDelegate = new(execfakes.FakeBuildStepDelegate)
+		fakeDelegateFactory = new(execfakes.FakeBuildStepDelegateFactory)
+		fakeDelegateFactory.BuildStepDelegateReturns(fakeDelegate)
 
 		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactRepositoryReturns(repo)
 
-		step = RetryError(fakeStep, fakeDelegate)
+		step = RetryError(fakeStep, fakeDelegateFactory)
 	})
 
 	AfterEach(func() {
@@ -78,7 +82,7 @@ var _ = Describe("RetryErrorStep", func() {
 		})
 
 		Context("when worker disappeared", func() {
-			cause := transport.WorkerMissingError{"some-worker"}
+			cause := transport.WorkerMissingError{WorkerName: "some-worker"}
 			BeforeEach(func() {
 				fakeStep.RunReturns(cause)
 			})

@@ -14,9 +14,6 @@ module Concourse exposing
     , BuildStep(..)
     , CSRFToken
     , Cause
-    , Check
-    , CheckIdentifier
-    , CheckStatus(..)
     , ClusterInfo
     , DatabaseID
     , HookedPlan
@@ -49,7 +46,6 @@ module Concourse exposing
     , decodeBuildPrep
     , decodeBuildResources
     , decodeCause
-    , decodeCheck
     , decodeInfo
     , decodeJob
     , decodeMetadata
@@ -74,6 +70,7 @@ import Dict exposing (Dict)
 import Json.Decode
 import Json.Decode.Extra exposing (andMap)
 import Json.Encode
+import Json.Encode.Extra
 import Time
 
 
@@ -358,6 +355,9 @@ mapBuildPlan fn plan =
                 BuildStepPut _ ->
                     []
 
+                BuildStepCheck _ ->
+                    []
+
                 BuildStepGet _ _ ->
                     []
 
@@ -412,6 +412,7 @@ type BuildStep
     | BuildStepSetPipeline StepName
     | BuildStepLoadVar StepName
     | BuildStepArtifactInput StepName
+    | BuildStepCheck StepName
     | BuildStepGet StepName (Maybe Version)
     | BuildStepArtifactOutput StepName
     | BuildStepPut StepName
@@ -482,6 +483,8 @@ decodeBuildPlan_ =
                 -- buckle up
                 [ Json.Decode.field "task" <|
                     lazy (\_ -> decodeBuildStepTask)
+                , Json.Decode.field "check" <|
+                    lazy (\_ -> decodeBuildStepCheck)
                 , Json.Decode.field "get" <|
                     lazy (\_ -> decodeBuildStepGet)
                 , Json.Decode.field "artifact_input" <|
@@ -541,6 +544,12 @@ decodeBuildStepGet =
     Json.Decode.succeed BuildStepGet
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (Json.Decode.maybe <| Json.Decode.field "version" decodeVersion)
+
+
+decodeBuildStepCheck : Json.Decode.Decoder BuildStep
+decodeBuildStepCheck =
+    Json.Decode.succeed BuildStepCheck
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
 
 
 decodeBuildStepArtifactOutput : Json.Decode.Decoder BuildStep
@@ -818,6 +827,7 @@ type alias Pipeline =
     , public : Bool
     , teamName : TeamName
     , groups : List PipelineGroup
+    , backgroundImage : Maybe String
     }
 
 
@@ -838,6 +848,7 @@ encodePipeline pipeline =
         , ( "public", pipeline.public |> Json.Encode.bool )
         , ( "team_name", pipeline.teamName |> Json.Encode.string )
         , ( "groups", pipeline.groups |> Json.Encode.list encodePipelineGroup )
+        , ( "display", Json.Encode.object [ ( "background_image", pipeline.backgroundImage |> Json.Encode.Extra.maybe Json.Encode.string ) ] )
         ]
 
 
@@ -851,6 +862,7 @@ decodePipeline =
         |> andMap (Json.Decode.field "public" Json.Decode.bool)
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)
         |> andMap (defaultTo [] <| Json.Decode.field "groups" (Json.Decode.list decodePipelineGroup))
+        |> andMap (Json.Decode.maybe (Json.Decode.at [ "display", "background_image" ] Json.Decode.string))
 
 
 encodePipelineGroup : PipelineGroup -> Json.Encode.Value
@@ -879,13 +891,11 @@ type alias Resource =
     , pipelineName : String
     , name : String
     , icon : Maybe String
-    , failingToCheck : Bool
-    , checkError : String
-    , checkSetupError : String
     , lastChecked : Maybe Time.Posix
     , pinnedVersion : Maybe Version
     , pinnedInConfig : Bool
     , pinComment : Maybe String
+    , build : Maybe Build
     }
 
 
@@ -893,14 +903,6 @@ type alias ResourceIdentifier =
     { teamName : String
     , pipelineName : String
     , resourceName : String
-    }
-
-
-type alias CheckIdentifier =
-    { teamName : String
-    , pipelineName : String
-    , resourceName : String
-    , checkID : Int
     }
 
 
@@ -920,22 +922,6 @@ type alias VersionedResourceIdentifier =
     }
 
 
-type alias Check =
-    { id : Int
-    , status : CheckStatus
-    , createTime : Maybe Time.Posix
-    , startTime : Maybe Time.Posix
-    , endTime : Maybe Time.Posix
-    , checkError : Maybe String
-    }
-
-
-type CheckStatus
-    = Started
-    | Succeeded
-    | Errored
-
-
 decodeResource : Json.Decode.Decoder Resource
 decodeResource =
     Json.Decode.succeed Resource
@@ -943,13 +929,11 @@ decodeResource =
         |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (Json.Decode.maybe (Json.Decode.field "icon" Json.Decode.string))
-        |> andMap (defaultTo False <| Json.Decode.field "failing_to_check" Json.Decode.bool)
-        |> andMap (defaultTo "" <| Json.Decode.field "check_error" Json.Decode.string)
-        |> andMap (defaultTo "" <| Json.Decode.field "check_setup_error" Json.Decode.string)
         |> andMap (Json.Decode.maybe (Json.Decode.field "last_checked" (Json.Decode.map dateFromSeconds Json.Decode.int)))
         |> andMap (Json.Decode.maybe (Json.Decode.field "pinned_version" decodeVersion))
         |> andMap (defaultTo False <| Json.Decode.field "pinned_in_config" Json.Decode.bool)
         |> andMap (Json.Decode.maybe (Json.Decode.field "pin_comment" Json.Decode.string))
+        |> andMap (Json.Decode.maybe (Json.Decode.field "build" decodeBuild))
 
 
 decodeVersionedResource : Json.Decode.Decoder VersionedResource
@@ -959,37 +943,6 @@ decodeVersionedResource =
         |> andMap (Json.Decode.field "version" decodeVersion)
         |> andMap (defaultTo [] (Json.Decode.field "metadata" decodeMetadata))
         |> andMap (Json.Decode.field "enabled" Json.Decode.bool)
-
-
-decodeCheck : Json.Decode.Decoder Check
-decodeCheck =
-    Json.Decode.succeed Check
-        |> andMap (Json.Decode.field "id" Json.Decode.int)
-        |> andMap (Json.Decode.field "status" decodeCheckStatus)
-        |> andMap (Json.Decode.maybe (Json.Decode.field "create_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
-        |> andMap (Json.Decode.maybe (Json.Decode.field "start_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
-        |> andMap (Json.Decode.maybe (Json.Decode.field "end_time" (Json.Decode.map dateFromSeconds Json.Decode.int)))
-        |> andMap (Json.Decode.maybe (Json.Decode.field "check_error" Json.Decode.string))
-
-
-decodeCheckStatus : Json.Decode.Decoder CheckStatus
-decodeCheckStatus =
-    Json.Decode.string
-        |> Json.Decode.andThen
-            (\status ->
-                case status of
-                    "started" ->
-                        Json.Decode.succeed Started
-
-                    "succeeded" ->
-                        Json.Decode.succeed Succeeded
-
-                    "errored" ->
-                        Json.Decode.succeed Errored
-
-                    unknown ->
-                        Json.Decode.fail <| "unknown check status: " ++ unknown
-            )
 
 
 

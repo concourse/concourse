@@ -39,20 +39,17 @@ params : Maybe Page -> List Url.Builder.QueryParameter
 params p =
     case p of
         Just { direction, limit } ->
-            [ Url.Builder.int "limit" limit
-            , case direction of
-                Since since ->
-                    Url.Builder.int "since" since
-
-                Until until ->
-                    Url.Builder.int "limit" until
-
+            (case direction of
                 From from ->
-                    Url.Builder.int "limit" from
+                    [ Url.Builder.int "from" from ]
 
                 To to ->
-                    Url.Builder.int "limit" to
-            ]
+                    [ Url.Builder.int "to" to ]
+
+                ToMostRecent ->
+                    []
+            )
+                ++ [ Url.Builder.int "limit" limit ]
 
         Nothing ->
             []
@@ -149,7 +146,4 @@ parsePage url =
                         }
                     )
     in
-    tryDirection Until "until"
-        |> orElse (tryDirection Since "since")
-        |> orElse (tryDirection From "from")
-        |> orElse (tryDirection To "to")
+    tryDirection From "from" |> orElse (tryDirection To "to")

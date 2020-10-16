@@ -3,9 +3,11 @@ package runtime_test
 import (
 	"context"
 	"errors"
+	"strings"
+
 	"github.com/concourse/concourse/worker/runtime"
-	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
 	"github.com/concourse/concourse/worker/runtime/iptables/iptablesfakes"
+	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
 	"github.com/concourse/concourse/worker/runtime/runtimefakes"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
@@ -100,20 +102,7 @@ func (s *CNINetworkSuite) TestSetupMountsReturnsMountpoints() {
 	})
 }
 
-func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithNoNameServer() {
-	network, err := runtime.NewCNINetwork(
-		runtime.WithCNIFileStore(s.store),
-	)
-	s.NoError(err)
-
-	_, err = network.SetupMounts("some-handle")
-	s.NoError(err)
-
-	_, resolvConfContents := s.store.CreateArgsForCall(1)
-	s.Equal(resolvConfContents, []byte("nameserver 8.8.8.8\n"))
-}
-
-func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithOneNameServer() {
+func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithNameServers() {
 	network, err := runtime.NewCNINetwork(
 		runtime.WithCNIFileStore(s.store),
 		runtime.WithNameServers([]string{"6.6.7.7", "1.2.3.4"}),
@@ -124,7 +113,25 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithOneNameServer() {
 	s.NoError(err)
 
 	_, resolvConfContents := s.store.CreateArgsForCall(1)
-	s.Equal(resolvConfContents, []byte("nameserver 6.6.7.7\nnameserver 1.2.3.4\n"))
+	s.Equal(resolvConfContents, []byte("nameserver 6.6.7.7\nnameserver 1.2.3.4"))
+}
+
+func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithoutNameServers() {
+	network, err := runtime.NewCNINetwork(
+		runtime.WithCNIFileStore(s.store),
+	)
+	s.NoError(err)
+
+	_, err = network.SetupMounts("some-handle")
+	s.NoError(err)
+
+	actualResolvContents, err := runtime.ParseHostResolveConf("/etc/resolv.conf")
+	s.NoError(err)
+
+	contents := strings.Join(actualResolvContents, "\n")
+
+	_, resolvConfContents := s.store.CreateArgsForCall(1)
+	s.Equal(resolvConfContents, []byte(contents))
 }
 
 func (s *CNINetworkSuite) TestSetupRestrictedNetworksCreatesEmptyAdminChain() {

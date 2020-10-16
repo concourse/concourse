@@ -38,7 +38,7 @@ var _ = Describe("Garden Config", func() {
 
 	AfterEach(func() {
 		garden.Close()
-		cleanup(releaseName, namespace)
+		cleanupReleases()
 	})
 
 	Context("passing a config map location to the worker to be used by gdn", func() {

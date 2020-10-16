@@ -369,7 +369,7 @@ viewTitle name jobID =
                 ]
 
         _ ->
-            Html.text ("build #" ++ name)
+            Html.text name
 
 
 viewHistory : BuildStatus -> List BuildTab -> Html Message

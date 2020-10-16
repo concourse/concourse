@@ -160,7 +160,7 @@ type CreatedVolume interface {
 	ParentHandle() string
 	ResourceType() (*VolumeResourceType, error)
 	BaseResourceType() (*UsedWorkerBaseResourceType, error)
-	TaskIdentifier() (string, string, string, error)
+	TaskIdentifier() (int, atc.PipelineRef, string, string, error)
 }
 
 type createdVolume struct {
@@ -211,16 +211,18 @@ func (volume *createdVolume) BaseResourceType() (*UsedWorkerBaseResourceType, er
 	return volume.findWorkerBaseResourceTypeByID(volume.workerBaseResourceTypeID)
 }
 
-func (volume *createdVolume) TaskIdentifier() (string, string, string, error) {
+func (volume *createdVolume) TaskIdentifier() (int, atc.PipelineRef, string, string, error) {
 	if volume.workerTaskCacheID == 0 {
-		return "", "", "", nil
+		return 0, atc.PipelineRef{}, "", "", nil
 	}
 
+	var pipelineID int
 	var pipelineName string
+	var pipelineInstanceVars sql.NullString
 	var jobName string
 	var stepName string
 
-	err := psql.Select("p.name, j.name, tc.step_name").
+	err := psql.Select("p.id, p.name, p.instance_vars, j.name, tc.step_name").
 		From("worker_task_caches wtc").
 		LeftJoin("task_caches tc on tc.id = wtc.task_cache_id").
 		LeftJoin("jobs j ON j.id = tc.job_id").
@@ -230,12 +232,20 @@ func (volume *createdVolume) TaskIdentifier() (string, string, string, error) {
 		}).
 		RunWith(volume.conn).
 		QueryRow().
-		Scan(&pipelineName, &jobName, &stepName)
+		Scan(&pipelineID, &pipelineName, &pipelineInstanceVars, &jobName, &stepName)
 	if err != nil {
-		return "", "", "", err
+		return 0, atc.PipelineRef{}, "", "", err
 	}
 
-	return pipelineName, jobName, stepName, nil
+	pipelineRef := atc.PipelineRef{Name: pipelineName}
+	if pipelineInstanceVars.Valid {
+		err = json.Unmarshal([]byte(pipelineInstanceVars.String), &pipelineRef.InstanceVars)
+		if err != nil {
+			return 0, atc.PipelineRef{}, "", "", err
+		}
+	}
+
+	return pipelineID, pipelineRef, jobName, stepName, nil
 }
 
 func (volume *createdVolume) findVolumeResourceTypeByCacheID(resourceCacheID int) (*VolumeResourceType, error) {

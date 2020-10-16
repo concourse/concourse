@@ -17,11 +17,12 @@ import (
 
 var _ = Context("pool", func() {
 	var (
-		logger           lager.Logger
-		factory          creds.ManagerFactory
-		varSourcePool    creds.VarSourcePool
-		config1, config2 map[string]interface{}
-		fakeClock        *fakeclock.FakeClock
+		logger               lager.Logger
+		factory              creds.ManagerFactory
+		credentialManagement creds.CredentialManagementConfig
+		varSourcePool        creds.VarSourcePool
+		config1, config2     map[string]interface{}
+		fakeClock            *fakeclock.FakeClock
 	)
 
 	BeforeEach(func() {
@@ -37,11 +38,24 @@ var _ = Context("pool", func() {
 		}
 
 		fakeClock = fakeclock.NewFakeClock(time.Now())
+
+		credentialManagement = creds.CredentialManagementConfig{
+			RetryConfig: creds.SecretRetryConfig{
+				Attempts: 5,
+				Interval: time.Second,
+			},
+			CacheConfig: creds.SecretCacheConfig{
+				Enabled:          true,
+				Duration:         time.Minute,
+				DurationNotFound: time.Minute,
+				PurgeInterval:    time.Minute * 10,
+			},
+		}
 	})
 
 	Context("FindOrCreate", func() {
 		BeforeEach(func() {
-			varSourcePool = creds.NewVarSourcePool(logger, 5*time.Minute, time.Minute, fakeClock)
+			varSourcePool = creds.NewVarSourcePool(logger, credentialManagement, 5*time.Minute, time.Minute, fakeClock)
 		})
 
 		AfterEach(func() {
@@ -172,7 +186,7 @@ var _ = Context("pool", func() {
 		var err error
 
 		BeforeEach(func() {
-			varSourcePool = creds.NewVarSourcePool(logger, 7*time.Second, 1*time.Second, fakeClock)
+			varSourcePool = creds.NewVarSourcePool(logger, credentialManagement, 7*time.Second, 1*time.Second, fakeClock)
 		})
 
 		It("cleans up all var sources", func() {
@@ -194,7 +208,7 @@ var _ = Context("pool", func() {
 		var err error
 
 		BeforeEach(func() {
-			varSourcePool = creds.NewVarSourcePool(logger, 7*time.Second, 1*time.Second, fakeClock)
+			varSourcePool = creds.NewVarSourcePool(logger, credentialManagement, 7*time.Second, 1*time.Second, fakeClock)
 		})
 
 		AfterEach(func() {

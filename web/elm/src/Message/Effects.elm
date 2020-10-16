@@ -123,10 +123,10 @@ stickyHeaderConfig =
 type Effect
     = FetchJob Concourse.JobIdentifier
     | FetchJobs Concourse.PipelineIdentifier
-    | FetchJobBuilds Concourse.JobIdentifier (Maybe Page)
+    | FetchJobBuilds Concourse.JobIdentifier Page
     | FetchResource Concourse.ResourceIdentifier
     | FetchCheck Int
-    | FetchVersionedResources Concourse.ResourceIdentifier (Maybe Page)
+    | FetchVersionedResources Concourse.ResourceIdentifier Page
     | FetchResources Concourse.PipelineIdentifier
     | FetchBuildResources Concourse.BuildId
     | FetchPipeline Concourse.PipelineIdentifier
@@ -225,9 +225,10 @@ runEffect effect key csrfToken =
         FetchJobBuilds id page ->
             Api.paginatedGet
                 (Endpoints.JobBuildsList |> Endpoints.Job id)
-                page
+                (Just page)
                 Concourse.decodeBuild
                 |> Api.request
+                |> Task.map (\b -> ( page, b ))
                 |> Task.attempt JobBuildsFetched
 
         FetchResource id ->
@@ -237,18 +238,18 @@ runEffect effect key csrfToken =
                 |> Task.attempt ResourceFetched
 
         FetchCheck id ->
-            Api.get (Endpoints.Check id)
-                |> Api.expectJson Concourse.decodeCheck
+            Api.get (Endpoints.Build id Endpoints.BaseBuild)
+                |> Api.expectJson Concourse.decodeBuild
                 |> Api.request
                 |> Task.attempt Checked
 
-        FetchVersionedResources id paging ->
+        FetchVersionedResources id page ->
             Api.paginatedGet
                 (Endpoints.ResourceVersionsList |> Endpoints.Resource id)
-                paging
+                (Just page)
                 Concourse.decodeVersionedResource
                 |> Api.request
-                |> Task.map (\b -> ( paging, b ))
+                |> Task.map (\b -> ( page, b ))
                 |> Task.attempt VersionedResourcesFetched
 
         FetchResources id ->
@@ -419,7 +420,7 @@ runEffect effect key csrfToken =
                 csrfToken
                 |> Api.withJsonBody
                     (Json.Encode.object [ ( "from", Json.Encode.null ) ])
-                |> Api.expectJson Concourse.decodeCheck
+                |> Api.expectJson Concourse.decodeBuild
                 |> Api.request
                 |> Task.attempt Checked
 
@@ -695,8 +696,8 @@ toHtmlID domId =
                 ++ Base64.encode p.pipelineName
                 ++ "_visibility"
 
-        FirstOccurrenceGetStepLabel stepID ->
-            stepID ++ "_first_occurrence"
+        ChangedStepLabel stepID _ ->
+            stepID ++ "_changed"
 
         StepState stepID ->
             stepID ++ "_state"

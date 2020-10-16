@@ -80,6 +80,21 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		warnings = append(warnings, *warning)
 	}
 
+	pipelineRef := atc.PipelineRef{Name: pipelineName}
+	if atc.EnablePipelineInstances {
+		if instanceVars := query.Get("instance_vars"); instanceVars != "" {
+			err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
+			if err != nil {
+				session.Error("malformed-instance-vars", err)
+				s.handleBadRequest(w, fmt.Sprintf("instance_vars is malformed: %s", err))
+				return
+			}
+		}
+	} else if query.Get("instance_vars") != "" {
+		s.handleBadRequest(w, "support for `instance-vars` is disabled")
+		return
+	}
+
 	if checkCredentials {
 		variables := creds.NewVariables(s.secretManager, teamName, pipelineName, false)
 
@@ -105,7 +120,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, created, err := team.SavePipeline(pipelineName, config, version, true)
+	_, created, err := team.SavePipeline(pipelineRef, config, version, true)
 	if err != nil {
 		session.Error("failed-to-save-config", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -158,26 +173,17 @@ func validateCredParams(credMgrVars vars.Variables, config atc.Config, session l
 	for _, job := range config.Jobs {
 		_ = job.StepConfig().Visit(atc.StepRecursor{
 			OnTask: func(step *atc.TaskStep) error {
-				_, err := creds.NewParams(credMgrVars, step.Params).Evaluate()
+				err := creds.NewTaskEnvValidator(credMgrVars, step.Params).Validate()
 				if err != nil {
 					errs = multierror.Append(errs, err)
 				}
 
-				if step.ConfigPath != "" {
-					// external task - we can't really validate much right now, because task yaml will be
-					// retrieved in runtime during job execution. but we can validate vars and params which will be
-					// passed to this task
-					err = creds.NewTaskParamsValidator(credMgrVars, step.Params).Validate()
-					if err != nil {
-						errs = multierror.Append(errs, err)
-					}
+				err = creds.NewTaskVarsValidator(credMgrVars, step.Vars).Validate()
+				if err != nil {
+					errs = multierror.Append(errs, err)
+				}
 
-					err = creds.NewTaskVarsValidator(credMgrVars, step.Vars).Validate()
-					if err != nil {
-						errs = multierror.Append(errs, err)
-					}
-
-				} else if step.Config != nil {
+				if step.Config != nil {
 					// embedded task - we can fully validate it, interpolating with cred mgr variables
 					var taskConfigSource exec.TaskConfigSource
 					embeddedTaskVars := []vars.Variables{credMgrVars}

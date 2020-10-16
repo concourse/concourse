@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -50,7 +51,7 @@ var _ = Describe("Fly CLI", func() {
 			session            *gexec.Session
 			cmdArgs            []string
 			expectedURL        string
-			queryParams        string
+			queryParams        []string
 			returnedStatusCode int
 			returnedBuilds     []atc.Build
 			expectedHeaders    ui.TableRow
@@ -61,8 +62,7 @@ var _ = Describe("Fly CLI", func() {
 
 			expectedHeaders = ui.TableRow{
 				{Contents: "id", Color: color.New(color.Bold)},
-				{Contents: "pipeline/job", Color: color.New(color.Bold)},
-				{Contents: "build", Color: color.New(color.Bold)},
+				{Contents: "name", Color: color.New(color.Bold)},
 				{Contents: "status", Color: color.New(color.Bold)},
 				{Contents: "start", Color: color.New(color.Bold)},
 				{Contents: "end", Color: color.New(color.Bold)},
@@ -76,7 +76,7 @@ var _ = Describe("Fly CLI", func() {
 
 			atcServer.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", expectedURL, queryParams),
+					ghttp.VerifyRequest("GET", expectedURL, strings.Join(queryParams, "&")),
 					ghttp.RespondWithJSONEncoded(returnedStatusCode, returnedBuilds),
 				),
 			)
@@ -88,22 +88,36 @@ var _ = Describe("Fly CLI", func() {
 		Context("with no arguments", func() {
 			BeforeEach(func() {
 				expectedURL = "/api/v1/builds"
-				queryParams = "limit=50"
+				queryParams = []string{"limit=50"}
 
 				returnedStatusCode = http.StatusOK
 				returnedBuilds = []atc.Build{
 					{
-						ID:           2,
+						ID:                   2,
+						PipelineID:           1,
+						PipelineName:         "some-pipeline",
+						PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+						JobName:              "some-job",
+						Name:                 "62",
+						Status:               "started",
+						StartTime:            runningBuildStartTime.Unix(),
+						EndTime:              0,
+						TeamName:             "team1",
+					},
+					{
+						ID:           999,
+						TeamName:     "some-team",
+						PipelineID:   1,
 						PipelineName: "some-pipeline",
-						JobName:      "some-job",
-						Name:         "62",
-						Status:       "started",
-						StartTime:    runningBuildStartTime.Unix(),
-						EndTime:      0,
-						TeamName:     "team1",
+						ResourceName: "some-resource",
+						Name:         "check",
+						Status:       "succeeded",
+						StartTime:    succeededBuildStartTime.Unix(),
+						EndTime:      succeededBuildEndTime.Unix(),
 					},
 					{
 						ID:           3,
+						PipelineID:   2,
 						PipelineName: "some-other-pipeline",
 						JobName:      "some-other-job",
 						Name:         "63",
@@ -113,34 +127,28 @@ var _ = Describe("Fly CLI", func() {
 						TeamName:     "team1",
 					},
 					{
-						ID:           1000001,
-						PipelineName: "",
-						JobName:      "",
-						Name:         "",
-						Status:       "errored",
-						StartTime:    erroredBuildStartTime.Unix(),
-						EndTime:      erroredBuildEndTime.Unix(),
-						TeamName:     "team1",
+						ID:        1000001,
+						Name:      "one-off",
+						Status:    "errored",
+						StartTime: erroredBuildStartTime.Unix(),
+						EndTime:   erroredBuildEndTime.Unix(),
+						TeamName:  "team1",
 					},
 					{
-						ID:           1002,
-						PipelineName: "",
-						JobName:      "",
-						Name:         "",
-						Status:       "aborted",
-						StartTime:    zeroTime.Unix(),
-						EndTime:      abortedBuildEndTime.Unix(),
-						TeamName:     "team1",
+						ID:        1002,
+						Name:      "one-off",
+						Status:    "aborted",
+						StartTime: zeroTime.Unix(),
+						EndTime:   abortedBuildEndTime.Unix(),
+						TeamName:  "team1",
 					},
 					{
-						ID:           39,
-						PipelineName: "",
-						JobName:      "",
-						Name:         "",
-						Status:       "pending",
-						StartTime:    0,
-						EndTime:      0,
-						TeamName:     "team1",
+						ID:        39,
+						Name:      "one-off",
+						Status:    "pending",
+						StartTime: 0,
+						EndTime:   0,
+						TeamName:  "team1",
 					},
 				}
 			})
@@ -160,8 +168,24 @@ var _ = Describe("Fly CLI", func() {
                 "status": "started",
                 "job_name": "some-job",
                 "api_url": "",
+                "pipeline_id": 1,
                 "pipeline_name": "some-pipeline",
+                "pipeline_instance_vars": {
+                  "branch": "master"
+                },
                 "start_time": 1448101815
+              },
+              {
+                "id": 999,
+                "team_name": "some-team",
+                "name": "check",
+                "status": "succeeded",
+                "resource_name": "some-resource",
+                "api_url": "",
+                "pipeline_id": 1,
+                "pipeline_name": "some-pipeline",
+                "start_time": 1448932815,
+                "end_time": 1448937315
               },
               {
                 "id": 3,
@@ -170,6 +194,7 @@ var _ = Describe("Fly CLI", func() {
                 "status": "pending",
                 "job_name": "some-other-job",
                 "api_url": "",
+                "pipeline_id": 2,
                 "pipeline_name": "some-other-pipeline",
                 "start_time": 1448932815,
                 "end_time": 1448937315
@@ -177,7 +202,7 @@ var _ = Describe("Fly CLI", func() {
               {
                 "id": 1000001,
                 "team_name": "team1",
-                "name": "",
+                "name": "one-off",
                 "status": "errored",
                 "api_url": "",
                 "start_time": 1436011215,
@@ -186,7 +211,7 @@ var _ = Describe("Fly CLI", func() {
               {
                 "id": 1002,
                 "team_name": "team1",
-                "name": "",
+                "name": "one-off",
                 "status": "aborted",
                 "api_url": "",
                 "end_time": 1436021115
@@ -194,7 +219,7 @@ var _ = Describe("Fly CLI", func() {
               {
                 "id": 39,
                 "team_name": "team1",
-                "name": "",
+                "name": "one-off",
                 "status": "pending",
                 "api_url": ""
               }
@@ -210,8 +235,7 @@ var _ = Describe("Fly CLI", func() {
 					Data: []ui.TableRow{
 						{
 							{Contents: "2"},
-							{Contents: "some-pipeline/some-job"},
-							{Contents: "62"},
+							{Contents: "some-pipeline/branch:master/some-job/62"},
 							{Contents: "started"},
 							{Contents: runningBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: "n/a"},
@@ -225,9 +249,17 @@ var _ = Describe("Fly CLI", func() {
 							{Contents: "team1"},
 						},
 						{
+							{Contents: "999"},
+							{Contents: "some-pipeline/some-resource/check"},
+							{Contents: "succeeded"},
+							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
+							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
+							{Contents: "1h15m0s"},
+							{Contents: "some-team"},
+						},
+						{
 							{Contents: "3"},
-							{Contents: "some-other-pipeline/some-other-job"},
-							{Contents: "63"},
+							{Contents: "some-other-pipeline/some-other-job/63"},
 							{Contents: "pending"},
 							{Contents: pendingBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: pendingBuildEndTime.Local().Format(timeDateLayout)},
@@ -237,7 +269,6 @@ var _ = Describe("Fly CLI", func() {
 						{
 							{Contents: "1000001"},
 							{Contents: "one-off"},
-							{Contents: "n/a"},
 							{Contents: "errored"},
 							{Contents: erroredBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: erroredBuildEndTime.Local().Format(timeDateLayout)},
@@ -247,7 +278,6 @@ var _ = Describe("Fly CLI", func() {
 						{
 							{Contents: "1002"},
 							{Contents: "one-off"},
-							{Contents: "n/a"},
 							{Contents: "aborted"},
 							{Contents: "n/a"},
 							{Contents: abortedBuildEndTime.Local().Format(timeDateLayout)},
@@ -257,7 +287,6 @@ var _ = Describe("Fly CLI", func() {
 						{
 							{Contents: "39"},
 							{Contents: "one-off"},
-							{Contents: "n/a"},
 							{Contents: "pending"},
 							{Contents: "n/a"},
 							{Contents: "n/a"},
@@ -328,7 +357,7 @@ var _ = Describe("Fly CLI", func() {
 				cmdArgs = append(cmdArgs, "1")
 
 				expectedURL = "/api/v1/builds"
-				queryParams = "limit=1"
+				queryParams = []string{"limit=1"}
 
 				returnedStatusCode = http.StatusOK
 				returnedBuilds = []atc.Build{
@@ -336,7 +365,7 @@ var _ = Describe("Fly CLI", func() {
 						ID:           39,
 						PipelineName: "",
 						JobName:      "",
-						Name:         "",
+						Name:         "one-off",
 						Status:       "pending",
 						StartTime:    0,
 						EndTime:      0,
@@ -351,7 +380,6 @@ var _ = Describe("Fly CLI", func() {
 						{
 							{Contents: "39"},
 							{Contents: "one-off"},
-							{Contents: "n/a"},
 							{Contents: "pending"},
 							{Contents: "n/a"},
 							{Contents: "n/a"},
@@ -365,7 +393,6 @@ var _ = Describe("Fly CLI", func() {
 						{
 							{Contents: "80"},
 							{Contents: "one-off"},
-							{Contents: "n/a"},
 							{Contents: "pending"},
 							{Contents: "n/a"},
 							{Contents: "n/a"},
@@ -384,7 +411,7 @@ var _ = Describe("Fly CLI", func() {
 				cmdArgs = append(cmdArgs, "some-pipeline/some-job")
 
 				expectedURL = "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job/builds"
-				queryParams = "limit=50"
+				queryParams = []string{"limit=50"}
 				returnedStatusCode = http.StatusOK
 				returnedBuilds = []atc.Build{
 					{
@@ -405,8 +432,7 @@ var _ = Describe("Fly CLI", func() {
 					Data: []ui.TableRow{
 						{
 							{Contents: "3"},
-							{Contents: "some-pipeline/some-job"},
-							{Contents: "63"},
+							{Contents: "some-pipeline/some-job/63"},
 							{Contents: "succeeded"},
 							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -449,7 +475,7 @@ var _ = Describe("Fly CLI", func() {
 					cmdArgs = append(cmdArgs, "--since", since.Format(timeLayout))
 					cmdArgs = append(cmdArgs, "--until", until.Format(timeLayout))
 
-					queryParams = fmt.Sprintf("limit=50&since=%d&until=%d&timestamps=true", since.Unix(), until.Unix())
+					queryParams = []string{"limit=50", fmt.Sprintf("from=%d", since.Unix()), fmt.Sprintf("to=%d", until.Unix()), "timestamps=true"}
 				})
 
 				It("returns the builds correctly", func() {
@@ -464,7 +490,7 @@ var _ = Describe("Fly CLI", func() {
 					cmdArgs = append(cmdArgs, "-c")
 					cmdArgs = append(cmdArgs, "98")
 
-					queryParams = "limit=98"
+					queryParams = []string{"limit=98"}
 					returnedStatusCode = http.StatusOK
 					returnedBuilds = []atc.Build{
 						{
@@ -485,8 +511,7 @@ var _ = Describe("Fly CLI", func() {
 						Data: []ui.TableRow{
 							{
 								{Contents: "3"},
-								{Contents: "some-pipeline/some-job"},
-								{Contents: "63"},
+								{Contents: "some-pipeline/some-job/63"},
 								{Contents: "succeeded"},
 								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -504,7 +529,7 @@ var _ = Describe("Fly CLI", func() {
 				cmdArgs = append(cmdArgs, "--current-team")
 
 				expectedURL = "/api/v1/teams/main/builds"
-				queryParams = "limit=50"
+				queryParams = []string{"limit=50"}
 				returnedStatusCode = http.StatusOK
 				returnedBuilds = []atc.Build{
 					{
@@ -525,8 +550,7 @@ var _ = Describe("Fly CLI", func() {
 					Data: []ui.TableRow{
 						{
 							{Contents: "3"},
-							{Contents: "some-pipeline/some-job"},
-							{Contents: "63"},
+							{Contents: "some-pipeline/some-job/63"},
 							{Contents: "succeeded"},
 							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -553,7 +577,7 @@ var _ = Describe("Fly CLI", func() {
 					cmdArgs = append(cmdArgs, "-c")
 					cmdArgs = append(cmdArgs, "98")
 
-					queryParams = "limit=98"
+					queryParams = []string{"limit=98"}
 					returnedStatusCode = http.StatusOK
 					returnedBuilds = []atc.Build{
 						{
@@ -574,8 +598,7 @@ var _ = Describe("Fly CLI", func() {
 						Data: []ui.TableRow{
 							{
 								{Contents: "3"},
-								{Contents: "some-pipeline/some-job"},
-								{Contents: "63"},
+								{Contents: "some-pipeline/some-job/63"},
 								{Contents: "succeeded"},
 								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -595,7 +618,7 @@ var _ = Describe("Fly CLI", func() {
 					cmdArgs = append(cmdArgs, "--team", "team1")
 
 					expectedURL = "/api/v1/teams/team1/builds"
-					queryParams = "limit=50"
+					queryParams = []string{"limit=50"}
 					returnedStatusCode = http.StatusOK
 					returnedBuilds = []atc.Build{
 						{
@@ -617,8 +640,7 @@ var _ = Describe("Fly CLI", func() {
 						Data: []ui.TableRow{
 							{
 								{Contents: "3"},
-								{Contents: "some-pipeline/some-job"},
-								{Contents: "63"},
+								{Contents: "some-pipeline/some-job/63"},
 								{Contents: "succeeded"},
 								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -638,7 +660,7 @@ var _ = Describe("Fly CLI", func() {
 						"--team", "team2")
 
 					expectedURL = "/api/v1/teams/team1/builds"
-					queryParams = "limit=50"
+					queryParams = []string{"limit=50"}
 					returnedStatusCode = http.StatusOK
 					returnedBuilds = []atc.Build{
 						{
@@ -656,7 +678,7 @@ var _ = Describe("Fly CLI", func() {
 
 				JustBeforeEach(func() {
 					expectedURL = "/api/v1/teams/team2/builds"
-					queryParams = "limit=50"
+					queryParams = []string{"limit=50"}
 					returnedStatusCode = http.StatusOK
 					returnedBuilds = []atc.Build{
 						{
@@ -673,7 +695,7 @@ var _ = Describe("Fly CLI", func() {
 
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", expectedURL, queryParams),
+							ghttp.VerifyRequest("GET", expectedURL, strings.Join(queryParams, "&")),
 							ghttp.RespondWithJSONEncoded(returnedStatusCode, returnedBuilds),
 						),
 					)
@@ -685,8 +707,7 @@ var _ = Describe("Fly CLI", func() {
 						Data: []ui.TableRow{
 							{
 								{Contents: "3"},
-								{Contents: "some-pipeline/some-job"},
-								{Contents: "63"},
+								{Contents: "some-pipeline/some-job/63"},
 								{Contents: "succeeded"},
 								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -696,8 +717,7 @@ var _ = Describe("Fly CLI", func() {
 
 							{
 								{Contents: "4"},
-								{Contents: "some-pipeline/some-job"},
-								{Contents: "63"},
+								{Contents: "some-pipeline/some-job/63"},
 								{Contents: "succeeded"},
 								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -737,7 +757,7 @@ var _ = Describe("Fly CLI", func() {
 				cmdArgs = append(cmdArgs, "--all-teams")
 
 				expectedURL = "/api/v1/teams/team1/builds"
-				queryParams = "limit=50"
+				queryParams = []string{"limit=50"}
 				returnedStatusCode = http.StatusOK
 				returnedBuilds = []atc.Build{
 					{
@@ -755,7 +775,7 @@ var _ = Describe("Fly CLI", func() {
 
 			JustBeforeEach(func() {
 				expectedURL = "/api/v1/teams/team2/builds"
-				queryParams = "limit=50"
+				queryParams = []string{"limit=50"}
 				returnedStatusCode = http.StatusOK
 				returnedBuilds = []atc.Build{
 					{
@@ -772,7 +792,7 @@ var _ = Describe("Fly CLI", func() {
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL, queryParams),
+						ghttp.VerifyRequest("GET", expectedURL, strings.Join(queryParams, "&")),
 						ghttp.RespondWithJSONEncoded(returnedStatusCode, returnedBuilds),
 					),
 				)
@@ -784,8 +804,7 @@ var _ = Describe("Fly CLI", func() {
 					Data: []ui.TableRow{
 						{
 							{Contents: "3"},
-							{Contents: "some-pipeline/some-job"},
-							{Contents: "63"},
+							{Contents: "some-pipeline/some-job/63"},
 							{Contents: "succeeded"},
 							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -794,8 +813,7 @@ var _ = Describe("Fly CLI", func() {
 						},
 						{
 							{Contents: "4"},
-							{Contents: "some-pipeline/some-job"},
-							{Contents: "63"},
+							{Contents: "some-pipeline/some-job/63"},
 							{Contents: "succeeded"},
 							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -820,7 +838,7 @@ var _ = Describe("Fly CLI", func() {
 				until = time.Date(2020, 11, 2, 0, 0, 0, 0, time.Now().Location())
 
 				expectedURL = "/api/v1/builds"
-				queryParams = fmt.Sprintf("limit=50&since=%d&until=%d&timestamps=true", since.Unix(), until.Unix())
+				queryParams = []string{"limit=50", fmt.Sprintf("from=%d", since.Unix()), fmt.Sprintf("to=%d", until.Unix()), "timestamps=true"}
 				returnedStatusCode = http.StatusOK
 				returnedBuilds = []atc.Build{
 					{
@@ -845,8 +863,7 @@ var _ = Describe("Fly CLI", func() {
 					Data: []ui.TableRow{
 						{
 							{Contents: "3"},
-							{Contents: "some-pipeline/some-job"},
-							{Contents: "63"},
+							{Contents: "some-pipeline/some-job/63"},
 							{Contents: "succeeded"},
 							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -862,20 +879,21 @@ var _ = Describe("Fly CLI", func() {
 		Context("when passing the pipeline argument", func() {
 			BeforeEach(func() {
 				cmdArgs = append(cmdArgs, "-p")
-				cmdArgs = append(cmdArgs, "some-pipeline")
+				cmdArgs = append(cmdArgs, "some-pipeline/branch:master")
 
 				expectedURL = "/api/v1/teams/main/pipelines/some-pipeline/builds"
-				queryParams = "limit=50"
+				queryParams = []string{"instance_vars=%7B%22branch%22%3A%22master%22%7D", "limit=50"}
 				returnedStatusCode = http.StatusOK
 				returnedBuilds = []atc.Build{
 					{
-						ID:           3,
-						PipelineName: "some-pipeline",
-						JobName:      "some-job",
-						Name:         "63",
-						Status:       "succeeded",
-						StartTime:    succeededBuildStartTime.Unix(),
-						EndTime:      succeededBuildEndTime.Unix(),
+						ID:                   3,
+						PipelineName:         "some-pipeline",
+						PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+						JobName:              "some-job",
+						Name:                 "63",
+						Status:               "succeeded",
+						StartTime:            succeededBuildStartTime.Unix(),
+						EndTime:              succeededBuildEndTime.Unix(),
 					},
 				}
 			})
@@ -886,8 +904,7 @@ var _ = Describe("Fly CLI", func() {
 					Data: []ui.TableRow{
 						{
 							{Contents: "3"},
-							{Contents: "some-pipeline/some-job"},
-							{Contents: "63"},
+							{Contents: "some-pipeline/branch:master/some-job/63"},
 							{Contents: "succeeded"},
 							{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 							{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -925,17 +942,18 @@ var _ = Describe("Fly CLI", func() {
 					cmdArgs = append(cmdArgs, "-c")
 					cmdArgs = append(cmdArgs, "98")
 
-					queryParams = "limit=98"
+					queryParams = []string{"instance_vars=%7B%22branch%22%3A%22master%22%7D", "limit=98"}
 					returnedStatusCode = http.StatusOK
 					returnedBuilds = []atc.Build{
 						{
-							ID:           3,
-							PipelineName: "some-pipeline",
-							JobName:      "some-job",
-							Name:         "63",
-							Status:       "succeeded",
-							StartTime:    succeededBuildStartTime.Unix(),
-							EndTime:      succeededBuildEndTime.Unix(),
+							ID:                   3,
+							PipelineName:         "some-pipeline",
+							PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+							JobName:              "some-job",
+							Name:                 "63",
+							Status:               "succeeded",
+							StartTime:            succeededBuildStartTime.Unix(),
+							EndTime:              succeededBuildEndTime.Unix(),
 						},
 					}
 				})
@@ -946,8 +964,7 @@ var _ = Describe("Fly CLI", func() {
 						Data: []ui.TableRow{
 							{
 								{Contents: "3"},
-								{Contents: "some-pipeline/some-job"},
-								{Contents: "63"},
+								{Contents: "some-pipeline/branch:master/some-job/63"},
 								{Contents: "succeeded"},
 								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
 								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
@@ -965,11 +982,11 @@ var _ = Describe("Fly CLI", func() {
 					until := time.Date(2020, 11, 2, 0, 0, 0, 0, time.Now().Location())
 
 					cmdArgs = append(cmdArgs, "-p")
-					cmdArgs = append(cmdArgs, "some-pipeline")
+					cmdArgs = append(cmdArgs, "some-pipeline/branch:master")
 					cmdArgs = append(cmdArgs, "--since", since.Format(timeLayout))
 					cmdArgs = append(cmdArgs, "--until", until.Format(timeLayout))
 
-					queryParams = fmt.Sprintf("limit=50&since=%d&until=%d&timestamps=true", since.Unix(), until.Unix())
+					queryParams = []string{"instance_vars=%7B%22branch%22%3A%22master%22%7D", "limit=50", fmt.Sprintf("from=%d", since.Unix()), fmt.Sprintf("to=%d", until.Unix()), "timestamps=true"}
 				})
 
 				It("returns the builds correctly", func() {

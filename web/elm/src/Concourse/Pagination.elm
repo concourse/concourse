@@ -7,6 +7,7 @@ module Concourse.Pagination exposing
     , chevronLeft
     , chevronRight
     , equal
+    , isPreviousPage
     )
 
 import Assets
@@ -34,34 +35,24 @@ type alias Page =
 
 
 type Direction
-    = Since Int
-    | Until Int
-    | From Int
+    = From Int
     | To Int
-
-
-directionEqual : Direction -> Direction -> Bool
-directionEqual d1 d2 =
-    case ( d1, d2 ) of
-        ( Since p1, Since p2 ) ->
-            p1 == p2
-
-        ( Until p1, Until p2 ) ->
-            p1 == p2
-
-        ( From p1, From p2 ) ->
-            p1 == p2
-
-        ( To p1, To p2 ) ->
-            p1 == p2
-
-        ( _, _ ) ->
-            False
+    | ToMostRecent
 
 
 equal : Page -> Page -> Bool
-equal one two =
-    directionEqual one.direction two.direction
+equal =
+    (==)
+
+
+isPreviousPage : Page -> Bool
+isPreviousPage p =
+    case p.direction of
+        From _ ->
+            True
+
+        _ ->
+            False
 
 
 chevronContainer : List (Html.Attribute msg)

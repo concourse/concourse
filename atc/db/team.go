@@ -33,16 +33,16 @@ type Team interface {
 	Rename(string) error
 
 	SavePipeline(
-		pipelineName string,
+		pipelineRef atc.PipelineRef,
 		config atc.Config,
 		from ConfigVersion,
 		initiallyPaused bool,
 	) (Pipeline, bool, error)
 
-	Pipeline(pipelineName string) (Pipeline, bool, error)
+	Pipeline(pipelineRef atc.PipelineRef) (Pipeline, bool, error)
 	Pipelines() ([]Pipeline, error)
 	PublicPipelines() ([]Pipeline, error)
-	OrderPipelines([]string) error
+	OrderPipelines([]atc.PipelineRef) error
 
 	CreateOneOffBuild() (Build, error)
 	CreateStartedBuild(plan atc.Plan) (Build, error)
@@ -60,7 +60,7 @@ type Team interface {
 	IsContainerWithinTeam(string, bool) (bool, error)
 
 	FindContainerByHandle(string) (Container, bool, error)
-	FindCheckContainers(lager.Logger, string, string, creds.Secrets, creds.VarSourcePool) ([]Container, map[int]time.Time, error)
+	FindCheckContainers(lager.Logger, atc.PipelineRef, string, creds.Secrets, creds.VarSourcePool) ([]Container, map[int]time.Time, error)
 	FindContainersByMetadata(ContainerMetadata) ([]Container, error)
 	FindCreatedContainerByHandle(string) (CreatedContainer, bool, error)
 	FindWorkerForContainer(handle string) (Worker, bool, error)
@@ -341,7 +341,7 @@ func (t *team) FindCreatedContainerByHandle(
 
 func savePipeline(
 	tx Tx,
-	pipelineName string,
+	pipelineRef atc.PipelineRef,
 	config atc.Config,
 	from ConfigVersion,
 	initiallyPaused bool,
@@ -349,13 +349,30 @@ func savePipeline(
 	jobID sql.NullInt64,
 	buildID sql.NullInt64,
 ) (int, bool, error) {
+
+	var instanceVars sql.NullString
+	if pipelineRef.InstanceVars != nil {
+		bytes, _ := json.Marshal(pipelineRef.InstanceVars)
+		instanceVars = sql.NullString{
+			String: string(bytes),
+			Valid:  true,
+		}
+	}
+
+	pipelineRefWhereClause := sq.Eq{
+		"team_id":       teamID,
+		"name":          pipelineRef.Name,
+		"instance_vars": instanceVars,
+	}
+
 	var existingConfig bool
-	err := tx.QueryRow(`SELECT EXISTS (
-		SELECT 1
-		FROM pipelines
-		WHERE name = $1
-		AND team_id = $2
-	)`, pipelineName, teamID).Scan(&existingConfig)
+	err := psql.Select("1").
+		From("pipelines").
+		Where(pipelineRefWhereClause).
+		Prefix("SELECT EXISTS (").Suffix(")").
+		RunWith(tx).
+		QueryRow().
+		Scan(&existingConfig)
 	if err != nil {
 		return 0, false, err
 	}
@@ -375,13 +392,19 @@ func savePipeline(
 		return 0, false, err
 	}
 
+	displayPayload, err := json.Marshal(config.Display)
+	if err != nil {
+		return 0, false, err
+	}
+
 	var pipelineID int
 	if !existingConfig {
 		err = psql.Insert("pipelines").
 			SetMap(map[string]interface{}{
-				"name":            pipelineName,
+				"name":            pipelineRef.Name,
 				"groups":          groupsPayload,
 				"var_sources":     encryptedVarSourcesPayload,
+				"display":         displayPayload,
 				"nonce":           nonce,
 				"version":         sq.Expr("nextval('config_version_seq')"),
 				"ordering":        sq.Expr("currval('pipelines_id_seq')"),
@@ -390,6 +413,7 @@ func savePipeline(
 				"team_id":         teamID,
 				"parent_job_id":   jobID,
 				"parent_build_id": buildID,
+				"instance_vars":   instanceVars,
 			}).
 			Suffix("RETURNING id").
 			RunWith(tx).
@@ -403,15 +427,15 @@ func savePipeline(
 			Set("archived", false).
 			Set("groups", groupsPayload).
 			Set("var_sources", encryptedVarSourcesPayload).
+			Set("display", displayPayload).
 			Set("nonce", nonce).
 			Set("version", sq.Expr("nextval('config_version_seq')")).
 			Set("last_updated", sq.Expr("now()")).
 			Set("parent_job_id", jobID).
 			Set("parent_build_id", buildID).
-			Where(sq.Eq{
-				"name":    pipelineName,
-				"version": from,
-				"team_id": teamID,
+			Where(sq.And{
+				pipelineRefWhereClause,
+				sq.Eq{"version": from},
 			})
 
 		if buildID.Valid {
@@ -425,12 +449,11 @@ func savePipeline(
 		if err != nil {
 			if err == sql.ErrNoRows {
 				var currentParentBuildID sql.NullInt64
-				err = tx.QueryRow(`
-					SELECT parent_build_id
-					FROM pipelines
-					WHERE name = $1
-					AND team_id = $2 `,
-					pipelineName, teamID).
+				err := psql.Select("parent_build_id").
+					From("pipelines").
+					Where(pipelineRefWhereClause).
+					RunWith(tx).
+					QueryRow().
 					Scan(&currentParentBuildID)
 				if err != nil {
 					return 0, false, err
@@ -506,7 +529,7 @@ func savePipeline(
 }
 
 func (t *team) SavePipeline(
-	pipelineName string,
+	pipelineRef atc.PipelineRef,
 	config atc.Config,
 	from ConfigVersion,
 	initiallyPaused bool,
@@ -519,7 +542,7 @@ func (t *team) SavePipeline(
 	defer Rollback(tx)
 
 	nullID := sql.NullInt64{Valid: false}
-	pipelineID, isNewPipeline, err := savePipeline(tx, pipelineName, config, from, initiallyPaused, t.id, nullID, nullID)
+	pipelineID, isNewPipeline, err := savePipeline(tx, pipelineRef, config, from, initiallyPaused, t.id, nullID, nullID)
 	if err != nil {
 		return nil, false, err
 	}
@@ -545,19 +568,30 @@ func (t *team) SavePipeline(
 	return pipeline, isNewPipeline, nil
 }
 
-func (t *team) Pipeline(pipelineName string) (Pipeline, bool, error) {
+func (t *team) Pipeline(pipelineRef atc.PipelineRef) (Pipeline, bool, error) {
 	pipeline := newPipeline(t.conn, t.lockFactory)
+
+	var instanceVars sql.NullString
+	if pipelineRef.InstanceVars != nil {
+		bytes, _ := json.Marshal(pipelineRef.InstanceVars)
+		instanceVars = sql.NullString{
+			String: string(bytes),
+			Valid:  true,
+		}
+	}
 
 	err := scanPipeline(
 		pipeline,
 		pipelinesQuery.
 			Where(sq.Eq{
-				"p.team_id": t.id,
-				"p.name":    pipelineName,
+				"p.team_id":       t.id,
+				"p.name":          pipelineRef.Name,
+				"p.instance_vars": instanceVars,
 			}).
 			RunWith(t.conn).
 			QueryRow(),
 	)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -609,7 +643,7 @@ func (t *team) PublicPipelines() ([]Pipeline, error) {
 	return pipelines, nil
 }
 
-func (t *team) OrderPipelines(pipelineNames []string) error {
+func (t *team) OrderPipelines(pipelineRefs []atc.PipelineRef) error {
 	tx, err := t.conn.Begin()
 	if err != nil {
 		return err
@@ -617,12 +651,22 @@ func (t *team) OrderPipelines(pipelineNames []string) error {
 
 	defer Rollback(tx)
 
-	for i, name := range pipelineNames {
+	for i, pipelineRef := range pipelineRefs {
+		var instanceVars sql.NullString
+		if pipelineRef.InstanceVars != nil {
+			bytes, _ := json.Marshal(pipelineRef.InstanceVars)
+			instanceVars = sql.NullString{
+				String: string(bytes),
+				Valid:  true,
+			}
+		}
+
 		pipelineUpdate, err := psql.Update("pipelines").
 			Set("ordering", i).
 			Where(sq.Eq{
-				"name":    name,
-				"team_id": t.id,
+				"team_id":       t.id,
+				"name":          pipelineRef.Name,
+				"instance_vars": instanceVars,
 			}).
 			RunWith(tx).
 			Exec()
@@ -634,7 +678,7 @@ func (t *team) OrderPipelines(pipelineNames []string) error {
 			return err
 		}
 		if updatedPipelines == 0 {
-			return fmt.Errorf("pipeline %s does not exist", name)
+			return fmt.Errorf("pipeline %s does not exist", pipelineRef.String())
 		}
 	}
 
@@ -787,8 +831,8 @@ func (t *team) UpdateProviderAuth(auth atc.TeamAuth) error {
 	return tx.Commit()
 }
 
-func (t *team) FindCheckContainers(logger lager.Logger, pipelineName string, resourceName string, secretManager creds.Secrets, varSourcePool creds.VarSourcePool) ([]Container, map[int]time.Time, error) {
-	pipeline, found, err := t.Pipeline(pipelineName)
+func (t *team) FindCheckContainers(logger lager.Logger, pipelineRef atc.PipelineRef, resourceName string, secretManager creds.Secrets, varSourcePool creds.VarSourcePool) ([]Container, map[int]time.Time, error) {
+	pipeline, found, err := t.Pipeline(pipelineRef)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1221,13 +1265,15 @@ func scanPipeline(p *pipeline, scan scannable) error {
 	var (
 		groups        sql.NullString
 		varSources    sql.NullString
+		display       sql.NullString
 		nonce         sql.NullString
 		nonceStr      *string
 		lastUpdated   pq.NullTime
 		parentJobID   sql.NullInt64
 		parentBuildID sql.NullInt64
+		instanceVars  sql.NullString
 	)
-	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &p.archived, &lastUpdated, &parentJobID, &parentBuildID)
+	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &display, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &p.archived, &lastUpdated, &parentJobID, &parentBuildID, &instanceVars)
 	if err != nil {
 		return err
 	}
@@ -1250,6 +1296,16 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		nonceStr = &nonce.String
 	}
 
+	if display.Valid {
+		var displayConfig *atc.DisplayConfig
+		err = json.Unmarshal([]byte(display.String), &displayConfig)
+		if err != nil {
+			return err
+		}
+
+		p.display = displayConfig
+	}
+
 	if varSources.Valid {
 		var pipelineVarSources atc.VarSourceConfigs
 		decryptedVarSource, err := p.conn.EncryptionStrategy().Decrypt(varSources.String, nonceStr)
@@ -1262,6 +1318,13 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		}
 
 		p.varSources = pipelineVarSources
+	}
+
+	if instanceVars.Valid {
+		err = json.Unmarshal([]byte(instanceVars.String), &p.instanceVars)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

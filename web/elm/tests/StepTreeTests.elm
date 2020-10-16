@@ -31,6 +31,7 @@ all =
         [ initTask
         , initSetPipeline
         , initLoadVar
+        , initCheck
         , initGet
         , initPut
         , initAggregate
@@ -63,7 +64,7 @@ someVersionedStep version id name state =
     , expanded = False
     , version = version
     , metadata = []
-    , firstOccurrence = False
+    , changed = False
     , timestamps = Dict.empty
     , initialize = Nothing
     , start = Nothing
@@ -156,6 +157,32 @@ initLoadVar =
                     tree
                     (\s -> { s | state = Models.StepStateSucceeded })
                     (Models.LoadVar (someStep "some-id" "some-name" Models.StepStateSucceeded))
+        ]
+
+
+initCheck : Test
+initCheck =
+    let
+        { tree, foci } =
+            StepTree.init Routes.HighlightNothing
+                emptyResources
+                { id = "some-id"
+                , step = BuildStepCheck "some-name"
+                }
+    in
+    describe "init with Check"
+        [ test "the tree" <|
+            \_ ->
+                Expect.equal
+                    (Models.Check (someStep "some-id" "some-name" Models.StepStatePending))
+                    tree
+        , test "using the focus" <|
+            \_ ->
+                assertFocus "some-id"
+                    foci
+                    tree
+                    (\s -> { s | state = Models.StepStateSucceeded })
+                    (Models.Check (someStep "some-id" "some-name" Models.StepStateSucceeded))
         ]
 
 

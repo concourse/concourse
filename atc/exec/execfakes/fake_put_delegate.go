@@ -2,6 +2,7 @@
 package execfakes
 
 import (
+	"context"
 	"io"
 	"sync"
 
@@ -10,7 +11,8 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/tracing"
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 type FakePutDelegate struct {
@@ -71,6 +73,21 @@ type FakePutDelegate struct {
 		arg1 lager.Logger
 		arg2 string
 	}
+	StartSpanStub        func(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
+	startSpanMutex       sync.RWMutex
+	startSpanArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+		arg3 tracing.Attrs
+	}
+	startSpanReturns struct {
+		result1 context.Context
+		result2 trace.Span
+	}
+	startSpanReturnsOnCall map[int]struct {
+		result1 context.Context
+		result2 trace.Span
+	}
 	StartingStub        func(lager.Logger)
 	startingMutex       sync.RWMutex
 	startingArgsForCall []struct {
@@ -95,16 +112,6 @@ type FakePutDelegate struct {
 	}
 	stdoutReturnsOnCall map[int]struct {
 		result1 io.Writer
-	}
-	VariablesStub        func() *vars.BuildVariables
-	variablesMutex       sync.RWMutex
-	variablesArgsForCall []struct {
-	}
-	variablesReturns struct {
-		result1 *vars.BuildVariables
-	}
-	variablesReturnsOnCall map[int]struct {
-		result1 *vars.BuildVariables
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -396,6 +403,71 @@ func (fake *FakePutDelegate) SelectedWorkerArgsForCall(i int) (lager.Logger, str
 	return argsForCall.arg1, argsForCall.arg2
 }
 
+func (fake *FakePutDelegate) StartSpan(arg1 context.Context, arg2 string, arg3 tracing.Attrs) (context.Context, trace.Span) {
+	fake.startSpanMutex.Lock()
+	ret, specificReturn := fake.startSpanReturnsOnCall[len(fake.startSpanArgsForCall)]
+	fake.startSpanArgsForCall = append(fake.startSpanArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+		arg3 tracing.Attrs
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("StartSpan", []interface{}{arg1, arg2, arg3})
+	fake.startSpanMutex.Unlock()
+	if fake.StartSpanStub != nil {
+		return fake.StartSpanStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.startSpanReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakePutDelegate) StartSpanCallCount() int {
+	fake.startSpanMutex.RLock()
+	defer fake.startSpanMutex.RUnlock()
+	return len(fake.startSpanArgsForCall)
+}
+
+func (fake *FakePutDelegate) StartSpanCalls(stub func(context.Context, string, tracing.Attrs) (context.Context, trace.Span)) {
+	fake.startSpanMutex.Lock()
+	defer fake.startSpanMutex.Unlock()
+	fake.StartSpanStub = stub
+}
+
+func (fake *FakePutDelegate) StartSpanArgsForCall(i int) (context.Context, string, tracing.Attrs) {
+	fake.startSpanMutex.RLock()
+	defer fake.startSpanMutex.RUnlock()
+	argsForCall := fake.startSpanArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakePutDelegate) StartSpanReturns(result1 context.Context, result2 trace.Span) {
+	fake.startSpanMutex.Lock()
+	defer fake.startSpanMutex.Unlock()
+	fake.StartSpanStub = nil
+	fake.startSpanReturns = struct {
+		result1 context.Context
+		result2 trace.Span
+	}{result1, result2}
+}
+
+func (fake *FakePutDelegate) StartSpanReturnsOnCall(i int, result1 context.Context, result2 trace.Span) {
+	fake.startSpanMutex.Lock()
+	defer fake.startSpanMutex.Unlock()
+	fake.StartSpanStub = nil
+	if fake.startSpanReturnsOnCall == nil {
+		fake.startSpanReturnsOnCall = make(map[int]struct {
+			result1 context.Context
+			result2 trace.Span
+		})
+	}
+	fake.startSpanReturnsOnCall[i] = struct {
+		result1 context.Context
+		result2 trace.Span
+	}{result1, result2}
+}
+
 func (fake *FakePutDelegate) Starting(arg1 lager.Logger) {
 	fake.startingMutex.Lock()
 	fake.startingArgsForCall = append(fake.startingArgsForCall, struct {
@@ -531,58 +603,6 @@ func (fake *FakePutDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
 	}{result1}
 }
 
-func (fake *FakePutDelegate) Variables() *vars.BuildVariables {
-	fake.variablesMutex.Lock()
-	ret, specificReturn := fake.variablesReturnsOnCall[len(fake.variablesArgsForCall)]
-	fake.variablesArgsForCall = append(fake.variablesArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Variables", []interface{}{})
-	fake.variablesMutex.Unlock()
-	if fake.VariablesStub != nil {
-		return fake.VariablesStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.variablesReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakePutDelegate) VariablesCallCount() int {
-	fake.variablesMutex.RLock()
-	defer fake.variablesMutex.RUnlock()
-	return len(fake.variablesArgsForCall)
-}
-
-func (fake *FakePutDelegate) VariablesCalls(stub func() *vars.BuildVariables) {
-	fake.variablesMutex.Lock()
-	defer fake.variablesMutex.Unlock()
-	fake.VariablesStub = stub
-}
-
-func (fake *FakePutDelegate) VariablesReturns(result1 *vars.BuildVariables) {
-	fake.variablesMutex.Lock()
-	defer fake.variablesMutex.Unlock()
-	fake.VariablesStub = nil
-	fake.variablesReturns = struct {
-		result1 *vars.BuildVariables
-	}{result1}
-}
-
-func (fake *FakePutDelegate) VariablesReturnsOnCall(i int, result1 *vars.BuildVariables) {
-	fake.variablesMutex.Lock()
-	defer fake.variablesMutex.Unlock()
-	fake.VariablesStub = nil
-	if fake.variablesReturnsOnCall == nil {
-		fake.variablesReturnsOnCall = make(map[int]struct {
-			result1 *vars.BuildVariables
-		})
-	}
-	fake.variablesReturnsOnCall[i] = struct {
-		result1 *vars.BuildVariables
-	}{result1}
-}
-
 func (fake *FakePutDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -600,14 +620,14 @@ func (fake *FakePutDelegate) Invocations() map[string][][]interface{} {
 	defer fake.saveOutputMutex.RUnlock()
 	fake.selectedWorkerMutex.RLock()
 	defer fake.selectedWorkerMutex.RUnlock()
+	fake.startSpanMutex.RLock()
+	defer fake.startSpanMutex.RUnlock()
 	fake.startingMutex.RLock()
 	defer fake.startingMutex.RUnlock()
 	fake.stderrMutex.RLock()
 	defer fake.stderrMutex.RUnlock()
 	fake.stdoutMutex.RLock()
 	defer fake.stdoutMutex.RUnlock()
-	fake.variablesMutex.RLock()
-	defer fake.variablesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

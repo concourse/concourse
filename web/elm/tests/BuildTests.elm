@@ -1726,7 +1726,7 @@ all =
                             [ attribute <|
                                 Attr.attribute "aria-label" "Trigger Build"
                             ]
-                , test """page contents lay out vertically, filling available 
+                , test """page contents lay out vertically, filling available
                           space without scrolling horizontally""" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
@@ -1750,7 +1750,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -1794,7 +1794,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -1847,7 +1847,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -1888,7 +1888,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -1929,7 +1929,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -1971,7 +1971,7 @@ all =
                                             { previousPage = Nothing
                                             , nextPage =
                                                 Just
-                                                    { direction = Until 1
+                                                    { direction = To 1
                                                     , limit = 100
                                                     }
                                             }
@@ -2053,7 +2053,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -2067,7 +2067,7 @@ all =
                         >> Tuple.second
                         >> Expect.equal
                             [ Effects.FetchBuildHistory Data.shortJobId
-                                (Just { direction = Until 1, limit = 100 })
+                                (Just { direction = To 1, limit = 100 })
                             ]
                 , test "scrolling to last build while fetching fetches no more" <|
                     givenBuildFetched
@@ -2079,7 +2079,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -2112,7 +2112,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -2128,7 +2128,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 2
+                                                { direction = To 2
                                                 , limit = 100
                                                 }
                                         }
@@ -2150,7 +2150,7 @@ all =
                         >> Tuple.second
                         >> Common.notContains
                             (Effects.FetchBuildHistory Data.shortJobId
-                                (Just { direction = Until 2, limit = 100 })
+                                (Just { direction = To 2, limit = 100 })
                             )
                 , test "if build is present in history, checks its visibility" <|
                     givenBuildFetched
@@ -2162,7 +2162,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -2182,7 +2182,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -2205,7 +2205,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 1
+                                                { direction = To 1
                                                 , limit = 100
                                                 }
                                         }
@@ -2231,7 +2231,7 @@ all =
                                         { previousPage = Nothing
                                         , nextPage =
                                             Just
-                                                { direction = Until 2
+                                                { direction = To 2
                                                 , limit = 100
                                                 }
                                         }
@@ -2253,7 +2253,7 @@ all =
                         >> Tuple.second
                         >> Expect.equal
                             [ Effects.FetchBuildHistory Data.shortJobId
-                                (Just { direction = Until 2, limit = 100 })
+                                (Just { direction = To 2, limit = 100 })
                             ]
                 , test "trigger build button is styled as a box of the color of the build status" <|
                     givenHistoryAndDetailsFetched
@@ -2782,12 +2782,29 @@ all =
                                 )
                             >> Tuple.first
 
+                    fetchPlanWithCheckStep : () -> Application.Model
+                    fetchPlanWithCheckStep =
+                        givenBuildStarted
+                            >> Tuple.first
+                            >> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 307 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step =
+                                                Concourse.BuildStepCheck
+                                                    "step"
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            >> Tuple.first
+
                     fetchPlanWithSetPipelineStep : () -> Application.Model
                     fetchPlanWithSetPipelineStep =
                         givenBuildStarted
                             >> Tuple.first
                             >> Application.handleCallback
-                                (Callback.PlanAndResourcesFetched 307 <|
+                                (Callback.PlanAndResourcesFetched 1 <|
                                     Ok <|
                                         ( { id = "plan"
                                           , step =
@@ -2996,6 +3013,10 @@ all =
                     fetchPlanWithTaskStep
                         >> Common.queryView
                         >> Query.has taskStepLabel
+                , test "check step shows check label" <|
+                    fetchPlanWithCheckStep
+                        >> Common.queryView
+                        >> Query.has checkStepLabel
                 , test "set_pipeline step shows set_pipeline label" <|
                     fetchPlanWithSetPipelineStep
                         >> Common.queryView
@@ -3020,6 +3041,13 @@ all =
                     fetchPlanWithGetStep
                         >> Common.queryView
                         >> Query.find getStepLabel
+                        >> Event.simulate Event.mouseEnter
+                        >> Event.toResult
+                        >> Expect.err
+                , test "hovering over a normal set_pipeline step label does nothing" <|
+                    fetchPlanWithSetPipelineStep
+                        >> Common.queryView
+                        >> Query.find setPipelineStepLabel
                         >> Event.simulate Event.mouseEnter
                         >> Event.toResult
                         >> Expect.err
@@ -3636,8 +3664,7 @@ all =
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ class "header" ]
-                        >> Query.has
-                            [ style "border" <| "1px solid " ++ Colors.frame ]
+                        >> Query.has [ style "box-shadow" "inset 0 0 0 1px transparent" ]
                 , test "failing step has a red border" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
@@ -3658,7 +3685,7 @@ all =
                         >> Common.queryView
                         >> Query.find [ class "header" ]
                         >> Query.has
-                            [ style "border" <| "1px solid " ++ Colors.failure ]
+                            [ style "box-shadow" <| "inset 0 0 0 1px " ++ Colors.failure ]
                 , test "started step has a yellow border" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
@@ -3678,7 +3705,50 @@ all =
                         >> Common.queryView
                         >> Query.find [ class "header" ]
                         >> Query.has
-                            [ style "border" <| "1px solid " ++ Colors.started ]
+                            [ style "box-shadow" <| "inset 0 0 0 1px " ++ Colors.started ]
+                , test "set_pipeline step that changed something has a yellow text" <|
+                    fetchPlanWithSetPipelineStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.SetPipelineChanged
+                                                { source = "stdout", id = "plan" }
+                                                True
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.has changedSetPipelineStepLabel
+                , test "set_pipeline step that changed something tooltip appears after 1 second" <|
+                    fetchPlanWithSetPipelineStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.SetPipelineChanged
+                                                { source = "stdout", id = "plan" }
+                                                True
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> Application.handleDelivery
+                            (ClockTicked OneSecond <|
+                                Time.millisToPosix 0
+                            )
+                        >> Tuple.first
+                        >> hoverSetPipelineChangedLabel
+                        >> Application.handleDelivery
+                            (ClockTicked OneSecond <|
+                                Time.millisToPosix 1
+                            )
+                        >> Tuple.second
+                        >> Common.contains
+                            (Effects.GetViewportOf setPipelineChangedLabelID)
                 , test "network error on first event shows passport officer" <|
                     let
                         imgUrl =
@@ -3898,6 +3968,22 @@ setPipelineStepLabel =
     ]
 
 
+changedSetPipelineStepLabel =
+    [ style "color" Colors.started
+    , style "line-height" "28px"
+    , style "padding-left" "6px"
+    , containing [ text "set_pipeline:" ]
+    ]
+
+
+checkStepLabel =
+    [ style "color" Colors.pending
+    , style "line-height" "28px"
+    , style "padding-left" "6px"
+    , containing [ text "check:" ]
+    ]
+
+
 loadVarStepLabel =
     [ style "color" Colors.pending
     , style "line-height" "28px"
@@ -3907,13 +3993,26 @@ loadVarStepLabel =
 
 
 firstOccurrenceLabelID =
-    Message.Message.FirstOccurrenceGetStepLabel
+    Message.Message.ChangedStepLabel
         "foo"
+        "new version"
 
 
 hoverFirstOccurrenceLabel =
     Application.update
         (Msgs.Update <| Message.Message.Hover <| Just firstOccurrenceLabelID)
+        >> Tuple.first
+
+
+setPipelineChangedLabelID =
+    Message.Message.ChangedStepLabel
+        "foo"
+        "pipeline config changed"
+
+
+hoverSetPipelineChangedLabel =
+    Application.update
+        (Msgs.Update <| Message.Message.Hover <| Just setPipelineChangedLabelID)
         >> Tuple.first
 
 

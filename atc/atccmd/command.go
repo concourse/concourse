@@ -74,6 +74,7 @@ import (
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/oauth2"
+	"golang.org/x/time/rate"
 	"gopkg.in/yaml.v2"
 
 	// dynamically registered metric emitters
@@ -149,7 +150,6 @@ type RunCommand struct {
 	ComponentRunnerInterval time.Duration `long:"component-runner-interval" default:"10s" description:"Interval on which runners are kicked off for builds, locks, scans, and checks"`
 
 	LidarScannerInterval time.Duration `long:"lidar-scanner-interval" default:"10s" description:"Interval on which the resource scanner will run to see if new checks need to be scheduled"`
-	LidarCheckerInterval time.Duration `long:"lidar-checker-interval" default:"10s" description:"Interval on which the resource checker runs any scheduled checks"`
 
 	GlobalResourceCheckTimeout          time.Duration `long:"global-resource-check-timeout" default:"1h" description:"Time limit on checking for new versions of resources."`
 	ResourceCheckingInterval            time.Duration `long:"resource-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources."`
@@ -248,12 +248,16 @@ type RunCommand struct {
 		EnableRedactSecrets                  bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
 		EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears or a network error occurs"`
 		EnableAcrossStep                     bool `long:"enable-across-step" description:"Enable the experimental across step to be used in jobs. The API is subject to change."`
+		EnablePipelineInstances              bool `long:"enable-pipeline-instances" description:"Enable pipeline instances"`
 	} `group:"Feature Flags"`
+
+	BaseResourceTypeDefaults flag.File `long:"base-resource-type-defaults" description:"Base resource type defaults"`
 }
 
 type Migration struct {
 	Postgres           flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 	EncryptionKey      flag.Cipher         `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
+	OldEncryptionKey   flag.Cipher         `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
 	CurrentDBVersion   bool                `long:"current-db-version" description:"Print the current database version and exit"`
 	SupportedDBVersion bool                `long:"supported-db-version" description:"Print the max supported database version and exit"`
 	MigrateDBToVersion int                 `long:"migrate-db-to-version" description:"Migrate to the specified database version and exit"`
@@ -269,7 +273,10 @@ func (m *Migration) Execute(args []string) error {
 	if m.MigrateDBToVersion > 0 {
 		return m.migrateDBToVersion()
 	}
-	return errors.New("must specify one of `--current-db-version`, `--supported-db-version`, or `--migrate-db-to-version`")
+	if m.OldEncryptionKey.AEAD != nil {
+		return m.rotateEncryptionKey()
+	}
+	return errors.New("must specify one of `--current-db-version`, `--supported-db-version`, `--migrate-db-to-version`, or `--old-encryption-key`")
 
 }
 
@@ -278,7 +285,8 @@ func (cmd *Migration) currentDBVersion() error {
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
 		nil,
-		encryption.NewNoEncryption(),
+		nil,
+		nil,
 	)
 
 	version, err := helper.CurrentVersion()
@@ -295,7 +303,8 @@ func (cmd *Migration) supportedDBVersion() error {
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
 		nil,
-		encryption.NewNoEncryption(),
+		nil,
+		nil,
 	)
 
 	version, err := helper.SupportedVersion()
@@ -311,22 +320,21 @@ func (cmd *Migration) migrateDBToVersion() error {
 	version := cmd.MigrateDBToVersion
 
 	var newKey *encryption.Key
+	var oldKey *encryption.Key
+
 	if cmd.EncryptionKey.AEAD != nil {
 		newKey = encryption.NewKey(cmd.EncryptionKey.AEAD)
 	}
-
-	var strategy encryption.Strategy
-	if newKey != nil {
-		strategy = newKey
-	} else {
-		strategy = encryption.NewNoEncryption()
+	if cmd.OldEncryptionKey.AEAD != nil {
+		oldKey = encryption.NewKey(cmd.OldEncryptionKey.AEAD)
 	}
 
 	helper := migration.NewOpenHelper(
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
 		nil,
-		strategy,
+		newKey,
+		oldKey,
 	)
 
 	err := helper.MigrateToVersion(version)
@@ -336,6 +344,33 @@ func (cmd *Migration) migrateDBToVersion() error {
 
 	fmt.Println("Successfully migrated to version:", version)
 	return nil
+}
+
+func (cmd *Migration) rotateEncryptionKey() error {
+	var newKey *encryption.Key
+	var oldKey *encryption.Key
+
+	if cmd.EncryptionKey.AEAD != nil {
+		newKey = encryption.NewKey(cmd.EncryptionKey.AEAD)
+	}
+	if cmd.OldEncryptionKey.AEAD != nil {
+		oldKey = encryption.NewKey(cmd.OldEncryptionKey.AEAD)
+	}
+
+	helper := migration.NewOpenHelper(
+		defaultDriverName,
+		cmd.Postgres.ConnectionString(),
+		nil,
+		newKey,
+		oldKey,
+	)
+
+	version, err := helper.CurrentVersion()
+	if err != nil {
+		return err
+	}
+
+	return helper.MigrateToVersion(version)
 }
 
 func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
@@ -449,6 +484,22 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	atc.EnableRedactSecrets = cmd.FeatureFlags.EnableRedactSecrets
 	atc.EnableBuildRerunWhenWorkerDisappears = cmd.FeatureFlags.EnableBuildRerunWhenWorkerDisappears
 	atc.EnableAcrossStep = cmd.FeatureFlags.EnableAcrossStep
+	atc.EnablePipelineInstances = cmd.FeatureFlags.EnablePipelineInstances
+
+	if cmd.BaseResourceTypeDefaults.Path() != "" {
+		content, err := ioutil.ReadFile(cmd.BaseResourceTypeDefaults.Path())
+		if err != nil {
+			return nil, err
+		}
+
+		defaults := map[string]atc.Source{}
+		err = yaml.Unmarshal(content, &defaults)
+		if err != nil {
+			return nil, err
+		}
+
+		atc.LoadBaseResourceTypeDefaults(defaults)
+	}
 
 	//FIXME: These only need to run once for the entire binary. At the moment,
 	//they rely on state of the command.
@@ -516,6 +567,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 	cmd.varSourcePool = creds.NewVarSourcePool(
 		logger.Session("var-source-pool"),
+		cmd.CredentialManagement,
 		5*time.Minute,
 		1*time.Minute,
 		clock.NewClock(),
@@ -724,7 +776,11 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbContainerRepository := db.NewContainerRepository(dbConn)
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
+	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, db.CheckDurations{
+		Interval:            cmd.ResourceCheckingInterval,
+		IntervalWithWebhook: cmd.ResourceWithWebhookCheckingInterval,
+		Timeout:             cmd.GlobalResourceCheckTimeout,
+	})
 	dbAccessTokenFactory := db.NewAccessTokenFactory(dbConn)
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
@@ -922,10 +978,13 @@ func (cmd *RunCommand) backendComponents(
 	)
 
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
+	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, db.CheckDurations{
+		Interval:            cmd.ResourceCheckingInterval,
+		IntervalWithWebhook: cmd.ResourceWithWebhookCheckingInterval,
+		Timeout:             cmd.GlobalResourceCheckTimeout,
+	})
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
-	dbCheckableCounter := db.NewCheckableCounter(dbConn)
 	dbPipelineLifecycle := db.NewPipelineLifecycle(dbConn, lockFactory)
 
 	alg := algorithm.New(db.NewVersionsDB(dbConn, algorithmLimitRows, schedulerCache))
@@ -982,6 +1041,14 @@ func (cmd *RunCommand) backendComponents(
 		return nil, err
 	}
 
+	rateLimiter := db.NewResourceCheckRateLimiter(
+		rate.Limit(cmd.MaxChecksPerSecond),
+		cmd.ResourceCheckingInterval,
+		dbConn,
+		time.Minute,
+		clock.NewClock(),
+	)
+
 	engine := cmd.constructEngine(
 		pool,
 		workerClient,
@@ -994,6 +1061,7 @@ func (cmd *RunCommand) backendComponents(
 		defaultLimits,
 		buildContainerStrategy,
 		lockFactory,
+		rateLimiter,
 	)
 
 	// In case that a user configures resource-checking-interval, but forgets to
@@ -1016,30 +1084,7 @@ func (cmd *RunCommand) backendComponents(
 				Name:     atc.ComponentLidarScanner,
 				Interval: cmd.LidarScannerInterval,
 			},
-			Runnable: lidar.NewScanner(
-				logger.Session(atc.ComponentLidarScanner),
-				dbCheckFactory,
-				secretManager,
-				cmd.GlobalResourceCheckTimeout,
-				cmd.ResourceCheckingInterval,
-				cmd.ResourceWithWebhookCheckingInterval,
-			),
-		},
-		{
-			Component: atc.Component{
-				Name:     atc.ComponentLidarChecker,
-				Interval: cmd.LidarCheckerInterval,
-			},
-			Runnable: lidar.NewChecker(
-				logger.Session(atc.ComponentLidarChecker),
-				dbCheckFactory,
-				engine,
-				lidar.CheckRateCalculator{
-					MaxChecksPerSecond:       cmd.MaxChecksPerSecond,
-					ResourceCheckingInterval: cmd.ResourceCheckingInterval,
-					CheckableCounter:         dbCheckableCounter,
-				},
-			),
+			Runnable: lidar.NewScanner(dbCheckFactory),
 		},
 		{
 			Component: atc.Component{
@@ -1115,7 +1160,6 @@ func (cmd *RunCommand) gcComponents(
 	dbResourceCacheLifecycle := db.NewResourceCacheLifecycle(gcConn)
 	dbContainerRepository := db.NewContainerRepository(gcConn)
 	dbArtifactLifecycle := db.NewArtifactLifecycle(gcConn)
-	dbCheckLifecycle := db.NewCheckLifecycle(gcConn)
 	dbAccessTokenLifecycle := db.NewAccessTokenLifecycle(gcConn)
 	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(gcConn)
 	dbBuildFactory := db.NewBuildFactory(gcConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
@@ -1124,14 +1168,22 @@ func (cmd *RunCommand) gcComponents(
 
 	dbVolumeRepository := db.NewVolumeRepository(gcConn)
 
+	// set the 'unreferenced resource config' grace period to be the longer than
+	// the check timeout, just to make sure it doesn't get removed out from under
+	// a running check
+	//
+	// 5 minutes is arbitrary - this really shouldn't matter a whole lot, but
+	// exposing a config specifically for it is a little risky, since you don't
+	// want to set it too low.
+	unreferencedConfigGracePeriod := cmd.GlobalResourceCheckTimeout + 5*time.Minute
+
 	collectors := map[string]component.Runnable{
 		atc.ComponentCollectorBuilds:            gc.NewBuildCollector(dbBuildFactory),
 		atc.ComponentCollectorWorkers:           gc.NewWorkerCollector(dbWorkerLifecycle),
-		atc.ComponentCollectorResourceConfigs:   gc.NewResourceConfigCollector(dbResourceConfigFactory),
+		atc.ComponentCollectorResourceConfigs:   gc.NewResourceConfigCollector(dbResourceConfigFactory, unreferencedConfigGracePeriod),
 		atc.ComponentCollectorResourceCaches:    gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
 		atc.ComponentCollectorResourceCacheUses: gc.NewResourceCacheUseCollector(dbResourceCacheLifecycle),
 		atc.ComponentCollectorArtifacts:         gc.NewArtifactCollector(dbArtifactLifecycle),
-		atc.ComponentCollectorChecks:            gc.NewCheckCollector(dbCheckLifecycle, cmd.GC.CheckRecyclePeriod),
 		atc.ComponentCollectorVolumes:           gc.NewVolumeCollector(dbVolumeRepository, cmd.GC.MissingGracePeriod),
 		atc.ComponentCollectorContainers:        gc.NewContainerCollector(dbContainerRepository, cmd.GC.MissingGracePeriod, cmd.GC.HijackGracePeriod),
 		atc.ComponentCollectorCheckSessions:     gc.NewResourceConfigCheckSessionCollector(resourceConfigCheckSessionLifecycle),
@@ -1251,12 +1303,7 @@ func (cmd *RunCommand) secretManager(logger lager.Logger) (creds.Secrets, error)
 		break
 	}
 
-	result := secretsFactory.NewSecrets()
-	result = creds.NewRetryableSecrets(result, cmd.CredentialManagement.RetryConfig)
-	if cmd.CredentialManagement.CacheConfig.Enabled {
-		result = creds.NewCachedSecrets(result, cmd.CredentialManagement.CacheConfig)
-	}
-	return result, nil
+	return cmd.CredentialManagement.NewSecrets(secretsFactory), nil
 }
 
 func (cmd *RunCommand) newKey() *encryption.Key {
@@ -1375,10 +1422,19 @@ func (cmd *RunCommand) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Conf
 }
 
 func (cmd *RunCommand) parseDefaultLimits() (atc.ContainerLimits, error) {
-	return atc.ParseContainerLimits(map[string]interface{}{
-		"cpu":    cmd.DefaultCpuLimit,
-		"memory": cmd.DefaultMemoryLimit,
-	})
+	limits := atc.ContainerLimits{}
+	if cmd.DefaultCpuLimit != nil {
+		cpu := atc.CPULimit(*cmd.DefaultCpuLimit)
+		limits.CPU = &cpu
+	}
+	if cmd.DefaultMemoryLimit != nil {
+		memory, err := atc.ParseMemoryLimit(*cmd.DefaultMemoryLimit)
+		if err != nil {
+			return atc.ContainerLimits{}, err
+		}
+		limits.Memory = &memory
+	}
+	return limits, nil
 }
 
 func (cmd *RunCommand) defaultBindIP() net.IP {
@@ -1584,6 +1640,7 @@ func (cmd *RunCommand) constructEngine(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	lockFactory lock.LockFactory,
+	rateLimiter builder.RateLimiter,
 ) engine.Engine {
 
 	stepFactory := builder.NewStepFactory(
@@ -1601,13 +1658,11 @@ func (cmd *RunCommand) constructEngine(
 
 	stepBuilder := builder.NewStepBuilder(
 		stepFactory,
-		builder.NewDelegateFactory(),
 		cmd.ExternalURL.String(),
-		secretManager,
-		cmd.varSourcePool,
+		rateLimiter,
 	)
 
-	return engine.NewEngine(stepBuilder)
+	return engine.NewEngine(stepBuilder, secretManager, cmd.varSourcePool)
 }
 
 func (cmd *RunCommand) constructHTTPHandler(

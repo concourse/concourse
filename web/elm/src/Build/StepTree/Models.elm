@@ -49,6 +49,7 @@ type StepTree
     | SetPipeline Step
     | LoadVar Step
     | ArtifactInput Step
+    | Check Step
     | Get Step
     | ArtifactOutput Step
     | Put Step
@@ -86,7 +87,7 @@ type alias Step =
     , expanded : Bool
     , version : Maybe Version
     , metadata : List MetadataField
-    , firstOccurrence : Bool
+    , changed : Bool
     , timestamps : Dict Int Time.Posix
     , initialize : Maybe Time.Posix
     , start : Maybe Time.Posix
@@ -204,6 +205,9 @@ fold acc start stepTree =
         ArtifactInput step ->
             acc step start
 
+        Check step ->
+            acc step start
+
         Get step ->
             acc step start
 
@@ -270,6 +274,7 @@ type BuildEvent
     | InitializePut Origin Time.Posix
     | StartPut Origin Time.Posix
     | FinishPut Origin Int Concourse.Version Concourse.Metadata (Maybe Time.Posix)
+    | SetPipelineChanged Origin Bool
     | Log Origin String (Maybe Time.Posix)
     | SelectedWorker Origin String (Maybe Time.Posix)
     | Error Origin String Time.Posix
@@ -330,6 +335,9 @@ map f tree =
     case tree of
         Task step ->
             Task (f step)
+
+        Check step ->
+            Check (f step)
 
         Get step ->
             Get (f step)
@@ -512,6 +520,9 @@ finishTree root =
 
         ArtifactInput step ->
             ArtifactInput (finishStep step)
+
+        Check step ->
+            Check (finishStep step)
 
         Get step ->
             Get (finishStep step)

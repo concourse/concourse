@@ -101,6 +101,16 @@ var _ = Describe("Fly CLI", func() {
 						},
 					}))
 				})
+
+				It("produces structured JSON output if requested", func() {
+					flyCmd := exec.Command(flyPath, "-t", targetName, "get-team", "-n", "myTeam", "--json")
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+					Eventually(sess).Should(gexec.Exit(0))
+
+					Expect(sess.Out.Contents()).To(MatchJSON(`{"id": 1, "name": "myTeam", "auth": {"owner": {"groups": [], "users": ["local:username"] }}}`))
+				})
 			})
 		})
 	})

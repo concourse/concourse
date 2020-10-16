@@ -1,5 +1,6 @@
 module Build.Output.Output exposing
-    ( handleEnvelopes
+    ( filterHoverState
+    , handleEnvelopes
     , handleStepTreeMsg
     , init
     , planAndResourcesFetched
@@ -26,7 +27,7 @@ import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (class)
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Routes exposing (StepID)
 import Time
 import Views.LoadingIndicator as LoadingIndicator
@@ -215,6 +216,11 @@ handleEvent event ( model, effects ) =
             , effects
             )
 
+        SetPipelineChanged origin changed ->
+            ( updateStep origin.id (setSetPipelineChanged changed) model
+            , effects
+            )
+
         BuildStatus status _ ->
             let
                 newSt =
@@ -338,6 +344,11 @@ setStepFinish mtime tree =
     StepTree.map (\step -> { step | finish = mtime }) tree
 
 
+setSetPipelineChanged : Bool -> StepTree -> StepTree
+setSetPipelineChanged changed tree =
+    StepTree.map (\step -> { step | changed = changed }) tree
+
+
 view :
     { timeZone : Time.Zone, hovered : HoverState.HoverState }
     -> OutputModel
@@ -364,3 +375,37 @@ viewStepTree session steps state =
 
         ( _, Nothing ) ->
             Html.div [] []
+
+
+filterHoverState : HoverState.HoverState -> HoverState.HoverState
+filterHoverState hovered =
+    case hovered of
+        HoverState.Hovered (ChangedStepLabel _ _) ->
+            hovered
+
+        HoverState.TooltipPending (ChangedStepLabel _ _) ->
+            hovered
+
+        HoverState.Tooltip (ChangedStepLabel _ _) _ ->
+            hovered
+
+        HoverState.Hovered (StepState _) ->
+            hovered
+
+        HoverState.TooltipPending (StepState _) ->
+            hovered
+
+        HoverState.Tooltip (StepState _) _ ->
+            hovered
+
+        HoverState.Hovered (StepTab _ _) ->
+            hovered
+
+        HoverState.TooltipPending (StepTab _ _) ->
+            hovered
+
+        HoverState.Tooltip (StepTab _ _) _ ->
+            hovered
+
+        _ ->
+            HoverState.NoHover

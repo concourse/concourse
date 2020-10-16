@@ -1,22 +1,21 @@
 package exec
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
 type StepMetadata struct {
-	BuildID               int
-	BuildName             string
-	TeamID                int
-	TeamName              string
-	JobID                 int
-	JobName               string
-	PipelineID            int
-	PipelineName          string
-	ResourceConfigScopeID int
-	ResourceConfigID      int
-	BaseResourceTypeID    int
-	ExternalURL           string
+	BuildID              int
+	BuildName            string
+	TeamID               int
+	TeamName             string
+	JobID                int
+	JobName              string
+	PipelineID           int
+	PipelineName         string
+	PipelineInstanceVars map[string]interface{}
+	ExternalURL          string
 }
 
 func (metadata StepMetadata) Env() []string {
@@ -52,6 +51,11 @@ func (metadata StepMetadata) Env() []string {
 
 	if metadata.PipelineName != "" {
 		env = append(env, "BUILD_PIPELINE_NAME="+metadata.PipelineName)
+	}
+
+	if metadata.PipelineInstanceVars != nil {
+		bytes, _ := json.Marshal(metadata.PipelineInstanceVars)
+		env = append(env, "BUILD_PIPELINE_INSTANCE_VARS="+string(bytes))
 	}
 
 	if metadata.ExternalURL != "" {

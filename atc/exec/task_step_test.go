@@ -19,7 +19,7 @@ import (
 	"github.com/concourse/concourse/vars"
 	"github.com/onsi/gomega/gbytes"
 	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/api/trace/testtrace"
+	"go.opentelemetry.io/otel/api/trace/tracetest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -38,8 +38,12 @@ var _ = Describe("TaskStep", func() {
 
 		fakeLockFactory *lockfakes.FakeLockFactory
 
+		spanCtx      context.Context
 		fakeDelegate *execfakes.FakeTaskDelegate
-		taskPlan     *atc.TaskPlan
+
+		fakeDelegateFactory *execfakes.FakeTaskDelegateFactory
+
+		taskPlan *atc.TaskPlan
 
 		interpolatedResourceTypes atc.VersionedResourceTypes
 
@@ -48,8 +52,6 @@ var _ = Describe("TaskStep", func() {
 
 		taskStep exec.Step
 		stepErr  error
-
-		buildVars *vars.BuildVariables
 
 		containerMetadata = db.ContainerMetadata{
 			WorkingDirectory: "some-artifact-root",
@@ -77,17 +79,21 @@ var _ = Describe("TaskStep", func() {
 
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
 
-		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
-		buildVars = vars.NewBuildVariables(credVars, true)
-
 		fakeDelegate = new(execfakes.FakeTaskDelegate)
-		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
+
+		spanCtx = context.Background()
+		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
+
+		fakeDelegateFactory = new(execfakes.FakeTaskDelegateFactory)
+		fakeDelegateFactory.TaskDelegateReturns(fakeDelegate)
 
 		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactRepositoryReturns(repo)
+
+		state.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
 
 		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
@@ -136,7 +142,7 @@ var _ = Describe("TaskStep", func() {
 			containerMetadata,
 			fakeStrategy,
 			fakeClient,
-			fakeDelegate,
+			fakeDelegateFactory,
 			fakeLockFactory,
 		)
 
@@ -146,8 +152,8 @@ var _ = Describe("TaskStep", func() {
 	Context("when the plan has a config", func() {
 
 		BeforeEach(func() {
-			cpu := uint64(1024)
-			memory := uint64(1024)
+			cpu := atc.CPULimit(1024)
+			memory := atc.MemoryLimit(1024)
 
 			taskPlan.Config = &atc.TaskConfig{
 				Platform: "some-platform",
@@ -223,33 +229,26 @@ var _ = Describe("TaskStep", func() {
 				var buildSpan trace.Span
 
 				BeforeEach(func() {
-					tracing.ConfigureTraceProvider(testTraceProvider{})
-					ctx, buildSpan = tracing.StartSpan(ctx, "build", nil)
-				})
+					tracing.ConfigureTraceProvider(tracetest.NewProvider())
 
-				It("propagates span context to the worker client", func() {
-					ctx, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-					span, ok := tracing.FromContext(ctx).(*testtrace.Span)
-					Expect(ok).To(BeTrue(), "no testtrace.Span in context")
-					Expect(span.ParentSpanID()).To(Equal(buildSpan.SpanContext().SpanID))
-				})
-
-				It("populates the TRACEPARENT env var", func() {
-					_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-
-					Expect(containerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
+					spanCtx, buildSpan = tracing.StartSpan(ctx, "build", nil)
+					fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
 				})
 
 				AfterEach(func() {
 					tracing.Configured = false
 				})
-			})
-		})
 
-		It("secrets are tracked", func() {
-			mapit := vars.TrackedVarsMap{}
-			buildVars.IterateInterpolatedCreds(mapit)
-			Expect(mapit["source-param"]).To(Equal("super-secret-source"))
+				It("propagates span context to the worker client", func() {
+					runCtx, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+					Expect(runCtx).To(Equal(spanCtx))
+				})
+
+				It("populates the TRACEPARENT env var", func() {
+					_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+					Expect(containerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
+				})
+			})
 		})
 
 		It("creates a containerSpec with the correct parameters", func() {

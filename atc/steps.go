@@ -340,7 +340,7 @@ type TaskStep struct {
 	Privileged        bool              `json:"privileged,omitempty"`
 	ConfigPath        string            `json:"file,omitempty"`
 	Config            *TaskConfig       `json:"config,omitempty"`
-	Params            Params            `json:"params,omitempty"`
+	Params            TaskEnv           `json:"params,omitempty"`
 	Vars              Params            `json:"vars,omitempty"`
 	Tags              Tags              `json:"tags,omitempty"`
 	InputMapping      map[string]string `json:"input_mapping,omitempty"`
@@ -353,11 +353,12 @@ func (step *TaskStep) Visit(v StepVisitor) error {
 }
 
 type SetPipelineStep struct {
-	Name     string   `json:"set_pipeline"`
-	File     string   `json:"file,omitempty"`
-	Team     string   `json:"team,omitempty"`
-	Vars     Params   `json:"vars,omitempty"`
-	VarFiles []string `json:"var_files,omitempty"`
+	Name         string       `json:"set_pipeline"`
+	File         string       `json:"file,omitempty"`
+	Team         string       `json:"team,omitempty"`
+	Vars         Params       `json:"vars,omitempty"`
+	VarFiles     []string     `json:"var_files,omitempty"`
+	InstanceVars InstanceVars `json:"instance_vars,omitempty"`
 }
 
 func (step *SetPipelineStep) Visit(v StepVisitor) error {

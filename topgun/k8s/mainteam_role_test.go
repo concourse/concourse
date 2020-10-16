@@ -36,7 +36,7 @@ var _ = Describe("Main team role config", func() {
 
 	AfterEach(func() {
 		atc.Close()
-		cleanup(releaseName, namespace)
+		cleanupReleases()
 	})
 
 	Context("Adding team role config yaml to web", func() {

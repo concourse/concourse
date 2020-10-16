@@ -14,7 +14,6 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/migration"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -101,7 +100,8 @@ func (runner *Runner) MigrateToVersion(version int) {
 		"postgres",
 		runner.DataSourceName(),
 		nil,
-		encryption.NewNoEncryption(),
+		nil,
+		nil,
 	).MigrateToVersion(version)
 	Expect(err).NotTo(HaveOccurred())
 }
@@ -111,7 +111,8 @@ func (runner *Runner) TryOpenDBAtVersion(version int) (*sql.DB, error) {
 		"postgres",
 		runner.DataSourceName(),
 		nil,
-		encryption.NewNoEncryption(),
+		nil,
+		nil,
 	).OpenAtVersion(version)
 
 	if err != nil {
@@ -136,7 +137,8 @@ func (runner *Runner) OpenDB() *sql.DB {
 		"postgres",
 		runner.DataSourceName(),
 		nil,
-		encryption.NewNoEncryption(),
+		nil,
+		nil,
 	).Open()
 	Expect(err).NotTo(HaveOccurred())
 

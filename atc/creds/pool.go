@@ -19,26 +19,27 @@ type VarSourcePool interface {
 }
 
 type inPoolManager struct {
-	manager        Manager
-	secretsFactory SecretsFactory
-	lastUseTime    time.Time
-	clock          clock.Clock
+	manager     Manager
+	secrets     Secrets
+	lastUseTime time.Time
+	clock       clock.Clock
 }
 
-func (m *inPoolManager) Close(logger lager.Logger) {
+func (m *inPoolManager) close(logger lager.Logger) {
 	m.manager.Close(logger)
 }
 
-func (m *inPoolManager) NewSecrets() Secrets {
+func (m *inPoolManager) getSecrets() Secrets {
 	m.lastUseTime = m.clock.Now()
-	return m.secretsFactory.NewSecrets()
+	return m.secrets
 }
 
 type varSourcePool struct {
-	pool  map[string]*inPoolManager
-	lock  sync.Mutex
-	ttl   time.Duration
-	clock clock.Clock
+	pool                 map[string]*inPoolManager
+	lock                 sync.Mutex
+	credentialManagement CredentialManagementConfig
+	ttl                  time.Duration
+	clock                clock.Clock
 
 	closeOnce sync.Once
 	closed    chan struct{}
@@ -46,15 +47,18 @@ type varSourcePool struct {
 
 func NewVarSourcePool(
 	logger lager.Logger,
+	credentialManagement CredentialManagementConfig,
 	ttl time.Duration,
 	collectInterval time.Duration,
 	clock clock.Clock,
 ) VarSourcePool {
 	pool := &varSourcePool{
-		pool:  map[string]*inPoolManager{},
-		lock:  sync.Mutex{},
-		ttl:   ttl,
-		clock: clock,
+		pool: map[string]*inPoolManager{},
+		lock: sync.Mutex{},
+
+		credentialManagement: credentialManagement,
+		ttl:                  ttl,
+		clock:                clock,
 
 		closeOnce: sync.Once{},
 		closed:    make(chan struct{}),
@@ -100,15 +104,15 @@ func (pool *varSourcePool) FindOrCreate(logger lager.Logger, config map[string]i
 		}
 
 		pool.pool[key] = &inPoolManager{
-			clock:          pool.clock,
-			manager:        manager,
-			secretsFactory: secretsFactory,
+			clock:   pool.clock,
+			manager: manager,
+			secrets: pool.credentialManagement.NewSecrets(secretsFactory),
 		}
 	} else {
 		logger.Debug("found-existing-credential-manager")
 	}
 
-	return pool.pool[key].NewSecrets(), nil
+	return pool.pool[key].getSecrets(), nil
 }
 
 func (pool *varSourcePool) Close() {
@@ -142,7 +146,7 @@ func (pool *varSourcePool) collect(logger lager.Logger, all bool) error {
 	for key, manager := range pool.pool {
 		if all || manager.lastUseTime.Add(pool.ttl).Before(pool.clock.Now()) {
 			toDeleteKeys = append(toDeleteKeys, key)
-			manager.Close(logger)
+			manager.close(logger)
 		}
 	}
 

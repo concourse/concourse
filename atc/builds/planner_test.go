@@ -182,7 +182,7 @@ var factoryTests = []PlannerTest{
 			},
 			ConfigPath:        "some-task-file",
 			Vars:              atc.Params{"some": "vars"},
-			Params:            atc.Params{"SOME": "PARAMS"},
+			Params:            atc.TaskEnv{"SOME": "PARAMS"},
 			Tags:              atc.Tags{"tag-1", "tag-2"},
 			InputMapping:      map[string]string{"generic": "specific"},
 			OutputMapping:     map[string]string{"specific": "generic"},
@@ -220,10 +220,11 @@ var factoryTests = []PlannerTest{
 		Title: "set_pipeline step",
 
 		Config: &atc.SetPipelineStep{
-			Name:     "some-pipeline",
-			File:     "some-pipeline-file",
-			Vars:     atc.Params{"some": "vars"},
-			VarFiles: []string{"file-1", "file-2"},
+			Name:         "some-pipeline",
+			File:         "some-pipeline-file",
+			Vars:         atc.Params{"some": "vars"},
+			VarFiles:     []string{"file-1", "file-2"},
+			InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
 		},
 
 		PlanJSON: `{
@@ -232,7 +233,8 @@ var factoryTests = []PlannerTest{
 				"name": "some-pipeline",
 				"file": "some-pipeline-file",
 				"vars": {"some": "vars"},
-				"var_files": ["file-1", "file-2"]
+				"var_files": ["file-1", "file-2"],
+				"instance_vars": {"branch": "feature/foo"}
 			}
 		}`,
 	},
@@ -419,12 +421,12 @@ var factoryTests = []PlannerTest{
 			},
 			Vars: []atc.AcrossVarConfig{
 				{
-					Var: "var1",
-					Values: []interface{}{"a1", "a2"},
+					Var:         "var1",
+					Values:      []interface{}{"a1", "a2"},
 					MaxInFlight: &atc.MaxInFlightConfig{All: true},
 				},
 				{
-					Var: "var2",
+					Var:    "var2",
 					Values: []interface{}{"b1", "b2"},
 				},
 			},

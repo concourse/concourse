@@ -34,11 +34,11 @@ func (mock *MockConjurService) RetrieveSecret(input string) ([]byte, error) {
 var _ = Describe("Conjur", func() {
 	var secretAccess *Conjur
 	var variables vars.Variables
-	var varDef vars.VariableDefinition
+	var varRef vars.Reference
 	var mockService MockConjurService
 
 	JustBeforeEach(func() {
-		varDef = vars.VariableDefinition{Ref: vars.VariableReference{Path: "cheery"}}
+		varRef = vars.Reference{Path: "cheery"}
 		t1, err := creds.BuildSecretTemplate("t1", DefaultPipelineSecretTemplate)
 		Expect(t1).NotTo(BeNil())
 		Expect(err).To(BeNil())
@@ -58,7 +58,7 @@ var _ = Describe("Conjur", func() {
 
 	Describe("Get()", func() {
 		It("should get parameter if exists", func() {
-			value, found, err := variables.Get(varDef)
+			value, found, err := variables.Get(varRef)
 			Expect(value).To(BeEquivalentTo("secret value"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -71,7 +71,7 @@ var _ = Describe("Conjur", func() {
 				}
 				return []byte("team secret"), nil
 			}
-			value, found, err := variables.Get(varDef)
+			value, found, err := variables.Get(varRef)
 			Expect(value).To(BeEquivalentTo("team secret"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -79,7 +79,7 @@ var _ = Describe("Conjur", func() {
 
 		It("should return not found on error", func() {
 			mockService.stubGetParameter = nil
-			value, found, err := variables.Get(varDef)
+			value, found, err := variables.Get(varRef)
 			Expect(value).To(BeNil())
 			Expect(found).To(BeFalse())
 			Expect(err).To(BeNil())
@@ -91,7 +91,7 @@ var _ = Describe("Conjur", func() {
 				Expect(input).To(Equal("concourse/alpha/cheery"))
 				return []byte("team secret"), nil
 			}
-			value, found, err := variables.Get(varDef)
+			value, found, err := variables.Get(varRef)
 			Expect(value).To(BeEquivalentTo("team secret"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -104,7 +104,7 @@ var _ = Describe("Conjur", func() {
 				Expect(input).To(Equal("cheery"))
 				return []byte("full path secret"), nil
 			}
-			value, found, err := variables.Get(varDef)
+			value, found, err := variables.Get(varRef)
 			Expect(value).To(BeEquivalentTo("full path secret"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())

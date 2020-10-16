@@ -16,12 +16,13 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func NewOpenHelper(driver, name string, lockFactory lock.LockFactory, strategy encryption.Strategy) *OpenHelper {
+func NewOpenHelper(driver, name string, lockFactory lock.LockFactory, newKey *encryption.Key, oldKey *encryption.Key) *OpenHelper {
 	return &OpenHelper{
 		driver,
 		name,
 		lockFactory,
-		strategy,
+		newKey,
+		oldKey,
 	}
 }
 
@@ -29,7 +30,8 @@ type OpenHelper struct {
 	driver         string
 	dataSourceName string
 	lockFactory    lock.LockFactory
-	strategy       encryption.Strategy
+	newKey         *encryption.Key
+	oldKey         *encryption.Key
 }
 
 func (self *OpenHelper) CurrentVersion() (int, error) {
@@ -40,7 +42,7 @@ func (self *OpenHelper) CurrentVersion() (int, error) {
 
 	defer db.Close()
 
-	return NewMigrator(db, self.lockFactory, self.strategy).CurrentVersion()
+	return NewMigrator(db, self.lockFactory).CurrentVersion()
 }
 
 func (self *OpenHelper) SupportedVersion() (int, error) {
@@ -51,7 +53,7 @@ func (self *OpenHelper) SupportedVersion() (int, error) {
 
 	defer db.Close()
 
-	return NewMigrator(db, self.lockFactory, self.strategy).SupportedVersion()
+	return NewMigrator(db, self.lockFactory).SupportedVersion()
 }
 
 func (self *OpenHelper) Open() (*sql.DB, error) {
@@ -60,7 +62,7 @@ func (self *OpenHelper) Open() (*sql.DB, error) {
 		return nil, err
 	}
 
-	if err := NewMigrator(db, self.lockFactory, self.strategy).Up(); err != nil {
+	if err := NewMigrator(db, self.lockFactory).Up(self.newKey, self.oldKey); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
@@ -74,7 +76,7 @@ func (self *OpenHelper) OpenAtVersion(version int) (*sql.DB, error) {
 		return nil, err
 	}
 
-	if err := NewMigrator(db, self.lockFactory, self.strategy).Migrate(version); err != nil {
+	if err := NewMigrator(db, self.lockFactory).Migrate(self.newKey, self.oldKey, version); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
@@ -89,14 +91,14 @@ func (self *OpenHelper) MigrateToVersion(version int) error {
 	}
 
 	defer db.Close()
-	m := NewMigrator(db, self.lockFactory, self.strategy)
+	m := NewMigrator(db, self.lockFactory)
 
 	err = self.migrateFromMigrationVersion(db)
 	if err != nil {
 		return err
 	}
 
-	return m.Migrate(version)
+	return m.Migrate(self.newKey, self.oldKey, version)
 }
 
 func (self *OpenHelper) migrateFromMigrationVersion(db *sql.DB) error {
@@ -143,20 +145,19 @@ func (self *OpenHelper) migrateFromMigrationVersion(db *sql.DB) error {
 type Migrator interface {
 	CurrentVersion() (int, error)
 	SupportedVersion() (int, error)
-	Migrate(version int) error
-	Up() error
+	Migrate(newKey, oldKey *encryption.Key, version int) error
+	Up(newKey, oldKey *encryption.Key) error
 	Migrations() ([]migration, error)
 }
 
-func NewMigrator(db *sql.DB, lockFactory lock.LockFactory, strategy encryption.Strategy) Migrator {
-	return NewMigratorForMigrations(db, lockFactory, strategy, &packrSource{packr.NewBox("./migrations")})
+func NewMigrator(db *sql.DB, lockFactory lock.LockFactory) Migrator {
+	return NewMigratorForMigrations(db, lockFactory, &packrSource{packr.NewBox("./migrations")})
 }
 
-func NewMigratorForMigrations(db *sql.DB, lockFactory lock.LockFactory, strategy encryption.Strategy, bindata Bindata) Migrator {
+func NewMigratorForMigrations(db *sql.DB, lockFactory lock.LockFactory, bindata Bindata) Migrator {
 	return &migrator{
 		db,
 		lockFactory,
-		strategy,
 		lager.NewLogger("migrations"),
 		bindata,
 	}
@@ -165,7 +166,6 @@ func NewMigratorForMigrations(db *sql.DB, lockFactory lock.LockFactory, strategy
 type migrator struct {
 	db          *sql.DB
 	lockFactory lock.LockFactory
-	strategy    encryption.Strategy
 	logger      lager.Logger
 	bindata     Bindata
 }
@@ -214,7 +214,17 @@ func (self *migrator) CurrentVersion() (int, error) {
 	return currentVersion, nil
 }
 
-func (self *migrator) Migrate(toVersion int) error {
+func (self *migrator) Migrate(newKey, oldKey *encryption.Key, toVersion int) error {
+	var strategy encryption.Strategy
+	if oldKey != nil {
+		strategy = oldKey
+	} else if newKey != nil {
+		// special case - if the old key is not provided but the new key is,
+		// this might mean the data was not encrypted, or that it was encrypted with newKey
+		strategy = encryption.NewFallbackStrategy(newKey, encryption.NewNoEncryption())
+	} else if newKey == nil {
+		strategy = encryption.NewNoEncryption()
+	}
 
 	lock, err := self.acquireLock()
 	if err != nil {
@@ -263,7 +273,7 @@ func (self *migrator) Migrate(toVersion int) error {
 	if currentVersion <= toVersion {
 		for _, m := range migrations {
 			if currentVersion < m.Version && m.Version <= toVersion && m.Direction == "up" {
-				err = self.runMigration(m)
+				err = self.runMigration(m, strategy)
 				if err != nil {
 					return err
 				}
@@ -272,7 +282,7 @@ func (self *migrator) Migrate(toVersion int) error {
 	} else {
 		for i := len(migrations) - 1; i >= 0; i-- {
 			if currentVersion >= migrations[i].Version && migrations[i].Version > toVersion && migrations[i].Direction == "down" {
-				err = self.runMigration(migrations[i])
+				err = self.runMigration(migrations[i], strategy)
 				if err != nil {
 					return err
 				}
@@ -285,6 +295,24 @@ func (self *migrator) Migrate(toVersion int) error {
 			return err
 		}
 	}
+
+	switch {
+	case oldKey != nil && newKey == nil:
+		err = self.decryptToPlaintext(oldKey)
+	case oldKey != nil && newKey != nil:
+		err = self.encryptWithNewKey(newKey, oldKey)
+	}
+	if err != nil {
+		return err
+	}
+
+	if newKey != nil {
+		err = self.encryptPlaintext(newKey)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -309,12 +337,12 @@ func (m *migrator) recordMigrationFailure(migration migration, err error, dirty 
 	return multierror.Append(fmt.Errorf("Migration '%s' failed: %v", migration.Name, err), dbErr)
 }
 
-func (m *migrator) runMigration(migration migration) error {
+func (m *migrator) runMigration(migration migration, strategy encryption.Strategy) error {
 	var err error
 
 	switch migration.Strategy {
 	case GoMigration:
-		err = migrations.NewMigrations(m.db, m.strategy).Run(migration.Name)
+		err = migrations.NewMigrations(m.db, strategy).Run(migration.Name)
 		if err != nil {
 			return m.recordMigrationFailure(migration, err, false)
 		}
@@ -362,12 +390,12 @@ func (self *migrator) Migrations() ([]migration, error) {
 	return migrationList, nil
 }
 
-func (self *migrator) Up() error {
+func (self *migrator) Up(newKey, oldKey *encryption.Key) error {
 	migrations, err := self.Migrations()
 	if err != nil {
 		return err
 	}
-	return self.Migrate(migrations[len(migrations)-1].Version)
+	return self.Migrate(newKey, oldKey, migrations[len(migrations)-1].Version)
 }
 
 func (self *migrator) acquireLock() (lock.Lock, error) {

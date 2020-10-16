@@ -31,6 +31,7 @@ func DetermineInputs(
 	inputsFrom flaghelpers.JobFlag,
 	includeIgnored bool,
 	platform string,
+	tags []string,
 ) ([]Input, map[string]string, *atc.ImageResource, atc.VersionedResourceTypes, error) {
 	inputMappings := ConvertInputMappings(userInputMappings)
 
@@ -44,7 +45,7 @@ func DetermineInputs(
 		return nil, nil, nil, nil, err
 	}
 
-	if inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
+	if inputsFrom.PipelineRef.Name == "" && inputsFrom.JobName == "" {
 		wd, err := os.Getwd()
 		if err != nil {
 			return nil, nil, nil, nil, err
@@ -74,7 +75,7 @@ func DetermineInputs(
 		}
 	}
 
-	inputsFromLocal, err := GenerateLocalInputs(fact, team, localInputMappings, includeIgnored, platform)
+	inputsFromLocal, err := GenerateLocalInputs(fact, team, localInputMappings, includeIgnored, platform, tags)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -158,6 +159,7 @@ func GenerateLocalInputs(
 	inputMappings []flaghelpers.InputPairFlag,
 	includeIgnored bool,
 	platform string,
+	tags []string,
 ) (map[string]Input, error) {
 	inputs := map[string]Input{}
 
@@ -170,7 +172,7 @@ func GenerateLocalInputs(
 		path := mapping.Path
 
 		prog.Go("uploading "+name, func(bar *mpb.Bar) error {
-			artifact, err := Upload(bar, team, path, includeIgnored, platform)
+			artifact, err := Upload(bar, team, path, includeIgnored, platform, tags)
 			if err != nil {
 				return err
 			}
@@ -205,26 +207,26 @@ func GenerateLocalInputs(
 func FetchInputsFromJob(fact atc.PlanFactory, team concourse.Team, inputsFrom flaghelpers.JobFlag, imageName string) (map[string]Input, *atc.ImageResource, atc.VersionedResourceTypes, error) {
 	kvMap := map[string]Input{}
 
-	if inputsFrom.PipelineName == "" && inputsFrom.JobName == "" {
+	if inputsFrom.PipelineRef.Name == "" && inputsFrom.JobName == "" {
 		return kvMap, nil, nil, nil
 	}
 
-	buildInputs, found, err := team.BuildInputsForJob(inputsFrom.PipelineName, inputsFrom.JobName)
+	buildInputs, found, err := team.BuildInputsForJob(inputsFrom.PipelineRef, inputsFrom.JobName)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	if !found {
-		return nil, nil, nil, fmt.Errorf("build inputs for %s/%s not found", inputsFrom.PipelineName, inputsFrom.JobName)
+		return nil, nil, nil, fmt.Errorf("build inputs for %s/%s not found", inputsFrom.PipelineRef.String(), inputsFrom.JobName)
 	}
 
-	versionedResourceTypes, found, err := team.VersionedResourceTypes(inputsFrom.PipelineName)
+	versionedResourceTypes, found, err := team.VersionedResourceTypes(inputsFrom.PipelineRef)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	if !found {
-		return nil, nil, nil, fmt.Errorf("versioned resource types of %s not found", inputsFrom.PipelineName)
+		return nil, nil, nil, fmt.Errorf("versioned resource types of %s not found", inputsFrom.PipelineRef.String())
 	}
 
 	var imageResource *atc.ImageResource

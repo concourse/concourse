@@ -148,7 +148,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 						})
 						It("does not remove the resource caches from other jobs", func() {
 							By("creating a second pipeline")
-							secondPipeline, _, err := defaultTeam.SavePipeline("second-pipeline", atc.Config{
+							secondPipeline, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "second-pipeline"}, atc.Config{
 								Jobs: atc.JobConfigs{
 									{
 										Name: "some-job",
@@ -324,7 +324,7 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				err = resourceConfigCheckSessionLifecycle.CleanInactiveResourceConfigCheckSessions()
 				Expect(err).ToNot(HaveOccurred())
 
-				err = resourceConfigFactory.CleanUnreferencedConfigs()
+				err = resourceConfigFactory.CleanUnreferencedConfigs(0)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(countResourceCaches()).ToNot(BeZero())

@@ -11,7 +11,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 
-	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
 	"github.com/concourse/concourse/atc/db/migration/migrationfakes"
@@ -30,7 +29,6 @@ var _ = Describe("Migration", func() {
 		db          *sql.DB
 		lockDB      *sql.DB
 		lockFactory lock.LockFactory
-		strategy    encryption.Strategy
 		bindata     *migrationfakes.FakeBindata
 		fakeLogFunc = func(logger lager.Logger, id lock.LockID) {}
 	)
@@ -44,7 +42,6 @@ var _ = Describe("Migration", func() {
 
 		lockFactory = lock.NewLockFactory(lockDB, fakeLogFunc, fakeLogFunc)
 
-		strategy = encryption.NewNoEncryption()
 		bindata = new(migrationfakes.FakeBindata)
 		bindata.AssetStub = asset
 	})
@@ -56,9 +53,9 @@ var _ = Describe("Migration", func() {
 
 	Context("Migration test run", func() {
 		It("Runs all the migrations", func() {
-			migrator := migration.NewMigrator(db, lockFactory, strategy)
+			migrator := migration.NewMigrator(db, lockFactory)
 
-			err := migrator.Up()
+			err := migrator.Up(nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
@@ -84,7 +81,7 @@ var _ = Describe("Migration", func() {
 
 			SetupMigrationsHistoryTableToExistAtVersion(db, myDatabaseVersion)
 
-			migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
+			migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 
 			version, err := migrator.CurrentVersion()
 			Expect(err).NotTo(HaveOccurred())
@@ -102,7 +99,7 @@ var _ = Describe("Migration", func() {
 				"300000_this_is_to_prove_we_dont_use_string_sort.up.sql",
 				"2000000000_latest_migration.up.sql",
 			})
-			migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
+			migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 
 			version, err := migrator.SupportedVersion()
 			Expect(err).NotTo(HaveOccurred())
@@ -121,7 +118,7 @@ var _ = Describe("Migration", func() {
 				"2000000000_latest_migration.up.sql",
 				"migrations.go",
 			})
-			migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
+			migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 
 			version, err := migrator.SupportedVersion()
 			Expect(err).NotTo(HaveOccurred())
@@ -145,9 +142,9 @@ var _ = Describe("Migration", func() {
 
 					Expect(err).NotTo(HaveOccurred())
 
-					migrator := migration.NewMigrator(db, lockFactory, strategy)
+					migrator := migration.NewMigrator(db, lockFactory)
 
-					err = migrator.Up()
+					err = migrator.Up(nil, nil)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Database is in a dirty state"))
 
@@ -164,9 +161,9 @@ var _ = Describe("Migration", func() {
 
 				It("populate migrations_history table with starting version from schema_migrations table", func() {
 					startTime := time.Now()
-					migrator := migration.NewMigrator(db, lockFactory, strategy)
+					migrator := migration.NewMigrator(db, lockFactory)
 
-					err = migrator.Up()
+					err = migrator.Up(nil, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					var (
@@ -188,9 +185,9 @@ var _ = Describe("Migration", func() {
 					It("does not repopulate the migrations_history table", func() {
 						SetupMigrationsHistoryTableToExistAtVersion(db, 8878)
 						startTime := time.Now()
-						migrator := migration.NewMigrator(db, lockFactory, strategy)
+						migrator := migration.NewMigrator(db, lockFactory)
 
-						err = migrator.Up()
+						err = migrator.Up(nil, nil)
 						Expect(err).NotTo(HaveOccurred())
 
 						var timeStamp pq.NullTime
@@ -221,13 +218,13 @@ var _ = Describe("Migration", func() {
 					simpleMigrationFilename,
 				})
 
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 
 				migrations, err := migrator.Migrations()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(migrations)).To(Equal(1))
 
-				err = migrator.Up()
+				err = migrator.Up(nil, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				By("Creating the table in the database")
@@ -258,8 +255,8 @@ var _ = Describe("Migration", func() {
 					simpleMigrationFilename,
 				})
 
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
-				err := migrator.Up()
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
+				err := migrator.Up(nil, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				By("Not creating the database referenced in the migration")
@@ -295,8 +292,8 @@ var _ = Describe("Migration", func() {
 					addTableMigrationFilename,
 				})
 
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
-				err := migrator.Up()
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
+				err := migrator.Up(nil, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 			})
@@ -307,9 +304,9 @@ var _ = Describe("Migration", func() {
 						"1510262030_initial_schema.up.sql",
 						"1525724789_drop_reaper_addr_from_workers.up.sql",
 					})
-					migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
+					migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 
-					err := migrator.Up()
+					err := migrator.Up(nil, nil)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("rolled back the migration"))
 					ExpectDatabaseMigrationVersionToEqual(migrator, initialSchemaVersion)
@@ -334,9 +331,9 @@ var _ = Describe("Migration", func() {
 						dirtyMigrationFilename,
 					})
 
-					migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
+					migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 
-					err := migrator.Up()
+					err := migrator.Up(nil, nil)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(MatchRegexp("Migration.*failed"))
 
@@ -355,8 +352,8 @@ var _ = Describe("Migration", func() {
 							ALTER TYPE enum_type ADD VALUE 'some_type';
 					`), nil)
 					startTime := time.Now()
-					migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
-					err = migrator.Up()
+					migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
+					err = migrator.Up(nil, nil)
 					Expect(err).NotTo(HaveOccurred())
 
 					var (
@@ -386,8 +383,8 @@ var _ = Describe("Migration", func() {
 							ALTER TYPE nonexistent_enum_type ADD VALUE 'some_type';
 					`), nil)
 					startTime := time.Now()
-					migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
-					err = migrator.Up()
+					migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
+					err = migrator.Up(nil, nil)
 					Expect(err).To(HaveOccurred())
 
 					var (
@@ -411,11 +408,11 @@ var _ = Describe("Migration", func() {
 					"1510262030_initial_schema.up.sql",
 				})
 
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
-				err := migrator.Up()
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
+				err := migrator.Up(nil, nil)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = migrator.Up()
+				err = migrator.Up(nil, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				ExpectDatabaseMigrationVersionToEqual(migrator, initialSchemaVersion)
@@ -433,7 +430,7 @@ var _ = Describe("Migration", func() {
 				bindata.AssetNamesReturns([]string{
 					"1510262030_initial_schema.up.sql",
 				})
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 
 				var wg sync.WaitGroup
 				wg.Add(3)
@@ -449,20 +446,20 @@ var _ = Describe("Migration", func() {
 		Context("golang migrations", func() {
 			It("runs a migration with Migrate", func() {
 
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 				bindata.AssetNamesReturns([]string{
 					"1510262030_initial_schema.up.sql",
 					"1516643303_update_auth_providers.up.go",
 				})
 
 				By("applying the initial migration")
-				err := migrator.Migrate(1510262030)
+				err := migrator.Migrate(nil, nil, 1510262030)
 				var columnExists string
 				err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM information_schema.columns where table_name = 'teams' AND column_name='basic_auth')").Scan(&columnExists)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(columnExists).To(Equal("true"))
 
-				err = migrator.Migrate(1516643303)
+				err = migrator.Migrate(nil, nil, 1516643303)
 				Expect(err).NotTo(HaveOccurred())
 
 				By("applying the go migration")
@@ -476,13 +473,13 @@ var _ = Describe("Migration", func() {
 
 			It("runs a migration with Up", func() {
 
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 				bindata.AssetNamesReturns([]string{
 					"1510262030_initial_schema.up.sql",
 					"1516643303_update_auth_providers.up.go",
 				})
 
-				err := migrator.Up()
+				err := migrator.Up(nil, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				By("applying the migration")
@@ -505,16 +502,16 @@ var _ = Describe("Migration", func() {
 					"1510670987_update_unique_constraint_for_resource_caches.up.sql",
 					"1510670987_update_unique_constraint_for_resource_caches.down.sql",
 				})
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 
-				err := migrator.Up()
+				err := migrator.Up(nil, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				currentVersion, err := migrator.CurrentVersion()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(currentVersion).To(Equal(upgradedSchemaVersion))
 
-				err = migrator.Migrate(initialSchemaVersion)
+				err = migrator.Migrate(nil, nil, initialSchemaVersion)
 				Expect(err).NotTo(HaveOccurred())
 
 				currentVersion, err = migrator.CurrentVersion()
@@ -533,9 +530,9 @@ var _ = Describe("Migration", func() {
 					"1510670987_update_unique_constraint_for_resource_caches.up.sql",
 					"1510670987_update_unique_constraint_for_resource_caches.down.sql",
 				})
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 
-				err := migrator.Up()
+				err := migrator.Up(nil, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				currentVersion, err := migrator.CurrentVersion()
@@ -544,7 +541,7 @@ var _ = Describe("Migration", func() {
 
 				SetupSchemaMigrationsTable(db, 8878, true)
 
-				err = migrator.Migrate(initialSchemaVersion)
+				err = migrator.Migrate(nil, nil, initialSchemaVersion)
 				Expect(err).NotTo(HaveOccurred())
 
 				currentVersion, err = migrator.CurrentVersion()
@@ -564,16 +561,16 @@ var _ = Describe("Migration", func() {
 					"1510670987_update_unique_constraint_for_resource_caches.up.sql",
 					"1510670987_update_unique_constraint_for_resource_caches.down.sql",
 				})
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 
-				err := migrator.Up()
+				err := migrator.Up(nil, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				currentVersion, err := migrator.CurrentVersion()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(currentVersion).To(Equal(upgradedSchemaVersion))
 
-				err = migrator.Migrate(initialSchemaVersion)
+				err = migrator.Migrate(nil, nil, initialSchemaVersion)
 				Expect(err).NotTo(HaveOccurred())
 
 				currentVersion, err = migrator.CurrentVersion()
@@ -588,16 +585,16 @@ var _ = Describe("Migration", func() {
 					"1510262030_initial_schema.up.sql",
 					"1510670987_update_unique_constraint_for_resource_caches.up.sql",
 				})
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 
-				err := migrator.Migrate(upgradedSchemaVersion)
+				err := migrator.Migrate(nil, nil, upgradedSchemaVersion)
 				Expect(err).NotTo(HaveOccurred())
 
 				currentVersion, err := migrator.CurrentVersion()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(currentVersion).To(Equal(upgradedSchemaVersion))
 
-				err = migrator.Migrate(upgradedSchemaVersion)
+				err = migrator.Migrate(nil, nil, upgradedSchemaVersion)
 				Expect(err).NotTo(HaveOccurred())
 
 				currentVersion, err = migrator.CurrentVersion()
@@ -608,14 +605,14 @@ var _ = Describe("Migration", func() {
 			})
 
 			It("Locks the database so multiple consumers don't run downgrade at the same time", func() {
-				migrator := migration.NewMigratorForMigrations(db, lockFactory, strategy, bindata)
+				migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 				bindata.AssetNamesReturns([]string{
 					"1510262030_initial_schema.up.sql",
 					"1510670987_update_unique_constraint_for_resource_caches.up.sql",
 					"1510670987_update_unique_constraint_for_resource_caches.down.sql",
 				})
 
-				err := migrator.Up()
+				err := migrator.Up(nil, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				var wg sync.WaitGroup
@@ -636,7 +633,7 @@ func TryRunUpAndVerifyResult(db *sql.DB, migrator migration.Migrator, wg *sync.W
 	defer GinkgoRecover()
 	defer wg.Done()
 
-	err := migrator.Up()
+	err := migrator.Up(nil, nil)
 	Expect(err).NotTo(HaveOccurred())
 
 	ExpectDatabaseMigrationVersionToEqual(migrator, initialSchemaVersion)
@@ -648,7 +645,7 @@ func TryRunMigrateAndVerifyResult(db *sql.DB, migrator migration.Migrator, versi
 	defer GinkgoRecover()
 	defer wg.Done()
 
-	err := migrator.Migrate(version)
+	err := migrator.Migrate(nil, nil, version)
 	Expect(err).NotTo(HaveOccurred())
 
 	ExpectDatabaseMigrationVersionToEqual(migrator, version)

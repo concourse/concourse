@@ -1,17 +1,17 @@
 ---
 resources:
-- name: some-git-resource
+- name: some-resource
   type: mock
   source: {force_version: ((unique_version))}
 
 jobs:
 - name: without-params
   plan:
-  - get: some-git-resource
+  - get: some-resource
 
 - name: with-params
   plan:
-  - get: some-git-resource
+  - get: some-resource
     params:
       create_files_via_params:
         hello: hello

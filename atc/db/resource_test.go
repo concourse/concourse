@@ -1,14 +1,17 @@
 package db_test
 
 import (
-	"errors"
+	"context"
 	"strconv"
 	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/api/trace/tracetest"
 )
 
 var _ = Describe("Resource", func() {
@@ -21,7 +24,7 @@ var _ = Describe("Resource", func() {
 		)
 
 		pipeline, created, err = defaultTeam.SavePipeline(
-			"pipeline-with-resources",
+			atc.PipelineRef{Name: "pipeline-with-resources"},
 			atc.Config{
 				Resources: atc.ResourceConfigs{
 					{
@@ -155,25 +158,20 @@ var _ = Describe("Resource", func() {
 					resourceScope, err = resource.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
 					Expect(err).NotTo(HaveOccurred())
 
-					err = resourceScope.SetCheckError(errors.New("oops"))
-					Expect(err).NotTo(HaveOccurred())
-
 					found, err = resource.Reload()
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("returns the resource config check error", func() {
+				It("returns the resource configd", func() {
 					Expect(found).To(BeTrue())
 					Expect(resource.ResourceConfigID()).To(Equal(resourceScope.ResourceConfig().ID()))
-					Expect(resource.CheckError()).To(Equal(errors.New("oops")))
 				})
 			})
 
 			Context("when the resource config id is not set on the resource", func() {
-				It("returns nil for the resource config check error", func() {
+				It("returns no resource config id", func() {
 					Expect(found).To(BeTrue())
 					Expect(resource.ResourceConfigID()).To(Equal(0))
-					Expect(resource.CheckError()).To(BeNil())
 				})
 			})
 		})
@@ -338,6 +336,292 @@ var _ = Describe("Resource", func() {
 		})
 	})
 
+	Describe("SetResourceConfigScope", func() {
+		var pipeline db.Pipeline
+		var resource db.Resource
+		var scope db.ResourceConfigScope
+
+		BeforeEach(func() {
+			config := atc.Config{
+				Resources: atc.ResourceConfigs{
+					{
+						Name:   "some-resource",
+						Type:   defaultWorkerResourceType.Type,
+						Source: atc.Source{"some": "repository"},
+					},
+					{
+						Name:   "some-other-resource",
+						Type:   defaultWorkerResourceType.Type,
+						Source: atc.Source{"some": "other-repository"},
+					},
+				},
+				Jobs: atc.JobConfigs{
+					{
+						Name: "using-resource",
+						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name: "some-resource",
+								},
+							},
+						},
+					},
+					{
+						Name: "not-using-resource",
+						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name: "some-other-resource",
+								},
+							},
+						},
+					},
+				},
+			}
+
+			var err error
+
+			var created bool
+			pipeline, created, err = defaultTeam.SavePipeline(
+				atc.PipelineRef{Name: "some-pipeline-with-two-jobs"},
+				config,
+				0,
+				false,
+			)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(created).To(BeTrue())
+
+			var found bool
+			resource, found, err = pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(resource.Type(), resource.Source(), atc.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			scope, err = resourceConfig.FindOrCreateScope(resource)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("associates the resource to the config and scope", func() {
+			Expect(resource.ResourceConfigID()).To(BeZero())
+			Expect(resource.ResourceConfigScopeID()).To(BeZero())
+
+			Expect(resource.SetResourceConfigScope(scope)).To(Succeed())
+
+			_, err := resource.Reload()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(resource.ResourceConfigID()).To(Equal(scope.ResourceConfig().ID()))
+			Expect(resource.ResourceConfigScopeID()).To(Equal(scope.ID()))
+		})
+
+		It("requests scheduling for downstream jobs", func() {
+			job, found, err := pipeline.Job("using-resource")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			otherJob, found, err := pipeline.Job("not-using-resource")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			requestedSchedule := job.ScheduleRequestedTime()
+			otherRequestedSchedule := otherJob.ScheduleRequestedTime()
+
+			Expect(resource.SetResourceConfigScope(scope)).To(Succeed())
+
+			found, err = job.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			found, err = otherJob.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
+			Expect(otherJob.ScheduleRequestedTime()).Should(Equal(otherRequestedSchedule))
+		})
+	})
+
+	Describe("CheckPlan", func() {
+		var resource db.Resource
+		var resourceTypes db.ResourceTypes
+
+		BeforeEach(func() {
+			var err error
+			var found bool
+			resource, found, err = pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			resourceTypes, err = pipeline.ResourceTypes()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns a plan which will update the resource", func() {
+			defaults := atc.Source{"sdk": "sdv"}
+			Expect(resource.CheckPlan(atc.Version{"some": "version"}, time.Minute, 10*time.Second, resourceTypes, defaults)).To(Equal(atc.CheckPlan{
+				Name:   resource.Name(),
+				Type:   resource.Type(),
+				Source: defaults.Merge(resource.Source()),
+				Tags:   resource.Tags(),
+
+				FromVersion: atc.Version{"some": "version"},
+
+				Interval: "1m0s",
+				Timeout:  "10s",
+
+				VersionedResourceTypes: resourceTypes.Deserialize(),
+
+				Resource: resource.Name(),
+			}))
+		})
+	})
+
+	Describe("CreateBuild", func() {
+		var ctx context.Context
+		var manuallyTriggered bool
+		var build db.Build
+		var created bool
+
+		BeforeEach(func() {
+			ctx = context.TODO()
+			manuallyTriggered = false
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			build, created, err = defaultResource.CreateBuild(ctx, manuallyTriggered)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("creates a build for a resource", func() {
+			Expect(created).To(BeTrue())
+			Expect(build).ToNot(BeNil())
+			Expect(build.Name()).To(Equal(db.CheckBuildName))
+			Expect(build.ResourceID()).To(Equal(defaultResource.ID()))
+			Expect(build.PipelineID()).To(Equal(defaultResource.PipelineID()))
+			Expect(build.TeamID()).To(Equal(defaultResource.TeamID()))
+			Expect(build.IsManuallyTriggered()).To(BeFalse())
+		})
+
+		It("associates the resource to the build", func() {
+			started, err := build.Start(atc.Plan{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(started).To(BeTrue())
+
+			exists, err := build.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists).To(BeTrue())
+
+			exists, err = defaultResource.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists).To(BeTrue())
+
+			Expect(defaultResource.BuildSummary()).To(Equal(&atc.BuildSummary{
+				ID:                   build.ID(),
+				Name:                 db.CheckBuildName,
+				Status:               atc.StatusStarted,
+				StartTime:            build.StartTime().Unix(),
+				TeamName:             defaultTeam.Name(),
+				PipelineID:           defaultPipeline.ID(),
+				PipelineName:         defaultPipeline.Name(),
+				PipelineInstanceVars: defaultPipeline.InstanceVars(),
+			}))
+		})
+
+		Context("when tracing is configured", func() {
+			var span trace.Span
+
+			BeforeEach(func() {
+				tracing.ConfigureTraceProvider(tracetest.NewProvider())
+
+				ctx, span = tracing.StartSpan(context.Background(), "fake-operation", nil)
+			})
+
+			AfterEach(func() {
+				tracing.Configured = false
+			})
+
+			It("propagates span context", func() {
+				traceID := span.SpanContext().TraceID.String()
+				buildContext := build.SpanContext()
+				traceParent := buildContext.Get("traceparent")
+				Expect(traceParent).To(ContainSubstring(traceID))
+			})
+		})
+
+		Context("when another build already exists", func() {
+			var prevBuild db.Build
+
+			BeforeEach(func() {
+				var err error
+				var prevCreated bool
+				prevBuild, prevCreated, err = defaultResource.CreateBuild(ctx, false)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(prevCreated).To(BeTrue())
+			})
+
+			It("does not create the second build", func() {
+				Expect(created).To(BeFalse())
+			})
+
+			Context("when manually triggered", func() {
+				BeforeEach(func() {
+					manuallyTriggered = true
+				})
+
+				It("creates a manually triggered resource build", func() {
+					Expect(created).To(BeTrue())
+					Expect(build.IsManuallyTriggered()).To(BeTrue())
+					Expect(build.ResourceID()).To(Equal(defaultResource.ID()))
+				})
+
+				It("associates the resource to the build", func() {
+					started, err := build.Start(atc.Plan{})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(started).To(BeTrue())
+
+					exists, err := build.Reload()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(exists).To(BeTrue())
+
+					exists, err = defaultResource.Reload()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(exists).To(BeTrue())
+
+					Expect(defaultResource.BuildSummary()).To(Equal(&atc.BuildSummary{
+						ID:                   build.ID(),
+						Name:                 db.CheckBuildName,
+						Status:               atc.StatusStarted,
+						StartTime:            build.StartTime().Unix(),
+						TeamName:             defaultTeam.Name(),
+						PipelineID:           defaultPipeline.ID(),
+						PipelineName:         defaultPipeline.Name(),
+						PipelineInstanceVars: defaultPipeline.InstanceVars(),
+					}))
+				})
+			})
+
+			Context("when the previous build is finished", func() {
+				BeforeEach(func() {
+					Expect(prevBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
+				})
+
+				It("creates the build", func() {
+					Expect(created).To(BeTrue())
+					Expect(build.ResourceID()).To(Equal(defaultResource.ID()))
+				})
+
+				It("deletes the previous build", func() {
+					found, err := prevBuild.Reload()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeFalse())
+				})
+			})
+		})
+	})
+
 	Describe("SetResourceConfig", func() {
 		var pipeline db.Pipeline
 		var config atc.Config
@@ -348,10 +632,9 @@ var _ = Describe("Resource", func() {
 			config = atc.Config{
 				ResourceTypes: atc.ResourceTypes{
 					{
-						Name:                 "some-resourceType",
-						Type:                 "base",
-						Source:               atc.Source{"some": "repository"},
-						UniqueVersionHistory: true,
+						Name:   "some-resourceType",
+						Type:   "base",
+						Source: atc.Source{"some": "repository"},
 					},
 				},
 				Resources: atc.ResourceConfigs{
@@ -394,7 +677,7 @@ var _ = Describe("Resource", func() {
 			}
 
 			pipeline, created, err = defaultTeam.SavePipeline(
-				"pipeline-with-same-resources",
+				atc.PipelineRef{Name: "pipeline-with-same-resources"},
 				config,
 				0,
 				false,
@@ -437,9 +720,6 @@ var _ = Describe("Resource", func() {
 					resourceScope1, err = resource1.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
 					Expect(err).NotTo(HaveOccurred())
 
-					err = resourceScope1.SetCheckError(errors.New("oops"))
-					Expect(err).NotTo(HaveOccurred())
-
 					found, err = resource1.Reload()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
@@ -468,8 +748,6 @@ var _ = Describe("Resource", func() {
 					})
 
 					It("has the same resource config id and resource config scope id as the first resource", func() {
-						Expect(resourceScope2.CheckError()).To(Equal(errors.New("oops")))
-
 						Expect(resource2.ResourceConfigID()).To(Equal(resourceScope2.ResourceConfig().ID()))
 						Expect(resource2.ResourceConfigScopeID()).To(Equal(resourceScope2.ID()))
 						Expect(resource1.ResourceConfigID()).To(Equal(resource2.ResourceConfigID()))
@@ -538,141 +816,6 @@ var _ = Describe("Resource", func() {
 						Expect(resource2.ResourceConfigScopeID()).To(Equal(resourceScope2.ID()))
 						Expect(resource1.ResourceConfigID()).To(Equal(resource2.ResourceConfigID()))
 						Expect(resource1.ResourceConfigScopeID()).ToNot(Equal(resource2.ResourceConfigScopeID()))
-					})
-				})
-			})
-
-			Context("when the resource uses a resource type that is specified in the pipeline config to have a unique version history", func() {
-				var (
-					resourceScope1 db.ResourceConfigScope
-					resourceScope2 db.ResourceConfigScope
-					resource1      db.Resource
-					resource2      db.Resource
-					resourceTypes  db.ResourceTypes
-				)
-
-				BeforeEach(func() {
-					var found bool
-					var err error
-					resource1, found, err = pipeline.Resource("pipeline-resource")
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					setupTx, err := dbConn.Begin()
-					Expect(err).ToNot(HaveOccurred())
-
-					brt := db.BaseResourceType{
-						Name: "base",
-					}
-
-					_, err = brt.FindOrCreate(setupTx, false)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(setupTx.Commit()).To(Succeed())
-
-					resourceTypes, err = pipeline.ResourceTypes()
-					Expect(err).ToNot(HaveOccurred())
-
-					resourceScope1, err = resource1.SetResourceConfig(atc.Source{"some": "repository"}, resourceTypes.Deserialize())
-					Expect(err).NotTo(HaveOccurred())
-
-					found, err = resource1.Reload()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-				})
-
-				It("has the resource config id and resource config scope id set on the resource", func() {
-					Expect(resourceScope1.Resource()).ToNot(BeNil())
-					Expect(resource1.ResourceConfigScopeID()).To(Equal(resourceScope1.ID()))
-					Expect(resource1.ResourceConfigID()).To(Equal(resourceScope1.ResourceConfig().ID()))
-				})
-
-				Context("when another resource uses the same resource config", func() {
-					BeforeEach(func() {
-						var found bool
-						var err error
-						resource2, found, err = pipeline.Resource("other-pipeline-resource")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(found).To(BeTrue())
-
-						resourceScope2, err = resource2.SetResourceConfig(atc.Source{"some": "repository"}, resourceTypes.Deserialize())
-						Expect(err).NotTo(HaveOccurred())
-
-						found, err = resource2.Reload()
-						Expect(err).NotTo(HaveOccurred())
-						Expect(found).To(BeTrue())
-					})
-
-					It("has a different resource config scope id than the first resource", func() {
-						Expect(resource2.ResourceConfigID()).To(Equal(resourceScope2.ResourceConfig().ID()))
-						Expect(resource1.ResourceConfigScopeID()).ToNot(Equal(resource2.ResourceConfigScopeID()))
-					})
-				})
-
-				Context("when the resource has a new resource config id and is still unique", func() {
-					var newResourceConfigScope db.ResourceConfigScope
-
-					BeforeEach(func() {
-						config.Resources[2].Source = atc.Source{"some": "other-repo"}
-						newPipeline, _, err := defaultTeam.SavePipeline(
-							"pipeline-with-same-resources",
-							config,
-							pipeline.ConfigVersion(),
-							false,
-						)
-						Expect(err).ToNot(HaveOccurred())
-
-						var found bool
-						resource1, found, err = newPipeline.Resource("pipeline-resource")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(found).To(BeTrue())
-
-						newResourceConfigScope, err = resource1.SetResourceConfig(atc.Source{"some": "other-repo"}, resourceTypes.Deserialize())
-						Expect(err).NotTo(HaveOccurred())
-
-						found, err = resource1.Reload()
-						Expect(err).NotTo(HaveOccurred())
-						Expect(found).To(BeTrue())
-					})
-
-					It("should have a new scope", func() {
-						Expect(newResourceConfigScope.ID()).ToNot(Equal(resourceScope1.ID()))
-						Expect(resource1.ResourceConfigScopeID()).To(Equal(newResourceConfigScope.ID()))
-					})
-				})
-
-				Context("when the resource is altered to shared version history", func() {
-					var newResourceConfigScope db.ResourceConfigScope
-
-					BeforeEach(func() {
-						config.ResourceTypes[0].UniqueVersionHistory = false
-						newPipeline, _, err := defaultTeam.SavePipeline(
-							"pipeline-with-same-resources",
-							config,
-							pipeline.ConfigVersion(),
-							false,
-						)
-						Expect(err).ToNot(HaveOccurred())
-
-						var found bool
-						resource1, found, err = newPipeline.Resource("pipeline-resource")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(found).To(BeTrue())
-
-						resourceTypes, err = newPipeline.ResourceTypes()
-						Expect(err).ToNot(HaveOccurred())
-
-						newResourceConfigScope, err = resource1.SetResourceConfig(atc.Source{"some": "repository"}, resourceTypes.Deserialize())
-						Expect(err).NotTo(HaveOccurred())
-
-						found, err = resource1.Reload()
-						Expect(err).NotTo(HaveOccurred())
-						Expect(found).To(BeTrue())
-					})
-
-					It("should have a new scope", func() {
-						Expect(newResourceConfigScope.ID()).ToNot(Equal(resourceScope1.ID()))
-						Expect(newResourceConfigScope.Resource()).To(BeNil())
-						Expect(resource1.ResourceConfigScopeID()).To(Equal(newResourceConfigScope.ID()))
 					})
 				})
 			})
@@ -790,53 +933,6 @@ var _ = Describe("Resource", func() {
 		})
 	})
 
-	Describe("SetCheckSetupError", func() {
-		var resource db.Resource
-
-		BeforeEach(func() {
-			var err error
-			resource, _, err = pipeline.Resource("some-resource")
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		Context("when the resource is first created", func() {
-			It("is not errored", func() {
-				Expect(resource.CheckSetupError()).To(BeNil())
-			})
-		})
-
-		Context("when a resource check is marked as errored", func() {
-			It("is then marked as errored", func() {
-				originalCause := errors.New("on fire")
-
-				err := resource.SetCheckSetupError(originalCause)
-				Expect(err).ToNot(HaveOccurred())
-
-				returnedResource, _, err := pipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(returnedResource.CheckSetupError()).To(Equal(originalCause))
-			})
-		})
-
-		Context("when a resource is cleared of check errors", func() {
-			It("is not marked as errored again", func() {
-				originalCause := errors.New("on fire")
-
-				err := resource.SetCheckSetupError(originalCause)
-				Expect(err).ToNot(HaveOccurred())
-
-				err = resource.SetCheckSetupError(nil)
-				Expect(err).ToNot(HaveOccurred())
-
-				returnedResource, _, err := pipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(returnedResource.CheckSetupError()).To(BeNil())
-			})
-		})
-	})
-
 	Describe("ResourceConfigVersion", func() {
 		var (
 			resource                   db.Resource
@@ -934,7 +1030,7 @@ var _ = Describe("Resource", func() {
 					saveVersion(atc.Version{"version": "12345"})
 
 					version = atc.Version{"version": "2"}
-					created, err := resource.SaveUncheckedVersion(version, nil, resourceScope.ResourceConfig(), atc.VersionedResourceTypes{})
+					created, err := resource.SaveUncheckedVersion(version, nil, resourceScope.ResourceConfig())
 					Expect(err).ToNot(HaveOccurred())
 					Expect(created).To(BeTrue())
 				})
@@ -1159,7 +1255,7 @@ var _ = Describe("Resource", func() {
 				Expect(reloaded).To(BeTrue())
 			})
 
-			Context("with no since/until", func() {
+			Context("with no from/to", func() {
 				It("returns the first page, with the given limit, and a next page", func() {
 					historyPage, pagination, found, err := resource.Versions(db.Page{Limit: 2}, nil)
 					Expect(err).ToNot(HaveOccurred())
@@ -1167,60 +1263,60 @@ var _ = Describe("Resource", func() {
 					Expect(len(historyPage)).To(Equal(2))
 					Expect(historyPage[0].Version).To(Equal(resourceVersions[9].Version))
 					Expect(historyPage[1].Version).To(Equal(resourceVersions[8].Version))
-					Expect(pagination.Previous).To(BeNil())
-					Expect(pagination.Next).To(Equal(&db.Page{Since: resourceVersions[8].ID, Limit: 2}))
+					Expect(pagination.Newer).To(BeNil())
+					Expect(pagination.Older).To(Equal(&db.Page{To: db.NewIntPtr(resourceVersions[7].ID), Limit: 2}))
 				})
 			})
 
-			Context("with a since that places it in the middle of the builds", func() {
-				It("returns the builds, with previous/next pages", func() {
-					historyPage, pagination, found, err := resource.Versions(db.Page{Since: resourceVersions[6].ID, Limit: 2}, nil)
+			Context("with a to that places it in the middle of the versions", func() {
+				It("returns the versions, with previous/next pages", func() {
+					historyPage, pagination, found, err := resource.Versions(db.Page{To: db.NewIntPtr(resourceVersions[6].ID), Limit: 2}, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(2))
-					Expect(historyPage[0].Version).To(Equal(resourceVersions[5].Version))
-					Expect(historyPage[1].Version).To(Equal(resourceVersions[4].Version))
-					Expect(pagination.Previous).To(Equal(&db.Page{Until: resourceVersions[5].ID, Limit: 2}))
-					Expect(pagination.Next).To(Equal(&db.Page{Since: resourceVersions[4].ID, Limit: 2}))
+					Expect(historyPage[0].Version).To(Equal(resourceVersions[6].Version))
+					Expect(historyPage[1].Version).To(Equal(resourceVersions[5].Version))
+					Expect(pagination.Newer).To(Equal(&db.Page{From: db.NewIntPtr(resourceVersions[7].ID), Limit: 2}))
+					Expect(pagination.Older).To(Equal(&db.Page{To: db.NewIntPtr(resourceVersions[4].ID), Limit: 2}))
 				})
 			})
 
-			Context("with a since that places it at the end of the builds", func() {
-				It("returns the builds, with previous/next pages", func() {
-					historyPage, pagination, found, err := resource.Versions(db.Page{Since: resourceVersions[2].ID, Limit: 2}, nil)
+			Context("with a to that places it to the oldest version", func() {
+				It("returns the versions, with no next page", func() {
+					historyPage, pagination, found, err := resource.Versions(db.Page{To: db.NewIntPtr(resourceVersions[1].ID), Limit: 2}, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(2))
 					Expect(historyPage[0].Version).To(Equal(resourceVersions[1].Version))
 					Expect(historyPage[1].Version).To(Equal(resourceVersions[0].Version))
-					Expect(pagination.Previous).To(Equal(&db.Page{Until: resourceVersions[1].ID, Limit: 2}))
-					Expect(pagination.Next).To(BeNil())
+					Expect(pagination.Newer).To(Equal(&db.Page{From: db.NewIntPtr(resourceVersions[2].ID), Limit: 2}))
+					Expect(pagination.Older).To(BeNil())
 				})
 			})
 
-			Context("with an until that places it in the middle of the builds", func() {
-				It("returns the builds, with previous/next pages", func() {
-					historyPage, pagination, found, err := resource.Versions(db.Page{Until: resourceVersions[6].ID, Limit: 2}, nil)
+			Context("with a from that places it in the middle of the versions", func() {
+				It("returns the versions, with previous/next pages", func() {
+					historyPage, pagination, found, err := resource.Versions(db.Page{From: db.NewIntPtr(resourceVersions[6].ID), Limit: 2}, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(2))
-					Expect(historyPage[0].Version).To(Equal(resourceVersions[8].Version))
-					Expect(historyPage[1].Version).To(Equal(resourceVersions[7].Version))
-					Expect(pagination.Previous).To(Equal(&db.Page{Until: resourceVersions[8].ID, Limit: 2}))
-					Expect(pagination.Next).To(Equal(&db.Page{Since: resourceVersions[7].ID, Limit: 2}))
+					Expect(historyPage[0].Version).To(Equal(resourceVersions[7].Version))
+					Expect(historyPage[1].Version).To(Equal(resourceVersions[6].Version))
+					Expect(pagination.Newer).To(Equal(&db.Page{From: db.NewIntPtr(resourceVersions[8].ID), Limit: 2}))
+					Expect(pagination.Older).To(Equal(&db.Page{To: db.NewIntPtr(resourceVersions[5].ID), Limit: 2}))
 				})
 			})
 
-			Context("with a until that places it at the beginning of the builds", func() {
-				It("returns the builds, with previous/next pages", func() {
-					historyPage, pagination, found, err := resource.Versions(db.Page{Until: resourceVersions[7].ID, Limit: 2}, nil)
+			Context("with a from that places it at the beginning of the most recent versions", func() {
+				It("returns the versions, with no previous page", func() {
+					historyPage, pagination, found, err := resource.Versions(db.Page{From: db.NewIntPtr(resourceVersions[8].ID), Limit: 2}, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(2))
 					Expect(historyPage[0].Version).To(Equal(resourceVersions[9].Version))
 					Expect(historyPage[1].Version).To(Equal(resourceVersions[8].Version))
-					Expect(pagination.Previous).To(BeNil())
-					Expect(pagination.Next).To(Equal(&db.Page{Since: resourceVersions[8].ID, Limit: 2}))
+					Expect(pagination.Newer).To(BeNil())
+					Expect(pagination.Older).To(Equal(&db.Page{To: db.NewIntPtr(resourceVersions[7].ID), Limit: 2}))
 				})
 			})
 
@@ -1229,7 +1325,7 @@ var _ = Describe("Resource", func() {
 					metadata := []db.ResourceConfigMetadataField{{Name: "name1", Value: "value1"}}
 
 					// save metadata
-					_, err := resource.SaveUncheckedVersion(atc.Version(resourceVersions[9].Version), metadata, resourceScope.ResourceConfig(), atc.VersionedResourceTypes{})
+					_, err := resource.SaveUncheckedVersion(atc.Version(resourceVersions[9].Version), metadata, resourceScope.ResourceConfig())
 					Expect(err).ToNot(HaveOccurred())
 				})
 
@@ -1259,7 +1355,7 @@ var _ = Describe("Resource", func() {
 
 				It("updates metadata after same version is saved with different metadata", func() {
 					newMetadata := []db.ResourceConfigMetadataField{{Name: "name-new", Value: "value-new"}}
-					_, err := resource.SaveUncheckedVersion(atc.Version(resourceVersions[9].Version), newMetadata, resourceScope.ResourceConfig(), atc.VersionedResourceTypes{})
+					_, err := resource.SaveUncheckedVersion(atc.Version(resourceVersions[9].Version), newMetadata, resourceScope.ResourceConfig())
 
 					historyPage, _, found, err := resource.Versions(db.Page{Limit: 1}, atc.Version{})
 					Expect(err).ToNot(HaveOccurred())
@@ -1373,7 +1469,7 @@ var _ = Describe("Resource", func() {
 				// ids ordered by check order now: [3, 2, 4, 1]
 			})
 
-			Context("with no since/until", func() {
+			Context("with no from/to", func() {
 				It("returns versions ordered by check order", func() {
 					historyPage, pagination, found, err := resource.Versions(db.Page{Limit: 4}, nil)
 					Expect(err).ToNot(HaveOccurred())
@@ -1383,60 +1479,34 @@ var _ = Describe("Resource", func() {
 					Expect(historyPage[1].Version).To(Equal(resourceVersions[2].Version))
 					Expect(historyPage[2].Version).To(Equal(resourceVersions[1].Version))
 					Expect(historyPage[3].Version).To(Equal(resourceVersions[0].Version))
-					Expect(pagination.Previous).To(BeNil())
-					Expect(pagination.Next).To(BeNil())
-				})
-			})
-
-			Context("with a since", func() {
-				It("returns the builds, with previous/next pages excluding since", func() {
-					historyPage, pagination, found, err := resource.Versions(db.Page{Since: 3, Limit: 2}, nil)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(historyPage).To(HaveLen(2))
-					Expect(historyPage[0].Version).To(Equal(resourceVersions[2].Version))
-					Expect(historyPage[1].Version).To(Equal(resourceVersions[1].Version))
-					Expect(pagination.Previous).To(Equal(&db.Page{Until: 2, Limit: 2}))
-					Expect(pagination.Next).To(Equal(&db.Page{Since: 4, Limit: 2}))
+					Expect(pagination.Newer).To(BeNil())
+					Expect(pagination.Older).To(BeNil())
 				})
 			})
 
 			Context("with from", func() {
-				It("returns the builds, with previous/next pages including from", func() {
-					historyPage, pagination, found, err := resource.Versions(db.Page{From: 2, Limit: 2}, nil)
+				It("returns the versions, with previous/next pages including from", func() {
+					historyPage, pagination, found, err := resource.Versions(db.Page{From: db.NewIntPtr(resourceVersions[1].ID), Limit: 2}, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(historyPage).To(HaveLen(2))
 					Expect(historyPage[0].Version).To(Equal(resourceVersions[2].Version))
 					Expect(historyPage[1].Version).To(Equal(resourceVersions[1].Version))
-					Expect(pagination.Previous).To(Equal(&db.Page{Until: 2, Limit: 2}))
-					Expect(pagination.Next).To(Equal(&db.Page{Since: 4, Limit: 2}))
-				})
-			})
-
-			Context("with a until", func() {
-				It("returns the builds, with previous/next pages excluding until", func() {
-					historyPage, pagination, found, err := resource.Versions(db.Page{Until: 1, Limit: 2}, nil)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(historyPage).To(HaveLen(2))
-					Expect(historyPage[0].Version).To(Equal(resourceVersions[2].Version))
-					Expect(historyPage[1].Version).To(Equal(resourceVersions[1].Version))
-					Expect(pagination.Previous).To(Equal(&db.Page{Until: 2, Limit: 2}))
-					Expect(pagination.Next).To(Equal(&db.Page{Since: 4, Limit: 2}))
+					Expect(pagination.Newer).To(Equal(&db.Page{From: db.NewIntPtr(resourceVersions[3].ID), Limit: 2}))
+					Expect(pagination.Older).To(Equal(&db.Page{To: db.NewIntPtr(resourceVersions[0].ID), Limit: 2}))
 				})
 			})
 
 			Context("with to", func() {
 				It("returns the builds, with previous/next pages including to", func() {
-					historyPage, pagination, found, err := resource.Versions(db.Page{To: 4, Limit: 2}, nil)
+					historyPage, pagination, found, err := resource.Versions(db.Page{To: db.NewIntPtr(resourceVersions[2].ID), Limit: 2}, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(historyPage).To(HaveLen(2))
 					Expect(historyPage[0].Version).To(Equal(resourceVersions[2].Version))
 					Expect(historyPage[1].Version).To(Equal(resourceVersions[1].Version))
-					Expect(pagination.Previous).To(Equal(&db.Page{Until: 2, Limit: 2}))
-					Expect(pagination.Next).To(Equal(&db.Page{Since: 4, Limit: 2}))
+					Expect(pagination.Newer).To(Equal(&db.Page{From: db.NewIntPtr(resourceVersions[3].ID), Limit: 2}))
+					Expect(pagination.Older).To(Equal(&db.Page{To: db.NewIntPtr(resourceVersions[0].ID), Limit: 2}))
 				})
 			})
 		})
@@ -1464,7 +1534,7 @@ var _ = Describe("Resource", func() {
 				resourceScope, err := resource.SetResourceConfig(atc.Source{"some": "other-repository"}, atc.VersionedResourceTypes{})
 				Expect(err).ToNot(HaveOccurred())
 
-				created, err := resource.SaveUncheckedVersion(atc.Version{"version": "not-returned"}, nil, resourceScope.ResourceConfig(), atc.VersionedResourceTypes{})
+				created, err := resource.SaveUncheckedVersion(atc.Version{"version": "not-returned"}, nil, resourceScope.ResourceConfig())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(created).To(BeTrue())
 			})
@@ -1474,7 +1544,7 @@ var _ = Describe("Resource", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(historyPage).To(BeNil())
-				Expect(pagination).To(Equal(db.Pagination{Previous: nil, Next: nil}))
+				Expect(pagination).To(Equal(db.Pagination{Newer: nil, Older: nil}))
 			})
 		})
 	})
@@ -1508,9 +1578,9 @@ var _ = Describe("Resource", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			err = resourceScope.SaveVersions(nil, []atc.Version{
-				atc.Version{"version": "v1"},
-				atc.Version{"version": "v2"},
-				atc.Version{"version": "v3"},
+				{"version": "v1"},
+				{"version": "v2"},
+				{"version": "v3"},
 			})
 			Expect(err).ToNot(HaveOccurred())
 
@@ -1716,9 +1786,9 @@ var _ = Describe("Resource", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				err = resourceScope.SaveVersions(nil, []atc.Version{
-					atc.Version{"version": "v1"},
-					atc.Version{"version": "v2"},
-					atc.Version{"version": "v3"},
+					{"version": "v1"},
+					{"version": "v2"},
+					{"version": "v3"},
 				})
 				Expect(err).ToNot(HaveOccurred())
 

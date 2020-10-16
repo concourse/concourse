@@ -19,7 +19,7 @@ import (
 	"github.com/concourse/concourse/vars"
 	"github.com/onsi/gomega/gbytes"
 	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/api/trace/testtrace"
+	"go.opentelemetry.io/otel/api/trace/tracetest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -41,7 +41,10 @@ var _ = Describe("GetStep", func() {
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 		fakeResourceCache        *dbfakes.FakeUsedResourceCache
 
-		fakeDelegate *execfakes.FakeGetDelegate
+		fakeDelegate        *execfakes.FakeGetDelegate
+		fakeDelegateFactory *execfakes.FakeGetDelegateFactory
+
+		spanCtx context.Context
 
 		getPlan *atc.GetPlan
 
@@ -52,8 +55,6 @@ var _ = Describe("GetStep", func() {
 
 		getStep    exec.Step
 		getStepErr error
-
-		buildVars *vars.BuildVariables
 
 		containerMetadata = db.ContainerMetadata{
 			WorkingDirectory: resource.ResourcesDir("get"),
@@ -87,9 +88,6 @@ var _ = Describe("GetStep", func() {
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
 
-		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
-		buildVars = vars.NewBuildVariables(credVars, true)
-
 		artifactRepository = build.NewRepository()
 		fakeState = new(execfakes.FakeRunState)
 
@@ -98,9 +96,13 @@ var _ = Describe("GetStep", func() {
 		fakeDelegate = new(execfakes.FakeGetDelegate)
 		stdoutBuf = gbytes.NewBuffer()
 		stderrBuf = gbytes.NewBuffer()
-		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
+		spanCtx = context.Background()
+		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
+
+		fakeDelegateFactory = new(execfakes.FakeGetDelegateFactory)
+		fakeDelegateFactory.GetDelegateReturns(fakeDelegate)
 
 		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
@@ -112,6 +114,8 @@ var _ = Describe("GetStep", func() {
 				Version: atc.Version{"some-custom": "version"},
 			},
 		}
+
+		fakeState.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
 
 		interpolatedResourceTypes = atc.VersionedResourceTypes{
 			{
@@ -156,16 +160,42 @@ var _ = Describe("GetStep", func() {
 			fakeResourceFactory,
 			fakeResourceCacheFactory,
 			fakeStrategy,
-			fakeDelegate,
+			fakeDelegateFactory,
 			fakeClient,
 		)
 
 		getStepErr = getStep.Run(ctx, fakeState)
 	})
 
-	It("calls RunGetStep with the correct ctx", func() {
+	It("propagates span context to the worker client", func() {
 		actualCtx, _, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-		Expect(actualCtx).To(Equal(ctx))
+		Expect(actualCtx).To(Equal(spanCtx))
+	})
+
+	Context("when tracing is enabled", func() {
+		var buildSpan trace.Span
+
+		BeforeEach(func() {
+			tracing.ConfigureTraceProvider(tracetest.NewProvider())
+
+			spanCtx, buildSpan = tracing.StartSpan(ctx, "build", nil)
+			fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
+		})
+
+		AfterEach(func() {
+			tracing.Configured = false
+		})
+
+		It("propagates span context to the worker client", func() {
+			actualCtx, _, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+			Expect(actualCtx).To(Equal(spanCtx))
+		})
+
+		It("populates the TRACEPARENT env var", func() {
+			_, _, _, actualContainerSpec, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+
+			Expect(actualContainerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
+		})
 	})
 
 	It("calls RunGetStep with the correct ContainerOwner", func() {
@@ -256,32 +286,6 @@ var _ = Describe("GetStep", func() {
 		Expect(actualResource).To(Equal(fakeResource))
 	})
 
-	Context("when tracing is enabled", func() {
-		var buildSpan trace.Span
-
-		BeforeEach(func() {
-			tracing.ConfigureTraceProvider(testTraceProvider{})
-			ctx, buildSpan = tracing.StartSpan(ctx, "build", nil)
-		})
-
-		It("propagates span context to the worker client", func() {
-			ctx, _, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-			span, ok := tracing.FromContext(ctx).(*testtrace.Span)
-			Expect(ok).To(BeTrue(), "no testtrace.Span in context")
-			Expect(span.ParentSpanID()).To(Equal(buildSpan.SpanContext().SpanID))
-		})
-
-		It("populates the TRACEPARENT env var", func() {
-			_, _, _, actualContainerSpec, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-
-			Expect(actualContainerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
-		})
-
-		AfterEach(func() {
-			tracing.Configured = false
-		})
-	})
-
 	Context("when Client.RunGetStep returns an err", func() {
 		var disaster error
 		BeforeEach(func() {
@@ -310,7 +314,7 @@ var _ = Describe("GetStep", func() {
 
 		It("registers the resulting artifact in the RunState.ArtifactRepository", func() {
 			artifact, found := artifactRepository.ArtifactFor(build.ArtifactName(getPlan.Name))
-			Expect(artifact).To(Equal(runtime.GetArtifact{"some-volume-handle"}))
+			Expect(artifact).To(Equal(runtime.GetArtifact{VolumeHandle: "some-volume-handle"}))
 			Expect(found).To(BeTrue())
 		})
 
@@ -378,6 +382,5 @@ var _ = Describe("GetStep", func() {
 		It("does not return an err", func() {
 			Expect(getStepErr).ToNot(HaveOccurred())
 		})
-
 	})
 })

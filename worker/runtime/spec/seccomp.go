@@ -301,6 +301,7 @@ var seccomp = &specs.LinuxSeccomp{
 		AllowSyscall("stat64"),
 		AllowSyscall("statfs"),
 		AllowSyscall("statfs64"),
+		AllowSyscall("statx"),
 		AllowSyscall("symlink"),
 		AllowSyscall("symlinkat"),
 		AllowSyscall("sync"),

@@ -177,7 +177,7 @@ var _ = Describe("Targets", func() {
 			})
 
 			It("creates any new file with 0600 permissions", func() {
-				err := rc.SaveTarget("foo", "url", false, "main", nil, "")
+				err := rc.SaveTarget("foo", "url", false, "main", nil, "", "", "")
 				Expect(err).ToNot(HaveOccurred())
 				fi, statErr := os.Stat(flyrc)
 				Expect(statErr).To(BeNil())
@@ -191,7 +191,7 @@ var _ = Describe("Targets", func() {
 				})
 
 				It("preserves those permissions", func() {
-					err := rc.SaveTarget("foo", "url", false, "main", nil, "")
+					err := rc.SaveTarget("foo", "url", false, "main", nil, "", "", "")
 					Expect(err).ToNot(HaveOccurred())
 					fi, statErr := os.Stat(flyrc)
 					Expect(statErr).To(BeNil())
@@ -211,6 +211,8 @@ var _ = Describe("Targets", func() {
 						false,
 						"main",
 						nil,
+						"",
+						"",
 						"",
 					)
 					Expect(err).ToNot(HaveOccurred())
@@ -235,6 +237,8 @@ var _ = Describe("Targets", func() {
 						"main",
 						nil,
 						rsaCertPEM,
+						"",
+						"",
 					)
 					Expect(err).ToNot(HaveOccurred())
 				})
@@ -260,6 +264,8 @@ var _ = Describe("Targets", func() {
 						"main",
 						nil,
 						"",
+						"",
+						"",
 					)
 					Expect(err).ToNot(HaveOccurred())
 				})
@@ -282,6 +288,8 @@ var _ = Describe("Targets", func() {
 						true,
 						"main",
 						nil,
+						"",
+						"",
 						"",
 					)
 					Expect(err).ToNot(HaveOccurred())

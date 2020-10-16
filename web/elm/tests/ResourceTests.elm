@@ -4,14 +4,14 @@ import Application.Application as Application
 import Application.Models exposing (Session)
 import Assets
 import ColorValues
+import Build.StepTree.Models as STModels
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
-import Concourse.Pagination exposing (Direction(..))
+import Concourse.Pagination exposing (Direction(..), Page, Pagination)
 import DashboardTests
     exposing
         ( almostBlack
-        , darkGrey
         , iconSelector
         , middleGrey
         )
@@ -20,7 +20,6 @@ import Dict
 import Expect exposing (..)
 import HoverState
 import Html.Attributes as Attr
-import Http
 import Keyboard
 import Message.Callback as Callback exposing (Callback(..))
 import Message.Effects as Effects
@@ -56,11 +55,6 @@ import Time
 import Url
 import UserState exposing (UserState(..))
 import Views.Styles
-
-
-commentButtonBlue : String
-commentButtonBlue =
-    "#196ac8"
 
 
 teamName : String
@@ -116,16 +110,6 @@ disabledVersion =
 purpleHex : String
 purpleHex =
     "#5c3bd1"
-
-
-fadedBlackHex : String
-fadedBlackHex =
-    "#1e1d1d80"
-
-
-almostWhiteHex : String
-almostWhiteHex =
-    "#e6e7e8"
 
 
 lightGreyHex : String
@@ -241,7 +225,10 @@ all =
                     |> Tuple.second
                     |> Expect.all
                         [ Common.contains (Effects.FetchResource Data.resourceId)
-                        , Common.contains (Effects.FetchVersionedResources Data.resourceId Nothing)
+                        , Common.contains
+                            (Effects.FetchVersionedResources Data.resourceId
+                                Resource.startingPage
+                            )
                         ]
         , test "autorefresh respects expanded state" <|
             \_ ->
@@ -511,7 +498,7 @@ all =
                     , defineHoverBehaviour <|
                         let
                             urlPath =
-                                "/teams/team/pipelines/pipeline/resources/resource?since=1&limit=1"
+                                "/teams/team/pipelines/pipeline/resources/resource?from=100&limit=1"
                         in
                         { name = "left pagination chevron with previous page"
                         , setup =
@@ -571,6 +558,24 @@ all =
                             }
                         , hoverable = Message.Message.PreviousPageButton
                         }
+                    , test "pagination previous loads most recent if less than 100 entries" <|
+                        \_ ->
+                            let
+                                previousPage =
+                                    { direction = From 1, limit = 100 }
+                            in
+                            init
+                                |> givenResourceIsNotPinned
+                                |> givenVersionsWithPages previousPage emptyPagination
+                                |> Tuple.second
+                                |> Common.contains
+                                    (Effects.FetchVersionedResources
+                                        { teamName = teamName
+                                        , pipelineName = pipelineName
+                                        , resourceName = resourceName
+                                        }
+                                        Resource.startingPage
+                                    )
                     ]
                 ]
             ]
@@ -1259,21 +1264,19 @@ all =
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
                                         , lastChecked = Nothing
                                         , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                                         , pinnedInConfig = False
                                         , pinComment = Nothing
                                         , icon = Nothing
+                                        , build = Nothing
                                         }
                                 )
                                 session
                             |> Resource.handleCallback
                                 (Callback.VersionedResourcesFetched <|
                                     Ok
-                                        ( Nothing
+                                        ( Resource.startingPage
                                         , { content =
                                                 [ { id = versionID.versionID
                                                   , version = Dict.fromList [ ( "version", version ) ]
@@ -1291,10 +1294,7 @@ all =
                                                   , enabled = False
                                                   }
                                                 ]
-                                          , pagination =
-                                                { previousPage = Nothing
-                                                , nextPage = Nothing
-                                                }
+                                          , pagination = emptyPagination
                                           }
                                         )
                                 )
@@ -1319,21 +1319,19 @@ all =
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
                                         , lastChecked = Nothing
                                         , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                                         , pinnedInConfig = False
                                         , pinComment = Nothing
                                         , icon = Nothing
+                                        , build = Nothing
                                         }
                                 )
                                 session
                             |> Resource.handleCallback
                                 (Callback.VersionedResourcesFetched <|
                                     Ok
-                                        ( Nothing
+                                        ( Resource.startingPage
                                         , { content =
                                                 [ { id = versionID.versionID
                                                   , version = Dict.fromList [ ( "version", version ) ]
@@ -1351,10 +1349,7 @@ all =
                                                   , enabled = False
                                                   }
                                                 ]
-                                          , pagination =
-                                                { previousPage = Nothing
-                                                , nextPage = Nothing
-                                                }
+                                          , pagination = emptyPagination
                                           }
                                         )
                                 )
@@ -1374,28 +1369,26 @@ all =
                             { resourceId = Data.resourceId
                             , paging = Nothing
                             }
-                            |> Resource.handleDelivery (ClockTicked OneSecond (Time.millisToPosix 1000))
+                            |> Resource.handleDelivery session (ClockTicked OneSecond (Time.millisToPosix 1000))
                             |> Resource.handleCallback
                                 (Callback.ResourceFetched <|
                                     Ok
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
                                         , lastChecked = Nothing
                                         , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                                         , pinnedInConfig = False
                                         , pinComment = Nothing
                                         , icon = Nothing
+                                        , build = Nothing
                                         }
                                 )
                                 session
                             |> Resource.handleCallback
                                 (Callback.VersionedResourcesFetched <|
                                     Ok
-                                        ( Nothing
+                                        ( Resource.startingPage
                                         , { content =
                                                 [ { id = versionID.versionID
                                                   , version = Dict.fromList [ ( "version", version ) ]
@@ -1413,10 +1406,7 @@ all =
                                                   , enabled = False
                                                   }
                                                 ]
-                                          , pagination =
-                                                { previousPage = Nothing
-                                                , nextPage = Nothing
-                                                }
+                                          , pagination = emptyPagination
                                           }
                                         )
                                 )
@@ -1439,28 +1429,26 @@ all =
                             { resourceId = Data.resourceId
                             , paging = Nothing
                             }
-                            |> Resource.handleDelivery (ClockTicked OneSecond (Time.millisToPosix 1000))
+                            |> Resource.handleDelivery session (ClockTicked OneSecond (Time.millisToPosix 1000))
                             |> Resource.handleCallback
                                 (Callback.ResourceFetched <|
                                     Ok
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
                                         , lastChecked = Nothing
                                         , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                                         , pinnedInConfig = False
                                         , pinComment = Nothing
                                         , icon = Nothing
+                                        , build = Nothing
                                         }
                                 )
                                 session
                             |> Resource.handleCallback
                                 (Callback.VersionedResourcesFetched <|
                                     Ok
-                                        ( Nothing
+                                        ( Resource.startingPage
                                         , { content =
                                                 [ { id = versionID.versionID
                                                   , version = Dict.fromList [ ( "version", version ) ]
@@ -1478,10 +1466,7 @@ all =
                                                   , enabled = False
                                                   }
                                                 ]
-                                          , pagination =
-                                                { previousPage = Nothing
-                                                , nextPage = Nothing
-                                                }
+                                          , pagination = emptyPagination
                                           }
                                         )
                                 )
@@ -1493,14 +1478,12 @@ all =
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
                                         , lastChecked = Nothing
                                         , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                                         , pinnedInConfig = False
                                         , pinComment = Nothing
                                         , icon = Nothing
+                                        , build = Nothing
                                         }
                                 )
                                 session
@@ -2705,41 +2688,6 @@ all =
                         |> checkBar UserStateLoggedOut
                         |> Query.children []
                         |> Query.count (Expect.equal 2)
-            , describe "status bar"
-                [ test "lays out horizontally and spreads its children" <|
-                    \_ ->
-                        init
-                            |> givenResourceIsNotPinned
-                            |> checkBar UserStateLoggedOut
-                            |> Query.children []
-                            |> Query.index 1
-                            |> Query.has
-                                [ style "display" "flex"
-                                , style "justify-content" "space-between"
-                                ]
-                , test "fills out the check bar and centers children" <|
-                    \_ ->
-                        init
-                            |> givenResourceIsNotPinned
-                            |> checkBar UserStateLoggedOut
-                            |> Query.children []
-                            |> Query.index 1
-                            |> Query.has
-                                [ style "align-items" "center"
-                                , style "height" "28px"
-                                , style "flex-grow" "1"
-                                , style "padding-left" "5px"
-                                ]
-                , test "has a dark grey background" <|
-                    \_ ->
-                        init
-                            |> givenResourceIsNotPinned
-                            |> checkBar UserStateLoggedOut
-                            |> Query.children []
-                            |> Query.index 1
-                            |> Query.has
-                                [ style "background" "#1e1d1d" ]
-                ]
             , test "not displayed when pipeline is archived" <|
                 \_ ->
                     init
@@ -2747,6 +2695,12 @@ all =
                         |> givenThePipelineIsArchived
                         |> queryView
                         |> Query.hasNot [ class "resource-check-status" ]
+            , test "shows 'not checked yet' when there is no build yet" <|
+                \_ ->
+                    init
+                        |> givenResourceIsNotPinned
+                        |> checkBar UserStateLoggedOut
+                        |> Query.has [ containing [ text "not checked yet" ] ]
             , describe "when unauthenticated"
                 [ defineHoverBehaviour
                     { name = "check button"
@@ -2813,18 +2767,6 @@ all =
                                 )
                             |> Tuple.second
                             |> Expect.equal [ Effects.RedirectToLogin ]
-                , test "check bar text does not change" <|
-                    \_ ->
-                        init
-                            |> givenResourceIsNotPinned
-                            |> update
-                                (Message.Message.Click <|
-                                    Message.Message.CheckButton False
-                                )
-                            |> Tuple.first
-                            |> checkBar UserStateLoggedOut
-                            |> Query.find [ tag "h3" ]
-                            |> Query.has [ text "checked successfully" ]
                 ]
             , describe "when authorized" <|
                 let
@@ -2919,14 +2861,7 @@ all =
                                     )
                                 >> Tuple.first
                     in
-                    [ test "check bar text says 'check pending'" <|
-                        \_ ->
-                            init
-                                |> givenCheckInProgress
-                                |> checkBar (UserStateLoggedIn sampleUser)
-                                |> Query.find [ tag "h3" ]
-                                |> Query.has [ text "check pending" ]
-                    , test "clicking check button does nothing" <|
+                    [ test "clicking check button does nothing" <|
                         \_ ->
                             init
                                 |> givenCheckInProgress
@@ -2936,24 +2871,6 @@ all =
                                 |> Event.simulate Event.click
                                 |> Event.toResult
                                 |> Expect.err
-                    , test "status icon is spinner" <|
-                        \_ ->
-                            init
-                                |> givenCheckInProgress
-                                |> checkBar (UserStateLoggedIn sampleUser)
-                                |> Query.children []
-                                |> Query.index -1
-                                |> Query.has
-                                    [ style "display" "flex"
-                                    , containing
-                                        [ style "animation" <|
-                                            "container-rotate 1568ms "
-                                                ++ "linear infinite"
-                                        , style "height" "14px"
-                                        , style "width" "14px"
-                                        , style "margin" "7px"
-                                        ]
-                                    ]
                     , defineHoverBehaviour
                         { name = "check button"
                         , setup = init |> givenCheckInProgress
@@ -2997,7 +2914,7 @@ all =
                             }
                         }
                     ]
-                , test "when check resolves successfully, shows checkmark" <|
+                , test "when check is created, fetches resource" <|
                     \_ ->
                         init
                             |> givenResourceIsNotPinned
@@ -3010,101 +2927,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.Checked <|
                                     Ok <|
-                                        Data.check Concourse.Succeeded
-                                )
-                            |> Tuple.first
-                            |> checkBar (UserStateLoggedIn sampleUser)
-                            |> Query.children []
-                            |> Query.index -1
-                            |> Query.has
-                                (iconSelector
-                                    { size = "28px"
-                                    , image = Assets.SuccessCheckIcon
-                                    }
-                                    ++ [ style "background-size" "14px 14px" ]
-                                )
-                , test "when check returns 'started', refreshes on 1s tick" <|
-                    \_ ->
-                        init
-                            |> givenResourceIsNotPinned
-                            |> givenUserIsAuthorized
-                            |> update
-                                (Message.Message.Click <|
-                                    Message.Message.CheckButton True
-                                )
-                            |> Tuple.first
-                            |> Application.handleCallback
-                                (Callback.Checked <|
-                                    Ok <|
-                                        Data.check Concourse.Started
-                                )
-                            |> Tuple.first
-                            |> Application.handleDelivery
-                                (ClockTicked OneSecond <|
-                                    Time.millisToPosix 1000
-                                )
-                            |> Tuple.second
-                            |> Common.contains (Effects.FetchCheck 0)
-                , test "when check resolves successfully, resource and versions refresh" <|
-                    \_ ->
-                        init
-                            |> givenResourceIsNotPinned
-                            |> givenUserIsAuthorized
-                            |> update
-                                (Message.Message.Click <|
-                                    Message.Message.CheckButton True
-                                )
-                            |> Tuple.first
-                            |> Application.handleCallback
-                                (Callback.Checked <|
-                                    Ok <|
-                                        Data.check Concourse.Succeeded
-                                )
-                            |> Tuple.second
-                            |> Expect.equal
-                                [ Effects.FetchResource Data.resourceId
-                                , Effects.FetchVersionedResources Data.resourceId Nothing
-                                ]
-                , test "when check resolves unsuccessfully, status is error" <|
-                    \_ ->
-                        init
-                            |> givenResourceIsNotPinned
-                            |> givenUserIsAuthorized
-                            |> update
-                                (Message.Message.Click <|
-                                    Message.Message.CheckButton True
-                                )
-                            |> Tuple.first
-                            |> Application.handleCallback
-                                (Callback.Checked <|
-                                    Ok <|
-                                        Data.check Concourse.Errored
-                                )
-                            |> Tuple.first
-                            |> checkBar (UserStateLoggedIn sampleUser)
-                            |> Query.children []
-                            |> Query.index -1
-                            |> Query.has
-                                (iconSelector
-                                    { size = "28px"
-                                    , image = Assets.ExclamationTriangleIcon
-                                    }
-                                    ++ [ style "background-size" "14px 14px" ]
-                                )
-                , test "when check resolves unsuccessfully, resource refreshes" <|
-                    \_ ->
-                        init
-                            |> givenResourceIsNotPinned
-                            |> givenUserIsAuthorized
-                            |> update
-                                (Message.Message.Click <|
-                                    Message.Message.CheckButton True
-                                )
-                            |> Tuple.first
-                            |> Application.handleCallback
-                                (Callback.Checked <|
-                                    Ok <|
-                                        Data.check Concourse.Errored
+                                        Data.build Concourse.BuildStatus.BuildStatusStarted
                                 )
                             |> Tuple.second
                             |> Expect.equal [ Effects.FetchResource Data.resourceId ]
@@ -3196,14 +3019,12 @@ all =
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
                                         , lastChecked = Just (Time.millisToPosix 0)
                                         , pinnedVersion = Nothing
                                         , pinnedInConfig = False
                                         , pinComment = Nothing
                                         , icon = Nothing
+                                        , build = Nothing
                                         }
                                 )
                             |> Tuple.first
@@ -3225,9 +3046,6 @@ all =
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
                                         , lastChecked =
                                             Just
                                                 (Time.millisToPosix 0)
@@ -3235,6 +3053,7 @@ all =
                                         , pinnedInConfig = False
                                         , pinComment = Nothing
                                         , icon = Nothing
+                                        , build = Nothing
                                         }
                                 )
                             |> Tuple.first
@@ -3256,37 +3075,421 @@ all =
                                     Attr.title "Jan 1 1970 05:00:00 AM"
                                 ]
                 ]
-            , test "unsuccessful check shows a warning icon on the right" <|
+            ]
+        , describe "check build" <|
+            let
+                baseBuild =
+                    Data.build Concourse.BuildStatus.BuildStatusFailed
+
+                resource =
+                    { teamName = teamName
+                    , pipelineName = pipelineName
+                    , name = resourceName
+                    , lastChecked = Nothing
+                    , pinnedVersion = Nothing
+                    , pinnedInConfig = False
+                    , pinComment = Nothing
+                    , icon = Nothing
+                    , build = Just baseBuild
+                    }
+            in
+            [ test "check with build fetches build plan" <|
                 \_ ->
                     init
                         |> Application.handleCallback
-                            (Callback.ResourceFetched <|
-                                Ok
-                                    { teamName = teamName
-                                    , pipelineName = pipelineName
-                                    , name = resourceName
-                                    , failingToCheck = True
-                                    , checkError = "some error"
-                                    , checkSetupError = ""
-                                    , lastChecked = Nothing
-                                    , pinnedVersion = Nothing
-                                    , pinnedInConfig = False
-                                    , pinComment = Nothing
-                                    , icon = Nothing
-                                    }
-                            )
+                            (Callback.ResourceFetched <| Ok resource)
+                        |> Tuple.second
+                        |> Common.contains (Effects.FetchBuildPlan 1)
+            , test "check with build does not fetch build plan as long as build stays the same" <|
+                \_ ->
+                    init
+                        |> Application.handleCallback
+                            (Callback.ResourceFetched <| Ok resource)
                         |> Tuple.first
-                        |> queryView
-                        |> Query.find [ class "resource-check-status" ]
-                        |> Query.has
-                            (iconSelector
-                                { size = "28px"
-                                , image = Assets.ExclamationTriangleIcon
-                                }
-                                ++ [ style "background-size" "14px 14px"
-                                   , containing [ text "some error" ]
-                                   ]
+                        |> Application.handleCallback
+                            (Callback.ResourceFetched <| Ok resource)
+                        |> Tuple.second
+                        |> Common.notContains (Effects.FetchBuildPlan 1)
+            , test "check with build fetches build plan when build changes" <|
+                \_ ->
+                    init
+                        |> Application.handleCallback
+                            (Callback.ResourceFetched <| Ok resource)
+                        |> Tuple.first
+                        |> Application.handleCallback
+                            (Callback.ResourceFetched <|
+                                Ok { resource | build = Just { baseBuild | id = 2 } }
                             )
+                        |> Tuple.second
+                        |> Common.contains (Effects.FetchBuildPlan 2)
+            , describe "build events subscription" <|
+                [ test "after build plan is received, opens event stream" <|
+                    \_ ->
+                        init
+                            |> Application.handleCallback
+                                (Callback.ResourceFetched (Ok resource))
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 1 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step = Concourse.BuildStepCheck "step"
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            |> Expect.all
+                                [ Tuple.second
+                                    >> Common.contains
+                                        (Effects.OpenBuildEventStream
+                                            { url = "/api/v1/builds/1/events"
+                                            , eventTypes = [ "end", "event" ]
+                                            }
+                                        )
+                                , Tuple.first
+                                    >> Application.subscriptions
+                                    >> Common.contains
+                                        (Subscription.FromEventSource
+                                            ( "/api/v1/builds/1/events"
+                                            , [ "end", "event" ]
+                                            )
+                                        )
+                                ]
+                , test "if build plan request fails, no event stream is opened" <|
+                    \_ ->
+                        init
+                            |> Application.handleCallback
+                                (Callback.ResourceFetched (Ok resource))
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 1 <| Data.httpUnauthorized)
+                            |> Expect.all
+                                [ Tuple.second >> Expect.equal []
+                                , Tuple.first
+                                    >> Application.subscriptions
+                                    >> Common.notContains
+                                        (Subscription.FromEventSource
+                                            ( "/api/v1/builds/1/events"
+                                            , [ "end", "event" ]
+                                            )
+                                        )
+                                ]
+                , describe "build output unavailable" <|
+                    let
+                        givenBuildWithStatus status err =
+                            init
+                                |> Application.handleCallback
+                                    (Callback.ResourceFetched (Ok { resource | build = Just (Data.build status) }))
+                                |> Tuple.first
+                                |> Application.handleCallback
+                                    (Callback.PlanAndResourcesFetched 1 err)
+                                |> Tuple.first
+                                |> queryView
+
+                        hasSpinner =
+                            Query.children []
+                                >> Query.first
+                                >> Query.children []
+                                >> Query.index -1
+                                >> Query.has [ style "animation" "container-rotate 1568ms linear infinite" ]
+
+                        hasIcon image =
+                            Query.children []
+                                >> Query.first
+                                >> Query.children []
+                                >> Query.index -1
+                                >> Query.has
+                                    (iconSelector
+                                        { size = "28px"
+                                        , image = image
+                                        }
+                                        ++ [ style "background-size" "14px 14px" ]
+                                    )
+                    in
+                    [ describe "status bar"
+                        [ test "lays out horizontally and spreads its children" <|
+                            \_ ->
+                                givenBuildWithStatus Concourse.BuildStatus.BuildStatusSucceeded Data.httpUnauthorized
+                                    |> Query.find [ class "resource-check-status-summary" ]
+                                    |> Query.has
+                                        [ style "display" "flex"
+                                        , style "justify-content" "space-between"
+                                        ]
+                        , test "fills out the check bar and centers children" <|
+                            \_ ->
+                                givenBuildWithStatus Concourse.BuildStatus.BuildStatusSucceeded Data.httpUnauthorized
+                                    |> Query.find [ class "resource-check-status-summary" ]
+                                    |> Query.has
+                                        [ style "align-items" "center"
+                                        , style "height" "28px"
+                                        , style "flex-grow" "1"
+                                        , style "padding-left" "6px"
+                                        ]
+                        , test "has a dark grey background" <|
+                            \_ ->
+                                givenBuildWithStatus Concourse.BuildStatus.BuildStatusSucceeded Data.httpUnauthorized
+                                    |> Query.find [ class "resource-check-status-summary" ]
+                                    |> Query.has
+                                        [ style "background" "#1e1d1d" ]
+                        ]
+                    , test "when a 401 is received, shows summary instead of build output" <|
+                        \_ ->
+                            givenBuildWithStatus Concourse.BuildStatus.BuildStatusSucceeded Data.httpUnauthorized
+                                |> Query.find [ class "resource-check-status" ]
+                                |> Expect.all
+                                    [ Query.has [ class "resource-check-status-summary" ]
+                                    , Query.hasNot [ class "steps" ]
+                                    ]
+                    , test "when a 403 is received, shows summary instead of build output" <|
+                        \_ ->
+                            givenBuildWithStatus Concourse.BuildStatus.BuildStatusSucceeded Data.httpForbidden
+                                |> Query.find [ class "resource-check-status" ]
+                                |> Expect.all
+                                    [ Query.has [ class "resource-check-status-summary" ]
+                                    , Query.hasNot [ class "steps" ]
+                                    ]
+                    , test "succeeded build status" <|
+                        \_ ->
+                            givenBuildWithStatus Concourse.BuildStatus.BuildStatusSucceeded Data.httpUnauthorized
+                                |> Query.find [ class "resource-check-status" ]
+                                |> Expect.all
+                                    [ Query.has
+                                        [ containing [ text "check succeeded" ]
+                                        ]
+                                    , hasIcon Assets.SuccessCheckIcon
+                                    ]
+                    , test "failed build status" <|
+                        \_ ->
+                            givenBuildWithStatus Concourse.BuildStatus.BuildStatusFailed Data.httpUnauthorized
+                                |> Query.find [ class "resource-check-status" ]
+                                |> Expect.all
+                                    [ Query.has
+                                        [ containing [ text "check failed" ]
+                                        ]
+                                    , hasIcon Assets.FailureTimesIcon
+                                    ]
+                    , test "started build status" <|
+                        \_ ->
+                            givenBuildWithStatus Concourse.BuildStatus.BuildStatusStarted Data.httpUnauthorized
+                                |> Query.find [ class "resource-check-status" ]
+                                |> Expect.all
+                                    [ Query.has
+                                        [ containing [ text "check in progress" ]
+                                        ]
+                                    , hasSpinner
+                                    ]
+                    , test "errored build status" <|
+                        \_ ->
+                            givenBuildWithStatus Concourse.BuildStatus.BuildStatusErrored Data.httpUnauthorized
+                                |> Query.find [ class "resource-check-status" ]
+                                |> Expect.all
+                                    [ Query.has
+                                        [ containing [ text "check errored" ]
+                                        ]
+                                    , hasIcon Assets.ExclamationTriangleIcon
+                                    ]
+                    , test "aborted build status" <|
+                        \_ ->
+                            givenBuildWithStatus Concourse.BuildStatus.BuildStatusAborted Data.httpUnauthorized
+                                |> Query.find [ class "resource-check-status" ]
+                                |> Expect.all
+                                    [ Query.has
+                                        [ containing [ text "check aborted" ]
+                                        ]
+                                    , hasIcon Assets.InterruptedIcon
+                                    ]
+                    , test "pending build status" <|
+                        \_ ->
+                            givenBuildWithStatus Concourse.BuildStatus.BuildStatusPending Data.httpUnauthorized
+                                |> Query.find [ class "resource-check-status" ]
+                                |> Expect.all
+                                    [ Query.has
+                                        [ containing [ text "check pending" ]
+                                        ]
+                                    , hasIcon Assets.PendingIcon
+                                    ]
+                    ]
+                ]
+            , describe "build output" <|
+                [ test "when build plan is available, summary is not shown" <|
+                    \_ ->
+                        init
+                            |> Application.handleCallback
+                                (Callback.ResourceFetched (Ok resource))
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 1 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ class "resource-check-status" ]
+                            |> Query.hasNot [ class "resource-check-status-summary" ]
+                , test "when build is finished, renders build step tree when events are loaded" <|
+                    \_ ->
+                        init
+                            |> Application.handleCallback
+                                (Callback.ResourceFetched (Ok resource))
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 1 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            |> Tuple.first
+                            |> Application.handleDelivery
+                                (EventsReceived <|
+                                    Ok <|
+                                        [ { url = "/api/v1/builds/1/events"
+                                          , data = STModels.End
+                                          }
+                                        ]
+                                )
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ class "build-step" ]
+                            |> Query.has
+                                [ containing [ text "check:" ]
+                                , containing [ text "some-resource" ]
+                                ]
+                , test "when build is running, live streams build step tree events" <|
+                    \_ ->
+                        init
+                            |> Application.handleCallback
+                                (Callback.ResourceFetched <|
+                                    Ok
+                                        { resource
+                                            | build =
+                                                Just <| Data.build Concourse.BuildStatus.BuildStatusStarted
+                                        }
+                                )
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 1 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            |> Tuple.first
+                            |> Application.handleDelivery
+                                (EventsReceived <|
+                                    Ok <|
+                                        [ { url = "/api/v1/builds/1/events"
+                                          , data = STModels.Log { id = "plan", source = "stderr" } "hello" Nothing
+                                          }
+                                        ]
+                                )
+                            |> Tuple.first
+                            |> Application.update
+                                (Msgs.Update <|
+                                    Message.Message.Click <|
+                                        Message.Message.StepHeader "plan"
+                                )
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ class "build-step" ]
+                            |> Query.has
+                                [ containing [ text "check:" ]
+                                , containing [ text "some-resource" ]
+                                , containing [ text "hello" ]
+                                ]
+                , test "when build is running and end event is received, refreshes resource and versions" <|
+                    \_ ->
+                        init
+                            |> Application.handleCallback
+                                (Callback.ResourceFetched <|
+                                    Ok
+                                        { resource
+                                            | build =
+                                                Just <| Data.build Concourse.BuildStatus.BuildStatusStarted
+                                        }
+                                )
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 1 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            |> Tuple.first
+                            |> Application.handleDelivery
+                                (EventsReceived <|
+                                    Ok <|
+                                        [ { url = "/api/v1/builds/1/events"
+                                          , data = STModels.Log { id = "plan", source = "stderr" } "hello" Nothing
+                                          }
+                                        ]
+                                )
+                            |> Tuple.first
+                            |> Application.handleDelivery
+                                (EventsReceived <|
+                                    Ok <|
+                                        [ { url = "/api/v1/builds/1/events"
+                                          , data = STModels.End
+                                          }
+                                        ]
+                                )
+                            |> Tuple.second
+                            |> Expect.all
+                                [ Common.contains (Effects.FetchResource Data.resourceId)
+                                , Common.contains (Effects.FetchVersionedResources Data.resourceId Resource.startingPage)
+                                ]
+                , test "one tick after hovering step state, fetches viewport so tooltips can render" <|
+                    \_ ->
+                        init
+                            |> Application.handleCallback
+                                (Callback.ResourceFetched (Ok resource))
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 1 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            |> Tuple.first
+                            |> Application.handleDelivery
+                                (EventsReceived <|
+                                    Ok <|
+                                        [ { url = "/api/v1/builds/1/events"
+                                          , data = STModels.End
+                                          }
+                                        ]
+                                )
+                            |> Tuple.first
+                            >> Application.update
+                                (Msgs.Update <|
+                                    Message.Message.Hover <|
+                                        Just <|
+                                            Message.Message.StepState
+                                                "plan"
+                                )
+                            >> Tuple.first
+                            >> Application.handleDelivery
+                                (ClockTicked OneSecond <|
+                                    Time.millisToPosix 1
+                                )
+                            >> Tuple.second
+                            >> Common.contains
+                                (Effects.GetViewportOf <| Message.Message.StepState "plan")
+                ]
             ]
         ]
 
@@ -3353,14 +3556,12 @@ givenResourcePinnedStatically =
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , name = resourceName
-                , failingToCheck = False
-                , checkError = ""
-                , checkSetupError = ""
                 , lastChecked = Nothing
                 , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                 , pinnedInConfig = True
                 , pinComment = Nothing
                 , icon = Nothing
+                , build = Nothing
                 }
         )
         >> Tuple.first
@@ -3374,14 +3575,12 @@ givenResourcePinnedDynamically =
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , name = resourceName
-                , failingToCheck = False
-                , checkError = ""
-                , checkSetupError = ""
                 , lastChecked = Nothing
                 , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                 , pinnedInConfig = False
                 , pinComment = Nothing
                 , icon = Nothing
+                , build = Nothing
                 }
         )
         >> Tuple.first
@@ -3395,15 +3594,13 @@ whenResourceLoadsWithPinnedComment =
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , name = resourceName
-                , failingToCheck = False
-                , checkError = ""
-                , checkSetupError = ""
                 , lastChecked = Nothing
                 , pinnedVersion =
                     Just (Dict.fromList [ ( "version", version ) ])
                 , pinnedInConfig = False
                 , pinComment = Just "some pin comment"
                 , icon = Nothing
+                , build = Nothing
                 }
         )
 
@@ -3421,14 +3618,12 @@ givenResourceIsNotPinned =
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , name = resourceName
-                , failingToCheck = False
-                , checkError = ""
-                , checkSetupError = ""
                 , lastChecked = Just (Time.millisToPosix 0)
                 , pinnedVersion = Nothing
                 , pinnedInConfig = False
                 , pinComment = Nothing
                 , icon = Nothing
+                , build = Nothing
                 }
         )
         >> Tuple.first
@@ -3442,14 +3637,12 @@ givenResourceHasIcon =
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , name = resourceName
-                , failingToCheck = False
-                , checkError = ""
-                , checkSetupError = ""
                 , lastChecked = Just (Time.millisToPosix 0)
                 , pinnedVersion = Nothing
                 , pinnedInConfig = False
                 , pinComment = Nothing
                 , icon = Just resourceIcon
+                , build = Nothing
                 }
         )
         >> Tuple.first
@@ -3485,12 +3678,17 @@ clickToDisable vid =
         >> Tuple.first
 
 
-givenVersionsWithoutPagination : Application.Model -> Application.Model
-givenVersionsWithoutPagination =
+emptyPagination : Pagination
+emptyPagination =
+    { nextPage = Nothing, previousPage = Nothing }
+
+
+givenVersionsWithPages : Page -> Concourse.Pagination.Pagination -> Application.Model -> ( Application.Model, List Effects.Effect )
+givenVersionsWithPages requestedPage pagination =
     Application.handleCallback
         (Callback.VersionedResourcesFetched <|
             Ok
-                ( Nothing
+                ( requestedPage
                 , { content =
                         [ { id = versionID.versionID
                           , version = Dict.fromList [ ( "version", version ) ]
@@ -3508,54 +3706,32 @@ givenVersionsWithoutPagination =
                           , enabled = False
                           }
                         ]
-                  , pagination =
-                        { previousPage = Nothing
-                        , nextPage = Nothing
-                        }
+                  , pagination = pagination
                   }
                 )
         )
+
+
+givenVersionsWithoutPagination : Application.Model -> Application.Model
+givenVersionsWithoutPagination =
+    givenVersionsWithPages Resource.startingPage emptyPagination
         >> Tuple.first
 
 
 givenVersionsWithPagination : Application.Model -> Application.Model
 givenVersionsWithPagination =
-    Application.handleCallback
-        (Callback.VersionedResourcesFetched <|
-            Ok
-                ( Nothing
-                , { content =
-                        [ { id = versionID.versionID
-                          , version = Dict.fromList [ ( "version", version ) ]
-                          , metadata = []
-                          , enabled = True
-                          }
-                        , { id = otherVersionID.versionID
-                          , version = Dict.fromList [ ( "version", otherVersion ) ]
-                          , metadata = []
-                          , enabled = True
-                          }
-                        , { id = disabledVersionID.versionID
-                          , version = Dict.fromList [ ( "version", disabledVersion ) ]
-                          , metadata = []
-                          , enabled = False
-                          }
-                        ]
-                  , pagination =
-                        { previousPage =
-                            Just
-                                { direction = Since 1
-                                , limit = 1
-                                }
-                        , nextPage =
-                            Just
-                                { direction = Since 100
-                                , limit = 1
-                                }
-                        }
-                  }
-                )
-        )
+    givenVersionsWithPages Resource.startingPage
+        { previousPage =
+            Just
+                { direction = From 100
+                , limit = 1
+                }
+        , nextPage =
+            Just
+                { direction = To 1
+                , limit = 1
+                }
+        }
         >> Tuple.first
 
 
@@ -3708,11 +3884,6 @@ hasCheckbox =
 purpleOutlineSelector : List Selector
 purpleOutlineSelector =
     [ style "border" <| "1px solid " ++ purpleHex ]
-
-
-redOutlineSelector : List Selector
-redOutlineSelector =
-    [ style "border" <| "1px solid " ++ failureRed ]
 
 
 findLast : List Selector -> Query.Single msg -> Query.Single msg

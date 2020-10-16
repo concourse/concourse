@@ -38,17 +38,28 @@ type TaskConfig struct {
 	Caches []TaskCacheConfig `json:"caches,omitempty"`
 }
 
-type ContainerLimits struct {
-	CPU    *uint64 `json:"cpu,omitempty"`
-	Memory *uint64 `json:"memory,omitempty"`
-}
-
 type ImageResource struct {
 	Type   string `json:"type"`
 	Source Source `json:"source"`
 
 	Params  Params  `json:"params,omitempty"`
 	Version Version `json:"version,omitempty"`
+}
+
+func (ir *ImageResource) ApplySourceDefaults(resourceTypes VersionedResourceTypes) {
+	if ir == nil {
+		return
+	}
+
+	parentType, found := resourceTypes.Lookup(ir.Type)
+	if found {
+		ir.Source = parentType.Defaults.Merge(ir.Source)
+	} else {
+		brtDefaults, found := FindBaseResourceTypeDefaults(ir.Type)
+		if found {
+			ir.Source = brtDefaults.Merge(ir.Source)
+		}
+	}
 }
 
 func NewTaskConfig(configBytes []byte) (TaskConfig, error) {

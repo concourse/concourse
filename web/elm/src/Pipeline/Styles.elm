@@ -4,6 +4,7 @@ module Pipeline.Styles exposing
     , groupItem
     , groupsBar
     , pauseToggle
+    , pipelineBackground
     )
 
 import Assets
@@ -76,4 +77,21 @@ cliIcon cli =
     , style "background-position" "50% 50%"
     , style "background-size" "contain"
     , style "display" "inline-block"
+    ]
+
+
+pipelineBackground : String -> List (Html.Attribute msg)
+pipelineBackground bg =
+    [ style "background-image" <|
+        "url(\""
+            ++ bg
+            ++ "\")"
+    , style "background-repeat" "no-repeat"
+    , style "background-size" "cover"
+    , style "background-position" "center"
+    , style "opacity" "30%"
+    , style "filter" "grayscale(1)"
+    , style "width" "100%"
+    , style "height" "100%"
+    , style "position" "absolute"
     ]
