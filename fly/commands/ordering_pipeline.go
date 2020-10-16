@@ -17,7 +17,7 @@ var ErrMissingPipelineName = errors.New("Need to specify atleast one pipeline na
 type OrderPipelinesCommand struct {
 	Alphabetical bool                       `short:"a"  long:"alphabetical" description:"Order all pipelines alphabetically"`
 	Pipelines    []flaghelpers.PipelineFlag `short:"p" long:"pipeline" description:"Name of pipeline to order"`
-	Team         string                     `long:"team" description:"Name of the team to which the pipeline, if different from the target default"`
+	Team         string                     `long:"team" description:"Name of the team to which the pipelines belong, if different from the target default"`
 }
 
 func (command *OrderPipelinesCommand) Validate() (atc.OrderPipelinesRequest, error) {
