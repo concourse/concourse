@@ -10,8 +10,8 @@ import (
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/vars"
 
-	"github.com/imdario/mergo"
 	"github.com/mgutz/ansi"
 )
 
@@ -24,12 +24,11 @@ type SetPipelineCommand struct {
 	PipelineName string       `short:"p"  long:"pipeline"  required:"true"  description:"Pipeline to configure"`
 	Config       atc.PathFlag `short:"c"  long:"config"    required:"true"  description:"Pipeline configuration file, \"-\" stands for stdin"`
 
-	Var     []flaghelpers.VariablePairFlag     `short:"v"  long:"var"           unquote:"false"  value-name:"[NAME=STRING]"  description:"Specify a string value to set for a variable in the pipeline"`
-	YAMLVar []flaghelpers.YAMLVariablePairFlag `short:"y"  long:"yaml-var"      unquote:"false"  value-name:"[NAME=YAML]"    description:"Specify a YAML value to set for a variable in the pipeline"`
+	Var          []flaghelpers.VariablePairFlag     `short:"v"  long:"var"           unquote:"false"  value-name:"[NAME=STRING]"  description:"Specify a string value to set for a variable in the pipeline"`
+	YAMLVar      []flaghelpers.YAMLVariablePairFlag `short:"y"  long:"yaml-var"      unquote:"false"  value-name:"[NAME=YAML]"    description:"Specify a YAML value to set for a variable in the pipeline"`
+	InstanceVars []flaghelpers.YAMLVariablePairFlag `short:"i"  long:"instance-var"  unquote:"false"  hidden:"true"  value-name:"[NAME=STRING]"  description:"Specify a YAML value to set for an instance variable"`
 
 	VarsFrom []atc.PathFlag `short:"l"  long:"load-vars-from"  description:"Variable flag that can be used for filling in template values in configuration from a YAML file"`
-
-	InstanceVars []flaghelpers.InstanceVarPairFlag `short:"i"  long:"instance-var"  hidden:"true"  value-name:"[NAME=STRING]"  description:"Specify a string value to set for a variable in the pipeline and an instanced pipeline identifier"`
 
 	Team string `long:"team"              description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
@@ -85,17 +84,11 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 
 	var instanceVars atc.InstanceVars
 	if command.InstanceVars != nil {
-		dot := &atc.DotNotation{}
+		var kvPairs vars.KVPairs
 		for _, iv := range command.InstanceVars {
-			err := mergo.Merge(dot, iv.Value)
-			if err != nil {
-				return err
-			}
+			kvPairs = append(kvPairs, vars.KVPair(iv))
 		}
-		instanceVars, err = dot.Expand()
-		if err != nil {
-			return err
-		}
+		instanceVars = atc.InstanceVars(kvPairs.Expand())
 	}
 
 	atcConfig := setpipelinehelpers.ATCConfig{

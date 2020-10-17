@@ -65,13 +65,9 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(
 	for _, f := range yamlTemplate.yamlTemplateVariables {
 		flagVarPairs = append(flagVarPairs, vars.KVPair(f))
 	}
-	for k, iv := range yamlTemplate.instanceVars {
-		ref, err := vars.ParseReference(k)
-		if err != nil {
-			return nil, err
-		}
-		flagVarPairs = append(flagVarPairs, vars.KVPair{Ref: ref, Value: iv})
-	}
+
+	instanceVarPairs := vars.StaticVariables(yamlTemplate.instanceVars).Flatten()
+	flagVarPairs = append(flagVarPairs, instanceVarPairs...)
 
 	params = append(params, flagVarPairs.Expand())
 

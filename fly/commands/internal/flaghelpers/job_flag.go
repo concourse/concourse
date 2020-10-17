@@ -36,13 +36,10 @@ func (flag *JobFlag) UnmarshalFlag(value string) error {
 	vs := strings.SplitN(value[:jobNameIdx], "/", 2)
 	flag.PipelineRef.Name = vs[0]
 	if len(vs) == 2 {
-		flatInstanceVars, err := unmarshalDotNotation(vs[1])
+		var err error
+		flag.PipelineRef.InstanceVars, err = unmarshalInstanceVars(vs[1])
 		if err != nil {
 			return errors.New(err.Error() + "/<job>")
-		}
-		flag.PipelineRef.InstanceVars, err = flatInstanceVars.Expand()
-		if err != nil {
-			return err
 		}
 	}
 
@@ -83,7 +80,10 @@ func (flag *JobFlag) Complete(match string) []flags.Completion {
 			return comps
 		}
 
-		pipelineRef := parsePipelineRef(vs[0], vs[1])
+		pipelineRef, err := parsePipelineRef(vs[0], vs[1])
+		if err != nil {
+			return comps
+		}
 		for _, pipeline := range pipelines {
 			if strings.HasPrefix(pipeline.Ref().String(), pipelineRef.String()) {
 				comps = append(comps, flags.Completion{Item: pipeline.Ref().String() + "/"})
@@ -103,7 +103,10 @@ func (flag *JobFlag) Complete(match string) []flags.Completion {
 			}
 		}
 	} else if len(vs) == 3 {
-		pipelineRef := parsePipelineRef(vs[0], vs[1])
+		pipelineRef, err := parsePipelineRef(vs[0], vs[1])
+		if err != nil {
+			return comps
+		}
 		jobs, err := team.ListJobs(pipelineRef)
 		if err != nil {
 			return comps
@@ -118,16 +121,10 @@ func (flag *JobFlag) Complete(match string) []flags.Completion {
 	return comps
 }
 
-func parsePipelineRef(pipelineName, rawInstanceVars string) atc.PipelineRef {
-	var instanceVars atc.InstanceVars
-	if rawInstanceVars != "" {
-		instanceVars = atc.InstanceVars{}
-		for _, instanceVar := range strings.Split(rawInstanceVars, ",") {
-			kv := strings.SplitN(strings.TrimSpace(instanceVar), ":", 2)
-			if len(kv) == 2 {
-				instanceVars[kv[0]] = kv[1]
-			}
-		}
+func parsePipelineRef(pipelineName, rawInstanceVars string) (atc.PipelineRef, error) {
+	instanceVars, err := unmarshalInstanceVars(rawInstanceVars)
+	if err != nil {
+		return atc.PipelineRef{}, err
 	}
-	return atc.PipelineRef{Name: pipelineName, InstanceVars: instanceVars}
+	return atc.PipelineRef{Name: pipelineName, InstanceVars: instanceVars}, nil
 }
