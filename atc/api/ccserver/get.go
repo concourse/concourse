@@ -82,7 +82,7 @@ func (s *Server) GetCC(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) buildProject(j atc.DashboardJob) Project {
+func (s *Server) buildProject(j atc.JobSummary) Project {
 	var lastBuildStatus string
 	switch {
 	case db.BuildStatus(j.FinishedBuild.Status) == db.BuildStatusSucceeded:
@@ -108,7 +108,7 @@ func (s *Server) buildProject(j atc.DashboardJob) Project {
 		Activity:        activity,
 		LastBuildLabel:  fmt.Sprint(j.FinishedBuild.Name),
 		LastBuildStatus: lastBuildStatus,
-		LastBuildTime:   j.FinishedBuild.EndTime.Format(time.RFC3339),
+		LastBuildTime:   time.Unix(j.FinishedBuild.EndTime, 0).UTC().Format(time.RFC3339),
 		Name:            fmt.Sprintf("%s/%s", pipelineRef.String(), j.Name),
 		WebUrl:          s.createWebUrl(j.TeamName, j.Name, pipelineRef),
 	}

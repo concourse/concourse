@@ -45,8 +45,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "",
                   "status": "succeeded",
                   "api_url": ""
-                },
-                "groups": null
+                }
               },
               {
                 "id": 2,
@@ -65,8 +64,7 @@ var _ = Describe("Fly CLI", func() {
                   "name": "",
                   "status": "failed",
                   "api_url": ""
-                },
-                "groups": null
+                }
               },
               {
                 "id": 3,
@@ -78,8 +76,7 @@ var _ = Describe("Fly CLI", func() {
                 },
                 "team_name": "main",
                 "next_build": null,
-                "finished_build": null,
-                "groups": null
+                "finished_build": null
               }
             ]`
 		var sampleJobs []atc.Job
@@ -99,7 +96,7 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Context("when jobs are returned from the API", func() {
-			createJob := func(num int, pipelineRef atc.PipelineRef, paused bool, status string, nextStatus string) atc.Job {
+			createJob := func(num int, pipelineRef atc.PipelineRef, paused bool, status, nextStatus atc.BuildStatus) atc.Job {
 				var (
 					build     *atc.Build
 					nextBuild *atc.Build
@@ -130,8 +127,8 @@ var _ = Describe("Fly CLI", func() {
 			}
 
 			sampleJobs = []atc.Job{
-				createJob(1, pipelineRef, false, "succeeded", "started"),
-				createJob(2, pipelineRef, true, "failed", ""),
+				createJob(1, pipelineRef, false, atc.StatusSucceeded, atc.StatusStarted),
+				createJob(2, pipelineRef, true, atc.StatusFailed, ""),
 				createJob(3, pipelineRef, false, "", ""),
 			}
 
@@ -166,8 +163,8 @@ var _ = Describe("Fly CLI", func() {
 
 				Expect(sess.Out).To(PrintTable(ui.Table{
 					Data: []ui.TableRow{
-						{{Contents: "job-1"}, {Contents: "no"}, {Contents: "succeeded"}, {Contents: "started"}},
-						{{Contents: "job-2"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "failed"}, {Contents: "n/a"}},
+						{{Contents: "job-1"}, {Contents: "no"}, {Contents: "succeeded"}, {Contents: "started", Color: color.New(color.FgGreen)}},
+						{{Contents: "job-2"}, {Contents: "yes", Color: color.New(color.FgCyan)}, {Contents: "failed", Color: color.New(color.FgRed)}, {Contents: "n/a"}},
 						{{Contents: "job-3"}, {Contents: "no"}, {Contents: "n/a"}, {Contents: "n/a"}},
 					},
 				}))

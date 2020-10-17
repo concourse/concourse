@@ -38,8 +38,6 @@ type Checkable interface {
 
 	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
 	CreateBuild(context.Context, bool) (Build, bool, error)
-
-	SetCheckSetupError(error) error
 }
 
 //go:generate counterfeiter . CheckFactory

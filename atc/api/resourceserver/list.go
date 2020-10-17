@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -21,19 +20,11 @@ func (s *Server) ListResources(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		acc := accessor.GetAccessor(r)
-		showCheckErr := acc.IsAuthenticated()
-		teamName := r.FormValue(":team_name")
-
 		var presentedResources []atc.Resource
 		for _, resource := range resources {
 			presentedResources = append(
 				presentedResources,
-				present.Resource(
-					resource,
-					showCheckErr,
-					teamName,
-				),
+				present.Resource(resource),
 			)
 		}
 

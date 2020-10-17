@@ -1,26 +1,29 @@
 package atc
 
 type Job struct {
-	ID int `json:"id"`
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 
-	Name                 string       `json:"name"`
+	TeamName string `json:"team_name"`
+
 	PipelineID           int          `json:"pipeline_id"`
 	PipelineName         string       `json:"pipeline_name"`
 	PipelineInstanceVars InstanceVars `json:"pipeline_instance_vars,omitempty"`
 
-	TeamName             string `json:"team_name"`
-	Paused               bool   `json:"paused,omitempty"`
-	FirstLoggedBuildID   int    `json:"first_logged_build_id,omitempty"`
-	DisableManualTrigger bool   `json:"disable_manual_trigger,omitempty"`
-	NextBuild            *Build `json:"next_build"`
-	FinishedBuild        *Build `json:"finished_build"`
-	TransitionBuild      *Build `json:"transition_build,omitempty"`
-	HasNewInputs         bool   `json:"has_new_inputs,omitempty"`
+	Paused       bool `json:"paused,omitempty"`
+	HasNewInputs bool `json:"has_new_inputs,omitempty"`
+
+	Groups []string `json:"groups,omitempty"`
+
+	FirstLoggedBuildID   int  `json:"first_logged_build_id,omitempty"`
+	DisableManualTrigger bool `json:"disable_manual_trigger,omitempty"`
+
+	NextBuild       *Build `json:"next_build"`
+	FinishedBuild   *Build `json:"finished_build"`
+	TransitionBuild *Build `json:"transition_build,omitempty"`
 
 	Inputs  []JobInput  `json:"inputs,omitempty"`
 	Outputs []JobOutput `json:"outputs,omitempty"`
-
-	Groups []string `json:"groups"`
 }
 
 type JobInput struct {

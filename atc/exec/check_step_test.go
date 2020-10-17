@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
@@ -467,12 +468,6 @@ var _ = Describe("CheckStep", func() {
 				}))
 			})
 
-			It("sets the check error to nil", func() {
-				Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
-				err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
-				Expect(err).To(BeNil())
-			})
-
 			It("emits a successful Finished event", func() {
 				Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 				_, succeeded := fakeDelegate.FinishedArgsForCall(0)
@@ -542,13 +537,11 @@ var _ = Describe("CheckStep", func() {
 				Expect(errors.Is(err, expectedErr)).To(BeTrue())
 			})
 
-			It("sets the check error", func() {
-				Expect(fakeResourceConfigScope.SetCheckErrorCallCount()).To(Equal(1))
-				err := fakeResourceConfigScope.SetCheckErrorArgsForCall(0)
-				Expect(err).To(Equal(expectedErr))
-			})
-
 			It("points the resource or resource type to the scope", func() {
+				// even though we failed to check, we should still point to the new
+				// scope; it'd be kind of weird leave the resource pointing to the old
+				// scope for a substantial config change that also happens to be
+				// broken.
 				Expect(fakeDelegate.PointToCheckedConfigCallCount()).To(Equal(1))
 				scope := fakeDelegate.PointToCheckedConfigArgsForCall(0)
 				Expect(scope).To(Equal(fakeResourceConfigScope))
@@ -561,9 +554,9 @@ var _ = Describe("CheckStep", func() {
 
 			Context("with a script failure", func() {
 				BeforeEach(func() {
-					fakeClient.RunCheckStepReturns(worker.CheckResult{}, runtime.ErrResourceScriptFailed{
+					fakeClient.RunCheckStepReturns(worker.CheckResult{}, fmt.Errorf("wrapped: %w", runtime.ErrResourceScriptFailed{
 						ExitStatus: 42,
-					})
+					}))
 				})
 
 				It("does not error", func() {

@@ -7,7 +7,6 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
-	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/api/stream"
 	"github.com/concourse/concourse/atc/db/watch"
 )
@@ -15,13 +14,7 @@ import (
 //go:generate counterfeiter . ListAllJobsWatcher
 
 type ListAllJobsWatcher interface {
-	WatchListAllJobs(ctx context.Context) (<-chan []watch.DashboardJobEvent, error)
-}
-
-type JobWatchEvent struct {
-	ID   int             `json:"id"`
-	Type watch.EventType `json:"eventType"`
-	Job  *atc.Job        `json:"job"`
+	WatchListAllJobs(ctx context.Context) (<-chan []watch.JobSummaryEvent, error)
 }
 
 func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
@@ -30,9 +23,9 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 	acc := accessor.GetAccessor(r)
 
 	watchMode := stream.IsRequested(r)
-	var watchEventsChan <-chan []watch.DashboardJobEvent
-	var err error
+	var watchEventsChan <-chan []watch.JobSummaryEvent
 	if watchMode {
+		var err error
 		watchEventsChan, err = s.listAllJobsWatcher.WatchListAllJobs(r.Context())
 		if err == watch.ErrDisabled {
 			http.Error(w, "ListAllJobs watch endpoint is not enabled", http.StatusNotAcceptable)
@@ -44,23 +37,21 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var dashboard atc.Dashboard
-
+	var jobs []atc.JobSummary
+	var err error
 	if acc.IsAdmin() {
-		dashboard, err = s.jobFactory.AllActiveJobs()
+		jobs, err = s.jobFactory.AllActiveJobs()
 	} else {
-		dashboard, err = s.jobFactory.VisibleJobs(acc.TeamNames())
+		jobs, err = s.jobFactory.VisibleJobs(acc.TeamNames())
 	}
-
 	if err != nil {
 		logger.Error("failed-to-get-all-visible-jobs", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	jobs := make([]atc.Job, len(dashboard))
-	for i, job := range dashboard {
-		jobs[i] = present.DashboardJob(job.TeamName, job)
+	if jobs == nil {
+		jobs = []atc.JobSummary{}
 	}
 
 	if watchMode {
@@ -74,10 +65,10 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 		}
 		eventID++
 		for events := range watchEventsChan {
-			var visibleEvents []JobWatchEvent
+			var visibleEvents []watch.JobSummaryEvent
 			for _, event := range events {
 				if hasAccessTo(event, acc) {
-					visibleEvents = append(visibleEvents, presentEvent(event))
+					visibleEvents = append(visibleEvents, event)
 				}
 			}
 			if len(visibleEvents) == 0 {
@@ -99,7 +90,7 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func hasAccessTo(event watch.DashboardJobEvent, access accessor.Access) bool {
+func hasAccessTo(event watch.JobSummaryEvent, access accessor.Access) bool {
 	if event.Job == nil {
 		// this means we always send DELETE events, even if the user didn't have access to the deleted pipeline.
 		// given that there's no sensitive information (just the id, which is serial anyway), I suspect this is okay
@@ -109,16 +100,4 @@ func hasAccessTo(event watch.DashboardJobEvent, access accessor.Access) bool {
 		return true
 	}
 	return access.IsAuthorized(event.Job.TeamName)
-}
-
-func presentEvent(event watch.DashboardJobEvent) JobWatchEvent {
-	presentEvent := JobWatchEvent{
-		ID:   event.ID,
-		Type: event.Type,
-	}
-	if event.Job != nil {
-		j := present.DashboardJob(event.Job.TeamName, *event.Job)
-		presentEvent.Job = &j
-	}
-	return presentEvent
 }

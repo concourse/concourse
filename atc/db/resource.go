@@ -18,6 +18,8 @@ import (
 
 var ErrPinnedThroughConfig = errors.New("resource is pinned through config")
 
+const CheckBuildName = "check"
+
 //go:generate counterfeiter . Resource
 
 type Resource interface {
@@ -35,8 +37,6 @@ type Resource interface {
 	LastCheckStartTime() time.Time
 	LastCheckEndTime() time.Time
 	Tags() atc.Tags
-	CheckSetupError() error
-	CheckError() error
 	WebhookToken() string
 	Config() atc.ResourceConfig
 	ConfigPinnedVersion() atc.Version
@@ -50,6 +50,8 @@ type Resource interface {
 	HasWebhook() bool
 
 	CurrentPinnedVersion() atc.Version
+
+	BuildSummary() *atc.BuildSummary
 
 	ResourceConfigVersionID(atc.Version) (int, bool, error)
 	Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error)
@@ -73,7 +75,6 @@ type Resource interface {
 	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
 	CreateBuild(context.Context, bool) (Build, bool, error)
 
-	SetCheckSetupError(error) error
 	NotifyScan() error
 
 	Reload() (bool, error)
@@ -84,7 +85,6 @@ var resourcesQuery = psql.Select(
 	"r.name",
 	"r.type",
 	"r.config",
-	"r.check_error",
 	"rs.last_check_start_time",
 	"rs.last_check_end_time",
 	"r.pipeline_id",
@@ -95,14 +95,19 @@ var resourcesQuery = psql.Select(
 	"p.instance_vars",
 	"t.id",
 	"t.name",
-	"rs.check_error",
 	"rp.version",
 	"rp.comment_text",
 	"rp.config",
+	"b.id",
+	"b.name",
+	"b.status",
+	"b.start_time",
+	"b.end_time",
 ).
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
+	LeftJoin("builds b ON b.id = r.build_id").
 	LeftJoin("resource_config_scopes rs ON r.resource_config_scope_id = rs.id").
 	LeftJoin("resource_pins rp ON rp.resource_id = r.id").
 	Where(sq.Eq{"r.active": true})
@@ -117,14 +122,13 @@ type resource struct {
 	type_                 string
 	lastCheckStartTime    time.Time
 	lastCheckEndTime      time.Time
-	checkSetupError       error
-	checkError            error
 	config                atc.ResourceConfig
 	configPinnedVersion   atc.Version
 	apiPinnedVersion      atc.Version
 	pinComment            string
 	resourceConfigID      int
 	resourceConfigScopeID int
+	buildSummary          *atc.BuildSummary
 }
 
 func newEmptyResource(conn Conn, lockFactory lock.LockFactory) *resource {
@@ -171,8 +175,6 @@ func (r *resource) CheckTimeout() string             { return r.config.CheckTime
 func (r *resource) LastCheckStartTime() time.Time    { return r.lastCheckStartTime }
 func (r *resource) LastCheckEndTime() time.Time      { return r.lastCheckEndTime }
 func (r *resource) Tags() atc.Tags                   { return r.config.Tags }
-func (r *resource) CheckSetupError() error           { return r.checkSetupError }
-func (r *resource) CheckError() error                { return r.checkError }
 func (r *resource) WebhookToken() string             { return r.config.WebhookToken }
 func (r *resource) Config() atc.ResourceConfig       { return r.config }
 func (r *resource) ConfigPinnedVersion() atc.Version { return r.configPinnedVersion }
@@ -354,18 +356,7 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool) (Bui
 
 	defer Rollback(tx)
 
-	params := map[string]interface{}{
-		"name":               sq.Expr("nextval('one_off_name')"),
-		"pipeline_id":        r.pipelineID,
-		"team_id":            r.teamID,
-		"status":             BuildStatusPending,
-		"manually_triggered": manuallyTriggered,
-		"span_context":       string(spanContextJSON),
-	}
-
 	if !manuallyTriggered {
-		params["resource_id"] = r.id
-
 		var completed, noBuild bool
 		err = psql.Select("completed").
 			From("builds").
@@ -402,14 +393,25 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool) (Bui
 	}
 
 	build := newEmptyBuild(r.conn, r.lockFactory)
-	err = createBuild(tx, build, params)
+	err = createBuild(tx, build, map[string]interface{}{
+		"name":               CheckBuildName,
+		"pipeline_id":        r.pipelineID,
+		"team_id":            r.teamID,
+		"status":             BuildStatusPending,
+		"manually_triggered": manuallyTriggered,
+		"span_context":       string(spanContextJSON),
+		"resource_id":        r.id,
+	})
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
-			// handle unique violation, though this shouldn't ever happen due to the
-			// above checks
-			return nil, false, nil
-		}
+		return nil, false, err
+	}
 
+	_, err = psql.Update("resources").
+		Set("build_id", build.ID()).
+		Where(sq.Eq{"id": r.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
 		return nil, false, err
 	}
 
@@ -419,29 +421,6 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool) (Bui
 	}
 
 	return build, true, nil
-}
-
-func (r *resource) SetCheckSetupError(cause error) error {
-	var err error
-
-	if cause == nil {
-		_, err = psql.Update("resources").
-			Set("check_error", nil).
-			Where(sq.And{
-				sq.Eq{"id": r.ID()},
-				sq.NotEq{"check_error": nil},
-			}).
-			RunWith(r.conn).
-			Exec()
-	} else {
-		_, err = psql.Update("resources").
-			Set("check_error", cause.Error()).
-			Where(sq.Eq{"id": r.ID()}).
-			RunWith(r.conn).
-			Exec()
-	}
-
-	return err
 }
 
 // XXX: only used for tests
@@ -543,6 +522,10 @@ func (r *resource) CurrentPinnedVersion() atc.Version {
 		return r.apiPinnedVersion
 	}
 	return nil
+}
+
+func (r *resource) BuildSummary() *atc.BuildSummary {
+	return r.buildSummary
 }
 
 func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error) {
@@ -864,14 +847,22 @@ func (r *resource) NotifyScan() error {
 
 func scanResource(r *resource, row scannable) error {
 	var (
-		configBlob                                                               sql.NullString
-		checkErr, rcsCheckErr, nonce, rcID, rcScopeID, pinnedVersion, pinComment sql.NullString
-		lastCheckStartTime, lastCheckEndTime                                     pq.NullTime
-		pinnedThroughConfig                                                      sql.NullBool
-		pipelineInstanceVars                                                     sql.NullString
+		configBlob                                        sql.NullString
+		nonce, rcID, rcScopeID, pinnedVersion, pinComment sql.NullString
+		lastCheckStartTime, lastCheckEndTime              pq.NullTime
+		pinnedThroughConfig                               sql.NullBool
+		pipelineInstanceVars                              sql.NullString
 	)
 
-	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName, &rcsCheckErr, &pinnedVersion, &pinComment, &pinnedThroughConfig)
+	var build struct {
+		id        sql.NullInt64
+		name      sql.NullString
+		status    sql.NullString
+		startTime pq.NullTime
+		endTime   pq.NullTime
+	}
+
+	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName, &pinnedVersion, &pinComment, &pinnedThroughConfig, &build.id, &build.name, &build.status, &build.startTime, &build.endTime)
 	if err != nil {
 		return err
 	}
@@ -925,18 +916,6 @@ func scanResource(r *resource, row scannable) error {
 		r.pinComment = ""
 	}
 
-	if checkErr.Valid {
-		r.checkSetupError = errors.New(checkErr.String)
-	} else {
-		r.checkSetupError = nil
-	}
-
-	if rcsCheckErr.Valid {
-		r.checkError = errors.New(rcsCheckErr.String)
-	} else {
-		r.checkError = nil
-	}
-
 	if rcID.Valid {
 		r.resourceConfigID, err = strconv.Atoi(rcID.String)
 		if err != nil {
@@ -956,7 +935,29 @@ func scanResource(r *resource, row scannable) error {
 		if err != nil {
 			return err
 		}
+	}
 
+	if build.id.Valid {
+		r.buildSummary = &atc.BuildSummary{
+			ID:   int(build.id.Int64),
+			Name: build.name.String,
+
+			Status: atc.BuildStatus(build.status.String),
+
+			TeamName: r.teamName,
+
+			PipelineID:           r.pipelineID,
+			PipelineName:         r.pipelineName,
+			PipelineInstanceVars: r.pipelineInstanceVars,
+		}
+
+		if build.startTime.Valid {
+			r.buildSummary.StartTime = build.startTime.Time.Unix()
+		}
+
+		if build.endTime.Valid {
+			r.buildSummary.EndTime = build.endTime.Time.Unix()
+		}
 	}
 
 	return nil

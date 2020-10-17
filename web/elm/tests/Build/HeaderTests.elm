@@ -5,7 +5,6 @@ import Application.Models exposing (Session)
 import Build.Header.Header as Header
 import Build.Header.Models as Models
 import Build.Header.Views as Views
-import Build.Shortcuts as Shortcuts
 import Build.StepTree.Models as STModels
 import Common
 import Concourse
@@ -23,6 +22,17 @@ import RemoteData
 import ScreenSize
 import Set
 import Test exposing (Test, describe, test)
+import Test.Html.Query as Query
+import Test.Html.Selector
+    exposing
+        ( attribute
+        , class
+        , containing
+        , id
+        , style
+        , tag
+        , text
+        )
 import Time
 import UserState
 
@@ -31,11 +41,50 @@ all : Test
 all =
     describe "build page header"
         [ describe "title"
-            [ test "is 'build' on a one-off build page" <|
-                \_ ->
-                    Header.header session model
-                        |> .leftWidgets
-                        |> Common.contains (Views.Title "0" Nothing)
+            [ describe "job build" <|
+                let
+                    job =
+                        { teamName = "some-team"
+                        , pipelineName = "some-pipeline"
+                        , jobName = "some-job"
+                        }
+
+                    jobBuildModel =
+                        { model | name = "123", job = Just job }
+                in
+                [ test "contains the build name and job name" <|
+                    \_ ->
+                        Header.header session jobBuildModel
+                            |> .leftWidgets
+                            |> Common.contains (Views.Title "123" (Just job))
+                , test "shows job and build name as number" <|
+                    \_ ->
+                        Header.view session jobBuildModel
+                            |> Query.fromHtml
+                            |> Query.has
+                                [ containing [ text "some-job" ]
+                                , containing [ text "#123" ]
+                                ]
+                ]
+            , describe "non-job build" <|
+                let
+                    nonJobBuild =
+                        { model | name = "check", job = Nothing }
+                in
+                [ test "contains the build name" <|
+                    \_ ->
+                        Header.header session nonJobBuild
+                            |> .leftWidgets
+                            |> Common.contains (Views.Title "check" Nothing)
+                , test "shows build name, not as a number" <|
+                    \_ ->
+                        Header.view session nonJobBuild
+                            |> Query.fromHtml
+                            |> Expect.all
+                                [ Query.has [ containing [ text "check" ] ]
+                                , Query.hasNot [ containing [ text "#" ] ]
+                                ]
+                ]
             ]
         , describe "duration"
             [ test "pending build has no duration" <|

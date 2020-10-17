@@ -17,8 +17,13 @@ module Resource.Resource exposing
     , viewVersionHeader
     )
 
+import Api.Endpoints as Endpoints
 import Application.Models exposing (Session)
 import Assets
+import Build.Output.Models exposing (OutputModel)
+import Build.Output.Output
+import Build.StepTree.Models as STModels
+import Build.StepTree.StepTree as StepTree
 import Concourse
 import Concourse.BuildStatus
 import Concourse.Pagination
@@ -59,13 +64,14 @@ import Html.Events
         , onMouseOut
         , onMouseOver
         )
+import Html.Lazy
 import Http
 import Keyboard
 import List.Extra
 import Login.Login as Login
 import Maybe.Extra as ME
 import Message.Callback exposing (Callback(..))
-import Message.Effects exposing (Effect(..), toHtmlID)
+import Message.Effects as Effects exposing (Effect(..), toHtmlID)
 import Message.Message as Message
     exposing
         ( DomID(..)
@@ -123,9 +129,7 @@ init flags =
         model =
             { resourceIdentifier = flags.resourceId
             , pageStatus = Err Models.Empty
-            , checkStatus = Models.CheckingSuccessfully
-            , checkError = ""
-            , checkSetupError = ""
+            , checkStatus = Models.NotChecking
             , lastChecked = Nothing
             , pinnedVersion = NotPinned
             , currentPage = page
@@ -139,6 +143,10 @@ init flags =
             , isUserMenuExpanded = False
             , icon = Nothing
             , isEditing = False
+            , build = Nothing
+            , authorized = True
+            , output = Nothing
+            , highlight = Routes.HighlightNothing
             }
     in
     ( model
@@ -169,6 +177,26 @@ changeToResource flags ( model, effects ) =
            , SyncTextareaHeight ResourceCommentTextarea
            ]
     )
+
+
+initBuild : Maybe Concourse.Build -> ET Model
+initBuild mbuild ( model, effects ) =
+    case mbuild of
+        Nothing ->
+            ( model, effects )
+
+        Just build ->
+            if Maybe.map .id model.build == Just build.id then
+                ( { model | build = Just build }, effects )
+
+            else
+                let
+                    ( output, outputCmd ) =
+                        Build.Output.Output.init model.highlight build
+                in
+                ( { model | build = Just build, output = Just output }
+                , effects ++ outputCmd
+                )
 
 
 updatePinnedVersion : Concourse.Resource -> Model -> Model
@@ -238,14 +266,26 @@ getUpdateMessage model =
         UpdateMsg.AOK
 
 
-subscriptions : List Subscription
-subscriptions =
+subscriptions : Model -> List Subscription
+subscriptions model =
+    let
+        buildEventsUrl =
+            model.output
+                |> Maybe.andThen .eventStreamUrlPath
+    in
     [ OnClockTick Subscription.FiveSeconds
     , OnClockTick Subscription.OneSecond
     , OnKeyDown
     , OnKeyUp
     , OnWindowResize
     ]
+        ++ (case buildEventsUrl of
+                Nothing ->
+                    []
+
+                Just url ->
+                    [ Subscription.FromEventSource ( url, [ "end", "event" ] ) ]
+           )
 
 
 handleCallback : Callback -> Session -> ET Model
@@ -260,13 +300,20 @@ handleCallback callback session ( model, effects ) =
                     , resourceName = resource.name
                     }
                 , checkStatus =
-                    if resource.failingToCheck then
-                        Models.FailingToCheck
+                    case resource.build of
+                        Nothing ->
+                            Models.NotChecking
 
-                    else
-                        Models.CheckingSuccessfully
-                , checkError = resource.checkError
-                , checkSetupError = resource.checkSetupError
+                        Just { id, status } ->
+                            case status of
+                                Concourse.BuildStatus.BuildStatusSucceeded ->
+                                    Models.NotChecking
+
+                                Concourse.BuildStatus.BuildStatusStarted ->
+                                    Models.CurrentlyChecking id
+
+                                _ ->
+                                    Models.NotChecking
                 , lastChecked = resource.lastChecked
                 , icon = resource.icon
               }
@@ -281,6 +328,7 @@ handleCallback callback session ( model, effects ) =
                    )
                 ++ [ SyncTextareaHeight ResourceCommentTextarea ]
             )
+                |> initBuild resource.build
 
         ResourceFetched (Err err) ->
             case err of
@@ -472,27 +520,8 @@ handleCallback callback session ( model, effects ) =
             , effects
             )
 
-        Checked (Ok { status, id }) ->
-            case status of
-                Concourse.Succeeded ->
-                    ( { model | checkStatus = Models.CheckingSuccessfully }
-                    , effects
-                        ++ [ FetchResource model.resourceIdentifier
-                           , FetchVersionedResources
-                                model.resourceIdentifier
-                                model.currentPage
-                           ]
-                    )
-
-                Concourse.Started ->
-                    ( { model | checkStatus = Models.CurrentlyChecking id }
-                    , effects
-                    )
-
-                Concourse.Errored ->
-                    ( { model | checkStatus = Models.FailingToCheck }
-                    , effects ++ [ FetchResource model.resourceIdentifier ]
-                    )
+        Checked (Ok _) ->
+            ( model, effects ++ [ FetchResource model.resourceIdentifier ] )
 
         Checked (Err (Http.BadStatus { status })) ->
             ( model
@@ -525,12 +554,42 @@ handleCallback callback session ( model, effects ) =
                    ]
             )
 
+        PlanAndResourcesFetched buildId (Ok planAndResources) ->
+            updateOutput
+                (Build.Output.Output.planAndResourcesFetched
+                    buildId
+                    planAndResources
+                )
+                ( model
+                , effects
+                    ++ [ Effects.OpenBuildEventStream
+                            { url =
+                                Endpoints.BuildEventStream
+                                    |> Endpoints.Build buildId
+                                    |> Endpoints.toString []
+                            , eventTypes = [ "end", "event" ]
+                            }
+                       ]
+                )
+
+        PlanAndResourcesFetched _ (Err err) ->
+            case err of
+                Http.BadStatus { status } ->
+                    if status.code == 401 || status.code == 403 then
+                        ( { model | authorized = False }, effects )
+
+                    else
+                        ( model, effects )
+
+                _ ->
+                    ( model, effects )
+
         _ ->
             ( model, effects )
 
 
-handleDelivery : Delivery -> ET Model
-handleDelivery delivery ( model, effects ) =
+handleDelivery : { a | hovered : HoverState.HoverState } -> Delivery -> ET Model
+handleDelivery session delivery ( model, effects ) =
     case delivery of
         KeyDown keyEvent ->
             if
@@ -552,12 +611,12 @@ handleDelivery delivery ( model, effects ) =
 
         ClockTicked OneSecond time ->
             ( { model | now = Just time }
-            , case model.checkStatus of
-                Models.CurrentlyChecking id ->
-                    effects ++ [ FetchCheck id ]
+            , case session.hovered of
+                HoverState.Hovered (StepState stepID) ->
+                    [ GetViewportOf (StepState stepID) ]
 
                 _ ->
-                    effects
+                    []
             )
 
         ClockTicked FiveSeconds _ ->
@@ -574,6 +633,25 @@ handleDelivery delivery ( model, effects ) =
             ( model
             , effects ++ [ SyncTextareaHeight ResourceCommentTextarea ]
             )
+
+        EventsReceived (Ok envelopes) ->
+            let
+                ended =
+                    List.any (\{ data } -> data == STModels.End) envelopes
+            in
+            updateOutput
+                (Build.Output.Output.handleEnvelopes envelopes)
+                ( model
+                , effects
+                    ++ (if ended then
+                            [ FetchResource model.resourceIdentifier
+                            , FetchVersionedResources model.resourceIdentifier model.currentPage
+                            ]
+
+                        else
+                            []
+                       )
+                )
 
         _ ->
             ( model, effects )
@@ -731,6 +809,11 @@ update msg ( model, effects ) =
             ( { model | isEditing = True }
             , effects ++ [ Focus (toHtmlID ResourceCommentTextarea) ]
             )
+
+        Click (StepHeader id) ->
+            updateOutput
+                (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStep id)
+                ( model, effects )
 
         EditComment input ->
             let
@@ -944,6 +1027,7 @@ body :
         | userState : UserState
         , pipelines : WebData (List Concourse.Pipeline)
         , hovered : HoverState.HoverState
+        , timeZone : Time.Zone
     }
     -> Model
     -> Html Message
@@ -951,11 +1035,13 @@ body session model =
     let
         sectionModel =
             { checkStatus = model.checkStatus
-            , checkSetupError = model.checkSetupError
-            , checkError = model.checkError
+            , build = model.build
             , hovered = session.hovered
             , userState = session.userState
+            , timeZone = session.timeZone
             , teamName = model.resourceIdentifier.teamName
+            , authorized = model.authorized
+            , output = model.output
             }
 
         archived =
@@ -1091,78 +1177,56 @@ paginationMenu { hovered } model =
 checkSection :
     { a
         | checkStatus : Models.CheckStatus
-        , checkSetupError : String
-        , checkError : String
+        , build : Maybe Concourse.Build
         , hovered : HoverState.HoverState
         , userState : UserState
         , teamName : String
+        , timeZone : Time.Zone
+        , authorized : Bool
+        , output : Maybe OutputModel
     }
     -> Html Message
-checkSection ({ checkStatus, checkSetupError, checkError } as model) =
+checkSection ({ checkStatus, build } as model) =
     let
-        failingToCheck =
-            checkStatus == Models.FailingToCheck
+        spinner =
+            Spinner.spinner
+                { sizePx = 14
+                , margin = "7px"
+                }
 
-        checkMessage =
-            case checkStatus of
-                Models.FailingToCheck ->
-                    "check failed"
+        icon image =
+            Icon.icon
+                { sizePx = 28
+                , image = image
+                }
+                Resource.Styles.checkStatusIcon
 
-                Models.CheckPending ->
-                    "check pending"
+        ( checkMessage, statusIcon ) =
+            case Maybe.map .status build of
+                Nothing ->
+                    ( "not checked yet", icon Assets.PendingIcon )
 
-                Models.CurrentlyChecking _ ->
-                    "check in progress"
+                Just Concourse.BuildStatus.BuildStatusFailed ->
+                    ( "check failed", icon Assets.FailureTimesIcon )
 
-                Models.CheckingSuccessfully ->
-                    "checked successfully"
+                Just Concourse.BuildStatus.BuildStatusPending ->
+                    ( "check pending", icon Assets.PendingIcon )
 
-        stepBody =
-            if failingToCheck then
-                if not (String.isEmpty checkSetupError) then
-                    [ Html.div [ class "step-body" ]
-                        [ Html.pre [] [ Html.text checkSetupError ]
-                        ]
-                    ]
+                Just Concourse.BuildStatus.BuildStatusStarted ->
+                    ( "check in progress", spinner )
 
-                else
-                    [ Html.div [ class "step-body" ]
-                        [ Html.pre [] [ Html.text checkError ]
-                        ]
-                    ]
+                Just Concourse.BuildStatus.BuildStatusSucceeded ->
+                    ( "check succeeded", icon Assets.SuccessCheckIcon )
 
-            else
-                []
+                Just Concourse.BuildStatus.BuildStatusErrored ->
+                    ( "check errored", icon Assets.ExclamationTriangleIcon )
 
-        statusIcon =
-            case checkStatus of
-                Models.CurrentlyChecking _ ->
-                    Spinner.spinner
-                        { sizePx = 14
-                        , margin = "7px"
-                        }
-
-                Models.CheckPending ->
-                    Spinner.spinner
-                        { sizePx = 14
-                        , margin = "7px"
-                        }
-
-                _ ->
-                    Icon.icon
-                        { sizePx = 28
-                        , image =
-                            if failingToCheck then
-                                Assets.ExclamationTriangleIcon
-
-                            else
-                                Assets.SuccessCheckIcon
-                        }
-                        Resource.Styles.checkStatusIcon
+                Just Concourse.BuildStatus.BuildStatusAborted ->
+                    ( "check aborted", icon Assets.InterruptedIcon )
 
         statusBar =
             Html.div
-                Resource.Styles.checkBarStatus
+                (class "resource-check-status-summary" :: Resource.Styles.checkBarStatus)
                 [ Html.h3 [] [ Html.text checkMessage ]
                 , statusIcon
                 ]
@@ -1171,10 +1235,20 @@ checkSection ({ checkStatus, checkSetupError, checkError } as model) =
             Html.div
                 [ style "display" "flex" ]
                 [ checkButton model
-                , statusBar
+                , Html.div Resource.Styles.checkStatus
+                    [ if model.authorized && model.output /= Nothing then
+                        Html.Lazy.lazy3
+                            viewBuildOutput
+                            model.timeZone
+                            (Build.Output.Output.filterHoverState model.hovered)
+                            model.output
+
+                      else
+                        statusBar
+                    ]
                 ]
     in
-    Html.div [ class "resource-check-status" ] <| checkBar :: stepBody
+    Html.div [ class "resource-check-status" ] [ checkBar ]
 
 
 checkButton :
@@ -1195,10 +1269,10 @@ checkButton ({ hovered, userState, checkStatus } as params) =
 
         isCurrentlyChecking =
             case checkStatus of
-                Models.CurrentlyChecking _ ->
+                Models.CheckPending ->
                     True
 
-                Models.CheckPending ->
+                Models.CurrentlyChecking _ ->
                     True
 
                 _ ->
@@ -1866,3 +1940,44 @@ fetchDataForExpandedVersions model =
     model.versions.content
         |> List.filter .expanded
         |> List.concatMap (\v -> [ FetchInputTo v.id, FetchOutputOf v.id ])
+
+
+updateOutput :
+    (OutputModel -> ( OutputModel, List Effect ))
+    -> ET Model
+updateOutput updater ( model, effects ) =
+    case model.output of
+        Just output ->
+            let
+                ( newOutput, outputEffects ) =
+                    updater output
+
+                newModel =
+                    { model
+                        | output =
+                            -- model.output must be equal-by-reference
+                            -- to its previous value when passed
+                            -- into `Html.Lazy.lazy3` below.
+                            if newOutput /= output then
+                                Just newOutput
+
+                            else
+                                model.output
+                    }
+            in
+            ( newModel, effects ++ outputEffects )
+
+        _ ->
+            ( model, effects )
+
+
+viewBuildOutput : Time.Zone -> HoverState.HoverState -> Maybe OutputModel -> Html Message
+viewBuildOutput timeZone hovered output =
+    case output of
+        Just o ->
+            Build.Output.Output.view
+                { timeZone = timeZone, hovered = hovered }
+                o
+
+        Nothing ->
+            Html.div [] []

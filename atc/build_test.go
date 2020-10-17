@@ -5,7 +5,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
 )
 
 var _ = Describe("Build", func() {
@@ -28,14 +27,14 @@ var _ = Describe("Build", func() {
 	Describe("IsRunning", func() {
 		It("returns true if the build is pending", func() {
 			build := atc.Build{
-				Status: string(atc.StatusPending),
+				Status: atc.StatusPending,
 			}
 			Expect(build.Abortable()).To(BeTrue())
 		})
 
 		It("returns true if the build is started", func() {
 			build := atc.Build{
-				Status: string(atc.StatusStarted),
+				Status: atc.StatusStarted,
 			}
 			Expect(build.Abortable()).To(BeTrue())
 		})
@@ -50,7 +49,7 @@ var _ = Describe("Build", func() {
 
 			for _, state := range states {
 				build := atc.Build{
-					Status: string(state),
+					Status: state,
 				}
 				Expect(build.Abortable()).To(BeFalse())
 			}
@@ -60,29 +59,29 @@ var _ = Describe("Build", func() {
 	Describe("Abortable", func() {
 		It("returns true if the build is pending", func() {
 			build := atc.Build{
-				Status: string(atc.StatusPending),
+				Status: atc.StatusPending,
 			}
 			Expect(build.Abortable()).To(BeTrue())
 		})
 
 		It("returns true if the build is started", func() {
 			build := atc.Build{
-				Status: string(atc.StatusStarted),
+				Status: atc.StatusStarted,
 			}
 			Expect(build.Abortable()).To(BeTrue())
 		})
 
 		It("returns false if in any other state", func() {
-			states := []db.BuildStatus{
-				db.BuildStatusAborted,
-				db.BuildStatusErrored,
-				db.BuildStatusFailed,
-				db.BuildStatusSucceeded,
+			states := []atc.BuildStatus{
+				atc.StatusAborted,
+				atc.StatusErrored,
+				atc.StatusFailed,
+				atc.StatusSucceeded,
 			}
 
 			for _, state := range states {
 				build := atc.Build{
-					Status: string(state),
+					Status: state,
 				}
 				Expect(build.Abortable()).To(BeFalse())
 			}

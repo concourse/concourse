@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -42,8 +41,6 @@ type ResourceType interface {
 	CheckTimeout() string
 	LastCheckStartTime() time.Time
 	LastCheckEndTime() time.Time
-	CheckSetupError() error
-	CheckError() error
 	CurrentPinnedVersion() atc.Version
 	ResourceConfigScopeID() int
 
@@ -59,8 +56,6 @@ type ResourceType interface {
 
 	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
 	CreateBuild(context.Context, bool) (Build, bool, error)
-
-	SetCheckSetupError(error) error
 
 	Version() atc.Version
 
@@ -155,13 +150,11 @@ var resourceTypesQuery = psql.Select(
 	"r.config",
 	"rcv.version",
 	"r.nonce",
-	"r.check_error",
 	"p.name",
 	"p.instance_vars",
 	"t.id",
 	"t.name",
 	"ro.id",
-	"ro.check_error",
 	"ro.last_check_start_time",
 	"ro.last_check_end_time",
 ).
@@ -197,8 +190,6 @@ type resourceType struct {
 	checkEvery            string
 	lastCheckStartTime    time.Time
 	lastCheckEndTime      time.Time
-	checkSetupError       error
-	checkError            error
 }
 
 func (t *resourceType) ID() int                       { return t.id }
@@ -215,8 +206,6 @@ func (t *resourceType) Source() atc.Source            { return t.source }
 func (t *resourceType) Defaults() atc.Source          { return t.defaults }
 func (t *resourceType) Params() atc.Params            { return t.params }
 func (t *resourceType) Tags() atc.Tags                { return t.tags }
-func (t *resourceType) CheckSetupError() error        { return t.checkSetupError }
-func (t *resourceType) CheckError() error             { return t.checkError }
 func (t *resourceType) ResourceConfigScopeID() int    { return t.resourceConfigScopeID }
 
 func (t *resourceType) Version() atc.Version              { return t.version }
@@ -345,11 +334,48 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool) 
 
 	defer Rollback(tx)
 
+	if !manuallyTriggered {
+		var completed, noBuild bool
+		err = psql.Select("completed").
+			From("builds").
+			Where(sq.Eq{"resource_type_id": r.id}).
+			RunWith(tx).
+			QueryRow().
+			Scan(&completed)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				noBuild = true
+			} else {
+				return nil, false, err
+			}
+		}
+
+		if !noBuild && !completed {
+			// a build is already running; leave it be
+			return nil, false, nil
+		}
+
+		if completed {
+			// previous build finished; clear it out
+			_, err = psql.Delete("builds").
+				Where(sq.Eq{
+					"resource_type_id": r.id,
+					"completed":        true,
+				}).
+				RunWith(tx).
+				Exec()
+			if err != nil {
+				return nil, false, fmt.Errorf("delete previous build: %w", err)
+			}
+		}
+	}
+
 	build := newEmptyBuild(r.conn, r.lockFactory)
 	err = createBuild(tx, build, map[string]interface{}{
-		"name":               sq.Expr("nextval('one_off_name')"),
-		"pipeline_id":        r.pipelineID,
+		"name":               CheckBuildName,
 		"team_id":            r.teamID,
+		"pipeline_id":        r.pipelineID,
+		"resource_type_id":   r.id,
 		"status":             BuildStatusPending,
 		"manually_triggered": manuallyTriggered,
 		"span_context":       string(spanContextJSON),
@@ -366,35 +392,15 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool) 
 	return build, true, nil
 }
 
-func (t *resourceType) SetCheckSetupError(cause error) error {
-	var err error
-
-	if cause == nil {
-		_, err = psql.Update("resource_types").
-			Set("check_error", nil).
-			Where(sq.Eq{"id": t.id}).
-			RunWith(t.conn).
-			Exec()
-	} else {
-		_, err = psql.Update("resource_types").
-			Set("check_error", cause.Error()).
-			Where(sq.Eq{"id": t.id}).
-			RunWith(t.conn).
-			Exec()
-	}
-
-	return err
-}
-
 func scanResourceType(t *resourceType, row scannable) error {
 	var (
-		configJSON                                   sql.NullString
-		checkErr, rcsCheckErr, rcsID, version, nonce sql.NullString
-		lastCheckStartTime, lastCheckEndTime         pq.NullTime
-		pipelineInstanceVars                         sql.NullString
+		configJSON                           sql.NullString
+		rcsID, version, nonce                sql.NullString
+		lastCheckStartTime, lastCheckEndTime pq.NullTime
+		pipelineInstanceVars                 sql.NullString
 	)
 
-	err := row.Scan(&t.id, &t.pipelineID, &t.name, &t.type_, &configJSON, &version, &nonce, &checkErr, &t.pipelineName, &pipelineInstanceVars, &t.teamID, &t.teamName, &rcsID, &rcsCheckErr, &lastCheckStartTime, &lastCheckEndTime)
+	err := row.Scan(&t.id, &t.pipelineID, &t.name, &t.type_, &configJSON, &version, &nonce, &t.pipelineName, &pipelineInstanceVars, &t.teamID, &t.teamName, &rcsID, &lastCheckStartTime, &lastCheckEndTime)
 	if err != nil {
 		return err
 	}
@@ -438,19 +444,11 @@ func scanResourceType(t *resourceType, row scannable) error {
 	t.tags = config.Tags
 	t.checkEvery = config.CheckEvery
 
-	if checkErr.Valid {
-		t.checkSetupError = errors.New(checkErr.String)
-	}
-
 	if rcsID.Valid {
 		t.resourceConfigScopeID, err = strconv.Atoi(rcsID.String)
 		if err != nil {
 			return err
 		}
-	}
-
-	if rcsCheckErr.Valid {
-		t.checkError = errors.New(rcsCheckErr.String)
 	}
 
 	if pipelineInstanceVars.Valid {

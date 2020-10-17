@@ -767,7 +767,7 @@ body session ({ prep, output, authorized, showHelp } as params) =
             , Html.Lazy.lazy3
                 viewBuildOutput
                 session.timeZone
-                (projectOntoBuildPage session.hovered)
+                (Build.Output.Output.filterHoverState session.hovered)
                 output
             , Shortcuts.keyboardHelp showHelp
             ]
@@ -776,39 +776,6 @@ body session ({ prep, output, authorized, showHelp } as params) =
         else
             [ NotAuthorized.view ]
 
-
-projectOntoBuildPage : HoverState.HoverState -> HoverState.HoverState
-projectOntoBuildPage hovered =
-    case hovered of
-        HoverState.Hovered (ChangedStepLabel _ _) ->
-            hovered
-
-        HoverState.TooltipPending (ChangedStepLabel _ _) ->
-            hovered
-
-        HoverState.Tooltip (ChangedStepLabel _ _) _ ->
-            hovered
-
-        HoverState.Hovered (StepState _) ->
-            hovered
-
-        HoverState.TooltipPending (StepState _) ->
-            hovered
-
-        HoverState.Tooltip (StepState _) _ ->
-            hovered
-
-        HoverState.Hovered (StepTab _ _) ->
-            hovered
-
-        HoverState.TooltipPending (StepTab _ _) ->
-            hovered
-
-        HoverState.Tooltip (StepTab _ _) _ ->
-            hovered
-
-        _ ->
-            HoverState.NoHover
 
 
 tombstone :

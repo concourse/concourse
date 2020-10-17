@@ -13,6 +13,7 @@ module Dashboard.Dashboard exposing
 import Api.EventSource exposing (Event(..), EventEnvelope)
 import Application.Models exposing (Session)
 import Concourse
+import Concourse.BuildStatus
 import Concourse.Cli as Cli
 import Concourse.ListAllJobsEvent exposing (JobUpdate(..), ListAllJobsEvent(..))
 import Dashboard.DashboardPreview as DashboardPreview
@@ -301,10 +302,19 @@ handleCallback callback ( model, effects ) =
                     ( { model | jobsError = Just Failed }, effects )
 
         AllResourcesFetched (Ok resources) ->
+            let
+                failingToCheck { build } =
+                    case build of
+                        Nothing ->
+                            False
+
+                        Just { status } ->
+                            Concourse.BuildStatus.isBad status
+            in
             ( { model
                 | pipelinesWithResourceErrors =
                     resources
-                        |> List.filter .failingToCheck
+                        |> List.filter failingToCheck
                         |> List.map (\r -> ( r.teamName, r.pipelineName ))
                         |> Set.fromList
                 , resourcesError = Nothing

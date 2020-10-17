@@ -14,10 +14,10 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
-type DashboardJobEvent struct {
+type JobSummaryEvent struct {
 	ID   int
 	Type EventType
-	Job  *atc.DashboardJob
+	Job  *atc.JobSummary
 }
 
 type ListAllJobsWatcher struct {
@@ -26,7 +26,7 @@ type ListAllJobsWatcher struct {
 	lockFactory lock.LockFactory
 
 	mtx         sync.RWMutex
-	subscribers map[chan []DashboardJobEvent]struct{}
+	subscribers map[chan []JobSummaryEvent]struct{}
 }
 
 var listAllJobsWatchTables = []watchTable{
@@ -64,7 +64,7 @@ func NewListAllJobsWatcher(logger lager.Logger, conn db.Conn, lockFactory lock.L
 		conn:        conn,
 		lockFactory: lockFactory,
 
-		subscribers: make(map[chan []DashboardJobEvent]struct{}),
+		subscribers: make(map[chan []JobSummaryEvent]struct{}),
 	}
 
 	if err := watcher.setupTriggers(); err != nil {
@@ -116,11 +116,11 @@ func (w *ListAllJobsWatcher) setupTriggers() error {
 	return nil
 }
 
-func (w *ListAllJobsWatcher) WatchListAllJobs(ctx context.Context) (<-chan []DashboardJobEvent, error) {
-	eventsChan := make(chan []DashboardJobEvent)
+func (w *ListAllJobsWatcher) WatchListAllJobs(ctx context.Context) (<-chan []JobSummaryEvent, error) {
+	eventsChan := make(chan []JobSummaryEvent)
 
 	dirty := make(chan struct{})
-	var pendingEvents []DashboardJobEvent
+	var pendingEvents []JobSummaryEvent
 	var mtx sync.Mutex
 	go w.watchEvents(ctx, &pendingEvents, &mtx, dirty)
 	go w.sendEvents(ctx, eventsChan, &pendingEvents, &mtx, dirty)
@@ -129,7 +129,7 @@ func (w *ListAllJobsWatcher) WatchListAllJobs(ctx context.Context) (<-chan []Das
 
 func (w *ListAllJobsWatcher) watchEvents(
 	ctx context.Context,
-	pendingEvents *[]DashboardJobEvent,
+	pendingEvents *[]JobSummaryEvent,
 	mtx *sync.Mutex,
 	dirty chan<- struct{},
 ) {
@@ -155,8 +155,8 @@ func (w *ListAllJobsWatcher) watchEvents(
 
 func (w *ListAllJobsWatcher) sendEvents(
 	ctx context.Context,
-	eventsChan chan<- []DashboardJobEvent,
-	pendingEvents *[]DashboardJobEvent,
+	eventsChan chan<- []JobSummaryEvent,
+	pendingEvents *[]JobSummaryEvent,
 	mtx *sync.Mutex,
 	dirty <-chan struct{},
 ) {
@@ -168,7 +168,7 @@ func (w *ListAllJobsWatcher) sendEvents(
 		case <-dirty:
 		}
 		mtx.Lock()
-		eventsToSend := make([]DashboardJobEvent, len(*pendingEvents))
+		eventsToSend := make([]JobSummaryEvent, len(*pendingEvents))
 		copy(eventsToSend, *pendingEvents)
 		*pendingEvents = (*pendingEvents)[:0]
 		mtx.Unlock()
@@ -188,8 +188,8 @@ func invalidate(dirty chan<- struct{}) {
 	}
 }
 
-func (w *ListAllJobsWatcher) subscribe() chan []DashboardJobEvent {
-	c := make(chan []DashboardJobEvent)
+func (w *ListAllJobsWatcher) subscribe() chan []JobSummaryEvent {
+	c := make(chan []JobSummaryEvent)
 
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
@@ -198,7 +198,7 @@ func (w *ListAllJobsWatcher) subscribe() chan []DashboardJobEvent {
 	return c
 }
 
-func (w *ListAllJobsWatcher) unsubscribe(c chan []DashboardJobEvent) {
+func (w *ListAllJobsWatcher) unsubscribe(c chan []JobSummaryEvent) {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 	delete(w.subscribers, c)
@@ -246,7 +246,7 @@ func (w *ListAllJobsWatcher) process(payload string) error {
 	case "jobs":
 		jobID, pred, err = intEqPred("j.id", notif.Data["id"])
 		if notif.Operation == "DELETE" {
-			w.publishEvents(DashboardJobEvent{
+			w.publishEvents(JobSummaryEvent{
 				ID:   jobID,
 				Type: Delete,
 			})
@@ -270,16 +270,16 @@ func (w *ListAllJobsWatcher) process(payload string) error {
 		// an update to a job that results in it not being found is updating active to false (or it was already false).
 		// either way, sending a 'DELETE' is reasonable, as long as we make no guarantees about repeated DELETEs
 		if notif.Table == "jobs" && notif.Operation == "UPDATE" {
-			w.publishEvents(DashboardJobEvent{
+			w.publishEvents(JobSummaryEvent{
 				ID:   jobID,
 				Type: Delete,
 			})
 		}
 		return nil
 	}
-	evts := make([]DashboardJobEvent, len(jobs))
+	evts := make([]JobSummaryEvent, len(jobs))
 	for i, job := range jobs {
-		evts[i] = DashboardJobEvent{
+		evts[i] = JobSummaryEvent{
 			ID:   job.ID,
 			Type: Put,
 			Job:  &jobs[i],
@@ -289,7 +289,7 @@ func (w *ListAllJobsWatcher) process(payload string) error {
 	return nil
 }
 
-func (w *ListAllJobsWatcher) fetchJobs(pred interface{}) (atc.Dashboard, error) {
+func (w *ListAllJobsWatcher) fetchJobs(pred interface{}) ([]atc.JobSummary, error) {
 	tx, err := w.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -309,7 +309,7 @@ func (w *ListAllJobsWatcher) fetchJobs(pred interface{}) (atc.Dashboard, error) 
 	return dashboard, nil
 }
 
-func (w *ListAllJobsWatcher) publishEvents(evts ...DashboardJobEvent) {
+func (w *ListAllJobsWatcher) publishEvents(evts ...JobSummaryEvent) {
 	w.mtx.RLock()
 	defer w.mtx.RUnlock()
 	for c := range w.subscribers {

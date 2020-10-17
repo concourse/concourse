@@ -182,8 +182,8 @@ stepHeader : StepState -> List (Html.Attribute msg)
 stepHeader state =
     [ style "display" "flex"
     , style "justify-content" "space-between"
-    , style "border" <|
-        "1px solid "
+    , style "box-shadow" <|
+        "inset 0 0 0 1px "
             ++ (case state of
                     StepStateFailed ->
                         Colors.failure
@@ -192,19 +192,19 @@ stepHeader state =
                         Colors.error
 
                     StepStatePending ->
-                        Colors.frame
+                        "transparent"
 
                     StepStateRunning ->
                         Colors.started
 
                     StepStateInterrupted ->
-                        Colors.frame
+                        "transparent"
 
                     StepStateCancelled ->
-                        Colors.frame
+                        "transparent"
 
                     StepStateSucceeded ->
-                        Colors.frame
+                        "transparent"
                )
     ]
 

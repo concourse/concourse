@@ -187,16 +187,14 @@ type ResourceConfig struct {
 }
 
 type ResourceType struct {
-	Name            string `json:"name"`
-	Type            string `json:"type"`
-	Source          Source `json:"source"`
-	Defaults        Source `json:"defaults,omitempty"`
-	Privileged      bool   `json:"privileged,omitempty"`
-	CheckEvery      string `json:"check_every,omitempty"`
-	Tags            Tags   `json:"tags,omitempty"`
-	Params          Params `json:"params,omitempty"`
-	CheckSetupError string `json:"check_setup_error,omitempty"`
-	CheckError      string `json:"check_error,omitempty"`
+	Name       string `json:"name"`
+	Type       string `json:"type"`
+	Source     Source `json:"source"`
+	Defaults   Source `json:"defaults,omitempty"`
+	Privileged bool   `json:"privileged,omitempty"`
+	CheckEvery string `json:"check_every,omitempty"`
+	Tags       Tags   `json:"tags,omitempty"`
+	Params     Params `json:"params,omitempty"`
 }
 
 type DisplayConfig struct {

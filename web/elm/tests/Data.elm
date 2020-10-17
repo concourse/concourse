@@ -1,7 +1,8 @@
 module Data exposing
-    ( check
+    ( build
     , dashboardPipeline
     , elementPosition
+    , httpForbidden
     , httpInternalServerError
     , httpNotFound
     , httpNotImplemented
@@ -73,6 +74,20 @@ httpUnauthorized =
             }
 
 
+httpForbidden : Result Http.Error a
+httpForbidden =
+    Err <|
+        Http.BadStatus
+            { url = "http://example.com"
+            , status =
+                { code = 403
+                , message = ""
+                }
+            , headers = Dict.empty
+            , body = ""
+            }
+
+
 httpNotFound : Result Http.Error a
 httpNotFound =
     Err <|
@@ -115,50 +130,17 @@ httpInternalServerError =
             }
 
 
-check : Concourse.CheckStatus -> Concourse.Check
-check status =
-    case status of
-        Concourse.Started ->
-            { id = 0
-            , status = Concourse.Started
-            , createTime = Just <| Time.millisToPosix 0
-            , startTime = Just <| Time.millisToPosix 0
-            , endTime = Nothing
-            , checkError = Nothing
-            }
-
-        Concourse.Succeeded ->
-            { id = 0
-            , status = Concourse.Succeeded
-            , createTime = Just <| Time.millisToPosix 0
-            , startTime = Just <| Time.millisToPosix 0
-            , endTime = Just <| Time.millisToPosix 1000
-            , checkError = Nothing
-            }
-
-        Concourse.Errored ->
-            { id = 0
-            , status = Concourse.Errored
-            , createTime = Just <| Time.millisToPosix 0
-            , startTime = Just <| Time.millisToPosix 0
-            , endTime = Just <| Time.millisToPosix 1000
-            , checkError = Just "something broke"
-            }
-
-
 resource : String -> Concourse.Resource
 resource pinnedVersion =
     { teamName = teamName
     , pipelineName = pipelineName
     , name = resourceName
-    , failingToCheck = False
-    , checkError = ""
-    , checkSetupError = ""
     , lastChecked = Nothing
     , pinnedVersion = Just <| version pinnedVersion
     , pinnedInConfig = False
     , pinComment = Nothing
     , icon = Nothing
+    , build = Nothing
     }
 
 
@@ -430,6 +412,31 @@ longJobBuildId =
     , pipelineName = pipelineName
     , jobName = jobName
     , buildName = buildName
+    }
+
+
+build : BuildStatus.BuildStatus -> Concourse.Build
+build status =
+    { id = 1
+    , name = buildName
+    , job = Nothing
+    , status = status
+    , duration =
+        { startedAt =
+            case status of
+                BuildStatus.BuildStatusPending ->
+                    Nothing
+
+                _ ->
+                    Just <| Time.millisToPosix 0
+        , finishedAt =
+            if BuildStatus.isRunning status then
+                Nothing
+
+            else
+                Just <| Time.millisToPosix 0
+        }
+    , reapTime = Nothing
     }
 
 

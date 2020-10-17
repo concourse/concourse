@@ -43,7 +43,7 @@ func (command *ResourcesCommand) Execute([]string) error {
 		return nil
 	}
 
-	headers = []string{"name", "type", "pinned", "status"}
+	headers = []string{"name", "type", "pinned", "check status"}
 	table := ui.Table{Headers: ui.TableRow{}}
 	for _, h := range headers {
 		table.Headers = append(table.Headers, ui.TableCell{Contents: h, Color: color.New(color.Bold)})
@@ -58,17 +58,11 @@ func (command *ResourcesCommand) Execute([]string) error {
 		}
 
 		var statusColumn ui.TableCell
-		if resource.FailingToCheck {
-			if resource.CheckError != "" {
-				statusColumn.Contents = resource.CheckError
-				statusColumn.Color = ui.FailedColor
-			} else if resource.CheckSetupError != "" {
-				statusColumn.Contents = resource.CheckSetupError
-				statusColumn.Color = ui.ErroredColor
-			}
+		if resource.Build != nil {
+			statusColumn = ui.BuildStatusCell(resource.Build.Status)
 		} else {
-			statusColumn.Contents = "ok"
-			statusColumn.Color = ui.SucceededColor
+			statusColumn.Contents = "n/a"
+			statusColumn.Color = ui.OffColor
 		}
 
 		table.Data = append(table.Data, ui.TableRow{

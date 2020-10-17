@@ -238,7 +238,7 @@ handleDelivery session delivery =
     genericUpdate
         (Build.handleDelivery session delivery)
         (Job.handleDelivery delivery)
-        (Resource.handleDelivery delivery)
+        (Resource.handleDelivery session delivery)
         (Pipeline.handleDelivery delivery)
         (Dashboard.handleDelivery delivery)
         (NotFound.handleDelivery delivery)
@@ -419,8 +419,8 @@ subscriptions mdl =
         PipelineModel _ ->
             Pipeline.subscriptions
 
-        ResourceModel _ ->
-            Resource.subscriptions
+        ResourceModel model ->
+            Resource.subscriptions model
 
         DashboardModel _ ->
             Dashboard.subscriptions

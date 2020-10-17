@@ -27,7 +27,7 @@ func Build(build db.Build) atc.Build {
 		PipelineName:         build.PipelineName(),
 		PipelineInstanceVars: build.PipelineInstanceVars(),
 		TeamName:             build.TeamName(),
-		Status:               string(build.Status()),
+		Status:               atc.BuildStatus(build.Status()),
 		APIURL:               apiURL,
 	}
 

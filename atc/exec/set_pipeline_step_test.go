@@ -254,18 +254,12 @@ jobs:
 				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: badPipelineContentWithEmptyContent}, nil)
 			})
 
-			It("should not return error", func() {
+			It("should return an error", func() {
 				Expect(stepErr).NotTo(HaveOccurred())
 			})
 
-			It("should log no-diff", func() {
-				Expect(stdout).To(gbytes.Say("no diff found."))
-			})
-
-			It("should send a set pipeline changed event", func() {
-				Expect(fakeDelegate.SetPipelineChangedCallCount()).To(Equal(1))
-				_, changed := fakeDelegate.SetPipelineChangedArgsForCall(0)
-				Expect(changed).To(BeFalse())
+			It("should log an error message", func() {
+				Expect(stderr).To(gbytes.Say("pipeline must contain at least one job"))
 			})
 
 			It("should not update the job and build id", func() {
@@ -308,30 +302,6 @@ jobs:
 				It("should stdout have message", func() {
 					Expect(stdout).To(gbytes.Say("done"))
 				})
-
-				Context("when no diff is found", func() {
-					BeforeEach(func() {
-						fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: badPipelineContentWithEmptyContent}, nil)
-					})
-
-					It("should not return error", func() {
-						Expect(stepErr).NotTo(HaveOccurred())
-					})
-
-					It("should log no-diff", func() {
-						Expect(stdout).To(gbytes.Say("no diff found."))
-					})
-
-					It("should send a set pipeline changed event", func() {
-						Expect(fakeDelegate.SetPipelineChangedCallCount()).To(Equal(1))
-						_, changed := fakeDelegate.SetPipelineChangedArgsForCall(0)
-						Expect(changed).To(BeFalse())
-					})
-
-					It("should not update the job and build id", func() {
-						Expect(fakePipeline.SetParentIDsCallCount()).To(Equal(0))
-					})
-				})
 			})
 
 			Context("when specified pipeline exists already", func() {
@@ -346,8 +316,8 @@ jobs:
 						fakePipeline.SetParentIDsReturns(nil)
 					})
 
-					It("should log no-diff", func() {
-						Expect(stdout).To(gbytes.Say("no diff found."))
+					It("should log 'no changes to apply'", func() {
+						Expect(stdout).To(gbytes.Say("no changes to apply."))
 					})
 
 					It("should send a set pipeline changed event", func() {

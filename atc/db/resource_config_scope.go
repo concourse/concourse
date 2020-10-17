@@ -24,13 +24,10 @@ type ResourceConfigScope interface {
 	ID() int
 	Resource() Resource
 	ResourceConfig() ResourceConfig
-	CheckError() error
 
 	SaveVersions(SpanContext, []atc.Version) error
 	FindVersion(atc.Version) (ResourceConfigVersion, bool, error)
 	LatestVersion() (ResourceConfigVersion, bool, error)
-
-	SetCheckError(error) error
 
 	AcquireResourceCheckingLock(
 		logger lager.Logger,
@@ -46,7 +43,6 @@ type resourceConfigScope struct {
 	id             int
 	resource       Resource
 	resourceConfig ResourceConfig
-	checkError     error
 
 	conn        Conn
 	lockFactory lock.LockFactory
@@ -55,7 +51,6 @@ type resourceConfigScope struct {
 func (r *resourceConfigScope) ID() int                        { return r.id }
 func (r *resourceConfigScope) Resource() Resource             { return r.resource }
 func (r *resourceConfigScope) ResourceConfig() ResourceConfig { return r.resourceConfig }
-func (r *resourceConfigScope) CheckError() error              { return r.checkError }
 
 func (r *resourceConfigScope) LastCheckEndTime() (time.Time, error) {
 	var lastCheckEndTime time.Time
@@ -182,26 +177,6 @@ func (r *resourceConfigScope) LatestVersion() (ResourceConfigVersion, bool, erro
 	}
 
 	return rcv, true, nil
-}
-
-func (r *resourceConfigScope) SetCheckError(cause error) error {
-	var err error
-
-	if cause == nil {
-		_, err = psql.Update("resource_config_scopes").
-			Set("check_error", nil).
-			Where(sq.Eq{"id": r.id}).
-			RunWith(r.conn).
-			Exec()
-	} else {
-		_, err = psql.Update("resource_config_scopes").
-			Set("check_error", cause.Error()).
-			Where(sq.Eq{"id": r.id}).
-			RunWith(r.conn).
-			Exec()
-	}
-
-	return err
 }
 
 func (r *resourceConfigScope) AcquireResourceCheckingLock(

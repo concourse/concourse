@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/jobserver"
-	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/watch"
@@ -80,8 +78,8 @@ var _ = Describe("Jobs API", func() {
 		})
 
 		BeforeEach(func() {
-			dbJobFactory.VisibleJobsReturns(atc.Dashboard{
-				atc.DashboardJob{
+			dbJobFactory.VisibleJobsReturns([]atc.JobSummary{
+				{
 					ID:           1,
 					Name:         "some-job",
 					Paused:       true,
@@ -89,7 +87,7 @@ var _ = Describe("Jobs API", func() {
 					PipelineName: "some-pipeline",
 					TeamName:     "some-team",
 
-					Inputs: []atc.DashboardJobInput{
+					Inputs: []atc.JobInputSummary{
 						{
 							Name:     "some-input",
 							Resource: "some-input",
@@ -103,7 +101,7 @@ var _ = Describe("Jobs API", func() {
 						},
 					},
 
-					NextBuild: &atc.DashboardBuild{
+					NextBuild: &atc.BuildSummary{
 						ID:           3,
 						Name:         "2",
 						JobName:      "some-job",
@@ -112,7 +110,7 @@ var _ = Describe("Jobs API", func() {
 						TeamName:     "some-team",
 						Status:       "started",
 					},
-					FinishedBuild: &atc.DashboardBuild{
+					FinishedBuild: &atc.BuildSummary{
 						ID:           1,
 						Name:         "1",
 						JobName:      "some-job",
@@ -120,8 +118,8 @@ var _ = Describe("Jobs API", func() {
 						PipelineName: "some-pipeline",
 						TeamName:     "some-team",
 						Status:       "succeeded",
-						StartTime:    time.Unix(1, 0),
-						EndTime:      time.Unix(100, 0),
+						StartTime:    1,
+						EndTime:      100,
 					},
 
 					Groups: []string{"group-1", "group-2"},
@@ -158,7 +156,6 @@ var _ = Describe("Jobs API", func() {
 					"name": "2",
 					"status": "started",
 					"job_name": "some-job",
-					"api_url": "/api/v1/builds/3",
 					"pipeline_id": 1,
 					"pipeline_name": "some-pipeline"
 				},
@@ -168,7 +165,6 @@ var _ = Describe("Jobs API", func() {
 					"name": "1",
 					"status": "succeeded",
 					"job_name": "some-job",
-					"api_url": "/api/v1/builds/1",
 					"pipeline_id": 1,
 					"pipeline_name": "some-pipeline",
 					"start_time": 1,
@@ -177,8 +173,7 @@ var _ = Describe("Jobs API", func() {
 				"inputs": [
 					{
 						"name": "some-input",
-						"resource": "some-input",
-						"trigger": false
+						"resource": "some-input"
 					},
 					{
 						"name": "some-name",
@@ -251,17 +246,12 @@ var _ = Describe("Jobs API", func() {
 		var (
 			response *http.Response
 
-			eventsChan chan []watch.DashboardJobEvent
+			eventsChan chan []watch.JobSummaryEvent
 		)
 
 		marshal := func(i interface{}) []byte {
 			d, _ := json.Marshal(i)
 			return d
-		}
-
-		newPresentJob := func(j atc.DashboardJob) *atc.Job {
-			job := present.DashboardJob(j.TeamName, j)
-			return &job
 		}
 
 		JustBeforeEach(func() {
@@ -275,15 +265,15 @@ var _ = Describe("Jobs API", func() {
 		})
 
 		BeforeEach(func() {
-			job := atc.DashboardJob{
+			job := atc.JobSummary{
 				ID:           1,
 				Name:         "some-job",
 				PipelineName: "some-pipeline",
 				TeamName:     "some-team",
 			}
-			dbJobFactory.VisibleJobsReturns(atc.Dashboard{job}, nil)
+			dbJobFactory.VisibleJobsReturns([]atc.JobSummary{job}, nil)
 
-			eventsChan = make(chan []watch.DashboardJobEvent, 1)
+			eventsChan = make(chan []watch.JobSummaryEvent, 1)
 			fakeListAllJobsWatcher.WatchListAllJobsReturns(eventsChan, nil)
 
 			fakeAccess.IsAuthorizedReturns(true)
@@ -311,23 +301,23 @@ var _ = Describe("Jobs API", func() {
 			Expect(reader.Next()).To(Equal(sse.Event{
 				ID:   "0",
 				Name: "initial",
-				Data: marshal([]atc.Job{
-					*newPresentJob(atc.DashboardJob{
+				Data: marshal([]atc.JobSummary{
+					{
 						ID:           1,
 						Name:         "some-job",
 						PipelineName: "some-pipeline",
 						TeamName:     "some-team",
-					}),
+					},
 				}),
 			}))
 		})
 
 		It("sends a patch event when jobs change", func() {
-			eventsChan <- []watch.DashboardJobEvent{
+			eventsChan <- []watch.JobSummaryEvent{
 				{
 					ID:   1,
 					Type: watch.Put,
-					Job: &atc.DashboardJob{
+					Job: &atc.JobSummary{
 						ID:           1,
 						Name:         "new-job",
 						PipelineName: "some-pipeline",
@@ -347,16 +337,16 @@ var _ = Describe("Jobs API", func() {
 			Expect(reader.Next()).To(Equal(sse.Event{
 				ID:   "1",
 				Name: "patch",
-				Data: marshal([]jobserver.JobWatchEvent{
+				Data: marshal([]watch.JobSummaryEvent{
 					{
 						ID:   1,
 						Type: watch.Put,
-						Job: newPresentJob(atc.DashboardJob{
+						Job: &atc.JobSummary{
 							ID:           1,
 							Name:         "new-job",
 							PipelineName: "some-pipeline",
 							TeamName:     "some-team",
-						}),
+						},
 					},
 					{
 						ID:   2,
@@ -372,11 +362,11 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("does not forward the notification", func() {
-				eventsChan <- []watch.DashboardJobEvent{
+				eventsChan <- []watch.JobSummaryEvent{
 					{
 						ID:   1,
 						Type: watch.Put,
-						Job:  &atc.DashboardJob{ID: 1},
+						Job:  &atc.JobSummary{ID: 1},
 					},
 				}
 
@@ -393,11 +383,11 @@ var _ = Describe("Jobs API", func() {
 
 			Context("when the pipeline is public", func() {
 				It("forwards the notification", func() {
-					eventsChan <- []watch.DashboardJobEvent{
+					eventsChan <- []watch.JobSummaryEvent{
 						{
 							ID:   1,
 							Type: watch.Put,
-							Job:  &atc.DashboardJob{ID: 1, PipelinePublic: true},
+							Job:  &atc.JobSummary{ID: 1, PipelinePublic: true},
 						},
 					}
 
@@ -407,11 +397,11 @@ var _ = Describe("Jobs API", func() {
 					Expect(reader.Next()).To(Equal(sse.Event{
 						ID:   "1",
 						Name: "patch",
-						Data: marshal([]jobserver.JobWatchEvent{
+						Data: marshal([]watch.JobSummaryEvent{
 							{
 								ID:   1,
 								Type: watch.Put,
-								Job:  newPresentJob(atc.DashboardJob{ID: 1}),
+								Job:  &atc.JobSummary{ID: 1, PipelinePublic: true},
 							},
 						}),
 					}))
@@ -1122,7 +1112,7 @@ var _ = Describe("Jobs API", func() {
 
 	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/jobs", func() {
 		var response *http.Response
-		var dashboardResponse atc.Dashboard
+		var dashboardResponse []atc.JobSummary
 
 		JustBeforeEach(func() {
 			var err error
@@ -1135,7 +1125,7 @@ var _ = Describe("Jobs API", func() {
 
 			BeforeEach(func() {
 
-				dashboardResponse = atc.Dashboard{
+				dashboardResponse = []atc.JobSummary{
 					{
 						ID:                   1,
 						Name:                 "job-1",
@@ -1144,7 +1134,7 @@ var _ = Describe("Jobs API", func() {
 						PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
 						TeamName:             "some-team",
 						Paused:               true,
-						NextBuild: &atc.DashboardBuild{
+						NextBuild: &atc.BuildSummary{
 							ID:                   3,
 							Name:                 "2",
 							JobName:              "job-1",
@@ -1154,7 +1144,7 @@ var _ = Describe("Jobs API", func() {
 							TeamName:             "some-team",
 							Status:               "started",
 						},
-						FinishedBuild: &atc.DashboardBuild{
+						FinishedBuild: &atc.BuildSummary{
 							ID:                   1,
 							Name:                 "1",
 							JobName:              "job-1",
@@ -1163,10 +1153,10 @@ var _ = Describe("Jobs API", func() {
 							PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
 							TeamName:             "some-team",
 							Status:               "succeeded",
-							StartTime:            time.Unix(1, 0),
-							EndTime:              time.Unix(100, 0),
+							StartTime:            1,
+							EndTime:              100,
 						},
-						TransitionBuild: &atc.DashboardBuild{
+						TransitionBuild: &atc.BuildSummary{
 							ID:                   5,
 							Name:                 "five",
 							JobName:              "job-1",
@@ -1175,10 +1165,10 @@ var _ = Describe("Jobs API", func() {
 							PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
 							TeamName:             "some-team",
 							Status:               "failed",
-							StartTime:            time.Unix(101, 0),
-							EndTime:              time.Unix(200, 0),
+							StartTime:            101,
+							EndTime:              200,
 						},
-						Inputs: []atc.DashboardJobInput{
+						Inputs: []atc.JobInputSummary{
 							{
 								Name:     "input-1",
 								Resource: "input-1",
@@ -1197,7 +1187,7 @@ var _ = Describe("Jobs API", func() {
 						TeamName:             "some-team",
 						Paused:               true,
 						NextBuild:            nil,
-						FinishedBuild: &atc.DashboardBuild{
+						FinishedBuild: &atc.BuildSummary{
 							ID:                   4,
 							Name:                 "1",
 							JobName:              "job-2",
@@ -1206,11 +1196,11 @@ var _ = Describe("Jobs API", func() {
 							PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
 							TeamName:             "some-team",
 							Status:               "succeeded",
-							StartTime:            time.Unix(101, 0),
-							EndTime:              time.Unix(200, 0),
+							StartTime:            101,
+							EndTime:              200,
 						},
 						TransitionBuild: nil,
-						Inputs: []atc.DashboardJobInput{
+						Inputs: []atc.JobInputSummary{
 							{
 								Name:     "input-2",
 								Resource: "input-2",
@@ -1231,7 +1221,7 @@ var _ = Describe("Jobs API", func() {
 						NextBuild:            nil,
 						FinishedBuild:        nil,
 						TransitionBuild:      nil,
-						Inputs: []atc.DashboardJobInput{
+						Inputs: []atc.JobInputSummary{
 							{
 								Name:     "input-3",
 								Resource: "input-3",
@@ -1312,7 +1302,6 @@ var _ = Describe("Jobs API", func() {
 									"name": "2",
 									"job_name": "job-1",
 									"status": "started",
-									"api_url": "/api/v1/builds/3",
 									"pipeline_id": 2,
 									"pipeline_name": "another-pipeline",
 									"pipeline_instance_vars": {
@@ -1325,7 +1314,6 @@ var _ = Describe("Jobs API", func() {
 									"name": "1",
 									"job_name": "job-1",
 									"status": "succeeded",
-									"api_url": "/api/v1/builds/1",
 									"pipeline_id": 2,
 									"pipeline_name": "another-pipeline",
 									"pipeline_instance_vars": {
@@ -1340,7 +1328,6 @@ var _ = Describe("Jobs API", func() {
 									"name": "five",
 									"job_name": "job-1",
 									"status": "failed",
-									"api_url": "/api/v1/builds/5",
 									"pipeline_id": 2,
 									"pipeline_name": "another-pipeline",
 									"pipeline_instance_vars": {
@@ -1350,7 +1337,7 @@ var _ = Describe("Jobs API", func() {
 									"start_time": 101,
 									"end_time": 200
 								},
-								"inputs": [{"name": "input-1", "resource": "input-1", "trigger": false}],
+								"inputs": [{"name": "input-1", "resource": "input-1"}],
 								"groups": ["group-1", "group-2"]
 							},
 							{
@@ -1363,13 +1350,11 @@ var _ = Describe("Jobs API", func() {
 								},
 								"team_name": "some-team",
 								"paused": true,
-								"next_build": null,
 								"finished_build": {
 									"id": 4,
 									"name": "1",
 									"job_name": "job-2",
 									"status": "succeeded",
-									"api_url": "/api/v1/builds/4",
 									"pipeline_id": 2,
 									"pipeline_name": "another-pipeline",
 									"pipeline_instance_vars": {
@@ -1379,7 +1364,7 @@ var _ = Describe("Jobs API", func() {
 									"start_time": 101,
 									"end_time": 200
 								},
-								"inputs": [{"name": "input-2", "resource": "input-2", "trigger": false}],
+								"inputs": [{"name": "input-2", "resource": "input-2"}],
 								"groups": ["group-2"]
 							},
 							{
@@ -1392,17 +1377,14 @@ var _ = Describe("Jobs API", func() {
 								},
 								"team_name": "some-team",
 								"paused": true,
-								"next_build": null,
-								"finished_build": null,
-								"inputs": [{"name": "input-3", "resource": "input-3", "trigger": false}],
-								"groups": []
+								"inputs": [{"name": "input-3", "resource": "input-3"}]
 							}
 						]`))
 				})
 
 				Context("when there are no jobs in dashboard", func() {
 					BeforeEach(func() {
-						dashboardResponse = atc.Dashboard{}
+						dashboardResponse = []atc.JobSummary{}
 						fakePipeline.DashboardReturns(dashboardResponse, nil)
 					})
 					It("should return an empty array", func() {

@@ -82,25 +82,25 @@ var _ = Describe("ListAllJobsWatcher", func() {
 			job2     db.Job
 
 			mtx           sync.Mutex
-			invokedEvents []watch.DashboardJobEvent
+			invokedEvents []watch.JobSummaryEvent
 		)
 
-		PutEvent := func(job db.Job) watch.DashboardJobEvent {
-			return watch.DashboardJobEvent{
+		PutEvent := func(job db.Job) watch.JobSummaryEvent {
+			return watch.JobSummaryEvent{
 				ID:   job.ID(),
 				Type: watch.Put,
-				Job:  toDashboardJob(job),
+				Job:  toJobSummary(job),
 			}
 		}
 
-		DeleteEvent := func(jobID int) watch.DashboardJobEvent {
-			return watch.DashboardJobEvent{
+		DeleteEvent := func(jobID int) watch.JobSummaryEvent {
+			return watch.JobSummaryEvent{
 				ID:   jobID,
 				Type: watch.Delete,
 			}
 		}
 
-		getInvokedEvents := func() []watch.DashboardJobEvent {
+		getInvokedEvents := func() []watch.JobSummaryEvent {
 			mtx.Lock()
 			defer mtx.Unlock()
 			return invokedEvents
@@ -273,7 +273,7 @@ func clearNotifyTriggers() {
 	}
 }
 
-func toDashboardJob(job db.Job) *atc.DashboardJob {
+func toJobSummary(job db.Job) *atc.JobSummary {
 	job.Reload()
 
 	finishedBuild, nextBuild, err := job.FinishedAndNextBuild()
@@ -282,7 +282,7 @@ func toDashboardJob(job db.Job) *atc.DashboardJob {
 	pipeline, _, err := job.Pipeline()
 	Expect(err).ToNot(HaveOccurred())
 
-	return &atc.DashboardJob{
+	return &atc.JobSummary{
 		ID:              job.ID(),
 		Name:            job.Name(),
 		PipelineID:      job.PipelineID(),
@@ -291,25 +291,25 @@ func toDashboardJob(job db.Job) *atc.DashboardJob {
 		TeamName:        job.TeamName(),
 		Paused:          job.Paused(),
 		HasNewInputs:    job.HasNewInputs(),
-		FinishedBuild:   toDashboardBuild(finishedBuild),
-		TransitionBuild: toDashboardBuild(finishedBuild),
-		NextBuild:       toDashboardBuild(nextBuild),
+		FinishedBuild:   toBuildSummary(finishedBuild),
+		TransitionBuild: toBuildSummary(finishedBuild),
+		NextBuild:       toBuildSummary(nextBuild),
 	}
 }
 
-func toDashboardBuild(build db.Build) *atc.DashboardBuild {
+func toBuildSummary(build db.Build) *atc.BuildSummary {
 	if build == nil {
 		return nil
 	}
-	return &atc.DashboardBuild{
+	return &atc.BuildSummary{
 		ID:           build.ID(),
 		Name:         build.Name(),
 		JobName:      build.JobName(),
 		PipelineName: build.PipelineName(),
 		PipelineID:   build.PipelineID(),
 		TeamName:     build.TeamName(),
-		Status:       string(build.Status()),
-		StartTime:    build.StartTime(),
-		EndTime:      build.EndTime(),
+		Status:       atc.BuildStatus(build.Status()),
+		StartTime:    build.StartTime().Unix(),
+		EndTime:      build.EndTime().Unix(),
 	}
 }

@@ -7,6 +7,6 @@ import (
 type DisabledListAllJobsWatcher struct {
 }
 
-func (d DisabledListAllJobsWatcher) WatchListAllJobs(ctx context.Context) (<-chan []DashboardJobEvent, error) {
+func (d DisabledListAllJobsWatcher) WatchListAllJobs(ctx context.Context) (<-chan []JobSummaryEvent, error) {
 	return nil, ErrDisabled
 }
