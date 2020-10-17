@@ -3329,6 +3329,53 @@ all =
                             |> queryView
                             |> Query.find [ class "resource-check-status" ]
                             |> Query.hasNot [ class "resource-check-status-summary" ]
+                , test "toggling step initialization output" <|
+                    \_ ->
+                        init
+                            |> Application.handleCallback
+                                (Callback.ResourceFetched (Ok resource))
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.PlanAndResourcesFetched 1 <|
+                                    Ok <|
+                                        ( { id = "plan"
+                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          }
+                                        , { inputs = [], outputs = [] }
+                                        )
+                                )
+                            |> Tuple.first
+                            |> Application.handleDelivery
+                                (EventsReceived <|
+                                    Ok <|
+                                        [ { url = "/api/v1/builds/1/events"
+                                          , data =
+                                                STModels.ImageCheck
+                                                    { source = ""
+                                                    , id = "plan"
+                                                    }
+                                                    { id = "image"
+                                                    , step = Concourse.BuildStepCheck "some-image"
+                                                    }
+                                          }
+                                        , { url = "/api/v1/builds/1/events"
+                                          , data = STModels.End
+                                          }
+                                        ]
+                                )
+                            |> Tuple.first
+                            |> Application.update
+                                (Msgs.Update <|
+                                    Message.Message.Click <|
+                                        Message.Message.StepHeaderImageFetching "plan"
+                                )
+                            |> Tuple.first
+                            |> queryView
+                            |> Query.find [ class "sub-steps" ]
+                            |> Query.has
+                                [ containing [ text "check:" ]
+                                , containing [ text "some-image" ]
+                                ]
                 , test "when build is finished, renders build step tree when events are loaded" <|
                     \_ ->
                         init

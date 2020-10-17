@@ -343,17 +343,17 @@ all =
                     >> given theImageGetStepIsExpanded
                     >> when iAmLookingAtTheStepBody
                     >> then_ iSeeTheLogOutput
-            , test "step prep toggle gets viewport for tooltip" <|
+            , test "initialization toggle gets viewport for tooltip" <|
                 given iVisitABuildWithATaskStep
                     >> given (thereIsAnImageGetStep taskStepId)
-                    >> given iHoverOverStepPrepToggle
+                    >> given iHoverOverInitializationToggle
                     >> given timeElapses
-                    >> then_ (itGetsViewportOf prepToggleID)
-            , test "step prep toggle shows tooltip" <|
+                    >> then_ (itGetsViewportOf initializationToggleID)
+            , test "initialization toggle shows tooltip" <|
                 given iVisitABuildWithATaskStep
                     >> given (thereIsAnImageGetStep taskStepId)
-                    >> given iHoverOverStepPrepToggle
-                    >> given (gotViewportAndElementOf prepToggleID)
+                    >> given iHoverOverInitializationToggle
+                    >> given (gotViewportAndElementOf initializationToggleID)
                     >> then_ (iSeeText "initialization")
             ]
         , describe "check step"
@@ -421,10 +421,10 @@ gotViewportAndElementOf domID =
             )
 
 
-iHoverOverStepPrepToggle =
+iHoverOverInitializationToggle =
     Tuple.first
         >> Application.update
-            (Update <| Message.Hover <| Just prepToggleID)
+            (Update <| Message.Hover <| Just initializationToggleID)
 
 
 timeElapses =
@@ -440,7 +440,7 @@ itGetsViewportOf domID =
         >> Common.contains (Effects.GetViewportOf domID)
 
 
-prepToggleID =
+initializationToggleID =
     Message.StepHeaderImageFetching "foo"
 
 

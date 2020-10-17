@@ -812,7 +812,7 @@ viewStepWithBody model session depth step headerType body =
                 ]
             ]
         , if step.imageFetchingExpanded then
-            Html.div Styles.imageSteps
+            Html.div (class "sub-steps" :: Styles.imageSteps)
                 [ case step.imageCheck of
                     Just subTree ->
                         Html.div [ class "seq" ]
