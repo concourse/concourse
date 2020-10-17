@@ -16,6 +16,9 @@ platforms. Currently tracing can be configured to integrates with:
 }{
   \link{Google Cloud Trace}{https://cloud.google.com/trace} (Stackdriver)
 }{
+}{
+  \link{Honeycomb.io}{https://honeycomb.io}
+}{
   \link{OpenTelemetry Protocol Exporter}{https://github.com/open-telemetry/opentelemetry-go/tree/master/exporters/otlp}
 }
 
