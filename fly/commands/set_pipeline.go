@@ -26,7 +26,7 @@ type SetPipelineCommand struct {
 
 	Var          []flaghelpers.VariablePairFlag     `short:"v"  long:"var"           unquote:"false"  value-name:"[NAME=STRING]"  description:"Specify a string value to set for a variable in the pipeline"`
 	YAMLVar      []flaghelpers.YAMLVariablePairFlag `short:"y"  long:"yaml-var"      unquote:"false"  value-name:"[NAME=YAML]"    description:"Specify a YAML value to set for a variable in the pipeline"`
-	InstanceVars []flaghelpers.YAMLVariablePairFlag `short:"i"  long:"instance-var"  unquote:"false"  hidden:"true"  value-name:"[NAME=STRING]"  description:"Specify a YAML value to set for an instance variable"`
+	InstanceVars []flaghelpers.YAMLVariablePairFlag `short:"i"  long:"instance-var"  unquote:"false"  value-name:"[NAME=STRING]"  description:"Specify a YAML value to set for an instance variable (used to identify the pipeline)"`
 
 	VarsFrom []atc.PathFlag `short:"l"  long:"load-vars-from"  description:"Variable flag that can be used for filling in template values in configuration from a YAML file"`
 
