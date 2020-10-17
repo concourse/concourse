@@ -644,7 +644,7 @@ insertJob : Int -> Concourse.Job -> ET Model
 insertJob id job ( model, effects ) =
     let
         updatedModel =
-            updatePipelineJobs ((++) [ job ])
+            updatePipelineJobs ((++) [ job ] >> (\j -> ( j, True )))
                 ( job.teamName, job.pipelineName )
                 model
     in
@@ -672,11 +672,12 @@ updateJob job ( model, effects ) =
                 (List.map
                     (\curJob ->
                         if curJob.id == job.id then
-                            job
+                            ( job, curJob.inputs /= job.inputs )
 
                         else
-                            curJob
+                            ( curJob, False )
                     )
+                    >> (\j -> ( List.map Tuple.first j, List.any Tuple.second j ))
                 )
                 ( job.teamName, job.pipelineName )
                 model
@@ -703,7 +704,7 @@ deleteJob id ( model, effects ) =
         Just jobID ->
             let
                 updatedModel =
-                    updatePipelineJobs (List.filter (.id >> (/=) id))
+                    updatePipelineJobs (List.filter (.id >> (/=) id) >> (\j -> ( j, True )))
                         ( jobID.teamName, jobID.pipelineName )
                         model
             in
@@ -726,7 +727,7 @@ deleteJob id ( model, effects ) =
 
 
 updatePipelineJobs :
-    (List Concourse.Job -> List Concourse.Job)
+    (List Concourse.Job -> ( List Concourse.Job, Bool ))
     -> ( String, String )
     -> Model
     -> Model
@@ -750,26 +751,40 @@ updatePipelineJobs transform pipelineId model =
                                     jobs
                             )
 
-        newPipelineJobs =
+        ( newPipelineJobs, inputsChanged ) =
             transform oldPipelineJobs
+
+        newModel =
+            { model
+                | pipelineJobs =
+                    model.pipelineJobs
+                        |> Dict.update
+                            pipelineId
+                            (always <| Just <| List.map jobToId newPipelineJobs)
+            }
 
         pipelineLayers =
             newPipelineJobs
                 |> DashboardPreview.groupByRank
                 |> List.map (List.map jobToId)
     in
-    { model
-        | pipelineLayers =
-            model.pipelineLayers
-                |> Dict.update
-                    pipelineId
-                    (always <| Just pipelineLayers)
-        , pipelineJobs =
-            model.pipelineJobs
-                |> Dict.update
-                    pipelineId
-                    (always <| Just <| List.map jobToId newPipelineJobs)
-    }
+    if inputsChanged then
+        { newModel
+            | pipelineLayers =
+                model.pipelineLayers
+                    |> Dict.update
+                        pipelineId
+                        (always <|
+                            Just
+                                (newPipelineJobs
+                                    |> DashboardPreview.groupByRank
+                                    |> List.map (List.map jobToId)
+                                )
+                        )
+        }
+
+    else
+        newModel
 
 
 toDashboardPipeline : Bool -> Bool -> Concourse.Pipeline -> Pipeline
