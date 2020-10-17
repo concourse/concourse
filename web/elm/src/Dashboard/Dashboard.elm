@@ -772,11 +772,6 @@ updatePipelineJobs transform pipelineId model =
                             pipelineId
                             (always <| Just <| List.map jobToId newPipelineJobs)
             }
-
-        pipelineLayers =
-            newPipelineJobs
-                |> DashboardPreview.groupByRank
-                |> List.map (List.map jobToId)
     in
     if inputsChanged then
         { newModel

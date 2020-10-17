@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/jobserver"
 	"github.com/concourse/concourse/atc/api/stream"
 	"github.com/concourse/concourse/atc/db/watch"
 	"github.com/concourse/concourse/go-concourse/concourse"
@@ -87,7 +86,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 	Describe("client.WatchListAllJobs", func() {
 		var initialJobs []atc.Job
-		var patchEvents [][]jobserver.JobWatchEvent
+		var patchEvents [][]watch.JobSummaryEvent
 		var visitor *concoursefakes.FakeJobsEventsVisitor
 
 		BeforeEach(func() {
@@ -97,14 +96,14 @@ var _ = Describe("ATC Handler Jobs", func() {
 				{Name: "myjob-1"},
 				{Name: "myjob-2"},
 			}
-			patchEvents = [][]jobserver.JobWatchEvent{
+			patchEvents = [][]watch.JobSummaryEvent{
 				{
 					{ID: 0, Type: watch.Delete},
-					{ID: 1, Type: watch.Put, Job: &atc.Job{ID: 1}},
+					{ID: 1, Type: watch.Put, Job: &atc.JobSummary{ID: 1}},
 				},
 				{
 					{ID: 1, Type: watch.Delete},
-					{ID: 0, Type: watch.Put, Job: &atc.Job{ID: 0}},
+					{ID: 0, Type: watch.Put, Job: &atc.JobSummary{ID: 0}},
 				},
 			}
 

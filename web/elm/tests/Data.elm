@@ -253,24 +253,24 @@ withNextBuild :
     Maybe Concourse.Build
     -> { r | nextBuild : Maybe Concourse.Build, name : String, pipelineName : String, teamName : String }
     -> { r | nextBuild : Maybe Concourse.Build, name : String, pipelineName : String, teamName : String }
-withNextBuild build j =
-    { j | nextBuild = build |> Maybe.map (updateJobIdentifier j) }
+withNextBuild bld j =
+    { j | nextBuild = bld |> Maybe.map (updateJobIdentifier j) }
 
 
 withFinishedBuild :
     Maybe Concourse.Build
     -> { r | finishedBuild : Maybe Concourse.Build, name : String, pipelineName : String, teamName : String }
     -> { r | finishedBuild : Maybe Concourse.Build, name : String, pipelineName : String, teamName : String }
-withFinishedBuild build j =
-    { j | finishedBuild = build |> Maybe.map (updateJobIdentifier j) }
+withFinishedBuild bld j =
+    { j | finishedBuild = bld |> Maybe.map (updateJobIdentifier j) }
 
 
 withTransitionBuild :
     Maybe Concourse.Build
     -> { r | transitionBuild : Maybe Concourse.Build, name : String, pipelineName : String, teamName : String }
     -> { r | transitionBuild : Maybe Concourse.Build, name : String, pipelineName : String, teamName : String }
-withTransitionBuild build j =
-    { j | transitionBuild = build |> Maybe.map (updateJobIdentifier j) }
+withTransitionBuild bld j =
+    { j | transitionBuild = bld |> Maybe.map (updateJobIdentifier j) }
 
 
 updateJobIdentifier :

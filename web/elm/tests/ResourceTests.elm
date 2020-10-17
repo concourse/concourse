@@ -1,5 +1,6 @@
 module ResourceTests exposing (all)
 
+import Api.EventSource exposing (Event(..))
 import Application.Application as Application
 import Application.Models exposing (Session)
 import Assets
@@ -3139,20 +3140,10 @@ all =
                                 )
                             |> Expect.all
                                 [ Tuple.second
-                                    >> Common.contains
-                                        (Effects.OpenBuildEventStream
-                                            { url = "/api/v1/builds/1/events"
-                                            , eventTypes = [ "end", "event" ]
-                                            }
-                                        )
+                                    >> Common.contains (Effects.OpenBuildEventStream 1)
                                 , Tuple.first
                                     >> Application.subscriptions
-                                    >> Common.contains
-                                        (Subscription.FromEventSource
-                                            ( "/api/v1/builds/1/events"
-                                            , [ "end", "event" ]
-                                            )
-                                        )
+                                    >> Common.contains Subscription.FromEventSource
                                 ]
                 , test "if build plan request fails, no event stream is opened" <|
                     \_ ->
@@ -3166,12 +3157,7 @@ all =
                                 [ Tuple.second >> Expect.equal []
                                 , Tuple.first
                                     >> Application.subscriptions
-                                    >> Common.notContains
-                                        (Subscription.FromEventSource
-                                            ( "/api/v1/builds/1/events"
-                                            , [ "end", "event" ]
-                                            )
-                                        )
+                                    >> Common.notContains Subscription.FromEventSource
                                 ]
                 , describe "build output unavailable" <|
                     let
@@ -3346,10 +3332,10 @@ all =
                                 )
                             |> Tuple.first
                             |> Application.handleDelivery
-                                (EventsReceived <|
+                                (BuildEventsReceived <|
                                     Ok <|
                                         [ { url = "/api/v1/builds/1/events"
-                                          , data = STModels.End
+                                          , data = Event STModels.End
                                           }
                                         ]
                                 )
@@ -3383,10 +3369,10 @@ all =
                                 )
                             |> Tuple.first
                             |> Application.handleDelivery
-                                (EventsReceived <|
+                                (BuildEventsReceived <|
                                     Ok <|
                                         [ { url = "/api/v1/builds/1/events"
-                                          , data = STModels.Log { id = "plan", source = "stderr" } "hello" Nothing
+                                          , data = Event <| STModels.Log { id = "plan", source = "stderr" } "hello" Nothing
                                           }
                                         ]
                                 )
@@ -3427,19 +3413,19 @@ all =
                                 )
                             |> Tuple.first
                             |> Application.handleDelivery
-                                (EventsReceived <|
+                                (BuildEventsReceived <|
                                     Ok <|
                                         [ { url = "/api/v1/builds/1/events"
-                                          , data = STModels.Log { id = "plan", source = "stderr" } "hello" Nothing
+                                          , data = Event <| STModels.Log { id = "plan", source = "stderr" } "hello" Nothing
                                           }
                                         ]
                                 )
                             |> Tuple.first
                             |> Application.handleDelivery
-                                (EventsReceived <|
+                                (BuildEventsReceived <|
                                     Ok <|
                                         [ { url = "/api/v1/builds/1/events"
-                                          , data = STModels.End
+                                          , data = Event STModels.End
                                           }
                                         ]
                                 )
@@ -3465,10 +3451,10 @@ all =
                                 )
                             |> Tuple.first
                             |> Application.handleDelivery
-                                (EventsReceived <|
+                                (BuildEventsReceived <|
                                     Ok <|
                                         [ { url = "/api/v1/builds/1/events"
-                                          , data = STModels.End
+                                          , data = Event STModels.End
                                           }
                                         ]
                                 )

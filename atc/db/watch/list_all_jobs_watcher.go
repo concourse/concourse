@@ -15,9 +15,9 @@ import (
 )
 
 type JobSummaryEvent struct {
-	ID   int
-	Type EventType
-	Job  *atc.JobSummary
+	ID   int             `json:"id"`
+	Type EventType       `json:"eventType"`
+	Job  *atc.JobSummary `json:"job,omitempty"`
 }
 
 type ListAllJobsWatcher struct {

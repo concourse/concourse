@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/jobserver"
+	"github.com/concourse/concourse/atc/db/watch"
 	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
@@ -21,10 +21,10 @@ type FakeJobsEventsVisitor struct {
 	visitInitialEventReturnsOnCall map[int]struct {
 		result1 error
 	}
-	VisitPatchEventStub        func([]jobserver.JobWatchEvent) error
+	VisitPatchEventStub        func([]watch.JobSummaryEvent) error
 	visitPatchEventMutex       sync.RWMutex
 	visitPatchEventArgsForCall []struct {
-		arg1 []jobserver.JobWatchEvent
+		arg1 []watch.JobSummaryEvent
 	}
 	visitPatchEventReturns struct {
 		result1 error
@@ -101,16 +101,16 @@ func (fake *FakeJobsEventsVisitor) VisitInitialEventReturnsOnCall(i int, result1
 	}{result1}
 }
 
-func (fake *FakeJobsEventsVisitor) VisitPatchEvent(arg1 []jobserver.JobWatchEvent) error {
-	var arg1Copy []jobserver.JobWatchEvent
+func (fake *FakeJobsEventsVisitor) VisitPatchEvent(arg1 []watch.JobSummaryEvent) error {
+	var arg1Copy []watch.JobSummaryEvent
 	if arg1 != nil {
-		arg1Copy = make([]jobserver.JobWatchEvent, len(arg1))
+		arg1Copy = make([]watch.JobSummaryEvent, len(arg1))
 		copy(arg1Copy, arg1)
 	}
 	fake.visitPatchEventMutex.Lock()
 	ret, specificReturn := fake.visitPatchEventReturnsOnCall[len(fake.visitPatchEventArgsForCall)]
 	fake.visitPatchEventArgsForCall = append(fake.visitPatchEventArgsForCall, struct {
-		arg1 []jobserver.JobWatchEvent
+		arg1 []watch.JobSummaryEvent
 	}{arg1Copy})
 	fake.recordInvocation("VisitPatchEvent", []interface{}{arg1Copy})
 	fake.visitPatchEventMutex.Unlock()
@@ -130,13 +130,13 @@ func (fake *FakeJobsEventsVisitor) VisitPatchEventCallCount() int {
 	return len(fake.visitPatchEventArgsForCall)
 }
 
-func (fake *FakeJobsEventsVisitor) VisitPatchEventCalls(stub func([]jobserver.JobWatchEvent) error) {
+func (fake *FakeJobsEventsVisitor) VisitPatchEventCalls(stub func([]watch.JobSummaryEvent) error) {
 	fake.visitPatchEventMutex.Lock()
 	defer fake.visitPatchEventMutex.Unlock()
 	fake.VisitPatchEventStub = stub
 }
 
-func (fake *FakeJobsEventsVisitor) VisitPatchEventArgsForCall(i int) []jobserver.JobWatchEvent {
+func (fake *FakeJobsEventsVisitor) VisitPatchEventArgsForCall(i int) []watch.JobSummaryEvent {
 	fake.visitPatchEventMutex.RLock()
 	defer fake.visitPatchEventMutex.RUnlock()
 	argsForCall := fake.visitPatchEventArgsForCall[i]

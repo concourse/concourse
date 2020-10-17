@@ -7,7 +7,7 @@ import (
 	"net/url"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/jobserver"
+	"github.com/concourse/concourse/atc/db/watch"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
 	"github.com/vito/go-sse/sse"
@@ -55,7 +55,7 @@ type jobsEvents struct {
 
 type JobsEventsVisitor interface {
 	VisitInitialEvent(jobs []atc.Job) error
-	VisitPatchEvent(events []jobserver.JobWatchEvent) error
+	VisitPatchEvent(events []watch.JobSummaryEvent) error
 }
 
 func (j jobsEvents) Accept(visitor JobsEventsVisitor) error {
@@ -74,7 +74,7 @@ func (j jobsEvents) Accept(visitor JobsEventsVisitor) error {
 		return visitor.VisitInitialEvent(jobs)
 
 	case "patch":
-		var events []jobserver.JobWatchEvent
+		var events []watch.JobSummaryEvent
 		err := json.Unmarshal(se.Data, &events)
 		if err != nil {
 			return err

@@ -80,12 +80,13 @@ var _ = Describe("Jobs API", func() {
 		BeforeEach(func() {
 			dbJobFactory.VisibleJobsReturns([]atc.JobSummary{
 				{
-					ID:           1,
-					Name:         "some-job",
-					Paused:       true,
-					PipelineID:   1,
-					PipelineName: "some-pipeline",
-					TeamName:     "some-team",
+					ID:             1,
+					Name:           "some-job",
+					Paused:         true,
+					PipelineID:     1,
+					PipelineName:   "some-pipeline",
+					PipelinePublic: true,
+					TeamName:       "some-team",
 
 					Inputs: []atc.JobInputSummary{
 						{
@@ -148,6 +149,7 @@ var _ = Describe("Jobs API", func() {
 				"name": "some-job",
 				"pipeline_id": 1,
 				"pipeline_name": "some-pipeline",
+				"pipeline_public": true,
 				"team_name": "some-team",
 				"paused": true,
 				"next_build": {
@@ -1295,6 +1297,7 @@ var _ = Describe("Jobs API", func() {
 								"pipeline_instance_vars": {
 									"branch": "master"
 								},
+								"pipeline_public": false,
 								"team_name": "some-team",
 								"paused": true,
 								"next_build": {
@@ -1348,6 +1351,7 @@ var _ = Describe("Jobs API", func() {
 								"pipeline_instance_vars": {
 									"branch": "master"
 								},
+								"pipeline_public": false,
 								"team_name": "some-team",
 								"paused": true,
 								"finished_build": {
@@ -1375,6 +1379,7 @@ var _ = Describe("Jobs API", func() {
 								"pipeline_instance_vars": {
 									"branch": "master"
 								},
+								"pipeline_public": false,
 								"team_name": "some-team",
 								"paused": true,
 								"inputs": [{"name": "input-3", "resource": "input-3"}]

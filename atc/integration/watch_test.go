@@ -2,9 +2,9 @@ package integration_test
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/jobserver"
 	"github.com/concourse/concourse/atc/db/watch"
 	concourse "github.com/concourse/concourse/go-concourse/concourse"
 	. "github.com/onsi/ginkgo"
@@ -13,7 +13,7 @@ import (
 
 type jobsEventsVisitor struct {
 	OnInitialEvent func([]atc.Job) error
-	OnPatchEvent   func([]jobserver.JobWatchEvent) error
+	OnPatchEvent   func([]watch.JobSummaryEvent) error
 }
 
 func (j jobsEventsVisitor) VisitInitialEvent(jobs []atc.Job) error {
@@ -23,7 +23,7 @@ func (j jobsEventsVisitor) VisitInitialEvent(jobs []atc.Job) error {
 	return j.OnInitialEvent(jobs)
 }
 
-func (j jobsEventsVisitor) VisitPatchEvent(events []jobserver.JobWatchEvent) error {
+func (j jobsEventsVisitor) VisitPatchEvent(events []watch.JobSummaryEvent) error {
 	if j.OnPatchEvent == nil {
 		return errors.New("unexpected patch event")
 	}
@@ -55,11 +55,12 @@ var _ = Describe("Watch Test", func() {
 		By("triggering a job build")
 		whenITriggerJobBuild(client, atc.PipelineRef{Name: "pipeline"}, "simple")
 		job := getJob(client, atc.PipelineRef{Name: "pipeline"}, "simple")
-		thenIReceivePatchEvents(events, []jobserver.JobWatchEvent{putEvent(job)})
+		fmt.Printf("%#v\n", *job.NextBuild)
+		thenIReceivePatchEvents(events, []watch.JobSummaryEvent{putEvent(toJobSummary(job))})
 
 		By("deleting the pipeline")
 		whenIDeletePipeline(client, atc.PipelineRef{Name: "pipeline"})
-		thenIReceivePatchEvents(events, []jobserver.JobWatchEvent{deleteEvent(job.ID)})
+		thenIReceivePatchEvents(events, []watch.JobSummaryEvent{deleteEvent(job.ID)})
 	})
 
 	Context("when watch endpoints are not enabled", func() {
@@ -92,9 +93,9 @@ func thenIReceiveInitialJobs(events concourse.JobsEvents, initialJobs []atc.Job)
 	Expect(err).ToNot(HaveOccurred())
 }
 
-func thenIReceivePatchEvents(events concourse.JobsEvents, patchEvents []jobserver.JobWatchEvent) {
+func thenIReceivePatchEvents(events concourse.JobsEvents, patchEvents []watch.JobSummaryEvent) {
 	err := events.Accept(jobsEventsVisitor{
-		OnPatchEvent: func(events []jobserver.JobWatchEvent) error {
+		OnPatchEvent: func(events []watch.JobSummaryEvent) error {
 			defer GinkgoRecover()
 			Expect(events).To(Equal(patchEvents))
 			return nil
@@ -120,10 +121,42 @@ func getJob(client concourse.Client, pipelineRef atc.PipelineRef, jobName string
 	return job
 }
 
-func putEvent(job atc.Job) jobserver.JobWatchEvent {
-	return jobserver.JobWatchEvent{ID: job.ID, Type: watch.Put, Job: &job}
+func putEvent(job atc.JobSummary) watch.JobSummaryEvent {
+	return watch.JobSummaryEvent{ID: job.ID, Type: watch.Put, Job: &job}
 }
 
-func deleteEvent(id int) jobserver.JobWatchEvent {
-	return jobserver.JobWatchEvent{ID: id, Type: watch.Delete}
+func deleteEvent(id int) watch.JobSummaryEvent {
+	return watch.JobSummaryEvent{ID: id, Type: watch.Delete}
+}
+
+func toJobSummary(job atc.Job) atc.JobSummary {
+	return atc.JobSummary{
+		ID:              job.ID,
+		Name:            job.Name,
+		PipelineID:      job.PipelineID,
+		PipelineName:    job.PipelineName,
+		TeamName:        job.TeamName,
+		Paused:          job.Paused,
+		HasNewInputs:    job.HasNewInputs,
+		FinishedBuild:   toBuildSummary(job.FinishedBuild),
+		TransitionBuild: toBuildSummary(job.TransitionBuild),
+		NextBuild:       toBuildSummary(job.NextBuild),
+	}
+}
+
+func toBuildSummary(build *atc.Build) *atc.BuildSummary {
+	if build == nil {
+		return nil
+	}
+	return &atc.BuildSummary{
+		ID:           build.ID,
+		Name:         build.Name,
+		JobName:      build.JobName,
+		PipelineName: build.PipelineName,
+		PipelineID:   build.PipelineID,
+		TeamName:     build.TeamName,
+		Status:       build.Status,
+		StartTime:    build.StartTime,
+		EndTime:      build.EndTime,
+	}
 }

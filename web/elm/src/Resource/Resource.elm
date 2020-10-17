@@ -17,7 +17,7 @@ module Resource.Resource exposing
     , viewVersionHeader
     )
 
-import Api.Endpoints as Endpoints
+import Api.EventSource exposing (Event(..))
 import Application.Models exposing (Session)
 import Assets
 import Build.Output.Models exposing (OutputModel)
@@ -283,8 +283,8 @@ subscriptions model =
                 Nothing ->
                     []
 
-                Just url ->
-                    [ Subscription.FromEventSource ( url, [ "end", "event" ] ) ]
+                Just _ ->
+                    [ Subscription.FromEventSource ]
            )
 
 
@@ -561,15 +561,7 @@ handleCallback callback session ( model, effects ) =
                     planAndResources
                 )
                 ( model
-                , effects
-                    ++ [ Effects.OpenBuildEventStream
-                            { url =
-                                Endpoints.BuildEventStream
-                                    |> Endpoints.Build buildId
-                                    |> Endpoints.toString []
-                            , eventTypes = [ "end", "event" ]
-                            }
-                       ]
+                , effects ++ [ Effects.OpenBuildEventStream buildId ]
                 )
 
         PlanAndResourcesFetched _ (Err err) ->
@@ -634,10 +626,10 @@ handleDelivery session delivery ( model, effects ) =
             , effects ++ [ SyncTextareaHeight ResourceCommentTextarea ]
             )
 
-        EventsReceived (Ok envelopes) ->
+        BuildEventsReceived (Ok envelopes) ->
             let
                 ended =
-                    List.any (\{ data } -> data == STModels.End) envelopes
+                    List.any (\{ data } -> data == Event STModels.End) envelopes
             in
             updateOutput
                 (Build.Output.Output.handleEnvelopes envelopes)
