@@ -427,9 +427,9 @@ update msg ( model, effects ) =
                 (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStep id)
                 ( model, effects ++ [ SyncStickyBuildLogHeaders ] )
 
-        Click (StepHeaderImageFetching id) ->
+        Click (StepInitialization id) ->
             updateOutput
-                (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStepImageFetching id)
+                (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStepInitialization id)
                 ( model, effects ++ [ SyncStickyBuildLogHeaders ] )
 
         Click (StepSubHeader id i) ->

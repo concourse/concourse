@@ -3367,7 +3367,7 @@ all =
                             |> Application.update
                                 (Msgs.Update <|
                                     Message.Message.Click <|
-                                        Message.Message.StepHeaderImageFetching "plan"
+                                        Message.Message.StepInitialization "plan"
                                 )
                             |> Tuple.first
                             |> queryView

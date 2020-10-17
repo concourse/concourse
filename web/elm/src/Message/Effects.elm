@@ -702,7 +702,7 @@ toHtmlID domId =
         StepState stepID ->
             stepID ++ "_state"
 
-        StepHeaderImageFetching stepID ->
+        StepInitialization stepID ->
             stepID ++ "_image"
 
         Dashboard ->

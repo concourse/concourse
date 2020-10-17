@@ -7,7 +7,7 @@ module Build.StepTree.StepTree exposing
     , setImageGet
     , switchTab
     , toggleStep
-    , toggleStepImageFetching
+    , toggleStepInitialization
     , toggleStepSubHeader
     , tooltip
     , view
@@ -290,7 +290,7 @@ constructStep stepId name =
     , finish = Nothing
     , tabFocus = Auto
     , expandedHeaders = Dict.empty
-    , imageFetchingExpanded = False
+    , initializationExpanded = False
     , imageCheck = Nothing
     , imageGet = Nothing
     }
@@ -402,9 +402,9 @@ toggleStep id root =
     )
 
 
-toggleStepImageFetching : StepID -> StepTreeModel -> ( StepTreeModel, List Effect )
-toggleStepImageFetching id root =
-    ( updateAt id (\step -> { step | imageFetchingExpanded = not step.imageFetchingExpanded }) root
+toggleStepInitialization : StepID -> StepTreeModel -> ( StepTreeModel, List Effect )
+toggleStepInitialization id root =
+    ( updateAt id (\step -> { step | initializationExpanded = not step.initializationExpanded }) root
     , []
     )
 
@@ -804,14 +804,14 @@ viewStepWithBody model session depth step headerType body =
                 [ viewVersion step.version
                 , case Maybe.Extra.or step.imageCheck step.imageGet of
                     Just _ ->
-                        viewImageFetchingToggle step
+                        viewInitializationToggle step
 
                     Nothing ->
                         Html.text ""
                 , viewStepState step.state step.id
                 ]
             ]
-        , if step.imageFetchingExpanded then
+        , if step.initializationExpanded then
             Html.div (class "sub-steps" :: Styles.imageSteps)
                 [ case step.imageCheck of
                     Just subTree ->
@@ -856,11 +856,11 @@ viewStepWithBody model session depth step headerType body =
         ]
 
 
-viewImageFetchingToggle : Step -> Html Message
-viewImageFetchingToggle step =
+viewInitializationToggle : Step -> Html Message
+viewInitializationToggle step =
     let
         domId =
-            StepHeaderImageFetching step.id
+            StepInitialization step.id
     in
     Html.h3
         ([ StrictEvents.onLeftClickStopPropagation (Click domId)
@@ -868,7 +868,7 @@ viewImageFetchingToggle step =
          , onMouseEnter <| Hover (Just domId)
          , id (toHtmlID domId)
          ]
-            ++ Styles.imageStepsToggle step.imageFetchingExpanded
+            ++ Styles.imageStepsToggle step.initializationExpanded
         )
         [ Icon.icon
             { sizePx = 14
@@ -1250,7 +1250,7 @@ tooltip model { hovered } =
                 , arrow = Just { size = 5, color = Colors.tooltipBackground }
                 }
 
-        HoverState.Tooltip (StepHeaderImageFetching _) _ ->
+        HoverState.Tooltip (StepInitialization _) _ ->
             Just
                 { body =
                     Html.div

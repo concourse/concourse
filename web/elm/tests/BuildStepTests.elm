@@ -331,7 +331,7 @@ all =
                 given iVisitABuildWithATaskStep
                     >> given (thereIsAnImageCheckStep taskStepId)
                     >> given (thereIsALog imageCheckStepId)
-                    >> given theTaskImageFetchingIsExpanded
+                    >> given theTaskInitializationIsExpanded
                     >> given theImageCheckStepIsExpanded
                     >> when iAmLookingAtTheStepBody
                     >> then_ iSeeTheLogOutput
@@ -339,7 +339,7 @@ all =
                 given iVisitABuildWithATaskStep
                     >> given (thereIsAnImageGetStep taskStepId)
                     >> given (thereIsALog imageGetStepId)
-                    >> given theTaskImageFetchingIsExpanded
+                    >> given theTaskInitializationIsExpanded
                     >> given theImageGetStepIsExpanded
                     >> when iAmLookingAtTheStepBody
                     >> then_ iSeeTheLogOutput
@@ -441,7 +441,7 @@ itGetsViewportOf domID =
 
 
 initializationToggleID =
-    Message.StepHeaderImageFetching "foo"
+    Message.StepInitialization "foo"
 
 
 iVisitABuildWithARetryStep =
@@ -549,9 +549,9 @@ theTaskStepIsExpanded =
         >> Application.update (Update <| Message.Click <| StepHeader taskStepId)
 
 
-theTaskImageFetchingIsExpanded =
+theTaskInitializationIsExpanded =
     Tuple.first
-        >> Application.update (Update <| Message.Click <| StepHeaderImageFetching taskStepId)
+        >> Application.update (Update <| Message.Click <| StepInitialization taskStepId)
 
 
 theImageCheckStepIsExpanded =

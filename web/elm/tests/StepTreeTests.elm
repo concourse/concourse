@@ -71,7 +71,7 @@ someVersionedStep version id name state =
     , finish = Nothing
     , tabFocus = Models.Auto
     , expandedHeaders = Dict.empty
-    , imageFetchingExpanded = False
+    , initializationExpanded = False
     , imageCheck = Nothing
     , imageGet = Nothing
     }
