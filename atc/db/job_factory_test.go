@@ -206,6 +206,9 @@ var _ = Describe("JobFactory", func() {
 				transitionBuild, err := job.CreateBuild()
 				Expect(err).ToNot(HaveOccurred())
 
+				_, err = transitionBuild.Start(atc.Plan{})
+				Expect(err).ToNot(HaveOccurred())
+
 				err = transitionBuild.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -214,6 +217,9 @@ var _ = Describe("JobFactory", func() {
 				Expect(found).To(BeTrue())
 
 				finishedBuild, err := job.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+
+				_, err = finishedBuild.Start(atc.Plan{})
 				Expect(err).ToNot(HaveOccurred())
 
 				err = finishedBuild.Finish(db.BuildStatusSucceeded)
@@ -238,8 +244,8 @@ var _ = Describe("JobFactory", func() {
 				Expect(visibleJobs[0].NextBuild.PipelineInstanceVars).To(Equal(nextBuild.PipelineInstanceVars()))
 				Expect(visibleJobs[0].NextBuild.TeamName).To(Equal(nextBuild.TeamName()))
 				Expect(visibleJobs[0].NextBuild.Status).To(Equal(atc.BuildStatus(nextBuild.Status())))
-				Expect(visibleJobs[0].NextBuild.StartTime).To(Equal(nextBuild.StartTime().Unix()))
-				Expect(visibleJobs[0].NextBuild.EndTime).To(Equal(nextBuild.EndTime().Unix()))
+				Expect(visibleJobs[0].NextBuild.StartTime).To(Equal(int64(0)))
+				Expect(visibleJobs[0].NextBuild.EndTime).To(Equal(int64(0)))
 
 				Expect(visibleJobs[0].FinishedBuild.ID).To(Equal(finishedBuild.ID()))
 				Expect(visibleJobs[0].FinishedBuild.Name).To(Equal(finishedBuild.Name()))

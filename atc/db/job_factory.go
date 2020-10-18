@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"sort"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
@@ -340,8 +341,8 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 				PipelineInstanceVars: j.PipelineInstanceVars,
 				TeamName:             j.TeamName,
 				Status:               atc.BuildStatus(f.status.String),
-				StartTime:            f.startTime.Time.Unix(),
-				EndTime:              f.endTime.Time.Unix(),
+				StartTime:            unixTimeOrZero(f.startTime.Time),
+				EndTime:              unixTimeOrZero(f.endTime.Time),
 			}
 		}
 
@@ -355,8 +356,8 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 				PipelineInstanceVars: j.PipelineInstanceVars,
 				TeamName:             j.TeamName,
 				Status:               atc.BuildStatus(n.status.String),
-				StartTime:            n.startTime.Time.Unix(),
-				EndTime:              n.endTime.Time.Unix(),
+				StartTime:            unixTimeOrZero(n.startTime.Time),
+				EndTime:              unixTimeOrZero(n.endTime.Time),
 			}
 		}
 
@@ -370,8 +371,8 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 				PipelineInstanceVars: j.PipelineInstanceVars,
 				TeamName:             j.TeamName,
 				Status:               atc.BuildStatus(t.status.String),
-				StartTime:            t.startTime.Time.Unix(),
-				EndTime:              t.endTime.Time.Unix(),
+				StartTime:            unixTimeOrZero(t.startTime.Time),
+				EndTime:              unixTimeOrZero(t.endTime.Time),
 			}
 		}
 
@@ -379,6 +380,13 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 	}
 
 	return dashboard, nil
+}
+
+func unixTimeOrZero(t time.Time) int64 {
+	if t.IsZero() {
+		return 0
+	}
+	return t.Unix()
 }
 
 func (d dashboardFactory) fetchJobInputs() (map[int][]atc.JobInputSummary, error) {

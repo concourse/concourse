@@ -301,7 +301,7 @@ func toBuildSummary(build db.Build) *atc.BuildSummary {
 	if build == nil {
 		return nil
 	}
-	return &atc.BuildSummary{
+	s := &atc.BuildSummary{
 		ID:           build.ID(),
 		Name:         build.Name(),
 		JobName:      build.JobName(),
@@ -309,7 +309,12 @@ func toBuildSummary(build db.Build) *atc.BuildSummary {
 		PipelineID:   build.PipelineID(),
 		TeamName:     build.TeamName(),
 		Status:       atc.BuildStatus(build.Status()),
-		StartTime:    build.StartTime().Unix(),
-		EndTime:      build.EndTime().Unix(),
 	}
+	if !build.StartTime().IsZero() {
+		s.StartTime = build.StartTime().Unix()
+	}
+	if !build.EndTime().IsZero() {
+		s.EndTime = build.EndTime().Unix()
+	}
+	return s
 }
