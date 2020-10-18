@@ -576,6 +576,7 @@ this is super secure
 									"config-a": "some-param-a",
 									"config-b": "((param-b))",
 									"bool":     true,
+									"number":   1.23,
 								},
 							},
 						},
@@ -593,34 +594,7 @@ this is super secure
 							},
 						},
 					}
-
-					path, err := atc.Routes.CreatePathForRoute(atc.SaveConfig, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
-					Expect(err).NotTo(HaveOccurred())
-
-					atcServer.RouteToHandler("PUT", path,
-						ghttp.CombineHandlers(
-							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
-							func(w http.ResponseWriter, r *http.Request) {
-								bodyConfig := getConfig(r)
-
-								receivedConfig := atc.Config{}
-								err = yaml.Unmarshal(bodyConfig, &receivedConfig)
-								Expect(err).NotTo(HaveOccurred())
-
-								Expect(receivedConfig).To(Equal(config))
-
-								w.WriteHeader(http.StatusOK)
-								w.Write([]byte(`{}`))
-							},
-						),
-					)
-
-					path_get, err := atc.Routes.CreatePathForRoute(atc.GetPipeline, rata.Params{"pipeline_name": "awesome-pipeline", "team_name": "main"})
-					Expect(err).NotTo(HaveOccurred())
-
-					atcServer.RouteToHandler("GET", path_get,
-						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Pipeline{Name: "awesome-pipeline", Paused: false, TeamName: "main"}),
-					)
+					expectSaveConfig(config)
 				})
 
 				It("succeeds, sending the remaining vars uninterpolated", func() {

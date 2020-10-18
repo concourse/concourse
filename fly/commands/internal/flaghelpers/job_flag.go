@@ -81,16 +81,13 @@ func (flag *JobFlag) Complete(match string) []flags.Completion {
 		}
 
 		pipelineRef, err := parsePipelineRef(vs[0], vs[1])
-		if err != nil {
-			return comps
-		}
-		for _, pipeline := range pipelines {
-			if strings.HasPrefix(pipeline.Ref().String(), pipelineRef.String()) {
-				comps = append(comps, flags.Completion{Item: pipeline.Ref().String() + "/"})
+		if err == nil {
+			for _, pipeline := range pipelines {
+				if strings.HasPrefix(pipeline.Ref().String(), pipelineRef.String()) {
+					comps = append(comps, flags.Completion{Item: pipeline.Ref().String() + "/"})
+				}
 			}
-		}
-
-		if comps == nil {
+		} else {
 			pipelineRef := atc.PipelineRef{Name: vs[0]}
 			jobs, err := team.ListJobs(pipelineRef)
 			if err != nil {
