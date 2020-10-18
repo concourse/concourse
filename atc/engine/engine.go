@@ -215,21 +215,22 @@ func (b *engineBuild) Run(ctx context.Context) {
 		}
 	}()
 
-	succeeded := false
+	var succeeded bool
+	var runErr error
 
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
 		defer func() {
 			if r := recover(); r != nil {
-				err = fmt.Errorf("panic in engine build step run %d: %v", b.build.ID(), r)
+				runErr = fmt.Errorf("panic in engine build step run %d: %v", b.build.ID(), r)
 
-				fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
+				fmt.Fprintf(os.Stderr, "%s\n %s\n", runErr.Error(), string(debug.Stack()))
 				logger.Error("panic-in-engine-build-step-run", err)
 			}
 		}()
 
-		succeeded, err = state.Run(lagerctx.NewContext(ctx, logger), b.build.PrivatePlan())
+		succeeded, runErr = state.Run(lagerctx.NewContext(ctx, logger), b.build.PrivatePlan())
 	}()
 
 	select {
@@ -237,13 +238,11 @@ func (b *engineBuild) Run(ctx context.Context) {
 		logger.Info("releasing")
 
 	case <-done:
-		if err != nil {
-			if ok := errors.As(err, &exec.Retriable{}); ok {
-				return
-			}
+		if errors.As(runErr, &exec.Retriable{}) {
+			return
 		}
 
-		b.finish(logger.Session("finish"), err, succeeded)
+		b.finish(logger.Session("finish"), runErr, succeeded)
 	}
 }
 
