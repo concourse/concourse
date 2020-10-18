@@ -71,4 +71,23 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 			Expect(watch).To(gbytes.Say("mirror-" + hash))
 		})
 	})
+
+	Context("when resource type has defaults", func() {
+		BeforeEach(func() {
+			setAndUnpausePipeline("fixtures/resource-type-defaults.yml", "-v", "hash="+hash)
+		})
+
+		FIt("applies the defaults for check, get, and put steps", func() {
+			check := fly("check-resource", "-r", inPipeline("some-resource"))
+			Expect(check).To(gbytes.Say("defaulted"))
+
+			getAndPut := fly("trigger-job", "-j", inPipeline("some-job"), "-w")
+			Expect(getAndPut).To(gbytes.Say("defaulted"))
+			Expect(getAndPut).To(gbytes.Say("fetching version: " + hash))
+			Expect(getAndPut).To(gbytes.Say("defaulted"))
+			Expect(getAndPut).To(gbytes.Say("pushing version: put-version"))
+			Expect(getAndPut).To(gbytes.Say("defaulted"))
+			Expect(getAndPut).To(gbytes.Say("fetching version: put-version"))
+		})
+	})
 })
