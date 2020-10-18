@@ -76,6 +76,49 @@ all =
                             (LoggedOut <| Ok ())
                         |> Tuple.second
                         |> Common.contains OpenListAllJobsEventStream
+            , test "falls back to polling after a JSON decode error and closes the stream" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> Application.handleDelivery
+                            (ListAllJobsEventsReceived <|
+                                Data.jsonDecodeError
+                            )
+                        |> Expect.all
+                            [ Tuple.second >> Common.contains FetchAllJobs
+                            , Tuple.second >> Common.contains CloseListAllJobsEventStream
+                            , Tuple.first
+                                >> Application.handleCallback
+                                    (AllJobsFetched <| Ok [])
+                                >> Tuple.first
+                                >> Application.handleDelivery
+                                    (ClockTicked FiveSeconds <|
+                                        Time.millisToPosix 0
+                                    )
+                                >> Tuple.second
+                                >> Common.contains FetchAllJobs
+                            ]
+            , test "falls back to polling after a network error and closes the stream" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> Application.handleDelivery
+                            (ListAllJobsEventsReceived <|
+                                Ok
+                                    [ envelope NetworkError ]
+                            )
+                        |> Expect.all
+                            [ Tuple.second >> Common.contains FetchAllJobs
+                            , Tuple.second >> Common.contains CloseListAllJobsEventStream
+                            , Tuple.first
+                                >> Application.handleCallback
+                                    (AllJobsFetched <| Ok [])
+                                >> Tuple.first
+                                >> Application.handleDelivery
+                                    (ClockTicked FiveSeconds <|
+                                        Time.millisToPosix 0
+                                    )
+                                >> Tuple.second
+                                >> Common.contains FetchAllJobs
+                            ]
             , test "initial event populates all jobs" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }

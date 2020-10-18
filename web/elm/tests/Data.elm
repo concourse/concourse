@@ -13,6 +13,7 @@ module Data exposing
     , jobBuildId
     , jobId
     , jobName
+    , jsonDecodeError
     , leftClickEvent
     , longJobBuildId
     , pipeline
@@ -55,6 +56,7 @@ import Concourse.BuildStatus as BuildStatus
 import Dashboard.Group.Models
 import Dict exposing (Dict)
 import Http
+import Json.Decode
 import Json.Encode
 import Test.Html.Event as Event
 import Time
@@ -496,3 +498,8 @@ leftClickEvent =
             , ( "shiftKey", Json.Encode.bool False )
             , ( "button", Json.Encode.int 0 )
             ]
+
+
+jsonDecodeError : Result Json.Decode.Error a
+jsonDecodeError =
+    Json.Decode.decodeString (Json.Decode.fail "failed") ""

@@ -551,7 +551,9 @@ handleDeliveryBody delivery ( model, effects ) =
 
         ListAllJobsEventsReceived (Err _) ->
             -- Fallback to polling
-            ( { model | isWatchingListAllJobs = False }, effects ++ [ FetchAllJobs ] )
+            ( { model | isWatchingListAllJobs = False }
+            , effects ++ [ FetchAllJobs, CloseListAllJobsEventStream ]
+            )
 
         _ ->
             ( model, effects )
@@ -565,7 +567,9 @@ handleListAllJobsEnvelope { data } ( model, effects ) =
 
         NetworkError ->
             -- Fallback to polling
-            ( { model | isWatchingListAllJobs = False }, effects ++ [ FetchAllJobs ] )
+            ( { model | isWatchingListAllJobs = False }
+            , effects ++ [ FetchAllJobs, CloseListAllJobsEventStream ]
+            )
 
         Event (Initial allJobsInEntireCluster) ->
             let
