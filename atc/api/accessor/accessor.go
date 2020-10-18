@@ -3,6 +3,7 @@ package accessor
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -28,6 +29,7 @@ type Claims struct {
 	UserName  string
 	Email     string
 	Connector string
+	Expiry    time.Time
 }
 
 type Verification struct {
@@ -63,7 +65,6 @@ func NewAccessor(
 	a.computeTeamRoles()
 	return a
 }
-
 
 func (a *access) computeTeamRoles() {
 	a.teamRoles = map[string][]string{}
@@ -223,6 +224,14 @@ func (a *access) connectorID() string {
 	return a.federatedClaim("connector_id")
 }
 
+func (a *access) expiry() time.Time {
+	unixTime, ok := a.claims()["exp"].(float64)
+	if !ok {
+		return time.Unix(0, 0)
+	}
+	return time.Unix(int64(unixTime), 0)
+}
+
 func (a *access) groups() []string {
 	groups := []string{}
 	if raw, ok := a.claims()["groups"]; ok {
@@ -264,5 +273,6 @@ func (a *access) Claims() Claims {
 		UserID:    a.userID(),
 		UserName:  a.UserName(),
 		Connector: a.connectorID(),
+		Expiry:    a.expiry(),
 	}
 }

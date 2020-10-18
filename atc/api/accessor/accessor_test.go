@@ -1,6 +1,8 @@
 package accessor_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -565,7 +567,7 @@ var _ = Describe("Accessor", func() {
 			})
 
 			It("returns empty", func() {
-				Expect(result).To(Equal(accessor.Claims{}))
+				Expect(result).To(Equal(accessor.Claims{Expiry: time.Unix(0, 0)}))
 			})
 		})
 
@@ -576,7 +578,7 @@ var _ = Describe("Accessor", func() {
 			})
 
 			It("returns empty", func() {
-				Expect(result).To(Equal(accessor.Claims{}))
+				Expect(result).To(Equal(accessor.Claims{Expiry: time.Unix(0, 0)}))
 			})
 		})
 
@@ -586,6 +588,7 @@ var _ = Describe("Accessor", func() {
 				verification.IsTokenValid = true
 				verification.RawClaims = map[string]interface{}{
 					"sub":   "some-sub",
+					"exp":   1234.0,
 					"name":  "some-name",
 					"email": "some-email",
 					"federated_claims": map[string]interface{}{
@@ -599,6 +602,7 @@ var _ = Describe("Accessor", func() {
 			It("returns the result", func() {
 				Expect(result).To(Equal(accessor.Claims{
 					Sub:       "some-sub",
+					Expiry:    time.Unix(1234, 0),
 					Name:      "some-name",
 					Email:     "some-email",
 					UserID:    "some-id",
@@ -643,6 +647,7 @@ var _ = Describe("Accessor", func() {
 				verification.IsTokenValid = true
 				verification.RawClaims = map[string]interface{}{
 					"sub":   "some-sub",
+					"exp":   1234.0,
 					"name":  "some-name",
 					"email": "some-email",
 					"federated_claims": map[string]interface{}{

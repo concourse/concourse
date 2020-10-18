@@ -26,7 +26,9 @@ func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {
 	var watchEventsChan <-chan []watch.JobSummaryEvent
 	if watchMode {
 		var err error
-		watchEventsChan, err = s.listAllJobsWatcher.WatchListAllJobs(r.Context())
+		ctx, cancel := context.WithDeadline(r.Context(), acc.Claims().Expiry)
+		defer cancel()
+		watchEventsChan, err = s.listAllJobsWatcher.WatchListAllJobs(ctx)
 		if err == watch.ErrDisabled {
 			http.Error(w, "ListAllJobs watch endpoint is not enabled", http.StatusNotAcceptable)
 			return

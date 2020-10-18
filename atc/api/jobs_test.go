@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/watch"
@@ -356,6 +357,17 @@ var _ = Describe("Jobs API", func() {
 					},
 				}),
 			}))
+		})
+
+		Describe("session expiry", func() {
+			BeforeEach(func() {
+				fakeAccess.ClaimsReturns(accessor.Claims{Expiry: time.Now().Add(10 * time.Millisecond)})
+			})
+
+			It("expires the watch session when the user's claims expire", func() {
+				ctx := fakeListAllJobsWatcher.WatchListAllJobsArgsForCall(0)
+				Eventually(ctx.Done()).Should(BeClosed())
+			})
 		})
 
 		Context("when the user is not authorized to the team", func() {
