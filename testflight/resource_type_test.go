@@ -77,7 +77,7 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 			setAndUnpausePipeline("fixtures/resource-type-defaults.yml", "-v", "hash="+hash)
 		})
 
-		FIt("applies the defaults for check, get, and put steps", func() {
+		It("applies the defaults for check, get, and put steps", func() {
 			check := fly("check-resource", "-r", inPipeline("some-resource"))
 			Expect(check).To(gbytes.Say("defaulted"))
 
