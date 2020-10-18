@@ -10,11 +10,12 @@ import Data
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message as Message exposing (DropTarget(..))
-import Message.Subscription as Subscription exposing (Delivery(..))
+import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as TopLevelMessage
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (class, containing, text)
+import Time
 import Url
 
 
@@ -163,7 +164,7 @@ all =
                         )
                     |> Tuple.second
                     |> Common.contains (SaveCachedJobs [ Data.job 0 0 ])
-        , test "saves jobs to cache when patch event received from event stream" <|
+        , test "saves jobs to cache after 5 seconds when patch event received from event stream" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
                     |> Application.handleDelivery
@@ -181,8 +182,37 @@ all =
                                             [ Put 1 (Data.job 1 0 |> Data.withName "other-job") ]
                                 ]
                         )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked FiveSeconds <| Time.millisToPosix 1000)
                     |> Tuple.second
                     |> Common.contains (SaveCachedJobs [ Data.job 0 0, Data.job 1 0 |> Data.withName "other-job" ])
+        , test "doesn't save to cache on tick when no patch events received" <|
+            \_ ->
+                whenOnDashboard { highDensity = False }
+                    |> Application.handleDelivery
+                        (ListAllJobsEventsReceived <|
+                            Ok <|
+                                [ envelope <| Event <| Initial [ Data.job 0 0 ] ]
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ListAllJobsEventsReceived <|
+                            Ok <|
+                                [ envelope <|
+                                    Event <|
+                                        Patch
+                                            [ Put 1 (Data.job 1 0 |> Data.withName "other-job") ]
+                                ]
+                        )
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked FiveSeconds <| Time.millisToPosix 1000)
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (ClockTicked FiveSeconds <| Time.millisToPosix 1000)
+                    |> Tuple.second
+                    |> Common.notContains (SaveCachedJobs [ Data.job 0 0, Data.job 1 0 |> Data.withName "other-job" ])
         , test "removes build information from jobs when saving to cache" <|
             \_ ->
                 let

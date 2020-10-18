@@ -112,6 +112,7 @@ init f =
       , dragState = Models.NotDragging
       , dropState = Models.NotDropping
       , isWatchingListAllJobs = True
+      , isJobsCacheDirty = False
       , isJobsRequestFinished = False
       , isTeamsRequestFinished = False
       , isResourcesRequestFinished = False
@@ -480,6 +481,20 @@ handleDeliveryBody delivery ( model, effects ) =
         ClockTicked OneSecond time ->
             ( { model | now = Just time, effectsToRetry = [] }, model.effectsToRetry )
 
+        ClockTicked FiveSeconds _ ->
+            if model.isJobsCacheDirty then
+                ( { model | isJobsCacheDirty = False }
+                , effects
+                    ++ [ model.jobs
+                            |> FetchResult.withDefault Dict.empty
+                            |> Dict.values
+                            |> saveCachedJobs
+                       ]
+                )
+
+            else
+                ( model, effects )
+
         WindowResized _ _ ->
             ( model, effects ++ [ GetViewportOf Dashboard ] )
 
@@ -591,13 +606,8 @@ handleListAllJobsEnvelope { data } ( model, effects ) =
                 |> List.reverse
                 |> List.foldr handleListAllJobsUpdate ( model, effects )
                 |> (\( model_, effects_ ) ->
-                        ( model_
+                        ( { model_ | isJobsCacheDirty = True }
                         , effects_
-                            ++ [ model_.jobs
-                                    |> FetchResult.withDefault Dict.empty
-                                    |> Dict.values
-                                    |> saveCachedJobs
-                               ]
                         )
                    )
 

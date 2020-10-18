@@ -33,6 +33,7 @@ type alias Model =
             , dragState : DragState
             , dropState : DropState
             , isWatchingListAllJobs : Bool
+            , isJobsCacheDirty : Bool
             , isJobsRequestFinished : Bool
             , isTeamsRequestFinished : Bool
             , isPipelinesRequestFinished : Bool
