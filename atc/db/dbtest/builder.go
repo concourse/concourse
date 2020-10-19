@@ -67,26 +67,22 @@ func (builder Builder) WithTeam(teamName string) SetupFunc {
 
 func (builder Builder) WithWorker(worker atc.Worker) SetupFunc {
 	return func(scenario *Scenario) error {
-		w, err := builder.WorkerFactory.SaveWorker(worker, 0)
-		if err != nil {
-			return err
-		}
-
-		scenario.Workers = append(scenario.Workers, w)
-		return nil
-	}
-}
-
-func (builder Builder) WithTeamWorker(worker atc.Worker) SetupFunc {
-	return func(scenario *Scenario) error {
-		if scenario.Team == nil {
-			err := builder.WithTeam(unique("team"))(scenario)
+		var w db.Worker
+		var err error
+		if worker.Team != "" {
+			team, found, err := builder.TeamFactory.FindTeam(worker.Team)
 			if err != nil {
-				return fmt.Errorf("bootstrap team: %w", err)
+				return err
 			}
-		}
 
-		w, err := scenario.Team.SaveWorker(worker, 0)
+			if !found {
+				return fmt.Errorf("team does not exist: %s", worker.Team)
+			}
+
+			w, err = team.SaveWorker(worker, 0)
+		} else {
+			w, err = builder.WorkerFactory.SaveWorker(worker, 0)
+		}
 		if err != nil {
 			return err
 		}

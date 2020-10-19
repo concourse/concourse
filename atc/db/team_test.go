@@ -487,14 +487,6 @@ var _ = Describe("Team", func() {
 			var resourceContainer db.Container
 
 			BeforeEach(func() {
-				atcWorker := atc.Worker{
-					ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
-					Name:            "default-team-worker",
-					GardenAddr:      "3.4.5.6:7777",
-					BaggageclaimURL: "7.8.9.10:7878",
-					Team:            "some-test-team",
-				}
-
 				scenario = dbtest.Setup(
 					builder.WithTeam("some-test-team"),
 					builder.WithPipeline(atc.Config{
@@ -522,7 +514,13 @@ var _ = Describe("Team", func() {
 							},
 						},
 					}),
-					builder.WithTeamWorker(atcWorker),
+					builder.WithWorker(atc.Worker{
+						Name:            "default-team-worker",
+						Team:            "some-test-team",
+						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
+						GardenAddr:      "3.4.5.6:7777",
+						BaggageclaimURL: "7.8.9.10:7878",
+					}),
 					builder.WithResourceVersions("some-resource"),
 				)
 
@@ -563,14 +561,6 @@ var _ = Describe("Team", func() {
 				)
 
 				BeforeEach(func() {
-					atcWorker := atc.Worker{
-						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
-						Name:            "other-team-worker",
-						GardenAddr:      "4.5.6.7:7777",
-						BaggageclaimURL: "8.9.10.11:7878",
-						Team:            "other-team",
-					}
-
 					otherScenario = dbtest.Setup(
 						builder.WithTeam("other-team"),
 						builder.WithPipeline(atc.Config{
@@ -598,7 +588,13 @@ var _ = Describe("Team", func() {
 								},
 							},
 						}),
-						builder.WithTeamWorker(atcWorker),
+						builder.WithWorker(atc.Worker{
+							Name:            "other-team-worker",
+							Team:            "other-team",
+							ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
+							GardenAddr:      "4.5.6.7:7777",
+							BaggageclaimURL: "8.9.10.11:7878",
+						}),
 						builder.WithResourceVersions("some-resource"),
 					)
 
