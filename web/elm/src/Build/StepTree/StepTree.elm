@@ -869,7 +869,7 @@ viewInitializationToggle step =
          , onMouseEnter <| Hover (Just domId)
          , id (toHtmlID domId)
          ]
-            ++ Styles.imageStepsToggle step.initializationExpanded
+            ++ Styles.initializationToggle step.initializationExpanded
         )
         [ Icon.icon
             { sizePx = 14

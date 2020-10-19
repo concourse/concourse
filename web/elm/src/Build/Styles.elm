@@ -11,7 +11,7 @@ module Build.Styles exposing
     , header
     , historyItem
     , imageSteps
-    , imageStepsToggle
+    , initializationToggle
     , metadataCell
     , metadataTable
     , retryTabList
@@ -183,30 +183,28 @@ stepHeader : StepState -> List (Html.Attribute msg)
 stepHeader state =
     [ style "display" "flex"
     , style "justify-content" "space-between"
-    , style "box-shadow" <|
-        "inset 0 0 0 1px "
-            ++ (case state of
-                    StepStateFailed ->
-                        Colors.failure
+    , style "border-color" <|
+        case state of
+            StepStateFailed ->
+                Colors.failure
 
-                    StepStateErrored ->
-                        Colors.error
+            StepStateErrored ->
+                Colors.error
 
-                    StepStatePending ->
-                        "transparent"
+            StepStatePending ->
+                "transparent"
 
-                    StepStateRunning ->
-                        Colors.started
+            StepStateRunning ->
+                Colors.started
 
-                    StepStateInterrupted ->
-                        "transparent"
+            StepStateInterrupted ->
+                "transparent"
 
-                    StepStateCancelled ->
-                        "transparent"
+            StepStateCancelled ->
+                "transparent"
 
-                    StepStateSucceeded ->
-                        "transparent"
-               )
+            StepStateSucceeded ->
+                "transparent"
     ]
 
 
@@ -345,8 +343,8 @@ imageSteps =
     ]
 
 
-imageStepsToggle : Bool -> List (Html.Attribute msg)
-imageStepsToggle expanded =
+initializationToggle : Bool -> List (Html.Attribute msg)
+initializationToggle expanded =
     [ style "color" <|
         if expanded then
             Colors.text
