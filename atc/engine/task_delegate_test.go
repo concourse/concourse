@@ -1,4 +1,4 @@
-package builder_test
+package engine_test
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/engine/builder"
+	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"github.com/concourse/concourse/vars"
@@ -46,7 +46,7 @@ var _ = Describe("TaskDelegate", func() {
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)
 
-		delegate = builder.NewTaskDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker)
+		delegate = engine.NewTaskDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker)
 		delegate.SetTaskConfig(atc.TaskConfig{
 			Platform: "some-platform",
 			Run: atc.TaskRunConfig{

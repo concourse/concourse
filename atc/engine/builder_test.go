@@ -1,4 +1,4 @@
-package builder_test
+package engine_test
 
 import (
 	"github.com/concourse/concourse/atc"
@@ -6,8 +6,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine"
-	"github.com/concourse/concourse/atc/engine/builder"
-	"github.com/concourse/concourse/atc/engine/builder/builderfakes"
+	"github.com/concourse/concourse/atc/engine/enginefakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
 	. "github.com/onsi/ginkgo"
@@ -21,8 +20,8 @@ var _ = Describe("Builder", func() {
 		var (
 			err error
 
-			fakeCoreStepFactory *builderfakes.FakeCoreStepFactory
-			fakeRateLimiter     *builderfakes.FakeRateLimiter
+			fakeCoreStepFactory *enginefakes.FakeCoreStepFactory
+			fakeRateLimiter     *enginefakes.FakeRateLimiter
 			fakePolicyChecker   *policyfakes.FakeChecker
 
 			planFactory    atc.PlanFactory
@@ -30,11 +29,11 @@ var _ = Describe("Builder", func() {
 		)
 
 		BeforeEach(func() {
-			fakeCoreStepFactory = new(builderfakes.FakeCoreStepFactory)
-			fakeRateLimiter = new(builderfakes.FakeRateLimiter)
+			fakeCoreStepFactory = new(enginefakes.FakeCoreStepFactory)
+			fakeRateLimiter = new(enginefakes.FakeRateLimiter)
 			fakePolicyChecker = new(policyfakes.FakeChecker)
 
-			stepperFactory = builder.NewStepperFactory(
+			stepperFactory = engine.NewStepperFactory(
 				fakeCoreStepFactory,
 				"http://example.com",
 				fakeRateLimiter,

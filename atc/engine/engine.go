@@ -34,12 +34,6 @@ type Runnable interface {
 	Run(context.Context)
 }
 
-//go:generate counterfeiter . StepperFactory
-
-type StepperFactory interface {
-	StepperForBuild(db.Build) (exec.Stepper, error)
-}
-
 func NewEngine(
 	stepperFactory StepperFactory,
 	secrets creds.Secrets,
