@@ -25,21 +25,18 @@ func OnFailure(firstStep Step, secondStep Step) OnFailureStep {
 //
 // If the first step fails (that is, its Success result is false), the second
 // step is executed. If the second step errors, its error is returned.
-func (o OnFailureStep) Run(ctx context.Context, state RunState) error {
-	err := o.step.Run(ctx, state)
+func (o OnFailureStep) Run(ctx context.Context, state RunState) (bool, error) {
+	ok, err := o.step.Run(ctx, state)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	if !o.step.Succeeded() {
-		return o.hook.Run(ctx, state)
+	if !ok {
+		_, err := o.hook.Run(ctx, state)
+		if err != nil {
+			return false, err
+		}
 	}
 
-	return nil
-}
-
-// Succeeded is true if the first step doesn't exist, or if it
-// completed successfully.
-func (o OnFailureStep) Succeeded() bool {
-	return o.step.Succeeded()
+	return ok, nil
 }

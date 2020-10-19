@@ -45,8 +45,7 @@ type GetDelegateFactory interface {
 type GetDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
-	ImageVersionDetermined(db.UsedResourceCache) error
-	RedactImageSource(source atc.Source) (atc.Source, error)
+	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -72,7 +71,6 @@ type GetStep struct {
 	strategy             worker.ContainerPlacementStrategy
 	workerClient         worker.Client
 	delegateFactory      GetDelegateFactory
-	succeeded            bool
 }
 
 func NewGetStep(
@@ -99,20 +97,20 @@ func NewGetStep(
 	}
 }
 
-func (step *GetStep) Run(ctx context.Context, state RunState) error {
+func (step *GetStep) Run(ctx context.Context, state RunState) (bool, error) {
 	delegate := step.delegateFactory.GetDelegate(state)
 	ctx, span := delegate.StartSpan(ctx, "get", tracing.Attrs{
 		"name":     step.plan.Name,
 		"resource": step.plan.Resource,
 	})
 
-	err := step.run(ctx, state, delegate)
+	ok, err := step.run(ctx, state, delegate)
 	tracing.End(span, err)
 
-	return err
+	return ok, err
 }
 
-func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelegate) error {
+func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelegate) (bool, error) {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("get-step", lager.Data{
 		"step-name": step.plan.Name,
@@ -122,44 +120,58 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	params, err := creds.NewParams(state, step.plan.Params).Evaluate()
 	if err != nil {
-		return err
+		return false, err
+	}
+
+	workerSpec := worker.WorkerSpec{
+		Tags:   step.plan.Tags,
+		TeamID: step.metadata.TeamID,
+	}
+
+	var imageSpec worker.ImageSpec
+	resourceType, found := step.plan.VersionedResourceTypes.Lookup(step.plan.Type)
+	if found {
+		image := atc.ImageResource{
+			Name:    resourceType.Name,
+			Type:    resourceType.Type,
+			Source:  resourceType.Source,
+			Params:  resourceType.Params,
+			Version: resourceType.Version,
+		}
+
+		types := step.plan.VersionedResourceTypes.Without(step.plan.Type)
+
+		var err error
+		imageSpec, err = delegate.FetchImage(ctx, image, types, resourceType.Privileged)
+		if err != nil {
+			return false, err
+		}
+	} else {
+		imageSpec.ResourceType = step.plan.Type
+		workerSpec.ResourceType = step.plan.Type
 	}
 
 	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	version, err := NewVersionSourceFromPlan(&step.plan).Version(state)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	containerSpec := worker.ContainerSpec{
-		ImageSpec: worker.ImageSpec{
-			ResourceType: step.plan.Type,
-		},
-		TeamID: step.metadata.TeamID,
-		Env:    step.metadata.Env(),
+		ImageSpec: imageSpec,
+		TeamID:    step.metadata.TeamID,
+		Env:       step.metadata.Env(),
 	}
 	tracing.Inject(ctx, &containerSpec)
-
-	workerSpec := worker.WorkerSpec{
-		ResourceType:  step.plan.Type,
-		Tags:          step.plan.Tags,
-		TeamID:        step.metadata.TeamID,
-		ResourceTypes: resourceTypes,
-	}
-
-	imageSpec := worker.ImageFetcherSpec{
-		ResourceTypes: resourceTypes,
-		Delegate:      delegate,
-	}
 
 	resourceCache, err := step.resourceCacheFactory.FindOrCreateResourceCache(
 		db.ForBuild(step.metadata.BuildID),
@@ -171,7 +183,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	)
 	if err != nil {
 		logger.Error("failed-to-create-resource-cache", err)
-		return err
+		return false, err
 	}
 
 	processSpec := runtime.ProcessSpec{
@@ -197,17 +209,19 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		workerSpec,
 		step.strategy,
 		step.containerMetadata,
-		imageSpec,
 		processSpec,
 		delegate,
 		resourceCache,
 		resourceToGet,
 	)
 	if err != nil {
-		return err
+		return false, err
 	}
 
+	var succeeded bool
 	if getResult.ExitStatus == 0 {
+		state.StoreResult(step.planID, resourceCache)
+
 		state.ArtifactRepository().RegisterArtifact(
 			build.ArtifactName(step.plan.Name),
 			getResult.GetArtifact,
@@ -217,7 +231,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 			delegate.UpdateVersion(logger, step.plan, getResult.VersionResult)
 		}
 
-		step.succeeded = true
+		succeeded = true
 	}
 
 	delegate.Finished(
@@ -226,10 +240,5 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		getResult.VersionResult,
 	)
 
-	return nil
-}
-
-// Succeeded returns true if the resource was successfully fetched.
-func (step *GetStep) Succeeded() bool {
-	return step.succeeded
+	return succeeded, nil
 }

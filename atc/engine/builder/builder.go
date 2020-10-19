@@ -3,8 +3,6 @@ package builder
 import (
 	"encoding/json"
 
-	"code.cloudfoundry.org/lager"
-
 	"errors"
 	"strconv"
 	"strings"
@@ -12,6 +10,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/policy"
 )
 
 const supportedSchema = "exec.v2"
@@ -33,34 +32,35 @@ func NewStepBuilder(
 	stepFactory StepFactory,
 	externalURL string,
 	rateLimiter RateLimiter,
-) *stepBuilder {
-	return &stepBuilder{
-		stepFactory: stepFactory,
-		externalURL: externalURL,
-		rateLimiter: rateLimiter,
+	policyChecker policy.Checker,
+) *StepBuilder {
+	return &StepBuilder{
+		stepFactory:   stepFactory,
+		externalURL:   externalURL,
+		rateLimiter:   rateLimiter,
+		policyChecker: policyChecker,
 	}
 }
 
-type stepBuilder struct {
+type StepBuilder struct {
 	stepFactory     StepFactory
 	delegateFactory DelegateFactory
 	externalURL     string
 	rateLimiter     RateLimiter
+	policyChecker   policy.Checker
 }
 
-func (builder *stepBuilder) BuildStep(logger lager.Logger, build db.Build) (exec.Step, error) {
-	if build == nil {
-		return exec.IdentityStep{}, errors.New("must provide a build")
-	}
-
+func (builder *StepBuilder) BuildStepper(build db.Build) (exec.Stepper, error) {
 	if build.Schema() != supportedSchema {
-		return exec.IdentityStep{}, errors.New("schema not supported")
+		return nil, errors.New("schema not supported")
 	}
 
-	return builder.buildStep(build, build.PrivatePlan()), nil
+	return func(plan atc.Plan) exec.Step {
+		return builder.buildStep(build, plan)
+	}, nil
 }
 
-func (builder *stepBuilder) buildStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildStep(build db.Build, plan atc.Plan) exec.Step {
 	if plan.Aggregate != nil {
 		return builder.buildAggregateStep(build, plan)
 	}
@@ -144,7 +144,7 @@ func (builder *stepBuilder) buildStep(build db.Build, plan atc.Plan) exec.Step {
 	return exec.IdentityStep{}
 }
 
-func (builder *stepBuilder) buildAggregateStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildAggregateStep(build db.Build, plan atc.Plan) exec.Step {
 
 	agg := exec.AggregateStep{}
 
@@ -157,7 +157,7 @@ func (builder *stepBuilder) buildAggregateStep(build db.Build, plan atc.Plan) ex
 	return agg
 }
 
-func (builder *stepBuilder) buildParallelStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildParallelStep(build db.Build, plan atc.Plan) exec.Step {
 
 	var steps []exec.Step
 
@@ -170,7 +170,7 @@ func (builder *stepBuilder) buildParallelStep(build db.Build, plan atc.Plan) exe
 	return exec.InParallel(steps, plan.InParallel.Limit, plan.InParallel.FailFast)
 }
 
-func (builder *stepBuilder) buildAcrossStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildAcrossStep(build db.Build, plan atc.Plan) exec.Step {
 	stepMetadata := builder.stepMetadata(
 		build,
 		builder.externalURL,
@@ -188,12 +188,12 @@ func (builder *stepBuilder) buildAcrossStep(build db.Build, plan atc.Plan) exec.
 		plan.Across.Vars,
 		steps,
 		plan.Across.FailFast,
-		buildDelegateFactory(build, plan, builder.rateLimiter),
+		buildDelegateFactory(build, plan, builder.rateLimiter, builder.policyChecker),
 		stepMetadata,
 	)
 }
 
-func (builder *stepBuilder) buildDoStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildDoStep(build db.Build, plan atc.Plan) exec.Step {
 	var step exec.Step = exec.IdentityStep{}
 
 	for i := len(*plan.Do) - 1; i >= 0; i-- {
@@ -206,21 +206,21 @@ func (builder *stepBuilder) buildDoStep(build db.Build, plan atc.Plan) exec.Step
 	return step
 }
 
-func (builder *stepBuilder) buildTimeoutStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildTimeoutStep(build db.Build, plan atc.Plan) exec.Step {
 	innerPlan := plan.Timeout.Step
 	innerPlan.Attempts = plan.Attempts
 	step := builder.buildStep(build, innerPlan)
 	return exec.Timeout(step, plan.Timeout.Duration)
 }
 
-func (builder *stepBuilder) buildTryStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildTryStep(build db.Build, plan atc.Plan) exec.Step {
 	innerPlan := plan.Try.Step
 	innerPlan.Attempts = plan.Attempts
 	step := builder.buildStep(build, innerPlan)
 	return exec.Try(step)
 }
 
-func (builder *stepBuilder) buildOnAbortStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildOnAbortStep(build db.Build, plan atc.Plan) exec.Step {
 	plan.OnAbort.Step.Attempts = plan.Attempts
 	step := builder.buildStep(build, plan.OnAbort.Step)
 	plan.OnAbort.Next.Attempts = plan.Attempts
@@ -228,7 +228,7 @@ func (builder *stepBuilder) buildOnAbortStep(build db.Build, plan atc.Plan) exec
 	return exec.OnAbort(step, next)
 }
 
-func (builder *stepBuilder) buildOnErrorStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildOnErrorStep(build db.Build, plan atc.Plan) exec.Step {
 	plan.OnError.Step.Attempts = plan.Attempts
 	step := builder.buildStep(build, plan.OnError.Step)
 	plan.OnError.Next.Attempts = plan.Attempts
@@ -236,7 +236,7 @@ func (builder *stepBuilder) buildOnErrorStep(build db.Build, plan atc.Plan) exec
 	return exec.OnError(step, next)
 }
 
-func (builder *stepBuilder) buildOnSuccessStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildOnSuccessStep(build db.Build, plan atc.Plan) exec.Step {
 	plan.OnSuccess.Step.Attempts = plan.Attempts
 	step := builder.buildStep(build, plan.OnSuccess.Step)
 	plan.OnSuccess.Next.Attempts = plan.Attempts
@@ -244,7 +244,7 @@ func (builder *stepBuilder) buildOnSuccessStep(build db.Build, plan atc.Plan) ex
 	return exec.OnSuccess(step, next)
 }
 
-func (builder *stepBuilder) buildOnFailureStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildOnFailureStep(build db.Build, plan atc.Plan) exec.Step {
 	plan.OnFailure.Step.Attempts = plan.Attempts
 	step := builder.buildStep(build, plan.OnFailure.Step)
 	plan.OnFailure.Next.Attempts = plan.Attempts
@@ -252,7 +252,7 @@ func (builder *stepBuilder) buildOnFailureStep(build db.Build, plan atc.Plan) ex
 	return exec.OnFailure(step, next)
 }
 
-func (builder *stepBuilder) buildEnsureStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildEnsureStep(build db.Build, plan atc.Plan) exec.Step {
 	plan.Ensure.Step.Attempts = plan.Attempts
 	step := builder.buildStep(build, plan.Ensure.Step)
 	plan.Ensure.Next.Attempts = plan.Attempts
@@ -260,7 +260,7 @@ func (builder *stepBuilder) buildEnsureStep(build db.Build, plan atc.Plan) exec.
 	return exec.Ensure(step, next)
 }
 
-func (builder *stepBuilder) buildRetryStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildRetryStep(build db.Build, plan atc.Plan) exec.Step {
 	steps := []exec.Step{}
 
 	for index, innerPlan := range *plan.Retry {
@@ -273,7 +273,7 @@ func (builder *stepBuilder) buildRetryStep(build db.Build, plan atc.Plan) exec.S
 	return exec.Retry(steps...)
 }
 
-func (builder *stepBuilder) buildGetStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildGetStep(build db.Build, plan atc.Plan) exec.Step {
 
 	containerMetadata := builder.containerMetadata(
 		build,
@@ -291,11 +291,11 @@ func (builder *stepBuilder) buildGetStep(build db.Build, plan atc.Plan) exec.Ste
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan, builder.rateLimiter),
+		buildDelegateFactory(build, plan, builder.rateLimiter, builder.policyChecker),
 	)
 }
 
-func (builder *stepBuilder) buildPutStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildPutStep(build db.Build, plan atc.Plan) exec.Step {
 
 	containerMetadata := builder.containerMetadata(
 		build,
@@ -313,11 +313,11 @@ func (builder *stepBuilder) buildPutStep(build db.Build, plan atc.Plan) exec.Ste
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan, builder.rateLimiter),
+		buildDelegateFactory(build, plan, builder.rateLimiter, builder.policyChecker),
 	)
 }
 
-func (builder *stepBuilder) buildCheckStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildCheckStep(build db.Build, plan atc.Plan) exec.Step {
 	containerMetadata := builder.containerMetadata(
 		build,
 		db.ContainerTypeCheck,
@@ -334,11 +334,11 @@ func (builder *stepBuilder) buildCheckStep(build db.Build, plan atc.Plan) exec.S
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan, builder.rateLimiter),
+		buildDelegateFactory(build, plan, builder.rateLimiter, builder.policyChecker),
 	)
 }
 
-func (builder *stepBuilder) buildTaskStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildTaskStep(build db.Build, plan atc.Plan) exec.Step {
 
 	containerMetadata := builder.containerMetadata(
 		build,
@@ -356,11 +356,11 @@ func (builder *stepBuilder) buildTaskStep(build db.Build, plan atc.Plan) exec.St
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan, builder.rateLimiter),
+		buildDelegateFactory(build, plan, builder.rateLimiter, builder.policyChecker),
 	)
 }
 
-func (builder *stepBuilder) buildSetPipelineStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildSetPipelineStep(build db.Build, plan atc.Plan) exec.Step {
 
 	stepMetadata := builder.stepMetadata(
 		build,
@@ -370,11 +370,11 @@ func (builder *stepBuilder) buildSetPipelineStep(build db.Build, plan atc.Plan) 
 	return builder.stepFactory.SetPipelineStep(
 		plan,
 		stepMetadata,
-		buildDelegateFactory(build, plan, builder.rateLimiter),
+		buildDelegateFactory(build, plan, builder.rateLimiter, builder.policyChecker),
 	)
 }
 
-func (builder *stepBuilder) buildLoadVarStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildLoadVarStep(build db.Build, plan atc.Plan) exec.Step {
 
 	stepMetadata := builder.stepMetadata(
 		build,
@@ -384,25 +384,25 @@ func (builder *stepBuilder) buildLoadVarStep(build db.Build, plan atc.Plan) exec
 	return builder.stepFactory.LoadVarStep(
 		plan,
 		stepMetadata,
-		buildDelegateFactory(build, plan, builder.rateLimiter),
+		buildDelegateFactory(build, plan, builder.rateLimiter, builder.policyChecker),
 	)
 }
 
-func (builder *stepBuilder) buildArtifactInputStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildArtifactInputStep(build db.Build, plan atc.Plan) exec.Step {
 	return builder.stepFactory.ArtifactInputStep(
 		plan,
 		build,
 	)
 }
 
-func (builder *stepBuilder) buildArtifactOutputStep(build db.Build, plan atc.Plan) exec.Step {
+func (builder *StepBuilder) buildArtifactOutputStep(build db.Build, plan atc.Plan) exec.Step {
 	return builder.stepFactory.ArtifactOutputStep(
 		plan,
 		build,
 	)
 }
 
-func (builder *stepBuilder) containerMetadata(
+func (builder *StepBuilder) containerMetadata(
 	build db.Build,
 	containerType db.ContainerType,
 	stepName string,
@@ -436,7 +436,7 @@ func (builder *stepBuilder) containerMetadata(
 	}
 }
 
-func (builder *stepBuilder) stepMetadata(
+func (builder *StepBuilder) stepMetadata(
 	build db.Build,
 	externalURL string,
 ) exec.StepMetadata {

@@ -18,14 +18,16 @@ import (
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/engine/builder/builderfakes"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("CheckDelegate", func() {
 	var (
-		fakeBuild       *dbfakes.FakeBuild
-		fakeClock       *fakeclock.FakeClock
-		fakeRateLimiter *builderfakes.FakeRateLimiter
+		fakeBuild         *dbfakes.FakeBuild
+		fakeClock         *fakeclock.FakeClock
+		fakeRateLimiter   *builderfakes.FakeRateLimiter
+		fakePolicyChecker *policyfakes.FakeChecker
 
 		state exec.RunState
 
@@ -46,14 +48,16 @@ var _ = Describe("CheckDelegate", func() {
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
 		}
-		state = exec.NewRunState(credVars, true)
+		state = exec.NewRunState(noopStepper, credVars, true)
 
 		plan = atc.Plan{
 			ID:    "some-plan-id",
 			Check: &atc.CheckPlan{},
 		}
 
-		delegate = builder.NewCheckDelegate(fakeBuild, plan, state, fakeClock, fakeRateLimiter)
+		fakePolicyChecker = new(policyfakes.FakeChecker)
+
+		delegate = builder.NewCheckDelegate(fakeBuild, plan, state, fakeClock, fakeRateLimiter, fakePolicyChecker)
 
 		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 		fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)

@@ -22,6 +22,9 @@ var _ = Describe("Try Step", func() {
 		state *execfakes.FakeRunState
 
 		step Step
+
+		stepOk  bool
+		stepErr error
 	)
 
 	BeforeEach(func() {
@@ -36,47 +39,44 @@ var _ = Describe("Try Step", func() {
 		step = Try(runStep)
 	})
 
+	JustBeforeEach(func() {
+		stepOk, stepErr = step.Run(ctx, state)
+	})
+
 	AfterEach(func() {
 		cancel()
 	})
 
-	Describe("Succeeded", func() {
-		It("returns true", func() {
-			Expect(step.Succeeded()).Should(BeTrue())
+	Context("when the inner step fails", func() {
+		BeforeEach(func() {
+			runStep.RunReturns(false, nil)
+		})
+
+		It("succeeds anyway", func() {
+			Expect(stepErr).NotTo(HaveOccurred())
+			Expect(stepOk).To(BeTrue())
 		})
 	})
 
-	Describe("Run", func() {
-		Context("when interrupted", func() {
-			BeforeEach(func() {
-				runStep.RunReturns(context.Canceled)
-			})
-
-			It("propagates the error", func() {
-				err := step.Run(ctx, state)
-				Expect(err).To(Equal(context.Canceled))
-			})
-
-			It("does not succeed", func() {
-				step.Run(ctx, state)
-				Expect(step.Succeeded()).ShouldNot(BeTrue())
-			})
+	Context("when interrupted", func() {
+		BeforeEach(func() {
+			runStep.RunReturns(false, context.Canceled)
 		})
 
-		Context("when the inner step returns any other error", func() {
-			BeforeEach(func() {
-				runStep.RunReturns(errors.New("some error"))
-			})
+		It("propagates the error and does not succeed", func() {
+			Expect(stepErr).To(Equal(context.Canceled))
+			Expect(stepOk).To(BeFalse())
+		})
+	})
 
-			It("swallows the error", func() {
-				err := step.Run(ctx, state)
-				Expect(err).NotTo(HaveOccurred())
-			})
+	Context("when the inner step returns any other error", func() {
+		BeforeEach(func() {
+			runStep.RunReturns(false, errors.New("some error"))
+		})
 
-			It("succeeds", func() {
-				step.Run(ctx, state)
-				Expect(step.Succeeded()).Should(BeTrue())
-			})
+		It("swallows the error", func() {
+			Expect(stepErr).NotTo(HaveOccurred())
+			Expect(stepOk).To(BeTrue())
 		})
 	})
 })

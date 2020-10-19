@@ -1,22 +1,20 @@
 package builder_test
 
 import (
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/concourse/atc/builds"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/engine/builder/builderfakes"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/policy/policyfakes"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 type StepBuilder interface {
-	BuildStep(lager.Logger, db.Build) (exec.Step, error)
+	BuildStepper(db.Build) (exec.Stepper, error)
 }
 
 var _ = Describe("Builder", func() {
@@ -26,39 +24,27 @@ var _ = Describe("Builder", func() {
 		var (
 			err error
 
-			fakeStepFactory *builderfakes.FakeStepFactory
-			fakeRateLimiter *builderfakes.FakeRateLimiter
+			fakeStepFactory   *builderfakes.FakeStepFactory
+			fakeRateLimiter   *builderfakes.FakeRateLimiter
+			fakePolicyChecker *policyfakes.FakeChecker
 
 			planFactory atc.PlanFactory
 			stepBuilder StepBuilder
-
-			logger lager.Logger
 		)
 
 		BeforeEach(func() {
 			fakeStepFactory = new(builderfakes.FakeStepFactory)
-
 			fakeRateLimiter = new(builderfakes.FakeRateLimiter)
+			fakePolicyChecker = new(policyfakes.FakeChecker)
 
 			stepBuilder = builder.NewStepBuilder(
 				fakeStepFactory,
 				"http://example.com",
 				fakeRateLimiter,
+				fakePolicyChecker,
 			)
 
 			planFactory = atc.NewPlanFactory(123)
-
-			logger = lagertest.NewTestLogger("builder-test")
-		})
-
-		Context("with no build", func() {
-			JustBeforeEach(func() {
-				_, err = stepBuilder.BuildStep(logger, nil)
-			})
-
-			It("errors", func() {
-				Expect(err).To(HaveOccurred())
-			})
 		})
 
 		Context("with a build", func() {
@@ -102,18 +88,13 @@ var _ = Describe("Builder", func() {
 				}
 			})
 
-			JustBeforeEach(func() {
-				fakeBuild.PrivatePlanReturns(expectedPlan)
-
-				_, err = stepBuilder.BuildStep(logger, fakeBuild)
-			})
-
 			Context("when the build has the wrong schema", func() {
 				BeforeEach(func() {
 					fakeBuild.SchemaReturns("not-schema")
 				})
 
 				It("errors", func() {
+					_, err := stepBuilder.BuildStepper(fakeBuild)
 					Expect(err).To(HaveOccurred())
 				})
 			})
@@ -123,8 +104,13 @@ var _ = Describe("Builder", func() {
 					fakeBuild.SchemaReturns("exec.v2")
 				})
 
-				It("always returns a plan", func() {
-					Expect(err).NotTo(HaveOccurred())
+				JustBeforeEach(func() {
+					fakeBuild.PrivatePlanReturns(expectedPlan)
+
+					stepper, err := stepBuilder.BuildStepper(fakeBuild)
+					Expect(err).ToNot(HaveOccurred())
+
+					stepper(fakeBuild.PrivatePlan())
 				})
 
 				Context("with a putget in an aggregate", func() {

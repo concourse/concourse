@@ -45,7 +45,6 @@ var _ = Describe("DBProvider", func() {
 
 		fakeFetcher                         *workerfakes.FakeFetcher
 		fakeImageFactory                    *workerfakes.FakeImageFactory
-		fakeImageFetchingDelegate           *workerfakes.FakeImageFetchingDelegate
 		fakeDBVolumeRepository              *dbfakes.FakeVolumeRepository
 		fakeDBWorkerFactory                 *dbfakes.FakeWorkerFactory
 		fakeDBTeamFactory                   *dbfakes.FakeTeamFactory
@@ -142,7 +141,6 @@ var _ = Describe("DBProvider", func() {
 		fakeImage := new(workerfakes.FakeImage)
 		fakeImage.FetchForContainerReturns(FetchedImage{}, nil)
 		fakeImageFactory.GetImageReturns(fakeImage, nil)
-		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 		fakeDBTeamFactory = new(dbfakes.FakeTeamFactory)
 		fakeDBTeam = new(dbfakes.FakeTeam)
 		fakeDBTeam.IDReturns(1)
@@ -183,7 +181,6 @@ var _ = Describe("DBProvider", func() {
 			wantWorkerVersion,
 			baggageclaimResponseHeaderTimeout,
 			gardenRequestTimeout,
-			nil,
 		)
 		baggageclaimURL = baggageclaimServer.URL()
 	})
@@ -435,11 +432,9 @@ var _ = Describe("DBProvider", func() {
 					container, err := workers[0].FindOrCreateContainer(
 						context.TODO(),
 						logger,
-						fakeImageFetchingDelegate,
 						db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1),
 						db.ContainerMetadata{},
 						containerSpec,
-						nil,
 					)
 					Expect(err).NotTo(HaveOccurred())
 
@@ -501,11 +496,9 @@ var _ = Describe("DBProvider", func() {
 					container, err := workers[0].FindOrCreateContainer(
 						context.TODO(),
 						logger,
-						fakeImageFetchingDelegate,
 						db.NewBuildStepContainerOwner(42, atc.PlanID("some-plan-id"), 1),
 						db.ContainerMetadata{},
 						containerSpec,
-						nil,
 					)
 					Expect(err).NotTo(HaveOccurred())
 

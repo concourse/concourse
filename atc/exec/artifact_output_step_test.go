@@ -23,6 +23,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 		state exec.RunState
 
 		step             exec.Step
+		stepOk           bool
 		stepErr          error
 		plan             atc.Plan
 		fakeBuild        *dbfakes.FakeBuild
@@ -34,7 +35,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
-		state = exec.NewRunState(vars.StaticVariables{}, false)
+		state = exec.NewRunState(noopStepper, vars.StaticVariables{}, false)
 
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeBuild.TeamIDReturns(4)
@@ -52,7 +53,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 		plan = atc.Plan{ArtifactOutput: &atc.ArtifactOutputPlan{Name: artifactName}}
 
 		step = exec.NewArtifactOutputStep(plan, fakeBuild, fakeWorkerClient)
-		stepErr = step.Run(ctx, state)
+		stepOk, stepErr = step.Run(ctx, state)
 	})
 
 	Context("when the source does not exist", func() {
@@ -114,7 +115,7 @@ var _ = Describe("ArtifactOutputStep", func() {
 				})
 
 				It("succeeds", func() {
-					Expect(step.Succeeded()).To(BeTrue())
+					Expect(stepOk).To(BeTrue())
 				})
 			})
 		})

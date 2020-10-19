@@ -47,7 +47,6 @@ type Client interface {
 		WorkerSpec,
 		ContainerPlacementStrategy,
 		db.ContainerMetadata,
-		ImageFetcherSpec,
 		runtime.ProcessSpec,
 		runtime.StartingEventDelegate,
 		resource.Resource,
@@ -62,7 +61,6 @@ type Client interface {
 		WorkerSpec,
 		ContainerPlacementStrategy,
 		db.ContainerMetadata,
-		ImageFetcherSpec,
 		runtime.ProcessSpec,
 		runtime.StartingEventDelegate,
 		lock.LockFactory,
@@ -76,7 +74,6 @@ type Client interface {
 		WorkerSpec,
 		ContainerPlacementStrategy,
 		db.ContainerMetadata,
-		ImageFetcherSpec,
 		runtime.ProcessSpec,
 		runtime.StartingEventDelegate,
 		resource.Resource,
@@ -90,7 +87,6 @@ type Client interface {
 		WorkerSpec,
 		ContainerPlacementStrategy,
 		db.ContainerMetadata,
-		ImageFetcherSpec,
 		runtime.ProcessSpec,
 		runtime.StartingEventDelegate,
 		db.UsedResourceCache,
@@ -139,11 +135,6 @@ type GetResult struct {
 	ExitStatus    int
 	VersionResult runtime.VersionResult
 	GetArtifact   runtime.GetArtifact
-}
-
-type ImageFetcherSpec struct {
-	ResourceTypes atc.VersionedResourceTypes
-	Delegate      ImageFetchingDelegate
 }
 
 type processStatus struct {
@@ -202,12 +193,18 @@ func (client *client) RunCheckStep(
 	workerSpec WorkerSpec,
 	strategy ContainerPlacementStrategy,
 	containerMetadata db.ContainerMetadata,
-	imageFetcherSpec ImageFetcherSpec,
 	processSpec runtime.ProcessSpec,
 	eventDelegate runtime.StartingEventDelegate,
 	checkable resource.Resource,
 	timeout time.Duration,
 ) (CheckResult, error) {
+	if containerSpec.ImageSpec.ImageArtifact != nil {
+		err := client.wireImageVolume(logger, &containerSpec.ImageSpec)
+		if err != nil {
+			return CheckResult{}, err
+		}
+	}
+
 	chosenWorker, err := client.pool.FindOrChooseWorkerForContainer(
 		ctx,
 		logger,
@@ -225,11 +222,9 @@ func (client *client) RunCheckStep(
 	container, err := chosenWorker.FindOrCreateContainer(
 		ctx,
 		logger,
-		imageFetcherSpec.Delegate,
 		owner,
 		containerMetadata,
 		containerSpec,
-		imageFetcherSpec.ResourceTypes,
 	)
 	if err != nil {
 		return CheckResult{}, fmt.Errorf("find or create container: %w", err)
@@ -260,7 +255,6 @@ func (client *client) RunTaskStep(
 	workerSpec WorkerSpec,
 	strategy ContainerPlacementStrategy,
 	metadata db.ContainerMetadata,
-	imageFetcherSpec ImageFetcherSpec,
 	processSpec runtime.ProcessSpec,
 	eventDelegate runtime.StartingEventDelegate,
 	lockFactory lock.LockFactory,
@@ -298,11 +292,9 @@ func (client *client) RunTaskStep(
 	container, err := chosenWorker.FindOrCreateContainer(
 		ctx,
 		logger,
-		imageFetcherSpec.Delegate,
 		owner,
 		metadata,
 		containerSpec,
-		imageFetcherSpec.ResourceTypes,
 	)
 
 	if err != nil {
@@ -415,12 +407,17 @@ func (client *client) RunGetStep(
 	workerSpec WorkerSpec,
 	strategy ContainerPlacementStrategy,
 	containerMetadata db.ContainerMetadata,
-	imageFetcherSpec ImageFetcherSpec,
 	processSpec runtime.ProcessSpec,
 	eventDelegate runtime.StartingEventDelegate,
 	resourceCache db.UsedResourceCache,
 	resource resource.Resource,
 ) (GetResult, error) {
+	if containerSpec.ImageSpec.ImageArtifact != nil {
+		err := client.wireImageVolume(logger, &containerSpec.ImageSpec)
+		if err != nil {
+			return GetResult{}, err
+		}
+	}
 
 	chosenWorker, err := client.pool.FindOrChooseWorkerForContainer(
 		ctx,
@@ -455,7 +452,6 @@ func (client *client) RunGetStep(
 		processSpec,
 		resource,
 		owner,
-		imageFetcherSpec,
 		resourceCache,
 		lockName,
 	)
@@ -470,11 +466,16 @@ func (client *client) RunPutStep(
 	workerSpec WorkerSpec,
 	strategy ContainerPlacementStrategy,
 	metadata db.ContainerMetadata,
-	imageFetcherSpec ImageFetcherSpec,
 	spec runtime.ProcessSpec,
 	eventDelegate runtime.StartingEventDelegate,
 	resource resource.Resource,
 ) (PutResult, error) {
+	if containerSpec.ImageSpec.ImageArtifact != nil {
+		err := client.wireImageVolume(logger, &containerSpec.ImageSpec)
+		if err != nil {
+			return PutResult{}, err
+		}
+	}
 
 	vr := runtime.VersionResult{}
 	err := client.wireInputsAndCaches(logger, &containerSpec)
@@ -499,11 +500,9 @@ func (client *client) RunPutStep(
 	container, err := chosenWorker.FindOrCreateContainer(
 		ctx,
 		logger,
-		imageFetcherSpec.Delegate,
 		owner,
 		metadata,
 		containerSpec,
-		imageFetcherSpec.ResourceTypes,
 	)
 	if err != nil {
 		return PutResult{}, err
@@ -703,7 +702,6 @@ func (client *client) wireInputsAndCaches(logger lager.Logger, spec *ContainerSp
 }
 
 func (client *client) wireImageVolume(logger lager.Logger, spec *ImageSpec) error {
-
 	imageArtifact := spec.ImageArtifact
 
 	artifactVolume, found, err := client.FindVolume(logger, 0, imageArtifact.ID())

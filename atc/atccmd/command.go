@@ -705,7 +705,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
-	policyChecker *policy.Checker,
+	policyChecker policy.Checker,
 ) ([]grouper.Member, error) {
 
 	httpClient, err := cmd.skyHttpClient()
@@ -727,17 +727,10 @@ func (cmd *RunCommand) constructAPIMembers(
 
 	userFactory := db.NewUserFactory(dbConn)
 
-	resourceFactory := resource.NewResourceFactory()
 	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
 	fetchSourceFactory := worker.NewFetchSourceFactory(dbResourceCacheFactory)
 	resourceFetcher := worker.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
-	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
-		resourceFactory,
-		dbResourceCacheFactory,
-		dbResourceConfigFactory,
-		resourceFetcher,
-	)
 
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
 	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
@@ -749,12 +742,13 @@ func (cmd *RunCommand) constructAPIMembers(
 		return nil, err
 	}
 
+	// XXX(substeps): why is this unconditional?
 	compressionLib := compression.NewGzipCompression()
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
 		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
 		resourceFetcher,
-		image.NewImageFactory(imageResourceFetcherFactory, compressionLib),
+		image.NewImageFactory(),
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		dbWorkerBaseResourceTypeFactory,
@@ -766,7 +760,6 @@ func (cmd *RunCommand) constructAPIMembers(
 		workerVersion,
 		cmd.BaggageclaimResponseHeaderTimeout,
 		cmd.GardenRequestTimeout,
-		policyChecker,
 	)
 
 	pool := worker.NewPool(workerProvider)
@@ -965,7 +958,7 @@ func (cmd *RunCommand) backendComponents(
 	dbConn db.Conn,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
-	policyChecker *policy.Checker,
+	policyChecker policy.Checker,
 ) ([]RunnableComponent, error) {
 
 	if cmd.Syslog.Address != "" && cmd.Syslog.Transport == "" {
@@ -984,12 +977,6 @@ func (cmd *RunCommand) backendComponents(
 	fetchSourceFactory := worker.NewFetchSourceFactory(dbResourceCacheFactory)
 	resourceFetcher := worker.NewFetcher(clock.NewClock(), lockFactory, fetchSourceFactory)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(dbConn, lockFactory)
-	imageResourceFetcherFactory := image.NewImageResourceFetcherFactory(
-		resourceFactory,
-		dbResourceCacheFactory,
-		dbResourceConfigFactory,
-		resourceFetcher,
-	)
 
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
 	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, db.CheckDurations{
@@ -1023,7 +1010,7 @@ func (cmd *RunCommand) backendComponents(
 		lockFactory,
 		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
 		resourceFetcher,
-		image.NewImageFactory(imageResourceFetcherFactory, compressionLib),
+		image.NewImageFactory(),
 		dbResourceCacheFactory,
 		dbResourceConfigFactory,
 		dbWorkerBaseResourceTypeFactory,
@@ -1035,7 +1022,6 @@ func (cmd *RunCommand) backendComponents(
 		workerVersion,
 		cmd.BaggageclaimResponseHeaderTimeout,
 		cmd.GardenRequestTimeout,
-		policyChecker,
 	)
 
 	pool := worker.NewPool(workerProvider)
@@ -1076,6 +1062,7 @@ func (cmd *RunCommand) backendComponents(
 		buildContainerStrategy,
 		lockFactory,
 		rateLimiter,
+		policyChecker,
 	)
 
 	// In case that a user configures resource-checking-interval, but forgets to
@@ -1655,6 +1642,7 @@ func (cmd *RunCommand) constructEngine(
 	strategy worker.ContainerPlacementStrategy,
 	lockFactory lock.LockFactory,
 	rateLimiter builder.RateLimiter,
+	policyChecker policy.Checker,
 ) engine.Engine {
 
 	stepFactory := builder.NewStepFactory(
@@ -1668,12 +1656,14 @@ func (cmd *RunCommand) constructEngine(
 		defaultLimits,
 		strategy,
 		lockFactory,
+		cmd.GlobalResourceCheckTimeout,
 	)
 
 	stepBuilder := builder.NewStepBuilder(
 		stepFactory,
 		cmd.ExternalURL.String(),
 		rateLimiter,
+		policyChecker,
 	)
 
 	return engine.NewEngine(stepBuilder, secretManager, cmd.varSourcePool)
@@ -1845,7 +1835,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	credsManagers creds.Managers,
 	accessFactory accessor.AccessFactory,
 	dbWall db.Wall,
-	policyChecker *policy.Checker,
+	policyChecker policy.Checker,
 	listAllJobsWatcher jobserver.ListAllJobsWatcher,
 ) (http.Handler, error) {
 

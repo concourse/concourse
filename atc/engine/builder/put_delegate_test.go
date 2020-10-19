@@ -14,15 +14,17 @@ import (
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("PutDelegate", func() {
 	var (
-		logger    *lagertest.TestLogger
-		fakeBuild *dbfakes.FakeBuild
-		fakeClock *fakeclock.FakeClock
+		logger            *lagertest.TestLogger
+		fakeBuild         *dbfakes.FakeBuild
+		fakeClock         *fakeclock.FakeClock
+		fakePolicyChecker *policyfakes.FakeChecker
 
 		state exec.RunState
 
@@ -42,14 +44,16 @@ var _ = Describe("PutDelegate", func() {
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
 		}
-		state = exec.NewRunState(credVars, true)
+		state = exec.NewRunState(noopStepper, credVars, true)
 
 		info = runtime.VersionResult{
 			Version:  atc.Version{"foo": "bar"},
 			Metadata: []atc.MetadataField{{Name: "baz", Value: "shmaz"}},
 		}
 
-		delegate = builder.NewPutDelegate(fakeBuild, "some-plan-id", state, fakeClock)
+		fakePolicyChecker = new(policyfakes.FakeChecker)
+
+		delegate = builder.NewPutDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker)
 	})
 
 	Describe("Finished", func() {

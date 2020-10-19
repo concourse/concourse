@@ -43,6 +43,7 @@ module Concourse exposing
     , decodeAuthToken
     , decodeBuild
     , decodeBuildPlan
+    , decodeBuildPlanResponse
     , decodeBuildPrep
     , decodeBuildResources
     , decodeCause
@@ -468,14 +469,13 @@ type alias AcrossPlan =
     }
 
 
+decodeBuildPlanResponse : Json.Decode.Decoder BuildPlan
+decodeBuildPlanResponse =
+    Json.Decode.at [ "plan" ] decodeBuildPlan
+
+
 decodeBuildPlan : Json.Decode.Decoder BuildPlan
 decodeBuildPlan =
-    Json.Decode.at [ "plan" ] <|
-        decodeBuildPlan_
-
-
-decodeBuildPlan_ : Json.Decode.Decoder BuildPlan
-decodeBuildPlan_ =
     Json.Decode.succeed BuildPlan
         |> andMap (Json.Decode.field "id" Json.Decode.string)
         |> andMap
@@ -567,27 +567,27 @@ decodeBuildStepPut =
 decodeBuildStepAggregate : Json.Decode.Decoder BuildStep
 decodeBuildStepAggregate =
     Json.Decode.succeed BuildStepAggregate
-        |> andMap (Json.Decode.array (lazy (\_ -> decodeBuildPlan_)))
+        |> andMap (Json.Decode.array (lazy (\_ -> decodeBuildPlan)))
 
 
 decodeBuildStepInParallel : Json.Decode.Decoder BuildStep
 decodeBuildStepInParallel =
     Json.Decode.succeed BuildStepInParallel
-        |> andMap (Json.Decode.field "steps" <| Json.Decode.array (lazy (\_ -> decodeBuildPlan_)))
+        |> andMap (Json.Decode.field "steps" <| Json.Decode.array (lazy (\_ -> decodeBuildPlan)))
 
 
 decodeBuildStepDo : Json.Decode.Decoder BuildStep
 decodeBuildStepDo =
     Json.Decode.succeed BuildStepDo
-        |> andMap (Json.Decode.array (lazy (\_ -> decodeBuildPlan_)))
+        |> andMap (Json.Decode.array (lazy (\_ -> decodeBuildPlan)))
 
 
 decodeBuildStepOnSuccess : Json.Decode.Decoder BuildStep
 decodeBuildStepOnSuccess =
     Json.Decode.map BuildStepOnSuccess
         (Json.Decode.succeed HookedPlan
-            |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
-            |> andMap (Json.Decode.field "on_success" <| lazy (\_ -> decodeBuildPlan_))
+            |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan))
+            |> andMap (Json.Decode.field "on_success" <| lazy (\_ -> decodeBuildPlan))
         )
 
 
@@ -595,8 +595,8 @@ decodeBuildStepOnFailure : Json.Decode.Decoder BuildStep
 decodeBuildStepOnFailure =
     Json.Decode.map BuildStepOnFailure
         (Json.Decode.succeed HookedPlan
-            |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
-            |> andMap (Json.Decode.field "on_failure" <| lazy (\_ -> decodeBuildPlan_))
+            |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan))
+            |> andMap (Json.Decode.field "on_failure" <| lazy (\_ -> decodeBuildPlan))
         )
 
 
@@ -604,8 +604,8 @@ decodeBuildStepOnAbort : Json.Decode.Decoder BuildStep
 decodeBuildStepOnAbort =
     Json.Decode.map BuildStepOnAbort
         (Json.Decode.succeed HookedPlan
-            |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
-            |> andMap (Json.Decode.field "on_abort" <| lazy (\_ -> decodeBuildPlan_))
+            |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan))
+            |> andMap (Json.Decode.field "on_abort" <| lazy (\_ -> decodeBuildPlan))
         )
 
 
@@ -613,8 +613,8 @@ decodeBuildStepOnError : Json.Decode.Decoder BuildStep
 decodeBuildStepOnError =
     Json.Decode.map BuildStepOnError
         (Json.Decode.succeed HookedPlan
-            |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
-            |> andMap (Json.Decode.field "on_error" <| lazy (\_ -> decodeBuildPlan_))
+            |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan))
+            |> andMap (Json.Decode.field "on_error" <| lazy (\_ -> decodeBuildPlan))
         )
 
 
@@ -622,27 +622,27 @@ decodeBuildStepEnsure : Json.Decode.Decoder BuildStep
 decodeBuildStepEnsure =
     Json.Decode.map BuildStepEnsure
         (Json.Decode.succeed HookedPlan
-            |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
-            |> andMap (Json.Decode.field "ensure" <| lazy (\_ -> decodeBuildPlan_))
+            |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan))
+            |> andMap (Json.Decode.field "ensure" <| lazy (\_ -> decodeBuildPlan))
         )
 
 
 decodeBuildStepTry : Json.Decode.Decoder BuildStep
 decodeBuildStepTry =
     Json.Decode.succeed BuildStepTry
-        |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
+        |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan))
 
 
 decodeBuildStepRetry : Json.Decode.Decoder BuildStep
 decodeBuildStepRetry =
     Json.Decode.succeed BuildStepRetry
-        |> andMap (Json.Decode.array (lazy (\_ -> decodeBuildPlan_)))
+        |> andMap (Json.Decode.array (lazy (\_ -> decodeBuildPlan)))
 
 
 decodeBuildStepTimeout : Json.Decode.Decoder BuildStep
 decodeBuildStepTimeout =
     Json.Decode.succeed BuildStepTimeout
-        |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan_))
+        |> andMap (Json.Decode.field "step" <| lazy (\_ -> decodeBuildPlan))
 
 
 decodeBuildSetPipeline : Json.Decode.Decoder BuildStep
@@ -671,7 +671,7 @@ decodeBuildStepAcross =
                     Json.Decode.list <|
                         Json.Decode.map2 Tuple.pair
                             (Json.Decode.field "values" <| Json.Decode.list decodeJsonValue)
-                            (Json.Decode.field "step" decodeBuildPlan_)
+                            (Json.Decode.field "step" decodeBuildPlan)
                 )
         )
 

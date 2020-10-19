@@ -25,6 +25,7 @@ var _ = Describe("On Error Step", func() {
 
 		onErrorStep exec.Step
 
+		stepOk  bool
 		stepErr error
 
 		disaster error
@@ -52,12 +53,12 @@ var _ = Describe("On Error Step", func() {
 	})
 
 	JustBeforeEach(func() {
-		stepErr = onErrorStep.Run(ctx, state)
+		stepOk, stepErr = onErrorStep.Run(ctx, state)
 	})
 
 	Context("when the step errors", func() {
 		BeforeEach(func() {
-			step.RunReturns(disaster)
+			step.RunReturns(false, disaster)
 		})
 
 		It("runs the error hook", func() {
@@ -69,11 +70,11 @@ var _ = Describe("On Error Step", func() {
 
 	Context("when the step succeeds", func() {
 		BeforeEach(func() {
-			step.SucceededReturns(true)
+			step.RunReturns(true, nil)
 		})
 
 		It("is successful", func() {
-			Expect(onErrorStep.Succeeded()).To(BeTrue())
+			Expect(stepOk).To(BeTrue())
 		})
 
 		It("does not run the error hook", func() {
@@ -83,11 +84,11 @@ var _ = Describe("On Error Step", func() {
 
 	Context("when the step fails", func() {
 		BeforeEach(func() {
-			step.SucceededReturns(false)
+			step.RunReturns(false, nil)
 		})
 
 		It("is not successful", func() {
-			Expect(onErrorStep.Succeeded()).ToNot(BeTrue())
+			Expect(stepOk).ToNot(BeTrue())
 		})
 
 		It("does not run the error hook", func() {

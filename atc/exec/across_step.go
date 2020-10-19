@@ -46,7 +46,7 @@ func Across(
 
 // Run calls out to InParallelStep.Run after logging a warning to stderr. It also emits
 // step lifecycle build events (Initializing, Starting, and Finished).
-func (step AcrossStep) Run(ctx context.Context, state RunState) error {
+func (step AcrossStep) Run(ctx context.Context, state RunState) (bool, error) {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("across-step", lager.Data{
 		"job-id": step.metadata.JobID,
@@ -75,12 +75,12 @@ func (step AcrossStep) Run(ctx context.Context, state RunState) error {
 	exec := step.acrossStepExecutor(state, 0, step.steps)
 	succeeded, err := exec.run(ctx)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	delegate.Finished(logger, succeeded)
 
-	return nil
+	return succeeded, nil
 }
 
 func (step AcrossStep) acrossStepExecutor(state RunState, varIndex int, steps []ScopedStep) parallelExecutor {
@@ -125,20 +125,8 @@ func (step AcrossStep) acrossStepLeafExecutor(state RunState, steps []ScopedStep
 				// embedded directly in the pipeline
 				scope.AddLocalVar(v.Var, steps[i].Values[j], false)
 			}
-			err := steps[i].Run(ctx, scope)
-			if err != nil {
-				return false, err
-			}
-			return steps[i].Succeeded(), nil
+
+			return steps[i].Run(ctx, scope)
 		},
 	}
-}
-
-func (step AcrossStep) Succeeded() bool {
-	for _, s := range step.steps {
-		if !s.Succeeded() {
-			return false
-		}
-	}
-	return true
 }

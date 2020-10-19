@@ -21,6 +21,8 @@ type ArtifactName string
 type Repository struct {
 	repo  map[ArtifactName]runtime.Artifact
 	repoL sync.RWMutex
+
+	parent *Repository
 }
 
 // NewArtifactRepository constructs a new repository.
@@ -51,6 +53,9 @@ func (repo *Repository) ArtifactFor(name ArtifactName) (runtime.Artifact, bool) 
 	repo.repoL.RLock()
 	artifact, found := repo.repo[name]
 	repo.repoL.RUnlock()
+	if !found && repo.parent != nil {
+		artifact, found = repo.parent.ArtifactFor(name)
+	}
 	return artifact, found
 }
 
@@ -60,6 +65,12 @@ func (repo *Repository) ArtifactFor(name ArtifactName) (runtime.Artifact, bool) 
 func (repo *Repository) AsMap() map[ArtifactName]runtime.Artifact {
 	result := make(map[ArtifactName]runtime.Artifact)
 
+	if repo.parent != nil {
+		for name, artifact := range repo.parent.AsMap() {
+			result[name] = artifact
+		}
+	}
+
 	repo.repoL.RLock()
 	for name, artifact := range repo.repo {
 		result[name] = artifact
@@ -67,4 +78,14 @@ func (repo *Repository) AsMap() map[ArtifactName]runtime.Artifact {
 	repo.repoL.RUnlock()
 
 	return result
+}
+
+func (repo *Repository) NewLocalScope() *Repository {
+	child := NewRepository()
+	child.parent = repo
+	return child
+}
+
+func (repo *Repository) Parent() *Repository {
+	return repo.parent
 }

@@ -11,9 +11,8 @@ import (
 )
 
 var _ = Describe("Policy checker", func() {
-
 	var (
-		checker *policy.Checker
+		checker policy.Checker
 		filter  policy.Filter
 		err     error
 	)

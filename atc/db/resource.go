@@ -72,7 +72,7 @@ type Resource interface {
 
 	SetResourceConfigScope(ResourceConfigScope) error
 
-	CheckPlan(atc.Version, time.Duration, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
+	CheckPlan(atc.Version, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
 	CreateBuild(context.Context, bool) (Build, bool, error)
 
 	NotifyScan() error
@@ -315,28 +315,16 @@ func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.Versio
 	return resourceConfigScope, nil
 }
 
-func (r *resource) CheckPlan(from atc.Version, interval, timeout time.Duration, resourceTypes ResourceTypes, sourceDefaults atc.Source) atc.CheckPlan {
+func (r *resource) CheckPlan(from atc.Version, interval time.Duration, resourceTypes ResourceTypes, sourceDefaults atc.Source) atc.CheckPlan {
 	return atc.CheckPlan{
-		Name:   r.Name(),
-		Type:   r.Type(),
-		Source: sourceDefaults.Merge(r.Source()),
-		Tags:   r.Tags(),
+		Name:    r.Name(),
+		Type:    r.Type(),
+		Source:  sourceDefaults.Merge(r.Source()),
+		Tags:    r.Tags(),
+		Timeout: r.CheckTimeout(),
 
-		FromVersion: from,
-
-		// XXX(check-refactor): these two are awkward because it could
-		// theoretically be set to r.CheckTimeout(), but the system-wide default is
-		// handled outside and passed in here.
-		//
-		// should we respect the system-wide default at runtime instead of having
-		// these passed in and making them required?
-		//
-		// also it would be nice if they could be time.Duration, but timeout is
-		// already a string, and i don't want to break old builds. i guess we could
-		// write a custom unmarshaler that handles both.
-		Interval: interval.String(),
-		Timeout:  timeout.String(),
-
+		FromVersion:            from,
+		Interval:               interval.String(),
 		VersionedResourceTypes: resourceTypes.Deserialize(),
 
 		Resource: r.Name(),

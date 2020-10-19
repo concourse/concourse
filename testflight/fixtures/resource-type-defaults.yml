@@ -1,0 +1,21 @@
+---
+resource_types:
+- name: defaulted-type
+  type: mock
+  source:
+    mirror_self: true
+  defaults:
+    log: defaulted
+
+resources:
+- name: some-resource
+  type: defaulted-type
+  source:
+    initial_version: ((hash))
+
+jobs:
+- name: some-job
+  plan:
+  - get: some-resource
+  - put: some-resource
+    params: {version: put-version}

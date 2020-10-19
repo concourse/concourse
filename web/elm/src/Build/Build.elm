@@ -26,7 +26,6 @@ import Build.Shortcuts as Shortcuts
 import Build.StepTree.Models as STModels
 import Build.StepTree.StepTree as StepTree
 import Build.Styles as Styles
-import Colors
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import DateFormat
@@ -314,21 +313,7 @@ handleDelivery : { a | hovered : HoverState.HoverState } -> Delivery -> ET Model
 handleDelivery session delivery ( model, effects ) =
     (case delivery of
         ClockTicked OneSecond time ->
-            ( { model | now = Just time }
-            , effects
-                ++ (case session.hovered of
-                        HoverState.Hovered (ChangedStepLabel stepID text) ->
-                            [ GetViewportOf
-                                (ChangedStepLabel stepID text)
-                            ]
-
-                        HoverState.Hovered (StepState stepID) ->
-                            [ GetViewportOf (StepState stepID) ]
-
-                        _ ->
-                            []
-                   )
-            )
+            ( { model | now = Just time }, effects )
 
         ClockTicked FiveSeconds _ ->
             ( model, effects ++ [ Effects.FetchAllPipelines ] )
@@ -416,6 +401,7 @@ handleDelivery session delivery ( model, effects ) =
         _ ->
             ( model, effects )
     )
+        |> Tooltip.handleDelivery session delivery
         |> Shortcuts.handleDelivery delivery
         |> Header.handleDelivery delivery
 
@@ -445,6 +431,11 @@ update msg ( model, effects ) =
         Click (StepHeader id) ->
             updateOutput
                 (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStep id)
+                ( model, effects ++ [ SyncStickyBuildLogHeaders ] )
+
+        Click (StepInitialization id) ->
+            updateOutput
+                (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStepInitialization id)
                 ( model, effects ++ [ SyncStickyBuildLogHeaders ] )
 
         Click (StepSubHeader id i) ->
@@ -677,23 +668,11 @@ view session model =
 
 
 tooltip : Model -> { a | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
-tooltip _ { hovered } =
-    case hovered of
-        HoverState.Tooltip (ChangedStepLabel _ text) _ ->
-            Just
-                { body =
-                    Html.div
-                        Styles.changedStepTooltip
-                        [ Html.text text ]
-                , attachPosition =
-                    { direction = Tooltip.Top
-                    , alignment = Tooltip.Start
-                    }
-                , arrow = Just { size = 5, color = Colors.tooltipBackground }
-                }
-
-        _ ->
-            Nothing
+tooltip model session =
+    model.output
+        |> toMaybe
+        |> Maybe.andThen .steps
+        |> Maybe.andThen (\steps -> StepTree.tooltip steps session)
 
 
 breadcrumbs : Model -> Html Message
@@ -775,7 +754,6 @@ body session ({ prep, output, authorized, showHelp } as params) =
 
         else
             [ NotAuthorized.view ]
-
 
 
 tombstone :
@@ -889,9 +867,9 @@ viewBuildPrep buildPrep =
                     , style "align-items" "center"
                     ]
                     [ Icon.icon
-                        { sizePx = 15, image = Assets.CogsIcon }
-                        [ style "margin" "6.5px"
-                        , style "margin-right" "0.5px"
+                        { sizePx = 14, image = Assets.CogsIcon }
+                        [ style "margin" "7px"
+                        , style "margin-right" "2px"
                         , style "background-size" "contain"
                         ]
                     , Html.h3 [] [ Html.text "preparing build" ]
