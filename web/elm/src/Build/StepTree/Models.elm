@@ -16,6 +16,7 @@ module Build.StepTree.Models exposing
     , isActive
     , lastActive
     , mostSevereStepState
+    , showStepState
     , toggleSubHeaderExpanded
     , treeIsActive
     , updateAt
@@ -108,6 +109,31 @@ type StepState
     | StepStateSucceeded
     | StepStateFailed
     | StepStateErrored
+
+
+showStepState : StepState -> String
+showStepState state =
+    case state of
+        StepStatePending ->
+            "pending"
+
+        StepStateRunning ->
+            "running"
+
+        StepStateInterrupted ->
+            "interrupted"
+
+        StepStateCancelled ->
+            "cancelled"
+
+        StepStateSucceeded ->
+            "succeeded"
+
+        StepStateFailed ->
+            "failed"
+
+        StepStateErrored ->
+            "errored"
 
 
 stepStateOrdering : Ordering StepState

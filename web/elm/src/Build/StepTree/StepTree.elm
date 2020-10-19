@@ -32,6 +32,7 @@ import Build.StepTree.Models
         , isActive
         , lastActive
         , mostSevereStepState
+        , showStepState
         , toggleSubHeaderExpanded
         , treeIsActive
         , updateAt
@@ -1255,7 +1256,7 @@ tooltip model { hovered } =
                 { body =
                     Html.div
                         Styles.changedStepTooltip
-                        [ Html.text "initialization" ]
+                        [ Html.text "image fetching" ]
                 , attachPosition =
                     { direction = Tooltip.Top
                     , alignment = Tooltip.End
@@ -1272,7 +1273,7 @@ tooltip model { hovered } =
 
 
 stepDurationTooltip : Step -> Tooltip.Tooltip
-stepDurationTooltip { initialize, start, finish } =
+stepDurationTooltip { state, initialize, start, finish } =
     { body =
         Html.div Styles.durationTooltip
             [ case ( initialize, start, finish ) of
@@ -1295,11 +1296,8 @@ stepDurationTooltip { initialize, start, finish } =
                             ]
                         )
 
-                ( Nothing, Nothing, Nothing ) ->
-                    Html.text "pending"
-
                 _ ->
-                    Html.text "in progress"
+                    Html.text (showStepState state)
             ]
     , attachPosition =
         { direction = Tooltip.Top

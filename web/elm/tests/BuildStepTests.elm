@@ -354,7 +354,7 @@ all =
                     >> given (thereIsAnImageGetStep taskStepId)
                     >> given iHoverOverInitializationToggle
                     >> given (gotViewportAndElementOf initializationToggleID)
-                    >> then_ (iSeeText "initialization")
+                    >> then_ (iSeeText "image fetching")
             ]
         , describe "check step"
             [ test "should show resource name" <|

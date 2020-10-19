@@ -3270,7 +3270,7 @@ all =
                         >> Common.contains
                             (Effects.GetViewportOf <| Message.Message.StepState "plan")
                 , test "finished task lists initialization duration in tooltip" <|
-                    fetchPlanWithGetStep
+                    fetchPlanWithTaskStep
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
@@ -3296,56 +3296,7 @@ all =
                                     ]
                             )
                         >> Tuple.first
-                        >> Application.update
-                            (Msgs.Update <|
-                                Message.Message.Hover <|
-                                    Just <|
-                                        Message.Message.StepState
-                                            "plan"
-                            )
-                        >> Tuple.first
-                        >> Application.handleDelivery
-                            (ClockTicked OneSecond <|
-                                Time.millisToPosix 1
-                            )
-                        >> Tuple.first
-                        >> Application.handleCallback
-                            (Callback.GotViewport (Message.Message.StepState "plan") <|
-                                Ok
-                                    { scene =
-                                        { width = 1
-                                        , height = 0
-                                        }
-                                    , viewport =
-                                        { width = 1
-                                        , height = 0
-                                        , x = 0
-                                        , y = 0
-                                        }
-                                    }
-                            )
-                        >> Tuple.first
-                        >> Application.handleCallback
-                            (Callback.GotElement <|
-                                Ok
-                                    { scene =
-                                        { width = 0
-                                        , height = 0
-                                        }
-                                    , viewport =
-                                        { width = 0
-                                        , height = 0
-                                        , x = 0
-                                        , y = 0
-                                        }
-                                    , element =
-                                        { x = 0
-                                        , y = 0
-                                        , width = 1
-                                        , height = 1
-                                        }
-                                    }
-                            )
+                        >> hoverOver (Message.Message.StepState "plan")
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ id "tooltips" ]
@@ -3355,7 +3306,7 @@ all =
                         >> Query.index 0
                         >> Query.has [ text "initialization", text "10s" ]
                 , test "finished task lists step duration in tooltip" <|
-                    fetchPlanWithGetStep
+                    fetchPlanWithTaskStep
                         >> Application.handleDelivery
                             (EventsReceived <|
                                 Ok <|
@@ -3381,56 +3332,7 @@ all =
                                     ]
                             )
                         >> Tuple.first
-                        >> Application.update
-                            (Msgs.Update <|
-                                Message.Message.Hover <|
-                                    Just <|
-                                        Message.Message.StepState
-                                            "plan"
-                            )
-                        >> Tuple.first
-                        >> Application.handleDelivery
-                            (ClockTicked OneSecond <|
-                                Time.millisToPosix 1
-                            )
-                        >> Tuple.first
-                        >> Application.handleCallback
-                            (Callback.GotViewport (Message.Message.StepState "plan") <|
-                                Ok
-                                    { scene =
-                                        { width = 1
-                                        , height = 0
-                                        }
-                                    , viewport =
-                                        { width = 1
-                                        , height = 0
-                                        , x = 0
-                                        , y = 0
-                                        }
-                                    }
-                            )
-                        >> Tuple.first
-                        >> Application.handleCallback
-                            (Callback.GotElement <|
-                                Ok
-                                    { scene =
-                                        { width = 0
-                                        , height = 0
-                                        }
-                                    , viewport =
-                                        { width = 0
-                                        , height = 0
-                                        , x = 0
-                                        , y = 0
-                                        }
-                                    , element =
-                                        { x = 0
-                                        , y = 0
-                                        , width = 1
-                                        , height = 1
-                                        }
-                                    }
-                            )
+                        >> hoverOver (Message.Message.StepState "plan")
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.find [ id "tooltips" ]
@@ -3463,6 +3365,27 @@ all =
                             [ style "animation"
                                 "container-rotate 1568ms linear infinite"
                             ]
+                , test "running step shows running in tooltip" <|
+                    fetchPlanWithTaskStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.StartTask
+                                                { source = "stdout"
+                                                , id = "plan"
+                                                }
+                                                (Time.millisToPosix 0)
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> hoverOver (Message.Message.StepState "plan")
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ id "tooltips" ]
+                        >> Query.has [ text "running" ]
                 , test "pending step has dashed circle at the right" <|
                     fetchPlanWithTaskStep
                         >> Common.queryView
@@ -3476,7 +3399,14 @@ all =
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
-                , test "cancelled step has no-entry circle at the right" <|
+                , test "pending step shows pending in tooltip" <|
+                    fetchPlanWithTaskStep
+                        >> hoverOver (Message.Message.StepState "plan")
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ id "tooltips" ]
+                        >> Query.has [ text "pending" ]
+                , test "interrupted step has no-entry circle at the right" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
                             (EventsReceived <|
@@ -3509,7 +3439,34 @@ all =
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
-                , test "interrupted step has dashed circle with dot at the right" <|
+                , test "interrupted step shows interrupted in tooltip" <|
+                    fetchPlanWithTaskStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.InitializeTask
+                                                { source = "stdout"
+                                                , id = "plan"
+                                                }
+                                                (Time.millisToPosix 0)
+                                      }
+                                    , { url = eventsUrl
+                                      , data =
+                                            STModels.BuildStatus
+                                                BuildStatusAborted
+                                                (Time.millisToPosix 0)
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> hoverOver (Message.Message.StepState "plan")
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ id "tooltips" ]
+                        >> Query.has [ text "interrupted" ]
+                , test "cancelled step has dashed circle with dot at the right" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
                             (EventsReceived <|
@@ -3534,6 +3491,25 @@ all =
                                 }
                                 ++ [ style "background-size" "14px 14px" ]
                             )
+                , test "cancelled step shows cancelled in tooltip" <|
+                    fetchPlanWithTaskStep
+                        >> Application.handleDelivery
+                            (EventsReceived <|
+                                Ok <|
+                                    [ { url = eventsUrl
+                                      , data =
+                                            STModels.BuildStatus
+                                                BuildStatusAborted
+                                                (Time.millisToPosix 0)
+                                      }
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> hoverOver (Message.Message.StepState "plan")
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find [ id "tooltips" ]
+                        >> Query.has [ text "cancelled" ]
                 , test "failing step has an X at the far right" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery
@@ -3998,3 +3974,51 @@ receiveEvent :
     -> ( Application.Model, List Effects.Effect )
 receiveEvent envelope =
     Application.update (Msgs.DeliveryReceived <| EventsReceived <| Ok [ envelope ])
+
+
+hoverOver domID =
+    Application.update
+        (Msgs.Update (Message.Message.Hover (Just domID)))
+        >> Tuple.first
+        >> Application.handleDelivery
+            (ClockTicked OneSecond <|
+                Time.millisToPosix 1
+            )
+        >> Tuple.first
+        >> Application.handleCallback
+            (Callback.GotViewport domID <|
+                Ok
+                    { scene =
+                        { width = 1
+                        , height = 0
+                        }
+                    , viewport =
+                        { width = 1
+                        , height = 0
+                        , x = 0
+                        , y = 0
+                        }
+                    }
+            )
+        >> Tuple.first
+        >> Application.handleCallback
+            (Callback.GotElement <|
+                Ok
+                    { scene =
+                        { width = 0
+                        , height = 0
+                        }
+                    , viewport =
+                        { width = 0
+                        , height = 0
+                        , x = 0
+                        , y = 0
+                        }
+                    , element =
+                        { x = 0
+                        , y = 0
+                        , width = 1
+                        , height = 1
+                        }
+                    }
+            )
