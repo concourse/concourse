@@ -28,8 +28,8 @@ import (
 
 var _ = Describe("Engine", func() {
 	var (
-		fakeBuild       *dbfakes.FakeBuild
-		fakeStepBuilder *enginefakes.FakeStepBuilder
+		fakeBuild          *dbfakes.FakeBuild
+		fakeStepperFactory *enginefakes.FakeStepperFactory
 
 		fakeGlobalCreds   *credsfakes.FakeSecrets
 		fakeVarSourcePool *credsfakes.FakeVarSourcePool
@@ -39,7 +39,7 @@ var _ = Describe("Engine", func() {
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeBuild.IDReturns(128)
 
-		fakeStepBuilder = new(enginefakes.FakeStepBuilder)
+		fakeStepperFactory = new(enginefakes.FakeStepperFactory)
 
 		fakeGlobalCreds = new(credsfakes.FakeSecrets)
 		fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
@@ -52,7 +52,7 @@ var _ = Describe("Engine", func() {
 		)
 
 		BeforeEach(func() {
-			engine = NewEngine(fakeStepBuilder, fakeGlobalCreds, fakeVarSourcePool)
+			engine = NewEngine(fakeStepperFactory, fakeGlobalCreds, fakeVarSourcePool)
 		})
 
 		JustBeforeEach(func() {
@@ -79,7 +79,7 @@ var _ = Describe("Engine", func() {
 
 			build = NewBuild(
 				fakeBuild,
-				fakeStepBuilder,
+				fakeStepperFactory,
 				fakeGlobalCreds,
 				fakeVarSourcePool,
 				release,
@@ -146,7 +146,7 @@ var _ = Describe("Engine", func() {
 								})
 
 								steppedPlans = make(chan atc.Plan, 1)
-								fakeStepBuilder.BuildStepperReturns(func(plan atc.Plan) exec.Step {
+								fakeStepperFactory.StepperForBuildReturns(func(plan atc.Plan) exec.Step {
 									steppedPlans <- plan
 									return fakeStep
 								}, nil)
@@ -332,7 +332,7 @@ var _ = Describe("Engine", func() {
 
 						Context("when converting the plan to a step fails", func() {
 							BeforeEach(func() {
-								fakeStepBuilder.BuildStepperReturns(nil, errors.New("nope"))
+								fakeStepperFactory.StepperForBuildReturns(nil, errors.New("nope"))
 							})
 
 							It("releases the lock", func() {
@@ -356,7 +356,7 @@ var _ = Describe("Engine", func() {
 						})
 
 						It("does not build the step", func() {
-							Expect(fakeStepBuilder.BuildStepperCallCount()).To(BeZero())
+							Expect(fakeStepperFactory.StepperForBuildCallCount()).To(BeZero())
 						})
 
 						It("releases the lock", func() {
@@ -371,7 +371,7 @@ var _ = Describe("Engine", func() {
 					})
 
 					It("does not build the step", func() {
-						Expect(fakeStepBuilder.BuildStepperCallCount()).To(BeZero())
+						Expect(fakeStepperFactory.StepperForBuildCallCount()).To(BeZero())
 					})
 
 					It("releases the lock", func() {
@@ -386,7 +386,7 @@ var _ = Describe("Engine", func() {
 					})
 
 					It("does not build the step", func() {
-						Expect(fakeStepBuilder.BuildStepperCallCount()).To(BeZero())
+						Expect(fakeStepperFactory.StepperForBuildCallCount()).To(BeZero())
 					})
 
 					It("releases the lock", func() {
@@ -400,7 +400,7 @@ var _ = Describe("Engine", func() {
 					})
 
 					It("does not build the step", func() {
-						Expect(fakeStepBuilder.BuildStepperCallCount()).To(BeZero())
+						Expect(fakeStepperFactory.StepperForBuildCallCount()).To(BeZero())
 					})
 
 					It("releases the lock", func() {
@@ -415,7 +415,7 @@ var _ = Describe("Engine", func() {
 				})
 
 				It("does not build the step", func() {
-					Expect(fakeStepBuilder.BuildStepperCallCount()).To(BeZero())
+					Expect(fakeStepperFactory.StepperForBuildCallCount()).To(BeZero())
 				})
 			})
 		})

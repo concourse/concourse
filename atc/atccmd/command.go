@@ -1630,29 +1630,28 @@ func (cmd *RunCommand) constructEngine(
 	rateLimiter builder.RateLimiter,
 	policyChecker policy.Checker,
 ) engine.Engine {
-
-	stepFactory := builder.NewStepFactory(
-		workerPool,
-		workerClient,
-		resourceFactory,
-		teamFactory,
-		buildFactory,
-		resourceCacheFactory,
-		resourceConfigFactory,
-		defaultLimits,
-		strategy,
-		lockFactory,
-		cmd.GlobalResourceCheckTimeout,
+	return engine.NewEngine(
+		builder.NewStepperFactory(
+			builder.NewCoreStepFactory(
+				workerPool,
+				workerClient,
+				resourceFactory,
+				teamFactory,
+				buildFactory,
+				resourceCacheFactory,
+				resourceConfigFactory,
+				defaultLimits,
+				strategy,
+				lockFactory,
+				cmd.GlobalResourceCheckTimeout,
+			),
+			cmd.ExternalURL.String(),
+			rateLimiter,
+			policyChecker,
+		),
+		secretManager,
+		cmd.varSourcePool,
 	)
-
-	stepBuilder := builder.NewStepBuilder(
-		stepFactory,
-		cmd.ExternalURL.String(),
-		rateLimiter,
-		policyChecker,
-	)
-
-	return engine.NewEngine(stepBuilder, secretManager, cmd.varSourcePool)
 }
 
 func (cmd *RunCommand) constructHTTPHandler(

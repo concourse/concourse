@@ -34,22 +34,22 @@ type Runnable interface {
 	Run(context.Context)
 }
 
-//go:generate counterfeiter . StepBuilder
+//go:generate counterfeiter . StepperFactory
 
-type StepBuilder interface {
-	BuildStepper(db.Build) (exec.Stepper, error)
+type StepperFactory interface {
+	StepperForBuild(db.Build) (exec.Stepper, error)
 }
 
 func NewEngine(
-	builder StepBuilder,
+	stepperFactory StepperFactory,
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 ) Engine {
 	return &engine{
-		builder:       builder,
-		release:       make(chan bool),
-		trackedStates: new(sync.Map),
-		waitGroup:     new(sync.WaitGroup),
+		stepperFactory: stepperFactory,
+		release:        make(chan bool),
+		trackedStates:  new(sync.Map),
+		waitGroup:      new(sync.WaitGroup),
 
 		globalSecrets: secrets,
 		varSourcePool: varSourcePool,
@@ -57,10 +57,10 @@ func NewEngine(
 }
 
 type engine struct {
-	builder       StepBuilder
-	release       chan bool
-	trackedStates *sync.Map
-	waitGroup     *sync.WaitGroup
+	stepperFactory StepperFactory
+	release        chan bool
+	trackedStates  *sync.Map
+	waitGroup      *sync.WaitGroup
 
 	globalSecrets creds.Secrets
 	varSourcePool creds.VarSourcePool
@@ -82,7 +82,7 @@ func (engine *engine) Drain(ctx context.Context) {
 func (engine *engine) NewBuild(build db.Build) Runnable {
 	return NewBuild(
 		build,
-		engine.builder,
+		engine.stepperFactory,
 		engine.globalSecrets,
 		engine.varSourcePool,
 		engine.release,
@@ -93,7 +93,7 @@ func (engine *engine) NewBuild(build db.Build) Runnable {
 
 func NewBuild(
 	build db.Build,
-	builder StepBuilder,
+	builder StepperFactory,
 	globalSecrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 	release chan bool,
@@ -115,7 +115,7 @@ func NewBuild(
 
 type engineBuild struct {
 	build   db.Build
-	builder StepBuilder
+	builder StepperFactory
 
 	globalSecrets creds.Secrets
 	varSourcePool creds.VarSourcePool
@@ -171,7 +171,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 	ctx, span := tracing.StartSpanFollowing(ctx, b.build, "build", b.build.TracingAttrs())
 	defer span.End()
 
-	stepper, err := b.builder.BuildStepper(b.build)
+	stepper, err := b.builder.StepperForBuild(b.build)
 	if err != nil {
 		logger.Error("failed-to-construct-build-stepper", err)
 
