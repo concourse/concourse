@@ -1,6 +1,7 @@
 package builder_test
 
 import (
+	"context"
 	"errors"
 	"io"
 	"time"
@@ -12,19 +13,28 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/policy"
+	"github.com/concourse/concourse/atc/policy/policyfakes"
+	"github.com/concourse/concourse/atc/runtime/runtimefakes"
+	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("BuildStepDelegate", func() {
 	var (
-		logger    *lagertest.TestLogger
-		fakeBuild *dbfakes.FakeBuild
-		fakeClock *fakeclock.FakeClock
-		runState  exec.RunState
+		logger            *lagertest.TestLogger
+		fakeBuild         *dbfakes.FakeBuild
+		fakeClock         *fakeclock.FakeClock
+		planID            atc.PlanID
+		runState          *execfakes.FakeRunState
+		fakePolicyChecker *policyfakes.FakeChecker
 
 		credVars vars.StaticVariables
 
@@ -42,9 +52,17 @@ var _ = Describe("BuildStepDelegate", func() {
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
 		}
-		runState = exec.NewRunState(credVars, true)
+		planID = "some-plan-id"
 
-		delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock)
+		runState = new(execfakes.FakeRunState)
+		runState.RedactionEnabledReturns(true)
+
+		repo := build.NewRepository()
+		runState.ArtifactRepositoryReturns(repo)
+
+		fakePolicyChecker = new(policyfakes.FakeChecker)
+
+		delegate = builder.NewBuildStepDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker)
 	})
 
 	Describe("Initializing", func() {
@@ -71,21 +89,376 @@ var _ = Describe("BuildStepDelegate", func() {
 		})
 	})
 
-	Describe("ImageVersionDetermined", func() {
+	Describe("FetchImage", func() {
+		var expectedCheckPlan, expectedGetPlan atc.Plan
+		var fakeArtifact *runtimefakes.FakeArtifact
 		var fakeResourceCache *dbfakes.FakeUsedResourceCache
 
+		var childState *execfakes.FakeRunState
+		var imageResource atc.ImageResource
+		var types atc.VersionedResourceTypes
+		var privileged bool
+
+		var imageSpec worker.ImageSpec
+		var fetchErr error
+
 		BeforeEach(func() {
+			repo := build.NewRepository()
+			runState.ArtifactRepositoryReturns(repo)
+
+			childState = new(execfakes.FakeRunState)
+			runState.NewLocalScopeReturns(childState)
+
+			fakeArtifact = new(runtimefakes.FakeArtifact)
+			childState.ArtifactRepositoryReturns(repo.NewLocalScope())
+			childState.ArtifactRepository().RegisterArtifact("image", fakeArtifact)
+
+			runState.GetStub = vars.StaticVariables{
+				"source-var": "super-secret-source",
+				"params-var": "super-secret-params",
+			}.Get
+
+			imageResource = atc.ImageResource{
+				Type:   "docker",
+				Source: atc.Source{"some": "((source-var))"},
+				Params: atc.Params{"some": "((params-var))"},
+			}
+
+			types = atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "some-custom-type",
+						Type:   "another-custom-type",
+						Source: atc.Source{"some-custom": "((source-var))"},
+						Params: atc.Params{"some-custom": "((params-var))"},
+					},
+					Version: atc.Version{"some-custom": "version"},
+				},
+				{
+					ResourceType: atc.ResourceType{
+						Name:       "another-custom-type",
+						Type:       "registry-image",
+						Source:     atc.Source{"another-custom": "((source-var))"},
+						Privileged: true,
+					},
+					Version: atc.Version{"another-custom": "version"},
+				},
+			}
+
+			expectedCheckPlan = atc.Plan{
+				ID: planID + "/image-check",
+				Check: &atc.CheckPlan{
+					Name:                   "image",
+					Type:                   "docker",
+					Source:                 atc.Source{"some": "((source-var))"},
+					VersionedResourceTypes: types,
+				},
+			}
+
+			expectedGetPlan = atc.Plan{
+				ID: planID + "/image-get",
+				Get: &atc.GetPlan{
+					Name:                   "image",
+					Type:                   "docker",
+					Source:                 atc.Source{"some": "((source-var))"},
+					Version:                &atc.Version{"some": "version"},
+					Params:                 atc.Params{"some": "((params-var))"},
+					VersionedResourceTypes: types,
+				},
+			}
+
 			fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
-			fakeResourceCache.IDReturns(42)
+
+			childState.ResultStub = func(planID atc.PlanID, to interface{}) bool {
+				switch planID {
+				case expectedCheckPlan.ID:
+					switch x := to.(type) {
+					case *atc.Version:
+						*x = atc.Version{"some": "version"}
+					default:
+						Fail("unexpected target type")
+					}
+				case expectedGetPlan.ID:
+					switch x := to.(type) {
+					case *db.UsedResourceCache:
+						*x = fakeResourceCache
+					default:
+						Fail("unexpected target type")
+					}
+				default:
+					Fail("unknown result key: " + planID.String())
+				}
+
+				return true
+			}
+
+			privileged = false
+
+			childState.RunReturns(true, nil)
 		})
 
 		JustBeforeEach(func() {
-			Expect(delegate.ImageVersionDetermined(fakeResourceCache)).To(Succeed())
+			imageSpec, fetchErr = delegate.FetchImage(context.TODO(), imageResource, types, privileged)
+		})
+
+		It("succeeds", func() {
+			Expect(fetchErr).ToNot(HaveOccurred())
+		})
+
+		It("returns an image spec containing the artifact", func() {
+			Expect(imageSpec).To(Equal(worker.ImageSpec{
+				ImageArtifact: fakeArtifact,
+				Privileged:    false,
+			}))
+		})
+
+		It("runs a CheckPlan to get the image version", func() {
+			Expect(childState.RunCallCount()).To(Equal(2))
+
+			_, plan := childState.RunArgsForCall(0)
+			Expect(plan).To(Equal(expectedCheckPlan))
+
+			_, plan = childState.RunArgsForCall(1)
+			Expect(plan).To(Equal(expectedGetPlan))
 		})
 
 		It("records the resource cache as an image resource for the build", func() {
 			Expect(fakeBuild.SaveImageResourceVersionCallCount()).To(Equal(1))
 			Expect(fakeBuild.SaveImageResourceVersionArgsForCall(0)).To(Equal(fakeResourceCache))
+		})
+
+		Context("when privileged", func() {
+			BeforeEach(func() {
+				privileged = true
+			})
+
+			It("returns a privileged image spec", func() {
+				Expect(imageSpec).To(Equal(worker.ImageSpec{
+					ImageArtifact: fakeArtifact,
+					Privileged:    true,
+				}))
+			})
+		})
+
+		Describe("policy checking", func() {
+			BeforeEach(func() {
+				fakeBuild.TeamNameReturns("some-team")
+				fakeBuild.PipelineNameReturns("some-pipeline")
+			})
+
+			Context("when the action does not need to be checked", func() {
+				BeforeEach(func() {
+					fakePolicyChecker.ShouldCheckActionReturns(false)
+				})
+
+				It("succeeds", func() {
+					Expect(fetchErr).ToNot(HaveOccurred())
+				})
+
+				It("checked if ActionUseImage is enabled", func() {
+					Expect(fakePolicyChecker.ShouldCheckActionCallCount()).To(Equal(1))
+					action := fakePolicyChecker.ShouldCheckActionArgsForCall(0)
+					Expect(action).To(Equal(policy.ActionUseImage))
+				})
+
+				It("does not check", func() {
+					Expect(fakePolicyChecker.CheckCallCount()).To(Equal(0))
+				})
+			})
+
+			Context("when the action needs to be checked", func() {
+				BeforeEach(func() {
+					fakePolicyChecker.ShouldCheckActionReturns(true)
+				})
+
+				Context("when the check is allowed", func() {
+					BeforeEach(func() {
+						fakePolicyChecker.CheckReturns(policy.PolicyCheckOutput{
+							Allowed: true,
+						}, nil)
+					})
+
+					It("succeeds", func() {
+						Expect(fetchErr).ToNot(HaveOccurred())
+					})
+
+					It("checked with the right values", func() {
+						Expect(fakePolicyChecker.CheckCallCount()).To(Equal(1))
+						input := fakePolicyChecker.CheckArgsForCall(0)
+						Expect(input).To(Equal(policy.PolicyCheckInput{
+							Action:   policy.ActionUseImage,
+							Team:     "some-team",
+							Pipeline: "some-pipeline",
+							Data: map[string]interface{}{
+								"image_type":   "docker",
+								"image_source": atc.Source{"some": "((source-var))"},
+								"privileged":   false,
+							},
+						}))
+					})
+
+					Context("when the image source contains credentials", func() {
+						BeforeEach(func() {
+							imageResource.Source = atc.Source{"some": "super-secret-source"}
+
+							runState.IterateInterpolatedCredsStub = func(iter vars.TrackedVarsIterator) {
+								iter.YieldCred("source-var", "super-secret-source")
+							}
+						})
+
+						It("redacts the value prior to checking", func() {
+							Expect(fakePolicyChecker.CheckCallCount()).To(Equal(1))
+							input := fakePolicyChecker.CheckArgsForCall(0)
+							Expect(input).To(Equal(policy.PolicyCheckInput{
+								Action:   policy.ActionUseImage,
+								Team:     "some-team",
+								Pipeline: "some-pipeline",
+								Data: map[string]interface{}{
+									"image_type":   "docker",
+									"image_source": atc.Source{"some": "((redacted))"},
+									"privileged":   false,
+								},
+							}))
+						})
+					})
+
+					Context("when privileged", func() {
+						BeforeEach(func() {
+							privileged = true
+						})
+
+						It("checks with privileged", func() {
+							Expect(fakePolicyChecker.CheckCallCount()).To(Equal(1))
+							input := fakePolicyChecker.CheckArgsForCall(0)
+							Expect(input).To(Equal(policy.PolicyCheckInput{
+								Action:   policy.ActionUseImage,
+								Team:     "some-team",
+								Pipeline: "some-pipeline",
+								Data: map[string]interface{}{
+									"image_type":   "docker",
+									"image_source": atc.Source{"some": "((source-var))"},
+									"privileged":   true,
+								},
+							}))
+						})
+					})
+				})
+			})
+		})
+
+		Describe("ordering", func() {
+			BeforeEach(func() {
+				fakeBuild.SaveEventStub = func(ev atc.Event) error {
+					switch ev.(type) {
+					case event.ImageCheck:
+						Expect(childState.RunCallCount()).To(Equal(0))
+					case event.ImageGet:
+						Expect(childState.RunCallCount()).To(Equal(1))
+					default:
+						Fail("unknown event type")
+					}
+					return nil
+				}
+			})
+
+			It("sends events before each run", func() {
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(2))
+				e := fakeBuild.SaveEventArgsForCall(0)
+				Expect(e).To(Equal(event.ImageCheck{
+					Time: 675927000,
+					Origin: event.Origin{
+						ID: event.OriginID(planID),
+					},
+					Plan: expectedCheckPlan,
+				}))
+
+				e = fakeBuild.SaveEventArgsForCall(1)
+				Expect(e).To(Equal(event.ImageGet{
+					Time: 675927000,
+					Origin: event.Origin{
+						ID: event.OriginID(planID),
+					},
+					Plan: expectedGetPlan,
+				}))
+			})
+		})
+
+		Context("when a version is already provided", func() {
+			BeforeEach(func() {
+				imageResource.Version = atc.Version{"some": "version"}
+			})
+
+			It("does not run a CheckPlan", func() {
+				Expect(childState.RunCallCount()).To(Equal(1))
+				_, plan := childState.RunArgsForCall(0)
+				Expect(plan).To(Equal(expectedGetPlan))
+
+				Expect(childState.ResultCallCount()).To(Equal(1))
+				planID, _ := childState.ResultArgsForCall(0)
+				Expect(planID).To(Equal(expectedGetPlan.ID))
+			})
+
+			It("only saves an ImageGet event", func() {
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+				e := fakeBuild.SaveEventArgsForCall(0)
+				Expect(e).To(Equal(event.ImageGet{
+					Time: 675927000,
+					Origin: event.Origin{
+						ID: event.OriginID(planID),
+					},
+					Plan: expectedGetPlan,
+				}))
+			})
+		})
+
+		Context("when an image name is provided", func() {
+			var namedArtifact *runtimefakes.FakeArtifact
+
+			BeforeEach(func() {
+				imageResource.Name = "some-name"
+				expectedCheckPlan.Check.Name = "some-name"
+				expectedGetPlan.Get.Name = "some-name"
+
+				namedArtifact = new(runtimefakes.FakeArtifact)
+				childState.ArtifactRepositoryReturns(runState.ArtifactRepository().NewLocalScope())
+				childState.ArtifactRepository().RegisterArtifact("some-name", namedArtifact)
+			})
+
+			It("uses it for the step names", func() {
+				Expect(childState.RunCallCount()).To(Equal(2))
+				_, plan := childState.RunArgsForCall(0)
+				Expect(plan.Check.Name).To(Equal("some-name"))
+				_, plan = childState.RunArgsForCall(1)
+				Expect(plan.Get.Name).To(Equal("some-name"))
+
+				Expect(imageSpec.ImageArtifact).To(Equal(namedArtifact))
+			})
+		})
+
+		Context("when checking the image fails", func() {
+			BeforeEach(func() {
+				childState.RunStub = func(ctx context.Context, plan atc.Plan) (bool, error) {
+					if plan.ID == expectedCheckPlan.ID {
+						return false, nil
+					}
+
+					return true, nil
+				}
+			})
+
+			It("errors", func() {
+				Expect(fetchErr).To(MatchError("image check failed"))
+			})
+		})
+
+		Context("when no version is returned by the check", func() {
+			BeforeEach(func() {
+				childState.ResultReturns(false)
+			})
+
+			It("errors", func() {
+				Expect(fetchErr).To(MatchError("check did not return a version"))
+			})
 		})
 	})
 
@@ -244,10 +617,12 @@ var _ = Describe("BuildStepDelegate", func() {
 	})
 
 	Describe("No line buffer without secrets redaction", func() {
+		var runState exec.RunState
+
 		BeforeEach(func() {
 			credVars := vars.StaticVariables{}
-			runState = exec.NewRunState(credVars, false)
-			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock)
+			runState = exec.NewRunState(noopStepper, credVars, false)
+			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker)
 		})
 
 		Context("Stdout", func() {
@@ -339,14 +714,15 @@ var _ = Describe("BuildStepDelegate", func() {
 
 	Describe("Secrets redaction", func() {
 		var (
+			runState     exec.RunState
 			writer       io.Writer
 			writtenBytes int
 			writeErr     error
 		)
 
 		BeforeEach(func() {
-			runState = exec.NewRunState(credVars, true)
-			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock)
+			runState = exec.NewRunState(noopStepper, credVars, true)
+			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker)
 
 			runState.Get(vars.Reference{Path: "source-param"})
 			runState.Get(vars.Reference{Path: "git-key"})

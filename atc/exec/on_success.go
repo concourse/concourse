@@ -25,22 +25,15 @@ func OnSuccess(firstStep Step, secondStep Step) Step {
 //
 // If the first step succeeds (that is, its Success result is true), the second
 // step is executed. If the second step errors, its error is returned.
-func (o OnSuccessStep) Run(ctx context.Context, state RunState) error {
-	stepRunErr := o.step.Run(ctx, state)
-	if stepRunErr != nil {
-		return stepRunErr
+func (o OnSuccessStep) Run(ctx context.Context, state RunState) (bool, error) {
+	ok, err := o.step.Run(ctx, state)
+	if err != nil {
+		return false, err
 	}
 
-	success := o.step.Succeeded()
-	if !success {
-		return nil
+	if !ok {
+		return false, nil
 	}
 
 	return o.hook.Run(ctx, state)
-}
-
-// Succeeded is true if the first step completed and the second
-// step completed successfully.
-func (o OnSuccessStep) Succeeded() bool {
-	return o.step.Succeeded() && o.hook.Succeeded()
 }

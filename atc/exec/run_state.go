@@ -1,6 +1,7 @@
 package exec
 
 import (
+	"context"
 	"reflect"
 	"sync"
 
@@ -10,14 +11,26 @@ import (
 )
 
 type runState struct {
+	stepper Stepper
+
 	vars *buildVariables
 
 	artifacts *build.Repository
 	results   *sync.Map
+
+	parent RunState
 }
 
-func NewRunState(credVars vars.Variables, enableRedaction bool) RunState {
+type Stepper func(atc.Plan) Step
+
+func NewRunState(
+	stepper Stepper,
+	credVars vars.Variables,
+	enableRedaction bool,
+) RunState {
 	return &runState{
+		stepper: stepper,
+
 		vars: newBuildVariables(credVars, enableRedaction),
 
 		artifacts: build.NewRepository(),
@@ -62,7 +75,13 @@ func (state *runState) IterateInterpolatedCreds(iter vars.TrackedVarsIterator) {
 func (state *runState) NewLocalScope() RunState {
 	clone := *state
 	clone.vars = state.vars.NewLocalScope()
+	clone.artifacts = state.artifacts.NewLocalScope()
+	clone.parent = state
 	return &clone
+}
+
+func (state *runState) Parent() RunState {
+	return state.parent
 }
 
 func (state *runState) AddLocalVar(name string, val interface{}, redact bool) {
@@ -71,4 +90,8 @@ func (state *runState) AddLocalVar(name string, val interface{}, redact bool) {
 
 func (state *runState) RedactionEnabled() bool {
 	return state.vars.RedactionEnabled()
+}
+
+func (state *runState) Run(ctx context.Context, plan atc.Plan) (bool, error) {
+	return state.stepper(plan).Run(ctx, state)
 }

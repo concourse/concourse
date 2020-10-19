@@ -12,6 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/policy"
 )
 
 //go:generate counterfeiter . RateLimiter
@@ -26,9 +27,10 @@ func NewCheckDelegate(
 	state exec.RunState,
 	clock clock.Clock,
 	limiter RateLimiter,
+	policyChecker policy.Checker,
 ) exec.CheckDelegate {
 	return &checkDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, plan.ID, state, clock),
+		BuildStepDelegate: NewBuildStepDelegate(build, plan.ID, state, clock, policyChecker),
 
 		build:       build,
 		plan:        plan.Check,

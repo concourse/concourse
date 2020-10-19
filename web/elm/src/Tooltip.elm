@@ -4,6 +4,7 @@ module Tooltip exposing
     , Model
     , Tooltip
     , handleCallback
+    , handleDelivery
     , view
     )
 
@@ -11,10 +12,11 @@ import Browser.Dom
 import EffectTransformer exposing (ET)
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (id, style)
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message)
+import Message.Subscription exposing (Delivery(..), Interval(..))
 
 
 type alias Model m =
@@ -176,10 +178,30 @@ view : Model m -> Tooltip -> Html Message
 view { hovered } { body, attachPosition, arrow } =
     case ( hovered, arrow ) of
         ( HoverState.Tooltip _ target, a ) ->
-            Html.div (position attachPosition target)
+            Html.div (id "tooltips" :: position attachPosition target)
                 [ Maybe.map (arrowView attachPosition target) a |> Maybe.withDefault (Html.text "")
                 , body
                 ]
 
         _ ->
             Html.text ""
+
+
+handleDelivery : { a | hovered : HoverState.HoverState } -> Delivery -> ET m
+handleDelivery session delivery ( model, effects ) =
+    case delivery of
+        ClockTicked OneSecond _ ->
+            ( model
+            , effects
+                ++ (case session.hovered of
+                        HoverState.Hovered domID ->
+                            [ Effects.GetViewportOf domID
+                            ]
+
+                        _ ->
+                            []
+                   )
+            )
+
+        _ ->
+            ( model, effects )

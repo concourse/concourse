@@ -34,21 +34,20 @@ type policyCheckingHandler struct {
 func (h policyCheckingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	acc := accessor.GetAccessor(r)
 
-	if h.policyChecker != nil {
-		result, err := h.policyChecker.Check(h.action, acc, r)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, fmt.Sprintf("policy check error: %s", err.Error()))
-			return
+	result, err := h.policyChecker.Check(h.action, acc, r)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, fmt.Sprintf("policy check error: %s", err.Error()))
+		return
+	}
+
+	if !result.Allowed {
+		w.WriteHeader(http.StatusForbidden)
+		policyCheckErr := policy.PolicyCheckNotPass{
+			Reasons: result.Reasons,
 		}
-		if !result.Allowed {
-			w.WriteHeader(http.StatusForbidden)
-			policyCheckErr := policy.PolicyCheckNotPass{
-				Reasons: result.Reasons,
-			}
-			fmt.Fprintf(w, policyCheckErr.Error())
-			return
-		}
+		fmt.Fprintf(w, policyCheckErr.Error())
+		return
 	}
 
 	h.handler.ServeHTTP(w, r)

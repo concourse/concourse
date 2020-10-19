@@ -2,7 +2,6 @@ package builder
 
 import (
 	"io"
-	"time"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
@@ -10,22 +9,32 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/policy"
 )
 
-func NewTaskDelegate(build db.Build, planID atc.PlanID, state exec.RunState, clock clock.Clock) exec.TaskDelegate {
+func NewTaskDelegate(
+	build db.Build,
+	planID atc.PlanID,
+	state exec.RunState,
+	clock clock.Clock,
+	policyChecker policy.Checker,
+) exec.TaskDelegate {
 	return &taskDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,
+		clock:       clock,
 	}
 }
 
 type taskDelegate struct {
 	exec.BuildStepDelegate
+
 	config      atc.TaskConfig
 	build       db.Build
 	eventOrigin event.Origin
+	clock       clock.Clock
 }
 
 func (d *taskDelegate) SetTaskConfig(config atc.TaskConfig) {
@@ -35,7 +44,7 @@ func (d *taskDelegate) SetTaskConfig(config atc.TaskConfig) {
 func (d *taskDelegate) Initializing(logger lager.Logger) {
 	err := d.build.SaveEvent(event.InitializeTask{
 		Origin:     d.eventOrigin,
-		Time:       time.Now().Unix(),
+		Time:       d.clock.Now().Unix(),
 		TaskConfig: event.ShadowTaskConfig(d.config),
 	})
 	if err != nil {
@@ -49,7 +58,7 @@ func (d *taskDelegate) Initializing(logger lager.Logger) {
 func (d *taskDelegate) Starting(logger lager.Logger) {
 	err := d.build.SaveEvent(event.StartTask{
 		Origin:     d.eventOrigin,
-		Time:       time.Now().Unix(),
+		Time:       d.clock.Now().Unix(),
 		TaskConfig: event.ShadowTaskConfig(d.config),
 	})
 	if err != nil {
@@ -67,7 +76,7 @@ func (d *taskDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus)
 
 	err := d.build.SaveEvent(event.FinishTask{
 		ExitStatus: int(exitStatus),
-		Time:       time.Now().Unix(),
+		Time:       d.clock.Now().Unix(),
 		Origin:     d.eventOrigin,
 	})
 	if err != nil {

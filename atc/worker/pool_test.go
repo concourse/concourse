@@ -31,10 +31,9 @@ var _ = Describe("Pool", func() {
 
 	Describe("FindOrChooseWorkerForContainer", func() {
 		var (
-			spec          ContainerSpec
-			workerSpec    WorkerSpec
-			resourceTypes atc.VersionedResourceTypes
-			fakeOwner     *dbfakes.FakeContainerOwner
+			spec       ContainerSpec
+			workerSpec WorkerSpec
+			fakeOwner  *dbfakes.FakeContainerOwner
 
 			chosenWorker Worker
 			chooseErr    error
@@ -84,22 +83,10 @@ var _ = Describe("Pool", func() {
 				},
 			}
 
-			resourceTypes = atc.VersionedResourceTypes{
-				{
-					ResourceType: atc.ResourceType{
-						Name:   "custom-type-b",
-						Type:   "custom-type-a",
-						Source: atc.Source{"some": "super-secret-source"},
-					},
-					Version: atc.Version{"some": "version"},
-				},
-			}
-
 			workerSpec = WorkerSpec{
-				ResourceType:  "some-type",
-				TeamID:        4567,
-				Tags:          atc.Tags{"some-tag"},
-				ResourceTypes: resourceTypes,
+				ResourceType: "some-type",
+				TeamID:       4567,
+				Tags:         atc.Tags{"some-tag"},
 			}
 
 			incompatibleWorker = new(workerfakes.FakeWorker)

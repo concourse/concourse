@@ -1,7 +1,9 @@
 package build_test
 
 import (
+	"github.com/concourse/concourse/atc/exec/build"
 	. "github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 
 	. "github.com/onsi/ginkgo"
@@ -46,6 +48,65 @@ var _ = Describe("ArtifactRepository", func() {
 			})
 		})
 
+		Describe("NewLocalScope", func() {
+			var child *build.Repository
+
+			BeforeEach(func() {
+				child = repo.NewLocalScope()
+			})
+
+			It("contains the same artifacts as the parent", func() {
+				Expect(child.AsMap()).To(Equal(repo.AsMap()))
+			})
+
+			It("maintains a reference to the parent", func() {
+				Expect(child.Parent()).To(Equal(repo))
+			})
+
+			Context("when an artifact is registered", func() {
+				var secondArtifact *runtimefakes.FakeArtifact
+
+				BeforeEach(func() {
+					secondArtifact = new(runtimefakes.FakeArtifact)
+					secondArtifact.IDReturns("some-second")
+
+					child.RegisterArtifact("second-artifact", secondArtifact)
+				})
+
+				It("is present in the child but not the parent", func() {
+					Expect(child.AsMap()).To(Equal(map[build.ArtifactName]runtime.Artifact{
+						"first-artifact":  firstArtifact,
+						"second-artifact": secondArtifact,
+					}))
+
+					Expect(repo.AsMap()).To(Equal(map[build.ArtifactName]runtime.Artifact{
+						"first-artifact": firstArtifact,
+					}))
+				})
+			})
+
+			Context("when an artifact is overridden", func() {
+				var firstPrimeArtifact *runtimefakes.FakeArtifact
+
+				BeforeEach(func() {
+					firstPrimeArtifact = new(runtimefakes.FakeArtifact)
+					firstPrimeArtifact.IDReturns("some-second")
+
+					child.RegisterArtifact("first-artifact", firstPrimeArtifact)
+				})
+
+				It("is overridden in the child but not the parent", func() {
+					Expect(child.AsMap()).To(Equal(map[build.ArtifactName]runtime.Artifact{
+						"first-artifact": firstPrimeArtifact,
+					}))
+
+					Expect(repo.AsMap()).To(Equal(map[build.ArtifactName]runtime.Artifact{
+						"first-artifact": firstArtifact,
+					}))
+				})
+			})
+		})
+
 		Context("when a second artifact is registered", func() {
 			var secondArtifact *runtimefakes.FakeArtifact
 
@@ -54,6 +115,15 @@ var _ = Describe("ArtifactRepository", func() {
 				secondArtifact.IDReturns("some-second")
 
 				repo.RegisterArtifact("second-artifact", secondArtifact)
+			})
+
+			Describe("AsMap", func() {
+				It("returns all artifacts", func() {
+					Expect(repo.AsMap()).To(Equal(map[build.ArtifactName]runtime.Artifact{
+						"first-artifact":  firstArtifact,
+						"second-artifact": secondArtifact,
+					}))
+				})
 			})
 
 			Describe("ArtifactFor", func() {
@@ -76,6 +146,5 @@ var _ = Describe("ArtifactRepository", func() {
 				})
 			})
 		})
-
 	})
 })

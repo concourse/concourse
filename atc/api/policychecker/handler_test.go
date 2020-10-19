@@ -47,9 +47,13 @@ var _ = Describe("Handler", func() {
 		policyCheckerHandler.ServeHTTP(responseWriter, req)
 	})
 
-	Describe("when policy checker is not configured", func() {
+	BeforeEach(func() {
+		policyCheckerHandler = policychecker.NewHandler(logger, dummyHandler, "some-action", fakePolicyChecker)
+	})
+
+	Context("policy check passes", func() {
 		BeforeEach(func() {
-			policyCheckerHandler = policychecker.NewHandler(logger, dummyHandler, "some-action", nil)
+			fakePolicyChecker.CheckReturns(policy.PassedPolicyCheck(), nil)
 		})
 
 		It("calls the inner handler", func() {
@@ -57,58 +61,42 @@ var _ = Describe("Handler", func() {
 		})
 	})
 
-	Describe("when policy checker is configured", func() {
+	Context("policy check doesn't pass", func() {
 		BeforeEach(func() {
-			policyCheckerHandler = policychecker.NewHandler(logger, dummyHandler, "some-action", fakePolicyChecker)
+			fakePolicyChecker.CheckReturns(policy.PolicyCheckOutput{
+				Allowed: false,
+				Reasons: []string{"a policy says you can't do that", "another policy also says you can't do that"},
+			}, nil)
 		})
 
-		Context("policy check passes", func() {
-			BeforeEach(func() {
-				fakePolicyChecker.CheckReturns(policy.PassedPolicyCheck(), nil)
-			})
+		It("return http forbidden", func() {
+			Expect(responseWriter.Code).To(Equal(http.StatusForbidden))
 
-			It("calls the inner handler", func() {
-				Expect(innerHandlerCalled).To(BeTrue())
-			})
+			msg, err := ioutil.ReadAll(responseWriter.Body)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(msg)).To(Equal("policy check failed: a policy says you can't do that, another policy also says you can't do that"))
 		})
 
-		Context("policy check doesn't pass", func() {
-			BeforeEach(func() {
-				fakePolicyChecker.CheckReturns(policy.PolicyCheckOutput{
-					Allowed: false,
-					Reasons: []string{"a policy says you can't do that", "another policy also says you can't do that"},
-				}, nil)
-			})
+		It("not call the inner handler", func() {
+			Expect(innerHandlerCalled).To(BeFalse())
+		})
+	})
 
-			It("return http forbidden", func() {
-				Expect(responseWriter.Code).To(Equal(http.StatusForbidden))
-
-				msg, err := ioutil.ReadAll(responseWriter.Body)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(msg)).To(Equal("policy check failed: a policy says you can't do that, another policy also says you can't do that"))
-			})
-
-			It("not call the inner handler", func() {
-				Expect(innerHandlerCalled).To(BeFalse())
-			})
+	Context("policy check errors", func() {
+		BeforeEach(func() {
+			fakePolicyChecker.CheckReturns(policy.FailedPolicyCheck(), errors.New("some-error"))
 		})
 
-		Context("policy check errors", func() {
-			BeforeEach(func() {
-				fakePolicyChecker.CheckReturns(policy.FailedPolicyCheck(), errors.New("some-error"))
-			})
+		It("return http bad request", func() {
+			Expect(responseWriter.Code).To(Equal(http.StatusBadRequest))
 
-			It("return http bad request", func() {
-				Expect(responseWriter.Code).To(Equal(http.StatusBadRequest))
+			msg, err := ioutil.ReadAll(responseWriter.Body)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(msg)).To(Equal("policy check error: some-error"))
+		})
 
-				msg, err := ioutil.ReadAll(responseWriter.Body)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(string(msg)).To(Equal("policy check error: some-error"))
-			})
-
-			It("not call the inner handler", func() {
-				Expect(innerHandlerCalled).To(BeFalse())
-			})
+		It("not call the inner handler", func() {
+			Expect(innerHandlerCalled).To(BeFalse())
 		})
 	})
 })

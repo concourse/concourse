@@ -21,8 +21,9 @@ import Dict
 import Expect
 import Json.Encode
 import Message.Callback as Callback
+import Message.Effects as Effects
 import Message.Message as Message exposing (DomID(..))
-import Message.Subscription exposing (Delivery(..))
+import Message.Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Routes
 import Test exposing (Test, describe, test)
@@ -326,6 +327,34 @@ all =
                     >> given theTaskStepIsExpanded
                     >> when iAmLookingAtTheStepBody
                     >> then_ iSeeATimestamp
+            , test "shows image check sub-step" <|
+                given iVisitABuildWithATaskStep
+                    >> given (thereIsAnImageCheckStep taskStepId)
+                    >> given (thereIsALog imageCheckStepId)
+                    >> given theTaskInitializationIsExpanded
+                    >> given theImageCheckStepIsExpanded
+                    >> when iAmLookingAtTheStepBody
+                    >> then_ iSeeTheLogOutput
+            , test "shows image get sub-step" <|
+                given iVisitABuildWithATaskStep
+                    >> given (thereIsAnImageGetStep taskStepId)
+                    >> given (thereIsALog imageGetStepId)
+                    >> given theTaskInitializationIsExpanded
+                    >> given theImageGetStepIsExpanded
+                    >> when iAmLookingAtTheStepBody
+                    >> then_ iSeeTheLogOutput
+            , test "initialization toggle gets viewport for tooltip" <|
+                given iVisitABuildWithATaskStep
+                    >> given (thereIsAnImageGetStep taskStepId)
+                    >> given iHoverOverInitializationToggle
+                    >> given timeElapses
+                    >> then_ (itGetsViewportOf initializationToggleID)
+            , test "initialization toggle shows tooltip" <|
+                given iVisitABuildWithATaskStep
+                    >> given (thereIsAnImageGetStep taskStepId)
+                    >> given iHoverOverInitializationToggle
+                    >> given (gotViewportAndElementOf initializationToggleID)
+                    >> then_ (iSeeText "image fetching")
             ]
         , describe "check step"
             [ test "should show resource name" <|
@@ -349,6 +378,70 @@ all =
                     >> then_ iSeeTheLoadVarName
             ]
         ]
+
+
+gotViewportAndElementOf domID =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.GotViewport domID <|
+                Ok
+                    { scene =
+                        { width = 1
+                        , height = 0
+                        }
+                    , viewport =
+                        { width = 1
+                        , height = 0
+                        , x = 0
+                        , y = 0
+                        }
+                    }
+            )
+        >> Tuple.first
+        >> Application.handleCallback
+            (Callback.GotElement <|
+                Ok
+                    { scene =
+                        { width = 0
+                        , height = 0
+                        }
+                    , viewport =
+                        { width = 0
+                        , height = 0
+                        , x = 0
+                        , y = 0
+                        }
+                    , element =
+                        { x = 0
+                        , y = 0
+                        , width = 1
+                        , height = 1
+                        }
+                    }
+            )
+
+
+iHoverOverInitializationToggle =
+    Tuple.first
+        >> Application.update
+            (Update <| Message.Hover <| Just initializationToggleID)
+
+
+timeElapses =
+    Tuple.first
+        >> Application.handleDelivery
+            (ClockTicked OneSecond <|
+                Time.millisToPosix 0
+            )
+
+
+itGetsViewportOf domID =
+    Tuple.second
+        >> Common.contains (Effects.GetViewportOf domID)
+
+
+initializationToggleID =
+    Message.StepInitialization "foo"
 
 
 iVisitABuildWithARetryStep =
@@ -454,6 +547,21 @@ theGetStepIsExpanded =
 theTaskStepIsExpanded =
     Tuple.first
         >> Application.update (Update <| Message.Click <| StepHeader taskStepId)
+
+
+theTaskInitializationIsExpanded =
+    Tuple.first
+        >> Application.update (Update <| Message.Click <| StepInitialization taskStepId)
+
+
+theImageCheckStepIsExpanded =
+    Tuple.first
+        >> Application.update (Update <| Message.Click <| StepHeader imageCheckStepId)
+
+
+theImageGetStepIsExpanded =
+    Tuple.first
+        >> Application.update (Update <| Message.Click <| StepHeader imageGetStepId)
 
 
 theSetPipelineStepIsExpanded =
@@ -639,6 +747,14 @@ taskStepId =
     "taskStepId"
 
 
+imageCheckStepId =
+    "imageCheckStepId"
+
+
+imageGetStepId =
+    "imageGetStepId"
+
+
 thePlanContainsASetPipelineStep =
     Tuple.first
         >> Application.handleCallback
@@ -742,6 +858,13 @@ theGetStepReturnsMetadata =
             )
 
 
+iSeeText str =
+    Tuple.first
+        >> Common.queryView
+        >> Query.findAll [ text str ]
+        >> Query.count (Expect.equal 1)
+
+
 iAmLookingAtTheRetryStepInTheBuildOutput =
     Tuple.first
         >> Common.queryView
@@ -757,7 +880,8 @@ iAmLookingAtTheAcrossStepInTheBuildOutput =
 iAmLookingAtTheStepBody =
     Tuple.first
         >> Common.queryView
-        >> Query.find [ class "build-step" ]
+        >> Query.findAll [ class "build-step" ]
+        >> Query.first
 
 
 iSeeTwoChildren =
@@ -994,6 +1118,10 @@ iSeeTheResourceName =
     Query.has [ text "resource-name" ]
 
 
+iSeeTheLogOutput =
+    Query.has [ text "the log output" ]
+
+
 iSeeTheLoadVarName =
     Query.has [ text "var-name" ]
 
@@ -1096,6 +1224,10 @@ taskErrored stepId =
             (Time.millisToPosix 0)
 
 
+eventsUrl =
+    "http://localhost:8080/api/v1/builds/1/events"
+
+
 thereIsALog stepId =
     Tuple.first
         >> Application.handleDelivery
@@ -1107,7 +1239,7 @@ thereIsALog stepId =
                                 , id = stepId
                                 }
                                 (Time.millisToPosix 0)
-                      , url = "http://localhost:8080/api/v1/builds/1/events"
+                      , url = eventsUrl
                       }
                     , { data =
                             StartTask
@@ -1115,7 +1247,7 @@ thereIsALog stepId =
                                 , id = stepId
                                 }
                                 (Time.millisToPosix 0)
-                      , url = "http://localhost:8080/api/v1/builds/1/events"
+                      , url = eventsUrl
                       }
                     , { data =
                             Log
@@ -1124,6 +1256,40 @@ thereIsALog stepId =
                                 }
                                 "the log output"
                                 (Just <| Time.millisToPosix 1000)
+                      , url = eventsUrl
+                      }
+                    ]
+            )
+
+
+thereIsAnImageCheckStep stepId =
+    Tuple.first
+        >> Application.handleDelivery
+            (EventsReceived <|
+                Ok
+                    [ { data =
+                            ImageCheck
+                                { source = ""
+                                , id = stepId
+                                }
+                                (Concourse.BuildPlan imageCheckStepId (Concourse.BuildStepCheck "image"))
+                      , url = "http://localhost:8080/api/v1/builds/1/events"
+                      }
+                    ]
+            )
+
+
+thereIsAnImageGetStep stepId =
+    Tuple.first
+        >> Application.handleDelivery
+            (EventsReceived <|
+                Ok
+                    [ { data =
+                            ImageGet
+                                { source = ""
+                                , id = stepId
+                                }
+                                (Concourse.BuildPlan imageGetStepId (Concourse.BuildStepGet "image" Nothing))
                       , url = "http://localhost:8080/api/v1/builds/1/events"
                       }
                     ]

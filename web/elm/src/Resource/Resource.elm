@@ -590,7 +590,7 @@ handleCallback callback session ( model, effects ) =
 
 handleDelivery : { a | hovered : HoverState.HoverState } -> Delivery -> ET Model
 handleDelivery session delivery ( model, effects ) =
-    case delivery of
+    (case delivery of
         KeyDown keyEvent ->
             if
                 (keyEvent.code == Keyboard.Enter)
@@ -655,6 +655,8 @@ handleDelivery session delivery ( model, effects ) =
 
         _ ->
             ( model, effects )
+    )
+        |> Tooltip.handleDelivery session delivery
 
 
 update : Message -> ET Model
@@ -815,6 +817,11 @@ update msg ( model, effects ) =
                 (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStep id)
                 ( model, effects )
 
+        Click (StepInitialization id) ->
+            updateOutput
+                (Build.Output.Output.handleStepTreeMsg <| StepTree.toggleStepInitialization id)
+                ( model, effects ++ [ SyncStickyBuildLogHeaders ] )
+
         EditComment input ->
             let
                 newPinnedVersion =
@@ -971,9 +978,11 @@ view session model =
         ]
 
 
-tooltip : Model -> a -> Maybe Tooltip.Tooltip
-tooltip _ _ =
-    Nothing
+tooltip : Model -> { a | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
+tooltip model session =
+    model.output
+        |> Maybe.andThen .steps
+        |> Maybe.andThen (\steps -> StepTree.tooltip steps session)
 
 
 header : Session -> Model -> Html Message

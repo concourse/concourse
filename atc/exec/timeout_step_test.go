@@ -26,6 +26,7 @@ var _ = Describe("Timeout Step", func() {
 
 		timeoutDuration string
 
+		stepOk  bool
 		stepErr error
 	)
 
@@ -43,7 +44,7 @@ var _ = Describe("Timeout Step", func() {
 
 	JustBeforeEach(func() {
 		step = Timeout(fakeStep, timeoutDuration)
-		stepErr = step.Run(ctx, state)
+		stepOk, stepErr = step.Run(ctx, state)
 	})
 
 	Context("when the duration is valid", func() {
@@ -59,8 +60,7 @@ var _ = Describe("Timeout Step", func() {
 
 			BeforeEach(func() {
 				someError = errors.New("some error")
-				fakeStep.SucceededReturns(false)
-				fakeStep.RunReturns(someError)
+				fakeStep.RunReturns(false, someError)
 			})
 
 			It("returns the error", func() {
@@ -71,8 +71,7 @@ var _ = Describe("Timeout Step", func() {
 
 		Context("when the step exceeds the timeout", func() {
 			BeforeEach(func() {
-				fakeStep.SucceededReturns(true)
-				fakeStep.RunReturns(context.DeadlineExceeded)
+				fakeStep.RunReturns(true, context.DeadlineExceeded)
 			})
 
 			It("returns no error", func() {
@@ -80,7 +79,7 @@ var _ = Describe("Timeout Step", func() {
 			})
 
 			It("is not successful", func() {
-				Expect(step.Succeeded()).To(BeFalse())
+				Expect(stepOk).To(BeFalse())
 			})
 		})
 
@@ -95,27 +94,27 @@ var _ = Describe("Timeout Step", func() {
 			})
 
 			It("is not successful", func() {
-				Expect(step.Succeeded()).To(BeFalse())
+				Expect(stepOk).To(BeFalse())
 			})
 		})
 
 		Context("when the step is successful", func() {
 			BeforeEach(func() {
-				fakeStep.SucceededReturns(true)
+				fakeStep.RunReturns(true, nil)
 			})
 
 			It("is successful", func() {
-				Expect(step.Succeeded()).To(BeTrue())
+				Expect(stepOk).To(BeTrue())
 			})
 		})
 
 		Context("when the step fails", func() {
 			BeforeEach(func() {
-				fakeStep.SucceededReturns(false)
+				fakeStep.RunReturns(false, nil)
 			})
 
 			It("is not successful", func() {
-				Expect(step.Succeeded()).To(BeFalse())
+				Expect(stepOk).To(BeFalse())
 			})
 		})
 	})

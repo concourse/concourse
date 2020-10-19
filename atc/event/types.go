@@ -52,4 +52,10 @@ const (
 
 	// error occurred
 	EventTypeError atc.EventType = "error"
+
+	// image check sub-plan
+	EventTypeImageCheck atc.EventType = "image-check"
+
+	// image get sub-plan
+	EventTypeImageGet atc.EventType = "image-get"
 )

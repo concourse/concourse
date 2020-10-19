@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -24,6 +25,7 @@ type stepFactory struct {
 	defaultLimits         atc.ContainerLimits
 	strategy              worker.ContainerPlacementStrategy
 	lockFactory           lock.LockFactory
+	defaultCheckTimeout   time.Duration
 }
 
 func NewStepFactory(
@@ -37,6 +39,7 @@ func NewStepFactory(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	lockFactory lock.LockFactory,
+	defaultCheckTimeout time.Duration,
 ) *stepFactory {
 	return &stepFactory{
 		pool:                  pool,
@@ -49,6 +52,7 @@ func NewStepFactory(
 		defaultLimits:         defaultLimits,
 		strategy:              strategy,
 		lockFactory:           lockFactory,
+		defaultCheckTimeout:   defaultCheckTimeout,
 	}
 }
 
@@ -125,6 +129,7 @@ func (factory *stepFactory) CheckStep(
 		factory.pool,
 		delegateFactory,
 		factory.client,
+		factory.defaultCheckTimeout,
 	)
 
 	checkStep = exec.LogError(checkStep, delegateFactory)

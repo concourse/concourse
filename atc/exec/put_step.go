@@ -27,8 +27,7 @@ type PutDelegateFactory interface {
 type PutDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
-	ImageVersionDetermined(db.UsedResourceCache) error
-	RedactImageSource(source atc.Source) (atc.Source, error)
+	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -89,20 +88,20 @@ func NewPutStep(
 //
 // The resource's put script is then invoked. If the context is canceled, the
 // script will be interrupted.
-func (step *PutStep) Run(ctx context.Context, state RunState) error {
+func (step *PutStep) Run(ctx context.Context, state RunState) (bool, error) {
 	delegate := step.delegateFactory.PutDelegate(state)
 	ctx, span := delegate.StartSpan(ctx, "put", tracing.Attrs{
 		"name":     step.plan.Name,
 		"resource": step.plan.Resource,
 	})
 
-	err := step.run(ctx, state, delegate)
+	ok, err := step.run(ctx, state, delegate)
 	tracing.End(span, err)
 
-	return err
+	return ok, err
 }
 
-func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelegate) error {
+func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelegate) (bool, error) {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("put-step", lager.Data{
 		"step-name": step.plan.Name,
@@ -113,17 +112,17 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	params, err := creds.NewParams(state, step.plan.Params).Evaluate()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	var putInputs PutInputs
@@ -143,15 +142,41 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	containerInputs, err := putInputs.FindAll(state.ArtifactRepository())
 	if err != nil {
-		return err
+		return false, err
+	}
+
+	workerSpec := worker.WorkerSpec{
+		Tags:   step.plan.Tags,
+		TeamID: step.metadata.TeamID,
+	}
+
+	var imageSpec worker.ImageSpec
+	resourceType, found := step.plan.VersionedResourceTypes.Lookup(step.plan.Type)
+	if found {
+		image := atc.ImageResource{
+			Name:    resourceType.Name,
+			Type:    resourceType.Type,
+			Source:  resourceType.Source,
+			Params:  resourceType.Params,
+			Version: resourceType.Version,
+		}
+
+		types := step.plan.VersionedResourceTypes.Without(step.plan.Type)
+
+		var err error
+		imageSpec, err = delegate.FetchImage(ctx, image, types, resourceType.Privileged)
+		if err != nil {
+			return false, err
+		}
+	} else {
+		imageSpec.ResourceType = step.plan.Type
+		workerSpec.ResourceType = step.plan.Type
 	}
 
 	containerSpec := worker.ContainerSpec{
-		ImageSpec: worker.ImageSpec{
-			ResourceType: step.plan.Type,
-		},
-		Tags:   step.plan.Tags,
-		TeamID: step.metadata.TeamID,
+		ImageSpec: imageSpec,
+		Tags:      step.plan.Tags,
+		TeamID:    step.metadata.TeamID,
 
 		Dir: step.containerMetadata.WorkingDirectory,
 
@@ -161,22 +186,10 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	}
 	tracing.Inject(ctx, &containerSpec)
 
-	workerSpec := worker.WorkerSpec{
-		ResourceType:  step.plan.Type,
-		Tags:          step.plan.Tags,
-		TeamID:        step.metadata.TeamID,
-		ResourceTypes: resourceTypes,
-	}
-
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
 	containerSpec.BindMounts = []worker.BindMountSource{
 		&worker.CertsVolumeMount{Logger: logger},
-	}
-
-	imageSpec := worker.ImageFetcherSpec{
-		ResourceTypes: resourceTypes,
-		Delegate:      delegate,
 	}
 
 	processSpec := runtime.ProcessSpec{
@@ -196,19 +209,18 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 		workerSpec,
 		step.strategy,
 		step.containerMetadata,
-		imageSpec,
 		processSpec,
 		delegate,
 		resourceToPut,
 	)
 	if err != nil {
 		logger.Error("failed-to-put-resource", err)
-		return err
+		return false, err
 	}
 
 	if result.ExitStatus != 0 {
 		delegate.Finished(logger, ExitStatus(result.ExitStatus), runtime.VersionResult{})
-		return nil
+		return false, nil
 	}
 
 	versionResult := result.VersionResult
@@ -220,15 +232,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	state.StoreResult(step.planID, versionResult)
 
-	step.succeeded = true
-
 	delegate.Finished(logger, 0, versionResult)
 
-	return nil
-
-}
-
-// Succeeded returns true if the resource script exited successfully.
-func (step *PutStep) Succeeded() bool {
-	return step.succeeded
+	return true, nil
 }

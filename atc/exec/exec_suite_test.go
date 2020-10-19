@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel/api/trace/tracetest"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
 )
@@ -45,3 +46,8 @@ var _ = BeforeSuite(func() {
 
 	atc.EnablePipelineInstances = true
 })
+
+var noopStepper exec.Stepper = func(atc.Plan) exec.Step {
+	Fail("cannot create substep")
+	return nil
+}

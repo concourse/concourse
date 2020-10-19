@@ -40,37 +40,17 @@ var _ = Describe("Retry Step", func() {
 		step = Retry(attempt1, attempt2, attempt3)
 	})
 
-	Context("when calling succeeded before running", func() {
-		Context("when the RetryStep is given no attempts", func() {
+	Describe("Run", func() {
+		var stepOk bool
+		var stepErr error
+
+		JustBeforeEach(func() {
+			stepOk, stepErr = step.Run(ctx, state)
+		})
+
+		Context("when attempt 1 succeeds", func() {
 			BeforeEach(func() {
-				step = Retry()
-			})
-
-			Describe("Succeeded", func() {
-				It("should return false", func() {
-					Expect(step.Succeeded()).To(BeFalse())
-				})
-			})
-		})
-
-		Context("when the RetryStep is given attempts", func() {
-			Describe("Succeeded", func() {
-				It("should return false", func() {
-					Expect(step.Succeeded()).To(BeFalse())
-				})
-			})
-		})
-	})
-	Context("when attempt 1 succeeds", func() {
-		BeforeEach(func() {
-			attempt1.SucceededReturns(true)
-		})
-
-		Describe("Run", func() {
-			var stepErr error
-
-			JustBeforeEach(func() {
-				stepErr = step.Run(ctx, state)
+				attempt1.RunReturns(true, nil)
 			})
 
 			It("returns nil having only run the first attempt", func() {
@@ -81,32 +61,15 @@ var _ = Describe("Retry Step", func() {
 				Expect(attempt3.RunCallCount()).To(Equal(0))
 			})
 
-			Describe("Succeeded", func() {
-				It("delegates to attempt 1", func() {
-					// internal check for success within retry loop
-					Expect(attempt1.SucceededCallCount()).To(Equal(1))
-
-					attempt1.SucceededReturns(true)
-
-					Expect(step.Succeeded()).To(BeTrue())
-
-					Expect(attempt1.SucceededCallCount()).To(Equal(2))
-				})
+			It("succeeds", func() {
+				Expect(stepOk).To(BeTrue())
 			})
 		})
-	})
 
-	Context("when attempt 1 fails, and attempt 2 succeeds", func() {
-		BeforeEach(func() {
-			attempt1.SucceededReturns(false)
-			attempt2.SucceededReturns(true)
-		})
-
-		Describe("Run", func() {
-			var stepErr error
-
-			JustBeforeEach(func() {
-				stepErr = step.Run(ctx, state)
+		Context("when attempt 1 fails, and attempt 2 succeeds", func() {
+			BeforeEach(func() {
+				attempt1.RunReturns(false, nil)
+				attempt2.RunReturns(true, nil)
 			})
 
 			It("returns nil having only run the first and second attempts", func() {
@@ -117,32 +80,15 @@ var _ = Describe("Retry Step", func() {
 				Expect(attempt3.RunCallCount()).To(Equal(0))
 			})
 
-			Describe("Succeeded", func() {
-				It("delegates to attempt 2", func() {
-					// internal check for success within retry loop
-					Expect(attempt2.SucceededCallCount()).To(Equal(1))
-
-					attempt2.SucceededReturns(true)
-
-					Expect(step.Succeeded()).To(BeTrue())
-
-					Expect(attempt2.SucceededCallCount()).To(Equal(2))
-				})
+			It("succeeds", func() {
+				Expect(stepOk).To(BeTrue())
 			})
 		})
-	})
 
-	Context("when attempt 1 errors, and attempt 2 succeeds", func() {
-		BeforeEach(func() {
-			attempt1.RunReturns(errors.New("nope"))
-			attempt2.SucceededReturns(true)
-		})
-
-		Describe("Run", func() {
-			var stepErr error
-
-			JustBeforeEach(func() {
-				stepErr = step.Run(ctx, state)
+		Context("when attempt 1 errors, and attempt 2 succeeds", func() {
+			BeforeEach(func() {
+				attempt1.RunReturns(false, errors.New("nope"))
+				attempt2.RunReturns(true, nil)
 			})
 
 			It("returns nil having only run the first and second attempts", func() {
@@ -153,35 +99,18 @@ var _ = Describe("Retry Step", func() {
 				Expect(attempt3.RunCallCount()).To(Equal(0))
 			})
 
-			Describe("Succeeded", func() {
-				It("delegates to attempt 2", func() {
-					// internal check for success within retry loop
-					Expect(attempt2.SucceededCallCount()).To(Equal(1))
-
-					attempt2.SucceededReturns(true)
-
-					Expect(step.Succeeded()).To(BeTrue())
-
-					Expect(attempt2.SucceededCallCount()).To(Equal(2))
-				})
+			It("succeeds", func() {
+				Expect(stepOk).To(BeTrue())
 			})
 		})
-	})
 
-	Context("when attempt 1 errors, and attempt 2 is interrupted", func() {
-		BeforeEach(func() {
-			attempt1.RunReturns(errors.New("nope"))
-			attempt2.RunStub = func(c context.Context, r RunState) error {
-				cancel()
-				return c.Err()
-			}
-		})
-
-		Describe("Run", func() {
-			var stepErr error
-
-			JustBeforeEach(func() {
-				stepErr = step.Run(ctx, state)
+		Context("when attempt 1 errors, and attempt 2 is interrupted", func() {
+			BeforeEach(func() {
+				attempt1.RunReturns(false, errors.New("nope"))
+				attempt2.RunStub = func(c context.Context, r RunState) (bool, error) {
+					cancel()
+					return false, c.Err()
+				}
 			})
 
 			It("returns the context error having only run the first and second attempts", func() {
@@ -192,37 +121,21 @@ var _ = Describe("Retry Step", func() {
 				Expect(attempt3.RunCallCount()).To(Equal(0))
 			})
 
-			Describe("Succeeded", func() {
-				It("delegates to attempt 2", func() {
-					// internal check for success within retry loop
-					Expect(attempt2.SucceededCallCount()).To(Equal(0))
-
-					attempt2.SucceededReturns(true)
-
-					Expect(step.Succeeded()).To(BeTrue())
-
-					Expect(attempt2.SucceededCallCount()).To(Equal(1))
-				})
+			It("fails", func() {
+				Expect(stepOk).To(BeFalse())
 			})
 		})
-	})
 
-	Context("when attempt 1 errors, attempt 2 times out, and attempt 3 succeeds", func() {
-		BeforeEach(func() {
-			attempt1.RunReturns(errors.New("nope"))
-			attempt2.RunStub = func(c context.Context, r RunState) error {
-				timeout, subCancel := context.WithTimeout(c, 0)
-				defer subCancel()
-				<-timeout.Done()
-				return timeout.Err()
-			}
-		})
-
-		Describe("Run", func() {
-			var stepErr error
-
-			JustBeforeEach(func() {
-				stepErr = step.Run(ctx, state)
+		Context("when attempt 1 errors, attempt 2 times out, and attempt 3 succeeds", func() {
+			BeforeEach(func() {
+				attempt1.RunReturns(false, errors.New("nope"))
+				attempt2.RunStub = func(c context.Context, r RunState) (bool, error) {
+					timeout, subCancel := context.WithTimeout(c, 0)
+					defer subCancel()
+					<-timeout.Done()
+					return false, timeout.Err()
+				}
+				attempt3.RunReturns(true, nil)
 			})
 
 			It("returns nil after running all 3 steps", func() {
@@ -233,33 +146,16 @@ var _ = Describe("Retry Step", func() {
 				Expect(attempt3.RunCallCount()).To(Equal(1))
 			})
 
-			Describe("Succeeded", func() {
-				It("delegates to attempt 3", func() {
-					// internal check for success within retry loop
-					Expect(attempt3.SucceededCallCount()).To(Equal(1))
-
-					attempt3.SucceededReturns(true)
-
-					Expect(step.Succeeded()).To(BeTrue())
-
-					Expect(attempt3.SucceededCallCount()).To(Equal(2))
-				})
+			It("succeeds", func() {
+				Expect(stepOk).To(BeTrue())
 			})
 		})
-	})
 
-	Context("when attempt 1 fails, attempt 2 fails, and attempt 3 succeeds", func() {
-		BeforeEach(func() {
-			attempt1.SucceededReturns(false)
-			attempt2.SucceededReturns(false)
-			attempt3.SucceededReturns(true)
-		})
-
-		Describe("Run", func() {
-			var stepErr error
-
-			JustBeforeEach(func() {
-				stepErr = step.Run(ctx, state)
+		Context("when attempt 1 fails, attempt 2 fails, and attempt 3 succeeds", func() {
+			BeforeEach(func() {
+				attempt1.RunReturns(false, nil)
+				attempt2.RunReturns(false, nil)
+				attempt3.RunReturns(true, nil)
 			})
 
 			It("returns nil after running all 3 steps", func() {
@@ -270,35 +166,18 @@ var _ = Describe("Retry Step", func() {
 				Expect(attempt3.RunCallCount()).To(Equal(1))
 			})
 
-			Describe("Succeeded", func() {
-				It("delegates to attempt 3", func() {
-					// internal check for success within retry loop
-					Expect(attempt3.SucceededCallCount()).To(Equal(1))
-
-					attempt3.SucceededReturns(true)
-
-					Expect(step.Succeeded()).To(BeTrue())
-
-					Expect(attempt3.SucceededCallCount()).To(Equal(2))
-				})
+			It("succeeds", func() {
+				Expect(stepOk).To(BeTrue())
 			})
 		})
-	})
 
-	Context("when attempt 1 fails, attempt 2 fails, and attempt 3 errors", func() {
-		disaster := errors.New("nope")
+		Context("when attempt 1 fails, attempt 2 fails, and attempt 3 errors", func() {
+			disaster := errors.New("nope")
 
-		BeforeEach(func() {
-			attempt1.SucceededReturns(false)
-			attempt2.SucceededReturns(false)
-			attempt3.RunReturns(disaster)
-		})
-
-		Describe("Run", func() {
-			var stepErr error
-
-			JustBeforeEach(func() {
-				stepErr = step.Run(ctx, state)
+			BeforeEach(func() {
+				attempt1.RunReturns(false, nil)
+				attempt2.RunReturns(false, nil)
+				attempt3.RunReturns(false, disaster)
 			})
 
 			It("returns the error", func() {
@@ -309,33 +188,16 @@ var _ = Describe("Retry Step", func() {
 				Expect(attempt3.RunCallCount()).To(Equal(1))
 			})
 
-			Describe("Succeeded", func() {
-				It("delegates to attempt 3", func() {
-					// no internal check for success within retry loop, since it errored
-					Expect(attempt3.SucceededCallCount()).To(Equal(0))
-
-					attempt3.SucceededReturns(true)
-
-					Expect(step.Succeeded()).To(BeTrue())
-
-					Expect(attempt3.SucceededCallCount()).To(Equal(1))
-				})
+			It("fails", func() {
+				Expect(stepOk).To(BeFalse())
 			})
 		})
-	})
 
-	Context("when attempt 1 fails, attempt 2 fails, and attempt 3 fails", func() {
-		BeforeEach(func() {
-			attempt1.SucceededReturns(false)
-			attempt2.SucceededReturns(false)
-			attempt3.SucceededReturns(true)
-		})
-
-		Describe("Run", func() {
-			var stepErr error
-
-			JustBeforeEach(func() {
-				stepErr = step.Run(ctx, state)
+		Context("when attempt 1 fails, attempt 2 fails, and attempt 3 fails", func() {
+			BeforeEach(func() {
+				attempt1.RunReturns(false, nil)
+				attempt2.RunReturns(false, nil)
+				attempt3.RunReturns(false, nil)
 			})
 
 			It("returns nil having only run the first and second attempts", func() {
@@ -346,17 +208,8 @@ var _ = Describe("Retry Step", func() {
 				Expect(attempt3.RunCallCount()).To(Equal(1))
 			})
 
-			Describe("Succeeded", func() {
-				It("delegates to attempt 3", func() {
-					// internal check for success within retry loop
-					Expect(attempt3.SucceededCallCount()).To(Equal(1))
-
-					attempt3.SucceededReturns(true)
-
-					Expect(step.Succeeded()).To(BeTrue())
-
-					Expect(attempt3.SucceededCallCount()).To(Equal(2))
-				})
+			It("fails", func() {
+				Expect(stepOk).To(BeFalse())
 			})
 		})
 	})

@@ -15,19 +15,18 @@ import (
 // collected, and whose dependent resources (e.g. Containers, Volumes) can be
 // released, allowing them to expire.
 type Step interface {
-	// Run is called when it's time to execute the step. It should watch for the
-	// given context to be canceled in the event that the build is aborted or the
-	// step times out, and be sure to propagate the (context.Context).Err().
+	// Run executes the step, returning true if the step succeeds, false if it
+	// fails, or an error if an error occurs.
+	//
+	// Run should watch for the given context to be canceled in the event that
+	// the build is aborted or the step times out, and be sure to propagate the
+	// (context.Context).Err().
 	//
 	// Steps wrapping other steps should be careful to propagate the context.
 	//
 	// Steps must be idempotent. Each step is responsible for handling its own
 	// idempotency.
-	Run(context.Context, RunState) error
-
-	// Succeeded is true when the Step succeeded, and false otherwise.
-	// Succeeded is not guaranteed to be truthful until after you run Run()
-	Succeeded() bool
+	Run(context.Context, RunState) (bool, error)
 }
 
 //go:generate counterfeiter . BuildStepDelegate
@@ -38,6 +37,7 @@ type BuildOutputFilter func(text string) string
 
 type RunState interface {
 	vars.Variables
+
 	NewLocalScope() RunState
 	AddLocalVar(name string, val interface{}, redact bool)
 
@@ -48,6 +48,10 @@ type RunState interface {
 
 	Result(atc.PlanID, interface{}) bool
 	StoreResult(atc.PlanID, interface{})
+
+	Run(context.Context, atc.Plan) (bool, error)
+
+	Parent() RunState
 }
 
 // ExitStatus is the resulting exit code from the process that the step ran.

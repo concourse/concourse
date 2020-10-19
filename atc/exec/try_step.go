@@ -21,18 +21,12 @@ func Try(step Step) Step {
 
 // Run runs the nested step, and always returns nil, ignoring the nested step's
 // error.
-func (ts *TryStep) Run(ctx context.Context, state RunState) error {
-	err := ts.step.Run(ctx, state)
+func (ts *TryStep) Run(ctx context.Context, state RunState) (bool, error) {
+	_, err := ts.step.Run(ctx, state)
 	if errors.Is(err, context.Canceled) {
-		ts.aborted = true
-		// propagate aborts but not timeouts
-		return err
+		// propagate aborts errors, but not timeouts
+		return false, err
 	}
 
-	return nil
-}
-
-// Succeeded is true
-func (ts *TryStep) Succeeded() bool {
-	return !ts.aborted
+	return true, nil
 }

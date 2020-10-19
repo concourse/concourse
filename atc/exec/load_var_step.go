@@ -27,7 +27,6 @@ type LoadVarStep struct {
 	metadata        StepMetadata
 	delegateFactory BuildStepDelegateFactory
 	client          worker.Client
-	succeeded       bool
 }
 
 func NewLoadVarStep(
@@ -65,19 +64,19 @@ func (err InvalidLocalVarFile) Error() string {
 	return fmt.Sprintf("failed to parse %s in format %s: %s", err.File, err.Format, err.Err.Error())
 }
 
-func (step *LoadVarStep) Run(ctx context.Context, state RunState) error {
+func (step *LoadVarStep) Run(ctx context.Context, state RunState) (bool, error) {
 	delegate := step.delegateFactory.BuildStepDelegate(state)
 	ctx, span := delegate.StartSpan(ctx, "load_var", tracing.Attrs{
 		"name": step.plan.Name,
 	})
 
-	err := step.run(ctx, state, delegate)
+	ok, err := step.run(ctx, state, delegate)
 	tracing.End(span, err)
 
-	return err
+	return ok, err
 }
 
-func (step *LoadVarStep) run(ctx context.Context, state RunState, delegate BuildStepDelegate) error {
+func (step *LoadVarStep) run(ctx context.Context, state RunState, delegate BuildStepDelegate) (bool, error) {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("load-var-step", lager.Data{
 		"step-name": step.plan.Name,
@@ -97,21 +96,16 @@ func (step *LoadVarStep) run(ctx context.Context, state RunState, delegate Build
 
 	value, err := step.fetchVars(ctx, logger, step.plan.File, state)
 	if err != nil {
-		return err
+		return false, err
 	}
 	fmt.Fprintf(stdout, "var %s fetched.\n", step.plan.Name)
 
 	state.AddLocalVar(step.plan.Name, value, !step.plan.Reveal)
 	fmt.Fprintf(stdout, "added var %s to build.\n", step.plan.Name)
 
-	step.succeeded = true
-	delegate.Finished(logger, step.succeeded)
+	delegate.Finished(logger, true)
 
-	return nil
-}
-
-func (step *LoadVarStep) Succeeded() bool {
-	return step.succeeded
+	return true, nil
 }
 
 func (step *LoadVarStep) fetchVars(

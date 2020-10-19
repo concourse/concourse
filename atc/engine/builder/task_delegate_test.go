@@ -13,14 +13,16 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("TaskDelegate", func() {
 	var (
-		logger    *lagertest.TestLogger
-		fakeBuild *dbfakes.FakeBuild
-		fakeClock *fakeclock.FakeClock
+		logger            *lagertest.TestLogger
+		fakeBuild         *dbfakes.FakeBuild
+		fakeClock         *fakeclock.FakeClock
+		fakePolicyChecker *policyfakes.FakeChecker
 
 		state exec.RunState
 
@@ -40,9 +42,11 @@ var _ = Describe("TaskDelegate", func() {
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
 		}
-		state = exec.NewRunState(credVars, true)
+		state = exec.NewRunState(noopStepper, credVars, true)
 
-		delegate = builder.NewTaskDelegate(fakeBuild, "some-plan-id", state, fakeClock)
+		fakePolicyChecker = new(policyfakes.FakeChecker)
+
+		delegate = builder.NewTaskDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker)
 		delegate.SetTaskConfig(atc.TaskConfig{
 			Platform: "some-platform",
 			Run: atc.TaskRunConfig{
@@ -66,8 +70,20 @@ var _ = Describe("TaskDelegate", func() {
 		It("calls SaveEvent with the taskConfig", func() {
 			Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 			event := fakeBuild.SaveEventArgsForCall(0)
-			b := `{"time":.*,"origin":{"id":"some-plan-id"},"config":{"platform":"some-platform","image":"","run":{"path":"some-foo-path","args":null,"dir":"some-bar-dir"},"inputs":null}}`
-			Expect(json.Marshal(event)).To(MatchRegexp(b))
+			Expect(json.Marshal(event)).To(MatchJSON(`{
+				"time": 675927000,
+				"origin": {"id": "some-plan-id"},
+				"config": {
+					"platform": "some-platform",
+					"image":"",
+					"run": {
+						"path": "some-foo-path",
+						"args": null,
+						"dir": "some-bar-dir"
+					},
+					"inputs":null
+				}
+			}`))
 		})
 	})
 
@@ -85,8 +101,20 @@ var _ = Describe("TaskDelegate", func() {
 		It("calls SaveEvent with the taskConfig", func() {
 			Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
 			event := fakeBuild.SaveEventArgsForCall(0)
-			b := `{"time":.*,"origin":{"id":"some-plan-id"},"config":{"platform":"some-platform","image":"","run":{"path":"some-foo-path","args":null,"dir":"some-bar-dir"},"inputs":null}}`
-			Expect(json.Marshal(event)).To(MatchRegexp(b))
+			Expect(json.Marshal(event)).To(MatchJSON(`{
+				"time": 675927000,
+				"origin": {"id": "some-plan-id"},
+				"config": {
+					"platform": "some-platform",
+					"image":"",
+					"run": {
+						"path": "some-foo-path",
+						"args": null,
+						"dir": "some-bar-dir"
+					},
+					"inputs":null
+				}
+			}`))
 		})
 	})
 

@@ -25,7 +25,6 @@ type ArtifactInputStep struct {
 	plan         atc.Plan
 	build        db.Build
 	workerClient worker.Client
-	succeeded    bool
 }
 
 func NewArtifactInputStep(plan atc.Plan, build db.Build, workerClient worker.Client) Step {
@@ -36,35 +35,35 @@ func NewArtifactInputStep(plan atc.Plan, build db.Build, workerClient worker.Cli
 	}
 }
 
-func (step *ArtifactInputStep) Run(ctx context.Context, state RunState) error {
+func (step *ArtifactInputStep) Run(ctx context.Context, state RunState) (bool, error) {
 	logger := lagerctx.FromContext(ctx).WithData(lager.Data{
 		"plan-id": step.plan.ID,
 	})
 
 	buildArtifact, err := step.build.Artifact(step.plan.ArtifactInput.ArtifactID)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// TODO (runtime/#3607): artifact_input_step shouldn't know about db Volumem
 	//		has a runState with artifact repo. We could use that.
 	createdVolume, found, err := buildArtifact.Volume(step.build.TeamID())
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if !found {
-		return ArtifactVolumeNotFoundError{buildArtifact.Name()}
+		return false, ArtifactVolumeNotFoundError{buildArtifact.Name()}
 	}
 
 	// TODO (runtime/#3607): artifact_input_step shouldn't be looking up the volume on the worker
 	_, found, err = step.workerClient.FindVolume(logger, createdVolume.TeamID(), createdVolume.Handle())
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if !found {
-		return ArtifactVolumeNotFoundError{buildArtifact.Name()}
+		return false, ArtifactVolumeNotFoundError{buildArtifact.Name()}
 	}
 
 	art := runtime.TaskArtifact{
@@ -78,11 +77,5 @@ func (step *ArtifactInputStep) Run(ctx context.Context, state RunState) error {
 
 	state.ArtifactRepository().RegisterArtifact(build.ArtifactName(step.plan.ArtifactInput.Name), &art)
 
-	step.succeeded = true
-
-	return nil
-}
-
-func (step *ArtifactInputStep) Succeeded() bool {
-	return step.succeeded
+	return true, nil
 }

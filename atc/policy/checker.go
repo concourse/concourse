@@ -95,7 +95,17 @@ var (
 	clusterVersion string
 )
 
-func Initialize(logger lager.Logger, cluster string, version string, filter Filter) (*Checker, error) {
+//go:generate counterfeiter . Checker
+
+type Checker interface {
+	ShouldCheckHttpMethod(string) bool
+	ShouldCheckAction(string) bool
+	ShouldSkipAction(string) bool
+
+	Check(input PolicyCheckInput) (PolicyCheckOutput, error)
+}
+
+func Initialize(logger lager.Logger, cluster string, version string, filter Filter) (Checker, error) {
 	logger.Debug("policy-checker-initialize")
 
 	clusterName = cluster
@@ -121,7 +131,7 @@ func Initialize(logger lager.Logger, cluster string, version string, filter Filt
 			logger.Info("warning-experiment-policy-check",
 				lager.Data{"rfc": "https://github.com/concourse/rfcs/pull/41"})
 
-			return &Checker{
+			return &AgentChecker{
 				filter: filter,
 				agent:  agent,
 			}, nil
@@ -129,23 +139,23 @@ func Initialize(logger lager.Logger, cluster string, version string, filter Filt
 	}
 
 	// No policy checker configured.
-	return nil, nil
+	return NoopChecker{}, nil
 }
 
-type Checker struct {
+type AgentChecker struct {
 	filter Filter
 	agent  Agent
 }
 
-func (c *Checker) ShouldCheckHttpMethod(method string) bool {
+func (c *AgentChecker) ShouldCheckHttpMethod(method string) bool {
 	return inArray(c.filter.HttpMethods, method)
 }
 
-func (c *Checker) ShouldCheckAction(action string) bool {
+func (c *AgentChecker) ShouldCheckAction(action string) bool {
 	return inArray(c.filter.Actions, action)
 }
 
-func (c *Checker) ShouldSkipAction(action string) bool {
+func (c *AgentChecker) ShouldSkipAction(action string) bool {
 	return inArray(c.filter.ActionsToSkip, action)
 }
 
@@ -160,9 +170,19 @@ func inArray(array []string, target string) bool {
 	return found
 }
 
-func (c *Checker) Check(input PolicyCheckInput) (PolicyCheckOutput, error) {
+func (c *AgentChecker) Check(input PolicyCheckInput) (PolicyCheckOutput, error) {
 	input.Service = "concourse"
 	input.ClusterName = clusterName
 	input.ClusterVersion = clusterVersion
 	return c.agent.Check(input)
+}
+
+type NoopChecker struct{}
+
+func (noop NoopChecker) ShouldCheckHttpMethod(string) bool { return false }
+func (noop NoopChecker) ShouldCheckAction(string) bool     { return false }
+func (noop NoopChecker) ShouldSkipAction(string) bool      { return true }
+
+func (noop NoopChecker) Check(PolicyCheckInput) (PolicyCheckOutput, error) {
+	return PolicyCheckOutput{Allowed: true}, nil
 }

@@ -29,11 +29,9 @@ type FetchSourceFactory interface {
 		owner db.ContainerOwner,
 		cache db.UsedResourceCache,
 		resource resource.Resource,
-		resourceTypes atc.VersionedResourceTypes,
 		containerSpec ContainerSpec,
 		processSpec runtime.ProcessSpec,
 		containerMetadata db.ContainerMetadata,
-		imageFetchingDelegate ImageFetchingDelegate,
 	) FetchSource
 }
 
@@ -55,11 +53,9 @@ func (r *fetchSourceFactory) NewFetchSource(
 	owner db.ContainerOwner,
 	cache db.UsedResourceCache,
 	resource resource.Resource,
-	resourceTypes atc.VersionedResourceTypes,
 	containerSpec ContainerSpec,
 	processSpec runtime.ProcessSpec,
 	containerMetadata db.ContainerMetadata,
-	imageFetchingDelegate ImageFetchingDelegate,
 ) FetchSource {
 	return &fetchSource{
 		logger:                 logger,
@@ -67,11 +63,9 @@ func (r *fetchSourceFactory) NewFetchSource(
 		owner:                  owner,
 		cache:                  cache,
 		resource:               resource,
-		resourceTypes:          resourceTypes,
 		containerSpec:          containerSpec,
 		processSpec:            processSpec,
 		containerMetadata:      containerMetadata,
-		imageFetchingDelegate:  imageFetchingDelegate,
 		dbResourceCacheFactory: r.resourceCacheFactory,
 	}
 }
@@ -82,11 +76,9 @@ type fetchSource struct {
 	owner                  db.ContainerOwner
 	cache                  db.UsedResourceCache
 	resource               resource.Resource
-	resourceTypes          atc.VersionedResourceTypes
 	containerSpec          ContainerSpec
 	processSpec            runtime.ProcessSpec
 	containerMetadata      db.ContainerMetadata
-	imageFetchingDelegate  ImageFetchingDelegate
 	dbResourceCacheFactory db.ResourceCacheFactory
 }
 
@@ -155,11 +147,9 @@ func (s *fetchSource) Create(ctx context.Context) (GetResult, Volume, error) {
 	container, err := s.worker.FindOrCreateContainer(
 		ctx,
 		s.logger,
-		s.imageFetchingDelegate,
 		s.owner,
 		s.containerMetadata,
 		s.containerSpec,
-		s.resourceTypes,
 	)
 
 	if err != nil {

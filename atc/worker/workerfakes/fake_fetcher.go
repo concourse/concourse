@@ -13,7 +13,7 @@ import (
 )
 
 type FakeFetcher struct {
-	FetchStub        func(context.Context, lager.Logger, db.ContainerMetadata, worker.Worker, worker.ContainerSpec, runtime.ProcessSpec, resource.Resource, db.ContainerOwner, worker.ImageFetcherSpec, db.UsedResourceCache, string) (worker.GetResult, worker.Volume, error)
+	FetchStub        func(context.Context, lager.Logger, db.ContainerMetadata, worker.Worker, worker.ContainerSpec, runtime.ProcessSpec, resource.Resource, db.ContainerOwner, db.UsedResourceCache, string) (worker.GetResult, worker.Volume, error)
 	fetchMutex       sync.RWMutex
 	fetchArgsForCall []struct {
 		arg1  context.Context
@@ -24,9 +24,8 @@ type FakeFetcher struct {
 		arg6  runtime.ProcessSpec
 		arg7  resource.Resource
 		arg8  db.ContainerOwner
-		arg9  worker.ImageFetcherSpec
-		arg10 db.UsedResourceCache
-		arg11 string
+		arg9  db.UsedResourceCache
+		arg10 string
 	}
 	fetchReturns struct {
 		result1 worker.GetResult
@@ -42,7 +41,7 @@ type FakeFetcher struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeFetcher) Fetch(arg1 context.Context, arg2 lager.Logger, arg3 db.ContainerMetadata, arg4 worker.Worker, arg5 worker.ContainerSpec, arg6 runtime.ProcessSpec, arg7 resource.Resource, arg8 db.ContainerOwner, arg9 worker.ImageFetcherSpec, arg10 db.UsedResourceCache, arg11 string) (worker.GetResult, worker.Volume, error) {
+func (fake *FakeFetcher) Fetch(arg1 context.Context, arg2 lager.Logger, arg3 db.ContainerMetadata, arg4 worker.Worker, arg5 worker.ContainerSpec, arg6 runtime.ProcessSpec, arg7 resource.Resource, arg8 db.ContainerOwner, arg9 db.UsedResourceCache, arg10 string) (worker.GetResult, worker.Volume, error) {
 	fake.fetchMutex.Lock()
 	ret, specificReturn := fake.fetchReturnsOnCall[len(fake.fetchArgsForCall)]
 	fake.fetchArgsForCall = append(fake.fetchArgsForCall, struct {
@@ -54,14 +53,13 @@ func (fake *FakeFetcher) Fetch(arg1 context.Context, arg2 lager.Logger, arg3 db.
 		arg6  runtime.ProcessSpec
 		arg7  resource.Resource
 		arg8  db.ContainerOwner
-		arg9  worker.ImageFetcherSpec
-		arg10 db.UsedResourceCache
-		arg11 string
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11})
-	fake.recordInvocation("Fetch", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11})
+		arg9  db.UsedResourceCache
+		arg10 string
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10})
+	fake.recordInvocation("Fetch", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10})
 	fake.fetchMutex.Unlock()
 	if fake.FetchStub != nil {
-		return fake.FetchStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11)
+		return fake.FetchStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -76,17 +74,17 @@ func (fake *FakeFetcher) FetchCallCount() int {
 	return len(fake.fetchArgsForCall)
 }
 
-func (fake *FakeFetcher) FetchCalls(stub func(context.Context, lager.Logger, db.ContainerMetadata, worker.Worker, worker.ContainerSpec, runtime.ProcessSpec, resource.Resource, db.ContainerOwner, worker.ImageFetcherSpec, db.UsedResourceCache, string) (worker.GetResult, worker.Volume, error)) {
+func (fake *FakeFetcher) FetchCalls(stub func(context.Context, lager.Logger, db.ContainerMetadata, worker.Worker, worker.ContainerSpec, runtime.ProcessSpec, resource.Resource, db.ContainerOwner, db.UsedResourceCache, string) (worker.GetResult, worker.Volume, error)) {
 	fake.fetchMutex.Lock()
 	defer fake.fetchMutex.Unlock()
 	fake.FetchStub = stub
 }
 
-func (fake *FakeFetcher) FetchArgsForCall(i int) (context.Context, lager.Logger, db.ContainerMetadata, worker.Worker, worker.ContainerSpec, runtime.ProcessSpec, resource.Resource, db.ContainerOwner, worker.ImageFetcherSpec, db.UsedResourceCache, string) {
+func (fake *FakeFetcher) FetchArgsForCall(i int) (context.Context, lager.Logger, db.ContainerMetadata, worker.Worker, worker.ContainerSpec, runtime.ProcessSpec, resource.Resource, db.ContainerOwner, db.UsedResourceCache, string) {
 	fake.fetchMutex.RLock()
 	defer fake.fetchMutex.RUnlock()
 	argsForCall := fake.fetchArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8, argsForCall.arg9, argsForCall.arg10, argsForCall.arg11
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8, argsForCall.arg9, argsForCall.arg10
 }
 
 func (fake *FakeFetcher) FetchReturns(result1 worker.GetResult, result2 worker.Volume, result3 error) {

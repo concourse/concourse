@@ -24,6 +24,7 @@ var _ = Describe("On Abort Step", func() {
 
 		onAbortStep exec.Step
 
+		stepOk  bool
 		stepErr error
 	)
 
@@ -39,6 +40,7 @@ var _ = Describe("On Abort Step", func() {
 
 		onAbortStep = exec.OnAbort(step, hook)
 
+		stepOk = false
 		stepErr = nil
 	})
 
@@ -47,12 +49,12 @@ var _ = Describe("On Abort Step", func() {
 	})
 
 	JustBeforeEach(func() {
-		stepErr = onAbortStep.Run(ctx, state)
+		stepOk, stepErr = onAbortStep.Run(ctx, state)
 	})
 
 	Context("when the step is aborted", func() {
 		BeforeEach(func() {
-			step.RunReturns(context.Canceled)
+			step.RunReturns(false, context.Canceled)
 		})
 
 		It("runs the abort hook", func() {
@@ -63,11 +65,11 @@ var _ = Describe("On Abort Step", func() {
 
 	Context("when the step succeeds", func() {
 		BeforeEach(func() {
-			step.SucceededReturns(true)
+			step.RunReturns(true, nil)
 		})
 
 		It("is successful", func() {
-			Expect(onAbortStep.Succeeded()).To(BeTrue())
+			Expect(stepOk).To(BeTrue())
 		})
 
 		It("does not run the abort hook", func() {
@@ -77,11 +79,11 @@ var _ = Describe("On Abort Step", func() {
 
 	Context("when the step fails", func() {
 		BeforeEach(func() {
-			step.SucceededReturns(false)
+			step.RunReturns(false, nil)
 		})
 
 		It("is not successful", func() {
-			Expect(onAbortStep.Succeeded()).ToNot(BeTrue())
+			Expect(stepOk).ToNot(BeTrue())
 		})
 
 		It("does not run the abort hook", func() {
@@ -94,7 +96,7 @@ var _ = Describe("On Abort Step", func() {
 		disaster := errors.New("disaster")
 
 		BeforeEach(func() {
-			step.RunReturns(disaster)
+			step.RunReturns(false, disaster)
 		})
 
 		It("returns the error", func() {

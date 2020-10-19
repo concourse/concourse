@@ -33,6 +33,7 @@ var _ = Describe("Resource", func() {
 						WebhookToken: "some-token",
 						Source:       atc.Source{"some": "repository"},
 						Version:      atc.Version{"ref": "abcdef"},
+						CheckTimeout: "999m",
 					},
 					{
 						Name:   "some-other-resource",
@@ -460,16 +461,16 @@ var _ = Describe("Resource", func() {
 
 		It("returns a plan which will update the resource", func() {
 			defaults := atc.Source{"sdk": "sdv"}
-			Expect(resource.CheckPlan(atc.Version{"some": "version"}, time.Minute, 10*time.Second, resourceTypes, defaults)).To(Equal(atc.CheckPlan{
-				Name:   resource.Name(),
-				Type:   resource.Type(),
-				Source: defaults.Merge(resource.Source()),
-				Tags:   resource.Tags(),
+			Expect(resource.CheckPlan(atc.Version{"some": "version"}, time.Minute, resourceTypes, defaults)).To(Equal(atc.CheckPlan{
+				Name:    resource.Name(),
+				Type:    resource.Type(),
+				Source:  defaults.Merge(resource.Source()),
+				Tags:    resource.Tags(),
+				Timeout: "999m",
 
 				FromVersion: atc.Version{"some": "version"},
 
 				Interval: "1m0s",
-				Timeout:  "10s",
 
 				VersionedResourceTypes: resourceTypes.Deserialize(),
 

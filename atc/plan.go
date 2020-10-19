@@ -199,7 +199,7 @@ type GetPlan struct {
 	Params Params `json:"params,omitempty"`
 
 	// A pipeline resource to update with metadata.
-	Resource string `json:"resource"`
+	Resource string `json:"resource,omitempty"`
 
 	// Worker tags to influence placement of the container.
 	Tags Tags `json:"tags,omitempty"`

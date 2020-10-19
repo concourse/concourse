@@ -40,8 +40,8 @@ func InParallel(steps []Step, limit int, failFast bool) InParallelStep {
 // Cancelling a parallel step means that any outstanding steps will not be scheduled to run.
 // After all steps finish, their errors (if any) will be collected and returned as a
 // single error.
-func (step InParallelStep) Run(ctx context.Context, state RunState) error {
-	_, err := parallelExecutor{
+func (step InParallelStep) Run(ctx context.Context, state RunState) (bool, error) {
+	return parallelExecutor{
 		stepName: "parallel",
 
 		maxInFlight: step.limit,
@@ -49,14 +49,9 @@ func (step InParallelStep) Run(ctx context.Context, state RunState) error {
 		count:       len(step.steps),
 
 		runFunc: func(ctx context.Context, i int) (bool, error) {
-			err := step.steps[i].Run(ctx, state)
-			if err != nil {
-				return false, err
-			}
-			return step.steps[i].Succeeded(), nil
+			return step.steps[i].Run(ctx, state)
 		},
 	}.run(ctx)
-	return err
 }
 
 type parallelExecutor struct {
@@ -132,17 +127,4 @@ func (p parallelExecutor) run(ctx context.Context) (bool, error) {
 
 	allStepsSuccessful := atomic.LoadUint32(&numFailures) == 0
 	return allStepsSuccessful, nil
-}
-
-// Succeeded is true if all of the steps' Succeeded is true
-func (step InParallelStep) Succeeded() bool {
-	succeeded := true
-
-	for _, step := range step.steps {
-		if !step.Succeeded() {
-			succeeded = false
-		}
-	}
-
-	return succeeded
 }
