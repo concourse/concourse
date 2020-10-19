@@ -245,10 +245,11 @@ func (step *CheckStep) runCheck(
 	resourceType, found := step.plan.VersionedResourceTypes.Lookup(step.plan.Type)
 	if found {
 		image := atc.ImageResource{
-			Name:   resourceType.Name,
-			Type:   resourceType.Type,
-			Source: resourceType.Source,
-			Params: resourceType.Params,
+			Name:    resourceType.Name,
+			Type:    resourceType.Type,
+			Source:  resourceType.Source,
+			Params:  resourceType.Params,
+			Version: resourceType.Version,
 		}
 
 		types := step.plan.VersionedResourceTypes.Without(step.plan.Type)

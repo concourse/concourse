@@ -368,10 +368,11 @@ var _ = Describe("PutStep", func() {
 
 			By("fetching the type image")
 			Expect(imageResource).To(Equal(atc.ImageResource{
-				Name:   "some-custom-type",
-				Type:   "another-custom-type",
-				Source: atc.Source{"some-custom": "((source-var))"},
-				Params: atc.Params{"some-custom": "((params-var))"},
+				Name:    "some-custom-type",
+				Type:    "another-custom-type",
+				Source:  atc.Source{"some-custom": "((source-var))"},
+				Params:  atc.Params{"some-custom": "((params-var))"},
+				Version: atc.Version{"some-custom": "version"},
 			}))
 
 			By("excluding the type from the FetchImage call")
