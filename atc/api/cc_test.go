@@ -265,6 +265,44 @@ var _ = Describe("cc.xml", func() {
 					})
 				})
 
+				Context("when an instanced pipeline is found", func() {
+					var fakePipeline *dbfakes.FakePipeline
+					instanceVars := atc.InstanceVars{"hello": "world"}
+					BeforeEach(func() {
+						fakePipeline = new(dbfakes.FakePipeline)
+						fakePipeline.InstanceVarsReturns(instanceVars)
+						fakeTeam.PipelinesReturns([]db.Pipeline{
+							fakePipeline,
+						}, nil)
+
+						endTime, _ := time.Parse(time.RFC3339, "2018-11-04T21:26:38Z")
+						fakePipeline.DashboardReturns([]atc.JobSummary{
+							{
+								Name:                 "some-job",
+								PipelineName:         "something-else",
+								PipelineInstanceVars: instanceVars,
+								TeamName:             "a-team",
+								FinishedBuild: &atc.BuildSummary{
+									Name:    "42",
+									Status:  "succeeded",
+									EndTime: endTime.Unix(),
+								},
+							},
+						}, nil)
+					})
+
+					It("returns the proper web url in the CC.xml", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchXML(`
+<Projects>
+  <Project activity="Sleeping" lastBuildLabel="42" lastBuildStatus="Success" lastBuildTime="2018-11-04T21:26:38Z" name="something-else/hello:world/some-job" webUrl="https://example.com/teams/a-team/pipelines/something-else/jobs/some-job?var.hello=%22world%22"/>
+</Projects>
+`))
+					})
+				})
+
 				Context("when no pipeline is found", func() {
 					BeforeEach(func() {
 						fakeTeam.PipelinesReturns([]db.Pipeline{}, nil)
