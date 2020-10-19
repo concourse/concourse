@@ -38,13 +38,8 @@ type RenameRequest struct {
 type InstanceVars map[string]interface{}
 
 func (iv InstanceVars) String() string {
-	kvPairs := vars.StaticVariables(iv).Flatten()
-	sort.Slice(kvPairs, func(i, j int) bool {
-		return kvPairs[i].Ref.String() < kvPairs[j].Ref.String()
-	})
-
 	var parts []string
-	for _, kvPair := range kvPairs {
+	for _, kvPair := range iv.sortedKVPairs() {
 		rawVal, _ := json.Marshal(kvPair.Value)
 		val := string(rawVal)
 		if !requiresQuoting(kvPair.Value) {
@@ -53,6 +48,14 @@ func (iv InstanceVars) String() string {
 		parts = append(parts, fmt.Sprintf("%s:%s", kvPair.Ref, val))
 	}
 	return strings.Join(parts, ",")
+}
+
+func (iv InstanceVars) sortedKVPairs() vars.KVPairs {
+	kvPairs := vars.StaticVariables(iv).Flatten()
+	sort.Slice(kvPairs, func(i, j int) bool {
+		return kvPairs[i].Ref.String() < kvPairs[j].Ref.String()
+	})
+	return kvPairs
 }
 
 func requiresQuoting(v interface{}) bool {
@@ -93,6 +96,18 @@ func (ref PipelineRef) QueryParams() url.Values {
 		return url.Values{"instance_vars": []string{string(payload)}}
 	}
 	return nil
+}
+
+func (ref PipelineRef) WebQueryParams() url.Values {
+	if len(ref.InstanceVars) == 0 {
+		return nil
+	}
+	params := url.Values{}
+	for _, kvp := range ref.InstanceVars.sortedKVPairs() {
+		payload, _ := json.Marshal(kvp.Value)
+		params.Set("var."+kvp.Ref.String(), string(payload))
+	}
+	return params
 }
 
 type OrderPipelinesRequest []PipelineRef

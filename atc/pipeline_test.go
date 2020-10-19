@@ -1,6 +1,8 @@
 package atc_test
 
 import (
+	"net/url"
+
 	"github.com/concourse/concourse/atc"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -74,6 +76,40 @@ var _ = Describe("PipelineRef", func() {
 			tt := tt
 			It(tt.desc, func() {
 				Expect(tt.ref.String()).To(Equal(tt.out))
+			})
+		}
+	})
+
+	Describe("WebQueryParams", func() {
+		for _, tt := range []struct {
+			desc string
+			ref  atc.PipelineRef
+			out  url.Values
+		}{
+			{
+				desc: "empty",
+				ref:  atc.PipelineRef{InstanceVars: nil},
+				out:  nil,
+			},
+			{
+				desc: "simple",
+				ref:  atc.PipelineRef{InstanceVars: atc.InstanceVars{"hello": "world", "num": 123}},
+				out:  url.Values{"var.hello": []string{`"world"`}, "var.num": []string{`123`}},
+			},
+			{
+				desc: "nested",
+				ref:  atc.PipelineRef{InstanceVars: atc.InstanceVars{"hello": map[string]interface{}{"foo": 123, "bar": false}}},
+				out:  url.Values{"var.hello.foo": []string{`123`}, "var.hello.bar": []string{`false`}},
+			},
+			{
+				desc: "quoted",
+				ref:  atc.PipelineRef{InstanceVars: atc.InstanceVars{"hello.1": map[string]interface{}{"foo:bar": "baz"}}},
+				out:  url.Values{`var."hello.1"."foo:bar"`: []string{`"baz"`}},
+			},
+		} {
+			tt := tt
+			It(tt.desc, func() {
+				Expect(tt.ref.WebQueryParams()).To(Equal(tt.out))
 			})
 		}
 	})
