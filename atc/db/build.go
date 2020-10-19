@@ -1243,7 +1243,7 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 
 	defer tx.Rollback()
 
-	var found bool
+	var determined bool
 	err = psql.Select("inputs_determined").
 		From("jobs").
 		Where(sq.Eq{
@@ -1251,12 +1251,12 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 		}).
 		RunWith(tx).
 		QueryRow().
-		Scan(&found)
+		Scan(&determined)
 	if err != nil {
 		return nil, false, err
 	}
 
-	if !found {
+	if !determined {
 		return nil, false, nil
 	}
 

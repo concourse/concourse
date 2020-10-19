@@ -7,6 +7,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbtest"
 	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -1280,97 +1281,69 @@ var _ = Describe("Job", func() {
 
 	Describe("GetNextBuildInputs", func() {
 		var (
-			versions            []atc.ResourceVersion
-			job                 db.Job
-			resourceConfigScope db.ResourceConfigScope
-			resource            db.Resource
-			spanContext         db.SpanContext
+			versions    []atc.ResourceVersion
+			spanContext db.SpanContext
+			scenario    *dbtest.Scenario
 		)
 
 		BeforeEach(func() {
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
+			spanContext = db.SpanContext{"fake": "version"}
 
-			brt := db.BaseResourceType{
-				Name: "some-type",
-			}
-
-			_, err = brt.FindOrCreate(setupTx, false)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
-
-			var created bool
-			pipeline, created, err = team.SavePipeline(atc.PipelineRef{Name: "build-inputs-pipeline"}, atc.Config{
-				Jobs: atc.JobConfigs{
-					{
-						Name: "some-job",
-						PlanSequence: []atc.Step{
-							{
-								Config: &atc.GetStep{
-									Name:     "some-input",
-									Resource: "some-resource",
-									Passed:   []string{"job-1", "job-2"},
-									Trigger:  true,
+			scenario = dbtest.Setup(
+				builder.WithPipeline(atc.Config{
+					Jobs: atc.JobConfigs{
+						{
+							Name: "some-job",
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name:     "some-input",
+										Resource: "some-resource",
+										Passed:   []string{"job-1", "job-2"},
+										Trigger:  true,
+									},
 								},
-							},
-							{
-								Config: &atc.GetStep{
-									Name:     "some-input-2",
-									Resource: "some-resource",
-									Passed:   []string{"job-1"},
-									Trigger:  true,
+								{
+									Config: &atc.GetStep{
+										Name:     "some-input-2",
+										Resource: "some-resource",
+										Passed:   []string{"job-1"},
+										Trigger:  true,
+									},
 								},
-							},
-							{
-								Config: &atc.GetStep{
-									Name:     "some-input-3",
-									Resource: "some-resource",
-									Trigger:  true,
+								{
+									Config: &atc.GetStep{
+										Name:     "some-input-3",
+										Resource: "some-resource",
+										Trigger:  true,
+									},
 								},
 							},
 						},
+						{
+							Name: "job-1",
+						},
+						{
+							Name: "job-2",
+						},
 					},
-					{
-						Name: "job-1",
+					Resources: atc.ResourceConfigs{
+						{
+							Name: "some-resource",
+							Type: "some-base-resource-type",
+						},
 					},
-					{
-						Name: "job-2",
-					},
-				},
-				Resources: atc.ResourceConfigs{
-					{
-						Name: "some-resource",
-						Type: "some-type",
-					},
-				},
-			}, db.ConfigVersion(0), false)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(created).To(BeTrue())
-
-			var found bool
-			job, found, err = pipeline.Job("some-job")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			resource, found, err = pipeline.Resource("some-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{}, atc.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			spanContext = db.SpanContext{"fake": "version"}
-			err = resourceConfigScope.SaveVersions(
-				spanContext,
-				[]atc.Version{
-					{"version": "v1"},
-					{"version": "v2"},
-					{"version": "v3"},
-				},
+				}),
+				builder.WithSpanContext(spanContext),
+				builder.WithResourceVersions(
+					"some-resource",
+					atc.Version{"version": "v1"},
+					atc.Version{"version": "v2"},
+					atc.Version{"version": "v3"},
+				),
 			)
-			Expect(err).NotTo(HaveOccurred())
 
-			reversions, _, found, err := resource.Versions(db.Page{Limit: 3}, nil)
+			reversions, _, found, err := scenario.Resource("some-resource").Versions(db.Page{Limit: 3}, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -1385,7 +1358,7 @@ var _ = Describe("Job", func() {
 					},
 				}
 
-				err := job.SaveNextInputMapping(inputVersions, false)
+				err := scenario.Job("some-job").SaveNextInputMapping(inputVersions, false)
 				Expect(err).NotTo(HaveOccurred())
 
 				buildInputs := []db.BuildInput{
@@ -1395,7 +1368,7 @@ var _ = Describe("Job", func() {
 					},
 				}
 
-				actualBuildInputs, err := job.GetNextBuildInputs()
+				actualBuildInputs, err := scenario.Job("some-job").GetNextBuildInputs()
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(actualBuildInputs).To(ConsistOf(buildInputs))
@@ -1407,7 +1380,7 @@ var _ = Describe("Job", func() {
 						Input: &db.AlgorithmInput{
 							AlgorithmVersion: db.AlgorithmVersion{
 								Version:    db.ResourceVersion(convertToMD5(versions[0].Version)),
-								ResourceID: resource.ID(),
+								ResourceID: scenario.Resource("some-resource").ID(),
 							},
 							FirstOccurrence: false,
 						},
@@ -1417,7 +1390,7 @@ var _ = Describe("Job", func() {
 						Input: &db.AlgorithmInput{
 							AlgorithmVersion: db.AlgorithmVersion{
 								Version:    db.ResourceVersion(convertToMD5(versions[1].Version)),
-								ResourceID: resource.ID(),
+								ResourceID: scenario.Resource("some-resource").ID(),
 							},
 							FirstOccurrence: false,
 						},
@@ -1427,7 +1400,7 @@ var _ = Describe("Job", func() {
 						Input: &db.AlgorithmInput{
 							AlgorithmVersion: db.AlgorithmVersion{
 								Version:    db.ResourceVersion(convertToMD5(versions[2].Version)),
-								ResourceID: resource.ID(),
+								ResourceID: scenario.Resource("some-resource").ID(),
 							},
 							FirstOccurrence: false,
 						},
@@ -1435,34 +1408,34 @@ var _ = Describe("Job", func() {
 					},
 				}
 
-				err := job.SaveNextInputMapping(inputVersions, true)
+				err := scenario.Job("some-job").SaveNextInputMapping(inputVersions, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				buildInputs := []db.BuildInput{
 					{
 						Name:            "some-input-1",
-						ResourceID:      resource.ID(),
+						ResourceID:      scenario.Resource("some-resource").ID(),
 						Version:         atc.Version{"version": "v1"},
 						FirstOccurrence: false,
 						Context:         spanContext,
 					},
 					{
 						Name:            "some-input-2",
-						ResourceID:      resource.ID(),
+						ResourceID:      scenario.Resource("some-resource").ID(),
 						Version:         atc.Version{"version": "v2"},
 						FirstOccurrence: false,
 						Context:         spanContext,
 					},
 					{
 						Name:            "some-input-3",
-						ResourceID:      resource.ID(),
+						ResourceID:      scenario.Resource("some-resource").ID(),
 						Version:         atc.Version{"version": "v3"},
 						FirstOccurrence: false,
 						Context:         spanContext,
 					},
 				}
 
-				actualBuildInputs, err := job.GetNextBuildInputs()
+				actualBuildInputs, err := scenario.Job("some-job").GetNextBuildInputs()
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(actualBuildInputs).To(ConsistOf(buildInputs))
@@ -1472,88 +1445,72 @@ var _ = Describe("Job", func() {
 
 	Describe("GetFullNextBuildInputs", func() {
 		var (
-			pipeline2           db.Pipeline
-			versions            []atc.ResourceVersion
-			job                 db.Job
-			job2                db.Job
-			resourceConfigScope db.ResourceConfigScope
-			resource            db.Resource
-			resource2           db.Resource
+			versions          []atc.ResourceVersion
+			scenarioPipeline1 *dbtest.Scenario
+			scenarioPipeline2 *dbtest.Scenario
 		)
 
 		BeforeEach(func() {
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
+			scenarioPipeline1 = dbtest.Setup(
+				builder.WithPipeline(atc.Config{
+					Jobs: atc.JobConfigs{
+						{
+							Name: "some-job",
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name:     "some-input",
+										Resource: "some-resource",
+									},
+								},
+							},
+						},
+					},
+					Resources: atc.ResourceConfigs{
+						{
+							Name: "some-resource",
+							Type: "some-base-resource-type",
+						},
+					},
+				}),
+				builder.WithResourceVersions(
+					"some-resource",
+					atc.Version{"version": "v1"},
+					atc.Version{"version": "v2"},
+					atc.Version{"version": "v3"},
+				),
+				builder.WithVersionMetadata("some-resource", atc.Version{"version": "v1"}, db.ResourceConfigMetadataFields{
+					db.ResourceConfigMetadataField{
+						Name:  "name1",
+						Value: "value1",
+					},
+				}),
+			)
 
-			brt := db.BaseResourceType{
-				Name: "some-type",
-			}
-
-			_, err = brt.FindOrCreate(setupTx, false)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
-
-			var found bool
-			job, found, err = pipeline.Job("some-job")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			resource, found, err = pipeline.Resource("some-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			resourceConfigScope, err = resource.SetResourceConfig(atc.Source{}, atc.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resourceConfigScope.SaveVersions(nil, []atc.Version{
-				{"version": "v1"},
-				{"version": "v2"},
-				{"version": "v3"},
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			// save metadata for v1
-			_, err = resource.SaveUncheckedVersion(atc.Version{"version": "v1"}, db.ResourceConfigMetadataFields{
-				db.ResourceConfigMetadataField{
-					Name:  "name1",
-					Value: "value1",
-				},
-			}, resourceConfigScope.ResourceConfig())
-			Expect(err).NotTo(HaveOccurred())
-
-			reversions, _, found, err := resource.Versions(db.Page{Limit: 3}, nil)
+			reversions, _, found, err := scenarioPipeline1.Resource("some-resource").Versions(db.Page{Limit: 3}, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
 			versions = []atc.ResourceVersion{reversions[2], reversions[1], reversions[0]}
 
-			config := atc.Config{
-				Jobs: atc.JobConfigs{
-					{
-						Name: "some-job",
+			scenarioPipeline2 = dbtest.Setup(
+				builder.WithPipeline(atc.Config{
+					Jobs: atc.JobConfigs{
+						{
+							Name: "some-job",
+						},
+						{
+							Name: "some-other-job",
+						},
 					},
-					{
-						Name: "some-other-job",
+					Resources: atc.ResourceConfigs{
+						{
+							Name: "some-resource",
+							Type: "some-type",
+						},
 					},
-				},
-				Resources: atc.ResourceConfigs{
-					{
-						Name: "some-resource",
-						Type: "some-type",
-					},
-				},
-			}
-
-			pipeline2, _, err = team.SavePipeline(atc.PipelineRef{Name: "some-pipeline-2"}, config, 1, false)
-			Expect(err).ToNot(HaveOccurred())
-
-			resource2, found, err = pipeline2.Resource("some-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			job2, found, err = pipeline2.Job("some-job")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
+				}),
+			)
 		})
 
 		It("gets next build inputs for the given job name", func() {
@@ -1562,7 +1519,7 @@ var _ = Describe("Job", func() {
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
 							Version:    db.ResourceVersion(convertToMD5(versions[0].Version)),
-							ResourceID: resource.ID(),
+							ResourceID: scenarioPipeline1.Resource("some-resource").ID(),
 						},
 						FirstOccurrence: false,
 					},
@@ -1572,14 +1529,14 @@ var _ = Describe("Job", func() {
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
 							Version:    db.ResourceVersion(convertToMD5(versions[1].Version)),
-							ResourceID: resource.ID(),
+							ResourceID: scenarioPipeline1.Resource("some-resource").ID(),
 						},
 						FirstOccurrence: true,
 					},
 					PassedBuildIDs: []int{},
 				},
 			}
-			err := job.SaveNextInputMapping(inputVersions, true)
+			err := scenarioPipeline1.Job("some-job").SaveNextInputMapping(inputVersions, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			pipeline2InputVersions := db.InputMapping{
@@ -1587,32 +1544,32 @@ var _ = Describe("Job", func() {
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
 							Version:    db.ResourceVersion(convertToMD5(versions[2].Version)),
-							ResourceID: resource2.ID(),
+							ResourceID: scenarioPipeline2.Resource("some-resource").ID(),
 						},
 						FirstOccurrence: false,
 					},
 					PassedBuildIDs: []int{},
 				},
 			}
-			err = job2.SaveNextInputMapping(pipeline2InputVersions, true)
+			err = scenarioPipeline2.Job("some-job").SaveNextInputMapping(pipeline2InputVersions, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			buildInputs := []db.BuildInput{
 				{
 					Name:            "some-input-1",
-					ResourceID:      resource.ID(),
+					ResourceID:      scenarioPipeline1.Resource("some-resource").ID(),
 					Version:         atc.Version{"version": "v1"},
 					FirstOccurrence: false,
 				},
 				{
 					Name:            "some-input-2",
-					ResourceID:      resource.ID(),
+					ResourceID:      scenarioPipeline1.Resource("some-resource").ID(),
 					Version:         atc.Version{"version": "v2"},
 					FirstOccurrence: true,
 				},
 			}
 
-			actualBuildInputs, found, err := job.GetFullNextBuildInputs()
+			actualBuildInputs, found, err := scenarioPipeline1.Job("some-job").GetFullNextBuildInputs()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -1624,7 +1581,7 @@ var _ = Describe("Job", func() {
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
 							Version:    db.ResourceVersion(convertToMD5(versions[2].Version)),
-							ResourceID: resource.ID(),
+							ResourceID: scenarioPipeline1.Resource("some-resource").ID(),
 						},
 						FirstOccurrence: false,
 					},
@@ -1634,42 +1591,42 @@ var _ = Describe("Job", func() {
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
 							Version:    db.ResourceVersion(convertToMD5(versions[2].Version)),
-							ResourceID: resource.ID(),
+							ResourceID: scenarioPipeline1.Resource("some-resource").ID(),
 						},
 						FirstOccurrence: true,
 					},
 					PassedBuildIDs: []int{},
 				},
 			}
-			err = job.SaveNextInputMapping(inputVersions2, true)
+			err = scenarioPipeline1.Job("some-job").SaveNextInputMapping(inputVersions2, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			buildInputs2 := []db.BuildInput{
 				{
 					Name:            "some-input-2",
-					ResourceID:      resource.ID(),
+					ResourceID:      scenarioPipeline1.Resource("some-resource").ID(),
 					Version:         atc.Version{"version": "v3"},
 					FirstOccurrence: false,
 				},
 				{
 					Name:            "some-input-3",
-					ResourceID:      resource.ID(),
+					ResourceID:      scenarioPipeline1.Resource("some-resource").ID(),
 					Version:         atc.Version{"version": "v3"},
 					FirstOccurrence: true,
 				},
 			}
 
-			actualBuildInputs2, found, err := job.GetFullNextBuildInputs()
+			actualBuildInputs2, found, err := scenarioPipeline1.Job("some-job").GetFullNextBuildInputs()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
 			Expect(actualBuildInputs2).To(ConsistOf(buildInputs2))
 
 			By("updating next build inputs to an empty set when the mapping is nil")
-			err = job.SaveNextInputMapping(nil, true)
+			err = scenarioPipeline1.Job("some-job").SaveNextInputMapping(nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
-			actualBuildInputs3, found, err := job.GetFullNextBuildInputs()
+			actualBuildInputs3, found, err := scenarioPipeline1.Job("some-job").GetFullNextBuildInputs()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(actualBuildInputs3).To(BeEmpty())
@@ -1677,15 +1634,15 @@ var _ = Describe("Job", func() {
 
 		It("distinguishes between a job with no inputs and a job with missing inputs", func() {
 			By("initially returning not found")
-			_, found, err := job.GetFullNextBuildInputs()
+			_, found, err := scenarioPipeline1.Job("some-job").GetFullNextBuildInputs()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
 
 			By("returning found when an empty input mapping is saved")
-			err = job.SaveNextInputMapping(db.InputMapping{}, true)
+			err = scenarioPipeline1.Job("some-job").SaveNextInputMapping(db.InputMapping{}, true)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, found, err = job.GetFullNextBuildInputs()
+			_, found, err = scenarioPipeline1.Job("some-job").GetFullNextBuildInputs()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 		})
@@ -1696,10 +1653,10 @@ var _ = Describe("Job", func() {
 					ResolveError: "disaster",
 				},
 			}
-			err := job.SaveNextInputMapping(inputVersions, false)
+			err := scenarioPipeline1.Job("some-job").SaveNextInputMapping(inputVersions, false)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, found, err := job.GetFullNextBuildInputs()
+			_, found, err := scenarioPipeline1.Job("some-job").GetFullNextBuildInputs()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})
@@ -2188,81 +2145,63 @@ var _ = Describe("Job", func() {
 	})
 
 	Describe("AlgorithmInputs", func() {
-		var inputsJob db.Job
-		var inputsPipeline db.Pipeline
+		var scenario *dbtest.Scenario
 		var inputs db.InputConfigs
 
 		JustBeforeEach(func() {
 			var err error
-			inputs, err = inputsJob.AlgorithmInputs()
+			inputs, err = scenario.Job("some-job").AlgorithmInputs()
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("when there is an input configured for the job", func() {
 			BeforeEach(func() {
-				var err error
-				inputsPipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "inputs-pipeline"}, atc.Config{
-					Jobs: atc.JobConfigs{
-						{
-							Name: "some-job",
-							PlanSequence: []atc.Step{
-								{
-									Config: &atc.GetStep{
-										Name:     "some-input",
-										Resource: "some-resource",
-										Params: atc.Params{
-											"some-param": "some-value",
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+								PlanSequence: []atc.Step{
+									{
+										Config: &atc.GetStep{
+											Name:     "some-input",
+											Resource: "some-resource",
+											Params: atc.Params{
+												"some-param": "some-value",
+											},
+											Passed:  []string{"job-1", "job-2"},
+											Trigger: true,
+											Version: &atc.VersionConfig{Every: true},
 										},
-										Passed:  []string{"job-1", "job-2"},
-										Trigger: true,
-										Version: &atc.VersionConfig{Every: true},
 									},
 								},
 							},
+							{
+								Name: "job-1",
+							},
+							{
+								Name: "job-2",
+							},
 						},
-						{
-							Name: "job-1",
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: "some-type",
+							},
 						},
-						{
-							Name: "job-2",
-						},
-					},
-					Resources: atc.ResourceConfigs{
-						{
-							Name: "some-resource",
-							Type: "some-type",
-						},
-					},
-				}, db.ConfigVersion(0), false)
-				Expect(err).ToNot(HaveOccurred())
-
-				var found bool
-				inputsJob, found, err = inputsPipeline.Job("some-job")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
+					}),
+				)
 			})
 
 			It("returns the input for the job", func() {
-				job1, found, err := inputsPipeline.Job("job-1")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				job2, found, err := inputsPipeline.Job("job-2")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				someResource, found, err := inputsPipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
 				Expect(inputs).To(Equal(db.InputConfigs{
 					{
 						Name:       "some-input",
-						JobID:      inputsJob.ID(),
-						ResourceID: someResource.ID(),
+						JobID:      scenario.Job("some-job").ID(),
+						ResourceID: scenario.Resource("some-resource").ID(),
 						Passed: db.JobSet{
-							job1.ID(): true,
-							job2.ID(): true,
+							scenario.Job("job-1").ID(): true,
+							scenario.Job("job-2").ID(): true,
 						},
 						UseEveryVersion: true,
 						Trigger:         true,
@@ -2273,48 +2212,39 @@ var _ = Describe("Job", func() {
 
 		Context("when the input is pinned through the get step", func() {
 			BeforeEach(func() {
-				var err error
-				inputsPipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "inputs-pipeline"}, atc.Config{
-					Jobs: atc.JobConfigs{
-						{
-							Name: "some-job",
-							PlanSequence: []atc.Step{
-								{
-									Config: &atc.GetStep{
-										Name:     "some-pinned-input",
-										Resource: "some-resource",
-										Version:  &atc.VersionConfig{Pinned: atc.Version{"input": "pinned"}},
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+								PlanSequence: []atc.Step{
+									{
+										Config: &atc.GetStep{
+											Name:     "some-pinned-input",
+											Resource: "some-resource",
+											Version:  &atc.VersionConfig{Pinned: atc.Version{"input": "pinned"}},
+										},
 									},
 								},
 							},
 						},
-					},
-					Resources: atc.ResourceConfigs{
-						{
-							Name:   "some-resource",
-							Type:   "some-type",
-							Source: atc.Source{"some": "source"},
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "source"},
+							},
 						},
-					},
-				}, db.ConfigVersion(0), false)
-				Expect(err).ToNot(HaveOccurred())
-
-				var found bool
-				inputsJob, found, err = inputsPipeline.Job("some-job")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
+					}),
+				)
 			})
 
 			It("pins the inputs to that version", func() {
-				someResource, found, err := inputsPipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
 				Expect(inputs).To(Equal(db.InputConfigs{
 					{
 						Name:          "some-pinned-input",
-						JobID:         inputsJob.ID(),
-						ResourceID:    someResource.ID(),
+						JobID:         scenario.Job("some-job").ID(),
+						ResourceID:    scenario.Resource("some-resource").ID(),
 						PinnedVersion: atc.Version{"input": "pinned"},
 					},
 				}))
@@ -2322,48 +2252,17 @@ var _ = Describe("Job", func() {
 
 			Context("when the input is also pinned through the api", func() {
 				BeforeEach(func() {
-					pinnedResource, found, err := inputsPipeline.Resource("some-resource")
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					setupTx, err := dbConn.Begin()
-					Expect(err).ToNot(HaveOccurred())
-
-					brt := db.BaseResourceType{
-						Name: "some-type",
-					}
-
-					_, err = brt.FindOrCreate(setupTx, false)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(setupTx.Commit()).To(Succeed())
-
-					resourceConfigScope, err := pinnedResource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
-					Expect(err).ToNot(HaveOccurred())
-
-					err = resourceConfigScope.SaveVersions(nil, []atc.Version{
-						{"api": "pinned"},
-					})
-					Expect(err).NotTo(HaveOccurred())
-
-					versionID, found, err := pinnedResource.ResourceConfigVersionID(atc.Version{"api": "pinned"})
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					pinned, err := pinnedResource.PinVersion(versionID)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(pinned).To(BeTrue())
+					scenario.Run(
+						builder.WithPinnedVersion("some-resource", atc.Version{"api": "pinned"}),
+					)
 				})
 
 				It("resolves the pinned version to the version pinned through the get step", func() {
-					someResource, found, err := inputsPipeline.Resource("some-resource")
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-
 					Expect(inputs).To(Equal(db.InputConfigs{
 						{
 							Name:          "some-pinned-input",
-							JobID:         inputsJob.ID(),
-							ResourceID:    someResource.ID(),
+							JobID:         scenario.Job("some-job").ID(),
+							ResourceID:    scenario.Resource("some-resource").ID(),
 							PinnedVersion: atc.Version{"input": "pinned"},
 						},
 					}))
@@ -2373,48 +2272,39 @@ var _ = Describe("Job", func() {
 
 		Context("when the input is pinned through the resource config", func() {
 			BeforeEach(func() {
-				var err error
-				inputsPipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "inputs-pipeline"}, atc.Config{
-					Jobs: atc.JobConfigs{
-						{
-							Name: "some-job",
-							PlanSequence: []atc.Step{
-								{
-									Config: &atc.GetStep{
-										Name:     "some-pinned-input",
-										Resource: "some-resource",
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+								PlanSequence: []atc.Step{
+									{
+										Config: &atc.GetStep{
+											Name:     "some-pinned-input",
+											Resource: "some-resource",
+										},
 									},
 								},
 							},
 						},
-					},
-					Resources: atc.ResourceConfigs{
-						{
-							Name:    "some-resource",
-							Type:    "some-type",
-							Source:  atc.Source{"some": "source"},
-							Version: atc.Version{"some": "version"},
+						Resources: atc.ResourceConfigs{
+							{
+								Name:    "some-resource",
+								Type:    "some-type",
+								Source:  atc.Source{"some": "source"},
+								Version: atc.Version{"some": "version"},
+							},
 						},
-					},
-				}, db.ConfigVersion(0), false)
-				Expect(err).ToNot(HaveOccurred())
-
-				var found bool
-				inputsJob, found, err = inputsPipeline.Job("some-job")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
+					}),
+				)
 			})
 
 			It("pins the inputs to that version", func() {
-				someResource, found, err := inputsPipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
 				Expect(inputs).To(Equal(db.InputConfigs{
 					{
 						Name:          "some-pinned-input",
-						JobID:         inputsJob.ID(),
-						ResourceID:    someResource.ID(),
+						JobID:         scenario.Job("some-job").ID(),
+						ResourceID:    scenario.Resource("some-resource").ID(),
 						PinnedVersion: atc.Version{"some": "version"},
 					},
 				}))
@@ -2423,78 +2313,39 @@ var _ = Describe("Job", func() {
 
 		Context("when the input is pinned through the api", func() {
 			BeforeEach(func() {
-				var err error
-				inputsPipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "inputs-pipeline"}, atc.Config{
-					Jobs: atc.JobConfigs{
-						{
-							Name: "some-job",
-							PlanSequence: []atc.Step{
-								{
-									Config: &atc.GetStep{
-										Name:     "some-pinned-input",
-										Resource: "some-resource",
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+								PlanSequence: []atc.Step{
+									{
+										Config: &atc.GetStep{
+											Name:     "some-pinned-input",
+											Resource: "some-resource",
+										},
 									},
 								},
 							},
 						},
-					},
-					Resources: atc.ResourceConfigs{
-						{
-							Name:   "some-resource",
-							Type:   "some-type",
-							Source: atc.Source{"some": "source"},
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "source"},
+							},
 						},
-					},
-				}, db.ConfigVersion(0), false)
-				Expect(err).ToNot(HaveOccurred())
-
-				var found bool
-				inputsJob, found, err = inputsPipeline.Job("some-job")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				pinnedResource, found, err := inputsPipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				setupTx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
-
-				brt := db.BaseResourceType{
-					Name: "some-type",
-				}
-
-				_, err = brt.FindOrCreate(setupTx, false)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(setupTx.Commit()).To(Succeed())
-
-				resourceConfigScope, err := pinnedResource.SetResourceConfig(atc.Source{"some": "source"}, atc.VersionedResourceTypes{})
-				Expect(err).ToNot(HaveOccurred())
-
-				err = resourceConfigScope.SaveVersions(nil, []atc.Version{
-					{"some": "version"},
-				})
-				Expect(err).NotTo(HaveOccurred())
-
-				versionID, found, err := pinnedResource.ResourceConfigVersionID(atc.Version{"some": "version"})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				pinned, err := pinnedResource.PinVersion(versionID)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(pinned).To(BeTrue())
+					}),
+					builder.WithPinnedVersion("some-resource", atc.Version{"some": "version"}),
+				)
 			})
 
 			It("pins the inputs to that version", func() {
-				someResource, found, err := inputsPipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
 				Expect(inputs).To(Equal(db.InputConfigs{
 					{
 						Name:          "some-pinned-input",
-						JobID:         inputsJob.ID(),
-						ResourceID:    someResource.ID(),
+						JobID:         scenario.Job("some-job").ID(),
+						ResourceID:    scenario.Resource("some-resource").ID(),
 						PinnedVersion: atc.Version{"some": "version"},
 					},
 				}))
@@ -2503,92 +2354,79 @@ var _ = Describe("Job", func() {
 
 		Context("when there are multiple inputs", func() {
 			BeforeEach(func() {
-				var err error
-				inputsPipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "inputs-pipeline"}, atc.Config{
-					Jobs: atc.JobConfigs{
-						{
-							Name: "some-job",
-							PlanSequence: []atc.Step{
-								{
-									Config: &atc.GetStep{
-										Name:     "some-input",
-										Resource: "some-resource",
-										Trigger:  true,
-										Version:  &atc.VersionConfig{Every: true},
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+								PlanSequence: []atc.Step{
+									{
+										Config: &atc.GetStep{
+											Name:     "some-input",
+											Resource: "some-resource",
+											Trigger:  true,
+											Version:  &atc.VersionConfig{Every: true},
+										},
+									},
+									{
+										Config: &atc.GetStep{
+											Name: "some-resource",
+										},
+									},
+									{
+										Config: &atc.GetStep{
+											Name:    "some-other-resource",
+											Trigger: true,
+											Version: &atc.VersionConfig{Latest: true},
+										},
 									},
 								},
-								{
-									Config: &atc.GetStep{
-										Name: "some-resource",
-									},
-								},
-								{
-									Config: &atc.GetStep{
-										Name:    "some-other-resource",
-										Trigger: true,
-										Version: &atc.VersionConfig{Latest: true},
+							},
+							{
+								Name: "some-other-job",
+								PlanSequence: []atc.Step{
+									{
+										Config: &atc.GetStep{
+											Name:     "other-job-resource",
+											Resource: "some-resource",
+										},
 									},
 								},
 							},
 						},
-						{
-							Name: "some-other-job",
-							PlanSequence: []atc.Step{
-								{
-									Config: &atc.GetStep{
-										Name:     "other-job-resource",
-										Resource: "some-resource",
-									},
-								},
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: "some-type",
+							},
+							{
+								Name: "some-other-resource",
+								Type: "some-type",
 							},
 						},
-					},
-					Resources: atc.ResourceConfigs{
-						{
-							Name: "some-resource",
-							Type: "some-type",
-						},
-						{
-							Name: "some-other-resource",
-							Type: "some-type",
-						},
-					},
-				}, db.ConfigVersion(0), false)
-				Expect(err).ToNot(HaveOccurred())
-
-				var found bool
-				inputsJob, found, err = inputsPipeline.Job("some-job")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
+					}),
+				)
 			})
 
 			It("returns all the inputs correctly", func() {
-				someResource, found, err := inputsPipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				someOtherResource, found, err := inputsPipeline.Resource("some-other-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
 				Expect(inputs).To(HaveLen(3))
 				Expect(inputs).To(ConsistOf(
 					db.InputConfig{
 						Name:            "some-input",
-						JobID:           inputsJob.ID(),
-						ResourceID:      someResource.ID(),
+						JobID:           scenario.Job("some-job").ID(),
+						ResourceID:      scenario.Resource("some-resource").ID(),
 						UseEveryVersion: true,
 						Trigger:         true,
 					},
 					db.InputConfig{
 						Name:       "some-resource",
-						JobID:      inputsJob.ID(),
-						ResourceID: someResource.ID(),
+						JobID:      scenario.Job("some-job").ID(),
+						ResourceID: scenario.Resource("some-resource").ID(),
 					},
 					db.InputConfig{
 						Name:       "some-other-resource",
-						JobID:      inputsJob.ID(),
-						ResourceID: someOtherResource.ID(),
+						JobID:      scenario.Job("some-job").ID(),
+						ResourceID: scenario.Resource("some-other-resource").ID(),
 						Trigger:    true,
 					}))
 			})
@@ -2596,60 +2434,51 @@ var _ = Describe("Job", func() {
 
 		Context("when the job has puts and tasks", func() {
 			BeforeEach(func() {
-				var err error
-				inputsPipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "inputs-pipeline"}, atc.Config{
-					Jobs: atc.JobConfigs{
-						{
-							Name: "some-job",
-							PlanSequence: []atc.Step{
-								{
-									Config: &atc.PutStep{
-										Name: "some-resource",
-									},
-								},
-								{
-									Config: &atc.TaskStep{
-										Name:       "some-task",
-										Privileged: true,
-										ConfigPath: "some/config/path.yml",
-										Config: &atc.TaskConfig{
-											RootfsURI: "some-image",
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+								PlanSequence: []atc.Step{
+									{
+										Config: &atc.PutStep{
+											Name: "some-resource",
 										},
 									},
-								},
-								{
-									Config: &atc.GetStep{
-										Name: "some-resource",
+									{
+										Config: &atc.TaskStep{
+											Name:       "some-task",
+											Privileged: true,
+											ConfigPath: "some/config/path.yml",
+											Config: &atc.TaskConfig{
+												RootfsURI: "some-image",
+											},
+										},
+									},
+									{
+										Config: &atc.GetStep{
+											Name: "some-resource",
+										},
 									},
 								},
 							},
 						},
-					},
-					Resources: atc.ResourceConfigs{
-						{
-							Name: "some-resource",
-							Type: "some-type",
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: "some-type",
+							},
 						},
-					},
-				}, db.ConfigVersion(0), false)
-				Expect(err).ToNot(HaveOccurred())
-
-				var found bool
-				inputsJob, found, err = inputsPipeline.Job("some-job")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
+					}),
+				)
 			})
 
 			It("only returns the gets (inputs to the job)", func() {
-				someResource, found, err := inputsPipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
 				Expect(inputs).To(Equal(db.InputConfigs{
 					{
 						Name:       "some-resource",
-						JobID:      inputsJob.ID(),
-						ResourceID: someResource.ID(),
+						JobID:      scenario.Job("some-job").ID(),
+						ResourceID: scenario.Resource("some-resource").ID(),
 					},
 				}))
 			})

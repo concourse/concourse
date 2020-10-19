@@ -127,8 +127,7 @@ func saveVersions(conn Conn, rcsID int, versions []atc.Version, spanContext Span
 
 func (r *resourceConfigScope) FindVersion(v atc.Version) (ResourceConfigVersion, bool, error) {
 	rcv := &resourceConfigVersion{
-		resourceConfigScope: r,
-		conn:                r.conn,
+		conn: r.conn,
 	}
 
 	versionByte, err := json.Marshal(v)
@@ -157,8 +156,7 @@ func (r *resourceConfigScope) FindVersion(v atc.Version) (ResourceConfigVersion,
 
 func (r *resourceConfigScope) LatestVersion() (ResourceConfigVersion, bool, error) {
 	rcv := &resourceConfigVersion{
-		conn:                r.conn,
-		resourceConfigScope: r,
+		conn: r.conn,
 	}
 
 	row := resourceConfigVersionQuery.

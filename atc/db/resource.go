@@ -53,8 +53,8 @@ type Resource interface {
 
 	BuildSummary() *atc.BuildSummary
 
-	ResourceConfigVersionID(atc.Version) (int, bool, error)
 	Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error)
+	FindVersion(filter atc.Version) (ResourceConfigVersion, bool, error) // Only used in tests!!
 	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig) (bool, error)
 	UpdateMetadata(atc.Version, ResourceConfigMetadataFields) (bool, error)
 
@@ -63,12 +63,6 @@ type Resource interface {
 
 	PinVersion(rcvID int) (bool, error)
 	UnpinVersion() error
-
-	// XXX(check-refactor): we should be able to remove this, but unfortunately a
-	// ton of db tests rely on it. i've started a refactor to clean up the db
-	// package, but it's definitely going to take some time - there's a lot of
-	// debt there.
-	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
 
 	SetResourceConfigScope(ResourceConfigScope) error
 
@@ -202,6 +196,10 @@ func (r *resource) Reload() (bool, error) {
 	return true, nil
 }
 
+func (r *resource) SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 func (r *resource) SetResourceConfigScope(scope ResourceConfigScope) error {
 	tx, err := r.conn.Begin()
 	if err != nil {
@@ -244,75 +242,6 @@ func (r *resource) SetResourceConfigScope(scope ResourceConfigScope) error {
 	}
 
 	return nil
-}
-
-func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.VersionedResourceTypes) (ResourceConfigScope, error) {
-	resourceConfigDescriptor, err := constructResourceConfigDescriptor(r.type_, source, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
-	tx, err := r.conn.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	defer Rollback(tx)
-
-	resourceConfig, err := resourceConfigDescriptor.findOrCreate(tx, r.lockFactory, r.conn)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = psql.Update("resources").
-		Set("resource_config_id", resourceConfig.ID()).
-		Where(sq.Eq{"id": r.id}).
-		Where(sq.Or{
-			sq.Eq{"resource_config_id": nil},
-			sq.NotEq{"resource_config_id": resourceConfig.ID()},
-		}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return nil, err
-	}
-
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r)
-	if err != nil {
-		return nil, err
-	}
-
-	results, err := psql.Update("resources").
-		Set("resource_config_scope_id", resourceConfigScope.ID()).
-		Where(sq.Eq{"id": r.id}).
-		Where(sq.Or{
-			sq.Eq{"resource_config_scope_id": nil},
-			sq.NotEq{"resource_config_scope_id": resourceConfigScope.ID()},
-		}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return nil, err
-	}
-
-	rowsAffected, err := results.RowsAffected()
-	if err != nil {
-		return nil, err
-	}
-
-	if rowsAffected > 0 {
-		err = requestScheduleForJobsUsingResource(tx, r.id)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	return resourceConfigScope, nil
 }
 
 func (r *resource) CheckPlan(from atc.Version, interval time.Duration, resourceTypes ResourceTypes, sourceDefaults atc.Source) atc.CheckPlan {
@@ -464,33 +393,38 @@ func (r *resource) UpdateMetadata(version atc.Version, metadata ResourceConfigMe
 	return true, nil
 }
 
-func (r *resource) ResourceConfigVersionID(version atc.Version) (int, bool, error) {
-	requestedVersion, err := json.Marshal(version)
-	if err != nil {
-		return 0, false, err
+// XXX: Deprecated, only used in tests
+func (r *resource) FindVersion(v atc.Version) (ResourceConfigVersion, bool, error) {
+	if r.resourceConfigScopeID == 0 {
+		return nil, false, nil
 	}
 
-	var id int
+	ver := &resourceConfigVersion{
+		conn: r.conn,
+	}
 
-	err = psql.Select("rcv.id").
-		From("resource_config_versions rcv").
-		Join("resources r ON rcv.resource_config_scope_id = r.resource_config_scope_id").
-		Where(sq.Eq{"r.id": r.ID()}).
-		Where(sq.Expr("version @> ?", requestedVersion)).
-		Where(sq.NotEq{"rcv.check_order": 0}).
-		OrderBy("rcv.check_order DESC").
+	versionByte, err := json.Marshal(v)
+	if err != nil {
+		return nil, false, err
+	}
+
+	row := resourceConfigVersionQuery.
+		Where(sq.Eq{
+			"v.resource_config_scope_id": r.resourceConfigScopeID,
+		}).
+		Where(sq.Expr("v.version_md5 = md5(?)", versionByte)).
 		RunWith(r.conn).
-		QueryRow().
-		Scan(&id)
+		QueryRow()
 
+	err = scanResourceConfigVersion(ver, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 0, false, nil
+			return nil, false, nil
 		}
-		return 0, false, err
+		return nil, false, err
 	}
 
-	return id, true, nil
+	return ver, true, nil
 }
 
 func (r *resource) SetPinComment(comment string) error {
