@@ -64,6 +64,18 @@ all =
                                 [ containing [ text "some-job" ]
                                 , containing [ text "#123" ]
                                 ]
+                , test "shows jobs display name and build name " <|
+                    let
+                        jobBuildModelWithDisplayName =
+                            { model | name = "123", job = Just job, jobDisplayName = Just "Some cool display name :D" }
+                    in
+                    \_ ->
+                        Header.view session jobBuildModelWithDisplayName
+                        |> Query.fromHtml
+                        |> Query.has
+                            [ containing [ text "Some cool display name :D" ]
+                            , containing [ text "#123" ]
+                            ]
                 ]
             , describe "non-job build" <|
                 let
