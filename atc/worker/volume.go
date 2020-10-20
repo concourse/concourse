@@ -24,6 +24,9 @@ type Volume interface {
 	StreamIn(ctx context.Context, path string, encoding baggageclaim.Encoding, tarStream io.Reader) error
 	StreamOut(ctx context.Context, path string, encoding baggageclaim.Encoding) (io.ReadCloser, error)
 
+	GetStreamInP2pUrl(ctx context.Context, path string) (string, error)
+	StreamP2pOut(ctx context.Context, path string, destUrl string, encoding baggageclaim.Encoding) error
+
 	COWStrategy() baggageclaim.COWStrategy
 
 	InitializeResourceCache(db.UsedResourceCache) error
@@ -100,6 +103,14 @@ func (v *volume) StreamIn(ctx context.Context, path string, encoding baggageclai
 
 func (v *volume) StreamOut(ctx context.Context, path string, encoding baggageclaim.Encoding) (io.ReadCloser, error) {
 	return v.bcVolume.StreamOut(ctx, path, encoding)
+}
+
+func (v *volume) GetStreamInP2pUrl(ctx context.Context, path string) (string, error) {
+	return v.bcVolume.GetStreamInP2pUrl(ctx, path)
+}
+
+func (v *volume) StreamP2pOut(ctx context.Context, path string, destUrl string, encoding baggageclaim.Encoding) error {
+	return v.bcVolume.StreamP2pOut(ctx, path, destUrl, encoding)
 }
 
 func (v *volume) Properties() (baggageclaim.VolumeProperties, error) {

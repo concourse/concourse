@@ -57,6 +57,20 @@ type FakeVolume struct {
 	getResourceCacheIDReturnsOnCall map[int]struct {
 		result1 int
 	}
+	GetStreamInP2pUrlStub        func(context.Context, string) (string, error)
+	getStreamInP2pUrlMutex       sync.RWMutex
+	getStreamInP2pUrlArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+	}
+	getStreamInP2pUrlReturns struct {
+		result1 string
+		result2 error
+	}
+	getStreamInP2pUrlReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
+	}
 	HandleStub        func() string
 	handleMutex       sync.RWMutex
 	handleArgsForCall []struct {
@@ -180,6 +194,20 @@ type FakeVolume struct {
 	streamOutReturnsOnCall map[int]struct {
 		result1 io.ReadCloser
 		result2 error
+	}
+	StreamP2pOutStub        func(context.Context, string, string, baggageclaim.Encoding) error
+	streamP2pOutMutex       sync.RWMutex
+	streamP2pOutArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+		arg3 string
+		arg4 baggageclaim.Encoding
+	}
+	streamP2pOutReturns struct {
+		result1 error
+	}
+	streamP2pOutReturnsOnCall map[int]struct {
+		result1 error
 	}
 	WorkerNameStub        func() string
 	workerNameMutex       sync.RWMutex
@@ -413,6 +441,70 @@ func (fake *FakeVolume) GetResourceCacheIDReturnsOnCall(i int, result1 int) {
 	fake.getResourceCacheIDReturnsOnCall[i] = struct {
 		result1 int
 	}{result1}
+}
+
+func (fake *FakeVolume) GetStreamInP2pUrl(arg1 context.Context, arg2 string) (string, error) {
+	fake.getStreamInP2pUrlMutex.Lock()
+	ret, specificReturn := fake.getStreamInP2pUrlReturnsOnCall[len(fake.getStreamInP2pUrlArgsForCall)]
+	fake.getStreamInP2pUrlArgsForCall = append(fake.getStreamInP2pUrlArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("GetStreamInP2pUrl", []interface{}{arg1, arg2})
+	fake.getStreamInP2pUrlMutex.Unlock()
+	if fake.GetStreamInP2pUrlStub != nil {
+		return fake.GetStreamInP2pUrlStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.getStreamInP2pUrlReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeVolume) GetStreamInP2pUrlCallCount() int {
+	fake.getStreamInP2pUrlMutex.RLock()
+	defer fake.getStreamInP2pUrlMutex.RUnlock()
+	return len(fake.getStreamInP2pUrlArgsForCall)
+}
+
+func (fake *FakeVolume) GetStreamInP2pUrlCalls(stub func(context.Context, string) (string, error)) {
+	fake.getStreamInP2pUrlMutex.Lock()
+	defer fake.getStreamInP2pUrlMutex.Unlock()
+	fake.GetStreamInP2pUrlStub = stub
+}
+
+func (fake *FakeVolume) GetStreamInP2pUrlArgsForCall(i int) (context.Context, string) {
+	fake.getStreamInP2pUrlMutex.RLock()
+	defer fake.getStreamInP2pUrlMutex.RUnlock()
+	argsForCall := fake.getStreamInP2pUrlArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeVolume) GetStreamInP2pUrlReturns(result1 string, result2 error) {
+	fake.getStreamInP2pUrlMutex.Lock()
+	defer fake.getStreamInP2pUrlMutex.Unlock()
+	fake.GetStreamInP2pUrlStub = nil
+	fake.getStreamInP2pUrlReturns = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeVolume) GetStreamInP2pUrlReturnsOnCall(i int, result1 string, result2 error) {
+	fake.getStreamInP2pUrlMutex.Lock()
+	defer fake.getStreamInP2pUrlMutex.Unlock()
+	fake.GetStreamInP2pUrlStub = nil
+	if fake.getStreamInP2pUrlReturnsOnCall == nil {
+		fake.getStreamInP2pUrlReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
+		})
+	}
+	fake.getStreamInP2pUrlReturnsOnCall[i] = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeVolume) Handle() string {
@@ -1011,6 +1103,69 @@ func (fake *FakeVolume) StreamOutReturnsOnCall(i int, result1 io.ReadCloser, res
 	}{result1, result2}
 }
 
+func (fake *FakeVolume) StreamP2pOut(arg1 context.Context, arg2 string, arg3 string, arg4 baggageclaim.Encoding) error {
+	fake.streamP2pOutMutex.Lock()
+	ret, specificReturn := fake.streamP2pOutReturnsOnCall[len(fake.streamP2pOutArgsForCall)]
+	fake.streamP2pOutArgsForCall = append(fake.streamP2pOutArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+		arg3 string
+		arg4 baggageclaim.Encoding
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("StreamP2pOut", []interface{}{arg1, arg2, arg3, arg4})
+	fake.streamP2pOutMutex.Unlock()
+	if fake.StreamP2pOutStub != nil {
+		return fake.StreamP2pOutStub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.streamP2pOutReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeVolume) StreamP2pOutCallCount() int {
+	fake.streamP2pOutMutex.RLock()
+	defer fake.streamP2pOutMutex.RUnlock()
+	return len(fake.streamP2pOutArgsForCall)
+}
+
+func (fake *FakeVolume) StreamP2pOutCalls(stub func(context.Context, string, string, baggageclaim.Encoding) error) {
+	fake.streamP2pOutMutex.Lock()
+	defer fake.streamP2pOutMutex.Unlock()
+	fake.StreamP2pOutStub = stub
+}
+
+func (fake *FakeVolume) StreamP2pOutArgsForCall(i int) (context.Context, string, string, baggageclaim.Encoding) {
+	fake.streamP2pOutMutex.RLock()
+	defer fake.streamP2pOutMutex.RUnlock()
+	argsForCall := fake.streamP2pOutArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeVolume) StreamP2pOutReturns(result1 error) {
+	fake.streamP2pOutMutex.Lock()
+	defer fake.streamP2pOutMutex.Unlock()
+	fake.StreamP2pOutStub = nil
+	fake.streamP2pOutReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeVolume) StreamP2pOutReturnsOnCall(i int, result1 error) {
+	fake.streamP2pOutMutex.Lock()
+	defer fake.streamP2pOutMutex.Unlock()
+	fake.StreamP2pOutStub = nil
+	if fake.streamP2pOutReturnsOnCall == nil {
+		fake.streamP2pOutReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.streamP2pOutReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeVolume) WorkerName() string {
 	fake.workerNameMutex.Lock()
 	ret, specificReturn := fake.workerNameReturnsOnCall[len(fake.workerNameArgsForCall)]
@@ -1074,6 +1229,8 @@ func (fake *FakeVolume) Invocations() map[string][][]interface{} {
 	defer fake.destroyMutex.RUnlock()
 	fake.getResourceCacheIDMutex.RLock()
 	defer fake.getResourceCacheIDMutex.RUnlock()
+	fake.getStreamInP2pUrlMutex.RLock()
+	defer fake.getStreamInP2pUrlMutex.RUnlock()
 	fake.handleMutex.RLock()
 	defer fake.handleMutex.RUnlock()
 	fake.initializeArtifactMutex.RLock()
@@ -1094,6 +1251,8 @@ func (fake *FakeVolume) Invocations() map[string][][]interface{} {
 	defer fake.streamInMutex.RUnlock()
 	fake.streamOutMutex.RLock()
 	defer fake.streamOutMutex.RUnlock()
+	fake.streamP2pOutMutex.RLock()
+	defer fake.streamP2pOutMutex.RUnlock()
 	fake.workerNameMutex.RLock()
 	defer fake.workerNameMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
