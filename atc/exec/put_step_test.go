@@ -173,7 +173,6 @@ var _ = Describe("PutStep", func() {
 			Type:                   "some-resource-type",
 			Source:                 atc.Source{"some": "((source-var))"},
 			Params:                 atc.Params{"some": "((params-var))"},
-			Tags:                   []string{"some", "tags"},
 			VersionedResourceTypes: uninterpolatedResourceTypes,
 		}
 
@@ -329,7 +328,6 @@ var _ = Describe("PutStep", func() {
 
 		Expect(actualWorkerSpec).To(Equal(worker.WorkerSpec{
 			TeamID:       123,
-			Tags:         []string{"some", "tags"},
 			ResourceType: "some-resource-type",
 		}))
 		Expect(actualStrategy).To(Equal(fakeStrategy))
@@ -394,7 +392,6 @@ var _ = Describe("PutStep", func() {
 		It("does not set the type in the worker spec", func() {
 			_, _, _, _, workerSpec, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
 			Expect(workerSpec).To(Equal(worker.WorkerSpec{
-				Tags:   atc.Tags{"some", "tags"},
 				TeamID: stepMetadata.TeamID,
 			}))
 		})
@@ -414,6 +411,61 @@ var _ = Describe("PutStep", func() {
 				_, _, _, privileged := fakeDelegate.FetchImageArgsForCall(0)
 				Expect(privileged).To(BeTrue())
 			})
+		})
+
+		Context("when the plan configures tags", func() {
+			BeforeEach(func() {
+				putPlan.Tags = atc.Tags{"plan", "tags"}
+			})
+
+			It("fetches using the tags", func() {
+				Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+				_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
+				Expect(imageResource.Tags).To(Equal(atc.Tags{"plan", "tags"}))
+			})
+		})
+
+		Context("when the resource type configures tags", func() {
+			BeforeEach(func() {
+				taggedType, found := putPlan.VersionedResourceTypes.Lookup("some-custom-type")
+				Expect(found).To(BeTrue())
+
+				taggedType.Tags = atc.Tags{"type", "tags"}
+
+				newTypes := putPlan.VersionedResourceTypes.Without("some-custom-type")
+				newTypes = append(newTypes, taggedType)
+
+				putPlan.VersionedResourceTypes = newTypes
+			})
+
+			It("fetches using the type tags", func() {
+				Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+				_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
+				Expect(imageResource.Tags).To(Equal(atc.Tags{"type", "tags"}))
+			})
+
+			Context("when the plan ALSO configures tags", func() {
+				BeforeEach(func() {
+					putPlan.Tags = atc.Tags{"plan", "tags"}
+				})
+
+				It("fetches using only the type tags", func() {
+					Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+					_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
+					Expect(imageResource.Tags).To(Equal(atc.Tags{"type", "tags"}))
+				})
+			})
+		})
+	})
+
+	Context("when the plan specifies tags", func() {
+		BeforeEach(func() {
+			putPlan.Tags = atc.Tags{"some", "tags"}
+		})
+
+		It("sets them in the WorkerSpec", func() {
+			_, _, _, _, workerSpec, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+			Expect(workerSpec.Tags).To(Equal([]string{"some", "tags"}))
 		})
 	})
 

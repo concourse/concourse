@@ -250,6 +250,10 @@ func (step *CheckStep) runCheck(
 			Source:  resourceType.Source,
 			Params:  resourceType.Params,
 			Version: resourceType.Version,
+			Tags:    resourceType.Tags,
+		}
+		if len(image.Tags) == 0 {
+			image.Tags = step.plan.Tags
 		}
 
 		types := step.plan.VersionedResourceTypes.Without(step.plan.Type)
