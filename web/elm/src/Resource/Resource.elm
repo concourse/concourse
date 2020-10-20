@@ -147,6 +147,7 @@ init flags =
             , authorized = True
             , output = Nothing
             , highlight = Routes.HighlightNothing
+            , displayName = Nothing
             }
     in
     ( model
@@ -316,6 +317,7 @@ handleCallback callback session ( model, effects ) =
                                     Models.NotChecking
                 , lastChecked = resource.lastChecked
                 , icon = resource.icon
+                , displayName = resource.displayName
               }
                 |> updatePinnedVersion resource
             , effects
@@ -893,8 +895,13 @@ updateVersion versionID updateFunc model =
 
 documentTitle : Model -> String
 documentTitle model =
-    model.resourceIdentifier.resourceName
+    resourceName model
 
+resourceName : Model -> String
+resourceName model =
+    case model.displayName of
+        Just displayName -> displayName
+        Nothing -> model.resourceIdentifier.resourceName
 
 type alias VersionPresenter =
     { id : Models.VersionId
@@ -1022,7 +1029,7 @@ header session model =
         [ Html.h1
             Resource.Styles.headerResourceName
             [ iconView
-            , Html.text model.resourceIdentifier.resourceName
+            , Html.text  <| resourceName model
             ]
         , Html.div
             Resource.Styles.headerLastCheckedSection

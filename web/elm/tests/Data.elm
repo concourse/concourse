@@ -20,6 +20,7 @@ module Data exposing
     , resource
     , resourceId
     , resourceName
+    , resourceDisplayName
     , resourceVersionId
     , shortJobId
     , shortPipelineId
@@ -130,6 +131,7 @@ resource pinnedVersion =
     { teamName = teamName
     , pipelineName = pipelineName
     , name = resourceName
+    , displayName = Nothing
     , lastChecked = Nothing
     , pinnedVersion = Just <| version pinnedVersion
     , pinnedInConfig = False
@@ -258,6 +260,8 @@ pipelineName =
 resourceName =
     "resource"
 
+resourceDisplayName =
+    "This is a display name"
 
 buildName =
     "1"

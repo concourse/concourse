@@ -890,6 +890,7 @@ type alias Resource =
     { teamName : String
     , pipelineName : String
     , name : String
+    , displayName : Maybe String
     , icon : Maybe String
     , lastChecked : Maybe Time.Posix
     , pinnedVersion : Maybe Version
@@ -928,6 +929,7 @@ decodeResource =
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)
         |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.maybe (Json.Decode.field "display_name" Json.Decode.string))
         |> andMap (Json.Decode.maybe (Json.Decode.field "icon" Json.Decode.string))
         |> andMap (Json.Decode.maybe (Json.Decode.field "last_checked" (Json.Decode.map dateFromSeconds Json.Decode.int)))
         |> andMap (Json.Decode.maybe (Json.Decode.field "pinned_version" decodeVersion))

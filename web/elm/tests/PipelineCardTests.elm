@@ -937,6 +937,7 @@ all =
                                         [ { teamName = "team"
                                           , pipelineName = "pipeline"
                                           , name = "resource"
+                                          , displayName = Nothing
                                           , lastChecked = Nothing
                                           , pinnedVersion = Nothing
                                           , pinnedInConfig = False
