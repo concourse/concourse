@@ -290,9 +290,14 @@ func (step *TaskStep) imageSpec(ctx context.Context, state RunState, delegate Ta
 
 		//an image_resource
 	} else if config.ImageResource != nil {
+		image := *config.ImageResource
+		if len(image.Tags) == 0 {
+			image.Tags = step.plan.Tags
+		}
+
 		return delegate.FetchImage(
 			ctx,
-			*config.ImageResource,
+			image,
 			step.plan.VersionedResourceTypes,
 			step.plan.Privileged,
 		)

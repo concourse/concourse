@@ -122,6 +122,7 @@ var _ = Describe("BuildStepDelegate", func() {
 				Type:   "docker",
 				Source: atc.Source{"some": "((source-var))"},
 				Params: atc.Params{"some": "((params-var))"},
+				Tags:   atc.Tags{"some", "tags"},
 			}
 
 			types = atc.VersionedResourceTypes{
@@ -152,6 +153,7 @@ var _ = Describe("BuildStepDelegate", func() {
 					Type:                   "docker",
 					Source:                 atc.Source{"some": "((source-var))"},
 					VersionedResourceTypes: types,
+					Tags:                   atc.Tags{"some", "tags"},
 				},
 			}
 
@@ -164,6 +166,7 @@ var _ = Describe("BuildStepDelegate", func() {
 					Version:                &atc.Version{"some": "version"},
 					Params:                 atc.Params{"some": "((params-var))"},
 					VersionedResourceTypes: types,
+					Tags:                   atc.Tags{"some", "tags"},
 				},
 			}
 

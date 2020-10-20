@@ -241,6 +241,8 @@ func (delegate *buildStepDelegate) FetchImage(
 				Source: image.Source,
 
 				VersionedResourceTypes: types,
+
+				Tags: image.Tags,
 			},
 		}
 
@@ -281,6 +283,8 @@ func (delegate *buildStepDelegate) FetchImage(
 			Params:  image.Params,
 
 			VersionedResourceTypes: types,
+
+			Tags: image.Tags,
 		},
 	}
 

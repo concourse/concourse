@@ -44,6 +44,7 @@ type ImageResource struct {
 	Source  Source  `json:"source"`
 	Version Version `json:"version,omitempty"`
 	Params  Params  `json:"params,omitempty"`
+	Tags    Tags    `json:"tags,omitempty"`
 }
 
 func (ir *ImageResource) ApplySourceDefaults(resourceTypes VersionedResourceTypes) {

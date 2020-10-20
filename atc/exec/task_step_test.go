@@ -102,7 +102,6 @@ var _ = Describe("TaskStep", func() {
 		taskPlan = &atc.TaskPlan{
 			Name:       "some-task",
 			Privileged: false,
-			Tags:       []string{"step", "tags"},
 			VersionedResourceTypes: atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{
@@ -140,7 +139,6 @@ var _ = Describe("TaskStep", func() {
 	})
 
 	Context("when the plan has a config", func() {
-
 		BeforeEach(func() {
 			cpu := atc.CPULimit(1024)
 			memory := atc.MemoryLimit(1024)
@@ -169,69 +167,8 @@ var _ = Describe("TaskStep", func() {
 				}
 			})
 
-			It("invoked the delegate's Initializing callback", func() {
+			It("invokes the delegate's Initializing callback", func() {
 				Expect(fakeDelegate.InitializingCallCount()).To(Equal(1))
-			})
-
-			Context("when rootfs uri is set instead of image resource", func() {
-				BeforeEach(func() {
-					taskPlan.Config = &atc.TaskConfig{
-						Platform:  "some-platform",
-						RootfsURI: "some-image",
-						Params:    map[string]string{"SOME": "params"},
-						Run: atc.TaskRunConfig{
-							Path: "ls",
-							Args: []string{"some", "args"},
-						},
-					}
-				})
-
-				It("correctly sets up the image spec", func() {
-					Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
-					_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-
-					Expect(containerSpec).To(Equal(worker.ContainerSpec{
-						Platform: "some-platform",
-						Tags:     []string{"step", "tags"},
-						TeamID:   stepMetadata.TeamID,
-						ImageSpec: worker.ImageSpec{
-							ImageURL:   "some-image",
-							Privileged: false,
-						},
-						Type: "task",
-						Dir:  "some-artifact-root",
-						Env:  []string{"SOME=params"},
-
-						ArtifactByPath: map[string]runtime.Artifact{},
-						Outputs:        worker.OutputPaths{},
-					}))
-
-				})
-			})
-
-			Context("when tracing is enabled", func() {
-				var buildSpan trace.Span
-
-				BeforeEach(func() {
-					tracing.ConfigureTraceProvider(tracetest.NewProvider())
-
-					spanCtx, buildSpan = tracing.StartSpan(ctx, "build", nil)
-					fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
-				})
-
-				AfterEach(func() {
-					tracing.Configured = false
-				})
-
-				It("propagates span context to the worker client", func() {
-					runCtx, _, _, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-					Expect(runCtx).To(Equal(spanCtx))
-				})
-
-				It("populates the TRACEPARENT env var", func() {
-					_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-					Expect(containerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
-				})
 			})
 		})
 
@@ -269,6 +206,60 @@ var _ = Describe("TaskStep", func() {
 				Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
 				_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 				Expect(containerSpec.ImageSpec.Privileged).To(BeTrue())
+			})
+		})
+
+		Context("when tags are configured", func() {
+			BeforeEach(func() {
+				taskPlan.Tags = atc.Tags{"plan", "tags"}
+			})
+
+			It("creates a containerSpec with the tags", func() {
+				Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
+
+				_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+				Expect(containerSpec.Tags).To(Equal([]string{"plan", "tags"}))
+			})
+		})
+
+		Context("when rootfs uri is set instead of image resource", func() {
+			BeforeEach(func() {
+				taskPlan.Config.RootfsURI = "some-image"
+			})
+
+			It("correctly sets up the image spec", func() {
+				Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
+				_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+
+				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
+					ImageURL:   "some-image",
+					Privileged: false,
+				}))
+			})
+		})
+
+		Context("when tracing is enabled", func() {
+			var buildSpan trace.Span
+
+			BeforeEach(func() {
+				tracing.ConfigureTraceProvider(tracetest.NewProvider())
+
+				spanCtx, buildSpan = tracing.StartSpan(ctx, "build", nil)
+				fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
+			})
+
+			AfterEach(func() {
+				tracing.Configured = false
+			})
+
+			It("propagates span context to the worker client", func() {
+				runCtx, _, _, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+				Expect(runCtx).To(Equal(spanCtx))
+			})
+
+			It("populates the TRACEPARENT env var", func() {
+				_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+				Expect(containerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
 			})
 		})
 
@@ -718,14 +709,44 @@ var _ = Describe("TaskStep", func() {
 			})
 
 			It("creates the specs with the image artifact", func() {
-				_, _, _, containerSpec, workerSpec, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+				_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 				Expect(containerSpec.ImageSpec).To(Equal(fakeImageSpec))
+			})
 
-				Expect(workerSpec).To(Equal(worker.WorkerSpec{
-					TeamID:   123,
-					Platform: "some-platform",
-					Tags:     []string{"step", "tags"},
-				}))
+			Context("when tags are specified on the task plan", func() {
+				BeforeEach(func() {
+					taskPlan.Tags = atc.Tags{"plan", "tags"}
+				})
+
+				It("fetches the image with the same tags", func() {
+					Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+					_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
+					Expect(imageResource.Tags).To(Equal(atc.Tags{"plan", "tags"}))
+				})
+			})
+
+			Context("when tags are specified on the image resource", func() {
+				BeforeEach(func() {
+					taskPlan.Config.ImageResource.Tags = atc.Tags{"image", "tags"}
+				})
+
+				It("fetches the image with the same tags", func() {
+					Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+					_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
+					Expect(imageResource.Tags).To(Equal(atc.Tags{"image", "tags"}))
+				})
+
+				Context("when tags are ALSO specified on the task plan", func() {
+					BeforeEach(func() {
+						taskPlan.Tags = atc.Tags{"plan", "tags"}
+					})
+
+					It("fetches the image using only the image tags", func() {
+						Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+						_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
+						Expect(imageResource.Tags).To(Equal(atc.Tags{"image", "tags"}))
+					})
+				})
 			})
 
 			Context("when privileged", func() {
@@ -738,31 +759,6 @@ var _ = Describe("TaskStep", func() {
 					_, _, _, privileged := fakeDelegate.FetchImageArgsForCall(0)
 					Expect(privileged).To(BeTrue())
 				})
-			})
-		})
-
-		Context("when the RootfsURI is configured", func() {
-			BeforeEach(func() {
-				taskPlan.Config = &atc.TaskConfig{
-					Platform:  "some-platform",
-					RootfsURI: "some-image",
-					Params:    map[string]string{"SOME": "params"},
-					Run: atc.TaskRunConfig{
-						Path: "ls",
-						Args: []string{"some", "args"},
-					},
-				}
-			})
-
-			It("creates the specs with the image resource", func() {
-				_, _, _, containerSpec, workerSpec, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-				Expect(containerSpec.ImageSpec.ImageURL).To(Equal("some-image"))
-
-				Expect(workerSpec).To(Equal(worker.WorkerSpec{
-					TeamID:   123,
-					Platform: "some-platform",
-					Tags:     []string{"step", "tags"},
-				}))
 			})
 		})
 
@@ -1127,6 +1123,5 @@ var _ = Describe("TaskStep", func() {
 				Expect(artifactMap).To(ConsistOf(artifact))
 			})
 		})
-
 	})
 })
