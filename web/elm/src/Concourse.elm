@@ -165,6 +165,7 @@ type alias Build =
     { id : BuildId
     , name : BuildName
     , job : Maybe JobIdentifier
+    , jobDisplayName : Maybe String
     , status : BuildStatus
     , duration : BuildDuration
     , reapTime : Maybe Time.Posix
@@ -217,6 +218,7 @@ decodeBuild =
                     |> andMap (Json.Decode.field "job_name" Json.Decode.string)
                 )
             )
+        |> andMap (Json.Decode.maybe (Json.Decode.field "job_display_name" Json.Decode.string))
         |> andMap (Json.Decode.field "status" Concourse.BuildStatus.decodeBuildStatus)
         |> andMap
             (Json.Decode.succeed BuildDuration

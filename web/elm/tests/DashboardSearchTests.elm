@@ -56,6 +56,7 @@ hasData =
                                                 |> Data.withTeamName "team1"
                                                 |> Data.withPipelineName "pipeline1"
                                             )
+                                    , jobDisplayName = Nothing
                                     , status = BuildStatusStarted
                                     , duration =
                                         { startedAt = Nothing

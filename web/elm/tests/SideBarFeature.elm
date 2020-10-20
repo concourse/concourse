@@ -1776,6 +1776,7 @@ iAmLookingAtAOneOffBuildPageOnANonPhoneScreen =
                     { id = 1
                     , name = "1"
                     , job = Nothing
+                    , jobDisplayName = Nothing
                     , status = BuildStatusStarted
                     , duration = { startedAt = Nothing, finishedAt = Nothing }
                     , reapTime = Nothing

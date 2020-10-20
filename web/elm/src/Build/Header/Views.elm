@@ -48,7 +48,7 @@ type alias Header =
 
 type Widget
     = Button (Maybe ButtonView)
-    | Title String (Maybe Concourse.JobIdentifier)
+    | Title String (Maybe Concourse.JobIdentifier) (Maybe String)
     | Duration BuildDuration
 
 
@@ -126,8 +126,8 @@ viewWidget widget =
         Button button ->
             Maybe.map viewButton button |> Maybe.withDefault (Html.text "")
 
-        Title name jobId ->
-            Html.h1 [] [ viewTitle name jobId ]
+        Title name jobId jobDisplayName ->
+            Html.h1 [] [ viewTitle name jobId jobDisplayName ]
 
         Duration duration ->
             viewDuration duration
@@ -355,16 +355,21 @@ viewTooltip tooltip type_ =
             Html.text ""
 
 
-viewTitle : String -> Maybe Concourse.JobIdentifier -> Html Message
-viewTitle name jobID =
+viewTitle : String -> Maybe Concourse.JobIdentifier -> Maybe String -> Html Message
+viewTitle name jobID jobDisplayName =
     case jobID of
         Just id ->
+            let
+                displayName = case jobDisplayName of
+                    Just dn -> dn
+                    Nothing -> id.jobName
+            in
             Html.a
                 [ href <|
                     Routes.toString <|
                         Routes.Job { id = id, page = Nothing }
                 ]
-                [ Html.span [ class "build-name" ] [ Html.text id.jobName ]
+                [ Html.span [ class "build-name" ] [ Html.text displayName ]
                 , Html.span [ style "letter-spacing" "-1px" ] [ Html.text (" #" ++ name) ]
                 ]
 

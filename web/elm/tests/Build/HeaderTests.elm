@@ -55,7 +55,7 @@ all =
                     \_ ->
                         Header.header session jobBuildModel
                             |> .leftWidgets
-                            |> Common.contains (Views.Title "123" (Just job))
+                            |> Common.contains (Views.Title "123" (Just job) Nothing)
                 , test "shows job and build name as number" <|
                     \_ ->
                         Header.view session jobBuildModel
@@ -74,7 +74,7 @@ all =
                     \_ ->
                         Header.header session nonJobBuild
                             |> .leftWidgets
-                            |> Common.contains (Views.Title "check" Nothing)
+                            |> Common.contains (Views.Title "check" Nothing Nothing)
                 , test "shows build name, not as a number" <|
                     \_ ->
                         Header.view session nonJobBuild
@@ -382,7 +382,7 @@ all =
                             >> Expect.equal BuildStatusStarted
                         , .leftWidgets
                             >> Expect.equal
-                                [ Views.Title "1" (Just jobId)
+                                [ Views.Title "1" (Just jobId) Nothing
                                 , Views.Duration <|
                                     Views.Running <|
                                         Views.Absolute
@@ -427,6 +427,7 @@ model =
     { id = 0
     , name = "0"
     , job = Nothing
+    , jobDisplayName = Nothing
     , scrolledToCurrentBuild = False
     , history = []
     , duration = { startedAt = Nothing, finishedAt = Nothing }
@@ -444,6 +445,7 @@ build =
     { id = 0
     , name = "0"
     , job = Just jobId
+    , jobDisplayName = Nothing
     , status = model.status
     , duration = model.duration
     , reapTime = Nothing

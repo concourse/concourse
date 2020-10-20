@@ -102,6 +102,7 @@ init flags =
                         buildName
           , now = Nothing
           , job = Nothing
+          , jobDisplayName = Nothing
           , disableManualTrigger = False
           , history = []
           , nextPage = Nothing
@@ -538,6 +539,7 @@ handleBuildFetched build ( model, effects ) =
         withBuild =
             { model
                 | reapTime = build.reapTime
+                , jobDisplayName = build.jobDisplayName
                 , output =
                     if model.hasLoadedYet then
                         model.output
