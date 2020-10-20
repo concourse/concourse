@@ -369,7 +369,7 @@ var _ = Describe("BuildStepDelegate", func() {
 					Origin: event.Origin{
 						ID: event.OriginID(planID),
 					},
-					Plan: expectedCheckPlan,
+					PublicPlan: expectedCheckPlan.Public(),
 				}))
 
 				e = fakeBuild.SaveEventArgsForCall(1)
@@ -378,7 +378,7 @@ var _ = Describe("BuildStepDelegate", func() {
 					Origin: event.Origin{
 						ID: event.OriginID(planID),
 					},
-					Plan: expectedGetPlan,
+					PublicPlan: expectedGetPlan.Public(),
 				}))
 			})
 		})
@@ -406,7 +406,7 @@ var _ = Describe("BuildStepDelegate", func() {
 					Origin: event.Origin{
 						ID: event.OriginID(planID),
 					},
-					Plan: expectedGetPlan,
+					PublicPlan: expectedGetPlan.Public(),
 				}))
 			})
 		})

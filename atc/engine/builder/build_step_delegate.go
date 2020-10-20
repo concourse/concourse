@@ -249,7 +249,7 @@ func (delegate *buildStepDelegate) FetchImage(
 			Origin: event.Origin{
 				ID: event.OriginID(delegate.planID),
 			},
-			Plan: checkPlan,
+			PublicPlan: checkPlan.Public(),
 		})
 		if err != nil {
 			return worker.ImageSpec{}, fmt.Errorf("save image check event: %w", err)
@@ -289,7 +289,7 @@ func (delegate *buildStepDelegate) FetchImage(
 		Origin: event.Origin{
 			ID: event.OriginID(delegate.planID),
 		},
-		Plan: getPlan,
+		PublicPlan: getPlan.Public(),
 	})
 	if err != nil {
 		return worker.ImageSpec{}, fmt.Errorf("save image get event: %w", err)
