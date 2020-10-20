@@ -857,6 +857,7 @@ stepsModel =
 sampleJob : String -> List String -> Concourse.Job
 sampleJob name passed =
     { name = name
+    , displayName = Nothing
     , pipelineName = "pipeline"
     , teamName = "team"
     , nextBuild = Nothing
@@ -980,6 +981,7 @@ jobByName jobs job =
 
         Nothing ->
             { name = ""
+            , displayName = Nothing
             , pipelineName = ""
             , teamName = ""
             , nextBuild = Nothing
