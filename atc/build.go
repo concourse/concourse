@@ -22,6 +22,7 @@ type Build struct {
 	Status               BuildStatus   `json:"status"`
 	APIURL               string        `json:"api_url"`
 	JobName              string        `json:"job_name,omitempty"`
+	JobDisplayName       string        `json:"job_display_name,omitempty"`
 	ResourceName         string        `json:"resource_name,omitempty"`
 	PipelineID           int           `json:"pipeline_id,omitempty"`
 	PipelineName         string        `json:"pipeline_name,omitempty"`

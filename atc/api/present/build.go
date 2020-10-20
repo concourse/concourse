@@ -22,6 +22,7 @@ func Build(build db.Build) atc.Build {
 		ID:                   build.ID(),
 		Name:                 build.Name(),
 		JobName:              build.JobName(),
+		JobDisplayName:       build.JobDisplayName(),
 		ResourceName:         build.ResourceName(),
 		PipelineID:           build.PipelineID(),
 		PipelineName:         build.PipelineName(),
