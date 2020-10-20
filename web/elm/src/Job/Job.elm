@@ -518,7 +518,7 @@ viewMainJobsSection session model =
                             , Html.h1 []
                                 [ Html.span
                                     [ class "build-name" ]
-                                    [ Html.text job.name ]
+                                    [ Html.text <| jobName job ]
                                 ]
                             ]
                         , if archived then
@@ -844,3 +844,11 @@ viewVersion version =
     version
         |> Dict.map (always Html.text)
         |> DictView.view []
+
+jobName : Concourse.Job -> String
+jobName job =
+    case job.displayName of
+        Just displayName ->
+            displayName
+        Nothing ->
+            job.name

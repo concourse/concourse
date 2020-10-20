@@ -1127,6 +1127,7 @@ all =
                         (Callback.BuildJobDetailsFetched <|
                             Ok
                                 { name = ""
+                                , displayName = Nothing
                                 , pipelineName = "p"
                                 , teamName = "t"
                                 , nextBuild = Nothing
@@ -1181,6 +1182,7 @@ all =
                         (Callback.BuildJobDetailsFetched <|
                             Ok
                                 { name = ""
+                                , displayName = Nothing
                                 , pipelineName = "p"
                                 , teamName = "t"
                                 , nextBuild = Nothing
@@ -1215,6 +1217,7 @@ all =
                         (Callback.BuildJobDetailsFetched <|
                             Ok
                                 { name = ""
+                                , displayName = Nothing
                                 , pipelineName = "p"
                                 , teamName = "t"
                                 , nextBuild = Nothing

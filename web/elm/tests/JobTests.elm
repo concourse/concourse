@@ -853,6 +853,11 @@ all =
                     >> queryView
                     >> Query.find [ class "js-build" ]
                     >> Query.has [ text "Jan 1 1970 05:00:00 AM" ]
+            , test "shows display name if defined" <|
+                initWithDisplayName
+                    >> queryView
+                    >> Query.find [ class "build-header" ]
+                    >> Query.has [ text "This is a cool display name :D" ]
             ]
         ]
 
@@ -922,6 +927,7 @@ buildsWithEmptyPagination =
 someJob : Concourse.Job
 someJob =
     { name = "some-job"
+    , displayName = Nothing
     , pipelineName = "some-pipeline"
     , teamName = "some-team"
     , nextBuild = Nothing
@@ -944,6 +950,28 @@ defaultModel =
         |> Tuple.first
 
 
+initWithDisplayName : () -> Application.Model
+initWithDisplayName _ =
+    Common.init "/teams/team/pipelines/pipeline/jobs/job"
+            |> Application.handleCallback
+                (JobFetched <|
+                    Ok
+                        { name = "job"
+                        , displayName = Just "This is a cool display name :D"
+                        , pipelineName = "pipeline"
+                        , teamName = "team"
+                        , nextBuild = Nothing
+                        , finishedBuild = Just someBuild
+                        , transitionBuild = Nothing
+                        , paused = False
+                        , disableManualTrigger = False
+                        , inputs = []
+                        , outputs = []
+                        , groups = []
+                        }
+                )
+            |> Tuple.first
+
 init : { disabled : Bool, paused : Bool } -> () -> Application.Model
 init { disabled, paused } _ =
     Common.init "/teams/team/pipelines/pipeline/jobs/job"
@@ -951,6 +979,7 @@ init { disabled, paused } _ =
             (JobFetched <|
                 Ok
                     { name = "job"
+                    , displayName = Nothing
                     , pipelineName = "pipeline"
                     , teamName = "team"
                     , nextBuild = Nothing

@@ -710,6 +710,7 @@ type alias JobIdentifier =
 
 type alias Job =
     { name : JobName
+    , displayName : Maybe String
     , pipelineName : PipelineName
     , teamName : TeamName
     , nextBuild : Maybe Build
@@ -759,6 +760,7 @@ decodeJob : Json.Decode.Decoder Job
 decodeJob =
     Json.Decode.succeed Job
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.maybe (Json.Decode.field "display_name" Json.Decode.string))
         |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)
         |> andMap (Json.Decode.maybe (Json.Decode.field "next_build" decodeBuild))

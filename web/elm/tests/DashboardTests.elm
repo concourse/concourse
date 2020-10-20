@@ -699,6 +699,7 @@ all =
                         (Callback.AllJobsFetched <|
                             Ok
                                 [ { name = "job"
+                                  , displayName = Nothing
                                   , pipelineName = "pipeline"
                                   , teamName = "team"
                                   , nextBuild = Nothing
@@ -2240,6 +2241,7 @@ job =
 jobWithNameTransitionedAt : String -> Maybe Time.Posix -> BuildStatus -> Concourse.Job
 jobWithNameTransitionedAt jobName transitionedAt status =
     { name = jobName
+    , displayName = Nothing
     , pipelineName = "pipeline"
     , teamName = "team"
     , nextBuild = Nothing
@@ -2281,6 +2283,7 @@ jobWithNameTransitionedAt jobName transitionedAt status =
 circularJobs : List Concourse.Job
 circularJobs =
     [ { name = "jobA"
+      , displayName = Nothing
       , pipelineName = "pipeline"
       , teamName = "team"
       , nextBuild = Nothing
@@ -2321,6 +2324,7 @@ circularJobs =
       , groups = []
       }
     , { name = "jobB"
+      , displayName = Nothing
       , pipelineName = "pipeline"
       , teamName = "team"
       , nextBuild = Nothing

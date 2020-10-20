@@ -1,9 +1,9 @@
 package atc
 
 type JobSummary struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-	DisplayName string `json:"display_name"`
+	ID          int    `json:"id"`
+	Name        string `json:"name"`
+	DisplayName string `json:"display_name,omitempty"`
 
 	TeamName string `json:"team_name"`
 

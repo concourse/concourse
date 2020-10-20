@@ -202,6 +202,7 @@ withBackgroundImage bg p =
 job : Int -> Concourse.Job
 job pipelineID =
     { name = jobName
+    , displayName = Nothing
     , pipelineName = "pipeline-" ++ String.fromInt pipelineID
     , teamName = teamName
     , nextBuild = Nothing
