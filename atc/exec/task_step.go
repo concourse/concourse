@@ -367,8 +367,6 @@ func (step *TaskStep) containerSpec(state RunState, imageSpec worker.ImageSpec, 
 	}
 
 	containerSpec := worker.ContainerSpec{
-		Platform:  config.Platform,
-		Tags:      step.plan.Tags,
 		TeamID:    step.metadata.TeamID,
 		ImageSpec: imageSpec,
 		Limits:    limits,

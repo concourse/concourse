@@ -318,7 +318,6 @@ var _ = Describe("PutStep", func() {
 		Expect(actualContainerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 			ResourceType: "some-resource-type",
 		}))
-		Expect(actualContainerSpec.Tags).To(Equal([]string{"some", "tags"}))
 		Expect(actualContainerSpec.TeamID).To(Equal(123))
 		Expect(actualContainerSpec.Env).To(Equal(stepMetadata.Env()))
 		Expect(actualContainerSpec.Dir).To(Equal("/tmp/build/put"))

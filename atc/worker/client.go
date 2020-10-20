@@ -591,7 +591,7 @@ func (client *client) chooseTaskWorker(
 
 	tasksWaitingLabels := metric.TasksWaitingLabels{
 		TeamId:     strconv.Itoa(workerSpec.TeamID),
-		WorkerTags: strings.Join(containerSpec.Tags, "_"),
+		WorkerTags: strings.Join(workerSpec.Tags, "_"),
 		Platform:   workerSpec.Platform,
 	}
 

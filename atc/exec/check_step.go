@@ -269,7 +269,6 @@ func (step *CheckStep) runCheck(
 		BindMounts: []worker.BindMountSource{
 			&worker.CertsVolumeMount{Logger: logger},
 		},
-		Tags:   step.plan.Tags,
 		TeamID: step.metadata.TeamID,
 		Env:    step.metadata.Env(),
 	}

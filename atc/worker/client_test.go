@@ -227,6 +227,7 @@ var _ = Describe("Client", func() {
 
 		var (
 			containerSpec     worker.ContainerSpec
+			workerSpec        worker.WorkerSpec
 			result            worker.CheckResult
 			err, expectedErr  error
 			fakeResource      *resourcefakes.FakeResource
@@ -240,14 +241,16 @@ var _ = Describe("Client", func() {
 			stdout := new(gbytes.Buffer)
 			stderr := new(gbytes.Buffer)
 			containerSpec = worker.ContainerSpec{
-				Platform: "some-platform",
-				Tags:     []string{"step", "tags"},
-				TeamID:   123,
+				TeamID: 123,
 				ImageSpec: worker.ImageSpec{
 					ResourceType: "some-base-type",
 					Privileged:   false,
 				},
 				Dir: "some-artifact-root",
+			}
+			workerSpec = worker.WorkerSpec{
+				Platform: "some-platform",
+				Tags:     []string{"step", "tags"},
 			}
 			fakeProcessSpec = runtime.ProcessSpec{
 				Path:         "/opt/resource/out",
@@ -259,7 +262,6 @@ var _ = Describe("Client", func() {
 		JustBeforeEach(func() {
 			owner := new(dbfakes.FakeContainerOwner)
 			fakeStrategy := new(workerfakes.FakeContainerPlacementStrategy)
-			workerSpec := worker.WorkerSpec{}
 
 			result, err = client.RunCheckStep(
 				context.Background(),
@@ -435,9 +437,7 @@ var _ = Describe("Client", func() {
 			ctx, _ = context.WithCancel(context.Background())
 			owner = new(dbfakes.FakeContainerOwner)
 			containerSpec = worker.ContainerSpec{
-				Platform: "some-platform",
-				Tags:     []string{"step", "tags"},
-				TeamID:   123,
+				TeamID: 123,
 				ImageSpec: worker.ImageSpec{
 					ResourceType: "some-base-type",
 					Privileged:   false,
@@ -445,7 +445,10 @@ var _ = Describe("Client", func() {
 				Dir: "some-artifact-root",
 			}
 			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
-			workerSpec = worker.WorkerSpec{}
+			workerSpec = worker.WorkerSpec{
+				Platform: "some-platform",
+				Tags:     []string{"step", "tags"},
+			}
 			fakeChosenWorker = new(workerfakes.FakeWorker)
 			fakeEventDelegate = new(runtimefakes.FakeStartingEventDelegate)
 
@@ -625,11 +628,12 @@ var _ = Describe("Client", func() {
 				planId,
 				teamId,
 			)
-			fakeWorkerSpec = worker.WorkerSpec{}
-			fakeContainerSpec = worker.ContainerSpec{
+			fakeWorkerSpec = worker.WorkerSpec{
 				Platform: "some-platform",
 				Tags:     []string{"step", "tags"},
-				TeamID:   123,
+			}
+			fakeContainerSpec = worker.ContainerSpec{
+				TeamID: 123,
 				ImageSpec: worker.ImageSpec{
 					ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
 					Privileged:          false,
@@ -1402,9 +1406,7 @@ var _ = Describe("Client", func() {
 			ctx = context.Background()
 			owner = new(dbfakes.FakeContainerOwner)
 			containerSpec = worker.ContainerSpec{
-				Platform: "some-platform",
-				Tags:     []string{"step", "tags"},
-				TeamID:   123,
+				TeamID: 123,
 				ImageSpec: worker.ImageSpec{
 					ResourceType: "some-base-type",
 					Privileged:   false,
@@ -1412,7 +1414,10 @@ var _ = Describe("Client", func() {
 				Dir: "some-artifact-root",
 			}
 			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
-			workerSpec = worker.WorkerSpec{}
+			workerSpec = worker.WorkerSpec{
+				Platform: "some-platform",
+				Tags:     []string{"step", "tags"},
+			}
 			fakeChosenWorker = new(workerfakes.FakeWorker)
 			fakeEventDelegate = new(runtimefakes.FakeStartingEventDelegate)
 

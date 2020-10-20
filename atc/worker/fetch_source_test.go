@@ -101,7 +101,6 @@ var _ = Describe("FetchSource", func() {
 			fakeResource,
 			worker.ContainerSpec{
 				TeamID: 42,
-				Tags:   []string{},
 				ImageSpec: worker.ImageSpec{
 					ResourceType: "fake-resource-type",
 				},
@@ -217,7 +216,6 @@ var _ = Describe("FetchSource", func() {
 				Expect(containerSpec).To(Equal(
 					worker.ContainerSpec{
 						TeamID: 42,
-						Tags:   []string{},
 						ImageSpec: worker.ImageSpec{
 							ResourceType: "fake-resource-type",
 						},

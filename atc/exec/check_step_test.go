@@ -307,10 +307,6 @@ var _ = Describe("CheckStep", func() {
 						}))
 					})
 
-					It("with tags set", func() {
-						Expect(containerSpec.Tags).To(ConsistOf("some", "tags"))
-					})
-
 					It("with teamid set", func() {
 						Expect(containerSpec.TeamID).To(Equal(345))
 					})

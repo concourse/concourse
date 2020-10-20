@@ -214,11 +214,11 @@ var _ = Describe("TaskStep", func() {
 				taskPlan.Tags = atc.Tags{"plan", "tags"}
 			})
 
-			It("creates a containerSpec with the tags", func() {
+			It("creates a worker spec with the tags", func() {
 				Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
 
-				_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-				Expect(containerSpec.Tags).To(Equal([]string{"plan", "tags"}))
+				_, _, _, _, workerSpec, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+				Expect(workerSpec.Tags).To(Equal([]string{"plan", "tags"}))
 			})
 		})
 
