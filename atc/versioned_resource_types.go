@@ -37,6 +37,7 @@ func (types VersionedResourceTypes) Base(name string) string {
 			break
 		}
 
+		types = types.Without(base)
 		base = resourceType.Type
 	}
 
