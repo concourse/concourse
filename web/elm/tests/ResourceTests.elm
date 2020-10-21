@@ -280,6 +280,40 @@ all =
                     |> queryView
                     |> Query.find (versionSelector version)
                     |> Query.has [ text "some-build" ]
+        , test "autorefresh respects 'Inputs To' with display name" <|
+            \_ ->
+                init
+                    |> givenResourceIsNotPinned
+                    |> givenVersionsWithoutPagination
+                    |> update
+                        (Message.Message.Click <|
+                            Message.Message.VersionHeader versionID
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.InputToFetched
+                            (Ok
+                                ( versionID
+                                , [ { id = 0
+                                    , name = "some-build"
+                                    , job = Just Data.jobId
+                                    , jobDisplayName = Just "A very cool job"
+                                    , status = BuildStatusSucceeded
+                                    , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                    , reapTime = Nothing
+                                    }
+                                  ]
+                                )
+                            )
+                        )
+                    |> Tuple.first
+                    |> givenVersionsWithoutPagination
+                    |> queryView
+                    |> Query.find (versionSelector version)
+                    |> Query.has [ text "A very cool job" ]
         , test "autorefresh respects 'Outputs Of'" <|
             \_ ->
                 init
@@ -314,6 +348,40 @@ all =
                     |> queryView
                     |> Query.find (versionSelector version)
                     |> Query.has [ text "some-build" ]
+        , test "autorefresh respects 'Outputs Of' with display name" <|
+            \_ ->
+                init
+                    |> givenResourceIsNotPinned
+                    |> givenVersionsWithoutPagination
+                    |> update
+                        (Message.Message.Click <|
+                            Message.Message.VersionHeader versionID
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.OutputOfFetched
+                            (Ok
+                                ( versionID
+                                , [ { id = 0
+                                    , name = "some-build"
+                                    , job = Just Data.jobId
+                                    , jobDisplayName = Just "A mega cool job"
+                                    , status = BuildStatusSucceeded
+                                    , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                    , reapTime = Nothing
+                                    }
+                                  ]
+                                )
+                            )
+                        )
+                    |> Tuple.first
+                    |> givenVersionsWithoutPagination
+                    |> queryView
+                    |> Query.find (versionSelector version)
+                    |> Query.has [ text "A mega cool job" ]
         , describe "page header with icon" <|
             let
                 pageHeader =

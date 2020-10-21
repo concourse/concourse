@@ -1910,6 +1910,24 @@ viewLastChecked timeZone now date =
 viewBuildsByJob : Dict.Dict String (List Concourse.Build) -> String -> List (Html Message)
 viewBuildsByJob buildDict jobName =
     let
+        jobDisplayName =
+            case Dict.get jobName buildDict of
+                Nothing ->
+                    jobName
+
+                Just buildList ->
+                    case List.head buildList of
+                        Nothing ->
+                            jobName
+
+                        Just build ->
+                            case build.jobDisplayName of
+                                Nothing ->
+                                    jobName
+
+                                Just displayName ->
+                                    displayName
+
         oneBuildToLi =
             \build ->
                 case build.job of
@@ -1938,7 +1956,7 @@ viewBuildsByJob buildDict jobName =
                                 [ Html.text <| "#" ++ build.name ]
                             ]
     in
-    [ Html.h3 [ class "man pas ansi-bright-black-bg" ] [ Html.text jobName ]
+    [ Html.h3 [ class "man pas ansi-bright-black-bg" ] [ Html.text jobDisplayName ]
     , Html.ul [ class "builds-list" ]
         (case Dict.get jobName buildDict of
             Nothing ->
