@@ -25,18 +25,15 @@ all =
         , test "build encoding/decoding are inverses" <|
             \_ ->
                 let
-                    buildWithoutDuration =
-                        Data.jobBuild BuildStatus.BuildStatusPending
-
                     build =
-                        { buildWithoutDuration
-                            | duration =
+                        Data.jobBuild BuildStatus.BuildStatusPending
+                            |> Data.withTeamName "t"
+                            |> Data.withDuration
                                 { startedAt =
                                     Just <| Time.millisToPosix 1000
                                 , finishedAt =
                                     Just <| Time.millisToPosix 2000
                                 }
-                        }
                 in
                 build
                     |> Concourse.encodeBuild

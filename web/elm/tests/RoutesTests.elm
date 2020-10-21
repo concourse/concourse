@@ -1,5 +1,7 @@
 module RoutesTests exposing (all)
 
+import Concourse exposing (JsonValue(..))
+import Dict
 import Expect
 import Routes
 import Test exposing (Test, describe, test)
@@ -260,6 +262,59 @@ all =
                         }
                     )
                     |> Expect.equal "/"
+        , test "toString on Pipeline doesn't add empty instance vars" <|
+            \_ ->
+                Routes.toString
+                    (Routes.Pipeline
+                        { id =
+                            { teamName = "team"
+                            , pipelineName = "pipeline"
+                            , pipelineInstanceVars = Dict.empty
+                            }
+                        , groups = []
+                        }
+                    )
+                    |> Expect.equal "/teams/team/pipelines/pipeline"
+        , test "toString on Pipeline adds instance vars if non-empty" <|
+            \_ ->
+                Routes.toString
+                    (Routes.Pipeline
+                        { id =
+                            { teamName = "team"
+                            , pipelineName = "pipeline"
+                            , pipelineInstanceVars = Dict.fromList [ ( "k", JsonString "s" ) ]
+                            }
+                        , groups = []
+                        }
+                    )
+                    |> Expect.equal "/teams/team/pipelines/pipeline?instance_vars=%7B%22k%22%3A%22s%22%7D"
+        , test "Pipeline route can be parsed properly" <|
+            \_ ->
+                ("http://example.com"
+                    ++ Routes.toString
+                        (Routes.Pipeline
+                            { id =
+                                { teamName = "team"
+                                , pipelineName = "pipeline"
+                                , pipelineInstanceVars = Dict.fromList [ ( "k", JsonString "s" ) ]
+                                }
+                            , groups = []
+                            }
+                        )
+                )
+                    |> Url.fromString
+                    |> Maybe.andThen Routes.parsePath
+                    |> Expect.equal
+                        (Just <|
+                            Routes.Pipeline
+                                { id =
+                                    { teamName = "team"
+                                    , pipelineName = "pipeline"
+                                    , pipelineInstanceVars = Dict.fromList [ ( "k", JsonString "s" ) ]
+                                    }
+                                , groups = []
+                                }
+                        )
         , test "toString respects noop parameter with a fly port" <|
             \_ ->
                 ("http://example.com"

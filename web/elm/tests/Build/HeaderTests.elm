@@ -193,7 +193,8 @@ all =
                                 { session
                                     | pipelines =
                                         RemoteData.Success
-                                            [ Data.pipeline Data.teamName 1
+                                            [ Data.pipeline jobId.teamName 0
+                                                |> Data.withName jobId.pipelineName
                                                 |> Data.withArchived True
                                             ]
                                 }

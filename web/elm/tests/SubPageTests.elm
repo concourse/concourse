@@ -24,7 +24,7 @@ all =
                     Common.init path
             in
             [ test "JobNotFound" <|
-                init "/pipelines/1/jobs/j"
+                init "/teams/t/pipelines/p/jobs/j"
                     >> Application.handleCallback (JobFetched Data.httpNotFound)
                     >> Tuple.first
                     >> .subModel
@@ -39,7 +39,7 @@ all =
                             )
                         )
             , test "Resource not found" <|
-                init "/pipelines/1/resources/r"
+                init "/teams/t/pipelines/p/resources/r"
                     >> Application.handleCallback
                         (ResourceFetched Data.httpNotFound)
                     >> Tuple.first
@@ -70,7 +70,7 @@ all =
                             )
                         )
             , test "Pipeline not found" <|
-                init "/pipelines/1"
+                init "/teams/t/pipelines/p"
                     >> Application.handleCallback
                         (PipelineFetched Data.httpNotFound)
                     >> Tuple.first
@@ -79,7 +79,7 @@ all =
                         (NotFoundModel
                             (notFound
                                 (Routes.Pipeline
-                                    { id = Data.pipelineId
+                                    { id = Data.shortPipelineId
                                     , groups = []
                                     }
                                 )

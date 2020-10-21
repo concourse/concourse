@@ -101,6 +101,9 @@ pinMenu { hovered } model =
         pinnedResources =
             getPinnedResources model.fetchedResources
 
+        pipeline =
+            model.pipelineLocator
+
         pinCount =
             List.length pinnedResources
 
@@ -177,7 +180,9 @@ pinMenu { hovered } model =
                                 GoToRoute <|
                                     Routes.Resource
                                         { id =
-                                            { pipelineId = model.pipelineLocator
+                                            { teamName = pipeline.teamName
+                                            , pipelineName = pipeline.pipelineName
+                                            , pipelineInstanceVars = pipeline.pipelineInstanceVars
                                             , resourceName = resourceName
                                             }
                                         , page = Nothing

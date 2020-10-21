@@ -7,6 +7,7 @@ module SideBar.Views exposing
     )
 
 import Assets
+import Concourse
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id)
@@ -83,7 +84,8 @@ type alias Pipeline =
         { opacity : Styles.Opacity
         , filled : Bool
         }
-    , id : Int
+    , id : Concourse.PipelineIdentifier
+    , databaseID : Concourse.DatabaseID
     }
 
 
@@ -122,7 +124,7 @@ viewPipeline p =
             [ Html.text p.name.text ]
         , Html.div
             (Styles.pipelineFavourite p.starIcon
-                ++ [ onLeftClickStopPropagation <| Click <| SideBarFavoritedIcon p.id ]
+                ++ [ onLeftClickStopPropagation <| Click <| SideBarFavoritedIcon p.databaseID ]
             )
             []
         ]

@@ -193,7 +193,7 @@ viewPipeline { active, hovered, favorited, isFavoritesSection } p =
 
         activePipeline =
             if active then
-                Just { name = "pipeline", teamName = "team" }
+                Just Data.pipelineId
 
             else
                 Nothing
@@ -215,7 +215,7 @@ viewPipeline { active, hovered, favorited, isFavoritesSection } p =
 
 
 pipeline =
-    Data.pipeline "team" 1 |> Data.withName "pipeline"
+    Data.pipeline "team" 0 |> Data.withName "pipeline"
 
 
 pipelineIcon : Html Message -> Query.Single Message

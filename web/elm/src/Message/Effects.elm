@@ -663,10 +663,8 @@ toHtmlID domId =
         SideBarTeam section t ->
             pipelinesSectionName section ++ "_" ++ Base64.encode t
 
-        SideBarPipeline section pipelineId ->
-            pipelinesSectionName section
-                ++ "_"
-                ++ String.fromInt pipelineId
+        SideBarPipeline section p ->
+            pipelinesSectionName section ++ "_" ++ Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
 
         SideBarInstanceGroup section teamName groupName ->
             pipelinesSectionName section
@@ -675,27 +673,27 @@ toHtmlID domId =
                 ++ "_"
                 ++ Base64.encode groupName
 
-        PipelineStatusIcon section pipelineId ->
+        PipelineStatusIcon section p ->
             pipelinesSectionName section
                 ++ "_"
-                ++ String.fromInt pipelineId
+                ++ encodePipelineId p
                 ++ "_status"
 
-        VisibilityButton section pipelineId ->
+        VisibilityButton section p ->
             pipelinesSectionName section
                 ++ "_"
-                ++ String.fromInt pipelineId
+                ++ encodePipelineId p
                 ++ "_visibility"
 
-        PipelineCardName section pipelineId ->
+        PipelineCardName section p ->
             pipelinesSectionName section
                 ++ "_"
-                ++ String.fromInt pipelineId
+                ++ encodePipelineId p
                 ++ "_name"
 
-        PipelineCardNameHD pipelineId ->
+        PipelineCardNameHD p ->
             "HD_"
-                ++ String.fromInt pipelineId
+                ++ encodePipelineId p
                 ++ "_name"
 
         InstanceGroupCardName section teamName groupName ->
@@ -713,26 +711,26 @@ toHtmlID domId =
                 ++ Base64.encode groupName
                 ++ "_name"
 
-        PipelineCardInstanceVar section pipelineId varName _ ->
+        PipelineCardInstanceVar section p varName _ ->
             pipelinesSectionName section
                 ++ "_"
-                ++ String.fromInt pipelineId
+                ++ encodePipelineId p
                 ++ "_var_"
                 ++ Base64.encode varName
 
-        PipelinePreview section pipelineId ->
+        PipelinePreview section p ->
             "pipeline_preview_"
                 ++ pipelinesSectionName section
                 ++ "_"
-                ++ String.fromInt pipelineId
+                ++ encodePipelineId p
 
-        JobPreview section jobId ->
+        JobPreview section p jobName ->
             "job_preview_"
                 ++ pipelinesSectionName section
                 ++ "_"
-                ++ String.fromInt jobId.pipelineId
+                ++ encodePipelineId p
                 ++ "_jobs_"
-                ++ jobId.jobName
+                ++ jobName
 
         ChangedStepLabel stepID _ ->
             stepID ++ "_changed"
@@ -754,6 +752,11 @@ toHtmlID domId =
 
         _ ->
             ""
+
+
+encodePipelineId : Concourse.DatabaseID -> String
+encodePipelineId id =
+    String.fromInt id
 
 
 scroll : ScrollDirection -> String -> Cmd Callback

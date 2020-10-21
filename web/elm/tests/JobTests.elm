@@ -46,7 +46,7 @@ all =
             [ describe "while page is loading"
                 [ test "title includes job name" <|
                     \_ ->
-                        Common.init "/pipelines/1/jobs/job"
+                        Common.init "/teams/team/pipelines/pipeline/jobs/job"
                             |> Application.view
                             |> .title
                             |> Expect.equal "job - Concourse"
@@ -62,7 +62,7 @@ all =
                             { protocol = Url.Http
                             , host = ""
                             , port_ = Nothing
-                            , path = "/pipelines/1/jobs/job"
+                            , path = "/teams/team/pipelines/pipeline/jobs/job"
                             , query = Nothing
                             , fragment = Nothing
                             }
@@ -80,7 +80,7 @@ all =
                             { protocol = Url.Http
                             , host = ""
                             , port_ = Nothing
-                            , path = "/pipelines/1/jobs/job"
+                            , path = "/teams/team/pipelines/pipeline/jobs/job"
                             , query = Nothing
                             , fragment = Nothing
                             }
@@ -88,7 +88,7 @@ all =
                             |> Common.contains Effects.FetchAllPipelines
                 , test "shows two spinners before anything has loaded" <|
                     \_ ->
-                        Common.init "/pipelines/1/jobs/job"
+                        Common.init "/teams/team/pipelines/pipeline/jobs/job"
                             |> queryView
                             |> Query.findAll loadingIndicatorSelector
                             |> Query.count (Expect.equal 2)
@@ -328,7 +328,7 @@ all =
                             >> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 1
+                                        [ Data.pipeline "team" 0
                                             |> Data.withName "pipeline"
                                             |> Data.withArchived True
                                         ]
@@ -517,7 +517,7 @@ all =
             , defineHoverBehaviour <|
                 let
                     urlPath =
-                        "/pipelines/1/jobs/job?from=1&limit=1"
+                        "/teams/team/pipelines/pipeline/jobs/job?from=1&limit=1"
                 in
                 { name = "left pagination chevron with previous page"
                 , setup =
@@ -615,12 +615,7 @@ all =
                             )
                         |> Tuple.second
                         |> Common.contains
-                            (Effects.FetchJobBuilds
-                                { pipelineId = 1
-                                , jobName = "job"
-                                }
-                                Job.startingPage
-                            )
+                            (Effects.FetchJobBuilds Data.jobId Job.startingPage)
             , describe "When fetching builds"
                 [ test "says no builds" <|
                     \_ ->
@@ -868,9 +863,7 @@ brightGreen =
 
 someJobInfo : Concourse.JobIdentifier
 someJobInfo =
-    Data.jobId
-        |> Data.withJobName "some-job"
-        |> Data.withPipelineId 1
+    Data.jobId |> Data.withJobName "some-job"
 
 
 someBuild : Build
@@ -930,7 +923,7 @@ defaultModel =
 
 init : { disabled : Bool, paused : Bool } -> () -> Application.Model
 init { disabled, paused } _ =
-    Common.init "/pipelines/1/jobs/job"
+    Common.init "/teams/team/pipelines/pipeline/jobs/job"
         |> Application.handleCallback
             (JobFetched <|
                 Ok

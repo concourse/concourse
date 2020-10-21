@@ -8,7 +8,7 @@ module Message.Message exposing
     , VisibilityAction(..)
     )
 
-import Concourse exposing (DatabaseID)
+import Concourse
 import Concourse.Cli as Cli
 import Concourse.Pagination exposing (Page)
 import Routes exposing (StepID)
@@ -66,11 +66,11 @@ type DomID
     | InstanceGroupCardNameHD Concourse.TeamName String
     | PipelineCardInstanceVar PipelinesSection Concourse.DatabaseID String String
     | PipelineStatusIcon PipelinesSection Concourse.DatabaseID
-    | PipelineCardPauseToggle PipelinesSection Concourse.DatabaseID
-    | TopBarFavoritedIcon DatabaseID
+    | PipelineCardPauseToggle PipelinesSection Concourse.PipelineIdentifier
+    | TopBarFavoritedIcon Concourse.DatabaseID
     | TopBarPauseToggle Concourse.PipelineIdentifier
     | VisibilityButton PipelinesSection Concourse.DatabaseID
-    | PipelineCardFavoritedIcon PipelinesSection DatabaseID
+    | PipelineCardFavoritedIcon PipelinesSection Concourse.DatabaseID
     | FooterCliIcon Cli.Cli
     | WelcomeCardCliIcon Cli.Cli
     | CopyTokenButton
@@ -94,9 +94,9 @@ type DomID
     | HamburgerMenu
     | SideBarResizeHandle
     | SideBarTeam PipelinesSection String
-    | SideBarPipeline PipelinesSection Concourse.DatabaseID
+    | SideBarPipeline PipelinesSection Concourse.PipelineIdentifier
     | SideBarInstanceGroup PipelinesSection Concourse.TeamName String
-    | SideBarFavoritedIcon DatabaseID
+    | SideBarFavoritedIcon Concourse.DatabaseID
     | Dashboard
     | DashboardGroup String
 
@@ -118,10 +118,6 @@ type VisibilityAction
 
 type alias VersionId =
     Concourse.VersionedResourceIdentifier
-
-
-type alias DatabaseID =
-    Int
 
 
 type DropTarget

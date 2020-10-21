@@ -65,11 +65,6 @@ pipelineName =
     Data.pipelineName
 
 
-pipelineId : Concourse.DatabaseID
-pipelineId =
-    1
-
-
 resourceName : String
 resourceName =
     Data.resourceName
@@ -200,8 +195,10 @@ all =
                     , host = ""
                     , port_ = Nothing
                     , path =
-                        "/pipelines/"
-                            ++ String.fromInt 1
+                        "/teams/"
+                            ++ teamName
+                            ++ "/pipelines/"
+                            ++ pipelineName
                             ++ "/resources/"
                             ++ resourceName
                     , query = Nothing
@@ -485,7 +482,7 @@ all =
                     , defineHoverBehaviour <|
                         let
                             urlPath =
-                                "/pipelines/1/resources/resource?from=100&limit=1"
+                                "/teams/team/pipelines/pipeline/resources/resource?from=100&limit=1"
                         in
                         { name = "left pagination chevron with previous page"
                         , setup =
@@ -557,9 +554,7 @@ all =
                                 |> Tuple.second
                                 |> Common.contains
                                     (Effects.FetchVersionedResources
-                                        { pipelineId = 1
-                                        , resourceName = resourceName
-                                        }
+                                        Data.resourceId
                                         Resource.startingPage
                                     )
                     ]
@@ -3200,16 +3195,13 @@ flags =
 init : Application.Model
 init =
     Common.init
-        ("/pipelines/"
-            ++ String.fromInt pipelineId
+        ("/teams/"
+            ++ teamName
+            ++ "/pipelines/"
+            ++ pipelineName
             ++ "/resources/"
             ++ resourceName
         )
-        |> Application.handleCallback
-            (Callback.AllPipelinesFetched <|
-                Ok [ Data.pipeline teamName pipelineId |> Data.withName pipelineName ]
-            )
-        |> Tuple.first
 
 
 update :
@@ -3428,7 +3420,7 @@ givenThePipelineIsArchived =
     Application.handleCallback
         (Callback.AllPipelinesFetched <|
             Ok
-                [ Data.pipeline teamName 1
+                [ Data.pipeline teamName 0
                     |> Data.withName pipelineName
                     |> Data.withArchived True
                 ]

@@ -139,7 +139,7 @@ viewInstanceGroup { active, hovered, isFavoritesSection } =
 
         activePipeline =
             if active then
-                Just { name = "group", teamName = "team" }
+                Just { pipelineName = "group", teamName = "team" }
 
             else
                 Nothing

@@ -306,8 +306,17 @@ all =
             , describe "pipeline box" <|
                 [ test "links to pipeline page" <|
                     \_ ->
+                        let
+                            pipeline =
+                                pipelineInstance BuildStatusSucceeded False 1
+
+                            pipelineId =
+                                pipeline
+                                    |> Tuple.first
+                                    |> Concourse.toPipelineId
+                        in
                         whenOnDashboard { highDensity = False }
-                            |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                            |> gotPipelines [ pipeline ]
                             |> Common.queryView
                             |> findBody
                             |> rows
@@ -317,7 +326,7 @@ all =
                                 [ style "display" "flex"
                                 , containing
                                     [ tag "a"
-                                    , attribute <| Attr.href "/pipelines/1"
+                                    , Common.routeHref <| Routes.Pipeline { id = pipelineId, groups = [] }
                                     , style "flex-grow" "1"
                                     ]
                                 ]

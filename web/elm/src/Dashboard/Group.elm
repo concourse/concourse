@@ -389,7 +389,8 @@ pipelineCardView session params section { bounds, headerHeight, pipeline } teamN
                         [ style "opacity" "1" ]
                    )
             )
-            [ Pipeline.pipelineView session
+            [ Pipeline.pipelineView
+                session
                 { now = params.now
                 , pipeline = pipeline
                 , resourceError =

@@ -16,7 +16,7 @@ import SideBar.Views as Views
 type alias PipelineScoped a =
     { a
         | teamName : String
-        , name : String
+        , pipelineName : String
     }
 
 

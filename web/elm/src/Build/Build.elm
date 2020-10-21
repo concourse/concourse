@@ -658,7 +658,12 @@ view session model =
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
             [ SideBar.view session
                 (model.job
-                    |> Maybe.andThen (\j -> SideBar.lookupPipeline j.pipelineId session)
+                    |> Maybe.map
+                        (\j ->
+                            { pipelineName = j.pipelineName
+                            , teamName = j.teamName
+                            }
+                        )
                 )
             , viewBuildPage session model
             ]

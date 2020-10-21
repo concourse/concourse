@@ -316,18 +316,21 @@ team { active, expanded, hovered, hasFavorited, isFavoritesSection } =
                 HoverState.NoHover
 
         pipelines =
-            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+
+        pipelineIdentifier =
+            { teamName = "team", pipelineName = "pipeline" }
 
         activePipeline =
             if active then
-                Just { name = "pipeline", teamName = "team" }
+                Just pipelineIdentifier
 
             else
                 Nothing
 
         favoritedPipelines =
             if hasFavorited then
-                Set.singleton 1
+                Set.singleton 0
 
             else
                 Set.empty

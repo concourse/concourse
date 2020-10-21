@@ -5,6 +5,8 @@ module Common exposing
     , given
     , iOpenTheBuildPage
     , init
+    , initQuery
+    , initRoute
     , isColorWithStripes
     , myBrowserFetchedTheBuild
     , notContains
@@ -104,8 +106,8 @@ pipelineRunningKeyframes =
     "pipeline-running"
 
 
-init : String -> Application.Model
-init path =
+initQuery : String -> Maybe String -> Application.Model
+initQuery path query =
     Application.init
         { turbulenceImgSrc = ""
         , notFoundImgSrc = "notfound.svg"
@@ -117,10 +119,33 @@ init path =
         , host = ""
         , port_ = Nothing
         , path = path
-        , query = Nothing
+        , query = query
         , fragment = Nothing
         }
         |> Tuple.first
+
+
+initRoute : Routes.Route -> Application.Model
+initRoute route =
+    case Url.fromString ("http://test.com" ++ Routes.toString route) of
+        Just url ->
+            Application.init
+                { turbulenceImgSrc = ""
+                , notFoundImgSrc = "notfound.svg"
+                , csrfToken = "csrf_token"
+                , authToken = ""
+                , pipelineRunningKeyframes = "pipeline-running"
+                }
+                url
+                |> Tuple.first
+
+        Nothing ->
+            Debug.todo ("invalid route stringification: " ++ Debug.toString route)
+
+
+init : String -> Application.Model
+init path =
+    initQuery path Nothing
 
 
 given =
@@ -167,8 +192,9 @@ myBrowserFetchedTheBuild =
                     , job =
                         Just
                             (Data.jobId
+                                |> Data.withTeamName "other-team"
+                                |> Data.withPipelineName "yet-another-pipeline"
                                 |> Data.withJobName "job"
-                                |> Data.withPipelineId 4
                             )
                     , status = BuildStatusStarted
                     , duration =

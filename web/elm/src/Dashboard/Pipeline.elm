@@ -33,7 +33,6 @@ import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
 import Set
-import SideBar.SideBar as SideBar
 import Time
 import Tooltip
 import UserState
@@ -333,27 +332,24 @@ footerView session pipeline section now hovered existingJobs =
         spacer =
             Html.div [ style "width" "12px" ] []
 
+        pipelineId =
+            Concourse.toPipelineId pipeline
+
         status =
             pipelineStatus existingJobs pipeline
 
         pauseToggle =
             PauseToggle.view
-                { isClickable =
-                    UserState.isAnonymous session.userState
-                        || UserState.isMember
-                            { teamName = pipeline.teamName
-                            , userState = session.userState
-                            }
-                , isPaused =
+                { isPaused =
                     status == PipelineStatus.PipelineStatusPaused
-                , pipeline = SideBar.lookupPipeline pipeline.id session
+                , pipeline = pipelineId
                 , isToggleHovered =
-                    HoverState.isHovered (PipelineCardPauseToggle section pipeline.id) hovered
+                    HoverState.isHovered (PipelineCardPauseToggle section pipelineId) hovered
                 , isToggleLoading = pipeline.isToggleLoading
                 , tooltipPosition = Views.Styles.Above
                 , margin = "0"
                 , userState = session.userState
-                , domID = PipelineCardPauseToggle section pipeline.id
+                , domID = PipelineCardPauseToggle section pipelineId
                 }
 
         visibilityButton =

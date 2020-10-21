@@ -75,7 +75,7 @@ import Ordering
 import Routes
 import ScreenSize exposing (ScreenSize(..))
 import Set
-import SideBar.SideBar as SideBar
+import SideBar.SideBar as SideBar exposing (byDatabaseId, byPipelineId, lookupPipeline)
 import StrictEvents exposing (onScroll)
 import Tooltip
 import UserState
@@ -216,8 +216,8 @@ buffers =
     ]
 
 
-handleCallback : Callback -> Session -> ET Model
-handleCallback callback session ( model, effects ) =
+handleCallback : Callback -> ET Model
+handleCallback callback ( model, effects ) =
     (case callback of
         AllTeamsFetched (Err _) ->
             ( { model | teamsError = Just Failed }
@@ -251,6 +251,7 @@ handleCallback callback session ( model, effects ) =
                         , nextBuild = Nothing
                     }
 
+                newJobs : FetchResult (Dict ( Int, String ) Concourse.Job)
                 newJobs =
                     allJobsInEntireCluster
                         |> List.map
@@ -416,7 +417,6 @@ handleCallback callback session ( model, effects ) =
 
         VisibilityChanged Hide pipelineId (Ok ()) ->
             ( updatePipeline
-                session
                 (\p -> { p | public = False, isVisibilityLoading = False })
                 pipelineId
                 model
@@ -425,7 +425,6 @@ handleCallback callback session ( model, effects ) =
 
         VisibilityChanged Hide pipelineId (Err _) ->
             ( updatePipeline
-                session
                 (\p -> { p | public = True, isVisibilityLoading = False })
                 pipelineId
                 model
@@ -434,7 +433,6 @@ handleCallback callback session ( model, effects ) =
 
         VisibilityChanged Expose pipelineId (Ok ()) ->
             ( updatePipeline
-                session
                 (\p -> { p | public = True, isVisibilityLoading = False })
                 pipelineId
                 model
@@ -443,7 +441,6 @@ handleCallback callback session ( model, effects ) =
 
         VisibilityChanged Expose pipelineId (Err _) ->
             ( updatePipeline
-                session
                 (\p -> { p | public = False, isVisibilityLoading = False })
                 pipelineId
                 model
@@ -466,45 +463,27 @@ handleCallback callback session ( model, effects ) =
 
 
 updatePipeline :
-    Session
-    -> (Pipeline -> Pipeline)
+    (Pipeline -> Pipeline)
     -> Concourse.PipelineIdentifier
     -> Model
     -> Model
-updatePipeline session updater pipelineId model =
+updatePipeline updater pipelineId model =
     { model
         | pipelines =
-            case SideBar.lookupPipeline pipelineId session of
-                Nothing ->
-                    model.pipelines
-
-                Just pipeline ->
-                    model.pipelines
-                        |> Maybe.map
-                            (Dict.update pipeline.teamName
-                                (Maybe.map
-                                    (List.Extra.updateIf
-                                        (\p -> p.id == pipeline.id)
-                                        updater
-                                    )
+            model.pipelines
+                |> Maybe.map
+                    (Dict.update pipelineId.teamName
+                        (Maybe.map
+                            (List.Extra.updateIf
+                                (\p ->
+                                    (p.name == pipelineId.pipelineName)
+                                        && (p.instanceVars == pipelineId.pipelineInstanceVars)
                                 )
+                                updater
                             )
+                        )
+                    )
     }
-
-
-findPipeline :
-    Session
-    -> Concourse.PipelineIdentifier
-    -> Maybe (Dict String (List Pipeline))
-    -> Maybe Pipeline
-findPipeline session pipelineId pipelines =
-    case ( pipelines, SideBar.lookupPipeline pipelineId session ) of
-        ( Just teamPipelines, Just pipeline ) ->
-            Dict.get pipeline.teamName teamPipelines
-                |> Maybe.andThen (List.Extra.find (.id >> (==) pipeline.id))
-
-        _ ->
-            Nothing
 
 
 handleDelivery : Delivery -> ET Model
@@ -762,14 +741,13 @@ updateBody session msg ( model, effects ) =
         Click (PipelineCardPauseToggle _ pipelineId) ->
             let
                 isPaused =
-                    model.pipelines
-                        |> findPipeline session pipelineId
+                    session
+                        |> lookupPipeline (byPipelineId pipelineId)
                         |> Maybe.map .paused
             in
             case isPaused of
                 Just ip ->
                     ( updatePipeline
-                        session
                         (\p -> { p | isToggleLoading = True })
                         pipelineId
                         model
@@ -780,22 +758,19 @@ updateBody session msg ( model, effects ) =
                 Nothing ->
                     ( model, effects )
 
-        Click (VisibilityButton _ pipelineId) ->
-            let
-                isPublic =
-                    model.pipelines
-                        |> findPipeline session pipelineId
-                        |> Maybe.map .public
-            in
-            case isPublic of
-                Just public ->
+        Click (VisibilityButton _ id) ->
+            case lookupPipeline (byDatabaseId id) session of
+                Just pipeline ->
+                    let
+                        pipelineId =
+                            Concourse.toPipelineId pipeline
+                    in
                     ( updatePipeline
-                        session
                         (\p -> { p | isVisibilityLoading = True })
                         pipelineId
                         model
                     , effects
-                        ++ [ if public then
+                        ++ [ if pipeline.public then
                                 ChangeVisibility Hide pipelineId
 
                              else
@@ -854,18 +829,23 @@ view session model =
                     "50px"
             ]
           <|
-            [ SideBar.view session model.instanceGroup
+            [ SideBar.view session
+                (model.instanceGroup
+                    |> Maybe.map
+                        (\{ name, teamName } ->
+                            { teamName = teamName
+                            , pipelineName = name
+                            }
+                        )
+                )
             , dashboardView session model
             ]
         , Footer.view session model
         ]
 
 
-tooltip :
-    { a | pipelines : Maybe (Dict String (List Pipeline)) }
-    -> Session
-    -> Maybe Tooltip.Tooltip
-tooltip model session =
+tooltip : Session -> Maybe Tooltip.Tooltip
+tooltip session =
     case session.hovered of
         HoverState.Tooltip (Message.PipelineStatusIcon _ _) _ ->
             Just
@@ -877,9 +857,9 @@ tooltip model session =
                 , arrow = Nothing
                 }
 
-        HoverState.Tooltip (Message.VisibilityButton _ pipelineId) _ ->
-            model.pipelines
-                |> findPipeline session pipelineId
+        HoverState.Tooltip (Message.VisibilityButton _ id) _ ->
+            session
+                |> lookupPipeline (byDatabaseId id)
                 |> Maybe.map
                     (\p ->
                         { body =
@@ -900,18 +880,19 @@ tooltip model session =
                         }
                     )
 
-        HoverState.Tooltip (Message.JobPreview _ jobId) _ ->
+        HoverState.Tooltip (Message.JobPreview _ _ jobName) _ ->
             Just
                 { body =
                     Html.div
                         Styles.jobPreviewTooltip
-                        [ Html.text jobId.jobName ]
+                        [ Html.text jobName ]
                 , attachPosition = { direction = Tooltip.Right 0, alignment = Tooltip.Middle 30 }
                 , arrow = Just { size = 15, color = "#000" }
                 }
 
-        HoverState.Tooltip (Message.PipelinePreview _ pipelineId) _ ->
-            SideBar.lookupPipeline pipelineId session
+        HoverState.Tooltip (Message.PipelinePreview _ id) _ ->
+            session
+                |> lookupPipeline (byDatabaseId id)
                 |> Maybe.map
                     (\p ->
                         { body =
@@ -926,9 +907,9 @@ tooltip model session =
                         }
                     )
 
-        HoverState.Tooltip (Message.PipelineCardName _ pipelineId) _ ->
-            model.pipelines
-                |> findPipeline session pipelineId
+        HoverState.Tooltip (Message.PipelineCardName _ id) _ ->
+            session
+                |> lookupPipeline (byDatabaseId id)
                 |> Maybe.map
                     (\p ->
                         { body =
@@ -943,9 +924,9 @@ tooltip model session =
                         }
                     )
 
-        HoverState.Tooltip (Message.PipelineCardNameHD pipelineId) _ ->
-            model.pipelines
-                |> findPipeline session pipelineId
+        HoverState.Tooltip (Message.PipelineCardNameHD id) _ ->
+            session
+                |> lookupPipeline (byDatabaseId id)
                 |> Maybe.map
                     (\p ->
                         { body =
@@ -1095,10 +1076,7 @@ showTurbulence model =
         || (model.pipelinesError == Just Failed)
 
 
-dashboardView :
-    Session
-    -> Model
-    -> Html Message
+dashboardView : Session -> Model -> Html Message
 dashboardView session model =
     if showTurbulence model then
         turbulenceView session.turbulenceImgSrc

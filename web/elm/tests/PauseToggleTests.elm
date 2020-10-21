@@ -15,16 +15,31 @@ all : Test
 all =
     describe "pause toggle"
         [ describe "when user is unauthorized" <|
+            let
+                pipeline =
+                    Data.pipelineId
+
+                userState =
+                    UserStateLoggedIn
+                        { id = "test"
+                        , userName = "test"
+                        , name = "test"
+                        , email = "test"
+                        , isAdmin = False
+                        , teams = Dict.fromList [ ( "team", [ "viewer" ] ) ]
+                        }
+            in
             [ test "has very low opacity" <|
                 \_ ->
                     PauseToggle.view
                         { isPaused = False
-                        , isClickable = False
+                        , pipeline = pipeline
                         , isToggleHovered = False
                         , isToggleLoading = False
                         , margin = ""
+                        , userState = userState
                         , tooltipPosition = Styles.Above
-                        , domID = PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
+                        , domID = PipelineCardPauseToggle AllPipelinesSection pipeline
                         }
                         |> Query.fromHtml
                         |> Query.has [ style "opacity" "0.2" ]
@@ -32,12 +47,13 @@ all =
                 \_ ->
                     PauseToggle.view
                         { isPaused = False
-                        , isClickable = False
+                        , pipeline = pipeline
                         , isToggleHovered = True
                         , isToggleLoading = False
                         , margin = ""
+                        , userState = userState
                         , tooltipPosition = Styles.Above
-                        , domID = PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
+                        , domID = PipelineCardPauseToggle AllPipelinesSection pipeline
                         }
                         |> Query.fromHtml
                         |> Query.has
@@ -59,12 +75,13 @@ all =
                 \_ ->
                     PauseToggle.view
                         { isPaused = False
-                        , isClickable = False
+                        , pipeline = pipeline
                         , isToggleHovered = True
                         , isToggleLoading = False
                         , margin = ""
+                        , userState = userState
                         , tooltipPosition = Styles.Below
-                        , domID = PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
+                        , domID = PipelineCardPauseToggle AllPipelinesSection pipeline
                         }
                         |> Query.fromHtml
                         |> Query.has

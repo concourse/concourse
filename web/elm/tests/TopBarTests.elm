@@ -131,11 +131,23 @@ flags =
     }
 
 
+instanceVars : Concourse.InstanceVars
+instanceVars =
+    Dict.fromList [ ( "var1", JsonString "v1" ), ( "var2", JsonString "v2" ) ]
+
+
+pipelineInstance : Concourse.Pipeline
+pipelineInstance =
+    Data.pipeline "team" 1
+        |> Data.withName "pipeline"
+        |> Data.withInstanceVars instanceVars
+
+
 all : Test
 all =
     describe "TopBar"
         [ rspecStyleDescribe "when on pipeline page"
-            (Common.init "/pipelines/1"
+            (Common.init "/teams/team/pipelines/pipeline"
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
@@ -177,7 +189,7 @@ all =
                             [ tag "a"
                             , attribute <|
                                 Attr.href
-                                    "/pipelines/1"
+                                    "/teams/team/pipelines/pipeline"
                             ]
                     ]
                 , it "has dark grey background" <|
@@ -358,15 +370,10 @@ all =
             ]
         , rspecStyleDescribe
             "when on pipeline page for an instanced pipeline"
-            (Common.init "/pipelines/1"
+            (Common.initRoute (Routes.Pipeline { id = Concourse.toPipelineId pipelineInstance, groups = [] })
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
-                        Ok
-                            [ Data.pipeline "team" 1
-                                |> Data.withName "pipeline"
-                                |> Data.withInstanceVars (Dict.fromList [ ( "var1", JsonString "v1" ), ( "var2", JsonString "v2" ) ])
-                            , Data.pipeline "team" 2 |> Data.withName "pipeline"
-                            ]
+                        Ok [ pipelineInstance, Data.pipeline "team" 2 |> Data.withName "pipeline" ]
                     )
                 |> Tuple.first
                 |> queryView
@@ -384,18 +391,16 @@ all =
                 , it "is a link to the instance group view" <|
                     Query.has
                         [ tag "a"
-                        , attribute <|
-                            Attr.href <|
-                                Routes.toString <|
-                                    Routes.Dashboard
-                                        { searchType =
-                                            Routes.Normal "" <|
-                                                Just
-                                                    { name = "pipeline"
-                                                    , teamName = "team"
-                                                    }
-                                        , dashboardView = Routes.ViewNonArchivedPipelines
-                                        }
+                        , Common.routeHref <|
+                            Routes.Dashboard
+                                { searchType =
+                                    Routes.Normal "" <|
+                                        Just
+                                            { name = "pipeline"
+                                            , teamName = "team"
+                                            }
+                                , dashboardView = Routes.ViewNonArchivedPipelines
+                                }
                         ]
                 ]
             , it "has a pipeline breadcrumb" <|
@@ -415,21 +420,17 @@ all =
                 , it "is a link to the relevant pipeline page" <|
                     Query.has
                         [ tag "a"
-                        , attribute <|
-                            Attr.href
-                                "/pipelines/1"
+                        , Common.routeHref (Routes.Pipeline { id = Concourse.toPipelineId pipelineInstance, groups = [] })
                         ]
                 ]
             ]
         , rspecStyleDescribe
             "when on pipeline page for an instanced pipeline with no instance vars"
-            (Common.init "/pipelines/2"
+            (Common.init "/teams/team/pipelines/pipeline"
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok
-                            [ Data.pipeline "team" 1
-                                |> Data.withName "pipeline"
-                                |> Data.withInstanceVars (Dict.fromList [ ( "var1", JsonString "v1" ), ( "var2", JsonString "v2" ) ])
+                            [ pipelineInstance
                             , Data.pipeline "team" 2 |> Data.withName "pipeline"
                             ]
                     )
@@ -447,7 +448,7 @@ all =
                 ]
             ]
         , rspecStyleDescribe "rendering user menus on clicks"
-            (Common.init "/pipelines/1")
+            (Common.init "/teams/team/pipelines/pipeline")
             [ it "shows user menu when ToggleUserMenu msg is received" <|
                 Application.handleCallback
                     (Callback.UserFetched <| Ok sampleUser)
@@ -505,7 +506,7 @@ all =
                     >> Query.has [ text "login" ]
             ]
         , rspecStyleDescribe "login component when user is logged out"
-            (Common.init "/pipelines/1"
+            (Common.init "/teams/team/pipelines/pipeline"
                 |> Application.handleCallback
                     (Callback.LoggedOut (Ok ()))
                 |> Tuple.first
@@ -553,7 +554,7 @@ all =
                     >> Expect.equal [ Effects.RedirectToLogin ]
             ]
         , rspecStyleDescribe "rendering top bar on build page"
-            (Common.init "/pipelines/1/jobs/job/builds/1"
+            (Common.init "/teams/team/pipelines/pipeline/jobs/job/builds/1"
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
@@ -571,7 +572,7 @@ all =
                         [ tag "a"
                         , attribute <|
                             Attr.href
-                                "/pipelines/1"
+                                "/teams/team/pipelines/pipeline"
                         ]
             , context "job breadcrumb"
                 (Query.find [ id "breadcrumb-job" ])
@@ -590,14 +591,21 @@ all =
             ]
         , rspecStyleDescribe
             "when on build page for an instanced pipeline"
-            (Common.init "/pipelines/1/jobs/job/builds/1"
+            (Common.initRoute
+                (Routes.Build
+                    { id =
+                        { teamName = "team"
+                        , pipelineName = "pipeline"
+                        , pipelineInstanceVars = instanceVars
+                        , jobName = "job"
+                        , buildName = "1"
+                        }
+                    , highlight = Routes.HighlightNothing
+                    }
+                )
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
-                        Ok
-                            [ Data.pipeline "team" 1
-                                |> Data.withName "pipeline"
-                                |> Data.withInstanceVars (Dict.fromList [ ( "var1", JsonString "v1" ), ( "var2", JsonString "v2" ) ])
-                            ]
+                        Ok [ pipelineInstance ]
                     )
                 |> Tuple.first
                 |> queryView
@@ -615,7 +623,7 @@ all =
                 ]
             ]
         , rspecStyleDescribe "rendering top bar on resource page"
-            (Common.init "/pipelines/1/resources/resource"
+            (Common.init "/teams/team/pipelines/pipeline/resources/resource"
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
@@ -633,7 +641,7 @@ all =
                         [ tag "a"
                         , attribute <|
                             Attr.href
-                                "/pipelines/1"
+                                "/teams/team/pipelines/pipeline"
                         ]
             , it "there is a / between pipeline and resource in breadcrumb" <|
                 Query.find [ id "breadcrumbs" ]
@@ -664,14 +672,20 @@ all =
             ]
         , rspecStyleDescribe
             "when on resource page for an instanced pipeline"
-            (Common.init "/pipelines/1/resources/resource"
+            (Common.initRoute
+                (Routes.Resource
+                    { id =
+                        { teamName = "team"
+                        , pipelineName = "pipeline"
+                        , pipelineInstanceVars = instanceVars
+                        , resourceName = "resource"
+                        }
+                    , page = Nothing
+                    }
+                )
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
-                        Ok
-                            [ Data.pipeline "team" 1
-                                |> Data.withName "pipeline"
-                                |> Data.withInstanceVars (Dict.fromList [ ( "var1", JsonString "v1" ), ( "var2", JsonString "v2" ) ])
-                            ]
+                        Ok [ pipelineInstance ]
                     )
                 |> Tuple.first
                 |> queryView
@@ -689,7 +703,7 @@ all =
                 ]
             ]
         , rspecStyleDescribe "rendering top bar on job page"
-            (Common.init "/pipelines/1/jobs/job"
+            (Common.init "/teams/team/pipelines/pipeline/jobs/job"
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
@@ -707,7 +721,7 @@ all =
                         [ tag "a"
                         , attribute <|
                             Attr.href
-                                "/pipelines/1"
+                                "/teams/team/pipelines/pipeline"
                         ]
             , it "there is a / between pipeline and job in breadcrumb" <|
                 Query.find [ id "breadcrumbs" ]
@@ -721,14 +735,20 @@ all =
             ]
         , rspecStyleDescribe
             "when on job page for an instanced pipeline"
-            (Common.init "/pipelines/1/resources/resource"
+            (Common.initRoute
+                (Routes.Job
+                    { id =
+                        { teamName = "team"
+                        , pipelineName = "pipeline"
+                        , pipelineInstanceVars = instanceVars
+                        , jobName = "job"
+                        }
+                    , page = Nothing
+                    }
+                )
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
-                        Ok
-                            [ Data.pipeline "team" 1
-                                |> Data.withName "pipeline"
-                                |> Data.withInstanceVars (Dict.fromList [ ( "var1", JsonString "v1" ), ( "var2", JsonString "v2" ) ])
-                            ]
+                        Ok [ pipelineInstance ]
                     )
                 |> Tuple.first
                 |> queryView
@@ -767,7 +787,7 @@ all =
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok
-                            [ Data.pipeline "team1" 1 |> Data.withName "pipeline" ]
+                            [ Data.pipeline "team1" 0 |> Data.withName "pipeline" ]
                     )
                 |> Tuple.first
             )
@@ -811,7 +831,7 @@ all =
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok
-                            [ Data.pipeline "team1" 1 |> Data.withName "pipeline" ]
+                            [ Data.pipeline "team1" 0 |> Data.withName "pipeline" ]
                     )
                 |> Tuple.first
             )
@@ -1490,7 +1510,7 @@ all =
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok
-                            [ Data.pipeline "team1" 1 |> Data.withName "pipeline" ]
+                            [ Data.pipeline "team1" 0 |> Data.withName "pipeline" ]
                     )
                 |> Tuple.first
             )
@@ -1504,11 +1524,11 @@ all =
         , describe "pause toggle" <|
             let
                 givenPipelinePaused =
-                    Common.init "/pipelines/1"
+                    Common.init "/teams/t/pipelines/p"
                         |> Application.handleCallback
                             (Callback.PipelineFetched <|
                                 Ok
-                                    (Data.pipeline "t" 1
+                                    (Data.pipeline "t" 0
                                         |> Data.withName "p"
                                         |> Data.withPaused True
                                     )
@@ -1548,7 +1568,7 @@ all =
                         >> Tuple.first
 
                 pipelineIdentifier =
-                    Data.pipelineId
+                    Data.shortPipelineId
 
                 toggleMsg =
                     ApplicationMsgs.Update <|

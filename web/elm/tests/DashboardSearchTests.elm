@@ -180,7 +180,7 @@ hasData =
                 >> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
                         Ok
-                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                     )
                 >> Tuple.first
                 >> Application.update
@@ -199,7 +199,7 @@ hasData =
             (Application.handleDelivery
                 (Subscription.FavoritedPipelinesReceived <|
                     Ok <|
-                        Set.fromList [ 1, 2 ]
+                        Set.fromList [ 0, 1 ]
                 )
             )
             [ it "applies the filter to the favorites section" <|

@@ -1,5 +1,7 @@
 module SideBar.SideBar exposing
     ( Model
+    , byDatabaseId
+    , byPipelineId
     , hamburgerMenu
     , handleCallback
     , handleDelivery
@@ -52,7 +54,7 @@ type alias Model m =
 type alias PipelineScoped a =
     { a
         | teamName : String
-        , name : String
+        , pipelineName : String
     }
 
 
@@ -245,8 +247,8 @@ view model currentPipeline =
 
 
 tooltip : Model m -> Maybe Tooltip.Tooltip
-tooltip model =
-    case model.hovered of
+tooltip { hovered } =
+    case hovered of
         HoverState.Tooltip (SideBarTeam _ teamName) _ ->
             Just
                 { body = Html.div Styles.tooltipBody [ Html.text teamName ]
@@ -259,22 +261,19 @@ tooltip model =
                 }
 
         HoverState.Tooltip (SideBarPipeline _ pipelineID) _ ->
-            lookupPipeline pipelineID model
-                |> Maybe.map
-                    (\{ name } ->
-                        { body = Html.div Styles.tooltipBody [ Html.text name ]
-                        , attachPosition =
-                            { direction =
-                                Tooltip.Right <|
-                                    Styles.tooltipArrowSize
-                                        + (Styles.starPadding * 2)
-                                        + Styles.starWidth
-                                        - Styles.tooltipOffset
-                            , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
-                            }
-                        , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.frame }
-                        }
-                    )
+            Just
+                { body = Html.div Styles.tooltipBody [ Html.text pipelineID.pipelineName ]
+                , attachPosition =
+                    { direction =
+                        Tooltip.Right <|
+                            Styles.tooltipArrowSize
+                                + (Styles.starPadding * 2)
+                                + Styles.starWidth
+                                - Styles.tooltipOffset
+                    , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
+                    }
+                , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.frame }
+                }
 
         HoverState.Tooltip (SideBarInstanceGroup _ _ name) _ ->
             Just
@@ -407,40 +406,47 @@ isPipelineVisible { favoritedPipelines } p =
 
 
 lookupPipeline :
-    Concourse.PipelineIdentifier
+    (Concourse.Pipeline -> Bool)
     -> { b | pipelines : WebData (List Concourse.Pipeline) }
     -> Maybe Concourse.Pipeline
-lookupPipeline pipelineId { pipelines } =
+lookupPipeline predicate { pipelines } =
     case pipelines of
         Success ps ->
-            searchPipelines pipelineId ps
+            List.Extra.find predicate ps
 
         _ ->
             Nothing
 
 
-searchPipelines :
-    Concourse.PipelineIdentifier
-    -> List Concourse.Pipeline
-    -> Maybe Concourse.Pipeline
-searchPipelines pipelineId ps =
-    List.Extra.find (.id >> (==) pipelineId) ps
+byDatabaseId : Concourse.DatabaseID -> Concourse.Pipeline -> Bool
+byDatabaseId id =
+    .id >> (==) id
+
+
+byPipelineId :
+    { r | teamName : String, pipelineName : String, pipelineInstanceVars : Concourse.InstanceVars }
+    -> Concourse.Pipeline
+    -> Bool
+byPipelineId pipelineId p =
+    (p.name == pipelineId.pipelineName)
+        && (p.teamName == pipelineId.teamName)
+        && (p.instanceVars == pipelineId.pipelineInstanceVars)
 
 
 curPipeline : List Concourse.Pipeline -> Routes.Route -> Maybe Concourse.Pipeline
 curPipeline pipelines route =
     case route of
         Routes.Build { id } ->
-            searchPipelines id.pipelineId pipelines
+            List.Extra.find (byPipelineId id) pipelines
 
         Routes.Resource { id } ->
-            searchPipelines id.pipelineId pipelines
+            List.Extra.find (byPipelineId id) pipelines
 
         Routes.Job { id } ->
-            searchPipelines id.pipelineId pipelines
+            List.Extra.find (byPipelineId id) pipelines
 
         Routes.Pipeline { id } ->
-            searchPipelines id pipelines
+            List.Extra.find (byPipelineId id) pipelines
 
         Routes.Dashboard { searchType } ->
             case searchType of

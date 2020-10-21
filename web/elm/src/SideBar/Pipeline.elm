@@ -13,7 +13,7 @@ import SideBar.Views as Views
 type alias PipelineScoped a =
     { a
         | teamName : String
-        , name : String
+        , pipelineName : String
     }
 
 
@@ -31,10 +31,13 @@ pipeline params p =
         isCurrent =
             case params.currentPipeline of
                 Just cp ->
-                    cp.name == p.name && cp.teamName == p.teamName
+                    cp.pipelineName == p.name && cp.teamName == p.teamName
 
                 Nothing ->
                     False
+
+        pipelineId =
+            Concourse.toPipelineId p
 
         domID =
             SideBarPipeline
@@ -44,7 +47,7 @@ pipeline params p =
                  else
                     AllPipelinesSection
                 )
-                p.id
+                pipelineId
 
         isHovered =
             HoverState.isHovered domID params.hovered
@@ -92,7 +95,7 @@ pipeline params p =
             Styles.Invisible
     , href =
         Routes.toString <|
-            Routes.Pipeline { id = p.id, groups = [] }
+            Routes.Pipeline { id = pipelineId, groups = [] }
     , domID = domID
     , starIcon =
         { opacity =
@@ -103,5 +106,6 @@ pipeline params p =
                 Styles.Dim
         , filled = isFavorited
         }
-    , id = p.id
+    , id = pipelineId
+    , databaseID = p.id
     }

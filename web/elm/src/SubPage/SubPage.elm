@@ -186,7 +186,7 @@ handleCallback callback session =
         (Job.handleCallback callback)
         (Resource.handleCallback callback session)
         (Pipeline.handleCallback callback)
-        (Dashboard.handleCallback callback session)
+        (Dashboard.handleCallback callback)
         identity
         identity
         >> (case callback of
@@ -377,8 +377,8 @@ tooltip mdl =
         ResourceModel model ->
             Resource.tooltip model
 
-        DashboardModel model ->
-            Dashboard.tooltip model
+        DashboardModel _ ->
+            Dashboard.tooltip
 
         NotFoundModel model ->
             NotFound.tooltip model

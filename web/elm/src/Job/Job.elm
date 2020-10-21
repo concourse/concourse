@@ -176,7 +176,9 @@ handleCallback callback ( model, effects ) =
                                 Routes.toString <|
                                     Routes.Build
                                         { id =
-                                            { pipelineId = job.pipelineId
+                                            { teamName = job.teamName
+                                            , pipelineName = job.pipelineName
+                                            , pipelineInstanceVars = job.pipelineInstanceVars
                                             , jobName = job.jobName
                                             , buildName = build.name
                                             }
@@ -436,7 +438,11 @@ view session model =
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
             [ SideBar.view session
-                (SideBar.lookupPipeline model.jobIdentifier.pipelineId session)
+                (Just
+                    { pipelineName = model.jobIdentifier.pipelineName
+                    , teamName = model.jobIdentifier.teamName
+                    }
+                )
             , viewMainJobsSection session model
             ]
         ]
@@ -451,9 +457,9 @@ viewMainJobsSection : Session -> Model -> Html Message
 viewMainJobsSection session model =
     let
         archived =
-            SideBar.lookupPipeline model.jobIdentifier.pipelineId session
-                |> Maybe.map .archived
-                |> Maybe.withDefault False
+            isPipelineArchived
+                session.pipelines
+                model.jobIdentifier
     in
     Html.div
         [ class "with-fixed-header"
@@ -591,6 +597,18 @@ viewMainJobsSection session model =
             _ ->
                 LoadingIndicator.view
         ]
+
+
+isPipelineArchived :
+    WebData (List Concourse.Pipeline)
+    -> Concourse.JobIdentifier
+    -> Bool
+isPipelineArchived pipelines { pipelineName, teamName } =
+    pipelines
+        |> RemoteData.withDefault []
+        |> List.Extra.find (\p -> p.name == pipelineName && p.teamName == teamName)
+        |> Maybe.map .archived
+        |> Maybe.withDefault False
 
 
 headerBuildStatus : Maybe Concourse.Build -> BuildStatus

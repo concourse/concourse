@@ -17,7 +17,7 @@ import Html.Attributes
 import Message.Message exposing (DomID(..), Message(..))
 import RemoteData
 import Routes
-import SideBar.SideBar exposing (lookupPipeline)
+import SideBar.SideBar exposing (byPipelineId, lookupPipeline)
 import Url
 import Views.InstanceGroupBadge as InstanceGroupBadge
 import Views.Styles as Styles
@@ -35,7 +35,7 @@ breadcrumbs session route =
     <|
         case route of
             Routes.Pipeline { id } ->
-                case lookupPipeline id session of
+                case lookupPipeline (byPipelineId id) session of
                     Nothing ->
                         []
 
@@ -43,7 +43,7 @@ breadcrumbs session route =
                         pipelineBreadcrumbs session pipeline
 
             Routes.Build { id } ->
-                case lookupPipeline id.pipelineId session of
+                case lookupPipeline (byPipelineId id) session of
                     Nothing ->
                         []
 
@@ -54,7 +54,7 @@ breadcrumbs session route =
                                ]
 
             Routes.Resource { id } ->
-                case lookupPipeline id.pipelineId session of
+                case lookupPipeline (byPipelineId id) session of
                     Nothing ->
                         []
 
@@ -65,7 +65,7 @@ breadcrumbs session route =
                                ]
 
             Routes.Job { id } ->
-                case lookupPipeline id.pipelineId session of
+                case lookupPipeline (byPipelineId id) session of
                     Nothing ->
                         []
 
@@ -163,7 +163,7 @@ pipelineBreadcrumb inInstanceGroup pipeline =
         ([ id "breadcrumb-pipeline"
          , href <|
             Routes.toString <|
-                Routes.Pipeline { id = pipeline.id, groups = [] }
+                Routes.pipelineRoute pipeline
          ]
             ++ Styles.breadcrumbItem True
         )

@@ -6,8 +6,7 @@ module Dashboard.Group.Models exposing
     , cardTeamName
     )
 
-import Concourse exposing (JsonValue)
-import Dict exposing (Dict)
+import Concourse
 
 
 type Card
@@ -48,7 +47,7 @@ cardTeamName c =
 type alias Pipeline =
     { id : Int
     , name : String
-    , instanceVars : Dict String JsonValue
+    , instanceVars : Concourse.InstanceVars
     , teamName : String
     , public : Bool
     , isToggleLoading : Bool

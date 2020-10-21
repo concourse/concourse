@@ -11,7 +11,7 @@ import SideBar.Views as Views
 type alias PipelineScoped a =
     { a
         | teamName : String
-        , name : String
+        , pipelineName : String
     }
 
 
@@ -31,7 +31,7 @@ instanceGroup params p ps =
                 Just cp ->
                     List.any
                         (\pipeline ->
-                            cp.name == pipeline.name && cp.teamName == pipeline.teamName
+                            cp.pipelineName == pipeline.name && cp.teamName == pipeline.teamName
                         )
                         (p :: ps)
 

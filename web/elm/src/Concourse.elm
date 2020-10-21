@@ -21,6 +21,7 @@ module Concourse exposing
     , DatabaseID
     , HookedPlan
     , InstanceGroupIdentifier
+    , InstanceVars
     , Job
     , JobBuildIdentifier
     , JobIdentifier
@@ -52,6 +53,7 @@ module Concourse exposing
     , decodeCause
     , decodeCheck
     , decodeInfo
+    , decodeInstanceVars
     , decodeJob
     , decodeMetadata
     , decodePipeline
@@ -62,13 +64,16 @@ module Concourse exposing
     , decodeVersionedResource
     , emptyBuildResources
     , encodeBuild
+    , encodeInstanceVars
     , encodeJob
     , encodePipeline
     , encodeTeam
     , flattenJson
     , hyphenNotation
     , mapBuildPlan
+    , pipelineId
     , retrieveCSRFToken
+    , toPipelineId
     )
 
 import Array exposing (Array)
@@ -160,7 +165,9 @@ type alias BuildName =
 
 
 type alias JobBuildIdentifier =
-    { pipelineId : DatabaseID
+    { teamName : TeamName
+    , pipelineName : PipelineName
+    , pipelineInstanceVars : InstanceVars
     , jobName : JobName
     , buildName : BuildName
     }
@@ -189,7 +196,8 @@ encodeBuild build =
         ([ ( "id", build.id |> Json.Encode.int ) |> Just
          , ( "name", build.name |> Json.Encode.string ) |> Just
          , ( "team_name", build.teamName |> Json.Encode.string ) |> Just
-         , optionalField "pipeline_id" Json.Encode.int (build.job |> Maybe.map .pipelineId)
+         , optionalField "pipeline_name" Json.Encode.string (build.job |> Maybe.map .pipelineName)
+         , optionalField "pipeline_instance_vars" encodeInstanceVars (build.job |> Maybe.map .pipelineInstanceVars)
          , optionalField "job_name" Json.Encode.string (build.job |> Maybe.map .jobName)
          , ( "status", build.status |> Concourse.BuildStatus.encodeBuildStatus ) |> Just
          , optionalField "start_time" (secondsFromDate >> Json.Encode.int) build.duration.startedAt
@@ -219,7 +227,9 @@ decodeBuild =
         |> andMap
             (Json.Decode.maybe
                 (Json.Decode.succeed JobIdentifier
-                    |> andMap (Json.Decode.field "pipeline_id" Json.Decode.int)
+                    |> andMap (Json.Decode.field "team_name" Json.Decode.string)
+                    |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
+                    |> andMap (defaultTo Dict.empty <| Json.Decode.field "pipeline_instance_vars" <| decodeInstanceVars)
                     |> andMap (Json.Decode.field "job_name" Json.Decode.string)
                 )
             )
@@ -463,6 +473,32 @@ decodeSimpleJsonValue =
         , Json.Decode.float |> Json.Decode.map JsonNumber
         , Json.Decode.value |> Json.Decode.map JsonRaw
         ]
+
+
+encodeJsonValue : JsonValue -> Json.Encode.Value
+encodeJsonValue v =
+    case v of
+        JsonString s ->
+            Json.Encode.string s
+
+        JsonNumber f ->
+            Json.Encode.float f
+
+        JsonObject kvs ->
+            encodeJsonObject kvs
+
+        JsonArray arr ->
+            Json.Encode.list encodeJsonValue arr
+
+        JsonRaw raw ->
+            raw
+
+
+encodeJsonObject : List ( String, JsonValue ) -> Json.Encode.Value
+encodeJsonObject =
+    List.sortBy Tuple.first
+        >> List.map (Tuple.mapSecond encodeJsonValue)
+        >> Json.Encode.object
 
 
 flattenJson : String -> JsonValue -> List ( String, String )
@@ -746,7 +782,9 @@ type alias JobName =
 
 
 type alias JobIdentifier =
-    { pipelineId : DatabaseID
+    { teamName : TeamName
+    , pipelineName : PipelineName
+    , pipelineInstanceVars : InstanceVars
     , jobName : JobName
     }
 
@@ -755,6 +793,7 @@ type alias Job =
     { name : JobName
     , pipelineId : DatabaseID
     , pipelineName : PipelineName
+    , pipelineInstanceVars : InstanceVars
     , teamName : TeamName
     , nextBuild : Maybe Build
     , finishedBuild : Maybe Build
@@ -785,8 +824,8 @@ encodeJob : Job -> Json.Encode.Value
 encodeJob job =
     Json.Encode.object
         [ ( "name", job.name |> Json.Encode.string )
-        , ( "pipeline_name", job.pipelineName |> Json.Encode.string )
         , ( "pipeline_id", job.pipelineId |> Json.Encode.int )
+        , ( "pipeline_name", job.pipelineName |> Json.Encode.string )
         , ( "team_name", job.teamName |> Json.Encode.string )
         , ( "next_build", job.nextBuild |> encodeMaybeBuild )
         , ( "finished_build", job.finishedBuild |> encodeMaybeBuild )
@@ -806,6 +845,7 @@ decodeJob =
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (Json.Decode.field "pipeline_id" Json.Decode.int)
         |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
+        |> andMap (defaultTo Dict.empty <| Json.Decode.field "pipeline_instance_vars" <| decodeInstanceVars)
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)
         |> andMap (Json.Decode.maybe (Json.Decode.field "next_build" decodeBuild))
         |> andMap (Json.Decode.maybe (Json.Decode.field "finished_build" decodeBuild))
@@ -859,14 +899,47 @@ type alias PipelineName =
     String
 
 
+type alias InstanceVars =
+    Dict String JsonValue
+
+
+encodeInstanceVars : InstanceVars -> Json.Encode.Value
+encodeInstanceVars =
+    Dict.toList >> encodeJsonObject
+
+
+decodeInstanceVars : Json.Decode.Decoder InstanceVars
+decodeInstanceVars =
+    Json.Decode.dict decodeJsonValue
+
+
 type alias PipelineIdentifier =
-    DatabaseID
+    { teamName : TeamName
+    , pipelineName : PipelineName
+    , pipelineInstanceVars : InstanceVars
+    }
+
+
+pipelineId : { r | teamName : TeamName, pipelineName : PipelineName, pipelineInstanceVars : InstanceVars } -> PipelineIdentifier
+pipelineId { teamName, pipelineName, pipelineInstanceVars } =
+    { teamName = teamName
+    , pipelineName = pipelineName
+    , pipelineInstanceVars = pipelineInstanceVars
+    }
+
+
+toPipelineId : { r | teamName : TeamName, name : PipelineName, instanceVars : InstanceVars } -> PipelineIdentifier
+toPipelineId p =
+    { teamName = p.teamName
+    , pipelineName = p.name
+    , pipelineInstanceVars = p.instanceVars
+    }
 
 
 type alias Pipeline =
     { id : Int
     , name : PipelineName
-    , instanceVars : Dict String JsonValue
+    , instanceVars : InstanceVars
     , paused : Bool
     , archived : Bool
     , public : Bool
@@ -902,7 +975,7 @@ decodePipeline =
     Json.Decode.succeed Pipeline
         |> andMap (Json.Decode.field "id" Json.Decode.int)
         |> andMap (Json.Decode.field "name" Json.Decode.string)
-        |> andMap (defaultTo Dict.empty <| Json.Decode.field "instance_vars" <| Json.Decode.dict decodeJsonValue)
+        |> andMap (defaultTo Dict.empty <| Json.Decode.field "instance_vars" <| decodeInstanceVars)
         |> andMap (Json.Decode.field "paused" Json.Decode.bool)
         |> andMap (Json.Decode.field "archived" Json.Decode.bool)
         |> andMap (Json.Decode.field "public" Json.Decode.bool)
@@ -940,8 +1013,9 @@ type alias InstanceGroupIdentifier =
 
 type alias Resource =
     { teamName : String
+    , pipelineId : DatabaseID
     , pipelineName : String
-    , pipelineId : Int
+    , pipelineInstanceVars : InstanceVars
     , name : String
     , icon : Maybe String
     , failingToCheck : Bool
@@ -955,13 +1029,16 @@ type alias Resource =
 
 
 type alias ResourceIdentifier =
-    { pipelineId : DatabaseID
+    { teamName : String
+    , pipelineName : String
+    , pipelineInstanceVars : InstanceVars
     , resourceName : String
     }
 
 
 type alias CheckIdentifier =
-    { pipelineId : DatabaseID
+    { teamName : String
+    , pipelineName : String
     , resourceName : String
     , checkID : Int
     }
@@ -976,7 +1053,9 @@ type alias VersionedResource =
 
 
 type alias VersionedResourceIdentifier =
-    { pipelineId : DatabaseID
+    { teamName : String
+    , pipelineName : String
+    , pipelineInstanceVars : InstanceVars
     , resourceName : String
     , versionID : Int
     }
@@ -1002,8 +1081,9 @@ decodeResource : Json.Decode.Decoder Resource
 decodeResource =
     Json.Decode.succeed Resource
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)
-        |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
         |> andMap (Json.Decode.field "pipeline_id" Json.Decode.int)
+        |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
+        |> andMap (defaultTo Dict.empty <| Json.Decode.field "pipeline_instance_vars" <| decodeInstanceVars)
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (Json.Decode.maybe (Json.Decode.field "icon" Json.Decode.string))
         |> andMap (defaultTo False <| Json.Decode.field "failing_to_check" Json.Decode.bool)

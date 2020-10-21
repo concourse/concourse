@@ -20,10 +20,13 @@ module Routes exposing
     )
 
 import Api.Pagination
-import Concourse
+import Concourse exposing (encodeInstanceVars)
 import Concourse.Pagination as Pagination exposing (Direction(..))
 import Dict
+import Json.Decode
+import Json.Encode
 import Maybe.Extra
+import RouteBuilder exposing (RouteBuilder, appendPath, appendQuery)
 import Url
 import Url.Builder as Builder
 import Url.Parser
@@ -99,13 +102,39 @@ type alias Transition =
 -- pages
 
 
+pipelineIdentifier : Parser (Concourse.PipelineIdentifier -> a) a
+pipelineIdentifier =
+    s "teams"
+        </> string
+        </> s "pipelines"
+        </> string
+        <?> instanceVarsQuery
+        |> map
+            (\t p iv ->
+                { teamName = t
+                , pipelineName = p
+                , pipelineInstanceVars = iv
+                }
+            )
+
+
+instanceVarsQuery : Query.Parser Concourse.InstanceVars
+instanceVarsQuery =
+    Query.string "instance_vars"
+        |> Query.map (Maybe.withDefault "{}")
+        |> Query.map (Json.Decode.decodeString Concourse.decodeInstanceVars)
+        |> Query.map (Result.withDefault Dict.empty)
+
+
 build : Parser (Route -> a) a
 build =
     let
-        buildHelper pipelineId jobName buildName h =
+        buildHelper { teamName, pipelineName, pipelineInstanceVars } jobName buildName h =
             Build
                 { id =
-                    { pipelineId = pipelineId
+                    { teamName = teamName
+                    , pipelineName = pipelineName
+                    , pipelineInstanceVars = pipelineInstanceVars
                     , jobName = jobName
                     , buildName = buildName
                     }
@@ -113,8 +142,7 @@ build =
                 }
     in
     map buildHelper
-        (s "pipelines"
-            </> int
+        (pipelineIdentifier
             </> s "jobs"
             </> string
             </> s "builds"
@@ -152,18 +180,19 @@ parsePage from to limit =
 resource : Parser (Route -> a) a
 resource =
     let
-        resourceHelper pipelineId resourceName from to limit =
+        resourceHelper { teamName, pipelineName, pipelineInstanceVars } resourceName from to limit =
             Resource
                 { id =
-                    { pipelineId = pipelineId
+                    { teamName = teamName
+                    , pipelineName = pipelineName
+                    , pipelineInstanceVars = pipelineInstanceVars
                     , resourceName = resourceName
                     }
                 , page = parsePage from to limit
                 }
     in
     map resourceHelper
-        (s "pipelines"
-            </> int
+        (pipelineIdentifier
             </> s "resources"
             </> string
             <?> Query.int "from"
@@ -175,18 +204,19 @@ resource =
 job : Parser (Route -> a) a
 job =
     let
-        jobHelper pipelineId jobName from to limit =
+        jobHelper { teamName, pipelineName, pipelineInstanceVars } jobName from to limit =
             Job
                 { id =
-                    { pipelineId = pipelineId
+                    { teamName = teamName
+                    , pipelineName = pipelineName
+                    , pipelineInstanceVars = pipelineInstanceVars
                     , jobName = jobName
                     }
                 , page = parsePage from to limit
                 }
     in
     map jobHelper
-        (s "pipelines"
-            </> int
+        (pipelineIdentifier
             </> s "jobs"
             </> string
             <?> Query.int "from"
@@ -198,16 +228,13 @@ job =
 pipeline : Parser (Route -> a) a
 pipeline =
     map
-        (\p g ->
+        (\id g ->
             Pipeline
-                { id = p
+                { id = id
                 , groups = g
                 }
         )
-        (s "pipelines"
-            </> int
-            <?> Query.custom "group" identity
-        )
+        (pipelineIdentifier <?> Query.custom "group" identity)
 
 
 dashboard : Parser (Route -> a) a
@@ -275,7 +302,9 @@ buildRoute id name jobId =
         Just j ->
             Build
                 { id =
-                    { pipelineId = j.pipelineId
+                    { teamName = j.teamName
+                    , pipelineName = j.pipelineName
+                    , pipelineInstanceVars = j.pipelineInstanceVars
                     , jobName = j.jobName
                     , buildName = name
                     }
@@ -290,16 +319,21 @@ jobRoute : Concourse.Job -> Route
 jobRoute j =
     Job
         { id =
-            { pipelineId = j.pipelineId
+            { teamName = j.teamName
+            , pipelineName = j.pipelineName
+            , pipelineInstanceVars = j.pipelineInstanceVars
             , jobName = j.name
             }
         , page = Nothing
         }
 
 
-pipelineRoute : { a | id : Concourse.DatabaseID } -> Route
+pipelineRoute : { a | name : String, teamName : String, instanceVars : Concourse.InstanceVars } -> Route
 pipelineRoute p =
-    Pipeline { id = p.id, groups = [] }
+    Pipeline
+        { id = Concourse.toPipelineId p
+        , groups = []
+        }
 
 
 showHighlight : Highlight -> String
@@ -382,61 +416,46 @@ toString : Route -> String
 toString route =
     case route of
         Build { id, highlight } ->
-            Builder.absolute
-                [ "pipelines"
-                , String.fromInt id.pipelineId
-                , "jobs"
-                , id.jobName
-                , "builds"
-                , id.buildName
-                ]
-                []
+            (pipelineIdBuilder id
+                |> appendPath [ "jobs", id.jobName, "builds", id.buildName ]
+                |> RouteBuilder.build
+            )
                 ++ showHighlight highlight
 
         Job { id, page } ->
-            Builder.absolute
-                [ "pipelines"
-                , String.fromInt id.pipelineId
-                , "jobs"
-                , id.jobName
-                ]
-                (Api.Pagination.params page)
+            pipelineIdBuilder id
+                |> appendPath [ "jobs", id.jobName ]
+                |> appendQuery (Api.Pagination.params page)
+                |> RouteBuilder.build
 
         Resource { id, page } ->
-            Builder.absolute
-                [ "pipelines"
-                , String.fromInt id.pipelineId
-                , "resources"
-                , id.resourceName
-                ]
-                (Api.Pagination.params page)
+            pipelineIdBuilder id
+                |> appendPath [ "resources", id.resourceName ]
+                |> appendQuery (Api.Pagination.params page)
+                |> RouteBuilder.build
 
         OneOffBuild { id, highlight } ->
-            Builder.absolute
-                [ "builds"
-                , String.fromInt id
-                ]
-                []
+            (( [ "builds", String.fromInt id ], [] )
+                |> RouteBuilder.build
+            )
                 ++ showHighlight highlight
 
         Pipeline { id, groups } ->
-            Builder.absolute
-                [ "pipelines"
-                , String.fromInt id
-                ]
-                (groups |> List.map (Builder.string "group"))
+            pipelineIdBuilder id
+                |> appendQuery (groups |> List.map (Builder.string "group"))
+                |> RouteBuilder.build
 
         Dashboard { searchType, dashboardView } ->
-            let
-                path =
-                    case searchType of
+            ( [], [] )
+                |> appendPath
+                    (case searchType of
                         Normal _ _ ->
                             []
 
                         HighDensity ->
                             [ "hd" ]
-
-                queryParams =
+                    )
+                |> appendQuery
                     (case searchType of
                         Normal "" Nothing ->
                             []
@@ -453,28 +472,31 @@ toString route =
                         _ ->
                             []
                     )
-                        ++ (case dashboardView of
-                                ViewNonArchivedPipelines ->
-                                    []
+                |> appendQuery
+                    (case dashboardView of
+                        ViewNonArchivedPipelines ->
+                            []
 
-                                _ ->
-                                    [ Builder.string "view" <| dashboardViewName dashboardView ]
-                           )
-            in
-            Builder.absolute path queryParams
+                        _ ->
+                            [ Builder.string "view" <| dashboardViewName dashboardView ]
+                    )
+                |> RouteBuilder.build
 
         FlySuccess noop flyPort ->
-            Builder.absolute [ "fly_success" ] <|
-                (flyPort
-                    |> Maybe.map (Builder.int "fly_port")
-                    |> Maybe.Extra.toList
-                )
-                    ++ (if noop then
-                            [ Builder.string "noop" "true" ]
+            ( [ "fly_success" ], [] )
+                |> appendQuery
+                    (flyPort
+                        |> Maybe.map (Builder.int "fly_port")
+                        |> Maybe.Extra.toList
+                    )
+                |> appendQuery
+                    (if noop then
+                        [ Builder.string "noop" "true" ]
 
-                        else
-                            []
-                       )
+                     else
+                        []
+                    )
+                |> RouteBuilder.build
 
 
 parsePath : Url.Url -> Maybe Route
@@ -490,13 +512,13 @@ extractPid : Route -> Maybe Concourse.PipelineIdentifier
 extractPid route =
     case route of
         Build { id } ->
-            Just id.pipelineId
+            Just <| Concourse.pipelineId id
 
         Job { id } ->
-            Just id.pipelineId
+            Just <| Concourse.pipelineId id
 
         Resource { id } ->
-            Just id.pipelineId
+            Just <| Concourse.pipelineId id
 
         Pipeline { id } ->
             Just id
@@ -533,3 +555,14 @@ instanceGroupQueryParams { teamName, name } =
 searchQueryParams : String -> List Builder.QueryParameter
 searchQueryParams q =
     [ Builder.string "search" q ]
+
+
+pipelineIdBuilder : { r | teamName : String, pipelineName : String, pipelineInstanceVars : Concourse.InstanceVars } -> RouteBuilder
+pipelineIdBuilder id =
+    ( [ "teams", id.teamName, "pipelines", id.pipelineName ]
+    , if Dict.isEmpty id.pipelineInstanceVars then
+        []
+
+      else
+        [ Builder.string "instance_vars" <| Json.Encode.encode 0 (encodeInstanceVars id.pipelineInstanceVars) ]
+    )

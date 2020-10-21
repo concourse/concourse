@@ -214,7 +214,7 @@ all =
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok
-                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -234,11 +234,11 @@ all =
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok
-                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                         )
                     |> Tuple.first
                     |> Application.handleDelivery
-                        (FavoritedPipelinesReceived <| Ok <| Set.singleton 1)
+                        (FavoritedPipelinesReceived <| Ok <| Set.singleton 0)
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.findAll
@@ -258,7 +258,7 @@ all =
                     |> Application.handleDelivery
                         (CachedPipelinesReceived <|
                             Ok
-                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -278,7 +278,7 @@ all =
                     |> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok
-                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -616,7 +616,7 @@ all =
                                 |> Application.handleDelivery
                                     (CachedPipelinesReceived <|
                                         Ok
-                                            [ Data.pipeline "team" 1
+                                            [ Data.pipeline "team" 0
                                                 |> Data.withName "pipeline"
                                                 |> Data.withPaused True
                                             ]
@@ -633,7 +633,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 1
+                                            [ Data.pipeline "team" 0
                                                 |> Data.withName "pipeline"
                                                 |> Data.withArchived True
                                                 |> Data.withPaused True
@@ -651,7 +651,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 1
+                                            [ Data.pipeline "team" 0
                                                 |> Data.withName "pipeline"
                                                 |> Data.withPaused True
                                             ]
@@ -685,7 +685,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -834,7 +834,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ Data.pipeline "other-team" 0 |> Data.withName "pipeline" ]
+                                    [ Data.pipeline "other-team" 1 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -966,9 +966,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllResourcesFetched <|
                                     Ok
-                                        [ Data.resource Nothing
-                                            |> Data.withFailingToCheck True
-                                        ]
+                                        [ Data.resource Nothing |> Data.withFailingToCheck True ]
                                 )
                             |> Tuple.first
                             |> givenDataUnauthenticated [ { id = 0, name = "team" } ]
@@ -1052,7 +1050,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Application.handleCallback
@@ -1062,7 +1060,7 @@ all =
                                         job BuildStatusErrored
                                 in
                                 Ok
-                                    [ { baseJob | pipelineName = "other-pipeline", pipelineId = 2 } ]
+                                    [ { baseJob | pipelineName = "other-pipeline" } ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -1080,7 +1078,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -1126,7 +1124,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -1152,7 +1150,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -1173,7 +1171,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -1202,7 +1200,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 1
+                                            [ Data.pipeline "team" 0
                                                 |> Data.withName "pipeline"
                                                 |> Data.withPaused True
                                             ]
@@ -1256,7 +1254,7 @@ all =
                                 |> Application.handleDelivery
                                     (CachedPipelinesReceived <|
                                         Ok
-                                            [ Data.pipeline "team" 1
+                                            [ Data.pipeline "team" 0
                                                 |> Data.withName "pipeline"
                                                 |> Data.withPaused True
                                             ]
@@ -1304,7 +1302,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 1 ]
+                                            [ Data.pipeline "team" 0 ]
                                     )
                                 |> Tuple.first
                                 |> Application.handleCallback
@@ -1313,7 +1311,7 @@ all =
                                     )
 
                         domID =
-                            Msgs.PipelineStatusIcon AllPipelinesSection Data.pipelineId
+                            Msgs.PipelineStatusIcon AllPipelinesSection 0
                     in
                     [ test "status icon is faded sync" <|
                         \_ ->
@@ -1445,7 +1443,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 1
+                                            [ Data.pipeline "team" 0
                                                 |> Data.withArchived True
                                             ]
                                     )
@@ -1679,7 +1677,7 @@ all =
                                                ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton AllPipelinesSection pipelineId
+                                    Msgs.VisibilityButton AllPipelinesSection 0
                                 , hoveredSelector =
                                     { description = "bright 20px square"
                                     , selector =
@@ -1699,8 +1697,7 @@ all =
                                         |> Event.expect
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                             , test "click has HidePipeline effect" <|
                                 \_ ->
@@ -1710,8 +1707,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                                         |> Tuple.second
                                         |> Expect.equal
@@ -1724,7 +1720,7 @@ all =
                                 , setup =
                                     whenOnDashboard { highDensity = False }
                                         |> Application.handleDelivery
-                                            (Message.Subscription.FavoritedPipelinesReceived <| Ok <| Set.singleton 1)
+                                            (Message.Subscription.FavoritedPipelinesReceived <| Ok <| Set.singleton 0)
                                         |> Tuple.first
                                         |> setup
                                         |> Tuple.first
@@ -1738,7 +1734,7 @@ all =
                                                ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton FavoritesSection pipelineId
+                                    Msgs.VisibilityButton FavoritesSection 0
                                 , hoveredSelector =
                                     { description = "bright 20px square"
                                     , selector =
@@ -1757,8 +1753,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                                         |> Tuple.first
                                 , query = visibilityToggle
@@ -1772,7 +1767,7 @@ all =
                                         ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton AllPipelinesSection pipelineId
+                                    Msgs.VisibilityButton AllPipelinesSection 0
                                 , hoveredSelector =
                                     { description = "20px spinner"
                                     , selector =
@@ -1791,8 +1786,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                                         |> Tuple.first
                                         |> Application.handleCallback
@@ -1812,8 +1806,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                                         |> Tuple.first
                                         |> Application.handleCallback
@@ -1833,8 +1826,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                                         |> Tuple.first
                                         |> Application.handleCallback
@@ -1865,7 +1857,7 @@ all =
                                                ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton AllPipelinesSection pipelineId
+                                    Msgs.VisibilityButton AllPipelinesSection 0
                                 , hoveredSelector =
                                     { description = "faded 20px square"
                                     , selector =
@@ -1903,7 +1895,7 @@ all =
                                                ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton AllPipelinesSection pipelineId
+                                    Msgs.VisibilityButton AllPipelinesSection 0
                                 , hoveredSelector =
                                     { description = "bright 20px square"
                                     , selector =
@@ -1923,8 +1915,7 @@ all =
                                         |> Event.expect
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                             , test "click has ExposePipeline effect" <|
                                 \_ ->
@@ -1934,8 +1925,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                                         |> Tuple.second
                                         |> Expect.equal
@@ -1952,8 +1942,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                                         |> Tuple.first
                                 , query = visibilityToggle
@@ -1967,7 +1956,7 @@ all =
                                         ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton AllPipelinesSection pipelineId
+                                    Msgs.VisibilityButton AllPipelinesSection 0
                                 , hoveredSelector =
                                     { description = "20px spinner"
                                     , selector =
@@ -1986,8 +1975,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                                         |> Tuple.first
                                         |> Application.handleCallback
@@ -2007,8 +1995,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                                         |> Tuple.first
                                         |> Application.handleCallback
@@ -2039,7 +2026,7 @@ all =
                                                ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton AllPipelinesSection pipelineId
+                                    Msgs.VisibilityButton AllPipelinesSection 0
                                 , hoveredSelector =
                                     { description = "faded 20px square"
                                     , selector =
@@ -2072,7 +2059,7 @@ all =
                                     >> Application.handleCallback
                                         (Callback.AllPipelinesFetched <|
                                             Ok
-                                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                         )
 
                             whenAuthorizedNonPublic =
@@ -2085,7 +2072,7 @@ all =
                                     >> Application.handleCallback
                                         (Callback.AllPipelinesFetched <|
                                             Ok
-                                                [ Data.pipeline "team" 1
+                                                [ Data.pipeline "team" 0
                                                     |> Data.withName "pipeline"
                                                     |> Data.withPublic False
                                                 ]
@@ -2108,7 +2095,7 @@ all =
                                     >> Application.handleCallback
                                         (Callback.AllPipelinesFetched <|
                                             Ok
-                                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                         )
 
                             whenUnauthorizedNonPublic =
@@ -2121,7 +2108,7 @@ all =
                                     >> Application.handleCallback
                                         (Callback.AllPipelinesFetched <|
                                             Ok
-                                                [ Data.pipeline "team" 1
+                                                [ Data.pipeline "team" 0
                                                     |> Data.withName "pipeline"
                                                     |> Data.withPublic False
                                                 ]
@@ -2142,7 +2129,7 @@ all =
                                     >> Application.handleCallback
                                         (Callback.AllPipelinesFetched <|
                                             Ok
-                                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                         )
                         in
                         [ describe "on public pipeline" <|
@@ -2159,7 +2146,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                 )
                             |> Tuple.first
                             |> Common.queryView
@@ -2181,7 +2168,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                 )
                             |> Tuple.first
                             |> Common.queryView
@@ -2204,7 +2191,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -2229,7 +2216,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -2251,7 +2238,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -2274,7 +2261,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                         , query =
@@ -2319,11 +2306,11 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Application.handleDelivery
-                                    (Message.Subscription.FavoritedPipelinesReceived <| Ok <| Set.singleton 1)
+                                    (Message.Subscription.FavoritedPipelinesReceived <| Ok <| Set.singleton 0)
                                 |> Tuple.first
                         , query =
                             Common.queryView
@@ -2369,7 +2356,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 1
+                                            [ Data.pipeline "team" 0
                                                 |> Data.withName "pipeline"
                                                 |> Data.withPaused True
                                             ]
@@ -2416,7 +2403,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -2442,7 +2429,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Application.update
@@ -2464,7 +2451,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Application.update
@@ -2484,7 +2471,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Application.update
@@ -2506,7 +2493,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Application.update
@@ -2523,7 +2510,7 @@ all =
                 , describe "favorited icon" <|
                     let
                         pipelineId =
-                            1
+                            0
 
                         unfilledFavoritedIcon =
                             iconSelector
@@ -2614,13 +2601,7 @@ all =
                                         |> Application.handleDelivery
                                             (FavoritedPipelinesReceived <|
                                                 Ok <|
-                                                    Set.singleton 1
-                                            )
-                                        |> Tuple.first
-                                        |> Application.handleCallback
-                                            (Callback.AllPipelinesFetched <|
-                                                Ok <|
-                                                    [ Data.pipeline "team" 1 ]
+                                                    Set.singleton pipelineId
                                             )
                                         |> Tuple.first
                                         |> favoritedToggle
@@ -2640,7 +2621,7 @@ all =
                             >> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                                 )
                         )
                 ]

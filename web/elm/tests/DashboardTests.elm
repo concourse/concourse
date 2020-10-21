@@ -699,8 +699,8 @@ all =
                         (Callback.AllJobsFetched <|
                             Ok
                                 [ Data.job 1
-                                    |> Data.withTeamName "team"
                                     |> Data.withPipelineName "pipeline"
+                                    |> Data.withTeamName "team"
                                     |> Data.withFinishedBuild
                                         (Data.jobBuild BuildStatusSucceeded
                                             |> Data.withTeamName "team"
@@ -726,7 +726,7 @@ all =
                     |> Query.has
                         [ tag "a"
                         , attribute <|
-                            Attr.href "/pipelines/1/jobs/job/builds/1"
+                            Attr.href "/teams/team/pipelines/pipeline/jobs/job/builds/1"
                         ]
         , test "HD view redirects to no pipelines view when there are no pipelines" <|
             \_ ->
@@ -2215,13 +2215,14 @@ jobWithNameTransitionedAt jobName transitionedAt status =
     { name = jobName
     , pipelineId = 1
     , pipelineName = "pipeline"
+    , pipelineInstanceVars = Dict.empty
     , teamName = "team"
     , nextBuild = Nothing
     , finishedBuild =
         Just
             { id = 0
-            , teamName = "team"
             , name = "0"
+            , teamName = "team"
             , job = Just Data.jobId
             , status = status
             , duration =
@@ -2235,8 +2236,8 @@ jobWithNameTransitionedAt jobName transitionedAt status =
             |> Maybe.map
                 (\t ->
                     { id = 1
-                    , teamName = "team"
                     , name = "1"
+                    , teamName = "team"
                     , job = Just Data.jobId
                     , status = status
                     , duration =
@@ -2259,6 +2260,7 @@ circularJobs =
     [ { name = "jobA"
       , pipelineId = 1
       , pipelineName = "pipeline"
+      , pipelineInstanceVars = Dict.empty
       , teamName = "team"
       , nextBuild = Nothing
       , finishedBuild =
@@ -2302,6 +2304,7 @@ circularJobs =
     , { name = "jobB"
       , pipelineId = 1
       , pipelineName = "pipeline"
+      , pipelineInstanceVars = Dict.empty
       , teamName = "team"
       , nextBuild = Nothing
       , finishedBuild =
