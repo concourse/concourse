@@ -33,6 +33,7 @@ var _ = Describe("CheckStep", func() {
 		ctx    context.Context
 		cancel context.CancelFunc
 
+		planID                    atc.PlanID
 		fakeRunState              *execfakes.FakeRunState
 		fakeResourceFactory       *resourcefakes.FakeResourceFactory
 		fakeResource              *resourcefakes.FakeResource
@@ -60,6 +61,8 @@ var _ = Describe("CheckStep", func() {
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
+
+		planID = "some-plan-id"
 
 		fakeRunState = new(execfakes.FakeRunState)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
@@ -130,7 +133,8 @@ var _ = Describe("CheckStep", func() {
 		}
 
 		stepMetadata = exec.StepMetadata{
-			TeamID: 345,
+			TeamID:  345,
+			BuildID: 678,
 		}
 
 		fakeRunState.GetStub = vars.StaticVariables{"source-var": "super-secret-source"}.Get
@@ -141,8 +145,6 @@ var _ = Describe("CheckStep", func() {
 	})
 
 	JustBeforeEach(func() {
-		planID := atc.PlanID("some-plan-id")
-
 		checkStep = exec.NewCheckStep(
 			planID,
 			checkPlan,
@@ -270,13 +272,29 @@ var _ = Describe("CheckStep", func() {
 				})
 
 				It("uses ResourceConfigCheckSessionOwner", func() {
-					expected := db.NewResourceConfigCheckSessionContainerOwner(
-						501,
-						502,
-						db.ContainerOwnerExpiries{Min: 5 * time.Minute, Max: 1 * time.Hour},
+					expected := db.NewBuildStepContainerOwner(
+						678,
+						planID,
+						345,
 					)
 
 					Expect(owner).To(Equal(expected))
+				})
+
+				Context("when the plan is for a resource", func() {
+					BeforeEach(func() {
+						checkPlan.Resource = "some-resource"
+					})
+
+					It("uses ResourceConfigCheckSessionOwner", func() {
+						expected := db.NewResourceConfigCheckSessionContainerOwner(
+							501,
+							502,
+							db.ContainerOwnerExpiries{Min: 5 * time.Minute, Max: 1 * time.Hour},
+						)
+
+						Expect(owner).To(Equal(expected))
+					})
 				})
 
 				It("passes the process spec", func() {
