@@ -227,7 +227,7 @@ func (client *client) RunCheckStep(
 		containerSpec,
 	)
 	if err != nil {
-		return CheckResult{}, fmt.Errorf("find or create container: %w", err)
+		return CheckResult{}, err
 	}
 
 	eventDelegate.Starting(logger)

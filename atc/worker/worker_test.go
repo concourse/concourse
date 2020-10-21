@@ -1326,7 +1326,7 @@ var _ = Describe("Worker", func() {
 					})
 
 					It("returns an error", func() {
-						Expect(findOrCreateErr).To(Equal(disasterErr))
+						Expect(findOrCreateErr).To(Equal(fmt.Errorf("find or create container on worker some-worker: %w", disasterErr)))
 					})
 
 					It("does not mark container as created", func() {
@@ -1344,7 +1344,7 @@ var _ = Describe("Worker", func() {
 					})
 
 					It("returns an error", func() {
-						Expect(findOrCreateErr).To(Equal(disasterErr))
+						Expect(findOrCreateErr).To(Equal(fmt.Errorf("find or create container on worker some-worker: %w", disasterErr)))
 					})
 
 					It("does not mark container as created", func() {
@@ -1384,7 +1384,7 @@ var _ = Describe("Worker", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(findOrCreateErr).To(Equal(containerNotFoundErr))
+					Expect(findOrCreateErr).To(Equal(fmt.Errorf("find or create container on worker some-worker: %w", containerNotFoundErr)))
 				})
 			})
 		})
@@ -1408,7 +1408,7 @@ var _ = Describe("Worker", func() {
 
 					It("fails w/ ResourceConfigCheckSessionExpiredError", func() {
 						Expect(findOrCreateErr).To(HaveOccurred())
-						Expect(findOrCreateErr).To(Equal(ResourceConfigCheckSessionExpiredError))
+						Expect(findOrCreateErr).To(Equal(fmt.Errorf("find or create container on worker some-worker: %w", ResourceConfigCheckSessionExpiredError)))
 					})
 				})
 
@@ -1419,7 +1419,7 @@ var _ = Describe("Worker", func() {
 
 					It("fails with the same err", func() {
 						Expect(findOrCreateErr).To(HaveOccurred())
-						Expect(findOrCreateErr).To(Equal(errors.New("err")))
+						Expect(findOrCreateErr).To(Equal(fmt.Errorf("find or create container on worker some-worker: %w", errors.New("err"))))
 					})
 				})
 			})
