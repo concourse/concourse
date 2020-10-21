@@ -237,8 +237,9 @@ func (step *CheckStep) runCheck(
 	fromVersion atc.Version,
 ) (worker.CheckResult, error) {
 	workerSpec := worker.WorkerSpec{
-		Tags:   step.plan.Tags,
-		TeamID: step.metadata.TeamID,
+		Tags:         step.plan.Tags,
+		TeamID:       step.metadata.TeamID,
+		ResourceType: step.plan.VersionedResourceTypes.Base(step.plan.Type),
 	}
 
 	var imageSpec worker.ImageSpec
@@ -265,7 +266,6 @@ func (step *CheckStep) runCheck(
 		}
 	} else {
 		imageSpec.ResourceType = step.plan.Type
-		workerSpec.ResourceType = step.plan.Type
 	}
 
 	containerSpec := worker.ContainerSpec{

@@ -428,9 +428,10 @@ var _ = Describe("CheckStep", func() {
 						Expect(privileged).To(BeFalse())
 					})
 
-					It("does not set the type in the worker spec", func() {
+					It("sets the bottom-most type in the worker spec", func() {
 						Expect(workerSpec).To(Equal(worker.WorkerSpec{
-							TeamID: stepMetadata.TeamID,
+							TeamID:       stepMetadata.TeamID,
+							ResourceType: "registry-image",
 						}))
 					})
 

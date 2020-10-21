@@ -146,8 +146,9 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	}
 
 	workerSpec := worker.WorkerSpec{
-		Tags:   step.plan.Tags,
-		TeamID: step.metadata.TeamID,
+		Tags:         step.plan.Tags,
+		TeamID:       step.metadata.TeamID,
+		ResourceType: step.plan.VersionedResourceTypes.Base(step.plan.Type),
 	}
 
 	var imageSpec worker.ImageSpec
@@ -174,7 +175,6 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 		}
 	} else {
 		imageSpec.ResourceType = step.plan.Type
-		workerSpec.ResourceType = step.plan.Type
 	}
 
 	containerSpec := worker.ContainerSpec{
