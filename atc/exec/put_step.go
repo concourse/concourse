@@ -159,6 +159,10 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 			Source:  resourceType.Source,
 			Params:  resourceType.Params,
 			Version: resourceType.Version,
+			Tags:    resourceType.Tags,
+		}
+		if len(image.Tags) == 0 {
+			image.Tags = step.plan.Tags
 		}
 
 		types := step.plan.VersionedResourceTypes.Without(step.plan.Type)
@@ -175,7 +179,6 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	containerSpec := worker.ContainerSpec{
 		ImageSpec: imageSpec,
-		Tags:      step.plan.Tags,
 		TeamID:    step.metadata.TeamID,
 
 		Dir: step.containerMetadata.WorkingDirectory,

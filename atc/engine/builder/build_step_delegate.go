@@ -241,6 +241,8 @@ func (delegate *buildStepDelegate) FetchImage(
 				Source: image.Source,
 
 				VersionedResourceTypes: types,
+
+				Tags: image.Tags,
 			},
 		}
 
@@ -249,7 +251,7 @@ func (delegate *buildStepDelegate) FetchImage(
 			Origin: event.Origin{
 				ID: event.OriginID(delegate.planID),
 			},
-			Plan: checkPlan,
+			PublicPlan: checkPlan.Public(),
 		})
 		if err != nil {
 			return worker.ImageSpec{}, fmt.Errorf("save image check event: %w", err)
@@ -281,6 +283,8 @@ func (delegate *buildStepDelegate) FetchImage(
 			Params:  image.Params,
 
 			VersionedResourceTypes: types,
+
+			Tags: image.Tags,
 		},
 	}
 
@@ -289,7 +293,7 @@ func (delegate *buildStepDelegate) FetchImage(
 		Origin: event.Origin{
 			ID: event.OriginID(delegate.planID),
 		},
-		Plan: getPlan,
+		PublicPlan: getPlan.Public(),
 	})
 	if err != nil {
 		return worker.ImageSpec{}, fmt.Errorf("save image get event: %w", err)
