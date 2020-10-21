@@ -257,7 +257,7 @@ func (worker *gardenWorker) findOrCreateContainer(
 				return nil, ResourceConfigCheckSessionExpiredError
 			}
 
-			return nil, err
+			return nil, fmt.Errorf("create container: %w", err)
 		}
 		logger.Debug("created-creating-container-in-db")
 		containerHandle = creatingContainer.Handle()

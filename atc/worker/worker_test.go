@@ -1413,13 +1413,16 @@ var _ = Describe("Worker", func() {
 				})
 
 				Context("with a non-specific error", func() {
+					var someErr error = errors.New("err")
+
 					BeforeEach(func() {
-						fakeDBWorker.CreateContainerReturns(nil, errors.New("err"))
+						fakeDBWorker.CreateContainerReturns(nil, someErr)
 					})
 
 					It("fails with the same err", func() {
 						Expect(findOrCreateErr).To(HaveOccurred())
-						Expect(findOrCreateErr).To(Equal(fmt.Errorf("find or create container on worker some-worker: %w", errors.New("err"))))
+						Expect(findOrCreateErr).To(MatchError("find or create container on worker some-worker: create container: err"))
+						Expect(errors.Is(findOrCreateErr, someErr)).To(BeTrue())
 					})
 				})
 			})
