@@ -37,7 +37,7 @@ require (
 	github.com/cyberark/conjur-api-go v0.6.0
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/fatih/color v1.9.0
-	github.com/felixge/httpsnoop v1.0.0
+	github.com/felixge/httpsnoop v1.0.1
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/gobuffalo/packr v1.13.7
 	github.com/gogo/googleapis v1.3.1 // indirect
@@ -50,6 +50,7 @@ require (
 	github.com/hashicorp/go-rootcerts v1.0.2
 	github.com/hashicorp/vault/api v1.0.5-0.20191108163347-bdd38fca2cff
 	github.com/hashicorp/vault/sdk v0.1.14-0.20191112033314-390e96e22eb2 // indirect
+	github.com/honeycombio/opentelemetry-exporter-go v0.11.0 // indirect
 	github.com/imdario/mergo v0.3.6
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
