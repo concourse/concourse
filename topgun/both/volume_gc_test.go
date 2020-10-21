@@ -22,7 +22,7 @@ var _ = Describe("Garbage-collecting volumes", func() {
 			Fly.Run("execute", "-c", "tasks/input-output.yml", "-i", "some-input=./tasks")
 
 			By("collecting the build containers")
-			rows, err := Psql.Select("id, handle").From("containers").Where(sq.Eq{"build_id": 1}).RunWith(DbConn).Query()
+			rows, err := Psql.Select("id, handle").From("containers").Where(sq.Eq{"build_id": 1, "meta_step_name": "one-off"}).RunWith(DbConn).Query()
 			Expect(err).ToNot(HaveOccurred())
 
 			buildContainers := map[int]string{}
@@ -36,6 +36,8 @@ var _ = Describe("Garbage-collecting volumes", func() {
 				buildContainers[id] = handle
 				containerIDs = append(containerIDs, id)
 			}
+
+			Expect(containerIDs).To(HaveLen(1), "should only be testing one-off task container")
 
 			By("collecting the container volumes")
 			rows, err = Psql.Select("id, handle").From("volumes").Where(sq.Eq{"container_id": containerIDs}).RunWith(DbConn).Query()
