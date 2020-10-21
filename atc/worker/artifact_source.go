@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/compression"
+	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/tracing"
 	"github.com/hashicorp/go-multierror"
@@ -77,6 +78,11 @@ func (source *artifactSource) StreamTo(
 	defer out.Close()
 
 	err = destination.StreamIn(ctx, ".", source.compression.Encoding(), out)
+
+	// Inc counter if no error occurred.
+	if err == nil {
+		metric.Metrics.VolumesStreamed.Inc()
+	}
 
 	return err
 }
