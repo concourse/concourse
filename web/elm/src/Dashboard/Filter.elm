@@ -42,8 +42,8 @@ type alias Filter =
 
 
 filterTeams :
-    { pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
-    , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
+    { pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobName)
+    , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
     , query : String
     , teams : List Concourse.Team
     , pipelines : Dict String (List Pipeline)
@@ -77,8 +77,8 @@ prefilter view favoritedPipelines p =
 
 
 runFilter :
-    Dict ( Concourse.DatabaseID, String ) Concourse.Job
-    -> Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
+    Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
+    -> Dict Concourse.DatabaseID (List Concourse.JobName)
     -> Filter
     -> Dict String (List Pipeline)
     -> Dict String (List Pipeline)
@@ -101,16 +101,10 @@ runFilter jobs existingJobs f =
                 >> Dict.filter (\_ pipelines -> not <| List.isEmpty pipelines)
 
 
-lookupJob : Dict ( Concourse.DatabaseID, String ) Concourse.Job -> Concourse.JobIdentifier -> Maybe Concourse.Job
-lookupJob jobs jobId =
-    jobs
-        |> Dict.get ( jobId.pipelineId, jobId.jobName )
-
-
 pipelineFilter :
     PipelineFilter
-    -> Dict ( Concourse.DatabaseID, String ) Concourse.Job
-    -> Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
+    -> Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
+    -> Dict Concourse.DatabaseID (List Concourse.JobName)
     -> Pipeline
     -> Bool
 pipelineFilter pf jobs existingJobs pipeline =
@@ -119,7 +113,7 @@ pipelineFilter pf jobs existingJobs pipeline =
             existingJobs
                 |> Dict.get pipeline.id
                 |> Maybe.withDefault []
-                |> List.filterMap (lookupJob jobs)
+                |> List.filterMap (\j -> Dict.get ( pipeline.id, j ) jobs)
     in
     case pf of
         FuzzyName term ->

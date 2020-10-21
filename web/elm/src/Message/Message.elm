@@ -60,16 +60,16 @@ type DomID
     | PinMenuDropDown String
     | PinButton VersionId
     | PinBar
-    | PipelineCardName PipelinesSection Concourse.PipelineIdentifier
+    | PipelineCardName PipelinesSection Concourse.DatabaseID
     | InstanceGroupCardName PipelinesSection Concourse.TeamName String
-    | PipelineCardNameHD Concourse.PipelineIdentifier
+    | PipelineCardNameHD Concourse.DatabaseID
     | InstanceGroupCardNameHD Concourse.TeamName String
-    | PipelineCardInstanceVar PipelinesSection Concourse.PipelineIdentifier String String
-    | PipelineStatusIcon PipelinesSection Concourse.PipelineIdentifier
-    | PipelineCardPauseToggle PipelinesSection Concourse.PipelineIdentifier
+    | PipelineCardInstanceVar PipelinesSection Concourse.DatabaseID String String
+    | PipelineStatusIcon PipelinesSection Concourse.DatabaseID
+    | PipelineCardPauseToggle PipelinesSection Concourse.DatabaseID
     | TopBarFavoritedIcon DatabaseID
     | TopBarPauseToggle Concourse.PipelineIdentifier
-    | VisibilityButton PipelinesSection Concourse.PipelineIdentifier
+    | VisibilityButton PipelinesSection Concourse.DatabaseID
     | PipelineCardFavoritedIcon PipelinesSection DatabaseID
     | FooterCliIcon Cli.Cli
     | WelcomeCardCliIcon Cli.Cli
@@ -89,12 +89,12 @@ type DomID
     | VersionHeader VersionId
     | VersionToggle VersionId
     | BuildTab Int String
-    | JobPreview PipelinesSection Concourse.JobIdentifier
-    | PipelinePreview PipelinesSection Concourse.PipelineIdentifier
+    | JobPreview PipelinesSection Concourse.DatabaseID Concourse.JobName
+    | PipelinePreview PipelinesSection Concourse.DatabaseID
     | HamburgerMenu
     | SideBarResizeHandle
     | SideBarTeam PipelinesSection String
-    | SideBarPipeline PipelinesSection Concourse.PipelineIdentifier
+    | SideBarPipeline PipelinesSection Concourse.DatabaseID
     | SideBarInstanceGroup PipelinesSection Concourse.TeamName String
     | SideBarFavoritedIcon DatabaseID
     | Dashboard

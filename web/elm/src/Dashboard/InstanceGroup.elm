@@ -72,7 +72,7 @@ cardView :
     , hovered : HoverState.HoverState
     , pipelineRunningKeyframes : String
     , resourceError : Bool
-    , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
+    , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobName)
     , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
     , section : PipelinesSection
     , dashboardView : Routes.DashboardView
@@ -135,8 +135,8 @@ bodyView :
     -> PipelinesSection
     -> HoverState.HoverState
     -> List Pipeline
-    -> Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
-    -> Dict ( Concourse.DatabaseID, String ) Concourse.Job
+    -> Dict Concourse.DatabaseID (List Concourse.JobName)
+    -> Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
     -> Html Message
 bodyView pipelineRunningKeyframes section hovered pipelines pipelineJobs jobs =
     let
@@ -161,9 +161,9 @@ bodyView pipelineRunningKeyframes section hovered pipelines pipelineJobs jobs =
                     Dict.get p.id pipelineJobs
                         |> Maybe.withDefault []
                         |> List.filterMap
-                            (\{ pipelineId, jobName } ->
+                            (\jobName ->
                                 Dict.get
-                                    ( pipelineId, jobName )
+                                    ( p.id, jobName )
                                     jobs
                             )
             in

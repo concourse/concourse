@@ -52,11 +52,11 @@ view :
         , dropState : DropState
         , now : Maybe Time.Posix
         , pipelinesWithResourceErrors : Set Concourse.DatabaseID
-        , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
+        , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobName))
         , dropAreas : List Grid.DropArea
         , groupCardsHeight : Float
-        , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
-        , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
+        , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobName)
+        , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
         , dashboardView : Routes.DashboardView
         , query : String
         , inInstanceGroupView : Bool
@@ -147,10 +147,10 @@ viewFavoritePipelines :
         , dropState : DropState
         , now : Maybe Time.Posix
         , pipelinesWithResourceErrors : Set Concourse.DatabaseID
-        , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
+        , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobName))
         , groupCardsHeight : Float
-        , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
-        , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
+        , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobName)
+        , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
         , dashboardView : Routes.DashboardView
         , query : String
         , inInstanceGroupView : Bool
@@ -225,8 +225,8 @@ tag { userState } teamName =
 hdView :
     { pipelineRunningKeyframes : String
     , pipelinesWithResourceErrors : Set Concourse.DatabaseID
-    , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
-    , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
+    , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobName)
+    , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
     , dashboardView : Routes.DashboardView
     , query : String
     }
@@ -261,7 +261,7 @@ hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, jo
                                             pipelineJobs
                                                 |> Dict.get p.id
                                                 |> Maybe.withDefault []
-                                                |> List.filterMap (lookupJob jobs)
+                                                |> List.filterMap (\j -> Dict.get ( p.id, j ) jobs)
                                         }
 
                                 InstanceGroupCard p ps ->
@@ -305,12 +305,6 @@ pipelineNotSetView =
         ]
 
 
-lookupJob : Dict ( Concourse.DatabaseID, String ) Concourse.Job -> Concourse.JobIdentifier -> Maybe Concourse.Job
-lookupJob jobs jobId =
-    jobs
-        |> Dict.get ( jobId.pipelineId, jobId.jobName )
-
-
 pipelineCardView :
     Session
     ->
@@ -319,9 +313,9 @@ pipelineCardView :
             , dropState : DropState
             , now : Maybe Time.Posix
             , pipelinesWithResourceErrors : Set Concourse.DatabaseID
-            , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
-            , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
-            , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
+            , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobName))
+            , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobName)
+            , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
             , inInstanceGroupView : Bool
         }
     -> PipelinesSection
@@ -405,12 +399,12 @@ pipelineCardView session params section { bounds, headerHeight, pipeline } teamN
                     params.pipelineJobs
                         |> Dict.get pipeline.id
                         |> Maybe.withDefault []
-                        |> List.filterMap (lookupJob params.jobs)
+                        |> List.filterMap (\j -> Dict.get ( pipeline.id, j ) params.jobs)
                 , layers =
                     params.pipelineLayers
                         |> Dict.get pipeline.id
                         |> Maybe.withDefault []
-                        |> List.map (List.filterMap <| lookupJob params.jobs)
+                        |> List.map (List.filterMap (\j -> Dict.get ( pipeline.id, j ) params.jobs))
                 , headerHeight = headerHeight
                 , hovered = session.hovered
                 , pipelineRunningKeyframes = session.pipelineRunningKeyframes
@@ -429,9 +423,9 @@ instanceGroupCardView :
             , dropState : DropState
             , now : Maybe Time.Posix
             , pipelinesWithResourceErrors : Set Concourse.DatabaseID
-            , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
-            , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
-            , jobs : Dict ( Concourse.DatabaseID, String ) Concourse.Job
+            , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobName))
+            , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobName)
+            , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
             , dashboardView : Routes.DashboardView
             , query : String
         }

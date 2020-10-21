@@ -654,11 +654,6 @@ precomputeJobMetadata model =
 
         pipelineJobs =
             allJobs |> groupBy (\j -> j.pipelineId)
-
-        jobToId job =
-            { pipelineId = job.pipelineId
-            , jobName = job.name
-            }
     in
     { model
         | pipelineLayers =
@@ -667,11 +662,11 @@ precomputeJobMetadata model =
                     (\_ jobs ->
                         jobs
                             |> DashboardPreview.groupByRank
-                            |> List.map (List.map jobToId)
+                            |> List.map (List.map .name)
                     )
         , pipelineJobs =
             pipelineJobs
-                |> Dict.map (\_ jobs -> jobs |> List.map jobToId)
+                |> Dict.map (\_ jobs -> jobs |> List.map .name)
     }
 
 

@@ -452,7 +452,7 @@ pipelineStatusView section pipeline status now =
 
 visibilityView :
     { public : Bool
-    , pipelineId : Concourse.PipelineIdentifier
+    , pipelineId : Concourse.DatabaseID
     , isClickable : Bool
     , isHovered : Bool
     , isVisibilityLoading : Bool

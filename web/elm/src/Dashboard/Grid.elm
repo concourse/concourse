@@ -62,7 +62,7 @@ type alias Header =
 computeLayout :
     { dragState : DragState
     , dropState : DropState
-    , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
+    , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobName))
     , viewportWidth : Float
     , viewportHeight : Float
     , scrollTop : Float
@@ -186,7 +186,7 @@ computeLayout params teamName cards =
 
 
 computeFavoritesLayout :
-    { pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
+    { pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobName))
     , viewportWidth : Float
     , viewportHeight : Float
     , scrollTop : Float
@@ -267,7 +267,7 @@ computeFavoritesLayout params cards =
 
 
 cardSizes :
-    Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
+    Dict Concourse.DatabaseID (List (List Concourse.JobName))
     -> List Models.Card
     -> List ( Layout.GridSpan, Layout.GridSpan )
 cardSizes pipelineLayers =
@@ -340,7 +340,7 @@ computeCards :
     ->
         { a
             | viewportWidth : Float
-            , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobIdentifier))
+            , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobName))
         }
     -> List Models.Card
     ->

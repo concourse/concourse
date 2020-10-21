@@ -45,13 +45,8 @@ viewJob section hovered job =
                 Just build ->
                     Routes.buildRoute build.id build.name build.job
 
-        jobId =
-            { jobName = job.name
-            , pipelineId = job.pipelineId
-            }
-
         domId =
-            JobPreview section jobId
+            JobPreview section job.pipelineId job.name
     in
     Html.div
         (Tooltip.hoverAttrs domId
