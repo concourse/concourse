@@ -212,6 +212,20 @@ func (worker *gardenWorker) FindOrCreateContainer(
 	metadata db.ContainerMetadata,
 	containerSpec ContainerSpec,
 ) (Container, error) {
+	c, err := worker.findOrCreateContainer(ctx, logger, owner, metadata, containerSpec)
+	if err != nil {
+		return c, fmt.Errorf("find or create container on worker %s: %w", worker.Name(), err)
+	}
+	return c, err
+}
+
+func (worker *gardenWorker) findOrCreateContainer(
+	ctx context.Context,
+	logger lager.Logger,
+	owner db.ContainerOwner,
+	metadata db.ContainerMetadata,
+	containerSpec ContainerSpec,
+) (Container, error) {
 
 	var (
 		gardenContainer   gclient.Container
