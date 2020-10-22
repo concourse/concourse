@@ -35,11 +35,7 @@ func (s *Server) ListAllResources(w http.ResponseWriter, r *http.Request) {
 	for _, resource := range dbResources {
 		resources = append(
 			resources,
-			present.Resource(
-				resource,
-				true,
-				resource.TeamName(),
-			),
+			present.Resource(resource),
 		)
 	}
 

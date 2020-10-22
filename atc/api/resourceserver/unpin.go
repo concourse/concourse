@@ -8,9 +8,13 @@ import (
 )
 
 func (s *Server) UnpinResource(pipeline db.Pipeline) http.Handler {
-	logger := s.logger.Session("unpin-resource-version")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resourceName := r.FormValue(":resource_name")
+
+		logger := s.logger.Session("unpin-resource-version", lager.Data{
+			"resource": resourceName,
+		})
+
 		resource, found, err := pipeline.Resource(resourceName)
 		if err != nil {
 			logger.Error("failed-to-get-resource", err)
@@ -18,7 +22,7 @@ func (s *Server) UnpinResource(pipeline db.Pipeline) http.Handler {
 			return
 		}
 		if !found {
-			logger.Debug("resource-not-found", lager.Data{"resource": resourceName})
+			logger.Info("resource-not-found")
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}

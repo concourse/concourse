@@ -27,7 +27,7 @@ var _ = Describe("Ephemeral workers", func() {
 	})
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace)
+		cleanupReleases()
 		atc.Close()
 	})
 

@@ -15,7 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
-	"github.com/concourse/concourse/vars"
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 type ErrPipelineNotFound struct {
@@ -34,16 +34,21 @@ func (e ErrResourceNotFound) Error() string {
 	return fmt.Sprintf("resource '%s' not found", e.ResourceName)
 }
 
+//go:generate counterfeiter . GetDelegateFactory
+
+type GetDelegateFactory interface {
+	GetDelegate(state RunState) GetDelegate
+}
+
 //go:generate counterfeiter . GetDelegate
 
 type GetDelegate interface {
-	ImageVersionDetermined(db.UsedResourceCache) error
-	RedactImageSource(source atc.Source) (atc.Source, error)
+	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
+
+	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
-
-	Variables() *vars.BuildVariables
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
@@ -65,8 +70,7 @@ type GetStep struct {
 	resourceCacheFactory db.ResourceCacheFactory
 	strategy             worker.ContainerPlacementStrategy
 	workerClient         worker.Client
-	delegate             GetDelegate
-	succeeded            bool
+	delegateFactory      GetDelegateFactory
 }
 
 func NewGetStep(
@@ -77,7 +81,7 @@ func NewGetStep(
 	resourceFactory resource.ResourceFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	strategy worker.ContainerPlacementStrategy,
-	delegate GetDelegate,
+	delegateFactory GetDelegateFactory,
 	client worker.Client,
 ) Step {
 	return &GetStep{
@@ -88,77 +92,90 @@ func NewGetStep(
 		resourceFactory:      resourceFactory,
 		resourceCacheFactory: resourceCacheFactory,
 		strategy:             strategy,
-		delegate:             delegate,
+		delegateFactory:      delegateFactory,
 		workerClient:         client,
 	}
 }
-func (step *GetStep) Run(ctx context.Context, state RunState) error {
-	ctx, span := tracing.StartSpan(ctx, "get", tracing.Attrs{
-		"team":     step.metadata.TeamName,
-		"pipeline": step.metadata.PipelineName,
-		"job":      step.metadata.JobName,
-		"build":    step.metadata.BuildName,
-		"resource": step.plan.Resource,
+
+func (step *GetStep) Run(ctx context.Context, state RunState) (bool, error) {
+	delegate := step.delegateFactory.GetDelegate(state)
+	ctx, span := delegate.StartSpan(ctx, "get", tracing.Attrs{
 		"name":     step.plan.Name,
+		"resource": step.plan.Resource,
 	})
 
-	err := step.run(ctx, state)
+	ok, err := step.run(ctx, state, delegate)
 	tracing.End(span, err)
 
-	return err
+	return ok, err
 }
 
-func (step *GetStep) run(ctx context.Context, state RunState) error {
+func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelegate) (bool, error) {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("get-step", lager.Data{
 		"step-name": step.plan.Name,
-		"job-id":    step.metadata.JobID,
 	})
 
-	step.delegate.Initializing(logger)
+	delegate.Initializing(logger)
 
-	variables := step.delegate.Variables()
-
-	source, err := creds.NewSource(variables, step.plan.Source).Evaluate()
+	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	params, err := creds.NewParams(variables, step.plan.Params).Evaluate()
+	params, err := creds.NewParams(state, step.plan.Params).Evaluate()
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
+	workerSpec := worker.WorkerSpec{
+		Tags:   step.plan.Tags,
+		TeamID: step.metadata.TeamID,
+	}
+
+	var imageSpec worker.ImageSpec
+	resourceType, found := step.plan.VersionedResourceTypes.Lookup(step.plan.Type)
+	if found {
+		image := atc.ImageResource{
+			Name:    resourceType.Name,
+			Type:    resourceType.Type,
+			Source:  resourceType.Source,
+			Params:  resourceType.Params,
+			Version: resourceType.Version,
+			Tags:    resourceType.Tags,
+		}
+		if len(image.Tags) == 0 {
+			image.Tags = step.plan.Tags
+		}
+
+		types := step.plan.VersionedResourceTypes.Without(step.plan.Type)
+
+		var err error
+		imageSpec, err = delegate.FetchImage(ctx, image, types, resourceType.Privileged)
+		if err != nil {
+			return false, err
+		}
+	} else {
+		imageSpec.ResourceType = step.plan.Type
+		workerSpec.ResourceType = step.plan.Type
+	}
+
+	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	version, err := NewVersionSourceFromPlan(&step.plan).Version(state)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	containerSpec := worker.ContainerSpec{
-		ImageSpec: worker.ImageSpec{
-			ResourceType: step.plan.Type,
-		},
-		TeamID: step.metadata.TeamID,
-		Env:    step.metadata.Env(),
+		ImageSpec: imageSpec,
+		TeamID:    step.metadata.TeamID,
+		Env:       step.metadata.Env(),
 	}
 	tracing.Inject(ctx, &containerSpec)
-
-	workerSpec := worker.WorkerSpec{
-		ResourceType:  step.plan.Type,
-		Tags:          step.plan.Tags,
-		TeamID:        step.metadata.TeamID,
-		ResourceTypes: resourceTypes,
-	}
-
-	imageSpec := worker.ImageFetcherSpec{
-		ResourceTypes: resourceTypes,
-		Delegate:      step.delegate,
-	}
 
 	resourceCache, err := step.resourceCacheFactory.FindOrCreateResourceCache(
 		db.ForBuild(step.metadata.BuildID),
@@ -170,14 +187,14 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 	)
 	if err != nil {
 		logger.Error("failed-to-create-resource-cache", err)
-		return err
+		return false, err
 	}
 
 	processSpec := runtime.ProcessSpec{
 		Path:         "/opt/resource/in",
 		Args:         []string{resource.ResourcesDir("get")},
-		StdoutWriter: step.delegate.Stdout(),
-		StderrWriter: step.delegate.Stderr(),
+		StdoutWriter: delegate.Stdout(),
+		StderrWriter: delegate.Stderr(),
 	}
 
 	resourceToGet := step.resourceFactory.NewResource(
@@ -196,39 +213,36 @@ func (step *GetStep) run(ctx context.Context, state RunState) error {
 		workerSpec,
 		step.strategy,
 		step.containerMetadata,
-		imageSpec,
 		processSpec,
-		step.delegate,
+		delegate,
 		resourceCache,
 		resourceToGet,
 	)
 	if err != nil {
-		return err
+		return false, err
 	}
 
+	var succeeded bool
 	if getResult.ExitStatus == 0 {
+		state.StoreResult(step.planID, resourceCache)
+
 		state.ArtifactRepository().RegisterArtifact(
 			build.ArtifactName(step.plan.Name),
 			getResult.GetArtifact,
 		)
 
 		if step.plan.Resource != "" {
-			step.delegate.UpdateVersion(logger, step.plan, getResult.VersionResult)
+			delegate.UpdateVersion(logger, step.plan, getResult.VersionResult)
 		}
 
-		step.succeeded = true
+		succeeded = true
 	}
 
-	step.delegate.Finished(
+	delegate.Finished(
 		logger,
 		ExitStatus(getResult.ExitStatus),
 		getResult.VersionResult,
 	)
 
-	return nil
-}
-
-// Succeeded returns true if the resource was successfully fetched.
-func (step *GetStep) Succeeded() bool {
-	return step.succeeded
+	return succeeded, nil
 }

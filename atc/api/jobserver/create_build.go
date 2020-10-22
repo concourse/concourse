@@ -79,11 +79,6 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 			}
 		}
 
-		err = s.checkFactory.NotifyChecker()
-		if err != nil {
-			logger.Error("failed-to-notify-checker", err)
-		}
-
 		err = json.NewEncoder(w).Encode(present.Build(build))
 		if err != nil {
 			logger.Error("failed-to-encode-build", err)

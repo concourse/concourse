@@ -1,5 +1,6 @@
 module Build.Output.Output exposing
-    ( handleEnvelopes
+    ( filterHoverState
+    , handleEnvelopes
     , handleStepTreeMsg
     , init
     , planAndResourcesFetched
@@ -14,8 +15,8 @@ import Build.StepTree.Models as StepTree
     exposing
         ( BuildEvent(..)
         , BuildEventEnvelope
+        , Step
         , StepState(..)
-        , StepTree
         , StepTreeModel
         )
 import Build.StepTree.StepTree
@@ -26,7 +27,7 @@ import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (class)
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Routes exposing (StepID)
 import Time
 import Views.LoadingIndicator as LoadingIndicator
@@ -235,6 +236,16 @@ handleEvent event ( model, effects ) =
             in
             ( { model | steps = newSt }, effects )
 
+        ImageCheck { id } plan ->
+            ( { model | steps = Maybe.map (Build.StepTree.StepTree.setImageCheck id plan) model.steps }
+            , effects
+            )
+
+        ImageGet { id } plan ->
+            ( { model | steps = Maybe.map (Build.StepTree.StepTree.setImageGet id plan) model.steps }
+            , effects
+            )
+
         End ->
             ( { model | state = StepsComplete, eventStreamUrlPath = Nothing }
             , effects
@@ -244,69 +255,63 @@ handleEvent event ( model, effects ) =
             ( model, effects )
 
 
-updateStep : StepID -> (StepTree -> StepTree) -> OutputModel -> OutputModel
+updateStep : StepID -> (Step -> Step) -> OutputModel -> OutputModel
 updateStep id update model =
     { model | steps = Maybe.map (StepTree.updateAt id update) model.steps }
 
 
-setRunning : StepTree -> StepTree
+setRunning : Step -> Step
 setRunning =
     setStepState StepStateRunning
 
 
-appendStepLog : String -> Maybe Time.Posix -> StepTree -> StepTree
-appendStepLog output mtime tree =
-    (\a -> StepTree.map a tree) <|
-        \step ->
-            let
-                outputLineCount =
-                    Ansi.Log.update output (Ansi.Log.init Ansi.Log.Cooked)
-                        |> .lines
-                        |> Array.length
+appendStepLog : String -> Maybe Time.Posix -> Step -> Step
+appendStepLog output mtime step =
+    let
+        outputLineCount =
+            Ansi.Log.update output (Ansi.Log.init Ansi.Log.Cooked)
+                |> .lines
+                |> Array.length
 
-                lastLineNo =
-                    max (Array.length step.log.lines) 1
+        lastLineNo =
+            max (Array.length step.log.lines) 1
 
-                setLineTimestamp lineNo timestamps =
-                    Dict.update lineNo (always mtime) timestamps
+        setLineTimestamp lineNo timestamps =
+            Dict.update lineNo (always mtime) timestamps
 
-                newTimestamps =
-                    List.foldl
-                        setLineTimestamp
-                        step.timestamps
-                        (List.range lastLineNo (lastLineNo + outputLineCount - 1))
+        newTimestamps =
+            List.foldl
+                setLineTimestamp
+                step.timestamps
+                (List.range lastLineNo (lastLineNo + outputLineCount - 1))
 
-                newLog =
-                    Ansi.Log.update output step.log
-            in
-            { step | log = newLog, timestamps = newTimestamps }
+        newLog =
+            Ansi.Log.update output step.log
+    in
+    { step | log = newLog, timestamps = newTimestamps }
 
 
-setStepError : String -> Time.Posix -> StepTree -> StepTree
-setStepError message time tree =
-    StepTree.map
-        (\step ->
-            { step
-                | state = StepStateErrored
-                , error = Just message
-                , finish = Just time
-            }
-        )
-        tree
+setStepError : String -> Time.Posix -> Step -> Step
+setStepError message time step =
+    { step
+        | state = StepStateErrored
+        , error = Just message
+        , finish = Just time
+    }
 
 
-setStart : Time.Posix -> StepTree -> StepTree
-setStart time tree =
-    setStepStart time (setStepState StepStateRunning tree)
+setStart : Time.Posix -> Step -> Step
+setStart time step =
+    setStepStart time (setStepState StepStateRunning step)
 
 
-setInitialize : Time.Posix -> StepTree -> StepTree
-setInitialize time tree =
-    setStepInitialize time (setStepState StepStateRunning tree)
+setInitialize : Time.Posix -> Step -> Step
+setInitialize time step =
+    setStepInitialize time (setStepState StepStateRunning step)
 
 
-finishStep : Bool -> Maybe Time.Posix -> StepTree -> StepTree
-finishStep succeeded mtime tree =
+finishStep : Bool -> Maybe Time.Posix -> Step -> Step
+finishStep succeeded mtime step =
     let
         stepState =
             if succeeded then
@@ -315,37 +320,37 @@ finishStep succeeded mtime tree =
             else
                 StepStateFailed
     in
-    setStepFinish mtime (setStepState stepState tree)
+    setStepFinish mtime (setStepState stepState step)
 
 
-setResourceInfo : Concourse.Version -> Concourse.Metadata -> StepTree -> StepTree
-setResourceInfo version metadata tree =
-    StepTree.map (\step -> { step | version = Just version, metadata = metadata }) tree
+setResourceInfo : Concourse.Version -> Concourse.Metadata -> Step -> Step
+setResourceInfo version metadata step =
+    { step | version = Just version, metadata = metadata }
 
 
-setStepState : StepState -> StepTree -> StepTree
-setStepState state tree =
-    StepTree.map (\step -> { step | state = state }) tree
+setStepState : StepState -> Step -> Step
+setStepState state step =
+    { step | state = state }
 
 
-setStepInitialize : Time.Posix -> StepTree -> StepTree
-setStepInitialize time tree =
-    StepTree.map (\step -> { step | initialize = Just time }) tree
+setStepInitialize : Time.Posix -> Step -> Step
+setStepInitialize time step =
+    { step | initialize = Just time }
 
 
-setStepStart : Time.Posix -> StepTree -> StepTree
-setStepStart time tree =
-    StepTree.map (\step -> { step | start = Just time }) tree
+setStepStart : Time.Posix -> Step -> Step
+setStepStart time step =
+    { step | start = Just time }
 
 
-setStepFinish : Maybe Time.Posix -> StepTree -> StepTree
-setStepFinish mtime tree =
-    StepTree.map (\step -> { step | finish = mtime }) tree
+setStepFinish : Maybe Time.Posix -> Step -> Step
+setStepFinish mtime step =
+    { step | finish = mtime }
 
 
-setSetPipelineChanged : Bool -> StepTree -> StepTree
-setSetPipelineChanged changed tree =
-    StepTree.map (\step -> { step | changed = changed }) tree
+setSetPipelineChanged : Bool -> Step -> Step
+setSetPipelineChanged changed step =
+    { step | changed = changed }
 
 
 view :
@@ -374,3 +379,19 @@ viewStepTree session steps state =
 
         ( _, Nothing ) ->
             Html.div [] []
+
+
+filterHoverState : HoverState.HoverState -> HoverState.HoverState
+filterHoverState hovered =
+    case hovered of
+        HoverState.TooltipPending (StepState _) ->
+            hovered
+
+        HoverState.Tooltip (StepState _) _ ->
+            hovered
+
+        HoverState.Hovered (StepTab _ _) ->
+            hovered
+
+        _ ->
+            HoverState.NoHover

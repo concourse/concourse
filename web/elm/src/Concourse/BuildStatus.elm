@@ -3,6 +3,7 @@ module Concourse.BuildStatus exposing
     , decodeBuildStatus
     , encodeBuildStatus
     , isRunning
+    , isBad
     , ordering
     , show
     )
@@ -98,4 +99,26 @@ isRunning status =
             True
 
         _ ->
+            False
+
+
+isBad : BuildStatus -> Bool
+isBad status =
+    case status of
+        BuildStatusPending ->
+            False
+
+        BuildStatusStarted ->
+            False
+
+        BuildStatusSucceeded ->
+            False
+
+        BuildStatusFailed ->
+            True
+
+        BuildStatusErrored ->
+            True
+
+        BuildStatusAborted ->
             False

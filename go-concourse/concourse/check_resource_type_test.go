@@ -19,15 +19,14 @@ var _ = Describe("CheckResourceType", func() {
 	)
 
 	Context("when ATC request succeeds", func() {
-		var expectedCheck atc.Check
+		var expectedCheck atc.Build
 
 		BeforeEach(func() {
-			expectedCheck = atc.Check{
-				ID:         123,
-				Status:     "started",
-				CreateTime: 100000000000,
-				StartTime:  100000000000,
-				EndTime:    100000000000,
+			expectedCheck = atc.Build{
+				ID:        123,
+				Status:    "started",
+				StartTime: 100000000000,
+				EndTime:   100000000000,
 			}
 
 			atcServer.AppendHandlers(

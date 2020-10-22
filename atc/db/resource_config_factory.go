@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
@@ -30,7 +31,7 @@ type ResourceConfigFactory interface {
 
 	FindResourceConfigByID(int) (ResourceConfig, bool, error)
 
-	CleanUnreferencedConfigs() error
+	CleanUnreferencedConfigs(time.Duration) error
 }
 
 type resourceConfigFactory struct {
@@ -74,7 +75,6 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 	source atc.Source,
 	resourceTypes atc.VersionedResourceTypes,
 ) (ResourceConfig, error) {
-
 	resourceConfigDescriptor, err := constructResourceConfigDescriptor(resourceType, source, resourceTypes)
 	if err != nil {
 		return nil, err
@@ -87,6 +87,11 @@ func (f *resourceConfigFactory) FindOrCreateResourceConfig(
 	defer Rollback(tx)
 
 	resourceConfig, err := resourceConfigDescriptor.findOrCreate(tx, f.lockFactory, f.conn)
+	if err != nil {
+		return nil, err
+	}
+
+	err = resourceConfig.updateLastReferenced(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -135,15 +140,7 @@ func constructResourceConfigDescriptor(
 	return resourceConfigDescriptor, nil
 }
 
-func (f *resourceConfigFactory) CleanUnreferencedConfigs() error {
-	usedByResourceConfigCheckSessionIds, _, err := sq.
-		Select("resource_config_id").
-		From("resource_config_check_sessions").
-		ToSql()
-	if err != nil {
-		return err
-	}
-
+func (f *resourceConfigFactory) CleanUnreferencedConfigs(gracePeriod time.Duration) error {
 	usedByResourceCachesIds, _, err := sq.
 		Select("resource_config_id").
 		From("resource_caches").
@@ -171,7 +168,8 @@ func (f *resourceConfigFactory) CleanUnreferencedConfigs() error {
 	}
 
 	_, err = psql.Delete("resource_configs").
-		Where("id NOT IN (" + usedByResourceConfigCheckSessionIds + " UNION " + usedByResourceCachesIds + " UNION " + usedByResourceIds + " UNION " + usedByResourceTypesIds + ")").
+		Where("id NOT IN (" + usedByResourceCachesIds + " UNION " + usedByResourceIds + " UNION " + usedByResourceTypesIds + ")").
+		Where(sq.Expr(fmt.Sprintf("now() - last_referenced > '%d seconds'::interval", int(gracePeriod.Seconds())))).
 		PlaceholderFormat(sq.Dollar).
 		RunWith(f.conn).Exec()
 	if err != nil {

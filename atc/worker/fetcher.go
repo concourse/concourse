@@ -3,7 +3,6 @@ package worker
 import (
 	"context"
 	"errors"
-	"io"
 	"time"
 
 	"code.cloudfoundry.org/clock"
@@ -30,7 +29,6 @@ type Fetcher interface {
 		processSpec runtime.ProcessSpec,
 		resource resource.Resource,
 		owner db.ContainerOwner,
-		imageFetcherSpec ImageFetcherSpec,
 		cache db.UsedResourceCache,
 		lockName string,
 	) (GetResult, Volume, error)
@@ -63,7 +61,6 @@ func (f *fetcher) Fetch(
 	processSpec runtime.ProcessSpec,
 	resource resource.Resource,
 	owner db.ContainerOwner,
-	imageFetcherSpec ImageFetcherSpec,
 	cache db.UsedResourceCache,
 	lockName string,
 ) (GetResult, Volume, error) {
@@ -82,11 +79,9 @@ func (f *fetcher) Fetch(
 		owner,
 		cache,
 		resource,
-		imageFetcherSpec.ResourceTypes,
 		containerSpec,
 		processSpec,
 		containerMetadata,
-		imageFetcherSpec.Delegate,
 	)
 
 	ticker := f.clock.NewTicker(GetResourceLockInterval)
@@ -96,7 +91,6 @@ func (f *fetcher) Fetch(
 		ctx,
 		logger,
 		fetchSource,
-		imageFetcherSpec.Delegate.Stdout(),
 		cache,
 		lockName,
 	)
@@ -111,7 +105,6 @@ func (f *fetcher) Fetch(
 				ctx,
 				logger,
 				fetchSource,
-				imageFetcherSpec.Delegate.Stdout(),
 				cache,
 				lockName,
 			)
@@ -134,7 +127,6 @@ func (f *fetcher) fetchUnderLock(
 	ctx context.Context,
 	logger lager.Logger,
 	source FetchSource,
-	stdout io.Writer,
 	cache db.UsedResourceCache,
 	lockName string,
 ) (GetResult, Volume, error) {

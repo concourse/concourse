@@ -19,7 +19,7 @@ var _ = Describe("TSA Service Node Port", func() {
 	})
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace)
+		cleanupReleases()
 	})
 
 })

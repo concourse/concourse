@@ -6,19 +6,16 @@ import (
 )
 
 type StepMetadata struct {
-	BuildID               int
-	BuildName             string
-	TeamID                int
-	TeamName              string
-	JobID                 int
-	JobName               string
-	PipelineID            int
-	PipelineName          string
-	PipelineInstanceVars  map[string]interface{}
-	ResourceConfigScopeID int
-	ResourceConfigID      int
-	BaseResourceTypeID    int
-	ExternalURL           string
+	BuildID              int
+	BuildName            string
+	TeamID               int
+	TeamName             string
+	JobID                int
+	JobName              string
+	PipelineID           int
+	PipelineName         string
+	PipelineInstanceVars map[string]interface{}
+	ExternalURL          string
 }
 
 func (metadata StepMetadata) Env() []string {

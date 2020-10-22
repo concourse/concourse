@@ -1,7 +1,8 @@
 module Data exposing
-    ( check
+    ( build
     , dashboardPipeline
     , elementPosition
+    , httpForbidden
     , httpInternalServerError
     , httpNotFound
     , httpNotImplemented
@@ -29,6 +30,7 @@ module Data exposing
     , versionedResource
     , withArchived
     , withBackgroundImage
+    , withBuild
     , withBuildName
     , withCheckError
     , withDisableManualTrigger
@@ -84,6 +86,20 @@ httpUnauthorized =
             }
 
 
+httpForbidden : Result Http.Error a
+httpForbidden =
+    Err <|
+        Http.BadStatus
+            { url = "http://example.com"
+            , status =
+                { code = 403
+                , message = ""
+                }
+            , headers = Dict.empty
+            , body = ""
+            }
+
+
 httpNotFound : Result Http.Error a
 httpNotFound =
     Err <|
@@ -126,37 +142,6 @@ httpInternalServerError =
             }
 
 
-check : Concourse.CheckStatus -> Concourse.Check
-check status =
-    case status of
-        Concourse.Started ->
-            { id = 0
-            , status = Concourse.Started
-            , createTime = Just <| Time.millisToPosix 0
-            , startTime = Just <| Time.millisToPosix 0
-            , endTime = Nothing
-            , checkError = Nothing
-            }
-
-        Concourse.Succeeded ->
-            { id = 0
-            , status = Concourse.Succeeded
-            , createTime = Just <| Time.millisToPosix 0
-            , startTime = Just <| Time.millisToPosix 0
-            , endTime = Just <| Time.millisToPosix 1000
-            , checkError = Nothing
-            }
-
-        Concourse.Errored ->
-            { id = 0
-            , status = Concourse.Errored
-            , createTime = Just <| Time.millisToPosix 0
-            , startTime = Just <| Time.millisToPosix 0
-            , endTime = Just <| Time.millisToPosix 1000
-            , checkError = Just "something broke"
-            }
-
-
 resource : Maybe String -> Concourse.Resource
 resource pinnedVersion =
     { teamName = teamName
@@ -164,14 +149,12 @@ resource pinnedVersion =
     , pipelineName = pipelineName
     , pipelineInstanceVars = Dict.empty
     , name = resourceName
-    , failingToCheck = False
-    , checkError = ""
-    , checkSetupError = ""
     , lastChecked = Nothing
     , pinnedVersion = Maybe.map version pinnedVersion
     , pinnedInConfig = False
     , pinComment = Nothing
     , icon = Nothing
+    , build = Nothing
     }
 
 
@@ -299,13 +282,13 @@ withBuildName name p =
 
 
 withFinishedBuild : Maybe Concourse.Build -> { r | finishedBuild : Maybe Concourse.Build } -> { r | finishedBuild : Maybe Concourse.Build }
-withFinishedBuild build j =
-    { j | finishedBuild = build }
+withFinishedBuild b j =
+    { j | finishedBuild = b }
 
 
 withNextBuild : Maybe Concourse.Build -> { r | nextBuild : Maybe Concourse.Build } -> { r | nextBuild : Maybe Concourse.Build }
-withNextBuild build j =
-    { j | nextBuild = build }
+withNextBuild b j =
+    { j | nextBuild = b }
 
 
 withId : Int -> { r | id : Int } -> { r | id : Int }
@@ -485,6 +468,37 @@ longJobBuildId =
     , jobName = jobName
     , buildName = buildName
     }
+
+
+build : BuildStatus.BuildStatus -> Concourse.Build
+build status =
+    { id = 1
+    , name = buildName
+    , teamName = teamName
+    , job = Nothing
+    , status = status
+    , duration =
+        { startedAt =
+            case status of
+                BuildStatus.BuildStatusPending ->
+                    Nothing
+
+                _ ->
+                    Just <| Time.millisToPosix 0
+        , finishedAt =
+            if BuildStatus.isRunning status then
+                Nothing
+
+            else
+                Just <| Time.millisToPosix 0
+        }
+    , reapTime = Nothing
+    }
+
+
+withBuild : a -> { r | build : a } -> { r | build : a }
+withBuild b r =
+    { r | build = b }
 
 
 jobBuild : BuildStatus.BuildStatus -> Concourse.Build

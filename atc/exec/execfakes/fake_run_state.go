@@ -2,14 +2,23 @@
 package execfakes
 
 import (
+	"context"
 	"sync"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/vars"
 )
 
 type FakeRunState struct {
+	AddLocalVarStub        func(string, interface{}, bool)
+	addLocalVarMutex       sync.RWMutex
+	addLocalVarArgsForCall []struct {
+		arg1 string
+		arg2 interface{}
+		arg3 bool
+	}
 	ArtifactRepositoryStub        func() *build.Repository
 	artifactRepositoryMutex       sync.RWMutex
 	artifactRepositoryArgsForCall []struct {
@@ -19,6 +28,68 @@ type FakeRunState struct {
 	}
 	artifactRepositoryReturnsOnCall map[int]struct {
 		result1 *build.Repository
+	}
+	GetStub        func(vars.Reference) (interface{}, bool, error)
+	getMutex       sync.RWMutex
+	getArgsForCall []struct {
+		arg1 vars.Reference
+	}
+	getReturns struct {
+		result1 interface{}
+		result2 bool
+		result3 error
+	}
+	getReturnsOnCall map[int]struct {
+		result1 interface{}
+		result2 bool
+		result3 error
+	}
+	IterateInterpolatedCredsStub        func(vars.TrackedVarsIterator)
+	iterateInterpolatedCredsMutex       sync.RWMutex
+	iterateInterpolatedCredsArgsForCall []struct {
+		arg1 vars.TrackedVarsIterator
+	}
+	ListStub        func() ([]vars.Reference, error)
+	listMutex       sync.RWMutex
+	listArgsForCall []struct {
+	}
+	listReturns struct {
+		result1 []vars.Reference
+		result2 error
+	}
+	listReturnsOnCall map[int]struct {
+		result1 []vars.Reference
+		result2 error
+	}
+	NewLocalScopeStub        func() exec.RunState
+	newLocalScopeMutex       sync.RWMutex
+	newLocalScopeArgsForCall []struct {
+	}
+	newLocalScopeReturns struct {
+		result1 exec.RunState
+	}
+	newLocalScopeReturnsOnCall map[int]struct {
+		result1 exec.RunState
+	}
+	ParentStub        func() exec.RunState
+	parentMutex       sync.RWMutex
+	parentArgsForCall []struct {
+	}
+	parentReturns struct {
+		result1 exec.RunState
+	}
+	parentReturnsOnCall map[int]struct {
+		result1 exec.RunState
+	}
+	RedactionEnabledStub        func() bool
+	redactionEnabledMutex       sync.RWMutex
+	redactionEnabledArgsForCall []struct {
+	}
+	redactionEnabledReturns struct {
+		result1 bool
+	}
+	redactionEnabledReturnsOnCall map[int]struct {
+		result1 bool
 	}
 	ResultStub        func(atc.PlanID, interface{}) bool
 	resultMutex       sync.RWMutex
@@ -32,6 +103,20 @@ type FakeRunState struct {
 	resultReturnsOnCall map[int]struct {
 		result1 bool
 	}
+	RunStub        func(context.Context, atc.Plan) (bool, error)
+	runMutex       sync.RWMutex
+	runArgsForCall []struct {
+		arg1 context.Context
+		arg2 atc.Plan
+	}
+	runReturns struct {
+		result1 bool
+		result2 error
+	}
+	runReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	StoreResultStub        func(atc.PlanID, interface{})
 	storeResultMutex       sync.RWMutex
 	storeResultArgsForCall []struct {
@@ -40,6 +125,39 @@ type FakeRunState struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeRunState) AddLocalVar(arg1 string, arg2 interface{}, arg3 bool) {
+	fake.addLocalVarMutex.Lock()
+	fake.addLocalVarArgsForCall = append(fake.addLocalVarArgsForCall, struct {
+		arg1 string
+		arg2 interface{}
+		arg3 bool
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("AddLocalVar", []interface{}{arg1, arg2, arg3})
+	fake.addLocalVarMutex.Unlock()
+	if fake.AddLocalVarStub != nil {
+		fake.AddLocalVarStub(arg1, arg2, arg3)
+	}
+}
+
+func (fake *FakeRunState) AddLocalVarCallCount() int {
+	fake.addLocalVarMutex.RLock()
+	defer fake.addLocalVarMutex.RUnlock()
+	return len(fake.addLocalVarArgsForCall)
+}
+
+func (fake *FakeRunState) AddLocalVarCalls(stub func(string, interface{}, bool)) {
+	fake.addLocalVarMutex.Lock()
+	defer fake.addLocalVarMutex.Unlock()
+	fake.AddLocalVarStub = stub
+}
+
+func (fake *FakeRunState) AddLocalVarArgsForCall(i int) (string, interface{}, bool) {
+	fake.addLocalVarMutex.RLock()
+	defer fake.addLocalVarMutex.RUnlock()
+	argsForCall := fake.addLocalVarArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeRunState) ArtifactRepository() *build.Repository {
@@ -91,6 +209,314 @@ func (fake *FakeRunState) ArtifactRepositoryReturnsOnCall(i int, result1 *build.
 	}
 	fake.artifactRepositoryReturnsOnCall[i] = struct {
 		result1 *build.Repository
+	}{result1}
+}
+
+func (fake *FakeRunState) Get(arg1 vars.Reference) (interface{}, bool, error) {
+	fake.getMutex.Lock()
+	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
+	fake.getArgsForCall = append(fake.getArgsForCall, struct {
+		arg1 vars.Reference
+	}{arg1})
+	fake.recordInvocation("Get", []interface{}{arg1})
+	fake.getMutex.Unlock()
+	if fake.GetStub != nil {
+		return fake.GetStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.getReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakeRunState) GetCallCount() int {
+	fake.getMutex.RLock()
+	defer fake.getMutex.RUnlock()
+	return len(fake.getArgsForCall)
+}
+
+func (fake *FakeRunState) GetCalls(stub func(vars.Reference) (interface{}, bool, error)) {
+	fake.getMutex.Lock()
+	defer fake.getMutex.Unlock()
+	fake.GetStub = stub
+}
+
+func (fake *FakeRunState) GetArgsForCall(i int) vars.Reference {
+	fake.getMutex.RLock()
+	defer fake.getMutex.RUnlock()
+	argsForCall := fake.getArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeRunState) GetReturns(result1 interface{}, result2 bool, result3 error) {
+	fake.getMutex.Lock()
+	defer fake.getMutex.Unlock()
+	fake.GetStub = nil
+	fake.getReturns = struct {
+		result1 interface{}
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeRunState) GetReturnsOnCall(i int, result1 interface{}, result2 bool, result3 error) {
+	fake.getMutex.Lock()
+	defer fake.getMutex.Unlock()
+	fake.GetStub = nil
+	if fake.getReturnsOnCall == nil {
+		fake.getReturnsOnCall = make(map[int]struct {
+			result1 interface{}
+			result2 bool
+			result3 error
+		})
+	}
+	fake.getReturnsOnCall[i] = struct {
+		result1 interface{}
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakeRunState) IterateInterpolatedCreds(arg1 vars.TrackedVarsIterator) {
+	fake.iterateInterpolatedCredsMutex.Lock()
+	fake.iterateInterpolatedCredsArgsForCall = append(fake.iterateInterpolatedCredsArgsForCall, struct {
+		arg1 vars.TrackedVarsIterator
+	}{arg1})
+	fake.recordInvocation("IterateInterpolatedCreds", []interface{}{arg1})
+	fake.iterateInterpolatedCredsMutex.Unlock()
+	if fake.IterateInterpolatedCredsStub != nil {
+		fake.IterateInterpolatedCredsStub(arg1)
+	}
+}
+
+func (fake *FakeRunState) IterateInterpolatedCredsCallCount() int {
+	fake.iterateInterpolatedCredsMutex.RLock()
+	defer fake.iterateInterpolatedCredsMutex.RUnlock()
+	return len(fake.iterateInterpolatedCredsArgsForCall)
+}
+
+func (fake *FakeRunState) IterateInterpolatedCredsCalls(stub func(vars.TrackedVarsIterator)) {
+	fake.iterateInterpolatedCredsMutex.Lock()
+	defer fake.iterateInterpolatedCredsMutex.Unlock()
+	fake.IterateInterpolatedCredsStub = stub
+}
+
+func (fake *FakeRunState) IterateInterpolatedCredsArgsForCall(i int) vars.TrackedVarsIterator {
+	fake.iterateInterpolatedCredsMutex.RLock()
+	defer fake.iterateInterpolatedCredsMutex.RUnlock()
+	argsForCall := fake.iterateInterpolatedCredsArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeRunState) List() ([]vars.Reference, error) {
+	fake.listMutex.Lock()
+	ret, specificReturn := fake.listReturnsOnCall[len(fake.listArgsForCall)]
+	fake.listArgsForCall = append(fake.listArgsForCall, struct {
+	}{})
+	fake.recordInvocation("List", []interface{}{})
+	fake.listMutex.Unlock()
+	if fake.ListStub != nil {
+		return fake.ListStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.listReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeRunState) ListCallCount() int {
+	fake.listMutex.RLock()
+	defer fake.listMutex.RUnlock()
+	return len(fake.listArgsForCall)
+}
+
+func (fake *FakeRunState) ListCalls(stub func() ([]vars.Reference, error)) {
+	fake.listMutex.Lock()
+	defer fake.listMutex.Unlock()
+	fake.ListStub = stub
+}
+
+func (fake *FakeRunState) ListReturns(result1 []vars.Reference, result2 error) {
+	fake.listMutex.Lock()
+	defer fake.listMutex.Unlock()
+	fake.ListStub = nil
+	fake.listReturns = struct {
+		result1 []vars.Reference
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeRunState) ListReturnsOnCall(i int, result1 []vars.Reference, result2 error) {
+	fake.listMutex.Lock()
+	defer fake.listMutex.Unlock()
+	fake.ListStub = nil
+	if fake.listReturnsOnCall == nil {
+		fake.listReturnsOnCall = make(map[int]struct {
+			result1 []vars.Reference
+			result2 error
+		})
+	}
+	fake.listReturnsOnCall[i] = struct {
+		result1 []vars.Reference
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeRunState) NewLocalScope() exec.RunState {
+	fake.newLocalScopeMutex.Lock()
+	ret, specificReturn := fake.newLocalScopeReturnsOnCall[len(fake.newLocalScopeArgsForCall)]
+	fake.newLocalScopeArgsForCall = append(fake.newLocalScopeArgsForCall, struct {
+	}{})
+	fake.recordInvocation("NewLocalScope", []interface{}{})
+	fake.newLocalScopeMutex.Unlock()
+	if fake.NewLocalScopeStub != nil {
+		return fake.NewLocalScopeStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.newLocalScopeReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeRunState) NewLocalScopeCallCount() int {
+	fake.newLocalScopeMutex.RLock()
+	defer fake.newLocalScopeMutex.RUnlock()
+	return len(fake.newLocalScopeArgsForCall)
+}
+
+func (fake *FakeRunState) NewLocalScopeCalls(stub func() exec.RunState) {
+	fake.newLocalScopeMutex.Lock()
+	defer fake.newLocalScopeMutex.Unlock()
+	fake.NewLocalScopeStub = stub
+}
+
+func (fake *FakeRunState) NewLocalScopeReturns(result1 exec.RunState) {
+	fake.newLocalScopeMutex.Lock()
+	defer fake.newLocalScopeMutex.Unlock()
+	fake.NewLocalScopeStub = nil
+	fake.newLocalScopeReturns = struct {
+		result1 exec.RunState
+	}{result1}
+}
+
+func (fake *FakeRunState) NewLocalScopeReturnsOnCall(i int, result1 exec.RunState) {
+	fake.newLocalScopeMutex.Lock()
+	defer fake.newLocalScopeMutex.Unlock()
+	fake.NewLocalScopeStub = nil
+	if fake.newLocalScopeReturnsOnCall == nil {
+		fake.newLocalScopeReturnsOnCall = make(map[int]struct {
+			result1 exec.RunState
+		})
+	}
+	fake.newLocalScopeReturnsOnCall[i] = struct {
+		result1 exec.RunState
+	}{result1}
+}
+
+func (fake *FakeRunState) Parent() exec.RunState {
+	fake.parentMutex.Lock()
+	ret, specificReturn := fake.parentReturnsOnCall[len(fake.parentArgsForCall)]
+	fake.parentArgsForCall = append(fake.parentArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Parent", []interface{}{})
+	fake.parentMutex.Unlock()
+	if fake.ParentStub != nil {
+		return fake.ParentStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.parentReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeRunState) ParentCallCount() int {
+	fake.parentMutex.RLock()
+	defer fake.parentMutex.RUnlock()
+	return len(fake.parentArgsForCall)
+}
+
+func (fake *FakeRunState) ParentCalls(stub func() exec.RunState) {
+	fake.parentMutex.Lock()
+	defer fake.parentMutex.Unlock()
+	fake.ParentStub = stub
+}
+
+func (fake *FakeRunState) ParentReturns(result1 exec.RunState) {
+	fake.parentMutex.Lock()
+	defer fake.parentMutex.Unlock()
+	fake.ParentStub = nil
+	fake.parentReturns = struct {
+		result1 exec.RunState
+	}{result1}
+}
+
+func (fake *FakeRunState) ParentReturnsOnCall(i int, result1 exec.RunState) {
+	fake.parentMutex.Lock()
+	defer fake.parentMutex.Unlock()
+	fake.ParentStub = nil
+	if fake.parentReturnsOnCall == nil {
+		fake.parentReturnsOnCall = make(map[int]struct {
+			result1 exec.RunState
+		})
+	}
+	fake.parentReturnsOnCall[i] = struct {
+		result1 exec.RunState
+	}{result1}
+}
+
+func (fake *FakeRunState) RedactionEnabled() bool {
+	fake.redactionEnabledMutex.Lock()
+	ret, specificReturn := fake.redactionEnabledReturnsOnCall[len(fake.redactionEnabledArgsForCall)]
+	fake.redactionEnabledArgsForCall = append(fake.redactionEnabledArgsForCall, struct {
+	}{})
+	fake.recordInvocation("RedactionEnabled", []interface{}{})
+	fake.redactionEnabledMutex.Unlock()
+	if fake.RedactionEnabledStub != nil {
+		return fake.RedactionEnabledStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.redactionEnabledReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeRunState) RedactionEnabledCallCount() int {
+	fake.redactionEnabledMutex.RLock()
+	defer fake.redactionEnabledMutex.RUnlock()
+	return len(fake.redactionEnabledArgsForCall)
+}
+
+func (fake *FakeRunState) RedactionEnabledCalls(stub func() bool) {
+	fake.redactionEnabledMutex.Lock()
+	defer fake.redactionEnabledMutex.Unlock()
+	fake.RedactionEnabledStub = stub
+}
+
+func (fake *FakeRunState) RedactionEnabledReturns(result1 bool) {
+	fake.redactionEnabledMutex.Lock()
+	defer fake.redactionEnabledMutex.Unlock()
+	fake.RedactionEnabledStub = nil
+	fake.redactionEnabledReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeRunState) RedactionEnabledReturnsOnCall(i int, result1 bool) {
+	fake.redactionEnabledMutex.Lock()
+	defer fake.redactionEnabledMutex.Unlock()
+	fake.RedactionEnabledStub = nil
+	if fake.redactionEnabledReturnsOnCall == nil {
+		fake.redactionEnabledReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.redactionEnabledReturnsOnCall[i] = struct {
+		result1 bool
 	}{result1}
 }
 
@@ -155,6 +581,70 @@ func (fake *FakeRunState) ResultReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
+func (fake *FakeRunState) Run(arg1 context.Context, arg2 atc.Plan) (bool, error) {
+	fake.runMutex.Lock()
+	ret, specificReturn := fake.runReturnsOnCall[len(fake.runArgsForCall)]
+	fake.runArgsForCall = append(fake.runArgsForCall, struct {
+		arg1 context.Context
+		arg2 atc.Plan
+	}{arg1, arg2})
+	fake.recordInvocation("Run", []interface{}{arg1, arg2})
+	fake.runMutex.Unlock()
+	if fake.RunStub != nil {
+		return fake.RunStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.runReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeRunState) RunCallCount() int {
+	fake.runMutex.RLock()
+	defer fake.runMutex.RUnlock()
+	return len(fake.runArgsForCall)
+}
+
+func (fake *FakeRunState) RunCalls(stub func(context.Context, atc.Plan) (bool, error)) {
+	fake.runMutex.Lock()
+	defer fake.runMutex.Unlock()
+	fake.RunStub = stub
+}
+
+func (fake *FakeRunState) RunArgsForCall(i int) (context.Context, atc.Plan) {
+	fake.runMutex.RLock()
+	defer fake.runMutex.RUnlock()
+	argsForCall := fake.runArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeRunState) RunReturns(result1 bool, result2 error) {
+	fake.runMutex.Lock()
+	defer fake.runMutex.Unlock()
+	fake.RunStub = nil
+	fake.runReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeRunState) RunReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.runMutex.Lock()
+	defer fake.runMutex.Unlock()
+	fake.RunStub = nil
+	if fake.runReturnsOnCall == nil {
+		fake.runReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.runReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeRunState) StoreResult(arg1 atc.PlanID, arg2 interface{}) {
 	fake.storeResultMutex.Lock()
 	fake.storeResultArgsForCall = append(fake.storeResultArgsForCall, struct {
@@ -190,10 +680,26 @@ func (fake *FakeRunState) StoreResultArgsForCall(i int) (atc.PlanID, interface{}
 func (fake *FakeRunState) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.addLocalVarMutex.RLock()
+	defer fake.addLocalVarMutex.RUnlock()
 	fake.artifactRepositoryMutex.RLock()
 	defer fake.artifactRepositoryMutex.RUnlock()
+	fake.getMutex.RLock()
+	defer fake.getMutex.RUnlock()
+	fake.iterateInterpolatedCredsMutex.RLock()
+	defer fake.iterateInterpolatedCredsMutex.RUnlock()
+	fake.listMutex.RLock()
+	defer fake.listMutex.RUnlock()
+	fake.newLocalScopeMutex.RLock()
+	defer fake.newLocalScopeMutex.RUnlock()
+	fake.parentMutex.RLock()
+	defer fake.parentMutex.RUnlock()
+	fake.redactionEnabledMutex.RLock()
+	defer fake.redactionEnabledMutex.RUnlock()
 	fake.resultMutex.RLock()
 	defer fake.resultMutex.RUnlock()
+	fake.runMutex.RLock()
+	defer fake.runMutex.RUnlock()
 	fake.storeResultMutex.RLock()
 	defer fake.storeResultMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

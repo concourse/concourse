@@ -212,7 +212,7 @@ all =
                             (Callback.AllResourcesFetched <|
                                 Ok
                                     [ Data.resource Nothing
-                                        |> Data.withFailingToCheck True
+                                        |> Data.withBuild (Just <| Data.build Concourse.BuildStatus.BuildStatusFailed)
                                         |> Data.withPipelineId 2
                                     ]
                             )
@@ -441,7 +441,7 @@ all =
                                 (Callback.AllResourcesFetched <|
                                     Ok
                                         [ Data.resource Nothing
-                                            |> Data.withFailingToCheck True
+                                            |> Data.withBuild (Just <| Data.build Concourse.BuildStatus.BuildStatusFailed)
                                             |> Data.withPipelineId 2
                                         ]
                                 )

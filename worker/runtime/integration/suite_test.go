@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"io/ioutil"
+	"os/user"
 	"sync"
 	"testing"
 
@@ -36,12 +37,22 @@ func uuid() string {
 }
 
 func TestSuite(t *testing.T) {
+	req := require.New(t)
+
+	user, err := user.Current()
+	req.NoError(err)
+
+	if user.Uid != "0" {
+		t.Skip("must be run as root")
+		return
+	}
+
 	tmpDir, err := ioutil.TempDir("", "containerd-test")
 	if err != nil {
 		panic(err)
 	}
 	suite.Run(t, &IntegrationSuite{
-		Assertions: require.New(t),
+		Assertions: req,
 		tmpDir:     tmpDir,
 	})
 }

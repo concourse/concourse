@@ -3,8 +3,6 @@ package worker_test
 import (
 	"bytes"
 	"context"
-	"strconv"
-	"strings"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -16,7 +14,6 @@ import (
 	"github.com/concourse/concourse/atc/compression/compressionfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
-	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/worker"
@@ -35,20 +32,19 @@ var _ = Describe("RunTaskStep", func() {
 		outputBuffer *bytes.Buffer
 		ctx          context.Context
 
-		fakeWorker           *workerfakes.FakeWorker
-		fakePool             *workerfakes.FakePool
-		fakeTaskProcessSpec  runtime.ProcessSpec
-		fakeLock             *lockfakes.FakeLock
-		fakeProvider         *workerfakes.FakeWorkerProvider
-		fakeCompression      *compressionfakes.FakeCompression
-		fakeContainerOwner   db.ContainerOwner
-		fakeContainerSpec    worker.ContainerSpec
-		fakeWorkerSpec       worker.WorkerSpec
-		fakeStrategy         *workerfakes.FakeContainerPlacementStrategy
-		fakeMetadata         db.ContainerMetadata
-		fakeImageFetcherSpec worker.ImageFetcherSpec
-		fakeEventDelegate    *runtimefakes.FakeStartingEventDelegate
-		fakeLockFactory      *lockfakes.FakeLockFactory
+		fakeWorker          *workerfakes.FakeWorker
+		fakePool            *workerfakes.FakePool
+		fakeTaskProcessSpec runtime.ProcessSpec
+		fakeLock            *lockfakes.FakeLock
+		fakeProvider        *workerfakes.FakeWorkerProvider
+		fakeCompression     *compressionfakes.FakeCompression
+		fakeContainerOwner  db.ContainerOwner
+		fakeContainerSpec   worker.ContainerSpec
+		fakeWorkerSpec      worker.WorkerSpec
+		fakeStrategy        *workerfakes.FakeContainerPlacementStrategy
+		fakeMetadata        db.ContainerMetadata
+		fakeEventDelegate   *runtimefakes.FakeStartingEventDelegate
+		fakeLockFactory     *lockfakes.FakeLockFactory
 	)
 
 	Context("assign task when", func() {
@@ -62,10 +58,9 @@ var _ = Describe("RunTaskStep", func() {
 			fakeCompression = new(compressionfakes.FakeCompression)
 			fakeContainerOwner = containerOwnerDummy()
 			fakeContainerSpec = workerContainerDummy()
-			fakeWorkerSpec = worker.WorkerSpec{}
+			fakeWorkerSpec = workerSpecDummy()
 			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 			fakeMetadata = containerMetadataDummy()
-			fakeImageFetcherSpec = imageFetcherDummy()
 			fakeTaskProcessSpec = processSpecDummy(outputBuffer)
 			fakeEventDelegate = new(runtimefakes.FakeStartingEventDelegate)
 			fakeLockFactory = new(lockfakes.FakeLockFactory)
@@ -102,7 +97,6 @@ var _ = Describe("RunTaskStep", func() {
 					fakeWorkerSpec,
 					fakeStrategy,
 					fakeMetadata,
-					fakeImageFetcherSpec,
 					fakeTaskProcessSpec,
 					fakeEventDelegate,
 					fakeLockFactory)
@@ -152,7 +146,6 @@ var _ = Describe("RunTaskStep", func() {
 					fakeWorkerSpec,
 					fakeStrategy,
 					fakeMetadata,
-					fakeImageFetcherSpec,
 					fakeTaskProcessSpec,
 					fakeEventDelegate,
 					fakeLockFactory)
@@ -170,10 +163,13 @@ var _ = Describe("RunTaskStep", func() {
 
 			It("task waiting metrics is gauged", func() {
 				labels := metric.TasksWaitingLabels{
-					TeamId:     strconv.Itoa(fakeWorkerSpec.TeamID),
-					WorkerTags: strings.Join(fakeContainerSpec.Tags, "_"),
-					Platform:   fakeWorkerSpec.Platform,
+					TeamId:     "123",
+					WorkerTags: "step_tags",
+					Platform:   "some-platform",
 				}
+
+				Expect(metric.Metrics.TasksWaiting).To(HaveKey(labels))
+
 				// Verify that when one task is waiting the gauge is increased...
 				Eventually(metric.Metrics.TasksWaiting[labels].Max(), 2*time.Second).Should(Equal(float64(1)))
 				// and then decreased.
@@ -199,13 +195,6 @@ func processSpecDummy(outputBuffer *bytes.Buffer) runtime.ProcessSpec {
 	}
 }
 
-func imageFetcherDummy() worker.ImageFetcherSpec {
-	return worker.ImageFetcherSpec{
-		Delegate:      new(execfakes.FakeTaskDelegate),
-		ResourceTypes: atc.VersionedResourceTypes{},
-	}
-}
-
 func containerMetadataDummy() db.ContainerMetadata {
 	return db.ContainerMetadata{
 		WorkingDirectory: "some-artifact-root",
@@ -219,17 +208,10 @@ func workerContainerDummy() worker.ContainerSpec {
 	memory := uint64(1024)
 
 	return worker.ContainerSpec{
-		Platform: "some-platform",
-		Tags:     []string{"step", "tags"},
-		TeamID:   123,
+		TeamID: 123,
 		ImageSpec: worker.ImageSpec{
-			ImageResource: &worker.ImageResource{
-				Type:    "docker",
-				Source:  atc.Source{"some": "secret-source-param"},
-				Params:  atc.Params{"some": "params"},
-				Version: atc.Version{"some": "version"},
-			},
-			Privileged: false,
+			ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
+			Privileged:          false,
 		},
 		Limits: worker.ContainerLimits{
 			CPU:    &cpu,
@@ -240,6 +222,14 @@ func workerContainerDummy() worker.ContainerSpec {
 		ArtifactByPath: map[string]runtime.Artifact{},
 		Inputs:         []worker.InputSource{},
 		Outputs:        worker.OutputPaths{},
+	}
+}
+
+func workerSpecDummy() worker.WorkerSpec {
+	return worker.WorkerSpec{
+		TeamID:   123,
+		Platform: "some-platform",
+		Tags:     []string{"step", "tags"},
 	}
 }
 

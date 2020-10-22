@@ -174,7 +174,16 @@ var _ = Describe("Builds API", func() {
 			build2.EndTimeReturns(time.Unix(200, 0))
 			build2.ReapTimeReturns(time.Unix(400, 0))
 
-			returnedBuilds = []db.Build{build1, build2}
+			build3 := new(dbfakes.FakeBuild)
+			build3.IDReturns(5)
+			build3.NameReturns("1")
+			build3.ResourceNameReturns("resource1")
+			build3.PipelineNameReturns("pipeline1")
+			build3.TeamNameReturns("some-team")
+			build3.StatusReturns(db.BuildStatusSucceeded)
+			build3.StartTimeReturns(time.Unix(101, 0))
+
+			returnedBuilds = []db.Build{build1, build2, build3}
 			fakeAccess.TeamNamesReturns([]string{"some-team"})
 		})
 
@@ -278,6 +287,16 @@ var _ = Describe("Builds API", func() {
 							"start_time": 101,
 							"end_time": 200,
 							"reap_time": 400
+						},
+						{
+							"id": 5,
+							"name": "1",
+							"resource_name": "resource1",
+							"pipeline_name": "pipeline1",
+							"team_name": "some-team",
+							"status": "succeeded",
+							"api_url": "/api/v1/builds/5",
+							"start_time": 101
 						}
 					]`))
 				})
@@ -403,6 +422,16 @@ var _ = Describe("Builds API", func() {
 							"start_time": 101,
 							"end_time": 200,
 							"reap_time": 400
+						},
+						{
+							"id": 5,
+							"name": "1",
+							"resource_name": "resource1",
+							"pipeline_name": "pipeline1",
+							"team_name": "some-team",
+							"status": "succeeded",
+							"api_url": "/api/v1/builds/5",
+							"start_time": 101
 						}
 					]`))
 				})
@@ -490,9 +519,12 @@ var _ = Describe("Builds API", func() {
 				BeforeEach(func() {
 					build.IDReturns(1)
 					build.NameReturns("1")
-					build.JobNameReturns("job1")
-					build.PipelineNameReturns("pipeline1")
+					build.TeamIDReturns(2)
 					build.TeamNameReturns("some-team")
+					build.PipelineIDReturns(123)
+					build.PipelineNameReturns("pipeline1")
+					build.JobIDReturns(456)
+					build.JobNameReturns("job1")
 					build.StatusReturns(db.BuildStatusSucceeded)
 					build.StartTimeReturns(time.Unix(1, 0))
 					build.EndTimeReturns(time.Unix(100, 0))
@@ -510,11 +542,21 @@ var _ = Describe("Builds API", func() {
 
 					Context("and build is one off", func() {
 						BeforeEach(func() {
-							build.PipelineReturns(nil, false, nil)
+							build.PipelineIDReturns(0)
 						})
 
 						It("returns 401", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+						})
+					})
+
+					Context("and the pipeline is not found", func() {
+						BeforeEach(func() {
+							build.PipelineReturns(nil, false, nil)
+						})
+
+						It("returns 404", func() {
+							Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 						})
 					})
 
@@ -585,6 +627,7 @@ var _ = Describe("Builds API", func() {
 						"name": "1",
 						"status": "succeeded",
 						"job_name": "job1",
+						"pipeline_id": 123,
 						"pipeline_name": "pipeline1",
 						"team_name": "some-team",
 						"api_url": "/api/v1/builds/1",
@@ -604,10 +647,11 @@ var _ = Describe("Builds API", func() {
 
 		Context("when the build is found", func() {
 			BeforeEach(func() {
-				build.JobNameReturns("job1")
 				build.TeamNameReturns("some-team")
-				build.PipelineReturns(fakePipeline, true, nil)
+				build.JobIDReturns(42)
+				build.JobNameReturns("job1")
 				build.PipelineIDReturns(42)
+				build.PipelineReturns(fakePipeline, true, nil)
 				dbBuildFactory.BuildReturns(build, true, nil)
 			})
 
@@ -625,7 +669,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("and build is one off", func() {
 					BeforeEach(func() {
-						build.PipelineReturns(nil, false, nil)
+						build.PipelineIDReturns(0)
 					})
 
 					It("returns 401", func() {
@@ -815,8 +859,10 @@ var _ = Describe("Builds API", func() {
 
 		Context("when the build can be found", func() {
 			BeforeEach(func() {
-				build.JobNameReturns("some-job")
 				build.TeamNameReturns("some-team")
+				build.JobIDReturns(42)
+				build.JobNameReturns("job1")
+				build.PipelineIDReturns(42)
 				build.PipelineReturns(fakePipeline, true, nil)
 				dbBuildFactory.BuildReturns(build, true, nil)
 			})
@@ -1093,8 +1139,10 @@ var _ = Describe("Builds API", func() {
 					MissingInputReasons: db.MissingInputReasons{"some-input": "some-reason"},
 				}
 				dbBuildFactory.BuildReturns(build, true, nil)
-				build.JobNameReturns("job1")
 				build.TeamNameReturns("some-team")
+				build.JobIDReturns(42)
+				build.JobNameReturns("job1")
+				build.PipelineIDReturns(42)
 				build.PreparationReturns(buildPrep, true, nil)
 			})
 
@@ -1117,7 +1165,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("and build is one off", func() {
 					BeforeEach(func() {
-						build.PipelineReturns(nil, false, nil)
+						build.PipelineIDReturns(0)
 					})
 
 					It("returns 401", func() {
@@ -1296,8 +1344,10 @@ var _ = Describe("Builds API", func() {
 
 		Context("when the build is found", func() {
 			BeforeEach(func() {
-				build.JobNameReturns("job1")
 				build.TeamNameReturns("some-team")
+				build.JobIDReturns(42)
+				build.JobNameReturns("job1")
+				build.PipelineIDReturns(42)
 				dbBuildFactory.BuildReturns(build, true, nil)
 			})
 
@@ -1321,7 +1371,7 @@ var _ = Describe("Builds API", func() {
 
 				Context("and build is one off", func() {
 					BeforeEach(func() {
-						build.PipelineReturns(nil, false, nil)
+						build.PipelineIDReturns(0)
 					})
 
 					It("returns 401", func() {

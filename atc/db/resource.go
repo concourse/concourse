@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -16,6 +17,8 @@ import (
 )
 
 var ErrPinnedThroughConfig = errors.New("resource is pinned through config")
+
+const CheckBuildName = "check"
 
 //go:generate counterfeiter . Resource
 
@@ -34,8 +37,6 @@ type Resource interface {
 	LastCheckStartTime() time.Time
 	LastCheckEndTime() time.Time
 	Tags() atc.Tags
-	CheckSetupError() error
-	CheckError() error
 	WebhookToken() string
 	Config() atc.ResourceConfig
 	ConfigPinnedVersion() atc.Version
@@ -50,9 +51,11 @@ type Resource interface {
 
 	CurrentPinnedVersion() atc.Version
 
-	ResourceConfigVersionID(atc.Version) (int, bool, error)
+	BuildSummary() *atc.BuildSummary
+
 	Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error)
-	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig, atc.VersionedResourceTypes) (bool, error)
+	FindVersion(filter atc.Version) (ResourceConfigVersion, bool, error) // Only used in tests!!
+	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig) (bool, error)
 	UpdateMetadata(atc.Version, ResourceConfigMetadataFields) (bool, error)
 
 	EnableVersion(rcvID int) error
@@ -61,8 +64,11 @@ type Resource interface {
 	PinVersion(rcvID int) (bool, error)
 	UnpinVersion() error
 
-	SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error)
-	SetCheckSetupError(error) error
+	SetResourceConfigScope(ResourceConfigScope) error
+
+	CheckPlan(atc.Version, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
+	CreateBuild(context.Context, bool) (Build, bool, error)
+
 	NotifyScan() error
 
 	Reload() (bool, error)
@@ -73,7 +79,6 @@ var resourcesQuery = psql.Select(
 	"r.name",
 	"r.type",
 	"r.config",
-	"r.check_error",
 	"rs.last_check_start_time",
 	"rs.last_check_end_time",
 	"r.pipeline_id",
@@ -84,14 +89,19 @@ var resourcesQuery = psql.Select(
 	"p.instance_vars",
 	"t.id",
 	"t.name",
-	"rs.check_error",
 	"rp.version",
 	"rp.comment_text",
 	"rp.config",
+	"b.id",
+	"b.name",
+	"b.status",
+	"b.start_time",
+	"b.end_time",
 ).
 	From("resources r").
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
+	LeftJoin("builds b ON b.id = r.build_id").
 	LeftJoin("resource_config_scopes rs ON r.resource_config_scope_id = rs.id").
 	LeftJoin("resource_pins rp ON rp.resource_id = r.id").
 	Where(sq.Eq{"r.active": true})
@@ -106,14 +116,13 @@ type resource struct {
 	type_                 string
 	lastCheckStartTime    time.Time
 	lastCheckEndTime      time.Time
-	checkSetupError       error
-	checkError            error
 	config                atc.ResourceConfig
 	configPinnedVersion   atc.Version
 	apiPinnedVersion      atc.Version
 	pinComment            string
 	resourceConfigID      int
 	resourceConfigScopeID int
+	buildSummary          *atc.BuildSummary
 }
 
 func newEmptyResource(conn Conn, lockFactory lock.LockFactory) *resource {
@@ -160,8 +169,6 @@ func (r *resource) CheckTimeout() string             { return r.config.CheckTime
 func (r *resource) LastCheckStartTime() time.Time    { return r.lastCheckStartTime }
 func (r *resource) LastCheckEndTime() time.Time      { return r.lastCheckEndTime }
 func (r *resource) Tags() atc.Tags                   { return r.config.Tags }
-func (r *resource) CheckSetupError() error           { return r.checkSetupError }
-func (r *resource) CheckError() error                { return r.checkError }
 func (r *resource) WebhookToken() string             { return r.config.WebhookToken }
 func (r *resource) Config() atc.ResourceConfig       { return r.config }
 func (r *resource) ConfigPinnedVersion() atc.Version { return r.configPinnedVersion }
@@ -189,100 +196,152 @@ func (r *resource) Reload() (bool, error) {
 	return true, nil
 }
 
-func (r *resource) SetResourceConfig(source atc.Source, resourceTypes atc.VersionedResourceTypes) (ResourceConfigScope, error) {
-	resourceConfigDescriptor, err := constructResourceConfigDescriptor(r.type_, source, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
+func (r *resource) SetResourceConfig(atc.Source, atc.VersionedResourceTypes) (ResourceConfigScope, error) {
+	return nil, fmt.Errorf("not implemented")
+}
 
+func (r *resource) SetResourceConfigScope(scope ResourceConfigScope) error {
 	tx, err := r.conn.Begin()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	defer Rollback(tx)
 
-	resourceConfig, err := resourceConfigDescriptor.findOrCreate(tx, r.lockFactory, r.conn)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = psql.Update("resources").
-		Set("resource_config_id", resourceConfig.ID()).
+	results, err := psql.Update("resources").
+		Set("resource_config_id", scope.ResourceConfig().ID()).
+		Set("resource_config_scope_id", scope.ID()).
 		Where(sq.Eq{"id": r.id}).
 		Where(sq.Or{
 			sq.Eq{"resource_config_id": nil},
-			sq.NotEq{"resource_config_id": resourceConfig.ID()},
-		}).
-		RunWith(tx).
-		Exec()
-	if err != nil {
-		return nil, err
-	}
-
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r, r.type_, resourceTypes)
-	if err != nil {
-		return nil, err
-	}
-
-	results, err := psql.Update("resources").
-		Set("resource_config_scope_id", resourceConfigScope.ID()).
-		Where(sq.Eq{"id": r.id}).
-		Where(sq.Or{
 			sq.Eq{"resource_config_scope_id": nil},
-			sq.NotEq{"resource_config_scope_id": resourceConfigScope.ID()},
+			sq.NotEq{"resource_config_id": scope.ResourceConfig().ID()},
+			sq.NotEq{"resource_config_scope_id": scope.ID()},
 		}).
 		RunWith(tx).
 		Exec()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	rowsAffected, err := results.RowsAffected()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if rowsAffected > 0 {
 		err = requestScheduleForJobsUsingResource(tx, r.id)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return resourceConfigScope, nil
+	return nil
 }
 
-func (r *resource) SetCheckSetupError(cause error) error {
-	var err error
+func (r *resource) CheckPlan(from atc.Version, interval time.Duration, resourceTypes ResourceTypes, sourceDefaults atc.Source) atc.CheckPlan {
+	return atc.CheckPlan{
+		Name:    r.Name(),
+		Type:    r.Type(),
+		Source:  sourceDefaults.Merge(r.Source()),
+		Tags:    r.Tags(),
+		Timeout: r.CheckTimeout(),
 
-	if cause == nil {
-		_, err = psql.Update("resources").
-			Set("check_error", nil).
-			Where(sq.And{
-				sq.Eq{"id": r.ID()},
-				sq.NotEq{"check_error": nil},
-			}).
-			RunWith(r.conn).
-			Exec()
-	} else {
-		_, err = psql.Update("resources").
-			Set("check_error", cause.Error()).
-			Where(sq.Eq{"id": r.ID()}).
-			RunWith(r.conn).
-			Exec()
+		FromVersion:            from,
+		Interval:               interval.String(),
+		VersionedResourceTypes: resourceTypes.Deserialize(),
+
+		Resource: r.Name(),
+	}
+}
+
+func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool) (Build, bool, error) {
+	spanContextJSON, err := json.Marshal(NewSpanContext(ctx))
+	if err != nil {
+		return nil, false, err
 	}
 
-	return err
+	tx, err := r.conn.Begin()
+	if err != nil {
+		return nil, false, err
+	}
+
+	defer Rollback(tx)
+
+	if !manuallyTriggered {
+		var completed, noBuild bool
+		err = psql.Select("completed").
+			From("builds").
+			Where(sq.Eq{"resource_id": r.id}).
+			RunWith(tx).
+			QueryRow().
+			Scan(&completed)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				noBuild = true
+			} else {
+				return nil, false, err
+			}
+		}
+
+		if !noBuild && !completed {
+			// a build is already running; leave it be
+			return nil, false, nil
+		}
+
+		if completed {
+			// previous build finished; clear it out
+			_, err = psql.Delete("builds").
+				Where(sq.Eq{
+					"resource_id": r.id,
+					"completed":   true,
+				}).
+				RunWith(tx).
+				Exec()
+			if err != nil {
+				return nil, false, fmt.Errorf("delete previous build: %w", err)
+			}
+		}
+	}
+
+	build := newEmptyBuild(r.conn, r.lockFactory)
+	err = createBuild(tx, build, map[string]interface{}{
+		"name":               CheckBuildName,
+		"pipeline_id":        r.pipelineID,
+		"team_id":            r.teamID,
+		"status":             BuildStatusPending,
+		"manually_triggered": manuallyTriggered,
+		"span_context":       string(spanContextJSON),
+		"resource_id":        r.id,
+	})
+	if err != nil {
+		return nil, false, err
+	}
+
+	_, err = psql.Update("resources").
+		Set("build_id", build.ID()).
+		Where(sq.Eq{"id": r.id}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return nil, false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
+	return build, true, nil
 }
 
 // XXX: only used for tests
-func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields, resourceConfig ResourceConfig, resourceTypes atc.VersionedResourceTypes) (bool, error) {
+func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields, resourceConfig ResourceConfig) (bool, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return false, err
@@ -290,7 +349,7 @@ func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceCo
 
 	defer Rollback(tx)
 
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r, r.type_, resourceTypes)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r)
 	if err != nil {
 		return false, err
 	}
@@ -334,33 +393,38 @@ func (r *resource) UpdateMetadata(version atc.Version, metadata ResourceConfigMe
 	return true, nil
 }
 
-func (r *resource) ResourceConfigVersionID(version atc.Version) (int, bool, error) {
-	requestedVersion, err := json.Marshal(version)
-	if err != nil {
-		return 0, false, err
+// XXX: Deprecated, only used in tests
+func (r *resource) FindVersion(v atc.Version) (ResourceConfigVersion, bool, error) {
+	if r.resourceConfigScopeID == 0 {
+		return nil, false, nil
 	}
 
-	var id int
+	ver := &resourceConfigVersion{
+		conn: r.conn,
+	}
 
-	err = psql.Select("rcv.id").
-		From("resource_config_versions rcv").
-		Join("resources r ON rcv.resource_config_scope_id = r.resource_config_scope_id").
-		Where(sq.Eq{"r.id": r.ID()}).
-		Where(sq.Expr("version @> ?", requestedVersion)).
-		Where(sq.NotEq{"rcv.check_order": 0}).
-		OrderBy("rcv.check_order DESC").
+	versionByte, err := json.Marshal(v)
+	if err != nil {
+		return nil, false, err
+	}
+
+	row := resourceConfigVersionQuery.
+		Where(sq.Eq{
+			"v.resource_config_scope_id": r.resourceConfigScopeID,
+		}).
+		Where(sq.Expr("v.version_md5 = md5(?)", versionByte)).
 		RunWith(r.conn).
-		QueryRow().
-		Scan(&id)
+		QueryRow()
 
+	err = scanResourceConfigVersion(ver, row)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return 0, false, nil
+			return nil, false, nil
 		}
-		return 0, false, err
+		return nil, false, err
 	}
 
-	return id, true, nil
+	return ver, true, nil
 }
 
 func (r *resource) SetPinComment(comment string) error {
@@ -380,6 +444,10 @@ func (r *resource) CurrentPinnedVersion() atc.Version {
 		return r.apiPinnedVersion
 	}
 	return nil
+}
+
+func (r *resource) BuildSummary() *atc.BuildSummary {
+	return r.buildSummary
 }
 
 func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error) {
@@ -701,14 +769,22 @@ func (r *resource) NotifyScan() error {
 
 func scanResource(r *resource, row scannable) error {
 	var (
-		configBlob                                                               sql.NullString
-		checkErr, rcsCheckErr, nonce, rcID, rcScopeID, pinnedVersion, pinComment sql.NullString
-		lastCheckStartTime, lastCheckEndTime                                     pq.NullTime
-		pinnedThroughConfig                                                      sql.NullBool
-		pipelineInstanceVars                                                     sql.NullString
+		configBlob                                        sql.NullString
+		nonce, rcID, rcScopeID, pinnedVersion, pinComment sql.NullString
+		lastCheckStartTime, lastCheckEndTime              pq.NullTime
+		pinnedThroughConfig                               sql.NullBool
+		pipelineInstanceVars                              sql.NullString
 	)
 
-	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &checkErr, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName, &rcsCheckErr, &pinnedVersion, &pinComment, &pinnedThroughConfig)
+	var build struct {
+		id        sql.NullInt64
+		name      sql.NullString
+		status    sql.NullString
+		startTime pq.NullTime
+		endTime   pq.NullTime
+	}
+
+	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &lastCheckStartTime, &lastCheckEndTime, &r.pipelineID, &nonce, &rcID, &rcScopeID, &r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName, &pinnedVersion, &pinComment, &pinnedThroughConfig, &build.id, &build.name, &build.status, &build.startTime, &build.endTime)
 	if err != nil {
 		return err
 	}
@@ -762,18 +838,6 @@ func scanResource(r *resource, row scannable) error {
 		r.pinComment = ""
 	}
 
-	if checkErr.Valid {
-		r.checkSetupError = errors.New(checkErr.String)
-	} else {
-		r.checkSetupError = nil
-	}
-
-	if rcsCheckErr.Valid {
-		r.checkError = errors.New(rcsCheckErr.String)
-	} else {
-		r.checkError = nil
-	}
-
 	if rcID.Valid {
 		r.resourceConfigID, err = strconv.Atoi(rcID.String)
 		if err != nil {
@@ -793,7 +857,29 @@ func scanResource(r *resource, row scannable) error {
 		if err != nil {
 			return err
 		}
+	}
 
+	if build.id.Valid {
+		r.buildSummary = &atc.BuildSummary{
+			ID:   int(build.id.Int64),
+			Name: build.name.String,
+
+			Status: atc.BuildStatus(build.status.String),
+
+			TeamName: r.teamName,
+
+			PipelineID:           r.pipelineID,
+			PipelineName:         r.pipelineName,
+			PipelineInstanceVars: r.pipelineInstanceVars,
+		}
+
+		if build.startTime.Valid {
+			r.buildSummary.StartTime = build.startTime.Time.Unix()
+		}
+
+		if build.endTime.Valid {
+			r.buildSummary.EndTime = build.endTime.Time.Unix()
+		}
 	}
 
 	return nil

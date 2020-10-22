@@ -135,16 +135,16 @@ type FakePipeline struct {
 		result1 db.Build
 		result2 error
 	}
-	DashboardStub        func() (atc.Dashboard, error)
+	DashboardStub        func() ([]atc.JobSummary, error)
 	dashboardMutex       sync.RWMutex
 	dashboardArgsForCall []struct {
 	}
 	dashboardReturns struct {
-		result1 atc.Dashboard
+		result1 []atc.JobSummary
 		result2 error
 	}
 	dashboardReturnsOnCall map[int]struct {
-		result1 atc.Dashboard
+		result1 []atc.JobSummary
 		result2 error
 	}
 	DeleteBuildEventsByBuildIDsStub        func([]int) error
@@ -1137,7 +1137,7 @@ func (fake *FakePipeline) CreateStartedBuildReturnsOnCall(i int, result1 db.Buil
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) Dashboard() (atc.Dashboard, error) {
+func (fake *FakePipeline) Dashboard() ([]atc.JobSummary, error) {
 	fake.dashboardMutex.Lock()
 	ret, specificReturn := fake.dashboardReturnsOnCall[len(fake.dashboardArgsForCall)]
 	fake.dashboardArgsForCall = append(fake.dashboardArgsForCall, struct {
@@ -1160,34 +1160,34 @@ func (fake *FakePipeline) DashboardCallCount() int {
 	return len(fake.dashboardArgsForCall)
 }
 
-func (fake *FakePipeline) DashboardCalls(stub func() (atc.Dashboard, error)) {
+func (fake *FakePipeline) DashboardCalls(stub func() ([]atc.JobSummary, error)) {
 	fake.dashboardMutex.Lock()
 	defer fake.dashboardMutex.Unlock()
 	fake.DashboardStub = stub
 }
 
-func (fake *FakePipeline) DashboardReturns(result1 atc.Dashboard, result2 error) {
+func (fake *FakePipeline) DashboardReturns(result1 []atc.JobSummary, result2 error) {
 	fake.dashboardMutex.Lock()
 	defer fake.dashboardMutex.Unlock()
 	fake.DashboardStub = nil
 	fake.dashboardReturns = struct {
-		result1 atc.Dashboard
+		result1 []atc.JobSummary
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) DashboardReturnsOnCall(i int, result1 atc.Dashboard, result2 error) {
+func (fake *FakePipeline) DashboardReturnsOnCall(i int, result1 []atc.JobSummary, result2 error) {
 	fake.dashboardMutex.Lock()
 	defer fake.dashboardMutex.Unlock()
 	fake.DashboardStub = nil
 	if fake.dashboardReturnsOnCall == nil {
 		fake.dashboardReturnsOnCall = make(map[int]struct {
-			result1 atc.Dashboard
+			result1 []atc.JobSummary
 			result2 error
 		})
 	}
 	fake.dashboardReturnsOnCall[i] = struct {
-		result1 atc.Dashboard
+		result1 []atc.JobSummary
 		result2 error
 	}{result1, result2}
 }

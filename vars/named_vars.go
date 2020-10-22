@@ -3,36 +3,36 @@ package vars
 type NamedVariables map[string]Variables
 
 // Get checks var_source if presents, then forward var to underlying secret manager.
-// A `varDef.Name` with a var_source looks like "myvault:foo", where "myvault" is
+// A Reference with a var_source looks like "myvault:foo", where "myvault" is
 // the var_source name, and "foo" is the real var name that should be forwarded
 // to the underlying secret manager.
-func (m NamedVariables) Get(varDef VariableDefinition) (interface{}, bool, error) {
-	if varDef.Ref.Source == "" {
+func (m NamedVariables) Get(ref Reference) (interface{}, bool, error) {
+	if ref.Source == "" {
 		return nil, false, nil
 	}
 
-	if vars, ok := m[varDef.Ref.Source]; ok {
-		return vars.Get(varDef)
+	if vars, ok := m[ref.Source]; ok {
+		return vars.Get(ref)
 	}
 
-	return nil, false, MissingSourceError{Name: varDef.Ref.Name, Source: varDef.Ref.Source}
+	return nil, false, MissingSourceError{Name: ref.String(), Source: ref.Source}
 }
 
-func (m NamedVariables) List() ([]VariableDefinition, error) {
-	var allDefs []VariableDefinition
+func (m NamedVariables) List() ([]Reference, error) {
+	var allRefs []Reference
 
 	for source, vars := range m {
-		defs, err := vars.List()
+		refs, err := vars.List()
 		if err != nil {
 			return nil, err
 		}
 
-		for i, _ := range defs {
-			defs[i].Ref.Source = source
+		for i, _ := range refs {
+			refs[i].Source = source
 		}
 
-		allDefs = append(allDefs, defs...)
+		allRefs = append(allRefs, refs...)
 	}
 
-	return allDefs, nil
+	return allRefs, nil
 }

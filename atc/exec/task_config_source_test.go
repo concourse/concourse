@@ -452,4 +452,69 @@ run: {path: a/file}
 			})
 		})
 	})
+
+	Context("BaseResourceTypeDefaultsApplySource", func() {
+		var (
+			configSource  TaskConfigSource
+			resourceTypes atc.VersionedResourceTypes
+			fetchedConfig atc.TaskConfig
+			fetchErr      error
+		)
+
+		JustBeforeEach(func() {
+			configSource = StaticConfigSource{Config: &taskConfig}
+			configSource = BaseResourceTypeDefaultsApplySource{
+				ConfigSource:  configSource,
+				ResourceTypes: resourceTypes,
+			}
+			fetchedConfig, fetchErr = configSource.FetchConfig(context.TODO(), logger, repo)
+		})
+
+		Context("resourceTypes is empty, and no base resource type defaults configured", func() {
+			It("fetchedConfig should be identical to the original", func() {
+				Expect(fetchErr).ToNot(HaveOccurred())
+				Expect(fetchedConfig).To(Equal(taskConfig))
+			})
+		})
+
+		Context("resourceTypes is empty, and base resource type defaults configured", func() {
+			BeforeEach(func() {
+				atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{"docker": atc.Source{"some-key": "some-value"}})
+			})
+			AfterEach(func() {
+				atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{})
+			})
+
+			It("defaults should be added to image source", func() {
+				Expect(fetchErr).ToNot(HaveOccurred())
+				Expect(fetchedConfig.ImageResource.Source).To(Equal(atc.Source{
+					"a":               "b",
+					"evaluated-value": "((task-variable-name))",
+					"some-key":        "some-value",
+				}))
+			})
+		})
+
+		Context("resourceTypes contains image source type", func() {
+			BeforeEach(func() {
+				resourceTypes = atc.VersionedResourceTypes{
+					{
+						ResourceType: atc.ResourceType{
+							Name:     "docker",
+							Defaults: atc.Source{"some-key": "some-value"},
+						},
+					},
+				}
+			})
+
+			It("defaults should be added to image source", func() {
+				Expect(fetchErr).ToNot(HaveOccurred())
+				Expect(fetchedConfig.ImageResource.Source).To(Equal(atc.Source{
+					"a":               "b",
+					"evaluated-value": "((task-variable-name))",
+					"some-key":        "some-value",
+				}))
+			})
+		})
+	})
 })

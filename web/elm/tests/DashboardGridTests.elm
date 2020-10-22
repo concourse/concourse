@@ -125,6 +125,13 @@ all =
                         )
                     |> Tuple.second
                     |> Common.contains (GetViewportOf Dashboard)
+        , test "fetches the viewport of the scrollable area when pipelines are fetched" <|
+            \_ ->
+                loadDashboardWithSize 600 600
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched (Ok []))
+                    |> Tuple.second
+                    |> Common.contains (GetViewportOf Dashboard)
         , test "renders pipeline cards in a single column grid when the viewport is narrow" <|
             \_ ->
                 loadDashboardWithSize 300 600

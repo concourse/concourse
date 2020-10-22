@@ -3,6 +3,7 @@ module Resource.Styles exposing
     , checkBarStatus
     , checkButton
     , checkButtonIcon
+    , checkStatus
     , checkStatusIcon
     , commentBar
     , commentBarIconContainer
@@ -412,6 +413,14 @@ pagination =
     ]
 
 
+checkStatus : List (Html.Attribute msg)
+checkStatus =
+    [ style "display" "flex"
+    , style "flex-direction" "column"
+    , style "flex-grow" "1"
+    ]
+
+
 checkBarStatus : List (Html.Attribute msg)
 checkBarStatus =
     [ style "display" "flex"
@@ -420,14 +429,14 @@ checkBarStatus =
     , style "flex-grow" "1"
     , style "height" "28px"
     , style "background" Colors.sectionHeader
-    , style "padding-left" "5px"
+    , style "padding-left" "6px"
     ]
 
 
 checkButton : Bool -> List (Html.Attribute msg)
 checkButton isClickable =
-    [ style "height" "28px"
-    , style "width" "28px"
+    [ style "height" "30px"
+    , style "width" "30px"
     , style "background-color" Colors.sectionHeader
     , style "margin-right" "5px"
     , style "cursor" <|
@@ -441,7 +450,7 @@ checkButton isClickable =
 
 checkButtonIcon : Bool -> List (Html.Attribute msg)
 checkButtonIcon isHighlighted =
-    [ style "margin" "4px"
+    [ style "margin" "5px"
     , style "background-size" "contain"
     , style "opacity" <|
         if isHighlighted then

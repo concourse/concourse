@@ -230,8 +230,8 @@ runEffect effect key csrfToken =
                 |> Task.attempt ResourceFetched
 
         FetchCheck id ->
-            Api.get (Endpoints.Check id)
-                |> Api.expectJson Concourse.decodeCheck
+            Api.get (Endpoints.Build id Endpoints.BaseBuild)
+                |> Api.expectJson Concourse.decodeBuild
                 |> Api.request
                 |> Task.attempt Checked
 
@@ -412,7 +412,7 @@ runEffect effect key csrfToken =
                 csrfToken
                 |> Api.withJsonBody
                     (Json.Encode.object [ ( "from", Json.Encode.null ) ])
-                |> Api.expectJson Concourse.decodeCheck
+                |> Api.expectJson Concourse.decodeBuild
                 |> Api.request
                 |> Task.attempt Checked
 
@@ -513,7 +513,7 @@ runEffect effect key csrfToken =
         FetchBuildPlanAndResources buildId ->
             Task.map2 (\a b -> ( a, b ))
                 (Api.get (Endpoints.BuildPlan |> Endpoints.Build buildId)
-                    |> Api.expectJson Concourse.decodeBuildPlan
+                    |> Api.expectJson Concourse.decodeBuildPlanResponse
                     |> Api.request
                 )
                 (Api.get (Endpoints.BuildResourcesList |> Endpoints.Build buildId)
@@ -524,7 +524,7 @@ runEffect effect key csrfToken =
 
         FetchBuildPlan buildId ->
             Api.get (Endpoints.BuildPlan |> Endpoints.Build buildId)
-                |> Api.expectJson Concourse.decodeBuildPlan
+                |> Api.expectJson Concourse.decodeBuildPlanResponse
                 |> Api.request
                 |> Task.map (\p -> ( p, Concourse.emptyBuildResources ))
                 |> Task.attempt (PlanAndResourcesFetched buildId)
@@ -737,6 +737,9 @@ toHtmlID domId =
 
         StepState stepID ->
             stepID ++ "_state"
+
+        StepInitialization stepID ->
+            stepID ++ "_image"
 
         Dashboard ->
             "dashboard"

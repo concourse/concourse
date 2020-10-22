@@ -28,6 +28,7 @@ var _ = Describe("Parallel", func() {
 		state *execfakes.FakeRunState
 
 		step    Step
+		stepOk  bool
 		stepErr error
 	)
 
@@ -50,7 +51,7 @@ var _ = Describe("Parallel", func() {
 	})
 
 	JustBeforeEach(func() {
-		stepErr = step.Run(ctx, state)
+		stepOk, stepErr = step.Run(ctx, state)
 	})
 
 	It("succeeds", func() {
@@ -73,16 +74,16 @@ var _ = Describe("Parallel", func() {
 				wg := new(sync.WaitGroup)
 				wg.Add(2)
 
-				fakeStepA.RunStub = func(context.Context, RunState) error {
+				fakeStepA.RunStub = func(context.Context, RunState) (bool, error) {
 					wg.Done()
 					wg.Wait()
-					return nil
+					return true, nil
 				}
 
-				fakeStepB.RunStub = func(context.Context, RunState) error {
+				fakeStepB.RunStub = func(context.Context, RunState) (bool, error) {
 					wg.Done()
 					wg.Wait()
-					return nil
+					return true, nil
 				}
 			})
 
@@ -97,13 +98,13 @@ var _ = Describe("Parallel", func() {
 				step = InParallel(fakeSteps, 1, false)
 				ch := make(chan struct{}, 1)
 
-				fakeStepA.RunStub = func(context.Context, RunState) error {
+				fakeStepA.RunStub = func(context.Context, RunState) (bool, error) {
 					time.Sleep(10 * time.Millisecond)
 					ch <- struct{}{}
-					return nil
+					return true, nil
 				}
 
-				fakeStepB.RunStub = func(context.Context, RunState) error {
+				fakeStepB.RunStub = func(context.Context, RunState) (bool, error) {
 					defer GinkgoRecover()
 
 					select {
@@ -111,7 +112,7 @@ var _ = Describe("Parallel", func() {
 					default:
 						Fail("step B started before step A could complete")
 					}
-					return nil
+					return true, nil
 				}
 			})
 
@@ -127,16 +128,16 @@ var _ = Describe("Parallel", func() {
 			wg := new(sync.WaitGroup)
 			wg.Add(2)
 
-			fakeStepA.RunStub = func(context.Context, RunState) error {
+			fakeStepA.RunStub = func(context.Context, RunState) (bool, error) {
 				wg.Done()
-				return nil
+				return true, nil
 			}
 
-			fakeStepB.RunStub = func(context.Context, RunState) error {
+			fakeStepB.RunStub = func(context.Context, RunState) (bool, error) {
 				wg.Done()
 				wg.Wait()
 				cancel()
-				return nil
+				return true, nil
 			}
 		})
 
@@ -155,13 +156,13 @@ var _ = Describe("Parallel", func() {
 			BeforeEach(func() {
 				step = InParallel(fakeSteps, 1, false)
 
-				fakeStepA.RunStub = func(context.Context, RunState) error {
+				fakeStepA.RunStub = func(context.Context, RunState) (bool, error) {
 					cancel()
-					return nil
+					return true, nil
 				}
 
-				fakeStepB.RunStub = func(context.Context, RunState) error {
-					return nil
+				fakeStepB.RunStub = func(context.Context, RunState) (bool, error) {
+					return true, nil
 				}
 			})
 
@@ -184,8 +185,8 @@ var _ = Describe("Parallel", func() {
 			disasterB := errors.New("nope B")
 
 			BeforeEach(func() {
-				fakeStepA.RunReturns(disasterA)
-				fakeStepB.RunReturns(disasterB)
+				fakeStepA.RunReturns(false, disasterA)
+				fakeStepB.RunReturns(false, disasterB)
 			})
 
 			Context("and fail fast is false", func() {
@@ -225,7 +226,7 @@ var _ = Describe("Parallel", func() {
 			disasterB := fmt.Errorf("some thing failed by %w", context.Canceled)
 
 			BeforeEach(func() {
-				fakeStepB.RunReturns(disasterB)
+				fakeStepB.RunReturns(false, disasterB)
 			})
 
 			It("exits with no error", func() {
@@ -234,65 +235,61 @@ var _ = Describe("Parallel", func() {
 		})
 	})
 
-	Describe("Succeeded", func() {
-		Context("when all steps are successful", func() {
-			BeforeEach(func() {
-				fakeStepA.SucceededReturns(true)
-				fakeStepB.SucceededReturns(true)
-			})
-
-			It("yields true", func() {
-				Expect(step.Succeeded()).To(BeTrue())
-			})
+	Context("when all steps are successful", func() {
+		BeforeEach(func() {
+			fakeStepA.RunReturns(true, nil)
+			fakeStepB.RunReturns(true, nil)
 		})
 
-		Context("and some steps are not successful", func() {
-			BeforeEach(func() {
-				fakeStepA.SucceededReturns(true)
-				fakeStepB.SucceededReturns(false)
-			})
+		It("succeeds", func() {
+			Expect(stepOk).To(BeTrue())
+		})
+	})
 
-			It("yields false", func() {
-				Expect(step.Succeeded()).To(BeFalse())
-			})
+	Context("and some steps are not successful", func() {
+		BeforeEach(func() {
+			fakeStepA.RunReturns(true, nil)
+			fakeStepB.RunReturns(false, nil)
 		})
 
-		Context("when no steps indicate success", func() {
-			BeforeEach(func() {
-				fakeStepA.SucceededReturns(false)
-				fakeStepB.SucceededReturns(false)
-			})
+		It("fails", func() {
+			Expect(stepOk).To(BeFalse())
+		})
+	})
 
-			It("returns false", func() {
-				Expect(step.Succeeded()).To(BeFalse())
-			})
+	Context("when no steps indicate success", func() {
+		BeforeEach(func() {
+			fakeStepA.RunReturns(false, nil)
+			fakeStepB.RunReturns(false, nil)
 		})
 
-		Context("when there are no steps", func() {
-			BeforeEach(func() {
-				step = InParallelStep{}
-			})
+		It("fails", func() {
+			Expect(stepOk).To(BeFalse())
+		})
+	})
 
-			It("returns true", func() {
-				Expect(step.Succeeded()).To(BeTrue())
-			})
+	Context("when there are no steps", func() {
+		BeforeEach(func() {
+			step = InParallelStep{}
+		})
+
+		It("succeeds", func() {
+			Expect(stepOk).To(BeTrue())
 		})
 	})
 
 	Describe("Panic", func() {
-		Context("when one step panic", func() {
+		Context("when one step panics", func() {
 			BeforeEach(func() {
-				fakeStepA.SucceededReturns(false)
-				fakeStepB.RunStub = func(context.Context, exec.RunState) error {
+				fakeStepA.RunReturns(false, nil)
+				fakeStepB.RunStub = func(context.Context, exec.RunState) (bool, error) {
 					panic("something went wrong")
 				}
 			})
 
-			It("returns false", func() {
-				Expect(step.Succeeded()).To(BeFalse())
+			It("returns an error", func() {
 				Expect(stepErr.Error()).To(ContainSubstring("something went wrong"))
 			})
 		})
-
 	})
 })

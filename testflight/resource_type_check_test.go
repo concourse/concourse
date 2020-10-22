@@ -48,7 +48,7 @@ var _ = Describe("Resource-types checks", func() {
 	Context("when the resource-type check fails", func() {
 		It("fails", func() {
 			watch := spawnFly("check-resource-type", "-r", inPipeline("failing-custom-resource-type"))
-			Eventually(watch.Out).Should(gbytes.Say("errored"))
+			Eventually(watch.Out).Should(gbytes.Say("failed"))
 			Eventually(watch).Should(gexec.Exit(1))
 		})
 	})

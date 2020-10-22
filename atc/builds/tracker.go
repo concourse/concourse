@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"runtime/debug"
-	"strconv"
 	"sync"
 
 	"code.cloudfoundry.org/lager"
@@ -50,11 +49,7 @@ func (bt *Tracker) Run(ctx context.Context) error {
 	for _, b := range builds {
 		if _, exists := bt.running.LoadOrStore(b.ID(), true); !exists {
 			go func(build db.Build) {
-				loggerData := lager.Data{
-					"build":    strconv.Itoa(build.ID()),
-					"pipeline": build.PipelineName(),
-					"job":      build.JobName(),
-				}
+				loggerData := build.LagerData()
 				defer func() {
 					if r := recover(); r != nil {
 						err = fmt.Errorf("panic in tracker build run %s: %v", loggerData, r)

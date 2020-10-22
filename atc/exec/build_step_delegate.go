@@ -1,31 +1,44 @@
 package exec
 
 import (
+	"context"
 	"io"
 
 	"code.cloudfoundry.org/lager"
+	"go.opentelemetry.io/otel/api/trace"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/tracing"
 )
+
+//go:generate counterfeiter . BuildStepDelegateFactory
+
+type BuildStepDelegateFactory interface {
+	BuildStepDelegate(state RunState) BuildStepDelegate
+}
 
 //go:generate counterfeiter . BuildStepDelegate
 
 type BuildStepDelegate interface {
-	ImageVersionDetermined(db.UsedResourceCache) error
-	RedactImageSource(source atc.Source) (atc.Source, error)
+	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
+
+	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
-
-	Variables() *vars.BuildVariables
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
 	Finished(lager.Logger, bool)
 	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
+}
+
+//go:generate counterfeiter . SetPipelineStepDelegateFactory
+
+type SetPipelineStepDelegateFactory interface {
+	SetPipelineStepDelegate(state RunState) SetPipelineStepDelegate
 }
 
 //go:generate counterfeiter . SetPipelineStepDelegate

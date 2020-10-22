@@ -16,8 +16,10 @@ var _ = Describe("LogErrorStep", func() {
 		ctx    context.Context
 		cancel func()
 
-		fakeStep     *execfakes.FakeStep
-		fakeDelegate *execfakes.FakeBuildStepDelegate
+		fakeStep *execfakes.FakeStep
+
+		fakeDelegate        *execfakes.FakeBuildStepDelegate
+		fakeDelegateFactory *execfakes.FakeBuildStepDelegateFactory
 
 		repo  *build.Repository
 		state *execfakes.FakeRunState
@@ -30,12 +32,14 @@ var _ = Describe("LogErrorStep", func() {
 
 		fakeStep = new(execfakes.FakeStep)
 		fakeDelegate = new(execfakes.FakeBuildStepDelegate)
+		fakeDelegateFactory = new(execfakes.FakeBuildStepDelegateFactory)
+		fakeDelegateFactory.BuildStepDelegateReturns(fakeDelegate)
 
 		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactRepositoryReturns(repo)
 
-		step = LogError(fakeStep, fakeDelegate)
+		step = LogError(fakeStep, fakeDelegateFactory)
 	})
 
 	AfterEach(func() {
@@ -43,15 +47,38 @@ var _ = Describe("LogErrorStep", func() {
 	})
 
 	Describe("Run", func() {
+		var runOk bool
 		var runErr error
 
 		JustBeforeEach(func() {
-			runErr = step.Run(ctx, state)
+			runOk, runErr = step.Run(ctx, state)
 		})
 
 		Context("when the inner step does not error", func() {
 			BeforeEach(func() {
-				fakeStep.RunReturns(nil)
+				fakeStep.RunReturns(true, nil)
+			})
+
+			It("returns true", func() {
+				Expect(runOk).Should(BeTrue())
+			})
+
+			It("returns nil", func() {
+				Expect(runErr).To(BeNil())
+			})
+
+			It("does not log", func() {
+				Expect(fakeDelegate.ErroredCallCount()).To(Equal(0))
+			})
+		})
+
+		Context("when the inner step has failed", func() {
+			BeforeEach(func() {
+				fakeStep.RunReturns(false, nil)
+			})
+
+			It("returns false", func() {
+				Expect(runOk).Should(BeFalse())
 			})
 
 			It("returns nil", func() {
@@ -65,7 +92,7 @@ var _ = Describe("LogErrorStep", func() {
 
 		Context("when aborted", func() {
 			BeforeEach(func() {
-				fakeStep.RunReturns(context.Canceled)
+				fakeStep.RunReturns(false, context.Canceled)
 			})
 
 			It("propagates the error", func() {
@@ -81,7 +108,7 @@ var _ = Describe("LogErrorStep", func() {
 
 		Context("when timed out", func() {
 			BeforeEach(func() {
-				fakeStep.RunReturns(context.DeadlineExceeded)
+				fakeStep.RunReturns(false, context.DeadlineExceeded)
 			})
 
 			It("propagates the error", func() {
@@ -99,7 +126,7 @@ var _ = Describe("LogErrorStep", func() {
 			disaster := errors.New("disaster")
 
 			BeforeEach(func() {
-				fakeStep.RunReturns(disaster)
+				fakeStep.RunReturns(false, disaster)
 			})
 
 			It("propagates the error", func() {
@@ -110,28 +137,6 @@ var _ = Describe("LogErrorStep", func() {
 				Expect(fakeDelegate.ErroredCallCount()).To(Equal(1))
 				_, message := fakeDelegate.ErroredArgsForCall(0)
 				Expect(message).To(Equal("disaster"))
-			})
-		})
-	})
-
-	Describe("Succeeded", func() {
-		Context("when the wrapped step has succeeded", func() {
-			BeforeEach(func() {
-				fakeStep.SucceededReturns(true)
-			})
-
-			It("returns true", func() {
-				Expect(step.Succeeded()).Should(BeTrue())
-			})
-		})
-
-		Context("when the wrapped step has failed", func() {
-			BeforeEach(func() {
-				fakeStep.SucceededReturns(false)
-			})
-
-			It("returns true", func() {
-				Expect(step.Succeeded()).Should(BeFalse())
 			})
 		})
 	})

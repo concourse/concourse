@@ -25,6 +25,7 @@ var _ = Describe("Aggregate", func() {
 		state *execfakes.FakeRunState
 
 		step    Step
+		stepOk  bool
 		stepErr error
 	)
 
@@ -49,7 +50,7 @@ var _ = Describe("Aggregate", func() {
 	})
 
 	JustBeforeEach(func() {
-		stepErr = step.Run(ctx, state)
+		stepOk, stepErr = step.Run(ctx, state)
 	})
 
 	It("succeeds", func() {
@@ -71,16 +72,16 @@ var _ = Describe("Aggregate", func() {
 			wg := new(sync.WaitGroup)
 			wg.Add(2)
 
-			fakeStepA.RunStub = func(context.Context, RunState) error {
+			fakeStepA.RunStub = func(context.Context, RunState) (bool, error) {
 				wg.Done()
 				wg.Wait()
-				return nil
+				return true, nil
 			}
 
-			fakeStepB.RunStub = func(context.Context, RunState) error {
+			fakeStepB.RunStub = func(context.Context, RunState) (bool, error) {
 				wg.Done()
 				wg.Wait()
-				return nil
+				return true, nil
 			}
 		})
 
@@ -112,8 +113,8 @@ var _ = Describe("Aggregate", func() {
 		disasterB := errors.New("nope B")
 
 		BeforeEach(func() {
-			fakeStepA.RunReturns(disasterA)
-			fakeStepB.RunReturns(disasterB)
+			fakeStepA.RunReturns(false, disasterA)
+			fakeStepB.RunReturns(false, disasterB)
 		})
 
 		It("exits with an error including the original message", func() {
@@ -122,64 +123,60 @@ var _ = Describe("Aggregate", func() {
 		})
 	})
 
+	Context("when all sources are successful", func() {
+		BeforeEach(func() {
+			fakeStepA.RunReturns(true, nil)
+			fakeStepB.RunReturns(true, nil)
+		})
+
+		It("succeeds", func() {
+			Expect(stepOk).To(BeTrue())
+		})
+	})
+
+	Context("and some branches are not successful", func() {
+		BeforeEach(func() {
+			fakeStepA.RunReturns(true, nil)
+			fakeStepB.RunReturns(false, nil)
+		})
+
+		It("fails", func() {
+			Expect(stepOk).To(BeFalse())
+		})
+	})
+
+	Context("when no branches indicate success", func() {
+		BeforeEach(func() {
+			fakeStepA.RunReturns(false, nil)
+			fakeStepB.RunReturns(false, nil)
+		})
+
+		It("fails", func() {
+			Expect(stepOk).To(BeFalse())
+		})
+	})
+
+	Context("when there are no branches", func() {
+		BeforeEach(func() {
+			step = AggregateStep{}
+		})
+
+		It("returns true", func() {
+			Expect(stepOk).To(BeTrue())
+		})
+	})
+
 	Describe("Panic", func() {
 		Context("when one step panic", func() {
 			BeforeEach(func() {
-				fakeStepA.SucceededReturns(true)
-
-				fakeStepB.RunStub = func(_ context.Context, _ exec.RunState) error {
+				fakeStepB.RunStub = func(_ context.Context, _ exec.RunState) (bool, error) {
 					panic("something terrible")
 				}
 			})
 
 			It("recover from panic and yields false", func() {
-				Expect(step.Succeeded()).To(BeFalse())
+				Expect(stepOk).To(BeFalse())
 				Expect(stepErr.Error()).To(ContainSubstring("something terrible"))
-			})
-		})
-	})
-
-	Describe("Succeeded", func() {
-		Context("when all sources are successful", func() {
-			BeforeEach(func() {
-				fakeStepA.SucceededReturns(true)
-				fakeStepB.SucceededReturns(true)
-			})
-
-			It("yields true", func() {
-				Expect(step.Succeeded()).To(BeTrue())
-			})
-		})
-
-		Context("and some branches are not successful", func() {
-			BeforeEach(func() {
-				fakeStepA.SucceededReturns(true)
-				fakeStepB.SucceededReturns(false)
-			})
-
-			It("yields false", func() {
-				Expect(step.Succeeded()).To(BeFalse())
-			})
-		})
-
-		Context("when no branches indicate success", func() {
-			BeforeEach(func() {
-				fakeStepA.SucceededReturns(false)
-				fakeStepB.SucceededReturns(false)
-			})
-
-			It("returns false", func() {
-				Expect(step.Succeeded()).To(BeFalse())
-			})
-		})
-
-		Context("when there are no branches", func() {
-			BeforeEach(func() {
-				step = AggregateStep{}
-			})
-
-			It("returns true", func() {
-				Expect(step.Succeeded()).To(BeTrue())
 			})
 		})
 	})

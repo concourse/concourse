@@ -5,22 +5,18 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/runtime"
 )
 
 type WorkerSpec struct {
-	Platform      string
-	ResourceType  string
-	Tags          []string
-	TeamID        int
-	ResourceTypes atc.VersionedResourceTypes
+	Platform     string
+	ResourceType string
+	Tags         []string
+	TeamID       int
 }
 
 type ContainerSpec struct {
-	Platform  string
-	Tags      []string
 	TeamID    int
 	ImageSpec ImageSpec
 	Env       []string
@@ -52,7 +48,7 @@ type ContainerSpec struct {
 }
 
 // The below methods cause ContainerSpec to fulfill the
-// go.opentelemetry.io/otel/api/propagators.Supplier interface
+// go.opentelemetry.io/otel/api/propagation.HTTPSupplier interface
 
 func (cs *ContainerSpec) Get(key string) string {
 	for _, env := range cs.Env {
@@ -95,17 +91,9 @@ type OutputPaths map[string]string
 type ImageSpec struct {
 	ResourceType        string
 	ImageURL            string
-	ImageResource       *ImageResource
 	ImageArtifactSource StreamableArtifactSource
 	ImageArtifact       runtime.Artifact
 	Privileged          bool
-}
-
-type ImageResource struct {
-	Type    string
-	Source  atc.Source
-	Params  atc.Params
-	Version atc.Version
 }
 
 type ContainerLimits struct {

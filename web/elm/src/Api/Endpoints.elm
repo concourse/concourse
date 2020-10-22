@@ -26,7 +26,6 @@ type Endpoint
     | ResourcesList
     | Resource Concourse.ResourceIdentifier ResourceEndpoint
     | ResourceVersion Concourse.VersionedResourceIdentifier ResourceVersionEndpoint
-    | Check Int
     | TeamsList
     | Team Concourse.TeamName TeamEndpoint
     | ClusterInfo
@@ -165,9 +164,6 @@ builder endpoint =
             resource id
                 |> appendPath [ "versions", String.fromInt id.versionID ]
                 |> append (resourceVersionEndpoint subEndpoint)
-
-        Check id ->
-            base |> appendPath [ "checks", String.fromInt id ]
 
         TeamsList ->
             base |> appendPath [ "teams" ]

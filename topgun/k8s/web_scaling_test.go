@@ -13,7 +13,7 @@ var _ = Describe("Scaling web instances", func() {
 	})
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace)
+		cleanupReleases()
 	})
 
 	It("succeeds", func() {

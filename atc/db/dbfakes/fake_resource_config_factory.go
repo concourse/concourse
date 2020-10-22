@@ -3,15 +3,17 @@ package dbfakes
 
 import (
 	"sync"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
 type FakeResourceConfigFactory struct {
-	CleanUnreferencedConfigsStub        func() error
+	CleanUnreferencedConfigsStub        func(time.Duration) error
 	cleanUnreferencedConfigsMutex       sync.RWMutex
 	cleanUnreferencedConfigsArgsForCall []struct {
+		arg1 time.Duration
 	}
 	cleanUnreferencedConfigsReturns struct {
 		result1 error
@@ -53,15 +55,16 @@ type FakeResourceConfigFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceConfigFactory) CleanUnreferencedConfigs() error {
+func (fake *FakeResourceConfigFactory) CleanUnreferencedConfigs(arg1 time.Duration) error {
 	fake.cleanUnreferencedConfigsMutex.Lock()
 	ret, specificReturn := fake.cleanUnreferencedConfigsReturnsOnCall[len(fake.cleanUnreferencedConfigsArgsForCall)]
 	fake.cleanUnreferencedConfigsArgsForCall = append(fake.cleanUnreferencedConfigsArgsForCall, struct {
-	}{})
-	fake.recordInvocation("CleanUnreferencedConfigs", []interface{}{})
+		arg1 time.Duration
+	}{arg1})
+	fake.recordInvocation("CleanUnreferencedConfigs", []interface{}{arg1})
 	fake.cleanUnreferencedConfigsMutex.Unlock()
 	if fake.CleanUnreferencedConfigsStub != nil {
-		return fake.CleanUnreferencedConfigsStub()
+		return fake.CleanUnreferencedConfigsStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -76,10 +79,17 @@ func (fake *FakeResourceConfigFactory) CleanUnreferencedConfigsCallCount() int {
 	return len(fake.cleanUnreferencedConfigsArgsForCall)
 }
 
-func (fake *FakeResourceConfigFactory) CleanUnreferencedConfigsCalls(stub func() error) {
+func (fake *FakeResourceConfigFactory) CleanUnreferencedConfigsCalls(stub func(time.Duration) error) {
 	fake.cleanUnreferencedConfigsMutex.Lock()
 	defer fake.cleanUnreferencedConfigsMutex.Unlock()
 	fake.CleanUnreferencedConfigsStub = stub
+}
+
+func (fake *FakeResourceConfigFactory) CleanUnreferencedConfigsArgsForCall(i int) time.Duration {
+	fake.cleanUnreferencedConfigsMutex.RLock()
+	defer fake.cleanUnreferencedConfigsMutex.RUnlock()
+	argsForCall := fake.cleanUnreferencedConfigsArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeResourceConfigFactory) CleanUnreferencedConfigsReturns(result1 error) {

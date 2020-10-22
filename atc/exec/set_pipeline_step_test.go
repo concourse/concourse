@@ -1,27 +1,26 @@
 package exec_test
 
 import (
-	"code.cloudfoundry.org/lager/lagerctx"
-	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/worker/workerfakes"
-
 	"context"
 	"errors"
 	"io"
 
-	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/exec/build/buildfakes"
-	"github.com/onsi/gomega/gbytes"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel/api/trace"
 
+	"code.cloudfoundry.org/lager/lagerctx"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/build"
+	"github.com/concourse/concourse/atc/exec/build/buildfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/vars"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("SetPipelineStep", func() {
@@ -30,6 +29,10 @@ var _ = Describe("SetPipelineStep", func() {
 ---
 jobs:
 - name:
+`
+
+	const badPipelineContentWithEmptyContent = `
+---
 `
 
 	const pipelineContent = `
@@ -80,12 +83,15 @@ jobs:
 		cancel     func()
 		testLogger *lagertest.TestLogger
 
-		fakeDelegate     *execfakes.FakeSetPipelineStepDelegate
 		fakeTeamFactory  *dbfakes.FakeTeamFactory
 		fakeBuildFactory *dbfakes.FakeBuildFactory
 		fakeBuild        *dbfakes.FakeBuild
 		fakeTeam         *dbfakes.FakeTeam
 		fakePipeline     *dbfakes.FakePipeline
+		spanCtx          context.Context
+
+		fakeDelegate        *execfakes.FakeSetPipelineStepDelegate
+		fakeDelegateFactory *execfakes.FakeSetPipelineStepDelegateFactory
 
 		fakeWorkerClient *workerfakes.FakeClient
 
@@ -95,9 +101,8 @@ jobs:
 		fakeSource         *buildfakes.FakeRegisterableArtifact
 
 		spStep  exec.Step
+		stepOk  bool
 		stepErr error
-
-		buildVars *vars.BuildVariables
 
 		stepMetadata = exec.StepMetadata{
 			TeamID:               123,
@@ -121,12 +126,11 @@ jobs:
 		ctx, cancel = context.WithCancel(context.Background())
 		ctx = lagerctx.NewContext(ctx, testLogger)
 
-		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
-		buildVars = vars.NewBuildVariables(credVars, true)
-
 		artifactRepository = build.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactRepositoryReturns(artifactRepository)
+
+		state.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
 
 		fakeSource = new(buildfakes.FakeRegisterableArtifact)
 		artifactRepository.RegisterArtifact("some-resource", fakeSource)
@@ -135,9 +139,14 @@ jobs:
 		stderr = gbytes.NewBuffer()
 
 		fakeDelegate = new(execfakes.FakeSetPipelineStepDelegate)
-		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdout)
 		fakeDelegate.StderrReturns(stderr)
+
+		spanCtx = context.Background()
+		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
+
+		fakeDelegateFactory = new(execfakes.FakeSetPipelineStepDelegateFactory)
+		fakeDelegateFactory.SetPipelineStepDelegateReturns(fakeDelegate)
 
 		fakeTeamFactory = new(dbfakes.FakeTeamFactory)
 		fakeBuildFactory = new(dbfakes.FakeBuildFactory)
@@ -186,13 +195,13 @@ jobs:
 			plan.ID,
 			*plan.SetPipeline,
 			stepMetadata,
-			fakeDelegate,
+			fakeDelegateFactory,
 			fakeTeamFactory,
 			fakeBuildFactory,
 			fakeWorkerClient,
 		)
 
-		stepErr = spStep.Run(ctx, state)
+		stepOk, stepErr = spStep.Run(ctx, state)
 	})
 
 	Context("when file is not configured", func() {
@@ -238,6 +247,24 @@ jobs:
 				Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 				_, succeeded := fakeDelegate.FinishedArgsForCall(0)
 				Expect(succeeded).To(BeFalse())
+			})
+		})
+
+		Context("when pipeline file exists but is empty", func() {
+			BeforeEach(func() {
+				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: badPipelineContentWithEmptyContent}, nil)
+			})
+
+			It("should return an error", func() {
+				Expect(stepErr).NotTo(HaveOccurred())
+			})
+
+			It("should log an error message", func() {
+				Expect(stderr).To(gbytes.Say("pipeline must contain at least one job"))
+			})
+
+			It("should not update the job and build id", func() {
+				Expect(fakePipeline.SetParentIDsCallCount()).To(Equal(0))
 			})
 		})
 
@@ -290,8 +317,8 @@ jobs:
 						fakePipeline.SetParentIDsReturns(nil)
 					})
 
-					It("should log no-diff", func() {
-						Expect(stdout).To(gbytes.Say("no diff found."))
+					It("should log 'no changes to apply'", func() {
+						Expect(stdout).To(gbytes.Say("no changes to apply."))
 					})
 
 					It("should send a set pipeline changed event", func() {
@@ -344,7 +371,7 @@ jobs:
 						})
 						It("does not fail the step", func() {
 							Expect(stepErr).ToNot(HaveOccurred())
-							Expect(spStep.Succeeded()).To(BeTrue())
+							Expect(stepOk).To(BeTrue())
 						})
 					})
 				})

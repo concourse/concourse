@@ -62,7 +62,7 @@ type interpolator struct{}
 
 var (
 	pathRegex                  = regexp.MustCompile(`("[^"]*"|[^\.]+)+`)
-	interpolationRegex         = regexp.MustCompile(`\(\((([-/\.\w\pL]+\:)?[-/\.:"\w\pL]+)\)\)`)
+	interpolationRegex         = regexp.MustCompile(`\(\((([-/\.\w\pL]+\:)?[-/\.:@"\w\pL]+)\)\)`)
 	interpolationAnchoredRegex = regexp.MustCompile("\\A" + interpolationRegex.String() + "\\z")
 )
 
@@ -135,29 +135,6 @@ func (i interpolator) extractVarNames(value string) []string {
 	return names
 }
 
-func parseVarName(name string) VariableReference {
-	var pathPieces []string
-
-	varRef := VariableReference{Name: name}
-
-	if strings.Index(name, ":") > 0 {
-		parts := strings.SplitN(name, ":", 2)
-		varRef.Source = parts[0]
-
-		pathPieces = pathRegex.FindAllString(parts[1], -1)
-
-	} else {
-		pathPieces = pathRegex.FindAllString(name, -1)
-	}
-
-	varRef.Path = strings.ReplaceAll(pathPieces[0], "\"", "")
-	if len(pathPieces) >= 2 {
-		varRef.Fields = pathPieces[1:]
-	}
-
-	return varRef
-}
-
 type varsTracker struct {
 	vars Variables
 
@@ -184,43 +161,14 @@ func newVarsTracker(vars Variables, expectAllFound, expectAllUsed bool) varsTrac
 // is var name; 2) 'foo:bar', where foo is var source name, and bar is var name;
 // 3) '.:foo', where . means a local var, foo is var name.
 func (t varsTracker) Get(varName string) (interface{}, bool, error) {
-	varRef := parseVarName(varName)
+	varRef := parseReference(varName)
 
 	t.visitedAll[identifier(varRef)] = struct{}{}
 
-	val, found, err := t.vars.Get(VariableDefinition{Ref: varRef})
+	val, found, err := t.vars.Get(varRef)
 	if !found || err != nil {
-		t.missing[varRef.Name] = struct{}{}
+		t.missing[varRef.String()] = struct{}{}
 		return val, found, err
-	}
-
-	for _, seg := range varRef.Fields {
-		switch v := val.(type) {
-		case map[interface{}]interface{}:
-			var found bool
-			val, found = v[seg]
-			if !found {
-				return nil, false, MissingFieldError{
-					Name:  varName,
-					Field: seg,
-				}
-			}
-		case map[string]interface{}:
-			var found bool
-			val, found = v[seg]
-			if !found {
-				return nil, false, MissingFieldError{
-					Name:  varName,
-					Field: seg,
-				}
-			}
-		default:
-			return nil, false, InvalidFieldError{
-				Name:  varName,
-				Field: seg,
-				Value: val,
-			}
-		}
 	}
 
 	return val, true, err
@@ -253,15 +201,15 @@ func (t varsTracker) ExtraError() error {
 		return nil
 	}
 
-	allDefs, err := t.vars.List()
+	allRefs, err := t.vars.List()
 	if err != nil {
 		return err
 	}
 
 	unusedNames := map[string]struct{}{}
 
-	for _, def := range allDefs {
-		id := identifier(def.Ref)
+	for _, ref := range allRefs {
+		id := identifier(ref)
 		if _, found := t.visitedAll[id]; !found {
 			unusedNames[id] = struct{}{}
 		}
@@ -285,7 +233,7 @@ func names(mapWithNames map[string]struct{}) []string {
 	return names
 }
 
-func identifier(varRef VariableReference) string {
+func identifier(varRef Reference) string {
 	id := varRef.Path
 
 	if varRef.Source != "" {

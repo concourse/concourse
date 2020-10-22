@@ -6,7 +6,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"go.opentelemetry.io/otel/api/propagators"
+	"go.opentelemetry.io/otel/api/propagation"
 )
 
 //go:generate counterfeiter . ResourceConfigVersion
@@ -16,8 +16,7 @@ type ResourceConfigVersion interface {
 	Version() Version
 	Metadata() ResourceConfigMetadataFields
 	CheckOrder() int
-	ResourceConfigScope() ResourceConfigScope
-	SpanContext() propagators.Supplier
+	SpanContext() propagation.HTTPSupplier
 
 	Reload() (bool, error)
 }
@@ -64,8 +63,6 @@ type resourceConfigVersion struct {
 	checkOrder  int
 	spanContext SpanContext
 
-	resourceConfigScope ResourceConfigScope
-
 	conn Conn
 }
 
@@ -85,10 +82,7 @@ func (r *resourceConfigVersion) ID() int                                { return
 func (r *resourceConfigVersion) Version() Version                       { return r.version }
 func (r *resourceConfigVersion) Metadata() ResourceConfigMetadataFields { return r.metadata }
 func (r *resourceConfigVersion) CheckOrder() int                        { return r.checkOrder }
-func (r *resourceConfigVersion) ResourceConfigScope() ResourceConfigScope {
-	return r.resourceConfigScope
-}
-func (r *resourceConfigVersion) SpanContext() propagators.Supplier {
+func (r *resourceConfigVersion) SpanContext() propagation.HTTPSupplier {
 	return r.spanContext
 }
 

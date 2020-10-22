@@ -53,8 +53,8 @@ type Team interface {
 	ListResources(pipelineRef atc.PipelineRef) ([]atc.Resource, error)
 	VersionedResourceTypes(pipelineRef atc.PipelineRef) (atc.VersionedResourceTypes, bool, error)
 	ResourceVersions(pipelineRef atc.PipelineRef, resourceName string, page Page, filter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error)
-	CheckResource(pipelineRef atc.PipelineRef, resourceName string, version atc.Version) (atc.Check, bool, error)
-	CheckResourceType(pipelineRef atc.PipelineRef, resourceTypeName string, version atc.Version) (atc.Check, bool, error)
+	CheckResource(pipelineRef atc.PipelineRef, resourceName string, version atc.Version) (atc.Build, bool, error)
+	CheckResourceType(pipelineRef atc.PipelineRef, resourceTypeName string, version atc.Version) (atc.Build, bool, error)
 	DisableResourceVersion(pipelineRef atc.PipelineRef, resourceName string, resourceVersionID int) (bool, error)
 	EnableResourceVersion(pipelineRef atc.PipelineRef, resourceName string, resourceVersionID int) (bool, error)
 

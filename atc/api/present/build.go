@@ -22,11 +22,12 @@ func Build(build db.Build) atc.Build {
 		ID:                   build.ID(),
 		Name:                 build.Name(),
 		JobName:              build.JobName(),
+		ResourceName:         build.ResourceName(),
 		PipelineID:           build.PipelineID(),
 		PipelineName:         build.PipelineName(),
 		PipelineInstanceVars: build.PipelineInstanceVars(),
 		TeamName:             build.TeamName(),
-		Status:               string(build.Status()),
+		Status:               atc.BuildStatus(build.Status()),
 		APIURL:               apiURL,
 	}
 

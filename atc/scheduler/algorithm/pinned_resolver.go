@@ -5,8 +5,8 @@ import (
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/tracing"
-	"go.opentelemetry.io/otel/api/key"
-	"google.golang.org/grpc/codes"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/label"
 )
 
 type pinnedResolver struct {
@@ -39,16 +39,16 @@ func (r *pinnedResolver) Resolve(ctx context.Context) (map[string]*versionCandid
 
 	if !found {
 		span.AddEvent(ctx, "pinned version not found")
-		span.SetStatus(codes.NotFound)
+		span.SetStatus(codes.NotFound, "pinned version not found")
 		return nil, db.PinnedVersionNotFound{PinnedVersion: r.inputConfig.PinnedVersion}.String(), nil
 	}
 
-	span.AddEvent(ctx, "found via pin", key.New("version").String(string(version)))
+	span.AddEvent(ctx, "found via pin", label.String("version", string(version)))
 
 	versionCandidate := map[string]*versionCandidate{
 		r.inputConfig.Name: newCandidateVersion(version),
 	}
 
-	span.SetStatus(codes.OK)
+	span.SetStatus(codes.OK, "found via pin")
 	return versionCandidate, "", nil
 }

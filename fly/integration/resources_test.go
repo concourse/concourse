@@ -1,7 +1,6 @@
 package integration_test
 
 import (
-	"fmt"
 	"os/exec"
 
 	"github.com/concourse/concourse/atc"
@@ -35,18 +34,6 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Context("when resources are returned from the API", func() {
-			createResource := func(num int, pipelineRef atc.PipelineRef, pinnedVersion atc.Version, resourceType string) atc.Resource {
-				return atc.Resource{
-					Name:                 fmt.Sprintf("resource-%d", num),
-					PipelineID:           1,
-					PipelineName:         pipelineRef.Name,
-					PipelineInstanceVars: pipelineRef.InstanceVars,
-					TeamName:             teamName,
-					PinnedVersion:        pinnedVersion,
-					Type:                 resourceType,
-				}
-			}
-
 			BeforeEach(func() {
 				flyCmd = exec.Command(flyPath, "-t", targetName, "resources", "--pipeline", "pipeline/branch:master")
 				pipelineRef := atc.PipelineRef{Name: "pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
@@ -54,8 +41,66 @@ var _ = Describe("Fly CLI", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/resources", "instance_vars=%7B%22branch%22%3A%22master%22%7D"),
 						ghttp.RespondWithJSONEncoded(200, []atc.Resource{
-							createResource(1, pipelineRef, nil, "time"),
-							createResource(2, pipelineRef, atc.Version{"some": "version"}, "custom"),
+							{
+								Name:                 "resource-1",
+								PipelineID:           1,
+								PipelineName:         pipelineRef.Name,
+								PipelineInstanceVars: pipelineRef.InstanceVars,
+								TeamName:             teamName,
+								Type:                 "time",
+								Build: &atc.BuildSummary{
+									ID:                   122,
+									Name:                 "122",
+									Status:               atc.StatusSucceeded,
+									TeamName:             teamName,
+									PipelineID:           1,
+									PipelineName:         pipelineRef.Name,
+									PipelineInstanceVars: pipelineRef.InstanceVars,
+								},
+							},
+							{
+								Name:                 "resource-2",
+								PipelineID:           1,
+								PipelineName:         pipelineRef.Name,
+								PipelineInstanceVars: pipelineRef.InstanceVars,
+								TeamName:             teamName,
+								Type:                 "custom",
+								PinnedVersion:        atc.Version{"some": "version"},
+							},
+							{
+								Name:                 "resource-3",
+								PipelineID:           1,
+								PipelineName:         pipelineRef.Name,
+								PipelineInstanceVars: pipelineRef.InstanceVars,
+								TeamName:             teamName,
+								Type:                 "mock",
+								Build: &atc.BuildSummary{
+									ID:                   123,
+									Name:                 "123",
+									Status:               atc.StatusFailed,
+									TeamName:             teamName,
+									PipelineID:           1,
+									PipelineName:         pipelineRef.Name,
+									PipelineInstanceVars: pipelineRef.InstanceVars,
+								},
+							},
+							{
+								Name:                 "resource-4",
+								PipelineID:           1,
+								PipelineName:         pipelineRef.Name,
+								PipelineInstanceVars: pipelineRef.InstanceVars,
+								TeamName:             teamName,
+								Type:                 "mock",
+								Build: &atc.BuildSummary{
+									ID:                   124,
+									Name:                 "124",
+									Status:               atc.StatusErrored,
+									TeamName:             teamName,
+									PipelineID:           1,
+									PipelineName:         pipelineRef.Name,
+									PipelineInstanceVars: pipelineRef.InstanceVars,
+								},
+							},
 						}),
 					),
 				)
@@ -80,7 +125,18 @@ var _ = Describe("Fly CLI", func() {
                   "branch": "master"
                 },
                 "team_name": "main",
-                "type": "time"
+                "type": "time",
+								"build": {
+									"id": 122,
+									"name": "122",
+									"pipeline_id": 1,
+									"pipeline_name": "pipeline",
+									"pipeline_instance_vars": {
+										"branch": "master"
+									},
+									"team_name": "main",
+									"status": "succeeded"
+								}
               },
               {
                 "name": "resource-2",
@@ -92,6 +148,48 @@ var _ = Describe("Fly CLI", func() {
                 "team_name": "main",
                 "type": "custom",
                 "pinned_version": {"some": "version"}
+              },
+              {
+                "name": "resource-3",
+                "pipeline_id": 1,
+                "pipeline_name": "pipeline",
+                "pipeline_instance_vars": {
+                  "branch": "master"
+                },
+                "team_name": "main",
+                "type": "mock",
+								"build": {
+									"id": 123,
+									"name": "123",
+									"pipeline_id": 1,
+									"pipeline_name": "pipeline",
+									"pipeline_instance_vars": {
+										"branch": "master"
+									},
+									"team_name": "main",
+									"status": "failed"
+								}
+              },
+              {
+                "name": "resource-4",
+                "pipeline_id": 1,
+                "pipeline_name": "pipeline",
+                "pipeline_instance_vars": {
+                  "branch": "master"
+                },
+                "team_name": "main",
+                "type": "mock",
+								"build": {
+									"id": 124,
+									"name": "124",
+									"pipeline_id": 1,
+									"pipeline_name": "pipeline",
+									"pipeline_instance_vars": {
+										"branch": "master"
+									},
+									"team_name": "main",
+									"status": "errored"
+								}
               }
             ]`))
 				})
@@ -104,8 +202,10 @@ var _ = Describe("Fly CLI", func() {
 
 				Expect(sess.Out).To(PrintTable(ui.Table{
 					Data: []ui.TableRow{
-						{{Contents: "resource-1"}, {Contents: "time"}, {Contents: "n/a"}},
-						{{Contents: "resource-2"}, {Contents: "custom"}, {Contents: "some:version", Color: color.New(color.FgCyan)}},
+						{{Contents: "resource-1"}, {Contents: "time"}, {Contents: "n/a"}, {Contents: "succeeded", Color: color.New(color.FgGreen)}},
+						{{Contents: "resource-2"}, {Contents: "custom"}, {Contents: "some:version", Color: color.New(color.FgCyan)}, {Contents: "n/a", Color: color.New(color.Faint)}},
+						{{Contents: "resource-3"}, {Contents: "mock"}, {Contents: "n/a"}, {Contents: "failed", Color: color.New(color.FgRed)}},
+						{{Contents: "resource-4"}, {Contents: "mock"}, {Contents: "n/a"}, {Contents: "errored", Color: color.New(color.FgRed, color.Bold)}},
 					},
 				}))
 			})

@@ -2,6 +2,7 @@ package flaghelpers
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/concourse/concourse/atc"
@@ -10,6 +11,10 @@ import (
 type ResourceFlag struct {
 	PipelineRef  atc.PipelineRef
 	ResourceName string
+}
+
+func (flag ResourceFlag) String() string {
+	return fmt.Sprintf("%s/%s", flag.PipelineRef, flag.ResourceName)
 }
 
 func (flag *ResourceFlag) UnmarshalFlag(value string) error {

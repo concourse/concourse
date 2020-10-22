@@ -8,10 +8,11 @@ import (
 )
 
 type FakeProvider struct {
-	TracerStub        func(string) trace.Tracer
+	TracerStub        func(string, ...trace.TracerOption) trace.Tracer
 	tracerMutex       sync.RWMutex
 	tracerArgsForCall []struct {
 		arg1 string
+		arg2 []trace.TracerOption
 	}
 	tracerReturns struct {
 		result1 trace.Tracer
@@ -23,16 +24,17 @@ type FakeProvider struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeProvider) Tracer(arg1 string) trace.Tracer {
+func (fake *FakeProvider) Tracer(arg1 string, arg2 ...trace.TracerOption) trace.Tracer {
 	fake.tracerMutex.Lock()
 	ret, specificReturn := fake.tracerReturnsOnCall[len(fake.tracerArgsForCall)]
 	fake.tracerArgsForCall = append(fake.tracerArgsForCall, struct {
 		arg1 string
-	}{arg1})
-	fake.recordInvocation("Tracer", []interface{}{arg1})
+		arg2 []trace.TracerOption
+	}{arg1, arg2})
+	fake.recordInvocation("Tracer", []interface{}{arg1, arg2})
 	fake.tracerMutex.Unlock()
 	if fake.TracerStub != nil {
-		return fake.TracerStub(arg1)
+		return fake.TracerStub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1
@@ -47,17 +49,17 @@ func (fake *FakeProvider) TracerCallCount() int {
 	return len(fake.tracerArgsForCall)
 }
 
-func (fake *FakeProvider) TracerCalls(stub func(string) trace.Tracer) {
+func (fake *FakeProvider) TracerCalls(stub func(string, ...trace.TracerOption) trace.Tracer) {
 	fake.tracerMutex.Lock()
 	defer fake.tracerMutex.Unlock()
 	fake.TracerStub = stub
 }
 
-func (fake *FakeProvider) TracerArgsForCall(i int) string {
+func (fake *FakeProvider) TracerArgsForCall(i int) (string, []trace.TracerOption) {
 	fake.tracerMutex.RLock()
 	defer fake.tracerMutex.RUnlock()
 	argsForCall := fake.tracerArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeProvider) TracerReturns(result1 trace.Tracer) {

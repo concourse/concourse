@@ -29,7 +29,7 @@ var _ = Describe("Container Limits", func() {
 	})
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace)
+		cleanupReleases()
 	})
 
 })

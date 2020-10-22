@@ -27,10 +27,10 @@ func Ensure(step Step, hook Step) EnsureStep {
 //
 // If the first step or the second step errors, an aggregate of their errors is
 // returned.
-func (o EnsureStep) Run(ctx context.Context, state RunState) error {
+func (o EnsureStep) Run(ctx context.Context, state RunState) (bool, error) {
 	var errors error
 
-	originalErr := o.step.Run(ctx, state)
+	originalOk, originalErr := o.step.Run(ctx, state)
 	if originalErr != nil {
 		errors = multierror.Append(errors, originalErr)
 	}
@@ -41,19 +41,18 @@ func (o EnsureStep) Run(ctx context.Context, state RunState) error {
 		hookCtx = context.Background()
 	}
 
-	hookErr := o.hook.Run(hookCtx, state)
+	hookOk, hookErr := o.hook.Run(hookCtx, state)
 	if hookErr != nil {
 		errors = multierror.Append(errors, hookErr)
 	}
 
 	if ctx.Err() != nil {
-		return ctx.Err()
+		return false, ctx.Err()
 	}
 
-	return errors
-}
+	if errors != nil {
+		return false, errors
+	}
 
-// Succeeded is true if both of its steps succeeded.
-func (o EnsureStep) Succeeded() bool {
-	return o.step.Succeeded() && o.hook.Succeeded()
+	return originalOk && hookOk, nil
 }

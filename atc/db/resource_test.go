@@ -1,14 +1,18 @@
 package db_test
 
 import (
-	"errors"
+	"context"
 	"strconv"
 	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbtest"
+	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/api/trace/tracetest"
 )
 
 var _ = Describe("Resource", func() {
@@ -30,6 +34,7 @@ var _ = Describe("Resource", func() {
 						WebhookToken: "some-token",
 						Source:       atc.Source{"some": "repository"},
 						Version:      atc.Version{"ref": "abcdef"},
+						CheckTimeout: "999m",
 					},
 					{
 						Name:   "some-other-resource",
@@ -119,68 +124,50 @@ var _ = Describe("Resource", func() {
 
 	Describe("(Pipeline).Resource", func() {
 		var (
-			err      error
-			found    bool
-			resource db.Resource
+			scenario *dbtest.Scenario
 		)
 
 		Context("when the resource exists", func() {
 			BeforeEach(func() {
-				resource, found, err = pipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "repository"},
+							},
+						},
+					}),
+				)
 			})
 
 			It("returns the resource", func() {
-				Expect(found).To(BeTrue())
-				Expect(resource.Name()).To(Equal("some-resource"))
-				Expect(resource.Type()).To(Equal("registry-image"))
-				Expect(resource.Source()).To(Equal(atc.Source{"some": "repository"}))
-			})
-
-			Context("when the resource config id is set on the resource for the first time", func() {
-				var resourceScope db.ResourceConfigScope
-
-				BeforeEach(func() {
-					setupTx, err := dbConn.Begin()
-					Expect(err).ToNot(HaveOccurred())
-
-					brt := db.BaseResourceType{
-						Name: "registry-image",
-					}
-
-					_, err = brt.FindOrCreate(setupTx, false)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(setupTx.Commit()).To(Succeed())
-
-					resourceScope, err = resource.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
-					Expect(err).NotTo(HaveOccurred())
-
-					err = resourceScope.SetCheckError(errors.New("oops"))
-					Expect(err).NotTo(HaveOccurred())
-
-					found, err = resource.Reload()
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				It("returns the resource config check error", func() {
-					Expect(found).To(BeTrue())
-					Expect(resource.ResourceConfigID()).To(Equal(resourceScope.ResourceConfig().ID()))
-					Expect(resource.CheckError()).To(Equal(errors.New("oops")))
-				})
-			})
-
-			Context("when the resource config id is not set on the resource", func() {
-				It("returns nil for the resource config check error", func() {
-					Expect(found).To(BeTrue())
-					Expect(resource.ResourceConfigID()).To(Equal(0))
-					Expect(resource.CheckError()).To(BeNil())
-				})
+				Expect(scenario.Resource("some-resource").Name()).To(Equal("some-resource"))
+				Expect(scenario.Resource("some-resource").Type()).To(Equal("some-base-resource-type"))
+				Expect(scenario.Resource("some-resource").Source()).To(Equal(atc.Source{"some": "repository"}))
 			})
 		})
 
 		Context("when the resource does not exist", func() {
-			JustBeforeEach(func() {
-				resource, found, err = pipeline.Resource("bonkers")
+			var resource db.Resource
+			var found bool
+			var err error
+
+			BeforeEach(func() {
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "repository"},
+							},
+						},
+					}),
+				)
+
+				resource, found, err = scenario.Pipeline.Resource("bonkers")
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -192,67 +179,54 @@ var _ = Describe("Resource", func() {
 	})
 
 	Describe("Enable/Disable Version", func() {
-		var resource db.Resource
-		var rcv db.ResourceConfigVersion
-		var err error
-		var found bool
+		var scenario *dbtest.Scenario
 
 		BeforeEach(func() {
-			resource, found, err = pipeline.Resource("some-other-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-
-			brt := db.BaseResourceType{
-				Name: "git",
-			}
-
-			_, err = brt.FindOrCreate(setupTx, false)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
-
-			resourceScope, err := resource.SetResourceConfig(atc.Source{"some": "other-repository"}, atc.VersionedResourceTypes{})
-			Expect(err).NotTo(HaveOccurred())
-
-			err = resourceScope.SaveVersions(nil, []atc.Version{
-				{"disabled": "version"},
-			})
-			Expect(err).ToNot(HaveOccurred())
-
-			rcv, found, err = resourceScope.FindVersion(atc.Version{"disabled": "version"})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
+			scenario = dbtest.Setup(
+				builder.WithPipeline(atc.Config{
+					Jobs: atc.JobConfigs{
+						{
+							Name: "job-using-resource",
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name: "some-other-resource",
+									},
+								},
+							},
+						},
+						{
+							Name: "not-using-resource",
+						},
+					},
+					Resources: atc.ResourceConfigs{
+						{
+							Name:   "some-other-resource",
+							Type:   "some-base-resource-type",
+							Source: atc.Source{"some": "other-repository"},
+						},
+					},
+				}),
+				builder.WithResourceVersions("some-other-resource", atc.Version{"disabled": "version"}),
+			)
 		})
 
 		Context("when disabling a version that exists", func() {
 			var disableErr error
 			var requestedSchedule1 time.Time
 			var requestedSchedule2 time.Time
-			var jobUsingResource db.Job
-			var jobNotUsingResource db.Job
 
 			BeforeEach(func() {
-				jobUsingResource, found, err = pipeline.Job("job-using-resource")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
+				requestedSchedule1 = scenario.Job("job-using-resource").ScheduleRequestedTime()
+				requestedSchedule2 = scenario.Job("not-using-resource").ScheduleRequestedTime()
 
-				requestedSchedule1 = jobUsingResource.ScheduleRequestedTime()
-
-				jobNotUsingResource, found, err = pipeline.Job("not-using-resource")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				requestedSchedule2 = jobNotUsingResource.ScheduleRequestedTime()
-
-				disableErr = resource.DisableVersion(rcv.ID())
+				scenario.Run(builder.WithDisabledVersion("some-other-resource", atc.Version{"disabled": "version"}))
 			})
 
 			It("successfully disables the version", func() {
 				Expect(disableErr).ToNot(HaveOccurred())
 
-				versions, _, found, err := resource.Versions(db.Page{Limit: 3}, nil)
+				versions, _, found, err := scenario.Resource("some-other-resource").Versions(db.Page{Limit: 3}, nil)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(versions).To(HaveLen(1))
@@ -261,31 +235,28 @@ var _ = Describe("Resource", func() {
 			})
 
 			It("requests schedule on the jobs using that resource", func() {
-				found, err := jobUsingResource.Reload()
+				found, err := scenario.Job("job-using-resource").Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(jobUsingResource.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule1))
+				Expect(scenario.Job("job-using-resource").ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule1))
 			})
 
 			It("does not request schedule on jobs that do not use the resource", func() {
-				found, err := jobNotUsingResource.Reload()
+				found, err := scenario.Job("not-using-resource").Reload()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				Expect(jobNotUsingResource.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule2))
+				Expect(scenario.Job("not-using-resource").ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule2))
 			})
 
 			Context("when enabling that version", func() {
-				var enableErr error
 				BeforeEach(func() {
-					enableErr = resource.EnableVersion(rcv.ID())
+					scenario.Run(builder.WithEnabledVersion("some-other-resource", atc.Version{"disabled": "version"}))
 				})
 
 				It("successfully enables the version", func() {
-					Expect(enableErr).ToNot(HaveOccurred())
-
-					versions, _, found, err := resource.Versions(db.Page{Limit: 3}, nil)
+					versions, _, found, err := scenario.Resource("some-other-resource").Versions(db.Page{Limit: 3}, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(versions).To(HaveLen(1))
@@ -294,19 +265,19 @@ var _ = Describe("Resource", func() {
 				})
 
 				It("request schedule on the jobs using that resource", func() {
-					found, err := jobUsingResource.Reload()
+					found, err := scenario.Job("job-using-resource").Reload()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					Expect(jobUsingResource.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule1))
+					Expect(scenario.Job("job-using-resource").ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule1))
 				})
 
 				It("does not request schedule on jobs that do not use the resource", func() {
-					found, err := jobNotUsingResource.Reload()
+					found, err := scenario.Job("not-using-resource").Reload()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					Expect(jobNotUsingResource.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule2))
+					Expect(scenario.Job("not-using-resource").ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule2))
 				})
 			})
 		})
@@ -314,7 +285,7 @@ var _ = Describe("Resource", func() {
 		Context("when disabling version that does not exist", func() {
 			var disableErr error
 			BeforeEach(func() {
-				resource, found, err := pipeline.Resource("some-resource")
+				resource, found, err := scenario.Pipeline.Resource("some-other-resource")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -329,7 +300,11 @@ var _ = Describe("Resource", func() {
 		Context("when enabling a version that is already enabled", func() {
 			var enableError error
 			BeforeEach(func() {
-				enableError = resource.EnableVersion(rcv.ID())
+				resource, found, err := scenario.Pipeline.Resource("some-other-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				enableError = resource.EnableVersion(scenario.ResourceVersion("some-other-resource", atc.Version{"disabled": "version"}).ID())
 			})
 
 			It("returns a non one row affected error", func() {
@@ -338,47 +313,28 @@ var _ = Describe("Resource", func() {
 		})
 	})
 
-	Describe("SetResourceConfig", func() {
+	Describe("SetResourceConfigScope", func() {
 		var pipeline db.Pipeline
-		var config atc.Config
+		var resource db.Resource
+		var scope db.ResourceConfigScope
 
 		BeforeEach(func() {
-			var created bool
-			var err error
-			config = atc.Config{
-				ResourceTypes: atc.ResourceTypes{
-					{
-						Name:                 "some-resourceType",
-						Type:                 "base",
-						Source:               atc.Source{"some": "repository"},
-						UniqueVersionHistory: true,
-					},
-				},
+			config := atc.Config{
 				Resources: atc.ResourceConfigs{
 					{
 						Name:   "some-resource",
-						Type:   "some-type",
+						Type:   defaultWorkerResourceType.Type,
 						Source: atc.Source{"some": "repository"},
 					},
 					{
 						Name:   "some-other-resource",
-						Type:   "some-type",
-						Source: atc.Source{"some": "repository"},
-					},
-					{
-						Name:   "pipeline-resource",
-						Type:   "some-resourceType",
-						Source: atc.Source{"some": "repository"},
-					},
-					{
-						Name:   "other-pipeline-resource",
-						Type:   "some-resourceType",
-						Source: atc.Source{"some": "repository"},
+						Type:   defaultWorkerResourceType.Type,
+						Source: atc.Source{"some": "other-repository"},
 					},
 				},
 				Jobs: atc.JobConfigs{
 					{
-						Name: "job-using-resource",
+						Name: "using-resource",
 						PlanSequence: []atc.Step{
 							{
 								Config: &atc.GetStep{
@@ -389,592 +345,263 @@ var _ = Describe("Resource", func() {
 					},
 					{
 						Name: "not-using-resource",
+						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name: "some-other-resource",
+								},
+							},
+						},
 					},
 				},
 			}
 
+			var err error
+
+			var created bool
 			pipeline, created, err = defaultTeam.SavePipeline(
-				atc.PipelineRef{Name: "pipeline-with-same-resources"},
+				atc.PipelineRef{Name: "some-pipeline-with-two-jobs"},
 				config,
 				0,
 				false,
 			)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(created).To(BeTrue())
-		})
 
-		Context("when the enable global resources flag is set to true", func() {
-			BeforeEach(func() {
-				atc.EnableGlobalResources = true
-			})
+			var found bool
+			resource, found, err = pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-			Context("when the resource uses a base resource type with shared version history", func() {
-				var (
-					resourceScope1 db.ResourceConfigScope
-					resourceScope2 db.ResourceConfigScope
-					resource1      db.Resource
-					resource2      db.Resource
-				)
+			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(resource.Type(), resource.Source(), atc.VersionedResourceTypes{})
+			Expect(err).ToNot(HaveOccurred())
 
-				BeforeEach(func() {
-					var found bool
-					var err error
-					resource1, found, err = pipeline.Resource("some-resource")
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					setupTx, err := dbConn.Begin()
-					Expect(err).ToNot(HaveOccurred())
-
-					brt := db.BaseResourceType{
-						Name: "some-type",
-					}
-
-					_, err = brt.FindOrCreate(setupTx, false)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(setupTx.Commit()).To(Succeed())
-
-					resourceScope1, err = resource1.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
-					Expect(err).NotTo(HaveOccurred())
-
-					err = resourceScope1.SetCheckError(errors.New("oops"))
-					Expect(err).NotTo(HaveOccurred())
-
-					found, err = resource1.Reload()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-				})
-
-				It("has the resource config id and resource config scope id set on the resource", func() {
-					Expect(resourceScope1.Resource()).To(BeNil())
-					Expect(resource1.ResourceConfigID()).To(Equal(resourceScope1.ResourceConfig().ID()))
-					Expect(resource1.ResourceConfigScopeID()).To(Equal(resourceScope1.ID()))
-				})
-
-				Context("when another resource uses the same resource config", func() {
-					BeforeEach(func() {
-						var found bool
-						var err error
-						resource2, found, err = pipeline.Resource("some-other-resource")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(found).To(BeTrue())
-
-						resourceScope2, err = resource2.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
-						Expect(err).NotTo(HaveOccurred())
-
-						found, err = resource2.Reload()
-						Expect(err).NotTo(HaveOccurred())
-						Expect(found).To(BeTrue())
-					})
-
-					It("has the same resource config id and resource config scope id as the first resource", func() {
-						Expect(resourceScope2.CheckError()).To(Equal(errors.New("oops")))
-
-						Expect(resource2.ResourceConfigID()).To(Equal(resourceScope2.ResourceConfig().ID()))
-						Expect(resource2.ResourceConfigScopeID()).To(Equal(resourceScope2.ID()))
-						Expect(resource1.ResourceConfigID()).To(Equal(resource2.ResourceConfigID()))
-						Expect(resource1.ResourceConfigScopeID()).To(Equal(resource2.ResourceConfigScopeID()))
-					})
-				})
-			})
-
-			Context("when the resource uses a base resource type that has unique version history", func() {
-				var (
-					resourceScope1 db.ResourceConfigScope
-					resourceScope2 db.ResourceConfigScope
-					resource1      db.Resource
-					resource2      db.Resource
-				)
-
-				BeforeEach(func() {
-					var found bool
-					var err error
-					resource1, found, err = pipeline.Resource("some-resource")
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					setupTx, err := dbConn.Begin()
-					Expect(err).ToNot(HaveOccurred())
-
-					brt := db.BaseResourceType{
-						Name: "some-type",
-					}
-
-					_, err = brt.FindOrCreate(setupTx, true)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(setupTx.Commit()).To(Succeed())
-
-					resourceScope1, err = resource1.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
-					Expect(err).NotTo(HaveOccurred())
-
-					found, err = resource1.Reload()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-				})
-
-				It("has the resource config id and resource config scope id set on the resource", func() {
-					Expect(resource1.ResourceConfigID()).To(Equal(resourceScope1.ResourceConfig().ID()))
-					Expect(resource1.ResourceConfigScopeID()).To(Equal(resourceScope1.ID()))
-				})
-
-				Context("when another resource uses the same resource config", func() {
-					BeforeEach(func() {
-						var found bool
-						var err error
-						resource2, found, err = pipeline.Resource("some-other-resource")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(found).To(BeTrue())
-
-						resourceScope2, err = resource2.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
-						Expect(err).NotTo(HaveOccurred())
-
-						found, err = resource2.Reload()
-						Expect(err).NotTo(HaveOccurred())
-						Expect(found).To(BeTrue())
-					})
-
-					It("has a different resource config scope id than the first resource", func() {
-						Expect(resource2.ResourceConfigID()).To(Equal(resourceScope2.ResourceConfig().ID()))
-						Expect(resource2.ResourceConfigScopeID()).To(Equal(resourceScope2.ID()))
-						Expect(resource1.ResourceConfigID()).To(Equal(resource2.ResourceConfigID()))
-						Expect(resource1.ResourceConfigScopeID()).ToNot(Equal(resource2.ResourceConfigScopeID()))
-					})
-				})
-			})
-
-			Context("when the resource uses a resource type that is specified in the pipeline config to have a unique version history", func() {
-				var (
-					resourceScope1 db.ResourceConfigScope
-					resourceScope2 db.ResourceConfigScope
-					resource1      db.Resource
-					resource2      db.Resource
-					resourceTypes  db.ResourceTypes
-				)
-
-				BeforeEach(func() {
-					var found bool
-					var err error
-					resource1, found, err = pipeline.Resource("pipeline-resource")
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					setupTx, err := dbConn.Begin()
-					Expect(err).ToNot(HaveOccurred())
-
-					brt := db.BaseResourceType{
-						Name: "base",
-					}
-
-					_, err = brt.FindOrCreate(setupTx, false)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(setupTx.Commit()).To(Succeed())
-
-					resourceTypes, err = pipeline.ResourceTypes()
-					Expect(err).ToNot(HaveOccurred())
-
-					resourceScope1, err = resource1.SetResourceConfig(atc.Source{"some": "repository"}, resourceTypes.Deserialize())
-					Expect(err).NotTo(HaveOccurred())
-
-					found, err = resource1.Reload()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-				})
-
-				It("has the resource config id and resource config scope id set on the resource", func() {
-					Expect(resourceScope1.Resource()).ToNot(BeNil())
-					Expect(resource1.ResourceConfigScopeID()).To(Equal(resourceScope1.ID()))
-					Expect(resource1.ResourceConfigID()).To(Equal(resourceScope1.ResourceConfig().ID()))
-				})
-
-				Context("when another resource uses the same resource config", func() {
-					BeforeEach(func() {
-						var found bool
-						var err error
-						resource2, found, err = pipeline.Resource("other-pipeline-resource")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(found).To(BeTrue())
-
-						resourceScope2, err = resource2.SetResourceConfig(atc.Source{"some": "repository"}, resourceTypes.Deserialize())
-						Expect(err).NotTo(HaveOccurred())
-
-						found, err = resource2.Reload()
-						Expect(err).NotTo(HaveOccurred())
-						Expect(found).To(BeTrue())
-					})
-
-					It("has a different resource config scope id than the first resource", func() {
-						Expect(resource2.ResourceConfigID()).To(Equal(resourceScope2.ResourceConfig().ID()))
-						Expect(resource1.ResourceConfigScopeID()).ToNot(Equal(resource2.ResourceConfigScopeID()))
-					})
-				})
-
-				Context("when the resource has a new resource config id and is still unique", func() {
-					var newResourceConfigScope db.ResourceConfigScope
-
-					BeforeEach(func() {
-						config.Resources[2].Source = atc.Source{"some": "other-repo"}
-						newPipeline, _, err := defaultTeam.SavePipeline(
-							atc.PipelineRef{Name: "pipeline-with-same-resources"},
-							config,
-							pipeline.ConfigVersion(),
-							false,
-						)
-						Expect(err).ToNot(HaveOccurred())
-
-						var found bool
-						resource1, found, err = newPipeline.Resource("pipeline-resource")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(found).To(BeTrue())
-
-						newResourceConfigScope, err = resource1.SetResourceConfig(atc.Source{"some": "other-repo"}, resourceTypes.Deserialize())
-						Expect(err).NotTo(HaveOccurred())
-
-						found, err = resource1.Reload()
-						Expect(err).NotTo(HaveOccurred())
-						Expect(found).To(BeTrue())
-					})
-
-					It("should have a new scope", func() {
-						Expect(newResourceConfigScope.ID()).ToNot(Equal(resourceScope1.ID()))
-						Expect(resource1.ResourceConfigScopeID()).To(Equal(newResourceConfigScope.ID()))
-					})
-				})
-
-				Context("when the resource is altered to shared version history", func() {
-					var newResourceConfigScope db.ResourceConfigScope
-
-					BeforeEach(func() {
-						config.ResourceTypes[0].UniqueVersionHistory = false
-						newPipeline, _, err := defaultTeam.SavePipeline(
-							atc.PipelineRef{Name: "pipeline-with-same-resources"},
-							config,
-							pipeline.ConfigVersion(),
-							false,
-						)
-						Expect(err).ToNot(HaveOccurred())
-
-						var found bool
-						resource1, found, err = newPipeline.Resource("pipeline-resource")
-						Expect(err).ToNot(HaveOccurred())
-						Expect(found).To(BeTrue())
-
-						resourceTypes, err = newPipeline.ResourceTypes()
-						Expect(err).ToNot(HaveOccurred())
-
-						newResourceConfigScope, err = resource1.SetResourceConfig(atc.Source{"some": "repository"}, resourceTypes.Deserialize())
-						Expect(err).NotTo(HaveOccurred())
-
-						found, err = resource1.Reload()
-						Expect(err).NotTo(HaveOccurred())
-						Expect(found).To(BeTrue())
-					})
-
-					It("should have a new scope", func() {
-						Expect(newResourceConfigScope.ID()).ToNot(Equal(resourceScope1.ID()))
-						Expect(newResourceConfigScope.Resource()).To(BeNil())
-						Expect(resource1.ResourceConfigScopeID()).To(Equal(newResourceConfigScope.ID()))
-					})
-				})
-			})
-		})
-
-		Context("when the enable global resources flag is set to false, all resources will have a unique history", func() {
-			BeforeEach(func() {
-				atc.EnableGlobalResources = false
-			})
-
-			Context("when the resource uses a base resource type with shared version history", func() {
-				var (
-					resource1 db.Resource
-					resource2 db.Resource
-				)
-
-				BeforeEach(func() {
-					var found bool
-					var err error
-					resource1, found, err = pipeline.Resource("some-resource")
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					resource2, found, err = pipeline.Resource("some-other-resource")
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					setupTx, err := dbConn.Begin()
-					Expect(err).ToNot(HaveOccurred())
-
-					brt := db.BaseResourceType{
-						Name: "some-type",
-					}
-
-					_, err = brt.FindOrCreate(setupTx, false)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(setupTx.Commit()).To(Succeed())
-
-					_, err = resource1.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
-					Expect(err).NotTo(HaveOccurred())
-
-					_, err = resource2.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
-					Expect(err).NotTo(HaveOccurred())
-
-					found, err = resource1.Reload()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					found, err = resource2.Reload()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-				})
-
-				It("has unique version histories", func() {
-					Expect(resource1.ResourceConfigScopeID()).ToNot(Equal(resource2.ResourceConfigScopeID()))
-				})
-			})
-		})
-
-		Context("when requesting schedule for setting resource config", func() {
-			var resource1 db.Resource
-
-			BeforeEach(func() {
-				var err error
-				var found bool
-				resource1, found, err = pipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				setupTx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
-
-				brt := db.BaseResourceType{
-					Name: "some-type",
-				}
-
-				_, err = brt.FindOrCreate(setupTx, false)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(setupTx.Commit()).To(Succeed())
-			})
-
-			It("requests schedule on the jobs that use the resource", func() {
-				job, found, err := pipeline.Job("job-using-resource")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				requestedSchedule := job.ScheduleRequestedTime()
-
-				_, err = resource1.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
-				Expect(err).NotTo(HaveOccurred())
-
-				found, err = job.Reload()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
-			})
-
-			It("does not request schedule on the jobs that do not use the resource", func() {
-				job, found, err := pipeline.Job("not-using-resource")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				requestedSchedule := job.ScheduleRequestedTime()
-
-				_, err = resource1.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
-				Expect(err).NotTo(HaveOccurred())
-
-				found, err = job.Reload()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				Expect(job.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
-			})
-		})
-	})
-
-	Describe("SetCheckSetupError", func() {
-		var resource db.Resource
-
-		BeforeEach(func() {
-			var err error
-			resource, _, err = pipeline.Resource("some-resource")
+			scope, err = resourceConfig.FindOrCreateScope(resource)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		Context("when the resource is first created", func() {
-			It("is not errored", func() {
-				Expect(resource.CheckSetupError()).To(BeNil())
-			})
+		It("associates the resource to the config and scope", func() {
+			Expect(resource.ResourceConfigID()).To(BeZero())
+			Expect(resource.ResourceConfigScopeID()).To(BeZero())
+
+			Expect(resource.SetResourceConfigScope(scope)).To(Succeed())
+
+			_, err := resource.Reload()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(resource.ResourceConfigID()).To(Equal(scope.ResourceConfig().ID()))
+			Expect(resource.ResourceConfigScopeID()).To(Equal(scope.ID()))
 		})
 
-		Context("when a resource check is marked as errored", func() {
-			It("is then marked as errored", func() {
-				originalCause := errors.New("on fire")
+		It("requests scheduling for downstream jobs", func() {
+			job, found, err := pipeline.Job("using-resource")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-				err := resource.SetCheckSetupError(originalCause)
-				Expect(err).ToNot(HaveOccurred())
+			otherJob, found, err := pipeline.Job("not-using-resource")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-				returnedResource, _, err := pipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
+			requestedSchedule := job.ScheduleRequestedTime()
+			otherRequestedSchedule := otherJob.ScheduleRequestedTime()
 
-				Expect(returnedResource.CheckSetupError()).To(Equal(originalCause))
-			})
-		})
+			Expect(resource.SetResourceConfigScope(scope)).To(Succeed())
 
-		Context("when a resource is cleared of check errors", func() {
-			It("is not marked as errored again", func() {
-				originalCause := errors.New("on fire")
+			found, err = job.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-				err := resource.SetCheckSetupError(originalCause)
-				Expect(err).ToNot(HaveOccurred())
+			found, err = otherJob.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
 
-				err = resource.SetCheckSetupError(nil)
-				Expect(err).ToNot(HaveOccurred())
-
-				returnedResource, _, err := pipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(returnedResource.CheckSetupError()).To(BeNil())
-			})
+			Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
+			Expect(otherJob.ScheduleRequestedTime()).Should(Equal(otherRequestedSchedule))
 		})
 	})
 
-	Describe("ResourceConfigVersion", func() {
-		var (
-			resource                   db.Resource
-			version                    atc.Version
-			rcvID                      int
-			resourceConfigVersionFound bool
-			foundErr                   error
-		)
+	Describe("CheckPlan", func() {
+		var resource db.Resource
+		var resourceTypes db.ResourceTypes
 
 		BeforeEach(func() {
 			var err error
 			var found bool
-			version = atc.Version{"version": "12345"}
 			resource, found, err = pipeline.Resource("some-resource")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
+
+			resourceTypes, err = pipeline.ResourceTypes()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns a plan which will update the resource", func() {
+			defaults := atc.Source{"sdk": "sdv"}
+			Expect(resource.CheckPlan(atc.Version{"some": "version"}, time.Minute, resourceTypes, defaults)).To(Equal(atc.CheckPlan{
+				Name:    resource.Name(),
+				Type:    resource.Type(),
+				Source:  defaults.Merge(resource.Source()),
+				Tags:    resource.Tags(),
+				Timeout: "999m",
+
+				FromVersion: atc.Version{"some": "version"},
+
+				Interval: "1m0s",
+
+				VersionedResourceTypes: resourceTypes.Deserialize(),
+
+				Resource: resource.Name(),
+			}))
+		})
+	})
+
+	Describe("CreateBuild", func() {
+		var ctx context.Context
+		var manuallyTriggered bool
+		var build db.Build
+		var created bool
+
+		BeforeEach(func() {
+			ctx = context.TODO()
+			manuallyTriggered = false
 		})
 
 		JustBeforeEach(func() {
-			rcvID, resourceConfigVersionFound, foundErr = resource.ResourceConfigVersionID(version)
+			var err error
+			build, created, err = defaultResource.CreateBuild(ctx, manuallyTriggered)
+			Expect(err).ToNot(HaveOccurred())
 		})
 
-		Context("when the version exists", func() {
-			var (
-				resourceConfigVersion db.ResourceConfigVersion
-				resourceScope         db.ResourceConfigScope
-			)
-
-			saveVersion := func(version atc.Version) {
-				setupTx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
-
-				brt := db.BaseResourceType{
-					Name: "registry-image",
-				}
-
-				_, err = brt.FindOrCreate(setupTx, false)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(setupTx.Commit()).To(Succeed())
-
-				resourceScope, err = resource.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
-				Expect(err).ToNot(HaveOccurred())
-
-				err = resourceScope.SaveVersions(nil, []atc.Version{version})
-				Expect(err).ToNot(HaveOccurred())
-
-				var found bool
-				resourceConfigVersion, found, err = resourceScope.FindVersion(version)
-				Expect(found).To(BeTrue())
-				Expect(err).ToNot(HaveOccurred())
-			}
-
-			Context("when the version is exact matched", func() {
-				BeforeEach(func() {
-					saveVersion(atc.Version{"version": "12345"})
-				})
-
-				It("returns resource config version and true", func() {
-					Expect(resourceConfigVersionFound).To(BeTrue())
-					Expect(rcvID).To(Equal(resourceConfigVersion.ID()))
-					Expect(foundErr).ToNot(HaveOccurred())
-				})
-			})
-
-			Context("when the version is partially matched", func() {
-				BeforeEach(func() {
-					saveVersion(atc.Version{"version": "12345", "tag": "1.0.0"})
-				})
-
-				It("returns resource config version and true", func() {
-					Expect(resourceConfigVersionFound).To(BeTrue())
-					Expect(rcvID).To(Equal(resourceConfigVersion.ID()))
-					Expect(foundErr).ToNot(HaveOccurred())
-				})
-			})
-
-			Context("when there are multiple versions partially matched", func() {
-				BeforeEach(func() {
-					version1 := atc.Version{"version": "12345", "tag": "1.0.0"}
-					saveVersion(version1)
-
-					version2 := atc.Version{"version": "12345", "tag": "2.0.0"}
-					saveVersion(version2)
-				})
-
-				It("returns resource config version with highest order and true", func() {
-					Expect(resourceConfigVersionFound).To(BeTrue())
-					Expect(rcvID).To(Equal(resourceConfigVersion.ID()))
-					Expect(foundErr).ToNot(HaveOccurred())
-				})
-			})
-
-			Context("when the check order is 0", func() {
-				BeforeEach(func() {
-					saveVersion(atc.Version{"version": "12345"})
-
-					version = atc.Version{"version": "2"}
-					created, err := resource.SaveUncheckedVersion(version, nil, resourceScope.ResourceConfig(), atc.VersionedResourceTypes{})
-					Expect(err).ToNot(HaveOccurred())
-					Expect(created).To(BeTrue())
-				})
-
-				It("does not find the resource config version", func() {
-					Expect(rcvID).To(Equal(0))
-					Expect(resourceConfigVersionFound).To(BeFalse())
-					Expect(foundErr).ToNot(HaveOccurred())
-				})
-			})
+		It("creates a build for a resource", func() {
+			Expect(created).To(BeTrue())
+			Expect(build).ToNot(BeNil())
+			Expect(build.Name()).To(Equal(db.CheckBuildName))
+			Expect(build.ResourceID()).To(Equal(defaultResource.ID()))
+			Expect(build.PipelineID()).To(Equal(defaultResource.PipelineID()))
+			Expect(build.TeamID()).To(Equal(defaultResource.TeamID()))
+			Expect(build.IsManuallyTriggered()).To(BeFalse())
 		})
 
-		Context("when the version is not found", func() {
+		It("associates the resource to the build", func() {
+			started, err := build.Start(atc.Plan{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(started).To(BeTrue())
+
+			exists, err := build.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists).To(BeTrue())
+
+			exists, err = defaultResource.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists).To(BeTrue())
+
+			Expect(defaultResource.BuildSummary()).To(Equal(&atc.BuildSummary{
+				ID:                   build.ID(),
+				Name:                 db.CheckBuildName,
+				Status:               atc.StatusStarted,
+				StartTime:            build.StartTime().Unix(),
+				TeamName:             defaultTeam.Name(),
+				PipelineID:           defaultPipeline.ID(),
+				PipelineName:         defaultPipeline.Name(),
+				PipelineInstanceVars: defaultPipeline.InstanceVars(),
+			}))
+		})
+
+		Context("when tracing is configured", func() {
+			var span trace.Span
+
 			BeforeEach(func() {
-				setupTx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
+				tracing.ConfigureTraceProvider(tracetest.NewProvider())
 
-				brt := db.BaseResourceType{
-					Name: "registry-image",
-				}
-
-				_, err = brt.FindOrCreate(setupTx, false)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(setupTx.Commit()).To(Succeed())
-				_, err = resourceConfigFactory.FindOrCreateResourceConfig("registry-image", atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
-				Expect(err).NotTo(HaveOccurred())
+				ctx, span = tracing.StartSpan(context.Background(), "fake-operation", nil)
 			})
 
-			It("returns false when resourceConfig is not found", func() {
-				Expect(foundErr).ToNot(HaveOccurred())
-				Expect(resourceConfigVersionFound).To(BeFalse())
+			AfterEach(func() {
+				tracing.Configured = false
+			})
+
+			It("propagates span context", func() {
+				traceID := span.SpanContext().TraceID.String()
+				buildContext := build.SpanContext()
+				traceParent := buildContext.Get("traceparent")
+				Expect(traceParent).To(ContainSubstring(traceID))
+			})
+		})
+
+		Context("when another build already exists", func() {
+			var prevBuild db.Build
+
+			BeforeEach(func() {
+				var err error
+				var prevCreated bool
+				prevBuild, prevCreated, err = defaultResource.CreateBuild(ctx, false)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(prevCreated).To(BeTrue())
+			})
+
+			It("does not create the second build", func() {
+				Expect(created).To(BeFalse())
+			})
+
+			Context("when manually triggered", func() {
+				BeforeEach(func() {
+					manuallyTriggered = true
+				})
+
+				It("creates a manually triggered resource build", func() {
+					Expect(created).To(BeTrue())
+					Expect(build.IsManuallyTriggered()).To(BeTrue())
+					Expect(build.ResourceID()).To(Equal(defaultResource.ID()))
+				})
+
+				It("associates the resource to the build", func() {
+					started, err := build.Start(atc.Plan{})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(started).To(BeTrue())
+
+					exists, err := build.Reload()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(exists).To(BeTrue())
+
+					exists, err = defaultResource.Reload()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(exists).To(BeTrue())
+
+					Expect(defaultResource.BuildSummary()).To(Equal(&atc.BuildSummary{
+						ID:                   build.ID(),
+						Name:                 db.CheckBuildName,
+						Status:               atc.StatusStarted,
+						StartTime:            build.StartTime().Unix(),
+						TeamName:             defaultTeam.Name(),
+						PipelineID:           defaultPipeline.ID(),
+						PipelineName:         defaultPipeline.Name(),
+						PipelineInstanceVars: defaultPipeline.InstanceVars(),
+					}))
+				})
+			})
+
+			Context("when the previous build is finished", func() {
+				BeforeEach(func() {
+					Expect(prevBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
+				})
+
+				It("creates the build", func() {
+					Expect(created).To(BeTrue())
+					Expect(build.ResourceID()).To(Equal(defaultResource.ID()))
+				})
+
+				It("deletes the previous build", func() {
+					found, err := prevBuild.Reload()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeFalse())
+				})
 			})
 		})
 	})
 
 	Context("Versions", func() {
 		var (
-			originalVersionSlice []atc.Version
-			resource             db.Resource
-			resourceScope        db.ResourceConfigScope
+			scenario *dbtest.Scenario
 		)
 
 		Context("with version filters", func() {
@@ -982,43 +609,31 @@ var _ = Describe("Resource", func() {
 			var resourceVersions []atc.ResourceVersion
 
 			BeforeEach(func() {
-				setupTx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
-
-				brt := db.BaseResourceType{
-					Name: "git",
-				}
-
-				_, err = brt.FindOrCreate(setupTx, false)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(setupTx.Commit()).To(Succeed())
-
-				var found bool
-				resource, found, err = pipeline.Resource("some-other-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				resourceScope, err = resource.SetResourceConfig(atc.Source{"some": "other-repository"}, atc.VersionedResourceTypes{})
-				Expect(err).ToNot(HaveOccurred())
-
-				originalVersionSlice = []atc.Version{
-					{"ref": "v0", "commit": "v0"},
-					{"ref": "v1", "commit": "v1"},
-					{"ref": "v2", "commit": "v2"},
-				}
-
-				err = resourceScope.SaveVersions(nil, originalVersionSlice)
-				Expect(err).ToNot(HaveOccurred())
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "repository"},
+							},
+						},
+					}),
+					builder.WithResourceVersions(
+						"some-resource",
+						atc.Version{"ref": "v0", "commit": "v0"},
+						atc.Version{"ref": "v1", "commit": "v1"},
+						atc.Version{"ref": "v2", "commit": "v2"},
+					),
+				)
 
 				resourceVersions = make([]atc.ResourceVersion, 0)
 
 				for i := 0; i < 3; i++ {
-					rcv, found, err := resourceScope.FindVersion(atc.Version{
+					rcv := scenario.ResourceVersion("some-resource", atc.Version{
 						"ref":    "v" + strconv.Itoa(i),
 						"commit": "v" + strconv.Itoa(i),
 					})
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
 
 					var metadata []atc.MetadataField
 
@@ -1043,7 +658,7 @@ var _ = Describe("Resource", func() {
 				})
 
 				It("return version that matches field filter", func() {
-					result, _, found, err := resource.Versions(db.Page{Limit: 10}, filter)
+					result, _, found, err := scenario.Resource("some-resource").Versions(db.Page{Limit: 10}, filter)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(len(result)).To(Equal(1))
@@ -1057,7 +672,7 @@ var _ = Describe("Resource", func() {
 				})
 
 				It("return no version", func() {
-					result, _, found, err := resource.Versions(db.Page{Limit: 10}, filter)
+					result, _, found, err := scenario.Resource("some-resource").Versions(db.Page{Limit: 10}, filter)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(len(result)).To(Equal(0))
@@ -1070,7 +685,7 @@ var _ = Describe("Resource", func() {
 				})
 
 				It("return version", func() {
-					result, _, found, err := resource.Versions(db.Page{Limit: 10}, filter)
+					result, _, found, err := scenario.Resource("some-resource").Versions(db.Page{Limit: 10}, filter)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(len(result)).To(Equal(1))
@@ -1084,7 +699,7 @@ var _ = Describe("Resource", func() {
 				})
 
 				It("return no version", func() {
-					result, _, found, err := resource.Versions(db.Page{Limit: 10}, filter)
+					result, _, found, err := scenario.Resource("some-resource").Versions(db.Page{Limit: 10}, filter)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(len(result)).To(Equal(0))
@@ -1096,47 +711,35 @@ var _ = Describe("Resource", func() {
 			var resourceVersions []atc.ResourceVersion
 
 			BeforeEach(func() {
-				setupTx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
-
-				brt := db.BaseResourceType{
-					Name: "git",
-				}
-
-				_, err = brt.FindOrCreate(setupTx, false)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(setupTx.Commit()).To(Succeed())
-
-				var found bool
-				resource, found, err = pipeline.Resource("some-other-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				resourceScope, err = resource.SetResourceConfig(atc.Source{"some": "other-repository"}, atc.VersionedResourceTypes{})
-				Expect(err).ToNot(HaveOccurred())
-
-				originalVersionSlice = []atc.Version{
-					{"ref": "v0"},
-					{"ref": "v1"},
-					{"ref": "v2"},
-					{"ref": "v3"},
-					{"ref": "v4"},
-					{"ref": "v5"},
-					{"ref": "v6"},
-					{"ref": "v7"},
-					{"ref": "v8"},
-					{"ref": "v9"},
-				}
-
-				err = resourceScope.SaveVersions(nil, originalVersionSlice)
-				Expect(err).ToNot(HaveOccurred())
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "repository"},
+							},
+						},
+					}),
+					builder.WithResourceVersions(
+						"some-resource",
+						atc.Version{"ref": "v0"},
+						atc.Version{"ref": "v1"},
+						atc.Version{"ref": "v2"},
+						atc.Version{"ref": "v3"},
+						atc.Version{"ref": "v4"},
+						atc.Version{"ref": "v5"},
+						atc.Version{"ref": "v6"},
+						atc.Version{"ref": "v7"},
+						atc.Version{"ref": "v8"},
+						atc.Version{"ref": "v9"},
+					),
+				)
 
 				resourceVersions = make([]atc.ResourceVersion, 0)
 
 				for i := 0; i < 10; i++ {
-					rcv, found, err := resourceScope.FindVersion(atc.Version{"ref": "v" + strconv.Itoa(i)})
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
+					rcv := scenario.ResourceVersion("some-resource", atc.Version{"ref": "v" + strconv.Itoa(i)})
 
 					var metadata []atc.MetadataField
 
@@ -1153,15 +756,11 @@ var _ = Describe("Resource", func() {
 
 					resourceVersions = append(resourceVersions, resourceVersion)
 				}
-
-				reloaded, err := resource.Reload()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(reloaded).To(BeTrue())
 			})
 
 			Context("with no from/to", func() {
 				It("returns the first page, with the given limit, and a next page", func() {
-					historyPage, pagination, found, err := resource.Versions(db.Page{Limit: 2}, nil)
+					historyPage, pagination, found, err := scenario.Resource("some-resource").Versions(db.Page{Limit: 2}, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(2))
@@ -1174,7 +773,7 @@ var _ = Describe("Resource", func() {
 
 			Context("with a to that places it in the middle of the versions", func() {
 				It("returns the versions, with previous/next pages", func() {
-					historyPage, pagination, found, err := resource.Versions(db.Page{To: db.NewIntPtr(resourceVersions[6].ID), Limit: 2}, nil)
+					historyPage, pagination, found, err := scenario.Resource("some-resource").Versions(db.Page{To: db.NewIntPtr(resourceVersions[6].ID), Limit: 2}, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(2))
@@ -1187,7 +786,7 @@ var _ = Describe("Resource", func() {
 
 			Context("with a to that places it to the oldest version", func() {
 				It("returns the versions, with no next page", func() {
-					historyPage, pagination, found, err := resource.Versions(db.Page{To: db.NewIntPtr(resourceVersions[1].ID), Limit: 2}, nil)
+					historyPage, pagination, found, err := scenario.Resource("some-resource").Versions(db.Page{To: db.NewIntPtr(resourceVersions[1].ID), Limit: 2}, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(2))
@@ -1200,7 +799,7 @@ var _ = Describe("Resource", func() {
 
 			Context("with a from that places it in the middle of the versions", func() {
 				It("returns the versions, with previous/next pages", func() {
-					historyPage, pagination, found, err := resource.Versions(db.Page{From: db.NewIntPtr(resourceVersions[6].ID), Limit: 2}, nil)
+					historyPage, pagination, found, err := scenario.Resource("some-resource").Versions(db.Page{From: db.NewIntPtr(resourceVersions[6].ID), Limit: 2}, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(2))
@@ -1213,7 +812,7 @@ var _ = Describe("Resource", func() {
 
 			Context("with a from that places it at the beginning of the most recent versions", func() {
 				It("returns the versions, with no previous page", func() {
-					historyPage, pagination, found, err := resource.Versions(db.Page{From: db.NewIntPtr(resourceVersions[8].ID), Limit: 2}, nil)
+					historyPage, pagination, found, err := scenario.Resource("some-resource").Versions(db.Page{From: db.NewIntPtr(resourceVersions[8].ID), Limit: 2}, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(2))
@@ -1228,13 +827,11 @@ var _ = Describe("Resource", func() {
 				BeforeEach(func() {
 					metadata := []db.ResourceConfigMetadataField{{Name: "name1", Value: "value1"}}
 
-					// save metadata
-					_, err := resource.SaveUncheckedVersion(atc.Version(resourceVersions[9].Version), metadata, resourceScope.ResourceConfig(), atc.VersionedResourceTypes{})
-					Expect(err).ToNot(HaveOccurred())
+					scenario.Run(builder.WithVersionMetadata("some-resource", atc.Version(resourceVersions[9].Version), metadata))
 				})
 
 				It("returns the metadata in the version history", func() {
-					historyPage, _, found, err := resource.Versions(db.Page{Limit: 1}, nil)
+					historyPage, _, found, err := scenario.Resource("some-resource").Versions(db.Page{Limit: 1}, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(1))
@@ -1243,13 +840,9 @@ var _ = Describe("Resource", func() {
 				})
 
 				It("maintains existing metadata after same version is saved with no metadata", func() {
-					resourceScope, err := resource.SetResourceConfig(atc.Source{"some": "other-repository"}, atc.VersionedResourceTypes{})
-					Expect(err).ToNot(HaveOccurred())
+					scenario.Run(builder.WithResourceVersions("some-resource", atc.Version(resourceVersions[9].Version)))
 
-					err = resourceScope.SaveVersions(nil, []atc.Version{resourceVersions[9].Version})
-					Expect(err).ToNot(HaveOccurred())
-
-					historyPage, _, found, err := resource.Versions(db.Page{Limit: 1}, atc.Version{})
+					historyPage, _, found, err := scenario.Resource("some-resource").Versions(db.Page{Limit: 1}, atc.Version{})
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(1))
@@ -1259,9 +852,9 @@ var _ = Describe("Resource", func() {
 
 				It("updates metadata after same version is saved with different metadata", func() {
 					newMetadata := []db.ResourceConfigMetadataField{{Name: "name-new", Value: "value-new"}}
-					_, err := resource.SaveUncheckedVersion(atc.Version(resourceVersions[9].Version), newMetadata, resourceScope.ResourceConfig(), atc.VersionedResourceTypes{})
+					scenario.Run(builder.WithVersionMetadata("some-resource", atc.Version(resourceVersions[9].Version), newMetadata))
 
-					historyPage, _, found, err := resource.Versions(db.Page{Limit: 1}, atc.Version{})
+					historyPage, _, found, err := scenario.Resource("some-resource").Versions(db.Page{Limit: 1}, atc.Version{})
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(1))
@@ -1272,14 +865,13 @@ var _ = Describe("Resource", func() {
 
 			Context("when a version is disabled", func() {
 				BeforeEach(func() {
-					err := resource.DisableVersion(resourceVersions[9].ID)
-					Expect(err).ToNot(HaveOccurred())
+					scenario.Run(builder.WithDisabledVersion("some-resource", resourceVersions[9].Version))
 
 					resourceVersions[9].Enabled = false
 				})
 
 				It("returns a disabled version", func() {
-					historyPage, _, found, err := resource.Versions(db.Page{Limit: 1}, nil)
+					historyPage, _, found, err := scenario.Resource("some-resource").Versions(db.Page{Limit: 1}, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(historyPage).To(ConsistOf([]atc.ResourceVersion{resourceVersions[9]}))
@@ -1292,13 +884,11 @@ var _ = Describe("Resource", func() {
 				BeforeEach(func() {
 					metadata = []db.ResourceConfigMetadataField{{Name: "name1", Value: "value1"}}
 
-					updated, err := resource.UpdateMetadata(resourceVersions[9].Version, metadata)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(updated).To(BeTrue())
+					scenario.Run(builder.WithVersionMetadata("some-resource", atc.Version(resourceVersions[9].Version), metadata))
 				})
 
 				It("returns a version with metadata updated", func() {
-					historyPage, _, found, err := resource.Versions(db.Page{Limit: 1}, nil)
+					historyPage, _, found, err := scenario.Resource("some-resource").Versions(db.Page{Limit: 1}, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(1))
@@ -1312,47 +902,32 @@ var _ = Describe("Resource", func() {
 			var resourceVersions []atc.ResourceVersion
 
 			BeforeEach(func() {
-				setupTx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
-
-				brt := db.BaseResourceType{
-					Name: "git",
-				}
-
-				_, err = brt.FindOrCreate(setupTx, false)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(setupTx.Commit()).To(Succeed())
-
-				var found bool
-				resource, found, err = pipeline.Resource("some-other-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				resourceScope, err = resource.SetResourceConfig(atc.Source{"some": "other-repository"}, atc.VersionedResourceTypes{})
-				Expect(err).ToNot(HaveOccurred())
-
-				originalVersionSlice := []atc.Version{
-					{"ref": "v1"}, // id: 1, check_order: 1
-					{"ref": "v3"}, // id: 2, check_order: 2
-					{"ref": "v4"}, // id: 3, check_order: 3
-				}
-
-				err = resourceScope.SaveVersions(nil, originalVersionSlice)
-				Expect(err).ToNot(HaveOccurred())
-
-				secondVersionSlice := []atc.Version{
-					{"ref": "v2"}, // id: 4, check_order: 4
-					{"ref": "v3"}, // id: 2, check_order: 5
-					{"ref": "v4"}, // id: 3, check_order: 6
-				}
-
-				err = resourceScope.SaveVersions(nil, secondVersionSlice)
-				Expect(err).ToNot(HaveOccurred())
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "repository"},
+							},
+						},
+					}),
+					builder.WithResourceVersions(
+						"some-resource",
+						atc.Version{"ref": "v1"}, // id: 1, check_order: 1
+						atc.Version{"ref": "v3"}, // id: 2, check_order: 2
+						atc.Version{"ref": "v4"}, // id: 3, check_order: 3
+					),
+					builder.WithResourceVersions(
+						"some-resource",
+						atc.Version{"ref": "v2"}, // id: 4, check_order: 4
+						atc.Version{"ref": "v3"}, // id: 2, check_order: 5
+						atc.Version{"ref": "v4"}, // id: 3, check_order: 6
+					),
+				)
 
 				for i := 1; i < 5; i++ {
-					rcv, found, err := resourceScope.FindVersion(atc.Version{"ref": "v" + strconv.Itoa(i)})
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
+					rcv := scenario.ResourceVersion("some-resource", atc.Version{"ref": "v" + strconv.Itoa(i)})
 
 					var metadata []atc.MetadataField
 
@@ -1375,7 +950,7 @@ var _ = Describe("Resource", func() {
 
 			Context("with no from/to", func() {
 				It("returns versions ordered by check order", func() {
-					historyPage, pagination, found, err := resource.Versions(db.Page{Limit: 4}, nil)
+					historyPage, pagination, found, err := scenario.Resource("some-resource").Versions(db.Page{Limit: 4}, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(historyPage).To(HaveLen(4))
@@ -1390,7 +965,7 @@ var _ = Describe("Resource", func() {
 
 			Context("with from", func() {
 				It("returns the versions, with previous/next pages including from", func() {
-					historyPage, pagination, found, err := resource.Versions(db.Page{From: db.NewIntPtr(resourceVersions[1].ID), Limit: 2}, nil)
+					historyPage, pagination, found, err := scenario.Resource("some-resource").Versions(db.Page{From: db.NewIntPtr(resourceVersions[1].ID), Limit: 2}, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(historyPage).To(HaveLen(2))
@@ -1403,7 +978,7 @@ var _ = Describe("Resource", func() {
 
 			Context("with to", func() {
 				It("returns the builds, with previous/next pages including to", func() {
-					historyPage, pagination, found, err := resource.Versions(db.Page{To: db.NewIntPtr(resourceVersions[2].ID), Limit: 2}, nil)
+					historyPage, pagination, found, err := scenario.Resource("some-resource").Versions(db.Page{To: db.NewIntPtr(resourceVersions[2].ID), Limit: 2}, nil)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeTrue())
 					Expect(historyPage).To(HaveLen(2))
@@ -1416,35 +991,24 @@ var _ = Describe("Resource", func() {
 		})
 
 		Context("when resource has a version with check order of 0", func() {
-			var resource db.Resource
-
 			BeforeEach(func() {
-				setupTx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
-
-				brt := db.BaseResourceType{
-					Name: "git",
-				}
-
-				_, err = brt.FindOrCreate(setupTx, false)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(setupTx.Commit()).To(Succeed())
-
-				var found bool
-				resource, found, err = pipeline.Resource("some-other-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				resourceScope, err := resource.SetResourceConfig(atc.Source{"some": "other-repository"}, atc.VersionedResourceTypes{})
-				Expect(err).ToNot(HaveOccurred())
-
-				created, err := resource.SaveUncheckedVersion(atc.Version{"version": "not-returned"}, nil, resourceScope.ResourceConfig(), atc.VersionedResourceTypes{})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(created).To(BeTrue())
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "repository"},
+							},
+						},
+					}),
+					builder.WithResourceVersions("some-resource"),
+					builder.WithVersionMetadata("some-resource", atc.Version{"version": "not-returned"}, nil), // save unchecked version
+				)
 			})
 
 			It("does not return the version", func() {
-				historyPage, pagination, found, err := resource.Versions(db.Page{Limit: 2}, nil)
+				historyPage, pagination, found, err := scenario.Resource("some-resource").Versions(db.Page{Limit: 2}, nil)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(historyPage).To(BeNil())
@@ -1455,254 +1019,187 @@ var _ = Describe("Resource", func() {
 
 	Describe("PinVersion/UnpinVersion", func() {
 		var (
-			resource      db.Resource
-			resourceScope db.ResourceConfigScope
-			resID         int
+			scenario *dbtest.Scenario
 		)
 
 		BeforeEach(func() {
-			var found bool
-			var err error
-			resource, found, err = pipeline.Resource("some-other-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-
-			brt := db.BaseResourceType{
-				Name: "git",
-			}
-
-			_, err = brt.FindOrCreate(setupTx, false)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
-
-			resourceScope, err = resource.SetResourceConfig(atc.Source{"some": "other-repository"}, atc.VersionedResourceTypes{})
-			Expect(err).ToNot(HaveOccurred())
-
-			err = resourceScope.SaveVersions(nil, []atc.Version{
-				atc.Version{"version": "v1"},
-				atc.Version{"version": "v2"},
-				atc.Version{"version": "v3"},
-			})
-			Expect(err).ToNot(HaveOccurred())
-
-			resConf, found, err := resourceScope.FindVersion(atc.Version{"version": "v1"})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-			resID = resConf.ID()
+			scenario = dbtest.Setup(
+				builder.WithPipeline(atc.Config{
+					Resources: atc.ResourceConfigs{
+						{
+							Name:   "some-resource",
+							Type:   "some-base-resource-type",
+							Source: atc.Source{"some": "repository"},
+						},
+					},
+					Jobs: atc.JobConfigs{
+						{
+							Name: "job-using-resource",
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name: "some-resource",
+									},
+								},
+							},
+						},
+						{
+							Name: "not-using-resource",
+						},
+					},
+				}),
+				builder.WithResourceVersions(
+					"some-resource",
+					atc.Version{"version": "v1"},
+					atc.Version{"version": "v2"},
+					atc.Version{"version": "v3"},
+				),
+			)
 		})
 
 		Context("when we use an invalid version id (does not exist)", func() {
 			var (
 				pinnedVersion atc.Version
 			)
+
 			BeforeEach(func() {
-				found, err := resource.PinVersion(resID)
+				found, err := scenario.Resource("some-resource").PinVersion(scenario.ResourceVersion("some-resource", atc.Version{"version": "v1"}).ID())
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 
-				found, err = resource.Reload()
-				Expect(found).To(BeTrue())
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(resource.CurrentPinnedVersion()).To(Equal(resource.APIPinnedVersion()))
-				pinnedVersion = resource.APIPinnedVersion()
+				Expect(scenario.Resource("some-resource").CurrentPinnedVersion()).To(Equal(scenario.Resource("some-resource").APIPinnedVersion()))
+				pinnedVersion = scenario.Resource("some-resource").APIPinnedVersion()
 			})
 
 			It("returns not found and does not update anything", func() {
-				found, err := resource.PinVersion(-1)
+				found, err := scenario.Resource("some-resource").PinVersion(-1)
 				Expect(found).To(BeFalse())
 				Expect(err).To(HaveOccurred())
 
-				Expect(resource.APIPinnedVersion()).To(Equal(pinnedVersion))
+				Expect(scenario.Resource("some-resource").APIPinnedVersion()).To(Equal(pinnedVersion))
 			})
 		})
 
 		Context("when requesting schedule for version pinning", func() {
 			It("requests schedule on all jobs using the resource", func() {
-				job, found, err := pipeline.Job("job-using-resource")
+				requestedSchedule := scenario.Job("job-using-resource").ScheduleRequestedTime()
+
+				found, err := scenario.Resource("some-resource").PinVersion(scenario.ResourceVersion("some-resource", atc.Version{"version": "v1"}).ID())
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 
-				requestedSchedule := job.ScheduleRequestedTime()
-
-				found, err = resource.PinVersion(resID)
-				Expect(found).To(BeTrue())
-				Expect(err).ToNot(HaveOccurred())
-
-				found, err = job.Reload()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
+				Expect(scenario.Job("job-using-resource").ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
 			})
 
 			It("does not request schedule on jobs that do not use the resource", func() {
-				job, found, err := pipeline.Job("not-using-resource")
+				requestedSchedule := scenario.Job("not-using-resource").ScheduleRequestedTime()
+
+				found, err := scenario.Resource("some-resource").PinVersion(scenario.ResourceVersion("some-resource", atc.Version{"version": "v1"}).ID())
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 
-				requestedSchedule := job.ScheduleRequestedTime()
-
-				found, err = resource.PinVersion(resID)
-				Expect(found).To(BeTrue())
-				Expect(err).ToNot(HaveOccurred())
-
-				found, err = job.Reload()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				Expect(job.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
+				Expect(scenario.Job("not-using-resource").ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
 			})
 		})
 
 		Context("when we pin a resource to a version", func() {
 			BeforeEach(func() {
-				found, err := resource.PinVersion(resID)
-				Expect(found).To(BeTrue())
-				Expect(err).ToNot(HaveOccurred())
-
-				found, err = resource.Reload()
+				found, err := scenario.Resource("some-resource").PinVersion(scenario.ResourceVersion("some-resource", atc.Version{"version": "v1"}).ID())
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			Context("when the resource is not pinned", func() {
 				It("sets the api pinned version", func() {
-					Expect(resource.APIPinnedVersion()).To(Equal(atc.Version{"version": "v1"}))
-					Expect(resource.CurrentPinnedVersion()).To(Equal(resource.APIPinnedVersion()))
+					Expect(scenario.Resource("some-resource").APIPinnedVersion()).To(Equal(atc.Version{"version": "v1"}))
+					Expect(scenario.Resource("some-resource").CurrentPinnedVersion()).To(Equal(scenario.Resource("some-resource").APIPinnedVersion()))
 				})
 			})
 
 			Context("when the resource is pinned by another version already", func() {
 				BeforeEach(func() {
-					resConf, found, err := resourceScope.FindVersion(atc.Version{"version": "v3"})
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-					resID = resConf.ID()
-
-					found, err = resource.PinVersion(resID)
-					Expect(found).To(BeTrue())
-					Expect(err).ToNot(HaveOccurred())
-
-					found, err = resource.Reload()
+					found, err := scenario.Resource("some-resource").PinVersion(scenario.ResourceVersion("some-resource", atc.Version{"version": "v3"}).ID())
 					Expect(found).To(BeTrue())
 					Expect(err).ToNot(HaveOccurred())
 				})
 
 				It("switch the pin to given version", func() {
-					Expect(resource.APIPinnedVersion()).To(Equal(atc.Version{"version": "v3"}))
-					Expect(resource.CurrentPinnedVersion()).To(Equal(resource.APIPinnedVersion()))
+					Expect(scenario.Resource("some-resource").APIPinnedVersion()).To(Equal(atc.Version{"version": "v3"}))
+					Expect(scenario.Resource("some-resource").CurrentPinnedVersion()).To(Equal(scenario.Resource("some-resource").APIPinnedVersion()))
 				})
 			})
 
 			Context("when we set the pin comment on a resource", func() {
 				BeforeEach(func() {
-					err := resource.SetPinComment("foo")
-					Expect(err).ToNot(HaveOccurred())
-					reload, err := resource.Reload()
-					Expect(reload).To(BeTrue())
+					err := scenario.Resource("some-resource").SetPinComment("foo")
 					Expect(err).ToNot(HaveOccurred())
 				})
 
 				It("should set the pin comment", func() {
-					Expect(resource.PinComment()).To(Equal("foo"))
+					Expect(scenario.Resource("some-resource").PinComment()).To(Equal("foo"))
 				})
 			})
 
 			Context("when requesting schedule for version unpinning", func() {
 				It("requests schedule on all jobs using the resource", func() {
-					job, found, err := pipeline.Job("job-using-resource")
-					Expect(found).To(BeTrue())
+					requestedSchedule := scenario.Job("job-using-resource").ScheduleRequestedTime()
+
+					err := scenario.Resource("some-resource").UnpinVersion()
 					Expect(err).ToNot(HaveOccurred())
 
-					requestedSchedule := job.ScheduleRequestedTime()
-
-					err = resource.UnpinVersion()
-					Expect(err).ToNot(HaveOccurred())
-
-					found, err = job.Reload()
-					Expect(found).To(BeTrue())
-					Expect(err).ToNot(HaveOccurred())
-
-					Expect(job.ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
+					Expect(scenario.Job("job-using-resource").ScheduleRequestedTime()).Should(BeTemporally(">", requestedSchedule))
 				})
 
 				It("does not request schedule on jobs that do not use the resource", func() {
-					job, found, err := pipeline.Job("not-using-resource")
-					Expect(found).To(BeTrue())
+					requestedSchedule := scenario.Job("not-using-resource").ScheduleRequestedTime()
+
+					err := scenario.Resource("some-resource").UnpinVersion()
 					Expect(err).ToNot(HaveOccurred())
 
-					requestedSchedule := job.ScheduleRequestedTime()
-
-					err = resource.UnpinVersion()
-					Expect(err).ToNot(HaveOccurred())
-
-					Expect(job.ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
+					Expect(scenario.Job("not-using-resource").ScheduleRequestedTime()).Should(BeTemporally("==", requestedSchedule))
 				})
 			})
 
 			Context("when we unpin a resource to a version", func() {
 				BeforeEach(func() {
-					err := resource.UnpinVersion()
-					Expect(err).ToNot(HaveOccurred())
-
-					found, err := resource.Reload()
-					Expect(found).To(BeTrue())
+					err := scenario.Resource("some-resource").UnpinVersion()
 					Expect(err).ToNot(HaveOccurred())
 				})
 
 				It("sets the api pinned version to nil", func() {
-					Expect(resource.APIPinnedVersion()).To(BeNil())
-					Expect(resource.CurrentPinnedVersion()).To(BeNil())
+					Expect(scenario.Resource("some-resource").APIPinnedVersion()).To(BeNil())
+					Expect(scenario.Resource("some-resource").CurrentPinnedVersion()).To(BeNil())
 				})
 
 				It("unsets the pin comment", func() {
-					Expect(resource.PinComment()).To(BeEmpty())
+					Expect(scenario.Resource("some-resource").PinComment()).To(BeEmpty())
 				})
 			})
 		})
 
 		Context("when we pin a resource that is already pinned to a version (through the config)", func() {
-			var resConf db.ResourceConfigVersion
-
 			BeforeEach(func() {
-				var found bool
-				var err error
-				resource, found, err = pipeline.Resource("some-resource")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				setupTx, err := dbConn.Begin()
-				Expect(err).ToNot(HaveOccurred())
-
-				brt := db.BaseResourceType{
-					Name: "registry-image",
-				}
-
-				_, err = brt.FindOrCreate(setupTx, false)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(setupTx.Commit()).To(Succeed())
-
-				resourceScope, err := resource.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
-				Expect(err).ToNot(HaveOccurred())
-
-				err = resourceScope.SaveVersions(nil, []atc.Version{
-					atc.Version{"version": "v1"},
-					atc.Version{"version": "v2"},
-					atc.Version{"version": "v3"},
-				})
-				Expect(err).ToNot(HaveOccurred())
-
-				resConf, found, err = resourceScope.FindVersion(atc.Version{"version": "v1"})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
+				scenario.Run(
+					builder.WithPipeline(atc.Config{
+						Resources: atc.ResourceConfigs{
+							{
+								Name:    "some-resource",
+								Type:    "some-base-resource-type",
+								Source:  atc.Source{"some": "repository"},
+								Version: atc.Version{"pinned": "version"},
+							},
+						},
+					}),
+					builder.WithResourceVersions(
+						"some-resource",
+						atc.Version{"version": "v1"},
+						atc.Version{"version": "v2"},
+						atc.Version{"version": "v3"},
+					))
 			})
 
 			It("should fail to update the pinned version", func() {
-				found, err := resource.PinVersion(resConf.ID())
+				found, err := scenario.Resource("some-resource").PinVersion(scenario.ResourceVersion("some-resource", atc.Version{"version": "v1"}).ID())
 				Expect(found).To(BeFalse())
 				Expect(err).To(Equal(db.ErrPinnedThroughConfig))
 			})

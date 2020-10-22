@@ -363,7 +363,7 @@ function createGraph(svg, jobs, resources) {
   var graph = new Graph();
 
   var resourceURLs = {};
-  var resourceFailing = {};
+  var resourceBuild = {};
   var resourcePinned = {};
   var resourceIcons = {};
 
@@ -372,7 +372,7 @@ function createGraph(svg, jobs, resources) {
   for (var i in resources) {
     var resource = resources[i];
     resourceURLs[resource.name] = "/teams/"+resource.team_name+"/pipelines/"+resource.pipeline_name+"/resources/"+encodeURIComponent(resource.name) + query;
-    resourceFailing[resource.name] = resource.failing_to_check;
+    resourceBuild[resource.name] = resource.build;
     resourcePinned[resource.name] = resource.pinned_version;
     resourceIcons[resource.name] = resource.icon;
   }
@@ -421,8 +421,8 @@ function createGraph(svg, jobs, resources) {
 
   var resourceStatus = function (resource) {
     var status = "";
-    if (resourceFailing[resource]) {
-      status += " failing";
+    if (resourceBuild[resource]) {
+      status += " " + resourceBuild[resource].status;
     }
     if (resourcePinned[resource]) {
       status += " pinned";
@@ -449,7 +449,7 @@ function createGraph(svg, jobs, resources) {
           name: output.resource,
           icon: resourceIcons[output.resource],
           key: output.resource,
-          class: "output" + resourceStatus(output.resource),
+          class: "resource output" + resourceStatus(output.resource),
           repeatable: true,
           url: resourceURLs[output.resource],
           svg: svg
@@ -490,7 +490,7 @@ function createGraph(svg, jobs, resources) {
                 name: input.resource,
                 icon: resourceIcons[input.resource],
                 key: input.resource,
-                class: "constrained-input" + (resourcePinned[input.resource] ? " pinned" : ""),
+                class: "resource constrained-input" + resourceStatus(input.resource),
                 repeatable: true,
                 url: resourceURLs[input.resource],
                 svg: svg
@@ -533,7 +533,7 @@ function createGraph(svg, jobs, resources) {
             name: input.resource,
             icon: resourceIcons[input.resource],
             key: input.resource,
-            class: "input" + resourceStatus(input.resource),
+            class: "resource input" + resourceStatus(input.resource),
             status: status,
             repeatable: true,
             url: resourceURLs[input.resource],
@@ -581,10 +581,6 @@ function createIconStore() {
 
 function groupNode(name) {
   return "group-"+name;
-}
-
-function resourceNode(name) {
-  return "resource-"+name;
 }
 
 function jobNode(name) {

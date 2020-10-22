@@ -26,31 +26,30 @@ import (
 
 var _ = Describe("Worker", func() {
 	var (
-		logger                    *lagertest.TestLogger
-		fakeVolumeClient          *workerfakes.FakeVolumeClient
-		activeContainers          int
-		resourceTypes             []atc.WorkerResourceType
-		platform                  string
-		tags                      atc.Tags
-		teamID                    int
-		ephemeral                 bool
-		workerName                string
-		gardenWorker              Worker
-		workerVersion             string
-		fakeGardenClient          *gclientfakes.FakeClient
-		fakeImageFactory          *workerfakes.FakeImageFactory
-		fakeImage                 *workerfakes.FakeImage
-		fakeDBWorker              *dbfakes.FakeWorker
-		fakeDBVolumeRepository    *dbfakes.FakeVolumeRepository
-		fakeResourceCacheFactory  *dbfakes.FakeResourceCacheFactory
-		fakeDBTeamFactory         *dbfakes.FakeTeamFactory
-		fakeDBTeam                *dbfakes.FakeTeam
-		fakeCreatingContainer     *dbfakes.FakeCreatingContainer
-		fakeCreatedContainer      *dbfakes.FakeCreatedContainer
-		fakeGardenContainer       *gclientfakes.FakeContainer
-		fakeImageFetchingDelegate *workerfakes.FakeImageFetchingDelegate
-		fakeBaggageclaimClient    *baggageclaimfakes.FakeClient
-		fakeFetcher               *workerfakes.FakeFetcher
+		logger                   *lagertest.TestLogger
+		fakeVolumeClient         *workerfakes.FakeVolumeClient
+		activeContainers         int
+		resourceTypes            []atc.WorkerResourceType
+		platform                 string
+		tags                     atc.Tags
+		teamID                   int
+		ephemeral                bool
+		workerName               string
+		gardenWorker             Worker
+		workerVersion            string
+		fakeGardenClient         *gclientfakes.FakeClient
+		fakeImageFactory         *workerfakes.FakeImageFactory
+		fakeImage                *workerfakes.FakeImage
+		fakeDBWorker             *dbfakes.FakeWorker
+		fakeDBVolumeRepository   *dbfakes.FakeVolumeRepository
+		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
+		fakeDBTeamFactory        *dbfakes.FakeTeamFactory
+		fakeDBTeam               *dbfakes.FakeTeam
+		fakeCreatingContainer    *dbfakes.FakeCreatingContainer
+		fakeCreatedContainer     *dbfakes.FakeCreatedContainer
+		fakeGardenContainer      *gclientfakes.FakeContainer
+		fakeBaggageclaimClient   *baggageclaimfakes.FakeClient
+		fakeFetcher              *workerfakes.FakeFetcher
 
 		fakeLocalInput    *workerfakes.FakeInputSource
 		fakeRemoteInput   *workerfakes.FakeInputSource
@@ -64,13 +63,11 @@ var _ = Describe("Worker", func() {
 		fakeLocalCOWVolume             *workerfakes.FakeVolume
 
 		ctx                context.Context
-		containerSpec      ContainerSpec
 		fakeContainerOwner *dbfakes.FakeContainerOwner
 		containerMetadata  db.ContainerMetadata
 
-		stubbedVolumes   map[string]*workerfakes.FakeVolume
-		volumeSpecs      map[string]VolumeSpec
-		atcResourceTypes atc.VersionedResourceTypes
+		stubbedVolumes map[string]*workerfakes.FakeVolume
+		volumeSpecs    map[string]VolumeSpec
 
 		findOrCreateErr       error
 		findOrCreateContainer Container
@@ -82,7 +79,7 @@ var _ = Describe("Worker", func() {
 		activeContainers = 42
 		resourceTypes = []atc.WorkerResourceType{
 			{
-				Type:    "some-resource",
+				Type:    "some-base-type",
 				Image:   "some-resource-image",
 				Version: "some-version",
 			},
@@ -112,8 +109,6 @@ var _ = Describe("Worker", func() {
 		fakeDBTeamFactory = new(dbfakes.FakeTeamFactory)
 		fakeDBTeam = new(dbfakes.FakeTeam)
 		fakeDBTeamFactory.GetByIDReturns(fakeDBTeam)
-
-		fakeImageFetchingDelegate = new(workerfakes.FakeImageFetchingDelegate)
 
 		fakeBaggageclaimClient = new(baggageclaimfakes.FakeClient)
 
@@ -203,50 +198,6 @@ var _ = Describe("Worker", func() {
 			StepName: "some-step",
 		}
 
-		cpu := uint64(1024)
-		memory := uint64(1024)
-		containerSpec = ContainerSpec{
-			TeamID: 73410,
-
-			ImageSpec: ImageSpec{
-				ImageResource: &ImageResource{
-					Type:   "registry-image",
-					Source: atc.Source{"some": "super-secret-image"},
-				},
-			},
-
-			User: "some-user",
-			Env:  []string{"SOME=ENV"},
-
-			Dir: "/some/work-dir",
-
-			Inputs: []InputSource{
-				fakeLocalInput,
-				fakeRemoteInput,
-			},
-
-			Outputs: OutputPaths{
-				"some-output": "/some/work-dir/output",
-			},
-			BindMounts: []BindMountSource{
-				fakeBindMount,
-			},
-			Limits: ContainerLimits{
-				CPU:    &cpu,
-				Memory: &memory,
-			},
-		}
-
-		atcResourceTypes = atc.VersionedResourceTypes{
-			{
-				ResourceType: atc.ResourceType{
-					Type:   "some-type",
-					Source: atc.Source{"some": "super-secret-source"},
-				},
-				Version: atc.Version{"some": "version"},
-			},
-		}
-
 		fakeGardenContainer = new(gclientfakes.FakeContainer)
 		fakeGardenClient.CreateReturns(fakeGardenContainer, nil)
 	})
@@ -274,7 +225,6 @@ var _ = Describe("Worker", func() {
 			fakeDBWorker,
 			fakeResourceCacheFactory,
 			0,
-			nil,
 		)
 	})
 
@@ -585,59 +535,12 @@ var _ = Describe("Worker", func() {
 			spec WorkerSpec
 
 			satisfies bool
-
-			customTypes atc.VersionedResourceTypes
 		)
 
 		BeforeEach(func() {
-
-			customTypes = atc.VersionedResourceTypes{
-				{
-					ResourceType: atc.ResourceType{
-						Name:   "custom-type-b",
-						Type:   "custom-type-a",
-						Source: atc.Source{"some": "source"},
-					},
-					Version: atc.Version{"some": "version"},
-				},
-				{
-					ResourceType: atc.ResourceType{
-						Name:   "custom-type-a",
-						Type:   "some-resource",
-						Source: atc.Source{"some": "source"},
-					},
-					Version: atc.Version{"some": "version"},
-				},
-				{
-					ResourceType: atc.ResourceType{
-						Name:   "custom-type-c",
-						Type:   "custom-type-b",
-						Source: atc.Source{"some": "source"},
-					},
-					Version: atc.Version{"some": "version"},
-				},
-				{
-					ResourceType: atc.ResourceType{
-						Name:   "custom-type-d",
-						Type:   "custom-type-b",
-						Source: atc.Source{"some": "source"},
-					},
-					Version: atc.Version{"some": "version"},
-				},
-				{
-					ResourceType: atc.ResourceType{
-						Name:   "unknown-custom-type",
-						Type:   "unknown-base-type",
-						Source: atc.Source{"some": "source"},
-					},
-					Version: atc.Version{"some": "version"},
-				},
-			}
-
 			spec = WorkerSpec{
-				Tags:          []string{"some", "tags"},
-				TeamID:        teamID,
-				ResourceTypes: customTypes,
+				Tags:   []string{"some", "tags"},
+				TeamID: teamID,
 			}
 		})
 
@@ -714,7 +617,11 @@ var _ = Describe("Worker", func() {
 
 		Context("when the resource type is supported by the worker", func() {
 			BeforeEach(func() {
-				spec.ResourceType = "some-resource"
+				spec.ResourceType = "some-base-type"
+			})
+
+			It("returns true", func() {
+				Expect(satisfies).To(BeTrue())
 			})
 
 			Context("when all of the requested tags are present", func() {
@@ -748,87 +655,9 @@ var _ = Describe("Worker", func() {
 			})
 		})
 
-		Context("when the resource type is a custom type supported by the worker", func() {
-			BeforeEach(func() {
-				spec.ResourceType = "custom-type-c"
-			})
-
-			It("returns true", func() {
-				Expect(satisfies).To(BeTrue())
-			})
-		})
-
-		Context("when the resource type is a custom type that overrides one supported by the worker", func() {
-			BeforeEach(func() {
-
-				customTypes = atc.VersionedResourceTypes{
-					{
-						ResourceType: atc.ResourceType{
-							Name:   "some-resource",
-							Type:   "some-resource",
-							Source: atc.Source{"some": "source"},
-						},
-						Version: atc.Version{"some": "version"},
-					},
-				}
-
-				spec.ResourceType = "some-resource"
-			})
-
-			It("returns true", func() {
-				Expect(satisfies).To(BeTrue())
-			})
-		})
-
-		Context("when the resource type is a custom type that results in a circular dependency", func() {
-			BeforeEach(func() {
-
-				customTypes = atc.VersionedResourceTypes{
-					atc.VersionedResourceType{
-						ResourceType: atc.ResourceType{
-							Name:   "circle-a",
-							Type:   "circle-b",
-							Source: atc.Source{"some": "source"},
-						},
-						Version: atc.Version{"some": "version"},
-					}, atc.VersionedResourceType{
-						ResourceType: atc.ResourceType{
-							Name:   "circle-b",
-							Type:   "circle-c",
-							Source: atc.Source{"some": "source"},
-						},
-						Version: atc.Version{"some": "version"},
-					}, atc.VersionedResourceType{
-						ResourceType: atc.ResourceType{
-							Name:   "circle-c",
-							Type:   "circle-a",
-							Source: atc.Source{"some": "source"},
-						},
-						Version: atc.Version{"some": "version"},
-					},
-				}
-
-				spec.ResourceType = "circle-a"
-			})
-
-			It("returns false", func() {
-				Expect(satisfies).To(BeFalse())
-			})
-		})
-
-		Context("when the resource type is a custom type not supported by the worker", func() {
-			BeforeEach(func() {
-				spec.ResourceType = "unknown-custom-type"
-			})
-
-			It("returns false", func() {
-				Expect(satisfies).To(BeFalse())
-			})
-		})
-
 		Context("when the type is not supported by the worker", func() {
 			BeforeEach(func() {
-				spec.ResourceType = "some-other-resource"
+				spec.ResourceType = "some-bogus-type"
 			})
 
 			It("returns false", func() {
@@ -894,15 +723,49 @@ var _ = Describe("Worker", func() {
 			fakeBaggageclaimClient.LookupVolumeReturns(fakeCertsVolume, true, nil)
 		}
 
+		var containerSpec ContainerSpec
+
+		BeforeEach(func() {
+			cpu := uint64(1024)
+			memory := uint64(1024)
+
+			containerSpec = ContainerSpec{
+				TeamID: 73410,
+
+				ImageSpec: ImageSpec{
+					ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
+				},
+
+				User: "some-user",
+				Env:  []string{"SOME=ENV"},
+
+				Dir: "/some/work-dir",
+
+				Inputs: []InputSource{
+					fakeLocalInput,
+					fakeRemoteInput,
+				},
+
+				Outputs: OutputPaths{
+					"some-output": "/some/work-dir/output",
+				},
+				BindMounts: []BindMountSource{
+					fakeBindMount,
+				},
+				Limits: ContainerLimits{
+					CPU:    &cpu,
+					Memory: &memory,
+				},
+			}
+		})
+
 		JustBeforeEach(func() {
 			findOrCreateContainer, findOrCreateErr = gardenWorker.FindOrCreateContainer(
 				ctx,
 				logger,
-				fakeImageFetchingDelegate,
 				fakeContainerOwner,
 				containerMetadata,
 				containerSpec,
-				atcResourceTypes,
 			)
 		})
 		disasterErr := errors.New("disaster")
@@ -1463,7 +1326,7 @@ var _ = Describe("Worker", func() {
 					})
 
 					It("returns an error", func() {
-						Expect(findOrCreateErr).To(Equal(disasterErr))
+						Expect(findOrCreateErr).To(Equal(fmt.Errorf("find or create container on worker some-worker: %w", disasterErr)))
 					})
 
 					It("does not mark container as created", func() {
@@ -1481,7 +1344,7 @@ var _ = Describe("Worker", func() {
 					})
 
 					It("returns an error", func() {
-						Expect(findOrCreateErr).To(Equal(disasterErr))
+						Expect(findOrCreateErr).To(Equal(fmt.Errorf("find or create container on worker some-worker: %w", disasterErr)))
 					})
 
 					It("does not mark container as created", func() {
@@ -1516,12 +1379,12 @@ var _ = Describe("Worker", func() {
 				var containerNotFoundErr error
 
 				BeforeEach(func() {
-					containerNotFoundErr = garden.ContainerNotFoundError{fakeCreatedContainer.Handle()}
+					containerNotFoundErr = garden.ContainerNotFoundError{Handle: fakeCreatedContainer.Handle()}
 					fakeGardenClient.LookupReturns(nil, containerNotFoundErr)
 				})
 
 				It("returns an error", func() {
-					Expect(findOrCreateErr).To(Equal(containerNotFoundErr))
+					Expect(findOrCreateErr).To(Equal(fmt.Errorf("find or create container on worker some-worker: %w", containerNotFoundErr)))
 				})
 			})
 		})
@@ -1545,7 +1408,7 @@ var _ = Describe("Worker", func() {
 
 					It("fails w/ ResourceConfigCheckSessionExpiredError", func() {
 						Expect(findOrCreateErr).To(HaveOccurred())
-						Expect(findOrCreateErr).To(Equal(ResourceConfigCheckSessionExpiredError))
+						Expect(findOrCreateErr).To(Equal(fmt.Errorf("find or create container on worker some-worker: %w", ResourceConfigCheckSessionExpiredError)))
 					})
 				})
 
@@ -1556,7 +1419,7 @@ var _ = Describe("Worker", func() {
 
 					It("fails with the same err", func() {
 						Expect(findOrCreateErr).To(HaveOccurred())
-						Expect(findOrCreateErr).To(Equal(errors.New("err")))
+						Expect(findOrCreateErr).To(Equal(fmt.Errorf("find or create container on worker some-worker: %w", errors.New("err"))))
 					})
 				})
 			})

@@ -12,6 +12,7 @@ module Dashboard.Dashboard exposing
 
 import Application.Models exposing (Session)
 import Concourse exposing (hyphenNotation)
+import Concourse.BuildStatus
 import Concourse.Cli as Cli
 import Dashboard.DashboardPreview as DashboardPreview
 import Dashboard.Drag as Drag
@@ -336,10 +337,19 @@ handleCallback callback ( model, effects ) =
                     ( { model | jobsError = Just Failed }, effects )
 
         AllResourcesFetched (Ok resources) ->
+            let
+                failingToCheck { build } =
+                    case build of
+                        Nothing ->
+                            False
+
+                        Just { status } ->
+                            Concourse.BuildStatus.isBad status
+            in
             ( { model
                 | pipelinesWithResourceErrors =
                     resources
-                        |> List.filter .failingToCheck
+                        |> List.filter failingToCheck
                         |> List.map (\r -> r.pipelineId)
                         |> Set.fromList
                 , resourcesError = Nothing
@@ -363,7 +373,8 @@ handleCallback callback ( model, effects ) =
                 , pipelinesError = Nothing
               }
             , effects
-                ++ (if List.isEmpty allPipelinesInEntireCluster then
+                ++ GetViewportOf Dashboard
+                :: (if List.isEmpty allPipelinesInEntireCluster then
                         [ ModifyUrl "/" ]
 
                     else

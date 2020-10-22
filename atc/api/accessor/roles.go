@@ -16,7 +16,6 @@ var DefaultRoles = map[string]string{
 	atc.GetConfig:                     ViewerRole,
 	atc.GetCC:                         ViewerRole,
 	atc.GetBuild:                      ViewerRole,
-	atc.GetCheck:                      ViewerRole,
 	atc.GetBuildPlan:                  ViewerRole,
 	atc.CreateBuild:                   MemberRole,
 	atc.ListBuilds:                    ViewerRole,

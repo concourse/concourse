@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"sync"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -12,61 +13,170 @@ import (
 var _ = Describe("ResourceConfigFactory", func() {
 	var build db.Build
 
-	Describe("CleanUnreferencedConfigs", func() {
+	BeforeEach(func() {
+		var err error
+		job, found, err := defaultPipeline.Job("some-job")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(found).To(BeTrue())
+
+		build, err = job.CreateBuild()
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	Context("when a config is created", func() {
+		var resourceConfig db.ResourceConfig
+
 		BeforeEach(func() {
 			var err error
-			job, found, err := defaultPipeline.Job("some-job")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			build, err = job.CreateBuild()
-			Expect(err).NotTo(HaveOccurred())
+			resourceConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
+				"some-base-resource-type",
+				atc.Source{"some": "unique-source"},
+				atc.VersionedResourceTypes{},
+			)
+			Expect(err).ToNot(HaveOccurred())
 		})
 
-		Context("when the resource config is concurrently deleted and created", func() {
+		It("has a recent 'last referenced' value", func() {
+			Expect(resourceConfig.LastReferenced()).To(BeTemporally("~", time.Now(), time.Minute))
+		})
+
+		Context("and created again", func() {
+			var sameConfig db.ResourceConfig
+
 			BeforeEach(func() {
-				Expect(build.Finish(db.BuildStatusSucceeded)).To(Succeed())
-				Expect(build.SetInterceptible(false)).To(Succeed())
+				var err error
+				sameConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
+					"some-base-resource-type",
+					atc.Source{"some": "unique-source"},
+					atc.VersionedResourceTypes{},
+				)
+				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("consistently is able to be used", func() {
-				// enable concurrent use of database. this is set to 1 by default to
-				// ensure methods don't require more than one in a single connection,
-				// which can cause deadlocking as the pool is limited.
-				dbConn.SetMaxOpenConns(2)
+			It("returns the same config, but with a newer 'last referenced' time", func() {
+				Expect(sameConfig.ID()).To(Equal(resourceConfig.ID()))
+				Expect(sameConfig.LastReferenced()).To(BeTemporally(">", resourceConfig.LastReferenced()))
+			})
+		})
 
-				done := make(chan struct{})
+		Context("when cleaning up with no grace period", func() {
+			It("removes the config immediately", func() {
+				Expect(resourceConfigFactory.CleanUnreferencedConfigs(0)).To(Succeed())
 
-				wg := new(sync.WaitGroup)
-				wg.Add(1)
-				go func() {
-					defer GinkgoRecover()
-					defer wg.Done()
+				recreated, err := resourceConfigFactory.FindOrCreateResourceConfig(
+					"some-base-resource-type",
+					atc.Source{"some": "unique-source"},
+					atc.VersionedResourceTypes{},
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(recreated.ID()).ToNot(Equal(resourceConfig.ID()))
+			})
+		})
 
-					for {
-						select {
-						case <-done:
-							return
-						default:
-							Expect(resourceConfigFactory.CleanUnreferencedConfigs()).To(Succeed())
-						}
-					}
-				}()
+		Context("when cleaning up with a grace period", func() {
+			It("spares the config", func() {
+				Expect(resourceConfigFactory.CleanUnreferencedConfigs(time.Hour)).To(Succeed())
 
-				wg.Add(1)
-				go func() {
-					defer GinkgoRecover()
-					defer close(done)
-					defer wg.Done()
+				recreated, err := resourceConfigFactory.FindOrCreateResourceConfig(
+					"some-base-resource-type",
+					atc.Source{"some": "unique-source"},
+					atc.VersionedResourceTypes{},
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(recreated.ID()).To(Equal(resourceConfig.ID()))
+			})
+		})
+	})
 
-					for i := 0; i < 100; i++ {
+	Context("when the resource config is concurrently created", func() {
+		BeforeEach(func() {
+			Expect(build.Finish(db.BuildStatusSucceeded)).To(Succeed())
+			Expect(build.SetInterceptible(false)).To(Succeed())
+		})
+
+		It("consistently is able to be created", func() {
+			// enable concurrent use of database. this is set to 1 by default to
+			// ensure methods don't require more than one in a single connection,
+			// which can cause deadlocking as the pool is limited.
+			dbConn.SetMaxOpenConns(2)
+
+			done := make(chan struct{})
+
+			wg := new(sync.WaitGroup)
+			wg.Add(1)
+			go func() {
+				defer GinkgoRecover()
+				defer wg.Done()
+
+				for {
+					select {
+					case <-done:
+						return
+					default:
 						_, err := resourceConfigFactory.FindOrCreateResourceConfig("some-base-resource-type", atc.Source{"some": "unique-source"}, atc.VersionedResourceTypes{})
 						Expect(err).ToNot(HaveOccurred())
 					}
-				}()
+				}
+			}()
 
-				wg.Wait()
-			})
+			wg.Add(1)
+			go func() {
+				defer GinkgoRecover()
+				defer close(done)
+				defer wg.Done()
+
+				for i := 0; i < 100; i++ {
+					_, err := resourceConfigFactory.FindOrCreateResourceConfig("some-base-resource-type", atc.Source{"some": "unique-source"}, atc.VersionedResourceTypes{})
+					Expect(err).ToNot(HaveOccurred())
+				}
+			}()
+
+			wg.Wait()
+		})
+	})
+	Context("when the resource config is concurrently deleted and created", func() {
+		BeforeEach(func() {
+			Expect(build.Finish(db.BuildStatusSucceeded)).To(Succeed())
+			Expect(build.SetInterceptible(false)).To(Succeed())
+		})
+
+		It("consistently is able to be used", func() {
+			// enable concurrent use of database. this is set to 1 by default to
+			// ensure methods don't require more than one in a single connection,
+			// which can cause deadlocking as the pool is limited.
+			dbConn.SetMaxOpenConns(2)
+
+			done := make(chan struct{})
+
+			wg := new(sync.WaitGroup)
+			wg.Add(1)
+			go func() {
+				defer GinkgoRecover()
+				defer wg.Done()
+
+				for {
+					select {
+					case <-done:
+						return
+					default:
+						Expect(resourceConfigFactory.CleanUnreferencedConfigs(0)).To(Succeed())
+					}
+				}
+			}()
+
+			wg.Add(1)
+			go func() {
+				defer GinkgoRecover()
+				defer close(done)
+				defer wg.Done()
+
+				for i := 0; i < 100; i++ {
+					_, err := resourceConfigFactory.FindOrCreateResourceConfig("some-base-resource-type", atc.Source{"some": "unique-source"}, atc.VersionedResourceTypes{})
+					Expect(err).ToNot(HaveOccurred())
+				}
+			}()
+
+			wg.Wait()
 		})
 	})
 

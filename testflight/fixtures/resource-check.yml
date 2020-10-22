@@ -1,0 +1,12 @@
+---
+resources:
+- name: my-resource
+  type: mock
+  source:
+    force_version: ((unique_version))
+    check_failure: ((check_failure))
+
+jobs:
+- name: resource-getter
+  plan:
+  - get: my-resource

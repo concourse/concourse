@@ -11,7 +11,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec/build"
@@ -19,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 // MissingInputsError is returned when any of the task's required inputs are
@@ -50,16 +50,21 @@ func (err TaskImageSourceParametersError) Error() string {
 	return fmt.Sprintf("failed to evaluate image resource parameters: %s", err.Err)
 }
 
+//go:generate counterfeiter . TaskDelegateFactory
+
+type TaskDelegateFactory interface {
+	TaskDelegate(state RunState) TaskDelegate
+}
+
 //go:generate counterfeiter . TaskDelegate
 
 type TaskDelegate interface {
-	ImageVersionDetermined(db.UsedResourceCache) error
-	RedactImageSource(source atc.Source) (atc.Source, error)
+	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
+
+	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
-
-	Variables() *vars.BuildVariables
 
 	SetTaskConfig(config atc.TaskConfig)
 
@@ -80,9 +85,8 @@ type TaskStep struct {
 	containerMetadata db.ContainerMetadata
 	strategy          worker.ContainerPlacementStrategy
 	workerClient      worker.Client
-	delegate          TaskDelegate
+	delegateFactory   TaskDelegateFactory
 	lockFactory       lock.LockFactory
-	succeeded         bool
 }
 
 func NewTaskStep(
@@ -93,7 +97,7 @@ func NewTaskStep(
 	containerMetadata db.ContainerMetadata,
 	strategy worker.ContainerPlacementStrategy,
 	workerClient worker.Client,
-	delegate TaskDelegate,
+	delegateFactory TaskDelegateFactory,
 	lockFactory lock.LockFactory,
 ) Step {
 	return &TaskStep{
@@ -104,7 +108,7 @@ func NewTaskStep(
 		containerMetadata: containerMetadata,
 		strategy:          strategy,
 		workerClient:      workerClient,
-		delegate:          delegate,
+		delegateFactory:   delegateFactory,
 		lockFactory:       lockFactory,
 	}
 }
@@ -124,39 +128,30 @@ func NewTaskStep(
 // are registered with the artifact.Repository. If no outputs are specified, the
 // task's entire working directory is registered as an StreamableArtifactSource under the
 // name of the task.
-func (step *TaskStep) Run(ctx context.Context, state RunState) error {
-	ctx, span := tracing.StartSpan(ctx, "task", tracing.Attrs{
-		"team":     step.metadata.TeamName,
-		"pipeline": step.metadata.PipelineName,
-		"job":      step.metadata.JobName,
-		"build":    step.metadata.BuildName,
-		"name":     step.plan.Name,
+func (step *TaskStep) Run(ctx context.Context, state RunState) (bool, error) {
+	delegate := step.delegateFactory.TaskDelegate(state)
+	ctx, span := delegate.StartSpan(ctx, "task", tracing.Attrs{
+		"name": step.plan.Name,
 	})
 
-	err := step.run(ctx, state)
+	ok, err := step.run(ctx, state, delegate)
 	tracing.End(span, err)
 
-	return err
+	return ok, err
 }
 
-func (step *TaskStep) run(ctx context.Context, state RunState) error {
+func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDelegate) (bool, error) {
 	logger := lagerctx.FromContext(ctx)
 	logger = logger.Session("task-step", lager.Data{
 		"step-name": step.plan.Name,
 		"job-id":    step.metadata.JobID,
 	})
 
-	variables := step.delegate.Variables()
-	resourceTypes, err := creds.NewVersionedResourceTypes(variables, step.plan.VersionedResourceTypes).Evaluate()
-	if err != nil {
-		return err
-	}
-
 	var taskConfigSource TaskConfigSource
 	var taskVars []vars.Variables
 
 	if step.plan.ConfigPath != "" {
-		// external task - construct a source which reads it from file
+		// external task - construct a source which reads it from file, and apply base resource type defaults.
 		taskConfigSource = FileConfigSource{ConfigPath: step.plan.ConfigPath, Client: step.workerClient}
 
 		// for interpolation - use 'vars' from the pipeline, and then fill remaining with cred variables.
@@ -168,13 +163,19 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 				ExpectAllKeys: false,
 			}
 		}
-		taskVars = []vars.Variables{variables}
+		taskVars = []vars.Variables{state}
 	} else {
 		// embedded task - first we take it
 		taskConfigSource = StaticConfigSource{Config: step.plan.Config}
 
 		// for interpolation - use just cred variables
-		taskVars = []vars.Variables{variables}
+		taskVars = []vars.Variables{state}
+	}
+
+	// apply resource type defaults
+	taskConfigSource = BaseResourceTypeDefaultsApplySource{
+		ConfigSource:  taskConfigSource,
+		ResourceTypes: step.plan.VersionedResourceTypes,
 	}
 
 	// override params
@@ -194,14 +195,14 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 
 	config, err := taskConfigSource.FetchConfig(ctx, logger, repository)
 
-	step.delegate.SetTaskConfig(config)
+	delegate.SetTaskConfig(config)
 
 	for _, warning := range taskConfigSource.Warnings() {
-		fmt.Fprintln(step.delegate.Stderr(), "[WARNING]", warning)
+		fmt.Fprintln(delegate.Stderr(), "[WARNING]", warning)
 	}
 
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if config.Limits == nil {
@@ -214,16 +215,16 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 		config.Limits.Memory = step.defaultLimits.Memory
 	}
 
-	step.delegate.Initializing(logger)
+	delegate.Initializing(logger)
 
-	workerSpec, err := step.workerSpec(logger, resourceTypes, repository, config)
+	imageSpec, err := step.imageSpec(ctx, state, delegate, config)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	containerSpec, err := step.containerSpec(logger, repository, config, step.containerMetadata)
+	containerSpec, err := step.containerSpec(state, imageSpec, config, step.containerMetadata)
 	if err != nil {
-		return err
+		return false, err
 	}
 	tracing.Inject(ctx, &containerSpec)
 
@@ -231,13 +232,8 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 		Path:         config.Run.Path,
 		Args:         config.Run.Args,
 		Dir:          config.Run.Dir,
-		StdoutWriter: step.delegate.Stdout(),
-		StderrWriter: step.delegate.Stderr(),
-	}
-
-	imageSpec := worker.ImageFetcherSpec{
-		ResourceTypes: resourceTypes,
-		Delegate:      step.delegate,
+		StdoutWriter: delegate.Stdout(),
+		StderrWriter: delegate.Stderr(),
 	}
 
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
@@ -247,12 +243,11 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 		logger,
 		owner,
 		containerSpec,
-		workerSpec,
+		step.workerSpec(config),
 		step.strategy,
 		step.containerMetadata,
-		imageSpec,
 		processSpec,
-		step.delegate,
+		delegate,
 		step.lockFactory,
 	)
 
@@ -260,11 +255,10 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 		if err == context.Canceled || err == context.DeadlineExceeded {
 			step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
 		}
-		return err
+		return false, err
 	}
 
-	step.succeeded = result.ExitStatus == 0
-	step.delegate.Finished(logger, ExitStatus(result.ExitStatus))
+	delegate.Finished(logger, ExitStatus(result.ExitStatus))
 
 	step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
 
@@ -272,18 +266,14 @@ func (step *TaskStep) run(ctx context.Context, state RunState) error {
 	if step.metadata.JobID != 0 {
 		err = step.registerCaches(logger, repository, config, result.VolumeMounts, step.containerMetadata)
 		if err != nil {
-			return err
+			return false, err
 		}
 	}
 
-	return nil
+	return result.ExitStatus == 0, nil
 }
 
-func (step *TaskStep) Succeeded() bool {
-	return step.succeeded
-}
-
-func (step *TaskStep) imageSpec(logger lager.Logger, repository *build.Repository, config atc.TaskConfig) (worker.ImageSpec, error) {
+func (step *TaskStep) imageSpec(ctx context.Context, state RunState, delegate TaskDelegate, config atc.TaskConfig) (worker.ImageSpec, error) {
 	imageSpec := worker.ImageSpec{
 		Privileged: bool(step.plan.Privileged),
 	}
@@ -291,7 +281,7 @@ func (step *TaskStep) imageSpec(logger lager.Logger, repository *build.Repositor
 	// Determine the source of the container image
 	// a reference to an artifact (get step, task output) ?
 	if step.plan.ImageArtifactName != "" {
-		art, found := repository.ArtifactFor(build.ArtifactName(step.plan.ImageArtifactName))
+		art, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(step.plan.ImageArtifactName))
 		if !found {
 			return worker.ImageSpec{}, MissingTaskImageSourceError{step.plan.ImageArtifactName}
 		}
@@ -300,12 +290,18 @@ func (step *TaskStep) imageSpec(logger lager.Logger, repository *build.Repositor
 
 		//an image_resource
 	} else if config.ImageResource != nil {
-		imageSpec.ImageResource = &worker.ImageResource{
-			Type:    config.ImageResource.Type,
-			Source:  config.ImageResource.Source,
-			Params:  config.ImageResource.Params,
-			Version: config.ImageResource.Version,
+		image := *config.ImageResource
+		if len(image.Tags) == 0 {
+			image.Tags = step.plan.Tags
 		}
+
+		return delegate.FetchImage(
+			ctx,
+			image,
+			step.plan.VersionedResourceTypes,
+			step.plan.Privileged,
+		)
+
 		// a rootfs_uri
 	} else if config.RootfsURI != "" {
 		imageSpec.ImageURL = config.RootfsURI
@@ -314,7 +310,7 @@ func (step *TaskStep) imageSpec(logger lager.Logger, repository *build.Repositor
 	return imageSpec, nil
 }
 
-func (step *TaskStep) containerInputs(logger lager.Logger, repository *build.Repository, config atc.TaskConfig, metadata db.ContainerMetadata) (map[string]runtime.Artifact, error) {
+func (step *TaskStep) containerInputs(repository *build.Repository, config atc.TaskConfig, metadata db.ContainerMetadata) (map[string]runtime.Artifact, error) {
 	inputs := map[string]runtime.Artifact{}
 
 	var missingRequiredInputs []string
@@ -363,21 +359,14 @@ func (step *TaskStep) containerInputs(logger lager.Logger, repository *build.Rep
 	return inputs, nil
 }
 
-func (step *TaskStep) containerSpec(logger lager.Logger, repository *build.Repository, config atc.TaskConfig, metadata db.ContainerMetadata) (worker.ContainerSpec, error) {
-	imageSpec, err := step.imageSpec(logger, repository, config)
-	if err != nil {
-		return worker.ContainerSpec{}, err
-	}
-
+func (step *TaskStep) containerSpec(state RunState, imageSpec worker.ImageSpec, config atc.TaskConfig, metadata db.ContainerMetadata) (worker.ContainerSpec, error) {
 	var limits worker.ContainerLimits
 	if config.Limits != nil {
-		limits.CPU = config.Limits.CPU
-		limits.Memory = config.Limits.Memory
+		limits.CPU = (*uint64)(config.Limits.CPU)
+		limits.Memory = (*uint64)(config.Limits.Memory)
 	}
 
 	containerSpec := worker.ContainerSpec{
-		Platform:  config.Platform,
-		Tags:      step.plan.Tags,
 		TeamID:    step.metadata.TeamID,
 		ImageSpec: imageSpec,
 		Limits:    limits,
@@ -389,7 +378,8 @@ func (step *TaskStep) containerSpec(logger lager.Logger, repository *build.Repos
 		Outputs: worker.OutputPaths{},
 	}
 
-	containerSpec.ArtifactByPath, err = step.containerInputs(logger, repository, config, metadata)
+	var err error
+	containerSpec.ArtifactByPath, err = step.containerInputs(state.ArtifactRepository(), config, metadata)
 	if err != nil {
 		return worker.ContainerSpec{}, err
 	}
@@ -402,24 +392,12 @@ func (step *TaskStep) containerSpec(logger lager.Logger, repository *build.Repos
 	return containerSpec, nil
 }
 
-func (step *TaskStep) workerSpec(logger lager.Logger, resourceTypes atc.VersionedResourceTypes, repository *build.Repository, config atc.TaskConfig) (worker.WorkerSpec, error) {
-	workerSpec := worker.WorkerSpec{
-		Platform:      config.Platform,
-		Tags:          step.plan.Tags,
-		TeamID:        step.metadata.TeamID,
-		ResourceTypes: resourceTypes,
+func (step *TaskStep) workerSpec(config atc.TaskConfig) worker.WorkerSpec {
+	return worker.WorkerSpec{
+		Platform: config.Platform,
+		Tags:     step.plan.Tags,
+		TeamID:   step.metadata.TeamID,
 	}
-
-	imageSpec, err := step.imageSpec(logger, repository, config)
-	if err != nil {
-		return worker.WorkerSpec{}, err
-	}
-
-	if imageSpec.ImageResource != nil {
-		workerSpec.ResourceType = imageSpec.ImageResource.Type
-	}
-
-	return workerSpec, nil
 }
 
 func (step *TaskStep) registerOutputs(logger lager.Logger, repository *build.Repository, config atc.TaskConfig, volumeMounts []worker.VolumeMount, metadata db.ContainerMetadata) {

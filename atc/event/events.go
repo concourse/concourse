@@ -1,6 +1,8 @@
 package event
 
 import (
+	"encoding/json"
+
 	"github.com/concourse/concourse/atc"
 )
 
@@ -115,6 +117,10 @@ type Origin struct {
 
 type OriginID string
 
+func (id OriginID) String() string {
+	return string(id)
+}
+
 type OriginSource string
 
 const (
@@ -208,3 +214,21 @@ type Finish struct {
 
 func (Finish) EventType() atc.EventType  { return EventTypeFinish }
 func (Finish) Version() atc.EventVersion { return "1.0" }
+
+type ImageCheck struct {
+	Time       int64            `json:"time"`
+	Origin     Origin           `json:"origin"`
+	PublicPlan *json.RawMessage `json:"plan"`
+}
+
+func (ImageCheck) EventType() atc.EventType  { return EventTypeImageCheck }
+func (ImageCheck) Version() atc.EventVersion { return "1.1" }
+
+type ImageGet struct {
+	Time       int64            `json:"time"`
+	Origin     Origin           `json:"origin"`
+	PublicPlan *json.RawMessage `json:"plan"`
+}
+
+func (ImageGet) EventType() atc.EventType  { return EventTypeImageGet }
+func (ImageGet) Version() atc.EventVersion { return "1.1" }

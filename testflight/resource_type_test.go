@@ -36,8 +36,10 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 
 		It("can check for resources having a custom type recursively", func() {
 			checkResource := fly("check-resource", "-r", inPipeline("my-resource"))
-			Expect(checkResource).To(gbytes.Say("custom-resource-type.*succeeded"))
-			Expect(checkResource).To(gbytes.Say("my-resource.*succeeded"))
+			Expect(checkResource).To(gbytes.Say("custom-resource-type"))
+			Expect(checkResource).To(gbytes.Say("succeeded"))
+			Expect(checkResource).To(gbytes.Say("my-resource"))
+			Expect(checkResource).To(gbytes.Say("succeeded"))
 		})
 
 		It("can check for resources having a custom type shallowly and error out", func() {
@@ -67,6 +69,25 @@ var _ = Describe("Configuring a resource type in a pipeline config", func() {
 		It("can use custom resource type named as base resource type", func() {
 			watch := fly("trigger-job", "-j", inPipeline("resource-getter"), "-w")
 			Expect(watch).To(gbytes.Say("mirror-" + hash))
+		})
+	})
+
+	Context("when resource type has defaults", func() {
+		BeforeEach(func() {
+			setAndUnpausePipeline("fixtures/resource-type-defaults.yml", "-v", "hash="+hash)
+		})
+
+		It("applies the defaults for check, get, and put steps", func() {
+			check := fly("check-resource", "-r", inPipeline("some-resource"))
+			Expect(check).To(gbytes.Say("defaulted"))
+
+			getAndPut := fly("trigger-job", "-j", inPipeline("some-job"), "-w")
+			Expect(getAndPut).To(gbytes.Say("defaulted"))
+			Expect(getAndPut).To(gbytes.Say("fetching version: " + hash))
+			Expect(getAndPut).To(gbytes.Say("defaulted"))
+			Expect(getAndPut).To(gbytes.Say("pushing version: put-version"))
+			Expect(getAndPut).To(gbytes.Say("defaulted"))
+			Expect(getAndPut).To(gbytes.Say("fetching version: put-version"))
 		})
 	})
 })

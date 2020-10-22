@@ -19,7 +19,7 @@ import (
 	"github.com/concourse/concourse/vars"
 	"github.com/onsi/gomega/gbytes"
 	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/api/trace/testtrace"
+	"go.opentelemetry.io/otel/api/trace/tracetest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -38,18 +38,20 @@ var _ = Describe("TaskStep", func() {
 
 		fakeLockFactory *lockfakes.FakeLockFactory
 
+		spanCtx      context.Context
 		fakeDelegate *execfakes.FakeTaskDelegate
-		taskPlan     *atc.TaskPlan
 
-		interpolatedResourceTypes atc.VersionedResourceTypes
+		fakeDelegateFactory *execfakes.FakeTaskDelegateFactory
 
-		repo  *build.Repository
-		state *execfakes.FakeRunState
+		taskPlan *atc.TaskPlan
+
+		repo       *build.Repository
+		state      *execfakes.FakeRunState
+		childState *execfakes.FakeRunState
 
 		taskStep exec.Step
+		stepOk   bool
 		stepErr  error
-
-		buildVars *vars.BuildVariables
 
 		containerMetadata = db.ContainerMetadata{
 			WorkingDirectory: "some-artifact-root",
@@ -77,47 +79,40 @@ var _ = Describe("TaskStep", func() {
 
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
 
-		credVars := vars.StaticVariables{"source-param": "super-secret-source"}
-		buildVars = vars.NewBuildVariables(credVars, true)
-
 		fakeDelegate = new(execfakes.FakeTaskDelegate)
-		fakeDelegate.VariablesReturns(buildVars)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
+
+		spanCtx = context.Background()
+		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
+
+		fakeDelegateFactory = new(execfakes.FakeTaskDelegateFactory)
+		fakeDelegateFactory.TaskDelegateReturns(fakeDelegate)
 
 		repo = build.NewRepository()
 		state = new(execfakes.FakeRunState)
 		state.ArtifactRepositoryReturns(repo)
 
-		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
-			{
-				ResourceType: atc.ResourceType{
-					Name:   "custom-resource",
-					Type:   "custom-type",
-					Source: atc.Source{"some-custom": "((source-param))"},
-					Params: atc.Params{"some-custom": "param"},
-				},
-				Version: atc.Version{"some-custom": "version"},
-			},
-		}
+		childState = new(execfakes.FakeRunState)
+		childState.ArtifactRepositoryReturns(repo.NewLocalScope())
+		state.NewLocalScopeReturns(childState)
 
-		interpolatedResourceTypes = atc.VersionedResourceTypes{
-			{
-				ResourceType: atc.ResourceType{
-					Name:   "custom-resource",
-					Type:   "custom-type",
-					Source: atc.Source{"some-custom": "super-secret-source"},
-					Params: atc.Params{"some-custom": "param"},
-				},
-				Version: atc.Version{"some-custom": "version"},
-			},
-		}
+		state.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
 
 		taskPlan = &atc.TaskPlan{
-			Name:                   "some-task",
-			Privileged:             false,
-			Tags:                   []string{"step", "tags"},
-			VersionedResourceTypes: uninterpolatedResourceTypes,
+			Name:       "some-task",
+			Privileged: false,
+			VersionedResourceTypes: atc.VersionedResourceTypes{
+				{
+					ResourceType: atc.ResourceType{
+						Name:   "custom-resource",
+						Type:   "custom-type",
+						Source: atc.Source{"some-custom": "((source-param))"},
+						Params: atc.Params{"some-custom": "param"},
+					},
+					Version: atc.Version{"some-custom": "version"},
+				},
+			},
 		}
 	})
 
@@ -136,27 +131,20 @@ var _ = Describe("TaskStep", func() {
 			containerMetadata,
 			fakeStrategy,
 			fakeClient,
-			fakeDelegate,
+			fakeDelegateFactory,
 			fakeLockFactory,
 		)
 
-		stepErr = taskStep.Run(ctx, state)
+		stepOk, stepErr = taskStep.Run(ctx, state)
 	})
 
 	Context("when the plan has a config", func() {
-
 		BeforeEach(func() {
-			cpu := uint64(1024)
-			memory := uint64(1024)
+			cpu := atc.CPULimit(1024)
+			memory := atc.MemoryLimit(1024)
 
 			taskPlan.Config = &atc.TaskConfig{
 				Platform: "some-platform",
-				ImageResource: &atc.ImageResource{
-					Type:    "docker",
-					Source:  atc.Source{"some": "secret-source-param"},
-					Params:  atc.Params{"some": "params"},
-					Version: atc.Version{"some": "version"},
-				},
 				Limits: &atc.ContainerLimits{
 					CPU:    &cpu,
 					Memory: &memory,
@@ -179,83 +167,15 @@ var _ = Describe("TaskStep", func() {
 				}
 			})
 
-			It("invoked the delegate's Initializing callback", func() {
+			It("invokes the delegate's Initializing callback", func() {
 				Expect(fakeDelegate.InitializingCallCount()).To(Equal(1))
 			})
-
-			Context("when rootfs uri is set instead of image resource", func() {
-				BeforeEach(func() {
-					taskPlan.Config = &atc.TaskConfig{
-						Platform:  "some-platform",
-						RootfsURI: "some-image",
-						Params:    map[string]string{"SOME": "params"},
-						Run: atc.TaskRunConfig{
-							Path: "ls",
-							Args: []string{"some", "args"},
-						},
-					}
-				})
-
-				It("correctly sets up the image spec", func() {
-					Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
-					_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-
-					Expect(containerSpec).To(Equal(worker.ContainerSpec{
-						Platform: "some-platform",
-						Tags:     []string{"step", "tags"},
-						TeamID:   stepMetadata.TeamID,
-						ImageSpec: worker.ImageSpec{
-							ImageURL:   "some-image",
-							Privileged: false,
-						},
-						Type: "task",
-						Dir:  "some-artifact-root",
-						Env:  []string{"SOME=params"},
-
-						ArtifactByPath: map[string]runtime.Artifact{},
-						Outputs:        worker.OutputPaths{},
-					}))
-
-				})
-			})
-
-			Context("when tracing is enabled", func() {
-				var buildSpan trace.Span
-
-				BeforeEach(func() {
-					tracing.ConfigureTraceProvider(testTraceProvider{})
-					ctx, buildSpan = tracing.StartSpan(ctx, "build", nil)
-				})
-
-				It("propagates span context to the worker client", func() {
-					ctx, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-					span, ok := tracing.FromContext(ctx).(*testtrace.Span)
-					Expect(ok).To(BeTrue(), "no testtrace.Span in context")
-					Expect(span.ParentSpanID()).To(Equal(buildSpan.SpanContext().SpanID))
-				})
-
-				It("populates the TRACEPARENT env var", func() {
-					_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-
-					Expect(containerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
-				})
-
-				AfterEach(func() {
-					tracing.Configured = false
-				})
-			})
-		})
-
-		It("secrets are tracked", func() {
-			mapit := vars.TrackedVarsMap{}
-			buildVars.IterateInterpolatedCreds(mapit)
-			Expect(mapit["source-param"]).To(Equal("super-secret-source"))
 		})
 
 		It("creates a containerSpec with the correct parameters", func() {
 			Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
 
-			_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+			_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 
 			Expect(containerSpec.Dir).To(Equal("some-artifact-root"))
 			Expect(containerSpec.User).To(BeEmpty())
@@ -264,7 +184,7 @@ var _ = Describe("TaskStep", func() {
 		It("creates the task process spec with the correct parameters", func() {
 			Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
 
-			_, _, _, _, _, _, _, _, taskProcessSpec, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+			_, _, _, _, _, _, _, taskProcessSpec, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 			Expect(taskProcessSpec.StdoutWriter).To(Equal(stdoutBuf))
 			Expect(taskProcessSpec.StderrWriter).To(Equal(stderrBuf))
 			Expect(taskProcessSpec.Path).To(Equal("ls"))
@@ -284,8 +204,62 @@ var _ = Describe("TaskStep", func() {
 
 			It("marks the container's image spec as privileged", func() {
 				Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
-				_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+				_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 				Expect(containerSpec.ImageSpec.Privileged).To(BeTrue())
+			})
+		})
+
+		Context("when tags are configured", func() {
+			BeforeEach(func() {
+				taskPlan.Tags = atc.Tags{"plan", "tags"}
+			})
+
+			It("creates a worker spec with the tags", func() {
+				Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
+
+				_, _, _, _, workerSpec, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+				Expect(workerSpec.Tags).To(Equal([]string{"plan", "tags"}))
+			})
+		})
+
+		Context("when rootfs uri is set instead of image resource", func() {
+			BeforeEach(func() {
+				taskPlan.Config.RootfsURI = "some-image"
+			})
+
+			It("correctly sets up the image spec", func() {
+				Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
+				_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+
+				Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
+					ImageURL:   "some-image",
+					Privileged: false,
+				}))
+			})
+		})
+
+		Context("when tracing is enabled", func() {
+			var buildSpan trace.Span
+
+			BeforeEach(func() {
+				tracing.ConfigureTraceProvider(tracetest.NewProvider())
+
+				spanCtx, buildSpan = tracing.StartSpan(ctx, "build", nil)
+				fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
+			})
+
+			AfterEach(func() {
+				tracing.Configured = false
+			})
+
+			It("propagates span context to the worker client", func() {
+				runCtx, _, _, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+				Expect(runCtx).To(Equal(spanCtx))
+			})
+
+			It("populates the TRACEPARENT env var", func() {
+				_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+				Expect(containerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
 			})
 		})
 
@@ -320,7 +294,7 @@ var _ = Describe("TaskStep", func() {
 
 				It("configures the inputs for the containerSpec correctly", func() {
 					Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
-					_, _, _, actualContainerSpec, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+					_, _, _, actualContainerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 					Expect(actualContainerSpec.ArtifactByPath).To(HaveLen(2))
 					Expect(actualContainerSpec.ArtifactByPath["some-artifact-root/some-input-configured-path"]).To(Equal(inputArtifact))
 					Expect(actualContainerSpec.ArtifactByPath["some-artifact-root/some-other-input"]).To(Equal(otherInputArtifact))
@@ -364,7 +338,7 @@ var _ = Describe("TaskStep", func() {
 
 				It("uses remapped input", func() {
 					Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
-					_, _, _, actualContainerSpec, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+					_, _, _, actualContainerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 					Expect(actualContainerSpec.ArtifactByPath).To(HaveLen(1))
 					Expect(actualContainerSpec.ArtifactByPath["some-artifact-root/remapped-input"]).To(Equal(remappedInputArtifact))
 					Expect(stepErr).ToNot(HaveOccurred())
@@ -410,7 +384,7 @@ var _ = Describe("TaskStep", func() {
 				It("runs successfully without the optional input", func() {
 					Expect(stepErr).ToNot(HaveOccurred())
 					Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
-					_, _, _, actualContainerSpec, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+					_, _, _, actualContainerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 					Expect(actualContainerSpec.ArtifactByPath).To(HaveLen(2))
 					Expect(actualContainerSpec.ArtifactByPath["some-artifact-root/required-input"]).To(Equal(optionalInputArtifact))
 					Expect(actualContainerSpec.ArtifactByPath["some-artifact-root/optional-input-2"]).To(Equal(optionalInput2Artifact))
@@ -468,7 +442,7 @@ var _ = Describe("TaskStep", func() {
 			})
 
 			It("creates the containerSpec with the caches in the inputs", func() {
-				_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+				_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 				Expect(containerSpec.ArtifactByPath).To(HaveLen(2))
 				Expect(containerSpec.ArtifactByPath["some-artifact-root/some-path-1"]).ToNot(BeNil())
 				Expect(containerSpec.ArtifactByPath["some-artifact-root/some-path-2"]).ToNot(BeNil())
@@ -530,7 +504,7 @@ var _ = Describe("TaskStep", func() {
 			})
 
 			It("configures them appropriately in the container spec", func() {
-				_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+				_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 				Expect(containerSpec.Outputs).To(Equal(worker.OutputPaths{
 					"some-output":                "some-artifact-root/some-output-configured-path/",
 					"some-other-output":          "some-artifact-root/some-other-output/",
@@ -550,7 +524,7 @@ var _ = Describe("TaskStep", func() {
 			})
 
 			It("is not successful", func() {
-				Expect(taskStep.Succeeded()).To(BeFalse())
+				Expect(stepOk).To(BeFalse())
 			})
 		})
 
@@ -565,7 +539,7 @@ var _ = Describe("TaskStep", func() {
 			})
 
 			It("is not successful", func() {
-				Expect(taskStep.Succeeded()).To(BeFalse())
+				Expect(stepOk).To(BeFalse())
 			})
 		})
 
@@ -583,7 +557,7 @@ var _ = Describe("TaskStep", func() {
 				})
 
 				It("configures it in the containerSpec's ImageSpec", func() {
-					_, _, _, containerSpec, workerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+					_, _, _, containerSpec, workerSpec, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 						ImageArtifact: imageArtifact,
 					}))
@@ -612,7 +586,7 @@ var _ = Describe("TaskStep", func() {
 							})
 
 							It("still uses the image artifact", func() {
-								_, _, _, containerSpec, workerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+								_, _, _, containerSpec, workerSpec, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 								Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 									ImageArtifact: imageArtifact,
 								}))
@@ -640,7 +614,7 @@ var _ = Describe("TaskStep", func() {
 							})
 
 							It("still uses the image artifact", func() {
-								_, _, _, containerSpec, workerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+								_, _, _, containerSpec, workerSpec, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 								Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 									ImageArtifact: imageArtifact,
 								}))
@@ -669,7 +643,7 @@ var _ = Describe("TaskStep", func() {
 							})
 
 							It("still uses the image artifact", func() {
-								_, _, _, containerSpec, workerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+								_, _, _, containerSpec, workerSpec, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 								Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 									ImageArtifact: imageArtifact,
 								}))
@@ -686,21 +660,22 @@ var _ = Describe("TaskStep", func() {
 				})
 
 				It("is not successful", func() {
-					Expect(taskStep.Succeeded()).To(BeFalse())
+					Expect(stepOk).To(BeFalse())
 				})
 			})
 		})
 
 		Context("when the image_resource is specified (even if RootfsURI is configured)", func() {
+			var fakeImageSpec worker.ImageSpec
+
 			BeforeEach(func() {
 				taskPlan.Config = &atc.TaskConfig{
 					Platform:  "some-platform",
 					RootfsURI: "some-image",
 					ImageResource: &atc.ImageResource{
-						Type:    "docker",
-						Source:  atc.Source{"some": "super-secret-source"},
-						Params:  atc.Params{"some": "params"},
-						Version: atc.Version{"some": "version"},
+						Type:   "docker",
+						Source: atc.Source{"some": "super-secret-source"},
+						Params: atc.Params{"some": "params"},
 					},
 					Params: map[string]string{"SOME": "params"},
 					Run: atc.TaskRunConfig{
@@ -708,50 +683,82 @@ var _ = Describe("TaskStep", func() {
 						Args: []string{"some", "args"},
 					},
 				}
-			})
 
-			It("creates the specs with the image resource", func() {
-				_, _, _, containerSpec, workerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-				Expect(containerSpec.ImageSpec.ImageResource).To(Equal(&worker.ImageResource{
-					Type:    "docker",
-					Source:  atc.Source{"some": "super-secret-source"},
-					Params:  atc.Params{"some": "params"},
-					Version: atc.Version{"some": "version"},
-				}))
-
-				Expect(workerSpec).To(Equal(worker.WorkerSpec{
-					TeamID:        123,
-					Platform:      "some-platform",
-					ResourceTypes: interpolatedResourceTypes,
-					Tags:          []string{"step", "tags"},
-					ResourceType:  "docker",
-				}))
-			})
-		})
-
-		Context("when the RootfsURI is configured", func() {
-			BeforeEach(func() {
-				taskPlan.Config = &atc.TaskConfig{
-					Platform:  "some-platform",
-					RootfsURI: "some-image",
-					Params:    map[string]string{"SOME": "params"},
-					Run: atc.TaskRunConfig{
-						Path: "ls",
-						Args: []string{"some", "args"},
-					},
+				fakeImageSpec = worker.ImageSpec{
+					ImageArtifact: new(runtimefakes.FakeArtifact),
 				}
+
+				fakeDelegate.FetchImageReturns(fakeImageSpec, nil)
 			})
 
-			It("creates the specs with the image resource", func() {
-				_, _, _, containerSpec, workerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
-				Expect(containerSpec.ImageSpec.ImageURL).To(Equal("some-image"))
+			It("succeeds", func() {
+				Expect(stepErr).ToNot(HaveOccurred())
+				Expect(stepOk).To(BeTrue())
+			})
 
-				Expect(workerSpec).To(Equal(worker.WorkerSpec{
-					TeamID:        123,
-					Platform:      "some-platform",
-					ResourceTypes: interpolatedResourceTypes,
-					Tags:          []string{"step", "tags"},
+			It("fetches the image", func() {
+				Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+				_, imageResource, types, privileged := fakeDelegate.FetchImageArgsForCall(0)
+				Expect(imageResource).To(Equal(atc.ImageResource{
+					Type:   "docker",
+					Source: atc.Source{"some": "super-secret-source"},
+					Params: atc.Params{"some": "params"},
 				}))
+				Expect(types).To(Equal(taskPlan.VersionedResourceTypes))
+				Expect(privileged).To(BeFalse())
+			})
+
+			It("creates the specs with the image artifact", func() {
+				_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+				Expect(containerSpec.ImageSpec).To(Equal(fakeImageSpec))
+			})
+
+			Context("when tags are specified on the task plan", func() {
+				BeforeEach(func() {
+					taskPlan.Tags = atc.Tags{"plan", "tags"}
+				})
+
+				It("fetches the image with the same tags", func() {
+					Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+					_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
+					Expect(imageResource.Tags).To(Equal(atc.Tags{"plan", "tags"}))
+				})
+			})
+
+			Context("when tags are specified on the image resource", func() {
+				BeforeEach(func() {
+					taskPlan.Config.ImageResource.Tags = atc.Tags{"image", "tags"}
+				})
+
+				It("fetches the image with the same tags", func() {
+					Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+					_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
+					Expect(imageResource.Tags).To(Equal(atc.Tags{"image", "tags"}))
+				})
+
+				Context("when tags are ALSO specified on the task plan", func() {
+					BeforeEach(func() {
+						taskPlan.Tags = atc.Tags{"plan", "tags"}
+					})
+
+					It("fetches the image using only the image tags", func() {
+						Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+						_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
+						Expect(imageResource.Tags).To(Equal(atc.Tags{"image", "tags"}))
+					})
+				})
+			})
+
+			Context("when privileged", func() {
+				BeforeEach(func() {
+					taskPlan.Privileged = true
+				})
+
+				It("fetches a privileged image", func() {
+					Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+					_, _, _, privileged := fakeDelegate.FetchImageArgsForCall(0)
+					Expect(privileged).To(BeTrue())
+				})
 			})
 		})
 
@@ -763,7 +770,7 @@ var _ = Describe("TaskStep", func() {
 			})
 
 			It("specifies it in the process  spec", func() {
-				_, _, _, _, _, _, _, _, processSpec, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+				_, _, _, _, _, _, _, processSpec, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 				Expect(processSpec.Dir).To(Equal(dir))
 			})
 		})
@@ -774,12 +781,12 @@ var _ = Describe("TaskStep", func() {
 			})
 
 			It("adds the user to the container spec", func() {
-				_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+				_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 				Expect(containerSpec.User).To(Equal("some-user"))
 			})
 
 			It("doesn't bother adding the user to the run spec", func() {
-				_, _, _, _, _, _, _, _, processSpec, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+				_, _, _, _, _, _, _, processSpec, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 				Expect(processSpec.User).To(BeEmpty())
 			})
 		})
@@ -890,7 +897,7 @@ var _ = Describe("TaskStep", func() {
 					})
 
 					It("passes existing output volumes to the resource", func() {
-						_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+						_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 						Expect(containerSpec.Outputs).To(Equal(worker.OutputPaths{
 							"some-output":                "some-artifact-root/some-output-configured-path/",
 							"some-other-output":          "some-artifact-root/some-other-output/",
@@ -931,7 +938,7 @@ var _ = Describe("TaskStep", func() {
 			})
 
 			It("is not successful", func() {
-				Expect(taskStep.Succeeded()).To(BeFalse())
+				Expect(stepOk).To(BeFalse())
 			})
 		})
 
@@ -950,7 +957,7 @@ var _ = Describe("TaskStep", func() {
 			})
 
 			It("is not successful", func() {
-				Expect(taskStep.Succeeded()).To(BeFalse())
+				Expect(stepOk).To(BeFalse())
 			})
 
 			It("waits for RunTaskStep to return", func() {
@@ -1116,6 +1123,5 @@ var _ = Describe("TaskStep", func() {
 				Expect(artifactMap).To(ConsistOf(artifact))
 			})
 		})
-
 	})
 })

@@ -966,7 +966,9 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllResourcesFetched <|
                                     Ok
-                                        [ Data.resource Nothing |> Data.withFailingToCheck True ]
+                                        [ Data.resource Nothing
+                                            |> Data.withBuild (Just <| Data.build Concourse.BuildStatus.BuildStatusFailed)
+                                        ]
                                 )
                             |> Tuple.first
                             |> givenDataUnauthenticated [ { id = 0, name = "team" } ]

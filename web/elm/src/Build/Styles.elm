@@ -7,10 +7,11 @@ module Build.Styles exposing
     , buttonTooltipArrow
     , changedStepTooltip
     , durationTooltip
-    , durationTooltipArrow
     , errorLog
     , header
     , historyItem
+    , imageSteps
+    , initializationToggle
     , metadataCell
     , metadataTable
     , retryTabList
@@ -182,45 +183,39 @@ stepHeader : StepState -> List (Html.Attribute msg)
 stepHeader state =
     [ style "display" "flex"
     , style "justify-content" "space-between"
-    , style "border" <|
-        "1px solid "
-            ++ (case state of
-                    StepStateFailed ->
-                        Colors.failure
+    , style "border-color" <|
+        case state of
+            StepStateFailed ->
+                Colors.failure
 
-                    StepStateErrored ->
-                        Colors.error
+            StepStateErrored ->
+                Colors.error
 
-                    StepStatePending ->
-                        Colors.frame
+            StepStatePending ->
+                "transparent"
 
-                    StepStateRunning ->
-                        Colors.started
+            StepStateRunning ->
+                Colors.started
 
-                    StepStateInterrupted ->
-                        Colors.frame
+            StepStateInterrupted ->
+                "transparent"
 
-                    StepStateCancelled ->
-                        Colors.frame
+            StepStateCancelled ->
+                "transparent"
 
-                    StepStateSucceeded ->
-                        Colors.frame
-               )
+            StepStateSucceeded ->
+                "transparent"
     ]
 
 
-stepHeaderLabel : StepHeaderType -> List (Html.Attribute msg)
-stepHeaderLabel headerType =
+stepHeaderLabel : Bool -> List (Html.Attribute msg)
+stepHeaderLabel changed =
     [ style "color" <|
-        case headerType of
-            StepHeaderGet True ->
-                Colors.started
+        if changed then
+            Colors.started
 
-            StepHeaderSetPipeline True ->
-                Colors.started
-
-            _ ->
-                Colors.pending
+        else
+            Colors.pending
     , style "line-height" "28px"
     , style "padding-left" "6px"
     ]
@@ -253,29 +248,13 @@ changedStepTooltip =
 
 durationTooltip : List (Html.Attribute msg)
 durationTooltip =
-    [ style "position" "absolute"
-    , style "right" "0"
-    , style "bottom" "100%"
-    , style "background-color" Colors.tooltipBackground
+    [ style "background-color" Colors.tooltipBackground
     , style "padding" "5px"
     , style "z-index" "100"
+    , style "width" "fit-content"
     , style "pointer-events" "none"
     ]
         ++ Application.Styles.disableInteraction
-
-
-durationTooltipArrow : List (Html.Attribute msg)
-durationTooltipArrow =
-    [ style "width" "0"
-    , style "height" "0"
-    , style "left" "50%"
-    , style "top" "0px"
-    , style "margin-left" "-5px"
-    , style "border-top" <| "5px solid " ++ Colors.tooltipBackground
-    , style "border-left" "5px solid transparent"
-    , style "border-right" "5px solid transparent"
-    , style "position" "absolute"
-    ]
 
 
 errorLog : List (Html.Attribute msg)
@@ -355,3 +334,27 @@ metadataCell cell =
             , style "border-bottom" "5px solid rgb(45,45,45)"
             , style "padding" "5px"
             ]
+
+
+imageSteps : List (Html.Attribute msg)
+imageSteps =
+    [ style "padding" "10px"
+    , style "background" Colors.backgroundDark
+    ]
+
+
+initializationToggle : Bool -> List (Html.Attribute msg)
+initializationToggle expanded =
+    [ style "color" <|
+        if expanded then
+            Colors.text
+
+        else
+            Colors.pending
+    , style "background" <|
+        if expanded then
+            Colors.backgroundDark
+
+        else
+            "transparent"
+    ]
