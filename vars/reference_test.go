@@ -30,8 +30,8 @@ var _ = Describe("Reference", func() {
 			},
 			{
 				desc:   "segments contain special chars",
-				ref:    vars.Reference{Path: "hello.world", Fields: []string{"a", "foo:bar"}},
-				result: `"hello.world".a."foo:bar"`,
+				ref:    vars.Reference{Path: "hello.world", Fields: []string{"a", "foo:bar", "other field"}},
+				result: `"hello.world".a."foo:bar"."other field"`,
 			},
 			{
 				desc:   "var source",

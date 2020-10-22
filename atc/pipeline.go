@@ -45,11 +45,34 @@ func (iv InstanceVars) String() string {
 
 	var parts []string
 	for _, kvPair := range kvPairs {
-		rawVal, _ := yaml.Marshal(kvPair.Value)
-		val := strings.TrimRight(string(rawVal), "\n")
+		rawVal, _ := json.Marshal(kvPair.Value)
+		val := string(rawVal)
+		if !requiresQuoting(kvPair.Value) {
+			val = unquoteString(val)
+		}
 		parts = append(parts, fmt.Sprintf("%s:%s", kvPair.Ref, val))
 	}
 	return strings.Join(parts, ",")
+}
+
+func requiresQuoting(v interface{}) bool {
+	str, ok := v.(string)
+	if !ok {
+		return false
+	}
+	var target interface{}
+	if err := yaml.Unmarshal([]byte(str), &target); err != nil {
+		return true
+	}
+	_, isStringAfterUnmarshal := target.(string)
+	if !isStringAfterUnmarshal {
+		return true
+	}
+	return strings.ContainsAny(str, ",.: ")
+}
+
+func unquoteString(s string) string {
+	return strings.TrimPrefix(strings.TrimSuffix(s, `"`), `"`)
 }
 
 type PipelineRef struct {

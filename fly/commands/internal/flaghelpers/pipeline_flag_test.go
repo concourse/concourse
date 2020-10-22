@@ -72,6 +72,16 @@ var _ = Describe("PipelineFlag", func() {
 				},
 			},
 			{
+				desc: "empty values",
+				flag: `some-pipeline/field1:,field2:"",field3:null`,
+				name: "some-pipeline",
+				instanceVars: atc.InstanceVars{
+					"field1": nil,
+					"field2": "",
+					"field3": nil,
+				},
+			},
+			{
 				desc: "yaml list",
 				flag: `some-pipeline/field:[{a: '{', b: '['}, 1]`,
 				name: "some-pipeline",
