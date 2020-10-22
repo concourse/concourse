@@ -7,16 +7,18 @@ import (
 
 func PublicBuildInput(input db.BuildInput, pipelineID int) atc.PublicBuildInput {
 	return atc.PublicBuildInput{
-		Name:            input.Name,
-		Version:         atc.Version(input.Version),
-		PipelineID:      pipelineID,
-		FirstOccurrence: input.FirstOccurrence,
+		Name:                input.Name,
+		ResourceDisplayName: input.ResourceDisplayName,
+		Version:             atc.Version(input.Version),
+		PipelineID:          pipelineID,
+		FirstOccurrence:     input.FirstOccurrence,
 	}
 }
 
 func PublicBuildOutput(output db.BuildOutput) atc.PublicBuildOutput {
 	return atc.PublicBuildOutput{
-		Name:    output.Name,
-		Version: atc.Version(output.Version),
+		Name:                output.Name,
+		ResourceDisplayName: output.ResourceDisplayName,
+		Version:             atc.Version(output.Version),
 	}
 }

@@ -29,9 +29,10 @@ var ErrAdoptRerunBuildHasNoInputs = errors.New("inputs not ready for build to re
 var ErrSetByNewerBuild = errors.New("pipeline set by a newer build")
 
 type BuildInput struct {
-	Name       string
-	Version    atc.Version
-	ResourceID int
+	Name                string
+	ResourceDisplayName string
+	Version             atc.Version
+	ResourceID          int
 
 	FirstOccurrence bool
 	ResolveError    string
@@ -44,8 +45,9 @@ func (bi BuildInput) SpanContext() propagation.HTTPSupplier {
 }
 
 type BuildOutput struct {
-	Name    string
-	Version atc.Version
+	Name                string
+	ResourceDisplayName string
+	Version             atc.Version
 }
 
 type BuildStatus string
@@ -1565,7 +1567,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 
 	defer Rollback(tx)
 
-	rows, err := psql.Select("inputs.name", "resources.id", "versions.version", `COALESCE(inputs.first_occurrence, NOT EXISTS (
+	rows, err := psql.Select("inputs.name", "resources.id", "resources.display_name", "versions.version", `COALESCE(inputs.first_occurrence, NOT EXISTS (
 			SELECT 1
 			FROM build_resource_config_version_inputs i, builds b
 			WHERE versions.version_md5 = i.version_md5
@@ -1600,14 +1602,15 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 
 	for rows.Next() {
 		var (
-			inputName   string
-			firstOcc    bool
-			versionBlob string
-			version     atc.Version
-			resourceID  int
+			inputName           string
+			firstOcc            bool
+			versionBlob         string
+			version             atc.Version
+			resourceID          int
+			resourceDisplayName sql.NullString
 		)
 
-		err = rows.Scan(&inputName, &resourceID, &versionBlob, &firstOcc)
+		err = rows.Scan(&inputName, &resourceID, &resourceDisplayName, &versionBlob, &firstOcc)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1618,14 +1621,15 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		}
 
 		inputs = append(inputs, BuildInput{
-			Name:            inputName,
-			Version:         version,
-			ResourceID:      resourceID,
-			FirstOccurrence: firstOcc,
+			Name:                inputName,
+			ResourceDisplayName: resourceDisplayName.String,
+			Version:             version,
+			ResourceID:          resourceID,
+			FirstOccurrence:     firstOcc,
 		})
 	}
 
-	rows, err = psql.Select("outputs.name", "versions.version").
+	rows, err = psql.Select("outputs.name", "resources.display_name", "versions.version").
 		From("resource_config_versions versions, build_resource_config_version_outputs outputs, builds, resources").
 		Where(sq.Eq{"builds.id": b.id}).
 		Where(sq.NotEq{"versions.check_order": 0}).
@@ -1644,12 +1648,13 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 
 	for rows.Next() {
 		var (
-			outputName  string
-			versionBlob string
-			version     atc.Version
+			outputName          string
+			resourceDisplayName sql.NullString
+			versionBlob         string
+			version             atc.Version
 		)
 
-		err := rows.Scan(&outputName, &versionBlob)
+		err := rows.Scan(&outputName, &resourceDisplayName, &versionBlob)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1661,6 +1666,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 
 		outputs = append(outputs, BuildOutput{
 			Name:    outputName,
+			ResourceDisplayName: resourceDisplayName.String,
 			Version: version,
 		})
 	}

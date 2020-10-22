@@ -25,7 +25,7 @@ import (
 	gocache "github.com/patrickmn/go-cache"
 )
 
-var _ = Describe("Build", func() {
+var _ = FDescribe("Build", func() {
 	var (
 		versionsDB db.VersionsDB
 
@@ -1302,7 +1302,7 @@ var _ = Describe("Build", func() {
 		})
 	})
 
-	Describe("Resources", func() {
+	FDescribe("Resources", func() {
 		var (
 			scenario      *dbtest.Scenario
 			build         db.Build
@@ -1336,14 +1336,16 @@ var _ = Describe("Build", func() {
 				},
 				Resources: atc.ResourceConfigs{
 					{
-						Name:   "some-resource",
-						Type:   dbtest.BaseResourceType,
-						Source: atc.Source{"some": "source-1"},
+						Name:        "some-resource",
+						DisplayName: "Some resource",
+						Type:        dbtest.BaseResourceType,
+						Source:      atc.Source{"some": "source-1"},
 					},
 					{
-						Name:   "some-other-resource",
-						Type:   dbtest.BaseResourceType,
-						Source: atc.Source{"some": "source-2"},
+						Name:        "some-other-resource",
+						DisplayName: "Some other resource",
+						Type:        dbtest.BaseResourceType,
+						Source:      atc.Source{"some": "source-2"},
 					},
 					{
 						Name:   "some-unused-resource",
@@ -1381,16 +1383,18 @@ var _ = Describe("Build", func() {
 
 			Expect(inputs).To(ConsistOf([]db.BuildInput{
 				{
-					Name:            "some-input",
-					Version:         atc.Version{"ver": "1"},
-					ResourceID:      inputResource.ID(),
-					FirstOccurrence: true,
+					Name:                "some-input",
+					ResourceDisplayName: "Some resource",
+					Version:             atc.Version{"ver": "1"},
+					ResourceID:          inputResource.ID(),
+					FirstOccurrence:     true,
 				},
 			}))
 
 			Expect(outputs).To(ConsistOf([]db.BuildOutput{
 				{
 					Name:    "some-resource",
+					ResourceDisplayName: "Some resource",
 					Version: atc.Version{"ver": "2"},
 				},
 			}))
@@ -1418,10 +1422,11 @@ var _ = Describe("Build", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(inputs).To(ConsistOf([]db.BuildInput{
 					{
-						Name:            "some-input",
-						Version:         atc.Version{"ver": "1"},
-						ResourceID:      inputResource.ID(),
-						FirstOccurrence: true,
+						Name:                "some-input",
+						ResourceDisplayName: "Some resource",
+						Version:             atc.Version{"ver": "1"},
+						ResourceID:          inputResource.ID(),
+						FirstOccurrence:     true,
 					},
 				}))
 			})
@@ -1462,10 +1467,11 @@ var _ = Describe("Build", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(inputs).To(ConsistOf([]db.BuildInput{
 						{
-							Name:            "some-input",
-							Version:         atc.Version{"ver": "1"},
-							ResourceID:      inputResource.ID(),
-							FirstOccurrence: false,
+							Name:                "some-input",
+							ResourceDisplayName: "Some resource",
+							Version:             atc.Version{"ver": "1"},
+							ResourceID:          inputResource.ID(),
+							FirstOccurrence:     false,
 						},
 					}))
 				})

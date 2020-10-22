@@ -6,15 +6,17 @@ type BuildInputsOutputs struct {
 }
 
 type PublicBuildInput struct {
-	Name            string  `json:"name"`
-	Version         Version `json:"version"`
-	PipelineID      int     `json:"pipeline_id"`
-	FirstOccurrence bool    `json:"first_occurrence"`
+	Name                string  `json:"name"`
+	ResourceDisplayName string  `json:"resource_display_name,omitempty"`
+	Version             Version `json:"version"`
+	PipelineID          int     `json:"pipeline_id"`
+	FirstOccurrence     bool    `json:"first_occurrence"`
 }
 
 type PublicBuildOutput struct {
-	Name    string  `json:"name"`
-	Version Version `json:"version"`
+	Name                string  `json:"name"`
+	ResourceDisplayName string  `json:"resource_display_name,omitempty"`
+	Version             Version `json:"version"`
 }
 
 type ResourceVersion struct {

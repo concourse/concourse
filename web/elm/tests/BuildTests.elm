@@ -2908,14 +2908,17 @@ all =
                                         ( { id = "plan", step = step }
                                         , { inputs =
                                                 [ { name = "step"
+                                                  , resourceDisplayName = Nothing
                                                   , version = version
                                                   , firstOccurrence = True
                                                   }
                                                 , { name = "step2"
+                                                  , resourceDisplayName = Nothing
                                                   , version = version
                                                   , firstOccurrence = True
                                                   }
                                                 , { name = "step3"
+                                                  , resourceDisplayName = Nothing
                                                   , version = version
                                                   , firstOccurrence = False
                                                   }

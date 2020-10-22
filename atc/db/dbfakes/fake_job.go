@@ -1061,7 +1061,7 @@ func (fake *FakeJob) DisplayName() string {
 	ret, specificReturn := fake.displayNameReturnsOnCall[len(fake.displayNameArgsForCall)]
 	fake.displayNameArgsForCall = append(fake.displayNameArgsForCall, struct {
 	}{})
-	fake.recordInvocation("DisplayName", []interface{}{})
+	fake.recordInvocation("ResourceDisplayName", []interface{}{})
 	fake.displayNameMutex.Unlock()
 	if fake.DisplayNameStub != nil {
 		return fake.DisplayNameStub()

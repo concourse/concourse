@@ -710,12 +710,14 @@ all =
                     let
                         buildInput =
                             { name = "some-input"
+                            , resourceDisplayName = Nothing
                             , version = Dict.fromList [ ( "version", "v1" ) ]
                             , firstOccurrence = True
                             }
 
                         buildOutput =
                             { name = "some-resource"
+                            , resourceDisplayName = Nothing
                             , version = Dict.fromList [ ( "version", "v2" ) ]
                             }
                     in

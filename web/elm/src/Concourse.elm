@@ -289,6 +289,7 @@ type alias BuildResources =
 
 type alias BuildResourcesInput =
     { name : String
+    , resourceDisplayName : Maybe String
     , version : Version
     , firstOccurrence : Bool
     }
@@ -296,6 +297,7 @@ type alias BuildResourcesInput =
 
 type alias BuildResourcesOutput =
     { name : String
+    , resourceDisplayName : Maybe String
     , version : Version
     }
 
@@ -318,6 +320,7 @@ decodeResourcesInput : Json.Decode.Decoder BuildResourcesInput
 decodeResourcesInput =
     Json.Decode.succeed BuildResourcesInput
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.maybe (Json.Decode.field "resource_display_name" Json.Decode.string))
         |> andMap (Json.Decode.field "version" decodeVersion)
         |> andMap (Json.Decode.field "first_occurrence" Json.Decode.bool)
 
@@ -326,6 +329,7 @@ decodeResourcesOutput : Json.Decode.Decoder BuildResourcesOutput
 decodeResourcesOutput =
     Json.Decode.succeed BuildResourcesOutput
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.maybe (Json.Decode.field "resource_display_name" Json.Decode.string))
         |> andMap (Json.Decode.field "version" <| Json.Decode.dict Json.Decode.string)
 
 

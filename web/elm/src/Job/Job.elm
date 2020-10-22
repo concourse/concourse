@@ -817,9 +817,16 @@ viewBuildResources buildWithResources =
 
 viewBuildInputs : Concourse.BuildResourcesInput -> Html Message
 viewBuildInputs bi =
+    let
+        resourceName =
+            case bi.resourceDisplayName of
+                Nothing -> bi.name
+                Just rdn -> rdn
+
+    in
     Html.tr [ class "mbs pas resource fl clearfix" ]
         [ Html.td [ class "resource-name mrm" ]
-            [ Html.text bi.name
+            [ Html.text resourceName
             ]
         , Html.td [ class "resource-version" ]
             [ viewVersion bi.version
@@ -829,9 +836,16 @@ viewBuildInputs bi =
 
 viewBuildOutputs : Concourse.BuildResourcesOutput -> Html Message
 viewBuildOutputs bo =
+    let
+        resourceName =
+            case bo.resourceDisplayName of
+                Nothing -> bo.name
+                Just rdn -> rdn
+
+    in
     Html.tr [ class "mbs pas resource fl clearfix" ]
         [ Html.td [ class "resource-name mrm" ]
-            [ Html.text bo.name
+            [ Html.text resourceName
             ]
         , Html.td [ class "resource-version" ]
             [ viewVersion bo.version
