@@ -30,9 +30,9 @@ var _ = Describe("Job", func() {
 		pipeline, created, err = team.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
 			Jobs: atc.JobConfigs{
 				{
-					Name: "some-job",
-
-					Public: true,
+					Name:        "some-job",
+					DisplayName: "Some cool job with special chars such as -> :D",
+					Public:      true,
 
 					PlanSequence: []atc.Step{
 						{
@@ -2702,6 +2702,65 @@ var _ = Describe("Job", func() {
 					Resource: "some-resource",
 				},
 			}))
+		})
+	})
+
+	Describe("Display name", func() {
+		BeforeEach(func() {
+			job1, found, err := pipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			job2, found, err := pipeline.Job("some-other-job")
+			// Create a few builds
+
+			buildForJob1, err := job1.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+			err = buildForJob1.Finish(db.BuildStatusSucceeded)
+			Expect(err).ToNot(HaveOccurred())
+
+			buildForJob2, err := job2.CreateBuild()
+			Expect(err).ToNot(HaveOccurred())
+			err = buildForJob2.Finish(db.BuildStatusSucceeded)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns display_name for the job if it was saved with one", func() {
+			job, found, err := pipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(job.DisplayName()).To(Equal("Some cool job with special chars such as -> :D"))
+		})
+
+		It("build contain the jobs display name", func() {
+			expected := "Some cool job with special chars such as -> :D"
+
+			job, found, err := pipeline.Job("some-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			builds, _, err := job.Builds(db.Page{Limit: 1})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(builds[0].JobDisplayName()).To(Equal(expected))
+
+			build, found, err := job.Build(builds[0].Name())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(build.JobDisplayName()).To(Equal(expected))
+		})
+
+		It("builds job display name is empty if its not set on the job", func() {
+			job, found, err := pipeline.Job("some-other-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			builds, _, err := job.Builds(db.Page{Limit: 1})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(builds[0].JobDisplayName()).To(BeEmpty())
+
+			build, found, err := job.Build(builds[0].Name())
+			Expect(found).To(BeTrue())
+			Expect(build.JobDisplayName()).To(BeEmpty())
 		})
 	})
 })

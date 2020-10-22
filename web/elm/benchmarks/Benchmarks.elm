@@ -713,6 +713,7 @@ sampleOldModel =
                 { id = 0
                 , name = "0"
                 , job = Nothing
+                , jobDisplayName = Nothing
                 , status = Concourse.BuildStatus.BuildStatusStarted
                 , duration =
                     { startedAt = Nothing
@@ -751,6 +752,7 @@ sampleModel =
     , name = "0"
     , now = Nothing
     , job = Nothing
+    , jobDisplayName = Nothing
     , disableManualTrigger = False
     , history = []
     , nextPage = Nothing
@@ -857,6 +859,7 @@ stepsModel =
 sampleJob : String -> List String -> Concourse.Job
 sampleJob name passed =
     { name = name
+    , displayName = Nothing
     , pipelineName = "pipeline"
     , teamName = "team"
     , nextBuild = Nothing
@@ -980,6 +983,7 @@ jobByName jobs job =
 
         Nothing ->
             { name = ""
+            , displayName = Nothing
             , pipelineName = ""
             , teamName = ""
             , nextBuild = Nothing

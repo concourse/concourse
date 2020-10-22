@@ -43,6 +43,7 @@ hasData =
                 (Callback.AllJobsFetched <|
                     Ok
                         [ { name = "job"
+                          , displayName = Nothing
                           , pipelineName = "pipeline1"
                           , teamName = "team1"
                           , nextBuild =
@@ -55,6 +56,7 @@ hasData =
                                                 |> Data.withTeamName "team1"
                                                 |> Data.withPipelineName "pipeline1"
                                             )
+                                    , jobDisplayName = Nothing
                                     , status = BuildStatusStarted
                                     , duration =
                                         { startedAt = Nothing

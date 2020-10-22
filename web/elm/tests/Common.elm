@@ -162,6 +162,7 @@ myBrowserFetchedTheBuild =
                                 |> Data.withPipelineName "yet-another-pipeline"
                                 |> Data.withJobName "job"
                             )
+                    , jobDisplayName = Nothing
                     , status = BuildStatusStarted
                     , duration =
                         { startedAt = Nothing

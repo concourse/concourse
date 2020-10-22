@@ -258,6 +258,16 @@ type FakeBuild struct {
 	isScheduledReturnsOnCall map[int]struct {
 		result1 bool
 	}
+	JobDisplayNameStub        func() string
+	jobDisplayNameMutex       sync.RWMutex
+	jobDisplayNameArgsForCall []struct {
+	}
+	jobDisplayNameReturns struct {
+		result1 string
+	}
+	jobDisplayNameReturnsOnCall map[int]struct {
+		result1 string
+	}
 	JobIDStub        func() int
 	jobIDMutex       sync.RWMutex
 	jobIDArgsForCall []struct {
@@ -1873,6 +1883,58 @@ func (fake *FakeBuild) IsScheduledReturnsOnCall(i int, result1 bool) {
 	}
 	fake.isScheduledReturnsOnCall[i] = struct {
 		result1 bool
+	}{result1}
+}
+
+func (fake *FakeBuild) JobDisplayName() string {
+	fake.jobDisplayNameMutex.Lock()
+	ret, specificReturn := fake.jobDisplayNameReturnsOnCall[len(fake.jobDisplayNameArgsForCall)]
+	fake.jobDisplayNameArgsForCall = append(fake.jobDisplayNameArgsForCall, struct {
+	}{})
+	fake.recordInvocation("JobDisplayName", []interface{}{})
+	fake.jobDisplayNameMutex.Unlock()
+	if fake.JobDisplayNameStub != nil {
+		return fake.JobDisplayNameStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.jobDisplayNameReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) JobDisplayNameCallCount() int {
+	fake.jobDisplayNameMutex.RLock()
+	defer fake.jobDisplayNameMutex.RUnlock()
+	return len(fake.jobDisplayNameArgsForCall)
+}
+
+func (fake *FakeBuild) JobDisplayNameCalls(stub func() string) {
+	fake.jobDisplayNameMutex.Lock()
+	defer fake.jobDisplayNameMutex.Unlock()
+	fake.JobDisplayNameStub = stub
+}
+
+func (fake *FakeBuild) JobDisplayNameReturns(result1 string) {
+	fake.jobDisplayNameMutex.Lock()
+	defer fake.jobDisplayNameMutex.Unlock()
+	fake.JobDisplayNameStub = nil
+	fake.jobDisplayNameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuild) JobDisplayNameReturnsOnCall(i int, result1 string) {
+	fake.jobDisplayNameMutex.Lock()
+	defer fake.jobDisplayNameMutex.Unlock()
+	fake.JobDisplayNameStub = nil
+	if fake.jobDisplayNameReturnsOnCall == nil {
+		fake.jobDisplayNameReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.jobDisplayNameReturnsOnCall[i] = struct {
+		result1 string
 	}{result1}
 }
 
@@ -4121,6 +4183,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.isRunningMutex.RUnlock()
 	fake.isScheduledMutex.RLock()
 	defer fake.isScheduledMutex.RUnlock()
+	fake.jobDisplayNameMutex.RLock()
+	defer fake.jobDisplayNameMutex.RUnlock()
 	fake.jobIDMutex.RLock()
 	defer fake.jobIDMutex.RUnlock()
 	fake.jobNameMutex.RLock()

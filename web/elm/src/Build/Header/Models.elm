@@ -17,6 +17,7 @@ type alias Model r =
         | id : Int
         , name : String
         , job : Maybe Concourse.JobIdentifier
+        , jobDisplayName : Maybe String
         , scrolledToCurrentBuild : Bool
         , history : List HistoryItem
         , duration : Concourse.BuildDuration

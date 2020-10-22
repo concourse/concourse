@@ -165,6 +165,7 @@ type alias Build =
     { id : BuildId
     , name : BuildName
     , job : Maybe JobIdentifier
+    , jobDisplayName : Maybe String
     , status : BuildStatus
     , duration : BuildDuration
     , reapTime : Maybe Time.Posix
@@ -217,6 +218,7 @@ decodeBuild =
                     |> andMap (Json.Decode.field "job_name" Json.Decode.string)
                 )
             )
+        |> andMap (Json.Decode.maybe (Json.Decode.field "job_display_name" Json.Decode.string))
         |> andMap (Json.Decode.field "status" Concourse.BuildStatus.decodeBuildStatus)
         |> andMap
             (Json.Decode.succeed BuildDuration
@@ -710,6 +712,7 @@ type alias JobIdentifier =
 
 type alias Job =
     { name : JobName
+    , displayName : Maybe String
     , pipelineName : PipelineName
     , teamName : TeamName
     , nextBuild : Maybe Build
@@ -759,6 +762,7 @@ decodeJob : Json.Decode.Decoder Job
 decodeJob =
     Json.Decode.succeed Job
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.maybe (Json.Decode.field "display_name" Json.Decode.string))
         |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)
         |> andMap (Json.Decode.maybe (Json.Decode.field "next_build" decodeBuild))
@@ -890,6 +894,7 @@ type alias Resource =
     { teamName : String
     , pipelineName : String
     , name : String
+    , displayName : Maybe String
     , icon : Maybe String
     , lastChecked : Maybe Time.Posix
     , pinnedVersion : Maybe Version
@@ -928,6 +933,7 @@ decodeResource =
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)
         |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.maybe (Json.Decode.field "display_name" Json.Decode.string))
         |> andMap (Json.Decode.maybe (Json.Decode.field "icon" Json.Decode.string))
         |> andMap (Json.Decode.maybe (Json.Decode.field "last_checked" (Json.Decode.map dateFromSeconds Json.Decode.int)))
         |> andMap (Json.Decode.maybe (Json.Decode.field "pinned_version" decodeVersion))

@@ -70,6 +70,9 @@ resourceName : String
 resourceName =
     Data.resourceName
 
+resourceDisplayName : String
+resourceDisplayName =
+    Data.resourceDisplayName
 
 resourceIcon : String
 resourceIcon =
@@ -260,6 +263,7 @@ all =
                                 , [ { id = 0
                                     , name = "some-build"
                                     , job = Just Data.jobId
+                                    , jobDisplayName = Nothing
                                     , status = BuildStatusSucceeded
                                     , duration =
                                         { startedAt = Nothing
@@ -276,6 +280,40 @@ all =
                     |> queryView
                     |> Query.find (versionSelector version)
                     |> Query.has [ text "some-build" ]
+        , test "autorefresh respects 'Inputs To' with display name" <|
+            \_ ->
+                init
+                    |> givenResourceIsNotPinned
+                    |> givenVersionsWithoutPagination
+                    |> update
+                        (Message.Message.Click <|
+                            Message.Message.VersionHeader versionID
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.InputToFetched
+                            (Ok
+                                ( versionID
+                                , [ { id = 0
+                                    , name = "some-build"
+                                    , job = Just Data.jobId
+                                    , jobDisplayName = Just "A very cool job"
+                                    , status = BuildStatusSucceeded
+                                    , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                    , reapTime = Nothing
+                                    }
+                                  ]
+                                )
+                            )
+                        )
+                    |> Tuple.first
+                    |> givenVersionsWithoutPagination
+                    |> queryView
+                    |> Query.find (versionSelector version)
+                    |> Query.has [ text "A very cool job" ]
         , test "autorefresh respects 'Outputs Of'" <|
             \_ ->
                 init
@@ -293,6 +331,7 @@ all =
                                 , [ { id = 0
                                     , name = "some-build"
                                     , job = Just Data.jobId
+                                    , jobDisplayName = Nothing
                                     , status = BuildStatusSucceeded
                                     , duration =
                                         { startedAt = Nothing
@@ -309,6 +348,40 @@ all =
                     |> queryView
                     |> Query.find (versionSelector version)
                     |> Query.has [ text "some-build" ]
+        , test "autorefresh respects 'Outputs Of' with display name" <|
+            \_ ->
+                init
+                    |> givenResourceIsNotPinned
+                    |> givenVersionsWithoutPagination
+                    |> update
+                        (Message.Message.Click <|
+                            Message.Message.VersionHeader versionID
+                        )
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.OutputOfFetched
+                            (Ok
+                                ( versionID
+                                , [ { id = 0
+                                    , name = "some-build"
+                                    , job = Just Data.jobId
+                                    , jobDisplayName = Just "A mega cool job"
+                                    , status = BuildStatusSucceeded
+                                    , duration =
+                                        { startedAt = Nothing
+                                        , finishedAt = Nothing
+                                        }
+                                    , reapTime = Nothing
+                                    }
+                                  ]
+                                )
+                            )
+                        )
+                    |> Tuple.first
+                    |> givenVersionsWithoutPagination
+                    |> queryView
+                    |> Query.find (versionSelector version)
+                    |> Query.has [ text "A mega cool job" ]
         , describe "page header with icon" <|
             let
                 pageHeader =
@@ -332,6 +405,23 @@ all =
                             |> Query.children []
                             |> Query.index 0
                             |> Query.has [ tag "svg" ]
+                ]
+            ]
+        , describe "page header with display name" <|
+            let
+                pageHeader =
+                    init
+                        |> givenResourceHasDisplayName
+                        |> queryView
+                        |> Query.find [ id "page-header" ]
+            in
+            [ describe "resource name"
+                [ test "on the left is the resource name" <|
+                    \_ ->
+                        pageHeader
+                            |> Query.children []
+                            |> Query.index 0
+                            |> Query.has [ tag "svg", text resourceDisplayName, tag "h1" ]
                 ]
             ]
         , describe "page header" <|
@@ -1263,6 +1353,7 @@ all =
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
+                                        , displayName = Nothing
                                         , lastChecked = Nothing
                                         , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                                         , pinnedInConfig = False
@@ -1318,6 +1409,7 @@ all =
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
+                                        , displayName = Nothing
                                         , lastChecked = Nothing
                                         , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                                         , pinnedInConfig = False
@@ -1375,6 +1467,7 @@ all =
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
+                                        , displayName = Nothing
                                         , lastChecked = Nothing
                                         , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                                         , pinnedInConfig = False
@@ -1435,6 +1528,7 @@ all =
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
+                                        , displayName = Nothing
                                         , lastChecked = Nothing
                                         , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                                         , pinnedInConfig = False
@@ -1477,6 +1571,7 @@ all =
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
+                                        , displayName = Nothing
                                         , lastChecked = Nothing
                                         , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                                         , pinnedInConfig = False
@@ -3018,6 +3113,7 @@ all =
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
+                                        , displayName = Nothing
                                         , lastChecked = Just (Time.millisToPosix 0)
                                         , pinnedVersion = Nothing
                                         , pinnedInConfig = False
@@ -3045,6 +3141,7 @@ all =
                                         { teamName = teamName
                                         , pipelineName = pipelineName
                                         , name = resourceName
+                                        , displayName = Nothing
                                         , lastChecked =
                                             Just
                                                 (Time.millisToPosix 0)
@@ -3084,6 +3181,7 @@ all =
                     { teamName = teamName
                     , pipelineName = pipelineName
                     , name = resourceName
+                    , displayName = Nothing
                     , lastChecked = Nothing
                     , pinnedVersion = Nothing
                     , pinnedInConfig = False
@@ -3602,12 +3700,14 @@ givenResourcePinnedStatically =
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , name = resourceName
+                , displayName = Nothing
                 , lastChecked = Nothing
                 , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                 , pinnedInConfig = True
                 , pinComment = Nothing
                 , icon = Nothing
                 , build = Nothing
+
                 }
         )
         >> Tuple.first
@@ -3621,6 +3721,7 @@ givenResourcePinnedDynamically =
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , name = resourceName
+                , displayName = Nothing
                 , lastChecked = Nothing
                 , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
                 , pinnedInConfig = False
@@ -3640,6 +3741,7 @@ whenResourceLoadsWithPinnedComment =
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , name = resourceName
+                , displayName = Nothing
                 , lastChecked = Nothing
                 , pinnedVersion =
                     Just (Dict.fromList [ ( "version", version ) ])
@@ -3664,6 +3766,7 @@ givenResourceIsNotPinned =
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , name = resourceName
+                , displayName = Nothing
                 , lastChecked = Just (Time.millisToPosix 0)
                 , pinnedVersion = Nothing
                 , pinnedInConfig = False
@@ -3683,6 +3786,7 @@ givenResourceHasIcon =
                 { teamName = teamName
                 , pipelineName = pipelineName
                 , name = resourceName
+                , displayName = Nothing
                 , lastChecked = Just (Time.millisToPosix 0)
                 , pinnedVersion = Nothing
                 , pinnedInConfig = False
@@ -3693,6 +3797,24 @@ givenResourceHasIcon =
         )
         >> Tuple.first
 
+givenResourceHasDisplayName : Application.Model -> Application.Model
+givenResourceHasDisplayName =
+    Application.handleCallback
+            (Callback.ResourceFetched <|
+                Ok
+                    { teamName = teamName
+                    , pipelineName = pipelineName
+                    , name = resourceName
+                    , displayName = Just resourceDisplayName
+                    , lastChecked = Just (Time.millisToPosix 0)
+                    , pinnedVersion = Nothing
+                    , pinnedInConfig = False
+                    , pinComment = Nothing
+                    , icon = Just resourceIcon
+                    , build = Nothing
+                    }
+            )
+            >> Tuple.first
 
 hoverOverPinBar : Application.Model -> Application.Model
 hoverOverPinBar =

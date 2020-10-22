@@ -1106,9 +1106,9 @@ func saveJob(tx Tx, job atc.JobConfig, pipelineID int, groups []string) (int, er
 
 	var jobID int
 	err = psql.Insert("jobs").
-		Columns("name", "pipeline_id", "config", "public", "max_in_flight", "disable_manual_trigger", "interruptible", "active", "nonce", "tags").
-		Values(job.Name, pipelineID, encryptedPayload, job.Public, job.MaxInFlight(), job.DisableManualTrigger, job.Interruptible, true, nonce, pq.Array(groups)).
-		Suffix("ON CONFLICT (name, pipeline_id) DO UPDATE SET config = EXCLUDED.config, public = EXCLUDED.public, max_in_flight = EXCLUDED.max_in_flight, disable_manual_trigger = EXCLUDED.disable_manual_trigger, interruptible = EXCLUDED.interruptible, active = EXCLUDED.active, nonce = EXCLUDED.nonce, tags = EXCLUDED.tags").
+		Columns("name", "display_name", "pipeline_id", "config", "public", "max_in_flight", "disable_manual_trigger", "interruptible", "active", "nonce", "tags").
+		Values(job.Name, job.DisplayName, pipelineID, encryptedPayload, job.Public, job.MaxInFlight(), job.DisableManualTrigger, job.Interruptible, true, nonce, pq.Array(groups)).
+		Suffix("ON CONFLICT (name, pipeline_id) DO UPDATE SET display_name = EXCLUDED.display_name, config = EXCLUDED.config, public = EXCLUDED.public, max_in_flight = EXCLUDED.max_in_flight, disable_manual_trigger = EXCLUDED.disable_manual_trigger, interruptible = EXCLUDED.interruptible, active = EXCLUDED.active, nonce = EXCLUDED.nonce, tags = EXCLUDED.tags").
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().
@@ -1143,9 +1143,9 @@ func saveResource(tx Tx, resource atc.ResourceConfig, pipelineID int) (int, erro
 
 	var resourceID int
 	err = psql.Insert("resources").
-		Columns("name", "pipeline_id", "config", "active", "nonce", "type").
-		Values(resource.Name, pipelineID, encryptedPayload, true, nonce, resource.Type).
-		Suffix("ON CONFLICT (name, pipeline_id) DO UPDATE SET config = EXCLUDED.config, active = EXCLUDED.active, nonce = EXCLUDED.nonce, type = EXCLUDED.type").
+		Columns("name", "display_name", "pipeline_id", "config", "active", "nonce", "type").
+		Values(resource.Name, resource.DisplayName, pipelineID, encryptedPayload, true, nonce, resource.Type).
+		Suffix("ON CONFLICT (name, pipeline_id) DO UPDATE SET display_name = EXCLUDED.display_name, config = EXCLUDED.config, active = EXCLUDED.active, nonce = EXCLUDED.nonce, type = EXCLUDED.type").
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().

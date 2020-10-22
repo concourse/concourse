@@ -174,6 +174,7 @@ func (c VarSourceConfigs) OrderByDependency() (VarSourceConfigs, error) {
 
 type ResourceConfig struct {
 	Name         string  `json:"name"`
+	DisplayName  string  `json:"display_name,omitempty"`
 	OldName      string  `json:"old_name,omitempty"`
 	Public       bool    `json:"public,omitempty"`
 	WebhookToken string  `json:"webhook_token,omitempty"`

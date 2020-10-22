@@ -1878,9 +1878,11 @@ var _ = Describe("Team", func() {
 			pipeline, _, err := team.SavePipeline(pipelineRef, config, 0, false)
 			Expect(err).ToNot(HaveOccurred())
 
+			displayName := "A cool resource name"
 			config.Resources[0].Source = atc.Source{
 				"source-other-config": "some-other-value",
 			}
+			config.Resources[0].DisplayName = displayName
 
 			savedPipeline, _, err := team.SavePipeline(pipelineRef, config, pipeline.ConfigVersion(), false)
 			Expect(err).ToNot(HaveOccurred())
@@ -1892,6 +1894,8 @@ var _ = Describe("Team", func() {
 			Expect(resource.Source()).To(Equal(atc.Source{
 				"source-other-config": "some-other-value",
 			}))
+			Expect(resource.DisplayName()).To(Equal(displayName))
+			Expect(resource.Config().DisplayName).To(Equal(displayName))
 		})
 
 		It("clears out api pinned version when resaving a pinned version on the pipeline config", func() {
@@ -2085,7 +2089,9 @@ var _ = Describe("Team", func() {
 			pipeline, _, err := team.SavePipeline(pipelineRef, config, 0, false)
 			Expect(err).ToNot(HaveOccurred())
 
+			displayName := "Yay"
 			config.Jobs[0].Public = false
+			config.Jobs[0].DisplayName = displayName
 
 			_, _, err = team.SavePipeline(pipelineRef, config, pipeline.ConfigVersion(), false)
 			Expect(err).ToNot(HaveOccurred())
@@ -2094,6 +2100,11 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(job.Public()).To(BeFalse())
+			Expect(job.DisplayName()).To(Equal(displayName))
+
+			config, err := job.Config()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(config.DisplayName).To(Equal(displayName))
 		})
 
 		It("marks job inactive when it is no longer in pipeline", func() {

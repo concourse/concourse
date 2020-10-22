@@ -46,7 +46,7 @@ historyId =
 header : Session -> Model r -> Views.Header
 header session model =
     { leftWidgets =
-        [ Views.Title model.name model.job
+        [ Views.Title model.name model.job model.jobDisplayName
         , Views.Duration (duration session model)
         ]
     , rightWidgets =

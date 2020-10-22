@@ -20,6 +20,7 @@ module Data exposing
     , resource
     , resourceId
     , resourceName
+    , resourceDisplayName
     , resourceVersionId
     , shortJobId
     , shortPipelineId
@@ -130,6 +131,7 @@ resource pinnedVersion =
     { teamName = teamName
     , pipelineName = pipelineName
     , name = resourceName
+    , displayName = Nothing
     , lastChecked = Nothing
     , pinnedVersion = Just <| version pinnedVersion
     , pinnedInConfig = False
@@ -200,6 +202,7 @@ withBackgroundImage bg p =
 job : Int -> Concourse.Job
 job pipelineID =
     { name = jobName
+    , displayName = Nothing
     , pipelineName = "pipeline-" ++ String.fromInt pipelineID
     , teamName = teamName
     , nextBuild = Nothing
@@ -258,6 +261,8 @@ pipelineName =
 resourceName =
     "resource"
 
+resourceDisplayName =
+    "This is a display name"
 
 buildName =
     "1"
@@ -361,6 +366,7 @@ build status =
     { id = 1
     , name = buildName
     , job = Nothing
+    , jobDisplayName = Nothing
     , status = status
     , duration =
         { startedAt =
@@ -386,6 +392,7 @@ jobBuild status =
     { id = 1
     , name = buildName
     , job = Just (jobId |> withShortJobId)
+    , jobDisplayName = Nothing
     , status = status
     , duration =
         { startedAt =

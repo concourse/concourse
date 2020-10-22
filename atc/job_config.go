@@ -1,9 +1,10 @@
 package atc
 
 type JobConfig struct {
-	Name    string `json:"name"`
-	OldName string `json:"old_name,omitempty"`
-	Public  bool   `json:"public,omitempty"`
+	Name        string `json:"name"`
+	DisplayName string `json:"display_name,omitempty"`
+	OldName     string `json:"old_name,omitempty"`
+	Public      bool   `json:"public,omitempty"`
 
 	DisableManualTrigger bool     `json:"disable_manual_trigger,omitempty"`
 	Serial               bool     `json:"serial,omitempty"`

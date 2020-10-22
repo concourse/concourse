@@ -255,6 +255,7 @@ findJobPreview =
 job : Concourse.Job
 job =
     { name = "job"
+    , displayName = Nothing
     , pipelineName = "pipeline"
     , teamName = "team"
     , nextBuild = Nothing
@@ -276,6 +277,7 @@ withNextBuild j =
                 { id = 2
                 , name = "2"
                 , job = Just jobId
+                , jobDisplayName = Nothing
                 , status = BuildStatusStarted
                 , duration = { startedAt = Nothing, finishedAt = Nothing }
                 , reapTime = Nothing
@@ -291,6 +293,7 @@ withStatus status j =
                 { id = 1
                 , name = "1"
                 , job = Just jobId
+                , jobDisplayName = Nothing
                 , status = status
                 , duration = { startedAt = Nothing, finishedAt = Nothing }
                 , reapTime = Nothing

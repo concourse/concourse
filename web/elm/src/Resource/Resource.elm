@@ -147,6 +147,7 @@ init flags =
             , authorized = True
             , output = Nothing
             , highlight = Routes.HighlightNothing
+            , displayName = Nothing
             }
     in
     ( model
@@ -316,6 +317,7 @@ handleCallback callback session ( model, effects ) =
                                     Models.NotChecking
                 , lastChecked = resource.lastChecked
                 , icon = resource.icon
+                , displayName = resource.displayName
               }
                 |> updatePinnedVersion resource
             , effects
@@ -893,8 +895,13 @@ updateVersion versionID updateFunc model =
 
 documentTitle : Model -> String
 documentTitle model =
-    model.resourceIdentifier.resourceName
+    resourceName model
 
+resourceName : Model -> String
+resourceName model =
+    case model.displayName of
+        Just displayName -> displayName
+        Nothing -> model.resourceIdentifier.resourceName
 
 type alias VersionPresenter =
     { id : Models.VersionId
@@ -1022,7 +1029,7 @@ header session model =
         [ Html.h1
             Resource.Styles.headerResourceName
             [ iconView
-            , Html.text model.resourceIdentifier.resourceName
+            , Html.text  <| resourceName model
             ]
         , Html.div
             Resource.Styles.headerLastCheckedSection
@@ -1903,6 +1910,24 @@ viewLastChecked timeZone now date =
 viewBuildsByJob : Dict.Dict String (List Concourse.Build) -> String -> List (Html Message)
 viewBuildsByJob buildDict jobName =
     let
+        jobDisplayName =
+            case Dict.get jobName buildDict of
+                Nothing ->
+                    jobName
+
+                Just buildList ->
+                    case List.head buildList of
+                        Nothing ->
+                            jobName
+
+                        Just build ->
+                            case build.jobDisplayName of
+                                Nothing ->
+                                    jobName
+
+                                Just displayName ->
+                                    displayName
+
         oneBuildToLi =
             \build ->
                 case build.job of
@@ -1931,7 +1956,7 @@ viewBuildsByJob buildDict jobName =
                                 [ Html.text <| "#" ++ build.name ]
                             ]
     in
-    [ Html.h3 [ class "man pas ansi-bright-black-bg" ] [ Html.text jobName ]
+    [ Html.h3 [ class "man pas ansi-bright-black-bg" ] [ Html.text jobDisplayName ]
     , Html.ul [ class "builds-list" ]
         (case Dict.get jobName buildDict of
             Nothing ->

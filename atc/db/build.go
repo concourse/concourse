@@ -81,6 +81,7 @@ var buildsQuery = psql.Select(`
 		b.end_time,
 		b.reap_time,
 		j.name,
+		j.display_name,
 		r.name,
 		rt.name,
 		b.pipeline_id,
@@ -125,6 +126,7 @@ type Build interface {
 
 	JobID() int
 	JobName() string
+	JobDisplayName() string
 
 	ResourceID() int
 	ResourceName() string
@@ -215,8 +217,9 @@ type build struct {
 	teamID   int
 	teamName string
 
-	jobID   int
-	jobName string
+	jobID          int
+	jobName        string
+	jobDisplayName string
 
 	resourceID   int
 	resourceName string
@@ -347,6 +350,7 @@ func (b *build) ID() int                      { return b.id }
 func (b *build) Name() string                 { return b.name }
 func (b *build) JobID() int                   { return b.jobID }
 func (b *build) JobName() string              { return b.jobName }
+func (b *build) JobDisplayName() string       { return b.jobDisplayName }
 func (b *build) ResourceID() int              { return b.resourceID }
 func (b *build) ResourceName() string         { return b.resourceName }
 func (b *build) ResourceTypeID() int          { return b.resourceTypeID }
@@ -1734,13 +1738,13 @@ func buildEventSeq(buildid int) string {
 
 func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) error {
 	var (
-		jobID, resourceID, resourceTypeID, pipelineID, rerunOf, rerunNumber                                 sql.NullInt64
-		schema, privatePlan, jobName, resourceName, resourceTypeName, pipelineName, publicPlan, rerunOfName sql.NullString
-		createTime, startTime, endTime, reapTime                                                            pq.NullTime
-		nonce, spanContext                                                                                  sql.NullString
-		drained, aborted, completed                                                                         bool
-		status                                                                                              string
-		pipelineInstanceVars                                                                                sql.NullString
+		jobID, resourceID, resourceTypeID, pipelineID, rerunOf, rerunNumber                                                 sql.NullInt64
+		schema, privatePlan, jobName, jobDisplayName, resourceName, resourceTypeName, pipelineName, publicPlan, rerunOfName sql.NullString
+		createTime, startTime, endTime, reapTime                                                                            pq.NullTime
+		nonce, spanContext                                                                                                  sql.NullString
+		drained, aborted, completed                                                                                         bool
+		status                                                                                                              string
+		pipelineInstanceVars                                                                                                sql.NullString
 	)
 
 	err := row.Scan(
@@ -1761,6 +1765,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		&endTime,
 		&reapTime,
 		&jobName,
+		&jobDisplayName,
 		&resourceName,
 		&resourceTypeName,
 		&pipelineID,
@@ -1784,6 +1789,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	b.status = BuildStatus(status)
 	b.jobID = int(jobID.Int64)
 	b.jobName = jobName.String
+	b.jobDisplayName = jobDisplayName.String
 	b.resourceID = int(resourceID.Int64)
 	b.resourceName = resourceName.String
 	b.resourceTypeID = int(resourceTypeID.Int64)
@@ -1801,7 +1807,6 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	b.rerunOf = int(rerunOf.Int64)
 	b.rerunOfName = rerunOfName.String
 	b.rerunNumber = int(rerunNumber.Int64)
-
 	var (
 		noncense      *string
 		decryptedPlan []byte
