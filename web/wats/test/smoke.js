@@ -49,5 +49,5 @@ test('reaching the internet', async t => {
   await t.context.fly.run('unpause-pipeline -p some-pipeline');
 
   var result = await t.context.fly.run('trigger-job -j some-pipeline/use-the-internet -w');
-  t.regex(result.stdout, /Hello, world!/);
+  t.regex(result.stdout, /'index.html' saved/);
 });
