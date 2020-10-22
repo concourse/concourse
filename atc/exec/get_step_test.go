@@ -356,11 +356,12 @@ var _ = Describe("GetStep", func() {
 			})
 		})
 
-		It("calls RunGetStep with the correct WorkerSpec", func() {
+		It("sets the bottom-most type in the worker spec", func() {
 			_, _, _, _, actualWorkerSpec, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
 			Expect(actualWorkerSpec).To(Equal(
 				worker.WorkerSpec{
-					TeamID: stepMetadata.TeamID,
+					TeamID:       stepMetadata.TeamID,
+					ResourceType: "registry-image",
 				},
 			))
 		})

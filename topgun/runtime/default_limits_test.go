@@ -21,29 +21,31 @@ var _ = Describe("An ATC with default resource limits set", func() {
 		buildSession := Fly.Start("execute", "-c", "tasks/tiny.yml")
 		<-buildSession.Exited
 
-		hijackSession := Fly.Start(
-			"hijack",
+		interceptSession := Fly.Start(
+			"intercept",
 			"-b", "1",
+			"-s", "one-off",
 			"--", "sh", "-c",
 			"cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes; cat /sys/fs/cgroup/cpu/cpu.shares",
 		)
-		<-hijackSession.Exited
+		<-interceptSession.Exited
 
-		Expect(hijackSession.ExitCode()).To(Equal(0))
-		Expect(hijackSession).To(gbytes.Say("1073741824\n512"))
+		Expect(interceptSession.ExitCode()).To(Equal(0))
+		Expect(interceptSession).To(gbytes.Say("1073741824\n512"))
 
 		buildSession = Fly.Start("execute", "-c", "tasks/limits.yml")
 		<-buildSession.Exited
 
-		hijackSession = Fly.Start(
-			"hijack",
+		interceptSession = Fly.Start(
+			"intercept",
 			"-b", "2",
+			"-s", "one-off",
 			"--", "sh", "-c",
 			"cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes; cat /sys/fs/cgroup/cpu/cpu.shares",
 		)
-		<-hijackSession.Exited
+		<-interceptSession.Exited
 
-		Expect(hijackSession.ExitCode()).To(Equal(0))
-		Expect(hijackSession).To(gbytes.Say("104857600\n256"))
+		Expect(interceptSession.ExitCode()).To(Equal(0))
+		Expect(interceptSession).To(gbytes.Say("104857600\n256"))
 	})
 })
