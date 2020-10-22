@@ -2,8 +2,10 @@
 platform: linux
 
 image_resource:
-  type: registry-image
-  source: {repository: busybox}
+  type: mock
+  source:
+    mirror_self: true
+    initial_version: task-image
 
 run:
   path: echo

@@ -11,8 +11,8 @@ jobs:
     config:
       platform: linux
       image_resource:
-        type: registry-image
-        source: {repository: busybox}
+        type: mock
+        source: {mirror_self: true}
       run:
         path: sh
         args:

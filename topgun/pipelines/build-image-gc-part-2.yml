@@ -6,8 +6,10 @@ jobs:
     config:
       platform: linux
       image_resource:
-        type: registry-image
-        source: {repository: alpine}
+        type: mock
+        source:
+          mirror_self: true
+          initial_version: pipeline-image-2
       run:
         path: echo
         args: ['Hello, world!']
