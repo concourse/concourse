@@ -23,6 +23,7 @@ import Build.StepTree.Models
         , MetadataField
         , Step
         , StepName
+        , StepDisplayName
         , StepState(..)
         , StepTree(..)
         , StepTreeModel
@@ -70,36 +71,36 @@ init :
 init hl resources ({ id, step } as plan) =
     case step of
         Concourse.BuildStepTask name ->
-            constructStep id name
+            constructStep id name Nothing
                 |> initBottom hl resources plan Task
 
-        Concourse.BuildStepCheck name ->
-            constructStep id name
+        Concourse.BuildStepCheck name displayName ->
+            constructStep id name displayName
                 |> initBottom hl resources plan Check
 
-        Concourse.BuildStepGet name version ->
-            constructStep id name
+        Concourse.BuildStepGet name version displayName ->
+            constructStep id name displayName
                 |> setupGetStep resources name version
                 |> initBottom hl resources plan Get
 
-        Concourse.BuildStepPut name ->
-            constructStep id name
+        Concourse.BuildStepPut name displayName ->
+            constructStep id name displayName
                 |> initBottom hl resources plan Put
 
         Concourse.BuildStepArtifactInput name ->
-            constructStep id name
+            constructStep id name Nothing
                 |> initBottom hl resources plan ArtifactInput
 
         Concourse.BuildStepArtifactOutput name ->
-            constructStep id name
+            constructStep id name Nothing
                 |> initBottom hl resources plan ArtifactOutput
 
         Concourse.BuildStepSetPipeline name ->
-            constructStep id name
+            constructStep id name Nothing
                 |> initBottom hl resources plan SetPipeline
 
         Concourse.BuildStepLoadVar name ->
-            constructStep id name
+            constructStep id name Nothing
                 |> initBottom hl resources plan LoadVar
 
         Concourse.BuildStepAggregate plans ->
@@ -116,7 +117,7 @@ init hl resources ({ id, step } as plan) =
                 ( values, plans ) =
                     List.unzip steps
             in
-            constructStep id (String.join ", " vars)
+            constructStep id (String.join ", " vars) Nothing
                 |> (\s ->
                         { s
                             | expandedHeaders =
@@ -138,7 +139,7 @@ init hl resources ({ id, step } as plan) =
                    )
 
         Concourse.BuildStepRetry plans ->
-            constructStep id "retry"
+            constructStep id "retry" Nothing
                 |> (\s -> { s | tabFocus = startingTab hl (Array.toList plans) })
                 |> Just
                 |> initMultiStep hl resources id (Retry id) plans
@@ -274,10 +275,11 @@ initMultiStep hl resources stepId constructor plans rootStep =
     }
 
 
-constructStep : StepID -> StepName -> Step
-constructStep stepId name =
+constructStep : StepID -> StepName -> StepDisplayName -> Step
+constructStep stepId name displayName =
     { id = stepId
     , name = name
+    , displayName = displayName
     , state = StepStatePending
     , log = Ansi.Log.init Ansi.Log.Cooked
     , error = Nothing
@@ -781,6 +783,12 @@ viewStepWithBody :
     -> List (Html Message)
     -> Html Message
 viewStepWithBody model session depth step headerType body =
+    let
+        stepName =
+            case step.displayName of
+                Nothing -> step.name
+                Just displayName -> displayName
+    in
     Html.div
         [ classList
             [ ( "build-step", True )
@@ -798,7 +806,7 @@ viewStepWithBody model session depth step headerType body =
             [ Html.div
                 [ style "display" "flex" ]
                 [ viewStepHeaderLabel headerType step.changed step.id
-                , Html.h3 [] [ Html.text step.name ]
+                , Html.h3 [] [ Html.text stepName ]
                 ]
             , Html.div
                 [ style "display" "flex" ]

@@ -161,13 +161,13 @@ func (plan AcrossPlan) Public() *json.RawMessage {
 	}
 
 	return enc(struct {
-		Vars        []AcrossVar  `json:"vars"`
-		Steps       []scopedStep `json:"steps"`
-		FailFast    bool         `json:"fail_fast,omitempty"`
+		Vars     []AcrossVar  `json:"vars"`
+		Steps    []scopedStep `json:"steps"`
+		FailFast bool         `json:"fail_fast,omitempty"`
 	}{
-		Vars:        plan.Vars,
-		Steps:       steps,
-		FailFast:    plan.FailFast,
+		Vars:     plan.Vars,
+		Steps:    steps,
+		FailFast: plan.FailFast,
 	})
 }
 
@@ -193,15 +193,17 @@ func (plan EnsurePlan) Public() *json.RawMessage {
 
 func (plan GetPlan) Public() *json.RawMessage {
 	return enc(struct {
-		Type     string   `json:"type"`
-		Name     string   `json:"name,omitempty"`
-		Resource string   `json:"resource"`
-		Version  *Version `json:"version,omitempty"`
+		Type        string   `json:"type"`
+		Name        string   `json:"name,omitempty"`
+		DisplayName string   `json:"display_name,omitempty"`
+		Resource    string   `json:"resource"`
+		Version     *Version `json:"version,omitempty"`
 	}{
-		Type:     plan.Type,
-		Name:     plan.Name,
-		Resource: plan.Resource,
-		Version:  plan.Version,
+		Type:        plan.Type,
+		Name:        plan.Name,
+		DisplayName: plan.DisplayName,
+		Resource:    plan.Resource,
+		Version:     plan.Version,
 	})
 }
 
@@ -259,23 +261,27 @@ func (plan OnSuccessPlan) Public() *json.RawMessage {
 
 func (plan PutPlan) Public() *json.RawMessage {
 	return enc(struct {
-		Type     string `json:"type"`
-		Name     string `json:"name,omitempty"`
-		Resource string `json:"resource"`
+		Type        string `json:"type"`
+		Name        string `json:"name,omitempty"`
+		DisplayName string `json:"display_name,omitempty"`
+		Resource    string `json:"resource"`
 	}{
-		Type:     plan.Type,
-		Name:     plan.Name,
-		Resource: plan.Resource,
+		Type:        plan.Type,
+		Name:        plan.Name,
+		DisplayName: plan.DisplayName,
+		Resource:    plan.Resource,
 	})
 }
 
 func (plan CheckPlan) Public() *json.RawMessage {
 	return enc(struct {
-		Type string `json:"type"`
-		Name string `json:"name,omitempty"`
+		Type        string `json:"type"`
+		Name        string `json:"name,omitempty"`
+		DisplayName string `json:"display_name,omitempty"`
 	}{
-		Type: plan.Type,
-		Name: plan.Name,
+		Type:        plan.Type,
+		Name:        plan.Name,
+		DisplayName: plan.DisplayName,
 	})
 }
 

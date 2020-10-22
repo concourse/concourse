@@ -2631,6 +2631,7 @@ all =
                                             Concourse.BuildStepGet
                                                 "step"
                                                 Nothing
+                                                Nothing
                                       }
                                     , { inputs = [], outputs = [] }
                                     )
@@ -2689,6 +2690,7 @@ all =
                                             Concourse.BuildStepGet
                                                 "step"
                                                 Nothing
+                                                Nothing
                                       }
                                     , { inputs = [], outputs = [] }
                                     )
@@ -2732,6 +2734,7 @@ all =
                                           , step =
                                                 Concourse.BuildStepGet
                                                     "step"
+                                                    Nothing
                                                     Nothing
                                           }
                                         , { inputs = [], outputs = [] }
@@ -2778,6 +2781,7 @@ all =
                                                             Concourse.BuildStepGet
                                                                 "step"
                                                                 Nothing
+                                                                Nothing
                                                         }
                                                     }
                                           }
@@ -2814,6 +2818,7 @@ all =
                                           , step =
                                                 Concourse.BuildStepCheck
                                                     "step"
+                                                    Nothing
                                           }
                                         , { inputs = [], outputs = [] }
                                         )
@@ -2865,6 +2870,7 @@ all =
                                           , step =
                                                 Concourse.BuildStepPut
                                                     "step"
+                                                    Nothing
                                           }
                                         , { inputs = [], outputs = [] }
                                         )
@@ -2887,16 +2893,19 @@ all =
                                           , step =
                                                 Concourse.BuildStepGet "step"
                                                     (Just version)
+                                                    Nothing
                                           }
                                         , { id = "bar"
                                           , step =
                                                 Concourse.BuildStepGet "step2"
                                                     (Just version)
+                                                    Nothing
                                           }
                                         , { id = "baz"
                                           , step =
                                                 Concourse.BuildStepGet "step3"
                                                     (Just version)
+                                                    Nothing
                                           }
                                         ]
                         in
@@ -3788,6 +3797,7 @@ all =
                                                 Concourse.BuildStepGet
                                                     "step"
                                                     (Just <| Dict.fromList [ ( "version", "1" ) ])
+                                                    Nothing
                                           }
                                         , { inputs = [], outputs = [] }
                                         )

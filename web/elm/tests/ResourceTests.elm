@@ -3230,7 +3230,7 @@ all =
                                 (Callback.PlanAndResourcesFetched 1 <|
                                     Ok <|
                                         ( { id = "plan"
-                                          , step = Concourse.BuildStepCheck "step"
+                                          , step = Concourse.BuildStepCheck "step" Nothing
                                           }
                                         , { inputs = [], outputs = [] }
                                         )
@@ -3418,7 +3418,7 @@ all =
                                 (Callback.PlanAndResourcesFetched 1 <|
                                     Ok <|
                                         ( { id = "plan"
-                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          , step = Concourse.BuildStepCheck "some-resource" Nothing
                                           }
                                         , { inputs = [], outputs = [] }
                                         )
@@ -3437,7 +3437,7 @@ all =
                                 (Callback.PlanAndResourcesFetched 1 <|
                                     Ok <|
                                         ( { id = "plan"
-                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          , step = Concourse.BuildStepCheck "some-resource" Nothing
                                           }
                                         , { inputs = [], outputs = [] }
                                         )
@@ -3453,7 +3453,7 @@ all =
                                                     , id = "plan"
                                                     }
                                                     { id = "image"
-                                                    , step = Concourse.BuildStepCheck "some-image"
+                                                    , step = Concourse.BuildStepCheck "some-image" Nothing
                                                     }
                                           }
                                         , { url = "/api/v1/builds/1/events"
@@ -3484,7 +3484,7 @@ all =
                                 (Callback.PlanAndResourcesFetched 1 <|
                                     Ok <|
                                         ( { id = "plan"
-                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          , step = Concourse.BuildStepCheck "some-resource" Nothing
                                           }
                                         , { inputs = [], outputs = [] }
                                         )
@@ -3521,7 +3521,7 @@ all =
                                 (Callback.PlanAndResourcesFetched 1 <|
                                     Ok <|
                                         ( { id = "plan"
-                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          , step = Concourse.BuildStepCheck "some-resource" Nothing
                                           }
                                         , { inputs = [], outputs = [] }
                                         )
@@ -3565,7 +3565,7 @@ all =
                                 (Callback.PlanAndResourcesFetched 1 <|
                                     Ok <|
                                         ( { id = "plan"
-                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          , step = Concourse.BuildStepCheck "some-resource" Nothing
                                           }
                                         , { inputs = [], outputs = [] }
                                         )
@@ -3603,7 +3603,7 @@ all =
                                 (Callback.PlanAndResourcesFetched 1 <|
                                     Ok <|
                                         ( { id = "plan"
-                                          , step = Concourse.BuildStepCheck "some-resource"
+                                          , step = Concourse.BuildStepCheck "some-resource" Nothing
                                           }
                                         , { inputs = [], outputs = [] }
                                         )

@@ -7,6 +7,7 @@ module Build.StepTree.Models exposing
     , Step
     , StepFocus
     , StepName
+    , StepDisplayName
     , StepState(..)
     , StepTree(..)
     , StepTreeModel
@@ -78,6 +79,7 @@ type alias StepFocus =
 type alias Step =
     { id : StepID
     , name : StepName
+    , displayName : StepDisplayName
     , state : StepState
     , log : Ansi.Log.Model
     , error : Maybe String
@@ -96,10 +98,11 @@ type alias Step =
     , imageGet : Maybe StepTree
     }
 
+type alias StepDisplayName =
+    Maybe String
 
 type alias StepName =
     String
-
 
 type StepState
     = StepStatePending

@@ -46,9 +46,10 @@ type SchedulerJob struct {
 type SchedulerResources []SchedulerResource
 
 type SchedulerResource struct {
-	Name   string
-	Type   string
-	Source atc.Source
+	Name        string
+	DisplayName string
+	Type        string
+	Source      atc.Source
 }
 
 func (r *SchedulerResource) ApplySourceDefaults(resourceTypes atc.VersionedResourceTypes) {
@@ -102,7 +103,7 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 				UNION
 				SELECT jo.resource_id from job_outputs jo where jo.job_id = $1
 			)
-			SELECT r.name, r.type, r.config, r.nonce
+			SELECT r.name, r.display_name, r.type, r.config, r.nonce
 			From resources r
 			Join inputs i on i.resource_id = r.id`, job.ID())
 		if err != nil {
@@ -113,9 +114,9 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 		for rows.Next() {
 			var name, type_ string
 			var configBlob []byte
-			var nonce sql.NullString
+			var nonce, displayName sql.NullString
 
-			err = rows.Scan(&name, &type_, &configBlob, &nonce)
+			err = rows.Scan(&name, &displayName, &type_, &configBlob, &nonce)
 			if err != nil {
 				return nil, err
 			}
@@ -141,9 +142,10 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 			}
 
 			schedulerResources = append(schedulerResources, SchedulerResource{
-				Name:   name,
-				Type:   type_,
-				Source: config.Source,
+				Name:        name,
+				DisplayName: displayName.String,
+				Type:        type_,
+				Source:      config.Source,
 			})
 		}
 

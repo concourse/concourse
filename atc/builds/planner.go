@@ -92,14 +92,14 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 	resource.ApplySourceDefaults(visitor.resourceTypes)
 
 	visitor.plan = visitor.planFactory.NewPlan(atc.GetPlan{
-		Name: step.Name,
-
-		Type:     resource.Type,
-		Resource: resourceName,
-		Source:   resource.Source,
-		Params:   step.Params,
-		Version:  &version,
-		Tags:     step.Tags,
+		Name:        step.Name,
+		DisplayName: resource.DisplayName,
+		Type:        resource.Type,
+		Resource:    resourceName,
+		Source:      resource.Source,
+		Params:      step.Params,
+		Version:     &version,
+		Tags:        step.Tags,
 
 		VersionedResourceTypes: visitor.resourceTypes,
 	})
@@ -123,13 +123,14 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 	resource.ApplySourceDefaults(visitor.resourceTypes)
 
 	atcPutPlan := atc.PutPlan{
-		Type:     resource.Type,
-		Name:     logicalName,
-		Resource: resourceName,
-		Source:   resource.Source,
-		Params:   step.Params,
-		Tags:     step.Tags,
-		Inputs:   step.Inputs,
+		Type:        resource.Type,
+		Name:        logicalName,
+		DisplayName: resource.DisplayName,
+		Resource:    resourceName,
+		Source:      resource.Source,
+		Params:      step.Params,
+		Tags:        step.Tags,
+		Inputs:      step.Inputs,
 
 		VersionedResourceTypes: visitor.resourceTypes,
 	}
@@ -139,6 +140,7 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 	dependentGetPlan := visitor.planFactory.NewPlan(atc.GetPlan{
 		Type:        resource.Type,
 		Name:        logicalName,
+		DisplayName: resource.DisplayName,
 		Resource:    resourceName,
 		VersionFrom: &putPlan.ID,
 

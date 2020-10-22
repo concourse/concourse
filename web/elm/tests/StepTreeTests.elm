@@ -58,6 +58,7 @@ someVersionedStep : Maybe Models.Version -> Routes.StepID -> Models.StepName -> 
 someVersionedStep version id name state =
     { id = id
     , name = name
+    , displayName = Nothing
     , state = state
     , log = cookedLog
     , error = Nothing
@@ -156,7 +157,7 @@ initCheck =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "some-id"
-                , step = BuildStepCheck "some-name"
+                , step = BuildStepCheck "some-name" Nothing
                 }
     in
     describe "init with Check"
@@ -179,7 +180,7 @@ initGet =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "some-id"
-                , step = BuildStepGet "some-name" (Just version)
+                , step = BuildStepGet "some-name" (Just version) Nothing
                 }
     in
     describe "init with Get"
@@ -199,7 +200,7 @@ initPut =
             StepTree.init Routes.HighlightNothing
                 emptyResources
                 { id = "some-id"
-                , step = BuildStepPut "some-name"
+                , step = BuildStepPut "some-name" Nothing
                 }
     in
     describe "init with Put"

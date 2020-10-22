@@ -359,13 +359,13 @@ mapBuildPlan fn plan =
                 BuildStepArtifactInput _ ->
                     []
 
-                BuildStepPut _ ->
+                BuildStepPut _ _ ->
                     []
 
-                BuildStepCheck _ ->
+                BuildStepCheck _ _ ->
                     []
 
-                BuildStepGet _ _ ->
+                BuildStepGet _ _ _ ->
                     []
 
                 BuildStepArtifactOutput _ ->
@@ -413,16 +413,18 @@ mapBuildPlan fn plan =
 type alias StepName =
     String
 
+type alias StepDisplayName =
+    Maybe String
 
 type BuildStep
     = BuildStepTask StepName
     | BuildStepSetPipeline StepName
     | BuildStepLoadVar StepName
     | BuildStepArtifactInput StepName
-    | BuildStepCheck StepName
-    | BuildStepGet StepName (Maybe Version)
+    | BuildStepCheck StepName StepDisplayName
+    | BuildStepGet StepName (Maybe Version) StepDisplayName
     | BuildStepArtifactOutput StepName
-    | BuildStepPut StepName
+    | BuildStepPut StepName StepDisplayName
     | BuildStepAggregate (Array BuildPlan)
     | BuildStepInParallel (Array BuildPlan)
     | BuildStepAcross AcrossPlan
@@ -550,13 +552,13 @@ decodeBuildStepGet =
     Json.Decode.succeed BuildStepGet
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (Json.Decode.maybe <| Json.Decode.field "version" decodeVersion)
-
+        |> andMap (Json.Decode.maybe <| Json.Decode.field "display_name" Json.Decode.string)
 
 decodeBuildStepCheck : Json.Decode.Decoder BuildStep
 decodeBuildStepCheck =
     Json.Decode.succeed BuildStepCheck
         |> andMap (Json.Decode.field "name" Json.Decode.string)
-
+        |> andMap (Json.Decode.maybe <| Json.Decode.field "display_name" Json.Decode.string)
 
 decodeBuildStepArtifactOutput : Json.Decode.Decoder BuildStep
 decodeBuildStepArtifactOutput =
@@ -568,7 +570,7 @@ decodeBuildStepPut : Json.Decode.Decoder BuildStep
 decodeBuildStepPut =
     Json.Decode.succeed BuildStepPut
         |> andMap (Json.Decode.field "name" Json.Decode.string)
-
+        |> andMap (Json.Decode.maybe <| Json.Decode.field "display_name" Json.Decode.string)
 
 decodeBuildStepAggregate : Json.Decode.Decoder BuildStep
 decodeBuildStepAggregate =

@@ -250,11 +250,12 @@ func (r *resource) SetResourceConfigScope(scope ResourceConfigScope) error {
 
 func (r *resource) CheckPlan(from atc.Version, interval time.Duration, resourceTypes ResourceTypes, sourceDefaults atc.Source) atc.CheckPlan {
 	return atc.CheckPlan{
-		Name:    r.Name(),
-		Type:    r.Type(),
-		Source:  sourceDefaults.Merge(r.Source()),
-		Tags:    r.Tags(),
-		Timeout: r.CheckTimeout(),
+		Name:        r.Name(),
+		DisplayName: r.DisplayName(),
+		Type:        r.Type(),
+		Source:      sourceDefaults.Merge(r.Source()),
+		Tags:        r.Tags(),
+		Timeout:     r.CheckTimeout(),
 
 		FromVersion:            from,
 		Interval:               interval.String(),
@@ -778,7 +779,7 @@ func scanResource(r *resource, row scannable) error {
 		lastCheckStartTime, lastCheckEndTime              pq.NullTime
 		pinnedThroughConfig                               sql.NullBool
 		pipelineInstanceVars                              sql.NullString
-		displayName                                                              sql.NullString
+		displayName                                       sql.NullString
 	)
 
 	var build struct {

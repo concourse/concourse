@@ -184,7 +184,8 @@ type DoPlan []Plan
 
 type GetPlan struct {
 	// The name of the step.
-	Name string `json:"name,omitempty"`
+	Name        string `json:"name,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
 
 	// The resource config to fetch from.
 	Type                   string                 `json:"type"`
@@ -207,7 +208,8 @@ type GetPlan struct {
 
 type PutPlan struct {
 	// The name of the step.
-	Name string `json:"name"`
+	Name        string `json:"name"`
+	DisplayName string `json:"display_name,omitempty"`
 
 	// The resource config to push to.
 	Type                   string                 `json:"type"`
@@ -229,8 +231,8 @@ type PutPlan struct {
 
 type CheckPlan struct {
 	// The name of the step.
-	Name string `json:"name"`
-
+	Name        string `json:"name"`
+	DisplayName string `json:"display_name,omitempty"`
 	// The resource config to check.
 	Type                   string                 `json:"type"`
 	Source                 Source                 `json:"source"`

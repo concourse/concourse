@@ -780,7 +780,7 @@ thePlanContainsACheckStep =
             (Callback.PlanAndResourcesFetched 1 <|
                 Ok
                     ( { id = checkStepId
-                      , step = Concourse.BuildStepCheck "resource-name"
+                      , step = Concourse.BuildStepCheck "resource-name" Nothing
                       }
                     , { inputs = []
                       , outputs = []
@@ -826,6 +826,7 @@ thePlanContainsAGetStep =
                             Concourse.BuildStepGet
                                 "the-git-resource"
                                 (Just (Dict.fromList [ ( "ref", "abc123" ) ]))
+                                Nothing
                       }
                     , { inputs = []
                       , outputs = []
@@ -1272,7 +1273,7 @@ thereIsAnImageCheckStep stepId =
                                 { source = ""
                                 , id = stepId
                                 }
-                                (Concourse.BuildPlan imageCheckStepId (Concourse.BuildStepCheck "image"))
+                                (Concourse.BuildPlan imageCheckStepId (Concourse.BuildStepCheck "image" Nothing))
                       , url = "http://localhost:8080/api/v1/builds/1/events"
                       }
                     ]
@@ -1289,7 +1290,7 @@ thereIsAnImageGetStep stepId =
                                 { source = ""
                                 , id = stepId
                                 }
-                                (Concourse.BuildPlan imageGetStepId (Concourse.BuildStepGet "image" Nothing))
+                                (Concourse.BuildPlan imageGetStepId (Concourse.BuildStepGet "image" Nothing Nothing))
                       , url = "http://localhost:8080/api/v1/builds/1/events"
                       }
                     ]
