@@ -75,7 +75,7 @@ func (c Config) Prepare() error {
 
 	switch {
 	case c.Honeycomb.IsConfigured():
-		exp, err = c.Honeycomb.Exporter()
+		provider, err = c.TraceProvider(c.Honeycomb.Exporter)
 	case c.Jaeger.IsConfigured():
 		provider, err = c.TraceProvider(c.Jaeger.Exporter)
 	case c.OTLP.IsConfigured():
