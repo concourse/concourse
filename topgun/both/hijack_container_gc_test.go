@@ -15,13 +15,13 @@ var _ = Describe("Hijacked containers", func() {
 		Deploy("deployments/concourse.yml")
 	})
 
-	getContainer := func(condition, value string) func() hijackedContainerResult {
+	getContainer := func(match func(map[string]string) bool) func() hijackedContainerResult {
 		return func() (h hijackedContainerResult) {
 			containers := FlyTable("containers")
 
 			var containerHandle string
 			for _, c := range containers {
-				if c[condition] == value {
+				if match(c) {
 					containerHandle = c["handle"]
 					h.flyContainerExists = true
 
@@ -94,13 +94,17 @@ var _ = Describe("Hijacked containers", func() {
 		<-buildSession.Exited
 
 		By("verifying the hijacked container exists via fly and Garden")
-		Consistently(getContainer("build #", "1"), 2*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{true, true}))
+		Consistently(getContainer(func(c map[string]string) bool {
+			return c["build #"] == "1" && c["name"] == "simple-task"
+		}), 2*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{true, true}))
 
 		By("unhijacking and seeing the container removed via fly/Garden after 5 minutes")
 		hijackSession.Interrupt()
 		<-hijackSession.Exited
 
-		Eventually(getContainer("build #", "1"), 10*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{false, false}))
+		Eventually(getContainer(func(c map[string]string) bool {
+			return c["build #"] == "1" && c["name"] == "simple-task"
+		}), 10*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{false, false}))
 	})
 
 	It("does not delete hijacked one-off build containers from the database, and sets a 5 minute TTL on the container in garden", func() {
@@ -115,6 +119,7 @@ var _ = Describe("Hijacked containers", func() {
 		hijackSession := Fly.Start(
 			"hijack",
 			"-b", "1",
+			"-s", "one-off",
 			"--",
 			"while true; do sleep 1; done",
 		)
@@ -124,6 +129,7 @@ var _ = Describe("Hijacked containers", func() {
 			hS := Fly.Start(
 				"hijack",
 				"-b", "1",
+				"-s", "one-off",
 				"touch", "/tmp/stop-waiting",
 			)
 			<-hS.Exited
@@ -132,13 +138,17 @@ var _ = Describe("Hijacked containers", func() {
 		<-buildSession.Exited
 
 		By("verifying the hijacked container exists via fly and Garden")
-		Consistently(getContainer("build #", "1"), 2*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{true, true}))
+		Consistently(getContainer(func(c map[string]string) bool {
+			return c["build #"] == "1" && c["name"] == "one-off"
+		}), 2*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{true, true}))
 
 		By("unhijacking and seeing the container removed via fly/Garden after 5 minutes")
 		hijackSession.Interrupt()
 		<-hijackSession.Exited
 
-		Eventually(getContainer("build #", "1"), 10*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{false, false}))
+		Eventually(getContainer(func(c map[string]string) bool {
+			return c["build #"] == "1" && c["name"] == "one-off"
+		}), 10*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{false, false}))
 	})
 
 	It("does not delete hijacked resource containers from the database, and sets a 5 minute TTL on the container in garden", func() {
@@ -177,7 +187,9 @@ var _ = Describe("Hijacked containers", func() {
 		hijackSession.Interrupt()
 		<-hijackSession.Exited
 
-		Eventually(getContainer("type", "check"), 10*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{false, false}))
+		Eventually(getContainer(func(c map[string]string) bool {
+			return c["type"] == "check"
+		}), 10*time.Minute, 30*time.Second).Should(Equal(hijackedContainerResult{false, false}))
 	})
 })
 

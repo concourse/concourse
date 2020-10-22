@@ -3452,6 +3452,106 @@ var _ = Describe("Team", func() {
 		})
 	})
 
+	Describe("IsCheckContainer", func() {
+		Context("when the container is associated with a resource config check session", func() {
+			var resourceContainer db.Container
+			var scenario *dbtest.Scenario
+
+			expiries := db.ContainerOwnerExpiries{
+				Min: 5 * time.Minute,
+				Max: 1 * time.Hour,
+			}
+
+			BeforeEach(func() {
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+							},
+						},
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: "some-base-resource-type",
+								Source: atc.Source{
+									"some": "source",
+								},
+							},
+						},
+					}),
+					builder.WithWorker(atc.Worker{
+						ResourceTypes:   []atc.WorkerResourceType{defaultWorkerResourceType},
+						Name:            "some-default-worker",
+						GardenAddr:      "3.4.5.6:7777",
+						BaggageclaimURL: "7.8.9.10:7878",
+					}),
+					builder.WithResourceVersions("some-resource"),
+				)
+
+				rc, found, err := resourceConfigFactory.FindResourceConfigByID(scenario.Resource("some-resource").ResourceConfigID())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				resourceContainer, err = scenario.Workers[0].CreateContainer(
+					db.NewResourceConfigCheckSessionContainerOwner(
+						rc.ID(),
+						rc.OriginBaseResourceType().ID,
+						expiries,
+					),
+					db.ContainerMetadata{},
+				)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns true", func() {
+				is, err := team.IsCheckContainer(resourceContainer.Handle())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(is).To(BeTrue())
+			})
+		})
+
+		Context("when the container is owned by a team", func() {
+			var createdContainer db.Container
+			var scenario *dbtest.Scenario
+
+			BeforeEach(func() {
+				scenario = dbtest.Setup(
+					builder.WithPipeline(atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+							},
+						},
+					}),
+					builder.WithBaseWorker(),
+				)
+
+				build, err := scenario.Job("some-job").CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+
+				creatingContainer, err := scenario.Workers[0].CreateContainer(
+					db.NewBuildStepContainerOwner(
+						build.ID(),
+						atc.PlanID("some-job"),
+						scenario.Team.ID(),
+					),
+					db.ContainerMetadata{Type: "task", StepName: "some-task"},
+				)
+				Expect(err).ToNot(HaveOccurred())
+
+				createdContainer, err = creatingContainer.Created()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns false", func() {
+				is, err := team.IsCheckContainer(createdContainer.Handle())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(is).To(BeFalse())
+			})
+		})
+	})
+
 	Describe("IsContainerWithinTeam", func() {
 		Context("when the container is a check container", func() {
 			var resourceContainer db.Container

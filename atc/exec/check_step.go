@@ -237,8 +237,9 @@ func (step *CheckStep) runCheck(
 	fromVersion atc.Version,
 ) (worker.CheckResult, error) {
 	workerSpec := worker.WorkerSpec{
-		Tags:   step.plan.Tags,
-		TeamID: step.metadata.TeamID,
+		Tags:         step.plan.Tags,
+		TeamID:       step.metadata.TeamID,
+		ResourceType: step.plan.VersionedResourceTypes.Base(step.plan.Type),
 	}
 
 	var imageSpec worker.ImageSpec
@@ -265,7 +266,6 @@ func (step *CheckStep) runCheck(
 		}
 	} else {
 		imageSpec.ResourceType = step.plan.Type
-		workerSpec.ResourceType = step.plan.Type
 	}
 
 	containerSpec := worker.ContainerSpec{
@@ -277,20 +277,6 @@ func (step *CheckStep) runCheck(
 		Env:    step.metadata.Env(),
 	}
 	tracing.Inject(ctx, &containerSpec)
-
-	expires := db.ContainerOwnerExpiries{
-		Min: 5 * time.Minute,
-		Max: 1 * time.Hour,
-	}
-
-	// XXX(check-refactor): this can be turned into NewBuildStepContainerOwner
-	// now, but we should understand the performance implications first - it'll
-	// mean a lot more container churn
-	owner := db.NewResourceConfigCheckSessionContainerOwner(
-		resourceConfig.ID(),
-		resourceConfig.OriginBaseResourceType().ID,
-		expires,
-	)
 
 	checkable := step.resourceFactory.NewResource(
 		source,
@@ -307,7 +293,7 @@ func (step *CheckStep) runCheck(
 	return step.workerClient.RunCheckStep(
 		ctx,
 		logger,
-		owner,
+		step.containerOwner(resourceConfig),
 		containerSpec,
 		workerSpec,
 		step.strategy,
@@ -316,5 +302,29 @@ func (step *CheckStep) runCheck(
 		delegate,
 		checkable,
 		timeout,
+	)
+}
+
+func (step *CheckStep) containerOwner(resourceConfig db.ResourceConfig) db.ContainerOwner {
+	if step.plan.Resource == "" && step.plan.ResourceType == "" {
+		return db.NewBuildStepContainerOwner(
+			step.metadata.BuildID,
+			step.planID,
+			step.metadata.TeamID,
+		)
+	}
+
+	expires := db.ContainerOwnerExpiries{
+		Min: 5 * time.Minute,
+		Max: 1 * time.Hour,
+	}
+
+	// XXX(check-refactor): this can be turned into NewBuildStepContainerOwner
+	// now, but we should understand the performance implications first - it'll
+	// mean a lot more container churn
+	return db.NewResourceConfigCheckSessionContainerOwner(
+		resourceConfig.ID(),
+		resourceConfig.OriginBaseResourceType().ID,
+		expires,
 	)
 }

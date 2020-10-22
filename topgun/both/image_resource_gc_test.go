@@ -26,7 +26,7 @@ var _ = Describe("A build using an image_resource", func() {
 				resourceVolumeHandles := []string{}
 				for _, volume := range volumes {
 					// there is going to be one for image resource
-					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "digest:") {
+					if volume["type"] == "resource" && volume["identifier"] == "version:task-image" {
 						resourceVolumeHandles = append(resourceVolumeHandles, volume["handle"])
 					}
 				}
@@ -55,7 +55,7 @@ var _ = Describe("A build using an image_resource", func() {
 			volumes := FlyTable("volumes")
 			originalResourceVolumeHandles := []string{}
 			for _, volume := range volumes {
-				if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "digest:") {
+				if volume["type"] == "resource" && volume["identifier"] == "version:pipeline-image-1" {
 					originalResourceVolumeHandles = append(originalResourceVolumeHandles, volume["handle"])
 				}
 			}
@@ -72,7 +72,7 @@ var _ = Describe("A build using an image_resource", func() {
 				volumes := FlyTable("volumes")
 				resourceVolumeHandles := []string{}
 				for _, volume := range volumes {
-					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "digest:") {
+					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "version:pipeline-image-") {
 						resourceVolumeHandles = append(resourceVolumeHandles, volume["handle"])
 					}
 				}
@@ -102,7 +102,7 @@ var _ = Describe("A build using an image_resource", func() {
 				volumes := FlyTable("volumes")
 				resourceVolumeHandles := []string{}
 				for _, volume := range volumes {
-					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "digest:") {
+					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "version:pipeline-image-") {
 						resourceVolumeHandles = append(resourceVolumeHandles, volume["handle"])
 					}
 				}

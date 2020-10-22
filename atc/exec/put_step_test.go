@@ -389,10 +389,11 @@ var _ = Describe("PutStep", func() {
 			Expect(privileged).To(BeFalse())
 		})
 
-		It("does not set the type in the worker spec", func() {
+		It("sets the bottom-most type in the worker spec", func() {
 			_, _, _, _, workerSpec, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
 			Expect(workerSpec).To(Equal(worker.WorkerSpec{
-				TeamID: stepMetadata.TeamID,
+				TeamID:       stepMetadata.TeamID,
+				ResourceType: "registry-image",
 			}))
 		})
 

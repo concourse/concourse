@@ -129,8 +129,9 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	}
 
 	workerSpec := worker.WorkerSpec{
-		Tags:   step.plan.Tags,
-		TeamID: step.metadata.TeamID,
+		Tags:         step.plan.Tags,
+		TeamID:       step.metadata.TeamID,
+		ResourceType: step.plan.VersionedResourceTypes.Base(step.plan.Type),
 	}
 
 	var imageSpec worker.ImageSpec
@@ -157,7 +158,6 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		}
 	} else {
 		imageSpec.ResourceType = step.plan.Type
-		workerSpec.ResourceType = step.plan.Type
 	}
 
 	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
