@@ -65,18 +65,21 @@ func (flag *OIDCFlags) Serialize(redirectURI string) ([]byte, error) {
 		caCerts = append(caCerts, file.Path())
 	}
 
-	return json.Marshal(oidc.Config{
+	config := oidc.Config{
 		Issuer:             flag.Issuer,
 		ClientID:           flag.ClientID,
 		ClientSecret:       flag.ClientSecret,
 		Scopes:             flag.Scopes,
-		GroupsKey:          flag.GroupsKey,
 		UserNameKey:        flag.UserNameKey,
 		HostedDomains:      flag.HostedDomains,
 		RootCAs:            caCerts,
 		InsecureSkipVerify: flag.InsecureSkipVerify,
 		RedirectURI:        redirectURI,
-	})
+	}
+
+	config.ClaimMapping.GroupsKey = flag.GroupsKey
+
+	return json.Marshal(config)
 }
 
 type OIDCTeamFlags struct {
