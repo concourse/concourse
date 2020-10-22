@@ -49,6 +49,19 @@ var _ = Describe("JobFlag", func() {
 				jobName: "some-job",
 			},
 			{
+				desc: "instance var with special chars",
+				flag: `some-pipeline/foo."bar.baz":'abc,def:ghi'/some-job`,
+				pipelineRef: atc.PipelineRef{
+					Name: "some-pipeline",
+					InstanceVars: atc.InstanceVars{
+						"foo": map[string]interface{}{
+							"bar.baz": "abc,def:ghi",
+						},
+					},
+				},
+				jobName: "some-job",
+			},
+			{
 				desc: "only pipeline specified",
 				flag: "some-pipeline",
 				err:  "argument format should be <pipeline>/<job>",

@@ -47,6 +47,19 @@ var _ = Describe("ResourceFlag", func() {
 			resourceName: "some-resource",
 		},
 		{
+			desc: "instance var with special chars",
+			flag: `some-pipeline/foo."bar.baz":'abc,def:ghi'/some-resource`,
+			pipelineRef: atc.PipelineRef{
+				Name: "some-pipeline",
+				InstanceVars: atc.InstanceVars{
+					"foo": map[string]interface{}{
+						"bar.baz": "abc,def:ghi",
+					},
+				},
+			},
+			resourceName: "some-resource",
+		},
+		{
 			desc: "only pipeline specified",
 			flag: "some-pipeline",
 			err:  "argument format should be <pipeline>/<resource>",

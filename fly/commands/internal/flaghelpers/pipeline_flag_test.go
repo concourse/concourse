@@ -48,7 +48,7 @@ var _ = Describe("PipelineFlag", func() {
 				},
 			},
 			{
-				desc: "quoted yaml brackets/braces",
+				desc: "quoted yaml brackets/braces with \"",
 				flag: `some-pipeline/field1:{a: "{", b: "["},field2:hello`,
 				name: "some-pipeline",
 				instanceVars: atc.InstanceVars{
@@ -57,6 +57,43 @@ var _ = Describe("PipelineFlag", func() {
 						"b": "[",
 					},
 					"field2": "hello",
+				},
+			},
+			{
+				desc: "quoted yaml brackets/braces with '",
+				flag: `some-pipeline/field1:{a: '{', b: '['},field2:hello`,
+				name: "some-pipeline",
+				instanceVars: atc.InstanceVars{
+					"field1": map[string]interface{}{
+						"a": "{",
+						"b": "[",
+					},
+					"field2": "hello",
+				},
+			},
+			{
+				desc: "yaml list",
+				flag: `some-pipeline/field:[{a: '{', b: '['}, 1]`,
+				name: "some-pipeline",
+				instanceVars: atc.InstanceVars{
+					"field": []interface{}{
+						map[string]interface{}{
+							"a": "{",
+							"b": "[",
+						},
+						json.Number("1"),
+					},
+				},
+			},
+			{
+				desc: "indexing by numerical field still uses map",
+				flag: `some-pipeline/field.0:0,field.1:1`,
+				name: "some-pipeline",
+				instanceVars: atc.InstanceVars{
+					"field": map[string]interface{}{
+						"0": json.Number("0"),
+						"1": json.Number("1"),
+					},
 				},
 			},
 			{
@@ -77,8 +114,17 @@ var _ = Describe("PipelineFlag", func() {
 				},
 			},
 			{
+				desc: "special characters in quoted yaml",
+				flag: `some-pipeline/field1:'foo,bar',field2:"value1:value2"`,
+				name: "some-pipeline",
+				instanceVars: atc.InstanceVars{
+					"field1": "foo,bar",
+					"field2": "value1:value2",
+				},
+			},
+			{
 				desc: "supports dot notation",
-				flag: `some-pipeline/"my.field".subkey1."subkey:2":"my-value","my.field".other:"other-value"`,
+				flag: `some-pipeline/"my.field".subkey1."subkey:2":"my-value","my.field".other:'other-value'`,
 				name: "some-pipeline",
 				instanceVars: atc.InstanceVars{
 					"my.field": map[string]interface{}{

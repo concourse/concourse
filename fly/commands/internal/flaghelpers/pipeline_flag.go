@@ -61,7 +61,7 @@ func (flag *PipelineFlag) UnmarshalFlag(value string) error {
 func unmarshalInstanceVars(s string) (atc.InstanceVars, error) {
 	var kvPairs vars.KVPairs
 	for {
-		colonIndex, ok := findUnquoted(s, nextOccurrenceOf(':'))
+		colonIndex, ok := findUnquoted(s, `"`, nextOccurrenceOf(':'))
 		if !ok {
 			break
 		}
@@ -75,7 +75,7 @@ func unmarshalInstanceVars(s string) (atc.InstanceVars, error) {
 
 		s = s[colonIndex+1:]
 		rawValue := []byte(s)
-		commaIndex, hasComma := findUnquoted(s, nextOccurrenceOfOutsideOfYAML(','))
+		commaIndex, hasComma := findUnquoted(s, `"'`, nextOccurrenceOfOutsideOfYAML(','))
 		if hasComma {
 			rawValue = rawValue[:commaIndex]
 			s = s[commaIndex+1:]
@@ -97,14 +97,18 @@ func unmarshalInstanceVars(s string) (atc.InstanceVars, error) {
 	return atc.InstanceVars(kvPairs.Expand()), nil
 }
 
-func findUnquoted(s string, stop func(c rune) bool) (int, bool) {
-	quoted := false
+func findUnquoted(s string, quoteset string, stop func(c rune) bool) (int, bool) {
+	var quoteChar rune
 	for i, c := range s {
-		if !quoted && stop(c) {
-			return i, true
-		}
-		if c == '"' {
-			quoted = !quoted
+		if quoteChar == 0 {
+			if stop(c) {
+				return i, true
+			}
+			if strings.ContainsRune(quoteset, c) {
+				quoteChar = c
+			}
+		} else if c == quoteChar {
+			quoteChar = 0
 		}
 	}
 	return 0, false
