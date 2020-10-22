@@ -20,11 +20,10 @@ module Routes exposing
     )
 
 import Api.Pagination
-import Concourse exposing (encodeInstanceVars)
+import Concourse exposing (InstanceVars)
 import Concourse.Pagination as Pagination exposing (Direction(..))
 import Dict
-import Json.Decode
-import Json.Encode
+import DotNotation
 import Maybe.Extra
 import RouteBuilder exposing (RouteBuilder, appendPath, appendQuery)
 import Url
@@ -102,44 +101,35 @@ type alias Transition =
 -- pages
 
 
-pipelineIdentifier : Parser (Concourse.PipelineIdentifier -> a) a
+pipelineIdentifier : Parser ({ teamName : String, pipelineName : String } -> a) a
 pipelineIdentifier =
     s "teams"
         </> string
         </> s "pipelines"
         </> string
-        <?> instanceVarsQuery
         |> map
-            (\t p iv ->
+            (\t p ->
                 { teamName = t
                 , pipelineName = p
-                , pipelineInstanceVars = iv
                 }
             )
 
 
-instanceVarsQuery : Query.Parser Concourse.InstanceVars
-instanceVarsQuery =
-    Query.string "instance_vars"
-        |> Query.map (Maybe.withDefault "{}")
-        |> Query.map (Json.Decode.decodeString Concourse.decodeInstanceVars)
-        |> Query.map (Result.withDefault Dict.empty)
-
-
-build : Parser (Route -> a) a
+build : Parser ((InstanceVars -> Route) -> a) a
 build =
     let
-        buildHelper { teamName, pipelineName, pipelineInstanceVars } jobName buildName h =
-            Build
-                { id =
-                    { teamName = teamName
-                    , pipelineName = pipelineName
-                    , pipelineInstanceVars = pipelineInstanceVars
-                    , jobName = jobName
-                    , buildName = buildName
+        buildHelper { teamName, pipelineName } jobName buildName h =
+            \iv ->
+                Build
+                    { id =
+                        { teamName = teamName
+                        , pipelineName = pipelineName
+                        , pipelineInstanceVars = iv
+                        , jobName = jobName
+                        , buildName = buildName
+                        }
+                    , highlight = h
                     }
-                , highlight = h
-                }
     in
     map buildHelper
         (pipelineIdentifier
@@ -151,10 +141,10 @@ build =
         )
 
 
-oneOffBuild : Parser (Route -> a) a
+oneOffBuild : Parser ((b -> Route) -> a) a
 oneOffBuild =
     map
-        (\b h -> OneOffBuild { id = b, highlight = h })
+        (\b h -> always <| OneOffBuild { id = b, highlight = h })
         (s "builds" </> int </> fragment parseHighlight)
 
 
@@ -177,19 +167,20 @@ parsePage from to limit =
             Nothing
 
 
-resource : Parser (Route -> a) a
+resource : Parser ((InstanceVars -> Route) -> a) a
 resource =
     let
-        resourceHelper { teamName, pipelineName, pipelineInstanceVars } resourceName from to limit =
-            Resource
-                { id =
-                    { teamName = teamName
-                    , pipelineName = pipelineName
-                    , pipelineInstanceVars = pipelineInstanceVars
-                    , resourceName = resourceName
+        resourceHelper { teamName, pipelineName } resourceName from to limit =
+            \iv ->
+                Resource
+                    { id =
+                        { teamName = teamName
+                        , pipelineName = pipelineName
+                        , pipelineInstanceVars = iv
+                        , resourceName = resourceName
+                        }
+                    , page = parsePage from to limit
                     }
-                , page = parsePage from to limit
-                }
     in
     map resourceHelper
         (pipelineIdentifier
@@ -201,19 +192,20 @@ resource =
         )
 
 
-job : Parser (Route -> a) a
+job : Parser ((InstanceVars -> Route) -> a) a
 job =
     let
-        jobHelper { teamName, pipelineName, pipelineInstanceVars } jobName from to limit =
-            Job
-                { id =
-                    { teamName = teamName
-                    , pipelineName = pipelineName
-                    , pipelineInstanceVars = pipelineInstanceVars
-                    , jobName = jobName
+        jobHelper { teamName, pipelineName } jobName from to limit =
+            \iv ->
+                Job
+                    { id =
+                        { teamName = teamName
+                        , pipelineName = pipelineName
+                        , pipelineInstanceVars = iv
+                        , jobName = jobName
+                        }
+                    , page = parsePage from to limit
                     }
-                , page = parsePage from to limit
-                }
     in
     map jobHelper
         (pipelineIdentifier
@@ -225,21 +217,26 @@ job =
         )
 
 
-pipeline : Parser (Route -> a) a
+pipeline : Parser ((InstanceVars -> Route) -> a) a
 pipeline =
     map
-        (\id g ->
-            Pipeline
-                { id = id
-                , groups = g
-                }
+        (\{ teamName, pipelineName } g ->
+            \iv ->
+                Pipeline
+                    { id =
+                        { teamName = teamName
+                        , pipelineName = pipelineName
+                        , pipelineInstanceVars = iv
+                        }
+                    , groups = g
+                    }
         )
         (pipelineIdentifier <?> Query.custom "group" identity)
 
 
-dashboard : Parser (Route -> a) a
+dashboard : Parser ((b -> Route) -> a) a
 dashboard =
-    map (\st view -> Dashboard { searchType = st, dashboardView = view }) <|
+    map (\st view -> always <| Dashboard { searchType = st, dashboardView = view }) <|
         oneOf
             [ (top
                 <?> (stringWithSpaces "search" |> Query.map (Maybe.withDefault ""))
@@ -283,9 +280,9 @@ stringWithSpaces =
     Query.string >> Query.map (Maybe.map (String.replace "+" " "))
 
 
-flySuccess : Parser (Route -> a) a
+flySuccess : Parser ((b -> Route) -> a) a
 flySuccess =
-    map (\s -> FlySuccess (s == Just "true"))
+    map (\s p -> always <| FlySuccess (s == Just "true") p)
         (s "fly_success"
             <?> Query.string "noop"
             <?> Query.int "fly_port"
@@ -328,7 +325,7 @@ jobRoute j =
         }
 
 
-pipelineRoute : { a | name : String, teamName : String, instanceVars : Concourse.InstanceVars } -> Route
+pipelineRoute : { a | name : String, teamName : String, instanceVars : InstanceVars } -> Route
 pipelineRoute p =
     Pipeline
         { id = Concourse.toPipelineId p
@@ -399,7 +396,7 @@ tokenToFlyRoute authToken flyPort =
 -- router
 
 
-sitemap : Parser (Route -> a) a
+sitemap : Parser ((InstanceVars -> Route) -> a) a
 sitemap =
     oneOf
         [ resource
@@ -500,8 +497,27 @@ toString route =
 
 
 parsePath : Url.Url -> Maybe Route
-parsePath =
-    parse sitemap
+parsePath url =
+    let
+        instanceVars =
+            url.query
+                |> Maybe.withDefault ""
+                |> String.split "&"
+                |> List.filterMap (removePrefix "var.")
+                |> List.filterMap Url.percentDecode
+                |> List.filterMap (DotNotation.parse >> Result.toMaybe)
+                |> DotNotation.expand
+    in
+    parse sitemap url |> Maybe.map (\deferredRoute -> deferredRoute instanceVars)
+
+
+removePrefix : String -> String -> Maybe String
+removePrefix prefix s =
+    if String.startsWith prefix s then
+        Just <| String.dropLeft (String.length prefix) s
+
+    else
+        Nothing
 
 
 
@@ -560,9 +576,13 @@ searchQueryParams q =
 pipelineIdBuilder : { r | teamName : String, pipelineName : String, pipelineInstanceVars : Concourse.InstanceVars } -> RouteBuilder
 pipelineIdBuilder id =
     ( [ "teams", id.teamName, "pipelines", id.pipelineName ]
-    , if Dict.isEmpty id.pipelineInstanceVars then
-        []
-
-      else
-        [ Builder.string "instance_vars" <| Json.Encode.encode 0 (encodeInstanceVars id.pipelineInstanceVars) ]
+    , DotNotation.flatten id.pipelineInstanceVars
+        |> List.map
+            (\var ->
+                let
+                    ( k, v ) =
+                        DotNotation.serialize var
+                in
+                Builder.string ("var." ++ k) v
+            )
     )

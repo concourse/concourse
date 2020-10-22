@@ -55,6 +55,7 @@ module Concourse exposing
     , decodeInfo
     , decodeInstanceVars
     , decodeJob
+    , decodeJsonValue
     , decodeMetadata
     , decodePipeline
     , decodeResource
@@ -66,6 +67,7 @@ module Concourse exposing
     , encodeBuild
     , encodeInstanceVars
     , encodeJob
+    , encodeJsonValue
     , encodePipeline
     , encodeTeam
     , flattenJson

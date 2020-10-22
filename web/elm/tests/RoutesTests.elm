@@ -282,12 +282,25 @@ all =
                         { id =
                             { teamName = "team"
                             , pipelineName = "pipeline"
-                            , pipelineInstanceVars = Dict.fromList [ ( "k", JsonString "s" ) ]
+                            , pipelineInstanceVars =
+                                Dict.fromList
+                                    [ ( "k", JsonString "s" )
+                                    , ( "foo"
+                                      , JsonObject
+                                            [ ( "bar"
+                                              , JsonObject
+                                                    [ ( "baz", JsonNumber 1 )
+                                                    , ( "qux.blah", JsonNumber 2 )
+                                                    ]
+                                              )
+                                            ]
+                                      )
+                                    ]
                             }
                         , groups = []
                         }
                     )
-                    |> Expect.equal "/teams/team/pipelines/pipeline?instance_vars=%7B%22k%22%3A%22s%22%7D"
+                    |> Expect.equal "/teams/team/pipelines/pipeline?var.foo.bar.baz=1&var.foo.bar.%22qux.blah%22=2&var.k=%22s%22"
         , test "Pipeline route can be parsed properly" <|
             \_ ->
                 ("http://example.com"
