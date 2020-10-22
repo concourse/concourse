@@ -827,6 +827,7 @@ steps =
     Dict.singleton "stepid"
         { id = "stepid"
         , name = "task_step"
+        , displayName = Nothing
         , state = STModels.StepStateRunning
         , log = log
         , error = Nothing
