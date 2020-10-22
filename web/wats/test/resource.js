@@ -19,46 +19,44 @@ const versionInPinBarSelector = '#pin-bar table';
 const topBarPinIconSelector = '#pin-icon';
 
 test('can unpin from top bar when pinned version is not in the versions list', async t => {
-  const pipelineId = await setupPipeline(t);
-  await pinVersion(t, pipelineId);
+  await setupPipeline(t);
+  await pinVersion(t);
   await resetVersionsList(t);
-  await unpinVersionUsingTopBar(t, pipelineId);
-  await reloadPageAndCheckResourceIsStillNotPinned(t, pipelineId);
+  await unpinVersionUsingTopBar(t);
+  await reloadPageAndCheckResourceIsStillNotPinned(t);
   t.pass();
 });
 
 async function setupPipeline(t) {
-  const pipelineId = await t.context.fly.setPipeline('pipeline', 'fixtures/before-pin.yml');
+  await t.context.fly.run('set-pipeline -n -p pipeline -c fixtures/before-pin.yml');
   await t.context.fly.run('unpause-pipeline -p pipeline');
   await t.context.fly.run('check-resource -r pipeline/resource');
-  return pipelineId;
 }
 
-async function pinVersion(t, pipelineId) {
-  await goToResourcePage(t, pipelineId);
+async function pinVersion(t) {
+  await goToResourcePage(t);
   await t.context.web.clickAndWait(pinButtonSelector, versionInPinBarSelector);
 }
 
 async function resetVersionsList(t) {
-  const pipelineId = await t.context.fly.setPipeline('pipeline', 'fixtures/after-pin.yml');
+  await t.context.fly.run('set-pipeline -n -p pipeline -c fixtures/after-pin.yml');
   await t.context.fly.run('check-resource -r pipeline/resource');
-  return pipelineId;
 }
 
-async function unpinVersionUsingTopBar(t, pipelineId) {
-  await goToResourcePage(t, pipelineId);
+async function unpinVersionUsingTopBar(t) {
+  await goToResourcePage(t);
   await t.context.web.page.waitFor(topBarPinIconSelector);
   await t.context.web.page.click(topBarPinIconSelector);
   await checkNoVersionInPinBar(t);
 }
 
-async function reloadPageAndCheckResourceIsStillNotPinned(t, pipelineId) {
-  await goToResourcePage(t, pipelineId);
+async function reloadPageAndCheckResourceIsStillNotPinned(t) {
+  await goToResourcePage(t);
   await checkNoVersionInPinBar(t);
 }
 
-async function goToResourcePage(t, pipelineId) {
-  const url = `/pipelines/${pipelineId}/resources/resource`;
+async function goToResourcePage(t) {
+  let url = `/teams/${t.context.teamName}/pipelines/pipeline/resources/resource`;
   await t.context.web.page.goto(t.context.web.route(url));
   await waitForPageLoad(t);
 }

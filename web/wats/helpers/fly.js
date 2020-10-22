@@ -28,21 +28,6 @@ class Fly {
     await this.loginAs(this.teamName);
   }
 
-  async setPipeline(name, config) {
-    await this.run(`set-pipeline -n -p ${name} -c ${config}`);
-    return await this.findPipelineId(name)
-  }
-
-  async findPipelineId(name) {
-    const pipelinesResult = await this.run(`pipelines --json`);
-    const pipelines = JSON.parse(pipelinesResult.stdout);
-    const pipeline = pipelines.find(p => p.name === name);
-    if (pipeline === undefined) {
-      throw "missing pipeline " + name;
-    }
-    return pipeline.id;
-  }
-
   destroyTeam(teamName) {
     return this.run(`destroy-team --team-name ${teamName} --non-interactive`)
   }
