@@ -68,7 +68,7 @@ func requiresQuoting(v interface{}) bool {
 	if !isStringAfterUnmarshal {
 		return true
 	}
-	return strings.ContainsAny(str, ",.: ")
+	return strings.ContainsAny(str, ",: ")
 }
 
 func unquoteString(s string) string {

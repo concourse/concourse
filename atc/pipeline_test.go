@@ -36,19 +36,18 @@ var _ = Describe("PipelineRef", func() {
 						"foo": 1,
 						"bar": []interface{}{"1", 2},
 					},
-					"a": "hello",
+					"a": "hello.world",
 				}},
-				out: `some-pipeline/a:hello,b.bar:["1",2],b.foo:1`,
+				out: `some-pipeline/a:hello.world,b.bar:["1",2],b.foo:1`,
 			},
 			{
 				desc: "quotes string values that contain special characters",
 				ref: atc.PipelineRef{Name: "some-pipeline", InstanceVars: atc.InstanceVars{
-					"dot":   "a.b",
 					"colon": "a:b",
 					"comma": "a,b",
 					"space": "a b",
 				}},
-				out: `some-pipeline/colon:"a:b",comma:"a,b",dot:"a.b",space:"a b"`,
+				out: `some-pipeline/colon:"a:b",comma:"a,b",space:"a b"`,
 			},
 			{
 				desc: "quotes string values that match special YAML values",
