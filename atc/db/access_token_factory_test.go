@@ -30,7 +30,7 @@ var _ = Describe("Access Token Factory", func() {
 				"jti": "id",
 
 				"federated_claims": map[string]interface{}{
-					"user_name":    "abc",
+					"user_id":      "userid",
 					"connector_id": "github",
 					"other":        "blah",
 				},
@@ -54,7 +54,7 @@ var _ = Describe("Access Token Factory", func() {
 				ID:        "id",
 			},
 			FederatedClaims: db.FederatedClaims{
-				Username:  "abc",
+				UserID:    "userid",
 				Connector: "github",
 			},
 			RawClaims: map[string]interface{}{
@@ -67,7 +67,7 @@ var _ = Describe("Access Token Factory", func() {
 				"jti": "id",
 
 				"federated_claims": map[string]interface{}{
-					"user_name":    "abc",
+					"user_id":      "userid",
 					"connector_id": "github",
 					"other":        "blah",
 				},

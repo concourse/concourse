@@ -19,12 +19,14 @@ func scanAccessToken(rcv *AccessToken, scan scannable) error {
 
 type Claims struct {
 	jwt.Claims
-	FederatedClaims `json:"federated_claims"`
-	RawClaims       map[string]interface{} `json:"-"`
+	FederatedClaims   `json:"federated_claims"`
+	RawClaims         map[string]interface{} `json:"-"`
+	Username          string                 `json:"name"`
+	PreferredUsername string                 `json:"preferred_username"`
 }
 
 type FederatedClaims struct {
-	Username  string `json:"user_name"`
+	UserID    string `json:"user_id"`
 	Connector string `json:"connector_id"`
 }
 
