@@ -44,16 +44,16 @@ var _ = Describe("Users API", func() {
 				fakeAccess.IsSystemReturns(false)
 
 				fakeAccess.ClaimsReturns(accessor.Claims{
-					Sub:      "some-sub",
-					Name:     "some-name",
-					UserID:   "some-user-id",
-					UserName: "some-user-name",
-					Email:    "some@email.com",
+					Sub:               "some-sub",
+					UserName:          "some-name",
+					UserID:            "some-user-id",
+					PreferredUsername: "some-user-name",
+					Email:             "some@email.com",
 				})
 
 				fakeAccess.TeamRolesReturns(map[string][]string{
-					"some-team":       []string{"owner"},
-					"some-other-team": []string{"viewer"},
+					"some-team":       {"owner"},
+					"some-other-team": {"viewer"},
 				})
 			})
 

@@ -23,7 +23,7 @@ var _ = Describe("AccessorFactory", func() {
 		fakeTeamFetcher   *accessorfakes.FakeTeamFetcher
 		dummyRequest      *http.Request
 
-		role  string
+		role string
 	)
 
 	BeforeEach(func() {
@@ -52,9 +52,9 @@ var _ = Describe("AccessorFactory", func() {
 		Context("when the token is valid", func() {
 			BeforeEach(func() {
 				fakeTokenVerifier.VerifyReturns(map[string]interface{}{
+					"preferred_username": "user1",
 					"federated_claims": map[string]interface{}{
 						"connector_id": "github",
-						"user_name":    "user1",
 					},
 				}, nil)
 				teamWithUsers := func(name string, authenticated bool) db.Team {

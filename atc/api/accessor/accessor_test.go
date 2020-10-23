@@ -158,7 +158,7 @@ var _ = Describe("Accessor", func() {
 					fakeTeam1.AdminReturns(true)
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"owner": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 				})
@@ -186,7 +186,7 @@ var _ = Describe("Accessor", func() {
 			fakeTeam1.AdminReturns(true)
 			fakeTeam1.AuthReturns(atc.TeamAuth{
 				actualRole: map[string][]string{
-					"users": []string{"some-connector:some-user-id"},
+					"users": {"some-connector:some-user-id"},
 				},
 			})
 
@@ -233,7 +233,7 @@ var _ = Describe("Accessor", func() {
 			fakeTeam1.AdminReturns(true)
 			fakeTeam1.AuthReturns(atc.TeamAuth{
 				actualRole: map[string][]string{
-					"groups": []string{"some-connector:some-group"},
+					"groups": {"some-connector:some-group"},
 				},
 			})
 
@@ -366,7 +366,7 @@ var _ = Describe("Accessor", func() {
 					fakeTeam1.AdminReturns(true)
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"owner": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 				})
@@ -385,17 +385,17 @@ var _ = Describe("Accessor", func() {
 				BeforeEach(func() {
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"owner": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 					fakeTeam2.AuthReturns(atc.TeamAuth{
 						"member": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 					fakeTeam3.AuthReturns(atc.TeamAuth{
 						"viewer": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 				})
@@ -486,17 +486,17 @@ var _ = Describe("Accessor", func() {
 				BeforeEach(func() {
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"viewer": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 					fakeTeam2.AuthReturns(atc.TeamAuth{
 						"member": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 					fakeTeam3.AuthReturns(atc.TeamAuth{
 						"owner": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 				})
@@ -511,7 +511,7 @@ var _ = Describe("Accessor", func() {
 					fakeTeam1.AdminReturns(true)
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"viewer": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 				})
@@ -526,7 +526,7 @@ var _ = Describe("Accessor", func() {
 					fakeTeam1.AdminReturns(true)
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"member": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 				})
@@ -638,17 +638,17 @@ var _ = Describe("Accessor", func() {
 			})
 		})
 
-		Context("when the token has a federated user_name", func() {
+		Context("when the token has a preferred user_name", func() {
 			BeforeEach(func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
 				verification.RawClaims = map[string]interface{}{
-					"sub":   "some-sub",
-					"name":  "some-name",
-					"email": "some-email",
+					"sub":                "some-sub",
+					"name":               "some-name",
+					"preferred_username": "some-user-name",
+					"email":              "some-email",
 					"federated_claims": map[string]interface{}{
 						"user_id":      "some-id",
-						"user_name":    "some-user-name",
 						"connector_id": "some-connector",
 					},
 				}
@@ -656,12 +656,12 @@ var _ = Describe("Accessor", func() {
 
 			It("returns the result", func() {
 				Expect(result).To(Equal(accessor.Claims{
-					Sub:       "some-sub",
-					Name:      "some-name",
-					Email:     "some-email",
-					UserID:    "some-id",
-					UserName:  "some-user-name",
-					Connector: "some-connector",
+					Sub:               "some-sub",
+					UserName:          "some-name",
+					Email:             "some-email",
+					UserID:            "some-id",
+					PreferredUsername: "some-user-name",
+					Connector:         "some-connector",
 				}))
 			})
 		})
@@ -700,13 +700,13 @@ var _ = Describe("Accessor", func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
 				verification.RawClaims = map[string]interface{}{
-					"sub":   "some-sub",
-					"name":  "some-name",
-					"email": "some-email",
+					"sub":                "some-sub",
+					"name":               "some-name",
+					"preferred_username": "some-user-name",
+					"email":              "some-email",
 					"federated_claims": map[string]interface{}{
 						"connector_id": "some-connector",
 						"user_id":      "some-user-id",
-						"user_name":    "some-user-name",
 					},
 					"groups": []interface{}{"some-group"},
 				}
@@ -722,17 +722,17 @@ var _ = Describe("Accessor", func() {
 				BeforeEach(func() {
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"owner": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 					fakeTeam2.AuthReturns(atc.TeamAuth{
 						"member": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 					fakeTeam3.AuthReturns(atc.TeamAuth{
 						"viewer": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 					})
 				})
@@ -748,17 +748,17 @@ var _ = Describe("Accessor", func() {
 				BeforeEach(func() {
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"owner": map[string][]string{
-							"users": []string{"some-connector:some-user-name"},
+							"users": {"some-connector:some-user-name"},
 						},
 					})
 					fakeTeam2.AuthReturns(atc.TeamAuth{
 						"member": map[string][]string{
-							"users": []string{"some-connector:some-user-name"},
+							"users": {"some-connector:some-user-name"},
 						},
 					})
 					fakeTeam3.AuthReturns(atc.TeamAuth{
 						"viewer": map[string][]string{
-							"users": []string{"some-connector:some-user-name"},
+							"users": {"some-connector:some-user-name"},
 						},
 					})
 				})
@@ -774,17 +774,17 @@ var _ = Describe("Accessor", func() {
 				BeforeEach(func() {
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"owner": map[string][]string{
-							"groups": []string{"some-connector:some-group"},
+							"groups": {"some-connector:some-group"},
 						},
 					})
 					fakeTeam2.AuthReturns(atc.TeamAuth{
 						"member": map[string][]string{
-							"groups": []string{"some-connector:some-group"},
+							"groups": {"some-connector:some-group"},
 						},
 					})
 					fakeTeam3.AuthReturns(atc.TeamAuth{
 						"viewer": map[string][]string{
-							"groups": []string{"some-connector:some-group"},
+							"groups": {"some-connector:some-group"},
 						},
 					})
 				})
@@ -800,10 +800,10 @@ var _ = Describe("Accessor", func() {
 				BeforeEach(func() {
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"owner": map[string][]string{
-							"users": []string{"some-connector:some-user-id"},
+							"users": {"some-connector:some-user-id"},
 						},
 						"member": map[string][]string{
-							"groups": []string{"some-connector:some-group"},
+							"groups": {"some-connector:some-group"},
 						},
 					})
 				})
@@ -818,8 +818,8 @@ var _ = Describe("Accessor", func() {
 				BeforeEach(func() {
 					fakeTeam1.AuthReturns(atc.TeamAuth{
 						"owner": map[string][]string{
-							"users":  []string{"some-connector:some-user-id"},
-							"groups": []string{"some-connector:some-group"},
+							"users":  {"some-connector:some-user-id"},
+							"groups": {"some-connector:some-group"},
 						},
 					})
 				})

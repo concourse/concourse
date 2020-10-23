@@ -97,7 +97,11 @@ func StoreAccessToken(
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		err = userFactory.CreateOrUpdateUser(claims.Username, claims.Connector, claims.Subject)
+		username := claims.Username
+		if claims.PreferredUsername != "" {
+			username = claims.PreferredUsername
+		}
+		err = userFactory.CreateOrUpdateUser(username, claims.Connector, claims.Subject)
 		if err != nil {
 			logger.Error("create-or-update-user", err)
 			w.WriteHeader(http.StatusInternalServerError)
