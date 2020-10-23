@@ -204,12 +204,7 @@ all =
                                         , ( "c", JsonString "bar" )
                                         ]
                                   )
-                                , ( "d"
-                                  , JsonArray
-                                        [ JsonNumber 1.0
-                                        , JsonRaw <| Json.Encode.bool True
-                                        ]
-                                  )
+                                , ( "d", JsonNumber 1.0 )
                                 ]
                             ]
                         |> Common.queryView
@@ -217,8 +212,7 @@ all =
                         |> Expect.all
                             [ Query.index 0 >> Query.has [ text "a.b" ]
                             , Query.index 1 >> Query.has [ text "a.c" ]
-                            , Query.index 2 >> Query.has [ text "d[0]" ]
-                            , Query.index 3 >> Query.has [ text "d[1]" ]
+                            , Query.index 2 >> Query.has [ text "d" ]
                             ]
             , test "card header expands with number of variables" <|
                 \_ ->

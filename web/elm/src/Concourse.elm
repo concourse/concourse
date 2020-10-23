@@ -456,7 +456,6 @@ type JsonValue
     = JsonString String
     | JsonNumber Float
     | JsonObject (List ( String, JsonValue ))
-    | JsonArray (List JsonValue)
     | JsonRaw Json.Decode.Value
 
 
@@ -464,7 +463,6 @@ decodeJsonValue : Json.Decode.Decoder JsonValue
 decodeJsonValue =
     Json.Decode.oneOf
         [ Json.Decode.keyValuePairs decodeSimpleJsonValue |> Json.Decode.map JsonObject
-        , Json.Decode.list decodeSimpleJsonValue |> Json.Decode.map JsonArray
         , decodeSimpleJsonValue
         ]
 
@@ -490,9 +488,6 @@ encodeJsonValue v =
         JsonObject kvs ->
             encodeJsonObject kvs
 
-        JsonArray arr ->
-            Json.Encode.list encodeJsonValue arr
-
         JsonRaw raw ->
             raw
 
@@ -515,18 +510,6 @@ flattenJson key val =
 
         JsonRaw v ->
             [ ( key, Json.Encode.encode 0 v ) ]
-
-        JsonArray l ->
-            List.indexedMap
-                (\i v ->
-                    let
-                        subKey =
-                            key ++ "[" ++ String.fromInt i ++ "]"
-                    in
-                    flattenJson subKey v
-                )
-                l
-                |> List.concat
 
         JsonObject o ->
             List.concatMap

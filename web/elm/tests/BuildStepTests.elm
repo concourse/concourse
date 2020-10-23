@@ -312,11 +312,6 @@ all =
                             >> given theAcrossStepIsExpanded
                             >> when iAmLookingAtTheFirstAcrossSubHeader
                             >> then_ iSeeTheObjectKeyValuePairs
-                    , test "displays array fields with index notation" <|
-                        given iVisitABuildWithAnAcrossStepWithComplexValues
-                            >> given theAcrossStepIsExpanded
-                            >> when iAmLookingAtTheSecondAcrossSubHeader
-                            >> then_ iSeeTheArrayKeyValuePairs
                     ]
                 ]
             ]
@@ -707,11 +702,7 @@ thePlanContainsAnAcrossStepWithComplexValues =
                                                 "taskName"
                                         }
                                       )
-                                    , ( [ JsonArray
-                                            [ JsonString "v1"
-                                            , JsonNumber 1
-                                            ]
-                                        ]
+                                    , ( [ JsonString "test" ]
                                       , { id = "task2Id"
                                         , step =
                                             Concourse.BuildStepTask
@@ -978,13 +969,6 @@ iSeeTheObjectKeyValuePairs =
         (kvPair "var1.f1" "v1"
             ++ kvPair "var1.f2" "1"
             ++ kvPair "var1.f3" "{\"abc\":123}"
-        )
-
-
-iSeeTheArrayKeyValuePairs =
-    Query.has
-        (kvPair "var1[0]" "v1"
-            ++ kvPair "var1[1]" "1"
         )
 
 

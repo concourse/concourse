@@ -75,9 +75,9 @@ hasData =
                                 (Dict.fromList
                                     [ ( "version", JsonString "6.5.x" )
                                     , ( "properties"
-                                      , JsonArray
-                                            [ JsonNumber 123
-                                            , JsonObject [ ( "a", JsonRaw <| Json.Encode.bool True ) ]
+                                      , JsonObject
+                                            [ ( "num", JsonNumber 123 )
+                                            , ( "obj", JsonObject [ ( "a", JsonRaw <| Json.Encode.bool True ) ] )
                                             ]
                                       )
                                     ]
