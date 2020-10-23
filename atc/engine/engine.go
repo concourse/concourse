@@ -238,7 +238,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 		logger.Info("releasing")
 
 	case <-done:
-		if errors.As(runErr, &exec.Retriable{}) {
+		if errors.As(runErr, &exec.Retriable{}) && !b.build.IsAborted() {
 			return
 		}
 
