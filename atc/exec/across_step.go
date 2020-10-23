@@ -95,7 +95,7 @@ func (step AcrossStep) acrossStepExecutor(state RunState, varIndex int, steps []
 	return parallelExecutor{
 		stepName: "across",
 
-		maxInFlight: step.vars[varIndex].MaxInFlight.EffectiveLimit(numValues),
+		maxInFlight: step.vars[varIndex].MaxInFlight,
 		failFast:    step.failFast,
 		count:       numValues,
 
@@ -113,7 +113,7 @@ func (step AcrossStep) acrossStepLeafExecutor(state RunState, steps []ScopedStep
 	return parallelExecutor{
 		stepName: "across",
 
-		maxInFlight: lastVar.MaxInFlight.EffectiveLimit(len(steps)),
+		maxInFlight: lastVar.MaxInFlight,
 		failFast:    step.failFast,
 		count:       len(steps),
 

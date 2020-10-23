@@ -8,25 +8,27 @@ import (
 	"runtime/debug"
 	"sync/atomic"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/hashicorp/go-multierror"
 )
 
 // InParallelStep is a step of steps to run in parallel.
 type InParallelStep struct {
-	steps    []Step
-	limit    int
-	failFast bool
+	steps       []Step
+	maxInFlight atc.MaxInFlightConfig
+	failFast    bool
 }
 
 // InParallel constructs an InParallelStep.
 func InParallel(steps []Step, limit int, failFast bool) InParallelStep {
+	maxInFlight := atc.MaxInFlightConfig{Limit: limit}
 	if limit < 1 {
-		limit = len(steps)
+		maxInFlight.All = true
 	}
 	return InParallelStep{
-		steps:    steps,
-		limit:    limit,
-		failFast: failFast,
+		steps:       steps,
+		maxInFlight: maxInFlight,
+		failFast:    failFast,
 	}
 }
 
@@ -44,7 +46,7 @@ func (step InParallelStep) Run(ctx context.Context, state RunState) (bool, error
 	return parallelExecutor{
 		stepName: "parallel",
 
-		maxInFlight: step.limit,
+		maxInFlight: &step.maxInFlight,
 		failFast:    step.failFast,
 		count:       len(step.steps),
 
@@ -57,7 +59,7 @@ func (step InParallelStep) Run(ctx context.Context, state RunState) (bool, error
 type parallelExecutor struct {
 	stepName string
 
-	maxInFlight int
+	maxInFlight *atc.MaxInFlightConfig
 	failFast    bool
 	count       int
 
@@ -67,7 +69,7 @@ type parallelExecutor struct {
 func (p parallelExecutor) run(ctx context.Context) (bool, error) {
 	var (
 		errs          = make(chan error, p.count)
-		sem           = make(chan bool, p.maxInFlight)
+		sem           = make(chan bool, p.maxInFlight.EffectiveLimit(p.count))
 		executedSteps int
 	)
 
