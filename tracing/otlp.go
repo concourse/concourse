@@ -18,15 +18,20 @@ func (s OTLP) IsConfigured() bool {
 	return s.Address != ""
 }
 
+func (s OTLP) security() otlp.ExporterOption {
+	if s.UseTLS {
+		return otlp.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, ""))
+	}
+
+	return otlp.WithInsecure()
+}
+
 // Exporter returns a SpanExporter to sync spans to OTLP
 func (s OTLP) Exporter() (export.SpanSyncer, error) {
 	options := []otlp.ExporterOption{
 		otlp.WithAddress(s.Address),
 		otlp.WithHeaders(s.Headers),
-	}
-
-	if s.UseTLS {
-		options = append(options, otlp.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, "")))
+		s.security(),
 	}
 
 	exporter, err := otlp.NewExporter(options...)
