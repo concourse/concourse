@@ -77,6 +77,22 @@ expandTest =
                               )
                             ]
                         )
+        , test "sorts field names" <|
+            \_ ->
+                expand
+                    [ { path = "key", fields = [ "banana" ], value = JsonString "value1" }
+                    , { path = "key", fields = [ "apple" ], value = JsonString "value2" }
+                    ]
+                    |> Expect.equal
+                        (Dict.fromList
+                            [ ( "key"
+                              , JsonObject
+                                    [ ( "apple", JsonString "value2" )
+                                    , ( "banana", JsonString "value1" )
+                                    ]
+                              )
+                            ]
+                        )
         , test "replacing values" <|
             \_ ->
                 expand
@@ -128,8 +144,8 @@ parseTest =
                             , fields = []
                             , value =
                                 JsonObject
-                                    [ ( "hello", JsonNumber 1 )
-                                    , ( "foo", JsonRaw (Json.Encode.bool True) )
+                                    [ ( "foo", JsonRaw (Json.Encode.bool True) )
+                                    , ( "hello", JsonNumber 1 )
                                     ]
                             }
                         )

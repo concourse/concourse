@@ -462,7 +462,9 @@ type JsonValue
 decodeJsonValue : Json.Decode.Decoder JsonValue
 decodeJsonValue =
     Json.Decode.oneOf
-        [ Json.Decode.keyValuePairs decodeSimpleJsonValue |> Json.Decode.map JsonObject
+        [ Json.Decode.keyValuePairs (Json.Decode.lazy (\_ -> decodeJsonValue))
+            |> Json.Decode.map (List.sortBy Tuple.first)
+            |> Json.Decode.map JsonObject
         , decodeSimpleJsonValue
         ]
 

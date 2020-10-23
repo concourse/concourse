@@ -78,6 +78,7 @@ upsert { path, fields, value } =
                             Dict.fromList kvPairs
                                 |> upsert { path = field, fields = rest, value = value }
                                 |> Dict.toList
+                                |> List.sortBy Tuple.first
                                 |> JsonObject
                                 |> Just
 
