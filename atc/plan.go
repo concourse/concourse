@@ -170,9 +170,9 @@ type AcrossPlan struct {
 }
 
 type AcrossVar struct {
-	Var         string        `json:"name"`
-	Values      []interface{} `json:"values"`
-	MaxInFlight int           `json:"max_in_flight"`
+	Var         string             `json:"name"`
+	Values      []interface{}      `json:"values"`
+	MaxInFlight *MaxInFlightConfig `json:"max_in_flight,omitempty"`
 }
 
 type VarScopedPlan struct {
