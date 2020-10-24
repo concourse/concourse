@@ -397,7 +397,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		prometheus.CounterOpts{
 			Namespace: "concourse",
 			Subsystem: "volumes",
-			Name:      "volumes_streams",
+			Name:      "volumes_streamed",
 			Help:      "Total number of volumes streamed from one worker to the other",
 		},
 	)
