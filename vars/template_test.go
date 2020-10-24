@@ -117,31 +117,6 @@ dup-key: ((key3))
 		Expect(result).To(Equal([]byte("((key)): ((key2))\nfoo: 2\n")))
 	})
 
-	It("return errors if there are unused variable keys and ExpectAllVarsUsed is true", func() {
-		template := NewTemplate([]byte("((key2))"))
-		vars := StaticVariables{"key1": "1", "key2": "2", "key3": "3"}
-
-		_, err := template.Evaluate(vars, EvaluateOpts{ExpectAllVarsUsed: true})
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(Equal("unused vars: key1, key3"))
-	})
-
-	It("return errors if there are unused named variable keys and ExpectAllVarsUsed is true", func() {
-		template := NewTemplate([]byte("((key2))"))
-		vars := NamedVariables{
-			"var1": StaticVariables{
-				"key1": "fuzz",
-			},
-			"var2": StaticVariables{
-				"key1": "blah",
-			},
-		}
-
-		_, err := template.Evaluate(vars, EvaluateOpts{ExpectAllVarsUsed: true})
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(Equal("unused vars: var1:key1, var2:key1"))
-	})
-
 	It("does not return error if there are unused variable keys and ExpectAllVarsUsed is false", func() {
 		template := NewTemplate([]byte("((key)): ((key2))"))
 		vars := StaticVariables{"key3": "foo"}
@@ -149,16 +124,6 @@ dup-key: ((key3))
 		result, err := template.Evaluate(vars, EvaluateOpts{})
 		Expect(err).ToNot(HaveOccurred())
 		Expect(result).To(Equal([]byte("((key)): ((key2))\n")))
-	})
-
-	It("return errors if there are not found and unused variables and ExpectAllKeys and ExpectAllVarsUsed are true", func() {
-		template := NewTemplate([]byte("((key2))"))
-		vars := StaticVariables{"key1": "1", "key3": "3"}
-
-		_, err := template.Evaluate(vars, EvaluateOpts{ExpectAllKeys: true, ExpectAllVarsUsed: true})
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("undefined vars: key2"))
-		Expect(err.Error()).To(ContainSubstring("unused vars: key1, key3"))
 	})
 
 	Context("When template is a number", func() {
