@@ -1,13 +1,10 @@
 package vars
 
 import (
-	"encoding/json"
 	"fmt"
-	"regexp"
 	"sort"
-	"strings"
 
-	"gopkg.in/yaml.v2"
+	"sigs.k8s.io/yaml"
 )
 
 type Template struct {
@@ -22,20 +19,19 @@ func NewTemplate(bytes []byte) Template {
 	return Template{bytes: bytes}
 }
 
-func (t Template) ExtraVarNames() []string {
-	return interpolator{}.extractVarNames(string(t.bytes))
-}
-
 func (t Template) Evaluate(vars Variables, opts EvaluateOpts) ([]byte, error) {
-	var obj interface{}
-
-	err := yaml.Unmarshal(t.bytes, &obj)
+	var document Any
+	err := yaml.Unmarshal(t.bytes, &document, UseNumber)
 	if err != nil {
 		return []byte{}, err
 	}
 
-	obj, err = t.interpolateRoot(obj, newVarsTracker(vars, opts.ExpectAllKeys))
+	resolver := newTrackingResolver(vars, opts.ExpectAllKeys)
+	obj, err := Interpolate(document, resolver)
 	if err != nil {
+		return []byte{}, err
+	}
+	if err := resolver.Error(); err != nil {
 		return []byte{}, err
 	}
 
@@ -47,135 +43,31 @@ func (t Template) Evaluate(vars Variables, opts EvaluateOpts) ([]byte, error) {
 	return bytes, nil
 }
 
-func (t Template) interpolateRoot(obj interface{}, tracker varsTracker) (interface{}, error) {
-	var err error
-	obj, err = interpolator{}.Interpolate(obj, tracker)
-	if err != nil {
-		return nil, err
-	}
-
-	return obj, tracker.Error()
-}
-
-type interpolator struct{}
-
-var (
-	interpolationRegex         = regexp.MustCompile(`\(\((([-/\.\w\pL]+\:)?[-/\.:@"\w\pL]+)\)\)`)
-	interpolationAnchoredRegex = regexp.MustCompile("\\A" + interpolationRegex.String() + "\\z")
-)
-
-func (i interpolator) Interpolate(node interface{}, tracker varsTracker) (interface{}, error) {
-	switch typedNode := node.(type) {
-	case map[interface{}]interface{}:
-		for k, v := range typedNode {
-			evaluatedValue, err := i.Interpolate(v, tracker)
-			if err != nil {
-				return nil, err
-			}
-
-			evaluatedKey, err := i.Interpolate(k, tracker)
-			if err != nil {
-				return nil, err
-			}
-
-			delete(typedNode, k) // delete in case key has changed
-			typedNode[evaluatedKey] = evaluatedValue
-		}
-
-	case []interface{}:
-		for idx, x := range typedNode {
-			var err error
-			typedNode[idx], err = i.Interpolate(x, tracker)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-	case string:
-		for _, name := range i.extractVarNames(typedNode) {
-			foundVal, found, err := tracker.Get(name)
-			if err != nil {
-				return nil, err
-			}
-
-			if found {
-				// ensure that value type is preserved when replacing the entire field
-				if interpolationAnchoredRegex.MatchString(typedNode) {
-					return foundVal, nil
-				}
-
-				switch foundVal.(type) {
-				case string, int, int16, int32, int64, uint, uint16, uint32, uint64, json.Number:
-					foundValStr := fmt.Sprintf("%v", foundVal)
-					typedNode = strings.Replace(typedNode, fmt.Sprintf("((%s))", name), foundValStr, -1)
-				default:
-					return nil, InvalidInterpolationError{
-						Name:  name,
-						Value: foundVal,
-					}
-				}
-			}
-		}
-
-		return typedNode, nil
-	}
-
-	return node, nil
-}
-
-func (i interpolator) extractVarNames(value string) []string {
-	var names []string
-
-	for _, match := range interpolationRegex.FindAllSubmatch([]byte(value), -1) {
-		names = append(names, string(match[1]))
-	}
-
-	return names
-}
-
-type varsTracker struct {
-	vars Variables
-
+type trackingResolver struct {
+	vars           Variables
 	expectAllFound bool
-
-	missing    map[string]struct{}
-	visitedAll map[string]struct{} // track all var names that were accessed
+	missing        map[string]struct{}
 }
 
-func newVarsTracker(vars Variables, expectAllFound bool) varsTracker {
-	return varsTracker{
+func newTrackingResolver(vars Variables, expectAllFound bool) trackingResolver {
+	return trackingResolver{
 		vars:           vars,
 		expectAllFound: expectAllFound,
 		missing:        map[string]struct{}{},
-		visitedAll:     map[string]struct{}{},
 	}
 }
 
-// Get value of a var. Name can be the following formats: 1) 'foo', where foo
-// is var name; 2) 'foo:bar', where foo is var source name, and bar is var name;
-// 3) '.:foo', where . means a local var, foo is var name.
-func (t varsTracker) Get(varName string) (interface{}, bool, error) {
-	varRef, err := ParseReference(varName)
-	if err != nil {
-		return nil, false, err
-	}
-
-	t.visitedAll[identifier(varRef)] = struct{}{}
-
-	val, found, err := t.vars.Get(varRef)
+func (t trackingResolver) Resolve(ref Reference) (interface{}, error) {
+	val, found, err := t.vars.Get(ref)
 	if !found || err != nil {
-		t.missing[varRef.String()] = struct{}{}
-		return val, found, err
+		t.missing[identifier(ref)] = struct{}{}
+		return "((" + ref.String() + "))", err
 	}
 
-	return val, true, err
+	return val, nil
 }
 
-func (t varsTracker) Error() error {
-	return t.MissingError()
-}
-
-func (t varsTracker) MissingError() error {
+func (t trackingResolver) Error() error {
 	if !t.expectAllFound || len(t.missing) == 0 {
 		return nil
 	}
@@ -185,12 +77,10 @@ func (t varsTracker) MissingError() error {
 
 func names(mapWithNames map[string]struct{}) []string {
 	var names []string
-	for name, _ := range mapWithNames {
+	for name := range mapWithNames {
 		names = append(names, name)
 	}
-
 	sort.Strings(names)
-
 	return names
 }
 

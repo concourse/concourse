@@ -57,3 +57,11 @@ type InvalidInterpolationError struct {
 func (err InvalidInterpolationError) Error() string {
 	return fmt.Sprintf("cannot interpolate non-primitive value (%T) from var: %s", err.Value, err.Name)
 }
+
+type InvalidVarError struct {
+	Name string
+}
+
+func (err InvalidVarError) Error() string {
+	return fmt.Sprintf("assigned value '%s' is not a var reference", err.Name)
+}

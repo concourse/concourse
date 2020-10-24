@@ -63,7 +63,7 @@ var _ = Describe("Template", func() {
 
 		result, err := template.Evaluate(vars, EvaluateOpts{})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(result).To(Equal([]byte(`1234: value
+		Expect(string(result)).To(Equal(`"1234": value
 name1: 1
 name2: nil
 name3: true
@@ -74,7 +74,7 @@ name6:
     key2:
     - value1
     - value2
-`)))
+`))
 	})
 
 	It("return errors if there are missing variable keys and ExpectAllKeys is true", func() {
@@ -133,18 +133,18 @@ dup-key: ((key3))
 
 			result, err := template.Evaluate(vars, EvaluateOpts{})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result).To(Equal([]byte("1234\n")))
+			Expect(string(result)).To(Equal("1234\n"))
 		})
 	})
 
 	Context("When variable has nil as value for key", func() {
-		It("uses null", func() {
+		It("uses string \"null\"", func() {
 			template := NewTemplate([]byte("((key)): value"))
 			vars := StaticVariables{"key": nil}
 
 			result, err := template.Evaluate(vars, EvaluateOpts{})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result).To(Equal([]byte("null: value\n")))
+			Expect(string(result)).To(Equal("\"null\": value\n"))
 		})
 	})
 
@@ -255,16 +255,15 @@ dup-key: ((key3))
 	})
 
 	It("raises error when interpolating an unsupported type in the middle of a string", func() {
-		template := NewTemplate([]byte("address: ((definition)):((eulers_number))"))
+		template := NewTemplate([]byte("address: ((foo)):((bar))"))
 		vars := StaticVariables{
-			"eulers_number": 2.717,
-			"definition":    "natural_log",
+			"foo": "hello",
+			"bar": []interface{}{"nope"},
 		}
 
 		_, err := template.Evaluate(vars, EvaluateOpts{})
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("float64"))
-		Expect(err.Error()).To(ContainSubstring("eulers_number"))
+		Expect(err.Error()).To(MatchRegexp("cannot interpolate non-primitive value.*bar"))
 	})
 
 	It("can interpolate a single key multiple times in the middle of a string", func() {

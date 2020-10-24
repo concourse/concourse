@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/concourse/concourse/vars"
 	"golang.org/x/crypto/ssh"
 	"sigs.k8s.io/yaml"
-
-	"github.com/concourse/concourse/vars"
 )
 
 const ConfigVersionHeader = "X-Concourse-Config-Version"
@@ -100,19 +99,19 @@ func (c VarSourceConfigs) OrderByDependency() (VarSourceConfigs, error) {
 	added := map[string]interface{}{}
 
 	for _, vs := range c {
-		b, err := yaml.Marshal(vs.Config)
+		var varRefs []vars.Reference
+		_, err := vars.Any{Value: vs.Config}.Interpolate(vars.ResolverFunc(func(ref vars.Reference) (interface{}, error) {
+			varRefs = append(varRefs, ref)
+			return "((" + ref.String() + "))", nil
+		}))
 		if err != nil {
 			return nil, err
 		}
 
-		template := vars.NewTemplate(b)
-		varNames := template.ExtraVarNames()
-
 		dependencies := []string{}
-		for _, varName := range varNames {
-			parts := strings.Split(varName, ":")
-			if len(parts) > 1 {
-				dependencies = append(dependencies, parts[0])
+		for _, ref := range varRefs {
+			if ref.Source != "" {
+				dependencies = append(dependencies, ref.Source)
 			}
 		}
 
