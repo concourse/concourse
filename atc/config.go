@@ -71,9 +71,9 @@ func (groups GroupConfigs) Lookup(name string) (GroupConfig, int, bool) {
 }
 
 type VarSourceConfig struct {
-	Name   string      `json:"name"`
-	Type   string      `json:"type"`
-	Config interface{} `json:"config"`
+	Name   string   `json:"name"`
+	Type   string   `json:"type"`
+	Config vars.Any `json:"config"`
 }
 
 type VarSourceConfigs []VarSourceConfig
@@ -100,7 +100,7 @@ func (c VarSourceConfigs) OrderByDependency() (VarSourceConfigs, error) {
 
 	for _, vs := range c {
 		var varRefs []vars.Reference
-		_, err := vars.Any{Value: vs.Config}.Interpolate(vars.ResolverFunc(func(ref vars.Reference) (interface{}, error) {
+		_, err := vars.Interpolate(vs.Config, vars.ResolverFunc(func(ref vars.Reference) (interface{}, error) {
 			varRefs = append(varRefs, ref)
 			return "((" + ref.String() + "))", nil
 		}))

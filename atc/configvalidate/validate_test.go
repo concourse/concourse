@@ -35,7 +35,15 @@ var _ = Describe("ValidateConfig", func() {
 				},
 			},
 
-			VarSources: atc.VarSourceConfigs{},
+			VarSources: atc.VarSourceConfigs{
+				{
+					Name: "some-var-source",
+					Type: "dummy",
+					Config: map[string]interface{}{
+						"vars": map[string]interface{}{"foo": "bar"},
+					},
+				},
+			},
 
 			Resources: atc.ResourceConfigs{
 				{

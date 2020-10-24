@@ -1154,15 +1154,11 @@ func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, v
 		}
 
 		// Interpolate variables in pipeline credential manager's config
-		newConfig, err := creds.NewParams(allVars, atc.Params{"config": cm.Config}).Evaluate()
-		if err != nil {
+		var config map[string]interface{}
+		if err := vars.InterpolateInto(cm.Config, vars.NewResolver(allVars), &config); err != nil {
 			return nil, errors.Wrapf(err, "evaluate var_source '%s' error", cm.Name)
 		}
 
-		config, ok := newConfig["config"].(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("var_source '%s' invalid config", cm.Name)
-		}
 		secrets, err := varSourcePool.FindOrCreate(logger, config, factory)
 		if err != nil {
 			return nil, errors.Wrapf(err, "create var_source '%s' error", cm.Name)

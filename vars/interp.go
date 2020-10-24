@@ -118,7 +118,19 @@ func decoder(data []byte, opts ...JSONOpt) *json.Decoder {
 
 type Any interface{}
 
-func Interpolate(node Any, resolver Resolver) (interface{}, error) {
+func Interpolate(v Any, resolver Resolver) (interface{}, error) {
+	payload, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	var node interface{}
+	if err := json.Unmarshal(payload, &node); err != nil {
+		return nil, err
+	}
+	return interpolate(node, resolver)
+}
+
+func interpolate(node Any, resolver Resolver) (interface{}, error) {
 	switch typedNode := node.(type) {
 	case map[string]interface{}:
 		for k, v := range typedNode {
@@ -127,31 +139,35 @@ func Interpolate(node Any, resolver Resolver) (interface{}, error) {
 				return nil, err
 			}
 
-			evaluatedValue, err := Interpolate(v, resolver)
+			evaluatedValue, err := interpolate(v, resolver)
 			if err != nil {
 				return nil, err
 			}
 
-			delete(typedNode, k) // delete in case key has changed
 			typedNode[evaluatedKey] = evaluatedValue
+			if k != evaluatedKey {
+				delete(typedNode, k)
+			}
 		}
+		return typedNode, nil
 
 	case []interface{}:
-		for idx, x := range typedNode {
+		for i, x := range typedNode {
 			var err error
-			typedNode[idx], err = Interpolate(x, resolver)
+			typedNode[i], err = interpolate(x, resolver)
 			if err != nil {
 				return nil, err
 			}
 		}
+		return typedNode, nil
 
 	case string:
 		if interpolationAnchoredRegex.MatchString(typedNode) {
-			var dst interface{}
 			v, err := parseVar(typedNode)
 			if err != nil {
 				return nil, err
 			}
+			var dst interface{}
 			err = v.InterpolateInto(resolver, &dst)
 			if err != nil {
 				return nil, err

@@ -238,13 +238,13 @@ var _ = Describe("Interpolation", func() {
 				{
 					desc: "traverses maps, interpolating keys and values",
 					any: map[string]interface{}{
-						"((hello))": map[string]interface{}{
+						"((hello))": map[string]string{
 							"foo": "((something))",
 						},
 					},
 					vars: StaticVariables{
 						"hello": "sup",
-						"something": map[string]interface{}{
+						"something": map[string]string{
 							"bar": "baz",
 						},
 					},
@@ -263,7 +263,7 @@ var _ = Describe("Interpolation", func() {
 						"((k))": "val",
 					},
 					vars: StaticVariables{
-						"k": []interface{}{"nope!"},
+						"k": []string{"nope!"},
 					},
 
 					err: "cannot interpolate non-primitive value.*k",
@@ -272,7 +272,7 @@ var _ = Describe("Interpolation", func() {
 					desc: "traverses lists, interpolating values",
 					any: []interface{}{
 						"((hello))",
-						map[string]interface{}{
+						map[String]Any{
 							"((k))": []interface{}{"((v))", "other"},
 						},
 					},
@@ -303,6 +303,27 @@ var _ = Describe("Interpolation", func() {
 					}
 				})
 			}
+
+			It("doesn't mutate the state of the Value", func() {
+				any := []interface{}{
+					"((hello))",
+					map[string]interface{}{
+						"((k))": []interface{}{"((v))", "other"},
+					},
+				}
+				_, err := Interpolate(any, NewResolver(StaticVariables{
+					"hello": "123",
+					"k":     "key",
+					"v":     "val",
+				}))
+				Expect(err).ToNot(HaveOccurred())
+				Expect(any).To(Equal([]interface{}{
+					"((hello))",
+					map[string]interface{}{
+						"((k))": []interface{}{"((v))", "other"},
+					},
+				}))
+			})
 		})
 	})
 })
