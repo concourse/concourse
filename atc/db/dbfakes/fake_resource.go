@@ -8,6 +8,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/vars"
 )
 
 type FakeResource struct {
@@ -467,15 +468,15 @@ type FakeResource struct {
 		result3 bool
 		result4 error
 	}
-	WebhookTokenStub        func() string
+	WebhookTokenStub        func() vars.String
 	webhookTokenMutex       sync.RWMutex
 	webhookTokenArgsForCall []struct {
 	}
 	webhookTokenReturns struct {
-		result1 string
+		result1 vars.String
 	}
 	webhookTokenReturnsOnCall map[int]struct {
-		result1 string
+		result1 vars.String
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -2749,7 +2750,7 @@ func (fake *FakeResource) VersionsReturnsOnCall(i int, result1 []atc.ResourceVer
 	}{result1, result2, result3, result4}
 }
 
-func (fake *FakeResource) WebhookToken() string {
+func (fake *FakeResource) WebhookToken() vars.String {
 	fake.webhookTokenMutex.Lock()
 	ret, specificReturn := fake.webhookTokenReturnsOnCall[len(fake.webhookTokenArgsForCall)]
 	fake.webhookTokenArgsForCall = append(fake.webhookTokenArgsForCall, struct {
@@ -2772,32 +2773,32 @@ func (fake *FakeResource) WebhookTokenCallCount() int {
 	return len(fake.webhookTokenArgsForCall)
 }
 
-func (fake *FakeResource) WebhookTokenCalls(stub func() string) {
+func (fake *FakeResource) WebhookTokenCalls(stub func() vars.String) {
 	fake.webhookTokenMutex.Lock()
 	defer fake.webhookTokenMutex.Unlock()
 	fake.WebhookTokenStub = stub
 }
 
-func (fake *FakeResource) WebhookTokenReturns(result1 string) {
+func (fake *FakeResource) WebhookTokenReturns(result1 vars.String) {
 	fake.webhookTokenMutex.Lock()
 	defer fake.webhookTokenMutex.Unlock()
 	fake.WebhookTokenStub = nil
 	fake.webhookTokenReturns = struct {
-		result1 string
+		result1 vars.String
 	}{result1}
 }
 
-func (fake *FakeResource) WebhookTokenReturnsOnCall(i int, result1 string) {
+func (fake *FakeResource) WebhookTokenReturnsOnCall(i int, result1 vars.String) {
 	fake.webhookTokenMutex.Lock()
 	defer fake.webhookTokenMutex.Unlock()
 	fake.WebhookTokenStub = nil
 	if fake.webhookTokenReturnsOnCall == nil {
 		fake.webhookTokenReturnsOnCall = make(map[int]struct {
-			result1 string
+			result1 vars.String
 		})
 	}
 	fake.webhookTokenReturnsOnCall[i] = struct {
-		result1 string
+		result1 vars.String
 	}{result1}
 }
 

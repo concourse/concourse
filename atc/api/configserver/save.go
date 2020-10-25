@@ -164,7 +164,7 @@ func validateCredParams(credMgrVars vars.Variables, config atc.Config, session l
 			errs = multierror.Append(errs, err)
 		}
 
-		_, err = creds.NewString(credMgrVars, resource.WebhookToken).Evaluate()
+		_, err = resource.WebhookToken.Interpolate(vars.NewResolver(credMgrVars))
 		if err != nil {
 			errs = multierror.Append(errs, err)
 		}

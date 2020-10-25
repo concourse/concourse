@@ -10,6 +10,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/concourse/vars"
 	"github.com/lib/pq"
 
 	"github.com/concourse/concourse/atc"
@@ -37,7 +38,7 @@ type Resource interface {
 	LastCheckStartTime() time.Time
 	LastCheckEndTime() time.Time
 	Tags() atc.Tags
-	WebhookToken() string
+	WebhookToken() vars.String
 	Config() atc.ResourceConfig
 	ConfigPinnedVersion() atc.Version
 	APIPinnedVersion() atc.Version
@@ -169,7 +170,7 @@ func (r *resource) CheckTimeout() string             { return r.config.CheckTime
 func (r *resource) LastCheckStartTime() time.Time    { return r.lastCheckStartTime }
 func (r *resource) LastCheckEndTime() time.Time      { return r.lastCheckEndTime }
 func (r *resource) Tags() atc.Tags                   { return r.config.Tags }
-func (r *resource) WebhookToken() string             { return r.config.WebhookToken }
+func (r *resource) WebhookToken() vars.String        { return r.config.WebhookToken }
 func (r *resource) Config() atc.ResourceConfig       { return r.config }
 func (r *resource) ConfigPinnedVersion() atc.Version { return r.configPinnedVersion }
 func (r *resource) APIPinnedVersion() atc.Version    { return r.apiPinnedVersion }

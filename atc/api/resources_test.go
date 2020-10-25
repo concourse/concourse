@@ -13,18 +13,15 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/testhelpers"
-	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("Resources API", func() {
 	var (
 		fakePipeline *dbfakes.FakePipeline
 		resource1    *dbfakes.FakeResource
-		variables    vars.Variables
 	)
 
 	BeforeEach(func() {
@@ -1472,12 +1469,7 @@ var _ = Describe("Resources API", func() {
 
 		Context("when authorized", func() {
 			BeforeEach(func() {
-				variables = vars.StaticVariables{
-					"webhook-token": "fake-token",
-				}
-				token, err := creds.NewString(variables, "((webhook-token))").Evaluate()
-				Expect(err).NotTo(HaveOccurred())
-				fakeResource.WebhookTokenReturns(token)
+				fakeResource.WebhookTokenReturns("fake-token")
 				fakePipeline.ResourceReturns(fakeResource, true, nil)
 				fakeResource.ResourceConfigIDReturns(1)
 				fakeResource.ResourceConfigScopeIDReturns(2)

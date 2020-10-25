@@ -8,8 +8,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/api/present"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/vars"
 	"github.com/tedsuo/rata"
 )
 
@@ -48,7 +48,7 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		token, err := creds.NewString(variables, dbResource.WebhookToken()).Evaluate()
+		token, err := dbResource.WebhookToken().Interpolate(vars.NewResolver(variables))
 		if token != webhookToken {
 			logger.Info("invalid-token", lager.Data{"token": webhookToken})
 			w.WriteHeader(http.StatusUnauthorized)

@@ -35,7 +35,7 @@ func (example Example) Assert(vs vars.Variables) {
 
 	switch t := example.Template.(type) {
 	case string:
-		res, err = creds.NewString(vs, t).Evaluate()
+		res, err = vars.String(t).Interpolate(vars.NewResolver(vs))
 	case atc.Source:
 		res, err = creds.NewSource(vs, t).Evaluate()
 	case atc.Params:
