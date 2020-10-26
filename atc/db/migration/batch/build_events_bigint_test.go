@@ -28,8 +28,9 @@ type BuildEventsBigintSuite struct {
 
 	PostgresHost string
 
-	dbName string
-	conn   db.Conn
+	dbName   string
+	migrator migration.Migrator
+	conn     db.Conn
 
 	ctx context.Context
 }
@@ -70,7 +71,9 @@ func (s *BuildEventsBigintSuite) SetupTest() {
 	dsn := fmt.Sprintf("host=%s dbname=%s", s.PostgresHost, s.dbName)
 	testConn := s.open(dsn)
 
-	err = migration.NewMigrator(testConn, nil).Migrate(nil, nil, 1603405319)
+	s.migrator = migration.NewMigrator(testConn, nil)
+
+	err = s.migrator.Migrate(nil, nil, 1603405319)
 	s.NoError(err)
 
 	s.conn = db.NewConn("test", testConn, dsn, nil, nil)
@@ -89,37 +92,57 @@ func (s *BuildEventsBigintSuite) TearDownTest() {
 }
 
 func (s *BuildEventsBigintSuite) TestBasic() {
-	migrator := batch.BuildEventsBigintMigrator{
+	bigint := batch.BuildEventsBigintMigrator{
 		DB:        s.conn,
 		BatchSize: 100,
 	}
 
 	s.seedData(1, 100)
 
-	cleanup, err := migrator.Migrate(s.ctx)
+	cleanup, err := bigint.Migrate(s.ctx)
 	s.NoError(err)
 	s.False(cleanup)
 
-	cleanup, err = migrator.Migrate(s.ctx)
+	cleanup, err = bigint.Migrate(s.ctx)
 	s.NoError(err)
 	s.True(cleanup)
 
-	cleanup, err = migrator.Migrate(s.ctx)
+	cleanup, err = bigint.Migrate(s.ctx)
 	s.NoError(err)
 	s.True(cleanup)
 
-	err = migrator.Cleanup(s.ctx)
+	err = bigint.Cleanup(s.ctx)
 	s.NoError(err)
 
-	cleanup, err = migrator.Migrate(s.ctx)
+	cleanup, err = bigint.Migrate(s.ctx)
 	s.NoError(err)
 	s.False(cleanup)
 
 	s.assertFinished()
 }
 
+func (s *BuildEventsBigintSuite) TestDownMigrationMidway() {
+	bigint := batch.BuildEventsBigintMigrator{
+		DB:        s.conn,
+		BatchSize: 100,
+	}
+
+	s.seedData(1, 100)
+
+	cleanup, err := bigint.Migrate(s.ctx)
+	s.NoError(err)
+	s.False(cleanup)
+
+	s.writeNewEvents(2, 100)
+
+	err = s.migrator.Migrate(nil, nil, 1603401316) // previous migration
+	s.NoError(err)
+
+	s.assertFinished()
+}
+
 func (s *BuildEventsBigintSuite) TestMigratesInBatches() {
-	migrator := batch.BuildEventsBigintMigrator{
+	bigint := batch.BuildEventsBigintMigrator{
 		DB:        s.conn,
 		BatchSize: 5000,
 	}
@@ -129,7 +152,7 @@ func (s *BuildEventsBigintSuite) TestMigratesInBatches() {
 	batchesDone := 0
 
 	for {
-		done, err := migrator.Migrate(s.ctx)
+		done, err := bigint.Migrate(s.ctx)
 		s.NoError(err)
 
 		if done {
@@ -137,26 +160,26 @@ func (s *BuildEventsBigintSuite) TestMigratesInBatches() {
 		}
 
 		batchesDone++
-		s.assertRemaining(totalEvents - (migrator.BatchSize * batchesDone))
+		s.assertRemaining(totalEvents - (bigint.BatchSize * batchesDone))
 	}
 
-	err := migrator.Cleanup(s.ctx)
+	err := bigint.Cleanup(s.ctx)
 	s.NoError(err)
 
 	s.assertFinished()
 }
 
 func (s *BuildEventsBigintSuite) TestNoBuildsSucceeds() {
-	migrator := batch.BuildEventsBigintMigrator{
+	bigint := batch.BuildEventsBigintMigrator{
 		DB:        s.conn,
 		BatchSize: 1,
 	}
 
-	migrated, err := migrator.Migrate(s.ctx)
+	migrated, err := bigint.Migrate(s.ctx)
 	s.NoError(err)
 	s.True(migrated)
 
-	err = migrator.Cleanup(s.ctx)
+	err = bigint.Cleanup(s.ctx)
 	s.NoError(err)
 
 	s.assertFinished()
@@ -204,7 +227,7 @@ func (s *BuildEventsBigintSuite) TestPerformance() {
 		sample := sample
 
 		s.Run(fmt.Sprintf("%d events @ %d batch", sample.Builds*sample.EventsPerBuild, sample.BatchSize), func() {
-			migrator := batch.BuildEventsBigintMigrator{
+			bigint := batch.BuildEventsBigintMigrator{
 				DB:        s.conn,
 				BatchSize: sample.BatchSize,
 			}
@@ -215,7 +238,7 @@ func (s *BuildEventsBigintSuite) TestPerformance() {
 
 			last := start
 			for {
-				done, err := migrator.Migrate(s.ctx)
+				done, err := bigint.Migrate(s.ctx)
 				s.NoError(err)
 
 				if done {
@@ -249,7 +272,24 @@ func (s *BuildEventsBigintSuite) seedData(builds, events int) int {
 	rows, err := res.RowsAffected()
 	s.NoError(err)
 
-	debug("seeding", int(rows), "rows took", time.Since(start).String())
+	debug("seeding", int(rows), "old events took", time.Since(start).String())
+
+	return int(rows)
+}
+
+func (s *BuildEventsBigintSuite) writeNewEvents(buildID, events int) int {
+	start := time.Now()
+	res, err := s.conn.ExecContext(s.ctx, `
+		INSERT INTO build_events (build_id, type, payload, event_id, version)
+		SELECT $1, 'log', '{"origin":{"id":"some-plan-id","source":"stderr"},"payload":"hello","time":123}', event.id, '1.0'
+		FROM generate_series(1, $2) AS event (id)
+	`, buildID, events)
+	s.NoError(err)
+
+	rows, err := res.RowsAffected()
+	s.NoError(err)
+
+	debug("writing", int(rows), "new events took", time.Since(start).String())
 
 	return int(rows)
 }
