@@ -156,8 +156,8 @@ type RunCommand struct {
 	ResourceWithWebhookCheckingInterval time.Duration `long:"resource-with-webhook-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources that has webhook defined."`
 	MaxChecksPerSecond                  int           `long:"max-checks-per-second" description:"Maximum number of checks that can be started per second. If not specified, this will be calculated as (# of resources)/(resource checking interval). -1 value will remove this maximum limit of checks per second."`
 
-	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" description:"Method by which a worker is selected during container placement."`
-	MaxActiveTasksPerWorker           int           `long:"max-active-tasks-per-worker" default:"0" description:"Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit."`
+	ContainerPlacementStrategyOptions worker.ContainerPlacementStrategyOptions `group:"Container Placement Strategy"`
+
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
 	StreamingArtifactsCompression     string        `long:"streaming-artifacts-compression" default:"gzip" choice:"gzip" choice:"zstd" description:"Compression algorithm for internal streaming."`
 
@@ -1571,25 +1571,7 @@ func (cmd *RunCommand) constructLockConn(driverName string) (*sql.DB, error) {
 }
 
 func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.ContainerPlacementStrategy, error) {
-	var strategy worker.ContainerPlacementStrategy
-	if cmd.ContainerPlacementStrategy != "limit-active-tasks" && cmd.MaxActiveTasksPerWorker != 0 {
-		return nil, errors.New("max-active-tasks-per-worker has only effect with limit-active-tasks strategy")
-	}
-	if cmd.MaxActiveTasksPerWorker < 0 {
-		return nil, errors.New("max-active-tasks-per-worker must be greater or equal than 0")
-	}
-	switch cmd.ContainerPlacementStrategy {
-	case "random":
-		strategy = worker.NewRandomPlacementStrategy()
-	case "fewest-build-containers":
-		strategy = worker.NewFewestBuildContainersPlacementStrategy()
-	case "limit-active-tasks":
-		strategy = worker.NewLimitActiveTasksPlacementStrategy(cmd.MaxActiveTasksPerWorker)
-	default:
-		strategy = worker.NewVolumeLocalityPlacementStrategy()
-	}
-
-	return strategy, nil
+	return worker.NewContainerPlacementStrategy(cmd.ContainerPlacementStrategyOptions)
 }
 
 func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {
