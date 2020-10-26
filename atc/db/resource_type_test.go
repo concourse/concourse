@@ -516,6 +516,7 @@ var _ = Describe("ResourceType", func() {
 		var resourceType db.ResourceType
 		var ctx context.Context
 		var manuallyTriggered bool
+		var plan atc.Plan
 
 		var build db.Build
 		var created bool
@@ -524,15 +525,21 @@ var _ = Describe("ResourceType", func() {
 			ctx = context.TODO()
 			resourceType = defaultResourceType
 			manuallyTriggered = false
+			plan = atc.Plan{
+				ID: "some-plan",
+				Check: &atc.CheckPlan{
+					Name: "wreck",
+				},
+			}
 		})
 
 		JustBeforeEach(func() {
 			var err error
-			build, created, err = resourceType.CreateBuild(ctx, manuallyTriggered)
+			build, created, err = resourceType.CreateBuild(ctx, manuallyTriggered, plan)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("creates a build for a resource type", func() {
+		It("creates a started build for a resource type", func() {
 			Expect(created).To(BeTrue())
 			Expect(build).ToNot(BeNil())
 			Expect(build.Name()).To(Equal(db.CheckBuildName))
@@ -540,6 +547,8 @@ var _ = Describe("ResourceType", func() {
 			Expect(build.PipelineID()).To(Equal(defaultResource.PipelineID()))
 			Expect(build.TeamID()).To(Equal(defaultResource.TeamID()))
 			Expect(build.IsManuallyTriggered()).To(BeFalse())
+			Expect(build.Status()).To(Equal(db.BuildStatusStarted))
+			Expect(build.PrivatePlan()).To(Equal(plan))
 		})
 
 		Context("when tracing is configured", func() {
@@ -569,7 +578,7 @@ var _ = Describe("ResourceType", func() {
 			BeforeEach(func() {
 				var err error
 				var prevCreated bool
-				prevBuild, prevCreated, err = resourceType.CreateBuild(ctx, false)
+				prevBuild, prevCreated, err = resourceType.CreateBuild(ctx, false, plan)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(prevCreated).To(BeTrue())
 			})

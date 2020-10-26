@@ -458,21 +458,28 @@ var _ = Describe("Resource", func() {
 	Describe("CreateBuild", func() {
 		var ctx context.Context
 		var manuallyTriggered bool
+		var plan atc.Plan
 		var build db.Build
 		var created bool
 
 		BeforeEach(func() {
 			ctx = context.TODO()
 			manuallyTriggered = false
+			plan = atc.Plan{
+				ID: "some-plan",
+				Check: &atc.CheckPlan{
+					Name: "wreck",
+				},
+			}
 		})
 
 		JustBeforeEach(func() {
 			var err error
-			build, created, err = defaultResource.CreateBuild(ctx, manuallyTriggered)
+			build, created, err = defaultResource.CreateBuild(ctx, manuallyTriggered, plan)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("creates a build for a resource", func() {
+		It("creates a started build for a resource", func() {
 			Expect(created).To(BeTrue())
 			Expect(build).ToNot(BeNil())
 			Expect(build.Name()).To(Equal(db.CheckBuildName))
@@ -480,18 +487,12 @@ var _ = Describe("Resource", func() {
 			Expect(build.PipelineID()).To(Equal(defaultResource.PipelineID()))
 			Expect(build.TeamID()).To(Equal(defaultResource.TeamID()))
 			Expect(build.IsManuallyTriggered()).To(BeFalse())
+			Expect(build.Status()).To(Equal(db.BuildStatusStarted))
+			Expect(build.PrivatePlan()).To(Equal(plan))
 		})
 
 		It("associates the resource to the build", func() {
-			started, err := build.Start(atc.Plan{})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(started).To(BeTrue())
-
-			exists, err := build.Reload()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(exists).To(BeTrue())
-
-			exists, err = defaultResource.Reload()
+			exists, err := defaultResource.Reload()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(exists).To(BeTrue())
 
@@ -534,7 +535,7 @@ var _ = Describe("Resource", func() {
 			BeforeEach(func() {
 				var err error
 				var prevCreated bool
-				prevBuild, prevCreated, err = defaultResource.CreateBuild(ctx, false)
+				prevBuild, prevCreated, err = defaultResource.CreateBuild(ctx, false, plan)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(prevCreated).To(BeTrue())
 			})
@@ -555,15 +556,7 @@ var _ = Describe("Resource", func() {
 				})
 
 				It("associates the resource to the build", func() {
-					started, err := build.Start(atc.Plan{})
-					Expect(err).ToNot(HaveOccurred())
-					Expect(started).To(BeTrue())
-
-					exists, err := build.Reload()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(exists).To(BeTrue())
-
-					exists, err = defaultResource.Reload()
+					exists, err := defaultResource.Reload()
 					Expect(err).ToNot(HaveOccurred())
 					Expect(exists).To(BeTrue())
 
