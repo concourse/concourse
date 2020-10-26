@@ -117,7 +117,7 @@ var _ = Describe("Build", func() {
 			BeforeEach(func() {
 				var err error
 				var created bool
-				build, created, err = defaultResource.CreateBuild(context.TODO(), false)
+				build, created, err = defaultResource.CreateBuild(context.TODO(), false, atc.Plan{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(created).To(BeTrue())
 			})
@@ -137,7 +137,7 @@ var _ = Describe("Build", func() {
 			BeforeEach(func() {
 				var err error
 				var created bool
-				build, created, err = defaultResourceType.CreateBuild(context.TODO(), false)
+				build, created, err = defaultResourceType.CreateBuild(context.TODO(), false, atc.Plan{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(created).To(BeTrue())
 			})
@@ -192,7 +192,7 @@ var _ = Describe("Build", func() {
 			BeforeEach(func() {
 				var err error
 				var created bool
-				build, created, err = defaultResource.CreateBuild(context.TODO(), false)
+				build, created, err = defaultResource.CreateBuild(context.TODO(), false, atc.Plan{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(created).To(BeTrue())
 			})
@@ -206,7 +206,7 @@ var _ = Describe("Build", func() {
 			BeforeEach(func() {
 				var err error
 				var created bool
-				build, created, err = defaultResourceType.CreateBuild(context.TODO(), false)
+				build, created, err = defaultResourceType.CreateBuild(context.TODO(), false, atc.Plan{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(created).To(BeTrue())
 			})
@@ -264,7 +264,7 @@ var _ = Describe("Build", func() {
 			BeforeEach(func() {
 				var err error
 				var created bool
-				build, created, err = defaultResource.CreateBuild(context.TODO(), false)
+				build, created, err = defaultResource.CreateBuild(context.TODO(), false, atc.Plan{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(created).To(BeTrue())
 			})
@@ -284,7 +284,7 @@ var _ = Describe("Build", func() {
 			BeforeEach(func() {
 				var err error
 				var created bool
-				build, created, err = defaultResourceType.CreateBuild(context.TODO(), false)
+				build, created, err = defaultResourceType.CreateBuild(context.TODO(), false, atc.Plan{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(created).To(BeTrue())
 			})

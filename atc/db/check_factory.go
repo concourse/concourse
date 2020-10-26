@@ -32,7 +32,7 @@ type Checkable interface {
 	HasWebhook() bool
 
 	CheckPlan(atc.Version, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
-	CreateBuild(context.Context, bool) (Build, bool, error)
+	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 }
 
 //go:generate counterfeiter . CheckFactory
@@ -124,7 +124,7 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 
 	plan := c.planFactory.NewPlan(checkPlan)
 
-	build, created, err := checkable.CreateBuild(ctx, manuallyTriggered)
+	build, created, err := checkable.CreateBuild(ctx, manuallyTriggered, plan)
 	if err != nil {
 		return nil, false, fmt.Errorf("create build: %w", err)
 	}
@@ -133,17 +133,7 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		return nil, false, nil
 	}
 
-	_, err = build.Start(plan)
-	if err != nil {
-		return nil, false, fmt.Errorf("start build: %w", err)
-	}
-
 	logger.Info("created-build", build.LagerData())
-
-	_, err = build.Reload()
-	if err != nil {
-		return nil, false, fmt.Errorf("reload build: %w", err)
-	}
 
 	return build, true, nil
 }

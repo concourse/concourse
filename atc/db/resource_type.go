@@ -49,7 +49,7 @@ type ResourceType interface {
 	SetResourceConfigScope(ResourceConfigScope) error
 
 	CheckPlan(atc.Version, time.Duration, ResourceTypes, atc.Source) atc.CheckPlan
-	CreateBuild(context.Context, bool) (Build, bool, error)
+	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 
 	Version() atc.Version
 
@@ -263,7 +263,7 @@ func (r *resourceType) CheckPlan(from atc.Version, interval time.Duration, resou
 	}
 }
 
-func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool) (Build, bool, error) {
+func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, plan atc.Plan) (Build, bool, error) {
 	spanContextJSON, err := json.Marshal(NewSpanContext(ctx))
 	if err != nil {
 		return nil, false, err
@@ -326,7 +326,22 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool) 
 		return nil, false, err
 	}
 
+	_, err = build.start(tx, plan)
+	if err != nil {
+		return nil, false, err
+	}
+
 	err = tx.Commit()
+	if err != nil {
+		return nil, false, err
+	}
+
+	err = r.conn.Bus().Notify(atc.ComponentBuildTracker)
+	if err != nil {
+		return nil, false, err
+	}
+
+	_, err = build.Reload()
 	if err != nil {
 		return nil, false, err
 	}
