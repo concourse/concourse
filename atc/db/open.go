@@ -64,9 +64,9 @@ type Tx interface {
 	EncryptionStrategy() encryption.Strategy
 }
 
-func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *encryption.Key, oldKey *encryption.Key, connectionName string, lockFactory lock.LockFactory) (Conn, error) {
+func Open(logger lager.Logger, driver, dsn string, newKey, oldKey *encryption.Key, name string, lockFactory lock.LockFactory) (Conn, error) {
 	for {
-		sqlDb, err := migration.NewOpenHelper(sqlDriver, sqlDataSource, lockFactory, newKey, oldKey).Open()
+		sqlDB, err := migration.NewOpenHelper(driver, dsn, lockFactory, newKey, oldKey).Open()
 		if err != nil {
 			if shouldRetry(err) {
 				logger.Error("failed-to-open-db-retrying", err)
@@ -77,22 +77,26 @@ func Open(logger lager.Logger, sqlDriver string, sqlDataSource string, newKey *e
 			return nil, err
 		}
 
-		listener := pq.NewDialListener(keepAliveDialer{}, sqlDataSource, time.Second, time.Minute, nil)
+		return NewConn(name, sqlDB, dsn, oldKey, newKey), nil
+	}
+}
 
-		var strategy encryption.Strategy
-		if newKey != nil {
-			strategy = newKey
-		} else {
-			strategy = encryption.NewNoEncryption()
-		}
+func NewConn(name string, sqlDB *sql.DB, dsn string, oldKey, newKey *encryption.Key) Conn {
+	listener := pq.NewDialListener(keepAliveDialer{}, dsn, time.Second, time.Minute, nil)
 
-		return &db{
-			DB: sqlDb,
+	var strategy encryption.Strategy
+	if newKey != nil {
+		strategy = newKey
+	} else {
+		strategy = encryption.NewNoEncryption()
+	}
 
-			bus:        NewNotificationsBus(listener, sqlDb),
-			encryption: strategy,
-			name:       connectionName,
-		}, nil
+	return &db{
+		DB: sqlDB,
+
+		bus:        NewNotificationsBus(listener, sqlDB),
+		encryption: strategy,
+		name:       name,
 	}
 }
 

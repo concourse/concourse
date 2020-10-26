@@ -38,6 +38,7 @@ import (
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
+	"github.com/concourse/concourse/atc/db/migration/batch"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/gc"
 	"github.com/concourse/concourse/atc/lidar"
@@ -140,6 +141,9 @@ type RunCommand struct {
 
 	EncryptionKey    flag.Cipher `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
 	OldEncryptionKey flag.Cipher `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is encrypted. If provided with a new key, data is re-encrypted."`
+
+	BuildEventsBigintMigrationBatchSize int           `long:"build-events-bigint-batch-size" default:"100000" description:"Number of events to migrate in each batch."`
+	BuildEventsBigintMigrationInterval  time.Duration `long:"build-events-bigint-interval" default:"10s" description:"Interval on which to migrate each batch."`
 
 	DebugBindIP   flag.IP `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
 	DebugBindPort uint16  `long:"debug-bind-port" default:"8079"      description:"Port on which to listen for the pprof debugger endpoints."`
@@ -1097,6 +1101,18 @@ func (cmd *RunCommand) backendComponents(
 				Interval: cmd.BuildTrackerInterval,
 			},
 			Runnable: builds.NewTracker(dbBuildFactory, engine),
+		},
+		{
+			Component: atc.Component{
+				Name:     atc.ComponentBatchMigrator,
+				Interval: cmd.BuildEventsBigintMigrationInterval,
+			},
+			Runnable: batch.Runner{
+				Migrator: batch.BuildEventsBigintMigrator{
+					DB:        dbConn,
+					BatchSize: cmd.BuildEventsBigintMigrationBatchSize,
+				},
+			},
 		},
 		{
 			Component: atc.Component{
