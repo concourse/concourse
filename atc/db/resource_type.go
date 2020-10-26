@@ -277,13 +277,14 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, 
 	defer Rollback(tx)
 
 	if !manuallyTriggered {
+		var buildID int
 		var completed, noBuild bool
-		err = psql.Select("completed").
+		err = psql.Select("id", "completed").
 			From("builds").
 			Where(sq.Eq{"resource_type_id": r.id}).
 			RunWith(tx).
 			QueryRow().
-			Scan(&completed)
+			Scan(&buildID, &completed)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				noBuild = true
@@ -308,6 +309,15 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, 
 				Exec()
 			if err != nil {
 				return nil, false, fmt.Errorf("delete previous build: %w", err)
+			}
+			_, err = psql.Delete("build_events").
+				Where(sq.Eq{
+					"build_id": buildID,
+				}).
+				RunWith(tx).
+				Exec()
+			if err != nil {
+				return nil, false, fmt.Errorf("delete previous build events: %w", err)
 			}
 		}
 	}

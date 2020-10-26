@@ -588,6 +588,17 @@ var _ = Describe("Resource", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeFalse())
 				})
+
+				It("deletes the previous build's events", func() {
+					var exists bool
+					err := dbConn.QueryRow(`SELECT EXISTS (
+						SELECT 1
+						FROM build_events
+						WHERE build_id = $1
+					)`, prevBuild.ID()).Scan(&exists)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(exists).To(BeFalse())
+				})
 			})
 		})
 	})
