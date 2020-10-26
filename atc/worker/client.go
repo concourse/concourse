@@ -596,6 +596,17 @@ func (client *client) chooseTaskWorker(
 	}
 
 	for {
+		if strategy.ModifiesActiveTasks() {
+			if activeTasksLock, lockAcquired, err = lockFactory.Acquire(logger, lock.NewActiveTasksLockID()); err != nil {
+				return nil, err
+			}
+
+			if !lockAcquired {
+				time.Sleep(time.Second)
+				continue
+			}
+		}
+
 		if chosenWorker, err = client.pool.FindOrChooseWorkerForContainer(
 			ctx,
 			logger,
@@ -609,15 +620,6 @@ func (client *client) chooseTaskWorker(
 
 		if !strategy.ModifiesActiveTasks() {
 			return chosenWorker, nil
-		}
-
-		if activeTasksLock, lockAcquired, err = lockFactory.Acquire(logger, lock.NewActiveTasksLockID()); err != nil {
-			return nil, err
-		}
-
-		if !lockAcquired {
-			time.Sleep(time.Second)
-			continue
 		}
 
 		select {
