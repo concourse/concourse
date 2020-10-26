@@ -37,6 +37,7 @@ type BuildOutputFilter func(text string) string
 
 type RunState interface {
 	vars.Variables
+	vars.Resolver
 
 	NewLocalScope() RunState
 	AddLocalVar(name string, val interface{}, redact bool)

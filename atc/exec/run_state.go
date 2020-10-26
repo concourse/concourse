@@ -64,6 +64,10 @@ func (state *runState) Get(ref vars.Reference) (interface{}, bool, error) {
 	return state.vars.Get(ref)
 }
 
+func (state *runState) Resolve(ref vars.Reference) (interface{}, error) {
+	return vars.NewResolver(state.vars).Resolve(ref)
+}
+
 func (state *runState) List() ([]vars.Reference, error) {
 	return state.vars.List()
 }

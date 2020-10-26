@@ -2,6 +2,7 @@ package atc_test
 
 import (
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/vars"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -356,9 +357,9 @@ var _ = Describe("Plan", func() {
 							Name:         "some-pipeline",
 							Team:         "some-team",
 							File:         "some-file",
-							VarFiles:     []string{"vf"},
-							Vars:         map[string]interface{}{"k1": "v1"},
-							InstanceVars: map[string]interface{}{"branch": "feature/foo"},
+							VarFiles:     []vars.String{"vf"},
+							Vars:         map[vars.String]vars.Any{"k1": "v1"},
+							InstanceVars: map[vars.String]vars.Any{"branch": "feature/foo"},
 						},
 					},
 					atc.Plan{

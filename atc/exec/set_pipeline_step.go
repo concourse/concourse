@@ -15,7 +15,6 @@ import (
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/configvalidate"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/artifact"
 	"github.com/concourse/concourse/atc/exec/build"
@@ -77,12 +76,6 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 
 	delegate.Initializing(logger)
 
-	interpolatedPlan, err := creds.NewSetPipelinePlan(state, step.plan).Evaluate()
-	if err != nil {
-		return false, err
-	}
-	step.plan = interpolatedPlan
-
 	stdout := delegate.Stdout()
 	stderr := delegate.Stderr()
 
@@ -91,32 +84,47 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 	fmt.Fprintln(stderr, "\x1b[33mfollow RFC #31 for updates: https://github.com/concourse/rfcs/pull/31\x1b[0m")
 	fmt.Fprintln(stderr, "")
 
+	var pipelineRef atc.PipelineRef
+	var teamName string
 	if step.plan.Name == "self" {
 		fmt.Fprintln(stderr, "\x1b[1;33mWARNING: 'set_pipeline: self' is experimental and may be removed in the future!\x1b[0m")
 		fmt.Fprintln(stderr, "")
 		fmt.Fprintln(stderr, "\x1b[33mcontribute to discussion #5732 with feedback: https://github.com/concourse/concourse/discussions/5732\x1b[0m")
 		fmt.Fprintln(stderr, "")
 
-		step.plan.Name = step.metadata.PipelineName
-		step.plan.InstanceVars = step.metadata.PipelineInstanceVars
+		pipelineRef.Name = step.metadata.PipelineName
+		pipelineRef.InstanceVars = step.metadata.PipelineInstanceVars
 		// self must be set to current team, thus ignore team.
-		step.plan.Team = ""
+		teamName = ""
+	} else {
+		pipelineRef.Name = step.plan.Name
+		instanceVars, err := interpolateMapStringAny(step.plan.InstanceVars, state)
+		if err != nil {
+			return false, err
+		}
+		pipelineRef.InstanceVars = instanceVars
+		teamName, err = step.plan.Team.Interpolate(state)
+		if err != nil {
+			return false, err
+		}
 	}
 
 	source := setPipelineSource{
-		ctx:    ctx,
-		logger: logger,
-		step:   step,
 		repo:   state.ArtifactRepository(),
 		client: step.client,
+
+		file:         step.plan.File,
+		vars:         step.plan.Vars,
+		varFiles:     step.plan.VarFiles,
+		instanceVars: pipelineRef.InstanceVars,
 	}
 
-	err = source.Validate()
+	err := source.Validate()
 	if err != nil {
 		return false, err
 	}
 
-	atcConfig, err := source.FetchPipelineConfig()
+	atcConfig, err := source.FetchPipelineConfig(lagerctx.NewContext(ctx, logger), state)
 	if err != nil {
 		return false, err
 	}
@@ -140,7 +148,7 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 	}
 
 	var team db.Team
-	if step.plan.Team == "" {
+	if teamName == "" {
 		team = step.teamFactory.GetByID(step.metadata.TeamID)
 	} else {
 		fmt.Fprintln(stderr, "\x1b[1;33mWARNING: specifying the team in a set_pipeline step is experimental and may be removed in the future!\x1b[0m")
@@ -156,12 +164,12 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 			return false, fmt.Errorf("team %s not found", step.metadata.TeamName)
 		}
 
-		targetTeam, found, err := step.teamFactory.FindTeam(step.plan.Team)
+		targetTeam, found, err := step.teamFactory.FindTeam(teamName)
 		if err != nil {
 			return false, err
 		}
 		if !found {
-			return false, fmt.Errorf("team %s not found", step.plan.Team)
+			return false, fmt.Errorf("team %s not found", teamName)
 		}
 
 		permitted := false
@@ -181,10 +189,6 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 		team = targetTeam
 	}
 
-	pipelineRef := atc.PipelineRef{
-		Name:         step.plan.Name,
-		InstanceVars: step.plan.InstanceVars,
-	}
 	pipeline, found, err := team.Pipeline(pipelineRef)
 	if err != nil {
 		return false, err
@@ -249,19 +253,21 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 }
 
 type setPipelineSource struct {
-	ctx    context.Context
-	logger lager.Logger
 	repo   *build.Repository
-	step   *SetPipelineStep
 	client worker.Client
+
+	file         vars.String
+	vars         map[vars.String]vars.Any
+	varFiles     []vars.String
+	instanceVars atc.InstanceVars
 }
 
 func (s setPipelineSource) Validate() error {
-	if s.step.plan.File == "" {
+	if s.file == "" {
 		return errors.New("file is not specified")
 	}
 
-	if !atc.EnablePipelineInstances && s.step.plan.InstanceVars != nil {
+	if !atc.EnablePipelineInstances && s.instanceVars != nil {
 		return errors.New("support for `instance_vars` is disabled")
 	}
 
@@ -270,18 +276,30 @@ func (s setPipelineSource) Validate() error {
 
 // FetchConfig streams pipeline config file and var files from other resources
 // and construct an atc.Config object
-func (s setPipelineSource) FetchPipelineConfig() (atc.Config, error) {
-	config, err := s.fetchPipelineBits(s.step.plan.File)
+func (s setPipelineSource) FetchPipelineConfig(ctx context.Context, resolver vars.Resolver) (atc.Config, error) {
+	file, err := s.file.Interpolate(resolver)
+	if err != nil {
+		return atc.Config{}, err
+	}
+	config, err := s.fetchFile(ctx, file)
 	if err != nil {
 		return atc.Config{}, err
 	}
 
 	staticVars := []vars.Variables{}
-	if len(s.step.plan.Vars) > 0 {
-		staticVars = append(staticVars, vars.StaticVariables(s.step.plan.Vars))
+	vars_, err := interpolateMapStringAny(s.vars, resolver)
+	if err != nil {
+		return atc.Config{}, err
 	}
-	for _, lvf := range s.step.plan.VarFiles {
-		bytes, err := s.fetchPipelineBits(lvf)
+	if len(vars_) > 0 {
+		staticVars = append(staticVars, vars.StaticVariables(vars_))
+	}
+	for _, lvf := range s.varFiles {
+		varFile, err := lvf.Interpolate(resolver)
+		if err != nil {
+			return atc.Config{}, err
+		}
+		bytes, err := s.fetchFile(ctx, varFile)
 		if err != nil {
 			return atc.Config{}, err
 		}
@@ -295,12 +313,8 @@ func (s setPipelineSource) FetchPipelineConfig() (atc.Config, error) {
 		staticVars = append(staticVars, sv)
 	}
 
-	if len(s.step.plan.InstanceVars) > 0 {
-		iv := vars.StaticVariables{}
-		for k, v := range s.step.plan.InstanceVars {
-			iv[k] = v
-		}
-		staticVars = append(staticVars, iv)
+	if len(s.instanceVars) > 0 {
+		staticVars = append(staticVars, vars.StaticVariables(s.instanceVars))
 	}
 
 	if len(staticVars) > 0 {
@@ -319,7 +333,7 @@ func (s setPipelineSource) FetchPipelineConfig() (atc.Config, error) {
 	return atcConfig, nil
 }
 
-func (s setPipelineSource) fetchPipelineBits(path string) ([]byte, error) {
+func (s setPipelineSource) fetchFile(ctx context.Context, path string) ([]byte, error) {
 	segs := strings.SplitN(path, "/", 2)
 	if len(segs) != 2 {
 		return nil, UnspecifiedArtifactSourceError{path}
@@ -328,7 +342,7 @@ func (s setPipelineSource) fetchPipelineBits(path string) ([]byte, error) {
 	artifactName := segs[0]
 	filePath := segs[1]
 
-	stream, err := s.retrieveFromArtifact(artifactName, filePath)
+	stream, err := s.retrieveFromArtifact(ctx, artifactName, filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -342,13 +356,14 @@ func (s setPipelineSource) fetchPipelineBits(path string) ([]byte, error) {
 	return byteConfig, nil
 }
 
-func (s setPipelineSource) retrieveFromArtifact(name, file string) (io.ReadCloser, error) {
+func (s setPipelineSource) retrieveFromArtifact(ctx context.Context, name, file string) (io.ReadCloser, error) {
 	art, found := s.repo.ArtifactFor(build.ArtifactName(name))
 	if !found {
 		return nil, UnknownArtifactSourceError{build.ArtifactName(name), file}
 	}
 
-	stream, err := s.client.StreamFileFromArtifact(s.ctx, s.logger, art, file)
+	logger := lagerctx.FromContext(ctx)
+	stream, err := s.client.StreamFileFromArtifact(ctx, logger, art, file)
 	if err != nil {
 		if err == baggageclaim.ErrFileNotFound {
 			return nil, artifact.FileNotFoundError{
@@ -361,4 +376,23 @@ func (s setPipelineSource) retrieveFromArtifact(name, file string) (io.ReadClose
 	}
 
 	return stream, nil
+}
+
+func interpolateMapStringAny(m map[vars.String]vars.Any, resolver vars.Resolver) (map[string]interface{}, error) {
+	if m == nil {
+		return nil, nil
+	}
+	out := make(map[string]interface{}, len(m))
+	for k, v := range m {
+		kk, err := k.Interpolate(resolver)
+		if err != nil {
+			return nil, err
+		}
+		vv, err := vars.Interpolate(v, resolver)
+		if err != nil {
+			return nil, err
+		}
+		out[kk] = vv
+	}
+	return out, nil
 }

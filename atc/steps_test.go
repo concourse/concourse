@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/vars"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"sigs.k8s.io/yaml"
@@ -135,9 +136,9 @@ var factoryTests = []StepTest{
 		StepConfig: &atc.SetPipelineStep{
 			Name:         "some-pipeline",
 			File:         "some-pipeline-file",
-			Vars:         atc.Params{"some": "vars"},
-			VarFiles:     []string{"file-1", "file-2"},
-			InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
+			Vars:         map[vars.String]vars.Any{"some": "vars"},
+			VarFiles:     []vars.String{"file-1", "file-2"},
+			InstanceVars: map[vars.String]vars.Any{"branch": "feature/foo"},
 		},
 	},
 	{

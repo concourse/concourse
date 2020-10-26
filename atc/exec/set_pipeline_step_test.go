@@ -15,7 +15,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/build/buildfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
@@ -52,33 +51,25 @@ jobs:
          - hello
 `
 
-	var pipelineObject = atc.Config{
-		Jobs: atc.JobConfigs{
-			{
-				Name: "some-job",
-				PlanSequence: []atc.Step{
-					{
-						Config: &atc.TaskStep{
-							Name: "some-task",
-							Config: &atc.TaskConfig{
-								Platform: "linux",
-								ImageResource: &atc.ImageResource{
-									Type:   "registry-image",
-									Source: atc.Source{"repository": "busybox"},
-								},
-								Run: atc.TaskRunConfig{
-									Path: "echo",
-									Args: []string{"hello"},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
+	const pipelineContentWithVars = `
+---
+jobs:
+- name: some-job
+  plan:
+  - task: some-task
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: ((repository))}
+      run:
+        path: ((path))
+        args: ((args))
+`
 
 	var (
+		pipelineObject atc.Config
+
 		ctx        context.Context
 		cancel     func()
 		testLogger *lagertest.TestLogger
@@ -95,10 +86,10 @@ jobs:
 
 		fakeWorkerClient *workerfakes.FakeClient
 
-		spPlan             *atc.SetPipelinePlan
-		artifactRepository *build.Repository
-		state              *execfakes.FakeRunState
-		fakeSource         *buildfakes.FakeRegisterableArtifact
+		spPlan     *atc.SetPipelinePlan
+		credVars   vars.StaticVariables
+		state      exec.RunState
+		fakeSource *buildfakes.FakeRegisterableArtifact
 
 		spStep  exec.Step
 		stepOk  bool
@@ -122,18 +113,35 @@ jobs:
 	)
 
 	BeforeEach(func() {
+		pipelineObject = atc.Config{
+			Jobs: atc.JobConfigs{
+				{
+					Name: "some-job",
+					PlanSequence: []atc.Step{
+						{
+							Config: &atc.TaskStep{
+								Name: "some-task",
+								Config: &atc.TaskConfig{
+									Platform: "linux",
+									ImageResource: &atc.ImageResource{
+										Type:   "registry-image",
+										Source: atc.Source{"repository": "busybox"},
+									},
+									Run: atc.TaskRunConfig{
+										Path: "echo",
+										Args: []string{"hello"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
 		testLogger = lagertest.NewTestLogger("set-pipeline-action-test")
 		ctx, cancel = context.WithCancel(context.Background())
 		ctx = lagerctx.NewContext(ctx, testLogger)
-
-		artifactRepository = build.NewRepository()
-		state = new(execfakes.FakeRunState)
-		state.ArtifactRepositoryReturns(artifactRepository)
-
-		state.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
-
-		fakeSource = new(buildfakes.FakeRegisterableArtifact)
-		artifactRepository.RegisterArtifact("some-resource", fakeSource)
 
 		stdout = gbytes.NewBuffer()
 		stderr = gbytes.NewBuffer()
@@ -176,9 +184,19 @@ jobs:
 
 		spPlan = &atc.SetPipelinePlan{
 			Name:         "some-pipeline",
-			File:         "some-resource/pipeline.yml",
-			InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
+			File:         "((directory))/((filename))",
+			InstanceVars: map[vars.String]vars.Any{"branch": "((branch))"},
 		}
+
+		credVars = vars.StaticVariables{
+			"directory": "some-resource",
+			"filename":  "pipeline.yml",
+			"branch":    "feature/foo",
+		}
+		state = exec.NewRunState(noopStepper, credVars, false)
+
+		fakeSource = new(buildfakes.FakeRegisterableArtifact)
+		state.ArtifactRepository().RegisterArtifact("some-resource", fakeSource)
 	})
 
 	AfterEach(func() {
@@ -404,7 +422,7 @@ jobs:
 						Name:         "self",
 						File:         "some-resource/pipeline.yml",
 						Team:         "foo-team",
-						InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
+						InstanceVars: map[vars.String]vars.Any{"branch": "feature/foo"},
 					}
 					fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
 				})
@@ -482,7 +500,7 @@ jobs:
 				Context("when team exists", func() {
 					Context("when the target team is the current team", func() {
 						BeforeEach(func() {
-							spPlan.Team = fakeUserCurrentTeam.Name()
+							spPlan.Team = vars.String(fakeUserCurrentTeam.Name())
 							fakeTeamFactory.FindTeamReturnsOnCall(
 								1,
 								fakeUserCurrentTeam, true, nil,
@@ -509,7 +527,7 @@ jobs:
 
 					Context("when the team is not the current team", func() {
 						BeforeEach(func() {
-							spPlan.Team = fakeTeam.Name()
+							spPlan.Team = vars.String(fakeTeam.Name())
 							fakeTeamFactory.FindTeamReturnsOnCall(
 								1,
 								fakeTeam, true, nil,
@@ -543,6 +561,62 @@ jobs:
 							})
 						})
 					})
+				})
+
+				Context("when team is interpolated", func() {
+					BeforeEach(func() {
+						spPlan.Team = "((team))"
+					})
+
+					Context("when interpolation succeeds", func() {
+						BeforeEach(func() {
+							credVars["team"] = "some-team"
+						})
+
+						It("uses the interpolated value", func() {
+							Expect(fakeTeamFactory.FindTeamArgsForCall(1)).To(Equal("some-team"))
+						})
+					})
+
+					Context("when interpolation fails", func() {
+						It("errors", func() {
+							Expect(stepErr).To(MatchError(ContainSubstring("undefined vars: team")))
+						})
+					})
+				})
+			})
+		})
+
+		Context("when pipeline file has vars", func() {
+			BeforeEach(func() {
+				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: pipelineContentWithVars}, nil)
+
+				credVars["repository"] = "busybox"
+				credVars["path_field"] = "path"
+				spPlan.Vars = map[vars.String]vars.Any{
+					"((path_field))": "echo",
+					"args":           []interface{}{"hello"},
+				}
+				spPlan.InstanceVars = map[vars.String]vars.Any{
+					"repository": "((repository))",
+				}
+
+				fakeTeam.PipelineReturns(nil, false, nil)
+				fakeBuild.SavePipelineReturns(fakePipeline, true, nil)
+			})
+
+			It("interpolates using vars from plan", func() {
+				_, _, config, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+				Expect(config).To(Equal(pipelineObject))
+			})
+
+			Context("when interpolation of the plan fails", func() {
+				BeforeEach(func() {
+					delete(credVars, "path_field")
+				})
+
+				It("errors", func() {
+					Expect(stepErr).To(MatchError(ContainSubstring("undefined vars: path_field")))
 				})
 			})
 		})

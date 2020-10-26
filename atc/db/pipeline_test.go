@@ -98,8 +98,8 @@ var _ = Describe("Pipeline", func() {
 							Config: &atc.SetPipelineStep{
 								Name:     "some-pipeline",
 								File:     "some-file",
-								VarFiles: []string{"var-file1", "var-file2"},
-								Vars: map[string]interface{}{
+								VarFiles: []vars.String{"var-file1", "var-file2"},
+								Vars: map[vars.String]vars.Any{
 									"k1": "v1",
 									"k2": "v2",
 								},

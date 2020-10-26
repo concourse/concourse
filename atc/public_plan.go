@@ -1,6 +1,10 @@
 package atc
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/concourse/concourse/vars"
+)
 
 func (plan Plan) Public() *json.RawMessage {
 	var public struct {
@@ -291,9 +295,9 @@ func (plan TaskPlan) Public() *json.RawMessage {
 
 func (plan SetPipelinePlan) Public() *json.RawMessage {
 	return enc(struct {
-		Name         string       `json:"name"`
-		Team         string       `json:"team"`
-		InstanceVars InstanceVars `json:"instance_vars"`
+		Name         string                   `json:"name"`
+		Team         vars.String              `json:"team"`
+		InstanceVars map[vars.String]vars.Any `json:"instance_vars"`
 	}{
 		Name:         plan.Name,
 		Team:         plan.Team,

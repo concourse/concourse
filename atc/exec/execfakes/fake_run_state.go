@@ -91,6 +91,19 @@ type FakeRunState struct {
 	redactionEnabledReturnsOnCall map[int]struct {
 		result1 bool
 	}
+	ResolveStub        func(vars.Reference) (interface{}, error)
+	resolveMutex       sync.RWMutex
+	resolveArgsForCall []struct {
+		arg1 vars.Reference
+	}
+	resolveReturns struct {
+		result1 interface{}
+		result2 error
+	}
+	resolveReturnsOnCall map[int]struct {
+		result1 interface{}
+		result2 error
+	}
 	ResultStub        func(atc.PlanID, interface{}) bool
 	resultMutex       sync.RWMutex
 	resultArgsForCall []struct {
@@ -520,6 +533,69 @@ func (fake *FakeRunState) RedactionEnabledReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
+func (fake *FakeRunState) Resolve(arg1 vars.Reference) (interface{}, error) {
+	fake.resolveMutex.Lock()
+	ret, specificReturn := fake.resolveReturnsOnCall[len(fake.resolveArgsForCall)]
+	fake.resolveArgsForCall = append(fake.resolveArgsForCall, struct {
+		arg1 vars.Reference
+	}{arg1})
+	fake.recordInvocation("Resolve", []interface{}{arg1})
+	fake.resolveMutex.Unlock()
+	if fake.ResolveStub != nil {
+		return fake.ResolveStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.resolveReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeRunState) ResolveCallCount() int {
+	fake.resolveMutex.RLock()
+	defer fake.resolveMutex.RUnlock()
+	return len(fake.resolveArgsForCall)
+}
+
+func (fake *FakeRunState) ResolveCalls(stub func(vars.Reference) (interface{}, error)) {
+	fake.resolveMutex.Lock()
+	defer fake.resolveMutex.Unlock()
+	fake.ResolveStub = stub
+}
+
+func (fake *FakeRunState) ResolveArgsForCall(i int) vars.Reference {
+	fake.resolveMutex.RLock()
+	defer fake.resolveMutex.RUnlock()
+	argsForCall := fake.resolveArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeRunState) ResolveReturns(result1 interface{}, result2 error) {
+	fake.resolveMutex.Lock()
+	defer fake.resolveMutex.Unlock()
+	fake.ResolveStub = nil
+	fake.resolveReturns = struct {
+		result1 interface{}
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeRunState) ResolveReturnsOnCall(i int, result1 interface{}, result2 error) {
+	fake.resolveMutex.Lock()
+	defer fake.resolveMutex.Unlock()
+	fake.ResolveStub = nil
+	if fake.resolveReturnsOnCall == nil {
+		fake.resolveReturnsOnCall = make(map[int]struct {
+			result1 interface{}
+			result2 error
+		})
+	}
+	fake.resolveReturnsOnCall[i] = struct {
+		result1 interface{}
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeRunState) Result(arg1 atc.PlanID, arg2 interface{}) bool {
 	fake.resultMutex.Lock()
 	ret, specificReturn := fake.resultReturnsOnCall[len(fake.resultArgsForCall)]
@@ -696,6 +772,8 @@ func (fake *FakeRunState) Invocations() map[string][][]interface{} {
 	defer fake.parentMutex.RUnlock()
 	fake.redactionEnabledMutex.RLock()
 	defer fake.redactionEnabledMutex.RUnlock()
+	fake.resolveMutex.RLock()
+	defer fake.resolveMutex.RUnlock()
 	fake.resultMutex.RLock()
 	defer fake.resultMutex.RUnlock()
 	fake.runMutex.RLock()

@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/concourse/concourse/vars"
 )
 
 // Step is an "envelope" type, acting as a wrapper to handle the marshaling and
@@ -353,12 +355,12 @@ func (step *TaskStep) Visit(v StepVisitor) error {
 }
 
 type SetPipelineStep struct {
-	Name         string       `json:"set_pipeline"`
-	File         string       `json:"file,omitempty"`
-	Team         string       `json:"team,omitempty"`
-	Vars         Params       `json:"vars,omitempty"`
-	VarFiles     []string     `json:"var_files,omitempty"`
-	InstanceVars InstanceVars `json:"instance_vars,omitempty"`
+	Name         string                   `json:"set_pipeline"`
+	File         vars.String              `json:"file,omitempty"`
+	Team         vars.String              `json:"team,omitempty"`
+	Vars         map[vars.String]vars.Any `json:"vars,omitempty"`
+	VarFiles     []vars.String            `json:"var_files,omitempty"`
+	InstanceVars map[vars.String]vars.Any `json:"instance_vars,omitempty"`
 }
 
 func (step *SetPipelineStep) Visit(v StepVisitor) error {

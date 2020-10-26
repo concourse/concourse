@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/vars"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -273,9 +274,9 @@ var factoryTests = []PlannerTest{
 		Config: &atc.SetPipelineStep{
 			Name:         "some-pipeline",
 			File:         "some-pipeline-file",
-			Vars:         atc.Params{"some": "vars"},
-			VarFiles:     []string{"file-1", "file-2"},
-			InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
+			Vars:         map[vars.String]vars.Any{"some": "vars"},
+			VarFiles:     []vars.String{"file-1", "file-2"},
+			InstanceVars: map[vars.String]vars.Any{"branch": "feature/foo"},
 		},
 
 		PlanJSON: `{

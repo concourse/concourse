@@ -1,5 +1,7 @@
 package atc
 
+import "github.com/concourse/concourse/vars"
+
 type Plan struct {
 	ID       PlanID `json:"id"`
 	Attempts []int  `json:"attempts,omitempty"`
@@ -300,12 +302,12 @@ type TaskPlan struct {
 }
 
 type SetPipelinePlan struct {
-	Name         string                 `json:"name"`
-	File         string                 `json:"file"`
-	Team         string                 `json:"team,omitempty"`
-	Vars         map[string]interface{} `json:"vars,omitempty"`
-	VarFiles     []string               `json:"var_files,omitempty"`
-	InstanceVars map[string]interface{} `json:"instance_vars,omitempty"`
+	Name         string                   `json:"name"`
+	File         vars.String              `json:"file"`
+	Team         vars.String              `json:"team,omitempty"`
+	Vars         map[vars.String]vars.Any `json:"vars,omitempty"`
+	VarFiles     []vars.String            `json:"var_files,omitempty"`
+	InstanceVars map[vars.String]vars.Any `json:"instance_vars,omitempty"`
 }
 
 type LoadVarPlan struct {
