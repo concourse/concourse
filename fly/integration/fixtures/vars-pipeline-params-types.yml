@@ -5,3 +5,4 @@ large-string-param: |
   -----END SOME KEY-----
 bool-param: true
 array-param: ["val-1", "val-2"]
+number-param: 1.23
