@@ -26,9 +26,11 @@ var _ = Describe("Garden Config", func() {
 
 		waitAllPodsInNamespaceToBeReady(namespace)
 
+		By("Getting the worker pod")
 		pods := getPods(namespace, metav1.ListOptions{LabelSelector: "app=" + releaseName + "-worker"})
 		Expect(pods).To(HaveLen(1))
 
+		By("port-forwarding the garden API")
 		garden = endpointFactory.NewPodEndpoint(
 			namespace,
 			pods[0].ObjectMeta.Name,
