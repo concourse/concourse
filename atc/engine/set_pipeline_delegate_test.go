@@ -1,4 +1,4 @@
-package builder_test
+package engine_test
 
 import (
 	"time"
@@ -9,7 +9,7 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/engine/builder"
+	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/vars"
@@ -38,7 +38,7 @@ var _ = Describe("SetPipelineStepDelegate", func() {
 		}
 		state = exec.NewRunState(noopStepper, credVars, true)
 
-		delegate = builder.NewSetPipelineStepDelegate(fakeBuild, "some-plan-id", state, fakeClock)
+		delegate = engine.NewSetPipelineStepDelegate(fakeBuild, "some-plan-id", state, fakeClock)
 	})
 
 	Describe("SetPipelineChanged", func() {

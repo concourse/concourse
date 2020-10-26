@@ -1,4 +1,4 @@
-package builder_test
+package engine_test
 
 import (
 	"time"
@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/engine/builder"
+	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
@@ -53,7 +53,7 @@ var _ = Describe("PutDelegate", func() {
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)
 
-		delegate = builder.NewPutDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker)
+		delegate = engine.NewPutDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker)
 	})
 
 	Describe("Finished", func() {

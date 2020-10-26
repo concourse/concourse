@@ -39,7 +39,6 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
 	"github.com/concourse/concourse/atc/engine"
-	"github.com/concourse/concourse/atc/engine/builder"
 	"github.com/concourse/concourse/atc/gc"
 	"github.com/concourse/concourse/atc/lidar"
 	"github.com/concourse/concourse/atc/metric"
@@ -1627,32 +1626,31 @@ func (cmd *RunCommand) constructEngine(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	lockFactory lock.LockFactory,
-	rateLimiter builder.RateLimiter,
+	rateLimiter engine.RateLimiter,
 	policyChecker policy.Checker,
 ) engine.Engine {
-
-	stepFactory := builder.NewStepFactory(
-		workerPool,
-		workerClient,
-		resourceFactory,
-		teamFactory,
-		buildFactory,
-		resourceCacheFactory,
-		resourceConfigFactory,
-		defaultLimits,
-		strategy,
-		lockFactory,
-		cmd.GlobalResourceCheckTimeout,
+	return engine.NewEngine(
+		engine.NewStepperFactory(
+			engine.NewCoreStepFactory(
+				workerPool,
+				workerClient,
+				resourceFactory,
+				teamFactory,
+				buildFactory,
+				resourceCacheFactory,
+				resourceConfigFactory,
+				defaultLimits,
+				strategy,
+				lockFactory,
+				cmd.GlobalResourceCheckTimeout,
+			),
+			cmd.ExternalURL.String(),
+			rateLimiter,
+			policyChecker,
+		),
+		secretManager,
+		cmd.varSourcePool,
 	)
-
-	stepBuilder := builder.NewStepBuilder(
-		stepFactory,
-		cmd.ExternalURL.String(),
-		rateLimiter,
-		policyChecker,
-	)
-
-	return engine.NewEngine(stepBuilder, secretManager, cmd.varSourcePool)
 }
 
 func (cmd *RunCommand) constructHTTPHandler(

@@ -1,4 +1,4 @@
-package builder_test
+package engine_test
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/engine/builder"
+	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
@@ -62,7 +62,7 @@ var _ = Describe("BuildStepDelegate", func() {
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)
 
-		delegate = builder.NewBuildStepDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker)
+		delegate = engine.NewBuildStepDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker)
 	})
 
 	Describe("Initializing", func() {
@@ -625,7 +625,7 @@ var _ = Describe("BuildStepDelegate", func() {
 		BeforeEach(func() {
 			credVars := vars.StaticVariables{}
 			runState = exec.NewRunState(noopStepper, credVars, false)
-			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker)
+			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker)
 		})
 
 		Context("Stdout", func() {
@@ -725,7 +725,7 @@ var _ = Describe("BuildStepDelegate", func() {
 
 		BeforeEach(func() {
 			runState = exec.NewRunState(noopStepper, credVars, true)
-			delegate = builder.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker)
+			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker)
 
 			runState.Get(vars.Reference{Path: "source-param"})
 			runState.Get(vars.Reference{Path: "git-key"})
