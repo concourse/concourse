@@ -1,4 +1,4 @@
-//go:generate pkger
+//go:generate go run github.com/markbates/pkger/cmd/pkger
 
 package main
 
