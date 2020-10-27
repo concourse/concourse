@@ -32,8 +32,6 @@ import Html.Attributes
 import Html.Attributes.Aria exposing (ariaLabel)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Http
-import Json.Decode
-import Json.Encode
 import Keyboard
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
@@ -67,10 +65,10 @@ type alias Model =
     Login.Model
         { pipelineLocator : Concourse.PipelineIdentifier
         , pipeline : WebData Concourse.Pipeline
-        , fetchedJobs : Maybe Json.Encode.Value
-        , fetchedResources : Maybe Json.Encode.Value
-        , renderedJobs : Maybe Json.Encode.Value
-        , renderedResources : Maybe Json.Encode.Value
+        , fetchedJobs : Maybe (List Concourse.Job)
+        , fetchedResources : Maybe (List Concourse.Resource)
+        , renderedJobs : Maybe (List Concourse.Job)
+        , renderedResources : Maybe (List Concourse.Resource)
         , turbulenceImgSrc : String
         , experiencingTurbulence : Bool
         , selectedGroups : List String
@@ -625,41 +623,16 @@ viewGroup { selectedGroups, pipelineLocator, hovered } idx grp =
         [ Html.text grp.name ]
 
 
-jobAppearsInGroups : List String -> Json.Encode.Value -> Bool
-jobAppearsInGroups groupNames jobJson =
-    let
-        concourseJob =
-            Json.Decode.decodeValue Concourse.decodeJob jobJson
-    in
-    case concourseJob of
-        Ok cj ->
-            anyIntersect cj.groups groupNames
-
-        Err _ ->
-            -- failed to check if job is in group
-            False
+jobAppearsInGroups : List String -> Concourse.Job -> Bool
+jobAppearsInGroups groupNames job =
+    anyIntersect job.groups groupNames
 
 
-expandJsonList : Json.Encode.Value -> List Json.Decode.Value
-expandJsonList flatList =
-    let
-        result =
-            Json.Decode.decodeValue (Json.Decode.list Json.Decode.value) flatList
-    in
-    case result of
-        Ok res ->
-            res
-
-        Err _ ->
-            []
-
-
-filterJobs : Model -> Json.Encode.Value -> Json.Encode.Value
-filterJobs model value =
-    Json.Encode.list identity <|
-        List.filter
-            (jobAppearsInGroups (activeGroups model))
-            (expandJsonList value)
+filterJobs : Model -> List Concourse.Job -> List Concourse.Job
+filterJobs model jobs =
+    List.filter
+        (jobAppearsInGroups (activeGroups model))
+        jobs
 
 
 activeGroups : Model -> List String
@@ -687,8 +660,8 @@ renderIfNeeded ( model, effects ) =
             case ( model.renderedResources, model.renderedJobs ) of
                 ( Just renderedResources, Just renderedJobs ) ->
                     if
-                        (expandJsonList renderedJobs /= expandJsonList filteredFetchedJobs)
-                            || (expandJsonList renderedResources /= expandJsonList fetchedResources)
+                        (renderedJobs /= filteredFetchedJobs)
+                            || (renderedResources /= fetchedResources)
                     then
                         ( { model
                             | renderedJobs = Just filteredFetchedJobs

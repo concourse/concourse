@@ -154,7 +154,7 @@ type Effect
     | PauseJob Concourse.JobIdentifier
     | UnpauseJob Concourse.JobIdentifier
     | ResetPipelineFocus
-    | RenderPipeline Json.Encode.Value Json.Encode.Value
+    | RenderPipeline (List Concourse.Job) (List Concourse.Resource)
     | RedirectToLogin
     | LoadExternal String
     | NavigateTo String
@@ -218,7 +218,7 @@ runEffect effect key csrfToken =
         FetchJobs id ->
             Api.get
                 (Endpoints.PipelineJobsList |> Endpoints.Pipeline id)
-                |> Api.expectJson Json.Decode.value
+                |> Api.expectJson (Json.Decode.list Concourse.decodeJob)
                 |> Api.request
                 |> Task.attempt JobsFetched
 
@@ -255,7 +255,7 @@ runEffect effect key csrfToken =
         FetchResources id ->
             Api.get
                 (Endpoints.PipelineResourcesList |> Endpoints.Pipeline id)
-                |> Api.expectJson Json.Decode.value
+                |> Api.expectJson (Json.Decode.list Concourse.decodeResource)
                 |> Api.request
                 |> Task.attempt ResourcesFetched
 
@@ -383,7 +383,10 @@ runEffect effect key csrfToken =
             resetPipelineFocus ()
 
         RenderPipeline jobs resources ->
-            renderPipeline ( jobs, resources )
+            renderPipeline
+                ( Json.Encode.list Concourse.encodeJob jobs
+                , Json.Encode.list Concourse.encodeResource resources
+                )
 
         DoPinVersion id ->
             Api.put
