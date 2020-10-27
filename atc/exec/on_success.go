@@ -35,5 +35,11 @@ func (o OnSuccessStep) Run(ctx context.Context, state RunState) (bool, error) {
 		return false, nil
 	}
 
+	select {
+	case <-ctx.Done():
+		return false, context.Canceled
+	default:
+	}
+
 	return o.hook.Run(ctx, state)
 }
