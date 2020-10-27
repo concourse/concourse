@@ -16,7 +16,7 @@ platforms. Currently tracing can be configured to integrates with:
 }{
   \link{Google Cloud Trace}{https://cloud.google.com/trace} (Stackdriver)
 }{
-  \link{OpeneTelemetry Collector Exporter}{https://github.com/open-telemetry/opentelemetry-go/tree/master/exporters/otlp}
+  \link{OpenTelemetry Protocol Exporter}{https://github.com/open-telemetry/opentelemetry-go/tree/master/exporters/otlp}
 }
 
 \section{
