@@ -1,9 +1,4 @@
 BEGIN;
-  -- Need to lock builds as migrating foreign key contraints seems to acquire an
-  -- AccessExclusiveLock on the downstream table. Locks are released at the end
-  -- of the transaction
-  LOCK TABLE builds IN ACCESS EXCLUSIVE MODE;
-
   ALTER TABLE jobs
       ALTER COLUMN next_build_id TYPE integer,
       ALTER COLUMN latest_completed_build_id TYPE integer,
