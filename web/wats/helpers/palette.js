@@ -3,11 +3,11 @@
 let color = require('color');
 
 module.exports = {
-  "base00": color("#151515"),
-  "base01": color("#262626"),
-  "base02": color("#363636"),
-  "base03": color("#4D4D4D"),
-  "base04": color("#808080"),
+  "grey100": color("#151515"),
+  "grey90": color("#262626"),
+  "grey80": color("#363636"),
+  "grey70": color("#4D4D4D"),
+  "grey50": color("#808080"),
 
   "white": color("#FFFFFF"),
 
