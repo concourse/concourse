@@ -66,6 +66,8 @@ type Monitor struct {
 
 	ConcurrentRequests         map[string]*Gauge
 	ConcurrentRequestsLimitHit map[string]*Counter
+
+	VolumesStreamed Counter
 }
 
 var Metrics = NewMonitor()
