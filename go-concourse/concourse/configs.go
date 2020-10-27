@@ -3,8 +3,6 @@ package concourse
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -67,9 +65,7 @@ func (team *team) CreateOrUpdatePipelineConfig(pipelineRef atc.PipelineRef, conf
 		queryParams.Add(atc.SaveConfigCheckCreds, "")
 	}
 
-	response := internal.Response{}
-
-	err := team.connection.Send(internal.Request{
+	response, err := team.httpAgent.Send(internal.Request{
 		ReturnResponseBody: true,
 		RequestName:        atc.SaveConfig,
 		Params:             params,
@@ -79,46 +75,37 @@ func (team *team) CreateOrUpdatePipelineConfig(pipelineRef atc.PipelineRef, conf
 			"Content-Type":          {"application/x-yaml"},
 			atc.ConfigVersionHeader: {configVersion},
 		},
-	},
-		&response,
-	)
-
+	})
 	if err != nil {
-		if unexpectedResponseError, ok := err.(internal.UnexpectedResponseError); ok {
-			if unexpectedResponseError.StatusCode == http.StatusBadRequest {
-				var validationErr atc.SaveConfigResponse
-				err = json.Unmarshal([]byte(unexpectedResponseError.Body), &validationErr)
-				if err != nil {
-					return false, false, []ConfigWarning{}, err
-				}
+		return false, false, []ConfigWarning{}, err
+	}
 
-				return false, false, []ConfigWarning{}, InvalidConfigError{
-					Errors: validationErr.Errors,
-				}
-			}
+	defer response.Body.Close()
+	body, _ := ioutil.ReadAll(response.Body)
+
+	switch response.StatusCode {
+	case http.StatusOK, http.StatusCreated:
+		configResponse := setConfigResponse{}
+		err = json.Unmarshal(body, &configResponse)
+		if err != nil {
+			return false, false, []ConfigWarning{}, err
 		}
-
-		return false, false, []ConfigWarning{}, err
+		created := response.StatusCode == http.StatusCreated
+		return created, !created, configResponse.Warnings, nil
+	case http.StatusBadRequest:
+		var validationErr atc.SaveConfigResponse
+		err = json.Unmarshal(body, &validationErr)
+		if err != nil {
+			return false, false, []ConfigWarning{}, err
+		}
+		return false, false, []ConfigWarning{}, InvalidConfigError{Errors: validationErr.Errors}
+	default:
+		return false, false, []ConfigWarning{}, internal.UnexpectedResponseError{
+			StatusCode: response.StatusCode,
+			Status:     response.Status,
+			Body:       string(body),
+		}
 	}
-
-	configResponse := setConfigResponse{}
-	readCloser, ok := response.Result.(io.ReadCloser)
-	if !ok {
-		return false, false, []ConfigWarning{}, errors.New("Failed to assert type of response result")
-	}
-	defer readCloser.Close()
-
-	contents, err := ioutil.ReadAll(readCloser)
-	if err != nil {
-		return false, false, []ConfigWarning{}, err
-	}
-
-	err = json.Unmarshal(contents, &configResponse)
-	if err != nil {
-		return false, false, []ConfigWarning{}, err
-	}
-
-	return response.Created, !response.Created, configResponse.Warnings, nil
 }
 
 func merge(base, extra url.Values) url.Values {
