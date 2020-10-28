@@ -3,7 +3,6 @@ package k8s_test
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -341,7 +340,7 @@ func helmDestroy(releaseName, namespace string) {
 }
 
 func getPods(namespace string, listOptions metav1.ListOptions) []corev1.Pod {
-	pods, err := kubeClient.CoreV1().Pods(namespace).List(context.TODO(), listOptions)
+	pods, err := kubeClient.CoreV1().Pods(namespace).List(listOptions)
 	Expect(err).ToNot(HaveOccurred())
 
 	return pods.Items
@@ -429,7 +428,7 @@ func waitAndLogin(namespace, service string) Endpoint {
 func cleanupReleases() {
 	for releaseName, namespace := range deployedReleases {
 		helmDestroy(releaseName, namespace)
-		kubeClient.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
+		kubeClient.CoreV1().Namespaces().Delete(namespace, &metav1.DeleteOptions{})
 	}
 
 	deployedReleases = make(map[string]string)
