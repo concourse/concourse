@@ -8,16 +8,11 @@ Tracing in Concourse enables the delivery of traces related to the internal
 processes that go into running builds, and other internal operations, breaking
 them down by time, and component.
 
-It leverages the (\link{OpenTelemetry}{https://opentelemetry.io/}) SDK to allow support for many
-platforms. Currently tracing can be configured to integrates with:
+It currently integrates with \link{Jaeger}{https://www.jaegertracing.io/} and
+\link{Google Cloud Trace}{https://cloud.google.com/trace} (Stackdriver),
+although support for other systems is planned to expand as the underlying SDK
+(\link{OpenTelemetry}{https://opentelemetry.io/}) evolves.
 
-\list{
-  \link{Jaeger}{https://www.jaegertracing.io/}
-}{
-  \link{Google Cloud Trace}{https://cloud.google.com/trace} (Stackdriver)
-}{
-  \link{OpenTelemetry Protocol Exporter}{https://github.com/open-telemetry/opentelemetry-go/tree/master/exporters/otlp}
-}
 
 \section{
   \title{Configuring Tracing}
@@ -39,13 +34,6 @@ platforms. Currently tracing can be configured to integrates with:
   \link{\code{GOOGLE_APPLICATION_CREDENTIALS} environment variable}{https://cloud.google.com/docs/authentication/getting-started#setting_the_environment_variable},
   the default location that the \code{gcloud} CLI expects, or from GCP's
   metadata server (if Concourse is deployed on GCP).
-
-  To export spans to Lightstep via the OTLP Exporter, specify your collector access token and endpoint:
-
-  \codeblock{bash}{{{
-  CONCOURSE_TRACING_OTLP_ADDRESS=ingest.lightstep.com:443
-  CONCOURSE_TRACING_OTLP_HEADERS=lightstep-access-token:mysupersecrettoken
-  }}}
 }
 
 \section{
