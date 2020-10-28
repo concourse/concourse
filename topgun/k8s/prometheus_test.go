@@ -41,8 +41,7 @@ var _ = Describe("Prometheus integration", func() {
 	})
 
 	AfterEach(func() {
-		helmDestroy(prometheusReleaseName)
-		cleanup(releaseName, namespace)
+		cleanupReleases()
 	})
 
 	It("Is able to retrieve concourse metrics", func() {

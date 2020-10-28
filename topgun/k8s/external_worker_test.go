@@ -72,8 +72,7 @@ var _ = Describe("external workers through separate deployments", func() {
 
 	AfterEach(func() {
 		atc.Close()
-		cleanup(releaseName+"-web", namespace+"-web")
-		cleanup(releaseName+"-worker", namespace+"-worker")
+		cleanupReleases()
 	})
 
 	Context("main team worker, webs only allow team workers", func() {

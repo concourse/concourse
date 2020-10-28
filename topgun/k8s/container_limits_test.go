@@ -29,7 +29,7 @@ var _ = Describe("Container Limits", func() {
 	})
 
 	AfterEach(func() {
-		cleanup(releaseName, namespace)
+		cleanupReleases()
 	})
 
 })
@@ -59,6 +59,7 @@ func containerLimitsWork(selectorFlags ...string) {
 			hijackSession := fly.Start(
 				"hijack",
 				"-b", "1",
+				"-s", "one-off",
 				"--", "sh", "-c",
 				"cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes; cat /sys/fs/cgroup/cpu/cpu.shares",
 			)

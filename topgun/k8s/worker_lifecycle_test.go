@@ -57,7 +57,7 @@ var _ = Describe("Worker lifecycle", func() {
 
 	AfterEach(func() {
 		atc.Close()
-		cleanup(releaseName, namespace)
+		cleanupReleases()
 	})
 
 	Context("terminating the worker", func() {
@@ -77,14 +77,14 @@ var _ = Describe("Worker lifecycle", func() {
 					Should(Equal("retiring"))
 
 				By("letting the task finish")
-				fly.Run("hijack", "--verbose", "-j", "some-pipeline/simple-job",
+				fly.Run("hijack", "--verbose", "-j", "some-pipeline/simple-job", "-s", "simple-task",
 					"--", "/bin/sh", "-ce",
 					`touch /tmp/stop-waiting`,
 				)
 
 				By("seeing that there are no workers")
 				Eventually(func() []Worker {
-					return getRunningWorkers(fly.GetWorkers())
+					return fly.GetWorkers()
 				}, 1*time.Minute, 1*time.Second).
 					Should(HaveLen(0))
 
