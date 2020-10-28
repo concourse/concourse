@@ -46,7 +46,7 @@ function redrawFunction(svg, jobs, resources, newUrl) {
       .attr("class", function(edge) { return "edge " + edge.source.node.status })
 
     svgEdges.each(function(edge) {
-      if (edge.customData !== null && edge.customData.trigger === false) {
+      if (edge.customData !== null && edge.customData.trigger !== true) {
         d3.select(this).classed("trigger-false", true)
       }
     })

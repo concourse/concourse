@@ -85,11 +85,12 @@ type FakeResource struct {
 	configPinnedVersionReturnsOnCall map[int]struct {
 		result1 atc.Version
 	}
-	CreateBuildStub        func(context.Context, bool) (db.Build, bool, error)
+	CreateBuildStub        func(context.Context, bool, atc.Plan) (db.Build, bool, error)
 	createBuildMutex       sync.RWMutex
 	createBuildArgsForCall []struct {
 		arg1 context.Context
 		arg2 bool
+		arg3 atc.Plan
 	}
 	createBuildReturns struct {
 		result1 db.Build
@@ -855,17 +856,18 @@ func (fake *FakeResource) ConfigPinnedVersionReturnsOnCall(i int, result1 atc.Ve
 	}{result1}
 }
 
-func (fake *FakeResource) CreateBuild(arg1 context.Context, arg2 bool) (db.Build, bool, error) {
+func (fake *FakeResource) CreateBuild(arg1 context.Context, arg2 bool, arg3 atc.Plan) (db.Build, bool, error) {
 	fake.createBuildMutex.Lock()
 	ret, specificReturn := fake.createBuildReturnsOnCall[len(fake.createBuildArgsForCall)]
 	fake.createBuildArgsForCall = append(fake.createBuildArgsForCall, struct {
 		arg1 context.Context
 		arg2 bool
-	}{arg1, arg2})
-	fake.recordInvocation("CreateBuild", []interface{}{arg1, arg2})
+		arg3 atc.Plan
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("CreateBuild", []interface{}{arg1, arg2, arg3})
 	fake.createBuildMutex.Unlock()
 	if fake.CreateBuildStub != nil {
-		return fake.CreateBuildStub(arg1, arg2)
+		return fake.CreateBuildStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -880,17 +882,17 @@ func (fake *FakeResource) CreateBuildCallCount() int {
 	return len(fake.createBuildArgsForCall)
 }
 
-func (fake *FakeResource) CreateBuildCalls(stub func(context.Context, bool) (db.Build, bool, error)) {
+func (fake *FakeResource) CreateBuildCalls(stub func(context.Context, bool, atc.Plan) (db.Build, bool, error)) {
 	fake.createBuildMutex.Lock()
 	defer fake.createBuildMutex.Unlock()
 	fake.CreateBuildStub = stub
 }
 
-func (fake *FakeResource) CreateBuildArgsForCall(i int) (context.Context, bool) {
+func (fake *FakeResource) CreateBuildArgsForCall(i int) (context.Context, bool, atc.Plan) {
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
 	argsForCall := fake.createBuildArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeResource) CreateBuildReturns(result1 db.Build, result2 bool, result3 error) {

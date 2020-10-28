@@ -1,0 +1,16 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+  exporters:
+    jaeger:
+      endpoint: jaeger:14250
+      insecure: true
+      sending_queue:
+        enabled: false
+  service:
+    pipelines:
+      traces:
+        receivers: [otlp]
+        exporters: [jaeger]

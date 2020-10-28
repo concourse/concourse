@@ -14,8 +14,6 @@ import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (id, style)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
-import Json.Decode
-import Json.Encode
 import Message.Message exposing (DomID(..), Message(..))
 import Pipeline.PinMenu.Styles as Styles
 import Pipeline.PinMenu.Views as Views
@@ -26,7 +24,7 @@ import Views.Styles
 
 type alias Model b =
     { b
-        | fetchedResources : Maybe Json.Encode.Value
+        | fetchedResources : Maybe (List Concourse.Resource)
         , pipelineLocator : Concourse.PipelineIdentifier
         , pinMenuExpanded : Bool
     }
@@ -206,16 +204,18 @@ viewPinMenu session m =
         |> viewView
 
 
-getPinnedResources : Maybe Json.Encode.Value -> List ( String, Concourse.Version )
+getPinnedResources : Maybe (List Concourse.Resource) -> List ( String, Concourse.Version )
 getPinnedResources fetchedResources =
     case fetchedResources of
         Nothing ->
             []
 
-        Just res ->
-            Json.Decode.decodeValue (Json.Decode.list Concourse.decodeResource) res
-                |> Result.withDefault []
-                |> List.filterMap (\r -> Maybe.map (\v -> ( r.name, v )) r.pinnedVersion)
+        Just resources ->
+            resources
+                |> List.filterMap
+                    (\r ->
+                        Maybe.map (\v -> ( r.name, v )) r.pinnedVersion
+                    )
 
 
 viewView : View -> Html Message

@@ -426,8 +426,9 @@ var factoryTests = []PlannerTest{
 					MaxInFlight: &atc.MaxInFlightConfig{All: true},
 				},
 				{
-					Var:    "var2",
-					Values: []interface{}{"b1", "b2"},
+					Var:         "var2",
+					Values:      []interface{}{"b1", "b2"},
+					MaxInFlight: &atc.MaxInFlightConfig{Limit: 1},
 				},
 			},
 		},
@@ -439,7 +440,7 @@ var factoryTests = []PlannerTest{
 					{
 						"name": "var1",
 						"values": ["a1", "a2"],
-						"max_in_flight": 2
+						"max_in_flight": "all"
 					},
 					{
 						"name": "var2",

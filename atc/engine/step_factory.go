@@ -1,4 +1,4 @@
-package builder
+package engine
 
 import (
 	"crypto/sha1"
@@ -14,7 +14,7 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 )
 
-type stepFactory struct {
+type coreStepFactory struct {
 	pool                  worker.Pool
 	client                worker.Client
 	resourceFactory       resource.ResourceFactory
@@ -28,7 +28,7 @@ type stepFactory struct {
 	defaultCheckTimeout   time.Duration
 }
 
-func NewStepFactory(
+func NewCoreStepFactory(
 	pool worker.Pool,
 	client worker.Client,
 	resourceFactory resource.ResourceFactory,
@@ -40,8 +40,8 @@ func NewStepFactory(
 	strategy worker.ContainerPlacementStrategy,
 	lockFactory lock.LockFactory,
 	defaultCheckTimeout time.Duration,
-) *stepFactory {
-	return &stepFactory{
+) CoreStepFactory {
+	return &coreStepFactory{
 		pool:                  pool,
 		client:                client,
 		resourceFactory:       resourceFactory,
@@ -56,7 +56,7 @@ func NewStepFactory(
 	}
 }
 
-func (factory *stepFactory) GetStep(
+func (factory *coreStepFactory) GetStep(
 	plan atc.Plan,
 	stepMetadata exec.StepMetadata,
 	containerMetadata db.ContainerMetadata,
@@ -83,7 +83,7 @@ func (factory *stepFactory) GetStep(
 	return getStep
 }
 
-func (factory *stepFactory) PutStep(
+func (factory *coreStepFactory) PutStep(
 	plan atc.Plan,
 	stepMetadata exec.StepMetadata,
 	containerMetadata db.ContainerMetadata,
@@ -110,7 +110,7 @@ func (factory *stepFactory) PutStep(
 	return putStep
 }
 
-func (factory *stepFactory) CheckStep(
+func (factory *coreStepFactory) CheckStep(
 	plan atc.Plan,
 	stepMetadata exec.StepMetadata,
 	containerMetadata db.ContainerMetadata,
@@ -139,7 +139,7 @@ func (factory *stepFactory) CheckStep(
 	return checkStep
 }
 
-func (factory *stepFactory) TaskStep(
+func (factory *coreStepFactory) TaskStep(
 	plan atc.Plan,
 	stepMetadata exec.StepMetadata,
 	containerMetadata db.ContainerMetadata,
@@ -167,7 +167,7 @@ func (factory *stepFactory) TaskStep(
 	return taskStep
 }
 
-func (factory *stepFactory) SetPipelineStep(
+func (factory *coreStepFactory) SetPipelineStep(
 	plan atc.Plan,
 	stepMetadata exec.StepMetadata,
 	delegateFactory DelegateFactory,
@@ -189,7 +189,7 @@ func (factory *stepFactory) SetPipelineStep(
 	return spStep
 }
 
-func (factory *stepFactory) LoadVarStep(
+func (factory *coreStepFactory) LoadVarStep(
 	plan atc.Plan,
 	stepMetadata exec.StepMetadata,
 	delegateFactory DelegateFactory,
@@ -209,14 +209,14 @@ func (factory *stepFactory) LoadVarStep(
 	return loadVarStep
 }
 
-func (factory *stepFactory) ArtifactInputStep(
+func (factory *coreStepFactory) ArtifactInputStep(
 	plan atc.Plan,
 	build db.Build,
 ) exec.Step {
 	return exec.NewArtifactInputStep(plan, build, factory.client)
 }
 
-func (factory *stepFactory) ArtifactOutputStep(
+func (factory *coreStepFactory) ArtifactOutputStep(
 	plan atc.Plan,
 	build db.Build,
 ) exec.Step {

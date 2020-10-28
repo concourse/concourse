@@ -104,17 +104,16 @@ var _ = Describe("AcrossStep", func() {
 			{
 				Var:         "var1",
 				Values:      []interface{}{"a1", "a2"},
-				MaxInFlight: 2,
+				MaxInFlight: &atc.MaxInFlightConfig{All: true},
 			},
 			{
-				Var:         "var2",
-				Values:      []interface{}{"b1", "b2"},
-				MaxInFlight: 1,
+				Var:    "var2",
+				Values: []interface{}{"b1", "b2"},
 			},
 			{
 				Var:         "var3",
 				Values:      []interface{}{"c1", "c2"},
-				MaxInFlight: 2,
+				MaxInFlight: &atc.MaxInFlightConfig{Limit: 2},
 			},
 		}
 		started = make(chan vals, 8)

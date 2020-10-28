@@ -177,6 +177,10 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		if err != nil {
 			metric.Metrics.ChecksFinishedWithError.Inc()
 
+			if _, updateErr := scope.UpdateLastCheckEndTime(); updateErr != nil {
+				return false, fmt.Errorf("update check end time: %w", updateErr)
+			}
+
 			if pointErr := delegate.PointToCheckedConfig(scope); pointErr != nil {
 				return false, fmt.Errorf("update resource config scope: %w", pointErr)
 			}

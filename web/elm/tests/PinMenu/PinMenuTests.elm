@@ -61,23 +61,7 @@ all =
                 model =
                     { init
                         | fetchedResources =
-                            Just <|
-                                JE.list identity
-                                    [ JE.object
-                                        [ ( "team_name", JE.string "team" )
-                                        , ( "pipeline_name", JE.string "pipeline" )
-                                        , ( "pipeline_id", JE.int 1 )
-                                        , ( "name", JE.string "test" )
-                                        , ( "type", JE.string "type" )
-                                        , ( "pinned_version"
-                                          , JE.object
-                                                [ ( "version"
-                                                  , JE.string "v1"
-                                                  )
-                                                ]
-                                          )
-                                        ]
-                                    ]
+                            Just [ Data.resource (Just "v1") |> Data.withName "test" ]
                     }
             in
             [ test "is hoverable" <|

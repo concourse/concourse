@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strconv"
+	"strings"
+
 	"sigs.k8s.io/yaml"
 
 	"github.com/vito/go-interact/interact"
@@ -108,7 +111,11 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 }
 
 func (atcConfig ATCConfig) UnpausePipelineCommand() string {
-	return fmt.Sprintf("%s -t %s unpause-pipeline -p %s", os.Args[0], atcConfig.TargetName, atcConfig.PipelineRef.String())
+	pipelineFlag := atcConfig.PipelineRef.String()
+	if strings.Contains(pipelineFlag, `"`) {
+		pipelineFlag = strconv.Quote(pipelineFlag)
+	}
+	return fmt.Sprintf("%s -t %s unpause-pipeline -p %s", os.Args[0], atcConfig.TargetName, pipelineFlag)
 }
 
 func (atcConfig ATCConfig) showPipelineUpdateResult(created bool, updated bool, paused bool) {

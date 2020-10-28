@@ -52,6 +52,8 @@ type PrometheusEmitter struct {
 	checksStarted   prometheus.Counter
 	checksEnqueued  prometheus.Counter
 
+	volumesStreamed prometheus.Counter
+
 	workerContainers        *prometheus.GaugeVec
 	workerUnknownContainers *prometheus.GaugeVec
 	workerVolumes           *prometheus.GaugeVec
@@ -391,6 +393,16 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 	)
 	prometheus.MustRegister(checksEnqueued)
 
+	volumesStreamed := prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "concourse",
+			Subsystem: "volumes",
+			Name:      "volumes_streamed",
+			Help:      "Total number of volumes streamed from one worker to the other",
+		},
+	)
+	prometheus.MustRegister(volumesStreamed)
+
 	listener, err := net.Listen("tcp", config.bind())
 	if err != nil {
 		return nil, err
@@ -443,6 +455,8 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		workerTasks:             workerTasks,
 		workerUnknownContainers: workerUnknownContainers,
 		workerUnknownVolumes:    workerUnknownVolumes,
+
+		volumesStreamed: volumesStreamed,
 	}
 	go emitter.periodicMetricGC()
 
@@ -518,6 +532,8 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.checksEnqueued.Add(event.Value)
 	case "checks queue size":
 		emitter.checksQueueSize.Set(event.Value)
+	case "volumes streamed":
+		emitter.volumesStreamed.Add(event.Value)
 	default:
 		// unless we have a specific metric, we do nothing
 	}

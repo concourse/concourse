@@ -368,12 +368,12 @@ var _ = Describe("Plan", func() {
 								{
 									Var:         "v1",
 									Values:      []interface{}{"a"},
-									MaxInFlight: 1,
+									MaxInFlight: &atc.MaxInFlightConfig{Limit: 1},
 								},
 								{
 									Var:         "v2",
 									Values:      []interface{}{"b"},
-									MaxInFlight: 2,
+									MaxInFlight: &atc.MaxInFlightConfig{All: true},
 								},
 							},
 							Steps: []atc.VarScopedPlan{
@@ -673,7 +673,7 @@ var _ = Describe("Plan", func() {
 	      {
 	        "name": "v2",
 	        "values": ["b"],
-	        "max_in_flight": 2
+	        "max_in_flight": "all"
 	      }
 	    ],
 	    "steps": [

@@ -8,6 +8,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/storage/v1"
+	k8sErrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -46,14 +49,20 @@ var _ = Describe("baggageclaim drivers", func() {
 			It("successfully recreates the worker", func() {
 				By("deploying concourse with ONLY one worker and having the worker pod use the gcloud disk and format it with btrfs")
 
+				scName := "btrfs"
+				createBtrfsStorageClass(scName)
+
 				setReleaseNameAndNamespace("real-btrfs-disk")
+				pvcName := "disk-" + namespace
 
 				deployWithDriverAndSelectors("btrfs", UBUNTU,
 					"--set=persistence.enabled=false",
 					"--set=worker.additionalVolumes[0].name=concourse-work-dir",
-					"--set=worker.additionalVolumes[0].gcePersistentDisk.pdName=disk-topgun-k8s-btrfs-test",
-					"--set=worker.additionalVolumes[0].gcePersistentDisk.fsType=btrfs",
+					"--set=worker.additionalVolumes[0].persistentVolumeClaim.claimName="+pvcName,
 				)
+
+				// We create the PVC after deploying because we need the namespace to be created first by helm
+				createPVC(pvcName, scName)
 
 				atc := waitAndLogin(namespace, releaseName+"-web")
 				defer atc.Close()
@@ -121,4 +130,30 @@ func deployWithDriverAndSelectors(driver string, selectorFlags ...string) {
 	}
 
 	deployConcourseChart(releaseName, append(helmDeployTestFlags, selectorFlags...)...)
+}
+
+func createBtrfsStorageClass(name string) {
+	_, err := kubeClient.StorageV1().StorageClasses().Create(context.TODO(), &v1.StorageClass{
+		ObjectMeta:  metav1.ObjectMeta{Name: "btrfs"},
+		Provisioner: "kubernetes.io/gce-pd",
+		Parameters: map[string]string{
+			"type":   "pd-standard",
+			"fstype": name,
+		},
+	}, metav1.CreateOptions{})
+	if err != nil && !k8sErrs.IsAlreadyExists(err) {
+		Fail("failed to create btrfs storage class: " + err.Error())
+	}
+}
+func createPVC(name string, scName string) {
+	_, err := kubeClient.CoreV1().PersistentVolumeClaims(namespace).
+		Create(context.TODO(), &corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				StorageClassName: &scName,
+				AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+				Resources: corev1.ResourceRequirements{Requests: corev1.ResourceList{
+					corev1.ResourceStorage: resource.MustParse("1Gi")}},
+			}}, metav1.CreateOptions{})
+	Expect(err).To(BeNil(), "failed to create persistent volume claim "+name)
 }

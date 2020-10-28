@@ -37,16 +37,15 @@ var _ = BeforeSuite(func() {
 	jaegerURL := os.Getenv("JAEGER_URL")
 
 	if jaegerURL != "" {
-		spanSyncer, err := (tracing.Jaeger{
-			Endpoint: jaegerURL + "/api/traces",
-			Service:  "algorithm_test",
-		}).Exporter()
+		c := tracing.Config{
+			Jaeger: tracing.Jaeger{
+				Endpoint: jaegerURL + "/api/traces",
+				Service:  "algorithm_test",
+			},
+		}
+
+		err := c.Prepare()
 		Expect(err).ToNot(HaveOccurred())
-
-		exporter = spanSyncer.(*jaeger.Exporter)
-
-		tp := tracing.TraceProvider(exporter)
-		tracing.ConfigureTraceProvider(tp)
 	}
 
 	postgresRunner = postgresrunner.Runner{

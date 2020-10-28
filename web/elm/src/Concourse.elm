@@ -66,6 +66,7 @@ module Concourse exposing
     , encodeJob
     , encodeJsonValue
     , encodePipeline
+    , encodeResource
     , encodeTeam
     , flattenJson
     , hyphenNotation
@@ -821,12 +822,12 @@ encodeJob job =
         [ ( "name", job.name |> Json.Encode.string )
         , ( "pipeline_id", job.pipelineId |> Json.Encode.int )
         , ( "pipeline_name", job.pipelineName |> Json.Encode.string )
+        , ( "pipeline_instance_vars", job.pipelineInstanceVars |> encodeInstanceVars )
         , ( "team_name", job.teamName |> Json.Encode.string )
         , ( "next_build", job.nextBuild |> encodeMaybeBuild )
         , ( "finished_build", job.finishedBuild |> encodeMaybeBuild )
         , ( "transition_build", job.finishedBuild |> encodeMaybeBuild )
         , ( "paused", job.paused |> Json.Encode.bool )
-        , ( "disable_manual_trigger", job.paused |> Json.Encode.bool )
         , ( "disable_manual_trigger", job.disableManualTrigger |> Json.Encode.bool )
         , ( "inputs", job.inputs |> Json.Encode.list encodeJobInput )
         , ( "outputs", job.outputs |> Json.Encode.list encodeJobOutput )
@@ -956,6 +957,7 @@ encodePipeline pipeline =
     Json.Encode.object
         [ ( "id", pipeline.id |> Json.Encode.int )
         , ( "name", pipeline.name |> Json.Encode.string )
+        , ( "instance_vars", pipeline.instanceVars |> encodeInstanceVars )
         , ( "paused", pipeline.paused |> Json.Encode.bool )
         , ( "archived", pipeline.archived |> Json.Encode.bool )
         , ( "public", pipeline.public |> Json.Encode.bool )
@@ -1062,6 +1064,25 @@ decodeResource =
         |> andMap (Json.Decode.maybe (Json.Decode.field "build" decodeBuild))
 
 
+encodeResource : Resource -> Json.Encode.Value
+encodeResource r =
+    Json.Encode.object
+        ([ ( "team_name", r.teamName |> Json.Encode.string ) |> Just
+         , ( "pipeline_id", r.pipelineId |> Json.Encode.int ) |> Just
+         , ( "pipeline_name", r.pipelineName |> Json.Encode.string ) |> Just
+         , ( "pipeline_instance_vars", r.pipelineInstanceVars |> encodeInstanceVars ) |> Just
+         , ( "name", r.name |> Json.Encode.string ) |> Just
+         , optionalField "icon" Json.Encode.string r.icon
+         , optionalField "last_checked" (secondsFromDate >> Json.Encode.int) r.lastChecked
+         , optionalField "pinned_version" encodeVersion r.pinnedVersion
+         , ( "pinned_in_config", r.pinnedInConfig |> Json.Encode.bool ) |> Just
+         , optionalField "pin_comment" Json.Encode.string r.pinComment
+         , ( "build", r.build |> encodeMaybeBuild ) |> Just
+         ]
+            |> List.filterMap identity
+        )
+
+
 decodeVersionedResource : Json.Decode.Decoder VersionedResource
 decodeVersionedResource =
     Json.Decode.succeed VersionedResource
@@ -1082,6 +1103,11 @@ type alias Version =
 decodeVersion : Json.Decode.Decoder Version
 decodeVersion =
     Json.Decode.dict Json.Decode.string
+
+
+encodeVersion : Version -> Json.Encode.Value
+encodeVersion =
+    Json.Encode.dict identity Json.Encode.string
 
 
 

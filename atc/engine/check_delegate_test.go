@@ -1,4 +1,4 @@
-package builder_test
+package engine_test
 
 import (
 	"context"
@@ -15,8 +15,8 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
-	"github.com/concourse/concourse/atc/engine/builder"
-	"github.com/concourse/concourse/atc/engine/builder/builderfakes"
+	"github.com/concourse/concourse/atc/engine"
+	"github.com/concourse/concourse/atc/engine/enginefakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"github.com/concourse/concourse/vars"
@@ -26,7 +26,7 @@ var _ = Describe("CheckDelegate", func() {
 	var (
 		fakeBuild         *dbfakes.FakeBuild
 		fakeClock         *fakeclock.FakeClock
-		fakeRateLimiter   *builderfakes.FakeRateLimiter
+		fakeRateLimiter   *enginefakes.FakeRateLimiter
 		fakePolicyChecker *policyfakes.FakeChecker
 
 		state exec.RunState
@@ -43,7 +43,7 @@ var _ = Describe("CheckDelegate", func() {
 	BeforeEach(func() {
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeClock = fakeclock.NewFakeClock(now)
-		fakeRateLimiter = new(builderfakes.FakeRateLimiter)
+		fakeRateLimiter = new(enginefakes.FakeRateLimiter)
 		credVars := vars.StaticVariables{
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
@@ -57,7 +57,7 @@ var _ = Describe("CheckDelegate", func() {
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)
 
-		delegate = builder.NewCheckDelegate(fakeBuild, plan, state, fakeClock, fakeRateLimiter, fakePolicyChecker)
+		delegate = engine.NewCheckDelegate(fakeBuild, plan, state, fakeClock, fakeRateLimiter, fakePolicyChecker)
 
 		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 		fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)

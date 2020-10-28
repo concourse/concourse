@@ -694,6 +694,10 @@ var _ = Describe("CheckStep", func() {
 					Expect(scope).To(Equal(fakeResourceConfigScope))
 				})
 
+				It("updates the scope's last check end time", func() {
+					Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(1))
+				})
+
 				// Finished is for script success/failure, whereas this is an error
 				It("does not emit a Finished event", func() {
 					Expect(fakeDelegate.FinishedCallCount()).To(Equal(0))
@@ -710,6 +714,10 @@ var _ = Describe("CheckStep", func() {
 						// don't return an error - the script output has already been
 						// printed, and emitting an errored event would double it up
 						Expect(stepErr).ToNot(HaveOccurred())
+					})
+
+					It("updates the scope's last check end time", func() {
+						Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(1))
 					})
 
 					It("emits a failed Finished event", func() {
