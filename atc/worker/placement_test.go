@@ -469,3 +469,99 @@ var _ = Describe("LimitActiveTasksPlacementStrategy", func() {
 		})
 	})
 })
+
+var _ = Describe("ChainedPlacementStrategy #Choose", func() {
+
+	var someWorker1 *workerfakes.FakeWorker
+	var someWorker2 *workerfakes.FakeWorker
+	var someWorker3 *workerfakes.FakeWorker
+
+	BeforeEach(func() {
+		logger = lagertest.NewTestLogger("build-containers-equal-placement-test")
+		strategy, newStrategyError = NewContainerPlacementStrategy(
+			ContainerPlacementStrategyOptions{
+				ContainerPlacementStrategy: "fewest-build-containers+volume-locality",
+			})
+		Expect(newStrategyError).ToNot(HaveOccurred())
+		someWorker1 = new(workerfakes.FakeWorker)
+		someWorker1.NameReturns("worker1")
+		someWorker2 = new(workerfakes.FakeWorker)
+		someWorker2.NameReturns("worker2")
+		someWorker3 = new(workerfakes.FakeWorker)
+		someWorker3.NameReturns("worker3")
+
+		spec = ContainerSpec{
+			ImageSpec: ImageSpec{ResourceType: "some-type"},
+
+			TeamID: 4567,
+
+			Inputs: []InputSource{},
+		}
+	})
+
+	Context("when there are multiple workers", func() {
+		BeforeEach(func() {
+			workers = []Worker{someWorker1, someWorker2, someWorker3}
+
+			someWorker1.BuildContainersReturns(30)
+			someWorker2.BuildContainersReturns(20)
+			someWorker3.BuildContainersReturns(10)
+		})
+
+		It("picks the one with least amount of containers", func() {
+			Consistently(func() Worker {
+				chosenWorker, chooseErr = strategy.Choose(
+					logger,
+					workers,
+					spec,
+				)
+				Expect(chooseErr).ToNot(HaveOccurred())
+				return chosenWorker
+			}).Should(Equal(someWorker3))
+		})
+
+		Context("when there is more than one worker with the same number of build containers", func() {
+			BeforeEach(func() {
+				workers = []Worker{someWorker1, someWorker2, someWorker3}
+				someWorker1.BuildContainersReturns(10)
+				someWorker2.BuildContainersReturns(20)
+				someWorker3.BuildContainersReturns(10)
+
+				fakeInput1 := new(workerfakes.FakeInputSource)
+				fakeInput1AS := new(workerfakes.FakeArtifactSource)
+				fakeInput1AS.ExistsOnStub = func(logger lager.Logger, worker Worker) (Volume, bool, error) {
+					switch worker {
+					case someWorker3:
+						return new(workerfakes.FakeVolume), true, nil
+					default:
+						return nil, false, nil
+					}
+				}
+				fakeInput1.SourceReturns(fakeInput1AS)
+
+				spec = ContainerSpec{
+					ImageSpec: ImageSpec{ResourceType: "some-type"},
+
+					TeamID: 4567,
+
+					Inputs: []InputSource{
+						fakeInput1,
+					},
+				}
+			})
+			It("picks the one with the most volumes", func() {
+				Consistently(func() Worker {
+					cWorker, cErr := strategy.Choose(
+						logger,
+						workers,
+						spec,
+					)
+					Expect(cErr).ToNot(HaveOccurred())
+					return cWorker
+				}).Should(Equal(someWorker3))
+
+			})
+		})
+
+	})
+})
