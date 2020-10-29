@@ -5,6 +5,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbtest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -411,7 +412,26 @@ var _ = Describe("Volume", func() {
 
 	Describe("Resource cache volumes", func() {
 		It("returns volume type, resource type, resource version", func() {
-			build, err := defaultTeam.CreateOneOffBuild()
+			scenario := dbtest.Setup(
+				builder.WithPipeline(atc.Config{
+					ResourceTypes: atc.ResourceTypes{
+						{
+							Name: "some-type",
+							Type: "some-base-resource-type",
+							Source: atc.Source{
+								"some-type": "source",
+							},
+						},
+					},
+				}),
+				builder.WithResourceTypeVersions(
+					"some-type",
+					atc.Version{"some": "version"},
+					atc.Version{"some-custom-type": "version"},
+				),
+			)
+
+			build, err := scenario.Team.CreateOneOffBuild()
 			Expect(err).ToNot(HaveOccurred())
 
 			resourceCache, err := resourceCacheFactory.FindOrCreateResourceCache(
@@ -420,7 +440,6 @@ var _ = Describe("Volume", func() {
 				atc.Version{"some": "version"},
 				atc.Source{"some": "source"},
 				atc.Params{"some": "params"},
-
 				atc.VersionedResourceTypes{
 					{
 						ResourceType: atc.ResourceType{
@@ -433,24 +452,6 @@ var _ = Describe("Volume", func() {
 				},
 			)
 			Expect(err).ToNot(HaveOccurred())
-
-			resourceConfigScope, err := defaultResourceType.SetResourceConfig(
-				atc.Source{"some": "source"},
-				atc.VersionedResourceTypes{
-					{
-						ResourceType: atc.ResourceType{
-							Name:   "some-type",
-							Type:   "some-base-resource-type",
-							Source: atc.Source{"some-type": "((source-param))"},
-						},
-						Version: atc.Version{"some-custom-type": "version"},
-					},
-				},
-			)
-			Expect(err).NotTo(HaveOccurred())
-
-			resourceConfigScope.SaveVersions(nil, []atc.Version{{"some": "version"}})
-			resourceConfigScope.SaveVersions(nil, []atc.Version{{"some-custom-type": "version"}})
 
 			creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), "some-plan", defaultTeam.ID()), db.ContainerMetadata{
 				Type:     "get",

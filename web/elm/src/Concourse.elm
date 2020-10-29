@@ -60,6 +60,7 @@ module Concourse exposing
     , encodeBuild
     , encodeJob
     , encodePipeline
+    , encodeResource
     , encodeTeam
     , mapBuildPlan
     , retrieveCSRFToken
@@ -749,7 +750,6 @@ encodeJob job =
         , ( "finished_build", job.finishedBuild |> encodeMaybeBuild )
         , ( "transition_build", job.finishedBuild |> encodeMaybeBuild )
         , ( "paused", job.paused |> Json.Encode.bool )
-        , ( "disable_manual_trigger", job.paused |> Json.Encode.bool )
         , ( "disable_manual_trigger", job.disableManualTrigger |> Json.Encode.bool )
         , ( "inputs", job.inputs |> Json.Encode.list encodeJobInput )
         , ( "outputs", job.outputs |> Json.Encode.list encodeJobOutput )
@@ -939,6 +939,23 @@ decodeResource =
         |> andMap (Json.Decode.maybe (Json.Decode.field "build" decodeBuild))
 
 
+encodeResource : Resource -> Json.Encode.Value
+encodeResource r =
+    Json.Encode.object
+        ([ ( "team_name", r.teamName |> Json.Encode.string ) |> Just
+         , ( "pipeline_name", r.pipelineName |> Json.Encode.string ) |> Just
+         , ( "name", r.name |> Json.Encode.string ) |> Just
+         , optionalField "icon" Json.Encode.string r.icon
+         , optionalField "last_checked" (secondsFromDate >> Json.Encode.int) r.lastChecked
+         , optionalField "pinned_version" encodeVersion r.pinnedVersion
+         , ( "pinned_in_config", r.pinnedInConfig |> Json.Encode.bool ) |> Just
+         , optionalField "pin_comment" Json.Encode.string r.pinComment
+         , ( "build", r.build |> encodeMaybeBuild ) |> Just
+         ]
+            |> List.filterMap identity
+        )
+
+
 decodeVersionedResource : Json.Decode.Decoder VersionedResource
 decodeVersionedResource =
     Json.Decode.succeed VersionedResource
@@ -959,6 +976,11 @@ type alias Version =
 decodeVersion : Json.Decode.Decoder Version
 decodeVersion =
     Json.Decode.dict Json.Decode.string
+
+
+encodeVersion : Version -> Json.Encode.Value
+encodeVersion =
+    Json.Encode.dict identity Json.Encode.string
 
 
 

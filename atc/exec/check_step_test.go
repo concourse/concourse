@@ -33,6 +33,7 @@ var _ = Describe("CheckStep", func() {
 		ctx    context.Context
 		cancel context.CancelFunc
 
+		planID                    atc.PlanID
 		fakeRunState              *execfakes.FakeRunState
 		fakeResourceFactory       *resourcefakes.FakeResourceFactory
 		fakeResource              *resourcefakes.FakeResource
@@ -60,6 +61,8 @@ var _ = Describe("CheckStep", func() {
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
+
+		planID = "some-plan-id"
 
 		fakeRunState = new(execfakes.FakeRunState)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
@@ -103,7 +106,6 @@ var _ = Describe("CheckStep", func() {
 			Type:    "some-base-type",
 			Source:  atc.Source{"some": "((source-var))"},
 			Timeout: "10s",
-			Tags:    []string{"some", "tags"},
 			VersionedResourceTypes: atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{
@@ -131,7 +133,8 @@ var _ = Describe("CheckStep", func() {
 		}
 
 		stepMetadata = exec.StepMetadata{
-			TeamID: 345,
+			TeamID:  345,
+			BuildID: 678,
 		}
 
 		fakeRunState.GetStub = vars.StaticVariables{"source-var": "super-secret-source"}.Get
@@ -142,8 +145,6 @@ var _ = Describe("CheckStep", func() {
 	})
 
 	JustBeforeEach(func() {
-		planID := atc.PlanID("some-plan-id")
-
 		checkStep = exec.NewCheckStep(
 			planID,
 			checkPlan,
@@ -271,13 +272,29 @@ var _ = Describe("CheckStep", func() {
 				})
 
 				It("uses ResourceConfigCheckSessionOwner", func() {
-					expected := db.NewResourceConfigCheckSessionContainerOwner(
-						501,
-						502,
-						db.ContainerOwnerExpiries{Min: 5 * time.Minute, Max: 1 * time.Hour},
+					expected := db.NewBuildStepContainerOwner(
+						678,
+						planID,
+						345,
 					)
 
 					Expect(owner).To(Equal(expected))
+				})
+
+				Context("when the plan is for a resource", func() {
+					BeforeEach(func() {
+						checkPlan.Resource = "some-resource"
+					})
+
+					It("uses ResourceConfigCheckSessionOwner", func() {
+						expected := db.NewResourceConfigCheckSessionContainerOwner(
+							501,
+							502,
+							db.ContainerOwnerExpiries{Min: 5 * time.Minute, Max: 1 * time.Hour},
+						)
+
+						Expect(owner).To(Equal(expected))
+					})
 				})
 
 				It("passes the process spec", func() {
@@ -305,10 +322,6 @@ var _ = Describe("CheckStep", func() {
 						Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
 							ResourceType: "some-base-type",
 						}))
-					})
-
-					It("with tags set", func() {
-						Expect(containerSpec.Tags).To(ConsistOf("some", "tags"))
 					})
 
 					It("with teamid set", func() {
@@ -348,12 +361,18 @@ var _ = Describe("CheckStep", func() {
 						Expect(workerSpec.ResourceType).To(Equal("some-base-type"))
 					})
 
-					It("with tags", func() {
-						Expect(workerSpec.Tags).To(ConsistOf("some", "tags"))
-					})
-
 					It("with teamid", func() {
 						Expect(workerSpec.TeamID).To(Equal(345))
+					})
+
+					Context("when the plan specifies tags", func() {
+						BeforeEach(func() {
+							checkPlan.Tags = atc.Tags{"some", "tags"}
+						})
+
+						It("sets them in the WorkerSpec", func() {
+							Expect(workerSpec.Tags).To(Equal([]string{"some", "tags"}))
+						})
 					})
 				})
 
@@ -427,10 +446,10 @@ var _ = Describe("CheckStep", func() {
 						Expect(privileged).To(BeFalse())
 					})
 
-					It("does not set the type in the worker spec", func() {
+					It("sets the bottom-most type in the worker spec", func() {
 						Expect(workerSpec).To(Equal(worker.WorkerSpec{
-							Tags:   atc.Tags{"some", "tags"},
-							TeamID: stepMetadata.TeamID,
+							TeamID:       stepMetadata.TeamID,
+							ResourceType: "registry-image",
 						}))
 					})
 
@@ -447,6 +466,50 @@ var _ = Describe("CheckStep", func() {
 							Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
 							_, _, _, privileged := fakeDelegate.FetchImageArgsForCall(0)
 							Expect(privileged).To(BeTrue())
+						})
+					})
+
+					Context("when the plan configures tags", func() {
+						BeforeEach(func() {
+							checkPlan.Tags = atc.Tags{"plan", "tags"}
+						})
+
+						It("fetches using the tags", func() {
+							Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+							_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
+							Expect(imageResource.Tags).To(Equal(atc.Tags{"plan", "tags"}))
+						})
+					})
+
+					Context("when the resource type configures tags", func() {
+						BeforeEach(func() {
+							taggedType, found := checkPlan.VersionedResourceTypes.Lookup("some-custom-type")
+							Expect(found).To(BeTrue())
+
+							taggedType.Tags = atc.Tags{"type", "tags"}
+
+							newTypes := checkPlan.VersionedResourceTypes.Without("some-custom-type")
+							newTypes = append(newTypes, taggedType)
+
+							checkPlan.VersionedResourceTypes = newTypes
+						})
+
+						It("fetches using the type tags", func() {
+							Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+							_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
+							Expect(imageResource.Tags).To(Equal(atc.Tags{"type", "tags"}))
+						})
+
+						Context("when the plan ALSO configures tags", func() {
+							BeforeEach(func() {
+								checkPlan.Tags = atc.Tags{"plan", "tags"}
+							})
+
+							It("fetches using only the type tags", func() {
+								Expect(fakeDelegate.FetchImageCallCount()).To(Equal(1))
+								_, imageResource, _, _ := fakeDelegate.FetchImageArgsForCall(0)
+								Expect(imageResource.Tags).To(Equal(atc.Tags{"type", "tags"}))
+							})
 						})
 					})
 				})
@@ -631,6 +694,10 @@ var _ = Describe("CheckStep", func() {
 					Expect(scope).To(Equal(fakeResourceConfigScope))
 				})
 
+				It("updates the scope's last check end time", func() {
+					Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(1))
+				})
+
 				// Finished is for script success/failure, whereas this is an error
 				It("does not emit a Finished event", func() {
 					Expect(fakeDelegate.FinishedCallCount()).To(Equal(0))
@@ -647,6 +714,10 @@ var _ = Describe("CheckStep", func() {
 						// don't return an error - the script output has already been
 						// printed, and emitting an errored event would double it up
 						Expect(stepErr).ToNot(HaveOccurred())
+					})
+
+					It("updates the scope's last check end time", func() {
+						Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(1))
 					})
 
 					It("emits a failed Finished event", func() {

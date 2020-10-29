@@ -39,17 +39,27 @@ var resources = db.SchedulerResources{
 		Type:   "some-resource-type",
 		Source: atc.Source{"some": "source"},
 	},
+	db.SchedulerResource{
+		Name:   "some-base-resource",
+		Type:   "some-base-resource-type",
+		Source: atc.Source{"some": "source"},
+	},
 }
 
 var resourceTypes = atc.VersionedResourceTypes{
 	{
 		ResourceType: atc.ResourceType{
-			Name:   "some-resource-type",
-			Type:   "some-base-resource-type",
-			Source: atc.Source{"some": "type-source"},
+			Name:     "some-resource-type",
+			Type:     "some-base-resource-type",
+			Source:   atc.Source{"some": "type-source"},
+			Defaults: atc.Source{"default-key": "default-value"},
 		},
 		Version: atc.Version{"some": "type-version"},
 	},
+}
+
+var baseResourceTypeDefaults = map[string]atc.Source{
+	"some-base-resource-type": {"default-key": "default-value"},
 }
 
 var factoryTests = []PlannerTest{
@@ -74,7 +84,7 @@ var factoryTests = []PlannerTest{
 				"name": "some-name",
 				"type": "some-resource-type",
 				"resource": "some-resource",
-				"source": {"some":"source"},
+				"source": {"some":"source","default-key":"default-value"},
 				"params": {"some":"params"},
 				"version": {"some":"version"},
 				"tags": ["tag-1", "tag-2"],
@@ -83,6 +93,44 @@ var factoryTests = []PlannerTest{
 						"name": "some-resource-type",
 						"type": "some-base-resource-type",
 						"source": {"some": "type-source"},
+						"defaults": {"default-key":"default-value"},
+						"version": {"some": "type-version"}
+					}
+				]
+			}
+		}`,
+	},
+	{
+		Title: "get step with base resource type",
+		Config: &atc.GetStep{
+			Name:     "some-name",
+			Resource: "some-base-resource",
+			Params:   atc.Params{"some": "params"},
+			Version:  &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
+			Tags:     atc.Tags{"tag-1", "tag-2"},
+		},
+		Inputs: []db.BuildInput{
+			{
+				Name:    "some-name",
+				Version: atc.Version{"some": "version"},
+			},
+		},
+		PlanJSON: `{
+			"id": "(unique)",
+			"get": {
+				"name": "some-name",
+				"type": "some-base-resource-type",
+				"resource": "some-base-resource",
+				"source": {"some":"source","default-key":"default-value"},
+				"params": {"some":"params"},
+				"version": {"some":"version"},
+				"tags": ["tag-1", "tag-2"],
+				"resource_types": [
+					{
+						"name": "some-resource-type",
+						"type": "some-base-resource-type",
+						"source": {"some": "type-source"},
+						"defaults": {"default-key":"default-value"},
 						"version": {"some": "type-version"}
 					}
 				]
@@ -134,7 +182,7 @@ var factoryTests = []PlannerTest{
 						"type": "some-resource-type",
 						"resource": "some-resource",
 						"inputs": "all",
-						"source": {"some":"source"},
+						"source": {"some":"source","default-key":"default-value"},
 						"params": {"some":"params"},
 						"tags": ["tag-1", "tag-2"],
 						"resource_types": [
@@ -142,6 +190,7 @@ var factoryTests = []PlannerTest{
 								"name": "some-resource-type",
 								"type": "some-base-resource-type",
 								"source": {"some": "type-source"},
+								"defaults": {"default-key":"default-value"},
 								"version": {"some": "type-version"}
 							}
 						]
@@ -153,7 +202,7 @@ var factoryTests = []PlannerTest{
 						"name": "some-name",
 						"type": "some-resource-type",
 						"resource": "some-resource",
-						"source": {"some":"source"},
+						"source": {"some":"source","default-key":"default-value"},
 						"params": {"some":"get-params"},
 						"tags": ["tag-1", "tag-2"],
 						"version_from": "1",
@@ -162,6 +211,7 @@ var factoryTests = []PlannerTest{
 								"name": "some-resource-type",
 								"type": "some-base-resource-type",
 								"source": {"some": "type-source"},
+								"defaults": {"default-key":"default-value"},
 								"version": {"some": "type-version"}
 							}
 						]
@@ -210,6 +260,7 @@ var factoryTests = []PlannerTest{
 						"name": "some-resource-type",
 						"type": "some-base-resource-type",
 						"source": {"some": "type-source"},
+						"defaults": {"default-key":"default-value"},
 						"version": {"some": "type-version"}
 					}
 				]
@@ -426,8 +477,9 @@ var factoryTests = []PlannerTest{
 					MaxInFlight: &atc.MaxInFlightConfig{All: true},
 				},
 				{
-					Var:    "var2",
-					Values: []interface{}{"b1", "b2"},
+					Var:         "var2",
+					Values:      []interface{}{"b1", "b2"},
+					MaxInFlight: &atc.MaxInFlightConfig{Limit: 1},
 				},
 			},
 		},
@@ -439,7 +491,7 @@ var factoryTests = []PlannerTest{
 					{
 						"name": "var1",
 						"values": ["a1", "a2"],
-						"max_in_flight": 2
+						"max_in_flight": "all"
 					},
 					{
 						"name": "var2",
@@ -772,9 +824,11 @@ func (test PlannerTest) Run(s *PlannerSuite) {
 }
 
 func (s *PlannerSuite) TestFactory() {
+	atc.LoadBaseResourceTypeDefaults(baseResourceTypeDefaults)
 	for _, test := range factoryTests {
 		s.Run(test.Title, func() {
 			test.Run(s)
 		})
 	}
+	atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{})
 }

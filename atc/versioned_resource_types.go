@@ -28,3 +28,18 @@ func (types VersionedResourceTypes) Without(name string) VersionedResourceTypes 
 
 	return newTypes
 }
+
+func (types VersionedResourceTypes) Base(name string) string {
+	base := name
+	for {
+		resourceType, found := types.Lookup(base)
+		if !found {
+			break
+		}
+
+		types = types.Without(base)
+		base = resourceType.Type
+	}
+
+	return base
+}

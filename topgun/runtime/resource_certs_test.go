@@ -45,13 +45,9 @@ var _ = Describe("Resource Certs", func() {
 		})
 
 		It("bind mounts the certs volume to resource get containers", func() {
-			trigger := Fly.Start("trigger-job", "-j", "resources/use-em")
+			trigger := Fly.Start("trigger-job", "-w", "-j", "resources/use-em")
 			<-trigger.Exited
-
-			Eventually(func() string {
-				builds := FlyTable("builds", "-j", "resources/use-em")
-				return builds[0]["status"]
-			}).Should(Equal("failed"))
+			Expect(trigger.ExitCode()).To(Equal(1))
 
 			hijackSession := Fly.Start("hijack", "-j", "resources/use-em", "-s", "certs", "--", "ls", "/etc/ssl/certs")
 			<-hijackSession.Exited
@@ -60,13 +56,9 @@ var _ = Describe("Resource Certs", func() {
 		})
 
 		It("bind mounts the certs volume to resource put containers", func() {
-			trigger := Fly.Start("trigger-job", "-j", "resources/use-em")
+			trigger := Fly.Start("trigger-job", "-w", "-j", "resources/use-em")
 			<-trigger.Exited
-
-			Eventually(func() string {
-				builds := FlyTable("builds", "-j", "resources/use-em")
-				return builds[0]["status"]
-			}).Should(Equal("failed"))
+			Expect(trigger.ExitCode()).To(Equal(1))
 
 			hijackSession := Fly.Start("hijack", "-j", "resources/use-em", "-s", "put-certs", "--", "ls", "/etc/ssl/certs")
 			Eventually(hijackSession).Should(gexec.Exit(0))
@@ -74,6 +66,5 @@ var _ = Describe("Resource Certs", func() {
 			certsContent := string(hijackSession.Out.Contents())
 			Expect(certsContent).ToNot(HaveLen(0))
 		})
-
 	})
 })

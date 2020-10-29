@@ -317,7 +317,7 @@ func (worker *worker) CreateContainer(owner ContainerOwner, meta ContainerMetada
 
 	ownerCols, err := owner.Create(tx, worker.name)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create owner: %w", err)
 	}
 
 	for k, v := range ownerCols {
@@ -335,7 +335,7 @@ func (worker *worker) CreateContainer(owner ContainerOwner, meta ContainerMetada
 			return nil, ContainerOwnerDisappearedError{owner}
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("insert container: %w", err)
 	}
 
 	err = tx.Commit()

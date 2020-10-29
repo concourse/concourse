@@ -56,6 +56,11 @@ func (r *SchedulerResource) ApplySourceDefaults(resourceTypes atc.VersionedResou
 	parentType, found := resourceTypes.Lookup(r.Type)
 	if found {
 		r.Source = parentType.Defaults.Merge(r.Source)
+	} else {
+		defaults, found := atc.FindBaseResourceTypeDefaults(r.Type)
+		if found {
+			r.Source = defaults.Merge(r.Source)
+		}
 	}
 }
 

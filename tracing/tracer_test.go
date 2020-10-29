@@ -90,6 +90,17 @@ var _ = Describe("Tracer", func() {
 			Expect(tracing.Configured).To(BeTrue())
 		})
 
+		It("configures tracing if otlp flags are provided", func() {
+			c := tracing.Config{
+				OTLP: tracing.OTLP{
+					Address: "ingest.example.com:443",
+					Headers: map[string]string{"access-token": "mytoken"},
+				},
+			}
+			c.Prepare()
+			Expect(tracing.Configured).To(BeTrue())
+		})
+
 		It("does not configure tracing if no flags are provided", func() {
 			c := tracing.Config{}
 			c.Prepare()

@@ -189,7 +189,7 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 				volumes := FlyTable("volumes")
 				resourceVolumeHandles := []string{}
 				for _, volume := range volumes {
-					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "version:") {
+					if volume["type"] == "resource" && volume["identifier"] == "version:first-version" {
 						resourceVolumeHandles = append(resourceVolumeHandles, volume["handle"])
 					}
 				}
@@ -214,7 +214,7 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 				volumes := FlyTable("volumes")
 				resourceVolumeHandles := []string{}
 				for _, volume := range volumes {
-					if volume["type"] == "resource" && strings.HasPrefix(volume["identifier"], "version:") {
+					if volume["type"] == "resource" && volume["identifier"] == "version:first-version" {
 						resourceVolumeHandles = append(resourceVolumeHandles, volume["handle"])
 					}
 				}

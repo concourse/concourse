@@ -1105,7 +1105,7 @@ var _ = Context("SchedulerResource", func() {
 			resource.ApplySourceDefaults(resourceTypes)
 		})
 
-		It("should applied defaults", func() {
+		It("should apply defaults", func() {
 			Expect(resource).To(Equal(db.SchedulerResource{
 				Name: "some-name",
 				Type: "some-type",
@@ -1114,6 +1114,30 @@ var _ = Context("SchedulerResource", func() {
 					"default-key": "default-value",
 				},
 			}))
+		})
+
+		Context("when the parent resource is not found", func() {
+			BeforeEach(func() {
+				resourceTypes = atc.VersionedResourceTypes{}
+				atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{
+					"some-type": {"default-key": "default-value"},
+				})
+			})
+
+			AfterEach(func() {
+				atc.LoadBaseResourceTypeDefaults(map[string]atc.Source{})
+			})
+
+			It("should apply defaults using the base resource type", func() {
+				Expect(resource).To(Equal(db.SchedulerResource{
+					Name: "some-name",
+					Type: "some-type",
+					Source: atc.Source{
+						"some-key":    "some-value",
+						"default-key": "default-value",
+					},
+				}))
+			})
 		})
 	})
 })

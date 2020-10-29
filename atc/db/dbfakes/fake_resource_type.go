@@ -45,11 +45,12 @@ type FakeResourceType struct {
 	checkTimeoutReturnsOnCall map[int]struct {
 		result1 string
 	}
-	CreateBuildStub        func(context.Context, bool) (db.Build, bool, error)
+	CreateBuildStub        func(context.Context, bool, atc.Plan) (db.Build, bool, error)
 	createBuildMutex       sync.RWMutex
 	createBuildArgsForCall []struct {
 		arg1 context.Context
 		arg2 bool
+		arg3 atc.Plan
 	}
 	createBuildReturns struct {
 		result1 db.Build
@@ -226,20 +227,6 @@ type FakeResourceType struct {
 	}
 	resourceConfigScopeIDReturnsOnCall map[int]struct {
 		result1 int
-	}
-	SetResourceConfigStub        func(atc.Source, atc.VersionedResourceTypes) (db.ResourceConfigScope, error)
-	setResourceConfigMutex       sync.RWMutex
-	setResourceConfigArgsForCall []struct {
-		arg1 atc.Source
-		arg2 atc.VersionedResourceTypes
-	}
-	setResourceConfigReturns struct {
-		result1 db.ResourceConfigScope
-		result2 error
-	}
-	setResourceConfigReturnsOnCall map[int]struct {
-		result1 db.ResourceConfigScope
-		result2 error
 	}
 	SetResourceConfigScopeStub        func(db.ResourceConfigScope) error
 	setResourceConfigScopeMutex       sync.RWMutex
@@ -483,17 +470,18 @@ func (fake *FakeResourceType) CheckTimeoutReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeResourceType) CreateBuild(arg1 context.Context, arg2 bool) (db.Build, bool, error) {
+func (fake *FakeResourceType) CreateBuild(arg1 context.Context, arg2 bool, arg3 atc.Plan) (db.Build, bool, error) {
 	fake.createBuildMutex.Lock()
 	ret, specificReturn := fake.createBuildReturnsOnCall[len(fake.createBuildArgsForCall)]
 	fake.createBuildArgsForCall = append(fake.createBuildArgsForCall, struct {
 		arg1 context.Context
 		arg2 bool
-	}{arg1, arg2})
-	fake.recordInvocation("CreateBuild", []interface{}{arg1, arg2})
+		arg3 atc.Plan
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("CreateBuild", []interface{}{arg1, arg2, arg3})
 	fake.createBuildMutex.Unlock()
 	if fake.CreateBuildStub != nil {
-		return fake.CreateBuildStub(arg1, arg2)
+		return fake.CreateBuildStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -508,17 +496,17 @@ func (fake *FakeResourceType) CreateBuildCallCount() int {
 	return len(fake.createBuildArgsForCall)
 }
 
-func (fake *FakeResourceType) CreateBuildCalls(stub func(context.Context, bool) (db.Build, bool, error)) {
+func (fake *FakeResourceType) CreateBuildCalls(stub func(context.Context, bool, atc.Plan) (db.Build, bool, error)) {
 	fake.createBuildMutex.Lock()
 	defer fake.createBuildMutex.Unlock()
 	fake.CreateBuildStub = stub
 }
 
-func (fake *FakeResourceType) CreateBuildArgsForCall(i int) (context.Context, bool) {
+func (fake *FakeResourceType) CreateBuildArgsForCall(i int) (context.Context, bool, atc.Plan) {
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
 	argsForCall := fake.createBuildArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeResourceType) CreateBuildReturns(result1 db.Build, result2 bool, result3 error) {
@@ -1391,70 +1379,6 @@ func (fake *FakeResourceType) ResourceConfigScopeIDReturnsOnCall(i int, result1 
 	}{result1}
 }
 
-func (fake *FakeResourceType) SetResourceConfig(arg1 atc.Source, arg2 atc.VersionedResourceTypes) (db.ResourceConfigScope, error) {
-	fake.setResourceConfigMutex.Lock()
-	ret, specificReturn := fake.setResourceConfigReturnsOnCall[len(fake.setResourceConfigArgsForCall)]
-	fake.setResourceConfigArgsForCall = append(fake.setResourceConfigArgsForCall, struct {
-		arg1 atc.Source
-		arg2 atc.VersionedResourceTypes
-	}{arg1, arg2})
-	fake.recordInvocation("SetResourceConfig", []interface{}{arg1, arg2})
-	fake.setResourceConfigMutex.Unlock()
-	if fake.SetResourceConfigStub != nil {
-		return fake.SetResourceConfigStub(arg1, arg2)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.setResourceConfigReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeResourceType) SetResourceConfigCallCount() int {
-	fake.setResourceConfigMutex.RLock()
-	defer fake.setResourceConfigMutex.RUnlock()
-	return len(fake.setResourceConfigArgsForCall)
-}
-
-func (fake *FakeResourceType) SetResourceConfigCalls(stub func(atc.Source, atc.VersionedResourceTypes) (db.ResourceConfigScope, error)) {
-	fake.setResourceConfigMutex.Lock()
-	defer fake.setResourceConfigMutex.Unlock()
-	fake.SetResourceConfigStub = stub
-}
-
-func (fake *FakeResourceType) SetResourceConfigArgsForCall(i int) (atc.Source, atc.VersionedResourceTypes) {
-	fake.setResourceConfigMutex.RLock()
-	defer fake.setResourceConfigMutex.RUnlock()
-	argsForCall := fake.setResourceConfigArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
-}
-
-func (fake *FakeResourceType) SetResourceConfigReturns(result1 db.ResourceConfigScope, result2 error) {
-	fake.setResourceConfigMutex.Lock()
-	defer fake.setResourceConfigMutex.Unlock()
-	fake.SetResourceConfigStub = nil
-	fake.setResourceConfigReturns = struct {
-		result1 db.ResourceConfigScope
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeResourceType) SetResourceConfigReturnsOnCall(i int, result1 db.ResourceConfigScope, result2 error) {
-	fake.setResourceConfigMutex.Lock()
-	defer fake.setResourceConfigMutex.Unlock()
-	fake.SetResourceConfigStub = nil
-	if fake.setResourceConfigReturnsOnCall == nil {
-		fake.setResourceConfigReturnsOnCall = make(map[int]struct {
-			result1 db.ResourceConfigScope
-			result2 error
-		})
-	}
-	fake.setResourceConfigReturnsOnCall[i] = struct {
-		result1 db.ResourceConfigScope
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeResourceType) SetResourceConfigScope(arg1 db.ResourceConfigScope) error {
 	fake.setResourceConfigScopeMutex.Lock()
 	ret, specificReturn := fake.setResourceConfigScopeReturnsOnCall[len(fake.setResourceConfigScopeArgsForCall)]
@@ -1870,8 +1794,6 @@ func (fake *FakeResourceType) Invocations() map[string][][]interface{} {
 	defer fake.reloadMutex.RUnlock()
 	fake.resourceConfigScopeIDMutex.RLock()
 	defer fake.resourceConfigScopeIDMutex.RUnlock()
-	fake.setResourceConfigMutex.RLock()
-	defer fake.setResourceConfigMutex.RUnlock()
 	fake.setResourceConfigScopeMutex.RLock()
 	defer fake.setResourceConfigScopeMutex.RUnlock()
 	fake.sourceMutex.RLock()

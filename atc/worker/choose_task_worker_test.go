@@ -3,8 +3,6 @@ package worker_test
 import (
 	"bytes"
 	"context"
-	"strconv"
-	"strings"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -60,7 +58,7 @@ var _ = Describe("RunTaskStep", func() {
 			fakeCompression = new(compressionfakes.FakeCompression)
 			fakeContainerOwner = containerOwnerDummy()
 			fakeContainerSpec = workerContainerDummy()
-			fakeWorkerSpec = worker.WorkerSpec{}
+			fakeWorkerSpec = workerSpecDummy()
 			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 			fakeMetadata = containerMetadataDummy()
 			fakeTaskProcessSpec = processSpecDummy(outputBuffer)
@@ -165,10 +163,13 @@ var _ = Describe("RunTaskStep", func() {
 
 			It("task waiting metrics is gauged", func() {
 				labels := metric.TasksWaitingLabels{
-					TeamId:     strconv.Itoa(fakeWorkerSpec.TeamID),
-					WorkerTags: strings.Join(fakeContainerSpec.Tags, "_"),
-					Platform:   fakeWorkerSpec.Platform,
+					TeamId:     "123",
+					WorkerTags: "step_tags",
+					Platform:   "some-platform",
 				}
+
+				Expect(metric.Metrics.TasksWaiting).To(HaveKey(labels))
+
 				// Verify that when one task is waiting the gauge is increased...
 				Eventually(metric.Metrics.TasksWaiting[labels].Max(), 2*time.Second).Should(Equal(float64(1)))
 				// and then decreased.
@@ -207,9 +208,7 @@ func workerContainerDummy() worker.ContainerSpec {
 	memory := uint64(1024)
 
 	return worker.ContainerSpec{
-		Platform: "some-platform",
-		Tags:     []string{"step", "tags"},
-		TeamID:   123,
+		TeamID: 123,
 		ImageSpec: worker.ImageSpec{
 			ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
 			Privileged:          false,
@@ -223,6 +222,14 @@ func workerContainerDummy() worker.ContainerSpec {
 		ArtifactByPath: map[string]runtime.Artifact{},
 		Inputs:         []worker.InputSource{},
 		Outputs:        worker.OutputPaths{},
+	}
+}
+
+func workerSpecDummy() worker.WorkerSpec {
+	return worker.WorkerSpec{
+		TeamID:   123,
+		Platform: "some-platform",
+		Tags:     []string{"step", "tags"},
 	}
 }
 

@@ -41,4 +41,18 @@ var _ = Describe("UnpausePipelineCommand", func() {
 		expected := fmt.Sprintf("%s -t my-target unpause-pipeline -p my-pipeline/branch:master", os.Args[0])
 		Expect(atcConfig.UnpausePipelineCommand()).To(Equal(expected))
 	})
+
+	Context("when the instance vars require quoting", func() {
+		It("quotes the pipeline flag", func() {
+			atcConfig := ATCConfig{
+				TargetName: "my-target",
+				PipelineRef: atc.PipelineRef{
+					Name:         "my-pipeline",
+					InstanceVars: atc.InstanceVars{"a.b": "master"},
+				},
+			}
+			expected := fmt.Sprintf(`%s -t my-target unpause-pipeline -p "my-pipeline/\"a.b\":master"`, os.Args[0])
+			Expect(atcConfig.UnpausePipelineCommand()).To(Equal(expected))
+		})
+	})
 })

@@ -358,6 +358,19 @@ var _ = Describe("Resources API", func() {
 					]`))
 				})
 
+				Context("when the pipeline has no resources", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourcesReturns(nil, nil)
+					})
+
+					It("returns an empty list", func() {
+						body, err := ioutil.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`[]`))
+					})
+				})
+
 				Context("when getting the resource config fails", func() {
 					Context("when the resources are not found", func() {
 						BeforeEach(func() {

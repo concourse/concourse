@@ -6,6 +6,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbtest"
 	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -393,33 +394,39 @@ var _ = Describe("ResourceType", func() {
 
 	Describe("Resource type version", func() {
 		var (
-			resourceType      db.ResourceType
+			scenario          *dbtest.Scenario
 			resourceTypeScope db.ResourceConfigScope
 		)
 
 		BeforeEach(func() {
-			var err error
-			resourceType, _, err = pipeline.ResourceType("some-type")
+			scenario = dbtest.Setup(
+				builder.WithPipeline(atc.Config{
+					ResourceTypes: atc.ResourceTypes{
+						{
+							Name:   "some-type",
+							Type:   "some-base-resource-type",
+							Source: atc.Source{"some": "repository"},
+						},
+					},
+				}),
+			)
+			Expect(scenario.ResourceType("some-type").Version()).To(BeNil())
+
+			scenario.Run(builder.WithResourceTypeVersions("some-type"))
+
+			resourceTypeConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
+				scenario.ResourceType("some-type").Type(),
+				scenario.ResourceType("some-type").Source(),
+				nil,
+			)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(resourceType.Version()).To(BeNil())
 
-			setupTx, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-
-			brt := db.BaseResourceType{
-				Name: "registry-image",
-			}
-
-			_, err = brt.FindOrCreate(setupTx, false)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(setupTx.Commit()).To(Succeed())
-
-			resourceTypeScope, err = resourceType.SetResourceConfig(atc.Source{"some": "repository"}, atc.VersionedResourceTypes{})
+			resourceTypeScope, err = resourceTypeConfig.FindOrCreateScope(nil)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		JustBeforeEach(func() {
-			reloaded, err := resourceType.Reload()
+			reloaded, err := scenario.ResourceType("some-type").Reload()
 			Expect(reloaded).To(BeTrue())
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -430,20 +437,19 @@ var _ = Describe("ResourceType", func() {
 		})
 
 		It("returns the resource config scope id", func() {
-			Expect(resourceType.ResourceConfigScopeID()).To(Equal(resourceTypeScope.ID()))
+			Expect(scenario.ResourceType("some-type").ResourceConfigScopeID()).To(Equal(resourceTypeScope.ID()))
 		})
 
 		Context("when the resource type has proper versions", func() {
 			BeforeEach(func() {
-				err := resourceTypeScope.SaveVersions(nil, []atc.Version{
-					{"version": "1"},
-					{"version": "2"},
-				})
-				Expect(err).ToNot(HaveOccurred())
+				scenario.Run(builder.WithResourceTypeVersions("some-type",
+					atc.Version{"version": "1"},
+					atc.Version{"version": "2"},
+				))
 			})
 
 			It("returns the version", func() {
-				Expect(resourceType.Version()).To(Equal(atc.Version{"version": "2"}))
+				Expect(scenario.ResourceType("some-type").Version()).To(Equal(atc.Version{"version": "2"}))
 			})
 		})
 	})
@@ -510,6 +516,7 @@ var _ = Describe("ResourceType", func() {
 		var resourceType db.ResourceType
 		var ctx context.Context
 		var manuallyTriggered bool
+		var plan atc.Plan
 
 		var build db.Build
 		var created bool
@@ -518,15 +525,21 @@ var _ = Describe("ResourceType", func() {
 			ctx = context.TODO()
 			resourceType = defaultResourceType
 			manuallyTriggered = false
+			plan = atc.Plan{
+				ID: "some-plan",
+				Check: &atc.CheckPlan{
+					Name: "wreck",
+				},
+			}
 		})
 
 		JustBeforeEach(func() {
 			var err error
-			build, created, err = resourceType.CreateBuild(ctx, manuallyTriggered)
+			build, created, err = resourceType.CreateBuild(ctx, manuallyTriggered, plan)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("creates a build for a resource type", func() {
+		It("creates a started build for a resource type", func() {
 			Expect(created).To(BeTrue())
 			Expect(build).ToNot(BeNil())
 			Expect(build.Name()).To(Equal(db.CheckBuildName))
@@ -534,6 +547,8 @@ var _ = Describe("ResourceType", func() {
 			Expect(build.PipelineID()).To(Equal(defaultResource.PipelineID()))
 			Expect(build.TeamID()).To(Equal(defaultResource.TeamID()))
 			Expect(build.IsManuallyTriggered()).To(BeFalse())
+			Expect(build.Status()).To(Equal(db.BuildStatusStarted))
+			Expect(build.PrivatePlan()).To(Equal(plan))
 		})
 
 		Context("when tracing is configured", func() {
@@ -563,7 +578,7 @@ var _ = Describe("ResourceType", func() {
 			BeforeEach(func() {
 				var err error
 				var prevCreated bool
-				prevBuild, prevCreated, err = resourceType.CreateBuild(ctx, false)
+				prevBuild, prevCreated, err = resourceType.CreateBuild(ctx, false, plan)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(prevCreated).To(BeTrue())
 			})
@@ -598,6 +613,17 @@ var _ = Describe("ResourceType", func() {
 					found, err := prevBuild.Reload()
 					Expect(err).ToNot(HaveOccurred())
 					Expect(found).To(BeFalse())
+				})
+
+				It("deletes the previous build's events", func() {
+					var exists bool
+					err := dbConn.QueryRow(`SELECT EXISTS (
+						SELECT 1
+						FROM build_events
+						WHERE build_id = $1
+					)`, prevBuild.ID()).Scan(&exists)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(exists).To(BeFalse())
 				})
 			})
 		})

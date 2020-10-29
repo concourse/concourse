@@ -18,33 +18,67 @@ type Reference struct {
 	Fields []string
 }
 
-func parseReference(name string) Reference {
-	var pathPieces []string
-	var fields []string
-
+func ParseReference(name string) (Reference, error) {
 	var ref Reference
 
-	if strings.Index(name, ":") > 0 {
-		parts := strings.SplitN(name, ":", 2)
-		ref.Source = parts[0]
-
-		pathPieces = pathRegex.FindAllString(parts[1], -1)
-
-	} else {
-		pathPieces = pathRegex.FindAllString(name, -1)
-	}
-
-	ref.Path = strings.ReplaceAll(pathPieces[0], "\"", "")
-
-	if len(pathPieces) >= 2 {
-		for _, piece := range pathPieces[1:] {
-			fields = append(fields, strings.ReplaceAll(piece, "\"", ""))
+	input := name
+	if i, ok := findUnquoted(input, ':'); ok {
+		ref.Source = input[:i]
+		if strings.ContainsAny(ref.Source, `"`) {
+			return Reference{}, fmt.Errorf("invalid var '%s': source must not be quoted", name)
 		}
-
-		ref.Fields = fields
+		input = input[i+1:]
+	}
+	var fields []string
+	hasNextSegment := true
+	for hasNextSegment {
+		var field string
+		field, input, hasNextSegment = readPathSegment(input)
+		if field == "" {
+			return Reference{}, fmt.Errorf("invalid var '%s': empty field", name)
+		}
+		fields = append(fields, field)
 	}
 
-	return ref
+	if len(fields) == 0 {
+		// Should be impossible (since we'd error that the var is empty), but better safe than sorry
+		return Reference{}, fmt.Errorf("invalid var '%s': no fields", name)
+	}
+
+	ref.Path = fields[0]
+	ref.Fields = fields[1:]
+
+	return ref, nil
+}
+
+func findUnquoted(s string, r rune) (int, bool) {
+	quoted := false
+	for i, c := range s {
+		switch c {
+		case r:
+			if !quoted {
+				return i, true
+			}
+		case '"':
+			quoted = !quoted
+		}
+	}
+	return 0, false
+}
+
+func readPathSegment(raw string) (string, string, bool) {
+	var field string
+	var rest string
+	i, hasNextSegment := findUnquoted(raw, '.')
+	if hasNextSegment {
+		field = raw[:i]
+		rest = raw[i+1:]
+	} else {
+		field = raw
+	}
+	field = strings.TrimSpace(field)
+	field = strings.ReplaceAll(field, `"`, "")
+	return field, rest, hasNextSegment
 }
 
 func (r Reference) String() string {
@@ -63,7 +97,7 @@ func (r Reference) String() string {
 }
 
 func refSegmentString(seg string) string {
-	if strings.ContainsAny(seg, ".:") {
+	if strings.ContainsAny(seg, ",.: ") {
 		return fmt.Sprintf("%q", seg)
 	}
 	return seg

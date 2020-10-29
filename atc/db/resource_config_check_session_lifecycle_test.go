@@ -6,6 +6,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbtest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -14,10 +15,32 @@ import (
 var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 	var (
 		lifecycle db.ResourceConfigCheckSessionLifecycle
+		scenario  *dbtest.Scenario
 	)
 
 	BeforeEach(func() {
 		lifecycle = db.NewResourceConfigCheckSessionLifecycle(dbConn)
+
+		scenario = dbtest.Setup(
+			builder.WithPipeline(atc.Config{
+				Resources: atc.ResourceConfigs{
+					{
+						Name:   "some-resource",
+						Type:   "some-base-resource-type",
+						Source: atc.Source{"some": "source"},
+					},
+				},
+				ResourceTypes: atc.ResourceTypes{
+					{
+						Name: "some-type",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some-type": "source",
+						},
+					},
+				},
+			}),
+		)
 	})
 
 	Describe("CleanInactiveResourceConfigCheckSessions", func() {
@@ -28,17 +51,21 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 		Context("for resources", func() {
 			findOrCreateSessionForDefaultResource := func() int {
-				resourceConfigScope, err := defaultResource.SetResourceConfig(defaultResource.Source(), atc.VersionedResourceTypes{})
+				scenario.Run(
+					builder.WithResourceVersions("some-resource"),
+				)
+
+				resourceConfig, found, err := resourceConfigFactory.FindResourceConfigByID(scenario.Resource("some-resource").ResourceConfigID())
 				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
 
 				owner := db.NewResourceConfigCheckSessionContainerOwner(
-					resourceConfigScope.ResourceConfig().ID(),
-					resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+					resourceConfig.ID(),
+					resourceConfig.OriginBaseResourceType().ID,
 					expiry,
 				)
 
 				var query sq.Eq
-				var found bool
 				query, found, err = owner.Find(dbConn)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -80,29 +107,55 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 			It("removes check sessions for inactive resources", func() {
 				By("removing the default resource from the pipeline config")
-				_, _, err := defaultTeam.SavePipeline(defaultPipelineRef, atc.Config{
-					Jobs: atc.JobConfigs{
-						{
-							Name: "some-job",
-						},
-					},
-					Resources: atc.ResourceConfigs{},
-					ResourceTypes: atc.ResourceTypes{
-						{
-							Name: "some-type",
-							Type: "some-base-resource-type",
-							Source: atc.Source{
-								"some-type": "source",
+				scenario.Run(
+					builder.WithPipeline(atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
 							},
 						},
-					},
-				}, defaultPipeline.ConfigVersion(), false)
-				Expect(err).NotTo(HaveOccurred())
+						Resources: atc.ResourceConfigs{},
+						ResourceTypes: atc.ResourceTypes{
+							{
+								Name: "some-type",
+								Type: "some-base-resource-type",
+								Source: atc.Source{
+									"some-type": "source",
+								},
+							},
+						},
+					}),
+				)
 
 				By("cleaning up inactive sessions")
 				Expect(lifecycle.CleanInactiveResourceConfigCheckSessions()).To(Succeed())
 
 				By("find-or-creating the session again")
+				scenario.Run(
+					builder.WithPipeline(atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+							},
+						},
+						Resources: atc.ResourceConfigs{
+							{
+								Name:   "some-resource",
+								Type:   "some-base-resource-type",
+								Source: atc.Source{"some": "source"},
+							},
+						},
+						ResourceTypes: atc.ResourceTypes{
+							{
+								Name: "some-type",
+								Type: "some-base-resource-type",
+								Source: atc.Source{
+									"some-type": "source",
+								},
+							},
+						},
+					}),
+				)
 				rccsID := findOrCreateSessionForDefaultResource()
 
 				By("having created a new session, as the old one was removed")
@@ -111,7 +164,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 			It("removes check sessions for resources in paused pipelines", func() {
 				By("pausing the pipeline")
-				Expect(defaultPipeline.Pause()).To(Succeed())
+				Expect(scenario.Pipeline.Pause()).To(Succeed())
 
 				By("cleaning up inactive sessions")
 				Expect(lifecycle.CleanInactiveResourceConfigCheckSessions()).To(Succeed())
@@ -126,15 +179,16 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 		Context("for resource types", func() {
 			findOrCreateSessionForDefaultResourceType := func() int {
-				resourceConfigScope, err := defaultResourceType.SetResourceConfig(
-					defaultResourceType.Source(),
-					atc.VersionedResourceTypes{},
+				scenario.Run(
+					builder.WithResourceTypeVersions("some-type"),
 				)
+
+				resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(scenario.ResourceType("some-type").Type(), scenario.ResourceType("some-type").Source(), nil)
 				Expect(err).ToNot(HaveOccurred())
 
 				owner := db.NewResourceConfigCheckSessionContainerOwner(
-					resourceConfigScope.ResourceConfig().ID(),
-					resourceConfigScope.ResourceConfig().OriginBaseResourceType().ID,
+					resourceConfig.ID(),
+					resourceConfig.OriginBaseResourceType().ID,
 					expiry,
 				)
 
@@ -181,29 +235,57 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 			It("removes check sessions for inactive resource types", func() {
 				By("removing the default resource from the pipeline config")
-				_, _, err := defaultTeam.SavePipeline(defaultPipelineRef, atc.Config{
-					Jobs: atc.JobConfigs{
-						{
-							Name: "some-job",
-						},
-					},
-					Resources: atc.ResourceConfigs{
-						{
-							Name: "some-resource",
-							Type: "some-base-resource-type",
-							Source: atc.Source{
-								"some": "source",
+				scenario.Run(
+					builder.WithPipeline(atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
 							},
 						},
-					},
-					ResourceTypes: atc.ResourceTypes{},
-				}, defaultPipeline.ConfigVersion(), false)
-				Expect(err).NotTo(HaveOccurred())
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: "some-base-resource-type",
+								Source: atc.Source{
+									"some": "source",
+								},
+							},
+						},
+						ResourceTypes: atc.ResourceTypes{},
+					}),
+				)
 
 				By("cleaning up inactive sessions")
 				Expect(lifecycle.CleanInactiveResourceConfigCheckSessions()).To(Succeed())
 
 				By("find-or-creating the session again")
+				scenario.Run(
+					builder.WithPipeline(atc.Config{
+						Jobs: atc.JobConfigs{
+							{
+								Name: "some-job",
+							},
+						},
+						Resources: atc.ResourceConfigs{
+							{
+								Name: "some-resource",
+								Type: "some-base-resource-type",
+								Source: atc.Source{
+									"some": "source",
+								},
+							},
+						},
+						ResourceTypes: atc.ResourceTypes{
+							{
+								Name: "some-type",
+								Type: "some-base-resource-type",
+								Source: atc.Source{
+									"some-type": "source",
+								},
+							},
+						},
+					}),
+				)
 				rccsID := findOrCreateSessionForDefaultResourceType()
 
 				By("having created a new session, as the old one was removed")
@@ -212,7 +294,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 			It("removes check sessions for resource types in paused pipelines", func() {
 				By("pausing the pipeline")
-				Expect(defaultPipeline.Pause()).To(Succeed())
+				Expect(scenario.Pipeline.Pause()).To(Succeed())
 
 				By("cleaning up inactive sessions")
 				Expect(lifecycle.CleanInactiveResourceConfigCheckSessions()).To(Succeed())

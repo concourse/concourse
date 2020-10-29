@@ -33,13 +33,10 @@ func (flag *ResourceFlag) UnmarshalFlag(value string) error {
 	vs := strings.SplitN(value[:resourceNameIdx], "/", 2)
 	flag.PipelineRef.Name = vs[0]
 	if len(vs) == 2 {
-		flatInstanceVars, err := unmarshalDotNotation(vs[1])
+		var err error
+		flag.PipelineRef.InstanceVars, err = unmarshalInstanceVars(vs[1])
 		if err != nil {
 			return errors.New(err.Error() + "/<resource>")
-		}
-		flag.PipelineRef.InstanceVars, err = flatInstanceVars.Expand()
-		if err != nil {
-			return err
 		}
 	}
 

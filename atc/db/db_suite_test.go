@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/db/dbtest"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/postgresrunner"
@@ -50,6 +51,8 @@ var (
 	userFactory                         db.UserFactory
 	dbWall                              db.Wall
 	fakeClock                           dbfakes.FakeClock
+
+	builder dbtest.Builder
 
 	defaultWorkerResourceType atc.WorkerResourceType
 	uniqueWorkerResourceType  atc.WorkerResourceType
@@ -131,6 +134,8 @@ var _ = BeforeEach(func() {
 	workerTaskCacheFactory = db.NewWorkerTaskCacheFactory(dbConn)
 	userFactory = db.NewUserFactory(dbConn)
 	dbWall = db.NewWall(dbConn, &fakeClock)
+
+	builder = dbtest.NewBuilder(dbConn, lockFactory)
 
 	var err error
 	defaultTeam, err = teamFactory.CreateTeam(atc.Team{Name: "default-team"})

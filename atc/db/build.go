@@ -464,6 +464,34 @@ func (b *build) Start(plan atc.Plan) (bool, error) {
 
 	defer Rollback(tx)
 
+	started, err := b.start(tx, plan)
+	if err != nil {
+		return false, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return false, err
+	}
+
+	if !started {
+		return false, nil
+	}
+
+	err = b.conn.Bus().Notify(buildEventsChannel(b.id))
+	if err != nil {
+		return false, err
+	}
+
+	err = b.conn.Bus().Notify(atc.ComponentBuildTracker)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (b *build) start(tx Tx, plan atc.Plan) (bool, error) {
 	metadata, err := json.Marshal(plan)
 	if err != nil {
 		return false, err
@@ -475,7 +503,6 @@ func (b *build) Start(plan atc.Plan) (bool, error) {
 	}
 
 	var startTime time.Time
-
 	err = psql.Update("builds").
 		Set("status", BuildStatusStarted).
 		Set("start_time", sq.Expr("now()")).
@@ -503,21 +530,6 @@ func (b *build) Start(plan atc.Plan) (bool, error) {
 		Status: atc.StatusStarted,
 		Time:   startTime.Unix(),
 	})
-	if err != nil {
-		return false, err
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return false, err
-	}
-
-	err = b.conn.Bus().Notify(buildEventsChannel(b.id))
-	if err != nil {
-		return false, err
-	}
-
-	err = b.conn.Bus().Notify(atc.ComponentBuildTracker)
 	if err != nil {
 		return false, err
 	}
@@ -1243,7 +1255,7 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 
 	defer tx.Rollback()
 
-	var found bool
+	var determined bool
 	err = psql.Select("inputs_determined").
 		From("jobs").
 		Where(sq.Eq{
@@ -1251,12 +1263,12 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 		}).
 		RunWith(tx).
 		QueryRow().
-		Scan(&found)
+		Scan(&determined)
 	if err != nil {
 		return nil, false, err
 	}
 
-	if !found {
+	if !determined {
 		return nil, false, nil
 	}
 

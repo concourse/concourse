@@ -782,15 +782,8 @@ givenPinnedResource : Application.Model -> Application.Model
 givenPinnedResource =
     Application.handleCallback
         (Callback.ResourcesFetched <|
-            Ok <|
-                Json.Encode.list identity
-                    [ Json.Encode.object
-                        [ ( "team_name", Json.Encode.string "team" )
-                        , ( "pipeline_name", Json.Encode.string "pipeline" )
-                        , ( "name", Json.Encode.string "resource" )
-                        , ( "pinned_version", Json.Encode.object [ ( "version", Json.Encode.string "v1" ) ] )
-                        ]
-                    ]
+            Ok
+                [ Data.resource "v1" ]
         )
         >> Tuple.first
 
@@ -799,21 +792,10 @@ givenMultiplePinnedResources : Application.Model -> Application.Model
 givenMultiplePinnedResources =
     Application.handleCallback
         (Callback.ResourcesFetched <|
-            Ok <|
-                Json.Encode.list identity
-                    [ Json.Encode.object
-                        [ ( "team_name", Json.Encode.string "team" )
-                        , ( "pipeline_name", Json.Encode.string "pipeline" )
-                        , ( "name", Json.Encode.string "resource" )
-                        , ( "pinned_version", Json.Encode.object [ ( "version", Json.Encode.string "v1" ) ] )
-                        ]
-                    , Json.Encode.object
-                        [ ( "team_name", Json.Encode.string "team" )
-                        , ( "pipeline_name", Json.Encode.string "pipeline" )
-                        , ( "name", Json.Encode.string "other-resource" )
-                        , ( "pinned_version", Json.Encode.object [ ( "version", Json.Encode.string "v2" ) ] )
-                        ]
-                    ]
+            Ok
+                [ Data.resource "v1"
+                , Data.resource "v2"
+                ]
         )
         >> Tuple.first
 

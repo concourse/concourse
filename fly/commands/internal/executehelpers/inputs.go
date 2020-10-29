@@ -26,7 +26,7 @@ func DetermineInputs(
 	team concourse.Team,
 	taskInputs []atc.TaskInputConfig,
 	localInputMappings []flaghelpers.InputPairFlag,
-	userInputMappings []flaghelpers.VariablePairFlag,
+	userInputMappings []flaghelpers.InputMappingPairFlag,
 	jobInputImage string,
 	inputsFrom flaghelpers.JobFlag,
 	includeIgnored bool,
@@ -111,7 +111,7 @@ func DetermineInputs(
 	return inputs, inputMappings, imageResourceFromJob, resourceTypes, nil
 }
 
-func ConvertInputMappings(variables []flaghelpers.VariablePairFlag) map[string]string {
+func ConvertInputMappings(variables []flaghelpers.InputMappingPairFlag) map[string]string {
 	inputMappings := map[string]string{}
 	for _, flag := range variables {
 		inputMappings[flag.Name] = flag.Value

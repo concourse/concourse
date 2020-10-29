@@ -227,7 +227,7 @@ func (client *client) RunCheckStep(
 		containerSpec,
 	)
 	if err != nil {
-		return CheckResult{}, fmt.Errorf("find or create container: %w", err)
+		return CheckResult{}, err
 	}
 
 	eventDelegate.Starting(logger)
@@ -591,7 +591,7 @@ func (client *client) chooseTaskWorker(
 
 	tasksWaitingLabels := metric.TasksWaitingLabels{
 		TeamId:     strconv.Itoa(workerSpec.TeamID),
-		WorkerTags: strings.Join(containerSpec.Tags, "_"),
+		WorkerTags: strings.Join(workerSpec.Tags, "_"),
 		Platform:   workerSpec.Platform,
 	}
 

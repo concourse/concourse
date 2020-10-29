@@ -8,7 +8,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
@@ -44,34 +43,10 @@ type FakeBuildStepDelegate struct {
 		arg1 lager.Logger
 		arg2 bool
 	}
-	ImageVersionDeterminedStub        func(db.UsedResourceCache) error
-	imageVersionDeterminedMutex       sync.RWMutex
-	imageVersionDeterminedArgsForCall []struct {
-		arg1 db.UsedResourceCache
-	}
-	imageVersionDeterminedReturns struct {
-		result1 error
-	}
-	imageVersionDeterminedReturnsOnCall map[int]struct {
-		result1 error
-	}
 	InitializingStub        func(lager.Logger)
 	initializingMutex       sync.RWMutex
 	initializingArgsForCall []struct {
 		arg1 lager.Logger
-	}
-	RedactImageSourceStub        func(atc.Source) (atc.Source, error)
-	redactImageSourceMutex       sync.RWMutex
-	redactImageSourceArgsForCall []struct {
-		arg1 atc.Source
-	}
-	redactImageSourceReturns struct {
-		result1 atc.Source
-		result2 error
-	}
-	redactImageSourceReturnsOnCall map[int]struct {
-		result1 atc.Source
-		result2 error
 	}
 	SelectedWorkerStub        func(lager.Logger, string)
 	selectedWorkerMutex       sync.RWMutex
@@ -253,66 +228,6 @@ func (fake *FakeBuildStepDelegate) FinishedArgsForCall(i int) (lager.Logger, boo
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeBuildStepDelegate) ImageVersionDetermined(arg1 db.UsedResourceCache) error {
-	fake.imageVersionDeterminedMutex.Lock()
-	ret, specificReturn := fake.imageVersionDeterminedReturnsOnCall[len(fake.imageVersionDeterminedArgsForCall)]
-	fake.imageVersionDeterminedArgsForCall = append(fake.imageVersionDeterminedArgsForCall, struct {
-		arg1 db.UsedResourceCache
-	}{arg1})
-	fake.recordInvocation("ImageVersionDetermined", []interface{}{arg1})
-	fake.imageVersionDeterminedMutex.Unlock()
-	if fake.ImageVersionDeterminedStub != nil {
-		return fake.ImageVersionDeterminedStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.imageVersionDeterminedReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeBuildStepDelegate) ImageVersionDeterminedCallCount() int {
-	fake.imageVersionDeterminedMutex.RLock()
-	defer fake.imageVersionDeterminedMutex.RUnlock()
-	return len(fake.imageVersionDeterminedArgsForCall)
-}
-
-func (fake *FakeBuildStepDelegate) ImageVersionDeterminedCalls(stub func(db.UsedResourceCache) error) {
-	fake.imageVersionDeterminedMutex.Lock()
-	defer fake.imageVersionDeterminedMutex.Unlock()
-	fake.ImageVersionDeterminedStub = stub
-}
-
-func (fake *FakeBuildStepDelegate) ImageVersionDeterminedArgsForCall(i int) db.UsedResourceCache {
-	fake.imageVersionDeterminedMutex.RLock()
-	defer fake.imageVersionDeterminedMutex.RUnlock()
-	argsForCall := fake.imageVersionDeterminedArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeBuildStepDelegate) ImageVersionDeterminedReturns(result1 error) {
-	fake.imageVersionDeterminedMutex.Lock()
-	defer fake.imageVersionDeterminedMutex.Unlock()
-	fake.ImageVersionDeterminedStub = nil
-	fake.imageVersionDeterminedReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBuildStepDelegate) ImageVersionDeterminedReturnsOnCall(i int, result1 error) {
-	fake.imageVersionDeterminedMutex.Lock()
-	defer fake.imageVersionDeterminedMutex.Unlock()
-	fake.ImageVersionDeterminedStub = nil
-	if fake.imageVersionDeterminedReturnsOnCall == nil {
-		fake.imageVersionDeterminedReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.imageVersionDeterminedReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeBuildStepDelegate) Initializing(arg1 lager.Logger) {
 	fake.initializingMutex.Lock()
 	fake.initializingArgsForCall = append(fake.initializingArgsForCall, struct {
@@ -342,69 +257,6 @@ func (fake *FakeBuildStepDelegate) InitializingArgsForCall(i int) lager.Logger {
 	defer fake.initializingMutex.RUnlock()
 	argsForCall := fake.initializingArgsForCall[i]
 	return argsForCall.arg1
-}
-
-func (fake *FakeBuildStepDelegate) RedactImageSource(arg1 atc.Source) (atc.Source, error) {
-	fake.redactImageSourceMutex.Lock()
-	ret, specificReturn := fake.redactImageSourceReturnsOnCall[len(fake.redactImageSourceArgsForCall)]
-	fake.redactImageSourceArgsForCall = append(fake.redactImageSourceArgsForCall, struct {
-		arg1 atc.Source
-	}{arg1})
-	fake.recordInvocation("RedactImageSource", []interface{}{arg1})
-	fake.redactImageSourceMutex.Unlock()
-	if fake.RedactImageSourceStub != nil {
-		return fake.RedactImageSourceStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.redactImageSourceReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeBuildStepDelegate) RedactImageSourceCallCount() int {
-	fake.redactImageSourceMutex.RLock()
-	defer fake.redactImageSourceMutex.RUnlock()
-	return len(fake.redactImageSourceArgsForCall)
-}
-
-func (fake *FakeBuildStepDelegate) RedactImageSourceCalls(stub func(atc.Source) (atc.Source, error)) {
-	fake.redactImageSourceMutex.Lock()
-	defer fake.redactImageSourceMutex.Unlock()
-	fake.RedactImageSourceStub = stub
-}
-
-func (fake *FakeBuildStepDelegate) RedactImageSourceArgsForCall(i int) atc.Source {
-	fake.redactImageSourceMutex.RLock()
-	defer fake.redactImageSourceMutex.RUnlock()
-	argsForCall := fake.redactImageSourceArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeBuildStepDelegate) RedactImageSourceReturns(result1 atc.Source, result2 error) {
-	fake.redactImageSourceMutex.Lock()
-	defer fake.redactImageSourceMutex.Unlock()
-	fake.RedactImageSourceStub = nil
-	fake.redactImageSourceReturns = struct {
-		result1 atc.Source
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBuildStepDelegate) RedactImageSourceReturnsOnCall(i int, result1 atc.Source, result2 error) {
-	fake.redactImageSourceMutex.Lock()
-	defer fake.redactImageSourceMutex.Unlock()
-	fake.RedactImageSourceStub = nil
-	if fake.redactImageSourceReturnsOnCall == nil {
-		fake.redactImageSourceReturnsOnCall = make(map[int]struct {
-			result1 atc.Source
-			result2 error
-		})
-	}
-	fake.redactImageSourceReturnsOnCall[i] = struct {
-		result1 atc.Source
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeBuildStepDelegate) SelectedWorker(arg1 lager.Logger, arg2 string) {
@@ -648,12 +500,8 @@ func (fake *FakeBuildStepDelegate) Invocations() map[string][][]interface{} {
 	defer fake.fetchImageMutex.RUnlock()
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
-	fake.imageVersionDeterminedMutex.RLock()
-	defer fake.imageVersionDeterminedMutex.RUnlock()
 	fake.initializingMutex.RLock()
 	defer fake.initializingMutex.RUnlock()
-	fake.redactImageSourceMutex.RLock()
-	defer fake.redactImageSourceMutex.RUnlock()
 	fake.selectedWorkerMutex.RLock()
 	defer fake.selectedWorkerMutex.RUnlock()
 	fake.startSpanMutex.RLock()

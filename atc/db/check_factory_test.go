@@ -83,23 +83,11 @@ var _ = Describe("CheckFactory", func() {
 			})
 
 			It("starts the build with the check plan", func() {
-				Expect(fakeBuild.StartCallCount()).To(Equal(1))
-				plan := fakeBuild.StartArgsForCall(0)
+				Expect(fakeResource.CreateBuildCallCount()).To(Equal(1))
+				_, manuallyTriggered, plan := fakeResource.CreateBuildArgsForCall(0)
+				Expect(manuallyTriggered).To(BeFalse())
 				Expect(plan.ID).ToNot(BeEmpty())
 				Expect(plan.Check).To(Equal(&checkPlan))
-			})
-
-			Context("after starting", func() {
-				BeforeEach(func() {
-					fakeBuild.ReloadStub = func() (bool, error) {
-						fakeBuild.StatusReturns(db.BuildStatusStarted)
-						return true, nil
-					}
-				})
-
-				It("reloads the build so that it returns a started build", func() {
-					Expect(build.Status()).To(Equal(db.BuildStatusStarted))
-				})
 			})
 
 			Context("when the interval has not elapsed", func() {
@@ -245,23 +233,11 @@ var _ = Describe("CheckFactory", func() {
 					})
 
 					It("starts the build with the check plan", func() {
-						Expect(fakeBuild.StartCallCount()).To(Equal(1))
-						plan := fakeBuild.StartArgsForCall(0)
+						Expect(fakeResource.CreateBuildCallCount()).To(Equal(1))
+						_, manuallyTriggered, plan := fakeResource.CreateBuildArgsForCall(0)
+						Expect(manuallyTriggered).To(BeFalse())
 						Expect(plan.ID).ToNot(BeEmpty())
 						Expect(plan.Check).To(Equal(&checkPlan))
-					})
-
-					Context("after starting", func() {
-						BeforeEach(func() {
-							fakeBuild.ReloadStub = func() (bool, error) {
-								fakeBuild.StatusReturns(db.BuildStatusStarted)
-								return true, nil
-							}
-						})
-
-						It("reloads the build so that it returns a started build", func() {
-							Expect(build.Status()).To(Equal(db.BuildStatusStarted))
-						})
 					})
 				})
 			})

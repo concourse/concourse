@@ -20,7 +20,7 @@ func (s *Server) ListResources(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		var presentedResources []atc.Resource
+		presentedResources := []atc.Resource{}
 		for _, resource := range resources {
 			presentedResources = append(
 				presentedResources,

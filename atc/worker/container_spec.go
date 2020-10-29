@@ -17,8 +17,6 @@ type WorkerSpec struct {
 }
 
 type ContainerSpec struct {
-	Platform  string
-	Tags      []string
 	TeamID    int
 	ImageSpec ImageSpec
 	Env       []string

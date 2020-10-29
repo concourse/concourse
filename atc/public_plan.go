@@ -161,13 +161,13 @@ func (plan AcrossPlan) Public() *json.RawMessage {
 	}
 
 	return enc(struct {
-		Vars        []AcrossVar  `json:"vars"`
-		Steps       []scopedStep `json:"steps"`
-		FailFast    bool         `json:"fail_fast,omitempty"`
+		Vars     []AcrossVar  `json:"vars"`
+		Steps    []scopedStep `json:"steps"`
+		FailFast bool         `json:"fail_fast,omitempty"`
 	}{
-		Vars:        plan.Vars,
-		Steps:       steps,
-		FailFast:    plan.FailFast,
+		Vars:     plan.Vars,
+		Steps:    steps,
+		FailFast: plan.FailFast,
 	})
 }
 
@@ -193,9 +193,9 @@ func (plan EnsurePlan) Public() *json.RawMessage {
 
 func (plan GetPlan) Public() *json.RawMessage {
 	return enc(struct {
+		Name     string   `json:"name"`
 		Type     string   `json:"type"`
-		Name     string   `json:"name,omitempty"`
-		Resource string   `json:"resource"`
+		Resource string   `json:"resource,omitempty"`
 		Version  *Version `json:"version,omitempty"`
 	}{
 		Type:     plan.Type,
@@ -207,8 +207,8 @@ func (plan GetPlan) Public() *json.RawMessage {
 
 func (plan DependentGetPlan) Public() *json.RawMessage {
 	return enc(struct {
+		Name     string `json:"name"`
 		Type     string `json:"type"`
-		Name     string `json:"name,omitempty"`
 		Resource string `json:"resource"`
 	}{
 		Type:     plan.Type,
@@ -259,9 +259,9 @@ func (plan OnSuccessPlan) Public() *json.RawMessage {
 
 func (plan PutPlan) Public() *json.RawMessage {
 	return enc(struct {
+		Name     string `json:"name"`
 		Type     string `json:"type"`
-		Name     string `json:"name,omitempty"`
-		Resource string `json:"resource"`
+		Resource string `json:"resource,omitempty"`
 	}{
 		Type:     plan.Type,
 		Name:     plan.Name,
@@ -271,8 +271,8 @@ func (plan PutPlan) Public() *json.RawMessage {
 
 func (plan CheckPlan) Public() *json.RawMessage {
 	return enc(struct {
+		Name string `json:"name"`
 		Type string `json:"type"`
-		Name string `json:"name,omitempty"`
 	}{
 		Type: plan.Type,
 		Name: plan.Name,

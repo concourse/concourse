@@ -4,7 +4,6 @@ import Browser.Dom
 import Concourse
 import Concourse.Pagination exposing (Page, Paginated)
 import Http
-import Json.Encode
 import Message.Message
     exposing
         ( DomID
@@ -26,13 +25,13 @@ type Callback
     | BuildTriggered (Fetched Concourse.Build)
     | JobBuildsFetched (Fetched ( Page, Paginated Concourse.Build ))
     | JobFetched (Fetched Concourse.Job)
-    | JobsFetched (Fetched Json.Encode.Value)
+    | JobsFetched (Fetched (List Concourse.Job))
     | PipelineFetched (Fetched Concourse.Pipeline)
     | PipelinesFetched (Fetched (List Concourse.Pipeline))
     | PipelineToggled Concourse.PipelineIdentifier (Fetched ())
     | PipelinesOrdered String (Fetched ())
     | UserFetched (Fetched Concourse.User)
-    | ResourcesFetched (Fetched Json.Encode.Value)
+    | ResourcesFetched (Fetched (List Concourse.Resource))
     | BuildResourcesFetched (Fetched ( Int, Concourse.BuildResources ))
     | ResourceFetched (Fetched Concourse.Resource)
     | VersionedResourcesFetched (Fetched ( Page, Paginated Concourse.VersionedResource ))

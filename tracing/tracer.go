@@ -3,26 +3,16 @@ package tracing
 import (
 	"context"
 
+	"go.opentelemetry.io/collector/translator/conventions"
 	"go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/api/propagation"
 	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/api/trace/tracetest"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/label"
 	export "go.opentelemetry.io/otel/sdk/export/trace"
+	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
-
-type TestTraceProvider struct {
-	tracer *tracetest.Tracer
-}
-
-func (tp *TestTraceProvider) Tracer(name string) trace.Tracer {
-	if tp.tracer == nil {
-		tp.tracer = &tracetest.Tracer{}
-	}
-	return tp.tracer
-}
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 go.opentelemetry.io/otel/api/trace.Tracer
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 go.opentelemetry.io/otel/api/trace.Provider
@@ -37,25 +27,70 @@ func (tp *TestTraceProvider) Tracer(name string) trace.Tracer {
 var Configured bool
 
 type Config struct {
+	ServiceName string            `long:"service-name"  description:"service name to attach to traces as metadata" default:"concourse-web"`
+	Attributes  map[string]string `long:"attribute"  description:"attributes to attach to traces as metadata"`
+	Honeycomb   Honeycomb
 	Jaeger      Jaeger
 	Stackdriver Stackdriver
+	OTLP        OTLP
+}
+
+func (c Config) resource() *resource.Resource {
+	attributes := []label.KeyValue{
+		label.String(conventions.AttributeTelemetrySDKName, "opentelemetry"),
+		label.String(conventions.AttributeTelemetrySDKLanguage, "go"),
+		label.String(conventions.AttributeServiceName, c.ServiceName),
+	}
+
+	for key, value := range c.Attributes {
+		attributes = append(attributes, label.String(key, value))
+	}
+
+	return resource.New(attributes...)
+}
+
+func (c Config) TraceProvider(exporter func() (export.SpanSyncer, error)) (trace.Provider, error) {
+	exp, err := exporter()
+	if err != nil {
+		return nil, err
+	}
+
+	provider, err := sdktrace.NewProvider(sdktrace.WithConfig(
+		sdktrace.Config{
+			DefaultSampler: sdktrace.AlwaysSample(),
+		}),
+		sdktrace.WithSyncer(exp),
+		sdktrace.WithResource(c.resource()),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return provider, nil
 }
 
 func (c Config) Prepare() error {
-	var exp export.SpanSyncer
+	var provider trace.Provider
 	var err error
+
 	switch {
+	case c.Honeycomb.IsConfigured():
+		provider, err = c.TraceProvider(c.Honeycomb.Exporter)
 	case c.Jaeger.IsConfigured():
-		exp, err = c.Jaeger.Exporter()
+		provider, err = c.TraceProvider(c.Jaeger.Exporter)
+	case c.OTLP.IsConfigured():
+		provider, err = c.TraceProvider(c.OTLP.Exporter)
 	case c.Stackdriver.IsConfigured():
-		exp, err = c.Stackdriver.Exporter()
+		provider, err = c.TraceProvider(c.Stackdriver.Exporter)
 	}
 	if err != nil {
 		return err
 	}
-	if exp != nil {
-		ConfigureTraceProvider(TraceProvider(exp))
+
+	if provider != nil {
+		ConfigureTraceProvider(provider)
 	}
+
 	return nil
 }
 
@@ -191,16 +226,4 @@ func End(span trace.Span, err error) {
 func ConfigureTraceProvider(tp trace.Provider) {
 	global.SetTraceProvider(tp)
 	Configured = true
-}
-
-func TraceProvider(exporter export.SpanSyncer) trace.Provider {
-	// the only way NewProvider can error is if exporter is nil, but
-	// this method is never called in such circumstances.
-	provider, _ := sdktrace.NewProvider(sdktrace.WithConfig(
-		sdktrace.Config{
-			DefaultSampler: sdktrace.AlwaysSample(),
-		}),
-		sdktrace.WithSyncer(exporter),
-	)
-	return provider
 }

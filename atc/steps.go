@@ -644,6 +644,16 @@ func (c *MaxInFlightConfig) MarshalJSON() ([]byte, error) {
 	return json.Marshal(c.Limit)
 }
 
+func (c *MaxInFlightConfig) EffectiveLimit(numSteps int) int {
+	if c == nil {
+		return 1
+	}
+	if c.All {
+		return numSteps
+	}
+	return c.Limit
+}
+
 // A VersionConfig represents the choice to include every version of a
 // resource, the latest version of a resource, or a pinned (specific) one.
 type VersionConfig struct {

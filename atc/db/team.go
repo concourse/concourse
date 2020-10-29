@@ -228,20 +228,27 @@ func (t *team) Containers() ([]Container, error) {
 }
 
 func (t *team) IsCheckContainer(handle string) (bool, error) {
-	var containerType string
-	err := psql.Select("meta_type").
+	var ok int
+	err := psql.Select("1").
 		From("containers").
 		Where(sq.Eq{
 			"handle": handle,
 		}).
+		Where(sq.NotEq{
+			"resource_config_check_session_id": nil,
+		}).
 		RunWith(t.conn).
 		QueryRow().
-		Scan(&containerType)
+		Scan(&ok)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+
 		return false, err
 	}
 
-	return ContainerType(containerType) == ContainerTypeCheck, nil
+	return true, nil
 }
 
 func (t *team) IsContainerWithinTeam(handle string, isCheck bool) (bool, error) {

@@ -193,7 +193,7 @@ func (c resourceConfigCheckSessionContainerOwner) Create(tx Tx, workerName strin
 		QueryRow().
 		Scan(&wbrtID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get worker base resource type id: %s", err)
 	}
 
 	expiryStmt := fmt.Sprintf(
@@ -219,7 +219,7 @@ func (c resourceConfigCheckSessionContainerOwner) Create(tx Tx, workerName strin
 		QueryRow().
 		Scan(&rccsID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("upsert resource config check session: %s", err)
 	}
 
 	return map[string]interface{}{

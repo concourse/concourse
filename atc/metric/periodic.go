@@ -76,6 +76,14 @@ func tick(logger lager.Logger, m *Monitor) {
 	)
 
 	m.emit(
+		logger.Session("volumes-streamed"),
+		Event{
+			Name:  "volumes streamed",
+			Value: m.VolumesStreamed.Delta(),
+		},
+	)
+
+	m.emit(
 		logger.Session("containers-created"),
 		Event{
 			Name:  "containers created",

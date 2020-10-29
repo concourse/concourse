@@ -429,8 +429,9 @@ func waitAndLogin(namespace, service string) Endpoint {
 func cleanupReleases() {
 	for releaseName, namespace := range deployedReleases {
 		helmDestroy(releaseName, namespace)
-		Run(nil, "kubectl", "delete", "namespace", namespace, "--wait=false")
+		kubeClient.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
 	}
+
 	deployedReleases = make(map[string]string)
 }
 

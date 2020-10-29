@@ -22,6 +22,16 @@ all =
                     |> Concourse.encodeJob
                     |> Json.Decode.decodeValue Concourse.decodeJob
                     |> Expect.equal (Ok job)
+        , test "resource encoding/decoding are inverses" <|
+            \_ ->
+                let
+                    resource =
+                        Data.resource "version"
+                in
+                resource
+                    |> Concourse.encodeResource
+                    |> Json.Decode.decodeValue Concourse.decodeResource
+                    |> Expect.equal (Ok resource)
         , test "build encoding/decoding are inverses" <|
             \_ ->
                 let
