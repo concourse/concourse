@@ -16,9 +16,9 @@ module Routes exposing
     , tokenToFlyRoute
     )
 
+import Api.Pagination
 import Concourse
 import Concourse.Pagination as Pagination exposing (Direction(..))
-import Api.Pagination
 import Dict
 import Maybe.Extra
 import Url

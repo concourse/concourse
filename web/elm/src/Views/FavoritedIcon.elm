@@ -12,13 +12,14 @@ view :
     { a
         | isHovered : Bool
         , isFavorited : Bool
+        , isSideBar : Bool
         , domID : DomID
     }
     -> List (Html.Attribute Message)
     -> Html Message
 view params attrs =
     Icon.icon
-        { sizePx = 20, image = Assets.FavoritedToggleIcon params.isFavorited params.isHovered }
+        { sizePx = 20, image = Assets.FavoritedToggleIcon params.isFavorited params.isHovered params.isSideBar }
         ([ style "cursor" "pointer"
          , style "background-size" "contain"
          , onClick <| Click <| params.domID

@@ -771,7 +771,6 @@ body session ({ prep, output, authorized, showHelp } as params) =
             [ NotAuthorized.view ]
 
 
-
 tombstone :
     Time.Zone
     ->

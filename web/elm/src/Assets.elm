@@ -18,7 +18,7 @@ type Asset
     | ChevronRight
     | ToggleSwitch Bool
     | VisibilityToggleIcon Bool
-    | FavoritedToggleIcon Bool Bool
+    | FavoritedToggleIcon Bool Bool Bool
     | BuildFavicon (Maybe BuildStatus)
     | PinIconWhite
     | PinIconGrey
@@ -136,14 +136,17 @@ toPath asset =
             in
             basePath ++ [ "baseline-visibility" ++ imageName ++ ".svg" ]
 
-        FavoritedToggleIcon isFavorited isBright ->
+        FavoritedToggleIcon isFavorited isHovered isSideBar ->
             let
                 imageName =
                     if isFavorited then
                         "-filled"
 
-                    else if isBright then
+                    else if isSideBar && isHovered then
                         "-unfilled-bright"
+
+                    else if isHovered then
+                        "-unfilled-white"
 
                     else
                         "-unfilled"

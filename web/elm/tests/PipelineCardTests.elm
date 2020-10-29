@@ -2508,21 +2508,21 @@ all =
                         unfilledFavoritedIcon =
                             iconSelector
                                 { size = "20px"
-                                , image = Assets.FavoritedToggleIcon False False
+                                , image = Assets.FavoritedToggleIcon False False False
                                 }
                                 ++ [ style "background-size" "contain" ]
 
                         unfilledBrightFavoritedIcon =
                             iconSelector
                                 { size = "20px"
-                                , image = Assets.FavoritedToggleIcon False True
+                                , image = Assets.FavoritedToggleIcon False True False
                                 }
                                 ++ [ style "background-size" "contain" ]
 
                         filledFavoritedIcon =
                             iconSelector
                                 { size = "20px"
-                                , image = Assets.FavoritedToggleIcon True False
+                                , image = Assets.FavoritedToggleIcon True False False
                                 }
                                 ++ [ style "background-size" "contain" ]
 

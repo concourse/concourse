@@ -664,6 +664,7 @@ all =
                                     Assets.FavoritedToggleIcon
                                         False
                                         False
+                                        False
                                 }
                             )
                 in
@@ -683,7 +684,7 @@ all =
                             ]
                                 ++ iconSelector
                                     { size = "20px"
-                                    , image = Assets.FavoritedToggleIcon False False
+                                    , image = Assets.FavoritedToggleIcon False False False
                                     }
                         }
                     , hoveredSelector =
@@ -694,7 +695,7 @@ all =
                             ]
                                 ++ iconSelector
                                     { size = "20px"
-                                    , image = Assets.FavoritedToggleIcon False True
+                                    , image = Assets.FavoritedToggleIcon False True False
                                     }
                         }
                     , hoverable = Message.Message.TopBarFavoritedIcon -1

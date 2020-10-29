@@ -3,8 +3,8 @@ module ResourceTests exposing (all)
 import Application.Application as Application
 import Application.Models exposing (Session)
 import Assets
-import ColorValues
 import Build.StepTree.Models as STModels
+import ColorValues
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
