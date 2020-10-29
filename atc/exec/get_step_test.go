@@ -3,6 +3,7 @@ package exec_test
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -266,6 +267,20 @@ var _ = Describe("GetStep", func() {
 		It("sets them in the WorkerSpec", func() {
 			_, _, _, _, actualWorkerSpec, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
 			Expect(actualWorkerSpec.Tags).To(Equal([]string{"some", "tags"}))
+		})
+	})
+
+	Context("when the plan specifies a timeout", func() {
+		BeforeEach(func() {
+			getPlan.Timeout = "1h"
+		})
+
+		It("enforces it on the get", func() {
+			Expect(fakeClient.RunGetStepCallCount()).To(Equal(1))
+			getCtx, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
+			t, ok := getCtx.Deadline()
+			Expect(ok).To(BeTrue())
+			Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
 		})
 	})
 

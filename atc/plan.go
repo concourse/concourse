@@ -203,6 +203,10 @@ type GetPlan struct {
 
 	// Worker tags to influence placement of the container.
 	Tags Tags `json:"tags,omitempty"`
+
+	// A timeout to enforce on the resource `get` process. Note that fetching the
+	// resource's image does not count towards the timeout.
+	Timeout string `json:"timeout,omitempty"`
 }
 
 type PutPlan struct {
@@ -225,6 +229,10 @@ type PutPlan struct {
 
 	// Worker tags to influence placement of the container.
 	Tags Tags `json:"tags,omitempty"`
+
+	// A timeout to enforce on the resource `put` process. Note that fetching the
+	// resource's image does not count towards the timeout.
+	Timeout string `json:"timeout,omitempty"`
 }
 
 type CheckPlan struct {
@@ -249,7 +257,8 @@ type CheckPlan struct {
 	// will be skipped.
 	Interval string `json:"interval,omitempty"`
 
-	// A timeout to enforce on the check operation.
+	// A timeout to enforce on the resource `check` process. Note that fetching
+	// the resource's image does not count towards the timeout.
 	Timeout string `json:"timeout,omitempty"`
 
 	// Worker tags to influence placement of the container.
@@ -287,6 +296,10 @@ type TaskPlan struct {
 	// build plan.
 	InputMapping  map[string]string `json:"input_mapping,omitempty"`
 	OutputMapping map[string]string `json:"output_mapping,omitempty"`
+
+	// A timeout to enforce on the task's process. Note that etching the task's
+	// image does not count towards the timeout.
+	Timeout string `json:"timeout,omitempty"`
 
 	// Resource types to have available for use when fetching the task's image.
 	//

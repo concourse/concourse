@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -238,8 +239,20 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
+	processCtx := ctx
+	if step.plan.Timeout != "" {
+		timeout, err := time.ParseDuration(step.plan.Timeout)
+		if err != nil {
+			return false, fmt.Errorf("parse timeout: %w", err)
+		}
+
+		var cancel func()
+		processCtx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+
 	result, err := step.workerClient.RunTaskStep(
-		ctx,
+		processCtx,
 		logger,
 		owner,
 		containerSpec,

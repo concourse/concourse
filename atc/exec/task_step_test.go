@@ -3,6 +3,7 @@ package exec_test
 import (
 	"context"
 	"errors"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
@@ -219,6 +220,31 @@ var _ = Describe("TaskStep", func() {
 
 				_, _, _, _, workerSpec, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 				Expect(workerSpec.Tags).To(Equal([]string{"plan", "tags"}))
+			})
+		})
+
+		Context("when a timeout is configured", func() {
+			BeforeEach(func() {
+				taskPlan.Timeout = "1h"
+			})
+
+			It("enforces it on the context", func() {
+				Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
+
+				taskCtx, _, _, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+				t, ok := taskCtx.Deadline()
+				Expect(ok).To(BeTrue())
+				Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
+			})
+
+			Context("when the timeout is bogus", func() {
+				BeforeEach(func() {
+					taskPlan.Timeout = "bogus"
+				})
+
+				It("fails miserably", func() {
+					Expect(stepErr).To(MatchError("parse timeout: time: invalid duration \"bogus\""))
+				})
 			})
 		})
 

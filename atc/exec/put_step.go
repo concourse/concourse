@@ -2,7 +2,9 @@ package exec
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -204,8 +206,20 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	resourceToPut := step.resourceFactory.NewResource(source, params, nil)
 
+	processCtx := ctx
+	if step.plan.Timeout != "" {
+		timeout, err := time.ParseDuration(step.plan.Timeout)
+		if err != nil {
+			return false, fmt.Errorf("parse timeout: %w", err)
+		}
+
+		var cancel func()
+		processCtx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+
 	result, err := step.workerClient.RunPutStep(
-		ctx,
+		processCtx,
 		logger,
 		owner,
 		containerSpec,

@@ -34,6 +34,7 @@ var factoryTests = []StepTest{
 			params: {some: params}
 			version: {some: version}
 			tags: [tag-1, tag-2]
+			timeout: 1h
 		`,
 		StepConfig: &atc.GetStep{
 			Name:     "some-name",
@@ -41,6 +42,7 @@ var factoryTests = []StepTest{
 			Params:   atc.Params{"some": "params"},
 			Version:  &atc.VersionConfig{Pinned: atc.Version{"some": "version"}},
 			Tags:     []string{"tag-1", "tag-2"},
+			Timeout:  "1h",
 		},
 	},
 	{
@@ -53,6 +55,7 @@ var factoryTests = []StepTest{
 			tags: [tag-1, tag-2]
 			inputs: all
 			get_params: {some: get-params}
+			timeout: 1h
 		`,
 		StepConfig: &atc.PutStep{
 			Name:      "some-name",
@@ -61,6 +64,7 @@ var factoryTests = []StepTest{
 			Tags:      []string{"tag-1", "tag-2"},
 			Inputs:    &atc.InputsConfig{All: true},
 			GetParams: atc.Params{"some": "get-params"},
+			Timeout:   "1h",
 		},
 	},
 	{
@@ -79,6 +83,7 @@ var factoryTests = []StepTest{
 			input_mapping: {generic: specific}
 			output_mapping: {specific: generic}
 			image: some-image
+			timeout: 1h
 		`,
 
 		StepConfig: &atc.TaskStep{
@@ -95,6 +100,7 @@ var factoryTests = []StepTest{
 			InputMapping:      map[string]string{"generic": "specific"},
 			OutputMapping:     map[string]string{"specific": "generic"},
 			ImageArtifactName: "some-image",
+			Timeout:           "1h",
 		},
 	},
 	{

@@ -3,6 +3,7 @@ package exec_test
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
@@ -467,6 +468,20 @@ var _ = Describe("PutStep", func() {
 		It("sets them in the WorkerSpec", func() {
 			_, _, _, _, workerSpec, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
 			Expect(workerSpec.Tags).To(Equal([]string{"some", "tags"}))
+		})
+	})
+
+	Context("when the plan specifies a timeout", func() {
+		BeforeEach(func() {
+			putPlan.Timeout = "1h"
+		})
+
+		It("enforces it on the put", func() {
+			Expect(fakeClient.RunPutStepCallCount()).To(Equal(1))
+			putCtx, _, _, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
+			t, ok := putCtx.Deadline()
+			Expect(ok).To(BeTrue())
+			Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
 		})
 	})
 
