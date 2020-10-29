@@ -364,4 +364,29 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
     {"timestamp":"2019-05-09T14:42:36.704864093Z","level":"info","source":"atc","message":"atc.audit","data":{"action":"GetPipeline","parameters":{":pipeline_name":["booklit"],":team_name":["main"]},"user":"test"}}
     }}}
   }
+
+  \section{
+    \title{Configuring defaults for resource types}{resource-defaults}
+
+    Defaults for the "core" resource types (\link{those that show up under the Concourse
+    org}{https://github.com/concourse?q=-resource})
+    that comes with Concourse can be set cluster-wide by passing in a configuration file.
+    The format of the file is the name of the resource type followed by an arbitrary
+    configuration.
+
+    Documentation for each resource type's configuration is
+    in each implementation's \code{README}.
+
+    \codeblock{bash}{{{
+    CONCOURSE_BASE_RESOURCE_TYPE_DEFAULTS=./defaults.yml
+    }}}
+
+    For example, a \code{defaults.yml} that configures the entire cluster to use a
+    registry mirror would have:
+    \codeblock{yaml}{{{
+    registry-image:
+      registry_mirror:
+        host: https://registry.mirror.example.com
+    }}}
+  }
 }
