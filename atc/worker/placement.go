@@ -87,7 +87,6 @@ func NewRandomPlacementStrategy() ContainerPlacementStrategy {
 	return s
 }
 
-
 type VolumeLocalityPlacementStrategyNode struct {
 	rand *rand.Rand
 }
