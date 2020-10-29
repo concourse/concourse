@@ -45,8 +45,11 @@ var _ = Describe("FewestBuildContainersPlacementStrategy", func() {
 			strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: "fewest-build-containers"})
 			Expect(newStrategyError).ToNot(HaveOccurred())
 			compatibleWorker1 = new(workerfakes.FakeWorker)
+			compatibleWorker1.NameReturns("compatibleWorker1")
 			compatibleWorker2 = new(workerfakes.FakeWorker)
+			compatibleWorker2.NameReturns("compatibleWorker2")
 			compatibleWorker3 = new(workerfakes.FakeWorker)
+			compatibleWorker3.NameReturns("compatibleWorker3")
 
 			spec = ContainerSpec{
 				ImageSpec: ImageSpec{ResourceType: "some-type"},
@@ -172,17 +175,22 @@ var _ = Describe("VolumeLocalityPlacementStrategy", func() {
 
 			compatibleWorkerOneCache1 = new(workerfakes.FakeWorker)
 			compatibleWorkerOneCache1.SatisfiesReturns(true)
+			compatibleWorkerOneCache1.NameReturns("compatibleWorkerOneCache1")
 
 			compatibleWorkerOneCache2 = new(workerfakes.FakeWorker)
+			compatibleWorkerOneCache2.NameReturns("compatibleWorkerOneCache2")
 			compatibleWorkerOneCache2.SatisfiesReturns(true)
 
 			compatibleWorkerTwoCaches = new(workerfakes.FakeWorker)
+			compatibleWorkerTwoCaches.NameReturns("compatibleWorkerTwoCaches")
 			compatibleWorkerTwoCaches.SatisfiesReturns(true)
 
 			compatibleWorkerNoCaches1 = new(workerfakes.FakeWorker)
+			compatibleWorkerNoCaches1.NameReturns("compatibleWorkerNoCaches1")
 			compatibleWorkerNoCaches1.SatisfiesReturns(true)
 
 			compatibleWorkerNoCaches2 = new(workerfakes.FakeWorker)
+			compatibleWorkerNoCaches2.NameReturns("compatibleWorkerNoCaches2")
 			compatibleWorkerNoCaches2.SatisfiesReturns(true)
 		})
 
@@ -322,8 +330,11 @@ var _ = Describe("LimitActiveTasksPlacementStrategy", func() {
 			Expect(newStrategyError).ToNot(HaveOccurred())
 
 			compatibleWorker1 = new(workerfakes.FakeWorker)
+			compatibleWorker1.NameReturns("compatibleWorker1")
 			compatibleWorker2 = new(workerfakes.FakeWorker)
+			compatibleWorker2.NameReturns("compatibleWorker2")
 			compatibleWorker3 = new(workerfakes.FakeWorker)
+			compatibleWorker3.NameReturns("compatibleWorker3")
 
 			spec = ContainerSpec{
 				ImageSpec: ImageSpec{ResourceType: "some-type"},
@@ -378,6 +389,7 @@ var _ = Describe("LimitActiveTasksPlacementStrategy", func() {
 				BeforeEach(func() {
 					workers = []Worker{compatibleWorker1, compatibleWorker2, compatibleWorker3}
 					compatibleWorker1.ActiveTasksReturns(1, nil)
+					compatibleWorker2.ActiveTasksReturns(2, nil)
 					compatibleWorker3.ActiveTasksReturns(1, nil)
 				})
 
@@ -450,7 +462,7 @@ var _ = Describe("LimitActiveTasksPlacementStrategy", func() {
 							)
 							Expect(chooseErr).ToNot(HaveOccurred())
 							return chosenWorker
-						}).Should(Or(Equal(compatibleWorker1), Equal(compatibleWorker3)))
+						}).Should(Not(BeNil()))
 					})
 				})
 			})
