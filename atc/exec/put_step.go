@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/vars"
 	"go.opentelemetry.io/otel/api/trace"
 )
 
@@ -115,8 +116,8 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 		return false, err
 	}
 
-	params, err := creds.NewParams(state, step.plan.Params).Evaluate()
-	if err != nil {
+	var params atc.Params
+	if err := vars.InterpolateInto(step.plan.Params, state, &params); err != nil {
 		return false, err
 	}
 
