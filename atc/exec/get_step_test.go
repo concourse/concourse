@@ -49,8 +49,7 @@ var _ = Describe("GetStep", func() {
 
 		getPlan *atc.GetPlan
 
-		artifactRepository *build.Repository
-		fakeState          *execfakes.FakeRunState
+		state exec.RunState
 
 		getStep    exec.Step
 		getStepOk  bool
@@ -72,7 +71,7 @@ var _ = Describe("GetStep", func() {
 			PipelineName: "some-pipeline",
 		}
 
-		planID = "56"
+		planID atc.PlanID = "56"
 	)
 
 	BeforeEach(func() {
@@ -88,13 +87,11 @@ var _ = Describe("GetStep", func() {
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 		fakeResourceCache = new(dbfakes.FakeUsedResourceCache)
 
-		artifactRepository = build.NewRepository()
-		fakeState = new(execfakes.FakeRunState)
-		fakeState.ArtifactRepositoryReturns(artifactRepository)
-		fakeState.GetStub = vars.StaticVariables{
+		credVars := vars.StaticVariables{
 			"source-var": "super-secret-source",
 			"params-var": "super-secret-params",
-		}.Get
+		}
+		state = exec.NewRunState(noopStepper, credVars, false)
 
 		fakeDelegate = new(execfakes.FakeGetDelegate)
 		stdoutBuf = gbytes.NewBuffer()
@@ -161,7 +158,7 @@ var _ = Describe("GetStep", func() {
 			fakeClient,
 		)
 
-		getStepOk, getStepErr = getStep.Run(ctx, fakeState)
+		getStepOk, getStepErr = getStep.Run(ctx, state)
 	})
 
 	It("propagates span context to the worker client", func() {
@@ -455,16 +452,15 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("registers the resulting artifact in the RunState.ArtifactRepository", func() {
-			artifact, found := artifactRepository.ArtifactFor(build.ArtifactName(getPlan.Name))
+			artifact, found := state.ArtifactRepository().ArtifactFor(build.ArtifactName(getPlan.Name))
 			Expect(artifact).To(Equal(runtime.GetArtifact{VolumeHandle: "some-volume-handle"}))
 			Expect(found).To(BeTrue())
 		})
 
 		It("stores the resource cache as the step result", func() {
-			Expect(fakeState.StoreResultCallCount()).To(Equal(1))
-			key, val := fakeState.StoreResultArgsForCall(0)
-			Expect(key).To(Equal(atc.PlanID(planID)))
-			Expect(val).To(Equal(fakeResourceCache))
+			var result interface{}
+			Expect(state.Result(planID, &result)).To(BeTrue())
+			Expect(result).To(Equal(fakeResourceCache))
 		})
 
 		It("marks the step as succeeded", func() {

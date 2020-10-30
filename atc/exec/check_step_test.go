@@ -34,7 +34,7 @@ var _ = Describe("CheckStep", func() {
 		cancel context.CancelFunc
 
 		planID                    atc.PlanID
-		fakeRunState              *execfakes.FakeRunState
+		state                     exec.RunState
 		fakeResourceFactory       *resourcefakes.FakeResourceFactory
 		fakeResource              *resourcefakes.FakeResource
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
@@ -64,7 +64,8 @@ var _ = Describe("CheckStep", func() {
 
 		planID = "some-plan-id"
 
-		fakeRunState = new(execfakes.FakeRunState)
+		credVars := vars.StaticVariables{"source-var": "super-secret-source"}
+		state = exec.NewRunState(noopStepper, credVars, false)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeResource = new(resourcefakes.FakeResource)
 		fakePool = new(workerfakes.FakePool)
@@ -136,8 +137,6 @@ var _ = Describe("CheckStep", func() {
 			TeamID:  345,
 			BuildID: 678,
 		}
-
-		fakeRunState.GetStub = vars.StaticVariables{"source-var": "super-secret-source"}.Get
 	})
 
 	AfterEach(func() {
@@ -159,7 +158,7 @@ var _ = Describe("CheckStep", func() {
 			defaultTimeout,
 		)
 
-		stepOk, stepErr = checkStep.Run(ctx, fakeRunState)
+		stepOk, stepErr = checkStep.Run(ctx, state)
 	})
 
 	Context("with a reasonable configuration", func() {
@@ -191,10 +190,9 @@ var _ = Describe("CheckStep", func() {
 				})
 
 				It("stores the latest version as the step result", func() {
-					Expect(fakeRunState.StoreResultCallCount()).To(Equal(1))
-					id, val := fakeRunState.StoreResultArgsForCall(0)
-					Expect(id).To(Equal(atc.PlanID("some-plan-id")))
-					Expect(val).To(Equal(atc.Version{"some": "latest-version"}))
+					var result atc.Version
+					Expect(state.Result("some-plan-id", &result)).To(BeTrue())
+					Expect(result).To(Equal(atc.Version{"some": "latest-version"}))
 				})
 			})
 
@@ -204,7 +202,8 @@ var _ = Describe("CheckStep", func() {
 				})
 
 				It("does not store a version", func() {
-					Expect(fakeRunState.StoreResultCallCount()).To(Equal(0))
+					var dst interface{}
+					Expect(state.Result("some-plan-id", &dst)).To(BeFalse())
 				})
 			})
 		})
@@ -594,10 +593,9 @@ var _ = Describe("CheckStep", func() {
 				})
 
 				It("stores the latest version as the step result", func() {
-					Expect(fakeRunState.StoreResultCallCount()).To(Equal(1))
-					id, val := fakeRunState.StoreResultArgsForCall(0)
-					Expect(id).To(Equal(atc.PlanID("some-plan-id")))
-					Expect(val).To(Equal(atc.Version{"version": "2"}))
+					var result atc.Version
+					Expect(state.Result("some-plan-id", &result)).To(BeTrue())
+					Expect(result).To(Equal(atc.Version{"version": "2"}))
 				})
 
 				It("emits a successful Finished event", func() {
@@ -617,7 +615,8 @@ var _ = Describe("CheckStep", func() {
 					})
 
 					It("does not store a version", func() {
-						Expect(fakeRunState.StoreResultCallCount()).To(Equal(0))
+						var dst interface{}
+						Expect(state.Result("some-plan-id", &dst)).To(BeFalse())
 					})
 				})
 
@@ -745,55 +744,31 @@ var _ = Describe("CheckStep", func() {
 		})
 	})
 
-	Context("having credentials in the config", func() {
+	Context("having missing credentials in the config", func() {
 		BeforeEach(func() {
-			checkPlan.Source = atc.Source{"some": "((super-secret-source))"}
+			checkPlan.Source = atc.Source{"some": "((some-missing-var))"}
 		})
 
-		Context("having cred evaluation failing", func() {
-			var expectedErr error
-
-			BeforeEach(func() {
-				expectedErr = errors.New("creds-err")
-
-				fakeRunState.GetReturns(nil, false, expectedErr)
-			})
-
-			It("errors", func() {
-				Expect(stepErr).To(HaveOccurred())
-				Expect(errors.Is(stepErr, expectedErr)).To(BeTrue())
-			})
+		It("errors", func() {
+			Expect(stepErr).To(MatchError(ContainSubstring("undefined var")))
 		})
 	})
 
-	Context("having credentials in a resource type", func() {
+	Context("having missing credentials in a resource type", func() {
 		BeforeEach(func() {
-			resTypes := atc.VersionedResourceTypes{
+			checkPlan.VersionedResourceTypes = atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{
 						Source: atc.Source{
-							"some-custom": "((super-secret-source))",
+							"some-custom": "((some-missing-var))",
 						},
 					},
 				},
 			}
-
-			checkPlan.VersionedResourceTypes = resTypes
 		})
 
-		Context("having cred evaluation failing", func() {
-			var expectedErr error
-
-			BeforeEach(func() {
-				expectedErr = errors.New("creds-err")
-
-				fakeRunState.GetReturns(nil, false, expectedErr)
-			})
-
-			It("errors", func() {
-				Expect(stepErr).To(HaveOccurred())
-				Expect(errors.Is(stepErr, expectedErr)).To(BeTrue())
-			})
+		It("errors", func() {
+			Expect(stepErr).To(MatchError(ContainSubstring("undefined var")))
 		})
 	})
 

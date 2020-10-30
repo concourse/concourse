@@ -15,7 +15,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
@@ -65,8 +64,7 @@ var _ = Describe("PutStep", func() {
 			PipelineName: "some-pipeline",
 		}
 
-		repo  *build.Repository
-		state *execfakes.FakeRunState
+		state exec.RunState
 
 		putStep exec.Step
 		stepOk  bool
@@ -113,14 +111,11 @@ var _ = Describe("PutStep", func() {
 		fakeResource = new(resourcefakes.FakeResource)
 		fakeResource.PutReturns(versionResult, nil)
 
-		repo = build.NewRepository()
-		state = new(execfakes.FakeRunState)
-		state.ArtifactRepositoryReturns(repo)
-
-		state.GetStub = vars.StaticVariables{
+		credVars := vars.StaticVariables{
 			"source-var": "super-secret-source",
 			"params-var": "super-secret-params",
-		}.Get
+		}
+		state = exec.NewRunState(noopStepper, credVars, false)
 
 		uninterpolatedResourceTypes := atc.VersionedResourceTypes{
 			{
@@ -180,9 +175,9 @@ var _ = Describe("PutStep", func() {
 		fakeOtherArtifact = new(runtimefakes.FakeArtifact)
 		fakeMountedArtifact = new(runtimefakes.FakeArtifact)
 
-		repo.RegisterArtifact("some-source", fakeArtifact)
-		repo.RegisterArtifact("some-other-source", fakeOtherArtifact)
-		repo.RegisterArtifact("some-mounted-source", fakeMountedArtifact)
+		state.ArtifactRepository().RegisterArtifact("some-source", fakeArtifact)
+		state.ArtifactRepository().RegisterArtifact("some-other-source", fakeOtherArtifact)
+		state.ArtifactRepository().RegisterArtifact("some-mounted-source", fakeMountedArtifact)
 
 		fakeResourceFactory.NewResourceReturns(fakeResource)
 
@@ -557,10 +552,9 @@ var _ = Describe("PutStep", func() {
 		})
 
 		It("stores the version result as the step result", func() {
-			Expect(state.StoreResultCallCount()).To(Equal(1))
-			sID, sVal := state.StoreResultArgsForCall(0)
-			Expect(sID).To(Equal(planID))
-			Expect(sVal).To(Equal(versionResult))
+			var result runtime.VersionResult
+			Expect(state.Result(planID, &result)).To(BeTrue())
+			Expect(result).To(Equal(versionResult))
 		})
 
 		It("is successful", func() {
