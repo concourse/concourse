@@ -2,9 +2,6 @@ package builds
 
 import (
 	"context"
-	"fmt"
-	"os"
-	"runtime/debug"
 	"sync"
 
 	"code.cloudfoundry.org/lager"
@@ -12,6 +9,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/util"
 )
 
 func NewTracker(
@@ -51,10 +49,8 @@ func (bt *Tracker) Run(ctx context.Context) error {
 			go func(build db.Build) {
 				loggerData := build.LagerData()
 				defer func() {
-					if r := recover(); r != nil {
-						err = fmt.Errorf("panic in tracker build run %s: %v", loggerData, r)
-
-						fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
+					err := util.DumpPanic(recover(), "tracking build %d", build.ID())
+					if err != nil {
 						logger.Error("panic-in-tracker-build-run", err)
 
 						build.Finish(db.BuildStatusErrored)

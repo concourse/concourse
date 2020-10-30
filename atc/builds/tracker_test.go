@@ -2,6 +2,7 @@ package builds_test
 
 import (
 	"context"
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -11,9 +12,14 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/enginefakes"
+	"github.com/concourse/concourse/atc/util"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
+
+func init() {
+	util.PanicSink = ioutil.Discard
+}
 
 type TrackerSuite struct {
 	suite.Suite

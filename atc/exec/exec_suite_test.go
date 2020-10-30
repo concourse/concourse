@@ -11,7 +11,12 @@ import (
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
+	"github.com/concourse/concourse/atc/util"
 )
+
+func init() {
+	util.PanicSink = GinkgoWriter
+}
 
 func TestExec(t *testing.T) {
 	RegisterFailHandler(Fail)

@@ -2,10 +2,8 @@ package exec
 
 import (
 	"context"
-	"fmt"
-	"os"
-	"runtime/debug"
 
+	"github.com/concourse/concourse/atc/util"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -27,10 +25,8 @@ func (step AggregateStep) Run(ctx context.Context, state RunState) (bool, error)
 		s := s
 		go func() {
 			defer func() {
-				if r := recover(); r != nil {
-					err := fmt.Errorf("panic in aggregate step: %v", r)
-
-					fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
+				err := util.DumpPanic(recover(), "aggregate step")
+				if err != nil {
 					errs <- err
 				}
 			}()
