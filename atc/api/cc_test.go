@@ -267,7 +267,7 @@ var _ = Describe("cc.xml", func() {
 
 				Context("when an instanced pipeline is found", func() {
 					var fakePipeline *dbfakes.FakePipeline
-					instanceVars := atc.InstanceVars{"hello": "world"}
+					instanceVars := atc.InstanceVars{"branch": "feature/foo"}
 					BeforeEach(func() {
 						fakePipeline = new(dbfakes.FakePipeline)
 						fakePipeline.InstanceVarsReturns(instanceVars)
@@ -297,7 +297,7 @@ var _ = Describe("cc.xml", func() {
 
 						Expect(body).To(MatchXML(`
 <Projects>
-  <Project activity="Sleeping" lastBuildLabel="42" lastBuildStatus="Success" lastBuildTime="2018-11-04T21:26:38Z" name="something-else/hello:world/some-job" webUrl="https://example.com/teams/a-team/pipelines/something-else/jobs/some-job?var.hello=%22world%22"/>
+  <Project activity="Sleeping" lastBuildLabel="42" lastBuildStatus="Success" lastBuildTime="2018-11-04T21:26:38Z" name="something-else/branch:&#34;feature/foo&#34;/some-job" webUrl="https://example.com/teams/a-team/pipelines/something-else/jobs/some-job?var.branch=%22feature%2Ffoo%22"/>
 </Projects>
 `))
 					})

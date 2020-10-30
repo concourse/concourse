@@ -42,7 +42,7 @@ func (iv InstanceVars) String() string {
 	for _, kvPair := range iv.sortedKVPairs() {
 		rawVal, _ := json.Marshal(kvPair.Value)
 		val := string(rawVal)
-		if !requiresQuoting(kvPair.Value) {
+		if !instanceVarValueRequiresQuoting(kvPair.Value) {
 			val = unquoteString(val)
 		}
 		parts = append(parts, fmt.Sprintf("%s:%s", kvPair.Ref, val))
@@ -58,7 +58,7 @@ func (iv InstanceVars) sortedKVPairs() vars.KVPairs {
 	return kvPairs
 }
 
-func requiresQuoting(v interface{}) bool {
+func instanceVarValueRequiresQuoting(v interface{}) bool {
 	str, ok := v.(string)
 	if !ok {
 		return false
@@ -71,7 +71,7 @@ func requiresQuoting(v interface{}) bool {
 	if !isStringAfterUnmarshal {
 		return true
 	}
-	return strings.ContainsAny(str, ",: ")
+	return strings.ContainsAny(str, ",: /")
 }
 
 func unquoteString(s string) string {

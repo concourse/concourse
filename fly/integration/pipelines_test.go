@@ -300,7 +300,7 @@ var _ = Describe("Fly CLI", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 					Eventually(sess).Should(gexec.Exit(0))
-					Eventually(sess.Out).Should(gbytes.Say("instanced-pipeline/branch:feature/foo"))
+					Eventually(sess.Out).Should(gbytes.Say(`instanced-pipeline/branch:"feature/foo"`))
 					Eventually(sess.Out).Should(gbytes.Say("instanced-pipeline/branch:master"))
 					Eventually(sess.Out).ShouldNot(gbytes.Say("some-pipeline-1"))
 					Eventually(sess.Out).ShouldNot(gbytes.Say("some-pipeline-2"))

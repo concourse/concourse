@@ -48,8 +48,9 @@ var _ = Describe("PipelineRef", func() {
 					"colon": "a:b",
 					"comma": "a,b",
 					"space": "a b",
+					"slash": "a/b",
 				}},
-				out: `some-pipeline/colon:"a:b",comma:"a,b",space:"a b"`,
+				out: `some-pipeline/colon:"a:b",comma:"a,b",slash:"a/b",space:"a b"`,
 			},
 			{
 				desc: "quotes string values that match special YAML values",
