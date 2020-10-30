@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/vars"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/gobwas/glob"
@@ -868,12 +869,12 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineRef atc.Pipeline
 
 	versionedResourceTypes := pipelineResourceTypes.Deserialize()
 
-	source, err := creds.NewSource(variables, resource.Source()).Evaluate()
-	if err != nil {
+	var source atc.Source
+	if err := vars.InterpolateInto(resource.Source(), vars.NewResolver(variables), &source); err != nil {
 		return nil, nil, err
 	}
 
-	resourceTypes, err := creds.NewVersionedResourceTypes(variables, versionedResourceTypes).Evaluate()
+	resourceTypes, err := creds.InterpolateVersionedResourceTypes(versionedResourceTypes, variables)
 	if err != nil {
 		return nil, nil, err
 	}

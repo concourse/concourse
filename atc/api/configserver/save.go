@@ -152,14 +152,14 @@ func validateCredParams(credMgrVars vars.Variables, config atc.Config, session l
 	var errs error
 
 	for _, resourceType := range config.ResourceTypes {
-		_, err := creds.NewSource(credMgrVars, resourceType.Source).Evaluate()
+		_, err := vars.Interpolate(resourceType.Source, vars.NewResolver(credMgrVars))
 		if err != nil {
 			errs = multierror.Append(errs, err)
 		}
 	}
 
 	for _, resource := range config.Resources {
-		_, err := creds.NewSource(credMgrVars, resource.Source).Evaluate()
+		_, err := vars.Interpolate(resource.Source, vars.NewResolver(credMgrVars))
 		if err != nil {
 			errs = multierror.Append(errs, err)
 		}

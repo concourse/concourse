@@ -119,8 +119,8 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	delegate.Initializing(logger)
 
-	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
-	if err != nil {
+	var source atc.Source
+	if err := vars.InterpolateInto(step.plan.Source, state, &source); err != nil {
 		return false, err
 	}
 
@@ -161,7 +161,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		imageSpec.ResourceType = step.plan.Type
 	}
 
-	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
+	resourceTypes, err := creds.InterpolateVersionedResourceTypes(step.plan.VersionedResourceTypes, state)
 	if err != nil {
 		return false, err
 	}

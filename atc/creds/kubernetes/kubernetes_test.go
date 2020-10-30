@@ -37,7 +37,7 @@ func (example Example) Assert(vs vars.Variables) {
 	case string:
 		res, err = vars.String(t).Interpolate(vars.NewResolver(vs))
 	case atc.Source:
-		res, err = creds.NewSource(vs, t).Evaluate()
+		res, err = vars.Interpolate(t, vars.NewResolver(vs))
 	case atc.Params:
 		res, err = vars.Interpolate(t, vars.NewResolver(vs))
 	}

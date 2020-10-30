@@ -17,6 +17,7 @@ import (
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/vars"
 )
 
 type CheckStep struct {
@@ -116,12 +117,12 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		}
 	}
 
-	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
-	if err != nil {
+	var source atc.Source
+	if err := vars.InterpolateInto(step.plan.Source, state, &source); err != nil {
 		return false, fmt.Errorf("resource config creds evaluation: %w", err)
 	}
 
-	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
+	resourceTypes, err := creds.InterpolateVersionedResourceTypes(step.plan.VersionedResourceTypes, state)
 	if err != nil {
 		return false, fmt.Errorf("resource types creds evaluation: %w", err)
 	}

@@ -5,65 +5,17 @@ import (
 	"github.com/concourse/concourse/vars"
 )
 
-type VersionedResourceType struct {
-	atc.VersionedResourceType
-
-	Source Source
-}
-
-type VersionedResourceTypes []VersionedResourceType
-
-func NewVersionedResourceTypes(variables vars.Variables, rawTypes atc.VersionedResourceTypes) VersionedResourceTypes {
-	var types VersionedResourceTypes
-	for _, t := range rawTypes {
-		types = append(types, VersionedResourceType{
-			VersionedResourceType: t,
-			Source:                NewSource(variables, t.Source),
-		})
-	}
-
-	return types
-}
-
-func (types VersionedResourceTypes) Lookup(name string) (VersionedResourceType, bool) {
-	for _, t := range types {
-		if t.Name == name {
-			return t, true
-		}
-	}
-
-	return VersionedResourceType{}, false
-}
-
-func (types VersionedResourceTypes) Without(name string) VersionedResourceTypes {
-	newTypes := VersionedResourceTypes{}
-
-	for _, t := range types {
-		if t.Name != name {
-			newTypes = append(newTypes, t)
-		}
-	}
-
-	return newTypes
-}
-
-func (types VersionedResourceTypes) Evaluate() (atc.VersionedResourceTypes, error) {
-
-	var rawTypes atc.VersionedResourceTypes
-	for _, t := range types {
-		source, err := t.Source.Evaluate()
-		if err != nil {
+// It's tempting to just vars.InterpolateInto(...) an atc.VersionedResourceTypes directly, but
+// the prior behaviour is to only interpolate Source, so let's leave this as is
+func InterpolateVersionedResourceTypes(raw atc.VersionedResourceTypes, v vars.Variables) (atc.VersionedResourceTypes, error) {
+	out := make(atc.VersionedResourceTypes, len(raw))
+	for i, vrt := range raw {
+		out[i] = vrt
+		var src atc.Source
+		if err := vars.InterpolateInto(vrt.Source, vars.NewResolver(v), &src); err != nil {
 			return nil, err
 		}
-
-		resourceType := t.ResourceType
-		resourceType.Source = source
-
-		rawTypes = append(rawTypes, atc.VersionedResourceType{
-			ResourceType: resourceType,
-			Version:      t.Version,
-		})
+		out[i].Source = src
 	}
-
-	return rawTypes, nil
+	return out, nil
 }
