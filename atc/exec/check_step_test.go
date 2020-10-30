@@ -102,10 +102,9 @@ var _ = Describe("CheckStep", func() {
 		fakeDelegateFactory.CheckDelegateReturns(fakeDelegate)
 
 		checkPlan = atc.CheckPlan{
-			Name:    "some-name",
-			Type:    "some-base-type",
-			Source:  atc.Source{"some": "((source-var))"},
-			Timeout: "10s",
+			Name:   "some-name",
+			Type:   "some-base-type",
+			Source: atc.Source{"some": "((source-var))"},
 			VersionedResourceTypes: atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{
@@ -264,11 +263,10 @@ var _ = Describe("CheckStep", func() {
 				var processSpec runtime.ProcessSpec
 				var startEventDelegate runtime.StartingEventDelegate
 				var resource resource.Resource
-				var timeout time.Duration
 
 				JustBeforeEach(func() {
 					Expect(fakeClient.RunCheckStepCallCount()).To(Equal(1), "check step should have run")
-					runCtx, _, owner, containerSpec, workerSpec, strategy, metadata, processSpec, startEventDelegate, resource, timeout = fakeClient.RunCheckStepArgsForCall(0)
+					runCtx, _, owner, containerSpec, workerSpec, strategy, metadata, processSpec, startEventDelegate, resource = fakeClient.RunCheckStepArgsForCall(0)
 				})
 
 				It("uses ResourceConfigCheckSessionOwner", func() {
@@ -294,6 +292,18 @@ var _ = Describe("CheckStep", func() {
 						)
 
 						Expect(owner).To(Equal(expected))
+					})
+				})
+
+				Context("when the plan specifies a timeout", func() {
+					BeforeEach(func() {
+						checkPlan.Timeout = "1h"
+					})
+
+					It("enforces it on the check", func() {
+						t, ok := runCtx.Deadline()
+						Expect(ok).To(BeTrue())
+						Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
 					})
 				})
 
@@ -384,22 +394,8 @@ var _ = Describe("CheckStep", func() {
 					Expect(metadata).To(Equal(containerMetadata))
 				})
 
-				It("uses the timeout parsed", func() {
-					Expect(timeout).To(Equal(10 * time.Second))
-				})
-
 				It("uses the resource created", func() {
 					Expect(resource).To(Equal(fakeResource))
-				})
-
-				Context("when no timeout is given on the plan", func() {
-					BeforeEach(func() {
-						checkPlan.Timeout = ""
-					})
-
-					It("uses the default timeout", func() {
-						Expect(timeout).To(Equal(time.Hour))
-					})
 				})
 
 				Context("when using a custom resource type", func() {

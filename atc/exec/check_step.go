@@ -294,8 +294,20 @@ func (step *CheckStep) runCheck(
 		StderrWriter: delegate.Stderr(),
 	}
 
+	processCtx := ctx
+	if step.plan.Timeout != "" {
+		timeout, err := time.ParseDuration(step.plan.Timeout)
+		if err != nil {
+			return worker.CheckResult{}, fmt.Errorf("parse timeout: %w", err)
+		}
+
+		var cancel func()
+		processCtx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+
 	return step.workerClient.RunCheckStep(
-		ctx,
+		processCtx,
 		logger,
 		step.containerOwner(resourceConfig),
 		containerSpec,
@@ -305,7 +317,6 @@ func (step *CheckStep) runCheck(
 		processSpec,
 		delegate,
 		checkable,
-		timeout,
 	)
 }
 
