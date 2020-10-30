@@ -137,6 +137,12 @@ type Lock interface {
 	Release() error
 }
 
+// NoopLock is a fake lock for use when a lock is conditionally acquired.
+type NoopLock struct{}
+
+// Release does nothing. Successfully.
+func (NoopLock) Release() error { return nil }
+
 //go:generate counterfeiter . LockDB
 
 type LockDB interface {
