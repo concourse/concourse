@@ -660,11 +660,7 @@ all =
                         Query.has
                             (iconSelector
                                 { size = "20px"
-                                , image =
-                                    Assets.FavoritedToggleIcon
-                                        False
-                                        False
-                                        False
+                                , image = Assets.FavoritedToggleIcon { isFavorited = False, isHovered = False, isSideBar = False }
                                 }
                             )
                 in
@@ -684,7 +680,7 @@ all =
                             ]
                                 ++ iconSelector
                                     { size = "20px"
-                                    , image = Assets.FavoritedToggleIcon False False False
+                                    , image = Assets.FavoritedToggleIcon { isFavorited = False, isHovered = False, isSideBar = False }
                                     }
                         }
                     , hoveredSelector =
@@ -695,7 +691,7 @@ all =
                             ]
                                 ++ iconSelector
                                     { size = "20px"
-                                    , image = Assets.FavoritedToggleIcon False True False
+                                    , image = Assets.FavoritedToggleIcon { isFavorited = False, isHovered = True, isSideBar = False }
                                     }
                         }
                     , hoverable = Message.Message.TopBarFavoritedIcon -1

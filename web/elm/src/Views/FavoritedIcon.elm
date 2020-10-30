@@ -19,7 +19,11 @@ view :
     -> Html Message
 view params attrs =
     Icon.icon
-        { sizePx = 20, image = Assets.FavoritedToggleIcon params.isFavorited params.isHovered params.isSideBar }
+        { sizePx = 20
+        , image =
+            Assets.FavoritedToggleIcon
+                { isFavorited = params.isFavorited, isHovered = params.isHovered, isSideBar = params.isSideBar }
+        }
         ([ style "cursor" "pointer"
          , style "background-size" "contain"
          , onClick <| Click <| params.domID

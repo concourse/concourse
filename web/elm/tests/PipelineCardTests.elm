@@ -2508,21 +2508,21 @@ all =
                         unfilledFavoritedIcon =
                             iconSelector
                                 { size = "20px"
-                                , image = Assets.FavoritedToggleIcon False False False
+                                , image = Assets.FavoritedToggleIcon { isFavorited = False, isHovered = False, isSideBar = False }
                                 }
                                 ++ [ style "background-size" "contain" ]
 
                         unfilledBrightFavoritedIcon =
                             iconSelector
                                 { size = "20px"
-                                , image = Assets.FavoritedToggleIcon False True False
+                                , image = Assets.FavoritedToggleIcon { isFavorited = False, isHovered = True, isSideBar = False }
                                 }
                                 ++ [ style "background-size" "contain" ]
 
                         filledFavoritedIcon =
                             iconSelector
                                 { size = "20px"
-                                , image = Assets.FavoritedToggleIcon True False False
+                                , image = Assets.FavoritedToggleIcon { isFavorited = True, isHovered = False, isSideBar = False }
                                 }
                                 ++ [ style "background-size" "contain" ]
 

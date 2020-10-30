@@ -1120,7 +1120,7 @@ iSeeUnfilledStarIcon =
     Query.has
         (DashboardTests.iconSelector
             { size = "18px"
-            , image = Assets.FavoritedToggleIcon False False True
+            , image = Assets.FavoritedToggleIcon { isFavorited = False, isHovered = False, isSideBar = True }
             }
         )
 
@@ -1129,7 +1129,7 @@ iSeeFilledStarIcon =
     Query.has
         (DashboardTests.iconSelector
             { size = "18px"
-            , image = Assets.FavoritedToggleIcon True False True
+            , image = Assets.FavoritedToggleIcon { isFavorited = True, isHovered = False, isSideBar = True }
             }
         )
 
