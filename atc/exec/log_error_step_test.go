@@ -3,6 +3,7 @@ package exec_test
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	. "github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
@@ -91,12 +92,14 @@ var _ = Describe("LogErrorStep", func() {
 		})
 
 		Context("when aborted", func() {
+			var canceled = fmt.Errorf("wrapped: %w", context.Canceled)
+
 			BeforeEach(func() {
-				fakeStep.RunReturns(false, context.Canceled)
+				fakeStep.RunReturns(false, canceled)
 			})
 
 			It("propagates the error", func() {
-				Expect(runErr).To(Equal(context.Canceled))
+				Expect(runErr).To(Equal(canceled))
 			})
 
 			It("logs 'interrupted'", func() {
@@ -107,12 +110,14 @@ var _ = Describe("LogErrorStep", func() {
 		})
 
 		Context("when timed out", func() {
+			var timedOut = fmt.Errorf("wrapped: %w", context.DeadlineExceeded)
+
 			BeforeEach(func() {
-				fakeStep.RunReturns(false, context.DeadlineExceeded)
+				fakeStep.RunReturns(false, timedOut)
 			})
 
 			It("propagates the error", func() {
-				Expect(runErr).To(Equal(context.DeadlineExceeded))
+				Expect(runErr).To(Equal(timedOut))
 			})
 
 			It("logs 'timeout exceeded'", func() {
