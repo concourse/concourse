@@ -251,7 +251,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		defer cancel()
 	}
 
-	result, err := step.workerClient.RunTaskStep(
+	result, runErr := step.workerClient.RunTaskStep(
 		processCtx,
 		logger,
 		owner,
@@ -264,25 +264,20 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		step.lockFactory,
 	)
 
-	if err != nil {
-		if err == context.Canceled || err == context.DeadlineExceeded {
-			step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
-		}
-		return false, err
-	}
-
-	delegate.Finished(logger, ExitStatus(result.ExitStatus))
-
 	step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
 
 	// Do not initialize caches for one-off builds
 	if step.metadata.JobID != 0 {
-		err = step.registerCaches(logger, repository, config, result.VolumeMounts, step.containerMetadata)
-		if err != nil {
+		if err := step.registerCaches(logger, repository, config, result.VolumeMounts, step.containerMetadata); err != nil {
 			return false, err
 		}
 	}
 
+	if runErr != nil {
+		return false, runErr
+	}
+
+	delegate.Finished(logger, ExitStatus(result.ExitStatus))
 	return result.ExitStatus == 0, nil
 }
 
@@ -436,27 +431,29 @@ func (step *TaskStep) registerOutputs(logger lager.Logger, repository *build.Rep
 }
 
 func (step *TaskStep) registerCaches(logger lager.Logger, repository *build.Repository, config atc.TaskConfig, volumeMounts []worker.VolumeMount, metadata db.ContainerMetadata) error {
-	logger.Debug("initializing-caches", lager.Data{"caches": config.Caches})
-
 	for _, cacheConfig := range config.Caches {
 		for _, volumeMount := range volumeMounts {
 			if volumeMount.MountPath == filepath.Join(metadata.WorkingDirectory, cacheConfig.Path) {
-				logger.Debug("initializing-cache", lager.Data{"path": volumeMount.MountPath})
+				logger.Debug("initializing-cache", lager.Data{
+					"cache": cacheConfig.Path,
+				})
 
 				err := volumeMount.Volume.InitializeTaskCache(
 					logger,
 					step.metadata.JobID,
 					step.plan.Name,
 					cacheConfig.Path,
-					bool(step.plan.Privileged))
+					bool(step.plan.Privileged),
+				)
 				if err != nil {
 					return err
 				}
 
-				continue
+				break
 			}
 		}
 	}
+
 	return nil
 }
 
