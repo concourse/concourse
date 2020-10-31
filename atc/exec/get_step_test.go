@@ -3,6 +3,7 @@ package exec_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -53,9 +54,9 @@ var _ = Describe("GetStep", func() {
 		artifactRepository *build.Repository
 		fakeState          *execfakes.FakeRunState
 
-		getStep    exec.Step
-		getStepOk  bool
-		getStepErr error
+		getStep exec.Step
+		stepOk  bool
+		stepErr error
 
 		containerMetadata = db.ContainerMetadata{
 			WorkingDirectory: resource.ResourcesDir("get"),
@@ -162,7 +163,7 @@ var _ = Describe("GetStep", func() {
 			fakeClient,
 		)
 
-		getStepOk, getStepErr = getStep.Run(ctx, fakeState)
+		stepOk, stepErr = getStep.Run(ctx, fakeState)
 	})
 
 	It("propagates span context to the worker client", func() {
@@ -281,6 +282,36 @@ var _ = Describe("GetStep", func() {
 			t, ok := getCtx.Deadline()
 			Expect(ok).To(BeTrue())
 			Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
+		})
+
+		Context("when running times out", func() {
+			BeforeEach(func() {
+				fakeClient.RunGetStepReturns(
+					worker.GetResult{},
+					fmt.Errorf("wrapped: %w", context.DeadlineExceeded),
+				)
+			})
+
+			It("fails without error", func() {
+				Expect(stepOk).To(BeFalse())
+				Expect(stepErr).To(BeNil())
+			})
+
+			It("emits an Errored event", func() {
+				Expect(fakeDelegate.ErroredCallCount()).To(Equal(1))
+				_, status := fakeDelegate.ErroredArgsForCall(0)
+				Expect(status).To(Equal(exec.TimeoutLogMessage))
+			})
+		})
+
+		Context("when the timeout is bogus", func() {
+			BeforeEach(func() {
+				getPlan.Timeout = "bogus"
+			})
+
+			It("fails miserably", func() {
+				Expect(stepErr).To(MatchError("parse timeout: time: invalid duration \"bogus\""))
+			})
 		})
 	})
 
@@ -451,8 +482,8 @@ var _ = Describe("GetStep", func() {
 		})
 		It("returns an err", func() {
 			Expect(fakeClient.RunGetStepCallCount()).To(Equal(1))
-			Expect(getStepErr).To(HaveOccurred())
-			Expect(getStepErr).To(Equal(disaster))
+			Expect(stepErr).To(HaveOccurred())
+			Expect(stepErr).To(Equal(disaster))
 		})
 	})
 
@@ -483,7 +514,7 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("marks the step as succeeded", func() {
-			Expect(getStepOk).To(BeTrue())
+			Expect(stepOk).To(BeTrue())
 		})
 
 		It("finishes the step via the delegate", func() {
@@ -519,7 +550,7 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("does not return an err", func() {
-			Expect(getStepErr).ToNot(HaveOccurred())
+			Expect(stepErr).ToNot(HaveOccurred())
 		})
 	})
 
@@ -533,7 +564,7 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("does NOT mark the step as succeeded", func() {
-			Expect(getStepOk).To(BeFalse())
+			Expect(stepOk).To(BeFalse())
 		})
 
 		It("finishes the step via the delegate", func() {
@@ -544,7 +575,7 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("does not return an err", func() {
-			Expect(getStepErr).ToNot(HaveOccurred())
+			Expect(stepErr).ToNot(HaveOccurred())
 		})
 	})
 })

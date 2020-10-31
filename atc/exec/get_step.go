@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -232,6 +233,11 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		resourceToGet,
 	)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			delegate.Errored(logger, TimeoutLogMessage)
+			return false, nil
+		}
+
 		return false, err
 	}
 

@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -231,7 +232,11 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 		resourceToPut,
 	)
 	if err != nil {
-		logger.Error("failed-to-put-resource", err)
+		if errors.Is(err, context.DeadlineExceeded) {
+			delegate.Errored(logger, TimeoutLogMessage)
+			return false, nil
+		}
+
 		return false, err
 	}
 

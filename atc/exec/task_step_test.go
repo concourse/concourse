@@ -3,6 +3,7 @@ package exec_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -235,6 +236,26 @@ var _ = Describe("TaskStep", func() {
 				t, ok := taskCtx.Deadline()
 				Expect(ok).To(BeTrue())
 				Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
+			})
+
+			Context("when running times out", func() {
+				BeforeEach(func() {
+					fakeClient.RunTaskStepReturns(
+						worker.TaskResult{},
+						fmt.Errorf("wrapped: %w", context.DeadlineExceeded),
+					)
+				})
+
+				It("fails without error", func() {
+					Expect(stepOk).To(BeFalse())
+					Expect(stepErr).To(BeNil())
+				})
+
+				It("emits an Errored event", func() {
+					Expect(fakeDelegate.ErroredCallCount()).To(Equal(1))
+					_, status := fakeDelegate.ErroredArgsForCall(0)
+					Expect(status).To(Equal(exec.TimeoutLogMessage))
+				})
 			})
 
 			Context("when the timeout is bogus", func() {

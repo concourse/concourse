@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
@@ -162,9 +163,6 @@ var _ = Describe("CheckStep", func() {
 	})
 
 	Context("with a reasonable configuration", func() {
-		BeforeEach(func() {
-		})
-
 		It("emits an Initializing event", func() {
 			Expect(fakeDelegate.InitializingCallCount()).To(Equal(1))
 		})
@@ -304,6 +302,26 @@ var _ = Describe("CheckStep", func() {
 						t, ok := runCtx.Deadline()
 						Expect(ok).To(BeTrue())
 						Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
+					})
+
+					Context("when running times out", func() {
+						BeforeEach(func() {
+							fakeClient.RunCheckStepReturns(
+								worker.CheckResult{},
+								fmt.Errorf("wrapped: %w", context.DeadlineExceeded),
+							)
+						})
+
+						It("fails without error", func() {
+							Expect(stepOk).To(BeFalse())
+							Expect(stepErr).To(BeNil())
+						})
+
+						It("emits an Errored event", func() {
+							Expect(fakeDelegate.ErroredCallCount()).To(Equal(1))
+							_, status := fakeDelegate.ErroredArgsForCall(0)
+							Expect(status).To(Equal(exec.TimeoutLogMessage))
+						})
 					})
 				})
 
@@ -793,14 +811,13 @@ var _ = Describe("CheckStep", func() {
 		})
 	})
 
-	Context("having a timeout that fails parsing", func() {
+	Context("when a bogus timeout is given", func() {
 		BeforeEach(func() {
 			checkPlan.Timeout = "bogus"
 		})
 
-		It("errors", func() {
-			Expect(stepErr).To(HaveOccurred())
-			Expect(stepErr.Error()).To(ContainSubstring("invalid duration"))
+		It("fails miserably", func() {
+			Expect(stepErr).To(MatchError("parse timeout: time: invalid duration \"bogus\""))
 		})
 	})
 })

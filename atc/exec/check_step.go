@@ -173,25 +173,29 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			return false, fmt.Errorf("update check end time: %w", err)
 		}
 
-		result, err := step.runCheck(ctx, logger, delegate, timeout, resourceConfig, source, resourceTypes, fromVersion)
-		if err != nil {
+		result, runErr := step.runCheck(ctx, logger, delegate, timeout, resourceConfig, source, resourceTypes, fromVersion)
+		if runErr != nil {
 			metric.Metrics.ChecksFinishedWithError.Inc()
 
-			if _, updateErr := scope.UpdateLastCheckEndTime(); updateErr != nil {
-				return false, fmt.Errorf("update check end time: %w", updateErr)
+			if _, err := scope.UpdateLastCheckEndTime(); err != nil {
+				return false, fmt.Errorf("update check end time: %w", err)
 			}
 
-			if pointErr := delegate.PointToCheckedConfig(scope); pointErr != nil {
-				return false, fmt.Errorf("update resource config scope: %w", pointErr)
+			if err := delegate.PointToCheckedConfig(scope); err != nil {
+				return false, fmt.Errorf("update resource config scope: %w", err)
 			}
 
-			var scriptErr runtime.ErrResourceScriptFailed
-			if errors.As(err, &scriptErr) {
+			if errors.Is(runErr, context.DeadlineExceeded) {
+				delegate.Errored(logger, TimeoutLogMessage)
+				return false, nil
+			}
+
+			if errors.As(runErr, &runtime.ErrResourceScriptFailed{}) {
 				delegate.Finished(logger, false)
 				return false, nil
 			}
 
-			return false, fmt.Errorf("run check: %w", err)
+			return false, fmt.Errorf("run check: %w", runErr)
 		}
 
 		metric.Metrics.ChecksFinishedWithSuccess.Inc()

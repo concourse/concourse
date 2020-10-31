@@ -3,6 +3,7 @@ package exec_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/concourse/concourse/tracing"
@@ -78,9 +79,7 @@ var _ = Describe("PutStep", func() {
 
 		planID atc.PlanID
 
-		versionResult  runtime.VersionResult
-		clientErr      error
-		someExitStatus int
+		versionResult runtime.VersionResult
 	)
 
 	BeforeEach(func() {
@@ -187,8 +186,10 @@ var _ = Describe("PutStep", func() {
 
 		fakeResourceFactory.NewResourceReturns(fakeResource)
 
-		someExitStatus = 0
-		clientErr = nil
+		fakeClient.RunPutStepReturns(
+			worker.PutResult{ExitStatus: 0, VersionResult: versionResult},
+			nil,
+		)
 	})
 
 	AfterEach(func() {
@@ -200,11 +201,6 @@ var _ = Describe("PutStep", func() {
 			ID:  atc.PlanID(planID),
 			Put: putPlan,
 		}
-
-		fakeClient.RunPutStepReturns(
-			worker.PutResult{ExitStatus: someExitStatus, VersionResult: versionResult},
-			clientErr,
-		)
 
 		putStep = exec.NewPutStep(
 			plan.ID,
@@ -483,6 +479,36 @@ var _ = Describe("PutStep", func() {
 			Expect(ok).To(BeTrue())
 			Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
 		})
+
+		Context("when running times out", func() {
+			BeforeEach(func() {
+				fakeClient.RunPutStepReturns(
+					worker.PutResult{},
+					fmt.Errorf("wrapped: %w", context.DeadlineExceeded),
+				)
+			})
+
+			It("fails without error", func() {
+				Expect(stepOk).To(BeFalse())
+				Expect(stepErr).To(BeNil())
+			})
+
+			It("emits an Errored event", func() {
+				Expect(fakeDelegate.ErroredCallCount()).To(Equal(1))
+				_, status := fakeDelegate.ErroredArgsForCall(0)
+				Expect(status).To(Equal(exec.TimeoutLogMessage))
+			})
+		})
+
+		Context("when the timeout is bogus", func() {
+			BeforeEach(func() {
+				putPlan.Timeout = "bogus"
+			})
+
+			It("fails miserably", func() {
+				Expect(stepErr).To(MatchError("parse timeout: time: invalid duration \"bogus\""))
+			})
+		})
 	})
 
 	Context("when tracing is enabled", func() {
@@ -586,7 +612,11 @@ var _ = Describe("PutStep", func() {
 	Context("when RunPutStep exits unsuccessfully", func() {
 		BeforeEach(func() {
 			versionResult = runtime.VersionResult{}
-			someExitStatus = 42
+
+			fakeClient.RunPutStepReturns(
+				worker.PutResult{ExitStatus: 42, VersionResult: versionResult},
+				nil,
+			)
 		})
 
 		It("finishes the step via the delegate", func() {
@@ -609,8 +639,7 @@ var _ = Describe("PutStep", func() {
 		disaster := errors.New("oh no")
 
 		BeforeEach(func() {
-			versionResult = runtime.VersionResult{}
-			clientErr = disaster
+			fakeClient.RunPutStepReturns(worker.PutResult{}, disaster)
 		})
 
 		It("does not finish the step via the delegate", func() {
