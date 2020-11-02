@@ -2,6 +2,7 @@ package worker
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"strings"
 	"time"
@@ -46,8 +47,10 @@ func NewContainerPlacementStrategy(opts ContainerPlacementStrategyOptions) (*con
 				return nil, errors.New("max-active-tasks-per-worker must be greater or equal than 0")
 			}
 			cps.nodes = append(cps.nodes, newLimitActiveTasksPlacementStrategy(opts.MaxActiveTasksPerWorker))
-		default:
+		case "volume-locality":
 			cps.nodes = append(cps.nodes, newVolumeLocalityPlacementStrategyNode())
+		default:
+			return nil, fmt.Errorf("invalid container placement strategy %s", strategy)
 		}
 	}
 	return cps, nil
@@ -86,7 +89,6 @@ func NewRandomPlacementStrategy() ContainerPlacementStrategy {
 	s, _ := NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: "random"})
 	return s
 }
-
 
 type VolumeLocalityPlacementStrategyNode struct {
 	rand *rand.Rand
