@@ -84,7 +84,7 @@ pipeline params p =
             Styles.Dark
 
         else if isHovered then
-            Styles.Dark
+            Styles.Light
 
         else
             Styles.Invisible

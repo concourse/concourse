@@ -117,7 +117,7 @@ all =
                         pipeline
                             |> viewPipeline { defaultState | active = False, hovered = True }
                             |> .background
-                            |> Expect.equal Styles.Dark
+                            |> Expect.equal Styles.Light
                 , test "pipeline icon is bright" <|
                     \_ ->
                         pipeline

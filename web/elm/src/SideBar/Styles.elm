@@ -205,7 +205,7 @@ backgroundAttr background =
     style "background-color" <|
         case background of
             Dark ->
-                Colors.sideBarHovered
+                Colors.sideBarActive
 
             Light ->
                 Colors.sideBarHovered

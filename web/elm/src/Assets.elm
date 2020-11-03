@@ -142,11 +142,11 @@ toPath asset =
                     if isFavorited then
                         "-filled"
 
-                    else if isSideBar && isHovered then
-                        "-unfilled-bright"
-
                     else if isHovered then
                         "-unfilled-white"
+
+                    else if isSideBar then
+                        "-unfilled-bright"
 
                     else
                         "-unfilled"

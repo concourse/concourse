@@ -480,16 +480,12 @@ sideBarBackground =
 
 sideBarActive : String
 sideBarActive =
-    "#272727"
-
-
-
-----
+    ColorValues.grey100
 
 
 sideBarHovered : String
 sideBarHovered =
-    ColorValues.grey100
+    ColorValues.grey80
 
 
 
