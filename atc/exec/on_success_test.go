@@ -77,22 +77,6 @@ var _ = Describe("On Success Step", func() {
 		It("returns nil", func() {
 			Expect(stepErr).ToNot(HaveOccurred())
 		})
-
-		Context("when the build aborted", func() {
-			BeforeEach(func() {
-				cancel()
-			})
-
-			It("not run the hook", func() {
-				Expect(step.RunCallCount()).To(Equal(1))
-				Expect(hook.RunCallCount()).To(Equal(0))
-			})
-
-			It("returns canceled", func() {
-				Expect(stepErr).To(HaveOccurred())
-				Expect(stepErr).To(Equal(context.Canceled))
-			})
-		})
 	})
 
 	Context("when the step errors", func() {
