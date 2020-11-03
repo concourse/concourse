@@ -134,6 +134,8 @@ var _ = Describe("Watching", func() {
 			expectedQueryParams string
 			expectedStatusCode  int
 			expectedResponse    interface{}
+
+			webQueryParams string
 		)
 
 		BeforeEach(func() {
@@ -141,6 +143,8 @@ var _ = Describe("Watching", func() {
 			expectedQueryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
 			expectedStatusCode = http.StatusOK
 			expectedResponse = atc.Job{}
+
+			webQueryParams = "var.branch=%22master%22"
 		})
 
 		JustBeforeEach(func() {
@@ -191,7 +195,7 @@ var _ = Describe("Watching", func() {
 			})
 
 			It("watches the job's next build URL", func() {
-				watch("--url", atcServer.URL()+"/teams/main/pipelines/some-pipeline/jobs/some-job?"+expectedQueryParams)
+				watch("--url", atcServer.URL()+"/teams/main/pipelines/some-pipeline/jobs/some-job?"+webQueryParams)
 			})
 		})
 
@@ -213,7 +217,7 @@ var _ = Describe("Watching", func() {
 			})
 
 			It("watches the job's finished build URL", func() {
-				watch("--url", atcServer.URL()+"/teams/main/pipelines/some-pipeline/jobs/some-job?"+expectedQueryParams)
+				watch("--url", atcServer.URL()+"/teams/main/pipelines/some-pipeline/jobs/some-job?"+webQueryParams)
 			})
 		})
 
@@ -233,7 +237,7 @@ var _ = Describe("Watching", func() {
 			})
 
 			It("watches the given build URL", func() {
-				watch("--url", atcServer.URL()+"/teams/main/pipelines/some-pipeline/jobs/some-job/builds/3?"+expectedQueryParams)
+				watch("--url", atcServer.URL()+"/teams/main/pipelines/some-pipeline/jobs/some-job/builds/3?"+webQueryParams)
 			})
 		})
 	})
