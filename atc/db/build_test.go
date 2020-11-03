@@ -2198,6 +2198,13 @@ var _ = Describe("Build", func() {
 				It("fails to adopt", func() {
 					Expect(adoptFound).To(BeFalse())
 				})
+
+				It("aborts the build", func() {
+					reloaded, err := retriggerBuild.Reload()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reloaded).To(BeTrue())
+					Expect(retriggerBuild.IsAborted()).To(BeTrue())
+				})
 			})
 		})
 
