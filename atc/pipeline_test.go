@@ -114,4 +114,80 @@ var _ = Describe("PipelineRef", func() {
 			})
 		}
 	})
+
+	Describe("InstanceVarsFromWebQueryParams", func() {
+		for _, tt := range []struct {
+			desc  string
+			query url.Values
+			out   atc.InstanceVars
+		}{
+			{
+				desc:  "empty",
+				query: url.Values{},
+				out:   nil,
+			},
+			{
+				desc: "simple",
+				query: url.Values{
+					"var.hello": {`"world"`},
+					"var.foo":   {`"bar"`},
+				},
+				out: atc.InstanceVars{
+					"hello": "world",
+					"foo":   "bar",
+				},
+			},
+			{
+				desc: "complex refs",
+				query: url.Values{
+					`var."a.b".c."d:e"`: {`"f"`},
+				},
+				out: atc.InstanceVars{
+					"a.b": map[string]interface{}{
+						"c": map[string]interface{}{
+							"d:e": "f",
+						},
+					},
+				},
+			},
+			{
+				desc: "val is JSON",
+				query: url.Values{
+					`var.foo"`: {`["a",{"b":123}]`},
+				},
+				out: atc.InstanceVars{
+					"foo": []interface{}{"a", map[string]interface{}{"b": 123.0}},
+				},
+			},
+			{
+				desc: "ignores non-var params",
+				query: url.Values{
+					`var.foo`: {`123`},
+					`ignore"`: {`blah`},
+				},
+				out: atc.InstanceVars{
+					"foo": 123.0,
+				},
+			},
+			{
+				desc: "ignores invalid ref",
+				query: url.Values{
+					`var.foo.`: {`123`},
+				},
+				out: nil,
+			},
+			{
+				desc: "ignores when invalid JSON",
+				query: url.Values{
+					`var.foo`: {`"123`},
+				},
+				out: nil,
+			},
+		} {
+			tt := tt
+			It(tt.desc, func() {
+				Expect(atc.InstanceVarsFromWebQueryParams(tt.query)).To(Equal(tt.out))
+			})
+		}
+	})
 })

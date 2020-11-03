@@ -110,6 +110,29 @@ func (ref PipelineRef) WebQueryParams() url.Values {
 	return params
 }
 
+func InstanceVarsFromWebQueryParams(q url.Values) InstanceVars {
+	var kvPairs vars.KVPairs
+	for k := range q {
+		if !strings.HasPrefix(k, "var.") {
+			continue
+		}
+		var kvp vars.KVPair
+		var err error
+		kvp.Ref, err = vars.ParseReference(strings.TrimPrefix(k, "var."))
+		if err != nil {
+			continue
+		}
+		if err = json.Unmarshal([]byte(q.Get(k)), &kvp.Value); err != nil {
+			continue
+		}
+		kvPairs = append(kvPairs, kvp)
+	}
+	if len(kvPairs) == 0 {
+		return nil
+	}
+	return InstanceVars(kvPairs.Expand())
+}
+
 type OrderPipelinesRequest []PipelineRef
 
 func (r OrderPipelinesRequest) Len() int {
