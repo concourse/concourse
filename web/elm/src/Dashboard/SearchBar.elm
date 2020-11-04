@@ -374,7 +374,12 @@ dropdownOptions { query, teams, pipelines } =
                 )
                 |> Set.toList
                 |> List.take 10
-                |> List.map (\teamName -> "team: " ++ teamName)
+                |> List.map (\teamName -> "team: " ++ quoted teamName)
 
         _ ->
             []
+
+
+quoted : String -> String
+quoted s =
+    "\"" ++ s ++ "\""

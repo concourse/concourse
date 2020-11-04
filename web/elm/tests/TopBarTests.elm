@@ -1010,7 +1010,7 @@ all =
                 }
                 |> Tuple.first
             )
-            [ it "when there are teams the dropdown displays them" <|
+            [ it "when there are teams the dropdown displays them quoted" <|
                 Application.handleCallback
                     (Callback.AllTeamsFetched <|
                         Ok
@@ -1031,8 +1031,8 @@ all =
                     >> Query.children []
                     >> Expect.all
                         [ Query.count (Expect.equal 2)
-                        , Query.first >> Query.has [ tag "li", text "team1" ]
-                        , Query.index 1 >> Query.has [ tag "li", text "team2" ]
+                        , Query.first >> Query.has [ tag "li", text "\"team1\"" ]
+                        , Query.index 1 >> Query.has [ tag "li", text "\"team2\"" ]
                         ]
             , it "when there are many teams, the dropdown only displays the first 10" <|
                 Application.handleCallback
