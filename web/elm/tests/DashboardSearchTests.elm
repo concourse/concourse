@@ -44,7 +44,7 @@ hasData =
                     Ok
                         [ { name = "job"
                           , pipelineName = "pipeline1"
-                          , teamName = "team1"
+                          , teamName = "team"
                           , nextBuild =
                                 Just
                                     { id = 1
@@ -52,7 +52,7 @@ hasData =
                                     , job =
                                         Just
                                             (Data.jobId
-                                                |> Data.withTeamName "team1"
+                                                |> Data.withTeamName "team"
                                                 |> Data.withPipelineName "pipeline1"
                                             )
                                     , status = BuildStatusStarted
@@ -76,7 +76,7 @@ hasData =
             |> Application.handleCallback
                 (Callback.AllTeamsFetched <|
                     Ok
-                        [ Concourse.Team 1 "team1"
+                        [ Concourse.Team 1 "team"
                         , Concourse.Team 2 "team2"
                         ]
                 )
@@ -84,8 +84,8 @@ hasData =
             |> Application.handleCallback
                 (Callback.AllPipelinesFetched <|
                     Ok
-                        [ Data.pipeline "team1" 0 |> Data.withName "pipeline1"
-                        , Data.pipeline "team1" 1 |> Data.withName "pipeline2"
+                        [ Data.pipeline "team" 0 |> Data.withName "pipeline1"
+                        , Data.pipeline "team" 1 |> Data.withName "pipeline2"
                         ]
                 )
             |> Tuple.first
@@ -153,19 +153,92 @@ hasData =
                 >> Query.find [ class "dashboard-team-group" ]
                 >> Query.has [ text "team2" ]
         , it "fuzzy matches team name" <|
-            Application.update
-                (Msgs.Update <|
-                    Message.Message.FilterMsg "team: team"
+            Application.handleCallback
+                (Callback.AllTeamsFetched <|
+                    Ok
+                        [ Concourse.Team 1 "team"
+                        , Concourse.Team 2 "team2"
+                        , Concourse.Team 3 "other-team"
+                        ]
                 )
+                >> Tuple.first
+                >> Application.update
+                    (Msgs.Update <|
+                        Message.Message.FilterMsg "team: team"
+                    )
                 >> Tuple.first
                 >> queryView
                 >> Query.findAll [ class "dashboard-team-group" ]
                 >> Expect.all
                     [ Query.index 0
-                        >> Query.has [ text "team1" ]
+                        >> Query.has [ text "other-team" ]
                     , Query.index 1
+                        >> Query.has [ text "team" ]
+                    , Query.index 2
                         >> Query.has [ text "team2" ]
+                    , Query.count (Expect.equal 3)
                     ]
+        , it "matches team name exactly when quoted" <|
+            Application.handleCallback
+                (Callback.AllTeamsFetched <|
+                    Ok
+                        [ Concourse.Team 1 "team"
+                        , Concourse.Team 2 "team2"
+                        , Concourse.Team 3 "other-team"
+                        ]
+                )
+                >> Tuple.first
+                >> Application.update
+                    (Msgs.Update <|
+                        Message.Message.FilterMsg "team: \"team\""
+                    )
+                >> Tuple.first
+                >> queryView
+                >> Query.findAll [ class "dashboard-team-group" ]
+                >> Expect.all
+                    [ Query.index 0 >> Query.has [ text "team" ]
+                    , Query.count (Expect.equal 1)
+                    ]
+        , it "matches team name by prefix when quotes incomplete" <|
+            Application.handleCallback
+                (Callback.AllTeamsFetched <|
+                    Ok
+                        [ Concourse.Team 1 "team"
+                        , Concourse.Team 2 "team2"
+                        , Concourse.Team 3 "other-team"
+                        ]
+                )
+                >> Tuple.first
+                >> Application.update
+                    (Msgs.Update <|
+                        Message.Message.FilterMsg "team: \"team"
+                    )
+                >> Tuple.first
+                >> queryView
+                >> Query.findAll [ class "dashboard-team-group" ]
+                >> Expect.all
+                    [ Query.index 0 >> Query.has [ text "team" ]
+                    , Query.index 1 >> Query.has [ text "team2" ]
+                    , Query.count (Expect.equal 2)
+                    ]
+        , it "doesn't filter teams when query is single quote" <|
+            Application.handleCallback
+                (Callback.AllTeamsFetched <|
+                    Ok
+                        [ Concourse.Team 1 "team"
+                        , Concourse.Team 2 "team2"
+                        , Concourse.Team 3 "other-team"
+                        ]
+                )
+                >> Tuple.first
+                >> Application.update
+                    (Msgs.Update <|
+                        Message.Message.FilterMsg "team: \""
+                    )
+                >> Tuple.first
+                >> queryView
+                >> Query.findAll [ class "dashboard-team-group" ]
+                >> Query.count (Expect.equal 3)
         , it "centers 'no results' message when typing a string with no hits" <|
             Application.handleCallback
                 (Callback.AllTeamsFetched <|

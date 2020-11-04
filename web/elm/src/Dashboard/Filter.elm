@@ -18,6 +18,7 @@ import Parser
         , Parser
         , Step(..)
         , backtrackable
+        , chompUntilEndOr
         , chompWhile
         , end
         , getChompedString
@@ -90,8 +91,8 @@ runFilter jobs existingJobs f =
                 identity
     in
     case f.groupFilter of
-        Team (Fuzzy teamName) ->
-            List.filter (.teamName >> Simple.Fuzzy.match teamName >> negater)
+        Team tf ->
+            List.filter (.teamName >> stringMatches tf >> negater)
 
         Pipeline pf ->
             List.map
@@ -129,8 +130,8 @@ pipelineFilter pf jobs existingJobs pipeline =
                 PipelineRunning ->
                     pipeline |> Pipeline.pipelineStatus jobsForPipeline |> isRunning
 
-        Name (Fuzzy term) ->
-            pipeline.name |> Simple.Fuzzy.match term
+        Name nf ->
+            pipeline.name |> stringMatches nf
 
 
 parseFilters : String -> List Filter
@@ -168,6 +169,21 @@ type PipelineFilter
 
 type StringFilter
     = Fuzzy String
+    | Exact String
+    | StartsWith String
+
+
+stringMatches : StringFilter -> String -> Bool
+stringMatches f =
+    case f of
+        Fuzzy term ->
+            Simple.Fuzzy.match term
+
+        Exact name ->
+            (==) name
+
+        StartsWith prefix ->
+            String.startsWith prefix
 
 
 groupFilter : Parser GroupFilter
@@ -175,17 +191,41 @@ groupFilter =
     oneOf
         [ backtrackable teamFilter
         , backtrackable statusFilter
-        , succeed (Name >> Pipeline) |= parseWord
+        , succeed (Name >> Pipeline) |= parseString
         ]
 
 
-parseWord : Parser StringFilter
+parseString : Parser StringFilter
+parseString =
+    oneOf
+        [ parseQuotedString
+        , parseWord |> map Fuzzy
+        ]
+
+
+parseQuotedString : Parser StringFilter
+parseQuotedString =
+    getChompedString
+        (symbol "\""
+            |. chompUntilEndOr "\""
+            |. oneOf [ symbol "\"", end ]
+        )
+        |> map
+            (\s ->
+                if String.endsWith "\"" s && s /= "\"" then
+                    Exact <| String.slice 1 -1 s
+
+                else
+                    StartsWith <| String.dropLeft 1 s
+            )
+
+
+parseWord : Parser String
 parseWord =
     getChompedString
         (chompWhile
             (\c -> c /= ' ' && c /= '\t' && c /= '\n' && c /= '\u{000D}')
         )
-        |> map Fuzzy
 
 
 type StatusFilter
@@ -199,7 +239,7 @@ teamFilter =
         |. keyword "team"
         |. symbol ":"
         |. spaces
-        |= parseWord
+        |= parseString
 
 
 statusFilter : Parser GroupFilter
