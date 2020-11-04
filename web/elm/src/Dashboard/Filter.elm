@@ -90,7 +90,7 @@ runFilter jobs existingJobs f =
                 identity
     in
     case f.groupFilter of
-        Team teamName ->
+        Team (Fuzzy teamName) ->
             List.filter (.teamName >> Simple.Fuzzy.match teamName >> negater)
 
         Pipeline pf ->
@@ -129,7 +129,7 @@ pipelineFilter pf jobs existingJobs pipeline =
                 PipelineRunning ->
                     pipeline |> Pipeline.pipelineStatus jobsForPipeline |> isRunning
 
-        FuzzyName term ->
+        Name (Fuzzy term) ->
             pipeline.name |> Simple.Fuzzy.match term
 
 
@@ -157,13 +157,17 @@ filter =
 
 
 type GroupFilter
-    = Team String
+    = Team StringFilter
     | Pipeline PipelineFilter
 
 
 type PipelineFilter
     = Status StatusFilter
-    | FuzzyName String
+    | Name StringFilter
+
+
+type StringFilter
+    = Fuzzy String
 
 
 groupFilter : Parser GroupFilter
@@ -171,16 +175,17 @@ groupFilter =
     oneOf
         [ backtrackable teamFilter
         , backtrackable statusFilter
-        , succeed (FuzzyName >> Pipeline) |= parseWord
+        , succeed (Name >> Pipeline) |= parseWord
         ]
 
 
-parseWord : Parser String
+parseWord : Parser StringFilter
 parseWord =
     getChompedString
         (chompWhile
             (\c -> c /= ' ' && c /= '\t' && c /= '\n' && c /= '\u{000D}')
         )
+        |> map Fuzzy
 
 
 type StatusFilter
