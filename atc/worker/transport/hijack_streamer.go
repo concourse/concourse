@@ -104,6 +104,12 @@ func (h *WorkerHijackStreamer) Hijack(ctx context.Context, handler string, body 
 		if err != nil {
 			return nil, nil, fmt.Errorf("Backend error: Exit status: %d, error reading response body: %s", httpResp.StatusCode, err)
 		}
+		var gerr garden.Error
+		if err := gerr.UnmarshalJSON(errRespBytes); err == nil {
+			if _, ok := gerr.Err.(garden.ExecutableNotFoundError); ok {
+				return nil, nil, gerr.Err
+			}
+		}
 
 		return nil, nil, fmt.Errorf("Backend error: Exit status: %d, message: %s", httpResp.StatusCode, errRespBytes)
 	}

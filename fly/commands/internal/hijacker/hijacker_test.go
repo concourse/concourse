@@ -1,6 +1,7 @@
 package hijacker_test
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net/http"
@@ -82,16 +83,17 @@ var _ = Describe("Hijacker", func() {
 
 			reqGenerator := rata.NewRequestGenerator(server.URL(), atc.Routes)
 
-			stdin := gbytes.NewBuffer()
+			inputs := make(chan atc.HijackInput, 1)
 			stdout := gbytes.NewBuffer()
 			stderr := gbytes.NewBuffer()
+			ctx := context.Background()
 
 			h := hijacker.New(tlsConfig, reqGenerator, nil)
-			_, err := h.Hijack("some-team", "hello", atc.HijackProcessSpec{
+			_, _, err := h.Hijack(ctx, "some-team", "hello", atc.HijackProcessSpec{
 				Path: "/bin/echo",
 				Args: []string{"hello", "world"},
 			}, hijacker.ProcessIO{
-				In:  stdin,
+				In:  inputs,
 				Out: stdout,
 				Err: stderr,
 			})

@@ -229,6 +229,14 @@ func (s *Server) hijack(hLog lager.Logger, conn *websocket.Conn, request hijackR
 		Stderr: errW,
 	})
 	if err != nil {
+		if _, ok := err.(garden.ExecutableNotFoundError); ok {
+			hLog.Info("executable-not-found")
+
+			_ = conn.WriteJSON(atc.HijackOutput{
+				ExecutableNotFound: true,
+			})
+		}
+
 		_ = conn.WriteJSON(atc.HijackOutput{
 			Error: err.Error(),
 		})

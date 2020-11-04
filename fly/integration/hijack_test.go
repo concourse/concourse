@@ -3,6 +3,7 @@ package integration_test
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -56,10 +57,8 @@ var _ = Describe("Hijacking", func() {
 				Expect(processSpec.Args).To(Equal(args))
 
 				var payload atc.HijackInput
-
 				err = conn.ReadJSON(&payload)
 				Expect(err).NotTo(HaveOccurred())
-
 				Expect(payload).To(Equal(atc.HijackInput{
 					Stdin: []byte("some stdin"),
 				}))
@@ -86,10 +85,8 @@ var _ = Describe("Hijacking", func() {
 				}
 
 				var closePayload atc.HijackInput
-
 				err = conn.ReadJSON(&closePayload)
 				Expect(err).NotTo(HaveOccurred())
-
 				Expect(closePayload).To(Equal(atc.HijackInput{
 					Closed: true,
 				}))
@@ -1074,6 +1071,92 @@ var _ = Describe("Hijacking", func() {
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).ToNot(Equal(0))
+		})
+	})
+
+	Context("when hijacking yields an executable not found error", func() {
+		var hijacked2 <-chan struct{}
+		JustBeforeEach(func() {
+			didHijack := make(chan struct{})
+			hijacked = didHijack
+			didHijack2 := make(chan struct{})
+			hijacked2 = didHijack2
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", "type=check&resource_name=some-resource-name&pipeline_name=a-pipeline"),
+					ghttp.RespondWithJSONEncoded(200, []atc.Container{
+						{ID: "container-id-1", State: atc.ContainerStateCreated, WorkerName: "some-worker", PipelineName: "a-pipeline", JobName: "", BuildName: "", BuildID: 0, Type: "", StepName: "", ResourceName: "some-resource-name", Attempt: "", User: user},
+					}),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers/container-id-1/hijack"),
+					func(w http.ResponseWriter, r *http.Request) {
+						defer GinkgoRecover()
+
+						conn, err := upgrader.Upgrade(w, r, nil)
+						Expect(err).NotTo(HaveOccurred())
+
+						defer conn.Close()
+
+						close(didHijack)
+
+						var processSpec atc.HijackProcessSpec
+						err = conn.ReadJSON(&processSpec)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(processSpec.User).To(Equal(user))
+						Expect(processSpec.Dir).To(Equal(workingDirectory))
+						Expect(processSpec.Path).To(Equal("bash"))
+						Expect(processSpec.Args).To(Equal(args))
+
+						err = conn.WriteJSON(atc.HijackOutput{
+							ExecutableNotFound: true,
+						})
+						Expect(err).NotTo(HaveOccurred())
+
+						err = conn.WriteJSON(atc.HijackOutput{
+							Error: "executable not found",
+						})
+						Expect(err).NotTo(HaveOccurred())
+					},
+				),
+				hijackHandler("container-id-1", didHijack2, nil, "main"),
+			)
+		})
+
+		Context("when a path was not specified", func() {
+			BeforeEach(func() {
+				path = "sh"
+			})
+			It("tries \"bash\" then \"sh\"", func() {
+				os.Stdout.WriteString("\n")
+				flyCmd := exec.Command(flyPath, "-t", targetName, "hijack", "--check", "a-pipeline/some-resource-name")
+
+				stdin, err := flyCmd.StdinPipe()
+				Expect(err).NotTo(HaveOccurred())
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(hijacked).Should(BeClosed())
+
+				Eventually(sess.Err.Contents).Should(ContainSubstring(ansi.Color("executable not found", "red+b") + "\n"))
+				Eventually(sess.Err.Contents).Should(ContainSubstring("Couldn't find \"bash\" on container, retrying with \"sh\""))
+
+				Eventually(hijacked2).Should(BeClosed())
+
+				_, err = fmt.Fprintf(stdin, "some stdin")
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Out).Should(gbytes.Say("some stdout"))
+				Eventually(sess.Err).Should(gbytes.Say("some stderr"))
+
+				err = stdin.Close()
+				Expect(err).NotTo(HaveOccurred())
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(123))
+			})
 		})
 	})
 })
