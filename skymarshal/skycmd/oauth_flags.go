@@ -82,15 +82,15 @@ func (flag *OAuthFlags) Serialize(redirectURI string) ([]byte, error) {
 		TokenURL:           flag.TokenURL,
 		UserInfoURL:        flag.UserInfoURL,
 		Scopes:             flag.Scopes,
-		GroupsKey:          flag.GroupsKey,
 		UserIDKey:          flag.UserIDKey,
-		UserNameKey:        flag.UserNameKey,
 		RootCAs:            caCerts,
 		InsecureSkipVerify: flag.InsecureSkipVerify,
 		RedirectURI:        redirectURI,
 	}
 
 	config.ClaimMapping.PreferredUsernameKey = flag.UserNameKey
+	config.ClaimMapping.UserNameKey = flag.UserNameKey
+	config.ClaimMapping.GroupsKey = flag.GroupsKey
 
 	return json.Marshal(config)
 }
