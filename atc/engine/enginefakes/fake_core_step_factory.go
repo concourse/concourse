@@ -110,6 +110,8 @@ type FakeCoreStepFactory struct {
 		arg2 exec.StepMetadata
 		arg3 db.ContainerMetadata
 		arg4 engine.DelegateFactory
+		arg5 exec.TaskDelegate
+		arg6 atc.UnsafeWorkerOverrides
 	}
 	taskStepReturns struct {
 		result1 exec.Step
@@ -556,7 +558,7 @@ func (fake *FakeCoreStepFactory) SetPipelineStepReturnsOnCall(i int, result1 exe
 	}{result1}
 }
 
-func (fake *FakeCoreStepFactory) TaskStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 db.ContainerMetadata, arg4 engine.DelegateFactory) exec.Step {
+func (fake *FakeCoreStepFactory) TaskStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 db.ContainerMetadata, arg4 engine.DelegateFactory, arg5 atc.UnsafeWorkerOverrides) exec.Step {
 	fake.taskStepMutex.Lock()
 	ret, specificReturn := fake.taskStepReturnsOnCall[len(fake.taskStepArgsForCall)]
 	fake.taskStepArgsForCall = append(fake.taskStepArgsForCall, struct {
@@ -564,7 +566,8 @@ func (fake *FakeCoreStepFactory) TaskStep(arg1 atc.Plan, arg2 exec.StepMetadata,
 		arg2 exec.StepMetadata
 		arg3 db.ContainerMetadata
 		arg4 engine.DelegateFactory
-	}{arg1, arg2, arg3, arg4})
+		arg5 atc.UnsafeWorkerOverrides
+	}{arg1, arg2, arg3, arg4, arg5})
 	fake.recordInvocation("TaskStep", []interface{}{arg1, arg2, arg3, arg4})
 	fake.taskStepMutex.Unlock()
 	if fake.TaskStepStub != nil {

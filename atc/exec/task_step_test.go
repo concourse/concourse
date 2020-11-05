@@ -66,6 +66,8 @@ var _ = Describe("TaskStep", func() {
 		}
 
 		planID = atc.PlanID("42")
+
+		workerOverrides atc.UnsafeWorkerOverrides
 	)
 
 	BeforeEach(func() {
@@ -114,6 +116,8 @@ var _ = Describe("TaskStep", func() {
 				},
 			},
 		}
+
+		workerOverrides = atc.UnsafeWorkerOverrides{}
 	})
 
 	JustBeforeEach(func() {
@@ -133,6 +137,7 @@ var _ = Describe("TaskStep", func() {
 			fakeClient,
 			fakeDelegateFactory,
 			fakeLockFactory,
+			workerOverrides,
 		)
 
 		stepOk, stepErr = taskStep.Run(ctx, state)
@@ -169,6 +174,30 @@ var _ = Describe("TaskStep", func() {
 
 			It("invokes the delegate's Initializing callback", func() {
 				Expect(fakeDelegate.InitializingCallCount()).To(Equal(1))
+			})
+
+			Context("when rootfs uri is set instead of image resource", func() {
+				BeforeEach(func() {
+					taskPlan.Config = &atc.TaskConfig{
+						Platform:  "some-platform",
+						RootfsURI: "some-image",
+						Params:    map[string]string{"SOME": "params"},
+						Run: atc.TaskRunConfig{
+							Path: "ls",
+							Args: []string{"some", "args"},
+						},
+					}
+				})
+
+				It("correctly sets up the image spec", func() {
+					Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
+					_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+
+					Expect(containerSpec.ImageSpec).To(Equal(worker.ImageSpec{
+						ImageURL:   "some-image",
+						Privileged: false,
+					}))
+				})
 			})
 		})
 
@@ -788,6 +817,23 @@ var _ = Describe("TaskStep", func() {
 			It("doesn't bother adding the user to the run spec", func() {
 				_, _, _, _, _, _, _, processSpec, _, _ := fakeClient.RunTaskStepArgsForCall(0)
 				Expect(processSpec.User).To(BeEmpty())
+			})
+		})
+
+		Context("when mount holepunches are configured", func() {
+			BeforeEach(func() {
+				workerOverrides.BindMounts = map[string]string{
+					"/var/swiggity/swooty": "/yolo/swaggins",
+				}
+			})
+
+			It("correctly sets up the bind mounts", func() {
+				Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
+				_, _, _, containerSpec, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+
+				Expect(containerSpec.BindMounts).To(Equal([]worker.BindMountSource{
+					&worker.HolepunchMount{FromPath: "/var/swiggity/swooty", ToPath: "/yolo/swaggins"},
+				}))
 			})
 		})
 

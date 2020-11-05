@@ -13,6 +13,7 @@ import (
 	_ "net/http/pprof"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -255,6 +256,10 @@ type RunCommand struct {
 	} `group:"Feature Flags"`
 
 	BaseResourceTypeDefaults flag.File `long:"base-resource-type-defaults" description:"Base resource type defaults"`
+
+	Unsafe struct {
+		MountHolepunches map[string]string `long:"mount-holepunch" description:"Binds a path on all workers into each task step. Can be specified multiple times." value-name:"FROM-PATH:TO-PATH"`
+	} `group:"Unsafe options (optional)"`
 }
 
 type Migration struct {
@@ -1037,6 +1042,10 @@ func (cmd *RunCommand) backendComponents(
 		time.Minute,
 		clock.NewClock(),
 	)
+	workerOverrides, err := cmd.parseUnsafeOverrides()
+	if err != nil {
+		return nil, err
+	}
 
 	engine := cmd.constructEngine(
 		pool,
@@ -1052,6 +1061,7 @@ func (cmd *RunCommand) backendComponents(
 		lockFactory,
 		rateLimiter,
 		policyChecker,
+		workerOverrides,
 	)
 
 	// In case that a user configures resource-checking-interval, but forgets to
@@ -1585,6 +1595,18 @@ func (cmd *RunCommand) constructLockConn(driverName string) (*sql.DB, error) {
 	return dbConn, nil
 }
 
+func (cmd *RunCommand) parseUnsafeOverrides() (atc.UnsafeWorkerOverrides, error) {
+	for fromPath, toPath := range cmd.Unsafe.MountHolepunches {
+		if !filepath.IsAbs(fromPath) {
+			return atc.UnsafeWorkerOverrides{}, fmt.Errorf("mount-holepunch source must be an an absolute path")
+		}
+		if !filepath.IsAbs(toPath) {
+			return atc.UnsafeWorkerOverrides{}, fmt.Errorf("mount-holepunch destination must be an an absolute path")
+		}
+	}
+	return atc.UnsafeWorkerOverrides{BindMounts: cmd.Unsafe.MountHolepunches}, nil
+}
+
 func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.ContainerPlacementStrategy, error) {
 	var strategy worker.ContainerPlacementStrategy
 	if cmd.ContainerPlacementStrategy != "limit-active-tasks" && cmd.MaxActiveTasksPerWorker != 0 {
@@ -1644,6 +1666,7 @@ func (cmd *RunCommand) constructEngine(
 	lockFactory lock.LockFactory,
 	rateLimiter engine.RateLimiter,
 	policyChecker policy.Checker,
+	workerOverrides atc.UnsafeWorkerOverrides,
 ) engine.Engine {
 	return engine.NewEngine(
 		engine.NewStepperFactory(
@@ -1666,6 +1689,8 @@ func (cmd *RunCommand) constructEngine(
 		),
 		secretManager,
 		cmd.varSourcePool,
+		cmd.EnableRedactSecrets,
+		workerOverrides,
 	)
 }
 

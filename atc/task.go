@@ -47,11 +47,16 @@ type ImageResource struct {
 	Tags    Tags    `json:"tags,omitempty"`
 }
 
+// UnsafeWorkerOverrides encapsulates configuration applied to all workers,
+// which breaks the isolation between workload and worker.
+type UnsafeWorkerOverrides struct {
+	BindMounts map[string]string `json:"bind-mounts,omitempty"`
+}
+
 func (ir *ImageResource) ApplySourceDefaults(resourceTypes VersionedResourceTypes) {
 	if ir == nil {
 		return
 	}
-
 	parentType, found := resourceTypes.Lookup(ir.Type)
 	if found {
 		ir.Source = parentType.Defaults.Merge(ir.Source)

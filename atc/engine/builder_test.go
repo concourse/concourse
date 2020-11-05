@@ -38,6 +38,7 @@ var _ = Describe("Builder", func() {
 				"http://example.com",
 				fakeRateLimiter,
 				fakePolicyChecker,
+				atc.UnsafeWorkerOverrides{},
 			)
 
 			planFactory = atc.NewPlanFactory(123)
