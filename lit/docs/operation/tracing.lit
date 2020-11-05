@@ -16,6 +16,9 @@ platforms. Currently tracing can be configured to integrates with:
 }{
   \link{Google Cloud Trace}{https://cloud.google.com/trace} (Stackdriver)
 }{
+}{
+  \link{Honeycomb.io}{https://honeycomb.io}
+}{
   \link{OpenTelemetry Protocol Exporter}{https://github.com/open-telemetry/opentelemetry-go/tree/master/exporters/otlp}
 }
 
@@ -45,6 +48,14 @@ platforms. Currently tracing can be configured to integrates with:
   \codeblock{bash}{{{
   CONCOURSE_TRACING_OTLP_ADDRESS=ingest.lightstep.com:443
   CONCOURSE_TRACING_OTLP_HEADERS=lightstep-access-token:mysupersecrettoken
+  
+  To export spans to Honeycomb.io, specify the API key, dataset and
+  optionally the service name:
+
+  \codeblock{bash}{{{
+  CONCOURSE_TRACING_HONEYCOMB_API_KEY=your-honeycomb-api-key
+  CONCOURSE_TRACING_HONEYCOMB_DATASET=your-honeycomb-dataset
+  CONCOURSE_TRACING_HONEYCOMB_SERVICE_NAME=service-name-for-concourse  # NOTE: Optional. Defaults to "concourse"
   }}}
 }
 
