@@ -78,6 +78,7 @@ func (flag *OIDCFlags) Serialize(redirectURI string) ([]byte, error) {
 	}
 
 	config.ClaimMapping.GroupsKey = flag.GroupsKey
+	config.ClaimMapping.PreferredUsernameKey = flag.UserNameKey
 
 	return json.Marshal(config)
 }
