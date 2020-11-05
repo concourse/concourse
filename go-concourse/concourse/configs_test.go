@@ -381,5 +381,18 @@ var _ = Describe("ATC Handler Configs", func() {
 				})
 			})
 		})
+
+		Context("when setting config returns forbidden", func() {
+			BeforeEach(func() {
+				returnHeader = http.StatusForbidden
+				returnBody = []byte(`policy check failed: you can't do that`)
+			})
+
+			It("returns a forbidden error", func() {
+				_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("forbidden: policy check failed: you can't do that"))
+			})
+		})
 	})
 })

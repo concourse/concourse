@@ -99,6 +99,10 @@ func (team *team) CreateOrUpdatePipelineConfig(pipelineRef atc.PipelineRef, conf
 			return false, false, []ConfigWarning{}, err
 		}
 		return false, false, []ConfigWarning{}, InvalidConfigError{Errors: validationErr.Errors}
+	case http.StatusForbidden:
+		return false, false, []ConfigWarning{}, internal.ForbiddenError{
+			Reason: string(body),
+		}
 	default:
 		return false, false, []ConfigWarning{}, internal.UnexpectedResponseError{
 			StatusCode: response.StatusCode,
