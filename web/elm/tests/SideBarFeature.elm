@@ -564,7 +564,7 @@ hasSideBar iAmLookingAtThePage =
                 { description = "dark background and light text"
                 , selector =
                     [ style "background-color" Colors.sideBarHovered
-                    , style "color" ColorValues.grey20
+                    , style "color" ColorValues.white
                     ]
                 }
             }

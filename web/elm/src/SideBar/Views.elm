@@ -19,7 +19,7 @@ type alias Team =
         }
     , name :
         { text : String
-        , opacity : Styles.Opacity
+        , teamColor : Styles.SidebarElementColor
         , domID : DomID
         }
     , isExpanded : Bool
@@ -58,7 +58,7 @@ viewTeam team =
 type alias Pipeline =
     { icon : Assets.Asset
     , name :
-        { opacity : Styles.Opacity
+        { pipelineColor : Styles.SidebarElementColor
         , text : String
         , weight : Styles.FontWeight
         }

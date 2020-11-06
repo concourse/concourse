@@ -2,6 +2,7 @@ module SideBar.Styles exposing
     ( Background(..)
     , FontWeight(..)
     , Opacity(..)
+    , SidebarElementColor(..)
     , collapseIcon
     , column
     , hamburgerIcon
@@ -18,6 +19,7 @@ module SideBar.Styles exposing
     , starPadding
     , starWidth
     , team
+    , teamColorAttr
     , teamHeader
     , teamIcon
     , teamName
@@ -141,18 +143,35 @@ opacityAttr opacity =
                 "1"
 
 
-colorAttr : Opacity -> Html.Attribute msg
-colorAttr opacity =
+type SidebarElementColor
+    = Grey
+    | LightGrey
+    | White
+
+
+teamColorAttr : SidebarElementColor -> Html.Attribute msg
+teamColorAttr teamColor =
     style "color" <|
-        case opacity of
-            Dim ->
-                Colors.sideBarTextDim
+        case teamColor of
+            White ->
+                Colors.white
 
-            GreyedOut ->
-                Colors.sideBarTextDim
-
-            Bright ->
+            _ ->
                 Colors.sideBarTextBright
+
+
+pipelineColorAttr : SidebarElementColor -> Html.Attribute msg
+pipelineColorAttr pipelineColor =
+    style "color" <|
+        case pipelineColor of
+            Grey ->
+                Colors.sideBarTextDim
+
+            LightGrey ->
+                Colors.sideBarTextBright
+
+            White ->
+                Colors.white
 
 
 teamIcon : Html.Html msg
@@ -179,9 +198,9 @@ collapseIcon { asset } =
 
 
 teamName :
-    { a | opacity : Opacity }
+    { a | teamColor : SidebarElementColor }
     -> List (Html.Attribute msg)
-teamName _ =
+teamName { teamColor } =
     [ style "font-size" "14px"
     , style "padding" "5px 2.5px"
     , style "margin-left" "5px"
@@ -190,6 +209,7 @@ teamName _ =
     , style "text-overflow" "ellipsis"
     , style "flex-grow" "1"
     , style "color" Colors.sideBarTextBright
+    , teamColorAttr teamColor
     , fontWeightAttr Bold
     ]
 
@@ -231,9 +251,9 @@ fontWeightAttr weight =
 
 
 pipelineName :
-    { a | opacity : Opacity, weight : FontWeight }
+    { a | pipelineColor : SidebarElementColor, weight : FontWeight }
     -> List (Html.Attribute msg)
-pipelineName { opacity, weight } =
+pipelineName { pipelineColor, weight } =
     [ style "font-size" "14px"
     , style "white-space" "nowrap"
     , style "overflow" "hidden"
@@ -241,7 +261,7 @@ pipelineName { opacity, weight } =
     , style "padding" "5px 2.5px"
     , style "margin-left" "5px"
     , style "flex-grow" "1"
-    , colorAttr opacity
+    , pipelineColorAttr pipelineColor
     , fontWeightAttr weight
     ]
 

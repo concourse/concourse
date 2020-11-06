@@ -41,19 +41,13 @@ team session t =
 
         isHovered =
             HoverState.isHovered domID session.hovered
-
-        isCurrent =
-            (session.currentPipeline |> Maybe.map .teamName) == Just t.name
     in
     { icon =
-        if isCurrent then
+        if isHovered then
             Styles.Bright
 
-        else if isHovered || t.isExpanded then
-            Styles.GreyedOut
-
         else
-            Styles.Dim
+            Styles.GreyedOut
     , collapseIcon =
         { opacity =
             Styles.Bright
@@ -66,12 +60,12 @@ team session t =
         }
     , name =
         { text = t.name
-        , opacity =
-            if isCurrent || isHovered then
-                Styles.Bright
+        , teamColor =
+            if isHovered then
+                Styles.White
 
             else
-                Styles.GreyedOut
+                Styles.LightGrey
         , domID = domID
         }
     , isExpanded = t.isExpanded

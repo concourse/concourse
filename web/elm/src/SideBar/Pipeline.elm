@@ -65,12 +65,15 @@ pipeline params p =
                     (isHovered || isCurrent)
                 )
     , name =
-        { opacity =
-            if isCurrent || isHovered then
-                Styles.Bright
+        { pipelineColor =
+            if isHovered then
+                Styles.White
+
+            else if isCurrent then
+                Styles.LightGrey
 
             else
-                Styles.Dim
+                Styles.Grey
         , text = p.name
         , weight =
             if isCurrent || isHovered then

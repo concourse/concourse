@@ -127,13 +127,13 @@ all =
                                 (Assets.BreadcrumbIcon (Assets.PipelineComponent True))
                 ]
             , describe "when unhovered"
-                [ test "pipeline name is dim" <|
+                [ test "pipeline name is grey" <|
                     \_ ->
                         pipeline
                             |> viewPipeline { defaultState | active = False, hovered = False }
                             |> .name
-                            |> .opacity
-                            |> Expect.equal Styles.Dim
+                            |> .pipelineColor
+                            |> Expect.equal Styles.Grey
                 , test "pipeline has no background" <|
                     \_ ->
                         pipeline
