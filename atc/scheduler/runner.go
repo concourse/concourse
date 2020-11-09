@@ -3,15 +3,13 @@ package scheduler
 import (
 	"context"
 	"fmt"
-	"os"
-	"runtime/debug"
-	"strconv"
 	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/tracing"
 	"go.opentelemetry.io/otel/label"
 )
@@ -70,20 +68,13 @@ func (s *Runner) Run(ctx context.Context) error {
 		jLog := sLog.Session("job", lager.Data{"job": j.Name()})
 
 		go func(job db.SchedulerJob) {
-			loggerData := lager.Data{
-				"job_id":        strconv.Itoa(job.ID()),
-				"job_name":      job.Name(),
-				"pipeline_name": job.PipelineName(),
-				"team_name":     job.TeamName(),
-			}
 			defer func() {
-				if r := recover(); r != nil {
-					err = fmt.Errorf("panic in scheduler run %s: %v", loggerData, r)
-
-					fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
+				err := util.DumpPanic(recover(), "scheduling job %d", job.ID())
+				if err != nil {
 					jLog.Error("panic-in-scheduler-run", err)
 				}
 			}()
+
 			defer func() {
 				<-s.guardJobScheduling
 				s.running.Delete(job.ID())

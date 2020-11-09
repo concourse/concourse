@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"runtime/debug"
 	"sync"
 	"time"
 
@@ -17,6 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/tracing"
 )
 
@@ -216,11 +215,10 @@ func (b *engineBuild) Run(ctx context.Context) {
 	go func() {
 		defer close(done)
 		defer func() {
-			if r := recover(); r != nil {
-				runErr = fmt.Errorf("panic in engine build step run %d: %v", b.build.ID(), r)
-
-				fmt.Fprintf(os.Stderr, "%s\n %s\n", runErr.Error(), string(debug.Stack()))
+			err := util.DumpPanic(recover(), "running build plan %d", b.build.ID())
+			if err != nil {
 				logger.Error("panic-in-engine-build-step-run", err)
+				runErr = err
 			}
 		}()
 
