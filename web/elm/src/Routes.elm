@@ -20,9 +20,9 @@ module Routes exposing
     )
 
 import Api.Pagination
-import Concourse exposing (InstanceVars)
+import Concourse exposing (InstanceVars, JsonValue(..))
 import Concourse.Pagination as Pagination exposing (Direction(..))
-import Dict
+import Dict exposing (Dict)
 import DotNotation
 import Maybe.Extra
 import RouteBuilder exposing (RouteBuilder, appendPath, appendQuery)
@@ -503,21 +503,24 @@ parsePath url =
             url.query
                 |> Maybe.withDefault ""
                 |> String.split "&"
-                |> List.filterMap (removePrefix "var.")
+                |> List.filter (\s -> String.startsWith "vars." s || String.startsWith "vars=" s)
                 |> List.filterMap Url.percentDecode
                 |> List.filterMap (DotNotation.parse >> Result.toMaybe)
                 |> DotNotation.expand
+                |> Dict.get "vars"
+                |> toDict
     in
     parse sitemap url |> Maybe.map (\deferredRoute -> deferredRoute instanceVars)
 
 
-removePrefix : String -> String -> Maybe String
-removePrefix prefix s =
-    if String.startsWith prefix s then
-        Just <| String.dropLeft (String.length prefix) s
+toDict : Maybe JsonValue -> Dict String JsonValue
+toDict j =
+    case j of
+        Just (JsonObject kvs) ->
+            Dict.fromList kvs
 
-    else
-        Nothing
+        _ ->
+            Dict.empty
 
 
 
@@ -583,6 +586,6 @@ pipelineIdBuilder id =
                     ( k, v ) =
                         DotNotation.serialize var
                 in
-                Builder.string ("var." ++ k) v
+                Builder.string ("vars." ++ k) v
             )
     )

@@ -300,7 +300,7 @@ all =
                         , groups = []
                         }
                     )
-                    |> Expect.equal "/teams/team/pipelines/pipeline?var.foo.bar.baz=1&var.foo.bar.%22qux.blah%22=2&var.k=%22s%22"
+                    |> Expect.equal "/teams/team/pipelines/pipeline?vars.foo.bar.baz=1&vars.foo.bar.%22qux.blah%22=2&vars.k=%22s%22"
         , test "Pipeline route can be parsed properly" <|
             \_ ->
                 ("http://example.com"
@@ -324,6 +324,22 @@ all =
                                     { teamName = "team"
                                     , pipelineName = "pipeline"
                                     , pipelineInstanceVars = Dict.fromList [ ( "k", JsonString "s" ) ]
+                                    }
+                                , groups = []
+                                }
+                        )
+        , test "Pipeline route can be parsed properly given rooted vars" <|
+            \_ ->
+                "http://example.com/teams/team/pipelines/pipeline?vars=%7B%22foo%22%3A%22bar%22%7D"
+                    |> Url.fromString
+                    |> Maybe.andThen Routes.parsePath
+                    |> Expect.equal
+                        (Just <|
+                            Routes.Pipeline
+                                { id =
+                                    { teamName = "team"
+                                    , pipelineName = "pipeline"
+                                    , pipelineInstanceVars = Dict.fromList [ ( "foo", JsonString "bar" ) ]
                                     }
                                 , groups = []
                                 }

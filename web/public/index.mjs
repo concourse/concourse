@@ -351,7 +351,7 @@ function instanceVarsQuery() {
   const filtered = window.location.search
     .substring(1)
     .split('&')
-    .filter(s => s.startsWith('var.'))
+    .filter(s => s.startsWith('vars.') || s.startsWith('vars='))
     .join('&');
   if (filtered === "") {
     return "";
