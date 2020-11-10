@@ -403,7 +403,7 @@ func (locator stepContainerLocator) locate(fingerprint *containerFingerprint) (m
 	if fingerprint.jobName != "" {
 		reqValues["pipeline_name"] = fingerprint.pipelineName
 		if fingerprint.pipelineInstanceVars != "" {
-			reqValues["instance_vars"] = fingerprint.pipelineInstanceVars
+			reqValues["vars"] = fingerprint.pipelineInstanceVars
 		}
 		reqValues["job_name"] = fingerprint.jobName
 		if fingerprint.buildNameOrID != "" {
@@ -435,7 +435,7 @@ func (locator checkContainerLocator) locate(fingerprint *containerFingerprint) (
 		reqValues["pipeline_name"] = fingerprint.pipelineName
 	}
 	if fingerprint.pipelineInstanceVars != "" {
-		reqValues["instance_vars"] = fingerprint.pipelineInstanceVars
+		reqValues["vars"] = fingerprint.pipelineInstanceVars
 	}
 
 	return reqValues, nil

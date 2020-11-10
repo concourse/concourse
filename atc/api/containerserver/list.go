@@ -69,10 +69,15 @@ func createContainerLocatorFromRequest(team db.Team, r *http.Request, secretMana
 		}, nil
 	}
 
-	var err error
 	pipelineRef := atc.PipelineRef{Name: query.Get("pipeline_name")}
-	if instanceVars := query.Get("instance_vars"); instanceVars != "" {
-		err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
+	var err error
+	pipelineRef.InstanceVars, err = atc.InstanceVarsFromQueryParams(r.URL.Query())
+	if err != nil {
+		return nil, err
+	}
+	var instanceVarsPayload []byte
+	if pipelineRef.InstanceVars != nil {
+		instanceVarsPayload, err = json.Marshal(pipelineRef.InstanceVars)
 		if err != nil {
 			return nil, err
 		}
@@ -90,6 +95,7 @@ func createContainerLocatorFromRequest(team db.Team, r *http.Request, secretMana
 
 	var containerType db.ContainerType
 	if query.Get("type") != "" {
+		var err error
 		containerType, err = db.ContainerTypeFromString(query.Get("type"))
 		if err != nil {
 			return nil, err
@@ -124,8 +130,8 @@ func createContainerLocatorFromRequest(team db.Team, r *http.Request, secretMana
 			JobID:      jobID,
 			BuildID:    buildID,
 
-			PipelineName:         query.Get("pipeline_name"),
-			PipelineInstanceVars: query.Get("pipeline_instance_vars"),
+			PipelineName:         pipelineRef.Name,
+			PipelineInstanceVars: string(instanceVarsPayload),
 			JobName:              query.Get("job_name"),
 			BuildName:            query.Get("build_name"),
 		},

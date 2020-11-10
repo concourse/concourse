@@ -140,11 +140,11 @@ var _ = Describe("Watching", func() {
 
 		BeforeEach(func() {
 			expectedURL = "/api/v1/teams/main/pipelines/some-pipeline/jobs/some-job"
-			expectedQueryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			expectedQueryParams = "vars.branch=%22master%22"
 			expectedStatusCode = http.StatusOK
 			expectedResponse = atc.Job{}
 
-			webQueryParams = "var.branch=%22master%22"
+			webQueryParams = "vars.branch=%22master%22"
 		})
 
 		JustBeforeEach(func() {

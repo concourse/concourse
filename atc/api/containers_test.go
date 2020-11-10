@@ -355,7 +355,7 @@ var _ = Describe("Containers API", func() {
 						"type":          []string{"check"},
 						"resource_name": []string{"some-resource"},
 						"pipeline_name": []string{"some-pipeline"},
-						"instance_vars": []string{string(rawInstanceVars)},
+						"vars":          []string{string(rawInstanceVars)},
 					}.Encode()
 				})
 

@@ -1425,8 +1425,8 @@ var _ = Describe("Jobs API", func() {
 							It("returns Link headers per rfc5988", func() {
 								link := fmt.Sprintf(`<%s/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/builds?`, externalURL)
 								Expect(response.Header["Link"]).To(ConsistOf([]string{
-									link + `from=4&limit=2&instance_vars=%7B%22branch%22%3A%22master%22%7D>; rel="previous"`,
-									link + `to=2&limit=2&instance_vars=%7B%22branch%22%3A%22master%22%7D>; rel="next"`,
+									link + `from=4&limit=2&vars.branch=%22master%22>; rel="previous"`,
+									link + `to=2&limit=2&vars.branch=%22master%22>; rel="next"`,
 								}))
 							})
 						})

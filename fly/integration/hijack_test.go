@@ -662,7 +662,7 @@ var _ = Describe("Hijacking", func() {
 
 					Context("and with pipeline instance is specified", func() {
 						BeforeEach(func() {
-							containerArguments = append(containerArguments, "instance_vars=%7B%22branch%22%3A%22master%22%7D")
+							containerArguments = append(containerArguments, "vars=%7B%22branch%22%3A%22master%22%7D")
 						})
 
 						It("can accept the check resources name and a pipeline", func() {
@@ -670,7 +670,7 @@ var _ = Describe("Hijacking", func() {
 						})
 
 						It("hijacks the given check container by URL", func() {
-							hijack("--url", atcServer.URL()+"/teams/"+teamName+"/pipelines/a-pipeline/resources/some-resource-name"+"?var.branch=%22master%22")
+							hijack("--url", atcServer.URL()+"/teams/"+teamName+"/pipelines/a-pipeline/resources/some-resource-name"+"?vars.branch=%22master%22")
 						})
 					})
 				})
@@ -761,7 +761,7 @@ var _ = Describe("Hijacking", func() {
 
 					Context("when pipeline instance is specified", func() {
 						BeforeEach(func() {
-							containerArguments = append(containerArguments, "instance_vars=%7B%22branch%22%3A%22master%22%2C%22other.field%22%3A123%7D")
+							containerArguments = append(containerArguments, "vars=%7B%22branch%22%3A%22master%22%2C%22other.field%22%3A123%7D")
 						})
 
 						It("hijacks the job's next build with '<pipeline>/<instance_vars>/<job>'", func() {
@@ -769,7 +769,7 @@ var _ = Describe("Hijacking", func() {
 						})
 
 						It("hijacks the job's next build when URL is specified", func() {
-							hijack("--url", atcServer.URL()+"/teams/"+teamName+"/pipelines/some-pipeline/jobs/some-job"+`?var.branch="master"&var."other.field"=123&ignore=true`, "--step", "some-step")
+							hijack("--url", atcServer.URL()+"/teams/"+teamName+"/pipelines/some-pipeline/jobs/some-job"+`?vars.branch="master"&vars."other.field"=123&ignore=true`, "--step", "some-step")
 						})
 					})
 

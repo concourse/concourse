@@ -120,7 +120,7 @@ func (s *Server) createWebUrl(teamName string, pipelineRef atc.PipelineRef, jobN
 		fmt.Println("Could not parse externalURL")
 	}
 
-	queryParams := pipelineRef.WebQueryParams().Encode()
+	queryParams := pipelineRef.QueryParams().Encode()
 	if queryParams != "" {
 		queryParams = "?" + queryParams
 	}

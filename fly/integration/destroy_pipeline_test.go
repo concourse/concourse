@@ -80,7 +80,7 @@ var _ = Describe("Fly CLI", func() {
 				fmt.Fprintf(stdin, "n\n")
 			}
 
-			queryParams := "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			queryParams := "vars.branch=%22master%22"
 
 			It("warns that it's about to do bad things", func() {
 				Eventually(sess).Should(gbytes.Say("!!! this will remove all data for pipeline `some-pipeline/branch:master`"))

@@ -136,7 +136,7 @@ var _ = Describe("Fly CLI", func() {
 				flyCmd = exec.Command(flyPath, "-t", targetName, "jobs", "--pipeline", "pipeline/branch:master")
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL, "instance_vars=%7B%22branch%22%3A%22master%22%7D"),
+						ghttp.VerifyRequest("GET", expectedURL, "vars.branch=%22master%22"),
 						ghttp.RespondWithJSONEncoded(200, sampleJobs),
 					),
 				)

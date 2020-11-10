@@ -56,7 +56,7 @@ var _ = Describe("Fly CLI", func() {
 
 		Context("when the resource is specified", func() {
 			BeforeEach(func() {
-				expectedQueryParams = append(expectedQueryParams, "instance_vars=%7B%22branch%22%3A%22master%22%7D")
+				expectedQueryParams = append(expectedQueryParams, "vars.branch=%22master%22")
 			})
 
 			Context("when the resource version json string is specified", func() {
@@ -86,7 +86,7 @@ var _ = Describe("Fly CLI", func() {
 							ghttp.RespondWithJSONEncoded(expectedGetStatus, []atc.ResourceVersion{expectedVersion}),
 						),
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("PUT", enablePath, "instance_vars=%7B%22branch%22%3A%22master%22%7D"),
+							ghttp.VerifyRequest("PUT", enablePath, "vars.branch=%22master%22"),
 							ghttp.RespondWith(expectedPutStatus, nil),
 						),
 					)

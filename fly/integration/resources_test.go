@@ -39,7 +39,7 @@ var _ = Describe("Fly CLI", func() {
 				pipelineRef := atc.PipelineRef{Name: "pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/resources", "instance_vars=%7B%22branch%22%3A%22master%22%7D"),
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/pipeline/resources", "vars.branch=%22master%22"),
 						ghttp.RespondWithJSONEncoded(200, []atc.Resource{
 							{
 								Name:                 "resource-1",

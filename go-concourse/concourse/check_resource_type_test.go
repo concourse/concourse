@@ -14,7 +14,7 @@ import (
 var _ = Describe("CheckResourceType", func() {
 	var (
 		expectedURL   = "/api/v1/teams/some-team/pipelines/mypipeline/resource-types/myresource/check"
-		expectedQuery = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+		expectedQuery = "vars.branch=%22master%22"
 		pipelineRef   = atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 	)
 

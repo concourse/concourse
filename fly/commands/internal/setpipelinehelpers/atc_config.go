@@ -125,7 +125,7 @@ func (atcConfig ATCConfig) showPipelineUpdateResult(pipeline atc.Pipeline, creat
 			fmt.Println("Could not parse targetURL")
 		}
 
-		queryParams := atcConfig.PipelineRef.WebQueryParams().Encode()
+		queryParams := atcConfig.PipelineRef.QueryParams().Encode()
 		if queryParams != "" {
 			queryParams = "?" + queryParams
 		}

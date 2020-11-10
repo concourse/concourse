@@ -277,7 +277,7 @@ run:
 				taskPlan,
 			})
 
-			expectedQueryParams := "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			expectedQueryParams := "vars.branch=%22master%22"
 			atcServer.RouteToHandler("POST", "/api/v1/teams/main/pipelines/some-pipeline/builds",
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/api/v1/teams/main/pipelines/some-pipeline/builds", expectedQueryParams),

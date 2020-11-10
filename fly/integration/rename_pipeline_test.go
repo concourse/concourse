@@ -94,7 +94,7 @@ var _ = Describe("RenamePipeline", func() {
 	Context("when all the inputs are provided", func() {
 
 		BeforeEach(func() {
-			expectedQueryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			expectedQueryParams = "vars.branch=%22master%22"
 		})
 
 		It("successfully renames the pipeline to the provided name", func() {
