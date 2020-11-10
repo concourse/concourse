@@ -9,9 +9,7 @@ module Api.Endpoints exposing
     , toString
     )
 
-import Concourse exposing (encodeInstanceVars)
-import Dict
-import Json.Encode
+import Concourse
 import RouteBuilder exposing (RouteBuilder, append, appendPath, appendQuery)
 import Url.Builder
 
@@ -98,16 +96,8 @@ pipeline :
         , teamName : String
     }
     -> RouteBuilder
-pipeline { pipelineName, pipelineInstanceVars, teamName } =
-    base
-        |> append
-            ( [ "teams", teamName, "pipelines", pipelineName ]
-            , if Dict.isEmpty pipelineInstanceVars then
-                []
-
-              else
-                [ Url.Builder.string "instance_vars" <| Json.Encode.encode 0 (encodeInstanceVars pipelineInstanceVars) ]
-            )
+pipeline id =
+    base |> append (RouteBuilder.pipeline id)
 
 
 resource :

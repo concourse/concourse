@@ -577,15 +577,5 @@ searchQueryParams q =
 
 
 pipelineIdBuilder : { r | teamName : String, pipelineName : String, pipelineInstanceVars : Concourse.InstanceVars } -> RouteBuilder
-pipelineIdBuilder id =
-    ( [ "teams", id.teamName, "pipelines", id.pipelineName ]
-    , DotNotation.flatten id.pipelineInstanceVars
-        |> List.map
-            (\var ->
-                let
-                    ( k, v ) =
-                        DotNotation.serialize var
-                in
-                Builder.string ("vars." ++ k) v
-            )
-    )
+pipelineIdBuilder =
+    RouteBuilder.pipeline

@@ -76,11 +76,13 @@ testEndpoints =
                         (Data.pipelineId
                             |> Data.withPipelineInstanceVars
                                 (Dict.fromList
-                                    [ ( "k", JsonString "v" ) ]
+                                    [ ( "k", JsonString "v" )
+                                    , ( "foo", JsonObject [ ( "bar", JsonNumber 123 ) ] )
+                                    ]
                                 )
                         )
                     |> toPath
-                    |> Expect.equal "/api/v1/teams/team/pipelines/pipeline?instance_vars=%7B%22k%22%3A%22v%22%7D"
+                    |> Expect.equal "/api/v1/teams/team/pipelines/pipeline?vars.foo.bar=123&vars.k=%22v%22"
         , test "JobsList" <|
             \_ ->
                 JobsList

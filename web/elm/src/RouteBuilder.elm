@@ -1,5 +1,7 @@
-module RouteBuilder exposing (RouteBuilder, append, appendPath, appendQuery, build)
+module RouteBuilder exposing (RouteBuilder, append, appendPath, appendQuery, build, pipeline)
 
+import Concourse
+import DotNotation
 import Url.Builder
 
 
@@ -25,3 +27,18 @@ appendQuery query base =
 build : RouteBuilder -> String
 build ( path, query ) =
     Url.Builder.absolute path query
+
+
+pipeline : { r | teamName : String, pipelineName : String, pipelineInstanceVars : Concourse.InstanceVars } -> RouteBuilder
+pipeline id =
+    ( [ "teams", id.teamName, "pipelines", id.pipelineName ]
+    , DotNotation.flatten id.pipelineInstanceVars
+        |> List.map
+            (\var ->
+                let
+                    ( k, v ) =
+                        DotNotation.serialize var
+                in
+                Url.Builder.string ("vars." ++ k) v
+            )
+    )
