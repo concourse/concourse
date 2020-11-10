@@ -49,9 +49,10 @@ func getBuildIDFromURL(target rc.Target, urlParam string) (int, error) {
 	}
 
 	if urlMap["pipelines"] != "" && urlMap["jobs"] != "" {
-		pipelineRef := atc.PipelineRef{
-			Name:         urlMap["pipelines"],
-			InstanceVars: atc.InstanceVarsFromWebQueryParams(u.Query()),
+		pipelineRef := atc.PipelineRef{Name: urlMap["pipelines"]}
+		pipelineRef.InstanceVars, err = atc.InstanceVarsFromQueryParams(u.Query())
+		if err != nil {
+			return 0, err
 		}
 		build, err := GetBuild(client, target.Team(), urlMap["jobs"], urlMap["builds"], pipelineRef)
 

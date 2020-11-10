@@ -91,46 +91,39 @@ func (ref PipelineRef) String() string {
 }
 
 func (ref PipelineRef) QueryParams() url.Values {
-	if ref.InstanceVars != nil {
-		payload, _ := json.Marshal(ref.InstanceVars)
-		return url.Values{"instance_vars": []string{string(payload)}}
-	}
-	return nil
-}
-
-func (ref PipelineRef) WebQueryParams() url.Values {
 	if len(ref.InstanceVars) == 0 {
 		return nil
 	}
 	params := url.Values{}
 	for _, kvp := range ref.InstanceVars.sortedKVPairs() {
 		payload, _ := json.Marshal(kvp.Value)
-		params.Set("var."+kvp.Ref.String(), string(payload))
+		params.Set("vars."+kvp.Ref.String(), string(payload))
 	}
 	return params
 }
 
-func InstanceVarsFromWebQueryParams(q url.Values) InstanceVars {
+func InstanceVarsFromQueryParams(q url.Values) (InstanceVars, error) {
 	var kvPairs vars.KVPairs
 	for k := range q {
-		if !strings.HasPrefix(k, "var.") {
+		if k != "vars" && !strings.HasPrefix(k, "vars.") {
 			continue
 		}
 		var kvp vars.KVPair
 		var err error
-		kvp.Ref, err = vars.ParseReference(strings.TrimPrefix(k, "var."))
+		kvp.Ref, err = vars.ParseReference(k)
 		if err != nil {
-			continue
+			return nil, err
 		}
 		if err = json.Unmarshal([]byte(q.Get(k)), &kvp.Value); err != nil {
-			continue
+			return nil, err
 		}
 		kvPairs = append(kvPairs, kvp)
 	}
 	if len(kvPairs) == 0 {
-		return nil
+		return nil, nil
 	}
-	return InstanceVars(kvPairs.Expand())
+	instanceVars, _ := kvPairs.Expand()["vars"].(map[string]interface{})
+	return InstanceVars(instanceVars), nil
 }
 
 type OrderPipelinesRequest []PipelineRef

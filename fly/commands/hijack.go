@@ -287,7 +287,10 @@ func (command *HijackCommand) getContainerFingerprintFromUrl(target rc.Target, u
 		checkName:     urlMap["resources"],
 	}
 
-	instanceVars := atc.InstanceVarsFromWebQueryParams(u.Query())
+	instanceVars, err := atc.InstanceVarsFromQueryParams(u.Query())
+	if err != nil {
+		return nil, err
+	}
 	if len(instanceVars) > 0 {
 		instanceVarsPayload, err := json.Marshal(instanceVars)
 		if err != nil {

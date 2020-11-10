@@ -81,7 +81,7 @@ var _ = Describe("PipelineRef", func() {
 		}
 	})
 
-	Describe("WebQueryParams", func() {
+	Describe("QueryParams", func() {
 		for _, tt := range []struct {
 			desc string
 			ref  atc.PipelineRef
@@ -95,31 +95,32 @@ var _ = Describe("PipelineRef", func() {
 			{
 				desc: "simple",
 				ref:  atc.PipelineRef{InstanceVars: atc.InstanceVars{"hello": "world", "num": 123}},
-				out:  url.Values{"var.hello": []string{`"world"`}, "var.num": []string{`123`}},
+				out:  url.Values{"vars.hello": []string{`"world"`}, "vars.num": []string{`123`}},
 			},
 			{
 				desc: "nested",
 				ref:  atc.PipelineRef{InstanceVars: atc.InstanceVars{"hello": map[string]interface{}{"foo": 123, "bar": false}}},
-				out:  url.Values{"var.hello.foo": []string{`123`}, "var.hello.bar": []string{`false`}},
+				out:  url.Values{"vars.hello.foo": []string{`123`}, "vars.hello.bar": []string{`false`}},
 			},
 			{
 				desc: "quoted",
 				ref:  atc.PipelineRef{InstanceVars: atc.InstanceVars{"hello.1": map[string]interface{}{"foo:bar": "baz"}}},
-				out:  url.Values{`var."hello.1"."foo:bar"`: []string{`"baz"`}},
+				out:  url.Values{`vars."hello.1"."foo:bar"`: []string{`"baz"`}},
 			},
 		} {
 			tt := tt
 			It(tt.desc, func() {
-				Expect(tt.ref.WebQueryParams()).To(Equal(tt.out))
+				Expect(tt.ref.QueryParams()).To(Equal(tt.out))
 			})
 		}
 	})
 
-	Describe("InstanceVarsFromWebQueryParams", func() {
+	Describe("InstanceVarsFromQueryParams", func() {
 		for _, tt := range []struct {
 			desc  string
 			query url.Values
 			out   atc.InstanceVars
+			err   string
 		}{
 			{
 				desc:  "empty",
@@ -129,8 +130,8 @@ var _ = Describe("PipelineRef", func() {
 			{
 				desc: "simple",
 				query: url.Values{
-					"var.hello": {`"world"`},
-					"var.foo":   {`"bar"`},
+					"vars.hello": {`"world"`},
+					"vars.foo":   {`"bar"`},
 				},
 				out: atc.InstanceVars{
 					"hello": "world",
@@ -140,7 +141,7 @@ var _ = Describe("PipelineRef", func() {
 			{
 				desc: "complex refs",
 				query: url.Values{
-					`var."a.b".c."d:e"`: {`"f"`},
+					`vars."a.b".c."d:e"`: {`"f"`},
 				},
 				out: atc.InstanceVars{
 					"a.b": map[string]interface{}{
@@ -153,40 +154,67 @@ var _ = Describe("PipelineRef", func() {
 			{
 				desc: "val is JSON",
 				query: url.Values{
-					`var.foo"`: {`["a",{"b":123}]`},
+					`vars.foo"`: {`["a",{"b":123}]`},
 				},
 				out: atc.InstanceVars{
 					"foo": []interface{}{"a", map[string]interface{}{"b": 123.0}},
 				},
 			},
 			{
+				desc: "root-level vars",
+				query: url.Values{
+					`vars`: {`{"foo":["a",{"b":123}]}`},
+				},
+				out: atc.InstanceVars{
+					"foo": []interface{}{"a", map[string]interface{}{"b": 123.0}},
+				},
+			},
+			{
+				desc: "root-level vars with other subvars",
+				query: url.Values{
+					`vars`:     {`{"foo":["a",{"b":123}]}`},
+					`vars.bar`: {`"baz"`},
+				},
+				out: atc.InstanceVars{
+					"foo": []interface{}{"a", map[string]interface{}{"b": 123.0}},
+					"bar": "baz",
+				},
+			},
+			{
 				desc: "ignores non-var params",
 				query: url.Values{
-					`var.foo`: {`123`},
-					`ignore"`: {`blah`},
+					`vars.foo`: {`123`},
+					`varsfoo`:  {`whatever`},
+					`ignore"`:  {`blah`},
 				},
 				out: atc.InstanceVars{
 					"foo": 123.0,
 				},
 			},
 			{
-				desc: "ignores invalid ref",
+				desc: "errors on invalid ref",
 				query: url.Values{
-					`var.foo.`: {`123`},
+					`vars.foo.`: {`123`},
 				},
-				out: nil,
+				err: "invalid var",
 			},
 			{
-				desc: "ignores when invalid JSON",
+				desc: "errors when invalid JSON",
 				query: url.Values{
-					`var.foo`: {`"123`},
+					`vars.foo`: {`"123`},
 				},
-				out: nil,
+				err: "unexpected end of JSON input",
 			},
 		} {
 			tt := tt
 			It(tt.desc, func() {
-				Expect(atc.InstanceVarsFromWebQueryParams(tt.query)).To(Equal(tt.out))
+				vars, err := atc.InstanceVarsFromQueryParams(tt.query)
+				if tt.err != "" {
+					Expect(err).To(MatchError(ContainSubstring(tt.err)))
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+					Expect(vars).To(Equal(tt.out))
+				}
 			})
 		}
 	})
