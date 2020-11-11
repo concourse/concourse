@@ -22,12 +22,12 @@ type Access interface {
 }
 
 type Claims struct {
-	Sub       string
-	Name      string
-	UserID    string
-	UserName  string
-	Email     string
-	Connector string
+	Sub               string
+	UserID            string
+	UserName          string
+	PreferredUsername string
+	Email             string
+	Connector         string
 }
 
 type Verification struct {
@@ -64,7 +64,6 @@ func NewAccessor(
 	return a
 }
 
-
 func (a *access) computeTeamRoles() {
 	a.teamRoles = map[string][]string{}
 
@@ -94,7 +93,7 @@ func (a *access) rolesForTeam(auth atc.TeamAuth) []string {
 	groups := a.groups()
 	connectorID := a.connectorID()
 	userID := a.userID()
-	userName := a.UserName()
+	userName := a.userName()
 
 	for role, auth := range auth {
 		userAuth := auth["users"]
@@ -211,12 +210,16 @@ func (a *access) claim(name string) string {
 	return ""
 }
 
-func (a *access) UserName() string {
-	return a.federatedClaim("user_name")
-}
-
 func (a *access) userID() string {
 	return a.federatedClaim("user_id")
+}
+
+func (a *access) userName() string {
+	if a.claim("preferred_username") != "" {
+		return a.claim("preferred_username")
+	}
+
+	return a.claim("name")
 }
 
 func (a *access) connectorID() string {
@@ -258,11 +261,11 @@ func (a *access) TeamRoles() map[string][]string {
 
 func (a *access) Claims() Claims {
 	return Claims{
-		Sub:       a.claim("sub"),
-		Name:      a.claim("name"),
-		Email:     a.claim("email"),
-		UserID:    a.userID(),
-		UserName:  a.UserName(),
-		Connector: a.connectorID(),
+		Sub:               a.claim("sub"),
+		Email:             a.claim("email"),
+		UserID:            a.userID(),
+		UserName:          a.claim("name"),
+		PreferredUsername: a.claim("preferred_username"),
+		Connector:         a.connectorID(),
 	}
 }
