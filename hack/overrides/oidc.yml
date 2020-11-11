@@ -1,0 +1,33 @@
+# oidc.yml - a docker-compose override that adds a oidc IDP to the stack
+#
+# There are 2 users and 1 group:
+# user1@example.com:user1pass;group1
+# user2@example.com:user2pass
+#
+# ref: https://hub.docker.com/r/qlik/simple-oidc-provider/
+# ref: https://docs.docker.com/compose/extends/
+#
+version: '3'
+
+services:
+  web:
+    environment:
+      # CONCOURSE_MAIN_TEAM_OIDC_USER: user1
+      CONCOURSE_MAIN_TEAM_OIDC_USER: John
+      # CONCOURSE_MAIN_TEAM_OIDC_GROUP: group1
+
+      CONCOURSE_OIDC_ISSUER: http://oidc:9000
+      CONCOURSE_OIDC_CLIENT_ID: foo
+      CONCOURSE_OIDC_CLIENT_SECRET: bar
+
+  oidc:
+    image: qlik/simple-oidc-provider
+    ports:
+    - 9000:9000
+    environment:
+      REDIRECTS: http://localhost:8080/sky/issuer/callback
+      CONFIG_FILE: /oidc/config.json
+      USERS_FILE: /oidc/users.json
+    volumes:
+    - ./hack/oidc:/oidc
+

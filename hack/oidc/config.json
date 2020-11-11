@@ -1,0 +1,18 @@
+{
+  "idp_name": "http://oidc:9000",
+  "port": 9000,
+  "client_config": [
+    {
+      "client_id": "foo",
+      "client_secret": "bar",
+      "redirect_uris": [
+        "http://localhost:8080/sky/issuer/callback"
+      ]
+    }
+  ],
+  "claim_mapping": {
+    "openid": [ "sub" ],
+    "email": [ "email", "email_verified" ],
+    "profile": [ "id", "username", "preferred_username", "groups" ]
+  }
+}
