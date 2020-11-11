@@ -2,10 +2,8 @@ package worker
 
 import (
 	"archive/tar"
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"context"
-	"fmt"
 	"io"
 	"time"
 
@@ -48,7 +46,6 @@ type artifactSource struct {
 	compression         compression.Compression
 	enabledP2pStreaming bool
 	p2pStreamingTimeout time.Duration
-	clock               clock.Clock
 }
 
 func NewStreamableArtifactSource(
@@ -57,18 +54,13 @@ func NewStreamableArtifactSource(
 	compression compression.Compression,
 	enabledP2pStreaming bool,
 	p2pStreamingTimeout time.Duration,
-	clk clock.Clock,
 ) StreamableArtifactSource {
-	if clk == nil {
-		clk = clock.NewClock()
-	}
 	return &artifactSource{
 		artifact:            artifact,
 		volume:              volume,
 		compression:         compression,
 		enabledP2pStreaming: enabledP2pStreaming,
 		p2pStreamingTimeout: p2pStreamingTimeout,
-		clock:               clk,
 	}
 }
 
@@ -123,25 +115,29 @@ func (source *artifactSource) p2pStreamTo(
 	ctx context.Context,
 	destination ArtifactDestination,
 ) error {
-	ch := make(chan error, 1)
-	streamInUrl := ""
-	go func(ctx context.Context, ch chan<- error) {
-		var err error
-		streamInUrl, err = destination.GetStreamInP2pUrl(ctx, ".")
-		if err != nil {
-			ch <- err
-			return
-		}
-		ch <- source.volume.StreamP2pOut(ctx, ".", streamInUrl, source.compression.Encoding())
-	}(ctx, ch)
-
-	timer := source.clock.NewTimer(source.p2pStreamingTimeout)
-	select {
-	case <-timer.C():
-		return fmt.Errorf("p2p stream to %s timeout", streamInUrl)
-	case err := <-ch:
+	getCtx, getCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer getCancel()
+	streamInUrl, err := destination.GetStreamInP2pUrl(getCtx, ".")
+	if err != nil {
 		return err
 	}
+
+	select {
+	case <-ctx.Done():
+		return context.Canceled
+	default:
+	}
+
+	_, outSpan := tracing.StartSpan(ctx, "volume.P2pStreamOut", tracing.Attrs{
+		"origin-volume": source.volume.Handle(),
+		"origin-worker": source.volume.WorkerName(),
+		"stream-in-url": streamInUrl,
+	})
+	defer outSpan.End()
+
+	putCtx, putCancel := context.WithTimeout(ctx, source.p2pStreamingTimeout)
+	defer putCancel()
+	return source.volume.StreamP2pOut(putCtx, ".", streamInUrl, source.compression.Encoding())
 }
 
 func (source *artifactSource) StreamFile(

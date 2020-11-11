@@ -2,7 +2,6 @@ package worker_test
 
 import (
 	"archive/tar"
-	"code.cloudfoundry.org/clock/fakeclock"
 	"compress/gzip"
 	"context"
 	"errors"
@@ -30,7 +29,6 @@ var _ = Describe("StreamableArtifactSource", func() {
 		fakeDestination *workerfakes.FakeArtifactDestination
 		fakeVolume      *workerfakes.FakeVolume
 		fakeArtifact    *runtimefakes.FakeArtifact
-		fakeClock       *fakeclock.FakeClock
 
 		enabledP2pStreaming bool
 		p2pStreamingTimeout time.Duration
@@ -47,7 +45,6 @@ var _ = Describe("StreamableArtifactSource", func() {
 		fakeVolume = new(workerfakes.FakeVolume)
 		fakeDestination = new(workerfakes.FakeArtifactDestination)
 		comp = compression.NewGzipCompression()
-		fakeClock = fakeclock.NewFakeClock(time.Now())
 
 		enabledP2pStreaming = false
 		p2pStreamingTimeout = 15 * time.Minute
@@ -57,7 +54,7 @@ var _ = Describe("StreamableArtifactSource", func() {
 	})
 
 	JustBeforeEach(func() {
-		artifactSource = worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume, comp, enabledP2pStreaming, p2pStreamingTimeout, fakeClock)
+		artifactSource = worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume, comp, enabledP2pStreaming, p2pStreamingTimeout)
 	})
 
 	Context("StreamTo", func() {
@@ -169,21 +166,6 @@ var _ = Describe("StreamableArtifactSource", func() {
 					It("does return an err", func() {
 						Expect(streamToErr).To(HaveOccurred())
 						Expect(streamToErr).To(Equal(disaster))
-					})
-				})
-
-				Context("StreamP2pOut times out", func() {
-					BeforeEach(func() {
-						fakeVolume.StreamP2pOutStub = func(ctx context.Context, s string, s2 string, encoding baggageclaim.Encoding) error {
-							fakeClock.Increment(time.Minute * 20)
-							time.Sleep(1 * time.Second)
-							return nil
-						}
-					})
-
-					It("does return an err", func() {
-						Expect(streamToErr).To(HaveOccurred())
-						Expect(streamToErr).To(Equal(errors.New("p2p stream to some-url timeout")))
 					})
 				})
 

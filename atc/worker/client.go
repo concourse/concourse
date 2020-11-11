@@ -291,6 +291,8 @@ func (client *client) RunTaskStep(
 		return TaskResult{}, err
 	}
 
+	eventDelegate.SelectedWorker(logger, chosenWorker.Name())
+
 	if strategy.ModifiesActiveTasks() {
 		defer decreaseActiveTasks(logger.Session("decrease-active-tasks"), chosenWorker)
 	}
@@ -306,8 +308,6 @@ func (client *client) RunTaskStep(
 	if err != nil {
 		return TaskResult{}, err
 	}
-
-	eventDelegate.SelectedWorker(logger, chosenWorker.Name())
 
 	// container already exited
 	exitStatusProp, _ := container.Properties()
@@ -700,7 +700,7 @@ func (client *client) wireInputsAndCaches(logger lager.Logger, spec *ContainerSp
 				return fmt.Errorf("volume not found for artifact id %v type %T", artifact.ID(), artifact)
 			}
 
-			source := NewStreamableArtifactSource(artifact, artifactVolume, client.compression, client.enabledP2pStreaming, client.p2pStreamingTimeout, nil)
+			source := NewStreamableArtifactSource(artifact, artifactVolume, client.compression, client.enabledP2pStreaming, client.p2pStreamingTimeout)
 			inputs = append(inputs, inputSource{source, path})
 		}
 	}
@@ -720,7 +720,7 @@ func (client *client) wireImageVolume(logger lager.Logger, spec *ImageSpec) erro
 		return fmt.Errorf("volume not found for artifact id %v type %T", imageArtifact.ID(), imageArtifact)
 	}
 
-	spec.ImageArtifactSource = NewStreamableArtifactSource(imageArtifact, artifactVolume, client.compression, client.enabledP2pStreaming, client.p2pStreamingTimeout, nil)
+	spec.ImageArtifactSource = NewStreamableArtifactSource(imageArtifact, artifactVolume, client.compression, client.enabledP2pStreaming, client.p2pStreamingTimeout)
 
 	return nil
 }
