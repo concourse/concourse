@@ -21,7 +21,7 @@ require (
 	github.com/concourse/dex v0.2.1
 	github.com/concourse/flag v1.1.0
 	github.com/concourse/go-archive v1.0.1
-	github.com/concourse/retryhttp v1.0.2
+	github.com/concourse/retryhttp v1.1.0
 	github.com/containerd/cgroups v0.0.0-20191220161829-06e718085901 // indirect
 	github.com/containerd/containerd v1.3.4
 	github.com/containerd/continuity v0.0.0-20191214063359-1097c8bae83b // indirect
