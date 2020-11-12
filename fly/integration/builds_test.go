@@ -203,7 +203,7 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			It("returns all the builds", func() {
-				runningBuildDuration := time.Duration(time.Now().Unix()-runningBuildStartTime.Unix()) * time.Second
+				runningBuildDuration := time.Since(runningBuildStartTime)
 
 				Eventually(session.Out).Should(PrintTable(ui.Table{
 					Headers: expectedHeaders,
@@ -218,7 +218,7 @@ var _ = Describe("Fly CLI", func() {
 							{
 								Contents: TableDurationWithDelta{
 									Duration: runningBuildDuration,
-									Delta:    2 * time.Second,
+									Delta:    20 * time.Second,
 									Suffix:   "+",
 								}.String(),
 							},
