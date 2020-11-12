@@ -121,23 +121,6 @@ toStringTests =
                 CheckmarkIcon
                     |> toString
                     |> Expect.equal "/public/images/checkmark-ic.svg"
-        , describe "BreadcrumbIcon"
-            [ test "Pipeline" <|
-                \_ ->
-                    BreadcrumbIcon (PipelineComponent False)
-                        |> toString
-                        |> Expect.equal "/public/images/ic-breadcrumb-pipeline.svg"
-            , test "Job" <|
-                \_ ->
-                    BreadcrumbIcon JobComponent
-                        |> toString
-                        |> Expect.equal "/public/images/ic-breadcrumb-job.svg"
-            , test "Resource" <|
-                \_ ->
-                    BreadcrumbIcon ResourceComponent
-                        |> toString
-                        |> Expect.equal "/public/images/ic-breadcrumb-resource.svg"
-            ]
         , test "ArchivedPipelineIcon" <|
             \_ ->
                 ArchivedPipelineIcon

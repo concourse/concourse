@@ -59,11 +59,14 @@ pipeline params p =
         if p.archived then
             Assets.ArchivedPipelineIcon
 
+        else if isHovered then
+            Assets.PipelineIconWhite
+
+        else if isCurrent then
+            Assets.PipelineIconLightGrey
+
         else
-            Assets.BreadcrumbIcon
-                (Assets.PipelineComponent
-                    (isHovered || isCurrent)
-                )
+            Assets.PipelineIconGrey
     , name =
         { pipelineColor =
             if isHovered then

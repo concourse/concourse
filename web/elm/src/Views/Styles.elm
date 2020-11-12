@@ -185,6 +185,7 @@ breadcrumbItem clickable =
 
         else
             "default"
+    , style "color" Colors.white
     ]
 
 

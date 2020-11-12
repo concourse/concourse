@@ -540,12 +540,12 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipeline
                 >> then_ iSeeItHasAValidPipelineId
-        , test "pipeline icon is bright when pipeline link is hovered" <|
+        , test "pipeline icon is white when pipeline link is hovered" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> given iHoveredThePipelineLink
                 >> when iAmLookingAtTheFirstPipelineIcon
-                >> then_ iSeeThePipelineIconIsBright
+                >> then_ iSeeThePipelineIconIsWhite
         , defineHoverBehaviour
             { name = "pipeline"
             , setup =
@@ -1164,7 +1164,7 @@ iAmLookingAtThePreviousPipelineStar =
 
 iSeeAMinusIcon =
     Query.has
-        (DashboardTests.iconSelector
+        (iconSelector
             { size = "10px"
             , image = Assets.MinusIcon
             }
@@ -1172,23 +1172,53 @@ iSeeAMinusIcon =
 
 
 iSeeThePipelineIconIsDim =
-    Query.has [ style "background-image" "url(/public/images/ic-breadcrumb-pipeline.svg)" ]
+    Query.has
+        [ style "background-image" <|
+            Assets.backgroundImage <|
+                Just Assets.PipelineIconGrey
+        ]
 
 
 iSeeThePipelineIconIsBright =
-    Query.has [ style "background-image" "url(/public/images/ic-breadcrumb-pipeline-bright.svg)" ]
+    Query.has
+        [ style "background-image" <|
+            Assets.backgroundImage <|
+                Just Assets.PipelineIconLightGrey
+        ]
+
+
+iSeeThePipelineIconIsWhite =
+    Query.has
+        [ style "background-image" <|
+            Assets.backgroundImage <|
+                Just Assets.PipelineIconWhite
+        ]
 
 
 iSeeTheFavoritedIconIsDim =
-    Query.has [ style "background-image" "url(/public/images/star-unfilled.svg)" ]
+    Query.has
+        [ style "background-image" <|
+            Assets.backgroundImage <|
+                Just <|
+                    Assets.FavoritedToggleIcon { isFavorited = False, isHovered = False, isSideBar = True }
+        ]
 
 
 iSeeTheFavoritedIconIsBright =
-    Query.has [ style "background-image" "url(/public/images/star-unfilled-bright.svg)" ]
+    Query.has
+        [ style "background-image" <|
+            Assets.backgroundImage <|
+                Just <|
+                    Assets.FavoritedToggleIcon { isFavorited = False, isHovered = True, isSideBar = True }
+        ]
 
 
 iSeeTheTeamIcon =
-    Query.has [ style "background-image" "url(/public/images/baseline-people.svg)" ]
+    Query.has
+        [ style "background-image" <|
+            Assets.backgroundImage <|
+                Just Assets.PeopleIcon
+        ]
 
 
 iSeeTheTextIsBright =
@@ -1319,7 +1349,7 @@ iSeeAPipelineIcon =
     Query.has
         [ style "background-image" <|
             Assets.backgroundImage <|
-                Just (Assets.BreadcrumbIcon (Assets.PipelineComponent False))
+                Just Assets.PipelineIconGrey
         , style "background-repeat" "no-repeat"
         , style "height" "18px"
         , style "width" "18px"

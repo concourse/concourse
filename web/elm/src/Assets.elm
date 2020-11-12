@@ -48,6 +48,9 @@ type Asset
     | MessageIcon
     | HamburgerMenuIcon
     | PeopleIcon
+    | PipelineIconGrey
+    | PipelineIconLightGrey
+    | PipelineIconWhite
     | PlusIcon
     | MinusIcon
     | PlayIcon
@@ -59,7 +62,7 @@ type Asset
 
 
 type ComponentType
-    = PipelineComponent Bool
+    = PipelineComponent
     | JobComponent
     | ResourceComponent
 
@@ -183,11 +186,8 @@ toPath asset =
             let
                 imageName =
                     case component of
-                        PipelineComponent True ->
-                            "pipeline-bright"
-
-                        PipelineComponent _ ->
-                            "pipeline"
+                        PipelineComponent ->
+                            "pipeline-white"
 
                         JobComponent ->
                             "job"
@@ -304,6 +304,15 @@ toPath asset =
 
         PeopleIcon ->
             basePath ++ [ "baseline-people.svg" ]
+
+        PipelineIconGrey ->
+            basePath ++ [ "ic-breadcrumb-pipeline-grey.svg" ]
+
+        PipelineIconLightGrey ->
+            basePath ++ [ "ic-breadcrumb-pipeline-lightgrey.svg" ]
+
+        PipelineIconWhite ->
+            basePath ++ [ "ic-breadcrumb-pipeline-white.svg" ]
 
         PlusIcon ->
             basePath ++ [ "ic-plus.svg" ]

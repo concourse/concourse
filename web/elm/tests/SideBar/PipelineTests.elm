@@ -37,13 +37,12 @@ all =
                             |> viewPipeline { defaultState | active = True, hovered = True }
                             |> .background
                             |> Expect.equal Styles.Dark
-                , test "pipeline icon is bright" <|
+                , test "pipeline icon is white" <|
                     \_ ->
                         pipeline
                             |> viewPipeline { defaultState | active = True, hovered = True }
                             |> .icon
-                            |> Expect.equal
-                                (Assets.BreadcrumbIcon (Assets.PipelineComponent True))
+                            |> Expect.equal Assets.PipelineIconWhite
                 , describe "when not favorited"
                     [ test "displays a bright unfilled star icon when hovered" <|
                         \_ ->
@@ -78,8 +77,7 @@ all =
                         pipeline
                             |> viewPipeline { defaultState | active = True, hovered = False }
                             |> .icon
-                            |> Expect.equal
-                                (Assets.BreadcrumbIcon (Assets.PipelineComponent True))
+                            |> Expect.equal Assets.PipelineIconLightGrey
                 , describe "when unfavorited"
                     [ test "displays a dim unfilled star icon" <|
                         \_ ->
@@ -118,13 +116,12 @@ all =
                             |> viewPipeline { defaultState | active = False, hovered = True }
                             |> .background
                             |> Expect.equal Styles.Light
-                , test "pipeline icon is bright" <|
+                , test "pipeline icon is white" <|
                     \_ ->
                         pipeline
                             |> viewPipeline { defaultState | active = False, hovered = True }
                             |> .icon
-                            |> Expect.equal
-                                (Assets.BreadcrumbIcon (Assets.PipelineComponent True))
+                            |> Expect.equal Assets.PipelineIconWhite
                 ]
             , describe "when unhovered"
                 [ test "pipeline name is grey" <|
@@ -145,7 +142,7 @@ all =
                         pipeline
                             |> viewPipeline { defaultState | active = False, hovered = False }
                             |> .icon
-                            |> Expect.equal (Assets.BreadcrumbIcon (Assets.PipelineComponent False))
+                            |> Expect.equal Assets.PipelineIconGrey
                 ]
             , test "font weight is default" <|
                 \_ ->

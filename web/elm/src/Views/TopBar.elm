@@ -103,7 +103,7 @@ pipelineBreadcumb pipelineId =
         )
         (breadcrumbComponent
             { icon =
-                { component = Assets.PipelineComponent True
+                { component = Assets.PipelineComponent
                 , widthPx = 28
                 , heightPx = 16
                 }
