@@ -11,6 +11,20 @@ import (
 )
 
 type FakeArtifactDestination struct {
+	GetStreamInP2pUrlStub        func(context.Context, string) (string, error)
+	getStreamInP2pUrlMutex       sync.RWMutex
+	getStreamInP2pUrlArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+	}
+	getStreamInP2pUrlReturns struct {
+		result1 string
+		result2 error
+	}
+	getStreamInP2pUrlReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
+	}
 	StreamInStub        func(context.Context, string, baggageclaim.Encoding, io.Reader) error
 	streamInMutex       sync.RWMutex
 	streamInArgsForCall []struct {
@@ -27,6 +41,70 @@ type FakeArtifactDestination struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeArtifactDestination) GetStreamInP2pUrl(arg1 context.Context, arg2 string) (string, error) {
+	fake.getStreamInP2pUrlMutex.Lock()
+	ret, specificReturn := fake.getStreamInP2pUrlReturnsOnCall[len(fake.getStreamInP2pUrlArgsForCall)]
+	fake.getStreamInP2pUrlArgsForCall = append(fake.getStreamInP2pUrlArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("GetStreamInP2pUrl", []interface{}{arg1, arg2})
+	fake.getStreamInP2pUrlMutex.Unlock()
+	if fake.GetStreamInP2pUrlStub != nil {
+		return fake.GetStreamInP2pUrlStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.getStreamInP2pUrlReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeArtifactDestination) GetStreamInP2pUrlCallCount() int {
+	fake.getStreamInP2pUrlMutex.RLock()
+	defer fake.getStreamInP2pUrlMutex.RUnlock()
+	return len(fake.getStreamInP2pUrlArgsForCall)
+}
+
+func (fake *FakeArtifactDestination) GetStreamInP2pUrlCalls(stub func(context.Context, string) (string, error)) {
+	fake.getStreamInP2pUrlMutex.Lock()
+	defer fake.getStreamInP2pUrlMutex.Unlock()
+	fake.GetStreamInP2pUrlStub = stub
+}
+
+func (fake *FakeArtifactDestination) GetStreamInP2pUrlArgsForCall(i int) (context.Context, string) {
+	fake.getStreamInP2pUrlMutex.RLock()
+	defer fake.getStreamInP2pUrlMutex.RUnlock()
+	argsForCall := fake.getStreamInP2pUrlArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeArtifactDestination) GetStreamInP2pUrlReturns(result1 string, result2 error) {
+	fake.getStreamInP2pUrlMutex.Lock()
+	defer fake.getStreamInP2pUrlMutex.Unlock()
+	fake.GetStreamInP2pUrlStub = nil
+	fake.getStreamInP2pUrlReturns = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeArtifactDestination) GetStreamInP2pUrlReturnsOnCall(i int, result1 string, result2 error) {
+	fake.getStreamInP2pUrlMutex.Lock()
+	defer fake.getStreamInP2pUrlMutex.Unlock()
+	fake.GetStreamInP2pUrlStub = nil
+	if fake.getStreamInP2pUrlReturnsOnCall == nil {
+		fake.getStreamInP2pUrlReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
+		})
+	}
+	fake.getStreamInP2pUrlReturnsOnCall[i] = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeArtifactDestination) StreamIn(arg1 context.Context, arg2 string, arg3 baggageclaim.Encoding, arg4 io.Reader) error {
@@ -95,6 +173,8 @@ func (fake *FakeArtifactDestination) StreamInReturnsOnCall(i int, result1 error)
 func (fake *FakeArtifactDestination) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.getStreamInP2pUrlMutex.RLock()
+	defer fake.getStreamInP2pUrlMutex.RUnlock()
 	fake.streamInMutex.RLock()
 	defer fake.streamInMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

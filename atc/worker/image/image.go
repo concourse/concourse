@@ -212,3 +212,7 @@ type artifactDestination struct {
 func (wad *artifactDestination) StreamIn(ctx context.Context, path string, encoding baggageclaim.Encoding, tarStream io.Reader) error {
 	return wad.destination.StreamIn(ctx, path, encoding, tarStream)
 }
+
+func (wad *artifactDestination) GetStreamInP2pUrl(ctx context.Context, path string) (string, error) {
+	return wad.destination.GetStreamInP2pUrl(ctx, path)
+}
