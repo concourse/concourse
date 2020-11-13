@@ -347,8 +347,8 @@ all =
                         [ class "card"
                         , containing [ text "pipeline" ]
                         ]
-                        >> Query.children []
-                        >> Query.first
+                        >> Query.find
+                            [ class "banner" ]
 
                 isSolid : String -> Query.Single ApplicationMsgs.TopLevelMessage -> Expectation
                 isSolid color =

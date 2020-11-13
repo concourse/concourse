@@ -68,6 +68,20 @@ hdPipelineView :
     }
     -> Html Message
 hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs } =
+    let
+        bannerStyle =
+            if pipeline.stale then
+                Styles.pipelineCardBannerStaleHd
+
+            else if pipeline.archived then
+                Styles.pipelineCardBannerArchivedHd
+
+            else
+                Styles.pipelineCardBannerHd
+                    { status = pipelineStatus existingJobs pipeline
+                    , pipelineRunningKeyframes = pipelineRunningKeyframes
+                    }
+    in
     Html.a
         ([ class "card"
          , attribute "data-pipeline-name" pipeline.name
@@ -79,18 +93,7 @@ hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs
         )
     <|
         [ Html.div
-            (if pipeline.stale then
-                Styles.pipelineCardBannerStaleHd
-
-             else if pipeline.archived then
-                Styles.pipelineCardBannerArchivedHd
-
-             else
-                Styles.pipelineCardBannerHd
-                    { status = pipelineStatus existingJobs pipeline
-                    , pipelineRunningKeyframes = pipelineRunningKeyframes
-                    }
-            )
+            (class "banner" :: bannerStyle)
             []
         , Html.div
             (class "dashboardhd-pipeline-name" :: Styles.pipelineCardBodyHd)
