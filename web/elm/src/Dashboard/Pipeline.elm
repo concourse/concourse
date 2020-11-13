@@ -173,21 +173,24 @@ pipelineStatus jobs pipeline =
             isRunning =
                 List.any (\job -> job.nextBuild /= Nothing) jobs
 
+            unpausedJobs =
+                jobs |> List.filter (\job -> not job.paused)
+
             mostImportantJobStatus =
-                jobs
+                unpausedJobs
                     |> List.map jobStatus
                     |> List.sortWith Concourse.BuildStatus.ordering
                     |> List.head
 
             firstNonSuccess =
-                jobs
+                unpausedJobs
                     |> List.filter (jobStatus >> (/=) BuildStatusSucceeded)
                     |> List.filterMap transition
                     |> List.sortBy Time.posixToMillis
                     |> List.head
 
             lastTransition =
-                jobs
+                unpausedJobs
                     |> List.filterMap transition
                     |> List.sortBy Time.posixToMillis
                     |> List.reverse

@@ -4,6 +4,7 @@ import Application.Application as Application
 import Assets
 import Colors
 import Common exposing (defineHoverBehaviour, isColorWithStripes)
+import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
 import DashboardTests
@@ -511,17 +512,19 @@ all =
                             |> isColorWithStripes { thin = brown, thick = darkGrey }
                 , describe "status priorities" <|
                     let
-                        givenTwoJobs :
+                        givenTwoJobsWithModifiers :
                             BuildStatus
+                            -> (Concourse.Job -> Concourse.Job)
                             -> BuildStatus
+                            -> (Concourse.Job -> Concourse.Job)
                             -> Query.Single ApplicationMsgs.TopLevelMessage
-                        givenTwoJobs firstStatus secondStatus =
+                        givenTwoJobsWithModifiers firstStatus firstModifier secondStatus secondModifier =
                             whenOnDashboard { highDensity = False }
                                 |> Application.handleCallback
                                     (Callback.AllJobsFetched <|
                                         Ok
-                                            [ job firstStatus
-                                            , otherJob secondStatus
+                                            [ job firstStatus |> firstModifier
+                                            , otherJob secondStatus |> secondModifier
                                             ]
                                     )
                                 |> Tuple.first
@@ -534,6 +537,13 @@ all =
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
+
+                        givenTwoJobs :
+                            BuildStatus
+                            -> BuildStatus
+                            -> Query.Single ApplicationMsgs.TopLevelMessage
+                        givenTwoJobs firstStatus secondStatus =
+                            givenTwoJobsWithModifiers firstStatus identity secondStatus identity
                     in
                     [ test "failed is more important than errored" <|
                         \_ ->
@@ -561,6 +571,15 @@ all =
                             givenTwoJobs
                                 BuildStatusSucceeded
                                 BuildStatusPending
+                                |> findBanner
+                                |> isSolid green
+                    , test "paused jobs are ignored" <|
+                        \_ ->
+                            givenTwoJobsWithModifiers
+                                BuildStatusSucceeded
+                                identity
+                                BuildStatusFailed
+                                (Data.withPaused True)
                                 |> findBanner
                                 |> isSolid green
                     ]
@@ -737,17 +756,19 @@ all =
                                 |> isColorWithStripes { thin = brown, thick = darkGrey }
                     , describe "status priorities" <|
                         let
-                            givenTwoJobs :
+                            givenTwoJobsWithModifiers :
                                 BuildStatus
+                                -> (Concourse.Job -> Concourse.Job)
                                 -> BuildStatus
+                                -> (Concourse.Job -> Concourse.Job)
                                 -> Query.Single ApplicationMsgs.TopLevelMessage
-                            givenTwoJobs firstStatus secondStatus =
-                                whenOnDashboard { highDensity = False }
+                            givenTwoJobsWithModifiers firstStatus firstModifier secondStatus secondModifier =
+                                whenOnDashboard { highDensity = True }
                                     |> Application.handleCallback
                                         (Callback.AllJobsFetched <|
                                             Ok
-                                                [ job firstStatus
-                                                , otherJob secondStatus
+                                                [ job firstStatus |> firstModifier
+                                                , otherJob secondStatus |> secondModifier
                                                 ]
                                         )
                                     |> Tuple.first
@@ -760,6 +781,13 @@ all =
                                         )
                                     |> Tuple.first
                                     |> Common.queryView
+
+                            givenTwoJobs :
+                                BuildStatus
+                                -> BuildStatus
+                                -> Query.Single ApplicationMsgs.TopLevelMessage
+                            givenTwoJobs firstStatus secondStatus =
+                                givenTwoJobsWithModifiers firstStatus identity secondStatus identity
                         in
                         [ test "failed is more important than errored" <|
                             \_ ->
@@ -787,6 +815,15 @@ all =
                                 givenTwoJobs
                                     BuildStatusSucceeded
                                     BuildStatusPending
+                                    |> findBanner
+                                    |> isSolid green
+                        , test "paused jobs are ignored" <|
+                            \_ ->
+                                givenTwoJobsWithModifiers
+                                    BuildStatusSucceeded
+                                    identity
+                                    BuildStatusFailed
+                                    (Data.withPaused True)
                                     |> findBanner
                                     |> isSolid green
                         ]
