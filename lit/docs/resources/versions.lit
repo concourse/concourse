@@ -8,9 +8,9 @@ all the different resource types? That is where resource versions are
 introduced. Concourse uses versions to represent the exact changes of a
 resource over time.
 
-The versions of a resource is directly dependent on it's resource configuration
-and \reference{resource-types}{resource type}. Each resource type has their own
-definition of what it's versions should be. For example, the versions of a
+The versions of a resource are directly dependent on its resource configuration
+and \reference{resource-types}{resource type}. Each resource type has its own
+definition of what its versions should be. For example, the versions of a
 git resource would be the commits of the github repository and the versions of
 a docker image resource are the image digests.
 
@@ -24,7 +24,7 @@ behavior}{https://github.com/concourse/git-resource#check-check-for-new-commits}
   \title{Where do they come from and what are they used for?}{where-and-what-versions}
 
   The \reference{checker}{resource checker} is responsible for checking for new
-  versions of a resource. These versions are then saved into the database and
+  versions of a resource. These versions are then saved to the database and
   can be viewed from the resource page in the web UI.
 
   Resource versions are used by the \reference{scheduler}{build scheduler} in
@@ -61,7 +61,7 @@ behavior}{https://github.com/concourse/git-resource#check-check-for-new-commits}
 
   A pinned version is associated to a resource and can be viewed in the
   resource page (excluding the case that the version was pinned on a get step).
-  This pinned version will be propagated throughout the pipeline, and used
+  This pinned version will be propagated throughout the pipeline and used
   by the jobs that take that pinned resource as an input. If there is a job
   that has a passed constraint on a pinned resource, this means that the input
   is only valid if that pinned version has been used by the passed constraint
