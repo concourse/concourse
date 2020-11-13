@@ -13,8 +13,22 @@ import (
 
 var _ = Describe("CheckFactory", func() {
 	var (
-		err error
+		err                        error
+		checkFactory               db.CheckFactory
+		enableSkipPutOnlyResources bool
 	)
+
+	BeforeEach(func() {
+		enableSkipPutOnlyResources = false
+	})
+
+	JustBeforeEach(func() {
+		checkFactory = db.NewCheckFactory(dbConn, lockFactory, fakeSecrets, fakeVarSourcePool, db.CheckDurations{
+			Timeout:             defaultCheckTimeout,
+			Interval:            defaultCheckInterval,
+			IntervalWithWebhook: defaultWebhookCheckInterval,
+		}, enableSkipPutOnlyResources)
+	})
 
 	Describe("TryCreateCheck", func() {
 		var (
@@ -249,35 +263,122 @@ var _ = Describe("CheckFactory", func() {
 			resources []db.Resource
 		)
 
+		BeforeEach(func() {
+			defaultPipelineConfig = atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name: "some-resource",
+								},
+							},
+							{
+								Config: &atc.PutStep{
+									Name: "some-put-only-resource",
+								},
+							},
+						},
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some": "source",
+						},
+					},
+					{
+						Name: "some-put-only-resource",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some": "source",
+						},
+					},
+				},
+				ResourceTypes: atc.ResourceTypes{
+					{
+						Name: "some-type",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some-type": "source",
+						},
+					},
+				},
+			}
+
+			defaultPipelineRef = atc.PipelineRef{Name: "default-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
+
+			defaultPipeline, _, err = defaultTeam.SavePipeline(defaultPipelineRef, defaultPipelineConfig, db.ConfigVersion(1), false)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
 		JustBeforeEach(func() {
 			resources, err = checkFactory.Resources()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("include resources in return", func() {
-			Expect(resources).To(HaveLen(1))
-			Expect(resources[0].Name()).To(Equal("some-resource"))
+		Context("when not skip checking put-only resources", func() {
+			It("include all resources in return", func() {
+				Expect(resources).To(HaveLen(2))
+				Expect([]string{resources[0].Name(), resources[1].Name()}).To(ContainElements("some-resource", "some-put-only-resource"))
+			})
+
+			Context("when the resource is not active", func() {
+				BeforeEach(func() {
+					_, err = dbConn.Exec(`UPDATE resources SET active = false`)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("does not return the resource", func() {
+					Expect(resources).To(HaveLen(0))
+				})
+			})
+
+			Context("when the resource pipeline is paused", func() {
+				BeforeEach(func() {
+					_, err = dbConn.Exec(`UPDATE pipelines SET paused = true`)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("does not return the resource", func() {
+					Expect(resources).To(HaveLen(0))
+				})
+			})
 		})
 
-		Context("when the resource is not active", func() {
+		Context("when skip checking put-only resources", func() {
 			BeforeEach(func() {
-				_, err = dbConn.Exec(`UPDATE resources SET active = false`)
-				Expect(err).NotTo(HaveOccurred())
+				enableSkipPutOnlyResources = true
 			})
 
-			It("does not return the resource", func() {
-				Expect(resources).To(HaveLen(0))
-			})
-		})
-
-		Context("when the resource pipeline is paused", func() {
-			BeforeEach(func() {
-				_, err = dbConn.Exec(`UPDATE pipelines SET paused = true`)
-				Expect(err).NotTo(HaveOccurred())
+			It("not include put-only resources in return", func() {
+				Expect(resources).To(HaveLen(1))
+				Expect(resources[0].Name()).To(Equal("some-resource"))
 			})
 
-			It("does not return the resource", func() {
-				Expect(resources).To(HaveLen(0))
+			Context("when the resource is not active", func() {
+				BeforeEach(func() {
+					_, err = dbConn.Exec(`UPDATE resources SET active = false`)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("does not return the resource", func() {
+					Expect(resources).To(HaveLen(0))
+				})
+			})
+
+			Context("when the resource pipeline is paused", func() {
+				BeforeEach(func() {
+					_, err = dbConn.Exec(`UPDATE pipelines SET paused = true`)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("does not return the resource", func() {
+					Expect(resources).To(HaveLen(0))
+				})
 			})
 		})
 	})

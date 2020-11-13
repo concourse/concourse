@@ -55,6 +55,8 @@ type checkFactory struct {
 	defaultCheckTimeout             time.Duration
 	defaultCheckInterval            time.Duration
 	defaultWithWebhookCheckInterval time.Duration
+
+	enableSkipPutOnlyResources bool
 }
 
 type CheckDurations struct {
@@ -69,6 +71,7 @@ func NewCheckFactory(
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 	durations CheckDurations,
+	enableSkipPutOnlyResources bool,
 ) CheckFactory {
 	return &checkFactory{
 		conn:        conn,
@@ -82,6 +85,8 @@ func NewCheckFactory(
 		defaultCheckTimeout:             durations.Timeout,
 		defaultCheckInterval:            durations.Interval,
 		defaultWithWebhookCheckInterval: durations.IntervalWithWebhook,
+
+		enableSkipPutOnlyResources: enableSkipPutOnlyResources,
 	}
 }
 
@@ -141,7 +146,11 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 func (c *checkFactory) Resources() ([]Resource, error) {
 	var resources []Resource
 
-	rows, err := resourcesQuery.
+	sb := resourcesQuery
+	if c.enableSkipPutOnlyResources {
+		sb = sb.Join("(select DISTINCT(resource_id) FROM job_inputs) ji ON ji.resource_id = r.id")
+	}
+	rows, err := sb.
 		Where(sq.Eq{"p.paused": false}).
 		RunWith(c.conn).
 		Query()
