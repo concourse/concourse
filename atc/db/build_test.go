@@ -2473,6 +2473,29 @@ var _ = Describe("Build", func() {
 				Expect(reloaded).To(BeTrue())
 				Expect(retriggerBuild.InputsReady()).To(BeTrue())
 			})
+
+			Context("when the version becomes unavailable", func() {
+				BeforeEach(func() {
+					resourceConfigScope, err = resource.SetResourceConfig(atc.Source{"some": "new-source"}, atc.VersionedResourceTypes{})
+					Expect(err).ToNot(HaveOccurred())
+
+					err = resourceConfigScope.SaveVersions(nil, []atc.Version{
+						{"some": "new-version"},
+					})
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("fails to adopt", func() {
+					Expect(adoptFound).To(BeFalse())
+				})
+
+				It("aborts the build", func() {
+					reloaded, err := retriggerBuild.Reload()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reloaded).To(BeTrue())
+					Expect(retriggerBuild.IsAborted()).To(BeTrue())
+				})
+			})
 		})
 
 		Context("when the build to retrigger off of does not have inputs or pipes", func() {
