@@ -248,6 +248,7 @@ type RunCommand struct {
 		EnableRedactSecrets                  bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
 		EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears or a network error occurs"`
 		EnableAcrossStep                     bool `long:"enable-across-step" description:"Enable the experimental across step to be used in jobs. The API is subject to change."`
+		EnableSkipCheckPutOnlyResource       bool `long:"enable-skip-check-put-only-resource" description:"Enable not checking put-only resources. When this feature is on, put-only resource will not show version history on the UI."`
 	} `group:"Feature Flags"`
 
 	BaseResourceTypeDefaults flag.File `long:"base-resource-type-defaults" description:"Base resource type defaults"`
@@ -774,7 +775,14 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbContainerRepository := db.NewContainerRepository(dbConn)
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
+	dbCheckFactory := db.NewCheckFactory(
+		dbConn,
+		lockFactory,
+		secretManager,
+		cmd.varSourcePool,
+		cmd.GlobalResourceCheckTimeout,
+		cmd.FeatureFlags.EnableSkipCheckPutOnlyResource,
+	)
 	dbAccessTokenFactory := db.NewAccessTokenFactory(dbConn)
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
@@ -972,7 +980,14 @@ func (cmd *RunCommand) backendComponents(
 	)
 
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
+	dbCheckFactory := db.NewCheckFactory(
+		dbConn,
+		lockFactory,
+		secretManager,
+		cmd.varSourcePool,
+		cmd.GlobalResourceCheckTimeout,
+		cmd.FeatureFlags.EnableSkipCheckPutOnlyResource,
+	)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
 	dbCheckableCounter := db.NewCheckableCounter(dbConn)

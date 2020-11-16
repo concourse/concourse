@@ -62,6 +62,8 @@ type checkFactory struct {
 	secrets             creds.Secrets
 	varSourcePool       creds.VarSourcePool
 	defaultCheckTimeout time.Duration
+
+	enableSkipPutOnlyResources bool
 }
 
 func NewCheckFactory(
@@ -70,6 +72,7 @@ func NewCheckFactory(
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 	defaultCheckTimeout time.Duration,
+	enableSkipPutOnlyResources bool,
 ) CheckFactory {
 	return &checkFactory{
 		conn:        conn,
@@ -78,6 +81,8 @@ func NewCheckFactory(
 		secrets:             secrets,
 		varSourcePool:       varSourcePool,
 		defaultCheckTimeout: defaultCheckTimeout,
+
+		enableSkipPutOnlyResources: enableSkipPutOnlyResources,
 	}
 }
 
@@ -341,7 +346,11 @@ func (c *checkFactory) CreateCheck(
 func (c *checkFactory) Resources() ([]Resource, error) {
 	var resources []Resource
 
-	rows, err := resourcesQuery.
+	sb := resourcesQuery
+	if c.enableSkipPutOnlyResources {
+		sb = sb.Join("(select DISTINCT(resource_id) FROM job_inputs) ji ON ji.resource_id = r.id")
+	}
+	rows, err := sb.
 		Where(sq.Eq{"p.paused": false}).
 		RunWith(c.conn).
 		Query()
