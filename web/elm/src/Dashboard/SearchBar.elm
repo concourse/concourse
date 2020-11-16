@@ -258,6 +258,20 @@ view session ({ query, dropdown, pipelines } as params) =
                 |> Maybe.withDefault Dict.empty
                 |> Dict.values
                 |> List.all List.isEmpty
+
+        clearSearchButton =
+            if String.length query > 0 then
+                [ Html.div
+                    ([ id "search-clear"
+                     , onClick <| Click ClearSearchButton
+                     ]
+                        ++ Styles.searchClearButton
+                    )
+                    []
+                ]
+
+            else
+                []
     in
     if noPipelines then
         Html.text ""
@@ -281,26 +295,21 @@ view session ({ query, dropdown, pipelines } as params) =
     else
         Html.div
             (id "search-container" :: Styles.searchContainer session.screenSize)
-            ([ Html.input
+            (Html.input
                 ([ id searchInputId
-                 , placeholder "search"
+                 , placeholder "filter pipelines by name, status, or team"
                  , attribute "autocomplete" "off"
                  , value query
                  , onFocus FocusMsg
                  , onBlur BlurMsg
                  , onInput FilterMsg
                  ]
-                    ++ Styles.searchInput session.screenSize
+                    ++ Styles.searchInput
+                        session.screenSize
+                        (String.length query > 0)
                 )
                 []
-             , Html.div
-                ([ id "search-clear"
-                 , onClick <| Click ClearSearchButton
-                 ]
-                    ++ Styles.searchClearButton (String.length query > 0)
-                )
-                []
-             ]
+                :: clearSearchButton
                 ++ viewDropdownItems session params
             )
 
@@ -317,7 +326,7 @@ viewDropdownItems :
             , pipelines : Maybe (Dict String (List Pipeline))
         }
     -> List (Html Message)
-viewDropdownItems { screenSize } ({ dropdown } as model) =
+viewDropdownItems { screenSize } ({ dropdown, query } as model) =
     case dropdown of
         Hidden ->
             []
@@ -328,7 +337,9 @@ viewDropdownItems { screenSize } ({ dropdown } as model) =
                 dropdownItem idx text =
                     Html.li
                         (onMouseDown (FilterMsg text)
-                            :: Styles.dropdownItem (Just idx == selectedIdx)
+                            :: Styles.dropdownItem
+                                (Just idx == selectedIdx)
+                                (String.length query > 0)
                         )
                         [ Html.text text ]
             in

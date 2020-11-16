@@ -125,8 +125,8 @@ topBar isPaused =
             Colors.paused
 
         else
-            Colors.frame
-    , style "border-bottom" <| "1px solid " ++ Colors.frame
+            Colors.topBarBackground
+    , style "border-bottom" <| "1px solid " ++ Colors.border
     ]
 
 
@@ -185,6 +185,7 @@ breadcrumbItem clickable =
 
         else
             "default"
+    , style "color" Colors.white
     ]
 
 
@@ -226,7 +227,7 @@ type TooltipPosition
 
 pauseToggleTooltip : TooltipPosition -> List (Html.Attribute msg)
 pauseToggleTooltip ttp =
-    [ style "background-color" "#9b9b9b"
+    [ style "background-color" Colors.tooltipBackground
     , style "position" "absolute"
     , style
         (case ttp of

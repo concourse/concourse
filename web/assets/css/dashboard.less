@@ -59,7 +59,7 @@
   }
 
   .dashboard-team-header {
-    background: @base02;
+    background: @grey80;
     z-index: 2;
     opacity: 0.9;
     padding-top: (35px * @scale);
@@ -97,6 +97,26 @@
   min-width: 40px * @scale;
   height: 40px * @scale;
   background-repeat: no-repeat;
+}
+
+#search-input-field {
+  &::-webkit-input-placeholder { /* WebKit, Blink, Edge */
+    color: @grey30
+  }
+
+  &::-moz-placeholder { /* Mozilla Firefox 19+ */
+    color: @grey30;
+    opacity: 1;
+  }
+
+  &:-moz-placeholder { /* Mozilla Firefox 4 to 18 */
+    color: @grey30;
+    opacity: 1;
+  }
+
+  &:-ms-input-placeholder { /* Internet Explorer 10-11 */
+    color: @grey30;
+  }
 }
 
 [data-tooltip] {

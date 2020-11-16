@@ -341,6 +341,7 @@ footerView userState favoritedPipelines pipeline section now hovered existingJob
             Views.FavoritedIcon.view
                 { isFavorited = Set.member pipeline.id favoritedPipelines
                 , isHovered = HoverState.isHovered (PipelineCardFavoritedIcon section pipeline.id) hovered
+                , isSideBar = False
                 , domID = PipelineCardFavoritedIcon section pipeline.id
                 }
                 [ id <| Effects.toHtmlID <| PipelineCardFavoritedIcon section pipeline.id ]

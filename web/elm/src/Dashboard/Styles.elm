@@ -62,6 +62,7 @@ module Dashboard.Styles exposing
 
 import Application.Styles
 import Assets
+import ColorValues
 import Colors
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -179,7 +180,7 @@ noPipelineCardTextHd =
 
 noPipelineCardHeader : List (Html.Attribute msg)
 noPipelineCardHeader =
-    [ style "color" Colors.dashboardText
+    [ style "color" Colors.dashboardPipelineHeaderText
     , style "background-color" Colors.card
     , style "font-size" "1.5em"
     , style "letter-spacing" "0.1em"
@@ -191,7 +192,7 @@ noPipelineCardHeader =
 pipelineCardHeader : List (Html.Attribute msg)
 pipelineCardHeader =
     [ style "background-color" Colors.card
-    , style "color" Colors.dashboardText
+    , style "color" Colors.dashboardPipelineHeaderText
     , style "font-size" "1.5em"
     , style "letter-spacing" "0.1em"
     , style "padding" "12.5px"
@@ -242,7 +243,7 @@ cardFooter =
 
 previewPlaceholder : List (Html.Attribute msg)
 previewPlaceholder =
-    [ style "background-color" Colors.background
+    [ style "background-color" Colors.noPipelinesPlaceholderBackground
     , style "flex-grow" "1"
     ]
 
@@ -403,7 +404,7 @@ infoBar { hideLegend, screenSize } =
     , style "bottom" "0"
     , style "line-height" "35px"
     , style "padding" "7.5px 30px"
-    , style "background-color" Colors.frame
+    , style "background-color" Colors.infoBarBackground
     , style "width" "100%"
     , style "box-sizing" "border-box"
     , style "display" "flex"
@@ -464,7 +465,7 @@ showArchivedToggle : List (Html.Attribute msg)
 showArchivedToggle =
     [ style "margin-right" "10px"
     , style "padding-left" "10px"
-    , style "border-left" <| "1px solid " ++ Colors.background
+    , style "border-left" <| "1px solid " ++ Colors.showArchivedButtonBorder
     ]
 
 
@@ -541,6 +542,7 @@ welcomeCardBody : List (Html.Attribute msg)
 welcomeCardBody =
     [ style "font-size" "16px"
     , style "z-index" "2"
+    , style "color" Colors.welcomeCardText
     ]
 
 
@@ -609,8 +611,8 @@ searchContainer screenSize =
            )
 
 
-searchInput : ScreenSize -> List (Html.Attribute msg)
-searchInput screenSize =
+searchInput : ScreenSize -> Bool -> List (Html.Attribute msg)
+searchInput screenSize hasQuery =
     let
         widthStyles =
             case screenSize of
@@ -618,71 +620,83 @@ searchInput screenSize =
                     []
 
                 Desktop ->
-                    [ style "width" "220px" ]
+                    [ style "width" "251px" ]
 
                 BigDesktop ->
-                    [ style "width" "220px" ]
+                    [ style "width" "251px" ]
+
+        borderColor =
+            if hasQuery then
+                ColorValues.grey30
+
+            else
+                ColorValues.grey60
+
+        bgImage =
+            if hasQuery then
+                Just Assets.SearchIconWhite
+
+            else
+                Just Assets.SearchIconGrey
     in
-    [ style "background-color" "transparent"
+    [ style "background-color" ColorValues.grey90
     , style "background-image" <|
         Assets.backgroundImage <|
-            Just Assets.SearchIcon
+            bgImage
     , style "background-repeat" "no-repeat"
     , style "background-position" "12px 8px"
     , style "height" "30px"
     , style "min-height" "30px"
     , style "padding" "0 42px"
-    , style "border" <| "1px solid " ++ Colors.inputOutline
-    , style "color" Colors.dashboardText
-    , style "font-size" "1.15em"
+    , style "border" <| "1px solid " ++ borderColor
+    , style "color" Colors.white
+    , style "font-size" "12px"
     , style "font-family" Views.Styles.fontFamilyDefault
     , style "outline" "0"
     ]
         ++ widthStyles
 
 
-searchClearButton : Bool -> List (Html.Attribute msg)
-searchClearButton active =
-    let
-        opacityValue =
-            if active then
-                "1"
-
-            else
-                "0.2"
-    in
+searchClearButton : List (Html.Attribute msg)
+searchClearButton =
     [ style "background-image" <|
         Assets.backgroundImage <|
             Just Assets.CloseIcon
     , style "background-repeat" "no-repeat"
     , style "background-position" "10px 10px"
     , style "border" "0"
-    , style "color" Colors.inputOutline
+    , style "color" "transparent"
     , style "position" "absolute"
     , style "right" "0"
     , style "padding" "17px"
-    , style "opacity" opacityValue
     ]
 
 
-dropdownItem : Bool -> List (Html.Attribute msg)
-dropdownItem isSelected =
+dropdownItem : Bool -> Bool -> List (Html.Attribute msg)
+dropdownItem isSelected hasQuery =
     let
         coloration =
             if isSelected then
-                [ style "background-color" Colors.frame
-                , style "color" Colors.dashboardText
+                [ style "background-color" Colors.dropdownItemSelectedBackground
+                , style "color" Colors.dropdownItemSelectedText
                 ]
 
             else
                 [ style "background-color" Colors.dropdownFaded
                 , style "color" Colors.dropdownUnselectedText
                 ]
+
+        borderColor =
+            if hasQuery then
+                ColorValues.grey30
+
+            else
+                ColorValues.grey60
     in
     [ style "padding" "0 42px"
     , style "line-height" "30px"
     , style "list-style-type" "none"
-    , style "border" <| "1px solid " ++ Colors.inputOutline
+    , style "border" <| "1px solid " ++ borderColor
     , style "margin-top" "-1px"
     , style "font-size" "1.15em"
     , style "cursor" "pointer"
@@ -734,7 +748,7 @@ searchButton : List (Html.Attribute msg)
 searchButton =
     [ style "background-image" <|
         Assets.backgroundImage <|
-            Just Assets.SearchIcon
+            Just Assets.SearchIconGrey
     , style "background-repeat" "no-repeat"
     , style "background-position" "12px 8px"
     , style "height" "32px"
@@ -780,6 +794,7 @@ visibilityTooltip =
     [ style "background-color" Colors.tooltipBackground
     , style "white-space" "nowrap"
     , style "padding" "2.5px"
+    , style "color" Colors.tooltipText
     ]
 
 
@@ -842,7 +857,7 @@ jobPreviewLink =
 clusterName : List (Html.Attribute msg)
 clusterName =
     [ style "font-size" "21px"
-    , style "color" "#ffffff"
+    , style "color" Colors.white
     , style "letter-spacing" "0.1em"
     , style "margin-left" "10px"
     ]

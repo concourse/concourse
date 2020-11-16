@@ -2,6 +2,7 @@ module SideBar.Styles exposing
     ( Background(..)
     , FontWeight(..)
     , Opacity(..)
+    , SidebarElementColor(..)
     , collapseIcon
     , column
     , hamburgerIcon
@@ -9,7 +10,7 @@ module SideBar.Styles exposing
     , iconGroup
     , opacityAttr
     , pipeline
-    , pipelineFavourite
+    , pipelineFavorite
     , pipelineIcon
     , pipelineName
     , sectionHeader
@@ -18,6 +19,7 @@ module SideBar.Styles exposing
     , starPadding
     , starWidth
     , team
+    , teamColorAttr
     , teamHeader
     , teamIcon
     , teamName
@@ -57,8 +59,8 @@ tooltipOffset =
 
 sideBar : { r | width : Float } -> List (Html.Attribute msg)
 sideBar { width } =
-    [ style "border-right" <| "1px solid " ++ Colors.frame
-    , style "background-color" Colors.sideBar
+    [ style "border-right" <| "1px solid " ++ Colors.border
+    , style "background-color" Colors.sideBarBackground
     , style "width" <| String.fromFloat width ++ "px"
     , style "overflow-y" "auto"
     , style "height" "100%"
@@ -141,8 +143,39 @@ opacityAttr opacity =
                 "1"
 
 
-teamIcon : Opacity -> Html.Html msg
-teamIcon opacity =
+type SidebarElementColor
+    = Grey
+    | LightGrey
+    | White
+
+
+teamColorAttr : SidebarElementColor -> Html.Attribute msg
+teamColorAttr teamColor =
+    style "color" <|
+        case teamColor of
+            White ->
+                Colors.white
+
+            _ ->
+                Colors.sideBarTextBright
+
+
+pipelineColorAttr : SidebarElementColor -> Html.Attribute msg
+pipelineColorAttr pipelineColor =
+    style "color" <|
+        case pipelineColor of
+            Grey ->
+                Colors.sideBarTextDim
+
+            LightGrey ->
+                Colors.sideBarTextBright
+
+            White ->
+                Colors.white
+
+
+teamIcon : Html.Html msg
+teamIcon =
     Icon.icon
         { sizePx = 18
         , image = Assets.PeopleIcon
@@ -150,26 +183,24 @@ teamIcon opacity =
         [ style "margin-left" "8px"
         , style "background-size" "contain"
         , style "flex-shrink" "0"
-        , opacityAttr opacity
         ]
 
 
 collapseIcon : { opacity : Opacity, asset : Assets.Asset } -> Html.Html msg
-collapseIcon { opacity, asset } =
+collapseIcon { asset } =
     Icon.icon
         { sizePx = 10
         , image = asset
         }
         [ style "margin-left" "10px"
         , style "flex-shrink" "0"
-        , opacityAttr opacity
         ]
 
 
 teamName :
-    { a | opacity : Opacity }
+    { a | teamColor : SidebarElementColor }
     -> List (Html.Attribute msg)
-teamName { opacity } =
+teamName { teamColor } =
     [ style "font-size" "14px"
     , style "padding" "5px 2.5px"
     , style "margin-left" "5px"
@@ -177,7 +208,8 @@ teamName { opacity } =
     , style "overflow" "hidden"
     , style "text-overflow" "ellipsis"
     , style "flex-grow" "1"
-    , opacityAttr opacity
+    , style "color" Colors.sideBarTextBright
+    , teamColorAttr teamColor
     , fontWeightAttr Bold
     ]
 
@@ -212,16 +244,16 @@ fontWeightAttr weight =
     style "font-weight" <|
         case weight of
             Default ->
-                Views.Styles.fontWeightDefault
+                Views.Styles.fontWeightLight
 
             Bold ->
                 Views.Styles.fontWeightBold
 
 
 pipelineName :
-    { a | opacity : Opacity, weight : FontWeight }
+    { a | pipelineColor : SidebarElementColor, weight : FontWeight }
     -> List (Html.Attribute msg)
-pipelineName { opacity, weight } =
+pipelineName { pipelineColor, weight } =
     [ style "font-size" "14px"
     , style "white-space" "nowrap"
     , style "overflow" "hidden"
@@ -229,8 +261,7 @@ pipelineName { opacity, weight } =
     , style "padding" "5px 2.5px"
     , style "margin-left" "5px"
     , style "flex-grow" "1"
-    , style "color" "#FFFFFF"
-    , opacityAttr opacity
+    , pipelineColorAttr pipelineColor
     , fontWeightAttr weight
     ]
 
@@ -239,7 +270,7 @@ hamburgerMenu :
     { isSideBarOpen : Bool, isClickable : Bool }
     -> List (Html.Attribute msg)
 hamburgerMenu { isSideBarOpen, isClickable } =
-    [ style "border-right" <| "1px solid " ++ Colors.frame
+    [ style "border-right" <| "1px solid " ++ Colors.border
     , style "opacity" "1"
     , style "cursor" <|
         if isClickable then
@@ -249,10 +280,10 @@ hamburgerMenu { isSideBarOpen, isClickable } =
             "default"
     , style "background-color" <|
         if isSideBarOpen then
-            Colors.sideBar
+            Colors.sideBarBackground
 
         else
-            Colors.frame
+            Colors.hamburgerClosedBackground
     ]
 
 
@@ -281,8 +312,8 @@ pipeline { background } =
     ]
 
 
-pipelineIcon : { asset : Assets.Asset, opacity : Opacity } -> List (Html.Attribute msg)
-pipelineIcon { asset, opacity } =
+pipelineIcon : Assets.Asset -> List (Html.Attribute msg)
+pipelineIcon asset =
     [ style "background-image" <|
         Assets.backgroundImage <|
             Just asset
@@ -293,16 +324,16 @@ pipelineIcon { asset, opacity } =
     , style "background-position" "center"
     , style "margin-left" "28px"
     , style "flex-shrink" "0"
-    , opacityAttr opacity
     ]
 
 
-pipelineFavourite : { opacity : Opacity, filled : Bool } -> List (Html.Attribute msg)
-pipelineFavourite fav =
+pipelineFavorite : { filled : Bool, isBright : Bool } -> List (Html.Attribute msg)
+pipelineFavorite fav =
     [ style "background-image" <|
         Assets.backgroundImage <|
             Just <|
-                Assets.FavoritedToggleIcon fav.filled
+                Assets.FavoritedToggleIcon
+                    { isFavorited = fav.filled, isHovered = fav.isBright, isSideBar = True }
     , style "background-repeat" "no-repeat"
     , style "background-position" "50% 50%"
     , style "height" <| String.fromFloat starWidth ++ "px"
@@ -312,7 +343,6 @@ pipelineFavourite fav =
     , style "padding" <| "0 " ++ String.fromFloat starPadding ++ "px"
     , style "flex-shrink" "0"
     , style "cursor" "pointer"
-    , opacityAttr fav.opacity
     , Attr.attribute "aria-label" "Favorite Icon"
     ]
 
@@ -330,7 +360,8 @@ tooltip top left =
 
 tooltipBody : List (Html.Attribute msg)
 tooltipBody =
-    [ style "background-color" Colors.frame
+    [ style "background-color" Colors.tooltipBackground
+    , style "color" Colors.tooltipText
     , style "padding-right" "10px"
     , style "font-size" "12px"
     , style "display" "flex"

@@ -37,22 +37,19 @@ all =
                             |> viewPipeline { defaultState | active = True, hovered = True }
                             |> .background
                             |> Expect.equal Styles.Dark
-                , test "pipeline icon is bright" <|
+                , test "pipeline icon is white" <|
                     \_ ->
                         pipeline
                             |> viewPipeline { defaultState | active = True, hovered = True }
                             |> .icon
-                            |> Expect.equal
-                                { asset = Assets.BreadcrumbIcon Assets.PipelineComponent
-                                , opacity = Styles.Bright
-                                }
+                            |> Expect.equal Assets.PipelineIconWhite
                 , describe "when not favorited"
-                    [ test "displays a dim unfilled star icon" <|
+                    [ test "displays a bright unfilled star icon when hovered" <|
                         \_ ->
                             pipeline
                                 |> viewPipeline { defaultState | active = True, hovered = True }
                                 |> .starIcon
-                                |> Expect.equal { opacity = Styles.Dim, filled = False }
+                                |> Expect.equal { filled = False, isBright = True }
                     ]
                 , describe "when favorited"
                     [ test "displays a bright filled star icon" <|
@@ -65,7 +62,7 @@ all =
                                         , favorited = True
                                     }
                                 |> .starIcon
-                                |> Expect.equal { opacity = Styles.Bright, filled = True }
+                                |> Expect.equal { filled = True, isBright = True }
                     ]
                 ]
             , describe "when unhovered"
@@ -80,10 +77,28 @@ all =
                         pipeline
                             |> viewPipeline { defaultState | active = True, hovered = False }
                             |> .icon
-                            |> Expect.equal
-                                { asset = Assets.BreadcrumbIcon Assets.PipelineComponent
-                                , opacity = Styles.Bright
-                                }
+                            |> Expect.equal Assets.PipelineIconLightGrey
+                , describe "when unfavorited"
+                    [ test "displays a dim unfilled star icon" <|
+                        \_ ->
+                            pipeline
+                                |> viewPipeline { defaultState | active = True, hovered = False }
+                                |> .starIcon
+                                |> Expect.equal { filled = False, isBright = True }
+                    ]
+                , describe "when favorited"
+                    [ test "displays a bright filled star icon" <|
+                        \_ ->
+                            pipeline
+                                |> viewPipeline
+                                    { defaultState
+                                        | active = True
+                                        , hovered = True
+                                        , favorited = True
+                                    }
+                                |> .starIcon
+                                |> Expect.equal { filled = True, isBright = True }
+                    ]
                 ]
             , test "font weight is bold" <|
                 \_ ->
@@ -101,24 +116,21 @@ all =
                             |> viewPipeline { defaultState | active = False, hovered = True }
                             |> .background
                             |> Expect.equal Styles.Light
-                , test "pipeline icon is bright" <|
+                , test "pipeline icon is white" <|
                     \_ ->
                         pipeline
                             |> viewPipeline { defaultState | active = False, hovered = True }
                             |> .icon
-                            |> Expect.equal
-                                { asset = Assets.BreadcrumbIcon Assets.PipelineComponent
-                                , opacity = Styles.Bright
-                                }
+                            |> Expect.equal Assets.PipelineIconWhite
                 ]
             , describe "when unhovered"
-                [ test "pipeline name is dim" <|
+                [ test "pipeline name is grey" <|
                     \_ ->
                         pipeline
                             |> viewPipeline { defaultState | active = False, hovered = False }
                             |> .name
-                            |> .opacity
-                            |> Expect.equal Styles.Dim
+                            |> .pipelineColor
+                            |> Expect.equal Styles.Grey
                 , test "pipeline has no background" <|
                     \_ ->
                         pipeline
@@ -130,10 +142,7 @@ all =
                         pipeline
                             |> viewPipeline { defaultState | active = False, hovered = False }
                             |> .icon
-                            |> Expect.equal
-                                { asset = Assets.BreadcrumbIcon Assets.PipelineComponent
-                                , opacity = Styles.Dim
-                                }
+                            |> Expect.equal Assets.PipelineIconGrey
                 ]
             , test "font weight is default" <|
                 \_ ->
@@ -150,7 +159,6 @@ all =
                         |> Data.withArchived True
                         |> viewPipeline defaultState
                         |> .icon
-                        |> .asset
                         |> Expect.equal Assets.ArchivedPipelineIcon
             ]
         , describe "when in all pipelines section"

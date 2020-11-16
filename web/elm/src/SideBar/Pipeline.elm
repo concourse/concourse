@@ -56,29 +56,30 @@ pipeline params p =
             Set.member p.id params.favoritedPipelines
     in
     { icon =
-        { asset =
-            if p.archived then
-                Assets.ArchivedPipelineIcon
+        if p.archived then
+            Assets.ArchivedPipelineIcon
 
-            else
-                Assets.BreadcrumbIcon Assets.PipelineComponent
-        , opacity =
-            if isCurrent || isHovered then
-                Styles.Bright
+        else if isHovered then
+            Assets.PipelineIconWhite
 
-            else
-                Styles.Dim
-        }
+        else if isCurrent then
+            Assets.PipelineIconLightGrey
+
+        else
+            Assets.PipelineIconGrey
     , name =
-        { opacity =
-            if isCurrent || isHovered then
-                Styles.Bright
+        { pipelineColor =
+            if isHovered then
+                Styles.White
+
+            else if isCurrent then
+                Styles.LightGrey
 
             else
-                Styles.Dim
+                Styles.Grey
         , text = p.name
         , weight =
-            if isCurrent then
+            if isCurrent || isHovered then
                 Styles.Bold
 
             else
@@ -98,13 +99,8 @@ pipeline params p =
             Routes.Pipeline { id = pipelineId, groups = [] }
     , domID = domID
     , starIcon =
-        { opacity =
-            if isFavorited then
-                Styles.Bright
-
-            else
-                Styles.Dim
-        , filled = isFavorited
+        { filled = isFavorited
+        , isBright = isHovered || isCurrent
         }
     , id = p.id
     }
