@@ -248,6 +248,7 @@ type RunCommand struct {
 		EnableRedactSecrets                  bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
 		EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears or a network error occurs"`
 		EnableAcrossStep                     bool `long:"enable-across-step" description:"Enable the experimental across step to be used in jobs. The API is subject to change."`
+		EnableSkipCheckingNotInUseResources  bool `long:"enable-skip-checking-not-in-use-resources" description:"Enable not checking resources not in use. This feature improves performance by avoiding unnecessary checks but it has some side effects: 1) not-in-use resources will not show version history on the UI; 2) custom resource types of put-only resources will no longer be auto checked. These side effects will be solved in 7.x."`
 	} `group:"Feature Flags"`
 
 	BaseResourceTypeDefaults flag.File `long:"base-resource-type-defaults" description:"Base resource type defaults"`
@@ -774,7 +775,14 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbContainerRepository := db.NewContainerRepository(dbConn)
 	gcContainerDestroyer := gc.NewDestroyer(logger, dbContainerRepository, dbVolumeRepository)
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
+	dbCheckFactory := db.NewCheckFactory(
+		dbConn,
+		lockFactory,
+		secretManager,
+		cmd.varSourcePool,
+		cmd.GlobalResourceCheckTimeout,
+		cmd.FeatureFlags.EnableSkipCheckingNotInUseResources,
+	)
 	dbAccessTokenFactory := db.NewAccessTokenFactory(dbConn)
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
@@ -972,7 +980,14 @@ func (cmd *RunCommand) backendComponents(
 	)
 
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
-	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, cmd.GlobalResourceCheckTimeout)
+	dbCheckFactory := db.NewCheckFactory(
+		dbConn,
+		lockFactory,
+		secretManager,
+		cmd.varSourcePool,
+		cmd.GlobalResourceCheckTimeout,
+		cmd.FeatureFlags.EnableSkipCheckingNotInUseResources,
+	)
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
 	dbCheckableCounter := db.NewCheckableCounter(dbConn)
