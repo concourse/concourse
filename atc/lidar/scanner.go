@@ -97,9 +97,9 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 
 	if !created {
 		logger.Debug("check-already-exists")
+	} else {
+		metric.Metrics.ChecksEnqueued.Inc()
 	}
-
-	metric.Metrics.ChecksEnqueued.Inc()
 
 	return
 }
