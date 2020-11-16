@@ -63,7 +63,7 @@ type checkFactory struct {
 	varSourcePool       creds.VarSourcePool
 	defaultCheckTimeout time.Duration
 
-	enableSkipPutOnlyResources bool
+	enableSkipNotInUseResources bool
 }
 
 func NewCheckFactory(
@@ -82,7 +82,7 @@ func NewCheckFactory(
 		varSourcePool:       varSourcePool,
 		defaultCheckTimeout: defaultCheckTimeout,
 
-		enableSkipPutOnlyResources: enableSkipPutOnlyResources,
+		enableSkipNotInUseResources: enableSkipPutOnlyResources,
 	}
 }
 
@@ -347,7 +347,7 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 	var resources []Resource
 
 	sb := resourcesQuery
-	if c.enableSkipPutOnlyResources {
+	if c.enableSkipNotInUseResources {
 		sb = sb.Join("(select DISTINCT(resource_id) FROM job_inputs) ji ON ji.resource_id = r.id")
 	}
 	rows, err := sb.

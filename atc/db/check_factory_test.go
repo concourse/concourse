@@ -15,10 +15,10 @@ import (
 var _ = Describe("CheckFactory", func() {
 
 	var (
-		err                        error
-		resourceConfigScope        db.ResourceConfigScope
-		metadata                   db.CheckMetadata
-		enableSkipPutOnlyResources bool
+		err                         error
+		resourceConfigScope         db.ResourceConfigScope
+		metadata                    db.CheckMetadata
+		enableSkipNotInUseResources bool
 	)
 
 	BeforeEach(func() {
@@ -46,7 +46,7 @@ var _ = Describe("CheckFactory", func() {
 	})
 
 	JustBeforeEach(func() {
-		checkFactory = db.NewCheckFactory(dbConn, lockFactory, fakeSecrets, fakeVarSourcePool, time.Minute, enableSkipPutOnlyResources)
+		checkFactory = db.NewCheckFactory(dbConn, lockFactory, fakeSecrets, fakeVarSourcePool, time.Minute, enableSkipNotInUseResources)
 	})
 
 	Describe("Check", func() {
@@ -561,7 +561,7 @@ var _ = Describe("CheckFactory", func() {
 
 		Context("when not skip checking put-only resources", func() {
 			BeforeEach(func() {
-				enableSkipPutOnlyResources = false
+				enableSkipNotInUseResources = false
 			})
 
 			It("include resources in return", func() {
@@ -594,7 +594,7 @@ var _ = Describe("CheckFactory", func() {
 
 		Context("when skip checking put-only resources", func() {
 			BeforeEach(func() {
-				enableSkipPutOnlyResources = true
+				enableSkipNotInUseResources = true
 			})
 
 			It("include resources in return", func() {
