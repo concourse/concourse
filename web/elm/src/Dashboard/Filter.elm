@@ -151,10 +151,14 @@ parseFilters =
 
 filter : Parser Filter
 filter =
-    oneOf
-        [ succeed (Filter True) |. spaces |. symbol "-" |= groupFilter |. spaces
-        , succeed (Filter False) |. spaces |= groupFilter |. spaces
-        ]
+    succeed Filter
+        |. spaces
+        |= oneOf
+            [ symbol "-" |> map (always True)
+            , succeed False
+            ]
+        |= groupFilter
+        |. spaces
 
 
 type GroupFilter

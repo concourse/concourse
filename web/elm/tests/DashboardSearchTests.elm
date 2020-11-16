@@ -239,6 +239,23 @@ hasData =
                 >> queryView
                 >> Query.findAll [ class "dashboard-team-group" ]
                 >> Query.count (Expect.equal 3)
+        , it "ignores leading spaces in the query" <|
+            Application.handleCallback
+                (Callback.AllTeamsFetched <|
+                    Ok
+                        [ Concourse.Team 1 "main"
+                        , Concourse.Team 2 "team2"
+                        ]
+                )
+                >> Tuple.first
+                >> Application.update
+                    (Msgs.Update <|
+                        Message.Message.FilterMsg " team: main"
+                    )
+                >> Tuple.first
+                >> queryView
+                >> Query.findAll [ class "dashboard-team-group" ]
+                >> Query.count (Expect.equal 1)
         , it "centers 'no results' message when typing a string with no hits" <|
             Application.handleCallback
                 (Callback.AllTeamsFetched <|
