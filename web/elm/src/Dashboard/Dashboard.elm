@@ -11,6 +11,7 @@ module Dashboard.Dashboard exposing
     )
 
 import Application.Models exposing (Session)
+import Colors
 import Concourse exposing (hyphenNotation)
 import Concourse.BuildStatus
 import Concourse.Cli as Cli
@@ -1188,6 +1189,7 @@ loginInstruction userState =
                 , Html.a
                     [ href "/login"
                     , style "text-decoration" "underline"
+                    , style "color" Colors.welcomeCardText
                     ]
                     [ Html.text "here" ]
                 ]

@@ -2,16 +2,13 @@ package lidar
 
 import (
 	"context"
-	"fmt"
-	"os"
-	"runtime/debug"
 	"strconv"
 	"sync"
 
-	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/tracing"
 )
 
@@ -53,17 +50,9 @@ func (s *scanner) Run(ctx context.Context) error {
 		waitGroup.Add(1)
 
 		go func(resource db.Resource, resourceTypes db.ResourceTypes) {
-			loggerData := lager.Data{
-				"resource_id":   strconv.Itoa(resource.ID()),
-				"resource_name": resource.Name(),
-				"pipeline_name": resource.PipelineName(),
-				"team_name":     resource.TeamName(),
-			}
 			defer func() {
-				if r := recover(); r != nil {
-					err = fmt.Errorf("panic in scanner run %s: %v", loggerData, r)
-
-					fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
+				err := util.DumpPanic(recover(), "scanning resource %d", resource.ID())
+				if err != nil {
 					logger.Error("panic-in-scanner-run", err)
 				}
 			}()
@@ -108,9 +97,9 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 
 	if !created {
 		logger.Debug("check-already-exists")
+	} else {
+		metric.Metrics.ChecksEnqueued.Inc()
 	}
-
-	metric.Metrics.ChecksEnqueued.Inc()
 
 	return
 }

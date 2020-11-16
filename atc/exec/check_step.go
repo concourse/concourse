@@ -310,7 +310,7 @@ func (step *CheckStep) runCheck(
 }
 
 func (step *CheckStep) containerOwner(resourceConfig db.ResourceConfig) db.ContainerOwner {
-	if step.plan.Resource == "" && step.plan.ResourceType == "" {
+	if step.plan.Resource == "" {
 		return db.NewBuildStepContainerOwner(
 			step.metadata.BuildID,
 			step.planID,

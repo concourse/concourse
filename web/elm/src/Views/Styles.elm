@@ -22,6 +22,7 @@ module Views.Styles exposing
     )
 
 import Assets
+import ColorValues
 import Colors
 import Html
 import Html.Attributes exposing (style)
@@ -127,8 +128,8 @@ topBar isPaused =
             Colors.paused
 
         else
-            Colors.frame
-    , style "border-bottom" <| "1px solid " ++ Colors.frame
+            Colors.topBarBackground
+    , style "border-bottom" <| "1px solid " ++ Colors.border
     ]
 
 
@@ -149,7 +150,7 @@ concourseLogo =
 clusterName : List (Html.Attribute msg)
 clusterName =
     [ style "font-size" "21px"
-    , style "color" "#ffffff"
+    , style "color" Colors.white
     , style "letter-spacing" "0.1em"
     , style "margin-left" "10px"
     ]
@@ -196,6 +197,7 @@ breadcrumbItem clickable =
 
         else
             "default"
+    , style "color" Colors.white
     ]
 
 
@@ -237,7 +239,7 @@ type TooltipPosition
 
 pauseToggleTooltip : TooltipPosition -> List (Html.Attribute msg)
 pauseToggleTooltip ttp =
-    [ style "background-color" "#9b9b9b"
+    [ style "background-color" Colors.tooltipBackground
     , style "position" "absolute"
     , style
         (case ttp of
@@ -265,11 +267,11 @@ separator topMargin =
         []
 
 
-instanceGroupBadge : List (Html.Attribute msg)
-instanceGroupBadge =
-    [ style "background" "#f2f2f2"
+instanceGroupBadge : String -> List (Html.Attribute msg)
+instanceGroupBadge backgroundColor =
+    [ style "background-color" backgroundColor
     , style "border-radius" "4px"
-    , style "color" "#222"
+    , style "color" ColorValues.grey90
     , style "display" "flex"
     , style "letter-spacing" "0"
     , style "margin-right" "8px"

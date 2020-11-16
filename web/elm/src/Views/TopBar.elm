@@ -5,6 +5,7 @@ module Views.TopBar exposing
 
 import Application.Models exposing (Session)
 import Assets
+import ColorValues
 import Concourse exposing (hyphenNotation)
 import Dict
 import Html exposing (Html)
@@ -137,7 +138,7 @@ pipelineBreadcrumbs session pipeline =
                    )
                 :: Styles.breadcrumbItem True
             )
-            [ InstanceGroupBadge.view numPipelines
+            [ InstanceGroupBadge.view ColorValues.white numPipelines
             , Html.text pipeline.name
             ]
         , breadcrumbSeparator

@@ -252,9 +252,12 @@ type RunCommand struct {
 		EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears or a network error occurs"`
 		EnableAcrossStep                     bool `long:"enable-across-step" description:"Enable the experimental across step to be used in jobs. The API is subject to change."`
 		EnablePipelineInstances              bool `long:"enable-pipeline-instances" description:"Enable pipeline instances"`
+		EnableP2PVolumeStreaming             bool `long:"enable-p2p-volume-streaming" description:"Enable P2P volume streaming"`
 	} `group:"Feature Flags"`
 
 	BaseResourceTypeDefaults flag.File `long:"base-resource-type-defaults" description:"Base resource type defaults"`
+
+	P2pVolumeStreamingTimeout time.Duration `long:"p2p-volume-streaming-timeout" description:"Timeout value of p2p volume streaming" default:"15m"`
 }
 
 type Migration struct {
@@ -763,7 +766,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	)
 
 	pool := worker.NewPool(workerProvider)
-	workerClient := worker.NewClient(pool, workerProvider, compressionLib, workerAvailabilityPollingInterval, workerStatusPublishInterval)
+	workerClient := worker.NewClient(pool, workerProvider, compressionLib, workerAvailabilityPollingInterval, workerStatusPublishInterval, cmd.FeatureFlags.EnableP2PVolumeStreaming, cmd.P2pVolumeStreamingTimeout)
 
 	credsManagers := cmd.CredentialManagers
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
@@ -1018,7 +1021,10 @@ func (cmd *RunCommand) backendComponents(
 		workerProvider,
 		compressionLib,
 		workerAvailabilityPollingInterval,
-		workerStatusPublishInterval)
+		workerStatusPublishInterval,
+		cmd.FeatureFlags.EnableP2PVolumeStreaming,
+		cmd.P2pVolumeStreamingTimeout,
+	)
 
 	defaultLimits, err := cmd.parseDefaultLimits()
 	if err != nil {

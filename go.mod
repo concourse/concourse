@@ -10,7 +10,6 @@ require (
 	github.com/DataDog/datadog-go v3.2.0+incompatible
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v0.11.0
 	github.com/Masterminds/squirrel v1.1.0
-	github.com/Microsoft/hcsshim v0.8.7 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a
 	github.com/aws/aws-sdk-go v1.34.9
@@ -18,11 +17,11 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2 // indirect
-	github.com/concourse/baggageclaim v1.8.0
-	github.com/concourse/dex v0.0.0-20200730150203-821b48abfd88
+	github.com/concourse/baggageclaim v1.9.0
+	github.com/concourse/dex v0.2.1
 	github.com/concourse/flag v1.1.0
 	github.com/concourse/go-archive v1.0.1
-	github.com/concourse/retryhttp v1.0.2
+	github.com/concourse/retryhttp v1.1.0
 	github.com/containerd/cgroups v0.0.0-20191220161829-06e718085901 // indirect
 	github.com/containerd/containerd v1.3.4
 	github.com/containerd/continuity v0.0.0-20191214063359-1097c8bae83b // indirect
@@ -55,6 +54,7 @@ require (
 	github.com/kr/pty v1.1.8
 	github.com/krishicks/yaml-patch v0.0.10
 	github.com/lib/pq v1.3.0
+	github.com/markbates/pkger v0.17.1
 	github.com/mattn/go-colorable v0.1.7
 	github.com/mattn/go-isatty v0.0.12
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.2.3
@@ -64,7 +64,6 @@ require (
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/onsi/ginkgo v1.13.0
 	github.com/onsi/gomega v1.10.1
-	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/opencontainers/runtime-spec v1.0.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/peterhellberg/link v1.0.0
@@ -96,7 +95,6 @@ require (
 	golang.org/x/tools v0.0.0-20201001104356-43ebab892c4c // indirect
 	google.golang.org/api v0.32.0 // indirect
 	google.golang.org/grpc v1.32.0
-	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.18.8

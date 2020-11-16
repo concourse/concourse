@@ -1,7 +1,7 @@
 @import (reference) "_vars.less";
 
 svg {
-  .node rect { fill: @base00; }
+  .node rect { fill: @grey100; }
 
   .node.job {
     &.pending rect { fill: @grey-primary; }
@@ -34,7 +34,7 @@ svg {
   }
 
   .edge { stroke: @grey-secondary; }
-  .edge.pending { stroke: @base04; }
+  .edge.pending { stroke: @grey50; }
   .edge.succeeded { stroke: @green-primary; }
   .edge.failed { stroke: @red-primary; }
   .edge.errored { stroke: @amber-primary; }
@@ -83,7 +83,7 @@ svg.pipeline-graph {
 
   .node.constrained-input {
     text, use {
-      fill: @base04;
+      fill: @grey50;
     }
 
     &.pinned {

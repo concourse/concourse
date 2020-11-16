@@ -1,5 +1,6 @@
 module Dashboard.InstanceGroup exposing (cardView, hdCardView)
 
+import ColorValues
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Dashboard.Group.Models exposing (Pipeline)
@@ -49,7 +50,7 @@ hdCardView { pipeline, pipelines, resourceError, dashboardView, query } =
     <|
         [ Html.div
             Styles.instanceGroupCardBodyHd
-            [ InstanceGroupBadge.view <| List.length (pipeline :: pipelines)
+            [ InstanceGroupBadge.view ColorValues.grey20 <| List.length (pipeline :: pipelines)
             , Html.div
                 (class "dashboardhd-group-name"
                     :: Styles.instanceGroupCardNameHd
@@ -115,7 +116,7 @@ headerView section dashboardView query pipeline pipelines resourceError headerHe
         ]
         [ Html.div
             (class "card-header" :: Styles.instanceGroupCardHeader headerHeight)
-            [ InstanceGroupBadge.view <| List.length (pipeline :: pipelines)
+            [ InstanceGroupBadge.view ColorValues.grey20 <| List.length (pipeline :: pipelines)
             , Html.div
                 (class "dashboard-group-name"
                     :: Styles.instanceGroupName

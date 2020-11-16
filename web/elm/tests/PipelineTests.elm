@@ -3,6 +3,8 @@ module PipelineTests exposing (all)
 import Application.Application as Application
 import Assets
 import Char
+import ColorValues
+import Colors
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse
 import Concourse.Cli exposing (Cli(..))
@@ -117,7 +119,7 @@ all =
                                 |> Query.find [ id "groups-bar" ]
                                 |> Query.has
                                     [ style "background-color" "#2b2a2a"
-                                    , style "color" "#ffffff"
+                                    , style "color" "#FFFFFF"
                                     ]
                     , test "lays out groups in a horizontal list" <|
                         \_ ->
@@ -491,7 +493,7 @@ all =
                 , it "top bar has a dark grey background" <|
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
-                        >> Query.has [ style "background-color" "#1e1d1d" ]
+                        >> Query.has [ style "background-color" ColorValues.grey100 ]
                 , it "top bar lays out contents horizontally" <|
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
@@ -669,9 +671,7 @@ all =
                         Query.has
                             (iconSelector
                                 { size = "20px"
-                                , image =
-                                    Assets.FavoritedToggleIcon
-                                        False
+                                , image = Assets.FavoritedToggleIcon { isFavorited = False, isHovered = False, isSideBar = False }
                                 }
                             )
                 in
@@ -686,25 +686,23 @@ all =
                     , unhoveredSelector =
                         { description = "faded star icon"
                         , selector =
-                            [ style "opacity" "0.5"
-                            , style "cursor" "pointer"
+                            [ style "cursor" "pointer"
                             , style "margin" "17px"
                             ]
                                 ++ iconSelector
                                     { size = "20px"
-                                    , image = Assets.FavoritedToggleIcon False
+                                    , image = Assets.FavoritedToggleIcon { isFavorited = False, isHovered = False, isSideBar = False }
                                     }
                         }
                     , hoveredSelector =
                         { description = "bright star icon"
                         , selector =
-                            [ style "opacity" "1"
-                            , style "cursor" "pointer"
+                            [ style "cursor" "pointer"
                             , style "margin" "17px"
                             ]
                                 ++ iconSelector
                                     { size = "20px"
-                                    , image = Assets.FavoritedToggleIcon False
+                                    , image = Assets.FavoritedToggleIcon { isFavorited = False, isHovered = True, isSideBar = False }
                                     }
                         }
                     , hoverable = Message.Message.TopBarFavoritedIcon -1

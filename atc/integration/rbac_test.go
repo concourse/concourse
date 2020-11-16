@@ -65,8 +65,7 @@ jobs:
 					ccClient := login(atcURL, "v-user", "v-user")
 
 					_, _, _, err := ccClient.Team(team.Name).CreateOrUpdatePipelineConfig(atc.PipelineRef{Name: "pipeline-new"}, "0", pipelineData, false)
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(Equal("forbidden"))
+					Expect(err).To(MatchError(ContainSubstring("forbidden")))
 				})
 			})
 
@@ -83,8 +82,7 @@ jobs:
 					ccClient := login(atcURL, "po-user", "po-user")
 
 					_, _, _, err := ccClient.Team(team.Name).CreateOrUpdatePipelineConfig(atc.PipelineRef{Name: "pipeline-new"}, "0", pipelineData, false)
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(Equal("forbidden"))
+					Expect(err).To(MatchError(ContainSubstring("forbidden")))
 				})
 			})
 

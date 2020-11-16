@@ -2,6 +2,7 @@ module InstanceGroupCardTests exposing (all)
 
 import Application.Application as Application
 import Assets
+import ColorValues
 import Colors
 import Common exposing (defineHoverBehaviour, isColorWithStripes)
 import Concourse exposing (Job, JsonValue(..), Pipeline)
@@ -150,8 +151,8 @@ all =
                         |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
                         |> Common.queryView
                         |> findHeader
-                        |> Query.has [ style "background-color" darkGrey ]
-            , test "has larger, spaced-out white text" <|
+                        |> Query.has [ style "background-color" ColorValues.grey90 ]
+            , test "has larger, spaced-out light-grey text" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
@@ -160,7 +161,7 @@ all =
                         |> Query.has
                             [ style "font-size" "1.5em"
                             , style "letter-spacing" "0.1em"
-                            , style "color" white
+                            , style "color" ColorValues.grey20
                             , containing [ text "group" ]
                             ]
             , test "text does not overflow or wrap" <|

@@ -2,6 +2,7 @@ module WelcomeCardTests exposing (all, hasWelcomeCard)
 
 import Application.Application as Application
 import Assets
+import ColorValues
 import Common exposing (defineHoverBehaviour)
 import Concourse
 import Concourse.Cli as Cli
@@ -149,7 +150,7 @@ hasWelcomeCard setup =
     , test "has dark grey background" <|
         subject
             >> Query.has
-                [ style "background-color" darkGrey ]
+                [ style "background-color" ColorValues.grey90 ]
     , test "is inset from the page" <|
         subject
             >> Query.has [ style "margin" "25px" ]

@@ -1,5 +1,6 @@
 module TagTests exposing (all, tag, white)
 
+import ColorValues
 import Dashboard.Group.Tag as Tag
 import Expect exposing (Expectation)
 import Fuzz
@@ -34,7 +35,7 @@ all =
                     >> Query.has (List.map (\( k, v ) -> style k v) styles)
         in
         [ fuzz tag "has a white border" <|
-            hasStyle [ ( "border", "1px solid " ++ white ) ]
+            hasStyle [ ( "border", "1px solid " ++ ColorValues.white ) ]
         , fuzz tag "is an inline-block" <|
             hasStyle [ ( "display", "inline-block" ) ]
         , fuzz tag "has very small font" <|

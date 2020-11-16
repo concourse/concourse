@@ -11,7 +11,7 @@ import (
 var ErrUnauthorized = internal.ErrUnauthorized
 
 // ErrForbidden is returned for 403 response codes.
-var ErrForbidden = internal.ErrForbidden
+var ErrForbidden = internal.ForbiddenError{}
 
 // GenericError is used when no more specific error is available, i.e. a
 // generic 500 Internal Server Error response with a message in the body.

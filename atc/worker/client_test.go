@@ -49,7 +49,7 @@ var _ = Describe("Client", func() {
 		workerPolling := 1 * time.Second
 		workerStatus := 2 * time.Second
 
-		client = worker.NewClient(fakePool, fakeProvider, fakeCompression, workerPolling, workerStatus)
+		client = worker.NewClient(fakePool, fakeProvider, fakeCompression, workerPolling, workerStatus, false, 15*time.Minute)
 	})
 
 	Describe("FindContainer", func() {
@@ -322,7 +322,7 @@ var _ = Describe("Client", func() {
 				It("locates the volume and assigns it as an ImageArtifactSource", func() {
 					_, _, _, _, containerSpec := fakeWorker.FindOrCreateContainerArgsForCall(0)
 					imageSpec := containerSpec.ImageSpec
-					Expect(imageSpec.ImageArtifactSource).To(Equal(worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume, fakeCompression)))
+					Expect(imageSpec.ImageArtifactSource).To(Equal(worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume, fakeCompression, false, 15*time.Minute)))
 				})
 			})
 
@@ -551,7 +551,7 @@ var _ = Describe("Client", func() {
 					Expect(fakeChosenWorker.FetchCallCount()).To(Equal(1))
 					_, _, _, _, actualContainerSpec, _, _, _, _, _ := fakeChosenWorker.FetchArgsForCall(0)
 					imageSpec := actualContainerSpec.ImageSpec
-					Expect(imageSpec.ImageArtifactSource).To(Equal(worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume, fakeCompression)))
+					Expect(imageSpec.ImageArtifactSource).To(Equal(worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume, fakeCompression, false, 15*time.Minute)))
 				})
 			})
 		})
@@ -823,7 +823,7 @@ var _ = Describe("Client", func() {
 			It("locates the volume and assigns it as an ImageArtifactSource", func() {
 				_, _, _, _, containerSpec := fakeWorker.FindOrCreateContainerArgsForCall(0)
 				imageSpec := containerSpec.ImageSpec
-				Expect(imageSpec.ImageArtifactSource).To(Equal(worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume, fakeCompression)))
+				Expect(imageSpec.ImageArtifactSource).To(Equal(worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume, fakeCompression, false, 15*time.Minute)))
 			})
 		})
 
@@ -1508,7 +1508,7 @@ var _ = Describe("Client", func() {
 				It("locates the volume and assigns it as an ImageArtifactSource", func() {
 					_, _, _, _, containerSpec := fakeChosenWorker.FindOrCreateContainerArgsForCall(0)
 					imageSpec := containerSpec.ImageSpec
-					Expect(imageSpec.ImageArtifactSource).To(Equal(worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume, fakeCompression)))
+					Expect(imageSpec.ImageArtifactSource).To(Equal(worker.NewStreamableArtifactSource(fakeArtifact, fakeVolume, fakeCompression, false, 15*time.Minute)))
 				})
 			})
 		})

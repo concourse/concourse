@@ -36,13 +36,13 @@ all =
                         viewInstanceGroup { defaultState | active = True, hovered = True }
                             |> .background
                             |> Expect.equal Styles.Dark
-                , test "badge is bright" <|
+                , test "badge is white" <|
                     \_ ->
                         viewInstanceGroup { defaultState | active = True, hovered = True }
                             |> .badge
                             |> Expect.equal
                                 { count = 3
-                                , opacity = Styles.Bright
+                                , color = Styles.White
                                 }
                 ]
             ]
@@ -56,8 +56,8 @@ all =
                 \_ ->
                     viewInstanceGroup { defaultState | active = True, hovered = False }
                         |> .badge
-                        |> .opacity
-                        |> Expect.equal Styles.Bright
+                        |> .color
+                        |> Expect.equal Styles.LightGrey
             ]
         , test "font weight is bold" <|
             \_ ->
@@ -72,20 +72,20 @@ all =
                         viewInstanceGroup { defaultState | active = False, hovered = True }
                             |> .background
                             |> Expect.equal Styles.Light
-                , test "badge is bright" <|
+                , test "badge is white" <|
                     \_ ->
                         viewInstanceGroup { defaultState | active = False, hovered = True }
                             |> .badge
-                            |> .opacity
-                            |> Expect.equal Styles.Bright
+                            |> .color
+                            |> Expect.equal Styles.White
                 ]
             , describe "when unhovered"
                 [ test "name is dim" <|
                     \_ ->
                         viewInstanceGroup { defaultState | active = False, hovered = False }
                             |> .name
-                            |> .opacity
-                            |> Expect.equal Styles.Dim
+                            |> .color
+                            |> Expect.equal Styles.Grey
                 , test "no background" <|
                     \_ ->
                         viewInstanceGroup { defaultState | active = False, hovered = False }
@@ -95,8 +95,8 @@ all =
                     \_ ->
                         viewInstanceGroup { defaultState | active = False, hovered = False }
                             |> .badge
-                            |> .opacity
-                            |> Expect.equal Styles.Dim
+                            |> .color
+                            |> Expect.equal Styles.Grey
                 ]
             , test "font weight is default" <|
                 \_ ->

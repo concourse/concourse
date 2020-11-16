@@ -1,6 +1,7 @@
 package hijacker
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -18,7 +19,7 @@ import (
 )
 
 type ProcessIO struct {
-	In  io.Reader
+	In  chan atc.HijackInput
 	Out io.Writer
 	Err io.Writer
 }
@@ -43,10 +44,10 @@ func (h *Hijacker) SetHeartbeatInterval(interval time.Duration) {
 	h.interval = interval
 }
 
-func (h *Hijacker) Hijack(teamName, handle string, spec atc.HijackProcessSpec, pio ProcessIO) (int, error) {
+func (h *Hijacker) Hijack(ctx context.Context, teamName, handle string, spec atc.HijackProcessSpec, pio ProcessIO) (int, bool, error) {
 	url, header, err := h.hijackRequestParts(teamName, handle)
 	if err != nil {
-		return -1, err
+		return -1, false, err
 	}
 
 	dialer := websocket.Dialer{
@@ -55,31 +56,25 @@ func (h *Hijacker) Hijack(teamName, handle string, spec atc.HijackProcessSpec, p
 	}
 	conn, response, err := dialer.Dial(url, header)
 	if err != nil {
-		return -1, fmt.Errorf("%s %w", response.Status, err)
+		return -1, false, fmt.Errorf("%s %w", response.Status, err)
 	}
 
 	defer conn.Close()
 
 	err = conn.WriteJSON(spec)
 	if err != nil {
-		return -1, err
+		return -1, false, err
 	}
 
-	inputs := make(chan atc.HijackInput, 1)
-	finished := make(chan struct{}, 1)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
-	go h.monitorTTYSize(inputs, finished)
-	go func() {
-		io.Copy(&stdinWriter{inputs}, pio.In)
-		inputs <- atc.HijackInput{Closed: true}
-	}()
-	go h.handleInput(conn, inputs, finished)
+	go h.monitorTTYSize(ctx, pio.In)
+	go h.handleInput(ctx, conn, pio.In)
 
-	exitStatus := h.handleOutput(conn, pio)
+	exitStatus, exeNotFound := h.handleOutput(conn, pio)
 
-	close(finished)
-
-	return exitStatus, nil
+	return exitStatus, exeNotFound, nil
 }
 
 func (h *Hijacker) hijackRequestParts(teamName, handle string) (string, http.Header, error) {
@@ -108,8 +103,9 @@ func (h *Hijacker) hijackRequestParts(teamName, handle string) (string, http.Hea
 	return wsUrl.String(), hijackReq.Header, nil
 }
 
-func (h *Hijacker) handleOutput(conn *websocket.Conn, pio ProcessIO) int {
+func (h *Hijacker) handleOutput(conn *websocket.Conn, pio ProcessIO) (int, bool) {
 	var exitStatus int
+	var exeNotFound bool
 	for {
 		var output atc.HijackOutput
 		err := conn.ReadJSON(&output)
@@ -122,6 +118,8 @@ func (h *Hijacker) handleOutput(conn *websocket.Conn, pio ProcessIO) int {
 
 		if output.ExitStatus != nil {
 			exitStatus = *output.ExitStatus
+		} else if output.ExecutableNotFound {
+			exeNotFound = true
 		} else if len(output.Error) > 0 {
 			fmt.Fprintf(ui.Stderr, "%s\n", ansi.Color(output.Error, "red+b"))
 			exitStatus = 255
@@ -132,10 +130,10 @@ func (h *Hijacker) handleOutput(conn *websocket.Conn, pio ProcessIO) int {
 		}
 	}
 
-	return exitStatus
+	return exitStatus, exeNotFound
 }
 
-func (h *Hijacker) handleInput(conn *websocket.Conn, inputs <-chan atc.HijackInput, finished chan struct{}) {
+func (h *Hijacker) handleInput(ctx context.Context, conn *websocket.Conn, inputs <-chan atc.HijackInput) {
 	ticker := time.NewTicker(h.interval)
 	defer ticker.Stop()
 
@@ -152,13 +150,13 @@ func (h *Hijacker) handleInput(conn *websocket.Conn, inputs <-chan atc.HijackInp
 			if err != nil {
 				fmt.Fprintf(ui.Stderr, "failed to send heartbeat: %s", err.Error())
 			}
-		case <-finished:
+		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func (h *Hijacker) monitorTTYSize(inputs chan<- atc.HijackInput, finished chan struct{}) {
+func (h *Hijacker) monitorTTYSize(ctx context.Context, inputs chan<- atc.HijackInput) {
 	resized := pty.ResizeNotifier()
 
 	for {
@@ -175,22 +173,10 @@ func (h *Hijacker) monitorTTYSize(inputs chan<- atc.HijackInput, finished chan s
 					},
 				}
 			}
-		case <-finished:
+		case <-ctx.Done():
 			return
 		}
 	}
-}
-
-type stdinWriter struct {
-	inputs chan<- atc.HijackInput
-}
-
-func (w *stdinWriter) Write(d []byte) (int, error) {
-	w.inputs <- atc.HijackInput{
-		Stdin: d,
-	}
-
-	return len(d), nil
 }
 
 var websocketSchemeMap = map[string]string{

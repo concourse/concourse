@@ -151,7 +151,7 @@ all =
                                               , color = Colors.text
                                               }
                                             ]
-                                      , background = Colors.sideBar
+                                      , background = Colors.pinMenuBackground
                                       , paddingPx = 10
                                       , hoverable = True
                                       , onClick =
@@ -198,7 +198,7 @@ all =
                                               , color = Colors.text
                                               }
                                             ]
-                                      , background = Colors.sideBarActive
+                                      , background = Colors.pinMenuHover
                                       , paddingPx = 10
                                       , hoverable = True
                                       , onClick =

@@ -3,6 +3,7 @@ module SideBarFeature exposing (all)
 import Application.Application as Application
 import Assets
 import Base64
+import ColorValues
 import Colors
 import Common
     exposing
@@ -503,7 +504,7 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineIcon
-                >> then_ iSeeItIsDim
+                >> then_ iSeeThePipelineIconIsDim
         , test "pipeline link has padding" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
@@ -539,12 +540,12 @@ hasSideBar iAmLookingAtThePage =
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipeline
                 >> then_ iSeeItHasAValidPipelineId
-        , test "pipeline icon is bright when pipeline link is hovered" <|
+        , test "pipeline icon is white when pipeline link is hovered" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> given iHoveredThePipelineLink
                 >> when iAmLookingAtTheFirstPipelineIcon
-                >> then_ iSeeItIsBright
+                >> then_ iSeeThePipelineIconIsWhite
         , defineHoverBehaviour
             { name = "pipeline"
             , setup =
@@ -556,14 +557,14 @@ hasSideBar iAmLookingAtThePage =
             , unhoveredSelector =
                 { description = "grey"
                 , selector =
-                    [ style "opacity" "0.5" ]
+                    [ style "color" ColorValues.grey30 ]
                 }
             , hoverable = Message.SideBarPipeline AllPipelinesSection Data.pipelineId
             , hoveredSelector =
-                { description = "light background"
+                { description = "dark background and light text"
                 , selector =
-                    [ style "opacity" "1"
-                    , style "background-color" Colors.sideBarHovered
+                    [ style "background-color" Colors.sideBarHovered
+                    , style "color" ColorValues.white
                     ]
                 }
             }
@@ -648,14 +649,14 @@ hasSideBar iAmLookingAtThePage =
                 , unhoveredSelector =
                     { description = "grey"
                     , selector =
-                        [ style "opacity" "0.5" ]
+                        [ style "color" ColorValues.grey30 ]
                     }
                 , hoverable = Message.SideBarInstanceGroup AllPipelinesSection "team" "group"
                 , hoveredSelector =
-                    { description = "light background"
+                    { description = "dark background and light text"
                     , selector =
-                        [ style "opacity" "1"
-                        , style "background-color" Colors.sideBarHovered
+                        [ style "background-color" Colors.sideBarHovered
+                        , style "color" ColorValues.white
                         ]
                     }
                 }
@@ -712,42 +713,42 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
             >> given myBrowserFetchedPipelinesFromMultipleTeams
             >> when iAmLookingAtTheOtherPipelineList
             >> then_ iSeeNoPipelineNames
-    , test "current team has bright team icon" <|
+    , test "current team has team icon" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
             >> given iClickedTheHamburgerIcon
             >> when iAmLookingAtTheOtherTeamIcon
-            >> then_ iSeeItIsBright
-    , test "current team name is bright" <|
+            >> then_ iSeeTheTeamIcon
+    , test "current team name is white" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
             >> given iClickedTheHamburgerIcon
             >> given iClickedTheOtherPipelineGroup
             >> when iAmLookingAtTheOtherTeamName
-            >> then_ iSeeItIsBright
+            >> then_ iSeeTheTextIsWhite
     , test "current pipeline name has grey background" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
             >> given iClickedTheHamburgerIcon
             >> when iAmLookingAtTheOtherPipeline
-            >> then_ iSeeADarkGreyBackground
+            >> then_ iSeeADarkBackground
     , test "current pipeline has bright pipeline icon" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
             >> given iClickedTheHamburgerIcon
             >> when iAmLookingAtTheOtherPipelineIcon
-            >> then_ iSeeItIsBright
+            >> then_ iSeeThePipelineIconIsBright
     , test "current pipeline name is bright" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
             >> given iClickedTheHamburgerIcon
             >> when iAmLookingAtTheOtherPipeline
-            >> then_ iSeeItIsBright
+            >> then_ iSeeTheTextIsBright
     , test "pipeline with same name on other team has invisible border" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
@@ -774,7 +775,7 @@ hasCurrentInstanceGroupInSideBar =
             >> given myBrowserFetchedAnInstanceGroup
             >> given iClickedTheHamburgerIcon
             >> when iAmLookingAtTheFirstInstanceGroup
-            >> then_ iSeeADarkGreyBackground
+            >> then_ iSeeADarkBackground
     ]
 
 
@@ -1054,11 +1055,11 @@ iClickedTheHamburgerIcon =
 
 
 iSeeALighterBackground =
-    Query.has [ style "background-color" "#333333" ]
+    Query.has [ style "background-color" ColorValues.grey90 ]
 
 
 iSeeADarkerBackground =
-    Query.has [ style "background-color" Colors.frame ]
+    Query.has [ style "background-color" ColorValues.grey100 ]
 
 
 iSeeTwoChildren =
@@ -1103,11 +1104,11 @@ iAmLookingAtTheSideBar =
 
 
 iSeeADividingLineBelow =
-    Query.has [ style "border-bottom" <| "1px solid " ++ Colors.frame ]
+    Query.has [ style "border-bottom" <| "1px solid " ++ ColorValues.black ]
 
 
 iSeeADividingLineToTheRight =
-    Query.has [ style "border-right" <| "1px solid " ++ Colors.frame ]
+    Query.has [ style "border-right" <| "1px solid " ++ ColorValues.black ]
 
 
 iSeeItIs275PxWide =
@@ -1254,7 +1255,7 @@ iSeeUnfilledStarIcon =
     Query.has
         (DashboardTests.iconSelector
             { size = "18px"
-            , image = Assets.FavoritedToggleIcon False
+            , image = Assets.FavoritedToggleIcon { isFavorited = False, isHovered = False, isSideBar = True }
             }
         )
 
@@ -1263,7 +1264,7 @@ iSeeFilledStarIcon =
     Query.has
         (DashboardTests.iconSelector
             { size = "18px"
-            , image = Assets.FavoritedToggleIcon True
+            , image = Assets.FavoritedToggleIcon { isFavorited = True, isHovered = False, isSideBar = True }
             }
         )
 
@@ -1298,23 +1299,77 @@ iAmLookingAtThePreviousPipelineStar =
 
 iSeeAMinusIcon =
     Query.has
-        (DashboardTests.iconSelector
+        (iconSelector
             { size = "10px"
             , image = Assets.MinusIcon
             }
         )
 
 
+iSeeThePipelineIconIsDim =
+    Query.has
+        [ style "background-image" <|
+            Assets.backgroundImage <|
+                Just Assets.PipelineIconGrey
+        ]
+
+
+iSeeThePipelineIconIsBright =
+    Query.has
+        [ style "background-image" <|
+            Assets.backgroundImage <|
+                Just Assets.PipelineIconLightGrey
+        ]
+
+
+iSeeThePipelineIconIsWhite =
+    Query.has
+        [ style "background-image" <|
+            Assets.backgroundImage <|
+                Just Assets.PipelineIconWhite
+        ]
+
+
+iSeeTheFavoritedIconIsDim =
+    Query.has
+        [ style "background-image" <|
+            Assets.backgroundImage <|
+                Just <|
+                    Assets.FavoritedToggleIcon { isFavorited = False, isHovered = False, isSideBar = True }
+        ]
+
+
+iSeeTheFavoritedIconIsBright =
+    Query.has
+        [ style "background-image" <|
+            Assets.backgroundImage <|
+                Just <|
+                    Assets.FavoritedToggleIcon { isFavorited = False, isHovered = True, isSideBar = True }
+        ]
+
+
+iSeeTheTeamIcon =
+    Query.has
+        [ style "background-image" <|
+            Assets.backgroundImage <|
+                Just Assets.PeopleIcon
+        ]
+
+
+iSeeTheTextIsWhite =
+    Query.has [ style "color" ColorValues.white ]
+
+
+iSeeTheTextIsBright =
+    Query.has [ style "color" ColorValues.grey20 ]
+
+
 iSeeItIsBright =
     Query.has [ style "opacity" "1" ]
 
 
-iSeeItIsGreyedOut =
-    Query.has [ style "opacity" "0.7" ]
-
-
 iSeeItIsDim =
-    Query.has [ style "opacity" "0.5" ]
+    Query.has [ style "background-color" ColorValues.grey30 ]
 
 
 iAmLookingAtThePipelineList =
@@ -1468,7 +1523,7 @@ iSeeAPipelineIcon =
     Query.has
         [ style "background-image" <|
             Assets.backgroundImage <|
-                Just (Assets.BreadcrumbIcon Assets.PipelineComponent)
+                Just Assets.PipelineIconGrey
         , style "background-repeat" "no-repeat"
         , style "height" "18px"
         , style "width" "18px"
@@ -1581,14 +1636,9 @@ iAmLookingAtTheHamburgerIcon =
 
 iSeeADarkDividingLineToTheRight =
     Query.has
-        [ style "border-right" <| "1px solid " ++ Colors.frame
+        [ style "border-right" <| "1px solid " ++ ColorValues.black
         , style "opacity" "1"
         ]
-
-
-iSeeAWhiteDividingLineToTheRight =
-    Query.has
-        [ style "border-right" <| "1px solid " ++ Colors.pausedTopbarSeparator ]
 
 
 itIsHoverable domID =
@@ -1847,7 +1897,7 @@ iAmLookingAtTheOtherTeamIcon =
         >> Query.children []
         >> Query.first
         >> Query.children []
-        >> Query.first
+        >> Query.index 1
 
 
 iAmLookingAtTheOtherPipeline =
@@ -2058,8 +2108,8 @@ iSeeAGreyBackground =
     Query.has [ style "background-color" "#353434" ]
 
 
-iSeeADarkGreyBackground =
-    Query.has [ style "background-color" "#272727" ]
+iSeeADarkBackground =
+    Query.has [ style "background-color" ColorValues.grey100 ]
 
 
 iSeeItStretches =

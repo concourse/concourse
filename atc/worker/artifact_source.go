@@ -2,8 +2,10 @@ package worker
 
 import (
 	"archive/tar"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"context"
 	"io"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/compression"
@@ -39,20 +41,26 @@ type StreamableArtifactSource interface {
 }
 
 type artifactSource struct {
-	artifact    runtime.Artifact
-	volume      Volume
-	compression compression.Compression
+	artifact            runtime.Artifact
+	volume              Volume
+	compression         compression.Compression
+	enabledP2pStreaming bool
+	p2pStreamingTimeout time.Duration
 }
 
 func NewStreamableArtifactSource(
 	artifact runtime.Artifact,
 	volume Volume,
 	compression compression.Compression,
+	enabledP2pStreaming bool,
+	p2pStreamingTimeout time.Duration,
 ) StreamableArtifactSource {
 	return &artifactSource{
-		artifact:    artifact,
-		volume:      volume,
-		compression: compression,
+		artifact:            artifact,
+		volume:              volume,
+		compression:         compression,
+		enabledP2pStreaming: enabledP2pStreaming,
+		p2pStreamingTimeout: p2pStreamingTimeout,
 	}
 }
 
@@ -60,9 +68,32 @@ func (source *artifactSource) StreamTo(
 	ctx context.Context,
 	destination ArtifactDestination,
 ) error {
+	logger := lagerctx.FromContext(ctx).Session("stream-to")
+	logger.Info("start")
+	defer logger.Info("end")
+
 	ctx, span := tracing.StartSpan(ctx, "artifactSource.StreamTo", nil)
 	defer span.End()
 
+	var err error
+	if !source.enabledP2pStreaming {
+		err = source.streamTo(ctx, destination)
+	} else {
+		err = source.p2pStreamTo(ctx, destination)
+	}
+
+	// Inc counter if no error occurred.
+	if err == nil {
+		metric.Metrics.VolumesStreamed.Inc()
+	}
+
+	return err
+}
+
+func (source *artifactSource) streamTo(
+	ctx context.Context,
+	destination ArtifactDestination,
+) error {
 	_, outSpan := tracing.StartSpan(ctx, "volume.StreamOut", tracing.Attrs{
 		"origin-volume": source.volume.Handle(),
 		"origin-worker": source.volume.WorkerName(),
@@ -77,14 +108,36 @@ func (source *artifactSource) StreamTo(
 
 	defer out.Close()
 
-	err = destination.StreamIn(ctx, ".", source.compression.Encoding(), out)
+	return destination.StreamIn(ctx, ".", source.compression.Encoding(), out)
+}
 
-	// Inc counter if no error occurred.
-	if err == nil {
-		metric.Metrics.VolumesStreamed.Inc()
+func (source *artifactSource) p2pStreamTo(
+	ctx context.Context,
+	destination ArtifactDestination,
+) error {
+	getCtx, getCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer getCancel()
+	streamInUrl, err := destination.GetStreamInP2pUrl(getCtx, ".")
+	if err != nil {
+		return err
 	}
 
-	return err
+	select {
+	case <-ctx.Done():
+		return context.Canceled
+	default:
+	}
+
+	_, outSpan := tracing.StartSpan(ctx, "volume.P2pStreamOut", tracing.Attrs{
+		"origin-volume": source.volume.Handle(),
+		"origin-worker": source.volume.WorkerName(),
+		"stream-in-url": streamInUrl,
+	})
+	defer outSpan.End()
+
+	putCtx, putCancel := context.WithTimeout(ctx, source.p2pStreamingTimeout)
+	defer putCancel()
+	return source.volume.StreamP2pOut(putCtx, ".", streamInUrl, source.compression.Encoding())
 }
 
 func (source *artifactSource) StreamFile(

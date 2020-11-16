@@ -53,7 +53,7 @@ favoritedIcon =
     [ style "border-left" <|
         "1px solid "
             ++ Colors.background
-    , style "background-color" Colors.frame
+    , style "background-color" Colors.topBarBackground
     ]
 
 
@@ -62,7 +62,7 @@ pauseToggle =
     [ style "border-left" <|
         "1px solid "
             ++ Colors.background
-    , style "background-color" Colors.frame
+    , style "background-color" Colors.topBarBackground
     ]
 
 

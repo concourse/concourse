@@ -29,6 +29,7 @@ module DashboardTests exposing
 
 import Application.Application as Application
 import Assets
+import ColorValues
 import Common
     exposing
         ( defineHoverBehaviour
@@ -432,7 +433,7 @@ all =
                         , style "align-items" "center"
                         , containing
                             [ style "font-size" "21px"
-                            , style "color" "#ffffff"
+                            , style "color" ColorValues.white
                             , style "letter-spacing" "0.1em"
                             , style "margin-left" "10px"
                             , containing [ text "foobar" ]
@@ -1142,7 +1143,7 @@ all =
                             , style "padding" "7.5px 30px"
                             , style "position" "fixed"
                             , style "bottom" "0"
-                            , style "background-color" almostBlack
+                            , style "background-color" ColorValues.grey100
                             , style "width" "100%"
                             , style "box-sizing" "border-box"
                             ]
@@ -1293,7 +1294,7 @@ all =
                             |> Query.find [ id "legend" ]
                             |> Query.children []
                             |> Query.index -2
-                            |> Query.has [ style "color" menuGrey ]
+                            |> Query.has [ style "color" ColorValues.grey40 ]
                 , test "the legend separator centers contents vertically" <|
                     \_ ->
                         whenOnDashboard { highDensity = False }
@@ -1373,7 +1374,7 @@ all =
                                 [ style "text-transform" "uppercase"
                                 , style "display" "flex"
                                 , style "align-items" "center"
-                                , style "color" menuGrey
+                                , style "color" ColorValues.grey40
                                 ]
                 , test "legend items have 20px space between them" <|
                     \_ ->
@@ -1470,7 +1471,7 @@ all =
                     , test "displays the label using a grey color" <|
                         \_ ->
                             hdToggle
-                                |> Query.has [ style "color" menuGrey ]
+                                |> Query.has [ style "color" ColorValues.grey40 ]
                     , test "label text is all caps" <|
                         \_ ->
                             hdToggle
@@ -1676,7 +1677,7 @@ all =
                 , test "displays info in a grey color" <|
                     \_ ->
                         info
-                            |> Query.has [ style "color" menuGrey ]
+                            |> Query.has [ style "color" ColorValues.grey40 ]
                 , test "displays text slightly larger" <|
                     \_ ->
                         info

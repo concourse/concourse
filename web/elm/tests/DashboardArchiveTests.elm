@@ -73,7 +73,7 @@ all =
                     setup "/"
                         |> Query.find toggleSwitch
                         |> Query.has
-                            [ style "border-left" <| "1px solid " ++ Colors.background
+                            [ style "border-left" <| "1px solid " ++ Colors.showArchivedButtonBorder
                             , style "padding-left" "10px"
                             ]
             , describe "when not enabled" <|

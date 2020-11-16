@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -171,6 +172,12 @@ func (command *HijackCommand) Execute([]string) error {
 
 	path, args := remoteCommand(command.PositionalArgs.Command)
 
+	someShell := false
+	if path == "" {
+		path = "bash"
+		someShell = true
+	}
+
 	spec := atc.HijackProcessSpec{
 		Path: path,
 		Args: args,
@@ -200,15 +207,28 @@ func (command *HijackCommand) Execute([]string) error {
 			in = os.Stdin
 		}
 
+		inputs := make(chan atc.HijackInput, 1)
+		go func() {
+			io.Copy(&stdinWriter{inputs}, in)
+			inputs <- atc.HijackInput{Closed: true}
+		}()
+
 		io := hijacker.ProcessIO{
-			In:  in,
+			In:  inputs,
 			Out: os.Stdout,
 			Err: os.Stderr,
 		}
 
+		ctx := context.Background()
 		h := hijacker.New(target.TLSConfig(), reqGenerator, target.Token())
+		result, exeNotFound, err := h.Hijack(ctx, team.Name(), chosenContainer.ID, spec, io)
 
-		return h.Hijack(team.Name(), chosenContainer.ID, spec, io)
+		if exeNotFound && someShell {
+			spec.Path = "sh"
+			os.Stderr.WriteString("\rCouldn't find \"bash\" on container, retrying with \"sh\"\n\r")
+			result, exeNotFound, err = h.Hijack(ctx, team.Name(), chosenContainer.ID, spec, io)
+		}
+		return result, err
 	}()
 
 	if err != nil {
@@ -341,7 +361,7 @@ func remoteCommand(argv []string) (string, []string) {
 
 	switch len(argv) {
 	case 0:
-		path = "bash"
+		path = ""
 	case 1:
 		path = argv[0]
 	default:
@@ -441,4 +461,16 @@ func locateContainer(client concourse.Client, fingerprint *containerFingerprint)
 	}
 
 	return locator.locate(fingerprint)
+}
+
+type stdinWriter struct {
+	inputs chan<- atc.HijackInput
+}
+
+func (w *stdinWriter) Write(d []byte) (int, error) {
+	w.inputs <- atc.HijackInput{
+		Stdin: d,
+	}
+
+	return len(d), nil
 }

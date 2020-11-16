@@ -19,7 +19,7 @@ type Asset
     | ChevronRight
     | ToggleSwitch Bool
     | VisibilityToggleIcon Bool
-    | FavoritedToggleIcon Bool
+    | FavoritedToggleIcon { isFavorited : Bool, isHovered : Bool, isSideBar : Bool }
     | BuildFavicon (Maybe BuildStatus)
     | PinIconWhite
     | PinIconGrey
@@ -54,12 +54,16 @@ type Asset
     | MessageIcon
     | HamburgerMenuIcon
     | PeopleIcon
+    | PipelineIconGrey
+    | PipelineIconLightGrey
+    | PipelineIconWhite
     | PlusIcon
     | MinusIcon
     | PlayIcon
     | PauseIcon
     | PencilIcon
-    | SearchIcon
+    | SearchIconWhite
+    | SearchIconGrey
     | CloseIcon
 
 
@@ -141,11 +145,17 @@ toPath asset =
             in
             basePath ++ [ "baseline-visibility" ++ imageName ++ ".svg" ]
 
-        FavoritedToggleIcon isFavorited ->
+        FavoritedToggleIcon { isFavorited, isHovered, isSideBar } ->
             let
                 imageName =
                     if isFavorited then
                         "-filled"
+
+                    else if isHovered then
+                        "-unfilled-white"
+
+                    else if isSideBar then
+                        "-unfilled-bright"
 
                     else
                         "-unfilled"
@@ -183,7 +193,7 @@ toPath asset =
                 imageName =
                     case component of
                         PipelineComponent ->
-                            "pipeline"
+                            "pipeline-white"
 
                         JobComponent ->
                             "job"
@@ -295,6 +305,15 @@ toPath asset =
         PeopleIcon ->
             basePath ++ [ "baseline-people.svg" ]
 
+        PipelineIconGrey ->
+            basePath ++ [ "ic-breadcrumb-pipeline-grey.svg" ]
+
+        PipelineIconLightGrey ->
+            basePath ++ [ "ic-breadcrumb-pipeline-lightgrey.svg" ]
+
+        PipelineIconWhite ->
+            basePath ++ [ "ic-breadcrumb-pipeline-white.svg" ]
+
         PlusIcon ->
             basePath ++ [ "ic-plus.svg" ]
 
@@ -307,8 +326,11 @@ toPath asset =
         PauseIcon ->
             basePath ++ [ "ic-pause-white.svg" ]
 
-        SearchIcon ->
+        SearchIconWhite ->
             basePath ++ [ "ic-search-white.svg" ]
+
+        SearchIconGrey ->
+            basePath ++ [ "ic-search-grey.svg" ]
 
         CloseIcon ->
             basePath ++ [ "ic-close-white.svg" ]

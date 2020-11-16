@@ -2,6 +2,7 @@ package builds_test
 
 import (
 	"context"
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -11,9 +12,14 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/enginefakes"
+	"github.com/concourse/concourse/atc/util"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
+
+func init() {
+	util.PanicSink = ioutil.Discard
+}
 
 type TrackerSuite struct {
 	suite.Suite
@@ -64,12 +70,15 @@ func (s *TrackerSuite) TestTrackRunsStartedBuilds() {
 	err := s.tracker.Run(context.TODO())
 	s.NoError(err)
 
-	ranBuilds := []db.Build{
-		<-running,
-		<-running,
-		<-running,
-	}
-	s.ElementsMatch(startedBuilds, ranBuilds)
+	s.ElementsMatch([]int{
+		startedBuilds[0].ID(),
+		startedBuilds[1].ID(),
+		startedBuilds[2].ID(),
+	}, []int{
+		(<-running).ID(),
+		(<-running).ID(),
+		(<-running).ID(),
+	})
 }
 
 func (s *TrackerSuite) TestTrackerDoesntCrashWhenOneBuildPanic() {
@@ -104,17 +113,21 @@ func (s *TrackerSuite) TestTrackerDoesntCrashWhenOneBuildPanic() {
 	err := s.tracker.Run(context.TODO())
 	s.NoError(err)
 
-	ranBuilds := []db.Build{
-		<-running,
-		<-running,
-	}
-	s.ElementsMatch([]db.Build{
-		startedBuilds[1],
-		startedBuilds[2],
-	}, ranBuilds)
+	s.ElementsMatch([]int{
+		startedBuilds[1].ID(),
+		startedBuilds[2].ID(),
+	}, []int{
+		(<-running).ID(),
+		(<-running).ID(),
+	})
 
-	s.Eventually(func() bool { return fakeBuild1.FinishCallCount() == 1 }, time.Second, 10*time.Millisecond)
-	s.Eventually(func() bool { return fakeBuild1.FinishArgsForCall(0) == db.BuildStatusErrored }, time.Second, 10*time.Millisecond)
+	s.Eventually(func() bool {
+		return fakeBuild1.FinishCallCount() == 1
+	}, time.Second, 10*time.Millisecond)
+
+	s.Eventually(func() bool {
+		return fakeBuild1.FinishArgsForCall(0) == db.BuildStatusErrored
+	}, time.Second, 10*time.Millisecond)
 }
 
 func (s *TrackerSuite) TestTrackDoesntTrackAlreadyRunningBuilds() {

@@ -6,8 +6,8 @@ import Message.Message exposing (Message)
 import Views.Styles as Styles
 
 
-view : Int -> Html Message
-view n =
+view : String -> Int -> Html Message
+view backgroundColor n =
     let
         ( text, fontSize ) =
             if n <= 99 then
@@ -17,7 +17,7 @@ view n =
                 ( "99+", "11px" )
     in
     Html.div
-        (Styles.instanceGroupBadge
+        (Styles.instanceGroupBadge backgroundColor
             ++ [ style "font-size" fontSize ]
         )
         [ Html.text text ]

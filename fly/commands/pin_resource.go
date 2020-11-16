@@ -3,10 +3,13 @@ package commands
 import (
 	"encoding/json"
 	"fmt"
+	"runtime"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
+	"github.com/jessevdk/go-flags"
 )
 
 type PinResourceCommand struct {
@@ -29,6 +32,24 @@ func (command *PinResourceCommand) Execute([]string) error {
 	team := target.Team()
 
 	pipelineRef := command.Resource.PipelineRef
+
+	if command.Version == nil && command.Comment == "" {
+		shortDelim := "-"
+		longDelim := "--"
+		if runtime.GOOS == "windows" {
+			shortDelim = "/"
+			longDelim = "/"
+		}
+		return &flags.Error{
+			Type: flags.ErrRequired,
+			Message: fmt.Sprintf(
+				"the required flag `%sv, %sversion' was not specified",
+				shortDelim,
+				longDelim,
+			),
+		}
+	}
+
 	if command.Version != nil {
 		latestResourceVersion, err := GetLatestResourceVersion(team, command.Resource, *command.Version)
 		if err != nil {

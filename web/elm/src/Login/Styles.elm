@@ -14,7 +14,7 @@ import Html.Attributes exposing (style)
 loginComponent : List (Html.Attribute msg)
 loginComponent =
     [ style "max-width" "20%"
-    , style "background-color" Colors.frame
+    , style "background-color" Colors.topBarBackground
     ]
 
 
@@ -52,7 +52,7 @@ logoutButton : List (Html.Attribute msg)
 logoutButton =
     [ style "position" "absolute"
     , style "top" "55px"
-    , style "background-color" Colors.frame
+    , style "background-color" Colors.topBarBackground
     , style "height" "54px"
     , style "width" "100%"
     , style "border-top" <| "1px solid " ++ Colors.background

@@ -16,4 +16,6 @@ type ArtifactDestination interface {
 	// StreamIn is called with a destination directory and the tar stream to
 	// expand into the destination directory.
 	StreamIn(context.Context, string, baggageclaim.Encoding, io.Reader) error
+
+	GetStreamInP2pUrl(ctx context.Context, path string) (string, error)
 }

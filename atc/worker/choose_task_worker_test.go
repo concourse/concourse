@@ -80,7 +80,9 @@ var _ = Describe("RunTaskStep", func() {
 				fakeProvider,
 				fakeCompression,
 				workerInterval,
-				workerStatusInterval)
+				workerStatusInterval,
+				false,
+				15*time.Minute)
 		})
 
 		Context("worker is available", func() {

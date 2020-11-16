@@ -3,12 +3,10 @@ package exec
 import (
 	"context"
 	"errors"
-	"fmt"
-	"os"
-	"runtime/debug"
 	"sync/atomic"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/util"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -44,7 +42,7 @@ func InParallel(steps []Step, limit int, failFast bool) InParallelStep {
 // single error.
 func (step InParallelStep) Run(ctx context.Context, state RunState) (bool, error) {
 	return parallelExecutor{
-		stepName: "parallel",
+		stepName: "in_parallel",
 
 		maxInFlight: &step.maxInFlight,
 		failFast:    step.failFast,
@@ -85,10 +83,8 @@ func (p parallelExecutor) run(ctx context.Context) (bool, error) {
 		}
 		go func() {
 			defer func() {
-				if r := recover(); r != nil {
-					err := fmt.Errorf("panic in %s step: %v", p.stepName, r)
-
-					fmt.Fprintf(os.Stderr, "%s\n %s\n", err.Error(), string(debug.Stack()))
+				err := util.DumpPanic(recover(), "%s step", p.stepName)
+				if err != nil {
 					errs <- err
 				}
 			}()

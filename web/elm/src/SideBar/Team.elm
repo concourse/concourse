@@ -49,24 +49,14 @@ team params t =
             (params.currentPipeline |> Maybe.map .teamName) == Just t.name
     in
     { icon =
-        if isCurrent then
+        if isHovered || isCurrent then
             Styles.Bright
 
-        else if isHovered || t.isExpanded then
-            Styles.GreyedOut
-
         else
-            Styles.Dim
+            Styles.GreyedOut
     , collapseIcon =
         { opacity =
-            if isCurrent then
-                Styles.Bright
-
-            else if t.isExpanded then
-                Styles.GreyedOut
-
-            else
-                Styles.Dim
+            Styles.Bright
         , asset =
             if t.isExpanded then
                 Assets.MinusIcon
@@ -76,12 +66,12 @@ team params t =
         }
     , name =
         { text = t.name
-        , opacity =
-            if isCurrent || isHovered then
-                Styles.Bright
+        , color =
+            if isHovered || isCurrent then
+                Styles.White
 
             else
-                Styles.GreyedOut
+                Styles.LightGrey
         , domID = domID
         }
     , isExpanded = t.isExpanded

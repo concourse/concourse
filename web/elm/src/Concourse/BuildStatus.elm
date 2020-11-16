@@ -2,8 +2,8 @@ module Concourse.BuildStatus exposing
     ( BuildStatus(..)
     , decodeBuildStatus
     , encodeBuildStatus
-    , isRunning
     , isBad
+    , isRunning
     , ordering
     , show
     )

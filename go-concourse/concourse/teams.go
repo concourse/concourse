@@ -70,7 +70,7 @@ func (team *team) DestroyTeam(teamName string) error {
 		},
 	}, nil)
 
-	if err == internal.ErrForbidden {
+	if err == ErrForbidden {
 		return ErrDestroyRefused
 	}
 

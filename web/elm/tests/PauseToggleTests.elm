@@ -1,5 +1,6 @@
 module PauseToggleTests exposing (all)
 
+import ColorValues
 import Data
 import Dict
 import Message.Message exposing (DomID(..), PipelinesSection(..))
@@ -61,7 +62,7 @@ all =
                             , containing
                                 [ tag "div"
                                 , containing [ text "not authorized" ]
-                                , style "background-color" "#9b9b9b"
+                                , style "background-color" ColorValues.grey20
                                 , style "position" "absolute"
                                 , style "bottom" "100%"
                                 , style "white-space" "nowrap"
@@ -89,7 +90,7 @@ all =
                             , containing
                                 [ tag "div"
                                 , containing [ text "not authorized" ]
-                                , style "background-color" "#9b9b9b"
+                                , style "background-color" ColorValues.grey20
                                 , style "position" "absolute"
                                 , style "top" "100%"
                                 , style "white-space" "nowrap"

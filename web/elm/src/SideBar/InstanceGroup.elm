@@ -52,15 +52,18 @@ instanceGroup params p ps =
         isHovered =
             HoverState.isHovered domID params.hovered
 
-        opacity =
-            if isCurrent || isHovered then
-                Styles.Bright
+        color =
+            if isHovered then
+                Styles.White
+
+            else if isCurrent then
+                Styles.LightGrey
 
             else
-                Styles.Dim
+                Styles.Grey
     in
     { name =
-        { opacity = opacity
+        { color = color
         , text = p.name
         , weight =
             if isCurrent then
@@ -87,6 +90,6 @@ instanceGroup params p ps =
     , domID = domID
     , badge =
         { count = List.length (p :: ps)
-        , opacity = opacity
+        , color = color
         }
     }

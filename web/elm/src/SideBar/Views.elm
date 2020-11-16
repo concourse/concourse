@@ -26,7 +26,7 @@ type alias Team =
         }
     , name :
         { text : String
-        , opacity : Styles.Opacity
+        , color : Styles.SidebarElementColor
         , domID : DomID
         }
     , isExpanded : Bool
@@ -47,7 +47,7 @@ viewTeam team =
                    ]
             )
             [ Styles.collapseIcon team.collapseIcon
-            , Styles.teamIcon team.icon
+            , Styles.teamIcon
             , Html.div
                 (Styles.teamName team.name
                     ++ [ id <| toHtmlID team.name.domID ]
@@ -68,12 +68,9 @@ type TeamListItem
 
 
 type alias Pipeline =
-    { icon :
-        { asset : Assets.Asset
-        , opacity : Styles.Opacity
-        }
+    { icon : Assets.Asset
     , name :
-        { opacity : Styles.Opacity
+        { color : Styles.SidebarElementColor
         , text : String
         , weight : Styles.FontWeight
         }
@@ -81,8 +78,8 @@ type alias Pipeline =
     , href : String
     , domID : DomID
     , starIcon :
-        { opacity : Styles.Opacity
-        , filled : Bool
+        { filled : Bool
+        , isBright : Bool
         }
     , id : Concourse.PipelineIdentifier
     , databaseID : Concourse.DatabaseID
@@ -91,7 +88,7 @@ type alias Pipeline =
 
 type alias InstanceGroup =
     { name :
-        { opacity : Styles.Opacity
+        { color : Styles.SidebarElementColor
         , text : String
         , weight : Styles.FontWeight
         }
@@ -100,7 +97,7 @@ type alias InstanceGroup =
     , domID : DomID
     , badge :
         { count : Int
-        , opacity : Styles.Opacity
+        , color : Styles.SidebarElementColor
         }
     }
 
@@ -123,7 +120,7 @@ viewPipeline p =
             )
             [ Html.text p.name.text ]
         , Html.div
-            (Styles.pipelineFavourite p.starIcon
+            (Styles.pipelineFavorite p.starIcon
                 ++ [ onLeftClickStopPropagation <| Click <| SideBarFavoritedIcon p.databaseID ]
             )
             []

@@ -396,6 +396,7 @@ view session model =
                         { isHovered = HoverState.isHovered (TopBarFavoritedIcon <| getPipelineId model.pipeline) session.hovered
                         , isFavorited =
                             Set.member (getPipelineId model.pipeline) session.favoritedPipelines
+                        , isSideBar = False
                         , domID = TopBarFavoritedIcon <| getPipelineId model.pipeline
                         }
                         [ style "margin" "17px" ]

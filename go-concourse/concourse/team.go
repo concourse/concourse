@@ -102,5 +102,6 @@ func (client *client) Team(name string) Team {
 	return &team{
 		atcTeam:    atc.Team{Name: name},
 		connection: client.connection,
+		httpAgent:  client.httpAgent,
 	}
 }

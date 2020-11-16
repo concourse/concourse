@@ -93,19 +93,21 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 		}
 	}
 
-	var lock lock.Lock
-	for {
-		var acquired bool
-		lock, acquired, err = scope.AcquireResourceCheckingLock(logger)
-		if err != nil {
-			return nil, false, fmt.Errorf("acquire lock: %w", err)
-		}
+	var lock lock.Lock = lock.NoopLock{}
+	if d.plan.Resource != "" {
+		for {
+			var acquired bool
+			lock, acquired, err = scope.AcquireResourceCheckingLock(logger)
+			if err != nil {
+				return nil, false, fmt.Errorf("acquire lock: %w", err)
+			}
 
-		if acquired {
-			break
-		}
+			if acquired {
+				break
+			}
 
-		d.clock.Sleep(time.Second)
+			d.clock.Sleep(time.Second)
+		}
 	}
 
 	end, err := scope.LastCheckEndTime()

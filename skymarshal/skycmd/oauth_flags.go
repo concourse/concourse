@@ -75,20 +75,24 @@ func (flag *OAuthFlags) Serialize(redirectURI string) ([]byte, error) {
 		caCerts = append(caCerts, file.Path())
 	}
 
-	return json.Marshal(oauth.Config{
+	config := oauth.Config{
 		ClientID:           flag.ClientID,
 		ClientSecret:       flag.ClientSecret,
 		AuthorizationURL:   flag.AuthURL,
 		TokenURL:           flag.TokenURL,
 		UserInfoURL:        flag.UserInfoURL,
 		Scopes:             flag.Scopes,
-		GroupsKey:          flag.GroupsKey,
 		UserIDKey:          flag.UserIDKey,
-		UserNameKey:        flag.UserNameKey,
 		RootCAs:            caCerts,
 		InsecureSkipVerify: flag.InsecureSkipVerify,
 		RedirectURI:        redirectURI,
-	})
+	}
+
+	config.ClaimMapping.PreferredUsernameKey = flag.UserNameKey
+	config.ClaimMapping.UserNameKey = flag.UserNameKey
+	config.ClaimMapping.GroupsKey = flag.GroupsKey
+
+	return json.Marshal(config)
 }
 
 type OAuthTeamFlags struct {

@@ -163,17 +163,12 @@ var _ = Describe("CheckDelegate", func() {
 	})
 
 	Describe("WaitToRun", func() {
-		var fakeLock *lockfakes.FakeLock
-
 		var runLock lock.Lock
 		var run bool
 		var runErr error
 
 		BeforeEach(func() {
 			run = false
-
-			fakeLock = new(lockfakes.FakeLock)
-			fakeResourceConfigScope.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -187,10 +182,6 @@ var _ = Describe("CheckDelegate", func() {
 
 			It("returns true", func() {
 				Expect(run).To(BeTrue())
-			})
-
-			It("returns the lock", func() {
-				Expect(runLock).To(Equal(fakeLock))
 			})
 		})
 
@@ -219,30 +210,21 @@ var _ = Describe("CheckDelegate", func() {
 				It("returns true", func() {
 					Expect(run).To(BeTrue())
 				})
-
-				It("returns the lock", func() {
-					Expect(runLock).To(Equal(fakeLock))
-				})
-			})
-
-			Context("when getting the interval errors", func() {
-				BeforeEach(func() {
-					fakeResourceConfigScope.LastCheckEndTimeReturns(time.Time{}, errors.New("oh no"))
-				})
-
-				It("returns an error", func() {
-					Expect(runErr).To(HaveOccurred())
-				})
-
-				It("releases the lock", func() {
-					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
-				})
 			})
 		})
 
 		Context("when running for a resource", func() {
+			var fakeLock *lockfakes.FakeLock
+
 			BeforeEach(func() {
 				plan.Check.Resource = "some-resource"
+
+				fakeLock = new(lockfakes.FakeLock)
+				fakeResourceConfigScope.AcquireResourceCheckingLockReturns(fakeLock, true, nil)
+			})
+
+			It("returns a lock", func() {
+				Expect(runLock).To(Equal(fakeLock))
 			})
 
 			Context("before acquiring the lock", func() {
@@ -258,13 +240,49 @@ var _ = Describe("CheckDelegate", func() {
 				})
 			})
 
-			Context("but the build is manually triggered", func() {
+			Context("when the build is manually triggered", func() {
 				BeforeEach(func() {
 					fakeBuild.IsManuallyTriggeredReturns(true)
 				})
 
 				It("does not rate limit", func() {
 					Expect(fakeRateLimiter.WaitCallCount()).To(Equal(0))
+				})
+			})
+
+			Context("when getting the last check end time errors", func() {
+				BeforeEach(func() {
+					fakeResourceConfigScope.LastCheckEndTimeReturns(time.Time{}, errors.New("oh no"))
+				})
+
+				It("returns an error", func() {
+					Expect(runErr).To(HaveOccurred())
+				})
+
+				It("releases the lock", func() {
+					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+				})
+			})
+
+			Context("with an interval configured", func() {
+				var interval time.Duration = time.Minute
+
+				BeforeEach(func() {
+					plan.Check.Interval = interval.String()
+				})
+
+				Context("when the interval has not elapsed since the last check", func() {
+					BeforeEach(func() {
+						fakeResourceConfigScope.LastCheckEndTimeReturns(now.Add(-(interval - 1)), nil)
+					})
+
+					It("returns false", func() {
+						Expect(run).To(BeFalse())
+					})
+
+					It("releases the lock", func() {
+						Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+					})
 				})
 			})
 		})
@@ -276,6 +294,14 @@ var _ = Describe("CheckDelegate", func() {
 
 			It("does not rate limit", func() {
 				Expect(fakeRateLimiter.WaitCallCount()).To(Equal(0))
+			})
+
+			It("does not acquire a lock", func() {
+				Expect(fakeResourceConfigScope.AcquireResourceCheckingLockCallCount()).To(Equal(0))
+			})
+
+			It("returns a no-op lock", func() {
+				Expect(runLock).To(Equal(lock.NoopLock{}))
 			})
 		})
 	})

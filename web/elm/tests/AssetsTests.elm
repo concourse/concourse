@@ -121,23 +121,6 @@ toStringTests =
                 CheckmarkIcon
                     |> toString
                     |> Expect.equal "/public/images/checkmark-ic.svg"
-        , describe "BreadcrumbIcon"
-            [ test "Pipeline" <|
-                \_ ->
-                    BreadcrumbIcon PipelineComponent
-                        |> toString
-                        |> Expect.equal "/public/images/ic-breadcrumb-pipeline.svg"
-            , test "Job" <|
-                \_ ->
-                    BreadcrumbIcon JobComponent
-                        |> toString
-                        |> Expect.equal "/public/images/ic-breadcrumb-job.svg"
-            , test "Resource" <|
-                \_ ->
-                    BreadcrumbIcon ResourceComponent
-                        |> toString
-                        |> Expect.equal "/public/images/ic-breadcrumb-resource.svg"
-            ]
         , test "ArchivedPipelineIcon" <|
             \_ ->
                 ArchivedPipelineIcon
@@ -285,11 +268,16 @@ toStringTests =
                 PauseIcon
                     |> toString
                     |> Expect.equal "/public/images/ic-pause-white.svg"
-        , test "SearchIcon" <|
+        , test "SearchIconWhite" <|
             \_ ->
-                SearchIcon
+                SearchIconWhite
                     |> toString
                     |> Expect.equal "/public/images/ic-search-white.svg"
+        , test "SearchIconGrey" <|
+            \_ ->
+                SearchIconGrey
+                    |> toString
+                    |> Expect.equal "/public/images/ic-search-grey.svg"
         , test "CloseIcon" <|
             \_ ->
                 CloseIcon

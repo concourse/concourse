@@ -429,13 +429,9 @@ func waitAndLogin(namespace, service string) Endpoint {
 func cleanupReleases() {
 	for releaseName, namespace := range deployedReleases {
 		helmDestroy(releaseName, namespace)
-	}
-
-	ns, err := kubeClient.CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{})
-	// nil err means the namespace exists
-	if err != nil || ns.Status.Phase != corev1.NamespaceTerminating {
 		kubeClient.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
 	}
+
 	deployedReleases = make(map[string]string)
 }
 
