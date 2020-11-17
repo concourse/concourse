@@ -22,6 +22,7 @@ import Dashboard.Group.Models as Models
     exposing
         ( Card(..)
         , cardIdentifier
+        , cardName
         , cardTeamName
         )
 import Dashboard.Models exposing (DragState(..), DropState(..))
@@ -190,6 +191,7 @@ computeFavoritesLayout :
     , viewportWidth : Float
     , viewportHeight : Float
     , scrollTop : Float
+    , isInstanceGroupView : Bool
     }
     -> List Models.Card
     ->
@@ -210,10 +212,14 @@ computeFavoritesLayout params cards =
                 cards
 
         headers =
+            let
+                cardHeader =
+                    composeHeader params.isInstanceGroupView
+            in
             result.allCards
                 |> List.Extra.groupWhile
                     (\c1 c2 ->
-                        (cardTeamName c1.card == cardTeamName c2.card)
+                        (cardHeader c1.card == cardHeader c2.card)
                             && (c1.bounds.y == c2.bounds.y)
                     )
                 |> List.map
@@ -228,24 +234,24 @@ computeFavoritesLayout params cards =
                         )
                     )
                 |> List.foldl
-                    (\( first, last ) ( prevTeam, headers_ ) ->
+                    (\( first, last ) ( prevHeader, headers_ ) ->
                         let
-                            curTeam =
-                                cardTeamName first.card
+                            curHeader =
+                                cardHeader first.card
 
                             header =
-                                case prevTeam of
+                                case prevHeader of
                                     Nothing ->
-                                        curTeam
+                                        curHeader
 
-                                    Just prevTeam_ ->
-                                        if prevTeam_ == curTeam then
-                                            curTeam ++ " (continued)"
+                                    Just prevHeader_ ->
+                                        if prevHeader_ == curHeader then
+                                            curHeader ++ " (continued)"
 
                                         else
-                                            curTeam
+                                            curHeader
                         in
-                        ( Just curTeam
+                        ( Just curHeader
                         , { header = header
                           , bounds =
                                 { x = first.bounds.x
@@ -264,6 +270,15 @@ computeFavoritesLayout params cards =
     , headers = headers |> List.filter (isVisible params)
     , height = result.totalHeight
     }
+
+
+composeHeader : Bool -> Models.Card -> String
+composeHeader isInstanceGroupView card =
+    if isInstanceGroupView then
+        cardTeamName card ++ " / " ++ cardName card
+
+    else
+        cardTeamName card
 
 
 cardSizes :

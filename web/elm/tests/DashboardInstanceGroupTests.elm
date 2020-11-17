@@ -86,7 +86,7 @@ all =
                     |> Common.queryView
                     |> Query.findAll [ class "card" ]
                     |> Query.count (Expect.equal 1)
-        , test "does not display favorites section" <|
+        , test "does display favorites section" <|
             \_ ->
                 whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
                     |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
@@ -95,16 +95,26 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Expect.all
-                        [ Query.hasNot [ text "favorite pipelines" ]
-                        , Query.findAll [ class "card" ] >> Query.count (Expect.equal 1)
+                        [ Query.has [ text "favorite pipelines" ]
+                        , Query.findAll [ class "card" ] >> Query.count (Expect.equal 2)
                         ]
-        , test "does not display all pipelines header" <|
+        , test "displays teamName / groupName in favorite pipeline section" <|
+            \_ ->
+                whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
+                    |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                    |> Application.handleDelivery
+                        (FavoritedPipelinesReceived <| Ok <| Set.singleton 1)
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ id "dashboard-favorite-pipelines" ]
+                    |> Query.has [ text "team / group" ]
+        , test "does display all pipelines section" <|
             \_ ->
                 whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
                     |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
                     |> Common.queryView
-                    |> Query.hasNot [ text "all pipelines" ]
-        , test "displays teamName / groupName in header" <|
+                    |> Query.has [ text "all pipelines" ]
+        , test "displays teamName / groupName in all pipelines header" <|
             \_ ->
                 whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
                     |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]

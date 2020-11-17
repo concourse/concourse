@@ -1333,7 +1333,7 @@ cardsView session params teamCards =
                 |> FetchResult.withDefault Dict.empty
 
         ( headerView, offsetHeight ) =
-            if params.highDensity || params.instanceGroup /= Nothing then
+            if params.highDensity then
                 ( [], 0 )
 
             else
@@ -1384,6 +1384,7 @@ cardsView session params teamCards =
                                 , viewportWidth = params.viewportWidth
                                 , viewportHeight = params.viewportHeight
                                 , scrollTop = params.scrollTop - offset
+                                , isInstanceGroupView = params.instanceGroup /= Nothing
                                 }
                                 favoritedCards
                     in
