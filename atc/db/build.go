@@ -1244,6 +1244,16 @@ func (b *build) SaveOutput(
 		return err
 	}
 
+	// resource.SetResourceConfigScope has to be called after the transaction,
+	// because if resourceConfigScope is newly created by findOrCreateResourceConfigScope,
+	// before it's committed, SetResourceConfigScope will violate foreign key constraint.
+	if newVersion {
+		err = resource.SetResourceConfigScope(resourceConfigScope)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
