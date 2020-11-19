@@ -1172,7 +1172,7 @@ func (b *build) SaveOutput(
 		return ErrBuildHasNoPipeline
 	}
 
-	resource, found, err := pipeline.Resource(resourceName)
+	theResource, found, err := pipeline.Resource(resourceName)
 	if err != nil {
 		return err
 	}
@@ -1198,7 +1198,7 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, b.conn, b.lockFactory, resourceConfig, resource)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, b.conn, b.lockFactory, resourceConfig, theResource)
 	if err != nil {
 		return err
 	}
@@ -1216,6 +1216,11 @@ func (b *build) SaveOutput(
 	versionJSON := string(versionBytes)
 
 	if newVersion {
+		err = theResource.(*resource).setResourceConfigScopeInTransaction(tx, resourceConfigScope)
+		if err != nil {
+			return err
+		}
+
 		err = incrementCheckOrder(tx, resourceConfigScope.ID(), versionJSON)
 		if err != nil {
 			return err
@@ -1224,7 +1229,7 @@ func (b *build) SaveOutput(
 
 	_, err = psql.Insert("build_resource_config_version_outputs").
 		Columns("resource_id", "build_id", "version_md5", "name").
-		Values(resource.ID(), strconv.Itoa(b.id), sq.Expr("md5(?)", versionJSON), outputName).
+		Values(theResource.ID(), strconv.Itoa(b.id), sq.Expr("md5(?)", versionJSON), outputName).
 		Suffix("ON CONFLICT DO NOTHING").
 		RunWith(tx).
 		Exec()
@@ -1242,16 +1247,6 @@ func (b *build) SaveOutput(
 	err = tx.Commit()
 	if err != nil {
 		return err
-	}
-
-	// resource.SetResourceConfigScope has to be called after the transaction,
-	// because if resourceConfigScope is newly created by findOrCreateResourceConfigScope,
-	// before it's committed, SetResourceConfigScope will violate foreign key constraint.
-	if newVersion {
-		err = resource.SetResourceConfigScope(resourceConfigScope)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
