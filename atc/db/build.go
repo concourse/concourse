@@ -1216,15 +1216,15 @@ func (b *build) SaveOutput(
 	versionJSON := string(versionBytes)
 
 	if newVersion {
-		err = theResource.(*resource).setResourceConfigScopeInTransaction(tx, resourceConfigScope)
-		if err != nil {
-			return err
-		}
-
 		err = incrementCheckOrder(tx, resourceConfigScope.ID(), versionJSON)
 		if err != nil {
 			return err
 		}
+	}
+
+	err = theResource.(*resource).setResourceConfigScopeInTransaction(tx, resourceConfigScope)
+	if err != nil {
+		return err
 	}
 
 	_, err = psql.Insert("build_resource_config_version_outputs").
