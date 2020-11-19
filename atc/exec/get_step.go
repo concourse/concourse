@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -207,17 +206,12 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	containerOwner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
-	processCtx := ctx
-	if step.plan.Timeout != "" {
-		timeout, err := time.ParseDuration(step.plan.Timeout)
-		if err != nil {
-			return false, fmt.Errorf("parse timeout: %w", err)
-		}
-
-		var cancel func()
-		processCtx, cancel = context.WithTimeout(ctx, timeout)
-		defer cancel()
+	processCtx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
+	if err != nil {
+		return false, err
 	}
+
+	defer cancel()
 
 	getResult, err := step.workerClient.RunGetStep(
 		processCtx,
