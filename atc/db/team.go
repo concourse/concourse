@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/gobwas/glob"
 	"github.com/lib/pq"
 
 	"github.com/concourse/concourse/atc"
@@ -1471,8 +1472,12 @@ func saveResourceTypes(tx Tx, resourceTypes atc.ResourceTypes, pipelineID int) e
 func saveJobsAndSerialGroups(tx Tx, jobs atc.JobConfigs, groups atc.GroupConfigs, pipelineID int) (map[string]int, error) {
 	jobGroups := make(map[string][]string)
 	for _, group := range groups {
-		for _, job := range group.Jobs {
-			jobGroups[job] = append(jobGroups[job], group.Name)
+		for _, jobGlob := range group.Jobs {
+			for _, job := range jobs {
+				if g, err := glob.Compile(jobGlob); err == nil && g.Match(job.Name) {
+					jobGroups[job.Name] = append(jobGroups[job.Name], group.Name)
+				}
+			}
 		}
 	}
 

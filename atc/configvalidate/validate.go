@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/gobwas/glob"
 )
 
 func formatErr(groupName string, err error) string {
@@ -96,13 +97,23 @@ func validateGroups(c Config) ([]ConfigWarning, error) {
 			groupNames[group.Name] = 1
 		}
 
-		for _, job := range group.Jobs {
-			_, exists := c.Jobs.Lookup(job)
-			if !exists {
+		for _, jobGlob := range group.Jobs {
+			matchingJob := false
+			g, err := glob.Compile(jobGlob)
+			if err != nil {
 				errorMessages = append(errorMessages,
-					fmt.Sprintf("group '%s' has unknown job '%s'", group.Name, job))
-			} else {
-				jobsGrouped[job] = true
+					fmt.Sprintf("invalid glob expression '%s' for group '%s'", jobGlob, group.Name))
+				continue
+			}
+			for _, job := range c.Jobs {
+				if g.Match(job.Name) {
+					jobsGrouped[job.Name] = true
+					matchingJob = true
+				}
+			}
+			if !matchingJob {
+				errorMessages = append(errorMessages,
+					fmt.Sprintf("no jobs match '%s' for group '%s'", jobGlob, group.Name))
 			}
 		}
 
