@@ -216,3 +216,7 @@ func (wad *artifactDestination) StreamIn(ctx context.Context, path string, encod
 func (wad *artifactDestination) GetStreamInP2pUrl(ctx context.Context, path string) (string, error) {
 	return wad.destination.GetStreamInP2pUrl(ctx, path)
 }
+
+func (wad *artifactDestination) Volume() worker.Volume {
+	return wad.destination
+}

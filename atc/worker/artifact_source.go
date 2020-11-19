@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"context"
+	"github.com/concourse/concourse/atc/db"
 	"io"
 	"time"
 
@@ -41,11 +42,12 @@ type StreamableArtifactSource interface {
 }
 
 type artifactSource struct {
-	artifact            runtime.Artifact
-	volume              Volume
-	compression         compression.Compression
-	enabledP2pStreaming bool
-	p2pStreamingTimeout time.Duration
+	artifact             runtime.Artifact
+	volume               Volume
+	compression          compression.Compression
+	enabledP2pStreaming  bool
+	p2pStreamingTimeout  time.Duration
+	resourceCacheFactory db.ResourceCacheFactory
 }
 
 func NewStreamableArtifactSource(
@@ -54,13 +56,15 @@ func NewStreamableArtifactSource(
 	compression compression.Compression,
 	enabledP2pStreaming bool,
 	p2pStreamingTimeout time.Duration,
+	resourceCacheFactory db.ResourceCacheFactory,
 ) StreamableArtifactSource {
 	return &artifactSource{
-		artifact:            artifact,
-		volume:              volume,
-		compression:         compression,
-		enabledP2pStreaming: enabledP2pStreaming,
-		p2pStreamingTimeout: p2pStreamingTimeout,
+		artifact:             artifact,
+		volume:               volume,
+		compression:          compression,
+		enabledP2pStreaming:  enabledP2pStreaming,
+		p2pStreamingTimeout:  p2pStreamingTimeout,
+		resourceCacheFactory: resourceCacheFactory,
 	}
 }
 
@@ -75,6 +79,13 @@ func (source *artifactSource) StreamTo(
 	ctx, span := tracing.StartSpan(ctx, "artifactSource.StreamTo", nil)
 	defer span.End()
 
+	logger.Debug("artifactSource-StreamTo", lager.Data{
+		"sourceWorker":       source.volume.WorkerName(),
+		"sourceVolumeHandle": source.volume.Handle(),
+		"destWorker":         destination.Volume().WorkerName(),
+		"destVolumeHandle":   destination.Volume().Handle(),
+	})
+
 	var err error
 	if !source.enabledP2pStreaming {
 		err = source.streamTo(ctx, destination)
@@ -82,12 +93,32 @@ func (source *artifactSource) StreamTo(
 		err = source.p2pStreamTo(ctx, destination)
 	}
 
-	// Inc counter if no error occurred.
-	if err == nil {
-		metric.Metrics.VolumesStreamed.Inc()
+	if err != nil {
+		return err
 	}
 
-	return err
+	// Inc counter if no error occurred.
+	metric.Metrics.VolumesStreamed.Inc()
+
+	destVolume := destination.Volume()
+	usedResourceCache, found, err := source.resourceCacheFactory.FindResourceCacheByID(source.volume.GetResourceCacheID())
+	if err != nil {
+		logger.Error("artifactSource-StreamTo-failed-to-find-resource-cache", err)
+		return nil
+	}
+	if !found {
+		logger.Info("artifactSource.StreamTo-not-find-resource-cache, this should not happen",
+			lager.Data{"rcId": source.volume.GetResourceCacheID(), "volumeHandle": source.volume.Handle()})
+		return nil
+	}
+
+	err = destVolume.InitializeResourceCache(usedResourceCache)
+	if err != nil {
+		logger.Error("artifactSource.StreamTo-failed-init-resource-cache-on-dest-worker", err)
+		return nil
+	}
+
+	return nil
 }
 
 func (source *artifactSource) streamTo(

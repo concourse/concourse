@@ -2,6 +2,8 @@ package image
 
 import (
 	"errors"
+	"fmt"
+	"os"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/worker"
@@ -23,6 +25,7 @@ func (f *imageFactory) GetImage(
 	teamID int,
 ) (worker.Image, error) {
 	if imageSpec.ImageArtifactSource != nil {
+		fmt.Fprintf(os.Stderr, "EVAN:imageFactory.GetImage go to imageProvidedByPreviousStep, imageSpec=%+v\n", imageSpec)
 		artifactVolume, existsOnWorker, err := imageSpec.ImageArtifactSource.ExistsOn(logger, worker)
 		if err != nil {
 			logger.Error("failed-to-check-if-volume-exists-on-worker", err)
@@ -30,6 +33,7 @@ func (f *imageFactory) GetImage(
 		}
 
 		if existsOnWorker {
+			fmt.Fprintf(os.Stderr, "EVAN:imageFactory.GetImage go to imageProvidedByPreviousStep, on same worker %s\n", artifactVolume.WorkerName())
 			return &imageProvidedByPreviousStepOnSameWorker{
 				artifactVolume: artifactVolume,
 				imageSpec:      imageSpec,
@@ -38,6 +42,7 @@ func (f *imageFactory) GetImage(
 			}, nil
 		}
 
+		fmt.Fprintf(os.Stderr, "EVAN:imageFactory.GetImage go to imageProvidedByPreviousStep, on different worker\n")
 		return &imageProvidedByPreviousStepOnDifferentWorker{
 			imageSpec:    imageSpec,
 			teamID:       teamID,
@@ -46,6 +51,7 @@ func (f *imageFactory) GetImage(
 	}
 
 	if imageSpec.ResourceType != "" {
+		fmt.Fprintf(os.Stderr, "EVAN:imageFactory.GetImage go to imageFromBaseResourceType, worker=%s resourceTypeName=%s\n", worker.Name(), imageSpec.ResourceType)
 		return &imageFromBaseResourceType{
 			worker:           worker,
 			resourceTypeName: imageSpec.ResourceType,

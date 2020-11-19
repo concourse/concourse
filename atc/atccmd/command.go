@@ -772,7 +772,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	)
 
 	pool := worker.NewPool(workerProvider)
-	workerClient := worker.NewClient(pool, workerProvider, compressionLib, workerAvailabilityPollingInterval, workerStatusPublishInterval, cmd.FeatureFlags.EnableP2PVolumeStreaming, cmd.P2pVolumeStreamingTimeout)
+	workerClient := worker.NewClient(pool, workerProvider, compressionLib, workerAvailabilityPollingInterval, workerStatusPublishInterval, cmd.FeatureFlags.EnableP2PVolumeStreaming, cmd.P2pVolumeStreamingTimeout, dbResourceCacheFactory)
 
 	credsManagers := cmd.CredentialManagers
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
@@ -1031,6 +1031,7 @@ func (cmd *RunCommand) backendComponents(
 		workerStatusPublishInterval,
 		cmd.FeatureFlags.EnableP2PVolumeStreaming,
 		cmd.P2pVolumeStreamingTimeout,
+		dbResourceCacheFactory,
 	)
 
 	defaultLimits, err := cmd.parseDefaultLimits()

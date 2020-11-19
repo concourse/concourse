@@ -1,13 +1,11 @@
 package exec
 
 import (
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"context"
 	"errors"
 	"fmt"
-	"io"
-
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -17,6 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"go.opentelemetry.io/otel/api/trace"
+	"io"
 )
 
 type ErrPipelineNotFound struct {
@@ -244,7 +243,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 			getResult.GetArtifact,
 		)
 
-		if step.plan.Resource != "" {
+		if step.plan.Resource != "" && !getResult.FromCache {
 			delegate.UpdateVersion(logger, step.plan, getResult.VersionResult)
 		}
 

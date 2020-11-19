@@ -34,6 +34,12 @@ type WorkerProvider interface {
 		owner db.ContainerOwner,
 	) ([]Worker, error)
 
+	FindWorkersForResourceCache(
+		logger lager.Logger,
+		teamID int,
+		rcId int,
+		) ([]Worker, error)
+
 	NewGardenWorker(
 		logger lager.Logger,
 		savedWorker db.Worker,
@@ -61,6 +67,12 @@ type Pool interface {
 		lager.Logger,
 		WorkerSpec,
 	) (Worker, error)
+
+	FindWorkersForResourceCache(
+		lager.Logger,
+		int,
+		int,
+		) ([]Worker, error)
 
 	ContainerInWorker(
 		lager.Logger,
@@ -205,4 +217,8 @@ func (pool *pool) FindOrChooseWorker(
 	}
 
 	return workers[rand.Intn(len(workers))], nil
+}
+
+func (pool *pool) FindWorkersForResourceCache(logger lager.Logger, teamId int, rcId int) ([]Worker, error) {
+	return pool.provider.FindWorkersForResourceCache(logger, teamId, rcId)
 }

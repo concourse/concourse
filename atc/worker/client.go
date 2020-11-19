@@ -100,6 +100,7 @@ func NewClient(pool Pool,
 	workerStatusPublishInterval time.Duration,
 	enabledP2pStreaming bool,
 	p2pStreamingTimeout time.Duration,
+	resourceCacheFactory db.ResourceCacheFactory,
 ) *client {
 	return &client{
 		pool:                        pool,
@@ -109,6 +110,7 @@ func NewClient(pool Pool,
 		workerStatusPublishInterval: workerStatusPublishInterval,
 		enabledP2pStreaming:         enabledP2pStreaming,
 		p2pStreamingTimeout:         p2pStreamingTimeout,
+		resourceCacheFactory:        resourceCacheFactory,
 	}
 }
 
@@ -120,6 +122,7 @@ type client struct {
 	workerStatusPublishInterval time.Duration
 	enabledP2pStreaming         bool
 	p2pStreamingTimeout         time.Duration
+	resourceCacheFactory        db.ResourceCacheFactory
 }
 
 type TaskResult struct {
@@ -140,6 +143,7 @@ type GetResult struct {
 	ExitStatus    int
 	VersionResult runtime.VersionResult
 	GetArtifact   runtime.GetArtifact
+	FromCache     bool
 }
 
 type processStatus struct {
@@ -435,6 +439,25 @@ func (client *client) RunGetStep(
 		return GetResult{}, err
 	}
 
+	destVolume, ok, err := client.findAndStreamInResource(ctx, logger, chosenWorker, containerSpec.TeamID, resourceCache.ID())
+	if err == nil && ok {
+		logger.Info("EVAN:GetStep got volume directly", lager.Data{"team": containerSpec.TeamID, "rcId": resourceCache.ID()})
+		metadata, err := resourceCache.LoadVersionMetadata()
+		if err != nil {
+			logger.Error("EVAN:failed to load version metadata", err)
+			return GetResult{}, err
+		}
+		return GetResult{
+			ExitStatus: 0,
+			VersionResult: runtime.VersionResult{
+				Version:  resourceCache.Version(),
+				Metadata: metadata,
+			},
+			GetArtifact: runtime.GetArtifact{destVolume.Handle()},
+			FromCache:   true,
+		}, nil
+	}
+
 	lockName := lockName(sign, chosenWorker.Name())
 
 	// TODO: this needs to be emitted right before executing the `in` script
@@ -453,6 +476,86 @@ func (client *client) RunGetStep(
 		lockName,
 	)
 	return getResult, err
+}
+
+func (client *client) findAndStreamInResource(ctx context.Context, logger lager.Logger, destWorker Worker, teamId int, rcId int) (Volume, bool, error) {
+	logger.Info("EVAN:enter findAndStreamInResource====================",
+		lager.Data{"destWorker": destWorker.Name(), "teamId": teamId, "rcId": rcId})
+
+	workers, err := client.pool.FindWorkersForResourceCache(logger, teamId, rcId)
+	if err != nil {
+		logger.Error("EVAN:findAndStreamInResource: failed to find worker resource cache", err)
+		return nil, false, err
+	}
+	if len(workers) == 0 {
+		logger.Info("EVAN:findAndStreamInResource: not find worker resource cache")
+		return nil, false, nil
+	}
+
+	resourceCache, _, err := client.resourceCacheFactory.FindResourceCacheByID(rcId)
+
+	for _, w := range workers {
+		if w.Name() == destWorker.Name() {
+			volume, found, err := destWorker.FindVolumeForResourceCache(logger, resourceCache)
+			if err != nil {
+				logger.Error("EVAN:findAndStreamInResource: volume on local, but error", err, lager.Data{"worker": destWorker.Name(), "rcId": rcId})
+				return nil, false, nil
+			}
+			if !found {
+				logger.Error("EVAN:findAndStreamInResource: volume on local, but not found", err, lager.Data{"worker": destWorker.Name(), "rcId": rcId})
+				return nil, false, nil
+			}
+
+			logger.Info("EVAN:findAndStreamInResource: find volume on destWorker", lager.Data{"team": teamId, "rcId": resourceCache.ID(), "destWorker": destWorker.Name()})
+			return volume, true, nil
+		}
+	}
+
+	for _, sourceWorker := range workers {
+		logger.Debug("EVAN:findAndStreamInResource:try source worker", lager.Data{"worker": sourceWorker.Name()})
+		volume, found, err := sourceWorker.FindVolumeForResourceCache(logger, resourceCache)
+		if err != nil {
+			logger.Info("EVAN:failed-to-find-resource-cache", lager.Data{"worker": sourceWorker.Name(), "rcId": rcId})
+			continue
+		}
+		if !found {
+			logger.Info("EVAN:not-find-resource-cache", lager.Data{"worker": sourceWorker.Name(), "rcId": rcId})
+			continue
+		}
+
+		source := NewStreamableArtifactSource(
+			&runtime.GetArtifact{
+				VolumeHandle: volume.Handle(),
+			},
+			volume,
+			client.compression,
+			client.enabledP2pStreaming,
+			client.p2pStreamingTimeout,
+			client.resourceCacheFactory,
+		)
+
+		destVolume, err := destWorker.CreateVolume(
+			logger,
+			VolumeSpec{Strategy: baggageclaim.EmptyStrategy{}},
+			teamId,
+			db.VolumeTypeResource,
+		)
+		if err != nil {
+			logger.Error("EVAN:failed to create dest volume", err)
+			return nil, false, err
+		}
+
+		err = source.StreamTo(ctx, destVolume)
+		if err != nil {
+			logger.Error("EVAN:failed to stream to", err)
+			return nil, false, err
+		}
+
+		logger.Info("EVAN:streamed get resource", lager.Data{"handle": destVolume.Handle()})
+		return destVolume, true, nil
+	}
+
+	return nil, false, nil
 }
 
 func (client *client) RunPutStep(
@@ -696,7 +799,7 @@ func (client *client) wireInputsAndCaches(logger lager.Logger, spec *ContainerSp
 				return fmt.Errorf("volume not found for artifact id %v type %T", artifact.ID(), artifact)
 			}
 
-			source := NewStreamableArtifactSource(artifact, artifactVolume, client.compression, client.enabledP2pStreaming, client.p2pStreamingTimeout)
+			source := NewStreamableArtifactSource(artifact, artifactVolume, client.compression, client.enabledP2pStreaming, client.p2pStreamingTimeout, client.resourceCacheFactory)
 			inputs = append(inputs, inputSource{source, path})
 		}
 	}
@@ -716,7 +819,7 @@ func (client *client) wireImageVolume(logger lager.Logger, spec *ImageSpec) erro
 		return fmt.Errorf("volume not found for artifact id %v type %T", imageArtifact.ID(), imageArtifact)
 	}
 
-	spec.ImageArtifactSource = NewStreamableArtifactSource(imageArtifact, artifactVolume, client.compression, client.enabledP2pStreaming, client.p2pStreamingTimeout)
+	spec.ImageArtifactSource = NewStreamableArtifactSource(imageArtifact, artifactVolume, client.compression, client.enabledP2pStreaming, client.p2pStreamingTimeout, client.resourceCacheFactory)
 
 	return nil
 }

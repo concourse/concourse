@@ -1,12 +1,10 @@
 package exec
 
 import (
-	"context"
-	"errors"
-	"io"
-
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"context"
+	"errors"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -15,6 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"go.opentelemetry.io/otel/api/trace"
+	"io"
 )
 
 //go:generate counterfeiter . PutDelegateFactory

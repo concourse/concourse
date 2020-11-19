@@ -5,6 +5,8 @@ package worker
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
@@ -88,7 +90,7 @@ func (s *fetchSource) Find() (GetResult, Volume, bool, error) {
 
 	volume, found, err := s.worker.FindVolumeForResourceCache(s.logger, s.cache)
 	if err != nil {
-		sLog.Error("failed-to-find-initialized-on", err)
+		sLog.Error("EVAN-failed-to-find-initialized-on", err)
 		return result, nil, false, err
 	}
 
@@ -130,6 +132,8 @@ func (s *fetchSource) Find() (GetResult, Volume, bool, error) {
 // yet before creating it under the lock
 func (s *fetchSource) Create(ctx context.Context) (GetResult, Volume, error) {
 	sLog := s.logger.Session("create")
+
+	fmt.Fprintf(os.Stderr, "EVAN:fetchSource.Create, cache_id=%d\n", s.cache.ID())
 
 	findResult, volume, found, err := s.Find()
 	if err != nil {
