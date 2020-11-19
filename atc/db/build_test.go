@@ -1393,6 +1393,10 @@ var _ = Describe("Build", func() {
 					Name:    "some-resource",
 					Version: atc.Version{"ver": "2"},
 				},
+				{
+					Name:    "some-other-resource",
+					Version: atc.Version{"ver": "not-checked"},
+				},
 			}))
 		})
 
