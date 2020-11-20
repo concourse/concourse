@@ -299,12 +299,8 @@ var _ = Describe("CheckFactory", func() {
 			defaultPipeline, _, err = defaultTeam.SavePipeline(defaultPipelineRef, defaultPipelineConfig, db.ConfigVersion(1), false)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, found, err := defaultPipeline.Resource("some-resource")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			_, found, err = defaultPipeline.Resource("some-resource-put-only")
-			Expect(err).NotTo(HaveOccurred())
+			_, found, err := defaultPipeline.Resource("some-put-only-resource")
+			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 		})
 
