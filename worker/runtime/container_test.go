@@ -116,6 +116,22 @@ func (s *ContainerSuite) TestRunTaskExecError() {
 	s.True(errors.Is(err, expectedErr))
 }
 
+func (s *ContainerSuite) TestRunTaskExecErrorExecutableNotFound() {
+	s.containerdContainer.SpecReturns(&specs.Spec{
+		Process: &specs.Process{},
+		Root:    &specs.Root{},
+	}, nil)
+
+	s.containerdContainer.TaskReturns(s.containerdTask, nil)
+
+	exeNotFoundErr := errors.New("OCI runtime exec failed: exec failed: container_linux.go:345: starting container process caused: exec: potato: executable file not found in $PATH")
+
+	s.containerdTask.ExecReturns(nil, exeNotFoundErr)
+
+	_, err := s.container.Run(garden.ProcessSpec{}, garden.ProcessIO{})
+	s.True(errors.Is(err, garden.ExecutableNotFoundError{Message: exeNotFoundErr.Error()}))
+}
+
 func (s *ContainerSuite) TestRunProcWaitError() {
 	s.containerdContainer.SpecReturns(&specs.Spec{
 		Process: &specs.Process{},
