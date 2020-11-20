@@ -12,8 +12,8 @@ import (
 )
 
 type ContainerPlacementStrategyOptions struct {
-	ContainerPlacementStrategy string `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" description:"Method by which a worker is selected during container placement. Multiple methods can be chained by +, e.g. volume-locality+fewest-build-containers"`
-	MaxActiveTasksPerWorker    int    `long:"max-active-tasks-per-worker" default:"0" description:"Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit."`
+	ContainerPlacementStrategy []string `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" description:"Method by which a worker is selected during container placement. If multiple methods are specified, they will be applied in order."`
+	MaxActiveTasksPerWorker    int      `long:"max-active-tasks-per-worker" default:"0" description:"Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit."`
 }
 
 type ContainerPlacementStrategy interface {
@@ -34,8 +34,7 @@ type containerPlacementStrategy struct {
 
 func NewContainerPlacementStrategy(opts ContainerPlacementStrategyOptions) (*containerPlacementStrategy, error) {
 	cps := &containerPlacementStrategy{nodes: []ContainerPlacementStrategyChainNode{}}
-	strategies := strings.Split(opts.ContainerPlacementStrategy, "+")
-	for _, strategy := range strategies {
+	for _, strategy := range opts.ContainerPlacementStrategy {
 		strategy := strings.TrimSpace(strategy)
 		switch strategy {
 		case "random":
@@ -86,7 +85,7 @@ func (strategy *containerPlacementStrategy) ModifiesActiveTasks() bool {
 }
 
 func NewRandomPlacementStrategy() ContainerPlacementStrategy {
-	s, _ := NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: "random"})
+	s, _ := NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"random"}})
 	return s
 }
 

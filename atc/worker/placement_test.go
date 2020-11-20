@@ -44,7 +44,7 @@ var _ = Describe("FewestBuildContainersPlacementStrategy", func() {
 
 		BeforeEach(func() {
 			logger = lagertest.NewTestLogger("build-containers-equal-placement-test")
-			strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: "fewest-build-containers"})
+			strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"fewest-build-containers"}})
 			Expect(newStrategyError).ToNot(HaveOccurred())
 			compatibleWorker1 = new(workerfakes.FakeWorker)
 			compatibleWorker1.NameReturns("compatibleWorker1")
@@ -137,7 +137,7 @@ var _ = Describe("VolumeLocalityPlacementStrategy", func() {
 
 		BeforeEach(func() {
 			logger = lagertest.NewTestLogger("volume-locality-placement-test")
-			strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: "volume-locality"})
+			strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"volume-locality"}})
 			Expect(newStrategyError).ToNot(HaveOccurred())
 
 			fakeInput1 := new(workerfakes.FakeInputSource)
@@ -329,7 +329,7 @@ var _ = Describe("LimitActiveTasksPlacementStrategy", func() {
 		Context("when MaxActiveTasksPerWorker less than 0", func() {
 			BeforeEach(func() {
 				logger = lagertest.NewTestLogger("active-tasks-equal-placement-test")
-				strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: "limit-active-tasks", MaxActiveTasksPerWorker: -1})
+				strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"limit-active-tasks"}, MaxActiveTasksPerWorker: -1})
 			})
 			It("should fail", func() {
 				Expect(newStrategyError).To(HaveOccurred())
@@ -341,7 +341,7 @@ var _ = Describe("LimitActiveTasksPlacementStrategy", func() {
 		Context("when MaxActiveTasksPerWorker less than 0", func() {
 			BeforeEach(func() {
 				logger = lagertest.NewTestLogger("active-tasks-equal-placement-test")
-				strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: "limit-active-tasks", MaxActiveTasksPerWorker: 0})
+				strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"limit-active-tasks"}, MaxActiveTasksPerWorker: 0})
 				Expect(newStrategyError).ToNot(HaveOccurred())
 
 				compatibleWorker1 = new(workerfakes.FakeWorker)
@@ -423,7 +423,7 @@ var _ = Describe("LimitActiveTasksPlacementStrategy", func() {
 			})
 			Context("when max-tasks-per-worker is set to 1", func() {
 				BeforeEach(func() {
-					strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: "limit-active-tasks", MaxActiveTasksPerWorker: 1})
+					strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"limit-active-tasks"}, MaxActiveTasksPerWorker: 1})
 					Expect(newStrategyError).ToNot(HaveOccurred())
 				})
 				Context("when there are multiple workers", func() {
@@ -496,7 +496,7 @@ var _ = Describe("ChainedPlacementStrategy #Choose", func() {
 		logger = lagertest.NewTestLogger("build-containers-equal-placement-test")
 		strategy, newStrategyError = NewContainerPlacementStrategy(
 			ContainerPlacementStrategyOptions{
-				ContainerPlacementStrategy: "fewest-build-containers+volume-locality",
+				ContainerPlacementStrategy: []string{"fewest-build-containers", "volume-locality"},
 			})
 		Expect(newStrategyError).ToNot(HaveOccurred())
 		someWorker1 = new(workerfakes.FakeWorker)
