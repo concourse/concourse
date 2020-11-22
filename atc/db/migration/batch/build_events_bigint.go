@@ -122,16 +122,6 @@ func (migrator BuildEventsBigintMigrator) Cleanup(ctx context.Context) error {
 		return err
 	}
 
-	_, err = tx.ExecContext(ctx, `DROP INDEX build_events_build_id_old_event_id`)
-	if err != nil {
-		return err
-	}
-
-	_, err = tx.ExecContext(ctx, `DROP INDEX build_events_build_id_old_idx`)
-	if err != nil {
-		return err
-	}
-
 	_, err = tx.ExecContext(ctx, `ALTER TABLE build_events DROP COLUMN build_id_old`)
 	if err != nil {
 		return err
