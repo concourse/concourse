@@ -320,21 +320,27 @@ type Strategy int
 
 const (
 	GoMigration Strategy = iota
-	SQLTransaction
-	SQLNoTransaction
+	SQLMigration
 )
 
 type migration struct {
 	Name       string
 	Version    int
 	Direction  string
-	Statements []string
+	Statements string
 	Strategy   Strategy
 }
 
-func (m *migrator) recordMigrationFailure(migration migration, err error, dirty bool) error {
-	_, dbErr := m.db.Exec("INSERT INTO migrations_history (version, tstamp, direction, status, dirty) VALUES ($1, current_timestamp, $2, 'failed', $3)", migration.Version, migration.Direction, dirty)
-	return multierror.Append(fmt.Errorf("Migration '%s' failed: %v", migration.Name, err), dbErr)
+func (m *migrator) recordMigrationFailure(migration migration, migrationErr error, dirty bool) error {
+	_, recordErr := m.db.Exec("INSERT INTO migrations_history (version, tstamp, direction, status, dirty) VALUES ($1, current_timestamp, $2, 'failed', $3)", migration.Version, migration.Direction, dirty)
+	if recordErr != nil {
+		return multierror.Append(
+			migrationErr,
+			fmt.Errorf("record failure to migration history: %w", recordErr),
+		)
+	}
+
+	return migrationErr
 }
 
 func (m *migrator) runMigration(migration migration, strategy encryption.Strategy) error {
@@ -344,28 +350,29 @@ func (m *migrator) runMigration(migration migration, strategy encryption.Strateg
 	case GoMigration:
 		err = migrations.NewMigrations(m.db, strategy).Run(migration.Name)
 		if err != nil {
-			return m.recordMigrationFailure(migration, err, false)
+			return m.recordMigrationFailure(
+				migration,
+				fmt.Errorf("migration '%s' failed: %w", migration.Name, err),
+				false,
+			)
 		}
-	case SQLTransaction:
-		tx, err := m.db.Begin()
-		for _, statement := range migration.Statements {
-			_, err = tx.Exec(statement)
-			if err != nil {
-				err = multierror.Append(fmt.Errorf("Transaction %v failed, rolled back the migration", statement), err)
-				txErr := tx.Rollback()
-				if txErr != nil {
-					err = multierror.Append(fmt.Errorf("Rolling back transaction %v failed", statement), txErr)
-				}
-				return m.recordMigrationFailure(migration, err, false)
+	case SQLMigration:
+		_, err = m.db.Exec(migration.Statements)
+		if err != nil {
+			// rollback in case the migration was BEGIN ... COMMIT and failed
+			//
+			// note that this succeeds and does a no-op (with a warning) if no
+			// transaction was opened; we're just OK with that
+			_, rbErr := m.db.Exec(`ROLLBACK`)
+			if rbErr != nil {
+				return multierror.Append(err, fmt.Errorf("rollback failed: %w", rbErr))
 			}
-		}
-		err = tx.Commit()
-	case SQLNoTransaction:
-		for _, statement := range migration.Statements {
-			_, err = m.db.Exec(statement)
-			if err != nil {
-				return m.recordMigrationFailure(migration, err, true)
-			}
+
+			return m.recordMigrationFailure(
+				migration,
+				fmt.Errorf("migration '%s' failed and was rolled back: %w", migration.Name, err),
+				false,
+			)
 		}
 	}
 
@@ -456,7 +463,7 @@ func (self *migrator) migrateFromSchemaMigrations() (int, error) {
 	}
 
 	if isDirty {
-		return 0, errors.New("cannot begin migration. Database is in a dirty state")
+		return 0, errors.New("cannot begin migration: database is in a dirty state")
 	}
 
 	return existingVersion, nil
