@@ -104,9 +104,6 @@ func (c *Container) Run(
 
 	proc, err := task.Exec(ctx, id, &procSpec, cio.NewCreator(cioOpts...))
 	if err != nil {
-		if isNoSuchExecutable(err) {
-			return nil, garden.ExecutableNotFoundError{Message: err.Error()}
-		}
 		return nil, fmt.Errorf("task exec: %w", err)
 	}
 
@@ -117,6 +114,9 @@ func (c *Container) Run(
 
 	err = proc.Start(ctx)
 	if err != nil {
+		if isNoSuchExecutable(err) {
+			return nil, garden.ExecutableNotFoundError{Message: err.Error()}
+		}
 		return nil, fmt.Errorf("proc start: %w", err)
 	}
 
