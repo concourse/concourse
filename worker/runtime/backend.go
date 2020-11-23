@@ -194,16 +194,24 @@ func (b *GardenBackend) Create(gdnSpec garden.ContainerSpec) (garden.Container, 
 		return nil, fmt.Errorf("new container: %w", err)
 	}
 
-	err = b.startTask(ctx, cont)
+	ip, err := b.startTask(ctx, cont)
 	if err != nil {
 		return nil, fmt.Errorf("starting task: %w", err)
 	}
 
-	return NewContainer(
+	gdnContainer := NewContainer(
 		cont,
 		b.killer,
 		b.rootfsManager,
-	), nil
+	)
+	if ip != nil {
+		err := gdnContainer.SetIP(*ip)
+		if err != nil {
+			return nil, fmt.Errorf("set ip: %w", err)
+		}
+	}
+
+	return gdnContainer, nil
 }
 
 func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.ContainerSpec) (containerd.Container, error) {
@@ -239,18 +247,22 @@ func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.Cont
 	return b.client.NewContainer(ctx, gdnSpec.Handle, gdnSpec.Properties, oci)
 }
 
-func (b *GardenBackend) startTask(ctx context.Context, cont containerd.Container) error {
+func (b *GardenBackend) startTask(ctx context.Context, cont containerd.Container) (*IPInfo, error) {
 	task, err := cont.NewTask(ctx, cio.NullIO, containerd.WithNoNewKeyring)
 	if err != nil {
-		return fmt.Errorf("new task: %w", err)
+		return nil, fmt.Errorf("new task: %w", err)
 	}
 
-	err = b.network.Add(ctx, task)
+	ip, err := b.network.Add(ctx, task)
 	if err != nil {
-		return fmt.Errorf("network add: %w", err)
+		return nil, fmt.Errorf("network add: %w", err)
 	}
 
-	return task.Start(ctx)
+	if err := task.Start(ctx); err != nil {
+		return nil, err
+	}
+
+	return ip, nil
 }
 
 // Destroy gracefully destroys a container.

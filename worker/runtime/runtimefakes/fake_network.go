@@ -11,17 +11,19 @@ import (
 )
 
 type FakeNetwork struct {
-	AddStub        func(context.Context, containerd.Task) error
+	AddStub        func(context.Context, containerd.Task) (*runtime.IPInfo, error)
 	addMutex       sync.RWMutex
 	addArgsForCall []struct {
 		arg1 context.Context
 		arg2 containerd.Task
 	}
 	addReturns struct {
-		result1 error
+		result1 *runtime.IPInfo
+		result2 error
 	}
 	addReturnsOnCall map[int]struct {
-		result1 error
+		result1 *runtime.IPInfo
+		result2 error
 	}
 	RemoveStub        func(context.Context, containerd.Task) error
 	removeMutex       sync.RWMutex
@@ -62,7 +64,7 @@ type FakeNetwork struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeNetwork) Add(arg1 context.Context, arg2 containerd.Task) error {
+func (fake *FakeNetwork) Add(arg1 context.Context, arg2 containerd.Task) (*runtime.IPInfo, error) {
 	fake.addMutex.Lock()
 	ret, specificReturn := fake.addReturnsOnCall[len(fake.addArgsForCall)]
 	fake.addArgsForCall = append(fake.addArgsForCall, struct {
@@ -75,10 +77,10 @@ func (fake *FakeNetwork) Add(arg1 context.Context, arg2 containerd.Task) error {
 		return fake.AddStub(arg1, arg2)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
 	fakeReturns := fake.addReturns
-	return fakeReturns.result1
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeNetwork) AddCallCount() int {
@@ -87,7 +89,7 @@ func (fake *FakeNetwork) AddCallCount() int {
 	return len(fake.addArgsForCall)
 }
 
-func (fake *FakeNetwork) AddCalls(stub func(context.Context, containerd.Task) error) {
+func (fake *FakeNetwork) AddCalls(stub func(context.Context, containerd.Task) (*runtime.IPInfo, error)) {
 	fake.addMutex.Lock()
 	defer fake.addMutex.Unlock()
 	fake.AddStub = stub
@@ -100,27 +102,30 @@ func (fake *FakeNetwork) AddArgsForCall(i int) (context.Context, containerd.Task
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeNetwork) AddReturns(result1 error) {
+func (fake *FakeNetwork) AddReturns(result1 *runtime.IPInfo, result2 error) {
 	fake.addMutex.Lock()
 	defer fake.addMutex.Unlock()
 	fake.AddStub = nil
 	fake.addReturns = struct {
-		result1 error
-	}{result1}
+		result1 *runtime.IPInfo
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeNetwork) AddReturnsOnCall(i int, result1 error) {
+func (fake *FakeNetwork) AddReturnsOnCall(i int, result1 *runtime.IPInfo, result2 error) {
 	fake.addMutex.Lock()
 	defer fake.addMutex.Unlock()
 	fake.AddStub = nil
 	if fake.addReturnsOnCall == nil {
 		fake.addReturnsOnCall = make(map[int]struct {
-			result1 error
+			result1 *runtime.IPInfo
+			result2 error
 		})
 	}
 	fake.addReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
+		result1 *runtime.IPInfo
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeNetwork) Remove(arg1 context.Context, arg2 containerd.Task) error {
