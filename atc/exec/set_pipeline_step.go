@@ -208,10 +208,14 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState) error {
 		logger.Debug("no-diff")
 
 		fmt.Fprintf(stdout, "no diff found.\n")
-		err := pipeline.SetParentIDs(step.metadata.JobID, step.metadata.BuildID)
-		if err != nil {
-			return err
+
+		if found {
+			err := pipeline.SetParentIDs(step.metadata.JobID, step.metadata.BuildID)
+			if err != nil {
+				return err
+			}
 		}
+
 		step.delegate.SetPipelineChanged(logger, false)
 		step.succeeded = true
 		step.delegate.Finished(logger, true)
