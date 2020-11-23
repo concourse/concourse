@@ -31,7 +31,7 @@ var atcServer *ghttp.Server
 
 const targetName = "testserver"
 const teamName = "main"
-const atcVersion = "4.0.0"
+const atcVersion = "6.3.1"
 const workerVersion = "4.5.6"
 
 var teams = []atc.Team{
