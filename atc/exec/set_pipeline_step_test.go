@@ -32,6 +32,10 @@ jobs:
 - name:
 `
 
+	const badPipelineContentWithEmptyContent = `
+---
+`
+
 	const pipelineContent = `
 ---
 jobs:
@@ -234,6 +238,24 @@ jobs:
 				Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 				_, succeeded := fakeDelegate.FinishedArgsForCall(0)
 				Expect(succeeded).To(BeFalse())
+			})
+		})
+
+		Context("when pipeline file exists but is empty", func() {
+			BeforeEach(func() {
+				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: badPipelineContentWithEmptyContent}, nil)
+			})
+
+			It("should return an error", func() {
+				Expect(stepErr).NotTo(HaveOccurred())
+			})
+
+			It("should log an error message", func() {
+				Expect(stderr).To(gbytes.Say("pipeline must contain at least one job"))
+			})
+
+			It("should not update the job and build id", func() {
+				Expect(fakePipeline.SetParentIDsCallCount()).To(Equal(0))
 			})
 		})
 
