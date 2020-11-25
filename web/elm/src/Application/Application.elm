@@ -416,7 +416,7 @@ urlUpdate route model =
             model.session
 
         newSession =
-            { oldSession | route = route }
+            { oldSession | route = route, hovered = HoverState.NoHover }
     in
     ( { model | subModel = newSubmodel, session = newSession }
     , subEffects ++ [ SetFavIcon Nothing ]
