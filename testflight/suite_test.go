@@ -227,6 +227,35 @@ func spawnFlyIn(dir string, argv ...string) *gexec.Session {
 	return spawnIn(dir, config.FlyBin, append([]string{"-t", flyTarget}, argv...)...)
 }
 
+func spawnFlyOpts(opts ...spawnOpt) func(argv ...string) *gexec.Session {
+	spawnFn := spawnOpts(opts...)
+	return func(argv ...string) *gexec.Session {
+		return spawnFn(config.FlyBin, append([]string{"-t", flyTarget}, argv...)...)
+	}
+}
+
+type spawnOpt func(*exec.Cmd) *exec.Cmd
+
+func withStdin(stdin io.Reader) spawnOpt {
+	return func(cmd *exec.Cmd) *exec.Cmd {
+		cmd.Stdin = stdin
+		return cmd
+	}
+}
+
+func spawnOpts(opts ...spawnOpt) func(argc string, argv ...string) *gexec.Session {
+	return func(argc string, argv ...string) *gexec.Session {
+		By("running: " + argc + " " + strings.Join(argv, " "))
+		cmd := exec.Command(argc, argv...)
+		for _, opt := range opts {
+			cmd = opt(cmd)
+		}
+		session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+		Expect(err).ToNot(HaveOccurred())
+		return session
+	}
+}
+
 func spawn(argc string, argv ...string) *gexec.Session {
 	By("running: " + argc + " " + strings.Join(argv, " "))
 	cmd := exec.Command(argc, argv...)
