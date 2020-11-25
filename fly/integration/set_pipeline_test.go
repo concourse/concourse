@@ -942,6 +942,10 @@ this is super secure
 						Eventually(sess).Should(gbytes.Say("job some-new-job has been added"))
 						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-job", "green")))
 
+						Eventually(sess).Should(gbytes.Say("pipeline name:"))
+						Eventually(sess).Should(gbytes.Say("awesome-pipeline"))
+						Consistently(sess).ShouldNot(gbytes.Say("pipeline instance vars:"))
+
 						Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
 						yes(stdin)
 
@@ -1035,7 +1039,7 @@ this is super secure
 						Eventually(sess.Out.Contents).Should(ContainSubstring(ansi.Color("name: some-new-job", "green")))
 
 						// When read pipeline configure from stdin, it should do non-interactive mode.
-						Eventually(sess).ShouldNot(gbytes.Say(`apply configuration\? \[yN\]: `))
+						Consistently(sess).ShouldNot(gbytes.Say(`apply configuration\? \[yN\]: `))
 
 						Eventually(sess).Should(gbytes.Say("configuration updated"))
 
@@ -1048,6 +1052,21 @@ this is super secure
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
 					}).By(4))
+				})
+
+				Context("when setting an instanced pipeline", func() {
+					It("prints the instance vars as YAML", func() {
+						flyCmd := exec.Command(flyPath, "-t", targetName, "set-pipeline", "-p", "awesome-pipeline", "-i", "version=1.2.3", "-c", configFile.Name())
+
+						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+						Expect(err).NotTo(HaveOccurred())
+
+						Eventually(sess).Should(gbytes.Say("pipeline name:"))
+						Eventually(sess).Should(gbytes.Say("awesome-pipeline"))
+
+						Eventually(sess).Should(gbytes.Say("pipeline instance vars:"))
+						Eventually(sess).Should(gbytes.Say("  version: 1.2.3"))
+					})
 				})
 			})
 
@@ -1297,7 +1316,8 @@ this is super secure
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess).ShouldNot(gbytes.Say(`apply configuration\? \[yN\]: `))
+					Consistently(sess).ShouldNot(gbytes.Say("pipeline name:"))
+					Consistently(sess).ShouldNot(gbytes.Say(`apply configuration\? \[yN\]: `))
 
 					Eventually(sess).Should(gbytes.Say("no changes to apply"))
 
