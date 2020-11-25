@@ -280,7 +280,7 @@ headerView section pipeline resourceError headerHeight inInstanceGroupView =
                 ]
 
             else if Dict.isEmpty pipeline.instanceVars then
-                [ Html.div [ style "color" Colors.pending ] [ Html.text "no instance vars" ] ]
+                [ Html.div Styles.noInstanceVars [ Html.text "no instance vars" ] ]
 
             else
                 pipeline.instanceVars

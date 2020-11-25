@@ -31,6 +31,7 @@ module Dashboard.Styles exposing
     , legendItem
     , legendSeparator
     , loadingView
+    , noInstanceVars
     , noPipelineCard
     , noPipelineCardHd
     , noPipelineCardHeader
@@ -246,6 +247,11 @@ pipelineName =
 instanceVar : List (Html.Attribute msg)
 instanceVar =
     pipelineName ++ [ style "letter-spacing" "0.05em" ]
+
+
+noInstanceVars : List (Html.Attribute msg)
+noInstanceVars =
+    instanceVar ++ [ style "color" Colors.pending ]
 
 
 instanceGroupName : List (Html.Attribute msg)
