@@ -9,7 +9,6 @@ import (
 	"github.com/vbauerster/mpb/v4"
 	"github.com/vbauerster/mpb/v4/decor"
 
-	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/rc"
@@ -52,7 +51,7 @@ func (command *SyncCommand) Execute(args []string) error {
 		return err
 	}
 
-	if !command.Force && info.Version == concourse.Version {
+	if !command.Force && info.Version == rc.LocalVersion {
 		fmt.Printf("version %s already matches; skipping\n", info.Version)
 		return nil
 	}
