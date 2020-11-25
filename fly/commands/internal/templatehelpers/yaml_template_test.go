@@ -7,6 +7,7 @@ import (
 
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
+	"github.com/concourse/concourse/vars"
 
 	"github.com/concourse/concourse/atc"
 
@@ -43,12 +44,12 @@ var _ = Describe("YAML Template With Params", func() {
 		})
 
 		It("resolves all variables successfully", func() {
-			vars := []flaghelpers.VariablePairFlag{
-				{Name: "param1", Value: "value1"},
-				{Name: "param2", Value: "value2"},
-				{Name: "param3", Value: "value3"},
+			variables := []flaghelpers.VariablePairFlag{
+				{Ref: vars.VariableReference{Path: "param1"}, Value: "value1"},
+				{Ref: vars.VariableReference{Path: "param2"}, Value: "value2"},
+				{Ref: vars.VariableReference{Path: "param3"}, Value: "value3"},
 			}
-			sampleYaml := templatehelpers.NewYamlTemplateWithParams(atc.PathFlag(filepath.Join(tmpdir, "sample.yml")), nil, vars, nil)
+			sampleYaml := templatehelpers.NewYamlTemplateWithParams(atc.PathFlag(filepath.Join(tmpdir, "sample.yml")), nil, variables, nil)
 			result, err := sampleYaml.Evaluate(false, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(result)).To(Equal(`section:
@@ -60,11 +61,11 @@ var _ = Describe("YAML Template With Params", func() {
 		})
 
 		It("leave param uninterpolated if it's not provided", func() {
-			vars := []flaghelpers.VariablePairFlag{
-				{Name: "param1", Value: "value1"},
-				{Name: "param2", Value: "value2"},
+			variables := []flaghelpers.VariablePairFlag{
+				{Ref: vars.VariableReference{Path: "param1"}, Value: "value1"},
+				{Ref: vars.VariableReference{Path: "param2"}, Value: "value2"},
 			}
-			sampleYaml := templatehelpers.NewYamlTemplateWithParams(atc.PathFlag(filepath.Join(tmpdir, "sample.yml")), nil, vars, nil)
+			sampleYaml := templatehelpers.NewYamlTemplateWithParams(atc.PathFlag(filepath.Join(tmpdir, "sample.yml")), nil, variables, nil)
 			result, err := sampleYaml.Evaluate(false, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(result)).To(Equal(`section:

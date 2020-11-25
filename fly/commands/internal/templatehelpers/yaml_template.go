@@ -50,14 +50,15 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(
 	var params []vars.Variables
 
 	// first, we take explicitly specified variables on the command line
-	flagVars := vars.StaticVariables{}
+	var flagVarPairs vars.KVPairs
 	for _, f := range yamlTemplate.templateVariables {
-		flagVars[f.Name] = f.Value
+		flagVarPairs = append(flagVarPairs, vars.KVPair(f))
 	}
 	for _, f := range yamlTemplate.yamlTemplateVariables {
-		flagVars[f.Name] = f.Value
+		flagVarPairs = append(flagVarPairs, vars.KVPair(f))
 	}
-	params = append(params, flagVars)
+
+	params = append(params, flagVarPairs.Expand())
 
 	// second, we take all files. with values in the files specified later on command line taking precedence over the
 	// same values in the files specified earlier on command line

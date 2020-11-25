@@ -28,7 +28,6 @@ func NewSecretLookupWithPrefix(prefix string) SecretLookupPath {
 
 func (sl SecretLookupWithPrefix) VariableToSecretPath(ref vars.VariableReference) (vars.VariableReference, error) {
 	return vars.VariableReference{
-		Name:   sl.Prefix + ref.Name,
 		Path:   sl.Prefix + ref.Path,
 		Fields: ref.Fields,
 	}, nil

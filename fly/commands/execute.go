@@ -28,13 +28,13 @@ type ExecuteCommand struct {
 	Privileged     bool                               `short:"p" long:"privileged"                            description:"Run the task with full privileges"`
 	IncludeIgnored bool                               `          long:"include-ignored"                       description:"Including .gitignored paths. Disregards .gitignore entries and uploads everything"`
 	Inputs         []flaghelpers.InputPairFlag        `short:"i" long:"input"       value-name:"NAME=PATH"    description:"An input to provide to the task (can be specified multiple times)"`
-	InputMappings  []flaghelpers.VariablePairFlag     `short:"m" long:"input-mapping"       value-name:"[NAME=STRING]"    description:"Map a resource to a different name as task input"`
+	InputMappings  []flaghelpers.InputMappingPairFlag `short:"m" long:"input-mapping"       value-name:"[NAME=STRING]"    description:"Map a resource to a different name as task input"`
 	InputsFrom     flaghelpers.JobFlag                `short:"j" long:"inputs-from" value-name:"PIPELINE/JOB" description:"A job to base the inputs on"`
 	Outputs        []flaghelpers.OutputPairFlag       `short:"o" long:"output"      value-name:"NAME=PATH"    description:"An output to fetch from the task (can be specified multiple times)"`
 	Image          string                             `long:"image" description:"Image resource for the one-off build"`
 	Tags           []string                           `          long:"tag"         value-name:"TAG"          description:"A tag for a specific environment (can be specified multiple times)"`
-	Var            []flaghelpers.VariablePairFlag     `short:"v"  long:"var"       value-name:"[NAME=STRING]"  description:"Specify a string value to set for a variable in the pipeline"`
-	YAMLVar        []flaghelpers.YAMLVariablePairFlag `short:"y"  long:"yaml-var"  value-name:"[NAME=YAML]"    description:"Specify a YAML value to set for a variable in the pipeline"`
+	Var            []flaghelpers.VariablePairFlag     `short:"v"  long:"var"       value-name:"[NAME=STRING]"  unquote:"false"  description:"Specify a string value to set for a variable in the pipeline"`
+	YAMLVar        []flaghelpers.YAMLVariablePairFlag `short:"y"  long:"yaml-var"  value-name:"[NAME=YAML]"    unquote:"false"  description:"Specify a YAML value to set for a variable in the pipeline"`
 	VarsFrom       []atc.PathFlag                     `short:"l"  long:"load-vars-from"  description:"Variable flag that can be used for filling in template values in configuration from a YAML file"`
 }
 
