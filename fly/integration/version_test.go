@@ -2,11 +2,12 @@ package integration_test
 
 import (
 	"fmt"
-	"github.com/concourse/concourse/atc"
 	"net/http"
+	"os"
 	"os/exec"
 
-	"github.com/concourse/concourse"
+	"github.com/concourse/concourse/atc"
+
 	"github.com/concourse/concourse/fly/version"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,16 +20,10 @@ import (
 var _ = Describe("Version Checks", func() {
 	// patch version
 	var (
+		flyVersion       string
 		customAtcVersion string
 		flySession       *gexec.Session
-		err              error
 	)
-	const flyVersion = atcVersion
-	flyPath, err := gexec.Build(
-		"github.com/concourse/concourse/fly",
-		"-ldflags", fmt.Sprintf("-X github.com/concourse/concourse.Version=%s", flyVersion),
-	)
-
 	BeforeEach(func() {
 		atcServer.AppendHandlers(
 			ghttp.CombineHandlers(
@@ -39,7 +34,7 @@ var _ = Describe("Version Checks", func() {
 	})
 
 	JustBeforeEach(func() {
-		atcServer.SetHandler( 3,
+		atcServer.SetHandler(3,
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", "/api/v1/info"),
 				ghttp.RespondWithJSONEncoded(200, atc.Info{Version: customAtcVersion, WorkerVersion: workerVersion}),
@@ -47,7 +42,9 @@ var _ = Describe("Version Checks", func() {
 		)
 
 		flyCmd := exec.Command(flyPath, "-t", targetName, "containers")
+		flyCmd.Env = append(os.Environ(), "FAKE_FLY_VERSION="+flyVersion)
 
+		var err error
 		flySession, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 	})
@@ -114,15 +111,9 @@ var _ = Describe("Version Checks", func() {
 	})
 
 	// dev version
-	// NOTE: This test requires fly to be rebuild and causes the whole suite to take much longer often timing out jobs
-	// on CI.
-	XDescribe("when the client is a development version", func() {
+	Describe("when the client is a development version", func() {
 		BeforeEach(func() {
-			customAtcVersion = atcVersion
-			flyPath, err = gexec.Build(
-				"github.com/concourse/concourse/fly",
-				"-ldflags", fmt.Sprintf("-X github.com/concourse/concourse.Version=%s", concourse.Version),
-			)
+			flyVersion = "0.0.0-dev"
 		})
 
 		It("never complains", func() {
