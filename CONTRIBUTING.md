@@ -266,6 +266,7 @@ Concourse is written in Go, but the web UI is written in
 After making changes to `web/`, run the following to rebuild the web UI assets:
 
 ```sh
+$ yarn install
 $ yarn build
 ```
 
