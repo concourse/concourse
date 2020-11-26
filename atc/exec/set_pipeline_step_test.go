@@ -3,6 +3,7 @@ package exec_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 
 	. "github.com/onsi/ginkgo"
@@ -18,6 +19,8 @@ import (
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/build/buildfakes"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/policy"
+	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/vars"
 	"github.com/onsi/gomega/gbytes"
@@ -92,6 +95,10 @@ jobs:
 
 		fakeDelegate        *execfakes.FakeSetPipelineStepDelegate
 		fakeDelegateFactory *execfakes.FakeSetPipelineStepDelegateFactory
+
+		filter      policy.Filter
+		fakeAgent   *policyfakes.FakeAgent
+		fakeChecker policy.Checker
 
 		fakeWorkerClient *workerfakes.FakeClient
 
@@ -172,6 +179,16 @@ jobs:
 		fakeTeamFactory.GetByIDReturns(fakeTeam)
 		fakeBuildFactory.BuildReturns(fakeBuild, true, nil)
 
+		filter = policy.Filter{
+			Actions: []string{exec.ActionRunSetPipeline},
+		}
+
+		fakeAgent = new(policyfakes.FakeAgent)
+		fakeAgent.CheckReturns(policy.PassedPolicyCheck(), nil)
+		fakePolicyAgentFactory.NewAgentReturns(fakeAgent, nil)
+
+		fakeChecker, _ = policy.Initialize(testLogger, "some-cluster", "some-version", filter)
+
 		fakeWorkerClient = new(workerfakes.FakeClient)
 
 		spPlan = &atc.SetPipelinePlan{
@@ -199,6 +216,7 @@ jobs:
 			fakeTeamFactory,
 			fakeBuildFactory,
 			fakeWorkerClient,
+			fakeChecker,
 		)
 
 		stepOk, stepErr = spStep.Run(ctx, state)
@@ -542,6 +560,49 @@ jobs:
 								))
 							})
 						})
+					})
+				})
+			})
+
+			Context("when policy checker enabled", func() {
+				Context("policy check errors", func() {
+					BeforeEach(func() {
+						result := policy.FailedPolicyCheck()
+						fakeAgent.CheckReturns(result, fmt.Errorf("unexpected error"))
+					})
+
+					It("should return error", func() {
+						Expect(stepErr).To(HaveOccurred())
+						Expect(stepErr.Error()).To(Equal("error checking policy enforcement"))
+					})
+				})
+
+				Context("policy check fails", func() {
+					BeforeEach(func() {
+						result := policy.FailedPolicyCheck()
+						result.Reasons = append(result.Reasons, "foo", "bar")
+						fakeAgent.CheckReturns(result, nil)
+					})
+
+					It("should return error", func() {
+						Expect(stepErr).To(HaveOccurred())
+						Expect(stepErr.Error()).To(Equal("policy check failed for set_pipeline: foo, bar"))
+					})
+				})
+
+				Context("policy check succeeds", func() {
+					BeforeEach(func() {
+						fakeBuild.PipelineReturns(fakePipeline, true, nil)
+						fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
+						spPlan.Team = ""
+					})
+
+					It("should finish successfully", func() {
+						_, teamID, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+						Expect(teamID).To(Equal(fakeTeam.ID()))
+						Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+						_, succeeded := fakeDelegate.FinishedArgsForCall(0)
+						Expect(succeeded).To(BeTrue())
 					})
 				})
 			})
