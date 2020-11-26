@@ -3,6 +3,7 @@ package integration_test
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"os/exec"
 
 	"github.com/concourse/concourse"
@@ -32,14 +33,10 @@ var _ = Describe("Version Checks", func() {
 	})
 
 	JustBeforeEach(func() {
-		flyPath, err := gexec.Build(
-			"github.com/concourse/concourse/fly",
-			"-ldflags", fmt.Sprintf("-X github.com/concourse/concourse.Version=%s", flyVersion),
-		)
-		Expect(err).NotTo(HaveOccurred())
-
 		flyCmd := exec.Command(flyPath, "-t", targetName, "containers")
+		flyCmd.Env = append(os.Environ(), "FAKE_FLY_VERSION="+flyVersion)
 
+		var err error
 		flySession, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 	})
