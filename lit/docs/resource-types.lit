@@ -30,9 +30,8 @@ A pipeline's resource types are listed under
     The type of the resource used to provide the resource type's container
     image.
 
-    This is a bit meta. Usually this value will be \code{docker-image} or
-    \code{registry-image}, as the resource type must result in a container
-    image.
+    This is a bit meta. Usually this value will be \code{registry-image} as the
+    resource type must result in a container image.
 
     A resource type's type can refer to other resource types, and can also use the
     core type that it's overriding. This is useful for bringing in a newer or
