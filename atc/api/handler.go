@@ -203,11 +203,11 @@ func NewHandler(
 		atc.ReportWorkerVolumes:   http.HandlerFunc(volumesServer.ReportWorkerVolumes),
 
 		atc.ListTeams:      http.HandlerFunc(teamServer.ListTeams),
-		atc.GetTeam:        http.HandlerFunc(teamServer.GetTeam),
+		atc.GetTeam:        teamHandlerFactory.HandlerFor(teamServer.GetTeam),
 		atc.SetTeam:        http.HandlerFunc(teamServer.SetTeam),
-		atc.RenameTeam:     http.HandlerFunc(teamServer.RenameTeam),
-		atc.DestroyTeam:    http.HandlerFunc(teamServer.DestroyTeam),
-		atc.ListTeamBuilds: http.HandlerFunc(teamServer.ListTeamBuilds),
+		atc.RenameTeam:     teamHandlerFactory.HandlerFor(teamServer.RenameTeam),
+		atc.DestroyTeam:    teamHandlerFactory.HandlerFor(teamServer.DestroyTeam),
+		atc.ListTeamBuilds: teamHandlerFactory.HandlerFor(teamServer.ListTeamBuilds),
 
 		atc.CreateArtifact: teamHandlerFactory.HandlerFor(artifactServer.CreateArtifact),
 		atc.GetArtifact:    teamHandlerFactory.HandlerFor(artifactServer.GetArtifact),

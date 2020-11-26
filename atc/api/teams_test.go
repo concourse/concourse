@@ -151,61 +151,11 @@ var _ = Describe("Teams API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when not authenticated and not admin", func() {
-			BeforeEach(func() {
-				fakeAccess.IsAuthorizedReturns(false)
-				fakeAccess.IsAdminReturns(false)
-			})
-
-			It("returns 401", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-			})
-		})
-
-		Context("when not authenticated to specified team, but have admin authority", func() {
+		Context("when authenticated and authorized", func() {
 			BeforeEach(func() {
 				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 				fakeAccess.IsAuthenticatedReturns(true)
 				fakeAccess.IsAdminReturns(true)
-				fakeAccess.IsAuthorizedReturns(false)
-			})
-
-			It("returns 200 ok", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-			})
-
-			It("returns application/json", func() {
-				expectedHeaderEntries := map[string]string{
-					"Content-Type": "application/json",
-				}
-				Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
-			})
-
-			It("returns a team JSON", func() {
-				body, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(body).To(MatchJSON(`
-				{
-					"id": 1,
-					"name": "a-team",
-					"auth": {
-						"owner": {
-							"groups": [],
-							"users": [
-								"local:username"
-							]
-						}
-					}
-				}`))
-			})
-		})
-
-		Context("when authenticated to specified team", func() {
-			BeforeEach(func() {
-				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
-				fakeAccess.IsAuthenticatedReturns(true)
-				fakeAccess.IsAdminReturns(false)
 				fakeAccess.IsAuthorizedReturns(true)
 			})
 
@@ -240,10 +190,21 @@ var _ = Describe("Teams API", func() {
 			})
 		})
 
-		Context("when authenticated as another team", func() {
+		Context("when not authenticated", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(false)
+			})
+
+			It("returns 401", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
+		})
+
+		Context("when authenticated but not authorized", func() {
 			BeforeEach(func() {
 				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(false)
 			})
 
 			It("return 403", func() {
@@ -347,7 +308,7 @@ var _ = Describe("Teams API", func() {
 		Context("when the requester team is authorized as an admin team", func() {
 			BeforeEach(func() {
 				fakeAccess.IsAuthenticatedReturns(true)
-				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
 				fakeAccess.IsAdminReturns(true)
 			})
 
@@ -442,7 +403,7 @@ var _ = Describe("Teams API", func() {
 		var teamName string
 
 		BeforeEach(func() {
-			teamName = "team venture"
+			teamName = "team"
 
 			fakeTeam.IDReturns(2)
 			fakeTeam.NameReturns(teamName)
@@ -463,6 +424,7 @@ var _ = Describe("Teams API", func() {
 			BeforeEach(func() {
 				fakeAccess.IsAuthenticatedReturns(true)
 				fakeAccess.IsAdminReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
 			})
 
 			Context("when there's a problem finding teams", func() {
@@ -529,9 +491,9 @@ var _ = Describe("Teams API", func() {
 			})
 		})
 
-		Context("when the requester belongs to a non-admin team", func() {
+		Context("when the requester is authorized to the team but is not an admin", func() {
 			JustBeforeEach(func() {
-				path := fmt.Sprintf("%s/api/v1/teams/%s", server.URL, "non-admin-team")
+				path := fmt.Sprintf("%s/api/v1/teams/%s", server.URL, "some-team")
 
 				var err error
 				request, err = http.NewRequest("DELETE", path, nil)
@@ -544,6 +506,7 @@ var _ = Describe("Teams API", func() {
 
 			BeforeEach(func() {
 				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
 				fakeAccess.IsAdminReturns(false)
 			})
 
@@ -579,11 +542,11 @@ var _ = Describe("Teams API", func() {
 			BeforeEach(func() {
 				fakeAccess.IsAuthenticatedReturns(true)
 			})
-			Context("when requester belongs to an admin team", func() {
+			Context("when authorized", func() {
 				BeforeEach(func() {
 					teamName = "a-team"
 					fakeTeam.NameReturns(teamName)
-					fakeAccess.IsAdminReturns(true)
+					fakeAccess.IsAuthorizedReturns(true)
 					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 				})
 
@@ -621,30 +584,7 @@ var _ = Describe("Teams API", func() {
 				})
 			})
 
-			Context("when requester belongs to the team", func() {
-				BeforeEach(func() {
-					teamName = "a-team"
-					fakeTeam.NameReturns(teamName)
-					fakeAccess.IsAuthorizedReturns(true)
-					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
-				})
-
-				It("constructs teamDB with provided team name", func() {
-					Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
-					Expect(dbTeamFactory.FindTeamArgsForCall(0)).To(Equal("a-team"))
-				})
-
-				It("renames the team to the name provided", func() {
-					Expect(fakeTeam.RenameCallCount()).To(Equal(1))
-					Expect(fakeTeam.RenameArgsForCall(0)).To(Equal("some-new-name"))
-				})
-
-				It("returns 200", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-			})
-
-			Context("when requester does not belong to the team", func() {
+			Context("when unauthorized", func() {
 				BeforeEach(func() {
 					teamName = "a-team"
 					fakeTeam.NameReturns(teamName)

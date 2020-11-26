@@ -82,20 +82,11 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			newHandler = wrappa.checkPipelineAccessHandlerFactory.HandlerFor(handler, rejector)
 
 		// authenticated
-		case atc.CreateBuild,
-			atc.GetContainer,
-			atc.HijackContainer,
-			atc.ListContainers,
-			atc.ListWorkers,
+		case atc.ListWorkers,
 			atc.RegisterWorker,
 			atc.HeartbeatWorker,
 			atc.DeleteWorker,
-			atc.GetTeam,
-			atc.SetTeam,
 			atc.ListTeamBuilds,
-			atc.RenameTeam,
-			atc.DestroyTeam,
-			atc.ListVolumes,
 			atc.GetUser:
 			newHandler = auth.CheckAuthenticationHandler(handler, rejector)
 
@@ -113,7 +104,9 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.GetWall:
 			newHandler = auth.CheckAuthenticationIfProvidedHandler(handler, rejector)
 
+		// admin
 		case atc.GetLogLevel,
+			atc.DestroyTeam,
 			atc.ListActiveUsersSince,
 			atc.SetLogLevel,
 			atc.GetInfoCreds,
@@ -121,8 +114,16 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ClearWall:
 			newHandler = auth.CheckAdminHandler(handler, rejector)
 
-		// authorized (requested team matches resource team)
-		case atc.CheckResource,
+		// authorized (requested team matches resource team and has required role, or is admin)
+		case atc.GetTeam,
+			atc.SetTeam,
+			atc.RenameTeam,
+			atc.ListContainers,
+			atc.GetContainer,
+			atc.HijackContainer,
+			atc.ListVolumes,
+			atc.CreateBuild,
+			atc.CheckResource,
 			atc.CheckResourceType,
 			atc.CreateJobBuild,
 			atc.RerunJobBuild,
