@@ -278,7 +278,7 @@ var _ = Describe("VolumeLocalityPlacementStrategy", func() {
 	})
 })
 
-var _ = Describe("RandomPlacementStrategyNode", func() {
+var _ = Describe("No strategy should equal to random strategy", func() {
 	Describe("Choose", func() {
 		JustBeforeEach(func() {
 			chosenWorker, chooseErr = strategy.Choose(

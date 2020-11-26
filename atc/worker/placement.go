@@ -12,7 +12,7 @@ import (
 )
 
 type ContainerPlacementStrategyOptions struct {
-	ContainerPlacementStrategy []string `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" description:"Method by which a worker is selected during container placement. If multiple methods are specified, they will be applied in order."`
+	ContainerPlacementStrategy []string `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" description:"Method by which a worker is selected during container placement. If multiple methods are specified, they will be applied in order. Random strategy is deprecated, it is still accepted, but takes no effective. Now, no strategy equals to random strategy."`
 	MaxActiveTasksPerWorker    int      `long:"max-active-tasks-per-worker" default:"0" description:"Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit."`
 }
 
@@ -191,18 +191,20 @@ func (strategy *LimitActiveTasksPlacementStrategyNode) ModifiesActiveTasks() boo
 	return true
 }
 
-type RandomPlacementStrategyNode struct {
-	rand *rand.Rand
-}
+// RandomPlacementStrategyNode will no nothing, just return all workers passing to it.
+// Because `ContainerPlacementStrategyChainNode.Choose` will finally randomly pick up
+// a worker from a list of workers that pass strategy chain. An empty strategy chain
+// equals to a single `random` strategy. If `random` is before other strategy, like
+// `random,volume-locality`, `random` will be no effective. So random strategy should
+// be deprecated.
+type RandomPlacementStrategyNode struct {}
 
 func newRandomPlacementStrategyNode() ContainerPlacementStrategyChainNode {
-	return &RandomPlacementStrategyNode{
-		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
-	}
+	return &RandomPlacementStrategyNode{}
 }
 
 func (strategy *RandomPlacementStrategyNode) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
-	return []Worker{workers[strategy.rand.Intn(len(workers))]}, nil
+	return workers, nil
 }
 
 func (strategy *RandomPlacementStrategyNode) ModifiesActiveTasks() bool {
