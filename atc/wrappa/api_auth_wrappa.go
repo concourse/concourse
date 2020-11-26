@@ -1,6 +1,8 @@
 package wrappa
 
 import (
+	"fmt"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/auth"
 	"github.com/tedsuo/rata"
@@ -156,7 +158,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 
 		// think about it!
 		default:
-			panic("you missed a spot")
+			panic(fmt.Sprintf("you missed a spot: %q", name))
 		}
 
 		wrapped[name] = newHandler
