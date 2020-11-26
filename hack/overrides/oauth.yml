@@ -1,0 +1,40 @@
+# oauth.yml - a docker-compose override that adds a oidc IDP to the stack
+#
+# Once running, head to `localhost:8000/simplesaml/` to get access to the IDP
+#
+# There are 2 users and an admin account:
+# user1@example.com:user1pass;group1
+# user2@example.com:user2pass
+#
+# ref: https://hub.docker.com/r/kristophjunge/test-saml-idp/
+# ref: https://docs.docker.com/compose/extends/
+#
+version: '3'
+
+services:
+  web:
+    environment:
+      # CONCOURSE_MAIN_TEAM_OAUTH_USER: user1
+      # CONCOURSE_MAIN_TEAM_OAUTH_GROUP: group1
+
+      CONCOURSE_OAUTH_CLIENT_ID: foo
+      CONCOURSE_OAUTH_CLIENT_SECRET: bar
+      CONCOURSE_OAUTH_AUTH_URL: http://localhost:9000/auth
+      CONCOURSE_OAUTH_TOKEN_URL: http://oauth:9000/token
+      CONCOURSE_OAUTH_USERINFO_URL: http://oauth:9000/me
+
+      CONCOURSE_OAUTH_SCOPE: openid,email,profile
+      CONCOURSE_OAUTH_USER_ID_KEY: id
+      CONCOURSE_OAUTH_USER_NAME_KEY: username
+
+  oauth:
+    image: qlik/simple-oidc-provider
+    ports:
+    - 9000:9000
+    environment:
+      REDIRECTS: http://localhost:8080/sky/issuer/callback
+      CONFIG_FILE: /oidc/config.json
+      USERS_FILE: /oidc/users.json
+    volumes:
+    - ./hack/oidc:/oidc
+
