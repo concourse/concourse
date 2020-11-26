@@ -1172,7 +1172,7 @@ func (b *build) SaveOutput(
 		return ErrBuildHasNoPipeline
 	}
 
-	resource, found, err := pipeline.Resource(resourceName)
+	theResource, found, err := pipeline.Resource(resourceName)
 	if err != nil {
 		return err
 	}
@@ -1198,7 +1198,7 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, b.conn, b.lockFactory, resourceConfig, resource)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, b.conn, b.lockFactory, resourceConfig, theResource)
 	if err != nil {
 		return err
 	}
@@ -1222,9 +1222,14 @@ func (b *build) SaveOutput(
 		}
 	}
 
+	err = theResource.(*resource).setResourceConfigScopeInTransaction(tx, resourceConfigScope)
+	if err != nil {
+		return err
+	}
+
 	_, err = psql.Insert("build_resource_config_version_outputs").
 		Columns("resource_id", "build_id", "version_md5", "name").
-		Values(resource.ID(), strconv.Itoa(b.id), sq.Expr("md5(?)", versionJSON), outputName).
+		Values(theResource.ID(), strconv.Itoa(b.id), sq.Expr("md5(?)", versionJSON), outputName).
 		Suffix("ON CONFLICT DO NOTHING").
 		RunWith(tx).
 		Exec()

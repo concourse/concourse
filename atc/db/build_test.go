@@ -1211,6 +1211,13 @@ var _ = Describe("Build", func() {
 			atc.EnableGlobalResources = false
 		})
 
+		It("should set the resource's config scope", func(){
+			resource, found, err := scenario.Pipeline.Resource("some-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(resource.ResourceConfigScopeID()).ToNot(BeZero())
+		})
+
 		Context("when the version does not exist", func() {
 			It("can save a build's output", func() {
 				rcv := scenario.ResourceVersion("some-resource", outputVersion)
@@ -1392,6 +1399,10 @@ var _ = Describe("Build", func() {
 				{
 					Name:    "some-resource",
 					Version: atc.Version{"ver": "2"},
+				},
+				{
+					Name:    "some-other-resource",
+					Version: atc.Version{"ver": "not-checked"},
 				},
 			}))
 		})

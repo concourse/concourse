@@ -208,6 +208,20 @@ func (r *resource) SetResourceConfigScope(scope ResourceConfigScope) error {
 
 	defer Rollback(tx)
 
+	err = r.setResourceConfigScopeInTransaction(tx, scope)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *resource) setResourceConfigScopeInTransaction(tx Tx, scope ResourceConfigScope) error {
 	results, err := psql.Update("resources").
 		Set("resource_config_id", scope.ResourceConfig().ID()).
 		Set("resource_config_scope_id", scope.ID()).
@@ -234,11 +248,6 @@ func (r *resource) SetResourceConfigScope(scope ResourceConfigScope) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return err
 	}
 
 	return nil
