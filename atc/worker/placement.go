@@ -89,14 +89,10 @@ func NewRandomPlacementStrategy() ContainerPlacementStrategy {
 	return s
 }
 
-type VolumeLocalityPlacementStrategyNode struct {
-	rand *rand.Rand
-}
+type VolumeLocalityPlacementStrategyNode struct{}
 
 func newVolumeLocalityPlacementStrategyNode() ContainerPlacementStrategyChainNode {
-	return &VolumeLocalityPlacementStrategyNode{
-		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
-	}
+	return &VolumeLocalityPlacementStrategyNode{}
 }
 
 func (strategy *VolumeLocalityPlacementStrategyNode) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
@@ -130,14 +126,10 @@ func (strategy *VolumeLocalityPlacementStrategyNode) ModifiesActiveTasks() bool 
 	return false
 }
 
-type FewestBuildContainersPlacementStrategyNode struct {
-	rand *rand.Rand
-}
+type FewestBuildContainersPlacementStrategyNode struct{}
 
 func newFewestBuildContainersPlacementStrategy() ContainerPlacementStrategyChainNode {
-	return &FewestBuildContainersPlacementStrategyNode{
-		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
-	}
+	return &FewestBuildContainersPlacementStrategyNode{}
 }
 
 func (strategy *FewestBuildContainersPlacementStrategyNode) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
@@ -160,13 +152,11 @@ func (strategy *FewestBuildContainersPlacementStrategyNode) ModifiesActiveTasks(
 }
 
 type LimitActiveTasksPlacementStrategyNode struct {
-	rand     *rand.Rand
 	maxTasks int
 }
 
 func newLimitActiveTasksPlacementStrategy(maxTasks int) ContainerPlacementStrategyChainNode {
 	return &LimitActiveTasksPlacementStrategyNode{
-		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
 		maxTasks: maxTasks,
 	}
 }
