@@ -31,7 +31,7 @@ var _ = Describe("Syncing", func() {
 		copiedFlyDir, err := ioutil.TempDir("", "fly_sync")
 		Expect(err).ToNot(HaveOccurred())
 
-		copiedFly, err := os.Create(filepath.Join(copiedFlyDir, "fly"))
+		copiedFly, err := os.Create(filepath.Join(copiedFlyDir, filepath.Base(flyPath)))
 		Expect(err).ToNot(HaveOccurred())
 
 		fly, err := os.Open(flyPath)
@@ -46,7 +46,10 @@ var _ = Describe("Syncing", func() {
 
 		copiedFlyPath = copiedFly.Name()
 
-		Expect(os.Chmod(copiedFlyPath, 0755)).To(Succeed())
+		fi, err := os.Stat(flyPath)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(os.Chmod(copiedFlyPath, fi.Mode())).To(Succeed())
 
 		atcServer.AppendHandlers(ghttp.CombineHandlers(
 			ghttp.VerifyRequest("GET", "/api/v1/cli"),
