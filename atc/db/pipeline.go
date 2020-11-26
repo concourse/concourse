@@ -93,7 +93,6 @@ type Pipeline interface {
 	Archive() error
 
 	Destroy() error
-	Rename(string) error
 
 	Variables(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
 
@@ -705,18 +704,6 @@ func (p *pipeline) Hide() error {
 func (p *pipeline) Expose() error {
 	_, err := psql.Update("pipelines").
 		Set("public", true).
-		Where(sq.Eq{
-			"id": p.id,
-		}).
-		RunWith(p.conn).
-		Exec()
-
-	return err
-}
-
-func (p *pipeline) Rename(name string) error {
-	_, err := psql.Update("pipelines").
-		Set("name", name).
 		Where(sq.Eq{
 			"id": p.id,
 		}).

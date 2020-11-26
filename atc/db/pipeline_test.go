@@ -413,19 +413,6 @@ var _ = Describe("Pipeline", func() {
 		})
 	})
 
-	Describe("Rename", func() {
-		JustBeforeEach(func() {
-			Expect(pipeline.Rename("oopsies")).To(Succeed())
-		})
-
-		It("renames the pipeline", func() {
-			pipeline, found, err := team.Pipeline(atc.PipelineRef{Name: "oopsies"})
-			Expect(pipeline.Name()).To(Equal("oopsies"))
-			Expect(found).To(BeTrue())
-			Expect(err).ToNot(HaveOccurred())
-		})
-	})
-
 	Describe("Resource Config Versions", func() {
 		resourceName := "some-resource"
 		otherResourceName := "some-other-resource"

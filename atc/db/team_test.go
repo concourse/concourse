@@ -3289,6 +3289,62 @@ var _ = Describe("Team", func() {
 		})
 	})
 
+	Describe("RenamePipeline", func() {
+		It("renames individual pipelines", func() {
+			found, err := defaultTeam.RenamePipeline("default-pipeline", "new-pipeline")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			_, err = defaultPipeline.Reload()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(defaultPipeline.Name()).To(Equal("new-pipeline"))
+		})
+
+		Context("when multiple pipeline instances have the same name", func() {
+			var (
+				p1 db.Pipeline
+				p2 db.Pipeline
+			)
+
+			BeforeEach(func() {
+				var err error
+				p1, _, err = defaultTeam.SavePipeline(atc.PipelineRef{
+					Name:         "release",
+					InstanceVars: atc.InstanceVars{"version": "6.7.x"},
+				}, defaultPipelineConfig, db.ConfigVersion(0), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				p2, _, err = defaultTeam.SavePipeline(atc.PipelineRef{
+					Name:         "release",
+					InstanceVars: atc.InstanceVars{"version": "7.0.x"},
+				}, defaultPipelineConfig, db.ConfigVersion(0), false)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("renames every instance", func() {
+				found, err := defaultTeam.RenamePipeline("release", "new-pipeline")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				_, err = p1.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(p1.Name()).To(Equal("new-pipeline"))
+
+				_, err = p2.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(p2.Name()).To(Equal("new-pipeline"))
+			})
+		})
+
+		Context("when there are no pipelines with the old name", func() {
+			It("returns not found", func() {
+				found, err := defaultTeam.RenamePipeline("blah-blah-blah", "new-pipeline")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+		})
+	})
+
 	Describe("FindCheckContainers", func() {
 		var (
 			fakeSecretManager *credsfakes.FakeSecrets

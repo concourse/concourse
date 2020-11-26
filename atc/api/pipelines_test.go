@@ -1592,35 +1592,51 @@ var _ = Describe("Pipelines API", func() {
 			BeforeEach(func() {
 				fakeAccess.IsAuthenticatedReturns(true)
 			})
-			Context("when requester belongs to the team", func() {
+			Context("when authorized", func() {
 				BeforeEach(func() {
 					fakeAccess.IsAuthorizedReturns(true)
 
 					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
-					fakeTeam.PipelineReturns(dbPipeline, true, nil)
+					fakeTeam.RenamePipelineReturns(true, nil)
 				})
 
-				It("constructs teamDB with provided team name", func() {
+				It("finds the correct team", func() {
 					Expect(dbTeamFactory.FindTeamCallCount()).To(Equal(1))
 					Expect(dbTeamFactory.FindTeamArgsForCall(0)).To(Equal("a-team"))
 				})
 
-				It("injects the proper pipeline", func() {
-					pipelineRef := fakeTeam.PipelineArgsForCall(0)
-					Expect(pipelineRef).To(Equal(atc.PipelineRef{Name: "a-pipeline"}))
+				It("renames the pipeline to the name provided", func() {
+					Expect(fakeTeam.RenamePipelineCallCount()).To(Equal(1))
+					oldName, newName := fakeTeam.RenamePipelineArgsForCall(0)
+					Expect(oldName).To(Equal("a-pipeline"))
+					Expect(newName).To(Equal("some-new-name"))
 				})
 
 				It("returns 200", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
-				It("renames the pipeline to the name provided", func() {
-					Expect(dbPipeline.RenameCallCount()).To(Equal(1))
-					Expect(dbPipeline.RenameArgsForCall(0)).To(Equal("some-new-name"))
+				Context("when the pipeline does not exist", func() {
+					BeforeEach(func() {
+						fakeTeam.RenamePipelineReturns(false, nil)
+					})
+
+					It("returns a 404", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
 				})
 
-				Context("when a warning occurs", func() {
+				Context("when renaming the pipeline errors", func() {
+					BeforeEach(func() {
+						fakeTeam.RenamePipelineReturns(false, errors.New("whoops"))
+					})
 
+					It("returns a 500 internal server error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when the new name is an invalid identifier", func() {
 					BeforeEach(func() {
 						requestBody = `{"name":"_some-new-name"}`
 					})
@@ -1635,17 +1651,6 @@ var _ = Describe("Pipelines API", func() {
 									}
 								]
 							}`))
-					})
-				})
-
-				Context("when an error occurs on update", func() {
-					BeforeEach(func() {
-						fakeTeam.PipelineReturns(dbPipeline, true, nil)
-						dbPipeline.RenameReturns(errors.New("whoops"))
-					})
-
-					It("returns a 500 internal server error", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
 			})

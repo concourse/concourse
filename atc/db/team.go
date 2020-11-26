@@ -39,6 +39,7 @@ type Team interface {
 		from ConfigVersion,
 		initiallyPaused bool,
 	) (Pipeline, bool, error)
+	RenamePipeline(oldName string, newName string) (bool, error)
 
 	Pipeline(pipelineRef atc.PipelineRef) (Pipeline, bool, error)
 	Pipelines() ([]Pipeline, error)
@@ -574,6 +575,25 @@ func (t *team) SavePipeline(
 	}
 
 	return pipeline, isNewPipeline, nil
+}
+
+func (t *team) RenamePipeline(oldName, newName string) (bool, error) {
+	result, err := psql.Update("pipelines").
+		Set("name", newName).
+		Where(sq.Eq{
+			"team_id": t.id,
+			"name":    oldName,
+		}).
+		RunWith(t.conn).
+		Exec()
+	if err != nil {
+		return false, err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return rowsAffected > 0, nil
 }
 
 func (t *team) Pipeline(pipelineRef atc.PipelineRef) (Pipeline, bool, error) {
