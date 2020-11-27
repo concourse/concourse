@@ -55,7 +55,6 @@ type Resource interface {
 
 	Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error)
 	FindVersion(filter atc.Version) (ResourceConfigVersion, bool, error) // Only used in tests!!
-	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig) (bool, error)
 	UpdateMetadata(atc.Version, ResourceConfigMetadataFields) (bool, error)
 
 	EnableVersion(rcvID int) error
@@ -374,28 +373,6 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 	return build, true, nil
 }
 
-// XXX: only used for tests
-func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields, resourceConfig ResourceConfig) (bool, error) {
-	tx, err := r.conn.Begin()
-	if err != nil {
-		return false, err
-	}
-
-	defer Rollback(tx)
-
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r)
-	if err != nil {
-		return false, err
-	}
-
-	newVersion, err := saveResourceVersion(tx, resourceConfigScope.ID(), version, metadata, nil)
-	if err != nil {
-		return false, err
-	}
-
-	return newVersion, tx.Commit()
-}
-
 func (r *resource) UpdateMetadata(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {
 	versionJSON, err := json.Marshal(version)
 	if err != nil {
@@ -502,7 +479,7 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 				AND r.id = d.resource_id
 			)
 		FROM resource_config_versions v, resources r
-		WHERE r.id = $1 AND r.resource_config_scope_id = v.resource_config_scope_id AND v.check_order != 0
+		WHERE r.id = $1 AND r.resource_config_scope_id = v.resource_config_scope_id
 	`
 
 	filterJSON := "{}"

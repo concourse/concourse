@@ -1211,7 +1211,7 @@ var _ = Describe("Build", func() {
 			atc.EnableGlobalResources = false
 		})
 
-		It("should set the resource's config scope", func(){
+		It("should set the resource's config scope", func() {
 			resource, found, err := scenario.Pipeline.Resource("some-resource")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())

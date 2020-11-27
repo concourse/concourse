@@ -993,32 +993,6 @@ var _ = Describe("Resource", func() {
 				})
 			})
 		})
-
-		Context("when resource has a version with check order of 0", func() {
-			BeforeEach(func() {
-				scenario = dbtest.Setup(
-					builder.WithPipeline(atc.Config{
-						Resources: atc.ResourceConfigs{
-							{
-								Name:   "some-resource",
-								Type:   "some-base-resource-type",
-								Source: atc.Source{"some": "repository"},
-							},
-						},
-					}),
-					builder.WithResourceVersions("some-resource"),
-					builder.WithVersionMetadata("some-resource", atc.Version{"version": "not-returned"}, nil), // save unchecked version
-				)
-			})
-
-			It("does not return the version", func() {
-				historyPage, pagination, found, err := scenario.Resource("some-resource").Versions(db.Page{Limit: 2}, nil)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(historyPage).To(BeNil())
-				Expect(pagination).To(Equal(db.Pagination{Newer: nil, Older: nil}))
-			})
-		})
 	})
 
 	Describe("PinVersion/UnpinVersion", func() {
