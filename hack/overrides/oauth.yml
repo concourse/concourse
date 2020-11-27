@@ -1,8 +1,6 @@
-# oauth.yml - a docker-compose override that adds a oidc IDP to the stack
+# oauth.yml - a docker-compose override that adds a OAuth auth to the stack
 #
-# Once running, head to `localhost:8000/simplesaml/` to get access to the IDP
-#
-# There are 2 users and an admin account:
+# There are 2 users and 1 group:
 # user1@example.com:user1pass;group1
 # user2@example.com:user2pass
 #
@@ -14,7 +12,7 @@ version: '3'
 services:
   web:
     environment:
-      # CONCOURSE_MAIN_TEAM_OAUTH_USER: user1
+      CONCOURSE_MAIN_TEAM_OAUTH_USER: user1
       # CONCOURSE_MAIN_TEAM_OAUTH_GROUP: group1
 
       CONCOURSE_OAUTH_CLIENT_ID: foo

@@ -1,4 +1,4 @@
-# oidc.yml - a docker-compose override that adds a oidc IDP to the stack
+# oidc.yml - a docker-compose override that adds a OIDC auth to the stack
 #
 # There are 2 users and 1 group:
 # user1@example.com:user1pass;group1

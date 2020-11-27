@@ -1,4 +1,4 @@
-# saml.yml - a docker-compose override that adds a saml IDP to the stack
+# saml.yml - a docker-compose override that adds a SAML auth to the stack
 #
 # Once running, head to `localhost:8000/simplesaml/` to get access to the IDP
 #
