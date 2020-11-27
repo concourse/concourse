@@ -58,12 +58,17 @@ func (flag *MicrosoftFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type MicrosoftTeamFlags struct {
-	Users  []string `long:"user" description:"A whitelisted Microsoft user" value-name:"USERNAME"`
 	Groups []string `long:"group" description:"A whitelisted Microsoft group" value-name:"GROUP_NAME"`
 }
 
+// Dex's microsoft connector stores the display name (non-unique) in `UserName` and the unique one in `UserId`
+// Since concourse only looks at `UserName` (so that we can use handles for stuff like github instead of an id number),
+// this introduces a security problem where anyone with the same name can impersonate each other.
+//
+// Let's just disable setting users by name for now. If you really need this feature, one potential solution is to PR to
+// upstream dex to be able to map the username key.
 func (flag *MicrosoftTeamFlags) GetUsers() []string {
-	return flag.Users
+	return nil
 }
 
 func (flag *MicrosoftTeamFlags) GetGroups() []string {
