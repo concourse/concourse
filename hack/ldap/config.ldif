@@ -1,0 +1,44 @@
+# Already included in default config of Docker image osixia/openldap:1.4.0.
+#
+# dn: dc=example,dc=org
+# objectClass: dcObject
+# objectClass: organization
+# o: Example Company
+# dc: example
+
+dn: ou=People,dc=example,dc=org
+objectClass: organizationalUnit
+ou: People
+
+dn: cn=jane,ou=People,dc=example,dc=org
+objectClass: person
+objectClass: inetOrgPerson
+sn: smith
+cn: john
+mail: user1@example.com
+userpassword: user1pass
+
+dn: cn=john,ou=People,dc=example,dc=org
+objectClass: person
+objectClass: inetOrgPerson
+sn: doe
+cn: jane
+mail: user2@example.com
+userpassword: user2pass
+
+# Group definitions.
+
+dn: ou=Groups,dc=example,dc=org
+objectClass: organizationalUnit
+ou: Groups
+
+dn: cn=admins,ou=Groups,dc=example,dc=org
+objectClass: groupOfNames
+cn: admins
+member: cn=john,ou=People,dc=example,dc=org
+member: cn=jane,ou=People,dc=example,dc=org
+
+dn: cn=group1,ou=Groups,dc=example,dc=org
+objectClass: groupOfNames
+cn: group1
+member: cn=john,ou=People,dc=example,dc=org
