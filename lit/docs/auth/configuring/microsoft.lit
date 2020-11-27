@@ -1,0 +1,82 @@
+\title{Microsoft auth}{microsoft-auth}
+
+\use-plugin{concourse-docs}
+\omit-children-from-table-of-contents
+
+A Concourse server can authenticate against Microsoft Azure AD to leverage its
+permission model.
+
+\section{
+  \title{Authentication}{microsoft-authentication}
+
+  You'll need to \link{register a new application on
+  Azure}{https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade}.
+
+  The "Callback URL" must be the URL of your Concourse server with
+  \code{/sky/issuer/callback} appended. This address must be reachable by
+  Microsoft - it can't be \code{localhost}.
+
+  For example, Concourse's own CI server's callback URL would be:
+
+  \codeblock{bash}{{{
+  https://ci.concourse-ci.org/sky/issuer/callback
+  }}}
+
+  You will be given a Client ID and a Client Secret for your new application.
+  The client ID and secret must then be configured on the \reference{web-node}
+  by setting the following env:
+
+  \codeblock{bash}{{{
+  CONCOURSE_MICROSOFT_CLIENT_ID=myclientid
+  CONCOURSE_MICROSOFT_CLIENT_SECRET=myclientsecret
+  }}}
+
+  Consult \code{concourse web --help} for a full list of flags with
+  descriptions.
+}
+
+\section{
+  \title{Authorization}{bitbucket-cloud-authorization}
+
+  \warn{Individual user auth is disabled due to a quirk with with Microsoft
+  returning unique IDs but non-unique usernames}
+
+  Groups can be authorized for a team by passing the following flags to
+  \reference{fly-set-team}:
+
+  \definitions{
+    \definition{\code{--microsoft-group=GROUP_NAME}}{
+      Authorize an entire group's members.
+    }
+  }
+
+  For example:
+
+  \codeblock{bash}{{{
+  $ fly set-team -n my-team \
+      --microsoft-group my-group
+  }}}
+
+  ...or via \code{--config} for \reference{setting-roles}{setting user roles}:
+
+  \codeblock{bash}{{{
+  roles:
+  - name: member
+    microsoft:
+      groups: ["my-groups"]
+  }}}
+
+  \section{
+    \title{Configuring \code{main} Team Authorization}
+
+    Microsoft groups can be added to the
+    \reference{main-team} authorization config by setting the following env on
+    the \reference{web-node}:
+
+    \codeblock{bash}{{{
+    CONCOURSE_MAIN_TEAM_MICROSOFT_GROUP=my-group
+    }}}
+
+    Multiple teams may be specified by comma-separating them.
+  }
+}

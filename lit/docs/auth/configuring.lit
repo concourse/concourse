@@ -7,6 +7,7 @@
 \include-section{configuring/bitbucket.lit}
 \include-section{configuring/cf.lit}
 \include-section{configuring/ldap.lit}
+\include-section{configuring/microsoft.lit}
 \include-section{configuring/generic-oidc.lit}
 \include-section{configuring/generic-oauth.lit}
 \include-section{configuring/generic-saml.lit}
