@@ -119,7 +119,7 @@ func (source *buildEventSource) collectEvents(cursor uint) {
 		rows, err := tx.Query(`
 			SELECT type, version, payload
 			FROM `+source.table+`
-			WHERE build_id = $1
+			WHERE build_id = $1 OR build_id_old = $1
 			ORDER BY event_id ASC
 			OFFSET $2
 			LIMIT $3
