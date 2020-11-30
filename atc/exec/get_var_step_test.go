@@ -184,7 +184,9 @@ var _ = Describe("GetVarStep", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(ok).To(BeTrue())
 
+			Expect(fakeSecrets.GetCallCount()).To(Equal(1))
 			Expect(previousState.AddVarCallCount()).To(Equal(1))
+
 			sourceName, key, value, redact := previousState.AddVarArgsForCall(0)
 			Expect(sourceName).To(Equal("some-source-name"))
 			Expect(key).To(Equal("some-var"))
@@ -198,6 +200,25 @@ var _ = Describe("GetVarStep", func() {
 
 			Expect(fakeSecrets.GetCallCount()).To(Equal(1))
 			Expect(state.AddVarCallCount()).To(Equal(1))
+
+			sourceName, key, value, redact := state.AddVarArgsForCall(0)
+			Expect(sourceName).To(Equal("some-source-name"))
+			Expect(key).To(Equal("some-var"))
+			Expect(value).To(Equal("some-value"))
+			Expect(redact).To(BeTrue())
+		})
+	})
+
+	Context("when reveal is true", func() {
+		BeforeEach(func() {
+			getVarPlan.Reveal = true
+		})
+		It("the var is not redactable", func() {
+			Expect(stepOk).To(BeTrue())
+			Expect(stepErr).ToNot(HaveOccurred())
+
+			_, _, _, redact := state.AddVarArgsForCall(0)
+			Expect(redact).To(BeFalse())
 		})
 	})
 })

@@ -101,8 +101,7 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 
 	// If the var exists within the cache, use the value in the cache
 	if found {
-		//TODO: make secre redaction configurable
-		state.AddVar(step.plan.Name, step.plan.Path, value, true)
+		state.AddVar(step.plan.Name, step.plan.Path, value, !step.plan.Reveal)
 
 		delegate.Finished(logger, true)
 		return true, nil
@@ -136,8 +135,7 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 
 	step.cache.Add(hash, value, time.Second)
 
-	//TODO: make secre redaction configurable
-	state.AddVar(step.plan.Name, step.plan.Path, value, true)
+	state.AddVar(step.plan.Name, step.plan.Path, value, !step.plan.Reveal)
 
 	delegate.Finished(logger, true)
 
