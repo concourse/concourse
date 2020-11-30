@@ -19,7 +19,6 @@ import (
 	"github.com/onsi/gomega/ghttp"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/fly/version"
 )
 
 var _ = Describe("login Command", func() {
@@ -619,35 +618,6 @@ var _ = Describe("login Command", func() {
 						Expect(sess.ExitCode()).To(Equal(0))
 					})
 				})
-			})
-		})
-
-		Context("when fly and atc differ in major versions", func() {
-			var flyVersion string
-
-			BeforeEach(func() {
-				major, minor, patch, err := version.GetSemver(atcVersion)
-				Expect(err).NotTo(HaveOccurred())
-
-				flyVersion = fmt.Sprintf("%d.%d.%d", major+1, minor, patch)
-
-				flyCmd = exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-u", "user", "-p", "pass")
-				flyCmd.Env = append(os.Environ(), "FAKE_FLY_VERSION="+flyVersion)
-
-				loginATCServer.AppendHandlers(
-					infoHandler(),
-					tokenHandler(),
-					userInfoHandler(),
-				)
-			})
-
-			It("warns user and does not fail", func() {
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-
-				Eventually(sess).Should(gexec.Exit(0))
-				Expect(sess.Err).To(gbytes.Say(`fly version \(%s\) is out of sync with the target \(%s\). to sync up, run the following:\n\n    `, flyVersion, atcVersion))
-				Expect(sess.Err).To(gbytes.Say(`fly.* -t some-target sync\n`))
 			})
 		})
 
