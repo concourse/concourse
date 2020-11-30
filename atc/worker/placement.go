@@ -1,12 +1,20 @@
 package worker
 
 import (
+	"errors"
+	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"
 )
+
+type ContainerPlacementStrategyOptions struct {
+	ContainerPlacementStrategy []string `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" description:"Method by which a worker is selected during container placement. If multiple methods are specified, they will be applied in order. Random strategy should only be used alone."`
+	MaxActiveTasksPerWorker    int      `long:"max-active-tasks-per-worker" default:"0" description:"Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit."`
+}
 
 type ContainerPlacementStrategy interface {
 	//TODO: Don't pass around container metadata since it's not guaranteed to be deterministic.
@@ -15,17 +23,79 @@ type ContainerPlacementStrategy interface {
 	ModifiesActiveTasks() bool
 }
 
-type VolumeLocalityPlacementStrategy struct {
-	rand *rand.Rand
+type ContainerPlacementStrategyChainNode interface {
+	Choose(lager.Logger, []Worker, ContainerSpec) ([]Worker, error)
+	ModifiesActiveTasks() bool
 }
 
-func NewVolumeLocalityPlacementStrategy() ContainerPlacementStrategy {
-	return &VolumeLocalityPlacementStrategy{
-		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
+type containerPlacementStrategy struct {
+	nodes []ContainerPlacementStrategyChainNode
+}
+
+func NewContainerPlacementStrategy(opts ContainerPlacementStrategyOptions) (*containerPlacementStrategy, error) {
+	cps := &containerPlacementStrategy{nodes: []ContainerPlacementStrategyChainNode{}}
+	for _, strategy := range opts.ContainerPlacementStrategy {
+		strategy := strings.TrimSpace(strategy)
+		switch strategy {
+		case "random":
+			// Add nothing. Because an empty strategy chain equals to random strategy.
+		case "fewest-build-containers":
+			cps.nodes = append(cps.nodes, newFewestBuildContainersPlacementStrategy())
+		case "limit-active-tasks":
+			if opts.MaxActiveTasksPerWorker < 0 {
+				return nil, errors.New("max-active-tasks-per-worker must be greater or equal than 0")
+			}
+			cps.nodes = append(cps.nodes, newLimitActiveTasksPlacementStrategy(opts.MaxActiveTasksPerWorker))
+		case "volume-locality":
+			cps.nodes = append(cps.nodes, newVolumeLocalityPlacementStrategyNode())
+		default:
+			return nil, fmt.Errorf("invalid container placement strategy %s", strategy)
+		}
 	}
+	return cps, nil
 }
 
-func (strategy *VolumeLocalityPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
+func (strategy *containerPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
+	var err error
+	for _, node := range strategy.nodes {
+		workers, err = node.Choose(logger, workers, spec)
+		if err != nil {
+			return nil, err
+		}
+		if len(workers) == 0 {
+			return nil, nil
+		}
+	}
+	if len(workers) == 1 {
+		return workers[0], nil
+	}
+
+	// If there are still multiple candidate, choose a random one.
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return workers[r.Intn(len(workers))], nil
+}
+
+func (strategy *containerPlacementStrategy) ModifiesActiveTasks() bool {
+	for _, node := range strategy.nodes {
+		if node.ModifiesActiveTasks() {
+			return true
+		}
+	}
+	return false
+}
+
+func NewRandomPlacementStrategy() ContainerPlacementStrategy {
+	s, _ := NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"random"}})
+	return s
+}
+
+type VolumeLocalityPlacementStrategyNode struct{}
+
+func newVolumeLocalityPlacementStrategyNode() ContainerPlacementStrategyChainNode {
+	return &VolumeLocalityPlacementStrategyNode{}
+}
+
+func (strategy *VolumeLocalityPlacementStrategyNode) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
 	workersByCount := map[int][]Worker{}
 	var highestCount int
 	for _, w := range workers {
@@ -49,26 +119,20 @@ func (strategy *VolumeLocalityPlacementStrategy) Choose(logger lager.Logger, wor
 		}
 	}
 
-	highestLocalityWorkers := workersByCount[highestCount]
-
-	return highestLocalityWorkers[strategy.rand.Intn(len(highestLocalityWorkers))], nil
+	return workersByCount[highestCount], nil
 }
 
-func (strategy *VolumeLocalityPlacementStrategy) ModifiesActiveTasks() bool {
+func (strategy *VolumeLocalityPlacementStrategyNode) ModifiesActiveTasks() bool {
 	return false
 }
 
-type FewestBuildContainersPlacementStrategy struct {
-	rand *rand.Rand
+type FewestBuildContainersPlacementStrategyNode struct{}
+
+func newFewestBuildContainersPlacementStrategy() ContainerPlacementStrategyChainNode {
+	return &FewestBuildContainersPlacementStrategyNode{}
 }
 
-func NewFewestBuildContainersPlacementStrategy() ContainerPlacementStrategy {
-	return &FewestBuildContainersPlacementStrategy{
-		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
-	}
-}
-
-func (strategy *FewestBuildContainersPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
+func (strategy *FewestBuildContainersPlacementStrategyNode) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
 	workersByWork := map[int][]Worker{}
 	var minWork int
 
@@ -80,27 +144,24 @@ func (strategy *FewestBuildContainersPlacementStrategy) Choose(logger lager.Logg
 		}
 	}
 
-	leastBusyWorkers := workersByWork[minWork]
-	return leastBusyWorkers[strategy.rand.Intn(len(leastBusyWorkers))], nil
+	return workersByWork[minWork], nil
 }
 
-func (strategy *FewestBuildContainersPlacementStrategy) ModifiesActiveTasks() bool {
+func (strategy *FewestBuildContainersPlacementStrategyNode) ModifiesActiveTasks() bool {
 	return false
 }
 
-type LimitActiveTasksPlacementStrategy struct {
-	rand     *rand.Rand
+type LimitActiveTasksPlacementStrategyNode struct {
 	maxTasks int
 }
 
-func NewLimitActiveTasksPlacementStrategy(maxTasks int) ContainerPlacementStrategy {
-	return &LimitActiveTasksPlacementStrategy{
-		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
+func newLimitActiveTasksPlacementStrategy(maxTasks int) ContainerPlacementStrategyChainNode {
+	return &LimitActiveTasksPlacementStrategyNode{
 		maxTasks: maxTasks,
 	}
 }
 
-func (strategy *LimitActiveTasksPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
+func (strategy *LimitActiveTasksPlacementStrategyNode) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
 	workersByWork := map[int][]Worker{}
 	minActiveTasks := -1
 
@@ -123,31 +184,9 @@ func (strategy *LimitActiveTasksPlacementStrategy) Choose(logger lager.Logger, w
 		}
 	}
 
-	leastBusyWorkers := workersByWork[minActiveTasks]
-	if len(leastBusyWorkers) < 1 {
-		return nil, nil
-	}
-	return leastBusyWorkers[strategy.rand.Intn(len(leastBusyWorkers))], nil
+	return workersByWork[minActiveTasks], nil
 }
 
-func (strategy *LimitActiveTasksPlacementStrategy) ModifiesActiveTasks() bool {
+func (strategy *LimitActiveTasksPlacementStrategyNode) ModifiesActiveTasks() bool {
 	return true
-}
-
-type RandomPlacementStrategy struct {
-	rand *rand.Rand
-}
-
-func NewRandomPlacementStrategy() ContainerPlacementStrategy {
-	return &RandomPlacementStrategy{
-		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
-	}
-}
-
-func (strategy *RandomPlacementStrategy) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) (Worker, error) {
-	return workers[strategy.rand.Intn(len(workers))], nil
-}
-
-func (strategy *RandomPlacementStrategy) ModifiesActiveTasks() bool {
-	return false
 }
