@@ -170,6 +170,8 @@ var _ = Describe("GetVarStep", func() {
 
 	Context("when there is a cache for the var", func() {
 		BeforeEach(func() {
+			previousState := new(execfakes.FakeRunState)
+
 			step := exec.NewGetVarStep(
 				planID,
 				getVarPlan,
@@ -177,11 +179,13 @@ var _ = Describe("GetVarStep", func() {
 				fakeDelegateFactory,
 				cache,
 			)
-			ok, err := step.Run(ctx, state)
+
+			ok, err := step.Run(ctx, previousState)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(ok).To(BeTrue())
 
-			sourceName, key, value, redact := state.AddVarArgsForCall(0)
+			Expect(previousState.AddVarCallCount()).To(Equal(1))
+			sourceName, key, value, redact := previousState.AddVarArgsForCall(0)
 			Expect(sourceName).To(Equal("some-source-name"))
 			Expect(key).To(Equal("some-var"))
 			Expect(value).To(Equal("some-value"))
