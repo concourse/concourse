@@ -1485,6 +1485,8 @@ var _ = Describe("Build", func() {
 						}).
 						RunWith(dbConn).
 						Exec()
+					Expect(err).NotTo(HaveOccurred())
+
 					rows, err := res.RowsAffected()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(rows).To(Equal(int64(1)))
@@ -2418,7 +2420,7 @@ var _ = Describe("Build", func() {
 			Expect(pipeline.ParentBuildID()).To(Equal(buildTwo.ID()))
 
 			By("saving a pipeline with the first build")
-			pipeline, _, err = buildOne.SavePipeline(atc.PipelineRef{Name: "other-pipeline"}, buildOne.TeamID(), atc.Config{
+			_, _, err = buildOne.SavePipeline(atc.PipelineRef{Name: "other-pipeline"}, buildOne.TeamID(), atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
