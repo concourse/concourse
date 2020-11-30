@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/vars"
 	gocache "github.com/patrickmn/go-cache"
 )
 
@@ -76,6 +77,18 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 	fmt.Fprintln(stderr, "")
 
 	delegate.Starting(logger)
+
+	_, found, err := state.Get(vars.Reference{
+		Source: step.plan.Name,
+		Path:   step.plan.Path,
+	})
+	if err != nil {
+		return false, fmt.Errorf("get var from build vars: %w", err)
+	}
+	if found {
+		delegate.Finished(logger, true)
+		return true, nil
+	}
 
 	varIdentifier, err := json.Marshal(struct {
 		Path string `json:"path"`
