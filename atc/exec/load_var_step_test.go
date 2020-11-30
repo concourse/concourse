@@ -99,8 +99,9 @@ var _ = Describe("LoadVarStep", func() {
 	})
 
 	expectLocalVarAdded := func(expectKey string, expectValue interface{}, expectRedact bool) {
-		Expect(state.AddLocalVarCallCount()).To(Equal(1))
-		k, v, redact := state.AddLocalVarArgsForCall(0)
+		Expect(state.AddVarCallCount()).To(Equal(1))
+		s, k, v, redact := state.AddVarArgsForCall(0)
+		Expect(s).To(Equal("."))
 		Expect(k).To(Equal(expectKey))
 		Expect(v).To(Equal(expectValue))
 		Expect(redact).To(Equal(expectRedact))

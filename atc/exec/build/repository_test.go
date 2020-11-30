@@ -51,7 +51,7 @@ var _ = Describe("ArtifactRepository", func() {
 			var child *Repository
 
 			BeforeEach(func() {
-				child = repo.NewLocalScope()
+				child = repo.NewScope()
 			})
 
 			It("contains the same artifacts as the parent", func() {

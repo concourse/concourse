@@ -283,6 +283,7 @@ type Plan struct {
 	Task        *TaskPlan        `json:"task,omitempty"`
 	SetPipeline *SetPipelinePlan `json:"set_pipeline,omitempty"`
 	LoadVar     *LoadVarPlan     `json:"load_var,omitempty"`
+	GetVar      *GetVarPlan      `json:"get_var,omitempty"`
 
 	Do         *DoPlan         `json:"do,omitempty"`
 	InParallel *InParallelPlan `json:"in_parallel,omitempty"`
@@ -628,6 +629,13 @@ type SetPipelinePlan struct {
 	Vars         map[string]interface{} `json:"vars,omitempty"`
 	VarFiles     []string               `json:"var_files,omitempty"`
 	InstanceVars map[string]interface{} `json:"instance_vars,omitempty"`
+}
+
+type GetVarPlan struct {
+	Name   string `json:"name"`   // Represents the name of the var source
+	Path   string `json:"path"`   // The path within the var source to fetch the var
+	Type   string `json:"type"`   // The type of the var source
+	Source Source `json:"source"` // The source of the var source
 }
 
 type LoadVarPlan struct {

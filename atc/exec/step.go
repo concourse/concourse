@@ -38,8 +38,8 @@ type BuildOutputFilter func(text string) string
 type RunState interface {
 	vars.Variables
 
-	NewLocalScope() RunState
-	AddLocalVar(name string, val interface{}, redact bool)
+	NewScope() RunState
+	AddVar(source, name string, val interface{}, redact bool)
 
 	IterateInterpolatedCreds(vars.TrackedVarsIterator)
 	RedactionEnabled() bool

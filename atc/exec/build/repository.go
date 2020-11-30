@@ -82,7 +82,7 @@ func (repo *Repository) AsMap() map[ArtifactName]runtime.Artifact {
 	return result
 }
 
-func (repo *Repository) NewLocalScope() *Repository {
+func (repo *Repository) NewScope() *Repository {
 	child := NewRepository()
 	child.parent = repo
 	return child

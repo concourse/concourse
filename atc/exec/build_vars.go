@@ -12,8 +12,8 @@ type buildVariables struct {
 		IterateInterpolatedCreds(iter vars.TrackedVarsIterator)
 	}
 
-	localVars vars.StaticVariables
-	tracker   *vars.Tracker
+	sourceVars map[string]vars.StaticVariables
+	tracker    *vars.Tracker
 
 	lock sync.RWMutex
 }
@@ -24,20 +24,24 @@ func newBuildVariables(credVars vars.Variables, enableRedaction bool) *buildVari
 			CredVars: credVars,
 			Tracker:  vars.NewTracker(enableRedaction),
 		},
-		localVars: vars.StaticVariables{},
-		tracker:   vars.NewTracker(enableRedaction),
+		sourceVars: map[string]vars.StaticVariables{},
+		tracker:    vars.NewTracker(enableRedaction),
 	}
 }
 
 func (b *buildVariables) Get(ref vars.Reference) (interface{}, bool, error) {
-	if ref.Source == "." {
+	b.lock.RLock()
+	source, found := b.sourceVars[ref.Source]
+	b.lock.RUnlock()
+	if found {
 		b.lock.RLock()
-		val, found, err := b.localVars.Get(ref.WithoutSource())
+		val, found, err := source.Get(ref.WithoutSource())
 		b.lock.RUnlock()
 		if found || err != nil {
 			return val, found, err
 		}
 	}
+
 	return b.parentScope.Get(ref)
 }
 
@@ -48,7 +52,7 @@ func (b *buildVariables) List() ([]vars.Reference, error) {
 	}
 	b.lock.RLock()
 	defer b.lock.RUnlock()
-	for k := range b.localVars {
+	for k := range b.sourceVars {
 		list = append(list, vars.Reference{Source: ".", Path: k})
 	}
 	return list, nil
@@ -59,21 +63,26 @@ func (b *buildVariables) IterateInterpolatedCreds(iter vars.TrackedVarsIterator)
 	b.parentScope.IterateInterpolatedCreds(iter)
 }
 
-func (b *buildVariables) NewLocalScope() *buildVariables {
+func (b *buildVariables) NewScope() *buildVariables {
 	return &buildVariables{
 		parentScope: b,
-		localVars:   vars.StaticVariables{},
+		sourceVars:  map[string]vars.StaticVariables{},
 		tracker:     vars.NewTracker(b.tracker.Enabled),
 	}
 }
 
-func (b *buildVariables) AddLocalVar(name string, val interface{}, redact bool) {
+func (b *buildVariables) AddVar(source, name string, val interface{}, redact bool) {
 	b.lock.Lock()
-	b.localVars[name] = val
+	scope, found := b.sourceVars[source]
 	b.lock.Unlock()
+	if !found {
+		scope = vars.StaticVariables{}
+		b.sourceVars[source] = scope
+	}
 
+	scope[name] = val
 	if redact {
-		b.tracker.Track(vars.Reference{Source: ".", Path: name}, val)
+		b.tracker.Track(vars.Reference{Source: source, Path: name}, val)
 	}
 }
 

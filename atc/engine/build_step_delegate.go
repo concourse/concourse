@@ -222,7 +222,7 @@ func (delegate *buildStepDelegate) FetchImage(
 		return worker.ImageSpec{}, nil, err
 	}
 
-	fetchState := delegate.state.NewLocalScope()
+	fetchState := delegate.state.NewScope()
 
 	if checkPlan != nil {
 		ok, err := fetchState.Run(ctx, *checkPlan)

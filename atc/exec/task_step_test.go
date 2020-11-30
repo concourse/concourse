@@ -104,8 +104,8 @@ var _ = Describe("TaskStep", func() {
 		state.ArtifactRepositoryReturns(repo)
 
 		childState = new(execfakes.FakeRunState)
-		childState.ArtifactRepositoryReturns(repo.NewLocalScope())
-		state.NewLocalScopeReturns(childState)
+		childState.ArtifactRepositoryReturns(repo.NewScope())
+		state.NewScopeReturns(childState)
 
 		state.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
 
