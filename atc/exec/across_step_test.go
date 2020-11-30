@@ -183,7 +183,7 @@ var _ = Describe("AcrossStep", func() {
 
 	Context("when a var shadows an existing local var", func() {
 		BeforeEach(func() {
-			state.AddLocalVar("var2", 123, false)
+			state.AddVar(".", "var2", 123, false)
 		})
 
 		It("logs a warning to stderr", func() {

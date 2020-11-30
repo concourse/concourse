@@ -10,8 +10,8 @@ type buildVariables struct {
 		IterateInterpolatedCreds(iter vars.TrackedVarsIterator)
 	}
 
-	localVars vars.StaticVariables
-	tracker   *vars.Tracker
+	sourceVars map[string]vars.StaticVariables
+	tracker    *vars.Tracker
 }
 
 func newBuildVariables(credVars vars.Variables, enableRedaction bool) *buildVariables {
@@ -20,18 +20,20 @@ func newBuildVariables(credVars vars.Variables, enableRedaction bool) *buildVari
 			CredVars: credVars,
 			Tracker:  vars.NewTracker(enableRedaction),
 		},
-		localVars: vars.StaticVariables{},
-		tracker:   vars.NewTracker(enableRedaction),
+		sourceVars: map[string]vars.StaticVariables{},
+		tracker:    vars.NewTracker(enableRedaction),
 	}
 }
 
 func (b *buildVariables) Get(ref vars.Reference) (interface{}, bool, error) {
-	if ref.Source == "." {
-		val, found, err := b.localVars.Get(ref)
+	source, found := b.sourceVars[ref.Source]
+	if found {
+		val, found, err := source.Get(ref)
 		if found || err != nil {
 			return val, found, err
 		}
 	}
+
 	return b.parentScope.Get(ref)
 }
 
@@ -40,8 +42,10 @@ func (b *buildVariables) List() ([]vars.Reference, error) {
 	if err != nil {
 		return nil, err
 	}
-	for k := range b.localVars {
-		list = append(list, vars.Reference{Source: ".", Path: k})
+	for source, vs := range b.sourceVars {
+		for k := range vs {
+			list = append(list, vars.Reference{Source: source, Path: k})
+		}
 	}
 	return list, nil
 }
@@ -51,18 +55,24 @@ func (b *buildVariables) IterateInterpolatedCreds(iter vars.TrackedVarsIterator)
 	b.parentScope.IterateInterpolatedCreds(iter)
 }
 
-func (b *buildVariables) NewLocalScope() *buildVariables {
+func (b *buildVariables) NewScope() *buildVariables {
 	return &buildVariables{
 		parentScope: b,
-		localVars:   vars.StaticVariables{},
+		sourceVars:  map[string]vars.StaticVariables{},
 		tracker:     vars.NewTracker(b.tracker.Enabled),
 	}
 }
 
-func (b *buildVariables) AddLocalVar(name string, val interface{}, redact bool) {
-	b.localVars[name] = val
+func (b *buildVariables) AddVar(source, name string, val interface{}, redact bool) {
+	scope, found := b.sourceVars[source]
+	if !found {
+		scope = vars.StaticVariables{}
+		b.sourceVars[source] = scope
+	}
+
+	scope[name] = val
 	if redact {
-		b.tracker.Track(vars.Reference{Source: ".", Path: name}, val)
+		b.tracker.Track(vars.Reference{Source: source, Path: name}, val)
 	}
 }
 

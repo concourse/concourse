@@ -222,7 +222,7 @@ func (delegate *buildStepDelegate) FetchImage(
 		return worker.ImageSpec{}, err
 	}
 
-	fetchState := delegate.state.NewLocalScope()
+	fetchState := delegate.state.NewScope()
 
 	imageName := defaultImageName
 	if image.Name != "" {

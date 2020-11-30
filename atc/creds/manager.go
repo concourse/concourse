@@ -5,6 +5,8 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
+//go:generate counterfeiter . Manager
+
 type Manager interface {
 	IsConfigured() bool
 	Validate() error
@@ -14,6 +16,8 @@ type Manager interface {
 
 	NewSecretsFactory(lager.Logger) (SecretsFactory, error)
 }
+
+//go:generate counterfeiter . ManagerFactory
 
 type ManagerFactory interface {
 	AddConfig(*flags.Group) Manager

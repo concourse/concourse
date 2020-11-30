@@ -12,12 +12,13 @@ import (
 )
 
 type FakeRunState struct {
-	AddLocalVarStub        func(string, interface{}, bool)
-	addLocalVarMutex       sync.RWMutex
-	addLocalVarArgsForCall []struct {
+	AddVarStub        func(string, string, interface{}, bool)
+	addVarMutex       sync.RWMutex
+	addVarArgsForCall []struct {
 		arg1 string
-		arg2 interface{}
-		arg3 bool
+		arg2 string
+		arg3 interface{}
+		arg4 bool
 	}
 	ArtifactRepositoryStub        func() *build.Repository
 	artifactRepositoryMutex       sync.RWMutex
@@ -61,14 +62,14 @@ type FakeRunState struct {
 		result1 []vars.Reference
 		result2 error
 	}
-	NewLocalScopeStub        func() exec.RunState
-	newLocalScopeMutex       sync.RWMutex
-	newLocalScopeArgsForCall []struct {
+	NewScopeStub        func() exec.RunState
+	newScopeMutex       sync.RWMutex
+	newScopeArgsForCall []struct {
 	}
-	newLocalScopeReturns struct {
+	newScopeReturns struct {
 		result1 exec.RunState
 	}
-	newLocalScopeReturnsOnCall map[int]struct {
+	newScopeReturnsOnCall map[int]struct {
 		result1 exec.RunState
 	}
 	ParentStub        func() exec.RunState
@@ -127,37 +128,38 @@ type FakeRunState struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeRunState) AddLocalVar(arg1 string, arg2 interface{}, arg3 bool) {
-	fake.addLocalVarMutex.Lock()
-	fake.addLocalVarArgsForCall = append(fake.addLocalVarArgsForCall, struct {
+func (fake *FakeRunState) AddVar(arg1 string, arg2 string, arg3 interface{}, arg4 bool) {
+	fake.addVarMutex.Lock()
+	fake.addVarArgsForCall = append(fake.addVarArgsForCall, struct {
 		arg1 string
-		arg2 interface{}
-		arg3 bool
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("AddLocalVar", []interface{}{arg1, arg2, arg3})
-	fake.addLocalVarMutex.Unlock()
-	if fake.AddLocalVarStub != nil {
-		fake.AddLocalVarStub(arg1, arg2, arg3)
+		arg2 string
+		arg3 interface{}
+		arg4 bool
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("AddVar", []interface{}{arg1, arg2, arg3, arg4})
+	fake.addVarMutex.Unlock()
+	if fake.AddVarStub != nil {
+		fake.AddVarStub(arg1, arg2, arg3, arg4)
 	}
 }
 
-func (fake *FakeRunState) AddLocalVarCallCount() int {
-	fake.addLocalVarMutex.RLock()
-	defer fake.addLocalVarMutex.RUnlock()
-	return len(fake.addLocalVarArgsForCall)
+func (fake *FakeRunState) AddVarCallCount() int {
+	fake.addVarMutex.RLock()
+	defer fake.addVarMutex.RUnlock()
+	return len(fake.addVarArgsForCall)
 }
 
-func (fake *FakeRunState) AddLocalVarCalls(stub func(string, interface{}, bool)) {
-	fake.addLocalVarMutex.Lock()
-	defer fake.addLocalVarMutex.Unlock()
-	fake.AddLocalVarStub = stub
+func (fake *FakeRunState) AddVarCalls(stub func(string, string, interface{}, bool)) {
+	fake.addVarMutex.Lock()
+	defer fake.addVarMutex.Unlock()
+	fake.AddVarStub = stub
 }
 
-func (fake *FakeRunState) AddLocalVarArgsForCall(i int) (string, interface{}, bool) {
-	fake.addLocalVarMutex.RLock()
-	defer fake.addLocalVarMutex.RUnlock()
-	argsForCall := fake.addLocalVarArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+func (fake *FakeRunState) AddVarArgsForCall(i int) (string, string, interface{}, bool) {
+	fake.addVarMutex.RLock()
+	defer fake.addVarMutex.RUnlock()
+	argsForCall := fake.addVarArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeRunState) ArtifactRepository() *build.Repository {
@@ -364,54 +366,54 @@ func (fake *FakeRunState) ListReturnsOnCall(i int, result1 []vars.Reference, res
 	}{result1, result2}
 }
 
-func (fake *FakeRunState) NewLocalScope() exec.RunState {
-	fake.newLocalScopeMutex.Lock()
-	ret, specificReturn := fake.newLocalScopeReturnsOnCall[len(fake.newLocalScopeArgsForCall)]
-	fake.newLocalScopeArgsForCall = append(fake.newLocalScopeArgsForCall, struct {
+func (fake *FakeRunState) NewScope() exec.RunState {
+	fake.newScopeMutex.Lock()
+	ret, specificReturn := fake.newScopeReturnsOnCall[len(fake.newScopeArgsForCall)]
+	fake.newScopeArgsForCall = append(fake.newScopeArgsForCall, struct {
 	}{})
-	fake.recordInvocation("NewLocalScope", []interface{}{})
-	fake.newLocalScopeMutex.Unlock()
-	if fake.NewLocalScopeStub != nil {
-		return fake.NewLocalScopeStub()
+	fake.recordInvocation("NewScope", []interface{}{})
+	fake.newScopeMutex.Unlock()
+	if fake.NewScopeStub != nil {
+		return fake.NewScopeStub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.newLocalScopeReturns
+	fakeReturns := fake.newScopeReturns
 	return fakeReturns.result1
 }
 
-func (fake *FakeRunState) NewLocalScopeCallCount() int {
-	fake.newLocalScopeMutex.RLock()
-	defer fake.newLocalScopeMutex.RUnlock()
-	return len(fake.newLocalScopeArgsForCall)
+func (fake *FakeRunState) NewScopeCallCount() int {
+	fake.newScopeMutex.RLock()
+	defer fake.newScopeMutex.RUnlock()
+	return len(fake.newScopeArgsForCall)
 }
 
-func (fake *FakeRunState) NewLocalScopeCalls(stub func() exec.RunState) {
-	fake.newLocalScopeMutex.Lock()
-	defer fake.newLocalScopeMutex.Unlock()
-	fake.NewLocalScopeStub = stub
+func (fake *FakeRunState) NewScopeCalls(stub func() exec.RunState) {
+	fake.newScopeMutex.Lock()
+	defer fake.newScopeMutex.Unlock()
+	fake.NewScopeStub = stub
 }
 
-func (fake *FakeRunState) NewLocalScopeReturns(result1 exec.RunState) {
-	fake.newLocalScopeMutex.Lock()
-	defer fake.newLocalScopeMutex.Unlock()
-	fake.NewLocalScopeStub = nil
-	fake.newLocalScopeReturns = struct {
+func (fake *FakeRunState) NewScopeReturns(result1 exec.RunState) {
+	fake.newScopeMutex.Lock()
+	defer fake.newScopeMutex.Unlock()
+	fake.NewScopeStub = nil
+	fake.newScopeReturns = struct {
 		result1 exec.RunState
 	}{result1}
 }
 
-func (fake *FakeRunState) NewLocalScopeReturnsOnCall(i int, result1 exec.RunState) {
-	fake.newLocalScopeMutex.Lock()
-	defer fake.newLocalScopeMutex.Unlock()
-	fake.NewLocalScopeStub = nil
-	if fake.newLocalScopeReturnsOnCall == nil {
-		fake.newLocalScopeReturnsOnCall = make(map[int]struct {
+func (fake *FakeRunState) NewScopeReturnsOnCall(i int, result1 exec.RunState) {
+	fake.newScopeMutex.Lock()
+	defer fake.newScopeMutex.Unlock()
+	fake.NewScopeStub = nil
+	if fake.newScopeReturnsOnCall == nil {
+		fake.newScopeReturnsOnCall = make(map[int]struct {
 			result1 exec.RunState
 		})
 	}
-	fake.newLocalScopeReturnsOnCall[i] = struct {
+	fake.newScopeReturnsOnCall[i] = struct {
 		result1 exec.RunState
 	}{result1}
 }
@@ -680,8 +682,8 @@ func (fake *FakeRunState) StoreResultArgsForCall(i int) (atc.PlanID, interface{}
 func (fake *FakeRunState) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.addLocalVarMutex.RLock()
-	defer fake.addLocalVarMutex.RUnlock()
+	fake.addVarMutex.RLock()
+	defer fake.addVarMutex.RUnlock()
 	fake.artifactRepositoryMutex.RLock()
 	defer fake.artifactRepositoryMutex.RUnlock()
 	fake.getMutex.RLock()
@@ -690,8 +692,8 @@ func (fake *FakeRunState) Invocations() map[string][][]interface{} {
 	defer fake.iterateInterpolatedCredsMutex.RUnlock()
 	fake.listMutex.RLock()
 	defer fake.listMutex.RUnlock()
-	fake.newLocalScopeMutex.RLock()
-	defer fake.newLocalScopeMutex.RUnlock()
+	fake.newScopeMutex.RLock()
+	defer fake.newScopeMutex.RUnlock()
 	fake.parentMutex.RLock()
 	defer fake.parentMutex.RUnlock()
 	fake.redactionEnabledMutex.RLock()

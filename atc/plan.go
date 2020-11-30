@@ -10,6 +10,7 @@ type Plan struct {
 	Task        *TaskPlan        `json:"task,omitempty"`
 	SetPipeline *SetPipelinePlan `json:"set_pipeline,omitempty"`
 	LoadVar     *LoadVarPlan     `json:"load_var,omitempty"`
+	GetVar      *GetVarPlan      `json:"get_var,omitempty"`
 
 	Do         *DoPlan         `json:"do,omitempty"`
 	InParallel *InParallelPlan `json:"in_parallel,omitempty"`
@@ -289,13 +290,6 @@ type TaskPlan struct {
 	OutputMapping map[string]string `json:"output_mapping,omitempty"`
 
 	// Resource types to have available for use when fetching the task's image.
-	//
-	// XXX(check-refactor): Eliminating this would be great - if we can replace
-	// image fetching with a 'check' and 'get' step and then use
-	// ImageArtifactName, we'll have everything going down one code path and we
-	// can tidy up the runtime interface substantially. Unfortunately this is
-	// difficult to do because we don't even know what image resource to fetch
-	// until the task step runs and fetches its ConfigPath.
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 }
 
@@ -306,6 +300,13 @@ type SetPipelinePlan struct {
 	Vars         map[string]interface{} `json:"vars,omitempty"`
 	VarFiles     []string               `json:"var_files,omitempty"`
 	InstanceVars map[string]interface{} `json:"instance_vars,omitempty"`
+}
+
+type GetVarPlan struct {
+	Name   string `json:"name"`   // Represents the name of the var source
+	Path   string `json:"path"`   // The path within the var source to fetch the var
+	Type   string `json:"type"`   // The type of the var source
+	Source Source `json:"source"` // The source of the var source
 }
 
 type LoadVarPlan struct {

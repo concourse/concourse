@@ -178,7 +178,7 @@ var _ = Describe("RunState", func() {
 
 		Context("when local var subfield does not exist", func() {
 			It("errors", func() {
-				state.AddLocalVar("foo", map[string]interface{}{"bar": "baz"}, false)
+				state.AddVar(".", "foo", map[string]interface{}{"bar": "baz"}, false)
 				_, _, err := state.Get(vars.Reference{Source: ".", Path: "foo", Fields: []string{"missing"}})
 				Expect(err).To(HaveOccurred())
 			})
@@ -229,14 +229,14 @@ var _ = Describe("RunState", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("includes all local vars", func() {
-			state.AddLocalVar("l1", 1, false)
-			state.AddLocalVar("l2", 2, false)
+		It("includes all vars", func() {
+			state.AddVar(".", "l1", 1, false)
+			state.AddVar("not-dot", "l2", 2, false)
 
 			defs, err := state.List()
 			Expect(defs).To(ConsistOf([]vars.Reference{
 				{Source: ".", Path: "l1"},
-				{Source: ".", Path: "l2"},
+				{Source: "not-dot", Path: "l2"},
 
 				{Path: "k1"},
 				{Path: "k2"},
@@ -246,14 +246,14 @@ var _ = Describe("RunState", func() {
 		})
 	})
 
-	Describe("AddLocalVar", func() {
+	Describe("AddVar", func() {
 		Describe("redact", func() {
 			BeforeEach(func() {
 				state = exec.NewRunState(stepper, credVars, true)
-				state.AddLocalVar("foo", "bar", true)
+				state.AddVar(".", "foo", "bar", true)
 			})
 
-			It("should get local value", func() {
+			It("should store the value in the var", func() {
 				val, found, err := state.Get(vars.Reference{Source: ".", Path: "foo"})
 				Expect(err).To(BeNil())
 				Expect(found).To(BeTrue())
@@ -269,10 +269,10 @@ var _ = Describe("RunState", func() {
 
 		Describe("not redact", func() {
 			BeforeEach(func() {
-				state.AddLocalVar("foo", "bar", false)
+				state.AddVar(".", "foo", "bar", false)
 			})
 
-			It("should get local value", func() {
+			It("should store the value in the var", func() {
 				val, found, err := state.Get(vars.Reference{Source: ".", Path: "foo"})
 				Expect(err).To(BeNil())
 				Expect(found).To(BeTrue())
@@ -288,42 +288,42 @@ var _ = Describe("RunState", func() {
 		})
 	})
 
-	Describe("NewLocalScope", func() {
+	Describe("NewScope", func() {
 		It("maintains a reference to the parent", func() {
-			Expect(state.NewLocalScope().Parent()).To(Equal(state))
+			Expect(state.NewScope().Parent()).To(Equal(state))
 		})
 
-		It("can access local vars from parent scope", func() {
-			state.AddLocalVar("hello", "world", false)
-			scope := state.NewLocalScope()
+		It("can access vars from parent scope", func() {
+			state.AddVar(".", "hello", "world", false)
+			scope := state.NewScope()
 			val, _, _ := scope.Get(vars.Reference{Source: ".", Path: "hello"})
 			Expect(val).To(Equal("world"))
 		})
 
-		It("adding local vars does not affect the original tracker", func() {
-			scope := state.NewLocalScope()
-			scope.AddLocalVar("hello", "world", false)
+		It("adding vars does not affect the vars from the parent scope", func() {
+			scope := state.NewScope()
+			scope.AddVar(".", "hello", "world", false)
 			_, found, _ := state.Get(vars.Reference{Source: ".", Path: "hello"})
 			Expect(found).To(BeFalse())
 		})
 
 		It("shares the underlying non-local variables", func() {
-			scope := state.NewLocalScope()
+			scope := state.NewScope()
 			val, _, _ := scope.Get(vars.Reference{Path: "k1"})
 			Expect(val).To(Equal("v1"))
 		})
 
-		It("local vars added after creating the subscope are accessible", func() {
-			scope := state.NewLocalScope()
-			state.AddLocalVar("hello", "world", false)
+		It("vars added after creating the subscope are accessible", func() {
+			scope := state.NewScope()
+			state.AddVar(".", "hello", "world", false)
 			val, _, _ := scope.Get(vars.Reference{Source: ".", Path: "hello"})
 			Expect(val).To(Equal("world"))
 		})
 
 		It("current scope is preferred over parent scope", func() {
-			state.AddLocalVar("a", 1, false)
-			scope := state.NewLocalScope()
-			scope.AddLocalVar("a", 2, false)
+			state.AddVar(".", "a", 1, false)
+			scope := state.NewScope()
+			scope.AddVar(".", "a", 2, false)
 
 			val, _, _ := scope.Get(vars.Reference{Source: ".", Path: "a"})
 			Expect(val).To(Equal(2))
@@ -331,7 +331,7 @@ var _ = Describe("RunState", func() {
 
 		It("results set in parent scope are accessible in child", func() {
 			parent := state
-			child := parent.NewLocalScope()
+			child := parent.NewScope()
 
 			parent.StoreResult("id", "hello")
 
@@ -342,7 +342,7 @@ var _ = Describe("RunState", func() {
 
 		It("results set in child scope are accessible in parent", func() {
 			parent := state
-			child := parent.NewLocalScope()
+			child := parent.NewScope()
 
 			child.StoreResult("id", "hello")
 
@@ -351,8 +351,8 @@ var _ = Describe("RunState", func() {
 			Expect(dst).To(Equal("hello"))
 		})
 
-		It("has a local artifact scope inheriting from the outer scope", func() {
-			Expect(state.NewLocalScope().ArtifactRepository().Parent()).To(Equal(state.ArtifactRepository()))
+		It("has an artifact scope inheriting from the outer scope", func() {
+			Expect(state.NewScope().ArtifactRepository().Parent()).To(Equal(state.ArtifactRepository()))
 		})
 
 		Describe("TrackedVarsMap", func() {
@@ -361,9 +361,9 @@ var _ = Describe("RunState", func() {
 			})
 
 			It("prefers the value set in the current scope over the parent scope", func() {
-				state.AddLocalVar("a", "from parent", true)
-				scope := state.NewLocalScope()
-				scope.AddLocalVar("a", "from child", true)
+				state.AddVar(".", "a", "from parent", true)
+				scope := state.NewScope()
+				scope.AddVar(".", "a", "from child", true)
 
 				mapit := vars.TrackedVarsMap{}
 				scope.IterateInterpolatedCreds(mapit)

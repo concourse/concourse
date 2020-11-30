@@ -118,12 +118,12 @@ func (step AcrossStep) acrossStepLeafExecutor(state RunState, steps []ScopedStep
 		count:       len(steps),
 
 		runFunc: func(ctx context.Context, i int) (bool, error) {
-			scope := state.NewLocalScope()
+			scope := state.NewScope()
 			for j, v := range step.vars {
 				// Don't redact because the `list` operation of a var_source should return identifiers
 				// which should be publicly accessible. For static across steps, the static list is
 				// embedded directly in the pipeline
-				scope.AddLocalVar(v.Var, steps[i].Values[j], false)
+				scope.AddVar(".", v.Var, steps[i].Values[j], false)
 			}
 
 			return steps[i].Run(ctx, scope)

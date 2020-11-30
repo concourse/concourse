@@ -72,10 +72,10 @@ func (state *runState) IterateInterpolatedCreds(iter vars.TrackedVarsIterator) {
 	state.vars.IterateInterpolatedCreds(iter)
 }
 
-func (state *runState) NewLocalScope() RunState {
+func (state *runState) NewScope() RunState {
 	clone := *state
-	clone.vars = state.vars.NewLocalScope()
-	clone.artifacts = state.artifacts.NewLocalScope()
+	clone.vars = state.vars.NewScope()
+	clone.artifacts = state.artifacts.NewScope()
 	clone.parent = state
 	return &clone
 }
@@ -84,8 +84,8 @@ func (state *runState) Parent() RunState {
 	return state.parent
 }
 
-func (state *runState) AddLocalVar(name string, val interface{}, redact bool) {
-	state.vars.AddLocalVar(name, val, redact)
+func (state *runState) AddVar(source, name string, val interface{}, redact bool) {
+	state.vars.AddVar(source, name, val, redact)
 }
 
 func (state *runState) RedactionEnabled() bool {
