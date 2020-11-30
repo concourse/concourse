@@ -85,60 +85,77 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 	if err != nil {
 		return false, fmt.Errorf("get var from build vars: %w", err)
 	}
+
+	// If the var already exists in the builds vars, nothing needs to be done
 	if found {
 		delegate.Finished(logger, true)
 		return true, nil
 	}
 
+	hash, err := step.hashVarIdentifier(step.plan.Path, step.plan.Type, step.plan.Source)
+	if err != nil {
+		return false, fmt.Errorf("hash var identifier: %w", err)
+	}
+
+	value, found := step.cache.Get(hash)
+
+	// If the var exists within the cache, use the value in the cache
+	if found {
+		//TODO: make secre redaction configurable
+		state.AddVar(step.plan.Name, step.plan.Path, value, true)
+
+		delegate.Finished(logger, true)
+		return true, nil
+	}
+
+	manager, err := creds.ManagerFactories()[step.plan.Type].NewInstance(step.plan.Source)
+	if err != nil {
+		return false, fmt.Errorf("create manager: %w", err)
+	}
+
+	err = manager.Init(logger)
+	if err != nil {
+		return false, fmt.Errorf("init manager: %w", err)
+	}
+
+	defer manager.Close(logger)
+
+	secretsFactory, err := manager.NewSecretsFactory(logger)
+	if err != nil {
+		return false, fmt.Errorf("create secrets factory: %w", err)
+	}
+
+	value, _, found, err = secretsFactory.NewSecrets().Get(step.plan.Path)
+	if err != nil {
+		return false, fmt.Errorf("create secrets factory: %w", err)
+	}
+
+	if !found {
+		return false, VarNotFoundError{step.plan.Path}
+	}
+
+	step.cache.Add(hash, value, time.Second)
+
+	//TODO: make secre redaction configurable
+	state.AddVar(step.plan.Name, step.plan.Path, value, true)
+
+	delegate.Finished(logger, true)
+
+	return true, nil
+}
+
+func (step *GetVarStep) hashVarIdentifier(path, type_ string, source atc.Source) (string, error) {
 	varIdentifier, err := json.Marshal(struct {
 		Path string `json:"path"`
 		// TODO: Type might not be safe with prototypes, since the type is arbitrary
 		Type   string     `json:"type"`
 		Source atc.Source `json:"source"`
-	}{step.plan.Path, step.plan.Type, step.plan.Source})
+	}{path, type_, source})
 	if err != nil {
-		return false, fmt.Errorf("marshal varIdentifier: %w", err)
+		return "", err
 	}
 
 	hasher := md5.New()
 	hasher.Write([]byte(varIdentifier))
-	hash := hex.EncodeToString(hasher.Sum(nil))
-
-	value, found := step.cache.Get(hash)
-	if !found {
-		manager, err := creds.ManagerFactories()[step.plan.Type].NewInstance(step.plan.Source)
-		if err != nil {
-			return false, fmt.Errorf("create manager: %w", err)
-		}
-
-		err = manager.Init(logger)
-		if err != nil {
-			return false, fmt.Errorf("init manager: %w", err)
-		}
-
-		defer manager.Close(logger)
-
-		secretsFactory, err := manager.NewSecretsFactory(logger)
-		if err != nil {
-			return false, fmt.Errorf("create secrets factory: %w", err)
-		}
-
-		value, _, found, err = secretsFactory.NewSecrets().Get(step.plan.Path)
-		if err != nil {
-			return false, fmt.Errorf("create secrets factory: %w", err)
-		}
-
-		if !found {
-			return false, VarNotFoundError{step.plan.Path}
-		}
-
-		step.cache.Add(hash, value, time.Second)
-
-		//TODO: make secre redaction configurable
-		state.AddVar(step.plan.Name, step.plan.Path, value, true)
-	}
-
-	delegate.Finished(logger, true)
-
-	return true, nil
+	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
