@@ -154,7 +154,7 @@ var _ = Describe("GetVarStep", func() {
 		})
 	})
 
-	XContext("when the var is in the build vars", func() {
+	Context("when the var is in the build vars", func() {
 		BeforeEach(func() {
 			state.GetReturns(nil, true, nil)
 		})
