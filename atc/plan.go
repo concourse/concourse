@@ -636,6 +636,7 @@ type GetVarPlan struct {
 	Path   string `json:"path"`   // The path within the var source to fetch the var
 	Type   string `json:"type"`   // The type of the var source
 	Source Source `json:"source"` // The source of the var source
+	Reveal bool   `json:"reveal,omitempty"`
 }
 
 type LoadVarPlan struct {
