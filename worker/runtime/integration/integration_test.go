@@ -3,6 +3,7 @@ package integration_test
 import (
 	"bytes"
 	"fmt"
+	"github.com/concourse/concourse/worker/workercmd"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -38,10 +39,15 @@ func (s *IntegrationSuite) containerdSocket() string {
 }
 
 func (s *IntegrationSuite) startContainerd() {
+	configPath := filepath.Join(s.tmpDir, "containerd.toml")
+	err := workercmd.WriteDefaultContainerdConfig(configPath)
+	s.NoError(err)
+
 	command := exec.Command("containerd",
 		"--address="+s.containerdSocket(),
 		"--root="+filepath.Join(s.tmpDir, "root"),
 		"--state="+filepath.Join(s.tmpDir, "state"),
+		"--config="+configPath,
 	)
 
 	command.Stdout = &s.stdout
@@ -50,7 +56,7 @@ func (s *IntegrationSuite) startContainerd() {
 		Pdeathsig: syscall.SIGKILL,
 	}
 
-	err := command.Start()
+	err = command.Start()
 	s.NoError(err)
 
 	s.containerdProcess = command
