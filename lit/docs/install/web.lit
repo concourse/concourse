@@ -183,8 +183,17 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
       You may wish to configure the max number of parallel database connections
       that each node makes. There are two pools to configure: one for serving
       API requests, and one used for all the backend work such as pipeline
-      scheduling. Another pool is reserved for garbage collection and has a
-      hardcoded cap at 5 connections.
+      scheduling.
+
+      There are some non-configurable connection pools. They take up the
+      following number of connections per pool:
+      \list{
+          Garbage Collection: 5
+      }{
+          Lock: 1
+      }{
+          Worker Registration: 1
+      }
 
       The sum of these numbers across all \code{web} nodes should not be
       greater than the maximum number of simultaneous connections your Postgres
@@ -199,7 +208,8 @@ as performing all pipeline scheduling. It's basically the brain of Concourse.
       }}}
 
       ...then your PostgreSQL server should be configured with a connection
-      limit of at least 195: (10 + 50 + 5) * 3.
+      limit of at least 201: (10 + 50 + 5 + 1 + 1) * 3.
+
     }
   }
 
