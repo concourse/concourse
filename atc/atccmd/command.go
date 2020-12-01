@@ -542,17 +542,22 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 	lockFactory := lock.NewLockFactory(lockConn, metric.LogLockAcquired, metric.LogLockReleased)
 
-	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.APIMaxOpenConnections, "api", lockFactory)
+	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.APIMaxOpenConnections, cmd.APIMaxOpenConnections/2, "api", lockFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.BackendMaxOpenConnections, "backend", lockFactory)
+	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.BackendMaxOpenConnections, cmd.BackendMaxOpenConnections/2, "backend", lockFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	gcConn, err := cmd.constructDBConn(retryingDriverName, logger, 5, "gc", lockFactory)
+	gcConn, err := cmd.constructDBConn(retryingDriverName, logger, 5, 2, "gc", lockFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	workerConn, err := cmd.constructDBConn(retryingDriverName, logger, 1, 1, "worker", lockFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -575,7 +580,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		clock.NewClock(),
 	)
 
-	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager)
+	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, workerConn, backendConn, gcConn, storage, lockFactory, secretManager)
 	if err != nil {
 		return nil, err
 	}
@@ -617,6 +622,7 @@ func (cmd *RunCommand) constructMembers(
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
 	apiConn db.Conn,
+	workerConn db.Conn,
 	backendConn db.Conn,
 	gcConn db.Conn,
 	storage storage.Storage,
@@ -638,7 +644,7 @@ func (cmd *RunCommand) constructMembers(
 		return nil, err
 	}
 
-	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory, secretManager, policyChecker)
+	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, workerConn, storage, lockFactory, secretManager, policyChecker)
 	if err != nil {
 		return nil, err
 	}
@@ -701,6 +707,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
 	dbConn db.Conn,
+	workerConn db.Conn,
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
@@ -713,6 +720,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	}
 
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
+	workerTeamFactory := db.NewTeamFactory(workerConn, lockFactory)
 
 	_, err = teamFactory.CreateDefaultTeamIfNotExists()
 	if err != nil {
@@ -735,13 +743,15 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
 	dbTaskCacheFactory := db.NewTaskCacheFactory(dbConn)
 	dbVolumeRepository := db.NewVolumeRepository(dbConn)
-	dbWorkerFactory := db.NewWorkerFactory(dbConn)
+	dbWorkerFactory := db.NewWorkerFactory(workerConn)
 	workerVersion, err := workerVersion()
 	if err != nil {
 		return nil, err
 	}
 
 	// XXX(substeps): why is this unconditional?
+	// A: we're constructing API components and none of them use the streaming
+	// funcs which relies on a compression method.
 	compressionLib := compression.NewGzipCompression()
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
@@ -803,6 +813,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		logger,
 		reconfigurableSink,
 		teamFactory,
+		workerTeamFactory,
 		dbPipelineFactory,
 		dbJobFactory,
 		dbResourceFactory,
@@ -1533,7 +1544,8 @@ func (cmd *RunCommand) configureMetrics(logger lager.Logger) error {
 func (cmd *RunCommand) constructDBConn(
 	driverName string,
 	logger lager.Logger,
-	maxConn int,
+	maxConns int,
+	idleConns int,
 	connectionName string,
 	lockFactory lock.LockFactory,
 ) (db.Conn, error) {
@@ -1552,8 +1564,8 @@ func (cmd *RunCommand) constructDBConn(
 	}
 
 	// Prepare
-	dbConn.SetMaxOpenConns(maxConn)
-	dbConn.SetMaxIdleConns(maxConn / 2)
+	dbConn.SetMaxOpenConns(maxConns)
+	dbConn.SetMaxIdleConns(idleConns)
 
 	return dbConn, nil
 }
@@ -1791,6 +1803,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
 	teamFactory db.TeamFactory,
+	workerTeamFactory db.TeamFactory,
 	dbPipelineFactory db.PipelineFactory,
 	dbJobFactory db.JobFactory,
 	dbResourceFactory db.ResourceFactory,
@@ -1870,6 +1883,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		dbJobFactory,
 		dbResourceFactory,
 		dbWorkerFactory,
+		workerTeamFactory,
 		dbVolumeRepository,
 		dbContainerRepository,
 		gcContainerDestroyer,

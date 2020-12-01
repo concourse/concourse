@@ -47,6 +47,7 @@ func NewHandler(
 	dbJobFactory db.JobFactory,
 	dbResourceFactory db.ResourceFactory,
 	dbWorkerFactory db.WorkerFactory,
+	workerTeamFactory db.TeamFactory,
 	volumeRepository db.VolumeRepository,
 	containerRepository db.ContainerRepository,
 	destroyer gc.Destroyer,
@@ -92,7 +93,7 @@ func NewHandler(
 	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL)
 	configServer := configserver.NewServer(logger, dbTeamFactory, secretManager)
 	ccServer := ccserver.NewServer(logger, dbTeamFactory, externalURL)
-	workerServer := workerserver.NewServer(logger, dbTeamFactory, dbWorkerFactory)
+	workerServer := workerserver.NewServer(logger, workerTeamFactory, dbWorkerFactory)
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
 	containerServer := containerserver.NewServer(logger, workerClient, secretManager, varSourcePool, interceptTimeoutFactory, interceptUpdateInterval, containerRepository, destroyer, clock)
