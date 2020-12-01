@@ -1062,14 +1062,9 @@ func (b *build) Events(from uint) (EventSource, error) {
 		return nil, err
 	}
 
-	table := fmt.Sprintf("team_build_events_%d", b.teamID)
-	if b.pipelineID != 0 {
-		table = fmt.Sprintf("pipeline_build_events_%d", b.pipelineID)
-	}
-
 	return newBuildEventSource(
 		b.id,
-		table,
+		b.eventsTable(),
 		b.conn,
 		notifier,
 		from,
@@ -1876,16 +1871,20 @@ func (b *build) saveEvent(tx Tx, event atc.Event) error {
 		return err
 	}
 
-	table := fmt.Sprintf("team_build_events_%d", b.teamID)
-	if b.pipelineID != 0 {
-		table = fmt.Sprintf("pipeline_build_events_%d", b.pipelineID)
-	}
-	_, err = psql.Insert(table).
+	_, err = psql.Insert(b.eventsTable()).
 		Columns("event_id", "build_id", "type", "version", "payload").
 		Values(sq.Expr("nextval('"+buildEventSeq(b.id)+"')"), b.id, string(event.EventType()), string(event.Version()), payload).
 		RunWith(tx).
 		Exec()
 	return err
+}
+
+func (b *build) eventsTable() string {
+	if b.pipelineID != 0 {
+		return fmt.Sprintf("pipeline_build_events_%d", b.pipelineID)
+	} else {
+		return fmt.Sprintf("team_build_events_%d", b.teamID)
+	}
 }
 
 func createBuild(tx Tx, build *build, vals map[string]interface{}) error {

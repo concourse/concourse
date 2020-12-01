@@ -1048,6 +1048,28 @@ var _ = Describe("Build", func() {
 			_, err = events.Next()
 			Expect(err).To(Equal(db.ErrEndOfBuildEventStream))
 		})
+
+		It("emits pre-bigint migration events", func() {
+			started, err := build.Start(atc.Plan{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(started).To(BeTrue())
+
+			found, err := build.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			_, err = dbConn.Exec(`UPDATE build_events SET build_id_old = build_id, build_id = NULL WHERE build_id = $1`, build.ID())
+			Expect(err).NotTo(HaveOccurred())
+
+			events, err := build.Events(0)
+			Expect(err).NotTo(HaveOccurred())
+
+			defer db.Close(events)
+			Expect(events.Next()).To(Equal(envelope(event.Status{
+				Status: atc.StatusStarted,
+				Time:   build.StartTime().Unix(),
+			})))
+		})
 	})
 
 	Describe("SaveEvent", func() {
@@ -1211,7 +1233,7 @@ var _ = Describe("Build", func() {
 			atc.EnableGlobalResources = false
 		})
 
-		It("should set the resource's config scope", func(){
+		It("should set the resource's config scope", func() {
 			resource, found, err := scenario.Pipeline.Resource("some-resource")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
@@ -1463,6 +1485,8 @@ var _ = Describe("Build", func() {
 						}).
 						RunWith(dbConn).
 						Exec()
+					Expect(err).NotTo(HaveOccurred())
+
 					rows, err := res.RowsAffected()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(rows).To(Equal(int64(1)))
@@ -2403,7 +2427,7 @@ var _ = Describe("Build", func() {
 			Expect(pipeline.ParentBuildID()).To(Equal(buildTwo.ID()))
 
 			By("saving a pipeline with the first build")
-			pipeline, _, err = buildOne.SavePipeline(atc.PipelineRef{Name: "other-pipeline"}, buildOne.TeamID(), atc.Config{
+			_, _, err = buildOne.SavePipeline(atc.PipelineRef{Name: "other-pipeline"}, buildOne.TeamID(), atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",

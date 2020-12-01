@@ -138,6 +138,7 @@ var _ = Describe("Migration", func() {
 				BeforeEach(func() {
 					dirty = true
 				})
+
 				It("errors", func() {
 
 					Expect(err).NotTo(HaveOccurred())
@@ -146,7 +147,7 @@ var _ = Describe("Migration", func() {
 
 					err = migrator.Up(nil, nil)
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("Database is in a dirty state"))
+					Expect(err.Error()).To(ContainSubstring("database is in a dirty state"))
 
 					var newTableCreated bool
 					err = db.QueryRow("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='migrations_history')").Scan(&newTableCreated)
@@ -298,108 +299,21 @@ var _ = Describe("Migration", func() {
 
 			})
 
-			Context("With a transactional migration", func() {
-				It("leaves the database clean after a failure", func() {
+			Context("when sql migrations fail", func() {
+				BeforeEach(func() {
 					bindata.AssetNamesReturns([]string{
 						"1510262030_initial_schema.up.sql",
 						"1525724789_drop_reaper_addr_from_workers.up.sql",
 					})
-					migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
+				})
 
+				It("rolls back and leaves the database clean", func() {
+					migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
 					err := migrator.Up(nil, nil)
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("rolled back the migration"))
+					Expect(err.Error()).To(ContainSubstring("failed and was rolled back"))
 					ExpectDatabaseMigrationVersionToEqual(migrator, initialSchemaVersion)
 					ExpectMigrationToHaveFailed(db, 1525724789, false)
-				})
-			})
-
-			Context("With a non-transactional migration", func() {
-				It("fails if the migration version is in a dirty state", func() {
-					dirtyMigrationFilename := "1510262031_dirty_migration.up.sql"
-					bindata.AssetStub = func(name string) ([]byte, error) {
-						if name == dirtyMigrationFilename {
-							return []byte(`
-							-- NO_TRANSACTION
-							DROP TABLE nonexistent;
-						`), nil
-						}
-						return asset(name)
-					}
-
-					bindata.AssetNamesReturns([]string{
-						dirtyMigrationFilename,
-					})
-
-					migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
-
-					err := migrator.Up(nil, nil)
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(MatchRegexp("Migration.*failed"))
-
-					ExpectMigrationToHaveFailed(db, 1510262031, true)
-				})
-
-				It("successfully runs a non-transactional migration", func() {
-					bindata.AssetNamesReturns(
-						[]string{
-							"30000_no_transaction_migration.up.sql",
-						},
-					)
-					bindata.AssetReturnsOnCall(1, []byte(`
-							-- NO_TRANSACTION
-							CREATE TYPE enum_type AS ENUM ('blue_type', 'green_type');
-							ALTER TYPE enum_type ADD VALUE 'some_type';
-					`), nil)
-					startTime := time.Now()
-					migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
-					err = migrator.Up(nil, nil)
-					Expect(err).NotTo(HaveOccurred())
-
-					var (
-						version   int
-						isDirty   bool
-						timeStamp pq.NullTime
-						status    string
-						direction string
-					)
-					err = db.QueryRow("SELECT * from migrations_history ORDER BY tstamp DESC").Scan(&version, &timeStamp, &direction, &status, &isDirty)
-					Expect(version).To(Equal(30000))
-					Expect(isDirty).To(BeFalse())
-					Expect(timeStamp.Time.After(startTime)).To(Equal(true))
-					Expect(direction).To(Equal("up"))
-					Expect(status).To(Equal("passed"))
-				})
-
-				It("gracefully fails on a failing non-transactional migration", func() {
-					bindata.AssetNamesReturns(
-						[]string{
-							"50000_failing_no_transaction_migration.up.sql",
-						},
-					)
-					bindata.AssetReturns([]byte(`
-							-- NO_TRANSACTION
-							CREATE TYPE enum_type AS ENUM ('blue_type', 'green_type');
-							ALTER TYPE nonexistent_enum_type ADD VALUE 'some_type';
-					`), nil)
-					startTime := time.Now()
-					migrator := migration.NewMigratorForMigrations(db, lockFactory, bindata)
-					err = migrator.Up(nil, nil)
-					Expect(err).To(HaveOccurred())
-
-					var (
-						version   int
-						isDirty   bool
-						timeStamp pq.NullTime
-						status    string
-						direction string
-					)
-					err = db.QueryRow("SELECT * from migrations_history ORDER BY tstamp DESC").Scan(&version, &timeStamp, &direction, &status, &isDirty)
-					Expect(version).To(Equal(50000))
-					Expect(isDirty).To(BeTrue())
-					Expect(timeStamp.Time.After(startTime)).To(Equal(true))
-					Expect(direction).To(Equal("up"))
-					Expect(status).To(Equal("failed"))
 				})
 			})
 
