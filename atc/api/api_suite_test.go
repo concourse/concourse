@@ -1,13 +1,14 @@
 package api_test
 
 import (
-	"github.com/concourse/concourse/atc"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/concourse/concourse/atc"
 
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
@@ -52,6 +53,7 @@ var (
 	fakeAccess              *accessorfakes.FakeAccess
 	fakeAccessor            *accessorfakes.FakeAccessFactory
 	dbWorkerFactory         *dbfakes.FakeWorkerFactory
+	workerTeamFactory       *dbfakes.FakeTeamFactory
 	dbWorkerLifecycle       *dbfakes.FakeWorkerLifecycle
 	build                   *dbfakes.FakeBuild
 	dbBuildFactory          *dbfakes.FakeBuildFactory
@@ -186,6 +188,7 @@ var _ = BeforeEach(func() {
 		dbJobFactory,
 		dbResourceFactory,
 		dbWorkerFactory,
+		workerTeamFactory,
 		fakeVolumeRepository,
 		fakeContainerRepository,
 		fakeDestroyer,
