@@ -283,14 +283,13 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 	defer Rollback(tx)
 
 	if !manuallyTriggered {
-		var buildID int
 		var completed, noBuild bool
-		err = psql.Select("id", "completed").
+		err = psql.Select("completed").
 			From("builds").
 			Where(sq.Eq{"resource_id": r.id}).
 			RunWith(tx).
 			QueryRow().
-			Scan(&buildID, &completed)
+			Scan(&completed)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				noBuild = true
@@ -306,19 +305,32 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 
 		if completed {
 			// previous build finished; clear it out
-			_, err = psql.Delete("builds").
+			rows, err := psql.Delete("builds").
 				Where(sq.Eq{
 					"resource_id": r.id,
 					"completed":   true,
 				}).
+				Suffix("RETURNING id").
 				RunWith(tx).
-				Exec()
+				Query()
 			if err != nil {
 				return nil, false, fmt.Errorf("delete previous build: %w", err)
 			}
+
+			deletedBuildIDs := []int{}
+			for rows.Next() {
+				var id int
+				err := rows.Scan(&id)
+				if err != nil {
+					return nil, false, fmt.Errorf("scan deleted build id: %w", err)
+				}
+
+				deletedBuildIDs = append(deletedBuildIDs, id)
+			}
+
 			_, err = psql.Delete("build_events").
 				Where(sq.Eq{
-					"build_id": buildID,
+					"build_id": deletedBuildIDs,
 				}).
 				RunWith(tx).
 				Exec()
