@@ -37,4 +37,16 @@ var _ = Describe("UnpausePipelineCommand", func() {
 		expected := fmt.Sprintf("%s -t my-target unpause-pipeline -p my-pipeline", os.Args[0])
 		Expect(atcConfig.UnpausePipelineCommand()).To(Equal(expected))
 	})
+
+	Context("when given a different team name", func() {
+		It("adds --team option", func() {
+			atcConfig := ATCConfig{
+				TargetName: "my-target",
+				PipelineName: "my-pipeline",
+				GivenTeamName: "other-team",
+			}
+			expected := fmt.Sprintf(`%s -t my-target unpause-pipeline -p my-pipeline --team other-team`, os.Args[0])
+			Expect(atcConfig.UnpausePipelineCommand()).To(Equal(expected))
+		})
+	})
 })

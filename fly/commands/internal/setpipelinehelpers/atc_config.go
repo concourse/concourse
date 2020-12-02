@@ -2,11 +2,10 @@ package setpipelinehelpers
 
 import (
 	"fmt"
+	"github.com/vito/go-interact/interact"
 	"net/url"
 	"os"
 	"sigs.k8s.io/yaml"
-
-	"github.com/vito/go-interact/interact"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/configvalidate"
@@ -25,6 +24,7 @@ type ATCConfig struct {
 	SkipInteraction  bool
 	CheckCredentials bool
 	CommandWarnings  []concourse.ConfigWarning
+	GivenTeamName    string
 }
 
 func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
@@ -108,7 +108,11 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 }
 
 func (atcConfig ATCConfig) UnpausePipelineCommand() string {
-	return fmt.Sprintf("%s -t %s unpause-pipeline -p %s", os.Args[0], atcConfig.TargetName, atcConfig.PipelineName)
+	cmd := fmt.Sprintf("%s -t %s unpause-pipeline -p %s", os.Args[0], atcConfig.TargetName, atcConfig.PipelineName)
+	if atcConfig.GivenTeamName != "" {
+		cmd = fmt.Sprintf("%s --team %s", cmd, atcConfig.GivenTeamName)
+	}
+	return cmd
 }
 
 func (atcConfig ATCConfig) showPipelineUpdateResult(created bool, updated bool, paused bool) {
