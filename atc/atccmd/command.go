@@ -608,7 +608,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	}
 
 	onExit := func() {
-		for _, closer := range []Closer{lockConn, apiConn, backendConn, gcConn, storage} {
+		for _, closer := range []Closer{lockConn, apiConn, backendConn, gcConn, storage, workerConn} {
 			closer.Close()
 		}
 
