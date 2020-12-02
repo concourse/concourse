@@ -1503,6 +1503,11 @@ func (b *build) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
 					}).
 					RunWith(b.conn).
 					Exec()
+
+				err = b.MarkAsAborted()
+				if err != nil {
+					return nil, false, err
+				}
 			}
 
 			return nil, false, err

@@ -152,7 +152,7 @@ var _ = Describe("Syncing", func() {
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(0))
-			Expect(sess.Out).To(gbytes.Say(`version 4.0.0 already matches; skipping`))
+			Expect(sess.Out).To(gbytes.Say(`version 6.3.1 already matches; skipping`))
 
 			expectBinaryToMatch(copiedFlyPath, expectedBinary)
 		})

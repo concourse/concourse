@@ -100,6 +100,4 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 	} else {
 		metric.Metrics.ChecksEnqueued.Inc()
 	}
-
-	return
 }
