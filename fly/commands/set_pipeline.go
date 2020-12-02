@@ -102,6 +102,7 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		SkipInteraction:  command.SkipInteractive || command.Config.FromStdin(),
 		CheckCredentials: command.CheckCredentials,
 		CommandWarnings:  warnings,
+		GivenTeamName:    command.Team,
 	}
 
 	yamlTemplateWithParams := templatehelpers.NewYamlTemplateWithParams(configPath, templateVariablesFiles, command.Var, command.YAMLVar, instanceVars)

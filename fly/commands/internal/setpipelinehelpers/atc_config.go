@@ -28,6 +28,7 @@ type ATCConfig struct {
 	SkipInteraction  bool
 	CheckCredentials bool
 	CommandWarnings  []concourse.ConfigWarning
+	GivenTeamName    string
 }
 
 func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
@@ -126,7 +127,12 @@ func (atcConfig ATCConfig) UnpausePipelineCommand() string {
 	if strings.Contains(pipelineFlag, `"`) {
 		pipelineFlag = strconv.Quote(pipelineFlag)
 	}
-	return fmt.Sprintf("%s -t %s unpause-pipeline -p %s", os.Args[0], atcConfig.TargetName, pipelineFlag)
+
+	cmd := fmt.Sprintf("%s -t %s unpause-pipeline -p %s", os.Args[0], atcConfig.TargetName, pipelineFlag)
+	if atcConfig.GivenTeamName != "" {
+		cmd = fmt.Sprintf("%s --team %s", cmd, atcConfig.GivenTeamName)
+	}
+	return cmd
 }
 
 func (atcConfig ATCConfig) showPipelineUpdateResult(created bool, updated bool, paused bool) {
