@@ -1,0 +1,37 @@
+# oidc.yml - a docker-compose override that adds a OIDC auth to the stack
+#
+# Note: due to docker networking, when logging into Concourse, it'll redirect
+# you to `http://oidc:9000/auth?client_id=...`. Just change the hostname to be
+# `http://localhost:9000/auth?client_id=...` and it'll work just fine.
+#
+# There are 2 users and 1 group:
+# user1@example.com:user1pass;group1
+# user2@example.com:user2pass
+#
+# ref: https://hub.docker.com/r/qlik/simple-oidc-provider/
+# ref: https://docs.docker.com/compose/extends/
+#
+version: '3'
+
+services:
+  web:
+    environment:
+      # CONCOURSE_MAIN_TEAM_OIDC_USER: user1
+      CONCOURSE_MAIN_TEAM_OIDC_USER: John
+      # CONCOURSE_MAIN_TEAM_OIDC_GROUP: group1
+
+      CONCOURSE_OIDC_ISSUER: http://oidc:9000
+      CONCOURSE_OIDC_CLIENT_ID: foo
+      CONCOURSE_OIDC_CLIENT_SECRET: bar
+
+  oidc:
+    image: qlik/simple-oidc-provider
+    ports:
+    - 9000:9000
+    environment:
+      REDIRECTS: http://localhost:8080/sky/issuer/callback
+      CONFIG_FILE: /oidc/config.json
+      USERS_FILE: /oidc/users.json
+    volumes:
+    - ./hack/oidc:/oidc
+
