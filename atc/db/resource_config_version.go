@@ -73,10 +73,7 @@ var resourceConfigVersionQuery = psql.Select(`
 	v.check_order,
 	v.span_context
 `).
-	From("resource_config_versions v").
-	Where(sq.NotEq{
-		"v.check_order": 0,
-	})
+	From("resource_config_versions v")
 
 func (r *resourceConfigVersion) ID() int                                { return r.id }
 func (r *resourceConfigVersion) Version() Version                       { return r.version }
