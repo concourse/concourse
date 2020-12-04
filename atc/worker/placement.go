@@ -18,6 +18,14 @@ type ContainerPlacementStrategyOptions struct {
 	MaxActiveVolumesPerWorker    int      `long:"max-active-volumes-per-worker" default:"0" description:"Maximum allowed number of active volumes per worker. Has effect only when used with limit-active-volumes placement strategy. 0 means no limit."`
 }
 
+type NoWorkerFitContainerPlacementStrategyError struct {
+	Strategy string
+}
+
+func (err NoWorkerFitContainerPlacementStrategyError) Error() string {
+	return fmt.Sprintf("no worker fit container placement strategy: %s", err.Strategy)
+}
+
 type ContainerPlacementStrategy interface {
 	//TODO: Don't pass around container metadata since it's not guaranteed to be deterministic.
 	// Change this after check containers stop being reused
@@ -28,6 +36,7 @@ type ContainerPlacementStrategy interface {
 type ContainerPlacementStrategyChainNode interface {
 	Choose(lager.Logger, []Worker, ContainerSpec) ([]Worker, error)
 	ModifiesActiveTasks() bool
+	StrategyName() string
 }
 
 type containerPlacementStrategy struct {
@@ -42,24 +51,24 @@ func NewContainerPlacementStrategy(opts ContainerPlacementStrategyOptions) (*con
 		case "random":
 			// Add nothing. Because an empty strategy chain equals to random strategy.
 		case "fewest-build-containers":
-			cps.nodes = append(cps.nodes, newFewestBuildContainersPlacementStrategy())
+			cps.nodes = append(cps.nodes, newFewestBuildContainersPlacementStrategy(strategy))
 		case "limit-active-tasks":
 			if opts.MaxActiveTasksPerWorker < 0 {
 				return nil, errors.New("max-active-tasks-per-worker must be greater or equal than 0")
 			}
-			cps.nodes = append(cps.nodes, newLimitActiveTasksPlacementStrategy(opts.MaxActiveTasksPerWorker))
+			cps.nodes = append(cps.nodes, newLimitActiveTasksPlacementStrategy(strategy, opts.MaxActiveTasksPerWorker))
 		case "limit-active-containers":
 			if opts.MaxActiveContainersPerWorker < 0 {
 				return nil, errors.New("max-active-containers-per-worker must be greater or equal than 0")
 			}
-			cps.nodes = append(cps.nodes, newLimitActiveContainersPlacementStrategy(opts.MaxActiveContainersPerWorker))
+			cps.nodes = append(cps.nodes, newLimitActiveContainersPlacementStrategy(strategy, opts.MaxActiveContainersPerWorker))
 		case "limit-active-volumes":
 			if opts.MaxActiveVolumesPerWorker < 0 {
 				return nil, errors.New("max-active-volumes-per-worker must be greater or equal than 0")
 			}
-			cps.nodes = append(cps.nodes, newLimitActiveVolumesPlacementStrategy(opts.MaxActiveVolumesPerWorker))
+			cps.nodes = append(cps.nodes, newLimitActiveVolumesPlacementStrategy(strategy, opts.MaxActiveVolumesPerWorker))
 		case "volume-locality":
-			cps.nodes = append(cps.nodes, newVolumeLocalityPlacementStrategyNode())
+			cps.nodes = append(cps.nodes, newVolumeLocalityPlacementStrategyNode(strategy))
 		default:
 			return nil, fmt.Errorf("invalid container placement strategy %s", strategy)
 		}
@@ -75,7 +84,7 @@ func (strategy *containerPlacementStrategy) Choose(logger lager.Logger, workers 
 			return nil, err
 		}
 		if len(workers) == 0 {
-			return nil, nil
+			return nil, NoWorkerFitContainerPlacementStrategyError{Strategy: node.StrategyName()}
 		}
 	}
 	if len(workers) == 1 {
@@ -101,10 +110,12 @@ func NewRandomPlacementStrategy() ContainerPlacementStrategy {
 	return s
 }
 
-type VolumeLocalityPlacementStrategyNode struct{}
+type VolumeLocalityPlacementStrategyNode struct {
+	GivenName string
+}
 
-func newVolumeLocalityPlacementStrategyNode() ContainerPlacementStrategyChainNode {
-	return &VolumeLocalityPlacementStrategyNode{}
+func newVolumeLocalityPlacementStrategyNode(name string) ContainerPlacementStrategyChainNode {
+	return &VolumeLocalityPlacementStrategyNode{name}
 }
 
 func (strategy *VolumeLocalityPlacementStrategyNode) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
@@ -138,10 +149,16 @@ func (strategy *VolumeLocalityPlacementStrategyNode) ModifiesActiveTasks() bool 
 	return false
 }
 
-type FewestBuildContainersPlacementStrategyNode struct{}
+func (strategy *VolumeLocalityPlacementStrategyNode) StrategyName() string {
+	return strategy.GivenName
+}
 
-func newFewestBuildContainersPlacementStrategy() ContainerPlacementStrategyChainNode {
-	return &FewestBuildContainersPlacementStrategyNode{}
+type FewestBuildContainersPlacementStrategyNode struct {
+	GivenName string
+}
+
+func newFewestBuildContainersPlacementStrategy(name string) ContainerPlacementStrategyChainNode {
+	return &FewestBuildContainersPlacementStrategyNode{name}
 }
 
 func (strategy *FewestBuildContainersPlacementStrategyNode) Choose(logger lager.Logger, workers []Worker, spec ContainerSpec) ([]Worker, error) {
@@ -163,13 +180,19 @@ func (strategy *FewestBuildContainersPlacementStrategyNode) ModifiesActiveTasks(
 	return false
 }
 
-type LimitActiveTasksPlacementStrategyNode struct {
-	maxTasks int
+func (strategy *FewestBuildContainersPlacementStrategyNode) StrategyName() string {
+	return strategy.GivenName
 }
 
-func newLimitActiveTasksPlacementStrategy(maxTasks int) ContainerPlacementStrategyChainNode {
+type LimitActiveTasksPlacementStrategyNode struct {
+	GivenName string
+	maxTasks  int
+}
+
+func newLimitActiveTasksPlacementStrategy(name string, maxTasks int) ContainerPlacementStrategyChainNode {
 	return &LimitActiveTasksPlacementStrategyNode{
-		maxTasks: maxTasks,
+		GivenName: name,
+		maxTasks:  maxTasks,
 	}
 }
 
@@ -203,12 +226,18 @@ func (strategy *LimitActiveTasksPlacementStrategyNode) ModifiesActiveTasks() boo
 	return true
 }
 
+func (strategy *LimitActiveTasksPlacementStrategyNode) StrategyName() string {
+	return strategy.GivenName
+}
+
 type LimitActiveContainersPlacementStrategyNode struct {
+	GivenName     string
 	maxContainers int
 }
 
-func newLimitActiveContainersPlacementStrategy(maxContainers int) ContainerPlacementStrategyChainNode {
+func newLimitActiveContainersPlacementStrategy(name string, maxContainers int) ContainerPlacementStrategyChainNode {
 	return &LimitActiveContainersPlacementStrategyNode{
+		GivenName:     name,
 		maxContainers: maxContainers,
 	}
 }
@@ -217,7 +246,7 @@ func (strategy *LimitActiveContainersPlacementStrategyNode) Choose(logger lager.
 	candidates := []Worker{}
 
 	for _, w := range workers {
-		if w.ActiveContainers() <= strategy.maxContainers {
+		if strategy.maxContainers == 0 || w.ActiveContainers() <= strategy.maxContainers {
 			candidates = append(candidates, w)
 		}
 	}
@@ -229,12 +258,18 @@ func (strategy *LimitActiveContainersPlacementStrategyNode) ModifiesActiveTasks(
 	return false
 }
 
+func (strategy *LimitActiveContainersPlacementStrategyNode) StrategyName() string {
+	return strategy.GivenName
+}
+
 type LimitActiveVolumesPlacementStrategyNode struct {
+	GivenName  string
 	maxVolumes int
 }
 
-func newLimitActiveVolumesPlacementStrategy(maxVolumes int) ContainerPlacementStrategyChainNode {
+func newLimitActiveVolumesPlacementStrategy(name string, maxVolumes int) ContainerPlacementStrategyChainNode {
 	return &LimitActiveVolumesPlacementStrategyNode{
+		GivenName:  name,
 		maxVolumes: maxVolumes,
 	}
 }
@@ -243,7 +278,7 @@ func (strategy *LimitActiveVolumesPlacementStrategyNode) Choose(logger lager.Log
 	candidates := []Worker{}
 
 	for _, w := range workers {
-		if w.ActiveVolumes() <= strategy.maxVolumes {
+		if strategy.maxVolumes == 0 || w.ActiveVolumes() <= strategy.maxVolumes {
 			candidates = append(candidates, w)
 		}
 	}
@@ -253,4 +288,8 @@ func (strategy *LimitActiveVolumesPlacementStrategyNode) Choose(logger lager.Log
 
 func (strategy *LimitActiveVolumesPlacementStrategyNode) ModifiesActiveTasks() bool {
 	return false
+}
+
+func (strategy *LimitActiveVolumesPlacementStrategyNode) StrategyName() string {
+	return strategy.GivenName
 }
