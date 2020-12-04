@@ -43,6 +43,7 @@ type suiteConfig struct {
 	ATCGuestUsername string `json:"atc_guest_username"`
 	ATCGuestPassword string `json:"atc_guest_password"`
 	DownloadCLI      bool   `json:"download_cli"`
+	caCert	    string `json:"ca_cert"`
 }
 
 var (
@@ -102,6 +103,11 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	atcGuestPassword := os.Getenv("ATC_GUEST_PASSWORD")
 	if atcGuestPassword != "" {
 		config.ATCGuestPassword = atcGuestPassword
+	}
+
+	caCert :=  os.Getenv("CA_CERT")
+	if caCert != "" {
+		config.caCert = caCert
 	}
 
 	payload, err := json.Marshal(config)
@@ -214,6 +220,7 @@ func flyLogin(target, team, username, password string) *gexec.Session {
 		"-n", team,
 		"-u", username,
 		"-p", password,
+		"--ca-cert", config.caCert,
 	)
 	wait(sess, false)
 	return sess
