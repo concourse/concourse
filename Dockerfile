@@ -21,6 +21,10 @@ ENV CONCOURSE_TSA_WORKER_PRIVATE_KEY  /concourse-keys/worker_key
 
 # download go modules separately so this doesn't re-run on every change
 WORKDIR /src
+# copy in our certs
+COPY certs/localhost.cert.pem . 
+COPY certs/localhost.key.pem . 
+COPY certs/ca-chain.cert.pem . 
 COPY go.mod .
 COPY go.sum .
 RUN grep '^replace' go.mod || go mod download

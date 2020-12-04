@@ -228,8 +228,6 @@ github.com/concourse/go-archive v1.0.0/go.mod h1:Xfo080IPQBmVz3I5ehjCddW3phA2mwv
 github.com/concourse/go-archive v1.0.1 h1:6jQk0VDiE4G6lNJQ0mLZ7XmxbqI3spO4x0wgVwk4pfo=
 github.com/concourse/go-archive v1.0.1/go.mod h1:Xfo080IPQBmVz3I5ehjCddW3phA2mwv0NFwlpjf5CO8=
 github.com/concourse/retryhttp v0.0.0-20170802173037-937335fd9545/go.mod h1:4+V9YCkKuoV7rg+/No+ZM9FsO3BK4tIJNUiYMI7nki0=
-github.com/concourse/retryhttp v1.0.2 h1:Qlag8vPBvXN79XyuM+XSf0/+jIYWnnivPwaa3ijbgdk=
-github.com/concourse/retryhttp v1.0.2/go.mod h1:t/8nUqzPriXrWczdqI7tHoEvFe+tJplQHS/fO3BzdlA=
 github.com/concourse/retryhttp v1.1.0 h1:tbsCtyU4Bioaw01Un3f10tgBBzVDWvWkOQyfl5ZCs8g=
 github.com/concourse/retryhttp v1.1.0/go.mod h1:QHhy6lQHGmqOKNv0UdoUPYzsTOy9wrf6nHfYsJpow0o=
 github.com/containerd/cgroups v0.0.0-20190919134610-bf292b21730f/go.mod h1:OApqhQ4XNSNC13gXIwDjhOQxjWa/NxkwZXJ1EvqT0ko=

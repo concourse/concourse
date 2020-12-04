@@ -16,10 +16,10 @@ services:
     image: concourse/concourse:local
     volumes:
     - .:/src
-    command: web
+    command: web --external-url https://localhost:8443  --tls-bind-port 8443  --tls-cert /src/certs/localhost.cert.pem  --tls-key  /src/certs/localhost.key.pem --tls-ca-cert /src/certs/ca-chain.cert.pem
     depends_on: [db]
     ports:
-    - 8080:8080
+    - 8443:8443
     environment:
       CONCOURSE_LOG_LEVEL: debug
       CONCOURSE_POSTGRES_HOST: db
