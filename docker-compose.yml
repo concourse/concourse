@@ -16,7 +16,7 @@ services:
     image: concourse/concourse:local
     volumes:
     - .:/src
-    command: web --external-url https://localhost:8443  --tls-bind-port 8443  --tls-cert /src/certs/localhost.cert.pem  --tls-key  /src/certs/localhost.key.pem --tls-ca-cert /src/certs/ca-chain.cert.pem
+    command: web --external-url https://localhost:443  --tls-bind-port 8443  --tls-cert /src/certs/localhost.cert.pem  --tls-key  /src/certs/localhost.key.pem --tls-ca-cert /src/certs/ca-chain.cert.pem
     depends_on: [db]
     ports:
     - 8443:8443
@@ -26,7 +26,7 @@ services:
       CONCOURSE_POSTGRES_USER: dev
       CONCOURSE_POSTGRES_PASSWORD: dev
       CONCOURSE_POSTGRES_DATABASE: concourse
-      CONCOURSE_EXTERNAL_URL: http://localhost:8080
+      CONCOURSE_EXTERNAL_URL: https://localhost:443
       CONCOURSE_ADD_LOCAL_USER: test:test,guest:guest
       CONCOURSE_MAIN_TEAM_LOCAL_USER: test
       CONCOURSE_CLUSTER_NAME: dev
