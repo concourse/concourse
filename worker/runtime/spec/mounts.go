@@ -28,7 +28,7 @@ var (
 			Destination: "/dev/shm",
 			Type:        "tmpfs",
 			Source:      "shm",
-			Options:     []string{"nosuid", "noexec", "nodev", "mode=1777", "size=65536k"},
+			Options:     []string{"nosuid", "noexec", "nodev", "mode=1777"},
 		},
 		{
 			Destination: "/dev/mqueue",
