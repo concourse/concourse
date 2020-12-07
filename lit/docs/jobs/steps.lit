@@ -888,8 +888,7 @@ by configuring \reference{schema.step.on_failure} or
             When set, the number of running steps will not exceed the limit.
 
             When not specified, \code{in_parallel} will execute all steps
-            immediately, making the default behavior identical to
-            \reference{aggregate-step}{\code{aggregate}}.
+            immediately.
           }
 
           \optional-attribute{fail_fast}{boolean}{
@@ -898,12 +897,6 @@ by configuring \reference{schema.step.on_failure} or
             will be interrupted and pending steps will no longer be scheduled.
           }
         }
-      }
-    }
-  }{
-    \schema-group{\code{aggregate} step}{aggregate-step}{
-      \required-attribute{aggregate}{[step]}{
-        \italic{Deprecated.} Use \reference{in-parallel-step} instead.
       }
     }
   }{
