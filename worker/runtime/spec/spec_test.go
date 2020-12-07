@@ -21,7 +21,7 @@ type SpecSuite struct {
 }
 
 func uint64Ptr(i uint64) *uint64 { return &i }
-func int64Ptr(i int64) *int64 { return &i }
+func int64Ptr(i int64) *int64    { return &i }
 
 func (s *SpecSuite) TestContainerSpecValidations() {
 	for _, tc := range []struct {
@@ -293,7 +293,7 @@ func (s *SpecSuite) TestOciResourceLimits() {
 		{
 			desc: "PID limit",
 			limits: garden.Limits{
-				Pid: garden.PidLimits {
+				Pid: garden.PidLimits{
 					Max: 1000,
 				},
 			},
@@ -304,8 +304,8 @@ func (s *SpecSuite) TestOciResourceLimits() {
 			},
 		},
 		{
-			desc: "No limits specified",
-			limits: garden.Limits{},
+			desc:     "No limits specified",
+			limits:   garden.Limits{},
 			expected: nil,
 		},
 	} {
@@ -324,18 +324,18 @@ func (s *SpecSuite) TestOciCgroupsPath() {
 		expected   string
 	}{
 		{
-			desc: "not privileged",
-			basePath: "garden",
-			handle: "1234",
+			desc:       "not privileged",
+			basePath:   "garden",
+			handle:     "1234",
 			privileged: false,
-			expected: "garden/1234",
+			expected:   "garden/1234",
 		},
 		{
-			desc: "privileged",
-			basePath: "garden",
-			handle: "1234",
+			desc:       "privileged",
+			basePath:   "garden",
+			handle:     "1234",
 			privileged: true,
-			expected: "",
+			expected:   "",
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
@@ -402,7 +402,7 @@ func (s *SpecSuite) TestContainerSpec() {
 		},
 		{
 			desc: "default devices privileged",
-			gdn:  garden.ContainerSpec{
+			gdn: garden.ContainerSpec{
 				Handle: "handle", RootFSPath: "raw:///rootfs",
 				Privileged: true,
 			},
