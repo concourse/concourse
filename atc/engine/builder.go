@@ -67,10 +67,6 @@ func (factory *stepperFactory) StepperForBuild(build db.Build) (exec.Stepper, er
 }
 
 func (factory *stepperFactory) buildStep(build db.Build, plan atc.Plan) exec.Step {
-	if plan.Aggregate != nil {
-		return factory.buildAggregateStep(build, plan)
-	}
-
 	if plan.InParallel != nil {
 		return factory.buildParallelStep(build, plan)
 	}
@@ -148,19 +144,6 @@ func (factory *stepperFactory) buildStep(build db.Build, plan atc.Plan) exec.Ste
 	}
 
 	return exec.IdentityStep{}
-}
-
-func (factory *stepperFactory) buildAggregateStep(build db.Build, plan atc.Plan) exec.Step {
-
-	agg := exec.AggregateStep{}
-
-	for _, innerPlan := range *plan.Aggregate {
-		innerPlan.Attempts = plan.Attempts
-		step := factory.buildStep(build, innerPlan)
-		agg = append(agg, step)
-	}
-
-	return agg
 }
 
 func (factory *stepperFactory) buildParallelStep(build db.Build, plan atc.Plan) exec.Step {

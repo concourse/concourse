@@ -196,7 +196,6 @@ type StepVisitor interface {
 	VisitTry(*TryStep) error
 	VisitDo(*DoStep) error
 	VisitInParallel(*InParallelStep) error
-	VisitAggregate(*AggregateStep) error
 	VisitAcross(*AcrossStep) error
 	VisitTimeout(*TimeoutStep) error
 	VisitRetry(*RetryStep) error
@@ -285,10 +284,6 @@ var StepPrecedence = []StepDetector{
 	{
 		Key: "in_parallel",
 		New: func() StepConfig { return &InParallelStep{} },
-	},
-	{
-		Key: "aggregate",
-		New: func() StepConfig { return &AggregateStep{} },
 	},
 }
 
@@ -390,14 +385,6 @@ type DoStep struct {
 
 func (step *DoStep) Visit(v StepVisitor) error {
 	return v.VisitDo(step)
-}
-
-type AggregateStep struct {
-	Steps []Step `json:"aggregate"`
-}
-
-func (step *AggregateStep) Visit(v StepVisitor) error {
-	return v.VisitAggregate(step)
 }
 
 type InParallelStep struct {

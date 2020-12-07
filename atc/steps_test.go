@@ -269,34 +269,6 @@ var factoryTests = []StepTest{
 		},
 	},
 	{
-		Title: "aggregate step",
-
-		ConfigYAML: `
-			aggregate:
-			- load_var: some-var
-			  file: some-file
-			- load_var: some-other-var
-			  file: some-other-file
-		`,
-
-		StepConfig: &atc.AggregateStep{
-			Steps: []atc.Step{
-				{
-					Config: &atc.LoadVarStep{
-						Name: "some-var",
-						File: "some-file",
-					},
-				},
-				{
-					Config: &atc.LoadVarStep{
-						Name: "some-other-var",
-						File: "some-other-file",
-					},
-				},
-			},
-		},
-	},
-	{
 		Title: "across step",
 
 		ConfigYAML: `

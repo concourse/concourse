@@ -8,7 +8,7 @@ jobs:
 - name: fancy-build-matrix
   plan:
   - get: some-resource
-  - aggregate:
+  - in_parallel:
     - task: passing-unit-1
       config:
         platform: linux
@@ -46,7 +46,7 @@ jobs:
       run:
         path: sh
         args: ["-c", "echo $(ls passing-unit-*/file) $(cat some-resource/version)"]
-  - aggregate:
+  - in_parallel:
     - task: second-passing-unit-1
       config:
         platform: linux
@@ -76,4 +76,4 @@ jobs:
           - name: some-resource
         run:
           path: sh
-          args: ["-c", "echo failed aggregate $(cat some-resource/version)"]
+          args: ["-c", "echo failed in_parallel $(cat some-resource/version)"]

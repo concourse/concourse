@@ -86,15 +86,17 @@ run:
 		planFactory := atc.NewPlanFactory(0)
 
 		expectedPlan = planFactory.NewPlan(atc.DoPlan{
-			planFactory.NewPlan(atc.AggregatePlan{
-				planFactory.NewPlan(atc.ArtifactInputPlan{
-					ArtifactID: 125,
-					Name:       "some-input",
-				}),
-				planFactory.NewPlan(atc.ArtifactInputPlan{
-					ArtifactID: 125,
-					Name:       "some-other-input",
-				}),
+			planFactory.NewPlan(atc.InParallelPlan{
+				Steps: []atc.Plan{
+					planFactory.NewPlan(atc.ArtifactInputPlan{
+						ArtifactID: 125,
+						Name:       "some-input",
+					}),
+					planFactory.NewPlan(atc.ArtifactInputPlan{
+						ArtifactID: 125,
+						Name:       "some-other-input",
+					}),
+				},
 			}),
 			planFactory.NewPlan(atc.TaskPlan{
 				Name: "one-off",
