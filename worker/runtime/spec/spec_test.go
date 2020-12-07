@@ -360,10 +360,44 @@ func (s *SpecSuite) TestContainerSpec() {
 			check: func(oci *specs.Spec) {
 				s.Equal("/", oci.Process.Cwd)
 				s.Equal([]string{"/tmp/gdn-init"}, oci.Process.Args)
-				s.Equal(oci.Mounts, spec.AnyContainerMounts(spec.DefaultInitBinPath))
+				s.Equal(oci.Mounts, spec.ContainerMounts(false, spec.DefaultInitBinPath))
 
 				s.Equal(minimalContainerSpec.Handle, oci.Hostname)
 				s.Equal(spec.AnyContainerDevices, oci.Linux.Resources.Devices)
+			},
+		},
+		{
+			desc: "privileged mounts",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Privileged: true,
+			},
+			check: func(oci *specs.Spec) {
+				s.Contains(oci.Mounts, specs.Mount{
+					Destination: "/sys",
+					Type:        "sysfs",
+					Source:      "sysfs",
+					Options:     []string{"nosuid", "noexec", "nodev"},
+				})
+				s.Contains(oci.Mounts, specs.Mount{
+					Destination: "/sys/fs/cgroup",
+					Type:        "cgroup",
+					Source:      "cgroup",
+					Options:     []string{"nosuid", "noexec", "nodev"},
+				})
+				s.Contains(oci.Mounts, specs.Mount{
+					Destination: "/sys/fs/cgroup",
+					Type:        "cgroup",
+					Source:      "cgroup",
+					Options:     []string{"nosuid", "noexec", "nodev"},
+				})
+				for _, ociMount := range oci.Mounts {
+					if ociMount.Destination == "/sys" {
+						s.NotContains(ociMount.Options, "ro", "%s: %s", ociMount.Destination, ociMount.Type)
+					} else if ociMount.Type == "cgroup" {
+						s.NotContains(ociMount.Options, "ro", "%s: %s", ociMount.Destination, ociMount.Type)
+					}
+				}
 			},
 		},
 		{

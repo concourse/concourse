@@ -57,8 +57,8 @@ var (
 	}
 )
 
-func AnyContainerMounts(initBinPath string) []specs.Mount {
-	return append(
+func ContainerMounts(privileged bool, initBinPath string) []specs.Mount {
+	mounts := append(
 		[]specs.Mount{
 			{
 				Source:      initBinPath,
@@ -69,4 +69,23 @@ func AnyContainerMounts(initBinPath string) []specs.Mount {
 		},
 		DefaultContainerMounts...,
 	)
+	// Following the current behaviour for privileged containers in Docker
+	if privileged {
+		for i, ociMount := range mounts {
+			if ociMount.Destination == "/sys" || ociMount.Type == "cgroup" {
+				clearReadOnly(&mounts[i])
+			}
+		}
+	}
+	return mounts
+}
+
+func clearReadOnly(m *specs.Mount) {
+	var opt []string
+	for _, o := range m.Options {
+		if o != "ro" {
+			opt = append(opt, o)
+		}
+	}
+	m.Options = opt
 }
