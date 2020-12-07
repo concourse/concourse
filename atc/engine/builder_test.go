@@ -109,7 +109,7 @@ var _ = Describe("Builder", func() {
 					stepper(fakeBuild.PrivatePlan())
 				})
 
-				Context("with a putget in an aggregate", func() {
+				Context("with a putget in an in_parallel", func() {
 					var (
 						putPlan               atc.Plan
 						dependentGetPlan      atc.Plan
