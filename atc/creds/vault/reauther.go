@@ -118,6 +118,7 @@ func (ra *ReAuther) authLoop() {
 				return
 			}
 
+			ra.logger.Info("EVAN:before login")
 			lease, err := ra.auther.Login()
 			if err != nil {
 				time.Sleep(exp.NextBackOff())
@@ -133,6 +134,7 @@ func (ra *ReAuther) authLoop() {
 			now := time.Now()
 			tokenEOL = now.Add(ra.maxTTL)
 			leaseEnd = now.Add(lease)
+			ra.logger.Info("EVAN:after login", lager.Data{"tokenEOL": tokenEOL, "leaseEnd": leaseEnd})
 			ra.sleep(leaseEnd, tokenEOL)
 
 			break
