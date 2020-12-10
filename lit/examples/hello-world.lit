@@ -13,22 +13,7 @@ Also, due to the fact that there are minimal external factors (\reference{resour
 
 \section{
   \title{Pipeline Configuration}{configuration}
-	\codeblock{yaml}{{{
----
-jobs:
-  - name: job
-    public: true
-    plan:
-      - task: simple-task
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source: { repository: busybox }
-          run:
-            path: echo
-            args: ["Hello, world!"]
-	}}}
+    \remote-codeblock{yaml}{https://raw.githubusercontent.com/concourse/examples/master/pipelines/hello-world.yml}
 }
 
 \section{

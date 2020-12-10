@@ -9,34 +9,7 @@ You can use params in a pipelines configuration file.
 
 \section{
   \title{Pipeline Configuration}{configuration}
-	\codeblock{yaml}{{{
----
-jobs:
-  - name: ((first))-job
-    public: true
-    plan:
-      - task: simple-task
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source: { repository: busybox }
-          run:
-            path: echo
-            args: ["Hello, ((hello))!"]
-  - name: level-((number))-job
-    public: true
-    plan:
-      - task: simple-task
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source: { repository: busybox }
-          run:
-            path: echo
-            args: ["Hello, ((hello))!"]
-	}}}
+    \remote-codeblock{yaml}{https://raw.githubusercontent.com/concourse/examples/master/pipelines/pipeline-vars.yml}
 }
 
 \section{

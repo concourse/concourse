@@ -9,57 +9,7 @@ You can run the tests for a Rails that requires a specific version of ruby and r
 
 \section{
   \title{Pipeline Configuration}{configuration}
-	\codeblock{yaml}{{{
----
-resources:
-  - name: rails-contributors-git
-    type: git
-    icon: github
-    source:
-      uri: https://github.com/rails/rails-contributors.git
-
-task-config: &task-config
-  platform: linux
-  inputs:
-    - name: rails-contributors-git
-  params:
-    RAILS_ENV: test
-    DATABASE_URL: postgresql://postgres@localhost
-  run:
-    path: /bin/bash
-    args:
-      - -c
-      - |
-        echo "=== Setting up Postgres..."
-        apt-get update
-        apt-get install -y postgresql libpq-dev cmake nodejs
-        cat > /etc/postgresql/*/main/pg_hba.conf <<-EOF
-        host   all   postgres   localhost   trust
-        EOF
-        service postgresql restart
-        echo "=== Project requires that we clone rails... "
-        cd rails-contributors-git
-        git clone --mirror https://github.com/rails/rails
-        echo "=== Installing Gems..."
-        gem install -N bundler
-        bundle install
-        echo "=== Running Tests..."
-        bundle exec rails db:setup
-        bundle exec rails test
-
-jobs:
-  - name: test
-    public: true
-    plan:
-      - get: rails-contributors-git
-        trigger: true
-      - task: run-tests
-        config:
-          image_resource:
-            type: registry-image
-            source: { repository: ruby, tag: 2.6 }
-          << : *task-config
-	}}}
+    \remote-codeblock{yaml}{https://raw.githubusercontent.com/concourse/examples/master/pipelines/rails-app-testing.yml}
 }
 
 \section{

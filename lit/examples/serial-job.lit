@@ -13,23 +13,7 @@ You can also set the \reference{schema.job.max_in_flight} value to 1 to disable 
 
 \section{
   \title{Pipeline Configuration}{configuration}
-	\codeblock{yaml}{{{
----
-jobs:
-  - name: serial-job
-    public: true
-    serial: true
-    plan:
-      - task: simple-task
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source: { repository: busybox }
-          run:
-            path: echo
-            args: ["Hello, world!"]
-	}}}
+    \remote-codeblock{yaml}{https://raw.githubusercontent.com/concourse/examples/master/pipelines/serial-job.yml}
 }
 
 \section{
