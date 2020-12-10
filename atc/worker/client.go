@@ -621,7 +621,9 @@ func (client *client) chooseTaskWorker(
 			workerSpec,
 			strategy,
 		); err != nil {
-			return nil, err
+			if _, ok := err.(NoWorkerFitContainerPlacementStrategyError); !ok {
+				return nil, err
+			}
 		}
 
 		if !strategy.ModifiesActiveTasks() {
