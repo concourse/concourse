@@ -12,35 +12,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-//go:generate counterfeiter . WorkerProvider
-
-type WorkerProvider interface {
-	RunningWorkers(lager.Logger) ([]Worker, error)
-
-	FindWorkerForContainer(
-		logger lager.Logger,
-		teamID int,
-		handle string,
-	) (Worker, bool, error)
-
-	FindWorkerForVolume(
-		logger lager.Logger,
-		teamID int,
-		handle string,
-	) (Worker, bool, error)
-
-	FindWorkersForContainerByOwner(
-		logger lager.Logger,
-		owner db.ContainerOwner,
-	) ([]Worker, error)
-
-	NewGardenWorker(
-		logger lager.Logger,
-		savedWorker db.Worker,
-		numBuildWorkers int,
-	) Worker
-}
-
 var (
 	ErrNoWorkers             = errors.New("no workers")
 	ErrFailedAcquirePoolLock = errors.New("failed to acquire pool lock")
