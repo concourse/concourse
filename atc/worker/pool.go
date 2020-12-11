@@ -49,9 +49,7 @@ type pool struct {
 	rand     *rand.Rand
 }
 
-func NewPool(
-	provider WorkerProvider,
-) Pool {
+func NewPool(provider WorkerProvider) Pool {
 	return &pool{
 		provider: provider,
 		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),

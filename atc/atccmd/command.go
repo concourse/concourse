@@ -1019,6 +1019,7 @@ func (cmd *RunCommand) backendComponents(
 	)
 
 	pool := worker.NewPool(workerProvider)
+	artifactStreamer := worker.NewArtifactStreamer(pool, compressionLib)
 	workerClient := worker.NewClient(pool,
 		compressionLib,
 		workerAvailabilityPollingInterval,
@@ -1048,6 +1049,7 @@ func (cmd *RunCommand) backendComponents(
 	engine := cmd.constructEngine(
 		pool,
 		workerClient,
+		artifactStreamer,
 		resourceFactory,
 		teamFactory,
 		dbBuildFactory,
@@ -1611,6 +1613,7 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 func (cmd *RunCommand) constructEngine(
 	workerPool worker.Pool,
 	workerClient worker.Client,
+	artifactStreamer worker.ArtifactStreamer,
 	resourceFactory resource.ResourceFactory,
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
@@ -1628,6 +1631,7 @@ func (cmd *RunCommand) constructEngine(
 			engine.NewCoreStepFactory(
 				workerPool,
 				workerClient,
+				artifactStreamer,
 				resourceFactory,
 				teamFactory,
 				buildFactory,

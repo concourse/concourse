@@ -2,10 +2,11 @@ package worker
 
 import (
 	"archive/tar"
-	"code.cloudfoundry.org/lager/lagerctx"
 	"context"
 	"io"
 	"time"
+
+	"code.cloudfoundry.org/lager/lagerctx"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/compression"

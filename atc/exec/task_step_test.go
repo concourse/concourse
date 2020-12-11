@@ -35,8 +35,9 @@ var _ = Describe("TaskStep", func() {
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
 
-		fakeClient   *workerfakes.FakeClient
-		fakeStrategy *workerfakes.FakeContainerPlacementStrategy
+		fakeClient           *workerfakes.FakeClient
+		fakeArtifactStreamer *workerfakes.FakeArtifactStreamer
+		fakeStrategy         *workerfakes.FakeContainerPlacementStrategy
 
 		fakeLockFactory *lockfakes.FakeLockFactory
 
@@ -77,6 +78,7 @@ var _ = Describe("TaskStep", func() {
 		stderrBuf = gbytes.NewBuffer()
 
 		fakeClient = new(workerfakes.FakeClient)
+		fakeArtifactStreamer = new(workerfakes.FakeArtifactStreamer)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
@@ -133,6 +135,7 @@ var _ = Describe("TaskStep", func() {
 			containerMetadata,
 			fakeStrategy,
 			fakeClient,
+			fakeArtifactStreamer,
 			fakeDelegateFactory,
 			fakeLockFactory,
 		)

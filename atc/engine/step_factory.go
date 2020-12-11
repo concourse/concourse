@@ -17,6 +17,7 @@ import (
 type coreStepFactory struct {
 	pool                  worker.Pool
 	client                worker.Client
+	artifactStreamer      worker.ArtifactStreamer
 	resourceFactory       resource.ResourceFactory
 	teamFactory           db.TeamFactory
 	buildFactory          db.BuildFactory
@@ -31,6 +32,7 @@ type coreStepFactory struct {
 func NewCoreStepFactory(
 	pool worker.Pool,
 	client worker.Client,
+	artifactStreamer worker.ArtifactStreamer,
 	resourceFactory resource.ResourceFactory,
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
@@ -156,6 +158,7 @@ func (factory *coreStepFactory) TaskStep(
 		containerMetadata,
 		factory.strategy,
 		factory.client,
+		factory.artifactStreamer,
 		delegateFactory,
 		factory.lockFactory,
 	)
@@ -179,7 +182,7 @@ func (factory *coreStepFactory) SetPipelineStep(
 		delegateFactory,
 		factory.teamFactory,
 		factory.buildFactory,
-		factory.client,
+		factory.artifactStreamer,
 		delegateFactory.policyChecker,
 	)
 
@@ -200,7 +203,7 @@ func (factory *coreStepFactory) LoadVarStep(
 		*plan.LoadVar,
 		stepMetadata,
 		delegateFactory,
-		factory.client,
+		factory.artifactStreamer,
 	)
 
 	loadVarStep = exec.LogError(loadVarStep, delegateFactory)

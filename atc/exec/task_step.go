@@ -87,6 +87,7 @@ type TaskStep struct {
 	containerMetadata db.ContainerMetadata
 	strategy          worker.ContainerPlacementStrategy
 	workerClient      worker.Client
+	artifactStreamer  worker.ArtifactStreamer
 	delegateFactory   TaskDelegateFactory
 	lockFactory       lock.LockFactory
 }
@@ -99,6 +100,7 @@ func NewTaskStep(
 	containerMetadata db.ContainerMetadata,
 	strategy worker.ContainerPlacementStrategy,
 	workerClient worker.Client,
+	artifactStreamer worker.ArtifactStreamer,
 	delegateFactory TaskDelegateFactory,
 	lockFactory lock.LockFactory,
 ) Step {
@@ -110,6 +112,7 @@ func NewTaskStep(
 		containerMetadata: containerMetadata,
 		strategy:          strategy,
 		workerClient:      workerClient,
+		artifactStreamer:  artifactStreamer,
 		delegateFactory:   delegateFactory,
 		lockFactory:       lockFactory,
 	}
@@ -154,7 +157,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	if step.plan.ConfigPath != "" {
 		// external task - construct a source which reads it from file, and apply base resource type defaults.
-		taskConfigSource = FileConfigSource{ConfigPath: step.plan.ConfigPath, Client: step.workerClient}
+		taskConfigSource = FileConfigSource{ConfigPath: step.plan.ConfigPath, Streamer: step.artifactStreamer}
 
 		// for interpolation - use 'vars' from the pipeline, and then fill remaining with cred variables.
 		// this 2-phase strategy allows to interpolate 'vars' by cred variables.

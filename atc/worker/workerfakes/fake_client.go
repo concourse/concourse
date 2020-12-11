@@ -3,7 +3,6 @@ package workerfakes
 
 import (
 	"context"
-	"io"
 	"sync"
 
 	"code.cloudfoundry.org/lager"
@@ -102,22 +101,6 @@ type FakeClient struct {
 	}
 	runTaskStepReturnsOnCall map[int]struct {
 		result1 worker.TaskResult
-		result2 error
-	}
-	StreamFileFromArtifactStub        func(context.Context, lager.Logger, runtime.Artifact, string) (io.ReadCloser, error)
-	streamFileFromArtifactMutex       sync.RWMutex
-	streamFileFromArtifactArgsForCall []struct {
-		arg1 context.Context
-		arg2 lager.Logger
-		arg3 runtime.Artifact
-		arg4 string
-	}
-	streamFileFromArtifactReturns struct {
-		result1 io.ReadCloser
-		result2 error
-	}
-	streamFileFromArtifactReturnsOnCall map[int]struct {
-		result1 io.ReadCloser
 		result2 error
 	}
 	invocations      map[string][][]interface{}
@@ -413,72 +396,6 @@ func (fake *FakeClient) RunTaskStepReturnsOnCall(i int, result1 worker.TaskResul
 	}{result1, result2}
 }
 
-func (fake *FakeClient) StreamFileFromArtifact(arg1 context.Context, arg2 lager.Logger, arg3 runtime.Artifact, arg4 string) (io.ReadCloser, error) {
-	fake.streamFileFromArtifactMutex.Lock()
-	ret, specificReturn := fake.streamFileFromArtifactReturnsOnCall[len(fake.streamFileFromArtifactArgsForCall)]
-	fake.streamFileFromArtifactArgsForCall = append(fake.streamFileFromArtifactArgsForCall, struct {
-		arg1 context.Context
-		arg2 lager.Logger
-		arg3 runtime.Artifact
-		arg4 string
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("StreamFileFromArtifact", []interface{}{arg1, arg2, arg3, arg4})
-	fake.streamFileFromArtifactMutex.Unlock()
-	if fake.StreamFileFromArtifactStub != nil {
-		return fake.StreamFileFromArtifactStub(arg1, arg2, arg3, arg4)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.streamFileFromArtifactReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeClient) StreamFileFromArtifactCallCount() int {
-	fake.streamFileFromArtifactMutex.RLock()
-	defer fake.streamFileFromArtifactMutex.RUnlock()
-	return len(fake.streamFileFromArtifactArgsForCall)
-}
-
-func (fake *FakeClient) StreamFileFromArtifactCalls(stub func(context.Context, lager.Logger, runtime.Artifact, string) (io.ReadCloser, error)) {
-	fake.streamFileFromArtifactMutex.Lock()
-	defer fake.streamFileFromArtifactMutex.Unlock()
-	fake.StreamFileFromArtifactStub = stub
-}
-
-func (fake *FakeClient) StreamFileFromArtifactArgsForCall(i int) (context.Context, lager.Logger, runtime.Artifact, string) {
-	fake.streamFileFromArtifactMutex.RLock()
-	defer fake.streamFileFromArtifactMutex.RUnlock()
-	argsForCall := fake.streamFileFromArtifactArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
-}
-
-func (fake *FakeClient) StreamFileFromArtifactReturns(result1 io.ReadCloser, result2 error) {
-	fake.streamFileFromArtifactMutex.Lock()
-	defer fake.streamFileFromArtifactMutex.Unlock()
-	fake.StreamFileFromArtifactStub = nil
-	fake.streamFileFromArtifactReturns = struct {
-		result1 io.ReadCloser
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeClient) StreamFileFromArtifactReturnsOnCall(i int, result1 io.ReadCloser, result2 error) {
-	fake.streamFileFromArtifactMutex.Lock()
-	defer fake.streamFileFromArtifactMutex.Unlock()
-	fake.StreamFileFromArtifactStub = nil
-	if fake.streamFileFromArtifactReturnsOnCall == nil {
-		fake.streamFileFromArtifactReturnsOnCall = make(map[int]struct {
-			result1 io.ReadCloser
-			result2 error
-		})
-	}
-	fake.streamFileFromArtifactReturnsOnCall[i] = struct {
-		result1 io.ReadCloser
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -490,8 +407,6 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.runPutStepMutex.RUnlock()
 	fake.runTaskStepMutex.RLock()
 	defer fake.runTaskStepMutex.RUnlock()
-	fake.streamFileFromArtifactMutex.RLock()
-	defer fake.streamFileFromArtifactMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

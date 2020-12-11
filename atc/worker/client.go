@@ -12,7 +12,6 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
-	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
@@ -29,13 +28,6 @@ const taskExitStatusPropertyName = "concourse:exit-status"
 //go:generate counterfeiter . Client
 
 type Client interface {
-	StreamFileFromArtifact(
-		ctx context.Context,
-		logger lager.Logger,
-		artifact runtime.Artifact,
-		filePath string,
-	) (io.ReadCloser, error)
-
 	RunCheckStep(
 		context.Context,
 		lager.Logger,
@@ -489,29 +481,6 @@ func (client *client) RunPutStep(
 		ExitStatus:    0,
 		VersionResult: vr,
 	}, nil
-}
-
-// TODO(worker-client-refactor): move this to worker.Pool
-func (client *client) StreamFileFromArtifact(
-	ctx context.Context,
-	logger lager.Logger,
-	artifact runtime.Artifact,
-	filePath string,
-) (io.ReadCloser, error) {
-	artifactVolume, found, err := client.pool.FindVolume(logger, 0, artifact.ID())
-	if err != nil {
-		return nil, err
-	}
-	if !found {
-		return nil, baggageclaim.ErrVolumeNotFound
-	}
-
-	source := artifactSource{
-		artifact:    artifact,
-		volume:      artifactVolume,
-		compression: client.compression,
-	}
-	return source.StreamFile(ctx, filePath)
 }
 
 func (client *client) chooseTaskWorker(
