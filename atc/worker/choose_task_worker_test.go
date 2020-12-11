@@ -36,7 +36,6 @@ var _ = Describe("RunTaskStep", func() {
 		fakePool            *workerfakes.FakePool
 		fakeTaskProcessSpec runtime.ProcessSpec
 		fakeLock            *lockfakes.FakeLock
-		fakeProvider        *workerfakes.FakeWorkerProvider
 		fakeCompression     *compressionfakes.FakeCompression
 		fakeContainerOwner  db.ContainerOwner
 		fakeContainerSpec   worker.ContainerSpec
@@ -54,7 +53,6 @@ var _ = Describe("RunTaskStep", func() {
 			ctx, _ = context.WithCancel(context.Background())
 
 			fakePool = new(workerfakes.FakePool)
-			fakeProvider = new(workerfakes.FakeWorkerProvider)
 			fakeCompression = new(compressionfakes.FakeCompression)
 			fakeContainerOwner = containerOwnerDummy()
 			fakeContainerSpec = workerContainerDummy()
@@ -77,7 +75,6 @@ var _ = Describe("RunTaskStep", func() {
 
 			subject = worker.NewClient(
 				fakePool,
-				fakeProvider,
 				fakeCompression,
 				workerInterval,
 				workerStatusInterval,

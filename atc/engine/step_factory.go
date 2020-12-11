@@ -214,12 +214,12 @@ func (factory *coreStepFactory) ArtifactInputStep(
 	plan atc.Plan,
 	build db.Build,
 ) exec.Step {
-	return exec.NewArtifactInputStep(plan, build, factory.client)
+	return exec.NewArtifactInputStep(plan, build, factory.pool)
 }
 
 func (factory *coreStepFactory) ArtifactOutputStep(
 	plan atc.Plan,
 	build db.Build,
 ) exec.Step {
-	return exec.NewArtifactOutputStep(plan, build, factory.client)
+	return exec.NewArtifactOutputStep(plan, build, factory.pool)
 }

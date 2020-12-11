@@ -21,16 +21,16 @@ func (e ArtifactNotFoundError) Error() string {
 }
 
 type ArtifactOutputStep struct {
-	plan         atc.Plan
-	build        db.Build
-	workerClient worker.Client
+	plan       atc.Plan
+	build      db.Build
+	workerPool worker.Pool
 }
 
-func NewArtifactOutputStep(plan atc.Plan, build db.Build, workerClient worker.Client) Step {
+func NewArtifactOutputStep(plan atc.Plan, build db.Build, workerPool worker.Pool) Step {
 	return &ArtifactOutputStep{
-		plan:         plan,
-		build:        build,
-		workerClient: workerClient,
+		plan:       plan,
+		build:      build,
+		workerPool: workerPool,
 	}
 }
 
@@ -48,7 +48,7 @@ func (step *ArtifactOutputStep) Run(ctx context.Context, state RunState) (bool, 
 
 	// TODO (Runtime/#3607): step shouldn't know about volumes,
 	//  	use the artifactRepo and artifact interface
-	volume, found, err := step.workerClient.FindVolume(logger, step.build.TeamID(), buildArtifact.ID())
+	volume, found, err := step.workerPool.FindVolume(logger, step.build.TeamID(), buildArtifact.ID())
 	if err != nil {
 		return false, err
 	}

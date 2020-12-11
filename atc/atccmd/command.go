@@ -749,10 +749,6 @@ func (cmd *RunCommand) constructAPIMembers(
 		return nil, err
 	}
 
-	// XXX(substeps): why is this unconditional?
-	// A: we're constructing API components and none of them use the streaming
-	// funcs which relies on a compression method.
-	compressionLib := compression.NewGzipCompression()
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
 		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
@@ -772,7 +768,6 @@ func (cmd *RunCommand) constructAPIMembers(
 	)
 
 	pool := worker.NewPool(workerProvider)
-	workerClient := worker.NewClient(pool, workerProvider, compressionLib, workerAvailabilityPollingInterval, workerStatusPublishInterval, cmd.FeatureFlags.EnableP2PVolumeStreaming, cmd.P2pVolumeStreamingTimeout)
 
 	credsManagers := cmd.CredentialManagers
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
@@ -825,7 +820,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		dbCheckFactory,
 		dbResourceConfigFactory,
 		userFactory,
-		workerClient,
+		pool,
 		secretManager,
 		credsManagers,
 		accessFactory,
@@ -1025,7 +1020,6 @@ func (cmd *RunCommand) backendComponents(
 
 	pool := worker.NewPool(workerProvider)
 	workerClient := worker.NewClient(pool,
-		workerProvider,
 		compressionLib,
 		workerAvailabilityPollingInterval,
 		workerStatusPublishInterval,
@@ -1815,7 +1809,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	dbCheckFactory db.CheckFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	dbUserFactory db.UserFactory,
-	workerClient worker.Client,
+	workerPool worker.Pool,
 	secretManager creds.Secrets,
 	credsManagers creds.Managers,
 	accessFactory accessor.AccessFactory,
@@ -1894,7 +1888,7 @@ func (cmd *RunCommand) constructAPIHandler(
 
 		buildserver.NewEventHandler,
 
-		workerClient,
+		workerPool,
 
 		reconfigurableSink,
 

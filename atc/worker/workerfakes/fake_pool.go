@@ -26,6 +26,39 @@ type FakePool struct {
 		result1 bool
 		result2 error
 	}
+	CreateVolumeStub        func(lager.Logger, worker.VolumeSpec, worker.WorkerSpec, db.VolumeType) (worker.Volume, error)
+	createVolumeMutex       sync.RWMutex
+	createVolumeArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 worker.VolumeSpec
+		arg3 worker.WorkerSpec
+		arg4 db.VolumeType
+	}
+	createVolumeReturns struct {
+		result1 worker.Volume
+		result2 error
+	}
+	createVolumeReturnsOnCall map[int]struct {
+		result1 worker.Volume
+		result2 error
+	}
+	FindContainerStub        func(lager.Logger, int, string) (worker.Container, bool, error)
+	findContainerMutex       sync.RWMutex
+	findContainerArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 int
+		arg3 string
+	}
+	findContainerReturns struct {
+		result1 worker.Container
+		result2 bool
+		result3 error
+	}
+	findContainerReturnsOnCall map[int]struct {
+		result1 worker.Container
+		result2 bool
+		result3 error
+	}
 	FindOrChooseWorkerStub        func(lager.Logger, worker.WorkerSpec) (worker.Worker, error)
 	findOrChooseWorkerMutex       sync.RWMutex
 	findOrChooseWorkerArgsForCall []struct {
@@ -57,6 +90,23 @@ type FakePool struct {
 	findOrChooseWorkerForContainerReturnsOnCall map[int]struct {
 		result1 worker.Worker
 		result2 error
+	}
+	FindVolumeStub        func(lager.Logger, int, string) (worker.Volume, bool, error)
+	findVolumeMutex       sync.RWMutex
+	findVolumeArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 int
+		arg3 string
+	}
+	findVolumeReturns struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}
+	findVolumeReturnsOnCall map[int]struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -125,6 +175,140 @@ func (fake *FakePool) ContainerInWorkerReturnsOnCall(i int, result1 bool, result
 		result1 bool
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakePool) CreateVolume(arg1 lager.Logger, arg2 worker.VolumeSpec, arg3 worker.WorkerSpec, arg4 db.VolumeType) (worker.Volume, error) {
+	fake.createVolumeMutex.Lock()
+	ret, specificReturn := fake.createVolumeReturnsOnCall[len(fake.createVolumeArgsForCall)]
+	fake.createVolumeArgsForCall = append(fake.createVolumeArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 worker.VolumeSpec
+		arg3 worker.WorkerSpec
+		arg4 db.VolumeType
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("CreateVolume", []interface{}{arg1, arg2, arg3, arg4})
+	fake.createVolumeMutex.Unlock()
+	if fake.CreateVolumeStub != nil {
+		return fake.CreateVolumeStub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.createVolumeReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakePool) CreateVolumeCallCount() int {
+	fake.createVolumeMutex.RLock()
+	defer fake.createVolumeMutex.RUnlock()
+	return len(fake.createVolumeArgsForCall)
+}
+
+func (fake *FakePool) CreateVolumeCalls(stub func(lager.Logger, worker.VolumeSpec, worker.WorkerSpec, db.VolumeType) (worker.Volume, error)) {
+	fake.createVolumeMutex.Lock()
+	defer fake.createVolumeMutex.Unlock()
+	fake.CreateVolumeStub = stub
+}
+
+func (fake *FakePool) CreateVolumeArgsForCall(i int) (lager.Logger, worker.VolumeSpec, worker.WorkerSpec, db.VolumeType) {
+	fake.createVolumeMutex.RLock()
+	defer fake.createVolumeMutex.RUnlock()
+	argsForCall := fake.createVolumeArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakePool) CreateVolumeReturns(result1 worker.Volume, result2 error) {
+	fake.createVolumeMutex.Lock()
+	defer fake.createVolumeMutex.Unlock()
+	fake.CreateVolumeStub = nil
+	fake.createVolumeReturns = struct {
+		result1 worker.Volume
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePool) CreateVolumeReturnsOnCall(i int, result1 worker.Volume, result2 error) {
+	fake.createVolumeMutex.Lock()
+	defer fake.createVolumeMutex.Unlock()
+	fake.CreateVolumeStub = nil
+	if fake.createVolumeReturnsOnCall == nil {
+		fake.createVolumeReturnsOnCall = make(map[int]struct {
+			result1 worker.Volume
+			result2 error
+		})
+	}
+	fake.createVolumeReturnsOnCall[i] = struct {
+		result1 worker.Volume
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePool) FindContainer(arg1 lager.Logger, arg2 int, arg3 string) (worker.Container, bool, error) {
+	fake.findContainerMutex.Lock()
+	ret, specificReturn := fake.findContainerReturnsOnCall[len(fake.findContainerArgsForCall)]
+	fake.findContainerArgsForCall = append(fake.findContainerArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 int
+		arg3 string
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("FindContainer", []interface{}{arg1, arg2, arg3})
+	fake.findContainerMutex.Unlock()
+	if fake.FindContainerStub != nil {
+		return fake.FindContainerStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.findContainerReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakePool) FindContainerCallCount() int {
+	fake.findContainerMutex.RLock()
+	defer fake.findContainerMutex.RUnlock()
+	return len(fake.findContainerArgsForCall)
+}
+
+func (fake *FakePool) FindContainerCalls(stub func(lager.Logger, int, string) (worker.Container, bool, error)) {
+	fake.findContainerMutex.Lock()
+	defer fake.findContainerMutex.Unlock()
+	fake.FindContainerStub = stub
+}
+
+func (fake *FakePool) FindContainerArgsForCall(i int) (lager.Logger, int, string) {
+	fake.findContainerMutex.RLock()
+	defer fake.findContainerMutex.RUnlock()
+	argsForCall := fake.findContainerArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakePool) FindContainerReturns(result1 worker.Container, result2 bool, result3 error) {
+	fake.findContainerMutex.Lock()
+	defer fake.findContainerMutex.Unlock()
+	fake.FindContainerStub = nil
+	fake.findContainerReturns = struct {
+		result1 worker.Container
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakePool) FindContainerReturnsOnCall(i int, result1 worker.Container, result2 bool, result3 error) {
+	fake.findContainerMutex.Lock()
+	defer fake.findContainerMutex.Unlock()
+	fake.FindContainerStub = nil
+	if fake.findContainerReturnsOnCall == nil {
+		fake.findContainerReturnsOnCall = make(map[int]struct {
+			result1 worker.Container
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findContainerReturnsOnCall[i] = struct {
+		result1 worker.Container
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakePool) FindOrChooseWorker(arg1 lager.Logger, arg2 worker.WorkerSpec) (worker.Worker, error) {
@@ -259,15 +443,89 @@ func (fake *FakePool) FindOrChooseWorkerForContainerReturnsOnCall(i int, result1
 	}{result1, result2}
 }
 
+func (fake *FakePool) FindVolume(arg1 lager.Logger, arg2 int, arg3 string) (worker.Volume, bool, error) {
+	fake.findVolumeMutex.Lock()
+	ret, specificReturn := fake.findVolumeReturnsOnCall[len(fake.findVolumeArgsForCall)]
+	fake.findVolumeArgsForCall = append(fake.findVolumeArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 int
+		arg3 string
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("FindVolume", []interface{}{arg1, arg2, arg3})
+	fake.findVolumeMutex.Unlock()
+	if fake.FindVolumeStub != nil {
+		return fake.FindVolumeStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	fakeReturns := fake.findVolumeReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *FakePool) FindVolumeCallCount() int {
+	fake.findVolumeMutex.RLock()
+	defer fake.findVolumeMutex.RUnlock()
+	return len(fake.findVolumeArgsForCall)
+}
+
+func (fake *FakePool) FindVolumeCalls(stub func(lager.Logger, int, string) (worker.Volume, bool, error)) {
+	fake.findVolumeMutex.Lock()
+	defer fake.findVolumeMutex.Unlock()
+	fake.FindVolumeStub = stub
+}
+
+func (fake *FakePool) FindVolumeArgsForCall(i int) (lager.Logger, int, string) {
+	fake.findVolumeMutex.RLock()
+	defer fake.findVolumeMutex.RUnlock()
+	argsForCall := fake.findVolumeArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakePool) FindVolumeReturns(result1 worker.Volume, result2 bool, result3 error) {
+	fake.findVolumeMutex.Lock()
+	defer fake.findVolumeMutex.Unlock()
+	fake.FindVolumeStub = nil
+	fake.findVolumeReturns = struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *FakePool) FindVolumeReturnsOnCall(i int, result1 worker.Volume, result2 bool, result3 error) {
+	fake.findVolumeMutex.Lock()
+	defer fake.findVolumeMutex.Unlock()
+	fake.FindVolumeStub = nil
+	if fake.findVolumeReturnsOnCall == nil {
+		fake.findVolumeReturnsOnCall = make(map[int]struct {
+			result1 worker.Volume
+			result2 bool
+			result3 error
+		})
+	}
+	fake.findVolumeReturnsOnCall[i] = struct {
+		result1 worker.Volume
+		result2 bool
+		result3 error
+	}{result1, result2, result3}
+}
+
 func (fake *FakePool) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.containerInWorkerMutex.RLock()
 	defer fake.containerInWorkerMutex.RUnlock()
+	fake.createVolumeMutex.RLock()
+	defer fake.createVolumeMutex.RUnlock()
+	fake.findContainerMutex.RLock()
+	defer fake.findContainerMutex.RUnlock()
 	fake.findOrChooseWorkerMutex.RLock()
 	defer fake.findOrChooseWorkerMutex.RUnlock()
 	fake.findOrChooseWorkerForContainerMutex.RLock()
 	defer fake.findOrChooseWorkerForContainerMutex.RUnlock()
+	fake.findVolumeMutex.RLock()
+	defer fake.findVolumeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -36,7 +36,7 @@ func (s *Server) GetArtifact(team db.Team) http.Handler {
 			return
 		}
 
-		workerVolume, found, err := s.workerClient.FindVolume(logger, team.ID(), artifactVolume.Handle())
+		workerVolume, found, err := s.workerPool.FindVolume(logger, team.ID(), artifactVolume.Handle())
 		if err != nil {
 			logger.Error("failed-to-get-worker-volume", err)
 			w.WriteHeader(http.StatusInternalServerError)

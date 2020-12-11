@@ -57,17 +57,12 @@ func (err NoCompatibleWorkersError) Error() string {
 //go:generate counterfeiter . Pool
 
 type Pool interface {
-	FindOrChooseWorker(
-		lager.Logger,
-		WorkerSpec,
-	) (Worker, error)
+	FindContainer(lager.Logger, int, string) (Container, bool, error)
+	FindVolume(lager.Logger, int, string) (Volume, bool, error)
+	CreateVolume(lager.Logger, VolumeSpec, WorkerSpec, db.VolumeType) (Volume, error)
 
-	ContainerInWorker(
-		lager.Logger,
-		db.ContainerOwner,
-		WorkerSpec,
-	) (bool, error)
-
+	FindOrChooseWorker(lager.Logger, WorkerSpec) (Worker, error)
+	ContainerInWorker(lager.Logger, db.ContainerOwner, WorkerSpec) (bool, error)
 	FindOrChooseWorkerForContainer(
 		context.Context,
 		lager.Logger,
@@ -126,6 +121,49 @@ func (pool *pool) allSatisfying(logger lager.Logger, spec WorkerSpec) ([]Worker,
 	return nil, NoCompatibleWorkersError{
 		Spec: spec,
 	}
+}
+
+func (pool *pool) FindContainer(logger lager.Logger, teamID int, handle string) (Container, bool, error) {
+	worker, found, err := pool.provider.FindWorkerForContainer(
+		logger.Session("find-worker"),
+		teamID,
+		handle,
+	)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return worker.FindContainerByHandle(logger, teamID, handle)
+}
+
+func (pool *pool) FindVolume(logger lager.Logger, teamID int, handle string) (Volume, bool, error) {
+	worker, found, err := pool.provider.FindWorkerForVolume(
+		logger.Session("find-worker"),
+		teamID,
+		handle,
+	)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if !found {
+		return nil, false, nil
+	}
+
+	return worker.LookupVolume(logger, handle)
+}
+
+func (pool *pool) CreateVolume(logger lager.Logger, volumeSpec VolumeSpec, workerSpec WorkerSpec, volumeType db.VolumeType) (Volume, error) {
+	worker, err := pool.FindOrChooseWorker(logger, workerSpec)
+	if err != nil {
+		return nil, err
+	}
+
+	return worker.CreateVolume(logger, volumeSpec, workerSpec.TeamID, volumeType)
 }
 
 func (pool *pool) ContainerInWorker(logger lager.Logger, owner db.ContainerOwner, workerSpec WorkerSpec) (bool, error) {
