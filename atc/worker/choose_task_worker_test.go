@@ -34,6 +34,7 @@ var _ = Describe("RunTaskStep", func() {
 
 		fakeWorker          *workerfakes.FakeWorker
 		fakePool            *workerfakes.FakePool
+		fakeVolumeFinder    *workerfakes.FakeVolumeFinder
 		fakeTaskProcessSpec runtime.ProcessSpec
 		fakeLock            *lockfakes.FakeLock
 		fakeCompression     *compressionfakes.FakeCompression
@@ -53,6 +54,7 @@ var _ = Describe("RunTaskStep", func() {
 			ctx, _ = context.WithCancel(context.Background())
 
 			fakePool = new(workerfakes.FakePool)
+			fakeVolumeFinder = new(workerfakes.FakeVolumeFinder)
 			fakeCompression = new(compressionfakes.FakeCompression)
 			fakeContainerOwner = containerOwnerDummy()
 			fakeContainerSpec = workerContainerDummy()
@@ -79,7 +81,8 @@ var _ = Describe("RunTaskStep", func() {
 				workerInterval,
 				workerStatusInterval,
 				false,
-				15*time.Minute)
+				15*time.Minute,
+			)
 		})
 
 		Context("worker is available", func() {
@@ -98,7 +101,9 @@ var _ = Describe("RunTaskStep", func() {
 					fakeMetadata,
 					fakeTaskProcessSpec,
 					fakeEventDelegate,
-					fakeLockFactory)
+					fakeLockFactory,
+					fakeVolumeFinder,
+				)
 			})
 
 			It("returns result of container process", func() {
@@ -147,7 +152,9 @@ var _ = Describe("RunTaskStep", func() {
 					fakeMetadata,
 					fakeTaskProcessSpec,
 					fakeEventDelegate,
-					fakeLockFactory)
+					fakeLockFactory,
+					fakeVolumeFinder,
+				)
 			})
 
 			It("returns result of container process", func() {

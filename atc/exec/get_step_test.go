@@ -36,6 +36,7 @@ var _ = Describe("GetStep", func() {
 		stderrBuf *gbytes.Buffer
 
 		fakeClient   *workerfakes.FakeClient
+		fakePool     *workerfakes.FakePool
 		fakeWorker   *workerfakes.FakeWorker
 		fakeStrategy *workerfakes.FakeContainerPlacementStrategy
 
@@ -81,6 +82,7 @@ var _ = Describe("GetStep", func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
 		fakeClient = new(workerfakes.FakeClient)
+		fakePool = new(workerfakes.FakePool)
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeWorker.NameReturns("some-worker")
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
@@ -161,14 +163,31 @@ var _ = Describe("GetStep", func() {
 			fakeStrategy,
 			fakeDelegateFactory,
 			fakeClient,
+			fakePool,
 		)
 
 		stepOk, stepErr = getStep.Run(ctx, fakeState)
 	})
 
+	var runCtx context.Context
+	var owner db.ContainerOwner
+	var containerSpec worker.ContainerSpec
+	var workerSpec worker.WorkerSpec
+	var strategy worker.ContainerPlacementStrategy
+	var metadata db.ContainerMetadata
+	var processSpec runtime.ProcessSpec
+	var startEventDelegate runtime.StartingEventDelegate
+	var resourceCache db.UsedResourceCache
+	var runResource resource.Resource
+	var volumeFinder worker.VolumeFinder
+
+	JustBeforeEach(func() {
+		Expect(fakeClient.RunGetStepCallCount()).To(Equal(1), "get step should have run")
+		runCtx, _, owner, containerSpec, workerSpec, strategy, metadata, processSpec, startEventDelegate, resourceCache, runResource, volumeFinder = fakeClient.RunGetStepArgsForCall(0)
+	})
+
 	It("propagates span context to the worker client", func() {
-		actualCtx, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-		Expect(actualCtx).To(Equal(spanCtx))
+		Expect(runCtx).To(Equal(spanCtx))
 	})
 
 	It("constructs the resource cache correctly", func() {
@@ -217,20 +236,16 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("propagates span context to the worker client", func() {
-			actualCtx, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-			Expect(actualCtx).To(Equal(spanCtx))
+			Expect(runCtx).To(Equal(spanCtx))
 		})
 
 		It("populates the TRACEPARENT env var", func() {
-			_, _, _, actualContainerSpec, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-
-			Expect(actualContainerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
+			Expect(containerSpec.Env).To(ContainElement(MatchRegexp(`TRACEPARENT=.+`)))
 		})
 	})
 
 	It("calls RunGetStep with the correct ContainerOwner", func() {
-		_, _, actualContainerOwner, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-		Expect(actualContainerOwner).To(Equal(db.NewBuildStepContainerOwner(
+		Expect(owner).To(Equal(db.NewBuildStepContainerOwner(
 			stepMetadata.BuildID,
 			atc.PlanID(planID),
 			stepMetadata.TeamID,
@@ -238,8 +253,7 @@ var _ = Describe("GetStep", func() {
 	})
 
 	It("calls RunGetStep with the correct ContainerSpec", func() {
-		_, _, _, actualContainerSpec, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-		Expect(actualContainerSpec).To(Equal(
+		Expect(containerSpec).To(Equal(
 			worker.ContainerSpec{
 				ImageSpec: worker.ImageSpec{
 					ResourceType: "some-base-type",
@@ -251,8 +265,7 @@ var _ = Describe("GetStep", func() {
 	})
 
 	It("calls RunGetStep with the correct WorkerSpec", func() {
-		_, _, _, _, actualWorkerSpec, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-		Expect(actualWorkerSpec).To(Equal(
+		Expect(workerSpec).To(Equal(
 			worker.WorkerSpec{
 				ResourceType: "some-base-type",
 				TeamID:       stepMetadata.TeamID,
@@ -266,8 +279,7 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("sets them in the WorkerSpec", func() {
-			_, _, _, _, actualWorkerSpec, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-			Expect(actualWorkerSpec.Tags).To(Equal([]string{"some", "tags"}))
+			Expect(workerSpec.Tags).To(Equal([]string{"some", "tags"}))
 		})
 	})
 
@@ -403,8 +415,7 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("sets the bottom-most type in the worker spec", func() {
-			_, _, _, _, actualWorkerSpec, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-			Expect(actualWorkerSpec).To(Equal(
+			Expect(workerSpec).To(Equal(
 				worker.WorkerSpec{
 					TeamID:       stepMetadata.TeamID,
 					ResourceType: "registry-image",
@@ -413,7 +424,6 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("calls RunGetStep with the correct ImageSpec", func() {
-			_, _, _, containerSpec, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
 			Expect(containerSpec.ImageSpec).To(Equal(fakeImageSpec))
 		})
 
@@ -431,13 +441,11 @@ var _ = Describe("GetStep", func() {
 	})
 
 	It("calls RunGetStep with the correct ContainerPlacementStrategy", func() {
-		_, _, _, _, _, actualStrategy, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-		Expect(actualStrategy).To(Equal(fakeStrategy))
+		Expect(strategy).To(Equal(fakeStrategy))
 	})
 
 	It("calls RunGetStep with the correct ContainerMetadata", func() {
-		_, _, _, _, _, _, actualContainerMetadata, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-		Expect(actualContainerMetadata).To(Equal(
+		Expect(metadata).To(Equal(
 			db.ContainerMetadata{
 				PipelineID:       4567,
 				Type:             db.ContainerTypeGet,
@@ -448,13 +456,11 @@ var _ = Describe("GetStep", func() {
 	})
 
 	It("calls RunGetStep with the correct StartingEventDelegate", func() {
-		_, _, _, _, _, _, _, _, actualEventDelegate, _, _ := fakeClient.RunGetStepArgsForCall(0)
-		Expect(actualEventDelegate).To(Equal(fakeDelegate))
+		Expect(startEventDelegate).To(Equal(fakeDelegate))
 	})
 
 	It("calls RunGetStep with the correct ProcessSpec", func() {
-		_, _, _, _, _, _, _, actualProcessSpec, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-		Expect(actualProcessSpec).To(Equal(
+		Expect(processSpec).To(Equal(
 			runtime.ProcessSpec{
 				Path:         "/opt/resource/in",
 				Args:         []string{resource.ResourcesDir("get")},
@@ -465,13 +471,15 @@ var _ = Describe("GetStep", func() {
 	})
 
 	It("calls RunGetStep with the correct ResourceCache", func() {
-		_, _, _, _, _, _, _, _, _, actualResourceCache, _ := fakeClient.RunGetStepArgsForCall(0)
-		Expect(actualResourceCache).To(Equal(fakeResourceCache))
+		Expect(resourceCache).To(Equal(fakeResourceCache))
 	})
 
 	It("calls RunGetStep with the correct Resource", func() {
-		_, _, _, _, _, _, _, _, _, _, actualResource := fakeClient.RunGetStepArgsForCall(0)
-		Expect(actualResource).To(Equal(fakeResource))
+		Expect(runResource).To(Equal(fakeResource))
+	})
+
+	It("calls RunGetStep with the correct VolumeFinder", func() {
+		Expect(volumeFinder).To(Equal(fakePool))
 	})
 
 	Context("when Client.RunGetStep returns an err", func() {

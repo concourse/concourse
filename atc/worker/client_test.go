@@ -32,18 +32,20 @@ import (
 
 var _ = Describe("Client", func() {
 	var (
-		logger          *lagertest.TestLogger
-		fakePool        *workerfakes.FakePool
-		client          worker.Client
-		fakeLock        *lockfakes.FakeLock
-		fakeLockFactory *lockfakes.FakeLockFactory
-		fakeCompression *compressionfakes.FakeCompression
+		logger           *lagertest.TestLogger
+		fakePool         *workerfakes.FakePool
+		client           worker.Client
+		fakeLock         *lockfakes.FakeLock
+		fakeLockFactory  *lockfakes.FakeLockFactory
+		fakeCompression  *compressionfakes.FakeCompression
+		fakeVolumeFinder *workerfakes.FakeVolumeFinder
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 		fakePool = new(workerfakes.FakePool)
 		fakeCompression = new(compressionfakes.FakeCompression)
+		fakeVolumeFinder = new(workerfakes.FakeVolumeFinder)
 		workerPolling := 1 * time.Second
 		workerStatus := 2 * time.Second
 
@@ -100,6 +102,7 @@ var _ = Describe("Client", func() {
 				fakeProcessSpec,
 				fakeEventDelegate,
 				fakeResource,
+				fakeVolumeFinder,
 			)
 		})
 
@@ -137,7 +140,7 @@ var _ = Describe("Client", func() {
 					}
 
 					fakeVolume = new(workerfakes.FakeVolume)
-					fakePool.FindVolumeReturns(fakeVolume, true, nil)
+					fakeVolumeFinder.FindVolumeReturns(fakeVolume, true, nil)
 				})
 
 				It("locates the volume and assigns it as an ImageArtifactSource", func() {
@@ -299,6 +302,7 @@ var _ = Describe("Client", func() {
 				fakeEventDelegate,
 				fakeUsedResourceCache,
 				fakeResource,
+				fakeVolumeFinder,
 			)
 		})
 
@@ -354,7 +358,7 @@ var _ = Describe("Client", func() {
 					}
 
 					fakeVolume = new(workerfakes.FakeVolume)
-					fakePool.FindVolumeReturns(fakeVolume, true, nil)
+					fakeVolumeFinder.FindVolumeReturns(fakeVolume, true, nil)
 				})
 
 				It("locates the volume and assigns it as an ImageArtifactSource", func() {
@@ -511,6 +515,7 @@ var _ = Describe("Client", func() {
 				fakeTaskProcessSpec,
 				fakeEventDelegate,
 				fakeLockFactory,
+				fakeVolumeFinder,
 			)
 			status = taskResult.ExitStatus
 			volumeMounts = taskResult.VolumeMounts
@@ -637,7 +642,7 @@ var _ = Describe("Client", func() {
 				}
 
 				fakeVolume = new(workerfakes.FakeVolume)
-				fakePool.FindVolumeReturns(fakeVolume, true, nil)
+				fakeVolumeFinder.FindVolumeReturns(fakeVolume, true, nil)
 			})
 
 			It("locates the volume and assigns it as an ImageArtifactSource", func() {
@@ -1272,6 +1277,7 @@ var _ = Describe("Client", func() {
 				fakeProcessSpec,
 				fakeEventDelegate,
 				fakeResource,
+				fakeVolumeFinder,
 			)
 			versionResult = result.VersionResult
 			status = result.ExitStatus
@@ -1318,7 +1324,7 @@ var _ = Describe("Client", func() {
 					}
 
 					fakeVolume = new(workerfakes.FakeVolume)
-					fakePool.FindVolumeReturns(fakeVolume, true, nil)
+					fakeVolumeFinder.FindVolumeReturns(fakeVolume, true, nil)
 				})
 
 				It("locates the volume and assigns it as an ImageArtifactSource", func() {

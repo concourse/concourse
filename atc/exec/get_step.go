@@ -71,6 +71,7 @@ type GetStep struct {
 	resourceCacheFactory db.ResourceCacheFactory
 	strategy             worker.ContainerPlacementStrategy
 	workerClient         worker.Client
+	workerPool           worker.Pool
 	delegateFactory      GetDelegateFactory
 }
 
@@ -84,6 +85,7 @@ func NewGetStep(
 	strategy worker.ContainerPlacementStrategy,
 	delegateFactory GetDelegateFactory,
 	client worker.Client,
+	pool worker.Pool,
 ) Step {
 	return &GetStep{
 		planID:               planID,
@@ -95,6 +97,7 @@ func NewGetStep(
 		strategy:             strategy,
 		delegateFactory:      delegateFactory,
 		workerClient:         client,
+		workerPool:           pool,
 	}
 }
 
@@ -225,6 +228,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		delegate,
 		resourceCache,
 		resourceToGet,
+		step.workerPool,
 	)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {

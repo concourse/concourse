@@ -29,7 +29,7 @@ func (err NoCompatibleWorkersError) Error() string {
 
 type Pool interface {
 	FindContainer(lager.Logger, int, string) (Container, bool, error)
-	FindVolume(lager.Logger, int, string) (Volume, bool, error)
+	VolumeFinder
 	CreateVolume(lager.Logger, VolumeSpec, WorkerSpec, db.VolumeType) (Volume, error)
 
 	FindOrChooseWorker(lager.Logger, WorkerSpec) (Worker, error)
@@ -42,6 +42,12 @@ type Pool interface {
 		WorkerSpec,
 		ContainerPlacementStrategy,
 	) (Worker, error)
+}
+
+//go:generate counterfeiter . VolumeFinder
+
+type VolumeFinder interface {
+	FindVolume(lager.Logger, int, string) (Volume, bool, error)
 }
 
 type pool struct {

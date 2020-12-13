@@ -76,6 +76,7 @@ func (factory *coreStepFactory) GetStep(
 		factory.strategy,
 		delegateFactory,
 		factory.client,
+		factory.pool,
 	)
 
 	getStep = exec.LogError(getStep, delegateFactory)
@@ -102,6 +103,7 @@ func (factory *coreStepFactory) PutStep(
 		factory.resourceConfigFactory,
 		factory.strategy,
 		factory.client,
+		factory.pool,
 		delegateFactory,
 	)
 
@@ -158,6 +160,7 @@ func (factory *coreStepFactory) TaskStep(
 		containerMetadata,
 		factory.strategy,
 		factory.client,
+		factory.pool,
 		factory.artifactStreamer,
 		delegateFactory,
 		factory.lockFactory,

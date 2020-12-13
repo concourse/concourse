@@ -30,6 +30,7 @@ type CheckStep struct {
 	pool                  worker.Pool
 	delegateFactory       CheckDelegateFactory
 	workerClient          worker.Client
+	workerPool            worker.Pool
 	defaultCheckTimeout   time.Duration
 }
 
@@ -316,6 +317,7 @@ func (step *CheckStep) runCheck(
 		processSpec,
 		delegate,
 		checkable,
+		step.pool,
 	)
 }
 
