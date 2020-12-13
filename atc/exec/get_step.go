@@ -217,8 +217,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	defer cancel()
 
 	getResult, err := step.workerClient.RunGetStep(
-		processCtx,
-		logger,
+		lagerctx.NewContext(processCtx, logger),
 		containerOwner,
 		containerSpec,
 		workerSpec,

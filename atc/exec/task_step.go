@@ -259,8 +259,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	}
 
 	result, runErr := step.workerClient.RunTaskStep(
-		processCtx,
-		logger,
+		lagerctx.NewContext(processCtx, logger),
 		owner,
 		containerSpec,
 		step.workerSpec(config),

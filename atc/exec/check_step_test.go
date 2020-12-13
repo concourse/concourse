@@ -265,7 +265,7 @@ var _ = Describe("CheckStep", func() {
 
 				JustBeforeEach(func() {
 					Expect(fakeClient.RunCheckStepCallCount()).To(Equal(1), "check step should have run")
-					runCtx, _, owner, containerSpec, workerSpec, strategy, metadata, processSpec, startEventDelegate, resource, volumeFinder = fakeClient.RunCheckStepArgsForCall(0)
+					runCtx, owner, containerSpec, workerSpec, strategy, metadata, processSpec, startEventDelegate, resource, volumeFinder = fakeClient.RunCheckStepArgsForCall(0)
 				})
 
 				It("uses ResourceConfigCheckSessionOwner", func() {
@@ -380,7 +380,7 @@ var _ = Describe("CheckStep", func() {
 						})
 
 						It("propagates span context to the worker client", func() {
-							Expect(runCtx).To(Equal(spanCtx))
+							Expect(runCtx).To(Equal(rewrapLogger(spanCtx)))
 						})
 
 						It("populates the TRACEPARENT env var", func() {

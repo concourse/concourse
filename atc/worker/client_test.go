@@ -21,7 +21,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/onsi/gomega/gbytes"
 
-	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
@@ -32,7 +31,6 @@ import (
 
 var _ = Describe("Client", func() {
 	var (
-		logger           *lagertest.TestLogger
 		fakePool         *workerfakes.FakePool
 		client           worker.Client
 		fakeLock         *lockfakes.FakeLock
@@ -42,7 +40,6 @@ var _ = Describe("Client", func() {
 	)
 
 	BeforeEach(func() {
-		logger = lagertest.NewTestLogger("test")
 		fakePool = new(workerfakes.FakePool)
 		fakeCompression = new(compressionfakes.FakeCompression)
 		fakeVolumeFinder = new(workerfakes.FakeVolumeFinder)
@@ -93,7 +90,6 @@ var _ = Describe("Client", func() {
 
 			result, err = client.RunCheckStep(
 				context.Background(),
-				logger,
 				owner,
 				containerSpec,
 				workerSpec,
@@ -292,7 +288,6 @@ var _ = Describe("Client", func() {
 		JustBeforeEach(func() {
 			result, err = client.RunGetStep(
 				ctx,
-				logger,
 				owner,
 				containerSpec,
 				workerSpec,
@@ -506,7 +501,6 @@ var _ = Describe("Client", func() {
 		JustBeforeEach(func() {
 			taskResult, err = client.RunTaskStep(
 				ctx,
-				logger,
 				fakeContainerOwner,
 				fakeContainerSpec,
 				fakeWorkerSpec,
@@ -1268,7 +1262,6 @@ var _ = Describe("Client", func() {
 		JustBeforeEach(func() {
 			result, err = client.RunPutStep(
 				ctx,
-				logger,
 				owner,
 				containerSpec,
 				workerSpec,

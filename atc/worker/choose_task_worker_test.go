@@ -8,8 +8,6 @@ import (
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc/metric"
 
-	"code.cloudfoundry.org/lager/lagertest"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/compression/compressionfakes"
 	"github.com/concourse/concourse/atc/db"
@@ -49,7 +47,6 @@ var _ = Describe("RunTaskStep", func() {
 
 	Context("assign task when", func() {
 		BeforeEach(func() {
-			logger = lagertest.NewTestLogger("test")
 			outputBuffer = new(bytes.Buffer)
 			ctx, _ = context.WithCancel(context.Background())
 
@@ -93,7 +90,6 @@ var _ = Describe("RunTaskStep", func() {
 
 			JustBeforeEach(func() {
 				taskResult, err = subject.RunTaskStep(ctx,
-					logger,
 					fakeContainerOwner,
 					fakeContainerSpec,
 					fakeWorkerSpec,
@@ -144,7 +140,6 @@ var _ = Describe("RunTaskStep", func() {
 
 			JustBeforeEach(func() {
 				taskResult, err = subject.RunTaskStep(ctx,
-					logger,
 					fakeContainerOwner,
 					fakeContainerSpec,
 					fakeWorkerSpec,

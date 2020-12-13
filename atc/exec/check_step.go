@@ -307,8 +307,7 @@ func (step *CheckStep) runCheck(
 	defer cancel()
 
 	return step.workerClient.RunCheckStep(
-		processCtx,
-		logger,
+		lagerctx.NewContext(processCtx, logger),
 		step.containerOwner(resourceConfig),
 		containerSpec,
 		workerSpec,

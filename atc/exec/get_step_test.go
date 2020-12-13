@@ -183,11 +183,11 @@ var _ = Describe("GetStep", func() {
 
 	JustBeforeEach(func() {
 		Expect(fakeClient.RunGetStepCallCount()).To(Equal(1), "get step should have run")
-		runCtx, _, owner, containerSpec, workerSpec, strategy, metadata, processSpec, startEventDelegate, resourceCache, runResource, volumeFinder = fakeClient.RunGetStepArgsForCall(0)
+		runCtx, owner, containerSpec, workerSpec, strategy, metadata, processSpec, startEventDelegate, resourceCache, runResource, volumeFinder = fakeClient.RunGetStepArgsForCall(0)
 	})
 
 	It("propagates span context to the worker client", func() {
-		Expect(runCtx).To(Equal(spanCtx))
+		Expect(runCtx).To(Equal(rewrapLogger(spanCtx)))
 	})
 
 	It("constructs the resource cache correctly", func() {
@@ -236,7 +236,7 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("propagates span context to the worker client", func() {
-			Expect(runCtx).To(Equal(spanCtx))
+			Expect(runCtx).To(Equal(rewrapLogger(spanCtx)))
 		})
 
 		It("populates the TRACEPARENT env var", func() {

@@ -12,6 +12,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
@@ -30,7 +31,6 @@ const taskExitStatusPropertyName = "concourse:exit-status"
 type Client interface {
 	RunCheckStep(
 		context.Context,
-		lager.Logger,
 		db.ContainerOwner,
 		ContainerSpec,
 		WorkerSpec,
@@ -44,7 +44,6 @@ type Client interface {
 
 	RunTaskStep(
 		context.Context,
-		lager.Logger,
 		db.ContainerOwner,
 		ContainerSpec,
 		WorkerSpec,
@@ -58,7 +57,6 @@ type Client interface {
 
 	RunPutStep(
 		context.Context,
-		lager.Logger,
 		db.ContainerOwner,
 		ContainerSpec,
 		WorkerSpec,
@@ -72,7 +70,6 @@ type Client interface {
 
 	RunGetStep(
 		context.Context,
-		lager.Logger,
 		db.ContainerOwner,
 		ContainerSpec,
 		WorkerSpec,
@@ -139,7 +136,6 @@ type processStatus struct {
 
 func (client *client) RunCheckStep(
 	ctx context.Context,
-	logger lager.Logger,
 	owner db.ContainerOwner,
 	containerSpec ContainerSpec,
 	workerSpec WorkerSpec,
@@ -150,6 +146,7 @@ func (client *client) RunCheckStep(
 	checkable resource.Resource,
 	volumeFinder VolumeFinder,
 ) (CheckResult, error) {
+	logger := lagerctx.FromContext(ctx)
 	if containerSpec.ImageSpec.ImageArtifact != nil {
 		err := client.wireImageVolume(logger, &containerSpec.ImageSpec, volumeFinder)
 		if err != nil {
@@ -194,7 +191,6 @@ func (client *client) RunCheckStep(
 
 func (client *client) RunTaskStep(
 	ctx context.Context,
-	logger lager.Logger,
 	owner db.ContainerOwner,
 	containerSpec ContainerSpec,
 	workerSpec WorkerSpec,
@@ -205,6 +201,7 @@ func (client *client) RunTaskStep(
 	lockFactory lock.LockFactory,
 	volumeFinder VolumeFinder,
 ) (TaskResult, error) {
+	logger := lagerctx.FromContext(ctx)
 	err := client.wireInputsAndCaches(logger, &containerSpec, volumeFinder)
 	if err != nil {
 		return TaskResult{}, err
@@ -347,7 +344,6 @@ func (client *client) RunTaskStep(
 
 func (client *client) RunGetStep(
 	ctx context.Context,
-	logger lager.Logger,
 	owner db.ContainerOwner,
 	containerSpec ContainerSpec,
 	workerSpec WorkerSpec,
@@ -359,6 +355,7 @@ func (client *client) RunGetStep(
 	resource resource.Resource,
 	volumeFinder VolumeFinder,
 ) (GetResult, error) {
+	logger := lagerctx.FromContext(ctx)
 	if containerSpec.ImageSpec.ImageArtifact != nil {
 		err := client.wireImageVolume(logger, &containerSpec.ImageSpec, volumeFinder)
 		if err != nil {
@@ -407,7 +404,6 @@ func (client *client) RunGetStep(
 
 func (client *client) RunPutStep(
 	ctx context.Context,
-	logger lager.Logger,
 	owner db.ContainerOwner,
 	containerSpec ContainerSpec,
 	workerSpec WorkerSpec,
@@ -418,6 +414,7 @@ func (client *client) RunPutStep(
 	resource resource.Resource,
 	volumeFinder VolumeFinder,
 ) (PutResult, error) {
+	logger := lagerctx.FromContext(ctx)
 	if containerSpec.ImageSpec.ImageArtifact != nil {
 		err := client.wireImageVolume(logger, &containerSpec.ImageSpec, volumeFinder)
 		if err != nil {
