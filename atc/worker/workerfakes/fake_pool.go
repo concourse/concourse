@@ -59,20 +59,6 @@ type FakePool struct {
 		result2 bool
 		result3 error
 	}
-	FindOrChooseWorkerStub        func(lager.Logger, worker.WorkerSpec) (worker.Worker, error)
-	findOrChooseWorkerMutex       sync.RWMutex
-	findOrChooseWorkerArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 worker.WorkerSpec
-	}
-	findOrChooseWorkerReturns struct {
-		result1 worker.Worker
-		result2 error
-	}
-	findOrChooseWorkerReturnsOnCall map[int]struct {
-		result1 worker.Worker
-		result2 error
-	}
 	FindOrChooseWorkerForContainerStub        func(context.Context, lager.Logger, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy) (worker.Worker, error)
 	findOrChooseWorkerForContainerMutex       sync.RWMutex
 	findOrChooseWorkerForContainerArgsForCall []struct {
@@ -311,70 +297,6 @@ func (fake *FakePool) FindContainerReturnsOnCall(i int, result1 worker.Container
 	}{result1, result2, result3}
 }
 
-func (fake *FakePool) FindOrChooseWorker(arg1 lager.Logger, arg2 worker.WorkerSpec) (worker.Worker, error) {
-	fake.findOrChooseWorkerMutex.Lock()
-	ret, specificReturn := fake.findOrChooseWorkerReturnsOnCall[len(fake.findOrChooseWorkerArgsForCall)]
-	fake.findOrChooseWorkerArgsForCall = append(fake.findOrChooseWorkerArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 worker.WorkerSpec
-	}{arg1, arg2})
-	fake.recordInvocation("FindOrChooseWorker", []interface{}{arg1, arg2})
-	fake.findOrChooseWorkerMutex.Unlock()
-	if fake.FindOrChooseWorkerStub != nil {
-		return fake.FindOrChooseWorkerStub(arg1, arg2)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.findOrChooseWorkerReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakePool) FindOrChooseWorkerCallCount() int {
-	fake.findOrChooseWorkerMutex.RLock()
-	defer fake.findOrChooseWorkerMutex.RUnlock()
-	return len(fake.findOrChooseWorkerArgsForCall)
-}
-
-func (fake *FakePool) FindOrChooseWorkerCalls(stub func(lager.Logger, worker.WorkerSpec) (worker.Worker, error)) {
-	fake.findOrChooseWorkerMutex.Lock()
-	defer fake.findOrChooseWorkerMutex.Unlock()
-	fake.FindOrChooseWorkerStub = stub
-}
-
-func (fake *FakePool) FindOrChooseWorkerArgsForCall(i int) (lager.Logger, worker.WorkerSpec) {
-	fake.findOrChooseWorkerMutex.RLock()
-	defer fake.findOrChooseWorkerMutex.RUnlock()
-	argsForCall := fake.findOrChooseWorkerArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
-}
-
-func (fake *FakePool) FindOrChooseWorkerReturns(result1 worker.Worker, result2 error) {
-	fake.findOrChooseWorkerMutex.Lock()
-	defer fake.findOrChooseWorkerMutex.Unlock()
-	fake.FindOrChooseWorkerStub = nil
-	fake.findOrChooseWorkerReturns = struct {
-		result1 worker.Worker
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakePool) FindOrChooseWorkerReturnsOnCall(i int, result1 worker.Worker, result2 error) {
-	fake.findOrChooseWorkerMutex.Lock()
-	defer fake.findOrChooseWorkerMutex.Unlock()
-	fake.FindOrChooseWorkerStub = nil
-	if fake.findOrChooseWorkerReturnsOnCall == nil {
-		fake.findOrChooseWorkerReturnsOnCall = make(map[int]struct {
-			result1 worker.Worker
-			result2 error
-		})
-	}
-	fake.findOrChooseWorkerReturnsOnCall[i] = struct {
-		result1 worker.Worker
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakePool) FindOrChooseWorkerForContainer(arg1 context.Context, arg2 lager.Logger, arg3 db.ContainerOwner, arg4 worker.ContainerSpec, arg5 worker.WorkerSpec, arg6 worker.ContainerPlacementStrategy) (worker.Worker, error) {
 	fake.findOrChooseWorkerForContainerMutex.Lock()
 	ret, specificReturn := fake.findOrChooseWorkerForContainerReturnsOnCall[len(fake.findOrChooseWorkerForContainerArgsForCall)]
@@ -520,8 +442,6 @@ func (fake *FakePool) Invocations() map[string][][]interface{} {
 	defer fake.createVolumeMutex.RUnlock()
 	fake.findContainerMutex.RLock()
 	defer fake.findContainerMutex.RUnlock()
-	fake.findOrChooseWorkerMutex.RLock()
-	defer fake.findOrChooseWorkerMutex.RUnlock()
 	fake.findOrChooseWorkerForContainerMutex.RLock()
 	defer fake.findOrChooseWorkerForContainerMutex.RUnlock()
 	fake.findVolumeMutex.RLock()

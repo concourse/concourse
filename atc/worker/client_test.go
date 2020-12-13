@@ -318,10 +318,6 @@ var _ = Describe("Client", func() {
 		})
 
 		Context("worker is chosen", func() {
-			BeforeEach(func() {
-				fakePool.FindOrChooseWorkerReturns(fakeChosenWorker, nil)
-			})
-
 			It("invokes the Starting Event on the delegate", func() {
 				Expect(fakeEventDelegate.StartingCallCount()).Should((Equal(1)))
 			})
@@ -1293,9 +1289,6 @@ var _ = Describe("Client", func() {
 		})
 
 		Context("worker is chosen", func() {
-			BeforeEach(func() {
-				fakePool.FindOrChooseWorkerReturns(fakeChosenWorker, nil)
-			})
 			It("finds or creates a put container on that worker", func() {
 				Expect(fakeChosenWorker.FindOrCreateContainerCallCount()).To(Equal(1))
 				_, _, actualOwner, actualMetadata, actualContainerSpec := fakeChosenWorker.FindOrCreateContainerArgsForCall(0)

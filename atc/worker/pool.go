@@ -32,7 +32,6 @@ type Pool interface {
 	VolumeFinder
 	CreateVolume(lager.Logger, VolumeSpec, WorkerSpec, db.VolumeType) (Volume, error)
 
-	FindOrChooseWorker(lager.Logger, WorkerSpec) (Worker, error)
 	ContainerInWorker(lager.Logger, db.ContainerOwner, WorkerSpec) (bool, error)
 	FindOrChooseWorkerForContainer(
 		context.Context,
@@ -133,7 +132,7 @@ func (pool *pool) FindVolume(logger lager.Logger, teamID int, handle string) (Vo
 }
 
 func (pool *pool) CreateVolume(logger lager.Logger, volumeSpec VolumeSpec, workerSpec WorkerSpec, volumeType db.VolumeType) (Volume, error) {
-	worker, err := pool.FindOrChooseWorker(logger, workerSpec)
+	worker, err := pool.chooseRandomWorkerForVolume(logger, workerSpec)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +207,7 @@ dance:
 	return worker, nil
 }
 
-func (pool *pool) FindOrChooseWorker(
+func (pool *pool) chooseRandomWorkerForVolume(
 	logger lager.Logger,
 	workerSpec WorkerSpec,
 ) (Worker, error) {
