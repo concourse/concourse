@@ -227,7 +227,6 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		delegate,
 		resourceCache,
 		resourceToGet,
-		step.workerPool,
 	)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {

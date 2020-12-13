@@ -88,6 +88,7 @@ type TaskStep struct {
 	strategy          worker.ContainerPlacementStrategy
 	workerClient      worker.Client
 	workerPool        worker.Pool
+	artifactSourcer   worker.ArtifactSourcer
 	artifactStreamer  worker.ArtifactStreamer
 	delegateFactory   TaskDelegateFactory
 	lockFactory       lock.LockFactory
@@ -103,6 +104,7 @@ func NewTaskStep(
 	workerClient worker.Client,
 	workerPool worker.Pool,
 	artifactStreamer worker.ArtifactStreamer,
+	artifactSourcer worker.ArtifactSourcer,
 	delegateFactory TaskDelegateFactory,
 	lockFactory lock.LockFactory,
 ) Step {
@@ -116,6 +118,7 @@ func NewTaskStep(
 		workerClient:      workerClient,
 		workerPool:        workerPool,
 		artifactStreamer:  artifactStreamer,
+		artifactSourcer:   artifactSourcer,
 		delegateFactory:   delegateFactory,
 		lockFactory:       lockFactory,
 	}
@@ -225,12 +228,12 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	delegate.Initializing(logger)
 
-	imageSpec, err := step.imageSpec(ctx, state, delegate, config)
+	imageSpec, err := step.imageSpec(ctx, logger, state, delegate, config)
 	if err != nil {
 		return false, err
 	}
 
-	containerSpec, err := step.containerSpec(state, imageSpec, config, step.containerMetadata)
+	containerSpec, err := step.containerSpec(logger, state, imageSpec, config, step.containerMetadata)
 	if err != nil {
 		return false, err
 	}
@@ -268,7 +271,6 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		processSpec,
 		delegate,
 		step.lockFactory,
-		step.workerPool,
 	)
 
 	step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
@@ -293,7 +295,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	return result.ExitStatus == 0, nil
 }
 
-func (step *TaskStep) imageSpec(ctx context.Context, state RunState, delegate TaskDelegate, config atc.TaskConfig) (worker.ImageSpec, error) {
+func (step *TaskStep) imageSpec(ctx context.Context, logger lager.Logger, state RunState, delegate TaskDelegate, config atc.TaskConfig) (worker.ImageSpec, error) {
 	imageSpec := worker.ImageSpec{
 		Privileged: bool(step.plan.Privileged),
 	}
@@ -305,8 +307,11 @@ func (step *TaskStep) imageSpec(ctx context.Context, state RunState, delegate Ta
 		if !found {
 			return worker.ImageSpec{}, MissingTaskImageSourceError{step.plan.ImageArtifactName}
 		}
-
-		imageSpec.ImageArtifact = art
+		source, err := step.artifactSourcer.SourceImage(logger, art)
+		if err != nil {
+			return worker.ImageSpec{}, err
+		}
+		imageSpec.ImageArtifactSource = source
 
 		//an image_resource
 	} else if config.ImageResource != nil {
@@ -330,7 +335,7 @@ func (step *TaskStep) imageSpec(ctx context.Context, state RunState, delegate Ta
 	return imageSpec, nil
 }
 
-func (step *TaskStep) containerInputs(repository *build.Repository, config atc.TaskConfig, metadata db.ContainerMetadata) (map[string]runtime.Artifact, error) {
+func (step *TaskStep) containerInputs(logger lager.Logger, repository *build.Repository, config atc.TaskConfig, metadata db.ContainerMetadata) ([]worker.InputSource, error) {
 	inputs := map[string]runtime.Artifact{}
 
 	var missingRequiredInputs []string
@@ -376,10 +381,15 @@ func (step *TaskStep) containerInputs(repository *build.Repository, config atc.T
 		inputs[ti.Path()] = ti.Artifact()
 	}
 
-	return inputs, nil
+	containerInputs, err := step.artifactSourcer.SourceInputsAndCaches(logger, step.metadata.TeamID, inputs)
+	if err != nil {
+		return nil, err
+	}
+
+	return containerInputs, nil
 }
 
-func (step *TaskStep) containerSpec(state RunState, imageSpec worker.ImageSpec, config atc.TaskConfig, metadata db.ContainerMetadata) (worker.ContainerSpec, error) {
+func (step *TaskStep) containerSpec(logger lager.Logger, state RunState, imageSpec worker.ImageSpec, config atc.TaskConfig, metadata db.ContainerMetadata) (worker.ContainerSpec, error) {
 	var limits worker.ContainerLimits
 	if config.Limits != nil {
 		limits.CPU = (*uint64)(config.Limits.CPU)
@@ -399,7 +409,7 @@ func (step *TaskStep) containerSpec(state RunState, imageSpec worker.ImageSpec, 
 	}
 
 	var err error
-	containerSpec.ArtifactByPath, err = step.containerInputs(state.ArtifactRepository(), config, metadata)
+	containerSpec.Inputs, err = step.containerInputs(logger, state.ArtifactRepository(), config, metadata)
 	if err != nil {
 		return worker.ContainerSpec{}, err
 	}

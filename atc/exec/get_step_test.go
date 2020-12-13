@@ -15,7 +15,6 @@ import (
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/tracing"
@@ -179,11 +178,10 @@ var _ = Describe("GetStep", func() {
 	var startEventDelegate runtime.StartingEventDelegate
 	var resourceCache db.UsedResourceCache
 	var runResource resource.Resource
-	var volumeFinder worker.VolumeFinder
 
 	JustBeforeEach(func() {
 		Expect(fakeClient.RunGetStepCallCount()).To(Equal(1), "get step should have run")
-		runCtx, owner, containerSpec, workerSpec, strategy, metadata, processSpec, startEventDelegate, resourceCache, runResource, volumeFinder = fakeClient.RunGetStepArgsForCall(0)
+		runCtx, owner, containerSpec, workerSpec, strategy, metadata, processSpec, startEventDelegate, resourceCache, runResource = fakeClient.RunGetStepArgsForCall(0)
 	})
 
 	It("propagates span context to the worker client", func() {
@@ -289,9 +287,7 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("enforces it on the get", func() {
-			Expect(fakeClient.RunGetStepCallCount()).To(Equal(1))
-			getCtx, _, _, _, _, _, _, _, _, _, _ := fakeClient.RunGetStepArgsForCall(0)
-			t, ok := getCtx.Deadline()
+			t, ok := runCtx.Deadline()
 			Expect(ok).To(BeTrue())
 			Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
 		})
@@ -334,7 +330,7 @@ var _ = Describe("GetStep", func() {
 			getPlan.Type = "some-custom-type"
 
 			fakeImageSpec = worker.ImageSpec{
-				ImageArtifact: new(runtimefakes.FakeArtifact),
+				ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
 			}
 
 			fakeDelegate.FetchImageReturns(fakeImageSpec, nil)
@@ -476,10 +472,6 @@ var _ = Describe("GetStep", func() {
 
 	It("calls RunGetStep with the correct Resource", func() {
 		Expect(runResource).To(Equal(fakeResource))
-	})
-
-	It("calls RunGetStep with the correct VolumeFinder", func() {
-		Expect(volumeFinder).To(Equal(fakePool))
 	})
 
 	Context("when Client.RunGetStep returns an err", func() {

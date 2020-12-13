@@ -36,12 +36,15 @@ var _ = Describe("PutStep", func() {
 		fakeWorker                *workerfakes.FakeWorker
 		fakePool                  *workerfakes.FakePool
 		fakeClient                *workerfakes.FakeClient
+		fakeArtifactSourcer       *workerfakes.FakeArtifactSourcer
 		fakeStrategy              *workerfakes.FakeContainerPlacementStrategy
 		fakeResourceFactory       *resourcefakes.FakeResourceFactory
 		fakeResource              *resourcefakes.FakeResource
 		fakeResourceConfigFactory *dbfakes.FakeResourceConfigFactory
 		fakeDelegate              *execfakes.FakePutDelegate
 		fakeDelegateFactory       *execfakes.FakePutDelegateFactory
+
+		expectedInputs []worker.InputSource
 
 		spanCtx context.Context
 
@@ -91,9 +94,13 @@ var _ = Describe("PutStep", func() {
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakePool = new(workerfakes.FakePool)
 		fakeClient = new(workerfakes.FakeClient)
+		fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
 		fakeResourceConfigFactory = new(dbfakes.FakeResourceConfigFactory)
+
+		expectedInputs = []worker.InputSource{new(workerfakes.FakeInputSource)}
+		fakeArtifactSourcer.SourceInputsAndCachesReturns(expectedInputs, nil)
 
 		fakeDelegate = new(execfakes.FakePutDelegate)
 		stdoutBuf = gbytes.NewBuffer()
@@ -214,6 +221,7 @@ var _ = Describe("PutStep", func() {
 			fakeStrategy,
 			fakeClient,
 			fakePool,
+			fakeArtifactSourcer,
 			fakeDelegateFactory,
 		)
 
@@ -229,11 +237,10 @@ var _ = Describe("PutStep", func() {
 	var processSpec runtime.ProcessSpec
 	var startEventDelegate runtime.StartingEventDelegate
 	var runResource resource.Resource
-	var volumeFinder worker.VolumeFinder
 
 	JustBeforeEach(func() {
 		Expect(fakeClient.RunPutStepCallCount()).To(Equal(1), "put step should have run")
-		runCtx, owner, containerSpec, workerSpec, strategy, metadata, processSpec, startEventDelegate, runResource, volumeFinder = fakeClient.RunPutStepArgsForCall(0)
+		runCtx, owner, containerSpec, workerSpec, strategy, metadata, processSpec, startEventDelegate, runResource = fakeClient.RunPutStepArgsForCall(0)
 	})
 
 	Context("inputs", func() {
@@ -245,19 +252,23 @@ var _ = Describe("PutStep", func() {
 			})
 
 			It("calls RunPutStep with all inputs", func() {
-				Expect(containerSpec.ArtifactByPath).To(HaveLen(3))
-				Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
-				Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-mounted-source"]).To(Equal(fakeMountedArtifact))
-				Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
+				Expect(fakeArtifactSourcer.SourceInputsAndCachesCallCount()).To(Equal(1))
+				_, teamID, inputMap := fakeArtifactSourcer.SourceInputsAndCachesArgsForCall(0)
+				Expect(teamID).To(Equal(123))
+				Expect(inputMap).To(HaveLen(3))
+				Expect(inputMap["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
+				Expect(inputMap["/tmp/build/put/some-mounted-source"]).To(Equal(fakeMountedArtifact))
+				Expect(inputMap["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
 			})
 		})
 
 		Context("when inputs are left blank", func() {
 			It("calls RunPutStep with all inputs", func() {
-				Expect(containerSpec.ArtifactByPath).To(HaveLen(3))
-				Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
-				Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-mounted-source"]).To(Equal(fakeMountedArtifact))
-				Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
+				_, _, inputMap := fakeArtifactSourcer.SourceInputsAndCachesArgsForCall(0)
+				Expect(inputMap).To(HaveLen(3))
+				Expect(inputMap["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
+				Expect(inputMap["/tmp/build/put/some-mounted-source"]).To(Equal(fakeMountedArtifact))
+				Expect(inputMap["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
 			})
 		})
 
@@ -269,9 +280,10 @@ var _ = Describe("PutStep", func() {
 			})
 
 			It("calls RunPutStep with specified inputs", func() {
-				Expect(containerSpec.ArtifactByPath).To(HaveLen(2))
-				Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
-				Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
+				_, _, inputMap := fakeArtifactSourcer.SourceInputsAndCachesArgsForCall(0)
+				Expect(inputMap).To(HaveLen(2))
+				Expect(inputMap["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
+				Expect(inputMap["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
 			})
 		})
 
@@ -292,8 +304,9 @@ var _ = Describe("PutStep", func() {
 				})
 
 				It("calls RunPutStep with detected inputs", func() {
-					Expect(containerSpec.ArtifactByPath).To(HaveLen(1))
-					Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
+					_, _, inputMap := fakeArtifactSourcer.SourceInputsAndCachesArgsForCall(0)
+					Expect(inputMap).To(HaveLen(1))
+					Expect(inputMap["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
 				})
 			})
 
@@ -311,9 +324,10 @@ var _ = Describe("PutStep", func() {
 				})
 
 				It("calls RunPutStep with detected inputs", func() {
-					Expect(containerSpec.ArtifactByPath).To(HaveLen(2))
-					Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
-					Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
+					_, _, inputMap := fakeArtifactSourcer.SourceInputsAndCachesArgsForCall(0)
+					Expect(inputMap).To(HaveLen(2))
+					Expect(inputMap["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
+					Expect(inputMap["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
 				})
 			})
 		})
@@ -328,11 +342,7 @@ var _ = Describe("PutStep", func() {
 		Expect(containerSpec.TeamID).To(Equal(123))
 		Expect(containerSpec.Env).To(Equal(stepMetadata.Env()))
 		Expect(containerSpec.Dir).To(Equal("/tmp/build/put"))
-
-		Expect(containerSpec.ArtifactByPath).To(HaveLen(3))
-		Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-other-source"]).To(Equal(fakeOtherArtifact))
-		Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-mounted-source"]).To(Equal(fakeMountedArtifact))
-		Expect(containerSpec.ArtifactByPath["/tmp/build/put/some-source"]).To(Equal(fakeArtifact))
+		Expect(containerSpec.Inputs).To(Equal(expectedInputs))
 
 		Expect(workerSpec).To(Equal(worker.WorkerSpec{
 			TeamID:       123,
@@ -351,7 +361,6 @@ var _ = Describe("PutStep", func() {
 			}))
 		Expect(startEventDelegate).To(Equal(fakeDelegate))
 		Expect(runResource).To(Equal(fakeResource))
-		Expect(volumeFinder).To(Equal(fakePool))
 	})
 
 	Context("when using a custom resource type", func() {
@@ -361,7 +370,7 @@ var _ = Describe("PutStep", func() {
 			putPlan.Type = "some-custom-type"
 
 			fakeImageSpec = worker.ImageSpec{
-				ImageArtifact: new(runtimefakes.FakeArtifact),
+				ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
 			}
 
 			fakeDelegate.FetchImageReturns(fakeImageSpec, nil)
@@ -482,9 +491,7 @@ var _ = Describe("PutStep", func() {
 		})
 
 		It("enforces it on the put", func() {
-			Expect(fakeClient.RunPutStepCallCount()).To(Equal(1))
-			putCtx, _, _, _, _, _, _, _, _, _ := fakeClient.RunPutStepArgsForCall(0)
-			t, ok := putCtx.Deadline()
+			t, ok := runCtx.Deadline()
 			Expect(ok).To(BeTrue())
 			Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
 		})

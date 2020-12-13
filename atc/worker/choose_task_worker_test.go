@@ -9,7 +9,6 @@ import (
 	"github.com/concourse/concourse/atc/metric"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/compression/compressionfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/runtime"
@@ -32,10 +31,8 @@ var _ = Describe("RunTaskStep", func() {
 
 		fakeWorker          *workerfakes.FakeWorker
 		fakePool            *workerfakes.FakePool
-		fakeVolumeFinder    *workerfakes.FakeVolumeFinder
 		fakeTaskProcessSpec runtime.ProcessSpec
 		fakeLock            *lockfakes.FakeLock
-		fakeCompression     *compressionfakes.FakeCompression
 		fakeContainerOwner  db.ContainerOwner
 		fakeContainerSpec   worker.ContainerSpec
 		fakeWorkerSpec      worker.WorkerSpec
@@ -51,8 +48,6 @@ var _ = Describe("RunTaskStep", func() {
 			ctx, _ = context.WithCancel(context.Background())
 
 			fakePool = new(workerfakes.FakePool)
-			fakeVolumeFinder = new(workerfakes.FakeVolumeFinder)
-			fakeCompression = new(compressionfakes.FakeCompression)
 			fakeContainerOwner = containerOwnerDummy()
 			fakeContainerSpec = workerContainerDummy()
 			fakeWorkerSpec = workerSpecDummy()
@@ -74,11 +69,8 @@ var _ = Describe("RunTaskStep", func() {
 
 			subject = worker.NewClient(
 				fakePool,
-				fakeCompression,
 				workerInterval,
 				workerStatusInterval,
-				false,
-				15*time.Minute,
 			)
 		})
 
@@ -98,7 +90,6 @@ var _ = Describe("RunTaskStep", func() {
 					fakeTaskProcessSpec,
 					fakeEventDelegate,
 					fakeLockFactory,
-					fakeVolumeFinder,
 				)
 			})
 
@@ -148,7 +139,6 @@ var _ = Describe("RunTaskStep", func() {
 					fakeTaskProcessSpec,
 					fakeEventDelegate,
 					fakeLockFactory,
-					fakeVolumeFinder,
 				)
 			})
 
@@ -218,11 +208,10 @@ func workerContainerDummy() worker.ContainerSpec {
 			CPU:    &cpu,
 			Memory: &memory,
 		},
-		Dir:            "some-artifact-root",
-		Env:            []string{"SECURE=secret-task-param"},
-		ArtifactByPath: map[string]runtime.Artifact{},
-		Inputs:         []worker.InputSource{},
-		Outputs:        worker.OutputPaths{},
+		Dir:     "some-artifact-root",
+		Env:     []string{"SECURE=secret-task-param"},
+		Inputs:  []worker.InputSource{},
+		Outputs: worker.OutputPaths{},
 	}
 }
 

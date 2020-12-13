@@ -17,17 +17,19 @@ import (
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("GetDelegate", func() {
 	var (
-		logger            *lagertest.TestLogger
-		fakeBuild         *dbfakes.FakeBuild
-		fakePipeline      *dbfakes.FakePipeline
-		fakeResource      *dbfakes.FakeResource
-		fakeClock         *fakeclock.FakeClock
-		fakePolicyChecker *policyfakes.FakeChecker
+		logger              *lagertest.TestLogger
+		fakeBuild           *dbfakes.FakeBuild
+		fakePipeline        *dbfakes.FakePipeline
+		fakeResource        *dbfakes.FakeResource
+		fakeClock           *fakeclock.FakeClock
+		fakePolicyChecker   *policyfakes.FakeChecker
+		fakeArtifactSourcer *workerfakes.FakeArtifactSourcer
 
 		state exec.RunState
 
@@ -56,8 +58,9 @@ var _ = Describe("GetDelegate", func() {
 		}
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)
+		fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
 
-		delegate = engine.NewGetDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker)
+		delegate = engine.NewGetDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker, fakeArtifactSourcer)
 	})
 
 	Describe("Finished", func() {

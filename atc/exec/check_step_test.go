@@ -17,7 +17,6 @@ import (
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/tracing"
@@ -261,11 +260,10 @@ var _ = Describe("CheckStep", func() {
 				var processSpec runtime.ProcessSpec
 				var startEventDelegate runtime.StartingEventDelegate
 				var resource resource.Resource
-				var volumeFinder worker.VolumeFinder
 
 				JustBeforeEach(func() {
 					Expect(fakeClient.RunCheckStepCallCount()).To(Equal(1), "check step should have run")
-					runCtx, owner, containerSpec, workerSpec, strategy, metadata, processSpec, startEventDelegate, resource, volumeFinder = fakeClient.RunCheckStepArgsForCall(0)
+					runCtx, owner, containerSpec, workerSpec, strategy, metadata, processSpec, startEventDelegate, resource = fakeClient.RunCheckStepArgsForCall(0)
 				})
 
 				It("uses ResourceConfigCheckSessionOwner", func() {
@@ -336,10 +334,6 @@ var _ = Describe("CheckStep", func() {
 
 				It("passes the delegate as the start event delegate", func() {
 					Expect(startEventDelegate).To(Equal(fakeDelegate))
-				})
-
-				It("passes the pool as the volume finder", func() {
-					Expect(volumeFinder).To(Equal(fakePool))
 				})
 
 				Context("uses containerspec", func() {
@@ -428,7 +422,7 @@ var _ = Describe("CheckStep", func() {
 						checkPlan.Type = "some-custom-type"
 
 						fakeImageSpec = worker.ImageSpec{
-							ImageArtifact: new(runtimefakes.FakeArtifact),
+							ImageArtifactSource: new(workerfakes.FakeStreamableArtifactSource),
 						}
 
 						fakeDelegate.FetchImageReturns(fakeImageSpec, nil)

@@ -18,6 +18,7 @@ type coreStepFactory struct {
 	pool                  worker.Pool
 	client                worker.Client
 	artifactStreamer      worker.ArtifactStreamer
+	artifactSourcer       worker.ArtifactSourcer
 	resourceFactory       resource.ResourceFactory
 	teamFactory           db.TeamFactory
 	buildFactory          db.BuildFactory
@@ -33,6 +34,7 @@ func NewCoreStepFactory(
 	pool worker.Pool,
 	client worker.Client,
 	artifactStreamer worker.ArtifactStreamer,
+	artifactSourcer worker.ArtifactSourcer,
 	resourceFactory resource.ResourceFactory,
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
@@ -46,6 +48,8 @@ func NewCoreStepFactory(
 	return &coreStepFactory{
 		pool:                  pool,
 		client:                client,
+		artifactStreamer:      artifactStreamer,
+		artifactSourcer:       artifactSourcer,
 		resourceFactory:       resourceFactory,
 		teamFactory:           teamFactory,
 		buildFactory:          buildFactory,
@@ -104,6 +108,7 @@ func (factory *coreStepFactory) PutStep(
 		factory.strategy,
 		factory.client,
 		factory.pool,
+		factory.artifactSourcer,
 		delegateFactory,
 	)
 
@@ -162,6 +167,7 @@ func (factory *coreStepFactory) TaskStep(
 		factory.client,
 		factory.pool,
 		factory.artifactStreamer,
+		factory.artifactSourcer,
 		delegateFactory,
 		factory.lockFactory,
 	)

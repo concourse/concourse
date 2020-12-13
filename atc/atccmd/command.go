@@ -1020,13 +1020,8 @@ func (cmd *RunCommand) backendComponents(
 
 	pool := worker.NewPool(workerProvider)
 	artifactStreamer := worker.NewArtifactStreamer(pool, compressionLib)
-	workerClient := worker.NewClient(pool,
-		compressionLib,
-		workerAvailabilityPollingInterval,
-		workerStatusPublishInterval,
-		cmd.FeatureFlags.EnableP2PVolumeStreaming,
-		cmd.P2pVolumeStreamingTimeout,
-	)
+	artifactSourcer := worker.NewArtifactSourcer(compressionLib, pool, cmd.FeatureFlags.EnableP2PVolumeStreaming, cmd.P2pVolumeStreamingTimeout)
+	workerClient := worker.NewClient(pool, workerAvailabilityPollingInterval, workerStatusPublishInterval)
 
 	defaultLimits, err := cmd.parseDefaultLimits()
 	if err != nil {
@@ -1050,6 +1045,7 @@ func (cmd *RunCommand) backendComponents(
 		pool,
 		workerClient,
 		artifactStreamer,
+		artifactSourcer,
 		resourceFactory,
 		teamFactory,
 		dbBuildFactory,
@@ -1614,6 +1610,7 @@ func (cmd *RunCommand) constructEngine(
 	workerPool worker.Pool,
 	workerClient worker.Client,
 	artifactStreamer worker.ArtifactStreamer,
+	artifactSourcer worker.ArtifactSourcer,
 	resourceFactory resource.ResourceFactory,
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
@@ -1632,6 +1629,7 @@ func (cmd *RunCommand) constructEngine(
 				workerPool,
 				workerClient,
 				artifactStreamer,
+				artifactSourcer,
 				resourceFactory,
 				teamFactory,
 				buildFactory,
@@ -1645,6 +1643,7 @@ func (cmd *RunCommand) constructEngine(
 			cmd.ExternalURL.String(),
 			rateLimiter,
 			policyChecker,
+			artifactSourcer,
 		),
 		secretManager,
 		cmd.varSourcePool,

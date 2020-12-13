@@ -316,7 +316,6 @@ func (step *CheckStep) runCheck(
 		processSpec,
 		delegate,
 		checkable,
-		step.pool,
 	)
 }
 

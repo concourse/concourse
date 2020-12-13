@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/concourse/atc/engine/enginefakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
+	"github.com/concourse/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -23,6 +24,7 @@ var _ = Describe("Builder", func() {
 			fakeCoreStepFactory *enginefakes.FakeCoreStepFactory
 			fakeRateLimiter     *enginefakes.FakeRateLimiter
 			fakePolicyChecker   *policyfakes.FakeChecker
+			fakeArtifactSourcer *workerfakes.FakeArtifactSourcer
 
 			planFactory    atc.PlanFactory
 			stepperFactory engine.StepperFactory
@@ -32,12 +34,14 @@ var _ = Describe("Builder", func() {
 			fakeCoreStepFactory = new(enginefakes.FakeCoreStepFactory)
 			fakeRateLimiter = new(enginefakes.FakeRateLimiter)
 			fakePolicyChecker = new(policyfakes.FakeChecker)
+			fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
 
 			stepperFactory = engine.NewStepperFactory(
 				fakeCoreStepFactory,
 				"http://example.com",
 				fakeRateLimiter,
 				fakePolicyChecker,
+				fakeArtifactSourcer,
 			)
 
 			planFactory = atc.NewPlanFactory(123)
