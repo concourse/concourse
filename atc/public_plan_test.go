@@ -405,297 +405,310 @@ var _ = Describe("Plan", func() {
 			Expect(json).ToNot(BeNil())
 			Expect([]byte(*json)).To(MatchJSON(`{
   "id": "0",
-  "in_parallel": [
-    {
-      "id": "1",
-      "in_parallel": [
-        {
-          "id": "2",
-          "task": {
-            "name": "name",
-            "privileged": false
+  "in_parallel": {
+    "steps": [
+      {
+        "id": "1",
+        "in_parallel": {
+          "steps": [
+            {
+              "id": "2",
+              "task": {
+                "name": "name",
+                "privileged": false
+              }
+            }
+          ]
+        }
+      },
+      {
+        "id": "3",
+        "get": {
+          "type": "type",
+          "name": "name",
+          "resource": "resource",
+          "version": {
+            "some": "version"
           }
         }
-      ]
-    },
-    {
-      "id": "3",
-      "get": {
-        "type": "type",
-        "name": "name",
-        "resource": "resource",
-        "version": {
-          "some": "version"
+      },
+      {
+        "id": "4",
+        "put": {
+          "type": "type",
+          "name": "name",
+          "resource": "resource"
         }
-      }
-    },
-    {
-      "id": "4",
-      "put": {
-        "type": "type",
-        "name": "name",
-        "resource": "resource"
-      }
-    },
-    {
-      "id": "4.2",
-      "check": {
-        "type": "type",
-        "name": "name"
-      }
-    },
-    {
-      "id": "5",
-      "task": {
-        "name": "name",
-        "privileged": true
-      }
-    },
-    {
-      "id": "6",
-      "ensure": {
-        "step": {
-          "id": "7",
-          "task": {
-            "name": "name",
-            "privileged": false
-          }
-        },
+      },
+      {
+        "id": "4.2",
+        "check": {
+          "type": "type",
+          "name": "name"
+        }
+      },
+      {
+        "id": "5",
+        "task": {
+          "name": "name",
+          "privileged": true
+        }
+      },
+      {
+        "id": "6",
         "ensure": {
-          "id": "8",
-          "task": {
-            "name": "name",
-            "privileged": false
-          }
-        }
-      }
-    },
-    {
-      "id": "9",
-      "on_success": {
-        "step": {
-          "id": "10",
-          "task": {
-            "name": "name",
-            "privileged": false
-          }
-        },
-        "on_success": {
-          "id": "11",
-          "task": {
-            "name": "name",
-            "privileged": false
-          }
-        }
-      }
-    },
-    {
-      "id": "12",
-      "on_failure": {
-        "step": {
-          "id": "13",
-          "task": {
-            "name": "name",
-            "privileged": false
-          }
-        },
-        "on_failure": {
-          "id": "14",
-          "task": {
-            "name": "name",
-            "privileged": false
-          }
-        }
-      }
-    },
-    {
-      "id": "15",
-      "on_abort": {
-        "step": {
-          "id": "16",
-          "task": {
-            "name": "name",
-            "privileged": false
-          }
-        },
-        "on_abort": {
-          "id": "17",
-          "task": {
-            "name": "name",
-            "privileged": false
-          }
-        }
-      }
-    },
-    {
-      "id": "18",
-      "try": {
-        "step": {
-          "id": "19",
-          "task": {
-            "name": "name",
-            "privileged": false
-          }
-        }
-      }
-    },
-    {
-      "id": "20",
-      "timeout": {
-        "step": {
-          "id": "21",
-          "task": {
-            "name": "name",
-            "privileged": false
-          }
-        },
-        "duration": "lol"
-      }
-    },
-    {
-      "id": "22",
-      "do": [
-        {
-          "id": "23",
-          "task": {
-            "name": "name",
-            "privileged": false
-          }
-        }
-      ]
-    },
-    {
-      "id": "24",
-      "retry": [
-        {
-          "id": "25",
-          "task": {
-            "name": "name",
-            "privileged": false
-          }
-        },
-        {
-          "id": "26",
-          "task": {
-            "name": "name",
-            "privileged": false
-          }
-        },
-        {
-          "id": "27",
-          "task": {
-            "name": "name",
-            "privileged": false
-          }
-        }
-      ]
-    },
-    {
-      "id": "28",
-      "on_abort": {
-				"step": {
-						"id": "29",
-						"task": {
-							"name": "name",
-							"privileged": false
-						}
-				},
-        "on_abort": {
-          "id": "30",
-          "task": {
-            "name": "name",
-            "privileged": false
-          }
-				}
-      }
-    },
-		{
-			"id": "31",
-			"artifact_input": {
-				"artifact_id": 17,
-				"name" : "some-name"
-			}
-		},
-		{
-			"id": "32",
-			"artifact_output": {
-				"name": "some-name"
-			}
-		},
-		{
-      "id": "33",
-      "on_error": {
-        "step": {
-          "id": "34",
-          "task": {
-            "name": "name",
-            "privileged": false
-          }
-        },
-        "on_error": {
-          "id": "35",
-          "task": {
-            "name": "name",
-            "privileged": false
-          }
-        }
-      }
-	},
-	{
-	"id": "36",
-	  "in_parallel": {
-		"steps": [
-		  {
-			"id": "37",
-			"task": {
+          "step": {
+            "id": "7",
+            "task": {
               "name": "name",
               "privileged": false
-			}
-		  }
-		],
-		"limit": 1,
-		"fail_fast": true
-	  }
-	},
-	{
-	  "id": "38",
-	  "set_pipeline": {
-		"name": "some-pipeline",
-		"team": "some-team",
-		"instance_vars": {"branch": "feature/foo"}
-	  }
-	},
-	{
-	  "id": "39",
-	  "across": {
-	    "vars": [
-	      {
-	        "name": "v1",
-	        "values": ["a"],
-	        "max_in_flight": 1
-	      },
-	      {
-	        "name": "v2",
-	        "values": ["b"],
-	        "max_in_flight": "all"
-	      }
-	    ],
-	    "steps": [
-	      {
-	        "step": {
-	          "id": "40",
-	          "task": {
-	            "name": "name",
-	            "privileged": false
-	          }
-	        },
-	        "values": ["a", "b"]
-	      }
-	    ],
-	    "fail_fast": true
-	  }
-	}
-  ]
+            }
+          },
+          "ensure": {
+            "id": "8",
+            "task": {
+              "name": "name",
+              "privileged": false
+            }
+          }
+        }
+      },
+      {
+        "id": "9",
+        "on_success": {
+          "step": {
+            "id": "10",
+            "task": {
+              "name": "name",
+              "privileged": false
+            }
+          },
+          "on_success": {
+            "id": "11",
+            "task": {
+              "name": "name",
+              "privileged": false
+            }
+          }
+        }
+      },
+      {
+        "id": "12",
+        "on_failure": {
+          "step": {
+            "id": "13",
+            "task": {
+              "name": "name",
+              "privileged": false
+            }
+          },
+          "on_failure": {
+            "id": "14",
+            "task": {
+              "name": "name",
+              "privileged": false
+            }
+          }
+        }
+      },
+      {
+        "id": "15",
+        "on_abort": {
+          "step": {
+            "id": "16",
+            "task": {
+              "name": "name",
+              "privileged": false
+            }
+          },
+          "on_abort": {
+            "id": "17",
+            "task": {
+              "name": "name",
+              "privileged": false
+            }
+          }
+        }
+      },
+      {
+        "id": "18",
+        "try": {
+          "step": {
+            "id": "19",
+            "task": {
+              "name": "name",
+              "privileged": false
+            }
+          }
+        }
+      },
+      {
+        "id": "20",
+        "timeout": {
+          "step": {
+            "id": "21",
+            "task": {
+              "name": "name",
+              "privileged": false
+            }
+          },
+          "duration": "lol"
+        }
+      },
+      {
+        "id": "22",
+        "do": [
+          {
+            "id": "23",
+            "task": {
+              "name": "name",
+              "privileged": false
+            }
+          }
+        ]
+      },
+      {
+        "id": "24",
+        "retry": [
+          {
+            "id": "25",
+            "task": {
+              "name": "name",
+              "privileged": false
+            }
+          },
+          {
+            "id": "26",
+            "task": {
+              "name": "name",
+              "privileged": false
+            }
+          },
+          {
+            "id": "27",
+            "task": {
+              "name": "name",
+              "privileged": false
+            }
+          }
+        ]
+      },
+      {
+        "id": "28",
+        "on_abort": {
+          "step": {
+            "id": "29",
+            "task": {
+              "name": "name",
+              "privileged": false
+            }
+          },
+          "on_abort": {
+            "id": "30",
+            "task": {
+              "name": "name",
+              "privileged": false
+            }
+          }
+        }
+      },
+      {
+        "id": "31",
+        "artifact_input": {
+          "artifact_id": 17,
+          "name": "some-name"
+        }
+      },
+      {
+        "id": "32",
+        "artifact_output": {
+          "name": "some-name"
+        }
+      },
+      {
+        "id": "33",
+        "on_error": {
+          "step": {
+            "id": "34",
+            "task": {
+              "name": "name",
+              "privileged": false
+            }
+          },
+          "on_error": {
+            "id": "35",
+            "task": {
+              "name": "name",
+              "privileged": false
+            }
+          }
+        }
+      },
+      {
+        "id": "36",
+        "in_parallel": {
+          "steps": [
+            {
+              "id": "37",
+              "task": {
+                "name": "name",
+                "privileged": false
+              }
+            }
+          ],
+          "limit": 1,
+          "fail_fast": true
+        }
+      },
+      {
+        "id": "38",
+        "set_pipeline": {
+          "name": "some-pipeline",
+          "team": "some-team",
+          "instance_vars": {
+            "branch": "feature/foo"
+          }
+        }
+      },
+      {
+        "id": "39",
+        "across": {
+          "vars": [
+            {
+              "name": "v1",
+              "values": [
+                "a"
+              ],
+              "max_in_flight": 1
+            },
+            {
+              "name": "v2",
+              "values": [
+                "b"
+              ],
+              "max_in_flight": "all"
+            }
+          ],
+          "steps": [
+            {
+              "step": {
+                "id": "40",
+                "task": {
+                  "name": "name",
+                  "privileged": false
+                }
+              },
+              "values": [
+                "a",
+                "b"
+              ]
+            }
+          ],
+          "fail_fast": true
+        }
+      }
+    ]
+  }
 }
 `))
 		})
