@@ -35,10 +35,25 @@ func (ipm *inPoolManager) getSecrets() Secrets {
 	return &inPoolSecret{ipm}
 }
 
+func (ipm *inPoolManager) waitForReady() {
+	select {
+	case <-ipm.secretsCreatorCh:
+	}
+}
+
+func (ipm *inPoolManager) isReady() bool {
+	select {
+	case <-ipm.secretsCreatorCh:
+	default:
+		return false
+	}
+	return true
+}
+
 func newInPoolManager(manager Manager, clock clock.Clock, secretsCreator func() Secrets) *inPoolManager {
-	ipm := &inPoolManager {
-		manager: manager,
-		clock: clock,
+	ipm := &inPoolManager{
+		manager:          manager,
+		clock:            clock,
 		secretsCreatorCh: make(chan struct{}, 1),
 	}
 
@@ -66,11 +81,7 @@ func (s *inPoolSecret) NewSecretLookupPaths(teamName string, pipelineName string
 }
 
 func (s *inPoolSecret) waitForReady() Secrets {
-	if s.ipm.secrets == nil {
-		select {
-		case <-s.ipm.secretsCreatorCh:
-		}
-	}
+	s.ipm.waitForReady()
 	s.ipm.lastUseTime = s.ipm.clock.Now()
 	return s.ipm.secrets
 }
@@ -147,7 +158,7 @@ func (pool *varSourcePool) FindOrCreate(logger lager.Logger, config map[string]i
 		pool.pool[key] = newInPoolManager(
 			manager,
 			pool.clock,
-			func() Secrets {return pool.credentialManagement.NewSecrets(secretsFactory)},
+			func() Secrets { return pool.credentialManagement.NewSecrets(secretsFactory) },
 		)
 	} else {
 		logger.Debug("found-existing-credential-manager")
@@ -185,6 +196,10 @@ func (pool *varSourcePool) collect(logger lager.Logger, all bool) error {
 
 	toDeleteKeys := []string{}
 	for key, manager := range pool.pool {
+		if !manager.isReady() {
+			continue
+		}
+
 		if all || manager.lastUseTime.Add(pool.ttl).Before(pool.clock.Now()) {
 			toDeleteKeys = append(toDeleteKeys, key)
 			manager.close(logger)
