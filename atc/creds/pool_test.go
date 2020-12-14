@@ -217,11 +217,13 @@ var _ = Context("pool", func() {
 
 		It("should clean up once ttl expires", func() {
 			_, err = varSourcePool.FindOrCreate(logger, config1, factory)
+			time.Sleep(time.Second)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(varSourcePool.Size()).To(Equal(1))
 
 			fakeClock.WaitForWatcherAndIncrement(4 * time.Second)
 			_, err = varSourcePool.FindOrCreate(logger, config2, factory)
+			time.Sleep(time.Second)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(varSourcePool.Size()).To(Equal(2))
 
@@ -229,6 +231,7 @@ var _ = Context("pool", func() {
 			Eventually(varSourcePool.Size).Should(Equal(1))
 
 			fakeClock.WaitForWatcherAndIncrement(4 * time.Second)
+			time.Sleep(time.Second)
 			Eventually(varSourcePool.Size).Should(Equal(0))
 		})
 	})

@@ -1,7 +1,6 @@
 package vault
 
 import (
-	"fmt"
 	"path"
 	"time"
 
@@ -63,7 +62,7 @@ func (v Vault) Get(secretPath string) (interface{}, *time.Time, bool, error) {
 func (v Vault) findSecret(path string) (*vaultapi.Secret, *time.Time, bool, error) {
 	secret, err := v.SecretReader.Read(path)
 	if err != nil {
-		return nil, nil, false, fmt.Errorf("Vault.findSecret %w", err)
+		return nil, nil, false, err
 	}
 
 	if secret != nil {
