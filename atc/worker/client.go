@@ -621,7 +621,10 @@ func (client *client) chooseTaskWorker(
 			workerSpec,
 			strategy,
 		); err != nil {
-			if _, ok := err.(NoWorkerFitContainerPlacementStrategyError); !ok {
+			if chosenWorker == nil && !strategy.ModifiesActiveTasks() {
+				// only the limit-active-tasks placement strategy waits for a
+				// worker to become available. All others should error out for
+				// now
 				return nil, err
 			}
 		}
