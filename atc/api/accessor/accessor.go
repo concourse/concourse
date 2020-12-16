@@ -159,17 +159,17 @@ func (a *access) TeamNames() []string {
 }
 
 func (a *access) hasPermission(roles []string) bool {
-	has := false
+	allow := false
 	for _, role := range roles {
-		has = has || a.hasPermissionCheckingRole(role)
-		if has {
+		allow = allow || a.hasRequiredRole(role)
+		if allow {
 			return true
 		}
 	}
 	return false
 }
 
-func (a *access) hasPermissionCheckingRole(role string) bool {
+func (a *access) hasRequiredRole(role string) bool {
 	switch a.requiredRole {
 	case OwnerRole:
 		return role == OwnerRole
