@@ -263,6 +263,130 @@ var _ = Describe("Accessor", func() {
 		Entry("owner attempting owner action", "owner", "owner", true),
 	)
 
+	DescribeTable("IsAuthorized for both users and groups",
+		func(requiredRole string, teamAuth atc.TeamAuth, expected bool) {
+
+			verification.HasToken = true
+			verification.IsTokenValid = true
+
+			verification.RawClaims = map[string]interface{}{
+				"groups": []interface{}{"some-group"},
+				"federated_claims": map[string]interface{}{
+					"connector_id": "some-connector",
+					"user_id":      "some-user-id",
+				},
+			}
+
+			fakeTeam1.NameReturns("some-team")
+			fakeTeam1.AdminReturns(true)
+			fakeTeam1.AuthReturns(teamAuth)
+
+			access = accessor.NewAccessor(verification, requiredRole, "sub", []string{"system"}, teams)
+			result := access.IsAuthorized("some-team")
+			Expect(expected).Should(Equal(result))
+		},
+
+		Entry("user is member and group is viewer attempting owner action",
+			"owner",
+			atc.TeamAuth{
+				"member": map[string][]string{
+					"users": {"some-connector:some-user-id"},
+				},
+				"viewer": map[string][]string{
+					"groups": {"some-connector:some-group"},
+				},
+			},
+			false,
+		),
+		Entry("user is viewer and group is member attempting owner action",
+			"owner",
+			atc.TeamAuth{
+				"viewer": map[string][]string{
+					"users": {"some-connector:some-user-id"},
+				},
+				"member": map[string][]string{
+					"groups": {"some-connector:some-group"},
+				},
+			},
+			false,
+		),
+
+		Entry("user is member and group is viewer attempting member action",
+			"member",
+			atc.TeamAuth{
+				"member": map[string][]string{
+					"users": {"some-connector:some-user-id"},
+				},
+				"viewer": map[string][]string{
+					"groups": {"some-connector:some-group"},
+				},
+			},
+			true,
+		),
+		Entry("user is viewer and group is member attempting member action",
+			"member",
+			atc.TeamAuth{
+				"viewer": map[string][]string{
+					"users": {"some-connector:some-user-id"},
+				},
+				"member": map[string][]string{
+					"groups": {"some-connector:some-group"},
+				},
+			},
+			true,
+		),
+
+		Entry("user is member and group is viewer attempting pipeline-operator action",
+			"pipeline-operator",
+			atc.TeamAuth{
+				"member": map[string][]string{
+					"users": {"some-connector:some-user-id"},
+				},
+				"viewer": map[string][]string{
+					"groups": {"some-connector:some-group"},
+				},
+			},
+			true,
+		),
+		Entry("user is viewer and group is member attempting pipeline-operator action",
+			"pipeline-operator",
+			atc.TeamAuth{
+				"viewer": map[string][]string{
+					"users": {"some-connector:some-user-id"},
+				},
+				"member": map[string][]string{
+					"groups": {"some-connector:some-group"},
+				},
+			},
+			true,
+		),
+
+		Entry("user is member and group is viewer attempting viewer action",
+			"viewer",
+			atc.TeamAuth{
+				"member": map[string][]string{
+					"users": {"some-connector:some-user-id"},
+				},
+				"viewer": map[string][]string{
+					"groups": {"some-connector:some-group"},
+				},
+			},
+			true,
+		),
+		Entry("user is viewer and group is member attempting viewer action",
+			"viewer",
+			atc.TeamAuth{
+				"viewer": map[string][]string{
+					"users": {"some-connector:some-user-id"},
+				},
+				"member": map[string][]string{
+					"groups": {"some-connector:some-group"},
+				},
+			},
+			true,
+		),
+	)
+
 	Describe("TeamNames", func() {
 		var result []string
 
