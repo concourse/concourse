@@ -703,6 +703,16 @@ type FakeBuild struct {
 		result1 vars.Variables
 		result2 error
 	}
+	WhoTriggeredStub        func() string
+	whoTriggeredMutex       sync.RWMutex
+	whoTriggeredArgsForCall []struct {
+	}
+	whoTriggeredReturns struct {
+		result1 string
+	}
+	whoTriggeredReturnsOnCall map[int]struct {
+		result1 string
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -4076,6 +4086,58 @@ func (fake *FakeBuild) VariablesReturnsOnCall(i int, result1 vars.Variables, res
 	}{result1, result2}
 }
 
+func (fake *FakeBuild) WhoTriggered() string {
+	fake.whoTriggeredMutex.Lock()
+	ret, specificReturn := fake.whoTriggeredReturnsOnCall[len(fake.whoTriggeredArgsForCall)]
+	fake.whoTriggeredArgsForCall = append(fake.whoTriggeredArgsForCall, struct {
+	}{})
+	fake.recordInvocation("WhoTriggered", []interface{}{})
+	fake.whoTriggeredMutex.Unlock()
+	if fake.WhoTriggeredStub != nil {
+		return fake.WhoTriggeredStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.whoTriggeredReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) WhoTriggeredCallCount() int {
+	fake.whoTriggeredMutex.RLock()
+	defer fake.whoTriggeredMutex.RUnlock()
+	return len(fake.whoTriggeredArgsForCall)
+}
+
+func (fake *FakeBuild) WhoTriggeredCalls(stub func() string) {
+	fake.whoTriggeredMutex.Lock()
+	defer fake.whoTriggeredMutex.Unlock()
+	fake.WhoTriggeredStub = stub
+}
+
+func (fake *FakeBuild) WhoTriggeredReturns(result1 string) {
+	fake.whoTriggeredMutex.Lock()
+	defer fake.whoTriggeredMutex.Unlock()
+	fake.WhoTriggeredStub = nil
+	fake.whoTriggeredReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeBuild) WhoTriggeredReturnsOnCall(i int, result1 string) {
+	fake.whoTriggeredMutex.Lock()
+	defer fake.whoTriggeredMutex.Unlock()
+	fake.WhoTriggeredStub = nil
+	if fake.whoTriggeredReturnsOnCall == nil {
+		fake.whoTriggeredReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.whoTriggeredReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -4201,6 +4263,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.tracingAttrsMutex.RUnlock()
 	fake.variablesMutex.RLock()
 	defer fake.variablesMutex.RUnlock()
+	fake.whoTriggeredMutex.RLock()
+	defer fake.whoTriggeredMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

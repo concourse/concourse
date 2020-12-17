@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -47,7 +48,8 @@ func (s *Server) RerunJobBuild(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		build, err := job.RerunBuild(buildToRerun)
+		acc := accessor.GetAccessor(r)
+		build, err := job.RerunBuild(buildToRerun, acc.Claims().UserID)
 		if err != nil {
 			logger.Error("failed-to-retrigger-build", err)
 			w.WriteHeader(http.StatusInternalServerError)

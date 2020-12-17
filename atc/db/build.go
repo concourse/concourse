@@ -72,6 +72,7 @@ var buildsQuery = psql.Select(`
 		b.team_id,
 		b.status,
 		b.manually_triggered,
+		b.who_triggered,
 		b.scheduled,
 		b.schema,
 		b.private_plan,
@@ -149,6 +150,7 @@ type Build interface {
 	RerunOf() int
 	RerunOfName() string
 	RerunNumber() int
+	WhoTriggered() string
 
 	LagerData() lager.Data
 	TracingAttrs() tracing.Attrs
@@ -225,6 +227,7 @@ type build struct {
 	resourceTypeName string
 
 	isManuallyTriggered bool
+	whoTriggered        string
 
 	rerunOf     int
 	rerunOfName string
@@ -375,6 +378,7 @@ func (b *build) InputsReady() bool    { return b.inputsReady }
 func (b *build) RerunOf() int         { return b.rerunOf }
 func (b *build) RerunOfName() string  { return b.rerunOfName }
 func (b *build) RerunNumber() int     { return b.rerunNumber }
+func (b *build) WhoTriggered() string { return b.whoTriggered }
 
 func (b *build) Reload() (bool, error) {
 	row := buildsQuery.Where(sq.Eq{"b.id": b.id}).
@@ -1763,6 +1767,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		drained, aborted, completed                                                                         bool
 		status                                                                                              string
 		pipelineInstanceVars                                                                                sql.NullString
+		whoTriggered                                                                                        sql.NullString
 	)
 
 	err := row.Scan(
@@ -1774,6 +1779,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		&b.teamID,
 		&status,
 		&b.isManuallyTriggered,
+		&whoTriggered,
 		&b.scheduled,
 		&schema,
 		&privatePlan,
@@ -1865,6 +1871,10 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		if err != nil {
 			return err
 		}
+	}
+
+	if whoTriggered.Valid {
+		b.whoTriggered = whoTriggered.String
 	}
 
 	return nil

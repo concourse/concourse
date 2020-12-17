@@ -16,6 +16,7 @@ type StepMetadata struct {
 	PipelineName         string
 	PipelineInstanceVars map[string]interface{}
 	ExternalURL          string
+	TriggerUsername      string
 }
 
 func (metadata StepMetadata) Env() []string {
@@ -60,6 +61,10 @@ func (metadata StepMetadata) Env() []string {
 
 	if metadata.ExternalURL != "" {
 		env = append(env, "ATC_EXTERNAL_URL="+metadata.ExternalURL)
+	}
+
+	if metadata.TriggerUsername != "" {
+		env = append(env, "TRIGGER_USERNAME="+metadata.TriggerUsername)
 	}
 
 	return env

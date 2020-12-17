@@ -1,0 +1,4 @@
+BEGIN;
+ALTER TABLE builds
+DROP COLUMN who_triggered;
+COMMIT;

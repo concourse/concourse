@@ -79,8 +79,8 @@ type Job interface {
 	Unpause() error
 
 	ScheduleBuild(Build) (bool, error)
-	CreateBuild() (Build, error)
-	RerunBuild(Build) (Build, error)
+	CreateBuild(who string) (Build, error)
+	RerunBuild(build Build, who string) (Build, error)
 
 	RequestSchedule() error
 	UpdateLastScheduled(time.Time) error
@@ -772,7 +772,7 @@ func (j *job) GetPendingBuilds() ([]Build, error) {
 	return builds, nil
 }
 
-func (j *job) CreateBuild() (Build, error) {
+func (j *job) CreateBuild(who string) (Build, error) {
 	tx, err := j.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -793,6 +793,7 @@ func (j *job) CreateBuild() (Build, error) {
 		"team_id":            j.teamID,
 		"status":             BuildStatusPending,
 		"manually_triggered": true,
+		"who_triggered":      who,
 	})
 	if err != nil {
 		return nil, err
@@ -821,9 +822,9 @@ func (j *job) CreateBuild() (Build, error) {
 	return build, nil
 }
 
-func (j *job) RerunBuild(buildToRerun Build) (Build, error) {
+func (j *job) RerunBuild(buildToRerun Build, who string) (Build, error) {
 	for {
-		rerunBuild, err := j.tryRerunBuild(buildToRerun)
+		rerunBuild, err := j.tryRerunBuild(buildToRerun, who)
 		if err != nil {
 			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
 				continue
@@ -836,7 +837,7 @@ func (j *job) RerunBuild(buildToRerun Build) (Build, error) {
 	}
 }
 
-func (j *job) tryRerunBuild(buildToRerun Build) (Build, error) {
+func (j *job) tryRerunBuild(buildToRerun Build, who string) (Build, error) {
 	tx, err := j.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -856,13 +857,15 @@ func (j *job) tryRerunBuild(buildToRerun Build) (Build, error) {
 
 	rerunBuild := newEmptyBuild(j.conn, j.lockFactory)
 	err = createBuild(tx, rerunBuild, map[string]interface{}{
-		"name":         rerunBuildName,
-		"job_id":       j.id,
-		"pipeline_id":  j.pipelineID,
-		"team_id":      j.teamID,
-		"status":       BuildStatusPending,
-		"rerun_of":     buildToRerunID,
-		"rerun_number": rerunNumber,
+		"name":               rerunBuildName,
+		"job_id":             j.id,
+		"pipeline_id":        j.pipelineID,
+		"team_id":            j.teamID,
+		"status":             BuildStatusPending,
+		"rerun_of":           buildToRerunID,
+		"rerun_number":       rerunNumber,
+		"manually_triggered": true,
+		"who_triggered":      who,
 	})
 	if err != nil {
 		return nil, err
