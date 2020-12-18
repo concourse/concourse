@@ -27,12 +27,16 @@ var _ = Describe("Pipeline", func() {
 		pipeline       db.Pipeline
 		team           db.Team
 		pipelineConfig atc.Config
+
+		whoTriggered string
 	)
 
 	BeforeEach(func() {
 		var err error
 		team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
 		Expect(err).ToNot(HaveOccurred())
+
+		whoTriggered = "some-user"
 
 		pipelineConfig = atc.Config{
 			Groups: atc.GroupConfigs{
@@ -741,7 +745,7 @@ var _ = Describe("Pipeline", func() {
 				Expect(versions.Jobs).To(ConsistOf(jobs))
 
 				By("including outputs of successful builds")
-				build1DB, err := scenarioPipeline1.Job("a-job").CreateBuild()
+				build1DB, err := scenarioPipeline1.Job("a-job").CreateBuild(whoTriggered)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = build1DB.SaveOutput("some-type", atc.Source{"source-config": "some-value"}, atc.VersionedResourceTypes{}, atc.Version{"version": "1"}, nil, "some-output-name", "some-resource")
@@ -792,7 +796,7 @@ var _ = Describe("Pipeline", func() {
 				Expect(versions.Jobs).To(ConsistOf(jobs))
 
 				By("not including outputs of failed builds")
-				build2DB, err := scenarioPipeline1.Job("a-job").CreateBuild()
+				build2DB, err := scenarioPipeline1.Job("a-job").CreateBuild(whoTriggered)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = build2DB.SaveOutput("some-type", atc.Source{"source-config": "some-value"}, atc.VersionedResourceTypes{}, atc.Version{"version": "1"}, nil, "some-output-name", "some-resource")
@@ -841,7 +845,7 @@ var _ = Describe("Pipeline", func() {
 				Expect(versions.Jobs).To(ConsistOf(jobs))
 
 				By("not including outputs of builds in other pipelines")
-				otherPipelineBuild, err := scenarioPipeline1.Job("a-job").CreateBuild()
+				otherPipelineBuild, err := scenarioPipeline1.Job("a-job").CreateBuild(whoTriggered)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = otherPipelineBuild.SaveOutput("some-type", atc.Source{"other-source-config": "some-other-value"}, atc.VersionedResourceTypes{}, atc.Version{"version": "1"}, nil, "some-output-name", "some-other-resource")
@@ -922,7 +926,7 @@ var _ = Describe("Pipeline", func() {
 					}}, true)
 				Expect(err).ToNot(HaveOccurred())
 
-				build1DB, err = scenarioPipeline1.Job("a-job").CreateBuild()
+				build1DB, err = scenarioPipeline1.Job("a-job").CreateBuild(whoTriggered)
 				Expect(err).ToNot(HaveOccurred())
 
 				_, found, err = build1DB.AdoptInputsAndPipes()
@@ -980,7 +984,7 @@ var _ = Describe("Pipeline", func() {
 				}))
 
 				By("including build rerun mappings for builds")
-				build2DB, err = scenarioPipeline1.Job("a-job").RerunBuild(build1DB)
+				build2DB, err = scenarioPipeline1.Job("a-job").RerunBuild(build1DB, whoTriggered)
 				Expect(err).ToNot(HaveOccurred())
 
 				versions, err = scenarioPipeline1.Pipeline.LoadDebugVersionsDB()
@@ -1079,7 +1083,7 @@ var _ = Describe("Pipeline", func() {
 			)
 
 			By("populating builds")
-			build, err := scenario.Job("some-job").CreateBuild()
+			build, err := scenario.Job("some-job").CreateBuild(whoTriggered)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("populating build inputs")
@@ -1194,7 +1198,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			firstJobBuild, err := job.CreateBuild()
+			firstJobBuild, err := job.CreateBuild(whoTriggered)
 			Expect(err).ToNot(HaveOccurred())
 
 			actualDashboard, err = pipeline.Dashboard()
@@ -1224,7 +1228,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			secondJobBuild, err := job.CreateBuild()
+			secondJobBuild, err := job.CreateBuild(whoTriggered)
 			Expect(err).ToNot(HaveOccurred())
 
 			actualDashboard, err = pipeline.Dashboard()
@@ -1442,15 +1446,15 @@ var _ = Describe("Pipeline", func() {
 				builder.WithResourceVersions("some-resource", atc.Version{"version": "v1"}),
 			)
 
-			build, err := scenario.Job("job-name").CreateBuild()
+			build, err := scenario.Job("job-name").CreateBuild(whoTriggered)
 			Expect(err).ToNot(HaveOccurred())
 			expectedBuilds = append(expectedBuilds, build.ID())
 
-			secondBuild, err := scenario.Job("job-name").CreateBuild()
+			secondBuild, err := scenario.Job("job-name").CreateBuild(whoTriggered)
 			Expect(err).ToNot(HaveOccurred())
 			expectedBuilds = append(expectedBuilds, secondBuild.ID())
 
-			_, err = scenario.Job("some-other-job").CreateBuild()
+			_, err = scenario.Job("some-other-job").CreateBuild(whoTriggered)
 			Expect(err).ToNot(HaveOccurred())
 
 			dbBuild, found, err := buildFactory.Build(build.ID())
@@ -1600,15 +1604,15 @@ var _ = Describe("Pipeline", func() {
 				builder.WithResourceVersions("some-resource", atc.Version{"version": "v3"}, atc.Version{"version": "v4"}),
 			)
 
-			build, err := scenario.Job("job-name").CreateBuild()
+			build, err := scenario.Job("job-name").CreateBuild(whoTriggered)
 			Expect(err).ToNot(HaveOccurred())
 			expectedBuilds = append(expectedBuilds, build)
 
-			secondBuild, err = scenario.Job("job-name").CreateBuild()
+			secondBuild, err = scenario.Job("job-name").CreateBuild(whoTriggered)
 			Expect(err).ToNot(HaveOccurred())
 			expectedBuilds = append(expectedBuilds, secondBuild)
 
-			_, err = scenario.Job("some-other-job").CreateBuild()
+			_, err = scenario.Job("some-other-job").CreateBuild(whoTriggered)
 			Expect(err).ToNot(HaveOccurred())
 
 			dbBuild, found, err := buildFactory.Build(build.ID())
@@ -1690,11 +1694,11 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			build, err := job.CreateBuild()
+			build, err := job.CreateBuild(whoTriggered)
 			Expect(err).ToNot(HaveOccurred())
 			expectedBuilds = append(expectedBuilds, build)
 
-			secondBuild, err := job.CreateBuild()
+			secondBuild, err := job.CreateBuild(whoTriggered)
 			Expect(err).ToNot(HaveOccurred())
 			expectedBuilds = append(expectedBuilds, secondBuild)
 
@@ -1702,7 +1706,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			thirdBuild, err := someOtherJob.CreateBuild()
+			thirdBuild, err := someOtherJob.CreateBuild(whoTriggered)
 			Expect(err).ToNot(HaveOccurred())
 			expectedBuilds = append(expectedBuilds, thirdBuild)
 		})
@@ -1923,7 +1927,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(found).To(BeTrue())
 
 			for i := range builds {
-				builds[i], err = job.CreateBuild()
+				builds[i], err = job.CreateBuild(whoTriggered)
 				Expect(err).ToNot(HaveOccurred())
 
 				buildStart := time.Date(2020, 11, i+1, 0, 0, 0, 0, time.UTC)
@@ -1942,7 +1946,7 @@ var _ = Describe("Pipeline", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			_, err = otherJob.CreateBuild()
+			_, err = otherJob.CreateBuild(whoTriggered)
 		})
 
 		Context("when not providing boundaries", func() {

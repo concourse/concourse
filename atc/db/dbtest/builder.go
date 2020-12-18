@@ -291,7 +291,7 @@ func (builder Builder) WithPendingJobBuild(assign *db.Build, jobName string) Set
 			return fmt.Errorf("job '%s' not configured in pipeline", jobName)
 		}
 
-		build, err := job.CreateBuild()
+		build, err := job.CreateBuild("some-user")
 		if err != nil {
 			return fmt.Errorf("create build: %w", err)
 		}

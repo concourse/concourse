@@ -19,12 +19,16 @@ var _ = Describe("Job", func() {
 		job      db.Job
 		pipeline db.Pipeline
 		team     db.Team
+
+		whoTriggered string
 	)
 
 	BeforeEach(func() {
 		var err error
 		team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
 		Expect(err).ToNot(HaveOccurred())
+
+		whoTriggered = "some-user"
 
 		var created bool
 		pipeline, created, err = team.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
@@ -234,13 +238,13 @@ var _ = Describe("Job", func() {
 			Expect(next).To(BeNil())
 			Expect(finished).To(BeNil())
 
-			finishedBuild, err := job.CreateBuild()
+			finishedBuild, err := job.CreateBuild(whoTriggered)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = finishedBuild.Finish(db.BuildStatusSucceeded)
 			Expect(err).NotTo(HaveOccurred())
 
-			otherFinishedBuild, err := otherJob.CreateBuild()
+			otherFinishedBuild, err := otherJob.CreateBuild(whoTriggered)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = otherFinishedBuild.Finish(db.BuildStatusSucceeded)
@@ -252,14 +256,14 @@ var _ = Describe("Job", func() {
 			Expect(next).To(BeNil())
 			Expect(finished.ID()).To(Equal(finishedBuild.ID()))
 
-			nextBuild, err := job.CreateBuild()
+			nextBuild, err := job.CreateBuild(whoTriggered)
 			Expect(err).NotTo(HaveOccurred())
 
 			started, err := nextBuild.Start(atc.Plan{})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(started).To(BeTrue())
 
-			otherNextBuild, err := otherJob.CreateBuild()
+			otherNextBuild, err := otherJob.CreateBuild(whoTriggered)
 			Expect(err).NotTo(HaveOccurred())
 
 			otherStarted, err := otherNextBuild.Start(atc.Plan{})
@@ -272,7 +276,7 @@ var _ = Describe("Job", func() {
 			Expect(next.ID()).To(Equal(nextBuild.ID()))
 			Expect(finished.ID()).To(Equal(finishedBuild.ID()))
 
-			anotherRunningBuild, err := job.CreateBuild()
+			anotherRunningBuild, err := job.CreateBuild(whoTriggered)
 			Expect(err).NotTo(HaveOccurred())
 
 			finished, next, err = job.FinishedAndNextBuild()
@@ -349,10 +353,10 @@ var _ = Describe("Job", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				build, err := someJob.CreateBuild()
+				build, err := someJob.CreateBuild(whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = someOtherJob.CreateBuild()
+				_, err = someOtherJob.CreateBuild(whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 
 				builds[i] = build
@@ -451,7 +455,7 @@ var _ = Describe("Job", func() {
 			Expect(found).To(BeTrue())
 
 			for i := range builds {
-				builds[i], err = job.CreateBuild()
+				builds[i], err = job.CreateBuild(whoTriggered)
 				Expect(err).ToNot(HaveOccurred())
 
 				buildStart := time.Date(2020, 11, i+1, 0, 0, 0, 0, time.UTC)
@@ -530,12 +534,12 @@ var _ = Describe("Job", func() {
 		Context("when a build exists", func() {
 			BeforeEach(func() {
 				var err error
-				firstBuild, err = job.CreateBuild()
+				firstBuild, err = job.CreateBuild(whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("finds the latest build", func() {
-				secondBuild, err := job.CreateBuild()
+				secondBuild, err := job.CreateBuild(whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 
 				build, found, err := job.Build("latest")
@@ -574,7 +578,7 @@ var _ = Describe("Job", func() {
 			It("requests schedule on the job", func() {
 				requestedSchedule := job.ScheduleRequestedTime()
 
-				_, err := job.CreateBuild()
+				_, err := job.CreateBuild(whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 
 				found, err := job.Reload()
@@ -593,13 +597,13 @@ var _ = Describe("Job", func() {
 		var buildToRerun db.Build
 
 		JustBeforeEach(func() {
-			rerunBuild, rerunErr = job.RerunBuild(buildToRerun)
+			rerunBuild, rerunErr = job.RerunBuild(buildToRerun, whoTriggered)
 		})
 
 		Context("when the first build exists", func() {
 			BeforeEach(func() {
 				var err error
-				firstBuild, err = job.CreateBuild()
+				firstBuild, err = job.CreateBuild(whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 
 				buildToRerun = firstBuild
@@ -620,7 +624,7 @@ var _ = Describe("Job", func() {
 			It("requests schedule on the job", func() {
 				requestedSchedule := job.ScheduleRequestedTime()
 
-				_, err := job.RerunBuild(buildToRerun)
+				_, err := job.RerunBuild(buildToRerun, whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 
 				found, err := job.Reload()
@@ -635,7 +639,7 @@ var _ = Describe("Job", func() {
 
 				BeforeEach(func() {
 					var err error
-					rerun1, err = job.RerunBuild(buildToRerun)
+					rerun1, err = job.RerunBuild(buildToRerun, whoTriggered)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(rerun1.Name()).To(Equal(fmt.Sprintf("%s.1", firstBuild.Name())))
 					Expect(rerun1.RerunNumber()).To(Equal(1))
@@ -653,7 +657,7 @@ var _ = Describe("Job", func() {
 
 				BeforeEach(func() {
 					var err error
-					rerun1, err = job.RerunBuild(buildToRerun)
+					rerun1, err = job.RerunBuild(buildToRerun, whoTriggered)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(rerun1.Name()).To(Equal(fmt.Sprintf("%s.1", firstBuild.Name())))
 					Expect(rerun1.RerunNumber()).To(Equal(1))
@@ -857,7 +861,7 @@ var _ = Describe("Job", func() {
 		Context("when the scheduling build is created first", func() {
 			BeforeEach(func() {
 				var err error
-				schedulingBuild, err = job.CreateBuild()
+				schedulingBuild, err = job.CreateBuild(whoTriggered)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -948,7 +952,7 @@ var _ = Describe("Job", func() {
 
 					BeforeEach(func() {
 						var err error
-						startedBuild, err = job.CreateBuild()
+						startedBuild, err = job.CreateBuild(whoTriggered)
 						Expect(err).ToNot(HaveOccurred())
 						scheduled, err := job.ScheduleBuild(startedBuild)
 						Expect(err).ToNot(HaveOccurred())
@@ -956,7 +960,7 @@ var _ = Describe("Job", func() {
 						_, err = startedBuild.Start(atc.Plan{})
 						Expect(err).NotTo(HaveOccurred())
 
-						scheduledBuild, err = job.CreateBuild()
+						scheduledBuild, err = job.CreateBuild(whoTriggered)
 						Expect(err).NotTo(HaveOccurred())
 						scheduled, err = job.ScheduleBuild(scheduledBuild)
 						Expect(err).ToNot(HaveOccurred())
@@ -965,7 +969,7 @@ var _ = Describe("Job", func() {
 						Expect(err).NotTo(HaveOccurred())
 
 						for _, s := range []db.BuildStatus{db.BuildStatusSucceeded, db.BuildStatusFailed, db.BuildStatusErrored, db.BuildStatusAborted} {
-							finishedBuild, err := job.CreateBuild()
+							finishedBuild, err := job.CreateBuild(whoTriggered)
 							Expect(err).NotTo(HaveOccurred())
 
 							scheduled, err = job.ScheduleBuild(finishedBuild)
@@ -980,7 +984,7 @@ var _ = Describe("Job", func() {
 						Expect(err).NotTo(HaveOccurred())
 						Expect(found).To(BeTrue())
 
-						_, err = otherJob.CreateBuild()
+						_, err = otherJob.CreateBuild(whoTriggered)
 						Expect(err).NotTo(HaveOccurred())
 					})
 
@@ -995,7 +999,7 @@ var _ = Describe("Job", func() {
 
 				Context("when there is 1 build running", func() {
 					BeforeEach(func() {
-						startedBuild, err := job.CreateBuild()
+						startedBuild, err := job.CreateBuild(whoTriggered)
 						Expect(err).NotTo(HaveOccurred())
 						scheduled, err := job.ScheduleBuild(startedBuild)
 						Expect(err).NotTo(HaveOccurred())
@@ -1004,7 +1008,7 @@ var _ = Describe("Job", func() {
 						Expect(err).NotTo(HaveOccurred())
 
 						for _, s := range []db.BuildStatus{db.BuildStatusSucceeded, db.BuildStatusFailed, db.BuildStatusErrored, db.BuildStatusAborted} {
-							finishedBuild, err := job.CreateBuild()
+							finishedBuild, err := job.CreateBuild(whoTriggered)
 							Expect(err).NotTo(HaveOccurred())
 
 							scheduled, err = job.ScheduleBuild(finishedBuild)
@@ -1033,14 +1037,14 @@ var _ = Describe("Job", func() {
 				Context("when multiple jobs in the serial group is running", func() {
 					BeforeEach(func() {
 						var err error
-						_, err = job.CreateBuild()
+						_, err = job.CreateBuild(whoTriggered)
 						Expect(err).NotTo(HaveOccurred())
 
 						otherSerialJob, found, err := pipeline.Job("other-serial-group-job")
 						Expect(err).NotTo(HaveOccurred())
 						Expect(found).To(BeTrue())
 
-						serialGroupBuild, err := otherSerialJob.CreateBuild()
+						serialGroupBuild, err := otherSerialJob.CreateBuild(whoTriggered)
 						Expect(err).NotTo(HaveOccurred())
 
 						scheduled, err := otherSerialJob.ScheduleBuild(serialGroupBuild)
@@ -1051,7 +1055,7 @@ var _ = Describe("Job", func() {
 						Expect(err).NotTo(HaveOccurred())
 						Expect(found).To(BeTrue())
 
-						differentSerialGroupBuild, err := differentSerialJob.CreateBuild()
+						differentSerialGroupBuild, err := differentSerialJob.CreateBuild(whoTriggered)
 						Expect(err).NotTo(HaveOccurred())
 
 						scheduled, err = differentSerialJob.ScheduleBuild(differentSerialGroupBuild)
@@ -1073,7 +1077,7 @@ var _ = Describe("Job", func() {
 						Expect(err).NotTo(HaveOccurred())
 						Expect(found).To(BeTrue())
 
-						serialGroupBuild, err := otherSerialJob.CreateBuild()
+						serialGroupBuild, err := otherSerialJob.CreateBuild(whoTriggered)
 						Expect(err).NotTo(HaveOccurred())
 
 						scheduled, err := otherSerialJob.ScheduleBuild(serialGroupBuild)
@@ -1087,7 +1091,7 @@ var _ = Describe("Job", func() {
 						Expect(err).NotTo(HaveOccurred())
 						Expect(found).To(BeTrue())
 
-						differentSerialGroupBuild, err := differentSerialJob.CreateBuild()
+						differentSerialGroupBuild, err := differentSerialJob.CreateBuild(whoTriggered)
 						Expect(err).NotTo(HaveOccurred())
 
 						scheduled, err = differentSerialJob.ScheduleBuild(differentSerialGroupBuild)
@@ -1113,7 +1117,7 @@ var _ = Describe("Job", func() {
 			Context("when the scheduling build has inputs determined as false", func() {
 				BeforeEach(func() {
 					var err error
-					schedulingBuild, err = job.CreateBuild()
+					schedulingBuild, err = job.CreateBuild(whoTriggered)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = job.SaveNextInputMapping(nil, false)
@@ -1135,13 +1139,13 @@ var _ = Describe("Job", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					_, err = otherSerialJob.CreateBuild()
+					_, err = otherSerialJob.CreateBuild(whoTriggered)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = otherSerialJob.SaveNextInputMapping(nil, true)
 					Expect(err).NotTo(HaveOccurred())
 
-					schedulingBuild, err = job.CreateBuild()
+					schedulingBuild, err = job.CreateBuild(whoTriggered)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = job.SaveNextInputMapping(nil, true)
@@ -1160,14 +1164,14 @@ var _ = Describe("Job", func() {
 			Context("when the scheduling build has it's inputs determined and created earlier", func() {
 				BeforeEach(func() {
 					var err error
-					schedulingBuild, err = job.CreateBuild()
+					schedulingBuild, err = job.CreateBuild(whoTriggered)
 					Expect(err).NotTo(HaveOccurred())
 
 					otherSerialJob, found, err := pipeline.Job("other-serial-group-job")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					_, err = otherSerialJob.CreateBuild()
+					_, err = otherSerialJob.CreateBuild(whoTriggered)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = job.SaveNextInputMapping(nil, true)
@@ -1188,14 +1192,14 @@ var _ = Describe("Job", func() {
 			Context("when the job is paused but has inputs determined", func() {
 				BeforeEach(func() {
 					var err error
-					schedulingBuild, err = job.CreateBuild()
+					schedulingBuild, err = job.CreateBuild(whoTriggered)
 					Expect(err).NotTo(HaveOccurred())
 
 					otherSerialJob, found, err := pipeline.Job("other-serial-group-job")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					_, err = otherSerialJob.CreateBuild()
+					_, err = otherSerialJob.CreateBuild(whoTriggered)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = job.SaveNextInputMapping(nil, true)
@@ -1222,7 +1226,7 @@ var _ = Describe("Job", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					succeededBuild, err := otherSerialJob.CreateBuild()
+					succeededBuild, err := otherSerialJob.CreateBuild(whoTriggered)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = succeededBuild.Finish(db.BuildStatusSucceeded)
@@ -1233,7 +1237,7 @@ var _ = Describe("Job", func() {
 					err = otherSerialJob.SaveNextInputMapping(nil, true)
 					Expect(err).NotTo(HaveOccurred())
 
-					schedulingBuild, err = job.CreateBuild()
+					schedulingBuild, err = job.CreateBuild(whoTriggered)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -1252,14 +1256,14 @@ var _ = Describe("Job", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					_, err = otherSerialJob.CreateBuild()
+					_, err = otherSerialJob.CreateBuild(whoTriggered)
 					Expect(err).NotTo(HaveOccurred())
 
 					job, found, err = pipeline.Job("other-serial-group-job")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 
-					schedulingBuild, err = job.CreateBuild()
+					schedulingBuild, err = job.CreateBuild(whoTriggered)
 					Expect(err).NotTo(HaveOccurred())
 
 					err = job.SaveNextInputMapping(nil, true)
@@ -1687,7 +1691,7 @@ var _ = Describe("Job", func() {
 			otherPipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "some-other-pipeline"}, pipelineConfig, db.ConfigVersion(1), false)
 			Expect(err).ToNot(HaveOccurred())
 
-			build1DB, err = job.CreateBuild()
+			build1DB, err = job.CreateBuild(whoTriggered)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(build1DB.ID()).NotTo(BeZero())
@@ -1712,7 +1716,7 @@ var _ = Describe("Job", func() {
 
 		Context("and another build for a different pipeline is created with the same job name", func() {
 			BeforeEach(func() {
-				otherBuild, err := otherJob.CreateBuild()
+				otherBuild, err := otherJob.CreateBuild(whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(otherBuild.ID()).NotTo(BeZero())
@@ -1790,7 +1794,7 @@ var _ = Describe("Job", func() {
 
 			BeforeEach(func() {
 				var err error
-				build2DB, err = job.CreateBuild()
+				build2DB, err = job.CreateBuild(whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(build2DB.ID()).NotTo(BeZero())
@@ -1817,16 +1821,16 @@ var _ = Describe("Job", func() {
 
 			BeforeEach(func() {
 				var err error
-				newBuild, err = job.CreateBuild()
+				newBuild, err = job.CreateBuild(whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 
-				newerBuild, err = job.CreateBuild()
+				newerBuild, err = job.CreateBuild(whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = newBuild.Finish(db.BuildStatusSucceeded)
 				Expect(err).NotTo(HaveOccurred())
 
-				rerunBuild, err = job.RerunBuild(newBuild)
+				rerunBuild, err = job.RerunBuild(newBuild, whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(rerunBuild.ID()).NotTo(BeZero())
@@ -1852,13 +1856,13 @@ var _ = Describe("Job", func() {
 
 			BeforeEach(func() {
 				var err error
-				newBuild, err = job.CreateBuild()
+				newBuild, err = job.CreateBuild(whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 
-				rerunBuild, err = job.RerunBuild(newBuild)
+				rerunBuild, err = job.RerunBuild(newBuild, whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 
-				newerBuild, err = job.CreateBuild()
+				newerBuild, err = job.CreateBuild(whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(rerunBuild.ID()).NotTo(BeZero())
@@ -1887,19 +1891,19 @@ var _ = Describe("Job", func() {
 
 			BeforeEach(func() {
 				var err error
-				newBuild, err = job.CreateBuild()
+				newBuild, err = job.CreateBuild(whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 
-				newerBuild, err = job.CreateBuild()
+				newerBuild, err = job.CreateBuild(whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 
-				rerunBuild3, err = job.RerunBuild(newerBuild)
+				rerunBuild3, err = job.RerunBuild(newerBuild, whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 
-				rerunBuild, err = job.RerunBuild(newBuild)
+				rerunBuild, err = job.RerunBuild(newBuild, whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 
-				rerunBuild2, err = job.RerunBuild(rerunBuild)
+				rerunBuild2, err = job.RerunBuild(rerunBuild, whoTriggered)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(rerunBuild.ID()).NotTo(BeZero())

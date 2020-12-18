@@ -32,7 +32,7 @@ var _ = Describe("PipelineLifecycle", func() {
 			)
 
 			BeforeEach(func() {
-				build, _ := defaultJob.CreateBuild()
+				build, _ := defaultJob.CreateBuild("some-user")
 				childPipeline, _, _ = build.SavePipeline(atc.PipelineRef{Name: "child-pipeline"}, defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
 				build.Finish(db.BuildStatusSucceeded)
 			})
