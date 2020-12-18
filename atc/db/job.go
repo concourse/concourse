@@ -857,15 +857,14 @@ func (j *job) tryRerunBuild(buildToRerun Build, who string) (Build, error) {
 
 	rerunBuild := newEmptyBuild(j.conn, j.lockFactory)
 	err = createBuild(tx, rerunBuild, map[string]interface{}{
-		"name":               rerunBuildName,
-		"job_id":             j.id,
-		"pipeline_id":        j.pipelineID,
-		"team_id":            j.teamID,
-		"status":             BuildStatusPending,
-		"rerun_of":           buildToRerunID,
-		"rerun_number":       rerunNumber,
-		"manually_triggered": true,
-		"who_triggered":      who,
+		"name":          rerunBuildName,
+		"job_id":        j.id,
+		"pipeline_id":   j.pipelineID,
+		"team_id":       j.teamID,
+		"status":        BuildStatusPending,
+		"rerun_of":      buildToRerunID,
+		"rerun_number":  rerunNumber,
+		"who_triggered": who,
 	})
 	if err != nil {
 		return nil, err
