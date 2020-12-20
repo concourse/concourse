@@ -136,5 +136,47 @@ var _ = Describe("HTTP", func() {
 				Expect(paths).NotTo(ContainElement("/foo"))
 			})
 		})
+
+		Context("when returning a YAML secret", func() {
+			It("should deserialize", func() {
+				handler := func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Add("Content-Type", "text/yaml")
+					w.Write([]byte("---\n'this is a': 'yaml secret'"))
+				}
+
+				s.AppendHandlers(handler)
+
+				secret, found, err := variables.Get(
+					vars.Reference{Path: "foo"},
+				)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(Equal(true))
+				Expect(secret).To(Equal(map[string]interface{}{
+					"this is a": "yaml secret",
+				}))
+			})
+		})
+
+		Context("when returning a JSON secret", func() {
+			It("should deserialize", func() {
+				handler := func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Add("Content-Type", "application/json")
+					w.Write([]byte(`{"this is a": "json secret"}`))
+				}
+
+				s.AppendHandlers(handler)
+
+				secret, found, err := variables.Get(
+					vars.Reference{Path: "foo"},
+				)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(Equal(true))
+				Expect(secret).To(Equal(map[string]interface{}{
+					"this is a": "json secret",
+				}))
+			})
+		})
 	})
 })
