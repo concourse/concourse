@@ -72,5 +72,22 @@ var _ = Describe("HTTPManager", func() {
 				Expect(err).To(HaveOccurred())
 			})
 		})
+
+		Context("when using basic auth", func() {
+			BeforeEach(func() {
+				manager.BasicAuthUsername = "un"
+				manager.BasicAuthPassword = "pw"
+			})
+
+			It("should add the Authorization header", func() {
+				s.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyBasicAuth("un", "pw"),
+					ghttp.RespondWith(200, "ok"),
+				))
+
+				_, err := manager.Health()
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
 	})
 })

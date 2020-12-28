@@ -16,6 +16,9 @@ import (
 
 type HTTPSecretManager struct {
 	URL string
+
+	BasicAuthUsername string
+	BasicAuthPassword string
 }
 
 // NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
@@ -43,7 +46,16 @@ func (h HTTPSecretManager) Get(secretPath string) (interface{}, *time.Time, bool
 	}
 	url += secretPath
 
-	resp, err := http.DefaultClient.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, nil, false, err
+	}
+
+	if h.BasicAuthUsername != "" || h.BasicAuthPassword != "" {
+		req.SetBasicAuth(h.BasicAuthUsername, h.BasicAuthPassword)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, nil, false, err
 	}

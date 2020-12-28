@@ -178,5 +178,27 @@ var _ = Describe("HTTP", func() {
 				}))
 			})
 		})
+
+		Context("when using basic auth", func() {
+			BeforeEach(func() {
+				h.BasicAuthUsername = "un"
+				h.BasicAuthPassword = "pw"
+			})
+
+			It("should add the Authorization header", func() {
+				s.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyBasicAuth("un", "pw"),
+					ghttp.RespondWith(200, "a basic auth protected secret"),
+				))
+
+				secret, found, err := variables.Get(
+					vars.Reference{Path: "foo"},
+				)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(Equal(true))
+				Expect(secret).To(Equal("a basic auth protected secret"))
+			})
+		})
 	})
 })

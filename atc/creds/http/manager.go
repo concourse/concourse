@@ -11,6 +11,9 @@ import (
 
 type HTTPManager struct {
 	URL string `long:"url" description:"HTTP server address used to access secrets."`
+
+	BasicAuthUsername string `long:"basic-auth-username" description:"Username for HTTP Basic Auth."`
+	BasicAuthPassword string `long:"basic-auth-password" description:"Password for HTTP Basic Auth."`
 }
 
 func (manager *HTTPManager) Init(log lager.Logger) error {
@@ -44,7 +47,16 @@ func (manager HTTPManager) Health() (*creds.HealthResponse, error) {
 		Method: path,
 	}
 
-	resp, err := http.Get(manager.URL + path)
+	req, err := http.NewRequest("GET", manager.URL+path, nil)
+	if err != nil {
+		return healthResponse, err
+	}
+
+	if manager.BasicAuthUsername != "" || manager.BasicAuthPassword != "" {
+		req.SetBasicAuth(manager.BasicAuthUsername, manager.BasicAuthPassword)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return healthResponse, err
 	}
@@ -60,7 +72,12 @@ func (manager HTTPManager) Health() (*creds.HealthResponse, error) {
 }
 
 func (manager HTTPManager) NewSecretsFactory(logger lager.Logger) (creds.SecretsFactory, error) {
-	return NewHTTPFactory(logger, manager.URL), nil
+	return NewHTTPFactory(
+		logger,
+		manager.URL,
+
+		manager.BasicAuthUsername, manager.BasicAuthPassword,
+	), nil
 }
 
 func (manager HTTPManager) Close(logger lager.Logger) {
