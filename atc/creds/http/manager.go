@@ -82,4 +82,6 @@ func (manager HTTPManager) NewSecretsFactory(logger lager.Logger) (creds.Secrets
 
 func (manager HTTPManager) Close(logger lager.Logger) {
 	// TODO - to implement
+	// This is consistent with other secret managers
+	// Currently there does not seem to be anything left to clean up
 }
