@@ -23,7 +23,7 @@ func (factory *httpManagerFactory) AddConfig(group *flags.Group) creds.Manager {
 		panic(err)
 	}
 
-	subGroup.Namespace = "http"
+	subGroup.Namespace = "http-credential-manager"
 
 	return manager
 }
