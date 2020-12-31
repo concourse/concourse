@@ -9,6 +9,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/worker"
@@ -41,6 +42,8 @@ func NewStepperFactory(
 	rateLimiter RateLimiter,
 	policyChecker policy.Checker,
 	artifactSourcer worker.ArtifactSourcer,
+	dbWorkerFactory db.WorkerFactory,
+	lockFactory lock.LockFactory,
 ) StepperFactory {
 	return &stepperFactory{
 		coreFactory:     coreFactory,
@@ -48,6 +51,8 @@ func NewStepperFactory(
 		rateLimiter:     rateLimiter,
 		policyChecker:   policyChecker,
 		artifactSourcer: artifactSourcer,
+		dbWorkerFactory: dbWorkerFactory,
+		lockFactory:     lockFactory,
 	}
 }
 
@@ -58,6 +63,8 @@ type stepperFactory struct {
 	rateLimiter     RateLimiter
 	policyChecker   policy.Checker
 	artifactSourcer worker.ArtifactSourcer
+	dbWorkerFactory db.WorkerFactory
+	lockFactory     lock.LockFactory
 }
 
 func (factory *stepperFactory) StepperForBuild(build db.Build) (exec.Stepper, error) {
@@ -68,6 +75,18 @@ func (factory *stepperFactory) StepperForBuild(build db.Build) (exec.Stepper, er
 	return func(plan atc.Plan) exec.Step {
 		return factory.buildStep(build, plan)
 	}, nil
+}
+
+func (factory *stepperFactory) buildDelegateFactory(build db.Build, plan atc.Plan) DelegateFactory {
+	return DelegateFactory{
+		build:           build,
+		plan:            plan,
+		rateLimiter:     factory.rateLimiter,
+		policyChecker:   factory.policyChecker,
+		artifactSourcer: factory.artifactSourcer,
+		dbWorkerFactory: factory.dbWorkerFactory,
+		lockFactory:     factory.lockFactory,
+	}
 }
 
 func (factory *stepperFactory) buildStep(build db.Build, plan atc.Plan) exec.Step {
@@ -181,7 +200,7 @@ func (factory *stepperFactory) buildAcrossStep(build db.Build, plan atc.Plan) ex
 		plan.Across.Vars,
 		steps,
 		plan.Across.FailFast,
-		buildDelegateFactory(build, plan, factory.rateLimiter, factory.policyChecker, factory.artifactSourcer),
+		factory.buildDelegateFactory(build, plan),
 		stepMetadata,
 	)
 }
@@ -284,7 +303,7 @@ func (factory *stepperFactory) buildGetStep(build db.Build, plan atc.Plan) exec.
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan, factory.rateLimiter, factory.policyChecker, factory.artifactSourcer),
+		factory.buildDelegateFactory(build, plan),
 	)
 }
 
@@ -306,7 +325,7 @@ func (factory *stepperFactory) buildPutStep(build db.Build, plan atc.Plan) exec.
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan, factory.rateLimiter, factory.policyChecker, factory.artifactSourcer),
+		factory.buildDelegateFactory(build, plan),
 	)
 }
 
@@ -327,7 +346,7 @@ func (factory *stepperFactory) buildCheckStep(build db.Build, plan atc.Plan) exe
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan, factory.rateLimiter, factory.policyChecker, factory.artifactSourcer),
+		factory.buildDelegateFactory(build, plan),
 	)
 }
 
@@ -349,7 +368,7 @@ func (factory *stepperFactory) buildTaskStep(build db.Build, plan atc.Plan) exec
 		plan,
 		stepMetadata,
 		containerMetadata,
-		buildDelegateFactory(build, plan, factory.rateLimiter, factory.policyChecker, factory.artifactSourcer),
+		factory.buildDelegateFactory(build, plan),
 	)
 }
 
@@ -363,7 +382,7 @@ func (factory *stepperFactory) buildSetPipelineStep(build db.Build, plan atc.Pla
 	return factory.coreFactory.SetPipelineStep(
 		plan,
 		stepMetadata,
-		buildDelegateFactory(build, plan, factory.rateLimiter, factory.policyChecker, factory.artifactSourcer),
+		factory.buildDelegateFactory(build, plan),
 	)
 }
 
@@ -377,7 +396,7 @@ func (factory *stepperFactory) buildLoadVarStep(build db.Build, plan atc.Plan) e
 	return factory.coreFactory.LoadVarStep(
 		plan,
 		stepMetadata,
-		buildDelegateFactory(build, plan, factory.rateLimiter, factory.policyChecker, factory.artifactSourcer),
+		factory.buildDelegateFactory(build, plan),
 	)
 }
 

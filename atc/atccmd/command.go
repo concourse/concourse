@@ -102,9 +102,6 @@ var retryingDriverName = "too-many-connections-retrying"
 var flyClientID = "fly"
 var flyClientSecret = "Zmx5"
 
-var workerAvailabilityPollingInterval = 5 * time.Second
-var workerStatusPublishInterval = 1 * time.Minute
-
 type ATCCommand struct {
 	RunCommand RunCommand `command:"run"`
 	Migration  Migration  `command:"migrate"`
@@ -1021,7 +1018,6 @@ func (cmd *RunCommand) backendComponents(
 	pool := worker.NewPool(workerProvider)
 	artifactStreamer := worker.NewArtifactStreamer(pool, compressionLib)
 	artifactSourcer := worker.NewArtifactSourcer(compressionLib, pool, cmd.FeatureFlags.EnableP2PVolumeStreaming, cmd.P2pVolumeStreamingTimeout)
-	workerClient := worker.NewClient(pool, workerAvailabilityPollingInterval, workerStatusPublishInterval)
 
 	defaultLimits, err := cmd.parseDefaultLimits()
 	if err != nil {
@@ -1043,10 +1039,10 @@ func (cmd *RunCommand) backendComponents(
 
 	engine := cmd.constructEngine(
 		pool,
-		workerClient,
 		artifactStreamer,
 		artifactSourcer,
 		resourceFactory,
+		dbWorkerFactory,
 		teamFactory,
 		dbBuildFactory,
 		dbResourceCacheFactory,
@@ -1608,10 +1604,10 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 
 func (cmd *RunCommand) constructEngine(
 	workerPool worker.Pool,
-	workerClient worker.Client,
 	artifactStreamer worker.ArtifactStreamer,
 	artifactSourcer worker.ArtifactSourcer,
 	resourceFactory resource.ResourceFactory,
+	workerFactory db.WorkerFactory,
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
@@ -1627,7 +1623,6 @@ func (cmd *RunCommand) constructEngine(
 		engine.NewStepperFactory(
 			engine.NewCoreStepFactory(
 				workerPool,
-				workerClient,
 				artifactStreamer,
 				artifactSourcer,
 				resourceFactory,
@@ -1637,13 +1632,14 @@ func (cmd *RunCommand) constructEngine(
 				resourceConfigFactory,
 				defaultLimits,
 				strategy,
-				lockFactory,
 				cmd.GlobalResourceCheckTimeout,
 			),
 			cmd.ExternalURL.String(),
 			rateLimiter,
 			policyChecker,
 			artifactSourcer,
+			workerFactory,
+			lockFactory,
 		),
 		secretManager,
 		cmd.varSourcePool,

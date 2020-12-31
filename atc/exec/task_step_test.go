@@ -9,8 +9,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
@@ -41,8 +39,6 @@ var _ = Describe("TaskStep", func() {
 		fakeArtifactStreamer *workerfakes.FakeArtifactStreamer
 		fakeArtifactSourcer  *workerfakes.FakeArtifactSourcer
 		fakeStrategy         *workerfakes.FakeContainerPlacementStrategy
-
-		fakeLockFactory *lockfakes.FakeLockFactory
 
 		spanCtx      context.Context
 		fakeDelegate *execfakes.FakeTaskDelegate
@@ -84,15 +80,15 @@ var _ = Describe("TaskStep", func() {
 
 		fakePool = new(workerfakes.FakePool)
 		fakeClient = new(workerfakes.FakeClient)
+		fakeClient.NameReturns("some-worker")
 		fakeArtifactStreamer = new(workerfakes.FakeArtifactStreamer)
 		fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 
-		fakeLockFactory = new(lockfakes.FakeLockFactory)
-
 		fakeDelegate = new(execfakes.FakeTaskDelegate)
 		fakeDelegate.StdoutReturns(stdoutBuf)
 		fakeDelegate.StderrReturns(stderrBuf)
+		fakeDelegate.SelectWorkerReturns(fakeClient, nil)
 
 		spanCtx = context.Background()
 		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
@@ -143,12 +139,10 @@ var _ = Describe("TaskStep", func() {
 			stepMetadata,
 			containerMetadata,
 			fakeStrategy,
-			fakeClient,
 			fakePool,
 			fakeArtifactStreamer,
 			fakeArtifactSourcer,
 			fakeDelegateFactory,
-			fakeLockFactory,
 		)
 
 		stepOk, stepErr = taskStep.Run(ctx, state)
@@ -157,17 +151,22 @@ var _ = Describe("TaskStep", func() {
 	var runCtx context.Context
 	var owner db.ContainerOwner
 	var containerSpec worker.ContainerSpec
-	var workerSpec worker.WorkerSpec
-	var strategy worker.ContainerPlacementStrategy
 	var metadata db.ContainerMetadata
 	var processSpec runtime.ProcessSpec
 	var startEventDelegate runtime.StartingEventDelegate
-	var lockFactory lock.LockFactory
+
+	expectWorkerSpecResourceTypeUnset := func() {
+		Expect(fakeDelegate.SelectWorkerCallCount()).To(Equal(1))
+		_, _, _, _, workerSpec, _, _, _ := fakeDelegate.SelectWorkerArgsForCall(0)
+		Expect(workerSpec.ResourceType).To(Equal(""))
+	}
 
 	JustBeforeEach(func() {
 		if shouldRunTaskStep {
 			Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1), "task step should have run")
-			runCtx, owner, containerSpec, workerSpec, strategy, metadata, processSpec, startEventDelegate, lockFactory = fakeClient.RunTaskStepArgsForCall(0)
+			runCtx, owner, containerSpec, metadata, processSpec, startEventDelegate = fakeClient.RunTaskStepArgsForCall(0)
+		} else {
+			Expect(fakeClient.RunTaskStepCallCount()).To(Equal(0), "task step should NOT have run")
 		}
 	})
 
@@ -205,6 +204,42 @@ var _ = Describe("TaskStep", func() {
 			})
 		})
 
+		Describe("worker selection", func() {
+			var workerSpec worker.WorkerSpec
+
+			JustBeforeEach(func() {
+				Expect(fakeDelegate.SelectWorkerCallCount()).To(Equal(1))
+				_, _, _, _, workerSpec, _, _, _ = fakeDelegate.SelectWorkerArgsForCall(0)
+			})
+
+			It("emits a SelectedWorker event", func() {
+				Expect(fakeDelegate.SelectedWorkerCallCount()).To(Equal(1))
+				_, workerName := fakeDelegate.SelectedWorkerArgsForCall(0)
+				Expect(workerName).To(Equal("some-worker"))
+			})
+
+			Context("when tags are configured", func() {
+				BeforeEach(func() {
+					taskPlan.Tags = atc.Tags{"plan", "tags"}
+				})
+
+				It("creates a worker spec with the tags", func() {
+					Expect(workerSpec.Tags).To(Equal([]string{"plan", "tags"}))
+				})
+			})
+
+			Context("when selecting a worker fails", func() {
+				BeforeEach(func() {
+					fakeDelegate.SelectWorkerReturns(nil, errors.New("nope"))
+					shouldRunTaskStep = false
+				})
+
+				It("returns an err", func() {
+					Expect(stepErr).To(MatchError(ContainSubstring("nope")))
+				})
+			})
+		})
+
 		It("creates a containerSpec with the correct parameters", func() {
 			Expect(containerSpec.Dir).To(Equal("some-artifact-root"))
 			Expect(containerSpec.User).To(BeEmpty())
@@ -231,16 +266,8 @@ var _ = Describe("TaskStep", func() {
 			Expect(metadata).To(Equal(containerMetadata))
 		})
 
-		It("uses the correct strategy", func() {
-			Expect(strategy).To(Equal(fakeStrategy))
-		})
-
 		It("uses the correct delegate", func() {
 			Expect(startEventDelegate).To(Equal(fakeDelegate))
-		})
-
-		It("uses the correct lock factory", func() {
-			Expect(lockFactory).To(Equal(fakeLockFactory))
 		})
 
 		Context("when privileged", func() {
@@ -250,16 +277,6 @@ var _ = Describe("TaskStep", func() {
 
 			It("marks the container's image spec as privileged", func() {
 				Expect(containerSpec.ImageSpec.Privileged).To(BeTrue())
-			})
-		})
-
-		Context("when tags are configured", func() {
-			BeforeEach(func() {
-				taskPlan.Tags = atc.Tags{"plan", "tags"}
-			})
-
-			It("creates a worker spec with the tags", func() {
-				Expect(workerSpec.Tags).To(Equal([]string{"plan", "tags"}))
 			})
 		})
 
@@ -687,7 +704,7 @@ var _ = Describe("TaskStep", func() {
 						ImageArtifactSource: source,
 					}))
 
-					Expect(workerSpec.ResourceType).To(Equal(""))
+					expectWorkerSpecResourceTypeUnset()
 				})
 
 				Describe("when task config specifies image and/or image resource as well as image artifact", func() {
@@ -713,7 +730,8 @@ var _ = Describe("TaskStep", func() {
 							It("still uses the image artifact", func() {
 								_, artifact := fakeArtifactSourcer.SourceImageArgsForCall(0)
 								Expect(artifact).To(Equal(imageArtifact))
-								Expect(workerSpec.ResourceType).To(Equal(""))
+
+								expectWorkerSpecResourceTypeUnset()
 							})
 						})
 
@@ -738,7 +756,8 @@ var _ = Describe("TaskStep", func() {
 							It("still uses the image artifact", func() {
 								_, artifact := fakeArtifactSourcer.SourceImageArgsForCall(0)
 								Expect(artifact).To(Equal(imageArtifact))
-								Expect(workerSpec.ResourceType).To(Equal(""))
+
+								expectWorkerSpecResourceTypeUnset()
 							})
 						})
 
@@ -764,7 +783,7 @@ var _ = Describe("TaskStep", func() {
 							It("still uses the image artifact", func() {
 								_, artifact := fakeArtifactSourcer.SourceImageArgsForCall(0)
 								Expect(artifact).To(Equal(imageArtifact))
-								Expect(workerSpec.ResourceType).To(Equal(""))
+								expectWorkerSpecResourceTypeUnset()
 							})
 						})
 					})
@@ -942,7 +961,7 @@ var _ = Describe("TaskStep", func() {
 				})
 				It("finishes the task via the delegate", func() {
 					Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
-					_, status := fakeDelegate.FinishedArgsForCall(0)
+					_, status, _, _ := fakeDelegate.FinishedArgsForCall(0)
 					Expect(status).To(Equal(exec.ExitStatus(taskStepStatus)))
 				})
 
@@ -1031,7 +1050,7 @@ var _ = Describe("TaskStep", func() {
 				})
 				It("finishes the task via the delegate", func() {
 					Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
-					_, status := fakeDelegate.FinishedArgsForCall(0)
+					_, status, _, _ := fakeDelegate.FinishedArgsForCall(0)
 					Expect(status).To(Equal(exec.ExitStatus(taskStepStatus)))
 				})
 

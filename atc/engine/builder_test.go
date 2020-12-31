@@ -5,6 +5,7 @@ import (
 	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/enginefakes"
 	"github.com/concourse/concourse/atc/exec"
@@ -25,6 +26,8 @@ var _ = Describe("Builder", func() {
 			fakeRateLimiter     *enginefakes.FakeRateLimiter
 			fakePolicyChecker   *policyfakes.FakeChecker
 			fakeArtifactSourcer *workerfakes.FakeArtifactSourcer
+			fakeWorkerFactory   *dbfakes.FakeWorkerFactory
+			fakeLockFactory     *lockfakes.FakeLockFactory
 
 			planFactory    atc.PlanFactory
 			stepperFactory engine.StepperFactory
@@ -35,6 +38,8 @@ var _ = Describe("Builder", func() {
 			fakeRateLimiter = new(enginefakes.FakeRateLimiter)
 			fakePolicyChecker = new(policyfakes.FakeChecker)
 			fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
+			fakeWorkerFactory = new(dbfakes.FakeWorkerFactory)
+			fakeLockFactory = new(lockfakes.FakeLockFactory)
 
 			stepperFactory = engine.NewStepperFactory(
 				fakeCoreStepFactory,
@@ -42,6 +47,8 @@ var _ = Describe("Builder", func() {
 				fakeRateLimiter,
 				fakePolicyChecker,
 				fakeArtifactSourcer,
+				fakeWorkerFactory,
+				fakeLockFactory,
 			)
 
 			planFactory = atc.NewPlanFactory(123)

@@ -27,9 +27,7 @@ type CheckStep struct {
 	resourceFactory       resource.ResourceFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	strategy              worker.ContainerPlacementStrategy
-	pool                  worker.Pool
 	delegateFactory       CheckDelegateFactory
-	workerClient          worker.Client
 	workerPool            worker.Pool
 	defaultCheckTimeout   time.Duration
 }
@@ -60,7 +58,6 @@ func NewCheckStep(
 	strategy worker.ContainerPlacementStrategy,
 	pool worker.Pool,
 	delegateFactory CheckDelegateFactory,
-	client worker.Client,
 	defaultCheckTimeout time.Duration,
 ) Step {
 	return &CheckStep{
@@ -70,10 +67,9 @@ func NewCheckStep(
 		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
 		containerMetadata:     containerMetadata,
-		pool:                  pool,
+		workerPool:            pool,
 		strategy:              strategy,
 		delegateFactory:       delegateFactory,
-		workerClient:          client,
 		defaultCheckTimeout:   defaultCheckTimeout,
 	}
 }
@@ -306,12 +302,22 @@ func (step *CheckStep) runCheck(
 
 	defer cancel()
 
-	return step.workerClient.RunCheckStep(
+	chosenWorker, err := step.workerPool.SelectWorker(
 		lagerctx.NewContext(processCtx, logger),
 		step.containerOwner(resourceConfig),
 		containerSpec,
 		workerSpec,
 		step.strategy,
+	)
+	if err != nil {
+		return worker.CheckResult{}, err
+	}
+	delegate.SelectedWorker(logger, chosenWorker.Name())
+
+	return chosenWorker.RunCheckStep(
+		lagerctx.NewContext(processCtx, logger),
+		step.containerOwner(resourceConfig),
+		containerSpec,
 		step.containerMetadata,
 		processSpec,
 		delegate,

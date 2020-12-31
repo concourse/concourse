@@ -5,6 +5,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/worker"
@@ -16,22 +17,8 @@ type DelegateFactory struct {
 	rateLimiter     RateLimiter
 	policyChecker   policy.Checker
 	artifactSourcer worker.ArtifactSourcer
-}
-
-func buildDelegateFactory(
-	build db.Build,
-	plan atc.Plan,
-	rateLimiter RateLimiter,
-	policyChecker policy.Checker,
-	artifactSourcer worker.ArtifactSourcer,
-) DelegateFactory {
-	return DelegateFactory{
-		build:           build,
-		plan:            plan,
-		rateLimiter:     rateLimiter,
-		policyChecker:   policyChecker,
-		artifactSourcer: artifactSourcer,
-	}
+	dbWorkerFactory db.WorkerFactory
+	lockFactory     lock.LockFactory
 }
 
 func (delegate DelegateFactory) GetDelegate(state exec.RunState) exec.GetDelegate {
@@ -43,7 +30,7 @@ func (delegate DelegateFactory) PutDelegate(state exec.RunState) exec.PutDelegat
 }
 
 func (delegate DelegateFactory) TaskDelegate(state exec.RunState) exec.TaskDelegate {
-	return NewTaskDelegate(delegate.build, delegate.plan.ID, state, clock.NewClock(), delegate.policyChecker, delegate.artifactSourcer)
+	return NewTaskDelegate(delegate.build, delegate.plan.ID, state, clock.NewClock(), delegate.policyChecker, delegate.artifactSourcer, delegate.dbWorkerFactory, delegate.lockFactory)
 }
 
 func (delegate DelegateFactory) CheckDelegate(state exec.RunState) exec.CheckDelegate {

@@ -34,9 +34,8 @@ var _ = Describe("GetStep", func() {
 		stdoutBuf *gbytes.Buffer
 		stderrBuf *gbytes.Buffer
 
-		fakeClient   *workerfakes.FakeClient
 		fakePool     *workerfakes.FakePool
-		fakeWorker   *workerfakes.FakeWorker
+		fakeClient   *workerfakes.FakeClient
 		fakeStrategy *workerfakes.FakeContainerPlacementStrategy
 
 		fakeResourceFactory      *resourcefakes.FakeResourceFactory
@@ -75,15 +74,17 @@ var _ = Describe("GetStep", func() {
 		}
 
 		planID = "56"
+
+		shouldRunGetStep bool
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
 		fakeClient = new(workerfakes.FakeClient)
+		fakeClient.NameReturns("some-worker")
 		fakePool = new(workerfakes.FakePool)
-		fakeWorker = new(workerfakes.FakeWorker)
-		fakeWorker.NameReturns("some-worker")
+		fakePool.SelectWorkerReturns(fakeClient, nil)
 		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
@@ -137,6 +138,8 @@ var _ = Describe("GetStep", func() {
 				},
 			},
 		}
+
+		shouldRunGetStep = true
 	})
 
 	AfterEach(func() {
@@ -161,7 +164,6 @@ var _ = Describe("GetStep", func() {
 			fakeResourceCacheFactory,
 			fakeStrategy,
 			fakeDelegateFactory,
-			fakeClient,
 			fakePool,
 		)
 
@@ -171,8 +173,6 @@ var _ = Describe("GetStep", func() {
 	var runCtx context.Context
 	var owner db.ContainerOwner
 	var containerSpec worker.ContainerSpec
-	var workerSpec worker.WorkerSpec
-	var strategy worker.ContainerPlacementStrategy
 	var metadata db.ContainerMetadata
 	var processSpec runtime.ProcessSpec
 	var startEventDelegate runtime.StartingEventDelegate
@@ -180,8 +180,12 @@ var _ = Describe("GetStep", func() {
 	var runResource resource.Resource
 
 	JustBeforeEach(func() {
-		Expect(fakeClient.RunGetStepCallCount()).To(Equal(1), "get step should have run")
-		runCtx, owner, containerSpec, workerSpec, strategy, metadata, processSpec, startEventDelegate, resourceCache, runResource = fakeClient.RunGetStepArgsForCall(0)
+		if shouldRunGetStep {
+			Expect(fakeClient.RunGetStepCallCount()).To(Equal(1), "get step should have run")
+			runCtx, owner, containerSpec, metadata, processSpec, startEventDelegate, resourceCache, runResource = fakeClient.RunGetStepArgsForCall(0)
+		} else {
+			Expect(fakeClient.RunGetStepCallCount()).To(Equal(0), "get step should NOT have run")
+		}
 	})
 
 	It("propagates span context to the worker client", func() {
@@ -262,22 +266,48 @@ var _ = Describe("GetStep", func() {
 		))
 	})
 
-	It("calls RunGetStep with the correct WorkerSpec", func() {
-		Expect(workerSpec).To(Equal(
-			worker.WorkerSpec{
-				ResourceType: "some-base-type",
-				TeamID:       stepMetadata.TeamID,
-			},
-		))
-	})
+	Describe("worker selection", func() {
+		var workerSpec worker.WorkerSpec
 
-	Context("when the plan specifies tags", func() {
-		BeforeEach(func() {
-			getPlan.Tags = atc.Tags{"some", "tags"}
+		JustBeforeEach(func() {
+			Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
+			_, _, _, workerSpec, _ = fakePool.SelectWorkerArgsForCall(0)
 		})
 
-		It("sets them in the WorkerSpec", func() {
-			Expect(workerSpec.Tags).To(Equal([]string{"some", "tags"}))
+		It("calls SelectWorker with the correct WorkerSpec", func() {
+			Expect(workerSpec).To(Equal(
+				worker.WorkerSpec{
+					ResourceType: "some-base-type",
+					TeamID:       stepMetadata.TeamID,
+				},
+			))
+		})
+
+		It("emits a SelectedWorker event", func() {
+			Expect(fakeDelegate.SelectedWorkerCallCount()).To(Equal(1))
+			_, workerName := fakeDelegate.SelectedWorkerArgsForCall(0)
+			Expect(workerName).To(Equal("some-worker"))
+		})
+
+		Context("when the plan specifies tags", func() {
+			BeforeEach(func() {
+				getPlan.Tags = atc.Tags{"some", "tags"}
+			})
+
+			It("sets them in the WorkerSpec", func() {
+				Expect(workerSpec.Tags).To(Equal([]string{"some", "tags"}))
+			})
+		})
+
+		Context("when selecting a worker fails", func() {
+			BeforeEach(func() {
+				fakePool.SelectWorkerReturns(nil, errors.New("nope"))
+				shouldRunGetStep = false
+			})
+
+			It("returns an err", func() {
+				Expect(stepErr).To(MatchError(ContainSubstring("nope")))
+			})
 		})
 	})
 
@@ -315,6 +345,7 @@ var _ = Describe("GetStep", func() {
 		Context("when the timeout is bogus", func() {
 			BeforeEach(func() {
 				getPlan.Timeout = "bogus"
+				shouldRunGetStep = false
 			})
 
 			It("fails miserably", func() {
@@ -411,6 +442,9 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("sets the bottom-most type in the worker spec", func() {
+			Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
+			_, _, _, workerSpec, _ := fakePool.SelectWorkerArgsForCall(0)
+
 			Expect(workerSpec).To(Equal(
 				worker.WorkerSpec{
 					TeamID:       stepMetadata.TeamID,
@@ -434,10 +468,6 @@ var _ = Describe("GetStep", func() {
 				Expect(privileged).To(BeTrue())
 			})
 		})
-	})
-
-	It("calls RunGetStep with the correct ContainerPlacementStrategy", func() {
-		Expect(strategy).To(Equal(fakeStrategy))
 	})
 
 	It("calls RunGetStep with the correct ContainerMetadata", func() {

@@ -84,6 +84,8 @@ var _ = Describe("PutStep", func() {
 		planID atc.PlanID
 
 		versionResult runtime.VersionResult
+
+		shouldRunPutStep bool
 	)
 
 	BeforeEach(func() {
@@ -91,9 +93,12 @@ var _ = Describe("PutStep", func() {
 
 		planID = atc.PlanID("some-plan-id")
 
-		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
-		fakePool = new(workerfakes.FakePool)
 		fakeClient = new(workerfakes.FakeClient)
+		fakeClient.NameReturns("some-worker")
+		fakePool = new(workerfakes.FakePool)
+		fakePool.SelectWorkerReturns(fakeClient, nil)
+
+		fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 		fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
 		fakeWorker = new(workerfakes.FakeWorker)
 		fakeResourceFactory = new(resourcefakes.FakeResourceFactory)
@@ -199,6 +204,8 @@ var _ = Describe("PutStep", func() {
 			worker.PutResult{ExitStatus: 0, VersionResult: versionResult},
 			nil,
 		)
+
+		shouldRunPutStep = true
 	})
 
 	AfterEach(func() {
@@ -219,7 +226,6 @@ var _ = Describe("PutStep", func() {
 			fakeResourceFactory,
 			fakeResourceConfigFactory,
 			fakeStrategy,
-			fakeClient,
 			fakePool,
 			fakeArtifactSourcer,
 			fakeDelegateFactory,
@@ -231,16 +237,63 @@ var _ = Describe("PutStep", func() {
 	var runCtx context.Context
 	var owner db.ContainerOwner
 	var containerSpec worker.ContainerSpec
-	var workerSpec worker.WorkerSpec
-	var strategy worker.ContainerPlacementStrategy
 	var metadata db.ContainerMetadata
 	var processSpec runtime.ProcessSpec
 	var startEventDelegate runtime.StartingEventDelegate
 	var runResource resource.Resource
 
 	JustBeforeEach(func() {
-		Expect(fakeClient.RunPutStepCallCount()).To(Equal(1), "put step should have run")
-		runCtx, owner, containerSpec, workerSpec, strategy, metadata, processSpec, startEventDelegate, runResource = fakeClient.RunPutStepArgsForCall(0)
+		if shouldRunPutStep {
+			Expect(fakeClient.RunPutStepCallCount()).To(Equal(1), "put step should have run")
+			runCtx, owner, containerSpec, metadata, processSpec, startEventDelegate, runResource = fakeClient.RunPutStepArgsForCall(0)
+		} else {
+			Expect(fakeClient.RunPutStepCallCount()).To(Equal(0), "put step should NOT have run")
+		}
+	})
+
+	Describe("worker selection", func() {
+		var workerSpec worker.WorkerSpec
+
+		JustBeforeEach(func() {
+			Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
+			_, _, _, workerSpec, _ = fakePool.SelectWorkerArgsForCall(0)
+		})
+
+		It("calls SelectWorker with the correct WorkerSpec", func() {
+			Expect(workerSpec).To(Equal(
+				worker.WorkerSpec{
+					ResourceType: "some-resource-type",
+					TeamID:       stepMetadata.TeamID,
+				},
+			))
+		})
+
+		It("emits a SelectedWorker event", func() {
+			Expect(fakeDelegate.SelectedWorkerCallCount()).To(Equal(1))
+			_, workerName := fakeDelegate.SelectedWorkerArgsForCall(0)
+			Expect(workerName).To(Equal("some-worker"))
+		})
+
+		Context("when the plan specifies tags", func() {
+			BeforeEach(func() {
+				putPlan.Tags = atc.Tags{"some", "tags"}
+			})
+
+			It("sets them in the WorkerSpec", func() {
+				Expect(workerSpec.Tags).To(Equal([]string{"some", "tags"}))
+			})
+		})
+
+		Context("when selecting a worker fails", func() {
+			BeforeEach(func() {
+				fakePool.SelectWorkerReturns(nil, errors.New("nope"))
+				shouldRunPutStep = false
+			})
+
+			It("returns an err", func() {
+				Expect(stepErr).To(MatchError(ContainSubstring("nope")))
+			})
+		})
 	})
 
 	Context("inputs", func() {
@@ -344,12 +397,6 @@ var _ = Describe("PutStep", func() {
 		Expect(containerSpec.Dir).To(Equal("/tmp/build/put"))
 		Expect(containerSpec.Inputs).To(Equal(expectedInputs))
 
-		Expect(workerSpec).To(Equal(worker.WorkerSpec{
-			TeamID:       123,
-			ResourceType: "some-resource-type",
-		}))
-		Expect(strategy).To(Equal(fakeStrategy))
-
 		Expect(metadata).To(Equal(containerMetadata))
 
 		Expect(processSpec).To(Equal(
@@ -408,6 +455,9 @@ var _ = Describe("PutStep", func() {
 		})
 
 		It("sets the bottom-most type in the worker spec", func() {
+			Expect(fakePool.SelectWorkerCallCount()).To(Equal(1))
+			_, _, _, workerSpec, _ := fakePool.SelectWorkerArgsForCall(0)
+
 			Expect(workerSpec).To(Equal(worker.WorkerSpec{
 				TeamID:       stepMetadata.TeamID,
 				ResourceType: "registry-image",
@@ -475,16 +525,6 @@ var _ = Describe("PutStep", func() {
 		})
 	})
 
-	Context("when the plan specifies tags", func() {
-		BeforeEach(func() {
-			putPlan.Tags = atc.Tags{"some", "tags"}
-		})
-
-		It("sets them in the WorkerSpec", func() {
-			Expect(workerSpec.Tags).To(Equal([]string{"some", "tags"}))
-		})
-	})
-
 	Context("when the plan specifies a timeout", func() {
 		BeforeEach(func() {
 			putPlan.Timeout = "1h"
@@ -519,6 +559,7 @@ var _ = Describe("PutStep", func() {
 		Context("when the timeout is bogus", func() {
 			BeforeEach(func() {
 				putPlan.Timeout = "bogus"
+				shouldRunPutStep = false
 			})
 
 			It("fails miserably", func() {

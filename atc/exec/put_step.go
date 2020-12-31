@@ -52,7 +52,6 @@ type PutStep struct {
 	resourceFactory       resource.ResourceFactory
 	resourceConfigFactory db.ResourceConfigFactory
 	strategy              worker.ContainerPlacementStrategy
-	workerClient          worker.Client
 	workerPool            worker.Pool
 	artifactSourcer       worker.ArtifactSourcer
 	delegateFactory       PutDelegateFactory
@@ -67,7 +66,6 @@ func NewPutStep(
 	resourceFactory resource.ResourceFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	strategy worker.ContainerPlacementStrategy,
-	workerClient worker.Client,
 	workerPool worker.Pool,
 	artifactSourcer worker.ArtifactSourcer,
 	delegateFactory PutDelegateFactory,
@@ -79,7 +77,6 @@ func NewPutStep(
 		containerMetadata:     containerMetadata,
 		resourceFactory:       resourceFactory,
 		resourceConfigFactory: resourceConfigFactory,
-		workerClient:          workerClient,
 		workerPool:            workerPool,
 		artifactSourcer:       artifactSourcer,
 		strategy:              strategy,
@@ -223,12 +220,22 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	defer cancel()
 
-	result, err := step.workerClient.RunPutStep(
+	worker, err := step.workerPool.SelectWorker(
 		lagerctx.NewContext(processCtx, logger),
 		owner,
 		containerSpec,
 		workerSpec,
 		step.strategy,
+	)
+	if err != nil {
+		return false, err
+	}
+	delegate.SelectedWorker(logger, worker.Name())
+
+	result, err := worker.RunPutStep(
+		lagerctx.NewContext(processCtx, logger),
+		owner,
+		containerSpec,
 		step.containerMetadata,
 		processSpec,
 		delegate,

@@ -6,18 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"time"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
-	"github.com/hashicorp/go-multierror"
 	"github.com/onsi/gomega/gbytes"
 
 	"github.com/concourse/concourse/atc/db"
@@ -30,24 +27,20 @@ import (
 
 var _ = Describe("Client", func() {
 	var (
-		fakePool        *workerfakes.FakePool
-		client          worker.Client
-		fakeLock        *lockfakes.FakeLock
-		fakeLockFactory *lockfakes.FakeLockFactory
+		fakeWorker *workerfakes.FakeWorker
+		client     worker.Client
 	)
 
 	BeforeEach(func() {
-		fakePool = new(workerfakes.FakePool)
-		workerPolling := 1 * time.Second
-		workerStatus := 2 * time.Second
+		fakeWorker = new(workerfakes.FakeWorker)
+		fakeWorker.NameReturns("some-worker")
 
-		client = worker.NewClient(fakePool, workerPolling, workerStatus)
+		client = worker.NewClient(fakeWorker)
 	})
 
 	Describe("RunCheckStep", func() {
 		var (
 			containerSpec     worker.ContainerSpec
-			workerSpec        worker.WorkerSpec
 			result            worker.CheckResult
 			err, expectedErr  error
 			fakeResource      *resourcefakes.FakeResource
@@ -68,10 +61,6 @@ var _ = Describe("Client", func() {
 				},
 				Dir: "some-artifact-root",
 			}
-			workerSpec = worker.WorkerSpec{
-				Platform: "some-platform",
-				Tags:     []string{"step", "tags"},
-			}
 			fakeProcessSpec = runtime.ProcessSpec{
 				Path:         "/opt/resource/out",
 				StdoutWriter: stdout,
@@ -81,14 +70,11 @@ var _ = Describe("Client", func() {
 
 		JustBeforeEach(func() {
 			owner := new(dbfakes.FakeContainerOwner)
-			fakeStrategy := new(workerfakes.FakeContainerPlacementStrategy)
 
 			result, err = client.RunCheckStep(
 				context.Background(),
 				owner,
 				containerSpec,
-				workerSpec,
-				fakeStrategy,
 				metadata,
 				fakeProcessSpec,
 				fakeEventDelegate,
@@ -96,100 +82,71 @@ var _ = Describe("Client", func() {
 			)
 		})
 
-		Context("faling to find worker for container", func() {
+		Context("failing to find or create container in the worker", func() {
 			BeforeEach(func() {
-				expectedErr = errors.New("find-worker-err")
-
-				fakePool.FindOrChooseWorkerForContainerReturns(nil, expectedErr)
+				expectedErr = errors.New("find-or-create-container-err")
+				fakeWorker.FindOrCreateContainerReturns(nil, expectedErr)
 			})
 
 			It("errors", func() {
-				Expect(err).To(HaveOccurred())
 				Expect(errors.Is(err, expectedErr)).To(BeTrue())
 			})
 		})
 
-		Context("having found a worker", func() {
-			var fakeWorker *workerfakes.FakeWorker
+		Context("having found a container", func() {
+			var fakeContainer *workerfakes.FakeContainer
 
 			BeforeEach(func() {
-				fakeWorker = new(workerfakes.FakeWorker)
-				fakeWorker.NameReturns("some-worker")
-				fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
+				fakeContainer = new(workerfakes.FakeContainer)
+				fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 			})
 
-			Context("failing to find or create container in the worker", func() {
+			It("uses the right executable path in the proc spec", func() {
+				_, processSpec, _ := fakeResource.CheckArgsForCall(0)
+
+				Expect(processSpec).To(Equal(fakeProcessSpec))
+			})
+
+			It("uses the container as the runner", func() {
+				_, _, container := fakeResource.CheckArgsForCall(0)
+
+				Expect(container).To(Equal(fakeContainer))
+			})
+
+			Context("prior to running the check", func() {
 				BeforeEach(func() {
-					expectedErr = errors.New("find-or-create-container-err")
-					fakeWorker.FindOrCreateContainerReturns(nil, expectedErr)
+					fakeEventDelegate.StartingStub = func(lager.Logger) {
+						Expect(fakeResource.CheckCallCount()).To(Equal(0))
+						return
+					}
+				})
+
+				It("invokes the Starting Event on the delegate", func() {
+					Expect(fakeEventDelegate.StartingCallCount()).Should((Equal(1)))
+				})
+			})
+
+			Context("succeeding", func() {
+				BeforeEach(func() {
+					fakeResource.CheckReturns([]atc.Version{
+						{"version": "1"},
+					}, nil)
+				})
+
+				It("returns the versions", func() {
+					Expect(result.Versions).To(HaveLen(1))
+					Expect(result.Versions[0]).To(Equal(atc.Version{"version": "1"}))
+				})
+			})
+
+			Context("check erroring", func() {
+				BeforeEach(func() {
+					expectedErr = errors.New("check-err")
+					fakeResource.CheckReturns(nil, expectedErr)
 				})
 
 				It("errors", func() {
 					Expect(errors.Is(err, expectedErr)).To(BeTrue())
-				})
-			})
-
-			Context("having found a container", func() {
-				var fakeContainer *workerfakes.FakeContainer
-
-				BeforeEach(func() {
-					fakeContainer = new(workerfakes.FakeContainer)
-					fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
-				})
-
-				It("emits a selected worker event", func() {
-					Expect(fakeEventDelegate.SelectedWorkerCallCount()).To(Equal(1))
-					_, name := fakeEventDelegate.SelectedWorkerArgsForCall(0)
-					Expect(name).To(Equal("some-worker"))
-				})
-
-				It("uses the right executable path in the proc spec", func() {
-					_, processSpec, _ := fakeResource.CheckArgsForCall(0)
-
-					Expect(processSpec).To(Equal(fakeProcessSpec))
-				})
-
-				It("uses the container as the runner", func() {
-					_, _, container := fakeResource.CheckArgsForCall(0)
-
-					Expect(container).To(Equal(fakeContainer))
-				})
-
-				Context("prior to running the check", func() {
-					BeforeEach(func() {
-						fakeEventDelegate.StartingStub = func(lager.Logger) {
-							Expect(fakeResource.CheckCallCount()).To(Equal(0))
-							return
-						}
-					})
-
-					It("invokes the Starting Event on the delegate", func() {
-						Expect(fakeEventDelegate.StartingCallCount()).Should((Equal(1)))
-					})
-				})
-
-				Context("succeeding", func() {
-					BeforeEach(func() {
-						fakeResource.CheckReturns([]atc.Version{
-							{"version": "1"},
-						}, nil)
-					})
-
-					It("returns the versions", func() {
-						Expect(result.Versions).To(HaveLen(1))
-						Expect(result.Versions[0]).To(Equal(atc.Version{"version": "1"}))
-					})
-				})
-
-				Context("check erroring", func() {
-					BeforeEach(func() {
-						expectedErr = errors.New("check-err")
-						fakeResource.CheckReturns(nil, expectedErr)
-					})
-
-					It("errors", func() {
-						Expect(errors.Is(err, expectedErr)).To(BeTrue())
-					})
 				})
 			})
 		})
@@ -201,19 +158,13 @@ var _ = Describe("Client", func() {
 			ctx                   context.Context
 			owner                 db.ContainerOwner
 			containerSpec         worker.ContainerSpec
-			workerSpec            worker.WorkerSpec
 			metadata              db.ContainerMetadata
-			fakeChosenWorker      *workerfakes.FakeWorker
-			fakeStrategy          *workerfakes.FakeContainerPlacementStrategy
 			fakeEventDelegate     *runtimefakes.FakeStartingEventDelegate
-			fakeContainer         *workerfakes.FakeContainer
 			fakeProcessSpec       runtime.ProcessSpec
 			fakeResource          *resourcefakes.FakeResource
 			fakeUsedResourceCache *dbfakes.FakeUsedResourceCache
 
 			err error
-
-			disasterErr error
 
 			result worker.GetResult
 		)
@@ -229,17 +180,9 @@ var _ = Describe("Client", func() {
 				},
 				Dir: "some-artifact-root",
 			}
-			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
-			workerSpec = worker.WorkerSpec{
-				Platform: "some-platform",
-				Tags:     []string{"step", "tags"},
-			}
-			fakeChosenWorker = new(workerfakes.FakeWorker)
 			fakeEventDelegate = new(runtimefakes.FakeStartingEventDelegate)
 
 			fakeResource = new(resourcefakes.FakeResource)
-			fakeContainer = new(workerfakes.FakeContainer)
-			disasterErr = errors.New("oh no")
 			stdout := new(gbytes.Buffer)
 			stderr := new(gbytes.Buffer)
 			fakeProcessSpec = runtime.ProcessSpec{
@@ -248,13 +191,6 @@ var _ = Describe("Client", func() {
 				StderrWriter: stderr,
 			}
 			fakeUsedResourceCache = new(dbfakes.FakeUsedResourceCache)
-
-			fakeChosenWorker = new(workerfakes.FakeWorker)
-			fakeChosenWorker.NameReturns("some-worker")
-			fakeChosenWorker.SatisfiesReturns(true)
-			fakeChosenWorker.FindOrCreateContainerReturns(fakeContainer, nil)
-			fakePool.FindOrChooseWorkerForContainerReturns(fakeChosenWorker, nil)
-
 		})
 
 		JustBeforeEach(func() {
@@ -262,8 +198,6 @@ var _ = Describe("Client", func() {
 				ctx,
 				owner,
 				containerSpec,
-				workerSpec,
-				fakeStrategy,
 				metadata,
 				fakeProcessSpec,
 				fakeEventDelegate,
@@ -272,57 +206,11 @@ var _ = Describe("Client", func() {
 			)
 		})
 
-		It("finds/chooses a worker", func() {
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
-
-			_, _, actualOwner, actualContainerSpec, actualWorkerSpec, actualStrategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
-			Expect(actualOwner).To(Equal(owner))
-			Expect(actualContainerSpec).To(Equal(containerSpec))
-			Expect(actualWorkerSpec).To(Equal(workerSpec))
-			Expect(actualStrategy).To(Equal(fakeStrategy))
+		It("invokes the Starting event on the delegate", func() {
+			Expect(fakeEventDelegate.StartingCallCount()).To(Equal(1))
 		})
 
-		It("invokes the SelectedWorker Event on the delegate", func() {
-			Expect(fakeEventDelegate.SelectedWorkerCallCount()).Should((Equal(1)))
-		})
-
-		Context("worker is chosen", func() {
-			It("invokes the Starting Event on the delegate", func() {
-				Expect(fakeEventDelegate.StartingCallCount()).Should((Equal(1)))
-			})
-
-			It("calls Fetch on the worker", func() {
-				Expect(fakeChosenWorker.FetchCallCount()).To(Equal(1))
-				_, _, actualMetadata, actualChosenWorker, actualContainerSpec, actualProcessSpec, actualResource, actualOwner, actualResourceCache, actualLockName := fakeChosenWorker.FetchArgsForCall(0)
-
-				Expect(actualMetadata).To(Equal(metadata))
-				Expect(actualChosenWorker).To(Equal(fakeChosenWorker))
-				Expect(actualContainerSpec).To(Equal(containerSpec))
-				Expect(actualProcessSpec).To(Equal(fakeProcessSpec))
-				Expect(actualResource).To(Equal(fakeResource))
-				Expect(actualOwner).To(Equal(owner))
-				Expect(actualResourceCache).To(Equal(fakeUsedResourceCache))
-				// Computed SHA
-				Expect(actualLockName).To(Equal("18c3de3f8ea112ba52e01f279b6cc62335b4bec2f359b9be7636a5ad7bf98f8c"))
-			})
-		})
-
-		Context("Worker selection returns an error", func() {
-			BeforeEach(func() {
-				fakePool.FindOrChooseWorkerForContainerReturns(nil, disasterErr)
-			})
-
-			It("Returns the error", func() {
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(Equal(disasterErr))
-
-				Expect(result).To(Equal(worker.GetResult{}))
-			})
-		})
-
-		Context("Calling chosenWorker.Fetch", func() {
+		Describe("Fetch", func() {
 			var (
 				someError     error
 				someGetResult worker.GetResult
@@ -338,8 +226,24 @@ var _ = Describe("Client", func() {
 				}
 				someError = errors.New("some-foo-error")
 				fakeVolume = new(workerfakes.FakeVolume)
-				fakeChosenWorker.FetchReturns(someGetResult, fakeVolume, someError)
+				fakeWorker.FetchReturns(someGetResult, fakeVolume, someError)
 			})
+
+			It("calls Fetch with the correct args", func() {
+				Expect(fakeWorker.FetchCallCount()).To(Equal(1))
+				_, _, actualMetadata, actualWorker, actualContainerSpec, actualProcessSpec, actualResource, actualOwner, actualResourceCache, actualLockName := fakeWorker.FetchArgsForCall(0)
+
+				Expect(actualMetadata).To(Equal(metadata))
+				Expect(actualWorker).To(Equal(fakeWorker))
+				Expect(actualContainerSpec).To(Equal(containerSpec))
+				Expect(actualProcessSpec).To(Equal(fakeProcessSpec))
+				Expect(actualResource).To(Equal(fakeResource))
+				Expect(actualOwner).To(Equal(owner))
+				Expect(actualResourceCache).To(Equal(fakeUsedResourceCache))
+				// Computed SHA
+				Expect(actualLockName).To(Equal("18c3de3f8ea112ba52e01f279b6cc62335b4bec2f359b9be7636a5ad7bf98f8c"))
+			})
+
 			It("returns getResult & err", func() {
 				Expect(result).To(Equal(someGetResult))
 				Expect(err).To(Equal(someError))
@@ -355,11 +259,8 @@ var _ = Describe("Client", func() {
 			taskResult   worker.TaskResult
 			err          error
 
-			fakeWorker          *workerfakes.FakeWorker
 			fakeContainerOwner  db.ContainerOwner
-			fakeWorkerSpec      worker.WorkerSpec
 			fakeContainerSpec   worker.ContainerSpec
-			fakeStrategy        *workerfakes.FakeContainerPlacementStrategy
 			fakeMetadata        db.ContainerMetadata
 			fakeTaskProcessSpec runtime.ProcessSpec
 			fakeContainer       *workerfakes.FakeContainer
@@ -381,10 +282,6 @@ var _ = Describe("Client", func() {
 				planId,
 				teamId,
 			)
-			fakeWorkerSpec = worker.WorkerSpec{
-				Platform: "some-platform",
-				Tags:     []string{"step", "tags"},
-			}
 			fakeContainerSpec = worker.ContainerSpec{
 				TeamID: 123,
 				ImageSpec: worker.ImageSpec{
@@ -400,7 +297,6 @@ var _ = Describe("Client", func() {
 				Inputs:  inputSources,
 				Outputs: worker.OutputPaths{},
 			}
-			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
 			fakeMetadata = db.ContainerMetadata{
 				WorkingDirectory: "some-artifact-root",
 				Type:             db.ContainerTypeTask,
@@ -415,29 +311,10 @@ var _ = Describe("Client", func() {
 			}
 			fakeContainer = new(workerfakes.FakeContainer)
 			fakeContainer.PropertiesReturns(garden.Properties{"concourse:exit-status": "0"}, nil)
-
-			fakeWorker = new(workerfakes.FakeWorker)
-			fakeWorker.NameReturns("some-worker")
-			fakeWorker.SatisfiesReturns(true)
 			fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
-
-			fakeWorker.IncreaseActiveTasksStub = func() error {
-				fakeWorker.ActiveTasksReturns(1, nil)
-				return nil
-			}
-
-			fakeWorker.DecreaseActiveTasksStub = func() error {
-				fakeWorker.ActiveTasksReturns(0, nil)
-				return nil
-			}
 
 			fakeEventDelegate = new(runtimefakes.FakeStartingEventDelegate)
 
-			fakeLockFactory = new(lockfakes.FakeLockFactory)
-			fakeLock = new(lockfakes.FakeLock)
-			fakeLockFactory.AcquireReturns(fakeLock, true, nil)
-
-			fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
 			ctx, cancel = context.WithCancel(context.Background())
 		})
 
@@ -446,111 +323,12 @@ var _ = Describe("Client", func() {
 				ctx,
 				fakeContainerOwner,
 				fakeContainerSpec,
-				fakeWorkerSpec,
-				fakeStrategy,
 				fakeMetadata,
 				fakeTaskProcessSpec,
 				fakeEventDelegate,
-				fakeLockFactory,
 			)
 			status = taskResult.ExitStatus
 			volumeMounts = taskResult.VolumeMounts
-		})
-
-		Context("choosing a worker", func() {
-			BeforeEach(func() {
-				// later fakes are uninitialized
-				fakeContainer.PropertiesReturns(garden.Properties{"concourse:exit-status": "3"}, nil)
-			})
-
-			It("chooses a worker", func() {
-				Expect(err).ToNot(HaveOccurred())
-				Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
-				_, actualWorkerName := fakeEventDelegate.SelectedWorkerArgsForCall(0)
-				Expect(actualWorkerName).To(Equal(fakeWorker.Name()))
-			})
-
-			It("invokes the SelectedWorker Event on the delegate", func() {
-				Expect(fakeEventDelegate.SelectedWorkerCallCount()).Should((Equal(1)))
-			})
-
-			Context("when 'limit-active-tasks' strategy is chosen", func() {
-				BeforeEach(func() {
-					fakeStrategy.ModifiesActiveTasksReturns(true)
-				})
-				Context("when a worker is found", func() {
-					BeforeEach(func() {
-						fakeWorker.NameReturns("some-worker")
-						fakePool.FindOrChooseWorkerForContainerReturns(fakeWorker, nil)
-
-						fakeContainer := new(workerfakes.FakeContainer)
-						fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
-						fakeContainer.PropertiesReturns(garden.Properties{"concourse:exit-status": "0"}, nil)
-					})
-					It("increase the active tasks on the worker", func() {
-						Expect(fakeWorker.IncreaseActiveTasksCallCount()).To(Equal(1))
-					})
-
-					Context("when the container is already present on the worker", func() {
-						BeforeEach(func() {
-							fakePool.ContainerInWorkerReturns(true, nil)
-						})
-						It("does not increase the active tasks on the worker", func() {
-							Expect(fakeWorker.IncreaseActiveTasksCallCount()).To(Equal(0))
-						})
-					})
-				})
-
-				Context("when the task is aborted waiting for an available worker", func() {
-					BeforeEach(func() {
-						cancel()
-					})
-					It("exits releasing the lock", func() {
-						Expect(err.Error()).To(ContainSubstring(context.Canceled.Error()))
-						Expect(fakeLock.ReleaseCallCount()).To(Equal(fakeLockFactory.AcquireCallCount()))
-					})
-				})
-
-				Context("when a container in worker returns an error", func() {
-					BeforeEach(func() {
-						fakePool.ContainerInWorkerReturns(false, errors.New("nope"))
-					})
-					It("release the task-step lock every time it acquires it", func() {
-						Expect(fakeLock.ReleaseCallCount()).To(Equal(fakeLockFactory.AcquireCallCount()))
-					})
-				})
-
-				Context("when no worker is available", func() {
-					BeforeEach(func() {
-						fakePool.FindOrChooseWorkerForContainerReturns(nil,
-							worker.NoWorkerFitContainerPlacementStrategyError{})
-						// To avoid getting stuck waiting, abort the build
-						cancel()
-					})
-					It("waits for a worker to become available", func() {
-						errors, ok := err.(*multierror.Error)
-						Expect(ok).To(BeTrue(), "error type should be multierror. Only becomes multierror when strategy is limit active tasks")
-						Expect(errors.Errors).To(Not(ContainElement(MatchError("no worker fit container placement strategy"))))
-					})
-				})
-			})
-
-			Context("when finding or choosing the worker errors", func() {
-				workerDisaster := errors.New("worker selection errored")
-
-				BeforeEach(func() {
-					fakePool.FindOrChooseWorkerForContainerReturns(nil, workerDisaster)
-				})
-
-				It("returns the error", func() {
-					Expect(err).To(Equal(workerDisaster))
-				})
-
-				It("should not invokes the SelectedWorker Event on the delegate", func() {
-					Expect(fakeEventDelegate.SelectedWorkerCallCount()).Should((Equal(0)))
-				})
-			})
-
 		})
 
 		It("finds or creates a container", func() {
@@ -578,16 +356,6 @@ var _ = Describe("Client", func() {
 			It("returns result of container process", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(status).To(Equal(8))
-			})
-
-			Context("when 'limit-active-tasks' strategy is chosen", func() {
-				BeforeEach(func() {
-					fakeStrategy.ModifiesActiveTasksReturns(true)
-				})
-
-				It("decrements the active tasks counter on the worker", func() {
-					Expect(fakeWorker.ActiveTasks()).To(Equal(0))
-				})
 			})
 
 			Context("when volumes are configured and present on the container", func() {
@@ -756,16 +524,6 @@ var _ = Describe("Client", func() {
 							Expect(err).To(Equal(context.Canceled))
 						})
 					})
-
-					Context("when 'limit-active-tasks' strategy is chosen", func() {
-						BeforeEach(func() {
-							fakeStrategy.ModifiesActiveTasksReturns(true)
-						})
-
-						It("decrements the active tasks counter on the worker", func() {
-							Expect(fakeWorker.ActiveTasks()).To(Equal(0))
-						})
-					})
 				})
 
 				Context("when the process exits successfully", func() {
@@ -794,16 +552,6 @@ var _ = Describe("Client", func() {
 							},
 						))
 					})
-
-					Context("when 'limit-active-tasks' strategy is chosen", func() {
-						BeforeEach(func() {
-							fakeStrategy.ModifiesActiveTasksReturns(true)
-						})
-
-						It("decrements the active tasks counter on the worker", func() {
-							Expect(fakeWorker.ActiveTasks()).To(Equal(0))
-						})
-					})
 				})
 
 				Context("when the process exits with an error", func() {
@@ -820,16 +568,6 @@ var _ = Describe("Client", func() {
 
 					It("returns no volume mounts", func() {
 						Expect(volumeMounts).To(BeEmpty())
-					})
-
-					Context("when 'limit-active-tasks' strategy is chosen", func() {
-						BeforeEach(func() {
-							fakeStrategy.ModifiesActiveTasksReturns(true)
-						})
-
-						It("decrements the active tasks counter on the worker", func() {
-							Expect(fakeWorker.ActiveTasks()).To(Equal(0))
-						})
 					})
 				})
 			})
@@ -1005,16 +743,6 @@ var _ = Describe("Client", func() {
 						})
 
 					})
-
-					Context("when 'limit-active-tasks' strategy is chosen", func() {
-						BeforeEach(func() {
-							fakeStrategy.ModifiesActiveTasksReturns(true)
-						})
-
-						It("decrements the active tasks counter on the worker", func() {
-							Expect(fakeWorker.ActiveTasks()).To(Equal(0))
-						})
-					})
 				})
 
 				Context("when the process exits on failure", func() {
@@ -1081,16 +809,6 @@ var _ = Describe("Client", func() {
 							},
 						))
 					})
-
-					Context("when 'limit-active-tasks' strategy is chosen", func() {
-						BeforeEach(func() {
-							fakeStrategy.ModifiesActiveTasksReturns(true)
-						})
-
-						It("decrements the active tasks counter on the worker", func() {
-							Expect(fakeWorker.ActiveTasks()).To(Equal(0))
-						})
-					})
 				})
 
 				Context("when running the container fails with an error", func() {
@@ -1103,16 +821,6 @@ var _ = Describe("Client", func() {
 					It("returns the error", func() {
 						Expect(err).To(Equal(disaster))
 					})
-
-					Context("when 'limit-active-tasks' strategy is chosen", func() {
-						BeforeEach(func() {
-							fakeStrategy.ModifiesActiveTasksReturns(true)
-						})
-
-						It("decrements the active tasks counter on the worker", func() {
-							Expect(fakeWorker.ActiveTasks()).To(Equal(0))
-						})
-					})
 				})
 			})
 		})
@@ -1124,10 +832,7 @@ var _ = Describe("Client", func() {
 			ctx               context.Context
 			owner             db.ContainerOwner
 			containerSpec     worker.ContainerSpec
-			workerSpec        worker.WorkerSpec
 			metadata          db.ContainerMetadata
-			fakeChosenWorker  *workerfakes.FakeWorker
-			fakeStrategy      *workerfakes.FakeContainerPlacementStrategy
 			fakeEventDelegate *runtimefakes.FakeStartingEventDelegate
 			fakeContainer     *workerfakes.FakeContainer
 			fakeProcessSpec   runtime.ProcessSpec
@@ -1152,15 +857,11 @@ var _ = Describe("Client", func() {
 				},
 				Dir: "some-artifact-root",
 			}
-			fakeStrategy = new(workerfakes.FakeContainerPlacementStrategy)
-			workerSpec = worker.WorkerSpec{
-				Platform: "some-platform",
-				Tags:     []string{"step", "tags"},
-			}
-			fakeChosenWorker = new(workerfakes.FakeWorker)
 			fakeEventDelegate = new(runtimefakes.FakeStartingEventDelegate)
 
 			fakeContainer = new(workerfakes.FakeContainer)
+			fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
+
 			disasterErr = errors.New("oh no")
 			stdout := new(gbytes.Buffer)
 			stderr := new(gbytes.Buffer)
@@ -1170,13 +871,6 @@ var _ = Describe("Client", func() {
 				StderrWriter: stderr,
 			}
 			fakeResource = new(resourcefakes.FakeResource)
-
-			fakeChosenWorker = new(workerfakes.FakeWorker)
-			fakeChosenWorker.NameReturns("some-worker")
-			fakeChosenWorker.SatisfiesReturns(true)
-			fakeChosenWorker.FindOrCreateContainerReturns(fakeContainer, nil)
-			fakePool.FindOrChooseWorkerForContainerReturns(fakeChosenWorker, nil)
-
 		})
 
 		JustBeforeEach(func() {
@@ -1184,8 +878,6 @@ var _ = Describe("Client", func() {
 				ctx,
 				owner,
 				containerSpec,
-				workerSpec,
-				fakeStrategy,
 				metadata,
 				fakeProcessSpec,
 				fakeEventDelegate,
@@ -1195,48 +887,18 @@ var _ = Describe("Client", func() {
 			status = result.ExitStatus
 		})
 
-		It("finds/chooses a worker", func() {
-			Expect(fakePool.FindOrChooseWorkerForContainerCallCount()).To(Equal(1))
+		It("finds or creates a put container on the worker", func() {
+			Expect(fakeWorker.FindOrCreateContainerCallCount()).To(Equal(1))
+			_, _, actualOwner, actualMetadata, actualContainerSpec := fakeWorker.FindOrCreateContainerArgsForCall(0)
 
-			_, _, actualOwner, actualContainerSpec, actualWorkerSpec, strategy := fakePool.FindOrChooseWorkerForContainerArgsForCall(0)
-			Expect(actualOwner).To(Equal(owner))
 			Expect(actualContainerSpec).To(Equal(containerSpec))
-			Expect(actualWorkerSpec).To(Equal(workerSpec))
-			Expect(strategy).To(Equal(fakeStrategy))
-		})
-
-		It("invokes the SelectedWorker Event on the delegate", func() {
-			Expect(fakeEventDelegate.SelectedWorkerCallCount()).Should((Equal(1)))
-			_, actualWorkerName := fakeEventDelegate.SelectedWorkerArgsForCall(0)
-			Expect(actualWorkerName).To(Equal(fakeChosenWorker.Name()))
-		})
-
-		Context("worker is chosen", func() {
-			It("finds or creates a put container on that worker", func() {
-				Expect(fakeChosenWorker.FindOrCreateContainerCallCount()).To(Equal(1))
-				_, _, actualOwner, actualMetadata, actualContainerSpec := fakeChosenWorker.FindOrCreateContainerArgsForCall(0)
-
-				Expect(actualContainerSpec).To(Equal(containerSpec))
-				Expect(actualOwner).To(Equal(owner))
-				Expect(actualMetadata).To(Equal(metadata))
-			})
-		})
-
-		Context("worker selection returns an error", func() {
-			BeforeEach(func() {
-				fakePool.FindOrChooseWorkerForContainerReturns(nil, disasterErr)
-			})
-
-			It("returns the error", func() {
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(Equal(disasterErr))
-				Expect(versionResult).To(Equal(runtime.VersionResult{}))
-			})
+			Expect(actualOwner).To(Equal(owner))
+			Expect(actualMetadata).To(Equal(metadata))
 		})
 
 		Context("found a container that has run resource.Put and exited", func() {
 			BeforeEach(func() {
-				fakeChosenWorker.FindOrCreateContainerReturns(fakeContainer, nil)
+				fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 				fakeContainer.PropertyStub = func(prop string) (result string, err error) {
 					if prop == "concourse:exit-status" {
 						return "8", nil
@@ -1257,7 +919,7 @@ var _ = Describe("Client", func() {
 
 		Context("calling resource.Put", func() {
 			BeforeEach(func() {
-				fakeChosenWorker.FindOrCreateContainerReturns(fakeContainer, nil)
+				fakeWorker.FindOrCreateContainerReturns(fakeContainer, nil)
 				fakeContainer.PropertyReturns("0", fmt.Errorf("property not found"))
 			})
 
@@ -1330,7 +992,7 @@ var _ = Describe("Client", func() {
 
 		Context("worker.FindOrCreateContainer errored", func() {
 			BeforeEach(func() {
-				fakeChosenWorker.FindOrCreateContainerReturns(nil, disasterErr)
+				fakeWorker.FindOrCreateContainerReturns(nil, disasterErr)
 			})
 
 			It("returns the error immediately", func() {

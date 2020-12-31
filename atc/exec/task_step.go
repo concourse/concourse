@@ -14,7 +14,6 @@ import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
@@ -22,6 +21,9 @@ import (
 	"github.com/concourse/concourse/vars"
 	"go.opentelemetry.io/otel/api/trace"
 )
+
+const workerAvailabilityPollingInterval = 5 * time.Second
+const workerStatusPublishInterval = 1 * time.Minute
 
 // MissingInputsError is returned when any of the task's required inputs are
 // missing.
@@ -72,7 +74,8 @@ type TaskDelegate interface {
 
 	Initializing(lager.Logger)
 	Starting(lager.Logger)
-	Finished(lager.Logger, ExitStatus)
+	Finished(lager.Logger, ExitStatus, worker.ContainerPlacementStrategy, worker.Client)
+	SelectWorker(context.Context, worker.Pool, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, time.Duration, time.Duration) (worker.Client, error)
 	SelectedWorker(lager.Logger, string)
 	Errored(lager.Logger, string)
 }
@@ -86,12 +89,11 @@ type TaskStep struct {
 	metadata          StepMetadata
 	containerMetadata db.ContainerMetadata
 	strategy          worker.ContainerPlacementStrategy
-	workerClient      worker.Client
 	workerPool        worker.Pool
 	artifactSourcer   worker.ArtifactSourcer
 	artifactStreamer  worker.ArtifactStreamer
 	delegateFactory   TaskDelegateFactory
-	lockFactory       lock.LockFactory
+	dbWorkerFactory   db.WorkerFactory
 }
 
 func NewTaskStep(
@@ -101,12 +103,10 @@ func NewTaskStep(
 	metadata StepMetadata,
 	containerMetadata db.ContainerMetadata,
 	strategy worker.ContainerPlacementStrategy,
-	workerClient worker.Client,
 	workerPool worker.Pool,
 	artifactStreamer worker.ArtifactStreamer,
 	artifactSourcer worker.ArtifactSourcer,
 	delegateFactory TaskDelegateFactory,
-	lockFactory lock.LockFactory,
 ) Step {
 	return &TaskStep{
 		planID:            planID,
@@ -115,12 +115,10 @@ func NewTaskStep(
 		metadata:          metadata,
 		containerMetadata: containerMetadata,
 		strategy:          strategy,
-		workerClient:      workerClient,
 		workerPool:        workerPool,
 		artifactStreamer:  artifactStreamer,
 		artifactSourcer:   artifactSourcer,
 		delegateFactory:   delegateFactory,
-		lockFactory:       lockFactory,
 	}
 }
 
@@ -261,16 +259,27 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		defer cancel()
 	}
 
-	result, runErr := step.workerClient.RunTaskStep(
+	chosenWorker, err := delegate.SelectWorker(
 		lagerctx.NewContext(processCtx, logger),
+		step.workerPool,
 		owner,
 		containerSpec,
 		step.workerSpec(config),
 		step.strategy,
+		workerAvailabilityPollingInterval, workerStatusPublishInterval,
+	)
+	if err != nil {
+		return false, err
+	}
+	delegate.SelectedWorker(logger, chosenWorker.Name())
+
+	result, runErr := chosenWorker.RunTaskStep(
+		lagerctx.NewContext(processCtx, logger),
+		owner,
+		containerSpec,
 		step.containerMetadata,
 		processSpec,
 		delegate,
-		step.lockFactory,
 	)
 
 	step.registerOutputs(logger, repository, config, result.VolumeMounts, step.containerMetadata)
@@ -291,7 +300,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		return false, runErr
 	}
 
-	delegate.Finished(logger, ExitStatus(result.ExitStatus))
+	delegate.Finished(logger, ExitStatus(result.ExitStatus), step.strategy, chosenWorker)
 	return result.ExitStatus == 0, nil
 }
 

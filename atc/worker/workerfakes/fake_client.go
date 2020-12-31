@@ -6,25 +6,32 @@ import (
 	"sync"
 
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 )
 
 type FakeClient struct {
-	RunCheckStepStub        func(context.Context, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, resource.Resource) (worker.CheckResult, error)
+	NameStub        func() string
+	nameMutex       sync.RWMutex
+	nameArgsForCall []struct {
+	}
+	nameReturns struct {
+		result1 string
+	}
+	nameReturnsOnCall map[int]struct {
+		result1 string
+	}
+	RunCheckStepStub        func(context.Context, db.ContainerOwner, worker.ContainerSpec, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, resource.Resource) (worker.CheckResult, error)
 	runCheckStepMutex       sync.RWMutex
 	runCheckStepArgsForCall []struct {
 		arg1 context.Context
 		arg2 db.ContainerOwner
 		arg3 worker.ContainerSpec
-		arg4 worker.WorkerSpec
-		arg5 worker.ContainerPlacementStrategy
-		arg6 db.ContainerMetadata
-		arg7 runtime.ProcessSpec
-		arg8 runtime.StartingEventDelegate
-		arg9 resource.Resource
+		arg4 db.ContainerMetadata
+		arg5 runtime.ProcessSpec
+		arg6 runtime.StartingEventDelegate
+		arg7 resource.Resource
 	}
 	runCheckStepReturns struct {
 		result1 worker.CheckResult
@@ -34,19 +41,17 @@ type FakeClient struct {
 		result1 worker.CheckResult
 		result2 error
 	}
-	RunGetStepStub        func(context.Context, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, db.UsedResourceCache, resource.Resource) (worker.GetResult, error)
+	RunGetStepStub        func(context.Context, db.ContainerOwner, worker.ContainerSpec, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, db.UsedResourceCache, resource.Resource) (worker.GetResult, error)
 	runGetStepMutex       sync.RWMutex
 	runGetStepArgsForCall []struct {
-		arg1  context.Context
-		arg2  db.ContainerOwner
-		arg3  worker.ContainerSpec
-		arg4  worker.WorkerSpec
-		arg5  worker.ContainerPlacementStrategy
-		arg6  db.ContainerMetadata
-		arg7  runtime.ProcessSpec
-		arg8  runtime.StartingEventDelegate
-		arg9  db.UsedResourceCache
-		arg10 resource.Resource
+		arg1 context.Context
+		arg2 db.ContainerOwner
+		arg3 worker.ContainerSpec
+		arg4 db.ContainerMetadata
+		arg5 runtime.ProcessSpec
+		arg6 runtime.StartingEventDelegate
+		arg7 db.UsedResourceCache
+		arg8 resource.Resource
 	}
 	runGetStepReturns struct {
 		result1 worker.GetResult
@@ -56,18 +61,16 @@ type FakeClient struct {
 		result1 worker.GetResult
 		result2 error
 	}
-	RunPutStepStub        func(context.Context, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, resource.Resource) (worker.PutResult, error)
+	RunPutStepStub        func(context.Context, db.ContainerOwner, worker.ContainerSpec, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, resource.Resource) (worker.PutResult, error)
 	runPutStepMutex       sync.RWMutex
 	runPutStepArgsForCall []struct {
 		arg1 context.Context
 		arg2 db.ContainerOwner
 		arg3 worker.ContainerSpec
-		arg4 worker.WorkerSpec
-		arg5 worker.ContainerPlacementStrategy
-		arg6 db.ContainerMetadata
-		arg7 runtime.ProcessSpec
-		arg8 runtime.StartingEventDelegate
-		arg9 resource.Resource
+		arg4 db.ContainerMetadata
+		arg5 runtime.ProcessSpec
+		arg6 runtime.StartingEventDelegate
+		arg7 resource.Resource
 	}
 	runPutStepReturns struct {
 		result1 worker.PutResult
@@ -77,18 +80,15 @@ type FakeClient struct {
 		result1 worker.PutResult
 		result2 error
 	}
-	RunTaskStepStub        func(context.Context, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, lock.LockFactory) (worker.TaskResult, error)
+	RunTaskStepStub        func(context.Context, db.ContainerOwner, worker.ContainerSpec, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate) (worker.TaskResult, error)
 	runTaskStepMutex       sync.RWMutex
 	runTaskStepArgsForCall []struct {
 		arg1 context.Context
 		arg2 db.ContainerOwner
 		arg3 worker.ContainerSpec
-		arg4 worker.WorkerSpec
-		arg5 worker.ContainerPlacementStrategy
-		arg6 db.ContainerMetadata
-		arg7 runtime.ProcessSpec
-		arg8 runtime.StartingEventDelegate
-		arg9 lock.LockFactory
+		arg4 db.ContainerMetadata
+		arg5 runtime.ProcessSpec
+		arg6 runtime.StartingEventDelegate
 	}
 	runTaskStepReturns struct {
 		result1 worker.TaskResult
@@ -102,24 +102,74 @@ type FakeClient struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeClient) RunCheckStep(arg1 context.Context, arg2 db.ContainerOwner, arg3 worker.ContainerSpec, arg4 worker.WorkerSpec, arg5 worker.ContainerPlacementStrategy, arg6 db.ContainerMetadata, arg7 runtime.ProcessSpec, arg8 runtime.StartingEventDelegate, arg9 resource.Resource) (worker.CheckResult, error) {
+func (fake *FakeClient) Name() string {
+	fake.nameMutex.Lock()
+	ret, specificReturn := fake.nameReturnsOnCall[len(fake.nameArgsForCall)]
+	fake.nameArgsForCall = append(fake.nameArgsForCall, struct {
+	}{})
+	fake.recordInvocation("Name", []interface{}{})
+	fake.nameMutex.Unlock()
+	if fake.NameStub != nil {
+		return fake.NameStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.nameReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeClient) NameCallCount() int {
+	fake.nameMutex.RLock()
+	defer fake.nameMutex.RUnlock()
+	return len(fake.nameArgsForCall)
+}
+
+func (fake *FakeClient) NameCalls(stub func() string) {
+	fake.nameMutex.Lock()
+	defer fake.nameMutex.Unlock()
+	fake.NameStub = stub
+}
+
+func (fake *FakeClient) NameReturns(result1 string) {
+	fake.nameMutex.Lock()
+	defer fake.nameMutex.Unlock()
+	fake.NameStub = nil
+	fake.nameReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeClient) NameReturnsOnCall(i int, result1 string) {
+	fake.nameMutex.Lock()
+	defer fake.nameMutex.Unlock()
+	fake.NameStub = nil
+	if fake.nameReturnsOnCall == nil {
+		fake.nameReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.nameReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeClient) RunCheckStep(arg1 context.Context, arg2 db.ContainerOwner, arg3 worker.ContainerSpec, arg4 db.ContainerMetadata, arg5 runtime.ProcessSpec, arg6 runtime.StartingEventDelegate, arg7 resource.Resource) (worker.CheckResult, error) {
 	fake.runCheckStepMutex.Lock()
 	ret, specificReturn := fake.runCheckStepReturnsOnCall[len(fake.runCheckStepArgsForCall)]
 	fake.runCheckStepArgsForCall = append(fake.runCheckStepArgsForCall, struct {
 		arg1 context.Context
 		arg2 db.ContainerOwner
 		arg3 worker.ContainerSpec
-		arg4 worker.WorkerSpec
-		arg5 worker.ContainerPlacementStrategy
-		arg6 db.ContainerMetadata
-		arg7 runtime.ProcessSpec
-		arg8 runtime.StartingEventDelegate
-		arg9 resource.Resource
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9})
-	fake.recordInvocation("RunCheckStep", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9})
+		arg4 db.ContainerMetadata
+		arg5 runtime.ProcessSpec
+		arg6 runtime.StartingEventDelegate
+		arg7 resource.Resource
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+	fake.recordInvocation("RunCheckStep", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	fake.runCheckStepMutex.Unlock()
 	if fake.RunCheckStepStub != nil {
-		return fake.RunCheckStepStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)
+		return fake.RunCheckStepStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -134,17 +184,17 @@ func (fake *FakeClient) RunCheckStepCallCount() int {
 	return len(fake.runCheckStepArgsForCall)
 }
 
-func (fake *FakeClient) RunCheckStepCalls(stub func(context.Context, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, resource.Resource) (worker.CheckResult, error)) {
+func (fake *FakeClient) RunCheckStepCalls(stub func(context.Context, db.ContainerOwner, worker.ContainerSpec, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, resource.Resource) (worker.CheckResult, error)) {
 	fake.runCheckStepMutex.Lock()
 	defer fake.runCheckStepMutex.Unlock()
 	fake.RunCheckStepStub = stub
 }
 
-func (fake *FakeClient) RunCheckStepArgsForCall(i int) (context.Context, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, resource.Resource) {
+func (fake *FakeClient) RunCheckStepArgsForCall(i int) (context.Context, db.ContainerOwner, worker.ContainerSpec, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, resource.Resource) {
 	fake.runCheckStepMutex.RLock()
 	defer fake.runCheckStepMutex.RUnlock()
 	argsForCall := fake.runCheckStepArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8, argsForCall.arg9
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
 }
 
 func (fake *FakeClient) RunCheckStepReturns(result1 worker.CheckResult, result2 error) {
@@ -173,25 +223,23 @@ func (fake *FakeClient) RunCheckStepReturnsOnCall(i int, result1 worker.CheckRes
 	}{result1, result2}
 }
 
-func (fake *FakeClient) RunGetStep(arg1 context.Context, arg2 db.ContainerOwner, arg3 worker.ContainerSpec, arg4 worker.WorkerSpec, arg5 worker.ContainerPlacementStrategy, arg6 db.ContainerMetadata, arg7 runtime.ProcessSpec, arg8 runtime.StartingEventDelegate, arg9 db.UsedResourceCache, arg10 resource.Resource) (worker.GetResult, error) {
+func (fake *FakeClient) RunGetStep(arg1 context.Context, arg2 db.ContainerOwner, arg3 worker.ContainerSpec, arg4 db.ContainerMetadata, arg5 runtime.ProcessSpec, arg6 runtime.StartingEventDelegate, arg7 db.UsedResourceCache, arg8 resource.Resource) (worker.GetResult, error) {
 	fake.runGetStepMutex.Lock()
 	ret, specificReturn := fake.runGetStepReturnsOnCall[len(fake.runGetStepArgsForCall)]
 	fake.runGetStepArgsForCall = append(fake.runGetStepArgsForCall, struct {
-		arg1  context.Context
-		arg2  db.ContainerOwner
-		arg3  worker.ContainerSpec
-		arg4  worker.WorkerSpec
-		arg5  worker.ContainerPlacementStrategy
-		arg6  db.ContainerMetadata
-		arg7  runtime.ProcessSpec
-		arg8  runtime.StartingEventDelegate
-		arg9  db.UsedResourceCache
-		arg10 resource.Resource
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10})
-	fake.recordInvocation("RunGetStep", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10})
+		arg1 context.Context
+		arg2 db.ContainerOwner
+		arg3 worker.ContainerSpec
+		arg4 db.ContainerMetadata
+		arg5 runtime.ProcessSpec
+		arg6 runtime.StartingEventDelegate
+		arg7 db.UsedResourceCache
+		arg8 resource.Resource
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
+	fake.recordInvocation("RunGetStep", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
 	fake.runGetStepMutex.Unlock()
 	if fake.RunGetStepStub != nil {
-		return fake.RunGetStepStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)
+		return fake.RunGetStepStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -206,17 +254,17 @@ func (fake *FakeClient) RunGetStepCallCount() int {
 	return len(fake.runGetStepArgsForCall)
 }
 
-func (fake *FakeClient) RunGetStepCalls(stub func(context.Context, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, db.UsedResourceCache, resource.Resource) (worker.GetResult, error)) {
+func (fake *FakeClient) RunGetStepCalls(stub func(context.Context, db.ContainerOwner, worker.ContainerSpec, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, db.UsedResourceCache, resource.Resource) (worker.GetResult, error)) {
 	fake.runGetStepMutex.Lock()
 	defer fake.runGetStepMutex.Unlock()
 	fake.RunGetStepStub = stub
 }
 
-func (fake *FakeClient) RunGetStepArgsForCall(i int) (context.Context, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, db.UsedResourceCache, resource.Resource) {
+func (fake *FakeClient) RunGetStepArgsForCall(i int) (context.Context, db.ContainerOwner, worker.ContainerSpec, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, db.UsedResourceCache, resource.Resource) {
 	fake.runGetStepMutex.RLock()
 	defer fake.runGetStepMutex.RUnlock()
 	argsForCall := fake.runGetStepArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8, argsForCall.arg9, argsForCall.arg10
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8
 }
 
 func (fake *FakeClient) RunGetStepReturns(result1 worker.GetResult, result2 error) {
@@ -245,24 +293,22 @@ func (fake *FakeClient) RunGetStepReturnsOnCall(i int, result1 worker.GetResult,
 	}{result1, result2}
 }
 
-func (fake *FakeClient) RunPutStep(arg1 context.Context, arg2 db.ContainerOwner, arg3 worker.ContainerSpec, arg4 worker.WorkerSpec, arg5 worker.ContainerPlacementStrategy, arg6 db.ContainerMetadata, arg7 runtime.ProcessSpec, arg8 runtime.StartingEventDelegate, arg9 resource.Resource) (worker.PutResult, error) {
+func (fake *FakeClient) RunPutStep(arg1 context.Context, arg2 db.ContainerOwner, arg3 worker.ContainerSpec, arg4 db.ContainerMetadata, arg5 runtime.ProcessSpec, arg6 runtime.StartingEventDelegate, arg7 resource.Resource) (worker.PutResult, error) {
 	fake.runPutStepMutex.Lock()
 	ret, specificReturn := fake.runPutStepReturnsOnCall[len(fake.runPutStepArgsForCall)]
 	fake.runPutStepArgsForCall = append(fake.runPutStepArgsForCall, struct {
 		arg1 context.Context
 		arg2 db.ContainerOwner
 		arg3 worker.ContainerSpec
-		arg4 worker.WorkerSpec
-		arg5 worker.ContainerPlacementStrategy
-		arg6 db.ContainerMetadata
-		arg7 runtime.ProcessSpec
-		arg8 runtime.StartingEventDelegate
-		arg9 resource.Resource
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9})
-	fake.recordInvocation("RunPutStep", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9})
+		arg4 db.ContainerMetadata
+		arg5 runtime.ProcessSpec
+		arg6 runtime.StartingEventDelegate
+		arg7 resource.Resource
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+	fake.recordInvocation("RunPutStep", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	fake.runPutStepMutex.Unlock()
 	if fake.RunPutStepStub != nil {
-		return fake.RunPutStepStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)
+		return fake.RunPutStepStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -277,17 +323,17 @@ func (fake *FakeClient) RunPutStepCallCount() int {
 	return len(fake.runPutStepArgsForCall)
 }
 
-func (fake *FakeClient) RunPutStepCalls(stub func(context.Context, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, resource.Resource) (worker.PutResult, error)) {
+func (fake *FakeClient) RunPutStepCalls(stub func(context.Context, db.ContainerOwner, worker.ContainerSpec, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, resource.Resource) (worker.PutResult, error)) {
 	fake.runPutStepMutex.Lock()
 	defer fake.runPutStepMutex.Unlock()
 	fake.RunPutStepStub = stub
 }
 
-func (fake *FakeClient) RunPutStepArgsForCall(i int) (context.Context, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, resource.Resource) {
+func (fake *FakeClient) RunPutStepArgsForCall(i int) (context.Context, db.ContainerOwner, worker.ContainerSpec, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, resource.Resource) {
 	fake.runPutStepMutex.RLock()
 	defer fake.runPutStepMutex.RUnlock()
 	argsForCall := fake.runPutStepArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8, argsForCall.arg9
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
 }
 
 func (fake *FakeClient) RunPutStepReturns(result1 worker.PutResult, result2 error) {
@@ -316,24 +362,21 @@ func (fake *FakeClient) RunPutStepReturnsOnCall(i int, result1 worker.PutResult,
 	}{result1, result2}
 }
 
-func (fake *FakeClient) RunTaskStep(arg1 context.Context, arg2 db.ContainerOwner, arg3 worker.ContainerSpec, arg4 worker.WorkerSpec, arg5 worker.ContainerPlacementStrategy, arg6 db.ContainerMetadata, arg7 runtime.ProcessSpec, arg8 runtime.StartingEventDelegate, arg9 lock.LockFactory) (worker.TaskResult, error) {
+func (fake *FakeClient) RunTaskStep(arg1 context.Context, arg2 db.ContainerOwner, arg3 worker.ContainerSpec, arg4 db.ContainerMetadata, arg5 runtime.ProcessSpec, arg6 runtime.StartingEventDelegate) (worker.TaskResult, error) {
 	fake.runTaskStepMutex.Lock()
 	ret, specificReturn := fake.runTaskStepReturnsOnCall[len(fake.runTaskStepArgsForCall)]
 	fake.runTaskStepArgsForCall = append(fake.runTaskStepArgsForCall, struct {
 		arg1 context.Context
 		arg2 db.ContainerOwner
 		arg3 worker.ContainerSpec
-		arg4 worker.WorkerSpec
-		arg5 worker.ContainerPlacementStrategy
-		arg6 db.ContainerMetadata
-		arg7 runtime.ProcessSpec
-		arg8 runtime.StartingEventDelegate
-		arg9 lock.LockFactory
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9})
-	fake.recordInvocation("RunTaskStep", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9})
+		arg4 db.ContainerMetadata
+		arg5 runtime.ProcessSpec
+		arg6 runtime.StartingEventDelegate
+	}{arg1, arg2, arg3, arg4, arg5, arg6})
+	fake.recordInvocation("RunTaskStep", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.runTaskStepMutex.Unlock()
 	if fake.RunTaskStepStub != nil {
-		return fake.RunTaskStepStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)
+		return fake.RunTaskStepStub(arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -348,17 +391,17 @@ func (fake *FakeClient) RunTaskStepCallCount() int {
 	return len(fake.runTaskStepArgsForCall)
 }
 
-func (fake *FakeClient) RunTaskStepCalls(stub func(context.Context, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, lock.LockFactory) (worker.TaskResult, error)) {
+func (fake *FakeClient) RunTaskStepCalls(stub func(context.Context, db.ContainerOwner, worker.ContainerSpec, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate) (worker.TaskResult, error)) {
 	fake.runTaskStepMutex.Lock()
 	defer fake.runTaskStepMutex.Unlock()
 	fake.RunTaskStepStub = stub
 }
 
-func (fake *FakeClient) RunTaskStepArgsForCall(i int) (context.Context, db.ContainerOwner, worker.ContainerSpec, worker.WorkerSpec, worker.ContainerPlacementStrategy, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate, lock.LockFactory) {
+func (fake *FakeClient) RunTaskStepArgsForCall(i int) (context.Context, db.ContainerOwner, worker.ContainerSpec, db.ContainerMetadata, runtime.ProcessSpec, runtime.StartingEventDelegate) {
 	fake.runTaskStepMutex.RLock()
 	defer fake.runTaskStepMutex.RUnlock()
 	argsForCall := fake.runTaskStepArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8, argsForCall.arg9
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6
 }
 
 func (fake *FakeClient) RunTaskStepReturns(result1 worker.TaskResult, result2 error) {
@@ -390,6 +433,8 @@ func (fake *FakeClient) RunTaskStepReturnsOnCall(i int, result1 worker.TaskResul
 func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.nameMutex.RLock()
+	defer fake.nameMutex.RUnlock()
 	fake.runCheckStepMutex.RLock()
 	defer fake.runCheckStepMutex.RUnlock()
 	fake.runGetStepMutex.RLock()
