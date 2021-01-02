@@ -166,6 +166,16 @@ var _ = Describe("CheckFactory", func() {
 			})
 		})
 
+		Context("when CheckEvery is never", func() {
+			BeforeEach(func() {
+				fakeResource.CheckEveryReturns("never")
+			})
+
+			It("does not try parsing the interval", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+
 		Context("when the interval is not parseable", func() {
 			BeforeEach(func() {
 				fakeResource.CheckEveryReturns("not-a-duration")

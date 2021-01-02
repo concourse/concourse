@@ -109,9 +109,11 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 		interval = c.defaultWithWebhookCheckInterval
 	}
 	if every := checkable.CheckEvery(); every != "" {
-		interval, err = time.ParseDuration(every)
-		if err != nil {
-			return nil, false, fmt.Errorf("check interval: %s", err)
+		if every != "never" {
+			interval, err = time.ParseDuration(every)
+			if err != nil {
+				return nil, false, fmt.Errorf("check interval: %s", err)
+			}
 		}
 	}
 
