@@ -58,7 +58,9 @@ func (s *scanner) Run(ctx context.Context) error {
 			}()
 			defer waitGroup.Done()
 
-			s.check(spanCtx, resource, resourceTypes, resourceTypesChecked)
+			if resource.CheckEvery() != "never" {
+				s.check(spanCtx, resource, resourceTypes, resourceTypesChecked)
+			}
 		}(resource, resourceTypes)
 	}
 

@@ -69,6 +69,16 @@ var _ = Describe("Scanner", func() {
 				})
 			})
 
+			Context("when CheckEvery is never", func() {
+				BeforeEach(func() {
+					fakeResource.CheckEveryReturns("never")
+				})
+
+				It("does not check", func() {
+					Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(0))
+				})
+			})
+
 			Context("when fetching resources types succeeds", func() {
 				var fakeResourceType *dbfakes.FakeResourceType
 
