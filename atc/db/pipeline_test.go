@@ -860,6 +860,15 @@ var _ = Describe("Pipeline", func() {
 				err = otherPipelineBuild.SaveOutput("some-type", atc.Source{"other-source-config": "some-other-value"}, atc.VersionedResourceTypes{}, atc.Version{"version": "1"}, nil, "some-output-name", "some-other-resource")
 				Expect(err).ToNot(HaveOccurred())
 
+				// After SaveOutput to other resource, we need to reload it because its resourceConfigScopeID
+				// is supposed to be updated.
+				otherResource = scenarioPipeline1.Resource(otherResourceName)
+				Expect(otherResource).ToNot(BeNil())
+
+				savedVR3, found, err := otherResource.FindVersion(atc.Version{"version": "1"})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
 				err = otherPipelineBuild.Finish(db.BuildStatusSucceeded)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -868,9 +877,20 @@ var _ = Describe("Pipeline", func() {
 				Expect(versions.ResourceVersions).To(ConsistOf([]atc.DebugResourceVersion{
 					{VersionID: savedVR1.ID(), ResourceID: resource.ID(), ScopeID: resource.ResourceConfigScopeID(), CheckOrder: savedVR1.CheckOrder()},
 					{VersionID: savedVR2.ID(), ResourceID: resource.ID(), ScopeID: resource.ResourceConfigScopeID(), CheckOrder: savedVR2.CheckOrder()},
+					{VersionID: savedVR3.ID(), ResourceID: otherResource.ID(), ScopeID: otherResource.ResourceConfigScopeID(), CheckOrder: savedVR3.CheckOrder()},
 				}))
 
 				Expect(versions.BuildOutputs).To(ConsistOf([]atc.DebugBuildOutput{
+					{
+						DebugResourceVersion: atc.DebugResourceVersion{
+							VersionID:  savedVR3.ID(),
+							ResourceID: otherResource.ID(),
+							ScopeID:    otherResource.ResourceConfigScopeID(),
+							CheckOrder: savedVR3.CheckOrder(),
+						},
+						JobID:   scenarioPipeline1.Job("a-job").ID(),
+						BuildID: otherPipelineBuild.ID(),
+					},
 					{
 						DebugResourceVersion: atc.DebugResourceVersion{
 							VersionID:  savedVR1.ID(),
@@ -892,7 +912,7 @@ var _ = Describe("Pipeline", func() {
 					{
 						ID:      otherResource.ID(),
 						Name:    otherResource.Name(),
-						ScopeID: nil,
+						ScopeID: intptr(otherResource.ResourceConfigScopeID()),
 					},
 					{
 						ID:      reallyOtherResource.ID(),
@@ -954,7 +974,20 @@ var _ = Describe("Pipeline", func() {
 					BuildID: build1DB.ID(),
 				}
 
+				By("including put-only resource's outputs of successful builds")
+				otherExplicitOutput := atc.DebugBuildOutput{
+					DebugResourceVersion: atc.DebugResourceVersion{
+						VersionID:  savedVR3.ID(),
+						ResourceID: otherResource.ID(),
+						ScopeID:    otherResource.ResourceConfigScopeID(),
+						CheckOrder: savedVR3.CheckOrder(),
+					},
+					JobID:   scenarioPipeline1.Job("a-job").ID(),
+					BuildID: otherPipelineBuild.ID(),
+				}
+
 				Expect(versions.BuildOutputs).To(ConsistOf([]atc.DebugBuildOutput{
+					otherExplicitOutput,
 					explicitOutput,
 					implicitOutput,
 				}))

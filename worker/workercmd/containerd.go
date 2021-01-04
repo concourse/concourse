@@ -20,9 +20,9 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 )
 
-// writeDefaultContainerdConfig writes a default containerd configuration file
+// WriteDefaultContainerdConfig writes a default containerd configuration file
 // to a destination.
-func writeDefaultContainerdConfig(dest string) error {
+func WriteDefaultContainerdConfig(dest string) error {
 	// disable plugins we don't use:
 	//
 	// - CRI: we're not supposed to be targetted by a kubelet, so there's no
@@ -33,8 +33,10 @@ func writeDefaultContainerdConfig(dest string) error {
 	//                   on a single snapshotter implementation we can better
 	//                   reason about potential problems down the road.
 	//
-	const config = `disabled_plugins = ["cri", "aufs", "btrfs", "zfs"]`
-
+	const config = `
+oom_score = -999
+disabled_plugins = ["cri", "aufs", "btrfs", "zfs"]
+`
 	err := ioutil.WriteFile(dest, []byte(config), 0755)
 	if err != nil {
 		return fmt.Errorf("write file %s: %w", dest, err)
@@ -123,7 +125,7 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 	if cmd.Containerd.Config.Path() != "" {
 		config = cmd.Containerd.Config.Path()
 	} else {
-		err := writeDefaultContainerdConfig(config)
+		err := WriteDefaultContainerdConfig(config)
 		if err != nil {
 			return nil, fmt.Errorf("write default containerd config: %w", err)
 		}

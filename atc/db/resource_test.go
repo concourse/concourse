@@ -583,21 +583,43 @@ var _ = Describe("Resource", func() {
 					Expect(build.ResourceID()).To(Equal(defaultResource.ID()))
 				})
 
-				It("deletes the previous build", func() {
-					found, err := prevBuild.Reload()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
-				})
+				Context("when there are multiple completed previous builds", func() {
+					var prevBuilds []db.Build
 
-				It("deletes the previous build's events", func() {
-					var exists bool
-					err := dbConn.QueryRow(`SELECT EXISTS (
-						SELECT 1
-						FROM build_events
-						WHERE build_id = $1
-					)`, prevBuild.ID()).Scan(&exists)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(exists).To(BeFalse())
+					BeforeEach(func() {
+						prevBuilds = []db.Build{prevBuild}
+
+						for i := 0; i < 10; i++ {
+							prev, created, err := defaultResource.CreateBuild(ctx, true, plan)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(created).To(BeTrue())
+
+							Expect(prev.Finish(db.BuildStatusSucceeded)).To(Succeed())
+
+							prevBuilds = append(prevBuilds, prev)
+						}
+					})
+
+					It("deletes all previous builds", func() {
+						for _, prev := range prevBuilds {
+							found, err := prev.Reload()
+							Expect(err).ToNot(HaveOccurred())
+							Expect(found).To(BeFalse())
+						}
+					})
+
+					It("deletes the previous builds' events", func() {
+						for _, prev := range prevBuilds {
+							var exists bool
+							err := dbConn.QueryRow(`SELECT EXISTS (
+								SELECT 1
+								FROM build_events
+								WHERE build_id = $1
+							)`, prev.ID()).Scan(&exists)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(exists).To(BeFalse())
+						}
+					})
 				})
 			})
 		})
@@ -991,32 +1013,6 @@ var _ = Describe("Resource", func() {
 					Expect(pagination.Newer).To(Equal(&db.Page{From: db.NewIntPtr(resourceVersions[3].ID), Limit: 2}))
 					Expect(pagination.Older).To(Equal(&db.Page{To: db.NewIntPtr(resourceVersions[0].ID), Limit: 2}))
 				})
-			})
-		})
-
-		Context("when resource has a version with check order of 0", func() {
-			BeforeEach(func() {
-				scenario = dbtest.Setup(
-					builder.WithPipeline(atc.Config{
-						Resources: atc.ResourceConfigs{
-							{
-								Name:   "some-resource",
-								Type:   "some-base-resource-type",
-								Source: atc.Source{"some": "repository"},
-							},
-						},
-					}),
-					builder.WithResourceVersions("some-resource"),
-					builder.WithVersionMetadata("some-resource", atc.Version{"version": "not-returned"}, nil), // save unchecked version
-				)
-			})
-
-			It("does not return the version", func() {
-				historyPage, pagination, found, err := scenario.Resource("some-resource").Versions(db.Page{Limit: 2}, nil)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-				Expect(historyPage).To(BeNil())
-				Expect(pagination).To(Equal(db.Pagination{Newer: nil, Older: nil}))
 			})
 		})
 	})

@@ -174,23 +174,6 @@ func (visitor *planVisitor) VisitDo(step *atc.DoStep) error {
 	return nil
 }
 
-func (visitor *planVisitor) VisitAggregate(step *atc.AggregateStep) error {
-	do := atc.AggregatePlan{}
-
-	for _, sub := range step.Steps {
-		err := sub.Config.Visit(visitor)
-		if err != nil {
-			return err
-		}
-
-		do = append(do, visitor.plan)
-	}
-
-	visitor.plan = visitor.planFactory.NewPlan(do)
-
-	return nil
-}
-
 func (visitor *planVisitor) VisitInParallel(step *atc.InParallelStep) error {
 	var steps []atc.Plan
 

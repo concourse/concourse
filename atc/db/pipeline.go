@@ -782,9 +782,6 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		Join("resources r ON r.id = o.resource_id").
 		Where(sq.Expr("r.resource_config_scope_id = v.resource_config_scope_id")).
 		Where(sq.Expr("(r.id, v.version_md5) NOT IN (SELECT resource_id, version_md5 from resource_disabled_versions)")).
-		Where(sq.NotEq{
-			"v.check_order": 0,
-		}).
 		Where(sq.Eq{
 			"b.status":      BuildStatusSucceeded,
 			"r.pipeline_id": p.id,
@@ -817,9 +814,6 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		Join("resources r ON r.id = i.resource_id").
 		Where(sq.Expr("r.resource_config_scope_id = v.resource_config_scope_id")).
 		Where(sq.Expr("(r.id, v.version_md5) NOT IN (SELECT resource_id, version_md5 from resource_disabled_versions)")).
-		Where(sq.NotEq{
-			"v.check_order": 0,
-		}).
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
 			"r.active":      true,
@@ -859,9 +853,6 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		From("resource_config_versions v").
 		Join("resources r ON r.resource_config_scope_id = v.resource_config_scope_id").
 		LeftJoin("resource_disabled_versions d ON d.resource_id = r.id AND d.version_md5 = v.version_md5").
-		Where(sq.NotEq{
-			"v.check_order": 0,
-		}).
 		Where(sq.Eq{
 			"r.pipeline_id": p.id,
 			"r.active":      true,

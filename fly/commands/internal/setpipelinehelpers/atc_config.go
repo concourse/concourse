@@ -80,6 +80,17 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 		return nil
 	}
 
+	fmt.Println(bold("pipeline name: ") + atcConfig.PipelineRef.Name)
+	if len(atcConfig.PipelineRef.InstanceVars) != 0 {
+		fmt.Println(bold("pipeline instance vars:"))
+		instanceVarsBytes, err := yaml.Marshal(atcConfig.PipelineRef.InstanceVars)
+		if err != nil {
+			return err
+		}
+		fmt.Println(indent(string(instanceVarsBytes), "  "))
+	}
+	fmt.Println()
+
 	if !atcConfig.ApplyConfigInteraction() {
 		fmt.Println("bailing out")
 		return nil
@@ -95,18 +106,16 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 		return err
 	}
 
-	updatedConfig, found, err := atcConfig.Team.Pipeline(atcConfig.PipelineRef)
+	updatedPipeline, _, err := atcConfig.Team.Pipeline(atcConfig.PipelineRef)
 	if err != nil {
 		return err
 	}
-
-	paused := found && updatedConfig.Paused
 
 	if len(warnings) > 0 {
 		displayhelpers.ShowWarnings(warnings)
 	}
 
-	atcConfig.showPipelineUpdateResult(created, updated, paused)
+	atcConfig.showPipelineUpdateResult(updatedPipeline, created, updated)
 	return nil
 }
 
@@ -118,11 +127,10 @@ func (atcConfig ATCConfig) UnpausePipelineCommand() string {
 	return fmt.Sprintf("%s -t %s unpause-pipeline -p %s", os.Args[0], atcConfig.TargetName, pipelineFlag)
 }
 
-func (atcConfig ATCConfig) showPipelineUpdateResult(created bool, updated bool, paused bool) {
+func (atcConfig ATCConfig) showPipelineUpdateResult(pipeline atc.Pipeline, created bool, updated bool) {
 	if updated {
 		fmt.Println("configuration updated")
 	} else if created {
-
 		targetURL, err := url.Parse(atcConfig.Target)
 		if err != nil {
 			fmt.Println("Could not parse targetURL")
@@ -143,7 +151,7 @@ func (atcConfig ATCConfig) showPipelineUpdateResult(created bool, updated bool, 
 		panic("Something really went wrong!")
 	}
 
-	if paused {
+	if pipeline.Paused {
 		fmt.Println("")
 		fmt.Println("the pipeline is currently paused. to unpause, either:")
 		fmt.Println("  - run the unpause-pipeline command:")
@@ -155,4 +163,17 @@ func (atcConfig ATCConfig) showPipelineUpdateResult(created bool, updated bool, 
 func diff(existingConfig atc.Config, newConfig atc.Config) bool {
 	stdout, _ := ui.ForTTY(os.Stdout)
 	return existingConfig.Diff(stdout, newConfig)
+}
+
+func indent(text, indent string) string {
+	text = strings.TrimRight(text, "\n")
+	var result strings.Builder
+	for _, line := range strings.Split(text, "\n") {
+		result.WriteString(indent + line + "\n")
+	}
+	return result.String()[:result.Len()-1]
+}
+
+func bold(text string) string {
+	return "\033[1m" + text + "\033[0m"
 }

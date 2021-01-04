@@ -20,6 +20,15 @@ import (
 	"golang.org/x/oauth2"
 )
 
+var LocalVersion = conc.Version
+
+func init() {
+	ver, found := os.LookupEnv("FAKE_FLY_VERSION")
+	if found {
+		LocalVersion = ver
+	}
+}
+
 type ErrVersionMismatch struct {
 	flyVersion string
 	atcVersion string
@@ -454,7 +463,7 @@ func (t *target) validate(allowVersionMismatch bool) error {
 		return err
 	}
 
-	if info.Version == conc.Version || version.IsDev(conc.Version) {
+	if info.Version == LocalVersion || version.IsDev(LocalVersion) {
 		return nil
 	}
 
@@ -463,18 +472,18 @@ func (t *target) validate(allowVersionMismatch bool) error {
 		return err
 	}
 
-	flyMajor, flyMinor, flyPatch, err := version.GetSemver(conc.Version)
+	flyMajor, flyMinor, flyPatch, err := version.GetSemver(LocalVersion)
 	if err != nil {
 		return err
 	}
 
 	if !allowVersionMismatch && (atcMajor != flyMajor || atcMinor != flyMinor) {
-		return NewErrVersionMismatch(conc.Version, info.Version, t.name)
+		return NewErrVersionMismatch(LocalVersion, info.Version, t.name)
 	}
 
 	if atcMajor != flyMajor || atcMinor != flyMinor || atcPatch != flyPatch {
 		fmt.Fprintln(ui.Stderr, ui.WarningColor("WARNING:\n"))
-		fmt.Fprintln(ui.Stderr, ui.WarningColor(NewErrVersionMismatch(conc.Version, info.Version, t.name).Error()))
+		fmt.Fprintln(ui.Stderr, ui.WarningColor(NewErrVersionMismatch(LocalVersion, info.Version, t.name).Error()))
 	}
 
 	return nil

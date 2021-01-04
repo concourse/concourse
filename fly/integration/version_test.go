@@ -3,9 +3,11 @@ package integration_test
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"os/exec"
 
-	"github.com/concourse/concourse"
+	"github.com/concourse/concourse/atc"
+
 	"github.com/concourse/concourse/fly/version"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,11 +20,14 @@ import (
 var _ = Describe("Version Checks", func() {
 	// patch version
 	var (
-		flyVersion string
-		flySession *gexec.Session
+		flyVersion       string
+		customAtcVersion string
+		flySession       *gexec.Session
 	)
 
 	BeforeEach(func() {
+		flyVersion = atcVersion
+
 		atcServer.AppendHandlers(
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers"),
@@ -32,14 +37,17 @@ var _ = Describe("Version Checks", func() {
 	})
 
 	JustBeforeEach(func() {
-		flyPath, err := gexec.Build(
-			"github.com/concourse/concourse/fly",
-			"-ldflags", fmt.Sprintf("-X github.com/concourse/concourse.Version=%s", flyVersion),
+		atcServer.SetHandler(3,
+			ghttp.CombineHandlers(
+				ghttp.VerifyRequest("GET", "/api/v1/info"),
+				ghttp.RespondWithJSONEncoded(200, atc.Info{Version: customAtcVersion, WorkerVersion: workerVersion}),
+			),
 		)
-		Expect(err).NotTo(HaveOccurred())
 
 		flyCmd := exec.Command(flyPath, "-t", targetName, "containers")
+		flyCmd.Env = append(os.Environ(), "FAKE_FLY_VERSION="+flyVersion)
 
+		var err error
 		flySession, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 	})
@@ -49,12 +57,12 @@ var _ = Describe("Version Checks", func() {
 			major, minor, patch, err := version.GetSemver(atcVersion)
 			Expect(err).NotTo(HaveOccurred())
 
-			flyVersion = fmt.Sprintf("%d.%d.%d", major, minor, patch+1)
+			customAtcVersion = fmt.Sprintf("%d.%d.%d", major, minor, patch+1)
 		})
 
 		It("warns the user that there is a difference", func() {
 			Eventually(flySession).Should(gexec.Exit(0))
-			Expect(flySession.Err).To(gbytes.Say(`fly version \(%s\) is out of sync with the target \(%s\). to sync up, run the following:\n\n    `, flyVersion, atcVersion))
+			Expect(flySession.Err).To(gbytes.Say(`fly version \(%s\) is out of sync with the target \(%s\). to sync up, run the following:\n\n    `, flyVersion, customAtcVersion))
 			Expect(flySession.Err).To(gbytes.Say(`fly.* -t %s sync\n`, targetName))
 		})
 	})
@@ -62,10 +70,10 @@ var _ = Describe("Version Checks", func() {
 	// when then match
 	Describe("when the client and server are the same version", func() {
 		BeforeEach(func() {
-			flyVersion = atcVersion
+			customAtcVersion = atcVersion
 		})
 
-		It("warns the user that there is a difference", func() {
+		It("it doesn't give any warning message", func() {
 			Eventually(flySession).Should(gexec.Exit(0))
 			Expect(flySession.Err).ShouldNot(gbytes.Say("version"))
 		})
@@ -77,12 +85,12 @@ var _ = Describe("Version Checks", func() {
 			major, minor, patch, err := version.GetSemver(atcVersion)
 			Expect(err).NotTo(HaveOccurred())
 
-			flyVersion = fmt.Sprintf("%d.%d.%d", major, minor+1, patch)
+			customAtcVersion = fmt.Sprintf("%d.%d.%d", major, minor+1, patch)
 		})
 
-		It("error and tell the user to upgrade", func() {
+		It("error and tell the user to sync", func() {
 			Eventually(flySession).Should(gexec.Exit(1))
-			Expect(flySession.Err).To(gbytes.Say(`fly version \(%s\) is out of sync with the target \(%s\). to sync up, run the following:\n\n    `, flyVersion, atcVersion))
+			Expect(flySession.Err).To(gbytes.Say(`fly version \(%s\) is out of sync with the target \(%s\). to sync up, run the following:\n\n    `, flyVersion, customAtcVersion))
 			Expect(flySession.Err).To(gbytes.Say(`fly.* -t %s sync\n`, targetName))
 			Expect(flySession.Err).To(gbytes.Say("cowardly refusing to run due to significant version discrepancy"))
 		})
@@ -94,12 +102,12 @@ var _ = Describe("Version Checks", func() {
 			major, minor, patch, err := version.GetSemver(atcVersion)
 			Expect(err).NotTo(HaveOccurred())
 
-			flyVersion = fmt.Sprintf("%d.%d.%d", major+1, minor, patch)
+			customAtcVersion = fmt.Sprintf("%d.%d.%d", major+1, minor, patch)
 		})
 
-		It("error and tell the user to upgrade", func() {
+		It("error and tell the user to sync", func() {
 			Eventually(flySession).Should(gexec.Exit(1))
-			Expect(flySession.Err).To(gbytes.Say(`fly version \(%s\) is out of sync with the target \(%s\). to sync up, run the following:\n\n    `, flyVersion, atcVersion))
+			Expect(flySession.Err).To(gbytes.Say(`fly version \(%s\) is out of sync with the target \(%s\). to sync up, run the following:\n\n    `, flyVersion, customAtcVersion))
 			Expect(flySession.Err).To(gbytes.Say(`fly.* -t %s sync\n`, targetName))
 			Expect(flySession.Err).To(gbytes.Say("cowardly refusing to run due to significant version discrepancy"))
 		})
@@ -108,7 +116,7 @@ var _ = Describe("Version Checks", func() {
 	// dev version
 	Describe("when the client is a development version", func() {
 		BeforeEach(func() {
-			flyVersion = concourse.Version
+			flyVersion = "0.0.0-dev"
 		})
 
 		It("never complains", func() {

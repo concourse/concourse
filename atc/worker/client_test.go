@@ -18,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/resource/resourcefakes"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
+	"github.com/hashicorp/go-multierror"
 	"github.com/onsi/gomega/gbytes"
 
 	"code.cloudfoundry.org/lager/lagertest"
@@ -766,6 +767,20 @@ var _ = Describe("Client", func() {
 					})
 					It("release the task-step lock every time it acquires it", func() {
 						Expect(fakeLock.ReleaseCallCount()).To(Equal(fakeLockFactory.AcquireCallCount()))
+					})
+				})
+
+				Context("when no worker is available", func() {
+					BeforeEach(func() {
+						fakePool.FindOrChooseWorkerForContainerReturns(nil,
+							worker.NoWorkerFitContainerPlacementStrategyError{})
+						// To avoid getting stuck waiting, abort the build
+						cancel()
+					})
+					It("waits for a worker to become available", func() {
+						errors, ok := err.(*multierror.Error)
+						Expect(ok).To(BeTrue(), "error type should be multierror. Only becomes multierror when strategy is limit active tasks")
+						Expect(errors.Errors).To(Not(ContainElement(MatchError("no worker fit container placement strategy"))))
 					})
 				})
 			})

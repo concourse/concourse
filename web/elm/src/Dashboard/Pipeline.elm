@@ -72,6 +72,20 @@ hdPipelineView :
     }
     -> Html Message
 hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs } =
+    let
+        bannerStyle =
+            if pipeline.stale then
+                Styles.pipelineCardBannerStaleHd
+
+            else if pipeline.archived then
+                Styles.pipelineCardBannerArchivedHd
+
+            else
+                Styles.pipelineCardBannerHd
+                    { status = pipelineStatus existingJobs pipeline
+                    , pipelineRunningKeyframes = pipelineRunningKeyframes
+                    }
+    in
     Html.a
         ([ class "card"
          , attribute "data-pipeline-name" pipeline.name
@@ -82,18 +96,7 @@ hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs
         )
     <|
         [ Html.div
-            (if pipeline.stale then
-                Styles.pipelineCardBannerStaleHd
-
-             else if pipeline.archived then
-                Styles.pipelineCardBannerArchivedHd
-
-             else
-                Styles.pipelineCardBannerHd
-                    { status = pipelineStatus existingJobs pipeline
-                    , pipelineRunningKeyframes = pipelineRunningKeyframes
-                    }
-            )
+            (class "banner" :: bannerStyle)
             []
         , Html.div
             (class "dashboardhd-pipeline-name"
@@ -181,21 +184,24 @@ pipelineStatus jobs pipeline =
             isRunning =
                 List.any (\job -> job.nextBuild /= Nothing) jobs
 
+            unpausedJobs =
+                jobs |> List.filter (\job -> not job.paused)
+
             mostImportantJobStatus =
-                jobs
+                unpausedJobs
                     |> List.map jobStatus
                     |> List.sortWith Concourse.BuildStatus.ordering
                     |> List.head
 
             firstNonSuccess =
-                jobs
+                unpausedJobs
                     |> List.filter (jobStatus >> (/=) BuildStatusSucceeded)
                     |> List.filterMap transition
                     |> List.sortBy Time.posixToMillis
                     |> List.head
 
             lastTransition =
-                jobs
+                unpausedJobs
                     |> List.filterMap transition
                     |> List.sortBy Time.posixToMillis
                     |> List.reverse

@@ -42,7 +42,7 @@ var _ = Describe("CheckResourceType", func() {
 		}}
 
 		expectedURL = "/api/v1/teams/main/pipelines/mypipeline/resource-types/myresource/check"
-		expectedQueryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+		expectedQueryParams = "vars.branch=%22master%22"
 	})
 
 	Context("when version is specified", func() {

@@ -100,9 +100,9 @@ type KVPair struct {
 
 type KVPairs []KVPair
 
-func (f KVPairs) Expand() StaticVariables {
-	out := map[string]interface{}{}
-	for _, pair := range f {
+func (p KVPairs) Expand() StaticVariables {
+	out := make(map[string]interface{}, len(p))
+	for _, pair := range p {
 		upsert(out, pair.Ref.Path, pair.Ref.Fields, pair.Value)
 	}
 	return out

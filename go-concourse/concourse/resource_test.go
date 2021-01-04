@@ -15,7 +15,7 @@ var _ = Describe("ATC Handler Resource", func() {
 			expectedResources []atc.Resource
 
 			expectedURL   = "/api/v1/teams/some-team/pipelines/some-pipeline/resources"
-			expectedQuery = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			expectedQuery = "vars.branch=%22master%22"
 			pipelineRef   = atc.PipelineRef{Name: "some-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 		)
 
@@ -54,7 +54,7 @@ var _ = Describe("ATC Handler Resource", func() {
 			clientErr        error
 
 			expectedURL   = "/api/v1/teams/some-team/pipelines/some-pipeline/resources/myresource"
-			expectedQuery = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			expectedQuery = "vars.branch=%22master%22"
 			pipelineRef   = atc.PipelineRef{Name: "some-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 		)
 

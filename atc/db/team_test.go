@@ -2662,6 +2662,18 @@ var _ = Describe("Team", func() {
 			Expect(job.Tags()).To(Equal([]string{"some-group"}))
 		})
 
+		It("saves tags in the jobs table based on globs", func() {
+			otherConfig.Groups[0].Jobs = []string{"*-other-job"}
+			savedPipeline, _, err := team.SavePipeline(pipelineRef, otherConfig, 0, false)
+			Expect(err).ToNot(HaveOccurred())
+
+			job, found, err := savedPipeline.Job("some-other-job")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			Expect(job.Tags()).To(Equal([]string{"some-group"}))
+		})
+
 		It("updates tags in the jobs table", func() {
 			savedPipeline, _, err := team.SavePipeline(pipelineRef, otherConfig, 0, false)
 			Expect(err).ToNot(HaveOccurred())
@@ -2679,7 +2691,7 @@ var _ = Describe("Team", func() {
 				},
 				{
 					Name: "some-another-group",
-					Jobs: []string{"some-other-job"},
+					Jobs: []string{"*-other-job"},
 				},
 			}
 

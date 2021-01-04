@@ -232,6 +232,24 @@ var _ = Describe("Containers API", func() {
 				})
 			})
 
+			Describe("querying with pipeline instance vars", func() {
+				BeforeEach(func() {
+					req.URL.RawQuery = url.Values{
+						"vars": []string{`{"branch":"master"}`},
+					}.Encode()
+				})
+
+				It("queries with it in the metadata", func() {
+					_, err := client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+
+					meta := dbTeam.FindContainersByMetadataArgsForCall(0)
+					Expect(meta).To(Equal(db.ContainerMetadata{
+						PipelineInstanceVars: `{"branch":"master"}`,
+					}))
+				})
+			})
+
 			Describe("querying with job id", func() {
 				BeforeEach(func() {
 					req.URL.RawQuery = url.Values{
@@ -355,7 +373,7 @@ var _ = Describe("Containers API", func() {
 						"type":          []string{"check"},
 						"resource_name": []string{"some-resource"},
 						"pipeline_name": []string{"some-pipeline"},
-						"instance_vars": []string{string(rawInstanceVars)},
+						"vars":          []string{string(rawInstanceVars)},
 					}.Encode()
 				})
 

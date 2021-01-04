@@ -23,7 +23,7 @@ var _ = Describe("ATC Handler Builds", func() {
 			plan = atc.Plan{
 				OnSuccess: &atc.OnSuccessPlan{
 					Step: atc.Plan{
-						Aggregate: &atc.AggregatePlan{},
+						InParallel: &atc.InParallelPlan{},
 					},
 					Next: atc.Plan{
 						ID: "some-guid",
@@ -70,7 +70,7 @@ var _ = Describe("ATC Handler Builds", func() {
 			expectedBuild atc.Build
 		)
 		BeforeEach(func() {
-			queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			queryParams = "vars.branch=%22master%22"
 			pipelineRef = atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 			jobName = "myjob"
 
@@ -108,7 +108,7 @@ var _ = Describe("ATC Handler Builds", func() {
 		)
 
 		BeforeEach(func() {
-			queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			queryParams = "vars.branch=%22master%22"
 			pipelineRef = atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 			jobName = "myjob"
 			buildName = "mybuild"
@@ -147,7 +147,7 @@ var _ = Describe("ATC Handler Builds", func() {
 
 		BeforeEach(func() {
 			expectedURL = "/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/builds/mybuild"
-			queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			queryParams = "vars.branch=%22master%22"
 			pipelineRef = atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 		})
 

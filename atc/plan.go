@@ -13,7 +13,6 @@ type Plan struct {
 
 	Do         *DoPlan         `json:"do,omitempty"`
 	InParallel *InParallelPlan `json:"in_parallel,omitempty"`
-	Aggregate  *AggregatePlan  `json:"aggregate,omitempty"`
 	Across     *AcrossPlan     `json:"across,omitempty"`
 
 	OnSuccess *OnSuccessPlan `json:"on_success,omitempty"`
@@ -48,13 +47,6 @@ func (plan *Plan) Each(f func(*Plan)) {
 		for i, p := range plan.InParallel.Steps {
 			p.Each(f)
 			plan.InParallel.Steps[i] = p
-		}
-	}
-
-	if plan.Aggregate != nil {
-		for i, p := range *plan.Aggregate {
-			p.Each(f)
-			(*plan.Aggregate)[i] = p
 		}
 	}
 
@@ -154,8 +146,6 @@ type TimeoutPlan struct {
 type TryPlan struct {
 	Step Plan `json:"step"`
 }
-
-type AggregatePlan []Plan
 
 type InParallelPlan struct {
 	Steps    []Plan `json:"steps"`

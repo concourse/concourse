@@ -101,9 +101,6 @@ init hl resources ({ id, step } as plan) =
             constructStep id name
                 |> initBottom hl resources plan LoadVar
 
-        Concourse.BuildStepAggregate plans ->
-            initMultiStep hl resources id Aggregate plans Nothing
-
         Concourse.BuildStepInParallel plans ->
             initMultiStep hl resources id InParallel plans Nothing
 
@@ -576,10 +573,6 @@ viewTree session model tree depth =
 
         Timeout subTree ->
             viewTree session model subTree depth
-
-        Aggregate trees ->
-            Html.div [ class "aggregate" ]
-                (Array.toList <| Array.map (viewSeq session model depth) trees)
 
         InParallel trees ->
             Html.div [ class "parallel" ]

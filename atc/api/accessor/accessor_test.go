@@ -263,6 +263,64 @@ var _ = Describe("Accessor", func() {
 		Entry("owner attempting owner action", "owner", "owner", true),
 	)
 
+	DescribeTable("IsAuthorized for both users and groups",
+		func(requiredRole string, actualUserRole, actualGroupRole string, expected bool) {
+
+			verification.HasToken = true
+			verification.IsTokenValid = true
+
+			verification.RawClaims = map[string]interface{}{
+				"groups": []interface{}{"some-group"},
+				"federated_claims": map[string]interface{}{
+					"connector_id": "some-connector",
+					"user_id":      "some-user-id",
+				},
+			}
+
+			fakeTeam1.NameReturns("some-team")
+			fakeTeam1.AdminReturns(true)
+
+			if actualUserRole == actualGroupRole {
+				fakeTeam1.AuthReturns(atc.TeamAuth{
+					actualUserRole: map[string][]string{
+						"users":  {"some-connector:some-user-id"},
+						"groups": {"some-connector:some-group"},
+					},
+				})
+			} else {
+				fakeTeam1.AuthReturns(atc.TeamAuth{
+					actualUserRole: map[string][]string{
+						"users": {"some-connector:some-user-id"},
+					},
+					actualGroupRole: map[string][]string{
+						"groups": {"some-connector:some-group"},
+					},
+				})
+			}
+
+			access = accessor.NewAccessor(verification, requiredRole, "sub", []string{"system"}, teams)
+			result := access.IsAuthorized("some-team")
+			Expect(expected).Should(Equal(result))
+		},
+
+		Entry("user is member and group is viewer attempting owner action", "owner", "member", "viewer", false),
+		Entry("user is viewer and group is member attempting owner action", "owner", "viewer", "member", false),
+		Entry("user is member and group is viewer attempting owner action", "owner", "member", "member", false),
+		Entry("user is viewer and group is member attempting owner action", "owner", "viewer", "viewer", false),
+		Entry("user is member and group is viewer attempting member action", "member", "member", "viewer", true),
+		Entry("user is viewer and group is member attempting member action", "member", "viewer", "member", true),
+		Entry("user is member and group is viewer attempting member action", "member", "member", "member", true),
+		Entry("user is viewer and group is member attempting member action", "member", "viewer", "viewer", false),
+		Entry("user is member and group is viewer attempting pipeline-operator action", "pipeline-operator", "member", "viewer", true),
+		Entry("user is viewer and group is member attempting pipeline-operator action", "pipeline-operator", "viewer", "member", true),
+		Entry("user is member and group is viewer attempting pipeline-operator action", "pipeline-operator", "member", "member", true),
+		Entry("user is viewer and group is member attempting pipeline-operator action", "pipeline-operator", "viewer", "viewer", false),
+		Entry("user is member and group is viewer attempting viewer action", "viewer", "member", "viewer", true),
+		Entry("user is viewer and group is member attempting viewer action", "viewer", "viewer", "member", true),
+		Entry("user is member and group is viewer attempting viewer action", "viewer", "member", "member", true),
+		Entry("user is viewer and group is member attempting viewer action", "viewer", "viewer", "viewer", true),
+	)
+
 	Describe("TeamNames", func() {
 		var result []string
 

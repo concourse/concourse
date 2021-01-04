@@ -1,7 +1,5 @@
 module StepTreeTests exposing
     ( all
-    , initAggregate
-    , initAggregateNested
     , initEnsure
     , initGet
     , initInParallel
@@ -34,8 +32,6 @@ all =
         , initCheck
         , initGet
         , initPut
-        , initAggregate
-        , initAggregateNested
         , initAcross
         , initAcrossNested
         , initAcrossWithDo
@@ -209,99 +205,6 @@ initPut =
         , test "the step" <|
             \_ ->
                 assertSteps [ ( "some-id", someStep "some-id" "some-name" Models.StepStatePending ) ] steps
-        ]
-
-
-initAggregate : Test
-initAggregate =
-    let
-        { tree, steps } =
-            StepTree.init Routes.HighlightNothing
-                emptyResources
-                { id = "aggregate-id"
-                , step =
-                    BuildStepAggregate
-                        << Array.fromList
-                    <|
-                        [ { id = "task-a-id", step = BuildStepTask "task-a" }
-                        , { id = "task-b-id", step = BuildStepTask "task-b" }
-                        ]
-                }
-    in
-    describe "init with Aggregate"
-        [ test "the tree" <|
-            \_ ->
-                Expect.equal
-                    (Models.Aggregate
-                        << Array.fromList
-                     <|
-                        [ Models.Task "task-a-id"
-                        , Models.Task "task-b-id"
-                        ]
-                    )
-                    tree
-        , test "the steps" <|
-            \_ ->
-                assertSteps
-                    [ ( "task-a-id", someStep "task-a-id" "task-a" Models.StepStatePending )
-                    , ( "task-b-id", someStep "task-b-id" "task-b" Models.StepStatePending )
-                    ]
-                    steps
-        ]
-
-
-initAggregateNested : Test
-initAggregateNested =
-    let
-        { tree, steps } =
-            StepTree.init Routes.HighlightNothing
-                emptyResources
-                { id = "aggregate-id"
-                , step =
-                    BuildStepAggregate
-                        << Array.fromList
-                    <|
-                        [ { id = "task-a-id", step = BuildStepTask "task-a" }
-                        , { id = "task-b-id", step = BuildStepTask "task-b" }
-                        , { id = "nested-aggregate-id"
-                          , step =
-                                BuildStepAggregate
-                                    << Array.fromList
-                                <|
-                                    [ { id = "task-c-id", step = BuildStepTask "task-c" }
-                                    , { id = "task-d-id", step = BuildStepTask "task-d" }
-                                    ]
-                          }
-                        ]
-                }
-    in
-    describe "init with Aggregate nested"
-        [ test "the tree" <|
-            \_ ->
-                Expect.equal
-                    (Models.Aggregate
-                        << Array.fromList
-                     <|
-                        [ Models.Task "task-a-id"
-                        , Models.Task "task-b-id"
-                        , Models.Aggregate
-                            << Array.fromList
-                          <|
-                            [ Models.Task "task-c-id"
-                            , Models.Task "task-d-id"
-                            ]
-                        ]
-                    )
-                    tree
-        , test "the steps" <|
-            \_ ->
-                assertSteps
-                    [ ( "task-a-id", someStep "task-a-id" "task-a" Models.StepStatePending )
-                    , ( "task-b-id", someStep "task-b-id" "task-b" Models.StepStatePending )
-                    , ( "task-c-id", someStep "task-c-id" "task-c" Models.StepStatePending )
-                    , ( "task-d-id", someStep "task-d-id" "task-d" Models.StepStatePending )
-                    ]
-                    steps
         ]
 
 

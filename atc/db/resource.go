@@ -55,7 +55,6 @@ type Resource interface {
 
 	Versions(page Page, versionFilter atc.Version) ([]atc.ResourceVersion, Pagination, bool, error)
 	FindVersion(filter atc.Version) (ResourceConfigVersion, bool, error) // Only used in tests!!
-	SaveUncheckedVersion(atc.Version, ResourceConfigMetadataFields, ResourceConfig) (bool, error)
 	UpdateMetadata(atc.Version, ResourceConfigMetadataFields) (bool, error)
 
 	EnableVersion(rcvID int) error
@@ -208,6 +207,20 @@ func (r *resource) SetResourceConfigScope(scope ResourceConfigScope) error {
 
 	defer Rollback(tx)
 
+	err = r.setResourceConfigScopeInTransaction(tx, scope)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *resource) setResourceConfigScopeInTransaction(tx Tx, scope ResourceConfigScope) error {
 	results, err := psql.Update("resources").
 		Set("resource_config_id", scope.ResourceConfig().ID()).
 		Set("resource_config_scope_id", scope.ID()).
@@ -234,11 +247,6 @@ func (r *resource) SetResourceConfigScope(scope ResourceConfigScope) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return err
 	}
 
 	return nil
@@ -274,14 +282,13 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 	defer Rollback(tx)
 
 	if !manuallyTriggered {
-		var buildID int
 		var completed, noBuild bool
-		err = psql.Select("id", "completed").
+		err = psql.Select("completed").
 			From("builds").
 			Where(sq.Eq{"resource_id": r.id}).
 			RunWith(tx).
 			QueryRow().
-			Scan(&buildID, &completed)
+			Scan(&completed)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				noBuild = true
@@ -297,19 +304,32 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 
 		if completed {
 			// previous build finished; clear it out
-			_, err = psql.Delete("builds").
+			rows, err := psql.Delete("builds").
 				Where(sq.Eq{
 					"resource_id": r.id,
 					"completed":   true,
 				}).
+				Suffix("RETURNING id").
 				RunWith(tx).
-				Exec()
+				Query()
 			if err != nil {
 				return nil, false, fmt.Errorf("delete previous build: %w", err)
 			}
+
+			deletedBuildIDs := []int{}
+			for rows.Next() {
+				var id int
+				err := rows.Scan(&id)
+				if err != nil {
+					return nil, false, fmt.Errorf("scan deleted build id: %w", err)
+				}
+
+				deletedBuildIDs = append(deletedBuildIDs, id)
+			}
+
 			_, err = psql.Delete("build_events").
 				Where(sq.Eq{
-					"build_id": buildID,
+					"build_id": deletedBuildIDs,
 				}).
 				RunWith(tx).
 				Exec()
@@ -363,28 +383,6 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 	}
 
 	return build, true, nil
-}
-
-// XXX: only used for tests
-func (r *resource) SaveUncheckedVersion(version atc.Version, metadata ResourceConfigMetadataFields, resourceConfig ResourceConfig) (bool, error) {
-	tx, err := r.conn.Begin()
-	if err != nil {
-		return false, err
-	}
-
-	defer Rollback(tx)
-
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, r.conn, r.lockFactory, resourceConfig, r)
-	if err != nil {
-		return false, err
-	}
-
-	newVersion, err := saveResourceVersion(tx, resourceConfigScope.ID(), version, metadata, nil)
-	if err != nil {
-		return false, err
-	}
-
-	return newVersion, tx.Commit()
 }
 
 func (r *resource) UpdateMetadata(version atc.Version, metadata ResourceConfigMetadataFields) (bool, error) {
@@ -493,7 +491,7 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 				AND r.id = d.resource_id
 			)
 		FROM resource_config_versions v, resources r
-		WHERE r.id = $1 AND r.resource_config_scope_id = v.resource_config_scope_id AND v.check_order != 0
+		WHERE r.id = $1 AND r.resource_config_scope_id = v.resource_config_scope_id
 	`
 
 	filterJSON := "{}"

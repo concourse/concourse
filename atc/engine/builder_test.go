@@ -109,7 +109,7 @@ var _ = Describe("Builder", func() {
 					stepper(fakeBuild.PrivatePlan())
 				})
 
-				Context("with a putget in an aggregate", func() {
+				Context("with a putget in an in_parallel", func() {
 					var (
 						putPlan               atc.Plan
 						dependentGetPlan      atc.Plan
@@ -134,15 +134,17 @@ var _ = Describe("Builder", func() {
 							Params:   atc.Params{"some": "params-2"},
 						})
 
-						expectedPlan = planFactory.NewPlan(atc.AggregatePlan{
-							planFactory.NewPlan(atc.OnSuccessPlan{
-								Step: putPlan,
-								Next: dependentGetPlan,
-							}),
-							planFactory.NewPlan(atc.OnSuccessPlan{
-								Step: otherPutPlan,
-								Next: otherDependentGetPlan,
-							}),
+						expectedPlan = planFactory.NewPlan(atc.InParallelPlan{
+							Steps: []atc.Plan{
+								planFactory.NewPlan(atc.OnSuccessPlan{
+									Step: putPlan,
+									Next: dependentGetPlan,
+								}),
+								planFactory.NewPlan(atc.OnSuccessPlan{
+									Step: otherPutPlan,
+									Next: otherDependentGetPlan,
+								}),
+							},
 						})
 					})
 
@@ -259,13 +261,13 @@ var _ = Describe("Builder", func() {
 
 				Context("with a retry plan", func() {
 					var (
-						getPlan       atc.Plan
-						taskPlan      atc.Plan
-						aggregatePlan atc.Plan
-						parallelPlan  atc.Plan
-						doPlan        atc.Plan
-						timeoutPlan   atc.Plan
-						retryPlanTwo  atc.Plan
+						getPlan        atc.Plan
+						taskPlan       atc.Plan
+						inParallelPlan atc.Plan
+						parallelPlan   atc.Plan
+						doPlan         atc.Plan
+						timeoutPlan    atc.Plan
+						retryPlanTwo   atc.Plan
 					)
 
 					BeforeEach(func() {
@@ -289,10 +291,10 @@ var _ = Describe("Builder", func() {
 							taskPlan,
 						})
 
-						aggregatePlan = planFactory.NewPlan(atc.AggregatePlan{retryPlanTwo})
+						inParallelPlan = planFactory.NewPlan(atc.InParallelPlan{Steps: []atc.Plan{retryPlanTwo}})
 
 						parallelPlan = planFactory.NewPlan(atc.InParallelPlan{
-							Steps:    []atc.Plan{aggregatePlan},
+							Steps:    []atc.Plan{inParallelPlan},
 							Limit:    1,
 							FailFast: true,
 						})

@@ -249,12 +249,67 @@ var _ = Describe("CheckFactory", func() {
 			resources []db.Resource
 		)
 
+		BeforeEach(func() {
+			defaultPipelineConfig = atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name: "some-resource",
+								},
+							},
+							{
+								Config: &atc.PutStep{
+									Name: "some-put-only-resource",
+								},
+							},
+						},
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-resource",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some": "source",
+						},
+					},
+					{
+						Name: "some-put-only-resource",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some": "source",
+						},
+					},
+				},
+				ResourceTypes: atc.ResourceTypes{
+					{
+						Name: "some-type",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some-type": "source",
+						},
+					},
+				},
+			}
+
+			defaultPipelineRef = atc.PipelineRef{Name: "default-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
+			defaultPipeline, _, err = defaultTeam.SavePipeline(defaultPipelineRef, defaultPipelineConfig, db.ConfigVersion(1), false)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, found, err := defaultPipeline.Resource("some-put-only-resource")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeTrue())
+		})
+
 		JustBeforeEach(func() {
 			resources, err = checkFactory.Resources()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("include resources in return", func() {
+		It("include only resources-in-use in return", func() {
 			Expect(resources).To(HaveLen(1))
 			Expect(resources[0].Name()).To(Equal("some-resource"))
 		})

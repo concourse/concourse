@@ -31,7 +31,7 @@ var _ = Describe("Fly CLI", func() {
 			pipelineRef = atc.PipelineRef{Name: pipelineName, InstanceVars: atc.InstanceVars{"branch": "master"}}
 			fullJobName = fmt.Sprintf("%s/%s", pipelineRef.String(), jobName)
 			apiPath = fmt.Sprintf("/api/v1/teams/main/pipelines/%s/jobs/%s/unpause", pipelineName, jobName)
-			queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			queryParams = "vars.branch=%22master%22"
 
 			flyCmd = exec.Command(flyPath, "-t", targetName, "unpause-job", "-j", fullJobName)
 		})

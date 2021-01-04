@@ -38,7 +38,6 @@ import (
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
-	"github.com/concourse/concourse/atc/db/migration/batch"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/gc"
 	"github.com/concourse/concourse/atc/lidar"
@@ -142,9 +141,6 @@ type RunCommand struct {
 	EncryptionKey    flag.Cipher `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
 	OldEncryptionKey flag.Cipher `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is encrypted. If provided with a new key, data is re-encrypted."`
 
-	BuildEventsBigintMigrationBatchSize int           `long:"build-events-bigint-batch-size" default:"100000" description:"Number of events to migrate in each batch."`
-	BuildEventsBigintMigrationInterval  time.Duration `long:"build-events-bigint-interval" default:"10s" description:"Interval on which to migrate each batch."`
-
 	DebugBindIP   flag.IP `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
 	DebugBindPort uint16  `long:"debug-bind-port" default:"8079"      description:"Port on which to listen for the pprof debugger endpoints."`
 
@@ -159,8 +155,8 @@ type RunCommand struct {
 	ResourceWithWebhookCheckingInterval time.Duration `long:"resource-with-webhook-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources that has webhook defined."`
 	MaxChecksPerSecond                  int           `long:"max-checks-per-second" description:"Maximum number of checks that can be started per second. If not specified, this will be calculated as (# of resources)/(resource checking interval). -1 value will remove this maximum limit of checks per second."`
 
-	ContainerPlacementStrategy        string        `long:"container-placement-strategy" default:"volume-locality" choice:"volume-locality" choice:"random" choice:"fewest-build-containers" choice:"limit-active-tasks" description:"Method by which a worker is selected during container placement."`
-	MaxActiveTasksPerWorker           int           `long:"max-active-tasks-per-worker" default:"0" description:"Maximum allowed number of active build tasks per worker. Has effect only when used with limit-active-tasks placement strategy. 0 means no limit."`
+	ContainerPlacementStrategyOptions worker.ContainerPlacementStrategyOptions `group:"Container Placement Strategy"`
+
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
 	StreamingArtifactsCompression     string        `long:"streaming-artifacts-compression" default:"gzip" choice:"gzip" choice:"zstd" description:"Compression algorithm for internal streaming."`
 
@@ -546,17 +542,22 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 	lockFactory := lock.NewLockFactory(lockConn, metric.LogLockAcquired, metric.LogLockReleased)
 
-	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.APIMaxOpenConnections, "api", lockFactory)
+	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.APIMaxOpenConnections, cmd.APIMaxOpenConnections/2, "api", lockFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.BackendMaxOpenConnections, "backend", lockFactory)
+	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.BackendMaxOpenConnections, cmd.BackendMaxOpenConnections/2, "backend", lockFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	gcConn, err := cmd.constructDBConn(retryingDriverName, logger, 5, "gc", lockFactory)
+	gcConn, err := cmd.constructDBConn(retryingDriverName, logger, 5, 2, "gc", lockFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	workerConn, err := cmd.constructDBConn(retryingDriverName, logger, 1, 1, "worker", lockFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -579,7 +580,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		clock.NewClock(),
 	)
 
-	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, backendConn, gcConn, storage, lockFactory, secretManager)
+	members, err := cmd.constructMembers(logger, reconfigurableSink, apiConn, workerConn, backendConn, gcConn, storage, lockFactory, secretManager)
 	if err != nil {
 		return nil, err
 	}
@@ -607,7 +608,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	}
 
 	onExit := func() {
-		for _, closer := range []Closer{lockConn, apiConn, backendConn, gcConn, storage} {
+		for _, closer := range []Closer{lockConn, apiConn, backendConn, gcConn, storage, workerConn} {
 			closer.Close()
 		}
 
@@ -621,6 +622,7 @@ func (cmd *RunCommand) constructMembers(
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
 	apiConn db.Conn,
+	workerConn db.Conn,
 	backendConn db.Conn,
 	gcConn db.Conn,
 	storage storage.Storage,
@@ -642,7 +644,7 @@ func (cmd *RunCommand) constructMembers(
 		return nil, err
 	}
 
-	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, storage, lockFactory, secretManager, policyChecker)
+	apiMembers, err := cmd.constructAPIMembers(logger, reconfigurableSink, apiConn, workerConn, storage, lockFactory, secretManager, policyChecker)
 	if err != nil {
 		return nil, err
 	}
@@ -705,6 +707,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
 	dbConn db.Conn,
+	workerConn db.Conn,
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
@@ -717,6 +720,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	}
 
 	teamFactory := db.NewTeamFactory(dbConn, lockFactory)
+	workerTeamFactory := db.NewTeamFactory(workerConn, lockFactory)
 
 	_, err = teamFactory.CreateDefaultTeamIfNotExists()
 	if err != nil {
@@ -739,13 +743,15 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbWorkerTaskCacheFactory := db.NewWorkerTaskCacheFactory(dbConn)
 	dbTaskCacheFactory := db.NewTaskCacheFactory(dbConn)
 	dbVolumeRepository := db.NewVolumeRepository(dbConn)
-	dbWorkerFactory := db.NewWorkerFactory(dbConn)
+	dbWorkerFactory := db.NewWorkerFactory(workerConn)
 	workerVersion, err := workerVersion()
 	if err != nil {
 		return nil, err
 	}
 
 	// XXX(substeps): why is this unconditional?
+	// A: we're constructing API components and none of them use the streaming
+	// funcs which relies on a compression method.
 	compressionLib := compression.NewGzipCompression()
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
@@ -807,6 +813,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		logger,
 		reconfigurableSink,
 		teamFactory,
+		workerTeamFactory,
 		dbPipelineFactory,
 		dbJobFactory,
 		dbResourceFactory,
@@ -1107,18 +1114,6 @@ func (cmd *RunCommand) backendComponents(
 				Interval: cmd.BuildTrackerInterval,
 			},
 			Runnable: builds.NewTracker(dbBuildFactory, engine),
-		},
-		{
-			Component: atc.Component{
-				Name:     atc.ComponentBatchMigrator,
-				Interval: cmd.BuildEventsBigintMigrationInterval,
-			},
-			Runnable: batch.Runner{
-				Migrator: batch.BuildEventsBigintMigrator{
-					DB:        dbConn,
-					BatchSize: cmd.BuildEventsBigintMigrationBatchSize,
-				},
-			},
 		},
 		{
 			Component: atc.Component{
@@ -1549,7 +1544,8 @@ func (cmd *RunCommand) configureMetrics(logger lager.Logger) error {
 func (cmd *RunCommand) constructDBConn(
 	driverName string,
 	logger lager.Logger,
-	maxConn int,
+	maxConns int,
+	idleConns int,
 	connectionName string,
 	lockFactory lock.LockFactory,
 ) (db.Conn, error) {
@@ -1568,8 +1564,8 @@ func (cmd *RunCommand) constructDBConn(
 	}
 
 	// Prepare
-	dbConn.SetMaxOpenConns(maxConn)
-	dbConn.SetMaxIdleConns(maxConn / 2)
+	dbConn.SetMaxOpenConns(maxConns)
+	dbConn.SetMaxIdleConns(idleConns)
 
 	return dbConn, nil
 }
@@ -1592,25 +1588,7 @@ func (cmd *RunCommand) constructLockConn(driverName string) (*sql.DB, error) {
 }
 
 func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.ContainerPlacementStrategy, error) {
-	var strategy worker.ContainerPlacementStrategy
-	if cmd.ContainerPlacementStrategy != "limit-active-tasks" && cmd.MaxActiveTasksPerWorker != 0 {
-		return nil, errors.New("max-active-tasks-per-worker has only effect with limit-active-tasks strategy")
-	}
-	if cmd.MaxActiveTasksPerWorker < 0 {
-		return nil, errors.New("max-active-tasks-per-worker must be greater or equal than 0")
-	}
-	switch cmd.ContainerPlacementStrategy {
-	case "random":
-		strategy = worker.NewRandomPlacementStrategy()
-	case "fewest-build-containers":
-		strategy = worker.NewFewestBuildContainersPlacementStrategy()
-	case "limit-active-tasks":
-		strategy = worker.NewLimitActiveTasksPlacementStrategy(cmd.MaxActiveTasksPerWorker)
-	default:
-		strategy = worker.NewVolumeLocalityPlacementStrategy()
-	}
-
-	return strategy, nil
+	return worker.NewContainerPlacementStrategy(cmd.ContainerPlacementStrategyOptions)
 }
 
 func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) error {
@@ -1825,6 +1803,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
 	teamFactory db.TeamFactory,
+	workerTeamFactory db.TeamFactory,
 	dbPipelineFactory db.PipelineFactory,
 	dbJobFactory db.JobFactory,
 	dbResourceFactory db.ResourceFactory,
@@ -1904,6 +1883,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		dbJobFactory,
 		dbResourceFactory,
 		dbWorkerFactory,
+		workerTeamFactory,
 		dbVolumeRepository,
 		dbContainerRepository,
 		gcContainerDestroyer,

@@ -1062,14 +1062,9 @@ func (b *build) Events(from uint) (EventSource, error) {
 		return nil, err
 	}
 
-	table := fmt.Sprintf("team_build_events_%d", b.teamID)
-	if b.pipelineID != 0 {
-		table = fmt.Sprintf("pipeline_build_events_%d", b.pipelineID)
-	}
-
 	return newBuildEventSource(
 		b.id,
-		table,
+		b.eventsTable(),
 		b.conn,
 		notifier,
 		from,
@@ -1172,7 +1167,7 @@ func (b *build) SaveOutput(
 		return ErrBuildHasNoPipeline
 	}
 
-	resource, found, err := pipeline.Resource(resourceName)
+	theResource, found, err := pipeline.Resource(resourceName)
 	if err != nil {
 		return err
 	}
@@ -1198,7 +1193,7 @@ func (b *build) SaveOutput(
 		return err
 	}
 
-	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, b.conn, b.lockFactory, resourceConfig, resource)
+	resourceConfigScope, err := findOrCreateResourceConfigScope(tx, b.conn, b.lockFactory, resourceConfig, theResource)
 	if err != nil {
 		return err
 	}
@@ -1222,9 +1217,14 @@ func (b *build) SaveOutput(
 		}
 	}
 
+	err = theResource.(*resource).setResourceConfigScopeInTransaction(tx, resourceConfigScope)
+	if err != nil {
+		return err
+	}
+
 	_, err = psql.Insert("build_resource_config_version_outputs").
 		Columns("resource_id", "build_id", "version_md5", "name").
-		Values(resource.ID(), strconv.Itoa(b.id), sq.Expr("md5(?)", versionJSON), outputName).
+		Values(theResource.ID(), strconv.Itoa(b.id), sq.Expr("md5(?)", versionJSON), outputName).
 		Suffix("ON CONFLICT DO NOTHING").
 		RunWith(tx).
 		Exec()
@@ -1503,6 +1503,11 @@ func (b *build) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
 					}).
 					RunWith(b.conn).
 					Exec()
+
+				err = b.MarkAsAborted()
+				if err != nil {
+					return nil, false, err
+				}
 			}
 
 			return nil, false, err
@@ -1585,7 +1590,6 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		))`).
 		From("resource_config_versions versions, build_resource_config_version_inputs inputs, builds, resources").
 		Where(sq.Eq{"builds.id": b.id}).
-		Where(sq.NotEq{"versions.check_order": 0}).
 		Where(sq.Expr("inputs.build_id = builds.id")).
 		Where(sq.Expr("inputs.version_md5 = versions.version_md5")).
 		Where(sq.Expr("resources.resource_config_scope_id = versions.resource_config_scope_id")).
@@ -1636,7 +1640,6 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	rows, err = psql.Select("outputs.name", "versions.version").
 		From("resource_config_versions versions, build_resource_config_version_outputs outputs, builds, resources").
 		Where(sq.Eq{"builds.id": b.id}).
-		Where(sq.NotEq{"versions.check_order": 0}).
 		Where(sq.Expr("outputs.build_id = builds.id")).
 		Where(sq.Expr("outputs.version_md5 = versions.version_md5")).
 		Where(sq.Expr("outputs.resource_id = resources.id")).
@@ -1866,16 +1869,20 @@ func (b *build) saveEvent(tx Tx, event atc.Event) error {
 		return err
 	}
 
-	table := fmt.Sprintf("team_build_events_%d", b.teamID)
-	if b.pipelineID != 0 {
-		table = fmt.Sprintf("pipeline_build_events_%d", b.pipelineID)
-	}
-	_, err = psql.Insert(table).
+	_, err = psql.Insert(b.eventsTable()).
 		Columns("event_id", "build_id", "type", "version", "payload").
 		Values(sq.Expr("nextval('"+buildEventSeq(b.id)+"')"), b.id, string(event.EventType()), string(event.Version()), payload).
 		RunWith(tx).
 		Exec()
 	return err
+}
+
+func (b *build) eventsTable() string {
+	if b.pipelineID != 0 {
+		return fmt.Sprintf("pipeline_build_events_%d", b.pipelineID)
+	} else {
+		return fmt.Sprintf("team_build_events_%d", b.teamID)
+	}
 }
 
 func createBuild(tx Tx, build *build, vals map[string]interface{}) error {

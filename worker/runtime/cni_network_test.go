@@ -18,9 +18,10 @@ type CNINetworkSuite struct {
 	suite.Suite
 	*require.Assertions
 
-	network runtime.Network
-	cni     *runtimefakes.FakeCNI
-	store   *runtimefakes.FakeFileStore
+	network  runtime.Network
+	cni      *runtimefakes.FakeCNI
+	store    *runtimefakes.FakeFileStore
+	iptables *iptablesfakes.FakeIptables
 }
 
 func (s *CNINetworkSuite) SetupTest() {
@@ -28,11 +29,12 @@ func (s *CNINetworkSuite) SetupTest() {
 
 	s.store = new(runtimefakes.FakeFileStore)
 	s.cni = new(runtimefakes.FakeCNI)
+	s.iptables = new(iptablesfakes.FakeIptables)
 
 	s.network, err = runtime.NewCNINetwork(
 		runtime.WithCNIFileStore(s.store),
 		runtime.WithCNIClient(s.cni),
-		runtime.WithIptables(new(iptablesfakes.FakeIptables)),
+		runtime.WithIptables(s.iptables),
 	)
 	s.NoError(err)
 }
@@ -45,6 +47,7 @@ func (s *CNINetworkSuite) TestNewCNINetworkWithInvalidConfigDoesntFail() {
 		runtime.WithCNINetworkConfig(runtime.CNINetworkConfig{
 			Subnet: "_____________",
 		}),
+		runtime.WithIptables(s.iptables),
 	)
 	s.NoError(err)
 }
@@ -106,6 +109,7 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithNameServers() {
 	network, err := runtime.NewCNINetwork(
 		runtime.WithCNIFileStore(s.store),
 		runtime.WithNameServers([]string{"6.6.7.7", "1.2.3.4"}),
+		runtime.WithIptables(s.iptables),
 	)
 	s.NoError(err)
 
@@ -119,6 +123,7 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithNameServers() {
 func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithoutNameServers() {
 	network, err := runtime.NewCNINetwork(
 		runtime.WithCNIFileStore(s.store),
+		runtime.WithIptables(s.iptables),
 	)
 	s.NoError(err)
 
@@ -135,30 +140,29 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithoutNameServers() {
 }
 
 func (s *CNINetworkSuite) TestSetupRestrictedNetworksCreatesEmptyAdminChain() {
-	fakeIpt := new(iptablesfakes.FakeIptables)
 	network, err := runtime.NewCNINetwork(
 		runtime.WithRestrictedNetworks([]string{"1.1.1.1", "8.8.8.8"}),
-		runtime.WithIptables(fakeIpt),
+		runtime.WithIptables(s.iptables),
 	)
 
 	err = network.SetupRestrictedNetworks()
 	s.NoError(err)
 
-	tablename, chainName := fakeIpt.CreateChainOrFlushIfExistsArgsForCall(0)
+	tablename, chainName := s.iptables.CreateChainOrFlushIfExistsArgsForCall(0)
 	s.Equal(tablename, "filter")
 	s.Equal(chainName, "CONCOURSE-OPERATOR")
 
-	tablename, chainName, rulespec := fakeIpt.AppendRuleArgsForCall(0)
+	tablename, chainName, rulespec := s.iptables.AppendRuleArgsForCall(0)
 	s.Equal(tablename, "filter")
 	s.Equal(chainName, "CONCOURSE-OPERATOR")
 	s.Equal(rulespec, []string{"-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT"})
 
-	tablename, chainName, rulespec = fakeIpt.AppendRuleArgsForCall(1)
+	tablename, chainName, rulespec = s.iptables.AppendRuleArgsForCall(1)
 	s.Equal(tablename, "filter")
 	s.Equal(chainName, "CONCOURSE-OPERATOR")
 	s.Equal(rulespec, []string{"-d", "1.1.1.1", "-j", "REJECT"})
 
-	tablename, chainName, rulespec = fakeIpt.AppendRuleArgsForCall(2)
+	tablename, chainName, rulespec = s.iptables.AppendRuleArgsForCall(2)
 	s.Equal(tablename, "filter")
 	s.Equal(chainName, "CONCOURSE-OPERATOR")
 	s.Equal(rulespec, []string{"-d", "8.8.8.8", "-j", "REJECT"})

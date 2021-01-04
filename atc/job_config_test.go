@@ -364,31 +364,33 @@ var _ = Describe("JobConfig", func() {
 				})
 			})
 
-			Context("when a simple aggregate plan is the first step", func() {
+			Context("when a simple in_parallel plan is the first step", func() {
 				BeforeEach(func() {
 					jobConfig.PlanSequence = []atc.Step{
 						{
-							Config: &atc.AggregateStep{
-								Steps: []atc.Step{
-									{
-										Config: &atc.GetStep{
-											Name: "a",
+							Config: &atc.InParallelStep{
+								Config: atc.InParallelConfig{
+									Steps: []atc.Step{
+										{
+											Config: &atc.GetStep{
+												Name: "a",
+											},
 										},
-									},
-									{
-										Config: &atc.PutStep{
-											Name: "y",
+										{
+											Config: &atc.PutStep{
+												Name: "y",
+											},
 										},
-									},
-									{
-										Config: &atc.GetStep{
-											Name:     "b",
-											Resource: "some-resource", Passed: []string{"x"},
+										{
+											Config: &atc.GetStep{
+												Name:     "b",
+												Resource: "some-resource", Passed: []string{"x"},
+											},
 										},
-									},
-									{
-										Config: &atc.GetStep{
-											Name: "c", Trigger: true,
+										{
+											Config: &atc.GetStep{
+												Name: "c", Trigger: true,
+											},
 										},
 									},
 								},

@@ -174,7 +174,7 @@ var _ = Describe("Config API", func() {
 						Context("when instance vars are malformed", func() {
 							BeforeEach(func() {
 								query := request.URL.Query()
-								query.Add("instance_vars", "{")
+								query.Add("vars.branch", "{")
 								request.URL.RawQuery = query.Encode()
 							})
 
@@ -193,7 +193,7 @@ var _ = Describe("Config API", func() {
 								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 										{
 											"errors": [
-												"instance_vars is malformed: unexpected end of JSON input"
+												"instance vars are malformed: unexpected end of JSON input"
 											]
 										}`))
 							})
@@ -206,7 +206,7 @@ var _ = Describe("Config API", func() {
 						Context("when instance vars is valid", func() {
 							BeforeEach(func() {
 								query := request.URL.Query()
-								query.Add("instance_vars", "{\"branch\":\"feature\"}")
+								query.Add("vars.branch", `"feature"`)
 								request.URL.RawQuery = query.Encode()
 
 								fakePipeline.InstanceVarsReturns(atc.InstanceVars{"branch": "feature"})
@@ -1050,7 +1050,7 @@ jobs:
 							Context("when instance vars are malformed", func() {
 								BeforeEach(func() {
 									query := request.URL.Query()
-									query.Add("instance_vars", "{")
+									query.Add("vars.foo", "{")
 									request.URL.RawQuery = query.Encode()
 								})
 
@@ -1069,7 +1069,7 @@ jobs:
 									Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 										{
 											"errors": [
-												"instance_vars is malformed: unexpected end of JSON input"
+												"instance vars are malformed: unexpected end of JSON input"
 											]
 										}`))
 								})
@@ -1082,7 +1082,7 @@ jobs:
 							Context("when instance vars is valid", func() {
 								BeforeEach(func() {
 									query := request.URL.Query()
-									query.Add("instance_vars", "{\"branch\":\"feature\"}")
+									query.Add("vars", "{\"branch\":\"feature\"}")
 									request.URL.RawQuery = query.Encode()
 								})
 

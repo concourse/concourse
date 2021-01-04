@@ -18,7 +18,7 @@ var _ = Describe("Fly CLI", func() {
 	Describe("resource-versions", func() {
 		var (
 			flyCmd      *exec.Cmd
-			queryParams = []string{"instance_vars=%7B%22branch%22%3A%22master%22%7D", "limit=50"}
+			queryParams = []string{"vars.branch=%22master%22", "limit=50"}
 		)
 
 		BeforeEach(func() {

@@ -1,13 +1,14 @@
 package api_test
 
 import (
-	"github.com/concourse/concourse/atc"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/concourse/concourse/atc"
 
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
@@ -52,6 +53,7 @@ var (
 	fakeAccess              *accessorfakes.FakeAccess
 	fakeAccessor            *accessorfakes.FakeAccessFactory
 	dbWorkerFactory         *dbfakes.FakeWorkerFactory
+	dbWorkerTeamFactory     *dbfakes.FakeTeamFactory
 	dbWorkerLifecycle       *dbfakes.FakeWorkerLifecycle
 	build                   *dbfakes.FakeBuild
 	dbBuildFactory          *dbfakes.FakeBuildFactory
@@ -98,6 +100,7 @@ func (f *fakeEventHandlerFactory) Construct(
 
 var _ = BeforeEach(func() {
 	dbTeamFactory = new(dbfakes.FakeTeamFactory)
+	dbWorkerTeamFactory = new(dbfakes.FakeTeamFactory)
 	dbPipelineFactory = new(dbfakes.FakePipelineFactory)
 	dbJobFactory = new(dbfakes.FakeJobFactory)
 	dbResourceFactory = new(dbfakes.FakeResourceFactory)
@@ -115,6 +118,8 @@ var _ = BeforeEach(func() {
 	dbTeam.IDReturns(734)
 	dbTeamFactory.FindTeamReturns(dbTeam, true, nil)
 	dbTeamFactory.GetByIDReturns(dbTeam)
+	dbWorkerTeamFactory.FindTeamReturns(dbTeam, true, nil)
+	dbWorkerTeamFactory.GetByIDReturns(dbTeam)
 
 	fakeAccess = new(accessorfakes.FakeAccess)
 	fakeAccessor = new(accessorfakes.FakeAccessFactory)
@@ -186,6 +191,7 @@ var _ = BeforeEach(func() {
 		dbJobFactory,
 		dbResourceFactory,
 		dbWorkerFactory,
+		dbWorkerTeamFactory,
 		fakeVolumeRepository,
 		fakeContainerRepository,
 		fakeDestroyer,
