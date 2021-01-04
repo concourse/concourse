@@ -27,6 +27,6 @@ var _ = Describe("A job with a complicated build plan", func() {
 		<-watch.Exited
 		Expect(watch.ExitCode()).To(Equal(1)) // expect failure
 		Expect(watch).To(gbytes.Say("passing-unit-1/file passing-unit-2/file " + initialVersion))
-		Expect(watch).To(gbytes.Say("failed aggregate " + initialVersion))
+		Expect(watch).To(gbytes.Say("failed in_parallel " + initialVersion))
 	})
 })

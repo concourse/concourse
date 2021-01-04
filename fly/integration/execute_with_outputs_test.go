@@ -91,11 +91,12 @@ run:
 
 		expectedPlan = planFactory.NewPlan(atc.EnsurePlan{
 			Step: planFactory.NewPlan(atc.DoPlan{
-				planFactory.NewPlan(atc.AggregatePlan{
-					planFactory.NewPlan(atc.ArtifactInputPlan{
-						Name:       filepath.Base(buildDir),
-						ArtifactID: 125,
-					}),
+				planFactory.NewPlan(atc.InParallelPlan{
+					Steps: []atc.Plan{
+						planFactory.NewPlan(atc.ArtifactInputPlan{
+							Name:       filepath.Base(buildDir),
+							ArtifactID: 125,
+						})},
 				}),
 				planFactory.NewPlan(atc.TaskPlan{
 					Name: "one-off",
@@ -125,10 +126,12 @@ run:
 					},
 				}),
 			}),
-			Next: planFactory.NewPlan(atc.AggregatePlan{
-				planFactory.NewPlan(atc.ArtifactOutputPlan{
-					Name: "some-dir",
-				}),
+			Next: planFactory.NewPlan(atc.InParallelPlan{
+				Steps: []atc.Plan{
+					planFactory.NewPlan(atc.ArtifactOutputPlan{
+						Name: "some-dir",
+					}),
+				},
 			}),
 		})
 	})

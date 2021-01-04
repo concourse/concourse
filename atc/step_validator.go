@@ -257,29 +257,6 @@ func (validator *StepValidator) VisitInParallel(step *InParallelStep) error {
 	return nil
 }
 
-func (validator *StepValidator) VisitAggregate(step *AggregateStep) error {
-	validator.pushContext(".aggregate")
-	defer validator.popContext()
-
-	validator.recordWarning(ConfigWarning{
-		Type:    "pipeline",
-		Message: validator.annotate("the aggregate step is deprecated and will be removed in a future version"),
-	})
-
-	for i, sub := range step.Steps {
-		validator.pushContext("[%d]", i)
-
-		err := validator.Validate(sub)
-		if err != nil {
-			return err
-		}
-
-		validator.popContext()
-	}
-
-	return nil
-}
-
 func (validator *StepValidator) VisitAcross(step *AcrossStep) error {
 	validator.pushContext(".across")
 	defer validator.popContext()

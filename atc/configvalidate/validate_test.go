@@ -561,10 +561,6 @@ var _ = Describe("ValidateConfig", func() {
 						Type: "some-type",
 					},
 					{
-						Name: "aggregate",
-						Type: "some-type",
-					},
-					{
 						Name: "parallel",
 						Type: "some-type",
 					},
@@ -630,17 +626,6 @@ var _ = Describe("ValidateConfig", func() {
 										{
 											Config: &atc.GetStep{
 												Name: "do",
-											},
-										},
-									},
-								},
-							},
-							{
-								Config: &atc.AggregateStep{
-									Steps: []atc.Step{
-										{
-											Config: &atc.GetStep{
-												Name: "aggregate",
 											},
 										},
 									},

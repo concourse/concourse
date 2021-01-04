@@ -572,7 +572,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 				plan = atc.Plan{
 					OnSuccess: &atc.OnSuccessPlan{
 						Step: atc.Plan{
-							Aggregate: &atc.AggregatePlan{},
+							InParallel: &atc.InParallelPlan{},
 						},
 						Next: atc.Plan{
 							ID: "some-guid",

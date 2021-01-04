@@ -84,19 +84,21 @@ run:
 		planFactory := atc.NewPlanFactory(0)
 
 		expectedPlan = planFactory.NewPlan(atc.DoPlan{
-			planFactory.NewPlan(atc.AggregatePlan{
-				planFactory.NewPlan(atc.ArtifactInputPlan{
-					ArtifactID: 125,
-					Name:       "some-input",
-				}),
-				planFactory.NewPlan(atc.GetPlan{
-					Name:    "some-other-input",
-					Type:    "git",
-					Source:  atc.Source{"uri": "https://example.com"},
-					Params:  atc.Params{"some": "other-params"},
-					Version: &atc.Version{"some": "other-version"},
-					Tags:    atc.Tags{"tag-1", "tag-2"},
-				}),
+			planFactory.NewPlan(atc.InParallelPlan{
+				Steps: []atc.Plan{
+					planFactory.NewPlan(atc.ArtifactInputPlan{
+						ArtifactID: 125,
+						Name:       "some-input",
+					}),
+					planFactory.NewPlan(atc.GetPlan{
+						Name:    "some-other-input",
+						Type:    "git",
+						Source:  atc.Source{"uri": "https://example.com"},
+						Params:  atc.Params{"some": "other-params"},
+						Version: &atc.Version{"some": "other-version"},
+						Tags:    atc.Tags{"tag-1", "tag-2"},
+					}),
+				},
 			}),
 			planFactory.NewPlan(atc.TaskPlan{
 				Name: "one-off",

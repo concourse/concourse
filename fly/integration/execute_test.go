@@ -116,11 +116,13 @@ run:
 		})
 
 		expectedPlan = planFactory.NewPlan(atc.DoPlan{
-			planFactory.NewPlan(atc.AggregatePlan{
-				planFactory.NewPlan(atc.ArtifactInputPlan{
-					ArtifactID: 125,
-					Name:       filepath.Base(buildDir),
-				}),
+			planFactory.NewPlan(atc.InParallelPlan{
+				Steps: []atc.Plan{
+					planFactory.NewPlan(atc.ArtifactInputPlan{
+						ArtifactID: 125,
+						Name:       filepath.Base(buildDir),
+					}),
+				},
 			}),
 			taskPlan,
 		})
@@ -260,19 +262,21 @@ run:
 			planFactory := atc.NewPlanFactory(0)
 
 			expectedPlan = planFactory.NewPlan(atc.DoPlan{
-				planFactory.NewPlan(atc.AggregatePlan{
-					planFactory.NewPlan(atc.GetPlan{
-						Name: "fixture",
-						VersionedResourceTypes: atc.VersionedResourceTypes{
-							atc.VersionedResourceType{
-								ResourceType: atc.ResourceType{
-									Name:   "resource-type",
-									Type:   "s3",
-									Source: atc.Source{},
+				planFactory.NewPlan(atc.InParallelPlan{
+					Steps: []atc.Plan{
+						planFactory.NewPlan(atc.GetPlan{
+							Name: "fixture",
+							VersionedResourceTypes: atc.VersionedResourceTypes{
+								atc.VersionedResourceType{
+									ResourceType: atc.ResourceType{
+										Name:   "resource-type",
+										Type:   "s3",
+										Source: atc.Source{},
+									},
 								},
 							},
-						},
-					}),
+						}),
+					},
 				}),
 				taskPlan,
 			})
@@ -436,15 +440,17 @@ run:
 
 				Expect(err).NotTo(HaveOccurred())
 				expectedPlan = planFactory.NewPlan(atc.DoPlan{
-					planFactory.NewPlan(atc.AggregatePlan{
-						planFactory.NewPlan(atc.ArtifactInputPlan{
-							ArtifactID: 125,
-							Name:       filepath.Base(buildDir),
-						}),
-						planFactory.NewPlan(atc.ArtifactInputPlan{
-							ArtifactID: 125,
-							Name:       filepath.Base(bardir),
-						}),
+					planFactory.NewPlan(atc.InParallelPlan{
+						Steps: []atc.Plan{
+							planFactory.NewPlan(atc.ArtifactInputPlan{
+								ArtifactID: 125,
+								Name:       filepath.Base(buildDir),
+							}),
+							planFactory.NewPlan(atc.ArtifactInputPlan{
+								ArtifactID: 125,
+								Name:       filepath.Base(bardir),
+							}),
+						},
 					}),
 					taskPlan,
 				})
@@ -818,7 +824,7 @@ run:
 			)
 			Expect(err).NotTo(HaveOccurred())
 			(*expectedPlan.Do)[1].Task.Config.Inputs = nil
-			(*expectedPlan.Do)[0].Aggregate = &atc.AggregatePlan{}
+			(*expectedPlan.Do)[0].InParallel = &atc.InParallelPlan{}
 		})
 
 		It("shouldn't upload the current directory", func() {

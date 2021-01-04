@@ -423,46 +423,6 @@ var factoryTests = []PlannerTest{
 		}`,
 	},
 	{
-		Title: "aggregate step",
-
-		Config: &atc.AggregateStep{
-			Steps: []atc.Step{
-				{
-					Config: &atc.LoadVarStep{
-						Name: "some-var",
-						File: "some-file",
-					},
-				},
-				{
-					Config: &atc.LoadVarStep{
-						Name: "some-other-var",
-						File: "some-other-file",
-					},
-				},
-			},
-		},
-
-		PlanJSON: `{
-			"id": "(unique)",
-			"aggregate": [
-				{
-					"id": "(unique)",
-					"load_var": {
-						"name": "some-var",
-						"file": "some-file"
-					}
-				},
-				{
-					"id": "(unique)",
-					"load_var": {
-						"name": "some-other-var",
-						"file": "some-other-file"
-					}
-				}
-			]
-		}`,
-	},
-	{
 		Title: "across step",
 
 		Config: &atc.AcrossStep{
