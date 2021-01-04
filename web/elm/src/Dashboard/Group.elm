@@ -223,17 +223,16 @@ tag { userState } teamName =
 
 
 hdView :
-    { pipelineRunningKeyframes : String
-    , pipelinesWithResourceErrors : Set Concourse.DatabaseID
+    { pipelinesWithResourceErrors : Set Concourse.DatabaseID
     , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobName)
     , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
     , dashboardView : Routes.DashboardView
     , query : String
     }
-    -> { a | userState : UserState }
+    -> { a | userState : UserState, pipelineRunningKeyframes : String }
     -> ( Concourse.TeamName, List Card )
     -> List (Html Message)
-hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, jobs, dashboardView, query } session ( teamName, cards ) =
+hdView { pipelinesWithResourceErrors, pipelineJobs, jobs, dashboardView, query } session ( teamName, cards ) =
     let
         header =
             Html.div
@@ -252,8 +251,8 @@ hdView { pipelineRunningKeyframes, pipelinesWithResourceErrors, pipelineJobs, jo
                             case card of
                                 PipelineCard p ->
                                     Pipeline.hdPipelineView
+                                        session
                                         { pipeline = p
-                                        , pipelineRunningKeyframes = pipelineRunningKeyframes
                                         , resourceError =
                                             pipelinesWithResourceErrors
                                                 |> Set.member p.id
@@ -408,7 +407,6 @@ pipelineCardView session params section { bounds, headerHeight, pipeline } teamN
                         |> List.map (List.filterMap (\j -> Dict.get ( pipeline.id, j ) params.jobs))
                 , headerHeight = headerHeight
                 , hovered = session.hovered
-                , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                 , section = section
                 , inInstanceGroupView = params.inInstanceGroupView
                 }

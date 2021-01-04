@@ -65,13 +65,14 @@ pipelineNotSetView =
 
 
 hdPipelineView :
-    { pipeline : Pipeline
-    , pipelineRunningKeyframes : String
-    , resourceError : Bool
-    , existingJobs : List Concourse.Job
-    }
+    { u | pipelineRunningKeyframes : String }
+    ->
+        { pipeline : Pipeline
+        , resourceError : Bool
+        , existingJobs : List Concourse.Job
+        }
     -> Html Message
-hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs } =
+hdPipelineView { pipelineRunningKeyframes } { pipeline, resourceError, existingJobs } =
     let
         bannerStyle =
             if pipeline.stale then
@@ -119,7 +120,6 @@ pipelineView :
         { now : Maybe Time.Posix
         , pipeline : Pipeline
         , hovered : HoverState.HoverState
-        , pipelineRunningKeyframes : String
         , resourceError : Bool
         , existingJobs : List Concourse.Job
         , layers : List (List Concourse.Job)
@@ -128,7 +128,7 @@ pipelineView :
         , inInstanceGroupView : Bool
         }
     -> Html Message
-pipelineView session { now, pipeline, hovered, pipelineRunningKeyframes, resourceError, existingJobs, layers, section, headerHeight, inInstanceGroupView } =
+pipelineView session { now, pipeline, hovered, resourceError, existingJobs, layers, section, headerHeight, inInstanceGroupView } =
     let
         bannerStyle =
             if pipeline.stale then
@@ -140,7 +140,7 @@ pipelineView session { now, pipeline, hovered, pipelineRunningKeyframes, resourc
             else
                 Styles.pipelineCardBanner
                     { status = pipelineStatus existingJobs pipeline
-                    , pipelineRunningKeyframes = pipelineRunningKeyframes
+                    , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                     }
     in
     Html.div

@@ -1418,8 +1418,7 @@ cardsView session params teamCards =
                 |> (if params.highDensity then
                         List.concatMap
                             (Group.hdView
-                                { pipelineRunningKeyframes = session.pipelineRunningKeyframes
-                                , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
+                                { pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                                 , pipelineJobs = params.pipelineJobs
                                 , jobs = jobs
                                 , dashboardView = params.dashboardView
