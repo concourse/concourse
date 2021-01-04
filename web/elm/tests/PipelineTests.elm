@@ -16,7 +16,7 @@ import Json.Encode
 import Keyboard
 import Message.Callback as Callback
 import Message.Effects as Effects
-import Message.Message exposing (Message(..))
+import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Message.Subscription as Subscription
     exposing
         ( Delivery(..)
@@ -334,6 +334,22 @@ all =
                         , style "opacity" "30%"
                         , style "filter" "grayscale(1)"
                         ]
+        , describe "sidebar tooltips"
+            [ test "hovering over instance group gets its viewport" <|
+                let
+                    domID =
+                        SideBarInstanceGroup AllPipelinesSection "main" "group"
+                in
+                \_ ->
+                    Common.init "/teams/team/pipelines/pipeline"
+                        |> Application.update
+                            (Msgs.Update <|
+                                Hover <|
+                                    Just domID
+                            )
+                        |> Tuple.second
+                        |> Common.contains (Effects.GetViewportOf domID)
+            ]
         , describe "update" <|
             let
                 defaultModel : Pipeline.Model

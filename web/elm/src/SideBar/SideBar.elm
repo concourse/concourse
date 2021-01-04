@@ -120,19 +120,8 @@ update message model =
         Click (TopBarFavoritedIcon pipelineID) ->
             toggleFavorite pipelineID
 
-        Hover (Just (SideBarPipeline section pipelineID)) ->
-            ( model
-            , [ Effects.GetViewportOf
-                    (SideBarPipeline section pipelineID)
-              ]
-            )
-
-        Hover (Just (SideBarTeam section teamName)) ->
-            ( model
-            , [ Effects.GetViewportOf
-                    (SideBarTeam section teamName)
-              ]
-            )
+        Hover (Just domID) ->
+            ( model, [ Effects.GetViewportOf domID ] )
 
         _ ->
             ( model, [] )
