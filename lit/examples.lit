@@ -22,6 +22,7 @@ covered in the \reference{docs}.
 \include-section{./examples/hooks.lit}
 \include-section{./examples/golang-lib.lit}
 \include-section{./examples/rails.lit}
+\include-section{./examples/java.lit}
 \include-section{./examples/nodejs.lit}
 \include-section{./examples/php.lit}
 
