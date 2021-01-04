@@ -2,6 +2,7 @@ package atc_test
 
 import (
 	"encoding/json"
+	"time"
 
 	. "github.com/concourse/concourse/atc"
 	. "github.com/onsi/ginkgo"
@@ -140,6 +141,85 @@ var _ = Describe("Config", func() {
 			It("should raise error", func() {
 				Expect(orderError).To(HaveOccurred())
 				Expect(orderError.Error()).To(Equal("could not resolve inter-dependent var sources: vs1, vs5, vs3"))
+			})
+		})
+	})
+
+	Describe("CheckEvery", func() {
+		Context("when unmarshaling", func() {
+			Context("check_every is never", func() {
+				It("parses as a bool without error", func() {
+					var resourceConfig ResourceConfig
+					bs := []byte(`{ "check_every": "never" }`)
+					err := json.Unmarshal(bs, &resourceConfig)
+					Expect(err).NotTo(HaveOccurred())
+
+					expected := ResourceConfig{
+						CheckEvery: CheckEvery{Never: true},
+					}
+
+					Expect(resourceConfig).To(Equal(expected))
+				})
+			})
+
+			Context("check_every is a duration", func() {
+				It("parses as a duration without error", func() {
+					var resourceConfig ResourceConfig
+					bs := []byte(`{ "check_every": "10s" }`)
+					err := json.Unmarshal(bs, &resourceConfig)
+					Expect(err).NotTo(HaveOccurred())
+
+					expected := ResourceConfig{
+						CheckEvery: CheckEvery{Interval: 10 * time.Second},
+					}
+
+					Expect(resourceConfig).To(Equal(expected))
+				})
+			})
+
+			Context("check_every is a non-duration string", func() {
+				It("errors", func() {
+					var resourceConfig ResourceConfig
+					bs := []byte(`{ "check_every": "some-string" }`)
+					err := json.Unmarshal(bs, &resourceConfig)
+					Expect(err).To(MatchError("time: invalid duration \"some-string\""))
+				})
+			})
+
+			Context("check_every is not a string", func() {
+				It("errors", func() {
+					var resourceConfig ResourceConfig
+					bs := []byte(`{ "check_every": [1,2,3] }`)
+					err := json.Unmarshal(bs, &resourceConfig)
+					Expect(err).To(MatchError("non-string value provided"))
+				})
+			})
+		})
+
+		Context("marshaling", func() {
+			Context("never is true", func() {
+				It("returns never", func() {
+					checkEvery := CheckEvery{Never: true}
+					result, err := checkEvery.MarshalJSON()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result).To(Equal([]byte(`"never"`)))
+				})
+			})
+			Context("interval is set", func() {
+				It("returns the duration as a string", func() {
+					checkEvery := CheckEvery{Interval: 10 * time.Second}
+					result, err := checkEvery.MarshalJSON()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result).To(Equal([]byte(`"10s"`)))
+				})
+			})
+			Context("both never and interval are not set", func() {
+				It("returns an empty byte", func() {
+					checkEvery := CheckEvery{}
+					result, err := checkEvery.MarshalJSON()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result).To(Equal([]byte(`""`)))
+				})
 			})
 		})
 	})
