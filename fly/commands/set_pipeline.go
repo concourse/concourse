@@ -83,7 +83,7 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 	ansi.DisableColors(command.DisableAnsiColor)
 
 	var instanceVars atc.InstanceVars
-	if command.InstanceVars != nil {
+	if len(command.InstanceVars) != 0 {
 		var kvPairs vars.KVPairs
 		for _, iv := range command.InstanceVars {
 			kvPairs = append(kvPairs, vars.KVPair(iv))

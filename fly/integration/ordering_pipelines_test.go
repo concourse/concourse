@@ -66,7 +66,7 @@ var _ = Describe("Fly CLI", func() {
 							Expect(sess.ExitCode()).To(Equal(0))
 							Eventually(sess).Should(gbytes.Say(`ordered pipelines`))
 							Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline/branch:master`))
-							Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline/branch:feature/bar`))
+							Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline/branch:"feature/bar"`))
 
 						}).To(Change(func() int {
 							return len(atcServer.ReceivedRequests())

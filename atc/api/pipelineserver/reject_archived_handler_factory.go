@@ -1,7 +1,6 @@
 package pipelineserver
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
@@ -34,12 +33,11 @@ func (ra RejectArchivedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	teamName := r.FormValue(":team_name")
 	pipelineName := r.FormValue(":pipeline_name")
 	pipelineRef := atc.PipelineRef{Name: pipelineName}
-	if instanceVars := r.URL.Query().Get("instance_vars"); instanceVars != "" {
-		err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	var err error
+	pipelineRef.InstanceVars, err = atc.InstanceVarsFromQueryParams(r.URL.Query())
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	team, found, err := ra.teamFactory.FindTeam(teamName)

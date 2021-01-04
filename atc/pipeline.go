@@ -38,16 +38,11 @@ type RenameRequest struct {
 type InstanceVars map[string]interface{}
 
 func (iv InstanceVars) String() string {
-	kvPairs := vars.StaticVariables(iv).Flatten()
-	sort.Slice(kvPairs, func(i, j int) bool {
-		return kvPairs[i].Ref.String() < kvPairs[j].Ref.String()
-	})
-
 	var parts []string
-	for _, kvPair := range kvPairs {
+	for _, kvPair := range iv.sortedKVPairs() {
 		rawVal, _ := json.Marshal(kvPair.Value)
 		val := string(rawVal)
-		if !requiresQuoting(kvPair.Value) {
+		if !instanceVarValueRequiresQuoting(kvPair.Value) {
 			val = unquoteString(val)
 		}
 		parts = append(parts, fmt.Sprintf("%s:%s", kvPair.Ref, val))
@@ -55,7 +50,15 @@ func (iv InstanceVars) String() string {
 	return strings.Join(parts, ",")
 }
 
-func requiresQuoting(v interface{}) bool {
+func (iv InstanceVars) sortedKVPairs() vars.KVPairs {
+	kvPairs := vars.StaticVariables(iv).Flatten()
+	sort.Slice(kvPairs, func(i, j int) bool {
+		return kvPairs[i].Ref.String() < kvPairs[j].Ref.String()
+	})
+	return kvPairs
+}
+
+func instanceVarValueRequiresQuoting(v interface{}) bool {
 	str, ok := v.(string)
 	if !ok {
 		return false
@@ -68,7 +71,7 @@ func requiresQuoting(v interface{}) bool {
 	if !isStringAfterUnmarshal {
 		return true
 	}
-	return strings.ContainsAny(str, ",: ")
+	return strings.ContainsAny(str, ",: /")
 }
 
 func unquoteString(s string) string {
@@ -88,11 +91,39 @@ func (ref PipelineRef) String() string {
 }
 
 func (ref PipelineRef) QueryParams() url.Values {
-	if ref.InstanceVars != nil {
-		payload, _ := json.Marshal(ref.InstanceVars)
-		return url.Values{"instance_vars": []string{string(payload)}}
+	if len(ref.InstanceVars) == 0 {
+		return nil
 	}
-	return nil
+	params := url.Values{}
+	for _, kvp := range ref.InstanceVars.sortedKVPairs() {
+		payload, _ := json.Marshal(kvp.Value)
+		params.Set("vars."+kvp.Ref.String(), string(payload))
+	}
+	return params
+}
+
+func InstanceVarsFromQueryParams(q url.Values) (InstanceVars, error) {
+	var kvPairs vars.KVPairs
+	for k := range q {
+		if k != "vars" && !strings.HasPrefix(k, "vars.") {
+			continue
+		}
+		var kvp vars.KVPair
+		var err error
+		kvp.Ref, err = vars.ParseReference(k)
+		if err != nil {
+			return nil, err
+		}
+		if err = json.Unmarshal([]byte(q.Get(k)), &kvp.Value); err != nil {
+			return nil, err
+		}
+		kvPairs = append(kvPairs, kvp)
+	}
+	if len(kvPairs) == 0 {
+		return nil, nil
+	}
+	instanceVars, _ := kvPairs.Expand()["vars"].(map[string]interface{})
+	return InstanceVars(instanceVars), nil
 }
 
 type OrderPipelinesRequest []PipelineRef

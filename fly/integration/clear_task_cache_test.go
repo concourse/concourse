@@ -88,7 +88,7 @@ var _ = Describe("Fly CLI", func() {
 
 			BeforeEach(func() {
 				args = append(args, "-j", "some-pipeline/branch:master/some-job", "-s", "some-step-name")
-				expectedQueryParams = []string{"instance_vars=%7B%22branch%22%3A%22master%22%7D"}
+				expectedQueryParams = []string{"vars.branch=%22master%22"}
 			})
 
 			yes := func() {

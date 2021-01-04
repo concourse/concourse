@@ -16,7 +16,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 	Describe("PausePipeline", func() {
 
 		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/pause"
-		queryParams := "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+		queryParams := "vars.branch=%22master%22"
 		pipelineRef := atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 
 		Context("when the pipeline exists", func() {
@@ -56,7 +56,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 	Describe("ArchivePipeline", func() {
 
 		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/archive"
-		queryParams := "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+		queryParams := "vars.branch=%22master%22"
 		pipelineRef := atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 
 		Context("when the pipeline exists", func() {
@@ -97,7 +97,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 	Describe("UnpausePipeline", func() {
 
 		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/unpause"
-		queryParams := "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+		queryParams := "vars.branch=%22master%22"
 		pipelineRef := atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 
 		Context("when the pipeline exists", func() {
@@ -137,7 +137,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 	Describe("ExposePipeline", func() {
 
 		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/expose"
-		queryParams := "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+		queryParams := "vars.branch=%22master%22"
 		pipelineRef := atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 
 		Context("when the pipeline exists", func() {
@@ -177,7 +177,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 	Describe("HidePipeline", func() {
 
 		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/hide"
-		queryParams := "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+		queryParams := "vars.branch=%22master%22"
 		pipelineRef := atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 
 		Context("when the pipeline exists", func() {
@@ -278,7 +278,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 	Describe("Pipeline", func() {
 		var expectedPipeline atc.Pipeline
 		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline"
-		queryParams := "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+		queryParams := "vars.branch=%22master%22"
 		pipelineRef := atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 
 		BeforeEach(func() {
@@ -425,7 +425,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 	Describe("DeletePipeline", func() {
 		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline"
-		queryParams := "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+		queryParams := "vars.branch=%22master%22"
 		pipelineRef := atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 
 		Context("when the pipeline exists", func() {
@@ -478,7 +478,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 		BeforeEach(func() {
 			expectedURL = "/api/v1/teams/some-team/pipelines/mypipeline/rename"
-			expectedQueryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			expectedQueryParams = "vars.branch=%22master%22"
 			expectedRequestBody = `{"name":"newpipelinename"}`
 			expectedResponse = atc.SaveConfigResponse{
 				Errors:   nil,
@@ -560,7 +560,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 	Describe("CreatePipelineBuild", func() {
 		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/builds"
-		queryParams := "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+		queryParams := "vars.branch=%22master%22"
 		pipelineRef := atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 
 		var (
@@ -627,7 +627,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			}
 
 			expectedURL = fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/builds")
-			expectedQuery = []string{"instance_vars=%7B%22branch%22%3A%22master%22%7D"}
+			expectedQuery = []string{"vars.branch=%22master%22"}
 			pipelineRef = atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 		})
 

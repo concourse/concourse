@@ -104,7 +104,7 @@ var _ = Describe("AbortBuild", func() {
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", expectedURL, "instance_vars=%7B%22branch%22%3A%22master%22%7D"),
+						ghttp.VerifyRequest("GET", expectedURL, "vars.branch=%22master%22"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuild),
 					),
 

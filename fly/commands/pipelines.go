@@ -2,6 +2,7 @@ package commands
 
 import (
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -83,6 +84,7 @@ func (command *PipelinesCommand) Execute([]string) error {
 		}
 
 		row := ui.TableRow{}
+		row = append(row, ui.TableCell{Contents: strconv.Itoa(p.ID)})
 		row = append(row, ui.TableCell{Contents: p.Ref().String()})
 		if command.All {
 			row = append(row, ui.TableCell{Contents: p.TeamName})
@@ -103,9 +105,9 @@ func (command *PipelinesCommand) Execute([]string) error {
 func (command *PipelinesCommand) buildHeader() []string {
 	var headers []string
 	if command.All {
-		headers = []string{"name", "team", "paused", "public"}
+		headers = []string{"id", "name", "team", "paused", "public"}
 	} else {
-		headers = []string{"name", "paused", "public"}
+		headers = []string{"id", "name", "paused", "public"}
 	}
 
 	if command.IncludeArchived {

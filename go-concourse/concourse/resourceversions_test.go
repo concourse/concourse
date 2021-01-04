@@ -35,7 +35,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 		BeforeEach(func() {
 			page = concourse.Page{}
 			filter = atc.Version{}
-			expectedQuery = []string{"instance_vars=%7B%22branch%22%3A%22master%22%7D"}
+			expectedQuery = []string{"vars.branch=%22master%22"}
 
 			expectedVersions = []atc.ResourceVersion{
 				{
@@ -218,7 +218,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 			resourceName      = "myresource"
 			resourceVersionID = 42
 			expectedURL       = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/resources/%s/versions/%s/disable", pipelineName, resourceName, strconv.Itoa(resourceVersionID))
-			expectedQuery     = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			expectedQuery     = "vars.branch=%22master%22"
 			pipelineRef       = atc.PipelineRef{Name: pipelineName, InstanceVars: atc.InstanceVars{"branch": "master"}}
 		)
 
@@ -287,7 +287,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 			resourceName      = "myresource"
 			resourceVersionID = 42
 			expectedURL       = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/resources/%s/versions/%s/enable", pipelineName, resourceName, strconv.Itoa(resourceVersionID))
-			expectedQuery     = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			expectedQuery     = "vars.branch=%22master%22"
 			pipelineRef       = atc.PipelineRef{Name: pipelineName, InstanceVars: atc.InstanceVars{"branch": "master"}}
 		)
 
@@ -357,7 +357,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 			resourceName      = "myresource"
 			resourceVersionID = 42
 			expectedURL       = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/resources/%s/versions/%s/pin", pipelineName, resourceName, strconv.Itoa(resourceVersionID))
-			expectedQuery     = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			expectedQuery     = "vars.branch=%22master%22"
 			pipelineRef       = atc.PipelineRef{Name: pipelineName, InstanceVars: atc.InstanceVars{"branch": "master"}}
 		)
 
@@ -426,7 +426,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 			pipelineName   = "banana"
 			resourceName   = "myresource"
 			expectedURL    = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/resources/%s/unpin", pipelineName, resourceName)
-			expectedQuery  = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			expectedQuery  = "vars.branch=%22master%22"
 			pipelineRef    = atc.PipelineRef{Name: pipelineName, InstanceVars: atc.InstanceVars{"branch": "master"}}
 		)
 
@@ -495,7 +495,7 @@ var _ = Describe("ATC Handler Resource Versions", func() {
 			pipelineName       = "banana"
 			resourceName       = "myresource"
 			expectedURL        = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/resources/%s/pin_comment", pipelineName, resourceName)
-			expectedQuery      = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			expectedQuery      = "vars.branch=%22master%22"
 			pipelineRef        = atc.PipelineRef{Name: pipelineName, InstanceVars: atc.InstanceVars{"branch": "master"}}
 		)
 

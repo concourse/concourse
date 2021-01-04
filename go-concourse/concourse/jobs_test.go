@@ -18,7 +18,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 		var (
 			expectedJobs  []atc.Job
 			expectedURL   = "/api/v1/teams/some-team/pipelines/mypipeline/jobs"
-			expectedQuery = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			expectedQuery = "vars.branch=%22master%22"
 			pipelineRef   = atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 		)
 
@@ -85,7 +85,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 		var (
 			expectedJob atc.Job
 			expectedURL = "/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob"
-			queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			queryParams = "vars.branch=%22master%22"
 			pipelineRef = atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 		)
 
@@ -171,7 +171,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 		)
 
 		BeforeEach(func() {
-			expectedQuery = []string{"instance_vars=%7B%22branch%22%3A%22master%22%7D"}
+			expectedQuery = []string{"vars.branch=%22master%22"}
 		})
 
 		JustBeforeEach(func() {
@@ -352,7 +352,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			pipelineName   = "banana"
 			jobName        = "disjob"
 			expectedURL    = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/jobs/%s/pause", pipelineName, jobName)
-			expectedQuery  = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			expectedQuery  = "vars.branch=%22master%22"
 			pipelineRef    = atc.PipelineRef{Name: pipelineName, InstanceVars: atc.InstanceVars{"branch": "master"}}
 		)
 
@@ -420,7 +420,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			pipelineName   = "banana"
 			jobName        = "disjob"
 			expectedURL    = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/jobs/%s/unpause", pipelineName, jobName)
-			expectedQuery  = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			expectedQuery  = "vars.branch=%22master%22"
 			pipelineRef    = atc.PipelineRef{Name: pipelineName, InstanceVars: atc.InstanceVars{"branch": "master"}}
 		)
 
@@ -488,7 +488,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 			pipelineName   = "banana"
 			jobName        = "disjob"
 			expectedURL    = fmt.Sprintf("/api/v1/teams/some-team/pipelines/%s/jobs/%s/schedule", pipelineName, jobName)
-			expectedQuery  = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+			expectedQuery  = "vars.branch=%22master%22"
 			pipelineRef    = atc.PipelineRef{Name: pipelineName, InstanceVars: atc.InstanceVars{"branch": "master"}}
 		)
 
@@ -560,7 +560,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 		BeforeEach(func() {
 			requestMethod = "DELETE"
-			expectedQuery = []string{"instance_vars=%7B%22branch%22%3A%22master%22%7D"}
+			expectedQuery = []string{"vars.branch=%22master%22"}
 		})
 
 		Context("when job step exists", func() {
