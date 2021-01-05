@@ -203,7 +203,7 @@ var _ = Describe("JobFactory", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				transitionBuild, err := job.CreateBuild("some-user")
+				transitionBuild, err := job.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = transitionBuild.Finish(db.BuildStatusSucceeded)
@@ -213,7 +213,7 @@ var _ = Describe("JobFactory", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				finishedBuild, err := job.CreateBuild("some-user")
+				finishedBuild, err := job.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = finishedBuild.Finish(db.BuildStatusSucceeded)
@@ -223,7 +223,7 @@ var _ = Describe("JobFactory", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				nextBuild, err := job.CreateBuild("some-user")
+				nextBuild, err := job.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 
 				visibleJobs, err := jobFactory.VisibleJobs([]string{"default-team"})

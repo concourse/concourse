@@ -3,6 +3,7 @@ package exec
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/concourse/concourse/atc"
 )
 
 type StepMetadata struct {
@@ -16,7 +17,7 @@ type StepMetadata struct {
 	PipelineName         string
 	PipelineInstanceVars map[string]interface{}
 	ExternalURL          string
-	TriggerUsername      string
+	CreatedBy            *atc.Claims
 }
 
 func (metadata StepMetadata) Env() []string {
@@ -63,8 +64,14 @@ func (metadata StepMetadata) Env() []string {
 		env = append(env, "ATC_EXTERNAL_URL="+metadata.ExternalURL)
 	}
 
-	if metadata.TriggerUsername != "" {
-		env = append(env, "TRIGGER_USERNAME="+metadata.TriggerUsername)
+	if metadata.CreatedBy != nil {
+		if metadata.CreatedBy.UserID != "" {
+			env = append(env, "BUILD_CREATED_BY="+metadata.CreatedBy.UserID)
+		} else if metadata.CreatedBy.UserName != "" {
+			env = append(env, "BUILD_CREATED_BY="+metadata.CreatedBy.UserName)
+		} else if metadata.CreatedBy.PreferredUsername != "" {
+			env = append(env, "BUILD_CREATED_BY="+metadata.CreatedBy.PreferredUsername)
+		}
 	}
 
 	return env

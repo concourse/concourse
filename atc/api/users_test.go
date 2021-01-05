@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/testhelpers"
@@ -43,7 +43,7 @@ var _ = Describe("Users API", func() {
 				fakeAccess.IsAdminReturns(true)
 				fakeAccess.IsSystemReturns(false)
 
-				fakeAccess.ClaimsReturns(accessor.Claims{
+				fakeAccess.ClaimsReturns(atc.Claims{
 					Sub:               "some-sub",
 					UserName:          "some-name",
 					UserID:            "some-user-id",

@@ -13,16 +13,13 @@ import (
 
 var _ = Describe("BuildFactory", func() {
 	var (
-		team db.Team
-		whoTriggered string
+		team      db.Team
 	)
 
 	BeforeEach(func() {
 		var err error
 		team, err = teamFactory.CreateTeam(atc.Team{Name: "some-team"})
 		Expect(err).ToNot(HaveOccurred())
-
-		whoTriggered = "some-user"
 	})
 
 	Describe("Build", func() {
@@ -110,10 +107,10 @@ var _ = Describe("BuildFactory", func() {
 		Context("pipeline builds", func() {
 
 			It("[#139963615] marks builds that aren't the latest as non-interceptible, ", func() {
-				build1, err := defaultJob.CreateBuild(whoTriggered)
+				build1, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 
-				build2, err := defaultJob.CreateBuild(whoTriggered)
+				build2, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = build1.Finish(db.BuildStatusErrored)
@@ -134,10 +131,10 @@ var _ = Describe("BuildFactory", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				pb1, err := j.CreateBuild(whoTriggered)
+				pb1, err := j.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 
-				pb2, err := j.CreateBuild(whoTriggered)
+				pb2, err := j.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = pb1.Finish(db.BuildStatusErrored)
@@ -169,7 +166,7 @@ var _ = Describe("BuildFactory", func() {
 
 			DescribeTable("completed builds",
 				func(status db.BuildStatus, matcher types.GomegaMatcher) {
-					b, err := defaultJob.CreateBuild(whoTriggered)
+					b, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 					Expect(err).NotTo(HaveOccurred())
 
 					var i bool
@@ -190,7 +187,7 @@ var _ = Describe("BuildFactory", func() {
 			)
 
 			It("does not mark non-completed builds", func() {
-				b, err := defaultJob.CreateBuild(whoTriggered)
+				b, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 
 				var i bool
@@ -217,7 +214,7 @@ var _ = Describe("BuildFactory", func() {
 		Context("GC failed builds", func() {
 			It("marks failed builds non-interceptible after failed-grace-period", func() {
 				buildFactory = db.NewBuildFactory(dbConn, lockFactory, 0, 2*time.Second) // 1 second could create a flaky test
-				build, err := defaultJob.CreateBuild(whoTriggered)
+				build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = build.Finish(db.BuildStatusFailed)
@@ -263,7 +260,7 @@ var _ = Describe("BuildFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			build2, err = privateJob.CreateBuild(whoTriggered)
+			build2, err = privateJob.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 
 			publicPipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "public-pipeline"}, config, db.ConfigVersion(1), false)
@@ -275,7 +272,7 @@ var _ = Describe("BuildFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			build3, err = publicJob.CreateBuild(whoTriggered)
+			build3, err = publicJob.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 
 			otherTeam, err := teamFactory.CreateTeam(atc.Team{Name: "some-other-team"})
@@ -284,7 +281,7 @@ var _ = Describe("BuildFactory", func() {
 			build4, err = otherTeam.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			build5, err = privateJob.RerunBuild(build2, whoTriggered)
+			build5, err = privateJob.RerunBuild(build2, defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -322,7 +319,7 @@ var _ = Describe("BuildFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			build2, err = privateJob.CreateBuild(whoTriggered)
+			build2, err = privateJob.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 
 			publicPipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "public-pipeline"}, config, db.ConfigVersion(1), false)
@@ -334,7 +331,7 @@ var _ = Describe("BuildFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			build3, err = publicJob.CreateBuild(whoTriggered)
+			build3, err = publicJob.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 
 			otherTeam, err := teamFactory.CreateTeam(atc.Team{Name: "some-other-team"})
@@ -368,7 +365,7 @@ var _ = Describe("BuildFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			_, err = privateJob.CreateBuild(whoTriggered)
+			_, err = privateJob.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 
 			publicPipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "public-pipeline"}, config, db.ConfigVersion(1), false)
@@ -380,7 +377,7 @@ var _ = Describe("BuildFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			publicBuild, err = publicJob.CreateBuild(whoTriggered)
+			publicBuild, err = publicJob.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -416,10 +413,10 @@ var _ = Describe("BuildFactory", func() {
 			build2DB, err = team.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			build3DB, err = job.CreateBuild(whoTriggered)
+			build3DB, err = job.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 
-			build4DB, err = job.CreateBuild(whoTriggered)
+			build4DB, err = job.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 
 			started, err := build2DB.Start(atc.Plan{})
@@ -468,7 +465,7 @@ var _ = Describe("BuildFactory", func() {
 			build1DB, err = team.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			build2DB, err = job.CreateBuild(whoTriggered)
+			build2DB, err = job.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = team.CreateOneOffBuild()
@@ -517,7 +514,7 @@ var _ = Describe("BuildFactory", func() {
 			build1DB, err = team.CreateOneOffBuild()
 			Expect(err).NotTo(HaveOccurred())
 
-			build2DB, err = job.CreateBuild(whoTriggered)
+			build2DB, err = job.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = team.CreateOneOffBuild()

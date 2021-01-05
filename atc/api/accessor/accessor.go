@@ -18,16 +18,7 @@ type Access interface {
 	IsSystem() bool
 	TeamNames() []string
 	TeamRoles() map[string][]string
-	Claims() Claims
-}
-
-type Claims struct {
-	Sub               string
-	UserID            string
-	UserName          string
-	PreferredUsername string
-	Email             string
-	Connector         string
+	Claims() atc.Claims
 }
 
 type Verification struct {
@@ -267,8 +258,8 @@ func (a *access) TeamRoles() map[string][]string {
 	return a.teamRoles
 }
 
-func (a *access) Claims() Claims {
-	return Claims{
+func (a *access) Claims() atc.Claims {
+	return atc.Claims{
 		Sub:               a.claim("sub"),
 		Email:             a.claim("email"),
 		UserID:            a.userID(),

@@ -19,7 +19,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 
-		build, err = job.CreateBuild("some-user")
+		build, err = job.CreateBuild(defaultBuildCreatedBy)
 		Expect(err).NotTo(HaveOccurred())
 	})
 

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
 	"github.com/concourse/concourse/atc/api/policychecker"
 	"github.com/concourse/concourse/atc/policy"
@@ -150,7 +150,7 @@ var _ = Describe("PolicyChecker", func() {
 					fakeAccess.TeamRolesReturns(map[string][]string{
 						"some-team": []string{"some-role"},
 					})
-					fakeAccess.ClaimsReturns(accessor.Claims{UserName: "some-user"})
+					fakeAccess.ClaimsReturns(atc.Claims{UserName: "some-user"})
 					body := bytes.NewBuffer([]byte("a: b"))
 					fakeRequest = httptest.NewRequest("PUT", "/something?:team_name=some-team&:pipeline_name=some-pipeline", body)
 					fakeRequest.Header.Add("Content-type", "application/x-yaml")

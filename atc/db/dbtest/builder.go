@@ -276,7 +276,7 @@ func (builder Builder) WithResourceTypeVersions(resourceTypeName string, version
 	}
 }
 
-func (builder Builder) WithPendingJobBuild(assign *db.Build, jobName string) SetupFunc {
+func (builder Builder) WithPendingJobBuild(assign *db.Build, jobName string, createdBy atc.Claims) SetupFunc {
 	return func(scenario *Scenario) error {
 		if scenario.Pipeline == nil {
 			return fmt.Errorf("no pipeline set in scenario")
@@ -291,7 +291,7 @@ func (builder Builder) WithPendingJobBuild(assign *db.Build, jobName string) Set
 			return fmt.Errorf("job '%s' not configured in pipeline", jobName)
 		}
 
-		build, err := job.CreateBuild("some-user")
+		build, err := job.CreateBuild(createdBy)
 		if err != nil {
 			return fmt.Errorf("create build: %w", err)
 		}
@@ -361,11 +361,11 @@ func (builder Builder) WithNextInputMapping(jobName string, inputs JobInputs) Se
 	}
 }
 
-func (builder Builder) WithJobBuild(assign *db.Build, jobName string, inputs JobInputs, outputs JobOutputs) SetupFunc {
+func (builder Builder) WithJobBuild(assign *db.Build, jobName string, inputs JobInputs, outputs JobOutputs, createdBy atc.Claims) SetupFunc {
 	return func(scenario *Scenario) error {
 		var build db.Build
 		scenario.Run(
-			builder.WithPendingJobBuild(&build, jobName),
+			builder.WithPendingJobBuild(&build, jobName, createdBy),
 			builder.WithNextInputMapping(jobName, inputs),
 		)
 

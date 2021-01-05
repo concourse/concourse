@@ -462,7 +462,7 @@ func (factory *stepperFactory) stepMetadata(
 		PipelineID:           build.PipelineID(),
 		PipelineName:         build.PipelineName(),
 		PipelineInstanceVars: build.PipelineInstanceVars(),
-		TriggerUsername:      build.WhoTriggered(),
+		CreatedBy:            build.CreatedBy(),
 		ExternalURL:          externalURL,
 	}
 }

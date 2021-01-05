@@ -74,6 +74,8 @@ var (
 	defaultWebhookCheckInterval = time.Hour
 	defaultCheckTimeout         = 5 * time.Minute
 
+	defaultBuildCreatedBy atc.Claims
+
 	fullMetadata = db.ContainerMetadata{
 		Type: db.ContainerTypeTask,
 
@@ -229,6 +231,10 @@ var _ = BeforeEach(func() {
 	defaultJob, found, err = defaultPipeline.Job("some-job")
 	Expect(err).NotTo(HaveOccurred())
 	Expect(found).To(BeTrue())
+
+	defaultBuildCreatedBy = atc.Claims{
+		UserID: "some-user",
+	}
 
 	logger = lagertest.NewTestLogger("test")
 })

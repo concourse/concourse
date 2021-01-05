@@ -118,7 +118,7 @@ var _ = Describe("Handler", func() {
 		Context("when the request is authenticated", func() {
 			BeforeEach(func() {
 				fakeAccess.IsAuthenticatedReturns(true)
-				fakeAccess.ClaimsReturns(accessor.Claims{
+				fakeAccess.ClaimsReturns(atc.Claims{
 					UserName:  "some-user",
 					Connector: "some-connector",
 					Sub:       "some-sub",
@@ -143,7 +143,7 @@ var _ = Describe("Handler", func() {
 		Context("when the request is not authenticated", func() {
 			BeforeEach(func() {
 				fakeAccess.IsAuthenticatedReturns(false)
-				fakeAccess.ClaimsReturns(accessor.Claims{})
+				fakeAccess.ClaimsReturns(atc.Claims{})
 			})
 
 			It("audits the anonymous request", func() {

@@ -99,6 +99,16 @@ type FakeBuild struct {
 		result1 []db.WorkerArtifact
 		result2 error
 	}
+	CreatedByStub        func() *atc.Claims
+	createdByMutex       sync.RWMutex
+	createdByArgsForCall []struct {
+	}
+	createdByReturns struct {
+		result1 *atc.Claims
+	}
+	createdByReturnsOnCall map[int]struct {
+		result1 *atc.Claims
+	}
 	DeleteStub        func() (bool, error)
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct {
@@ -703,16 +713,6 @@ type FakeBuild struct {
 		result1 vars.Variables
 		result2 error
 	}
-	WhoTriggeredStub        func() string
-	whoTriggeredMutex       sync.RWMutex
-	whoTriggeredArgsForCall []struct {
-	}
-	whoTriggeredReturns struct {
-		result1 string
-	}
-	whoTriggeredReturnsOnCall map[int]struct {
-		result1 string
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -1071,6 +1071,58 @@ func (fake *FakeBuild) ArtifactsReturnsOnCall(i int, result1 []db.WorkerArtifact
 		result1 []db.WorkerArtifact
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeBuild) CreatedBy() *atc.Claims {
+	fake.createdByMutex.Lock()
+	ret, specificReturn := fake.createdByReturnsOnCall[len(fake.createdByArgsForCall)]
+	fake.createdByArgsForCall = append(fake.createdByArgsForCall, struct {
+	}{})
+	fake.recordInvocation("CreatedBy", []interface{}{})
+	fake.createdByMutex.Unlock()
+	if fake.CreatedByStub != nil {
+		return fake.CreatedByStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.createdByReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuild) CreatedByCallCount() int {
+	fake.createdByMutex.RLock()
+	defer fake.createdByMutex.RUnlock()
+	return len(fake.createdByArgsForCall)
+}
+
+func (fake *FakeBuild) CreatedByCalls(stub func() *atc.Claims) {
+	fake.createdByMutex.Lock()
+	defer fake.createdByMutex.Unlock()
+	fake.CreatedByStub = stub
+}
+
+func (fake *FakeBuild) CreatedByReturns(result1 *atc.Claims) {
+	fake.createdByMutex.Lock()
+	defer fake.createdByMutex.Unlock()
+	fake.CreatedByStub = nil
+	fake.createdByReturns = struct {
+		result1 *atc.Claims
+	}{result1}
+}
+
+func (fake *FakeBuild) CreatedByReturnsOnCall(i int, result1 *atc.Claims) {
+	fake.createdByMutex.Lock()
+	defer fake.createdByMutex.Unlock()
+	fake.CreatedByStub = nil
+	if fake.createdByReturnsOnCall == nil {
+		fake.createdByReturnsOnCall = make(map[int]struct {
+			result1 *atc.Claims
+		})
+	}
+	fake.createdByReturnsOnCall[i] = struct {
+		result1 *atc.Claims
+	}{result1}
 }
 
 func (fake *FakeBuild) Delete() (bool, error) {
@@ -4086,58 +4138,6 @@ func (fake *FakeBuild) VariablesReturnsOnCall(i int, result1 vars.Variables, res
 	}{result1, result2}
 }
 
-func (fake *FakeBuild) WhoTriggered() string {
-	fake.whoTriggeredMutex.Lock()
-	ret, specificReturn := fake.whoTriggeredReturnsOnCall[len(fake.whoTriggeredArgsForCall)]
-	fake.whoTriggeredArgsForCall = append(fake.whoTriggeredArgsForCall, struct {
-	}{})
-	fake.recordInvocation("WhoTriggered", []interface{}{})
-	fake.whoTriggeredMutex.Unlock()
-	if fake.WhoTriggeredStub != nil {
-		return fake.WhoTriggeredStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.whoTriggeredReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeBuild) WhoTriggeredCallCount() int {
-	fake.whoTriggeredMutex.RLock()
-	defer fake.whoTriggeredMutex.RUnlock()
-	return len(fake.whoTriggeredArgsForCall)
-}
-
-func (fake *FakeBuild) WhoTriggeredCalls(stub func() string) {
-	fake.whoTriggeredMutex.Lock()
-	defer fake.whoTriggeredMutex.Unlock()
-	fake.WhoTriggeredStub = stub
-}
-
-func (fake *FakeBuild) WhoTriggeredReturns(result1 string) {
-	fake.whoTriggeredMutex.Lock()
-	defer fake.whoTriggeredMutex.Unlock()
-	fake.WhoTriggeredStub = nil
-	fake.whoTriggeredReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeBuild) WhoTriggeredReturnsOnCall(i int, result1 string) {
-	fake.whoTriggeredMutex.Lock()
-	defer fake.whoTriggeredMutex.Unlock()
-	fake.WhoTriggeredStub = nil
-	if fake.whoTriggeredReturnsOnCall == nil {
-		fake.whoTriggeredReturnsOnCall = make(map[int]struct {
-			result1 string
-		})
-	}
-	fake.whoTriggeredReturnsOnCall[i] = struct {
-		result1 string
-	}{result1}
-}
-
 func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -4153,6 +4153,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.artifactMutex.RUnlock()
 	fake.artifactsMutex.RLock()
 	defer fake.artifactsMutex.RUnlock()
+	fake.createdByMutex.RLock()
+	defer fake.createdByMutex.RUnlock()
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
 	fake.endTimeMutex.RLock()
@@ -4263,8 +4265,6 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.tracingAttrsMutex.RUnlock()
 	fake.variablesMutex.RLock()
 	defer fake.variablesMutex.RUnlock()
-	fake.whoTriggeredMutex.RLock()
-	defer fake.whoTriggeredMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

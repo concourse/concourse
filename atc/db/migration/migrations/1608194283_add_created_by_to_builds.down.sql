@@ -1,4 +1,4 @@
 BEGIN;
 ALTER TABLE builds
-DROP COLUMN who_triggered;
+DROP COLUMN created_by;
 COMMIT;

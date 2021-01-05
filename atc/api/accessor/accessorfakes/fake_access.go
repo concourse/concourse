@@ -4,19 +4,20 @@ package accessorfakes
 import (
 	"sync"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 )
 
 type FakeAccess struct {
-	ClaimsStub        func() accessor.Claims
+	ClaimsStub        func() atc.Claims
 	claimsMutex       sync.RWMutex
 	claimsArgsForCall []struct {
 	}
 	claimsReturns struct {
-		result1 accessor.Claims
+		result1 atc.Claims
 	}
 	claimsReturnsOnCall map[int]struct {
-		result1 accessor.Claims
+		result1 atc.Claims
 	}
 	HasTokenStub        func() bool
 	hasTokenMutex       sync.RWMutex
@@ -93,7 +94,7 @@ type FakeAccess struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeAccess) Claims() accessor.Claims {
+func (fake *FakeAccess) Claims() atc.Claims {
 	fake.claimsMutex.Lock()
 	ret, specificReturn := fake.claimsReturnsOnCall[len(fake.claimsArgsForCall)]
 	fake.claimsArgsForCall = append(fake.claimsArgsForCall, struct {
@@ -116,32 +117,32 @@ func (fake *FakeAccess) ClaimsCallCount() int {
 	return len(fake.claimsArgsForCall)
 }
 
-func (fake *FakeAccess) ClaimsCalls(stub func() accessor.Claims) {
+func (fake *FakeAccess) ClaimsCalls(stub func() atc.Claims) {
 	fake.claimsMutex.Lock()
 	defer fake.claimsMutex.Unlock()
 	fake.ClaimsStub = stub
 }
 
-func (fake *FakeAccess) ClaimsReturns(result1 accessor.Claims) {
+func (fake *FakeAccess) ClaimsReturns(result1 atc.Claims) {
 	fake.claimsMutex.Lock()
 	defer fake.claimsMutex.Unlock()
 	fake.ClaimsStub = nil
 	fake.claimsReturns = struct {
-		result1 accessor.Claims
+		result1 atc.Claims
 	}{result1}
 }
 
-func (fake *FakeAccess) ClaimsReturnsOnCall(i int, result1 accessor.Claims) {
+func (fake *FakeAccess) ClaimsReturnsOnCall(i int, result1 atc.Claims) {
 	fake.claimsMutex.Lock()
 	defer fake.claimsMutex.Unlock()
 	fake.ClaimsStub = nil
 	if fake.claimsReturnsOnCall == nil {
 		fake.claimsReturnsOnCall = make(map[int]struct {
-			result1 accessor.Claims
+			result1 atc.Claims
 		})
 	}
 	fake.claimsReturnsOnCall[i] = struct {
-		result1 accessor.Claims
+		result1 atc.Claims
 	}{result1}
 }
 

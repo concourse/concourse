@@ -23,8 +23,6 @@ var _ = Describe("Team", func() {
 	var (
 		team      db.Team
 		otherTeam db.Team
-
-		whoTriggered string
 	)
 
 	expectConfigsEqual := func(config, expectedConfig atc.Config) {
@@ -40,8 +38,6 @@ var _ = Describe("Team", func() {
 		Expect(err).ToNot(HaveOccurred())
 		otherTeam, err = teamFactory.CreateTeam(atc.Team{Name: "some-other-team"})
 		Expect(err).ToNot(HaveOccurred())
-
-		whoTriggered = "some-user"
 	})
 
 	Describe("Delete", func() {
@@ -289,7 +285,7 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			build, err := job.CreateBuild(whoTriggered)
+			build, err := job.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).ToNot(HaveOccurred())
 
 			metaContainers = make(map[db.ContainerMetadata][]db.Container)
@@ -446,7 +442,7 @@ var _ = Describe("Team", func() {
 					builder.WithResourceVersions("some-resource"),
 				)
 
-				build, err := scenario.Job("some-job").CreateBuild(whoTriggered)
+				build, err := scenario.Job("some-job").CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 
 				firstContainerCreating, err = scenario.Workers[0].CreateContainer(db.NewBuildStepContainerOwner(build.ID(), atc.PlanID("some-job"), scenario.Team.ID()), db.ContainerMetadata{Type: "task", StepName: "some-task"})
@@ -735,7 +731,7 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			build, err := job.CreateBuild(whoTriggered)
+			build, err := job.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).ToNot(HaveOccurred())
 
 			creatingContainer, err := defaultWorker.CreateContainer(db.NewBuildStepContainerOwner(build.ID(), atc.PlanID("some-job"), defaultTeam.ID()), db.ContainerMetadata{Type: "task", StepName: "some-task"})
@@ -1244,7 +1240,7 @@ var _ = Describe("Team", func() {
 				Expect(found).To(BeTrue())
 
 				for i := 3; i < 5; i++ {
-					build, err := job.CreateBuild(whoTriggered)
+					build, err := job.CreateBuild(defaultBuildCreatedBy)
 					Expect(err).ToNot(HaveOccurred())
 					allBuilds[i] = build
 					pipelineBuilds[i-3] = build
@@ -1395,7 +1391,7 @@ var _ = Describe("Team", func() {
 			Expect(found).To(BeTrue())
 
 			for i := range builds {
-				builds[i], err = job.CreateBuild(whoTriggered)
+				builds[i], err = job.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 
 				buildStart := time.Date(2020, 11, i+1, 0, 0, 0, 0, time.UTC)
@@ -1500,11 +1496,11 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			build, err = job.CreateBuild(whoTriggered)
+			build, err = job.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).ToNot(HaveOccurred())
 			expectedBuilds = append(expectedBuilds, build)
 
-			secondBuild, err = job.CreateBuild(whoTriggered)
+			secondBuild, err = job.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).ToNot(HaveOccurred())
 			expectedBuilds = append(expectedBuilds, secondBuild)
 
@@ -1512,7 +1508,7 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			thirdBuild, err = someOtherJob.CreateBuild(whoTriggered)
+			thirdBuild, err = someOtherJob.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).ToNot(HaveOccurred())
 			expectedBuilds = append(expectedBuilds, thirdBuild)
 		})
@@ -3610,7 +3606,7 @@ var _ = Describe("Team", func() {
 					builder.WithBaseWorker(),
 				)
 
-				build, err := scenario.Job("some-job").CreateBuild(whoTriggered)
+				build, err := scenario.Job("some-job").CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 
 				creatingContainer, err := scenario.Workers[0].CreateContainer(
@@ -3732,7 +3728,7 @@ var _ = Describe("Team", func() {
 					builder.WithBaseWorker(),
 				)
 
-				build, err := scenario.Job("some-job").CreateBuild(whoTriggered)
+				build, err := scenario.Job("some-job").CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 
 				creatingContainer, err := scenario.Workers[0].CreateContainer(db.NewBuildStepContainerOwner(build.ID(), atc.PlanID("some-job"), scenario.Team.ID()), db.ContainerMetadata{Type: "task", StepName: "some-task"})
