@@ -155,7 +155,7 @@ var _ = Describe("Config", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					expected := ResourceConfig{
-						CheckEvery: CheckEvery{Never: true},
+						CheckEvery: &CheckEvery{Never: true},
 					}
 
 					Expect(resourceConfig).To(Equal(expected))
@@ -170,7 +170,7 @@ var _ = Describe("Config", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					expected := ResourceConfig{
-						CheckEvery: CheckEvery{Interval: 10 * time.Second},
+						CheckEvery: &CheckEvery{Interval: 10 * time.Second},
 					}
 
 					Expect(resourceConfig).To(Equal(expected))
