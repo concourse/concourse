@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
+	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 )
@@ -36,6 +37,7 @@ var _ = Describe("GetVarStep", func() {
 		fakeManager        *credsfakes.FakeManager
 		fakeSecretsFactory *credsfakes.FakeSecretsFactory
 		fakeSecrets        *credsfakes.FakeSecrets
+		fakeLockFactory    *lockfakes.FakeLockFactory
 
 		cache *gocache.Cache
 
@@ -95,6 +97,8 @@ var _ = Describe("GetVarStep", func() {
 		fakeSecretsFactory.NewSecretsReturns(fakeSecrets)
 		fakeManager.NewSecretsFactoryReturns(fakeSecretsFactory, nil)
 
+		fakeLockFactory = new(lockfakes.FakeLockFactory)
+
 		cache = gocache.New(0, 0)
 
 		fakeSecrets.GetReturns("some-value", nil, true, nil)
@@ -113,6 +117,7 @@ var _ = Describe("GetVarStep", func() {
 			stepMetadata,
 			fakeDelegateFactory,
 			cache,
+			fakeLockFactory,
 		)
 
 		stepOk, stepErr = step.Run(ctx, state)
@@ -178,6 +183,7 @@ var _ = Describe("GetVarStep", func() {
 				stepMetadata,
 				fakeDelegateFactory,
 				cache,
+				fakeLockFactory,
 			)
 
 			ok, err := step.Run(ctx, previousState)
@@ -219,6 +225,22 @@ var _ = Describe("GetVarStep", func() {
 
 			_, _, _, redact := state.AddVarArgsForCall(0)
 			Expect(redact).To(BeFalse())
+		})
+	})
+
+	Context("when the same var is accessed by two separate get_var's in the same build", func() {
+		// ignore what hppens in the BeforeEach and JustBeforeEach for this test.
+		// We don't use the result of any of those vars
+		It("one of the two get_var's should wait for the lock to release", func() {
+			// run the same step twice at the "same time"
+
+			// fire two instances of get var step
+			// instance 1 acquires lock
+			// the Get() for instance 1 will block
+			// instance 2 attempts to acquire lock and will fail
+			// the Get() for instance 1 will unblock right after the other isntance attemps to acquire lock
+			// instance 1 will finish
+			// instance 2 will acquire lock and finish
 		})
 	})
 })

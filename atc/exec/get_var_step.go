@@ -12,6 +12,7 @@ import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 	gocache "github.com/patrickmn/go-cache"
@@ -40,6 +41,7 @@ func NewGetVarStep(
 	metadata StepMetadata,
 	delegateFactory BuildStepDelegateFactory, // XXX: not needed yet b/c no image fetching but WHATEVER
 	cache *gocache.Cache,
+	lock lock.LockFactory,
 ) Step {
 	return &GetVarStep{
 		planID:          planID,
