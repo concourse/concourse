@@ -123,4 +123,4 @@ type alias VersionId =
 
 type DropTarget
     = Before Int
-    | After Int
+    | End

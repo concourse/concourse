@@ -29,9 +29,8 @@ dragCardIndices cardId target cards =
                 Before name ->
                     cardIndex name
 
-                After name ->
-                    cardIndex name
-                        |> Maybe.map ((+) 1)
+                End ->
+                    List.length cards |> Just
             )
                 |> Maybe.map ((+) 1)
     in

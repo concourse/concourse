@@ -303,7 +303,7 @@ iAmLookingAtTheFinalDropArea =
 itListensForDragEnter =
     Event.simulate (Event.custom "dragenter" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragOver <| After 1)
+            (TopLevelMessage.Update <| Message.DragOver <| End)
 
 
 
@@ -317,7 +317,7 @@ itListensForDragEnter =
 itListensForDragOverPreventingDefault =
     Event.simulate (Event.custom "dragover" (Encode.object []))
         >> Event.expect
-            (TopLevelMessage.Update <| Message.DragOver <| After 1)
+            (TopLevelMessage.Update <| Message.DragOver <| End)
 
 
 iAmDraggingOverTheFirstDropArea =
@@ -329,7 +329,7 @@ iAmDraggingOverTheFirstDropArea =
 iAmDraggingOverTheThirdDropArea =
     Tuple.first
         >> Application.update
-            (TopLevelMessage.Update <| Message.DragOver <| After 2)
+            (TopLevelMessage.Update <| Message.DragOver <| End)
 
 
 iAmLookingAtTheTeamHeader =

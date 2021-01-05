@@ -258,7 +258,7 @@ all =
                         (TopLevelMessage.Update <| Message.DragStart "team" 1)
                     |> Tuple.first
                     |> Application.update
-                        (TopLevelMessage.Update <| Message.DragOver <| After 2)
+                        (TopLevelMessage.Update <| Message.DragOver End)
                     |> Tuple.first
                     |> Application.update
                         (TopLevelMessage.Update <| Message.DragEnd)

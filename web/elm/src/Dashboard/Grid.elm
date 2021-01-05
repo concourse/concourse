@@ -151,9 +151,9 @@ computeLayout params teamName cards =
         allDropAreas =
             cardDropAreas
                 ++ (case List.Extra.last result.allCards of
-                        Just { bounds, card } ->
+                        Just { bounds } ->
                             [ { bounds = boundsToRightOf bounds
-                              , target = After <| cardIdentifier card
+                              , target = End
                               }
                             ]
 
