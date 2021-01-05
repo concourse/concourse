@@ -289,8 +289,8 @@ all =
                                       , JsonObject
                                             [ ( "bar"
                                               , JsonObject
-                                                    [ ( "baz", JsonNumber 1 )
-                                                    , ( "qux.blah", JsonNumber 2 )
+                                                    [ ( "baz.qux", JsonNumber 1 )
+                                                    , ( "special_chars", JsonString "/\"'&." )
                                                     ]
                                               )
                                             ]
@@ -300,7 +300,7 @@ all =
                         , groups = []
                         }
                     )
-                    |> Expect.equal "/teams/team/pipelines/pipeline?vars.foo.bar.baz=1&vars.foo.bar.%22qux.blah%22=2&vars.k=%22s%22"
+                    |> Expect.equal "/teams/team/pipelines/pipeline?vars.foo.bar.%22baz.qux%22=1&vars.foo.bar.special_chars=%22%2F%5C%22'%26.%22&vars.k=%22s%22"
         , test "Pipeline route can be parsed properly" <|
             \_ ->
                 ("http://example.com"
@@ -309,7 +309,11 @@ all =
                             { id =
                                 { teamName = "team"
                                 , pipelineName = "pipeline"
-                                , pipelineInstanceVars = Dict.fromList [ ( "k", JsonString "s" ) ]
+                                , pipelineInstanceVars =
+                                    Dict.fromList
+                                        [ ( "k1", JsonNumber 1 )
+                                        , ( "k2", JsonString "/\"'&." )
+                                        ]
                                 }
                             , groups = []
                             }
@@ -323,7 +327,11 @@ all =
                                 { id =
                                     { teamName = "team"
                                     , pipelineName = "pipeline"
-                                    , pipelineInstanceVars = Dict.fromList [ ( "k", JsonString "s" ) ]
+                                    , pipelineInstanceVars =
+                                        Dict.fromList
+                                            [ ( "k1", JsonNumber 1 )
+                                            , ( "k2", JsonString "/\"'&." )
+                                            ]
                                     }
                                 , groups = []
                                 }
