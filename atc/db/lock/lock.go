@@ -23,6 +23,7 @@ const (
 	LockTypeDatabaseMigration
 	LockTypeResourceScanning
 	LockTypeJobScheduling
+	LockTypeGetVarStep
 )
 
 var ErrLostLock = errors.New("lock was lost while held, possibly due to connection breakage")
@@ -53,6 +54,10 @@ func NewResourceScanningLockID() LockID {
 
 func NewJobSchedulingLockID(jobID int) LockID {
 	return LockID{LockTypeJobScheduling, jobID}
+}
+
+func NewGetVarStepLockID(buildID int, hash string) LockID {
+	return LockID{LockTypeGetVarStep, buildID, lockIDFromString(hash)}
 }
 
 //counterfeiter:generate . LockFactory
