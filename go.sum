@@ -220,6 +220,8 @@ github.com/concourse/baggageclaim v1.9.0 h1:GnpOGMJro1wqYisUn1mRnGbsethu1WUwagf2
 github.com/concourse/baggageclaim v1.9.0/go.mod h1:UdvVE2W8LgXcCz0ZdKBwUbpKZ0KN4Fx1OeY1xtZOUvY=
 github.com/concourse/dex v0.2.1 h1:p7aOohrGHG6+HDFlsenOJ4Du7wsJ3sAmyz0EsXX4WRk=
 github.com/concourse/dex v0.2.1/go.mod h1:PF+R+Z86u1A2eU3hqpx33Df2YgZvBwas8QflgMiliQo=
+github.com/concourse/dex v0.3.0 h1:H8aq2xcBMEHK17FVYWXECZxTtAI/kSQQXYOnTbw5dr0=
+github.com/concourse/dex v0.3.0/go.mod h1:Q8YPkw98XIkeTWO6Jm2ZMycdaf1NrNrPdvUOnpjYXtA=
 github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
 github.com/concourse/flag v1.1.0 h1:d2l91vIK6lwfIC7uNLb3i51tZtaWCTokh80VoE6T/RU=
 github.com/concourse/flag v1.1.0/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
@@ -746,6 +748,8 @@ github.com/joefitzgerald/rainbow-reporter v0.1.0/go.mod h1:481CNgqmVHQZzdIbN52Cu
 github.com/joho/godotenv v1.3.0/go.mod h1:7hK45KPybAkOC6peb+G5yklZfMxEjkZhHbwpqxOKXbg=
 github.com/jonboulle/clockwork v0.1.0 h1:VKV+ZcuP6l3yW9doeqz6ziZGgcynBVQO+obU0+0hcPo=
 github.com/jonboulle/clockwork v0.1.0/go.mod h1:Ii8DK3G1RaLaWxj9trq07+26W01tbo22gdxWY5EU2bo=
+github.com/jonboulle/clockwork v0.2.0 h1:J2SLSdy7HgElq8ekSl2Mxh6vrRNFxqbXGenYH2I02Vs=
+github.com/jonboulle/clockwork v0.2.0/go.mod h1:Pkfl5aHPm1nk2H9h0bjmnJD/BcgbGXUBGnn1kMkgxc8=
 github.com/joshdk/go-junit v0.0.0-20200702055522-6efcf4050909/go.mod h1:TiiV0PqkaNfFXjEiyjWM3XXrhVyCa1K4Zfga6W52ung=
 github.com/jpillora/backoff v1.0.0/go.mod h1:J/6gKK9jxlEcS3zixgDgUAsiuZ7yrSoa/FX5e0EB2j4=
 github.com/json-iterator/go v1.1.6/go.mod h1:+SdeFBvtyEkXs7REEP0seUULqWtbJapLOCVDaaPEHmU=
@@ -829,6 +833,8 @@ github.com/markbates/pkger v0.17.1 h1:/MKEtWqtc0mZvu9OinB9UzVN9iYCwLWuyUv4Bw+PCn
 github.com/markbates/pkger v0.17.1/go.mod h1:0JoVlrol20BSywW79rN3kdFFsE5xYM+rSCQDXbLhiuI=
 github.com/markbates/safe v1.0.1/go.mod h1:nAqgmRi7cY2nqMc92/bSEeQA+R4OheNU2T1kNSCBdG0=
 github.com/matoous/godox v0.0.0-20190911065817-5d6d842e92eb/go.mod h1:1BELzlh859Sh1c6+90blK8lbYy0kwQf1bYlBhBysy1s=
+github.com/mattermost/xml-roundtrip-validator v0.0.0-20201204154048-1a8688af4cf1 h1:D2uMrH5NnWgU7JdjiWjOg/n31gbPH6I0D3IbCrqVVYE=
+github.com/mattermost/xml-roundtrip-validator v0.0.0-20201204154048-1a8688af4cf1/go.mod h1:qccnGMcpgwcNaBnxqpJpWWUiPNr5H3O8eDgGV9gT5To=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-colorable v0.1.1/go.mod h1:FuOcm+DKB9mbwrcAfNl7/TZVBZ6rcnceauSikq3lYCQ=
 github.com/mattn/go-colorable v0.1.4/go.mod h1:U0ppj6V5qS13XJ6of8GYAs25YV2eR4EVcfRqFIhoBtE=
@@ -1078,6 +1084,8 @@ github.com/rogpeppe/go-internal v1.6.0/go.mod h1:xXDCJY+GAPziupqXw64V24skbSoqbTE
 github.com/rs/cors v1.7.0/go.mod h1:gFx+x8UowdsKA9AchylcLynDq+nNFfI8FkUZdN/jGCU=
 github.com/russellhaering/goxmldsig v0.0.0-20180430223755-7acd5e4a6ef7 h1:J4AOUcOh/t1XbQcJfkEqhzgvMJ2tDxdCVvmHxW5QXao=
 github.com/russellhaering/goxmldsig v0.0.0-20180430223755-7acd5e4a6ef7/go.mod h1:Oz4y6ImuOQZxynhbSXk7btjEfNBtGlj2dcaOvXl2FSM=
+github.com/russellhaering/goxmldsig v1.1.0 h1:lK/zeJie2sqG52ZAlPNn1oBBqsIsEKypUUBGpYYF6lk=
+github.com/russellhaering/goxmldsig v1.1.0/go.mod h1:QK8GhXPB3+AfuCrfo0oRISa9NfzeCpWmxeGnqEpDF9o=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/ryancurrah/gomodguard v1.1.0/go.mod h1:4O8tr7hBODaGE6VIhfJDHcwzh5GUccKSJBU0UMXJFVM=
