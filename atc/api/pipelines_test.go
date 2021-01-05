@@ -1300,6 +1300,17 @@ var _ = Describe("Pipelines API", func() {
 					})
 				})
 
+				Context("when a pipeline does not exist", func() {
+					BeforeEach(func() {
+						fakeTeam.OrderPipelinesReturns(db.ErrPipelineNotFound{Name: "a-pipeline"})
+					})
+
+					It("returns 400", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						Expect(ioutil.ReadAll(response.Body)).To(ContainSubstring("pipeline 'a-pipeline' not found"))
+					})
+				})
+
 				Context("when ordering the pipelines fails", func() {
 					BeforeEach(func() {
 						fakeTeam.OrderPipelinesReturns(errors.New("welp"))

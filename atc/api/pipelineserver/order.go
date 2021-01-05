@@ -2,9 +2,12 @@ package pipelineserver
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/concourse/concourse/atc/db"
 )
 
 func (s *Server) OrderPipelines(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +39,13 @@ func (s *Server) OrderPipelines(w http.ResponseWriter, r *http.Request) {
 		logger.Error("failed-to-order-pipelines", err, lager.Data{
 			"pipeline_names": pipelinesNames,
 		})
-		w.WriteHeader(http.StatusInternalServerError)
+		var errNotFound db.ErrPipelineNotFound
+		if errors.As(err, &errNotFound) {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintln(w, err.Error())
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 		return
 	}
 

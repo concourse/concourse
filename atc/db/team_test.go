@@ -1102,9 +1102,9 @@ var _ = Describe("Team", func() {
 		})
 
 		Context("when pipeline does not exist", func() {
-			It("returns error", func() {
+			It("returns not found error", func() {
 				err := otherTeam.OrderPipelines([]string{"pipeline1", "invalid-pipeline"})
-				Expect(err).To(HaveOccurred())
+				Expect(err).To(MatchError(db.ErrPipelineNotFound{"invalid-pipeline"}))
 			})
 		})
 	})

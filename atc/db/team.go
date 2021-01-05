@@ -21,6 +21,14 @@ import (
 
 var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")
 
+type ErrPipelineNotFound struct {
+	Name string
+}
+
+func (e ErrPipelineNotFound) Error() string {
+	return fmt.Sprintf("pipeline '%s' not found", e.Name)
+}
+
 //go:generate counterfeiter . Team
 
 type Team interface {
@@ -694,11 +702,14 @@ func (t *team) OrderPipelines(names []string) error {
 			return err
 		}
 		if updatedPipelines == 0 {
-			return fmt.Errorf("pipeline %s does not exist", name)
+			return ErrPipelineNotFound{Name: name}
 		}
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // XXX: This is only begin used by tests, replace all tests to CreateBuild on a job
