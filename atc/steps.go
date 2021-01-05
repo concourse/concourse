@@ -250,10 +250,6 @@ var StepPrecedence = []StepDetector{
 		New: func() StepConfig { return &RetryStep{} },
 	},
 	{
-		Key: "timeout",
-		New: func() StepConfig { return &TimeoutStep{} },
-	},
-	{
 		Key: "task",
 		New: func() StepConfig { return &TaskStep{} },
 	},
@@ -264,6 +260,10 @@ var StepPrecedence = []StepDetector{
 	{
 		Key: "get",
 		New: func() StepConfig { return &GetStep{} },
+	},
+	{
+		Key: "timeout",
+		New: func() StepConfig { return &TimeoutStep{} },
 	},
 	{
 		Key: "set_pipeline",
@@ -295,6 +295,7 @@ type GetStep struct {
 	Passed   []string       `json:"passed,omitempty"`
 	Trigger  bool           `json:"trigger,omitempty"`
 	Tags     Tags           `json:"tags,omitempty"`
+	Timeout  string         `json:"timeout,omitempty"`
 }
 
 func (step *GetStep) ResourceName() string {
@@ -316,6 +317,7 @@ type PutStep struct {
 	Inputs    *InputsConfig `json:"inputs,omitempty"`
 	Tags      Tags          `json:"tags,omitempty"`
 	GetParams Params        `json:"get_params,omitempty"`
+	Timeout   string        `json:"timeout,omitempty"`
 }
 
 func (step *PutStep) ResourceName() string {
@@ -341,6 +343,7 @@ type TaskStep struct {
 	InputMapping      map[string]string `json:"input_mapping,omitempty"`
 	OutputMapping     map[string]string `json:"output_mapping,omitempty"`
 	ImageArtifactName string            `json:"image,omitempty"`
+	Timeout           string            `json:"timeout,omitempty"`
 }
 
 func (step *TaskStep) Visit(v StepVisitor) error {

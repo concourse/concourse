@@ -50,7 +50,6 @@ type Client interface {
 		runtime.ProcessSpec,
 		runtime.StartingEventDelegate,
 		resource.Resource,
-		time.Duration,
 	) (CheckResult, error)
 
 	RunTaskStep(
@@ -202,7 +201,6 @@ func (client *client) RunCheckStep(
 	processSpec runtime.ProcessSpec,
 	eventDelegate runtime.StartingEventDelegate,
 	checkable resource.Resource,
-	timeout time.Duration,
 ) (CheckResult, error) {
 	if containerSpec.ImageSpec.ImageArtifact != nil {
 		err := client.wireImageVolume(logger, &containerSpec.ImageSpec)
@@ -238,15 +236,8 @@ func (client *client) RunCheckStep(
 
 	eventDelegate.Starting(logger)
 
-	deadline, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	versions, err := checkable.Check(deadline, processSpec, container)
+	versions, err := checkable.Check(ctx, processSpec, container)
 	if err != nil {
-		if err == context.DeadlineExceeded {
-			return CheckResult{}, fmt.Errorf("timed out after %v checking for new versions", timeout)
-		}
-
 		return CheckResult{}, fmt.Errorf("check: %w", err)
 	}
 

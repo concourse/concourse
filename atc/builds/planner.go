@@ -59,6 +59,7 @@ func (visitor *planVisitor) VisitTask(step *atc.TaskStep) error {
 		InputMapping:      step.InputMapping,
 		OutputMapping:     step.OutputMapping,
 		ImageArtifactName: step.ImageArtifactName,
+		Timeout:           step.Timeout,
 
 		VersionedResourceTypes: visitor.resourceTypes,
 	})
@@ -100,6 +101,7 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 		Params:   step.Params,
 		Version:  &version,
 		Tags:     step.Tags,
+		Timeout:  step.Timeout,
 
 		VersionedResourceTypes: visitor.resourceTypes,
 	})
@@ -123,13 +125,16 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 	resource.ApplySourceDefaults(visitor.resourceTypes)
 
 	atcPutPlan := atc.PutPlan{
-		Type:     resource.Type,
 		Name:     logicalName,
 		Resource: resourceName,
+		Type:     resource.Type,
 		Source:   resource.Source,
 		Params:   step.Params,
-		Tags:     step.Tags,
-		Inputs:   step.Inputs,
+
+		Inputs: step.Inputs,
+
+		Tags:    step.Tags,
+		Timeout: step.Timeout,
 
 		VersionedResourceTypes: visitor.resourceTypes,
 	}
@@ -137,14 +142,15 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 	putPlan := visitor.planFactory.NewPlan(atcPutPlan)
 
 	dependentGetPlan := visitor.planFactory.NewPlan(atc.GetPlan{
-		Type:        resource.Type,
 		Name:        logicalName,
 		Resource:    resourceName,
+		Type:        resource.Type,
+		Source:      resource.Source,
+		Params:      step.GetParams,
 		VersionFrom: &putPlan.ID,
 
-		Params: step.GetParams,
-		Tags:   step.Tags,
-		Source: resource.Source,
+		Tags:    step.Tags,
+		Timeout: step.Timeout,
 
 		VersionedResourceTypes: visitor.resourceTypes,
 	})

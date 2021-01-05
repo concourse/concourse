@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -205,8 +206,15 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	containerOwner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
+	processCtx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout)
+	if err != nil {
+		return false, err
+	}
+
+	defer cancel()
+
 	getResult, err := step.workerClient.RunGetStep(
-		ctx,
+		processCtx,
 		logger,
 		containerOwner,
 		containerSpec,
@@ -219,6 +227,11 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		resourceToGet,
 	)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			delegate.Errored(logger, TimeoutLogMessage)
+			return false, nil
+		}
+
 		return false, err
 	}
 

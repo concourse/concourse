@@ -225,7 +225,6 @@ var _ = Describe("Client", func() {
 	})
 
 	Describe("RunCheckStep", func() {
-
 		var (
 			containerSpec     worker.ContainerSpec
 			workerSpec        worker.WorkerSpec
@@ -275,7 +274,6 @@ var _ = Describe("Client", func() {
 				fakeProcessSpec,
 				fakeEventDelegate,
 				fakeResource,
-				1*time.Nanosecond,
 			)
 		})
 
@@ -350,13 +348,6 @@ var _ = Describe("Client", func() {
 					Expect(fakeEventDelegate.SelectedWorkerCallCount()).To(Equal(1))
 					_, name := fakeEventDelegate.SelectedWorkerArgsForCall(0)
 					Expect(name).To(Equal("some-worker"))
-				})
-
-				It("runs check w/ timeout", func() {
-					ctx, _, _ := fakeResource.CheckArgsForCall(0)
-					_, hasDeadline := ctx.Deadline()
-
-					Expect(hasDeadline).To(BeTrue())
 				})
 
 				It("uses the right executable path in the proc spec", func() {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
@@ -102,10 +103,9 @@ var _ = Describe("CheckStep", func() {
 		fakeDelegateFactory.CheckDelegateReturns(fakeDelegate)
 
 		checkPlan = atc.CheckPlan{
-			Name:    "some-name",
-			Type:    "some-base-type",
-			Source:  atc.Source{"some": "((source-var))"},
-			Timeout: "10s",
+			Name:   "some-name",
+			Type:   "some-base-type",
+			Source: atc.Source{"some": "((source-var))"},
 			VersionedResourceTypes: atc.VersionedResourceTypes{
 				{
 					ResourceType: atc.ResourceType{
@@ -163,9 +163,6 @@ var _ = Describe("CheckStep", func() {
 	})
 
 	Context("with a reasonable configuration", func() {
-		BeforeEach(func() {
-		})
-
 		It("emits an Initializing event", func() {
 			Expect(fakeDelegate.InitializingCallCount()).To(Equal(1))
 		})
@@ -264,11 +261,10 @@ var _ = Describe("CheckStep", func() {
 				var processSpec runtime.ProcessSpec
 				var startEventDelegate runtime.StartingEventDelegate
 				var resource resource.Resource
-				var timeout time.Duration
 
 				JustBeforeEach(func() {
 					Expect(fakeClient.RunCheckStepCallCount()).To(Equal(1), "check step should have run")
-					runCtx, _, owner, containerSpec, workerSpec, strategy, metadata, processSpec, startEventDelegate, resource, timeout = fakeClient.RunCheckStepArgsForCall(0)
+					runCtx, _, owner, containerSpec, workerSpec, strategy, metadata, processSpec, startEventDelegate, resource = fakeClient.RunCheckStepArgsForCall(0)
 				})
 
 				It("uses ResourceConfigCheckSessionOwner", func() {
@@ -294,6 +290,38 @@ var _ = Describe("CheckStep", func() {
 						)
 
 						Expect(owner).To(Equal(expected))
+					})
+				})
+
+				Context("when the plan specifies a timeout", func() {
+					BeforeEach(func() {
+						checkPlan.Timeout = "1h"
+					})
+
+					It("enforces it on the check", func() {
+						t, ok := runCtx.Deadline()
+						Expect(ok).To(BeTrue())
+						Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
+					})
+
+					Context("when running times out", func() {
+						BeforeEach(func() {
+							fakeClient.RunCheckStepReturns(
+								worker.CheckResult{},
+								fmt.Errorf("wrapped: %w", context.DeadlineExceeded),
+							)
+						})
+
+						It("fails without error", func() {
+							Expect(stepOk).To(BeFalse())
+							Expect(stepErr).To(BeNil())
+						})
+
+						It("emits an Errored event", func() {
+							Expect(fakeDelegate.ErroredCallCount()).To(Equal(1))
+							_, status := fakeDelegate.ErroredArgsForCall(0)
+							Expect(status).To(Equal(exec.TimeoutLogMessage))
+						})
 					})
 				})
 
@@ -384,22 +412,8 @@ var _ = Describe("CheckStep", func() {
 					Expect(metadata).To(Equal(containerMetadata))
 				})
 
-				It("uses the timeout parsed", func() {
-					Expect(timeout).To(Equal(10 * time.Second))
-				})
-
 				It("uses the resource created", func() {
 					Expect(resource).To(Equal(fakeResource))
-				})
-
-				Context("when no timeout is given on the plan", func() {
-					BeforeEach(func() {
-						checkPlan.Timeout = ""
-					})
-
-					It("uses the default timeout", func() {
-						Expect(timeout).To(Equal(time.Hour))
-					})
 				})
 
 				Context("when using a custom resource type", func() {
@@ -797,14 +811,13 @@ var _ = Describe("CheckStep", func() {
 		})
 	})
 
-	Context("having a timeout that fails parsing", func() {
+	Context("when a bogus timeout is given", func() {
 		BeforeEach(func() {
 			checkPlan.Timeout = "bogus"
 		})
 
-		It("errors", func() {
-			Expect(stepErr).To(HaveOccurred())
-			Expect(stepErr.Error()).To(ContainSubstring("invalid duration"))
+		It("fails miserably", func() {
+			Expect(stepErr).To(MatchError("parse timeout: time: invalid duration \"bogus\""))
 		})
 	})
 })

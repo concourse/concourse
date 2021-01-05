@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -28,14 +29,15 @@ func (step LogErrorStep) Run(ctx context.Context, state RunState) (bool, error) 
 	logger := lagerctx.FromContext(ctx)
 
 	runOk, runErr := step.Step.Run(ctx, state)
+	if runErr == nil {
+		return runOk, nil
+	}
 
 	var message string
-	switch runErr {
-	case nil:
-		return runOk, nil
-	case context.Canceled:
+	switch {
+	case errors.Is(runErr, context.Canceled):
 		message = AbortedLogMessage
-	case context.DeadlineExceeded:
+	case errors.Is(runErr, context.DeadlineExceeded):
 		message = TimeoutLogMessage
 	default:
 		message = runErr.Error()

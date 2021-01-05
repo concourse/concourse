@@ -3,6 +3,8 @@ package exec_test
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
@@ -222,6 +224,51 @@ var _ = Describe("TaskStep", func() {
 			})
 		})
 
+		Context("when a timeout is configured", func() {
+			BeforeEach(func() {
+				taskPlan.Timeout = "1h"
+			})
+
+			It("enforces it on the context", func() {
+				Expect(fakeClient.RunTaskStepCallCount()).To(Equal(1))
+
+				taskCtx, _, _, _, _, _, _, _, _, _ := fakeClient.RunTaskStepArgsForCall(0)
+				t, ok := taskCtx.Deadline()
+				Expect(ok).To(BeTrue())
+				Expect(t).To(BeTemporally("~", time.Now().Add(time.Hour), time.Minute))
+			})
+
+			Context("when running times out", func() {
+				BeforeEach(func() {
+					fakeClient.RunTaskStepReturns(
+						worker.TaskResult{},
+						fmt.Errorf("wrapped: %w", context.DeadlineExceeded),
+					)
+				})
+
+				It("fails without error", func() {
+					Expect(stepOk).To(BeFalse())
+					Expect(stepErr).To(BeNil())
+				})
+
+				It("emits an Errored event", func() {
+					Expect(fakeDelegate.ErroredCallCount()).To(Equal(1))
+					_, status := fakeDelegate.ErroredArgsForCall(0)
+					Expect(status).To(Equal(exec.TimeoutLogMessage))
+				})
+			})
+
+			Context("when the timeout is bogus", func() {
+				BeforeEach(func() {
+					taskPlan.Timeout = "bogus"
+				})
+
+				It("fails miserably", func() {
+					Expect(stepErr).To(MatchError("parse timeout: time: invalid duration \"bogus\""))
+				})
+			})
+		})
+
 		Context("when rootfs uri is set instead of image resource", func() {
 			BeforeEach(func() {
 				taskPlan.Config.RootfsURI = "some-image"
@@ -408,6 +455,8 @@ var _ = Describe("TaskStep", func() {
 			var (
 				fakeVolume1 *workerfakes.FakeVolume
 				fakeVolume2 *workerfakes.FakeVolume
+
+				taskResult worker.TaskResult
 			)
 
 			BeforeEach(func() {
@@ -425,7 +474,7 @@ var _ = Describe("TaskStep", func() {
 
 				fakeVolume1 = new(workerfakes.FakeVolume)
 				fakeVolume2 = new(workerfakes.FakeVolume)
-				taskResult := worker.TaskResult{
+				taskResult = worker.TaskResult{
 					ExitStatus: 0,
 					VolumeMounts: []worker.VolumeMount{
 						{
@@ -448,14 +497,8 @@ var _ = Describe("TaskStep", func() {
 				Expect(containerSpec.ArtifactByPath["some-artifact-root/some-path-2"]).ToNot(BeNil())
 			})
 
-			Context("when task belongs to a job", func() {
-				BeforeEach(func() {
-					stepMetadata.JobID = 12
-				})
-
+			itRegistersCaches := func() {
 				It("registers cache volumes as task caches", func() {
-					Expect(stepErr).ToNot(HaveOccurred())
-
 					Expect(fakeVolume1.InitializeTaskCacheCallCount()).To(Equal(1))
 					_, jID, stepName, cachePath, p := fakeVolume1.InitializeTaskCacheArgsForCall(0)
 					Expect(jID).To(Equal(stepMetadata.JobID))
@@ -469,6 +512,39 @@ var _ = Describe("TaskStep", func() {
 					Expect(stepName).To(Equal("some-task"))
 					Expect(cachePath).To(Equal("some-path-2"))
 					Expect(p).To(Equal(bool(taskPlan.Privileged)))
+				})
+			}
+
+			Context("when task belongs to a job", func() {
+				BeforeEach(func() {
+					stepMetadata.JobID = 12
+				})
+
+				Context("when the task succeeds", func() {
+					BeforeEach(func() {
+						taskResult.ExitStatus = 0
+						fakeClient.RunTaskStepReturns(taskResult, nil)
+					})
+
+					itRegistersCaches()
+				})
+
+				Context("when the task exits nonzero", func() {
+					BeforeEach(func() {
+						taskResult.ExitStatus = 1
+						fakeClient.RunTaskStepReturns(taskResult, nil)
+					})
+
+					itRegistersCaches()
+				})
+
+				Context("when the task errors", func() {
+					BeforeEach(func() {
+						taskResult.ExitStatus = 1
+						fakeClient.RunTaskStepReturns(taskResult, errors.New("bam"))
+					})
+
+					itRegistersCaches()
 				})
 			})
 
@@ -1048,34 +1124,17 @@ var _ = Describe("TaskStep", func() {
 					runTaskStepError = nil
 					fakeClient.RunTaskStepReturns(taskResult, runTaskStepError)
 				})
+
 				outputsAreRegistered()
 			})
 
-			Context("when RunTaskStep returns a context Canceled error", func() {
-				BeforeEach(func() {
-					runTaskStepError = context.Canceled
-					fakeClient.RunTaskStepReturns(taskResult, runTaskStepError)
-				})
-				outputsAreRegistered()
-			})
-			Context("when RunTaskStep returns a context DeadlineExceeded error", func() {
-				BeforeEach(func() {
-					runTaskStepError = context.DeadlineExceeded
-					fakeClient.RunTaskStepReturns(taskResult, runTaskStepError)
-				})
-				outputsAreRegistered()
-			})
-
-			Context("when RunTaskStep returns a unexpected error", func() {
+			Context("when RunTaskStep errors", func() {
 				BeforeEach(func() {
 					runTaskStepError = errors.New("some unexpected error")
 					fakeClient.RunTaskStepReturns(taskResult, runTaskStepError)
 				})
-				It("re-registers the outputs as artifacts", func() {
-					artifactMap := repo.AsMap()
-					Expect(artifactMap).To(BeEmpty())
-				})
 
+				outputsAreRegistered()
 			})
 		})
 
