@@ -108,10 +108,8 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 	if checkable.HasWebhook() {
 		interval = c.defaultWithWebhookCheckInterval
 	}
-	if checkable.CheckEvery() != nil {
-		if !checkable.CheckEvery().Never {
-			interval = checkable.CheckEvery().Interval
-		}
+	if checkable.CheckEvery() != nil && !checkable.CheckEvery().Never {
+		interval = checkable.CheckEvery().Interval
 	}
 
 	if !manuallyTriggered && time.Now().Before(checkable.LastCheckEndTime().Add(interval)) {

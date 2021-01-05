@@ -182,7 +182,7 @@ var _ = Describe("Config", func() {
 					var resourceConfig ResourceConfig
 					bs := []byte(`{ "check_every": "some-string" }`)
 					err := json.Unmarshal(bs, &resourceConfig)
-					Expect(err).To(MatchError("time: invalid duration \"some-string\""))
+					Expect(err).To(MatchError(`time: invalid duration "some-string"`))
 				})
 			})
 
