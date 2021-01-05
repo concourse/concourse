@@ -37,7 +37,7 @@ type ResourceType interface {
 	Defaults() atc.Source
 	Params() atc.Params
 	Tags() atc.Tags
-	CheckEvery() string
+	CheckEvery() *atc.CheckEvery
 	CheckTimeout() string
 	LastCheckStartTime() time.Time
 	LastCheckEndTime() time.Time
@@ -181,7 +181,7 @@ type resourceType struct {
 	params                atc.Params
 	tags                  atc.Tags
 	version               atc.Version
-	checkEvery            string
+	checkEvery            *atc.CheckEvery
 	lastCheckStartTime    time.Time
 	lastCheckEndTime      time.Time
 }
@@ -192,7 +192,7 @@ func (t *resourceType) TeamName() string              { return t.teamName }
 func (t *resourceType) Name() string                  { return t.name }
 func (t *resourceType) Type() string                  { return t.type_ }
 func (t *resourceType) Privileged() bool              { return t.privileged }
-func (t *resourceType) CheckEvery() string            { return t.checkEvery }
+func (t *resourceType) CheckEvery() *atc.CheckEvery   { return t.checkEvery }
 func (t *resourceType) CheckTimeout() string          { return "" }
 func (r *resourceType) LastCheckStartTime() time.Time { return r.lastCheckStartTime }
 func (r *resourceType) LastCheckEndTime() time.Time   { return r.lastCheckEndTime }

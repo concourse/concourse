@@ -638,7 +638,7 @@ jobs:
 											Name:         "some-resource",
 											Type:         "some-type",
 											Source:       nil,
-											CheckEvery:   "10s",
+											CheckEvery:   &atc.CheckEvery{Interval: 10 * time.Second},
 											CheckTimeout: "1m",
 										},
 									},
@@ -887,7 +887,7 @@ jobs:
 										Name:       "some-resource",
 										Type:       "some-type",
 										Source:     nil,
-										CheckEvery: "10s",
+										CheckEvery: &atc.CheckEvery{Interval: 10 * time.Second},
 									},
 								},
 									Jobs: atc.JobConfigs{

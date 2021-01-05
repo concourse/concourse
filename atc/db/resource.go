@@ -32,7 +32,7 @@ type Resource interface {
 	TeamName() string
 	Type() string
 	Source() atc.Source
-	CheckEvery() string
+	CheckEvery() *atc.CheckEvery
 	CheckTimeout() string
 	LastCheckStartTime() time.Time
 	LastCheckEndTime() time.Time
@@ -163,7 +163,7 @@ func (r *resource) TeamID() int                      { return r.teamID }
 func (r *resource) TeamName() string                 { return r.teamName }
 func (r *resource) Type() string                     { return r.type_ }
 func (r *resource) Source() atc.Source               { return r.config.Source }
-func (r *resource) CheckEvery() string               { return r.config.CheckEvery }
+func (r *resource) CheckEvery() *atc.CheckEvery      { return r.config.CheckEvery }
 func (r *resource) CheckTimeout() string             { return r.config.CheckTimeout }
 func (r *resource) LastCheckStartTime() time.Time    { return r.lastCheckStartTime }
 func (r *resource) LastCheckEndTime() time.Time      { return r.lastCheckEndTime }

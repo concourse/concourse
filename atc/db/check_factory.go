@@ -24,7 +24,7 @@ type Checkable interface {
 	Type() string
 	Source() atc.Source
 	Tags() atc.Tags
-	CheckEvery() string
+	CheckEvery() *atc.CheckEvery
 	CheckTimeout() string
 	LastCheckEndTime() time.Time
 	CurrentPinnedVersion() atc.Version
@@ -108,12 +108,9 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 	if checkable.HasWebhook() {
 		interval = c.defaultWithWebhookCheckInterval
 	}
-	if every := checkable.CheckEvery(); every != "" {
-		if every != "never" {
-			interval, err = time.ParseDuration(every)
-			if err != nil {
-				return nil, false, fmt.Errorf("check interval: %s", err)
-			}
+	if checkable.CheckEvery() != nil {
+		if !checkable.CheckEvery().Never {
+			interval = checkable.CheckEvery().Interval
 		}
 	}
 

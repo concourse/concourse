@@ -71,7 +71,7 @@ var _ = Describe("Scanner", func() {
 
 			Context("when CheckEvery is never", func() {
 				BeforeEach(func() {
-					fakeResource.CheckEveryReturns("never")
+					fakeResource.CheckEveryReturns(&atc.CheckEvery{Never: true})
 				})
 
 				It("does not check", func() {
