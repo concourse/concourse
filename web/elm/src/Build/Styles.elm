@@ -238,6 +238,7 @@ stepStatusIcon =
 changedStepTooltip : List (Html.Attribute msg)
 changedStepTooltip =
     [ style "background-color" Colors.tooltipBackground
+    , style "color" Colors.tooltipText
     , style "padding" "5px"
     , style "z-index" "100"
     , style "width" "fit-content"

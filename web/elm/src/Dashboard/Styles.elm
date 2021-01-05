@@ -940,15 +940,16 @@ visibilityToggle { public, isClickable, isHovered } =
 visibilityTooltip : List (Html.Attribute msg)
 visibilityTooltip =
     [ style "background-color" Colors.tooltipBackground
+    , style "color" Colors.tooltipText
     , style "white-space" "nowrap"
     , style "padding" "2.5px"
-    , style "color" Colors.tooltipText
     ]
 
 
 jobsDisabledTooltip : List (Html.Attribute msg)
 jobsDisabledTooltip =
     [ style "background-color" Colors.tooltipBackground
+    , style "color" Colors.tooltipText
     , style "padding" "2.5px"
     ]
 

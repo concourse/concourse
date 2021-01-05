@@ -240,6 +240,7 @@ type TooltipPosition
 pauseToggleTooltip : TooltipPosition -> List (Html.Attribute msg)
 pauseToggleTooltip ttp =
     [ style "background-color" Colors.tooltipBackground
+    , style "color" Colors.tooltipText
     , style "position" "absolute"
     , style
         (case ttp of
