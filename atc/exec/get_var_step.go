@@ -27,12 +27,12 @@ func (e VarNotFoundError) Error() string {
 }
 
 type GetVarStep struct {
-	planID          atc.PlanID
+	planID          atc.PlanID // TODO: not being used, maybe drop it
 	plan            atc.GetVarPlan
 	metadata        StepMetadata
 	delegateFactory BuildStepDelegateFactory
-
-	cache *gocache.Cache
+	lockFactory     lock.LockFactory
+	cache           *gocache.Cache
 }
 
 func NewGetVarStep(
@@ -41,13 +41,14 @@ func NewGetVarStep(
 	metadata StepMetadata,
 	delegateFactory BuildStepDelegateFactory, // XXX: not needed yet b/c no image fetching but WHATEVER
 	cache *gocache.Cache,
-	lock lock.LockFactory,
+	lockFactory lock.LockFactory,
 ) Step {
 	return &GetVarStep{
 		planID:          planID,
 		plan:            plan,
 		metadata:        metadata,
 		delegateFactory: delegateFactory,
+		lockFactory:     lockFactory,
 		cache:           cache,
 	}
 }
@@ -80,6 +81,26 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 
 	delegate.Starting(logger)
 
+	hash, err := step.hashVarIdentifier(step.plan.Path, step.plan.Type, step.plan.Source)
+	if err != nil {
+		return false, fmt.Errorf("hash var identifier: %w", err)
+	}
+
+	for {
+		var acquired bool
+		lock, acquired, err := step.lockFactory.Acquire(logger, lock.NewGetVarStepLockID(step.metadata.BuildID, hash))
+		if err != nil {
+			return false, fmt.Errorf("acquire lock: %w", err)
+		}
+
+		if acquired {
+			defer lock.Release()
+			break
+		}
+
+		time.Sleep(time.Second)
+	}
+
 	_, found, err := state.Get(vars.Reference{
 		Source: step.plan.Name,
 		Path:   step.plan.Path,
@@ -92,11 +113,6 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 	if found {
 		delegate.Finished(logger, true)
 		return true, nil
-	}
-
-	hash, err := step.hashVarIdentifier(step.plan.Path, step.plan.Type, step.plan.Source)
-	if err != nil {
-		return false, fmt.Errorf("hash var identifier: %w", err)
 	}
 
 	value, found := step.cache.Get(hash)

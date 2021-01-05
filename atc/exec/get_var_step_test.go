@@ -3,6 +3,7 @@ package exec_test
 import (
 	"context"
 
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
@@ -14,6 +15,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
+	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/execfakes"
@@ -38,6 +40,7 @@ var _ = Describe("GetVarStep", func() {
 		fakeSecretsFactory *credsfakes.FakeSecretsFactory
 		fakeSecrets        *credsfakes.FakeSecrets
 		fakeLockFactory    *lockfakes.FakeLockFactory
+		fakeLock           *lockfakes.FakeLock
 
 		cache *gocache.Cache
 
@@ -97,7 +100,9 @@ var _ = Describe("GetVarStep", func() {
 		fakeSecretsFactory.NewSecretsReturns(fakeSecrets)
 		fakeManager.NewSecretsFactoryReturns(fakeSecretsFactory, nil)
 
+		fakeLock = new(lockfakes.FakeLock)
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
+		fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 
 		cache = gocache.New(0, 0)
 
@@ -110,74 +115,9 @@ var _ = Describe("GetVarStep", func() {
 		cancel()
 	})
 
-	JustBeforeEach(func() {
-		step = exec.NewGetVarStep(
-			planID,
-			getVarPlan,
-			stepMetadata,
-			fakeDelegateFactory,
-			cache,
-			fakeLockFactory,
-		)
-
-		stepOk, stepErr = step.Run(ctx, state)
-	})
-
-	It("gets the var and stores it as the step result", func() {
-		Expect(stepOk).To(BeTrue())
-		Expect(stepErr).ToNot(HaveOccurred())
-
-		Expect(fakeManagerFactory.NewInstanceCallCount()).To(Equal(1))
-		config := fakeManagerFactory.NewInstanceArgsForCall(0)
-		Expect(config).To(Equal(getVarPlan.Source))
-
-		Expect(fakeManager.InitCallCount()).To(Equal(1))
-
-		Expect(fakeSecrets.GetCallCount()).To(Equal(1))
-		path := fakeSecrets.GetArgsForCall(0)
-		Expect(path).To(Equal("some-var"))
-
-		Expect(state.AddVarCallCount()).To(Equal(1))
-		varName, varPath, varValue, redact := state.AddVarArgsForCall(0)
-		Expect(varName).To(Equal("some-source-name"))
-		Expect(varPath).To(Equal("some-var"))
-		Expect(varValue).To(Equal("some-value"))
-		Expect(redact).To(BeTrue())
-
-		Expect(fakeManager.CloseCallCount()).To(Equal(1))
-	})
-
-	Context("when the var does not exist", func() {
-		BeforeEach(func() {
-			fakeSecrets.GetReturns("", nil, false, nil)
-		})
-
-		It("fails with var not found error", func() {
-			Expect(stepOk).To(BeFalse())
-			Expect(stepErr).To(HaveOccurred())
-			Expect(stepErr).To(Equal(exec.VarNotFoundError{Name: "some-var"}))
-		})
-	})
-
-	Context("when the var is in the build vars", func() {
-		BeforeEach(func() {
-			state.GetReturns(nil, true, nil)
-		})
-
-		It("uses the stored var and does not refetch", func() {
-			Expect(stepOk).To(BeTrue())
-			Expect(stepErr).ToNot(HaveOccurred())
-
-			Expect(fakeSecrets.GetCallCount()).To(Equal(0))
-			Expect(state.AddVarCallCount()).To(Equal(0))
-		})
-	})
-
-	Context("when there is a cache for the var", func() {
-		BeforeEach(func() {
-			previousState := new(execfakes.FakeRunState)
-
-			step := exec.NewGetVarStep(
+	Context("Single get_var step", func() {
+		JustBeforeEach(func() {
+			step = exec.NewGetVarStep(
 				planID,
 				getVarPlan,
 				stepMetadata,
@@ -186,61 +126,199 @@ var _ = Describe("GetVarStep", func() {
 				fakeLockFactory,
 			)
 
-			ok, err := step.Run(ctx, previousState)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(ok).To(BeTrue())
-
-			Expect(fakeSecrets.GetCallCount()).To(Equal(1))
-			Expect(previousState.AddVarCallCount()).To(Equal(1))
-
-			sourceName, key, value, redact := previousState.AddVarArgsForCall(0)
-			Expect(sourceName).To(Equal("some-source-name"))
-			Expect(key).To(Equal("some-var"))
-			Expect(value).To(Equal("some-value"))
-			Expect(redact).To(BeTrue())
+			stepOk, stepErr = step.Run(ctx, state)
 		})
 
-		It("uses the cached var and does not refetch", func() {
+		It("gets the var and stores it as the step result", func() {
 			Expect(stepOk).To(BeTrue())
 			Expect(stepErr).ToNot(HaveOccurred())
 
+			Expect(fakeManagerFactory.NewInstanceCallCount()).To(Equal(1))
+			config := fakeManagerFactory.NewInstanceArgsForCall(0)
+			Expect(config).To(Equal(getVarPlan.Source))
+
+			Expect(fakeManager.InitCallCount()).To(Equal(1))
+
 			Expect(fakeSecrets.GetCallCount()).To(Equal(1))
+			path := fakeSecrets.GetArgsForCall(0)
+			Expect(path).To(Equal("some-var"))
+
 			Expect(state.AddVarCallCount()).To(Equal(1))
-
-			sourceName, key, value, redact := state.AddVarArgsForCall(0)
-			Expect(sourceName).To(Equal("some-source-name"))
-			Expect(key).To(Equal("some-var"))
-			Expect(value).To(Equal("some-value"))
+			varName, varPath, varValue, redact := state.AddVarArgsForCall(0)
+			Expect(varName).To(Equal("some-source-name"))
+			Expect(varPath).To(Equal("some-var"))
+			Expect(varValue).To(Equal("some-value"))
 			Expect(redact).To(BeTrue())
+
+			Expect(fakeManager.CloseCallCount()).To(Equal(1))
+			Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
 		})
+
+		Context("when the var does not exist", func() {
+			BeforeEach(func() {
+				fakeSecrets.GetReturns("", nil, false, nil)
+			})
+
+			It("fails with var not found error", func() {
+				Expect(stepOk).To(BeFalse())
+				Expect(stepErr).To(HaveOccurred())
+				Expect(stepErr).To(Equal(exec.VarNotFoundError{Name: "some-var"}))
+			})
+
+			It("releases the lock", func() {
+				Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+			})
+		})
+
+		Context("when the var is in the build vars", func() {
+			BeforeEach(func() {
+				state.GetReturns(nil, true, nil)
+			})
+
+			It("uses the stored var and does not refetch", func() {
+				Expect(stepOk).To(BeTrue())
+				Expect(stepErr).ToNot(HaveOccurred())
+
+				Expect(fakeSecrets.GetCallCount()).To(Equal(0))
+				Expect(state.AddVarCallCount()).To(Equal(0))
+			})
+
+			It("releases the lock", func() {
+				Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+			})
+		})
+
+		Context("when there is a cache for the var", func() {
+			BeforeEach(func() {
+				previousState := new(execfakes.FakeRunState)
+				tempfakeLock := new(lockfakes.FakeLock)
+				tempfakeLockFactory := new(lockfakes.FakeLockFactory)
+				tempfakeLockFactory.AcquireReturns(tempfakeLock, true, nil)
+
+				step := exec.NewGetVarStep(
+					planID,
+					getVarPlan,
+					stepMetadata,
+					fakeDelegateFactory,
+					cache,
+					tempfakeLockFactory,
+				)
+
+				ok, err := step.Run(ctx, previousState)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ok).To(BeTrue())
+
+				Expect(fakeSecrets.GetCallCount()).To(Equal(1))
+				Expect(previousState.AddVarCallCount()).To(Equal(1))
+
+				sourceName, key, value, redact := previousState.AddVarArgsForCall(0)
+				Expect(sourceName).To(Equal("some-source-name"))
+				Expect(key).To(Equal("some-var"))
+				Expect(value).To(Equal("some-value"))
+				Expect(redact).To(BeTrue())
+			})
+
+			It("uses the cached var and does not refetch", func() {
+				Expect(stepOk).To(BeTrue())
+				Expect(stepErr).ToNot(HaveOccurred())
+
+				Expect(fakeSecrets.GetCallCount()).To(Equal(1))
+				Expect(state.AddVarCallCount()).To(Equal(1))
+
+				sourceName, key, value, redact := state.AddVarArgsForCall(0)
+				Expect(sourceName).To(Equal("some-source-name"))
+				Expect(key).To(Equal("some-var"))
+				Expect(value).To(Equal("some-value"))
+				Expect(redact).To(BeTrue())
+			})
+
+			It("releases the lock", func() {
+				Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+			})
+		})
+
+		Context("when reveal is true", func() {
+			BeforeEach(func() {
+				getVarPlan.Reveal = true
+			})
+			It("the var is not redactable", func() {
+				Expect(stepOk).To(BeTrue())
+				Expect(stepErr).ToNot(HaveOccurred())
+
+				_, _, _, redact := state.AddVarArgsForCall(0)
+				Expect(redact).To(BeFalse())
+			})
+		})
+
 	})
 
-	Context("when reveal is true", func() {
-		BeforeEach(func() {
-			getVarPlan.Reveal = true
-		})
-		It("the var is not redactable", func() {
-			Expect(stepOk).To(BeTrue())
-			Expect(stepErr).ToNot(HaveOccurred())
+	Context("Multiple get_var steps", func() {
+		Context("when the same var is accessed by two separate get_var's in the same build", func() {
+			var (
+				acquired bool
+				fakeLock *lockfakes.FakeLock
+				step1    exec.Step
+				step2    exec.Step
+			)
 
-			_, _, _, redact := state.AddVarArgsForCall(0)
-			Expect(redact).To(BeFalse())
-		})
-	})
+			BeforeEach(func() {
+				acquired = false
 
-	Context("when the same var is accessed by two separate get_var's in the same build", func() {
-		// ignore what hppens in the BeforeEach and JustBeforeEach for this test.
-		// We don't use the result of any of those vars
-		It("one of the two get_var's should wait for the lock to release", func() {
-			// run the same step twice at the "same time"
+				fakeLock = new(lockfakes.FakeLock)
+				fakeLock.ReleaseStub = func() error { return nil }
 
-			// fire two instances of get var step
-			// instance 1 acquires lock
-			// the Get() for instance 1 will block
-			// instance 2 attempts to acquire lock and will fail
-			// the Get() for instance 1 will unblock right after the other isntance attemps to acquire lock
-			// instance 1 will finish
-			// instance 2 will acquire lock and finish
+				fakeLockFactory.AcquireStub = func(lager.Logger, lock.LockID) (lock.Lock, bool, error) {
+					if !acquired {
+						acquired = true
+						return fakeLock, true, nil
+					} else {
+						return nil, false, nil
+					}
+				}
+
+				step1 = exec.NewGetVarStep(
+					"1",
+					getVarPlan,
+					stepMetadata,
+					fakeDelegateFactory,
+					cache,
+					fakeLockFactory,
+				)
+
+				step2 = exec.NewGetVarStep(
+					"2",
+					getVarPlan,
+					stepMetadata,
+					fakeDelegateFactory,
+					cache,
+					fakeLockFactory,
+				)
+			})
+
+			It("one of the two get_var's should wait for the lock to release", func() {
+				step1Ok, step1Err := step1.Run(ctx, state)
+				Expect(step1Ok).To(BeTrue())
+				Expect(step1Err).ToNot(HaveOccurred())
+
+				go func() {
+					step2Ok, step2Err := step2.Run(ctx, state)
+					Expect(step2Ok).To(BeTrue())
+					Expect(step2Err).ToNot(HaveOccurred())
+				}()
+
+				Expect(fakeLockFactory.AcquireCallCount()).To(Equal(1))
+				Expect(state.GetCallCount()).To(Equal(1))
+				Expect(fakeSecrets.GetCallCount()).To(Equal(1))
+
+				By("releasing the lock")
+				acquired = false
+
+				Eventually(fakeLockFactory.AcquireCallCount).Should(Equal(2))
+				Expect(state.GetCallCount()).To(Equal(2))
+
+				By("does not fetch the var twice")
+				Expect(fakeSecrets.GetCallCount()).To(Equal(1))
+			})
 		})
 	})
 })
