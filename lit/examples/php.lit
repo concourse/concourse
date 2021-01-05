@@ -9,47 +9,7 @@ You can run the tests for a PHP application.
 
 \section{
   \title{Pipeline Configuration}{configuration}
-	\codeblock{yaml}{{{
----
-resources:
-  - name: laravel-websockets-git
-    type: git
-    icon: github
-    source:
-      uri: https://github.com/beyondcode/laravel-websockets.git
-
-jobs:
-  - name: test
-    public: true
-    plan:
-      - get: laravel-websockets-git
-        trigger: true
-      - task: run-tests
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source: { repository: php, tag: 7.2-cli }
-          inputs:
-            - name: laravel-websockets-git
-          run:
-            path: /bin/sh
-            args:
-              - -c
-              - |
-                apt-get update
-                apt-get install -y git unzip
-
-                php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-                php -r "if (hash_file('sha384', 'composer-setup.php') === 'e0012edf3e80b6978849f5eff0d4b4e4c79ff1609dd1e613307e16318854d24ae64f26d17af3ef0bf7cfb710ca74755a') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-                php composer-setup.php --install-dir=/usr/local/bin --filename=composer
-                php -r "unlink('composer-setup.php');"
-
-                cd laravel-websockets-git
-
-                composer install
-                vendor/bin/phpunit --coverage-text --coverage-clover=coverage.clover
-	}}}
+    \remote-codeblock{yaml}{https://raw.githubusercontent.com/concourse/examples/master/pipelines/php-larvel-app-testing.yml}
 }
 
 \section{

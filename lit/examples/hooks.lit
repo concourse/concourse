@@ -11,73 +11,7 @@ job.
 
 \section{
   \title{Pipeline Configuration}{configuration}
-	\codeblock{yaml}{{{
----
-task-config: &task-config
-  platform: linux
-  image_resource:
-    type: registry-image
-    source: { repository: busybox }
-
-jobs:
-  - name: job
-    public: true
-    plan:
-      - task: successful-task
-        config:
-          << : *task-config
-          run:
-            path: sh
-            args: ["-lc", "exit 0"]
-        on_success:
-          task: task-success
-          config:
-            << : *task-config
-            run:
-              path: echo
-              args: ["This task succeeded!"]
-        on_abort:
-          task: task-aborted
-          config:
-            << : *task-config
-            run:
-              path: echo
-              args: ["This task was aborted!"]
-      - task: failing-task
-        config:
-          << : *task-config
-          run:
-            path: sh
-            args: ["-lc", "exit 1"]
-        on_failure:
-          task: task-failure
-          config:
-            << : *task-config
-            run:
-              path: echo
-              args: ["This task failed!"]
-    on_success:
-      task: job-success
-      config:
-        << : *task-config
-        run:
-          path: echo
-          args: ["This job succeeded!"]
-    on_failure:
-      task: job-failure
-      config:
-        << : *task-config
-        run:
-          path: echo
-          args: ["This job failed!"]
-    on_abort:
-      task: job-aborted
-      config:
-        << : *task-config
-        run:
-          path: echo
-          args: ["This job was aborted!"]
-	}}}
+    \remote-codeblock{yaml}{https://raw.githubusercontent.com/concourse/examples/master/pipelines/job-and-task-hooks.yml}
 }
 
 \section{

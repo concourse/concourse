@@ -9,60 +9,7 @@ A job can be triggered by a resource. After it's complete, the next job can run 
 
 \section{
   \title{Pipeline Configuration}{configuration}
-	\codeblock{yaml}{{{
----
-resources:
-  - name: every-30s
-    type: time
-    icon: clock-outline
-    source:
-      interval: 30s
-
-jobs:
-  - name: triggered-first
-    public: true
-    plan:
-      - get: every-30s
-        trigger: true
-      - task: simple-task
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source: { repository: busybox }
-          run:
-            path: echo
-            args: ["Hello, world!"]
-  - name: not-triggered
-    public: true
-    plan:
-      - get: every-30s
-        passed: [triggered-first]
-      - task: simple-task
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source: { repository: busybox }
-          run:
-            path: echo
-            args: ["Hello, world!"]
-  - name: triggered-second
-    public: true
-    plan:
-      - get: every-30s
-        passed: [triggered-first]
-        trigger: true
-      - task: simple-task
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source: { repository: busybox }
-          run:
-            path: echo
-            args: ["Hello, world!"]
-}}}
+    \remote-codeblock{yaml}{https://raw.githubusercontent.com/concourse/examples/master/pipelines/manually-triggered.yml}
 }
 
 \section{

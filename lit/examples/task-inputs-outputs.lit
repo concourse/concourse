@@ -15,38 +15,7 @@ These constructs give you the ability to design a pipeline that can process arti
 
 \section{
   \title{Pipeline Configuration}{configuration}
-	\codeblock{yaml}{{{
----
-jobs:
-  - name: create-and-consume
-    public: true
-    plan:
-      - task: make-a-file
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source: { repository: busybox }
-          run:
-            path: sh
-            args:
-              - -exc
-              - ls -la; echo "Created a file on $(date)" > ./files/created_file
-          outputs:
-            - name: files
-      - task: consume-the-file
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source: { repository: busybox }
-          inputs:
-            - name: files
-          run:
-            path: cat
-            args:
-              - ./files/created_file
-  }}}
+    \remote-codeblock{yaml}{https://raw.githubusercontent.com/concourse/examples/master/pipelines/task-passing-artifact.yml}
 }
 
 \section{

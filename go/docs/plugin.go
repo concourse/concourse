@@ -6,6 +6,7 @@ import (
 	"crypto/sha1"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"sort"
@@ -72,6 +73,25 @@ func (p Plugin) Codeblock(language string, code booklit.Content) booklit.Content
 			"Language": booklit.String(language),
 		},
 	}
+}
+
+func (p Plugin) RemoteCodeblock(language string, url string) (booklit.Content, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("remote codeblock for %s failed: %s", url, resp.Status)
+	}
+
+	content, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return p.Codeblock(language, booklit.String(content)), nil
 }
 
 func (p Plugin) InlineHeader(content booklit.Content) booklit.Content {

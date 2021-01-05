@@ -1,4 +1,4 @@
-\title{Java Application}{java-example}
+\title{Java application testing example}{java-example}
 \omit-children-from-table-of-contents
 
 \use-plugin{concourse-docs}
@@ -9,48 +9,7 @@ You can run the tests for a Java application.
 
 \section{
   \title{Pipeline Configuration}{configuration}
-	\codeblock{yaml}{{{
----
-resources:
-  - name: apache-kafka-git
-    type: git
-    icon: github
-    source:
-      uri: https://github.com/apache/kafka.git
-
-jobs:
-  - name: test
-    public: true
-    plan:
-      - get: apache-kafka-git
-        trigger: true
-      - task: run-tests
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source: { repository: gradle, tag: jdk8-slim }
-          inputs:
-            - name: apache-kafka-git
-          run:
-            path: /bin/sh
-            user: root
-            args:
-              - -c
-              - |
-                java -Xmx32m -version
-                javac -J-Xmx32m -version
-
-                cd apache-kafka-git
-
-                gradle wrapper
-                ./gradlew rat
-                ./gradlew systemTestLibs
-          caches:
-            - path: "$HOME/.m2/repository"
-            - path: "$HOME/.gradle/caches/"
-            - path: "$HOME/.gradle/wrapper/"
-	}}}
+    \remote-codeblock{yaml}{https://raw.githubusercontent.com/concourse/examples/master/pipelines/java.yml}
 }
 
 \section{

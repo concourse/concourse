@@ -9,31 +9,7 @@ The \resource{time} can be used to trigger a job.
 
 \section{
   \title{Pipeline Configuration}{configuration}
-	\codeblock{yaml}{{{
----
-resources:
-  - name: every-30s
-    type: time
-    icon: clock-outline
-    source:
-      interval: 30s
-
-jobs:
-  - name: job
-    public: true
-    plan:
-      - get: every-30s
-        trigger: true
-      - task: simple-task
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source: { repository: busybox }
-          run:
-            path: echo
-            args: ["Hello, world!"]
-}}}
+    \remote-codeblock{yaml}{https://raw.githubusercontent.com/concourse/examples/master/pipelines/time-triggered.yml}
 }
 
 \section{
