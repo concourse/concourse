@@ -3304,6 +3304,7 @@ var _ = Describe("Team", func() {
 			var (
 				p1 db.Pipeline
 				p2 db.Pipeline
+				p3 db.Pipeline
 			)
 
 			BeforeEach(func() {
@@ -3317,6 +3318,12 @@ var _ = Describe("Team", func() {
 				p2, _, err = defaultTeam.SavePipeline(atc.PipelineRef{
 					Name:         "release",
 					InstanceVars: atc.InstanceVars{"version": "7.0.x"},
+				}, defaultPipelineConfig, db.ConfigVersion(0), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				p3, _, err = defaultTeam.SavePipeline(atc.PipelineRef{
+					Name:         "release",
+					InstanceVars: nil,
 				}, defaultPipelineConfig, db.ConfigVersion(0), false)
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -3333,6 +3340,10 @@ var _ = Describe("Team", func() {
 				_, err = p2.Reload()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(p2.Name()).To(Equal("new-pipeline"))
+
+				_, err = p3.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(p3.Name()).To(Equal("new-pipeline"))
 			})
 		})
 
