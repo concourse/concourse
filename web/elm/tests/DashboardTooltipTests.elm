@@ -164,7 +164,7 @@ all =
                     |> Maybe.withDefault (Html.text "")
                     |> Query.fromHtml
                     |> Query.has [ text "my-group" ]
-        , test "displays instance var value when hovering over pipeline card instance var" <|
+        , test "displays instance var key: value when hovering over pipeline card instance var" <|
             \_ ->
                 Dashboard.tooltip
                     { session
@@ -176,7 +176,7 @@ all =
                     |> Maybe.map .body
                     |> Maybe.withDefault (Html.text "")
                     |> Query.fromHtml
-                    |> Query.has [ text "some-value" ]
+                    |> Query.has [ text "foo.bar: some-value" ]
         ]
 
 
