@@ -52,7 +52,7 @@ func (factory *managerFactory) NewInstance(config interface{}) (creds.Manager, e
 		})
 	}
 
-	// delay should only be used in unit tests.
+	// deploy is a feature for simulating a credential manager's login duration.
 	if delay, ok := configMap["delay"]; ok {
 		manager.delay = delay.(time.Duration)
 		manager.clock = configMap["clock"].(clock.Clock)
