@@ -216,10 +216,8 @@ github.com/cloudfoundry/socks5-proxy v0.0.0-20180530211953-3659db090cb2/go.mod h
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
 github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa/go.mod h1:zn76sxSg3SzpJ0PPJaLDCu+Bu0Lg3sKTORVIj19EIF8=
 github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd/go.mod h1:sE/e/2PUdi/liOCUjSTXgM1o87ZssimdTWN964YiIeI=
-github.com/concourse/baggageclaim v1.9.0 h1:GnpOGMJro1wqYisUn1mRnGbsethu1WUwagf2jMHXNiY=
-github.com/concourse/baggageclaim v1.9.0/go.mod h1:UdvVE2W8LgXcCz0ZdKBwUbpKZ0KN4Fx1OeY1xtZOUvY=
-github.com/concourse/dex v0.2.1 h1:p7aOohrGHG6+HDFlsenOJ4Du7wsJ3sAmyz0EsXX4WRk=
-github.com/concourse/dex v0.2.1/go.mod h1:PF+R+Z86u1A2eU3hqpx33Df2YgZvBwas8QflgMiliQo=
+github.com/concourse/baggageclaim v1.9.1 h1:ypAip9tVTPlNgMVwwqU566Xx9TIu5AJ5awTpi9qh0DY=
+github.com/concourse/baggageclaim v1.9.1/go.mod h1:UdvVE2W8LgXcCz0ZdKBwUbpKZ0KN4Fx1OeY1xtZOUvY=
 github.com/concourse/dex v0.3.0 h1:H8aq2xcBMEHK17FVYWXECZxTtAI/kSQQXYOnTbw5dr0=
 github.com/concourse/dex v0.3.0/go.mod h1:Q8YPkw98XIkeTWO6Jm2ZMycdaf1NrNrPdvUOnpjYXtA=
 github.com/concourse/flag v0.0.0-20180907155614-cb47f24fff1c/go.mod h1:ngs845OZCESOe8vgeK5fsCNIiS0vUSqB8MGQMS9+4og=
@@ -230,8 +228,6 @@ github.com/concourse/go-archive v1.0.0/go.mod h1:Xfo080IPQBmVz3I5ehjCddW3phA2mwv
 github.com/concourse/go-archive v1.0.1 h1:6jQk0VDiE4G6lNJQ0mLZ7XmxbqI3spO4x0wgVwk4pfo=
 github.com/concourse/go-archive v1.0.1/go.mod h1:Xfo080IPQBmVz3I5ehjCddW3phA2mwv0NFwlpjf5CO8=
 github.com/concourse/retryhttp v0.0.0-20170802173037-937335fd9545/go.mod h1:4+V9YCkKuoV7rg+/No+ZM9FsO3BK4tIJNUiYMI7nki0=
-github.com/concourse/retryhttp v1.0.2 h1:Qlag8vPBvXN79XyuM+XSf0/+jIYWnnivPwaa3ijbgdk=
-github.com/concourse/retryhttp v1.0.2/go.mod h1:t/8nUqzPriXrWczdqI7tHoEvFe+tJplQHS/fO3BzdlA=
 github.com/concourse/retryhttp v1.1.0 h1:tbsCtyU4Bioaw01Un3f10tgBBzVDWvWkOQyfl5ZCs8g=
 github.com/concourse/retryhttp v1.1.0/go.mod h1:QHhy6lQHGmqOKNv0UdoUPYzsTOy9wrf6nHfYsJpow0o=
 github.com/containerd/cgroups v0.0.0-20190919134610-bf292b21730f/go.mod h1:OApqhQ4XNSNC13gXIwDjhOQxjWa/NxkwZXJ1EvqT0ko=
@@ -1082,8 +1078,6 @@ github.com/rogpeppe/go-internal v1.2.2/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFR
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.6.0/go.mod h1:xXDCJY+GAPziupqXw64V24skbSoqbTEfhy4qGm1nDQc=
 github.com/rs/cors v1.7.0/go.mod h1:gFx+x8UowdsKA9AchylcLynDq+nNFfI8FkUZdN/jGCU=
-github.com/russellhaering/goxmldsig v0.0.0-20180430223755-7acd5e4a6ef7 h1:J4AOUcOh/t1XbQcJfkEqhzgvMJ2tDxdCVvmHxW5QXao=
-github.com/russellhaering/goxmldsig v0.0.0-20180430223755-7acd5e4a6ef7/go.mod h1:Oz4y6ImuOQZxynhbSXk7btjEfNBtGlj2dcaOvXl2FSM=
 github.com/russellhaering/goxmldsig v1.1.0 h1:lK/zeJie2sqG52ZAlPNn1oBBqsIsEKypUUBGpYYF6lk=
 github.com/russellhaering/goxmldsig v1.1.0/go.mod h1:QK8GhXPB3+AfuCrfo0oRISa9NfzeCpWmxeGnqEpDF9o=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
