@@ -122,6 +122,12 @@ func InstanceVarsFromQueryParams(q url.Values) (InstanceVars, error) {
 	if len(kvPairs) == 0 {
 		return nil, nil
 	}
+	// Need to sort kv-pairs so that you can specify ?vars={...} along with
+	// patches (...&vars.foo=123) and not have the patches occasionally
+	// truncated (due to non-deterministic map iteration)
+	sort.Slice(kvPairs, func(i, j int) bool {
+		return kvPairs[i].Ref.String() < kvPairs[j].Ref.String()
+	})
 	instanceVars, _ := kvPairs.Expand()["vars"].(map[string]interface{})
 	return InstanceVars(instanceVars), nil
 }
