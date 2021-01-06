@@ -21,8 +21,8 @@ type VaultManager struct {
 	LookupTemplates []string      `mapstructure:"lookup_templates" long:"lookup-templates" default:"/{{.Team}}/{{.Pipeline}}/{{.Secret}}" default:"/{{.Team}}/{{.Secret}}" description:"Path templates for credential lookup"`
 	SharedPath      string        `mapstructure:"shared_path" long:"shared-path" description:"Path under which to lookup shared credentials."`
 	Namespace       string        `mapstructure:"namespace" long:"namespace"   description:"Vault namespace to use for authentication and secret lookup."`
-	LoginTimout     time.Duration `mapstructure:"login_timeout" long:"login-timeout" default:"60s" description:"Timeout value for Vault login."`
-	QueryTimout     time.Duration `mapstructure:"query_timeout" long:"query-timeout" default:"60s" description:"Timeout value for Vault query."`
+	LoginTimeout    time.Duration `mapstructure:"login_timeout" long:"login-timeout" default:"60s" description:"Timeout value for Vault login."`
+	QueryTimeout    time.Duration `mapstructure:"query_timeout" long:"query-timeout" default:"60s" description:"Timeout value for Vault query."`
 
 	TLS  TLSConfig  `mapstructure:",squash"`
 	Auth AuthConfig `mapstructure:",squash"`
@@ -61,7 +61,7 @@ type AuthConfig struct {
 func (manager *VaultManager) Init(log lager.Logger) error {
 	var err error
 
-	manager.Client, err = NewAPIClient(log, manager.URL, manager.TLS, manager.Auth, manager.Namespace, manager.QueryTimout)
+	manager.Client, err = NewAPIClient(log, manager.URL, manager.TLS, manager.Auth, manager.Namespace, manager.QueryTimeout)
 	if err != nil {
 		return err
 	}
@@ -96,8 +96,8 @@ func (manager *VaultManager) Config(config map[string]interface{}) error {
 	manager.PathPrefix = "/concourse"
 	manager.Auth.RetryMax = 5 * time.Minute
 	manager.Auth.RetryInitial = time.Second
-	manager.LoginTimout = 60 * time.Second
-	manager.QueryTimout = 60 * time.Second
+	manager.LoginTimeout = 60 * time.Second
+	manager.QueryTimeout = 60 * time.Second
 
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook:  mapstructure.StringToTimeDurationHookFunc(),
@@ -197,7 +197,7 @@ func (manager *VaultManager) NewSecretsFactory(logger lager.Logger) (creds.Secre
 
 		manager.SecretFactory = NewVaultFactory(
 			manager.Client,
-			manager.LoginTimout,
+			manager.LoginTimeout,
 			manager.ReAuther.LoggedIn(),
 			manager.PathPrefix,
 			templates,
