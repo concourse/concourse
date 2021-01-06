@@ -235,9 +235,9 @@ var _ = Describe("Build", func() {
 
 			It("includes build and team info", func() {
 				Expect(attrs).To(Equal(tracing.Attrs{
-					"build_id": strconv.Itoa(build.ID()),
-					"build":    build.Name(),
-					"team":     team.Name(),
+					"build_id":  strconv.Itoa(build.ID()),
+					"build":     build.Name(),
+					"team_name": team.Name(),
 				}))
 			})
 		})
@@ -251,11 +251,11 @@ var _ = Describe("Build", func() {
 
 			It("includes build, team, pipeline, and job info", func() {
 				Expect(attrs).To(Equal(tracing.Attrs{
-					"build_id": strconv.Itoa(build.ID()),
-					"build":    build.Name(),
-					"team":     build.TeamName(),
-					"pipeline": build.PipelineName(),
-					"job":      defaultJob.Name(),
+					"build_id":  strconv.Itoa(build.ID()),
+					"build":     build.Name(),
+					"team_name": build.TeamName(),
+					"pipeline":  build.PipelineName(),
+					"job":       defaultJob.Name(),
 				}))
 			})
 		})
@@ -271,11 +271,11 @@ var _ = Describe("Build", func() {
 
 			It("includes build, team, and pipeline", func() {
 				Expect(attrs).To(Equal(tracing.Attrs{
-					"build_id": strconv.Itoa(build.ID()),
-					"build":    build.Name(),
-					"team":     build.TeamName(),
-					"pipeline": build.PipelineName(),
-					"resource": defaultResource.Name(),
+					"build_id":  strconv.Itoa(build.ID()),
+					"build":     build.Name(),
+					"team_name": build.TeamName(),
+					"pipeline":  build.PipelineName(),
+					"resource":  defaultResource.Name(),
 				}))
 			})
 		})
@@ -293,7 +293,7 @@ var _ = Describe("Build", func() {
 				Expect(attrs).To(Equal(tracing.Attrs{
 					"build_id":      strconv.Itoa(build.ID()),
 					"build":         build.Name(),
-					"team":          build.TeamName(),
+					"team_name":     build.TeamName(),
 					"pipeline":      build.PipelineName(),
 					"resource_type": defaultResourceType.Name(),
 				}))
