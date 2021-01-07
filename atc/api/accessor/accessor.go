@@ -160,21 +160,29 @@ func (a *access) TeamNames() []string {
 }
 
 func (a *access) hasPermission(roles []string) bool {
+	allow := false
 	for _, role := range roles {
-		switch a.requiredRole {
-		case OwnerRole:
-			return role == OwnerRole
-		case MemberRole:
-			return role == OwnerRole || role == MemberRole
-		case OperatorRole:
-			return role == OwnerRole || role == MemberRole || role == OperatorRole
-		case ViewerRole:
-			return role == OwnerRole || role == MemberRole || role == OperatorRole || role == ViewerRole
-		default:
-			return false
+		allow = allow || a.hasRequiredRole(role)
+		if allow {
+			return true
 		}
 	}
 	return false
+}
+
+func (a *access) hasRequiredRole(role string) bool {
+	switch a.requiredRole {
+	case OwnerRole:
+		return role == OwnerRole
+	case MemberRole:
+		return role == OwnerRole || role == MemberRole
+	case OperatorRole:
+		return role == OwnerRole || role == MemberRole || role == OperatorRole
+	case ViewerRole:
+		return role == OwnerRole || role == MemberRole || role == OperatorRole || role == ViewerRole
+	default:
+		return false
+	}
 }
 
 func (a *access) claims() map[string]interface{} {
