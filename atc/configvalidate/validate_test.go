@@ -74,7 +74,7 @@ var _ = Describe("ValidateConfig", func() {
 						},
 						{
 							Config: &atc.LoadVarStep{
-								Name: "some-var",
+								Name: "some_var",
 								File: "some-input/some-file.json",
 							},
 						},
@@ -139,7 +139,7 @@ var _ = Describe("ValidateConfig", func() {
 		Context("when a resource has an invalid identifier", func() {
 			BeforeEach(func() {
 				config.Resources = append(config.Resources, atc.ResourceConfig{
-					Name: "some_resource",
+					Name: "_some-resource",
 					Type: "some-type",
 					Source: atc.Source{
 						"source-config": "some-value",
@@ -149,7 +149,7 @@ var _ = Describe("ValidateConfig", func() {
 
 			It("returns a warning", func() {
 				Expect(warnings).To(HaveLen(1))
-				Expect(warnings[0].Message).To(ContainSubstring("'some_resource' is not a valid identifier"))
+				Expect(warnings[0].Message).To(ContainSubstring("'_some-resource' is not a valid identifier"))
 			})
 		})
 
