@@ -31,15 +31,15 @@ type FakeResource struct {
 	buildSummaryReturnsOnCall map[int]struct {
 		result1 *atc.BuildSummary
 	}
-	CheckEveryStub        func() string
+	CheckEveryStub        func() *atc.CheckEvery
 	checkEveryMutex       sync.RWMutex
 	checkEveryArgsForCall []struct {
 	}
 	checkEveryReturns struct {
-		result1 string
+		result1 *atc.CheckEvery
 	}
 	checkEveryReturnsOnCall map[int]struct {
-		result1 string
+		result1 *atc.CheckEvery
 	}
 	CheckPlanStub        func(atc.Version, time.Duration, db.ResourceTypes, atc.Source) atc.CheckPlan
 	checkPlanMutex       sync.RWMutex
@@ -338,21 +338,6 @@ type FakeResource struct {
 	resourceConfigScopeIDReturnsOnCall map[int]struct {
 		result1 int
 	}
-	SaveUncheckedVersionStub        func(atc.Version, db.ResourceConfigMetadataFields, db.ResourceConfig) (bool, error)
-	saveUncheckedVersionMutex       sync.RWMutex
-	saveUncheckedVersionArgsForCall []struct {
-		arg1 atc.Version
-		arg2 db.ResourceConfigMetadataFields
-		arg3 db.ResourceConfig
-	}
-	saveUncheckedVersionReturns struct {
-		result1 bool
-		result2 error
-	}
-	saveUncheckedVersionReturnsOnCall map[int]struct {
-		result1 bool
-		result2 error
-	}
 	SetPinCommentStub        func(string) error
 	setPinCommentMutex       sync.RWMutex
 	setPinCommentArgsForCall []struct {
@@ -585,7 +570,7 @@ func (fake *FakeResource) BuildSummaryReturnsOnCall(i int, result1 *atc.BuildSum
 	}{result1}
 }
 
-func (fake *FakeResource) CheckEvery() string {
+func (fake *FakeResource) CheckEvery() *atc.CheckEvery {
 	fake.checkEveryMutex.Lock()
 	ret, specificReturn := fake.checkEveryReturnsOnCall[len(fake.checkEveryArgsForCall)]
 	fake.checkEveryArgsForCall = append(fake.checkEveryArgsForCall, struct {
@@ -608,32 +593,32 @@ func (fake *FakeResource) CheckEveryCallCount() int {
 	return len(fake.checkEveryArgsForCall)
 }
 
-func (fake *FakeResource) CheckEveryCalls(stub func() string) {
+func (fake *FakeResource) CheckEveryCalls(stub func() *atc.CheckEvery) {
 	fake.checkEveryMutex.Lock()
 	defer fake.checkEveryMutex.Unlock()
 	fake.CheckEveryStub = stub
 }
 
-func (fake *FakeResource) CheckEveryReturns(result1 string) {
+func (fake *FakeResource) CheckEveryReturns(result1 *atc.CheckEvery) {
 	fake.checkEveryMutex.Lock()
 	defer fake.checkEveryMutex.Unlock()
 	fake.CheckEveryStub = nil
 	fake.checkEveryReturns = struct {
-		result1 string
+		result1 *atc.CheckEvery
 	}{result1}
 }
 
-func (fake *FakeResource) CheckEveryReturnsOnCall(i int, result1 string) {
+func (fake *FakeResource) CheckEveryReturnsOnCall(i int, result1 *atc.CheckEvery) {
 	fake.checkEveryMutex.Lock()
 	defer fake.checkEveryMutex.Unlock()
 	fake.CheckEveryStub = nil
 	if fake.checkEveryReturnsOnCall == nil {
 		fake.checkEveryReturnsOnCall = make(map[int]struct {
-			result1 string
+			result1 *atc.CheckEvery
 		})
 	}
 	fake.checkEveryReturnsOnCall[i] = struct {
-		result1 string
+		result1 *atc.CheckEvery
 	}{result1}
 }
 
@@ -2118,71 +2103,6 @@ func (fake *FakeResource) ResourceConfigScopeIDReturnsOnCall(i int, result1 int)
 	}{result1}
 }
 
-func (fake *FakeResource) SaveUncheckedVersion(arg1 atc.Version, arg2 db.ResourceConfigMetadataFields, arg3 db.ResourceConfig) (bool, error) {
-	fake.saveUncheckedVersionMutex.Lock()
-	ret, specificReturn := fake.saveUncheckedVersionReturnsOnCall[len(fake.saveUncheckedVersionArgsForCall)]
-	fake.saveUncheckedVersionArgsForCall = append(fake.saveUncheckedVersionArgsForCall, struct {
-		arg1 atc.Version
-		arg2 db.ResourceConfigMetadataFields
-		arg3 db.ResourceConfig
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("SaveUncheckedVersion", []interface{}{arg1, arg2, arg3})
-	fake.saveUncheckedVersionMutex.Unlock()
-	if fake.SaveUncheckedVersionStub != nil {
-		return fake.SaveUncheckedVersionStub(arg1, arg2, arg3)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.saveUncheckedVersionReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeResource) SaveUncheckedVersionCallCount() int {
-	fake.saveUncheckedVersionMutex.RLock()
-	defer fake.saveUncheckedVersionMutex.RUnlock()
-	return len(fake.saveUncheckedVersionArgsForCall)
-}
-
-func (fake *FakeResource) SaveUncheckedVersionCalls(stub func(atc.Version, db.ResourceConfigMetadataFields, db.ResourceConfig) (bool, error)) {
-	fake.saveUncheckedVersionMutex.Lock()
-	defer fake.saveUncheckedVersionMutex.Unlock()
-	fake.SaveUncheckedVersionStub = stub
-}
-
-func (fake *FakeResource) SaveUncheckedVersionArgsForCall(i int) (atc.Version, db.ResourceConfigMetadataFields, db.ResourceConfig) {
-	fake.saveUncheckedVersionMutex.RLock()
-	defer fake.saveUncheckedVersionMutex.RUnlock()
-	argsForCall := fake.saveUncheckedVersionArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
-}
-
-func (fake *FakeResource) SaveUncheckedVersionReturns(result1 bool, result2 error) {
-	fake.saveUncheckedVersionMutex.Lock()
-	defer fake.saveUncheckedVersionMutex.Unlock()
-	fake.SaveUncheckedVersionStub = nil
-	fake.saveUncheckedVersionReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeResource) SaveUncheckedVersionReturnsOnCall(i int, result1 bool, result2 error) {
-	fake.saveUncheckedVersionMutex.Lock()
-	defer fake.saveUncheckedVersionMutex.Unlock()
-	fake.SaveUncheckedVersionStub = nil
-	if fake.saveUncheckedVersionReturnsOnCall == nil {
-		fake.saveUncheckedVersionReturnsOnCall = make(map[int]struct {
-			result1 bool
-			result2 error
-		})
-	}
-	fake.saveUncheckedVersionReturnsOnCall[i] = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeResource) SetPinComment(arg1 string) error {
 	fake.setPinCommentMutex.Lock()
 	ret, specificReturn := fake.setPinCommentReturnsOnCall[len(fake.setPinCommentArgsForCall)]
@@ -2864,8 +2784,6 @@ func (fake *FakeResource) Invocations() map[string][][]interface{} {
 	defer fake.resourceConfigIDMutex.RUnlock()
 	fake.resourceConfigScopeIDMutex.RLock()
 	defer fake.resourceConfigScopeIDMutex.RUnlock()
-	fake.saveUncheckedVersionMutex.RLock()
-	defer fake.saveUncheckedVersionMutex.RUnlock()
 	fake.setPinCommentMutex.RLock()
 	defer fake.setPinCommentMutex.RUnlock()
 	fake.setResourceConfigScopeMutex.RLock()

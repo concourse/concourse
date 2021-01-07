@@ -11,15 +11,15 @@ import (
 )
 
 type FakeResourceType struct {
-	CheckEveryStub        func() string
+	CheckEveryStub        func() *atc.CheckEvery
 	checkEveryMutex       sync.RWMutex
 	checkEveryArgsForCall []struct {
 	}
 	checkEveryReturns struct {
-		result1 string
+		result1 *atc.CheckEvery
 	}
 	checkEveryReturnsOnCall map[int]struct {
-		result1 string
+		result1 *atc.CheckEvery
 	}
 	CheckPlanStub        func(atc.Version, time.Duration, db.ResourceTypes, atc.Source) atc.CheckPlan
 	checkPlanMutex       sync.RWMutex
@@ -303,7 +303,7 @@ type FakeResourceType struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeResourceType) CheckEvery() string {
+func (fake *FakeResourceType) CheckEvery() *atc.CheckEvery {
 	fake.checkEveryMutex.Lock()
 	ret, specificReturn := fake.checkEveryReturnsOnCall[len(fake.checkEveryArgsForCall)]
 	fake.checkEveryArgsForCall = append(fake.checkEveryArgsForCall, struct {
@@ -326,32 +326,32 @@ func (fake *FakeResourceType) CheckEveryCallCount() int {
 	return len(fake.checkEveryArgsForCall)
 }
 
-func (fake *FakeResourceType) CheckEveryCalls(stub func() string) {
+func (fake *FakeResourceType) CheckEveryCalls(stub func() *atc.CheckEvery) {
 	fake.checkEveryMutex.Lock()
 	defer fake.checkEveryMutex.Unlock()
 	fake.CheckEveryStub = stub
 }
 
-func (fake *FakeResourceType) CheckEveryReturns(result1 string) {
+func (fake *FakeResourceType) CheckEveryReturns(result1 *atc.CheckEvery) {
 	fake.checkEveryMutex.Lock()
 	defer fake.checkEveryMutex.Unlock()
 	fake.CheckEveryStub = nil
 	fake.checkEveryReturns = struct {
-		result1 string
+		result1 *atc.CheckEvery
 	}{result1}
 }
 
-func (fake *FakeResourceType) CheckEveryReturnsOnCall(i int, result1 string) {
+func (fake *FakeResourceType) CheckEveryReturnsOnCall(i int, result1 *atc.CheckEvery) {
 	fake.checkEveryMutex.Lock()
 	defer fake.checkEveryMutex.Unlock()
 	fake.CheckEveryStub = nil
 	if fake.checkEveryReturnsOnCall == nil {
 		fake.checkEveryReturnsOnCall = make(map[int]struct {
-			result1 string
+			result1 *atc.CheckEvery
 		})
 	}
 	fake.checkEveryReturnsOnCall[i] = struct {
-		result1 string
+		result1 *atc.CheckEvery
 	}{result1}
 }
 

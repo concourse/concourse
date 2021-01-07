@@ -52,7 +52,7 @@ var _ = Describe("Resource", func() {
 						Name:         "some-resource-custom-check",
 						Type:         "git",
 						Source:       atc.Source{"some": "some-repository"},
-						CheckEvery:   "10ms",
+						CheckEvery:   &atc.CheckEvery{Interval: 10 * time.Millisecond},
 						CheckTimeout: "1m",
 					},
 				},
@@ -114,7 +114,7 @@ var _ = Describe("Resource", func() {
 				case "some-resource-custom-check":
 					Expect(r.Type()).To(Equal("git"))
 					Expect(r.Source()).To(Equal(atc.Source{"some": "some-repository"}))
-					Expect(r.CheckEvery()).To(Equal("10ms"))
+					Expect(r.CheckEvery().Interval.String()).To(Equal("10ms"))
 					Expect(r.CheckTimeout()).To(Equal("1m"))
 					Expect(r.HasWebhook()).To(BeFalse())
 				}
