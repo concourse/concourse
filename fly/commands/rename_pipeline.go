@@ -10,8 +10,8 @@ import (
 )
 
 type RenamePipelineCommand struct {
-	OldName string `short:"o"  long:"old-name" required:"true"  description:"Pipeline to rename"`
-	NewName string `short:"n"  long:"new-name" required:"true"  description:"Name to set as pipeline name"`
+	OldName string `short:"o"  long:"old-name" required:"true"  description:"Existing pipeline or instance group to rename"`
+	NewName string `short:"n"  long:"new-name" required:"true"  description:"New name for the pipeline or instance group"`
 }
 
 func (command *RenamePipelineCommand) Validate() error {
