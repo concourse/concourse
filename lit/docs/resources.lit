@@ -87,11 +87,14 @@ with the following schema.
     out the temporary pin.
   }
 
-  \optional-attribute{check_every}{duration}{
+  \optional-attribute{check_every}{duration | `never`}{
     \italic{Default \code{1m}.} The interval on which to check for new versions
     of the resource. Acceptable interval options are defined by the
     \link{time.ParseDuration
     function}{https://golang.org/pkg/time/#ParseDuration}.
+
+    If set to \code{never} the resource will not be automatically checked. The
+    resource can still be checked manually via the web UI, fly, or webhooks.
   }
 
   \optional-attribute{tags}{[string]}{
