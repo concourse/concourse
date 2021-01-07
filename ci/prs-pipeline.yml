@@ -1,0 +1,46 @@
+---
+resources:
+- name: docs-master
+  type: git
+  icon: github
+  source:
+    uri: https://github.com/concourse/docs
+
+- name: docs-pr
+  type: pull-request
+  icon: source-pull
+  source:
+    repository: concourse/docs
+    access_token: ((pull_requests_access_token))
+
+jobs:
+- name: build
+  public: true
+  on_failure:
+    put: docs-pr
+    inputs: [docs-pr]
+    params: {path: docs-pr, status: failure, context: build}
+    tags: [pr]
+  on_success:
+    put: docs-pr
+    inputs: [docs-pr]
+    params: {path: docs-pr, status: success, context: build}
+    tags: [pr]
+  plan:
+  - in_parallel:
+    - get: docs-pr
+      trigger: true
+      version: every
+      tags: [pr]
+    - get: docs-master
+      tags: [pr]
+  - put: docs-pr
+    params: {path: docs-pr, status: pending, context: build}
+    tags: [pr]
+  - task: build
+    file: docs-master/ci/build.yml
+    input_mapping: {docs: docs-pr}
+    params:
+      GITHUB_TOKEN: ((concourse_github_dummy.access_token))
+    tags: [pr]
+
