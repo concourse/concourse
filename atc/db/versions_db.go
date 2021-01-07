@@ -35,16 +35,17 @@ func NewVersionsDB(conn Conn, limitRows int, cache *gocache.Cache) VersionsDB {
 func (versions VersionsDB) IsFirstOccurrence(ctx context.Context, jobID int, inputName string, versionMD5 ResourceVersion, resourceId int) (bool, error) {
 	var exists bool
 	err := versions.conn.QueryRowContext(ctx, `
-		WITH builds_of_job AS (
-			SELECT id FROM builds WHERE job_id = $1
-		)
-		SELECT EXISTS (
+		WITH builds_of_version AS (
+			SELECT build_id
+			FROM build_resource_config_version_inputs
+			WHERE name = $2
+			AND version_md5 = $3
+			AND resource_id = $4
+		) SELECT EXISTS (
 			SELECT 1
-			FROM build_resource_config_version_inputs i
-			JOIN builds_of_job b ON b.id = i.build_id
-			WHERE i.name = $2
-			AND i.version_md5 = $3
-			AND i.resource_id = $4
+			FROM builds b
+			JOIN builds_of_version v ON b.id = v.build_id
+			WHERE job_id = $1
 		)`, jobID, inputName, versionMD5, resourceId).
 		Scan(&exists)
 	if err != nil {
