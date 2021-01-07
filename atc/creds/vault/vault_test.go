@@ -297,7 +297,7 @@ var _ = Describe("Vault KV2", func() {
 	var v *vault.Vault
 	var variables vars.Variables
 	var vaultApi *vault.APIClient
-	var varFoo vars.VariableDefinition
+	var varFoo vars.Reference
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()
@@ -322,7 +322,7 @@ var _ = Describe("Vault KV2", func() {
 		}
 
 		variables = creds.NewVariables(v, "team", "pipeline", false)
-		varFoo = vars.VariableDefinition{Ref: vars.VariableReference{Path: "foo"}}
+		varFoo = vars.Reference{Path: "foo"}
 	})
 
 	AfterEach(func() {
@@ -468,7 +468,7 @@ var _ = Describe("Vault KV2", func() {
 						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV2Secret("qux")),
 					),
 				)
-				value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "baz"}})
+				value, found, err := variables.Get(vars.Reference{Path: "baz"})
 				Expect(value).To(BeEquivalentTo("qux"))
 				Expect(found).To(BeTrue())
 				Expect(err).To(BeNil())
@@ -501,7 +501,7 @@ var _ = Describe("Vault KV2", func() {
 						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV2Secret("shared")),
 					),
 				)
-				value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "global"}})
+				value, found, err := variables.Get(vars.Reference{Path: "global"})
 				Expect(value).To(BeEquivalentTo("shared"))
 				Expect(found).To(BeTrue())
 				Expect(err).To(BeNil())
@@ -634,7 +634,7 @@ var _ = Describe("Vault KV1", func() {
 	var v *vault.Vault
 	var variables vars.Variables
 	var vaultApi *vault.APIClient
-	var varFoo vars.VariableDefinition
+	var varFoo vars.Reference
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()
@@ -659,7 +659,7 @@ var _ = Describe("Vault KV1", func() {
 		}
 
 		variables = creds.NewVariables(v, "team", "pipeline", false)
-		varFoo = vars.VariableDefinition{Ref: vars.VariableReference{Path: "foo"}}
+		varFoo = vars.Reference{Path: "foo"}
 	})
 
 	AfterEach(func() {
@@ -805,7 +805,7 @@ var _ = Describe("Vault KV1", func() {
 						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV1Secret("qux")),
 					),
 				)
-				value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "baz"}})
+				value, found, err := variables.Get(vars.Reference{Path: "baz"})
 				Expect(value).To(BeEquivalentTo("qux"))
 				Expect(found).To(BeTrue())
 				Expect(err).To(BeNil())
@@ -838,7 +838,7 @@ var _ = Describe("Vault KV1", func() {
 						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV1Secret("shared")),
 					),
 				)
-				value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "global"}})
+				value, found, err := variables.Get(vars.Reference{Path: "global"})
 				Expect(value).To(BeEquivalentTo("shared"))
 				Expect(found).To(BeTrue())
 				Expect(err).To(BeNil())
