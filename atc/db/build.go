@@ -578,16 +578,17 @@ func (b *build) Finish(status BuildStatus) error {
 	}
 
 	if b.jobID != 0 && status == BuildStatusSucceeded {
-		_, err = tx.Exec(`WITH caches AS (
-			SELECT resource_cache_id, build_id
-			FROM build_image_resource_caches brc
-			JOIN builds b ON b.id = brc.build_id
-			WHERE b.job_id = $1
-		)
-		DELETE FROM build_image_resource_caches birc
-		USING caches c
-		WHERE c.build_id = birc.build_id AND birc.build_id < $2`,
-			b.jobID, b.id)
+		_, err = psql.Delete("build_image_resource_caches").
+			Where(sq.And{
+				sq.Eq{
+					"job_id": b.jobID,
+				},
+				sq.Lt{
+					"build_id": b.id,
+				},
+			}).
+			RunWith(tx).
+			Exec()
 		if err != nil {
 			return err
 		}
@@ -861,9 +862,14 @@ func (b *build) AbortNotifier() (Notifier, error) {
 }
 
 func (b *build) SaveImageResourceVersion(rc UsedResourceCache) error {
+	var jobID sql.NullInt64
+	if b.jobID != 0 {
+		jobID = newNullInt64(b.jobID)
+	}
+
 	_, err := psql.Insert("build_image_resource_caches").
-		Columns("resource_cache_id", "build_id").
-		Values(rc.ID(), b.id).
+		Columns("resource_cache_id", "build_id", "job_id").
+		Values(rc.ID(), b.id, jobID).
 		RunWith(b.conn).
 		Exec()
 	if err != nil {
