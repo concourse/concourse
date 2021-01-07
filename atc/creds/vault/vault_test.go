@@ -36,15 +36,19 @@ func (msr *MockSecretReader) Read(lookupPath string) (*vaultapi.Secret, error) {
 }
 
 func createMockV2Secret(value string) *vaultapi.Secret {
+	escapedInput, err := json.Marshal(&value)
+	Expect(err).To(BeNil())
 	secret := vaultapi.Secret{}
-	json.Unmarshal([]byte(fmt.Sprintf(`{"data":{"value":"%s"},"metadata":{"created_time":"2021-01-06T22:32:10.969537Z","deletion_time":"","destroyed":false,"version":3}}`, value)), &secret.Data)
+	json.Unmarshal([]byte(fmt.Sprintf(`{"data":{"value":%s},"metadata":{"created_time":"2021-01-06T22:32:10.969537Z","deletion_time":"","destroyed":false,"version":3}}`, escapedInput)), &secret.Data)
 
 	return &secret
 }
 
 func createMockV1Secret(value string) *vaultapi.Secret {
+	escapedInput, err := json.Marshal(&value)
+	Expect(err).To(BeNil())
 	secret := vaultapi.Secret{}
-	json.Unmarshal([]byte(fmt.Sprintf(`{"value":"%s"}`, value)), &secret.Data)
+	json.Unmarshal([]byte(fmt.Sprintf(`{"value":%s}`, escapedInput)), &secret.Data)
 
 	return &secret
 }
