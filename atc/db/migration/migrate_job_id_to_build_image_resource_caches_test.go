@@ -8,8 +8,8 @@ import (
 )
 
 var _ = Describe("Migrate job ids to build image resource caches", func() {
-	const preMigrationVersion = 1597677758
-	const postMigrationVersion = 1597678793
+	const preMigrationVersion = 1609958557
+	const postMigrationVersion = 1609958558
 
 	var (
 		db *sql.DB
