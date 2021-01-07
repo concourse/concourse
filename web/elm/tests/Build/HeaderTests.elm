@@ -18,6 +18,7 @@ import Message.Effects as Effects
 import Message.Message as Message
 import Message.Subscription as Subscription
 import RemoteData
+import Routes
 import ScreenSize
 import Set
 import Test exposing (Test, describe, test)
@@ -43,10 +44,10 @@ all =
             [ describe "job build" <|
                 let
                     job =
-                        { teamName = "some-team"
-                        , pipelineName = "some-pipeline"
-                        , jobName = "some-job"
-                        }
+                        Data.jobId
+                            |> Data.withTeamName "some-team"
+                            |> Data.withPipelineName "some-pipeline"
+                            |> Data.withJobName "some-job"
 
                     jobBuildModel =
                         { model | name = "123", job = Just job }
@@ -419,6 +420,7 @@ session =
     , pipelineRunningKeyframes = ""
     , timeZone = Time.utc
     , favoritedPipelines = Set.empty
+    , route = Routes.Build { id = Data.jobBuildId, highlight = Routes.HighlightNothing }
     }
 
 
@@ -441,13 +443,11 @@ model =
 
 build : Concourse.Build
 build =
-    { id = 0
-    , name = "0"
-    , job = Just jobId
-    , status = model.status
-    , duration = model.duration
-    , reapTime = Nothing
-    }
+    Data.jobBuild model.status
+        |> Data.withId 0
+        |> Data.withName "0"
+        |> Data.withJob (Just jobId)
+        |> Data.withDuration model.duration
 
 
 jobId : Concourse.JobIdentifier

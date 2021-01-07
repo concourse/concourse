@@ -61,6 +61,12 @@ all =
                 , pipelineRunningKeyframes = ""
                 }
 
+            fetchPipeline : Application.Model -> ( Application.Model, List Effects.Effect )
+            fetchPipeline =
+                Application.handleCallback <|
+                    Callback.AllPipelinesFetched <|
+                        Ok [ Data.pipeline "t" 1 |> Data.withName "p" ]
+
             fetchBuild : BuildStatus -> Application.Model -> ( Application.Model, List Effects.Effect )
             fetchBuild status =
                 Application.handleCallback <|
@@ -630,6 +636,7 @@ all =
                                 Ok
                                     { id = 1
                                     , name = "1"
+                                    , teamName = "team"
                                     , job = Nothing
                                     , status = BuildStatusPending
                                     , duration =
@@ -671,16 +678,13 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                { id = 1
-                                , name = "1"
-                                , job = Just Data.shortJobId
-                                , status = BuildStatusSucceeded
-                                , duration =
-                                    { startedAt = buildTime
-                                    , finishedAt = buildTime
-                                    }
-                                , reapTime = buildTime
-                                }
+                                (Data.jobBuild BuildStatusSucceeded
+                                    |> Data.withDuration
+                                        { startedAt = buildTime
+                                        , finishedAt = buildTime
+                                        }
+                                    |> Data.withReapTime buildTime
+                                )
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -708,16 +712,12 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                { id = 1
-                                , name = "1"
-                                , job = Just Data.shortJobId
-                                , status = BuildStatusAborted
-                                , duration =
-                                    { startedAt = Nothing
-                                    , finishedAt = Just <| Time.millisToPosix 0
-                                    }
-                                , reapTime = Nothing
-                                }
+                                (Data.jobBuild BuildStatusAborted
+                                    |> Data.withDuration
+                                        { startedAt = Nothing
+                                        , finishedAt = Just <| Time.millisToPosix 0
+                                        }
+                                )
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -734,19 +734,7 @@ all =
             \_ ->
                 Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
                     |> Application.handleCallback
-                        (Callback.BuildFetched <|
-                            Ok
-                                { id = 1
-                                , name = "1"
-                                , job = Just Data.shortJobId
-                                , status = BuildStatusPending
-                                , duration =
-                                    { startedAt = Nothing
-                                    , finishedAt = Nothing
-                                    }
-                                , reapTime = Nothing
-                                }
-                        )
+                        (Callback.BuildFetched <| Ok (Data.jobBuild BuildStatusPending))
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.BuildPrepFetched 1 <| Data.httpUnauthorized)
@@ -775,16 +763,9 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                { id = 1
-                                , name = "1"
-                                , job = Nothing
-                                , status = BuildStatusStarted
-                                , duration =
-                                    { startedAt = Nothing
-                                    , finishedAt = Nothing
-                                    }
-                                , reapTime = Nothing
-                                }
+                                (Data.jobBuild BuildStatusStarted
+                                    |> Data.withJob Nothing
+                                )
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -834,17 +815,14 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                { id = 1
-                                , name = "1"
-                                , job = Nothing
-                                , status = BuildStatusStarted
-                                , duration =
-                                    { startedAt =
-                                        Just <| Time.millisToPosix 0
-                                    , finishedAt = Nothing
-                                    }
-                                , reapTime = Nothing
-                                }
+                                (Data.jobBuild BuildStatusStarted
+                                    |> Data.withJob Nothing
+                                    |> Data.withDuration
+                                        { startedAt =
+                                            Just <| Time.millisToPosix 0
+                                        , finishedAt = Nothing
+                                        }
+                                )
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -862,17 +840,16 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                { id = 2
-                                , name = "2"
-                                , job = Nothing
-                                , status = BuildStatusStarted
-                                , duration =
-                                    { startedAt =
-                                        Just <| Time.millisToPosix 0
-                                    , finishedAt = Nothing
-                                    }
-                                , reapTime = Nothing
-                                }
+                                (Data.jobBuild BuildStatusStarted
+                                    |> Data.withId 2
+                                    |> Data.withName "2"
+                                    |> Data.withJob Nothing
+                                    |> Data.withDuration
+                                        { startedAt =
+                                            Just <| Time.millisToPosix 0
+                                        , finishedAt = Nothing
+                                        }
+                                )
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -883,33 +860,29 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                { id = 1
-                                , name = "1"
-                                , job = Nothing
-                                , status = BuildStatusStarted
-                                , duration =
-                                    { startedAt =
-                                        Just <| Time.millisToPosix 0
-                                    , finishedAt = Nothing
-                                    }
-                                , reapTime = Nothing
-                                }
+                                (Data.jobBuild BuildStatusStarted
+                                    |> Data.withJob Nothing
+                                    |> Data.withDuration
+                                        { startedAt =
+                                            Just <| Time.millisToPosix 0
+                                        , finishedAt = Nothing
+                                        }
+                                )
                         )
                     |> Tuple.first
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                { id = 2
-                                , name = "2"
-                                , job = Nothing
-                                , status = BuildStatusStarted
-                                , duration =
-                                    { startedAt =
-                                        Just <| Time.millisToPosix 0
-                                    , finishedAt = Nothing
-                                    }
-                                , reapTime = Nothing
-                                }
+                                (Data.jobBuild BuildStatusStarted
+                                    |> Data.withId 2
+                                    |> Data.withName "2"
+                                    |> Data.withJob Nothing
+                                    |> Data.withDuration
+                                        { startedAt =
+                                            Just <| Time.millisToPosix 0
+                                        , finishedAt = Nothing
+                                        }
+                                )
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -920,17 +893,14 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                { id = 1
-                                , name = "1"
-                                , job = Just Data.jobId
-                                , status = BuildStatusStarted
-                                , duration =
-                                    { startedAt =
-                                        Just <| Time.millisToPosix 0
-                                    , finishedAt = Nothing
-                                    }
-                                , reapTime = Nothing
-                                }
+                                (Data.jobBuild BuildStatusStarted
+                                    |> Data.withJob (Just Data.jobId)
+                                    |> Data.withDuration
+                                        { startedAt =
+                                            Just <| Time.millisToPosix 0
+                                        , finishedAt = Nothing
+                                        }
+                                )
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -953,17 +923,14 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildFetched <|
                             Ok
-                                { id = 1
-                                , name = "1"
-                                , job = Nothing
-                                , status = BuildStatusStarted
-                                , duration =
-                                    { startedAt =
-                                        Just <| Time.millisToPosix 0
-                                    , finishedAt = Nothing
-                                    }
-                                , reapTime = Nothing
-                                }
+                                (Data.jobBuild BuildStatusStarted
+                                    |> Data.withJob Nothing
+                                    |> Data.withDuration
+                                        { startedAt =
+                                            Just <| Time.millisToPosix 0
+                                        , finishedAt = Nothing
+                                        }
+                                )
                         )
                     |> Tuple.first
                     |> Application.handleCallback
@@ -1126,18 +1093,11 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildJobDetailsFetched <|
                             Ok
-                                { name = ""
-                                , pipelineName = "p"
-                                , teamName = "t"
-                                , nextBuild = Nothing
-                                , finishedBuild = Nothing
-                                , transitionBuild = Nothing
-                                , paused = False
-                                , disableManualTrigger = False
-                                , inputs = []
-                                , outputs = []
-                                , groups = []
-                                }
+                                (Data.job 1
+                                    |> Data.withName "j"
+                                    |> Data.withPipelineName "p"
+                                    |> Data.withTeamName "t"
+                                )
                         )
                     |> Tuple.first
                     |> Application.update
@@ -1180,18 +1140,11 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildJobDetailsFetched <|
                             Ok
-                                { name = ""
-                                , pipelineName = "p"
-                                , teamName = "t"
-                                , nextBuild = Nothing
-                                , finishedBuild = Nothing
-                                , transitionBuild = Nothing
-                                , paused = False
-                                , disableManualTrigger = False
-                                , inputs = []
-                                , outputs = []
-                                , groups = []
-                                }
+                                (Data.job 1
+                                    |> Data.withName "j"
+                                    |> Data.withPipelineName "p"
+                                    |> Data.withTeamName "t"
+                                )
                         )
                     |> Tuple.first
                     |> Application.update
@@ -1214,18 +1167,11 @@ all =
                     |> Application.handleCallback
                         (Callback.BuildJobDetailsFetched <|
                             Ok
-                                { name = ""
-                                , pipelineName = "p"
-                                , teamName = "t"
-                                , nextBuild = Nothing
-                                , finishedBuild = Nothing
-                                , transitionBuild = Nothing
-                                , paused = False
-                                , disableManualTrigger = False
-                                , inputs = []
-                                , outputs = []
-                                , groups = []
-                                }
+                                (Data.job 1
+                                    |> Data.withName "j"
+                                    |> Data.withPipelineName "p"
+                                    |> Data.withTeamName "t"
+                                )
                         )
                     |> Tuple.first
                     |> Application.update
@@ -1429,6 +1375,8 @@ all =
             , test "has the breadcrumbs" <|
                 \_ ->
                     Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
+                        |> fetchPipeline
+                        |> Tuple.first
                         |> Common.queryView
                         |> Query.find [ id "top-bar-app" ]
                         |> Expect.all
@@ -1440,6 +1388,8 @@ all =
             , test "has the breadcrumbs after fetching build" <|
                 \_ ->
                     Common.init "/builds/1"
+                        |> fetchPipeline
+                        |> Tuple.first
                         |> fetchBuild BuildStatusSucceeded
                         |> Tuple.first
                         |> Common.queryView
@@ -1756,16 +1706,13 @@ all =
                                         }
                                     , content =
                                         [ Data.jobBuild BuildStatusSucceeded
-                                        , { id = 2
-                                          , name = "2"
-                                          , job = Just Data.shortJobId
-                                          , status = BuildStatusSucceeded
-                                          , duration =
+                                        , Data.jobBuild BuildStatusSucceeded
+                                            |> Data.withId 2
+                                            |> Data.withName "2"
+                                            |> Data.withDuration
                                                 { startedAt = Just <| Time.millisToPosix 0
                                                 , finishedAt = Just <| Time.millisToPosix 0
                                                 }
-                                          , reapTime = Nothing
-                                          }
                                         ]
                                     }
                                 )
@@ -1800,16 +1747,13 @@ all =
                                         }
                                     , content =
                                         [ Data.jobBuild BuildStatusSucceeded
-                                        , { id = 2
-                                          , name = "2"
-                                          , job = Just Data.shortJobId
-                                          , status = BuildStatusSucceeded
-                                          , duration =
+                                        , Data.jobBuild BuildStatusSucceeded
+                                            |> Data.withId 2
+                                            |> Data.withName "2"
+                                            |> Data.withDuration
                                                 { startedAt = Just <| Time.millisToPosix 0
                                                 , finishedAt = Just <| Time.millisToPosix 0
                                                 }
-                                          , reapTime = Nothing
-                                          }
                                         ]
                                     }
                                 )
@@ -1853,16 +1797,13 @@ all =
                                         }
                                     , content =
                                         [ Data.jobBuild BuildStatusSucceeded
-                                        , { id = 2
-                                          , name = "2"
-                                          , job = Just Data.shortJobId
-                                          , status = BuildStatusSucceeded
-                                          , duration =
+                                        , Data.jobBuild BuildStatusSucceeded
+                                            |> Data.withId 2
+                                            |> Data.withName "2"
+                                            |> Data.withDuration
                                                 { startedAt = Just <| Time.millisToPosix 0
                                                 , finishedAt = Just <| Time.millisToPosix 0
                                                 }
-                                          , reapTime = Nothing
-                                          }
                                         ]
                                     }
                                 )
@@ -1894,16 +1835,13 @@ all =
                                         }
                                     , content =
                                         [ Data.jobBuild BuildStatusSucceeded
-                                        , { id = 2
-                                          , name = "2"
-                                          , job = Just Data.shortJobId
-                                          , status = BuildStatusSucceeded
-                                          , duration =
+                                        , Data.jobBuild BuildStatusSucceeded
+                                            |> Data.withId 2
+                                            |> Data.withName "2"
+                                            |> Data.withDuration
                                                 { startedAt = Just <| Time.millisToPosix 0
                                                 , finishedAt = Just <| Time.millisToPosix 0
                                                 }
-                                          , reapTime = Nothing
-                                          }
                                         ]
                                     }
                                 )
@@ -1935,16 +1873,13 @@ all =
                                         }
                                     , content =
                                         [ Data.jobBuild BuildStatusSucceeded
-                                        , { id = 2
-                                          , name = "2"
-                                          , job = Just Data.shortJobId
-                                          , status = BuildStatusSucceeded
-                                          , duration =
+                                        , Data.jobBuild BuildStatusSucceeded
+                                            |> Data.withId 2
+                                            |> Data.withName "2"
+                                            |> Data.withDuration
                                                 { startedAt = Just <| Time.millisToPosix 0
                                                 , finishedAt = Just <| Time.millisToPosix 0
                                                 }
-                                          , reapTime = Nothing
-                                          }
                                         ]
                                     }
                                 )
@@ -2133,16 +2068,9 @@ all =
                                                 }
                                         }
                                     , content =
-                                        [ { id = 2
-                                          , name = "2"
-                                          , job = Just Data.shortJobId
-                                          , status = BuildStatusSucceeded
-                                          , duration =
-                                                { startedAt = Nothing
-                                                , finishedAt = Nothing
-                                                }
-                                          , reapTime = Nothing
-                                          }
+                                        [ Data.jobBuild BuildStatusSucceeded
+                                            |> Data.withId 2
+                                            |> Data.withName "2"
                                         ]
                                     }
                                 )
@@ -2236,16 +2164,9 @@ all =
                                                 }
                                         }
                                     , content =
-                                        [ { id = 2
-                                          , name = "2"
-                                          , job = Just Data.shortJobId
-                                          , status = BuildStatusSucceeded
-                                          , duration =
-                                                { startedAt = Nothing
-                                                , finishedAt = Nothing
-                                                }
-                                          , reapTime = Nothing
-                                          }
+                                        [ Data.jobBuild BuildStatusSucceeded
+                                            |> Data.withId 2
+                                            |> Data.withName "2"
                                         ]
                                     }
                                 )
@@ -3741,19 +3662,7 @@ all =
                             }
                             |> Tuple.first
                             |> Application.handleCallback
-                                (Callback.BuildFetched <|
-                                    Ok
-                                        { id = 1
-                                        , name = "1"
-                                        , job = Just Data.shortJobId
-                                        , status = BuildStatusStarted
-                                        , duration =
-                                            { startedAt = Nothing
-                                            , finishedAt = Nothing
-                                            }
-                                        , reapTime = Nothing
-                                        }
-                                )
+                                (Callback.BuildFetched <| Ok (Data.jobBuild BuildStatusStarted))
                             |> Tuple.first
                             |> Application.handleCallback
                                 (Callback.PlanAndResourcesFetched 1 <|

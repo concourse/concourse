@@ -131,17 +131,3 @@ func InstanceVarsFromQueryParams(q url.Values) (InstanceVars, error) {
 	instanceVars, _ := kvPairs.Expand()["vars"].(map[string]interface{})
 	return InstanceVars(instanceVars), nil
 }
-
-type OrderPipelinesRequest []PipelineRef
-
-func (r OrderPipelinesRequest) Len() int {
-	return len(r)
-}
-
-func (r OrderPipelinesRequest) Swap(i, j int) {
-	r[i], r[j] = r[j], r[i]
-}
-
-func (r OrderPipelinesRequest) Less(i, j int) bool {
-	return r[i].String() < r[j].String()
-}

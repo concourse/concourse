@@ -8,7 +8,7 @@ module Message.Message exposing
     , VisibilityAction(..)
     )
 
-import Concourse exposing (DatabaseID)
+import Concourse
 import Concourse.Cli as Cli
 import Concourse.Pagination exposing (Page)
 import Routes exposing (StepID)
@@ -24,11 +24,9 @@ type Message
     | ToggleGroup Concourse.PipelineGroup
     | SetGroups (List String)
       -- Dashboard
-    | DragStart String String
+    | DragStart String Int
     | DragOver DropTarget
     | DragEnd
-    | Tooltip String String
-    | TooltipHd String String
       -- Resource
     | EditComment String
     | FocusTextArea
@@ -62,12 +60,17 @@ type DomID
     | PinMenuDropDown String
     | PinButton VersionId
     | PinBar
-    | PipelineStatusIcon PipelinesSection Concourse.PipelineIdentifier
+    | PipelineCardName PipelinesSection Concourse.DatabaseID
+    | InstanceGroupCardName PipelinesSection Concourse.TeamName String
+    | PipelineCardNameHD Concourse.DatabaseID
+    | InstanceGroupCardNameHD Concourse.TeamName String
+    | PipelineCardInstanceVar PipelinesSection Concourse.DatabaseID String String
+    | PipelineStatusIcon PipelinesSection Concourse.DatabaseID
     | PipelineCardPauseToggle PipelinesSection Concourse.PipelineIdentifier
-    | TopBarFavoritedIcon DatabaseID
+    | TopBarFavoritedIcon Concourse.DatabaseID
     | TopBarPauseToggle Concourse.PipelineIdentifier
-    | VisibilityButton PipelinesSection Concourse.PipelineIdentifier
-    | PipelineCardFavoritedIcon PipelinesSection DatabaseID
+    | VisibilityButton PipelinesSection Concourse.DatabaseID
+    | PipelineCardFavoritedIcon PipelinesSection Concourse.DatabaseID
     | FooterCliIcon Cli.Cli
     | WelcomeCardCliIcon Cli.Cli
     | CopyTokenButton
@@ -87,13 +90,14 @@ type DomID
     | VersionHeader VersionId
     | VersionToggle VersionId
     | BuildTab Int String
-    | PipelineWrapper Concourse.PipelineIdentifier
-    | JobPreview PipelinesSection Concourse.JobIdentifier
+    | JobPreview PipelinesSection Concourse.DatabaseID Concourse.JobName
+    | PipelinePreview PipelinesSection Concourse.DatabaseID
     | HamburgerMenu
     | SideBarResizeHandle
     | SideBarTeam PipelinesSection String
     | SideBarPipeline PipelinesSection Concourse.PipelineIdentifier
-    | SideBarFavoritedIcon DatabaseID
+    | SideBarInstanceGroup PipelinesSection Concourse.TeamName String
+    | SideBarFavoritedIcon Concourse.DatabaseID
     | Dashboard
     | DashboardGroup String
 
@@ -117,10 +121,6 @@ type alias VersionId =
     Concourse.VersionedResourceIdentifier
 
 
-type alias DatabaseID =
-    Int
-
-
 type DropTarget
-    = Before String
-    | After String
+    = Before Int
+    | End

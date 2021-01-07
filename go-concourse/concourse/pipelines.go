@@ -36,15 +36,15 @@ func (team *team) Pipeline(pipelineRef atc.PipelineRef) (atc.Pipeline, bool, err
 	}
 }
 
-func (team *team) OrderingPipelines(pipelineRefs atc.OrderPipelinesRequest) error {
+func (team *team) OrderingPipelines(pipelineNames []string) error {
 	params := rata.Params{
 		"team_name": team.Name(),
 	}
 
 	buffer := &bytes.Buffer{}
-	err := json.NewEncoder(buffer).Encode(pipelineRefs)
+	err := json.NewEncoder(buffer).Encode(pipelineNames)
 	if err != nil {
-		return fmt.Errorf("Unable to marshal pipeline refs: %s", err)
+		return fmt.Errorf("Unable to marshal pipeline names: %s", err)
 	}
 
 	return team.connection.Send(internal.Request{

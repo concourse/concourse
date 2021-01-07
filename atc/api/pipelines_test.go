@@ -1246,20 +1246,20 @@ var _ = Describe("Pipelines API", func() {
 
 	Describe("PUT /api/v1/teams/:team_name/pipelines/ordering", func() {
 		var response *http.Response
-		var requestBody atc.OrderPipelinesRequest
+		var pipelineNames []string
 
 		BeforeEach(func() {
-			requestBody = atc.OrderPipelinesRequest{
-				{Name: "a-pipeline"},
-				{Name: "another-pipeline"},
-				{Name: "yet-another-pipeline"},
-				{Name: "one-final-pipeline"},
-				{Name: "just-kidding"},
+			pipelineNames = []string{
+				"a-pipeline",
+				"another-pipeline",
+				"yet-another-pipeline",
+				"one-final-pipeline",
+				"just-kidding",
 			}
 		})
 
 		JustBeforeEach(func() {
-			requestPayload, err := json.Marshal(requestBody)
+			requestPayload, err := json.Marshal(pipelineNames)
 			Expect(err).NotTo(HaveOccurred())
 
 			request, err := http.NewRequest("PUT", server.URL+"/api/v1/teams/a-team/pipelines/ordering", bytes.NewBuffer(requestPayload))
@@ -1292,18 +1292,22 @@ var _ = Describe("Pipelines API", func() {
 
 					It("orders the pipelines", func() {
 						Expect(fakeTeam.OrderPipelinesCallCount()).To(Equal(1))
-						pipelineRefs := fakeTeam.OrderPipelinesArgsForCall(0)
-						Expect(pipelineRefs).To(Equal([]atc.PipelineRef{
-							{Name: "a-pipeline"},
-							{Name: "another-pipeline"},
-							{Name: "yet-another-pipeline"},
-							{Name: "one-final-pipeline"},
-							{Name: "just-kidding"},
-						}))
+						Expect(fakeTeam.OrderPipelinesArgsForCall(0)).To(Equal(pipelineNames))
 					})
 
 					It("returns 200", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+				})
+
+				Context("when a pipeline does not exist", func() {
+					BeforeEach(func() {
+						fakeTeam.OrderPipelinesReturns(db.ErrPipelineNotFound{Name: "a-pipeline"})
+					})
+
+					It("returns 400", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						Expect(ioutil.ReadAll(response.Body)).To(ContainSubstring("pipeline 'a-pipeline' not found"))
 					})
 				})
 
@@ -1316,33 +1320,6 @@ var _ = Describe("Pipelines API", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 					})
 				})
-
-				Context("when ordering pipeline instances", func() {
-					BeforeEach(func() {
-						requestBody = atc.OrderPipelinesRequest{
-							{Name: "some-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}},
-							{Name: "some-pipeline", InstanceVars: atc.InstanceVars{"branch": "feature/bar"}},
-							{Name: "some-pipeline", InstanceVars: atc.InstanceVars{"branch": "feature/foo"}},
-							{Name: "some-pipeline", InstanceVars: atc.InstanceVars{"tag": "0.0.0"}},
-						}
-					})
-
-					It("orders the pipelines", func() {
-						Expect(fakeTeam.OrderPipelinesCallCount()).To(Equal(1))
-						pipelineRefs := fakeTeam.OrderPipelinesArgsForCall(0)
-						Expect(pipelineRefs).To(Equal([]atc.PipelineRef{
-							{Name: "some-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}},
-							{Name: "some-pipeline", InstanceVars: atc.InstanceVars{"branch": "feature/bar"}},
-							{Name: "some-pipeline", InstanceVars: atc.InstanceVars{"branch": "feature/foo"}},
-							{Name: "some-pipeline", InstanceVars: atc.InstanceVars{"tag": "0.0.0"}},
-						}))
-					})
-
-					It("returns 200", func() {
-						Expect(response.StatusCode).To(Equal(http.StatusOK))
-					})
-				})
-
 			})
 
 			Context("when requester does not belong to the team", func() {

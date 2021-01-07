@@ -52,7 +52,6 @@ type alias Flags =
 
 type alias Model =
     { subModel : SubPage.Model
-    , route : Routes.Route
     , session : Session
     }
 
@@ -64,7 +63,7 @@ init flags url =
             Routes.parsePath url
                 |> Maybe.withDefault
                     (Routes.Dashboard
-                        { searchType = Routes.Normal ""
+                        { searchType = Routes.Normal "" Nothing
                         , dashboardView = Routes.ViewNonArchivedPipelines
                         }
                     )
@@ -90,6 +89,7 @@ init flags url =
             , screenSize = ScreenSize.Desktop
             , timeZone = Time.utc
             , favoritedPipelines = Set.empty
+            , route = route
             }
 
         ( subModel, subEffects ) =
@@ -98,7 +98,6 @@ init flags url =
         model =
             { subModel = subModel
             , session = session
-            , route = route
             }
 
         handleTokenEffect =
@@ -250,33 +249,7 @@ sideBarHandleCallback callback ( model, effects ) =
     let
         ( session, newEffects ) =
             ( model.session, effects )
-                |> (case model.subModel of
-                        SubPage.ResourceModel { resourceIdentifier } ->
-                            SideBar.handleCallback callback <|
-                                RemoteData.Success resourceIdentifier
-
-                        SubPage.PipelineModel { pipelineLocator } ->
-                            SideBar.handleCallback callback <|
-                                RemoteData.Success pipelineLocator
-
-                        SubPage.JobModel { jobIdentifier } ->
-                            SideBar.handleCallback callback <|
-                                RemoteData.Success jobIdentifier
-
-                        SubPage.BuildModel buildModel ->
-                            SideBar.handleCallback callback
-                                (case buildModel.job of
-                                    Just j ->
-                                        RemoteData.Success j
-
-                                    Nothing ->
-                                        RemoteData.NotAsked
-                                )
-
-                        _ ->
-                            SideBar.handleCallback callback <|
-                                RemoteData.NotAsked
-                   )
+                |> SideBar.handleCallback callback
                 |> Tooltip.handleCallback callback
     in
     ( { model | session = session }, newEffects )
@@ -288,7 +261,7 @@ subpageHandleCallback callback ( model, effects ) =
         ( subModel, newEffects ) =
             ( model.subModel, effects )
                 |> SubPage.handleCallback callback model.session
-                |> SubPage.handleNotFound model.session.notFoundImgSrc model.route
+                |> SubPage.handleNotFound model.session.notFoundImgSrc model.session.route
     in
     ( { model | subModel = subModel }, newEffects )
 
@@ -326,7 +299,7 @@ update msg model =
                 ( subModel, subEffects ) =
                     ( model.subModel, [] )
                         |> SubPage.update model.session m
-                        |> SubPage.handleNotFound model.session.notFoundImgSrc model.route
+                        |> SubPage.handleNotFound model.session.notFoundImgSrc model.session.route
 
                 ( session, sessionEffects ) =
                     SideBar.update m model.session
@@ -348,7 +321,7 @@ handleDelivery delivery model =
         ( newSubmodel, subPageEffects ) =
             ( model.subModel, [] )
                 |> SubPage.handleDelivery model.session delivery
-                |> SubPage.handleNotFound model.session.notFoundImgSrc model.route
+                |> SubPage.handleNotFound model.session.notFoundImgSrc model.session.route
 
         ( newModel, applicationEffects ) =
             handleDeliveryForApplication
@@ -426,20 +399,26 @@ urlUpdate : Routes.Route -> Model -> ( Model, List Effect )
 urlUpdate route model =
     let
         ( newSubmodel, subEffects ) =
-            if route == model.route then
+            if route == model.session.route then
                 ( model.subModel, [] )
 
             else if routeMatchesModel route model then
                 SubPage.urlUpdate
-                    { from = model.route
+                    { from = model.session.route
                     , to = route
                     }
                     ( model.subModel, [] )
 
             else
                 SubPage.init model.session route
+
+        oldSession =
+            model.session
+
+        newSession =
+            { oldSession | route = route, hovered = HoverState.NoHover }
     in
-    ( { model | subModel = newSubmodel, route = route }
+    ( { model | subModel = newSubmodel, session = newSession }
     , subEffects ++ [ SetFavIcon Nothing ]
     )
 

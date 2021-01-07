@@ -15,6 +15,7 @@ module Data exposing
     , leftClickEvent
     , longJobBuildId
     , pipeline
+    , pipelineDatabaseId
     , pipelineId
     , pipelineName
     , resource
@@ -29,14 +30,30 @@ module Data exposing
     , versionedResource
     , withArchived
     , withBackgroundImage
+    , withBuild
     , withBuildName
+    , withCheckError
     , withDisableManualTrigger
+    , withDuration
+    , withFailingToCheck
+    , withFinishedBuild
     , withGroups
+    , withIcon
+    , withId
+    , withInstanceVars
+    , withJob
     , withJobName
+    , withLastChecked
     , withName
+    , withNextBuild
     , withPaused
+    , withPinComment
+    , withPinnedInConfig
+    , withPipelineId
+    , withPipelineInstanceVars
     , withPipelineName
     , withPublic
+    , withReapTime
     , withResourceName
     , withShortJobId
     , withShortPipelineId
@@ -125,13 +142,15 @@ httpInternalServerError =
             }
 
 
-resource : String -> Concourse.Resource
+resource : Maybe String -> Concourse.Resource
 resource pinnedVersion =
     { teamName = teamName
+    , pipelineId = pipelineDatabaseId
     , pipelineName = pipelineName
+    , pipelineInstanceVars = Dict.empty
     , name = resourceName
     , lastChecked = Nothing
-    , pinnedVersion = Just <| version pinnedVersion
+    , pinnedVersion = Maybe.map version pinnedVersion
     , pinnedInConfig = False
     , pinComment = Nothing
     , icon = Nothing
@@ -143,6 +162,7 @@ pipeline : String -> Int -> Concourse.Pipeline
 pipeline team id =
     { id = id
     , name = "pipeline-" ++ String.fromInt id
+    , instanceVars = Dict.empty
     , paused = False
     , archived = False
     , public = True
@@ -156,6 +176,7 @@ dashboardPipeline : Int -> Bool -> Dashboard.Group.Models.Pipeline
 dashboardPipeline id public =
     { id = id
     , name = pipelineName
+    , instanceVars = Dict.empty
     , teamName = teamName
     , public = public
     , isToggleLoading = False
@@ -197,10 +218,27 @@ withBackgroundImage bg p =
     { p | backgroundImage = Just bg }
 
 
+withInstanceVars : Dict String Concourse.JsonValue -> { r | instanceVars : Dict String Concourse.JsonValue } -> { r | instanceVars : Dict String Concourse.JsonValue }
+withInstanceVars instanceVars p =
+    { p | instanceVars = instanceVars }
+
+
+withPipelineInstanceVars : Dict String Concourse.JsonValue -> { r | pipelineInstanceVars : Dict String Concourse.JsonValue } -> { r | pipelineInstanceVars : Dict String Concourse.JsonValue }
+withPipelineInstanceVars pipelineInstanceVars p =
+    { p | pipelineInstanceVars = pipelineInstanceVars }
+
+
+withJob : Maybe Concourse.JobIdentifier -> { r | job : Maybe Concourse.JobIdentifier } -> { r | job : Maybe Concourse.JobIdentifier }
+withJob j b =
+    { b | job = j }
+
+
 job : Int -> Concourse.Job
 job pipelineID =
     { name = jobName
+    , pipelineId = pipelineID
     , pipelineName = "pipeline-" ++ String.fromInt pipelineID
+    , pipelineInstanceVars = Dict.empty
     , teamName = teamName
     , nextBuild = Nothing
     , finishedBuild = Nothing
@@ -241,6 +279,67 @@ withResourceName name p =
 withBuildName : String -> { r | buildName : String } -> { r | buildName : String }
 withBuildName name p =
     { p | buildName = name }
+
+
+withFinishedBuild : Maybe Concourse.Build -> { r | finishedBuild : Maybe Concourse.Build } -> { r | finishedBuild : Maybe Concourse.Build }
+withFinishedBuild b j =
+    { j | finishedBuild = b }
+
+
+withNextBuild : Maybe Concourse.Build -> { r | nextBuild : Maybe Concourse.Build } -> { r | nextBuild : Maybe Concourse.Build }
+withNextBuild b j =
+    { j | nextBuild = b }
+
+
+withId : Int -> { r | id : Int } -> { r | id : Int }
+withId id j =
+    { j | id = id }
+
+
+type alias Duration =
+    { startedAt : Maybe Time.Posix
+    , finishedAt : Maybe Time.Posix
+    }
+
+
+withDuration : Duration -> { r | duration : Duration } -> { r | duration : Duration }
+withDuration d b =
+    { b | duration = d }
+
+
+withReapTime : Maybe Time.Posix -> { r | reapTime : Maybe Time.Posix } -> { r | reapTime : Maybe Time.Posix }
+withReapTime t b =
+    { b | reapTime = t }
+
+
+withLastChecked : Maybe Time.Posix -> { r | lastChecked : Maybe Time.Posix } -> { r | lastChecked : Maybe Time.Posix }
+withLastChecked t r =
+    { r | lastChecked = t }
+
+
+withCheckError : String -> { r | checkError : String } -> { r | checkError : String }
+withCheckError e r =
+    { r | checkError = e }
+
+
+withFailingToCheck : Bool -> { r | failingToCheck : Bool } -> { r | failingToCheck : Bool }
+withFailingToCheck f r =
+    { r | failingToCheck = f }
+
+
+withPinnedInConfig : Bool -> { r | pinnedInConfig : Bool } -> { r | pinnedInConfig : Bool }
+withPinnedInConfig p r =
+    { r | pinnedInConfig = p }
+
+
+withPinComment : Maybe String -> { r | pinComment : Maybe String } -> { r | pinComment : Maybe String }
+withPinComment p r =
+    { r | pinComment = p }
+
+
+withIcon : Maybe String -> { r | icon : Maybe String } -> { r | icon : Maybe String }
+withIcon i r =
+    { r | icon = i }
 
 
 jobName =
@@ -294,7 +393,18 @@ pipelineId : Concourse.PipelineIdentifier
 pipelineId =
     { teamName = teamName
     , pipelineName = pipelineName
+    , pipelineInstanceVars = Dict.empty
     }
+
+
+pipelineDatabaseId : Concourse.DatabaseID
+pipelineDatabaseId =
+    1
+
+
+withPipelineId : Concourse.DatabaseID -> { r | pipelineId : Concourse.DatabaseID } -> { r | pipelineId : Concourse.DatabaseID }
+withPipelineId id p =
+    { p | pipelineId = id }
 
 
 shortPipelineId : Concourse.PipelineIdentifier
@@ -306,6 +416,7 @@ jobId : Concourse.JobIdentifier
 jobId =
     { teamName = teamName
     , pipelineName = pipelineName
+    , pipelineInstanceVars = Dict.empty
     , jobName = jobName
     }
 
@@ -319,6 +430,7 @@ resourceId : Concourse.ResourceIdentifier
 resourceId =
     { teamName = teamName
     , pipelineName = pipelineName
+    , pipelineInstanceVars = Dict.empty
     , resourceName = resourceName
     }
 
@@ -332,6 +444,7 @@ resourceVersionId : Int -> Concourse.VersionedResourceIdentifier
 resourceVersionId v =
     { teamName = teamName
     , pipelineName = pipelineName
+    , pipelineInstanceVars = Dict.empty
     , resourceName = resourceName
     , versionID = v
     }
@@ -351,6 +464,7 @@ longJobBuildId : Concourse.JobBuildIdentifier
 longJobBuildId =
     { teamName = teamName
     , pipelineName = pipelineName
+    , pipelineInstanceVars = Dict.empty
     , jobName = jobName
     , buildName = buildName
     }
@@ -360,6 +474,7 @@ build : BuildStatus.BuildStatus -> Concourse.Build
 build status =
     { id = 1
     , name = buildName
+    , teamName = teamName
     , job = Nothing
     , status = status
     , duration =
@@ -381,10 +496,16 @@ build status =
     }
 
 
+withBuild : a -> { r | build : a } -> { r | build : a }
+withBuild b r =
+    { r | build = b }
+
+
 jobBuild : BuildStatus.BuildStatus -> Concourse.Build
 jobBuild status =
     { id = 1
     , name = buildName
+    , teamName = teamName
     , job = Just (jobId |> withShortJobId)
     , status = status
     , duration =

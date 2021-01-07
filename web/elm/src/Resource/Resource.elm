@@ -297,6 +297,7 @@ handleCallback callback session ( model, effects ) =
                 , resourceIdentifier =
                     { teamName = resource.teamName
                     , pipelineName = resource.pipelineName
+                    , pipelineInstanceVars = resource.pipelineInstanceVars
                     , resourceName = resource.name
                     }
                 , checkStatus =
@@ -385,6 +386,7 @@ handleCallback callback session ( model, effects ) =
                                             { id =
                                                 { teamName = model.resourceIdentifier.teamName
                                                 , pipelineName = model.resourceIdentifier.pipelineName
+                                                , pipelineInstanceVars = model.resourceIdentifier.pipelineInstanceVars
                                                 , resourceName = model.resourceIdentifier.resourceName
                                                 , versionID = vr.id
                                                 }
@@ -951,7 +953,7 @@ view session model =
             (id "top-bar-app" :: Views.Styles.topBar False)
             [ SideBar.hamburgerMenu session
             , TopBar.concourseLogo
-            , TopBar.breadcrumbs route
+            , TopBar.breadcrumbs session route
             , Login.view session.userState model
             ]
         , Html.div
@@ -1917,6 +1919,7 @@ viewBuildsByJob buildDict jobName =
                                     { id =
                                         { teamName = job.teamName
                                         , pipelineName = job.pipelineName
+                                        , pipelineInstanceVars = job.pipelineInstanceVars
                                         , jobName = job.jobName
                                         , buildName = build.name
                                         }

@@ -454,6 +454,7 @@ update msg ( model, effects ) =
                                 RerunJobBuild
                                     { teamName = j.teamName
                                     , pipelineName = j.pipelineName
+                                    , pipelineInstanceVars = j.pipelineInstanceVars
                                     , jobName = j.jobName
                                     , buildName = model.name
                                     }

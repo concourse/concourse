@@ -178,6 +178,7 @@ handleCallback callback ( model, effects ) =
                                         { id =
                                             { teamName = job.teamName
                                             , pipelineName = job.pipelineName
+                                            , pipelineInstanceVars = job.pipelineInstanceVars
                                             , jobName = job.jobName
                                             , buildName = build.name
                                             }
@@ -431,7 +432,7 @@ view session model =
             (id "top-bar-app" :: Views.Styles.topBar False)
             [ SideBar.hamburgerMenu session
             , TopBar.concourseLogo
-            , TopBar.breadcrumbs route
+            , TopBar.breadcrumbs session route
             , Login.view session.userState model
             ]
         , Html.div

@@ -1,6 +1,13 @@
-module SideBar.Views exposing (Pipeline, Team, viewTeam)
+module SideBar.Views exposing
+    ( InstanceGroup
+    , Pipeline
+    , Team
+    , TeamListItem(..)
+    , viewTeam
+    )
 
 import Assets
+import Concourse
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id)
@@ -19,11 +26,11 @@ type alias Team =
         }
     , name :
         { text : String
-        , teamColor : Styles.SidebarElementColor
+        , color : Styles.SidebarElementColor
         , domID : DomID
         }
     , isExpanded : Bool
-    , pipelines : List Pipeline
+    , listItems : List TeamListItem
     , background : Styles.Background
     }
 
@@ -48,17 +55,22 @@ viewTeam team =
                 [ Html.text team.name.text ]
             ]
         , if team.isExpanded then
-            Html.div Styles.column <| List.map viewPipeline team.pipelines
+            Html.div Styles.column <| List.map viewListItem team.listItems
 
           else
             Html.text ""
         ]
 
 
+type TeamListItem
+    = PipelineListItem Pipeline
+    | InstanceGroupListItem InstanceGroup
+
+
 type alias Pipeline =
     { icon : Assets.Asset
     , name :
-        { pipelineColor : Styles.SidebarElementColor
+        { color : Styles.SidebarElementColor
         , text : String
         , weight : Styles.FontWeight
         }
@@ -69,7 +81,24 @@ type alias Pipeline =
         { filled : Bool
         , isBright : Bool
         }
-    , id : Int
+    , id : Concourse.PipelineIdentifier
+    , databaseID : Concourse.DatabaseID
+    }
+
+
+type alias InstanceGroup =
+    { name :
+        { color : Styles.SidebarElementColor
+        , text : String
+        , weight : Styles.FontWeight
+        }
+    , background : Styles.Background
+    , href : String
+    , domID : DomID
+    , badge :
+        { count : Int
+        , color : Styles.SidebarElementColor
+        }
     }
 
 
@@ -92,7 +121,35 @@ viewPipeline p =
             [ Html.text p.name.text ]
         , Html.div
             (Styles.pipelineFavorite p.starIcon
-                ++ [ onLeftClickStopPropagation <| Click <| SideBarFavoritedIcon p.id ]
+                ++ [ onLeftClickStopPropagation <| Click <| SideBarFavoritedIcon p.databaseID ]
             )
             []
         ]
+
+
+viewInstanceGroup : InstanceGroup -> Html Message
+viewInstanceGroup ig =
+    Html.a
+        (Styles.instanceGroup ig
+            ++ [ href <| ig.href
+               , onMouseEnter <| Hover <| Just <| ig.domID
+               , onMouseLeave <| Hover Nothing
+               ]
+        )
+        [ Styles.instanceGroupBadge ig.badge
+        , Html.div
+            (id (toHtmlID ig.domID)
+                :: Styles.pipelineName ig.name
+            )
+            [ Html.text ig.name.text ]
+        ]
+
+
+viewListItem : TeamListItem -> Html Message
+viewListItem item =
+    case item of
+        PipelineListItem p ->
+            viewPipeline p
+
+        InstanceGroupListItem ps ->
+            viewInstanceGroup ps

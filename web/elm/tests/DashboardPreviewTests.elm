@@ -10,6 +10,7 @@ import DashboardTests exposing (whenOnDashboard)
 import Data
 import Expect
 import Message.Callback as Callback
+import Message.Effects exposing (toHtmlID)
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Message.Subscription as Subscription
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
@@ -24,7 +25,12 @@ import Url
 all : Test
 all =
     describe "job boxes in dashboard pipeline preview"
-        [ test "fills available space" <|
+        [ test "has dom id" <|
+            \_ ->
+                job
+                    |> viewJob
+                    |> Query.has [ id <| toHtmlID <| JobPreview AllPipelinesSection 0 "job" ]
+        , test "fills available space" <|
             \_ ->
                 job
                     |> viewJob
@@ -54,7 +60,7 @@ all =
                 { description = "light grey background"
                 , selector = [ style "background-color" Colors.pending ]
                 }
-            , hoverable = JobPreview AllPipelinesSection jobId
+            , hoverable = JobPreview AllPipelinesSection 0 "job"
             , hoveredSelector =
                 { description = "dark grey background"
                 , selector = [ style "background-color" Colors.pendingFaded ]
@@ -191,7 +197,7 @@ all =
                     { description = "light grey background"
                     , selector = [ style "background-color" Colors.pending ]
                     }
-                , hoverable = JobPreview FavoritesSection jobId
+                , hoverable = JobPreview FavoritesSection 0 "job"
                 , hoveredSelector =
                     { description = "dark grey background"
                     , selector = [ style "background-color" Colors.pendingFaded ]
@@ -201,7 +207,7 @@ all =
                 \_ ->
                     dashboardWithJob job
                         |> Application.update
-                            (Update <| Hover <| Just (JobPreview FavoritesSection jobId))
+                            (Update <| Hover <| Just (JobPreview FavoritesSection 0 "job"))
                         |> Tuple.first
                         |> findJobPreview
                         |> Query.has [ style "background-color" Colors.pending ]
@@ -254,48 +260,31 @@ findJobPreview =
 
 job : Concourse.Job
 job =
-    { name = "job"
-    , pipelineName = "pipeline"
-    , teamName = "team"
-    , nextBuild = Nothing
-    , finishedBuild = Nothing
-    , transitionBuild = Nothing
-    , paused = False
-    , disableManualTrigger = False
-    , inputs = []
-    , outputs = []
-    , groups = []
-    }
+    Data.job 0
+        |> Data.withPipelineName "pipeline"
+        |> Data.withName "job"
 
 
 withNextBuild : Concourse.Job -> Concourse.Job
-withNextBuild j =
-    { j
-        | nextBuild =
-            Just
-                { id = 2
-                , name = "2"
-                , job = Just jobId
-                , status = BuildStatusStarted
-                , duration = { startedAt = Nothing, finishedAt = Nothing }
-                , reapTime = Nothing
-                }
-    }
+withNextBuild =
+    Data.withNextBuild
+        (Data.jobBuild BuildStatusStarted
+            |> Data.withId 2
+            |> Data.withName "2"
+            |> Data.withJob (Just jobId)
+            |> Just
+        )
 
 
 withStatus : BuildStatus -> Concourse.Job -> Concourse.Job
-withStatus status j =
-    { j
-        | finishedBuild =
-            Just
-                { id = 1
-                , name = "1"
-                , job = Just jobId
-                , status = status
-                , duration = { startedAt = Nothing, finishedAt = Nothing }
-                , reapTime = Nothing
-                }
-    }
+withStatus status =
+    Data.withFinishedBuild
+        (Data.jobBuild status
+            |> Data.withId 1
+            |> Data.withName "1"
+            |> Data.withJob (Just jobId)
+            |> Just
+        )
 
 
 isPaused : Concourse.Job -> Concourse.Job

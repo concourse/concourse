@@ -15,6 +15,7 @@ import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (attribute, class, containing, id, style, tag, text)
 import Url
+import Url.Builder exposing (toQuery)
 
 
 all : Test
@@ -81,9 +82,9 @@ all =
                         setup "/"
                             |> Query.find toggleSwitch
                             |> Query.has
-                                [ routeHref <|
+                                [ Common.routeHref <|
                                     Routes.Dashboard
-                                        { searchType = Routes.Normal ""
+                                        { searchType = Routes.Normal "" Nothing
                                         , dashboardView = Routes.ViewAllPipelines
                                         }
                                 ]
@@ -103,9 +104,9 @@ all =
                         setupQuery "/" (Just "view=all")
                             |> Query.find toggleSwitch
                             |> Query.has
-                                [ routeHref <|
+                                [ Common.routeHref <|
                                     Routes.Dashboard
-                                        { searchType = Routes.Normal ""
+                                        { searchType = Routes.Normal "" Nothing
                                         , dashboardView = Routes.ViewNonArchivedPipelines
                                         }
                                 ]
@@ -125,9 +126,22 @@ all =
                         setupQuery "/" (Just "search=test")
                             |> Query.find toggleSwitch
                             |> Query.has
-                                [ routeHref <|
+                                [ Common.routeHref <|
                                     Routes.Dashboard
-                                        { searchType = Routes.Normal "test"
+                                        { searchType = Routes.Normal "test" Nothing
+                                        , dashboardView = Routes.ViewAllPipelines
+                                        }
+                                ]
+                ]
+            , describe "when viewing an instance group" <|
+                [ test "does not clear the instance group" <|
+                    \_ ->
+                        setupQuery "/" (Just "team=team&group=group")
+                            |> Query.find toggleSwitch
+                            |> Query.has
+                                [ Common.routeHref <|
+                                    Routes.Dashboard
+                                        { searchType = Routes.Normal "" <| Just { teamName = "team", name = "group" }
                                         , dashboardView = Routes.ViewAllPipelines
                                         }
                                 ]
@@ -138,7 +152,7 @@ all =
                         setup "/hd"
                             |> Query.find toggleSwitch
                             |> Query.has
-                                [ routeHref <|
+                                [ Common.routeHref <|
                                     Routes.Dashboard
                                         { searchType = Routes.HighDensity
                                         , dashboardView = Routes.ViewAllPipelines
@@ -160,7 +174,7 @@ all =
                             )
                         |> Tuple.first
                         |> Common.queryView
-                        |> Query.hasNot [ class "pipeline-wrapper", containing [ text "archived-pipeline" ] ]
+                        |> Query.hasNot [ class "card-wrapper", containing [ text "archived-pipeline" ] ]
             , describe "when an archived pipeline is favorited" <|
                 let
                     setup =
@@ -186,13 +200,13 @@ all =
                         setup
                             |> Common.queryView
                             |> Query.find [ id "dashboard-favorite-pipelines" ]
-                            |> Query.has [ class "pipeline-wrapper", containing [ text "archived-pipeline" ] ]
+                            |> Query.has [ class "card-wrapper", containing [ text "archived-pipeline" ] ]
                 , test "still rendered in all pipelines section" <|
                     \_ ->
                         setup
                             |> Common.queryView
                             |> Query.find [ class "dashboard-team-group" ]
-                            |> Query.has [ class "pipeline-wrapper", containing [ text "archived-pipeline" ] ]
+                            |> Query.has [ class "card-wrapper", containing [ text "archived-pipeline" ] ]
                 ]
             , describe "when a team has only archived pipelines"
                 [ test "it shows the no pipeline set card" <|
@@ -225,7 +239,7 @@ all =
                             )
                         |> Tuple.first
                         |> Common.queryView
-                        |> Query.has [ class "pipeline-wrapper", containing [ text "archived-pipeline" ] ]
+                        |> Query.has [ class "card-wrapper", containing [ text "archived-pipeline" ] ]
             ]
         ]
 
@@ -263,8 +277,3 @@ init path query =
                     }
             )
         |> Tuple.first
-
-
-routeHref : Routes.Route -> Test.Html.Selector.Selector
-routeHref =
-    Routes.toString >> Attr.href >> attribute

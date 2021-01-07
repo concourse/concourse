@@ -642,7 +642,7 @@ view session model =
             (id "top-bar-app" :: Views.Styles.topBar False)
             [ SideBar.hamburgerMenu session
             , TopBar.concourseLogo
-            , breadcrumbs model
+            , breadcrumbs session model
             , Login.view session.userState model
             ]
         , Html.div
@@ -669,18 +669,18 @@ tooltip model session =
         |> Maybe.andThen (\steps -> StepTree.tooltip steps session)
 
 
-breadcrumbs : Model -> Html Message
-breadcrumbs model =
+breadcrumbs : Session -> Model -> Html Message
+breadcrumbs session model =
     case ( model.job, model.page ) of
         ( Just jobId, _ ) ->
-            TopBar.breadcrumbs <|
+            TopBar.breadcrumbs session <|
                 Routes.Job
                     { id = jobId
                     , page = Nothing
                     }
 
         ( _, JobBuildPage buildId ) ->
-            TopBar.breadcrumbs <|
+            TopBar.breadcrumbs session <|
                 Routes.Build
                     { id = buildId
                     , highlight = model.highlight

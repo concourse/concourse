@@ -615,13 +615,7 @@ all =
                             )
                         |> Tuple.second
                         |> Common.contains
-                            (Effects.FetchJobBuilds
-                                { teamName = "team"
-                                , pipelineName = "pipeline"
-                                , jobName = "job"
-                                }
-                                Job.startingPage
-                            )
+                            (Effects.FetchJobBuilds Data.jobId Job.startingPage)
             , describe "When fetching builds"
                 [ test "says no builds" <|
                     \_ ->
@@ -869,24 +863,16 @@ brightGreen =
 
 someJobInfo : Concourse.JobIdentifier
 someJobInfo =
-    Data.jobId
-        |> Data.withJobName "some-job"
-        |> Data.withPipelineName "some-pipeline"
-        |> Data.withTeamName "some-team"
+    Data.jobId |> Data.withJobName "some-job"
 
 
 someBuild : Build
 someBuild =
-    { id = 123
-    , name = "45"
-    , job = Just someJobInfo
-    , status = BuildStatusSucceeded
-    , duration =
-        { startedAt = Just <| Time.millisToPosix 0
-        , finishedAt = Just <| Time.millisToPosix 0
-        }
-    , reapTime = Just <| Time.millisToPosix 0
-    }
+    Data.jobBuild BuildStatusSucceeded
+        |> Data.withId 123
+        |> Data.withName "45"
+        |> Data.withJob (Just someJobInfo)
+        |> Data.withReapTime (Just <| Time.millisToPosix 0)
 
 
 jobInfo : Concourse.JobIdentifier
@@ -896,16 +882,14 @@ jobInfo =
 
 builds : List Build
 builds =
-    [ { id = 0
-      , name = "0"
-      , job = Just jobInfo
-      , status = BuildStatusSucceeded
-      , duration =
+    [ Data.jobBuild BuildStatusSucceeded
+        |> Data.withId 0
+        |> Data.withName "0"
+        |> Data.withJob (Just jobInfo)
+        |> Data.withDuration
             { startedAt = Nothing
             , finishedAt = Nothing
             }
-      , reapTime = Nothing
-      }
     ]
 
 
@@ -921,18 +905,11 @@ buildsWithEmptyPagination =
 
 someJob : Concourse.Job
 someJob =
-    { name = "some-job"
-    , pipelineName = "some-pipeline"
-    , teamName = "some-team"
-    , nextBuild = Nothing
-    , finishedBuild = Just someBuild
-    , transitionBuild = Nothing
-    , paused = False
-    , disableManualTrigger = False
-    , inputs = []
-    , outputs = []
-    , groups = []
-    }
+    Data.job 1
+        |> Data.withName "some-job"
+        |> Data.withPipelineName "some-pipeline"
+        |> Data.withTeamName "some-team"
+        |> Data.withFinishedBuild (Just someBuild)
 
 
 defaultModel : Job.Model
@@ -950,18 +927,14 @@ init { disabled, paused } _ =
         |> Application.handleCallback
             (JobFetched <|
                 Ok
-                    { name = "job"
-                    , pipelineName = "pipeline"
-                    , teamName = "team"
-                    , nextBuild = Nothing
-                    , finishedBuild = Just someBuild
-                    , transitionBuild = Nothing
-                    , paused = paused
-                    , disableManualTrigger = disabled
-                    , inputs = []
-                    , outputs = []
-                    , groups = []
-                    }
+                    (Data.job 1
+                        |> Data.withName "job"
+                        |> Data.withPipelineName "pipeline"
+                        |> Data.withTeamName "team"
+                        |> Data.withFinishedBuild (Just someBuild)
+                        |> Data.withPaused paused
+                        |> Data.withDisableManualTrigger disabled
+                    )
             )
         |> Tuple.first
 

@@ -61,7 +61,7 @@ all =
                 model =
                     { init
                         | fetchedResources =
-                            Just [ Data.resource "v1" |> Data.withName "test" ]
+                            Just [ Data.resource (Just "v1") |> Data.withName "test" ]
                     }
             in
             [ test "is hoverable" <|

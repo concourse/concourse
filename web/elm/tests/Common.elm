@@ -5,11 +5,14 @@ module Common exposing
     , given
     , iOpenTheBuildPage
     , init
+    , initQuery
+    , initRoute
     , isColorWithStripes
     , myBrowserFetchedTheBuild
     , notContains
     , pipelineRunningKeyframes
     , queryView
+    , routeHref
     , then_
     , when
     )
@@ -20,15 +23,17 @@ import Concourse.BuildStatus exposing (BuildStatus(..))
 import Data
 import Expect exposing (Expectation)
 import Html
+import Html.Attributes as Attr
 import List.Extra
 import Message.Callback as Callback
 import Message.Effects exposing (Effect)
 import Message.Message exposing (DomID, Message(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
+import Routes
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (Selector, style)
+import Test.Html.Selector exposing (Selector, attribute, style)
 import Url
 
 
@@ -66,6 +71,11 @@ notContains x xs =
         Expect.pass
 
 
+routeHref : Routes.Route -> Test.Html.Selector.Selector
+routeHref =
+    Routes.toString >> Attr.href >> attribute
+
+
 isColorWithStripes :
     { thick : String, thin : String }
     -> Query.Single msg
@@ -96,8 +106,8 @@ pipelineRunningKeyframes =
     "pipeline-running"
 
 
-init : String -> Application.Model
-init path =
+initQuery : String -> Maybe String -> Application.Model
+initQuery path query =
     Application.init
         { turbulenceImgSrc = ""
         , notFoundImgSrc = "notfound.svg"
@@ -109,10 +119,33 @@ init path =
         , host = ""
         , port_ = Nothing
         , path = path
-        , query = Nothing
+        , query = query
         , fragment = Nothing
         }
         |> Tuple.first
+
+
+initRoute : Routes.Route -> Application.Model
+initRoute route =
+    case Url.fromString ("http://test.com" ++ Routes.toString route) of
+        Just url ->
+            Application.init
+                { turbulenceImgSrc = ""
+                , notFoundImgSrc = "notfound.svg"
+                , csrfToken = "csrf_token"
+                , authToken = ""
+                , pipelineRunningKeyframes = "pipeline-running"
+                }
+                url
+                |> Tuple.first
+
+        Nothing ->
+            Debug.todo ("invalid route stringification: " ++ Debug.toString route)
+
+
+init : String -> Application.Model
+init path =
+    initQuery path Nothing
 
 
 given =
@@ -155,6 +188,7 @@ myBrowserFetchedTheBuild =
                 Ok
                     { id = 1
                     , name = "1"
+                    , teamName = "other-team"
                     , job =
                         Just
                             (Data.jobId
