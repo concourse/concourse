@@ -91,7 +91,7 @@ init hl resources plan =
         Concourse.BuildStepArtifactOutput name ->
             step |> initBottom hl resources plan ArtifactOutput
 
-        Concourse.BuildStepSetPipeline name ->
+        Concourse.BuildStepSetPipeline name _ ->
             step |> initBottom hl resources plan SetPipeline
 
         Concourse.BuildStepLoadVar name ->
@@ -626,7 +626,7 @@ viewAcrossStepSubHeader model session stepID subHeaderIdx keyVals expanded depth
             )
             [ Html.div
                 [ style "display" "flex" ]
-                [ viewAcrossStepSubHeaderLabels keyVals ]
+                [ viewKeyValuePairHeaderLabels keyVals ]
             , Html.div
                 [ style "display" "flex" ]
                 [ viewStepStateWithoutTooltip state ]
@@ -644,9 +644,9 @@ viewAcrossStepSubHeader model session stepID subHeaderIdx keyVals expanded depth
         ]
 
 
-viewAcrossStepSubHeaderLabels : List ( String, JsonValue ) -> Html Message
-viewAcrossStepSubHeaderLabels keyVals =
-    Html.div Styles.acrossStepSubHeaderLabel
+viewKeyValuePairHeaderLabels : List ( String, JsonValue ) -> Html Message
+viewKeyValuePairHeaderLabels keyVals =
+    Html.div Styles.keyValuePairHeaderLabel
         (keyVals
             |> List.concatMap
                 (\( k, v ) ->
@@ -1157,8 +1157,17 @@ viewStepHeader step =
         Concourse.BuildStepTask name ->
             simpleHeader "task:" Nothing name
 
-        Concourse.BuildStepSetPipeline name ->
-            simpleHeader "set_pipeline:" (Just "pipeline config changed") name
+        Concourse.BuildStepSetPipeline name instanceVars ->
+            headerWithContent "set_pipeline:" (Just "pipeline config changed") <|
+                Html.span [] [ Html.text name ]
+                    :: (if Dict.isEmpty instanceVars then
+                            []
+
+                        else
+                            [ Html.span [ style "margin-left" "10px", style "margin-right" "4px" ] [ Html.text "/" ]
+                            , viewKeyValuePairHeaderLabels (Dict.toList instanceVars)
+                            ]
+                       )
 
         Concourse.BuildStepLoadVar name ->
             simpleHeader "load_var:" Nothing name
@@ -1218,7 +1227,7 @@ stepName header =
         Concourse.BuildStepTask name ->
             Just name
 
-        Concourse.BuildStepSetPipeline name ->
+        Concourse.BuildStepSetPipeline name _ ->
             Just name
 
         Concourse.BuildStepLoadVar name ->

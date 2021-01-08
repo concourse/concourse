@@ -114,7 +114,7 @@ initSetPipeline : Test
 initSetPipeline =
     let
         step =
-            BuildStepSetPipeline "some-name"
+            BuildStepSetPipeline "some-name" Dict.empty
 
         { tree, steps } =
             StepTree.init Routes.HighlightNothing

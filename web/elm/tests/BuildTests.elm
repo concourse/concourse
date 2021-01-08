@@ -2731,6 +2731,7 @@ all =
                                           , step =
                                                 Concourse.BuildStepSetPipeline
                                                     "step"
+                                                    Dict.empty
                                           }
                                         , { inputs = [], outputs = [] }
                                         )
