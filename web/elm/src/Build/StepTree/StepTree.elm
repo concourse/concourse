@@ -71,10 +71,10 @@ init hl resources plan =
             constructStep plan
     in
     case plan.step of
-        Concourse.BuildStepTask name ->
+        Concourse.BuildStepTask _ ->
             step |> initBottom hl resources plan Task
 
-        Concourse.BuildStepCheck name ->
+        Concourse.BuildStepCheck _ ->
             step |> initBottom hl resources plan Check
 
         Concourse.BuildStepGet name version ->
@@ -82,19 +82,19 @@ init hl resources plan =
                 |> setupGetStep resources name version
                 |> initBottom hl resources plan Get
 
-        Concourse.BuildStepPut name ->
+        Concourse.BuildStepPut _ ->
             step |> initBottom hl resources plan Put
 
-        Concourse.BuildStepArtifactInput name ->
+        Concourse.BuildStepArtifactInput _ ->
             step |> initBottom hl resources plan ArtifactInput
 
-        Concourse.BuildStepArtifactOutput name ->
+        Concourse.BuildStepArtifactOutput _ ->
             step |> initBottom hl resources plan ArtifactOutput
 
-        Concourse.BuildStepSetPipeline name _ ->
+        Concourse.BuildStepSetPipeline _ _ ->
             step |> initBottom hl resources plan SetPipeline
 
-        Concourse.BuildStepLoadVar name ->
+        Concourse.BuildStepLoadVar _ ->
             step |> initBottom hl resources plan LoadVar
 
         Concourse.BuildStepInParallel plans ->
@@ -732,12 +732,11 @@ viewStepWithBody :
     -> Html Message
 viewStepWithBody model session depth step body =
     Html.div
-        ([ classList
+        (classList
             [ ( "build-step", True )
             , ( "inactive", not <| isActive step.state )
             ]
-         ]
-            ++ (case stepName step.buildStep of
+            :: (case stepName step.buildStep of
                     Just name ->
                         [ attribute "data-step-name" <| name ]
 

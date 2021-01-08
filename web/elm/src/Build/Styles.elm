@@ -23,7 +23,6 @@ module Build.Styles exposing
     )
 
 import Application.Styles
-import Build.Models
 import Build.StepTree.Models exposing (StepState(..))
 import Colors
 import Concourse.BuildStatus exposing (BuildStatus(..))

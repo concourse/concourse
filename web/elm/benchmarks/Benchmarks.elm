@@ -830,7 +830,7 @@ steps : Dict Routes.StepID STModels.Step
 steps =
     Dict.singleton "stepid"
         { id = "stepid"
-        , name = "task_step"
+        , buildStep = Concourse.BuildStepTask "task_step"
         , state = STModels.StepStateRunning
         , log = log
         , error = Nothing
