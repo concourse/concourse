@@ -315,13 +315,14 @@ func (b *build) LagerData() lager.Data {
 	return data
 }
 
-// TracingAttrs returns attributes which are to be emitted in spans and
-// metrics pertaining to the build.
+// TracingAttrs returns attributes which are to be emitted in spans and metrics
+// pertaining to the build. Metrics emitters may depend on specific attribute
+// names being set.
 func (b *build) TracingAttrs() tracing.Attrs {
 	data := tracing.Attrs{
-		"build_id": strconv.Itoa(b.id),
-		"build":    b.name,
-		"team":     b.teamName,
+		"build_id":  strconv.Itoa(b.id),
+		"build":     b.name,
+		"team_name": b.teamName,
 	}
 
 	if b.pipelineID != 0 {
