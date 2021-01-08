@@ -938,12 +938,10 @@ var _ = Describe("ValidateConfig", func() {
 		})
 
 		Describe("plans", func() {
-			Context("when a task plan has neither a config or a path set", func() {
+			Context("when a task plan has neither a config, path, or name set set", func() {
 				BeforeEach(func() {
 					job.PlanSequence = append(job.PlanSequence, atc.Step{
-						Config: &atc.TaskStep{
-							Name: "lol",
-						},
+						Config: &atc.TaskStep{},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -952,7 +950,8 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(lol): must specify either `file:` or `config:`"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(): must specify either `file:` or `config:`"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(): identifier required"))
 				})
 			})
 
@@ -1642,12 +1641,10 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			Context("when a set_pipeline step has no file configured", func() {
+			Context("when a set_pipeline step has no name or file configured", func() {
 				BeforeEach(func() {
 					job.PlanSequence = append(job.PlanSequence, atc.Step{
-						Config: &atc.SetPipelineStep{
-							Name: "other-pipeline",
-						},
+						Config: &atc.SetPipelineStep{},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -1655,7 +1652,8 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("does return an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].set_pipeline(other-pipeline): no file specified"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].set_pipeline(): no file specified"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].set_pipeline(): pipeline name required"))
 				})
 			})
 
@@ -1754,12 +1752,10 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			Context("when a load_var has not defined 'File'", func() {
+			Context("when a load_var has name or file defined", func() {
 				BeforeEach(func() {
 					job.PlanSequence = append(job.PlanSequence, atc.Step{
-						Config: &atc.LoadVarStep{
-							Name: "a-var",
-						},
+						Config: &atc.LoadVarStep{},
 					})
 
 					config.Jobs = append(config.Jobs, job)
@@ -1767,7 +1763,8 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].load_var(a-var): no file specified"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].load_var(): no file specified"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].load_var(): identifier required"))
 				})
 			})
 
