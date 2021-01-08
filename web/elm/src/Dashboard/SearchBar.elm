@@ -196,42 +196,57 @@ handleDelivery delivery ( model, effects ) =
             ( model, effects )
 
 
+ignoreEmpty : (List a -> b -> b) -> List a -> b -> b
+ignoreEmpty fn l =
+    if List.isEmpty l then
+        identity
+
+    else
+        fn l
+
+
 arrowUp : List a -> Dropdown -> Dropdown
-arrowUp options dropdown =
-    case dropdown of
-        Shown Nothing ->
-            let
-                lastItem =
-                    List.length options - 1
-            in
-            Shown (Just lastItem)
+arrowUp =
+    ignoreEmpty
+        (\options dropdown ->
+            case dropdown of
+                Shown Nothing ->
+                    let
+                        lastItem =
+                            List.length options - 1
+                    in
+                    Shown (Just lastItem)
 
-        Shown (Just idx) ->
-            let
-                newSelection =
-                    modBy (List.length options) (idx - 1)
-            in
-            Shown (Just newSelection)
+                Shown (Just idx) ->
+                    let
+                        newSelection =
+                            modBy (List.length options) (idx - 1)
+                    in
+                    Shown (Just newSelection)
 
-        Hidden ->
-            Hidden
+                Hidden ->
+                    Hidden
+        )
 
 
 arrowDown : List a -> Dropdown -> Dropdown
-arrowDown options dropdown =
-    case dropdown of
-        Shown Nothing ->
-            Shown (Just 0)
+arrowDown =
+    ignoreEmpty
+        (\options dropdown ->
+            case dropdown of
+                Shown Nothing ->
+                    Shown (Just 0)
 
-        Shown (Just idx) ->
-            let
-                newSelection =
-                    modBy (List.length options) (idx + 1)
-            in
-            Shown (Just newSelection)
+                Shown (Just idx) ->
+                    let
+                        newSelection =
+                            modBy (List.length options) (idx + 1)
+                    in
+                    Shown (Just newSelection)
 
-        Hidden ->
-            Hidden
+                Hidden ->
+                    Hidden
+        )
 
 
 view :

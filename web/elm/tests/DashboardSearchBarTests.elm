@@ -331,6 +331,11 @@ all =
                             >> withFilter "team:"
                             >> down
                             >> expectCursorOn (Just 0)
+                    , test "up arrow moves cursor to last item" <|
+                        focusSearchBar
+                            >> withFilter "team:"
+                            >> up
+                            >> expectCursorOn (Just 1)
                     , test "down arrow twice moves cursor to second item" <|
                         focusSearchBar
                             >> withFilter "team:"
@@ -347,6 +352,7 @@ all =
                     , test "cursor loops around the top" <|
                         focusSearchBar
                             >> withFilter "team:"
+                            >> down
                             >> up
                             >> expectCursorOn (Just 1)
                     , test "enter selects an item" <|
@@ -362,6 +368,20 @@ all =
                                     >> Query.has [ value "team: team1" ]
                                 , Tuple.second >> Common.contains (Effects.ModifyUrl "/?search=team%3A%20team1")
                                 ]
+                    , test "doesn't try to loop if the dropdown is empty (down)" <|
+                        focusSearchBar
+                            >> withFilter "asdfgh"
+                            >> down
+                            >> down
+                            >> findDropdown
+                            >> Query.hasNot [ tag "li" ]
+                    , test "doesn't try to loop if the dropdown is empty (up)" <|
+                        focusSearchBar
+                            >> withFilter "asdfgh"
+                            >> up
+                            >> up
+                            >> findDropdown
+                            >> Query.hasNot [ tag "li" ]
                     ]
                 ]
             ]
