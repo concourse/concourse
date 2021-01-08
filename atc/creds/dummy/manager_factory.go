@@ -1,12 +1,9 @@
 package dummy
 
 import (
-	"code.cloudfoundry.org/clock"
 	"fmt"
-	flags "github.com/jessevdk/go-flags"
-	"time"
-
 	"github.com/concourse/concourse/atc/creds"
+	flags "github.com/jessevdk/go-flags"
 )
 
 type managerFactory struct{}
@@ -50,12 +47,6 @@ func (factory *managerFactory) NewInstance(config interface{}) (creds.Manager, e
 			Name:  k,
 			Value: v,
 		})
-	}
-
-	// deploy is a feature for simulating a credential manager's login duration.
-	if delay, ok := configMap["delay"]; ok {
-		manager.delay = delay.(time.Duration)
-		manager.clock = configMap["clock"].(clock.Clock)
 	}
 
 	return manager, nil

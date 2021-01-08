@@ -23,67 +23,15 @@ type inPoolManager struct {
 	secrets     Secrets
 	lastUseTime time.Time
 	clock       clock.Clock
-
-	secretsCreatorCh chan struct{}
 }
 
-func (ipm *inPoolManager) close(logger lager.Logger) {
-	ipm.manager.Close(logger)
+func (m *inPoolManager) close(logger lager.Logger) {
+	m.manager.Close(logger)
 }
 
-func (ipm *inPoolManager) getSecrets() Secrets {
-	return &inPoolSecret{ipm}
-}
-
-func (ipm *inPoolManager) waitForReady() {
-	select {
-	case <-ipm.secretsCreatorCh:
-	}
-}
-
-func (ipm *inPoolManager) isReady() bool {
-	select {
-	case <-ipm.secretsCreatorCh:
-	default:
-		return false
-	}
-	return true
-}
-
-func newInPoolManager(manager Manager, clock clock.Clock, secretsCreator func() Secrets) *inPoolManager {
-	ipm := &inPoolManager{
-		manager:          manager,
-		clock:            clock,
-		secretsCreatorCh: make(chan struct{}, 1),
-	}
-
-	go func() {
-		ipm.lastUseTime = ipm.clock.Now()
-		ipm.secrets = secretsCreator()
-		close(ipm.secretsCreatorCh)
-	}()
-
-	return ipm
-}
-
-// inPoolSecret is a helper class that waits for a var_source (credential manager)
-// to ready to serve. For example, Vault takes time to login.
-type inPoolSecret struct {
-	ipm *inPoolManager
-}
-
-func (s *inPoolSecret) Get(path string) (interface{}, *time.Time, bool, error) {
-	return s.waitForReady().Get(path)
-}
-
-func (s *inPoolSecret) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []SecretLookupPath {
-	return s.waitForReady().NewSecretLookupPaths(teamName, pipelineName, allowRootPath)
-}
-
-func (s *inPoolSecret) waitForReady() Secrets {
-	s.ipm.waitForReady()
-	s.ipm.lastUseTime = s.ipm.clock.Now()
-	return s.ipm.secrets
+func (m *inPoolManager) getSecrets() Secrets {
+	m.lastUseTime = m.clock.Now()
+	return m.secrets
 }
 
 type varSourcePool struct {
@@ -155,11 +103,11 @@ func (pool *varSourcePool) FindOrCreate(logger lager.Logger, config map[string]i
 			return nil, err
 		}
 
-		pool.pool[key] = newInPoolManager(
-			manager,
-			pool.clock,
-			func() Secrets { return pool.credentialManagement.NewSecrets(secretsFactory) },
-		)
+		pool.pool[key] = &inPoolManager{
+			clock:   pool.clock,
+			manager: manager,
+			secrets: pool.credentialManagement.NewSecrets(secretsFactory),
+		}
 	} else {
 		logger.Debug("found-existing-credential-manager")
 	}
@@ -196,10 +144,6 @@ func (pool *varSourcePool) collect(logger lager.Logger, all bool) error {
 
 	toDeleteKeys := []string{}
 	for key, manager := range pool.pool {
-		if !manager.isReady() {
-			continue
-		}
-
 		if all || manager.lastUseTime.Add(pool.ttl).Before(pool.clock.Now()) {
 			toDeleteKeys = append(toDeleteKeys, key)
 			manager.close(logger)

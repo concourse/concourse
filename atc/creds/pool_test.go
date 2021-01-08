@@ -62,209 +62,122 @@ var _ = Context("pool", func() {
 			varSourcePool.Close()
 		})
 
-		Context("when there is no login delay", func() {
-			Context("add 1 config", func() {
-				var (
-					secrets creds.Secrets
-					err     error
-				)
-
-				JustBeforeEach(func() {
-					secrets, err = varSourcePool.FindOrCreate(logger, config1, factory)
-					Expect(err).ToNot(HaveOccurred())
-				})
-
-				It("should get k1", func() {
-					v, _, found, err := secrets.Get("k1")
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(v.(string)).To(Equal("v1"))
-				})
-
-				It("should not get foo", func() {
-					_, _, found, err := secrets.Get("foo")
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
-				})
-
-				It("pool size should be 1", func() {
-					Expect(varSourcePool.Size()).To(Equal(1))
-				})
-			})
-
-			Context("add 2 configs", func() {
-				var (
-					secrets1, secrets2 creds.Secrets
-					err                error
-				)
-				JustBeforeEach(func() {
-					secrets1, err = varSourcePool.FindOrCreate(logger, config1, factory)
-					Expect(err).ToNot(HaveOccurred())
-					secrets2, err = varSourcePool.FindOrCreate(logger, config2, factory)
-					Expect(err).ToNot(HaveOccurred())
-				})
-
-				It("should get k1", func() {
-					v, _, found, err := secrets1.Get("k1")
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(v.(string)).To(Equal("v1"))
-				})
-
-				It("should get k2", func() {
-					v, _, found, err := secrets2.Get("k2")
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(v.(string)).To(Equal("v2"))
-				})
-
-				It("should not get foo", func() {
-					_, _, found, err := secrets1.Get("foo")
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
-
-					_, _, found, err = secrets2.Get("foo")
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
-				})
-
-				It("pool size should be 2", func() {
-					Expect(varSourcePool.Size()).To(Equal(2))
-				})
-			})
-
-			Context("add same config for multiple times", func() {
-				var (
-					secrets1, secrets2 creds.Secrets
-					err                error
-				)
-				JustBeforeEach(func() {
-					secrets1, err = varSourcePool.FindOrCreate(logger, config1, factory)
-					Expect(err).ToNot(HaveOccurred())
-					secrets1, err = varSourcePool.FindOrCreate(logger, config1, factory)
-					Expect(err).ToNot(HaveOccurred())
-					secrets1, err = varSourcePool.FindOrCreate(logger, config1, factory)
-					Expect(err).ToNot(HaveOccurred())
-					secrets2, err = varSourcePool.FindOrCreate(logger, config2, factory)
-					Expect(err).ToNot(HaveOccurred())
-					secrets2, err = varSourcePool.FindOrCreate(logger, config2, factory)
-					Expect(err).ToNot(HaveOccurred())
-					secrets2, err = varSourcePool.FindOrCreate(logger, config2, factory)
-					Expect(err).ToNot(HaveOccurred())
-				})
-
-				It("should get k1", func() {
-					v, _, found, err := secrets1.Get("k1")
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(v.(string)).To(Equal("v1"))
-				})
-
-				It("should get k2", func() {
-					v, _, found, err := secrets2.Get("k2")
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(v.(string)).To(Equal("v2"))
-				})
-
-				It("should not get foo", func() {
-					_, _, found, err := secrets1.Get("foo")
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
-
-					_, _, found, err = secrets2.Get("foo")
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
-				})
-
-				It("pool size should be 2", func() {
-					Expect(varSourcePool.Size()).To(Equal(2))
-				})
-			})
-		})
-
-		Context("when there is login delay", func() {
+		Context("add 1 config", func() {
 			var (
-				secrets                                       creds.Secrets
-				err                                           error
-				beforeFindOrCreateTime, afterFindOrCreateTime time.Time
+				secrets creds.Secrets
+				err     error
 			)
 
-			BeforeEach(func() {
-				config1["delay"] = 20 * time.Second
-				config1["clock"] = fakeClock
-			})
-
 			JustBeforeEach(func() {
-				logger.Info("Before find")
-				beforeFindOrCreateTime = fakeClock.Now()
 				secrets, err = varSourcePool.FindOrCreate(logger, config1, factory)
-				logger.Info("After find")
-				afterFindOrCreateTime = fakeClock.Now()
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("FindOrCreate should return immediately", func() {
-				Expect(afterFindOrCreateTime).To(Equal(beforeFindOrCreateTime))
-				Expect(secrets).NotTo(BeNil())
+			It("should get k1", func() {
+				v, _, found, err := secrets.Get("k1")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(v.(string)).To(Equal("v1"))
 			})
 
-			It("Get secrets should only return after login completes", func() {
-				doneCh := make(chan struct{}, 1)
-				go func() {
-					v, _, found, err := secrets.Get("k1")
-					close(doneCh)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-					Expect(v.(string)).To(Equal("v1"))
-				}()
+			It("should not get foo", func() {
+				_, _, found, err := secrets.Get("foo")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
 
-				time.Sleep(1 * time.Second)
-				done := false
-				select {
-				case <-doneCh:
-					done = true
-				default:
-				}
-				Expect(done).To(BeFalse())
-
-				fakeClock.WaitForWatcherAndIncrement(10 * time.Second)
-				time.Sleep(1 * time.Second)
-				select {
-				case <-doneCh:
-					done = true
-				default:
-				}
-				Expect(done).To(BeFalse())
-
-				fakeClock.WaitForWatcherAndIncrement(5 * time.Second)
-				time.Sleep(1 * time.Second)
-				select {
-				case <-doneCh:
-					done = true
-				default:
-				}
-				Expect(done).To(BeFalse())
-
-				fakeClock.WaitForWatcherAndIncrement(6 * time.Second)
-				time.Sleep(1 * time.Second)
-				select {
-				case <-doneCh:
-					done = true
-				default:
-				}
-				Expect(done).To(BeTrue())
-
-				// After TTL, the var source should be reaped, but TTL should be counted since
-				// last secret get.
-				fakeClock.WaitForWatcherAndIncrement(4*time.Minute + 21*time.Second)
-				time.Sleep(1 * time.Second)
+			It("pool size should be 1", func() {
 				Expect(varSourcePool.Size()).To(Equal(1))
+			})
+		})
 
-				// After TTL, the var source should be reaped.
-				fakeClock.WaitForWatcherAndIncrement(5*time.Minute + 1*time.Second)
-				time.Sleep(1 * time.Second)
-				Expect(varSourcePool.Size()).To(Equal(0))
+		Context("add 2 configs", func() {
+			var (
+				secrets1, secrets2 creds.Secrets
+				err                error
+			)
+			JustBeforeEach(func() {
+				secrets1, err = varSourcePool.FindOrCreate(logger, config1, factory)
+				Expect(err).ToNot(HaveOccurred())
+				secrets2, err = varSourcePool.FindOrCreate(logger, config2, factory)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should get k1", func() {
+				v, _, found, err := secrets1.Get("k1")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(v.(string)).To(Equal("v1"))
+			})
+
+			It("should get k2", func() {
+				v, _, found, err := secrets2.Get("k2")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(v.(string)).To(Equal("v2"))
+			})
+
+			It("should not get foo", func() {
+				_, _, found, err := secrets1.Get("foo")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+
+				_, _, found, err = secrets2.Get("foo")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+
+			It("pool size should be 2", func() {
+				Expect(varSourcePool.Size()).To(Equal(2))
+			})
+		})
+
+		Context("add same config for multiple times", func() {
+			var (
+				secrets1, secrets2 creds.Secrets
+				err                error
+			)
+			JustBeforeEach(func() {
+				secrets1, err = varSourcePool.FindOrCreate(logger, config1, factory)
+				Expect(err).ToNot(HaveOccurred())
+				secrets1, err = varSourcePool.FindOrCreate(logger, config1, factory)
+				Expect(err).ToNot(HaveOccurred())
+				secrets1, err = varSourcePool.FindOrCreate(logger, config1, factory)
+				Expect(err).ToNot(HaveOccurred())
+				secrets2, err = varSourcePool.FindOrCreate(logger, config2, factory)
+				Expect(err).ToNot(HaveOccurred())
+				secrets2, err = varSourcePool.FindOrCreate(logger, config2, factory)
+				Expect(err).ToNot(HaveOccurred())
+				secrets2, err = varSourcePool.FindOrCreate(logger, config2, factory)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should get k1", func() {
+				v, _, found, err := secrets1.Get("k1")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(v.(string)).To(Equal("v1"))
+			})
+
+			It("should get k2", func() {
+				v, _, found, err := secrets2.Get("k2")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(v.(string)).To(Equal("v2"))
+			})
+
+			It("should not get foo", func() {
+				_, _, found, err := secrets1.Get("foo")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+
+				_, _, found, err = secrets2.Get("foo")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+			})
+
+			It("pool size should be 2", func() {
+				Expect(varSourcePool.Size()).To(Equal(2))
 			})
 		})
 	})
@@ -304,13 +217,11 @@ var _ = Context("pool", func() {
 
 		It("should clean up once ttl expires", func() {
 			_, err = varSourcePool.FindOrCreate(logger, config1, factory)
-			time.Sleep(time.Second)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(varSourcePool.Size()).To(Equal(1))
 
 			fakeClock.WaitForWatcherAndIncrement(4 * time.Second)
 			_, err = varSourcePool.FindOrCreate(logger, config2, factory)
-			time.Sleep(time.Second)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(varSourcePool.Size()).To(Equal(2))
 
@@ -318,7 +229,6 @@ var _ = Context("pool", func() {
 			Eventually(varSourcePool.Size).Should(Equal(1))
 
 			fakeClock.WaitForWatcherAndIncrement(4 * time.Second)
-			time.Sleep(time.Second)
 			Eventually(varSourcePool.Size).Should(Equal(0))
 		})
 	})

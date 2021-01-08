@@ -2,9 +2,7 @@ package dummy
 
 import (
 	"encoding/json"
-	"time"
 
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/concourse/atc/creds"
@@ -12,10 +10,6 @@ import (
 
 type Manager struct {
 	Vars []VarFlag `long:"var" description:"A YAML value to expose via credential management. Can be prefixed with a team and/or pipeline to limit scope." value-name:"[TEAM/[PIPELINE/]]VAR=VALUE"`
-
-	// deploy simulates a login duration which is for tests.
-	delay time.Duration
-	clock clock.Clock
 }
 
 func (manager *Manager) Init(log lager.Logger) error {
@@ -33,24 +27,24 @@ func (manager *Manager) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (manager *Manager) IsConfigured() bool {
+func (manager Manager) IsConfigured() bool {
 	return len(manager.Vars) > 0
 }
 
-func (manager *Manager) Validate() error {
+func (manager Manager) Validate() error {
 	return nil
 }
 
-func (manager *Manager) Health() (*creds.HealthResponse, error) {
+func (manager Manager) Health() (*creds.HealthResponse, error) {
 	return &creds.HealthResponse{
 		Method: "noop",
 	}, nil
 }
 
-func (manager *Manager) Close(logger lager.Logger) {
+func (manager Manager) Close(logger lager.Logger) {
 
 }
 
-func (manager *Manager) NewSecretsFactory(logger lager.Logger) (creds.SecretsFactory, error) {
-	return NewSecretsFactory(manager.Vars, manager.delay, manager.clock), nil
+func (manager Manager) NewSecretsFactory(logger lager.Logger) (creds.SecretsFactory, error) {
+	return NewSecretsFactory(manager.Vars), nil
 }
