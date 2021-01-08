@@ -9,6 +9,12 @@ import (
 	vaultapi "github.com/hashicorp/vault/api"
 )
 
+type VaultLoginTimeout struct{}
+
+func (e VaultLoginTimeout) Error() string {
+	return "timed out to login to vault"
+}
+
 // A SecretReader reads a vault secret from the given path. It should
 // be thread safe!
 type SecretReader interface {
@@ -22,6 +28,8 @@ type Vault struct {
 	Prefix          string
 	LookupTemplates []*creds.SecretTemplate
 	SharedPath      string
+	LoggedIn        <-chan struct{}
+	LoginTimeout    time.Duration
 }
 
 // NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
@@ -43,6 +51,15 @@ func (v Vault) NewSecretLookupPaths(teamName string, pipelineName string, allowR
 
 // Get retrieves the value and expiration of an individual secret
 func (v Vault) Get(secretPath string) (interface{}, *time.Time, bool, error) {
+	if v.LoggedIn != nil {
+		select {
+		case <-v.LoggedIn:
+			v.LoggedIn = nil
+		case <-time.After(v.LoginTimeout):
+			return nil, nil, false, VaultLoginTimeout{}
+		}
+	}
+
 	secret, expiration, found, err := v.findSecret(secretPath)
 	if err != nil {
 		return nil, nil, false, err

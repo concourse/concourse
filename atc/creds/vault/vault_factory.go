@@ -29,17 +29,13 @@ func NewVaultFactory(sr SecretReader, loginTimeout time.Duration, loggedIn <-cha
 	return factory
 }
 
-// NewSecrets will block until the loggedIn channel passed to the constructor signals a successful login.
 func (factory *vaultFactory) NewSecrets() creds.Secrets {
-	select {
-	case <-factory.loggedIn:
-	case <-time.After(factory.loginTimeout):
-	}
-
 	return &Vault{
 		SecretReader:    factory.sr,
 		Prefix:          factory.prefix,
 		LookupTemplates: factory.lookupTemplates,
 		SharedPath:      factory.sharedPath,
+		LoginTimeout:    factory.loginTimeout,
+		LoggedIn:        factory.loggedIn,
 	}
 }

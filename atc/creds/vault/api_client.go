@@ -90,7 +90,7 @@ func (ac *APIClient) Login() (time.Duration, error) {
 
 		logger.Info("token-set")
 
-		return 60 * time.Second, nil
+		return time.Second, nil
 	}
 
 	client := ac.client()
