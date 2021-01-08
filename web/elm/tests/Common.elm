@@ -15,6 +15,8 @@ module Common exposing
     , routeHref
     , then_
     , when
+    , whenOnDesktop
+    , whenOnMobile
     )
 
 import Application.Application as Application
@@ -265,6 +267,27 @@ defineHoverBehaviour { name, setup, query, unhoveredSelector, hoverable, hovered
                     |> query
                     |> Query.has unhoveredSelector.selector
         ]
+
+
+withScreenSize : Float -> Float -> Application.Model -> Application.Model
+withScreenSize width height =
+    Application.handleCallback
+        (Callback.ScreenResized
+            { scene = { width = 0, height = 0 }
+            , viewport = { x = 0, y = 0, width = width, height = height }
+            }
+        )
+        >> Tuple.first
+
+
+whenOnDesktop : Application.Model -> Application.Model
+whenOnDesktop =
+    withScreenSize 1500 900
+
+
+whenOnMobile : Application.Model -> Application.Model
+whenOnMobile =
+    withScreenSize 400 900
 
 
 
