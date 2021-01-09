@@ -229,7 +229,7 @@ all =
                             -- I can't figure out the reason for this differing behaviour
                             , Query.hasNot [ style "position" "absolute" ]
                             ]
-                , test "displays available filter options" <|
+                , test "displays available filter options when focused" <|
                     focusSearchBar
                         >> findDropdown
                         >> Query.findAll [ tag "li" ]
@@ -237,6 +237,24 @@ all =
                             [ Query.count (Expect.equal 2)
                             , Query.index 0 >> Query.has [ text "status: " ]
                             , Query.index 1 >> Query.has [ text "team: " ]
+                            ]
+                , test "filters out filter options by prefix" <|
+                    focusSearchBar
+                        >> Expect.all
+                            [ withFilter "sta"
+                                >> findDropdown
+                                >> Query.findAll [ tag "li" ]
+                                >> Expect.all
+                                    [ Query.count (Expect.equal 1)
+                                    , Query.index 0 >> Query.has [ text "status: " ]
+                                    ]
+                            , withFilter "team"
+                                >> findDropdown
+                                >> Query.findAll [ tag "li" ]
+                                >> Expect.all
+                                    [ Query.count (Expect.equal 1)
+                                    , Query.index 0 >> Query.has [ text "team: " ]
+                                    ]
                             ]
                 , test "displays available statuses when you've typed status:" <|
                     focusSearchBar
@@ -253,6 +271,22 @@ all =
                             , Query.index 5 >> Query.has [ text "status: running" ]
                             , Query.index 6 >> Query.has [ text "status: succeeded" ]
                             ]
+                , test "filters available statuses by prefix" <|
+                    focusSearchBar
+                        >> withFilter "status: p"
+                        >> findDropdown
+                        >> Query.findAll [ tag "li" ]
+                        >> Expect.all
+                            [ Query.count (Expect.equal 2)
+                            , Query.index 0 >> Query.has [ text "status: paused" ]
+                            , Query.index 1 >> Query.has [ text "status: pending" ]
+                            ]
+                , test "hides available statuses when you type an exact match" <|
+                    focusSearchBar
+                        >> withFilter "status: paused"
+                        >> findDropdown
+                        >> Query.findAll [ tag "li" ]
+                        >> Query.count (Expect.equal 0)
                 , test "displays available teams when you've typed team:" <|
                     focusSearchBar
                         >> withFilter "team:"
@@ -277,6 +311,32 @@ all =
                         >> findDropdown
                         >> Query.findAll [ tag "li" ]
                         >> Query.count (Expect.equal 10)
+                , test "filters available teams by prefix" <|
+                    focusSearchBar
+                        >> Application.handleCallback
+                            (Callback.AllTeamsFetched <|
+                                Ok
+                                    [ Concourse.Team 1 "team1"
+                                    , Concourse.Team 2 "team2"
+                                    , Concourse.Team 3 "other-team"
+                                    , Concourse.Team 4 "other-team2"
+                                    ]
+                            )
+                        >> Tuple.first
+                        >> withFilter "team: other"
+                        >> findDropdown
+                        >> Query.findAll [ tag "li" ]
+                        >> Expect.all
+                            [ Query.count (Expect.equal 2)
+                            , Query.index 0 >> Query.has [ text "team: other-team" ]
+                            , Query.index 1 >> Query.has [ text "team: other-team2" ]
+                            ]
+                , test "hides available teams when you type an exact match" <|
+                    focusSearchBar
+                        >> withFilter "team: team1"
+                        >> findDropdown
+                        >> Query.findAll [ tag "li" ]
+                        >> Query.count (Expect.equal 0)
                 , describe "navigating dropdown items" <|
                     let
                         isHighlighted i =

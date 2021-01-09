@@ -372,21 +372,19 @@ dropdownOptions :
     }
     -> List String
 dropdownOptions { query, teams, pipelines } =
-    case String.trim query of
-        "" ->
-            [ "status: ", "team: " ]
+    case String.split ":" query |> List.map String.trim of
+        [ filter ] ->
+            [ "status", "team" ]
+                |> List.filter (String.startsWith filter)
+                |> List.map (\v -> v ++ ": ")
 
-        "status:" ->
-            [ "status: paused"
-            , "status: pending"
-            , "status: failed"
-            , "status: errored"
-            , "status: aborted"
-            , "status: running"
-            , "status: succeeded"
-            ]
+        [ "status", value ] ->
+            [ "paused", "pending", "failed", "errored", "aborted", "running", "succeeded" ]
+                |> List.filter (String.startsWith value)
+                |> List.filter ((/=) value)
+                |> List.map (\v -> "status: " ++ v)
 
-        "team:" ->
+        [ "team", value ] ->
             Set.union
                 (teams
                     |> FetchResult.withDefault []
@@ -399,8 +397,10 @@ dropdownOptions { query, teams, pipelines } =
                     |> Set.fromList
                 )
                 |> Set.toList
+                |> List.filter (String.startsWith value)
+                |> List.filter ((/=) value)
                 |> List.take 10
-                |> List.map (\teamName -> "team: " ++ teamName)
+                |> List.map (\v -> "team: " ++ v)
 
         _ ->
             []
