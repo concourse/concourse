@@ -127,6 +127,9 @@ pipelineFilter pf jobs existingJobs pipeline =
                 PipelineRunning ->
                     pipeline |> Pipeline.pipelineStatus jobsForPipeline |> isRunning
 
+                IncompleteStatus _ ->
+                    False
+
 
 parseFilters : String -> List Filter
 parseFilters =
@@ -181,6 +184,7 @@ parseWord =
 type StatusFilter
     = PipelineStatus PipelineStatus
     | PipelineRunning
+    | IncompleteStatus String
 
 
 teamFilter : Parser GroupFilter
@@ -204,16 +208,12 @@ statusFilter =
 pipelineStatus : Parser StatusFilter
 pipelineStatus =
     oneOf
-        [ map (\_ -> PipelineStatus PipelineStatusPaused) (keyword "paused")
-        , map (\_ -> PipelineStatus <| PipelineStatusAborted Running)
-            (keyword "aborted")
-        , map (\_ -> PipelineStatus <| PipelineStatusErrored Running)
-            (keyword "errored")
-        , map (\_ -> PipelineStatus <| PipelineStatusFailed Running)
-            (keyword "failed")
-        , map (\_ -> PipelineStatus <| PipelineStatusPending False)
-            (keyword "pending")
-        , map (\_ -> PipelineStatus <| PipelineStatusSucceeded Running)
-            (keyword "succeeded")
-        , map (\_ -> PipelineRunning) (keyword "running")
+        [ keyword "paused" |> map (\_ -> PipelineStatus PipelineStatusPaused)
+        , keyword "aborted" |> map (\_ -> PipelineStatus <| PipelineStatusAborted Running)
+        , keyword "errored" |> map (\_ -> PipelineStatus <| PipelineStatusErrored Running)
+        , keyword "failed" |> map (\_ -> PipelineStatus <| PipelineStatusFailed Running)
+        , keyword "pending" |> map (\_ -> PipelineStatus <| PipelineStatusPending False)
+        , keyword "succeeded" |> map (\_ -> PipelineStatus <| PipelineStatusSucceeded Running)
+        , keyword "running" |> map (\_ -> PipelineRunning)
+        , parseWord |> map IncompleteStatus
         ]
