@@ -13,6 +13,7 @@ import Concourse.PipelineStatus
         ( PipelineStatus(..)
         , StatusDetails(..)
         )
+import Dashboard.Filter as Filter
 import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Models exposing (Dropdown(..), Model)
 import Dashboard.Styles as Styles
@@ -23,6 +24,7 @@ import Html exposing (Html)
 import Html.Attributes exposing (attribute, id, placeholder, value)
 import Html.Events exposing (onBlur, onClick, onFocus, onInput, onMouseDown)
 import Keyboard
+import List.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (DomID(..), Message(..))
@@ -127,7 +129,7 @@ handleDelivery delivery ( model, effects ) =
         KeyDown keyEvent ->
             let
                 options =
-                    dropdownOptions model
+                    Filter.suggestions model
             in
             case keyEvent.code of
                 Keyboard.ArrowUp ->
@@ -360,47 +362,5 @@ viewDropdownItems { screenSize } ({ dropdown, query } as model) =
             in
             [ Html.ul
                 (id "search-dropdown" :: Styles.dropdownContainer screenSize)
-                (List.indexedMap dropdownItem (dropdownOptions model))
+                (List.indexedMap dropdownItem (Filter.suggestions model))
             ]
-
-
-dropdownOptions :
-    { a
-        | query : String
-        , teams : FetchResult (List Concourse.Team)
-        , pipelines : Maybe (Dict String (List Pipeline))
-    }
-    -> List String
-dropdownOptions { query, teams, pipelines } =
-    case String.split ":" query |> List.map String.trim of
-        [ filter ] ->
-            [ "status", "team" ]
-                |> List.filter (String.startsWith filter)
-                |> List.map (\v -> v ++ ": ")
-
-        [ "status", value ] ->
-            [ "paused", "pending", "failed", "errored", "aborted", "running", "succeeded" ]
-                |> List.filter (String.startsWith value)
-                |> List.filter ((/=) value)
-                |> List.map (\v -> "status: " ++ v)
-
-        [ "team", value ] ->
-            Set.union
-                (teams
-                    |> FetchResult.withDefault []
-                    |> List.map .name
-                    |> Set.fromList
-                )
-                (pipelines
-                    |> Maybe.withDefault Dict.empty
-                    |> Dict.keys
-                    |> Set.fromList
-                )
-                |> Set.toList
-                |> List.filter (String.startsWith value)
-                |> List.filter ((/=) value)
-                |> List.take 10
-                |> List.map (\v -> "team: " ++ v)
-
-        _ ->
-            []

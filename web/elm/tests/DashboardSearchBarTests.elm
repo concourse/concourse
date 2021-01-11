@@ -5,9 +5,11 @@ import Assets
 import ColorValues
 import Common exposing (whenOnDesktop, whenOnMobile)
 import Concourse
+import Dashboard.Filter as Filter
 import Dashboard.SearchBar as SearchBar
 import Data
 import Expect
+import FetchResult
 import Html.Attributes as Attr
 import Keyboard
 import Message.Callback as Callback exposing (Callback(..))
@@ -238,105 +240,6 @@ all =
                             , Query.index 0 >> Query.has [ text "status: " ]
                             , Query.index 1 >> Query.has [ text "team: " ]
                             ]
-                , test "filters out filter options by prefix" <|
-                    focusSearchBar
-                        >> Expect.all
-                            [ withFilter "sta"
-                                >> findDropdown
-                                >> Query.findAll [ tag "li" ]
-                                >> Expect.all
-                                    [ Query.count (Expect.equal 1)
-                                    , Query.index 0 >> Query.has [ text "status: " ]
-                                    ]
-                            , withFilter "team"
-                                >> findDropdown
-                                >> Query.findAll [ tag "li" ]
-                                >> Expect.all
-                                    [ Query.count (Expect.equal 1)
-                                    , Query.index 0 >> Query.has [ text "team: " ]
-                                    ]
-                            ]
-                , test "displays available statuses when you've typed status:" <|
-                    focusSearchBar
-                        >> withFilter "status: "
-                        >> findDropdown
-                        >> Query.findAll [ tag "li" ]
-                        >> Expect.all
-                            [ Query.count (Expect.equal 7)
-                            , Query.index 0 >> Query.has [ text "status: paused" ]
-                            , Query.index 1 >> Query.has [ text "status: pending" ]
-                            , Query.index 2 >> Query.has [ text "status: failed" ]
-                            , Query.index 3 >> Query.has [ text "status: errored" ]
-                            , Query.index 4 >> Query.has [ text "status: aborted" ]
-                            , Query.index 5 >> Query.has [ text "status: running" ]
-                            , Query.index 6 >> Query.has [ text "status: succeeded" ]
-                            ]
-                , test "filters available statuses by prefix" <|
-                    focusSearchBar
-                        >> withFilter "status: p"
-                        >> findDropdown
-                        >> Query.findAll [ tag "li" ]
-                        >> Expect.all
-                            [ Query.count (Expect.equal 2)
-                            , Query.index 0 >> Query.has [ text "status: paused" ]
-                            , Query.index 1 >> Query.has [ text "status: pending" ]
-                            ]
-                , test "hides available statuses when you type an exact match" <|
-                    focusSearchBar
-                        >> withFilter "status: paused"
-                        >> findDropdown
-                        >> Query.findAll [ tag "li" ]
-                        >> Query.count (Expect.equal 0)
-                , test "displays available teams when you've typed team:" <|
-                    focusSearchBar
-                        >> withFilter "team:"
-                        >> findDropdown
-                        >> Query.findAll [ tag "li" ]
-                        >> Expect.all
-                            [ Query.count (Expect.equal 2)
-                            , Query.index 0 >> Query.has [ text "team: team1" ]
-                            , Query.index 1 >> Query.has [ text "team: team2" ]
-                            ]
-                , test "truncates displayed teams to 10" <|
-                    focusSearchBar
-                        >> withFilter "team:"
-                        >> Application.handleCallback
-                            (Callback.AllTeamsFetched <|
-                                Ok
-                                    (List.range 1 11
-                                        |> List.map (\i -> Concourse.Team i <| "team" ++ String.fromInt i)
-                                    )
-                            )
-                        >> Tuple.first
-                        >> findDropdown
-                        >> Query.findAll [ tag "li" ]
-                        >> Query.count (Expect.equal 10)
-                , test "filters available teams by prefix" <|
-                    focusSearchBar
-                        >> Application.handleCallback
-                            (Callback.AllTeamsFetched <|
-                                Ok
-                                    [ Concourse.Team 1 "team1"
-                                    , Concourse.Team 2 "team2"
-                                    , Concourse.Team 3 "other-team"
-                                    , Concourse.Team 4 "other-team2"
-                                    ]
-                            )
-                        >> Tuple.first
-                        >> withFilter "team: other"
-                        >> findDropdown
-                        >> Query.findAll [ tag "li" ]
-                        >> Expect.all
-                            [ Query.count (Expect.equal 2)
-                            , Query.index 0 >> Query.has [ text "team: other-team" ]
-                            , Query.index 1 >> Query.has [ text "team: other-team2" ]
-                            ]
-                , test "hides available teams when you type an exact match" <|
-                    focusSearchBar
-                        >> withFilter "team: team1"
-                        >> findDropdown
-                        >> Query.findAll [ tag "li" ]
-                        >> Query.count (Expect.equal 0)
                 , describe "navigating dropdown items" <|
                     let
                         isHighlighted i =
@@ -423,8 +326,7 @@ all =
                             >> Expect.all
                                 [ Tuple.first
                                     >> Common.queryView
-                                    >> Query.find
-                                        [ id SearchBar.searchInputId ]
+                                    >> Query.find [ id SearchBar.searchInputId ]
                                     >> Query.has [ value "team: team1" ]
                                 , Tuple.second >> Common.contains (Effects.ModifyUrl "/?search=team%3A%20team1")
                                 ]
@@ -442,6 +344,68 @@ all =
                             >> up
                             >> findDropdown
                             >> Query.hasNot [ tag "li" ]
+                    ]
+                , describe "dropdown suggestions" <|
+                    let
+                        suggestionsTest teams query expectation =
+                            test ("test query \"" ++ query ++ "\" with teams " ++ String.join ", " teams) <|
+                                \_ ->
+                                    Filter.suggestions
+                                        { query = query
+                                        , teams = FetchResult.Fetched <| List.indexedMap Concourse.Team teams
+                                        , pipelines = Nothing
+                                        }
+                                        |> expectation
+
+                        simpleSuggestionsTest query expected =
+                            suggestionsTest [ "team", "other-team", "yet-another-team" ]
+                                query
+                                (Expect.equal expected)
+
+                        manyTeams =
+                            List.range 1 11 |> List.map (\i -> "team" ++ String.fromInt i)
+                    in
+                    [ -- available filters
+                      simpleSuggestionsTest "" [ "status: ", "team: " ]
+                    , simpleSuggestionsTest "-" [ "status: ", "team: " ]
+                    , simpleSuggestionsTest " " [ "status: ", "team: " ]
+
+                    -- status
+                    , simpleSuggestionsTest "st" [ "status: " ]
+                    , simpleSuggestionsTest "-st" [ "status: " ]
+                    , simpleSuggestionsTest "status" [ "status: " ]
+                    , simpleSuggestionsTest "status: "
+                        [ "status: paused"
+                        , "status: pending"
+                        , "status: failed"
+                        , "status: errored"
+                        , "status: aborted"
+                        , "status: running"
+                        , "status: succeeded"
+                        ]
+                    , simpleSuggestionsTest " status: p" [ "status: paused", "status: pending" ]
+                    , simpleSuggestionsTest " -status: p" [ "status: paused", "status: pending" ]
+                    , simpleSuggestionsTest "status:p" [ "status: paused", "status: pending" ]
+                    , simpleSuggestionsTest "status: pause" [ "status: paused" ]
+                    , simpleSuggestionsTest "status: paused" []
+
+                    -- team
+                    , simpleSuggestionsTest "t" [ "team: " ]
+                    , simpleSuggestionsTest "-t" [ "team: " ]
+                    , simpleSuggestionsTest "team" [ "team: " ]
+                    , simpleSuggestionsTest "team:" [ "team: other-team", "team: team", "team: yet-another-team" ]
+                    , simpleSuggestionsTest "team: oth" [ "team: other-team" ]
+                    , simpleSuggestionsTest "team:oth" [ "team: other-team" ]
+                    , simpleSuggestionsTest "team: other-team" []
+                    , suggestionsTest manyTeams "team:" (List.length >> Expect.equal 10)
+
+                    -- fuzzy pipeline
+                    , simpleSuggestionsTest "foo" []
+
+                    -- takes last filter
+                    , simpleSuggestionsTest "team: other-team " [ "status: ", "team: " ]
+                    , simpleSuggestionsTest "team: other-team s" [ "status: " ]
+                    , simpleSuggestionsTest "team: other-team -status:a" [ "status: aborted" ]
                     ]
                 ]
             ]

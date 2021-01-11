@@ -1,4 +1,4 @@
-module Dashboard.Filter exposing (filterTeams)
+module Dashboard.Filter exposing (filterTeams, suggestions)
 
 import Concourse exposing (DatabaseID, hyphenNotation)
 import Concourse.PipelineStatus
@@ -11,6 +11,8 @@ import Concourse.PipelineStatus
 import Dashboard.Group.Models exposing (Card(..), Pipeline)
 import Dashboard.Pipeline as Pipeline
 import Dict exposing (Dict)
+import FetchResult exposing (FetchResult)
+import List.Extra
 import Parser
     exposing
         ( (|.)
@@ -39,6 +41,27 @@ type alias Filter =
     { negate : Bool
     , groupFilter : GroupFilter
     }
+
+
+type GroupFilter
+    = Team String
+    | Pipeline PipelineFilter
+
+
+type PipelineFilter
+    = FuzzyName String
+    | Status StatusFilter
+
+
+type StatusFilter
+    = PipelineStatus PipelineStatus
+    | PipelineRunning
+    | IncompleteStatus String
+
+
+filterTypes : List String
+filterTypes =
+    [ "status", "team" ]
 
 
 filterTeams :
@@ -148,20 +171,13 @@ parseFilters =
 
 filter : Parser Filter
 filter =
-    oneOf
-        [ succeed (Filter True) |. spaces |. symbol "-" |= groupFilter |. spaces
-        , succeed (Filter False) |. spaces |= groupFilter |. spaces
-        ]
-
-
-type GroupFilter
-    = Team String
-    | Pipeline PipelineFilter
-
-
-type PipelineFilter
-    = FuzzyName String
-    | Status StatusFilter
+    succeed Filter
+        |. spaces
+        |= oneOf
+            [ symbol "-" |> map (always True)
+            , succeed False
+            ]
+        |= groupFilter
 
 
 groupFilter : Parser GroupFilter
@@ -179,12 +195,6 @@ parseWord =
         (chompWhile
             (\c -> c /= ' ' && c /= '\t' && c /= '\n' && c /= '\u{000D}')
         )
-
-
-type StatusFilter
-    = PipelineStatus PipelineStatus
-    | PipelineRunning
-    | IncompleteStatus String
 
 
 teamFilter : Parser GroupFilter
@@ -217,3 +227,53 @@ pipelineStatus =
         , keyword "running" |> map (\_ -> PipelineRunning)
         , parseWord |> map IncompleteStatus
         ]
+
+
+suggestions :
+    { a
+        | query : String
+        , teams : FetchResult (List Concourse.Team)
+        , pipelines : Maybe (Dict String (List Pipeline))
+    }
+    -> List String
+suggestions { query, teams, pipelines } =
+    let
+        lastFilter =
+            parseFilters query
+                |> List.Extra.last
+                |> Maybe.map .groupFilter
+                |> Maybe.withDefault (Pipeline (FuzzyName ""))
+    in
+    case lastFilter of
+        Pipeline (FuzzyName s) ->
+            filterTypes
+                |> List.filter (String.startsWith s)
+                |> List.map (\v -> v ++ ": ")
+
+        Pipeline (Status sf) ->
+            case sf of
+                IncompleteStatus status ->
+                    [ "paused", "pending", "failed", "errored", "aborted", "running", "succeeded" ]
+                        |> List.filter (String.startsWith status)
+                        |> List.map (\v -> "status: " ++ v)
+
+                _ ->
+                    []
+
+        Team team ->
+            Set.union
+                (teams
+                    |> FetchResult.withDefault []
+                    |> List.map .name
+                    |> Set.fromList
+                )
+                (pipelines
+                    |> Maybe.withDefault Dict.empty
+                    |> Dict.keys
+                    |> Set.fromList
+                )
+                |> Set.toList
+                |> List.filter (String.startsWith team)
+                |> List.filter ((/=) team)
+                |> List.take 10
+                |> List.map (\v -> "team: " ++ v)
