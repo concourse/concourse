@@ -2,12 +2,12 @@ package api_test
 
 import (
 	"errors"
+	"github.com/concourse/concourse/atc"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
 
-	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/testhelpers"
@@ -40,20 +40,19 @@ var _ = Describe("Users API", func() {
 			BeforeEach(func() {
 				fakeAccess.IsAuthenticatedReturns(true)
 
-				fakeAccess.IsAdminReturns(true)
-				fakeAccess.IsSystemReturns(false)
-
-				fakeAccess.ClaimsReturns(accessor.Claims{
-					Sub:               "some-sub",
-					UserName:          "some-name",
-					UserID:            "some-user-id",
-					PreferredUsername: "some-user-name",
-					Email:             "some@email.com",
-				})
-
-				fakeAccess.TeamRolesReturns(map[string][]string{
-					"some-team":       {"owner"},
-					"some-other-team": {"viewer"},
+				fakeAccess.UserInfoReturns(atc.UserInfo{
+					Sub:      "some-sub",
+					Name:     "some-name",
+					UserId:   "some-user-id",
+					UserName: "some-user-name",
+					Email:    "some@email.com",
+					IsAdmin:  true,
+					IsSystem: false,
+					Teams: map[string][]string{
+						"some-team":       {"owner"},
+						"some-other-team": {"viewer"},
+					},
+					Connector: "some-connector",
 				})
 			})
 
@@ -80,7 +79,8 @@ var _ = Describe("Users API", func() {
 							"teams": {
 							  "some-team": ["owner"],
 							  "some-other-team": ["viewer"]
-							}
+							},
+							"connector": "some-connector"
 						}`))
 			})
 		})

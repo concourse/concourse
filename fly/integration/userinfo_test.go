@@ -39,6 +39,7 @@ var _ = Describe("Fly CLI", func() {
 								"other_team": {"owner"},
 								"test_team":  {"owner", "viewer"},
 							},
+							"connector": "some-connector",
 						}),
 					),
 				)
@@ -81,7 +82,8 @@ var _ = Describe("Fly CLI", func() {
 							"teams": {
 								"other_team": ["owner"],
 								"test_team": ["owner", "viewer"]
-							}
+							},
+							"connector": "some-connector"
 					}`))
 				})
 			})
