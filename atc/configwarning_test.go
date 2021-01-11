@@ -27,6 +27,11 @@ var _ = Describe("ValidateIdentifier", func() {
 			warning:     false,
 		},
 		{
+			description: "contains an underscore",
+			identifier:  "some_thing",
+			warning:     false,
+		},
+		{
 			description: "starts with a number",
 			identifier:  "1something",
 			message:     "must start with a lowercase letter",
@@ -51,9 +56,9 @@ var _ = Describe("ValidateIdentifier", func() {
 			warning:     true,
 		},
 		{
-			description: "contains an underscore",
-			identifier:  "some_thing",
-			message:     "illegal character '_'",
+			description: "contains a space",
+			identifier:  "some thing",
+			message:     "illegal character ' '",
 			warning:     true,
 		},
 		{
