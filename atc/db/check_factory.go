@@ -139,8 +139,13 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 	var resources []Resource
 
 	rows, err := resourcesQuery.
-		Join("(select DISTINCT(resource_id) FROM job_inputs) ji ON ji.resource_id = r.id").
+		LeftJoin("(select DISTINCT(resource_id) FROM job_inputs) ji ON ji.resource_id = r.id").
+		LeftJoin("(select DISTINCT(resource_id) FROM job_outputs) jo ON jo.resource_id = r.id").
 		Where(sq.Eq{"p.paused": false}).
+		// filter for resources that are job inputs
+		Where(sq.NotEq{"ji.resource_id": nil}).
+		// also inlude put-only resources that have errored
+		Suffix("OR (b.status IN ('aborted','failed','errored') AND ji.resource_id IS NULL)").
 		RunWith(c.conn).
 		Query()
 
