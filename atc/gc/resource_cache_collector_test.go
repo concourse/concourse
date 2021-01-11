@@ -74,7 +74,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				jobBuild, err = scenario.Job("some-job").CreateBuild(atc.Claims{})
+				jobBuild, err = scenario.Job("some-job").CreateBuild(atc.UserInfo{})
 				Expect(err).ToNot(HaveOccurred())
 
 				jobCache, err = resourceCacheFactory.FindOrCreateResourceCache(
@@ -178,7 +178,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 						var secondJobCache db.UsedResourceCache
 
 						BeforeEach(func() {
-							secondJobBuild, err = scenario.Job("some-job").CreateBuild(atc.Claims{})
+							secondJobBuild, err = scenario.Job("some-job").CreateBuild(atc.UserInfo{})
 							Expect(err).ToNot(HaveOccurred())
 
 							secondJobCache, err = resourceCacheFactory.FindOrCreateResourceCache(
@@ -224,7 +224,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 						var secondJobCache db.UsedResourceCache
 
 						BeforeEach(func() {
-							secondJobBuild, err = scenario.Job("some-other-job").CreateBuild(atc.Claims{})
+							secondJobBuild, err = scenario.Job("some-other-job").CreateBuild(atc.UserInfo{})
 							Expect(err).ToNot(HaveOccurred())
 
 							secondJobCache, err = resourceCacheFactory.FindOrCreateResourceCache(

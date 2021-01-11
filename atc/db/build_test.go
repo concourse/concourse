@@ -550,7 +550,7 @@ var _ = Describe("Build", func() {
 				}, dbtest.JobOutputs{
 					"output-1": atc.Version{"ver": "2"},
 					"output-2": atc.Version{"ver": "3"},
-				}, defaultBuildCreatedBy),
+				}),
 			)
 
 			Expect(build.Finish(db.BuildStatusSucceeded)).To(Succeed())
@@ -1207,7 +1207,7 @@ var _ = Describe("Build", func() {
 						Name:    "some-resource",
 						Version: atc.Version{"some": "version"},
 					},
-				}, dbtest.JobOutputs{}, defaultBuildCreatedBy),
+				}, dbtest.JobOutputs{}),
 			)
 
 			outputVersion = atc.Version{"some": "new-version"}
@@ -1400,7 +1400,7 @@ var _ = Describe("Build", func() {
 				}, dbtest.JobOutputs{
 					"some-resource":       atc.Version{"ver": "2"},
 					"some-other-resource": atc.Version{"ver": "not-checked"},
-				}, defaultBuildCreatedBy),
+				}),
 			)
 
 			inputResource = scenario.Resource("some-resource")
@@ -1475,7 +1475,7 @@ var _ = Describe("Build", func() {
 						}, dbtest.JobOutputs{
 							"some-resource":       atc.Version{"ver": "2"},
 							"some-other-resource": atc.Version{"ver": "not-checked"},
-						}, defaultBuildCreatedBy),
+						}),
 					)
 
 					res, err := psql.Update("build_resource_config_version_inputs").
@@ -1587,7 +1587,7 @@ var _ = Describe("Build", func() {
 					},
 				}),
 				builder.WithResourceVersions("some-resource", atc.Version{"version": "some-version"}),
-				builder.WithPendingJobBuild(&build, "some-job", defaultBuildCreatedBy),
+				builder.WithPendingJobBuild(&build, "some-job"),
 			)
 
 			job = scenario.Job("some-job")
@@ -1685,7 +1685,7 @@ var _ = Describe("Build", func() {
 
 					BeforeEach(func() {
 						scenario.Run(
-							builder.WithPendingJobBuild(&secondBuild, "some-job", defaultBuildCreatedBy),
+							builder.WithPendingJobBuild(&secondBuild, "some-job"),
 							// don't save any versions, just bump the last check timestamp
 							builder.WithResourceVersions("some-resource"),
 						)
@@ -1926,7 +1926,7 @@ var _ = Describe("Build", func() {
 
 			BeforeEach(func() {
 				scenario.Run(
-					builder.WithPendingJobBuild(&upstreamBuild, "upstream-job", defaultBuildCreatedBy),
+					builder.WithPendingJobBuild(&upstreamBuild, "upstream-job"),
 				)
 			})
 
@@ -1973,7 +1973,7 @@ var _ = Describe("Build", func() {
 						Expect(upstreamBuild.Finish(db.BuildStatusSucceeded)).To(Succeed())
 
 						scenario.Run(
-							builder.WithPendingJobBuild(&downstreamBuild, "downstream-job", defaultBuildCreatedBy),
+							builder.WithPendingJobBuild(&downstreamBuild, "downstream-job"),
 							builder.WithNextInputMapping("downstream-job", dbtest.JobInputs{
 								{
 									Name:         "some-input",
@@ -2151,8 +2151,8 @@ var _ = Describe("Build", func() {
 						Name:    "some-input",
 						Version: atc.Version{"version": "v3"},
 					},
-				}, dbtest.JobOutputs{}, defaultBuildCreatedBy),
-				builder.WithPendingJobBuild(&downstreamBuild, "downstream-job", defaultBuildCreatedBy),
+				}, dbtest.JobOutputs{}),
+				builder.WithPendingJobBuild(&downstreamBuild, "downstream-job"),
 			)
 
 			var err error
@@ -2308,7 +2308,7 @@ var _ = Describe("Build", func() {
 				builder.WithPipeline(pipelineConfig),
 				builder.WithResourceVersions("some-resource", atc.Version{"some": "version"}),
 				builder.WithResourceVersions("some-other-resource", atc.Version{"some": "other-version"}),
-				builder.WithPendingJobBuild(&build, "some-job", defaultBuildCreatedBy),
+				builder.WithPendingJobBuild(&build, "some-job"),
 			)
 		})
 

@@ -111,10 +111,10 @@ type FakeJob struct {
 		result1 atc.JobConfig
 		result2 error
 	}
-	CreateBuildStub        func(atc.Claims) (db.Build, error)
+	CreateBuildStub        func(atc.UserInfo) (db.Build, error)
 	createBuildMutex       sync.RWMutex
 	createBuildArgsForCall []struct {
-		arg1 atc.Claims
+		arg1 atc.UserInfo
 	}
 	createBuildReturns struct {
 		result1 db.Build
@@ -377,11 +377,11 @@ type FakeJob struct {
 	requestScheduleReturnsOnCall map[int]struct {
 		result1 error
 	}
-	RerunBuildStub        func(db.Build, atc.Claims) (db.Build, error)
+	RerunBuildStub        func(db.Build, atc.UserInfo) (db.Build, error)
 	rerunBuildMutex       sync.RWMutex
 	rerunBuildArgsForCall []struct {
 		arg1 db.Build
-		arg2 atc.Claims
+		arg2 atc.UserInfo
 	}
 	rerunBuildReturns struct {
 		result1 db.Build
@@ -941,11 +941,11 @@ func (fake *FakeJob) ConfigReturnsOnCall(i int, result1 atc.JobConfig, result2 e
 	}{result1, result2}
 }
 
-func (fake *FakeJob) CreateBuild(arg1 atc.Claims) (db.Build, error) {
+func (fake *FakeJob) CreateBuild(arg1 atc.UserInfo) (db.Build, error) {
 	fake.createBuildMutex.Lock()
 	ret, specificReturn := fake.createBuildReturnsOnCall[len(fake.createBuildArgsForCall)]
 	fake.createBuildArgsForCall = append(fake.createBuildArgsForCall, struct {
-		arg1 atc.Claims
+		arg1 atc.UserInfo
 	}{arg1})
 	fake.recordInvocation("CreateBuild", []interface{}{arg1})
 	fake.createBuildMutex.Unlock()
@@ -965,13 +965,13 @@ func (fake *FakeJob) CreateBuildCallCount() int {
 	return len(fake.createBuildArgsForCall)
 }
 
-func (fake *FakeJob) CreateBuildCalls(stub func(atc.Claims) (db.Build, error)) {
+func (fake *FakeJob) CreateBuildCalls(stub func(atc.UserInfo) (db.Build, error)) {
 	fake.createBuildMutex.Lock()
 	defer fake.createBuildMutex.Unlock()
 	fake.CreateBuildStub = stub
 }
 
-func (fake *FakeJob) CreateBuildArgsForCall(i int) atc.Claims {
+func (fake *FakeJob) CreateBuildArgsForCall(i int) atc.UserInfo {
 	fake.createBuildMutex.RLock()
 	defer fake.createBuildMutex.RUnlock()
 	argsForCall := fake.createBuildArgsForCall[i]
@@ -2241,12 +2241,12 @@ func (fake *FakeJob) RequestScheduleReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeJob) RerunBuild(arg1 db.Build, arg2 atc.Claims) (db.Build, error) {
+func (fake *FakeJob) RerunBuild(arg1 db.Build, arg2 atc.UserInfo) (db.Build, error) {
 	fake.rerunBuildMutex.Lock()
 	ret, specificReturn := fake.rerunBuildReturnsOnCall[len(fake.rerunBuildArgsForCall)]
 	fake.rerunBuildArgsForCall = append(fake.rerunBuildArgsForCall, struct {
 		arg1 db.Build
-		arg2 atc.Claims
+		arg2 atc.UserInfo
 	}{arg1, arg2})
 	fake.recordInvocation("RerunBuild", []interface{}{arg1, arg2})
 	fake.rerunBuildMutex.Unlock()
@@ -2266,13 +2266,13 @@ func (fake *FakeJob) RerunBuildCallCount() int {
 	return len(fake.rerunBuildArgsForCall)
 }
 
-func (fake *FakeJob) RerunBuildCalls(stub func(db.Build, atc.Claims) (db.Build, error)) {
+func (fake *FakeJob) RerunBuildCalls(stub func(db.Build, atc.UserInfo) (db.Build, error)) {
 	fake.rerunBuildMutex.Lock()
 	defer fake.rerunBuildMutex.Unlock()
 	fake.RerunBuildStub = stub
 }
 
-func (fake *FakeJob) RerunBuildArgsForCall(i int) (db.Build, atc.Claims) {
+func (fake *FakeJob) RerunBuildArgsForCall(i int) (db.Build, atc.UserInfo) {
 	fake.rerunBuildMutex.RLock()
 	defer fake.rerunBuildMutex.RUnlock()
 	argsForCall := fake.rerunBuildArgsForCall[i]

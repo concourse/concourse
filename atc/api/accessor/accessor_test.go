@@ -611,7 +611,7 @@ var _ = Describe("Accessor", func() {
 	})
 
 	Describe("Claims", func() {
-		var result atc.Claims
+		var result accessor.Claims
 
 		JustBeforeEach(func() {
 			result = access.Claims()
@@ -623,7 +623,7 @@ var _ = Describe("Accessor", func() {
 			})
 
 			It("returns empty", func() {
-				Expect(result).To(Equal(atc.Claims{}))
+				Expect(result).To(Equal(accessor.Claims{}))
 			})
 		})
 
@@ -634,7 +634,7 @@ var _ = Describe("Accessor", func() {
 			})
 
 			It("returns empty", func() {
-				Expect(result).To(Equal(atc.Claims{}))
+				Expect(result).To(Equal(accessor.Claims{}))
 			})
 		})
 
@@ -655,7 +655,7 @@ var _ = Describe("Accessor", func() {
 			})
 
 			It("returns the result", func() {
-				Expect(result).To(Equal(atc.Claims{
+				Expect(result).To(Equal(accessor.Claims{
 					Sub:               "some-sub",
 					UserName:          "some-name",
 					Email:             "some-email",

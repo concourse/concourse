@@ -49,7 +49,7 @@ func (s *Server) RerunJobBuild(pipeline db.Pipeline) http.Handler {
 		}
 
 		acc := accessor.GetAccessor(r)
-		build, err := job.RerunBuild(buildToRerun, acc.Claims())
+		build, err := job.RerunBuild(buildToRerun, acc.UserInfo())
 		if err != nil {
 			logger.Error("failed-to-retrigger-build", err)
 			w.WriteHeader(http.StatusInternalServerError)

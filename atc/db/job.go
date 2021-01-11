@@ -79,8 +79,8 @@ type Job interface {
 	Unpause() error
 
 	ScheduleBuild(Build) (bool, error)
-	CreateBuild(createdBy atc.Claims) (Build, error)
-	RerunBuild(build Build, createdBy atc.Claims) (Build, error)
+	CreateBuild(createdBy atc.UserInfo) (Build, error)
+	RerunBuild(build Build, createdBy atc.UserInfo) (Build, error)
 
 	RequestSchedule() error
 	UpdateLastScheduled(time.Time) error
@@ -772,7 +772,7 @@ func (j *job) GetPendingBuilds() ([]Build, error) {
 	return builds, nil
 }
 
-func (j *job) CreateBuild(createdBy atc.Claims) (Build, error) {
+func (j *job) CreateBuild(createdBy atc.UserInfo) (Build, error) {
 	tx, err := j.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -826,7 +826,7 @@ func (j *job) CreateBuild(createdBy atc.Claims) (Build, error) {
 	return build, nil
 }
 
-func (j *job) RerunBuild(buildToRerun Build, createdBy atc.Claims) (Build, error) {
+func (j *job) RerunBuild(buildToRerun Build, createdBy atc.UserInfo) (Build, error) {
 	for {
 		rerunBuild, err := j.tryRerunBuild(buildToRerun, createdBy)
 		if err != nil {
@@ -841,7 +841,7 @@ func (j *job) RerunBuild(buildToRerun Build, createdBy atc.Claims) (Build, error
 	}
 }
 
-func (j *job) tryRerunBuild(buildToRerun Build, createdBy atc.Claims) (Build, error) {
+func (j *job) tryRerunBuild(buildToRerun Build, createdBy atc.UserInfo) (Build, error) {
 	tx, err := j.conn.Begin()
 	if err != nil {
 		return nil, err

@@ -99,15 +99,15 @@ type FakeBuild struct {
 		result1 []db.WorkerArtifact
 		result2 error
 	}
-	CreatedByStub        func() *atc.Claims
+	CreatedByStub        func() *atc.UserInfo
 	createdByMutex       sync.RWMutex
 	createdByArgsForCall []struct {
 	}
 	createdByReturns struct {
-		result1 *atc.Claims
+		result1 *atc.UserInfo
 	}
 	createdByReturnsOnCall map[int]struct {
-		result1 *atc.Claims
+		result1 *atc.UserInfo
 	}
 	DeleteStub        func() (bool, error)
 	deleteMutex       sync.RWMutex
@@ -1073,7 +1073,7 @@ func (fake *FakeBuild) ArtifactsReturnsOnCall(i int, result1 []db.WorkerArtifact
 	}{result1, result2}
 }
 
-func (fake *FakeBuild) CreatedBy() *atc.Claims {
+func (fake *FakeBuild) CreatedBy() *atc.UserInfo {
 	fake.createdByMutex.Lock()
 	ret, specificReturn := fake.createdByReturnsOnCall[len(fake.createdByArgsForCall)]
 	fake.createdByArgsForCall = append(fake.createdByArgsForCall, struct {
@@ -1096,32 +1096,32 @@ func (fake *FakeBuild) CreatedByCallCount() int {
 	return len(fake.createdByArgsForCall)
 }
 
-func (fake *FakeBuild) CreatedByCalls(stub func() *atc.Claims) {
+func (fake *FakeBuild) CreatedByCalls(stub func() *atc.UserInfo) {
 	fake.createdByMutex.Lock()
 	defer fake.createdByMutex.Unlock()
 	fake.CreatedByStub = stub
 }
 
-func (fake *FakeBuild) CreatedByReturns(result1 *atc.Claims) {
+func (fake *FakeBuild) CreatedByReturns(result1 *atc.UserInfo) {
 	fake.createdByMutex.Lock()
 	defer fake.createdByMutex.Unlock()
 	fake.CreatedByStub = nil
 	fake.createdByReturns = struct {
-		result1 *atc.Claims
+		result1 *atc.UserInfo
 	}{result1}
 }
 
-func (fake *FakeBuild) CreatedByReturnsOnCall(i int, result1 *atc.Claims) {
+func (fake *FakeBuild) CreatedByReturnsOnCall(i int, result1 *atc.UserInfo) {
 	fake.createdByMutex.Lock()
 	defer fake.createdByMutex.Unlock()
 	fake.CreatedByStub = nil
 	if fake.createdByReturnsOnCall == nil {
 		fake.createdByReturnsOnCall = make(map[int]struct {
-			result1 *atc.Claims
+			result1 *atc.UserInfo
 		})
 	}
 	fake.createdByReturnsOnCall[i] = struct {
-		result1 *atc.Claims
+		result1 *atc.UserInfo
 	}{result1}
 }
 

@@ -150,7 +150,7 @@ type Build interface {
 	RerunOf() int
 	RerunOfName() string
 	RerunNumber() int
-	CreatedBy() *atc.Claims
+	CreatedBy() *atc.UserInfo
 
 	LagerData() lager.Data
 	TracingAttrs() tracing.Attrs
@@ -228,7 +228,7 @@ type build struct {
 
 	isManuallyTriggered bool
 
-	createdBy *atc.Claims
+	createdBy *atc.UserInfo
 
 	rerunOf     int
 	rerunOfName string
@@ -366,20 +366,20 @@ func (b *build) HasPlan() bool                { return string(*b.publicPlan) != 
 func (b *build) IsNewerThanLastCheckOf(input Resource) bool {
 	return b.createTime.After(input.LastCheckEndTime())
 }
-func (b *build) StartTime() time.Time   { return b.startTime }
-func (b *build) EndTime() time.Time     { return b.endTime }
-func (b *build) ReapTime() time.Time    { return b.reapTime }
-func (b *build) Status() BuildStatus    { return b.status }
-func (b *build) IsScheduled() bool      { return b.scheduled }
-func (b *build) IsDrained() bool        { return b.drained }
-func (b *build) IsRunning() bool        { return !b.completed }
-func (b *build) IsAborted() bool        { return b.aborted }
-func (b *build) IsCompleted() bool      { return b.completed }
-func (b *build) InputsReady() bool      { return b.inputsReady }
-func (b *build) RerunOf() int           { return b.rerunOf }
-func (b *build) RerunOfName() string    { return b.rerunOfName }
-func (b *build) RerunNumber() int       { return b.rerunNumber }
-func (b *build) CreatedBy() *atc.Claims { return b.createdBy }
+func (b *build) StartTime() time.Time     { return b.startTime }
+func (b *build) EndTime() time.Time       { return b.endTime }
+func (b *build) ReapTime() time.Time      { return b.reapTime }
+func (b *build) Status() BuildStatus      { return b.status }
+func (b *build) IsScheduled() bool        { return b.scheduled }
+func (b *build) IsDrained() bool          { return b.drained }
+func (b *build) IsRunning() bool          { return !b.completed }
+func (b *build) IsAborted() bool          { return b.aborted }
+func (b *build) IsCompleted() bool        { return b.completed }
+func (b *build) InputsReady() bool        { return b.inputsReady }
+func (b *build) RerunOf() int             { return b.rerunOf }
+func (b *build) RerunOfName() string      { return b.rerunOfName }
+func (b *build) RerunNumber() int         { return b.rerunNumber }
+func (b *build) CreatedBy() *atc.UserInfo { return b.createdBy }
 
 func (b *build) Reload() (bool, error) {
 	row := buildsQuery.Where(sq.Eq{"b.id": b.id}).
@@ -1875,12 +1875,12 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	}
 
 	if createdBy.Valid {
-		var claims atc.Claims
-		err := json.Unmarshal([]byte(createdBy.String), &claims)
+		var userInfo atc.UserInfo
+		err := json.Unmarshal([]byte(createdBy.String), &userInfo)
 		if err != nil {
 			return err
 		}
-		b.createdBy = &claims
+		b.createdBy = &userInfo
 	}
 
 	return nil

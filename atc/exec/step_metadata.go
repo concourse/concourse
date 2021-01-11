@@ -17,7 +17,7 @@ type StepMetadata struct {
 	PipelineName         string
 	PipelineInstanceVars map[string]interface{}
 	ExternalURL          string
-	CreatedBy            *atc.Claims
+	CreatedBy            *atc.UserInfo
 }
 
 func (metadata StepMetadata) Env() []string {
@@ -65,12 +65,10 @@ func (metadata StepMetadata) Env() []string {
 	}
 
 	if metadata.CreatedBy != nil {
-		if metadata.CreatedBy.UserID != "" {
-			env = append(env, "BUILD_CREATED_BY="+metadata.CreatedBy.UserID)
-		} else if metadata.CreatedBy.UserName != "" {
-			env = append(env, "BUILD_CREATED_BY="+metadata.CreatedBy.UserName)
-		} else if metadata.CreatedBy.PreferredUsername != "" {
-			env = append(env, "BUILD_CREATED_BY="+metadata.CreatedBy.PreferredUsername)
+		env = append(env, "BUILD_CREATED_BY="+metadata.CreatedBy.PreferredUserId())
+		userJson, err := json.Marshal(metadata.CreatedBy)
+		if err == nil {
+			env = append(env, "BUILD_CREATED_BY_EX="+string(userJson))
 		}
 	}
 

@@ -23,7 +23,7 @@ var _ = Describe("Handler", func() {
 		fakeAccessorFactory *accessorfakes.FakeAccessFactory
 		fakeAuditor         *auditorfakes.FakeAuditor
 
-		createAccessError   error
+		createAccessError error
 
 		action      string
 		customRoles map[string]string
@@ -118,7 +118,7 @@ var _ = Describe("Handler", func() {
 		Context("when the request is authenticated", func() {
 			BeforeEach(func() {
 				fakeAccess.IsAuthenticatedReturns(true)
-				fakeAccess.ClaimsReturns(atc.Claims{
+				fakeAccess.ClaimsReturns(accessor.Claims{
 					UserName:  "some-user",
 					Connector: "some-connector",
 					Sub:       "some-sub",
@@ -143,7 +143,7 @@ var _ = Describe("Handler", func() {
 		Context("when the request is not authenticated", func() {
 			BeforeEach(func() {
 				fakeAccess.IsAuthenticatedReturns(false)
-				fakeAccess.ClaimsReturns(atc.Claims{})
+				fakeAccess.ClaimsReturns(accessor.Claims{})
 			})
 
 			It("audits the anonymous request", func() {
