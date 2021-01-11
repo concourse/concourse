@@ -54,7 +54,6 @@ func (v Vault) Get(secretPath string) (interface{}, *time.Time, bool, error) {
 	if v.LoggedIn != nil {
 		select {
 		case <-v.LoggedIn:
-			v.LoggedIn = nil
 		case <-time.After(v.LoginTimeout):
 			return nil, nil, false, VaultLoginTimeout{}
 		}
