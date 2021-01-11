@@ -114,7 +114,7 @@ func login(atcURL, username, password string) concourse.Client {
 		ClientID:     "client-id",
 		ClientSecret: "client-secret",
 		Endpoint:     oauth2.Endpoint{TokenURL: atcURL + "/sky/issuer/token"},
-		Scopes:       []string{"openid", "federated:id"},
+		Scopes:       []string{"openid", "profile", "federated:id"},
 	}
 
 	ctx := context.Background()

@@ -12,7 +12,7 @@ import (
 	s "github.com/concourse/concourse/skymarshal/storage"
 	"github.com/concourse/dex/server"
 	"github.com/concourse/dex/storage"
-	"github.com/gobuffalo/packr"
+	"github.com/markbates/pkger"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -99,7 +99,7 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 		HostURL: config.WebHostURL,
 		Theme:   "concourse",
 		Issuer:  "Concourse",
-		Dir:     packr.NewBox("../web"),
+		Dir:     pkger.Include("/skymarshal/web"),
 	}
 
 	return server.Config{
@@ -111,6 +111,7 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 		Storage:                config.Storage,
 		Web:                    webConfig,
 		Logger:                 logger.New(config.Logger),
+		HashClientSecret:       true,
 	}, nil
 }
 

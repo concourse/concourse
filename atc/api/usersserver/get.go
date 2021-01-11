@@ -18,9 +18,9 @@ func (s *Server) GetUser(w http.ResponseWriter, r *http.Request) {
 
 	user := atc.UserInfo{
 		Sub:      claims.Sub,
-		Name:     claims.Name,
+		Name:     claims.UserName,
 		UserId:   claims.UserID,
-		UserName: claims.UserName,
+		UserName: claims.PreferredUsername,
 		Email:    claims.Email,
 		IsAdmin:  acc.IsAdmin(),
 		IsSystem: acc.IsSystem(),
