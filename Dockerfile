@@ -1,8 +1,8 @@
 # NOTE: this Dockerfile is purely for local development! it is *not* used for
 # the official 'concourse/concourse' image.
 
-ARG BASE_IMAGE=concourse/dev
-FROM ${BASE_IMAGE} AS base
+ARG base_image=concourse/dev
+FROM ${base_image} AS base
 
 # generate keys (with 1024 bits just so they generate faster)
 RUN mkdir -p /concourse-keys
