@@ -13,6 +13,7 @@ module Routes exposing
     , jobRoute
     , parsePath
     , pipelineRoute
+    , resourceRoute
     , searchQueryParams
     , showHighlight
     , toString
@@ -320,6 +321,19 @@ jobRoute j =
             , pipelineName = j.pipelineName
             , pipelineInstanceVars = j.pipelineInstanceVars
             , jobName = j.name
+            }
+        , page = Nothing
+        }
+
+
+resourceRoute : Concourse.Resource -> Route
+resourceRoute r =
+    Resource
+        { id =
+            { teamName = r.teamName
+            , pipelineName = r.pipelineName
+            , pipelineInstanceVars = r.pipelineInstanceVars
+            , resourceName = r.name
             }
         , page = Nothing
         }
