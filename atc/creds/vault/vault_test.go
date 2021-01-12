@@ -36,12 +36,8 @@ var _ = Describe("Vault", func() {
 	var v *vault.Vault
 	var variables vars.Variables
 	var msr *MockSecretReader
-<<<<<<< HEAD
 	var varFoo vars.VariableDefinition
-=======
-	var varFoo vars.Reference
 	var loggedInCh chan struct{}
->>>>>>> 178b8cc... address review comments: make vault NewSecrets non-blocking.
 
 	BeforeEach(func() {
 
@@ -101,18 +97,7 @@ var _ = Describe("Vault", func() {
 				Expect(err).To(BeNil())
 			})
 
-<<<<<<< HEAD
-			It("should find team secrets in the configured place", func() {
-				value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "baz"}})
-				Expect(value).To(BeEquivalentTo("qux"))
-				Expect(found).To(BeTrue())
-				Expect(err).To(BeNil())
-			})
 
-			It("should find static secrets in the configured place", func() {
-				value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "global"}})
-				Expect(value).To(BeEquivalentTo("shared"))
-=======
 			It("should get secret from team", func() {
 				v.SecretReader = &MockSecretReader{&[]MockSecret{
 					{
@@ -124,7 +109,6 @@ var _ = Describe("Vault", func() {
 				}
 				value, found, err := variables.Get(varFoo)
 				Expect(value).To(BeEquivalentTo("bar"))
->>>>>>> 178b8cc... address review comments: make vault NewSecrets non-blocking.
 				Expect(found).To(BeTrue())
 				Expect(err).To(BeNil())
 			})
@@ -209,14 +193,14 @@ var _ = Describe("Vault", func() {
 				})
 
 				It("should find team secrets in the configured place", func() {
-					value, found, err := variables.Get(vars.Reference{Path: "baz"})
+					value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "baz"}})
 					Expect(value).To(BeEquivalentTo("qux"))
 					Expect(found).To(BeTrue())
 					Expect(err).To(BeNil())
 				})
 
 				It("should find static secrets in the configured place", func() {
-					value, found, err := variables.Get(vars.Reference{Path: "global"})
+					value, found, err := variables.Get(vars.VariableDefinition{Ref: vars.VariableReference{Path: "global"}})
 					Expect(value).To(BeEquivalentTo("shared"))
 					Expect(found).To(BeTrue())
 					Expect(err).To(BeNil())
