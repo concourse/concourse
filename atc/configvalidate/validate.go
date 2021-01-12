@@ -85,7 +85,11 @@ func validateGroups(c Config) ([]ConfigWarning, error) {
 			identifier = fmt.Sprintf("groups.%s", group.Name)
 		}
 
-		warning := ValidateIdentifier(group.Name, identifier)
+		warning, err := ValidateIdentifier(group.Name, identifier)
+		if err != nil {
+			errorMessages = append(errorMessages,
+				fmt.Sprintf("%s: %s", identifier, err.Error()))
+		}
 		if warning != nil {
 			warnings = append(warnings, *warning)
 		}
@@ -158,7 +162,11 @@ func validateResources(c Config) ([]ConfigWarning, error) {
 			identifier = fmt.Sprintf("resources.%s", resource.Name)
 		}
 
-		warning := ValidateIdentifier(resource.Name, identifier)
+		warning, err := ValidateIdentifier(resource.Name, identifier)
+		if err != nil {
+			errorMessages = append(errorMessages,
+				fmt.Sprintf("%s: %s", identifier, err.Error()))
+		}
 		if warning != nil {
 			warnings = append(warnings, *warning)
 		}
@@ -200,7 +208,11 @@ func validateResourceTypes(c Config) ([]ConfigWarning, error) {
 			identifier = fmt.Sprintf("resource_types.%s", resourceType.Name)
 		}
 
-		warning := ValidateIdentifier(resourceType.Name, identifier)
+		warning, err := ValidateIdentifier(resourceType.Name, identifier)
+		if err != nil {
+			errorMessages = append(errorMessages,
+				fmt.Sprintf("%s: %s", identifier, err.Error()))
+		}
 		if warning != nil {
 			warnings = append(warnings, *warning)
 		}
@@ -278,7 +290,11 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 			identifier = fmt.Sprintf("jobs.%s", job.Name)
 		}
 
-		warning := ValidateIdentifier(job.Name, identifier)
+		warning, err := ValidateIdentifier(job.Name, identifier)
+		if err != nil {
+			errorMessages = append(errorMessages,
+				fmt.Sprintf("%s: %s", identifier, err.Error()))
+		}
 		if warning != nil {
 			warnings = append(warnings, *warning)
 		}
@@ -371,7 +387,11 @@ func validateVarSources(c Config) ([]ConfigWarning, error) {
 			identifier = fmt.Sprintf("var_sources.%s", cm.Name)
 		}
 
-		warning := ValidateIdentifier(cm.Name, identifier)
+		warning, err := ValidateIdentifier(cm.Name, identifier)
+		if err != nil {
+			errorMessages = append(errorMessages,
+				fmt.Sprintf("%s: %s", identifier, err.Error()))
+		}
 		if warning != nil {
 			warnings = append(warnings, *warning)
 		}

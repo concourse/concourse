@@ -64,11 +64,10 @@ func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 	validator.pushContext(fmt.Sprintf(".task(%s)", plan.Name))
 	defer validator.popContext()
 
-	if plan.Name == "" {
-		validator.recordError("identifier required")
+	warning, err := ValidateIdentifier(plan.Name, validator.context...)
+	if err != nil {
+		validator.recordError(err.Error())
 	}
-
-	warning := ValidateIdentifier(plan.Name, validator.context...)
 	if warning != nil {
 		validator.recordWarning(*warning)
 	}
@@ -111,7 +110,10 @@ func (validator *StepValidator) VisitGet(step *GetStep) error {
 	validator.pushContext(fmt.Sprintf(".get(%s)", step.Name))
 	defer validator.popContext()
 
-	warning := ValidateIdentifier(step.Name, validator.context...)
+	warning, err := ValidateIdentifier(step.Name, validator.context...)
+	if err != nil {
+		validator.recordError(err.Error())
+	}
 	if warning != nil {
 		validator.recordWarning(*warning)
 	}
@@ -169,7 +171,10 @@ func (validator *StepValidator) VisitPut(step *PutStep) error {
 	validator.pushContext(".put(%s)", step.Name)
 	defer validator.popContext()
 
-	warning := ValidateIdentifier(step.Name, validator.context...)
+	warning, err := ValidateIdentifier(step.Name, validator.context...)
+	if err != nil {
+		validator.recordError(err.Error())
+	}
 	if warning != nil {
 		validator.recordWarning(*warning)
 	}
@@ -188,11 +193,10 @@ func (validator *StepValidator) VisitSetPipeline(step *SetPipelineStep) error {
 	validator.pushContext(".set_pipeline(%s)", step.Name)
 	defer validator.popContext()
 
-	if step.Name == "" {
-		validator.recordError("pipeline name required")
+	warning, err := ValidateIdentifier(step.Name, validator.context...)
+	if err != nil {
+		validator.recordError(err.Error())
 	}
-
-	warning := ValidateIdentifier(step.Name, validator.context...)
 	if warning != nil {
 		validator.recordWarning(*warning)
 	}
@@ -208,11 +212,10 @@ func (validator *StepValidator) VisitLoadVar(step *LoadVarStep) error {
 	validator.pushContext(".load_var(%s)", step.Name)
 	defer validator.popContext()
 
-	if step.Name == "" {
-		validator.recordError("identifier required")
+	warning, err := ValidateIdentifier(step.Name, validator.context...)
+	if err != nil {
+		validator.recordError(err.Error())
 	}
-
-	warning := ValidateIdentifier(step.Name, validator.context...)
 	if warning != nil {
 		validator.recordWarning(*warning)
 	}

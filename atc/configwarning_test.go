@@ -11,8 +11,9 @@ var _ = Describe("ValidateIdentifier", func() {
 	type testCase struct {
 		description string
 		identifier  string
-		message     string
+		warningMsg  string
 		warning     bool
+		errorMsg    string
 	}
 
 	for _, test := range []testCase{
@@ -34,38 +35,43 @@ var _ = Describe("ValidateIdentifier", func() {
 		{
 			description: "starts with a number",
 			identifier:  "1something",
-			message:     "must start with a lowercase letter",
+			warningMsg:  "must start with a lowercase letter",
 			warning:     true,
 		},
 		{
 			description: "starts with hyphen",
 			identifier:  "-something",
-			message:     "must start with a lowercase letter",
+			warningMsg:  "must start with a lowercase letter",
 			warning:     true,
 		},
 		{
 			description: "starts with period",
 			identifier:  ".something",
-			message:     "must start with a lowercase letter",
+			warningMsg:  "must start with a lowercase letter",
 			warning:     true,
 		},
 		{
 			description: "starts with an uppercase letter",
 			identifier:  "Something",
-			message:     "must start with a lowercase letter",
+			warningMsg:  "must start with a lowercase letter",
 			warning:     true,
 		},
 		{
 			description: "contains a space",
 			identifier:  "some thing",
-			message:     "illegal character ' '",
+			warningMsg:  "illegal character ' '",
 			warning:     true,
 		},
 		{
 			description: "contains an uppercase letter",
 			identifier:  "someThing",
-			message:     "illegal character 'T'",
+			warningMsg:  "illegal character 'T'",
 			warning:     true,
+		},
+		{
+			description: "is an empty string",
+			identifier:  "",
+			errorMsg:    "identifier cannot be an empty string",
 		},
 	} {
 		test := test
@@ -78,12 +84,15 @@ var _ = Describe("ValidateIdentifier", func() {
 				it = "runs without warning"
 			}
 			It(it, func() {
-				warning := atc.ValidateIdentifier(test.identifier)
+				warning, err := atc.ValidateIdentifier(test.identifier)
 				if test.warning {
 					Expect(warning).NotTo(BeNil())
-					Expect(warning.Message).To(ContainSubstring(test.message))
+					Expect(warning.Message).To(ContainSubstring(test.warningMsg))
 				} else {
 					Expect(warning).To(BeNil())
+					if test.errorMsg != "" {
+						Expect(err).To(MatchError(test.errorMsg))
+					}
 				}
 			})
 		})
@@ -92,7 +101,7 @@ var _ = Describe("ValidateIdentifier", func() {
 	Describe("ValidateIdentifier with context", func() {
 		Context("when an identifier is invalid", func() {
 			It("returns an error with context", func() {
-				warning := atc.ValidateIdentifier("_something", "pipeline")
+				warning, _ := atc.ValidateIdentifier("_something", "pipeline")
 				Expect(warning).NotTo(BeNil())
 				Expect(warning.Message).To(ContainSubstring("'_something' is not a valid identifier"))
 			})

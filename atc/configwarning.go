@@ -1,6 +1,7 @@
 package atc
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -15,7 +16,12 @@ var validIdentifiers = regexp.MustCompile(`^[\p{Ll}\p{Lt}\p{Lm}\p{Lo}][\p{Ll}\p{
 var startsWithLetter = regexp.MustCompile(`^[^\p{Ll}\p{Lt}\p{Lm}\p{Lo}]`)
 var invalidCharacter = regexp.MustCompile(`([^\p{Ll}\p{Lt}\p{Lm}\p{Lo}\d\-_.])`)
 
-func ValidateIdentifier(identifier string, context ...string) *ConfigWarning {
+func ValidateIdentifier(identifier string, context ...string) (*ConfigWarning, error) {
+	var err error
+	if identifier == "" {
+		return nil, errors.New("identifier cannot be an empty string")
+	}
+
 	if identifier != "" && !validIdentifiers.MatchString(identifier) {
 		var reason string
 		if startsWithLetter.MatchString(identifier) {
@@ -26,7 +32,7 @@ func ValidateIdentifier(identifier string, context ...string) *ConfigWarning {
 		return &ConfigWarning{
 			Type:    "invalid_identifier",
 			Message: fmt.Sprintf("%s: %s", strings.Join(context, ""), fmt.Sprintf("'%s' is not a valid identifier: %s", identifier, reason)),
-		}
+		}, err
 	}
-	return nil
+	return nil, err
 }
