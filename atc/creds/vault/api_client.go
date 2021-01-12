@@ -20,10 +20,11 @@ import (
 type APIClient struct {
 	logger lager.Logger
 
-	apiURL     string
-	namespace  string
-	tlsConfig  TLSConfig
-	authConfig AuthConfig
+	apiURL       string
+	namespace    string
+	tlsConfig    TLSConfig
+	authConfig   AuthConfig
+	queryTimeout time.Duration
 
 	clientValue *atomic.Value
 
@@ -31,14 +32,15 @@ type APIClient struct {
 }
 
 // NewAPIClient with the associated authorization config and underlying vault client.
-func NewAPIClient(logger lager.Logger, apiURL string, tlsConfig TLSConfig, authConfig AuthConfig, namespace string) (*APIClient, error) {
+func NewAPIClient(logger lager.Logger, apiURL string, tlsConfig TLSConfig, authConfig AuthConfig, namespace string, queryTimeout time.Duration) (*APIClient, error) {
 	ac := &APIClient{
 		logger: logger,
 
-		apiURL:     apiURL,
-		namespace:  namespace,
-		tlsConfig:  tlsConfig,
-		authConfig: authConfig,
+		apiURL:       apiURL,
+		namespace:    namespace,
+		tlsConfig:    tlsConfig,
+		authConfig:   authConfig,
+		queryTimeout: queryTimeout,
 
 		clientValue: &atomic.Value{},
 
@@ -177,6 +179,9 @@ func (ac *APIClient) setClient(client *vaultapi.Client) {
 
 func (ac *APIClient) baseClient() (*vaultapi.Client, error) {
 	config := vaultapi.DefaultConfig()
+	if ac.queryTimeout > 0 {
+		config.Timeout = ac.queryTimeout
+	}
 
 	err := ac.configureTLS(config.HttpClient.Transport.(*http.Transport).TLSClientConfig)
 	if err != nil {

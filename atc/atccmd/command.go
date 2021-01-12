@@ -195,6 +195,7 @@ type RunCommand struct {
 		HijackGracePeriod      time.Duration `long:"hijack-grace-period" default:"5m" description:"Period after which hijacked containers will be garbage collected"`
 		FailedGracePeriod      time.Duration `long:"failed-grace-period" default:"120h" description:"Period after which failed containers will be garbage collected"`
 		CheckRecyclePeriod     time.Duration `long:"check-recycle-period" default:"1m" description:"Period after which to reap checks that are completed."`
+		VarSourceRecyclePeriod time.Duration `long:"var-source-recycle-period" default:"5m" description:"Period after which to reap var_sources that are not used."`
 	} `group:"Garbage Collection" namespace:"gc"`
 
 	BuildTrackerInterval time.Duration `long:"build-tracker-interval" default:"10s" description:"Interval on which to run build tracking."`
@@ -575,7 +576,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	cmd.varSourcePool = creds.NewVarSourcePool(
 		logger.Session("var-source-pool"),
 		cmd.CredentialManagement,
-		5*time.Minute,
+		cmd.GC.VarSourceRecyclePeriod,
 		1*time.Minute,
 		clock.NewClock(),
 	)
