@@ -69,19 +69,28 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pipelineName := rata.Param(r, "pipeline_name")
-	warning := atc.ValidateIdentifier(pipelineName, "pipeline")
+	warning, err := atc.ValidateIdentifier(pipelineName, "pipeline")
+	if err != nil {
+		session.Info("ignoring-invalid-config", lager.Data{"error": err.Error()})
+		s.handleBadRequest(w, err.Error())
+		return
+	}
 	if warning != nil {
 		warnings = append(warnings, *warning)
 	}
 
 	teamName := rata.Param(r, "team_name")
-	warning = atc.ValidateIdentifier(teamName, "team")
+	warning, err = atc.ValidateIdentifier(teamName, "team")
+	if err != nil {
+		session.Info("ignoring-invalid-config", lager.Data{"error": err.Error()})
+		s.handleBadRequest(w, err.Error())
+		return
+	}
 	if warning != nil {
 		warnings = append(warnings, *warning)
 	}
 
 	pipelineRef := atc.PipelineRef{Name: pipelineName}
-	var err error
 	pipelineRef.InstanceVars, err = atc.InstanceVarsFromQueryParams(r.URL.Query())
 	if atc.EnablePipelineInstances {
 		if err != nil {
