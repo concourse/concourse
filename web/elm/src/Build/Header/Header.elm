@@ -32,7 +32,6 @@ import Message.Subscription
         , Interval(..)
         , Subscription(..)
         )
-import RemoteData exposing (WebData)
 import Routes
 import SideBar.SideBar exposing (byPipelineId, lookupPipeline)
 import StrictEvents exposing (DeltaMode(..))
