@@ -2345,16 +2345,6 @@ all =
                                 >> Query.has
                                     [ style "cursor" "pointer" ]
                             )
-                , test "version headers have contents offset from the left" <|
-                    allVersions
-                        >> Query.each
-                            (Query.children []
-                                >> Query.first
-                                >> Query.children []
-                                >> Query.index 2
-                                >> Query.has
-                                    [ style "padding-left" "10px" ]
-                            )
                 ]
             , test "clicking pin icon on pin bar does nothing" <|
                 \_ ->

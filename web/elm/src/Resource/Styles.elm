@@ -216,7 +216,7 @@ versionHeader : Pinned.VersionPinState -> List (Html.Attribute msg)
 versionHeader pinnedState =
     [ style "background-color" Colors.sectionHeader
     , style "border" <| "1px solid " ++ borderColor pinnedState
-    , style "padding-left" "10px"
+    , style "padding" "5px 0 5px 10px"
     , style "cursor" "pointer"
     , style "flex-grow" "1"
     , style "display" "flex"
