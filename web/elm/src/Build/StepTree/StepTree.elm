@@ -761,7 +761,7 @@ viewStepWithBody model session depth step body =
 
                     Nothing ->
                         Html.text ""
-                , viewStepState step.state step.id
+                , viewStepState step.state (Just step.id)
                 ]
             ]
         , if step.initializationExpanded then
@@ -989,87 +989,24 @@ viewMetadata meta =
 
 viewStepStateWithoutTooltip : StepState -> Html Message
 viewStepStateWithoutTooltip state =
-    let
-        attributes =
-            [ style "position" "relative" ]
-    in
-    case state of
-        StepStateRunning ->
-            Spinner.spinner
-                { sizePx = 14
-                , margin = "7px"
-                }
-
-        StepStatePending ->
-            Icon.icon
-                { sizePx = 28
-                , image = Assets.PendingIcon
-                }
-                (attribute "data-step-state" "pending"
-                    :: Styles.stepStatusIcon
-                    ++ attributes
-                )
-
-        StepStateInterrupted ->
-            Icon.icon
-                { sizePx = 28
-                , image = Assets.InterruptedIcon
-                }
-                (attribute "data-step-state" "interrupted"
-                    :: Styles.stepStatusIcon
-                    ++ attributes
-                )
-
-        StepStateCancelled ->
-            Icon.icon
-                { sizePx = 28
-                , image = Assets.CancelledIcon
-                }
-                (attribute "data-step-state" "cancelled"
-                    :: Styles.stepStatusIcon
-                    ++ attributes
-                )
-
-        StepStateSucceeded ->
-            Icon.icon
-                { sizePx = 28
-                , image = Assets.SuccessCheckIcon
-                }
-                (attribute "data-step-state" "succeeded"
-                    :: Styles.stepStatusIcon
-                    ++ attributes
-                )
-
-        StepStateFailed ->
-            Icon.icon
-                { sizePx = 28
-                , image = Assets.FailureTimesIcon
-                }
-                (attribute "data-step-state" "failed"
-                    :: Styles.stepStatusIcon
-                    ++ attributes
-                )
-
-        StepStateErrored ->
-            Icon.icon
-                { sizePx = 28
-                , image = Assets.ExclamationTriangleIcon
-                }
-                (attribute "data-step-state" "errored"
-                    :: Styles.stepStatusIcon
-                    ++ attributes
-                )
+    viewStepState state Nothing
 
 
-viewStepState : StepState -> StepID -> Html Message
+viewStepState : StepState -> Maybe StepID -> Html Message
 viewStepState state stepID =
     let
         attributes =
-            [ onMouseLeave <| Hover Nothing
-            , onMouseEnter <| Hover (Just (StepState stepID))
-            , id <| toHtmlID <| StepState stepID
-            , style "position" "relative"
-            ]
+            style "position" "relative"
+                :: (case stepID of
+                        Just stepID_ ->
+                            [ onMouseEnter <| Hover (Just (StepState stepID_))
+                            , onMouseLeave <| Hover Nothing
+                            , id <| toHtmlID <| StepState stepID_
+                            ]
+
+                        Nothing ->
+                            []
+                   )
     in
     case state of
         StepStateRunning ->
