@@ -3,7 +3,7 @@ module JobTests exposing (all)
 import Application.Application as Application
 import Assets
 import Common exposing (defineHoverBehaviour, queryView)
-import Concourse exposing (Build)
+import Concourse exposing (Build, JsonValue(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination exposing (Direction(..), Paginated)
 import DashboardTests exposing (darkGrey, iconSelector, middleGrey)
@@ -23,6 +23,7 @@ import Message.Subscription as Subscription
         )
 import Message.TopLevelMessage as Msgs
 import RemoteData
+import Routes
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
@@ -323,17 +324,23 @@ all =
                 }
             , describe "archived pipelines" <|
                 let
-                    initWithArchivedPipeline =
-                        init { paused = False, disabled = False }
-                            >> Application.handleCallback
-                                (Callback.AllPipelinesFetched <|
-                                    Ok
-                                        [ Data.pipeline "team" 0
-                                            |> Data.withName "pipeline"
-                                            |> Data.withArchived True
-                                        ]
-                                )
+                    fetchArchivedPipeline =
+                        Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ Data.pipeline "team" 0
+                                        |> Data.withName "pipeline"
+                                        |> Data.withArchived True
+                                    , Data.pipeline "team" 1
+                                        |> Data.withName "pipeline"
+                                        |> Data.withInstanceVars (Dict.fromList [ ( "foo", JsonNumber 1 ) ])
+                                        |> Data.withArchived False
+                                    ]
+                            )
                             >> Tuple.first
+
+                    initWithArchivedPipeline =
+                        init { paused = False, disabled = False } >> fetchArchivedPipeline
                 in
                 [ test "play/pause button not displayed" <|
                     initWithArchivedPipeline
@@ -350,6 +357,20 @@ all =
                         >> queryView
                         >> Query.find [ class "build-header" ]
                         >> Query.hasNot [ class "trigger-build" ]
+                , test "pipeline lookup considers instance vars" <|
+                    let
+                        job =
+                            Data.job 1
+                                |> Data.withPipelineInstanceVars (Dict.fromList [ ( "foo", JsonNumber 1 ) ])
+                    in
+                    \_ ->
+                        Common.initRoute (Routes.jobRoute job)
+                            |> Application.handleCallback (JobFetched <| Ok job)
+                            |> Tuple.first
+                            |> fetchArchivedPipeline
+                            |> queryView
+                            |> Query.find [ class "build-header" ]
+                            |> Query.has [ class "trigger-build" ]
                 ]
             , test "page below top bar fills height without scrolling" <|
                 init { disabled = False, paused = False }

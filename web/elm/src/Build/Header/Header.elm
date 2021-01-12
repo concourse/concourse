@@ -32,8 +32,8 @@ import Message.Subscription
         , Interval(..)
         , Subscription(..)
         )
-import RemoteData exposing (WebData)
 import Routes
+import SideBar.SideBar exposing (byPipelineId, lookupPipeline)
 import StrictEvents exposing (DeltaMode(..))
 import Time
 
@@ -45,12 +45,23 @@ historyId =
 
 header : Session -> Model r -> Views.Header
 header session model =
+    let
+        archived =
+            case model.job of
+                Just jobID ->
+                    lookupPipeline (byPipelineId jobID) session
+                        |> Maybe.map .archived
+                        |> Maybe.withDefault False
+
+                Nothing ->
+                    False
+    in
     { leftWidgets =
         [ Views.Title model.name model.job
         , Views.Duration (duration session model)
         ]
     , rightWidgets =
-        if isPipelineArchived session.pipelines model.job then
+        if archived then
             []
 
         else
@@ -124,23 +135,6 @@ header session model =
     , backgroundColor = model.status
     , tabs = tabs model
     }
-
-
-isPipelineArchived :
-    WebData (List Concourse.Pipeline)
-    -> Maybe Concourse.JobIdentifier
-    -> Bool
-isPipelineArchived pipelines jobId =
-    case jobId of
-        Just { pipelineName, teamName } ->
-            pipelines
-                |> RemoteData.withDefault []
-                |> List.Extra.find (\p -> p.name == pipelineName && p.teamName == teamName)
-                |> Maybe.map .archived
-                |> Maybe.withDefault False
-
-        Nothing ->
-            False
 
 
 tabs : Model r -> List Views.BuildTab

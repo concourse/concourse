@@ -6,7 +6,7 @@ import Assets
 import Build.StepTree.Models as STModels
 import ColorValues
 import Common exposing (defineHoverBehaviour, queryView)
-import Concourse
+import Concourse exposing (JsonValue(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination exposing (Direction(..), Page, Pagination)
 import DashboardTests
@@ -1543,19 +1543,35 @@ all =
                                 )
                 , describe "when the pipeline is archived" <|
                     let
-                        setup =
-                            init
-                                |> givenResourceIsNotPinned
+                        regularPipelineResource =
+                            Data.resource Nothing
+
+                        instancedPipelineResource =
+                            regularPipelineResource
+                                |> Data.withPipelineInstanceVars (Dict.fromList [ ( "foo", JsonNumber 1 ) ])
+
+                        setup resource =
+                            Common.initRoute (Routes.resourceRoute resource)
+                                |> givenAResourceIsNotPinned resource
                                 |> givenVersionsWithoutPagination
                                 |> givenThePipelineIsArchived
                                 |> queryView
                     in
                     [ test "has no pin button" <|
                         \_ ->
-                            setup |> Query.hasNot pinButtonSelector
+                            setup regularPipelineResource
+                                |> Query.hasNot pinButtonSelector
                     , test "has no enable checkbox" <|
                         \_ ->
-                            setup |> Query.hasNot checkboxSelector
+                            setup regularPipelineResource
+                                |> Query.hasNot checkboxSelector
+                    , test "pipeline lookup considers instance vars" <|
+                        \_ ->
+                            setup instancedPipelineResource
+                                |> Expect.all
+                                    [ Query.has pinButtonSelector
+                                    , Query.has checkboxSelector
+                                    ]
                     ]
                 ]
             , test "resource refreshes on successful VersionUnpinned msg" <|
@@ -3533,16 +3549,21 @@ givenResourcePinnedWithComment =
     whenResourceLoadsWithPinnedComment >> Tuple.first
 
 
-givenResourceIsNotPinned : Application.Model -> Application.Model
-givenResourceIsNotPinned =
+givenAResourceIsNotPinned : Concourse.Resource -> Application.Model -> Application.Model
+givenAResourceIsNotPinned resource =
     Application.handleCallback
         (Callback.ResourceFetched <|
             Ok
-                (Data.resource Nothing
+                (resource
                     |> Data.withLastChecked (Just (Time.millisToPosix 0))
                 )
         )
         >> Tuple.first
+
+
+givenResourceIsNotPinned : Application.Model -> Application.Model
+givenResourceIsNotPinned =
+    givenAResourceIsNotPinned (Data.resource Nothing)
 
 
 givenResourceHasIcon : Application.Model -> Application.Model
@@ -3685,6 +3706,10 @@ givenThePipelineIsArchived =
                 [ Data.pipeline teamName 0
                     |> Data.withName pipelineName
                     |> Data.withArchived True
+                , Data.pipeline teamName 1
+                    |> Data.withName pipelineName
+                    |> Data.withInstanceVars (Dict.fromList [ ( "foo", JsonNumber 1 ) ])
+                    |> Data.withArchived False
                 ]
         )
         >> Tuple.first

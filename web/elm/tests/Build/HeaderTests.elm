@@ -6,9 +6,10 @@ import Build.Header.Models as Models
 import Build.Header.Views as Views
 import Build.StepTree.Models as STModels
 import Common
-import Concourse
+import Concourse exposing (JsonValue(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Data
+import Dict
 import Expect
 import HoverState
 import Keyboard
@@ -249,6 +250,28 @@ all =
                                 }
                             |> .rightWidgets
                             |> Expect.equal []
+                , test "pipeline lookup considers instance vars" <|
+                    \_ ->
+                        let
+                            instanceVars =
+                                Dict.fromList [ ( "foo", JsonString "bar" ) ]
+                        in
+                        { model | status = BuildStatusSucceeded, job = Just (jobId |> Data.withPipelineInstanceVars instanceVars) }
+                            |> Header.header
+                                { session
+                                    | pipelines =
+                                        RemoteData.Success
+                                            [ Data.pipeline jobId.teamName 0
+                                                |> Data.withName jobId.pipelineName
+                                                |> Data.withArchived True
+                                            , Data.pipeline jobId.teamName 1
+                                                |> Data.withName jobId.pipelineName
+                                                |> Data.withInstanceVars instanceVars
+                                                |> Data.withArchived False
+                                            ]
+                                }
+                            |> .rightWidgets
+                            |> Expect.notEqual []
                 ]
             ]
         , test "stops fetching history once current build appears" <|
