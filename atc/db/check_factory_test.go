@@ -340,7 +340,7 @@ var _ = Describe("CheckFactory", func() {
 
 		Context("when a put-only resource", func() {
 			for _, status := range []db.BuildStatus{db.BuildStatusAborted, db.BuildStatusErrored, db.BuildStatusFailed} {
-				Context(fmt.Sprintf("has %s", status), func() {
+				Context(fmt.Sprintf("has a build that %s", status), func() {
 					BeforeEach(func() {
 						By("creating a failed build for the put-only resource")
 						build, created, err = putOnlyResource.CreateBuild(context.TODO(), false, atc.Plan{})

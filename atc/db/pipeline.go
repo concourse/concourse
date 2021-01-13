@@ -451,7 +451,7 @@ func (p *pipeline) ResourceByID(id int) (Resource, bool, error) {
 }
 
 func (p *pipeline) resource(where map[string]interface{}) (Resource, bool, error) {
-	row := resourcesQuery.
+	row := activeResourcesQuery.
 		Where(where).
 		RunWith(p.conn).
 		QueryRow()
@@ -1207,7 +1207,7 @@ func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, 
 }
 
 func resources(pipelineID int, conn Conn, lockFactory lock.LockFactory) (Resources, error) {
-	rows, err := resourcesQuery.
+	rows, err := activeResourcesQuery.
 		Where(sq.Eq{"r.pipeline_id": pipelineID}).
 		OrderBy("r.name").
 		RunWith(conn).

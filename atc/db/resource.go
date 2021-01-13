@@ -73,37 +73,41 @@ type Resource interface {
 	Reload() (bool, error)
 }
 
-var resourcesQuery = psql.Select(
-	"r.id",
-	"r.name",
-	"r.type",
-	"r.config",
-	"rs.last_check_start_time",
-	"rs.last_check_end_time",
-	"r.pipeline_id",
-	"r.nonce",
-	"r.resource_config_id",
-	"r.resource_config_scope_id",
-	"p.name",
-	"p.instance_vars",
-	"t.id",
-	"t.name",
-	"rp.version",
-	"rp.comment_text",
-	"rp.config",
-	"b.id",
-	"b.name",
-	"b.status",
-	"b.start_time",
-	"b.end_time",
-).
-	From("resources r").
-	Join("pipelines p ON p.id = r.pipeline_id").
-	Join("teams t ON t.id = p.team_id").
-	LeftJoin("builds b ON b.id = r.build_id").
-	LeftJoin("resource_config_scopes rs ON r.resource_config_scope_id = rs.id").
-	LeftJoin("resource_pins rp ON rp.resource_id = r.id").
-	Where(sq.Eq{"r.active": true})
+var (
+	resourcesQuery = psql.Select(
+		"r.id",
+		"r.name",
+		"r.type",
+		"r.config",
+		"rs.last_check_start_time",
+		"rs.last_check_end_time",
+		"r.pipeline_id",
+		"r.nonce",
+		"r.resource_config_id",
+		"r.resource_config_scope_id",
+		"p.name",
+		"p.instance_vars",
+		"t.id",
+		"t.name",
+		"rp.version",
+		"rp.comment_text",
+		"rp.config",
+		"b.id",
+		"b.name",
+		"b.status",
+		"b.start_time",
+		"b.end_time",
+	).
+		From("resources r").
+		Join("pipelines p ON p.id = r.pipeline_id").
+		Join("teams t ON t.id = p.team_id").
+		LeftJoin("builds b ON b.id = r.build_id").
+		LeftJoin("resource_config_scopes rs ON r.resource_config_scope_id = rs.id").
+		LeftJoin("resource_pins rp ON rp.resource_id = r.id")
+
+	activeResourcesQuery = resourcesQuery.
+				Where(sq.Eq{"r.active": true})
+)
 
 type resource struct {
 	pipelineRef
@@ -180,7 +184,7 @@ func (r *resource) Icon() string                     { return r.config.Icon }
 func (r *resource) HasWebhook() bool { return r.WebhookToken() != "" }
 
 func (r *resource) Reload() (bool, error) {
-	row := resourcesQuery.Where(sq.Eq{"r.id": r.id}).
+	row := activeResourcesQuery.Where(sq.Eq{"r.id": r.id}).
 		RunWith(r.conn).
 		QueryRow()
 

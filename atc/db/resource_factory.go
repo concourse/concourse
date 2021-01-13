@@ -29,7 +29,7 @@ func NewResourceFactory(conn Conn, lockFactory lock.LockFactory) ResourceFactory
 
 func (r *resourceFactory) Resource(resourceID int) (Resource, bool, error) {
 	resource := newEmptyResource(r.conn, r.lockFactory)
-	row := resourcesQuery.
+	row := activeResourcesQuery.
 		Where(sq.Eq{"r.id": resourceID}).
 		RunWith(r.conn).
 		QueryRow()
@@ -46,7 +46,7 @@ func (r *resourceFactory) Resource(resourceID int) (Resource, bool, error) {
 }
 
 func (r *resourceFactory) VisibleResources(teamNames []string) ([]Resource, error) {
-	rows, err := resourcesQuery.
+	rows, err := activeResourcesQuery.
 		Where(sq.Or{
 			sq.Eq{"t.name": teamNames},
 			sq.And{
@@ -65,7 +65,7 @@ func (r *resourceFactory) VisibleResources(teamNames []string) ([]Resource, erro
 }
 
 func (r *resourceFactory) AllResources() ([]Resource, error) {
-	rows, err := resourcesQuery.
+	rows, err := activeResourcesQuery.
 		OrderBy("r.id ASC").
 		RunWith(r.conn).
 		Query()
