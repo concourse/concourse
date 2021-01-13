@@ -564,22 +564,37 @@ var _ = Describe("Teams API", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 
-				Context("when a warning occurs", func() {
+				Context("when the new name is an invalid identifier", func() {
+					Context("and is a string", func() {
+						BeforeEach(func() {
+							requestBody = `{"name":"_some-new-name"}`
+						})
 
-					BeforeEach(func() {
-						requestBody = `{"name":"_some-new-name"}`
-					})
-
-					It("returns a warning in the response body", func() {
-						Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+						It("returns a warning in the response body", func() {
+							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 							{
 								"warnings": [
-								{
-									"type": "invalid_identifier",
-									"message": "team: '_some-new-name' is not a valid identifier: must start with a lowercase letter"
-								}
+									{
+										"type": "invalid_identifier",
+										"message": "team: '_some-new-name' is not a valid identifier: must start with a lowercase letter"
+									}
 								]
 							}`))
+						})
+					})
+					Context("and is an empty string", func() {
+						BeforeEach(func() {
+							requestBody = `{"name":""}`
+						})
+
+						It("returns a warning in the response body", func() {
+							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							{
+								"errors": [
+										"identifier cannot be an empty string"
+								]
+							}`))
+						})
 					})
 				})
 			})

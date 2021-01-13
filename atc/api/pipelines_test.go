@@ -1614,12 +1614,13 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				Context("when the new name is an invalid identifier", func() {
-					BeforeEach(func() {
-						requestBody = `{"name":"_some-new-name"}`
-					})
+					Context("and is a string", func() {
+						BeforeEach(func() {
+							requestBody = `{"name":"_some-new-name"}`
+						})
 
-					It("returns a warning in the response body", func() {
-						Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+						It("returns a warning in the response body", func() {
+							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 							{
 								"warnings": [
 									{
@@ -1628,6 +1629,21 @@ var _ = Describe("Pipelines API", func() {
 									}
 								]
 							}`))
+						})
+					})
+					Context("and is an empty string", func() {
+						BeforeEach(func() {
+							requestBody = `{"name":""}`
+						})
+
+						It("returns a warning in the response body", func() {
+							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							{
+								"errors": [
+										"identifier cannot be an empty string"
+								]
+							}`))
+						})
 					})
 				})
 			})

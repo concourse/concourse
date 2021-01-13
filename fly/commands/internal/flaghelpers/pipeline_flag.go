@@ -28,7 +28,7 @@ func (flag *PipelineFlag) Validate() ([]concourse.ConfigWarning, error) {
 
 		warning, err := atc.ValidateIdentifier(flag.Name, "pipeline")
 		if err != nil {
-			return nil, errors.New("pipeline name cannot contain '/'")
+			return nil, err
 		}
 		if warning != nil {
 			warnings = append(warnings, concourse.ConfigWarning{
