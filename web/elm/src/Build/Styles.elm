@@ -1,7 +1,6 @@
 module Build.Styles exposing
     ( MetadataCellType(..)
     , abortButton
-    , acrossStepSubHeaderLabel
     , body
     , buttonTooltip
     , buttonTooltipArrow
@@ -12,6 +11,7 @@ module Build.Styles exposing
     , historyItem
     , imageSteps
     , initializationToggle
+    , keyValuePairHeaderLabel
     , metadataCell
     , metadataTable
     , retryTabList
@@ -23,7 +23,6 @@ module Build.Styles exposing
     )
 
 import Application.Styles
-import Build.Models exposing (StepHeaderType(..))
 import Build.StepTree.Models exposing (StepState(..))
 import Colors
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -221,8 +220,8 @@ stepHeaderLabel changed =
     ]
 
 
-acrossStepSubHeaderLabel : List (Html.Attribute msg)
-acrossStepSubHeaderLabel =
+keyValuePairHeaderLabel : List (Html.Attribute msg)
+keyValuePairHeaderLabel =
     [ style "line-height" "28px"
     , style "padding-left" "6px"
     ]
