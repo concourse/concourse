@@ -320,15 +320,15 @@ all =
                             >> expectCursorOn (Just 1)
                     , test "enter selects an item" <|
                         focusSearchBar
-                            >> withFilter "team:"
+                            >> withFilter "status: paused team:"
                             >> down
                             >> press Keyboard.Enter
                             >> Expect.all
                                 [ Tuple.first
                                     >> Common.queryView
                                     >> Query.find [ id SearchBar.searchInputId ]
-                                    >> Query.has [ value "team: team1" ]
-                                , Tuple.second >> Common.contains (Effects.ModifyUrl "/?search=team%3A%20team1")
+                                    >> Query.has [ value "status: paused team: team1" ]
+                                , Tuple.second >> Common.contains (Effects.ModifyUrl "/?search=status%3A%20paused%20team%3A%20team1")
                                 ]
                     , test "doesn't try to loop if the dropdown is empty (down)" <|
                         focusSearchBar
@@ -345,8 +345,26 @@ all =
                             >> findDropdown
                             >> Query.hasNot [ tag "li" ]
                     ]
+                , test "clicking a suggestion applies the filter" <|
+                    let
+                        mouseDownOn i =
+                            Query.findAll [ tag "li" ]
+                                >> Query.index i
+                                >> Event.simulate Event.mouseDown
+                    in
+                    focusSearchBar
+                        >> withFilter "status: paused t"
+                        >> findDropdown
+                        >> mouseDownOn 0
+                        >> Event.expect (Msgs.Update <| FilterMsg "status: paused team: ")
                 , describe "dropdown suggestions" <|
                     let
+                        manyTeams =
+                            List.range 1 11 |> List.map (\i -> "team" ++ String.fromInt i)
+
+                        defaultTeams =
+                            [ "team", "other-team", "yet-another-team" ]
+
                         suggestionsTest teams query expectation =
                             test ("test query \"" ++ query ++ "\" with teams " ++ String.join ", " teams) <|
                                 \_ ->
@@ -357,13 +375,17 @@ all =
                                         }
                                         |> expectation
 
-                        simpleSuggestionsTest query expected =
-                            suggestionsTest [ "team", "other-team", "yet-another-team" ]
+                        prefixedSuggestionsTest query prefix expected =
+                            let
+                                expectedSuggestions =
+                                    List.map (\s -> { prev = prefix, cur = s }) expected
+                            in
+                            suggestionsTest defaultTeams
                                 query
-                                (Expect.equal expected)
+                                (Expect.equal expectedSuggestions)
 
-                        manyTeams =
-                            List.range 1 11 |> List.map (\i -> "team" ++ String.fromInt i)
+                        simpleSuggestionsTest query expected =
+                            prefixedSuggestionsTest query "" expected
                     in
                     [ -- available filters
                       simpleSuggestionsTest "" [ "status: ", "team: " ]
@@ -403,9 +425,9 @@ all =
                     , simpleSuggestionsTest "foo" []
 
                     -- takes last filter
-                    , simpleSuggestionsTest "team: other-team " [ "status: ", "team: " ]
-                    , simpleSuggestionsTest "team: other-team s" [ "status: " ]
-                    , simpleSuggestionsTest "team: other-team -status:a" [ "status: aborted" ]
+                    , prefixedSuggestionsTest "team: other-team " "team: other-team " [ "status: ", "team: " ]
+                    , prefixedSuggestionsTest "team: other-team s" "team: other-team " [ "status: " ]
+                    , prefixedSuggestionsTest "team: other-team -status:a" "team: other-team " [ "status: aborted" ]
                     ]
                 ]
             ]

@@ -1,4 +1,4 @@
-module Dashboard.Filter exposing (filterTeams, suggestions)
+module Dashboard.Filter exposing (Suggestion, filterTeams, suggestions)
 
 import Concourse exposing (DatabaseID, hyphenNotation)
 import Concourse.PipelineStatus
@@ -23,6 +23,8 @@ import Parser
         , chompWhile
         , end
         , getChompedString
+        , getOffset
+        , getSource
         , keyword
         , loop
         , map
@@ -86,7 +88,7 @@ filterTeams { pipelineJobs, jobs, query, teams, pipelines, dashboardView, favori
                         List.filter (prefilter dashboardView favoritedPipelines) p
                     )
     in
-    parseFilters query |> List.foldr (runFilter jobs pipelineJobs) teamsToFilter
+    parseFilters query |> List.map Tuple.first |> List.foldr (runFilter jobs pipelineJobs) teamsToFilter
 
 
 prefilter : Routes.DashboardView -> Set DatabaseID -> Pipeline -> Bool
@@ -154,19 +156,26 @@ pipelineFilter pf jobs existingJobs pipeline =
                     False
 
 
-parseFilters : String -> List Filter
+parseFilters : String -> List ( Filter, String )
 parseFilters =
     run
         (loop [] <|
             \revFilters ->
                 oneOf
-                    [ end
-                        |> map (\_ -> Done (List.reverse revFilters))
-                    , filter
-                        |> map (\f -> Loop (f :: revFilters))
+                    [ end |> map (\_ -> Done (List.reverse revFilters))
+                    , filter |> captureChompedString |> map (\f -> Loop (f :: revFilters))
                     ]
         )
         >> Result.withDefault []
+
+
+captureChompedString : Parser a -> Parser ( a, String )
+captureChompedString parser =
+    succeed (\start val end source -> ( val, String.slice start end source ))
+        |= getOffset
+        |= parser
+        |= getOffset
+        |= getSource
 
 
 filter : Parser Filter
@@ -229,51 +238,78 @@ pipelineStatus =
         ]
 
 
+type alias Suggestion =
+    { prev : String
+    , cur : String
+    }
+
+
 suggestions :
     { a
         | query : String
         , teams : FetchResult (List Concourse.Team)
         , pipelines : Maybe (Dict String (List Pipeline))
     }
-    -> List String
+    -> List Suggestion
 suggestions { query, teams, pipelines } =
     let
-        lastFilter =
+        parsedFilters =
             parseFilters query
+
+        curFilter =
+            parsedFilters
                 |> List.Extra.last
+                |> Maybe.map Tuple.first
                 |> Maybe.map .groupFilter
                 |> Maybe.withDefault (Pipeline (FuzzyName ""))
+
+        prevFilters =
+            parsedFilters
+                |> List.map Tuple.second
+                |> List.reverse
+                |> List.drop 1
+                |> List.reverse
+
+        prev =
+            if List.isEmpty prevFilters then
+                ""
+
+            else
+                String.join "" prevFilters ++ " "
+
+        cur =
+            case curFilter of
+                Pipeline (FuzzyName s) ->
+                    filterTypes
+                        |> List.filter (String.startsWith s)
+                        |> List.map (\v -> v ++ ": ")
+
+                Pipeline (Status sf) ->
+                    case sf of
+                        IncompleteStatus status ->
+                            [ "paused", "pending", "failed", "errored", "aborted", "running", "succeeded" ]
+                                |> List.filter (String.startsWith status)
+                                |> List.map (\v -> "status: " ++ v)
+
+                        _ ->
+                            []
+
+                Team team ->
+                    Set.union
+                        (teams
+                            |> FetchResult.withDefault []
+                            |> List.map .name
+                            |> Set.fromList
+                        )
+                        (pipelines
+                            |> Maybe.withDefault Dict.empty
+                            |> Dict.keys
+                            |> Set.fromList
+                        )
+                        |> Set.toList
+                        |> List.filter (String.startsWith team)
+                        |> List.filter ((/=) team)
+                        |> List.take 10
+                        |> List.map (\v -> "team: " ++ v)
     in
-    case lastFilter of
-        Pipeline (FuzzyName s) ->
-            filterTypes
-                |> List.filter (String.startsWith s)
-                |> List.map (\v -> v ++ ": ")
-
-        Pipeline (Status sf) ->
-            case sf of
-                IncompleteStatus status ->
-                    [ "paused", "pending", "failed", "errored", "aborted", "running", "succeeded" ]
-                        |> List.filter (String.startsWith status)
-                        |> List.map (\v -> "status: " ++ v)
-
-                _ ->
-                    []
-
-        Team team ->
-            Set.union
-                (teams
-                    |> FetchResult.withDefault []
-                    |> List.map .name
-                    |> Set.fromList
-                )
-                (pipelines
-                    |> Maybe.withDefault Dict.empty
-                    |> Dict.keys
-                    |> Set.fromList
-                )
-                |> Set.toList
-                |> List.filter (String.startsWith team)
-                |> List.filter ((/=) team)
-                |> List.take 10
-                |> List.map (\v -> "team: " ++ v)
+    List.map (Suggestion prev) cur

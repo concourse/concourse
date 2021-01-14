@@ -154,10 +154,9 @@ handleDelivery delivery ( model, effects ) =
                             let
                                 selectedItem =
                                     options
-                                        |> Array.fromList
-                                        |> Array.get idx
-                                        |> Maybe.withDefault
-                                            model.query
+                                        |> List.Extra.getAt idx
+                                        |> Maybe.map (\{ prev, cur } -> prev ++ cur)
+                                        |> Maybe.withDefault model.query
                             in
                             ( { model
                                 | dropdown = Shown Nothing
@@ -350,15 +349,15 @@ viewDropdownItems { screenSize } ({ dropdown, query } as model) =
 
         Shown selectedIdx ->
             let
-                dropdownItem : Int -> String -> Html Message
-                dropdownItem idx text =
+                dropdownItem : Int -> Filter.Suggestion -> Html Message
+                dropdownItem idx { prev, cur } =
                     Html.li
-                        (onMouseDown (FilterMsg text)
+                        (onMouseDown (FilterMsg <| prev ++ cur)
                             :: Styles.dropdownItem
                                 (Just idx == selectedIdx)
                                 (String.length query > 0)
                         )
-                        [ Html.text text ]
+                        [ Html.text cur ]
             in
             [ Html.ul
                 (id "search-dropdown" :: Styles.dropdownContainer screenSize)
