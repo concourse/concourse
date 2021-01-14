@@ -107,15 +107,12 @@ tooltip model session =
             else
                 Just
                     { body =
-                        Html.div
-                            Tooltip.defaultStyle
-                            [ Html.text <|
-                                if List.isEmpty pinnedResources then
-                                    "no pinned resources"
+                        Html.text <|
+                            if List.isEmpty pinnedResources then
+                                "no pinned resources"
 
-                                else
-                                    "view pinned resources"
-                            ]
+                            else
+                                "view pinned resources"
                     , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
                     , arrow = Nothing
                     }

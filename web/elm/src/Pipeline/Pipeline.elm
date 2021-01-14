@@ -446,15 +446,12 @@ tooltip model session =
             in
             Just
                 { body =
-                    Html.div
-                        Tooltip.defaultStyle
-                        [ Html.text <|
-                            if isFavorited then
-                                "unfavorite pipeline"
+                    Html.text <|
+                        if isFavorited then
+                            "unfavorite pipeline"
 
-                            else
-                                "favorite pipeline"
-                        ]
+                        else
+                            "favorite pipeline"
                 , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
                 , arrow = Nothing
                 }
@@ -462,15 +459,12 @@ tooltip model session =
         HoverState.Tooltip (TopBarPauseToggle _) _ ->
             Just
                 { body =
-                    Html.div
-                        Tooltip.defaultStyle
-                        [ Html.text <|
-                            if isPaused model.pipeline then
-                                "unpause pipeline"
+                    Html.text <|
+                        if isPaused model.pipeline then
+                            "unpause pipeline"
 
-                            else
-                                "pause pipeline"
-                        ]
+                        else
+                            "pause pipeline"
                 , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
                 , arrow = Nothing
                 }

@@ -393,9 +393,7 @@ tooltip top left =
 
 tooltipBody : List (Html.Attribute msg)
 tooltipBody =
-    [ style "background-color" Colors.tooltipBackground
-    , style "color" Colors.tooltipText
-    , style "padding-right" "10px"
+    [ style "padding-right" "10px"
     , style "font-size" "12px"
     , style "display" "flex"
     , style "align-items" "center"

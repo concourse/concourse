@@ -26,7 +26,6 @@ module Dashboard.Styles exposing
     , jobPreview
     , jobPreviewLink
     , jobPreviewTooltip
-    , jobsDisabledTooltip
     , legend
     , legendItem
     , legendSeparator
@@ -69,7 +68,6 @@ module Dashboard.Styles exposing
     , topBarContent
     , topCliIcon
     , visibilityToggle
-    , visibilityTooltip
     , welcomeCard
     , welcomeCardBody
     , welcomeCardTitle
@@ -937,31 +935,9 @@ visibilityToggle { public, isClickable, isHovered } =
     ]
 
 
-visibilityTooltip : List (Html.Attribute msg)
-visibilityTooltip =
-    [ style "background-color" Colors.tooltipBackground
-    , style "color" Colors.tooltipText
-    , style "white-space" "nowrap"
-    , style "padding" "2.5px"
-    ]
-
-
-jobsDisabledTooltip : List (Html.Attribute msg)
-jobsDisabledTooltip =
-    [ style "background-color" Colors.tooltipBackground
-    , style "color" Colors.tooltipText
-    , style "padding" "2.5px"
-    ]
-
-
 cardTooltip : List (Html.Attribute msg)
 cardTooltip =
-    [ style "position" "absolute"
-    , style "left" "100%"
-    , style "padding" "6px 12px 6px 6px"
-    , style "background-color" "#000"
-    , style "font-size" "13px"
-    , style "white-space" "nowrap"
+    [ style "padding" "6px 12px 6px 6px"
     ]
 
 

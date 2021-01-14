@@ -13,7 +13,6 @@ module SideBar.SideBar exposing
     )
 
 import Assets
-import Colors
 import Concourse
 import EffectTransformer exposing (ET)
 import HoverState
@@ -247,7 +246,7 @@ tooltip { hovered } =
                         Tooltip.Right (Styles.tooltipArrowSize - Styles.tooltipOffset)
                     , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
                     }
-                , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.tooltipBackground }
+                , arrow = Just Styles.tooltipArrowSize
                 }
 
         HoverState.Tooltip (SideBarPipeline _ pipelineID) _ ->
@@ -262,7 +261,7 @@ tooltip { hovered } =
                                 - Styles.tooltipOffset
                     , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
                     }
-                , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.tooltipBackground }
+                , arrow = Just Styles.tooltipArrowSize
                 }
 
         HoverState.Tooltip (SideBarInstanceGroup _ _ name) _ ->
@@ -272,7 +271,7 @@ tooltip { hovered } =
                     { direction = Tooltip.Right <| Styles.tooltipArrowSize - Styles.tooltipOffset
                     , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
                     }
-                , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.tooltipBackground }
+                , arrow = Just Styles.tooltipArrowSize
                 }
 
         _ ->

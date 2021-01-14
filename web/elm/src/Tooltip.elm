@@ -3,7 +3,6 @@ module Tooltip exposing
     , Direction(..)
     , Model
     , Tooltip
-    , defaultStyle
     , handleCallback
     , handleDelivery
     , hoverAttrs
@@ -27,13 +26,6 @@ type alias Model m =
     { m | hovered : HoverState.HoverState }
 
 
-type alias Tooltip =
-    { body : Html Message
-    , arrow : Maybe Arrow
-    , attachPosition : AttachPosition
-    }
-
-
 
 -- Many tooltips, especially in crowded parts of the UI, have an extra
 -- triangular piece sticking out that points to the tooltip's target. Online
@@ -41,9 +33,10 @@ type alias Tooltip =
 -- predominating.
 
 
-type alias Arrow =
-    { size : Float
-    , color : String
+type alias Tooltip =
+    { body : Html Message
+    , arrow : Maybe Float
+    , attachPosition : AttachPosition
     }
 
 
@@ -192,8 +185,12 @@ handleCallback callback ( model, effects ) =
             ( model, effects )
 
 
-arrowView : AttachPosition -> Browser.Dom.Element -> Arrow -> Html Message
-arrowView { direction } target { size, color } =
+arrowView : AttachPosition -> Browser.Dom.Element -> Float -> Html Message
+arrowView { direction } target size =
+    let
+        color =
+            Colors.tooltipBackground
+    in
     Html.div
         ((case direction of
             Top ->
@@ -231,7 +228,7 @@ view { hovered } { body, attachPosition, arrow } =
             Html.div
                 (id "tooltips" :: style "pointer-events" "none" :: position attachPosition target)
                 [ Maybe.map (arrowView attachPosition target) a |> Maybe.withDefault (Html.text "")
-                , body
+                , Html.div tooltipStyle [ body ]
                 ]
 
         _ ->
@@ -258,8 +255,8 @@ handleDelivery session delivery ( model, effects ) =
             ( model, effects )
 
 
-defaultStyle : List (Html.Attribute msg)
-defaultStyle =
+tooltipStyle : List (Html.Attribute msg)
+tooltipStyle =
     [ style "background-color" Colors.tooltipBackground
     , style "color" Colors.tooltipText
     , style "padding" "2.5px"
