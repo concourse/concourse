@@ -8,7 +8,7 @@ import Build.Models as Models
 import Build.StepTree.Models as STModels
 import Char
 import Colors
-import Common exposing (defineHoverBehaviour, isColorWithStripes)
+import Common exposing (defineHoverBehaviour, hoverOver, isColorWithStripes)
 import Concourse exposing (BuildPrepStatus(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination exposing (Direction(..))
@@ -3884,51 +3884,3 @@ receiveEvent :
     -> ( Application.Model, List Effects.Effect )
 receiveEvent envelope =
     Application.update (Msgs.DeliveryReceived <| EventsReceived <| Ok [ envelope ])
-
-
-hoverOver domID =
-    Application.update
-        (Msgs.Update (Message.Message.Hover (Just domID)))
-        >> Tuple.first
-        >> Application.handleDelivery
-            (ClockTicked OneSecond <|
-                Time.millisToPosix 1
-            )
-        >> Tuple.first
-        >> Application.handleCallback
-            (Callback.GotViewport domID <|
-                Ok
-                    { scene =
-                        { width = 1
-                        , height = 0
-                        }
-                    , viewport =
-                        { width = 1
-                        , height = 0
-                        , x = 0
-                        , y = 0
-                        }
-                    }
-            )
-        >> Tuple.first
-        >> Application.handleCallback
-            (Callback.GotElement <|
-                Ok
-                    { scene =
-                        { width = 0
-                        , height = 0
-                        }
-                    , viewport =
-                        { width = 0
-                        , height = 0
-                        , x = 0
-                        , y = 0
-                        }
-                    , element =
-                        { x = 0
-                        , y = 0
-                        , width = 1
-                        , height = 1
-                        }
-                    }
-            )

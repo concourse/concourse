@@ -4,7 +4,7 @@ import Application.Application as Application
 import Assets
 import Char
 import ColorValues
-import Common exposing (defineHoverBehaviour, queryView)
+import Common exposing (defineHoverBehaviour, hoverOver, queryView)
 import Concourse exposing (JsonValue(..))
 import Dashboard.SearchBar as SearchBar
 import DashboardTests exposing (iconSelector)
@@ -21,6 +21,7 @@ import Message.Message as Msgs
 import Message.Subscription exposing (Delivery(..))
 import Message.TopLevelMessage as ApplicationMsgs
 import Routes
+import Set
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -360,6 +361,80 @@ all =
                     Query.find [ id "login-container" ]
                         >> Query.has
                             [ style "border-left" <| "1px solid " ++ borderGrey ]
+                ]
+            , context "when hovering over the pinned icon"
+                (hoverOver Msgs.TopBarPinIcon >> Tuple.first)
+              <|
+                let
+                    testWithPinnedVersion version tooltipText =
+                        Application.handleCallback
+                            (Callback.ResourcesFetched <|
+                                Ok
+                                    [ Data.resource version ]
+                            )
+                            >> Tuple.first
+                            >> queryView
+                            >> Query.find [ id "tooltips" ]
+                            >> Query.has [ text tooltipText ]
+                in
+                [ it "shows correct text when there's resources pinned" <|
+                    testWithPinnedVersion (Just "v1")
+                        "view pinned resources"
+                , it "shows correct text when there's no resources pinned" <|
+                    testWithPinnedVersion Nothing
+                        "no pinned resources"
+                ]
+            , context "when hovering over the favorited icon"
+                (hoverOver (Msgs.TopBarFavoritedIcon 0) >> Tuple.first)
+              <|
+                let
+                    testWithFavoritedPipelines ids tooltipText =
+                        Application.handleDelivery
+                            (FavoritedPipelinesReceived <|
+                                Ok ids
+                            )
+                            >> Tuple.first
+                            >> Application.handleCallback
+                                (Callback.PipelineFetched <|
+                                    Ok <|
+                                        (Data.pipeline "t" 0 |> Data.withName "p")
+                                )
+                            >> Tuple.first
+                            >> queryView
+                            >> Query.find [ id "tooltips" ]
+                            >> Query.has [ text tooltipText ]
+                in
+                [ it "shows correct text when the pipeline is not favorited" <|
+                    testWithFavoritedPipelines Set.empty
+                        "favorite pipeline"
+                , it "shows correct text when the pipeline is favorited" <|
+                    testWithFavoritedPipelines (Set.singleton 0)
+                        "unfavorite pipeline"
+                ]
+            , context "when hovering over the pause toggle icon"
+                (hoverOver (Msgs.TopBarPauseToggle Data.shortPipelineId) >> Tuple.first)
+              <|
+                let
+                    testWithPaused paused tooltipText =
+                        Application.handleCallback
+                            (PipelineFetched <|
+                                Ok
+                                    (Data.pipeline "t" 0
+                                        |> Data.withName "p"
+                                        |> Data.withPaused paused
+                                    )
+                            )
+                            >> Tuple.first
+                            >> queryView
+                            >> Query.find [ id "tooltips" ]
+                            >> Query.has [ text tooltipText ]
+                in
+                [ it "shows correct text when the pipeline is not paused" <|
+                    testWithPaused False
+                        "pause pipeline"
+                , it "shows correct text when the pipeline is paused" <|
+                    testWithPaused True
+                        "unpause pipeline"
                 ]
             ]
         , rspecStyleDescribe

@@ -67,6 +67,7 @@ type DomID
     | PipelineCardInstanceVar PipelinesSection Concourse.DatabaseID String String
     | PipelineStatusIcon PipelinesSection Concourse.DatabaseID
     | PipelineCardPauseToggle PipelinesSection Concourse.PipelineIdentifier
+    | TopBarPinIcon
     | TopBarFavoritedIcon Concourse.DatabaseID
     | TopBarPauseToggle Concourse.PipelineIdentifier
     | VisibilityButton PipelinesSection Concourse.DatabaseID

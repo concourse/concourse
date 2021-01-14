@@ -756,6 +756,12 @@ toHtmlID domId =
         TopBarFavoritedIcon _ ->
             "top-bar-favorited-icon"
 
+        TopBarPauseToggle _ ->
+            "top-bar-pause-toggle"
+
+        TopBarPinIcon ->
+            "top-bar-pin-icon"
+
         _ ->
             ""
 

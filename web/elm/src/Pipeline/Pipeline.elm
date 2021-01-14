@@ -35,7 +35,7 @@ import Http
 import Keyboard
 import Login.Login as Login
 import Message.Callback exposing (Callback(..))
-import Message.Effects exposing (Effect(..))
+import Message.Effects exposing (Effect(..), toHtmlID)
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Message.Subscription
     exposing
@@ -391,7 +391,10 @@ view session model =
                 , TopBar.concourseLogo
                 , TopBar.breadcrumbs session route
                 , PinMenu.viewPinMenu session model
-                , Html.div (id "top-bar-favorited-icon" :: Styles.favoritedIcon)
+                , Html.div
+                    (id (toHtmlID <| TopBarFavoritedIcon <| getPipelineId model.pipeline)
+                        :: Styles.favoritedIcon
+                    )
                     [ FavoritedIcon.view
                         { isHovered = HoverState.isHovered (TopBarFavoritedIcon <| getPipelineId model.pipeline) session.hovered
                         , isFavorited =
@@ -406,7 +409,7 @@ view session model =
 
                   else
                     Html.div
-                        (id "top-bar-pause-toggle" :: Styles.pauseToggle)
+                        (id (toHtmlID <| TopBarPauseToggle model.pipelineLocator) :: Styles.pauseToggle)
                         [ PauseToggle.view
                             { pipeline = model.pipelineLocator
                             , isPaused = isPaused model.pipeline
@@ -433,9 +436,47 @@ view session model =
         ]
 
 
-tooltip : Model -> a -> Maybe Tooltip.Tooltip
-tooltip _ _ =
-    Nothing
+tooltip : Model -> Session -> Maybe Tooltip.Tooltip
+tooltip model session =
+    case session.hovered of
+        HoverState.Tooltip (TopBarFavoritedIcon _) _ ->
+            let
+                isFavorited =
+                    Set.member (getPipelineId model.pipeline) session.favoritedPipelines
+            in
+            Just
+                { body =
+                    Html.div
+                        Tooltip.defaultStyle
+                        [ Html.text <|
+                            if isFavorited then
+                                "unfavorite pipeline"
+
+                            else
+                                "favorite pipeline"
+                        ]
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                , arrow = Nothing
+                }
+
+        HoverState.Tooltip (TopBarPauseToggle _) _ ->
+            Just
+                { body =
+                    Html.div
+                        Tooltip.defaultStyle
+                        [ Html.text <|
+                            if isPaused model.pipeline then
+                                "unpause pipeline"
+
+                            else
+                                "pause pipeline"
+                        ]
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                , arrow = Nothing
+                }
+
+        _ ->
+            PinMenu.tooltip model session
 
 
 getPipelineId : WebData Concourse.Pipeline -> Int

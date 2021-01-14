@@ -64,13 +64,7 @@ all =
                             Just [ Data.resource (Just "v1") |> Data.withName "test" ]
                     }
             in
-            [ test "is hoverable" <|
-                \_ ->
-                    model
-                        |> PinMenu.pinMenu { hovered = HoverState.NoHover }
-                        |> .hoverable
-                        |> Expect.equal True
-            , test "is clickable" <|
+            [ test "is clickable" <|
                 \_ ->
                     model
                         |> PinMenu.pinMenu { hovered = HoverState.NoHover }
@@ -107,13 +101,13 @@ all =
             , test "has bright icon when hovered" <|
                 \_ ->
                     model
-                        |> PinMenu.pinMenu { hovered = HoverState.Hovered PinIcon }
+                        |> PinMenu.pinMenu { hovered = HoverState.Hovered TopBarPinIcon }
                         |> .opacity
                         |> Expect.equal SS.Bright
             , test "clicking brightens background" <|
                 \_ ->
                     ( model, [] )
-                        |> PinMenu.update (Click PinIcon)
+                        |> PinMenu.update (Click TopBarPinIcon)
                         |> Tuple.first
                         |> PinMenu.pinMenu { hovered = HoverState.NoHover }
                         |> .background
@@ -121,7 +115,7 @@ all =
             , test "clicking brightens icon" <|
                 \_ ->
                     ( model, [] )
-                        |> PinMenu.update (Click PinIcon)
+                        |> PinMenu.update (Click TopBarPinIcon)
                         |> Tuple.first
                         |> PinMenu.pinMenu { hovered = HoverState.NoHover }
                         |> .opacity
@@ -129,7 +123,7 @@ all =
             , test "clicking reveals dropdown" <|
                 \_ ->
                     ( model, [] )
-                        |> PinMenu.update (Click PinIcon)
+                        |> PinMenu.update (Click TopBarPinIcon)
                         |> Tuple.first
                         |> PinMenu.pinMenu { hovered = HoverState.NoHover }
                         |> .dropdown
@@ -167,7 +161,7 @@ all =
             , test "clicking again dismisses dropdown" <|
                 \_ ->
                     ( { model | pinMenuExpanded = True }, [] )
-                        |> PinMenu.update (Click PinIcon)
+                        |> PinMenu.update (Click TopBarPinIcon)
                         |> Tuple.first
                         |> PinMenu.pinMenu { hovered = HoverState.NoHover }
                         |> .dropdown

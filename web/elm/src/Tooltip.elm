@@ -3,6 +3,7 @@ module Tooltip exposing
     , Direction(..)
     , Model
     , Tooltip
+    , defaultStyle
     , handleCallback
     , handleDelivery
     , hoverAttrs
@@ -10,6 +11,7 @@ module Tooltip exposing
     )
 
 import Browser.Dom
+import Colors
 import EffectTransformer exposing (ET)
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
@@ -59,6 +61,7 @@ type alias AttachPosition =
 type Direction
     = Top
     | Right Float
+    | Bottom
 
 
 type Alignment
@@ -126,6 +129,9 @@ position { direction, alignment } { element, viewport } =
                 ( Right _, End ) ->
                     [ style "bottom" <| String.fromFloat (viewport.height - target.y - target.height) ++ "px" ]
 
+                ( Bottom, _ ) ->
+                    [ style "top" <| String.fromFloat (target.y + target.height) ++ "px" ]
+
         horizontal =
             case ( direction, alignment ) of
                 ( Top, Start ) ->
@@ -139,8 +145,17 @@ position { direction, alignment } { element, viewport } =
 
                 ( Right offset, _ ) ->
                     [ style "left" <| String.fromFloat (target.x + target.width + offset) ++ "px" ]
+
+                ( Bottom, Start ) ->
+                    [ style "left" <| String.fromFloat target.x ++ "px" ]
+
+                ( Bottom, Middle width ) ->
+                    [ style "left" <| String.fromFloat (target.x + (target.width - width) / 2) ++ "px" ]
+
+                ( Bottom, End ) ->
+                    [ style "right" <| String.fromFloat (target.x + target.width) ++ "px" ]
     in
-    [ style "position" "fixed", style "z-index" "100" ] ++ vertical ++ horizontal
+    [ style "position" "fixed", style "z-index" "999" ] ++ vertical ++ horizontal
 
 
 handleCallback : Callback -> ET (Model m)
@@ -194,6 +209,13 @@ arrowView { direction } target { size, color } =
                 , style "border-bottom" <| String.fromFloat size ++ "px solid transparent"
                 , style "margin-left" <| "-" ++ String.fromFloat size ++ "px"
                 ]
+
+            Bottom ->
+                [ style "border-bottom" <| String.fromFloat size ++ "px solid " ++ color
+                , style "border-left" <| String.fromFloat size ++ "px solid transparent"
+                , style "border-right" <| String.fromFloat size ++ "px solid transparent"
+                , style "margin-top" <| "-" ++ String.fromFloat size ++ "px"
+                ]
          )
             ++ position
                 { direction = direction, alignment = Middle (2 * size) }
@@ -234,3 +256,11 @@ handleDelivery session delivery ( model, effects ) =
 
         _ ->
             ( model, effects )
+
+
+defaultStyle : List (Html.Attribute msg)
+defaultStyle =
+    [ style "background-color" Colors.tooltipBackground
+    , style "color" Colors.tooltipText
+    , style "padding" "2.5px"
+    ]
