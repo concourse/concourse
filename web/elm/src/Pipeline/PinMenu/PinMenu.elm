@@ -115,6 +115,7 @@ tooltip model session =
                                 "view pinned resources"
                     , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
                     , arrow = Nothing
+                    , containerAttrs = Nothing
                     }
 
         _ ->
@@ -251,8 +252,7 @@ getPinnedResources fetchedResources =
 viewView : View -> Html Message
 viewView view =
     Html.div
-        (([ ( id <| toHtmlID TopBarPinIcon, True )
-          , ( onMouseEnter <| Hover <| Just TopBarPinIcon, True )
+        (([ ( onMouseEnter <| Hover <| Just TopBarPinIcon, True )
           , ( onMouseLeave <| Hover Nothing, True )
           , ( onClick <| Click TopBarPinIcon, view.clickable )
           ]
@@ -262,7 +262,7 @@ viewView view =
             ++ Styles.pinIconBackground view
         )
         (Html.div
-            (Styles.pinIcon view)
+            (id (toHtmlID TopBarPinIcon) :: Styles.pinIcon view)
             []
             :: ([ Maybe.map viewBadge view.badge
                 , Maybe.map viewDropdown view.dropdown

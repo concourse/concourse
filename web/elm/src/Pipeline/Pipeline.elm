@@ -392,9 +392,7 @@ view session model =
                 , TopBar.breadcrumbs session route
                 , PinMenu.viewPinMenu session model
                 , Html.div
-                    (id (toHtmlID <| TopBarFavoritedIcon <| getPipelineId model.pipeline)
-                        :: Styles.favoritedIcon
-                    )
+                    Styles.favoritedIcon
                     [ FavoritedIcon.view
                         { isHovered = HoverState.isHovered (TopBarFavoritedIcon <| getPipelineId model.pipeline) session.hovered
                         , isFavorited =
@@ -409,7 +407,7 @@ view session model =
 
                   else
                     Html.div
-                        (id (toHtmlID <| TopBarPauseToggle model.pipelineLocator) :: Styles.pauseToggle)
+                        Styles.pauseToggle
                         [ PauseToggle.view
                             { pipeline = model.pipelineLocator
                             , isPaused = isPaused model.pipeline
@@ -454,6 +452,7 @@ tooltip model session =
                             "favorite pipeline"
                 , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
                 , arrow = Nothing
+                , containerAttrs = Nothing
                 }
 
         HoverState.Tooltip (TopBarPauseToggle _) _ ->
@@ -467,6 +466,7 @@ tooltip model session =
                             "pause pipeline"
                 , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
                 , arrow = Nothing
+                , containerAttrs = Nothing
                 }
 
         _ ->

@@ -3,6 +3,7 @@ module Tooltip exposing
     , Direction(..)
     , Model
     , Tooltip
+    , colors
     , handleCallback
     , handleDelivery
     , hoverAttrs
@@ -36,6 +37,7 @@ type alias Model m =
 type alias Tooltip =
     { body : Html Message
     , arrow : Maybe Float
+    , containerAttrs : Maybe (List (Html.Attribute Message))
     , attachPosition : AttachPosition
     }
 
@@ -146,9 +148,9 @@ position { direction, alignment } { element, viewport } =
                     [ style "left" <| String.fromFloat (target.x + (target.width - width) / 2) ++ "px" ]
 
                 ( Bottom, End ) ->
-                    [ style "right" <| String.fromFloat (target.x + target.width) ++ "px" ]
+                    [ style "right" <| String.fromFloat (viewport.width - target.x - target.width) ++ "px" ]
     in
-    [ style "position" "fixed", style "z-index" "999" ] ++ vertical ++ horizontal
+    [ style "position" "fixed", style "z-index" "10000" ] ++ vertical ++ horizontal
 
 
 handleCallback : Callback -> ET (Model m)
@@ -222,13 +224,17 @@ arrowView { direction } target size =
 
 
 view : Model m -> Tooltip -> Html Message
-view { hovered } { body, attachPosition, arrow } =
+view { hovered } { body, attachPosition, arrow, containerAttrs } =
     case ( hovered, arrow ) of
         ( HoverState.Tooltip _ target, a ) ->
+            let
+                attrs =
+                    Maybe.withDefault defaultTooltipStyle containerAttrs
+            in
             Html.div
                 (id "tooltips" :: style "pointer-events" "none" :: position attachPosition target)
                 [ Maybe.map (arrowView attachPosition target) a |> Maybe.withDefault (Html.text "")
-                , Html.div tooltipStyle [ body ]
+                , Html.div attrs [ body ]
                 ]
 
         _ ->
@@ -255,9 +261,13 @@ handleDelivery session delivery ( model, effects ) =
             ( model, effects )
 
 
-tooltipStyle : List (Html.Attribute msg)
-tooltipStyle =
+colors : List (Html.Attribute msg)
+colors =
     [ style "background-color" Colors.tooltipBackground
     , style "color" Colors.tooltipText
-    , style "padding" "2.5px"
     ]
+
+
+defaultTooltipStyle : List (Html.Attribute msg)
+defaultTooltipStyle =
+    style "padding" "2.5px" :: colors

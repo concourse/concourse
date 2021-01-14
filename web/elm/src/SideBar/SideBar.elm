@@ -240,18 +240,19 @@ tooltip { hovered } =
     case hovered of
         HoverState.Tooltip (SideBarTeam _ teamName) _ ->
             Just
-                { body = Html.div Styles.tooltipBody [ Html.text teamName ]
+                { body = Html.text teamName
                 , attachPosition =
                     { direction =
                         Tooltip.Right (Styles.tooltipArrowSize - Styles.tooltipOffset)
                     , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
                     }
                 , arrow = Just Styles.tooltipArrowSize
+                , containerAttrs = Just Styles.tooltipBody
                 }
 
         HoverState.Tooltip (SideBarPipeline _ pipelineID) _ ->
             Just
-                { body = Html.div Styles.tooltipBody [ Html.text pipelineID.pipelineName ]
+                { body = Html.text pipelineID.pipelineName
                 , attachPosition =
                     { direction =
                         Tooltip.Right <|
@@ -262,16 +263,18 @@ tooltip { hovered } =
                     , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
                     }
                 , arrow = Just Styles.tooltipArrowSize
+                , containerAttrs = Just Styles.tooltipBody
                 }
 
         HoverState.Tooltip (SideBarInstanceGroup _ _ name) _ ->
             Just
-                { body = Html.div Styles.tooltipBody [ Html.text name ]
+                { body = Html.text name
                 , attachPosition =
                     { direction = Tooltip.Right <| Styles.tooltipArrowSize - Styles.tooltipOffset
                     , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
                     }
                 , arrow = Just Styles.tooltipArrowSize
+                , containerAttrs = Just Styles.tooltipBody
                 }
 
         _ ->

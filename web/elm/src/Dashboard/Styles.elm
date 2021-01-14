@@ -85,6 +85,7 @@ import Dashboard.Grid.Constants as GridConstants
 import Html
 import Html.Attributes exposing (style)
 import ScreenSize exposing (ScreenSize(..))
+import Tooltip
 import Views.Styles
 
 
@@ -938,7 +939,12 @@ visibilityToggle { public, isClickable, isHovered } =
 cardTooltip : List (Html.Attribute msg)
 cardTooltip =
     [ style "padding" "6px 12px 6px 6px"
+    , style "height" "30px"
+    , style "box-sizing" "border-box"
+    , style "display" "flex"
+    , style "align-items" "center"
     ]
+        ++ Tooltip.colors
 
 
 jobPreviewTooltip : List (Html.Attribute msg)

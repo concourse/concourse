@@ -688,6 +688,18 @@ toHtmlID domId =
                 ++ encodePipelineId p
                 ++ "_visibility"
 
+        PipelineCardFavoritedIcon section p ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_favorite"
+
+        PipelineCardPauseToggle section p ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_toggle_pause"
+
         PipelineCardName section p ->
             pipelinesSectionName section
                 ++ "_"

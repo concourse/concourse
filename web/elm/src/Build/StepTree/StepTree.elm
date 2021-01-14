@@ -1253,6 +1253,7 @@ tooltip model { hovered } =
                     , alignment = Tooltip.Start
                     }
                 , arrow = Just 5
+                , containerAttrs = Nothing
                 }
 
         HoverState.Tooltip (StepInitialization _) _ ->
@@ -1266,6 +1267,7 @@ tooltip model { hovered } =
                     , alignment = Tooltip.End
                     }
                 , arrow = Just 5
+                , containerAttrs = Nothing
                 }
 
         HoverState.Tooltip (StepState id) _ ->
@@ -1308,4 +1310,5 @@ stepDurationTooltip { state, initialize, start, finish } =
         , alignment = Tooltip.End
         }
     , arrow = Just 5
+    , containerAttrs = Nothing
     }

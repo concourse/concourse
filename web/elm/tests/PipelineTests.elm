@@ -678,11 +678,7 @@ all =
                 [ defineHoverBehaviour
                     { name = "star icon"
                     , setup = Common.init "teams/t/pipelines/p"
-                    , query =
-                        queryView
-                            >> Query.find [ id "top-bar-favorited-icon" ]
-                            >> Query.children []
-                            >> Query.first
+                    , query = queryView >> Query.find [ id "top-bar-favorited-icon" ]
                     , unhoveredSelector =
                         { description = "faded star icon"
                         , selector =
@@ -713,8 +709,6 @@ all =
                             |> Tuple.first
                             |> queryView
                             |> Query.find [ id "top-bar-favorited-icon" ]
-                            |> Query.children []
-                            |> Query.first
                             |> Event.simulate Event.click
                             |> Event.expect favMsg
                 , test "click has FavoritedPipeline effect" <|

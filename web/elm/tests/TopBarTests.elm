@@ -290,17 +290,11 @@ all =
                         >> Query.hasNot [ id "logout-button" ]
                 , it "renders pause pipeline button" <|
                     Query.find [ id "top-bar-pause-toggle" ]
-                        >> Query.children []
-                        >> Query.first
                         >> Query.has
                             [ style "background-image" <|
                                 Assets.backgroundImage <|
                                     Just Assets.PauseIcon
                             ]
-                , it "draws lighter grey line to the left of pause pipeline button" <|
-                    Query.find [ id "top-bar-pause-toggle" ]
-                        >> Query.has
-                            [ style "border-left" <| "1px solid " ++ borderGrey ]
                 ]
             , it "clicking a pinned resource navigates to the pinned resource page" <|
                 Application.update
@@ -891,11 +885,7 @@ all =
             [ defineHoverBehaviour
                 { name = "play pipeline icon when authorized"
                 , setup = givenPipelinePaused |> givenUserAuthorized
-                , query =
-                    queryView
-                        >> Query.find [ id "top-bar-pause-toggle" ]
-                        >> Query.children []
-                        >> Query.first
+                , query = queryView >> Query.find [ id "top-bar-pause-toggle" ]
                 , unhoveredSelector =
                     { description = "faded play button with light border"
                     , selector =
@@ -926,11 +916,7 @@ all =
             , defineHoverBehaviour
                 { name = "play pipeline icon when unauthenticated"
                 , setup = givenPipelinePaused
-                , query =
-                    queryView
-                        >> Query.find [ id "top-bar-pause-toggle" ]
-                        >> Query.children []
-                        >> Query.first
+                , query = queryView >> Query.find [ id "top-bar-pause-toggle" ]
                 , unhoveredSelector =
                     { description = "faded play button with light border"
                     , selector =
@@ -961,11 +947,7 @@ all =
             , defineHoverBehaviour
                 { name = "play pipeline icon when unauthorized"
                 , setup = givenPipelinePaused |> givenUserUnauthorized
-                , query =
-                    queryView
-                        >> Query.find [ id "top-bar-pause-toggle" ]
-                        >> Query.children []
-                        >> Query.first
+                , query = queryView >> Query.find [ id "top-bar-pause-toggle" ]
                 , unhoveredSelector =
                     { description = "faded play button with light border"
                     , selector =
@@ -1006,8 +988,6 @@ all =
                     givenPipelinePaused
                         |> queryView
                         |> Query.find [ id "top-bar-pause-toggle" ]
-                        |> Query.children []
-                        |> Query.first
                         |> Event.simulate Event.click
                         |> Event.expect toggleMsg
             , test "play button unclickable for non-members" <|
@@ -1016,8 +996,6 @@ all =
                         |> givenUserUnauthorized
                         |> queryView
                         |> Query.find [ id "top-bar-pause-toggle" ]
-                        |> Query.children []
-                        |> Query.first
                         |> Event.simulate Event.click
                         |> Event.toResult
                         |> Expect.err
@@ -1037,9 +1015,6 @@ all =
                         |> Application.update toggleMsg
                         |> Tuple.first
                         |> queryView
-                        |> Query.find [ id "top-bar-pause-toggle" ]
-                        |> Query.children []
-                        |> Query.first
                         |> Query.has
                             [ style "animation"
                                 "container-rotate 1568ms linear infinite"
@@ -1068,8 +1043,6 @@ all =
                         |> Tuple.first
                         |> queryView
                         |> Query.find [ id "top-bar-pause-toggle" ]
-                        |> Query.children []
-                        |> Query.first
                         |> Query.has
                             (iconSelector
                                 { size = "20px"

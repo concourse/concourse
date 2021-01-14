@@ -3,8 +3,9 @@ module Views.PauseToggle exposing (view)
 import Assets
 import Concourse
 import Html exposing (Html)
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, id)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
+import Message.Effects exposing (toHtmlID)
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import UserState exposing (UserState(..))
 import Views.Icon as Icon
@@ -42,6 +43,7 @@ view params =
                 ++ [ onMouseEnter <| Hover <| Just <| params.domID
                    , onMouseLeave <| Hover Nothing
                    , class "pause-toggle"
+                   , id <| toHtmlID params.domID
                    ]
                 ++ (if isClickable then
                         [ onClick <| Click <| params.domID ]

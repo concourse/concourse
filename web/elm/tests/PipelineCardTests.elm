@@ -2305,7 +2305,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                         , query =
@@ -2326,7 +2326,7 @@ all =
                                        , style "opacity" "0.5"
                                        ]
                             }
-                        , hoverable = Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
+                        , hoverable = Msgs.PipelineCardPauseToggle AllPipelinesSection 1
                         , hoveredSelector =
                             { description = "a bright 20px square pause button with pointer cursor"
                             , selector =
@@ -2350,11 +2350,11 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Application.handleDelivery
-                                    (Message.Subscription.FavoritedPipelinesReceived <| Ok <| Set.singleton 0)
+                                    (Message.Subscription.FavoritedPipelinesReceived <| Ok <| Set.singleton 1)
                                 |> Tuple.first
                         , query =
                             Common.queryView
@@ -2376,7 +2376,7 @@ all =
                                        ]
                             }
                         , hoverable =
-                            Msgs.PipelineCardPauseToggle FavoritesSection Data.pipelineId
+                            Msgs.PipelineCardPauseToggle FavoritesSection 1
                         , hoveredSelector =
                             { description = "a bright 20px square pause button with pointer cursor"
                             , selector =
@@ -2400,7 +2400,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0
+                                            [ Data.pipeline "team" 1
                                                 |> Data.withName "pipeline"
                                                 |> Data.withPaused True
                                             ]
@@ -2424,7 +2424,7 @@ all =
                                        , style "opacity" "0.5"
                                        ]
                             }
-                        , hoverable = Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
+                        , hoverable = Msgs.PipelineCardPauseToggle AllPipelinesSection 1
                         , hoveredSelector =
                             { description = "an opaque 20px square play button with pointer cursor"
                             , selector =
@@ -2447,7 +2447,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -2457,7 +2457,7 @@ all =
                                 |> Event.expect
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
+                                            Msgs.PipelineCardPauseToggle AllPipelinesSection 1
                                     )
                     , test "pause button turns into spinner on click" <|
                         \_ ->
@@ -2473,13 +2473,13 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
+                                            Msgs.PipelineCardPauseToggle AllPipelinesSection 1
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -2495,13 +2495,13 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
+                                            Msgs.PipelineCardPauseToggle AllPipelinesSection 1
                                     )
                                 |> Tuple.second
                                 |> Expect.equal [ Effects.SendTogglePipelineRequest Data.pipelineId False ]
@@ -2515,13 +2515,13 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
+                                            Msgs.PipelineCardPauseToggle AllPipelinesSection 1
                                     )
                                 |> Tuple.first
                                 |> Application.handleCallback
@@ -2537,13 +2537,13 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Application.update
                                     (ApplicationMsgs.Update <|
                                         Msgs.Click <|
-                                            Msgs.PipelineCardPauseToggle AllPipelinesSection Data.pipelineId
+                                            Msgs.PipelineCardPauseToggle AllPipelinesSection 1
                                     )
                                 |> Tuple.first
                                 |> Application.handleCallback
