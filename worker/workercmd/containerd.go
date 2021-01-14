@@ -109,11 +109,10 @@ func (cmd *WorkerCommand) containerdGardenServerRunner(
 // containerdRunner spawns a containerd and a Garden server process for use as the container
 // runtime of Concourse.
 func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, error) {
-	const sock = "/run/containerd/containerd.sock"
-
 	var (
 		config = filepath.Join(cmd.WorkDir.Path(), "containerd.toml")
 		root   = filepath.Join(cmd.WorkDir.Path(), "containerd")
+		sock   = cmd.Containerd.SocketPath
 		bin    = "containerd"
 	)
 

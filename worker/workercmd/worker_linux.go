@@ -32,13 +32,14 @@ type GuardianRuntime struct {
 	DNS            DNSConfig     `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
 	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to the Garden server to complete. 0 means no timeout."`
 
-  Config         flag.File     `long:"config"     description:"Path to a config file to use for the Garden backend. e.g. 'foo-bar=a,b' for '--foo-bar a --foo-bar b'."`
+	Config      flag.File `long:"config"     description:"Path to a config file to use for the Garden backend. e.g. 'foo-bar=a,b' for '--foo-bar a --foo-bar b'."`
 	BinaryFlags GdnBinaryFlags
 }
 
 type ContainerdRuntime struct {
 	Config         flag.File     `long:"config"     description:"Path to a config file to use for the Containerd daemon."`
 	Bin            string        `long:"bin"        description:"Path to a containerd executable (non-absolute names get resolved from $PATH)."`
+	SocketPath     string        `long:"socket-path" default:"/run/containerd/containerd.sock" description:"Path to a containerd socket path"`
 	InitBin        string        `long:"init-bin"   default:"/usr/local/concourse/bin/init" description:"Path to an init executable (non-absolute names get resolved from $PATH)."`
 	CNIPluginsDir  string        `long:"cni-plugins-dir" default:"/usr/local/concourse/bin" description:"Path to CNI network plugins."`
 	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Containerd to complete. 0 means no timeout."`
@@ -206,7 +207,6 @@ func (cmd *WorkerCommand) loadResources(logger lager.Logger) ([]atc.WorkerResour
 	return types, nil
 }
 
-
 func (cmd *WorkerCommand) hasFlags(prefix string) bool {
 	env := os.Environ()
 
@@ -226,7 +226,7 @@ const containerdEnvPrefix = "CONCOURSE_CONTAINERD_"
 func (cmd *WorkerCommand) verifyRuntimeFlags() error {
 	switch {
 	case cmd.Runtime == houdiniRuntime:
-		if cmd.hasFlags(guardianEnvPrefix)  || cmd.hasFlags(containerdEnvPrefix) {
+		if cmd.hasFlags(guardianEnvPrefix) || cmd.hasFlags(containerdEnvPrefix) {
 			return fmt.Errorf("cannot use %s or %s environment variables with Houdini", guardianEnvPrefix, containerdEnvPrefix)
 		}
 	case cmd.Runtime == containerdRuntime:
