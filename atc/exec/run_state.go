@@ -13,7 +13,8 @@ import (
 type runState struct {
 	stepper Stepper
 
-	vars *buildVariables
+	buildVars  *build.Variables
+	varSources atc.VarSourceConfigs
 
 	artifacts *build.Repository
 	results   *sync.Map
@@ -26,12 +27,13 @@ type Stepper func(atc.Plan) Step
 func NewRunState(
 	stepper Stepper,
 	credVars vars.Variables,
+	varSources atc.VarSourceConfigs,
 	enableRedaction bool,
 ) RunState {
 	return &runState{
 		stepper: stepper,
 
-		vars: newBuildVariables(credVars, enableRedaction),
+		buildVars: build.NewVariables(varSources, enableRedaction),
 
 		artifacts: build.NewRepository(),
 		results:   &sync.Map{},
@@ -60,21 +62,17 @@ func (state *runState) StoreResult(id atc.PlanID, val interface{}) {
 	state.results.Store(id, val)
 }
 
-func (state *runState) Get(ref vars.Reference) (interface{}, bool, error) {
-	return state.vars.Get(ref)
-}
-
-func (state *runState) List() ([]vars.Reference, error) {
-	return state.vars.List()
+func (state *runState) Variables() *build.Variables {
+	return state.buildVars
 }
 
 func (state *runState) IterateInterpolatedCreds(iter vars.TrackedVarsIterator) {
-	state.vars.IterateInterpolatedCreds(iter)
+	state.buildVars.IterateInterpolatedCreds(iter)
 }
 
 func (state *runState) NewScope() RunState {
 	clone := *state
-	clone.vars = state.vars.NewScope()
+	clone.buildVars = state.buildVars.NewScope()
 	clone.artifacts = state.artifacts.NewScope()
 	clone.parent = state
 	return &clone
@@ -84,12 +82,8 @@ func (state *runState) Parent() RunState {
 	return state.parent
 }
 
-func (state *runState) AddVar(source, name string, val interface{}, redact bool) {
-	state.vars.AddVar(source, name, val, redact)
-}
-
 func (state *runState) RedactionEnabled() bool {
-	return state.vars.RedactionEnabled()
+	return state.buildVars.RedactionEnabled()
 }
 
 func (state *runState) Run(ctx context.Context, plan atc.Plan) (bool, error) {

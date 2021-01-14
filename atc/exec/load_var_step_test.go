@@ -18,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/vars"
 )
 
 const plainString = "  pv  \n\n"
@@ -51,6 +52,7 @@ var _ = Describe("LoadVarStep", func() {
 		artifactRepository *build.Repository
 		state              *execfakes.FakeRunState
 		fakeSource         *buildfakes.FakeRegisterableArtifact
+		buildVariables     *build.Variables
 
 		spStep  exec.Step
 		stepOk  bool
@@ -79,6 +81,9 @@ var _ = Describe("LoadVarStep", func() {
 		state = new(execfakes.FakeRunState)
 		state.ArtifactRepositoryReturns(artifactRepository)
 
+		buildVariables = build.NewVariables(nil, true)
+		state.VariablesReturns(buildVariables)
+
 		fakeSource = new(buildfakes.FakeRegisterableArtifact)
 		artifactRepository.RegisterArtifact("some-resource", fakeSource)
 
@@ -99,12 +104,18 @@ var _ = Describe("LoadVarStep", func() {
 	})
 
 	expectLocalVarAdded := func(expectKey string, expectValue interface{}, expectRedact bool) {
-		Expect(state.AddVarCallCount()).To(Equal(1))
-		s, k, v, redact := state.AddVarArgsForCall(0)
-		Expect(s).To(Equal("."))
-		Expect(k).To(Equal(expectKey))
-		Expect(v).To(Equal(expectValue))
-		Expect(redact).To(Equal(expectRedact))
+		value, found, err := buildVariables.Get(vars.Reference{Source: ".", Path: expectKey})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(found).To(BeTrue())
+		Expect(value).To(Equal(expectValue))
+
+		mapit := vars.TrackedVarsMap{}
+		buildVariables.IterateInterpolatedCreds(mapit)
+		if expectRedact {
+			Expect(mapit[expectKey]).To(Equal(expectValue))
+		} else {
+			Expect(mapit).ToNot(HaveKey(expectKey))
+		}
 	}
 
 	AfterEach(func() {

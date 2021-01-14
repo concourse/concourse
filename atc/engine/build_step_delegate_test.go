@@ -113,6 +113,28 @@ var _ = Describe("BuildStepDelegate", func() {
 		var parentRunState exec.RunState
 
 		BeforeEach(func() {
+			repo := build.NewRepository()
+			runState.ArtifactRepositoryReturns(repo)
+
+			childState = new(execfakes.FakeRunState)
+			runState.NewScopeReturns(childState)
+
+			fakeArtifact = new(runtimefakes.FakeArtifact)
+			childState.ArtifactRepositoryReturns(repo.NewScope())
+			childState.ArtifactRepository().RegisterArtifact("image", fakeArtifact)
+
+			buildVariables := build.NewVariables(nil, true)
+			buildVariables.SetVar("some-source", "source-var", "super-secret-source", true)
+			buildVariables.SetVar("some-source", "params-var", "super-secret-params", true)
+			runState.VariablesReturns(buildVariables)
+
+			imageResource = atc.ImageResource{
+				Type:   "docker",
+				Source: atc.Source{"some": "((source-var))"},
+				Params: atc.Params{"some": "((params-var))"},
+				Tags:   atc.Tags{"some", "tags"},
+			}
+
 			runPlans = nil
 
 			expectedCheckPlan = &atc.Plan{
@@ -334,6 +356,195 @@ var _ = Describe("BuildStepDelegate", func() {
 				}))
 			})
 		})
+
+		Context("when checking the image fails", func() {
+			BeforeEach(func() {
+				childState.RunStub = func(ctx context.Context, plan atc.Plan) (bool, error) {
+					if plan.ID == expectedCheckPlan.ID {
+						return false, nil
+					}
+
+					return true, nil
+				}
+			})
+
+			It("errors", func() {
+				Expect(fetchErr).To(MatchError("image check failed"))
+			})
+		})
+
+		Context("when no version is returned by the check", func() {
+			BeforeEach(func() {
+				childState.ResultReturns(false)
+			})
+
+			It("errors", func() {
+				Expect(fetchErr).To(MatchError("check did not return a version"))
+			})
+		})
+	})
+
+	Describe("Get", func() {
+		var (
+			stepVariables      vars.Variables
+			buildVariables     *build.Variables
+			sources            atc.VarSourceConfigs
+			varRef             vars.Reference
+			getVarID           atc.PlanID
+			expectedGetVarPlan atc.Plan
+
+			value    interface{}
+			fetched  bool
+			fetchErr error
+		)
+
+		BeforeEach(func() {
+			stepVariables = delegate.Variables(context.TODO())
+
+			buildVariables = build.NewVariables(sources, true)
+			runState.VariablesReturns(buildVariables)
+
+			sources = atc.VarSourceConfigs{
+				{
+					Name: "some-var-source",
+					Type: "registry-image",
+					Config: map[string]interface{}{
+						"var": "config",
+					},
+				},
+				{
+					Name: "other-var-source",
+					Type: "registry-image",
+					Config: map[string]interface{}{
+						"var": "other-config",
+					},
+				},
+			}
+
+			getVarID = planID + "/get-var/some-var-source/path"
+
+			expectedGetVarPlan = atc.Plan{
+				ID: getVarID,
+				GetVar: &atc.GetVarPlan{
+					Name:   "some-var-source",
+					Path:   "path",
+					Type:   "registry-image",
+					Source: atc.Source{"var": "config"},
+				},
+			}
+
+			varRef = vars.Reference{
+				Source: "some-var-source",
+				Path:   "path",
+			}
+
+			runState.RunReturns(true, nil)
+			runState.ResultStub = func(planID atc.PlanID, to interface{}) bool {
+				Expect(planID).To(Equal(getVarID))
+				to = "fetched-value"
+
+				return true
+			}
+		})
+
+		JustBeforeEach(func() {
+			value, fetched, fetchErr = stepVariables.Get(varRef)
+		})
+
+		Context("when the var is found in the build vars", func() {
+			BeforeEach(func() {
+				buildVariables.SetVar("some-var-source", "path", "fetched-value", true)
+			})
+
+			It("succeeds", func() {
+				Expect(fetchErr).ToNot(HaveOccurred())
+				Expect(fetched).To(BeTrue())
+			})
+
+			It("returns the value", func() {
+				Expect(value).To(Equal("fetched-value"))
+			})
+
+			It("did not spawn get var sub step", func() {
+				Expect(runState.RunCallCount()).To(Equal(0))
+			})
+		})
+
+		Context("when the var is not found in the build vars", func() {
+			BeforeEach(func() {
+
+			})
+
+			It("saves a build event for the sub get var plan", func() {
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+				e := fakeBuild.SaveEventArgsForCall(0)
+				Expect(e).To(Equal(event.SubGetVar{
+					Time: 675927000,
+					Origin: event.Origin{
+						ID: event.OriginID(planID),
+					},
+					PublicPlan: expectedGetVarPlan.Public(),
+				}))
+			})
+
+			It("runs a GetVar plan to get the var value", func() {
+				Expect(runState.RunCallCount()).To(Equal(1))
+
+				_, plan := runState.RunArgsForCall(0)
+				Expect(plan).To(Equal(expectedGetVarPlan))
+			})
+
+			It("succeeds", func() {
+				Expect(fetchErr).ToNot(HaveOccurred())
+				Expect(fetched).To(BeTrue())
+			})
+
+			It("returns the value", func() {
+				Expect(value).To(Equal("fetched-value"))
+			})
+
+			Context("when the var source is not found", func() {
+				BeforeEach(func() {
+					sources = atc.VarSourceConfigs{
+						{
+							Name: "other-var-source",
+							Type: "registry-image",
+							Config: map[string]interface{}{
+								"var": "other-config",
+							},
+						},
+					}
+
+					buildVariables = build.NewVariables(sources, true)
+				})
+
+				It("returns no matching var source error", func() {
+					Expect(fetchErr).To(Equal(engine.ErrNoMatchingVarSource{"some-var-source"}))
+				})
+			})
+		})
+
+		Context("when running the get var step fails", func() {
+			BeforeEach(func() {
+				runState.RunStub = func(ctx context.Context, plan atc.Plan) (bool, error) {
+					return false, nil
+				}
+			})
+
+			It("errors", func() {
+				Expect(fetchErr).To(MatchError("get var failed"))
+			})
+		})
+
+		Context("when no result is returned by the get var step", func() {
+			BeforeEach(func() {
+				runState.ResultReturns(false)
+			})
+
+			It("errors", func() {
+				Expect(fetchErr).To(MatchError("get var did not return a value"))
+			})
+		})
 	})
 
 	Describe("Stdout", func() {
@@ -495,7 +706,7 @@ var _ = Describe("BuildStepDelegate", func() {
 
 		BeforeEach(func() {
 			credVars := vars.StaticVariables{}
-			runState = exec.NewRunState(noopStepper, credVars, false)
+			runState = exec.NewRunState(noopStepper, credVars, nil, false)
 			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker, fakeArtifactSourcer)
 		})
 
@@ -595,11 +806,11 @@ var _ = Describe("BuildStepDelegate", func() {
 		)
 
 		BeforeEach(func() {
-			runState = exec.NewRunState(noopStepper, credVars, true)
+			runState = exec.NewRunState(noopStepper, credVars, nil, true)
 			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker, fakeArtifactSourcer)
 
-			runState.Get(vars.Reference{Path: "source-param"})
-			runState.Get(vars.Reference{Path: "git-key"})
+			runState.Variables().Get(vars.Reference{Path: "source-param"})
+			runState.Variables().Get(vars.Reference{Path: "git-key"})
 		})
 
 		Context("Stdout", func() {

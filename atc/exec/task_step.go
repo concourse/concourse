@@ -60,7 +60,7 @@ type TaskDelegateFactory interface {
 type TaskDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
-	Variables(context.Context, atc.VarSourceConfigs) vars.Variables
+	Variables(context.Context) vars.Variables
 	FetchImage(context.Context, atc.ImageResource, atc.ResourceTypes, bool, atc.Tags) (worker.ImageSpec, error)
 
 	Stdout() io.Writer
@@ -168,13 +168,13 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 				ExpectAllKeys: false,
 			}
 		}
-		taskVars = []vars.Variables{state}
+		taskVars = []vars.Variables{delegate.Variables(ctx)}
 	} else {
 		// embedded task - first we take it
 		taskConfigSource = StaticConfigSource{Config: step.plan.Config}
 
 		// for interpolation - use just cred variables
-		taskVars = []vars.Variables{state}
+		taskVars = []vars.Variables{delegate.Variables(ctx)}
 	}
 
 	// apply resource type defaults

@@ -129,10 +129,10 @@ var _ = Describe("PutStep", func() {
 		state = new(execfakes.FakeRunState)
 		state.ArtifactRepositoryReturns(repo)
 
-		state.GetStub = vars.StaticVariables{
+		fakeDelegate.VariablesReturns(vars.StaticVariables{
 			"source-var": "super-secret-source",
 			"params-var": "super-secret-params",
-		}.Get
+		})
 
 		putPlan = &atc.PutPlan{
 			Name:     "some-name",

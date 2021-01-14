@@ -3,35 +3,40 @@ package build
 import (
 	"sync"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/vars"
 )
 
 type Variables struct {
-	parentScope vars.Variables
-	localVars   vars.StaticVariables
-	tracker     *vars.Tracker
-	lock        sync.RWMutex
+	vars    map[string]vars.StaticVariables
+	tracker *vars.Tracker
+
+	lock sync.RWMutex
+
+	// source configurations of all the var sources within the pipeline
+	sources atc.VarSourceConfigs
 }
 
-func NewVariables(tracker *vars.Tracker) *Variables {
+func NewVariables(sources atc.VarSourceConfigs, enableRedaction bool) *Variables {
 	return &Variables{
-		localVars: vars.StaticVariables{},
-		tracker:   tracker,
+		vars:    map[string]vars.StaticVariables{},
+		tracker: vars.NewTracker(enableRedaction),
+
+		sources: sources,
 	}
+}
+
+func (v *Variables) VarSources() atc.VarSourceConfigs {
+	return v.sources
 }
 
 func (v *Variables) Get(ref vars.Reference) (interface{}, bool, error) {
-	if ref.Source == "." {
-		v.lock.RLock()
-		val, found, err := v.localVars.Get(ref.WithoutSource())
-		v.lock.RUnlock()
-		if found || err != nil {
-			return val, found, err
-		}
-	}
+	v.lock.RLock()
+	defer v.lock.RUnlock()
 
-	if v.parentScope != nil {
-		val, found, err := v.parentScope.Get(ref)
+	source, found := v.vars[ref.Source]
+	if found {
+		val, found, err := source.Get(ref)
 		if found || err != nil {
 			return val, found, err
 		}
@@ -40,19 +45,28 @@ func (v *Variables) Get(ref vars.Reference) (interface{}, bool, error) {
 	return nil, false, nil
 }
 
-func (v *Variables) NewScope(tracker *vars.Tracker) *Variables {
+func (v *Variables) IterateInterpolatedCreds(iter vars.TrackedVarsIterator) {
+	v.tracker.IterateInterpolatedCreds(iter)
+}
+
+func (v *Variables) NewScope() *Variables {
 	return &Variables{
-		parentScope: v,
-		localVars:   vars.StaticVariables{},
-		tracker:     tracker,
+		vars:    map[string]vars.StaticVariables{},
+		tracker: vars.NewTracker(v.tracker.Enabled),
 	}
 }
 
 func (v *Variables) SetVar(source, name string, val interface{}, redact bool) {
-	v.lock.Lock()
-	v.localVars[name] = val
-	v.lock.Unlock()
+	v.lock.RLock()
+	defer v.lock.RUnlock()
 
+	scope, found := v.vars[source]
+	if !found {
+		scope = vars.StaticVariables{}
+		v.vars[source] = scope
+	}
+
+	scope[name] = val
 	if redact {
 		v.tracker.Track(vars.Reference{Source: source, Path: name}, val)
 	}

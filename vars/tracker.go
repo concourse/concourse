@@ -68,6 +68,7 @@ func (t *Tracker) IterateInterpolatedCreds(iter TrackedVarsIterator) {
 	t.lock.RUnlock()
 }
 
+// XXX: Dead code?
 type CredVarsTracker struct {
 	*Tracker
 	CredVars Variables
@@ -79,10 +80,6 @@ func (t *CredVarsTracker) Get(ref Reference) (interface{}, bool, error) {
 		t.Tracker.Track(ref, val)
 	}
 	return val, found, err
-}
-
-func (t *CredVarsTracker) List() ([]Reference, error) {
-	return t.CredVars.List()
 }
 
 // TrackedVarsMap is a TrackedVarsIterator which populates interpolated secrets into a map.

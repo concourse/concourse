@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestArtifact(t *testing.T) {
+func TestState(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Artifact Suite")
+	RunSpecs(t, "State Suite")
 }

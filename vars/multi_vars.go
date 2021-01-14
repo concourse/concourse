@@ -20,18 +20,3 @@ func (m MultiVars) Get(ref Reference) (interface{}, bool, error) {
 
 	return nil, false, nil
 }
-
-func (m MultiVars) List() ([]Reference, error) {
-	var allRefs []Reference
-
-	for _, vars := range m.varss {
-		defs, err := vars.List()
-		if err != nil {
-			return nil, err
-		}
-
-		allRefs = append(allRefs, defs...)
-	}
-
-	return allRefs, nil
-}

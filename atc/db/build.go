@@ -170,6 +170,7 @@ type Build interface {
 	Finish(BuildStatus) error
 
 	Variables(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
+	VarSources() (atc.VarSourceConfigs, error)
 
 	SetInterceptible(bool) error
 
@@ -775,6 +776,24 @@ func (b *build) Variables(logger lager.Logger, globalSecrets creds.Secrets, varS
 	}
 
 	return pipeline.Variables(logger, globalSecrets, varSourcePool)
+}
+
+func (b *build) VarSources() (atc.VarSourceConfigs, error) {
+	// "fly execute" generated build will have no pipeline.
+	if b.pipelineID == 0 {
+		return nil, nil
+	}
+
+	pipeline, found, err := b.Pipeline()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find pipeline: %w", err)
+	}
+
+	if !found {
+		return nil, errors.New("pipeline not found")
+	}
+
+	return pipeline.VarSources(), nil
 }
 
 func (b *build) SetDrained(drained bool) error {

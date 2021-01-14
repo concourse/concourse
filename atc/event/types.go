@@ -61,4 +61,7 @@ const (
 
 	// image get sub-plan
 	EventTypeImageGet atc.EventType = "image-get"
+
+	// var get sub-plan
+	EventTypeSubGetVar atc.EventType = "sub-get-var"
 )

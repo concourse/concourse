@@ -123,7 +123,7 @@ var _ = Describe("CheckStep", func() {
 			BuildID: 678,
 		}
 
-		fakeRunState.GetStub = vars.StaticVariables{"source-var": "super-secret-source"}.Get
+		fakeDelegate.VariablesReturns(vars.StaticVariables{"source-var": "super-secret-source"})
 	})
 
 	AfterEach(func() {
@@ -716,8 +716,6 @@ var _ = Describe("CheckStep", func() {
 
 			BeforeEach(func() {
 				expectedErr = errors.New("creds-err")
-
-				fakeRunState.GetReturns(nil, false, expectedErr)
 			})
 
 			It("errors", func() {

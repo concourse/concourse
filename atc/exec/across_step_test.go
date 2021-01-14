@@ -56,7 +56,7 @@ var _ = Describe("AcrossStep", func() {
 
 			By("having the correct var values")
 			for i, v := range acrossVars {
-				val, found, _ := childState.Get(vars.Reference{Source: ".", Path: v.Var})
+				val, found, _ := childState.Variables().Get(vars.Reference{Source: ".", Path: v.Var})
 				Expect(found).To(BeTrue(), "unset variable "+v.Var)
 				Expect(val).To(Equal(values[i]), "invalid value for variable "+v.Var)
 			}
@@ -90,12 +90,13 @@ var _ = Describe("AcrossStep", func() {
 		ctx, cancel = context.WithCancel(context.Background())
 		ctx = lagerctx.NewContext(ctx, testLogger)
 
-		state = exec.NewRunState(noopStepper, vars.StaticVariables{}, false)
+		state = exec.NewRunState(noopStepper, vars.StaticVariables{}, nil, false)
 
 		stderr = gbytes.NewBuffer()
 
 		fakeDelegate = new(execfakes.FakeBuildStepDelegate)
 		fakeDelegate.StderrReturns(stderr)
+		fakeDelegate.VariablesReturns(vars.StaticVariables{})
 
 		fakeDelegateFactory = new(execfakes.FakeBuildStepDelegateFactory)
 		fakeDelegateFactory.BuildStepDelegateReturns(fakeDelegate)
@@ -183,7 +184,7 @@ var _ = Describe("AcrossStep", func() {
 
 	Context("when a var shadows an existing local var", func() {
 		BeforeEach(func() {
-			state.AddVar(".", "var2", 123, false)
+			state.Variables().SetVar(".", "var2", 123, false)
 		})
 
 		It("logs a warning to stderr", func() {

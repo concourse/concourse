@@ -107,7 +107,7 @@ var _ = Describe("TaskStep", func() {
 		childState.ArtifactRepositoryReturns(repo.NewScope())
 		state.NewScopeReturns(childState)
 
-		state.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
+		fakeDelegate.VariablesReturns(vars.StaticVariables{"source-param": "super-secret-source"})
 
 		taskPlan = &atc.TaskPlan{
 			Name:       "some-task",

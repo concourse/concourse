@@ -10,7 +10,6 @@ import (
 //counterfeiter:generate . Variables
 type Variables interface {
 	Get(Reference) (interface{}, bool, error)
-	List() ([]Reference, error)
 }
 
 type Reference struct {

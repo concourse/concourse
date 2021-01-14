@@ -13,6 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/vars"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -121,6 +122,17 @@ type FakeCheckDelegate struct {
 	}
 	stdoutReturnsOnCall map[int]struct {
 		result1 io.Writer
+	}
+	VariablesStub        func(context.Context) vars.Variables
+	variablesMutex       sync.RWMutex
+	variablesArgsForCall []struct {
+		arg1 context.Context
+	}
+	variablesReturns struct {
+		result1 vars.Variables
+	}
+	variablesReturnsOnCall map[int]struct {
+		result1 vars.Variables
 	}
 	WaitToRunStub        func(context.Context, db.ResourceConfigScope) (lock.Lock, bool, error)
 	waitToRunMutex       sync.RWMutex
@@ -677,6 +689,67 @@ func (fake *FakeCheckDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
 	}{result1}
 }
 
+func (fake *FakeCheckDelegate) Variables(arg1 context.Context) vars.Variables {
+	fake.variablesMutex.Lock()
+	ret, specificReturn := fake.variablesReturnsOnCall[len(fake.variablesArgsForCall)]
+	fake.variablesArgsForCall = append(fake.variablesArgsForCall, struct {
+		arg1 context.Context
+	}{arg1})
+	stub := fake.VariablesStub
+	fakeReturns := fake.variablesReturns
+	fake.recordInvocation("Variables", []interface{}{arg1})
+	fake.variablesMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeCheckDelegate) VariablesCallCount() int {
+	fake.variablesMutex.RLock()
+	defer fake.variablesMutex.RUnlock()
+	return len(fake.variablesArgsForCall)
+}
+
+func (fake *FakeCheckDelegate) VariablesCalls(stub func(context.Context) vars.Variables) {
+	fake.variablesMutex.Lock()
+	defer fake.variablesMutex.Unlock()
+	fake.VariablesStub = stub
+}
+
+func (fake *FakeCheckDelegate) VariablesArgsForCall(i int) context.Context {
+	fake.variablesMutex.RLock()
+	defer fake.variablesMutex.RUnlock()
+	argsForCall := fake.variablesArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeCheckDelegate) VariablesReturns(result1 vars.Variables) {
+	fake.variablesMutex.Lock()
+	defer fake.variablesMutex.Unlock()
+	fake.VariablesStub = nil
+	fake.variablesReturns = struct {
+		result1 vars.Variables
+	}{result1}
+}
+
+func (fake *FakeCheckDelegate) VariablesReturnsOnCall(i int, result1 vars.Variables) {
+	fake.variablesMutex.Lock()
+	defer fake.variablesMutex.Unlock()
+	fake.VariablesStub = nil
+	if fake.variablesReturnsOnCall == nil {
+		fake.variablesReturnsOnCall = make(map[int]struct {
+			result1 vars.Variables
+		})
+	}
+	fake.variablesReturnsOnCall[i] = struct {
+		result1 vars.Variables
+	}{result1}
+}
+
 func (fake *FakeCheckDelegate) WaitToRun(arg1 context.Context, arg2 db.ResourceConfigScope) (lock.Lock, bool, error) {
 	fake.waitToRunMutex.Lock()
 	ret, specificReturn := fake.waitToRunReturnsOnCall[len(fake.waitToRunArgsForCall)]
@@ -802,6 +875,8 @@ func (fake *FakeCheckDelegate) Invocations() map[string][][]interface{} {
 	defer fake.stderrMutex.RUnlock()
 	fake.stdoutMutex.RLock()
 	defer fake.stdoutMutex.RUnlock()
+	fake.variablesMutex.RLock()
+	defer fake.variablesMutex.RUnlock()
 	fake.waitToRunMutex.RLock()
 	defer fake.waitToRunMutex.RUnlock()
 	fake.waitingForWorkerMutex.RLock()
