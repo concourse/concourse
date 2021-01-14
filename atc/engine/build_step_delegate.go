@@ -18,8 +18,17 @@ import (
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/vars"
 	"go.opentelemetry.io/otel/api/trace"
 )
+
+type ErrNoMatchingVarSource struct {
+	VarSource string
+}
+
+func (e ErrNoMatchingVarSource) Error() string {
+	return fmt.Sprintf("no var source found for %s", e.VarSource)
+}
 
 type buildStepDelegate struct {
 	build         db.Build
@@ -327,6 +336,74 @@ func (delegate *buildStepDelegate) FetchImage(
 		ImageArtifact: art,
 		Privileged:    privileged,
 	}, nil
+}
+
+func (delegate *buildStepDelegate) Variables() vars.Variables {
+	return &StepVariables{
+		delegate: delegate,
+	}
+}
+
+type StepVariables struct {
+	delegate *buildStepDelegate
+	ctx      context.Context
+}
+
+func (v *StepVariables) Get(ref vars.Reference) (interface{}, bool, error) {
+	buildVar, found, err := v.delegate.state.Variables().Get(ref)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if found {
+		return buildVar, true, nil
+	}
+
+	varSource, found := v.delegate.state.Variables().VarSources().Lookup(ref.Source)
+	if !found {
+		return nil, false, ErrNoMatchingVarSource{ref.Source}
+	}
+
+	source, ok := varSource.Config.(map[string]interface{})
+	if !ok {
+		return nil, false, fmt.Errorf("source %s cannot be parsed", varSource.Config)
+	}
+
+	getVarID := atc.PlanID(fmt.Sprintf("%s/get-var/%s:%s", v.delegate.planID, ref.Source, ref.Path))
+
+	getVarPlan := atc.Plan{
+		ID: getVarID,
+		GetVar: &atc.GetVarPlan{
+			Name:   ref.Source,
+			Path:   ref.Path,
+			Type:   varSource.Type,
+			Source: source,
+		},
+	}
+
+	err = v.delegate.build.SaveEvent(event.SubGetVar{
+		Time: v.delegate.clock.Now().Unix(),
+		Origin: event.Origin{
+			ID: event.OriginID(v.delegate.planID),
+		},
+		PublicPlan: getVarPlan.Public(),
+	})
+	if err != nil {
+		return nil, false, fmt.Errorf("save sub get var event: %w", err)
+	}
+
+	ok, err = v.delegate.state.Run(v.ctx, getVarPlan)
+	if err != nil {
+		return nil, false, fmt.Errorf("run sub get var: %w", err)
+	}
+
+	if !ok {
+		return nil, false, fmt.Errorf("image check failed")
+	}
+
+	if !fetchState.Result(checkID, &version) {
+		return worker.ImageSpec{}, fmt.Errorf("check did not return a version")
+	}
 }
 
 func (delegate *buildStepDelegate) checkImagePolicy(image atc.ImageResource, privileged bool) error {

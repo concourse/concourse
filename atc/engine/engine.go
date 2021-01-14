@@ -307,11 +307,18 @@ func (b *engineBuild) runState(logger lager.Logger, stepper exec.Stepper) (exec.
 	if ok {
 		return existingState.(exec.RunState), nil
 	}
+
 	credVars, err := b.build.Variables(logger, b.globalSecrets, b.varSourcePool)
 	if err != nil {
 		return nil, err
 	}
-	state, _ := b.trackedStates.LoadOrStore(id, exec.NewRunState(stepper, credVars, atc.EnableRedactSecrets))
+
+	varSources, err := b.build.VarSources()
+	if err != nil {
+		return nil, err
+	}
+
+	state, _ := b.trackedStates.LoadOrStore(id, exec.NewRunState(stepper, credVars, varSources, atc.EnableRedactSecrets))
 	return state.(exec.RunState), nil
 }
 

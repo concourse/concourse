@@ -9,7 +9,6 @@ import (
 
 type Variables interface {
 	Get(Reference) (interface{}, bool, error)
-	List() ([]Reference, error)
 }
 
 type Reference struct {

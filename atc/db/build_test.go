@@ -955,6 +955,59 @@ var _ = Describe("Build", func() {
 		})
 	})
 
+	Describe("VarSources", func() {
+		Context("when the build is a one-off build", func() {
+			var build db.Build
+
+			BeforeEach(func() {
+				var err error
+				build, err = defaultTeam.CreateOneOffBuild()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns nil", func() {
+				varSources, err := build.VarSources()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(varSources).To(BeNil())
+			})
+		})
+
+		Context("when the build is a job build", func() {
+			var build db.Build
+			var expectedVarSources atc.VarSourceConfigs
+
+			BeforeEach(func() {
+				expectedVarSources = atc.VarSourceConfigs{
+					{
+						Name: "some-source",
+						Type: "dummy",
+						Config: map[string]interface{}{
+							"vars": map[string]interface{}{"baz": "caz"},
+						},
+					},
+				}
+				config := defaultPipelineConfig
+				config.VarSources = append(config.VarSources, expectedVarSources...)
+
+				pipeline, _, err := defaultTeam.SavePipeline(defaultPipelineRef, config, defaultPipeline.ConfigVersion(), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				job, found, err := pipeline.Job(defaultJob.Name())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				build, err = job.CreateBuild()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("returns the pipeline var sources", func() {
+				varSources, err := build.VarSources()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(varSources).To(Equal(expectedVarSources))
+			})
+		})
+	})
+
 	Describe("Abort", func() {
 		JustBeforeEach(func() {
 			err := build.MarkAsAborted()

@@ -119,7 +119,8 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 
 	// If the var exists within the cache, use the value in the cache
 	if found {
-		state.AddVar(step.plan.Name, step.plan.Path, value, !step.plan.Reveal)
+		state.Variables().SetVar(step.plan.Name, step.plan.Path, value, !step.plan.Reveal)
+		state.StoreResult(step.planID, value)
 
 		delegate.Finished(logger, true)
 		return true, nil
@@ -153,7 +154,8 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 
 	step.cache.Add(hash, value, time.Second)
 
-	state.AddVar(step.plan.Name, step.plan.Path, value, !step.plan.Reveal)
+	state.Variables().SetVar(step.plan.Name, step.plan.Path, value, !step.plan.Reveal)
+	state.StoreResult(step.planID, value)
 
 	delegate.Finished(logger, true)
 

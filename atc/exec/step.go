@@ -36,15 +36,13 @@ type BuildOutputFilter func(text string) string
 //go:generate counterfeiter . RunState
 
 type RunState interface {
-	vars.Variables
-
 	NewScope() RunState
-	AddVar(source, name string, val interface{}, redact bool)
 
 	IterateInterpolatedCreds(vars.TrackedVarsIterator)
 	RedactionEnabled() bool
 
 	ArtifactRepository() *build.Repository
+	Variables() *build.Variables
 
 	Result(atc.PlanID, interface{}) bool
 	StoreResult(atc.PlanID, interface{})
