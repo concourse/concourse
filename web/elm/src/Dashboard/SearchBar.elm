@@ -120,8 +120,8 @@ screenResize width model =
             model
 
 
-handleDelivery : Delivery -> ET Model
-handleDelivery delivery ( model, effects ) =
+handleDelivery : Session -> Delivery -> ET Model
+handleDelivery session delivery ( model, effects ) =
     case delivery of
         WindowResized width _ ->
             ( screenResize width model, effects )
@@ -129,7 +129,7 @@ handleDelivery delivery ( model, effects ) =
         KeyDown keyEvent ->
             let
                 options =
-                    Filter.suggestions model
+                    Filter.suggestions (Filter.filterTeams session model) model.query
             in
             case keyEvent.code of
                 Keyboard.ArrowUp ->
@@ -250,17 +250,7 @@ arrowDown =
         )
 
 
-view :
-    { a | screenSize : ScreenSize }
-    ->
-        { b
-            | query : String
-            , dropdown : Dropdown
-            , teams : FetchResult (List Concourse.Team)
-            , highDensity : Bool
-            , pipelines : Maybe (Dict String (List Pipeline))
-        }
-    -> Html Message
+view : Session -> Model -> Html Message
 view session ({ query, dropdown, pipelines } as params) =
     let
         isDropDownHidden =
@@ -330,20 +320,9 @@ view session ({ query, dropdown, pipelines } as params) =
             )
 
 
-viewDropdownItems :
-    { a
-        | screenSize : ScreenSize
-    }
-    ->
-        { b
-            | query : String
-            , dropdown : Dropdown
-            , teams : FetchResult (List Concourse.Team)
-            , pipelines : Maybe (Dict String (List Pipeline))
-        }
-    -> List (Html Message)
-viewDropdownItems { screenSize } ({ dropdown, query } as model) =
-    case dropdown of
+viewDropdownItems : Session -> Model -> List (Html Message)
+viewDropdownItems session model =
+    case model.dropdown of
         Hidden ->
             []
 
@@ -355,11 +334,14 @@ viewDropdownItems { screenSize } ({ dropdown, query } as model) =
                         (onMouseDown (FilterMsg <| prev ++ cur)
                             :: Styles.dropdownItem
                                 (Just idx == selectedIdx)
-                                (String.length query > 0)
+                                (String.length model.query > 0)
                         )
                         [ Html.text cur ]
+
+                filteredTeams =
+                    Filter.filterTeams session model
             in
             [ Html.ul
-                (id "search-dropdown" :: Styles.dropdownContainer screenSize)
-                (List.indexedMap dropdownItem (Filter.suggestions model))
+                (id "search-dropdown" :: Styles.dropdownContainer session.screenSize)
+                (List.indexedMap dropdownItem (Filter.suggestions filteredTeams model.query))
             ]

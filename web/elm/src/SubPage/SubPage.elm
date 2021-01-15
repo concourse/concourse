@@ -219,14 +219,14 @@ handleLoggedOut ( m, effs ) =
     )
 
 
-handleDelivery : { a | hovered : HoverState.HoverState } -> Delivery -> ET Model
+handleDelivery : Session -> Delivery -> ET Model
 handleDelivery session delivery =
     genericUpdate
         (Build.handleDelivery session delivery)
         (Job.handleDelivery delivery)
         (Resource.handleDelivery session delivery)
         (Pipeline.handleDelivery delivery)
-        (Dashboard.handleDelivery delivery)
+        (Dashboard.handleDelivery session delivery)
         (NotFound.handleDelivery delivery)
         (FlySuccess.handleDelivery delivery)
 

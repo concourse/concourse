@@ -9,6 +9,7 @@ import Concourse.PipelineStatus
         , isRunning
         )
 import Dashboard.Group.Models exposing (Card(..), Pipeline)
+import Dashboard.Models exposing (Model)
 import Dashboard.Pipeline as Pipeline
 import Dict exposing (Dict)
 import FetchResult exposing (FetchResult)
@@ -73,29 +74,23 @@ filterTypes =
     [ "status", "team" ]
 
 
-filterTeams :
-    { pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobName)
-    , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
-    , query : String
-    , teams : List Concourse.Team
-    , pipelines : Dict String (List Pipeline)
-    , dashboardView : Routes.DashboardView
-    , favoritedPipelines : Set DatabaseID
-    }
-    -> Dict String (List Pipeline)
-filterTeams { pipelineJobs, jobs, query, teams, pipelines, dashboardView, favoritedPipelines } =
+filterTeams : { r | favoritedPipelines : Set DatabaseID } -> Model -> Dict String (List Pipeline)
+filterTeams { favoritedPipelines } { pipelineJobs, jobs, query, teams, pipelines, dashboardView } =
     let
         teamsToFilter =
             teams
+                |> FetchResult.withDefault []
                 |> List.map (\t -> ( t.name, [] ))
                 |> Dict.fromList
-                |> Dict.union pipelines
+                |> Dict.union (pipelines |> Maybe.withDefault Dict.empty)
                 |> Dict.map
                     (\_ p ->
                         List.filter (prefilter dashboardView favoritedPipelines) p
                     )
     in
-    parseFilters query |> List.map Tuple.first |> List.foldr (runFilter jobs pipelineJobs) teamsToFilter
+    parseFilters query
+        |> List.map Tuple.first
+        |> List.foldr (runFilter (FetchResult.withDefault Dict.empty jobs) pipelineJobs) teamsToFilter
 
 
 prefilter : Routes.DashboardView -> Set DatabaseID -> Pipeline -> Bool
@@ -296,14 +291,8 @@ type alias Suggestion =
     }
 
 
-suggestions :
-    { a
-        | query : String
-        , teams : FetchResult (List Concourse.Team)
-        , pipelines : Maybe (Dict String (List Pipeline))
-    }
-    -> List Suggestion
-suggestions { query, teams, pipelines } =
+suggestions : Dict String (List Pipeline) -> String -> List Suggestion
+suggestions pipelines query =
     let
         parsedFilters =
             parseFilters query
@@ -352,20 +341,9 @@ suggestions { query, teams, pipelines } =
                 Team (Exact _) ->
                     []
 
-                Team team ->
-                    Set.union
-                        (teams
-                            |> FetchResult.withDefault []
-                            |> List.map .name
-                            |> Set.fromList
-                        )
-                        (pipelines
-                            |> Maybe.withDefault Dict.empty
-                            |> Dict.keys
-                            |> Set.fromList
-                        )
-                        |> Set.toList
-                        |> List.filter (stringMatches team)
+                Team _ ->
+                    pipelines
+                        |> Dict.keys
                         |> List.take 10
                         |> List.map (\v -> "team:" ++ quoted v)
 

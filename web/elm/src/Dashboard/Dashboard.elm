@@ -498,9 +498,9 @@ updatePipeline updater pipelineId model =
     }
 
 
-handleDelivery : Delivery -> ET Model
-handleDelivery delivery =
-    SearchBar.handleDelivery delivery
+handleDelivery : Session -> Delivery -> ET Model
+handleDelivery session delivery =
+    SearchBar.handleDelivery session delivery
         >> Footer.handleDelivery delivery
         >> RequestBuffer.handleDelivery delivery buffers
         >> handleDeliveryBody delivery
@@ -1245,15 +1245,7 @@ regularCardsView session params =
                 |> FetchResult.withDefault []
 
         filteredPipelinesByTeam =
-            Filter.filterTeams
-                { pipelineJobs = params.pipelineJobs
-                , jobs = jobs
-                , query = params.query
-                , teams = teams
-                , pipelines = pipelines
-                , dashboardView = params.dashboardView
-                , favoritedPipelines = session.favoritedPipelines
-                }
+            Filter.filterTeams session params
                 |> Dict.toList
                 |> List.sortWith (Ordering.byFieldWith (Group.ordering session) Tuple.first)
 
@@ -1300,14 +1292,11 @@ instanceGroupCardsView session model { teamName, name } =
                 |> Maybe.withDefault []
 
         filteredPipelines =
-            Filter.filterTeams
-                { pipelineJobs = model.pipelineJobs
-                , jobs = jobs
-                , query = model.query
-                , teams = []
-                , pipelines = Dict.fromList [ ( teamName, pipelineInstances ) ]
-                , dashboardView = model.dashboardView
-                , favoritedPipelines = session.favoritedPipelines
+            Filter.filterTeams session
+                { model
+                    | pipelines =
+                        Just <|
+                            Dict.fromList [ ( teamName, pipelineInstances ) ]
                 }
                 |> Dict.toList
                 |> List.head

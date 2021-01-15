@@ -16,6 +16,7 @@ import Dashboard.SearchBar as SearchBar
 import DashboardInstanceGroupTests exposing (pipelineInstanceWithVars)
 import DashboardTests exposing (job, running, whenOnDashboard)
 import Data
+import Dict
 import Expect
 import FetchResult
 import Html.Attributes as Attr
@@ -329,15 +330,15 @@ all =
                             >> expectCursorOn (Just 1)
                     , test "enter selects an item" <|
                         focusSearchBar
-                            >> withFilter "status: paused team:"
+                            >> withFilter "status: pending team:"
                             >> down
                             >> press Keyboard.Enter
                             >> Expect.all
                                 [ Tuple.first
                                     >> Common.queryView
                                     >> Query.find [ id SearchBar.searchInputId ]
-                                    >> Query.has [ value "status: paused team:\"team1\"" ]
-                                , Tuple.second >> Common.contains (Effects.ModifyUrl "/?search=status%3A%20paused%20team%3A%22team1%22")
+                                    >> Query.has [ value "status: pending team:\"team1\"" ]
+                                , Tuple.second >> Common.contains (Effects.ModifyUrl "/?search=status%3A%20pending%20team%3A%22team1%22")
                                 ]
                     , test "doesn't try to loop if the dropdown is empty (down)" <|
                         focusSearchBar
@@ -377,12 +378,11 @@ all =
                         suggestionsTest teams query expectation =
                             test ("test query \"" ++ query ++ "\" with teams " ++ String.join ", " teams) <|
                                 \_ ->
-                                    Filter.suggestions
-                                        { query = query
-                                        , teams = FetchResult.Fetched <| List.indexedMap Concourse.Team teams
-                                        , pipelines = Nothing
-                                        }
-                                        |> expectation
+                                    let
+                                        filteredPipelines =
+                                            teams |> List.map (\t -> ( t, [] )) |> Dict.fromList
+                                    in
+                                    Filter.suggestions filteredPipelines query |> expectation
 
                         prefixedSuggestionsTest query prefix expected =
                             let
@@ -426,10 +426,7 @@ all =
                     , simpleSuggestionsTest "-t" [ "-team:" ]
                     , simpleSuggestionsTest "team" [ "team:" ]
                     , simpleSuggestionsTest "team:" [ "team:\"other-team\"", "team:\"team\"", "team:\"yet-another-team\"" ]
-                    , simpleSuggestionsTest "team: oth" [ "team:\"other-team\"", "team:\"yet-another-team\"" ]
-                    , simpleSuggestionsTest "team:oth" [ "team:\"other-team\"", "team:\"yet-another-team\"" ]
                     , simpleSuggestionsTest "team:\"other-team\"" []
-                    , simpleSuggestionsTest "team:other-team" [ "team:\"other-team\"", "team:\"yet-another-team\"" ]
                     , suggestionsTest manyTeams "team:" (List.length >> Expect.equal 10)
 
                     -- fuzzy pipeline
@@ -706,6 +703,38 @@ all =
                         >> Tuple.first
                         >> Common.queryView
                         >> Query.hasNot [ text "No results" ]
+                ]
+            , describe "filter applies to dropdown suggestions" <|
+                let
+                    dropdownSuggestionFilterTest query expected =
+                        simpleFilterTest
+                            (loadDashboard
+                                >> gotPipelines
+                                    [ pipeline BuildStatusSucceeded 1 "p1" |> withTeam "team1"
+                                    , pipeline BuildStatusFailed 2 "p2" |> withTeam "team2"
+                                    ]
+                            )
+                            query
+                            (expectDropdownSuggestions expected)
+
+                    expectDropdownSuggestions expected =
+                        Application.update (Msgs.Update FocusMsg)
+                            >> Tuple.first
+                            >> Common.queryView
+                            >> Query.find [ id "search-dropdown" ]
+                            >> Query.findAll [ tag "li" ]
+                            >> Expect.all
+                                (Query.count (Expect.equal <| List.length expected)
+                                    :: List.indexedMap
+                                        (\i name -> Query.index i >> Query.has [ text name ])
+                                        expected
+                                )
+                in
+                [ dropdownSuggestionFilterTest "status:succeeded team:" [ "team:\"team1\"" ]
+                , dropdownSuggestionFilterTest "status:failed team:" [ "team:\"team2\"" ]
+                , dropdownSuggestionFilterTest "team:1" [ "team:\"team1\"" ]
+                , dropdownSuggestionFilterTest "team:\"team" [ "team:\"team1\"", "team:\"team2\"" ]
+                , dropdownSuggestionFilterTest "p1 team:" [ "team:\"team1\"" ]
                 ]
             ]
         ]
