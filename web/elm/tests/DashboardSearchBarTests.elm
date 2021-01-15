@@ -3,10 +3,17 @@ module DashboardSearchBarTests exposing (all)
 import Application.Application as Application
 import Assets
 import ColorValues
-import Common exposing (whenOnDesktop, whenOnMobile)
+import Common
+    exposing
+        ( gotPipelines
+        , whenOnDesktop
+        , whenOnMobile
+        )
 import Concourse
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import Dashboard.Filter as Filter
 import Dashboard.SearchBar as SearchBar
+import DashboardTests exposing (job, running, whenOnDashboard)
 import Data
 import Expect
 import FetchResult
@@ -17,6 +24,7 @@ import Message.Effects as Effects
 import Message.Message as Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..))
 import Message.TopLevelMessage as Msgs
+import Set
 import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
@@ -237,8 +245,8 @@ all =
                         >> Query.findAll [ tag "li" ]
                         >> Expect.all
                             [ Query.count (Expect.equal 2)
-                            , Query.index 0 >> Query.has [ text "status: " ]
-                            , Query.index 1 >> Query.has [ text "team: " ]
+                            , Query.index 0 >> Query.has [ text "status:" ]
+                            , Query.index 1 >> Query.has [ text "team:" ]
                             ]
                 , describe "navigating dropdown items" <|
                     let
@@ -327,8 +335,8 @@ all =
                                 [ Tuple.first
                                     >> Common.queryView
                                     >> Query.find [ id SearchBar.searchInputId ]
-                                    >> Query.has [ value "status: paused team: team1" ]
-                                , Tuple.second >> Common.contains (Effects.ModifyUrl "/?search=status%3A%20paused%20team%3A%20team1")
+                                    >> Query.has [ value "status: paused team:team1" ]
+                                , Tuple.second >> Common.contains (Effects.ModifyUrl "/?search=status%3A%20paused%20team%3Ateam1")
                                 ]
                     , test "doesn't try to loop if the dropdown is empty (down)" <|
                         focusSearchBar
@@ -353,10 +361,10 @@ all =
                                 >> Event.simulate Event.mouseDown
                     in
                     focusSearchBar
-                        >> withFilter "status: paused t"
+                        >> withFilter "status:paused t"
                         >> findDropdown
                         >> mouseDownOn 0
-                        >> Event.expect (Msgs.Update <| FilterMsg "status: paused team: ")
+                        >> Event.expect (Msgs.Update <| FilterMsg "status:paused team:")
                 , describe "dropdown suggestions" <|
                     let
                         manyTeams =
@@ -388,46 +396,46 @@ all =
                             prefixedSuggestionsTest query "" expected
                     in
                     [ -- available filters
-                      simpleSuggestionsTest "" [ "status: ", "team: " ]
-                    , simpleSuggestionsTest "-" [ "status: ", "team: " ]
-                    , simpleSuggestionsTest " " [ "status: ", "team: " ]
+                      simpleSuggestionsTest "" [ "status:", "team:" ]
+                    , simpleSuggestionsTest "-" [ "status:", "team:" ]
+                    , simpleSuggestionsTest " " [ "status:", "team:" ]
 
                     -- status
-                    , simpleSuggestionsTest "st" [ "status: " ]
-                    , simpleSuggestionsTest "-st" [ "status: " ]
-                    , simpleSuggestionsTest "status" [ "status: " ]
-                    , simpleSuggestionsTest "status: "
-                        [ "status: paused"
-                        , "status: pending"
-                        , "status: failed"
-                        , "status: errored"
-                        , "status: aborted"
-                        , "status: running"
-                        , "status: succeeded"
+                    , simpleSuggestionsTest "st" [ "status:" ]
+                    , simpleSuggestionsTest "-st" [ "status:" ]
+                    , simpleSuggestionsTest "status" [ "status:" ]
+                    , simpleSuggestionsTest "status:"
+                        [ "status:paused"
+                        , "status:pending"
+                        , "status:failed"
+                        , "status:errored"
+                        , "status:aborted"
+                        , "status:running"
+                        , "status:succeeded"
                         ]
-                    , simpleSuggestionsTest " status: p" [ "status: paused", "status: pending" ]
-                    , simpleSuggestionsTest " -status: p" [ "status: paused", "status: pending" ]
-                    , simpleSuggestionsTest "status:p" [ "status: paused", "status: pending" ]
-                    , simpleSuggestionsTest "status: pause" [ "status: paused" ]
-                    , simpleSuggestionsTest "status: paused" []
+                    , simpleSuggestionsTest " status: p" [ "status:paused", "status:pending" ]
+                    , simpleSuggestionsTest " -status:p" [ "status:paused", "status:pending" ]
+                    , simpleSuggestionsTest "status:p" [ "status:paused", "status:pending" ]
+                    , simpleSuggestionsTest "status:pause" [ "status:paused" ]
+                    , simpleSuggestionsTest "status:paused" []
 
                     -- team
-                    , simpleSuggestionsTest "t" [ "team: " ]
-                    , simpleSuggestionsTest "-t" [ "team: " ]
-                    , simpleSuggestionsTest "team" [ "team: " ]
-                    , simpleSuggestionsTest "team:" [ "team: other-team", "team: team", "team: yet-another-team" ]
-                    , simpleSuggestionsTest "team: oth" [ "team: other-team" ]
-                    , simpleSuggestionsTest "team:oth" [ "team: other-team" ]
-                    , simpleSuggestionsTest "team: other-team" []
+                    , simpleSuggestionsTest "t" [ "team:" ]
+                    , simpleSuggestionsTest "-t" [ "team:" ]
+                    , simpleSuggestionsTest "team" [ "team:" ]
+                    , simpleSuggestionsTest "team:" [ "team:other-team", "team:team", "team:yet-another-team" ]
+                    , simpleSuggestionsTest "team: oth" [ "team:other-team" ]
+                    , simpleSuggestionsTest "team:oth" [ "team:other-team" ]
+                    , simpleSuggestionsTest "team:other-team" []
                     , suggestionsTest manyTeams "team:" (List.length >> Expect.equal 10)
 
                     -- fuzzy pipeline
                     , simpleSuggestionsTest "foo" []
 
                     -- takes last filter
-                    , prefixedSuggestionsTest "team: other-team " "team: other-team " [ "status: ", "team: " ]
-                    , prefixedSuggestionsTest "team: other-team s" "team: other-team " [ "status: " ]
-                    , prefixedSuggestionsTest "team: other-team -status:a" "team: other-team " [ "status: aborted" ]
+                    , prefixedSuggestionsTest "team:other-team " "team:other-team " [ "status:", "team:" ]
+                    , prefixedSuggestionsTest "team:other-team s" "team:other-team " [ "status:" ]
+                    , prefixedSuggestionsTest "team:other-team -status:a" "team:other-team " [ "status:aborted" ]
                     ]
                 ]
             ]
@@ -481,17 +489,187 @@ all =
                     >> Tuple.second
                     >> Common.contains (Effects.Blur SearchBar.searchInputId)
             ]
+        , describe "filtering" <|
+            let
+                expectCardsIn findContainer expected =
+                    Common.queryView
+                        >> findContainer
+                        >> Query.findAll [ class "card" ]
+                        >> Expect.all
+                            (Query.count (Expect.equal <| List.length expected)
+                                :: List.indexedMap
+                                    (\i name -> Query.index i >> Query.has [ text name ])
+                                    expected
+                            )
+
+                expectCards =
+                    expectCardsIn identity
+
+                teamSection team =
+                    Query.find [ id team ]
+
+                favoritesSection =
+                    Query.find [ id "dashboard-favorite-pipelines" ]
+
+                expectNoTeamSection team =
+                    Common.queryView >> Query.hasNot [ id team ]
+
+                expectNoFavoritesSection =
+                    Common.queryView >> Query.hasNot [ id "dashboard-favorite-pipelines" ]
+
+                pipeline status id name =
+                    ( Data.pipeline "team" id |> Data.withName name
+                    , [ job status |> Data.withPipelineId id ]
+                    )
+
+                withJobsRunning =
+                    Tuple.mapSecond (List.map running)
+
+                withTeam t =
+                    Tuple.mapFirst (Data.withTeamName t)
+
+                simpleFilterTest setup filter expectation =
+                    test filter <|
+                        setup
+                            >> withFilter filter
+                            >> expectation
+            in
+            [ describe "status filter" <|
+                let
+                    statusFilterTest =
+                        simpleFilterTest <|
+                            loadDashboard
+                                >> gotPipelines
+                                    [ pipeline BuildStatusPending 1 "pending"
+                                    , pipeline BuildStatusSucceeded 2 "running-succeeded" |> withJobsRunning
+                                    , pipeline BuildStatusFailed 3 "running-failed" |> withJobsRunning
+                                    ]
+                in
+                [ statusFilterTest "status:pending" (expectCards [ "pending" ])
+                , statusFilterTest "status:succeeded" (expectCards [ "running-succeeded" ])
+                , statusFilterTest "status:failed" (expectCards [ "running-failed" ])
+                , statusFilterTest "status:running" (expectCards [ "running-succeeded", "running-failed" ])
+                , statusFilterTest "status:errored" (expectCards [])
+                ]
+            , describe "team filter" <|
+                let
+                    teamFilterTest =
+                        simpleFilterTest <|
+                            loadDashboard
+                                >> gotPipelines
+                                    [ pipeline BuildStatusPending 1 "p1" |> withTeam "team"
+                                    , pipeline BuildStatusPending 2 "p1" |> withTeam "other-team"
+                                    , pipeline BuildStatusPending 3 "p2" |> withTeam "another-team"
+                                    , pipeline BuildStatusPending 4 "p3" |> withTeam "something-else"
+                                    ]
+                in
+                [ teamFilterTest "team:team"
+                    (Expect.all
+                        [ expectCardsIn (teamSection "team") [ "p1" ]
+                        , expectCardsIn (teamSection "other-team") [ "p1" ]
+                        , expectCardsIn (teamSection "another-team") [ "p2" ]
+                        , expectNoTeamSection "something-else"
+                        ]
+                    )
+                , teamFilterTest "team:other-team"
+                    (Expect.all
+                        [ expectCardsIn (teamSection "other-team") [ "p1" ]
+                        , expectCardsIn (teamSection "another-team") [ "p2" ]
+                        , expectNoTeamSection "team"
+                        ]
+                    )
+                , teamFilterTest "team:something"
+                    (expectCardsIn (teamSection "something-else") [ "p3" ])
+                , teamFilterTest "team:invalid"
+                    (expectCards [])
+                ]
+            , describe "pipeline text filter" <|
+                let
+                    pipelineFilterTest =
+                        simpleFilterTest <|
+                            loadDashboard
+                                >> gotPipelines
+                                    [ pipeline BuildStatusPending 1 "p1"
+                                    , pipeline BuildStatusPending 2 "p1" |> withTeam "team2"
+                                    , pipeline BuildStatusPending 3 "pipeline1"
+                                    , pipeline BuildStatusPending 4 "other-pipeline"
+                                    ]
+                in
+                [ pipelineFilterTest "p" (expectCards [ "p1", "pipeline1", "other-pipeline", "p1" ])
+                , pipelineFilterTest "p1" (expectCards [ "p1", "pipeline1", "p1" ])
+                , pipelineFilterTest "blah" (expectCards [])
+                ]
+            , describe "multiple filters" <|
+                let
+                    multiFilterTest =
+                        simpleFilterTest <|
+                            loadDashboard
+                                >> gotPipelines
+                                    [ pipeline BuildStatusPending 1 "p1"
+                                    , pipeline BuildStatusPending 2 "p1" |> withTeam "team2"
+                                    , pipeline BuildStatusPending 3 "pipeline1"
+                                    , pipeline BuildStatusPending 4 "other-pipeline"
+                                    ]
+                in
+                [ multiFilterTest "p1 team:team2"
+                    (Expect.all
+                        [ expectCardsIn (teamSection "team2") [ "p1" ]
+                        , expectNoTeamSection "team"
+                        ]
+                    )
+                , multiFilterTest "status:running p" (expectCards [])
+                ]
+            , describe "favorites section" <|
+                let
+                    favoritesFilterTest =
+                        simpleFilterTest <|
+                            loadDashboard
+                                >> gotPipelines
+                                    [ pipeline BuildStatusPending 1 "p1"
+                                    , pipeline BuildStatusPending 2 "p1" |> withTeam "team2"
+                                    , pipeline BuildStatusPending 3 "pipeline1"
+                                    , pipeline BuildStatusPending 4 "other-pipeline"
+                                    ]
+                                >> Application.handleDelivery
+                                    (FavoritedPipelinesReceived <|
+                                        Ok <|
+                                            Set.fromList [ 1, 4 ]
+                                    )
+                                >> Tuple.first
+                in
+                [ favoritesFilterTest "p1"
+                    (Expect.all
+                        [ expectCardsIn favoritesSection [ "p1" ]
+                        , expectCardsIn (teamSection "team") [ "p1", "pipeline1" ]
+                        ]
+                    )
+                , favoritesFilterTest "asdfgh" expectNoFavoritesSection
+                ]
+            , describe "no results" <|
+                [ test "displays no results message when a filter has no matching pipelines" <|
+                    loadDashboard
+                        >> withFilter "asdfghjk"
+                        >> Common.queryView
+                        >> Query.has [ text "No results" ]
+                , test "does not render 'no results' when awaiting pipelines" <|
+                    (\_ -> whenOnDashboard { highDensity = False })
+                        >> Application.handleCallback (Callback.AllJobsFetched <| Ok [])
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.hasNot [ text "No results" ]
+                ]
+            ]
         ]
 
 
 loadDashboard : () -> Application.Model
 loadDashboard =
-    \_ -> Common.init "/" |> loadInitialData
+    \_ -> whenOnDashboard { highDensity = False } |> loadInitialData
 
 
 loadDashboardHD : () -> Application.Model
 loadDashboardHD =
-    \_ -> Common.init "/hd" |> loadInitialData
+    \_ -> whenOnDashboard { highDensity = True } |> loadInitialData
 
 
 loadInitialData : Application.Model -> Application.Model

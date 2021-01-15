@@ -282,14 +282,14 @@ suggestions { query, teams, pipelines } =
                 Pipeline (FuzzyName s) ->
                     filterTypes
                         |> List.filter (String.startsWith s)
-                        |> List.map (\v -> v ++ ": ")
+                        |> List.map (\v -> v ++ ":")
 
                 Pipeline (Status sf) ->
                     case sf of
                         IncompleteStatus status ->
                             [ "paused", "pending", "failed", "errored", "aborted", "running", "succeeded" ]
                                 |> List.filter (String.startsWith status)
-                                |> List.map (\v -> "status: " ++ v)
+                                |> List.map (\v -> "status:" ++ v)
 
                         _ ->
                             []
@@ -310,6 +310,6 @@ suggestions { query, teams, pipelines } =
                         |> List.filter (String.startsWith team)
                         |> List.filter ((/=) team)
                         |> List.take 10
-                        |> List.map (\v -> "team: " ++ v)
+                        |> List.map (\v -> "team:" ++ v)
     in
     List.map (Suggestion prev) cur

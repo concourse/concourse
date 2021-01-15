@@ -3,6 +3,8 @@ module Common exposing
     , contains
     , defineHoverBehaviour
     , given
+    , givenDataUnauthenticated
+    , gotPipelines
     , iOpenTheBuildPage
     , init
     , initQuery
@@ -17,6 +19,7 @@ module Common exposing
     , when
     , whenOnDesktop
     , whenOnMobile
+    , withAllPipelinesVisible
     )
 
 import Application.Application as Application
@@ -29,7 +32,7 @@ import Html.Attributes as Attr
 import List.Extra
 import Message.Callback as Callback
 import Message.Effects exposing (Effect)
-import Message.Message exposing (DomID, Message(..))
+import Message.Message exposing (DomID(..), Message(..))
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Routes
 import Test exposing (Test, describe, test)
@@ -280,6 +283,20 @@ withScreenSize width height =
         >> Tuple.first
 
 
+withAllPipelinesVisible : Application.Model -> Application.Model
+withAllPipelinesVisible =
+    Application.handleCallback
+        (Callback.GotViewport
+            Dashboard
+            (Ok
+                { scene = { width = 0, height = 0 }
+                , viewport = { x = 0, y = 0, width = 1000, height = 100000 }
+                }
+            )
+        )
+        >> Tuple.first
+
+
 whenOnDesktop : Application.Model -> Application.Model
 whenOnDesktop =
     withScreenSize 1500 900
@@ -288,6 +305,40 @@ whenOnDesktop =
 whenOnMobile : Application.Model -> Application.Model
 whenOnMobile =
     withScreenSize 400 900
+
+
+givenDataUnauthenticated :
+    List Concourse.Team
+    -> Application.Model
+    -> ( Application.Model, List Effect )
+givenDataUnauthenticated data =
+    Application.handleCallback
+        (Callback.AllTeamsFetched <| Ok data)
+        >> Tuple.first
+        >> Application.handleCallback
+            (Callback.UserFetched <| Data.httpUnauthorized)
+
+
+gotPipelines : List ( Concourse.Pipeline, List Concourse.Job ) -> Application.Model -> Application.Model
+gotPipelines data =
+    let
+        pipelines =
+            data |> List.map Tuple.first
+
+        jobs =
+            data |> List.concatMap Tuple.second
+
+        teams =
+            pipelines |> List.map .teamName |> List.Extra.unique |> List.indexedMap Concourse.Team
+    in
+    Application.handleCallback
+        (Callback.AllPipelinesFetched <| Ok pipelines)
+        >> Tuple.first
+        >> Application.handleCallback
+            (Callback.AllJobsFetched <| Ok jobs)
+        >> Tuple.first
+        >> givenDataUnauthenticated teams
+        >> Tuple.first
 
 
 

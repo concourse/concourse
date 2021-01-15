@@ -4,7 +4,12 @@ import Application.Application as Application
 import Assets
 import ColorValues
 import Colors
-import Common exposing (defineHoverBehaviour, isColorWithStripes)
+import Common
+    exposing
+        ( defineHoverBehaviour
+        , givenDataUnauthenticated
+        , isColorWithStripes
+        )
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
@@ -19,7 +24,6 @@ import DashboardTests
         , darkGrey
         , fadedGreen
         , givenDataAndUser
-        , givenDataUnauthenticated
         , green
         , iconSelector
         , job

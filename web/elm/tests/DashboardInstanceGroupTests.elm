@@ -1,7 +1,6 @@
 module DashboardInstanceGroupTests exposing
     ( all
     , archived
-    , gotPipelines
     , pipelineInstance
     )
 
@@ -10,6 +9,8 @@ import Assets
 import Common
     exposing
         ( defineHoverBehaviour
+        , givenDataUnauthenticated
+        , gotPipelines
         , isColorWithStripes
         , pipelineRunningKeyframes
         )
@@ -19,8 +20,7 @@ import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import DashboardTests
     exposing
-        ( givenDataUnauthenticated
-        , job
+        ( job
         , running
         , whenOnDashboard
         )
@@ -341,18 +341,6 @@ whenOnDashboardViewingInstanceGroup { dashboardView } =
                     }
             )
         |> Tuple.first
-
-
-gotPipelines : List ( Concourse.Pipeline, List Concourse.Job ) -> Application.Model -> Application.Model
-gotPipelines data =
-    Application.handleCallback
-        (Callback.AllJobsFetched <| Ok (data |> List.concatMap Tuple.second))
-        >> Tuple.first
-        >> givenDataUnauthenticated [ { id = 1, name = "team" } ]
-        >> Tuple.first
-        >> Application.handleCallback
-            (Callback.AllPipelinesFetched <| Ok (data |> List.map Tuple.first))
-        >> Tuple.first
 
 
 pipelineInstance : BuildStatus -> Bool -> Int -> ( Concourse.Pipeline, List Concourse.Job )

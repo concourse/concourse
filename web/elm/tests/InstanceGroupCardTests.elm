@@ -4,14 +4,19 @@ import Application.Application as Application
 import Assets
 import ColorValues
 import Colors
-import Common exposing (defineHoverBehaviour, isColorWithStripes)
+import Common
+    exposing
+        ( defineHoverBehaviour
+        , givenDataUnauthenticated
+        , gotPipelines
+        , isColorWithStripes
+        )
 import Concourse exposing (Job, JsonValue(..), Pipeline)
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
 import DashboardInstanceGroupTests
     exposing
         ( archived
-        , gotPipelines
         , pipelineInstance
         )
 import DashboardTests
@@ -25,7 +30,6 @@ import DashboardTests
         , darkGrey
         , fadedGreen
         , givenDataAndUser
-        , givenDataUnauthenticated
         , green
         , iconSelector
         , job
