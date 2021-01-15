@@ -792,7 +792,7 @@ by configuring \reference{schema.step.on_failure} or
           - task: use-creds
             params:
               USERNAME: ((.:user.username))
-              PASSWORD: ((.:user.username))
+              PASSWORD: ((.:user.password))
           }}}
 
           If the \code{use-creds} task were to print these values, they would
