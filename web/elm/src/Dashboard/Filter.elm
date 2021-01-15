@@ -42,11 +42,11 @@ import Simple.Fuzzy
 
 type alias Filter =
     { negate : Bool
-    , groupFilter : GroupFilter
+    , teamFilter : TeamFilter
     }
 
 
-type GroupFilter
+type TeamFilter
     = Team StringFilter
     | Pipeline PipelineFilter
 
@@ -123,7 +123,7 @@ runFilter jobs existingJobs f =
             else
                 identity
     in
-    case f.groupFilter of
+    case f.teamFilter of
         Team sf ->
             Dict.filter (\team _ -> stringMatches sf team |> negater)
 
@@ -213,13 +213,13 @@ filter =
             [ symbol "-" |> map (always True)
             , succeed False
             ]
-        |= groupFilter
+        |= teamFilter
 
 
-groupFilter : Parser GroupFilter
-groupFilter =
+teamFilter : Parser TeamFilter
+teamFilter =
     oneOf
-        [ backtrackable teamFilter
+        [ backtrackable teamNameFilter
         , backtrackable statusFilter
         , succeed (Name >> Pipeline) |= parseString
         ]
@@ -258,8 +258,8 @@ parseWord =
         )
 
 
-teamFilter : Parser GroupFilter
-teamFilter =
+teamNameFilter : Parser TeamFilter
+teamNameFilter =
     succeed Team
         |. keyword "team"
         |. symbol ":"
@@ -267,7 +267,7 @@ teamFilter =
         |= parseString
 
 
-statusFilter : Parser GroupFilter
+statusFilter : Parser TeamFilter
 statusFilter =
     succeed (Status >> Pipeline)
         |. keyword "status"
@@ -312,7 +312,7 @@ suggestions { query, teams, pipelines } =
             parsedFilters
                 |> List.Extra.last
                 |> Maybe.map Tuple.first
-                |> Maybe.map (\f -> ( f.groupFilter, f.negate ))
+                |> Maybe.map (\f -> ( f.teamFilter, f.negate ))
                 |> Maybe.withDefault ( Pipeline (Name (Fuzzy "")), False )
 
         prevFilters =
