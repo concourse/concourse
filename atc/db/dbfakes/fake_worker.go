@@ -10,16 +10,6 @@ import (
 )
 
 type FakeWorker struct {
-	ActiveContainersStub        func() int
-	activeContainersMutex       sync.RWMutex
-	activeContainersArgsForCall []struct {
-	}
-	activeContainersReturns struct {
-		result1 int
-	}
-	activeContainersReturnsOnCall map[int]struct {
-		result1 int
-	}
 	ActiveTasksStub        func() (int, error)
 	activeTasksMutex       sync.RWMutex
 	activeTasksArgsForCall []struct {
@@ -329,58 +319,6 @@ type FakeWorker struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
-}
-
-func (fake *FakeWorker) ActiveContainers() int {
-	fake.activeContainersMutex.Lock()
-	ret, specificReturn := fake.activeContainersReturnsOnCall[len(fake.activeContainersArgsForCall)]
-	fake.activeContainersArgsForCall = append(fake.activeContainersArgsForCall, struct {
-	}{})
-	fake.recordInvocation("ActiveContainers", []interface{}{})
-	fake.activeContainersMutex.Unlock()
-	if fake.ActiveContainersStub != nil {
-		return fake.ActiveContainersStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.activeContainersReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeWorker) ActiveContainersCallCount() int {
-	fake.activeContainersMutex.RLock()
-	defer fake.activeContainersMutex.RUnlock()
-	return len(fake.activeContainersArgsForCall)
-}
-
-func (fake *FakeWorker) ActiveContainersCalls(stub func() int) {
-	fake.activeContainersMutex.Lock()
-	defer fake.activeContainersMutex.Unlock()
-	fake.ActiveContainersStub = stub
-}
-
-func (fake *FakeWorker) ActiveContainersReturns(result1 int) {
-	fake.activeContainersMutex.Lock()
-	defer fake.activeContainersMutex.Unlock()
-	fake.ActiveContainersStub = nil
-	fake.activeContainersReturns = struct {
-		result1 int
-	}{result1}
-}
-
-func (fake *FakeWorker) ActiveContainersReturnsOnCall(i int, result1 int) {
-	fake.activeContainersMutex.Lock()
-	defer fake.activeContainersMutex.Unlock()
-	fake.ActiveContainersStub = nil
-	if fake.activeContainersReturnsOnCall == nil {
-		fake.activeContainersReturnsOnCall = make(map[int]struct {
-			result1 int
-		})
-	}
-	fake.activeContainersReturnsOnCall[i] = struct {
-		result1 int
-	}{result1}
 }
 
 func (fake *FakeWorker) ActiveTasks() (int, error) {
@@ -1932,8 +1870,6 @@ func (fake *FakeWorker) VersionReturnsOnCall(i int, result1 *string) {
 func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.activeContainersMutex.RLock()
-	defer fake.activeContainersMutex.RUnlock()
 	fake.activeTasksMutex.RLock()
 	defer fake.activeTasksMutex.RUnlock()
 	fake.activeVolumesMutex.RLock()

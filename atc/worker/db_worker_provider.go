@@ -28,6 +28,7 @@ type dbWorkerProvider struct {
 	dbVolumeRepository                db.VolumeRepository
 	dbTeamFactory                     db.TeamFactory
 	dbWorkerFactory                   db.WorkerFactory
+	dbContainerRepository             db.ContainerRepository
 	workerVersion                     version.Version
 	baggageclaimResponseHeaderTimeout time.Duration
 	gardenRequestTimeout              time.Duration
@@ -46,6 +47,7 @@ func NewDBWorkerProvider(
 	dbVolumeRepository db.VolumeRepository,
 	dbTeamFactory db.TeamFactory,
 	workerFactory db.WorkerFactory,
+	containerRepository db.ContainerRepository,
 	workerVersion version.Version,
 	baggageclaimResponseHeaderTimeout, gardenRequestTimeout time.Duration,
 ) WorkerProvider {
@@ -62,6 +64,7 @@ func NewDBWorkerProvider(
 		dbVolumeRepository:                dbVolumeRepository,
 		dbTeamFactory:                     dbTeamFactory,
 		dbWorkerFactory:                   workerFactory,
+		dbContainerRepository:             containerRepository,
 		workerVersion:                     workerVersion,
 		baggageclaimResponseHeaderTimeout: baggageclaimResponseHeaderTimeout,
 		gardenRequestTimeout:              gardenRequestTimeout,
@@ -212,6 +215,7 @@ func (provider *dbWorkerProvider) NewGardenWorker(logger lager.Logger, savedWork
 		provider.resourceFetcher,
 		provider.dbTeamFactory,
 		savedWorker,
+		provider.dbContainerRepository,
 		provider.dbResourceCacheFactory,
 		buildContainersCount,
 	)

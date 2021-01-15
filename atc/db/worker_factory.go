@@ -45,7 +45,6 @@ var workersQuery = psql.Select(`
 		w.http_proxy_url,
 		w.https_proxy_url,
 		w.no_proxy,
-		w.active_containers,
 		w.active_volumes,
 		w.resource_types,
 		w.platform,
@@ -152,7 +151,6 @@ func scanWorker(worker *worker, row scannable) error {
 		&httpProxyURL,
 		&httpsProxyURL,
 		&noProxy,
-		&worker.activeContainers,
 		&worker.activeVolumes,
 		&resourceTypes,
 		&platform,
@@ -254,7 +252,6 @@ func (f *workerFactory) HeartbeatWorker(atcWorker atc.Worker, ttl time.Duration)
 
 	_, err = psql.Update("workers").
 		Set("expires", sq.Expr(expires)).
-		Set("active_containers", atcWorker.ActiveContainers).
 		Set("active_volumes", atcWorker.ActiveVolumes).
 		Set("state", sq.Expr("("+cSQL+")")).
 		Where(sq.Eq{"name": atcWorker.Name}).
@@ -396,7 +393,6 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 
 	values := []interface{}{
 		atcWorker.GardenAddr,
-		atcWorker.ActiveContainers,
 		atcWorker.ActiveVolumes,
 		resourceTypes,
 		tags,
@@ -427,7 +423,6 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			"expires",
 			"start_time",
 			"addr",
-			"active_containers",
 			"active_volumes",
 			"resource_types",
 			"tags",
@@ -452,7 +447,6 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 				expires = `+expires+`,
 				start_time = `+startTime+`,
 				addr = ?,
-				active_containers = ?,
 				active_volumes = ?,
 				resource_types = ?,
 				tags = ?,
@@ -491,25 +485,24 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 	}
 
 	savedWorker := &worker{
-		name:             atcWorker.Name,
-		version:          workerVersion,
-		state:            workerState,
-		gardenAddr:       &atcWorker.GardenAddr,
-		baggageclaimURL:  &atcWorker.BaggageclaimURL,
-		certsPath:        atcWorker.CertsPath,
-		httpProxyURL:     atcWorker.HTTPProxyURL,
-		httpsProxyURL:    atcWorker.HTTPSProxyURL,
-		noProxy:          atcWorker.NoProxy,
-		activeContainers: atcWorker.ActiveContainers,
-		activeVolumes:    atcWorker.ActiveVolumes,
-		resourceTypes:    atcWorker.ResourceTypes,
-		platform:         atcWorker.Platform,
-		tags:             atcWorker.Tags,
-		teamName:         atcWorker.Team,
-		teamID:           workerTeamID,
-		startTime:        time.Unix(atcWorker.StartTime, 0),
-		ephemeral:        atcWorker.Ephemeral,
-		conn:             conn,
+		name:            atcWorker.Name,
+		version:         workerVersion,
+		state:           workerState,
+		gardenAddr:      &atcWorker.GardenAddr,
+		baggageclaimURL: &atcWorker.BaggageclaimURL,
+		certsPath:       atcWorker.CertsPath,
+		httpProxyURL:    atcWorker.HTTPProxyURL,
+		httpsProxyURL:   atcWorker.HTTPSProxyURL,
+		noProxy:         atcWorker.NoProxy,
+		activeVolumes:   atcWorker.ActiveVolumes,
+		resourceTypes:   atcWorker.ResourceTypes,
+		platform:        atcWorker.Platform,
+		tags:            atcWorker.Tags,
+		teamName:        atcWorker.Team,
+		teamID:          workerTeamID,
+		startTime:       time.Unix(atcWorker.StartTime, 0),
+		ephemeral:       atcWorker.Ephemeral,
+		conn:            conn,
 	}
 
 	workerBaseResourceTypeIDs := []int{}

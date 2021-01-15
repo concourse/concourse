@@ -787,7 +787,6 @@ var _ = Describe("Workers API", func() {
 			fakeWorker = new(dbfakes.FakeWorker)
 			workerName = "some-name"
 			fakeWorker.NameReturns(workerName)
-			fakeWorker.ActiveContainersReturns(2)
 			fakeWorker.ActiveVolumesReturns(10)
 			fakeWorker.ActiveTasksReturns(42, nil)
 			fakeWorker.PlatformReturns("penguin")
@@ -795,6 +794,7 @@ var _ = Describe("Workers API", func() {
 			fakeWorker.StateReturns(db.WorkerStateRunning)
 			fakeWorker.TeamNameReturns("some-team")
 			fakeWorker.EphemeralReturns(true)
+			fakeContainerRepository.GetActiveContainerCountReturns(2)
 
 			ttlStr = "30s"
 			ttl, err = time.ParseDuration(ttlStr)

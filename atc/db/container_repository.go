@@ -19,6 +19,8 @@ type ContainerRepository interface {
 	UpdateContainersMissingSince(workerName string, handles []string) error
 	RemoveMissingContainers(time.Duration) (int, error)
 	DestroyUnknownContainers(workerName string, reportedHandles []string) (int, error)
+	GetActiveContainerCount(workerName string) int
+	GetActiveContainers(workerName string) ([]Container, error)
 }
 
 type containerRepository struct {
@@ -290,6 +292,57 @@ func (repository *containerRepository) FindOrphanedContainers() ([]CreatingConta
 	}
 
 	return creatingContainers, createdContainers, destroyingContainers, nil
+}
+
+func (repository *containerRepository) GetActiveContainers(workerName string) ([]Container, error) {
+	query, args, err := selectContainers("c").Where(
+		sq.And{
+			sq.Eq{"c.worker_name": workerName},
+			sq.Expr("c.state NOT IN ('$1', '$2')", atc.ContainerStateCreating, atc.ContainerStateCreated),
+		},
+	).ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := repository.conn.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer Close(rows)
+	containers := []Container{}
+	for rows.Next() {
+		creatingContainer, createdContainer, _, _, err := scanContainer(rows, repository.conn)
+		if err != nil {
+			return nil, err
+		}
+
+		if creatingContainer != nil {
+			containers = append(containers, creatingContainer)
+		}
+
+		if createdContainer != nil {
+			containers = append(containers, createdContainer)
+		}
+	}
+
+	return containers, nil
+}
+
+func (repository *containerRepository) GetActiveContainerCount(workerName string) int {
+	var count int
+	err := repository.conn.QueryRow(
+		"SELECT count(*) FROM containers WHERE worker_name = $1 AND state IN ($2, $3)",
+		workerName,
+		atc.ContainerStateCreating,
+		atc.ContainerStateCreated,
+	).Scan(&count)
+	if err != nil {
+		return 0
+	}
+
+	return count
 }
 
 func selectContainers(asOptional ...string) sq.SelectBuilder {

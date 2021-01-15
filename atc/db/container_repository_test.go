@@ -1151,4 +1151,41 @@ var _ = Describe("ContainerRepository", func() {
 			})
 		})
 	})
+
+	Describe("GetActiveContainerCount", func() {
+		BeforeEach(func() {
+			result, err := psql.Insert("containers").SetMap(map[string]interface{}{
+				"state":       atc.ContainerStateCreating,
+				"handle":      "some-handle1",
+				"worker_name": defaultWorker.Name(),
+			}).RunWith(dbConn).Exec()
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.RowsAffected()).To(Equal(int64(1)))
+
+			result, err = psql.Insert("containers").SetMap(map[string]interface{}{
+				"state":       atc.ContainerStateCreated,
+				"handle":      "some-handle2",
+				"worker_name": defaultWorker.Name(),
+			}).RunWith(dbConn).Exec()
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.RowsAffected()).To(Equal(int64(1)))
+
+			result, err = psql.Insert("containers").SetMap(map[string]interface{}{
+				"state":       atc.ContainerStateDestroying,
+				"handle":      "some-handle3",
+				"worker_name": defaultWorker.Name(),
+			}).RunWith(dbConn).Exec()
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.RowsAffected()).To(Equal(int64(1)))
+		})
+
+		It("reports how many active containers are in the db for that worker", func() {
+			activeContainers := containerRepository.GetActiveContainerCount(defaultWorker.Name())
+			Expect(activeContainers).To(Equal(2))
+		})
+
+	})
 })

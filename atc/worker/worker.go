@@ -91,9 +91,10 @@ type gardenWorker struct {
 	imageFactory         ImageFactory
 	resourceCacheFactory db.ResourceCacheFactory
 	Fetcher
-	dbWorker        db.Worker
-	buildContainers int
-	helper          workerHelper
+	dbWorker              db.Worker
+	dbContainerRepository db.ContainerRepository
+	buildContainers       int
+	helper                workerHelper
 }
 
 // NewGardenWorker constructs a Worker using the gardenWorker runtime implementation and allows container and volume
@@ -107,6 +108,7 @@ func NewGardenWorker(
 	fetcher Fetcher,
 	dbTeamFactory db.TeamFactory,
 	dbWorker db.Worker,
+	dbContainerRepository db.ContainerRepository,
 	resourceCacheFactory db.ResourceCacheFactory,
 	numBuildContainers int,
 	// TODO: numBuildContainers is only needed for placement strategy but this
@@ -122,14 +124,15 @@ func NewGardenWorker(
 	}
 
 	return &gardenWorker{
-		gardenClient:         gardenClient,
-		volumeClient:         volumeClient,
-		imageFactory:         imageFactory,
-		Fetcher:              fetcher,
-		dbWorker:             dbWorker,
-		resourceCacheFactory: resourceCacheFactory,
-		buildContainers:      numBuildContainers,
-		helper:               workerHelper,
+		gardenClient:          gardenClient,
+		volumeClient:          volumeClient,
+		imageFactory:          imageFactory,
+		Fetcher:               fetcher,
+		dbWorker:              dbWorker,
+		dbContainerRepository: dbContainerRepository,
+		resourceCacheFactory:  resourceCacheFactory,
+		buildContainers:       numBuildContainers,
+		helper:                workerHelper,
 	}
 }
 
@@ -792,7 +795,7 @@ func (worker *gardenWorker) DecreaseActiveTasks() error {
 }
 
 func (worker *gardenWorker) ActiveContainers() int {
-	return worker.dbWorker.ActiveContainers()
+	return worker.dbContainerRepository.GetActiveContainerCount(worker.dbWorker.Name())
 }
 
 func (worker *gardenWorker) ActiveVolumes() int {

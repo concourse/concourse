@@ -34,7 +34,8 @@ func (s *Server) ListWorkers(w http.ResponseWriter, r *http.Request) {
 
 	atcWorkers := make([]atc.Worker, len(workers))
 	for i, savedWorker := range workers {
-		atcWorkers[i] = present.Worker(savedWorker)
+		activeContainers := s.containerRepository.GetActiveContainerCount(savedWorker.Name())
+		atcWorkers[i] = present.Worker(savedWorker, activeContainers)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

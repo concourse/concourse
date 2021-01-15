@@ -37,6 +37,7 @@ var _ = Describe("Worker", func() {
 		workerName               string
 		gardenWorker             Worker
 		workerVersion            string
+		fakeContainerRepository  *dbfakes.FakeContainerRepository
 		fakeGardenClient         *gclientfakes.FakeClient
 		fakeImageFactory         *workerfakes.FakeImageFactory
 		fakeImage                *workerfakes.FakeImage
@@ -92,6 +93,7 @@ var _ = Describe("Worker", func() {
 		workerVersion = "1.2.3"
 		fakeDBWorker = new(dbfakes.FakeWorker)
 
+		fakeContainerRepository = new(dbfakes.FakeContainerRepository)
 		fakeGardenClient = new(gclientfakes.FakeClient)
 		fakeImageFactory = new(workerfakes.FakeImageFactory)
 		fakeImage = new(workerfakes.FakeImage)
@@ -203,7 +205,7 @@ var _ = Describe("Worker", func() {
 	})
 
 	JustBeforeEach(func() {
-		fakeDBWorker.ActiveContainersReturns(activeContainers)
+		fakeContainerRepository.GetActiveContainerCountReturns(activeContainers)
 		fakeDBWorker.ResourceTypesReturns(resourceTypes)
 		fakeDBWorker.PlatformReturns(platform)
 		fakeDBWorker.TagsReturns(tags)
@@ -223,6 +225,7 @@ var _ = Describe("Worker", func() {
 			fakeFetcher,
 			fakeDBTeamFactory,
 			fakeDBWorker,
+			fakeContainerRepository,
 			fakeResourceCacheFactory,
 			0,
 		)

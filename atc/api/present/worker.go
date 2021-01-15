@@ -5,7 +5,7 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-func Worker(workerInfo db.Worker) atc.Worker {
+func Worker(workerInfo db.Worker, activeContainers int) atc.Worker {
 	gardenAddr := ""
 	if workerInfo.GardenAddr() != nil {
 		gardenAddr = *workerInfo.GardenAddr()
@@ -29,7 +29,7 @@ func Worker(workerInfo db.Worker) atc.Worker {
 		HTTPProxyURL:     workerInfo.HTTPProxyURL(),
 		HTTPSProxyURL:    workerInfo.HTTPSProxyURL(),
 		NoProxy:          workerInfo.NoProxy(),
-		ActiveContainers: workerInfo.ActiveContainers(),
+		ActiveContainers: activeContainers,
 		ActiveVolumes:    workerInfo.ActiveVolumes(),
 		ActiveTasks:      activeTasks,
 		ResourceTypes:    workerInfo.ResourceTypes(),

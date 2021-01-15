@@ -64,6 +64,30 @@ type FakeContainerRepository struct {
 		result3 []db.DestroyingContainer
 		result4 error
 	}
+	GetActiveContainerCountStub        func(string) int
+	getActiveContainerCountMutex       sync.RWMutex
+	getActiveContainerCountArgsForCall []struct {
+		arg1 string
+	}
+	getActiveContainerCountReturns struct {
+		result1 int
+	}
+	getActiveContainerCountReturnsOnCall map[int]struct {
+		result1 int
+	}
+	GetActiveContainersStub        func(string) ([]db.Container, error)
+	getActiveContainersMutex       sync.RWMutex
+	getActiveContainersArgsForCall []struct {
+		arg1 string
+	}
+	getActiveContainersReturns struct {
+		result1 []db.Container
+		result2 error
+	}
+	getActiveContainersReturnsOnCall map[int]struct {
+		result1 []db.Container
+		result2 error
+	}
 	RemoveDestroyingContainersStub        func(string, []string) (int, error)
 	removeDestroyingContainersMutex       sync.RWMutex
 	removeDestroyingContainersArgsForCall []struct {
@@ -355,6 +379,129 @@ func (fake *FakeContainerRepository) FindOrphanedContainersReturnsOnCall(i int, 
 	}{result1, result2, result3, result4}
 }
 
+func (fake *FakeContainerRepository) GetActiveContainerCount(arg1 string) int {
+	fake.getActiveContainerCountMutex.Lock()
+	ret, specificReturn := fake.getActiveContainerCountReturnsOnCall[len(fake.getActiveContainerCountArgsForCall)]
+	fake.getActiveContainerCountArgsForCall = append(fake.getActiveContainerCountArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("GetActiveContainerCount", []interface{}{arg1})
+	fake.getActiveContainerCountMutex.Unlock()
+	if fake.GetActiveContainerCountStub != nil {
+		return fake.GetActiveContainerCountStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.getActiveContainerCountReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeContainerRepository) GetActiveContainerCountCallCount() int {
+	fake.getActiveContainerCountMutex.RLock()
+	defer fake.getActiveContainerCountMutex.RUnlock()
+	return len(fake.getActiveContainerCountArgsForCall)
+}
+
+func (fake *FakeContainerRepository) GetActiveContainerCountCalls(stub func(string) int) {
+	fake.getActiveContainerCountMutex.Lock()
+	defer fake.getActiveContainerCountMutex.Unlock()
+	fake.GetActiveContainerCountStub = stub
+}
+
+func (fake *FakeContainerRepository) GetActiveContainerCountArgsForCall(i int) string {
+	fake.getActiveContainerCountMutex.RLock()
+	defer fake.getActiveContainerCountMutex.RUnlock()
+	argsForCall := fake.getActiveContainerCountArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeContainerRepository) GetActiveContainerCountReturns(result1 int) {
+	fake.getActiveContainerCountMutex.Lock()
+	defer fake.getActiveContainerCountMutex.Unlock()
+	fake.GetActiveContainerCountStub = nil
+	fake.getActiveContainerCountReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeContainerRepository) GetActiveContainerCountReturnsOnCall(i int, result1 int) {
+	fake.getActiveContainerCountMutex.Lock()
+	defer fake.getActiveContainerCountMutex.Unlock()
+	fake.GetActiveContainerCountStub = nil
+	if fake.getActiveContainerCountReturnsOnCall == nil {
+		fake.getActiveContainerCountReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.getActiveContainerCountReturnsOnCall[i] = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeContainerRepository) GetActiveContainers(arg1 string) ([]db.Container, error) {
+	fake.getActiveContainersMutex.Lock()
+	ret, specificReturn := fake.getActiveContainersReturnsOnCall[len(fake.getActiveContainersArgsForCall)]
+	fake.getActiveContainersArgsForCall = append(fake.getActiveContainersArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("GetActiveContainers", []interface{}{arg1})
+	fake.getActiveContainersMutex.Unlock()
+	if fake.GetActiveContainersStub != nil {
+		return fake.GetActiveContainersStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.getActiveContainersReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeContainerRepository) GetActiveContainersCallCount() int {
+	fake.getActiveContainersMutex.RLock()
+	defer fake.getActiveContainersMutex.RUnlock()
+	return len(fake.getActiveContainersArgsForCall)
+}
+
+func (fake *FakeContainerRepository) GetActiveContainersCalls(stub func(string) ([]db.Container, error)) {
+	fake.getActiveContainersMutex.Lock()
+	defer fake.getActiveContainersMutex.Unlock()
+	fake.GetActiveContainersStub = stub
+}
+
+func (fake *FakeContainerRepository) GetActiveContainersArgsForCall(i int) string {
+	fake.getActiveContainersMutex.RLock()
+	defer fake.getActiveContainersMutex.RUnlock()
+	argsForCall := fake.getActiveContainersArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeContainerRepository) GetActiveContainersReturns(result1 []db.Container, result2 error) {
+	fake.getActiveContainersMutex.Lock()
+	defer fake.getActiveContainersMutex.Unlock()
+	fake.GetActiveContainersStub = nil
+	fake.getActiveContainersReturns = struct {
+		result1 []db.Container
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeContainerRepository) GetActiveContainersReturnsOnCall(i int, result1 []db.Container, result2 error) {
+	fake.getActiveContainersMutex.Lock()
+	defer fake.getActiveContainersMutex.Unlock()
+	fake.GetActiveContainersStub = nil
+	if fake.getActiveContainersReturnsOnCall == nil {
+		fake.getActiveContainersReturnsOnCall = make(map[int]struct {
+			result1 []db.Container
+			result2 error
+		})
+	}
+	fake.getActiveContainersReturnsOnCall[i] = struct {
+		result1 []db.Container
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeContainerRepository) RemoveDestroyingContainers(arg1 string, arg2 []string) (int, error) {
 	var arg2Copy []string
 	if arg2 != nil {
@@ -564,6 +711,10 @@ func (fake *FakeContainerRepository) Invocations() map[string][][]interface{} {
 	defer fake.findDestroyingContainersMutex.RUnlock()
 	fake.findOrphanedContainersMutex.RLock()
 	defer fake.findOrphanedContainersMutex.RUnlock()
+	fake.getActiveContainerCountMutex.RLock()
+	defer fake.getActiveContainerCountMutex.RUnlock()
+	fake.getActiveContainersMutex.RLock()
+	defer fake.getActiveContainersMutex.RUnlock()
 	fake.removeDestroyingContainersMutex.RLock()
 	defer fake.removeDestroyingContainersMutex.RUnlock()
 	fake.removeMissingContainersMutex.RLock()

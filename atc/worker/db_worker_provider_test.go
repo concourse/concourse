@@ -47,6 +47,7 @@ var _ = Describe("DBProvider", func() {
 		fakeImageFactory                    *workerfakes.FakeImageFactory
 		fakeDBVolumeRepository              *dbfakes.FakeVolumeRepository
 		fakeDBWorkerFactory                 *dbfakes.FakeWorkerFactory
+		fakeContainerRepository             *dbfakes.FakeContainerRepository
 		fakeDBTeamFactory                   *dbfakes.FakeTeamFactory
 		fakeDBWorkerBaseResourceTypeFactory *dbfakes.FakeWorkerBaseResourceTypeFactory
 		fakeDBWorkerTaskCacheFactory        *dbfakes.FakeWorkerTaskCacheFactory
@@ -117,7 +118,6 @@ var _ = Describe("DBProvider", func() {
 		fakeWorker1.GardenAddrReturns(&gardenAddr)
 		fakeWorker1.BaggageclaimURLReturns(&baggageclaimURL)
 		fakeWorker1.StateReturns(db.WorkerStateRunning)
-		fakeWorker1.ActiveContainersReturns(2)
 		fakeWorker1.ResourceTypesReturns([]atc.WorkerResourceType{
 			{Type: "some-resource-a", Image: "some-image-a"}})
 
@@ -130,7 +130,6 @@ var _ = Describe("DBProvider", func() {
 		fakeWorker2.GardenAddrReturns(&gardenAddr)
 		fakeWorker2.BaggageclaimURLReturns(&baggageclaimURL)
 		fakeWorker2.StateReturns(db.WorkerStateRunning)
-		fakeWorker2.ActiveContainersReturns(2)
 		fakeWorker2.ResourceTypesReturns([]atc.WorkerResourceType{
 			{Type: "some-resource-b", Image: "some-image-b"}})
 
@@ -161,6 +160,7 @@ var _ = Describe("DBProvider", func() {
 		fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 
 		fakeDBWorkerFactory = new(dbfakes.FakeWorkerFactory)
+		fakeContainerRepository = new(dbfakes.FakeContainerRepository)
 
 		wantWorkerVersion, err = version.NewVersionFromString("1.1.0")
 		Expect(err).ToNot(HaveOccurred())
@@ -178,6 +178,7 @@ var _ = Describe("DBProvider", func() {
 			fakeDBVolumeRepository,
 			fakeDBTeamFactory,
 			fakeDBWorkerFactory,
+			fakeContainerRepository,
 			wantWorkerVersion,
 			baggageclaimResponseHeaderTimeout,
 			gardenRequestTimeout,
@@ -233,7 +234,6 @@ var _ = Describe("DBProvider", func() {
 					landingWorker.GardenAddrReturns(&gardenAddr)
 					landingWorker.BaggageclaimURLReturns(&baggageclaimURL)
 					landingWorker.StateReturns(db.WorkerStateLanding)
-					landingWorker.ActiveContainersReturns(5)
 					landingWorker.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
 
@@ -242,7 +242,6 @@ var _ = Describe("DBProvider", func() {
 					stalledWorker.GardenAddrReturns(&gardenAddr)
 					stalledWorker.BaggageclaimURLReturns(&baggageclaimURL)
 					stalledWorker.StateReturns(db.WorkerStateStalled)
-					stalledWorker.ActiveContainersReturns(0)
 					stalledWorker.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
 
@@ -267,7 +266,6 @@ var _ = Describe("DBProvider", func() {
 					worker1.GardenAddrReturns(&gardenAddr)
 					worker1.BaggageclaimURLReturns(&baggageclaimURL)
 					worker1.StateReturns(db.WorkerStateRunning)
-					worker1.ActiveContainersReturns(5)
 					worker1.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
 					version1 := "1.1.0"
@@ -278,7 +276,6 @@ var _ = Describe("DBProvider", func() {
 					worker2.GardenAddrReturns(&gardenAddr)
 					worker2.BaggageclaimURLReturns(&baggageclaimURL)
 					worker2.StateReturns(db.WorkerStateRunning)
-					worker2.ActiveContainersReturns(0)
 					worker2.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
 					version2 := "2.0.0"
@@ -289,7 +286,6 @@ var _ = Describe("DBProvider", func() {
 					worker3.GardenAddrReturns(&gardenAddr)
 					worker3.BaggageclaimURLReturns(&baggageclaimURL)
 					worker3.StateReturns(db.WorkerStateRunning)
-					worker3.ActiveContainersReturns(0)
 					worker3.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
 					version3 := "0.0.0"
@@ -317,7 +313,6 @@ var _ = Describe("DBProvider", func() {
 					worker1.GardenAddrReturns(&gardenAddr)
 					worker1.BaggageclaimURLReturns(&baggageclaimURL)
 					worker1.StateReturns(db.WorkerStateRunning)
-					worker1.ActiveContainersReturns(5)
 					worker1.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
 					version1 := "1.1.0"
@@ -328,7 +323,6 @@ var _ = Describe("DBProvider", func() {
 					worker2.GardenAddrReturns(&gardenAddr)
 					worker2.BaggageclaimURLReturns(&baggageclaimURL)
 					worker2.StateReturns(db.WorkerStateRunning)
-					worker2.ActiveContainersReturns(0)
 					worker2.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
 					version2 := "1.2.0"
@@ -339,7 +333,6 @@ var _ = Describe("DBProvider", func() {
 					worker3.GardenAddrReturns(&gardenAddr)
 					worker3.BaggageclaimURLReturns(&baggageclaimURL)
 					worker3.StateReturns(db.WorkerStateRunning)
-					worker3.ActiveContainersReturns(0)
 					worker3.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
 					version3 := "1.0.0"
@@ -368,7 +361,6 @@ var _ = Describe("DBProvider", func() {
 					worker1.GardenAddrReturns(&gardenAddr)
 					worker1.BaggageclaimURLReturns(&baggageclaimURL)
 					worker1.StateReturns(db.WorkerStateRunning)
-					worker1.ActiveContainersReturns(5)
 					worker1.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
 
@@ -391,7 +383,6 @@ var _ = Describe("DBProvider", func() {
 					worker1.GardenAddrReturns(&gardenAddr)
 					worker1.BaggageclaimURLReturns(&baggageclaimURL)
 					worker1.StateReturns(db.WorkerStateRunning)
-					worker1.ActiveContainersReturns(5)
 					worker1.ResourceTypesReturns([]atc.WorkerResourceType{
 						{Type: "some-resource-b", Image: "some-image-b"}})
 					version1 := "1.1..0.2-bogus=version"

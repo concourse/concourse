@@ -45,6 +45,7 @@ var _ = Describe("RunScript", func() {
 		fakeFetcher              *workerfakes.FakeFetcher
 		fakeDBTeamFactory        *dbfakes.FakeTeamFactory
 		fakeDBWorker             *dbfakes.FakeWorker
+		fakeContainerRepository  *dbfakes.FakeContainerRepository
 		fakeCreatedContainer     *dbfakes.FakeCreatedContainer
 		fakeResourceCacheFactory *dbfakes.FakeResourceCacheFactory
 
@@ -74,6 +75,7 @@ var _ = Describe("RunScript", func() {
 		fakeFetcher = new(workerfakes.FakeFetcher)
 		fakeDBTeamFactory = new(dbfakes.FakeTeamFactory)
 		fakeDBWorker = new(dbfakes.FakeWorker)
+		fakeContainerRepository = new(dbfakes.FakeContainerRepository)
 		fakeResourceCacheFactory = new(dbfakes.FakeResourceCacheFactory)
 
 		fakeOwner = new(dbfakes.FakeContainerOwner)
@@ -101,6 +103,7 @@ var _ = Describe("RunScript", func() {
 			fakeFetcher,
 			fakeDBTeamFactory,
 			fakeDBWorker,
+			fakeContainerRepository,
 			fakeResourceCacheFactory,
 			0,
 		)
