@@ -397,12 +397,12 @@ all =
                     in
                     [ -- available filters
                       simpleSuggestionsTest "" [ "status:", "team:" ]
-                    , simpleSuggestionsTest "-" [ "status:", "team:" ]
+                    , simpleSuggestionsTest "-" [ "-status:", "-team:" ]
                     , simpleSuggestionsTest " " [ "status:", "team:" ]
 
                     -- status
                     , simpleSuggestionsTest "st" [ "status:" ]
-                    , simpleSuggestionsTest "-st" [ "status:" ]
+                    , simpleSuggestionsTest "-st" [ "-status:" ]
                     , simpleSuggestionsTest "status" [ "status:" ]
                     , simpleSuggestionsTest "status:"
                         [ "status:paused"
@@ -414,14 +414,14 @@ all =
                         , "status:succeeded"
                         ]
                     , simpleSuggestionsTest " status: p" [ "status:paused", "status:pending" ]
-                    , simpleSuggestionsTest " -status:p" [ "status:paused", "status:pending" ]
+                    , simpleSuggestionsTest " -status:p" [ "-status:paused", "-status:pending" ]
                     , simpleSuggestionsTest "status:p" [ "status:paused", "status:pending" ]
                     , simpleSuggestionsTest "status:pause" [ "status:paused" ]
                     , simpleSuggestionsTest "status:paused" []
 
                     -- team
                     , simpleSuggestionsTest "t" [ "team:" ]
-                    , simpleSuggestionsTest "-t" [ "team:" ]
+                    , simpleSuggestionsTest "-t" [ "-team:" ]
                     , simpleSuggestionsTest "team" [ "team:" ]
                     , simpleSuggestionsTest "team:" [ "team:other-team", "team:team", "team:yet-another-team" ]
                     , simpleSuggestionsTest "team: oth" [ "team:other-team" ]
@@ -435,7 +435,7 @@ all =
                     -- takes last filter
                     , prefixedSuggestionsTest "team:other-team " "team:other-team " [ "status:", "team:" ]
                     , prefixedSuggestionsTest "team:other-team s" "team:other-team " [ "status:" ]
-                    , prefixedSuggestionsTest "team:other-team -status:a" "team:other-team " [ "status:aborted" ]
+                    , prefixedSuggestionsTest "team:other-team -status:a" "team:other-team " [ "-status:aborted" ]
                     ]
                 ]
             ]
@@ -549,6 +549,7 @@ all =
                 , statusFilterTest "status:succeeded" (expectCards [ "running-succeeded" ])
                 , statusFilterTest "status:failed" (expectCards [ "running-failed" ])
                 , statusFilterTest "status:running" (expectCards [ "running-succeeded", "running-failed" ])
+                , statusFilterTest "-status:running" (expectCards [ "pending" ])
                 , statusFilterTest "status:errored" (expectCards [])
                 ]
             , describe "team filter" <|
@@ -569,6 +570,14 @@ all =
                         , expectCardsIn (teamSection "other-team") [ "p1" ]
                         , expectCardsIn (teamSection "another-team") [ "p2" ]
                         , expectNoTeamSection "something-else"
+                        ]
+                    )
+                , teamFilterTest "-team:team"
+                    (Expect.all
+                        [ expectNoTeamSection "team"
+                        , expectNoTeamSection "other-team"
+                        , expectNoTeamSection "another-team"
+                        , expectCardsIn (teamSection "something-else") [ "p3" ]
                         ]
                     )
                 , teamFilterTest "team:other-team"

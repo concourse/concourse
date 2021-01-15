@@ -256,12 +256,12 @@ suggestions { query, teams, pipelines } =
         parsedFilters =
             parseFilters query
 
-        curFilter =
+        ( curFilter, negated ) =
             parsedFilters
                 |> List.Extra.last
                 |> Maybe.map Tuple.first
-                |> Maybe.map .groupFilter
-                |> Maybe.withDefault (Pipeline (FuzzyName ""))
+                |> Maybe.map (\f -> ( f.groupFilter, f.negate ))
+                |> Maybe.withDefault ( Pipeline (FuzzyName ""), False )
 
         prevFilters =
             parsedFilters
@@ -311,5 +311,12 @@ suggestions { query, teams, pipelines } =
                         |> List.filter ((/=) team)
                         |> List.take 10
                         |> List.map (\v -> "team:" ++ v)
+
+        prefix =
+            if negated then
+                List.map (\c -> "-" ++ c)
+
+            else
+                identity
     in
-    List.map (Suggestion prev) cur
+    List.map (Suggestion prev) (prefix cur)
