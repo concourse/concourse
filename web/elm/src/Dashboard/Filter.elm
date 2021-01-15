@@ -20,6 +20,7 @@ import Parser
         , Parser
         , Step(..)
         , backtrackable
+        , chompUntilEndOr
         , chompWhile
         , end
         , getChompedString
@@ -57,6 +58,8 @@ type PipelineFilter
 
 type StringFilter
     = Fuzzy String
+    | Exact String
+    | StartsWith String
 
 
 type StatusFilter
@@ -173,6 +176,12 @@ stringMatches f =
         Fuzzy term ->
             Simple.Fuzzy.match term
 
+        Exact name ->
+            (==) name
+
+        StartsWith prefix ->
+            String.startsWith prefix
+
 
 parseFilters : String -> List ( Filter, String )
 parseFilters =
@@ -218,7 +227,27 @@ groupFilter =
 
 parseString : Parser StringFilter
 parseString =
-    parseWord |> map Fuzzy
+    oneOf
+        [ parseQuotedString
+        , parseWord |> map Fuzzy
+        ]
+
+
+parseQuotedString : Parser StringFilter
+parseQuotedString =
+    getChompedString
+        (symbol "\""
+            |. chompUntilEndOr "\""
+            |. oneOf [ symbol "\"", end ]
+        )
+        |> map
+            (\s ->
+                if String.endsWith "\"" s && s /= "\"" then
+                    Exact <| String.slice 1 -1 s
+
+                else
+                    StartsWith <| String.dropLeft 1 s
+            )
 
 
 parseWord : Parser String
@@ -307,6 +336,9 @@ suggestions { query, teams, pipelines } =
                         |> List.filter (String.startsWith s)
                         |> List.map (\v -> v ++ ":")
 
+                Pipeline (Name _) ->
+                    []
+
                 Pipeline (Status sf) ->
                     case sf of
                         IncompleteStatus status ->
@@ -317,7 +349,10 @@ suggestions { query, teams, pipelines } =
                         _ ->
                             []
 
-                Team (Fuzzy team) ->
+                Team (Exact _) ->
+                    []
+
+                Team team ->
                     Set.union
                         (teams
                             |> FetchResult.withDefault []
@@ -330,10 +365,9 @@ suggestions { query, teams, pipelines } =
                             |> Set.fromList
                         )
                         |> Set.toList
-                        |> List.filter (String.startsWith team)
-                        |> List.filter ((/=) team)
+                        |> List.filter (stringMatches team)
                         |> List.take 10
-                        |> List.map (\v -> "team:" ++ v)
+                        |> List.map (\v -> "team:" ++ quoted v)
 
         prefix =
             if negated then
@@ -343,3 +377,8 @@ suggestions { query, teams, pipelines } =
                 identity
     in
     List.map (Suggestion prev) (prefix cur)
+
+
+quoted : String -> String
+quoted s =
+    "\"" ++ s ++ "\""

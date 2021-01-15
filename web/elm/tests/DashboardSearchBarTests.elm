@@ -336,8 +336,8 @@ all =
                                 [ Tuple.first
                                     >> Common.queryView
                                     >> Query.find [ id SearchBar.searchInputId ]
-                                    >> Query.has [ value "status: paused team:team1" ]
-                                , Tuple.second >> Common.contains (Effects.ModifyUrl "/?search=status%3A%20paused%20team%3Ateam1")
+                                    >> Query.has [ value "status: paused team:\"team1\"" ]
+                                , Tuple.second >> Common.contains (Effects.ModifyUrl "/?search=status%3A%20paused%20team%3A%22team1%22")
                                 ]
                     , test "doesn't try to loop if the dropdown is empty (down)" <|
                         focusSearchBar
@@ -404,6 +404,7 @@ all =
                     -- status
                     , simpleSuggestionsTest "st" [ "status:" ]
                     , simpleSuggestionsTest "-st" [ "-status:" ]
+                    , simpleSuggestionsTest "\"st" []
                     , simpleSuggestionsTest "status" [ "status:" ]
                     , simpleSuggestionsTest "status:"
                         [ "status:paused"
@@ -424,10 +425,11 @@ all =
                     , simpleSuggestionsTest "t" [ "team:" ]
                     , simpleSuggestionsTest "-t" [ "-team:" ]
                     , simpleSuggestionsTest "team" [ "team:" ]
-                    , simpleSuggestionsTest "team:" [ "team:other-team", "team:team", "team:yet-another-team" ]
-                    , simpleSuggestionsTest "team: oth" [ "team:other-team" ]
-                    , simpleSuggestionsTest "team:oth" [ "team:other-team" ]
-                    , simpleSuggestionsTest "team:other-team" []
+                    , simpleSuggestionsTest "team:" [ "team:\"other-team\"", "team:\"team\"", "team:\"yet-another-team\"" ]
+                    , simpleSuggestionsTest "team: oth" [ "team:\"other-team\"", "team:\"yet-another-team\"" ]
+                    , simpleSuggestionsTest "team:oth" [ "team:\"other-team\"", "team:\"yet-another-team\"" ]
+                    , simpleSuggestionsTest "team:\"other-team\"" []
+                    , simpleSuggestionsTest "team:other-team" [ "team:\"other-team\"", "team:\"yet-another-team\"" ]
                     , suggestionsTest manyTeams "team:" (List.length >> Expect.equal 10)
 
                     -- fuzzy pipeline
