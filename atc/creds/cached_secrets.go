@@ -7,10 +7,10 @@ import (
 )
 
 type SecretCacheConfig struct {
-	Enabled          bool          `long:"secret-cache-enabled" description:"Enable in-memory cache for secrets"`
-	Duration         time.Duration `long:"secret-cache-duration" default:"1m" description:"If the cache is enabled, secret values will be cached for not longer than this duration (it can be less, if underlying secret lease time is smaller)"`
-	DurationNotFound time.Duration `long:"secret-cache-duration-notfound" default:"10s" description:"If the cache is enabled, secret not found responses will be cached for this duration"`
-	PurgeInterval    time.Duration `long:"secret-cache-purge-interval" default:"10m" description:"If the cache is enabled, expired items will be removed on this interval"`
+	Enabled          bool          `yaml:"enabled"`
+	Duration         time.Duration `yaml:"duration"`
+	DurationNotFound time.Duration `yaml:"duration-notfound"`
+	PurgeInterval    time.Duration `yaml:"purge-interval"`
 }
 
 type CachedSecrets struct {

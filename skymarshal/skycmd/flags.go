@@ -43,14 +43,20 @@ func WireTeamConnectors(group *flags.Group) {
 }
 
 type AuthFlags struct {
-	SecureCookies bool              `long:"cookie-secure" description:"Force sending secure flag on http cookies"`
-	Expiration    time.Duration     `long:"auth-duration" default:"24h" description:"Length of time for which tokens are valid. Afterwards, users will have to log back in."`
-	SigningKey    *flag.PrivateKey  `long:"session-signing-key" required:"true" description:"File containing an RSA private key, used to sign auth tokens."`
-	LocalUsers    map[string]string `long:"add-local-user" description:"List of username:password combinations for all your local users. The password can be bcrypted - if so, it must have a minimum cost of 10." value-name:"USERNAME:PASSWORD"`
-	Clients       map[string]string `long:"add-client" description:"List of client_id:client_secret combinations" value-name:"CLIENT_ID:CLIENT_SECRET"`
+	SecureCookies bool              `yaml:"cookie_secure"`
+	Expiration    time.Duration     `yaml:"auth_duration"`
+	SigningKey    string            `yaml:"session_signing_key" validate:"required,private_key"`
+	LocalUsers    map[string]string `yaml:"add_local_user"`
+	Clients       map[string]string `yaml:"add_client"`
 }
 
 type AuthTeamFlags struct {
+	LocalUsers []string `yaml:"local_user"`
+	Config     string   `yaml:"config" validate:"file"`
+}
+
+// XXX: OLD
+type OldAuthTeamFlags struct {
 	LocalUsers []string  `long:"local-user" description:"A whitelisted local concourse user. These are the users you've added at web startup with the --add-local-user flag." value-name:"USERNAME"`
 	Config     flag.File `short:"c" long:"config" description:"Configuration file for specifying team params"`
 }

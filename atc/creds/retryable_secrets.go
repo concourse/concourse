@@ -8,8 +8,8 @@ import (
 )
 
 type SecretRetryConfig struct {
-	Attempts int           `long:"secret-retry-attempts" default:"5"  description:"The number of attempts secret will be retried to be fetched, in case a retryable error happens."`
-	Interval time.Duration `long:"secret-retry-interval" default:"1s" description:"The interval between secret retry retrieval attempts."`
+	Attempts int           `yaml:"attempts"`
+	Interval time.Duration `yaml:"interval"`
 }
 
 type RetryableSecrets struct {

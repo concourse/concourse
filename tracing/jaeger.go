@@ -8,9 +8,9 @@ import (
 )
 
 type Jaeger struct {
-	Endpoint string            `long:"jaeger-endpoint" description:"jaeger http-based thrift collector"`
-	Tags     map[string]string `long:"jaeger-tags"     description:"tags to add to the components"`
-	Service  string            `long:"jaeger-service"  description:"jaeger process service name" default:"web"`
+	Endpoint string            `yaml:"endpoint"`
+	Tags     map[string]string `yaml:"tags"`
+	Service  string            `yaml:"service"`
 }
 
 func (j Jaeger) IsConfigured() bool {

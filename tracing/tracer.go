@@ -38,8 +38,8 @@ func (tp *TestTraceProvider) Tracer(name string) trace.Tracer {
 var Configured bool
 
 type Config struct {
-	Jaeger      Jaeger
-	Stackdriver Stackdriver
+	Jaeger      Jaeger      `yaml:"jaeger"`
+	Stackdriver Stackdriver `yaml:"stackdriver"`
 }
 
 func (c Config) Prepare() error {

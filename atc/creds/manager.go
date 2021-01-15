@@ -23,8 +23,8 @@ type ManagerFactory interface {
 type Managers map[string]Manager
 
 type CredentialManagementConfig struct {
-	RetryConfig SecretRetryConfig
-	CacheConfig SecretCacheConfig
+	RetryConfig SecretRetryConfig `yaml:"secret_retry"`
+	CacheConfig SecretCacheConfig `yaml:"secret_cache"`
 }
 
 type HealthResponse struct {
