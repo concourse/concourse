@@ -1,6 +1,6 @@
 module Dashboard.Filter exposing (Suggestion, filterTeams, suggestions)
 
-import Concourse exposing (DatabaseID, hyphenNotation)
+import Concourse exposing (DatabaseID, flattenJson)
 import Concourse.PipelineStatus
     exposing
         ( PipelineStatus(..)
@@ -46,13 +46,17 @@ type alias Filter =
 
 
 type GroupFilter
-    = Team String
+    = Team StringFilter
     | Pipeline PipelineFilter
 
 
 type PipelineFilter
-    = FuzzyName String
+    = Name StringFilter
     | Status StatusFilter
+
+
+type StringFilter
+    = Fuzzy String
 
 
 type StatusFilter
@@ -117,8 +121,8 @@ runFilter jobs existingJobs f =
                 identity
     in
     case f.groupFilter of
-        Team teamName ->
-            Dict.filter (\team _ -> team |> Simple.Fuzzy.match teamName |> negater)
+        Team sf ->
+            Dict.filter (\team _ -> stringMatches sf team |> negater)
 
         Pipeline pf ->
             Dict.map
@@ -141,8 +145,15 @@ pipelineFilter pf jobs existingJobs pipeline =
                 |> List.filterMap (\j -> Dict.get ( pipeline.id, j ) jobs)
     in
     case pf of
-        FuzzyName term ->
-            Simple.Fuzzy.match term (pipeline.name ++ hyphenNotation pipeline.instanceVars)
+        Name sf ->
+            let
+                instanceVarValues =
+                    pipeline.instanceVars
+                        |> Dict.toList
+                        |> List.concatMap (\( k, v ) -> flattenJson k v)
+                        |> List.map Tuple.second
+            in
+            List.any (stringMatches sf) (pipeline.name :: instanceVarValues)
 
         Status sf ->
             case sf of
@@ -154,6 +165,13 @@ pipelineFilter pf jobs existingJobs pipeline =
 
                 IncompleteStatus _ ->
                     False
+
+
+stringMatches : StringFilter -> String -> Bool
+stringMatches f =
+    case f of
+        Fuzzy term ->
+            Simple.Fuzzy.match term
 
 
 parseFilters : String -> List ( Filter, String )
@@ -194,8 +212,13 @@ groupFilter =
     oneOf
         [ backtrackable teamFilter
         , backtrackable statusFilter
-        , succeed (FuzzyName >> Pipeline) |= parseWord
+        , succeed (Name >> Pipeline) |= parseString
         ]
+
+
+parseString : Parser StringFilter
+parseString =
+    parseWord |> map Fuzzy
 
 
 parseWord : Parser String
@@ -212,7 +235,7 @@ teamFilter =
         |. keyword "team"
         |. symbol ":"
         |. spaces
-        |= parseWord
+        |= parseString
 
 
 statusFilter : Parser GroupFilter
@@ -261,7 +284,7 @@ suggestions { query, teams, pipelines } =
                 |> List.Extra.last
                 |> Maybe.map Tuple.first
                 |> Maybe.map (\f -> ( f.groupFilter, f.negate ))
-                |> Maybe.withDefault ( Pipeline (FuzzyName ""), False )
+                |> Maybe.withDefault ( Pipeline (Name (Fuzzy "")), False )
 
         prevFilters =
             parsedFilters
@@ -279,7 +302,7 @@ suggestions { query, teams, pipelines } =
 
         cur =
             case curFilter of
-                Pipeline (FuzzyName s) ->
+                Pipeline (Name (Fuzzy s)) ->
                     filterTypes
                         |> List.filter (String.startsWith s)
                         |> List.map (\v -> v ++ ":")
@@ -294,7 +317,7 @@ suggestions { query, teams, pipelines } =
                         _ ->
                             []
 
-                Team team ->
+                Team (Fuzzy team) ->
                     Set.union
                         (teams
                             |> FetchResult.withDefault []

@@ -9,10 +9,11 @@ import Common
         , whenOnDesktop
         , whenOnMobile
         )
-import Concourse
+import Concourse exposing (JsonValue(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Dashboard.Filter as Filter
 import Dashboard.SearchBar as SearchBar
+import DashboardInstanceGroupTests exposing (pipelineInstanceWithVars)
 import DashboardTests exposing (job, running, whenOnDashboard)
 import Data
 import Expect
@@ -505,6 +506,16 @@ all =
                 expectCards =
                     expectCardsIn identity
 
+                assertInstanceGroup name expectation =
+                    Common.queryView
+                        >> Query.find [ class "instance-group-card", containing [ text name ] ]
+                        >> expectation
+
+                containsInstances n =
+                    Query.find [ class "card-body" ]
+                        >> Query.findAll [ tag "a" ]
+                        >> Query.count (Expect.equal n)
+
                 teamSection team =
                     Query.find [ id team ]
 
@@ -602,11 +613,38 @@ all =
                                     , pipeline BuildStatusPending 2 "p1" |> withTeam "team2"
                                     , pipeline BuildStatusPending 3 "pipeline1"
                                     , pipeline BuildStatusPending 4 "other-pipeline"
+                                    , pipelineInstanceWithVars 5
+                                        [ ( "a"
+                                          , JsonObject
+                                                [ ( "b", JsonString "foo" )
+                                                , ( "c", JsonString "bar" )
+                                                ]
+                                          )
+                                        , ( "d", JsonNumber 1.0 )
+                                        ]
+                                    , pipelineInstanceWithVars 6
+                                        [ ( "a", JsonString "fir" )
+                                        , ( "b", JsonString "bap" )
+                                        ]
                                     ]
                 in
-                [ pipelineFilterTest "p" (expectCards [ "p1", "pipeline1", "other-pipeline", "p1" ])
+                [ pipelineFilterTest "p" (expectCards [ "p1", "pipeline1", "other-pipeline", "group", "p1" ])
                 , pipelineFilterTest "p1" (expectCards [ "p1", "pipeline1", "p1" ])
                 , pipelineFilterTest "blah" (expectCards [])
+
+                -- by instance var values
+                , pipelineFilterTest "foo 1 bar"
+                    (Expect.all
+                        [ expectCards [ "group" ]
+                        , assertInstanceGroup "group" (containsInstances 1)
+                        ]
+                    )
+                , pipelineFilterTest "f ba"
+                    (Expect.all
+                        [ expectCards [ "group" ]
+                        , assertInstanceGroup "group" (containsInstances 2)
+                        ]
+                    )
                 ]
             , describe "multiple filters" <|
                 let

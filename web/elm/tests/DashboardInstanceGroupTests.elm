@@ -2,6 +2,7 @@ module DashboardInstanceGroupTests exposing
     ( all
     , archived
     , pipelineInstance
+    , pipelineInstanceWithVars
     )
 
 import Application.Application as Application
