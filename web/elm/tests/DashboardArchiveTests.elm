@@ -84,7 +84,7 @@ all =
                             |> Query.has
                                 [ Common.routeHref <|
                                     Routes.Dashboard
-                                        { searchType = Routes.Normal "" Nothing
+                                        { searchType = Routes.Normal ""
                                         , dashboardView = Routes.ViewAllPipelines
                                         }
                                 ]
@@ -106,7 +106,7 @@ all =
                             |> Query.has
                                 [ Common.routeHref <|
                                     Routes.Dashboard
-                                        { searchType = Routes.Normal "" Nothing
+                                        { searchType = Routes.Normal ""
                                         , dashboardView = Routes.ViewNonArchivedPipelines
                                         }
                                 ]
@@ -128,7 +128,7 @@ all =
                             |> Query.has
                                 [ Common.routeHref <|
                                     Routes.Dashboard
-                                        { searchType = Routes.Normal "test" Nothing
+                                        { searchType = Routes.Normal "test"
                                         , dashboardView = Routes.ViewAllPipelines
                                         }
                                 ]
@@ -136,12 +136,12 @@ all =
             , describe "when viewing an instance group" <|
                 [ test "does not clear the instance group" <|
                     \_ ->
-                        setupQuery "/" (Just "team=team&group=group")
+                        setupQuery "/" (Just "search=team:\"team\" group:\"group\"")
                             |> Query.find toggleSwitch
                             |> Query.has
                                 [ Common.routeHref <|
                                     Routes.Dashboard
-                                        { searchType = Routes.Normal "" <| Just { teamName = "team", name = "group" }
+                                        { searchType = Routes.Normal "team:\"team\" group:\"group\""
                                         , dashboardView = Routes.ViewAllPipelines
                                         }
                                 ]

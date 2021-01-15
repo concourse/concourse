@@ -212,7 +212,7 @@ handleLoggedOut ( m, effs ) =
         ++ [ NavigateTo <|
                 Routes.toString <|
                     Routes.Dashboard
-                        { searchType = Routes.Normal "" Nothing
+                        { searchType = Routes.Normal ""
                         , dashboardView = Routes.ViewNonArchivedPipelines
                         }
            ]

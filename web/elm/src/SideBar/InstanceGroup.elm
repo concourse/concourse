@@ -1,6 +1,7 @@
 module SideBar.InstanceGroup exposing (instanceGroup)
 
 import Concourse
+import Dashboard.FilterBuilder exposing (instanceGroupFilter)
 import HoverState
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
@@ -84,7 +85,7 @@ instanceGroup params p ps =
     , href =
         Routes.toString <|
             Routes.Dashboard
-                { searchType = Routes.Normal "" <| Just { teamName = p.teamName, name = p.name }
+                { searchType = Routes.Normal (instanceGroupFilter p)
                 , dashboardView = Routes.ViewNonArchivedPipelines
                 }
     , domID = domID

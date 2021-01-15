@@ -72,6 +72,7 @@ module Concourse exposing
     , flattenJson
     , groupPipelines
     , hyphenNotation
+    , isInstanceGroup
     , mapBuildPlan
     , pipelineId
     , retrieveCSRFToken
@@ -550,12 +551,22 @@ groupPipelines =
     List.Extra.gatherEqualsBy .name
         >> List.map
             (\( p, ps ) ->
-                if List.isEmpty ps && Dict.isEmpty p.instanceVars then
-                    RegularPipeline p
+                if isInstanceGroup (p :: ps) then
+                    InstanceGroup p ps
 
                 else
-                    InstanceGroup p ps
+                    RegularPipeline p
             )
+
+
+isInstanceGroup : List { p | name : String, instanceVars : InstanceVars } -> Bool
+isInstanceGroup pipelines =
+    case pipelines of
+        p :: ps ->
+            not (List.isEmpty ps && Dict.isEmpty p.instanceVars)
+
+        _ ->
+            False
 
 
 type alias AcrossPlan =

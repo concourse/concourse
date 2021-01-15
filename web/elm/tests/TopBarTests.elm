@@ -379,12 +379,7 @@ all =
                         [ tag "a"
                         , Common.routeHref <|
                             Routes.Dashboard
-                                { searchType =
-                                    Routes.Normal "" <|
-                                        Just
-                                            { name = "pipeline"
-                                            , teamName = "team"
-                                            }
+                                { searchType = Routes.Normal "team:\"team\" group:\"pipeline\""
                                 , dashboardView = Routes.ViewNonArchivedPipelines
                                 }
                         ]

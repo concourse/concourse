@@ -6,10 +6,8 @@ module Routes exposing
     , StepID
     , Transition
     , buildRoute
-    , extractInstanceGroup
     , extractPid
     , extractQuery
-    , instanceGroupQueryParams
     , jobRoute
     , parsePath
     , pipelineRoute
@@ -58,7 +56,7 @@ type Route
 
 type SearchType
     = HighDensity
-    | Normal String (Maybe Concourse.InstanceGroupIdentifier)
+    | Normal String
 
 
 type DashboardView
@@ -240,7 +238,6 @@ dashboard =
         oneOf
             [ (top
                 <?> (stringWithSpaces "search" |> Query.map (Maybe.withDefault ""))
-                <?> instanceGroupQuery
               )
                 |> map Normal
             , s "hd" |> map HighDensity
@@ -446,7 +443,7 @@ toString route =
             ( [], [] )
                 |> appendPath
                     (case searchType of
-                        Normal _ _ ->
+                        Normal _ ->
                             []
 
                         HighDensity ->
@@ -454,17 +451,11 @@ toString route =
                     )
                 |> appendQuery
                     (case searchType of
-                        Normal "" Nothing ->
+                        Normal "" ->
                             []
 
-                        Normal "" (Just ig) ->
-                            instanceGroupQueryParams ig
-
-                        Normal query Nothing ->
+                        Normal query ->
                             searchQueryParams query
-
-                        Normal query (Just ig) ->
-                            searchQueryParams query ++ instanceGroupQueryParams ig
 
                         _ ->
                             []
@@ -549,26 +540,11 @@ extractPid route =
 extractQuery : SearchType -> String
 extractQuery route =
     case route of
-        Normal q _ ->
+        Normal q ->
             q
 
         _ ->
             ""
-
-
-extractInstanceGroup : SearchType -> Maybe Concourse.InstanceGroupIdentifier
-extractInstanceGroup route =
-    case route of
-        Normal _ ig ->
-            ig
-
-        _ ->
-            Nothing
-
-
-instanceGroupQueryParams : Concourse.InstanceGroupIdentifier -> List Builder.QueryParameter
-instanceGroupQueryParams { teamName, name } =
-    [ Builder.string "team" teamName, Builder.string "group" name ]
 
 
 searchQueryParams : String -> List Builder.QueryParameter

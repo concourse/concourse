@@ -3,6 +3,7 @@ module Dashboard.Footer exposing (handleDelivery, view)
 import Assets
 import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
+import Dashboard.Filter as Filter
 import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Models exposing (Dropdown(..), FooterModel)
 import Dashboard.Styles as Styles
@@ -174,13 +175,12 @@ legend session model =
                     , PipelineStatusAborted PipelineStatus.Running
                     , PipelineStatusSucceeded PipelineStatus.Running
                     ]
-                ++ (case model.instanceGroup of
-                        Nothing ->
-                            legendSeparator session.screenSize
-                                ++ [ toggleView model ]
+                ++ (if Filter.isViewingInstanceGroups model.query then
+                        []
 
-                        _ ->
-                            []
+                    else
+                        legendSeparator session.screenSize
+                            ++ [ toggleView model ]
                    )
 
 
@@ -227,14 +227,14 @@ legendItem status =
 
 
 toggleView : FooterModel r -> Html Message
-toggleView { highDensity, dashboardView, instanceGroup } =
+toggleView { highDensity, dashboardView } =
     Toggle.toggleSwitch
         { ariaLabel = "Toggle high-density view"
         , hrefRoute =
             Routes.Dashboard
                 { searchType =
                     if highDensity then
-                        Routes.Normal "" instanceGroup
+                        Routes.Normal ""
 
                     else
                         Routes.HighDensity

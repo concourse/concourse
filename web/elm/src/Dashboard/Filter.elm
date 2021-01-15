@@ -1,4 +1,4 @@
-module Dashboard.Filter exposing (Suggestion, filterTeams, suggestions)
+module Dashboard.Filter exposing (Suggestion, filterTeams, isViewingInstanceGroups, suggestions)
 
 import Concourse exposing (DatabaseID, flattenJson)
 import Concourse.PipelineStatus
@@ -391,3 +391,18 @@ suggestions pipelines query =
 quoted : String -> String
 quoted s =
     "\"" ++ s ++ "\""
+
+
+isViewingInstanceGroups : String -> Bool
+isViewingInstanceGroups query =
+    parseFilters query
+        |> List.map Tuple.first
+        |> List.any
+            (\f ->
+                case f.teamFilter of
+                    InstanceGroup _ ->
+                        True
+
+                    _ ->
+                        False
+            )

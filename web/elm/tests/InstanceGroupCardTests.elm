@@ -110,7 +110,7 @@ all =
                     |> Query.has
                         [ Common.routeHref <|
                             Routes.Dashboard
-                                { searchType = Routes.Normal "" <| Just { teamName = "team", name = "group" }
+                                { searchType = Routes.Normal "team:\"team\" group:\"group\""
                                 , dashboardView = Routes.ViewNonArchivedPipelines
                                 }
                         ]
@@ -125,7 +125,7 @@ all =
                     |> Query.has
                         [ Common.routeHref <|
                             Routes.Dashboard
-                                { searchType = Routes.Normal "g" <| Just { teamName = "team", name = "group" }
+                                { searchType = Routes.Normal "g team:\"team\" group:\"group\""
                                 , dashboardView = Routes.ViewAllPipelines
                                 }
                         ]
@@ -463,7 +463,7 @@ all =
                             |> Query.has
                                 [ Common.routeHref <|
                                     Routes.Dashboard
-                                        { searchType = Routes.Normal "" <| Just { teamName = "team", name = "group" }
+                                        { searchType = Routes.Normal "team:\"team\" group:\"group\""
                                         , dashboardView = Routes.ViewNonArchivedPipelines
                                         }
                                 ]
@@ -478,7 +478,7 @@ all =
                             |> Query.has
                                 [ Common.routeHref <|
                                     Routes.Dashboard
-                                        { searchType = Routes.Normal "g" <| Just { teamName = "team", name = "group" }
+                                        { searchType = Routes.Normal "g team:\"team\" group:\"group\""
                                         , dashboardView = Routes.ViewAllPipelines
                                         }
                                 ]

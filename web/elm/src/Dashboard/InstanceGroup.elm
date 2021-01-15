@@ -3,6 +3,7 @@ module Dashboard.InstanceGroup exposing (cardView, hdCardView)
 import ColorValues
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
+import Dashboard.FilterBuilder exposing (instanceGroupFilter)
 import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Pipeline exposing (pipelineStatus)
 import Dashboard.Styles as Styles
@@ -25,6 +26,30 @@ import Tooltip
 import Views.InstanceGroupBadge as InstanceGroupBadge
 
 
+instanceGroupRoute :
+    { pipeline : Pipeline
+    , dashboardView : Routes.DashboardView
+    , query : String
+    }
+    -> Routes.Route
+instanceGroupRoute { pipeline, dashboardView, query } =
+    let
+        instanceGroupQuery =
+            instanceGroupFilter pipeline
+
+        newQuery =
+            if query /= "" then
+                query ++ " " ++ instanceGroupQuery
+
+            else
+                instanceGroupQuery
+    in
+    Routes.Dashboard
+        { searchType = Routes.Normal newQuery
+        , dashboardView = dashboardView
+        }
+
+
 hdCardView :
     { pipeline : Pipeline
     , pipelines : List Pipeline
@@ -40,9 +65,10 @@ hdCardView { pipeline, pipelines, resourceError, dashboardView, query } =
          , attribute "data-team-name" pipeline.teamName
          , href <|
             Routes.toString <|
-                Routes.Dashboard
-                    { searchType = Routes.Normal query <| Just { teamName = pipeline.teamName, name = pipeline.name }
+                instanceGroupRoute
+                    { pipeline = pipeline
                     , dashboardView = dashboardView
+                    , query = query
                     }
          ]
             ++ Styles.instanceGroupCardHd
@@ -108,9 +134,10 @@ headerView section dashboardView query pipeline pipelines resourceError headerHe
     Html.a
         [ href <|
             Routes.toString <|
-                Routes.Dashboard
-                    { searchType = Routes.Normal query <| Just { teamName = pipeline.teamName, name = pipeline.name }
+                instanceGroupRoute
+                    { pipeline = pipeline
                     , dashboardView = dashboardView
+                    , query = query
                     }
         , draggable "false"
         ]
