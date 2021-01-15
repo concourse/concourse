@@ -77,14 +77,15 @@ team params t =
     , isExpanded = t.isExpanded
     , listItems =
         params.pipelines
-            |> List.Extra.gatherEqualsBy .name
+            |> Concourse.groupPipelines
             |> List.map
-                (\( p, ps ) ->
-                    if List.isEmpty ps && Dict.isEmpty p.instanceVars then
-                        Pipeline.pipeline params p |> Views.PipelineListItem
+                (\g ->
+                    case g of
+                        Concourse.RegularPipeline p ->
+                            Pipeline.pipeline params p |> Views.PipelineListItem
 
-                    else
-                        InstanceGroup.instanceGroup params p ps |> Views.InstanceGroupListItem
+                        Concourse.InstanceGroup p ps ->
+                            InstanceGroup.instanceGroup params p ps |> Views.InstanceGroupListItem
                 )
     , background =
         if isHovered then

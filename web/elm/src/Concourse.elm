@@ -30,6 +30,7 @@ module Concourse exposing
     , MetadataField
     , Pipeline
     , PipelineGroup
+    , PipelineGrouping(..)
     , PipelineIdentifier
     , PipelineName
     , Resource
@@ -69,6 +70,7 @@ module Concourse exposing
     , encodeResource
     , encodeTeam
     , flattenJson
+    , groupPipelines
     , hyphenNotation
     , mapBuildPlan
     , pipelineId
@@ -83,6 +85,7 @@ import Json.Decode
 import Json.Decode.Extra exposing (andMap)
 import Json.Encode
 import Json.Encode.Extra
+import List.Extra
 import Time
 
 
@@ -533,6 +536,26 @@ hyphenNotation vars =
             |> List.concatMap (\( k, v ) -> flattenJson k v)
             |> List.map Tuple.second
             |> String.join "-"
+
+
+type PipelineGrouping pipeline
+    = RegularPipeline pipeline
+    | InstanceGroup pipeline (List pipeline)
+
+
+groupPipelines :
+    List { p | name : String, instanceVars : InstanceVars }
+    -> List (PipelineGrouping { p | name : String, instanceVars : InstanceVars })
+groupPipelines =
+    List.Extra.gatherEqualsBy .name
+        >> List.map
+            (\( p, ps ) ->
+                if List.isEmpty ps && Dict.isEmpty p.instanceVars then
+                    RegularPipeline p
+
+                else
+                    InstanceGroup p ps
+            )
 
 
 type alias AcrossPlan =

@@ -1263,14 +1263,15 @@ regularCardsView session params =
 
 groupCards : List Pipeline -> List Card
 groupCards =
-    List.Extra.gatherEqualsBy .name
+    Concourse.groupPipelines
         >> List.map
-            (\( p, ps ) ->
-                if List.isEmpty ps && Dict.isEmpty p.instanceVars then
-                    PipelineCard p
+            (\g ->
+                case g of
+                    Concourse.RegularPipeline p ->
+                        PipelineCard p
 
-                else
-                    InstanceGroupCard p ps
+                    Concourse.InstanceGroup p ps ->
+                        InstanceGroupCard p ps
             )
 
 

@@ -50,6 +50,7 @@ type alias Filter =
 type TeamFilter
     = Team StringFilter
     | Pipeline PipelineFilter
+    | InstanceGroup StringFilter
 
 
 type PipelineFilter
@@ -71,7 +72,7 @@ type StatusFilter
 
 filterTypes : List String
 filterTypes =
-    [ "status", "team" ]
+    [ "status", "team", "group" ]
 
 
 filterTeams : { r | favoritedPipelines : Set DatabaseID } -> Model -> Dict String (List Pipeline)
@@ -126,6 +127,24 @@ runFilter jobs existingJobs f =
             Dict.map
                 (\_ pipelines -> List.filter (pipelineFilter pf jobs existingJobs >> negater) pipelines)
                 >> Dict.filter (\_ pipelines -> not <| List.isEmpty pipelines)
+
+        InstanceGroup sf ->
+            Dict.map
+                (\_ ->
+                    Concourse.groupPipelines
+                        >> List.filterMap
+                            (\g ->
+                                case g of
+                                    Concourse.InstanceGroup p ps ->
+                                        Just (p :: ps)
+
+                                    _ ->
+                                        Nothing
+                            )
+                        >> List.concatMap identity
+                        >> List.filter (.name >> stringMatches sf >> negater)
+                )
+                >> Dict.filter (\_ groups -> not <| List.isEmpty groups)
 
 
 pipelineFilter :
@@ -214,7 +233,8 @@ filter =
 teamFilter : Parser TeamFilter
 teamFilter =
     oneOf
-        [ backtrackable teamNameFilter
+        [ backtrackable (keyedStringFilter "team" |> map Team)
+        , backtrackable (keyedStringFilter "group" |> map InstanceGroup)
         , backtrackable statusFilter
         , succeed (Name >> Pipeline) |= parseString
         ]
@@ -253,10 +273,10 @@ parseWord =
         )
 
 
-teamNameFilter : Parser TeamFilter
-teamNameFilter =
-    succeed Team
-        |. keyword "team"
+keyedStringFilter : String -> Parser StringFilter
+keyedStringFilter key =
+    succeed identity
+        |. keyword key
         |. symbol ":"
         |. spaces
         |= parseString
@@ -337,6 +357,17 @@ suggestions pipelines query =
 
                         _ ->
                             []
+
+                InstanceGroup (Exact _) ->
+                    []
+
+                InstanceGroup _ ->
+                    pipelines
+                        |> Dict.values
+                        |> List.concat
+                        |> List.map .name
+                        |> List.Extra.unique
+                        |> List.map (\v -> "group:" ++ quoted v)
 
                 Team (Exact _) ->
                     []

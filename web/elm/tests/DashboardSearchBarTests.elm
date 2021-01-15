@@ -9,11 +9,11 @@ import Common
         , whenOnDesktop
         , whenOnMobile
         )
-import Concourse exposing (JsonValue(..))
+import Concourse exposing (JsonValue(..), hyphenNotation)
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Dashboard.Filter as Filter
 import Dashboard.SearchBar as SearchBar
-import DashboardInstanceGroupTests exposing (pipelineInstanceWithVars)
+import DashboardInstanceGroupTests exposing (pipelineInstance, pipelineInstanceWithVars)
 import DashboardTests exposing (job, running, whenOnDashboard)
 import Data
 import Dict
@@ -246,9 +246,10 @@ all =
                         >> findDropdown
                         >> Query.findAll [ tag "li" ]
                         >> Expect.all
-                            [ Query.count (Expect.equal 2)
+                            [ Query.count (Expect.equal 3)
                             , Query.index 0 >> Query.has [ text "status:" ]
                             , Query.index 1 >> Query.has [ text "team:" ]
+                            , Query.index 2 >> Query.has [ text "group:" ]
                             ]
                 , describe "navigating dropdown items" <|
                     let
@@ -370,36 +371,73 @@ all =
                 , describe "dropdown suggestions" <|
                     let
                         manyTeams =
-                            List.range 1 11 |> List.map (\i -> "team" ++ String.fromInt i)
+                            List.range 1 11
+                                |> List.map
+                                    (\i ->
+                                        pipeline BuildStatusPending i "p"
+                                            |> withTeam ("team" ++ String.fromInt i)
+                                    )
 
-                        defaultTeams =
-                            [ "team", "other-team", "yet-another-team" ]
+                        defaultPipelines =
+                            [ pipeline BuildStatusSucceeded 1 "p1" |> withTeam "team1"
+                            , pipeline BuildStatusFailed 2 "p2" |> withTeam "team2"
+                            , pipelineInstance BuildStatusPending False 3 |> withTeam "team1"
+                            , pipelineInstance BuildStatusPending False 4 |> withTeam "team1"
+                            , pipelineInstance BuildStatusPending False 5 |> withTeam "other-team"
+                            , pipelineInstance BuildStatusPending False 6 |> withName "other-group" |> withTeam "other-team"
+                            ]
 
-                        suggestionsTest teams query expectation =
-                            test ("test query \"" ++ query ++ "\" with teams " ++ String.join ", " teams) <|
-                                \_ ->
-                                    let
-                                        filteredPipelines =
-                                            teams |> List.map (\t -> ( t, [] )) |> Dict.fromList
-                                    in
-                                    Filter.suggestions filteredPipelines query |> expectation
+                        findSuggestions =
+                            findDropdown >> Query.findAll [ tag "li" ]
 
-                        prefixedSuggestionsTest query prefix expected =
+                        expectSuggestions expected =
+                            findSuggestions
+                                >> Expect.all
+                                    (Query.count (Expect.equal <| List.length expected)
+                                        :: List.indexedMap
+                                            (\i e ->
+                                                Query.index i
+                                                    >> Expect.all
+                                                        [ Query.has [ text e.cur ]
+                                                        , Event.simulate Event.mouseDown
+                                                            >> Event.expect (Msgs.Update <| FilterMsg <| e.prev ++ e.cur)
+                                                        ]
+                                            )
+                                            expected
+                                    )
+
+                        suggestionsTest pipelines query expectation =
                             let
-                                expectedSuggestions =
-                                    List.map (\s -> { prev = prefix, cur = s }) expected
+                                pipelinesStr =
+                                    List.map
+                                        (\( p, _ ) ->
+                                            p.teamName ++ "/" ++ p.name ++ "/" ++ hyphenNotation p.instanceVars
+                                        )
+                                        pipelines
+                                        |> Debug.toString
                             in
-                            suggestionsTest defaultTeams
-                                query
-                                (Expect.equal expectedSuggestions)
+                            test ("test query \"" ++ query ++ "\" with pipelines " ++ pipelinesStr) <|
+                                loadDashboard
+                                    >> gotPipelines pipelines
+                                    >> withFilter query
+                                    >> Application.update (Msgs.Update FocusMsg)
+                                    >> Tuple.first
+                                    >> expectation
+
+                        prefixedSuggestionsTest query prefix expectedText =
+                            let
+                                expected =
+                                    List.map (\s -> { prev = prefix, cur = s }) expectedText
+                            in
+                            suggestionsTest defaultPipelines query (expectSuggestions expected)
 
                         simpleSuggestionsTest query expected =
                             prefixedSuggestionsTest query "" expected
                     in
                     [ -- available filters
-                      simpleSuggestionsTest "" [ "status:", "team:" ]
-                    , simpleSuggestionsTest "-" [ "-status:", "-team:" ]
-                    , simpleSuggestionsTest " " [ "status:", "team:" ]
+                      simpleSuggestionsTest "" [ "status:", "team:", "group:" ]
+                    , simpleSuggestionsTest "-" [ "-status:", "-team:", "-group:" ]
+                    , simpleSuggestionsTest " " [ "status:", "team:", "group:" ]
 
                     -- status
                     , simpleSuggestionsTest "st" [ "status:" ]
@@ -425,17 +463,31 @@ all =
                     , simpleSuggestionsTest "t" [ "team:" ]
                     , simpleSuggestionsTest "-t" [ "-team:" ]
                     , simpleSuggestionsTest "team" [ "team:" ]
-                    , simpleSuggestionsTest "team:" [ "team:\"other-team\"", "team:\"team\"", "team:\"yet-another-team\"" ]
+                    , simpleSuggestionsTest "team:" [ "team:\"other-team\"", "team:\"team1\"", "team:\"team2\"" ]
+                    , simpleSuggestionsTest "team:t1" [ "team:\"team1\"" ]
+                    , simpleSuggestionsTest "team:\"t" [ "team:\"team1\"", "team:\"team2\"" ]
                     , simpleSuggestionsTest "team:\"other-team\"" []
-                    , suggestionsTest manyTeams "team:" (List.length >> Expect.equal 10)
+                    , suggestionsTest manyTeams "team:" (findSuggestions >> Query.count (Expect.equal 10))
+
+                    -- group
+                    , simpleSuggestionsTest "g" [ "group:" ]
+                    , simpleSuggestionsTest "group" [ "group:" ]
+                    , simpleSuggestionsTest "group:" [ "group:\"group\"", "group:\"other-group\"" ]
+                    , simpleSuggestionsTest "group:oth" [ "group:\"other-group\"" ]
+                    , simpleSuggestionsTest "group:\"group\"" []
 
                     -- fuzzy pipeline
                     , simpleSuggestionsTest "foo" []
 
                     -- takes last filter
-                    , prefixedSuggestionsTest "team:other-team " "team:other-team " [ "status:", "team:" ]
+                    , prefixedSuggestionsTest "team:other-team " "team:other-team " [ "status:", "team:", "group:" ]
                     , prefixedSuggestionsTest "team:other-team s" "team:other-team " [ "status:" ]
                     , prefixedSuggestionsTest "team:other-team -status:a" "team:other-team " [ "-status:aborted" ]
+
+                    -- applies previous filters to suggestion
+                    , prefixedSuggestionsTest "status:succeeded team:" "status:succeeded " [ "team:\"team1\"" ]
+                    , prefixedSuggestionsTest "status:failed team:" "status:failed " [ "team:\"team2\"" ]
+                    , prefixedSuggestionsTest "group:\"group\" team:" "group:\"group\" " [ "team:\"other-team\"", "team:\"team1\"" ]
                     ]
                 ]
             ]
@@ -526,17 +578,6 @@ all =
 
                 expectNoFavoritesSection =
                     Common.queryView >> Query.hasNot [ id "dashboard-favorite-pipelines" ]
-
-                pipeline status id name =
-                    ( Data.pipeline "team" id |> Data.withName name
-                    , [ job status |> Data.withPipelineId id ]
-                    )
-
-                withJobsRunning =
-                    Tuple.mapSecond (List.map running)
-
-                withTeam t =
-                    Tuple.mapFirst (Data.withTeamName t)
 
                 simpleFilterTest setup filter expectation =
                     test filter <|
@@ -704,38 +745,6 @@ all =
                         >> Common.queryView
                         >> Query.hasNot [ text "No results" ]
                 ]
-            , describe "filter applies to dropdown suggestions" <|
-                let
-                    dropdownSuggestionFilterTest query expected =
-                        simpleFilterTest
-                            (loadDashboard
-                                >> gotPipelines
-                                    [ pipeline BuildStatusSucceeded 1 "p1" |> withTeam "team1"
-                                    , pipeline BuildStatusFailed 2 "p2" |> withTeam "team2"
-                                    ]
-                            )
-                            query
-                            (expectDropdownSuggestions expected)
-
-                    expectDropdownSuggestions expected =
-                        Application.update (Msgs.Update FocusMsg)
-                            >> Tuple.first
-                            >> Common.queryView
-                            >> Query.find [ id "search-dropdown" ]
-                            >> Query.findAll [ tag "li" ]
-                            >> Expect.all
-                                (Query.count (Expect.equal <| List.length expected)
-                                    :: List.indexedMap
-                                        (\i name -> Query.index i >> Query.has [ text name ])
-                                        expected
-                                )
-                in
-                [ dropdownSuggestionFilterTest "status:succeeded team:" [ "team:\"team1\"" ]
-                , dropdownSuggestionFilterTest "status:failed team:" [ "team:\"team2\"" ]
-                , dropdownSuggestionFilterTest "team:1" [ "team:\"team1\"" ]
-                , dropdownSuggestionFilterTest "team:\"team" [ "team:\"team1\"", "team:\"team2\"" ]
-                , dropdownSuggestionFilterTest "p1 team:" [ "team:\"team1\"" ]
-                ]
             ]
         ]
 
@@ -775,3 +784,21 @@ withFilter query =
 
 value v =
     attribute <| Attr.value v
+
+
+pipeline status id name =
+    ( Data.pipeline "team" id |> Data.withName name
+    , [ job status |> Data.withPipelineId id ]
+    )
+
+
+withJobsRunning =
+    Tuple.mapSecond (List.map running)
+
+
+withName n =
+    Tuple.mapFirst (Data.withName n)
+
+
+withTeam t =
+    Tuple.mapFirst (Data.withTeamName t)
