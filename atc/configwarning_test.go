@@ -71,7 +71,7 @@ var _ = Describe("ValidateIdentifier", func() {
 		{
 			description: "is an empty string",
 			identifier:  "",
-			errorMsg:    "identifier cannot be an empty string",
+			errorMsg:    ": identifier cannot be an empty string",
 		},
 	} {
 		test := test

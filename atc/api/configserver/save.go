@@ -71,7 +71,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	pipelineName := rata.Param(r, "pipeline_name")
 	warning, err := atc.ValidateIdentifier(pipelineName, "pipeline")
 	if err != nil {
-		session.Info("ignoring-invalid-config", lager.Data{"error": err.Error()})
+		session.Info("ignoring-pipeline-name", lager.Data{"error": err.Error()})
 		s.handleBadRequest(w, err.Error())
 		return
 	}
@@ -82,7 +82,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	teamName := rata.Param(r, "team_name")
 	warning, err = atc.ValidateIdentifier(teamName, "team")
 	if err != nil {
-		session.Info("ignoring-invalid-config", lager.Data{"error": err.Error()})
+		session.Info("ignoring-team-name", lager.Data{"error": err.Error()})
 		s.handleBadRequest(w, err.Error())
 		return
 	}

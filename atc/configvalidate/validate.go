@@ -87,8 +87,7 @@ func validateGroups(c Config) ([]ConfigWarning, error) {
 
 		warning, err := ValidateIdentifier(group.Name, identifier)
 		if err != nil {
-			errorMessages = append(errorMessages,
-				fmt.Sprintf("%s: %s", identifier, err.Error()))
+			errorMessages = append(errorMessages, err.Error())
 		}
 		if warning != nil {
 			warnings = append(warnings, *warning)
@@ -164,8 +163,7 @@ func validateResources(c Config) ([]ConfigWarning, error) {
 
 		warning, err := ValidateIdentifier(resource.Name, identifier)
 		if err != nil {
-			errorMessages = append(errorMessages,
-				fmt.Sprintf("%s: %s", identifier, err.Error()))
+			errorMessages = append(errorMessages, err.Error())
 		}
 		if warning != nil {
 			warnings = append(warnings, *warning)
@@ -210,8 +208,7 @@ func validateResourceTypes(c Config) ([]ConfigWarning, error) {
 
 		warning, err := ValidateIdentifier(resourceType.Name, identifier)
 		if err != nil {
-			errorMessages = append(errorMessages,
-				fmt.Sprintf("%s: %s", identifier, err.Error()))
+			errorMessages = append(errorMessages, err.Error())
 		}
 		if warning != nil {
 			warnings = append(warnings, *warning)
@@ -292,8 +289,7 @@ func validateJobs(c Config) ([]ConfigWarning, error) {
 
 		warning, err := ValidateIdentifier(job.Name, identifier)
 		if err != nil {
-			errorMessages = append(errorMessages,
-				fmt.Sprintf("%s: %s", identifier, err.Error()))
+			errorMessages = append(errorMessages, err.Error())
 		}
 		if warning != nil {
 			warnings = append(warnings, *warning)
@@ -389,8 +385,7 @@ func validateVarSources(c Config) ([]ConfigWarning, error) {
 
 		warning, err := ValidateIdentifier(cm.Name, identifier)
 		if err != nil {
-			errorMessages = append(errorMessages,
-				fmt.Sprintf("%s: %s", identifier, err.Error()))
+			errorMessages = append(errorMessages, err.Error())
 		}
 		if warning != nil {
 			warnings = append(warnings, *warning)
