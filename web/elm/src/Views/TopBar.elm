@@ -8,7 +8,6 @@ import Assets
 import ColorValues
 import Concourse exposing (hyphenNotation)
 import Dashboard.FilterBuilder exposing (instanceGroupFilter)
-import Dict
 import Html exposing (Html)
 import Html.Attributes
     exposing

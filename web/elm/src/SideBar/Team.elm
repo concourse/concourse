@@ -2,9 +2,7 @@ module SideBar.Team exposing (team)
 
 import Assets
 import Concourse
-import Dict
 import HoverState
-import List.Extra
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Set exposing (Set)
 import SideBar.InstanceGroup as InstanceGroup

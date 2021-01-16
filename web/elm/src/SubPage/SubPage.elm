@@ -20,7 +20,6 @@ import Dashboard.Models
 import EffectTransformer exposing (ET)
 import FlySuccess.FlySuccess as FlySuccess
 import FlySuccess.Models
-import HoverState
 import Html exposing (Html)
 import Job.Job as Job
 import Login.Login as Login

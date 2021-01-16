@@ -12,7 +12,7 @@ import Dashboard.Group.Models exposing (Card(..), Pipeline)
 import Dashboard.Models exposing (Model)
 import Dashboard.Pipeline as Pipeline
 import Dict exposing (Dict)
-import FetchResult exposing (FetchResult)
+import FetchResult
 import List.Extra
 import Parser
     exposing

@@ -6,20 +6,16 @@ module Dashboard.SearchBar exposing
     )
 
 import Application.Models exposing (Session)
-import Array
-import Concourse
 import Concourse.PipelineStatus
     exposing
         ( PipelineStatus(..)
         , StatusDetails(..)
         )
 import Dashboard.Filter as Filter
-import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Models exposing (Dropdown(..), Model)
 import Dashboard.Styles as Styles
-import Dict exposing (Dict)
+import Dict
 import EffectTransformer exposing (ET)
-import FetchResult exposing (FetchResult)
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, id, placeholder, value)
 import Html.Events exposing (onBlur, onClick, onFocus, onInput, onMouseDown)
@@ -31,7 +27,6 @@ import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..))
 import Routes
 import ScreenSize exposing (ScreenSize)
-import Set
 
 
 searchInputId : String

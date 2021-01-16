@@ -256,21 +256,6 @@ dashboardViewQuery =
         |> Query.map (Maybe.withDefault ViewNonArchivedPipelines)
 
 
-instanceGroupQuery : Query.Parser (Maybe Concourse.InstanceGroupIdentifier)
-instanceGroupQuery =
-    Query.map2
-        (\t g ->
-            case ( t, g ) of
-                ( Just teamName, Just groupName ) ->
-                    Just { teamName = teamName, name = groupName }
-
-                _ ->
-                    Nothing
-        )
-        (stringWithSpaces "team")
-        (stringWithSpaces "group")
-
-
 stringWithSpaces : String -> Query.Parser (Maybe String)
 stringWithSpaces =
     -- https://github.com/elm/url/issues/32
