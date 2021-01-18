@@ -5,9 +5,7 @@
   "repository": "https://github.com/concourse/concourse",
   "license": "Apache-2.0",
   "dependencies": {
-    "element-ui": "^2.15.0",
-    "request": "^2.86.0",
-    "vue-resource": "^1.5.1"
+    "request": "^2.86.0"
   },
   "devDependencies": {
     "@babel/core": "^7.8.4",
