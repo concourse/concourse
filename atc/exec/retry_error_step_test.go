@@ -10,6 +10,7 @@ import (
 	. "github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/transport"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -98,12 +99,12 @@ var _ = Describe("RetryErrorStep", func() {
 				Expect(message).To(Equal(fmt.Sprintf("%s, will retry ...", cause.Error())))
 			})
 
-			Context("when build aborted", func(){
-				BeforeEach(func(){
+			Context("when build aborted", func() {
+				BeforeEach(func() {
 					cancel()
 				})
 
-				It("should not retry", func(){
+				It("should not retry", func() {
 					Expect(runErr).To(Equal(cause))
 				})
 			})
@@ -122,6 +123,17 @@ var _ = Describe("RetryErrorStep", func() {
 
 		Context("when net.Error error happened", func() {
 			cause := &net.OpError{Op: "read", Net: "test", Source: nil, Addr: nil, Err: errors.New("test")}
+			BeforeEach(func() {
+				fakeStep.RunReturns(false, cause)
+			})
+
+			It("should return retriable", func() {
+				Expect(runErr).To(Equal(Retriable{cause}))
+			})
+		})
+
+		Context("when worker.NoWorkerFitContainerPlacementStrategyError error happened", func() {
+			cause := &worker.NoWorkerFitContainerPlacementStrategyError{Strategy: "test-strategy"}
 			BeforeEach(func() {
 				fakeStep.RunReturns(false, cause)
 			})

@@ -11,6 +11,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
+	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/transport"
 )
 
@@ -58,6 +59,7 @@ func (step RetryErrorStep) Run(ctx context.Context, state RunState) (bool, error
 func (step RetryErrorStep) toRetry(logger lager.Logger, err error) bool {
 	var urlError *url.Error
 	var netError net.Error
+	var noWorkerError *worker.NoWorkerFitContainerPlacementStrategyError
 	if errors.As(err, &transport.WorkerMissingError{}) || errors.As(err, &transport.WorkerUnreachableError{}) || errors.As(err, &urlError) {
 		logger.Debug("retry-error",
 			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err.Error()})
@@ -65,6 +67,10 @@ func (step RetryErrorStep) toRetry(logger lager.Logger, err error) bool {
 	} else if errors.As(err, &netError) || regexp.MustCompile(`worker .+ disappeared`).MatchString(err.Error()) {
 		logger.Debug("retry-error",
 			lager.Data{"err_type": reflect.TypeOf(err).String(), "err": err})
+		return true
+	} else if errors.As(err, &noWorkerError) {
+		logger.Debug("retry-error",
+			lager.Data{"err_type": "NoWorkerFitContainerPlacementStrategyError", "err": err})
 		return true
 	}
 	return false
