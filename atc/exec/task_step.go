@@ -216,6 +216,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	if config.Limits.Memory == nil {
 		config.Limits.Memory = step.defaultLimits.Memory
 	}
+	step.containerMetadata.ContainerLimits = *config.Limits
 
 	delegate.Initializing(logger)
 

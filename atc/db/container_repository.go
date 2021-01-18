@@ -20,7 +20,7 @@ type ContainerRepository interface {
 	RemoveMissingContainers(time.Duration) (int, error)
 	DestroyUnknownContainers(workerName string, reportedHandles []string) (int, error)
 	GetActiveContainerCount(workerName string) int
-	GetActiveContainers(workerName string) ([]Container, error)
+	GetActiveContainerResources(workerName string) (int, int)
 }
 
 type containerRepository struct {
@@ -294,40 +294,19 @@ func (repository *containerRepository) FindOrphanedContainers() ([]CreatingConta
 	return creatingContainers, createdContainers, destroyingContainers, nil
 }
 
-func (repository *containerRepository) GetActiveContainers(workerName string) ([]Container, error) {
-	query, args, err := selectContainers("c").Where(
-		sq.And{
-			sq.Eq{"c.worker_name": workerName},
-			sq.Expr("c.state NOT IN ('$1', '$2')", atc.ContainerStateCreating, atc.ContainerStateCreated),
-		},
-	).ToSql()
+func (repository *containerRepository) GetActiveContainerResources(workerName string) (int, int) {
+	var totalCPU, totalMemory int
+	err := repository.conn.QueryRow(
+		"SELECT SUM(meta_cpu_limit), SUM(meta_memory_limit) FROM containers WHERE worker_name = $1 AND state IN ($2, $3)",
+		workerName,
+		atc.ContainerStateCreating,
+		atc.ContainerStateCreated,
+	).Scan(&totalCPU, &totalMemory)
 	if err != nil {
-		return nil, err
+		return 0, 0
 	}
 
-	rows, err := repository.conn.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-
-	defer Close(rows)
-	containers := []Container{}
-	for rows.Next() {
-		creatingContainer, createdContainer, _, _, err := scanContainer(rows, repository.conn)
-		if err != nil {
-			return nil, err
-		}
-
-		if creatingContainer != nil {
-			containers = append(containers, creatingContainer)
-		}
-
-		if createdContainer != nil {
-			containers = append(containers, createdContainer)
-		}
-	}
-
-	return containers, nil
+	return totalCPU, totalMemory
 }
 
 func (repository *containerRepository) GetActiveContainerCount(workerName string) int {

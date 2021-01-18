@@ -1188,4 +1188,48 @@ var _ = Describe("ContainerRepository", func() {
 		})
 
 	})
+
+	Describe("GetActiveContainerResources", func() {
+		BeforeEach(func() {
+			result, err := psql.Insert("containers").SetMap(map[string]interface{}{
+				"state":             atc.ContainerStateCreating,
+				"handle":            "some-handle1",
+				"worker_name":       defaultWorker.Name(),
+				"meta_cpu_limit":    100,
+				"meta_memory_limit": 1000,
+			}).RunWith(dbConn).Exec()
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.RowsAffected()).To(Equal(int64(1)))
+
+			result, err = psql.Insert("containers").SetMap(map[string]interface{}{
+				"state":             atc.ContainerStateCreated,
+				"handle":            "some-handle2",
+				"worker_name":       defaultWorker.Name(),
+				"meta_cpu_limit":    100,
+				"meta_memory_limit": 1000,
+			}).RunWith(dbConn).Exec()
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.RowsAffected()).To(Equal(int64(1)))
+
+			result, err = psql.Insert("containers").SetMap(map[string]interface{}{
+				"state":             atc.ContainerStateDestroying,
+				"handle":            "some-handle3",
+				"worker_name":       defaultWorker.Name(),
+				"meta_cpu_limit":    100,
+				"meta_memory_limit": 1000,
+			}).RunWith(dbConn).Exec()
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.RowsAffected()).To(Equal(int64(1)))
+		})
+
+		It("reports total resources used by active containers for that worker", func() {
+			usedCPU, usedMemory := containerRepository.GetActiveContainerResources(defaultWorker.Name())
+			Expect(usedCPU).To(Equal(200))
+			Expect(usedMemory).To(Equal(2000))
+		})
+
+	})
 })

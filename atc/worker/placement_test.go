@@ -6,6 +6,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
@@ -44,7 +45,7 @@ var _ = Describe("FewestBuildContainersPlacementStrategy", func() {
 
 		BeforeEach(func() {
 			logger = lagertest.NewTestLogger("build-containers-equal-placement-test")
-			strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"fewest-build-containers"}})
+			strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"fewest-build-containers"}}, new(dbfakes.FakeContainerRepository))
 			Expect(newStrategyError).ToNot(HaveOccurred())
 			compatibleWorker1 = new(workerfakes.FakeWorker)
 			compatibleWorker1.NameReturns("compatibleWorker1")
@@ -137,7 +138,7 @@ var _ = Describe("VolumeLocalityPlacementStrategy", func() {
 
 		BeforeEach(func() {
 			logger = lagertest.NewTestLogger("volume-locality-placement-test")
-			strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"volume-locality"}})
+			strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"volume-locality"}}, new(dbfakes.FakeContainerRepository))
 			Expect(newStrategyError).ToNot(HaveOccurred())
 
 			fakeInput1 := new(workerfakes.FakeInputSource)
@@ -329,7 +330,7 @@ var _ = Describe("LimitActiveTasksPlacementStrategy", func() {
 		Context("when MaxActiveTasksPerWorker less than 0", func() {
 			BeforeEach(func() {
 				logger = lagertest.NewTestLogger("active-tasks-equal-placement-test")
-				strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"limit-active-tasks"}, MaxActiveTasksPerWorker: -1})
+				strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"limit-active-tasks"}, MaxActiveTasksPerWorker: -1}, new(dbfakes.FakeContainerRepository))
 			})
 			It("should fail", func() {
 				Expect(newStrategyError).To(HaveOccurred())
@@ -341,7 +342,7 @@ var _ = Describe("LimitActiveTasksPlacementStrategy", func() {
 		Context("when MaxActiveTasksPerWorker less than 0", func() {
 			BeforeEach(func() {
 				logger = lagertest.NewTestLogger("active-tasks-equal-placement-test")
-				strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"limit-active-tasks"}, MaxActiveTasksPerWorker: 0})
+				strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"limit-active-tasks"}, MaxActiveTasksPerWorker: 0}, new(dbfakes.FakeContainerRepository))
 				Expect(newStrategyError).ToNot(HaveOccurred())
 
 				compatibleWorker1 = new(workerfakes.FakeWorker)
@@ -423,7 +424,7 @@ var _ = Describe("LimitActiveTasksPlacementStrategy", func() {
 			})
 			Context("when max-tasks-per-worker is set to 1", func() {
 				BeforeEach(func() {
-					strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"limit-active-tasks"}, MaxActiveTasksPerWorker: 1})
+					strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{ContainerPlacementStrategy: []string{"limit-active-tasks"}, MaxActiveTasksPerWorker: 1}, new(dbfakes.FakeContainerRepository))
 					Expect(newStrategyError).ToNot(HaveOccurred())
 				})
 				Context("when there are multiple workers", func() {
@@ -520,7 +521,7 @@ var _ = Describe("LimitActiveContainersPlacementStrategyNode", func() {
 			strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
 				ContainerPlacementStrategy:   []string{"limit-active-containers"},
 				MaxActiveContainersPerWorker: activeContainerLimit,
-			},
+			}, new(dbfakes.FakeContainerRepository),
 			)
 			Expect(newStrategyError).ToNot(HaveOccurred())
 		})
@@ -600,47 +601,67 @@ var _ = Describe("LimitActiveContainersPlacementStrategyNode", func() {
 	})
 })
 
-var _ = Describe("LimitActiveVolumesPlacementStrategyNode", func() {
+var _ = Describe("LimitTotalResourcesPlacementStrategy", func() {
 	Describe("Choose", func() {
 		var compatibleWorker1 *workerfakes.FakeWorker
 		var compatibleWorker2 *workerfakes.FakeWorker
-		var compatibleWorker3 *workerfakes.FakeWorker
-		var activeVolumeLimit int
+		var workerCPU1 int
+		var workerCPU2 int
+		var workerMemory1 int
+		var workerMemory2 int
+		var cpu uint64
+		var memory uint64
+		var maxCPU int
+		var maxMemory int
+		var containerRepository *dbfakes.FakeContainerRepository
 
 		BeforeEach(func() {
-			logger = lagertest.NewTestLogger("build-containers-equal-placement-test")
+			logger = lagertest.NewTestLogger("build-containers-total-resources-test")
 			compatibleWorker1 = new(workerfakes.FakeWorker)
 			compatibleWorker1.NameReturns("compatibleWorker1")
 			compatibleWorker2 = new(workerfakes.FakeWorker)
 			compatibleWorker2.NameReturns("compatibleWorker2")
-			compatibleWorker3 = new(workerfakes.FakeWorker)
-			compatibleWorker3.NameReturns("compatibleWorker3")
-			activeVolumeLimit = 0
 
-			compatibleWorker1.ActiveVolumesReturns(20)
-			compatibleWorker2.ActiveVolumesReturns(200)
-			compatibleWorker3.ActiveVolumesReturns(200000000000)
-			workers = []Worker{compatibleWorker1, compatibleWorker2, compatibleWorker3}
+			containerRepository = new(dbfakes.FakeContainerRepository)
+			containerRepository.GetActiveContainerResourcesStub = func(worker string) (int, int) {
+				switch worker {
+				case "compatibleWorker1":
+					return workerCPU1, workerMemory1
+				case "compatibleWorker2":
+					return workerCPU2, workerMemory2
+				default:
+					return 0, 0
+				}
+			}
+			workers = []Worker{compatibleWorker1, compatibleWorker2}
+		})
+
+		JustBeforeEach(func() {
+			strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
+				ContainerPlacementStrategy: []string{"limit-total-resources"},
+				MaxCPUPerWorker:            maxCPU,
+				MaxMemoryPerWorker:         maxMemory,
+			}, containerRepository,
+			)
+			Expect(newStrategyError).ToNot(HaveOccurred())
 
 			spec = ContainerSpec{
 				ImageSpec: ImageSpec{ResourceType: "some-type"},
 				TeamID:    4567,
 				Inputs:    []InputSource{},
+				Limits: ContainerLimits{
+					CPU:    &cpu,
+					Memory: &memory,
+				},
 			}
 		})
 
-		JustBeforeEach(func() {
-			strategy, newStrategyError = NewContainerPlacementStrategy(ContainerPlacementStrategyOptions{
-				ContainerPlacementStrategy: []string{"limit-active-volumes"},
-				MaxActiveVolumesPerWorker:  activeVolumeLimit,
-			},
-			)
-			Expect(newStrategyError).ToNot(HaveOccurred())
-		})
-
-		Context("when there is no limit", func() {
+		Context("when the CPU and memory are both below the max limit", func() {
 			BeforeEach(func() {
-				activeVolumeLimit = 0
+				workerCPU1, workerMemory1 = 0, 0
+				workerCPU2, workerMemory2 = 0, 0
+				maxCPU, maxMemory = 100, 2000
+				cpu, memory = 50, 1500
 			})
 
 			It("return all workers", func() {
@@ -652,62 +673,70 @@ var _ = Describe("LimitActiveVolumesPlacementStrategyNode", func() {
 					)
 					Expect(chooseErr).ToNot(HaveOccurred())
 					return chosenWorker
-				}).Should(Or(Equal(compatibleWorker1), Equal(compatibleWorker2), Equal(compatibleWorker3)))
+				}).Should(Or(Equal(compatibleWorker1), Equal(compatibleWorker2)))
 			})
 		})
 
-		Context("when there is a limit", func() {
-			Context("when the limit is 20", func() {
-				BeforeEach(func() {
-					activeVolumeLimit = 20
-				})
+		Context("when the CPU is above the max limit", func() {
+			BeforeEach(func() {
+				workerCPU1, workerMemory1 = 75, 1000
+				workerCPU2, workerMemory2 = 0, 0
+				maxCPU, maxMemory = 100, 2000
+				cpu, memory = 50, 500
+			})
 
-				It("picks worker1", func() {
-					Consistently(func() Worker {
-						chosenWorker, chooseErr = strategy.Choose(
-							logger,
-							workers,
-							spec,
-						)
-						Expect(chooseErr).ToNot(HaveOccurred())
-						return chosenWorker
-					}).Should(Equal(compatibleWorker1))
-				})
+			It("return only workers with enough available CPU", func() {
+				Consistently(func() Worker {
+					chosenWorker, chooseErr = strategy.Choose(
+						logger,
+						workers,
+						spec,
+					)
+					Expect(chooseErr).ToNot(HaveOccurred())
+					return chosenWorker
+				}).Should(Equal(compatibleWorker2))
+			})
+		})
 
-				Context("when the limit is 200", func() {
-					BeforeEach(func() {
-						activeVolumeLimit = 200
-					})
+		Context("when the memory is above the max limit", func() {
+			BeforeEach(func() {
+				workerCPU1, workerMemory1 = 0, 1500
+				workerCPU2, workerMemory2 = 0, 0
+				maxCPU, maxMemory = 100, 2000
+				cpu, memory = 50, 1000
+			})
 
-					It("picks worker1 or worker2", func() {
-						Consistently(func() Worker {
-							chosenWorker, chooseErr = strategy.Choose(
-								logger,
-								workers,
-								spec,
-							)
-							Expect(chooseErr).ToNot(HaveOccurred())
-							return chosenWorker
-						}).Should(Or(Equal(compatibleWorker1), Equal(compatibleWorker2)))
-					})
-				})
+			It("return only workers with enough available memory", func() {
+				Consistently(func() Worker {
+					chosenWorker, chooseErr = strategy.Choose(
+						logger,
+						workers,
+						spec,
+					)
+					Expect(chooseErr).ToNot(HaveOccurred())
+					return chosenWorker
+				}).Should(Equal(compatibleWorker2))
+			})
+		})
 
-				Context("when the limit is too low", func() {
-					BeforeEach(func() {
-						activeVolumeLimit = 1
-					})
+		Context("when both the memory and CPU are above the max limit", func() {
+			BeforeEach(func() {
+				workerCPU1, workerMemory1 = 75, 1500
+				workerCPU2, workerMemory2 = 0, 0
+				maxCPU, maxMemory = 100, 2000
+				cpu, memory = 50, 1000
+			})
 
-					It("return no worker", func() {
-						chosenWorker, chooseErr = strategy.Choose(
-							logger,
-							workers,
-							spec,
-						)
-						Expect(chooseErr).To(HaveOccurred())
-						Expect(chooseErr).To(Equal(NoWorkerFitContainerPlacementStrategyError{Strategy: "limit-active-volumes"}))
-						Expect(chosenWorker).To(BeNil())
-					})
-				})
+			It("return only workers with enough available CPU and memory", func() {
+				Consistently(func() Worker {
+					chosenWorker, chooseErr = strategy.Choose(
+						logger,
+						workers,
+						spec,
+					)
+					Expect(chooseErr).ToNot(HaveOccurred())
+					return chosenWorker
+				}).Should(Equal(compatibleWorker2))
 			})
 		})
 	})
@@ -724,7 +753,7 @@ var _ = Describe("ChainedPlacementStrategy #Choose", func() {
 		strategy, newStrategyError = NewContainerPlacementStrategy(
 			ContainerPlacementStrategyOptions{
 				ContainerPlacementStrategy: []string{"fewest-build-containers", "volume-locality"},
-			})
+			}, new(dbfakes.FakeContainerRepository))
 		Expect(newStrategyError).ToNot(HaveOccurred())
 		someWorker1 = new(workerfakes.FakeWorker)
 		someWorker1.NameReturns("worker1")
