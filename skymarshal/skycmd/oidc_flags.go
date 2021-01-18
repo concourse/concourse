@@ -28,7 +28,7 @@ type OIDCFlags struct {
 	HostedDomains      []string    `long:"hosted-domains" description:"List of whitelisted domains when using Google, only users from a listed domain will be allowed to log in"`
 	CACerts            []flag.File `long:"ca-cert" description:"CA Certificate"`
 	InsecureSkipVerify bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
-  DisableGroups bool      `long:"disable-groups" description:"Enable OIDC groups"`
+  DisableGroups bool      `long:"disable-groups" description:"Disable OIDC groups claims"`
 }
 
 func (flag *OIDCFlags) Name() string {
