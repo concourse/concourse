@@ -283,7 +283,7 @@ func (m *Migration) Execute(args []string) error {
 	if m.OldEncryptionKey.AEAD != nil {
 		return m.rotateEncryptionKey()
 	}
-	return errors.New("must specify one of `--current-db-version`, `--supported-db-version`, `--migrate-db-to-version`, `--old-encryption-key`, or `--migrate-to-latest-version`")
+	return errors.New("must specify one of `--migrate-to-latest-version`, `--current-db-version`, `--supported-db-version`, `--migrate-db-to-version`, or `--old-encryption-key`")
 
 }
 
