@@ -7,6 +7,8 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 
@@ -115,6 +117,8 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 		}
 		for i, worker := range workerFakes {
 			worker.NameReturns(fmt.Sprintf("worker-%d", i))
+			memory := atc.MemoryLimit(2000)
+			worker.AllocatableMemoryReturns(&memory)
 		}
 
 		updateWorkersFromFakes()
@@ -126,7 +130,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 		BeforeEach(func() {
 			strategy, strategyErr = NewChainPlacementStrategy(ContainerPlacementStrategyOptions{
 				ContainerPlacementStrategy: []string{},
-			})
+			}, nil)
 			Expect(strategyErr).ToNot(HaveOccurred())
 
 		})
@@ -151,7 +155,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 		JustBeforeEach(func() {
 			strategy, strategyErr = NewChainPlacementStrategy(ContainerPlacementStrategyOptions{
 				ContainerPlacementStrategy: []string{"fewest-build-containers"},
-			})
+			}, nil)
 			Expect(strategyErr).ToNot(HaveOccurred())
 		})
 
@@ -193,7 +197,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 		JustBeforeEach(func() {
 			strategy, strategyErr = NewChainPlacementStrategy(ContainerPlacementStrategyOptions{
 				ContainerPlacementStrategy: []string{"volume-locality"},
-			})
+			}, nil)
 			Expect(strategyErr).ToNot(HaveOccurred())
 		})
 
@@ -293,7 +297,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 			strategy, strategyErr = NewChainPlacementStrategy(ContainerPlacementStrategyOptions{
 				ContainerPlacementStrategy: []string{"limit-active-tasks"},
 				MaxActiveTasksPerWorker:    limit,
-			})
+			}, nil)
 
 			if !shouldError {
 				Expect(strategyErr).ToNot(HaveOccurred())
@@ -467,7 +471,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 			strategy, strategyErr = NewChainPlacementStrategy(ContainerPlacementStrategyOptions{
 				ContainerPlacementStrategy:   []string{"limit-active-containers"},
 				MaxActiveContainersPerWorker: limit,
-			})
+			}, nil)
 
 			if !shouldError {
 				Expect(strategyErr).ToNot(HaveOccurred())
@@ -579,7 +583,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 			strategy, strategyErr = NewChainPlacementStrategy(ContainerPlacementStrategyOptions{
 				ContainerPlacementStrategy: []string{"limit-active-volumes"},
 				MaxActiveVolumesPerWorker:  limit,
-			})
+			}, nil)
 
 			if !shouldError {
 				Expect(strategyErr).ToNot(HaveOccurred())
@@ -628,6 +632,72 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 				})
 			})
 		})
+	})
+
+	Describe("limit-total-allocated-memory", func() {
+		var (
+			shouldError            bool
+			worker0AllocatedMemory int
+			worker1AllocatedMemory int
+			worker2AllocatedMemory int
+			requestedMemory        int
+			containerRepository    *dbfakes.FakeContainerRepository
+		)
+
+		BeforeEach(func() {
+			shouldError = false
+			containerRepository = new(dbfakes.FakeContainerRepository)
+			containerRepository.GetActiveContainerMemoryAllocationStub = func(worker string) (atc.MemoryLimit, error) {
+				switch worker {
+				case workerFakes[0].Name():
+					return atc.MemoryLimit(worker0AllocatedMemory), nil
+				case workerFakes[1].Name():
+					return atc.MemoryLimit(worker1AllocatedMemory), nil
+				case workerFakes[2].Name():
+					return atc.MemoryLimit(worker2AllocatedMemory), nil
+				default:
+					return 0, nil
+				}
+			}
+		})
+
+		JustBeforeEach(func() {
+			strategy, strategyErr = NewChainPlacementStrategy(ContainerPlacementStrategyOptions{
+				ContainerPlacementStrategy: []string{"limit-total-allocated-memory"},
+			}, containerRepository)
+
+			if !shouldError {
+				Expect(strategyErr).ToNot(HaveOccurred())
+			} else {
+				Expect(strategyErr).To(HaveOccurred())
+			}
+
+			reqMemory := uint64(requestedMemory)
+			containerSpec = ContainerSpec{
+				ImageSpec: ImageSpec{ResourceType: "some-type"},
+				TeamID:    4567,
+				Inputs:    []InputSource{},
+				Limits: ContainerLimits{
+					Memory: &reqMemory,
+				},
+			}
+		})
+
+		Describe("strategy.Order", func() {
+			JustBeforeEach(func() {
+				order(true)
+			})
+
+			BeforeEach(func() {
+				worker0AllocatedMemory = 1000
+				worker1AllocatedMemory = 2000
+				worker2AllocatedMemory = 1500
+			})
+
+			It("orders workers by free memory", func() {
+				Expect(orderedWorkers).To(Equal([]Worker{workers[0], workers[2], workers[1]}))
+			})
+		})
 
 		Describe("strategy.Pick and strategy.Release", func() {
 			JustBeforeEach(func() {
@@ -635,42 +705,46 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 			})
 
 			BeforeEach(func() {
-				workerFakes[0].ActiveVolumesReturns(200)
-				workerFakes[1].ActiveVolumesReturns(20000)
-				workerFakes[2].ActiveVolumesReturns(20)
-
 				orderedWorkers = workers
-				shouldError = false
 			})
 
-			Context("when limit is zero", func() {
+			Context("when requested memory is less than free memory", func() {
 				BeforeEach(func() {
-					limit = 0
+					worker0AllocatedMemory = 0
+					worker1AllocatedMemory = 0
+					worker2AllocatedMemory = 0
+					requestedMemory = 1500
 				})
 
-				It("is able to pick and release the first worker, regardless of active volumes", func() {
+				It("is able to pick and release the first worker", func() {
 					Expect(pickedWorker).To(Equal(workers[0]))
 				})
 			})
 
-			Context("when limit is non-zero", func() {
+			Context("when requested memory is more than free memory", func() {
 				BeforeEach(func() {
-					limit = 100
+					worker0AllocatedMemory = 1000
+					worker1AllocatedMemory = 0
+					worker2AllocatedMemory = 500
+					requestedMemory = 1500
 				})
 
-				It("fails to pick workers with an equal or higher number of volumes", func() {
-					Expect(pickedWorker).To(Equal(workers[2]))
+				It("fails to pick workers with not enough free memory", func() {
+					Expect(pickedWorker).To(Equal(workers[1]))
 				})
 			})
 
-			Context("when no workers are under the limit", func() {
+			Context("when no workers have enough free memory", func() {
 				BeforeEach(func() {
-					limit = 10
+					worker0AllocatedMemory = 1000
+					worker1AllocatedMemory = 1000
+					worker2AllocatedMemory = 1000
+					requestedMemory = 1500
 				})
 
-				It("fails to pick workers with an equal or higher number of volumes", func() {
+				It("fails to pick workers with not enough free memory", func() {
 					Expect(pickedWorker).To(BeNil())
-					Expect(pickErr).To(Equal(ErrTooManyVolumes))
+					Expect(pickErr).To(Equal(ErrNotEnoughMemory))
 				})
 			})
 		})
@@ -682,7 +756,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 				JustBeforeEach(func() {
 					strategy, strategyErr = NewChainPlacementStrategy(ContainerPlacementStrategyOptions{
 						ContainerPlacementStrategy: []string{"fewest-build-containers", "volume-locality"},
-					})
+					}, nil)
 					Expect(strategyErr).ToNot(HaveOccurred())
 
 					order(true)
@@ -737,7 +811,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 					strategy, strategyErr = NewChainPlacementStrategy(ContainerPlacementStrategyOptions{
 						ContainerPlacementStrategy:   []string{"limit-active-containers", "volume-locality"},
 						MaxActiveContainersPerWorker: 0,
-					})
+					}, nil)
 					Expect(strategyErr).ToNot(HaveOccurred())
 
 					order(true)
@@ -775,7 +849,7 @@ var _ = Describe("ContainerPlacementStrategy", func() {
 						ContainerPlacementStrategy:   []string{"limit-active-containers", "limit-active-tasks"},
 						MaxActiveTasksPerWorker:      1,
 						MaxActiveContainersPerWorker: 1,
-					})
+					}, nil)
 
 					Expect(strategyErr).ToNot(HaveOccurred())
 

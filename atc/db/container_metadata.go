@@ -1,6 +1,10 @@
 package db
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/concourse/concourse/atc"
+)
 
 type ContainerMetadata struct {
 	Type ContainerType
@@ -19,6 +23,7 @@ type ContainerMetadata struct {
 	PipelineInstanceVars string
 	JobName              string
 	BuildName            string
+	MemoryLimit          *atc.MemoryLimit
 }
 
 type ContainerType string
@@ -96,6 +101,10 @@ func (metadata ContainerMetadata) SQLMap() map[string]interface{} {
 		m["meta_build_name"] = metadata.BuildName
 	}
 
+	if metadata.MemoryLimit != nil {
+		m["meta_memory_limit"] = *metadata.MemoryLimit
+	}
+
 	return m
 }
 
@@ -112,6 +121,7 @@ var containerMetadataColumns = []string{
 	"meta_pipeline_instance_vars",
 	"meta_job_name",
 	"meta_build_name",
+	"meta_memory_limit",
 }
 
 func (metadata *ContainerMetadata) ScanTargets() []interface{} {
@@ -128,5 +138,6 @@ func (metadata *ContainerMetadata) ScanTargets() []interface{} {
 		&metadata.PipelineInstanceVars,
 		&metadata.JobName,
 		&metadata.BuildName,
+		&metadata.MemoryLimit,
 	}
 }

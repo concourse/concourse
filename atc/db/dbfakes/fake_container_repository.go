@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -63,6 +64,19 @@ type FakeContainerRepository struct {
 		result2 []db.CreatedContainer
 		result3 []db.DestroyingContainer
 		result4 error
+	}
+	GetActiveContainerMemoryAllocationStub        func(string) (atc.MemoryLimit, error)
+	getActiveContainerMemoryAllocationMutex       sync.RWMutex
+	getActiveContainerMemoryAllocationArgsForCall []struct {
+		arg1 string
+	}
+	getActiveContainerMemoryAllocationReturns struct {
+		result1 atc.MemoryLimit
+		result2 error
+	}
+	getActiveContainerMemoryAllocationReturnsOnCall map[int]struct {
+		result1 atc.MemoryLimit
+		result2 error
 	}
 	RemoveDestroyingContainersStub        func(string, []string) (int, error)
 	removeDestroyingContainersMutex       sync.RWMutex
@@ -359,6 +373,69 @@ func (fake *FakeContainerRepository) FindOrphanedContainersReturnsOnCall(i int, 
 	}{result1, result2, result3, result4}
 }
 
+func (fake *FakeContainerRepository) GetActiveContainerMemoryAllocation(arg1 string) (atc.MemoryLimit, error) {
+	fake.getActiveContainerMemoryAllocationMutex.Lock()
+	ret, specificReturn := fake.getActiveContainerMemoryAllocationReturnsOnCall[len(fake.getActiveContainerMemoryAllocationArgsForCall)]
+	fake.getActiveContainerMemoryAllocationArgsForCall = append(fake.getActiveContainerMemoryAllocationArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("GetActiveContainerMemoryAllocation", []interface{}{arg1})
+	fake.getActiveContainerMemoryAllocationMutex.Unlock()
+	if fake.GetActiveContainerMemoryAllocationStub != nil {
+		return fake.GetActiveContainerMemoryAllocationStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.getActiveContainerMemoryAllocationReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeContainerRepository) GetActiveContainerMemoryAllocationCallCount() int {
+	fake.getActiveContainerMemoryAllocationMutex.RLock()
+	defer fake.getActiveContainerMemoryAllocationMutex.RUnlock()
+	return len(fake.getActiveContainerMemoryAllocationArgsForCall)
+}
+
+func (fake *FakeContainerRepository) GetActiveContainerMemoryAllocationCalls(stub func(string) (atc.MemoryLimit, error)) {
+	fake.getActiveContainerMemoryAllocationMutex.Lock()
+	defer fake.getActiveContainerMemoryAllocationMutex.Unlock()
+	fake.GetActiveContainerMemoryAllocationStub = stub
+}
+
+func (fake *FakeContainerRepository) GetActiveContainerMemoryAllocationArgsForCall(i int) string {
+	fake.getActiveContainerMemoryAllocationMutex.RLock()
+	defer fake.getActiveContainerMemoryAllocationMutex.RUnlock()
+	argsForCall := fake.getActiveContainerMemoryAllocationArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeContainerRepository) GetActiveContainerMemoryAllocationReturns(result1 atc.MemoryLimit, result2 error) {
+	fake.getActiveContainerMemoryAllocationMutex.Lock()
+	defer fake.getActiveContainerMemoryAllocationMutex.Unlock()
+	fake.GetActiveContainerMemoryAllocationStub = nil
+	fake.getActiveContainerMemoryAllocationReturns = struct {
+		result1 atc.MemoryLimit
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeContainerRepository) GetActiveContainerMemoryAllocationReturnsOnCall(i int, result1 atc.MemoryLimit, result2 error) {
+	fake.getActiveContainerMemoryAllocationMutex.Lock()
+	defer fake.getActiveContainerMemoryAllocationMutex.Unlock()
+	fake.GetActiveContainerMemoryAllocationStub = nil
+	if fake.getActiveContainerMemoryAllocationReturnsOnCall == nil {
+		fake.getActiveContainerMemoryAllocationReturnsOnCall = make(map[int]struct {
+			result1 atc.MemoryLimit
+			result2 error
+		})
+	}
+	fake.getActiveContainerMemoryAllocationReturnsOnCall[i] = struct {
+		result1 atc.MemoryLimit
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeContainerRepository) RemoveDestroyingContainers(arg1 string, arg2 []string) (int, error) {
 	var arg2Copy []string
 	if arg2 != nil {
@@ -571,6 +648,8 @@ func (fake *FakeContainerRepository) Invocations() map[string][][]interface{} {
 	defer fake.findDestroyingContainersMutex.RUnlock()
 	fake.findOrphanedContainersMutex.RLock()
 	defer fake.findOrphanedContainersMutex.RUnlock()
+	fake.getActiveContainerMemoryAllocationMutex.RLock()
+	defer fake.getActiveContainerMemoryAllocationMutex.RUnlock()
 	fake.removeDestroyingContainersMutex.RLock()
 	defer fake.removeDestroyingContainersMutex.RUnlock()
 	fake.removeMissingContainersMutex.RLock()

@@ -19,6 +19,7 @@ type ContainerRepository interface {
 	UpdateContainersMissingSince(workerName string, handles []string) error
 	RemoveMissingContainers(time.Duration) (int, error)
 	DestroyUnknownContainers(workerName string, reportedHandles []string) (int, error)
+	GetActiveContainerMemoryAllocation(workerName string) (atc.MemoryLimit, error)
 }
 
 type containerRepository struct {
@@ -293,6 +294,19 @@ func (repository *containerRepository) FindOrphanedContainers() ([]CreatingConta
 	}
 
 	return creatingContainers, createdContainers, destroyingContainers, nil
+}
+
+func (repository *containerRepository) GetActiveContainerMemoryAllocation(workerName string) (atc.MemoryLimit, error) {
+	var totalMemory uint64
+	err := repository.conn.QueryRow(
+		"SELECT COALESCE(SUM(meta_memory_limit), 0) FROM containers WHERE worker_name = $1",
+		workerName,
+	).Scan(&totalMemory)
+	if err != nil {
+		return 0, err
+	}
+
+	return atc.MemoryLimit(totalMemory), nil
 }
 
 func selectContainers(asOptional ...string) sq.SelectBuilder {

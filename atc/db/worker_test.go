@@ -388,6 +388,30 @@ var _ = Describe("Worker", func() {
 				})
 			})
 		})
+
+		Context("when the container has limits", func() {
+			var container CreatingContainer
+			BeforeEach(func() {
+				memoryLimit := atc.MemoryLimit(1024)
+				containerMetadata = ContainerMetadata{
+					Type:        "check",
+					MemoryLimit: &memoryLimit,
+				}
+
+				var err error
+				container, err = worker.CreateContainer(containerOwner, containerMetadata)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("persists the configured limits", func() {
+				var memory sql.NullInt64
+
+				err := dbConn.QueryRow(fmt.Sprintf("SELECT meta_memory_limit FROM containers WHERE id='%d'", container.ID())).Scan(&memory)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(memory.Valid).To(BeTrue())
+				Expect(memory.Int64).To(Equal(int64(1024)))
+			})
+		})
 	})
 
 	Describe("Active tasks", func() {

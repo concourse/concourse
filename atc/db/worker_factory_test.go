@@ -20,6 +20,7 @@ var _ = Describe("WorkerFactory", func() {
 	)
 
 	BeforeEach(func() {
+		allocatableMemory := atc.MemoryLimit(2000)
 		atcWorker = atc.Worker{
 			GardenAddr:       "some-garden-addr",
 			BaggageclaimURL:  "some-bc-url",
@@ -43,10 +44,11 @@ var _ = Describe("WorkerFactory", func() {
 					Privileged: false,
 				},
 			},
-			Platform:  "some-platform",
-			Tags:      atc.Tags{"some", "tags"},
-			Name:      "some-name",
-			StartTime: 1565367209,
+			AllocatableMemory: &allocatableMemory,
+			Platform:          "some-platform",
+			Tags:              atc.Tags{"some", "tags"},
+			Name:              "some-name",
+			StartTime:         1565367209,
 		}
 	})
 
@@ -83,6 +85,14 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(worker.ResourceTypes()).To(Equal(atcWorker.ResourceTypes))
+			})
+
+			It("saves allocatable memory", func() {
+				worker, found, err := workerFactory.GetWorker(atcWorker.Name)
+				Expect(found).To(BeTrue())
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(*worker.AllocatableMemory()).To(Equal(atc.MemoryLimit(2000)))
 			})
 
 			It("removes old worker resource type", func() {
