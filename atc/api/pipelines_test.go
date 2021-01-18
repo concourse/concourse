@@ -1640,7 +1640,7 @@ var _ = Describe("Pipelines API", func() {
 							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 							{
 								"errors": [
-										"identifier cannot be an empty string"
+										"pipeline: identifier cannot be an empty string"
 								]
 							}`))
 						})

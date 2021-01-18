@@ -591,7 +591,7 @@ var _ = Describe("Teams API", func() {
 							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 							{
 								"errors": [
-										"identifier cannot be an empty string"
+										"team: identifier cannot be an empty string"
 								]
 							}`))
 						})
