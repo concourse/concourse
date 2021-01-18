@@ -45,9 +45,10 @@ func (flag *BitbucketCloudFlags) Serialize(redirectURI string) ([]byte, error) {
 	}
 
 	return json.Marshal(bitbucketcloud.Config{
-		ClientID:     flag.ClientID,
-		ClientSecret: flag.ClientSecret,
-		RedirectURI:  redirectURI,
+		ClientID:          flag.ClientID,
+		ClientSecret:      flag.ClientSecret,
+		RedirectURI:       redirectURI,
+		IncludeTeamGroups: true,
 	})
 }
 
