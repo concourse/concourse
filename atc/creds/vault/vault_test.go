@@ -2,7 +2,7 @@ package vault_test
 
 import (
 	"encoding/json"
-	"fmt"
+	"regexp"
 	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
@@ -37,21 +37,25 @@ func (msr *MockSecretReader) Read(lookupPath string) (*vaultapi.Secret, error) {
 }
 
 func createMockV2Secret(value string) *vaultapi.Secret {
-	escapedInput, err := json.Marshal(&value)
-	Expect(err).To(BeNil())
-	secret := vaultapi.Secret{}
-	json.Unmarshal([]byte(fmt.Sprintf(`{"data":{"value":%s},"metadata":{"created_time":"2021-01-06T22:32:10.969537Z","deletion_time":"","destroyed":false,"version":3}}`, escapedInput)), &secret.Data)
-
-	return &secret
+	return &vaultapi.Secret{
+		Data: map[string]interface{}{
+			"data": map[string]interface{}{"value": value},
+			"metadata": map[string]interface{}{
+				"created_time":  "2021-01-06T22:32:10.969537Z",
+				"deletion_time": "",
+				"destroyed":     false,
+				"version":       3,
+			},
+		},
+	}
 }
 
 func createMockV1Secret(value string) *vaultapi.Secret {
-	escapedInput, err := json.Marshal(&value)
-	Expect(err).To(BeNil())
-	secret := vaultapi.Secret{}
-	json.Unmarshal([]byte(fmt.Sprintf(`{"value":%s}`, escapedInput)), &secret.Data)
-
-	return &secret
+	return &vaultapi.Secret{
+		Data: map[string]interface{}{
+			"value": value,
+		},
+	}
 }
 
 var _ = Describe("Vault", func() {
@@ -323,7 +327,7 @@ var _ = Describe("Vault KV2", func() {
 		server = ghttp.NewServer()
 
 		var err error
-		vaultApi, err = vault.NewAPIClient(lagertest.NewTestLogger("test"), "http://"+server.Addr(), vault.TLSConfig{}, vault.AuthConfig{}, "")
+		vaultApi, err = vault.NewAPIClient(lagertest.NewTestLogger("test"), "http://"+server.Addr(), vault.TLSConfig{}, vault.AuthConfig{}, "", 0)
 		Expect(err).To(BeNil())
 
 		statusCodeOK = 200
@@ -341,6 +345,12 @@ var _ = Describe("Vault KV2", func() {
 			SharedPath:      "shared",
 		}
 
+		mountPathRegex, _ := regexp.Compile("/v1/sys/internal/ui/mounts/.*")
+		server.RouteToHandler("GET", mountPathRegex, ghttp.CombineHandlers(
+			ghttp.VerifyRequest("GET", MatchRegexp("/v1/sys/internal/ui/mounts/.*")),
+			ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
+		))
+
 		variables = creds.NewVariables(v, "team", "pipeline", false)
 		varFoo = vars.Reference{Path: "foo"}
 	})
@@ -352,10 +362,6 @@ var _ = Describe("Vault KV2", func() {
 	Describe("Get()", func() {
 		It("should get secret from pipeline", func() {
 			server.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/pipeline/foo"),
-					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-				),
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/v1/concourse/data/team/pipeline/foo"),
 					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV2Secret("bar")),
@@ -370,16 +376,8 @@ var _ = Describe("Vault KV2", func() {
 		It("should get secret from team", func() {
 			server.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/pipeline/foo"),
-					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-				),
-				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/v1/concourse/data/team/pipeline/foo"),
 					ghttp.RespondWith(404, ""),
-				),
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/foo"),
-					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
 				),
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/v1/concourse/data/team/foo"),
@@ -395,24 +393,12 @@ var _ = Describe("Vault KV2", func() {
 		It("should get secret from shared", func() {
 			server.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/pipeline/foo"),
-					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-				),
-				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/v1/concourse/data/team/pipeline/foo"),
 					ghttp.RespondWith(404, ""),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/foo"),
-					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-				),
-				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/v1/concourse/data/team/foo"),
 					ghttp.RespondWith(404, ""),
-				),
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/shared/foo"),
-					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
 				),
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/v1/concourse/data/shared/foo"),
@@ -427,10 +413,6 @@ var _ = Describe("Vault KV2", func() {
 
 		It("should get secret from pipeline even its in shared", func() {
 			server.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/pipeline/foo"),
-					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-				),
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/v1/concourse/data/team/pipeline/foo"),
 					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV2Secret("bar")),
@@ -455,10 +437,6 @@ var _ = Describe("Vault KV2", func() {
 			It("should find pipeline secrets in the configured place", func() {
 				server.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/place1/team/sub/pipeline/foo"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
-					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/data/place1/team/sub/pipeline/foo"),
 						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV2Secret("bar")),
 					),
@@ -472,16 +450,8 @@ var _ = Describe("Vault KV2", func() {
 			It("should find team secrets in the configured place", func() {
 				server.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/place1/team/sub/pipeline/baz"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
-					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/data/place1/team/sub/pipeline/baz"),
 						ghttp.RespondWith(404, ""),
-					),
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/place2/team/baz"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
 					),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/data/place2/team/baz"),
@@ -497,24 +467,12 @@ var _ = Describe("Vault KV2", func() {
 			It("should find static secrets in the configured place", func() {
 				server.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/place1/team/sub/pipeline/global"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
-					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/data/place1/team/sub/pipeline/global"),
 						ghttp.RespondWith(404, ""),
 					),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/place2/team/global"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
-					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/data/place2/team/global"),
 						ghttp.RespondWith(404, ""),
-					),
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/place3/global"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
 					),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/data/place3/global"),
@@ -540,34 +498,18 @@ var _ = Describe("Vault KV2", func() {
 			It("should not get secret from root", func() {
 				server.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/pipeline/foo"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
-					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/data/team/pipeline/foo"),
 						ghttp.RespondWith(404, ""),
-					),
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/foo"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
 					),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/data/team/foo"),
 						ghttp.RespondWith(404, ""),
 					),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/shared/foo"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
-					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/data/shared/foo"),
 						ghttp.RespondWith(404, ""),
 					),
-					// These 2 should never be called.
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/foo"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
+					// This should never be called.
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/data/foo"),
 						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV2Secret("foo")),
@@ -583,34 +525,18 @@ var _ = Describe("Vault KV2", func() {
 			BeforeEach(func() {
 				server.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/pipeline/foo"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
-					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/data/team/pipeline/foo"),
 						ghttp.RespondWith(404, ""),
-					),
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/foo"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
 					),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/data/team/foo"),
 						ghttp.RespondWith(404, ""),
 					),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/shared/foo"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
-					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/data/shared/foo"),
 						ghttp.RespondWith(404, ""),
 					),
-					// These 2 should only be called for root.
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/foo"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
+					// This should only be called for root.
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/data/foo"),
 						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV2Secret("foo")),
@@ -660,7 +586,7 @@ var _ = Describe("Vault KV1", func() {
 		server = ghttp.NewServer()
 
 		var err error
-		vaultApi, err = vault.NewAPIClient(lagertest.NewTestLogger("test"), "http://"+server.Addr(), vault.TLSConfig{}, vault.AuthConfig{}, "")
+		vaultApi, err = vault.NewAPIClient(lagertest.NewTestLogger("test"), "http://"+server.Addr(), vault.TLSConfig{}, vault.AuthConfig{}, "", 0)
 		Expect(err).To(BeNil())
 
 		statusCodeOK = 200
@@ -678,6 +604,12 @@ var _ = Describe("Vault KV1", func() {
 			SharedPath:      "shared",
 		}
 
+		mountPathRegex, _ := regexp.Compile("/v1/sys/internal/ui/mounts/.*")
+		server.RouteToHandler("GET", mountPathRegex, ghttp.CombineHandlers(
+			ghttp.VerifyRequest("GET", MatchRegexp("/v1/sys/internal/ui/mounts/.*")),
+			ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
+		))
+
 		variables = creds.NewVariables(v, "team", "pipeline", false)
 		varFoo = vars.Reference{Path: "foo"}
 	})
@@ -689,10 +621,6 @@ var _ = Describe("Vault KV1", func() {
 	Describe("Get()", func() {
 		It("should get secret from pipeline", func() {
 			server.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/pipeline/foo"),
-					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-				),
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/v1/concourse/team/pipeline/foo"),
 					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV1Secret("bar")),
@@ -707,16 +635,8 @@ var _ = Describe("Vault KV1", func() {
 		It("should get secret from team", func() {
 			server.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/pipeline/foo"),
-					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-				),
-				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/v1/concourse/team/pipeline/foo"),
 					ghttp.RespondWith(404, ""),
-				),
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/foo"),
-					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
 				),
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/v1/concourse/team/foo"),
@@ -732,24 +652,12 @@ var _ = Describe("Vault KV1", func() {
 		It("should get secret from shared", func() {
 			server.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/pipeline/foo"),
-					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-				),
-				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/v1/concourse/team/pipeline/foo"),
 					ghttp.RespondWith(404, ""),
 				),
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/foo"),
-					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-				),
-				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/v1/concourse/team/foo"),
 					ghttp.RespondWith(404, ""),
-				),
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/shared/foo"),
-					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
 				),
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/v1/concourse/shared/foo"),
@@ -764,10 +672,6 @@ var _ = Describe("Vault KV1", func() {
 
 		It("should get secret from pipeline even its in shared", func() {
 			server.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/pipeline/foo"),
-					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-				),
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/v1/concourse/team/pipeline/foo"),
 					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV1Secret("bar")),
@@ -792,10 +696,6 @@ var _ = Describe("Vault KV1", func() {
 			It("should find pipeline secrets in the configured place", func() {
 				server.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/place1/team/sub/pipeline/foo"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
-					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/place1/team/sub/pipeline/foo"),
 						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV1Secret("bar")),
 					),
@@ -809,16 +709,8 @@ var _ = Describe("Vault KV1", func() {
 			It("should find team secrets in the configured place", func() {
 				server.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/place1/team/sub/pipeline/baz"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
-					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/place1/team/sub/pipeline/baz"),
 						ghttp.RespondWith(404, ""),
-					),
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/place2/team/baz"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
 					),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/place2/team/baz"),
@@ -834,24 +726,12 @@ var _ = Describe("Vault KV1", func() {
 			It("should find static secrets in the configured place", func() {
 				server.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/place1/team/sub/pipeline/global"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
-					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/place1/team/sub/pipeline/global"),
 						ghttp.RespondWith(404, ""),
 					),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/place2/team/global"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
-					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/place2/team/global"),
 						ghttp.RespondWith(404, ""),
-					),
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/place3/global"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
 					),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/place3/global"),
@@ -877,34 +757,18 @@ var _ = Describe("Vault KV1", func() {
 			It("should not get secret from root", func() {
 				server.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/pipeline/foo"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
-					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/team/pipeline/foo"),
 						ghttp.RespondWith(404, ""),
-					),
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/foo"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
 					),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/team/foo"),
 						ghttp.RespondWith(404, ""),
 					),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/shared/foo"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
-					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/shared/foo"),
 						ghttp.RespondWith(404, ""),
 					),
-					// These 2 should never be called.
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/foo"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
+					// This should never be called.
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/foo"),
 						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV1Secret("foo")),
@@ -920,34 +784,18 @@ var _ = Describe("Vault KV1", func() {
 			BeforeEach(func() {
 				server.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/pipeline/foo"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
-					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/team/pipeline/foo"),
 						ghttp.RespondWith(404, ""),
-					),
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/team/foo"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
 					),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/team/foo"),
 						ghttp.RespondWith(404, ""),
 					),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/shared/foo"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
-					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/shared/foo"),
 						ghttp.RespondWith(404, ""),
 					),
-					// These 2 should only be called for root.
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/sys/internal/ui/mounts/concourse/foo"),
-						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
-					),
+					// This should only be called for root.
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/v1/concourse/foo"),
 						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV1Secret("foo")),
