@@ -22,7 +22,7 @@ type OIDCFlags struct {
 	Issuer             string      `long:"issuer" description:"(Required) An OIDC issuer URL that will be used to discover provider configuration using the .well-known/openid-configuration"`
 	ClientID           string      `long:"client-id" description:"(Required) Client id"`
 	ClientSecret       string      `long:"client-secret" description:"(Required) Client secret"`
-	Scopes             []string    `long:"scope" description:"Any additional scopes that need to be requested during authorization"`
+	Scopes             []string    `long:"scope" description:"Any additional scopes of [openid] that need to be requested during authorization. Default to [openid, profile, email]."`
 	GroupsKey          string      `long:"groups-key" default:"groups" description:"The groups key indicates which claim to use to map external groups to Concourse teams."`
 	UserNameKey        string      `long:"user-name-key" default:"username" description:"The user name key indicates which claim to use to map an external user name to a Concourse user name."`
 	HostedDomains      []string    `long:"hosted-domains" description:"List of whitelisted domains when using Google, only users from a listed domain will be allowed to log in"`
