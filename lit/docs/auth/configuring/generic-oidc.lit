@@ -33,10 +33,50 @@ issuer URL rather than auth/token/userinfo URLs.
 
   Consult \code{concourse web --help} for a full list of flags with
   descriptions.
+
+  \section{
+    \title{A note about user lookup}
+
+    When determining the user identity, Concourse will first look at the
+    \code{preferred_username} claim. If this claim is empty or missing, it will
+    then look at the claim specified by \code{CONCOURSE_OIDC_USER_NAME_KEY}
+    (which defaults to \code{username}).
+
+    Let's say that you want to tie each user to their email by using
+    \code{CONCOURSE_OIDC_USER_NAME_KEY=email}.
+
+    If your OIDC provider returns the following claims, Concourse will still
+    resolve the user to \code{Jane Doe}:
+    \codeblock{json}{{{
+    {
+     "sub": "248289761001",
+     "username": "j.doe",
+     "preferred_username": "Jane Doe",
+     "email": "janedoe@example.com",
+    }
+    }}}
+
+    However, if the \code{preferred_username} claim is empty or missing,
+    Concourse will respect the key and resolve the user to
+    \code{janedoe@example.com}:
+    \codeblock{json}{{{
+    {
+     "sub": "248289761001",
+     "username": "j.doe",
+     "preferred_username": "",
+     "email": "janedoe@example.com",
+    }
+    }}}
+  }
 }
 
 \section{
   \title{Authorization}{generic-oidc-authorization}
+
+  \warn{When authorizing individual users, it's up to you to ensure that the
+  \code{preferred_username} claim and/or the claim specified by
+  \code{CONCOURSE_OIDC_USER_NAME_KEY} is unique. If they're not, then it's
+  possible for users to impersonate each other}
 
   OIDC users and groups can be authorized for a team by passing the following
   flags to \reference{fly-set-team}:
