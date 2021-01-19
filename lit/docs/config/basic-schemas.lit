@@ -70,15 +70,15 @@ just here for completeness!
   }{
     Decimal numbers.
   }{
-    Hyphens (-), as the canonical word separator.
+    Hyphens \code{-} and underscores \code{_} as word separators.
   }{
-    Periods (.), in order to support domain names and version numbers.
+    Periods \code{.} in order to support domain names and version numbers.
   }
 
   The validation rule is as follows:
 
   \codeblock{regex}{{{
-    ^[\p{Ll}\p{Lt}\p{Lm}\p{Lo}][\p{Ll}\p{Lt}\p{Lm}\p{Lo}\d\-.]*$
+    ^[\p{Ll}\p{Lt}\p{Lm}\p{Lo}][\p{Ll}\p{Lt}\p{Lm}\p{Lo}\d\-_.]*$
   }}}
 
   Where all \italic{identifier} must start with a Unicode lowercase letter,
