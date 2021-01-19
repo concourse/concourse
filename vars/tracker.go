@@ -81,10 +81,6 @@ func (t *CredVarsTracker) Get(ref Reference) (interface{}, bool, error) {
 	return val, found, err
 }
 
-func (t *CredVarsTracker) List() ([]Reference, error) {
-	return t.CredVars.List()
-}
-
 // TrackedVarsMap is a TrackedVarsIterator which populates interpolated secrets into a map.
 // If there are multiple secrets with the same name, it only keeps the first value.
 type TrackedVarsMap map[string]string

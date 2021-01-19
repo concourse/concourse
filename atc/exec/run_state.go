@@ -33,7 +33,7 @@ func NewRunState(
 	return &runState{
 		stepper: stepper,
 
-		buildVars: build.NewVariables(enableRedaction),
+		buildVars: build.NewVariables(varSources, enableRedaction),
 
 		artifacts: build.NewRepository(),
 		results:   &sync.Map{},
@@ -62,7 +62,7 @@ func (state *runState) StoreResult(id atc.PlanID, val interface{}) {
 	state.results.Store(id, val)
 }
 
-func (state *runState) Variables() vars.Variables {
+func (state *runState) Variables() *build.Variables {
 	return state.buildVars
 }
 

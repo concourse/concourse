@@ -116,12 +116,12 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		}
 	}
 
-	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
+	source, err := creds.NewSource(delegate.Variables(ctx), step.plan.Source).Evaluate()
 	if err != nil {
 		return false, fmt.Errorf("resource config creds evaluation: %w", err)
 	}
 
-	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
+	resourceTypes, err := creds.NewVersionedResourceTypes(delegate.Variables(ctx), step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
 		return false, fmt.Errorf("resource types creds evaluation: %w", err)
 	}

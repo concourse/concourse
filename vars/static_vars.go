@@ -16,16 +16,6 @@ func (v StaticVariables) Get(ref Reference) (interface{}, bool, error) {
 	return val, true, nil
 }
 
-func (v StaticVariables) List() ([]Reference, error) {
-	var refs []Reference
-
-	for name, _ := range v {
-		refs = append(refs, Reference{Path: name})
-	}
-
-	return refs, nil
-}
-
 func Traverse(val interface{}, name string, fields []string) (interface{}, error) {
 	for _, seg := range fields {
 		switch v := val.(type) {

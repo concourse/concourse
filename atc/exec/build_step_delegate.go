@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/vars"
 )
 
 //go:generate counterfeiter . BuildStepDelegateFactory
@@ -23,6 +24,7 @@ type BuildStepDelegateFactory interface {
 type BuildStepDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
+	Variables(context.Context) vars.Variables
 	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)
 
 	Stdout() io.Writer

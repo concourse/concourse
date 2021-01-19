@@ -91,10 +91,10 @@ var _ = Describe("GetStep", func() {
 		artifactRepository = build.NewRepository()
 		fakeState = new(execfakes.FakeRunState)
 		fakeState.ArtifactRepositoryReturns(artifactRepository)
-		fakeState.GetStub = vars.StaticVariables{
+		fakeDelegate.VariablesReturns(vars.StaticVariables{
 			"source-var": "super-secret-source",
 			"params-var": "super-secret-params",
-		}.Get
+		})
 
 		fakeDelegate = new(execfakes.FakeGetDelegate)
 		stdoutBuf = gbytes.NewBuffer()

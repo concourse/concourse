@@ -68,26 +68,4 @@ var _ = Describe("NamedVariables", func() {
 			Expect(err).To(Equal(errors.New("fake-err")))
 		})
 	})
-
-	Describe("List", func() {
-		It("returns list of names from multiple vars with duplicates", func() {
-			defs, err := NamedVariables{}.List()
-			Expect(defs).To(BeEmpty())
-			Expect(err).ToNot(HaveOccurred())
-
-			vars := NamedVariables{
-				"s1": StaticVariables{"a": "1", "b": "2"},
-				"s2": StaticVariables{"b": "3", "c": "4"},
-			}
-
-			defs, err = vars.List()
-			Expect(defs).To(ConsistOf([]Reference{
-				{Source: "s1", Path: "a"},
-				{Source: "s1", Path: "b"},
-				{Source: "s2", Path: "b"},
-				{Source: "s2", Path: "c"},
-			}))
-			Expect(err).ToNot(HaveOccurred())
-		})
-	})
 })

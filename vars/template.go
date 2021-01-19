@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/go-multierror"
 	"gopkg.in/yaml.v2"
 )
 
@@ -16,8 +15,7 @@ type Template struct {
 }
 
 type EvaluateOpts struct {
-	ExpectAllKeys     bool
-	ExpectAllVarsUsed bool
+	ExpectAllKeys bool
 }
 
 func NewTemplate(bytes []byte) Template {
@@ -36,7 +34,7 @@ func (t Template) Evaluate(vars Variables, opts EvaluateOpts) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	obj, err = t.interpolateRoot(obj, newVarsTracker(vars, opts.ExpectAllKeys, opts.ExpectAllVarsUsed))
+	obj, err = t.interpolateRoot(obj, newVarsTracker(vars, opts.ExpectAllKeys))
 	if err != nil {
 		return []byte{}, err
 	}
@@ -139,18 +137,16 @@ type varsTracker struct {
 	vars Variables
 
 	expectAllFound bool
-	expectAllUsed  bool
 
 	missing    map[string]struct{}
 	visited    map[string]struct{}
 	visitedAll map[string]struct{} // track all var names that were accessed
 }
 
-func newVarsTracker(vars Variables, expectAllFound, expectAllUsed bool) varsTracker {
+func newVarsTracker(vars Variables, expectAllFound bool) varsTracker {
 	return varsTracker{
 		vars:           vars,
 		expectAllFound: expectAllFound,
-		expectAllUsed:  expectAllUsed,
 		missing:        map[string]struct{}{},
 		visited:        map[string]struct{}{},
 		visitedAll:     map[string]struct{}{},
@@ -178,17 +174,7 @@ func (t varsTracker) Get(varName string) (interface{}, bool, error) {
 }
 
 func (t varsTracker) Error() error {
-	missingErr := t.MissingError()
-	extraErr := t.ExtraError()
-	if missingErr != nil && extraErr != nil {
-		return multierror.Append(missingErr, extraErr)
-	} else if missingErr != nil {
-		return missingErr
-	} else if extraErr != nil {
-		return extraErr
-	}
-
-	return nil
+	return t.MissingError()
 }
 
 func (t varsTracker) MissingError() error {
@@ -197,32 +183,6 @@ func (t varsTracker) MissingError() error {
 	}
 
 	return UndefinedVarsError{Vars: names(t.missing)}
-}
-
-func (t varsTracker) ExtraError() error {
-	if !t.expectAllUsed {
-		return nil
-	}
-
-	allRefs, err := t.vars.List()
-	if err != nil {
-		return err
-	}
-
-	unusedNames := map[string]struct{}{}
-
-	for _, ref := range allRefs {
-		id := identifier(ref)
-		if _, found := t.visitedAll[id]; !found {
-			unusedNames[id] = struct{}{}
-		}
-	}
-
-	if len(unusedNames) == 0 {
-		return nil
-	}
-
-	return UnusedVarsError{Vars: names(unusedNames)}
 }
 
 func names(mapWithNames map[string]struct{}) []string {

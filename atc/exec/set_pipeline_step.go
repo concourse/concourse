@@ -77,7 +77,7 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 
 	delegate.Initializing(logger)
 
-	interpolatedPlan, err := creds.NewSetPipelinePlan(state, step.plan).Evaluate()
+	interpolatedPlan, err := creds.NewSetPipelinePlan(delegate.Variables(ctx), step.plan).Evaluate()
 	if err != nil {
 		return false, err
 	}

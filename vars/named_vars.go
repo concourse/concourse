@@ -17,22 +17,3 @@ func (m NamedVariables) Get(ref Reference) (interface{}, bool, error) {
 
 	return nil, false, MissingSourceError{Name: ref.String(), Source: ref.Source}
 }
-
-func (m NamedVariables) List() ([]Reference, error) {
-	var allRefs []Reference
-
-	for source, vars := range m {
-		refs, err := vars.List()
-		if err != nil {
-			return nil, err
-		}
-
-		for i, _ := range refs {
-			refs[i].Source = source
-		}
-
-		allRefs = append(allRefs, refs...)
-	}
-
-	return allRefs, nil
-}

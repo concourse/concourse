@@ -101,7 +101,7 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 		time.Sleep(time.Second)
 	}
 
-	_, found, err := state.Get(vars.Reference{
+	value, found, err := state.Variables().Get(vars.Reference{
 		Source: step.plan.Name,
 		Path:   step.plan.Path,
 	})
@@ -111,11 +111,12 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 
 	// If the var already exists in the builds vars, nothing needs to be done
 	if found {
+		state.StoreResult(step.planID, value)
 		delegate.Finished(logger, true)
 		return true, nil
 	}
 
-	value, found := step.cache.Get(hash)
+	value, found = step.cache.Get(hash)
 
 	// If the var exists within the cache, use the value in the cache
 	if found {
@@ -155,6 +156,7 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 	step.cache.Add(hash, value, time.Second)
 
 	state.Variables().SetVar(step.plan.Name, step.plan.Path, value, !step.plan.Reveal)
+
 	state.StoreResult(step.planID, value)
 
 	delegate.Finished(logger, true)

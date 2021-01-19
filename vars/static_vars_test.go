@@ -72,21 +72,6 @@ var _ = Describe("StaticVariables", func() {
 		})
 	})
 
-	Describe("List", func() {
-		It("returns list of names", func() {
-			defs, err := StaticVariables{}.List()
-			Expect(defs).To(BeEmpty())
-			Expect(err).ToNot(HaveOccurred())
-
-			defs, err = StaticVariables{"a": "1", "b": "2"}.List()
-			Expect(defs).To(ConsistOf([]Reference{
-				{Path: "a"},
-				{Path: "b"},
-			}))
-			Expect(err).ToNot(HaveOccurred())
-		})
-	})
-
 	Describe("Flatten", func() {
 		for _, tt := range []struct {
 			desc     string

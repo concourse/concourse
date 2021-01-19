@@ -688,6 +688,18 @@ type FakeBuild struct {
 	tracingAttrsReturnsOnCall map[int]struct {
 		result1 tracing.Attrs
 	}
+	VarSourcesStub        func() (atc.VarSourceConfigs, error)
+	varSourcesMutex       sync.RWMutex
+	varSourcesArgsForCall []struct {
+	}
+	varSourcesReturns struct {
+		result1 atc.VarSourceConfigs
+		result2 error
+	}
+	varSourcesReturnsOnCall map[int]struct {
+		result1 atc.VarSourceConfigs
+		result2 error
+	}
 	VariablesStub        func(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
 	variablesMutex       sync.RWMutex
 	variablesArgsForCall []struct {
@@ -4011,6 +4023,61 @@ func (fake *FakeBuild) TracingAttrsReturnsOnCall(i int, result1 tracing.Attrs) {
 	}{result1}
 }
 
+func (fake *FakeBuild) VarSources() (atc.VarSourceConfigs, error) {
+	fake.varSourcesMutex.Lock()
+	ret, specificReturn := fake.varSourcesReturnsOnCall[len(fake.varSourcesArgsForCall)]
+	fake.varSourcesArgsForCall = append(fake.varSourcesArgsForCall, struct {
+	}{})
+	fake.recordInvocation("VarSources", []interface{}{})
+	fake.varSourcesMutex.Unlock()
+	if fake.VarSourcesStub != nil {
+		return fake.VarSourcesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.varSourcesReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeBuild) VarSourcesCallCount() int {
+	fake.varSourcesMutex.RLock()
+	defer fake.varSourcesMutex.RUnlock()
+	return len(fake.varSourcesArgsForCall)
+}
+
+func (fake *FakeBuild) VarSourcesCalls(stub func() (atc.VarSourceConfigs, error)) {
+	fake.varSourcesMutex.Lock()
+	defer fake.varSourcesMutex.Unlock()
+	fake.VarSourcesStub = stub
+}
+
+func (fake *FakeBuild) VarSourcesReturns(result1 atc.VarSourceConfigs, result2 error) {
+	fake.varSourcesMutex.Lock()
+	defer fake.varSourcesMutex.Unlock()
+	fake.VarSourcesStub = nil
+	fake.varSourcesReturns = struct {
+		result1 atc.VarSourceConfigs
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBuild) VarSourcesReturnsOnCall(i int, result1 atc.VarSourceConfigs, result2 error) {
+	fake.varSourcesMutex.Lock()
+	defer fake.varSourcesMutex.Unlock()
+	fake.VarSourcesStub = nil
+	if fake.varSourcesReturnsOnCall == nil {
+		fake.varSourcesReturnsOnCall = make(map[int]struct {
+			result1 atc.VarSourceConfigs
+			result2 error
+		})
+	}
+	fake.varSourcesReturnsOnCall[i] = struct {
+		result1 atc.VarSourceConfigs
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeBuild) Variables(arg1 lager.Logger, arg2 creds.Secrets, arg3 creds.VarSourcePool) (vars.Variables, error) {
 	fake.variablesMutex.Lock()
 	ret, specificReturn := fake.variablesReturnsOnCall[len(fake.variablesArgsForCall)]
@@ -4199,6 +4266,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.teamNameMutex.RUnlock()
 	fake.tracingAttrsMutex.RLock()
 	defer fake.tracingAttrsMutex.RUnlock()
+	fake.varSourcesMutex.RLock()
+	defer fake.varSourcesMutex.RUnlock()
 	fake.variablesMutex.RLock()
 	defer fake.variablesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

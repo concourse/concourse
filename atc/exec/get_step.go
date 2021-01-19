@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/vars"
 	"go.opentelemetry.io/otel/api/trace"
 )
 
@@ -45,6 +46,7 @@ type GetDelegateFactory interface {
 type GetDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
+	Variables(context.Context) vars.Variables
 	FetchImage(context.Context, atc.ImageResource, atc.VersionedResourceTypes, bool) (worker.ImageSpec, error)
 
 	Stdout() io.Writer
@@ -118,12 +120,12 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	delegate.Initializing(logger)
 
-	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
+	source, err := creds.NewSource(delegate.Variables(ctx), step.plan.Source).Evaluate()
 	if err != nil {
 		return false, err
 	}
 
-	params, err := creds.NewParams(state, step.plan.Params).Evaluate()
+	params, err := creds.NewParams(delegate.Variables(ctx), step.plan.Params).Evaluate()
 	if err != nil {
 		return false, err
 	}
@@ -160,7 +162,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		imageSpec.ResourceType = step.plan.Type
 	}
 
-	resourceTypes, err := creds.NewVersionedResourceTypes(state, step.plan.VersionedResourceTypes).Evaluate()
+	resourceTypes, err := creds.NewVersionedResourceTypes(delegate.Variables(ctx), step.plan.VersionedResourceTypes).Evaluate()
 	if err != nil {
 		return false, err
 	}

@@ -338,9 +338,10 @@ func (delegate *buildStepDelegate) FetchImage(
 	}, nil
 }
 
-func (delegate *buildStepDelegate) Variables() vars.Variables {
+func (delegate *buildStepDelegate) Variables(ctx context.Context) vars.Variables {
 	return &StepVariables{
 		delegate: delegate,
+		ctx:      ctx,
 	}
 }
 
@@ -401,9 +402,12 @@ func (v *StepVariables) Get(ref vars.Reference) (interface{}, bool, error) {
 		return nil, false, fmt.Errorf("image check failed")
 	}
 
-	if !fetchState.Result(checkID, &version) {
-		return worker.ImageSpec{}, fmt.Errorf("check did not return a version")
+	var value interface{}
+	if !v.delegate.state.Result(getVarID, &value) {
+		return nil, false, fmt.Errorf("get var did not return a value")
 	}
+
+	return value, true, nil
 }
 
 func (delegate *buildStepDelegate) checkImagePolicy(image atc.ImageResource, privileged bool) error {
