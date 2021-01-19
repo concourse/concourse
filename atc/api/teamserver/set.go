@@ -64,7 +64,10 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	} else if acc.IsAdmin() {
 		hLog.Debug("creating team")
 
-		warning := atc.ValidateIdentifier(atcTeam.Name, "team")
+		warning, err := atc.ValidateIdentifier(atcTeam.Name, "team")
+		if err != nil {
+			response.Errors = append(response.Errors, err.Error())
+		}
 		if warning != nil {
 			response.Warnings = append(response.Warnings, *warning)
 		}
