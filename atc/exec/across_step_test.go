@@ -96,6 +96,7 @@ var _ = Describe("AcrossStep", func() {
 
 		fakeDelegate = new(execfakes.FakeBuildStepDelegate)
 		fakeDelegate.StderrReturns(stderr)
+		fakeDelegate.VariablesReturns(vars.StaticVariables{})
 
 		fakeDelegateFactory = new(execfakes.FakeBuildStepDelegateFactory)
 		fakeDelegateFactory.BuildStepDelegateReturns(fakeDelegate)

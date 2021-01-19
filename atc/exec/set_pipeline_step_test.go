@@ -130,8 +130,6 @@ jobs:
 		state = new(execfakes.FakeRunState)
 		state.ArtifactRepositoryReturns(artifactRepository)
 
-		state.GetStub = vars.StaticVariables{"source-param": "super-secret-source"}.Get
-
 		fakeSource = new(buildfakes.FakeRegisterableArtifact)
 		artifactRepository.RegisterArtifact("some-resource", fakeSource)
 
@@ -141,6 +139,7 @@ jobs:
 		fakeDelegate = new(execfakes.FakeSetPipelineStepDelegate)
 		fakeDelegate.StdoutReturns(stdout)
 		fakeDelegate.StderrReturns(stderr)
+		fakeDelegate.VariablesReturns(vars.StaticVariables{"source-param": "super-secret-source"})
 
 		spanCtx = context.Background()
 		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})

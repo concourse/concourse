@@ -76,6 +76,7 @@ var _ = Describe("GetVarStep", func() {
 		fakeDelegate = new(execfakes.FakeBuildStepDelegate)
 		fakeDelegate.StdoutReturns(stdout)
 		fakeDelegate.StderrReturns(stderr)
+		fakeDelegate.VariablesReturns(vars.StaticVariables{})
 
 		spanCtx = context.Background()
 		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
