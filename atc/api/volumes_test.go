@@ -26,7 +26,7 @@ var _ = Describe("Volumes API", func() {
 		fakeWorker.NameReturns("some-worker")
 	})
 
-	Describe("GET /api/v1//teams/a-team/volumes", func() {
+	Describe("GET /api/v1/teams/a-team/volumes", func() {
 		var response *http.Response
 
 		JustBeforeEach(func() {

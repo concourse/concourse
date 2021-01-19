@@ -27,54 +27,26 @@ var _ = Describe("Fly CLI", func() {
 			})
 
 			Context("when the pipeline exists", func() {
-				var requestBody atc.OrderPipelinesRequest
+				var pipelineNames []string
 
 				BeforeEach(func() {
-					requestBody = atc.OrderPipelinesRequest{
-						{Name: "awesome-pipeline"},
-						{Name: "awesome-pipeline-2"},
+					pipelineNames = []string{
+						"awesome-pipeline",
+						"awesome-pipeline-2",
 					}
 				})
 
 				JustBeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyJSONRepresenting(requestBody),
+							ghttp.VerifyJSONRepresenting(pipelineNames),
 							ghttp.VerifyRequest("PUT", path),
 							ghttp.RespondWith(http.StatusOK, nil),
 						),
 					)
 				})
 
-				Context("with instanced pipelines", func() {
-
-					BeforeEach(func() {
-						requestBody = atc.OrderPipelinesRequest{
-							{Name: "awesome-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}},
-							{Name: "awesome-pipeline", InstanceVars: atc.InstanceVars{"branch": "feature/bar"}},
-						}
-					})
-
-					It("orders the pipeline instances", func() {
-						Expect(func() {
-							flyCmd := exec.Command(flyPath, "-t", targetName, "order-pipelines", "-p", "awesome-pipeline/branch:master", "-p", "awesome-pipeline/branch:feature/bar")
-
-							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-							Expect(err).NotTo(HaveOccurred())
-
-							<-sess.Exited
-							Expect(sess.ExitCode()).To(Equal(0))
-							Eventually(sess).Should(gbytes.Say(`ordered pipelines`))
-							Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline/branch:master`))
-							Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline/branch:"feature/bar"`))
-
-						}).To(Change(func() int {
-							return len(atcServer.ReceivedRequests())
-						}).By(2))
-					})
-				})
-
-				It("orders the pipeline", func() {
+				It("orders the pipelines", func() {
 					Expect(func() {
 						flyCmd := exec.Command(flyPath, "-t", targetName, "order-pipelines", "-p", "awesome-pipeline", "-p", "awesome-pipeline-2")
 
@@ -119,6 +91,7 @@ var _ = Describe("Fly CLI", func() {
 							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
 								{Name: "beautiful-pipeline", Paused: false, Public: false},
 								{Name: "awesome-pipeline", Paused: true, Public: false},
+								{Name: "awesome-pipeline", InstanceVars: map[string]interface{}{"hello": "world"}, Paused: true, Public: false},
 								{Name: "delightful-pipeline", Paused: false, Public: true},
 								{Name: "charming-pipeline", Paused: false, Public: true},
 							}),
@@ -141,6 +114,8 @@ var _ = Describe("Fly CLI", func() {
 						Expect(sess.ExitCode()).To(Equal(0))
 						Eventually(sess).Should(gbytes.Say(`ordered pipelines`))
 						Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline`))
+						// Check that it dedupes pipeline names
+						Consistently(sess).ShouldNot(gbytes.Say(`  - awesome-pipeline`))
 						Eventually(sess).Should(gbytes.Say(`  - beautiful-pipeline`))
 						Eventually(sess).Should(gbytes.Say(`  - charming-pipeline`))
 						Eventually(sess).Should(gbytes.Say(`  - delightful-pipeline`))
@@ -179,7 +154,7 @@ var _ = Describe("Fly CLI", func() {
 			})
 		})
 
-		Context("when the pipline name is not specified", func() {
+		Context("when the pipeline name is not specified", func() {
 			It("errors", func() {
 				Expect(func() {
 					flyCmd := exec.Command(flyPath, "-t", targetName, "order-pipelines")
@@ -206,9 +181,8 @@ var _ = Describe("Fly CLI", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
 
-				Expect(sess.Err).To(gbytes.Say("error: invalid argument for flag `" + osFlag("p", "pipeline")))
+				Expect(sess.Err).To(gbytes.Say(`error: pipeline name "forbidden/pipelinename" cannot contain '/'`))
 			})
 		})
-
 	})
 })

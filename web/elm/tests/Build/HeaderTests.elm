@@ -6,9 +6,10 @@ import Build.Header.Models as Models
 import Build.Header.Views as Views
 import Build.StepTree.Models as STModels
 import Common
-import Concourse
+import Concourse exposing (JsonValue(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Data
+import Dict
 import Expect
 import HoverState
 import Keyboard
@@ -18,6 +19,7 @@ import Message.Effects as Effects
 import Message.Message as Message
 import Message.Subscription as Subscription
 import RemoteData
+import Routes
 import ScreenSize
 import Set
 import Test exposing (Test, describe, test)
@@ -43,10 +45,10 @@ all =
             [ describe "job build" <|
                 let
                     job =
-                        { teamName = "some-team"
-                        , pipelineName = "some-pipeline"
-                        , jobName = "some-job"
-                        }
+                        Data.jobId
+                            |> Data.withTeamName "some-team"
+                            |> Data.withPipelineName "some-pipeline"
+                            |> Data.withJobName "some-job"
 
                     jobBuildModel =
                         { model | name = "123", job = Just job }
@@ -248,6 +250,28 @@ all =
                                 }
                             |> .rightWidgets
                             |> Expect.equal []
+                , test "pipeline lookup considers instance vars" <|
+                    \_ ->
+                        let
+                            instanceVars =
+                                Dict.fromList [ ( "foo", JsonString "bar" ) ]
+                        in
+                        { model | status = BuildStatusSucceeded, job = Just (jobId |> Data.withPipelineInstanceVars instanceVars) }
+                            |> Header.header
+                                { session
+                                    | pipelines =
+                                        RemoteData.Success
+                                            [ Data.pipeline jobId.teamName 0
+                                                |> Data.withName jobId.pipelineName
+                                                |> Data.withArchived True
+                                            , Data.pipeline jobId.teamName 1
+                                                |> Data.withName jobId.pipelineName
+                                                |> Data.withInstanceVars instanceVars
+                                                |> Data.withArchived False
+                                            ]
+                                }
+                            |> .rightWidgets
+                            |> Expect.notEqual []
                 ]
             ]
         , test "stops fetching history once current build appears" <|
@@ -419,6 +443,7 @@ session =
     , pipelineRunningKeyframes = ""
     , timeZone = Time.utc
     , favoritedPipelines = Set.empty
+    , route = Routes.Build { id = Data.jobBuildId, highlight = Routes.HighlightNothing }
     }
 
 
@@ -441,13 +466,11 @@ model =
 
 build : Concourse.Build
 build =
-    { id = 0
-    , name = "0"
-    , job = Just jobId
-    , status = model.status
-    , duration = model.duration
-    , reapTime = Nothing
-    }
+    Data.jobBuild model.status
+        |> Data.withId 0
+        |> Data.withName "0"
+        |> Data.withJob (Just jobId)
+        |> Data.withDuration model.duration
 
 
 jobId : Concourse.JobIdentifier

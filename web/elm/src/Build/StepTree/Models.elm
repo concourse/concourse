@@ -76,7 +76,7 @@ type alias StepFocus =
 
 type alias Step =
     { id : StepID
-    , name : StepName
+    , buildStep : Concourse.BuildStep
     , state : StepState
     , log : Ansi.Log.Model
     , error : Maybe String

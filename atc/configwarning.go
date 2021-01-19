@@ -11,12 +11,16 @@ type ConfigWarning struct {
 	Message string `json:"message"`
 }
 
-var validIdentifiers = regexp.MustCompile(`^[\p{Ll}\p{Lt}\p{Lm}\p{Lo}][\p{Ll}\p{Lt}\p{Lm}\p{Lo}\d\-.]*$`)
+var validIdentifiers = regexp.MustCompile(`^[\p{Ll}\p{Lt}\p{Lm}\p{Lo}][\p{Ll}\p{Lt}\p{Lm}\p{Lo}\d\-_.]*$`)
 var startsWithLetter = regexp.MustCompile(`^[^\p{Ll}\p{Lt}\p{Lm}\p{Lo}]`)
-var invalidCharacter = regexp.MustCompile(`([^\p{Ll}\p{Lt}\p{Lm}\p{Lo}\d\-.])`)
+var invalidCharacter = regexp.MustCompile(`([^\p{Ll}\p{Lt}\p{Lm}\p{Lo}\d\-_.])`)
 
-func ValidateIdentifier(identifier string, context ...string) *ConfigWarning {
-	if identifier != "" && !validIdentifiers.MatchString(identifier) {
+func ValidateIdentifier(identifier string, context ...string) (*ConfigWarning, error) {
+	if identifier == "" {
+		return nil, fmt.Errorf("%s: identifier cannot be an empty string", strings.Join(context, ""))
+	}
+
+	if !validIdentifiers.MatchString(identifier) {
 		var reason string
 		if startsWithLetter.MatchString(identifier) {
 			reason = "must start with a lowercase letter"
@@ -26,7 +30,7 @@ func ValidateIdentifier(identifier string, context ...string) *ConfigWarning {
 		return &ConfigWarning{
 			Type:    "invalid_identifier",
 			Message: fmt.Sprintf("%s: %s", strings.Join(context, ""), fmt.Sprintf("'%s' is not a valid identifier: %s", identifier, reason)),
-		}
+		}, nil
 	}
-	return nil
+	return nil, nil
 }

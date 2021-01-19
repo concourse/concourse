@@ -41,11 +41,6 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	}
 
 	atcTeam.Name = teamName
-	if !acc.IsAdmin() && !acc.IsAuthorized(teamName) {
-		hLog.Debug("not-allowed")
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
 
 	team, found, err := s.teamFactory.FindTeam(teamName)
 	if err != nil {
@@ -69,7 +64,10 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	} else if acc.IsAdmin() {
 		hLog.Debug("creating team")
 
-		warning := atc.ValidateIdentifier(atcTeam.Name, "team")
+		warning, err := atc.ValidateIdentifier(atcTeam.Name, "team")
+		if err != nil {
+			response.Errors = append(response.Errors, err.Error())
+		}
 		if warning != nil {
 			response.Warnings = append(response.Warnings, *warning)
 		}

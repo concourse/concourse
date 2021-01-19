@@ -212,7 +212,7 @@ handleLoggedOut ( m, effs ) =
         ++ [ NavigateTo <|
                 Routes.toString <|
                     Routes.Dashboard
-                        { searchType = Routes.Normal ""
+                        { searchType = Routes.Normal "" Nothing
                         , dashboardView = Routes.ViewNonArchivedPipelines
                         }
            ]
@@ -313,14 +313,8 @@ urlUpdate routes =
                 identity
         )
         (case routes.to of
-            Routes.Dashboard { searchType, dashboardView } ->
-                Tuple.mapFirst
-                    (\dm ->
-                        { dm
-                            | highDensity = searchType == Routes.HighDensity
-                            , dashboardView = dashboardView
-                        }
-                    )
+            Routes.Dashboard f ->
+                Dashboard.changeRoute f
 
             _ ->
                 identity
@@ -383,8 +377,8 @@ tooltip mdl =
         ResourceModel model ->
             Resource.tooltip model
 
-        DashboardModel model ->
-            Dashboard.tooltip model
+        DashboardModel _ ->
+            Dashboard.tooltip
 
         NotFoundModel model ->
             NotFound.tooltip model

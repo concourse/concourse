@@ -50,7 +50,7 @@ update session msg ( model, effects ) =
                    , ModifyUrl <|
                         Routes.toString <|
                             Routes.Dashboard
-                                { searchType = Routes.Normal ""
+                                { searchType = Routes.Normal "" model.instanceGroup
                                 , dashboardView = model.dashboardView
                                 }
                    ]
@@ -63,7 +63,7 @@ update session msg ( model, effects ) =
                    , ModifyUrl <|
                         Routes.toString <|
                             Routes.Dashboard
-                                { searchType = Routes.Normal query
+                                { searchType = Routes.Normal query model.instanceGroup
                                 , dashboardView = model.dashboardView
                                 }
                    ]
@@ -164,7 +164,7 @@ handleDelivery delivery ( model, effects ) =
                             , [ ModifyUrl <|
                                     Routes.toString <|
                                         Routes.Dashboard
-                                            { searchType = Routes.Normal selectedItem
+                                            { searchType = Routes.Normal selectedItem model.instanceGroup
                                             , dashboardView = model.dashboardView
                                             }
                               ]

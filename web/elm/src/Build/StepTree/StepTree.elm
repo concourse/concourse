@@ -16,7 +16,6 @@ module Build.StepTree.StepTree exposing
 import Ansi.Log
 import Array exposing (Array)
 import Assets
-import Build.Models exposing (StepHeaderType(..))
 import Build.StepTree.Models
     exposing
         ( HookedStep
@@ -39,7 +38,7 @@ import Build.StepTree.Models
         )
 import Build.Styles as Styles
 import Colors
-import Concourse exposing (JsonValue(..))
+import Concourse exposing (JsonValue, flattenJson)
 import DateFormat
 import Dict exposing (Dict)
 import Duration
@@ -47,7 +46,6 @@ import HoverState
 import Html exposing (Html)
 import Html.Attributes exposing (attribute, class, classList, href, id, style, target)
 import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
-import Json.Encode
 import List.Extra
 import Maybe.Extra
 import Message.Effects exposing (Effect(..), toHtmlID)
@@ -67,53 +65,50 @@ init :
     -> Concourse.BuildResources
     -> Concourse.BuildPlan
     -> StepTreeModel
-init hl resources ({ id, step } as plan) =
-    case step of
-        Concourse.BuildStepTask name ->
-            constructStep id name
-                |> initBottom hl resources plan Task
+init hl resources plan =
+    let
+        step =
+            constructStep plan
+    in
+    case plan.step of
+        Concourse.BuildStepTask _ ->
+            step |> initBottom hl resources plan Task
 
-        Concourse.BuildStepCheck name ->
-            constructStep id name
-                |> initBottom hl resources plan Check
+        Concourse.BuildStepCheck _ ->
+            step |> initBottom hl resources plan Check
 
         Concourse.BuildStepGet name version ->
-            constructStep id name
+            step
                 |> setupGetStep resources name version
                 |> initBottom hl resources plan Get
 
-        Concourse.BuildStepPut name ->
-            constructStep id name
-                |> initBottom hl resources plan Put
+        Concourse.BuildStepPut _ ->
+            step |> initBottom hl resources plan Put
 
-        Concourse.BuildStepArtifactInput name ->
-            constructStep id name
-                |> initBottom hl resources plan ArtifactInput
+        Concourse.BuildStepArtifactInput _ ->
+            step |> initBottom hl resources plan ArtifactInput
 
-        Concourse.BuildStepArtifactOutput name ->
-            constructStep id name
-                |> initBottom hl resources plan ArtifactOutput
+        Concourse.BuildStepArtifactOutput _ ->
+            step |> initBottom hl resources plan ArtifactOutput
 
-        Concourse.BuildStepSetPipeline name ->
-            constructStep id name
-                |> initBottom hl resources plan SetPipeline
+        Concourse.BuildStepSetPipeline _ _ ->
+            step |> initBottom hl resources plan SetPipeline
 
-        Concourse.BuildStepLoadVar name ->
-            constructStep id name
-                |> initBottom hl resources plan LoadVar
+        Concourse.BuildStepLoadVar _ ->
+            step |> initBottom hl resources plan LoadVar
 
         Concourse.BuildStepInParallel plans ->
-            initMultiStep hl resources id InParallel plans Nothing
+            initMultiStep hl resources plan.id InParallel plans Nothing
 
         Concourse.BuildStepDo plans ->
-            initMultiStep hl resources id Do plans Nothing
+            initMultiStep hl resources plan.id Do plans Nothing
 
         Concourse.BuildStepAcross { vars, steps } ->
             let
                 ( values, plans ) =
                     List.unzip steps
             in
-            constructStep id (String.join ", " vars)
+            step
                 |> (\s ->
                         { s
                             | expandedHeaders =
@@ -124,7 +119,7 @@ init hl resources ({ id, step } as plan) =
                         }
                    )
                 |> Just
-                |> initMultiStep hl resources id (Across id vars values) (Array.fromList plans)
+                |> initMultiStep hl resources plan.id (Across plan.id vars values) (Array.fromList plans)
                 |> (\model ->
                         List.foldl
                             (\plan_ ->
@@ -135,10 +130,10 @@ init hl resources ({ id, step } as plan) =
                    )
 
         Concourse.BuildStepRetry plans ->
-            constructStep id "retry"
+            step
                 |> (\s -> { s | tabFocus = startingTab hl (Array.toList plans) })
                 |> Just
-                |> initMultiStep hl resources id (Retry id) plans
+                |> initMultiStep hl resources plan.id (Retry plan.id) plans
 
         Concourse.BuildStepOnSuccess hookedPlan ->
             initHookedStep hl resources OnSuccess hookedPlan
@@ -271,10 +266,10 @@ initMultiStep hl resources stepId constructor plans rootStep =
     }
 
 
-constructStep : StepID -> StepName -> Step
-constructStep stepId name =
-    { id = stepId
-    , name = name
+constructStep : Concourse.BuildPlan -> Step
+constructStep { id, step } =
+    { id = id
+    , buildStep = step
     , state = StepStatePending
     , log = Ansi.Log.init Ansi.Log.Cooked
     , error = Nothing
@@ -487,28 +482,28 @@ viewTree :
 viewTree session model tree depth =
     case tree of
         Task stepId ->
-            viewStep model session depth stepId StepHeaderTask
+            viewStep model session depth stepId
 
         Check stepId ->
-            viewStep model session depth stepId StepHeaderCheck
+            viewStep model session depth stepId
 
         Get stepId ->
-            viewStep model session depth stepId StepHeaderGet
+            viewStep model session depth stepId
 
         Put stepId ->
-            viewStep model session depth stepId StepHeaderPut
+            viewStep model session depth stepId
 
         ArtifactInput stepId ->
-            viewStep model session depth stepId StepHeaderGet
+            viewStep model session depth stepId
 
         ArtifactOutput stepId ->
-            viewStep model session depth stepId StepHeaderPut
+            viewStep model session depth stepId
 
         SetPipeline stepId ->
-            viewStep model session depth stepId StepHeaderSetPipeline
+            viewStep model session depth stepId
 
         LoadVar stepId ->
-            viewStep model session depth stepId StepHeaderLoadVar
+            viewStep model session depth stepId
 
         Try subTree ->
             viewTree session model subTree depth
@@ -516,7 +511,7 @@ viewTree session model tree depth =
         Across stepId vars vals substeps ->
             assumeStep model stepId <|
                 \step ->
-                    viewStepWithBody model session depth step StepHeaderAcross <|
+                    viewStepWithBody model session depth step <|
                         (vals
                             |> List.indexedMap
                                 (\i vals_ ->
@@ -631,7 +626,7 @@ viewAcrossStepSubHeader model session stepID subHeaderIdx keyVals expanded depth
             )
             [ Html.div
                 [ style "display" "flex" ]
-                [ viewAcrossStepSubHeaderLabels keyVals ]
+                [ viewKeyValuePairHeaderLabels keyVals ]
             , Html.div
                 [ style "display" "flex" ]
                 [ viewStepStateWithoutTooltip state ]
@@ -649,63 +644,26 @@ viewAcrossStepSubHeader model session stepID subHeaderIdx keyVals expanded depth
         ]
 
 
-viewAcrossStepSubHeaderLabels : List ( String, JsonValue ) -> Html Message
-viewAcrossStepSubHeaderLabels keyVals =
-    Html.div Styles.acrossStepSubHeaderLabel
+viewKeyValuePairHeaderLabels : List ( String, JsonValue ) -> Html Message
+viewKeyValuePairHeaderLabels keyVals =
+    Html.div Styles.keyValuePairHeaderLabel
         (keyVals
             |> List.concatMap
                 (\( k, v ) ->
-                    viewAcrossStepSubHeaderKeyValue k v
+                    flattenJson k v
+                        |> List.map
+                            (\( key, val ) ->
+                                Html.span
+                                    [ style "display" "inline-block"
+                                    , style "margin-right" "10px"
+                                    ]
+                                    [ Html.span [ style "color" Colors.pending ]
+                                        [ Html.text <| key ++ ": " ]
+                                    , Html.text val
+                                    ]
+                            )
                 )
         )
-
-
-viewAcrossStepSubHeaderKeyValue : String -> JsonValue -> List (Html Message)
-viewAcrossStepSubHeaderKeyValue key val =
-    let
-        keyValueSpan text =
-            [ Html.span
-                [ style "display" "inline-block"
-                , style "margin-right" "10px"
-                ]
-                [ Html.span [ style "color" Colors.pending ]
-                    [ Html.text <| key ++ ": " ]
-                , Html.text text
-                ]
-            ]
-    in
-    case val of
-        JsonString s ->
-            keyValueSpan s
-
-        JsonNumber n ->
-            keyValueSpan <| String.fromFloat n
-
-        JsonRaw v ->
-            keyValueSpan <| Json.Encode.encode 0 v
-
-        JsonArray l ->
-            List.indexedMap
-                (\i v ->
-                    let
-                        subKey =
-                            key ++ "[" ++ String.fromInt i ++ "]"
-                    in
-                    viewAcrossStepSubHeaderKeyValue subKey v
-                )
-                l
-                |> List.concat
-
-        JsonObject o ->
-            List.concatMap
-                (\( k, v ) ->
-                    let
-                        subKey =
-                            key ++ "." ++ k
-                    in
-                    viewAcrossStepSubHeaderKeyValue subKey v
-                )
-                o
 
 
 viewRetryTab :
@@ -770,17 +728,22 @@ viewStepWithBody :
     -> { timeZone : Time.Zone, hovered : HoverState.HoverState }
     -> Int
     -> Step
-    -> StepHeaderType
     -> List (Html Message)
     -> Html Message
-viewStepWithBody model session depth step headerType body =
+viewStepWithBody model session depth step body =
     Html.div
-        [ classList
+        (classList
             [ ( "build-step", True )
             , ( "inactive", not <| isActive step.state )
             ]
-        , attribute "data-step-name" step.name
-        ]
+            :: (case stepName step.buildStep of
+                    Just name ->
+                        [ attribute "data-step-name" <| name ]
+
+                    Nothing ->
+                        []
+               )
+        )
         [ Html.div
             ([ class "header"
              , onClick <| Click <| StepHeader step.id
@@ -788,11 +751,7 @@ viewStepWithBody model session depth step headerType body =
              ]
                 ++ Styles.stepHeader step.state
             )
-            [ Html.div
-                [ style "display" "flex" ]
-                [ viewStepHeaderLabel headerType step.changed step.id
-                , Html.h3 [] [ Html.text step.name ]
-                ]
+            [ viewStepHeader step
             , Html.div
                 [ style "display" "flex" ]
                 [ viewVersion step.version
@@ -802,7 +761,7 @@ viewStepWithBody model session depth step headerType body =
 
                     Nothing ->
                         Html.text ""
-                , viewStepState step.state step.id
+                , viewStepState step.state (Just step.id)
                 ]
             ]
         , if step.initializationExpanded then
@@ -874,11 +833,11 @@ viewInitializationToggle step =
         ]
 
 
-viewStep : StepTreeModel -> { timeZone : Time.Zone, hovered : HoverState.HoverState } -> Int -> StepID -> StepHeaderType -> Html Message
-viewStep model session depth stepId headerType =
+viewStep : StepTreeModel -> { timeZone : Time.Zone, hovered : HoverState.HoverState } -> Int -> StepID -> Html Message
+viewStep model session depth stepId =
     assumeStep model stepId <|
         \step ->
-            viewStepWithBody model session depth step headerType []
+            viewStepWithBody model session depth step []
 
 
 viewLogs :
@@ -1030,87 +989,24 @@ viewMetadata meta =
 
 viewStepStateWithoutTooltip : StepState -> Html Message
 viewStepStateWithoutTooltip state =
-    let
-        attributes =
-            [ style "position" "relative" ]
-    in
-    case state of
-        StepStateRunning ->
-            Spinner.spinner
-                { sizePx = 14
-                , margin = "7px"
-                }
-
-        StepStatePending ->
-            Icon.icon
-                { sizePx = 28
-                , image = Assets.PendingIcon
-                }
-                (attribute "data-step-state" "pending"
-                    :: Styles.stepStatusIcon
-                    ++ attributes
-                )
-
-        StepStateInterrupted ->
-            Icon.icon
-                { sizePx = 28
-                , image = Assets.InterruptedIcon
-                }
-                (attribute "data-step-state" "interrupted"
-                    :: Styles.stepStatusIcon
-                    ++ attributes
-                )
-
-        StepStateCancelled ->
-            Icon.icon
-                { sizePx = 28
-                , image = Assets.CancelledIcon
-                }
-                (attribute "data-step-state" "cancelled"
-                    :: Styles.stepStatusIcon
-                    ++ attributes
-                )
-
-        StepStateSucceeded ->
-            Icon.icon
-                { sizePx = 28
-                , image = Assets.SuccessCheckIcon
-                }
-                (attribute "data-step-state" "succeeded"
-                    :: Styles.stepStatusIcon
-                    ++ attributes
-                )
-
-        StepStateFailed ->
-            Icon.icon
-                { sizePx = 28
-                , image = Assets.FailureTimesIcon
-                }
-                (attribute "data-step-state" "failed"
-                    :: Styles.stepStatusIcon
-                    ++ attributes
-                )
-
-        StepStateErrored ->
-            Icon.icon
-                { sizePx = 28
-                , image = Assets.ExclamationTriangleIcon
-                }
-                (attribute "data-step-state" "errored"
-                    :: Styles.stepStatusIcon
-                    ++ attributes
-                )
+    viewStepState state Nothing
 
 
-viewStepState : StepState -> StepID -> Html Message
+viewStepState : StepState -> Maybe StepID -> Html Message
 viewStepState state stepID =
     let
         attributes =
-            [ onMouseLeave <| Hover Nothing
-            , onMouseEnter <| Hover (Just (StepState stepID))
-            , id <| toHtmlID <| StepState stepID
-            , style "position" "relative"
-            ]
+            style "position" "relative"
+                :: (case stepID of
+                        Just stepID_ ->
+                            [ onMouseEnter <| Hover (Just (StepState stepID_))
+                            , onMouseLeave <| Hover Nothing
+                            , id <| toHtmlID <| StepState stepID_
+                            ]
+
+                        Nothing ->
+                            []
+                   )
     in
     case state of
         StepStateRunning ->
@@ -1180,19 +1076,156 @@ viewStepState state stepID =
                 )
 
 
-viewStepHeaderLabel : StepHeaderType -> Bool -> StepID -> Html Message
-viewStepHeaderLabel headerType changed stepID =
+viewStepHeader : Step -> Html Message
+viewStepHeader step =
+    let
+        headerWithContent label changedTooltip content =
+            Html.div
+                [ style "display" "flex" ]
+                [ viewStepHeaderLabel label changedTooltip step.changed step.id
+                , Html.h3 [ style "display" "flex" ] content
+                ]
+
+        simpleHeader label changedTooltip name =
+            headerWithContent label changedTooltip [ Html.text name ]
+    in
+    case step.buildStep of
+        Concourse.BuildStepTask name ->
+            simpleHeader "task:" Nothing name
+
+        Concourse.BuildStepSetPipeline name instanceVars ->
+            headerWithContent "set_pipeline:" (Just "pipeline config changed") <|
+                Html.span [] [ Html.text name ]
+                    :: (if Dict.isEmpty instanceVars then
+                            []
+
+                        else
+                            [ Html.span [ style "margin-left" "10px", style "margin-right" "4px" ] [ Html.text "/" ]
+                            , viewKeyValuePairHeaderLabels (Dict.toList instanceVars)
+                            ]
+                       )
+
+        Concourse.BuildStepLoadVar name ->
+            simpleHeader "load_var:" Nothing name
+
+        Concourse.BuildStepCheck name ->
+            simpleHeader "check:" Nothing name
+
+        Concourse.BuildStepGet name _ ->
+            simpleHeader "get:" (Just "new version") name
+
+        Concourse.BuildStepPut name ->
+            simpleHeader "put:" Nothing name
+
+        Concourse.BuildStepArtifactInput name ->
+            simpleHeader "get:" (Just "new version") name
+
+        Concourse.BuildStepArtifactOutput name ->
+            simpleHeader "put:" Nothing name
+
+        Concourse.BuildStepAcross { vars } ->
+            simpleHeader "across:" Nothing <| String.join ", " vars
+
+        Concourse.BuildStepDo _ ->
+            Html.text ""
+
+        Concourse.BuildStepInParallel _ ->
+            Html.text ""
+
+        Concourse.BuildStepOnSuccess _ ->
+            Html.text ""
+
+        Concourse.BuildStepOnFailure _ ->
+            Html.text ""
+
+        Concourse.BuildStepOnAbort _ ->
+            Html.text ""
+
+        Concourse.BuildStepOnError _ ->
+            Html.text ""
+
+        Concourse.BuildStepEnsure _ ->
+            Html.text ""
+
+        Concourse.BuildStepTry _ ->
+            Html.text ""
+
+        Concourse.BuildStepRetry _ ->
+            Html.text ""
+
+        Concourse.BuildStepTimeout _ ->
+            Html.text ""
+
+
+stepName : Concourse.BuildStep -> Maybe String
+stepName header =
+    case header of
+        Concourse.BuildStepTask name ->
+            Just name
+
+        Concourse.BuildStepSetPipeline name _ ->
+            Just name
+
+        Concourse.BuildStepLoadVar name ->
+            Just name
+
+        Concourse.BuildStepArtifactInput name ->
+            Just name
+
+        Concourse.BuildStepArtifactOutput name ->
+            Just name
+
+        Concourse.BuildStepCheck name ->
+            Just name
+
+        Concourse.BuildStepGet name _ ->
+            Just name
+
+        Concourse.BuildStepPut name ->
+            Just name
+
+        Concourse.BuildStepAcross { vars } ->
+            Just <| String.join ", " vars
+
+        Concourse.BuildStepDo _ ->
+            Nothing
+
+        Concourse.BuildStepInParallel _ ->
+            Nothing
+
+        Concourse.BuildStepOnSuccess _ ->
+            Nothing
+
+        Concourse.BuildStepOnFailure _ ->
+            Nothing
+
+        Concourse.BuildStepOnAbort _ ->
+            Nothing
+
+        Concourse.BuildStepOnError _ ->
+            Nothing
+
+        Concourse.BuildStepEnsure _ ->
+            Nothing
+
+        Concourse.BuildStepTry _ ->
+            Nothing
+
+        Concourse.BuildStepRetry _ ->
+            Nothing
+
+        Concourse.BuildStepTimeout _ ->
+            Nothing
+
+
+viewStepHeaderLabel : String -> Maybe String -> Bool -> StepID -> Html Message
+viewStepHeaderLabel label changedTooltip changed stepID =
     let
         eventHandlers =
-            case ( headerType, changed ) of
-                ( StepHeaderGet, True ) ->
+            case ( changedTooltip, changed ) of
+                ( Just tooltipMsg, True ) ->
                     [ onMouseLeave <| Hover Nothing
-                    , onMouseEnter <| Hover <| Just <| ChangedStepLabel stepID "new version"
-                    ]
-
-                ( StepHeaderSetPipeline, True ) ->
-                    [ onMouseLeave <| Hover Nothing
-                    , onMouseEnter <| Hover <| Just <| ChangedStepLabel stepID "pipeline config changed"
+                    , onMouseEnter <| Hover <| Just <| ChangedStepLabel stepID tooltipMsg
                     ]
 
                 _ ->
@@ -1203,29 +1236,7 @@ viewStepHeaderLabel headerType changed stepID =
             :: Styles.stepHeaderLabel changed
             ++ eventHandlers
         )
-        [ Html.text <|
-            case headerType of
-                StepHeaderGet ->
-                    "get:"
-
-                StepHeaderPut ->
-                    "put:"
-
-                StepHeaderTask ->
-                    "task:"
-
-                StepHeaderCheck ->
-                    "check:"
-
-                StepHeaderSetPipeline ->
-                    "set_pipeline:"
-
-                StepHeaderLoadVar ->
-                    "load_var:"
-
-                StepHeaderAcross ->
-                    "across:"
-        ]
+        [ Html.text label ]
 
 
 tooltip : StepTreeModel -> { a | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip

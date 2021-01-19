@@ -33,7 +33,11 @@ type SetTeamCommand struct {
 
 func (command *SetTeamCommand) Validate() ([]concourse.ConfigWarning, error) {
 	var warnings []concourse.ConfigWarning
-	if warning := atc.ValidateIdentifier(command.Team.Name(), "team"); warning != nil {
+	warning, err := atc.ValidateIdentifier(command.Team.Name(), "team")
+	if err != nil {
+		return nil, err
+	}
+	if warning != nil {
 		warnings = append(warnings, concourse.ConfigWarning{
 			Type:    warning.Type,
 			Message: warning.Message,

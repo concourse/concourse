@@ -5,6 +5,7 @@ module Tooltip exposing
     , Tooltip
     , handleCallback
     , handleDelivery
+    , hoverAttrs
     , view
     )
 
@@ -13,9 +14,10 @@ import EffectTransformer exposing (ET)
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
 import Html.Attributes exposing (id, style)
+import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
-import Message.Message exposing (DomID(..), Message)
+import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..))
 
 
@@ -65,6 +67,14 @@ type Alignment
     | End
 
 
+hoverAttrs : DomID -> List (Html.Attribute Message)
+hoverAttrs domID =
+    [ id (Effects.toHtmlID domID)
+    , onMouseEnter <| Hover <| Just domID
+    , onMouseLeave <| Hover Nothing
+    ]
+
+
 policy : DomID -> TooltipCondition
 policy domID =
     case domID of
@@ -72,6 +82,24 @@ policy domID =
             OnlyShowWhenOverflowing
 
         SideBarTeam _ _ ->
+            OnlyShowWhenOverflowing
+
+        SideBarInstanceGroup _ _ _ ->
+            OnlyShowWhenOverflowing
+
+        PipelineCardName _ _ ->
+            OnlyShowWhenOverflowing
+
+        InstanceGroupCardName _ _ _ ->
+            OnlyShowWhenOverflowing
+
+        PipelineCardNameHD _ ->
+            OnlyShowWhenOverflowing
+
+        InstanceGroupCardNameHD _ _ ->
+            OnlyShowWhenOverflowing
+
+        PipelineCardInstanceVar _ _ _ _ ->
             OnlyShowWhenOverflowing
 
         _ ->
@@ -178,7 +206,8 @@ view : Model m -> Tooltip -> Html Message
 view { hovered } { body, attachPosition, arrow } =
     case ( hovered, arrow ) of
         ( HoverState.Tooltip _ target, a ) ->
-            Html.div (id "tooltips" :: position attachPosition target)
+            Html.div
+                (id "tooltips" :: style "pointer-events" "none" :: position attachPosition target)
                 [ Maybe.map (arrowView attachPosition target) a |> Maybe.withDefault (Html.text "")
                 , body
                 ]

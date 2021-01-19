@@ -1,6 +1,6 @@
-module Dashboard.Filter exposing (filterGroups)
+module Dashboard.Filter exposing (filterTeams)
 
-import Concourse exposing (DatabaseID)
+import Concourse exposing (DatabaseID, hyphenNotation)
 import Concourse.PipelineStatus
     exposing
         ( PipelineStatus(..)
@@ -8,7 +8,7 @@ import Concourse.PipelineStatus
         , equal
         , isRunning
         )
-import Dashboard.Group.Models exposing (Group, Pipeline)
+import Dashboard.Group.Models exposing (Card(..), Pipeline)
 import Dashboard.Pipeline as Pipeline
 import Dict exposing (Dict)
 import Parser
@@ -41,32 +41,29 @@ type alias Filter =
     }
 
 
-filterGroups :
-    { pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
-    , jobs : Dict ( String, String, String ) Concourse.Job
+filterTeams :
+    { pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobName)
+    , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
     , query : String
     , teams : List Concourse.Team
     , pipelines : Dict String (List Pipeline)
     , dashboardView : Routes.DashboardView
     , favoritedPipelines : Set DatabaseID
     }
-    -> List Group
-filterGroups { pipelineJobs, jobs, query, teams, pipelines, dashboardView, favoritedPipelines } =
+    -> Dict String (List Pipeline)
+filterTeams { pipelineJobs, jobs, query, teams, pipelines, dashboardView, favoritedPipelines } =
     let
-        groupsToFilter =
+        teamsToFilter =
             teams
                 |> List.map (\t -> ( t.name, [] ))
                 |> Dict.fromList
                 |> Dict.union pipelines
-                |> Dict.toList
-                |> List.map
-                    (\( t, p ) ->
-                        { teamName = t
-                        , pipelines = List.filter (prefilter dashboardView favoritedPipelines) p
-                        }
+                |> Dict.map
+                    (\_ p ->
+                        List.filter (prefilter dashboardView favoritedPipelines) p
                     )
     in
-    parseFilters query |> List.foldr (runFilter jobs pipelineJobs) groupsToFilter
+    parseFilters query |> List.foldr (runFilter jobs pipelineJobs) teamsToFilter
 
 
 prefilter : Routes.DashboardView -> Set DatabaseID -> Pipeline -> Bool
@@ -79,7 +76,12 @@ prefilter view favoritedPipelines p =
             True
 
 
-runFilter : Dict ( String, String, String ) Concourse.Job -> Dict ( String, String ) (List Concourse.JobIdentifier) -> Filter -> List Group -> List Group
+runFilter :
+    Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
+    -> Dict Concourse.DatabaseID (List Concourse.JobName)
+    -> Filter
+    -> Dict String (List Pipeline)
+    -> Dict String (List Pipeline)
 runFilter jobs existingJobs f =
     let
         negater =
@@ -91,36 +93,32 @@ runFilter jobs existingJobs f =
     in
     case f.groupFilter of
         Team teamName ->
-            List.filter (.teamName >> Simple.Fuzzy.match teamName >> negater)
+            Dict.filter (\team _ -> team |> Simple.Fuzzy.match teamName |> negater)
 
         Pipeline pf ->
-            List.map
-                (\g ->
-                    { g
-                        | pipelines =
-                            g.pipelines
-                                |> List.filter (pipelineFilter pf jobs existingJobs >> negater)
-                    }
-                )
-                >> List.filter (.pipelines >> List.isEmpty >> not)
+            Dict.map
+                (\_ pipelines -> List.filter (pipelineFilter pf jobs existingJobs >> negater) pipelines)
+                >> Dict.filter (\_ pipelines -> not <| List.isEmpty pipelines)
 
 
-lookupJob : Dict ( String, String, String ) Concourse.Job -> Concourse.JobIdentifier -> Maybe Concourse.Job
-lookupJob jobs jobId =
-    jobs
-        |> Dict.get ( jobId.teamName, jobId.pipelineName, jobId.jobName )
-
-
-pipelineFilter : PipelineFilter -> Dict ( String, String, String ) Concourse.Job -> Dict ( String, String ) (List Concourse.JobIdentifier) -> Pipeline -> Bool
+pipelineFilter :
+    PipelineFilter
+    -> Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
+    -> Dict Concourse.DatabaseID (List Concourse.JobName)
+    -> Pipeline
+    -> Bool
 pipelineFilter pf jobs existingJobs pipeline =
     let
         jobsForPipeline =
             existingJobs
-                |> Dict.get ( pipeline.teamName, pipeline.name )
+                |> Dict.get pipeline.id
                 |> Maybe.withDefault []
-                |> List.filterMap (lookupJob jobs)
+                |> List.filterMap (\j -> Dict.get ( pipeline.id, j ) jobs)
     in
     case pf of
+        FuzzyName term ->
+            Simple.Fuzzy.match term (pipeline.name ++ hyphenNotation pipeline.instanceVars)
+
         Status sf ->
             case sf of
                 PipelineStatus ps ->
@@ -128,9 +126,6 @@ pipelineFilter pf jobs existingJobs pipeline =
 
                 PipelineRunning ->
                     pipeline |> Pipeline.pipelineStatus jobsForPipeline |> isRunning
-
-        FuzzyName term ->
-            pipeline.name |> Simple.Fuzzy.match term
 
 
 parseFilters : String -> List Filter
@@ -162,8 +157,8 @@ type GroupFilter
 
 
 type PipelineFilter
-    = Status StatusFilter
-    | FuzzyName String
+    = FuzzyName String
+    | Status StatusFilter
 
 
 groupFilter : Parser GroupFilter

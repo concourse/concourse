@@ -5,7 +5,7 @@ import Assets
 import Char
 import ColorValues
 import Common exposing (defineHoverBehaviour, queryView)
-import Concourse
+import Concourse exposing (JsonValue(..))
 import Dashboard.SearchBar as SearchBar
 import DashboardTests exposing (iconSelector)
 import Data
@@ -117,11 +117,29 @@ flags =
     }
 
 
+instanceVars : Concourse.InstanceVars
+instanceVars =
+    Dict.fromList [ ( "var1", JsonString "v1" ), ( "var2", JsonString "v2" ) ]
+
+
+pipelineInstance : Concourse.Pipeline
+pipelineInstance =
+    Data.pipeline "team" 1
+        |> Data.withName "pipeline"
+        |> Data.withInstanceVars instanceVars
+
+
 all : Test
 all =
     describe "TopBar"
         [ rspecStyleDescribe "when on pipeline page"
-            (Common.init "/teams/team/pipelines/pipeline")
+            (Common.init "/teams/team/pipelines/pipeline"
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                    )
+                |> Tuple.first
+            )
             [ context "when login state unknown"
                 queryView
                 [ it "shows concourse logo" <|
@@ -135,6 +153,8 @@ all =
                         , style "width" topBarHeight
                         , style "height" topBarHeight
                         ]
+                , it "does not shows instance group breadcrumb" <|
+                    Query.hasNot [ id "breadcrumb-instance-group" ]
                 , it "shows pipeline breadcrumb" <|
                     Query.has [ id "breadcrumb-pipeline" ]
                 , context "pipeline breadcrumb"
@@ -334,6 +354,85 @@ all =
                             [ style "border-left" <| "1px solid " ++ borderGrey ]
                 ]
             ]
+        , rspecStyleDescribe
+            "when on pipeline page for an instanced pipeline"
+            (Common.initRoute (Routes.Pipeline { id = Concourse.toPipelineId pipelineInstance, groups = [] })
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok [ pipelineInstance, Data.pipeline "team" 2 |> Data.withName "pipeline" ]
+                    )
+                |> Tuple.first
+                |> queryView
+            )
+            [ it "shows instance group breadcrumb" <|
+                Query.has [ id "breadcrumb-instance-group" ]
+            , context "instance group breadcrumb"
+                (Query.find [ id "breadcrumb-instance-group" ])
+                [ it "displays badge containing number of pipelines in group" <|
+                    Query.children []
+                        >> Query.first
+                        >> Query.has [ text "2" ]
+                , it "contains the name of the instance group" <|
+                    Query.has [ text "pipeline" ]
+                , it "is a link to the instance group view" <|
+                    Query.has
+                        [ tag "a"
+                        , Common.routeHref <|
+                            Routes.Dashboard
+                                { searchType =
+                                    Routes.Normal "" <|
+                                        Just
+                                            { name = "pipeline"
+                                            , teamName = "team"
+                                            }
+                                , dashboardView = Routes.ViewNonArchivedPipelines
+                                }
+                        ]
+                ]
+            , it "has a pipeline breadcrumb" <|
+                Query.has [ id "breadcrumb-pipeline" ]
+            , context "pipeline breadcrumb"
+                (Query.find [ id "breadcrumb-pipeline" ])
+                [ it "renders icon first" <|
+                    Query.children []
+                        >> Query.first
+                        >> Query.has pipelineBreadcrumbSelector
+                , it "renders instance vars in hyphen notation second" <|
+                    Query.children []
+                        >> Query.index 1
+                        >> Query.has [ text "v1-v2" ]
+                , it "has pointer cursor" <|
+                    Query.has [ style "cursor" "pointer" ]
+                , it "is a link to the relevant pipeline page" <|
+                    Query.has
+                        [ tag "a"
+                        , Common.routeHref (Routes.Pipeline { id = Concourse.toPipelineId pipelineInstance, groups = [] })
+                        ]
+                ]
+            ]
+        , rspecStyleDescribe
+            "when on pipeline page for an instanced pipeline with no instance vars"
+            (Common.init "/teams/team/pipelines/pipeline"
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok
+                            [ pipelineInstance
+                            , Data.pipeline "team" 2 |> Data.withName "pipeline"
+                            ]
+                    )
+                |> Tuple.first
+                |> queryView
+            )
+            [ it "shows instance group breadcrumb" <|
+                Query.has [ id "breadcrumb-instance-group" ]
+            , context "pipeline breadcrumb"
+                (Query.find [ id "breadcrumb-pipeline" ])
+                [ it "renders the empty set" <|
+                    Query.children []
+                        >> Query.index 1
+                        >> Query.has [ text "{}" ]
+                ]
+            ]
         , rspecStyleDescribe "rendering user menus on clicks"
             (Common.init "/teams/team/pipelines/pipeline")
             [ it "shows user menu when ToggleUserMenu msg is received" <|
@@ -442,6 +541,11 @@ all =
             ]
         , rspecStyleDescribe "rendering top bar on build page"
             (Common.init "/teams/team/pipelines/pipeline/jobs/job/builds/1"
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                    )
+                |> Tuple.first
                 |> queryView
             )
             [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
@@ -471,8 +575,46 @@ all =
                     Query.hasNot [ style "cursor" "pointer" ]
                 ]
             ]
+        , rspecStyleDescribe
+            "when on build page for an instanced pipeline"
+            (Common.initRoute
+                (Routes.Build
+                    { id =
+                        { teamName = "team"
+                        , pipelineName = "pipeline"
+                        , pipelineInstanceVars = instanceVars
+                        , jobName = "job"
+                        , buildName = "1"
+                        }
+                    , highlight = Routes.HighlightNothing
+                    }
+                )
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok [ pipelineInstance ]
+                    )
+                |> Tuple.first
+                |> queryView
+            )
+            [ it "shows instance group breadcrumb" <|
+                Query.has [ id "breadcrumb-instance-group" ]
+            , it "has a pipeline breadcrumb" <|
+                Query.has [ id "breadcrumb-pipeline" ]
+            , context "pipeline breadcrumb"
+                (Query.find [ id "breadcrumb-pipeline" ])
+                [ it "renders instance vars in hyphen notation second" <|
+                    Query.children []
+                        >> Query.index 1
+                        >> Query.has [ text "v1-v2" ]
+                ]
+            ]
         , rspecStyleDescribe "rendering top bar on resource page"
             (Common.init "/teams/team/pipelines/pipeline/resources/resource"
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                    )
+                |> Tuple.first
                 |> queryView
             )
             [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
@@ -514,8 +656,45 @@ all =
                     >> Query.has
                         [ text "resource" ]
             ]
+        , rspecStyleDescribe
+            "when on resource page for an instanced pipeline"
+            (Common.initRoute
+                (Routes.Resource
+                    { id =
+                        { teamName = "team"
+                        , pipelineName = "pipeline"
+                        , pipelineInstanceVars = instanceVars
+                        , resourceName = "resource"
+                        }
+                    , page = Nothing
+                    }
+                )
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok [ pipelineInstance ]
+                    )
+                |> Tuple.first
+                |> queryView
+            )
+            [ it "shows instance group breadcrumb" <|
+                Query.has [ id "breadcrumb-instance-group" ]
+            , it "has a pipeline breadcrumb" <|
+                Query.has [ id "breadcrumb-pipeline" ]
+            , context "pipeline breadcrumb"
+                (Query.find [ id "breadcrumb-pipeline" ])
+                [ it "renders instance vars in hyphen notation second" <|
+                    Query.children []
+                        >> Query.index 1
+                        >> Query.has [ text "v1-v2" ]
+                ]
+            ]
         , rspecStyleDescribe "rendering top bar on job page"
             (Common.init "/teams/team/pipelines/pipeline/jobs/job"
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
+                    )
+                |> Tuple.first
                 |> queryView
             )
             [ it "should pad the breadcrumbs to max size so they can be left-aligned" <|
@@ -539,6 +718,38 @@ all =
                         , Query.index 0 >> Query.has [ id "breadcrumb-pipeline" ]
                         , Query.index 2 >> Query.has [ id "breadcrumb-job" ]
                         ]
+            ]
+        , rspecStyleDescribe
+            "when on job page for an instanced pipeline"
+            (Common.initRoute
+                (Routes.Job
+                    { id =
+                        { teamName = "team"
+                        , pipelineName = "pipeline"
+                        , pipelineInstanceVars = instanceVars
+                        , jobName = "job"
+                        }
+                    , page = Nothing
+                    }
+                )
+                |> Application.handleCallback
+                    (Callback.AllPipelinesFetched <|
+                        Ok [ pipelineInstance ]
+                    )
+                |> Tuple.first
+                |> queryView
+            )
+            [ it "shows instance group breadcrumb" <|
+                Query.has [ id "breadcrumb-instance-group" ]
+            , it "has a pipeline breadcrumb" <|
+                Query.has [ id "breadcrumb-pipeline" ]
+            , context "pipeline breadcrumb"
+                (Query.find [ id "breadcrumb-pipeline" ])
+                [ it "renders instance vars in hyphen notation second" <|
+                    Query.children []
+                        >> Query.index 1
+                        >> Query.has [ text "v1-v2" ]
+                ]
             ]
         , rspecStyleDescribe "when checking search bar values"
             (Application.init

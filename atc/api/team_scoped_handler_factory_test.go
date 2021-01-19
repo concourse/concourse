@@ -69,56 +69,34 @@ var _ = Describe("TeamScopedHandlerFactory", func() {
 		server.Close()
 	})
 
-	Context("when team is in auth context", func() {
+	Context("when the team is not found", func() {
 		BeforeEach(func() {
-			fakeAccess.IsAuthenticatedReturns(true)
-			fakeAccess.IsAuthorizedReturns(true)
+			fakeTeamFactory.FindTeamReturns(nil, false, nil)
 		})
 
-		Context("when the team is not found", func() {
-			BeforeEach(func() {
-				fakeTeamFactory.FindTeamReturns(nil, false, nil)
-			})
-
-			It("returns 404", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-			})
-		})
-
-		Context("when finding the team fails", func() {
-			BeforeEach(func() {
-				fakeTeamFactory.FindTeamReturns(nil, false, errors.New("what is a team?"))
-			})
-
-			It("returns 500", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-			})
-		})
-
-		It("creates team with team name from context", func() {
-			Expect(fakeTeamFactory.FindTeamCallCount()).To(Equal(1))
-			Expect(fakeTeamFactory.FindTeamArgsForCall(0)).To(Equal("some-team"))
-		})
-
-		It("calls scoped handler with team from context", func() {
-			Expect(delegate.IsCalled).To(BeTrue())
-			Expect(delegate.Team).To(BeIdenticalTo(fakeTeam))
+		It("returns 404", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 		})
 	})
 
-	Context("when team is not in auth context", func() {
+	Context("when finding the team fails", func() {
 		BeforeEach(func() {
-			fakeAccess.IsAuthorizedReturns(false)
+			fakeTeamFactory.FindTeamReturns(nil, false, errors.New("what is a team?"))
 		})
 
-		It("returns 403", func() {
-			Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+		It("returns 500", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 		})
+	})
 
-		It("does not call scoped handler", func() {
-			Expect(delegate.IsCalled).To(BeFalse())
-			Expect(delegate.Team).To(BeNil())
-		})
+	It("creates team with team name from context", func() {
+		Expect(fakeTeamFactory.FindTeamCallCount()).To(Equal(1))
+		Expect(fakeTeamFactory.FindTeamArgsForCall(0)).To(Equal("some-team"))
+	})
+
+	It("calls scoped handler with team from context", func() {
+		Expect(delegate.IsCalled).To(BeTrue())
+		Expect(delegate.Team).To(BeIdenticalTo(fakeTeam))
 	})
 })
 

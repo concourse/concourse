@@ -1,6 +1,6 @@
-module Dashboard.Drag exposing (drag, dragPipeline, insertAt)
+module Dashboard.Drag exposing (drag, dragCardIndices, insertAt, reverseIndices)
 
-import Dashboard.Group.Models exposing (Pipeline)
+import Dashboard.Group.Models exposing (Card(..), cardIdentifier)
 import List.Extra
 import Message.Message exposing (DropTarget(..))
 
@@ -15,29 +15,31 @@ insertAt idx x xs =
             x :: xs
 
 
-dragPipeline : String -> DropTarget -> List Pipeline -> List Pipeline
-dragPipeline pipeline target pipelines =
+dragCardIndices : Int -> DropTarget -> List Card -> Maybe ( Int, Int )
+dragCardIndices cardId target cards =
     let
-        pipelineIndex name =
-            pipelines |> List.Extra.findIndex (.name >> (==) name)
+        cardIndex id =
+            cards |> List.Extra.findIndex (cardIdentifier >> (==) id)
 
         fromIndex =
-            pipelineIndex pipeline
+            cardIndex cardId
 
         toIndex =
-            case target of
+            (case target of
                 Before name ->
-                    pipelineIndex name
+                    cardIndex name
 
-                After name ->
-                    pipelineIndex name |> Maybe.map ((+) 1)
+                End ->
+                    List.length cards |> Just
+            )
+                |> Maybe.map ((+) 1)
     in
-    case ( fromIndex, toIndex ) of
-        ( Just from, Just to ) ->
-            drag from (to + 1) pipelines
+    Maybe.map2 Tuple.pair fromIndex toIndex
 
-        _ ->
-            pipelines
+
+reverseIndices : Int -> ( Int, Int ) -> ( Int, Int )
+reverseIndices length ( from, to ) =
+    ( max 0 (to - 1), min length (from + 1) )
 
 
 drag : Int -> Int -> List a -> List a

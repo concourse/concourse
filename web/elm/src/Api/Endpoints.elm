@@ -10,6 +10,7 @@ module Api.Endpoints exposing
     )
 
 import Concourse
+import RouteBuilder exposing (RouteBuilder, append, appendPath, appendQuery)
 import Url.Builder
 
 
@@ -78,84 +79,106 @@ type TeamEndpoint
     | OrderTeamPipelines
 
 
-basePath : List String
-basePath =
-    [ "api", "v1" ]
+base : RouteBuilder
+base =
+    ( [ "api", "v1" ], [] )
 
 
-baseSkyPath : List String
-baseSkyPath =
-    [ "sky" ]
+baseSky : RouteBuilder
+baseSky =
+    ( [ "sky" ], [] )
 
 
-pipelinePath : { r | pipelineName : String, teamName : String } -> List String
-pipelinePath { pipelineName, teamName } =
-    basePath ++ [ "teams", teamName, "pipelines", pipelineName ]
+pipeline :
+    { r
+        | pipelineName : String
+        , pipelineInstanceVars : Concourse.InstanceVars
+        , teamName : String
+    }
+    -> RouteBuilder
+pipeline id =
+    base |> append (RouteBuilder.pipeline id)
 
 
-resourcePath : { r | pipelineName : String, teamName : String, resourceName : String } -> List String
-resourcePath { pipelineName, teamName, resourceName } =
-    pipelinePath { pipelineName = pipelineName, teamName = teamName }
-        ++ [ "resources", resourceName ]
+resource :
+    { r
+        | pipelineName : String
+        , pipelineInstanceVars : Concourse.InstanceVars
+        , teamName : String
+        , resourceName : String
+    }
+    -> RouteBuilder
+resource id =
+    pipeline id |> appendPath [ "resources", id.resourceName ]
 
 
 toString : List Url.Builder.QueryParameter -> Endpoint -> String
 toString query endpoint =
-    Url.Builder.absolute (toPath endpoint) query
+    builder endpoint
+        |> appendQuery query
+        |> RouteBuilder.build
 
 
-toPath : Endpoint -> List String
-toPath endpoint =
+builder : Endpoint -> RouteBuilder
+builder endpoint =
     case endpoint of
         PipelinesList ->
-            basePath ++ [ "pipelines" ]
+            base |> appendPath [ "pipelines" ]
 
         Pipeline id subEndpoint ->
-            pipelinePath id ++ pipelineEndpointToPath subEndpoint
+            pipeline id |> append (pipelineEndpoint subEndpoint)
 
         JobsList ->
-            basePath ++ [ "jobs" ]
+            base |> appendPath [ "jobs" ]
 
         Job id subEndpoint ->
-            pipelinePath id ++ [ "jobs", id.jobName ] ++ jobEndpointToPath subEndpoint
+            pipeline id
+                |> appendPath [ "jobs", id.jobName ]
+                |> append (jobEndpoint subEndpoint)
 
         JobBuild id ->
-            pipelinePath id ++ [ "jobs", id.jobName, "builds", id.buildName ]
+            pipeline id |> appendPath [ "jobs", id.jobName, "builds", id.buildName ]
 
         Build id subEndpoint ->
-            basePath ++ [ "builds", String.fromInt id ] ++ buildEndpointToPath subEndpoint
+            base
+                |> appendPath [ "builds", String.fromInt id ]
+                |> append (buildEndpoint subEndpoint)
 
         ResourcesList ->
-            basePath ++ [ "resources" ]
+            base |> appendPath [ "resources" ]
 
         Resource id subEndpoint ->
-            resourcePath id ++ resourceEndpointToPath subEndpoint
+            resource id |> append (resourceEndpoint subEndpoint)
 
         ResourceVersion id subEndpoint ->
-            resourcePath id ++ [ "versions", String.fromInt id.versionID ] ++ resourceVersionEndpointToPath subEndpoint
+            resource id
+                |> appendPath [ "versions", String.fromInt id.versionID ]
+                |> append (resourceVersionEndpoint subEndpoint)
 
         TeamsList ->
-            basePath ++ [ "teams" ]
+            base |> appendPath [ "teams" ]
 
         Team teamName subEndpoint ->
-            basePath ++ [ "teams", teamName ] ++ teamEndpointToPath subEndpoint
+            base
+                |> appendPath [ "teams", teamName ]
+                |> append (teamEndpoint subEndpoint)
 
         ClusterInfo ->
-            basePath ++ [ "info" ]
+            base |> appendPath [ "info" ]
 
         Cli ->
-            basePath ++ [ "cli" ]
+            base |> appendPath [ "cli" ]
 
         UserInfo ->
-            basePath ++ [ "user" ]
+            base |> appendPath [ "user" ]
 
         Logout ->
-            baseSkyPath ++ [ "logout" ]
+            baseSky |> appendPath [ "logout" ]
 
 
-pipelineEndpointToPath : PipelineEndpoint -> List String
-pipelineEndpointToPath endpoint =
-    case endpoint of
+pipelineEndpoint : PipelineEndpoint -> RouteBuilder
+pipelineEndpoint endpoint =
+    ( case endpoint of
         BasePipeline ->
             []
 
@@ -176,11 +199,13 @@ pipelineEndpointToPath endpoint =
 
         PipelineResourcesList ->
             [ "resources" ]
+    , []
+    )
 
 
-jobEndpointToPath : JobEndpoint -> List String
-jobEndpointToPath endpoint =
-    case endpoint of
+jobEndpoint : JobEndpoint -> RouteBuilder
+jobEndpoint endpoint =
+    ( case endpoint of
         BaseJob ->
             []
 
@@ -192,11 +217,13 @@ jobEndpointToPath endpoint =
 
         JobBuildsList ->
             [ "builds" ]
+    , []
+    )
 
 
-buildEndpointToPath : BuildEndpoint -> List String
-buildEndpointToPath endpoint =
-    case endpoint of
+buildEndpoint : BuildEndpoint -> RouteBuilder
+buildEndpoint endpoint =
+    ( case endpoint of
         BaseBuild ->
             []
 
@@ -214,11 +241,13 @@ buildEndpointToPath endpoint =
 
         BuildEventStream ->
             [ "events" ]
+    , []
+    )
 
 
-resourceEndpointToPath : ResourceEndpoint -> List String
-resourceEndpointToPath endpoint =
-    case endpoint of
+resourceEndpoint : ResourceEndpoint -> RouteBuilder
+resourceEndpoint endpoint =
+    ( case endpoint of
         BaseResource ->
             []
 
@@ -233,11 +262,13 @@ resourceEndpointToPath endpoint =
 
         PinResourceComment ->
             [ "pin_comment" ]
+    , []
+    )
 
 
-resourceVersionEndpointToPath : ResourceVersionEndpoint -> List String
-resourceVersionEndpointToPath endpoint =
-    case endpoint of
+resourceVersionEndpoint : ResourceVersionEndpoint -> RouteBuilder
+resourceVersionEndpoint endpoint =
+    ( case endpoint of
         ResourceVersionInputTo ->
             [ "input_to" ]
 
@@ -252,13 +283,17 @@ resourceVersionEndpointToPath endpoint =
 
         DisableResourceVersion ->
             [ "disable" ]
+    , []
+    )
 
 
-teamEndpointToPath : TeamEndpoint -> List String
-teamEndpointToPath endpoint =
-    case endpoint of
+teamEndpoint : TeamEndpoint -> RouteBuilder
+teamEndpoint endpoint =
+    ( case endpoint of
         TeamPipelinesList ->
             [ "pipelines" ]
 
         OrderTeamPipelines ->
             [ "pipelines", "ordering" ]
+    , []
+    )

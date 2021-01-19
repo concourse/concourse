@@ -49,7 +49,7 @@ var _ = Describe("ResourceType", func() {
 						Name:       "some-type-with-custom-check",
 						Type:       "registry-image",
 						Source:     atc.Source{"some": "repository"},
-						CheckEvery: "10ms",
+						CheckEvery: &atc.CheckEvery{Interval: 10 * time.Millisecond},
 					},
 				},
 			},
@@ -103,7 +103,7 @@ var _ = Describe("ResourceType", func() {
 					Expect(t.Source()).To(Equal(atc.Source{"some": "repository"}))
 					Expect(t.Defaults()).To(BeNil())
 					Expect(t.Version()).To(BeNil())
-					Expect(t.CheckEvery()).To(Equal("10ms"))
+					Expect(t.CheckEvery().Interval.String()).To(Equal("10ms"))
 				}
 			}
 
@@ -163,7 +163,7 @@ var _ = Describe("ResourceType", func() {
 								Name:       "some-name",
 								Type:       "some-custom-type",
 								Source:     atc.Source{"some": "repository"},
-								CheckEvery: "10ms",
+								CheckEvery: &atc.CheckEvery{Interval: 10 * time.Millisecond},
 							},
 						},
 					},
@@ -202,7 +202,7 @@ var _ = Describe("ResourceType", func() {
 								Name:       "some-custom-type",
 								Type:       "some-different-foo-type",
 								Source:     atc.Source{"some": "repository"},
-								CheckEvery: "10ms",
+								CheckEvery: &atc.CheckEvery{Interval: 10 * time.Millisecond},
 							},
 						},
 					},
@@ -245,19 +245,19 @@ var _ = Describe("ResourceType", func() {
 								Name:       "some-type-with-custom-check",
 								Type:       "registry-image",
 								Source:     atc.Source{"some": "repository"},
-								CheckEvery: "10ms",
+								CheckEvery: &atc.CheckEvery{Interval: 10 * time.Millisecond},
 							},
 							{
 								Name:       "some-custom-type",
 								Type:       "some-other-foo-type",
 								Source:     atc.Source{"some": "repository"},
-								CheckEvery: "10ms",
+								CheckEvery: &atc.CheckEvery{Interval: 10 * time.Millisecond},
 							},
 							{
 								Name:       "some-other-foo-type",
 								Type:       "some-other-type",
 								Source:     atc.Source{"some": "repository"},
-								CheckEvery: "10ms",
+								CheckEvery: &atc.CheckEvery{Interval: 10 * time.Millisecond},
 							},
 						},
 					},
@@ -332,7 +332,7 @@ var _ = Describe("ResourceType", func() {
 							Name:       "some-type-with-custom-check",
 							Type:       "registry-image",
 							Source:     atc.Source{"some": "repository"},
-							CheckEvery: "10ms",
+							CheckEvery: &atc.CheckEvery{Interval: 10 * time.Millisecond},
 						},
 					}))
 				})
@@ -384,7 +384,7 @@ var _ = Describe("ResourceType", func() {
 							Name:       "some-type-with-custom-check",
 							Type:       "registry-image",
 							Source:     atc.Source{"some": "repository"},
-							CheckEvery: "10ms",
+							CheckEvery: &atc.CheckEvery{Interval: 10 * time.Millisecond},
 						},
 					}))
 				})

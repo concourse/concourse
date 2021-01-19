@@ -377,17 +377,6 @@ type FakePipeline struct {
 		result1 bool
 		result2 error
 	}
-	RenameStub        func(string) error
-	renameMutex       sync.RWMutex
-	renameArgsForCall []struct {
-		arg1 string
-	}
-	renameReturns struct {
-		result1 error
-	}
-	renameReturnsOnCall map[int]struct {
-		result1 error
-	}
 	ResourceStub        func(string) (db.Resource, bool, error)
 	resourceMutex       sync.RWMutex
 	resourceArgsForCall []struct {
@@ -2344,66 +2333,6 @@ func (fake *FakePipeline) ReloadReturnsOnCall(i int, result1 bool, result2 error
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) Rename(arg1 string) error {
-	fake.renameMutex.Lock()
-	ret, specificReturn := fake.renameReturnsOnCall[len(fake.renameArgsForCall)]
-	fake.renameArgsForCall = append(fake.renameArgsForCall, struct {
-		arg1 string
-	}{arg1})
-	fake.recordInvocation("Rename", []interface{}{arg1})
-	fake.renameMutex.Unlock()
-	if fake.RenameStub != nil {
-		return fake.RenameStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.renameReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakePipeline) RenameCallCount() int {
-	fake.renameMutex.RLock()
-	defer fake.renameMutex.RUnlock()
-	return len(fake.renameArgsForCall)
-}
-
-func (fake *FakePipeline) RenameCalls(stub func(string) error) {
-	fake.renameMutex.Lock()
-	defer fake.renameMutex.Unlock()
-	fake.RenameStub = stub
-}
-
-func (fake *FakePipeline) RenameArgsForCall(i int) string {
-	fake.renameMutex.RLock()
-	defer fake.renameMutex.RUnlock()
-	argsForCall := fake.renameArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakePipeline) RenameReturns(result1 error) {
-	fake.renameMutex.Lock()
-	defer fake.renameMutex.Unlock()
-	fake.RenameStub = nil
-	fake.renameReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakePipeline) RenameReturnsOnCall(i int, result1 error) {
-	fake.renameMutex.Lock()
-	defer fake.renameMutex.Unlock()
-	fake.RenameStub = nil
-	if fake.renameReturnsOnCall == nil {
-		fake.renameReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.renameReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakePipeline) Resource(arg1 string) (db.Resource, bool, error) {
 	fake.resourceMutex.Lock()
 	ret, specificReturn := fake.resourceReturnsOnCall[len(fake.resourceArgsForCall)]
@@ -3245,8 +3174,6 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.publicMutex.RUnlock()
 	fake.reloadMutex.RLock()
 	defer fake.reloadMutex.RUnlock()
-	fake.renameMutex.RLock()
-	defer fake.renameMutex.RUnlock()
 	fake.resourceMutex.RLock()
 	defer fake.resourceMutex.RUnlock()
 	fake.resourceByIDMutex.RLock()

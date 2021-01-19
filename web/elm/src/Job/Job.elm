@@ -56,7 +56,7 @@ import Message.Subscription exposing (Delivery(..), Interval(..), Subscription(.
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import RemoteData exposing (WebData)
 import Routes
-import SideBar.SideBar as SideBar
+import SideBar.SideBar as SideBar exposing (byPipelineId, lookupPipeline)
 import StrictEvents exposing (onLeftClick)
 import Time
 import Tooltip
@@ -178,6 +178,7 @@ handleCallback callback ( model, effects ) =
                                         { id =
                                             { teamName = job.teamName
                                             , pipelineName = job.pipelineName
+                                            , pipelineInstanceVars = job.pipelineInstanceVars
                                             , jobName = job.jobName
                                             , buildName = build.name
                                             }
@@ -431,7 +432,7 @@ view session model =
             (id "top-bar-app" :: Views.Styles.topBar False)
             [ SideBar.hamburgerMenu session
             , TopBar.concourseLogo
-            , TopBar.breadcrumbs route
+            , TopBar.breadcrumbs session route
             , Login.view session.userState model
             ]
         , Html.div
@@ -456,9 +457,9 @@ viewMainJobsSection : Session -> Model -> Html Message
 viewMainJobsSection session model =
     let
         archived =
-            isPipelineArchived
-                session.pipelines
-                model.jobIdentifier
+            lookupPipeline (byPipelineId model.jobIdentifier) session
+                |> Maybe.map .archived
+                |> Maybe.withDefault False
     in
     Html.div
         [ class "with-fixed-header"
@@ -596,18 +597,6 @@ viewMainJobsSection session model =
             _ ->
                 LoadingIndicator.view
         ]
-
-
-isPipelineArchived :
-    WebData (List Concourse.Pipeline)
-    -> Concourse.JobIdentifier
-    -> Bool
-isPipelineArchived pipelines { pipelineName, teamName } =
-    pipelines
-        |> RemoteData.withDefault []
-        |> List.Extra.find (\p -> p.name == pipelineName && p.teamName == teamName)
-        |> Maybe.map .archived
-        |> Maybe.withDefault False
 
 
 headerBuildStatus : Maybe Concourse.Build -> BuildStatus

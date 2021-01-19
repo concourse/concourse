@@ -353,25 +353,25 @@ var _ = Describe("Config API", func() {
 			})
 
 			Context("when an identifier is invalid", func() {
+				Context("and is a string", func() {
+					BeforeEach(func() {
+						var err error
+						request, err = requestGenerator.CreateRequest(atc.SaveConfig, rata.Params{
+							"team_name":     "_team",
+							"pipeline_name": "_pipeline",
+						}, nil)
+						Expect(err).NotTo(HaveOccurred())
 
-				BeforeEach(func() {
-					var err error
-					request, err = requestGenerator.CreateRequest(atc.SaveConfig, rata.Params{
-						"team_name":     "_team",
-						"pipeline_name": "_pipeline",
-					}, nil)
-					Expect(err).NotTo(HaveOccurred())
+						request.Header.Set("Content-Type", "application/json")
 
-					request.Header.Set("Content-Type", "application/json")
+						payload, err := json.Marshal(pipelineConfig)
+						Expect(err).NotTo(HaveOccurred())
 
-					payload, err := json.Marshal(pipelineConfig)
-					Expect(err).NotTo(HaveOccurred())
+						request.Body = gbytes.BufferWithBytes(payload)
+					})
 
-					request.Body = gbytes.BufferWithBytes(payload)
-				})
-
-				It("returns warnings in the response body", func() {
-					Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+					It("returns warnings in the response body", func() {
+						Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
 							{
 								"warnings": [
 									{
@@ -384,7 +384,35 @@ var _ = Describe("Config API", func() {
 									}
 								]
 							}`))
+					})
 				})
+				Context("and is an empty string", func() {
+					BeforeEach(func() {
+						var err error
+						request, err = requestGenerator.CreateRequest(atc.SaveConfig, rata.Params{
+							"team_name":     "",
+							"pipeline_name": "",
+						}, nil)
+						Expect(err).NotTo(HaveOccurred())
+
+						request.Header.Set("Content-Type", "application/json")
+
+						payload, err := json.Marshal(pipelineConfig)
+						Expect(err).NotTo(HaveOccurred())
+
+						request.Body = gbytes.BufferWithBytes(payload)
+					})
+
+					It("returns warnings in the response body", func() {
+						Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							{
+								"errors": [
+										"pipeline: identifier cannot be an empty string"
+								]
+							}`))
+					})
+				})
+
 			})
 
 			Context("when a config version is specified", func() {
@@ -638,7 +666,7 @@ jobs:
 											Name:         "some-resource",
 											Type:         "some-type",
 											Source:       nil,
-											CheckEvery:   "10s",
+											CheckEvery:   &atc.CheckEvery{Interval: 10 * time.Second},
 											CheckTimeout: "1m",
 										},
 									},
@@ -887,7 +915,7 @@ jobs:
 										Name:       "some-resource",
 										Type:       "some-type",
 										Source:     nil,
-										CheckEvery: "10s",
+										CheckEvery: &atc.CheckEvery{Interval: 10 * time.Second},
 									},
 								},
 									Jobs: atc.JobConfigs{

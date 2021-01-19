@@ -153,7 +153,7 @@ var _ = Describe("CheckFactory", func() {
 
 		Context("when an interval is specified", func() {
 			BeforeEach(func() {
-				fakeResource.CheckEveryReturns("42s")
+				fakeResource.CheckEveryReturns(&atc.CheckEvery{Interval: 42 * time.Second})
 			})
 
 			It("sets it in the check plan", func() {
@@ -166,13 +166,13 @@ var _ = Describe("CheckFactory", func() {
 			})
 		})
 
-		Context("when the interval is not parseable", func() {
+		Context("when CheckEvery is never", func() {
 			BeforeEach(func() {
-				fakeResource.CheckEveryReturns("not-a-duration")
+				fakeResource.CheckEveryReturns(&atc.CheckEvery{Never: true})
 			})
 
-			It("errors", func() {
-				Expect(err).To(HaveOccurred())
+			It("does not try parsing the interval", func() {
+				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 

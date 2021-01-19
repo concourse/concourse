@@ -127,12 +127,7 @@ infoBar :
         , screenSize : ScreenSize.ScreenSize
         , version : String
     }
-    ->
-        { b
-            | highDensity : Bool
-            , dashboardView : Routes.DashboardView
-            , pipelines : Maybe (Dict String (List Pipeline))
-        }
+    -> FooterModel r
     -> Html Message
 infoBar session model =
     Html.div
@@ -149,12 +144,7 @@ infoBar session model =
 
 legend :
     { a | screenSize : ScreenSize.ScreenSize }
-    ->
-        { b
-            | pipelines : Maybe (Dict String (List Pipeline))
-            , highDensity : Bool
-            , dashboardView : Routes.DashboardView
-        }
+    -> FooterModel r
     -> Html Message
 legend session model =
     if hideLegend model then
@@ -184,8 +174,14 @@ legend session model =
                     , PipelineStatusAborted PipelineStatus.Running
                     , PipelineStatusSucceeded PipelineStatus.Running
                     ]
-                ++ legendSeparator session.screenSize
-                ++ [ toggleView model ]
+                ++ (case model.instanceGroup of
+                        Nothing ->
+                            legendSeparator session.screenSize
+                                ++ [ toggleView model ]
+
+                        _ ->
+                            []
+                   )
 
 
 concourseInfo :
@@ -217,28 +213,28 @@ legendItem : PipelineStatus -> Html Message
 legendItem status =
     Html.div
         Styles.legendItem
-        [ Icon.icon
-            { sizePx = 20, image = Assets.PipelineStatusIcon status }
-            Styles.pipelineStatusIcon
+        [ case Assets.pipelineStatusIcon status of
+            Just asset ->
+                Icon.icon
+                    { sizePx = 20, image = asset }
+                    Styles.pipelineStatusIcon
+
+            Nothing ->
+                Html.text ""
         , Html.div [ style "width" "10px" ] []
         , Html.text <| PipelineStatus.show status
         ]
 
 
-toggleView :
-    { r
-        | highDensity : Bool
-        , dashboardView : Routes.DashboardView
-    }
-    -> Html Message
-toggleView { highDensity, dashboardView } =
+toggleView : FooterModel r -> Html Message
+toggleView { highDensity, dashboardView, instanceGroup } =
     Toggle.toggleSwitch
         { ariaLabel = "Toggle high-density view"
         , hrefRoute =
             Routes.Dashboard
                 { searchType =
                     if highDensity then
-                        Routes.Normal ""
+                        Routes.Normal "" instanceGroup
 
                     else
                         Routes.HighDensity
