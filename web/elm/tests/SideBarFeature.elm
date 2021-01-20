@@ -760,24 +760,6 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
     ]
 
 
-hasCurrentInstanceGroupInSideBar : List Test
-hasCurrentInstanceGroupInSideBar =
-    [ test "team containing current instance group expands when opening sidebar" <|
-        given iAmViewingTheDashboardForAnInstanceGroup
-            >> given iAmOnANonPhoneScreen
-            >> given myBrowserFetchedAnInstanceGroup
-            >> given iClickedTheHamburgerIcon
-            >> when iAmLookingAtThePipelineGroup
-            >> then_ iSeeOneChild
-    , test "current instance group name has grey background" <|
-        given iAmViewingTheDashboardForAnInstanceGroup
-            >> given iAmOnANonPhoneScreen
-            >> given myBrowserFetchedAnInstanceGroup
-            >> given iClickedTheHamburgerIcon
-            >> when iAmLookingAtTheFirstInstanceGroup
-            >> then_ iSeeADarkBackground
-    ]
-
 
 all : Test
 all =
@@ -800,7 +782,6 @@ all =
                     >> when iAmLookingAtTheLeftHandSectionOfTheTopBar
                     >> then_ iSeeItLaysOutHorizontally
             ]
-        , describe "dashboard page current instance group" <| hasCurrentInstanceGroupInSideBar
         , describe "loading pipeline page" <| pageLoadIsSideBarCompatible iOpenedThePipelinePage
         , describe "on pipeline page" <| hasSideBar (when iOpenedThePipelinePage)
         , describe "pipeline page current pipeline" <|
@@ -1420,7 +1401,7 @@ iSeeItIsALinkToTheFirstInstanceGroup =
         [ tag "a"
         , Common.routeHref <|
             Routes.Dashboard
-                { searchType = Routes.Normal "" <| Just { teamName = "team", name = "group" }
+                { searchType = Routes.Normal "team:\"team\" group:\"group\""
                 , dashboardView = Routes.ViewNonArchivedPipelines
                 }
         ]
@@ -1444,7 +1425,7 @@ iNavigateToTheInstanceGroup =
             (TopLevelMessage.DeliveryReceived <|
                 Subscription.RouteChanged <|
                     Routes.Dashboard
-                        { searchType = Routes.Normal "" <| Just { teamName = "team", name = "group" }
+                        { searchType = Routes.Normal "team:\"team\" group:\"group\""
                         , dashboardView = Routes.ViewNonArchivedPipelines
                         }
             )
@@ -1955,7 +1936,7 @@ iNavigateToTheDashboard =
             (TopLevelMessage.DeliveryReceived <|
                 Subscription.RouteChanged <|
                     Routes.Dashboard
-                        { searchType = Routes.Normal "" Nothing
+                        { searchType = Routes.Normal ""
                         , dashboardView = Routes.ViewNonArchivedPipelines
                         }
             )

@@ -24,7 +24,7 @@ all =
                     |> Expect.equal
                         (Just
                             (Routes.Dashboard
-                                { searchType = Routes.Normal "asdf sd" Nothing
+                                { searchType = Routes.Normal "asdf sd"
                                 , dashboardView = Routes.ViewNonArchivedPipelines
                                 }
                             )
@@ -42,79 +42,7 @@ all =
                     |> Expect.equal
                         (Just
                             (Routes.Dashboard
-                                { searchType = Routes.Normal "" Nothing
-                                , dashboardView = Routes.ViewNonArchivedPipelines
-                                }
-                            )
-                        )
-        , test "parses dashboard with instance group" <|
-            \_ ->
-                Routes.parsePath
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/"
-                    , query = Just "team=main&group=my-group"
-                    , fragment = Nothing
-                    }
-                    |> Expect.equal
-                        (Just
-                            (Routes.Dashboard
-                                { searchType = Routes.Normal "" <| Just { teamName = "main", name = "my-group" }
-                                , dashboardView = Routes.ViewNonArchivedPipelines
-                                }
-                            )
-                        )
-        , test "parses dashboard with search and instance group" <|
-            \_ ->
-                Routes.parsePath
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/"
-                    , query = Just "search=hello+world&team=main&group=my-group"
-                    , fragment = Nothing
-                    }
-                    |> Expect.equal
-                        (Just
-                            (Routes.Dashboard
-                                { searchType = Routes.Normal "hello world" <| Just { teamName = "main", name = "my-group" }
-                                , dashboardView = Routes.ViewNonArchivedPipelines
-                                }
-                            )
-                        )
-        , test "parses dashboard instance group respecting space" <|
-            \_ ->
-                Routes.parsePath
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/"
-                    , query = Just "team=main+team&group=my+group"
-                    , fragment = Nothing
-                    }
-                    |> Expect.equal
-                        (Just
-                            (Routes.Dashboard
-                                { searchType = Routes.Normal "" <| Just { teamName = "main team", name = "my group" }
-                                , dashboardView = Routes.ViewNonArchivedPipelines
-                                }
-                            )
-                        )
-        , test "parses dashboard with incomplete instance group" <|
-            \_ ->
-                Routes.parsePath
-                    { protocol = Url.Http
-                    , host = ""
-                    , port_ = Nothing
-                    , path = "/"
-                    , query = Just "team=main"
-                    , fragment = Nothing
-                    }
-                    |> Expect.equal
-                        (Just
-                            (Routes.Dashboard
-                                { searchType = Routes.Normal "" Nothing
+                                { searchType = Routes.Normal ""
                                 , dashboardView = Routes.ViewNonArchivedPipelines
                                 }
                             )
@@ -132,7 +60,7 @@ all =
                     |> Expect.equal
                         (Just
                             (Routes.Dashboard
-                                { searchType = Routes.Normal "" Nothing
+                                { searchType = Routes.Normal ""
                                 , dashboardView = Routes.ViewAllPipelines
                                 }
                             )
@@ -150,7 +78,7 @@ all =
                     |> Expect.equal
                         (Just
                             (Routes.Dashboard
-                                { searchType = Routes.Normal "" Nothing
+                                { searchType = Routes.Normal ""
                                 , dashboardView = Routes.ViewNonArchivedPipelines
                                 }
                             )
@@ -215,31 +143,12 @@ all =
                     }
                     |> Expect.equal
                         (Just <| Routes.FlySuccess False (Just 1234))
-        , test "toString serializes instance group on dashboard" <|
-            \_ ->
-                ("http://example.com"
-                    ++ Routes.toString
-                        (Routes.Dashboard
-                            { searchType = Routes.Normal "" <| Just { teamName = "team", name = "group" }
-                            , dashboardView = Routes.ViewNonArchivedPipelines
-                            }
-                        )
-                )
-                    |> Url.fromString
-                    |> Maybe.andThen Routes.parsePath
-                    |> Expect.equal
-                        (Just <|
-                            Routes.Dashboard
-                                { searchType = Routes.Normal "" <| Just { teamName = "team", name = "group" }
-                                , dashboardView = Routes.ViewNonArchivedPipelines
-                                }
-                        )
         , test "toString serializes 'all' dashboard view" <|
             \_ ->
                 ("http://example.com"
                     ++ Routes.toString
                         (Routes.Dashboard
-                            { searchType = Routes.Normal "hello world" Nothing
+                            { searchType = Routes.Normal "hello world"
                             , dashboardView = Routes.ViewAllPipelines
                             }
                         )
@@ -249,7 +158,7 @@ all =
                     |> Expect.equal
                         (Just <|
                             Routes.Dashboard
-                                { searchType = Routes.Normal "hello world" Nothing
+                                { searchType = Routes.Normal "hello world"
                                 , dashboardView = Routes.ViewAllPipelines
                                 }
                         )
@@ -257,7 +166,7 @@ all =
             \_ ->
                 Routes.toString
                     (Routes.Dashboard
-                        { searchType = Routes.Normal "" Nothing
+                        { searchType = Routes.Normal ""
                         , dashboardView = Routes.ViewNonArchivedPipelines
                         }
                     )

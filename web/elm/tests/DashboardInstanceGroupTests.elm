@@ -1,8 +1,8 @@
 module DashboardInstanceGroupTests exposing
     ( all
     , archived
-    , gotPipelines
     , pipelineInstance
+    , pipelineInstanceWithVars
     )
 
 import Application.Application as Application
@@ -10,6 +10,8 @@ import Assets
 import Common
     exposing
         ( defineHoverBehaviour
+        , givenDataUnauthenticated
+        , gotPipelines
         , isColorWithStripes
         , pipelineRunningKeyframes
         )
@@ -19,8 +21,7 @@ import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import DashboardTests
     exposing
-        ( givenDataUnauthenticated
-        , job
+        ( job
         , running
         , whenOnDashboard
         )
@@ -86,7 +87,7 @@ all =
                     |> Common.queryView
                     |> Query.findAll [ class "card" ]
                     |> Query.count (Expect.equal 1)
-        , test "does display favorites section" <|
+        , test "displays favorites section" <|
             \_ ->
                 whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
                     |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
@@ -108,7 +109,7 @@ all =
                     |> Common.queryView
                     |> Query.find [ id "dashboard-favorite-pipelines" ]
                     |> Query.has [ text "team / group" ]
-        , test "does display all pipelines section" <|
+        , test "displays all pipelines section" <|
             \_ ->
                 whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
                     |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
@@ -120,16 +121,69 @@ all =
                     |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
                     |> Common.queryView
                     |> Query.has [ text "team / group" ]
+        , describe "multiple matching instance groups" <|
+            let
+                multipleGroups =
+                    [ pipelineInstance BuildStatusSucceeded False 1 |> withName "group1" |> withTeam "team1"
+                    , pipelineInstance BuildStatusSucceeded False 2 |> withName "group1" |> withTeam "team1"
+                    , pipelineInstance BuildStatusSucceeded False 3 |> withName "group2" |> withTeam "team1"
+                    , pipelineInstance BuildStatusSucceeded False 4 |> withName "group1" |> withTeam "team2"
+                    , pipelineInstance BuildStatusSucceeded False 5 |> withName "group1" |> withTeam "team2"
+                    ]
+
+                expectHeaders expected =
+                    Query.findAll [ class "dashboard-team-header" ]
+                        >> Expect.all
+                            (Query.count (Expect.equal <| List.length expected)
+                                :: List.indexedMap (\i e -> Query.index i >> Query.has [ text e ])
+                                    expected
+                            )
+
+                assertInstanceGroup name expect =
+                    Query.find [ class "dashboard-team-group", containing [ text name ] ]
+                        >> expect
+
+                hasCards n =
+                    Query.findAll [ class "card" ] >> Query.count (Expect.equal n)
+            in
+            [ test "displays a header for each matching instance group" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> gotPipelines multipleGroups
+                        |> Application.update
+                            (ApplicationMsgs.Update <|
+                                Msgs.FilterMsg "group:group"
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> expectHeaders [ "team1 / group1", "team1 / group2", "team2 / group1" ]
+            , test "displays cards for each instance" <|
+                \_ ->
+                    whenOnDashboard { highDensity = False }
+                        |> gotPipelines multipleGroups
+                        |> Application.update
+                            (ApplicationMsgs.Update <|
+                                Msgs.FilterMsg "group:group"
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Expect.all
+                            [ hasCards 5
+                            , assertInstanceGroup "team1 / group1" (hasCards 2)
+                            , assertInstanceGroup "team1 / group2" (hasCards 1)
+                            , assertInstanceGroup "team2 / group1" (hasCards 2)
+                            ]
+            ]
         , test "applies filters to cards" <|
             \_ ->
                 whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
                     |> gotPipelines
                         [ pipelineInstance BuildStatusSucceeded False 1
-                        , pipelineInstance BuildStatusFailed False 1
+                        , pipelineInstance BuildStatusFailed False 2
                         ]
                     |> Application.update
                         (ApplicationMsgs.Update <|
-                            Msgs.FilterMsg "status: succeeded"
+                            Msgs.FilterMsg "team:\"team\" group:\"group\" status:succeeded"
                         )
                     |> Tuple.first
                     |> Common.queryView
@@ -153,7 +207,7 @@ all =
                         |> Application.handleDelivery
                             (Subscription.RouteChanged <|
                                 Routes.Dashboard
-                                    { searchType = Routes.Normal "" <| Just { teamName = "team", name = "group" }
+                                    { searchType = Routes.Normal "group:g"
                                     , dashboardView = Routes.ViewNonArchivedPipelines
                                     }
                             )
@@ -166,20 +220,20 @@ all =
                         |> Application.handleDelivery
                             (Subscription.RouteChanged <|
                                 Routes.Dashboard
-                                    { searchType = Routes.Normal "" Nothing
+                                    { searchType = Routes.Normal ""
                                     , dashboardView = Routes.ViewNonArchivedPipelines
                                     }
                             )
                         |> Tuple.second
                         |> Common.contains (Effects.Scroll ScrollDirection.ToTop "dashboard")
-            , test "filtering does not scroll" <|
+            , test "regular filtering does not scroll" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
                         |> Application.handleDelivery
                             (Subscription.RouteChanged <|
                                 Routes.Dashboard
-                                    { searchType = Routes.Normal "some filter" Nothing
+                                    { searchType = Routes.Normal "some filter"
                                     , dashboardView = Routes.ViewNonArchivedPipelines
                                     }
                             )
@@ -273,7 +327,10 @@ all =
             , test "when no instance vars, displays 'no vars'" <|
                 \_ ->
                     whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
-                        |> gotPipelines [ pipelineInstanceWithVars 1 [] ]
+                        |> gotPipelines
+                            [ pipelineInstanceWithVars 1 []
+                            , pipelineInstanceWithVars 2 [ ( "a", JsonString "" ) ]
+                            ]
                         |> Common.queryView
                         |> findCards
                         |> Query.first
@@ -336,23 +393,11 @@ whenOnDashboardViewingInstanceGroup { dashboardView } =
         |> Application.handleDelivery
             (RouteChanged <|
                 Routes.Dashboard
-                    { searchType = Routes.Normal "" <| Just { teamName = "team", name = "group" }
+                    { searchType = Routes.Normal "team:\"team\" group:\"group\""
                     , dashboardView = dashboardView
                     }
             )
         |> Tuple.first
-
-
-gotPipelines : List ( Concourse.Pipeline, List Concourse.Job ) -> Application.Model -> Application.Model
-gotPipelines data =
-    Application.handleCallback
-        (Callback.AllJobsFetched <| Ok (data |> List.concatMap Tuple.second))
-        >> Tuple.first
-        >> givenDataUnauthenticated [ { id = 1, name = "team" } ]
-        >> Tuple.first
-        >> Application.handleCallback
-            (Callback.AllPipelinesFetched <| Ok (data |> List.map Tuple.first))
-        >> Tuple.first
 
 
 pipelineInstance : BuildStatus -> Bool -> Int -> ( Concourse.Pipeline, List Concourse.Job )
@@ -384,3 +429,11 @@ pipelineInstanceWithVars id vars =
 archived : ( Concourse.Pipeline, a ) -> ( Concourse.Pipeline, a )
 archived ( p, j ) =
     ( p |> Data.withArchived True, j )
+
+
+withName n =
+    Tuple.mapFirst (Data.withName n)
+
+
+withTeam t =
+    Tuple.mapFirst (Data.withTeamName t)

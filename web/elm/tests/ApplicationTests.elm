@@ -129,7 +129,7 @@ all =
                     |> Application.handleDelivery
                         (RouteChanged <|
                             Routes.Dashboard
-                                { searchType = Routes.Normal "" Nothing
+                                { searchType = Routes.Normal ""
                                 , dashboardView = Routes.ViewNonArchivedPipelines
                                 }
                         )

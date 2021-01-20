@@ -20,7 +20,6 @@ import Dashboard.Models
 import EffectTransformer exposing (ET)
 import FlySuccess.FlySuccess as FlySuccess
 import FlySuccess.Models
-import HoverState
 import Html exposing (Html)
 import Job.Job as Job
 import Login.Login as Login
@@ -212,21 +211,21 @@ handleLoggedOut ( m, effs ) =
         ++ [ NavigateTo <|
                 Routes.toString <|
                     Routes.Dashboard
-                        { searchType = Routes.Normal "" Nothing
+                        { searchType = Routes.Normal ""
                         , dashboardView = Routes.ViewNonArchivedPipelines
                         }
            ]
     )
 
 
-handleDelivery : { a | hovered : HoverState.HoverState } -> Delivery -> ET Model
+handleDelivery : Session -> Delivery -> ET Model
 handleDelivery session delivery =
     genericUpdate
         (Build.handleDelivery session delivery)
         (Job.handleDelivery delivery)
         (Resource.handleDelivery session delivery)
         (Pipeline.handleDelivery delivery)
-        (Dashboard.handleDelivery delivery)
+        (Dashboard.handleDelivery session delivery)
         (NotFound.handleDelivery delivery)
         (FlySuccess.handleDelivery delivery)
 

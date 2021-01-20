@@ -3,10 +3,10 @@ module WelcomeCardTests exposing (all, hasWelcomeCard)
 import Application.Application as Application
 import Assets
 import ColorValues
-import Common exposing (defineHoverBehaviour)
+import Common exposing (defineHoverBehaviour, givenDataUnauthenticated)
 import Concourse
 import Concourse.Cli as Cli
-import DashboardTests exposing (apiData, darkGrey, givenDataAndUser, givenDataUnauthenticated, iconSelector, userWithRoles, whenOnDashboard)
+import DashboardTests exposing (apiData, darkGrey, givenDataAndUser, iconSelector, userWithRoles, whenOnDashboard)
 import Data
 import Expect
 import Html.Attributes as Attr

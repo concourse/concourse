@@ -7,7 +7,7 @@ import Application.Models exposing (Session)
 import Assets
 import ColorValues
 import Concourse exposing (hyphenNotation)
-import Dict
+import Dashboard.FilterBuilder exposing (instanceGroupFilter)
 import Html exposing (Html)
 import Html.Attributes
     exposing
@@ -117,14 +117,13 @@ clusterNameBreadcrumb session =
 pipelineBreadcrumbs : Session -> Concourse.Pipeline -> List (Html Message)
 pipelineBreadcrumbs session pipeline =
     let
-        numPipelines =
+        pipelineGroup =
             session.pipelines
                 |> RemoteData.withDefault []
                 |> List.filter (\p -> p.name == pipeline.name && p.teamName == pipeline.teamName)
-                |> List.length
 
         inInstanceGroup =
-            numPipelines > 1 || (not <| Dict.isEmpty pipeline.instanceVars)
+            Concourse.isInstanceGroup pipelineGroup
     in
     (if inInstanceGroup then
         [ Html.a
@@ -132,13 +131,13 @@ pipelineBreadcrumbs session pipeline =
                 :: (href <|
                         Routes.toString <|
                             Routes.Dashboard
-                                { searchType = Routes.Normal "" <| Just { name = pipeline.name, teamName = pipeline.teamName }
+                                { searchType = Routes.Normal <| instanceGroupFilter pipeline
                                 , dashboardView = Routes.ViewNonArchivedPipelines
                                 }
                    )
                 :: Styles.breadcrumbItem True
             )
-            [ InstanceGroupBadge.view ColorValues.white numPipelines
+            [ InstanceGroupBadge.view ColorValues.white (List.length pipelineGroup)
             , Html.text pipeline.name
             ]
         , breadcrumbSeparator

@@ -24,7 +24,6 @@ type alias Model =
         (Login.Model
             { now : Maybe Time.Posix
             , highDensity : Bool
-            , query : String
             , pipelinesWithResourceErrors : Set Concourse.DatabaseID
             , jobs : FetchResult (Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job)
             , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobName))
@@ -73,7 +72,7 @@ type alias FooterModel r =
         , dropdown : Dropdown
         , highDensity : Bool
         , dashboardView : Routes.DashboardView
-        , instanceGroup : Maybe Concourse.InstanceGroupIdentifier
+        , query : String
     }
 
 

@@ -101,7 +101,6 @@ init f =
       , showHelp = False
       , highDensity = f.searchType == Routes.HighDensity
       , query = Routes.extractQuery f.searchType
-      , instanceGroup = Routes.extractInstanceGroup f.searchType
       , dashboardView = f.dashboardView
       , pipelinesWithResourceErrors = Set.empty
       , jobs = None
@@ -142,17 +141,23 @@ init f =
 
 changeRoute : Flags -> ET Model
 changeRoute f ( model, effects ) =
+    let
+        wasViewingInstanceGroup =
+            Filter.isViewingInstanceGroups model.query
+
+        newQuery =
+            Routes.extractQuery f.searchType
+
+        isViewingInstanceGroup =
+            Filter.isViewingInstanceGroups newQuery
+    in
     ( { model
         | highDensity = f.searchType == Routes.HighDensity
         , dashboardView = f.dashboardView
-
-        -- I think we're deliberately not extracting the query from searchType
-        -- so that switching to the HD view carries the search query over?
-        -- Eventually, the HD view should have search functionality, though
-        , instanceGroup = Routes.extractInstanceGroup f.searchType
+        , query = newQuery
       }
     , effects
-        ++ (if model.instanceGroup /= Routes.extractInstanceGroup f.searchType then
+        ++ (if wasViewingInstanceGroup /= isViewingInstanceGroup then
                 [ Scroll ToTop <| toHtmlID Dashboard ]
 
             else
@@ -411,7 +416,7 @@ handleCallback callback ( model, effects ) =
                                         Routes.HighDensity
 
                                     else
-                                        Routes.Normal model.query Nothing
+                                        Routes.Normal ""
                                 , dashboardView = model.dashboardView
                                 }
                    , FetchAllTeams
@@ -498,9 +503,9 @@ updatePipeline updater pipelineId model =
     }
 
 
-handleDelivery : Delivery -> ET Model
-handleDelivery delivery =
-    SearchBar.handleDelivery delivery
+handleDelivery : Session -> Delivery -> ET Model
+handleDelivery session delivery =
+    SearchBar.handleDelivery session delivery
         >> Footer.handleDelivery delivery
         >> RequestBuffer.handleDelivery delivery buffers
         >> handleDeliveryBody delivery
@@ -838,15 +843,7 @@ view session model =
                     "50px"
             ]
           <|
-            [ SideBar.view session
-                (model.instanceGroup
-                    |> Maybe.map
-                        (\{ name, teamName } ->
-                            { teamName = teamName
-                            , pipelineName = name
-                            }
-                        )
-                )
+            [ SideBar.view session Nothing
             , dashboardView session model
             ]
         , Footer.view session model
@@ -1055,7 +1052,7 @@ showArchivedToggleView model =
                             Routes.HighDensity
 
                         else
-                            Routes.Normal model.query model.instanceGroup
+                            Routes.Normal model.query
                     , dashboardView =
                         if on then
                             Routes.ViewNonArchivedPipelines
@@ -1221,39 +1218,18 @@ turbulenceView path =
 
 dashboardCardsView : Session -> Model -> List (Html Message)
 dashboardCardsView session model =
-    case model.instanceGroup of
-        Nothing ->
-            regularCardsView session model
+    if Filter.isViewingInstanceGroups model.query then
+        instanceGroupCardsView session model
 
-        Just ig ->
-            instanceGroupCardsView session model ig
+    else
+        regularCardsView session model
 
 
 regularCardsView : Session -> Model -> List (Html Message)
 regularCardsView session params =
     let
-        pipelines =
-            params.pipelines
-                |> Maybe.withDefault Dict.empty
-
-        jobs =
-            params.jobs
-                |> FetchResult.withDefault Dict.empty
-
-        teams =
-            params.teams
-                |> FetchResult.withDefault []
-
         filteredPipelinesByTeam =
-            Filter.filterTeams
-                { pipelineJobs = params.pipelineJobs
-                , jobs = jobs
-                , query = params.query
-                , teams = teams
-                , pipelines = pipelines
-                , dashboardView = params.dashboardView
-                , favoritedPipelines = session.favoritedPipelines
-                }
+            Filter.filterTeams session params
                 |> Dict.toList
                 |> List.sortWith (Ordering.byFieldWith (Group.ordering session) Tuple.first)
 
@@ -1271,55 +1247,42 @@ regularCardsView session params =
 
 groupCards : List Pipeline -> List Card
 groupCards =
-    List.Extra.gatherEqualsBy .name
+    Concourse.groupPipelines
         >> List.map
-            (\( p, ps ) ->
-                if List.isEmpty ps && Dict.isEmpty p.instanceVars then
-                    PipelineCard p
+            (\g ->
+                case g of
+                    Concourse.RegularPipeline p ->
+                        PipelineCard p
 
-                else
-                    InstanceGroupCard p ps
+                    Concourse.InstanceGroup p ps ->
+                        InstanceGroupCard p ps
             )
 
 
-instanceGroupCardsView : Session -> Model -> Concourse.InstanceGroupIdentifier -> List (Html Message)
-instanceGroupCardsView session model { teamName, name } =
+instanceGroupCardsView : Session -> Model -> List (Html Message)
+instanceGroupCardsView session model =
     let
-        pipelines =
-            model.pipelines
-                |> Maybe.withDefault Dict.empty
-
-        jobs =
-            model.jobs
-                |> FetchResult.withDefault Dict.empty
-
-        pipelineInstances =
-            pipelines
-                |> Dict.get teamName
-                |> Maybe.map (List.filter (.name >> (==) name))
-                |> Maybe.withDefault []
-
+        filteredPipelines : List ( Concourse.TeamName, List Pipeline )
         filteredPipelines =
-            Filter.filterTeams
-                { pipelineJobs = model.pipelineJobs
-                , jobs = jobs
-                , query = model.query
-                , teams = []
-                , pipelines = Dict.fromList [ ( teamName, pipelineInstances ) ]
-                , dashboardView = model.dashboardView
-                , favoritedPipelines = session.favoritedPipelines
-                }
+            Filter.filterTeams session model
                 |> Dict.toList
-                |> List.head
-                |> Maybe.map Tuple.second
-                |> Maybe.withDefault []
+                |> List.sortWith (Ordering.byFieldWith (Group.ordering session) Tuple.first)
+
+        instanceGroups : List ( String, List Card )
+        instanceGroups =
+            filteredPipelines
+                |> List.concatMap
+                    (\( team, teamPipelines ) ->
+                        List.Extra.gatherEqualsBy .name teamPipelines
+                            |> List.map
+                                (\( p, ps ) ->
+                                    ( team ++ " / " ++ p.name
+                                    , p :: ps |> List.map PipelineCard
+                                    )
+                                )
+                    )
     in
-    cardsView session
-        model
-        [ ( teamName ++ " / " ++ name
-          , filteredPipelines |> List.map PipelineCard
-          )
-        ]
+    cardsView session model instanceGroups
 
 
 cardsView : Session -> Model -> List ( String, List Card ) -> List (Html Message)
@@ -1328,6 +1291,9 @@ cardsView session params teamCards =
         jobs =
             params.jobs
                 |> FetchResult.withDefault Dict.empty
+
+        inInstanceGroupView =
+            Filter.isViewingInstanceGroups params.query
 
         ( headerView, offsetHeight ) =
             if params.highDensity then
@@ -1381,7 +1347,7 @@ cardsView session params teamCards =
                                 , viewportWidth = params.viewportWidth
                                 , viewportHeight = params.viewportHeight
                                 , scrollTop = params.scrollTop - offset
-                                , isInstanceGroupView = params.instanceGroup /= Nothing
+                                , isInstanceGroupView = inInstanceGroupView
                                 }
                                 favoritedCards
                     in
@@ -1398,7 +1364,7 @@ cardsView session params teamCards =
                         , jobs = jobs
                         , dashboardView = params.dashboardView
                         , query = params.query
-                        , inInstanceGroupView = params.instanceGroup /= Nothing
+                        , inInstanceGroupView = inInstanceGroupView
                         }
                         layout.headers
                         layout.cards
@@ -1461,7 +1427,7 @@ cardsView session params teamCards =
                                     , jobs = jobs
                                     , dashboardView = params.dashboardView
                                     , query = params.query
-                                    , inInstanceGroupView = params.instanceGroup /= Nothing
+                                    , inInstanceGroupView = inInstanceGroupView
                                     }
                                     teamName
                                     layout.cards

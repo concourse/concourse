@@ -10,7 +10,6 @@ module DashboardTests exposing
     , darkGrey
     , fadedGreen
     , givenDataAndUser
-    , givenDataUnauthenticated
     , green
     , iconSelector
     , job
@@ -33,6 +32,7 @@ import ColorValues
 import Common
     exposing
         ( defineHoverBehaviour
+        , givenDataUnauthenticated
         , isColorWithStripes
         , pipelineRunningKeyframes
         )
@@ -2107,22 +2107,7 @@ whenOnDashboard { highDensity } =
          else
             "/"
         )
-        |> Application.handleCallback
-            (Callback.GotViewport Msgs.Dashboard <|
-                Ok <|
-                    { scene =
-                        { width = 600
-                        , height = 600
-                        }
-                    , viewport =
-                        { width = 600
-                        , height = 600
-                        , x = 0
-                        , y = 0
-                        }
-                    }
-            )
-        |> Tuple.first
+        |> Common.withAllPipelinesVisible
 
 
 whenOnDashboardViewingAllPipelines : { highDensity : Bool } -> Application.Model
@@ -2136,7 +2121,7 @@ whenOnDashboardViewingAllPipelines { highDensity } =
                             Routes.HighDensity
 
                         else
-                            Routes.Normal "" Nothing
+                            Routes.Normal ""
                     , dashboardView = Routes.ViewAllPipelines
                     }
             )
@@ -2165,18 +2150,6 @@ userWithRoles roles =
     , teams =
         Dict.fromList roles
     }
-
-
-givenDataUnauthenticated :
-    List Concourse.Team
-    -> Application.Model
-    -> ( Application.Model, List Effects.Effect )
-givenDataUnauthenticated data =
-    Application.handleCallback
-        (Callback.AllTeamsFetched <| Ok data)
-        >> Tuple.first
-        >> Application.handleCallback
-            (Callback.UserFetched <| Data.httpUnauthorized)
 
 
 givenClusterInfo :
