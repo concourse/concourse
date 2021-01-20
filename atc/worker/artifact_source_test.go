@@ -41,14 +41,14 @@ var _ = Describe("ArtifactSourcer", func() {
 	It("locates images by handle", func() {
 		artifact := runtime.GetArtifact{VolumeHandle: "image"}
 		vf := FakeVolumeFinder{Volumes: map[string]worker.Volume{
-			"image": newVolumeWithContent([]byte("image content")),
+			"image": newVolumeWithContent(content{".": []byte("image content")}),
 		}}
 
 		sourcer := worker.NewArtifactSourcer(fakeCompression, vf, false, 0)
 		source, err := sourcer.SourceImage(logger, artifact)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(source).To(BeStreamableWithContent([]byte("image content")))
+		Expect(source).To(BeStreamableWithContent(content{".": []byte("image content")}))
 	})
 
 	It("locates inputs and caches", func() {
@@ -79,7 +79,7 @@ var _ = Describe("ArtifactSourcer", func() {
 			}
 		}
 		vf := FakeVolumeFinder{Volumes: map[string]worker.Volume{
-			"output": newVolumeWithContent([]byte("output"))},
+			"output": newVolumeWithContent(content{".": []byte("output")})},
 		}
 
 		sourcer := worker.NewArtifactSourcer(fakeCompression, vf, false, 0)
@@ -92,7 +92,7 @@ var _ = Describe("ArtifactSourcer", func() {
 		}
 
 		Expect(sources).To(ConsistOf(
-			BeStreamableWithContent([]byte("output")),
+			BeStreamableWithContent(content{".": []byte("output")}),
 			ExistOnWorker(fakeWorker),
 			Not(ExistOnWorker(fakeWorker)),
 		))

@@ -16,16 +16,16 @@ type ArtifactStreamer interface {
 	StreamFileFromArtifact(context.Context, runtime.Artifact, string) (io.ReadCloser, error)
 }
 
-func NewArtifactStreamer(pool Pool, compression compression.Compression) ArtifactStreamer {
+func NewArtifactStreamer(volumeFinder VolumeFinder, compression compression.Compression) ArtifactStreamer {
 	return artifactStreamer{
-		pool:        pool,
-		compression: compression,
+		volumeFinder: volumeFinder,
+		compression:  compression,
 	}
 }
 
 type artifactStreamer struct {
-	pool        Pool
-	compression compression.Compression
+	volumeFinder VolumeFinder
+	compression  compression.Compression
 }
 
 func (a artifactStreamer) StreamFileFromArtifact(
@@ -33,14 +33,13 @@ func (a artifactStreamer) StreamFileFromArtifact(
 	artifact runtime.Artifact,
 	filePath string,
 ) (io.ReadCloser, error) {
-	artifactVolume, found, err := a.pool.FindVolume(lagerctx.FromContext(ctx), 0, artifact.ID())
+	artifactVolume, found, err := a.volumeFinder.FindVolume(lagerctx.FromContext(ctx), 0, artifact.ID())
 	if err != nil {
 		return nil, err
 	}
 	if !found {
 		return nil, baggageclaim.ErrVolumeNotFound
 	}
-
 	source := artifactSource{
 		artifact:    artifact,
 		volume:      artifactVolume,
