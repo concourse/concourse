@@ -25,6 +25,8 @@ var _ = Describe("Version Checks", func() {
 		flySession       *gexec.Session
 	)
 	BeforeEach(func() {
+		flyVersion = atcVersion
+
 		atcServer.AppendHandlers(
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers"),
