@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -21,12 +22,36 @@ import (
 
 var _ = Describe("Syncing", func() {
 	var (
-		flyVersion string
-		flyPath    string
+		flyVersion    string
+		copiedFlyDir  string
+		copiedFlyPath string
 	)
 
-	cliHandler := func() http.HandlerFunc {
-		return ghttp.CombineHandlers(
+	BeforeEach(func() {
+		copiedFlyDir, err := ioutil.TempDir("", "fly_sync")
+		Expect(err).ToNot(HaveOccurred())
+
+		copiedFly, err := os.Create(filepath.Join(copiedFlyDir, filepath.Base(flyPath)))
+		Expect(err).ToNot(HaveOccurred())
+
+		fly, err := os.Open(flyPath)
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = io.Copy(copiedFly, fly)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(copiedFly.Close()).To(Succeed())
+
+		Expect(fly.Close()).To(Succeed())
+
+		copiedFlyPath = copiedFly.Name()
+
+		fi, err := os.Stat(flyPath)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(os.Chmod(copiedFlyPath, fi.Mode())).To(Succeed())
+
+		atcServer.AppendHandlers(ghttp.CombineHandlers(
 			ghttp.VerifyRequest("GET", "/api/v1/cli"),
 			func(w http.ResponseWriter, r *http.Request) {
 				arch := r.URL.Query().Get("arch")
@@ -40,19 +65,26 @@ var _ = Describe("Syncing", func() {
 				w.WriteHeader(http.StatusOK)
 				fmt.Fprint(w, "this will totally execute")
 			},
-		)
-	}
+		))
+	})
 
-	JustBeforeEach(func() {
-		var err error
-		flyPath, err = gexec.Build(
-			"github.com/concourse/concourse/fly",
-			"-ldflags", fmt.Sprintf("-X github.com/concourse/concourse.Version=%s", flyVersion),
-		)
+	AfterEach(func() {
+		Expect(os.RemoveAll(copiedFlyDir)).To(Succeed())
+	})
+
+	downloadAndReplaceExecutable := func(arg ...string) {
+		flyCmd := exec.Command(copiedFlyPath, arg...)
+		flyCmd.Env = append(os.Environ(), "FAKE_FLY_VERSION="+flyVersion)
+
+		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 
-		atcServer.AppendHandlers(cliHandler())
-	})
+		<-sess.Exited
+		Expect(sess.ExitCode()).To(Equal(0))
+
+		expected := []byte("this will totally execute")
+		expectBinaryToMatch(copiedFlyPath, expected[:8])
+	}
 
 	Context("When versions mismatch between fly + atc", func() {
 		BeforeEach(func() {
@@ -63,11 +95,11 @@ var _ = Describe("Syncing", func() {
 		})
 
 		It("downloads and replaces the currently running executable with target", func() {
-			downloadAndReplaceExecutable(flyPath, "-t", targetName, "sync")
+			downloadAndReplaceExecutable("-t", targetName, "sync")
 		})
 
 		It("downloads and replaces the currently running executable with target URL", func() {
-			downloadAndReplaceExecutable(flyPath, "sync", "-c", atcServer.URL())
+			downloadAndReplaceExecutable("sync", "-c", atcServer.URL())
 		})
 
 		Context("When the user running sync doesn't have write permissions for the target directory", func() {
@@ -85,11 +117,12 @@ var _ = Describe("Syncing", func() {
 					return
 				}
 
-				os.Chmod(filepath.Dir(flyPath), 0500)
+				Expect(os.Chmod(filepath.Dir(copiedFlyPath), 0500)).To(Succeed())
 
-				expectedBinary := readBinary(flyPath)
+				expectedBinary := readBinary(copiedFlyPath)
 
-				flyCmd := exec.Command(flyPath, "sync", "-c", atcServer.URL())
+				flyCmd := exec.Command(copiedFlyPath, "sync", "-c", atcServer.URL())
+				flyCmd.Env = append(os.Environ(), "FAKE_FLY_VERSION="+flyVersion)
 
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
@@ -98,7 +131,7 @@ var _ = Describe("Syncing", func() {
 				Expect(sess.ExitCode()).To(Equal(1))
 				Expect(sess.Err).To(gbytes.Say("update failed.*permission denied"))
 
-				expectBinaryToMatch(flyPath, expectedBinary)
+				expectBinaryToMatch(copiedFlyPath, expectedBinary)
 			})
 		})
 	})
@@ -107,10 +140,12 @@ var _ = Describe("Syncing", func() {
 		BeforeEach(func() {
 			flyVersion = atcVersion
 		})
-		It("informs the user, and doesn't download/replace the executable", func() {
-			expectedBinary := readBinary(flyPath)
 
-			flyCmd := exec.Command(flyPath, "sync", "-c", atcServer.URL())
+		It("informs the user, and doesn't download/replace the executable", func() {
+			expectedBinary := readBinary(copiedFlyPath)
+
+			flyCmd := exec.Command(copiedFlyPath, "sync", "-c", atcServer.URL())
+			flyCmd.Env = append(os.Environ(), "FAKE_FLY_VERSION="+flyVersion)
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
@@ -119,23 +154,10 @@ var _ = Describe("Syncing", func() {
 			Expect(sess.ExitCode()).To(Equal(0))
 			Expect(sess.Out).To(gbytes.Say(`version 6.3.1 already matches; skipping`))
 
-			expectBinaryToMatch(flyPath, expectedBinary)
+			expectBinaryToMatch(copiedFlyPath, expectedBinary)
 		})
 	})
 })
-
-func downloadAndReplaceExecutable(flyPath string, arg ...string) {
-	flyCmd := exec.Command(flyPath, arg...)
-
-	sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).NotTo(HaveOccurred())
-
-	<-sess.Exited
-	Expect(sess.ExitCode()).To(Equal(0))
-
-	expected := []byte("this will totally execute")
-	expectBinaryToMatch(flyPath, expected[:8])
-}
 
 func readBinary(path string) []byte {
 	expectedBinary, err := ioutil.ReadFile(flyPath)

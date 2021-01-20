@@ -240,7 +240,7 @@ run:
 				Expect(err).NotTo(HaveOccurred())
 
 				// sync with after create
-				Eventually(streaming).Should(BeClosed())
+				<-streaming
 
 				close(events)
 
@@ -267,10 +267,9 @@ run:
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(sess.Err).Should(gbytes.Say("error: unknown output 'wrong-output'"))
-
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
+				Expect(sess.Err).To(gbytes.Say("error: unknown output 'wrong-output'"))
 			})
 		})
 	})
