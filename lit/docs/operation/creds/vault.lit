@@ -138,16 +138,28 @@ quite involved.
 \section{
   \title{Configuring the secrets engine}
 
-  Concourse is currently limited to looking under a single path, meaning only
-  one secrets engine is supported: \code{kv}, version 1. This may change in the
-  future - we're still collecting ideas in \link{RFC
+  Concourse is currently limited to looking under a single path, meaning
+  enabling only one secrets engine is supported: \code{kv}, or \code{kv_v2}.
+  This may change in the future - we're still collecting ideas in \link{RFC
   #21}{https://github.com/concourse/rfcs/pull/21}.
+
+  Using kv version 2 enables versioned secrets and the ability to restore
+  previous versions or deleted secrets. Concourse will read the latest version
+  of a secret at all times and if it is deleted it will appear as if the secret
+  does not exist. More information regarding the Vault KV backend and the
+  differences in versions can be found
+  \link{here}{https://www.vaultproject.io/docs/secrets/kv}.
 
   So, let's configure the \code{kv} secrets engine and mount it at
   \code{/concourse}:
 
   \codeblock{bash}{{{
   $ vault secrets enable -version=1 -path=concourse kv
+  }}}
+
+  To enable kv_v2 and versioned secrets:
+  \codeblock{bash}{{{
+  $ vault secrets enable -version=2 -path=concourse kv
   }}}
 
   Next, you'll want to create a policy to allow Concourse to read from this
