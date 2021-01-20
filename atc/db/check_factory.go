@@ -143,7 +143,6 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 		LeftJoin("(select DISTINCT(resource_id) FROM job_outputs) jo ON jo.resource_id = r.id").
 		Where(sq.And{
 			sq.Eq{"p.paused": false},
-			sq.Eq{"r.active": true},
 		}).
 		Where(sq.Or{
 			sq.And{

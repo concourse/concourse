@@ -103,10 +103,8 @@ var (
 		Join("teams t ON t.id = p.team_id").
 		LeftJoin("builds b ON b.id = r.build_id").
 		LeftJoin("resource_config_scopes rs ON r.resource_config_scope_id = rs.id").
-		LeftJoin("resource_pins rp ON rp.resource_id = r.id")
-
-	activeResourcesQuery = resourcesQuery.
-				Where(sq.Eq{"r.active": true})
+		LeftJoin("resource_pins rp ON rp.resource_id = r.id").
+		Where(sq.Eq{"r.active": true})
 )
 
 type resource struct {
@@ -184,7 +182,7 @@ func (r *resource) Icon() string                     { return r.config.Icon }
 func (r *resource) HasWebhook() bool { return r.WebhookToken() != "" }
 
 func (r *resource) Reload() (bool, error) {
-	row := activeResourcesQuery.Where(sq.Eq{"r.id": r.id}).
+	row := resourcesQuery.Where(sq.Eq{"r.id": r.id}).
 		RunWith(r.conn).
 		QueryRow()
 
