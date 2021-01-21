@@ -125,7 +125,8 @@ position { direction, alignment } { element, viewport } =
                     [ style "bottom" <| String.fromFloat (viewport.height - target.y - target.height) ++ "px" ]
 
                 ( Bottom, _ ) ->
-                    [ style "top" <| String.fromFloat (target.y + target.height) ++ "px" ]
+                    -- Bottom needs a little padding to be further from the pointer cursor
+                    [ style "top" <| String.fromFloat (target.y + target.height + 8) ++ "px" ]
 
         horizontal =
             case ( direction, alignment ) of
@@ -270,4 +271,4 @@ colors =
 
 defaultTooltipStyle : List (Html.Attribute msg)
 defaultTooltipStyle =
-    style "padding" "2.5px" :: colors
+    style "padding" "5px" :: colors

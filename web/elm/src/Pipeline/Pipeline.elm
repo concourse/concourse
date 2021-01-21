@@ -450,8 +450,8 @@ tooltip model session =
 
                         else
                             "favorite pipeline"
-                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
-                , arrow = Nothing
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
                 , containerAttrs = Nothing
                 }
 
@@ -464,8 +464,8 @@ tooltip model session =
 
                         else
                             "pause pipeline"
-                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
-                , arrow = Nothing
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
                 , containerAttrs = Nothing
                 }
 

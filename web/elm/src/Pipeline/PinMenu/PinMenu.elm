@@ -113,8 +113,8 @@ tooltip model session =
 
                             else
                                 "view pinned resources"
-                    , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
-                    , arrow = Nothing
+                    , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                    , arrow = Just 5
                     , containerAttrs = Nothing
                     }
 

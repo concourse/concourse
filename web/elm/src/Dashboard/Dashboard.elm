@@ -872,10 +872,10 @@ tooltip session =
                                 else
                                     "expose pipeline"
                         , attachPosition =
-                            { direction = Tooltip.Top
+                            { direction = Tooltip.Bottom
                             , alignment = Tooltip.End
                             }
-                        , arrow = Nothing
+                        , arrow = Just 5
                         , containerAttrs = Nothing
                         }
                     )
@@ -894,10 +894,10 @@ tooltip session =
                         else
                             "favorite pipeline"
                 , attachPosition =
-                    { direction = Tooltip.Top
+                    { direction = Tooltip.Bottom
                     , alignment = Tooltip.End
                     }
-                , arrow = Nothing
+                , arrow = Just 5
                 , containerAttrs = Nothing
                 }
 
@@ -914,10 +914,10 @@ tooltip session =
                                 else
                                     "pause pipeline"
                         , attachPosition =
-                            { direction = Tooltip.Top
+                            { direction = Tooltip.Bottom
                             , alignment = Tooltip.End
                             }
-                        , arrow = Nothing
+                        , arrow = Just 5
                         , containerAttrs = Nothing
                         }
                     )

@@ -236,22 +236,12 @@ stepStatusIcon =
 
 changedStepTooltip : List (Html.Attribute msg)
 changedStepTooltip =
-    [ style "padding" "5px"
-    , style "z-index" "100"
-    , style "width" "fit-content"
-    , style "pointer-events" "none"
-    ]
-        ++ Application.Styles.disableInteraction
+    style "pointer-events" "none" :: Application.Styles.disableInteraction
 
 
 durationTooltip : List (Html.Attribute msg)
 durationTooltip =
-    [ style "padding" "5px"
-    , style "z-index" "100"
-    , style "width" "fit-content"
-    , style "pointer-events" "none"
-    ]
-        ++ Application.Styles.disableInteraction
+    style "pointer-events" "none" :: Application.Styles.disableInteraction
 
 
 errorLog : List (Html.Attribute msg)
