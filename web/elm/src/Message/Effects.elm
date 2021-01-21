@@ -783,6 +783,9 @@ toHtmlID domId =
         TriggerBuildButton ->
             "trigger-build-button"
 
+        ToggleJobButton ->
+            "toggle-job-button"
+
         _ ->
             ""
 

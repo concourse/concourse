@@ -4,7 +4,6 @@ module Job.Styles exposing
     , icon
     , noBuildsMessage
     , triggerButton
-    , triggerTooltip
     )
 
 import Colors
@@ -47,20 +46,6 @@ icon hovered =
         else
             "0.5"
     ]
-
-
-triggerTooltip : List (Html.Attribute msg)
-triggerTooltip =
-    [ style "position" "absolute"
-    , style "right" "100%"
-    , style "top" "15px"
-    , style "width" "300px"
-    , style "color" Colors.buildTooltipText
-    , style "padding" "10px"
-    , style "text-align" "right"
-    , style "pointer-events" "none"
-    ]
-        ++ Views.Styles.defaultFont
 
 
 buildResourceHeader : List (Html.Attribute msg)
