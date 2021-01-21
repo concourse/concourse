@@ -661,12 +661,30 @@ view session model =
         ]
 
 
-tooltip : Model -> { a | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
+tooltip : Model -> Session -> Maybe Tooltip.Tooltip
 tooltip model session =
-    model.output
-        |> toMaybe
-        |> Maybe.andThen .steps
-        |> Maybe.andThen (\steps -> StepTree.tooltip steps session)
+    tryAll
+        [ model.output
+            |> toMaybe
+            |> Maybe.andThen .steps
+            |> Maybe.andThen (\steps -> StepTree.tooltip steps session)
+        , Header.tooltip model session
+        ]
+
+
+tryAll : List (Maybe a) -> Maybe a
+tryAll maybes =
+    List.foldl
+        (\prev cur ->
+            case prev of
+                Nothing ->
+                    cur
+
+                _ ->
+                    prev
+        )
+        Nothing
+        maybes
 
 
 breadcrumbs : Session -> Model -> Html Message

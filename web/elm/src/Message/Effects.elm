@@ -774,6 +774,15 @@ toHtmlID domId =
         TopBarPinIcon ->
             "top-bar-pin-icon"
 
+        AbortBuildButton ->
+            "abort-build-button"
+
+        RerunBuildButton ->
+            "rerun-build-button"
+
+        TriggerBuildButton ->
+            "trigger-build-button"
+
         _ ->
             ""
 

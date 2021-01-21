@@ -3,6 +3,7 @@ module Build.Header.Header exposing
     , handleCallback
     , handleDelivery
     , header
+    , tooltip
     , update
     , view
     )
@@ -36,6 +37,7 @@ import Routes
 import SideBar.SideBar exposing (byPipelineId, lookupPipeline)
 import StrictEvents exposing (DeltaMode(..))
 import Time
+import Tooltip
 
 
 historyId : String
@@ -81,7 +83,6 @@ header session model =
                             else
                                 Views.Light
                         , backgroundColor = Concourse.BuildStatus.BuildStatusFailed
-                        , tooltip = False
                         }
 
                  else if model.job /= Nothing then
@@ -101,7 +102,6 @@ header session model =
                             else
                                 Views.Light
                         , backgroundColor = model.status
-                        , tooltip = isHovered
                         }
 
                  else
@@ -125,7 +125,6 @@ header session model =
                             else
                                 Views.Light
                         , backgroundColor = model.status
-                        , tooltip = isHovered && model.disableManualTrigger
                         }
 
                  else
@@ -135,6 +134,43 @@ header session model =
     , backgroundColor = model.status
     , tabs = tabs model
     }
+
+
+tooltip : Model r -> Session -> Maybe Tooltip.Tooltip
+tooltip model session =
+    case session.hovered of
+        HoverState.Tooltip TriggerBuildButton _ ->
+            Just
+                { body =
+                    Html.text <|
+                        if model.disableManualTrigger then
+                            "manual triggering disabled in job config"
+
+                        else
+                            "trigger a new build"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip RerunBuildButton _ ->
+            Just
+                { body = Html.text "re-run with the same inputs"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip AbortBuildButton _ ->
+            Just
+                { body = Html.text "abort the current build"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        _ ->
+            Nothing
 
 
 tabs : Model r -> List Views.BuildTab

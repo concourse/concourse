@@ -1,4 +1,4 @@
-module Views.Icon exposing (icon, iconWithTooltip)
+module Views.Icon exposing (icon)
 
 import Assets
 import Html exposing (Html)
@@ -10,15 +10,6 @@ icon :
     -> List (Html.Attribute msg)
     -> Html msg
 icon { sizePx, image } attrs =
-    iconWithTooltip { sizePx = sizePx, image = image } attrs []
-
-
-iconWithTooltip :
-    { sizePx : Int, image : Assets.Asset }
-    -> List (Html.Attribute msg)
-    -> List (Html msg)
-    -> Html msg
-iconWithTooltip { sizePx, image } attrs tooltipContent =
     Html.div
         ([ style "background-image" <|
             Assets.backgroundImage <|
@@ -30,4 +21,4 @@ iconWithTooltip { sizePx, image } attrs tooltipContent =
          ]
             ++ attrs
         )
-        tooltipContent
+        []

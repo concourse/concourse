@@ -27,6 +27,7 @@ import Html.Attributes
         )
 import Html.Events exposing (onBlur, onFocus, onMouseEnter, onMouseLeave)
 import Html.Lazy
+import Message.Effects exposing (toHtmlID)
 import Message.Message as Message exposing (Message(..))
 import Routes
 import StrictEvents exposing (onLeftClick, onWheel)
@@ -89,7 +90,6 @@ type alias ButtonView =
     , isClickable : Bool
     , backgroundShade : BackgroundShade
     , backgroundColor : BuildStatus
-    , tooltip : Bool
     }
 
 
@@ -239,7 +239,7 @@ viewBuildTab backgroundColor tab =
 
 
 viewButton : ButtonView -> Html Message
-viewButton { type_, tooltip, backgroundColor, backgroundShade, isClickable } =
+viewButton { type_, backgroundColor, backgroundShade, isClickable } =
     let
         image =
             case type_ of
@@ -304,6 +304,7 @@ viewButton { type_, tooltip, backgroundColor, backgroundShade, isClickable } =
          , onMouseLeave <| Hover Nothing
          , onFocus <| Hover <| Just domID
          , onBlur <| Hover Nothing
+         , id <| toHtmlID domID
          ]
             ++ styles
         )
@@ -312,47 +313,7 @@ viewButton { type_, tooltip, backgroundColor, backgroundShade, isClickable } =
             , image = image
             }
             []
-        , tooltipArrow tooltip type_
-        , viewTooltip tooltip type_
         ]
-
-
-tooltipArrow : Bool -> ButtonType -> Html Message
-tooltipArrow tooltip type_ =
-    case ( tooltip, type_ ) of
-        ( True, Trigger ) ->
-            Html.div
-                Styles.buttonTooltipArrow
-                []
-
-        ( True, Rerun ) ->
-            Html.div
-                Styles.buttonTooltipArrow
-                []
-
-        _ ->
-            Html.text ""
-
-
-viewTooltip : Bool -> ButtonType -> Html Message
-viewTooltip tooltip type_ =
-    case ( tooltip, type_ ) of
-        ( True, Trigger ) ->
-            Html.div
-                (Styles.buttonTooltip 240)
-                [ Html.text <|
-                    "manual triggering disabled in job config"
-                ]
-
-        ( True, Rerun ) ->
-            Html.div
-                (Styles.buttonTooltip 165)
-                [ Html.text <|
-                    "re-run with the same inputs"
-                ]
-
-        _ ->
-            Html.text ""
 
 
 viewTitle : String -> Maybe Concourse.JobIdentifier -> Html Message
