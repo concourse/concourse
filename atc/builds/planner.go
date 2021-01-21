@@ -95,13 +95,14 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 	visitor.plan = visitor.planFactory.NewPlan(atc.GetPlan{
 		Name: step.Name,
 
-		Type:     resource.Type,
-		Resource: resourceName,
-		Source:   resource.Source,
-		Params:   step.Params,
-		Version:  &version,
-		Tags:     step.Tags,
-		Timeout:  step.Timeout,
+		Type:                 resource.Type,
+		Resource:             resourceName,
+		Source:               resource.Source,
+		Params:               step.Params,
+		Version:              &version,
+		Tags:                 step.Tags,
+		Timeout:              step.Timeout,
+		ExposeBuildCreatedBy: resource.ExposeBuildCreatedBy,
 
 		VersionedResourceTypes: visitor.resourceTypes,
 	})
@@ -125,11 +126,12 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 	resource.ApplySourceDefaults(visitor.resourceTypes)
 
 	atcPutPlan := atc.PutPlan{
-		Name:     logicalName,
-		Resource: resourceName,
-		Type:     resource.Type,
-		Source:   resource.Source,
-		Params:   step.Params,
+		Name:                 logicalName,
+		Resource:             resourceName,
+		Type:                 resource.Type,
+		Source:               resource.Source,
+		Params:               step.Params,
+		ExposeBuildCreatedBy: resource.ExposeBuildCreatedBy,
 
 		Inputs: step.Inputs,
 
@@ -142,12 +144,13 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 	putPlan := visitor.planFactory.NewPlan(atcPutPlan)
 
 	dependentGetPlan := visitor.planFactory.NewPlan(atc.GetPlan{
-		Name:        logicalName,
-		Resource:    resourceName,
-		Type:        resource.Type,
-		Source:      resource.Source,
-		Params:      step.GetParams,
-		VersionFrom: &putPlan.ID,
+		Name:                 logicalName,
+		Resource:             resourceName,
+		Type:                 resource.Type,
+		Source:               resource.Source,
+		Params:               step.GetParams,
+		VersionFrom:          &putPlan.ID,
+		ExposeBuildCreatedBy: resource.ExposeBuildCreatedBy,
 
 		Tags:    step.Tags,
 		Timeout: step.Timeout,

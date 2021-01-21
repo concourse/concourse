@@ -176,17 +176,18 @@ func (c VarSourceConfigs) OrderByDependency() (VarSourceConfigs, error) {
 }
 
 type ResourceConfig struct {
-	Name         string      `json:"name"`
-	OldName      string      `json:"old_name,omitempty"`
-	Public       bool        `json:"public,omitempty"`
-	WebhookToken string      `json:"webhook_token,omitempty"`
-	Type         string      `json:"type"`
-	Source       Source      `json:"source"`
-	CheckEvery   *CheckEvery `json:"check_every,omitempty"`
-	CheckTimeout string      `json:"check_timeout,omitempty"`
-	Tags         Tags        `json:"tags,omitempty"`
-	Version      Version     `json:"version,omitempty"`
-	Icon         string      `json:"icon,omitempty"`
+	Name                 string      `json:"name"`
+	OldName              string      `json:"old_name,omitempty"`
+	Public               bool        `json:"public,omitempty"`
+	WebhookToken         string      `json:"webhook_token,omitempty"`
+	Type                 string      `json:"type"`
+	Source               Source      `json:"source"`
+	CheckEvery           *CheckEvery `json:"check_every,omitempty"`
+	CheckTimeout         string      `json:"check_timeout,omitempty"`
+	Tags                 Tags        `json:"tags,omitempty"`
+	Version              Version     `json:"version,omitempty"`
+	Icon                 string      `json:"icon,omitempty"`
+	ExposeBuildCreatedBy bool        `json:"expose_build_created_by,omitempty"`
 }
 
 type ResourceType struct {
