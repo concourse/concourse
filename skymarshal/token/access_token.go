@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"github.com/concourse/concourse/atc"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -42,6 +43,7 @@ func StoreAccessToken(
 	claimsParser ClaimsParser,
 	accessTokenFactory db.AccessTokenFactory,
 	userFactory db.UserFactory,
+	displayUserIdGenerator atc.DisplayUserIdGenerator,
 ) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/sky/issuer/token" {
@@ -97,10 +99,13 @@ func StoreAccessToken(
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		username := claims.Username
-		if claims.PreferredUsername != "" {
-			username = claims.PreferredUsername
-		}
+		username := displayUserIdGenerator.DisplayUserId(
+			claims.Connector,
+			claims.UserID,
+			claims.Username,
+			claims.PreferredUsername,
+			claims.Email,
+		)
 		err = userFactory.CreateOrUpdateUser(username, claims.Connector, claims.Subject)
 		if err != nil {
 			logger.Error("create-or-update-user", err)

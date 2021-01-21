@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -24,20 +25,23 @@ func NewAccessFactory(
 	teamFetcher TeamFetcher,
 	systemClaimKey string,
 	systemClaimValues []string,
+	displayUserIdGenerator atc.DisplayUserIdGenerator,
 ) AccessFactory {
 	return &accessFactory{
-		tokenVerifier:     tokenVerifier,
-		teamFetcher:       teamFetcher,
-		systemClaimKey:    systemClaimKey,
-		systemClaimValues: systemClaimValues,
+		tokenVerifier:          tokenVerifier,
+		teamFetcher:            teamFetcher,
+		systemClaimKey:         systemClaimKey,
+		systemClaimValues:      systemClaimValues,
+		displayUserIdGenerator: displayUserIdGenerator,
 	}
 }
 
 type accessFactory struct {
-	tokenVerifier     TokenVerifier
-	teamFetcher       TeamFetcher
-	systemClaimKey    string
-	systemClaimValues []string
+	tokenVerifier          TokenVerifier
+	teamFetcher            TeamFetcher
+	systemClaimKey         string
+	systemClaimValues      []string
+	displayUserIdGenerator atc.DisplayUserIdGenerator
 }
 
 func (a *accessFactory) Create(req *http.Request, role string) (Access, error) {
@@ -45,7 +49,7 @@ func (a *accessFactory) Create(req *http.Request, role string) (Access, error) {
 	if err != nil {
 		return nil, fmt.Errorf("fetch teams: %w", err)
 	}
-	return NewAccessor(a.verifyToken(req), role, a.systemClaimKey, a.systemClaimValues, teams), nil
+	return NewAccessor(a.verifyToken(req), role, a.systemClaimKey, a.systemClaimValues, teams, a.displayUserIdGenerator), nil
 }
 
 func (a *accessFactory) verifyToken(req *http.Request) Verification {

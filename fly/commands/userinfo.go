@@ -56,7 +56,7 @@ func (command *UserinfoCommand) Execute([]string) error {
 	sort.Strings(teamRoles)
 
 	row := ui.TableRow{
-		{Contents: userinfo.PreferredUserName()},
+		{Contents: userinfo.DisplayUserId},
 		{Contents: strings.Join(teamRoles, ",")},
 	}
 

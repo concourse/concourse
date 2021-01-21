@@ -31,6 +31,10 @@ func Build(build db.Build) atc.Build {
 		APIURL:               apiURL,
 	}
 
+	if build.CreatedBy() != nil {
+		atcBuild.CreatedBy = build.CreatedBy().DisplayUserId
+	}
+
 	if build.RerunOf() != 0 {
 		atcBuild.RerunNumber = build.RerunNumber()
 		atcBuild.RerunOf = &atc.RerunOfBuild{

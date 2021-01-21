@@ -242,3 +242,68 @@ func (con *Connector) newTeamConfig() (TeamConfig, error) {
 
 	return res, nil
 }
+
+type skyDisplayUserIdGenerator struct {
+	mapConnectorUserid map[string]string
+}
+
+func NewSkyDisplayUserIdGenerator(config []string) (atc.DisplayUserIdGenerator, error) {
+	generator := &skyDisplayUserIdGenerator{
+		mapConnectorUserid: map[string]string{},
+	}
+
+	for _, str := range config {
+		parts := strings.Split(str, ":")
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("invalid display user id configuration")
+		}
+
+		connectorId := parts[0]
+		valid := false
+		if connectorId == "local" {
+			valid = true
+		} else {
+			for _, connector := range GetConnectors() {
+				if connectorId == connector.ID() {
+					valid = true
+					break
+				}
+			}
+		}
+		if !valid {
+			return nil, fmt.Errorf("invalid connector: %s", connectorId)
+		}
+
+		fieldName := parts[1]
+		if fieldName != "user_id" && fieldName != "name" && fieldName != "username" && fieldName != "email" {
+			return nil, fmt.Errorf("invalid user field %s of connector %s", fieldName, connectorId)
+		}
+
+		generator.mapConnectorUserid[connectorId] = fieldName
+	}
+	return generator, nil
+}
+
+func (g *skyDisplayUserIdGenerator) DisplayUserId(connector, userid, username, preferredUsername, email string) string {
+	if fieldName, ok := g.mapConnectorUserid[connector]; ok {
+		switch fieldName {
+		case "user_id":
+			return userid
+		case "name":
+			return username
+		case "username":
+			return preferredUsername
+		case "email":
+			return email
+		}
+	}
+
+	// For unconfigured connector, applies a default rule.
+	if username != "" {
+		return username
+	} else if userid != "" {
+		return userid
+	} else {
+		return preferredUsername
+	}
+}

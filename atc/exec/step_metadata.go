@@ -65,11 +65,7 @@ func (metadata StepMetadata) Env() []string {
 	}
 
 	if metadata.CreatedBy != nil {
-		env = append(env, "BUILD_CREATED_BY="+metadata.CreatedBy.PreferredUserId())
-		userJson, err := json.Marshal(metadata.CreatedBy)
-		if err == nil {
-			env = append(env, "BUILD_CREATED_BY_EX="+string(userJson))
-		}
+		env = append(env, "BUILD_CREATED_BY="+metadata.CreatedBy.DisplayUserId)
 	}
 
 	return env
