@@ -150,7 +150,7 @@ type Build interface {
 	RerunOf() int
 	RerunOfName() string
 	RerunNumber() int
-	CreatedBy() *atc.UserInfo
+	CreatedBy() string
 
 	LagerData() lager.Data
 	TracingAttrs() tracing.Attrs
@@ -228,7 +228,7 @@ type build struct {
 
 	isManuallyTriggered bool
 
-	createdBy *atc.UserInfo
+	createdBy string
 
 	rerunOf     int
 	rerunOfName string
@@ -379,7 +379,7 @@ func (b *build) InputsReady() bool        { return b.inputsReady }
 func (b *build) RerunOf() int             { return b.rerunOf }
 func (b *build) RerunOfName() string      { return b.rerunOfName }
 func (b *build) RerunNumber() int         { return b.rerunNumber }
-func (b *build) CreatedBy() *atc.UserInfo { return b.createdBy }
+func (b *build) CreatedBy() string { return b.createdBy }
 
 func (b *build) Reload() (bool, error) {
 	row := buildsQuery.Where(sq.Eq{"b.id": b.id}).
@@ -1768,7 +1768,6 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		drained, aborted, completed                                                                         bool
 		status                                                                                              string
 		pipelineInstanceVars                                                                                sql.NullString
-		createdBy                                                                                           sql.NullString
 	)
 
 	err := row.Scan(
@@ -1780,7 +1779,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		&b.teamID,
 		&status,
 		&b.isManuallyTriggered,
-		&createdBy,
+		&b.createdBy,
 		&b.scheduled,
 		&schema,
 		&privatePlan,
@@ -1872,15 +1871,6 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 		if err != nil {
 			return err
 		}
-	}
-
-	if createdBy.Valid {
-		var userInfo atc.UserInfo
-		err := json.Unmarshal([]byte(createdBy.String), &userInfo)
-		if err != nil {
-			return err
-		}
-		b.createdBy = &userInfo
 	}
 
 	return nil

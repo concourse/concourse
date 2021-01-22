@@ -79,8 +79,8 @@ type Job interface {
 	Unpause() error
 
 	ScheduleBuild(Build) (bool, error)
-	CreateBuild(createdBy atc.UserInfo) (Build, error)
-	RerunBuild(build Build, createdBy atc.UserInfo) (Build, error)
+	CreateBuild(createdBy string) (Build, error)
+	RerunBuild(build Build, createdBy string) (Build, error)
 
 	RequestSchedule() error
 	UpdateLastScheduled(time.Time) error
@@ -772,7 +772,7 @@ func (j *job) GetPendingBuilds() ([]Build, error) {
 	return builds, nil
 }
 
-func (j *job) CreateBuild(createdBy atc.UserInfo) (Build, error) {
+func (j *job) CreateBuild(createdBy string) (Build, error) {
 	tx, err := j.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -786,10 +786,6 @@ func (j *job) CreateBuild(createdBy atc.UserInfo) (Build, error) {
 	}
 
 	build := newEmptyBuild(j.conn, j.lockFactory)
-	bytesCreatedBy, err := json.Marshal(&createdBy)
-	if err != nil {
-		return nil, err
-	}
 	err = createBuild(tx, build, map[string]interface{}{
 		"name":               buildName,
 		"job_id":             j.id,
@@ -797,7 +793,7 @@ func (j *job) CreateBuild(createdBy atc.UserInfo) (Build, error) {
 		"team_id":            j.teamID,
 		"status":             BuildStatusPending,
 		"manually_triggered": true,
-		"created_by":         string(bytesCreatedBy),
+		"created_by":         createdBy,
 	})
 	if err != nil {
 		return nil, err
@@ -826,7 +822,7 @@ func (j *job) CreateBuild(createdBy atc.UserInfo) (Build, error) {
 	return build, nil
 }
 
-func (j *job) RerunBuild(buildToRerun Build, createdBy atc.UserInfo) (Build, error) {
+func (j *job) RerunBuild(buildToRerun Build, createdBy string) (Build, error) {
 	for {
 		rerunBuild, err := j.tryRerunBuild(buildToRerun, createdBy)
 		if err != nil {
@@ -841,7 +837,7 @@ func (j *job) RerunBuild(buildToRerun Build, createdBy atc.UserInfo) (Build, err
 	}
 }
 
-func (j *job) tryRerunBuild(buildToRerun Build, createdBy atc.UserInfo) (Build, error) {
+func (j *job) tryRerunBuild(buildToRerun Build, createdBy string) (Build, error) {
 	tx, err := j.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -860,10 +856,6 @@ func (j *job) tryRerunBuild(buildToRerun Build, createdBy atc.UserInfo) (Build, 
 	}
 
 	rerunBuild := newEmptyBuild(j.conn, j.lockFactory)
-	bytesCreatedBy, err := json.Marshal(&createdBy)
-	if err != nil {
-		return nil, err
-	}
 	err = createBuild(tx, rerunBuild, map[string]interface{}{
 		"name":         rerunBuildName,
 		"job_id":       j.id,
@@ -872,7 +864,7 @@ func (j *job) tryRerunBuild(buildToRerun Build, createdBy atc.UserInfo) (Build, 
 		"status":       BuildStatusPending,
 		"rerun_of":     buildToRerunID,
 		"rerun_number": rerunNumber,
-		"created_by":   string(bytesCreatedBy),
+		"created_by":   createdBy,
 	})
 	if err != nil {
 		return nil, err

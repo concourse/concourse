@@ -29,10 +29,7 @@ func Build(build db.Build) atc.Build {
 		TeamName:             build.TeamName(),
 		Status:               atc.BuildStatus(build.Status()),
 		APIURL:               apiURL,
-	}
-
-	if build.CreatedBy() != nil {
-		atcBuild.CreatedBy = build.CreatedBy().DisplayUserId
+		CreatedBy:            build.CreatedBy(),
 	}
 
 	if build.RerunOf() != 0 {
