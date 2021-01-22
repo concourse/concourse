@@ -10,7 +10,6 @@ import Colors
 import Concourse.BuildStatus exposing (BuildStatus)
 import Html
 import Html.Attributes exposing (style)
-import Views.Styles
 
 
 triggerButton : Bool -> Bool -> BuildStatus -> List (Html.Attribute msg)

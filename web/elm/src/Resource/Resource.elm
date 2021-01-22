@@ -1649,10 +1649,7 @@ isPipelineArchived session id =
 
 
 viewVersionedResources :
-    { a
-        | hovered : HoverState.HoverState
-        , pipelines : WebData (List Concourse.Pipeline)
-    }
+    { a | pipelines : WebData (List Concourse.Pipeline) }
     ->
         { b
             | versions : Paginated Models.Version
@@ -1667,26 +1664,16 @@ viewVersionedResources session model =
     in
     model
         |> versions
-        |> List.map
-            (\v ->
-                viewVersionedResource
-                    { version = v
-                    , pinnedVersion = model.pinnedVersion
-                    , hovered = session.hovered
-                    , archived = archived
-                    }
-            )
+        |> List.map (\v -> viewVersionedResource { version = v, archived = archived })
         |> Html.ul [ class "list list-collapsable list-enableDisable resource-versions" ]
 
 
 viewVersionedResource :
     { version : VersionPresenter
-    , pinnedVersion : Models.PinnedVersion
-    , hovered : HoverState.HoverState
     , archived : Bool
     }
     -> Html Message
-viewVersionedResource { version, hovered, archived } =
+viewVersionedResource { version, archived } =
     Html.li
         (case ( version.pinState, version.enabled ) of
             ( Disabled, _ ) ->
@@ -1717,7 +1704,6 @@ viewVersionedResource { version, hovered, archived } =
                 , viewPinButton
                     { versionID = version.id
                     , pinState = version.pinState
-                    , hovered = hovered
                     }
                 ]
              )
@@ -1820,10 +1806,9 @@ viewEnabledCheckbox ({ enabled, id } as params) =
 viewPinButton :
     { versionID : Models.VersionId
     , pinState : VersionPinState
-    , hovered : HoverState.HoverState
     }
     -> Html Message
-viewPinButton { versionID, pinState, hovered } =
+viewPinButton { versionID, pinState } =
     let
         eventHandlers =
             [ onMouseOver <| Hover <| Just <| PinButton versionID
