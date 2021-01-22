@@ -1,7 +1,8 @@
-module Favorites exposing (Model, handleDelivery, isPipelineFavorited, update)
+module Favorites exposing (Model, handleDelivery, isInstanceGroupFavorited, isPipelineFavorited, update)
 
 import Concourse
 import EffectTransformer exposing (ET)
+import Json.Encode
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
@@ -12,6 +13,7 @@ import Set exposing (Set)
 type alias Model m =
     { m
         | favoritedPipelines : Set Concourse.DatabaseID
+        , favoritedInstanceGroups : Set ( Concourse.TeamName, Concourse.PipelineName )
     }
 
 
@@ -25,24 +27,36 @@ update message ( model, effects ) =
             else
                 Set.insert element set
 
-        toggleFavorite pipelineID =
+        toggleFavoritePipeline pipelineID =
             let
                 favoritedPipelines =
                     toggle pipelineID model.favoritedPipelines
             in
             ( { model | favoritedPipelines = favoritedPipelines }
-            , [ Effects.SaveFavoritedPipelines <| favoritedPipelines ]
+            , [ Effects.SaveFavoritedPipelines favoritedPipelines ]
+            )
+
+        toggleFavoriteInstanceGroup ig =
+            let
+                favoritedInstanceGroups =
+                    toggle (instanceGroupKey ig) model.favoritedInstanceGroups
+            in
+            ( { model | favoritedInstanceGroups = favoritedInstanceGroups }
+            , [ Effects.SaveFavoritedInstanceGroups favoritedInstanceGroups ]
             )
     in
     case message of
         Click (SideBarFavoritedIcon pipelineID) ->
-            toggleFavorite pipelineID
+            toggleFavoritePipeline pipelineID
 
         Click (PipelineCardFavoritedIcon _ pipelineID) ->
-            toggleFavorite pipelineID
+            toggleFavoritePipeline pipelineID
 
         Click (TopBarFavoritedIcon pipelineID) ->
-            toggleFavorite pipelineID
+            toggleFavoritePipeline pipelineID
+
+        Click (InstanceGroupCardFavoritedIcon _ pipelineID) ->
+            toggleFavoriteInstanceGroup pipelineID
 
         _ ->
             ( model, effects )
@@ -54,10 +68,29 @@ handleDelivery delivery ( model, effects ) =
         FavoritedPipelinesReceived (Ok pipelines) ->
             ( { model | favoritedPipelines = pipelines }, effects )
 
+        FavoritedInstanceGroupsReceived (Ok groups) ->
+            ( { model | favoritedInstanceGroups = groups }, effects )
+
         _ ->
             ( model, effects )
 
 
-isPipelineFavorited : Model m -> { r | id : Concourse.DatabaseID } -> Bool
+isPipelineFavorited :
+    { m | favoritedPipelines : Set Concourse.DatabaseID }
+    -> { r | id : Concourse.DatabaseID }
+    -> Bool
 isPipelineFavorited { favoritedPipelines } { id } =
     Set.member id favoritedPipelines
+
+
+isInstanceGroupFavorited :
+    { m | favoritedInstanceGroups : Set ( Concourse.TeamName, Concourse.PipelineName ) }
+    -> Concourse.InstanceGroupIdentifier
+    -> Bool
+isInstanceGroupFavorited { favoritedInstanceGroups } ig =
+    Set.member (instanceGroupKey ig) favoritedInstanceGroups
+
+
+instanceGroupKey : Concourse.InstanceGroupIdentifier -> ( Concourse.TeamName, Concourse.PipelineName )
+instanceGroupKey { teamName, name } =
+    ( teamName, name )

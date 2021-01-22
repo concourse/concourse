@@ -683,6 +683,7 @@ sampleSession =
     , expandedTeamsInAllPipelines = Set.empty
     , collapsedTeamsInFavorites = Set.empty
     , favoritedPipelines = Set.empty
+    , favoritedInstanceGroups = Set.empty
     , hovered = HoverState.NoHover
     , sideBarState =
         { isOpen = False

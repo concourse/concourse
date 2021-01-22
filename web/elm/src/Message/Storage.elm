@@ -2,6 +2,7 @@ port module Message.Storage exposing
     ( Key
     , Value
     , deleteFromLocalStorage
+    , favoritedInstanceGroupsKey
     , favoritedPipelinesKey
     , jobsKey
     , loadFromLocalStorage
@@ -64,3 +65,8 @@ teamsKey =
 favoritedPipelinesKey : Key
 favoritedPipelinesKey =
     "favorited_pipelines"
+
+
+favoritedInstanceGroupsKey : Key
+favoritedInstanceGroupsKey =
+    "favorited_instance_groups"

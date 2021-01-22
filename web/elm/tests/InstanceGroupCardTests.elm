@@ -539,6 +539,12 @@ all =
                         { size = "20px"
                         , image = Assets.FavoritedToggleIcon { isFavorited = False, isHovered = True, isSideBar = False }
                         }
+
+                filledFavoritedIcon =
+                    iconSelector
+                        { size = "20px"
+                        , image = Assets.FavoritedToggleIcon { isFavorited = True, isHovered = False, isSideBar = False }
+                        }
             in
             [ test "renders a footer with a favorite icon" <|
                 \_ ->
@@ -566,6 +572,37 @@ all =
                             ++ [ style "cursor" "pointer" ]
                     }
                 }
+            , test "clicking the favorite icon favorites the group" <|
+                \_ ->
+                    setup
+                        |> Application.update
+                            (ApplicationMsgs.Update <|
+                                Msgs.Click <|
+                                    InstanceGroupCardFavoritedIcon AllPipelinesSection groupId
+                            )
+                        |> Expect.all
+                            [ Tuple.second
+                                >> Common.contains
+                                    (Effects.SaveFavoritedInstanceGroups <|
+                                        Set.singleton ( groupId.teamName, groupId.name )
+                                    )
+                            , Tuple.first
+                                >> Common.queryView
+                                >> findCard
+                                >> Query.has filledFavoritedIcon
+                            ]
+            , test "favorited instance groups are loaded from storage" <|
+                \_ ->
+                    setup
+                        |> Application.handleDelivery
+                            (FavoritedInstanceGroupsReceived <|
+                                Ok <|
+                                    Set.singleton ( groupId.teamName, groupId.name )
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> findCard
+                        |> Query.has filledFavoritedIcon
             ]
         , describe "when pipeline instances are favorited" <|
             [ test "only the favorited instances are shown in the favorites section" <|

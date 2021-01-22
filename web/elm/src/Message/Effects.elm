@@ -32,6 +32,7 @@ import Message.ScrollDirection exposing (ScrollDirection(..))
 import Message.Storage
     exposing
         ( deleteFromLocalStorage
+        , favoritedInstanceGroupsKey
         , favoritedPipelinesKey
         , jobsKey
         , loadFromLocalStorage
@@ -190,6 +191,8 @@ type Effect
     | SyncStickyBuildLogHeaders
     | SaveFavoritedPipelines (Set DatabaseID)
     | LoadFavoritedPipelines
+    | SaveFavoritedInstanceGroups (Set ( Concourse.TeamName, Concourse.PipelineName ))
+    | LoadFavoritedInstanceGroups
 
 
 type alias VersionId =
@@ -623,6 +626,19 @@ runEffect effect key csrfToken =
 
         LoadFavoritedPipelines ->
             loadFromLocalStorage favoritedPipelinesKey
+
+        SaveFavoritedInstanceGroups igs ->
+            saveToLocalStorage
+                ( favoritedInstanceGroupsKey
+                , igs
+                    |> Json.Encode.set
+                        (\( teamName, name ) ->
+                            Concourse.encodeInstanceGroupId { teamName = teamName, name = name }
+                        )
+                )
+
+        LoadFavoritedInstanceGroups ->
+            loadFromLocalStorage favoritedInstanceGroupsKey
 
         SaveCachedTeams teams ->
             saveToLocalStorage ( teamsKey, teams |> Json.Encode.list encodeTeam )

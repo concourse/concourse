@@ -254,12 +254,15 @@ footerView :
     -> Html Message
 footerView session pipeline section =
     let
+        groupID =
+            Concourse.toInstanceGroupId pipeline
+
         domID =
-            InstanceGroupCardFavoritedIcon section (Concourse.toInstanceGroupId pipeline)
+            InstanceGroupCardFavoritedIcon section groupID
 
         favoritedIcon =
             Views.FavoritedIcon.view
-                { isFavorited = Favorites.isPipelineFavorited session pipeline
+                { isFavorited = Favorites.isInstanceGroupFavorited session groupID
                 , isHovered = HoverState.isHovered domID session.hovered
                 , isSideBar = False
                 , domID = domID

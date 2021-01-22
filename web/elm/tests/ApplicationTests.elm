@@ -29,7 +29,7 @@ all =
                 Common.init "/teams/t/pipelines/p/"
                     |> Application.subscriptions
                     |> Common.contains Subscription.OnLocalStorageReceived
-        , test "loads favorited pipelines on init" <|
+        , test "loads favorited pipelines/instance groups on init" <|
             \_ ->
                 Application.init
                     { turbulenceImgSrc = ""
@@ -46,7 +46,10 @@ all =
                     , fragment = Nothing
                     }
                     |> Tuple.second
-                    |> Common.contains Effects.LoadFavoritedPipelines
+                    |> Expect.all
+                        [ Common.contains Effects.LoadFavoritedPipelines
+                        , Common.contains Effects.LoadFavoritedInstanceGroups
+                        ]
         , test "clicking a not-automatically-linked box in the pipeline redirects" <|
             \_ ->
                 Common.init "/teams/t/pipelines/p/"

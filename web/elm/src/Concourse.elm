@@ -51,6 +51,7 @@ module Concourse exposing
     , decodeBuildResources
     , decodeCause
     , decodeInfo
+    , decodeInstanceGroupId
     , decodeInstanceVars
     , decodeJob
     , decodeJsonValue
@@ -63,6 +64,7 @@ module Concourse exposing
     , decodeVersionedResource
     , emptyBuildResources
     , encodeBuild
+    , encodeInstanceGroupId
     , encodeInstanceVars
     , encodeJob
     , encodeJsonValue
@@ -1031,6 +1033,21 @@ type alias InstanceGroupIdentifier =
 toInstanceGroupId : { p | teamName : TeamName, name : PipelineName } -> InstanceGroupIdentifier
 toInstanceGroupId { teamName, name } =
     { teamName = teamName, name = name }
+
+
+encodeInstanceGroupId : InstanceGroupIdentifier -> Json.Encode.Value
+encodeInstanceGroupId { teamName, name } =
+    Json.Encode.object
+        [ ( "team_name", Json.Encode.string teamName )
+        , ( "name", Json.Encode.string name )
+        ]
+
+
+decodeInstanceGroupId : Json.Decode.Decoder InstanceGroupIdentifier
+decodeInstanceGroupId =
+    Json.Decode.succeed InstanceGroupIdentifier
+        |> andMap (Json.Decode.field "team_name" Json.Decode.string)
+        |> andMap (Json.Decode.field "name" Json.Decode.string)
 
 
 
