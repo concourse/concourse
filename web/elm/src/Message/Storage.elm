@@ -5,12 +5,9 @@ port module Message.Storage exposing
     , favoritedPipelinesKey
     , jobsKey
     , loadFromLocalStorage
-    , loadFromSessionStorage
     , pipelinesKey
     , receivedFromLocalStorage
-    , receivedFromSessionStorage
     , saveToLocalStorage
-    , saveToSessionStorage
     , sideBarStateKey
     , teamsKey
     , tokenKey
@@ -30,22 +27,13 @@ type alias Value =
 port saveToLocalStorage : ( Key, Json.Encode.Value ) -> Cmd msg
 
 
-port saveToSessionStorage : ( Key, Json.Encode.Value ) -> Cmd msg
-
-
 port deleteFromLocalStorage : Key -> Cmd msg
 
 
 port loadFromLocalStorage : Key -> Cmd msg
 
 
-port loadFromSessionStorage : Key -> Cmd msg
-
-
 port receivedFromLocalStorage : (( Key, Value ) -> msg) -> Sub msg
-
-
-port receivedFromSessionStorage : (( Key, Value ) -> msg) -> Sub msg
 
 
 sideBarStateKey : Key

@@ -35,10 +35,8 @@ import Message.Storage
         , favoritedPipelinesKey
         , jobsKey
         , loadFromLocalStorage
-        , loadFromSessionStorage
         , pipelinesKey
         , saveToLocalStorage
-        , saveToSessionStorage
         , sideBarStateKey
         , teamsKey
         , tokenKey
@@ -594,10 +592,10 @@ runEffect effect key csrfToken =
             loadFromLocalStorage tokenKey
 
         SaveSideBarState state ->
-            saveToSessionStorage ( sideBarStateKey, encodeSideBarState state )
+            saveToLocalStorage ( sideBarStateKey, encodeSideBarState state )
 
         LoadSideBarState ->
-            loadFromSessionStorage sideBarStateKey
+            loadFromLocalStorage sideBarStateKey
 
         SaveCachedJobs jobs ->
             saveToLocalStorage ( jobsKey, jobs |> Json.Encode.list encodeJob )

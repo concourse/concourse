@@ -29,7 +29,6 @@ import Message.Storage as Storage
         , jobsKey
         , pipelinesKey
         , receivedFromLocalStorage
-        , receivedFromSessionStorage
         , sideBarStateKey
         , teamsKey
         , tokenKey
@@ -182,7 +181,7 @@ runSubscription s =
                     TokenReceived
 
         OnSideBarStateReceived ->
-            receivedFromSessionStorage <|
+            receivedFromLocalStorage <|
                 decodeStorageResponse sideBarStateKey
                     decodeSideBarState
                     SideBarStateReceived

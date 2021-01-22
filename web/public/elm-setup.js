@@ -86,18 +86,6 @@ app.ports.saveToLocalStorage.subscribe(function(params) {
   }
 });
 
-app.ports.saveToSessionStorage.subscribe(function(params) {
-  if (!params || params.length !== 2) {
-    return;
-  }
-  const [key, value] = params;
-  try {
-    sessionStorage.setItem(key, JSON.stringify(value));
-  } catch(err) {
-    console.error(err);
-  }
-});
-
 app.ports.loadFromLocalStorage.subscribe(function(key) {
   const value = localStorage.getItem(key);
   if (value === null) {
@@ -105,16 +93,6 @@ app.ports.loadFromLocalStorage.subscribe(function(key) {
   }
   setTimeout(function() {
     app.ports.receivedFromLocalStorage.send([key, value]);
-  }, 0);
-});
-
-app.ports.loadFromSessionStorage.subscribe(function(key) {
-  const value = sessionStorage.getItem(key);
-  if (value === null) {
-    return;
-  }
-  setTimeout(function() {
-    app.ports.receivedFromSessionStorage.send([key, value]);
   }, 0);
 });
 
