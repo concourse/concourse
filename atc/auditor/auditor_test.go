@@ -36,6 +36,7 @@ var _ = Describe("Audit", func() {
 		var err error
 		req, err = http.NewRequest("GET", "localhost:8080", nil)
 		Expect(err).NotTo(HaveOccurred())
+		req.RemoteAddr = "127.0.0.1"
 	})
 
 	JustBeforeEach(func() {
@@ -84,6 +85,20 @@ var _ = Describe("Audit", func() {
 			}
 			logs := logger.Logs()
 			Expect(len(logs)).ToNot(Equal(0))
+		})
+		It("logs the action, user, ip, and parameters", func() {
+			for _, route := range atc.Routes {
+				aud.Audit(route.Name, userName, req)
+				logs := logger.Logs()
+				latestLog := logs[len(logs)-1].Data
+
+				Expect(len(latestLog)).To(Equal(4))
+				Expect(latestLog["action"]).To(Equal(route.Name))
+				Expect(latestLog["user"]).To(Equal(userName))
+				Expect(latestLog["ip"]).To(Equal(req.RemoteAddr))
+				_, exist := latestLog["parameters"]
+				Expect(exist).To(BeTrue())
+			}
 		})
 	})
 
