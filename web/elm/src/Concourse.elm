@@ -76,6 +76,7 @@ module Concourse exposing
     , mapBuildPlan
     , pipelineId
     , retrieveCSRFToken
+    , toInstanceGroupId
     , toPipelineId
     )
 
@@ -1025,6 +1026,11 @@ type alias InstanceGroupIdentifier =
     { teamName : TeamName
     , name : PipelineName
     }
+
+
+toInstanceGroupId : { p | teamName : TeamName, name : PipelineName } -> InstanceGroupIdentifier
+toInstanceGroupId { teamName, name } =
+    { teamName = teamName, name = name }
 
 
 

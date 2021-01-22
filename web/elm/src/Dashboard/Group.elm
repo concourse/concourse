@@ -489,6 +489,7 @@ instanceGroupCardView session params section { bounds, headerHeight } p ps =
                    )
             )
             [ InstanceGroup.cardView
+                session
                 { pipeline = p
                 , pipelines = ps
                 , resourceError =
@@ -499,8 +500,6 @@ instanceGroupCardView session params section { bounds, headerHeight } p ps =
                         (p :: ps)
                 , pipelineJobs = params.pipelineJobs
                 , jobs = params.jobs
-                , hovered = session.hovered
-                , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                 , section = section
                 , headerHeight = headerHeight
                 , dashboardView = params.dashboardView

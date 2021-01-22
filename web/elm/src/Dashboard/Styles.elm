@@ -17,6 +17,7 @@ module Dashboard.Styles exposing
     , instanceGroupCardBannerHd
     , instanceGroupCardBody
     , instanceGroupCardBodyHd
+    , instanceGroupCardFooter
     , instanceGroupCardHd
     , instanceGroupCardHeader
     , instanceGroupCardNameHd
@@ -297,7 +298,7 @@ instanceGroupCardBody : List (Html.Attribute msg)
 instanceGroupCardBody =
     [ style "background-color" Colors.card
     , style "padding" "20px 36px"
-    , style "margin" "2px 0 0 0"
+    , style "margin" "2px 0"
     , style "flex-grow" "1"
     , style "display" "flex"
     , style "flex-direction" "column"
@@ -518,6 +519,15 @@ pipelineCardFooter =
     [ style "padding" "13.5px"
     , style "display" "flex"
     , style "justify-content" "space-between"
+    , style "background-color" Colors.card
+    ]
+
+
+instanceGroupCardFooter : List (Html.Attribute msg)
+instanceGroupCardFooter =
+    [ style "padding" "13.5px"
+    , style "display" "flex"
+    , style "justify-content" "flex-end"
     , style "background-color" Colors.card
     ]
 

@@ -2595,7 +2595,7 @@ all =
                                         |> Tuple.first
                                 , query = favoritedToggle
                                 , unhoveredSelector =
-                                    { description = "faded 20px square"
+                                    { description = "faded star icon"
                                     , selector =
                                         unfilledFavoritedIcon
                                             ++ [ style "cursor" "pointer" ]
@@ -2603,7 +2603,7 @@ all =
                                 , hoverable =
                                     Msgs.PipelineCardFavoritedIcon AllPipelinesSection pipelineId
                                 , hoveredSelector =
-                                    { description = "bright 20px square"
+                                    { description = "bright star icon"
                                     , selector =
                                         unfilledBrightFavoritedIcon
                                             ++ [ style "cursor" "pointer" ]

@@ -509,6 +509,64 @@ all =
                                 ]
                 ]
             ]
+        , describe "footer" <|
+            let
+                instance =
+                    pipelineInstance BuildStatusSucceeded False 1
+
+                groupId =
+                    Concourse.toInstanceGroupId (Tuple.first instance)
+
+                setup =
+                    whenOnDashboard { highDensity = False }
+                        |> gotPipelines
+                            [ pipelineInstance BuildStatusSucceeded False 1 ]
+
+                footer =
+                    Common.queryView
+                        >> Query.find [ class "card-footer" ]
+                        >> Query.children []
+                        >> Query.first
+
+                unfilledFavoritedIcon =
+                    iconSelector
+                        { size = "20px"
+                        , image = Assets.FavoritedToggleIcon { isFavorited = False, isHovered = False, isSideBar = False }
+                        }
+
+                unfilledBrightFavoritedIcon =
+                    iconSelector
+                        { size = "20px"
+                        , image = Assets.FavoritedToggleIcon { isFavorited = False, isHovered = True, isSideBar = False }
+                        }
+            in
+            [ test "renders a footer with a favorite icon" <|
+                \_ ->
+                    setup
+                        |> Common.queryView
+                        |> findCard
+                        |> Query.find [ class "card-footer" ]
+                        |> Query.has unfilledFavoritedIcon
+            , defineHoverBehaviour
+                { name = "favorited icon toggle"
+                , setup = setup
+                , query = footer
+                , unhoveredSelector =
+                    { description = "faded star icon"
+                    , selector =
+                        unfilledFavoritedIcon
+                            ++ [ style "cursor" "pointer" ]
+                    }
+                , hoverable =
+                    Msgs.InstanceGroupCardFavoritedIcon AllPipelinesSection groupId
+                , hoveredSelector =
+                    { description = "bright star icon"
+                    , selector =
+                        unfilledBrightFavoritedIcon
+                            ++ [ style "cursor" "pointer" ]
+                    }
+                }
+            ]
         , describe "when pipeline instances are favorited" <|
             [ test "only the favorited instances are shown in the favorites section" <|
                 \_ ->
