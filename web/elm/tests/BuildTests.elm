@@ -8,7 +8,14 @@ import Build.Models as Models
 import Build.StepTree.Models as STModels
 import Char
 import Colors
-import Common exposing (defineHoverBehaviour, hoverOver, isColorWithStripes)
+import Common
+    exposing
+        ( defineHoverBehaviour
+        , expectTooltip
+        , expectTooltipWith
+        , hoverOver
+        , isColorWithStripes
+        )
 import Concourse exposing (BuildPrepStatus(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination exposing (Direction(..))
@@ -22,7 +29,7 @@ import Json.Encode as Encode
 import Keyboard
 import Message.Callback as Callback
 import Message.Effects as Effects
-import Message.Message
+import Message.Message exposing (DomID(..))
 import Message.ScrollDirection as ScrollDirection
 import Message.Subscription as Subscription exposing (Delivery(..), Interval(..))
 import Message.TopLevelMessage as Msgs
@@ -2224,11 +2231,7 @@ all =
                 , test "hovering trigger build button displays a tooltip" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
-                        >> hoverOver Message.Message.TriggerBuildButton
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.find [ id "tooltips" ]
-                        >> Query.has [ text "trigger a new build" ]
+                        >> expectTooltip TriggerBuildButton "trigger a new build"
                 , test "rerun build button in the header" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
@@ -2241,11 +2244,7 @@ all =
                 , test "hovering rerun build button displays a tooltip" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
-                        >> hoverOver Message.Message.RerunBuildButton
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.find [ id "tooltips" ]
-                        >> Query.has [ text "re-run with the same inputs" ]
+                        >> expectTooltip RerunBuildButton "re-run with the same inputs"
                 ]
             , describe "when history and details fetched with manual triggering disabled" <|
                 let
@@ -2296,11 +2295,7 @@ all =
                 , test "hovering displays a tooltip" <|
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
-                        >> hoverOver Message.Message.TriggerBuildButton
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.find [ id "tooltips" ]
-                        >> Query.has [ text "manual triggering disabled in job config" ]
+                        >> expectTooltip TriggerBuildButton "manual triggering disabled in job config"
                 ]
             ]
         , describe "given build started and history and details fetched" <|
@@ -2356,11 +2351,7 @@ all =
             , test "shows tooltip when hovered" <|
                 givenBuildStarted
                     >> Tuple.first
-                    >> hoverOver Message.Message.AbortBuildButton
-                    >> Tuple.first
-                    >> Common.queryView
-                    >> Query.find [ id "tooltips" ]
-                    >> Query.has [ text "abort the current build" ]
+                    >> expectTooltip AbortBuildButton "abort the current build"
             , test "abort build button has pointer cursor" <|
                 givenBuildStarted
                     >> Tuple.first
@@ -3212,15 +3203,8 @@ all =
                                     ]
                             )
                         >> Tuple.first
-                        >> hoverOver (Message.Message.StepState "plan")
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.find [ id "tooltips" ]
-                        >> Query.children []
-                        >> Query.index -1
-                        >> Query.findAll [ tag "tr" ]
-                        >> Query.index 0
-                        >> Query.has [ text "initialization", text "10s" ]
+                        >> expectTooltipWith (StepState "plan")
+                            (Query.has [ text "initialization", text "10s" ])
                 , test "finished task lists step duration in tooltip" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
@@ -3248,15 +3232,8 @@ all =
                                     ]
                             )
                         >> Tuple.first
-                        >> hoverOver (Message.Message.StepState "plan")
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.find [ id "tooltips" ]
-                        >> Query.children []
-                        >> Query.index -1
-                        >> Query.findAll [ tag "tr" ]
-                        >> Query.index 1
-                        >> Query.has [ text "step", text "20s" ]
+                        >> expectTooltipWith (StepState "plan")
+                            (Query.has [ text "step", text "20s" ])
                 , test "running step has loading spinner at the right" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
@@ -3297,11 +3274,7 @@ all =
                                     ]
                             )
                         >> Tuple.first
-                        >> hoverOver (Message.Message.StepState "plan")
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.find [ id "tooltips" ]
-                        >> Query.has [ text "running" ]
+                        >> expectTooltip (StepState "plan") "running"
                 , test "pending step has dashed circle at the right" <|
                     fetchPlanWithTaskStep
                         >> Common.queryView
@@ -3317,11 +3290,7 @@ all =
                             )
                 , test "pending step shows pending in tooltip" <|
                     fetchPlanWithTaskStep
-                        >> hoverOver (Message.Message.StepState "plan")
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.find [ id "tooltips" ]
-                        >> Query.has [ text "pending" ]
+                        >> expectTooltip (StepState "plan") "pending"
                 , test "interrupted step has no-entry circle at the right" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
@@ -3377,11 +3346,7 @@ all =
                                     ]
                             )
                         >> Tuple.first
-                        >> hoverOver (Message.Message.StepState "plan")
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.find [ id "tooltips" ]
-                        >> Query.has [ text "interrupted" ]
+                        >> expectTooltip (StepState "plan") "interrupted"
                 , test "cancelled step has dashed circle with dot at the right" <|
                     fetchPlanWithTaskStep
                         >> Application.handleDelivery
@@ -3421,11 +3386,7 @@ all =
                                     ]
                             )
                         >> Tuple.first
-                        >> hoverOver (Message.Message.StepState "plan")
-                        >> Tuple.first
-                        >> Common.queryView
-                        >> Query.find [ id "tooltips" ]
-                        >> Query.has [ text "cancelled" ]
+                        >> expectTooltip (StepState "plan") "cancelled"
                 , test "failing step has an X at the far right" <|
                     fetchPlanWithGetStep
                         >> Application.handleDelivery

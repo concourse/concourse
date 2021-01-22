@@ -4,6 +4,7 @@ module Common exposing
     , defineHoverBehaviour
     , expectNoTooltip
     , expectTooltip
+    , expectTooltipWith
     , given
     , givenDataUnauthenticated
     , gotPipelines
@@ -397,6 +398,15 @@ expectTooltip domID tooltip =
         >> queryView
         >> Query.find [ id "tooltips" ]
         >> Query.has [ text tooltip ]
+
+
+expectTooltipWith : DomID -> (Query.Single TopLevelMessage -> Expect.Expectation) -> Application.Model -> Expect.Expectation
+expectTooltipWith domID expectation =
+    hoverOver domID
+        >> Tuple.first
+        >> queryView
+        >> Query.find [ id "tooltips" ]
+        >> expectation
 
 
 expectNoTooltip : DomID -> Application.Model -> Expect.Expectation

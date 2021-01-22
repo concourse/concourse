@@ -2,7 +2,7 @@ module JobTests exposing (all)
 
 import Application.Application as Application
 import Assets
-import Common exposing (defineHoverBehaviour, hoverOver, queryView)
+import Common exposing (defineHoverBehaviour, expectTooltip, hoverOver, queryView)
 import Concourse exposing (Build, JsonValue(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination exposing (Direction(..), Paginated)
@@ -308,32 +308,16 @@ all =
                 }
             , test "hovering trigger build button has tooltip" <|
                 init { disabled = False, paused = False }
-                    >> hoverOver TriggerBuildButton
-                    >> Tuple.first
-                    >> Common.queryView
-                    >> Query.find [ id "tooltips" ]
-                    >> Query.has [ text "trigger a new build" ]
+                    >> expectTooltip TriggerBuildButton "trigger a new build"
             , test "hovering disabled trigger build button has tooltip" <|
                 init { disabled = True, paused = False }
-                    >> hoverOver TriggerBuildButton
-                    >> Tuple.first
-                    >> Common.queryView
-                    >> Query.find [ id "tooltips" ]
-                    >> Query.has [ text "manual triggering disabled in job config" ]
+                    >> expectTooltip TriggerBuildButton "manual triggering disabled in job config"
             , test "hovering pause toggle button has tooltip" <|
                 init { disabled = False, paused = False }
-                    >> hoverOver ToggleJobButton
-                    >> Tuple.first
-                    >> Common.queryView
-                    >> Query.find [ id "tooltips" ]
-                    >> Query.has [ text "pause job" ]
+                    >> expectTooltip ToggleJobButton "pause job"
             , test "hovering paused pause toggle button has tooltip" <|
                 init { disabled = False, paused = True }
-                    >> hoverOver ToggleJobButton
-                    >> Tuple.first
-                    >> Common.queryView
-                    >> Query.find [ id "tooltips" ]
-                    >> Query.has [ text "unpause job" ]
+                    >> expectTooltip ToggleJobButton "unpause job"
             , describe "archived pipelines" <|
                 let
                     fetchArchivedPipeline =
