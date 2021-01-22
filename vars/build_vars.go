@@ -1,5 +1,7 @@
 package vars
 
+import "sync"
+
 type BuildVariables struct {
 	parentScope interface {
 		Variables
@@ -8,6 +10,8 @@ type BuildVariables struct {
 
 	localVars StaticVariables
 	tracker   *tracker
+
+	lock sync.RWMutex
 }
 
 func NewBuildVariables(credVars Variables, enableRedaction bool) *BuildVariables {
@@ -23,6 +27,8 @@ func NewBuildVariables(credVars Variables, enableRedaction bool) *BuildVariables
 
 func (b *BuildVariables) Get(varDef VariableDefinition) (interface{}, bool, error) {
 	if varDef.Ref.Source == "." {
+		b.lock.RLock()
+		defer b.lock.RUnlock()
 		val, found, _ := b.localVars.Get(varDef)
 		if found {
 			return val, true, nil
@@ -36,6 +42,9 @@ func (b *BuildVariables) List() ([]VariableDefinition, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	b.lock.RLock()
+	defer b.lock.RUnlock()
 	for k := range b.localVars {
 		list = append(list, VariableDefinition{
 			Ref: VariableReference{Source: ".", Path: k},
@@ -58,7 +67,10 @@ func (b *BuildVariables) NewLocalScope() *BuildVariables {
 }
 
 func (b *BuildVariables) AddLocalVar(name string, val interface{}, redact bool) {
+	b.lock.Lock()
 	b.localVars[name] = val
+	b.lock.Unlock()
+
 	if redact {
 		b.tracker.Track(VariableReference{Source: ".", Path: name}, val)
 	}
