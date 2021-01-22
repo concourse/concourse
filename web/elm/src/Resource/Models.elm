@@ -71,5 +71,4 @@ type alias Version =
     , expanded : Bool
     , inputTo : List Concourse.Build
     , outputOf : List Concourse.Build
-    , showTooltip : Bool
     }

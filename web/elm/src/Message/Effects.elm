@@ -786,6 +786,24 @@ toHtmlID domId =
         ToggleJobButton ->
             "toggle-job-button"
 
+        CheckButton _ ->
+            "check-button"
+
+        PinIcon ->
+            "pin-icon"
+
+        EditButton ->
+            "edit-button"
+
+        PinButton id ->
+            "pin-button_" ++ String.fromInt id.versionID
+
+        VersionToggle id ->
+            "version-toggle_" ++ String.fromInt id.versionID
+
+        PinBar ->
+            "pin-bar"
+
         _ ->
             ""
 

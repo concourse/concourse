@@ -2,6 +2,8 @@ module Common exposing
     ( and
     , contains
     , defineHoverBehaviour
+    , expectNoTooltip
+    , expectTooltip
     , given
     , givenDataUnauthenticated
     , gotPipelines
@@ -41,7 +43,7 @@ import Routes
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (Selector, attribute, style)
+import Test.Html.Selector exposing (Selector, attribute, id, style, text)
 import Url
 
 
@@ -386,3 +388,20 @@ hoverOver domID =
                         }
                     }
             )
+
+
+expectTooltip : DomID -> String -> Application.Model -> Expect.Expectation
+expectTooltip domID tooltip =
+    hoverOver domID
+        >> Tuple.first
+        >> queryView
+        >> Query.find [ id "tooltips" ]
+        >> Query.has [ text tooltip ]
+
+
+expectNoTooltip : DomID -> Application.Model -> Expect.Expectation
+expectNoTooltip domID =
+    hoverOver domID
+        >> Tuple.first
+        >> queryView
+        >> Query.hasNot [ id "tooltips" ]
