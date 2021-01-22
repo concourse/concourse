@@ -9,6 +9,7 @@ import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Pipeline exposing (pipelineStatus)
 import Dashboard.Styles as Styles
 import Dict exposing (Dict)
+import Favorites
 import HoverState
 import Html exposing (Html)
 import Html.Attributes
@@ -258,7 +259,7 @@ footerView session pipeline section =
 
         favoritedIcon =
             Views.FavoritedIcon.view
-                { isFavorited = Set.member pipeline.id session.favoritedPipelines
+                { isFavorited = Favorites.isPipelineFavorited session pipeline
                 , isHovered = HoverState.isHovered domID session.hovered
                 , isSideBar = False
                 , domID = domID

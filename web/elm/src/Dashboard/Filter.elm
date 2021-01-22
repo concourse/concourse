@@ -1,5 +1,6 @@
 module Dashboard.Filter exposing (Suggestion, filterTeams, isViewingInstanceGroups, suggestions)
 
+import Application.Models exposing (Session)
 import Concourse exposing (DatabaseID, flattenJson)
 import Concourse.PipelineStatus
     exposing
@@ -12,6 +13,7 @@ import Dashboard.Group.Models exposing (Card(..), Pipeline)
 import Dashboard.Models exposing (Model)
 import Dashboard.Pipeline as Pipeline
 import Dict exposing (Dict)
+import Favorites
 import FetchResult
 import List.Extra
 import Parser
@@ -75,8 +77,8 @@ type StatusFilter
     | IncompleteStatus String
 
 
-filterTeams : { r | favoritedPipelines : Set DatabaseID } -> Model -> Dict String (List Pipeline)
-filterTeams { favoritedPipelines } { pipelineJobs, jobs, query, teams, pipelines, dashboardView } =
+filterTeams : Session -> Model -> Dict String (List Pipeline)
+filterTeams session { pipelineJobs, jobs, query, teams, pipelines, dashboardView } =
     let
         teamsToFilter =
             teams
@@ -86,7 +88,7 @@ filterTeams { favoritedPipelines } { pipelineJobs, jobs, query, teams, pipelines
                 |> Dict.union (pipelines |> Maybe.withDefault Dict.empty)
                 |> Dict.map
                     (\_ p ->
-                        List.filter (prefilter dashboardView favoritedPipelines) p
+                        List.filter (prefilter session dashboardView) p
                     )
     in
     parseFilters query
@@ -94,11 +96,11 @@ filterTeams { favoritedPipelines } { pipelineJobs, jobs, query, teams, pipelines
         |> List.foldr (runFilter (FetchResult.withDefault Dict.empty jobs) pipelineJobs) teamsToFilter
 
 
-prefilter : Routes.DashboardView -> Set DatabaseID -> Pipeline -> Bool
-prefilter view favoritedPipelines p =
+prefilter : Session -> Routes.DashboardView -> Pipeline -> Bool
+prefilter session view p =
     case view of
         Routes.ViewNonArchivedPipelines ->
-            not p.archived || Set.member p.id favoritedPipelines
+            not p.archived || Favorites.isPipelineFavorited session p
 
         _ ->
             True

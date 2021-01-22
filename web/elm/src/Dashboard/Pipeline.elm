@@ -16,6 +16,7 @@ import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Styles as Styles
 import Dict
 import Duration
+import Favorites
 import HoverState
 import Html exposing (Html)
 import Html.Attributes
@@ -32,7 +33,6 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
-import Set
 import Time
 import Tooltip
 import UserState
@@ -376,7 +376,7 @@ footerView session pipeline section now hovered existingJobs =
 
         favoritedIcon =
             Views.FavoritedIcon.view
-                { isFavorited = Set.member pipeline.id session.favoritedPipelines
+                { isFavorited = Favorites.isPipelineFavorited session pipeline
                 , isHovered = HoverState.isHovered (PipelineCardFavoritedIcon section pipeline.id) hovered
                 , isSideBar = False
                 , domID = PipelineCardFavoritedIcon section pipeline.id

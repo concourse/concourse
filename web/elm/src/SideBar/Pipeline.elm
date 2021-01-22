@@ -2,6 +2,7 @@ module SideBar.Pipeline exposing (pipeline)
 
 import Assets
 import Concourse
+import Favorites
 import HoverState
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
@@ -53,7 +54,7 @@ pipeline params p =
             HoverState.isHovered domID params.hovered
 
         isFavorited =
-            Set.member p.id params.favoritedPipelines
+            Favorites.isPipelineFavorited params p
     in
     { icon =
         if p.archived then

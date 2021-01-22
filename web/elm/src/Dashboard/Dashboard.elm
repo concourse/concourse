@@ -37,6 +37,7 @@ import Dashboard.Styles as Styles
 import Dashboard.Text as Text
 import Dict exposing (Dict)
 import EffectTransformer exposing (ET)
+import Favorites
 import FetchResult exposing (FetchResult(..), changedFrom)
 import HoverState
 import Html exposing (Html)
@@ -1331,8 +1332,8 @@ cardsView session params teamCards =
                             |> List.filterMap
                                 (\c ->
                                     let
-                                        isFavorited p =
-                                            Set.member p.id session.favoritedPipelines
+                                        isFavorited =
+                                            Favorites.isPipelineFavorited session
                                     in
                                     case c of
                                         PipelineCard p ->
