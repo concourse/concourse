@@ -173,7 +173,7 @@ bodyView :
 bodyView session section pipelines pipelineJobs jobs =
     let
         cols =
-            floor <| sqrt <| toFloat <| List.length pipelines
+            ceiling <| sqrt <| toFloat <| List.length pipelines
 
         padRow row =
             let

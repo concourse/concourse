@@ -285,8 +285,8 @@ all =
             , test "pads the last row if there's not enough boxes" <|
                 \_ ->
                     let
-                        thirdRow =
-                            Query.index 2 >> Query.children []
+                        secondRow =
+                            Query.index 1 >> Query.children []
 
                         lastCol =
                             Query.index -1
@@ -302,7 +302,7 @@ all =
                         |> Common.queryView
                         |> findBody
                         |> rows
-                        |> thirdRow
+                        |> secondRow
                         |> lastCol
                         |> Expect.all
                             [ Query.has [ style "flex-grow" "1" ]
