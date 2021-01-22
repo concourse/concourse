@@ -19,19 +19,16 @@ import Url
 all : Test
 all =
     describe "top-level application"
-        [ test "should subscribe to clicks from the not-automatically-linked boxes in the pipeline, and the token return" <|
+        [ test "should subscribe to clicks from the not-automatically-linked boxes in the pipeline" <|
             \_ ->
                 Common.init "/teams/t/pipelines/p/"
                     |> Application.subscriptions
-                    |> Expect.all
-                        [ Common.contains Subscription.OnNonHrefLinkClicked
-                        , Common.contains Subscription.OnTokenReceived
-                        ]
-        , test "subscribes to the favorited pipelines response" <|
+                    |> Common.contains Subscription.OnNonHrefLinkClicked
+        , test "subscribes to local storage" <|
             \_ ->
                 Common.init "/teams/t/pipelines/p/"
                     |> Application.subscriptions
-                    |> Common.contains Subscription.OnFavoritedPipelinesReceived
+                    |> Common.contains Subscription.OnLocalStorageReceived
         , test "loads favorited pipelines on init" <|
             \_ ->
                 Application.init

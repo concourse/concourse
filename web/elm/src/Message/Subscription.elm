@@ -83,12 +83,7 @@ type Subscription
     | OnNonHrefLinkClicked
     | OnElementVisible
     | OnTokenSentToFly
-    | OnTokenReceived
-    | OnSideBarStateReceived
-    | OnCachedJobsReceived
-    | OnCachedPipelinesReceived
-    | OnCachedTeamsReceived
-    | OnFavoritedPipelinesReceived
+    | OnLocalStorageReceived
     | OnScrolledToId
 
 
@@ -174,41 +169,9 @@ runSubscription s =
                             UrlRequest <| Browser.External path
                 )
 
-        OnTokenReceived ->
+        OnLocalStorageReceived ->
             receivedFromLocalStorage <|
-                decodeStorageResponse tokenKey
-                    Json.Decode.string
-                    TokenReceived
-
-        OnSideBarStateReceived ->
-            receivedFromLocalStorage <|
-                decodeStorageResponse sideBarStateKey
-                    decodeSideBarState
-                    SideBarStateReceived
-
-        OnCachedJobsReceived ->
-            receivedFromLocalStorage <|
-                decodeStorageResponse jobsKey
-                    (Json.Decode.list decodeJob)
-                    CachedJobsReceived
-
-        OnCachedPipelinesReceived ->
-            receivedFromLocalStorage <|
-                decodeStorageResponse pipelinesKey
-                    (Json.Decode.list decodePipeline)
-                    CachedPipelinesReceived
-
-        OnCachedTeamsReceived ->
-            receivedFromLocalStorage <|
-                decodeStorageResponse teamsKey
-                    (Json.Decode.list decodeTeam)
-                    CachedTeamsReceived
-
-        OnFavoritedPipelinesReceived ->
-            receivedFromLocalStorage <|
-                decodeStorageResponse favoritedPipelinesKey
-                    (Json.Decode.list Json.Decode.int |> Json.Decode.map Set.fromList)
-                    FavoritedPipelinesReceived
+                decodeStorageResponse
 
         OnElementVisible ->
             reportIsVisible ElementVisible
@@ -227,15 +190,36 @@ decodePosition =
         (Json.Decode.field "pageY" Json.Decode.float)
 
 
-decodeStorageResponse : Storage.Key -> Json.Decode.Decoder a -> (Result Json.Decode.Error a -> Delivery) -> ( Storage.Key, Storage.Value ) -> Delivery
-decodeStorageResponse expectedKey decoder toDelivery ( key, value ) =
-    if key /= expectedKey then
-        Noop
+decodeStorageResponse : ( Storage.Key, Storage.Value ) -> Delivery
+decodeStorageResponse ( key, value ) =
+    value
+        |> (if key == tokenKey then
+                decodeValue Json.Decode.string TokenReceived
 
-    else
-        value
-            |> Json.Decode.decodeString decoder
-            |> toDelivery
+            else if key == sideBarStateKey then
+                decodeValue decodeSideBarState SideBarStateReceived
+
+            else if key == jobsKey then
+                decodeValue (Json.Decode.list decodeJob) CachedJobsReceived
+
+            else if key == pipelinesKey then
+                decodeValue (Json.Decode.list decodePipeline) CachedPipelinesReceived
+
+            else if key == teamsKey then
+                decodeValue (Json.Decode.list decodeTeam) CachedTeamsReceived
+
+            else if key == favoritedPipelinesKey then
+                decodeValue (Json.Decode.list Json.Decode.int |> Json.Decode.map Set.fromList)
+                    FavoritedPipelinesReceived
+
+            else
+                always Noop
+           )
+
+
+decodeValue : Json.Decode.Decoder a -> (Result Json.Decode.Error a -> Delivery) -> Storage.Value -> Delivery
+decodeValue decoder toDelivery =
+    Json.Decode.decodeString decoder >> toDelivery
 
 
 decodeHttpResponse : String -> RawHttpResponse

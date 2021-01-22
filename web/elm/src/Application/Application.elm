@@ -456,9 +456,7 @@ view model =
 subscriptions : Model -> List Subscription
 subscriptions model =
     [ OnNonHrefLinkClicked
-    , OnTokenReceived
-    , OnSideBarStateReceived
-    , OnFavoritedPipelinesReceived
+    , OnLocalStorageReceived
     , OnWindowResize
     ]
         ++ (if model.session.draggingSideBar then

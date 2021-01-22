@@ -73,21 +73,6 @@ all =
                     }
                     |> Tuple.second
                     |> Common.contains LoadCachedTeams
-        , test "subscribes to receive cached jobs" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> Application.subscriptions
-                    |> Common.contains Subscription.OnCachedJobsReceived
-        , test "subscribes to receive cached pipelines" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> Application.subscriptions
-                    |> Common.contains Subscription.OnCachedPipelinesReceived
-        , test "subscribes to receive cached teams" <|
-            \_ ->
-                whenOnDashboard { highDensity = False }
-                    |> Application.subscriptions
-                    |> Common.contains Subscription.OnCachedTeamsReceived
         , test "renders pipelines when receive cached pipelines delivery" <|
             \_ ->
                 whenOnDashboard { highDensity = False }

@@ -812,9 +812,6 @@ subscriptions =
     , OnKeyDown
     , OnKeyUp
     , OnWindowResize
-    , OnCachedJobsReceived
-    , OnCachedPipelinesReceived
-    , OnCachedTeamsReceived
     ]
 
 
