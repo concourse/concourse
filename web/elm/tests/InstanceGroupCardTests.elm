@@ -67,12 +67,23 @@ all : Test
 all =
     describe "instance group cards" <|
         let
+            findTeamSection =
+                Query.find [ class "dashboard-team-group" ]
+
+            findFavoritesSection =
+                Query.find [ id "dashboard-favorite-pipelines" ]
+
+            cardSelector =
+                [ class "card"
+                , containing
+                    [ text "group" ]
+                ]
+
+            hasCard =
+                Query.has cardSelector
+
             findCard =
-                Query.find
-                    [ class "card"
-                    , containing
-                        [ text "group" ]
-                    ]
+                Query.find cardSelector
 
             findHeader =
                 findCard
@@ -509,7 +520,7 @@ all =
                                 ]
                 ]
             ]
-        , describe "footer" <|
+        , describe "favoriting" <|
             let
                 instance =
                     pipelineInstance BuildStatusSucceeded False 1
@@ -521,6 +532,14 @@ all =
                     whenOnDashboard { highDensity = False }
                         |> gotPipelines
                             [ pipelineInstance BuildStatusSucceeded False 1 ]
+
+                isFavorited =
+                    Application.handleDelivery
+                        (FavoritedInstanceGroupsReceived <|
+                            Ok <|
+                                Set.singleton ( groupId.teamName, groupId.name )
+                        )
+                        >> Tuple.first
 
                 footer =
                     Common.queryView
@@ -588,43 +607,24 @@ all =
                                     )
                             , Tuple.first
                                 >> Common.queryView
+                                >> findTeamSection
                                 >> findCard
                                 >> Query.has filledFavoritedIcon
                             ]
             , test "favorited instance groups are loaded from storage" <|
                 \_ ->
                     setup
-                        |> Application.handleDelivery
-                            (FavoritedInstanceGroupsReceived <|
-                                Ok <|
-                                    Set.singleton ( groupId.teamName, groupId.name )
-                            )
-                        |> Tuple.first
+                        |> isFavorited
                         |> Common.queryView
+                        |> findTeamSection
                         |> findCard
                         |> Query.has filledFavoritedIcon
-            ]
-        , describe "when pipeline instances are favorited" <|
-            [ test "only the favorited instances are shown in the favorites section" <|
+            , test "favorited instance groups are rendered in favorite section" <|
                 \_ ->
-                    whenOnDashboard { highDensity = False }
-                        |> gotPipelines
-                            [ pipelineInstance BuildStatusSucceeded False 1
-                            , pipelineInstance BuildStatusSucceeded False 2
-                            ]
-                        |> Application.handleDelivery
-                            (FavoritedPipelinesReceived <|
-                                Ok <|
-                                    Set.singleton 1
-                            )
-                        |> Tuple.first
+                    setup
+                        |> isFavorited
                         |> Common.queryView
-                        |> Query.find [ id "dashboard-favorite-pipelines" ]
-                        |> findBody
-                        |> rows
-                        |> Expect.all
-                            [ Query.count (Expect.equal 1)
-                            , firstRow >> Query.count (Expect.equal 1)
-                            ]
+                        |> findFavoritesSection
+                        |> hasCard
             ]
         ]
