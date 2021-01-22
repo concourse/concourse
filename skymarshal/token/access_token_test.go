@@ -2,6 +2,7 @@ package token_test
 
 import (
 	"errors"
+	"github.com/concourse/concourse/atc/atcfakes"
 	"net/http"
 	"net/http/httptest"
 	"time"
@@ -20,10 +21,11 @@ var _ = Describe("Access Tokens", func() {
 
 	Describe("StoreAccessToken", func() {
 		var (
-			generator          *tokenfakes.FakeGenerator
-			claimsParser       *tokenfakes.FakeClaimsParser
-			accessTokenFactory *dbfakes.FakeAccessTokenFactory
-			userFactory        *dbfakes.FakeUserFactory
+			generator              *tokenfakes.FakeGenerator
+			claimsParser           *tokenfakes.FakeClaimsParser
+			accessTokenFactory     *dbfakes.FakeAccessTokenFactory
+			userFactory            *dbfakes.FakeUserFactory
+			displayUserIdGenerator *atcfakes.FakeDisplayUserIdGenerator
 
 			dummyLogger *lagertest.TestLogger
 		)
@@ -33,6 +35,7 @@ var _ = Describe("Access Tokens", func() {
 			claimsParser = new(tokenfakes.FakeClaimsParser)
 			accessTokenFactory = new(dbfakes.FakeAccessTokenFactory)
 			userFactory = new(dbfakes.FakeUserFactory)
+			displayUserIdGenerator = new(atcfakes.FakeDisplayUserIdGenerator)
 
 			dummyLogger = lagertest.NewTestLogger("whatever")
 		})
@@ -136,7 +139,7 @@ var _ = Describe("Access Tokens", func() {
 					w.WriteHeader(t.statusCode)
 					w.Write([]byte(t.body))
 				})
-				handler := token.StoreAccessToken(dummyLogger, baseHandler, generator, claimsParser, accessTokenFactory, userFactory)
+				handler := token.StoreAccessToken(dummyLogger, baseHandler, generator, claimsParser, accessTokenFactory, userFactory, displayUserIdGenerator)
 				r, _ := http.NewRequest("GET", t.path, nil)
 				rec := httptest.NewRecorder()
 

@@ -1,6 +1,7 @@
 package accessor_test
 
 import (
+	"github.com/concourse/concourse/atc/atcfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -21,6 +22,8 @@ var _ = Describe("Accessor", func() {
 		fakeTeam1 *dbfakes.FakeTeam
 		fakeTeam2 *dbfakes.FakeTeam
 		fakeTeam3 *dbfakes.FakeTeam
+
+		fakeDisplayUserIdGenerator *atcfakes.FakeDisplayUserIdGenerator
 	)
 
 	BeforeEach(func() {
@@ -34,10 +37,12 @@ var _ = Describe("Accessor", func() {
 		verification = accessor.Verification{}
 
 		teams = []db.Team{fakeTeam1, fakeTeam2, fakeTeam3}
+
+		fakeDisplayUserIdGenerator = new(atcfakes.FakeDisplayUserIdGenerator)
 	})
 
 	JustBeforeEach(func() {
-		access = accessor.NewAccessor(verification, requiredRole, "sub", []string{"system"}, teams)
+		access = accessor.NewAccessor(verification, requiredRole, "sub", []string{"system"}, teams, fakeDisplayUserIdGenerator)
 	})
 
 	Describe("HasToken", func() {
@@ -190,7 +195,7 @@ var _ = Describe("Accessor", func() {
 				},
 			})
 
-			access = accessor.NewAccessor(verification, requiredRole, "sub", []string{"system"}, teams)
+			access = accessor.NewAccessor(verification, requiredRole, "sub", []string{"system"}, teams, fakeDisplayUserIdGenerator)
 			result := access.IsAuthorized("some-team")
 			Expect(expected).Should(Equal(result))
 		},
@@ -237,7 +242,7 @@ var _ = Describe("Accessor", func() {
 				},
 			})
 
-			access = accessor.NewAccessor(verification, requiredRole, "sub", []string{"system"}, teams)
+			access = accessor.NewAccessor(verification, requiredRole, "sub", []string{"system"}, teams, fakeDisplayUserIdGenerator)
 			result := access.IsAuthorized("some-team")
 			Expect(expected).Should(Equal(result))
 		},
@@ -298,7 +303,7 @@ var _ = Describe("Accessor", func() {
 				})
 			}
 
-			access = accessor.NewAccessor(verification, requiredRole, "sub", []string{"system"}, teams)
+			access = accessor.NewAccessor(verification, requiredRole, "sub", []string{"system"}, teams, fakeDisplayUserIdGenerator)
 			result := access.IsAuthorized("some-team")
 			Expect(expected).Should(Equal(result))
 		},

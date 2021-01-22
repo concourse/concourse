@@ -21,6 +21,8 @@ type UserInfo struct {
 	DisplayUserId string              `json:"display_user_id"`
 }
 
+//go:generate counterfeiter . DisplayUserIdGenerator
+
 type DisplayUserIdGenerator interface {
 	DisplayUserId(connector, userid, username, preferredUsername, email string) string
 }

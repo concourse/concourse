@@ -101,7 +101,7 @@ var _ = Describe("Build", func() {
 				build, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(build.CreatedBy()).NotTo(BeNil())
-				Expect(*build.CreatedBy()).To(Equal(defaultBuildCreatedBy))
+				Expect(build.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 			})
 
 			It("includes build, team, pipeline, and job info", func() {
@@ -2159,7 +2159,7 @@ var _ = Describe("Build", func() {
 			retriggerBuild, err = job.RerunBuild(downstreamBuild, defaultBuildCreatedBy)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(retriggerBuild.CreatedBy()).NotTo(BeNil())
-			Expect(*retriggerBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
+			Expect(retriggerBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 		})
 
 		JustBeforeEach(func() {

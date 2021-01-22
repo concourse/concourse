@@ -1,7 +1,6 @@
 package exec_test
 
 import (
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec"
 
 	. "github.com/onsi/ginkgo"
@@ -24,9 +23,7 @@ var _ = Describe("StepMetadata", func() {
 					PipelineID:   4444,
 					PipelineName: "some-pipeline-name",
 					ExternalURL:  "http://www.example.com",
-					CreatedBy: &atc.UserInfo{
-						UserId: "some-one",
-					},
+					CreatedBy:    "someone",
 				}
 			})
 
@@ -41,8 +38,7 @@ var _ = Describe("StepMetadata", func() {
 					"BUILD_PIPELINE_ID=4444",
 					"BUILD_PIPELINE_NAME=some-pipeline-name",
 					"ATC_EXTERNAL_URL=http://www.example.com",
-					"BUILD_CREATED_BY=some-one",
-					`BUILD_CREATED_BY_EX={"sub":"","name":"","user_id":"some-one","user_name":"","email":"","is_admin":false,"is_system":false,"teams":null,"connector":""}`,
+					"BUILD_CREATED_BY=someone",
 				))
 			})
 		})

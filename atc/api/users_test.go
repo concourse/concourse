@@ -53,6 +53,7 @@ var _ = Describe("Users API", func() {
 						"some-other-team": {"viewer"},
 					},
 					Connector: "some-connector",
+					DisplayUserId: "some-user-id",
 				})
 			})
 
@@ -80,7 +81,8 @@ var _ = Describe("Users API", func() {
 							  "some-team": ["owner"],
 							  "some-other-team": ["viewer"]
 							},
-							"connector": "some-connector"
+							"connector": "some-connector",
+							"display_user_id": "some-user-id"
 						}`))
 			})
 		})
