@@ -67,6 +67,7 @@ computeLayout :
     , viewportWidth : Float
     , viewportHeight : Float
     , scrollTop : Float
+    , viewingInstanceGroups : Bool
     }
     -> Concourse.TeamName
     -> List Models.Card
@@ -191,7 +192,7 @@ computeFavoritesLayout :
     , viewportWidth : Float
     , viewportHeight : Float
     , scrollTop : Float
-    , isInstanceGroupView : Bool
+    , viewingInstanceGroups : Bool
     }
     -> List Models.Card
     ->
@@ -214,7 +215,7 @@ computeFavoritesLayout params cards =
         headers =
             let
                 cardHeader =
-                    composeHeader params.isInstanceGroupView
+                    composeHeader params.viewingInstanceGroups
             in
             result.allCards
                 |> List.Extra.groupWhile
@@ -273,8 +274,8 @@ computeFavoritesLayout params cards =
 
 
 composeHeader : Bool -> Models.Card -> String
-composeHeader isInstanceGroupView card =
-    if isInstanceGroupView then
+composeHeader viewingInstanceGroups card =
+    if viewingInstanceGroups then
         cardTeamName card ++ " / " ++ cardName card
 
     else
@@ -356,6 +357,7 @@ computeCards :
         { a
             | viewportWidth : Float
             , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobName))
+            , viewingInstanceGroups : Bool
         }
     -> List Models.Card
     ->
@@ -386,7 +388,7 @@ computeCards config params cards =
             (\( first, rest ) state ->
                 let
                     headerHeight =
-                        maxBy (numHeaderRows << .card) first rest
+                        maxBy (numHeaderRows params.viewingInstanceGroups << .card) first rest
                             |> cardHeaderHeight
                             |> toFloat
 
@@ -418,18 +420,32 @@ computeCards config params cards =
             }
 
 
-numHeaderRows : Models.Card -> Int
-numHeaderRows card =
+numHeaderRows : Bool -> Models.Card -> Int
+numHeaderRows viewingInstanceGroups card =
     case card of
         Models.PipelineCard pipeline ->
             if Dict.isEmpty pipeline.instanceVars then
                 1
 
             else
-                pipeline.instanceVars
-                    |> Dict.toList
-                    |> List.concatMap (\( k, v ) -> flattenJson k v)
-                    |> List.length
+                let
+                    groupNameHeader =
+                        if viewingInstanceGroups then
+                            -- Don't display instance group name inside the
+                            -- card when viewing instance groups since it's in
+                            -- the outer header
+                            0
+
+                        else
+                            1
+
+                    instanceVarHeaders =
+                        pipeline.instanceVars
+                            |> Dict.toList
+                            |> List.concatMap (\( k, v ) -> flattenJson k v)
+                            |> List.length
+                in
+                groupNameHeader + instanceVarHeaders
 
         Models.InstanceGroupCard _ _ ->
             1

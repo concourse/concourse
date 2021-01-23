@@ -74,6 +74,7 @@ module Concourse exposing
     , flattenJson
     , groupPipelinesWithinTeam
     , hyphenNotation
+    , isInInstanceGroup
     , isInstanceGroup
     , mapBuildPlan
     , pipelineId
@@ -562,7 +563,7 @@ groupPipelinesWithinTeam =
             )
 
 
-isInstanceGroup : List { p | name : String, instanceVars : InstanceVars } -> Bool
+isInstanceGroup : List { p | instanceVars : InstanceVars } -> Bool
 isInstanceGroup pipelines =
     case pipelines of
         p :: ps ->
@@ -570,6 +571,21 @@ isInstanceGroup pipelines =
 
         _ ->
             False
+
+
+isInInstanceGroup :
+    List { a | id : DatabaseID, name : String, teamName : String, instanceVars : InstanceVars }
+    -> { b | id : DatabaseID, name : String, teamName : String, instanceVars : InstanceVars }
+    -> Bool
+isInInstanceGroup allPipelines p =
+    not (Dict.isEmpty p.instanceVars)
+        || List.any
+            (\p2 ->
+                (p.name == p2.name)
+                    && (p.teamName == p2.teamName)
+                    && (p.id /= p2.id)
+            )
+            allPipelines
 
 
 type alias AcrossPlan =

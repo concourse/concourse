@@ -209,8 +209,8 @@ noPipelineCardHeader =
     ]
 
 
-cardHeaderCommon : Float -> List (Html.Attribute msg)
-cardHeaderCommon height =
+pipelineCardHeader : Float -> List (Html.Attribute msg)
+pipelineCardHeader height =
     [ style "background-color" Colors.card
     , style "color" Colors.dashboardPipelineHeaderText
     , style "font-size" "1.5em"
@@ -221,17 +221,9 @@ cardHeaderCommon height =
     ]
 
 
-pipelineCardHeader : Float -> List (Html.Attribute msg)
-pipelineCardHeader height =
-    cardHeaderCommon height
-
-
 instanceGroupCardHeader : Float -> List (Html.Attribute msg)
-instanceGroupCardHeader height =
-    cardHeaderCommon height
-        ++ [ style "display" "flex"
-           , style "align-items" "center"
-           ]
+instanceGroupCardHeader =
+    pipelineCardHeader
 
 
 pipelineName : List (Html.Attribute msg)
@@ -257,6 +249,9 @@ noInstanceVars =
 instanceGroupName : List (Html.Attribute msg)
 instanceGroupName =
     pipelineName
+        ++ [ style "display" "flex"
+           , style "align-items" "center"
+           ]
 
 
 emptyCardBody : List (Html.Attribute msg)

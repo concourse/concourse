@@ -257,7 +257,17 @@ all =
                 findInstanceVars =
                     Query.findAll [ class "instance-var" ]
             in
-            [ test "displays instance vars in header" <|
+            [ test "does not display group name in header" <|
+                \_ ->
+                    whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
+                        |> gotPipelines
+                            [ pipelineInstanceWithVars 1
+                                [ ( "a", JsonString "b" ) ]
+                            ]
+                        |> Common.queryView
+                        |> findHeader
+                        |> Query.hasNot [ text "group" ]
+            , test "displays instance vars in header" <|
                 \_ ->
                     whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
                         |> gotPipelines

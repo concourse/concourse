@@ -8,11 +8,13 @@ import Common
     exposing
         ( defineHoverBehaviour
         , givenDataUnauthenticated
+        , gotPipelines
         , isColorWithStripes
         )
-import Concourse
+import Concourse exposing (JsonValue(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
+import DashboardInstanceGroupTests exposing (pipelineInstanceWithVars)
 import DashboardTests
     exposing
         ( afterSeconds
@@ -40,6 +42,7 @@ import DashboardTests
         , white
         )
 import Data
+import Dict
 import Expect exposing (Expectation)
 import Html.Attributes as Attr
 import Message.Callback as Callback
@@ -70,6 +73,9 @@ all =
                 -> Query.Single ApplicationMsgs.TopLevelMessage
             findBody =
                 Query.find [ class "card-body" ]
+
+            findFavoritesSection =
+                Query.find [ id "dashboard-favorite-pipelines" ]
 
             pipelineWithStatus :
                 BuildStatus
@@ -357,6 +363,51 @@ all =
                             Effects.toHtmlID <|
                                 Msgs.PipelineCardName Msgs.AllPipelinesSection 1
                         ]
+            , describe "favorited pipeline instances" <|
+                let
+                    setup pipelines _ =
+                        whenOnDashboard { highDensity = False }
+                            |> givenDataUnauthenticated
+                                (apiData [ ( "team", [] ) ])
+                            |> Tuple.first
+                            |> gotPipelines pipelines
+                            |> Application.handleDelivery
+                                (FavoritedPipelinesReceived <|
+                                    Ok (Set.singleton 1)
+                                )
+                            |> Tuple.first
+
+                    findCardHeader =
+                        Common.queryView
+                            >> findFavoritesSection
+                            >> Query.find
+                                [ class "card"
+                                , containing [ text "group" ]
+                                ]
+                            >> Query.find [ class "card-header" ]
+                in
+                [ test "header displays instance vars and group name" <|
+                    setup [ pipelineInstanceWithVars 1 [ ( "foo", JsonString "bar" ) ] ]
+                        >> findCardHeader
+                        >> Expect.all
+                            [ Query.has
+                                [ style "height" "80px"
+                                , style "box-sizing" "border-box"
+                                ]
+                            , Query.has [ text "group" ]
+                            , Query.has [ containing [ text "foo" ], containing [ text "bar" ] ]
+                            ]
+                , test "an instance with no instance vars displays \"no instance vars\"" <|
+                    setup
+                        [ pipelineInstanceWithVars 1 []
+                        , pipelineInstanceWithVars 2 [ ( "foo", JsonString "bar" ) ]
+                        ]
+                        >> findCardHeader
+                        >> Expect.all
+                            [ Query.has [ text "group" ]
+                            , Query.has [ text "no instance vars" ]
+                            ]
+                ]
             ]
         , describe "colored banner" <|
             let

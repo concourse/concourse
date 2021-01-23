@@ -533,11 +533,19 @@ all =
                         |> gotPipelines
                             [ pipelineInstance BuildStatusSucceeded False 1 ]
 
-                isFavorited =
+                groupIsFavorited =
                     Application.handleDelivery
                         (FavoritedInstanceGroupsReceived <|
                             Ok <|
                                 Set.singleton ( groupId.teamName, groupId.name )
+                        )
+                        >> Tuple.first
+
+                instanceIsFavorited =
+                    Application.handleDelivery
+                        (FavoritedPipelinesReceived <|
+                            Ok <|
+                                Set.singleton 1
                         )
                         >> Tuple.first
 
@@ -614,7 +622,7 @@ all =
             , test "favorited instance groups are loaded from storage" <|
                 \_ ->
                     setup
-                        |> isFavorited
+                        |> groupIsFavorited
                         |> Common.queryView
                         |> findTeamSection
                         |> findCard
@@ -622,9 +630,18 @@ all =
             , test "favorited instance groups are rendered in favorite section" <|
                 \_ ->
                     setup
-                        |> isFavorited
+                        |> groupIsFavorited
                         |> Common.queryView
                         |> findFavoritesSection
                         |> hasCard
+            , test "both favorited instance groups and favorited instances in the group are rendered in favorite section" <|
+                \_ ->
+                    setup
+                        |> groupIsFavorited
+                        |> instanceIsFavorited
+                        |> Common.queryView
+                        |> findFavoritesSection
+                        |> Query.findAll cardSelector
+                        |> Query.count (Expect.equal 2)
             ]
         ]

@@ -149,13 +149,13 @@ headerView section dashboardView query pipeline pipelines resourceError headerHe
         ]
         [ Html.div
             (class "card-header" :: Styles.instanceGroupCardHeader headerHeight)
-            [ InstanceGroupBadge.view ColorValues.grey20 <| List.length (pipeline :: pipelines)
-            , Html.div
+            [ Html.div
                 (class "dashboard-group-name"
                     :: Styles.instanceGroupName
                     ++ Tooltip.hoverAttrs (InstanceGroupCardName section pipeline.teamName pipeline.name)
                 )
-                [ Html.text pipeline.name
+                [ InstanceGroupBadge.view ColorValues.grey20 <| List.length (pipeline :: pipelines)
+                , Html.text pipeline.name
                 ]
             , Html.div
                 [ classList [ ( "dashboard-resource-error", resourceError ) ] ]

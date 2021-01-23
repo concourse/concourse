@@ -59,7 +59,7 @@ view :
         , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
         , dashboardView : Routes.DashboardView
         , query : String
-        , inInstanceGroupView : Bool
+        , viewingInstanceGroups : Bool
         }
     -> Concourse.TeamName
     -> List Grid.Card
@@ -153,7 +153,7 @@ viewFavoritePipelines :
         , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
         , dashboardView : Routes.DashboardView
         , query : String
-        , inInstanceGroupView : Bool
+        , viewingInstanceGroups : Bool
         }
     -> List Grid.Header
     -> List Grid.Card
@@ -315,7 +315,7 @@ pipelineCardView :
             , pipelineLayers : Dict Concourse.DatabaseID (List (List Concourse.JobName))
             , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobName)
             , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
-            , inInstanceGroupView : Bool
+            , viewingInstanceGroups : Bool
         }
     -> PipelinesSection
     ->
@@ -359,7 +359,7 @@ pipelineCardView session params section { bounds, headerHeight, pipeline } teamN
              , style "height" "100%"
              , attribute "data-pipeline-name" pipeline.name
              ]
-                ++ (if section == AllPipelinesSection && not pipeline.stale && not params.inInstanceGroupView then
+                ++ (if section == AllPipelinesSection && not pipeline.stale && not params.viewingInstanceGroups then
                         [ attribute
                             "ondragstart"
                             "event.dataTransfer.setData('text/plain', '');"
@@ -408,7 +408,7 @@ pipelineCardView session params section { bounds, headerHeight, pipeline } teamN
                 , headerHeight = headerHeight
                 , hovered = session.hovered
                 , section = section
-                , inInstanceGroupView = params.inInstanceGroupView
+                , viewingInstanceGroups = params.viewingInstanceGroups
                 }
             ]
         ]
