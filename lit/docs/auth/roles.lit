@@ -55,7 +55,7 @@ and viewers cannot.
   \title{\code{owner} role}{team-owner-role}
 
   Team owners have read, write and auth management capabilities within the
-  scope of their team, but they cannot rename or destroy the team.
+  scope of their team, and can rename or destroy the team.
 
   Actions assigned to the \code{owner} role by default:
 
