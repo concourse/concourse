@@ -1,6 +1,6 @@
-module Favorites exposing (Model, handleDelivery, isInstanceGroupFavorited, isPipelineFavorited, update)
+module Favorites exposing (Model, handleDelivery, isFavorited, isInstanceGroupFavorited, isPipelineFavorited, update)
 
-import Concourse
+import Concourse exposing (PipelineGrouping(..))
 import EffectTransformer exposing (ET)
 import Json.Encode
 import Message.Callback exposing (Callback(..))
@@ -46,7 +46,7 @@ update message ( model, effects ) =
             )
     in
     case message of
-        Click (SideBarFavoritedIcon pipelineID) ->
+        Click (SideBarPipelineFavoritedIcon pipelineID) ->
             toggleFavoritePipeline pipelineID
 
         Click (PipelineCardFavoritedIcon _ pipelineID) ->
@@ -55,8 +55,11 @@ update message ( model, effects ) =
         Click (TopBarFavoritedIcon pipelineID) ->
             toggleFavoritePipeline pipelineID
 
-        Click (InstanceGroupCardFavoritedIcon _ pipelineID) ->
-            toggleFavoriteInstanceGroup pipelineID
+        Click (SideBarInstanceGroupFavoritedIcon groupID) ->
+            toggleFavoriteInstanceGroup groupID
+
+        Click (InstanceGroupCardFavoritedIcon _ groupID) ->
+            toggleFavoriteInstanceGroup groupID
 
         _ ->
             ( model, effects )
@@ -73,6 +76,25 @@ handleDelivery delivery ( model, effects ) =
 
         _ ->
             ( model, effects )
+
+
+isFavorited :
+    Model m
+    ->
+        PipelineGrouping
+            { r
+                | name : Concourse.PipelineName
+                , teamName : Concourse.TeamName
+                , id : Concourse.DatabaseID
+            }
+    -> Bool
+isFavorited model group =
+    case group of
+        RegularPipeline p ->
+            isPipelineFavorited model p
+
+        InstanceGroup p _ ->
+            isInstanceGroupFavorited model (Concourse.toInstanceGroupId p)
 
 
 isPipelineFavorited :

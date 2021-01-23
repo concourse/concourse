@@ -72,7 +72,7 @@ module Concourse exposing
     , encodeResource
     , encodeTeam
     , flattenJson
-    , groupPipelines
+    , groupPipelinesWithinTeam
     , hyphenNotation
     , isInstanceGroup
     , mapBuildPlan
@@ -547,10 +547,10 @@ type PipelineGrouping pipeline
     | InstanceGroup pipeline (List pipeline)
 
 
-groupPipelines :
+groupPipelinesWithinTeam :
     List { p | name : String, instanceVars : InstanceVars }
     -> List (PipelineGrouping { p | name : String, instanceVars : InstanceVars })
-groupPipelines =
+groupPipelinesWithinTeam =
     List.Extra.gatherEqualsBy .name
         >> List.map
             (\( p, ps ) ->

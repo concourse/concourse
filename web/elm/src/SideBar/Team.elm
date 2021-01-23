@@ -1,7 +1,7 @@
 module SideBar.Team exposing (team)
 
 import Assets
-import Concourse
+import Concourse exposing (PipelineGrouping(..))
 import HoverState
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Set exposing (Set)
@@ -21,9 +21,10 @@ type alias PipelineScoped a =
 team :
     { a
         | hovered : HoverState.HoverState
-        , pipelines : List Concourse.Pipeline
+        , pipelines : List (PipelineGrouping Concourse.Pipeline)
         , currentPipeline : Maybe (PipelineScoped b)
         , favoritedPipelines : Set Int
+        , favoritedInstanceGroups : Set ( Concourse.TeamName, Concourse.PipelineName )
         , isFavoritesSection : Bool
     }
     -> { name : String, isExpanded : Bool }
@@ -75,7 +76,6 @@ team params t =
     , isExpanded = t.isExpanded
     , listItems =
         params.pipelines
-            |> Concourse.groupPipelines
             |> List.map
                 (\g ->
                     case g of

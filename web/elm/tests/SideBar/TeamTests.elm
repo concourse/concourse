@@ -1,6 +1,7 @@
 module SideBar.TeamTests exposing (all)
 
 import Common
+import Concourse
 import Data
 import Expect
 import HoverState exposing (TooltipPosition(..))
@@ -316,7 +317,7 @@ team { active, expanded, hovered, hasFavorited, isFavoritesSection } =
                 HoverState.NoHover
 
         pipelines =
-            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+            [ Data.pipeline "team" 0 |> Data.withName "pipeline" |> Concourse.RegularPipeline ]
 
         pipelineIdentifier =
             { teamName = "team", pipelineName = "pipeline" }
@@ -340,6 +341,7 @@ team { active, expanded, hovered, hasFavorited, isFavoritesSection } =
         , pipelines = pipelines
         , currentPipeline = activePipeline
         , favoritedPipelines = favoritedPipelines
+        , favoritedInstanceGroups = Set.empty
         , isFavoritesSection = isFavoritesSection
         }
         { name = "team"

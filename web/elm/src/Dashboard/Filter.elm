@@ -133,7 +133,7 @@ runFilter jobs existingJobs f =
         InstanceGroup sf ->
             Dict.map
                 (\_ ->
-                    Concourse.groupPipelines
+                    Concourse.groupPipelinesWithinTeam
                         >> List.filterMap
                             (\g ->
                                 case g of

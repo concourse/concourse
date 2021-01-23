@@ -293,7 +293,12 @@ tooltip model =
             Just
                 { body = Html.text name
                 , attachPosition =
-                    { direction = Tooltip.Right <| Styles.tooltipArrowSize - Styles.tooltipOffset
+                    { direction =
+                        Tooltip.Right <|
+                            Styles.tooltipArrowSize
+                                + (Styles.starPadding * 2)
+                                + Styles.starWidth
+                                - Styles.tooltipOffset
                     , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
                     }
                 , arrow = Just Styles.tooltipArrowSize
@@ -328,22 +333,35 @@ tooltip model =
 
 allPipelinesSection : Model m -> Maybe (PipelineScoped a) -> List (Html Message)
 allPipelinesSection model currentPipeline =
+    let
+        pipelinesByTeam =
+            model.pipelines
+                |> RemoteData.withDefault []
+                |> List.filter (isPipelineVisible model)
+                |> List.Extra.gatherEqualsBy .teamName
+                |> List.map
+                    (\( p, ps ) ->
+                        ( p.teamName
+                        , Concourse.groupPipelinesWithinTeam (p :: ps)
+                        )
+                    )
+                |> List.filter (Tuple.second >> List.isEmpty >> not)
+    in
     [ Html.div Styles.sectionHeader [ Html.text "all pipelines" ]
     , Html.div [ id "all-pipelines" ]
-        (model.pipelines
-            |> RemoteData.withDefault []
-            |> List.Extra.gatherEqualsBy .teamName
+        (pipelinesByTeam
             |> List.map
-                (\( p, ps ) ->
+                (\( teamName, pipelines ) ->
                     Team.team
                         { hovered = model.hovered
-                        , pipelines = (p :: ps) |> List.filter (isPipelineVisible model)
+                        , pipelines = pipelines
                         , currentPipeline = currentPipeline
                         , favoritedPipelines = model.favoritedPipelines
+                        , favoritedInstanceGroups = model.favoritedInstanceGroups
                         , isFavoritesSection = False
                         }
-                        { name = p.teamName
-                        , isExpanded = Set.member p.teamName model.expandedTeamsInAllPipelines
+                        { name = teamName
+                        , isExpanded = Set.member teamName model.expandedTeamsInAllPipelines
                         }
                         |> Views.viewTeam
                 )
@@ -354,35 +372,40 @@ allPipelinesSection model currentPipeline =
 favoritedPipelinesSection : Model m -> Maybe (PipelineScoped a) -> List (Html Message)
 favoritedPipelinesSection model currentPipeline =
     let
-        favoritedPipelines =
+        favoritedPipelinesByTeam =
             model.pipelines
                 |> RemoteData.withDefault []
-                |> List.filter
-                    (\fp ->
-                        Set.member fp.id model.favoritedPipelines
+                |> List.Extra.gatherEqualsBy .teamName
+                |> List.map
+                    (\( p, ps ) ->
+                        ( p.teamName
+                        , Concourse.groupPipelinesWithinTeam (p :: ps)
+                            |> List.filter (Favorites.isFavorited model)
+                        )
                     )
+                |> List.filter (Tuple.second >> List.isEmpty >> not)
     in
-    if List.isEmpty favoritedPipelines then
+    if List.isEmpty favoritedPipelinesByTeam then
         []
 
     else
         [ Html.div Styles.sectionHeader [ Html.text "favorite pipelines" ]
         , Html.div [ id "favorites" ]
-            (favoritedPipelines
-                |> List.Extra.gatherEqualsBy .teamName
+            (favoritedPipelinesByTeam
                 |> List.map
-                    (\( p, ps ) ->
+                    (\( teamName, pipelines ) ->
                         Team.team
                             { hovered = model.hovered
-                            , pipelines = p :: ps
+                            , pipelines = pipelines
                             , currentPipeline = currentPipeline
                             , favoritedPipelines = model.favoritedPipelines
+                            , favoritedInstanceGroups = model.favoritedInstanceGroups
                             , isFavoritesSection = True
                             }
-                            { name = p.teamName
+                            { name = teamName
                             , isExpanded =
                                 not <|
-                                    Set.member p.teamName model.collapsedTeamsInFavorites
+                                    Set.member teamName model.collapsedTeamsInFavorites
                             }
                             |> Views.viewTeam
                     )
@@ -450,8 +473,8 @@ hasVisiblePipelines model =
 
 
 isPipelineVisible : { a | favoritedPipelines : Set Concourse.DatabaseID } -> Concourse.Pipeline -> Bool
-isPipelineVisible { favoritedPipelines } p =
-    not p.archived || Set.member p.id favoritedPipelines
+isPipelineVisible session p =
+    not p.archived || Favorites.isPipelineFavorited session p
 
 
 updatePipeline :

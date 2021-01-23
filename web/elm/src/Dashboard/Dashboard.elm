@@ -689,7 +689,7 @@ updateBody session msg ( model, effects ) =
                             model.pipelines
                                 |> Maybe.andThen (Dict.get teamName)
                                 |> Maybe.withDefault []
-                                |> groupCards
+                                |> groupCardsWithinTeam
                                 |> (\cards ->
                                         cards
                                             |> (case Drag.dragCardIndices name target cards of
@@ -1260,16 +1260,16 @@ regularCardsView session params =
                 |> List.map
                     (\( team, teamPipelines ) ->
                         ( team
-                        , groupCards teamPipelines
+                        , groupCardsWithinTeam teamPipelines
                         )
                     )
     in
     cardsView session params teamCards
 
 
-groupCards : List Pipeline -> List Card
-groupCards =
-    Concourse.groupPipelines
+groupCardsWithinTeam : List Pipeline -> List Card
+groupCardsWithinTeam =
+    Concourse.groupPipelinesWithinTeam
         >> List.map
             (\g ->
                 case g of

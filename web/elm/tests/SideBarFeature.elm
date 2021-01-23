@@ -485,14 +485,14 @@ hasSideBar iAmLookingAtThePage =
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> when iAmLookingAtTheFirstPipelineStar
-                >> then_ (itIsClickable <| Message.SideBarFavoritedIcon 0)
+                >> then_ (itIsClickable <| Message.SideBarPipelineFavoritedIcon 0)
         , test "pipeline gets favorited when star icon is clicked" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> given iClickedTheFirstPipelineStar
                 >> when iAmLookingAtTheFirstPipelineStar
                 >> then_ iSeeFilledStarIcon
-        , test "clicked on favorited pipeline has unfilled star icon" <|
+        , test "clicked on favorited pipeline unfavorites it" <|
             given iHaveAnOpenSideBar_
                 >> given iClickedThePipelineGroup
                 >> given iClickedTheFirstPipelineStar
@@ -705,6 +705,34 @@ hasSideBar iAmLookingAtThePage =
                         ]
                     }
                 }
+            , test "star icon is clickable" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> when iAmLookingAtTheFirstInstanceGroupStar
+                    >> then_
+                        (itIsClickable <|
+                            Message.SideBarInstanceGroupFavoritedIcon
+                                { teamName = "team", name = "group" }
+                        )
+            , test "instance group gets favorited when star icon is clicked" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> given iClickedTheFirstInstanceGroupStar
+                    >> when iAmLookingAtTheFirstInstanceGroupStar
+                    >> then_ iSeeFilledStarIcon
+            , test "clicked on favorited instance group unfavorites it" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> given iClickedTheFirstInstanceGroupStar
+                    >> given iClickedTheFirstInstanceGroupStar
+                    >> when iAmLookingAtTheFirstInstanceGroupStar
+                    >> then_ iSeeUnfilledStarIcon
+            , test "favorited instance groups are loaded from local storage" <|
+                given iHaveAnOpenSideBarWithAnInstanceGroup
+                    >> given iClickedThePipelineGroup
+                    >> given myBrowserFetchedFavoritedInstanceGroups
+                    >> when iAmLookingAtTheFirstInstanceGroupStar
+                    >> then_ iSeeFilledStarIcon
             ]
         , test "subscribes to 5-second tick" <|
             given iAmLookingAtThePage
@@ -1345,18 +1373,17 @@ iClickedTheFirstPipelineStar =
         >> Application.update
             (TopLevelMessage.Update <|
                 Message.Click <|
-                    Message.SideBarFavoritedIcon 0
+                    Message.SideBarPipelineFavoritedIcon 0
             )
 
 
-iClickedFavoritedPipelineStar =
-    iClickedTheFirstPipelineStar
-
-
-iAmLookingAtThePreviousPipelineStar =
-    iAmLookingAtTheFirstPipeline
-        >> Query.findAll [ attribute <| Attr.attribute "aria-label" "Favorite Icon" ]
-        >> Query.index 0
+iClickedTheFirstInstanceGroupStar =
+    Tuple.first
+        >> Application.update
+            (TopLevelMessage.Update <|
+                Message.Click <|
+                    Message.SideBarInstanceGroupFavoritedIcon { teamName = "team", name = "group" }
+            )
 
 
 iSeeAMinusIcon =
@@ -1570,7 +1597,13 @@ iAmLookingAtTheFirstInstanceGroupBadge =
 iAmLookingAtTheFirstPipelineStar =
     iAmLookingAtTheFirstPipeline
         >> Query.findAll [ attribute <| Attr.attribute "aria-label" "Favorite Icon" ]
-        >> Query.index 0
+        >> Query.first
+
+
+iAmLookingAtTheFirstInstanceGroupStar =
+    iAmLookingAtTheFirstInstanceGroup
+        >> Query.findAll [ attribute <| Attr.attribute "aria-label" "Favorite Icon" ]
+        >> Query.first
 
 
 iAmLookingAtTheAllPipelinesSection =
@@ -1808,6 +1841,14 @@ myBrowserFetchedFavoritedPipelines =
         >> Application.handleDelivery
             (Subscription.FavoritedPipelinesReceived <|
                 Ok (Set.singleton 0)
+            )
+
+
+myBrowserFetchedFavoritedInstanceGroups =
+    Tuple.first
+        >> Application.handleDelivery
+            (Subscription.FavoritedInstanceGroupsReceived <|
+                Ok (Set.singleton ( "team", "group" ))
             )
 
 
