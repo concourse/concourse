@@ -3,6 +3,7 @@ module SideBar.TeamTests exposing (all)
 import Common
 import Concourse
 import Data
+import Dict
 import Expect
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
@@ -320,7 +321,7 @@ team { active, expanded, hovered, hasFavorited, isFavoritesSection } =
             [ Data.pipeline "team" 0 |> Data.withName "pipeline" |> Concourse.RegularPipeline ]
 
         pipelineIdentifier =
-            { teamName = "team", pipelineName = "pipeline" }
+            { teamName = "team", pipelineName = "pipeline", pipelineInstanceVars = Dict.empty }
 
         activePipeline =
             if active then

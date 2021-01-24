@@ -168,7 +168,7 @@ all =
                         |> viewPipeline { defaultState | isFavoritesSection = False }
                         |> .domID
                         |> Expect.equal
-                            (SideBarPipeline AllPipelinesSection Data.pipelineId)
+                            (SideBarPipeline AllPipelinesSection pipeline.id)
             ]
         , describe "when in favorites section"
             [ test "domID is for Favorites section" <|
@@ -177,7 +177,7 @@ all =
                         |> viewPipeline { defaultState | isFavoritesSection = True }
                         |> .domID
                         |> Expect.equal
-                            (SideBarPipeline FavoritesSection Data.pipelineId)
+                            (SideBarPipeline FavoritesSection pipeline.id)
             ]
         ]
 
@@ -194,7 +194,7 @@ viewPipeline { active, hovered, favorited, isFavoritesSection } p =
     let
         hoveredDomId =
             if hovered then
-                HoverState.Hovered (SideBarPipeline AllPipelinesSection Data.pipelineId)
+                HoverState.Hovered (SideBarPipeline AllPipelinesSection p.id)
 
             else
                 HoverState.NoHover

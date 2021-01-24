@@ -680,8 +680,8 @@ toHtmlID domId =
         SideBarTeam section t ->
             pipelinesSectionName section ++ "_" ++ Base64.encode t
 
-        SideBarPipeline section p ->
-            pipelinesSectionName section ++ "_" ++ Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
+        SideBarPipeline section id ->
+            pipelinesSectionName section ++ "_" ++ String.fromInt id
 
         SideBarInstanceGroup section teamName groupName ->
             pipelinesSectionName section

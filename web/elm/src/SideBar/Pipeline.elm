@@ -1,7 +1,8 @@
-module SideBar.Pipeline exposing (pipeline)
+module SideBar.Pipeline exposing (pipeline, text)
 
 import Assets
 import Concourse
+import Dict
 import Favorites
 import HoverState
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
@@ -15,6 +16,7 @@ type alias PipelineScoped a =
     { a
         | teamName : String
         , pipelineName : String
+        , pipelineInstanceVars : Concourse.InstanceVars
     }
 
 
@@ -32,7 +34,9 @@ pipeline params p =
         isCurrent =
             case params.currentPipeline of
                 Just cp ->
-                    cp.pipelineName == p.name && cp.teamName == p.teamName
+                    (cp.pipelineName == p.name)
+                        && (cp.teamName == p.teamName)
+                        && (cp.pipelineInstanceVars == p.instanceVars)
 
                 Nothing ->
                     False
@@ -48,7 +52,7 @@ pipeline params p =
                  else
                     AllPipelinesSection
                 )
-                pipelineId
+                p.id
 
         isHovered =
             HoverState.isHovered domID params.hovered
@@ -78,7 +82,7 @@ pipeline params p =
 
             else
                 Styles.Grey
-        , text = p.name
+        , text = text p
         , weight =
             if isCurrent || isHovered then
                 Styles.Bold
@@ -106,3 +110,25 @@ pipeline params p =
     , id = pipelineId
     , databaseID = p.id
     }
+
+
+text : Concourse.Pipeline -> String
+text p =
+    let
+        instanceVarsText =
+            if Dict.isEmpty p.instanceVars then
+                ""
+
+            else
+                "/"
+                    ++ (p.instanceVars
+                            |> Dict.toList
+                            |> List.concatMap
+                                (\( k, v ) ->
+                                    Concourse.flattenJson k v
+                                        |> List.map (\( key, val ) -> key ++ ":" ++ val)
+                                )
+                            |> String.join ","
+                       )
+    in
+    p.name ++ instanceVarsText

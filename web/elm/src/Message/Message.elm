@@ -99,7 +99,7 @@ type DomID
     | SideBarIcon
     | SideBarResizeHandle
     | SideBarTeam PipelinesSection String
-    | SideBarPipeline PipelinesSection Concourse.PipelineIdentifier
+    | SideBarPipeline PipelinesSection Concourse.DatabaseID
     | SideBarInstanceGroup PipelinesSection Concourse.TeamName String
     | SideBarPipelineFavoritedIcon Concourse.DatabaseID
     | SideBarInstanceGroupFavoritedIcon Concourse.InstanceGroupIdentifier

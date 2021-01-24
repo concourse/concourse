@@ -604,7 +604,7 @@ hasSideBar iAmLookingAtThePage =
                 , selector =
                     [ style "color" ColorValues.grey30 ]
                 }
-            , hoverable = Message.SideBarPipeline AllPipelinesSection Data.pipelineId
+            , hoverable = Message.SideBarPipeline AllPipelinesSection 0
             , hoveredSelector =
                 { description = "dark background and light text"
                 , selector =
@@ -734,6 +734,20 @@ hasSideBar iAmLookingAtThePage =
                     >> when iAmLookingAtTheFirstInstanceGroupStar
                     >> then_ iSeeFilledStarIcon
             ]
+        , describe "favorited pipeline instances" <|
+            [ test "favorited instances appear in the favorites section" <|
+                given iHaveAnOpenSideBar_
+                    >> given myBrowserFetchedAnInstanceGroup
+                    >> given myBrowserFetchedFavoritedPipelineInstances
+                    >> when iAmLookingAtTheTeamInTheFavoritesSection
+                    >> then_ iSeeThePipelineInstance
+            , test "instance list item links to the correct pipeline" <|
+                given iHaveAnOpenSideBar_
+                    >> given myBrowserFetchedAnInstanceGroup
+                    >> given myBrowserFetchedFavoritedPipelineInstances
+                    >> when iAmLookingAtTheTeamInTheFavoritesSection
+                    >> then_ iSeeALinkToThePipelineInstance
+            ]
         , test "subscribes to 5-second tick" <|
             given iAmLookingAtThePage
                 >> then_ myBrowserNotifiesEveryFiveSeconds
@@ -822,7 +836,7 @@ hasCurrentPipelineInSideBar iAmLookingAtThePage =
             >> given iClickedTheSideBarIcon
             >> when iAmLookingAtTheOtherPipeline
             >> then_ iSeeTheTextIsBright
-    , test "pipeline with same name on other team has invisible border" <|
+    , test "pipeline with same name on other team is not highlighted" <|
         given iAmLookingAtThePage
             >> given iAmOnANonPhoneScreen
             >> given myBrowserFetchedPipelinesFromMultipleTeams
@@ -897,6 +911,16 @@ all =
         , describe "resource page current pipeline" <|
             hasCurrentPipelineInSideBar (when iOpenTheResourcePage)
         , describe "on notfound page" <| hasSideBar (when iOpenTheNotFoundPage)
+        , test "other instances within the instance group are not highlighted" <|
+            given iAmViewingThePipelinePageForAnInstance
+                >> given iAmOnANonPhoneScreen
+                >> given myBrowserFetchedPipelines
+                >> given iClickedTheHamburgerIcon
+                >> given myBrowserFetchedAnInstanceGroup
+                >> given myBrowserFetchedFavoritedPipelineInstances
+                >> when iAmLookingAtTheFavoritesSection
+                >> when iAmLookingAtTheOtherInstance
+                >> then_ iSeeAnInvisibleBackground
         ]
 
 
@@ -1294,15 +1318,7 @@ iSeeItHasAValidTeamId =
 
 
 iSeeItHasAValidPipelineId =
-    Query.has
-        [ id <|
-            (pipelinesSectionName AllPipelinesSection
-                ++ "_"
-                ++ Base64.encode "team"
-                ++ "_"
-                ++ Base64.encode "pipeline"
-            )
-        ]
+    Query.has [ id <| (pipelinesSectionName AllPipelinesSection ++ "_0") ]
 
 
 iSeeItHasAValidInstanceGroupId =
@@ -1515,6 +1531,21 @@ iSeeItIsALinkToTheFirstInstanceGroup =
         ]
 
 
+iSeeALinkToThePipelineInstance =
+    Query.has
+        [ tag "a"
+        , Common.routeHref <|
+            Routes.Pipeline
+                { id =
+                    { teamName = "team"
+                    , pipelineName = "group"
+                    , pipelineInstanceVars = Dict.fromList [ ( "version", JsonString "1" ) ]
+                    }
+                , groups = []
+                }
+        ]
+
+
 iToggledToHighDensity =
     Tuple.first
         >> Application.update
@@ -1719,6 +1750,20 @@ iAmViewingThePipelinePage =
     iOpenedThePipelinePage >> Tuple.first
 
 
+iAmViewingThePipelinePageForAnInstance _ =
+    ( Common.initRoute <|
+        Routes.Pipeline
+            { id =
+                { teamName = "team"
+                , pipelineName = "group"
+                , pipelineInstanceVars = Dict.fromList [ ( "version", JsonString "v1" ) ]
+                }
+            , groups = []
+            }
+    , []
+    )
+
+
 iShrankTheViewport =
     Tuple.first >> Application.handleDelivery (Subscription.WindowResized 300 300)
 
@@ -1844,6 +1889,14 @@ myBrowserFetchedFavoritedPipelines =
             )
 
 
+myBrowserFetchedFavoritedPipelineInstances =
+    Tuple.first
+        >> Application.handleDelivery
+            (Subscription.FavoritedPipelinesReceived <|
+                Ok (Set.fromList [ 1, 2 ])
+            )
+
+
 myBrowserFetchedFavoritedInstanceGroups =
     Tuple.first
         >> Application.handleDelivery
@@ -1922,7 +1975,7 @@ iHoveredThePipelineLink =
             (TopLevelMessage.Update <|
                 Message.Hover <|
                     Just <|
-                        Message.SideBarPipeline AllPipelinesSection Data.pipelineId
+                        Message.SideBarPipeline AllPipelinesSection 0
             )
 
 
@@ -1937,6 +1990,10 @@ iSeeTheTeamNameAbove =
 
 iSeeThePipelineNameBelow =
     Query.children [] >> Query.index 1 >> Query.has [ text "pipeline" ]
+
+
+iSeeThePipelineInstance =
+    Query.has [ text "group/version:1" ]
 
 
 iSeeNoPipelineNames =
@@ -2082,6 +2139,10 @@ iAmLookingAtThePipelineWithTheSameName =
     iAmLookingAtThePipelineList
         >> Query.children [ containing [ text "yet-another-pipeline" ] ]
         >> Query.first
+
+
+iAmLookingAtTheOtherInstance =
+    Query.find [ tag "a", containing [ text "group/version:2" ] ]
 
 
 myBrowserNotifiesEveryFiveSeconds =
