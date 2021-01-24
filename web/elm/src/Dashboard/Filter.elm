@@ -1,7 +1,7 @@
 module Dashboard.Filter exposing (Suggestion, filterTeams, isViewingInstanceGroups, suggestions)
 
 import Application.Models exposing (Session)
-import Concourse exposing (DatabaseID, flattenJson)
+import Concourse exposing (flattenJson)
 import Concourse.PipelineStatus
     exposing
         ( PipelineStatus(..)
@@ -39,7 +39,6 @@ import Parser
         , symbol
         )
 import Routes
-import Set exposing (Set)
 import Simple.Fuzzy
 
 

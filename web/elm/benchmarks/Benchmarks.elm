@@ -143,6 +143,7 @@ buildView session model =
                     |> Maybe.map
                         (\j ->
                             { pipelineName = j.pipelineName
+                            , pipelineInstanceVars = j.pipelineInstanceVars
                             , teamName = j.teamName
                             }
                         )

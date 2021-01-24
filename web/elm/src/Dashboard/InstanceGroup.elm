@@ -19,13 +19,11 @@ import Html.Attributes
         , classList
         , draggable
         , href
-        , id
         , style
         )
 import List.Extra
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
-import Set
 import Tooltip
 import Views.FavoritedIcon
 import Views.InstanceGroupBadge as InstanceGroupBadge
