@@ -16,12 +16,12 @@ const DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Sec
 const DefaultTeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
 
 type Manager struct {
-	AwsAccessKeyID         string `long:"access-key" description:"AWS Access key ID"`
-	AwsSecretAccessKey     string `long:"secret-key" description:"AWS Secret Access Key"`
-	AwsSessionToken        string `long:"session-token" description:"AWS Session Token"`
-	AwsRegion              string `long:"region" description:"AWS region to send requests to"`
-	PipelineSecretTemplate string `long:"pipeline-secret-template" description:"AWS Secrets Manager secret identifier template used for pipeline specific parameter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
-	TeamSecretTemplate     string `long:"team-secret-template" description:"AWS Secrets Manager secret identifier  template used for team specific parameter" default:"/concourse/{{.Team}}/{{.Secret}}"`
+	AwsAccessKeyID         string `yaml:"access_key"`
+	AwsSecretAccessKey     string `yaml:"secret_key"`
+	AwsSessionToken        string `yaml:"session_token"`
+	AwsRegion              string `yaml:"region"`
+	PipelineSecretTemplate string `yaml:"pipeline_secret_template"`
+	TeamSecretTemplate     string `yaml:"team_secret_template"`
 	SecretManager          *SecretsManager
 }
 

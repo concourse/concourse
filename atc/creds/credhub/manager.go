@@ -14,9 +14,9 @@ import (
 )
 
 type CredHubManager struct {
-	URL string `long:"url" description:"CredHub server address used to access secrets."`
+	URL string `yaml:"url"`
 
-	PathPrefix string `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
+	PathPrefix string `yaml:"path_prefix"`
 
 	TLS    TLS
 	UAA    UAA
@@ -24,15 +24,15 @@ type CredHubManager struct {
 }
 
 type TLS struct {
-	CACerts    []string `long:"ca-cert"              description:"Paths to PEM-encoded CA cert files to use to verify the CredHub server SSL cert."`
-	ClientCert string   `long:"client-cert"          description:"Path to the client certificate for mutual TLS authorization."`
-	ClientKey  string   `long:"client-key"           description:"Path to the client private key for mutual TLS authorization."`
-	Insecure   bool     `long:"insecure-skip-verify" description:"Enable insecure SSL verification."`
+	CACerts    []string `yaml:"ca_cert"`
+	ClientCert string   `yaml:"client_cert"`
+	ClientKey  string   `yaml:"client_key"`
+	Insecure   bool     `yaml:"insecure_skip_verify"`
 }
 
 type UAA struct {
-	ClientId     string `long:"client-id"     description:"Client ID for CredHub authorization."`
-	ClientSecret string `long:"client-secret" description:"Client secret for CredHub authorization."`
+	ClientId     string `yaml:"client_id"`
+	ClientSecret string `yaml:"client_secret"`
 }
 
 func (manager *CredHubManager) MarshalJSON() ([]byte, error) {

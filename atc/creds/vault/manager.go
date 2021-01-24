@@ -14,17 +14,16 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-
 type VaultManager struct {
-	URL string `mapstructure:"url" long:"url" description:"Vault server address used to access secrets."`
+	URL string `yaml:"url"`
 
-	PathPrefix      string `mapstructure:"path_prefix" long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
-	LookupTemplates []string `mapstructure:"lookup_templates" long:"lookup-templates" default:"/{{.Team}}/{{.Pipeline}}/{{.Secret}}" default:"/{{.Team}}/{{.Secret}}" description:"Path templates for credential lookup"`
-	SharedPath      string `mapstructure:"shared_path" long:"shared-path" description:"Path under which to lookup shared credentials."`
-	Namespace       string `mapstructure:"namespace" long:"namespace"   description:"Vault namespace to use for authentication and secret lookup."`
+	PathPrefix      string   `yaml:"path_prefix"`
+	LookupTemplates []string `yaml:"lookup_templates"`
+	SharedPath      string   `yaml:"shared_path"`
+	Namespace       string   `yaml:"namespace"`
 
-	TLS TLSConfig  `mapstructure:",squash"`
-	Auth AuthConfig `mapstructure:",squash"`
+	TLS  TLSConfig
+	Auth AuthConfig
 
 	Client        *APIClient
 	ReAuther      *ReAuther
@@ -32,29 +31,29 @@ type VaultManager struct {
 }
 
 type TLSConfig struct {
-	CACert     string `mapstructure:"ca_cert"`
-	CACertFile string `long:"ca-cert"              description:"Path to a PEM-encoded CA cert file to use to verify the vault server SSL cert."`
-	CAPath     string `long:"ca-path"              description:"Path to a directory of PEM-encoded CA cert files to verify the vault server SSL cert."`
+	CACert     string `yaml:"ca_cert"`
+	CACertFile string `yaml:"ca_cert_file"`
+	CAPath     string `yaml:"ca_path"`
 
-	ClientCert     string `mapstructure:"client_cert"`
-	ClientCertFile string `long:"client-cert"          description:"Path to the client certificate for Vault authorization."`
+	ClientCert     string `yaml:"client_cert"`
+	ClientCertFile string `yaml:"client_cert_file"`
 
-	ClientKey     string `mapstructure:"client_key"`
-	ClientKeyFile string `long:"client-key"           description:"Path to the client private key for Vault authorization."`
+	ClientKey     string `yaml:"client_key"`
+	ClientKeyFile string `yaml:"client_key_file"`
 
-	ServerName string `mapstructure:"server_name" long:"server-name"          description:"If set, is used to set the SNI host when connecting via TLS."`
-	Insecure   bool   `mapstructure:"insecure_skip_verify" long:"insecure-skip-verify" description:"Enable insecure SSL verification."`
+	ServerName string `yaml:"server_name"`
+	Insecure   bool   `yaml:"insecure_skip_verify"`
 }
 
 type AuthConfig struct {
-	ClientToken string `mapstructure:"client_token" long:"client-token" description:"Client token for accessing secrets within the Vault server."`
+	ClientToken string `yaml:"client_token"`
 
-	Backend       string        `mapstructure:"auth_backend" long:"auth-backend"               description:"Auth backend to use for logging in to Vault."`
-	BackendMaxTTL time.Duration `mapstructure:"auth_backend_max_ttl" long:"auth-backend-max-ttl"       description:"Time after which to force a re-login. If not set, the token will just be continuously renewed."`
-	RetryMax      time.Duration `mapstructure:"auth_retry_max" long:"retry-max"     default:"5m" description:"The maximum time between retries when logging in or re-authing a secret."`
-	RetryInitial  time.Duration `mapstructure:"auth_retry_initial" long:"retry-initial" default:"1s" description:"The initial time between retries when logging in or re-authing a secret."`
+	Backend       string        `yaml:"auth_backend"`
+	BackendMaxTTL time.Duration `yaml:"auth_backend_max_ttl"`
+	RetryMax      time.Duration `yaml:"auth_retry_max"`
+	RetryInitial  time.Duration `yaml:"auth_retry_initial"`
 
-	Params map[string]string `mapstructure:"auth_params" long:"auth-param"  description:"Paramter to pass when logging in via the backend. Can be specified multiple times." value-name:"NAME:VALUE"`
+	Params map[string]string `yaml:"auth_params"`
 }
 
 func (manager *VaultManager) Init(log lager.Logger) error {
@@ -139,7 +138,7 @@ func (manager VaultManager) Validate() error {
 
 	for i, tmpl := range manager.LookupTemplates {
 		name := fmt.Sprintf("lookup-template-%d", i)
-		if _, err := creds.BuildSecretTemplate(name, manager.PathPrefix + tmpl); err != nil {
+		if _, err := creds.BuildSecretTemplate(name, manager.PathPrefix+tmpl); err != nil {
 			return err
 		}
 	}

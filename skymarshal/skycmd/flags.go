@@ -45,7 +45,7 @@ func WireTeamConnectors(group *flags.Group) {
 type AuthFlags struct {
 	SecureCookies bool              `yaml:"cookie_secure"`
 	Expiration    time.Duration     `yaml:"auth_duration"`
-	SigningKey    string            `yaml:"session_signing_key" validate:"required,private_key"`
+	SigningKey    string            `yaml:"session_signing_key" validate:"private_key"`
 	LocalUsers    map[string]string `yaml:"add_local_user"`
 	Clients       map[string]string `yaml:"add_client"`
 }

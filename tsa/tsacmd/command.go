@@ -60,7 +60,7 @@ type TSACommand struct {
 	LogClusterName bool   `yaml:"log_cluster_name"`
 }
 
-func InitializeFlags(c *cobra.Command, flags *TSACommand) {
+func InitializeFlagsDEPRECATED(c *cobra.Command, flags *TSACommand) {
 	c.Flags().StringVar(&flags.BindIP, "tsa-bind-ip", "0.0.0.0", "IP address on which to listen for SSH.")
 	c.Flags().Uint16Var(&flags.BindPort, "tsa-bind-port", 2222, "Port on which to listen for SSH.")
 	c.Flags().StringVar(&flags.PeerAddress, "tsa-peer-address", "127.0.0.1", "Network address of this web node, reachable by other web nodes. Used for forwarded worker addresses.")

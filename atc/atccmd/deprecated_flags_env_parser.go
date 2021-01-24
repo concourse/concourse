@@ -2,18 +2,10 @@ package atccmd
 
 import (
 	"net"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
-
-func InitializeEnvDEPRECATED(c *cobra.Command) {
-	viper.SetEnvPrefix("concourse")
-	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-	viper.AutomaticEnv()
-}
 
 func InitializeFlagsDEPRECATED(c *cobra.Command, flags *RunCommand) {
 	c.Flags().IPVar(&flags.BindIP, "bind-ip", nil, "IP address on which to listen for web traffic.")
@@ -169,18 +161,68 @@ func InitializeCachedSecretsFlags(c *cobra.Command, flags *RunCommand) {
 
 func InitializeManagerFlags(c *cobra.Command, flags *RunCommand) {
 	// Conjur
-	type Manager struct {
-		ConjurApplianceUrl     string `long:"conjur-appliance-url" description:"URL of the conjur instance"`
-		ConjurAccount          string `long:"conjur-account" description:"Conjur Account"`
-		ConjurCertFile         string `long:"conjur-cert-file" description:"Cert file used if conjur instance is using a self signed cert. E.g. /path/to/conjur.pem"`
-		ConjurAuthnLogin       string `long:"conjur-authn-login" description:"Host username. E.g host/concourse"`
-		ConjurAuthnApiKey      string `long:"conjur-authn-api-key" description:"Api key related to the host"`
-		ConjurAuthnTokenFile   string `long:"conjur-authn-token-file" description:"Token file used if conjur instance is running in k8s or iam. E.g. /path/to/token_file"`
-		PipelineSecretTemplate string `long:"conjur-pipeline-secret-template" description:"Conjur secret identifier template used for pipeline specific parameter" default:"concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
-		TeamSecretTemplate     string `long:"conjur-team-secret-template" description:"Conjur secret identifier template used for team specific parameter" default:"concourse/{{.Team}}/{{.Secret}}"`
-		SecretTemplate         string `long:"conjur-secret-template" description:"Conjur secret identifier template used for full path conjur secrets" default:"vaultName/{{.Secret}}"`
-		Conjur                 *Conjur
-	}
+	c.Flags().StringVar(&flags.CredentialManagers.Conjur.ConjurApplianceUrl, "conjur-appliance-url", "", "URL of the conjur instance")
+	c.Flags().StringVar(&flags.CredentialManagers.Conjur.ConjurAccount, "conjur-account", "", "Conjur Account")
+	c.Flags().StringVar(&flags.CredentialManagers.Conjur.ConjurCertFile, "conjur-cert-file", "", "Cert file used if conjur instance is using a self signed cert. E.g. /path/to/conjur.pem")
+	c.Flags().StringVar(&flags.CredentialManagers.Conjur.ConjurAuthnLogin, "conjur-authn-login", "", "Host username. E.g host/concourse")
+	c.Flags().StringVar(&flags.CredentialManagers.Conjur.ConjurAuthnApiKey, "conjur-authn-api-key", "", "Api key related to the host")
+	c.Flags().StringVar(&flags.CredentialManagers.Conjur.ConjurAuthnTokenFile, "conjur-authn-token-file", "", "Token file used if conjur instance is running in k8s or iam. E.g. /path/to/token_file")
+	c.Flags().StringVar(&flags.CredentialManagers.Conjur.PipelineSecretTemplate, "conjur-pipeline-secret-template", "concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}", "Conjur secret identifier template used for pipeline specific parameter")
+	c.Flags().StringVar(&flags.CredentialManagers.Conjur.TeamSecretTemplate, "conjur-team-secret-template", "concourse/{{.Team}}/{{.Secret}}", "Conjur secret identifier template used for team specific parameter")
+	c.Flags().StringVar(&flags.CredentialManagers.Conjur.SecretTemplate, "conjur-secret-template", "vaultName/{{.Secret}}", "Conjur secret identifier template used for full path conjur secrets")
+
+	// CredHub
+	c.Flags().StringVar(&flags.CredentialManagers.CredHub.URL, "credhub-url", "", "CredHub server address used to access secrets.")
+	c.Flags().StringVar(&flags.CredentialManagers.CredHub.PathPrefix, "credhub-path-prefix", "/concourse", "Path under which to namespace credential lookup.")
+	c.Flags().StringSliceVar(&flags.CredentialManagers.CredHub.TLS.CACerts, "credhub-ca-cert", nil, "Paths to PEM-encoded CA cert files to use to verify the CredHub server SSL cert.")
+	c.Flags().StringVar(&flags.CredentialManagers.CredHub.TLS.ClientCert, "credhub-client-cert", "", "Path to the client certificate for mutual TLS authorization.")
+	c.Flags().StringVar(&flags.CredentialManagers.CredHub.TLS.ClientKey, "credhub-client-key", "", "Path to the client private key for mutual TLS authorization.")
+	c.Flags().BoolVar(&flags.CredentialManagers.CredHub.TLS.Insecure, "credhub-insecure-skip-verify", false, "Enable insecure SSL verification.")
+	c.Flags().StringVar(&flags.CredentialManagers.CredHub.UAA.ClientId, "credhub-client-id", "", "Client ID for CredHub authorization.")
+	c.Flags().StringVar(&flags.CredentialManagers.CredHub.UAA.ClientSecret, "credhub-client-secret", "", "Client secret for CredHub authorization.")
+
+	// Dummy
+	c.Flags().Var(&flags.CredentialManagers.Dummy.Vars, "dummy-creds-var", "A YAML value to expose via credential management. Can be prefixed with a team and/or pipeline to limit scope. Ex. [TEAM/[PIPELINE/]]VAR=VALUE")
+
+	// Kubernetes
+	c.Flags().BoolVar(&flags.CredentialManagers.Kubernetes.InClusterConfig, "kubernetes-in-cluster", false, "Enables the in-cluster client.")
+	c.Flags().StringVar(&flags.CredentialManagers.Kubernetes.ConfigPath, "kubernetes-config-path", "", "Path to Kubernetes config when running ATC outside Kubernetes.")
+	c.Flags().StringVar(&flags.CredentialManagers.Kubernetes.NamespacePrefix, "kubernetes-namespace-prefix", "concourse-", "Prefix to use for Kubernetes namespaces under which secrets will be looked up.")
+
+	// AWS Secrets Manager
+	c.Flags().StringVar(&flags.CredentialManagers.SecretsManager.AwsAccessKeyID, "aws-secretsmanager-access-key", "", "AWS Access key ID")
+	c.Flags().StringVar(&flags.CredentialManagers.SecretsManager.AwsSecretAccessKey, "aws-secretsmanager-secret-key", "", "AWS Secret Access Key")
+	c.Flags().StringVar(&flags.CredentialManagers.SecretsManager.AwsSessionToken, "aws-secretsmanager-session-token", "", "AWS Session Token")
+	c.Flags().StringVar(&flags.CredentialManagers.SecretsManager.AwsRegion, "aws-secretsmanager-region", "", "AWS region to send requests to")
+	c.Flags().StringVar(&flags.CredentialManagers.SecretsManager.PipelineSecretTemplate, "aws-secretsmanager-pipeline-secret-template", "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}", "AWS Secrets Manager secret identifier template used for pipeline specific parameter")
+	c.Flags().StringVar(&flags.CredentialManagers.SecretsManager.TeamSecretTemplate, "aws-secretsmanager-team-secret-template", "/concourse/{{.Team}}/{{.Secret}}", "AWS Secrets Manager secret identifier  template used for team specific parameter")
+
+	// AWS SSM
+	c.Flags().StringVar(&flags.CredentialManagers.SSM.AwsAccessKeyID, "access-key", "", "AWS Access key ID")
+	c.Flags().StringVar(&flags.CredentialManagers.SSM.AwsSecretAccessKey, "secret-key", "", "AWS Secret Access Key")
+	c.Flags().StringVar(&flags.CredentialManagers.SSM.AwsSessionToken, "session-token", "", "AWS Session Token")
+	c.Flags().StringVar(&flags.CredentialManagers.SSM.AwsRegion, "region", "", "AWS region to send requests to")
+	c.Flags().StringVar(&flags.CredentialManagers.SSM.PipelineSecretTemplate, "pipeline-secret-template", "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}", "AWS SSM parameter name template used for pipeline specific parameter")
+	c.Flags().StringVar(&flags.CredentialManagers.SSM.TeamSecretTemplate, "team-secret-template", "/concourse/{{.Team}}/{{.Secret}}", "AWS SSM parameter name template used for team specific parameter")
+
+	// Vault
+	c.Flags().StringVar(&flags.CredentialManagers.Vault.URL, "vault-url", "", "Vault server address used to access secrets.")
+	c.Flags().StringVar(&flags.CredentialManagers.Vault.PathPrefix, "vault-path-prefix", "/concourse", "Path under which to namespace credential lookup.")
+	c.Flags().StringSliceVar(&flags.CredentialManagers.Vault.LookupTemplates, "vault-lookup-templates", []string{"/{{.Team}}/{{.Pipeline}}/{{.Secret}}", "/{{.Team}}/{{.Secret}}"}, "Path templates for credential lookup")
+	c.Flags().StringVar(&flags.CredentialManagers.Vault.SharedPath, "vault-shared-path", "", "Path under which to lookup shared credentials.")
+	c.Flags().StringVar(&flags.CredentialManagers.Vault.Namespace, "vault-namespace", "", "Vault namespace to use for authentication and secret lookup.")
+	c.Flags().StringVar(&flags.CredentialManagers.Vault.TLS.CACertFile, "vault-ca-cert", "", "Path to a PEM-encoded CA cert file to use to verify the vault server SSL cert.")
+	c.Flags().StringVar(&flags.CredentialManagers.Vault.TLS.CAPath, "vault-ca-path", "", "Path to a directory of PEM-encoded CA cert files to verify the vault server SSL cert.")
+	c.Flags().StringVar(&flags.CredentialManagers.Vault.TLS.ClientCertFile, "vault-client-cert", "", "Path to the client certificate for Vault authorization.")
+	c.Flags().StringVar(&flags.CredentialManagers.Vault.TLS.ClientKeyFile, "vault-client-key", "", "Path to the client private key for Vault authorization.")
+	c.Flags().StringVar(&flags.CredentialManagers.Vault.TLS.ServerName, "vault-server-name", "", "If set, is used to set the SNI host when connecting via TLS.")
+	c.Flags().BoolVar(&flags.CredentialManagers.Vault.TLS.Insecure, "vault-insecure-skip-verify", false, "Enable insecure SSL verification.")
+	c.Flags().StringVar(&flags.CredentialManagers.Vault.Auth.ClientToken, "vault-client-token", "", "Client token for accessing secrets within the Vault server.")
+	c.Flags().StringVar(&flags.CredentialManagers.Vault.Auth.Backend, "vault-auth-backend", "", "Auth backend to use for logging in to Vault.")
+	c.Flags().DurationVar(&flags.CredentialManagers.Vault.Auth.BackendMaxTTL, "vault-auth-backend-max-ttl", 0, "Time after which to force a re-login. If not set, the token will just be continuously renewed.")
+	c.Flags().DurationVar(&flags.CredentialManagers.Vault.Auth.RetryMax, "vault-retry-max", 5*time.Minute, "The maximum time between retries when logging in or re-authing a secret.")
+	c.Flags().DurationVar(&flags.CredentialManagers.Vault.Auth.RetryInitial, "vault-retry-initial", 1*time.Second, "The initial time between retries when logging in or re-authing a secret.")
+	c.Flags().StringToStringVar(&flags.CredentialManagers.Vault.Auth.Params, "vault-auth-param", nil, "Paramter to pass when logging in via the backend. Can be specified multiple times. Ex.NAME:VALUE")
 }
 
 func InitializeTracingFlags(c *cobra.Command, flags *RunCommand) {

@@ -167,10 +167,10 @@ type RunCommand struct {
 	CredentialManagers   struct {
 		Conjur         conjur.Manager               `yaml:"conjur"`
 		CredHub        credhub.CredHubManager       `yaml:"credhub"`
-		Dummy          dummy.Manager                `yaml:"dummy-creds"`
+		Dummy          dummy.Manager                `yaml:"dummy_creds"`
 		Kubernetes     kubernetes.KubernetesManager `yaml:"kubernetes"`
-		SecretsManager secretsmanager.Manager       `yaml:"aws-secretsmanager"`
-		SSM            ssm.SsmManager               `yaml:"aws-ssm"`
+		SecretsManager secretsmanager.Manager       `yaml:"aws_secretsmanager"`
+		SSM            ssm.SsmManager               `yaml:"aws_ssm"`
 		Vault          vault.VaultManager           `yaml:"vault"`
 	} `yaml:"credential_managers"`
 
@@ -229,7 +229,7 @@ type RunCommand struct {
 		XFrameOptions string `yaml:"x_frame_options"`
 		ClusterName   string `yaml:"cluster_name"`
 		ClientID      string `yaml:"client_id"`
-		ClientSecret  string `yaml:"client_secret" validate:"required"`
+		ClientSecret  string `yaml:"client_secret"`
 	} `yaml:"web_server"`
 
 	Log struct {
@@ -338,6 +338,31 @@ func SetDefaults(cmd *RunCommand) {
 	cmd.Runtime.GardenRequestTimeout = 5 * time.Minute
 
 	cmd.Metrics.BufferSize = 1000
+
+	// Set conjur configuration defaults
+	cmd.CredentialManagers.Conjur.PipelineSecretTemplate = "concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
+	cmd.CredentialManagers.Conjur.TeamSecretTemplate = "concourse/{{.Team}}/{{.Secret}}"
+	cmd.CredentialManagers.Conjur.SecretTemplate = "vaultName/{{.Secret}}"
+
+	// Set credhub configuration defaults
+	cmd.CredentialManagers.CredHub.PathPrefix = "/concourse"
+
+	// Set kuberenetes configuration defaults
+	cmd.CredentialManagers.Kubernetes.NamespacePrefix = "concourse-"
+
+	// Set aws secrets manager configuration defaults
+	cmd.CredentialManagers.SecretsManager.PipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
+	cmd.CredentialManagers.SecretsManager.TeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
+
+	// Set aws ssm configuration defaults
+	cmd.CredentialManagers.SSM.PipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
+	cmd.CredentialManagers.SSM.TeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
+
+	// Set vault configuration defaults
+	cmd.CredentialManagers.Vault.PathPrefix = "/concourse"
+	cmd.CredentialManagers.Vault.LookupTemplates = []string{"/{{.Team}}/{{.Pipeline}}/{{.Secret}}", "/{{.Team}}/{{.Secret}}"}
+	cmd.CredentialManagers.Vault.Auth.RetryMax = 5 * time.Minute
+	cmd.CredentialManagers.Vault.Auth.RetryInitial = 1 * time.Second
 }
 
 func (m *Migration) Execute(args []string) error {

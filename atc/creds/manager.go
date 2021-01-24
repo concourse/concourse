@@ -2,7 +2,6 @@ package creds
 
 import (
 	"code.cloudfoundry.org/lager"
-	"github.com/jessevdk/go-flags"
 )
 
 type Manager interface {
@@ -16,7 +15,6 @@ type Manager interface {
 }
 
 type ManagerFactory interface {
-	AddConfig(*flags.Group) Manager
 	NewInstance(interface{}) (Manager, error)
 }
 
@@ -34,10 +32,6 @@ type HealthResponse struct {
 }
 
 var managerFactories = map[string]ManagerFactory{}
-
-func Register(name string, managerFactory ManagerFactory) {
-	managerFactories[name] = managerFactory
-}
 
 func ManagerFactories() map[string]ManagerFactory {
 	return managerFactories

@@ -9,7 +9,7 @@ import (
 )
 
 type Manager struct {
-	Vars []VarFlag `long:"var" description:"A YAML value to expose via credential management. Can be prefixed with a team and/or pipeline to limit scope." value-name:"[TEAM/[PIPELINE/]]VAR=VALUE"`
+	Vars VarFlags `yaml:"var"`
 }
 
 func (manager *Manager) Init(log lager.Logger) error {

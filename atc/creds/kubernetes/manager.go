@@ -13,9 +13,9 @@ import (
 )
 
 type KubernetesManager struct {
-	InClusterConfig bool   `long:"in-cluster" description:"Enables the in-cluster client."`
-	ConfigPath      string `long:"config-path" description:"Path to Kubernetes config when running ATC outside Kubernetes."`
-	NamespacePrefix string `long:"namespace-prefix" default:"concourse-" description:"Prefix to use for Kubernetes namespaces under which secrets will be looked up."`
+	InClusterConfig bool   `yaml:"in_cluster"`
+	ConfigPath      string `yaml:"config_path"`
+	NamespacePrefix string `yaml:"namespace_prefix" default:"concourse-" description:"Prefix to use for Kubernetes namespaces under which secrets will be looked up."`
 }
 
 func (manager *KubernetesManager) MarshalJSON() ([]byte, error) {
