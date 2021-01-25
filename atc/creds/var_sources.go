@@ -72,8 +72,30 @@ func (v *VarSources) Get(ref vars.Reference) (interface{}, bool, error) {
 				return nil, false, fmt.Errorf("find or create var source: %w", err)
 			}
 
-			// Get the var from the var source
-			return NewVariables(secrets, v.teamName, v.pipelineName, true).Get(ref)
+			lookupPaths := secrets.NewSecretLookupPaths(v.teamName, v.pipelineName, false)
+			if len(lookupPaths) == 0 {
+				// if no paths are specified (i.e. for fake & noop secret managers), then try 1-to-1 var->secret mapping
+				result, _, found, err := secrets.Get(ref.Path)
+				return result, found, err
+			}
+			// try to find a secret according to our var->secret lookup paths
+			for _, rule := range lookupPaths {
+				// prepends any additional prefix paths to front of the path
+				secretPath, err := rule.VariableToSecretPath(ref.Path)
+				if err != nil {
+					return nil, false, err
+				}
+
+				result, _, found, err := secrets.Get(secretPath)
+				if err != nil {
+					return nil, false, err
+				}
+				if !found {
+					continue
+				}
+				return result, true, nil
+			}
+			return nil, false, nil
 		}
 	}
 

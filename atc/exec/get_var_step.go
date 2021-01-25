@@ -115,7 +115,12 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 	}
 	// If the var already exists in the builds vars, nothing needs to be done
 	if found {
-		state.StoreResult(step.planID, value)
+		result, err := vars.Traverse(value, varsRef.String(), step.plan.Fields)
+		if err != nil {
+			return false, err
+		}
+
+		state.StoreResult(step.planID, result)
 		delegate.Finished(logger, true)
 		return true, nil
 	}
@@ -124,14 +129,19 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 
 	// If the var exists within the cache, use the value in the cache
 	if found {
+		result, err := vars.Traverse(value, varsRef.String(), step.plan.Fields)
+		if err != nil {
+			return false, err
+		}
+
 		state.Variables().SetVar(step.plan.Name, step.plan.Path, value, !step.plan.Reveal)
-		state.StoreResult(step.planID, value)
+		state.StoreResult(step.planID, result)
 
 		delegate.Finished(logger, true)
 		return true, nil
 	}
 
-	val, found, err := step.get(step.plan.Path)
+	value, found, err = state.VarSources().Get(varsRef)
 	if err != nil {
 		return false, err
 	}
@@ -140,58 +150,20 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 		return false, nil
 	}
 
-	result, err := vars.Traverse(val, varsRef.String(), step.plan.Fields)
+	result, err := vars.Traverse(value, varsRef.String(), step.plan.Fields)
 	if err != nil {
 		return false, err
 	}
 
-	step.cache.Add(hash, val, time.Second)
+	step.cache.Add(hash, value, time.Second)
 
-	state.Variables().SetVar(step.plan.Name, step.plan.Path, result, !step.plan.Reveal)
+	state.Variables().SetVar(step.plan.Name, step.plan.Path, value, !step.plan.Reveal)
 
-	state.StoreResult(step.planID, value)
+	state.StoreResult(step.planID, result)
 
 	delegate.Finished(logger, true)
 
 	return true, nil
-}
-
-func (step *GetVarStep) get(path string) (interface{}, bool, error) {
-	if len(sl.LookupPaths) == 0 {
-		// if no paths are specified (i.e. for fake & noop secret managers), then try 1-to-1 var->secret mapping
-		result, _, found, err := sl.Secrets.Get(path)
-		return result, found, err
-	}
-	// try to find a secret according to our var->secret lookup paths
-	for _, rule := range sl.LookupPaths {
-		// prepends any additional prefix paths to front of the path
-		secretPath, err := rule.VariableToSecretPath(path)
-		if err != nil {
-			return nil, false, err
-		}
-
-		value, found, err = step.varSources.Get(vars.Reference{
-			Source: step.plan.Name,
-			Path:   step.plan.Path,
-		})
-		if err != nil {
-			return false, fmt.Errorf("create secrets factory: %w", err)
-		}
-
-		if !found {
-			return false, VarNotFoundError{step.plan.Path}
-		}
-
-		result, _, found, err := sl.Secrets.Get(secretPath)
-		if err != nil {
-			return nil, false, err
-		}
-		if !found {
-			continue
-		}
-		return result, true, nil
-	}
-	return nil, false, nil
 }
 
 func (step *GetVarStep) hashVarIdentifier(path, type_ string, source atc.Source) (string, error) {
