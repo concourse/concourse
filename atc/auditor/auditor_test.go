@@ -9,6 +9,7 @@ import (
 	"github.com/concourse/concourse/atc/auditor"
 
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 )
 
@@ -36,7 +37,7 @@ var _ = Describe("Audit", func() {
 		var err error
 		req, err = http.NewRequest("GET", "localhost:8080", nil)
 		Expect(err).NotTo(HaveOccurred())
-		req.RemoteAddr = "127.0.0.1"
+		req.RemoteAddr = "127.0.0.1:44056"
 	})
 
 	JustBeforeEach(func() {
@@ -95,11 +96,26 @@ var _ = Describe("Audit", func() {
 				Expect(len(latestLog)).To(Equal(4))
 				Expect(latestLog["action"]).To(Equal(route.Name))
 				Expect(latestLog["user"]).To(Equal(userName))
-				Expect(latestLog["ip"]).To(Equal(req.RemoteAddr))
+				Expect(latestLog["ip"]).To(Equal("127.0.0.1"))
 				_, exist := latestLog["parameters"]
 				Expect(exist).To(BeTrue())
 			}
 		})
+		DescribeTable("logs IP based on available headers",
+			func(header, ip, expectedIp string) {
+				req.Header.Add(header, ip)
+				for _, route := range atc.Routes {
+					aud.Audit(route.Name, userName, req)
+					logs := logger.Logs()
+					latestLog := logs[len(logs)-1].Data
+
+					Expect(latestLog["ip"]).To(Equal(expectedIp))
+				}
+			},
+			Entry("logs the X-REAL-IP", "X-REAL-IP", "127.0.0.2", "127.0.0.2"),
+			Entry("logs the X-FORWARDED-FOR", "X-FORWARDED-FOR", "127.0.0.3", "127.0.0.3"),
+			Entry("logs only one IP from X-FORWARDED-FOR", "X-FORWARDED-FOR", "127.0.0.3,127.0.0.55,192.14.22.46", "127.0.0.3"),
+		)
 	})
 
 	Describe("EnableBuildAuditLog", func() {

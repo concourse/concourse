@@ -2,7 +2,9 @@ package auditor
 
 import (
 	"fmt"
+	"net"
 	"net/http"
+	"strings"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
@@ -164,6 +166,25 @@ func (a *auditor) ValidateAction(action string) bool {
 func (a *auditor) Audit(action string, userName string, r *http.Request) {
 	err := r.ParseForm()
 	if err == nil && a.ValidateAction(action) {
-		a.logger.Info("audit", lager.Data{"action": action, "user": userName, "ip": r.RemoteAddr, "parameters": r.Form})
+		a.logger.Info("audit", lager.Data{"action": action, "user": userName, "ip": getClientIP(r), "parameters": r.Form})
 	}
+}
+
+func getClientIP(r *http.Request) string {
+	realIP := r.Header.Get("X-REAL-IP")
+	if realIP != "" {
+		return realIP
+	}
+	forwarded := r.Header.Get("X-FORWARDED-FOR")
+	if forwarded != "" {
+		ips := strings.Split(forwarded, ",")
+		if len(ips) >= 1 {
+			return ips[0]
+		}
+	}
+	remoteIP := r.RemoteAddr
+	if strings.Contains(r.RemoteAddr, ":") {
+		remoteIP, _, _ = net.SplitHostPort(r.RemoteAddr)
+	}
+	return remoteIP
 }
