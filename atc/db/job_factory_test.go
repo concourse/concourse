@@ -1078,6 +1078,7 @@ var _ = Context("SchedulerResource", func() {
 			Source: atc.Source{
 				"some-key": "some-value",
 			},
+			ExposeBuildCreatedBy: true,
 		}
 	})
 
@@ -1107,6 +1108,7 @@ var _ = Context("SchedulerResource", func() {
 					"some-key":    "some-value",
 					"default-key": "default-value",
 				},
+				ExposeBuildCreatedBy: true,
 			}))
 		})
 
@@ -1130,6 +1132,7 @@ var _ = Context("SchedulerResource", func() {
 						"some-key":    "some-value",
 						"default-key": "default-value",
 					},
+					ExposeBuildCreatedBy: true,
 				}))
 			})
 		})

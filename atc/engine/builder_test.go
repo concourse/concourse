@@ -59,8 +59,9 @@ var _ = Describe("Builder", func() {
 				fakeBuild    *dbfakes.FakeBuild
 				fakePipeline *dbfakes.FakePipeline
 
-				expectedPlan     atc.Plan
-				expectedMetadata exec.StepMetadata
+				expectedPlan                     atc.Plan
+				expectedMetadataWithCreatedBy    exec.StepMetadata
+				expectedMetadataWithoutCreatedBy exec.StepMetadata
 			)
 
 			BeforeEach(func() {
@@ -80,8 +81,23 @@ var _ = Describe("Builder", func() {
 				fakeBuild.PipelineReturns(fakePipeline, true, nil)
 				fakeBuild.TeamNameReturns("some-team")
 				fakeBuild.TeamIDReturns(1111)
+				fakeBuild.CreatedByReturns("some-user")
 
-				expectedMetadata = exec.StepMetadata{
+				expectedMetadataWithCreatedBy = exec.StepMetadata{
+					BuildID:              4444,
+					BuildName:            "42",
+					TeamID:               1111,
+					TeamName:             "some-team",
+					JobID:                3333,
+					JobName:              "some-job",
+					PipelineID:           2222,
+					PipelineName:         "some-pipeline",
+					PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+					ExternalURL:          "http://example.com",
+					CreatedBy:            "some-user",
+				}
+
+				expectedMetadataWithoutCreatedBy = exec.StepMetadata{
 					BuildID:              4444,
 					BuildName:            "42",
 					TeamID:               1111,
@@ -130,19 +146,21 @@ var _ = Describe("Builder", func() {
 
 					BeforeEach(func() {
 						putPlan = planFactory.NewPlan(atc.PutPlan{
-							Name:     "some-put",
-							Resource: "some-output-resource",
-							Type:     "put",
-							Source:   atc.Source{"some": "source"},
-							Params:   atc.Params{"some": "params"},
+							Name:                 "some-put",
+							Resource:             "some-output-resource",
+							Type:                 "put",
+							Source:               atc.Source{"some": "source"},
+							Params:               atc.Params{"some": "params"},
+							ExposeBuildCreatedBy: true,
 						})
 
 						otherPutPlan = planFactory.NewPlan(atc.PutPlan{
-							Name:     "some-put-2",
-							Resource: "some-output-resource-2",
-							Type:     "put",
-							Source:   atc.Source{"some": "source-2"},
-							Params:   atc.Params{"some": "params-2"},
+							Name:                 "some-put-2",
+							Resource:             "some-output-resource-2",
+							Type:                 "put",
+							Source:               atc.Source{"some": "source-2"},
+							Params:               atc.Params{"some": "params-2"},
+							ExposeBuildCreatedBy: true,
 						})
 
 						expectedPlan = planFactory.NewPlan(atc.InParallelPlan{
@@ -163,7 +181,7 @@ var _ = Describe("Builder", func() {
 						It("constructs the put correctly", func() {
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.PutStepArgsForCall(0)
 							Expect(plan).To(Equal(putPlan))
-							Expect(stepMetadata).To(Equal(expectedMetadata))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								Type:                 db.ContainerTypePut,
 								StepName:             "some-put",
@@ -178,7 +196,7 @@ var _ = Describe("Builder", func() {
 
 							plan, stepMetadata, containerMetadata, _ = fakeCoreStepFactory.PutStepArgsForCall(1)
 							Expect(plan).To(Equal(otherPutPlan))
-							Expect(stepMetadata).To(Equal(expectedMetadata))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								Type:                 db.ContainerTypePut,
 								StepName:             "some-put-2",
@@ -204,19 +222,21 @@ var _ = Describe("Builder", func() {
 
 					BeforeEach(func() {
 						putPlan = planFactory.NewPlan(atc.PutPlan{
-							Name:     "some-put",
-							Resource: "some-output-resource",
-							Type:     "put",
-							Source:   atc.Source{"some": "source"},
-							Params:   atc.Params{"some": "params"},
+							Name:                 "some-put",
+							Resource:             "some-output-resource",
+							Type:                 "put",
+							Source:               atc.Source{"some": "source"},
+							Params:               atc.Params{"some": "params"},
+							ExposeBuildCreatedBy: true,
 						})
 
 						otherPutPlan = planFactory.NewPlan(atc.PutPlan{
-							Name:     "some-put-2",
-							Resource: "some-output-resource-2",
-							Type:     "put",
-							Source:   atc.Source{"some": "source-2"},
-							Params:   atc.Params{"some": "params-2"},
+							Name:                 "some-put-2",
+							Resource:             "some-output-resource-2",
+							Type:                 "put",
+							Source:               atc.Source{"some": "source-2"},
+							Params:               atc.Params{"some": "params-2"},
+							ExposeBuildCreatedBy: true,
 						})
 
 						expectedPlan = planFactory.NewPlan(atc.InParallelPlan{
@@ -239,7 +259,7 @@ var _ = Describe("Builder", func() {
 						It("constructs the put correctly", func() {
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.PutStepArgsForCall(0)
 							Expect(plan).To(Equal(putPlan))
-							Expect(stepMetadata).To(Equal(expectedMetadata))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								Type:                 db.ContainerTypePut,
 								StepName:             "some-put",
@@ -254,7 +274,7 @@ var _ = Describe("Builder", func() {
 
 							plan, stepMetadata, containerMetadata, _ = fakeCoreStepFactory.PutStepArgsForCall(1)
 							Expect(plan).To(Equal(otherPutPlan))
-							Expect(stepMetadata).To(Equal(expectedMetadata))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								Type:                 db.ContainerTypePut,
 								StepName:             "some-put-2",
@@ -283,11 +303,12 @@ var _ = Describe("Builder", func() {
 
 					BeforeEach(func() {
 						getPlan = planFactory.NewPlan(atc.GetPlan{
-							Name:     "some-get",
-							Resource: "some-input-resource",
-							Type:     "get",
-							Source:   atc.Source{"some": "source"},
-							Params:   atc.Params{"some": "params"},
+							Name:                 "some-get",
+							Resource:             "some-input-resource",
+							Type:                 "get",
+							Source:               atc.Source{"some": "source"},
+							Params:               atc.Params{"some": "params"},
+							ExposeBuildCreatedBy: true,
 						})
 
 						taskPlan = planFactory.NewPlan(atc.TaskPlan{
@@ -333,7 +354,7 @@ var _ = Describe("Builder", func() {
 						expectedPlan := getPlan
 						expectedPlan.Attempts = []int{1}
 						Expect(plan).To(Equal(expectedPlan))
-						Expect(stepMetadata).To(Equal(expectedMetadata))
+						Expect(stepMetadata).To(Equal(expectedMetadataWithCreatedBy))
 						Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 							Type:                 db.ContainerTypeGet,
 							StepName:             "some-get",
@@ -353,7 +374,7 @@ var _ = Describe("Builder", func() {
 						expectedPlan := getPlan
 						expectedPlan.Attempts = []int{3}
 						Expect(plan).To(Equal(expectedPlan))
-						Expect(stepMetadata).To(Equal(expectedMetadata))
+						Expect(stepMetadata).To(Equal(expectedMetadataWithCreatedBy))
 						Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 							Type:                 db.ContainerTypeGet,
 							StepName:             "some-get",
@@ -377,7 +398,7 @@ var _ = Describe("Builder", func() {
 						expectedPlan := taskPlan
 						expectedPlan.Attempts = []int{2, 1}
 						Expect(plan).To(Equal(expectedPlan))
-						Expect(stepMetadata).To(Equal(expectedMetadata))
+						Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 						Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 							Type:                 db.ContainerTypeTask,
 							StepName:             "some-task",
@@ -395,7 +416,7 @@ var _ = Describe("Builder", func() {
 						expectedPlan = taskPlan
 						expectedPlan.Attempts = []int{2, 2}
 						Expect(plan).To(Equal(expectedPlan))
-						Expect(stepMetadata).To(Equal(expectedMetadata))
+						Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 						Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 							Type:                 db.ContainerTypeTask,
 							StepName:             "some-task",
@@ -480,20 +501,21 @@ var _ = Describe("Builder", func() {
 					Context("that contains inputs", func() {
 						BeforeEach(func() {
 							expectedPlan = planFactory.NewPlan(atc.GetPlan{
-								Name:     "some-input",
-								Resource: "some-input-resource",
-								Type:     "get",
-								Tags:     []string{"some", "get", "tags"},
-								Version:  &atc.Version{"some": "version"},
-								Source:   atc.Source{"some": "source"},
-								Params:   atc.Params{"some": "params"},
+								Name:                 "some-input",
+								Resource:             "some-input-resource",
+								Type:                 "get",
+								Tags:                 []string{"some", "get", "tags"},
+								Version:              &atc.Version{"some": "version"},
+								Source:               atc.Source{"some": "source"},
+								Params:               atc.Params{"some": "params"},
+								ExposeBuildCreatedBy: true,
 							})
 						})
 
 						It("constructs inputs correctly", func() {
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.GetStepArgsForCall(0)
 							Expect(plan).To(Equal(expectedPlan))
-							Expect(stepMetadata).To(Equal(expectedMetadata))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								Type:                 db.ContainerTypeGet,
 								StepName:             "some-input",
@@ -521,7 +543,7 @@ var _ = Describe("Builder", func() {
 						It("constructs tasks correctly", func() {
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.TaskStepArgsForCall(0)
 							Expect(plan).To(Equal(expectedPlan))
-							Expect(stepMetadata).To(Equal(expectedMetadata))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								Type:                 db.ContainerTypeTask,
 								StepName:             "some-task",
@@ -549,7 +571,7 @@ var _ = Describe("Builder", func() {
 						It("constructs set_pipeline correctly", func() {
 							plan, stepMetadata, _ := fakeCoreStepFactory.SetPipelineStepArgsForCall(0)
 							Expect(plan).To(Equal(expectedPlan))
-							Expect(stepMetadata).To(Equal(expectedMetadata))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 						})
 					})
 
@@ -564,7 +586,7 @@ var _ = Describe("Builder", func() {
 						It("constructs load_var correctly", func() {
 							plan, stepMetadata, _ := fakeCoreStepFactory.LoadVarStepArgsForCall(0)
 							Expect(plan).To(Equal(expectedPlan))
-							Expect(stepMetadata).To(Equal(expectedMetadata))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 						})
 					})
 
@@ -578,7 +600,7 @@ var _ = Describe("Builder", func() {
 						It("constructs the step correctly", func() {
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.CheckStepArgsForCall(0)
 							Expect(plan).To(Equal(expectedPlan))
-							Expect(stepMetadata).To(Equal(expectedMetadata))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								Type:                 db.ContainerTypeCheck,
 								StepName:             "some-check",
@@ -601,22 +623,24 @@ var _ = Describe("Builder", func() {
 
 						BeforeEach(func() {
 							putPlan = planFactory.NewPlan(atc.PutPlan{
-								Name:     "some-put",
-								Resource: "some-output-resource",
-								Tags:     []string{"some", "putget", "tags"},
-								Type:     "put",
-								Source:   atc.Source{"some": "source"},
-								Params:   atc.Params{"some": "params"},
+								Name:                 "some-put",
+								Resource:             "some-output-resource",
+								Tags:                 []string{"some", "putget", "tags"},
+								Type:                 "put",
+								Source:               atc.Source{"some": "source"},
+								Params:               atc.Params{"some": "params"},
+								ExposeBuildCreatedBy: true,
 							})
 
 							dependentGetPlan = planFactory.NewPlan(atc.GetPlan{
-								Name:        "some-get",
-								Resource:    "some-input-resource",
-								Tags:        []string{"some", "putget", "tags"},
-								Type:        "get",
-								VersionFrom: &putPlan.ID,
-								Source:      atc.Source{"some": "source"},
-								Params:      atc.Params{"another": "params"},
+								Name:                 "some-get",
+								Resource:             "some-input-resource",
+								Tags:                 []string{"some", "putget", "tags"},
+								Type:                 "get",
+								VersionFrom:          &putPlan.ID,
+								Source:               atc.Source{"some": "source"},
+								Params:               atc.Params{"another": "params"},
+								ExposeBuildCreatedBy: true,
 							})
 
 							expectedPlan = planFactory.NewPlan(atc.OnSuccessPlan{
@@ -628,7 +652,7 @@ var _ = Describe("Builder", func() {
 						It("constructs the put correctly", func() {
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.PutStepArgsForCall(0)
 							Expect(plan).To(Equal(putPlan))
-							Expect(stepMetadata).To(Equal(expectedMetadata))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								Type:                 db.ContainerTypePut,
 								StepName:             "some-put",
@@ -645,7 +669,7 @@ var _ = Describe("Builder", func() {
 						It("constructs the dependent get correctly", func() {
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.GetStepArgsForCall(0)
 							Expect(plan).To(Equal(dependentGetPlan))
-							Expect(stepMetadata).To(Equal(expectedMetadata))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								Type:                 db.ContainerTypeGet,
 								StepName:             "some-get",
@@ -673,7 +697,8 @@ var _ = Describe("Builder", func() {
 
 						BeforeEach(func() {
 							inputPlan = planFactory.NewPlan(atc.GetPlan{
-								Name: "some-input",
+								Name:                 "some-input",
+								ExposeBuildCreatedBy: true,
 							})
 							failureTaskPlan = planFactory.NewPlan(atc.TaskPlan{
 								Name:   "some-failure-task",
@@ -711,7 +736,7 @@ var _ = Describe("Builder", func() {
 							Expect(fakeCoreStepFactory.GetStepCallCount()).To(Equal(1))
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.GetStepArgsForCall(0)
 							Expect(plan).To(Equal(inputPlan))
-							Expect(stepMetadata).To(Equal(expectedMetadata))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								PipelineID:           2222,
 								PipelineName:         "some-pipeline",
@@ -729,7 +754,7 @@ var _ = Describe("Builder", func() {
 							Expect(fakeCoreStepFactory.TaskStepCallCount()).To(Equal(4))
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.TaskStepArgsForCall(2)
 							Expect(plan).To(Equal(completionTaskPlan))
-							Expect(stepMetadata).To(Equal(expectedMetadata))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								PipelineID:           2222,
 								PipelineName:         "some-pipeline",
@@ -747,7 +772,7 @@ var _ = Describe("Builder", func() {
 							Expect(fakeCoreStepFactory.TaskStepCallCount()).To(Equal(4))
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.TaskStepArgsForCall(0)
 							Expect(plan).To(Equal(failureTaskPlan))
-							Expect(stepMetadata).To(Equal(expectedMetadata))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								PipelineID:           2222,
 								PipelineName:         "some-pipeline",
@@ -765,7 +790,7 @@ var _ = Describe("Builder", func() {
 							Expect(fakeCoreStepFactory.TaskStepCallCount()).To(Equal(4))
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.TaskStepArgsForCall(1)
 							Expect(plan).To(Equal(successTaskPlan))
-							Expect(stepMetadata).To(Equal(expectedMetadata))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								PipelineID:           2222,
 								PipelineName:         "some-pipeline",
@@ -783,7 +808,7 @@ var _ = Describe("Builder", func() {
 							Expect(fakeCoreStepFactory.TaskStepCallCount()).To(Equal(4))
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.TaskStepArgsForCall(3)
 							Expect(plan).To(Equal(nextTaskPlan))
-							Expect(stepMetadata).To(Equal(expectedMetadata))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								PipelineID:           2222,
 								PipelineName:         "some-pipeline",
@@ -804,7 +829,8 @@ var _ = Describe("Builder", func() {
 
 					BeforeEach(func() {
 						inputPlan = planFactory.NewPlan(atc.GetPlan{
-							Name: "some-input",
+							Name:                 "some-input",
+							ExposeBuildCreatedBy: true,
 						})
 
 						expectedPlan = planFactory.NewPlan(atc.TryPlan{
@@ -816,7 +842,7 @@ var _ = Describe("Builder", func() {
 						Expect(fakeCoreStepFactory.GetStepCallCount()).To(Equal(1))
 						plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.GetStepArgsForCall(0)
 						Expect(plan).To(Equal(inputPlan))
-						Expect(stepMetadata).To(Equal(expectedMetadata))
+						Expect(stepMetadata).To(Equal(expectedMetadataWithCreatedBy))
 						Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 							Type:                 db.ContainerTypeGet,
 							StepName:             "some-input",
@@ -861,7 +887,7 @@ var _ = Describe("Builder", func() {
 						Expect(fakeCoreStepFactory.TaskStepCallCount()).To(Equal(4))
 						plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.TaskStepArgsForCall(0)
 						Expect(*plan.Task).To(Equal(atc.TaskPlan{Name: "some-task"}))
-						Expect(stepMetadata).To(Equal(expectedMetadata))
+						Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 						Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 							Type:                 db.ContainerTypeTask,
 							StepName:             "some-task",

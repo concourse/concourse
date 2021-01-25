@@ -64,6 +64,10 @@ var _ = Describe("Build", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	It("created_by should be set", func(){
+		Expect(build.CreatedBy()).To(Equal(defaultBuildCreatedBy))
+	})
+
 	It("has no plan on creation", func() {
 		build, err := team.CreateOneOffBuild()
 		Expect(err).ToNot(HaveOccurred())
@@ -100,7 +104,6 @@ var _ = Describe("Build", func() {
 				var err error
 				build, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(build.CreatedBy()).NotTo(BeNil())
 				Expect(build.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 			})
 
@@ -650,6 +653,10 @@ var _ = Describe("Build", func() {
 						Expect(err).NotTo(HaveOccurred())
 					})
 
+					It("created_by should be set", func(){
+						Expect(rrBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
+					})
+
 					Context("when the rerun finishes and status changed", func() {
 						BeforeEach(func() {
 							err = rrBuild.Finish(db.BuildStatusFailed)
@@ -705,6 +712,10 @@ var _ = Describe("Build", func() {
 						Expect(getJobBuildID(latestCompletedBuildCol, job.ID())).To(Equal(pdBuild.ID()))
 					})
 
+					It("created_by should be set", func(){
+						Expect(rrBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
+					})
+
 					Context("when rerunning the rerun build", func() {
 						var rrBuild2 db.Build
 
@@ -751,6 +762,10 @@ var _ = Describe("Build", func() {
 					It("does not updates transition build id", func() {
 						Expect(getJobBuildID(transitionBuildCol, job.ID())).To(Equal(pdBuild.ID()))
 					})
+
+					It("created_by should be set", func(){
+						Expect(rrBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
+					})
 				})
 			})
 		})
@@ -762,6 +777,7 @@ var _ = Describe("Build", func() {
 
 				newBuild, err := job.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(newBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 
 				requestedSchedule := downstreamJob.ScheduleRequestedTime()
 
@@ -781,6 +797,7 @@ var _ = Describe("Build", func() {
 
 				newBuild, err := job.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(newBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 
 				requestedSchedule := noRequestJob.ScheduleRequestedTime()
 

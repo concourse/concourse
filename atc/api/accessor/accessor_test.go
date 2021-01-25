@@ -672,6 +672,50 @@ var _ = Describe("Accessor", func() {
 		})
 	})
 
+	Describe("UserInfo", func() {
+		var result atc.UserInfo
+
+		BeforeEach(func(){
+			fakeDisplayUserIdGenerator.DisplayUserIdReturns("some-user-id")
+		})
+
+		JustBeforeEach(func() {
+			result = access.UserInfo()
+		})
+
+		Context("when there is a valid token", func() {
+			BeforeEach(func() {
+				verification.HasToken = true
+				verification.IsTokenValid = true
+				verification.RawClaims = map[string]interface{}{
+					"sub":                "some-sub",
+					"name":               "some-name",
+					"preferred_username": "some-user-name",
+					"email":              "some-email",
+					"federated_claims": map[string]interface{}{
+						"user_id":      "some-id",
+						"connector_id": "some-connector",
+					},
+				}
+			})
+
+			It("returns the result", func() {
+				Expect(result).To(Equal(atc.UserInfo{
+					Sub:           "some-sub",
+					Name:          "some-name",
+					Email:         "some-email",
+					UserId:        "some-id",
+					UserName:      "some-user-name",
+					IsAdmin:       false,
+					IsSystem:      false,
+					Teams:         map[string][]string{},
+					Connector:     "some-connector",
+					DisplayUserId: "some-user-id",
+				}))
+			})
+		})
+	})
+
 	Describe("TeamRoles", func() {
 		var result map[string][]string
 
