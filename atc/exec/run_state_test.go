@@ -192,19 +192,6 @@ var _ = Describe("RunState", func() {
 			Expect(found).To(BeFalse())
 		})
 
-		It("shares the underlying non-local variables", func() {
-			scope := state.NewScope()
-			val, _, _ := scope.Variables().Get(vars.Reference{Path: "k1"})
-			Expect(val).To(Equal("v1"))
-		})
-
-		It("vars added after creating the subscope are accessible", func() {
-			scope := state.NewScope()
-			state.Variables().SetVar(".", "hello", "world", false)
-			val, _, _ := scope.Variables().Get(vars.Reference{Source: ".", Path: "hello"})
-			Expect(val).To(Equal("world"))
-		})
-
 		It("current scope is preferred over parent scope", func() {
 			state.Variables().SetVar(".", "a", 1, false)
 			scope := state.NewScope()

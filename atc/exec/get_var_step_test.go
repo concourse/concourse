@@ -2,6 +2,10 @@ package exec_test
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
+	"encoding/json"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -10,7 +14,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	gocache "github.com/patrickmn/go-cache"
-	"go.opentelemetry.io/otel/api/trace"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -18,7 +21,9 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -60,7 +65,8 @@ var _ = Describe("GetVarStep", func() {
 
 		stdout, stderr *gbytes.Buffer
 
-		planID atc.PlanID = "56"
+		planID         atc.PlanID = "56"
+		buildVariables *build.Variables
 	)
 
 	BeforeEach(func() {
@@ -68,7 +74,9 @@ var _ = Describe("GetVarStep", func() {
 		ctx, cancel = context.WithCancel(context.Background())
 		ctx = lagerctx.NewContext(ctx, testLogger)
 
+		buildVariables = build.NewVariables(nil, true)
 		state = new(execfakes.FakeRunState)
+		state.VariablesReturns(buildVariables)
 
 		stdout = gbytes.NewBuffer()
 		stderr = gbytes.NewBuffer()
@@ -79,7 +87,7 @@ var _ = Describe("GetVarStep", func() {
 		fakeDelegate.VariablesReturns(vars.StaticVariables{})
 
 		spanCtx = context.Background()
-		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
+		fakeDelegate.StartSpanReturns(spanCtx, tracing.NoopSpan)
 
 		fakeDelegateFactory = new(execfakes.FakeBuildStepDelegateFactory)
 		fakeDelegateFactory.BuildStepDelegateReturns(fakeDelegate)
@@ -150,8 +158,24 @@ var _ = Describe("GetVarStep", func() {
 			Expect(actualPlanID).To(Equal(planID))
 			Expect(varValue).To(Equal("some-value"))
 
+			mapit := vars.TrackedVarsMap{}
+			buildVariables.IterateInterpolatedCreds(mapit)
+			Expect(mapit["some-var"]).To(Equal("some-value"))
+
 			Expect(fakeManager.CloseCallCount()).To(Equal(1))
 			Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+		})
+
+		Context("when reveal is true", func() {
+			BeforeEach(func() {
+				getVarPlan.Reveal = true
+			})
+
+			It("does not redact the var", func() {
+				mapit := vars.TrackedVarsMap{}
+				buildVariables.IterateInterpolatedCreds(mapit)
+				Expect(mapit).ToNot(HaveKey("some-var"))
+			})
 		})
 
 		Context("when the var does not exist", func() {
@@ -172,19 +196,31 @@ var _ = Describe("GetVarStep", func() {
 
 		Context("when the var is in the build vars", func() {
 			BeforeEach(func() {
-				fakeDelegate.VariablesReturns(vars.StaticVariables{"some-var": "some-value"})
+				buildVariables.SetVar("some-source-name", "some-var", "some-value", true)
+
+				varIdentifier, err := json.Marshal(struct {
+					Path   string     `json:"path"`
+					Type   string     `json:"type"`
+					Source atc.Source `json:"source"`
+				}{getVarPlan.Path, getVarPlan.Type, getVarPlan.Source})
+				Expect(err).ToNot(HaveOccurred())
+
+				hasher := md5.New()
+				hasher.Write([]byte(varIdentifier))
+				hash := hex.EncodeToString(hasher.Sum(nil))
+				cache.Add(hash, "some-cache-value", time.Hour)
 			})
 
-			It("uses the stored var and does not refetch", func() {
+			It("uses the stored var and not the cache var and does not refetch", func() {
 				Expect(stepOk).To(BeTrue())
 				Expect(stepErr).ToNot(HaveOccurred())
 
 				Expect(fakeSecrets.GetCallCount()).To(Equal(0))
 				Expect(state.StoreResultCallCount()).To(Equal(1))
-			})
 
-			It("does not fetch from the cache", func() {
-				Expect(fakeSecrets.GetCallCount()).To(Equal(0))
+				actualPlanID, actualValue := state.StoreResultArgsForCall(0)
+				Expect(actualPlanID).To(Equal(planID))
+				Expect(actualValue).To(Equal("some-value"))
 			})
 
 			It("releases the lock", func() {
@@ -194,7 +230,10 @@ var _ = Describe("GetVarStep", func() {
 
 		Context("when there is a cache for the var", func() {
 			BeforeEach(func() {
+				previousBuildVars := build.NewVariables(nil, true)
 				previousState := new(execfakes.FakeRunState)
+				previousState.VariablesReturns(previousBuildVars)
+
 				tempfakeLock := new(lockfakes.FakeLock)
 				tempfakeLockFactory := new(lockfakes.FakeLockFactory)
 				tempfakeLockFactory.AcquireReturns(tempfakeLock, true, nil)
@@ -230,6 +269,10 @@ var _ = Describe("GetVarStep", func() {
 				actualPlanID, value := state.StoreResultArgsForCall(0)
 				Expect(actualPlanID).To(Equal(planID))
 				Expect(value).To(Equal("some-value"))
+
+				mapit := vars.TrackedVarsMap{}
+				buildVariables.IterateInterpolatedCreds(mapit)
+				Expect(mapit["some-var"]).To(Equal("some-value"))
 			})
 
 			It("releases the lock", func() {

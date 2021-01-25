@@ -92,6 +92,17 @@ func (c VarSourceConfigs) Lookup(name string) (VarSourceConfig, bool) {
 	return VarSourceConfig{}, false
 }
 
+func (c VarSourceConfigs) Without(name string) VarSourceConfigs {
+	newVarSources := VarSourceConfigs{}
+	for _, v := range c {
+		if v.Name != name {
+			newVarSources = append(newVarSources, v)
+		}
+	}
+
+	return newVarSources
+}
+
 type pendingVarSource struct {
 	vs   VarSourceConfig
 	deps []string

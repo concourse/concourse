@@ -8,6 +8,11 @@ import (
 )
 
 type Variables struct {
+	parentScope interface {
+		vars.Variables
+		IterateInterpolatedCreds(iter vars.TrackedVarsIterator)
+	}
+
 	vars    map[string]vars.StaticVariables
 	tracker *vars.Tracker
 
@@ -42,6 +47,13 @@ func (v *Variables) Get(ref vars.Reference) (interface{}, bool, error) {
 		}
 	}
 
+	if v.parentScope != nil {
+		val, found, err := v.parentScope.Get(ref)
+		if found || err != nil {
+			return val, found, err
+		}
+	}
+
 	return nil, false, nil
 }
 
@@ -51,11 +63,13 @@ func (v *Variables) IterateInterpolatedCreds(iter vars.TrackedVarsIterator) {
 
 func (v *Variables) NewScope() *Variables {
 	return &Variables{
-		vars:    map[string]vars.StaticVariables{},
-		tracker: vars.NewTracker(v.tracker.Enabled),
+		parentScope: v,
+		vars:        map[string]vars.StaticVariables{},
+		tracker:     vars.NewTracker(v.tracker.Enabled),
 	}
 }
 
+// TODO: Add setting a var with fields
 func (v *Variables) SetVar(source, name string, val interface{}, redact bool) {
 	v.lock.RLock()
 	defer v.lock.RUnlock()

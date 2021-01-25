@@ -11,8 +11,6 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/vars"
 	"github.com/lib/pq"
 	"go.opentelemetry.io/otel/propagation"
 
@@ -169,8 +167,7 @@ type Build interface {
 	Start(atc.Plan) (bool, error)
 	Finish(BuildStatus) error
 
-	Variables(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
-	VarSources() (atc.VarSourceConfigs, error)
+	VarSourceConfigs() (atc.VarSourceConfigs, error)
 
 	SetInterceptible(bool) error
 
@@ -759,26 +756,7 @@ WITH RECURSIVE pipelines_to_archive AS (
 	return nil
 }
 
-// Variables creates variables for this build. If the build is a one-off build, it
-// just uses the global secrets manager. If it belongs to a pipeline, it combines
-// the global secrets manager with the pipeline's var_sources.
-func (b *build) Variables(logger lager.Logger, globalSecrets creds.Secrets, varSourcePool creds.VarSourcePool) (vars.Variables, error) {
-	// "fly execute" generated build will have no pipeline.
-	if b.pipelineID == 0 {
-		return creds.NewVariables(globalSecrets, b.teamName, b.pipelineName, false), nil
-	}
-	pipeline, found, err := b.Pipeline()
-	if err != nil {
-		return nil, fmt.Errorf("failed to find pipeline: %w", err)
-	}
-	if !found {
-		return nil, errors.New("pipeline not found")
-	}
-
-	return pipeline.Variables(logger, globalSecrets, varSourcePool)
-}
-
-func (b *build) VarSources() (atc.VarSourceConfigs, error) {
+func (b *build) VarSourceConfigs() (atc.VarSourceConfigs, error) {
 	// "fly execute" generated build will have no pipeline.
 	if b.pipelineID == 0 {
 		return nil, nil

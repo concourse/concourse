@@ -7,6 +7,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
@@ -22,9 +23,10 @@ func NewPutDelegate(
 	clock clock.Clock,
 	policyChecker policy.Checker,
 	artifactSourcer worker.ArtifactSourcer,
+	globalSecrets creds.Secrets,
 ) exec.PutDelegate {
 	return &putDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker, artifactSourcer),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker, artifactSourcer, globalSecrets),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,

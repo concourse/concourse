@@ -24,7 +24,6 @@ import (
 
 func NewEngine(
 	stepperFactory StepperFactory,
-	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 ) Engine {
 	return Engine{
@@ -33,7 +32,6 @@ func NewEngine(
 		trackedStates:  new(sync.Map),
 		waitGroup:      new(sync.WaitGroup),
 
-		globalSecrets: secrets,
 		varSourcePool: varSourcePool,
 	}
 }
@@ -44,7 +42,6 @@ type Engine struct {
 	trackedStates  *sync.Map
 	waitGroup      *sync.WaitGroup
 
-	globalSecrets creds.Secrets
 	varSourcePool creds.VarSourcePool
 }
 
@@ -65,7 +62,6 @@ func (engine Engine) NewBuild(build db.Build) builds.Runnable {
 	return NewBuild(
 		build,
 		engine.stepperFactory,
-		engine.globalSecrets,
 		engine.varSourcePool,
 		engine.release,
 		engine.trackedStates,
@@ -76,7 +72,6 @@ func (engine Engine) NewBuild(build db.Build) builds.Runnable {
 func NewBuild(
 	build db.Build,
 	builder StepperFactory,
-	globalSecrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
 	release chan bool,
 	trackedStates *sync.Map,
@@ -86,7 +81,6 @@ func NewBuild(
 		build:   build,
 		builder: builder,
 
-		globalSecrets: globalSecrets,
 		varSourcePool: varSourcePool,
 
 		release:       release,
@@ -99,7 +93,6 @@ type engineBuild struct {
 	build   db.Build
 	builder StepperFactory
 
-	globalSecrets creds.Secrets
 	varSourcePool creds.VarSourcePool
 
 	release       chan bool
@@ -308,17 +301,15 @@ func (b *engineBuild) runState(logger lager.Logger, stepper exec.Stepper) (exec.
 		return existingState.(exec.RunState), nil
 	}
 
-	credVars, err := b.build.Variables(logger, b.globalSecrets, b.varSourcePool)
+	varSourceConfigs, err := b.build.VarSourceConfigs()
 	if err != nil {
 		return nil, err
 	}
 
-	varSources, err := b.build.VarSources()
-	if err != nil {
-		return nil, err
-	}
+	// Create the variables fetcher for all the var sources in the pipeline
+	varSources := creds.NewVarSources(logger, varSourceConfigs, b.varSourcePool, b.build.TeamName(), b.build.PipelineName())
 
-	state, _ := b.trackedStates.LoadOrStore(id, exec.NewRunState(stepper, credVars, varSources, atc.EnableRedactSecrets))
+	state, _ := b.trackedStates.LoadOrStore(id, exec.NewRunState(stepper, varSourceConfigs, varSources, atc.EnableRedactSecrets))
 	return state.(exec.RunState), nil
 }
 

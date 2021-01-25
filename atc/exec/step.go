@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/vars"
 )
@@ -43,6 +44,7 @@ type RunState interface {
 
 	ArtifactRepository() *build.Repository
 	Variables() *build.Variables
+	VarSources() *creds.VarSources
 
 	Result(atc.PlanID, interface{}) bool
 	StoreResult(atc.PlanID, interface{})

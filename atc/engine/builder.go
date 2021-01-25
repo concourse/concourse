@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec"
@@ -23,6 +24,7 @@ type CoreStepFactory interface {
 	TaskStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, DelegateFactory) exec.Step
 	CheckStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, DelegateFactory) exec.Step
 	SetPipelineStep(atc.Plan, exec.StepMetadata, DelegateFactory) exec.Step
+	GetVarStep(atc.Plan, exec.StepMetadata, DelegateFactory) exec.Step
 	LoadVarStep(atc.Plan, exec.StepMetadata, DelegateFactory) exec.Step
 	ArtifactInputStep(atc.Plan, db.Build) exec.Step
 	ArtifactOutputStep(atc.Plan, db.Build) exec.Step
@@ -41,6 +43,7 @@ func NewStepperFactory(
 	artifactSourcer worker.ArtifactSourcer,
 	dbWorkerFactory db.WorkerFactory,
 	lockFactory lock.LockFactory,
+	globalSecrets creds.Secrets,
 ) StepperFactory {
 	return &stepperFactory{
 		coreFactory:     coreFactory,
@@ -50,6 +53,7 @@ func NewStepperFactory(
 		artifactSourcer: artifactSourcer,
 		dbWorkerFactory: dbWorkerFactory,
 		lockFactory:     lockFactory,
+		globalSecrets:   globalSecrets,
 	}
 }
 
@@ -61,6 +65,7 @@ type stepperFactory struct {
 	artifactSourcer worker.ArtifactSourcer
 	dbWorkerFactory db.WorkerFactory
 	lockFactory     lock.LockFactory
+	globalSecrets   creds.Secrets
 }
 
 func (factory *stepperFactory) StepperForBuild(build db.Build) (exec.Stepper, error) {
@@ -82,6 +87,7 @@ func (factory *stepperFactory) buildDelegateFactory(build db.Build, plan atc.Pla
 		artifactSourcer: factory.artifactSourcer,
 		dbWorkerFactory: factory.dbWorkerFactory,
 		lockFactory:     factory.lockFactory,
+		globalSecrets:   factory.globalSecrets,
 	}
 }
 
@@ -132,6 +138,10 @@ func (factory *stepperFactory) buildStep(build db.Build, plan atc.Plan) exec.Ste
 
 	if plan.SetPipeline != nil {
 		return factory.buildSetPipelineStep(build, plan)
+	}
+
+	if plan.GetVar != nil {
+		return factory.buildGetVarStep(build, plan)
 	}
 
 	if plan.LoadVar != nil {
@@ -384,6 +394,19 @@ func (factory *stepperFactory) buildSetPipelineStep(build db.Build, plan atc.Pla
 	)
 
 	return factory.coreFactory.SetPipelineStep(
+		plan,
+		stepMetadata,
+		factory.buildDelegateFactory(build, plan),
+	)
+}
+
+func (factory *stepperFactory) buildGetVarStep(build db.Build, plan atc.Plan) exec.Step {
+	stepMetadata := factory.stepMetadata(
+		build,
+		factory.externalURL,
+	)
+
+	return factory.coreFactory.GetVarStep(
 		plan,
 		stepMetadata,
 		factory.buildDelegateFactory(build, plan),

@@ -20,11 +20,16 @@ func (v StaticVariables) Get(ref Reference) (interface{}, bool, error) {
 	return val, true, nil
 }
 
+// Traverse will go over each of the fields (which is an array ordered in a
+// nested manner. Ex. ((foo.bar1.bar2)) will have a field array of
+// []string{"bar1", "bar2"}.) and check to see if the value returned by the
+// credential manager contains each field.
 func Traverse(val interface{}, name string, fields []string) (interface{}, error) {
 	for _, seg := range fields {
 		switch v := val.(type) {
 		case map[interface{}]interface{}:
 			var found bool
+			// Overwrite the val variable with the value of the field
 			val, found = v[seg]
 			if !found {
 				return nil, MissingFieldError{

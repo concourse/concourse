@@ -12,6 +12,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
@@ -40,6 +41,7 @@ type buildStepDelegate struct {
 	stdout          io.Writer
 	policyChecker   policy.Checker
 	artifactSourcer worker.ArtifactSourcer
+	globalSecrets   creds.Secrets
 }
 
 func NewBuildStepDelegate(
@@ -49,6 +51,7 @@ func NewBuildStepDelegate(
 	clock clock.Clock,
 	policyChecker policy.Checker,
 	artifactSourcer worker.ArtifactSourcer,
+	globalSecrets creds.Secrets,
 ) *buildStepDelegate {
 	return &buildStepDelegate{
 		build:           build,
@@ -59,6 +62,7 @@ func NewBuildStepDelegate(
 		stderr:          nil,
 		policyChecker:   policyChecker,
 		artifactSourcer: artifactSourcer,
+		globalSecrets:   globalSecrets,
 	}
 }
 
@@ -292,6 +296,11 @@ type StepVariables struct {
 }
 
 func (v *StepVariables) Get(ref vars.Reference) (interface{}, bool, error) {
+	if ref.Source == "" {
+		globalVars := creds.NewVariables(v.delegate.globalSecrets, v.delegate.build.TeamName(), v.delegate.build.PipelineName(), false)
+		return globalVars.Get(ref)
+	}
+
 	buildVar, found, err := v.delegate.state.Variables().Get(ref)
 	if err != nil {
 		return nil, false, err
@@ -319,6 +328,7 @@ func (v *StepVariables) Get(ref vars.Reference) (interface{}, bool, error) {
 			Name:   ref.Source,
 			Path:   ref.Path,
 			Type:   varSource.Type,
+			Fields: ref.Fields,
 			Source: source,
 		},
 	}

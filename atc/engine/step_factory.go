@@ -7,11 +7,13 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/resource"
 	"github.com/concourse/concourse/atc/worker"
+	gocache "github.com/patrickmn/go-cache"
 )
 
 type coreStepFactory struct {
@@ -27,6 +29,8 @@ type coreStepFactory struct {
 	defaultLimits         atc.ContainerLimits
 	strategy              worker.ContainerPlacementStrategy
 	defaultCheckTimeout   time.Duration
+	varSourcePool         creds.VarSourcePool
+	varsCache             *gocache.Cache
 }
 
 func NewCoreStepFactory(
@@ -42,6 +46,8 @@ func NewCoreStepFactory(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.ContainerPlacementStrategy,
 	defaultCheckTimeout time.Duration,
+	varSourcePool creds.VarSourcePool,
+	varsCache *gocache.Cache,
 ) CoreStepFactory {
 	return &coreStepFactory{
 		pool:                  pool,
@@ -56,6 +62,8 @@ func NewCoreStepFactory(
 		defaultLimits:         defaultLimits,
 		strategy:              strategy,
 		defaultCheckTimeout:   defaultCheckTimeout,
+		varSourcePool:         varSourcePool,
+		varsCache:             varsCache,
 	}
 }
 
@@ -192,6 +200,28 @@ func (factory *coreStepFactory) SetPipelineStep(
 		spStep = exec.RetryError(spStep, delegateFactory)
 	}
 	return spStep
+}
+
+func (factory *coreStepFactory) GetVarStep(
+	plan atc.Plan,
+	stepMetadata exec.StepMetadata,
+	delegateFactory DelegateFactory,
+) exec.Step {
+	getVarStep := exec.NewGetVarStep(
+		plan.ID,
+		*plan.GetVar,
+		stepMetadata,
+		delegateFactory,
+		factory.varSourcePool,
+		factory.varsCache,
+		factory.lockFactory,
+	)
+
+	getVarStep = exec.LogError(getVarStep, delegateFactory)
+	if atc.EnableBuildRerunWhenWorkerDisappears {
+		getVarStep = exec.RetryError(getVarStep, delegateFactory)
+	}
+	return getVarStep
 }
 
 func (factory *coreStepFactory) LoadVarStep(

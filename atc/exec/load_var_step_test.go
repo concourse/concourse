@@ -2,6 +2,8 @@ package exec_test
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 	"strings"
 
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -103,19 +105,36 @@ var _ = Describe("LoadVarStep", func() {
 		fakeArtifactStreamer = new(workerfakes.FakeArtifactStreamer)
 	})
 
-	expectLocalVarAdded := func(expectKey string, expectValue interface{}, expectRedact bool) {
-		value, found, err := buildVariables.Get(vars.Reference{Source: ".", Path: expectKey})
+	expectLocalVarAdded := func(expectPath string, expectValue interface{}, expectRedact bool) {
+		value, found, err := buildVariables.Get(vars.Reference{Source: ".", Path: expectPath})
 		Expect(err).ToNot(HaveOccurred())
 		Expect(found).To(BeTrue())
 		Expect(value).To(Equal(expectValue))
 
 		mapit := vars.TrackedVarsMap{}
 		buildVariables.IterateInterpolatedCreds(mapit)
-		if expectRedact {
-			Expect(mapit[expectKey]).To(Equal(expectValue))
-		} else {
-			Expect(mapit).ToNot(HaveKey(expectKey))
+		v := reflect.ValueOf(expectValue)
+
+		var expectedKey string
+		switch v.Kind() {
+		case reflect.Map:
+			for _, key := range v.MapKeys() {
+				expectedKey = fmt.Sprintf("%s.%s", expectPath, key.String())
+				if expectRedact {
+					Expect(mapit[expectedKey]).To(Equal(v.MapIndex(key).Interface()))
+				} else {
+					Expect(mapit).ToNot(HaveKey(expectedKey))
+				}
+			}
+		case reflect.String:
+			expectedKey = expectPath
+			if expectRedact {
+				Expect(mapit[expectedKey]).To(Equal(expectValue))
+			} else {
+				Expect(mapit).ToNot(HaveKey(expectedKey))
+			}
 		}
+
 	}
 
 	AfterEach(func() {
