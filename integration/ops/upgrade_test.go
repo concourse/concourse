@@ -9,8 +9,7 @@ import (
 func TestUpgrade(t *testing.T) {
 	t.Parallel()
 
-	dc, err := dockerCompose(t, "overrides/latest.yml")
-	require.NoError(t, err)
+	dc := dockerCompose(t, "overrides/latest.yml")
 
 	t.Run("deploy latest", func(t *testing.T) {
 		require.NoError(t, dc.Run("up", "-d"))
@@ -19,7 +18,7 @@ func TestUpgrade(t *testing.T) {
 	fly := initFly(t, dc)
 
 	t.Run("set up test pipeline", func(t *testing.T) {
-		err = fly.Run("set-pipeline", "-p", "test", "-c", "pipelines/smoke-pipeline.yml", "-n")
+		err := fly.Run("set-pipeline", "-p", "test", "-c", "pipelines/smoke-pipeline.yml", "-n")
 		require.NoError(t, err)
 
 		err = fly.Run("unpause-pipeline", "-p", "test")
@@ -29,8 +28,7 @@ func TestUpgrade(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	dc, err = dockerCompose(t)
-	require.NoError(t, err)
+	dc = dockerCompose(t)
 
 	t.Run("upgrade to dev", func(t *testing.T) {
 		require.NoError(t, dc.Run("up", "-d"))
@@ -53,7 +51,7 @@ func TestUpgrade(t *testing.T) {
 	})
 
 	t.Run("can still run checks", func(t *testing.T) {
-		err = fly.Run("check-resource", "-r", "test/mockery")
+		err := fly.Run("check-resource", "-r", "test/mockery")
 		require.NoError(t, err)
 	})
 

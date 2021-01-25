@@ -19,7 +19,7 @@ import (
 
 var onces = new(sync.Map)
 
-func dockerCompose(t *testing.T, overrides ...string) (cmdtest.Cmd, error) {
+func dockerCompose(t *testing.T, overrides ...string) cmdtest.Cmd {
 	name := filepath.Base(t.Name())
 
 	files := []string{"docker-compose.yml"}
@@ -55,17 +55,15 @@ func dockerCompose(t *testing.T, overrides ...string) (cmdtest.Cmd, error) {
 		dc.Run("down")
 	})
 
-	return dc, nil
+	return dc
 }
 
-func dynamicDockerCompose(t *testing.T, doc *ypath.Document) (cmdtest.Cmd, error) {
+func dynamicDockerCompose(t *testing.T, doc *ypath.Document) cmdtest.Cmd {
 	name := filepath.Base(t.Name())
 	fileName := fmt.Sprintf(".docker-compose.%s.yml", name)
 
 	err := ioutil.WriteFile(fileName, doc.Bytes(), os.ModePerm)
-	if err != nil {
-		return cmdtest.Cmd{}, err
-	}
+	require.NoError(t, err)
 
 	cleanupOnce(t, func() {
 		os.Remove(fileName)
