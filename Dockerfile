@@ -36,7 +36,7 @@ COPY . .
 RUN go build -gcflags=all="-N -l" -o /usr/local/concourse/bin/concourse \
       ./cmd/concourse
 RUN set -x && \
-      go build --tags 'netgo osusergo' -a -ldflags '-extldflags "-static"' -o /tmp/fly ./fly && \
+      go build -ldflags '-extldflags "-static"' -o /tmp/fly ./fly && \
       tar -C /tmp -czf /usr/local/concourse/fly-assets/fly-$(go env GOOS)-$(go env GOARCH).tgz fly && \
       rm /tmp/fly
 
