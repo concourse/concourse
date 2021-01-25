@@ -102,9 +102,6 @@ var retryingDriverName = "too-many-connections-retrying"
 var flyClientID = "fly"
 var flyClientSecret = "Zmx5"
 
-var workerAvailabilityPollingInterval = 5 * time.Second
-var workerStatusPublishInterval = 1 * time.Minute
-
 type ATCCommand struct {
 	RunCommand RunCommand `command:"run"`
 	Migration  Migration  `command:"migrate"`
@@ -771,10 +768,6 @@ func (cmd *RunCommand) constructAPIMembers(
 		return nil, err
 	}
 
-	// XXX(substeps): why is this unconditional?
-	// A: we're constructing API components and none of them use the streaming
-	// funcs which relies on a compression method.
-	compressionLib := compression.NewGzipCompression()
 	workerProvider := worker.NewDBWorkerProvider(
 		lockFactory,
 		retryhttp.NewExponentialBackOffFactory(5*time.Minute),
@@ -794,7 +787,6 @@ func (cmd *RunCommand) constructAPIMembers(
 	)
 
 	pool := worker.NewPool(workerProvider)
-	workerClient := worker.NewClient(pool, workerProvider, compressionLib, workerAvailabilityPollingInterval, workerStatusPublishInterval, cmd.FeatureFlags.EnableP2PVolumeStreaming, cmd.P2pVolumeStreamingTimeout)
 
 	credsManagers := cmd.CredentialManagers
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
@@ -847,7 +839,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		dbCheckFactory,
 		dbResourceConfigFactory,
 		userFactory,
-		workerClient,
+		pool,
 		secretManager,
 		credsManagers,
 		accessFactory,
@@ -1046,14 +1038,8 @@ func (cmd *RunCommand) backendComponents(
 	)
 
 	pool := worker.NewPool(workerProvider)
-	workerClient := worker.NewClient(pool,
-		workerProvider,
-		compressionLib,
-		workerAvailabilityPollingInterval,
-		workerStatusPublishInterval,
-		cmd.FeatureFlags.EnableP2PVolumeStreaming,
-		cmd.P2pVolumeStreamingTimeout,
-	)
+	artifactStreamer := worker.NewArtifactStreamer(pool, compressionLib)
+	artifactSourcer := worker.NewArtifactSourcer(compressionLib, pool, cmd.FeatureFlags.EnableP2PVolumeStreaming, cmd.P2pVolumeStreamingTimeout)
 
 	defaultLimits, err := cmd.parseDefaultLimits()
 	if err != nil {
@@ -1075,8 +1061,10 @@ func (cmd *RunCommand) backendComponents(
 
 	engine := cmd.constructEngine(
 		pool,
-		workerClient,
+		artifactStreamer,
+		artifactSourcer,
 		resourceFactory,
+		dbWorkerFactory,
 		teamFactory,
 		dbBuildFactory,
 		dbResourceCacheFactory,
@@ -1638,8 +1626,10 @@ func (cmd *RunCommand) configureAuthForDefaultTeam(teamFactory db.TeamFactory) e
 
 func (cmd *RunCommand) constructEngine(
 	workerPool worker.Pool,
-	workerClient worker.Client,
+	artifactStreamer worker.ArtifactStreamer,
+	artifactSourcer worker.ArtifactSourcer,
 	resourceFactory resource.ResourceFactory,
+	workerFactory db.WorkerFactory,
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
@@ -1655,7 +1645,8 @@ func (cmd *RunCommand) constructEngine(
 		engine.NewStepperFactory(
 			engine.NewCoreStepFactory(
 				workerPool,
-				workerClient,
+				artifactStreamer,
+				artifactSourcer,
 				resourceFactory,
 				teamFactory,
 				buildFactory,
@@ -1663,12 +1654,14 @@ func (cmd *RunCommand) constructEngine(
 				resourceConfigFactory,
 				defaultLimits,
 				strategy,
-				lockFactory,
 				cmd.GlobalResourceCheckTimeout,
 			),
 			cmd.ExternalURL.String(),
 			rateLimiter,
 			policyChecker,
+			artifactSourcer,
+			workerFactory,
+			lockFactory,
 		),
 		secretManager,
 		cmd.varSourcePool,
@@ -1837,7 +1830,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	dbCheckFactory db.CheckFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	dbUserFactory db.UserFactory,
-	workerClient worker.Client,
+	workerPool worker.Pool,
 	secretManager creds.Secrets,
 	credsManagers creds.Managers,
 	accessFactory accessor.AccessFactory,
@@ -1916,7 +1909,7 @@ func (cmd *RunCommand) constructAPIHandler(
 
 		buildserver.NewEventHandler,
 
-		workerClient,
+		workerPool,
 
 		reconfigurableSink,
 

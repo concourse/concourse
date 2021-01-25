@@ -5,10 +5,12 @@ import (
 	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/enginefakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
+	"github.com/concourse/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -23,6 +25,9 @@ var _ = Describe("Builder", func() {
 			fakeCoreStepFactory *enginefakes.FakeCoreStepFactory
 			fakeRateLimiter     *enginefakes.FakeRateLimiter
 			fakePolicyChecker   *policyfakes.FakeChecker
+			fakeArtifactSourcer *workerfakes.FakeArtifactSourcer
+			fakeWorkerFactory   *dbfakes.FakeWorkerFactory
+			fakeLockFactory     *lockfakes.FakeLockFactory
 
 			planFactory    atc.PlanFactory
 			stepperFactory engine.StepperFactory
@@ -32,12 +37,18 @@ var _ = Describe("Builder", func() {
 			fakeCoreStepFactory = new(enginefakes.FakeCoreStepFactory)
 			fakeRateLimiter = new(enginefakes.FakeRateLimiter)
 			fakePolicyChecker = new(policyfakes.FakeChecker)
+			fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
+			fakeWorkerFactory = new(dbfakes.FakeWorkerFactory)
+			fakeLockFactory = new(lockfakes.FakeLockFactory)
 
 			stepperFactory = engine.NewStepperFactory(
 				fakeCoreStepFactory,
 				"http://example.com",
 				fakeRateLimiter,
 				fakePolicyChecker,
+				fakeArtifactSourcer,
+				fakeWorkerFactory,
+				fakeLockFactory,
 			)
 
 			planFactory = atc.NewPlanFactory(123)

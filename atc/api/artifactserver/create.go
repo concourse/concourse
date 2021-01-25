@@ -30,7 +30,7 @@ func (s *Server) CreateArtifact(team db.Team) http.Handler {
 			Strategy: baggageclaim.EmptyStrategy{},
 		}
 
-		volume, err := s.workerClient.CreateVolume(hLog, volumeSpec, workerSpec, db.VolumeTypeArtifact)
+		volume, err := s.workerPool.CreateVolume(hLog, volumeSpec, workerSpec, db.VolumeTypeArtifact)
 		if err != nil {
 			hLog.Error("failed-to-create-volume", err)
 			w.WriteHeader(http.StatusInternalServerError)

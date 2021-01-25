@@ -40,7 +40,7 @@ var (
 	externalURL = "https://example.com"
 	clusterName = "Test Cluster"
 
-	fakeWorkerClient        *workerfakes.FakeClient
+	fakeWorkerPool          *workerfakes.FakePool
 	fakeVolumeRepository    *dbfakes.FakeVolumeRepository
 	fakeContainerRepository *dbfakes.FakeContainerRepository
 	fakeDestroyer           *gcfakes.FakeDestroyer
@@ -131,7 +131,7 @@ var _ = BeforeEach(func() {
 	dbWorkerFactory = new(dbfakes.FakeWorkerFactory)
 	dbWorkerLifecycle = new(dbfakes.FakeWorkerLifecycle)
 
-	fakeWorkerClient = new(workerfakes.FakeClient)
+	fakeWorkerPool = new(workerfakes.FakePool)
 
 	fakeVolumeRepository = new(dbfakes.FakeVolumeRepository)
 	fakeContainerRepository = new(dbfakes.FakeContainerRepository)
@@ -202,7 +202,7 @@ var _ = BeforeEach(func() {
 
 		constructedEventHandler.Construct,
 
-		fakeWorkerClient,
+		fakeWorkerPool,
 
 		sink,
 

@@ -6,16 +6,16 @@ import (
 )
 
 type Server struct {
-	logger       lager.Logger
-	workerClient worker.Client
+	logger     lager.Logger
+	workerPool worker.Pool
 }
 
 func NewServer(
 	logger lager.Logger,
-	workerClient worker.Client,
+	workerPool worker.Pool,
 ) *Server {
 	return &Server{
-		logger:       logger,
-		workerClient: workerClient,
+		logger:     logger,
+		workerPool: workerPool,
 	}
 }

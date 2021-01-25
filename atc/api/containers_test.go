@@ -595,7 +595,7 @@ var _ = Describe("Containers API", func() {
 					fakeDBContainer.HandleReturns("some-handle")
 
 					fakeContainer = new(workerfakes.FakeContainer)
-					fakeWorkerClient.FindContainerReturns(fakeContainer, true, nil)
+					fakeWorkerPool.FindContainerReturns(fakeContainer, true, nil)
 				})
 
 				Context("when the container is a check container", func() {
@@ -689,7 +689,7 @@ var _ = Describe("Containers API", func() {
 							BeforeEach(func() {
 								expectBadHandshake = true
 
-								fakeWorkerClient.FindContainerReturns(nil, false, errors.New("nope"))
+								fakeWorkerPool.FindContainerReturns(nil, false, errors.New("nope"))
 							})
 
 							It("returns 500 internal error", func() {
@@ -701,7 +701,7 @@ var _ = Describe("Containers API", func() {
 							BeforeEach(func() {
 								expectBadHandshake = true
 
-								fakeWorkerClient.FindContainerReturns(nil, false, nil)
+								fakeWorkerPool.FindContainerReturns(nil, false, nil)
 							})
 
 							It("returns 404 Not Found", func() {
@@ -772,7 +772,7 @@ var _ = Describe("Containers API", func() {
 							It("hijacks the build", func() {
 								Eventually(fakeContainer.RunCallCount).Should(Equal(1))
 
-								_, lookedUpTeamID, lookedUpHandle := fakeWorkerClient.FindContainerArgsForCall(0)
+								_, lookedUpTeamID, lookedUpHandle := fakeWorkerPool.FindContainerArgsForCall(0)
 								Expect(lookedUpTeamID).To(Equal(734))
 								Expect(lookedUpHandle).To(Equal(handle))
 

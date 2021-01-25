@@ -58,7 +58,7 @@ func NewHandler(
 
 	eventHandlerFactory buildserver.EventHandlerFactory,
 
-	workerClient worker.Client,
+	workerPool worker.Pool,
 
 	sink *lager.ReconfigurableSink,
 
@@ -96,11 +96,11 @@ func NewHandler(
 	workerServer := workerserver.NewServer(logger, workerTeamFactory, dbWorkerFactory)
 	logLevelServer := loglevelserver.NewServer(logger, sink)
 	cliServer := cliserver.NewServer(logger, absCLIDownloadsDir)
-	containerServer := containerserver.NewServer(logger, workerClient, secretManager, varSourcePool, interceptTimeoutFactory, interceptUpdateInterval, containerRepository, destroyer, clock)
+	containerServer := containerserver.NewServer(logger, workerPool, secretManager, varSourcePool, interceptTimeoutFactory, interceptUpdateInterval, containerRepository, destroyer, clock)
 	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
 	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManagers)
-	artifactServer := artifactserver.NewServer(logger, workerClient)
+	artifactServer := artifactserver.NewServer(logger, workerPool)
 	usersServer := usersserver.NewServer(logger, dbUserFactory)
 	wallServer := wallserver.NewServer(dbWall, logger)
 

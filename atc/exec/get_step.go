@@ -70,7 +70,7 @@ type GetStep struct {
 	resourceFactory      resource.ResourceFactory
 	resourceCacheFactory db.ResourceCacheFactory
 	strategy             worker.ContainerPlacementStrategy
-	workerClient         worker.Client
+	workerPool           worker.Pool
 	delegateFactory      GetDelegateFactory
 }
 
@@ -83,7 +83,7 @@ func NewGetStep(
 	resourceCacheFactory db.ResourceCacheFactory,
 	strategy worker.ContainerPlacementStrategy,
 	delegateFactory GetDelegateFactory,
-	client worker.Client,
+	pool worker.Pool,
 ) Step {
 	return &GetStep{
 		planID:               planID,
@@ -94,7 +94,7 @@ func NewGetStep(
 		resourceCacheFactory: resourceCacheFactory,
 		strategy:             strategy,
 		delegateFactory:      delegateFactory,
-		workerClient:         client,
+		workerPool:           pool,
 	}
 }
 
@@ -213,13 +213,22 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	defer cancel()
 
-	getResult, err := step.workerClient.RunGetStep(
-		processCtx,
-		logger,
+	worker, err := step.workerPool.SelectWorker(
+		lagerctx.NewContext(processCtx, logger),
 		containerOwner,
 		containerSpec,
 		workerSpec,
 		step.strategy,
+	)
+	if err != nil {
+		return false, err
+	}
+	delegate.SelectedWorker(logger, worker.Name())
+
+	getResult, err := worker.RunGetStep(
+		lagerctx.NewContext(processCtx, logger),
+		containerOwner,
+		containerSpec,
 		step.containerMetadata,
 		processSpec,
 		delegate,

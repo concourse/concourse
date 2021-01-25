@@ -6,7 +6,6 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/runtime"
 )
 
 type WorkerSpec struct {
@@ -24,10 +23,6 @@ type ContainerSpec struct {
 
 	// Working directory for processes run in the container.
 	Dir string
-
-	// artifacts configured as usable. The key reps the mount path of the input artifact
-	// and value is the artifact itself
-	ArtifactByPath map[string]runtime.Artifact
 
 	// Inputs to provide to the container. Inputs with a volume local to the
 	// selected worker will be made available via a COW volume; others will be
@@ -92,7 +87,6 @@ type ImageSpec struct {
 	ResourceType        string
 	ImageURL            string
 	ImageArtifactSource StreamableArtifactSource
-	ImageArtifact       runtime.Artifact
 	Privileged          bool
 }
 

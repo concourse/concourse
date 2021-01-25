@@ -78,8 +78,6 @@ type Worker interface {
 
 	GardenClient() gclient.Client
 	ActiveTasks() (int, error)
-	IncreaseActiveTasks() error
-	DecreaseActiveTasks() error
 
 	ActiveContainers() int
 	ActiveVolumes() int
