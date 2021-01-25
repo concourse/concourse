@@ -207,15 +207,12 @@ var _ = Describe("Fly CLI", func() {
 				Context("when specifying a pipeline name", func() {
 					var (
 						path        string
-						queryParams string
 					)
 
 					BeforeEach(func() {
 						var err error
 						path, err = atc.Routes.CreatePathForRoute(atc.GetConfig, rata.Params{"pipeline_name": "some-pipeline", "team_name": team})
 						Expect(err).NotTo(HaveOccurred())
-
-						queryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
 					})
 
 					Context("when specifying pipeline vars", func() {
@@ -224,14 +221,14 @@ var _ = Describe("Fly CLI", func() {
 							BeforeEach(func() {
 								atcServer.AppendHandlers(
 									ghttp.CombineHandlers(
-										ghttp.VerifyRequest("GET", path, queryParams),
+										ghttp.VerifyRequest("GET", path),
 										ghttp.RespondWithJSONEncoded(200, atc.ConfigResponse{Config: config}, http.Header{atc.ConfigVersionHeader: {"42"}}),
 									),
 								)
 							})
 
 							It("prints the config as yaml to stdout", func() {
-								flyCmd := exec.Command(flyPath, "-t", targetName, "get-pipeline", "--pipeline", "some-pipeline/branch:master", "--team", team)
+								flyCmd := exec.Command(flyPath, "-t", targetName, "get-pipeline", "--pipeline", "some-pipeline", "--team", team)
 
 								sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 								Expect(err).NotTo(HaveOccurred())
