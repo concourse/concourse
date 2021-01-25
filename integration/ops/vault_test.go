@@ -2,30 +2,34 @@ package ops_test
 
 import (
 	"fmt"
+	"testing"
 
 	"github.com/concourse/concourse/integration/cmdtest"
+	"github.com/stretchr/testify/require"
 )
 
-func (s *OpsSuite) TestVault() {
-	dc, err := s.dockerCompose("overrides/vault.yml")
-	s.NoError(err)
+func TestVault(t *testing.T) {
+	t.Parallel()
 
-	s.NoError(dc.Run("up", "-d"))
+	dc, err := dockerCompose(t, "overrides/vault.yml")
+	require.NoError(t, err)
 
-	vault := s.initVault(dc)
+	require.NoError(t, dc.Run("up", "-d"))
 
-	fly := s.initFly(dc)
+	vault := initVault(t, dc)
 
-	s.testCredentialManagement(fly, dc,
+	fly := initFly(t, dc)
+
+	testCredentialManagement(t, fly, dc,
 		func(team, key string, val interface{}) {
 			path := fmt.Sprintf("concourse/%s/%s", team, key)
 			err := vault.WithArgs("write", path).Run(vaultWriteArgs(val)...)
-			s.NoError(err)
+			require.NoError(t, err)
 		},
 		func(team, pipeline, key string, val interface{}) {
 			path := fmt.Sprintf("concourse/%s/%s/%s", team, pipeline, key)
 			err := vault.WithArgs("write", path).Run(vaultWriteArgs(val)...)
-			s.NoError(err)
+			require.NoError(t, err)
 		},
 	)
 }
@@ -44,7 +48,7 @@ func vaultWriteArgs(val interface{}) []string {
 	return vals
 }
 
-func (s *OpsSuite) initVault(dc cmdtest.Cmd) cmdtest.Cmd {
+func initVault(t *testing.T, dc cmdtest.Cmd) cmdtest.Cmd {
 	init := dc.WithArgs("exec", "-T", "vault", "vault")
 
 	var initOut struct {
@@ -53,11 +57,11 @@ func (s *OpsSuite) initVault(dc cmdtest.Cmd) cmdtest.Cmd {
 	}
 
 	err := init.OutputJSON(&initOut, "operator", "init")
-	s.NoError(err)
+	require.NoError(t, err)
 
 	for i := 0; i < 3; i++ {
 		err := init.Run("operator", "unseal", initOut.UnsealKeys[i])
-		s.NoError(err)
+		require.NoError(t, err)
 	}
 
 	vault := dc.WithArgs(
@@ -69,14 +73,14 @@ func (s *OpsSuite) initVault(dc cmdtest.Cmd) cmdtest.Cmd {
 	)
 
 	// set up kv v1 store for Concourse
-	s.NoError(vault.Run("secrets", "enable", "-version=1", "-path", "concourse/main", "kv"))
+	require.NoError(t, vault.Run("secrets", "enable", "-version=1", "-path", "concourse/main", "kv"))
 
 	// set up a policy for Concourse
-	s.NoError(vault.Run("policy", "write", "concourse", "vault/config/concourse-policy.hcl"))
+	require.NoError(t, vault.Run("policy", "write", "concourse", "vault/config/concourse-policy.hcl"))
 
 	// set up cert-based auth
-	s.NoError(vault.Run("auth", "enable", "cert"))
-	s.NoError(vault.Run(
+	require.NoError(t, vault.Run("auth", "enable", "cert"))
+	require.NoError(t, vault.Run(
 		"write", "auth/cert/certs/concourse",
 		"policies=concourse",
 		"certificate=@vault/certs/vault-ca.crt",

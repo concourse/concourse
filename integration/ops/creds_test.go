@@ -3,8 +3,10 @@ package ops_test
 import (
 	"fmt"
 	"strings"
+	"testing"
 
 	"github.com/concourse/concourse/integration/cmdtest"
+	"github.com/stretchr/testify/require"
 )
 
 const assertionScript = `#!/bin/sh
@@ -47,7 +49,8 @@ var teamVars = map[string]interface{}{
 	"resource_version": "exposed some version not-so-secret",
 }
 
-func (s *OpsSuite) testCredentialManagement(
+func testCredentialManagement(
+	t *testing.T,
 	fly cmdtest.Cmd,
 	dc cmdtest.Cmd,
 	setTeamVar func(string, string, interface{}),
@@ -61,49 +64,49 @@ func (s *OpsSuite) testCredentialManagement(
 		setPipelineVar("main", "test", name, val)
 	}
 
-	s.Run("pipelines", func() {
+	t.Run("pipelines", func(t *testing.T) {
 		err := fly.Run("set-pipeline", "-n", "-c", "pipelines/credential-management.yml", "-p", "test")
-		s.NoError(err)
+		require.NoError(t, err)
 
 		err = fly.Run("unpause-pipeline", "-p", "test")
-		s.NoError(err)
+		require.NoError(t, err)
 
-		s.Run("config is not interpolated", func() {
+		t.Run("config is not interpolated", func(t *testing.T) {
 			config, err := fly.Output("get-pipeline", "-p", "test")
-			s.NoError(err)
+			require.NoError(t, err)
 
 			eachString(pipelineVars, func(val string) {
 				if val != "" {
-					s.NotContains(config, val)
+					require.NotContains(t, config, val)
 				}
 			})
 
 			eachString(teamVars, func(val string) {
 				if val != "" {
-					s.NotContains(config, val)
+					require.NotContains(t, config, val)
 				}
 			})
 		})
 
-		s.Run("interpolates resource type checks", func() {
+		t.Run("interpolates resource type checks", func(t *testing.T) {
 			// build will fail if ((check_failure)) doesn't get interpolated to ""
 			err := fly.Run("check-resource-type", "-r", "test/custom-resource-type")
-			s.NoError(err)
+			require.NoError(t, err)
 		})
 
-		s.Run("interpolates resource checks", func() {
+		t.Run("interpolates resource checks", func(t *testing.T) {
 			// build will fail if ((check_failure)) doesn't get interpolated to ""
 			err = fly.Run("check-resource", "-r", "test/custom-resource")
-			s.NoError(err)
+			require.NoError(t, err)
 		})
 
-		s.Run("interpolates job builds", func() {
+		t.Run("interpolates job builds", func(t *testing.T) {
 			// build will fail and return err if any values are wrong
 			err := fly.Run("trigger-job", "-w", "-j", "test/some-job")
-			s.NoError(err)
+			require.NoError(t, err)
 		})
 
-		s.Run("interpolates one-off builds with job inputs", func() {
+		t.Run("interpolates one-off builds with job inputs", func(t *testing.T) {
 			// build will fail and return err if any values are wrong
 			err := fly.WithEnv(
 				"EXPECTED_RESOURCE_SECRET=some resource secret",
@@ -113,20 +116,20 @@ func (s *OpsSuite) testCredentialManagement(
 				"-c", "tasks/credential-management-with-job-inputs.yml",
 				"-j", "test/some-job",
 			)
-			s.NoError(err)
+			require.NoError(t, err)
 		})
 	})
 
-	s.Run("interpolates one-off builds", func() {
+	t.Run("interpolates one-off builds", func(t *testing.T) {
 		// build will fail and return err if any values are wrong
 		err := fly.WithEnv(
 			"EXPECTED_TEAM_SECRET=some team secret",
 			"EXPECTED_RESOURCE_VERSION_SECRET=exposed some version not-so-secret",
 		).Run("execute", "-c", "tasks/credential-management.yml")
-		s.NoError(err)
+		require.NoError(t, err)
 	})
 
-	s.Run("does not store secrets in database", func() {
+	t.Run("does not store secrets in database", func(t *testing.T) {
 		pgDump := dc.WithArgs("exec", "-T", "db", "pg_dump")
 
 		dump, err := pgDump.Silence().Output(
@@ -134,17 +137,17 @@ func (s *OpsSuite) testCredentialManagement(
 			"-U", "dev",
 			"concourse",
 		)
-		s.NoError(err)
+		require.NoError(t, err)
 
 		eachString(pipelineVars, func(val string) {
 			if val != "" && !strings.HasPrefix(val, "exposed ") {
-				s.NotContains(dump, val)
+				require.NotContains(t, dump, val)
 			}
 		})
 
 		eachString(teamVars, func(val string) {
 			if val != "" && !strings.HasPrefix(val, "exposed ") {
-				s.NotContains(dump, val)
+				require.NotContains(t, dump, val)
 			}
 		})
 	})
