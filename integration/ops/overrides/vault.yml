@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  web:
+    volumes:
+    - ./vault/certs:/vault-certs
+    environment:
+      CONCOURSE_VAULT_URL: https://vault:8200
+      CONCOURSE_VAULT_AUTH_BACKEND: cert
+      CONCOURSE_VAULT_CA_CERT: /vault-certs/vault-ca.crt
+      CONCOURSE_VAULT_CLIENT_CERT: /vault-certs/concourse.crt
+      CONCOURSE_VAULT_CLIENT_KEY: /vault-certs/concourse.key
+
+  vault:
+    image: vault
+    cap_add: [IPC_LOCK]
+    ports: [8200]
+    volumes:
+    - ./vault/certs:/vault/certs
+    - ./vault/config:/vault/config
+    command: server
+    environment:
+      # for running the 'vault' CLI
+      VAULT_CACERT: /vault/certs/vault-ca.crt
+
+      # sane default for 'vault' command run by tests
+      VAULT_FORMAT: json
