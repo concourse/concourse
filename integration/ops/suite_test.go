@@ -2,7 +2,6 @@ package ops_test
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -16,40 +15,12 @@ import (
 	"github.com/concourse/concourse/integration/cmdtest"
 	"github.com/concourse/concourse/integration/ypath"
 	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 )
 
-var verbose io.Writer = ioutil.Discard
+var onces = new(sync.Map)
 
-func TestOps(t *testing.T) {
-	if testing.Verbose() {
-		verbose = os.Stderr
-	}
-
-	suite.Run(t, &OpsSuite{
-		Assertions: require.New(t),
-
-		onces: map[string]*sync.Once{},
-	})
-}
-
-type OpsSuite struct {
-	suite.Suite
-	*require.Assertions
-
-	onces map[string]*sync.Once
-}
-
-func (s *OpsSuite) SetupSuite() {
-	if os.Getenv("TEST_CONCOURSE_DEV_IMAGE") == "" {
-		s.NoError(cmdtest.Cmd{
-			Path: "docker-compose",
-		}.Run("build"))
-	}
-}
-
-func (s *OpsSuite) dockerCompose(overrides ...string) (cmdtest.Cmd, error) {
-	name := filepath.Base(s.T().Name())
+func dockerCompose(t *testing.T, overrides ...string) (cmdtest.Cmd, error) {
+	name := filepath.Base(t.Name())
 
 	files := []string{"docker-compose.yml"}
 	for _, file := range overrides {
@@ -71,8 +42,8 @@ func (s *OpsSuite) dockerCompose(overrides ...string) (cmdtest.Cmd, error) {
 	}
 
 	// clean up docker-compose when the test finishes
-	s.cleanupOnce(func() {
-		if s.T().Failed() {
+	cleanupOnce(t, func() {
+		if t.Failed() {
 			logFile, err := os.Create("logs/" + name + ".log")
 			if err == nil {
 				dc.Silence().OutputTo(logFile).Run("logs", "--no-color")
@@ -87,8 +58,8 @@ func (s *OpsSuite) dockerCompose(overrides ...string) (cmdtest.Cmd, error) {
 	return dc, nil
 }
 
-func (s *OpsSuite) dynamicDockerCompose(doc *ypath.Document) (cmdtest.Cmd, error) {
-	name := filepath.Base(s.T().Name())
+func dynamicDockerCompose(t *testing.T, doc *ypath.Document) (cmdtest.Cmd, error) {
+	name := filepath.Base(t.Name())
 	fileName := fmt.Sprintf(".docker-compose.%s.yml", name)
 
 	err := ioutil.WriteFile(fileName, doc.Bytes(), os.ModePerm)
@@ -96,28 +67,24 @@ func (s *OpsSuite) dynamicDockerCompose(doc *ypath.Document) (cmdtest.Cmd, error
 		return cmdtest.Cmd{}, err
 	}
 
-	s.cleanupOnce(func() {
+	cleanupOnce(t, func() {
 		os.Remove(fileName)
 	})
 
-	return s.dockerCompose(fileName)
+	return dockerCompose(t, fileName)
 }
 
-func (s *OpsSuite) cleanupOnce(cleanup func()) {
-	name := s.T().Name()
+func cleanupOnce(t *testing.T, cleanup func()) {
+	name := t.Name()
 
-	once, found := s.onces[name]
-	if !found {
-		once = new(sync.Once)
-		s.onces[name] = once
-	}
+	once, _ := onces.LoadOrStore(name, new(sync.Once))
 
-	s.T().Cleanup(func() {
-		once.Do(cleanup)
+	t.Cleanup(func() {
+		once.(*sync.Once).Do(cleanup)
 	})
 }
 
-func (s *OpsSuite) addr(dc cmdtest.Cmd, container string, port int) (string, error) {
+func addr(dc cmdtest.Cmd, container string, port int) (string, error) {
 	out, err := dc.Output("port", container, strconv.Itoa(port))
 	if err != nil {
 		return "", err
@@ -128,7 +95,7 @@ func (s *OpsSuite) addr(dc cmdtest.Cmd, container string, port int) (string, err
 
 var colSplit = regexp.MustCompile(`\s{2,}`)
 
-func (s *OpsSuite) flyTable(fly cmdtest.Cmd, args ...string) ([]map[string]string, error) {
+func flyTable(t *testing.T, fly cmdtest.Cmd, args ...string) ([]map[string]string, error) {
 	table, err := fly.WithArgs("--print-table-headers").Output(args...)
 	if err != nil {
 		return nil, err
@@ -152,7 +119,7 @@ func (s *OpsSuite) flyTable(fly cmdtest.Cmd, args ...string) ([]map[string]strin
 
 		result = append(result, map[string]string{})
 
-		s.Len(columns, len(headers))
+		require.Len(t, columns, len(headers))
 
 		for j, header := range headers {
 			if header == "" || columns[j] == "" {
@@ -166,23 +133,23 @@ func (s *OpsSuite) flyTable(fly cmdtest.Cmd, args ...string) ([]map[string]strin
 	return result, nil
 }
 
-func (s *OpsSuite) initFly(dc cmdtest.Cmd) cmdtest.Cmd {
-	webAddr, err := s.addr(dc, "web", 8080)
-	s.NoError(err)
+func initFly(t *testing.T, dc cmdtest.Cmd) cmdtest.Cmd {
+	webAddr, err := addr(dc, "web", 8080)
+	require.NoError(t, err)
 
 	fly, err := cmdtest.Cmd{
 		Path: "fly",
 		Args: []string{"-t", "opstest"},
-	}.WithTempHome(s.T())
-	s.NoError(err)
+	}.WithTempHome(t)
+	require.NoError(t, err)
 
-	s.Eventually(func() bool {
+	require.Eventually(t, func() bool {
 		err := fly.Run("login", "-c", "http://"+webAddr, "-u", "test", "-p", "test")
 		if err != nil {
 			return false
 		}
 
-		workers, err := s.flyTable(fly, "workers")
+		workers, err := flyTable(t, fly, "workers")
 		if err != nil {
 			return false
 		}

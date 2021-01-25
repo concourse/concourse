@@ -1,76 +1,83 @@
 package ops_test
 
-import "strings"
+import (
+	"strings"
+	"testing"
 
-func (s *OpsSuite) TestDowngrade() {
-	dc, err := s.dockerCompose()
-	s.NoError(err)
+	"github.com/stretchr/testify/require"
+)
 
-	s.Run("deploy dev", func() {
-		s.NoError(dc.Run("up", "-d"))
+func TestDowngrade(t *testing.T) {
+	t.Parallel()
+
+	dc, err := dockerCompose(t)
+	require.NoError(t, err)
+
+	t.Run("deploy dev", func(t *testing.T) {
+		require.NoError(t, dc.Run("up", "-d"))
 	})
 
-	fly := s.initFly(dc)
+	fly := initFly(t, dc)
 
-	s.Run("set up test pipeline", func() {
+	t.Run("set up test pipeline", func(t *testing.T) {
 		err = fly.Run("set-pipeline", "-p", "test", "-c", "pipelines/smoke-pipeline.yml", "-n")
-		s.NoError(err)
+		require.NoError(t, err)
 
 		err = fly.Run("unpause-pipeline", "-p", "test")
-		s.NoError(err)
+		require.NoError(t, err)
 
 		err = fly.Run("trigger-job", "-j", "test/say-hello", "-w")
-		s.NoError(err)
+		require.NoError(t, err)
 	})
 
-	latestDC, err := s.dockerCompose("overrides/latest.yml")
-	s.NoError(err)
+	latestDC, err := dockerCompose(t, "overrides/latest.yml")
+	require.NoError(t, err)
 
 	latest, err := latestDC.Output("run", "web", "migrate", "--supported-db-version")
-	s.NoError(err)
+	require.NoError(t, err)
 	latest = strings.TrimRight(latest, "\n")
 
-	s.Run("downgrading", func() {
+	t.Run("downgrading", func(t *testing.T) {
 		// just to see what it was before
 		err := dc.Run("run", "web", "migrate", "--current-db-version")
-		s.NoError(err)
+		require.NoError(t, err)
 
 		err = dc.Run("run", "web", "migrate", "--migrate-db-to-version", latest)
-		s.NoError(err)
+		require.NoError(t, err)
 
-		s.NoError(latestDC.Run("up", "-d"))
+		require.NoError(t, latestDC.Run("up", "-d"))
 	})
 
-	fly = s.initFly(latestDC)
+	fly = initFly(t, latestDC)
 
-	s.Run("pipeline and build still exists", func() {
+	t.Run("pipeline and build still exists", func(t *testing.T) {
 		err := fly.Run("get-pipeline", "-p", "test")
-		s.NoError(err)
+		require.NoError(t, err)
 
 		out, err := fly.Output("watch", "-j", "test/say-hello", "-b", "1")
-		s.NoError(err)
-		s.Contains(out, "Hello, world!")
+		require.NoError(t, err)
+		require.Contains(t, out, "Hello, world!")
 	})
 
-	s.Run("can still run pipeline builds", func() {
+	t.Run("can still run pipeline builds", func(t *testing.T) {
 		err := fly.Run("trigger-job", "-j", "test/say-hello", "-w")
-		s.NoError(err)
+		require.NoError(t, err)
 	})
 
-	s.Run("can still run checks", func() {
+	t.Run("can still run checks", func(t *testing.T) {
 		err = fly.Run("check-resource", "-r", "test/mockery")
-		s.NoError(err)
+		require.NoError(t, err)
 	})
 
-	s.Run("can still reach the internet", func() {
+	t.Run("can still reach the internet", func(t *testing.T) {
 		out, err := fly.Output("trigger-job", "-j", "test/use-the-internet", "-w")
-		s.NoError(err)
-		s.Contains(out, "Example Domain")
+		require.NoError(t, err)
+		require.Contains(t, out, "Example Domain")
 	})
 
-	s.Run("can still run one-off builds", func() {
+	t.Run("can still run one-off builds", func(t *testing.T) {
 		out, err := fly.Output("execute", "-c", "tasks/hello.yml")
-		s.NoError(err)
-		s.Contains(out, "hello")
+		require.NoError(t, err)
+		require.Contains(t, out, "hello")
 	})
 }
