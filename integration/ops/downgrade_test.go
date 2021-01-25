@@ -10,8 +10,7 @@ import (
 func TestDowngrade(t *testing.T) {
 	t.Parallel()
 
-	dc, err := dockerCompose(t)
-	require.NoError(t, err)
+	dc := dockerCompose(t)
 
 	t.Run("deploy dev", func(t *testing.T) {
 		require.NoError(t, dc.Run("up", "-d"))
@@ -20,7 +19,7 @@ func TestDowngrade(t *testing.T) {
 	fly := initFly(t, dc)
 
 	t.Run("set up test pipeline", func(t *testing.T) {
-		err = fly.Run("set-pipeline", "-p", "test", "-c", "pipelines/smoke-pipeline.yml", "-n")
+		err := fly.Run("set-pipeline", "-p", "test", "-c", "pipelines/smoke-pipeline.yml", "-n")
 		require.NoError(t, err)
 
 		err = fly.Run("unpause-pipeline", "-p", "test")
@@ -30,8 +29,7 @@ func TestDowngrade(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	latestDC, err := dockerCompose(t, "overrides/latest.yml")
-	require.NoError(t, err)
+	latestDC := dockerCompose(t, "overrides/latest.yml")
 
 	latest, err := latestDC.Output("run", "web", "migrate", "--supported-db-version")
 	require.NoError(t, err)
