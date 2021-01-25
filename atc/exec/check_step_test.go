@@ -21,6 +21,7 @@ import (
 	"github.com/concourse/concourse/atc/worker/workerfakes"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/vars/varsfakes"
 	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/api/trace/tracetest"
 
@@ -751,10 +752,15 @@ var _ = Describe("CheckStep", func() {
 		})
 
 		Context("having cred evaluation failing", func() {
+			var fakeVariables *varsfakes.FakeVariables
 			var expectedErr error
 
 			BeforeEach(func() {
+				fakeVariables = new(varsfakes.FakeVariables)
+				fakeDelegate.VariablesReturns(fakeVariables)
+
 				expectedErr = errors.New("creds-err")
+				fakeVariables.GetReturns(nil, false, expectedErr)
 			})
 
 			It("errors", func() {
@@ -780,10 +786,15 @@ var _ = Describe("CheckStep", func() {
 		})
 
 		Context("having cred evaluation failing", func() {
+			var fakeVariables *varsfakes.FakeVariables
 			var expectedErr error
 
 			BeforeEach(func() {
+				fakeVariables = new(varsfakes.FakeVariables)
+				fakeDelegate.VariablesReturns(fakeVariables)
+
 				expectedErr = errors.New("creds-err")
+				fakeVariables.GetReturns(nil, false, expectedErr)
 			})
 
 			It("errors", func() {

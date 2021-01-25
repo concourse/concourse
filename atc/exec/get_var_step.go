@@ -11,7 +11,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
@@ -31,6 +30,7 @@ type GetVarStep struct {
 	plan            atc.GetVarPlan
 	metadata        StepMetadata
 	delegateFactory BuildStepDelegateFactory
+	varSources      vars.Variables
 	lockFactory     lock.LockFactory
 	cache           *gocache.Cache
 }
@@ -40,6 +40,7 @@ func NewGetVarStep(
 	plan atc.GetVarPlan,
 	metadata StepMetadata,
 	delegateFactory BuildStepDelegateFactory, // XXX: not needed yet b/c no image fetching but WHATEVER
+	varSources vars.Variables,
 	cache *gocache.Cache,
 	lockFactory lock.LockFactory,
 ) Step {
@@ -48,6 +49,7 @@ func NewGetVarStep(
 		plan:            plan,
 		metadata:        metadata,
 		delegateFactory: delegateFactory,
+		varSources:      varSources,
 		lockFactory:     lockFactory,
 		cache:           cache,
 	}
@@ -101,14 +103,16 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 		time.Sleep(time.Second)
 	}
 
-	value, found, err := state.Variables().Get(vars.Reference{
+	varsRef := vars.Reference{
 		Source: step.plan.Name,
 		Path:   step.plan.Path,
-	})
+		Fields: step.plan.Fields,
+	}
+
+	value, found, err := state.Variables().Get(varsRef)
 	if err != nil {
 		return false, fmt.Errorf("get var from build vars: %w", err)
 	}
-
 	// If the var already exists in the builds vars, nothing needs to be done
 	if found {
 		state.StoreResult(step.planID, value)
@@ -127,41 +131,67 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 		return true, nil
 	}
 
-	manager, err := creds.ManagerFactories()[step.plan.Type].NewInstance(step.plan.Source)
+	val, found, err := step.get(step.plan.Path)
 	if err != nil {
-		return false, fmt.Errorf("create manager: %w", err)
-	}
-
-	err = manager.Init(logger)
-	if err != nil {
-		return false, fmt.Errorf("init manager: %w", err)
-	}
-
-	defer manager.Close(logger)
-
-	secretsFactory, err := manager.NewSecretsFactory(logger)
-	if err != nil {
-		return false, fmt.Errorf("create secrets factory: %w", err)
-	}
-
-	value, _, found, err = secretsFactory.NewSecrets().Get(step.plan.Path)
-	if err != nil {
-		return false, fmt.Errorf("create secrets factory: %w", err)
+		return false, err
 	}
 
 	if !found {
-		return false, VarNotFoundError{step.plan.Path}
+		return false, nil
 	}
 
-	step.cache.Add(hash, value, time.Second)
+	result, err := vars.Traverse(val, varsRef.String(), step.plan.Fields)
+	if err != nil {
+		return false, err
+	}
 
-	state.Variables().SetVar(step.plan.Name, step.plan.Path, value, !step.plan.Reveal)
+	step.cache.Add(hash, val, time.Second)
+
+	state.Variables().SetVar(step.plan.Name, step.plan.Path, result, !step.plan.Reveal)
 
 	state.StoreResult(step.planID, value)
 
 	delegate.Finished(logger, true)
 
 	return true, nil
+}
+
+func (step *GetVarStep) get(path string) (interface{}, bool, error) {
+	if len(sl.LookupPaths) == 0 {
+		// if no paths are specified (i.e. for fake & noop secret managers), then try 1-to-1 var->secret mapping
+		result, _, found, err := sl.Secrets.Get(path)
+		return result, found, err
+	}
+	// try to find a secret according to our var->secret lookup paths
+	for _, rule := range sl.LookupPaths {
+		// prepends any additional prefix paths to front of the path
+		secretPath, err := rule.VariableToSecretPath(path)
+		if err != nil {
+			return nil, false, err
+		}
+
+		value, found, err = step.varSources.Get(vars.Reference{
+			Source: step.plan.Name,
+			Path:   step.plan.Path,
+		})
+		if err != nil {
+			return false, fmt.Errorf("create secrets factory: %w", err)
+		}
+
+		if !found {
+			return false, VarNotFoundError{step.plan.Path}
+		}
+
+		result, _, found, err := sl.Secrets.Get(secretPath)
+		if err != nil {
+			return nil, false, err
+		}
+		if !found {
+			continue
+		}
+		return result, true, nil
+	}
+	return nil, false, nil
 }
 
 func (step *GetVarStep) hashVarIdentifier(path, type_ string, source atc.Source) (string, error) {

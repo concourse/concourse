@@ -6,6 +6,11 @@ import (
 )
 
 type Variables struct {
+	parentScope interface {
+		vars.Variables
+		IterateInterpolatedCreds(iter vars.TrackedVarsIterator)
+	}
+
 	vars    map[string]vars.StaticVariables
 	tracker *vars.Tracker
 
@@ -35,33 +40,42 @@ func (v *Variables) Get(ref vars.Reference) (interface{}, bool, error) {
 		}
 	}
 
+	if v.parentScope != nil {
+		val, found, err := v.parentScope.Get(ref)
+		if found || err != nil {
+			return val, found, err
+		}
+	}
+
 	return nil, false, nil
 }
 
-func (b *Variables) IterateInterpolatedCreds(iter vars.TrackedVarsIterator) {
-	b.tracker.IterateInterpolatedCreds(iter)
+func (v *Variables) IterateInterpolatedCreds(iter vars.TrackedVarsIterator) {
+	v.tracker.IterateInterpolatedCreds(iter)
 }
 
-func (b *Variables) NewScope() *Variables {
+func (v *Variables) NewScope() *Variables {
 	return &Variables{
-		vars:    map[string]vars.StaticVariables{},
-		tracker: vars.NewTracker(b.tracker.Enabled),
+		parentScope: v,
+		vars:        map[string]vars.StaticVariables{},
+		tracker:     vars.NewTracker(v.tracker.Enabled),
 	}
 }
 
-func (b *Variables) SetVar(source, name string, val interface{}, redact bool) {
-	scope, found := b.vars[source]
+// TODO: Add setting a var with fields
+func (v *Variables) SetVar(source, name string, val interface{}, redact bool) {
+	scope, found := v.vars[source]
 	if !found {
 		scope = vars.StaticVariables{}
-		b.vars[source] = scope
+		v.vars[source] = scope
 	}
 
 	scope[name] = val
 	if redact {
-		b.tracker.Track(vars.Reference{Source: source, Path: name}, val)
+		v.tracker.Track(vars.Reference{Source: source, Path: name}, val)
 	}
 }
 
-func (b *Variables) RedactionEnabled() bool {
-	return b.tracker.Enabled
+func (v *Variables) RedactionEnabled() bool {
+	return v.tracker.Enabled
 }

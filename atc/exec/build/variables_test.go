@@ -28,10 +28,11 @@ var _ = Describe("Variables", func() {
 	Describe("Get", func() {
 		BeforeEach(func() {
 			buildVars = NewVariables(varSources, false)
+			buildVars.SetVar(".", "k1", "v1", false)
 		})
 
 		It("fetches from cred vars", func() {
-			val, found, err := buildVars.Get(vars.Reference{Path: "k1"})
+			val, found, err := buildVars.Get(vars.Reference{Source: ".", Path: "k1"})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(val).To(Equal("v1"))
@@ -50,11 +51,11 @@ var _ = Describe("Variables", func() {
 		Context("when redaction is enabled", func() {
 			BeforeEach(func() {
 				buildVars = NewVariables(varSources, true)
+				buildVars.SetVar(".", "k1", "v1", true)
+				buildVars.SetVar(".", "k2", "v2", true)
 			})
 
 			It("fetched variables are tracked", func() {
-				buildVars.Get(vars.Reference{Path: "k1"})
-				buildVars.Get(vars.Reference{Path: "k2"})
 				mapit := vars.TrackedVarsMap{}
 				buildVars.IterateInterpolatedCreds(mapit)
 				Expect(mapit["k1"]).To(Equal("v1"))
@@ -67,11 +68,11 @@ var _ = Describe("Variables", func() {
 		Context("when redaction is not enabled", func() {
 			BeforeEach(func() {
 				buildVars = NewVariables(varSources, false)
+				buildVars.SetVar(".", "k1", "v1", false)
+				buildVars.SetVar(".", "k2", "v2", false)
 			})
 
 			It("fetched variables are not tracked", func() {
-				buildVars.Get(vars.Reference{Path: "k1"})
-				buildVars.Get(vars.Reference{Path: "k2"})
 				mapit := vars.TrackedVarsMap{}
 				buildVars.IterateInterpolatedCreds(mapit)
 				Expect(mapit).ToNot(HaveKey("k1"))
@@ -104,6 +105,7 @@ var _ = Describe("Variables", func() {
 
 		Describe("not redact", func() {
 			BeforeEach(func() {
+				buildVars = NewVariables(varSources, true)
 				buildVars.SetVar(".", "foo", "bar", false)
 			})
 

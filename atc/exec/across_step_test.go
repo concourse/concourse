@@ -6,6 +6,7 @@ import (
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/vars"
 	. "github.com/onsi/ginkgo"
@@ -22,6 +23,7 @@ var _ = Describe("AcrossStep", func() {
 
 		fakeDelegateFactory *execfakes.FakeBuildStepDelegateFactory
 		fakeDelegate        *execfakes.FakeBuildStepDelegate
+		buildVariables      *build.Variables
 
 		step exec.AcrossStep
 
@@ -94,9 +96,10 @@ var _ = Describe("AcrossStep", func() {
 
 		stderr = gbytes.NewBuffer()
 
+		buildVariables = build.NewVariables(nil, true)
 		fakeDelegate = new(execfakes.FakeBuildStepDelegate)
 		fakeDelegate.StderrReturns(stderr)
-		fakeDelegate.VariablesReturns(vars.StaticVariables{})
+		fakeDelegate.VariablesReturns(buildVariables)
 
 		fakeDelegateFactory = new(execfakes.FakeBuildStepDelegateFactory)
 		fakeDelegateFactory.BuildStepDelegateReturns(fakeDelegate)
@@ -184,7 +187,7 @@ var _ = Describe("AcrossStep", func() {
 
 	Context("when a var shadows an existing local var", func() {
 		BeforeEach(func() {
-			state.Variables().SetVar(".", "var2", 123, false)
+			buildVariables.SetVar(".", "var2", 123, false)
 		})
 
 		It("logs a warning to stderr", func() {

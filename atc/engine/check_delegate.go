@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
@@ -28,9 +29,10 @@ func NewCheckDelegate(
 	clock clock.Clock,
 	limiter RateLimiter,
 	policyChecker policy.Checker,
+	globalSecrets creds.Secrets,
 ) exec.CheckDelegate {
 	return &checkDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, plan.ID, state, clock, policyChecker),
+		BuildStepDelegate: NewBuildStepDelegate(build, plan.ID, state, clock, policyChecker, globalSecrets),
 
 		build:       build,
 		plan:        plan.Check,

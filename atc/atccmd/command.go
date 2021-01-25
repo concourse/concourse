@@ -96,6 +96,7 @@ import (
 const algorithmLimitRows = 100
 
 var schedulerCache = gocache.New(10*time.Second, 10*time.Second)
+var varsCache = gocache.New(10*time.Second, 10*time.Second)
 
 var defaultDriverName = "postgres"
 var retryingDriverName = "too-many-connections-retrying"
@@ -1665,12 +1666,14 @@ func (cmd *RunCommand) constructEngine(
 				strategy,
 				lockFactory,
 				cmd.GlobalResourceCheckTimeout,
+				cmd.varSourcePool,
+				varsCache,
 			),
 			cmd.ExternalURL.String(),
 			rateLimiter,
 			policyChecker,
+			secretManager,
 		),
-		secretManager,
 		cmd.varSourcePool,
 	)
 }
