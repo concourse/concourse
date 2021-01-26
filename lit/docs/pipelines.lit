@@ -210,7 +210,7 @@ files} which conform to the following schema:
           tag: latest
 
       resources:
-      - name: booklit-releases
+      - name: dinosaur-comics
         type: rss
         source:
           url: http://www.qwantz.com/rssfeed.php
@@ -218,7 +218,7 @@ files} which conform to the following schema:
       jobs:
       - name: announce
         plan:
-        - get: booklit-releases
+        - get: dinosaur-comics
           trigger: true
     }}}
   }
