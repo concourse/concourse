@@ -44,10 +44,13 @@ func Init(t *testing.T, overrides ...string) Cmd {
 	// clean up docker-compose when the test finishes
 	cleanupOnce(t, func() {
 		if t.Failed() {
-			logFile, err := os.Create("logs/" + name + ".log")
+			err := os.MkdirAll("logs", os.ModePerm)
 			if err == nil {
-				dc.Silence().OutputTo(logFile).Run("logs", "--no-color")
-				logFile.Close()
+				logFile, err := os.Create("logs/" + name + ".log")
+				if err == nil {
+					dc.Silence().OutputTo(logFile).Run("logs", "--no-color")
+					logFile.Close()
+				}
 			}
 		}
 
