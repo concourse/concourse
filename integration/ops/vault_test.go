@@ -5,19 +5,21 @@ import (
 	"testing"
 
 	"github.com/concourse/concourse/integration/cmdtest"
+	"github.com/concourse/concourse/integration/dctest"
+	"github.com/concourse/concourse/integration/flytest"
 	"github.com/stretchr/testify/require"
 )
 
 func TestVault(t *testing.T) {
 	t.Parallel()
 
-	dc := dockerCompose(t, "overrides/vault.yml")
+	dc := dctest.Init(t, "overrides/vault.yml")
 
 	require.NoError(t, dc.Run("up", "-d"))
 
 	vault := initVault(t, dc)
 
-	fly := initFly(t, dc)
+	fly := flytest.Init(t, dc)
 
 	testCredentialManagement(t, fly, dc,
 		func(team, key string, val interface{}) {
@@ -47,7 +49,7 @@ func vaultWriteArgs(val interface{}) []string {
 	return vals
 }
 
-func initVault(t *testing.T, dc cmdtest.Cmd) cmdtest.Cmd {
+func initVault(t *testing.T, dc dctest.Cmd) cmdtest.Cmd {
 	init := dc.WithArgs("exec", "-T", "vault", "vault")
 
 	var initOut struct {
