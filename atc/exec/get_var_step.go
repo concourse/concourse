@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
@@ -30,7 +31,6 @@ type GetVarStep struct {
 	plan            atc.GetVarPlan
 	metadata        StepMetadata
 	delegateFactory BuildStepDelegateFactory
-	varSources      vars.Variables
 	lockFactory     lock.LockFactory
 	cache           *gocache.Cache
 }
@@ -40,7 +40,6 @@ func NewGetVarStep(
 	plan atc.GetVarPlan,
 	metadata StepMetadata,
 	delegateFactory BuildStepDelegateFactory, // XXX: not needed yet b/c no image fetching but WHATEVER
-	varSources vars.Variables,
 	cache *gocache.Cache,
 	lockFactory lock.LockFactory,
 ) Step {
@@ -49,7 +48,6 @@ func NewGetVarStep(
 		plan:            plan,
 		metadata:        metadata,
 		delegateFactory: delegateFactory,
-		varSources:      varSources,
 		lockFactory:     lockFactory,
 		cache:           cache,
 	}
@@ -164,6 +162,73 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 	delegate.Finished(logger, true)
 
 	return true, nil
+}
+
+func (step *GetVarStep) runGetVar(state RunState, delegate BuildStepDelegate, ref vars.Reference) (interface{}, error) {
+	// Var is evaluated by global credential manager
+	if ref.Source == "" {
+		globalVars := creds.NewVariables(v.globalSecrets, step.metadata.TeamName, step.metadata.PipelineName, false)
+		return globalVars.Get(ref)
+	}
+
+	// Loop over each var source and try to match a var source to the source
+	// provided in the var
+	for _, varSourceConfig := range state.Variables().VarSourceConfigs() {
+		if ref.Source == varSourceConfig.Name {
+			// Grab out the manager factory for th
+			factory := creds.ManagerFactories()[ref.Source]
+			if factory == nil {
+				return nil, false, fmt.Errorf("unknown credential manager type: %s", ref.Source)
+			}
+
+			// Create a new var source fetcher that does not include the one we are
+			// trying to evaluate. This will prevent the evaluation of the var source
+			// configs to go in a loop.
+			parentVarSources := NewVarSources(v.logger, v.varSources.Without(varSource.Name), v.varSourcePool, v.globalSecrets, v.teamName, v.pipelineName)
+
+			// Evaluate the var source's config. If the config of the var source has
+			// templated vars then it will end up recursing to evaluate the var
+			// source config's vars until it is able to evaluate a source that does
+			// not have any templated vars or is evaluated using the global
+			// credential manager.
+			evaluatedConfig, err := creds.NewSource(delegate.Variables(), ref.Source).Evaluate()
+			if err != nil {
+				return nil, false, fmt.Errorf("evaluate: %w", err)
+			}
+
+			secrets, err := v.varSourcePool.FindOrCreate(v.logger, evaluatedConfig, factory)
+			if err != nil {
+				return nil, false, fmt.Errorf("find or create var source: %w", err)
+			}
+
+			lookupPaths := secrets.NewSecretLookupPaths(v.teamName, v.pipelineName, false)
+			if len(lookupPaths) == 0 {
+				// if no paths are specified (i.e. for fake & noop secret managers), then try 1-to-1 var->secret mapping
+				result, _, found, err := secrets.Get(ref.Path)
+				return result, found, err
+			}
+			// try to find a secret according to our var->secret lookup paths
+			for _, rule := range lookupPaths {
+				// prepends any additional prefix paths to front of the path
+				secretPath, err := rule.VariableToSecretPath(ref.Path)
+				if err != nil {
+					return nil, false, err
+				}
+
+				result, _, found, err := secrets.Get(secretPath)
+				if err != nil {
+					return nil, false, err
+				}
+				if !found {
+					continue
+				}
+				return result, true, nil
+			}
+			return nil, false, nil
+		}
+	}
+
+	return nil, false, vars.MissingSourceError{Name: ref.String(), Source: ref.Source}
 }
 
 func (step *GetVarStep) hashVarIdentifier(path, type_ string, source atc.Source) (string, error) {

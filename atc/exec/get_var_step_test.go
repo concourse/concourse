@@ -25,6 +25,7 @@ import (
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/vars/varsfakes"
 )
 
 var _ = Describe("GetVarStep", func() {
@@ -33,6 +34,7 @@ var _ = Describe("GetVarStep", func() {
 		cancel     func()
 		testLogger *lagertest.TestLogger
 
+		fakeVarSources      *varsfakes.FakeVariables
 		fakeDelegate        *execfakes.FakeBuildStepDelegate
 		fakeDelegateFactory *execfakes.FakeBuildStepDelegateFactory
 
@@ -84,7 +86,9 @@ var _ = Describe("GetVarStep", func() {
 		fakeDelegate = new(execfakes.FakeBuildStepDelegate)
 		fakeDelegate.StdoutReturns(stdout)
 		fakeDelegate.StderrReturns(stderr)
-		fakeDelegate.VariablesReturns(vars.StaticVariables{})
+
+		fakeVarSources = new(varsfakes.FakeVariables)
+		fakeVarSources.GetReturns("some-value", false, nil)
 
 		spanCtx = context.Background()
 		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
@@ -115,8 +119,6 @@ var _ = Describe("GetVarStep", func() {
 		fakeLockFactory.AcquireReturns(fakeLock, true, nil)
 
 		cache = gocache.New(0, 0)
-
-		fakeSecrets.GetReturns("some-value", nil, true, nil)
 
 		creds.Register("some-type", fakeManagerFactory)
 	})
