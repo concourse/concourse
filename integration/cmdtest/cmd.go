@@ -16,6 +16,7 @@ type Cmd struct {
 	Path   string
 	Env    []string
 	Args   []string
+	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
 	Silent bool
@@ -48,6 +49,11 @@ func (cmd Cmd) Silence() Cmd {
 	return cmd
 }
 
+func (cmd Cmd) WithInput(in io.Reader) Cmd {
+	cmd.Stdin = in
+	return cmd
+}
+
 func (cmd Cmd) OutputTo(out io.Writer) Cmd {
 	cmd.Stdout = out
 	return cmd
@@ -61,6 +67,7 @@ func (cmd Cmd) Run(args ...string) error {
 
 	execCmd := exec.Command(cmd.Path, append(cmd.Args, args...)...)
 	execCmd.Env = cmd.Env
+	execCmd.Stdin = cmd.Stdin
 	execCmd.Stdout = cmd.Stdout
 	execCmd.Stderr = cmd.Stderr
 
