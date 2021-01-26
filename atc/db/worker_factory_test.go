@@ -209,8 +209,32 @@ var _ = Describe("WorkerFactory", func() {
 	Describe("GetWorker", func() {
 		Context("when the worker is present", func() {
 			BeforeEach(func() {
-				_, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+				worker, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
+
+				build, err := defaultTeam.CreateOneOffBuild()
+				Expect(err).ToNot(HaveOccurred())
+
+				fakeOwner := new(dbfakes.FakeContainerOwner)
+				fakeOwner.FindReturns(sq.Eq{
+					"build_id": build.ID(),
+					"plan_id":  "simple-plan",
+					"team_id":  defaultTeam.ID(),
+				}, true, nil)
+				fakeOwner.CreateReturns(map[string]interface{}{
+					"build_id": build.ID(),
+					"plan_id":  "simple-plan",
+					"team_id":  defaultTeam.ID(),
+				}, nil)
+
+				creatingContainer, err := worker.CreateContainer(fakeOwner, db.ContainerMetadata{
+					Type:     "task",
+					StepName: "some-task",
+				})
+				Expect(err).ToNot(HaveOccurred())
+
+				_, err = creatingContainer.Created()
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("finds the worker", func() {
@@ -226,7 +250,7 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(foundWorker.HTTPSProxyURL()).To(Equal("some-https-proxy-url"))
 				Expect(foundWorker.NoProxy()).To(Equal("some-no-proxy"))
 				Expect(foundWorker.Ephemeral()).To(Equal(true))
-				Expect(foundWorker.ActiveContainers()).To(Equal(140))
+				Expect(foundWorker.ActiveContainers()).To(Equal(1))
 				Expect(foundWorker.ActiveVolumes()).To(Equal(550))
 				Expect(foundWorker.ResourceTypes()).To(Equal([]atc.WorkerResourceType{
 					{
@@ -413,8 +437,7 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("updates the expires field, and the number of active containers and volumes", func() {
-				atcWorker.ActiveContainers = 1
+			It("updates the expires field, and the number of active volumes", func() {
 				atcWorker.ActiveVolumes = 3
 
 				now := time.Now()
@@ -430,7 +453,6 @@ var _ = Describe("WorkerFactory", func() {
 
 				Expect(foundWorker.Name()).To(Equal(atcWorker.Name))
 				Expect(foundWorker.ExpiresAt()).To(BeTemporally("~", later, epsilon))
-				Expect(foundWorker.ActiveContainers()).To(And(Not(Equal(activeContainers)), Equal(1)))
 				Expect(foundWorker.ActiveVolumes()).To(And(Not(Equal(activeVolumes)), Equal(3)))
 				Expect(*foundWorker.GardenAddr()).To(Equal("some-garden-addr"))
 				Expect(*foundWorker.BaggageclaimURL()).To(Equal("some-bc-url"))

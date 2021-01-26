@@ -45,7 +45,7 @@ var workersQuery = psql.Select(`
 		w.http_proxy_url,
 		w.https_proxy_url,
 		w.no_proxy,
-		w.active_containers,
+		cs.active_containers,
 		w.active_volumes,
 		w.resource_types,
 		w.platform,
@@ -57,7 +57,8 @@ var workersQuery = psql.Select(`
 		w.ephemeral
 	`).
 	From("workers w").
-	LeftJoin("teams t ON w.team_id = t.id")
+	LeftJoin("teams t ON w.team_id = t.id").
+	LeftJoin("(SELECT worker_name, COUNT(handle) active_containers FROM containers GROUP BY worker_name) cs ON w.name = cs.worker_name")
 
 func (f *workerFactory) GetWorker(name string) (Worker, bool, error) {
 	return getWorker(f.conn, workersQuery.Where(sq.Eq{"w.name": name}))
@@ -124,22 +125,23 @@ func getWorkers(conn Conn, query sq.SelectBuilder) ([]Worker, error) {
 
 func scanWorker(worker *worker, row scannable) error {
 	var (
-		version       sql.NullString
-		addStr        sql.NullString
-		state         string
-		bcURLStr      sql.NullString
-		certsPathStr  sql.NullString
-		httpProxyURL  sql.NullString
-		httpsProxyURL sql.NullString
-		noProxy       sql.NullString
-		resourceTypes []byte
-		platform      sql.NullString
-		tags          []byte
-		teamName      sql.NullString
-		teamID        sql.NullInt64
-		startTime     pq.NullTime
-		expiresAt     pq.NullTime
-		ephemeral     sql.NullBool
+		version          sql.NullString
+		addStr           sql.NullString
+		state            string
+		bcURLStr         sql.NullString
+		certsPathStr     sql.NullString
+		httpProxyURL     sql.NullString
+		httpsProxyURL    sql.NullString
+		noProxy          sql.NullString
+		activeContainers sql.NullInt64
+		resourceTypes    []byte
+		platform         sql.NullString
+		tags             []byte
+		teamName         sql.NullString
+		teamID           sql.NullInt64
+		startTime        pq.NullTime
+		expiresAt        pq.NullTime
+		ephemeral        sql.NullBool
 	)
 
 	err := row.Scan(
@@ -152,7 +154,7 @@ func scanWorker(worker *worker, row scannable) error {
 		&httpProxyURL,
 		&httpsProxyURL,
 		&noProxy,
-		&worker.activeContainers,
+		&activeContainers,
 		&worker.activeVolumes,
 		&resourceTypes,
 		&platform,
@@ -197,6 +199,10 @@ func scanWorker(worker *worker, row scannable) error {
 
 	if noProxy.Valid {
 		worker.noProxy = noProxy.String
+	}
+
+	if activeContainers.Valid {
+		worker.activeContainers = int(activeContainers.Int64)
 	}
 
 	if teamName.Valid {
@@ -254,7 +260,6 @@ func (f *workerFactory) HeartbeatWorker(atcWorker atc.Worker, ttl time.Duration)
 
 	_, err = psql.Update("workers").
 		Set("expires", sq.Expr(expires)).
-		Set("active_containers", atcWorker.ActiveContainers).
 		Set("active_volumes", atcWorker.ActiveVolumes).
 		Set("state", sq.Expr("("+cSQL+")")).
 		Where(sq.Eq{"name": atcWorker.Name}).
@@ -396,7 +401,6 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 
 	values := []interface{}{
 		atcWorker.GardenAddr,
-		atcWorker.ActiveContainers,
 		atcWorker.ActiveVolumes,
 		resourceTypes,
 		tags,
@@ -427,7 +431,6 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			"expires",
 			"start_time",
 			"addr",
-			"active_containers",
 			"active_volumes",
 			"resource_types",
 			"tags",
@@ -452,7 +455,6 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 				expires = `+expires+`,
 				start_time = `+startTime+`,
 				addr = ?,
-				active_containers = ?,
 				active_volumes = ?,
 				resource_types = ?,
 				tags = ?,
