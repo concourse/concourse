@@ -5,7 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/concourse/concourse/integration/cmdtest"
+	"github.com/concourse/concourse/integration/dctest"
+	"github.com/concourse/concourse/integration/flytest"
 	"github.com/stretchr/testify/require"
 )
 
@@ -51,8 +52,8 @@ var teamVars = map[string]interface{}{
 
 func testCredentialManagement(
 	t *testing.T,
-	fly cmdtest.Cmd,
-	dc cmdtest.Cmd,
+	fly flytest.Cmd,
+	dc dctest.Cmd,
 	setTeamVar func(string, string, interface{}),
 	setPipelineVar func(string, string, string, interface{}),
 ) {
