@@ -1,4 +1,4 @@
-package ops_test
+package creds_test
 
 import (
 	"fmt"

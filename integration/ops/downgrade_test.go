@@ -12,7 +12,7 @@ import (
 func TestDowngrade(t *testing.T) {
 	t.Parallel()
 
-	dc := dctest.Init(t)
+	dc := dctest.Init(t, "../../docker-compose.yml")
 
 	t.Run("deploy dev", func(t *testing.T) {
 		require.NoError(t, dc.Run("up", "-d"))
@@ -21,7 +21,7 @@ func TestDowngrade(t *testing.T) {
 	fly := flytest.Init(t, dc)
 	setupUpgradeDowngrade(t, fly)
 
-	latestDC := dctest.Init(t, "overrides/latest.yml")
+	latestDC := dctest.Init(t, "../../docker-compose.yml", "overrides/latest.yml")
 
 	latest, err := latestDC.Output("run", "web", "migrate", "--supported-db-version")
 	require.NoError(t, err)
