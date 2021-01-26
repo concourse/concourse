@@ -19,13 +19,8 @@ type Cmd struct {
 	cmdtest.Cmd
 }
 
-func Init(t *testing.T, overrides ...string) Cmd {
+func Init(t *testing.T, files ...string) Cmd {
 	name := filepath.Base(t.Name())
-
-	files := []string{"docker-compose.yml"}
-	for _, file := range overrides {
-		files = append(files, file)
-	}
 
 	dc := cmdtest.Cmd{
 		Path: "docker-compose",

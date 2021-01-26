@@ -11,7 +11,7 @@ import (
 func TestUpgrade(t *testing.T) {
 	t.Parallel()
 
-	dc := dctest.Init(t, "overrides/latest.yml")
+	dc := dctest.Init(t, "../../docker-compose.yml", "overrides/latest.yml")
 
 	t.Run("deploy latest", func(t *testing.T) {
 		require.NoError(t, dc.Run("up", "-d"))
