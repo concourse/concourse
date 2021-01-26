@@ -31,6 +31,7 @@ type coreStepFactory struct {
 	defaultCheckTimeout   time.Duration
 	varSourcePool         creds.VarSourcePool
 	varsCache             *gocache.Cache
+	globalSecrets         creds.Secrets
 }
 
 func NewCoreStepFactory(
@@ -48,6 +49,7 @@ func NewCoreStepFactory(
 	defaultCheckTimeout time.Duration,
 	varSourcePool creds.VarSourcePool,
 	varsCache *gocache.Cache,
+	globalSecrets creds.Secrets,
 ) CoreStepFactory {
 	return &coreStepFactory{
 		pool:                  pool,
@@ -64,6 +66,7 @@ func NewCoreStepFactory(
 		defaultCheckTimeout:   defaultCheckTimeout,
 		varSourcePool:         varSourcePool,
 		varsCache:             varsCache,
+		globalSecrets:         globalSecrets,
 	}
 }
 
@@ -212,9 +215,10 @@ func (factory *coreStepFactory) GetVarStep(
 		*plan.GetVar,
 		stepMetadata,
 		delegateFactory,
-		factory.varSourcePool,
 		factory.varsCache,
 		factory.lockFactory,
+		factory.varSourcePool,
+		factory.globalSecrets,
 	)
 
 	getVarStep = exec.LogError(getVarStep, delegateFactory)

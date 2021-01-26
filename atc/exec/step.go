@@ -43,7 +43,6 @@ type RunState interface {
 
 	ArtifactRepository() *build.Repository
 	Variables() *build.Variables
-	VarSourceConfigs() atc.VarSourceConfigs
 
 	Result(atc.PlanID, interface{}) bool
 	StoreResult(atc.PlanID, interface{})

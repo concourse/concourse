@@ -24,6 +24,7 @@ type BuildStepDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
 	Variables(context.Context) vars.Variables
+	VarSources() atc.VarSourceConfigs
 	FetchImage(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.ResourceCache, error)
 
 	Stdout() io.Writer

@@ -1698,6 +1698,7 @@ func (cmd *RunCommand) constructEngine(
 				cmd.GlobalResourceCheckTimeout,
 				cmd.varSourcePool,
 				varsCache,
+				secretManager,
 			),
 			cmd.ExternalURL.String(),
 			rateLimiter,
