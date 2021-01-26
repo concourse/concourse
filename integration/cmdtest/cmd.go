@@ -39,17 +39,8 @@ func (cmd Cmd) WithArgs(args ...string) Cmd {
 	return cmd
 }
 
-func (cmd Cmd) WithTempHome(t *testing.T) (Cmd, error) {
-	home, err := ioutil.TempDir("", "cmdtest-home")
-	if err != nil {
-		return Cmd{}, fmt.Errorf("create home tmpdir: %w", err)
-	}
-
-	t.Cleanup(func() {
-		os.RemoveAll(home)
-	})
-
-	return cmd.WithEnv("HOME=" + home), nil
+func (cmd Cmd) WithTempHome(t *testing.T) Cmd {
+	return cmd.WithEnv("HOME=" + t.TempDir())
 }
 
 func (cmd Cmd) Silence() Cmd {
