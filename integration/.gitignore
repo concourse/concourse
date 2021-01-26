@@ -2,4 +2,4 @@
 .docker-compose.*.yml
 
 # generated when tests fail
-logs/*.log
+logs
