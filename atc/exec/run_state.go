@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/vars"
 )
@@ -14,9 +13,7 @@ import (
 type runState struct {
 	stepper Stepper
 
-	buildVars        *build.Variables
-	varSourceConfigs atc.VarSourceConfigs
-	varSources       *creds.VarSources
+	buildVars *build.Variables
 
 	artifacts *build.Repository
 	results   *sync.Map
@@ -29,14 +26,12 @@ type Stepper func(atc.Plan) Step
 func NewRunState(
 	stepper Stepper,
 	varSourceConfigs atc.VarSourceConfigs,
-	varSources *creds.VarSources,
 	enableRedaction bool,
 ) RunState {
 	return &runState{
 		stepper: stepper,
 
-		buildVars:  build.NewVariables(varSourceConfigs, enableRedaction),
-		varSources: varSources,
+		buildVars: build.NewVariables(varSourceConfigs, enableRedaction),
 
 		artifacts: build.NewRepository(),
 		results:   &sync.Map{},
@@ -67,10 +62,6 @@ func (state *runState) StoreResult(id atc.PlanID, val interface{}) {
 
 func (state *runState) Variables() *build.Variables {
 	return state.buildVars
-}
-
-func (state *runState) VarSources() *creds.VarSources {
-	return state.varSources
 }
 
 func (state *runState) IterateInterpolatedCreds(iter vars.TrackedVarsIterator) {
