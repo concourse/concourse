@@ -75,6 +75,33 @@ files} which conform to the following schema:
         appear in multiple groups. Neighbours of jobs in the current group will also
         appear on the same page in order to give context of the location of the
         group in the pipeline.
+
+        You may also use any valid \link{glob}{https://www.man7.org/linux/man-pages/man7/glob.7.html}
+        to represent several jobs, e.g.:
+
+        \codeblock{yaml}{{{
+        groups:
+        - name: develop
+          jobs:
+          - terraform-*
+          - test
+          - deploy-{dev,staging}
+        - name: ship
+          jobs:
+          - deploy-prod
+        - name: all
+          jobs:
+          - "*"
+        }}}
+
+        In this example, the \code{develop} group will match
+        \code{terraform-apply}, \code{terraform-destroy}, \code{test},
+        \code{deploy-dev}, \code{deploy-staging}. The \code{ship} group will only match
+        \code{deploy-prod}. The \code{all} group will match all jobs in the pipeline.
+
+        \warn{Note that depending on how it's used, \code{*}, \code{\{}, and
+        \code{\}} have special meaning in YAML, and may need to be quoted (as
+        was done in the \code{all} job above)}
       }
     }
   }
