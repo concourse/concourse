@@ -306,10 +306,7 @@ func (b *engineBuild) runState(logger lager.Logger, stepper exec.Stepper) (exec.
 		return nil, err
 	}
 
-	// Create the variables fetcher for all the var sources in the pipeline
-	varSources := creds.NewVarSources(logger, varSourceConfigs, b.varSourcePool, b.build.TeamName(), b.build.PipelineName())
-
-	state, _ := b.trackedStates.LoadOrStore(id, exec.NewRunState(stepper, varSourceConfigs, varSources, atc.EnableRedactSecrets))
+	state, _ := b.trackedStates.LoadOrStore(id, exec.NewRunState(stepper, varSourceConfigs, atc.EnableRedactSecrets))
 	return state.(exec.RunState), nil
 }
 

@@ -27,7 +27,7 @@ func NewVariables(sources atc.VarSourceConfigs, enableRedaction bool) *Variables
 	}
 }
 
-func (v *Variables) VarSources() atc.VarSourceConfigs {
+func (v *Variables) VarSourceConfigs() atc.VarSourceConfigs {
 	return v.sources
 }
 

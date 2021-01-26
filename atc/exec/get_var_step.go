@@ -33,6 +33,8 @@ type GetVarStep struct {
 	delegateFactory BuildStepDelegateFactory
 	lockFactory     lock.LockFactory
 	cache           *gocache.Cache
+	varSourcePool   creds.VarSourcePool
+	globalSecrets   creds.Secrets
 }
 
 func NewGetVarStep(
@@ -42,6 +44,8 @@ func NewGetVarStep(
 	delegateFactory BuildStepDelegateFactory, // XXX: not needed yet b/c no image fetching but WHATEVER
 	cache *gocache.Cache,
 	lockFactory lock.LockFactory,
+	varSourcePool creds.VarSourcePool,
+	globalSecrets creds.Secrets,
 ) Step {
 	return &GetVarStep{
 		planID:          planID,
@@ -50,6 +54,8 @@ func NewGetVarStep(
 		delegateFactory: delegateFactory,
 		lockFactory:     lockFactory,
 		cache:           cache,
+		varSourcePool:   varSourcePool,
+		globalSecrets:   globalSecrets,
 	}
 }
 
@@ -101,6 +107,29 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 		time.Sleep(time.Second)
 	}
 
+	// var_sources:
+	//   - name: foo
+	// 		type: docker
+	// 		source:
+	// 			 blah: blah
+	// 			 bar: ((bar:var))
+
+	// 	- name: bar
+	// 		...
+	// 		source:
+	// 		some: ((foo:bad))
+
+	// give me all var sources:
+	// 1. foo
+	// 2. bar
+
+	// evaluate config of foo which has ((foo:var))
+
+	// give me all var sources:
+	// 2. bar
+
+	// evaluate config of foo which has ((foo:var))
+
 	varsRef := vars.Reference{
 		Source: step.plan.Name,
 		Path:   step.plan.Path,
@@ -139,7 +168,7 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 		return true, nil
 	}
 
-	value, found, err = state.VarSources().Get(varsRef)
+	value, found, err = step.runGetVar(state, delegate, varsRef, ctx, logger)
 	if err != nil {
 		return false, err
 	}
@@ -164,16 +193,16 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 	return true, nil
 }
 
-func (step *GetVarStep) runGetVar(state RunState, delegate BuildStepDelegate, ref vars.Reference) (interface{}, error) {
+func (step *GetVarStep) runGetVar(state RunState, delegate BuildStepDelegate, ref vars.Reference, ctx context.Context, logger lager.Logger) (interface{}, bool, error) {
 	// Var is evaluated by global credential manager
 	if ref.Source == "" {
-		globalVars := creds.NewVariables(v.globalSecrets, step.metadata.TeamName, step.metadata.PipelineName, false)
+		globalVars := creds.NewVariables(step.globalSecrets, step.metadata.TeamName, step.metadata.PipelineName, false)
 		return globalVars.Get(ref)
 	}
 
 	// Loop over each var source and try to match a var source to the source
 	// provided in the var
-	for _, varSourceConfig := range state.Variables().VarSourceConfigs() {
+	for _, varSourceConfig := range delegate.VarSources() {
 		if ref.Source == varSourceConfig.Name {
 			// Grab out the manager factory for th
 			factory := creds.ManagerFactories()[ref.Source]
@@ -181,27 +210,28 @@ func (step *GetVarStep) runGetVar(state RunState, delegate BuildStepDelegate, re
 				return nil, false, fmt.Errorf("unknown credential manager type: %s", ref.Source)
 			}
 
-			// Create a new var source fetcher that does not include the one we are
-			// trying to evaluate. This will prevent the evaluation of the var source
-			// configs to go in a loop.
-			parentVarSources := NewVarSources(v.logger, v.varSources.Without(varSource.Name), v.varSourcePool, v.globalSecrets, v.teamName, v.pipelineName)
+			delegate.VarSources().Without(varSourceConfig.Name)
 
 			// Evaluate the var source's config. If the config of the var source has
 			// templated vars then it will end up recursing to evaluate the var
 			// source config's vars until it is able to evaluate a source that does
 			// not have any templated vars or is evaluated using the global
 			// credential manager.
-			evaluatedConfig, err := creds.NewSource(delegate.Variables(), ref.Source).Evaluate()
+			source, ok := varSourceConfig.Config.(map[string]interface{})
+			if !ok {
+				return nil, false, fmt.Errorf("invalid source for %s", varSourceConfig.Name)
+			}
+			evaluatedConfig, err := creds.NewSource(delegate.Variables(ctx), source).Evaluate()
 			if err != nil {
 				return nil, false, fmt.Errorf("evaluate: %w", err)
 			}
 
-			secrets, err := v.varSourcePool.FindOrCreate(v.logger, evaluatedConfig, factory)
+			secrets, err := step.varSourcePool.FindOrCreate(logger, evaluatedConfig, factory)
 			if err != nil {
 				return nil, false, fmt.Errorf("find or create var source: %w", err)
 			}
 
-			lookupPaths := secrets.NewSecretLookupPaths(v.teamName, v.pipelineName, false)
+			lookupPaths := secrets.NewSecretLookupPaths(step.metadata.TeamName, step.metadata.PipelineName, false)
 			if len(lookupPaths) == 0 {
 				// if no paths are specified (i.e. for fake & noop secret managers), then try 1-to-1 var->secret mapping
 				result, _, found, err := secrets.Get(ref.Path)

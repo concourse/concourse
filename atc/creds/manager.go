@@ -1,3 +1,5 @@
+package creds
+
 import (
 	"code.cloudfoundry.org/lager"
 	"github.com/jessevdk/go-flags"
