@@ -2,7 +2,7 @@ version: '3'
 
 services:
   web:
-    image: concourse/concourse:${TEST_CONCOURSE_LATEST_TAG:-latest}
+    image: ${TEST_CONCOURSE_LATEST_IMAGE:-concourse/concourse:latest}
 
   worker:
-    image: concourse/concourse:${TEST_CONCOURSE_LATEST_TAG:-latest}
+    image: ${TEST_CONCOURSE_LATEST_IMAGE:-concourse/concourse:latest}
