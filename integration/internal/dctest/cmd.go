@@ -19,8 +19,10 @@ type Cmd struct {
 	cmdtest.Cmd
 }
 
-func Init(t *testing.T, files ...string) Cmd {
+func Init(t *testing.T, composeFile string, overrides ...string) Cmd {
 	name := filepath.Base(t.Name())
+
+	files := append([]string{composeFile}, overrides...)
 
 	dc := cmdtest.Cmd{
 		Path: "docker-compose",

@@ -3,7 +3,7 @@ version: '3'
 services:
   web:
     volumes:
-    - ./hack/vault/certs:/vault-certs
+    - ../hack/vault/certs:/vault-certs
     environment:
       CONCOURSE_VAULT_URL: https://vault:8200
       CONCOURSE_VAULT_AUTH_BACKEND: cert
@@ -16,8 +16,8 @@ services:
     cap_add: [IPC_LOCK]
     ports: [8200]
     volumes:
-    - ./hack/vault/certs:/vault/certs
-    - ./hack/vault/config:/vault/config
+    - ../hack/vault/certs:/vault/certs
+    - ../hack/vault/config:/vault/config
     command: server
     environment:
       # for running the 'vault' CLI
