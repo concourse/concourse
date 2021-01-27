@@ -12,7 +12,7 @@ services:
       CONCOURSE_VAULT_CLIENT_KEY: /vault-certs/concourse.key
 
   vault:
-    image: vault
+    image: ${TEST_VAULT_IMAGE:-vault:latest}
     cap_add: [IPC_LOCK]
     ports: [8200]
     volumes:
