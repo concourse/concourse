@@ -14,7 +14,7 @@ type Cmd struct {
 }
 
 func Init(t *testing.T, dc dctest.Cmd) Cmd {
-	vault := dc.WithArgs("exec", "-T", "vault", "vault").WithTempHome(t)
+	vault, _ := dc.WithArgs("exec", "-T", "vault", "vault").WithTempHome(t)
 
 	var initOut struct {
 		UnsealKeys []string `json:"unseal_keys_b64"`
