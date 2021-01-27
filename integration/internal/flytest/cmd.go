@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/concourse/concourse/integration/cmdtest"
-	"github.com/concourse/concourse/integration/dctest"
+	"github.com/concourse/concourse/integration/internal/cmdtest"
+	"github.com/concourse/concourse/integration/internal/dctest"
 	"github.com/stretchr/testify/require"
 )
 

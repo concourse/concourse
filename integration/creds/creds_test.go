@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/concourse/concourse/integration/dctest"
-	"github.com/concourse/concourse/integration/flytest"
+	"github.com/concourse/concourse/integration/internal/dctest"
+	"github.com/concourse/concourse/integration/internal/flytest"
 	"github.com/stretchr/testify/require"
 )
 

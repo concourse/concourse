@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/concourse/concourse/integration/dctest"
-	"github.com/concourse/concourse/integration/flytest"
-	"github.com/concourse/concourse/integration/vaulttest"
+	"github.com/concourse/concourse/integration/internal/dctest"
+	"github.com/concourse/concourse/integration/internal/flytest"
+	"github.com/concourse/concourse/integration/internal/vaulttest"
 	"github.com/stretchr/testify/require"
 )
 
