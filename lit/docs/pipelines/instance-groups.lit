@@ -87,7 +87,7 @@ creating the pipelines:
     We use the \code{--instance-var} flag instead of \code{--var}. Doing so
     makes the variable name and value a part of the pipeline's identity
     (\reference{managing-instanced-pipelines} describes how to work with
-    Instanced Pipelines in \reference{fly})
+    Instanced Pipelines in \reference{fly}{fly})
 }
 
 \warn{The \code{-i} or \code{--instance-var} flag behaves like the \code{-y} or
@@ -96,22 +96,22 @@ creating the pipelines:
 \reference{static-vars} to learn the difference between the flags}
 
 Note that there are no \reference{fly}{fly} commands for constructing an
-Instance Group - Concourse logically groups all Instanced Pipeline with the
-same name into a single Instance Group. Being an Instanced Pipeline does not
-change any pipeline semantics - it simply changes how pipelines are organized
-and how you identify them.
+Instance Group - Concourse logically groups all Instanced Pipelines with the
+same name into a single Instance Group. Instanced Pipelines have the same
+pipeline semantics as other pipelines - they are just organized and identified
+in a different way.
 
 \section{
   \title{Managing Instanced Pipelines}{managing-instanced-pipelines}
 
-  Instanced Pipelines can be managed via \reference{fly} as described in
+  Instanced Pipelines can be managed via \reference{fly}{fly} as described in
   \reference{managing-pipelines}, with one important distinction - since instance
   vars are a part of the pipeline's identity, the \code{--pipeline} flag must
   include both the name of the Instance Group as well as the instance vars. The
   \code{--pipeline} flag takes the form:
 
   \code{{
-  --pipeline group/var1:value1,var2:value2,...
+  --pipeline group/var1:value1,var2:value2
   }}
 
   As a concrete example, to pause the \code{release} Instanced Pipeline with
@@ -135,7 +135,7 @@ and how you identify them.
   $ fly -t example set-pipeline \\
       --pipeline upgrade \\
       --config template.yml \\
-      --instance-var 'version=\{from:1.0.0,to:2.0.0\}' \\
+      --instance-var 'version=\{from: 1.0.0, to: 2.0.0\}' \\
       --instance-var branch=feature/foo
   }}
 
@@ -149,7 +149,7 @@ and how you identify them.
       --pipeline 'upgrade/version.from:1.0.0,version.to:2.0.0,branch:"feature/foo"'
   # ... or equivalently
   $ fly -t example pause-pipeline \\
-      --pipeline 'upgrade/version:\{from:1.0.0,to:2.0.0\},branch:"feature/foo"'
+      --pipeline 'upgrade/version:\{from: 1.0.0, to: 2.0.0\},branch:"feature/foo"'
   }}
   For accessing sub-fields of an object, we can either use dot-notation as
   described in \reference{pipeline-static-vars}, or we can define the object in
@@ -173,13 +173,13 @@ and how you identify them.
 
 
     \code{{
-    --job group/var1:value1,var2:value2,.../job
+    --job group/var1:value1,var2:value2/job
     }}
 
     and:
 
     \code{{
-    --resource group/var1:value1,var2:value2,.../resource
+    --resource group/var1:value1,var2:value2/resource
     }}
 
     For instance, to trigger the \code{test} job of
