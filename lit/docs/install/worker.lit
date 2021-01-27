@@ -12,11 +12,18 @@ decide much on its own.
   \title{Prerequisites}{worker-prerequisites}
 
   \list{
-    Linux: kernel v3.19 or later with support for user namespaces enabled.
-    (This is off by default in some distributions!)
-
-    To enforce memory limits on tasks, memory + swap accounting must be
-    enabled.
+    Linux: We test and support the following distributions. Minimum kernel
+    version tested is 4.4. User namespaces must be enabled. To enforce memory
+    limits on tasks, memory + swap accounting must be enabled.
+    \list{
+      Ubuntu 16.04 (kernel 4.4)
+    }{
+      Ubuntu 18.04 (kernel 5.3)
+    }{
+      Ubuntu 20.04 (kernel 5.4)
+    }{
+      Debian 10 (kernel 4.19)
+    }
   }{
     Windows/Darwin: no special requirements (that we know of).
 
