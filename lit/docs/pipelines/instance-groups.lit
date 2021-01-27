@@ -139,6 +139,19 @@ in a different way.
       --instance-var branch=feature/foo
   }}
 
+  \warn{
+    Using dot-notation here (as in the first command) is recommended since YAML
+    is finicky about spaces.
+
+    For instance, had we used \code{--instance-var 'version=\{from:1.0.0,
+    to:2.0.0\}'} (no spaces between keys and values), we would end up with the
+    following object (represented as JSON):
+
+    \codeblock{json}{\{"from:1.0.0": null, "to:2.0.0": null\}}
+
+    Specifying each field individually using dot-notation is harder to mess up.
+  }
+
   Here, there are two instance vars: \code{version}, that contains the object
   \code{\{"from": "1.0.0", "to": "2.0.0"\}}, and \code{branch}, that contains the
   string \code{"feature/foo"}. In order to pause this pipeline, you could issue
