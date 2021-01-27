@@ -14,7 +14,7 @@ import (
 func TestVault(t *testing.T) {
 	t.Parallel()
 
-	dc := dctest.Init(t, "../../docker-compose.yml", "overrides/vault.yml")
+	dc := dctest.Init(t, "../docker-compose.yml", "overrides/vault.yml")
 	require.NoError(t, dc.Run("up", "-d"))
 
 	vault := vaulttest.Init(t, dc)

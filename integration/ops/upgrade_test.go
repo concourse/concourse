@@ -11,21 +11,21 @@ import (
 func TestUpgrade(t *testing.T) {
 	t.Parallel()
 
-	dc := dctest.Init(t, "../../docker-compose.yml", "overrides/latest.yml")
+	latestDC := dctest.Init(t, "../docker-compose.yml", "overrides/latest.yml")
 
 	t.Run("deploy latest", func(t *testing.T) {
-		require.NoError(t, dc.Run("up", "-d"))
+		require.NoError(t, latestDC.Run("up", "-d"))
 	})
 
-	fly := flytest.Init(t, dc)
+	fly := flytest.Init(t, latestDC)
 	setupUpgradeDowngrade(t, fly)
 
-	dc = dctest.Init(t)
+	devDC := dctest.Init(t, "../docker-compose.yml")
 
 	t.Run("upgrade to dev", func(t *testing.T) {
-		require.NoError(t, dc.Run("up", "-d"))
+		require.NoError(t, devDC.Run("up", "-d"))
 	})
 
-	fly = flytest.Init(t, dc)
+	fly = flytest.Init(t, devDC)
 	verifyUpgradeDowngrade(t, fly)
 }
