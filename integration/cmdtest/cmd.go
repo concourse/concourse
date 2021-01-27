@@ -77,13 +77,13 @@ func (cmd Cmd) Run(args ...string) error {
 	}
 
 	if !cmd.Silent {
-		if execCmd.Stdout != nil && verbose != ioutil.Discard {
+		if execCmd.Stdout != nil {
 			execCmd.Stdout = io.MultiWriter(execCmd.Stdout, verbose)
 		} else {
 			execCmd.Stdout = verbose
 		}
 
-		if execCmd.Stderr != nil && verbose != ioutil.Discard {
+		if execCmd.Stderr != nil {
 			execCmd.Stderr = io.MultiWriter(execCmd.Stderr, verbose)
 		} else {
 			execCmd.Stderr = verbose
