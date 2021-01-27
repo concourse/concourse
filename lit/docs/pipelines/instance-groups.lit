@@ -2,8 +2,14 @@
 
 \use-plugin{concourse-docs}
 
-\warn{Instanced Pipelines/Instance Groups are currently experimental, and are
-subject to change.}
+\warn{
+  Instanced Pipelines/Instance Groups are currently experimental, and are
+  subject to change.
+
+  To experiment with Instanced Pipelines on your deployment, you need to set
+  the feature flag \code{--enable-pipeline-instances}
+  (\code{CONCOURSE_ENABLE_PIPELINE_INSTANCES=true})
+}
 
 Although pipelines operate independently of one another, it's not uncommon to
 have several pipelines that are highly related, and possibly derived from the
