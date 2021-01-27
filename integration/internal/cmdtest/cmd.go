@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -74,10 +73,16 @@ func (cmd Cmd) Run(args ...string) error {
 	execCmd.Stdout = cmd.Stdout
 	execCmd.Stderr = cmd.Stderr
 
-	var verbose io.Writer = ioutil.Discard
-	if testing.Verbose() {
-		verbose = os.Stderr
-	}
+	// always write to os.Stderr
+	//
+	// assuming these tests are run like go test ./..., we want output to be
+	// shown when the test fails, and 'go test' already does that at the package
+	// level.
+	//
+	// we could try to set this only if testing.Verbose(), but that would mean we
+	// have to pass -v, which would result in showing all output even if the
+	// tests pass, which is probably too noisy.
+	verbose := os.Stderr
 
 	if !cmd.Silent {
 		if execCmd.Stdout != nil {
