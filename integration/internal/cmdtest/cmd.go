@@ -40,8 +40,9 @@ func (cmd Cmd) WithArgs(args ...string) Cmd {
 	return cmd
 }
 
-func (cmd Cmd) WithTempHome(t *testing.T) Cmd {
-	return cmd.WithEnv("HOME=" + t.TempDir())
+func (cmd Cmd) WithTempHome(t *testing.T) (Cmd, string) {
+	home := t.TempDir()
+	return cmd.WithEnv("HOME=" + home), home
 }
 
 func (cmd Cmd) Silence() Cmd {

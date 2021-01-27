@@ -1,7 +1,13 @@
 package flytest
 
 import (
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -19,15 +25,44 @@ func Init(t *testing.T, dc dctest.Cmd) Cmd {
 	webAddr, err := dc.Addr("web", 8080)
 	require.NoError(t, err)
 
+	webURL := "http://" + webAddr
+
+	cmd, home := cmdtest.Cmd{
+		Path: "fly",
+		Args: []string{"-t", "opstest"},
+	}.WithTempHome(t)
+
+	cliURL := fmt.Sprintf(
+		"%s/api/v1/cli?arch=%s&platform=%s",
+		webURL,
+		runtime.GOARCH,
+		runtime.GOOS,
+	)
+
+	var flyResp *http.Response
+	require.Eventually(t, func() bool {
+		flyResp, err = http.Get(cliURL)
+		return err == nil
+	}, time.Minute, time.Second)
+
+	flyPath := filepath.Join(home, "fly")
+
+	flyFile, err := os.OpenFile(flyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	require.NoError(t, err)
+
+	_, err = io.Copy(flyFile, flyResp.Body)
+	require.NoError(t, err)
+
+	require.NoError(t, flyFile.Close())
+
+	cmd.Path = flyPath
+
 	fly := Cmd{
-		Cmd: cmdtest.Cmd{
-			Path: "fly",
-			Args: []string{"-t", "opstest"},
-		}.WithTempHome(t),
+		Cmd: cmd,
 	}
 
 	require.Eventually(t, func() bool {
-		err := fly.Run("login", "-c", "http://"+webAddr, "-u", "test", "-p", "test")
+		err := fly.Run("login", "-c", webURL, "-u", "test", "-p", "test")
 		if err != nil {
 			return false
 		}
