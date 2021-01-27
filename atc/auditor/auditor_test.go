@@ -54,6 +54,7 @@ var _ = Describe("Audit", func() {
 			EnableWorkerAuditLog,
 			EnableVolumeAuditLog,
 			logger,
+			"CUSTOM-IP-HEADER",
 		)
 	})
 
@@ -115,6 +116,7 @@ var _ = Describe("Audit", func() {
 			Entry("logs the X-REAL-IP", "X-REAL-IP", "127.0.0.2", "127.0.0.2"),
 			Entry("logs the X-FORWARDED-FOR", "X-FORWARDED-FOR", "127.0.0.3", "127.0.0.3"),
 			Entry("logs only one IP from X-FORWARDED-FOR", "X-FORWARDED-FOR", "127.0.0.3,127.0.0.55,192.14.22.46", "127.0.0.3"),
+			Entry("logs the IP from the custom header", "CUSTOM-IP-HEADER", "127.0.0.12", "127.0.0.12"),
 		)
 	})
 

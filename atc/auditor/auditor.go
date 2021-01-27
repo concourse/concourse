@@ -23,6 +23,7 @@ func NewAuditor(
 	EnableWorkerAuditLog bool,
 	EnableVolumeAuditLog bool,
 	logger lager.Logger,
+	clientIPHeader string,
 ) *auditor {
 	return &auditor{
 		EnableBuildAuditLog:     EnableBuildAuditLog,
@@ -34,6 +35,7 @@ func NewAuditor(
 		EnableTeamAuditLog:      EnableTeamAuditLog,
 		EnableWorkerAuditLog:    EnableWorkerAuditLog,
 		EnableVolumeAuditLog:    EnableVolumeAuditLog,
+		ClientIPHeader:          clientIPHeader,
 		logger:                  logger,
 	}
 }
@@ -52,6 +54,7 @@ type auditor struct {
 	EnableTeamAuditLog      bool
 	EnableWorkerAuditLog    bool
 	EnableVolumeAuditLog    bool
+	ClientIPHeader          string
 	logger                  lager.Logger
 }
 
@@ -166,19 +169,23 @@ func (a *auditor) ValidateAction(action string) bool {
 func (a *auditor) Audit(action string, userName string, r *http.Request) {
 	err := r.ParseForm()
 	if err == nil && a.ValidateAction(action) {
-		a.logger.Info("audit", lager.Data{"action": action, "user": userName, "ip": getClientIP(r), "parameters": r.Form})
+		a.logger.Info("audit", lager.Data{"action": action, "user": userName, "ip": a.getClientIP(r), "parameters": r.Form})
 	}
 }
 
-func getClientIP(r *http.Request) string {
+func (a *auditor) getClientIP(r *http.Request) string {
+	customIP := r.Header.Get(a.ClientIPHeader)
+	if net.ParseIP(customIP) != nil {
+		return customIP
+	}
 	realIP := r.Header.Get("X-REAL-IP")
-	if realIP != "" {
+	if net.ParseIP(realIP) != nil {
 		return realIP
 	}
 	forwarded := r.Header.Get("X-FORWARDED-FOR")
 	if forwarded != "" {
 		ips := strings.Split(forwarded, ",")
-		if len(ips) >= 1 {
+		if len(ips) >= 1 && net.ParseIP(ips[0]) != nil {
 			return ips[0]
 		}
 	}

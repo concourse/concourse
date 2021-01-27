@@ -214,15 +214,16 @@ type RunCommand struct {
 	DefaultMemoryLimit *string `long:"default-task-memory-limit" description:"Default maximum memory per task, 0 means unlimited"`
 
 	Auditor struct {
-		EnableBuildAuditLog     bool `long:"enable-build-auditing" description:"Enable auditing for all api requests connected to builds."`
-		EnableContainerAuditLog bool `long:"enable-container-auditing" description:"Enable auditing for all api requests connected to containers."`
-		EnableJobAuditLog       bool `long:"enable-job-auditing" description:"Enable auditing for all api requests connected to jobs."`
-		EnablePipelineAuditLog  bool `long:"enable-pipeline-auditing" description:"Enable auditing for all api requests connected to pipelines."`
-		EnableResourceAuditLog  bool `long:"enable-resource-auditing" description:"Enable auditing for all api requests connected to resources."`
-		EnableSystemAuditLog    bool `long:"enable-system-auditing" description:"Enable auditing for all api requests connected to system transactions."`
-		EnableTeamAuditLog      bool `long:"enable-team-auditing" description:"Enable auditing for all api requests connected to teams."`
-		EnableWorkerAuditLog    bool `long:"enable-worker-auditing" description:"Enable auditing for all api requests connected to workers."`
-		EnableVolumeAuditLog    bool `long:"enable-volume-auditing" description:"Enable auditing for all api requests connected to volumes."`
+		EnableBuildAuditLog     bool   `long:"enable-build-auditing" description:"Enable auditing for all api requests connected to builds."`
+		EnableContainerAuditLog bool   `long:"enable-container-auditing" description:"Enable auditing for all api requests connected to containers."`
+		EnableJobAuditLog       bool   `long:"enable-job-auditing" description:"Enable auditing for all api requests connected to jobs."`
+		EnablePipelineAuditLog  bool   `long:"enable-pipeline-auditing" description:"Enable auditing for all api requests connected to pipelines."`
+		EnableResourceAuditLog  bool   `long:"enable-resource-auditing" description:"Enable auditing for all api requests connected to resources."`
+		EnableSystemAuditLog    bool   `long:"enable-system-auditing" description:"Enable auditing for all api requests connected to system transactions."`
+		EnableTeamAuditLog      bool   `long:"enable-team-auditing" description:"Enable auditing for all api requests connected to teams."`
+		EnableWorkerAuditLog    bool   `long:"enable-worker-auditing" description:"Enable auditing for all api requests connected to workers."`
+		EnableVolumeAuditLog    bool   `long:"enable-volume-auditing" description:"Enable auditing for all api requests connected to volumes."`
+		ClientIPHeader          string `long:"client-ip-header" description:"A header that a reverse proxy will set to the client's IP address. If not set then X-REAL-IP and X-FORWARD-FOR will be used in that order."`
 	}
 
 	Syslog struct {
@@ -1863,6 +1864,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		cmd.Auditor.EnableWorkerAuditLog,
 		cmd.Auditor.EnableVolumeAuditLog,
 		logger,
+		cmd.Auditor.ClientIPHeader,
 	)
 
 	customRoles, err := cmd.parseCustomRoles()
