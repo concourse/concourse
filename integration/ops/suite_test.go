@@ -25,7 +25,7 @@ func verifyUpgradeDowngrade(t *testing.T, fly flytest.Cmd) {
 		err := fly.Run("get-pipeline", "-p", "test")
 		require.NoError(t, err)
 
-		out, err := fly.Output("watch", "-j", "test/say-hello")
+		out, err := fly.Output("watch", "-j", "test/say-hello", "--ignore-event-parsing-errors")
 		require.NoError(t, err)
 		require.Contains(t, out, "Hello, world!")
 	})
