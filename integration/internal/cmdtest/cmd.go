@@ -61,13 +61,15 @@ func (cmd Cmd) OutputTo(out io.Writer) Cmd {
 }
 
 func (cmd Cmd) Run(args ...string) error {
-	if cmd.Env == nil {
-		// don't inherit anything
-		cmd.Env = []string{}
+	env := []string{
+		// only inherit $PATH; we don't want to pass *everything* along because
+		// then it's unclear what's necessary for the tests, but $PATH seems
+		// necessary for basic functionality
+		"PATH=" + os.Getenv("PATH"),
 	}
 
 	execCmd := exec.Command(cmd.Path, append(cmd.Args, args...)...)
-	execCmd.Env = cmd.Env
+	execCmd.Env = append(env, cmd.Env...)
 	execCmd.Stdin = cmd.Stdin
 	execCmd.Stdout = cmd.Stdout
 	execCmd.Stderr = cmd.Stderr
