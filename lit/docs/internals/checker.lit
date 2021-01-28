@@ -4,64 +4,64 @@
 
 \omit-children-from-table-of-contents
 
-Resources represent external state such as a git repository, an s3 bucket, or anything
-else that changes over time. By modelling these as resources, it allows you to
-use this external state as inputs (or triggers) to your workloads.
+\reference{resources} represent external state such as a git repository, files
+in an S3 bucket, or anything else that changes over time. By modelling these as
+resources, it allows you to use this external state as inputs (or triggers) to
+your workloads.
 
 \section{
   \title{When are resources checked?}{when-are-resources-checked}
 
-  The component that schedules and runs the resource checks is called the
-  \bold{resource checker}. The rate at which these checks happen is called the check
-  interval. There's an obvious tradeoff, whereby the more frequently you poll,
-  the bigger the strain on Concourse (as well as the external source), however if
-  you want to pick up those new commits as quickly as possible, then you need to
-  poll as often as possible.
+  The component that schedules resource checks is called the \bold{resource
+  checker}. The rate at which these checks happen is called the check interval
+  (configurable via \code{CONCOURSE_LIDAR_SCANNER_INTERVAL}).  There's an obvious
+  tradeoff, whereby the more frequently you poll, the bigger the strain on
+  Concourse (as well as the external source). However, if you want to pick up
+  those new commits as quickly as possible, then you need to poll as often as
+  possible.
 
   The resource checker uses the \reference{schema.resource.check_every}
-  interval in order to figure out if a resource needs to be checked. A
-  resource's \code{check_every} interval dictates how often it should be
-  checked for new versions, with a default of 1 minute. If that seems like a
-  lot, it is, but it's how Concourse keeps everything snappy. You can configure
-  this value independently for each resource, or if your external service
-  supports it, you can set \reference{schema.resource.webhook_token} to
-  basically eliminate the need for polling altogether.
+  interval in order to figure out if a resource needs to be checked. A resource's
+  \code{check_every} interval dictates how often it should be checked for new
+  versions, with a default of 1 minute. If that seems like a lot of checking, it
+  is, but it's how Concourse keeps everything snappy. You can configure this
+  interval independently for each resource using \code{check_every}.
+
+  If your external service supports it, you can set
+  \reference{schema.resource.webhook_token} to eliminate the need for periodic
+  checking altogether. If a \code{webhook_token} is configured, the external
+  service can notify Concourse when to check for new versions. Note that
+  configuring a \code{webhook_token} will not stop Concourse from periodically
+  checking your resource. If you wish to rely solely on webhooks for detecting
+  new versions, you can set \code{check_every} to \code{never}.
 
   On every interval tick, the resource checker will see if there are any
   resources that need to be checked. It does this by first finding resources
   which are used as inputs to jobs, and then comparing the current time against
   the last time each resource was checked. If it has been longer than a
   resource's configured \code{check_every} interval, a new check will be
-  enqueued. In practice this means that if a resource has a \code{check_every}
-  of \code{1m}, it is not guaranteed to be checked precisely every 60 seconds.
+  scheduled. In practice this means that if a resource has a \code{check_every} of
+  \code{1m}, it is not guaranteed to be checked precisely every 60 seconds.
+  \code{check_every} simply sets a lower bound on the time between checks.
+
+  When the resource checker finds a resource to check (either because its
+  \code{check_every} interval elapsed, or because its configured
+  \code{webhook_token} was triggered), it schedules a new
+  \reference{builds}{build} that invokes the
+  \reference{resource-check}{\code{check} script} of the resource's underlying
+  \reference{resource-types}{resource type}.
 }
 
 \section{
   \title{What do resource checks produce?}{what-resources-produce}
 
-  The whole point of running checks is to produce versions. Everything that
-  happens in concourse is centered around the idea of resource versions. It's
-  how concourse determines that something is \italic{new} and a new build needs to be
-  triggered. The versions produced by each resource all vary to a large degree.
-  The git resource, for example, uses commits hashes, the registry image resource
-  uses the digest sha, and the time resource uses timestamps. Every resource is
-  different, but the end result is the same, a new input for your workload.
-}
+  The whole point of running checks is to produce versions. Concourse's
+  \reference{scheduler} is centered around the idea of resource versions. It's
+  how Concourse determines that something is \italic{new} and a new build needs
+  to be triggered.
 
-\section{
-  \title{Resource checker components}{resource-checker-components}
-
-  As of Concourse v5.6.0, resource checking has been redesigned to be
-  asynchronous. There are now two processes that dictate how resource checking
-  happens. The scanner, which determines if new checks need to run, and the
-  checker which runs them.
-
-  The scanner will run every \code{CONCOURSE_LIDAR_SCANNER_INTERVAL}. It's job is to
-  determine if new checks need to run. It will loop over every resource (and
-  resource type) and if the check interval has elapsed since it last ran, it
-  will schedule a new check for that resource.
-
-  The checker will run every \code{CONCOURSE_LIDAR_CHECKER_INTERVAL}. It's job is to
-  run all the checks that were scheduled, which can be scheduled through the
-  scanner or the manual resource checks.
+  The versions produced by each resource are unique to the underlying
+  \reference{resource-types}{resource type}. For instance, the \code{git}
+  resource type uses commit SHAs as versions. The \code{registry-image} resource
+  uses the image digest and tag in the version.
 }

@@ -67,16 +67,12 @@ platforms. Currently tracing can be configured to integrates with:
   sub-operations are described indented immediately below.
 
   \list{
-    \code{scanner.Run} -- One of the \reference{resource-checker-components}
-    responsible for determining which checks need to be run.
+    \code{scanner.Run} -- An execution of the \reference{checker}, responsible
+    for determining which resources need to be checked.
     \list{
       \code{scanner.check} -- This operation simply represents inserting the
       check in the database.
     }
-  }{
-    \code{checker.Run} -- follows from \code{scanner.check} above and will
-    appear under the same trace. This is where the \reference{checker} is
-    actually executing a \reference{resource-check} script.
   }{
     \code{scheduler.Run} -- This represents one tick of the \reference{scheduler}.
     \list{

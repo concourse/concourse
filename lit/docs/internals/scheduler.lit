@@ -8,9 +8,9 @@
 would be advisable to assume that this documentation should only be used for
 Concourse deployments v6.0.0 and above.}
 
-Builds represent each execution of a \reference{jobs}{job}. Figuring out
-when to schedule a new build is the responsibility of the \bold{build
-scheduler}. The scheduling of new builds can be dependent on many different
+Builds represent each execution of a \reference{jobs}{job}. Figuring out when
+to schedule a new job build is the responsibility of the \bold{build
+scheduler}. The scheduling of new job builds can be dependent on many different
 factors such as when a new version of a resource is discovered, when a
 dependent upstream build finishes, or when a user manually triggers a build.
 
