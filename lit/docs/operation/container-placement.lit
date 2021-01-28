@@ -70,7 +70,7 @@ on the configured strategy.
   The \reference{web-node} then places \code{get}, \code{put} and \code{task}
   containers on the worker that currently has the \italic{least amount of active tasks}.
 
-  Additionally \code{max-active-tasks-per-worker} can be set to be an integer of 1 or more,
+  Additionally \code{max-active-tasks-per-worker} can be set to an integer of 1 or more,
   in which case a worker will not execute more than that amount of \bold{tasks}.
   A value of 0 means that there is no limit on the maximum number of active tasks on the workers.
   If no worker can be selected because all of them already have \code{max-active-tasks-per-worker}
@@ -97,7 +97,7 @@ on the configured strategy.
   the fewest number of containers present, and is therefore most useful when
   combined with other placement stragies by \reference{chaining-placement-strategies}.
 
-  \code{max-active-containers-per-worker} can be set to be an integer of 1 or
+  \code{max-active-containers-per-worker} can be set to an integer of 1 or
   more, in which case a worker will not execute more than that amount of
   \bold{containers}. If unset (or set to a value of 0), the
   \code{limit-max-containers} strategy has no effect - if this is your only
