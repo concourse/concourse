@@ -33,3 +33,5 @@
 
   A new metric called `tasks_wait_duration_bucket` is also added to express as quantiles the average time spent by tasks awaiting execution. PR: #5981
   ![Example graph for the task wait time histograms.](https://user-images.githubusercontent.com/40891147/89990749-189d2600-dc83-11ea-8fde-ae579fdb0a0a.png)
+  #### <sub><sup><a name="5981" href="#5981">:link:</a></sup></sub> feature
+  * Added optional support for mTLS to mandate use of certificate from reverse proxy to connect to Concourse.  RFC raised for this earlier this year https://github.com/concourse/rfcs/pull/73
