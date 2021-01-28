@@ -136,6 +136,9 @@ metrics pipeline.
     # HELP concourse_tasks_waiting Number of Concourse tasks currently waiting.
     # TYPE concourse_tasks_waiting gauge
     concourse_tasks_waiting{platform="linux",teamId="1",workerTags=""} 2
+    # HELP concourse_volumes_volumes_streamed Total number of volumes streamed from one worker to the other
+    # TYPE concourse_volumes_volumes_streamed counter
+    concourse_volumes_volumes_streamed 0
     # HELP concourse_workers_containers Number of containers per worker
     # TYPE concourse_workers_containers gauge
     concourse_workers_containers{platform="linux",tags="",team="",worker="39d19eebdddb"} 0
