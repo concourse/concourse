@@ -64,7 +64,7 @@ Pipelines are configured entirely via the \reference{fly-cli}. There is no GUI.
         --var "private-repo-key=$(cat id_rsa)"
     }}
 
-    Or, if you had a \code{credentials.yml} as follows:
+    Or, if you had a \code{vars.yml} as follows:
 
     \codeblock{yaml}{{
     private-repo-key: |
@@ -79,7 +79,42 @@ Pipelines are configured entirely via the \reference{fly-cli}. There is no GUI.
     $ fly -t example set-pipeline \\
         --pipeline my-pipeline \\
         --config pipeline.yml \\
-        --load-vars-from credentials.yml
+        --load-vars-from vars.yml
+    }}
+
+    You can use nested fields in your \code{pipeline.yml} as follows:
+    \codeblock{yaml}{{
+    resources:
+    - name: private-repo
+      type: git
+      source:
+        uri: git@((repo.uri))
+        branch: ((repo.branch))
+        private_key: (("github.com".private-repo-key))
+    }}
+
+    ...you could configure it by \code{--load-vars-from} with a \code{vars.yml} as follows:
+
+    \codeblock{yaml}{{
+    repo:
+      uri: github.com/...
+      branch: master
+    github.com:
+      private-repo-key: |
+        -----BEGIN RSA PRIVATE KEY-----
+        ...
+        -----END RSA PRIVATE KEY-----
+    }}
+
+    ...or you could also configure it by passing the vars as flags:
+
+    \codeblock{bash}{{
+    $ fly -t example set-pipeline \\
+        --pipeline my-pipeline \\
+        --config pipeline.yml \\
+        --var "repo.uri=github.com" \\
+        --var "repo.branch=master" \\
+        --var "\\"github.com\\".private-repo-key=$(cat id_rsa)"
     }}
 
     When configuring a pipeline, any vars not provided statically will be left
@@ -90,7 +125,7 @@ Pipelines are configured entirely via the \reference{fly-cli}. There is no GUI.
     $ fly -t example set-pipeline \\
         --pipeline my-pipeline \\
         --config pipeline.yml \\
-        --load-vars-from credentials.yml \\
+        --load-vars-from vars.yml \\
         --check-creds
     }}
 

@@ -160,7 +160,7 @@ configured multiple times with different parameters
       source:
         uri: https://github.com/vito/booklit
         branch: ((branch))
-        private_key: ((private_key))
+        private_key: (("github.com".private_key))
 
     jobs:
     - name: unit
@@ -180,7 +180,7 @@ configured multiple times with different parameters
     $ fly validate-pipeline \
       -c pipeline.yml \
       -y trigger=true \
-      -v private_key="$(cat private_key)" \
+      -v \"github.com\".private_key="$(cat private_key)" \
       -v branch=master \
       --output
     }}}
@@ -221,7 +221,7 @@ configured multiple times with different parameters
       source:
         uri: https://github.com/vito/booklit
         branch: ((branch))
-        private_key: ((private_key))
+        private_key: (("github.com".private_key))
 
     jobs:
     - name: unit
@@ -236,10 +236,11 @@ configured multiple times with different parameters
     \code{vars.yml}, since it's quite large and hard to pass through flags:
 
     \codeblock{yaml}{{{
-    private_key: |
-      -----BEGIN RSA PRIVATE KEY-----
-      # ... snipped ...
-      -----END RSA PRIVATE KEY-----
+    github.com:
+      private_key: |
+        -----BEGIN RSA PRIVATE KEY-----
+        # ... snipped ...
+        -----END RSA PRIVATE KEY-----
     }}}
 
     The \reference{fly-validate-pipeline} command may be used to test
