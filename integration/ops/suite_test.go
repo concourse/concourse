@@ -40,12 +40,6 @@ func verifyUpgradeDowngrade(t *testing.T, fly flytest.Cmd) {
 		require.NoError(t, err)
 	})
 
-	t.Run("can still reach the internet", func(t *testing.T) {
-		out, err := fly.Output("trigger-job", "-j", "test/use-the-internet", "-w")
-		require.NoError(t, err)
-		require.Contains(t, out, "Example Domain")
-	})
-
 	t.Run("can still run one-off builds", func(t *testing.T) {
 		out, err := fly.Output("execute", "-c", "tasks/hello.yml")
 		require.NoError(t, err)
