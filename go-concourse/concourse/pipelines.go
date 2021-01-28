@@ -36,15 +36,15 @@ func (team *team) Pipeline(pipelineRef atc.PipelineRef) (atc.Pipeline, bool, err
 	}
 }
 
-func (team *team) OrderingPipelines(pipelineRefs atc.OrderPipelinesRequest) error {
+func (team *team) OrderingPipelines(pipelineNames []string) error {
 	params := rata.Params{
 		"team_name": team.Name(),
 	}
 
 	buffer := &bytes.Buffer{}
-	err := json.NewEncoder(buffer).Encode(pipelineRefs)
+	err := json.NewEncoder(buffer).Encode(pipelineNames)
 	if err != nil {
-		return fmt.Errorf("Unable to marshal pipeline refs: %s", err)
+		return fmt.Errorf("Unable to marshal pipeline names: %s", err)
 	}
 
 	return team.connection.Send(internal.Request{
@@ -155,13 +155,13 @@ func (team *team) managePipeline(pipelineRef atc.PipelineRef, endpoint string) (
 	}
 }
 
-func (team *team) RenamePipeline(pipelineRef atc.PipelineRef, name string) (bool, []ConfigWarning, error) {
+func (team *team) RenamePipeline(oldName string, newName string) (bool, []ConfigWarning, error) {
 	params := rata.Params{
-		"pipeline_name": pipelineRef.Name,
+		"pipeline_name": oldName,
 		"team_name":     team.Name(),
 	}
 
-	jsonBytes, err := json.Marshal(atc.RenameRequest{NewName: name})
+	jsonBytes, err := json.Marshal(atc.RenameRequest{NewName: newName})
 	if err != nil {
 		return false, []ConfigWarning{}, err
 	}
@@ -170,7 +170,6 @@ func (team *team) RenamePipeline(pipelineRef atc.PipelineRef, name string) (bool
 	err = team.connection.Send(internal.Request{
 		RequestName: atc.RenamePipeline,
 		Params:      params,
-		Query:       pipelineRef.QueryParams(),
 		Body:        bytes.NewBuffer(jsonBytes),
 		Header:      http.Header{"Content-Type": []string{"application/json"}},
 	}, &internal.Response{

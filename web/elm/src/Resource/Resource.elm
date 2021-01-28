@@ -89,7 +89,7 @@ import RemoteData exposing (WebData)
 import Resource.Models as Models exposing (Model)
 import Resource.Styles
 import Routes
-import SideBar.SideBar as SideBar
+import SideBar.SideBar as SideBar exposing (byPipelineId, lookupPipeline)
 import StrictEvents
 import Svg
 import Svg.Attributes as SvgAttributes
@@ -297,6 +297,7 @@ handleCallback callback session ( model, effects ) =
                 , resourceIdentifier =
                     { teamName = resource.teamName
                     , pipelineName = resource.pipelineName
+                    , pipelineInstanceVars = resource.pipelineInstanceVars
                     , resourceName = resource.name
                     }
                 , checkStatus =
@@ -385,6 +386,7 @@ handleCallback callback session ( model, effects ) =
                                             { id =
                                                 { teamName = model.resourceIdentifier.teamName
                                                 , pipelineName = model.resourceIdentifier.pipelineName
+                                                , pipelineInstanceVars = model.resourceIdentifier.pipelineInstanceVars
                                                 , resourceName = model.resourceIdentifier.resourceName
                                                 , versionID = vr.id
                                                 }
@@ -951,7 +953,7 @@ view session model =
             (id "top-bar-app" :: Views.Styles.topBar False)
             [ SideBar.hamburgerMenu session
             , TopBar.concourseLogo
-            , TopBar.breadcrumbs route
+            , TopBar.breadcrumbs session route
             , Login.view session.userState model
             ]
         , Html.div
@@ -989,9 +991,7 @@ header : Session -> Model -> Html Message
 header session model =
     let
         archived =
-            isPipelineArchived
-                session.pipelines
-                model.resourceIdentifier
+            isPipelineArchived session model.resourceIdentifier
 
         lastCheckedView =
             case ( model.now, model.lastChecked, archived ) of
@@ -1054,9 +1054,7 @@ body session model =
             }
 
         archived =
-            isPipelineArchived
-                session.pipelines
-                model.resourceIdentifier
+            isPipelineArchived session model.resourceIdentifier
     in
     Html.div
         (id "body" :: Resource.Styles.body)
@@ -1348,11 +1346,7 @@ commentBar session { resourceIdentifier, pinnedVersion, pinCommentLoading, isEdi
                                     { teamName = resourceIdentifier.teamName
                                     , userState = session.userState
                                     }
-                                    && not
-                                        (isPipelineArchived
-                                            session.pipelines
-                                            resourceIdentifier
-                                        )
+                                    && not (isPipelineArchived session resourceIdentifier)
                             then
                                 [ Html.textarea
                                     ([ id (toHtmlID ResourceCommentTextarea)
@@ -1474,7 +1468,7 @@ pinBar :
             , resourceIdentifier : Concourse.ResourceIdentifier
         }
     -> Html Message
-pinBar { hovered, pipelines } { pinnedVersion, resourceIdentifier } =
+pinBar session { pinnedVersion, resourceIdentifier } =
     let
         pinBarVersion =
             Pinned.stable pinnedVersion
@@ -1500,9 +1494,7 @@ pinBar { hovered, pipelines } { pinnedVersion, resourceIdentifier } =
                     False
 
         archived =
-            isPipelineArchived
-                pipelines
-                resourceIdentifier
+            isPipelineArchived session resourceIdentifier
     in
     Html.div
         (attrList
@@ -1533,7 +1525,7 @@ pinBar { hovered, pipelines } { pinnedVersion, resourceIdentifier } =
                 ]
                 ++ Resource.Styles.pinIcon
                     { clickable = isPinnedDynamically && not archived
-                    , hover = HoverState.isHovered PinIcon hovered
+                    , hover = HoverState.isHovered PinIcon session.hovered
                     }
             )
             :: (case pinBarVersion of
@@ -1543,7 +1535,7 @@ pinBar { hovered, pipelines } { pinnedVersion, resourceIdentifier } =
                     _ ->
                         []
                )
-            ++ (if HoverState.isHovered PinBar hovered then
+            ++ (if HoverState.isHovered PinBar session.hovered then
                     [ Html.div
                         (id "pin-bar-tooltip" :: Resource.Styles.pinBarTooltip)
                         [ Html.text "pinned in pipeline config" ]
@@ -1556,13 +1548,11 @@ pinBar { hovered, pipelines } { pinnedVersion, resourceIdentifier } =
 
 
 isPipelineArchived :
-    WebData (List Concourse.Pipeline)
+    { r | pipelines : WebData (List Concourse.Pipeline) }
     -> Concourse.ResourceIdentifier
     -> Bool
-isPipelineArchived pipelines { pipelineName, teamName } =
-    pipelines
-        |> RemoteData.withDefault []
-        |> List.Extra.find (\p -> p.name == pipelineName && p.teamName == teamName)
+isPipelineArchived session id =
+    lookupPipeline (byPipelineId id) session
         |> Maybe.map .archived
         |> Maybe.withDefault False
 
@@ -1579,12 +1569,10 @@ viewVersionedResources :
             , resourceIdentifier : Concourse.ResourceIdentifier
         }
     -> Html Message
-viewVersionedResources { hovered, pipelines } model =
+viewVersionedResources session model =
     let
         archived =
-            isPipelineArchived
-                pipelines
-                model.resourceIdentifier
+            isPipelineArchived session model.resourceIdentifier
     in
     model
         |> versions
@@ -1593,7 +1581,7 @@ viewVersionedResources { hovered, pipelines } model =
                 viewVersionedResource
                     { version = v
                     , pinnedVersion = model.pinnedVersion
-                    , hovered = hovered
+                    , hovered = session.hovered
                     , archived = archived
                     }
             )
@@ -1917,6 +1905,7 @@ viewBuildsByJob buildDict jobName =
                                     { id =
                                         { teamName = job.teamName
                                         , pipelineName = job.pipelineName
+                                        , pipelineInstanceVars = job.pipelineInstanceVars
                                         , jobName = job.jobName
                                         , buildName = build.name
                                         }

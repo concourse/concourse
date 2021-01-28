@@ -52,7 +52,7 @@ iAmOnTheResourcePage _ =
 
 theResourceIsAlreadyPinned =
     Application.handleCallback
-        (Callback.ResourceFetched <| Ok <| Data.resource pinnedVersion)
+        (Callback.ResourceFetched <| Ok <| Data.resource (Just pinnedVersion))
         >> Tuple.first
         >> Application.handleCallback
             (Callback.VersionedResourcesFetched <|

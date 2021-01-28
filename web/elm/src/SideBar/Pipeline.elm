@@ -37,7 +37,7 @@ pipeline params p =
                     False
 
         pipelineId =
-            { pipelineName = p.name, teamName = p.teamName }
+            Concourse.toPipelineId p
 
         domID =
             SideBarPipeline
@@ -68,7 +68,7 @@ pipeline params p =
         else
             Assets.PipelineIconGrey
     , name =
-        { pipelineColor =
+        { color =
             if isHovered then
                 Styles.White
 
@@ -102,5 +102,6 @@ pipeline params p =
         { filled = isFavorited
         , isBright = isHovered || isCurrent
         }
-    , id = p.id
+    , id = pipelineId
+    , databaseID = p.id
     }

@@ -30,14 +30,14 @@ const ActionRunSetPipeline = "SetPipeline"
 // SetPipelineStep sets a pipeline to current team. This step takes pipeline
 // configure file and var files from some resource in the pipeline, like git.
 type SetPipelineStep struct {
-	planID          atc.PlanID
-	plan            atc.SetPipelinePlan
-	metadata        StepMetadata
-	delegateFactory SetPipelineStepDelegateFactory
-	teamFactory     db.TeamFactory
-	buildFactory    db.BuildFactory
-	client          worker.Client
-	policyChecker   policy.Checker
+	planID           atc.PlanID
+	plan             atc.SetPipelinePlan
+	metadata         StepMetadata
+	delegateFactory  SetPipelineStepDelegateFactory
+	teamFactory      db.TeamFactory
+	buildFactory     db.BuildFactory
+	artifactStreamer worker.ArtifactStreamer
+	policyChecker    policy.Checker
 }
 
 func NewSetPipelineStep(
@@ -47,18 +47,18 @@ func NewSetPipelineStep(
 	delegateFactory SetPipelineStepDelegateFactory,
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
-	client worker.Client,
+	artifactStreamer worker.ArtifactStreamer,
 	policyChecker policy.Checker,
 ) Step {
 	return &SetPipelineStep{
-		planID:          planID,
-		plan:            plan,
-		metadata:        metadata,
-		delegateFactory: delegateFactory,
-		teamFactory:     teamFactory,
-		buildFactory:    buildFactory,
-		client:          client,
-		policyChecker:   policyChecker,
+		planID:           planID,
+		plan:             plan,
+		metadata:         metadata,
+		delegateFactory:  delegateFactory,
+		teamFactory:      teamFactory,
+		buildFactory:     buildFactory,
+		artifactStreamer: artifactStreamer,
+		policyChecker:    policyChecker,
 	}
 }
 
@@ -110,11 +110,11 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 	}
 
 	source := setPipelineSource{
-		ctx:    ctx,
-		logger: logger,
-		step:   step,
-		repo:   state.ArtifactRepository(),
-		client: step.client,
+		ctx:              ctx,
+		logger:           logger,
+		step:             step,
+		repo:             state.ArtifactRepository(),
+		artifactStreamer: step.artifactStreamer,
 	}
 
 	err = source.Validate()
@@ -274,11 +274,11 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 }
 
 type setPipelineSource struct {
-	ctx    context.Context
-	logger lager.Logger
-	repo   *build.Repository
-	step   *SetPipelineStep
-	client worker.Client
+	ctx              context.Context
+	logger           lager.Logger
+	repo             *build.Repository
+	step             *SetPipelineStep
+	artifactStreamer worker.ArtifactStreamer
 }
 
 func (s setPipelineSource) Validate() error {
@@ -373,7 +373,7 @@ func (s setPipelineSource) retrieveFromArtifact(name, file string) (io.ReadClose
 		return nil, UnknownArtifactSourceError{build.ArtifactName(name), file}
 	}
 
-	stream, err := s.client.StreamFileFromArtifact(s.ctx, s.logger, art, file)
+	stream, err := s.artifactStreamer.StreamFileFromArtifact(lagerctx.NewContext(s.ctx, s.logger), art, file)
 	if err != nil {
 		if err == baggageclaim.ErrFileNotFound {
 			return nil, artifact.FileNotFoundError{

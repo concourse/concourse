@@ -389,7 +389,7 @@ view session model =
                 (id "top-bar-app" :: Views.Styles.topBar displayPaused)
                 [ SideBar.hamburgerMenu session
                 , TopBar.concourseLogo
-                , TopBar.breadcrumbs route
+                , TopBar.breadcrumbs session route
                 , PinMenu.viewPinMenu session model
                 , Html.div (id "top-bar-favorited-icon" :: Styles.favoritedIcon)
                     [ FavoritedIcon.view

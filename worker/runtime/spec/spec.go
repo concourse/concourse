@@ -227,7 +227,7 @@ func defaultGardenOciSpec(initBinPath string, privileged bool, maxUid, maxGid ui
 			UIDMappings: OciIDMappings(privileged, maxUid),
 			GIDMappings: OciIDMappings(privileged, maxGid),
 		},
-		Mounts: AnyContainerMounts(initBinPath),
+		Mounts: ContainerMounts(privileged, initBinPath),
 	}
 
 	if !privileged {

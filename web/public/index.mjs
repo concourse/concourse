@@ -347,6 +347,18 @@ export function resetPipelineFocus() {
   return g
 }
 
+function instanceVarsQuery() {
+  const filtered = window.location.search
+    .substring(1)
+    .split('&')
+    .filter(s => s.startsWith('vars.') || s.startsWith('vars='))
+    .join('&');
+  if (filtered === "") {
+    return "";
+  }
+  return '?' + filtered;
+}
+
 function createGraph(svg, jobs, resources) {
   var graph = new Graph();
 
@@ -355,9 +367,11 @@ function createGraph(svg, jobs, resources) {
   var resourcePinned = {};
   var resourceIcons = {};
 
+  const query = instanceVarsQuery();
+
   for (var i in resources) {
     var resource = resources[i];
-    resourceURLs[resource.name] = "/teams/"+resource.team_name+"/pipelines/"+resource.pipeline_name+"/resources/"+encodeURIComponent(resource.name);
+    resourceURLs[resource.name] = "/teams/"+resource.team_name+"/pipelines/"+resource.pipeline_name+"/resources/"+encodeURIComponent(resource.name) + query;
     resourceBuild[resource.name] = resource.build;
     resourcePinned[resource.name] = resource.pinned_version;
     resourceIcons[resource.name] = resource.icon;
@@ -378,6 +392,7 @@ function createGraph(svg, jobs, resources) {
       var build = job.finished_build
       url = "/teams/"+build.team_name+"/pipelines/"+build.pipeline_name+"/jobs/"+encodeURIComponent(build.job_name)+"/builds/"+build.name;
     }
+    url += query;
 
     var status;
     if (job.paused) {

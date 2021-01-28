@@ -22,16 +22,16 @@ func (e ArtifactVolumeNotFoundError) Error() string {
 }
 
 type ArtifactInputStep struct {
-	plan         atc.Plan
-	build        db.Build
-	workerClient worker.Client
+	plan       atc.Plan
+	build      db.Build
+	workerPool worker.Pool
 }
 
-func NewArtifactInputStep(plan atc.Plan, build db.Build, workerClient worker.Client) Step {
+func NewArtifactInputStep(plan atc.Plan, build db.Build, workerPool worker.Pool) Step {
 	return &ArtifactInputStep{
-		plan:         plan,
-		build:        build,
-		workerClient: workerClient,
+		plan:       plan,
+		build:      build,
+		workerPool: workerPool,
 	}
 }
 
@@ -57,7 +57,7 @@ func (step *ArtifactInputStep) Run(ctx context.Context, state RunState) (bool, e
 	}
 
 	// TODO (runtime/#3607): artifact_input_step shouldn't be looking up the volume on the worker
-	_, found, err = step.workerClient.FindVolume(logger, createdVolume.TeamID(), createdVolume.Handle())
+	_, found, err = step.workerPool.FindVolume(logger, createdVolume.TeamID(), createdVolume.Handle())
 	if err != nil {
 		return false, err
 	}

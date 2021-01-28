@@ -22,11 +22,11 @@ import (
 
 // LoadVarStep loads a value from a file and sets it as a build-local var.
 type LoadVarStep struct {
-	planID          atc.PlanID
-	plan            atc.LoadVarPlan
-	metadata        StepMetadata
-	delegateFactory BuildStepDelegateFactory
-	client          worker.Client
+	planID           atc.PlanID
+	plan             atc.LoadVarPlan
+	metadata         StepMetadata
+	delegateFactory  BuildStepDelegateFactory
+	artifactStreamer worker.ArtifactStreamer
 }
 
 func NewLoadVarStep(
@@ -34,14 +34,14 @@ func NewLoadVarStep(
 	plan atc.LoadVarPlan,
 	metadata StepMetadata,
 	delegateFactory BuildStepDelegateFactory,
-	client worker.Client,
+	artifactStreamer worker.ArtifactStreamer,
 ) Step {
 	return &LoadVarStep{
-		planID:          planID,
-		plan:            plan,
-		metadata:        metadata,
-		delegateFactory: delegateFactory,
-		client:          client,
+		planID:           planID,
+		plan:             plan,
+		metadata:         metadata,
+		delegateFactory:  delegateFactory,
+		artifactStreamer: artifactStreamer,
 	}
 }
 
@@ -134,7 +134,7 @@ func (step *LoadVarStep) fetchVars(
 		return nil, UnknownArtifactSourceError{build.ArtifactName(artifactName), filePath}
 	}
 
-	stream, err := step.client.StreamFileFromArtifact(ctx, logger, art, filePath)
+	stream, err := step.artifactStreamer.StreamFileFromArtifact(lagerctx.NewContext(ctx, logger), art, filePath)
 	if err != nil {
 		if err == baggageclaim.ErrFileNotFound {
 			return nil, artifact.FileNotFoundError{

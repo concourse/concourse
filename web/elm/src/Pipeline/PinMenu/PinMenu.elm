@@ -180,6 +180,7 @@ pinMenu { hovered } model =
                                         { id =
                                             { teamName = pipeline.teamName
                                             , pipelineName = pipeline.pipelineName
+                                            , pipelineInstanceVars = pipeline.pipelineInstanceVars
                                             , resourceName = resourceName
                                             }
                                         , page = Nothing

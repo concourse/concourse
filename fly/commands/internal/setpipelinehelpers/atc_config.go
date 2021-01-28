@@ -28,6 +28,7 @@ type ATCConfig struct {
 	SkipInteraction  bool
 	CheckCredentials bool
 	CommandWarnings  []concourse.ConfigWarning
+	GivenTeamName    string
 }
 
 func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
@@ -106,18 +107,16 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 		return err
 	}
 
-	updatedConfig, found, err := atcConfig.Team.Pipeline(atcConfig.PipelineRef)
+	updatedPipeline, _, err := atcConfig.Team.Pipeline(atcConfig.PipelineRef)
 	if err != nil {
 		return err
 	}
-
-	paused := found && updatedConfig.Paused
 
 	if len(warnings) > 0 {
 		displayhelpers.ShowWarnings(warnings)
 	}
 
-	atcConfig.showPipelineUpdateResult(created, updated, paused)
+	atcConfig.showPipelineUpdateResult(updatedPipeline, created, updated)
 	return nil
 }
 
@@ -126,14 +125,18 @@ func (atcConfig ATCConfig) UnpausePipelineCommand() string {
 	if strings.Contains(pipelineFlag, `"`) {
 		pipelineFlag = strconv.Quote(pipelineFlag)
 	}
-	return fmt.Sprintf("%s -t %s unpause-pipeline -p %s", os.Args[0], atcConfig.TargetName, pipelineFlag)
+
+	cmd := fmt.Sprintf("%s -t %s unpause-pipeline -p %s", os.Args[0], atcConfig.TargetName, pipelineFlag)
+	if atcConfig.GivenTeamName != "" {
+		cmd = fmt.Sprintf("%s --team %s", cmd, atcConfig.GivenTeamName)
+	}
+	return cmd
 }
 
-func (atcConfig ATCConfig) showPipelineUpdateResult(created bool, updated bool, paused bool) {
+func (atcConfig ATCConfig) showPipelineUpdateResult(pipeline atc.Pipeline, created bool, updated bool) {
 	if updated {
 		fmt.Println("configuration updated")
 	} else if created {
-
 		targetURL, err := url.Parse(atcConfig.Target)
 		if err != nil {
 			fmt.Println("Could not parse targetURL")
@@ -154,7 +157,7 @@ func (atcConfig ATCConfig) showPipelineUpdateResult(created bool, updated bool, 
 		panic("Something really went wrong!")
 	}
 
-	if paused {
+	if pipeline.Paused {
 		fmt.Println("")
 		fmt.Println("the pipeline is currently paused. to unpause, either:")
 		fmt.Println("  - run the unpause-pipeline command:")

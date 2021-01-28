@@ -232,6 +232,24 @@ var _ = Describe("Containers API", func() {
 				})
 			})
 
+			Describe("querying with pipeline instance vars", func() {
+				BeforeEach(func() {
+					req.URL.RawQuery = url.Values{
+						"vars": []string{`{"branch":"master"}`},
+					}.Encode()
+				})
+
+				It("queries with it in the metadata", func() {
+					_, err := client.Do(req)
+					Expect(err).NotTo(HaveOccurred())
+
+					meta := dbTeam.FindContainersByMetadataArgsForCall(0)
+					Expect(meta).To(Equal(db.ContainerMetadata{
+						PipelineInstanceVars: `{"branch":"master"}`,
+					}))
+				})
+			})
+
 			Describe("querying with job id", func() {
 				BeforeEach(func() {
 					req.URL.RawQuery = url.Values{
@@ -355,7 +373,7 @@ var _ = Describe("Containers API", func() {
 						"type":          []string{"check"},
 						"resource_name": []string{"some-resource"},
 						"pipeline_name": []string{"some-pipeline"},
-						"instance_vars": []string{string(rawInstanceVars)},
+						"vars":          []string{string(rawInstanceVars)},
 					}.Encode()
 				})
 
@@ -577,7 +595,7 @@ var _ = Describe("Containers API", func() {
 					fakeDBContainer.HandleReturns("some-handle")
 
 					fakeContainer = new(workerfakes.FakeContainer)
-					fakeWorkerClient.FindContainerReturns(fakeContainer, true, nil)
+					fakeWorkerPool.FindContainerReturns(fakeContainer, true, nil)
 				})
 
 				Context("when the container is a check container", func() {
@@ -671,7 +689,7 @@ var _ = Describe("Containers API", func() {
 							BeforeEach(func() {
 								expectBadHandshake = true
 
-								fakeWorkerClient.FindContainerReturns(nil, false, errors.New("nope"))
+								fakeWorkerPool.FindContainerReturns(nil, false, errors.New("nope"))
 							})
 
 							It("returns 500 internal error", func() {
@@ -683,7 +701,7 @@ var _ = Describe("Containers API", func() {
 							BeforeEach(func() {
 								expectBadHandshake = true
 
-								fakeWorkerClient.FindContainerReturns(nil, false, nil)
+								fakeWorkerPool.FindContainerReturns(nil, false, nil)
 							})
 
 							It("returns 404 Not Found", func() {
@@ -754,7 +772,7 @@ var _ = Describe("Containers API", func() {
 							It("hijacks the build", func() {
 								Eventually(fakeContainer.RunCallCount).Should(Equal(1))
 
-								_, lookedUpTeamID, lookedUpHandle := fakeWorkerClient.FindContainerArgsForCall(0)
+								_, lookedUpTeamID, lookedUpHandle := fakeWorkerPool.FindContainerArgsForCall(0)
 								Expect(lookedUpTeamID).To(Equal(734))
 								Expect(lookedUpHandle).To(Equal(handle))
 

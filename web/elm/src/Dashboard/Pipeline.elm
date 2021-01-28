@@ -5,13 +5,16 @@ module Dashboard.Pipeline exposing
     , pipelineView
     )
 
+import Application.Models exposing (Session)
 import Assets
-import Concourse
+import Colors
+import Concourse exposing (flattenJson)
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.DashboardPreview as DashboardPreview
 import Dashboard.Group.Models exposing (Pipeline)
 import Dashboard.Styles as Styles
+import Dict
 import Duration
 import HoverState
 import Html exposing (Html)
@@ -29,9 +32,10 @@ import Html.Events exposing (onClick, onMouseEnter, onMouseLeave)
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Routes
-import Set exposing (Set)
+import Set
 import Time
-import UserState exposing (UserState)
+import Tooltip
+import UserState
 import Views.FavoritedIcon
 import Views.Icon as Icon
 import Views.PauseToggle as PauseToggle
@@ -42,7 +46,7 @@ import Views.Styles
 previewPlaceholder : Html Message
 previewPlaceholder =
     Html.div
-        (class "card-body" :: Styles.cardBody)
+        (class "card-body" :: Styles.emptyCardBody)
         [ Html.div Styles.previewPlaceholder [] ]
 
 
@@ -61,13 +65,14 @@ pipelineNotSetView =
 
 
 hdPipelineView :
-    { pipeline : Pipeline
-    , pipelineRunningKeyframes : String
-    , resourceError : Bool
-    , existingJobs : List Concourse.Job
-    }
+    { u | pipelineRunningKeyframes : String }
+    ->
+        { pipeline : Pipeline
+        , resourceError : Bool
+        , existingJobs : List Concourse.Job
+        }
     -> Html Message
-hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs } =
+hdPipelineView { pipelineRunningKeyframes } { pipeline, resourceError, existingJobs } =
     let
         bannerStyle =
             if pipeline.stale then
@@ -86,7 +91,6 @@ hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs
         ([ class "card"
          , attribute "data-pipeline-name" pipeline.name
          , attribute "data-team-name" pipeline.teamName
-         , onMouseEnter <| TooltipHd pipeline.name pipeline.teamName
          , href <| Routes.toString <| Routes.pipelineRoute pipeline
          ]
             ++ Styles.pipelineCardHd (pipelineStatus existingJobs pipeline)
@@ -96,7 +100,10 @@ hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs
             (class "banner" :: bannerStyle)
             []
         , Html.div
-            (class "dashboardhd-pipeline-name" :: Styles.pipelineCardBodyHd)
+            (class "dashboardhd-pipeline-name"
+                :: Styles.pipelineCardBodyHd
+                ++ Tooltip.hoverAttrs (PipelineCardNameHD pipeline.id)
+            )
             [ Html.text pipeline.name ]
         ]
             ++ (if resourceError then
@@ -108,19 +115,20 @@ hdPipelineView { pipeline, pipelineRunningKeyframes, resourceError, existingJobs
 
 
 pipelineView :
-    { now : Maybe Time.Posix
-    , pipeline : Pipeline
-    , hovered : HoverState.HoverState
-    , pipelineRunningKeyframes : String
-    , userState : UserState
-    , favoritedPipelines : Set Concourse.DatabaseID
-    , resourceError : Bool
-    , existingJobs : List Concourse.Job
-    , layers : List (List Concourse.Job)
-    , section : PipelinesSection
-    }
+    Session
+    ->
+        { now : Maybe Time.Posix
+        , pipeline : Pipeline
+        , hovered : HoverState.HoverState
+        , resourceError : Bool
+        , existingJobs : List Concourse.Job
+        , layers : List (List Concourse.Job)
+        , section : PipelinesSection
+        , headerHeight : Float
+        , inInstanceGroupView : Bool
+        }
     -> Html Message
-pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, favoritedPipelines, resourceError, existingJobs, layers, section } =
+pipelineView session { now, pipeline, hovered, resourceError, existingJobs, layers, section, headerHeight, inInstanceGroupView } =
     let
         bannerStyle =
             if pipeline.stale then
@@ -132,12 +140,12 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, favo
             else
                 Styles.pipelineCardBanner
                     { status = pipelineStatus existingJobs pipeline
-                    , pipelineRunningKeyframes = pipelineRunningKeyframes
+                    , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                     }
     in
     Html.div
         (Styles.pipelineCard
-            ++ (if section == AllPipelinesSection && not pipeline.stale then
+            ++ (if section == AllPipelinesSection && not pipeline.stale && not inInstanceGroupView then
                     [ style "cursor" "move" ]
 
                 else
@@ -153,19 +161,22 @@ pipelineView { now, pipeline, hovered, pipelineRunningKeyframes, userState, favo
         [ Html.div
             (class "banner" :: bannerStyle)
             []
-        , headerView pipeline resourceError
+        , headerView section pipeline resourceError headerHeight inInstanceGroupView
         , if pipeline.jobsDisabled || pipeline.archived then
             previewPlaceholder
 
           else
             bodyView section hovered layers
-        , footerView userState favoritedPipelines pipeline section now hovered existingJobs
+        , footerView session pipeline section now hovered existingJobs
         ]
 
 
 pipelineStatus : List Concourse.Job -> Pipeline -> PipelineStatus.PipelineStatus
 pipelineStatus jobs pipeline =
-    if pipeline.paused then
+    if pipeline.archived then
+        PipelineStatus.PipelineStatusArchived
+
+    else if pipeline.paused then
         PipelineStatus.PipelineStatusPaused
 
     else
@@ -261,26 +272,49 @@ transition =
     .transitionBuild >> Maybe.andThen (.duration >> .finishedAt)
 
 
-headerView : Pipeline -> Bool -> Html Message
-headerView pipeline resourceError =
+headerView : PipelinesSection -> Pipeline -> Bool -> Float -> Bool -> Html Message
+headerView section pipeline resourceError headerHeight inInstanceGroupView =
+    let
+        rows =
+            if not inInstanceGroupView then
+                [ Html.div
+                    (class "dashboard-pipeline-name"
+                        :: Styles.pipelineName
+                        ++ Tooltip.hoverAttrs (PipelineCardName section pipeline.id)
+                    )
+                    [ Html.text pipeline.name ]
+                ]
+
+            else if Dict.isEmpty pipeline.instanceVars then
+                [ Html.div Styles.noInstanceVars [ Html.text "no instance vars" ] ]
+
+            else
+                pipeline.instanceVars
+                    |> Dict.toList
+                    |> List.concatMap (\( k, v ) -> flattenJson k v)
+                    |> List.map
+                        (\( k, v ) ->
+                            Html.div
+                                (class "instance-var"
+                                    :: Styles.instanceVar
+                                    ++ Tooltip.hoverAttrs (PipelineCardInstanceVar section pipeline.id k v)
+                                )
+                                [ Html.span [ style "color" Colors.pending ]
+                                    [ Html.text <| k ++ ": " ]
+                                , Html.text v
+                                ]
+                        )
+
+        resourceErrorElem =
+            Html.div
+                [ classList [ ( "dashboard-resource-error", resourceError ) ] ]
+                []
+    in
     Html.a
         [ href <| Routes.toString <| Routes.pipelineRoute pipeline, draggable "false" ]
         [ Html.div
-            ([ class "card-header"
-             , onMouseEnter <| Tooltip pipeline.name pipeline.teamName
-             ]
-                ++ Styles.pipelineCardHeader
-            )
-            [ Html.div
-                (class "dashboard-pipeline-name" :: Styles.pipelineName)
-                [ Html.text pipeline.name ]
-            , Html.div
-                [ classList
-                    [ ( "dashboard-resource-error", resourceError )
-                    ]
-                ]
-                []
-            ]
+            (class "card-header" :: Styles.pipelineCardHeader headerHeight)
+            (rows ++ [ resourceErrorElem ])
         ]
 
 
@@ -292,23 +326,20 @@ bodyView section hovered layers =
 
 
 footerView :
-    UserState
-    -> Set Concourse.DatabaseID
+    Session
     -> Pipeline
     -> PipelinesSection
     -> Maybe Time.Posix
     -> HoverState.HoverState
     -> List Concourse.Job
     -> Html Message
-footerView userState favoritedPipelines pipeline section now hovered existingJobs =
+footerView session pipeline section now hovered existingJobs =
     let
         spacer =
             Html.div [ style "width" "12px" ] []
 
         pipelineId =
-            { pipelineName = pipeline.name
-            , teamName = pipeline.teamName
-            }
+            Concourse.toPipelineId pipeline
 
         status =
             pipelineStatus existingJobs pipeline
@@ -323,29 +354,29 @@ footerView userState favoritedPipelines pipeline section now hovered existingJob
                 , isToggleLoading = pipeline.isToggleLoading
                 , tooltipPosition = Views.Styles.Above
                 , margin = "0"
-                , userState = userState
+                , userState = session.userState
                 , domID = PipelineCardPauseToggle section pipelineId
                 }
 
         visibilityButton =
             visibilityView
                 { public = pipeline.public
-                , pipelineId = pipelineId
+                , pipelineId = pipeline.id
                 , isClickable =
-                    UserState.isAnonymous userState
+                    UserState.isAnonymous session.userState
                         || UserState.isMember
                             { teamName = pipeline.teamName
-                            , userState = userState
+                            , userState = session.userState
                             }
                 , isHovered =
-                    HoverState.isHovered (VisibilityButton section pipelineId) hovered
+                    HoverState.isHovered (VisibilityButton section pipeline.id) hovered
                 , isVisibilityLoading = pipeline.isVisibilityLoading
                 , section = section
                 }
 
         favoritedIcon =
             Views.FavoritedIcon.view
-                { isFavorited = Set.member pipeline.id favoritedPipelines
+                { isFavorited = Set.member pipeline.id session.favoritedPipelines
                 , isHovered = HoverState.isHovered (PipelineCardFavoritedIcon section pipeline.id) hovered
                 , isSideBar = False
                 , domID = PipelineCardFavoritedIcon section pipeline.id
@@ -370,12 +401,6 @@ footerView userState favoritedPipelines pipeline section now hovered existingJob
 
 pipelineStatusView : PipelinesSection -> Pipeline -> PipelineStatus.PipelineStatus -> Maybe Time.Posix -> Html Message
 pipelineStatusView section pipeline status now =
-    let
-        pipelineId =
-            { pipelineName = pipeline.name
-            , teamName = pipeline.teamName
-            }
-    in
     Html.div
         [ style "display" "flex"
         , class "pipeline-status"
@@ -388,8 +413,8 @@ pipelineStatusView section pipeline status now =
                 Icon.icon
                     { sizePx = 20, image = Assets.PipelineStatusIconJobsDisabled }
                     ([ style "opacity" "0.5"
-                     , id <| Effects.toHtmlID <| PipelineStatusIcon section pipelineId
-                     , onMouseEnter <| Hover <| Just <| PipelineStatusIcon section pipelineId
+                     , id <| Effects.toHtmlID <| PipelineStatusIcon section pipeline.id
+                     , onMouseEnter <| Hover <| Just <| PipelineStatusIcon section pipeline.id
                      ]
                         ++ Styles.pipelineStatusIcon
                     )
@@ -400,9 +425,14 @@ pipelineStatusView section pipeline status now =
                     Styles.pipelineStatusIcon
 
               else
-                Icon.icon
-                    { sizePx = 20, image = Assets.PipelineStatusIcon status }
-                    Styles.pipelineStatusIcon
+                case Assets.pipelineStatusIcon status of
+                    Just asset ->
+                        Icon.icon
+                            { sizePx = 20, image = asset }
+                            Styles.pipelineStatusIcon
+
+                    Nothing ->
+                        Html.text ""
             , if pipeline.jobsDisabled then
                 Html.div
                     (class "build-duration"
@@ -425,7 +455,7 @@ pipelineStatusView section pipeline status now =
 
 visibilityView :
     { public : Bool
-    , pipelineId : Concourse.PipelineIdentifier
+    , pipelineId : Concourse.DatabaseID
     , isClickable : Bool
     , isHovered : Bool
     , isVisibilityLoading : Bool

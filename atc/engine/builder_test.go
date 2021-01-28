@@ -5,10 +5,12 @@ import (
 	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/engine/enginefakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
+	"github.com/concourse/concourse/atc/worker/workerfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -23,6 +25,9 @@ var _ = Describe("Builder", func() {
 			fakeCoreStepFactory *enginefakes.FakeCoreStepFactory
 			fakeRateLimiter     *enginefakes.FakeRateLimiter
 			fakePolicyChecker   *policyfakes.FakeChecker
+			fakeArtifactSourcer *workerfakes.FakeArtifactSourcer
+			fakeWorkerFactory   *dbfakes.FakeWorkerFactory
+			fakeLockFactory     *lockfakes.FakeLockFactory
 
 			planFactory    atc.PlanFactory
 			stepperFactory engine.StepperFactory
@@ -32,12 +37,18 @@ var _ = Describe("Builder", func() {
 			fakeCoreStepFactory = new(enginefakes.FakeCoreStepFactory)
 			fakeRateLimiter = new(enginefakes.FakeRateLimiter)
 			fakePolicyChecker = new(policyfakes.FakeChecker)
+			fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
+			fakeWorkerFactory = new(dbfakes.FakeWorkerFactory)
+			fakeLockFactory = new(lockfakes.FakeLockFactory)
 
 			stepperFactory = engine.NewStepperFactory(
 				fakeCoreStepFactory,
 				"http://example.com",
 				fakeRateLimiter,
 				fakePolicyChecker,
+				fakeArtifactSourcer,
+				fakeWorkerFactory,
+				fakeLockFactory,
 			)
 
 			planFactory = atc.NewPlanFactory(123)
@@ -109,7 +120,7 @@ var _ = Describe("Builder", func() {
 					stepper(fakeBuild.PrivatePlan())
 				})
 
-				Context("with a putget in an aggregate", func() {
+				Context("with a putget in an in_parallel", func() {
 					var (
 						putPlan               atc.Plan
 						dependentGetPlan      atc.Plan
@@ -134,15 +145,17 @@ var _ = Describe("Builder", func() {
 							Params:   atc.Params{"some": "params-2"},
 						})
 
-						expectedPlan = planFactory.NewPlan(atc.AggregatePlan{
-							planFactory.NewPlan(atc.OnSuccessPlan{
-								Step: putPlan,
-								Next: dependentGetPlan,
-							}),
-							planFactory.NewPlan(atc.OnSuccessPlan{
-								Step: otherPutPlan,
-								Next: otherDependentGetPlan,
-							}),
+						expectedPlan = planFactory.NewPlan(atc.InParallelPlan{
+							Steps: []atc.Plan{
+								planFactory.NewPlan(atc.OnSuccessPlan{
+									Step: putPlan,
+									Next: dependentGetPlan,
+								}),
+								planFactory.NewPlan(atc.OnSuccessPlan{
+									Step: otherPutPlan,
+									Next: otherDependentGetPlan,
+								}),
+							},
 						})
 					})
 
@@ -259,13 +272,13 @@ var _ = Describe("Builder", func() {
 
 				Context("with a retry plan", func() {
 					var (
-						getPlan       atc.Plan
-						taskPlan      atc.Plan
-						aggregatePlan atc.Plan
-						parallelPlan  atc.Plan
-						doPlan        atc.Plan
-						timeoutPlan   atc.Plan
-						retryPlanTwo  atc.Plan
+						getPlan        atc.Plan
+						taskPlan       atc.Plan
+						inParallelPlan atc.Plan
+						parallelPlan   atc.Plan
+						doPlan         atc.Plan
+						timeoutPlan    atc.Plan
+						retryPlanTwo   atc.Plan
 					)
 
 					BeforeEach(func() {
@@ -289,10 +302,10 @@ var _ = Describe("Builder", func() {
 							taskPlan,
 						})
 
-						aggregatePlan = planFactory.NewPlan(atc.AggregatePlan{retryPlanTwo})
+						inParallelPlan = planFactory.NewPlan(atc.InParallelPlan{Steps: []atc.Plan{retryPlanTwo}})
 
 						parallelPlan = planFactory.NewPlan(atc.InParallelPlan{
-							Steps:    []atc.Plan{aggregatePlan},
+							Steps:    []atc.Plan{inParallelPlan},
 							Limit:    1,
 							FailFast: true,
 						})

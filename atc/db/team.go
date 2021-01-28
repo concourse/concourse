@@ -21,6 +21,14 @@ import (
 
 var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")
 
+type ErrPipelineNotFound struct {
+	Name string
+}
+
+func (e ErrPipelineNotFound) Error() string {
+	return fmt.Sprintf("pipeline '%s' not found", e.Name)
+}
+
 //go:generate counterfeiter . Team
 
 type Team interface {
@@ -39,11 +47,12 @@ type Team interface {
 		from ConfigVersion,
 		initiallyPaused bool,
 	) (Pipeline, bool, error)
+	RenamePipeline(oldName string, newName string) (bool, error)
 
 	Pipeline(pipelineRef atc.PipelineRef) (Pipeline, bool, error)
 	Pipelines() ([]Pipeline, error)
 	PublicPipelines() ([]Pipeline, error)
-	OrderPipelines([]atc.PipelineRef) error
+	OrderPipelines([]string) error
 
 	CreateOneOffBuild() (Build, error)
 	CreateStartedBuild(plan atc.Plan) (Build, error)
@@ -407,22 +416,40 @@ func savePipeline(
 
 	var pipelineID int
 	if !existingConfig {
-		err = psql.Insert("pipelines").
-			SetMap(map[string]interface{}{
-				"name":            pipelineRef.Name,
-				"groups":          groupsPayload,
-				"var_sources":     encryptedVarSourcesPayload,
-				"display":         displayPayload,
-				"nonce":           nonce,
-				"version":         sq.Expr("nextval('config_version_seq')"),
-				"ordering":        sq.Expr("currval('pipelines_id_seq')"),
-				"paused":          initiallyPaused,
-				"last_updated":    sq.Expr("now()"),
-				"team_id":         teamID,
-				"parent_job_id":   jobID,
-				"parent_build_id": buildID,
-				"instance_vars":   instanceVars,
+		values := map[string]interface{}{
+			"name":            pipelineRef.Name,
+			"groups":          groupsPayload,
+			"var_sources":     encryptedVarSourcesPayload,
+			"display":         displayPayload,
+			"nonce":           nonce,
+			"version":         sq.Expr("nextval('config_version_seq')"),
+			"paused":          initiallyPaused,
+			"last_updated":    sq.Expr("now()"),
+			"team_id":         teamID,
+			"parent_job_id":   jobID,
+			"parent_build_id": buildID,
+			"instance_vars":   instanceVars,
+		}
+		var ordering sql.NullInt64
+		err := psql.Select("max(ordering)").
+			From("pipelines").
+			Where(sq.Eq{
+				"team_id": teamID,
+				"name":    pipelineRef.Name,
 			}).
+			RunWith(tx).
+			QueryRow().
+			Scan(&ordering)
+		if err != nil {
+			return 0, false, err
+		}
+		if ordering.Valid {
+			values["ordering"] = ordering.Int64
+		} else {
+			values["ordering"] = sq.Expr("currval('pipelines_id_seq')")
+		}
+		err = psql.Insert("pipelines").
+			SetMap(values).
 			Suffix("RETURNING id").
 			RunWith(tx).
 			QueryRow().Scan(&pipelineID)
@@ -576,6 +603,25 @@ func (t *team) SavePipeline(
 	return pipeline, isNewPipeline, nil
 }
 
+func (t *team) RenamePipeline(oldName, newName string) (bool, error) {
+	result, err := psql.Update("pipelines").
+		Set("name", newName).
+		Where(sq.Eq{
+			"team_id": t.id,
+			"name":    oldName,
+		}).
+		RunWith(t.conn).
+		Exec()
+	if err != nil {
+		return false, err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return rowsAffected > 0, nil
+}
+
 func (t *team) Pipeline(pipelineRef atc.PipelineRef) (Pipeline, bool, error) {
 	pipeline := newPipeline(t.conn, t.lockFactory)
 
@@ -615,7 +661,7 @@ func (t *team) Pipelines() ([]Pipeline, error) {
 		Where(sq.Eq{
 			"team_id": t.id,
 		}).
-		OrderBy("ordering").
+		OrderBy("p.ordering", "p.id").
 		RunWith(t.conn).
 		Query()
 	if err != nil {
@@ -651,7 +697,7 @@ func (t *team) PublicPipelines() ([]Pipeline, error) {
 	return pipelines, nil
 }
 
-func (t *team) OrderPipelines(pipelineRefs []atc.PipelineRef) error {
+func (t *team) OrderPipelines(names []string) error {
 	tx, err := t.conn.Begin()
 	if err != nil {
 		return err
@@ -659,22 +705,12 @@ func (t *team) OrderPipelines(pipelineRefs []atc.PipelineRef) error {
 
 	defer Rollback(tx)
 
-	for i, pipelineRef := range pipelineRefs {
-		var instanceVars sql.NullString
-		if pipelineRef.InstanceVars != nil {
-			bytes, _ := json.Marshal(pipelineRef.InstanceVars)
-			instanceVars = sql.NullString{
-				String: string(bytes),
-				Valid:  true,
-			}
-		}
-
+	for i, name := range names {
 		pipelineUpdate, err := psql.Update("pipelines").
 			Set("ordering", i).
 			Where(sq.Eq{
-				"team_id":       t.id,
-				"name":          pipelineRef.Name,
-				"instance_vars": instanceVars,
+				"team_id": t.id,
+				"name":    name,
 			}).
 			RunWith(tx).
 			Exec()
@@ -686,11 +722,14 @@ func (t *team) OrderPipelines(pipelineRefs []atc.PipelineRef) error {
 			return err
 		}
 		if updatedPipelines == 0 {
-			return fmt.Errorf("pipeline %s does not exist", pipelineRef.String())
+			return ErrPipelineNotFound{Name: name}
 		}
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // XXX: This is only begin used by tests, replace all tests to CreateBuild on a job

@@ -58,12 +58,6 @@ port renderPipeline : ( Json.Encode.Value, Json.Encode.Value ) -> Cmd msg
 port pinTeamNames : StickyHeaderConfig -> Cmd msg
 
 
-port tooltip : ( String, String ) -> Cmd msg
-
-
-port tooltipHd : ( String, String ) -> Cmd msg
-
-
 port resetPipelineFocus : () -> Cmd msg
 
 
@@ -166,8 +160,6 @@ type Effect
     | SetPinComment Concourse.ResourceIdentifier String
     | SendTokenToFly String Int
     | SendTogglePipelineRequest Concourse.PipelineIdentifier Bool
-    | ShowTooltip ( String, String )
-    | ShowTooltipHd ( String, String )
     | SendOrderPipelinesRequest String (List String)
     | SendLogOutRequest
     | GetScreenSize
@@ -458,12 +450,6 @@ runEffect effect key csrfToken =
                 |> Api.request
                 |> Task.attempt (PipelineToggled id)
 
-        ShowTooltip ( teamName, pipelineName ) ->
-            tooltip ( teamName, pipelineName )
-
-        ShowTooltipHd ( teamName, pipelineName ) ->
-            tooltipHd ( teamName, pipelineName )
-
         SendOrderPipelinesRequest teamName pipelineNames ->
             Api.put
                 (Endpoints.OrderTeamPipelines |> Endpoints.Team teamName)
@@ -683,21 +669,71 @@ toHtmlID domId =
         SideBarPipeline section p ->
             pipelinesSectionName section ++ "_" ++ Base64.encode p.teamName ++ "_" ++ Base64.encode p.pipelineName
 
+        SideBarInstanceGroup section teamName groupName ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ Base64.encode teamName
+                ++ "_"
+                ++ Base64.encode groupName
+
         PipelineStatusIcon section p ->
             pipelinesSectionName section
                 ++ "_"
-                ++ Base64.encode p.teamName
-                ++ "_"
-                ++ Base64.encode p.pipelineName
+                ++ encodePipelineId p
                 ++ "_status"
 
         VisibilityButton section p ->
             pipelinesSectionName section
                 ++ "_"
-                ++ Base64.encode p.teamName
-                ++ "_"
-                ++ Base64.encode p.pipelineName
+                ++ encodePipelineId p
                 ++ "_visibility"
+
+        PipelineCardName section p ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_name"
+
+        PipelineCardNameHD p ->
+            "HD_"
+                ++ encodePipelineId p
+                ++ "_name"
+
+        InstanceGroupCardName section teamName groupName ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ Base64.encode teamName
+                ++ "_"
+                ++ Base64.encode groupName
+                ++ "_name"
+
+        InstanceGroupCardNameHD teamName groupName ->
+            "HD_"
+                ++ Base64.encode teamName
+                ++ "_"
+                ++ Base64.encode groupName
+                ++ "_name"
+
+        PipelineCardInstanceVar section p varName _ ->
+            pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_var_"
+                ++ Base64.encode varName
+
+        PipelinePreview section p ->
+            "pipeline_preview_"
+                ++ pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+
+        JobPreview section p jobName ->
+            "job_preview_"
+                ++ pipelinesSectionName section
+                ++ "_"
+                ++ encodePipelineId p
+                ++ "_jobs_"
+                ++ jobName
 
         ChangedStepLabel stepID _ ->
             stepID ++ "_changed"
@@ -722,6 +758,11 @@ toHtmlID domId =
 
         _ ->
             ""
+
+
+encodePipelineId : Concourse.DatabaseID -> String
+encodePipelineId id =
+    String.fromInt id
 
 
 scroll : ScrollDirection -> String -> Cmd Callback

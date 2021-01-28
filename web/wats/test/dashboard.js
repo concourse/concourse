@@ -57,8 +57,9 @@ test('shows pipelines in their correct order', async t => {
   await t.context.web.page.goto(t.context.web.route('/'));
 
   const group = `.dashboard-team-group[data-team-name="${t.context.teamName}"]`;
+  await t.context.web.page.setViewport({width: 1200, height: 900});
   await t.context.web.scrollIntoView(group);
-  await t.context.web.page.waitFor(`${group} .pipeline-wrapper:nth-child(${pipelineOrder.length}) .card`);
+  await t.context.web.page.waitFor(`${group} .card-wrapper:nth-child(${pipelineOrder.length}) .card`);
 
   const names = await t.context.web.page.$$eval(`${group} .dashboard-pipeline-name`, nameElements => {
     var names = [];

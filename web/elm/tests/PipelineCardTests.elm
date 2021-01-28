@@ -4,7 +4,12 @@ import Application.Application as Application
 import Assets
 import ColorValues
 import Colors
-import Common exposing (defineHoverBehaviour, isColorWithStripes)
+import Common
+    exposing
+        ( defineHoverBehaviour
+        , givenDataUnauthenticated
+        , isColorWithStripes
+        )
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
@@ -19,7 +24,6 @@ import DashboardTests
         , darkGrey
         , fadedGreen
         , givenDataAndUser
-        , givenDataUnauthenticated
         , green
         , iconSelector
         , job
@@ -47,7 +51,7 @@ import Set
 import Test exposing (Test, describe, test)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (attribute, class, containing, style, tag, text)
+import Test.Html.Selector exposing (attribute, class, containing, id, style, tag, text)
 import Time
 
 
@@ -89,7 +93,7 @@ all =
                     >> Application.handleCallback
                         (Callback.AllPipelinesFetched <|
                             Ok
-                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                         )
                     >> Tuple.first
                     >> Application.handleDelivery
@@ -155,12 +159,9 @@ all =
                             [ Query.has [ text "no pipeline set" ]
                             , Query.has [ style "color" ColorValues.grey20 ]
                             ]
-                , test "has dark grey background and 12.5px padding" <|
+                , test "has dark grey background" <|
                     header
-                        >> Query.has
-                            [ style "background-color" ColorValues.grey90
-                            , style "padding" "12.5px"
-                            ]
+                        >> Query.has [ style "background-color" ColorValues.grey90 ]
                 , test "text is larger and wider spaced" <|
                     header
                         >> Query.has
@@ -308,7 +309,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                    [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -321,16 +322,13 @@ all =
             [ test "has dark grey background" <|
                 header
                     >> Query.has [ style "background-color" ColorValues.grey90 ]
-            , test "has larger, spaced-out white text" <|
+            , test "has larger, spaced-out light-grey text" <|
                 header
                     >> Query.has
                         [ style "font-size" "1.5em"
                         , style "letter-spacing" "0.1em"
                         , style "color" ColorValues.grey20
                         ]
-            , test "has 12.5px padding" <|
-                header
-                    >> Query.has [ style "padding" "12.5px" ]
             , test "text does not overflow or wrap" <|
                 header
                     >> Query.children []
@@ -340,6 +338,24 @@ all =
                         , style "white-space" "nowrap"
                         , style "overflow" "hidden"
                         , style "text-overflow" "ellipsis"
+                        ]
+            , test "is hoverable" <|
+                header
+                    >> Query.find [ class "dashboard-pipeline-name" ]
+                    >> Event.simulate Event.mouseEnter
+                    >> Event.expect
+                        (ApplicationMsgs.Update <|
+                            Msgs.Hover <|
+                                Just <|
+                                    Msgs.PipelineCardName Msgs.AllPipelinesSection 1
+                        )
+            , test "has html id" <|
+                header
+                    >> Query.find [ class "dashboard-pipeline-name" ]
+                    >> Query.has
+                        [ id <|
+                            Effects.toHtmlID <|
+                                Msgs.PipelineCardName Msgs.AllPipelinesSection 1
                         ]
             ]
         , describe "colored banner" <|
@@ -366,7 +382,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                        [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                 )
                             |> Tuple.first
                             |> Common.queryView
@@ -380,7 +396,7 @@ all =
                             |> Application.handleDelivery
                                 (CachedPipelinesReceived <|
                                     Ok
-                                        [ Data.pipeline "team" 0
+                                        [ Data.pipeline "team" 1
                                             |> Data.withName "pipeline"
                                             |> Data.withPaused True
                                         ]
@@ -397,7 +413,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 0
+                                        [ Data.pipeline "team" 1
                                             |> Data.withName "pipeline"
                                             |> Data.withArchived True
                                             |> Data.withPaused True
@@ -415,7 +431,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 0
+                                        [ Data.pipeline "team" 1
                                             |> Data.withName "pipeline"
                                             |> Data.withPaused True
                                         ]
@@ -449,7 +465,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                        [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                 )
                             |> Tuple.first
                             |> Common.queryView
@@ -534,7 +550,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -594,7 +610,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                        [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                 )
                             |> Tuple.first
                             |> Common.queryView
@@ -610,7 +626,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> Common.queryView
@@ -778,7 +794,7 @@ all =
                                     |> Application.handleCallback
                                         (Callback.AllPipelinesFetched <|
                                             Ok
-                                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                                [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                         )
                                     |> Tuple.first
                                     |> Common.queryView
@@ -842,7 +858,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                    [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -860,7 +876,7 @@ all =
                         |> Application.handleCallback
                             (Callback.AllPipelinesFetched <|
                                 Ok
-                                    [ Data.pipeline "other-team" 0 |> Data.withName "pipeline" ]
+                                    [ Data.pipeline "other-team" 1 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
                         |> Common.queryView
@@ -920,6 +936,26 @@ all =
                 noPipelines
                     >> noPipelinesCard
                     >> Query.has [ style "background-color" ColorValues.grey90 ]
+            , test "card name is hoverable" <|
+                setup
+                    >> card
+                    >> Query.find [ class "dashboardhd-pipeline-name" ]
+                    >> Event.simulate Event.mouseEnter
+                    >> Event.expect
+                        (ApplicationMsgs.Update <|
+                            Msgs.Hover <|
+                                Just <|
+                                    Msgs.PipelineCardNameHD 1
+                        )
+            , test "card name has html id" <|
+                setup
+                    >> card
+                    >> Query.find [ class "dashboardhd-pipeline-name" ]
+                    >> Query.has
+                        [ id <|
+                            Effects.toHtmlID <|
+                                Msgs.PipelineCardNameHD 1
+                        ]
             , test "card has larger tighter font" <|
                 setup
                     >> card
@@ -972,16 +1008,8 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllResourcesFetched <|
                                     Ok
-                                        [ { teamName = "team"
-                                          , pipelineName = "pipeline"
-                                          , name = "resource"
-                                          , lastChecked = Nothing
-                                          , pinnedVersion = Nothing
-                                          , pinnedInConfig = False
-                                          , pinComment = Nothing
-                                          , icon = Nothing
-                                          , build = Just (Data.build Concourse.BuildStatus.BuildStatusFailed)
-                                          }
+                                        [ Data.resource Nothing
+                                            |> Data.withBuild (Just <| Data.build Concourse.BuildStatus.BuildStatusFailed)
                                         ]
                                 )
                             |> Tuple.first
@@ -990,7 +1018,7 @@ all =
                             |> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                        [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                 )
                             |> Tuple.first
                             |> Common.queryView
@@ -1231,7 +1259,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = PipelineStatusPaused |> Assets.PipelineStatusIcon
+                                        , image = Assets.PipelineStatusIconPaused
                                         }
                                         ++ [ style "background-size" "contain" ]
                                     )
@@ -1327,10 +1355,7 @@ all =
                                     )
 
                         domID =
-                            Msgs.PipelineStatusIcon AllPipelinesSection
-                                (Data.pipelineId
-                                    |> Data.withPipelineName "pipeline-0"
-                                )
+                            Msgs.PipelineStatusIcon AllPipelinesSection 0
                     in
                     [ test "status icon is faded sync" <|
                         \_ ->
@@ -1506,7 +1531,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = PipelineStatusPending True |> Assets.PipelineStatusIcon
+                                        , image = Assets.PipelineStatusIconPending
                                         }
                                         ++ [ style "background-size" "contain" ]
                                     )
@@ -1548,7 +1573,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = PipelineStatusSucceeded Running |> Assets.PipelineStatusIcon
+                                        , image = Assets.PipelineStatusIconSucceeded
                                         }
                                         ++ [ style "background-size" "contain" ]
                                     )
@@ -1588,7 +1613,7 @@ all =
                                 |> Application.handleCallback
                                     (Callback.AllPipelinesFetched <|
                                         Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                                            [ Data.pipeline "team" 1 |> Data.withName "pipeline" ]
                                     )
                                 |> Tuple.first
                                 |> afterSeconds 1
@@ -1608,7 +1633,7 @@ all =
                                 |> Query.has
                                     (iconSelector
                                         { size = "20px"
-                                        , image = PipelineStatusFailed Running |> Assets.PipelineStatusIcon
+                                        , image = Assets.PipelineStatusIconFailed
                                         }
                                         ++ [ style "background-size" "contain" ]
                                     )
@@ -1631,7 +1656,7 @@ all =
                             |> Query.has
                                 (iconSelector
                                     { size = "20px"
-                                    , image = PipelineStatusAborted Running |> Assets.PipelineStatusIcon
+                                    , image = Assets.PipelineStatusIconAborted
                                     }
                                     ++ [ style "background-size" "contain" ]
                                 )
@@ -1645,7 +1670,7 @@ all =
                             |> Query.has
                                 (iconSelector
                                     { size = "20px"
-                                    , image = PipelineStatusErrored Running |> Assets.PipelineStatusIcon
+                                    , image = Assets.PipelineStatusIconErrored
                                     }
                                     ++ [ style "background-size" "contain" ]
                                 )
@@ -1696,7 +1721,7 @@ all =
                                                ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton AllPipelinesSection pipelineId
+                                    Msgs.VisibilityButton AllPipelinesSection 0
                                 , hoveredSelector =
                                     { description = "bright 20px square"
                                     , selector =
@@ -1716,8 +1741,7 @@ all =
                                         |> Event.expect
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                             , test "click has HidePipeline effect" <|
                                 \_ ->
@@ -1727,8 +1751,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                                         |> Tuple.second
                                         |> Expect.equal
@@ -1755,7 +1778,7 @@ all =
                                                ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton FavoritesSection pipelineId
+                                    Msgs.VisibilityButton FavoritesSection 0
                                 , hoveredSelector =
                                     { description = "bright 20px square"
                                     , selector =
@@ -1774,8 +1797,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                                         |> Tuple.first
                                 , query = visibilityToggle
@@ -1789,7 +1811,7 @@ all =
                                         ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton AllPipelinesSection pipelineId
+                                    Msgs.VisibilityButton AllPipelinesSection 0
                                 , hoveredSelector =
                                     { description = "20px spinner"
                                     , selector =
@@ -1808,8 +1830,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                                         |> Tuple.first
                                         |> Application.handleCallback
@@ -1829,8 +1850,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                                         |> Tuple.first
                                         |> Application.handleCallback
@@ -1850,8 +1870,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                                         |> Tuple.first
                                         |> Application.handleCallback
@@ -1882,7 +1901,7 @@ all =
                                                ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton AllPipelinesSection pipelineId
+                                    Msgs.VisibilityButton AllPipelinesSection 0
                                 , hoveredSelector =
                                     { description = "faded 20px square"
                                     , selector =
@@ -1920,7 +1939,7 @@ all =
                                                ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton AllPipelinesSection pipelineId
+                                    Msgs.VisibilityButton AllPipelinesSection 0
                                 , hoveredSelector =
                                     { description = "bright 20px square"
                                     , selector =
@@ -1940,8 +1959,7 @@ all =
                                         |> Event.expect
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                             , test "click has ExposePipeline effect" <|
                                 \_ ->
@@ -1951,8 +1969,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                                         |> Tuple.second
                                         |> Expect.equal
@@ -1969,8 +1986,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                                         |> Tuple.first
                                 , query = visibilityToggle
@@ -1984,7 +2000,7 @@ all =
                                         ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton AllPipelinesSection pipelineId
+                                    Msgs.VisibilityButton AllPipelinesSection 0
                                 , hoveredSelector =
                                     { description = "20px spinner"
                                     , selector =
@@ -2003,8 +2019,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                                         |> Tuple.first
                                         |> Application.handleCallback
@@ -2024,8 +2039,7 @@ all =
                                         |> Application.update
                                             (ApplicationMsgs.Update <|
                                                 Msgs.Click <|
-                                                    Msgs.VisibilityButton AllPipelinesSection
-                                                        pipelineId
+                                                    Msgs.VisibilityButton AllPipelinesSection 0
                                             )
                                         |> Tuple.first
                                         |> Application.handleCallback
@@ -2056,7 +2070,7 @@ all =
                                                ]
                                     }
                                 , hoverable =
-                                    Msgs.VisibilityButton AllPipelinesSection pipelineId
+                                    Msgs.VisibilityButton AllPipelinesSection 0
                                 , hoveredSelector =
                                     { description = "faded 20px square"
                                     , selector =

@@ -13,7 +13,7 @@ import (
 var _ = Describe("ATC Handler Build Inputs", func() {
 	Describe("BuildInputsForJob", func() {
 		expectedURL := "/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/inputs"
-		queryParams := "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+		queryParams := "vars.branch=%22master%22"
 		pipelineRef := atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 
 		Context("when pipeline/job exists", func() {
@@ -67,7 +67,7 @@ var _ = Describe("ATC Handler Build Inputs", func() {
 
 	Describe("BuildsWithVersionAsInput", func() {
 		expectedURL := "/api/v1/teams/some-team/pipelines/some-pipeline/resources/myresource/versions/2/input_to"
-		queryParams := "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+		queryParams := "vars.branch=%22master%22"
 		pipelineRef := atc.PipelineRef{Name: "some-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 
 		var expectedBuilds []atc.Build

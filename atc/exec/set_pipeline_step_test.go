@@ -100,7 +100,7 @@ jobs:
 		fakeAgent   *policyfakes.FakeAgent
 		fakeChecker policy.Checker
 
-		fakeWorkerClient *workerfakes.FakeClient
+		fakeArtifactStreamer *workerfakes.FakeArtifactStreamer
 
 		spPlan             *atc.SetPipelinePlan
 		artifactRepository *build.Repository
@@ -189,7 +189,7 @@ jobs:
 
 		fakeChecker, _ = policy.Initialize(testLogger, "some-cluster", "some-version", filter)
 
-		fakeWorkerClient = new(workerfakes.FakeClient)
+		fakeArtifactStreamer = new(workerfakes.FakeArtifactStreamer)
 
 		spPlan = &atc.SetPipelinePlan{
 			Name:         "some-pipeline",
@@ -215,7 +215,7 @@ jobs:
 			fakeDelegateFactory,
 			fakeTeamFactory,
 			fakeBuildFactory,
-			fakeWorkerClient,
+			fakeArtifactStreamer,
 			fakeChecker,
 		)
 
@@ -238,7 +238,7 @@ jobs:
 	Context("when file is configured", func() {
 		Context("pipeline file not exist", func() {
 			BeforeEach(func() {
-				fakeWorkerClient.StreamFileFromArtifactReturns(nil, errors.New("file not found"))
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(nil, errors.New("file not found"))
 			})
 
 			It("should fail with error of file not configured", func() {
@@ -249,7 +249,7 @@ jobs:
 
 		Context("when pipeline file exists but bad syntax", func() {
 			BeforeEach(func() {
-				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: badPipelineContentWithInvalidSyntax}, nil)
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: badPipelineContentWithInvalidSyntax}, nil)
 			})
 
 			It("should not return error", func() {
@@ -270,7 +270,7 @@ jobs:
 
 		Context("when pipeline file exists but is empty", func() {
 			BeforeEach(func() {
-				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: badPipelineContentWithEmptyContent}, nil)
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: badPipelineContentWithEmptyContent}, nil)
 			})
 
 			It("should return an error", func() {
@@ -288,7 +288,7 @@ jobs:
 
 		Context("when pipeline file is good", func() {
 			BeforeEach(func() {
-				fakeWorkerClient.StreamFileFromArtifactReturns(&fakeReadCloser{str: pipelineContent}, nil)
+				fakeArtifactStreamer.StreamFileFromArtifactReturns(&fakeReadCloser{str: pipelineContent}, nil)
 			})
 
 			Context("when get pipeline fails", func() {

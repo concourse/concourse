@@ -5,13 +5,16 @@ import (
 	"compress/gzip"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/baggageclaim"
 	"github.com/concourse/concourse/atc/compression"
+	"github.com/concourse/concourse/atc/compression/compressionfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/runtime"
@@ -23,6 +26,78 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+var _ = Describe("ArtifactSourcer", func() {
+	var (
+		logger          *lagertest.TestLogger
+		fakeCompression *compressionfakes.FakeCompression
+	)
+
+	BeforeEach(func() {
+		logger = lagertest.NewTestLogger("test")
+		fakeCompression = new(compressionfakes.FakeCompression)
+	})
+
+	It("locates images by handle", func() {
+		artifact := runtime.GetArtifact{VolumeHandle: "image"}
+		vf := FakeVolumeFinder{Volumes: map[string]worker.Volume{
+			"image": newVolumeWithContent(content{".": []byte("image content")}),
+		}}
+
+		sourcer := worker.NewArtifactSourcer(fakeCompression, vf, false, 0)
+		source, err := sourcer.SourceImage(logger, artifact)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(source).To(BeStreamableWithContent(content{".": []byte("image content")}))
+	})
+
+	It("locates inputs and caches", func() {
+		inputs := map[string]runtime.Artifact{
+			"existing_cache": &runtime.CacheArtifact{
+				TeamID:   1,
+				JobID:    1,
+				StepName: "task1",
+				Path:     "existing_cache",
+			},
+			"missing_cache": &runtime.CacheArtifact{
+				TeamID:   1,
+				JobID:    1,
+				StepName: "task2",
+				Path:     "missing_cache",
+			},
+			"task_artifact": &runtime.TaskArtifact{VolumeHandle: "output"},
+		}
+		fakeWorker := new(workerfakes.FakeWorker)
+		fakeWorker.FindVolumeForTaskCacheStub = func(_ lager.Logger, teamID int, jobID int, stepName string, path string) (worker.Volume, bool, error) {
+			switch path {
+			case "existing_cache":
+				return new(workerfakes.FakeVolume), true, nil
+			case "missing_cache":
+				return nil, false, nil
+			default:
+				return nil, false, fmt.Errorf("unexpected path %s", path)
+			}
+		}
+		vf := FakeVolumeFinder{Volumes: map[string]worker.Volume{
+			"output": newVolumeWithContent(content{".": []byte("output")})},
+		}
+
+		sourcer := worker.NewArtifactSourcer(fakeCompression, vf, false, 0)
+		inputSources, err := sourcer.SourceInputsAndCaches(logger, 0, inputs)
+		Expect(err).ToNot(HaveOccurred())
+
+		sources := make([]worker.ArtifactSource, len(inputSources))
+		for i, v := range inputSources {
+			sources[i] = v.Source()
+		}
+
+		Expect(sources).To(ConsistOf(
+			BeStreamableWithContent(content{".": []byte("output")}),
+			ExistOnWorker(fakeWorker),
+			Not(ExistOnWorker(fakeWorker)),
+		))
+	})
+})
 
 var _ = Describe("StreamableArtifactSource", func() {
 	var (
@@ -376,7 +451,6 @@ var _ = Describe("CacheArtifactSource", func() {
 			Expect(actualVolume).To(Equal(fakeVolume))
 			Expect(actualFound).To(BeTrue())
 			Expect(actualErr).To(Equal(disaster))
-
 		})
 	})
 })

@@ -1,7 +1,6 @@
 module Build.Models exposing
     ( Model
     , ShortcutsModel
-    , StepHeaderType(..)
     , toMaybe
     )
 
@@ -64,13 +63,3 @@ toMaybe currentOutput =
 
         Output outputModel ->
             Just outputModel
-
-
-type StepHeaderType
-    = StepHeaderPut
-    | StepHeaderCheck
-    | StepHeaderGet
-    | StepHeaderTask
-    | StepHeaderSetPipeline
-    | StepHeaderLoadVar
-    | StepHeaderAcross

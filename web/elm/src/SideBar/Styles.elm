@@ -8,6 +8,8 @@ module SideBar.Styles exposing
     , hamburgerIcon
     , hamburgerMenu
     , iconGroup
+    , instanceGroup
+    , instanceGroupBadge
     , opacityAttr
     , pipeline
     , pipelineFavorite
@@ -19,7 +21,6 @@ module SideBar.Styles exposing
     , starPadding
     , starWidth
     , team
-    , teamColorAttr
     , teamHeader
     , teamIcon
     , teamName
@@ -30,6 +31,7 @@ module SideBar.Styles exposing
     )
 
 import Assets
+import ColorValues
 import Colors
 import Html
 import Html.Attributes as Attr exposing (style)
@@ -149,21 +151,10 @@ type SidebarElementColor
     | White
 
 
-teamColorAttr : SidebarElementColor -> Html.Attribute msg
-teamColorAttr teamColor =
-    style "color" <|
-        case teamColor of
-            White ->
-                Colors.white
-
-            _ ->
-                Colors.sideBarTextBright
-
-
-pipelineColorAttr : SidebarElementColor -> Html.Attribute msg
-pipelineColorAttr pipelineColor =
-    style "color" <|
-        case pipelineColor of
+genericColorAttr : String -> SidebarElementColor -> Html.Attribute msg
+genericColorAttr attr color =
+    style attr <|
+        case color of
             Grey ->
                 Colors.sideBarTextDim
 
@@ -172,6 +163,16 @@ pipelineColorAttr pipelineColor =
 
             White ->
                 Colors.white
+
+
+colorAttr : SidebarElementColor -> Html.Attribute msg
+colorAttr =
+    genericColorAttr "color"
+
+
+backgroundColorAttr : SidebarElementColor -> Html.Attribute msg
+backgroundColorAttr =
+    genericColorAttr "background-color"
 
 
 teamIcon : Html.Html msg
@@ -198,9 +199,9 @@ collapseIcon { asset } =
 
 
 teamName :
-    { a | teamColor : SidebarElementColor }
+    { a | color : SidebarElementColor }
     -> List (Html.Attribute msg)
-teamName { teamColor } =
+teamName { color } =
     [ style "font-size" "14px"
     , style "padding" "5px 2.5px"
     , style "margin-left" "5px"
@@ -209,7 +210,7 @@ teamName { teamColor } =
     , style "text-overflow" "ellipsis"
     , style "flex-grow" "1"
     , style "color" Colors.sideBarTextBright
-    , teamColorAttr teamColor
+    , colorAttr color
     , fontWeightAttr Bold
     ]
 
@@ -251,9 +252,9 @@ fontWeightAttr weight =
 
 
 pipelineName :
-    { a | pipelineColor : SidebarElementColor, weight : FontWeight }
+    { a | color : SidebarElementColor, weight : FontWeight }
     -> List (Html.Attribute msg)
-pipelineName { pipelineColor, weight } =
+pipelineName { color, weight } =
     [ style "font-size" "14px"
     , style "white-space" "nowrap"
     , style "overflow" "hidden"
@@ -261,7 +262,7 @@ pipelineName { pipelineColor, weight } =
     , style "padding" "5px 2.5px"
     , style "margin-left" "5px"
     , style "flex-grow" "1"
-    , pipelineColorAttr pipelineColor
+    , colorAttr color
     , fontWeightAttr weight
     ]
 
@@ -312,6 +313,11 @@ pipeline { background } =
     ]
 
 
+instanceGroup : { a | background : Background } -> List (Html.Attribute msg)
+instanceGroup =
+    pipeline
+
+
 pipelineIcon : Assets.Asset -> List (Html.Attribute msg)
 pipelineIcon asset =
     [ style "background-image" <|
@@ -325,6 +331,33 @@ pipelineIcon asset =
     , style "margin-left" "28px"
     , style "flex-shrink" "0"
     ]
+
+
+instanceGroupBadge : { count : Int, color : SidebarElementColor } -> Html.Html msg
+instanceGroupBadge { count, color } =
+    let
+        ( text, fontSize ) =
+            if count > 99 then
+                ( "99+", "10px" )
+
+            else
+                ( String.fromInt count, "12px" )
+    in
+    Html.div
+        [ style "border-radius" "4px"
+        , style "color" ColorValues.grey90
+        , style "display" "flex"
+        , style "align-items" "center"
+        , style "justify-content" "center"
+        , style "letter-spacing" "0"
+        , style "height" "18px"
+        , style "width" "18px"
+        , style "margin-left" "28px"
+        , style "flex-shrink" "0"
+        , style "font-size" fontSize
+        , backgroundColorAttr color
+        ]
+        [ Html.text text ]
 
 
 pipelineFavorite : { filled : Bool, isBright : Bool } -> List (Html.Attribute msg)

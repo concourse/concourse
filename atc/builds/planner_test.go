@@ -71,6 +71,7 @@ var factoryTests = []PlannerTest{
 			Params:   atc.Params{"some": "params"},
 			Version:  &atc.VersionConfig{Pinned: atc.Version{"doesnt": "matter"}},
 			Tags:     atc.Tags{"tag-1", "tag-2"},
+			Timeout:  "1h",
 		},
 		Inputs: []db.BuildInput{
 			{
@@ -88,6 +89,7 @@ var factoryTests = []PlannerTest{
 				"params": {"some":"params"},
 				"version": {"some":"version"},
 				"tags": ["tag-1", "tag-2"],
+				"timeout": "1h",
 				"resource_types": [
 					{
 						"name": "some-resource-type",
@@ -162,6 +164,7 @@ var factoryTests = []PlannerTest{
 			Tags:      atc.Tags{"tag-1", "tag-2"},
 			Inputs:    &atc.InputsConfig{All: true},
 			GetParams: atc.Params{"some": "get-params"},
+			Timeout:   "1h",
 		},
 		Inputs: []db.BuildInput{
 			{
@@ -185,6 +188,7 @@ var factoryTests = []PlannerTest{
 						"source": {"some":"source","default-key":"default-value"},
 						"params": {"some":"params"},
 						"tags": ["tag-1", "tag-2"],
+						"timeout": "1h",
 						"resource_types": [
 							{
 								"name": "some-resource-type",
@@ -206,6 +210,7 @@ var factoryTests = []PlannerTest{
 						"params": {"some":"get-params"},
 						"tags": ["tag-1", "tag-2"],
 						"version_from": "1",
+						"timeout": "1h",
 						"resource_types": [
 							{
 								"name": "some-resource-type",
@@ -237,6 +242,7 @@ var factoryTests = []PlannerTest{
 			InputMapping:      map[string]string{"generic": "specific"},
 			OutputMapping:     map[string]string{"specific": "generic"},
 			ImageArtifactName: "some-image",
+			Timeout:           "1h",
 		},
 
 		PlanJSON: `{
@@ -255,6 +261,7 @@ var factoryTests = []PlannerTest{
 				"input_mapping": {"generic": "specific"},
 				"output_mapping": {"specific": "generic"},
 				"image": "some-image",
+				"timeout": "1h",
 				"resource_types": [
 					{
 						"name": "some-resource-type",
@@ -420,46 +427,6 @@ var factoryTests = []PlannerTest{
 				"limit": 3,
 				"fail_fast": true
 			}
-		}`,
-	},
-	{
-		Title: "aggregate step",
-
-		Config: &atc.AggregateStep{
-			Steps: []atc.Step{
-				{
-					Config: &atc.LoadVarStep{
-						Name: "some-var",
-						File: "some-file",
-					},
-				},
-				{
-					Config: &atc.LoadVarStep{
-						Name: "some-other-var",
-						File: "some-other-file",
-					},
-				},
-			},
-		},
-
-		PlanJSON: `{
-			"id": "(unique)",
-			"aggregate": [
-				{
-					"id": "(unique)",
-					"load_var": {
-						"name": "some-var",
-						"file": "some-file"
-					}
-				},
-				{
-					"id": "(unique)",
-					"load_var": {
-						"name": "some-other-var",
-						"file": "some-other-file"
-					}
-				}
-			]
 		}`,
 	},
 	{

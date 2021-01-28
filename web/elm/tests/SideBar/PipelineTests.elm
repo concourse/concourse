@@ -129,7 +129,7 @@ all =
                         pipeline
                             |> viewPipeline { defaultState | active = False, hovered = False }
                             |> .name
-                            |> .pipelineColor
+                            |> .color
                             |> Expect.equal Styles.Grey
                 , test "pipeline has no background" <|
                     \_ ->

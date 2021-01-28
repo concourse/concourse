@@ -84,19 +84,19 @@ var _ = Describe("TaskConfigSource", func() {
 
 	Describe("FileConfigSource", func() {
 		var (
-			configSource     FileConfigSource
-			fakeWorkerClient *workerfakes.FakeClient
-			fetchErr         error
-			artifactName     string
+			configSource         FileConfigSource
+			fakeArtifactStreamer *workerfakes.FakeArtifactStreamer
+			fetchErr             error
+			artifactName         string
 		)
 
 		BeforeEach(func() {
 
 			artifactName = "some-artifact-name"
-			fakeWorkerClient = new(workerfakes.FakeClient)
+			fakeArtifactStreamer = new(workerfakes.FakeArtifactStreamer)
 			configSource = FileConfigSource{
 				ConfigPath: artifactName + "/build.yml",
-				Client:     fakeWorkerClient,
+				Streamer:   fakeArtifactStreamer,
 			}
 		})
 
@@ -130,11 +130,11 @@ var _ = Describe("TaskConfigSource", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					streamedOut = gbytes.BufferWithBytes(marshalled)
-					fakeWorkerClient.StreamFileFromArtifactReturns(streamedOut, nil)
+					fakeArtifactStreamer.StreamFileFromArtifactReturns(streamedOut, nil)
 				})
 
 				It("fetches the file via the correct artifact & path", func() {
-					_, _, artifact, dest := fakeWorkerClient.StreamFileFromArtifactArgsForCall(0)
+					_, artifact, dest := fakeArtifactStreamer.StreamFileFromArtifactArgsForCall(0)
 					Expect(artifact).To(Equal(fakeArtifact))
 					Expect(dest).To(Equal("build.yml"))
 				})
@@ -160,7 +160,7 @@ var _ = Describe("TaskConfigSource", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					streamedOut = gbytes.BufferWithBytes(marshalled)
-					fakeWorkerClient.StreamFileFromArtifactReturns(streamedOut, nil)
+					fakeArtifactStreamer.StreamFileFromArtifactReturns(streamedOut, nil)
 				})
 
 				It("returns an error", func() {
@@ -173,7 +173,7 @@ var _ = Describe("TaskConfigSource", func() {
 
 				BeforeEach(func() {
 					streamedOut = gbytes.BufferWithBytes([]byte("bogus"))
-					fakeWorkerClient.StreamFileFromArtifactReturns(streamedOut, nil)
+					fakeArtifactStreamer.StreamFileFromArtifactReturns(streamedOut, nil)
 				})
 
 				It("fails", func() {
@@ -196,7 +196,7 @@ intputs: []
 
 run: {path: a/file}
 `))
-					fakeWorkerClient.StreamFileFromArtifactReturns(streamedOut, nil)
+					fakeArtifactStreamer.StreamFileFromArtifactReturns(streamedOut, nil)
 				})
 
 				It("fails", func() {
@@ -212,7 +212,7 @@ run: {path: a/file}
 				disaster := errors.New("nope")
 
 				BeforeEach(func() {
-					fakeWorkerClient.StreamFileFromArtifactReturns(nil, disaster)
+					fakeArtifactStreamer.StreamFileFromArtifactReturns(nil, disaster)
 				})
 
 				It("returns the error", func() {
@@ -222,7 +222,7 @@ run: {path: a/file}
 
 			Context("when the file task is not found", func() {
 				BeforeEach(func() {
-					fakeWorkerClient.StreamFileFromArtifactReturns(nil, baggageclaim.ErrFileNotFound)
+					fakeArtifactStreamer.StreamFileFromArtifactReturns(nil, baggageclaim.ErrFileNotFound)
 				})
 
 				It("returns the error", func() {

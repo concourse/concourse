@@ -3,7 +3,7 @@ module JobTests exposing (all)
 import Application.Application as Application
 import Assets
 import Common exposing (defineHoverBehaviour, queryView)
-import Concourse exposing (Build)
+import Concourse exposing (Build, JsonValue(..))
 import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.Pagination exposing (Direction(..), Paginated)
 import DashboardTests exposing (darkGrey, iconSelector, middleGrey)
@@ -23,6 +23,7 @@ import Message.Subscription as Subscription
         )
 import Message.TopLevelMessage as Msgs
 import RemoteData
+import Routes
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
@@ -323,17 +324,23 @@ all =
                 }
             , describe "archived pipelines" <|
                 let
-                    initWithArchivedPipeline =
-                        init { paused = False, disabled = False }
-                            >> Application.handleCallback
-                                (Callback.AllPipelinesFetched <|
-                                    Ok
-                                        [ Data.pipeline "team" 0
-                                            |> Data.withName "pipeline"
-                                            |> Data.withArchived True
-                                        ]
-                                )
+                    fetchArchivedPipeline =
+                        Application.handleCallback
+                            (Callback.AllPipelinesFetched <|
+                                Ok
+                                    [ Data.pipeline "team" 0
+                                        |> Data.withName "pipeline"
+                                        |> Data.withArchived True
+                                    , Data.pipeline "team" 1
+                                        |> Data.withName "pipeline"
+                                        |> Data.withInstanceVars (Dict.fromList [ ( "foo", JsonNumber 1 ) ])
+                                        |> Data.withArchived False
+                                    ]
+                            )
                             >> Tuple.first
+
+                    initWithArchivedPipeline =
+                        init { paused = False, disabled = False } >> fetchArchivedPipeline
                 in
                 [ test "play/pause button not displayed" <|
                     initWithArchivedPipeline
@@ -350,6 +357,20 @@ all =
                         >> queryView
                         >> Query.find [ class "build-header" ]
                         >> Query.hasNot [ class "trigger-build" ]
+                , test "pipeline lookup considers instance vars" <|
+                    let
+                        job =
+                            Data.job 1
+                                |> Data.withPipelineInstanceVars (Dict.fromList [ ( "foo", JsonNumber 1 ) ])
+                    in
+                    \_ ->
+                        Common.initRoute (Routes.jobRoute job)
+                            |> Application.handleCallback (JobFetched <| Ok job)
+                            |> Tuple.first
+                            |> fetchArchivedPipeline
+                            |> queryView
+                            |> Query.find [ class "build-header" ]
+                            |> Query.has [ class "trigger-build" ]
                 ]
             , test "page below top bar fills height without scrolling" <|
                 init { disabled = False, paused = False }
@@ -615,13 +636,7 @@ all =
                             )
                         |> Tuple.second
                         |> Common.contains
-                            (Effects.FetchJobBuilds
-                                { teamName = "team"
-                                , pipelineName = "pipeline"
-                                , jobName = "job"
-                                }
-                                Job.startingPage
-                            )
+                            (Effects.FetchJobBuilds Data.jobId Job.startingPage)
             , describe "When fetching builds"
                 [ test "says no builds" <|
                     \_ ->
@@ -869,24 +884,16 @@ brightGreen =
 
 someJobInfo : Concourse.JobIdentifier
 someJobInfo =
-    Data.jobId
-        |> Data.withJobName "some-job"
-        |> Data.withPipelineName "some-pipeline"
-        |> Data.withTeamName "some-team"
+    Data.jobId |> Data.withJobName "some-job"
 
 
 someBuild : Build
 someBuild =
-    { id = 123
-    , name = "45"
-    , job = Just someJobInfo
-    , status = BuildStatusSucceeded
-    , duration =
-        { startedAt = Just <| Time.millisToPosix 0
-        , finishedAt = Just <| Time.millisToPosix 0
-        }
-    , reapTime = Just <| Time.millisToPosix 0
-    }
+    Data.jobBuild BuildStatusSucceeded
+        |> Data.withId 123
+        |> Data.withName "45"
+        |> Data.withJob (Just someJobInfo)
+        |> Data.withReapTime (Just <| Time.millisToPosix 0)
 
 
 jobInfo : Concourse.JobIdentifier
@@ -896,16 +903,14 @@ jobInfo =
 
 builds : List Build
 builds =
-    [ { id = 0
-      , name = "0"
-      , job = Just jobInfo
-      , status = BuildStatusSucceeded
-      , duration =
+    [ Data.jobBuild BuildStatusSucceeded
+        |> Data.withId 0
+        |> Data.withName "0"
+        |> Data.withJob (Just jobInfo)
+        |> Data.withDuration
             { startedAt = Nothing
             , finishedAt = Nothing
             }
-      , reapTime = Nothing
-      }
     ]
 
 
@@ -921,18 +926,11 @@ buildsWithEmptyPagination =
 
 someJob : Concourse.Job
 someJob =
-    { name = "some-job"
-    , pipelineName = "some-pipeline"
-    , teamName = "some-team"
-    , nextBuild = Nothing
-    , finishedBuild = Just someBuild
-    , transitionBuild = Nothing
-    , paused = False
-    , disableManualTrigger = False
-    , inputs = []
-    , outputs = []
-    , groups = []
-    }
+    Data.job 1
+        |> Data.withName "some-job"
+        |> Data.withPipelineName "some-pipeline"
+        |> Data.withTeamName "some-team"
+        |> Data.withFinishedBuild (Just someBuild)
 
 
 defaultModel : Job.Model
@@ -950,18 +948,14 @@ init { disabled, paused } _ =
         |> Application.handleCallback
             (JobFetched <|
                 Ok
-                    { name = "job"
-                    , pipelineName = "pipeline"
-                    , teamName = "team"
-                    , nextBuild = Nothing
-                    , finishedBuild = Just someBuild
-                    , transitionBuild = Nothing
-                    , paused = paused
-                    , disableManualTrigger = disabled
-                    , inputs = []
-                    , outputs = []
-                    , groups = []
-                    }
+                    (Data.job 1
+                        |> Data.withName "job"
+                        |> Data.withPipelineName "pipeline"
+                        |> Data.withTeamName "team"
+                        |> Data.withFinishedBuild (Just someBuild)
+                        |> Data.withPaused paused
+                        |> Data.withDisableManualTrigger disabled
+                    )
             )
         |> Tuple.first
 

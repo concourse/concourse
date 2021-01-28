@@ -107,7 +107,7 @@ var _ = Describe("ATC Handler Configs", func() {
 						Name:         "mypipeline",
 						InstanceVars: atc.InstanceVars{"branch": "master"},
 					}
-					expectedQueryParams = "instance_vars=%7B%22branch%22%3A%22master%22%7D"
+					expectedQueryParams = "vars.branch=%22master%22"
 				})
 
 				It("returns the given config and version for that pipeline instance", func() {
@@ -256,14 +256,14 @@ var _ = Describe("ATC Handler Configs", func() {
 					}
 				})
 
-				It("submits with instance_vars query param set", func() {
+				It("submits with vars.xxx query params set", func() {
 					Expect(atcServer.ReceivedRequests()).To(HaveLen(0))
 
 					_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
-					Expect(atcServer.ReceivedRequests()[0].URL.RawQuery).To(Equal("instance_vars=%7B%22branch%22%3A%22feature%22%7D"))
+					Expect(atcServer.ReceivedRequests()[0].URL.RawQuery).To(Equal("vars.branch=%22feature%22"))
 				})
 			})
 
@@ -329,14 +329,14 @@ var _ = Describe("ATC Handler Configs", func() {
 					}
 				})
 
-				It("submits with instance_vars query param set", func() {
+				It("submits with vars.xxx query params set", func() {
 					Expect(atcServer.ReceivedRequests()).To(HaveLen(0))
 
 					_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
 					Expect(err).ToNot(HaveOccurred())
 
 					Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
-					Expect(atcServer.ReceivedRequests()[0].URL.RawQuery).To(Equal("instance_vars=%7B%22branch%22%3A%22feature%22%7D"))
+					Expect(atcServer.ReceivedRequests()[0].URL.RawQuery).To(Equal("vars.branch=%22feature%22"))
 				})
 			})
 

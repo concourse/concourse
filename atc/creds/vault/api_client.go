@@ -20,10 +20,11 @@ import (
 type APIClient struct {
 	logger lager.Logger
 
-	apiURL     string
-	namespace  string
-	tlsConfig  TLSConfig
-	authConfig AuthConfig
+	apiURL       string
+	namespace    string
+	tlsConfig    TLSConfig
+	authConfig   AuthConfig
+	queryTimeout time.Duration
 
 	clientValue *atomic.Value
 
@@ -31,14 +32,15 @@ type APIClient struct {
 }
 
 // NewAPIClient with the associated authorization config and underlying vault client.
-func NewAPIClient(logger lager.Logger, apiURL string, tlsConfig TLSConfig, authConfig AuthConfig, namespace string) (*APIClient, error) {
+func NewAPIClient(logger lager.Logger, apiURL string, tlsConfig TLSConfig, authConfig AuthConfig, namespace string, queryTimeout time.Duration) (*APIClient, error) {
 	ac := &APIClient{
 		logger: logger,
 
-		apiURL:     apiURL,
-		namespace:  namespace,
-		tlsConfig:  tlsConfig,
-		authConfig: authConfig,
+		apiURL:       apiURL,
+		namespace:    namespace,
+		tlsConfig:    tlsConfig,
+		authConfig:   authConfig,
+		queryTimeout: queryTimeout,
 
 		clientValue: &atomic.Value{},
 
@@ -58,7 +60,34 @@ func NewAPIClient(logger lager.Logger, apiURL string, tlsConfig TLSConfig, authC
 // Read must be called after a successful login has occurred or an
 // un-authorized client will be used.
 func (ac *APIClient) Read(path string) (*vaultapi.Secret, error) {
-	return ac.client().Logical().Read(path)
+	// Check if path is kv1 or kv2
+	path = sanitizePath(path)
+	mountPath, kv2, err := isKVv2(path, ac.client())
+	if err != nil {
+		return nil, err
+	}
+
+	// If the path is under a kv2 mount, add the /data/ path to the prefix
+	if kv2 {
+		path = addPrefixToVKVPath(path, mountPath, "data")
+	}
+
+	secret, err := ac.client().Logical().Read(path)
+	if err != nil || secret == nil {
+		return secret, err
+	}
+
+	// Need to discard the metadata object and pull the v2 data field up to match kv1
+	if kv2 {
+		if data, ok := secret.Data["data"]; ok && data != nil {
+			secret.Data = data.(map[string]interface{})
+		} else {
+			// Return a nil secret object if the secret was deleted, but not destroyed
+			return nil, nil
+		}
+	}
+
+	return secret, err
 }
 
 func (ac *APIClient) loginParams() map[string]interface{} {
@@ -177,6 +206,9 @@ func (ac *APIClient) setClient(client *vaultapi.Client) {
 
 func (ac *APIClient) baseClient() (*vaultapi.Client, error) {
 	config := vaultapi.DefaultConfig()
+	if ac.queryTimeout > 0 {
+		config.Timeout = ac.queryTimeout
+	}
 
 	err := ac.configureTLS(config.HttpClient.Transport.(*http.Transport).TLSClientConfig)
 	if err != nil {

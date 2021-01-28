@@ -4,10 +4,12 @@ import Application.Application as Application
 import Browser
 import Common exposing (queryView)
 import Expect
+import HoverState
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription as Subscription exposing (Delivery(..))
 import Message.TopLevelMessage as Msgs
+import Routes
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (id, style)
@@ -119,4 +121,20 @@ all =
                     |> Common.queryView
                     |> Query.find [ id "page-wrapper" ]
                     |> Query.has [ style "height" "100%" ]
+        , test "changing route clears hovered element" <|
+            \_ ->
+                Common.init "/teams/t/pipelines/p/jobs/j"
+                    |> Application.update (Msgs.Update <| Hover <| Just PinIcon)
+                    |> Tuple.first
+                    |> Application.handleDelivery
+                        (RouteChanged <|
+                            Routes.Dashboard
+                                { searchType = Routes.Normal ""
+                                , dashboardView = Routes.ViewNonArchivedPipelines
+                                }
+                        )
+                    |> Tuple.first
+                    |> .session
+                    |> .hovered
+                    |> Expect.equal HoverState.NoHover
         ]

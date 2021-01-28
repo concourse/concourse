@@ -20,9 +20,9 @@ func CreateBuildPlan(
 		return atc.Plan{}, err
 	}
 
-	buildInputs := atc.AggregatePlan{}
+	buildInputs := atc.InParallelPlan{}
 	for _, input := range inputs {
-		buildInputs = append(buildInputs, input.Plan)
+		buildInputs.Steps = append(buildInputs.Steps, input.Plan)
 	}
 
 	taskPlan := fact.NewPlan(atc.TaskPlan{
@@ -37,13 +37,13 @@ func CreateBuildPlan(
 		taskPlan.Task.Tags = tags
 	}
 
-	buildOutputs := atc.AggregatePlan{}
+	buildOutputs := atc.InParallelPlan{}
 	for _, output := range outputs {
-		buildOutputs = append(buildOutputs, output.Plan)
+		buildOutputs.Steps = append(buildOutputs.Steps, output.Plan)
 	}
 
 	var plan atc.Plan
-	if len(buildOutputs) == 0 {
+	if len(buildOutputs.Steps) == 0 {
 		plan = fact.NewPlan(atc.DoPlan{
 			fact.NewPlan(buildInputs),
 			taskPlan,

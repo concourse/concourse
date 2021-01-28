@@ -32,7 +32,7 @@ type Resource interface {
 	TeamName() string
 	Type() string
 	Source() atc.Source
-	CheckEvery() string
+	CheckEvery() *atc.CheckEvery
 	CheckTimeout() string
 	LastCheckStartTime() time.Time
 	LastCheckEndTime() time.Time
@@ -73,37 +73,39 @@ type Resource interface {
 	Reload() (bool, error)
 }
 
-var resourcesQuery = psql.Select(
-	"r.id",
-	"r.name",
-	"r.type",
-	"r.config",
-	"rs.last_check_start_time",
-	"rs.last_check_end_time",
-	"r.pipeline_id",
-	"r.nonce",
-	"r.resource_config_id",
-	"r.resource_config_scope_id",
-	"p.name",
-	"p.instance_vars",
-	"t.id",
-	"t.name",
-	"rp.version",
-	"rp.comment_text",
-	"rp.config",
-	"b.id",
-	"b.name",
-	"b.status",
-	"b.start_time",
-	"b.end_time",
-).
-	From("resources r").
-	Join("pipelines p ON p.id = r.pipeline_id").
-	Join("teams t ON t.id = p.team_id").
-	LeftJoin("builds b ON b.id = r.build_id").
-	LeftJoin("resource_config_scopes rs ON r.resource_config_scope_id = rs.id").
-	LeftJoin("resource_pins rp ON rp.resource_id = r.id").
-	Where(sq.Eq{"r.active": true})
+var (
+	resourcesQuery = psql.Select(
+		"r.id",
+		"r.name",
+		"r.type",
+		"r.config",
+		"rs.last_check_start_time",
+		"rs.last_check_end_time",
+		"r.pipeline_id",
+		"r.nonce",
+		"r.resource_config_id",
+		"r.resource_config_scope_id",
+		"p.name",
+		"p.instance_vars",
+		"t.id",
+		"t.name",
+		"rp.version",
+		"rp.comment_text",
+		"rp.config",
+		"b.id",
+		"b.name",
+		"b.status",
+		"b.start_time",
+		"b.end_time",
+	).
+		From("resources r").
+		Join("pipelines p ON p.id = r.pipeline_id").
+		Join("teams t ON t.id = p.team_id").
+		LeftJoin("builds b ON b.id = r.build_id").
+		LeftJoin("resource_config_scopes rs ON r.resource_config_scope_id = rs.id").
+		LeftJoin("resource_pins rp ON rp.resource_id = r.id").
+		Where(sq.Eq{"r.active": true})
+)
 
 type resource struct {
 	pipelineRef
@@ -163,7 +165,7 @@ func (r *resource) TeamID() int                      { return r.teamID }
 func (r *resource) TeamName() string                 { return r.teamName }
 func (r *resource) Type() string                     { return r.type_ }
 func (r *resource) Source() atc.Source               { return r.config.Source }
-func (r *resource) CheckEvery() string               { return r.config.CheckEvery }
+func (r *resource) CheckEvery() *atc.CheckEvery      { return r.config.CheckEvery }
 func (r *resource) CheckTimeout() string             { return r.config.CheckTimeout }
 func (r *resource) LastCheckStartTime() time.Time    { return r.lastCheckStartTime }
 func (r *resource) LastCheckEndTime() time.Time      { return r.lastCheckEndTime }

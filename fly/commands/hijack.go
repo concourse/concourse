@@ -281,11 +281,22 @@ func (command *HijackCommand) getContainerFingerprintFromUrl(target rc.Target, u
 	}
 
 	fingerprint := &containerFingerprint{
-		pipelineName:         urlMap["pipelines"],
-		pipelineInstanceVars: u.Query().Get("instance_vars"),
-		jobName:              urlMap["jobs"],
-		buildNameOrID:        urlMap["builds"],
-		checkName:            urlMap["resources"],
+		pipelineName:  urlMap["pipelines"],
+		jobName:       urlMap["jobs"],
+		buildNameOrID: urlMap["builds"],
+		checkName:     urlMap["resources"],
+	}
+
+	instanceVars, err := atc.InstanceVarsFromQueryParams(u.Query())
+	if err != nil {
+		return nil, err
+	}
+	if len(instanceVars) > 0 {
+		instanceVarsPayload, err := json.Marshal(instanceVars)
+		if err != nil {
+			return nil, err
+		}
+		fingerprint.pipelineInstanceVars = string(instanceVarsPayload)
 	}
 
 	return fingerprint, nil
@@ -302,20 +313,14 @@ func (command *HijackCommand) getContainerFingerprint(target rc.Target, team con
 		}
 	}
 
-	pipelineName := command.Check.PipelineRef.Name
+	pipelineRef := command.Check.PipelineRef
 	if command.Job.PipelineRef.Name != "" {
-		pipelineName = command.Job.PipelineRef.Name
+		pipelineRef = command.Job.PipelineRef
 	}
 
 	var pipelineInstanceVars string
-	var instanceVars atc.InstanceVars
-	if command.Check.PipelineRef.InstanceVars != nil {
-		instanceVars = command.Check.PipelineRef.InstanceVars
-	} else {
-		instanceVars = command.Job.PipelineRef.InstanceVars
-	}
-	if instanceVars != nil {
-		instanceVarsJSON, _ := json.Marshal(instanceVars)
+	if pipelineRef.InstanceVars != nil {
+		instanceVarsJSON, _ := json.Marshal(pipelineRef.InstanceVars)
 		pipelineInstanceVars = string(instanceVarsJSON)
 	}
 
@@ -323,7 +328,7 @@ func (command *HijackCommand) getContainerFingerprint(target rc.Target, team con
 		fp  *string
 		cmd string
 	}{
-		{fp: &fingerprint.pipelineName, cmd: pipelineName},
+		{fp: &fingerprint.pipelineName, cmd: pipelineRef.Name},
 		{fp: &fingerprint.pipelineInstanceVars, cmd: pipelineInstanceVars},
 		{fp: &fingerprint.buildNameOrID, cmd: command.Build},
 		{fp: &fingerprint.stepName, cmd: command.StepName},
@@ -398,7 +403,7 @@ func (locator stepContainerLocator) locate(fingerprint *containerFingerprint) (m
 	if fingerprint.jobName != "" {
 		reqValues["pipeline_name"] = fingerprint.pipelineName
 		if fingerprint.pipelineInstanceVars != "" {
-			reqValues["instance_vars"] = fingerprint.pipelineInstanceVars
+			reqValues["vars"] = fingerprint.pipelineInstanceVars
 		}
 		reqValues["job_name"] = fingerprint.jobName
 		if fingerprint.buildNameOrID != "" {
@@ -430,7 +435,7 @@ func (locator checkContainerLocator) locate(fingerprint *containerFingerprint) (
 		reqValues["pipeline_name"] = fingerprint.pipelineName
 	}
 	if fingerprint.pipelineInstanceVars != "" {
-		reqValues["instance_vars"] = fingerprint.pipelineInstanceVars
+		reqValues["vars"] = fingerprint.pipelineInstanceVars
 	}
 
 	return reqValues, nil

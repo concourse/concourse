@@ -1,8 +1,11 @@
 module SideBar.SideBar exposing
     ( Model
+    , byDatabaseId
+    , byPipelineId
     , hamburgerMenu
     , handleCallback
     , handleDelivery
+    , lookupPipeline
     , tooltip
     , update
     , view
@@ -22,6 +25,7 @@ import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
 import Message.Subscription exposing (Delivery(..))
 import RemoteData exposing (RemoteData(..), WebData)
+import Routes
 import ScreenSize exposing (ScreenSize(..))
 import Set exposing (Set)
 import SideBar.State exposing (SideBarState)
@@ -43,6 +47,7 @@ type alias Model m =
             , draggingSideBar : Bool
             , screenSize : ScreenSize.ScreenSize
             , favoritedPipelines : Set Concourse.DatabaseID
+            , route : Routes.Route
         }
 
 
@@ -115,33 +120,23 @@ update message model =
         Click (TopBarFavoritedIcon pipelineID) ->
             toggleFavorite pipelineID
 
-        Hover (Just (SideBarPipeline section pipelineID)) ->
-            ( model
-            , [ Effects.GetViewportOf
-                    (SideBarPipeline section pipelineID)
-              ]
-            )
-
-        Hover (Just (SideBarTeam section teamName)) ->
-            ( model
-            , [ Effects.GetViewportOf
-                    (SideBarTeam section teamName)
-              ]
-            )
+        Hover (Just domID) ->
+            ( model, [ Effects.GetViewportOf domID ] )
 
         _ ->
             ( model, [] )
 
 
-handleCallback : Callback -> WebData (PipelineScoped a) -> ET (Model m)
-handleCallback callback currentPipeline ( model, effects ) =
+handleCallback : Callback -> ET (Model m)
+handleCallback callback ( model, effects ) =
     case callback of
         AllPipelinesFetched (Ok pipelines) ->
             ( { model
                 | pipelines = Success pipelines
                 , expandedTeamsInAllPipelines =
-                    case ( model.pipelines, currentPipeline ) of
-                        ( NotAsked, Success { teamName } ) ->
+                    case ( model.pipelines, curPipeline pipelines model.route ) of
+                        -- First time receiving AllPipelines response
+                        ( NotAsked, Just { teamName } ) ->
                             model.expandedTeamsInAllPipelines
                                 |> Set.insert teamName
 
@@ -154,8 +149,9 @@ handleCallback callback currentPipeline ( model, effects ) =
         BuildFetched (Ok build) ->
             ( { model
                 | expandedTeamsInAllPipelines =
-                    case ( currentPipeline, build.job ) of
-                        ( NotAsked, Just { teamName } ) ->
+                    case ( model.route, build.job, build ) of
+                        -- One-off build page for a job build should still expand team in sidebar
+                        ( Routes.OneOffBuild _, Just _, { teamName } ) ->
                             model.expandedTeamsInAllPipelines
                                 |> Set.insert teamName
 
@@ -223,6 +219,8 @@ view model currentPipeline =
         in
         Html.div
             (id "side-bar" :: Styles.sideBar newState)
+            -- I'd love to use the curPipeline function instead of passing it in to view,
+            -- but that doesn't work for OneOffBuilds that point to a JobBuild
             (favoritedPipelinesSection model currentPipeline
                 ++ allPipelinesSection model currentPipeline
                 ++ [ Html.div
@@ -261,6 +259,16 @@ tooltip { hovered } =
                                 + (Styles.starPadding * 2)
                                 + Styles.starWidth
                                 - Styles.tooltipOffset
+                    , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
+                    }
+                , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.tooltipBackground }
+                }
+
+        HoverState.Tooltip (SideBarInstanceGroup _ _ name) _ ->
+            Just
+                { body = Html.div Styles.tooltipBody [ Html.text name ]
+                , attachPosition =
+                    { direction = Tooltip.Right <| Styles.tooltipArrowSize - Styles.tooltipOffset
                     , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
                     }
                 , arrow = Just { size = Styles.tooltipArrowSize, color = Colors.tooltipBackground }
@@ -384,3 +392,50 @@ hasVisiblePipelines model =
 isPipelineVisible : { a | favoritedPipelines : Set Concourse.DatabaseID } -> Concourse.Pipeline -> Bool
 isPipelineVisible { favoritedPipelines } p =
     not p.archived || Set.member p.id favoritedPipelines
+
+
+lookupPipeline :
+    (Concourse.Pipeline -> Bool)
+    -> { b | pipelines : WebData (List Concourse.Pipeline) }
+    -> Maybe Concourse.Pipeline
+lookupPipeline predicate { pipelines } =
+    case pipelines of
+        Success ps ->
+            List.Extra.find predicate ps
+
+        _ ->
+            Nothing
+
+
+byDatabaseId : Concourse.DatabaseID -> Concourse.Pipeline -> Bool
+byDatabaseId id =
+    .id >> (==) id
+
+
+byPipelineId :
+    { r | teamName : String, pipelineName : String, pipelineInstanceVars : Concourse.InstanceVars }
+    -> Concourse.Pipeline
+    -> Bool
+byPipelineId pipelineId p =
+    (p.name == pipelineId.pipelineName)
+        && (p.teamName == pipelineId.teamName)
+        && (p.instanceVars == pipelineId.pipelineInstanceVars)
+
+
+curPipeline : List Concourse.Pipeline -> Routes.Route -> Maybe Concourse.Pipeline
+curPipeline pipelines route =
+    case route of
+        Routes.Build { id } ->
+            List.Extra.find (byPipelineId id) pipelines
+
+        Routes.Resource { id } ->
+            List.Extra.find (byPipelineId id) pipelines
+
+        Routes.Job { id } ->
+            List.Extra.find (byPipelineId id) pipelines
+
+        Routes.Pipeline { id } ->
+            List.Extra.find (byPipelineId id) pipelines
+
+        _ ->
+            Nothing

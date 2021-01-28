@@ -69,29 +69,37 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pipelineName := rata.Param(r, "pipeline_name")
-	warning := atc.ValidateIdentifier(pipelineName, "pipeline")
+	warning, err := atc.ValidateIdentifier(pipelineName, "pipeline")
+	if err != nil {
+		session.Info("ignoring-pipeline-name", lager.Data{"error": err.Error()})
+		s.handleBadRequest(w, err.Error())
+		return
+	}
 	if warning != nil {
 		warnings = append(warnings, *warning)
 	}
 
 	teamName := rata.Param(r, "team_name")
-	warning = atc.ValidateIdentifier(teamName, "team")
+	warning, err = atc.ValidateIdentifier(teamName, "team")
+	if err != nil {
+		session.Info("ignoring-team-name", lager.Data{"error": err.Error()})
+		s.handleBadRequest(w, err.Error())
+		return
+	}
 	if warning != nil {
 		warnings = append(warnings, *warning)
 	}
 
 	pipelineRef := atc.PipelineRef{Name: pipelineName}
+	pipelineRef.InstanceVars, err = atc.InstanceVarsFromQueryParams(r.URL.Query())
 	if atc.EnablePipelineInstances {
-		if instanceVars := query.Get("instance_vars"); instanceVars != "" {
-			err := json.Unmarshal([]byte(instanceVars), &pipelineRef.InstanceVars)
-			if err != nil {
-				session.Error("malformed-instance-vars", err)
-				s.handleBadRequest(w, fmt.Sprintf("instance_vars is malformed: %s", err))
-				return
-			}
+		if err != nil {
+			session.Error("malformed-instance-vars", err)
+			s.handleBadRequest(w, fmt.Sprintf("instance vars are malformed: %v", err))
+			return
 		}
-	} else if query.Get("instance_vars") != "" {
-		s.handleBadRequest(w, "support for `instance-vars` is disabled")
+	} else if pipelineRef.InstanceVars != nil {
+		s.handleBadRequest(w, "support for `instance vars` is disabled")
 		return
 	}
 

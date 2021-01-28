@@ -1,5 +1,6 @@
 module Dashboard.Dashboard exposing
-    ( documentTitle
+    ( changeRoute
+    , documentTitle
     , handleCallback
     , handleDelivery
     , init
@@ -11,15 +12,17 @@ module Dashboard.Dashboard exposing
 
 import Application.Models exposing (Session)
 import Colors
-import Concourse
+import Concourse exposing (hyphenNotation)
 import Concourse.BuildStatus
 import Concourse.Cli as Cli
 import Dashboard.DashboardPreview as DashboardPreview
 import Dashboard.Drag as Drag
 import Dashboard.Filter as Filter
 import Dashboard.Footer as Footer
+import Dashboard.Grid as Grid
+import Dashboard.Grid.Constants as GridConstants
 import Dashboard.Group as Group
-import Dashboard.Group.Models exposing (Pipeline)
+import Dashboard.Group.Models exposing (Card(..), Pipeline, cardName)
 import Dashboard.Models as Models
     exposing
         ( DragState(..)
@@ -28,8 +31,6 @@ import Dashboard.Models as Models
         , FetchError(..)
         , Model
         )
-import Dashboard.PipelineGrid as PipelineGrid
-import Dashboard.PipelineGrid.Constants as PipelineGridConstants
 import Dashboard.RequestBuffer as RequestBuffer exposing (Buffer(..))
 import Dashboard.SearchBar as SearchBar
 import Dashboard.Styles as Styles
@@ -65,23 +66,25 @@ import Message.Message as Message
         , Message(..)
         , VisibilityAction(..)
         )
+import Message.ScrollDirection exposing (ScrollDirection(..))
 import Message.Subscription
     exposing
         ( Delivery(..)
         , Interval(..)
         , Subscription(..)
         )
+import Ordering
 import Routes
 import ScreenSize exposing (ScreenSize(..))
-import Set exposing (Set)
-import SideBar.SideBar as SideBar
+import Set
+import SideBar.SideBar as SideBar exposing (byDatabaseId, byPipelineId, lookupPipeline)
 import StrictEvents exposing (onScroll)
-import Time
 import Tooltip
 import UserState
 import Views.Spinner as Spinner
 import Views.Styles
 import Views.Toggle as Toggle
+import Views.TopBar as TopBar
 
 
 type alias Flags =
@@ -133,6 +136,33 @@ init f =
       , LoadCachedTeams
       , GetViewportOf Dashboard
       ]
+    )
+
+
+changeRoute : Flags -> ET Model
+changeRoute f ( model, effects ) =
+    let
+        wasViewingInstanceGroup =
+            Filter.isViewingInstanceGroups model.query
+
+        newQuery =
+            Routes.extractQuery f.searchType
+
+        isViewingInstanceGroup =
+            Filter.isViewingInstanceGroups newQuery
+    in
+    ( { model
+        | highDensity = f.searchType == Routes.HighDensity
+        , dashboardView = f.dashboardView
+        , query = newQuery
+      }
+    , effects
+        ++ (if wasViewingInstanceGroup /= isViewingInstanceGroup then
+                [ Scroll ToTop <| toHtmlID Dashboard ]
+
+            else
+                []
+           )
     )
 
 
@@ -228,12 +258,12 @@ handleCallback callback ( model, effects ) =
                         , nextBuild = Nothing
                     }
 
+                newJobs : FetchResult (Dict ( Int, String ) Concourse.Job)
                 newJobs =
                     allJobsInEntireCluster
                         |> List.map
                             (\job ->
-                                ( ( job.teamName
-                                  , job.pipelineName
+                                ( ( job.pipelineId
                                   , job.name
                                   )
                                 , job
@@ -326,7 +356,7 @@ handleCallback callback ( model, effects ) =
                 | pipelinesWithResourceErrors =
                     resources
                         |> List.filter failingToCheck
-                        |> List.map (\r -> ( r.teamName, r.pipelineName ))
+                        |> List.map (\r -> r.pipelineId)
                         |> Set.fromList
                 , resourcesError = Nothing
               }
@@ -386,7 +416,7 @@ handleCallback callback ( model, effects ) =
                                         Routes.HighDensity
 
                                     else
-                                        Routes.Normal model.query
+                                        Routes.Normal ""
                                 , dashboardView = model.dashboardView
                                 }
                    , FetchAllTeams
@@ -462,7 +492,10 @@ updatePipeline updater pipelineId model =
                     (Dict.update pipelineId.teamName
                         (Maybe.map
                             (List.Extra.updateIf
-                                (\p -> p.name == pipelineId.pipelineName)
+                                (\p ->
+                                    (p.name == pipelineId.pipelineName)
+                                        && (p.instanceVars == pipelineId.pipelineInstanceVars)
+                                )
                                 updater
                             )
                         )
@@ -470,16 +503,9 @@ updatePipeline updater pipelineId model =
     }
 
 
-findPipeline : Concourse.PipelineIdentifier -> Maybe (Dict String (List Pipeline)) -> Maybe Pipeline
-findPipeline pipelineId pipelines =
-    pipelines
-        |> Maybe.andThen (Dict.get pipelineId.teamName)
-        |> Maybe.andThen (List.Extra.find (.name >> (==) pipelineId.pipelineName))
-
-
-handleDelivery : Delivery -> ET Model
-handleDelivery delivery =
-    SearchBar.handleDelivery delivery
+handleDelivery : Session -> Delivery -> ET Model
+handleDelivery session delivery =
+    SearchBar.handleDelivery session delivery
         >> Footer.handleDelivery delivery
         >> RequestBuffer.handleDelivery delivery buffers
         >> handleDeliveryBody delivery
@@ -522,8 +548,7 @@ handleDeliveryBody delivery ( model, effects ) =
                     jobs
                         |> List.map
                             (\job ->
-                                ( ( job.teamName
-                                  , job.pipelineName
+                                ( ( job.pipelineId
                                   , job.name
                                   )
                                 , job
@@ -563,6 +588,7 @@ toDashboardPipeline : Bool -> Bool -> Concourse.Pipeline -> Pipeline
 toDashboardPipeline isStale jobsDisabled p =
     { id = p.id
     , name = p.name
+    , instanceVars = p.instanceVars
     , teamName = p.teamName
     , public = p.public
     , isToggleLoading = False
@@ -578,6 +604,7 @@ toConcoursePipeline : Pipeline -> Concourse.Pipeline
 toConcoursePipeline p =
     { id = p.id
     , name = p.name
+    , instanceVars = p.instanceVars
     , teamName = p.teamName
     , public = p.public
     , paused = p.paused
@@ -622,13 +649,7 @@ precomputeJobMetadata model =
                 |> Dict.values
 
         pipelineJobs =
-            allJobs |> groupBy (\j -> ( j.teamName, j.pipelineName ))
-
-        jobToId job =
-            { teamName = job.teamName
-            , pipelineName = job.pipelineName
-            , jobName = job.name
-            }
+            allJobs |> groupBy (\j -> j.pipelineId)
     in
     { model
         | pipelineLayers =
@@ -637,48 +658,65 @@ precomputeJobMetadata model =
                     (\_ jobs ->
                         jobs
                             |> DashboardPreview.groupByRank
-                            |> List.map (List.map jobToId)
+                            |> List.map (List.map .name)
                     )
         , pipelineJobs =
             pipelineJobs
-                |> Dict.map (\_ jobs -> jobs |> List.map jobToId)
+                |> Dict.map (\_ jobs -> jobs |> List.map .name)
     }
 
 
 update : Session -> Message -> ET Model
 update session msg =
-    SearchBar.update session msg >> updateBody msg
+    SearchBar.update session msg >> updateBody session msg
 
 
-updateBody : Message -> ET Model
-updateBody msg ( model, effects ) =
+updateBody : Session -> Message -> ET Model
+updateBody session msg ( model, effects ) =
     case msg of
-        DragStart teamName pipelineName ->
-            ( { model | dragState = Models.Dragging teamName pipelineName }, effects )
+        DragStart teamName cardId ->
+            ( { model | dragState = Models.Dragging teamName cardId }, effects )
 
         DragOver target ->
             ( { model | dropState = Models.Dropping target }, effects )
 
-        TooltipHd pipelineName teamName ->
-            ( model, effects ++ [ ShowTooltipHd ( pipelineName, teamName ) ] )
-
-        Tooltip pipelineName teamName ->
-            ( model, effects ++ [ ShowTooltip ( pipelineName, teamName ) ] )
-
         DragEnd ->
             case ( model.dragState, model.dropState ) of
-                ( Dragging teamName pipelineName, Dropping target ) ->
+                ( Dragging teamName name, Dropping target ) ->
                     let
-                        teamPipelines =
+                        teamCards =
                             model.pipelines
                                 |> Maybe.andThen (Dict.get teamName)
                                 |> Maybe.withDefault []
-                                |> Drag.dragPipeline pipelineName target
+                                |> groupCards
+                                |> (\cards ->
+                                        cards
+                                            |> (case Drag.dragCardIndices name target cards of
+                                                    Just ( from, to ) ->
+                                                        Drag.drag from to
+
+                                                    _ ->
+                                                        identity
+                                               )
+                                   )
 
                         pipelines =
                             model.pipelines
                                 |> Maybe.withDefault Dict.empty
-                                |> Dict.update teamName (always <| Just teamPipelines)
+                                |> Dict.update teamName
+                                    (always <|
+                                        Just <|
+                                            List.concatMap
+                                                (\card ->
+                                                    case card of
+                                                        PipelineCard p ->
+                                                            [ p ]
+
+                                                        InstanceGroupCard p ps ->
+                                                            p :: ps
+                                                )
+                                                teamCards
+                                    )
                     in
                     ( { model
                         | pipelines = Just pipelines
@@ -686,8 +724,8 @@ updateBody msg ( model, effects ) =
                         , dropState = DroppingWhileApiRequestInFlight teamName
                       }
                     , effects
-                        ++ [ teamPipelines
-                                |> List.map .name
+                        ++ [ teamCards
+                                |> List.map cardName
                                 |> SendOrderPipelinesRequest teamName
                            , pipelines
                                 |> Dict.values
@@ -705,9 +743,6 @@ updateBody msg ( model, effects ) =
                     , effects
                     )
 
-        Hover (Just domID) ->
-            ( model, effects ++ [ GetViewportOf domID ] )
-
         Click LogoutButton ->
             ( { model
                 | teams = None
@@ -720,8 +755,8 @@ updateBody msg ( model, effects ) =
         Click (PipelineCardPauseToggle _ pipelineId) ->
             let
                 isPaused =
-                    model.pipelines
-                        |> findPipeline pipelineId
+                    session
+                        |> lookupPipeline (byPipelineId pipelineId)
                         |> Maybe.map .paused
             in
             case isPaused of
@@ -737,21 +772,19 @@ updateBody msg ( model, effects ) =
                 Nothing ->
                     ( model, effects )
 
-        Click (VisibilityButton _ pipelineId) ->
-            let
-                isPublic =
-                    model.pipelines
-                        |> findPipeline pipelineId
-                        |> Maybe.map .public
-            in
-            case isPublic of
-                Just public ->
+        Click (VisibilityButton _ id) ->
+            case lookupPipeline (byDatabaseId id) session of
+                Just pipeline ->
+                    let
+                        pipelineId =
+                            Concourse.toPipelineId pipeline
+                    in
                     ( updatePipeline
                         (\p -> { p | isVisibilityLoading = True })
                         pipelineId
                         model
                     , effects
-                        ++ [ if public then
+                        ++ [ if pipeline.public then
                                 ChangeVisibility Hide pipelineId
 
                              else
@@ -817,9 +850,9 @@ view session model =
         ]
 
 
-tooltip : { a | pipelines : Maybe (Dict String (List Pipeline)) } -> { b | hovered : HoverState.HoverState } -> Maybe Tooltip.Tooltip
-tooltip model { hovered } =
-    case hovered of
+tooltip : Session -> Maybe Tooltip.Tooltip
+tooltip session =
+    case session.hovered of
         HoverState.Tooltip (Message.PipelineStatusIcon _ _) _ ->
             Just
                 { body =
@@ -830,9 +863,9 @@ tooltip model { hovered } =
                 , arrow = Nothing
                 }
 
-        HoverState.Tooltip (Message.VisibilityButton _ pipelineId) _ ->
-            model.pipelines
-                |> findPipeline pipelineId
+        HoverState.Tooltip (Message.VisibilityButton _ id) _ ->
+            session
+                |> lookupPipeline (byDatabaseId id)
                 |> Maybe.map
                     (\p ->
                         { body =
@@ -853,6 +886,97 @@ tooltip model { hovered } =
                         }
                     )
 
+        HoverState.Tooltip (Message.JobPreview _ _ jobName) _ ->
+            Just
+                { body =
+                    Html.div
+                        Styles.jobPreviewTooltip
+                        [ Html.text jobName ]
+                , attachPosition = { direction = Tooltip.Right 0, alignment = Tooltip.Middle 30 }
+                , arrow = Just { size = 15, color = "#000" }
+                }
+
+        HoverState.Tooltip (Message.PipelinePreview _ id) _ ->
+            session
+                |> lookupPipeline (byDatabaseId id)
+                |> Maybe.map
+                    (\p ->
+                        { body =
+                            Html.div
+                                Styles.pipelinePreviewTooltip
+                                [ Html.text <| hyphenNotation p.instanceVars ]
+                        , attachPosition =
+                            { direction = Tooltip.Right 0
+                            , alignment = Tooltip.Middle 30
+                            }
+                        , arrow = Just { size = 15, color = "#000" }
+                        }
+                    )
+
+        HoverState.Tooltip (Message.PipelineCardName _ id) _ ->
+            session
+                |> lookupPipeline (byDatabaseId id)
+                |> Maybe.map
+                    (\p ->
+                        { body =
+                            Html.div
+                                Styles.cardTooltip
+                                [ Html.text p.name ]
+                        , attachPosition =
+                            { direction = Tooltip.Right 0
+                            , alignment = Tooltip.Middle 30
+                            }
+                        , arrow = Just { size = 15, color = "#000" }
+                        }
+                    )
+
+        HoverState.Tooltip (Message.PipelineCardNameHD id) _ ->
+            session
+                |> lookupPipeline (byDatabaseId id)
+                |> Maybe.map
+                    (\p ->
+                        { body =
+                            Html.div
+                                Styles.cardTooltip
+                                [ Html.text p.name ]
+                        , attachPosition =
+                            { direction = Tooltip.Right 0
+                            , alignment = Tooltip.Middle 30
+                            }
+                        , arrow = Just { size = 15, color = "#000" }
+                        }
+                    )
+
+        HoverState.Tooltip (Message.InstanceGroupCardName _ _ groupName) _ ->
+            Just
+                { body =
+                    Html.div
+                        Styles.cardTooltip
+                        [ Html.text groupName ]
+                , attachPosition = { direction = Tooltip.Right 0, alignment = Tooltip.Middle 30 }
+                , arrow = Just { size = 15, color = "#000" }
+                }
+
+        HoverState.Tooltip (Message.InstanceGroupCardNameHD _ groupName) _ ->
+            Just
+                { body =
+                    Html.div
+                        Styles.cardTooltip
+                        [ Html.text groupName ]
+                , attachPosition = { direction = Tooltip.Right 0, alignment = Tooltip.Middle 30 }
+                , arrow = Just { size = 15, color = "#000" }
+                }
+
+        HoverState.Tooltip (Message.PipelineCardInstanceVar _ _ key value) _ ->
+            Just
+                { body =
+                    Html.div
+                        Styles.cardTooltip
+                        [ Html.text <| key ++ ": " ++ value ]
+                , attachPosition = { direction = Tooltip.Right 0, alignment = Tooltip.Middle 30 }
+                , arrow = Just { size = 15, color = "#000" }
+                }
+
         _ ->
             Nothing
 
@@ -864,8 +988,8 @@ topBar session model =
     <|
         [ Html.div [ style "display" "flex", style "align-items" "center" ]
             [ SideBar.hamburgerMenu session
-            , Html.a (href "/" :: Views.Styles.concourseLogo) []
-            , clusterNameView session
+            , TopBar.concourseLogo
+            , TopBar.breadcrumbs session session.route
             ]
         ]
             ++ (let
@@ -903,21 +1027,7 @@ topBarContent content =
         content
 
 
-clusterNameView : Session -> Html Message
-clusterNameView session =
-    Html.div
-        Styles.clusterName
-        [ Html.text session.clusterName ]
-
-
-showArchivedToggleView :
-    { a
-        | pipelines : Maybe (Dict String (List Pipeline))
-        , query : String
-        , highDensity : Bool
-        , dashboardView : Routes.DashboardView
-    }
-    -> Html Message
+showArchivedToggleView : Model -> Html Message
 showArchivedToggleView model =
     let
         noPipelines =
@@ -972,17 +1082,7 @@ showTurbulence model =
         || (model.pipelinesError == Just Failed)
 
 
-dashboardView :
-    { a
-        | hovered : HoverState.HoverState
-        , screenSize : ScreenSize
-        , userState : UserState.UserState
-        , turbulenceImgSrc : String
-        , pipelineRunningKeyframes : String
-        , favoritedPipelines : Set Concourse.DatabaseID
-    }
-    -> Model
-    -> Html Message
+dashboardView : Session -> Model -> Html Message
 dashboardView session model =
     if showTurbulence model then
         turbulenceView session.turbulenceImgSrc
@@ -1000,10 +1100,10 @@ dashboardView session model =
 
                 Just pipelines ->
                     if pipelines |> Dict.values |> List.all List.isEmpty then
-                        welcomeCard session :: pipelinesView session model
+                        welcomeCard session :: dashboardCardsView session model
 
                     else
-                        Html.text "" :: pipelinesView session model
+                        Html.text "" :: dashboardCardsView session model
             )
 
 
@@ -1116,57 +1216,84 @@ turbulenceView path =
         ]
 
 
-pipelinesView :
-    { a
-        | userState : UserState.UserState
-        , hovered : HoverState.HoverState
-        , pipelineRunningKeyframes : String
-        , favoritedPipelines : Set Concourse.DatabaseID
-    }
-    ->
-        { b
-            | teams : FetchResult (List Concourse.Team)
-            , query : String
-            , highDensity : Bool
-            , dashboardView : Routes.DashboardView
-            , pipelinesWithResourceErrors : Set ( String, String )
-            , pipelineLayers : Dict ( String, String ) (List (List Concourse.JobIdentifier))
-            , pipelines : Maybe (Dict String (List Pipeline))
-            , jobs : FetchResult (Dict ( String, String, String ) Concourse.Job)
-            , dragState : DragState
-            , dropState : DropState
-            , now : Maybe Time.Posix
-            , viewportWidth : Float
-            , viewportHeight : Float
-            , scrollTop : Float
-            , pipelineJobs : Dict ( String, String ) (List Concourse.JobIdentifier)
-        }
-    -> List (Html Message)
-pipelinesView session params =
-    let
-        pipelines =
-            params.pipelines
-                |> Maybe.withDefault Dict.empty
+dashboardCardsView : Session -> Model -> List (Html Message)
+dashboardCardsView session model =
+    if Filter.isViewingInstanceGroups model.query then
+        instanceGroupCardsView session model
 
+    else
+        regularCardsView session model
+
+
+regularCardsView : Session -> Model -> List (Html Message)
+regularCardsView session params =
+    let
+        filteredPipelinesByTeam =
+            Filter.filterTeams session params
+                |> Dict.toList
+                |> List.sortWith (Ordering.byFieldWith (Group.ordering session) Tuple.first)
+
+        teamCards =
+            filteredPipelinesByTeam
+                |> List.map
+                    (\( team, teamPipelines ) ->
+                        ( team
+                        , groupCards teamPipelines
+                        )
+                    )
+    in
+    cardsView session params teamCards
+
+
+groupCards : List Pipeline -> List Card
+groupCards =
+    Concourse.groupPipelines
+        >> List.map
+            (\g ->
+                case g of
+                    Concourse.RegularPipeline p ->
+                        PipelineCard p
+
+                    Concourse.InstanceGroup p ps ->
+                        InstanceGroupCard p ps
+            )
+
+
+instanceGroupCardsView : Session -> Model -> List (Html Message)
+instanceGroupCardsView session model =
+    let
+        filteredPipelines : List ( Concourse.TeamName, List Pipeline )
+        filteredPipelines =
+            Filter.filterTeams session model
+                |> Dict.toList
+                |> List.sortWith (Ordering.byFieldWith (Group.ordering session) Tuple.first)
+
+        instanceGroups : List ( String, List Card )
+        instanceGroups =
+            filteredPipelines
+                |> List.concatMap
+                    (\( team, teamPipelines ) ->
+                        List.Extra.gatherEqualsBy .name teamPipelines
+                            |> List.map
+                                (\( p, ps ) ->
+                                    ( team ++ " / " ++ p.name
+                                    , p :: ps |> List.map PipelineCard
+                                    )
+                                )
+                    )
+    in
+    cardsView session model instanceGroups
+
+
+cardsView : Session -> Model -> List ( String, List Card ) -> List (Html Message)
+cardsView session params teamCards =
+    let
         jobs =
             params.jobs
                 |> FetchResult.withDefault Dict.empty
 
-        teams =
-            params.teams
-                |> FetchResult.withDefault []
-
-        filteredGroups =
-            Filter.filterGroups
-                { pipelineJobs = params.pipelineJobs
-                , jobs = jobs
-                , query = params.query
-                , teams = teams
-                , pipelines = pipelines
-                , dashboardView = params.dashboardView
-                , favoritedPipelines = session.favoritedPipelines
-                }
-                |> List.sortWith (Group.ordering session)
+        inInstanceGroupView =
+            Filter.isViewingInstanceGroups params.query
 
         ( headerView, offsetHeight ) =
             if params.highDensity then
@@ -1174,36 +1301,55 @@ pipelinesView session params =
 
             else
                 let
-                    favoritedPipelines =
-                        filteredGroups
-                            |> List.concatMap .pipelines
-                            |> List.filter
-                                (\fp ->
-                                    Set.member fp.id session.favoritedPipelines
+                    favoritedCards =
+                        teamCards
+                            |> List.concatMap Tuple.second
+                            |> List.filterMap
+                                (\c ->
+                                    let
+                                        isFavorited p =
+                                            Set.member p.id session.favoritedPipelines
+                                    in
+                                    case c of
+                                        PipelineCard p ->
+                                            if isFavorited p then
+                                                Just <| PipelineCard p
+
+                                            else
+                                                Nothing
+
+                                        InstanceGroupCard p ps ->
+                                            case List.filter isFavorited (p :: ps) of
+                                                x :: xs ->
+                                                    Just <| InstanceGroupCard x xs
+
+                                                [] ->
+                                                    Nothing
                                 )
 
                     allPipelinesHeader =
                         Html.div Styles.pipelineSectionHeader [ Html.text "all pipelines" ]
                 in
-                if List.isEmpty filteredGroups then
+                if List.isEmpty teamCards then
                     ( [], 0 )
 
-                else if List.isEmpty favoritedPipelines then
-                    ( [ allPipelinesHeader ], PipelineGridConstants.sectionHeaderHeight )
+                else if List.isEmpty favoritedCards then
+                    ( [ allPipelinesHeader ], GridConstants.sectionHeaderHeight )
 
                 else
                     let
                         offset =
-                            PipelineGridConstants.sectionHeaderHeight
+                            GridConstants.sectionHeaderHeight
 
                         layout =
-                            PipelineGrid.computeFavoritePipelinesLayout
+                            Grid.computeFavoritesLayout
                                 { pipelineLayers = params.pipelineLayers
                                 , viewportWidth = params.viewportWidth
                                 , viewportHeight = params.viewportHeight
                                 , scrollTop = params.scrollTop - offset
+                                , isInstanceGroupView = inInstanceGroupView
                                 }
-                                favoritedPipelines
+                                favoritedCards
                     in
                     [ Html.div Styles.pipelineSectionHeader [ Html.text "favorite pipelines" ]
                     , Group.viewFavoritePipelines
@@ -1211,77 +1357,83 @@ pipelinesView session params =
                         { dragState = NotDragging
                         , dropState = NotDropping
                         , now = params.now
-                        , hovered = session.hovered
-                        , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                         , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                         , pipelineLayers = params.pipelineLayers
-                        , pipelineCards = layout.pipelineCards
-                        , headers = layout.headers
                         , groupCardsHeight = layout.height
                         , pipelineJobs = params.pipelineJobs
                         , jobs = jobs
+                        , dashboardView = params.dashboardView
+                        , query = params.query
+                        , inInstanceGroupView = inInstanceGroupView
                         }
-                    , Views.Styles.separator PipelineGridConstants.sectionSpacerHeight
+                        layout.headers
+                        layout.cards
+                    , Views.Styles.separator GridConstants.sectionSpacerHeight
                     , allPipelinesHeader
                     ]
                         |> (\html ->
                                 ( html
                                 , layout.height
-                                    + (2 * PipelineGridConstants.sectionHeaderHeight)
-                                    + PipelineGridConstants.sectionSpacerHeight
+                                    + (2 * GridConstants.sectionHeaderHeight)
+                                    + GridConstants.sectionSpacerHeight
                                 )
                            )
 
         groupViews =
-            filteredGroups
+            teamCards
                 |> (if params.highDensity then
                         List.concatMap
                             (Group.hdView
-                                { pipelineRunningKeyframes = session.pipelineRunningKeyframes
-                                , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
+                                { pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                                 , pipelineJobs = params.pipelineJobs
                                 , jobs = jobs
+                                , dashboardView = params.dashboardView
+                                , query = params.query
                                 }
                                 session
                             )
 
                     else
                         List.foldl
-                            (\g ( htmlList, totalOffset ) ->
+                            (\( teamName, cards ) ( htmlList, totalOffset ) ->
                                 let
+                                    startingOffset =
+                                        totalOffset
+                                            + GridConstants.groupHeaderHeight
+                                            + GridConstants.padding
+
                                     layout =
-                                        PipelineGrid.computeLayout
+                                        Grid.computeLayout
                                             { dragState = params.dragState
                                             , dropState = params.dropState
                                             , pipelineLayers = params.pipelineLayers
                                             , viewportWidth = params.viewportWidth
                                             , viewportHeight = params.viewportHeight
-                                            , scrollTop = params.scrollTop - totalOffset
+                                            , scrollTop = params.scrollTop - startingOffset
                                             }
-                                            g
+                                            teamName
+                                            cards
                                 in
                                 Group.view
                                     session
                                     { dragState = params.dragState
                                     , dropState = params.dropState
                                     , now = params.now
-                                    , hovered = session.hovered
-                                    , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                                     , pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
                                     , pipelineLayers = params.pipelineLayers
-                                    , pipelineCards = layout.pipelineCards
                                     , dropAreas = layout.dropAreas
                                     , groupCardsHeight = layout.height
                                     , pipelineJobs = params.pipelineJobs
                                     , jobs = jobs
+                                    , dashboardView = params.dashboardView
+                                    , query = params.query
+                                    , inInstanceGroupView = inInstanceGroupView
                                     }
-                                    g
+                                    teamName
+                                    layout.cards
                                     |> (\html ->
                                             ( html :: htmlList
-                                            , totalOffset
-                                                + layout.height
-                                                + PipelineGridConstants.headerHeight
-                                                + PipelineGridConstants.padding
+                                            , startingOffset + layout.height
                                             )
                                        )
                             )

@@ -100,6 +100,7 @@ pinBarTooltip =
     , style "top" "-10px"
     , style "left" "30px"
     , style "background-color" Colors.tooltipBackground
+    , style "color" Colors.tooltipText
     , style "padding" "5px"
     , style "z-index" "2"
     ]
@@ -204,6 +205,7 @@ pinButtonTooltip =
     [ style "position" "absolute"
     , style "bottom" "25px"
     , style "background-color" Colors.tooltipBackground
+    , style "color" Colors.tooltipText
     , style "z-index" "2"
     , style "padding" "5px"
     , style "width" "170px"
@@ -214,7 +216,7 @@ versionHeader : Pinned.VersionPinState -> List (Html.Attribute msg)
 versionHeader pinnedState =
     [ style "background-color" Colors.sectionHeader
     , style "border" <| "1px solid " ++ borderColor pinnedState
-    , style "padding-left" "10px"
+    , style "padding" "5px 0 5px 10px"
     , style "cursor" "pointer"
     , style "flex-grow" "1"
     , style "display" "flex"
