@@ -32,7 +32,6 @@ services:
       CONCOURSE_CLUSTER_NAME: dev
       CONCOURSE_ENABLE_PIPELINE_INSTANCES: "true"
       CONCOURSE_ENABLE_ACROSS_STEP: "true"
-      CONCOURSE_DISPLAY_USER_ID_PER_CONNECTOR: "local:name,ldap:user_id,github:name"
 
   worker:
     build: .

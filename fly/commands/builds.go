@@ -192,7 +192,7 @@ func (command *BuildsCommand) displayBuilds(builds []atc.Build) error {
 			{Contents: "end", Color: color.New(color.Bold)},
 			{Contents: "duration", Color: color.New(color.Bold)},
 			{Contents: "team", Color: color.New(color.Bold)},
-			{Contents: "created-by", Color: color.New(color.Bold)},
+			{Contents: "created by", Color: color.New(color.Bold)},
 		},
 	}
 

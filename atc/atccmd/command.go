@@ -253,7 +253,7 @@ type RunCommand struct {
 
 	P2pVolumeStreamingTimeout time.Duration `long:"p2p-volume-streaming-timeout" description:"Timeout value of p2p volume streaming" default:"15m"`
 
-	DisplayUserIdPerConnector []string `long:"display-user-id-per-connector" description:"Define how to display username for each authentication connector. Format is <connector-id>:<filename>. Valid field names are user_id, name, username and email."`
+	DisplayUserIdPerConnector map[string]string `long:"display-user-id-per-connector" description:"Define how to display user ID for each authentication connector. Format is <connector>:<fieldname>. Valid field names are user_id, name, username and email, where name maps to claims field username, and username maps to claims field preferred username"`
 }
 
 type Migration struct {
