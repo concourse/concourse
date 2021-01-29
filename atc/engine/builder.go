@@ -297,7 +297,7 @@ func (factory *stepperFactory) buildGetStep(build db.Build, plan atc.Plan) exec.
 	stepMetadata := factory.stepMetadata(
 		build,
 		factory.externalURL,
-		plan.Get.ExposeBuildCreatedBy,
+		false,
 	)
 
 	return factory.coreFactory.GetStep(

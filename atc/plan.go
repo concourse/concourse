@@ -197,9 +197,6 @@ type GetPlan struct {
 	// A timeout to enforce on the resource `get` process. Note that fetching the
 	// resource's image does not count towards the timeout.
 	Timeout string `json:"timeout,omitempty"`
-
-	// If or not expose BUILD_CREATED_BY to build metadata
-	ExposeBuildCreatedBy bool `json:"expose_build_created_by,omitempty"`
 }
 
 type PutPlan struct {

@@ -303,12 +303,11 @@ var _ = Describe("Builder", func() {
 
 					BeforeEach(func() {
 						getPlan = planFactory.NewPlan(atc.GetPlan{
-							Name:                 "some-get",
-							Resource:             "some-input-resource",
-							Type:                 "get",
-							Source:               atc.Source{"some": "source"},
-							Params:               atc.Params{"some": "params"},
-							ExposeBuildCreatedBy: true,
+							Name:     "some-get",
+							Resource: "some-input-resource",
+							Type:     "get",
+							Source:   atc.Source{"some": "source"},
+							Params:   atc.Params{"some": "params"},
 						})
 
 						taskPlan = planFactory.NewPlan(atc.TaskPlan{
@@ -354,7 +353,7 @@ var _ = Describe("Builder", func() {
 						expectedPlan := getPlan
 						expectedPlan.Attempts = []int{1}
 						Expect(plan).To(Equal(expectedPlan))
-						Expect(stepMetadata).To(Equal(expectedMetadataWithCreatedBy))
+						Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 						Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 							Type:                 db.ContainerTypeGet,
 							StepName:             "some-get",
@@ -374,7 +373,7 @@ var _ = Describe("Builder", func() {
 						expectedPlan := getPlan
 						expectedPlan.Attempts = []int{3}
 						Expect(plan).To(Equal(expectedPlan))
-						Expect(stepMetadata).To(Equal(expectedMetadataWithCreatedBy))
+						Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 						Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 							Type:                 db.ContainerTypeGet,
 							StepName:             "some-get",
@@ -501,21 +500,20 @@ var _ = Describe("Builder", func() {
 					Context("that contains inputs", func() {
 						BeforeEach(func() {
 							expectedPlan = planFactory.NewPlan(atc.GetPlan{
-								Name:                 "some-input",
-								Resource:             "some-input-resource",
-								Type:                 "get",
-								Tags:                 []string{"some", "get", "tags"},
-								Version:              &atc.Version{"some": "version"},
-								Source:               atc.Source{"some": "source"},
-								Params:               atc.Params{"some": "params"},
-								ExposeBuildCreatedBy: true,
+								Name:     "some-input",
+								Resource: "some-input-resource",
+								Type:     "get",
+								Tags:     []string{"some", "get", "tags"},
+								Version:  &atc.Version{"some": "version"},
+								Source:   atc.Source{"some": "source"},
+								Params:   atc.Params{"some": "params"},
 							})
 						})
 
 						It("constructs inputs correctly", func() {
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.GetStepArgsForCall(0)
 							Expect(plan).To(Equal(expectedPlan))
-							Expect(stepMetadata).To(Equal(expectedMetadataWithCreatedBy))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								Type:                 db.ContainerTypeGet,
 								StepName:             "some-input",
@@ -633,14 +631,13 @@ var _ = Describe("Builder", func() {
 							})
 
 							dependentGetPlan = planFactory.NewPlan(atc.GetPlan{
-								Name:                 "some-get",
-								Resource:             "some-input-resource",
-								Tags:                 []string{"some", "putget", "tags"},
-								Type:                 "get",
-								VersionFrom:          &putPlan.ID,
-								Source:               atc.Source{"some": "source"},
-								Params:               atc.Params{"another": "params"},
-								ExposeBuildCreatedBy: true,
+								Name:        "some-get",
+								Resource:    "some-input-resource",
+								Tags:        []string{"some", "putget", "tags"},
+								Type:        "get",
+								VersionFrom: &putPlan.ID,
+								Source:      atc.Source{"some": "source"},
+								Params:      atc.Params{"another": "params"},
 							})
 
 							expectedPlan = planFactory.NewPlan(atc.OnSuccessPlan{
@@ -669,7 +666,7 @@ var _ = Describe("Builder", func() {
 						It("constructs the dependent get correctly", func() {
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.GetStepArgsForCall(0)
 							Expect(plan).To(Equal(dependentGetPlan))
-							Expect(stepMetadata).To(Equal(expectedMetadataWithCreatedBy))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								Type:                 db.ContainerTypeGet,
 								StepName:             "some-get",
@@ -697,8 +694,7 @@ var _ = Describe("Builder", func() {
 
 						BeforeEach(func() {
 							inputPlan = planFactory.NewPlan(atc.GetPlan{
-								Name:                 "some-input",
-								ExposeBuildCreatedBy: true,
+								Name: "some-input",
 							})
 							failureTaskPlan = planFactory.NewPlan(atc.TaskPlan{
 								Name:   "some-failure-task",
@@ -736,7 +732,7 @@ var _ = Describe("Builder", func() {
 							Expect(fakeCoreStepFactory.GetStepCallCount()).To(Equal(1))
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.GetStepArgsForCall(0)
 							Expect(plan).To(Equal(inputPlan))
-							Expect(stepMetadata).To(Equal(expectedMetadataWithCreatedBy))
+							Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								PipelineID:           2222,
 								PipelineName:         "some-pipeline",
@@ -829,8 +825,7 @@ var _ = Describe("Builder", func() {
 
 					BeforeEach(func() {
 						inputPlan = planFactory.NewPlan(atc.GetPlan{
-							Name:                 "some-input",
-							ExposeBuildCreatedBy: true,
+							Name: "some-input",
 						})
 
 						expectedPlan = planFactory.NewPlan(atc.TryPlan{
@@ -842,7 +837,7 @@ var _ = Describe("Builder", func() {
 						Expect(fakeCoreStepFactory.GetStepCallCount()).To(Equal(1))
 						plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.GetStepArgsForCall(0)
 						Expect(plan).To(Equal(inputPlan))
-						Expect(stepMetadata).To(Equal(expectedMetadataWithCreatedBy))
+						Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 						Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 							Type:                 db.ContainerTypeGet,
 							StepName:             "some-input",
