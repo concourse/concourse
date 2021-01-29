@@ -47,6 +47,11 @@ type alias Filter =
     }
 
 
+filterTypes : List String
+filterTypes =
+    [ "status", "team", "group" ]
+
+
 type TeamFilter
     = Team StringFilter
     | Pipeline PipelineFilter
@@ -68,11 +73,6 @@ type StatusFilter
     = PipelineStatus PipelineStatus
     | PipelineRunning
     | IncompleteStatus String
-
-
-filterTypes : List String
-filterTypes =
-    [ "status", "team", "group" ]
 
 
 filterTeams : { r | favoritedPipelines : Set DatabaseID } -> Model -> Dict String (List Pipeline)
@@ -342,6 +342,11 @@ suggestions pipelines query =
             case curFilter of
                 Pipeline (Name (Fuzzy s)) ->
                     filterTypes
+                        -- As long as instanced pipelines are experimental,
+                        -- lets not suggest the "group:" filter. Note that it
+                        -- can still be applied, and group suggestions will
+                        -- appear when you explicitly type "group:"
+                        |> List.filter ((/=) "group")
                         |> List.filter (String.startsWith s)
                         |> List.map (\v -> v ++ ":")
 
