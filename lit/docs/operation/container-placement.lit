@@ -21,10 +21,14 @@ on the configured strategy.
 
   The disadvantage of this approach is that it can sometimes result in builds
   "gravitating" to a particular worker and overloading it, at least until the
-  resource caches warm across the worker pool.
+  resource caches warm across the worker pool. This disadvantage can be
+  partially mitigated using the (currently experimental)
+  \reference{limit-max-volumes-strategy} in conjunction with
+  \reference{chaining-placement-strategies}.
 
   If your builds tend to be light on artifacts and heavy on task execution, you
-  may want to try the \reference{fewest-build-containers-strategy} instead.
+  may want to try the \reference{fewest-build-containers-strategy} or the
+  (currently experimental) \reference{limit-active-tasks-strategy}.
 }
 
 \section{
@@ -66,7 +70,7 @@ on the configured strategy.
   The \reference{web-node} then places \code{get}, \code{put} and \code{task}
   containers on the worker that currently has the \italic{least amount of active tasks}.
 
-  Additionally \code{max-active-tasks-per-worker} can be set to be an integer of 1 or more,
+  Additionally \code{max-active-tasks-per-worker} can be set to an integer of 1 or more,
   in which case a worker will not execute more than that amount of \bold{tasks}.
   A value of 0 means that there is no limit on the maximum number of active tasks on the workers.
   If no worker can be selected because all of them already have \code{max-active-tasks-per-worker}
@@ -82,4 +86,83 @@ on the configured strategy.
   \codeblock{bash}{{{
   CONCOURSE_MAX_ACTIVE_TASKS_PER_WORKER=1
   }}}
+}
+
+\section{
+  \title{\aux{The }\code{limit-max-containers} strategy}{limit-max-containers-strategy}
+  \warn{\code{limit-max-containers} is an \bold{experimental} feature.}
+
+  The \code{limit-max-containers} placement strategy rejects workers that
+  already have too many containers. It makes no effort to find the worker with
+  the fewest number of containers present, and is therefore most useful when
+  combined with other placement stragies by \reference{chaining-placement-strategies}.
+
+  \code{max-active-containers-per-worker} can be set to an integer of 1 or
+  more, in which case a worker will not execute more than that amount of
+  \bold{containers}. If unset (or set to a value of 0), the
+  \code{limit-max-containers} strategy has no effect - if this is your only
+  placement strategy, workers will be chosen at random.
+
+  \codeblock{bash}{{{
+  CONCOURSE_CONTAINER_PLACEMENT_STRATEGY=limit-max-containers
+  CONCOURSE_MAX_ACTIVE_CONTAINERS_PER_WORKER=200
+  }}}
+}
+
+\section{
+  \title{\aux{The }\code{limit-max-volumes} strategy}{limit-max-volumes-strategy}
+  \warn{\code{limit-max-volumes} is an \bold{experimental} feature.}
+
+  The \code{limit-max-volumes} placement strategy rejects workers that
+  already have too many volumes. It makes no effort to find the worker with
+  the fewest number of volumes present, and is therefore most useful when
+  combined with other placement stragies by \reference{chaining-placement-strategies}.
+
+  \code{max-active-volumes-per-worker} can be set to be an integer of 1 or
+  more, in which case a worker will not execute more than that amount of
+  \bold{volumes}. If unset (or set to a value of 0), the
+  \code{limit-max-volumes} strategy has no effect - if this is your only
+  placement strategy, workers will be chosen at random.
+
+  \codeblock{bash}{{{
+  CONCOURSE_CONTAINER_PLACEMENT_STRATEGY=limit-max-volumes
+  CONCOURSE_MAX_ACTIVE_VOLUMES_PER_WORKER=200
+  }}}
+}
+
+\section{
+  \title{Chaining Placement Strategies}{chaining-placement-strategies}
+
+  Container placement strategies can be chained together to apply multiple
+  strategies in sequence. The first strategy in the chain receives the entire set
+  of workers, filtering the set down in some way, and passing that new set of
+  workers to the next strategy in the chain. If the last strategy in the chain
+  returns multiple workers, one will be chosen at random.
+
+  For instance, consider the following configuration:
+
+  \codeblock{bash}{{{
+  CONCOURSE_CONTAINER_PLACEMENT_STRATEGY=limit-max-containers,limit-max-volumes,volume-locality,fewest-build-containers
+  CONCOURSE_MAX_ACTIVE_CONTAINERS_PER_WORKER=200
+  CONCOURSE_MAX_ACTIVE_VOLUMES_PER_WORKER=100
+  }}}
+
+  This defines a chain of 4 placement strategies, plus the implicit
+  \code{random} strategy. Let's look at what each strategy accomplishes:
+
+  \ordered-list{
+    \reference{limit-max-containers-strategy} removes all workers that already
+    have more than 200 containers
+  }{
+    \reference{limit-max-volumes-strategy} removes all remaining workers that
+    already have more than 100 volumes
+  }{
+    \reference{volume-locality-strategy} keeps only the remaining worker(s) that
+    have the most inputs locally. This can keep more than one worker in the case of
+    a tie
+  }{
+    \reference{fewest-build-containers-strategy} will attempt to break ties by
+    selecting the worker with fewer build containers. If all the remaining workers
+    have the exact same number of containers, one will be selected at random.
+  }
 }
