@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -e -u
+
+cd $(dirname $0)
+
+concourse generate-key -t rsa -b 1024 -f session_signing_key
+concourse generate-key -t ssh -b 1024 -f tsa_host_key
+concourse generate-key -t ssh -b 1024 -f worker_key
+cp worker_key.pub authorized_worker_keys
