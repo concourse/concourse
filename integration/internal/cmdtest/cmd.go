@@ -19,6 +19,8 @@ type Cmd struct {
 	Stdout io.Writer
 	Stderr io.Writer
 	Silent bool
+
+	ExpectExitCode int
 }
 
 func (cmd Cmd) WithEnv(env ...string) Cmd {
@@ -59,7 +61,46 @@ func (cmd Cmd) OutputTo(out io.Writer) Cmd {
 	return cmd
 }
 
-func (cmd Cmd) Run(args ...string) error {
+func (cmd Cmd) ExpectExit(code int) Cmd {
+	cmd.ExpectExitCode = code
+	return cmd
+}
+
+func (cmd Cmd) Run(t *testing.T, args ...string) {
+	err := cmd.Try(args...)
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			if exitErr.ExitCode() != cmd.ExpectExitCode {
+				t.Fatalf("ExitCode %d != %d", exitErr.ExitCode(), cmd.ExpectExitCode)
+			}
+		} else {
+			t.Fatalf("Run: %v", err)
+		}
+	} else if cmd.ExpectExitCode != 0 {
+		t.Fatalf("ExitCode %d != %d", 0, cmd.ExpectExitCode)
+	}
+}
+
+func (cmd Cmd) Output(t *testing.T, args ...string) string {
+	buf := new(bytes.Buffer)
+	cmd.Stdout = buf
+	cmd.Run(t, args...)
+	return buf.String()
+}
+
+func (cmd Cmd) OutputJSON(t *testing.T, dest interface{}, args ...string) {
+	buf := new(bytes.Buffer)
+	cmd.Stdout = buf
+	cmd.Run(t, args...)
+
+	err := json.Unmarshal(buf.Bytes(), dest)
+	if err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+		return
+	}
+}
+
+func (cmd Cmd) Try(args ...string) error {
 	env := []string{
 		// only inherit $PATH; we don't want to pass *everything* along because
 		// then it's unclear what's necessary for the tests, but $PATH seems
@@ -111,12 +152,12 @@ func (cmd Cmd) Run(args ...string) error {
 	return nil
 }
 
-func (cmd Cmd) Output(args ...string) (string, error) {
+func (cmd Cmd) TryOutput(args ...string) (string, error) {
 	buf := new(bytes.Buffer)
 
 	cmd.Stdout = buf
 
-	err := cmd.Run(args...)
+	err := cmd.Try(args...)
 	if err != nil {
 		return "", err
 	}
@@ -124,12 +165,12 @@ func (cmd Cmd) Output(args ...string) (string, error) {
 	return buf.String(), nil
 }
 
-func (cmd Cmd) OutputJSON(dest interface{}, args ...string) error {
+func (cmd Cmd) TryOutputJSON(t *testing.T, dest interface{}, args ...string) error {
 	buf := new(bytes.Buffer)
 
 	cmd.Stdout = buf
 
-	err := cmd.Run(args...)
+	err := cmd.Try(args...)
 	if err != nil {
 		return err
 	}

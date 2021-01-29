@@ -5,7 +5,6 @@ import (
 
 	"github.com/concourse/concourse/integration/internal/dctest"
 	"github.com/concourse/concourse/integration/internal/flytest"
-	"github.com/stretchr/testify/require"
 )
 
 func TestUpgrade(t *testing.T) {
@@ -14,7 +13,7 @@ func TestUpgrade(t *testing.T) {
 	latestDC := dctest.Init(t, "../docker-compose.yml", "overrides/latest.yml")
 
 	t.Run("deploy latest", func(t *testing.T) {
-		require.NoError(t, latestDC.Run("up", "-d"))
+		latestDC.Run(t, "up", "-d")
 	})
 
 	fly := flytest.Init(t, latestDC)
@@ -23,7 +22,7 @@ func TestUpgrade(t *testing.T) {
 	devDC := dctest.Init(t, "../docker-compose.yml")
 
 	t.Run("upgrade to dev", func(t *testing.T) {
-		require.NoError(t, devDC.Run("up", "-d"))
+		devDC.Run(t, "up", "-d")
 	})
 
 	fly = flytest.Init(t, devDC)
