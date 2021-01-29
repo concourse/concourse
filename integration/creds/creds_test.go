@@ -66,15 +66,11 @@ func testCredentialManagement(
 	}
 
 	t.Run("pipelines", func(t *testing.T) {
-		err := fly.Run("set-pipeline", "-n", "-c", "pipelines/credential-management.yml", "-p", "test")
-		require.NoError(t, err)
-
-		err = fly.Run("unpause-pipeline", "-p", "test")
-		require.NoError(t, err)
+		fly.Run(t, "set-pipeline", "-n", "-c", "pipelines/credential-management.yml", "-p", "test")
+		fly.Run(t, "unpause-pipeline", "-p", "test")
 
 		t.Run("config is not interpolated", func(t *testing.T) {
-			config, err := fly.Output("get-pipeline", "-p", "test")
-			require.NoError(t, err)
+			config := fly.Output(t, "get-pipeline", "-p", "test")
 
 			eachString(pipelineVars, func(val string) {
 				if val != "" {
@@ -91,54 +87,48 @@ func testCredentialManagement(
 
 		t.Run("interpolates resource type checks", func(t *testing.T) {
 			// build will fail if ((check_failure)) doesn't get interpolated to ""
-			err := fly.Run("check-resource-type", "-r", "test/custom-resource-type")
-			require.NoError(t, err)
+			fly.Run(t, "check-resource-type", "-r", "test/custom-resource-type")
 		})
 
 		t.Run("interpolates resource checks", func(t *testing.T) {
 			// build will fail if ((check_failure)) doesn't get interpolated to ""
-			err = fly.Run("check-resource", "-r", "test/custom-resource")
-			require.NoError(t, err)
+			fly.Run(t, "check-resource", "-r", "test/custom-resource")
 		})
 
 		t.Run("interpolates job builds", func(t *testing.T) {
 			// build will fail and return err if any values are wrong
-			err := fly.Run("trigger-job", "-w", "-j", "test/some-job")
-			require.NoError(t, err)
+			fly.Run(t, "trigger-job", "-w", "-j", "test/some-job")
 		})
 
 		t.Run("interpolates one-off builds with job inputs", func(t *testing.T) {
 			// build will fail and return err if any values are wrong
-			err := fly.WithEnv(
+			fly.WithEnv(
 				"EXPECTED_RESOURCE_SECRET=some resource secret",
 				"EXPECTED_RESOURCE_VERSION_SECRET=exposed some version not-so-secret",
-			).Run(
+			).Run(t,
 				"execute",
 				"-c", "tasks/credential-management-with-job-inputs.yml",
 				"-j", "test/some-job",
 			)
-			require.NoError(t, err)
 		})
 	})
 
 	t.Run("interpolates one-off builds", func(t *testing.T) {
 		// build will fail and return err if any values are wrong
-		err := fly.WithEnv(
+		fly.WithEnv(
 			"EXPECTED_TEAM_SECRET=some team secret",
 			"EXPECTED_RESOURCE_VERSION_SECRET=exposed some version not-so-secret",
-		).Run("execute", "-c", "tasks/credential-management.yml")
-		require.NoError(t, err)
+		).Run(t, "execute", "-c", "tasks/credential-management.yml")
 	})
 
 	t.Run("does not store secrets in database", func(t *testing.T) {
 		pgDump := dc.WithArgs("exec", "-T", "db", "pg_dump")
 
-		dump, err := pgDump.Silence().Output(
+		dump := pgDump.Silence().Output(t,
 			"--exclude-schema=build_id_seq_*",
 			"-U", "dev",
 			"concourse",
 		)
-		require.NoError(t, err)
 
 		eachString(pipelineVars, func(val string) {
 			if val != "" && !strings.HasPrefix(val, "exposed ") {

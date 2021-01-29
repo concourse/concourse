@@ -6,7 +6,6 @@ import (
 
 	"github.com/concourse/concourse/integration/internal/cmdtest"
 	"github.com/concourse/concourse/integration/internal/dctest"
-	"github.com/stretchr/testify/require"
 )
 
 type Cmd struct {
@@ -21,22 +20,20 @@ func Init(t *testing.T, dc dctest.Cmd) Cmd {
 		RootToken  string   `json:"root_token"`
 	}
 
-	err := vault.OutputJSON(&initOut, "operator", "init")
-	require.NoError(t, err)
+	vault.OutputJSON(t, &initOut, "operator", "init")
 
 	for i := 0; i < 3; i++ {
-		err := vault.Run("operator", "unseal", initOut.UnsealKeys[i])
-		require.NoError(t, err)
+		vault.Run(t, "operator", "unseal", initOut.UnsealKeys[i])
 	}
 
 	// log in with root token
-	require.NoError(t, vault.Run("login", initOut.RootToken))
+	vault.Run(t, "login", initOut.RootToken)
 
 	return Cmd{vault}
 }
 
-func (cmd Cmd) Write(path string, val interface{}) error {
-	return cmd.WithArgs("write", path).Run(writeArgs(val)...)
+func (cmd Cmd) Write(t *testing.T, path string, val interface{}) {
+	cmd.WithArgs("write", path).Run(t, writeArgs(val)...)
 }
 
 func writeArgs(val interface{}) []string {

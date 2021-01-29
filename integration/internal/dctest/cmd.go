@@ -45,14 +45,14 @@ func Init(t *testing.T, composeFile string, overrides ...string) Cmd {
 			if err == nil {
 				logFile, err := os.Create("logs/" + name + ".log")
 				if err == nil {
-					dc.Silence().OutputTo(logFile).Run("logs", "--no-color")
+					dc.Silence().OutputTo(logFile).Run(t, "logs", "--no-color")
 					logFile.Close()
 				}
 			}
 		}
 
-		dc.Run("kill")
-		dc.Run("down")
+		dc.Run(t, "kill")
+		dc.Run(t, "down")
 	})
 
 	return Cmd{
@@ -74,13 +74,10 @@ func InitDynamic(t *testing.T, doc *ypath.Document) Cmd {
 	return Init(t, fileName)
 }
 
-func (cmd Cmd) Addr(container string, port int) (string, error) {
-	out, err := cmd.Output("port", container, strconv.Itoa(port))
-	if err != nil {
-		return "", err
-	}
+func (cmd Cmd) Addr(t *testing.T, container string, port int) string {
+	out := cmd.Output(t, "port", container, strconv.Itoa(port))
 
-	return strings.TrimRight(strings.Replace(out, "0.0.0.0", "127.0.0.1", 1), "\n"), nil
+	return strings.TrimRight(strings.Replace(out, "0.0.0.0", "127.0.0.1", 1), "\n")
 }
 
 var onces = new(sync.Map)

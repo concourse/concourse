@@ -22,8 +22,7 @@ type Cmd struct {
 }
 
 func Init(t *testing.T, dc dctest.Cmd) Cmd {
-	webAddr, err := dc.Addr("web", 8080)
-	require.NoError(t, err)
+	webAddr := dc.Addr(t, "web", 8080)
 
 	webURL := "http://" + webAddr
 
@@ -41,6 +40,7 @@ func Init(t *testing.T, dc dctest.Cmd) Cmd {
 
 	var flyResp *http.Response
 	require.Eventually(t, func() bool {
+		var err error
 		flyResp, err = http.Get(cliURL)
 		return err == nil
 	}, time.Minute, time.Second)
@@ -61,25 +61,17 @@ func Init(t *testing.T, dc dctest.Cmd) Cmd {
 		Cmd: cmd,
 	}
 
+	fly.Run(t, "login", "-c", webURL, "-u", "test", "-p", "test")
+
 	require.Eventually(t, func() bool {
-		err := fly.Run("login", "-c", webURL, "-u", "test", "-p", "test")
-		if err != nil {
-			return false
-		}
-
-		workers, err := fly.Table(t, "workers")
-		if err != nil {
-			return false
-		}
-
-		for _, w := range workers {
+		for _, w := range fly.Table(t, "workers") {
 			if w["state"] == "running" {
 				return true
 			}
 		}
 
 		return false
-	}, time.Minute, time.Second)
+	}, time.Minute, time.Second, "should have a running worker")
 
 	return fly
 }
@@ -88,11 +80,8 @@ type Table []map[string]string
 
 var colSplit = regexp.MustCompile(`\s{2,}`)
 
-func (cmd Cmd) Table(t *testing.T, args ...string) (Table, error) {
-	table, err := cmd.WithArgs("--print-table-headers").Output(args...)
-	if err != nil {
-		return nil, err
-	}
+func (cmd Cmd) Table(t *testing.T, args ...string) Table {
+	table := cmd.WithArgs("--print-table-headers").Output(t, args...)
 
 	result := []map[string]string{}
 	var headers []string
@@ -123,5 +112,5 @@ func (cmd Cmd) Table(t *testing.T, args ...string) (Table, error) {
 		}
 	}
 
-	return result, nil
+	return result
 }
