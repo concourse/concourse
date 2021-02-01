@@ -29,7 +29,7 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = BeforeEach(func() {
-	postgresRunner.CreateTestDB()
+	postgresRunner.CreateEmptyTestDB()
 })
 
 var _ = AfterEach(func() {

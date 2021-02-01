@@ -106,7 +106,7 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = BeforeEach(func() {
-	postgresRunner.RestoreDBFromTemplate()
+	postgresRunner.CreateTestDBFromTemplate()
 
 	dbConn = postgresRunner.OpenConn()
 
@@ -241,6 +241,8 @@ func destroy(d interface{ Destroy() error }) {
 var _ = AfterEach(func() {
 	err := dbConn.Close()
 	Expect(err).NotTo(HaveOccurred())
+
+	postgresRunner.DropTestDB()
 })
 
 var _ = AfterSuite(func() {

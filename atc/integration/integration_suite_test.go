@@ -31,6 +31,16 @@ var (
 	atcURL         string
 )
 
+var _ = BeforeSuite(func() {
+	postgresRunner = postgresrunner.Runner{
+		Port: 5433 + GinkgoParallelNode(),
+	}
+
+	dbProcess = ifrit.Invoke(postgresRunner)
+
+	postgresRunner.InitializeTestDBTemplate()
+})
+
 var _ = BeforeEach(func() {
 	cmd = &atccmd.RunCommand{}
 
@@ -43,7 +53,7 @@ var _ = BeforeEach(func() {
 
 	cmd.Postgres.User = "postgres"
 	cmd.Postgres.Database = "testdb"
-	cmd.Postgres.Port = 5433 + uint16(GinkgoParallelNode())
+	cmd.Postgres.Port = uint16(postgresRunner.Port)
 	cmd.Postgres.SSLMode = "disable"
 	cmd.Auth.MainTeamFlags.LocalUsers = []string{"test"}
 	cmd.Auth.AuthFlags.LocalUsers = map[string]string{
@@ -68,11 +78,7 @@ var _ = BeforeEach(func() {
 
 	cmd.Auth.AuthFlags.SigningKey = &flag.PrivateKey{PrivateKey: signingKey}
 
-	postgresRunner = postgresrunner.Runner{
-		Port: 5433 + GinkgoParallelNode(),
-	}
-	dbProcess = ifrit.Invoke(postgresRunner)
-	postgresRunner.CreateTestDB()
+	postgresRunner.CreateTestDBFromTemplate()
 
 	// workaround to avoid panic due to registering http handlers multiple times
 	http.DefaultServeMux = new(http.ServeMux)
@@ -98,10 +104,11 @@ var _ = AfterEach(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	postgresRunner.DropTestDB()
+})
 
+var _ = AfterSuite(func() {
 	dbProcess.Signal(os.Interrupt)
-	err = <-dbProcess.Wait()
-	Expect(err).NotTo(HaveOccurred())
+	<-dbProcess.Wait()
 })
 
 func TestIntegration(t *testing.T) {

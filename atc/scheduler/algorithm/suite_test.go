@@ -54,11 +54,11 @@ var _ = BeforeSuite(func() {
 
 	dbProcess = ifrit.Invoke(postgresRunner)
 
-	postgresRunner.CreateTestDB()
+	postgresRunner.InitializeTestDBTemplate()
 })
 
 var _ = BeforeEach(func() {
-	postgresRunner.Truncate()
+	postgresRunner.CreateTestDBFromTemplate()
 
 	dbConn = postgresRunner.OpenConn()
 
@@ -69,6 +69,8 @@ var _ = BeforeEach(func() {
 var _ = AfterEach(func() {
 	err := dbConn.Close()
 	Expect(err).NotTo(HaveOccurred())
+
+	postgresRunner.DropTestDB()
 })
 
 var _ = AfterSuite(func() {

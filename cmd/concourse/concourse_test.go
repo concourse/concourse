@@ -42,7 +42,7 @@ var _ = Describe("Web Command", func() {
 			Port: 5433 + GinkgoParallelNode(),
 		}
 		dbProcess = ifrit.Invoke(postgresRunner)
-		postgresRunner.CreateTestDB()
+		postgresRunner.CreateEmptyTestDB()
 
 		concourseCommand = exec.Command(
 			concoursePath,

@@ -25,10 +25,6 @@ var _ = XDescribe("ATC 3.13 Team Migration Test", func() {
 		password string
 	)
 
-	BeforeSuite(func() {
-		rand.Seed(time.Now().UnixNano())
-	})
-
 	BeforeEach(func() {
 		username = randomString()
 		password = randomString()

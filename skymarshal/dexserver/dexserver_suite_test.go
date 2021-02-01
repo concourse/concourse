@@ -24,10 +24,11 @@ var _ = BeforeSuite(func() {
 		Port: 5433 + GinkgoParallelNode(),
 	}
 	dbProcess = ifrit.Invoke(postgresRunner)
+	postgresRunner.InitializeTestDBTemplate()
 })
 
 var _ = BeforeEach(func() {
-	postgresRunner.CreateTestDB()
+	postgresRunner.CreateTestDBFromTemplate()
 })
 
 var _ = AfterEach(func() {

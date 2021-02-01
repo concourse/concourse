@@ -27,7 +27,7 @@ var _ = BeforeSuite(func() {
 
 	dbProcess = ifrit.Invoke(postgresRunner)
 
-	postgresRunner.CreateTestDB()
+	postgresRunner.InitializeTestDBTemplate()
 })
 
 var _ = AfterSuite(func() {

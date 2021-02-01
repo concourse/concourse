@@ -257,45 +257,21 @@ func (runner *Runner) InitializeTestDBTemplate() {
 	runner.terminateIdleConnections("testdb_template")
 }
 
-func (runner *Runner) CreateTestDB() {
-	createdb := exec.Command("createdb", "-h", "/tmp", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
+func (runner *Runner) CreateEmptyTestDB() {
+	exitCode := runner.psql("CREATE DATABASE testdb;")
+	Expect(exitCode).To(Equal(0), "create empty testdb")
+}
 
-	createS, err := gexec.Start(createdb, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
-	Expect(err).NotTo(HaveOccurred())
-
-	<-createS.Exited
-
-	if createS.ExitCode() != 0 {
-		runner.DropTestDB()
-
-		createdb := exec.Command("createdb", "-h", "/tmp", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
-		createS, err = gexec.Start(createdb, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
-	}
-
-	<-createS.Exited
-
-	Expect(createS).To(gexec.Exit(0))
+func (runner *Runner) CreateTestDBFromTemplate() {
+	exitCode := runner.psql("CREATE DATABASE testdb TEMPLATE testdb_template;")
+	Expect(exitCode).To(Equal(0), "create testdb from template")
 }
 
 func (runner *Runner) DropTestDB() {
-	dropdb := exec.Command("dropdb", "-h", "/tmp", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "testdb")
-	dropS, err := gexec.Start(dropdb, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
-	Expect(err).NotTo(HaveOccurred())
-
-	<-dropS.Exited
-
-	Expect(dropS).To(gexec.Exit(0))
-}
-
-func (runner *Runner) RestoreDBFromTemplate() {
 	runner.terminateIdleConnections("testdb")
 
 	exitCode := runner.psql("DROP DATABASE IF EXISTS testdb;")
 	Expect(exitCode).To(Equal(0), "drop testdb")
-
-	exitCode = runner.psql("CREATE DATABASE testdb TEMPLATE testdb_template;")
-	Expect(exitCode).To(Equal(0), "create testdb from template")
 }
 
 func (runner *Runner) terminateIdleConnections(dbName string) {
