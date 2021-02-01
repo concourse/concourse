@@ -13,6 +13,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine"
@@ -36,9 +37,8 @@ var _ = Describe("BuildStepDelegate", func() {
 		planID              atc.PlanID
 		runState            *execfakes.FakeRunState
 		fakePolicyChecker   *policyfakes.FakeChecker
+		fakeSecrets         *credsfakes.FakeSecrets
 		fakeArtifactSourcer *workerfakes.FakeArtifactSourcer
-
-		credVars vars.StaticVariables
 
 		now = time.Date(1991, 6, 3, 5, 30, 0, 0, time.UTC)
 
@@ -50,10 +50,6 @@ var _ = Describe("BuildStepDelegate", func() {
 
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeClock = fakeclock.NewFakeClock(now)
-		credVars = vars.StaticVariables{
-			"source-param": "super-secret-source",
-			"git-key":      "{\n123\n456\n789\n}\n",
-		}
 		planID = "some-plan-id"
 
 		runState = new(execfakes.FakeRunState)
@@ -65,8 +61,9 @@ var _ = Describe("BuildStepDelegate", func() {
 		fakePolicyChecker = new(policyfakes.FakeChecker)
 
 		fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
+		fakeSecrets = new(credsfakes.FakeSecrets)
 
-		delegate = engine.NewBuildStepDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker, fakeArtifactSourcer)
+		delegate = engine.NewBuildStepDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker, fakeArtifactSourcer, fakeSecrets)
 	})
 
 	Describe("Initializing", func() {
@@ -123,17 +120,10 @@ var _ = Describe("BuildStepDelegate", func() {
 			childState.ArtifactRepositoryReturns(repo.NewScope())
 			childState.ArtifactRepository().RegisterArtifact("image", fakeArtifact)
 
-			buildVariables := build.NewVariables(nil, true)
+			buildVariables := build.NewVariables(nil, vars.NewTracker(true))
 			buildVariables.SetVar("some-source", "source-var", "super-secret-source", true)
 			buildVariables.SetVar("some-source", "params-var", "super-secret-params", true)
-			runState.VariablesReturns(buildVariables)
-
-			imageResource = atc.ImageResource{
-				Type:   "docker",
-				Source: atc.Source{"some": "((source-var))"},
-				Params: atc.Params{"some": "((params-var))"},
-				Tags:   atc.Tags{"some", "tags"},
-			}
+			runState.LocalVariablesReturns(buildVariables)
 
 			runPlans = nil
 
@@ -189,7 +179,7 @@ var _ = Describe("BuildStepDelegate", func() {
 		})
 
 		JustBeforeEach(func() {
-			delegate = engine.NewBuildStepDelegate(fakeBuild, planID, parentRunState, fakeClock, fakePolicyChecker, fakeArtifactSourcer)
+			delegate = engine.NewBuildStepDelegate(fakeBuild, planID, parentRunState, fakeClock, fakePolicyChecker, fakeArtifactSourcer, fakeSecrets)
 			imageSpec, resourceCache, fetchErr = delegate.FetchImage(context.TODO(), *expectedGetPlan, expectedCheckPlan, privileged)
 		})
 
@@ -393,16 +383,18 @@ var _ = Describe("BuildStepDelegate", func() {
 			getVarID           atc.PlanID
 			expectedGetVarPlan atc.Plan
 
+			childState *execfakes.FakeRunState
+
 			value    interface{}
 			fetched  bool
 			fetchErr error
 		)
 
 		BeforeEach(func() {
-			stepVariables = delegate.Variables(context.TODO())
+			stepVariables = delegate.Variables(context.TODO(), sources)
 
-			buildVariables = build.NewVariables(sources, true)
-			runState.VariablesReturns(buildVariables)
+			buildVariables = build.NewVariables(sources, vars.NewTracker(true))
+			runState.LocalVariablesReturns(buildVariables)
 
 			sources = atc.VarSourceConfigs{
 				{
@@ -438,6 +430,8 @@ var _ = Describe("BuildStepDelegate", func() {
 				Path:   "path",
 			}
 
+			childState = new(execfakes.FakeRunState)
+			runState.NewScopeReturns(childState)
 			runState.RunReturns(true, nil)
 			runState.ResultStub = func(planID atc.PlanID, to interface{}) bool {
 				Expect(planID).To(Equal(getVarID))
@@ -449,6 +443,19 @@ var _ = Describe("BuildStepDelegate", func() {
 
 		JustBeforeEach(func() {
 			value, fetched, fetchErr = stepVariables.Get(varRef)
+		})
+
+		Context("when the var does not have a source (global vars)", func() {
+			BeforeEach(func() {
+				varRef.Source = ""
+
+				fakeSecrets.NewSecretLookupPathsReturns(nil)
+			})
+
+			It("calls get off the global secrets", func() {
+				Expect(fakeSecrets.GetCallCount()).To(Equal(1))
+				Expect(fakeSecrets.GetArgsForCall(0)).To(Equal(varRef.Path))
+			})
 		})
 
 		Context("when the var is found in the build vars", func() {
@@ -466,13 +473,18 @@ var _ = Describe("BuildStepDelegate", func() {
 			})
 
 			It("did not spawn get var sub step", func() {
-				Expect(runState.RunCallCount()).To(Equal(0))
+				Expect(childState.RunCallCount()).To(Equal(0))
 			})
 		})
 
 		Context("when the var is not found in the build vars", func() {
-			BeforeEach(func() {
+			It("creates a new scope for the get var substep", func() {
+				Expect(childState.NewScopeCallCount()).To(Equal(1))
+			})
 
+			It("sets new var source configs for the child state", func() {
+				Expect(childState.SetVarSourceConfigsCallCount()).To(Equal(1))
+				Expect(childState.SetVarSourceConfigsArgsForCall(0)).To(Equal(sources))
 			})
 
 			It("saves a build event for the sub get var plan", func() {
@@ -515,7 +527,7 @@ var _ = Describe("BuildStepDelegate", func() {
 						},
 					}
 
-					buildVariables = build.NewVariables(sources, true)
+					buildVariables = build.NewVariables(sources, vars.NewTracker(true))
 				})
 
 				It("returns no matching var source error", func() {
@@ -705,9 +717,8 @@ var _ = Describe("BuildStepDelegate", func() {
 		var runState exec.RunState
 
 		BeforeEach(func() {
-			credVars := vars.StaticVariables{}
-			runState = exec.NewRunState(noopStepper, credVars, nil, false)
-			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker, fakeArtifactSourcer)
+			runState = exec.NewRunState(noopStepper, nil, false)
+			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker, fakeArtifactSourcer, fakeSecrets)
 		})
 
 		Context("Stdout", func() {
@@ -806,11 +817,11 @@ var _ = Describe("BuildStepDelegate", func() {
 		)
 
 		BeforeEach(func() {
-			runState = exec.NewRunState(noopStepper, credVars, nil, true)
-			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker, fakeArtifactSourcer)
+			runState = exec.NewRunState(noopStepper, nil, true)
+			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker, fakeArtifactSourcer, fakeSecrets)
 
-			runState.Variables().Get(vars.Reference{Path: "source-param"})
-			runState.Variables().Get(vars.Reference{Path: "git-key"})
+			runState.LocalVariables().SetVar(".", "source-param", "super-secret-source", true)
+			runState.LocalVariables().SetVar(".", "git-key", "{\n123\n456\n789\n}\n", true)
 		})
 
 		Context("Stdout", func() {

@@ -215,10 +215,10 @@ func (factory *coreStepFactory) GetVarStep(
 		*plan.GetVar,
 		stepMetadata,
 		delegateFactory,
+		factory.secretCacheConfig,
 		factory.varsCache,
 		factory.lockFactory,
 		factory.varSourcePool,
-		factory.secretCacheConfig,
 	)
 
 	getVarStep = exec.LogError(getVarStep, delegateFactory)

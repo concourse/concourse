@@ -24,6 +24,14 @@ type CacheEntry struct {
 	found      bool
 }
 
+func NewCacheEntry(value interface{}, expiration *time.Time, found bool) CacheEntry {
+	return CacheEntry{
+		value:      value,
+		expiration: expiration,
+		found:      found,
+	}
+}
+
 type VarNotFoundError struct {
 	Source string
 	Path   string
@@ -47,20 +55,20 @@ type GetVarStep struct {
 	metadata          StepMetadata
 	delegateFactory   BuildStepDelegateFactory
 	lockFactory       lock.LockFactory
+	secretCacheConfig creds.SecretCacheConfig
 	cache             *gocache.Cache
 	varSourcePool     creds.VarSourcePool
-	secretCacheConfig creds.SecretCacheConfig
 }
 
 func NewGetVarStep(
 	planID atc.PlanID,
 	plan atc.GetVarPlan,
 	metadata StepMetadata,
-	delegateFactory BuildStepDelegateFactory, // XXX: not needed yet b/c no image fetching but WHATEVER
+	delegateFactory BuildStepDelegateFactory,
+	secretCacheConfig creds.SecretCacheConfig,
 	cache *gocache.Cache,
 	lockFactory lock.LockFactory,
 	varSourcePool creds.VarSourcePool,
-	secretCacheConfig creds.SecretCacheConfig,
 ) Step {
 	return &GetVarStep{
 		planID:            planID,
@@ -68,9 +76,9 @@ func NewGetVarStep(
 		metadata:          metadata,
 		delegateFactory:   delegateFactory,
 		lockFactory:       lockFactory,
+		secretCacheConfig: secretCacheConfig,
 		cache:             cache,
 		varSourcePool:     varSourcePool,
-		secretCacheConfig: secretCacheConfig,
 	}
 }
 
@@ -146,7 +154,9 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 		var entry interface{}
 		if step.secretCacheConfig.Enabled {
 			entry, found = step.cache.Get(hash)
-			value = entry.(CacheEntry).value
+			if found {
+				value = entry.(CacheEntry).value
+			}
 		}
 
 		// If the secret is not found in the cache or caching is not enabled, fetch
@@ -162,7 +172,7 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 			if step.secretCacheConfig.Enabled {
 				// here we want to cache secret value, expiration, and found flag too
 				// meaning that "secret not found" responses will be cached too!
-				entry = CacheEntry{value: value, expiration: expiration, found: found}
+				entry = NewCacheEntry(value, expiration, found)
 
 				if found {
 					// take default cache ttl
@@ -180,6 +190,10 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 					// cache secret not found
 					step.cache.Set(hash, entry, step.secretCacheConfig.DurationNotFound)
 				}
+			}
+
+			if !found {
+				return false, VarNotFoundError{Source: varsRef.Source, Path: varsRef.Path}
 			}
 		}
 	}
@@ -205,7 +219,7 @@ func (step *GetVarStep) runGetVar(state RunState, delegate BuildStepDelegate, re
 		return nil, nil, false, vars.MissingSourceError{Name: ref.String(), Source: ref.Source}
 	}
 
-	// Grab out the manager factory for th
+	// Grab out the manager factory for the var source
 	factory := creds.ManagerFactories()[ref.Source]
 	if factory == nil {
 		return nil, nil, false, fmt.Errorf("unknown credential manager type: %s", ref.Source)
@@ -223,9 +237,10 @@ func (step *GetVarStep) runGetVar(state RunState, delegate BuildStepDelegate, re
 
 	// Pass in a list of var source configs that don't include the var source
 	// that we are currently trying to evaluate
-	evaluatedConfig, err := creds.NewSource(delegate.Variables(ctx, state.VarSourceConfigs().Without(ref.Source)), source).Evaluate()
+	variables := delegate.Variables(ctx, state.VarSourceConfigs().Without(ref.Source))
+	evaluatedConfig, err := creds.NewSource(variables, source).Evaluate()
 	if err != nil {
-		return nil, nil, false, fmt.Errorf("evaluate: %w", err)
+		return nil, nil, false, fmt.Errorf("evaluate var source config: %w", err)
 	}
 
 	secrets, err := step.varSourcePool.FindOrCreate(logger, evaluatedConfig, factory)
@@ -233,11 +248,11 @@ func (step *GetVarStep) runGetVar(state RunState, delegate BuildStepDelegate, re
 		return nil, nil, false, fmt.Errorf("find or create var source: %w", err)
 	}
 
-	return step.lookupVarOnSecretPaths(secrets, ref, true)
+	return step.lookupVarOnSecretPaths(secrets, ref)
 }
 
-func (step *GetVarStep) lookupVarOnSecretPaths(secrets creds.Secrets, ref vars.Reference, allowRootPath bool) (interface{}, *time.Time, bool, error) {
-	lookupPaths := secrets.NewSecretLookupPaths(step.metadata.TeamName, step.metadata.PipelineName, allowRootPath)
+func (step *GetVarStep) lookupVarOnSecretPaths(secrets creds.Secrets, ref vars.Reference) (interface{}, *time.Time, bool, error) {
+	lookupPaths := secrets.NewSecretLookupPaths(step.metadata.TeamName, step.metadata.PipelineName, true)
 	if len(lookupPaths) == 0 {
 		// if no paths are specified (i.e. for fake & noop secret managers), then try 1-to-1 var->secret mapping
 		return secrets.Get(ref.Path)

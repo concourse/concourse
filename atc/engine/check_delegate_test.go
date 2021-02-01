@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -29,6 +30,7 @@ var _ = Describe("CheckDelegate", func() {
 		fakeRateLimiter     *enginefakes.FakeRateLimiter
 		fakePolicyChecker   *policyfakes.FakeChecker
 		fakeArtifactSourcer *workerfakes.FakeArtifactSourcer
+		fakeSecrets         *credsfakes.FakeSecrets
 
 		state exec.RunState
 
@@ -46,11 +48,7 @@ var _ = Describe("CheckDelegate", func() {
 		fakeClock = fakeclock.NewFakeClock(now)
 		fakeRateLimiter = new(enginefakes.FakeRateLimiter)
 		fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
-		credVars := vars.StaticVariables{
-			"source-param": "super-secret-source",
-			"git-key":      "{\n123\n456\n789\n}\n",
-		}
-		state = exec.NewRunState(noopStepper, credVars, true)
+		state = exec.NewRunState(noopStepper, nil, true)
 
 		plan = atc.Plan{
 			ID:    "some-plan-id",
@@ -58,11 +56,12 @@ var _ = Describe("CheckDelegate", func() {
 		}
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)
+		fakeSecrets = new(credsfakes.FakeSecrets)
 
 		fakeBuild.NameReturns(db.CheckBuildName)
 		fakeBuild.ResourceIDReturns(88)
 
-		delegate = engine.NewCheckDelegate(fakeBuild, plan, state, fakeClock, fakeRateLimiter, fakePolicyChecker, fakeArtifactSourcer)
+		delegate = engine.NewCheckDelegate(fakeBuild, plan, state, fakeClock, fakeRateLimiter, fakePolicyChecker, fakeArtifactSourcer, fakeSecrets)
 
 		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 		fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)

@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
@@ -21,7 +22,6 @@ import (
 	"github.com/concourse/concourse/atc/runtime/runtimefakes"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/worker/workerfakes"
-	"github.com/concourse/concourse/vars"
 )
 
 var noopStepper exec.Stepper = func(atc.Plan) exec.Step {
@@ -38,6 +38,7 @@ var _ = Describe("TaskDelegate", func() {
 		fakeArtifactSourcer *workerfakes.FakeArtifactSourcer
 		fakeWorkerFactory   *dbfakes.FakeWorkerFactory
 		fakeLockFactory     *lockfakes.FakeLockFactory
+		fakeSecrets         *credsfakes.FakeSecrets
 
 		state exec.RunState
 
@@ -54,18 +55,16 @@ var _ = Describe("TaskDelegate", func() {
 
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeClock = fakeclock.NewFakeClock(now)
-		credVars := vars.StaticVariables{
-			"source-param": "super-secret-source",
-			"git-key":      "{\n123\n456\n789\n}\n",
-		}
-		state = exec.NewRunState(noopStepper, credVars, true)
+		state = exec.NewRunState(noopStepper, nil, true)
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)
 		fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
 		fakeWorkerFactory = new(dbfakes.FakeWorkerFactory)
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
+		fakeSecrets = new(credsfakes.FakeSecrets)
 
-		delegate = NewTaskDelegate(fakeBuild, planID, state, fakeClock, fakePolicyChecker, fakeArtifactSourcer, fakeWorkerFactory, fakeLockFactory).(*taskDelegate)
+		delegate = NewTaskDelegate(fakeBuild, planID, state, fakeClock, fakePolicyChecker, fakeArtifactSourcer, fakeWorkerFactory, fakeLockFactory, fakeSecrets).(*taskDelegate)
+
 		delegate.SetTaskConfig(atc.TaskConfig{
 			Platform: "some-platform",
 			Run: atc.TaskRunConfig{
@@ -200,7 +199,7 @@ var _ = Describe("TaskDelegate", func() {
 			}
 
 			runState := exec.NewRunState(stepper, nil, false)
-			delegate = NewTaskDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker, fakeSecrets, fakeArtifactSourcer, fakeWorkerFactory, fakeLockFactory)
+			delegate = NewTaskDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker, fakeArtifactSourcer, fakeWorkerFactory, fakeLockFactory, fakeSecrets)
 
 			fakeSource = new(workerfakes.FakeStreamableArtifactSource)
 			fakeArtifactSourcer.SourceImageReturns(fakeSource, nil)

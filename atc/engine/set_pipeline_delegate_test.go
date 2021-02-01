@@ -12,7 +12,6 @@ import (
 	"github.com/concourse/concourse/atc/engine"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("SetPipelineStepDelegate", func() {
@@ -32,11 +31,7 @@ var _ = Describe("SetPipelineStepDelegate", func() {
 
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeClock = fakeclock.NewFakeClock(now)
-		credVars := vars.StaticVariables{
-			"source-param": "super-secret-source",
-			"git-key":      "{\n123\n456\n789\n}\n",
-		}
-		state = exec.NewRunState(noopStepper, credVars, true)
+		state = exec.NewRunState(noopStepper, nil, true)
 
 		delegate = engine.NewSetPipelineStepDelegate(fakeBuild, "some-plan-id", state, fakeClock)
 	})

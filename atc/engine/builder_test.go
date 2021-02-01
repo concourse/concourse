@@ -3,6 +3,7 @@ package engine_test
 import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/builds"
+	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
@@ -28,6 +29,7 @@ var _ = Describe("Builder", func() {
 			fakeArtifactSourcer *workerfakes.FakeArtifactSourcer
 			fakeWorkerFactory   *dbfakes.FakeWorkerFactory
 			fakeLockFactory     *lockfakes.FakeLockFactory
+			fakeSecrets         *credsfakes.FakeSecrets
 
 			planFactory    atc.PlanFactory
 			stepperFactory engine.StepperFactory
@@ -40,6 +42,7 @@ var _ = Describe("Builder", func() {
 			fakeArtifactSourcer = new(workerfakes.FakeArtifactSourcer)
 			fakeWorkerFactory = new(dbfakes.FakeWorkerFactory)
 			fakeLockFactory = new(lockfakes.FakeLockFactory)
+			fakeSecrets = new(credsfakes.FakeSecrets)
 
 			stepperFactory = engine.NewStepperFactory(
 				fakeCoreStepFactory,
@@ -49,6 +52,7 @@ var _ = Describe("Builder", func() {
 				fakeArtifactSourcer,
 				fakeWorkerFactory,
 				fakeLockFactory,
+				fakeSecrets,
 			)
 
 			planFactory = atc.NewPlanFactory(123)

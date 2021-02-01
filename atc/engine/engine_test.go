@@ -21,7 +21,6 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/execfakes"
-	"github.com/concourse/concourse/vars"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -32,7 +31,6 @@ var _ = Describe("Engine", func() {
 		fakeBuild          *dbfakes.FakeBuild
 		fakeStepperFactory *enginefakes.FakeStepperFactory
 
-		fakeGlobalCreds   *credsfakes.FakeSecrets
 		fakeVarSourcePool *credsfakes.FakeVarSourcePool
 	)
 
@@ -42,7 +40,6 @@ var _ = Describe("Engine", func() {
 
 		fakeStepperFactory = new(enginefakes.FakeStepperFactory)
 
-		fakeGlobalCreds = new(credsfakes.FakeSecrets)
 		fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
 	})
 
@@ -53,7 +50,7 @@ var _ = Describe("Engine", func() {
 		)
 
 		BeforeEach(func() {
-			engine = NewEngine(fakeStepperFactory, fakeGlobalCreds, fakeVarSourcePool)
+			engine = NewEngine(fakeStepperFactory, fakeVarSourcePool)
 		})
 
 		JustBeforeEach(func() {
@@ -81,7 +78,6 @@ var _ = Describe("Engine", func() {
 			build = NewBuild(
 				fakeBuild,
 				fakeStepperFactory,
-				fakeGlobalCreds,
 				fakeVarSourcePool,
 				release,
 				trackedStates,
@@ -169,11 +165,21 @@ var _ = Describe("Engine", func() {
 								Expect(plan).To(Equal(fakeBuild.PrivatePlan())) //XXX
 							})
 
-							Context("when getting the build vars succeeds", func() {
+							Context("when getting the var source config succeeds", func() {
 								var invokedState chan exec.RunState
+								var varSourceConfigs atc.VarSourceConfigs
 
 								BeforeEach(func() {
-									fakeBuild.VariablesReturns(vars.StaticVariables{"foo": "bar"}, nil)
+									varSourceConfigs = atc.VarSourceConfigs{
+										{
+											Name: "some-source",
+											Type: "some-type",
+											Config: map[string]interface{}{
+												"some": "source",
+											},
+										},
+									}
+									fakeBuild.VarSourceConfigsReturns(varSourceConfigs, nil)
 
 									invokedState = make(chan exec.RunState, 1)
 									fakeStep.RunStub = func(ctx context.Context, state exec.RunState) (bool, error) {
@@ -182,13 +188,10 @@ var _ = Describe("Engine", func() {
 									}
 								})
 
-								It("runs the step with the build variables", func() {
+								It("runs the step with the var source configs", func() {
 									state := <-invokedState
 
-									val, found, err := state.Get(vars.Reference{Path: "foo"})
-									Expect(err).ToNot(HaveOccurred())
-									Expect(found).To(BeTrue())
-									Expect(val).To(Equal("bar"))
+									Expect(state.VarSourceConfigs()).To(Equal(varSourceConfigs))
 								})
 
 								Context("when the build is released", func() {
@@ -311,9 +314,9 @@ var _ = Describe("Engine", func() {
 								})
 							})
 
-							Context("when getting the build vars fails", func() {
+							Context("when getting the var source configs vars fails", func() {
 								BeforeEach(func() {
-									fakeBuild.VariablesReturns(nil, errors.New("ruh roh"))
+									fakeBuild.VarSourceConfigsReturns(nil, errors.New("ruh roh"))
 								})
 
 								It("releases the lock", func() {

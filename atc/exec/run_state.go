@@ -22,7 +22,7 @@ type runState struct {
 	// source configurations of all the var sources within the pipeline
 	sources atc.VarSourceConfigs
 
-	parent RunState
+	parent *runState
 }
 
 type Stepper func(atc.Plan) Step
