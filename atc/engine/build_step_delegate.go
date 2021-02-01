@@ -368,7 +368,7 @@ func (v *StepVariables) Get(ref vars.Reference) (interface{}, bool, error) {
 		return globalVars.Get(ref)
 	}
 
-	buildVar, found, err := v.delegate.state.Variables().Get(ref)
+	buildVar, found, err := v.delegate.state.LocalVariables().Get(ref)
 	if err != nil {
 		return nil, false, err
 	}

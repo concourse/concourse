@@ -38,6 +38,7 @@ type BuildOutputFilter func(text string) string
 type RunState interface {
 	NewScope() RunState
 
+	Track(vars.Reference, interface{})
 	IterateInterpolatedCreds(vars.TrackedVarsIterator)
 	RedactionEnabled() bool
 

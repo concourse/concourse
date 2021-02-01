@@ -18,12 +18,27 @@ import (
 	gocache "github.com/patrickmn/go-cache"
 )
 
+type CacheEntry struct {
+	value      interface{}
+	expiration *time.Time
+	found      bool
+}
+
 type VarNotFoundError struct {
-	Name string
+	Source string
+	Path   string
 }
 
 func (e VarNotFoundError) Error() string {
-	return fmt.Sprintf("var %s not found", e.Name)
+	return fmt.Sprintf("var %s:%s not found", e.Source, e.Path)
+}
+
+type LocalVarNotFound struct {
+	Path string
+}
+
+func (e LocalVarNotFound) Error() string {
+	return fmt.Sprintf("var %s not found in local variables", e.Path)
 }
 
 type GetVarStep struct {
@@ -87,7 +102,7 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 
 	delegate.Starting(logger)
 
-	hash, err := step.hashVarIdentifier(step.plan.Path, step.plan.Type, step.plan.Source)
+	hash, err := HashVarIdentifier(step.plan.Path, step.plan.Type, step.plan.Source, step.metadata.TeamID)
 	if err != nil {
 		return false, fmt.Errorf("hash var identifier: %w", err)
 	}
@@ -113,70 +128,76 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 		Fields: step.plan.Fields,
 	}
 
-	value, found, err := state.Variables().Get(varsRef)
-	if err != nil {
-		return false, fmt.Errorf("get var from build vars: %w", err)
-	}
-	// If the var already exists in the builds vars, nothing needs to be done
-	if found {
-		result, err := vars.Traverse(value, varsRef.String(), step.plan.Fields)
+	var value interface{}
+	var found bool
+
+	// Fetch from local variables if the source is "."
+	if varsRef.Source == "." {
+		value, found, err = state.LocalVariables().Get(varsRef)
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("get var from build vars: %w", err)
 		}
 
-		state.StoreResult(step.planID, result)
-		delegate.Finished(logger, true)
-		return true, nil
-	}
-
-	value, found = step.cache.Get(hash)
-
-	// If the var exists within the cache, use the value in the cache
-	if found {
-		result, err := vars.Traverse(value, varsRef.String(), step.plan.Fields)
-		if err != nil {
-			return false, err
+		if !found {
+			return false, LocalVarNotFound{varsRef.Path}
+		}
+	} else {
+		// Fetch from cache if source is populated and caching is enabled
+		var entry interface{}
+		if step.secretCacheConfig.Enabled {
+			entry, found = step.cache.Get(hash)
+			value = entry.(CacheEntry).value
 		}
 
-		state.Variables().SetVar(step.plan.Name, step.plan.Path, value, !step.plan.Reveal)
-		state.StoreResult(step.planID, result)
+		// If the secret is not found in the cache or caching is not enabled, fetch
+		// the var from the var source
+		var expiration *time.Time
+		if !found {
+			value, expiration, found, err = step.runGetVar(state, delegate, varsRef, ctx, logger)
+			if err != nil {
+				return false, err
+			}
 
-		delegate.Finished(logger, true)
-		return true, nil
+			// Cache the resulting value if caching is enabled
+			if step.secretCacheConfig.Enabled {
+				// here we want to cache secret value, expiration, and found flag too
+				// meaning that "secret not found" responses will be cached too!
+				entry = CacheEntry{value: value, expiration: expiration, found: found}
+
+				if found {
+					// take default cache ttl
+					duration := step.secretCacheConfig.Duration
+					if expiration != nil {
+						// if secret lease time expires sooner, make duration smaller than default duration
+						itemDuration := expiration.Sub(time.Now())
+						if itemDuration < duration {
+							duration = itemDuration
+						}
+					}
+
+					step.cache.Set(hash, entry, duration)
+				} else {
+					// cache secret not found
+					step.cache.Set(hash, entry, step.secretCacheConfig.DurationNotFound)
+				}
+			}
+		}
 	}
 
-	value, found, err = step.runGetVar(state, delegate, varsRef, ctx, logger)
-	if err != nil {
-		return false, err
-	}
-
-	if !found {
-		return false, nil
-	}
-
+	// Traverse the var to find the value of the field (if given)
 	result, err := vars.Traverse(value, varsRef.String(), step.plan.Fields)
 	if err != nil {
 		return false, err
 	}
 
-	step.cache.Add(hash, value, time.Second)
-
-	state.Variables().SetVar(step.plan.Name, step.plan.Path, value, !step.plan.Reveal)
+	state.Track(varsRef, result)
 
 	state.StoreResult(step.planID, result)
-
 	delegate.Finished(logger, true)
-
 	return true, nil
 }
 
-func (step *GetVarStep) runGetVar(state RunState, delegate BuildStepDelegate, ref vars.Reference, ctx context.Context, logger lager.Logger) (interface{}, bool, error) {
-	// Var is evaluated by global credential manager
-	if ref.Source == "" {
-		globalVars := creds.NewVariables(step.globalSecrets, step.metadata.TeamName, step.metadata.PipelineName, false)
-		return globalVars.Get(ref)
-	}
-
+func (step *GetVarStep) runGetVar(state RunState, delegate BuildStepDelegate, ref vars.Reference, ctx context.Context, logger lager.Logger) (interface{}, *time.Time, bool, error) {
 	// Loop over each var source and try to match a var source to the source
 	// provided in the var
 	varSourceConfig, found := state.VarSourceConfigs().Lookup(ref.Source)
@@ -212,29 +233,47 @@ func (step *GetVarStep) runGetVar(state RunState, delegate BuildStepDelegate, re
 		return nil, nil, false, fmt.Errorf("find or create var source: %w", err)
 	}
 
-				result, _, found, err := secrets.Get(secretPath)
-				if err != nil {
-					return nil, false, err
-				}
-				if !found {
-					continue
-				}
-				return result, true, nil
-			}
-			return nil, false, nil
-		}
-	}
-
-	return nil, false, vars.MissingSourceError{Name: ref.String(), Source: ref.Source}
+	return step.lookupVarOnSecretPaths(secrets, ref, true)
 }
 
-func (step *GetVarStep) hashVarIdentifier(path, type_ string, source atc.Source) (string, error) {
+func (step *GetVarStep) lookupVarOnSecretPaths(secrets creds.Secrets, ref vars.Reference, allowRootPath bool) (interface{}, *time.Time, bool, error) {
+	lookupPaths := secrets.NewSecretLookupPaths(step.metadata.TeamName, step.metadata.PipelineName, allowRootPath)
+	if len(lookupPaths) == 0 {
+		// if no paths are specified (i.e. for fake & noop secret managers), then try 1-to-1 var->secret mapping
+		return secrets.Get(ref.Path)
+	}
+
+	// try to find a secret according to our var->secret lookup paths
+	for _, rule := range lookupPaths {
+		// prepends any additional prefix paths to front of the path
+		secretPath, err := rule.VariableToSecretPath(ref.Path)
+		if err != nil {
+			return nil, nil, false, err
+		}
+
+		result, expiration, found, err := secrets.Get(secretPath)
+		if err != nil {
+			return nil, nil, false, err
+		}
+
+		if !found {
+			continue
+		}
+
+		return result, expiration, true, nil
+	}
+
+	return nil, nil, false, nil
+}
+
+func HashVarIdentifier(path, type_ string, source atc.Source, teamID int) (string, error) {
 	varIdentifier, err := json.Marshal(struct {
 		Path string `json:"path"`
 		// TODO: Type might not be safe with prototypes, since the type is arbitrary
 		Type   string     `json:"type"`
 		Source atc.Source `json:"source"`
-	}{path, type_, source})
+		TeamID int        `json:"team_id"`
+	}{path, type_, source, teamID})
 	if err != nil {
 		return "", err
 	}

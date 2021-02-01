@@ -100,7 +100,7 @@ func (step *LoadVarStep) run(ctx context.Context, state RunState, delegate Build
 	}
 	fmt.Fprintf(stdout, "var %s fetched.\n", step.plan.Name)
 
-	state.Variables().SetVar(".", step.plan.Name, value, !step.plan.Reveal)
+	state.LocalVariables().SetVar(".", step.plan.Name, value, !step.plan.Reveal)
 	fmt.Fprintf(stdout, "added var %s to build.\n", step.plan.Name)
 
 	delegate.Finished(logger, true)

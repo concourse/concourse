@@ -68,7 +68,6 @@ func (t *Tracker) IterateInterpolatedCreds(iter TrackedVarsIterator) {
 	t.lock.RUnlock()
 }
 
-// XXX: Dead code?
 type CredVarsTracker struct {
 	*Tracker
 	CredVars Variables

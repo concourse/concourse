@@ -11,26 +11,20 @@ type Variables struct {
 		IterateInterpolatedCreds(iter vars.TrackedVarsIterator)
 	}
 
-	vars    map[string]vars.StaticVariables
-	tracker *vars.Tracker
-
-	// source configurations of all the var sources within the pipeline
-	sources atc.VarSourceConfigs
+	localVars vars.StaticVariables
+	tracker   *vars.Tracker
 }
 
-func NewVariables(sources atc.VarSourceConfigs, enableRedaction bool) *Variables {
+func NewVariables(sources atc.VarSourceConfigs, tracker *vars.Tracker) *Variables {
 	return &Variables{
-		vars:    map[string]vars.StaticVariables{},
-		tracker: vars.NewTracker(enableRedaction),
-
-		sources: sources,
+		localVars: vars.StaticVariables{},
+		tracker:   tracker,
 	}
 }
 
 func (v *Variables) Get(ref vars.Reference) (interface{}, bool, error) {
-	source, found := v.vars[ref.Source]
-	if found {
-		val, found, err := source.Get(ref)
+	if ref.Source == "." {
+		val, found, err := v.localVars.Get(ref)
 		if found || err != nil {
 			return val, found, err
 		}
@@ -53,20 +47,14 @@ func (v *Variables) IterateInterpolatedCreds(iter vars.TrackedVarsIterator) {
 func (v *Variables) NewScope() *Variables {
 	return &Variables{
 		parentScope: v,
-		vars:        map[string]vars.StaticVariables{},
+		localVars:   vars.StaticVariables{},
 		tracker:     vars.NewTracker(v.tracker.Enabled),
 	}
 }
 
-// TODO: Add setting a var with fields
 func (v *Variables) SetVar(source, name string, val interface{}, redact bool) {
-	scope, found := v.vars[source]
-	if !found {
-		scope = vars.StaticVariables{}
-		v.vars[source] = scope
-	}
+	v.localVars[name] = val
 
-	scope[name] = val
 	if redact {
 		v.tracker.Track(vars.Reference{Source: source, Path: name}, val)
 	}

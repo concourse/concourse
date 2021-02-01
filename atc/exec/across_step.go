@@ -123,7 +123,7 @@ func (step AcrossStep) acrossStepLeafExecutor(state RunState, steps []ScopedStep
 				// Don't redact because the `list` operation of a var_source should return identifiers
 				// which should be publicly accessible. For static across steps, the static list is
 				// embedded directly in the pipeline
-				scope.Variables().SetVar(".", v.Var, steps[i].Values[j], false)
+				scope.LocalVariables().SetVar(".", v.Var, steps[i].Values[j], false)
 			}
 
 			return steps[i].Run(ctx, scope)

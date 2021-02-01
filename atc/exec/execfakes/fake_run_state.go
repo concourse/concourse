@@ -27,6 +27,16 @@ type FakeRunState struct {
 	iterateInterpolatedCredsArgsForCall []struct {
 		arg1 vars.TrackedVarsIterator
 	}
+	LocalVariablesStub        func() *build.Variables
+	localVariablesMutex       sync.RWMutex
+	localVariablesArgsForCall []struct {
+	}
+	localVariablesReturns struct {
+		result1 *build.Variables
+	}
+	localVariablesReturnsOnCall map[int]struct {
+		result1 *build.Variables
+	}
 	NewScopeStub        func() exec.RunState
 	newScopeMutex       sync.RWMutex
 	newScopeArgsForCall []struct {
@@ -94,9 +104,11 @@ type FakeRunState struct {
 		arg1 atc.PlanID
 		arg2 interface{}
 	}
-	VariablesStub        func() *build.Variables
-	variablesMutex       sync.RWMutex
-	variablesArgsForCall []struct {
+	TrackStub        func(vars.Reference, interface{})
+	trackMutex       sync.RWMutex
+	trackArgsForCall []struct {
+		arg1 vars.Reference
+		arg2 interface{}
 	}
 	VarSourceConfigsStub        func() atc.VarSourceConfigs
 	varSourceConfigsMutex       sync.RWMutex
@@ -195,6 +207,59 @@ func (fake *FakeRunState) IterateInterpolatedCredsArgsForCall(i int) vars.Tracke
 	defer fake.iterateInterpolatedCredsMutex.RUnlock()
 	argsForCall := fake.iterateInterpolatedCredsArgsForCall[i]
 	return argsForCall.arg1
+}
+
+func (fake *FakeRunState) LocalVariables() *build.Variables {
+	fake.localVariablesMutex.Lock()
+	ret, specificReturn := fake.localVariablesReturnsOnCall[len(fake.localVariablesArgsForCall)]
+	fake.localVariablesArgsForCall = append(fake.localVariablesArgsForCall, struct {
+	}{})
+	stub := fake.LocalVariablesStub
+	fakeReturns := fake.localVariablesReturns
+	fake.recordInvocation("LocalVariables", []interface{}{})
+	fake.localVariablesMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeRunState) LocalVariablesCallCount() int {
+	fake.localVariablesMutex.RLock()
+	defer fake.localVariablesMutex.RUnlock()
+	return len(fake.localVariablesArgsForCall)
+}
+
+func (fake *FakeRunState) LocalVariablesCalls(stub func() *build.Variables) {
+	fake.localVariablesMutex.Lock()
+	defer fake.localVariablesMutex.Unlock()
+	fake.LocalVariablesStub = stub
+}
+
+func (fake *FakeRunState) LocalVariablesReturns(result1 *build.Variables) {
+	fake.localVariablesMutex.Lock()
+	defer fake.localVariablesMutex.Unlock()
+	fake.LocalVariablesStub = nil
+	fake.localVariablesReturns = struct {
+		result1 *build.Variables
+	}{result1}
+}
+
+func (fake *FakeRunState) LocalVariablesReturnsOnCall(i int, result1 *build.Variables) {
+	fake.localVariablesMutex.Lock()
+	defer fake.localVariablesMutex.Unlock()
+	fake.LocalVariablesStub = nil
+	if fake.localVariablesReturnsOnCall == nil {
+		fake.localVariablesReturnsOnCall = make(map[int]struct {
+			result1 *build.Variables
+		})
+	}
+	fake.localVariablesReturnsOnCall[i] = struct {
+		result1 *build.Variables
+	}{result1}
 }
 
 func (fake *FakeRunState) NewScope() exec.RunState {
@@ -548,10 +613,43 @@ func (fake *FakeRunState) StoreResultArgsForCall(i int) (atc.PlanID, interface{}
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeRunState) Variables() *build.Variables {
-	fake.variablesMutex.Lock()
-	ret, specificReturn := fake.variablesReturnsOnCall[len(fake.variablesArgsForCall)]
-	fake.variablesArgsForCall = append(fake.variablesArgsForCall, struct {
+func (fake *FakeRunState) Track(arg1 vars.Reference, arg2 interface{}) {
+	fake.trackMutex.Lock()
+	fake.trackArgsForCall = append(fake.trackArgsForCall, struct {
+		arg1 vars.Reference
+		arg2 interface{}
+	}{arg1, arg2})
+	stub := fake.TrackStub
+	fake.recordInvocation("Track", []interface{}{arg1, arg2})
+	fake.trackMutex.Unlock()
+	if stub != nil {
+		fake.TrackStub(arg1, arg2)
+	}
+}
+
+func (fake *FakeRunState) TrackCallCount() int {
+	fake.trackMutex.RLock()
+	defer fake.trackMutex.RUnlock()
+	return len(fake.trackArgsForCall)
+}
+
+func (fake *FakeRunState) TrackCalls(stub func(vars.Reference, interface{})) {
+	fake.trackMutex.Lock()
+	defer fake.trackMutex.Unlock()
+	fake.TrackStub = stub
+}
+
+func (fake *FakeRunState) TrackArgsForCall(i int) (vars.Reference, interface{}) {
+	fake.trackMutex.RLock()
+	defer fake.trackMutex.RUnlock()
+	argsForCall := fake.trackArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeRunState) VarSourceConfigs() atc.VarSourceConfigs {
+	fake.varSourceConfigsMutex.Lock()
+	ret, specificReturn := fake.varSourceConfigsReturnsOnCall[len(fake.varSourceConfigsArgsForCall)]
+	fake.varSourceConfigsArgsForCall = append(fake.varSourceConfigsArgsForCall, struct {
 	}{})
 	stub := fake.VarSourceConfigsStub
 	fakeReturns := fake.varSourceConfigsReturns
@@ -608,6 +706,8 @@ func (fake *FakeRunState) Invocations() map[string][][]interface{} {
 	defer fake.artifactRepositoryMutex.RUnlock()
 	fake.iterateInterpolatedCredsMutex.RLock()
 	defer fake.iterateInterpolatedCredsMutex.RUnlock()
+	fake.localVariablesMutex.RLock()
+	defer fake.localVariablesMutex.RUnlock()
 	fake.newScopeMutex.RLock()
 	defer fake.newScopeMutex.RUnlock()
 	fake.parentMutex.RLock()
@@ -622,8 +722,10 @@ func (fake *FakeRunState) Invocations() map[string][][]interface{} {
 	defer fake.setVarSourceConfigsMutex.RUnlock()
 	fake.storeResultMutex.RLock()
 	defer fake.storeResultMutex.RUnlock()
-	fake.variablesMutex.RLock()
-	defer fake.variablesMutex.RUnlock()
+	fake.trackMutex.RLock()
+	defer fake.trackMutex.RUnlock()
+	fake.varSourceConfigsMutex.RLock()
+	defer fake.varSourceConfigsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
