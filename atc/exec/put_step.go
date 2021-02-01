@@ -27,7 +27,7 @@ type PutDelegateFactory interface {
 type PutDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
-	Variables(context.Context) vars.Variables
+	Variables(context.Context, atc.VarSourceConfigs) vars.Variables
 	FetchImage(context.Context, atc.Plan, *atc.Plan, bool) (worker.ImageSpec, db.ResourceCache, error)
 
 	Stdout() io.Writer
@@ -115,12 +115,12 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	delegate.Initializing(logger)
 
-	source, err := creds.NewSource(delegate.Variables(ctx), step.plan.Source).Evaluate()
+	source, err := creds.NewSource(delegate.Variables(ctx, state.VarSourceConfigs()), step.plan.Source).Evaluate()
 	if err != nil {
 		return false, err
 	}
 
-	params, err := creds.NewParams(delegate.Variables(ctx), step.plan.Params).Evaluate()
+	params, err := creds.NewParams(delegate.Variables(ctx, state.VarSourceConfigs()), step.plan.Params).Evaluate()
 	if err != nil {
 		return false, err
 	}

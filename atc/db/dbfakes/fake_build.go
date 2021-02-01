@@ -8,12 +8,10 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/tracing"
-	"github.com/concourse/concourse/vars"
 	"go.opentelemetry.io/otel/propagation"
 )
 
@@ -708,31 +706,16 @@ type FakeBuild struct {
 	tracingAttrsReturnsOnCall map[int]struct {
 		result1 tracing.Attrs
 	}
-	VarSourcesStub        func() (atc.VarSourceConfigs, error)
-	varSourcesMutex       sync.RWMutex
-	varSourcesArgsForCall []struct {
+	VarSourceConfigsStub        func() (atc.VarSourceConfigs, error)
+	varSourceConfigsMutex       sync.RWMutex
+	varSourceConfigsArgsForCall []struct {
 	}
-	varSourcesReturns struct {
+	varSourceConfigsReturns struct {
 		result1 atc.VarSourceConfigs
 		result2 error
 	}
-	varSourcesReturnsOnCall map[int]struct {
+	varSourceConfigsReturnsOnCall map[int]struct {
 		result1 atc.VarSourceConfigs
-		result2 error
-	}
-	VariablesStub        func(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
-	variablesMutex       sync.RWMutex
-	variablesArgsForCall []struct {
-		arg1 lager.Logger
-		arg2 creds.Secrets
-		arg3 creds.VarSourcePool
-	}
-	variablesReturns struct {
-		result1 vars.Variables
-		result2 error
-	}
-	variablesReturnsOnCall map[int]struct {
-		result1 vars.Variables
 		result2 error
 	}
 	invocations      map[string][][]interface{}
@@ -4209,123 +4192,58 @@ func (fake *FakeBuild) TracingAttrsReturnsOnCall(i int, result1 tracing.Attrs) {
 	}{result1}
 }
 
-func (fake *FakeBuild) VarSources() (atc.VarSourceConfigs, error) {
-	fake.varSourcesMutex.Lock()
-	ret, specificReturn := fake.varSourcesReturnsOnCall[len(fake.varSourcesArgsForCall)]
-	fake.varSourcesArgsForCall = append(fake.varSourcesArgsForCall, struct {
+func (fake *FakeBuild) VarSourceConfigs() (atc.VarSourceConfigs, error) {
+	fake.varSourceConfigsMutex.Lock()
+	ret, specificReturn := fake.varSourceConfigsReturnsOnCall[len(fake.varSourceConfigsArgsForCall)]
+	fake.varSourceConfigsArgsForCall = append(fake.varSourceConfigsArgsForCall, struct {
 	}{})
-	fake.recordInvocation("VarSources", []interface{}{})
-	fake.varSourcesMutex.Unlock()
-	if fake.VarSourcesStub != nil {
-		return fake.VarSourcesStub()
+	stub := fake.VarSourceConfigsStub
+	fakeReturns := fake.varSourceConfigsReturns
+	fake.recordInvocation("VarSourceConfigs", []interface{}{})
+	fake.varSourceConfigsMutex.Unlock()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.varSourcesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeBuild) VarSourcesCallCount() int {
-	fake.varSourcesMutex.RLock()
-	defer fake.varSourcesMutex.RUnlock()
-	return len(fake.varSourcesArgsForCall)
+func (fake *FakeBuild) VarSourceConfigsCallCount() int {
+	fake.varSourceConfigsMutex.RLock()
+	defer fake.varSourceConfigsMutex.RUnlock()
+	return len(fake.varSourceConfigsArgsForCall)
 }
 
-func (fake *FakeBuild) VarSourcesCalls(stub func() (atc.VarSourceConfigs, error)) {
-	fake.varSourcesMutex.Lock()
-	defer fake.varSourcesMutex.Unlock()
-	fake.VarSourcesStub = stub
+func (fake *FakeBuild) VarSourceConfigsCalls(stub func() (atc.VarSourceConfigs, error)) {
+	fake.varSourceConfigsMutex.Lock()
+	defer fake.varSourceConfigsMutex.Unlock()
+	fake.VarSourceConfigsStub = stub
 }
 
-func (fake *FakeBuild) VarSourcesReturns(result1 atc.VarSourceConfigs, result2 error) {
-	fake.varSourcesMutex.Lock()
-	defer fake.varSourcesMutex.Unlock()
-	fake.VarSourcesStub = nil
-	fake.varSourcesReturns = struct {
+func (fake *FakeBuild) VarSourceConfigsReturns(result1 atc.VarSourceConfigs, result2 error) {
+	fake.varSourceConfigsMutex.Lock()
+	defer fake.varSourceConfigsMutex.Unlock()
+	fake.VarSourceConfigsStub = nil
+	fake.varSourceConfigsReturns = struct {
 		result1 atc.VarSourceConfigs
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeBuild) VarSourcesReturnsOnCall(i int, result1 atc.VarSourceConfigs, result2 error) {
-	fake.varSourcesMutex.Lock()
-	defer fake.varSourcesMutex.Unlock()
-	fake.VarSourcesStub = nil
-	if fake.varSourcesReturnsOnCall == nil {
-		fake.varSourcesReturnsOnCall = make(map[int]struct {
+func (fake *FakeBuild) VarSourceConfigsReturnsOnCall(i int, result1 atc.VarSourceConfigs, result2 error) {
+	fake.varSourceConfigsMutex.Lock()
+	defer fake.varSourceConfigsMutex.Unlock()
+	fake.VarSourceConfigsStub = nil
+	if fake.varSourceConfigsReturnsOnCall == nil {
+		fake.varSourceConfigsReturnsOnCall = make(map[int]struct {
 			result1 atc.VarSourceConfigs
 			result2 error
 		})
 	}
-	fake.varSourcesReturnsOnCall[i] = struct {
+	fake.varSourceConfigsReturnsOnCall[i] = struct {
 		result1 atc.VarSourceConfigs
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBuild) Variables(arg1 lager.Logger, arg2 creds.Secrets, arg3 creds.VarSourcePool) (vars.Variables, error) {
-	fake.variablesMutex.Lock()
-	ret, specificReturn := fake.variablesReturnsOnCall[len(fake.variablesArgsForCall)]
-	fake.variablesArgsForCall = append(fake.variablesArgsForCall, struct {
-		arg1 lager.Logger
-		arg2 creds.Secrets
-		arg3 creds.VarSourcePool
-	}{arg1, arg2, arg3})
-	stub := fake.VariablesStub
-	fakeReturns := fake.variablesReturns
-	fake.recordInvocation("Variables", []interface{}{arg1, arg2, arg3})
-	fake.variablesMutex.Unlock()
-	if stub != nil {
-		return stub(arg1, arg2, arg3)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeBuild) VariablesCallCount() int {
-	fake.variablesMutex.RLock()
-	defer fake.variablesMutex.RUnlock()
-	return len(fake.variablesArgsForCall)
-}
-
-func (fake *FakeBuild) VariablesCalls(stub func(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)) {
-	fake.variablesMutex.Lock()
-	defer fake.variablesMutex.Unlock()
-	fake.VariablesStub = stub
-}
-
-func (fake *FakeBuild) VariablesArgsForCall(i int) (lager.Logger, creds.Secrets, creds.VarSourcePool) {
-	fake.variablesMutex.RLock()
-	defer fake.variablesMutex.RUnlock()
-	argsForCall := fake.variablesArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
-}
-
-func (fake *FakeBuild) VariablesReturns(result1 vars.Variables, result2 error) {
-	fake.variablesMutex.Lock()
-	defer fake.variablesMutex.Unlock()
-	fake.VariablesStub = nil
-	fake.variablesReturns = struct {
-		result1 vars.Variables
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBuild) VariablesReturnsOnCall(i int, result1 vars.Variables, result2 error) {
-	fake.variablesMutex.Lock()
-	defer fake.variablesMutex.Unlock()
-	fake.VariablesStub = nil
-	if fake.variablesReturnsOnCall == nil {
-		fake.variablesReturnsOnCall = make(map[int]struct {
-			result1 vars.Variables
-			result2 error
-		})
-	}
-	fake.variablesReturnsOnCall[i] = struct {
-		result1 vars.Variables
 		result2 error
 	}{result1, result2}
 }
@@ -4457,10 +4375,8 @@ func (fake *FakeBuild) Invocations() map[string][][]interface{} {
 	defer fake.teamNameMutex.RUnlock()
 	fake.tracingAttrsMutex.RLock()
 	defer fake.tracingAttrsMutex.RUnlock()
-	fake.varSourcesMutex.RLock()
-	defer fake.varSourcesMutex.RUnlock()
-	fake.variablesMutex.RLock()
-	defer fake.variablesMutex.RUnlock()
+	fake.varSourceConfigsMutex.RLock()
+	defer fake.varSourceConfigsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

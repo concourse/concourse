@@ -103,10 +103,11 @@ type FakeTaskDelegate struct {
 	stdoutReturnsOnCall map[int]struct {
 		result1 io.Writer
 	}
-	VariablesStub        func(context.Context) vars.Variables
+	VariablesStub        func(context.Context, atc.VarSourceConfigs) vars.Variables
 	variablesMutex       sync.RWMutex
 	variablesArgsForCall []struct {
 		arg1 context.Context
+		arg2 atc.VarSourceConfigs
 	}
 	variablesReturns struct {
 		result1 vars.Variables
@@ -560,18 +561,19 @@ func (fake *FakeTaskDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
 	}{result1}
 }
 
-func (fake *FakeTaskDelegate) Variables(arg1 context.Context) vars.Variables {
+func (fake *FakeTaskDelegate) Variables(arg1 context.Context, arg2 atc.VarSourceConfigs) vars.Variables {
 	fake.variablesMutex.Lock()
 	ret, specificReturn := fake.variablesReturnsOnCall[len(fake.variablesArgsForCall)]
 	fake.variablesArgsForCall = append(fake.variablesArgsForCall, struct {
 		arg1 context.Context
-	}{arg1})
+		arg2 atc.VarSourceConfigs
+	}{arg1, arg2})
 	stub := fake.VariablesStub
 	fakeReturns := fake.variablesReturns
-	fake.recordInvocation("Variables", []interface{}{arg1})
+	fake.recordInvocation("Variables", []interface{}{arg1, arg2})
 	fake.variablesMutex.Unlock()
 	if stub != nil {
-		return stub(arg1)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -585,17 +587,17 @@ func (fake *FakeTaskDelegate) VariablesCallCount() int {
 	return len(fake.variablesArgsForCall)
 }
 
-func (fake *FakeTaskDelegate) VariablesCalls(stub func(context.Context) vars.Variables) {
+func (fake *FakeTaskDelegate) VariablesCalls(stub func(context.Context, atc.VarSourceConfigs) vars.Variables) {
 	fake.variablesMutex.Lock()
 	defer fake.variablesMutex.Unlock()
 	fake.VariablesStub = stub
 }
 
-func (fake *FakeTaskDelegate) VariablesArgsForCall(i int) context.Context {
+func (fake *FakeTaskDelegate) VariablesArgsForCall(i int) (context.Context, atc.VarSourceConfigs) {
 	fake.variablesMutex.RLock()
 	defer fake.variablesMutex.RUnlock()
 	argsForCall := fake.variablesArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeTaskDelegate) VariablesReturns(result1 vars.Variables) {

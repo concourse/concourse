@@ -31,10 +31,6 @@ func NewVariables(sources atc.VarSourceConfigs, enableRedaction bool) *Variables
 	}
 }
 
-func (v *Variables) VarSourceConfigs() atc.VarSourceConfigs {
-	return v.sources
-}
-
 func (v *Variables) Get(ref vars.Reference) (interface{}, bool, error) {
 	v.lock.RLock()
 	defer v.lock.RUnlock()

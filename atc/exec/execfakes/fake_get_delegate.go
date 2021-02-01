@@ -107,10 +107,11 @@ type FakeGetDelegate struct {
 		arg2 atc.GetPlan
 		arg3 runtime.VersionResult
 	}
-	VariablesStub        func(context.Context) vars.Variables
+	VariablesStub        func(context.Context, atc.VarSourceConfigs) vars.Variables
 	variablesMutex       sync.RWMutex
 	variablesArgsForCall []struct {
 		arg1 context.Context
+		arg2 atc.VarSourceConfigs
 	}
 	variablesReturns struct {
 		result1 vars.Variables
@@ -567,18 +568,19 @@ func (fake *FakeGetDelegate) UpdateVersionArgsForCall(i int) (lager.Logger, atc.
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeGetDelegate) Variables(arg1 context.Context) vars.Variables {
+func (fake *FakeGetDelegate) Variables(arg1 context.Context, arg2 atc.VarSourceConfigs) vars.Variables {
 	fake.variablesMutex.Lock()
 	ret, specificReturn := fake.variablesReturnsOnCall[len(fake.variablesArgsForCall)]
 	fake.variablesArgsForCall = append(fake.variablesArgsForCall, struct {
 		arg1 context.Context
-	}{arg1})
+		arg2 atc.VarSourceConfigs
+	}{arg1, arg2})
 	stub := fake.VariablesStub
 	fakeReturns := fake.variablesReturns
-	fake.recordInvocation("Variables", []interface{}{arg1})
+	fake.recordInvocation("Variables", []interface{}{arg1, arg2})
 	fake.variablesMutex.Unlock()
 	if stub != nil {
-		return stub(arg1)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -592,17 +594,17 @@ func (fake *FakeGetDelegate) VariablesCallCount() int {
 	return len(fake.variablesArgsForCall)
 }
 
-func (fake *FakeGetDelegate) VariablesCalls(stub func(context.Context) vars.Variables) {
+func (fake *FakeGetDelegate) VariablesCalls(stub func(context.Context, atc.VarSourceConfigs) vars.Variables) {
 	fake.variablesMutex.Lock()
 	defer fake.variablesMutex.Unlock()
 	fake.VariablesStub = stub
 }
 
-func (fake *FakeGetDelegate) VariablesArgsForCall(i int) context.Context {
+func (fake *FakeGetDelegate) VariablesArgsForCall(i int) (context.Context, atc.VarSourceConfigs) {
 	fake.variablesMutex.RLock()
 	defer fake.variablesMutex.RUnlock()
 	argsForCall := fake.variablesArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeGetDelegate) VariablesReturns(result1 vars.Variables) {

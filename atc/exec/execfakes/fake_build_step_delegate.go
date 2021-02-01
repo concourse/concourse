@@ -98,10 +98,21 @@ type FakeBuildStepDelegate struct {
 	stdoutReturnsOnCall map[int]struct {
 		result1 io.Writer
 	}
-	VariablesStub        func(context.Context) vars.Variables
+	VarSourcesStub        func() atc.VarSourceConfigs
+	varSourcesMutex       sync.RWMutex
+	varSourcesArgsForCall []struct {
+	}
+	varSourcesReturns struct {
+		result1 atc.VarSourceConfigs
+	}
+	varSourcesReturnsOnCall map[int]struct {
+		result1 atc.VarSourceConfigs
+	}
+	VariablesStub        func(context.Context, atc.VarSourceConfigs) vars.Variables
 	variablesMutex       sync.RWMutex
 	variablesArgsForCall []struct {
 		arg1 context.Context
+		arg2 atc.VarSourceConfigs
 	}
 	variablesReturns struct {
 		result1 vars.Variables
@@ -523,18 +534,72 @@ func (fake *FakeBuildStepDelegate) StdoutReturnsOnCall(i int, result1 io.Writer)
 	}{result1}
 }
 
-func (fake *FakeBuildStepDelegate) Variables(arg1 context.Context) vars.Variables {
+func (fake *FakeBuildStepDelegate) VarSources() atc.VarSourceConfigs {
+	fake.varSourcesMutex.Lock()
+	ret, specificReturn := fake.varSourcesReturnsOnCall[len(fake.varSourcesArgsForCall)]
+	fake.varSourcesArgsForCall = append(fake.varSourcesArgsForCall, struct {
+	}{})
+	stub := fake.VarSourcesStub
+	fakeReturns := fake.varSourcesReturns
+	fake.recordInvocation("VarSources", []interface{}{})
+	fake.varSourcesMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuildStepDelegate) VarSourcesCallCount() int {
+	fake.varSourcesMutex.RLock()
+	defer fake.varSourcesMutex.RUnlock()
+	return len(fake.varSourcesArgsForCall)
+}
+
+func (fake *FakeBuildStepDelegate) VarSourcesCalls(stub func() atc.VarSourceConfigs) {
+	fake.varSourcesMutex.Lock()
+	defer fake.varSourcesMutex.Unlock()
+	fake.VarSourcesStub = stub
+}
+
+func (fake *FakeBuildStepDelegate) VarSourcesReturns(result1 atc.VarSourceConfigs) {
+	fake.varSourcesMutex.Lock()
+	defer fake.varSourcesMutex.Unlock()
+	fake.VarSourcesStub = nil
+	fake.varSourcesReturns = struct {
+		result1 atc.VarSourceConfigs
+	}{result1}
+}
+
+func (fake *FakeBuildStepDelegate) VarSourcesReturnsOnCall(i int, result1 atc.VarSourceConfigs) {
+	fake.varSourcesMutex.Lock()
+	defer fake.varSourcesMutex.Unlock()
+	fake.VarSourcesStub = nil
+	if fake.varSourcesReturnsOnCall == nil {
+		fake.varSourcesReturnsOnCall = make(map[int]struct {
+			result1 atc.VarSourceConfigs
+		})
+	}
+	fake.varSourcesReturnsOnCall[i] = struct {
+		result1 atc.VarSourceConfigs
+	}{result1}
+}
+
+func (fake *FakeBuildStepDelegate) Variables(arg1 context.Context, arg2 atc.VarSourceConfigs) vars.Variables {
 	fake.variablesMutex.Lock()
 	ret, specificReturn := fake.variablesReturnsOnCall[len(fake.variablesArgsForCall)]
 	fake.variablesArgsForCall = append(fake.variablesArgsForCall, struct {
 		arg1 context.Context
-	}{arg1})
+		arg2 atc.VarSourceConfigs
+	}{arg1, arg2})
 	stub := fake.VariablesStub
 	fakeReturns := fake.variablesReturns
-	fake.recordInvocation("Variables", []interface{}{arg1})
+	fake.recordInvocation("Variables", []interface{}{arg1, arg2})
 	fake.variablesMutex.Unlock()
 	if stub != nil {
-		return stub(arg1)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -548,17 +613,17 @@ func (fake *FakeBuildStepDelegate) VariablesCallCount() int {
 	return len(fake.variablesArgsForCall)
 }
 
-func (fake *FakeBuildStepDelegate) VariablesCalls(stub func(context.Context) vars.Variables) {
+func (fake *FakeBuildStepDelegate) VariablesCalls(stub func(context.Context, atc.VarSourceConfigs) vars.Variables) {
 	fake.variablesMutex.Lock()
 	defer fake.variablesMutex.Unlock()
 	fake.VariablesStub = stub
 }
 
-func (fake *FakeBuildStepDelegate) VariablesArgsForCall(i int) context.Context {
+func (fake *FakeBuildStepDelegate) VariablesArgsForCall(i int) (context.Context, atc.VarSourceConfigs) {
 	fake.variablesMutex.RLock()
 	defer fake.variablesMutex.RUnlock()
 	argsForCall := fake.variablesArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeBuildStepDelegate) VariablesReturns(result1 vars.Variables) {
@@ -637,6 +702,8 @@ func (fake *FakeBuildStepDelegate) Invocations() map[string][][]interface{} {
 	defer fake.stderrMutex.RUnlock()
 	fake.stdoutMutex.RLock()
 	defer fake.stdoutMutex.RUnlock()
+	fake.varSourcesMutex.RLock()
+	defer fake.varSourcesMutex.RUnlock()
 	fake.variablesMutex.RLock()
 	defer fake.variablesMutex.RUnlock()
 	fake.waitingForWorkerMutex.RLock()

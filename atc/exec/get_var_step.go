@@ -107,36 +107,13 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 		time.Sleep(time.Second)
 	}
 
-	// var_sources:
-	//   - name: foo
-	// 		type: docker
-	// 		source:
-	// 			 blah: blah
-	// 			 bar: ((bar:var))
-
-	// 	- name: bar
-	// 		...
-	// 		source:
-	// 		some: ((foo:bad))
-
-	// give me all var sources:
-	// 1. foo
-	// 2. bar
-
-	// evaluate config of foo which has ((foo:var))
-
-	// give me all var sources:
-	// 2. bar
-
-	// evaluate config of foo which has ((foo:var))
-
 	varsRef := vars.Reference{
 		Source: step.plan.Name,
 		Path:   step.plan.Path,
 		Fields: step.plan.Fields,
 	}
 
-	value, found, err := state.Variables().Get(varsRef)
+	value, found, err := state.LocalVariables().Get(varsRef)
 	if err != nil {
 		return false, fmt.Errorf("get var from build vars: %w", err)
 	}
@@ -161,7 +138,7 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 			return false, err
 		}
 
-		state.Variables().SetVar(step.plan.Name, step.plan.Path, value, !step.plan.Reveal)
+		state.LocalVariables().SetVar(step.plan.Name, step.plan.Path, value, !step.plan.Reveal)
 		state.StoreResult(step.planID, result)
 
 		delegate.Finished(logger, true)
@@ -184,7 +161,7 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 
 	step.cache.Add(hash, value, time.Second)
 
-	state.Variables().SetVar(step.plan.Name, step.plan.Path, value, !step.plan.Reveal)
+	state.LocalVariables().SetVar(step.plan.Name, step.plan.Path, value, !step.plan.Reveal)
 
 	state.StoreResult(step.planID, result)
 
@@ -194,71 +171,62 @@ func (step *GetVarStep) run(ctx context.Context, state RunState, delegate BuildS
 }
 
 func (step *GetVarStep) runGetVar(state RunState, delegate BuildStepDelegate, ref vars.Reference, ctx context.Context, logger lager.Logger) (interface{}, bool, error) {
-	// Var is evaluated by global credential manager
-	if ref.Source == "" {
-		globalVars := creds.NewVariables(step.globalSecrets, step.metadata.TeamName, step.metadata.PipelineName, false)
-		return globalVars.Get(ref)
-	}
+	return nil, false, nil
+	// // Var is evaluated by global credential manager
+	// if ref.Source == "" {
+	// 	globalVars := creds.NewVariables(step.globalSecrets, step.metadata.TeamName, step.metadata.PipelineName, false)
+	// 	return globalVars.Get(ref)
+	// }
 
-	// Loop over each var source and try to match a var source to the source
-	// provided in the var
-	for _, varSourceConfig := range delegate.VarSources() {
-		if ref.Source == varSourceConfig.Name {
-			// Grab out the manager factory for th
-			factory := creds.ManagerFactories()[ref.Source]
-			if factory == nil {
-				return nil, false, fmt.Errorf("unknown credential manager type: %s", ref.Source)
-			}
+	// // Loop over each var source and try to match a var source to the source
+	// // provided in the var
+	// varSourceConfig, found := state.VarSourceConfigs().Lookup(ref.Source)
+	// if !found {
+	// 	return nil, nil, false, vars.MissingSourceError{Name: ref.String(), Source: ref.Source}
+	// }
 
-			delegate.VarSources().Without(varSourceConfig.Name)
+	// // Grab out the manager factory for th
+	// factory := creds.ManagerFactories()[ref.Source]
+	// if factory == nil {
+	// 	return nil, nil, false, fmt.Errorf("unknown credential manager type: %s", ref.Source)
+	// }
 
-			// Evaluate the var source's config. If the config of the var source has
-			// templated vars then it will end up recursing to evaluate the var
-			// source config's vars until it is able to evaluate a source that does
-			// not have any templated vars or is evaluated using the global
-			// credential manager.
-			source, ok := varSourceConfig.Config.(map[string]interface{})
-			if !ok {
-				return nil, false, fmt.Errorf("invalid source for %s", varSourceConfig.Name)
-			}
-			evaluatedConfig, err := creds.NewSource(delegate.Variables(ctx), source).Evaluate()
-			if err != nil {
-				return nil, false, fmt.Errorf("evaluate: %w", err)
-			}
+	// // Evaluate the var source's config. If the config of the var source has
+	// // templated vars then it will end up recursing to evaluate the var
+	// // source config's vars until it is able to evaluate a source that does
+	// // not have any templated vars or is evaluated using the global
+	// // credential manager.
+	// source, ok := varSourceConfig.Config.(map[string]interface{})
+	// if !ok {
+	// 	return nil, nil, false, fmt.Errorf("invalid source for %s", varSourceConfig.Name)
+	// }
 
-			secrets, err := step.varSourcePool.FindOrCreate(logger, evaluatedConfig, factory)
-			if err != nil {
-				return nil, false, fmt.Errorf("find or create var source: %w", err)
-			}
+	// // Pass in a list of var source configs that don't include the var source
+	// // that we are currently trying to evaluate
+	// evaluatedConfig, err := creds.NewSource(delegate.Variables(ctx, state.VarSourceConfigs().Without(ref.Source)), source).Evaluate()
+	// if err != nil {
+	// 	return nil, nil, false, fmt.Errorf("evaluate: %w", err)
+	// }
 
-			lookupPaths := secrets.NewSecretLookupPaths(step.metadata.TeamName, step.metadata.PipelineName, false)
-			if len(lookupPaths) == 0 {
-				// if no paths are specified (i.e. for fake & noop secret managers), then try 1-to-1 var->secret mapping
-				result, _, found, err := secrets.Get(ref.Path)
-				return result, found, err
-			}
-			// try to find a secret according to our var->secret lookup paths
-			for _, rule := range lookupPaths {
-				// prepends any additional prefix paths to front of the path
-				secretPath, err := rule.VariableToSecretPath(ref.Path)
-				if err != nil {
-					return nil, false, err
-				}
+	// secrets, err := step.varSourcePool.FindOrCreate(logger, evaluatedConfig, factory)
+	// if err != nil {
+	// 	return nil, nil, false, fmt.Errorf("find or create var source: %w", err)
+	// }
 
-				result, _, found, err := secrets.Get(secretPath)
-				if err != nil {
-					return nil, false, err
-				}
-				if !found {
-					continue
-				}
-				return result, true, nil
-			}
-			return nil, false, nil
-		}
-	}
+	// 			result, _, found, err := secrets.Get(secretPath)
+	// 			if err != nil {
+	// 				return nil, false, err
+	// 			}
+	// 			if !found {
+	// 				continue
+	// 			}
+	// 			return result, true, nil
+	// 		}
+	// 		return nil, false, nil
+	// 	}
+	// }
 
-	return nil, false, vars.MissingSourceError{Name: ref.String(), Source: ref.Source}
+	// return nil, false, vars.MissingSourceError{Name: ref.String(), Source: ref.Source}
 }
 
 func (step *GetVarStep) hashVarIdentifier(path, type_ string, source atc.Source) (string, error) {
