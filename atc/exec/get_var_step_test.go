@@ -22,7 +22,6 @@ import (
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/vars"
-	"github.com/concourse/concourse/vars/varsfakes"
 )
 
 var _ = Describe("GetVarStep", func() {
@@ -31,7 +30,6 @@ var _ = Describe("GetVarStep", func() {
 		cancel     func()
 		testLogger *lagertest.TestLogger
 
-		fakeVarSources      *varsfakes.FakeVariables
 		fakeDelegate        *execfakes.FakeBuildStepDelegate
 		fakeDelegateFactory *execfakes.FakeBuildStepDelegateFactory
 
@@ -49,6 +47,7 @@ var _ = Describe("GetVarStep", func() {
 		fakeLock           *lockfakes.FakeLock
 		secretCacheConfig  creds.SecretCacheConfig
 		tracker            *vars.Tracker
+		varSourceConfigs   atc.VarSourceConfigs
 
 		cache *gocache.Cache
 
@@ -82,6 +81,7 @@ var _ = Describe("GetVarStep", func() {
 		buildVariables = build.NewVariables(nil, tracker)
 		state = new(execfakes.FakeRunState)
 		state.LocalVariablesReturns(buildVariables)
+		state.VarSourceConfigsReturns(varSourceConfigs)
 
 		stdout = gbytes.NewBuffer()
 		stderr = gbytes.NewBuffer()
@@ -91,9 +91,6 @@ var _ = Describe("GetVarStep", func() {
 		fakeDelegate.StderrReturns(stderr)
 
 		fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
-
-		fakeVarSources = new(varsfakes.FakeVariables)
-		fakeVarSources.GetReturns("some-value", false, nil)
 
 		spanCtx = context.Background()
 		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
@@ -205,15 +202,111 @@ var _ = Describe("GetVarStep", func() {
 				}
 			})
 
-			Context("when the var is found in the cache", func() {
+			Context("when caching is enabled", func() {
 				BeforeEach(func() {
+					secretCacheConfig.Enabled = true
+				})
+
+				Context("when the var is found in the cache", func() {
+					BeforeEach(func() {
+						hash, err := exec.HashVarIdentifier("some-var", "some-type", atc.Source{"some": "source"}, 123)
+						Expect(err).ToNot(HaveOccurred())
+
+						cache.Set(hash, "some-cached-value", 1*time.Minute)
+					})
+
+					It("uses the cached var and does not refetch", func() {
+						Expect(stepOk).To(BeTrue())
+						Expect(stepErr).ToNot(HaveOccurred())
+
+						Expect(fakeSecrets.GetCallCount()).To(Equal(1))
+						Expect(state.StoreResultCallCount()).To(Equal(1))
+
+						actualPlanID, value := state.StoreResultArgsForCall(0)
+						Expect(actualPlanID).To(Equal(planID))
+						Expect(value).To(Equal("some-cached-value"))
+					})
+
+					It("tracks the var", func() {
+						Expect(state.TrackCallCount()).To(Equal(1))
+						actualRef, actualValue := state.TrackArgsForCall(0)
+						Expect(actualRef).To(Equal(vars.Reference{
+							Source: "some-source",
+							Path:   "some-var",
+						}))
+						Expect(actualValue).To(Equal("some-cached-value"))
+					})
+
+					It("releases the lock", func() {
+						Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+					})
+				})
+
+				Context("when the var is not found in the cache", func() {
+					Context("when the var source config is found", func() {
+						BeforeEach(func() {
+							varSourceConfigs = atc.VarSourceConfigs{
+								{
+									Name: "some-source",
+									Type: "some-type",
+									Config: map[string]interface{}{
+										"some": "source",
+									},
+								},
+								{
+									Name: "some-other-source",
+									Type: "some-other-type",
+									Config: map[string]interface{}{
+										"some": "other-source",
+									},
+								},
+							}
+						})
+
+						Context("when the manager factory exists", func() {
+							It("will evaluate the source of the var source using a list of var source configs not including the evaluating var source", func() {
+							})
+						})
+
+						Context("when the manager factory does not exist", func() {
+						})
+					})
+
+					Context("when the var source does not exist", func() {
+						BeforeEach(func() {
+							varSourceConfigs = atc.VarSourceConfigs{
+								{
+									Name: "some-other-source",
+									Type: "some-other-type",
+									Config: map[string]interface{}{
+										"some": "other-source",
+									},
+								},
+							}
+						})
+
+						It("fails with missing source error", func() {
+							Expect(stepOk).To(BeFalse())
+							Expect(stepErr).To(HaveOccurred())
+							Expect(stepErr).To(Equal(vars.MissingSourceError{Name: "some-source:some-var", Source: "some-source"}))
+						})
+					})
+				})
+			})
+
+			Context("when caching is not enabled", func() {
+				BeforeEach(func() {
+					secretCacheConfig.Enabled = false
+
 					hash, err := exec.HashVarIdentifier("some-var", "some-type", atc.Source{"some": "source"}, 123)
 					Expect(err).ToNot(HaveOccurred())
 
 					cache.Set(hash, "some-cached-value", 1*time.Minute)
+
+					fakeSecrets.GetReturns("some-value", nil, true, nil)
 				})
 
-				It("uses the cached var and does not refetch", func() {
+				It("does not use the cache", func() {
 					Expect(stepOk).To(BeTrue())
 					Expect(stepErr).ToNot(HaveOccurred())
 
@@ -222,21 +315,7 @@ var _ = Describe("GetVarStep", func() {
 
 					actualPlanID, value := state.StoreResultArgsForCall(0)
 					Expect(actualPlanID).To(Equal(planID))
-					Expect(value).To(Equal("some-cached-value"))
-				})
-
-				It("tracks the var", func() {
-					Expect(state.TrackCallCount()).To(Equal(1))
-					actualRef, actualValue := state.TrackArgsForCall(0)
-					Expect(actualRef).To(Equal(vars.Reference{
-						Source: "some-source",
-						Path:   "some-var",
-					}))
-					Expect(actualValue).To(Equal("some-cached-value"))
-				})
-
-				It("releases the lock", func() {
-					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+					Expect(value).To(Equal("some-value"))
 				})
 			})
 		})

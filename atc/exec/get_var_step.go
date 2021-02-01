@@ -205,7 +205,7 @@ func (step *GetVarStep) runGetVar(state RunState, delegate BuildStepDelegate, re
 		return nil, nil, false, vars.MissingSourceError{Name: ref.String(), Source: ref.Source}
 	}
 
-	// Grab out the manager factory for th
+	// Grab out the manager factory for the var source
 	factory := creds.ManagerFactories()[ref.Source]
 	if factory == nil {
 		return nil, nil, false, fmt.Errorf("unknown credential manager type: %s", ref.Source)
