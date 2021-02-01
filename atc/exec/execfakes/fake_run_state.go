@@ -104,6 +104,12 @@ type FakeRunState struct {
 		arg1 atc.PlanID
 		arg2 interface{}
 	}
+	TrackStub        func(vars.Reference, interface{})
+	trackMutex       sync.RWMutex
+	trackArgsForCall []struct {
+		arg1 vars.Reference
+		arg2 interface{}
+	}
 	VarSourceConfigsStub        func() atc.VarSourceConfigs
 	varSourceConfigsMutex       sync.RWMutex
 	varSourceConfigsArgsForCall []struct {
@@ -607,6 +613,39 @@ func (fake *FakeRunState) StoreResultArgsForCall(i int) (atc.PlanID, interface{}
 	return argsForCall.arg1, argsForCall.arg2
 }
 
+func (fake *FakeRunState) Track(arg1 vars.Reference, arg2 interface{}) {
+	fake.trackMutex.Lock()
+	fake.trackArgsForCall = append(fake.trackArgsForCall, struct {
+		arg1 vars.Reference
+		arg2 interface{}
+	}{arg1, arg2})
+	stub := fake.TrackStub
+	fake.recordInvocation("Track", []interface{}{arg1, arg2})
+	fake.trackMutex.Unlock()
+	if stub != nil {
+		fake.TrackStub(arg1, arg2)
+	}
+}
+
+func (fake *FakeRunState) TrackCallCount() int {
+	fake.trackMutex.RLock()
+	defer fake.trackMutex.RUnlock()
+	return len(fake.trackArgsForCall)
+}
+
+func (fake *FakeRunState) TrackCalls(stub func(vars.Reference, interface{})) {
+	fake.trackMutex.Lock()
+	defer fake.trackMutex.Unlock()
+	fake.TrackStub = stub
+}
+
+func (fake *FakeRunState) TrackArgsForCall(i int) (vars.Reference, interface{}) {
+	fake.trackMutex.RLock()
+	defer fake.trackMutex.RUnlock()
+	argsForCall := fake.trackArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
 func (fake *FakeRunState) VarSourceConfigs() atc.VarSourceConfigs {
 	fake.varSourceConfigsMutex.Lock()
 	ret, specificReturn := fake.varSourceConfigsReturnsOnCall[len(fake.varSourceConfigsArgsForCall)]
@@ -683,6 +722,8 @@ func (fake *FakeRunState) Invocations() map[string][][]interface{} {
 	defer fake.setVarSourceConfigsMutex.RUnlock()
 	fake.storeResultMutex.RLock()
 	defer fake.storeResultMutex.RUnlock()
+	fake.trackMutex.RLock()
+	defer fake.trackMutex.RUnlock()
 	fake.varSourceConfigsMutex.RLock()
 	defer fake.varSourceConfigsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

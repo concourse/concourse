@@ -13,7 +13,8 @@ import (
 type runState struct {
 	stepper Stepper
 
-	buildVars *build.Variables
+	localVars *build.Variables
+	tracker   *vars.Tracker
 
 	artifacts *build.Repository
 	results   *sync.Map
@@ -31,10 +32,14 @@ func NewRunState(
 	varSourceConfigs atc.VarSourceConfigs,
 	enableRedaction bool,
 ) RunState {
+	tracker := vars.NewTracker(enableRedaction)
 	return &runState{
 		stepper: stepper,
 
-		buildVars: build.NewVariables(varSourceConfigs, enableRedaction),
+		tracker:   tracker,
+		localVars: build.NewVariables(varSourceConfigs, tracker),
+
+		sources: varSourceConfigs,
 
 		artifacts: build.NewRepository(),
 		results:   &sync.Map{},
@@ -64,16 +69,21 @@ func (state *runState) StoreResult(id atc.PlanID, val interface{}) {
 }
 
 func (state *runState) LocalVariables() *build.Variables {
-	return state.buildVars
+	return state.localVars
 }
 
+// XXX: Test that it tracks local and vars from var sources (using Track method)
 func (state *runState) IterateInterpolatedCreds(iter vars.TrackedVarsIterator) {
-	state.buildVars.IterateInterpolatedCreds(iter)
+	state.tracker.IterateInterpolatedCreds(iter)
+}
+
+func (state *runState) Track(ref vars.Reference, value interface{}) {
+	state.tracker.Track(ref, value)
 }
 
 func (state *runState) NewScope() RunState {
 	clone := *state
-	clone.buildVars = state.buildVars.NewScope()
+	clone.localVars = state.localVars.NewScope()
 	clone.artifacts = state.artifacts.NewScope()
 	clone.parent = state
 	return &clone
@@ -84,7 +94,7 @@ func (state *runState) Parent() RunState {
 }
 
 func (state *runState) RedactionEnabled() bool {
-	return state.buildVars.RedactionEnabled()
+	return state.localVars.RedactionEnabled()
 }
 
 func (state *runState) Run(ctx context.Context, plan atc.Plan) (bool, error) {
