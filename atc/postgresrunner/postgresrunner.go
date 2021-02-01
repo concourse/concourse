@@ -82,6 +82,13 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 
 	Expect(session).To(gexec.Exit(0))
 
+	// Optimize for non-durability: https://www.postgresql.org/docs/13/non-durability.html
+	appendToFile(filepath.Join(tmpdir, "postgresql.conf"), `
+fsync = off
+synchronous_commit = off
+full_page_writes = off
+`)
+
 	ginkgoRunner := &ginkgomon.Runner{
 		Name:          "postgres",
 		Command:       startCmd,
@@ -93,6 +100,14 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	}
 
 	return ginkgoRunner.Run(signals, ready)
+}
+
+func appendToFile(path string, content string) {
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0755)
+	Expect(err).ToNot(HaveOccurred())
+
+	_, err = f.WriteString(content)
+	Expect(err).ToNot(HaveOccurred())
 }
 
 func (runner *Runner) MigrateToVersion(version int) {
@@ -219,6 +234,25 @@ func (runner *Runner) InitializeTestDBTemplate() {
 	conn := runner.openConn("testdb_template")
 	err := conn.Close()
 	Expect(err).ToNot(HaveOccurred())
+
+	// Optimize for non-durability: https://www.postgresql.org/docs/13/non-durability.html
+	exitCode = runner.psql(`
+			SET client_min_messages TO WARNING;
+			CREATE OR REPLACE FUNCTION mark_tables_as_unlogged() RETURNS void AS $$
+			DECLARE
+					statements CURSOR FOR
+							SELECT tablename FROM pg_tables
+							WHERE schemaname = 'public';
+			BEGIN
+					FOR stmt IN statements LOOP
+							EXECUTE 'ALTER TABLE ' || quote_ident(stmt.tablename) || ' SET UNLOGGED;';
+					END LOOP;
+			END;
+			$$ LANGUAGE plpgsql;
+
+			SELECT mark_tables_as_unlogged();
+	`)
+	Expect(exitCode).To(Equal(0), "mark tables as unlogged")
 
 	runner.terminateIdleConnections("testdb_template")
 }
