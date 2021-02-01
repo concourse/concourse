@@ -95,7 +95,7 @@ import (
 const algorithmLimitRows = 100
 
 var schedulerCache = gocache.New(10*time.Second, 10*time.Second)
-var varsCache = gocache.New(10*time.Second, 10*time.Second)
+var varsCache *gocache.Cache
 
 var defaultDriverName = "postgres"
 var retryingDriverName = "too-many-connections-retrying"
@@ -523,6 +523,10 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	atc.EnableAcrossStep = cmd.FeatureFlags.EnableAcrossStep
 	atc.EnablePipelineInstances = cmd.FeatureFlags.EnablePipelineInstances
 	atc.EnableCacheStreamedVolumes = cmd.FeatureFlags.EnableCacheStreamedVolumes
+
+	if cmd.CredentialManagement.CacheConfig.Enabled {
+		varsCache = gocache.New(cmd.CredentialManagement.CacheConfig.Duration, cmd.CredentialManagement.CacheConfig.PurgeInterval)
+	}
 
 	if cmd.BaseResourceTypeDefaults.Path() != "" {
 		content, err := ioutil.ReadFile(cmd.BaseResourceTypeDefaults.Path())
@@ -1698,7 +1702,7 @@ func (cmd *RunCommand) constructEngine(
 				cmd.GlobalResourceCheckTimeout,
 				cmd.varSourcePool,
 				varsCache,
-				secretManager,
+				cmd.CredentialManagement.CacheConfig,
 			),
 			cmd.ExternalURL.String(),
 			rateLimiter,

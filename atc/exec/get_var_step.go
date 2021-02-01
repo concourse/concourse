@@ -27,14 +27,14 @@ func (e VarNotFoundError) Error() string {
 }
 
 type GetVarStep struct {
-	planID          atc.PlanID // TODO: not being used, maybe drop it
-	plan            atc.GetVarPlan
-	metadata        StepMetadata
-	delegateFactory BuildStepDelegateFactory
-	lockFactory     lock.LockFactory
-	cache           *gocache.Cache
-	varSourcePool   creds.VarSourcePool
-	globalSecrets   creds.Secrets
+	planID            atc.PlanID // TODO: not being used, maybe drop it
+	plan              atc.GetVarPlan
+	metadata          StepMetadata
+	delegateFactory   BuildStepDelegateFactory
+	lockFactory       lock.LockFactory
+	cache             *gocache.Cache
+	varSourcePool     creds.VarSourcePool
+	secretCacheConfig creds.SecretCacheConfig
 }
 
 func NewGetVarStep(
@@ -45,17 +45,17 @@ func NewGetVarStep(
 	cache *gocache.Cache,
 	lockFactory lock.LockFactory,
 	varSourcePool creds.VarSourcePool,
-	globalSecrets creds.Secrets,
+	secretCacheConfig creds.SecretCacheConfig,
 ) Step {
 	return &GetVarStep{
-		planID:          planID,
-		plan:            plan,
-		metadata:        metadata,
-		delegateFactory: delegateFactory,
-		lockFactory:     lockFactory,
-		cache:           cache,
-		varSourcePool:   varSourcePool,
-		globalSecrets:   globalSecrets,
+		planID:            planID,
+		plan:              plan,
+		metadata:          metadata,
+		delegateFactory:   delegateFactory,
+		lockFactory:       lockFactory,
+		cache:             cache,
+		varSourcePool:     varSourcePool,
+		secretCacheConfig: secretCacheConfig,
 	}
 }
 
