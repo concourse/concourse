@@ -150,10 +150,14 @@ func (runner *Runner) OpenDB() *sql.DB {
 }
 
 func (runner *Runner) OpenConn() db.Conn {
+	return runner.openConn("testdb")
+}
+
+func (runner *Runner) openConn(dbName string) db.Conn {
 	dbConn, err := db.Open(
 		lagertest.NewTestLogger("postgres-runner"),
 		"postgres",
-		runner.DataSourceName(),
+		runner.dataSourceName(dbName),
 		nil,
 		nil,
 		"postgresrunner",
@@ -182,7 +186,41 @@ func (runner *Runner) OpenSingleton() *sql.DB {
 }
 
 func (runner *Runner) DataSourceName() string {
-	return fmt.Sprintf("host=/tmp user=postgres dbname=testdb sslmode=disable port=%d", runner.Port)
+	return runner.dataSourceName("testdb")
+}
+
+func (runner *Runner) dataSourceName(dbName string) string {
+	return fmt.Sprintf("host=/tmp user=postgres dbname=%s sslmode=disable port=%d", dbName, runner.Port)
+}
+
+func (runner *Runner) psql(c string, args ...interface{}) int {
+	commandStr := fmt.Sprintf(c, args...)
+	cmd := exec.Command("psql", "-h", "/tmp", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "-q", "-t", "-c", commandStr)
+	session, err := gexec.Start(cmd, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred())
+
+	<-session.Exited
+
+	return session.ExitCode()
+}
+
+func (runner *Runner) InitializeTestDBTemplate() {
+	createTemplate := "CREATE DATABASE testdb_template IS_TEMPLATE = true;"
+	exitCode := runner.psql(createTemplate)
+	if exitCode != 0 {
+		exitCode = runner.psql("DROP DATABASE IF EXISTS testdb_template;")
+		Expect(exitCode).To(Equal(0), "drop testdb_template")
+
+		exitCode = runner.psql(createTemplate)
+		Expect(exitCode).To(Equal(0), "create testdb_template")
+	}
+
+	// to run the migration
+	conn := runner.openConn("testdb_template")
+	err := conn.Close()
+	Expect(err).ToNot(HaveOccurred())
+
+	runner.terminateIdleConnections("testdb_template")
 }
 
 func (runner *Runner) CreateTestDB() {
@@ -214,6 +252,21 @@ func (runner *Runner) DropTestDB() {
 	<-dropS.Exited
 
 	Expect(dropS).To(gexec.Exit(0))
+}
+
+func (runner *Runner) RestoreDBFromTemplate() {
+	runner.terminateIdleConnections("testdb")
+
+	exitCode := runner.psql("DROP DATABASE IF EXISTS testdb;")
+	Expect(exitCode).To(Equal(0), "drop testdb")
+
+	exitCode = runner.psql("CREATE DATABASE testdb TEMPLATE testdb_template;")
+	Expect(exitCode).To(Equal(0), "create testdb from template")
+}
+
+func (runner *Runner) terminateIdleConnections(dbName string) {
+	exitCode := runner.psql("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE pid <> pg_backend_pid() AND datname = '%s' AND state = 'idle';", dbName)
+	Expect(exitCode).To(Equal(0), "terminate idle connections")
 }
 
 func (runner *Runner) Truncate() {

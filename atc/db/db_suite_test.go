@@ -102,11 +102,11 @@ var _ = BeforeSuite(func() {
 
 	dbProcess = ifrit.Invoke(postgresRunner)
 
-	postgresRunner.CreateTestDB()
+	postgresRunner.InitializeTestDBTemplate()
 })
 
 var _ = BeforeEach(func() {
-	postgresRunner.Truncate()
+	postgresRunner.RestoreDBFromTemplate()
 
 	dbConn = postgresRunner.OpenConn()
 
