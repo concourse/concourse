@@ -342,16 +342,24 @@ func (delegate *buildStepDelegate) FetchImage(
 	}, nil
 }
 
-func (delegate *buildStepDelegate) Variables(ctx context.Context) vars.Variables {
+// The var source configs that are passed in will eventually be used to
+// overwrite the var source configs on the child state created for running a
+// get var substep. This is done this way so that steps can pass a modified
+// list of var sources to the get var sub step. (For ex. if we are trying to
+// evaluate the source of a var source, that var source will not be included in
+// the list of var sources within the sub step)
+func (delegate *buildStepDelegate) Variables(ctx context.Context, varSourceConfigs atc.VarSourceConfigs) vars.Variables {
 	return &StepVariables{
-		delegate: delegate,
-		ctx:      ctx,
+		delegate:         delegate,
+		varSourceConfigs: varSourceConfigs,
+		ctx:              ctx,
 	}
 }
 
 type StepVariables struct {
-	delegate *buildStepDelegate
-	ctx      context.Context
+	delegate         *buildStepDelegate
+	varSourceConfigs atc.VarSourceConfigs
+	ctx              context.Context
 }
 
 func (v *StepVariables) Get(ref vars.Reference) (interface{}, bool, error) {
@@ -369,7 +377,10 @@ func (v *StepVariables) Get(ref vars.Reference) (interface{}, bool, error) {
 		return buildVar, true, nil
 	}
 
-	varSource, found := v.delegate.state.Variables().VarSources().Lookup(ref.Source)
+	childState := v.delegate.state.NewScope()
+	childState.SetVarSourceConfigs(v.varSourceConfigs)
+
+	varSource, found := childState.VarSourceConfigs().Lookup(ref.Source)
 	if !found {
 		return nil, false, ErrNoMatchingVarSource{ref.Source}
 	}
@@ -403,7 +414,7 @@ func (v *StepVariables) Get(ref vars.Reference) (interface{}, bool, error) {
 		return nil, false, fmt.Errorf("save sub get var event: %w", err)
 	}
 
-	ok, err = v.delegate.state.Run(v.ctx, getVarPlan)
+	ok, err = childState.Run(v.ctx, getVarPlan)
 	if err != nil {
 		return nil, false, fmt.Errorf("run sub get var: %w", err)
 	}
@@ -413,7 +424,7 @@ func (v *StepVariables) Get(ref vars.Reference) (interface{}, bool, error) {
 	}
 
 	var value interface{}
-	if !v.delegate.state.Result(getVarID, &value) {
+	if !childState.Result(getVarID, &value) {
 		return nil, false, fmt.Errorf("get var did not return a value")
 	}
 

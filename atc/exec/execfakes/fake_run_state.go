@@ -83,6 +83,11 @@ type FakeRunState struct {
 		result1 bool
 		result2 error
 	}
+	SetVarSourceConfigsStub        func(atc.VarSourceConfigs)
+	setVarSourceConfigsMutex       sync.RWMutex
+	setVarSourceConfigsArgsForCall []struct {
+		arg1 atc.VarSourceConfigs
+	}
 	StoreResultStub        func(atc.PlanID, interface{})
 	storeResultMutex       sync.RWMutex
 	storeResultArgsForCall []struct {
@@ -93,11 +98,15 @@ type FakeRunState struct {
 	variablesMutex       sync.RWMutex
 	variablesArgsForCall []struct {
 	}
-	variablesReturns struct {
-		result1 *build.Variables
+	VarSourceConfigsStub        func() atc.VarSourceConfigs
+	varSourceConfigsMutex       sync.RWMutex
+	varSourceConfigsArgsForCall []struct {
 	}
-	variablesReturnsOnCall map[int]struct {
-		result1 *build.Variables
+	varSourceConfigsReturns struct {
+		result1 atc.VarSourceConfigs
+	}
+	varSourceConfigsReturnsOnCall map[int]struct {
+		result1 atc.VarSourceConfigs
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -108,15 +117,16 @@ func (fake *FakeRunState) ArtifactRepository() *build.Repository {
 	ret, specificReturn := fake.artifactRepositoryReturnsOnCall[len(fake.artifactRepositoryArgsForCall)]
 	fake.artifactRepositoryArgsForCall = append(fake.artifactRepositoryArgsForCall, struct {
 	}{})
+	stub := fake.ArtifactRepositoryStub
+	fakeReturns := fake.artifactRepositoryReturns
 	fake.recordInvocation("ArtifactRepository", []interface{}{})
 	fake.artifactRepositoryMutex.Unlock()
-	if fake.ArtifactRepositoryStub != nil {
-		return fake.ArtifactRepositoryStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.artifactRepositoryReturns
 	return fakeReturns.result1
 }
 
@@ -160,9 +170,10 @@ func (fake *FakeRunState) IterateInterpolatedCreds(arg1 vars.TrackedVarsIterator
 	fake.iterateInterpolatedCredsArgsForCall = append(fake.iterateInterpolatedCredsArgsForCall, struct {
 		arg1 vars.TrackedVarsIterator
 	}{arg1})
+	stub := fake.IterateInterpolatedCredsStub
 	fake.recordInvocation("IterateInterpolatedCreds", []interface{}{arg1})
 	fake.iterateInterpolatedCredsMutex.Unlock()
-	if fake.IterateInterpolatedCredsStub != nil {
+	if stub != nil {
 		fake.IterateInterpolatedCredsStub(arg1)
 	}
 }
@@ -191,15 +202,16 @@ func (fake *FakeRunState) NewScope() exec.RunState {
 	ret, specificReturn := fake.newScopeReturnsOnCall[len(fake.newScopeArgsForCall)]
 	fake.newScopeArgsForCall = append(fake.newScopeArgsForCall, struct {
 	}{})
+	stub := fake.NewScopeStub
+	fakeReturns := fake.newScopeReturns
 	fake.recordInvocation("NewScope", []interface{}{})
 	fake.newScopeMutex.Unlock()
-	if fake.NewScopeStub != nil {
-		return fake.NewScopeStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.newScopeReturns
 	return fakeReturns.result1
 }
 
@@ -243,15 +255,16 @@ func (fake *FakeRunState) Parent() exec.RunState {
 	ret, specificReturn := fake.parentReturnsOnCall[len(fake.parentArgsForCall)]
 	fake.parentArgsForCall = append(fake.parentArgsForCall, struct {
 	}{})
+	stub := fake.ParentStub
+	fakeReturns := fake.parentReturns
 	fake.recordInvocation("Parent", []interface{}{})
 	fake.parentMutex.Unlock()
-	if fake.ParentStub != nil {
-		return fake.ParentStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.parentReturns
 	return fakeReturns.result1
 }
 
@@ -295,15 +308,16 @@ func (fake *FakeRunState) RedactionEnabled() bool {
 	ret, specificReturn := fake.redactionEnabledReturnsOnCall[len(fake.redactionEnabledArgsForCall)]
 	fake.redactionEnabledArgsForCall = append(fake.redactionEnabledArgsForCall, struct {
 	}{})
+	stub := fake.RedactionEnabledStub
+	fakeReturns := fake.redactionEnabledReturns
 	fake.recordInvocation("RedactionEnabled", []interface{}{})
 	fake.redactionEnabledMutex.Unlock()
-	if fake.RedactionEnabledStub != nil {
-		return fake.RedactionEnabledStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.redactionEnabledReturns
 	return fakeReturns.result1
 }
 
@@ -349,15 +363,16 @@ func (fake *FakeRunState) Result(arg1 atc.PlanID, arg2 interface{}) bool {
 		arg1 atc.PlanID
 		arg2 interface{}
 	}{arg1, arg2})
+	stub := fake.ResultStub
+	fakeReturns := fake.resultReturns
 	fake.recordInvocation("Result", []interface{}{arg1, arg2})
 	fake.resultMutex.Unlock()
-	if fake.ResultStub != nil {
-		return fake.ResultStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.resultReturns
 	return fakeReturns.result1
 }
 
@@ -410,15 +425,16 @@ func (fake *FakeRunState) Run(arg1 context.Context, arg2 atc.Plan) (bool, error)
 		arg1 context.Context
 		arg2 atc.Plan
 	}{arg1, arg2})
+	stub := fake.RunStub
+	fakeReturns := fake.runReturns
 	fake.recordInvocation("Run", []interface{}{arg1, arg2})
 	fake.runMutex.Unlock()
-	if fake.RunStub != nil {
-		return fake.RunStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.runReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -467,15 +483,48 @@ func (fake *FakeRunState) RunReturnsOnCall(i int, result1 bool, result2 error) {
 	}{result1, result2}
 }
 
+func (fake *FakeRunState) SetVarSourceConfigs(arg1 atc.VarSourceConfigs) {
+	fake.setVarSourceConfigsMutex.Lock()
+	fake.setVarSourceConfigsArgsForCall = append(fake.setVarSourceConfigsArgsForCall, struct {
+		arg1 atc.VarSourceConfigs
+	}{arg1})
+	stub := fake.SetVarSourceConfigsStub
+	fake.recordInvocation("SetVarSourceConfigs", []interface{}{arg1})
+	fake.setVarSourceConfigsMutex.Unlock()
+	if stub != nil {
+		fake.SetVarSourceConfigsStub(arg1)
+	}
+}
+
+func (fake *FakeRunState) SetVarSourceConfigsCallCount() int {
+	fake.setVarSourceConfigsMutex.RLock()
+	defer fake.setVarSourceConfigsMutex.RUnlock()
+	return len(fake.setVarSourceConfigsArgsForCall)
+}
+
+func (fake *FakeRunState) SetVarSourceConfigsCalls(stub func(atc.VarSourceConfigs)) {
+	fake.setVarSourceConfigsMutex.Lock()
+	defer fake.setVarSourceConfigsMutex.Unlock()
+	fake.SetVarSourceConfigsStub = stub
+}
+
+func (fake *FakeRunState) SetVarSourceConfigsArgsForCall(i int) atc.VarSourceConfigs {
+	fake.setVarSourceConfigsMutex.RLock()
+	defer fake.setVarSourceConfigsMutex.RUnlock()
+	argsForCall := fake.setVarSourceConfigsArgsForCall[i]
+	return argsForCall.arg1
+}
+
 func (fake *FakeRunState) StoreResult(arg1 atc.PlanID, arg2 interface{}) {
 	fake.storeResultMutex.Lock()
 	fake.storeResultArgsForCall = append(fake.storeResultArgsForCall, struct {
 		arg1 atc.PlanID
 		arg2 interface{}
 	}{arg1, arg2})
+	stub := fake.StoreResultStub
 	fake.recordInvocation("StoreResult", []interface{}{arg1, arg2})
 	fake.storeResultMutex.Unlock()
-	if fake.StoreResultStub != nil {
+	if stub != nil {
 		fake.StoreResultStub(arg1, arg2)
 	}
 }
@@ -504,50 +553,51 @@ func (fake *FakeRunState) Variables() *build.Variables {
 	ret, specificReturn := fake.variablesReturnsOnCall[len(fake.variablesArgsForCall)]
 	fake.variablesArgsForCall = append(fake.variablesArgsForCall, struct {
 	}{})
-	fake.recordInvocation("Variables", []interface{}{})
-	fake.variablesMutex.Unlock()
-	if fake.VariablesStub != nil {
-		return fake.VariablesStub()
+	stub := fake.VarSourceConfigsStub
+	fakeReturns := fake.varSourceConfigsReturns
+	fake.recordInvocation("VarSourceConfigs", []interface{}{})
+	fake.varSourceConfigsMutex.Unlock()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.variablesReturns
 	return fakeReturns.result1
 }
 
-func (fake *FakeRunState) VariablesCallCount() int {
-	fake.variablesMutex.RLock()
-	defer fake.variablesMutex.RUnlock()
-	return len(fake.variablesArgsForCall)
+func (fake *FakeRunState) VarSourceConfigsCallCount() int {
+	fake.varSourceConfigsMutex.RLock()
+	defer fake.varSourceConfigsMutex.RUnlock()
+	return len(fake.varSourceConfigsArgsForCall)
 }
 
-func (fake *FakeRunState) VariablesCalls(stub func() *build.Variables) {
-	fake.variablesMutex.Lock()
-	defer fake.variablesMutex.Unlock()
-	fake.VariablesStub = stub
+func (fake *FakeRunState) VarSourceConfigsCalls(stub func() atc.VarSourceConfigs) {
+	fake.varSourceConfigsMutex.Lock()
+	defer fake.varSourceConfigsMutex.Unlock()
+	fake.VarSourceConfigsStub = stub
 }
 
-func (fake *FakeRunState) VariablesReturns(result1 *build.Variables) {
-	fake.variablesMutex.Lock()
-	defer fake.variablesMutex.Unlock()
-	fake.VariablesStub = nil
-	fake.variablesReturns = struct {
-		result1 *build.Variables
+func (fake *FakeRunState) VarSourceConfigsReturns(result1 atc.VarSourceConfigs) {
+	fake.varSourceConfigsMutex.Lock()
+	defer fake.varSourceConfigsMutex.Unlock()
+	fake.VarSourceConfigsStub = nil
+	fake.varSourceConfigsReturns = struct {
+		result1 atc.VarSourceConfigs
 	}{result1}
 }
 
-func (fake *FakeRunState) VariablesReturnsOnCall(i int, result1 *build.Variables) {
-	fake.variablesMutex.Lock()
-	defer fake.variablesMutex.Unlock()
-	fake.VariablesStub = nil
-	if fake.variablesReturnsOnCall == nil {
-		fake.variablesReturnsOnCall = make(map[int]struct {
-			result1 *build.Variables
+func (fake *FakeRunState) VarSourceConfigsReturnsOnCall(i int, result1 atc.VarSourceConfigs) {
+	fake.varSourceConfigsMutex.Lock()
+	defer fake.varSourceConfigsMutex.Unlock()
+	fake.VarSourceConfigsStub = nil
+	if fake.varSourceConfigsReturnsOnCall == nil {
+		fake.varSourceConfigsReturnsOnCall = make(map[int]struct {
+			result1 atc.VarSourceConfigs
 		})
 	}
-	fake.variablesReturnsOnCall[i] = struct {
-		result1 *build.Variables
+	fake.varSourceConfigsReturnsOnCall[i] = struct {
+		result1 atc.VarSourceConfigs
 	}{result1}
 }
 
@@ -568,6 +618,8 @@ func (fake *FakeRunState) Invocations() map[string][][]interface{} {
 	defer fake.resultMutex.RUnlock()
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
+	fake.setVarSourceConfigsMutex.RLock()
+	defer fake.setVarSourceConfigsMutex.RUnlock()
 	fake.storeResultMutex.RLock()
 	defer fake.storeResultMutex.RUnlock()
 	fake.variablesMutex.RLock()

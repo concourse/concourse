@@ -106,10 +106,11 @@ type FakePutDelegate struct {
 	stdoutReturnsOnCall map[int]struct {
 		result1 io.Writer
 	}
-	VariablesStub        func(context.Context) vars.Variables
+	VariablesStub        func(context.Context, atc.VarSourceConfigs) vars.Variables
 	variablesMutex       sync.RWMutex
 	variablesArgsForCall []struct {
 		arg1 context.Context
+		arg2 atc.VarSourceConfigs
 	}
 	variablesReturns struct {
 		result1 vars.Variables
@@ -127,9 +128,10 @@ func (fake *FakePutDelegate) Errored(arg1 lager.Logger, arg2 string) {
 		arg1 lager.Logger
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.ErroredStub
 	fake.recordInvocation("Errored", []interface{}{arg1, arg2})
 	fake.erroredMutex.Unlock()
-	if fake.ErroredStub != nil {
+	if stub != nil {
 		fake.ErroredStub(arg1, arg2)
 	}
 }
@@ -162,15 +164,16 @@ func (fake *FakePutDelegate) FetchImage(arg1 context.Context, arg2 atc.ImageReso
 		arg3 atc.VersionedResourceTypes
 		arg4 bool
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.FetchImageStub
+	fakeReturns := fake.fetchImageReturns
 	fake.recordInvocation("FetchImage", []interface{}{arg1, arg2, arg3, arg4})
 	fake.fetchImageMutex.Unlock()
-	if fake.FetchImageStub != nil {
-		return fake.FetchImageStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.fetchImageReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -226,9 +229,10 @@ func (fake *FakePutDelegate) Finished(arg1 lager.Logger, arg2 exec.ExitStatus, a
 		arg2 exec.ExitStatus
 		arg3 runtime.VersionResult
 	}{arg1, arg2, arg3})
+	stub := fake.FinishedStub
 	fake.recordInvocation("Finished", []interface{}{arg1, arg2, arg3})
 	fake.finishedMutex.Unlock()
-	if fake.FinishedStub != nil {
+	if stub != nil {
 		fake.FinishedStub(arg1, arg2, arg3)
 	}
 }
@@ -257,9 +261,10 @@ func (fake *FakePutDelegate) Initializing(arg1 lager.Logger) {
 	fake.initializingArgsForCall = append(fake.initializingArgsForCall, struct {
 		arg1 lager.Logger
 	}{arg1})
+	stub := fake.InitializingStub
 	fake.recordInvocation("Initializing", []interface{}{arg1})
 	fake.initializingMutex.Unlock()
-	if fake.InitializingStub != nil {
+	if stub != nil {
 		fake.InitializingStub(arg1)
 	}
 }
@@ -292,9 +297,10 @@ func (fake *FakePutDelegate) SaveOutput(arg1 lager.Logger, arg2 atc.PutPlan, arg
 		arg4 atc.VersionedResourceTypes
 		arg5 runtime.VersionResult
 	}{arg1, arg2, arg3, arg4, arg5})
+	stub := fake.SaveOutputStub
 	fake.recordInvocation("SaveOutput", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.saveOutputMutex.Unlock()
-	if fake.SaveOutputStub != nil {
+	if stub != nil {
 		fake.SaveOutputStub(arg1, arg2, arg3, arg4, arg5)
 	}
 }
@@ -324,9 +330,10 @@ func (fake *FakePutDelegate) SelectedWorker(arg1 lager.Logger, arg2 string) {
 		arg1 lager.Logger
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.SelectedWorkerStub
 	fake.recordInvocation("SelectedWorker", []interface{}{arg1, arg2})
 	fake.selectedWorkerMutex.Unlock()
-	if fake.SelectedWorkerStub != nil {
+	if stub != nil {
 		fake.SelectedWorkerStub(arg1, arg2)
 	}
 }
@@ -358,15 +365,16 @@ func (fake *FakePutDelegate) StartSpan(arg1 context.Context, arg2 string, arg3 t
 		arg2 string
 		arg3 tracing.Attrs
 	}{arg1, arg2, arg3})
+	stub := fake.StartSpanStub
+	fakeReturns := fake.startSpanReturns
 	fake.recordInvocation("StartSpan", []interface{}{arg1, arg2, arg3})
 	fake.startSpanMutex.Unlock()
-	if fake.StartSpanStub != nil {
-		return fake.StartSpanStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.startSpanReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -420,9 +428,10 @@ func (fake *FakePutDelegate) Starting(arg1 lager.Logger) {
 	fake.startingArgsForCall = append(fake.startingArgsForCall, struct {
 		arg1 lager.Logger
 	}{arg1})
+	stub := fake.StartingStub
 	fake.recordInvocation("Starting", []interface{}{arg1})
 	fake.startingMutex.Unlock()
-	if fake.StartingStub != nil {
+	if stub != nil {
 		fake.StartingStub(arg1)
 	}
 }
@@ -451,15 +460,16 @@ func (fake *FakePutDelegate) Stderr() io.Writer {
 	ret, specificReturn := fake.stderrReturnsOnCall[len(fake.stderrArgsForCall)]
 	fake.stderrArgsForCall = append(fake.stderrArgsForCall, struct {
 	}{})
+	stub := fake.StderrStub
+	fakeReturns := fake.stderrReturns
 	fake.recordInvocation("Stderr", []interface{}{})
 	fake.stderrMutex.Unlock()
-	if fake.StderrStub != nil {
-		return fake.StderrStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.stderrReturns
 	return fakeReturns.result1
 }
 
@@ -503,15 +513,16 @@ func (fake *FakePutDelegate) Stdout() io.Writer {
 	ret, specificReturn := fake.stdoutReturnsOnCall[len(fake.stdoutArgsForCall)]
 	fake.stdoutArgsForCall = append(fake.stdoutArgsForCall, struct {
 	}{})
+	stub := fake.StdoutStub
+	fakeReturns := fake.stdoutReturns
 	fake.recordInvocation("Stdout", []interface{}{})
 	fake.stdoutMutex.Unlock()
-	if fake.StdoutStub != nil {
-		return fake.StdoutStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.stdoutReturns
 	return fakeReturns.result1
 }
 
@@ -550,21 +561,23 @@ func (fake *FakePutDelegate) StdoutReturnsOnCall(i int, result1 io.Writer) {
 	}{result1}
 }
 
-func (fake *FakePutDelegate) Variables(arg1 context.Context) vars.Variables {
+func (fake *FakePutDelegate) Variables(arg1 context.Context, arg2 atc.VarSourceConfigs) vars.Variables {
 	fake.variablesMutex.Lock()
 	ret, specificReturn := fake.variablesReturnsOnCall[len(fake.variablesArgsForCall)]
 	fake.variablesArgsForCall = append(fake.variablesArgsForCall, struct {
 		arg1 context.Context
-	}{arg1})
-	fake.recordInvocation("Variables", []interface{}{arg1})
+		arg2 atc.VarSourceConfigs
+	}{arg1, arg2})
+	stub := fake.VariablesStub
+	fakeReturns := fake.variablesReturns
+	fake.recordInvocation("Variables", []interface{}{arg1, arg2})
 	fake.variablesMutex.Unlock()
-	if fake.VariablesStub != nil {
-		return fake.VariablesStub(arg1)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.variablesReturns
 	return fakeReturns.result1
 }
 
@@ -574,17 +587,17 @@ func (fake *FakePutDelegate) VariablesCallCount() int {
 	return len(fake.variablesArgsForCall)
 }
 
-func (fake *FakePutDelegate) VariablesCalls(stub func(context.Context) vars.Variables) {
+func (fake *FakePutDelegate) VariablesCalls(stub func(context.Context, atc.VarSourceConfigs) vars.Variables) {
 	fake.variablesMutex.Lock()
 	defer fake.variablesMutex.Unlock()
 	fake.VariablesStub = stub
 }
 
-func (fake *FakePutDelegate) VariablesArgsForCall(i int) context.Context {
+func (fake *FakePutDelegate) VariablesArgsForCall(i int) (context.Context, atc.VarSourceConfigs) {
 	fake.variablesMutex.RLock()
 	defer fake.variablesMutex.RUnlock()
 	argsForCall := fake.variablesArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakePutDelegate) VariablesReturns(result1 vars.Variables) {

@@ -42,7 +42,10 @@ type RunState interface {
 	RedactionEnabled() bool
 
 	ArtifactRepository() *build.Repository
-	Variables() *build.Variables
+
+	LocalVariables() *build.Variables
+	VarSourceConfigs() atc.VarSourceConfigs
+	SetVarSourceConfigs(atc.VarSourceConfigs)
 
 	Result(atc.PlanID, interface{}) bool
 	StoreResult(atc.PlanID, interface{})

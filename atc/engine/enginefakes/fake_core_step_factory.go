@@ -63,6 +63,19 @@ type FakeCoreStepFactory struct {
 	getStepReturnsOnCall map[int]struct {
 		result1 exec.Step
 	}
+	GetVarStepStub        func(atc.Plan, exec.StepMetadata, engine.DelegateFactory) exec.Step
+	getVarStepMutex       sync.RWMutex
+	getVarStepArgsForCall []struct {
+		arg1 atc.Plan
+		arg2 exec.StepMetadata
+		arg3 engine.DelegateFactory
+	}
+	getVarStepReturns struct {
+		result1 exec.Step
+	}
+	getVarStepReturnsOnCall map[int]struct {
+		result1 exec.Step
+	}
 	LoadVarStepStub        func(atc.Plan, exec.StepMetadata, engine.DelegateFactory) exec.Step
 	loadVarStepMutex       sync.RWMutex
 	loadVarStepArgsForCall []struct {
@@ -128,15 +141,16 @@ func (fake *FakeCoreStepFactory) ArtifactInputStep(arg1 atc.Plan, arg2 db.Build)
 		arg1 atc.Plan
 		arg2 db.Build
 	}{arg1, arg2})
+	stub := fake.ArtifactInputStepStub
+	fakeReturns := fake.artifactInputStepReturns
 	fake.recordInvocation("ArtifactInputStep", []interface{}{arg1, arg2})
 	fake.artifactInputStepMutex.Unlock()
-	if fake.ArtifactInputStepStub != nil {
-		return fake.ArtifactInputStepStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.artifactInputStepReturns
 	return fakeReturns.result1
 }
 
@@ -189,15 +203,16 @@ func (fake *FakeCoreStepFactory) ArtifactOutputStep(arg1 atc.Plan, arg2 db.Build
 		arg1 atc.Plan
 		arg2 db.Build
 	}{arg1, arg2})
+	stub := fake.ArtifactOutputStepStub
+	fakeReturns := fake.artifactOutputStepReturns
 	fake.recordInvocation("ArtifactOutputStep", []interface{}{arg1, arg2})
 	fake.artifactOutputStepMutex.Unlock()
-	if fake.ArtifactOutputStepStub != nil {
-		return fake.ArtifactOutputStepStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.artifactOutputStepReturns
 	return fakeReturns.result1
 }
 
@@ -252,15 +267,16 @@ func (fake *FakeCoreStepFactory) CheckStep(arg1 atc.Plan, arg2 exec.StepMetadata
 		arg3 db.ContainerMetadata
 		arg4 engine.DelegateFactory
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.CheckStepStub
+	fakeReturns := fake.checkStepReturns
 	fake.recordInvocation("CheckStep", []interface{}{arg1, arg2, arg3, arg4})
 	fake.checkStepMutex.Unlock()
-	if fake.CheckStepStub != nil {
-		return fake.CheckStepStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.checkStepReturns
 	return fakeReturns.result1
 }
 
@@ -315,15 +331,16 @@ func (fake *FakeCoreStepFactory) GetStep(arg1 atc.Plan, arg2 exec.StepMetadata, 
 		arg3 db.ContainerMetadata
 		arg4 engine.DelegateFactory
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.GetStepStub
+	fakeReturns := fake.getStepReturns
 	fake.recordInvocation("GetStep", []interface{}{arg1, arg2, arg3, arg4})
 	fake.getStepMutex.Unlock()
-	if fake.GetStepStub != nil {
-		return fake.GetStepStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.getStepReturns
 	return fakeReturns.result1
 }
 
@@ -369,6 +386,69 @@ func (fake *FakeCoreStepFactory) GetStepReturnsOnCall(i int, result1 exec.Step) 
 	}{result1}
 }
 
+func (fake *FakeCoreStepFactory) GetVarStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 engine.DelegateFactory) exec.Step {
+	fake.getVarStepMutex.Lock()
+	ret, specificReturn := fake.getVarStepReturnsOnCall[len(fake.getVarStepArgsForCall)]
+	fake.getVarStepArgsForCall = append(fake.getVarStepArgsForCall, struct {
+		arg1 atc.Plan
+		arg2 exec.StepMetadata
+		arg3 engine.DelegateFactory
+	}{arg1, arg2, arg3})
+	stub := fake.GetVarStepStub
+	fakeReturns := fake.getVarStepReturns
+	fake.recordInvocation("GetVarStep", []interface{}{arg1, arg2, arg3})
+	fake.getVarStepMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeCoreStepFactory) GetVarStepCallCount() int {
+	fake.getVarStepMutex.RLock()
+	defer fake.getVarStepMutex.RUnlock()
+	return len(fake.getVarStepArgsForCall)
+}
+
+func (fake *FakeCoreStepFactory) GetVarStepCalls(stub func(atc.Plan, exec.StepMetadata, engine.DelegateFactory) exec.Step) {
+	fake.getVarStepMutex.Lock()
+	defer fake.getVarStepMutex.Unlock()
+	fake.GetVarStepStub = stub
+}
+
+func (fake *FakeCoreStepFactory) GetVarStepArgsForCall(i int) (atc.Plan, exec.StepMetadata, engine.DelegateFactory) {
+	fake.getVarStepMutex.RLock()
+	defer fake.getVarStepMutex.RUnlock()
+	argsForCall := fake.getVarStepArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeCoreStepFactory) GetVarStepReturns(result1 exec.Step) {
+	fake.getVarStepMutex.Lock()
+	defer fake.getVarStepMutex.Unlock()
+	fake.GetVarStepStub = nil
+	fake.getVarStepReturns = struct {
+		result1 exec.Step
+	}{result1}
+}
+
+func (fake *FakeCoreStepFactory) GetVarStepReturnsOnCall(i int, result1 exec.Step) {
+	fake.getVarStepMutex.Lock()
+	defer fake.getVarStepMutex.Unlock()
+	fake.GetVarStepStub = nil
+	if fake.getVarStepReturnsOnCall == nil {
+		fake.getVarStepReturnsOnCall = make(map[int]struct {
+			result1 exec.Step
+		})
+	}
+	fake.getVarStepReturnsOnCall[i] = struct {
+		result1 exec.Step
+	}{result1}
+}
+
 func (fake *FakeCoreStepFactory) LoadVarStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 engine.DelegateFactory) exec.Step {
 	fake.loadVarStepMutex.Lock()
 	ret, specificReturn := fake.loadVarStepReturnsOnCall[len(fake.loadVarStepArgsForCall)]
@@ -377,15 +457,16 @@ func (fake *FakeCoreStepFactory) LoadVarStep(arg1 atc.Plan, arg2 exec.StepMetada
 		arg2 exec.StepMetadata
 		arg3 engine.DelegateFactory
 	}{arg1, arg2, arg3})
+	stub := fake.LoadVarStepStub
+	fakeReturns := fake.loadVarStepReturns
 	fake.recordInvocation("LoadVarStep", []interface{}{arg1, arg2, arg3})
 	fake.loadVarStepMutex.Unlock()
-	if fake.LoadVarStepStub != nil {
-		return fake.LoadVarStepStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.loadVarStepReturns
 	return fakeReturns.result1
 }
 
@@ -440,15 +521,16 @@ func (fake *FakeCoreStepFactory) PutStep(arg1 atc.Plan, arg2 exec.StepMetadata, 
 		arg3 db.ContainerMetadata
 		arg4 engine.DelegateFactory
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.PutStepStub
+	fakeReturns := fake.putStepReturns
 	fake.recordInvocation("PutStep", []interface{}{arg1, arg2, arg3, arg4})
 	fake.putStepMutex.Unlock()
-	if fake.PutStepStub != nil {
-		return fake.PutStepStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.putStepReturns
 	return fakeReturns.result1
 }
 
@@ -502,15 +584,16 @@ func (fake *FakeCoreStepFactory) SetPipelineStep(arg1 atc.Plan, arg2 exec.StepMe
 		arg2 exec.StepMetadata
 		arg3 engine.DelegateFactory
 	}{arg1, arg2, arg3})
+	stub := fake.SetPipelineStepStub
+	fakeReturns := fake.setPipelineStepReturns
 	fake.recordInvocation("SetPipelineStep", []interface{}{arg1, arg2, arg3})
 	fake.setPipelineStepMutex.Unlock()
-	if fake.SetPipelineStepStub != nil {
-		return fake.SetPipelineStepStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.setPipelineStepReturns
 	return fakeReturns.result1
 }
 
@@ -565,15 +648,16 @@ func (fake *FakeCoreStepFactory) TaskStep(arg1 atc.Plan, arg2 exec.StepMetadata,
 		arg3 db.ContainerMetadata
 		arg4 engine.DelegateFactory
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.TaskStepStub
+	fakeReturns := fake.taskStepReturns
 	fake.recordInvocation("TaskStep", []interface{}{arg1, arg2, arg3, arg4})
 	fake.taskStepMutex.Unlock()
-	if fake.TaskStepStub != nil {
-		return fake.TaskStepStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.taskStepReturns
 	return fakeReturns.result1
 }
 
@@ -630,6 +714,8 @@ func (fake *FakeCoreStepFactory) Invocations() map[string][][]interface{} {
 	defer fake.checkStepMutex.RUnlock()
 	fake.getStepMutex.RLock()
 	defer fake.getStepMutex.RUnlock()
+	fake.getVarStepMutex.RLock()
+	defer fake.getVarStepMutex.RUnlock()
 	fake.loadVarStepMutex.RLock()
 	defer fake.loadVarStepMutex.RUnlock()
 	fake.putStepMutex.RLock()

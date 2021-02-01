@@ -18,6 +18,9 @@ type runState struct {
 	artifacts *build.Repository
 	results   *sync.Map
 
+	// source configurations of all the var sources within the pipeline
+	sources atc.VarSourceConfigs
+
 	parent RunState
 }
 
@@ -86,4 +89,12 @@ func (state *runState) RedactionEnabled() bool {
 
 func (state *runState) Run(ctx context.Context, plan atc.Plan) (bool, error) {
 	return state.stepper(plan).Run(ctx, state)
+}
+
+func (state *runState) VarSourceConfigs() atc.VarSourceConfigs {
+	return state.sources
+}
+
+func (state *runState) SetVarSourceConfigs(varSourceConfigs atc.VarSourceConfigs) {
+	state.sources = varSourceConfigs
 }
