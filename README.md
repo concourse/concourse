@@ -35,7 +35,7 @@ to keep track of - here's an overview:
 | `set_pipeline` step      | ✔ [#31][rfc-31]  | ✔ v5.8.0 (experimental), TODO: [#5814][issue-5814] |
 | Var sources for creds    | ✔ [#39][rfc-39]  | ✔ v5.8.0 (experimental), TODO: [#5813][issue-5813] |
 | Archiving pipelines      | ✔ [#33][rfc-33]  | ✔ v6.5.0 |
-| Instanced pipelines      | ✔ [#34][rfc-34]  | 🚧 PR [#5896][pr-5896] for backend, issue [#5921][issue-5921] for UI |
+| Instanced pipelines      | ✔ [#34][rfc-34]  | ✔ v7.0.0 (experimental, not released yet) |
 | Static `across` step     | 🚧 [#29][rfc-29] | ✔ v6.5.0 (experimental) |
 | Dynamic `across` step    | 🚧 [#29][rfc-29] | 🙏 RFC needs feedback! |
 | Projects                 | 🚧 [#32][rfc-32] | 🙏 RFC needs feedback! |
@@ -43,7 +43,7 @@ to keep track of - here's an overview:
 | `get_var` step           | ✔ [#27][rfc-27]  | 🚧 [#5815][issue-5815] in progress! |
 | [Prototypes][prototypes] | ✔ [#37][rfc-37]  | ⚠ Pending first use of protocol (any of the below) |
 | `run` step               | 🚧 [#37][rfc-37]  | ⚠ Pending its own RFC, but feel free to experiment |
-| Resource prototypes      | ✔ [#38][rfc-38]  | 🙏 [#5870][issue-5870] Looking for volunteers! |
+| Resource prototypes      | ✔ [#38][rfc-38]  | 🙏 [#5870][issue-5870] looking for volunteers! |
 | Var source prototypes    |                  | 🚧 [#6275][issue-6275] planned, may lead to RFC |
 | Notifier prototypes      | 🚧 [#28][rfc-28] | ⚠ RFC not ready |
 
