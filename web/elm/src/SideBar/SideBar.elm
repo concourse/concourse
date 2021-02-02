@@ -5,6 +5,7 @@ module SideBar.SideBar exposing
     , hamburgerMenu
     , handleCallback
     , handleDelivery
+    , isPipelineVisible
     , lookupPipeline
     , tooltip
     , update

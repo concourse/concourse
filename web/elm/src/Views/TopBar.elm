@@ -18,7 +18,7 @@ import Html.Attributes
 import Message.Message exposing (DomID(..), Message(..))
 import RemoteData
 import Routes
-import SideBar.SideBar exposing (byPipelineId, lookupPipeline)
+import SideBar.SideBar exposing (byPipelineId, isPipelineVisible, lookupPipeline)
 import Url
 import Views.InstanceGroupBadge as InstanceGroupBadge
 import Views.Styles as Styles
@@ -121,6 +121,7 @@ pipelineBreadcrumbs session pipeline =
             session.pipelines
                 |> RemoteData.withDefault []
                 |> List.filter (\p -> p.name == pipeline.name && p.teamName == pipeline.teamName)
+                |> List.filter (isPipelineVisible session)
 
         inInstanceGroup =
             Concourse.isInstanceGroup pipelineGroup
