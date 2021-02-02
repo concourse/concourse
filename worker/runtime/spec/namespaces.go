@@ -13,6 +13,7 @@ var (
 
 	UnprivilegedContainerNamespaces = append(PrivilegedContainerNamespaces,
 		specs.LinuxNamespace{Type: specs.UserNamespace},
+		specs.LinuxNamespace{Type: specs.CgroupNamespace},
 	)
 )
 
