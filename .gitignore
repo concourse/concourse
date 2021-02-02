@@ -20,6 +20,5 @@ ci/deployments/*/keys/gcp.json
 ci/deployments/*/keys/id_rsa
 ci/deployments/*/keys/id_rsa.pub
 
-hack/vault/certs
 hack/vault/init.json
 worker/runtime/integration/sample/sample

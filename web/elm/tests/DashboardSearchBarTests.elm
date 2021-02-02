@@ -246,10 +246,9 @@ all =
                         >> findDropdown
                         >> Query.findAll [ tag "li" ]
                         >> Expect.all
-                            [ Query.count (Expect.equal 3)
+                            [ Query.count (Expect.equal 2)
                             , Query.index 0 >> Query.has [ text "status:" ]
                             , Query.index 1 >> Query.has [ text "team:" ]
-                            , Query.index 2 >> Query.has [ text "group:" ]
                             ]
                 , describe "navigating dropdown items" <|
                     let
@@ -435,9 +434,9 @@ all =
                             prefixedSuggestionsTest query "" expected
                     in
                     [ -- available filters
-                      simpleSuggestionsTest "" [ "status:", "team:", "group:" ]
-                    , simpleSuggestionsTest "-" [ "-status:", "-team:", "-group:" ]
-                    , simpleSuggestionsTest " " [ "status:", "team:", "group:" ]
+                      simpleSuggestionsTest "" [ "status:", "team:" ]
+                    , simpleSuggestionsTest "-" [ "-status:", "-team:" ]
+                    , simpleSuggestionsTest " " [ "status:", "team:" ]
 
                     -- status
                     , simpleSuggestionsTest "st" [ "status:" ]
@@ -470,8 +469,6 @@ all =
                     , suggestionsTest manyTeams "team:" (findSuggestions >> Query.count (Expect.equal 10))
 
                     -- group
-                    , simpleSuggestionsTest "g" [ "group:" ]
-                    , simpleSuggestionsTest "group" [ "group:" ]
                     , simpleSuggestionsTest "group:" [ "group:\"group\"", "group:\"other-group\"" ]
                     , simpleSuggestionsTest "group:oth" [ "group:\"other-group\"" ]
                     , simpleSuggestionsTest "group:\"group\"" []
@@ -480,7 +477,7 @@ all =
                     , simpleSuggestionsTest "foo" []
 
                     -- takes last filter
-                    , prefixedSuggestionsTest "team:other-team " "team:other-team " [ "status:", "team:", "group:" ]
+                    , prefixedSuggestionsTest "team:other-team " "team:other-team " [ "status:", "team:" ]
                     , prefixedSuggestionsTest "team:other-team s" "team:other-team " [ "status:" ]
                     , prefixedSuggestionsTest "team:other-team -status:a" "team:other-team " [ "-status:aborted" ]
 

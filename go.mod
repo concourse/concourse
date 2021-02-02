@@ -37,6 +37,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.1
 	github.com/gobuffalo/packr v1.13.7
 	github.com/gobwas/glob v0.2.3
+	github.com/goccy/go-yaml v1.8.3
 	github.com/gogo/googleapis v1.3.1 // indirect
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
@@ -51,7 +52,6 @@ require (
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
 	github.com/jessevdk/go-flags v1.4.1-0.20200711081900-c17162fe8fd7
-	github.com/joefitzgerald/rainbow-reporter v0.1.0 // indirect
 	github.com/klauspost/compress v1.10.10
 	github.com/kr/pty v1.1.8
 	github.com/krishicks/yaml-patch v0.0.10
@@ -66,8 +66,6 @@ require (
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.3
-	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/stackdriverexporter v0.11.0
-	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/opencontainers/runtime-spec v1.0.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/peterhellberg/link v1.0.0
@@ -99,7 +97,6 @@ require (
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	google.golang.org/api v0.32.0 // indirect
 	google.golang.org/grpc v1.32.0
-	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.18.8

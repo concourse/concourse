@@ -39,33 +39,37 @@ func (s *ContainerSuite) SetupTest() {
 	)
 }
 
-// func (s *ContainerSuite) TestStopWithKillUngracefullyStops() {
-// 	err := s.container.Stop(true)
-// 	s.NoError(err)
-// 	s.Equal(1, s.ungracefulKiller.KillCallCount())
-// }
+func (s *ContainerSuite) TestStopWithKillUngracefullyStops() {
+	err := s.container.Stop(true)
+	s.NoError(err)
+	s.Equal(1, s.killer.KillCallCount())
+	_, _, behaviour := s.killer.KillArgsForCall(0)
+	s.Equal(runtime.KillUngracefully, behaviour)
+}
 
-// func (s *ContainerSuite) TestStopWithKillFailing() {
-// 	s.ungracefulKiller.UngracefullyStopReturns(errors.NewGardenBackend("ungraceful-stop-err"))
+func (s *ContainerSuite) TestStopWithKillGracefullyStops() {
+	err := s.container.Stop(false)
+	s.NoError(err)
+	s.Equal(1, s.killer.KillCallCount())
+	_, _, behaviour := s.killer.KillArgsForCall(0)
+	s.Equal(runtime.KillGracefully, behaviour)
+}
 
-// 	err := s.container.Stop(true)
-// 	s.Equal(1, s.ungracefulKiller.UngracefullyStopCallCount())
-// 	s.EqualError(errors.Unwrap(err), "ungraceful-stop-err")
-// }
+func (s *ContainerSuite) TestStopErrorsTaskLookup() {
+	expectedErr := errors.New("task-lookup-err")
+	s.containerdContainer.TaskReturns(nil, expectedErr)
 
-// func (s *ContainerSuite) TestStopWithoutKillGracefullyStops() {
-// 	err := s.container.Stop(false)
-// 	s.NoError(err)
-// 	s.Equal(1, s.ungracefulKiller.GracefullyStopCallCount())
-// }
+	err := s.container.Stop(false)
+	s.True(errors.Is(err, expectedErr))
+}
 
-// func (s *ContainerSuite) TestStopWithoutKillFailing() {
-// 	s.ungracefulKiller.GracefullyStopReturns(errors.NewGardenBackend("graceful-stop-err"))
+func (s *ContainerSuite) TestStopErrorsKill() {
+	expectedErr := errors.New("kill-err")
+	s.killer.KillReturns(expectedErr)
 
-// 	err := s.container.Stop(false)
-// 	s.EqualError(errors.Unwrap(err), "graceful-stop-err")
-// 	s.Equal(1, s.ungracefulKiller.GracefullyStopCallCount())
-// }
+	err := s.container.Stop(false)
+	s.True(errors.Is(err, expectedErr))
+}
 
 func (s *ContainerSuite) TestRunContainerSpecErr() {
 	expectedErr := errors.New("spec-err")
