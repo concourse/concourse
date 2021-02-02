@@ -268,7 +268,9 @@ func NewSkyDisplayUserIdGenerator(config map[string]string) (atc.DisplayUserIdGe
 			return nil, fmt.Errorf("invalid connector: %s", connectorId)
 		}
 
-		if fieldName != "user_id" && fieldName != "name" && fieldName != "username" && fieldName != "email" {
+		switch fieldName {
+		case "user_id", "name", "username", "email":
+		default:
 			return nil, fmt.Errorf("invalid user field %s of connector %s", fieldName, connectorId)
 		}
 
