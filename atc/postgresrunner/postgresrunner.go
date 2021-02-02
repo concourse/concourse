@@ -105,6 +105,7 @@ full_page_writes = off
 func appendToFile(path string, content string) {
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0755)
 	Expect(err).ToNot(HaveOccurred())
+	defer f.Close()
 
 	_, err = f.WriteString(content)
 	Expect(err).ToNot(HaveOccurred())
