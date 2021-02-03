@@ -641,8 +641,72 @@ by configuring \reference{schema.step.on_failure} or
         }
       }
 
+      \optional-attribute{instance_vars}{vars}{
+        A map of instance vars used to identify
+        \reference{instanced-pipelines}{instanced pipelines}. These vars will also be
+        \reference{pipeline-static-vars}{interpolated into the pipeline config}.
+
+        Note that variables set with this field will not propagate to tasks configured
+        via \reference{schema.step.task-step.file}. If you want those variables to be determined
+        at the time the pipeline is set, use \reference{schema.step.task-step.vars} as well.
+
+        \example-toggle{Configuring instance vars and vars}{
+          Both \code{instance_vars} and \code{vars} may be statically passed like so:
+
+          \codeblock{yaml}{{{
+          plan:
+          - get: my-repo
+          - set_pipeline: release
+            file: my-repo/ci/pipeline.yml
+            instance_vars:
+              version: 1.0.x
+            vars:
+              text: "Hello World"
+          }}}
+
+          Any \reference{vars} in the pipeline config will be filled in
+          statically using this field.
+
+          For example, if \code{my-repo/ci/pipeline.yml} looks like...:
+
+          \codeblock{yaml}{{{
+          resources:
+          - name: task-image
+            type: registry-image
+            source:
+              repository: my.local.registry:8080/my/image
+              username: ((myuser))
+              password: ((mypass))
+          jobs:
+          - name: job
+            plan:
+            - get: task-image
+            - task: do-stuff
+              image: task-image
+              config:
+                platform: linux
+                run:
+                  path: echo
+                  args: ["((text)) from version ((version))!"]
+          }}}
+
+          ...this will resolve \code{"((text)) from version ((version))"} to
+          \code{{"Hello World from version 1.0.x!"}}, while \code{((myuser))} and
+          \code{((mypass))} will be left in the pipeline to be
+          \reference{dynamic-vars}{fetched at runtime}.
+
+          Additionally, as per \reference{managing-instanced-pipelines}, this
+          pipeline would be referred to in \code{fly} using the flag \code{--pipeline
+          release/version:1.0.x}
+        }
+      }
+
       \optional-attribute{vars}{vars}{
-        A map of template variables to pass to the pipeline config.
+        A map of template variables to pass to the pipeline config. Unlike
+        \reference{schema.step.set-pipeline-step.instance_vars}{\code{instance_vars}},
+        \code{vars} are solely used to for
+        \reference{pipeline-static-vars}{interpolation}, and do not become a part of
+        the pipeline's identifier.
 
         Note that variables set with this field will not propagate to tasks configured
         via \reference{schema.step.task-step.file}. If you want those variables to be determined
@@ -668,11 +732,11 @@ by configuring \reference{schema.step.on_failure} or
           \codeblock{yaml}{{{
           resources:
           - name: task-image
-              type: registry-image
-              source:
-                repository: my.local.registry:8080/my/image
-                username: ((myuser))
-                password: ((mypass))
+            type: registry-image
+            source:
+              repository: my.local.registry:8080/my/image
+              username: ((myuser))
+              password: ((mypass))
           jobs:
           - name: job
             plan:

@@ -240,7 +240,13 @@ UI, so you should make your output pretty.
     }
   }{
     \definition{\code{$BUILD_PIPELINE_NAME}}{
-      The pipeline that the build's job lives in.
+      The name of the pipeline that the build's job lives in.
+    }
+  }{
+    \definition{\code{$BUILD_PIPELINE_INSTANCE_VARS}}{
+      The instance vars of the instanced pipeline that the build's job lives
+      in, serialized as JSON. See \reference{instanced-pipelines} for a definition of
+      instanced pipelines.
     }
   }{
     \definition{\code{$BUILD_TEAM_NAME}}{
@@ -252,8 +258,12 @@ UI, so you should make your output pretty.
     }
   }
 
-  If the build is a one-off, \code{$BUILD_NAME}, \code{$BUILD_JOB_NAME}, and
-  \code{$BUILD_PIPELINE_NAME} will not be set.
+  If the build is a one-off, \code{$BUILD_NAME}, \code{$BUILD_JOB_NAME},
+  \code{$BUILD_PIPELINE_NAME}, and \code{$BUILD_PIPELINE_INSTANCE_VARS} will not
+  be set.
+
+  Additionally, \code{$BUILD_PIPELINE_INSTANCE_VARS} will not be set if the
+  build's pipeline has no instance vars (i.e. is not an instanced pipeline).
 
   None of these variables are available to \reference{resource-check}.
 

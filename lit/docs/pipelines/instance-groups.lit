@@ -1,0 +1,212 @@
+\title{Grouping Pipelines}{instanced-pipelines}
+
+\use-plugin{concourse-docs}
+
+\warn{
+  Instanced Pipelines/Instance Groups are currently experimental, and are
+  subject to change.
+
+  To experiment with Instanced Pipelines on your deployment, you need to set
+  the feature flag \code{--enable-pipeline-instances}
+  (\code{CONCOURSE_ENABLE_PIPELINE_INSTANCES=true})
+}
+
+Although pipelines operate independently of one another, it's not uncommon to
+have several pipelines that are highly related, and possibly derived from the
+same pipeline template. It's useful to be able to group these pipelines to
+reduce clutter and improve navigation. For this, Concourse has the concept of
+Instanced Pipelines and Instance Groups, where an Instance Group composes
+several related Instanced Pipelines.
+
+For instance, suppose you support multiple version lines of your software
+(v1.0.x and v2.0.x, say), and want a pipeline for each version line in order to
+facilitate delivering patch releases. You create a common pipeline template
+that uses \reference{vars} to specialize each pipeline:
+
+\codeblock{yaml}{{
+resources:
+- name: repo
+  type: git
+  source:
+    uri: git@...
+    # The only difference between the pipelines is the git branch to use
+    branch: release/v((version))
+
+jobs:
+- name: test
+  plan: [...]
+
+- name: deploy-to-staging
+  plan: [...]
+
+- name: release
+  plan: [...]
+}}
+
+Before Concourse v7.0.0, you might set multiple pipelines with the
+version information encoded in the pipeline name, e.g.:
+
+\codeblock{bash}{{
+$ fly -t example set-pipeline \\
+    --pipeline release-1.0.x \\
+    --config template.yml \\
+    --var version=1.0.x
+$ fly -t example set-pipeline \\
+    --pipeline release-2.0.x \\
+    --config template.yml \\
+    --var version=2.0.x
+}}
+
+The downside to this approach is that things can get disorganized quickly as
+the number of pipelines increases, which can make the UI cluttered and hard to
+navigate. Additionally, not everything can easily be encoded into the pipeline
+name, especially with the restrictions on
+\reference{schema.identifier}{identifiers} - while it's readable in this case,
+it can get unwieldy as the number of variables in the template grows.
+
+The recommended approach is to construct an Instance Group where each version
+has its own Instanced Pipeline:
+
+\codeblock{bash}{{
+$ fly -t example set-pipeline \\
+    --pipeline release \\
+    --config template.yml \\
+    --instance-var version=1.0.x
+$ fly -t example set-pipeline \\
+    --pipeline release \\
+    --config template.yml \\
+    --instance-var version=2.0.x
+}}
+
+There are only a few differences from the previous approach in terms of
+creating the pipelines:
+
+\ordered-list{
+    We give each Instanced Pipeline the same name (in this case, \code{release}), and
+}{
+    We use the \code{--instance-var} flag instead of \code{--var}. Doing so
+    makes the variable name and value a part of the pipeline's identifier
+    (\reference{managing-instanced-pipelines} describes how to work with
+    Instanced Pipelines in \reference{fly}{fly})
+}
+
+\warn{The \code{-i} or \code{--instance-var} flag behaves like the \code{-y} or
+\code{--yaml-var}, meaning instance vars can hold arbitrary YAML/JSON data. The
+\code{v} or \code{--var} flag, on the other hand, only defines strings. See
+\reference{static-vars} to learn the difference between the flags}
+
+Note that there are no \reference{fly}{fly} commands for constructing an
+Instance Group - Concourse logically groups all Instanced Pipelines with the
+same name into a single Instance Group. Instanced Pipelines have the same
+pipeline semantics as other pipelines - they are just organized and identified
+in a different way.
+
+\section{
+  \title{Managing Instanced Pipelines}{managing-instanced-pipelines}
+
+  Instanced Pipelines can be managed via \reference{fly}{fly} as described in
+  \reference{managing-pipelines}, with one important distinction - since instance
+  vars are a part of the pipeline's identifier, the \code{--pipeline} flag must
+  include both the name of the Instance Group as well as the instance vars. The
+  \code{--pipeline} flag takes the form:
+
+  \code{{
+  --pipeline group/var1:value1,var2:value2
+  }}
+
+  As a concrete example, to pause the \code{release} Instanced Pipeline with
+  \code{version:1.0.x}, you would issue the following command:
+
+  \codeblock{bash}{{
+  $ fly -t example pause-pipeline --pipeline release/version:1.0.x
+  }}
+
+  Let's look at a more complicated example - suppose you have an Instanced
+  Pipeline that was set using one of the following commands:
+
+  \codeblock{bash}{{
+  $ fly -t example set-pipeline \\
+      --pipeline upgrade \\
+      --config template.yml \\
+      --instance-var version.from=1.0.0 \\
+      --instance-var version.to=2.0.0 \\
+      --instance-var branch=feature/foo
+  # ...or equivalently
+  $ fly -t example set-pipeline \\
+      --pipeline upgrade \\
+      --config template.yml \\
+      --instance-var 'version=\{from: 1.0.0, to: 2.0.0\}' \\
+      --instance-var branch=feature/foo
+  }}
+
+  \warn{
+    Using dot-notation here (as in the first command) is recommended since YAML
+    is finicky about spaces.
+
+    For instance, had we used \code{--instance-var 'version=\{from:1.0.0,
+    to:2.0.0\}'} (no spaces between keys and values), we would end up with the
+    following object (represented as JSON):
+
+    \codeblock{json}{\{"from:1.0.0": null, "to:2.0.0": null\}}
+
+    Specifying each field individually using dot-notation is harder to mess up.
+  }
+
+  Here, there are two instance vars: \code{version}, that contains the object
+  \code{\{"from": "1.0.0", "to": "2.0.0"\}}, and \code{branch}, that contains the
+  string \code{"feature/foo"}. In order to pause this pipeline, you could issue
+  one of the following commands:
+
+  \codeblock{bash}{{
+  $ fly -t example pause-pipeline \\
+      --pipeline 'upgrade/version.from:1.0.0,version.to:2.0.0,branch:"feature/foo"'
+  # ... or equivalently
+  $ fly -t example pause-pipeline \\
+      --pipeline 'upgrade/version:\{from: 1.0.0, to: 2.0.0\},branch:"feature/foo"'
+  }}
+  For accessing sub-fields of an object, we can either use dot-notation as
+  described in \reference{pipeline-static-vars}, or we can define the object in
+  full as valid YAML.
+
+  \warn{
+    If the instance var name or value contains a "special character" (\code{.},
+    \code{,}, \code{/}, \code{\{}, \code{\}}, or whitespace), it must be surrounded
+    by double quotes \code{"}.  Depending on your shell, this usually means the
+    entire flag must be quoted, since otherwise your shell will try to expand the
+    quotes.
+  }
+
+  \section{
+    \title{Managing Jobs and Resources}{jobs-and-resources-instanced-pipelines}
+
+    \reference{managing-jobs} and \reference{managing-resources} walk you
+    through some of the commands you can use to manage jobs and resources within
+    pipelines. For Instanced Pipelines, we need to encode the instance vars in
+    the \code{--job} and \code{--resource} flags. These flags now take the form:
+
+
+    \code{{
+    --job group/var1:value1,var2:value2/job
+    }}
+
+    and:
+
+    \code{{
+    --resource group/var1:value1,var2:value2/resource
+    }}
+
+    For instance, to trigger the \code{test} job of
+    \code{release/version:1.0.x}, we issue the following command:
+
+    \codeblock{bash}{{
+    $ fly -t example trigger-job --job release/version:1.0.x/test
+    }}
+
+    To check the \code{repo} resource of \code{release/version:1.0.x}, we issue
+    the following command:
+
+    \codeblock{bash}{{
+    $ fly -t example check-resource --resource release/version:1.0.x/repo
+    }}
+  }
+}
