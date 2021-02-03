@@ -85,7 +85,7 @@ creating the pipelines:
     We give each Instanced Pipeline the same name (in this case, \code{release}), and
 }{
     We use the \code{--instance-var} flag instead of \code{--var}. Doing so
-    makes the variable name and value a part of the pipeline's identity
+    makes the variable name and value a part of the pipeline's identifier
     (\reference{managing-instanced-pipelines} describes how to work with
     Instanced Pipelines in \reference{fly}{fly})
 }
@@ -106,7 +106,7 @@ in a different way.
 
   Instanced Pipelines can be managed via \reference{fly}{fly} as described in
   \reference{managing-pipelines}, with one important distinction - since instance
-  vars are a part of the pipeline's identity, the \code{--pipeline} flag must
+  vars are a part of the pipeline's identifier, the \code{--pipeline} flag must
   include both the name of the Instance Group as well as the instance vars. The
   \code{--pipeline} flag takes the form:
 

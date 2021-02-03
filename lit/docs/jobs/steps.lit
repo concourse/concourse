@@ -706,7 +706,7 @@ by configuring \reference{schema.step.on_failure} or
         \reference{schema.step.set-pipeline-step.instance_vars}{\code{instance_vars}},
         \code{vars} are solely used to for
         \reference{pipeline-static-vars}{interpolation}, and do not become a part of
-        the pipeline's identity
+        the pipeline's identifier.
 
         Note that variables set with this field will not propagate to tasks configured
         via \reference{schema.step.task-step.file}. If you want those variables to be determined
