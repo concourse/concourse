@@ -22,7 +22,13 @@ import Html.Events exposing (onClick, onMouseDown, onMouseEnter, onMouseLeave)
 import List.Extra
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
-import Message.Message exposing (DomID(..), Message(..), PipelinesSection(..))
+import Message.Message
+    exposing
+        ( DomID(..)
+        , Message(..)
+        , PipelinesSection(..)
+        , VisibilityAction(..)
+        )
 import Message.Subscription exposing (Delivery(..))
 import RemoteData exposing (RemoteData(..), WebData)
 import Routes
@@ -158,6 +164,22 @@ handleCallback callback ( model, effects ) =
                         _ ->
                             model.expandedTeamsInAllPipelines
               }
+            , effects
+            )
+
+        VisibilityChanged Hide id (Ok ()) ->
+            ( updatePipeline
+                (\p -> { p | public = False })
+                (byPipelineId id)
+                model
+            , effects
+            )
+
+        VisibilityChanged Expose id (Ok ()) ->
+            ( updatePipeline
+                (\p -> { p | public = True })
+                (byPipelineId id)
+                model
             , effects
             )
 
@@ -395,6 +417,19 @@ hasVisiblePipelines model =
 isPipelineVisible : { a | favoritedPipelines : Set Concourse.DatabaseID } -> Concourse.Pipeline -> Bool
 isPipelineVisible { favoritedPipelines } p =
     not p.archived || Set.member p.id favoritedPipelines
+
+
+updatePipeline :
+    (Concourse.Pipeline -> Concourse.Pipeline)
+    -> (Concourse.Pipeline -> Bool)
+    -> { b | pipelines : WebData (List Concourse.Pipeline) }
+    -> { b | pipelines : WebData (List Concourse.Pipeline) }
+updatePipeline updater predicate model =
+    { model
+        | pipelines =
+            model.pipelines
+                |> RemoteData.map (List.Extra.updateIf predicate updater)
+    }
 
 
 lookupPipeline :
