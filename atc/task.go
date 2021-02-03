@@ -15,7 +15,7 @@ type TaskConfig struct {
 
 	// Optional string specifying an image to use for the build. Depending on the
 	// platform, this may or may not be required (e.g. Windows/OS X vs. Linux).
-	RootfsURI string `json:"rootfs_uri,omitempty"`
+	RootfsURI string
 
 	ImageResource *ImageResource `json:"image_resource,omitempty"`
 

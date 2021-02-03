@@ -48,6 +48,12 @@ type Pool interface {
 
 type VolumeFinder interface {
 	FindVolume(lager.Logger, int, string) (Volume, bool, error)
+
+	FindWorkersForResourceCache(
+		lager.Logger,
+		int,
+		int,
+	) ([]Worker, error)
 }
 
 type pool struct {
@@ -141,6 +147,10 @@ func (pool *pool) CreateVolume(logger lager.Logger, volumeSpec VolumeSpec, worke
 	}
 
 	return worker.CreateVolume(logger, volumeSpec, workerSpec.TeamID, volumeType)
+}
+
+func (pool *pool) FindWorkersForResourceCache(logger lager.Logger, teamId int, rcId int) ([]Worker, error) {
+	return pool.provider.FindWorkersForResourceCache(logger, teamId, rcId)
 }
 
 func (pool *pool) ContainerInWorker(logger lager.Logger, owner db.ContainerOwner, workerSpec WorkerSpec) (bool, error) {

@@ -177,6 +177,7 @@ func paramsHash(p atc.Params) string {
 type UsedResourceCache interface {
 	ID() int
 	Version() atc.Version
+	LoadVersionMetadata() ([]atc.MetadataField, error)
 
 	ResourceConfig() ResourceConfig
 
@@ -226,6 +227,26 @@ func (cache *usedResourceCache) BaseResourceType() *UsedBaseResourceType {
 	}
 
 	return cache.resourceConfig.CreatedByResourceCache().BaseResourceType()
+}
+
+func (cache *usedResourceCache) LoadVersionMetadata() ([]atc.MetadataField, error) {
+	r := &resourceConfigVersion{conn: cache.conn}
+
+	versionJSON, _ := json.Marshal(cache.Version())
+	row := resourceConfigVersionQuery.
+		Where(sq.Expr("v.version_md5 = md5(?)", versionJSON)).
+		RunWith(r.conn).
+		QueryRow()
+
+	err := scanResourceConfigVersion(r, row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return r.metadata.ToATCMetadata(), nil
 }
 
 func mapHash(m map[string]interface{}) string {

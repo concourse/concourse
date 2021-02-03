@@ -18,4 +18,6 @@ type ArtifactDestination interface {
 	StreamIn(context.Context, string, baggageclaim.Encoding, io.Reader) error
 
 	GetStreamInP2pUrl(ctx context.Context, path string) (string, error)
+
+	Volume() Volume
 }

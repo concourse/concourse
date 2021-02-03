@@ -71,6 +71,7 @@ type GetStep struct {
 	resourceCacheFactory db.ResourceCacheFactory
 	strategy             worker.ContainerPlacementStrategy
 	workerPool           worker.Pool
+	artifactSourcer      worker.ArtifactSourcer
 	delegateFactory      GetDelegateFactory
 }
 
@@ -84,6 +85,7 @@ func NewGetStep(
 	strategy worker.ContainerPlacementStrategy,
 	delegateFactory GetDelegateFactory,
 	pool worker.Pool,
+	artifactSourcer worker.ArtifactSourcer,
 ) Step {
 	return &GetStep{
 		planID:               planID,
@@ -95,6 +97,7 @@ func NewGetStep(
 		strategy:             strategy,
 		delegateFactory:      delegateFactory,
 		workerPool:           pool,
+		artifactSourcer:      artifactSourcer,
 	}
 }
 
@@ -191,6 +194,27 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		return false, err
 	}
 
+	getResult, found, err := step.getFromLocalCache(ctx, logger, step.metadata.TeamID, resourceCache)
+	if found {
+		fmt.Fprintln(delegate.Stderr(), "\x1b[1;33mINFO: found resouce cache from local cache\x1b[0m")
+		fmt.Fprintln(delegate.Stderr(), "")
+
+		state.StoreResult(step.planID, resourceCache)
+
+		state.ArtifactRepository().RegisterArtifact(
+			build.ArtifactName(step.plan.Name),
+			getResult.GetArtifact,
+		)
+
+		delegate.Finished(
+			logger,
+			ExitStatus(getResult.ExitStatus),
+			getResult.VersionResult,
+		)
+
+		return true, nil
+	}
+
 	processSpec := runtime.ProcessSpec{
 		Path:         "/opt/resource/in",
 		Args:         []string{resource.ResourcesDir("get")},
@@ -213,7 +237,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	defer cancel()
 
-	worker, err := step.workerPool.SelectWorker(
+	workerClient, err := step.workerPool.SelectWorker(
 		lagerctx.NewContext(processCtx, logger),
 		containerOwner,
 		containerSpec,
@@ -223,9 +247,9 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	if err != nil {
 		return false, err
 	}
-	delegate.SelectedWorker(logger, worker.Name())
+	delegate.SelectedWorker(logger, workerClient.Name())
 
-	getResult, err := worker.RunGetStep(
+	getResult, err = workerClient.RunGetStep(
 		lagerctx.NewContext(processCtx, logger),
 		containerOwner,
 		containerSpec,
@@ -267,4 +291,55 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	)
 
 	return succeeded, nil
+}
+
+func (step *GetStep) getFromLocalCache(
+	ctx context.Context,
+	logger lager.Logger,
+	teamId int,
+	resourceCache db.UsedResourceCache) (worker.GetResult, bool, error) {
+	volume, found, err := step.findResourceCache(ctx, logger, teamId, resourceCache)
+	if err != nil {
+		return worker.GetResult{}, false, err
+	}
+	if !found {
+		return worker.GetResult{}, false, err
+	}
+	metadata, err := resourceCache.LoadVersionMetadata()
+	if err != nil {
+		logger.Error("EVAN:failed to load version metadata", err)
+		return worker.GetResult{}, false, err
+	}
+	return worker.GetResult{
+		ExitStatus: 0,
+		VersionResult: runtime.VersionResult{
+			Version:  resourceCache.Version(),
+			Metadata: metadata,
+		},
+		GetArtifact: runtime.GetArtifact{volume.Handle()},
+	}, true, nil
+}
+
+func (step *GetStep) findResourceCache(ctx context.Context, logger lager.Logger, teamId int, resourceCache db.UsedResourceCache) (worker.Volume, bool, error) {
+	workers, err := step.workerPool.FindWorkersForResourceCache(logger, teamId, resourceCache.ID())
+	if err != nil {
+		return nil, false, err
+	}
+	if len(workers) == 0 {
+		return nil, false, nil
+	}
+
+	for _, sourceWorker := range workers {
+		volume, found, err := sourceWorker.FindVolumeForResourceCache(logger, resourceCache)
+		if err != nil {
+			logger.Error("ignore-error", err)
+			continue
+		}
+		if !found {
+			continue
+		}
+		return volume, true, nil
+	}
+
+	return nil, false, nil
 }

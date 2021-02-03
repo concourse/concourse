@@ -24,7 +24,7 @@ services:
       CONCOURSE_TSA_AUTHORIZED_KEYS: /concourse-keys/authorized_worker_keys
       CONCOURSE_TSA_HOST_KEY: /concourse-keys/tsa_host_key
 
-      CONCOURSE_LOG_LEVEL: debug
+      CONCOURSE_LOG_LEVEL: info
       CONCOURSE_POSTGRES_HOST: db
       CONCOURSE_POSTGRES_USER: dev
       CONCOURSE_POSTGRES_PASSWORD: dev
@@ -35,6 +35,8 @@ services:
       CONCOURSE_CLUSTER_NAME: dev
       CONCOURSE_ENABLE_PIPELINE_INSTANCES: "true"
       CONCOURSE_ENABLE_ACROSS_STEP: "true"
+      CONCOURSE_ENABLE_P2P_VOLUME_STREAMING: "true"
+      CONCOURSE_CONTAINER_PLACEMENT_STRATEGY: "random"
 
   worker:
     build: .
@@ -64,3 +66,56 @@ services:
 
       # work with docker-compose's dns
       CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: "true"
+
+#  worker2:
+#    build: .
+#    image: concourse/concourse:local
+#    command: worker
+#    privileged: true
+#    depends_on: [web]
+#    ports:
+#    - 8777:7777
+#    - 8788:7788
+#    volumes: ["./hack/keys:/concourse-keys"]
+#    stop_signal: SIGUSR2
+#    environment:
+#      CONCOURSE_TSA_PUBLIC_KEY: /concourse-keys/tsa_host_key.pub
+#      CONCOURSE_TSA_WORKER_PRIVATE_KEY: /concourse-keys/worker_key
+#
+#      CONCOURSE_LOG_LEVEL: debug
+#      CONCOURSE_TSA_HOST: web:2222
+#
+#      # avoid using loopbacks
+#      CONCOURSE_BAGGAGECLAIM_DRIVER: overlay
+#
+#      # so we can reach Garden/Baggageclaim for debugging
+#      CONCOURSE_BIND_IP: 0.0.0.0
+#      CONCOURSE_BAGGAGECLAIM_BIND_IP: 0.0.0.0
+#      CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: "true"
+#
+#  worker3:
+#    build: .
+#    image: concourse/concourse:local
+#    command: worker
+#    privileged: true
+#    depends_on: [web]
+#    ports:
+#    - 9777:7777
+#    - 9788:7788
+#    volumes: ["./hack/keys:/concourse-keys"]
+#    stop_signal: SIGUSR2
+#    environment:
+#      CONCOURSE_TSA_PUBLIC_KEY: /concourse-keys/tsa_host_key.pub
+#      CONCOURSE_TSA_WORKER_PRIVATE_KEY: /concourse-keys/worker_key
+#
+#      CONCOURSE_LOG_LEVEL: debug
+#      CONCOURSE_TSA_HOST: web:2222
+#
+#      # avoid using loopbacks
+#      CONCOURSE_BAGGAGECLAIM_DRIVER: overlay
+#
+#      # so we can reach Garden/Baggageclaim for debugging
+#      CONCOURSE_BIND_IP: 0.0.0.0
+#      CONCOURSE_BAGGAGECLAIM_BIND_IP: 0.0.0.0
+#      CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: "true"
+#
