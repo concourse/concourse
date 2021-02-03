@@ -804,6 +804,18 @@ toHtmlID domId =
         PinBar ->
             "pin-bar"
 
+        JobName ->
+            "job-name"
+
+        JobBuildLink name ->
+            "job-build-" ++ Base64.encode name
+
+        NextPageButton ->
+            "next-page"
+
+        PreviousPageButton ->
+            "previous-page"
+
         _ ->
             ""
 

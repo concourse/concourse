@@ -479,6 +479,33 @@ tooltip model session =
                 , containerAttrs = Nothing
                 }
 
+        ( _, HoverState.Tooltip (JobBuildLink buildName) _ ) ->
+            Just
+                { body =
+                    Html.text <|
+                        "view build #"
+                            ++ buildName
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                , arrow = Nothing
+                , containerAttrs = Nothing
+                }
+
+        ( _, HoverState.Tooltip NextPageButton _ ) ->
+            Just
+                { body = Html.text "view next page"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        ( _, HoverState.Tooltip PreviousPageButton _ ) ->
+            Just
+                { body = Html.text "view previous page"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
         _ ->
             Nothing
 
@@ -665,6 +692,7 @@ viewPaginationBar session model =
                                 ([ StrictEvents.onLeftClick <| GoToRoute jobRoute
                                  , href <| Routes.toString <| jobRoute
                                  , attribute "aria-label" "Previous Page"
+                                 , id <| toHtmlID PreviousPageButton
                                  ]
                                     ++ chevronLeft
                                         { enabled = True
@@ -704,6 +732,7 @@ viewPaginationBar session model =
                                 ([ StrictEvents.onLeftClick <| GoToRoute jobRoute
                                  , href <| Routes.toString jobRoute
                                  , attribute "aria-label" "Next Page"
+                                 , id <| toHtmlID NextPageButton
                                  ]
                                     ++ chevronRight
                                         { enabled = True
@@ -762,6 +791,10 @@ viewBuildWithResources session model bwr =
 
 viewBuildHeader : Concourse.Build -> Html Message
 viewBuildHeader b =
+    let
+        domID =
+            JobBuildLink b.name
+    in
     Html.a
         [ class <| Concourse.BuildStatus.show b.status
         , StrictEvents.onLeftClick <|
@@ -770,9 +803,11 @@ viewBuildHeader b =
         , href <|
             Routes.toString <|
                 Routes.buildRoute b.id b.name b.job
+        , onMouseEnter <| Hover <| Just domID
+        , onMouseLeave <| Hover Nothing
+        , id <| toHtmlID domID
         ]
-        [ Html.text ("#" ++ b.name)
-        ]
+        [ Html.text ("#" ++ b.name) ]
 
 
 viewBuildResources : BuildWithResources -> List (Html Message)

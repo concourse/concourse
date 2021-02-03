@@ -48,6 +48,8 @@ type DomID
     | TriggerBuildButton
     | AbortBuildButton
     | RerunBuildButton
+    | JobName
+    | JobBuildLink Concourse.BuildName
     | PreviousPageButton
     | NextPageButton
     | CheckButton Bool

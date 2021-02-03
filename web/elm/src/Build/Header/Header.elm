@@ -169,6 +169,14 @@ tooltip model session =
                 , containerAttrs = Nothing
                 }
 
+        HoverState.Tooltip JobName _ ->
+            Just
+                { body = Html.text "view job builds"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
         _ ->
             Nothing
 

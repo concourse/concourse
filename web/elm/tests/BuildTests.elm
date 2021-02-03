@@ -2246,6 +2246,10 @@ all =
                         >> Tuple.first
                         >> expectTooltip RerunBuildButton "re-run with the same inputs"
                 ]
+            , test "job name has a tooltip" <|
+                givenBuildFetched
+                    >> Tuple.first
+                    >> expectTooltip JobName "view job builds"
             , describe "when history and details fetched with manual triggering disabled" <|
                 let
                     givenHistoryAndDetailsFetched =

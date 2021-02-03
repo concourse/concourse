@@ -318,13 +318,16 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
 viewTitle : String -> Maybe Concourse.JobIdentifier -> Html Message
 viewTitle name jobID =
     case jobID of
-        Just id ->
+        Just jid ->
             Html.a
                 [ href <|
                     Routes.toString <|
-                        Routes.Job { id = id, page = Nothing }
+                        Routes.Job { id = jid, page = Nothing }
+                , onMouseEnter <| Hover <| Just Message.JobName
+                , onMouseLeave <| Hover Nothing
+                , id <| toHtmlID Message.JobName
                 ]
-                [ Html.span [ class "build-name" ] [ Html.text id.jobName ]
+                [ Html.span [ class "build-name" ] [ Html.text jid.jobName ]
                 , Html.span [ style "letter-spacing" "-1px" ] [ Html.text (" #" ++ name) ]
                 ]
 

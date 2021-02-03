@@ -3359,6 +3359,16 @@ all =
                     init
                         |> givenResourcePinnedStatically
                         |> expectTooltip PinBar "version is pinned in the pipeline config"
+            , test "next page button" <|
+                \_ ->
+                    init
+                        |> givenVersionsWithPagination
+                        |> expectTooltip NextPageButton "view next page"
+            , test "previous page button" <|
+                \_ ->
+                    init
+                        |> givenVersionsWithPagination
+                        |> expectTooltip PreviousPageButton "view previous page"
             ]
         ]
 

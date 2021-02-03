@@ -1078,6 +1078,22 @@ tooltip model session =
                 _ ->
                     Nothing
 
+        HoverState.Tooltip NextPageButton _ ->
+            Just
+                { body = Html.text "view next page"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
+        HoverState.Tooltip PreviousPageButton _ ->
+            Just
+                { body = Html.text "view previous page"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
         _ ->
             model.output
                 |> Maybe.andThen .steps
@@ -1230,6 +1246,7 @@ paginationMenu { hovered } model =
                                     , page = Just page
                                     }
                          , attribute "aria-label" "Previous Page"
+                         , id <| toHtmlID PreviousPageButton
                          ]
                             ++ chevronLeft
                                 { enabled = True
@@ -1267,6 +1284,7 @@ paginationMenu { hovered } model =
                                     , page = Just page
                                     }
                          , attribute "aria-label" "Next Page"
+                         , id <| toHtmlID NextPageButton
                          ]
                             ++ chevronRight
                                 { enabled = True

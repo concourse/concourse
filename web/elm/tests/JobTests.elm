@@ -318,6 +318,15 @@ all =
             , test "hovering paused pause toggle button has tooltip" <|
                 init { disabled = False, paused = True }
                     >> expectTooltip ToggleJobButton "unpause job"
+            , test "hovering build link has tooltip" <|
+                init { disabled = False, paused = True }
+                    >> expectTooltip (JobBuildLink "1.1") "view build #1.1"
+            , test "hovering next page button has tooltip" <|
+                init { disabled = False, paused = True }
+                    >> expectTooltip NextPageButton "view next page"
+            , test "hovering previous page button has tooltip" <|
+                init { disabled = False, paused = True }
+                    >> expectTooltip PreviousPageButton "view previous page"
             , describe "archived pipelines" <|
                 let
                     fetchArchivedPipeline =
