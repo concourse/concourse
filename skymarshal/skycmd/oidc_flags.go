@@ -29,7 +29,7 @@ type OIDCFlags struct {
 	CACerts                   []flag.File `long:"ca-cert" description:"CA Certificate"`
 	InsecureSkipVerify        bool        `long:"skip-ssl-validation" description:"Skip SSL validation"`
 	DisableGroups             bool        `long:"disable-groups" description:"Disable OIDC groups claims"`
-	InsecureSkipEmailVerified bool        `long:"force-email-verified" description:"Enable override of email_verified field"`
+	InsecureSkipEmailVerified bool        `long:"skip-email-verified-validation" description:"Ignore the email_verified claim from the upstream provider, treating all users as if email_verified were true."`
 }
 
 func (flag *OIDCFlags) Name() string {
