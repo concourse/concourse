@@ -6,13 +6,9 @@ import (
 )
 
 type Variables struct {
-	parentScope interface {
-		vars.Variables
-		IterateInterpolatedCreds(iter vars.TrackedVarsIterator)
-	}
-
-	localVars vars.StaticVariables
-	tracker   *vars.Tracker
+	parentScope vars.Variables
+	localVars   vars.StaticVariables
+	tracker     *vars.Tracker
 }
 
 func NewVariables(sources atc.VarSourceConfigs, tracker *vars.Tracker) *Variables {
@@ -40,15 +36,11 @@ func (v *Variables) Get(ref vars.Reference) (interface{}, bool, error) {
 	return nil, false, nil
 }
 
-func (v *Variables) IterateInterpolatedCreds(iter vars.TrackedVarsIterator) {
-	v.tracker.IterateInterpolatedCreds(iter)
-}
-
-func (v *Variables) NewScope() *Variables {
+func (v *Variables) NewScope(tracker *vars.Tracker) *Variables {
 	return &Variables{
 		parentScope: v,
 		localVars:   vars.StaticVariables{},
-		tracker:     vars.NewTracker(v.tracker.Enabled),
+		tracker:     tracker,
 	}
 }
 

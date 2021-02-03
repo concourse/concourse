@@ -75,6 +75,9 @@ func (state *runState) LocalVariables() *build.Variables {
 // XXX: Test that it tracks local and vars from var sources (using Track method)
 func (state *runState) IterateInterpolatedCreds(iter vars.TrackedVarsIterator) {
 	state.tracker.IterateInterpolatedCreds(iter)
+	if state.parent != nil {
+		state.parent.tracker.IterateInterpolatedCreds(iter)
+	}
 }
 
 func (state *runState) Track(ref vars.Reference, value interface{}) {
@@ -83,7 +86,8 @@ func (state *runState) Track(ref vars.Reference, value interface{}) {
 
 func (state *runState) NewScope() RunState {
 	clone := *state
-	clone.localVars = state.localVars.NewScope()
+	clone.tracker = vars.NewTracker(state.tracker.Enabled)
+	clone.localVars = state.localVars.NewScope(clone.tracker)
 	clone.artifacts = state.artifacts.NewScope()
 	clone.parent = state
 	return &clone

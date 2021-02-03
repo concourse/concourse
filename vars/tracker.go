@@ -1,7 +1,6 @@
 package vars
 
 import (
-	"strings"
 	"sync"
 )
 
@@ -40,6 +39,7 @@ func (t *Tracker) track(varRef Reference, val interface{}) {
 	case map[interface{}]interface{}:
 		for kk, vv := range v {
 			t.track(Reference{
+				Source: varRef.Source,
 				Path:   varRef.Path,
 				Fields: append(varRef.Fields, kk.(string)),
 			}, vv)
@@ -47,14 +47,13 @@ func (t *Tracker) track(varRef Reference, val interface{}) {
 	case map[string]interface{}:
 		for kk, vv := range v {
 			t.track(Reference{
+				Source: varRef.Source,
 				Path:   varRef.Path,
 				Fields: append(varRef.Fields, kk),
 			}, vv)
 		}
 	case string:
-		paths := append([]string{varRef.Path}, varRef.Fields...)
-
-		t.interpolatedCreds[strings.Join(paths, ".")] = v
+		t.interpolatedCreds[varRef.String()] = v
 	default:
 		// Do nothing
 	}
