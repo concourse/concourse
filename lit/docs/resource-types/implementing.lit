@@ -245,7 +245,7 @@ UI, so you should make your output pretty.
   }{
     \definition{\code{$BUILD_PIPELINE_INSTANCE_VARS}}{
       The instance vars of the instanced pipeline that the build's job lives
-      in, serialized as JSON. See \reference{instance-groups} for a definition of
+      in, serialized as JSON. See \reference{instanced-pipelines} for a definition of
       instanced pipelines.
     }
   }{

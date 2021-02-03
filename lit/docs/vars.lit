@@ -107,7 +107,7 @@ configured multiple times with different parameters
   }{
     \code{-i} or \code{--instance-var} \code{NAME=VALUE} parses \code{VALUE} as
     YAML and sets it as the value for the instance var \code{NAME}. See
-    \reference{instance-groups} to learn more about instance vars.
+    \reference{instanced-pipelines} to learn more about instance vars.
   }{
     \code{-l} or \code{--load-vars-from} \code{FILE} loads \code{FILE}, a YAML
     document containing mapping var names to values, and sets them all.

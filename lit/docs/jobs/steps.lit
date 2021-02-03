@@ -643,7 +643,7 @@ by configuring \reference{schema.step.on_failure} or
 
       \optional-attribute{instance_vars}{vars}{
         A map of instance vars used to identify
-        \reference{instance-groups}{instanced pipelines}. These vars will also be
+        \reference{instanced-pipelines}{instanced pipelines}. These vars will also be
         \reference{pipeline-static-vars}{interpolated into the pipeline config}.
 
         Note that variables set with this field will not propagate to tasks configured
