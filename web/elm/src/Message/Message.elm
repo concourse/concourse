@@ -95,7 +95,7 @@ type DomID
     | BuildTab Int String
     | JobPreview PipelinesSection Concourse.DatabaseID Concourse.JobName
     | PipelinePreview PipelinesSection Concourse.DatabaseID
-    | HamburgerMenu
+    | SideBarIcon
     | SideBarResizeHandle
     | SideBarTeam PipelinesSection String
     | SideBarPipeline PipelinesSection Concourse.PipelineIdentifier

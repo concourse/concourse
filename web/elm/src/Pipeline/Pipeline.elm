@@ -387,7 +387,7 @@ view session model =
             (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
             [ Html.div
                 (id "top-bar-app" :: Views.Styles.topBar displayPaused)
-                [ SideBar.hamburgerMenu session
+                [ SideBar.sideBarIcon session
                 , TopBar.concourseLogo
                 , TopBar.breadcrumbs session route
                 , PinMenu.viewPinMenu session model

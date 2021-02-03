@@ -52,7 +52,8 @@ type Asset
     | DownArrow
     | RefreshIcon
     | MessageIcon
-    | HamburgerMenuIcon
+    | SideBarIconClosed
+    | SideBarIconOpened
     | PeopleIcon
     | PipelineIconGrey
     | PipelineIconLightGrey
@@ -299,8 +300,11 @@ toPath asset =
         MessageIcon ->
             basePath ++ [ "baseline-message.svg" ]
 
-        HamburgerMenuIcon ->
-            basePath ++ [ "baseline-menu.svg" ]
+        SideBarIconClosed ->
+            basePath ++ [ "baseline-sidebar-closed.svg" ]
+
+        SideBarIconOpened ->
+            basePath ++ [ "baseline-sidebar-opened.svg" ]
 
         PeopleIcon ->
             basePath ++ [ "baseline-people.svg" ]

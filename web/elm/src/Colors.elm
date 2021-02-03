@@ -32,7 +32,6 @@ module Colors exposing
     , groupBorderSelected
     , groupBorderUnselected
     , groupsBarBackground
-    , hamburgerClosedBackground
     , infoBarBackground
     , inputOutline
     , instanceGroupBanner
@@ -56,6 +55,7 @@ module Colors exposing
     , sideBarActive
     , sideBarBackground
     , sideBarHovered
+    , sideBarIconBackground
     , sideBarTextBright
     , sideBarTextDim
     , started
@@ -96,8 +96,8 @@ infoBarBackground =
     ColorValues.grey100
 
 
-hamburgerClosedBackground : String
-hamburgerClosedBackground =
+sideBarIconBackground : String
+sideBarIconBackground =
     ColorValues.grey100
 
 

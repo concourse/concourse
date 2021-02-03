@@ -2,11 +2,11 @@ module SideBar.SideBar exposing
     ( Model
     , byDatabaseId
     , byPipelineId
-    , hamburgerMenu
     , handleCallback
     , handleDelivery
     , isPipelineVisible
     , lookupPipeline
+    , sideBarIcon
     , tooltip
     , update
     , view
@@ -84,7 +84,7 @@ update message model =
             )
     in
     case message of
-        Click HamburgerMenu ->
+        Click SideBarIcon ->
             let
                 oldState =
                     model.sideBarState
@@ -258,7 +258,7 @@ view model currentPipeline =
 
 
 tooltip : Model m -> Maybe Tooltip.Tooltip
-tooltip { hovered } =
+tooltip { hovered, sideBarState } =
     case hovered of
         HoverState.Tooltip (SideBarTeam _ teamName) _ ->
             Just
@@ -296,6 +296,25 @@ tooltip { hovered } =
                     , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
                     }
                 , arrow = Just Styles.tooltipArrowSize
+                , containerAttrs = Just Styles.tooltipBody
+                }
+
+        HoverState.Tooltip SideBarIcon _ ->
+            let
+                text =
+                    if sideBarState.isOpen then
+                        "hide sidebar"
+
+                    else
+                        "show sidebar"
+            in
+            Just
+                { body = Html.text text
+                , attachPosition =
+                    { direction = Tooltip.Bottom
+                    , alignment = Tooltip.Middle <| 2 * Styles.tooltipArrowSize
+                    }
+                , arrow = Just 5
                 , containerAttrs = Just Styles.tooltipBody
                 }
 
@@ -368,41 +387,42 @@ favoritedPipelinesSection model currentPipeline =
         ]
 
 
-hamburgerMenu : Model m -> Html Message
-hamburgerMenu model =
+sideBarIcon : Model m -> Html Message
+sideBarIcon model =
     if model.screenSize == Mobile then
         Html.text ""
 
     else
         let
-            isHamburgerClickable =
+            isSideBarClickable =
                 hasVisiblePipelines model
+
+            sidebarIcon =
+                if model.sideBarState.isOpen then
+                    Icon.icon
+                        { sizePx = 54, image = Assets.SideBarIconClosed }
+
+                else
+                    Icon.icon
+                        { sizePx = 54, image = Assets.SideBarIconOpened }
         in
         Html.div
-            (id "hamburger-menu"
-                :: Styles.hamburgerMenu
-                    { isSideBarOpen = model.sideBarState.isOpen && isHamburgerClickable
-                    , isClickable = isHamburgerClickable
-                    }
-                ++ [ onMouseEnter <| Hover <| Just HamburgerMenu
+            (id "sidebar-icon"
+                :: Styles.sideBarMenu isSideBarClickable
+                ++ [ onMouseEnter <| Hover <| Just SideBarIcon
                    , onMouseLeave <| Hover Nothing
                    ]
-                ++ (if isHamburgerClickable then
-                        [ onClick <| Click HamburgerMenu ]
+                ++ (if isSideBarClickable then
+                        [ onClick <| Click SideBarIcon ]
 
                     else
                         []
                    )
             )
-            [ Icon.icon
-                { sizePx = 54, image = Assets.HamburgerMenuIcon }
-              <|
-                (Styles.hamburgerIcon <|
-                    { isHovered =
-                        isHamburgerClickable
-                            && HoverState.isHovered HamburgerMenu model.hovered
-                    , isActive = model.sideBarState.isOpen
-                    }
+            [ sidebarIcon <|
+                (Styles.sideBarIcon <|
+                    isSideBarClickable
+                        && HoverState.isHovered SideBarIcon model.hovered
                 )
             ]
 
