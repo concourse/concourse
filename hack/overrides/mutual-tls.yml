@@ -8,8 +8,6 @@ services:
     - .:/src
     command: web
     depends_on: [db]
-    #ports:
-    #- 8443:8443
     environment:
       CONCOURSE_LOG_LEVEL: debug
       CONCOURSE_POSTGRES_HOST: db
@@ -27,7 +25,7 @@ services:
       CONCOURSE_TLS_CA_CERT: /src/hack/mtls_certs/concourse/ca-chain.cert.pem
       CONCOURSE_TLS_KEY: /src/hack/mtls_certs/concourse/web.key.pem
 
-  nginx_mtls_rp:
+  nginx:
     image: nginx:latest
     depends_on: [web]
     volumes:
