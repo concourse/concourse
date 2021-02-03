@@ -20,6 +20,7 @@ services:
     depends_on: [db]
     ports:
     - 8080:8080
+    - 9102:9102
     environment:
       CONCOURSE_LOG_LEVEL: debug
       CONCOURSE_POSTGRES_HOST: db
@@ -54,4 +55,3 @@ services:
       CONCOURSE_BIND_IP: 0.0.0.0
       CONCOURSE_BAGGAGECLAIM_BIND_IP: 0.0.0.0
       CONCOURSE_GARDEN_DNS_PROXY_ENABLE: "true"
-
