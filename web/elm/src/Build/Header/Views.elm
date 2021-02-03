@@ -298,7 +298,6 @@ viewButton { type_, backgroundColor, backgroundShade, isClickable } =
         ([ attribute "role" "button"
          , attribute "tabindex" "0"
          , attribute "aria-label" accessibilityLabel
-         , attribute "title" accessibilityLabel
          , onLeftClick <| Click domID
          , onMouseEnter <| Hover <| Just domID
          , onMouseLeave <| Hover Nothing
