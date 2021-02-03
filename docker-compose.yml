@@ -20,6 +20,7 @@ services:
     depends_on: [db]
     ports:
     - 8080:8080
+    - 9102:9102
     environment:
       CONCOURSE_LOG_LEVEL: debug
       CONCOURSE_POSTGRES_HOST: db
@@ -32,6 +33,9 @@ services:
       CONCOURSE_CLUSTER_NAME: dev
       CONCOURSE_ENABLE_PIPELINE_INSTANCES: "true"
       CONCOURSE_ENABLE_ACROSS_STEP: "true"
+      CONCOURSE_PROMETHEUS_BIND_IP: 0.0.0.0
+      CONCOURSE_PROMETHEUS_BIND_PORT: 9102
+
 
   worker:
     build: .

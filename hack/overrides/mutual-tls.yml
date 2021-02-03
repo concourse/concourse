@@ -23,9 +23,9 @@ services:
       CONCOURSE_ENABLE_PIPELINE_INSTANCES: "true"
       CONCOURSE_ENABLE_ACROSS_STEP: "true"
       CONCOURSE_TLS_BIND_PORT: 8443
-      CONCOURSE_TLS_CERT: /src/certs/web.cert.pem 
-      CONCOURSE_TLS_CA_CERT: /src/certs/ca-chain.cert.pem
-      CONCOURSE_TLS_KEY: /src/certs/web.key.pem
+      CONCOURSE_TLS_CERT: /src/hack/mtls_certs/concourse/web.cert.pem 
+      CONCOURSE_TLS_CA_CERT: /src/hack/mtls_certs/concourse/ca-chain.cert.pem
+      CONCOURSE_TLS_KEY: /src/hack/mtls_certs/concourse/web.key.pem
 
   nginx_mtls_rp:
     image: nginx:latest
