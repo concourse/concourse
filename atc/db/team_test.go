@@ -287,7 +287,8 @@ var _ = Describe("Team", func() {
 
 			build, err := job.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(build.CreatedBy()).To(Equal(defaultBuildCreatedBy))
+			Expect(build.CreatedBy()).ToNot(BeNil())
+			Expect(*build.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 
 			metaContainers = make(map[db.ContainerMetadata][]db.Container)
 			for _, meta := range sampleMetadata {

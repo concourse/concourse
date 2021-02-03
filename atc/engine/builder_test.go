@@ -81,7 +81,8 @@ var _ = Describe("Builder", func() {
 				fakeBuild.PipelineReturns(fakePipeline, true, nil)
 				fakeBuild.TeamNameReturns("some-team")
 				fakeBuild.TeamIDReturns(1111)
-				fakeBuild.CreatedByReturns("some-user")
+				someUser := "some-user"
+				fakeBuild.CreatedByReturns(&someUser)
 
 				expectedMetadataWithCreatedBy = exec.StepMetadata{
 					BuildID:              4444,

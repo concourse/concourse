@@ -471,8 +471,8 @@ func (factory *stepperFactory) stepMetadata(
 		PipelineInstanceVars: build.PipelineInstanceVars(),
 		ExternalURL:          externalURL,
 	}
-	if exposeBuildCreatedBy {
-		meta.CreatedBy = build.CreatedBy()
+	if exposeBuildCreatedBy && build.CreatedBy() != nil {
+		meta.CreatedBy = *build.CreatedBy()
 	}
 	return meta
 }

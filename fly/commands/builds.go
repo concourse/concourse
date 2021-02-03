@@ -224,6 +224,10 @@ func (command *BuildsCommand) displayBuilds(builds []atc.Build) error {
 
 		nameCell.Contents = strings.Join(names, "/")
 
+		createdBy := "system"
+		if b.CreatedBy != nil {
+			createdBy = *b.CreatedBy
+		}
 		table.Data = append(table.Data, []ui.TableCell{
 			{Contents: strconv.Itoa(b.ID)},
 			nameCell,
@@ -232,7 +236,7 @@ func (command *BuildsCommand) displayBuilds(builds []atc.Build) error {
 			endTimeCell,
 			durationCell,
 			{Contents: b.TeamName},
-			{Contents: b.CreatedBy},
+			{Contents: createdBy},
 		})
 	}
 

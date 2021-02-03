@@ -351,7 +351,8 @@ var _ = Describe("Job", func() {
 
 				build, err := someJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(build.CreatedBy()).To(Equal(defaultBuildCreatedBy))
+				Expect(build.CreatedBy()).ToNot(BeNil())
+				Expect(*build.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 
 				_, err = someOtherJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())

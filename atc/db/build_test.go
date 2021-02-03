@@ -64,8 +64,9 @@ var _ = Describe("Build", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("created_by should be set", func(){
-		Expect(build.CreatedBy()).To(Equal(defaultBuildCreatedBy))
+	It("created_by should be set", func() {
+		Expect(build.CreatedBy()).ToNot(BeNil())
+		Expect(*build.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 	})
 
 	It("has no plan on creation", func() {
@@ -104,7 +105,8 @@ var _ = Describe("Build", func() {
 				var err error
 				build, err = defaultJob.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(build.CreatedBy()).To(Equal(defaultBuildCreatedBy))
+				Expect(build.CreatedBy()).ToNot(BeNil())
+				Expect(*build.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 			})
 
 			It("includes build, team, pipeline, and job info", func() {
@@ -653,8 +655,9 @@ var _ = Describe("Build", func() {
 						Expect(err).NotTo(HaveOccurred())
 					})
 
-					It("created_by should be set", func(){
-						Expect(rrBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
+					It("created_by should be set", func() {
+						Expect(rrBuild.CreatedBy()).ToNot(BeNil())
+						Expect(*rrBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 					})
 
 					Context("when the rerun finishes and status changed", func() {
@@ -712,8 +715,9 @@ var _ = Describe("Build", func() {
 						Expect(getJobBuildID(latestCompletedBuildCol, job.ID())).To(Equal(pdBuild.ID()))
 					})
 
-					It("created_by should be set", func(){
-						Expect(rrBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
+					It("created_by should be set", func() {
+						Expect(rrBuild.CreatedBy()).ToNot(BeNil())
+						Expect(*rrBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 					})
 
 					Context("when rerunning the rerun build", func() {
@@ -763,8 +767,9 @@ var _ = Describe("Build", func() {
 						Expect(getJobBuildID(transitionBuildCol, job.ID())).To(Equal(pdBuild.ID()))
 					})
 
-					It("created_by should be set", func(){
-						Expect(rrBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
+					It("created_by should be set", func() {
+						Expect(rrBuild.CreatedBy()).ToNot(BeNil())
+						Expect(*rrBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 					})
 				})
 			})
@@ -777,7 +782,8 @@ var _ = Describe("Build", func() {
 
 				newBuild, err := job.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(newBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
+				Expect(newBuild.CreatedBy()).ToNot(BeNil())
+				Expect(*newBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 
 				requestedSchedule := downstreamJob.ScheduleRequestedTime()
 
@@ -797,7 +803,8 @@ var _ = Describe("Build", func() {
 
 				newBuild, err := job.CreateBuild(defaultBuildCreatedBy)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(newBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
+				Expect(newBuild.CreatedBy()).ToNot(BeNil())
+				Expect(*newBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 
 				requestedSchedule := noRequestJob.ScheduleRequestedTime()
 
@@ -2176,7 +2183,7 @@ var _ = Describe("Build", func() {
 			retriggerBuild, err = job.RerunBuild(downstreamBuild, defaultBuildCreatedBy)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(retriggerBuild.CreatedBy()).NotTo(BeNil())
-			Expect(retriggerBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
+			Expect(*retriggerBuild.CreatedBy()).To(Equal(defaultBuildCreatedBy))
 		})
 
 		JustBeforeEach(func() {

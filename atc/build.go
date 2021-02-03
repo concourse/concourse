@@ -31,7 +31,7 @@ type Build struct {
 	ReapTime             int64         `json:"reap_time,omitempty"`
 	RerunNumber          int           `json:"rerun_number,omitempty"`
 	RerunOf              *RerunOfBuild `json:"rerun_of,omitempty"`
-	CreatedBy            string        `json:"created_by,omitempty"`
+	CreatedBy            *string       `json:"created_by,omitempty"`
 }
 
 type RerunOfBuild struct {
