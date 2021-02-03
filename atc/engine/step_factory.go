@@ -73,7 +73,6 @@ func (factory *coreStepFactory) GetStep(
 		factory.strategy,
 		delegateFactory,
 		factory.pool,
-		factory.artifactSourcer,
 	)
 
 	getStep = exec.LogError(getStep, delegateFactory)

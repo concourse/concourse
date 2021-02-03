@@ -71,7 +71,6 @@ type GetStep struct {
 	resourceCacheFactory db.ResourceCacheFactory
 	strategy             worker.ContainerPlacementStrategy
 	workerPool           worker.Pool
-	artifactSourcer      worker.ArtifactSourcer
 	delegateFactory      GetDelegateFactory
 }
 
@@ -85,7 +84,6 @@ func NewGetStep(
 	strategy worker.ContainerPlacementStrategy,
 	delegateFactory GetDelegateFactory,
 	pool worker.Pool,
-	artifactSourcer worker.ArtifactSourcer,
 ) Step {
 	return &GetStep{
 		planID:               planID,
@@ -97,7 +95,6 @@ func NewGetStep(
 		strategy:             strategy,
 		delegateFactory:      delegateFactory,
 		workerPool:           pool,
-		artifactSourcer:      artifactSourcer,
 	}
 }
 
@@ -237,7 +234,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	defer cancel()
 
-	workerClient, err := step.workerPool.SelectWorker(
+	worker, err := step.workerPool.SelectWorker(
 		lagerctx.NewContext(processCtx, logger),
 		containerOwner,
 		containerSpec,
@@ -247,9 +244,9 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	if err != nil {
 		return false, err
 	}
-	delegate.SelectedWorker(logger, workerClient.Name())
+	delegate.SelectedWorker(logger, worker.Name())
 
-	getResult, err = workerClient.RunGetStep(
+	getResult, err = worker.RunGetStep(
 		lagerctx.NewContext(processCtx, logger),
 		containerOwner,
 		containerSpec,

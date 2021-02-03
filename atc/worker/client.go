@@ -23,7 +23,6 @@ const taskExitStatusPropertyName = "concourse:exit-status"
 
 type Client interface {
 	Name() string
-	Worker() Worker
 
 	RunCheckStep(
 		context.Context,
@@ -103,10 +102,6 @@ type processStatus struct {
 
 func (client *client) Name() string {
 	return client.worker.Name()
-}
-
-func (client *client) Worker() Worker {
-	return client.worker
 }
 
 func (client *client) RunCheckStep(

@@ -23,7 +23,6 @@ import (
 type ArtifactSourcer interface {
 	SourceInputsAndCaches(logger lager.Logger, teamID int, inputMap map[string]runtime.Artifact) ([]InputSource, error)
 	SourceImage(logger lager.Logger, imageArtifact runtime.Artifact) (StreamableArtifactSource, error)
-	SourceResourceCache(logger lager.Logger, resourceCache db.UsedResourceCache, sourceWorker Worker) (StreamableArtifactSource, error)
 }
 
 type artifactSourcer struct {
@@ -87,29 +86,6 @@ func (w artifactSourcer) SourceImage(logger lager.Logger, imageArtifact runtime.
 	return NewStreamableArtifactSource(imageArtifact, artifactVolume, w.compression, w.enableP2PStreaming, w.p2pStreamingTimeout, w.resourceCacheFactory), nil
 }
 
-func (w artifactSourcer) SourceResourceCache(logger lager.Logger, resourceCache db.UsedResourceCache, sourceWorker Worker) (StreamableArtifactSource, error) {
-	volume, found, err := sourceWorker.FindVolumeForResourceCache(logger, resourceCache)
-	if err != nil {
-		logger.Info("EVAN:failed-to-find-resource-cache", lager.Data{"worker": sourceWorker.Name(), "rcId": resourceCache.ID()})
-		return nil, err
-	}
-	if !found {
-		logger.Info("EVAN:not-find-resource-cache", lager.Data{"worker": sourceWorker.Name(), "rcId": resourceCache.ID()})
-		return nil, fmt.Errorf("resource cache %s not found on worker %s", resourceCache.ID(), sourceWorker.Name())
-	}
-
-	return NewStreamableArtifactSource(
-		&runtime.GetArtifact{
-			VolumeHandle: volume.Handle(),
-		},
-		volume,
-		w.compression,
-		w.enableP2PStreaming,
-		w.p2pStreamingTimeout,
-		w.resourceCacheFactory,
-	), nil
-}
-
 //go:generate counterfeiter . ArtifactSource
 
 type ArtifactSource interface {
@@ -136,11 +112,11 @@ type StreamableArtifactSource interface {
 }
 
 type artifactSource struct {
-	artifact            runtime.Artifact
-	volume              Volume
-	compression         compression.Compression
-	enabledP2pStreaming bool
-	p2pStreamingTimeout time.Duration
+	artifact             runtime.Artifact
+	volume               Volume
+	compression          compression.Compression
+	enabledP2pStreaming  bool
+	p2pStreamingTimeout  time.Duration
 	resourceCacheFactory db.ResourceCacheFactory
 }
 
@@ -153,11 +129,11 @@ func NewStreamableArtifactSource(
 	resourceCacheFactory db.ResourceCacheFactory,
 ) StreamableArtifactSource {
 	return &artifactSource{
-		artifact:            artifact,
-		volume:              volume,
-		compression:         compression,
-		enabledP2pStreaming: enabledP2pStreaming,
-		p2pStreamingTimeout: p2pStreamingTimeout,
+		artifact:             artifact,
+		volume:               volume,
+		compression:          compression,
+		enabledP2pStreaming:  enabledP2pStreaming,
+		p2pStreamingTimeout:  p2pStreamingTimeout,
 		resourceCacheFactory: resourceCacheFactory,
 	}
 }
