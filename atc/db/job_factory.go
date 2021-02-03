@@ -46,9 +46,10 @@ type SchedulerJob struct {
 type SchedulerResources []SchedulerResource
 
 type SchedulerResource struct {
-	Name   string
-	Type   string
-	Source atc.Source
+	Name                 string
+	Type                 string
+	Source               atc.Source
+	ExposeBuildCreatedBy bool
 }
 
 func (r *SchedulerResource) ApplySourceDefaults(resourceTypes atc.VersionedResourceTypes) {
@@ -146,9 +147,10 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 			}
 
 			schedulerResources = append(schedulerResources, SchedulerResource{
-				Name:   name,
-				Type:   type_,
-				Source: config.Source,
+				Name:                 name,
+				Type:                 type_,
+				Source:               config.Source,
+				ExposeBuildCreatedBy: config.ExposeBuildCreatedBy,
 			})
 		}
 

@@ -120,7 +120,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 				BeforeEach(func() {
 					var err error
-					jobBuild, err = defaultJob.CreateBuild()
+					jobBuild, err = defaultJob.CreateBuild("someone")
 					Expect(err).ToNot(HaveOccurred())
 
 					_, err = resourceCacheFactory.FindOrCreateResourceCache(
@@ -153,7 +153,7 @@ var _ = Describe("ResourceCacheUseCollector", func() {
 
 					BeforeEach(func() {
 						var err error
-						secondJobBuild, err = defaultJob.CreateBuild()
+						secondJobBuild, err = defaultJob.CreateBuild("someone")
 						Expect(err).ToNot(HaveOccurred())
 
 						_, err = resourceCacheFactory.FindOrCreateResourceCache(

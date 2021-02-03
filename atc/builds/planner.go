@@ -125,11 +125,12 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 	resource.ApplySourceDefaults(visitor.resourceTypes)
 
 	atcPutPlan := atc.PutPlan{
-		Name:     logicalName,
-		Resource: resourceName,
-		Type:     resource.Type,
-		Source:   resource.Source,
-		Params:   step.Params,
+		Name:                 logicalName,
+		Resource:             resourceName,
+		Type:                 resource.Type,
+		Source:               resource.Source,
+		Params:               step.Params,
+		ExposeBuildCreatedBy: resource.ExposeBuildCreatedBy,
 
 		Inputs: step.Inputs,
 

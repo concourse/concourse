@@ -79,8 +79,8 @@ type Job interface {
 	Unpause() error
 
 	ScheduleBuild(Build) (bool, error)
-	CreateBuild() (Build, error)
-	RerunBuild(Build) (Build, error)
+	CreateBuild(createdBy string) (Build, error)
+	RerunBuild(build Build, createdBy string) (Build, error)
 
 	RequestSchedule() error
 	UpdateLastScheduled(time.Time) error
@@ -772,7 +772,7 @@ func (j *job) GetPendingBuilds() ([]Build, error) {
 	return builds, nil
 }
 
-func (j *job) CreateBuild() (Build, error) {
+func (j *job) CreateBuild(createdBy string) (Build, error) {
 	tx, err := j.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -793,6 +793,7 @@ func (j *job) CreateBuild() (Build, error) {
 		"team_id":            j.teamID,
 		"status":             BuildStatusPending,
 		"manually_triggered": true,
+		"created_by":         createdBy,
 	})
 	if err != nil {
 		return nil, err
@@ -821,9 +822,9 @@ func (j *job) CreateBuild() (Build, error) {
 	return build, nil
 }
 
-func (j *job) RerunBuild(buildToRerun Build) (Build, error) {
+func (j *job) RerunBuild(buildToRerun Build, createdBy string) (Build, error) {
 	for {
-		rerunBuild, err := j.tryRerunBuild(buildToRerun)
+		rerunBuild, err := j.tryRerunBuild(buildToRerun, createdBy)
 		if err != nil {
 			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
 				continue
@@ -836,7 +837,7 @@ func (j *job) RerunBuild(buildToRerun Build) (Build, error) {
 	}
 }
 
-func (j *job) tryRerunBuild(buildToRerun Build) (Build, error) {
+func (j *job) tryRerunBuild(buildToRerun Build, createdBy string) (Build, error) {
 	tx, err := j.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -863,6 +864,7 @@ func (j *job) tryRerunBuild(buildToRerun Build) (Build, error) {
 		"status":       BuildStatusPending,
 		"rerun_of":     buildToRerunID,
 		"rerun_number": rerunNumber,
+		"created_by":   createdBy,
 	})
 	if err != nil {
 		return nil, err

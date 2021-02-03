@@ -19,6 +19,7 @@ type Access interface {
 	TeamNames() []string
 	TeamRoles() map[string][]string
 	Claims() Claims
+	UserInfo() atc.UserInfo
 }
 
 type Claims struct {
@@ -37,13 +38,14 @@ type Verification struct {
 }
 
 type access struct {
-	verification      Verification
-	requiredRole      string
-	systemClaimKey    string
-	systemClaimValues []string
-	teams             []db.Team
-	teamRoles         map[string][]string
-	isAdmin           bool
+	verification           Verification
+	requiredRole           string
+	systemClaimKey         string
+	systemClaimValues      []string
+	teams                  []db.Team
+	teamRoles              map[string][]string
+	isAdmin                bool
+	displayUserIdGenerator atc.DisplayUserIdGenerator
 }
 
 func NewAccessor(
@@ -52,13 +54,15 @@ func NewAccessor(
 	systemClaimKey string,
 	systemClaimValues []string,
 	teams []db.Team,
+	displayUserIdGenerator atc.DisplayUserIdGenerator,
 ) *access {
 	a := &access{
-		verification:      verification,
-		requiredRole:      requiredRole,
-		systemClaimKey:    systemClaimKey,
-		systemClaimValues: systemClaimValues,
-		teams:             teams,
+		verification:           verification,
+		requiredRole:           requiredRole,
+		systemClaimKey:         systemClaimKey,
+		systemClaimValues:      systemClaimValues,
+		teams:                  teams,
+		displayUserIdGenerator: displayUserIdGenerator,
 	}
 	a.computeTeamRoles()
 	return a
@@ -275,5 +279,22 @@ func (a *access) Claims() Claims {
 		UserName:          a.claim("name"),
 		PreferredUsername: a.claim("preferred_username"),
 		Connector:         a.connectorID(),
+	}
+}
+
+func (a *access) UserInfo() atc.UserInfo {
+	claims := a.Claims()
+	return atc.UserInfo{
+		Sub:       claims.Sub,
+		Name:      claims.UserName,
+		UserId:    claims.UserID,
+		UserName:  claims.PreferredUsername,
+		Email:     claims.Email,
+		Connector: claims.Connector,
+		IsAdmin:   a.IsAdmin(),
+		IsSystem:  a.IsSystem(),
+		Teams:     a.TeamRoles(),
+		DisplayUserId: a.displayUserIdGenerator.DisplayUserId(
+			claims.Connector, claims.UserID, claims.UserName, claims.PreferredUsername, claims.Email),
 	}
 }

@@ -252,6 +252,8 @@ type RunCommand struct {
 	BaseResourceTypeDefaults flag.File `long:"base-resource-type-defaults" description:"Base resource type defaults"`
 
 	P2pVolumeStreamingTimeout time.Duration `long:"p2p-volume-streaming-timeout" description:"Timeout value of p2p volume streaming" default:"15m"`
+
+	DisplayUserIdPerConnector map[string]string `long:"display-user-id-per-connector" description:"Define how to display user ID for each authentication connector. Format is <connector>:<fieldname>. Valid field names are user_id, name, username and email, where name maps to claims field username, and username maps to claims field preferred username"`
 }
 
 type Migration struct {
@@ -814,11 +816,17 @@ func (cmd *RunCommand) constructAPIMembers(
 		time.Minute,
 	)
 
+	displayUserIdGenerator, err := skycmd.NewSkyDisplayUserIdGenerator(cmd.DisplayUserIdPerConnector)
+	if err != nil {
+		return nil, err
+	}
+
 	accessFactory := accessor.NewAccessFactory(
 		tokenVerifier,
 		teamsCacher,
 		cmd.SystemClaimKey,
 		cmd.SystemClaimValues,
+		displayUserIdGenerator,
 	)
 
 	middleware := token.NewMiddleware(cmd.Auth.AuthFlags.SecureCookies)
@@ -860,6 +868,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		storage,
 		dbAccessTokenFactory,
 		userFactory,
+		displayUserIdGenerator,
 	)
 	if err != nil {
 		return nil, err
@@ -1723,6 +1732,7 @@ func (cmd *RunCommand) constructAuthHandler(
 	storage storage.Storage,
 	accessTokenFactory db.AccessTokenFactory,
 	userFactory db.UserFactory,
+	displayUserIdGenerator atc.DisplayUserIdGenerator,
 ) (http.Handler, error) {
 
 	issuerPath, _ := url.Parse("/sky/issuer")
@@ -1756,6 +1766,7 @@ func (cmd *RunCommand) constructAuthHandler(
 		token.NewClaimsParser(),
 		accessTokenFactory,
 		userFactory,
+		displayUserIdGenerator,
 	), nil
 }
 

@@ -2,7 +2,6 @@ package engine
 
 import (
 	"encoding/json"
-
 	"errors"
 	"strconv"
 	"strings"
@@ -186,6 +185,7 @@ func (factory *stepperFactory) buildAcrossStep(build db.Build, plan atc.Plan) ex
 	stepMetadata := factory.stepMetadata(
 		build,
 		factory.externalURL,
+		false,
 	)
 
 	steps := make([]exec.ScopedStep, len(plan.Across.Steps))
@@ -297,6 +297,7 @@ func (factory *stepperFactory) buildGetStep(build db.Build, plan atc.Plan) exec.
 	stepMetadata := factory.stepMetadata(
 		build,
 		factory.externalURL,
+		false,
 	)
 
 	return factory.coreFactory.GetStep(
@@ -319,6 +320,7 @@ func (factory *stepperFactory) buildPutStep(build db.Build, plan atc.Plan) exec.
 	stepMetadata := factory.stepMetadata(
 		build,
 		factory.externalURL,
+		plan.Put.ExposeBuildCreatedBy,
 	)
 
 	return factory.coreFactory.PutStep(
@@ -340,6 +342,7 @@ func (factory *stepperFactory) buildCheckStep(build db.Build, plan atc.Plan) exe
 	stepMetadata := factory.stepMetadata(
 		build,
 		factory.externalURL,
+		false,
 	)
 
 	return factory.coreFactory.CheckStep(
@@ -362,6 +365,7 @@ func (factory *stepperFactory) buildTaskStep(build db.Build, plan atc.Plan) exec
 	stepMetadata := factory.stepMetadata(
 		build,
 		factory.externalURL,
+		false,
 	)
 
 	return factory.coreFactory.TaskStep(
@@ -377,6 +381,7 @@ func (factory *stepperFactory) buildSetPipelineStep(build db.Build, plan atc.Pla
 	stepMetadata := factory.stepMetadata(
 		build,
 		factory.externalURL,
+		false,
 	)
 
 	return factory.coreFactory.SetPipelineStep(
@@ -391,6 +396,7 @@ func (factory *stepperFactory) buildLoadVarStep(build db.Build, plan atc.Plan) e
 	stepMetadata := factory.stepMetadata(
 		build,
 		factory.externalURL,
+		false,
 	)
 
 	return factory.coreFactory.LoadVarStep(
@@ -451,8 +457,9 @@ func (factory *stepperFactory) containerMetadata(
 func (factory *stepperFactory) stepMetadata(
 	build db.Build,
 	externalURL string,
+	exposeBuildCreatedBy bool,
 ) exec.StepMetadata {
-	return exec.StepMetadata{
+	meta := exec.StepMetadata{
 		BuildID:              build.ID(),
 		BuildName:            build.Name(),
 		TeamID:               build.TeamID(),
@@ -464,4 +471,8 @@ func (factory *stepperFactory) stepMetadata(
 		PipelineInstanceVars: build.PipelineInstanceVars(),
 		ExternalURL:          externalURL,
 	}
+	if exposeBuildCreatedBy && build.CreatedBy() != nil {
+		meta.CreatedBy = *build.CreatedBy()
+	}
+	return meta
 }
