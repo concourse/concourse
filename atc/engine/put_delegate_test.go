@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine"
@@ -16,7 +17,6 @@ import (
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
 	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("PutDelegate", func() {
@@ -25,6 +25,7 @@ var _ = Describe("PutDelegate", func() {
 		fakeBuild         *dbfakes.FakeBuild
 		fakeClock         *fakeclock.FakeClock
 		fakePolicyChecker *policyfakes.FakeChecker
+		fakeSecrets       *credsfakes.FakeSecrets
 
 		state exec.RunState
 
@@ -40,11 +41,7 @@ var _ = Describe("PutDelegate", func() {
 
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeClock = fakeclock.NewFakeClock(now)
-		credVars := vars.StaticVariables{
-			"source-param": "super-secret-source",
-			"git-key":      "{\n123\n456\n789\n}\n",
-		}
-		state = exec.NewRunState(noopStepper, credVars, true)
+		state = exec.NewRunState(noopStepper, nil, true)
 
 		info = runtime.VersionResult{
 			Version:  atc.Version{"foo": "bar"},
@@ -52,8 +49,9 @@ var _ = Describe("PutDelegate", func() {
 		}
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)
+		fakeSecrets = new(credsfakes.FakeSecrets)
 
-		delegate = engine.NewPutDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker)
+		delegate = engine.NewPutDelegate(fakeBuild, "some-plan-id", state, fakeClock, fakePolicyChecker, fakeSecrets)
 	})
 
 	Describe("Finished", func() {

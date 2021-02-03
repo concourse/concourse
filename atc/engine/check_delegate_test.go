@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -19,7 +20,6 @@ import (
 	"github.com/concourse/concourse/atc/engine/enginefakes"
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
-	"github.com/concourse/concourse/vars"
 )
 
 var _ = Describe("CheckDelegate", func() {
@@ -28,6 +28,7 @@ var _ = Describe("CheckDelegate", func() {
 		fakeClock         *fakeclock.FakeClock
 		fakeRateLimiter   *enginefakes.FakeRateLimiter
 		fakePolicyChecker *policyfakes.FakeChecker
+		fakeSecrets       *credsfakes.FakeSecrets
 
 		state exec.RunState
 
@@ -44,11 +45,7 @@ var _ = Describe("CheckDelegate", func() {
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeClock = fakeclock.NewFakeClock(now)
 		fakeRateLimiter = new(enginefakes.FakeRateLimiter)
-		credVars := vars.StaticVariables{
-			"source-param": "super-secret-source",
-			"git-key":      "{\n123\n456\n789\n}\n",
-		}
-		state = exec.NewRunState(noopStepper, credVars, true)
+		state = exec.NewRunState(noopStepper, nil, true)
 
 		plan = atc.Plan{
 			ID:    "some-plan-id",
@@ -56,8 +53,9 @@ var _ = Describe("CheckDelegate", func() {
 		}
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)
+		fakeSecrets = new(credsfakes.FakeSecrets)
 
-		delegate = engine.NewCheckDelegate(fakeBuild, plan, state, fakeClock, fakeRateLimiter, fakePolicyChecker)
+		delegate = engine.NewCheckDelegate(fakeBuild, plan, state, fakeClock, fakeRateLimiter, fakePolicyChecker, fakeSecrets)
 
 		fakeResourceConfig = new(dbfakes.FakeResourceConfig)
 		fakeResourceConfigScope = new(dbfakes.FakeResourceConfigScope)

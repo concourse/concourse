@@ -308,7 +308,6 @@ type GetVarPlan struct {
 	Type   string   `json:"type"` // The type of the var source
 	Fields []string `json:"fields"`
 	Source Source   `json:"source"` // The source of the var source
-	Reveal bool     `json:"reveal,omitempty"`
 }
 
 type LoadVarPlan struct {

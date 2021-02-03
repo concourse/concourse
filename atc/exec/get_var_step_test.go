@@ -2,6 +2,7 @@ package exec_test
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -19,9 +20,9 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/vars/varsfakes"
 )
 
 var _ = Describe("GetVarStep", func() {
@@ -36,18 +37,16 @@ var _ = Describe("GetVarStep", func() {
 		spanCtx context.Context
 
 		getVarPlan atc.GetVarPlan
-		state      *execfakes.FakeRunState
+		state      exec.RunState
 
-		fakeVarSourcePool  *credsfakes.FakeVarSourcePool
-		fakeManagerFactory *credsfakes.FakeManagerFactory
-		fakeManager        *credsfakes.FakeManager
-		fakeSecretsFactory *credsfakes.FakeSecretsFactory
-		fakeSecrets        *credsfakes.FakeSecrets
-		fakeLockFactory    *lockfakes.FakeLockFactory
-		fakeLock           *lockfakes.FakeLock
-		secretCacheConfig  creds.SecretCacheConfig
-		tracker            *vars.Tracker
-		varSourceConfigs   atc.VarSourceConfigs
+		fakeVarSourceVariables *varsfakes.FakeVariables
+		fakeVarSourcePool      *credsfakes.FakeVarSourcePool
+		fakeManagerFactory     *credsfakes.FakeManagerFactory
+		fakeSecrets            *credsfakes.FakeSecrets
+		fakeLockFactory        *lockfakes.FakeLockFactory
+		fakeLock               *lockfakes.FakeLock
+		secretCacheConfig      creds.SecretCacheConfig
+		varSourceConfigs       atc.VarSourceConfigs
 
 		cache *gocache.Cache
 
@@ -67,7 +66,6 @@ var _ = Describe("GetVarStep", func() {
 		stdout, stderr *gbytes.Buffer
 
 		planID          atc.PlanID = "56"
-		buildVariables  *build.Variables
 		enableRedaction bool
 	)
 
@@ -77,11 +75,6 @@ var _ = Describe("GetVarStep", func() {
 		ctx = lagerctx.NewContext(ctx, testLogger)
 
 		enableRedaction = true
-		tracker = vars.NewTracker(enableRedaction)
-		buildVariables = build.NewVariables(nil, tracker)
-		state = new(execfakes.FakeRunState)
-		state.LocalVariablesReturns(buildVariables)
-		state.VarSourceConfigsReturns(varSourceConfigs)
 
 		stdout = gbytes.NewBuffer()
 		stderr = gbytes.NewBuffer()
@@ -91,15 +84,17 @@ var _ = Describe("GetVarStep", func() {
 		fakeDelegate.StderrReturns(stderr)
 
 		fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
+		fakeVarSourceVariables = new(varsfakes.FakeVariables)
 
 		spanCtx = context.Background()
 		fakeDelegate.StartSpanReturns(spanCtx, trace.NoopSpan{})
+		fakeDelegate.VariablesReturns(fakeVarSourceVariables)
 
 		fakeDelegateFactory = new(execfakes.FakeBuildStepDelegateFactory)
 		fakeDelegateFactory.BuildStepDelegateReturns(fakeDelegate)
 
 		getVarPlan = atc.GetVarPlan{
-			Name: "some-source-name",
+			Name: "some-source",
 			Path: "some-var",
 			Type: "some-type",
 			Source: atc.Source{
@@ -107,14 +102,20 @@ var _ = Describe("GetVarStep", func() {
 			},
 		}
 
-		fakeManagerFactory = new(credsfakes.FakeManagerFactory)
-		fakeManager = new(credsfakes.FakeManager)
-		fakeManagerFactory.NewInstanceReturns(fakeManager, nil)
+		varSourceConfigs = atc.VarSourceConfigs{
+			{
+				Name: "some-source",
+				Type: "some-type",
+				Config: map[string]interface{}{
+					"some": "source",
+				},
+			},
+		}
 
-		fakeSecretsFactory = new(credsfakes.FakeSecretsFactory)
+		fakeManagerFactory = new(credsfakes.FakeManagerFactory)
 		fakeSecrets = new(credsfakes.FakeSecrets)
-		fakeSecretsFactory.NewSecretsReturns(fakeSecrets)
-		fakeManager.NewSecretsFactoryReturns(fakeSecretsFactory, nil)
+		fakeVarSourcePool.FindOrCreateReturns(fakeSecrets, nil)
+		fakeSecrets.NewSecretLookupPathsReturns(nil)
 
 		fakeLock = new(lockfakes.FakeLock)
 		fakeLockFactory = new(lockfakes.FakeLockFactory)
@@ -124,9 +125,9 @@ var _ = Describe("GetVarStep", func() {
 			Enabled: false,
 		}
 
-		cache = gocache.New(0, 0)
+		creds.Register("some-source", fakeManagerFactory)
 
-		creds.Register("some-type", fakeManagerFactory)
+		cache = gocache.New(0, 0)
 	})
 
 	AfterEach(func() {
@@ -134,22 +135,7 @@ var _ = Describe("GetVarStep", func() {
 	})
 
 	Context("Single get_var step", func() {
-		JustBeforeEach(func() {
-			step = exec.NewGetVarStep(
-				planID,
-				getVarPlan,
-				stepMetadata,
-				fakeDelegateFactory,
-				cache,
-				fakeLockFactory,
-				fakeVarSourcePool,
-				secretCacheConfig,
-			)
-
-			stepOk, stepErr = step.Run(ctx, state)
-		})
-
-		Context("when the var is stored in the local variables", func() {
+		Context("when the source of the var is the local variables", func() {
 			BeforeEach(func() {
 				getVarPlan = atc.GetVarPlan{
 					Name: ".",
@@ -160,46 +146,91 @@ var _ = Describe("GetVarStep", func() {
 					},
 				}
 
-				buildVariables.SetVar(".", "some-var", "some-value", true)
+				state = exec.NewRunState(noopStepper, varSourceConfigs, enableRedaction)
 			})
 
-			It("gets the var from the local vars and stores it as the step result", func() {
-				Expect(stepOk).To(BeTrue())
-				Expect(stepErr).ToNot(HaveOccurred())
+			JustBeforeEach(func() {
+				step = exec.NewGetVarStep(
+					planID,
+					getVarPlan,
+					stepMetadata,
+					fakeDelegateFactory,
+					secretCacheConfig,
+					cache,
+					fakeLockFactory,
+					fakeVarSourcePool,
+				)
 
-				Expect(state.StoreResultCallCount()).To(Equal(1))
-				actualPlanID, varValue := state.StoreResultArgsForCall(0)
-				Expect(actualPlanID).To(Equal(planID))
-				Expect(varValue).To(Equal("some-value"))
+				stepOk, stepErr = step.Run(ctx, state)
 			})
 
-			It("does not cache the result", func() {
-				hash, err := exec.HashVarIdentifier(getVarPlan.Name, getVarPlan.Type, getVarPlan.Source, 123)
-				Expect(err).ToNot(HaveOccurred())
+			Context("when the var is stored in the local variables", func() {
+				BeforeEach(func() {
+					state.LocalVariables().SetVar(".", "some-var", "some-value", true)
+				})
 
-				_, found := cache.Get(hash)
-				Expect(found).To(BeFalse())
+				It("gets the var from the local vars and stores it as the step result", func() {
+					Expect(stepErr).ToNot(HaveOccurred())
+					Expect(stepOk).To(BeTrue())
+
+					var value string
+					state.Result(planID, &value)
+					Expect(value).To(Equal("some-value"))
+				})
+
+				It("does not cache the result", func() {
+					hash, err := exec.HashVarIdentifier(getVarPlan.Path, getVarPlan.Type, getVarPlan.Source, 123)
+					Expect(err).ToNot(HaveOccurred())
+
+					_, found := cache.Get(hash)
+					Expect(found).To(BeFalse())
+				})
+
+				It("does not fetch from var source", func() {
+					Expect(fakeSecrets.GetCallCount()).To(Equal(0))
+				})
+
+				It("releases the lock", func() {
+					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+				})
 			})
 
-			It("does not fetch from var source", func() {
-				Expect(fakeSecrets.GetCallCount()).To(Equal(0))
-			})
-
-			It("releases the lock", func() {
-				Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+			Context("when the var is not stored in the local variables", func() {
+				It("fails with local var not found error", func() {
+					Expect(stepErr).To(HaveOccurred())
+					Expect(stepErr).To(Equal(exec.LocalVarNotFound{getVarPlan.Path}))
+					Expect(stepOk).To(BeFalse())
+				})
 			})
 		})
 
-		Context("when the var is stored in a var source", func() {
+		Context("when the source of the var is a var source", func() {
 			BeforeEach(func() {
 				getVarPlan = atc.GetVarPlan{
-					Name: ".",
+					Name: "some-source",
 					Path: "some-var",
 					Type: "some-type",
 					Source: atc.Source{
 						"some": "source",
 					},
 				}
+			})
+
+			JustBeforeEach(func() {
+				state = exec.NewRunState(noopStepper, varSourceConfigs, enableRedaction)
+
+				step = exec.NewGetVarStep(
+					planID,
+					getVarPlan,
+					stepMetadata,
+					fakeDelegateFactory,
+					secretCacheConfig,
+					cache,
+					fakeLockFactory,
+					fakeVarSourcePool,
+				)
+
+				stepOk, stepErr = step.Run(ctx, state)
 			})
 
 			Context("when caching is enabled", func() {
@@ -209,36 +240,34 @@ var _ = Describe("GetVarStep", func() {
 
 				Context("when the var is found in the cache", func() {
 					BeforeEach(func() {
-						hash, err := exec.HashVarIdentifier("some-var", "some-type", atc.Source{"some": "source"}, 123)
-						Expect(err).ToNot(HaveOccurred())
+						varSourceConfigs = atc.VarSourceConfigs{
+							{
+								Name: "some-source",
+								Type: "some-type",
+								Config: map[string]interface{}{
+									"some": "source",
+								},
+							},
+						}
 
-						cache.Set(hash, "some-cached-value", 1*time.Minute)
+						fakeVarSourcePool.FindOrCreateReturns(fakeSecrets, nil)
+						fakeSecrets.NewSecretLookupPathsReturns(nil)
+						fakeSecrets.GetReturns("some-value", nil, true, nil)
+
+						creds.Register("some-source", fakeManagerFactory)
 					})
 
 					It("uses the cached var and does not refetch", func() {
-						Expect(stepOk).To(BeTrue())
 						Expect(stepErr).ToNot(HaveOccurred())
+						Expect(stepOk).To(BeTrue())
 
 						Expect(fakeSecrets.GetCallCount()).To(Equal(1))
-						Expect(state.StoreResultCallCount()).To(Equal(1))
 
-						actualPlanID, value := state.StoreResultArgsForCall(0)
-						Expect(actualPlanID).To(Equal(planID))
-						Expect(value).To(Equal("some-cached-value"))
-					})
+						stepOk, stepErr = step.Run(ctx, state)
+						Expect(stepErr).ToNot(HaveOccurred())
+						Expect(stepOk).To(BeTrue())
 
-					It("tracks the var", func() {
-						Expect(state.TrackCallCount()).To(Equal(1))
-						actualRef, actualValue := state.TrackArgsForCall(0)
-						Expect(actualRef).To(Equal(vars.Reference{
-							Source: "some-source",
-							Path:   "some-var",
-						}))
-						Expect(actualValue).To(Equal("some-cached-value"))
-					})
-
-					It("releases the lock", func() {
-						Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+						Expect(fakeSecrets.GetCallCount()).To(Equal(1), "should only fetch from Secrets the first Run")
 					})
 				})
 
@@ -250,7 +279,7 @@ var _ = Describe("GetVarStep", func() {
 									Name: "some-source",
 									Type: "some-type",
 									Config: map[string]interface{}{
-										"some": "source",
+										"some": "((var-source-config))",
 									},
 								},
 								{
@@ -264,11 +293,219 @@ var _ = Describe("GetVarStep", func() {
 						})
 
 						Context("when the manager factory exists", func() {
+							BeforeEach(func() {
+								creds.Register("some-source", fakeManagerFactory)
+							})
+
 							It("will evaluate the source of the var source using a list of var source configs not including the evaluating var source", func() {
+								Expect(fakeDelegate.VariablesCallCount()).To(Equal(1))
+								_, actualVarSourceConfigs := fakeDelegate.VariablesArgsForCall(0)
+								Expect(actualVarSourceConfigs).To(Equal(atc.VarSourceConfigs{
+									{
+										Name: "some-other-source",
+										Type: "some-other-type",
+										Config: map[string]interface{}{
+											"some": "other-source",
+										},
+									},
+								}))
+							})
+
+							Context("when the var source config evaluates successfully", func() {
+								BeforeEach(func() {
+									fakeVarSourceVariables.GetReturns("source", true, nil)
+								})
+
+								It("attempts to find or create the var source within the pool", func() {
+									Expect(fakeVarSourcePool.FindOrCreateCallCount()).To(Equal(1))
+								})
+
+								Context("when finding or creating the var source pool succeeds", func() {
+									BeforeEach(func() {
+										fakeVarSourcePool.FindOrCreateReturns(fakeSecrets, nil)
+									})
+
+									It("fetches the secret lookup paths for the var source", func() {
+										Expect(fakeSecrets.NewSecretLookupPathsCallCount()).To(Equal(1))
+										teamName, pipelineName, allowRootPath := fakeSecrets.NewSecretLookupPathsArgsForCall(0)
+										Expect(teamName).To(Equal(stepMetadata.TeamName))
+										Expect(pipelineName).To(Equal(stepMetadata.PipelineName))
+										Expect(allowRootPath).To(BeTrue())
+									})
+
+									Context("when there are no secret lookup paths configured", func() {
+										BeforeEach(func() {
+											fakeSecrets.NewSecretLookupPathsReturns(nil)
+										})
+
+										It("fetches the var using only the path", func() {
+											Expect(fakeSecrets.GetCallCount()).To(Equal(1))
+											Expect(fakeSecrets.GetArgsForCall(0)).To(Equal(getVarPlan.Path))
+										})
+
+										Context("when fetching the var from the secret succeeds with no expiry", func() {
+											BeforeEach(func() {
+												secretCacheConfig.Duration = 10 * time.Minute
+												fakeSecrets.GetReturns("some-value", nil, true, nil)
+											})
+
+											It("caches the var using the default cache ttl", func() {
+												hash, err := exec.HashVarIdentifier(getVarPlan.Path, getVarPlan.Type, getVarPlan.Source, 123)
+												Expect(err).ToNot(HaveOccurred())
+
+												value, expiration, found := cache.GetWithExpiration(hash)
+												Expect(found).To(BeTrue())
+												Expect(expiration).Should(BeTemporally("~", time.Now().Add(secretCacheConfig.Duration), time.Minute))
+												Expect(value).To(Equal(exec.NewCacheEntry("some-value", nil, true)))
+											})
+										})
+
+										Context("when fetching the var returns an expiry sooner than default ttl", func() {
+											var expiry time.Time
+											var nowTime time.Time
+
+											BeforeEach(func() {
+												secretCacheConfig.Duration = 10 * time.Minute
+
+												nowTime = time.Now()
+												expiry = nowTime.Add(1 * time.Minute)
+
+												fakeSecrets.GetReturns("some-value", &expiry, true, nil)
+											})
+
+											It("caches the var using set expiry", func() {
+												hash, err := exec.HashVarIdentifier(getVarPlan.Path, getVarPlan.Type, getVarPlan.Source, 123)
+												Expect(err).ToNot(HaveOccurred())
+
+												value, expiration, found := cache.GetWithExpiration(hash)
+												Expect(found).To(BeTrue())
+												Expect(expiration).ToNot(Equal(secretCacheConfig.Duration))
+												Expect(expiration).Should(BeTemporally("~", expiry, time.Second))
+												Expect(value).To(Equal(exec.NewCacheEntry("some-value", &expiry, true)))
+											})
+										})
+
+										Context("when fetching the var returns an expiry later than default ttl", func() {
+											var expiry time.Time
+											var nowTime time.Time
+
+											BeforeEach(func() {
+												secretCacheConfig.Duration = 10 * time.Minute
+
+												nowTime = time.Now()
+												expiry = nowTime.Add(15 * time.Minute)
+
+												fakeSecrets.GetReturns("some-value", &expiry, true, nil)
+											})
+
+											It("caches the var using set expiry", func() {
+												hash, err := exec.HashVarIdentifier(getVarPlan.Path, getVarPlan.Type, getVarPlan.Source, 123)
+												Expect(err).ToNot(HaveOccurred())
+
+												value, expiration, found := cache.GetWithExpiration(hash)
+												Expect(found).To(BeTrue())
+												Expect(expiration).Should(BeTemporally("~", time.Now().Add(secretCacheConfig.Duration), time.Minute))
+												Expect(value).To(Equal(exec.NewCacheEntry("some-value", &expiry, true)))
+											})
+										})
+
+										Context("when the var is not found in the secrets", func() {
+											BeforeEach(func() {
+												secretCacheConfig.DurationNotFound = 10 * time.Minute
+
+												fakeSecrets.GetReturns(nil, nil, false, nil)
+											})
+
+											It("caches the var with duration not found boolean", func() {
+												hash, err := exec.HashVarIdentifier(getVarPlan.Path, getVarPlan.Type, getVarPlan.Source, 123)
+												Expect(err).ToNot(HaveOccurred())
+
+												value, expiration, found := cache.GetWithExpiration(hash)
+												Expect(found).To(BeTrue())
+												Expect(expiration).Should(BeTemporally("~", time.Now().Add(secretCacheConfig.DurationNotFound), time.Minute))
+												Expect(value).To(Equal(exec.NewCacheEntry(nil, nil, false)))
+											})
+										})
+									})
+
+									Context("when there are multiple secret lookup paths", func() {
+										BeforeEach(func() {
+											lookupPath1 := creds.NewSecretLookupWithPrefix("test/")
+											lookupPath2 := creds.NewSecretLookupWithPrefix("test-2/")
+											fakeSecrets.NewSecretLookupPathsReturns([]creds.SecretLookupPath{lookupPath1, lookupPath2})
+
+											fakeSecrets.GetReturnsOnCall(0, nil, nil, false, nil)
+											fakeSecrets.GetReturnsOnCall(1, "some-value", nil, true, nil)
+										})
+
+										It("attempts to fetch the var using both paths", func() {
+											Expect(fakeSecrets.GetCallCount()).To(Equal(2))
+											Expect(fakeSecrets.GetArgsForCall(0)).To(Equal("test/" + getVarPlan.Path))
+											Expect(fakeSecrets.GetArgsForCall(1)).To(Equal("test-2/" + getVarPlan.Path))
+										})
+									})
+
+									Context("when vars are fetched successfully", func() {
+										BeforeEach(func() {
+											fakeSecrets.NewSecretLookupPathsReturns(nil)
+											fakeSecrets.GetReturns("some-value", nil, true, nil)
+										})
+
+										It("tracks the var", func() {
+											trackedVars := vars.TrackedVarsMap{}
+											state.IterateInterpolatedCreds(trackedVars)
+											Expect(trackedVars["some-source:some-var"]).To(Equal("some-value"))
+										})
+
+										It("releases the lock", func() {
+											Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+										})
+									})
+								})
+
+								Context("when finding or creating the var source pool fails", func() {
+									BeforeEach(func() {
+										fakeVarSourcePool.FindOrCreateReturns(nil, errors.New("whoops"))
+									})
+
+									It("fails the get var step", func() {
+										Expect(stepErr).To(HaveOccurred())
+										Expect(stepOk).To(BeFalse())
+									})
+								})
+							})
+
+							Context("when evaluating the var source config fails", func() {
+								BeforeEach(func() {
+									varSourceConfigs = atc.VarSourceConfigs{
+										{
+											Name: "some-source",
+											Type: "some-type",
+											Config: map[string]interface{}{
+												"some": "((unknown-var))",
+											},
+										},
+									}
+
+									fakeVarSourceVariables.GetReturns(nil, false, nil)
+								})
+
+								It("fails the get var step", func() {
+									Expect(stepErr).To(HaveOccurred())
+									Expect(stepOk).To(BeFalse())
+								})
 							})
 						})
 
 						Context("when the manager factory does not exist", func() {
+							BeforeEach(func() {
+								getVarPlan.Name = "bogus"
+							})
+
+							It("fails to run the get var step", func() {
+								Expect(stepErr).To(HaveOccurred())
+								Expect(stepOk).To(BeFalse())
+							})
 						})
 					})
 
@@ -286,9 +523,80 @@ var _ = Describe("GetVarStep", func() {
 						})
 
 						It("fails with missing source error", func() {
-							Expect(stepOk).To(BeFalse())
 							Expect(stepErr).To(HaveOccurred())
+							Expect(stepOk).To(BeFalse())
 							Expect(stepErr).To(Equal(vars.MissingSourceError{Name: "some-source:some-var", Source: "some-source"}))
+						})
+					})
+				})
+
+				Context("when there are fields in the get var plan", func() {
+					BeforeEach(func() {
+						getVarPlan.Fields = []string{"field"}
+					})
+
+					Context("when the field exists within the fetched var value", func() {
+						var expectedValue map[string]interface{}
+						BeforeEach(func() {
+							expectedValue = map[string]interface{}{
+								"field":       "some-field-value",
+								"other-field": "other-value",
+							}
+
+							fakeSecrets.GetReturns(expectedValue, nil, true, nil)
+						})
+
+						It("stores the field value in the result", func() {
+							Expect(stepErr).ToNot(HaveOccurred())
+							Expect(stepOk).To(BeTrue())
+
+							var value string
+							state.Result(planID, &value)
+							Expect(value).To(Equal("some-field-value"))
+						})
+
+						It("saves the entire value in the cache", func() {
+							hash, err := exec.HashVarIdentifier(getVarPlan.Path, getVarPlan.Type, getVarPlan.Source, 123)
+							Expect(err).ToNot(HaveOccurred())
+
+							value, found := cache.Get(hash)
+							Expect(found).To(BeTrue())
+							Expect(value).To(Equal(exec.NewCacheEntry(expectedValue, nil, true)))
+						})
+					})
+
+					Context("when the field is not found in the fetched var value", func() {
+						BeforeEach(func() {
+							fakeSecrets.GetReturns(map[string]interface{}{
+								"other-field": "other-value",
+							}, nil, true, nil)
+						})
+
+						It("fails to run the step", func() {
+							Expect(stepErr).To(HaveOccurred())
+							Expect(stepOk).To(BeFalse())
+						})
+					})
+
+					Context("when the var is found in the cache", func() {
+						BeforeEach(func() {
+							hash, err := exec.HashVarIdentifier("some-var", "some-type", atc.Source{"some": "source"}, 123)
+							Expect(err).ToNot(HaveOccurred())
+
+							cache.Set(hash, exec.NewCacheEntry(map[string]interface{}{
+								"field": "some-cached-value",
+							}, nil, true), 1*time.Minute)
+						})
+
+						It("uses the value in the cache", func() {
+							Expect(stepErr).ToNot(HaveOccurred())
+							Expect(stepOk).To(BeTrue())
+
+							Expect(fakeSecrets.GetCallCount()).To(Equal(0))
+
+							var value string
+							state.Result(planID, &value)
+							Expect(value).To(Equal("some-cached-value"))
 						})
 					})
 				})
@@ -306,45 +614,54 @@ var _ = Describe("GetVarStep", func() {
 					fakeSecrets.GetReturns("some-value", nil, true, nil)
 				})
 
-				It("does not use the cache", func() {
-					Expect(stepOk).To(BeTrue())
+				It("does not fetch from the cache", func() {
 					Expect(stepErr).ToNot(HaveOccurred())
+					Expect(stepOk).To(BeTrue())
 
 					Expect(fakeSecrets.GetCallCount()).To(Equal(1))
-					Expect(state.StoreResultCallCount()).To(Equal(1))
 
-					actualPlanID, value := state.StoreResultArgsForCall(0)
-					Expect(actualPlanID).To(Equal(planID))
+					var value string
+					state.Result(planID, &value)
 					Expect(value).To(Equal("some-value"))
 				})
 			})
-		})
 
-		Context("when reveal is true", func() {
-			BeforeEach(func() {
-				getVarPlan.Reveal = true
+			Context("when caching is not enabled and we have succeeded in fetching the var", func() {
+				BeforeEach(func() {
+					secretCacheConfig.Enabled = false
+
+					fakeSecrets.GetReturns("some-value", nil, true, nil)
+				})
+
+				It("does not save the var in the cache", func() {
+					Expect(stepErr).ToNot(HaveOccurred())
+					Expect(stepOk).To(BeTrue())
+
+					Expect(fakeSecrets.GetCallCount()).To(Equal(1))
+
+					var value string
+					state.Result(planID, &value)
+					Expect(value).To(Equal("some-value"))
+
+					cacheItems := cache.Items()
+					Expect(cacheItems).To(BeEmpty())
+				})
 			})
 
-			It("does not redact the var", func() {
-				mapit := vars.TrackedVarsMap{}
-				buildVariables.IterateInterpolatedCreds(mapit)
-				Expect(mapit).ToNot(HaveKey("some-var"))
-			})
-		})
+			Context("when the var does not exist", func() {
+				BeforeEach(func() {
+					fakeSecrets.GetReturns(nil, nil, false, nil)
+				})
 
-		Context("when the var does not exist", func() {
-			BeforeEach(func() {
-				fakeSecrets.GetReturns("", nil, false, nil)
-			})
+				It("fails with var not found error", func() {
+					Expect(stepErr).To(HaveOccurred())
+					Expect(stepErr).To(Equal(exec.VarNotFoundError{Source: "some-source", Path: "some-var"}))
+					Expect(stepOk).To(BeFalse())
+				})
 
-			It("fails with var not found error", func() {
-				Expect(stepOk).To(BeFalse())
-				Expect(stepErr).To(HaveOccurred())
-				Expect(stepErr).To(Equal(exec.VarNotFoundError{Name: "some-var"}))
-			})
-
-			It("releases the lock", func() {
-				Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+				It("releases the lock", func() {
+					Expect(fakeLock.ReleaseCallCount()).To(Equal(1))
+				})
 			})
 		})
 	})
@@ -378,8 +695,10 @@ var _ = Describe("GetVarStep", func() {
 					getVarPlan,
 					stepMetadata,
 					fakeDelegateFactory,
+					secretCacheConfig,
 					cache,
 					fakeLockFactory,
+					fakeVarSourcePool,
 				)
 
 				step2 = exec.NewGetVarStep(
@@ -387,34 +706,41 @@ var _ = Describe("GetVarStep", func() {
 					getVarPlan,
 					stepMetadata,
 					fakeDelegateFactory,
+					secretCacheConfig,
 					cache,
 					fakeLockFactory,
+					fakeVarSourcePool,
 				)
+
+				state = exec.NewRunState(noopStepper, varSourceConfigs, enableRedaction)
+				fakeSecrets.GetReturns("some-value", nil, true, nil)
 			})
 
 			It("one of the two get_var's should wait for the lock to release", func() {
 				step1Ok, step1Err := step1.Run(ctx, state)
-				Expect(step1Ok).To(BeTrue())
 				Expect(step1Err).ToNot(HaveOccurred())
+				Expect(step1Ok).To(BeTrue())
 
+				Expect(fakeSecrets.GetCallCount()).To(Equal(1))
+
+				var value string
+				state.Result("1", &value)
+				Expect(value).To(Equal("some-value"))
+				Expect(state.Result("2", &value)).To(BeFalse())
+
+				step2Err := make(chan error)
 				go func() {
-					step2Ok, step2Err := step2.Run(ctx, state)
-					Expect(step2Ok).To(BeTrue())
-					Expect(step2Err).ToNot(HaveOccurred())
+					ok, err := step2.Run(ctx, state)
+					Expect(ok).To(BeTrue())
+					step2Err <- err
 				}()
 
-				Expect(fakeLockFactory.AcquireCallCount()).To(Equal(1))
-				Expect(fakeSecrets.GetCallCount()).To(Equal(1))
-				Expect(state.StoreResultCallCount()).To(Equal(1))
+				Consistently(step2Err).ShouldNot(Receive())
 
 				By("releasing the lock")
 				acquired = false
 
-				Eventually(fakeLockFactory.AcquireCallCount).Should(Equal(2))
-
-				By("does not fetch the var twice")
-				Expect(fakeSecrets.GetCallCount()).To(Equal(1))
-				Expect(state.StoreResultCallCount()).To(Equal(2))
+				Eventually(step2Err).Should(Receive(BeNil()))
 			})
 		})
 	})

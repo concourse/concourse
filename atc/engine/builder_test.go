@@ -3,6 +3,7 @@ package engine_test
 import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/builds"
+	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/atc/engine"
@@ -23,6 +24,7 @@ var _ = Describe("Builder", func() {
 			fakeCoreStepFactory *enginefakes.FakeCoreStepFactory
 			fakeRateLimiter     *enginefakes.FakeRateLimiter
 			fakePolicyChecker   *policyfakes.FakeChecker
+			fakeSecrets         *credsfakes.FakeSecrets
 
 			planFactory    atc.PlanFactory
 			stepperFactory engine.StepperFactory
@@ -32,12 +34,14 @@ var _ = Describe("Builder", func() {
 			fakeCoreStepFactory = new(enginefakes.FakeCoreStepFactory)
 			fakeRateLimiter = new(enginefakes.FakeRateLimiter)
 			fakePolicyChecker = new(policyfakes.FakeChecker)
+			fakeSecrets = new(credsfakes.FakeSecrets)
 
 			stepperFactory = engine.NewStepperFactory(
 				fakeCoreStepFactory,
 				"http://example.com",
 				fakeRateLimiter,
 				fakePolicyChecker,
+				fakeSecrets,
 			)
 
 			planFactory = atc.NewPlanFactory(123)
