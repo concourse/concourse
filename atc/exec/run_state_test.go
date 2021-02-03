@@ -18,7 +18,6 @@ var _ = Describe("RunState", func() {
 		steppedPlan atc.Plan
 		fakeStep    *execfakes.FakeStep
 
-		credVars   vars.Variables
 		varSources atc.VarSourceConfigs
 
 		state exec.RunState
@@ -31,8 +30,6 @@ var _ = Describe("RunState", func() {
 			return fakeStep
 		}
 
-		credVars = vars.StaticVariables{"k1": "v1", "k2": "v2", "k3": "v3"}
-
 		varSources = atc.VarSourceConfigs{
 			{
 				Name:   "some-var-source",
@@ -41,7 +38,7 @@ var _ = Describe("RunState", func() {
 			},
 		}
 
-		state = exec.NewRunState(stepper, credVars, varSources, false)
+		state = exec.NewRunState(stepper, varSources, false)
 	})
 
 	Describe("Run", func() {
@@ -179,25 +176,25 @@ var _ = Describe("RunState", func() {
 		})
 
 		It("can access vars from parent scope", func() {
-			state.Variables().SetVar(".", "hello", "world", false)
+			state.LocalVariables().SetVar(".", "hello", "world", false)
 			scope := state.NewScope()
-			val, _, _ := scope.Variables().Get(vars.Reference{Source: ".", Path: "hello"})
+			val, _, _ := scope.LocalVariables().Get(vars.Reference{Source: ".", Path: "hello"})
 			Expect(val).To(Equal("world"))
 		})
 
 		It("adding vars does not affect the vars from the parent scope", func() {
 			scope := state.NewScope()
-			scope.Variables().SetVar(".", "hello", "world", false)
-			_, found, _ := state.Variables().Get(vars.Reference{Source: ".", Path: "hello"})
+			scope.LocalVariables().SetVar(".", "hello", "world", false)
+			_, found, _ := state.LocalVariables().Get(vars.Reference{Source: ".", Path: "hello"})
 			Expect(found).To(BeFalse())
 		})
 
 		It("current scope is preferred over parent scope", func() {
-			state.Variables().SetVar(".", "a", 1, false)
+			state.LocalVariables().SetVar(".", "a", 1, false)
 			scope := state.NewScope()
-			scope.Variables().SetVar(".", "a", 2, false)
+			scope.LocalVariables().SetVar(".", "a", 2, false)
 
-			val, _, _ := scope.Variables().Get(vars.Reference{Source: ".", Path: "a"})
+			val, _, _ := scope.LocalVariables().Get(vars.Reference{Source: ".", Path: "a"})
 			Expect(val).To(Equal(2))
 		})
 
@@ -229,18 +226,18 @@ var _ = Describe("RunState", func() {
 
 		Describe("TrackedVarsMap", func() {
 			BeforeEach(func() {
-				state = exec.NewRunState(stepper, credVars, varSources, true)
+				state = exec.NewRunState(stepper, varSources, true)
 			})
 
 			It("prefers the value set in the current scope over the parent scope", func() {
-				state.Variables().SetVar(".", "a", "from parent", true)
+				state.LocalVariables().SetVar(".", "a", "from parent", true)
 				scope := state.NewScope()
-				scope.Variables().SetVar(".", "a", "from child", true)
+				scope.LocalVariables().SetVar(".", "a", "from child", true)
 
 				mapit := vars.TrackedVarsMap{}
 				scope.IterateInterpolatedCreds(mapit)
 
-				Expect(mapit["a"]).To(Equal("from child"))
+				Expect(mapit[".:a"]).To(Equal("from child"))
 			})
 		})
 	})

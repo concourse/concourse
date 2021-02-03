@@ -3,7 +3,6 @@ package exec_test
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"code.cloudfoundry.org/lager/lagerctx"
@@ -52,7 +51,7 @@ var _ = Describe("LoadVarStep", func() {
 
 		loadVarPlan        *atc.LoadVarPlan
 		artifactRepository *build.Repository
-		state              *execfakes.FakeRunState
+		state              exec.RunState
 		fakeSource         *buildfakes.FakeRegisterableArtifact
 		buildVariables     *build.Variables
 
@@ -79,12 +78,9 @@ var _ = Describe("LoadVarStep", func() {
 		ctx, cancel = context.WithCancel(context.Background())
 		ctx = lagerctx.NewContext(ctx, testLogger)
 
-		artifactRepository = build.NewRepository()
-		state = new(execfakes.FakeRunState)
-		state.ArtifactRepositoryReturns(artifactRepository)
-
-		buildVariables = build.NewVariables(nil, true)
-		state.VariablesReturns(buildVariables)
+		state = exec.NewRunState(noopStepper, nil, true)
+		buildVariables = state.LocalVariables()
+		artifactRepository = state.ArtifactRepository()
 
 		fakeSource = new(buildfakes.FakeRegisterableArtifact)
 		artifactRepository.RegisterArtifact("some-resource", fakeSource)
@@ -112,24 +108,23 @@ var _ = Describe("LoadVarStep", func() {
 		Expect(value).To(Equal(expectValue))
 
 		mapit := vars.TrackedVarsMap{}
-		buildVariables.IterateInterpolatedCreds(mapit)
-		v := reflect.ValueOf(expectValue)
+		state.IterateInterpolatedCreds(mapit)
 
 		var expectedKey string
-		switch v.Kind() {
-		case reflect.Map:
-			for _, key := range v.MapKeys() {
-				expectedKey = fmt.Sprintf("%s.%s", expectPath, key.String())
+		switch v := expectValue.(type) {
+		case map[string]interface{}:
+			for key, value := range v {
+				expectedKey = fmt.Sprintf(".:%s.%s", expectPath, key)
 				if expectRedact {
-					Expect(mapit[expectedKey]).To(Equal(v.MapIndex(key).Interface()))
+					Expect(mapit[expectedKey]).To(Equal(value))
 				} else {
 					Expect(mapit).ToNot(HaveKey(expectedKey))
 				}
 			}
-		case reflect.String:
-			expectedKey = expectPath
+		case string:
+			expectedKey = fmt.Sprintf(".:%s", expectPath)
 			if expectRedact {
-				Expect(mapit[expectedKey]).To(Equal(expectValue))
+				Expect(mapit[expectedKey]).To(Equal(v))
 			} else {
 				Expect(mapit).ToNot(HaveKey(expectedKey))
 			}
