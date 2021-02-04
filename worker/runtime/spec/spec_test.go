@@ -401,16 +401,6 @@ func (s *SpecSuite) TestContainerSpec() {
 			},
 		},
 		{
-			desc: "default devices privileged",
-			gdn: garden.ContainerSpec{
-				Handle: "handle", RootFSPath: "raw:///rootfs",
-				Privileged: true,
-			},
-			check: func(oci *specs.Spec) {
-				s.Equal(append(spec.PrivilegedOnlyDevices, spec.AnyContainerDevices...), oci.Linux.Resources.Devices)
-			},
-		},
-		{
 			desc: "env + default path",
 			gdn: garden.ContainerSpec{
 				Handle: "handle", RootFSPath: "raw:///rootfs",
