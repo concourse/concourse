@@ -26,20 +26,11 @@ import (
 var (
 	cmd            *atccmd.RunCommand
 	postgresRunner postgresrunner.Runner
-	dbProcess      ifrit.Process
 	atcProcess     ifrit.Process
 	atcURL         string
 )
 
-var _ = BeforeSuite(func() {
-	postgresRunner = postgresrunner.Runner{
-		Port: 5433 + GinkgoParallelNode(),
-	}
-
-	dbProcess = ifrit.Invoke(postgresRunner)
-
-	postgresRunner.InitializeTestDBTemplate()
-})
+var _ = postgresrunner.GinkgoRunner(&postgresRunner)
 
 var _ = BeforeEach(func() {
 	cmd = &atccmd.RunCommand{}
@@ -104,11 +95,6 @@ var _ = AfterEach(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	postgresRunner.DropTestDB()
-})
-
-var _ = AfterSuite(func() {
-	dbProcess.Signal(os.Interrupt)
-	<-dbProcess.Wait()
 })
 
 func TestIntegration(t *testing.T) {

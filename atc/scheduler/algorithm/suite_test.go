@@ -48,13 +48,7 @@ var _ = BeforeSuite(func() {
 		Expect(err).ToNot(HaveOccurred())
 	}
 
-	postgresRunner = postgresrunner.Runner{
-		Port: 5433 + GinkgoParallelNode(),
-	}
-
-	dbProcess = ifrit.Invoke(postgresRunner)
-
-	postgresRunner.InitializeTestDBTemplate()
+	postgresrunner.InitializeRunnerForGinkgo(&postgresRunner, &dbProcess)
 })
 
 var _ = BeforeEach(func() {
@@ -74,8 +68,7 @@ var _ = AfterEach(func() {
 })
 
 var _ = AfterSuite(func() {
-	dbProcess.Signal(os.Interrupt)
-	<-dbProcess.Wait()
+	postgresrunner.FinalizeRunnerForGinkgo(&postgresRunner, &dbProcess)
 
 	if exporter != nil {
 		exporter.Flush()
