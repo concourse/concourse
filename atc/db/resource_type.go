@@ -297,29 +297,6 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, 
 			// a build is already running; leave it be
 			return nil, false, nil
 		}
-
-		if completed {
-			// previous build finished; clear it out
-			_, err = psql.Delete("builds").
-				Where(sq.Eq{
-					"resource_type_id": r.id,
-					"completed":        true,
-				}).
-				RunWith(tx).
-				Exec()
-			if err != nil {
-				return nil, false, fmt.Errorf("delete previous build: %w", err)
-			}
-			_, err = psql.Delete("build_events").
-				Where(sq.Eq{
-					"build_id": buildID,
-				}).
-				RunWith(tx).
-				Exec()
-			if err != nil {
-				return nil, false, fmt.Errorf("delete previous build events: %w", err)
-			}
-		}
 	}
 
 	build := newEmptyBuild(r.conn, r.lockFactory)

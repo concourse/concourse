@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbtest"
@@ -556,17 +555,8 @@ var _ = Describe("ResourceType", func() {
 		It("logs to the check_build_events partition", func() {
 			err := build.SaveEvent(event.Log{Payload: "log"})
 			Expect(err).ToNot(HaveOccurred())
-
-			var count int
-			err = psql.Select("COUNT(*)").
-				From("check_build_events").
-				Where(sq.Eq{"build_id": build.ID()}).
-				RunWith(dbConn).
-				QueryRow().
-				Scan(&count)
-			Expect(err).ToNot(HaveOccurred())
 			// created + log events
-			Expect(count).To(Equal(2))
+			Expect(numBuildEventsForCheck(build)).To(Equal(2))
 		})
 
 		Context("when tracing is configured", func() {
@@ -625,23 +615,6 @@ var _ = Describe("ResourceType", func() {
 				It("creates the build", func() {
 					Expect(created).To(BeTrue())
 					Expect(build.ResourceTypeID()).To(Equal(resourceType.ID()))
-				})
-
-				It("deletes the previous build", func() {
-					found, err := prevBuild.Reload()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
-				})
-
-				It("deletes the previous build's events", func() {
-					var exists bool
-					err := dbConn.QueryRow(`SELECT EXISTS (
-						SELECT 1
-						FROM build_events
-						WHERE build_id = $1
-					)`, prevBuild.ID()).Scan(&exists)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(exists).To(BeFalse())
 				})
 			})
 		})
