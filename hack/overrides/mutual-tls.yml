@@ -2,24 +2,8 @@ version: '3'
 
 services:
   web:
-    build: .
-    image: concourse/concourse:local
-    volumes:
-    - .:/src
-    command: web
-    depends_on: [db]
     environment:
-      CONCOURSE_LOG_LEVEL: debug
-      CONCOURSE_POSTGRES_HOST: db
-      CONCOURSE_POSTGRES_USER: dev
-      CONCOURSE_POSTGRES_PASSWORD: dev
-      CONCOURSE_POSTGRES_DATABASE: concourse
       CONCOURSE_EXTERNAL_URL: https://localhost:443
-      CONCOURSE_ADD_LOCAL_USER: test:test,guest:guest
-      CONCOURSE_MAIN_TEAM_LOCAL_USER: test
-      CONCOURSE_CLUSTER_NAME: dev
-      CONCOURSE_ENABLE_PIPELINE_INSTANCES: "true"
-      CONCOURSE_ENABLE_ACROSS_STEP: "true"
       CONCOURSE_TLS_BIND_PORT: 8443
       CONCOURSE_TLS_CERT: /src/hack/mtls_certs/concourse/web.cert.pem 
       CONCOURSE_TLS_CA_CERT: /src/hack/mtls_certs/concourse/ca-chain.cert.pem
