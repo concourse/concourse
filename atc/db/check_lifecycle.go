@@ -32,10 +32,10 @@ func (cl *checkLifecycle) DeleteCompletedChecks() error {
       ),
       deleted_builds AS
       (
-        DELETE FROM builds WHERE id IN (SELECT id FROM deletable_builds)
-        RETURNING id
+        DELETE FROM builds USING deletable_builds WHERE builds.id = deletable_builds.id
+        RETURNING builds.id
       )
-      DELETE FROM check_build_events WHERE build_id IN (SELECT id FROM deletable_builds)
+      DELETE FROM check_build_events USING deletable_builds WHERE build_id = deletable_builds.id
     `)
 	return err
 }
