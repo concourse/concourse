@@ -283,7 +283,6 @@ func (m *Migration) Execute(args []string) error {
 		return m.rotateEncryptionKey()
 	}
 	return errors.New("must specify one of `--migrate-to-latest-version`, `--current-db-version`, `--supported-db-version`, `--migrate-db-to-version`, or `--old-encryption-key`")
-
 }
 
 func (cmd *Migration) currentDBVersion() error {
@@ -380,10 +379,18 @@ func (cmd *Migration) rotateEncryptionKey() error {
 }
 
 func (cmd *Migration) migrateToLatestVersion() error {
+	lockConn, err := constructLockConn(defaultDriverName, cmd.Postgres.ConnectionString())
+	if err != nil {
+		return err
+	}
+	defer lockConn.Close()
+
+	lockFactory := lock.NewLockFactory(lockConn, metric.LogLockAcquired, metric.LogLockReleased)
+
 	helper := migration.NewOpenHelper(
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
-		nil,
+		lockFactory,
 		nil,
 		nil,
 	)
@@ -556,7 +563,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	lockConn, err := cmd.constructLockConn(retryingDriverName)
+	lockConn, err := constructLockConn(retryingDriverName, cmd.Postgres.ConnectionString())
 	if err != nil {
 		return nil, err
 	}
@@ -1593,8 +1600,8 @@ type Closer interface {
 	Close() error
 }
 
-func (cmd *RunCommand) constructLockConn(driverName string) (*sql.DB, error) {
-	dbConn, err := sql.Open(driverName, cmd.Postgres.ConnectionString())
+func constructLockConn(driverName, connectionString string) (*sql.DB, error) {
+	dbConn, err := sql.Open(driverName, connectionString)
 	if err != nil {
 		return nil, err
 	}
