@@ -1894,12 +1894,18 @@ func (b *build) saveEvent(tx Tx, event atc.Event) error {
 	return err
 }
 
+func (b *build) isForCheck() bool {
+	return b.resourceTypeID != 0 || b.resourceID != 0
+}
+
 func (b *build) eventsTable() string {
+	if b.isForCheck() {
+		return "check_build_events"
+	}
 	if b.pipelineID != 0 {
 		return fmt.Sprintf("pipeline_build_events_%d", b.pipelineID)
-	} else {
-		return fmt.Sprintf("team_build_events_%d", b.teamID)
 	}
+	return fmt.Sprintf("team_build_events_%d", b.teamID)
 }
 
 func createBuild(tx Tx, build *build, vals map[string]interface{}) error {

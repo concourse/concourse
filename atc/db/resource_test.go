@@ -5,9 +5,11 @@ import (
 	"strconv"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbtest"
+	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -506,6 +508,22 @@ var _ = Describe("Resource", func() {
 				PipelineName:         defaultPipeline.Name(),
 				PipelineInstanceVars: defaultPipeline.InstanceVars(),
 			}))
+		})
+
+		It("logs to the check_build_events partition", func() {
+			err := build.SaveEvent(event.Log{Payload: "log"})
+			Expect(err).ToNot(HaveOccurred())
+
+			var count int
+			err = psql.Select("COUNT(*)").
+				From("check_build_events").
+				Where(sq.Eq{"build_id": build.ID()}).
+				RunWith(dbConn).
+				QueryRow().
+				Scan(&count)
+			Expect(err).ToNot(HaveOccurred())
+			// created + log events
+			Expect(count).To(Equal(2))
 		})
 
 		Context("when tracing is configured", func() {
