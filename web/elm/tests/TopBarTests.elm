@@ -129,6 +129,14 @@ pipelineInstance =
         |> Data.withInstanceVars instanceVars
 
 
+archivedPipelineInstance : Concourse.Pipeline
+archivedPipelineInstance =
+    Data.pipeline "team" 1
+        |> Data.withName "pipeline"
+        |> Data.withInstanceVars (Dict.fromList [ ( "foo", JsonString "bar" ) ])
+        |> Data.withArchived True
+
+
 all : Test
 all =
     describe "TopBar"
@@ -359,7 +367,11 @@ all =
             (Common.initRoute (Routes.Pipeline { id = Concourse.toPipelineId pipelineInstance, groups = [] })
                 |> Application.handleCallback
                     (Callback.AllPipelinesFetched <|
-                        Ok [ pipelineInstance, Data.pipeline "team" 2 |> Data.withName "pipeline" ]
+                        Ok
+                            [ pipelineInstance
+                            , archivedPipelineInstance
+                            , Data.pipeline "team" 2 |> Data.withName "pipeline"
+                            ]
                     )
                 |> Tuple.first
                 |> queryView
