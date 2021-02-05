@@ -7,6 +7,5 @@ BEGIN;
   FROM builds
   WHERE builds.id = build_id;
 
-  DROP INDEX IF EXISTS build_image_resource_caches_build_id;
   CREATE INDEX build_image_resource_caches_job_build_idx ON build_image_resource_caches(job_id, build_id);
 COMMIT;

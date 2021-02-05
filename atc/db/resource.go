@@ -303,42 +303,6 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 			// a build is already running; leave it be
 			return nil, false, nil
 		}
-
-		if completed {
-			// previous build finished; clear it out
-			rows, err := psql.Delete("builds").
-				Where(sq.Eq{
-					"resource_id": r.id,
-					"completed":   true,
-				}).
-				Suffix("RETURNING id").
-				RunWith(tx).
-				Query()
-			if err != nil {
-				return nil, false, fmt.Errorf("delete previous build: %w", err)
-			}
-
-			deletedBuildIDs := []int{}
-			for rows.Next() {
-				var id int
-				err := rows.Scan(&id)
-				if err != nil {
-					return nil, false, fmt.Errorf("scan deleted build id: %w", err)
-				}
-
-				deletedBuildIDs = append(deletedBuildIDs, id)
-			}
-
-			_, err = psql.Delete("build_events").
-				Where(sq.Eq{
-					"build_id": deletedBuildIDs,
-				}).
-				RunWith(tx).
-				Exec()
-			if err != nil {
-				return nil, false, fmt.Errorf("delete previous build events: %w", err)
-			}
-		}
 	}
 
 	build := newEmptyBuild(r.conn, r.lockFactory)

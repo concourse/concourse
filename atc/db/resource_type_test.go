@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbtest"
+	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -551,6 +552,13 @@ var _ = Describe("ResourceType", func() {
 			Expect(build.PrivatePlan()).To(Equal(plan))
 		})
 
+		It("logs to the check_build_events partition", func() {
+			err := build.SaveEvent(event.Log{Payload: "log"})
+			Expect(err).ToNot(HaveOccurred())
+			// created + log events
+			Expect(numBuildEventsForCheck(build)).To(Equal(2))
+		})
+
 		Context("when tracing is configured", func() {
 			var span trace.Span
 
@@ -607,23 +615,6 @@ var _ = Describe("ResourceType", func() {
 				It("creates the build", func() {
 					Expect(created).To(BeTrue())
 					Expect(build.ResourceTypeID()).To(Equal(resourceType.ID()))
-				})
-
-				It("deletes the previous build", func() {
-					found, err := prevBuild.Reload()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(found).To(BeFalse())
-				})
-
-				It("deletes the previous build's events", func() {
-					var exists bool
-					err := dbConn.QueryRow(`SELECT EXISTS (
-						SELECT 1
-						FROM build_events
-						WHERE build_id = $1
-					)`, prevBuild.ID()).Scan(&exists)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(exists).To(BeFalse())
 				})
 			})
 		})
