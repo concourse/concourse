@@ -34,7 +34,7 @@ var _ = Describe("Locks", func() {
 	)
 
 	BeforeEach(func() {
-		postgresRunner.Truncate()
+		postgresRunner.CreateTestDBFromTemplate()
 
 		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
 		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
@@ -61,6 +61,8 @@ var _ = Describe("Locks", func() {
 		if dbLock != nil {
 			_ = dbLock.Release()
 		}
+
+		postgresRunner.DropTestDB()
 	})
 
 	Describe("locks in general", func() {

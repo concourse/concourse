@@ -48,17 +48,11 @@ var _ = BeforeSuite(func() {
 		Expect(err).ToNot(HaveOccurred())
 	}
 
-	postgresRunner = postgresrunner.Runner{
-		Port: 5433 + GinkgoParallelNode(),
-	}
-
-	dbProcess = ifrit.Invoke(postgresRunner)
-
-	postgresRunner.CreateTestDB()
+	postgresrunner.InitializeRunnerForGinkgo(&postgresRunner, &dbProcess)
 })
 
 var _ = BeforeEach(func() {
-	postgresRunner.Truncate()
+	postgresRunner.CreateTestDBFromTemplate()
 
 	dbConn = postgresRunner.OpenConn()
 
@@ -69,11 +63,12 @@ var _ = BeforeEach(func() {
 var _ = AfterEach(func() {
 	err := dbConn.Close()
 	Expect(err).NotTo(HaveOccurred())
+
+	postgresRunner.DropTestDB()
 })
 
 var _ = AfterSuite(func() {
-	dbProcess.Signal(os.Interrupt)
-	<-dbProcess.Wait()
+	postgresrunner.FinalizeRunnerForGinkgo(&postgresRunner, &dbProcess)
 
 	if exporter != nil {
 		exporter.Flush()

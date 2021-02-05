@@ -1,7 +1,6 @@
 package db_test
 
 import (
-	"os"
 	"testing"
 	"time"
 
@@ -19,7 +18,6 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/postgresrunner"
-	"github.com/tedsuo/ifrit"
 )
 
 func TestDB(t *testing.T) {
@@ -29,7 +27,6 @@ func TestDB(t *testing.T) {
 
 var (
 	postgresRunner postgresrunner.Runner
-	dbProcess      ifrit.Process
 
 	dbConn                              db.Conn
 	fakeSecrets                         *credsfakes.FakeSecrets
@@ -97,18 +94,10 @@ var (
 	psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 )
 
-var _ = BeforeSuite(func() {
-	postgresRunner = postgresrunner.Runner{
-		Port: 5433 + GinkgoParallelNode(),
-	}
-
-	dbProcess = ifrit.Invoke(postgresRunner)
-
-	postgresRunner.CreateTestDB()
-})
+var _ = postgresrunner.GinkgoRunner(&postgresRunner)
 
 var _ = BeforeEach(func() {
-	postgresRunner.Truncate()
+	postgresRunner.CreateTestDBFromTemplate()
 
 	dbConn = postgresRunner.OpenConn()
 
@@ -245,9 +234,6 @@ func destroy(d interface{ Destroy() error }) {
 var _ = AfterEach(func() {
 	err := dbConn.Close()
 	Expect(err).NotTo(HaveOccurred())
-})
 
-var _ = AfterSuite(func() {
-	dbProcess.Signal(os.Interrupt)
-	<-dbProcess.Wait()
+	postgresRunner.DropTestDB()
 })
