@@ -16,7 +16,6 @@ module SideBar.Styles exposing
     , sectionHeader
     , sideBar
     , sideBarHandle
-    , sideBarIcon
     , sideBarMenu
     , starPadding
     , starWidth
@@ -280,17 +279,6 @@ sideBarMenu isClickable =
         else
             "default"
     , style "background-color" Colors.sideBarIconBackground
-    ]
-
-
-sideBarIcon : Bool -> List (Html.Attribute msg)
-sideBarIcon isHovered =
-    [ style "opacity" <|
-        if isHovered then
-            "1"
-
-        else
-            "0.5"
     ]
 
 

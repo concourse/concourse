@@ -112,12 +112,12 @@ hasSideBar iAmLookingAtThePage =
                 , query = (\a -> ( a, [] )) >> iAmLookingAtTheSideBarIconContainer
                 , unhoveredSelector =
                     { description = "grey"
-                    , selector = [ containing [ style "opacity" "0.5" ] ]
+                    , selector = sideBarIcon True
                     }
                 , hoverable = Message.SideBarIcon
                 , hoveredSelector =
                     { description = "still grey"
-                    , selector = [ containing [ style "opacity" "0.5" ] ]
+                    , selector = hoveredSideBarIcon True
                     }
                 }
             , test "is not clickable" <|
@@ -142,7 +142,7 @@ hasSideBar iAmLookingAtThePage =
             [ test "icon changes to closed on click" <|
                 given iHaveAnOpenSideBar_
                     >> when iAmLookingAtTheSideBarIcon
-                    >> then_ iSeeAClosededSideBarIcon
+                    >> then_ iSeeAClosedSideBarIcon
             , test "background is the same" <|
                 given iHaveAnOpenSideBar_
                     >> when iAmLookingAtTheSideBarIconContainer
@@ -166,18 +166,17 @@ hasSideBar iAmLookingAtThePage =
                     iAmLookingAtThePage ()
                         |> iAmOnANonPhoneScreen
                         |> myBrowserFetchedPipelines
+                        |> iClickedTheSideBarIcon
                         |> Tuple.first
                 , query = (\a -> ( a, [] )) >> iAmLookingAtTheSideBarIconContainer
                 , unhoveredSelector =
                     { description = "grey"
-
-                    -- TODO: replace selector with the svg name
-                    , selector = [ containing [ style "opacity" "0.5" ] ]
+                    , selector = sideBarIcon False
                     }
                 , hoverable = Message.SideBarIcon
                 , hoveredSelector =
                     { description = "white"
-                    , selector = [ containing [ style "opacity" "1" ] ]
+                    , selector = hoveredSideBarIcon False
                     }
                 }
             ]
@@ -208,12 +207,12 @@ hasSideBar iAmLookingAtThePage =
                 , query = (\a -> ( a, [] )) >> iAmLookingAtTheSideBarIconContainer
                 , unhoveredSelector =
                     { description = "grey"
-                    , selector = [ containing [ style "opacity" "0.5" ] ]
+                    , selector = sideBarIcon True
                     }
                 , hoverable = Message.SideBarIcon
                 , hoveredSelector =
                     { description = "white"
-                    , selector = [ containing [ style "opacity" "1" ] ]
+                    , selector = hoveredSideBarIcon True
                     }
                 }
             ]
@@ -925,7 +924,7 @@ iSeeAnOpenedSideBarIcon =
         sideBarIcon True
 
 
-iSeeAClosededSideBarIcon =
+iSeeAClosedSideBarIcon =
     Query.has <|
         sideBarIcon False
 
@@ -934,13 +933,26 @@ sideBarIcon opened =
     if opened then
         DashboardTests.iconSelector
             { size = sidebarIconWidth
-            , image = Assets.SideBarIconOpened
+            , image = Assets.SideBarIconOpenedGrey
             }
 
     else
         DashboardTests.iconSelector
             { size = sidebarIconWidth
-            , image = Assets.SideBarIconClosed
+            , image = Assets.SideBarIconClosedGrey
+            }
+
+
+hoveredSideBarIcon opened =
+    if opened then
+        DashboardTests.iconSelector
+            { size = sidebarIconWidth
+            , image = Assets.SideBarIconOpenedWhite
+            }
+    else
+        DashboardTests.iconSelector
+            { size = sidebarIconWidth
+            , image = Assets.SideBarIconClosedWhite
             }
 
 
@@ -1044,7 +1056,7 @@ dataRefreshes =
 
 iSeeNoSideBarIcon =
     Query.hasNot <|
-        sideBarIcon False True
+        sideBarIcon False
 
 
 iAmLookingAtTheSideBarIconContainer =

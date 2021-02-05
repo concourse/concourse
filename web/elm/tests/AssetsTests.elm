@@ -238,16 +238,26 @@ toStringTests =
                 MessageIcon
                     |> toString
                     |> Expect.equal "/public/images/baseline-message.svg"
-        , test "SidebarIconClosed" <|
+        , test "SidebarIconClosedGrey" <|
             \_ ->
-                SideBarIconClosed
+                SideBarIconClosedGrey
                     |> toString
-                    |> Expect.equal "/public/images/baseline-sidebar-closed.svg"
-        , test "SideBarIconOpened" <|
+                    |> Expect.equal "/public/images/baseline-sidebar-closed-grey.svg"
+        , test "SideBarIconOpenedGrey" <|
             \_ ->
-                SideBarIconOpened
+                SideBarIconOpenedWhite
                     |> toString
-                    |> Expect.equal "/public/images/baseline-sidebar-opened.svg"
+                    |> Expect.equal "/public/images/baseline-sidebar-opened-white.svg"
+        , test "SidebarIconClosedWhite" <|
+            \_ ->
+                SideBarIconClosedWhite
+                    |> toString
+                    |> Expect.equal "/public/images/baseline-sidebar-closed-white.svg"
+        , test "SideBarIconOpenedWhite" <|
+            \_ ->
+                SideBarIconOpenedWhite
+                    |> toString
+                    |> Expect.equal "/public/images/baseline-sidebar-opened-white.svg"
         , test "PeopleIcon" <|
             \_ ->
                 PeopleIcon

@@ -397,14 +397,24 @@ sideBarIcon model =
             isSideBarClickable =
                 hasVisiblePipelines model
 
-            sidebarIcon =
-                if model.sideBarState.isOpen then
-                    Icon.icon
-                        { sizePx = 54, image = Assets.SideBarIconClosed }
+            isOpen =
+                model.sideBarState.isOpen
+
+            isHovered =
+                HoverState.isHovered SideBarIcon model.hovered
+
+            assetSideBarIcon =
+                if isOpen && isHovered then
+                    Assets.SideBarIconClosedWhite
+
+                else if isOpen && not isHovered then
+                    Assets.SideBarIconClosedGrey
+
+                else if not isOpen && isHovered then
+                    Assets.SideBarIconOpenedWhite
 
                 else
-                    Icon.icon
-                        { sizePx = 54, image = Assets.SideBarIconOpened }
+                    Assets.SideBarIconOpenedGrey
         in
         Html.div
             (id "sidebar-icon"
@@ -419,11 +429,9 @@ sideBarIcon model =
                         []
                    )
             )
-            [ sidebarIcon <|
-                (Styles.sideBarIcon <|
-                    isSideBarClickable
-                        && HoverState.isHovered SideBarIcon model.hovered
-                )
+            [ Icon.icon
+                { sizePx = 54, image = assetSideBarIcon }
+                []
             ]
 
 
