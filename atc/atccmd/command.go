@@ -257,6 +257,8 @@ type RunCommand struct {
 }
 
 type Migration struct {
+	lockFactory lock.LockFactory
+
 	Postgres               flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 	EncryptionKey          flag.Cipher         `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
 	OldEncryptionKey       flag.Cipher         `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
@@ -267,6 +269,14 @@ type Migration struct {
 }
 
 func (m *Migration) Execute(args []string) error {
+	lockConn, err := constructLockConn(defaultDriverName, m.Postgres.ConnectionString())
+	if err != nil {
+		return err
+	}
+	defer lockConn.Close()
+
+	m.lockFactory = lock.NewLockFactory(lockConn, metric.LogLockAcquired, metric.LogLockReleased)
+
 	if m.MigrateToLatestVersion {
 		return m.migrateToLatestVersion()
 	}
@@ -283,14 +293,13 @@ func (m *Migration) Execute(args []string) error {
 		return m.rotateEncryptionKey()
 	}
 	return errors.New("must specify one of `--migrate-to-latest-version`, `--current-db-version`, `--supported-db-version`, `--migrate-db-to-version`, or `--old-encryption-key`")
-
 }
 
 func (cmd *Migration) currentDBVersion() error {
 	helper := migration.NewOpenHelper(
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
-		nil,
+		cmd.lockFactory,
 		nil,
 		nil,
 	)
@@ -308,7 +317,7 @@ func (cmd *Migration) supportedDBVersion() error {
 	helper := migration.NewOpenHelper(
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
-		nil,
+		cmd.lockFactory,
 		nil,
 		nil,
 	)
@@ -338,7 +347,7 @@ func (cmd *Migration) migrateDBToVersion() error {
 	helper := migration.NewOpenHelper(
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
-		nil,
+		cmd.lockFactory,
 		newKey,
 		oldKey,
 	)
@@ -366,7 +375,7 @@ func (cmd *Migration) rotateEncryptionKey() error {
 	helper := migration.NewOpenHelper(
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
-		nil,
+		cmd.lockFactory,
 		newKey,
 		oldKey,
 	)
@@ -383,7 +392,7 @@ func (cmd *Migration) migrateToLatestVersion() error {
 	helper := migration.NewOpenHelper(
 		defaultDriverName,
 		cmd.Postgres.ConnectionString(),
-		nil,
+		cmd.lockFactory,
 		nil,
 		nil,
 	)
@@ -556,7 +565,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	lockConn, err := cmd.constructLockConn(retryingDriverName)
+	lockConn, err := constructLockConn(retryingDriverName, cmd.Postgres.ConnectionString())
 	if err != nil {
 		return nil, err
 	}
@@ -1595,8 +1604,8 @@ type Closer interface {
 	Close() error
 }
 
-func (cmd *RunCommand) constructLockConn(driverName string) (*sql.DB, error) {
-	dbConn, err := sql.Open(driverName, cmd.Postgres.ConnectionString())
+func constructLockConn(driverName, connectionString string) (*sql.DB, error) {
+	dbConn, err := sql.Open(driverName, connectionString)
 	if err != nil {
 		return nil, err
 	}
