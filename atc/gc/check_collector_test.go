@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("AccessTokensCollector", func() {
+var _ = Describe("CheckCollector", func() {
 	var collector GcCollector
 	var fakeLifecycle *dbfakes.FakeCheckLifecycle
 
