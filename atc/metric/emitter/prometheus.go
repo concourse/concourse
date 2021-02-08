@@ -187,7 +187,7 @@ func (config *PrometheusConfig) NewEmitter() (metric.Emitter, error) {
 		Subsystem: "tasks",
 		Name:      "wait_duration",
 		Help:      "Elapsed time waiting for execution",
-		Buckets:   []float64{1, 15, 30, 60, 120, 180, 240, 300, 600, 1200},
+		Buckets:   []float64{30, 60, 120, 300, 600, 1200, 1800, 2400, 3000, 3600},
 	}, []string{"teamId", "workerTags", "platform"})
 	prometheus.MustRegister(tasksWaitingDuration)
 
