@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"reflect"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -110,7 +111,7 @@ var _ = Describe("BuildStepDelegate", func() {
 			childState.ArtifactRepositoryReturns(repo.NewScope())
 			childState.ArtifactRepository().RegisterArtifact("image", fakeArtifact)
 
-			buildVariables := build.NewVariables(nil, vars.NewTracker(true))
+			buildVariables := build.NewVariables(vars.NewTracker(true))
 			buildVariables.SetVar("some-source", "source-var", "super-secret-source", true)
 			buildVariables.SetVar("some-source", "params-var", "super-secret-params", true)
 			runState.LocalVariablesReturns(buildVariables)
@@ -473,15 +474,14 @@ var _ = Describe("BuildStepDelegate", func() {
 
 			childState *execfakes.FakeRunState
 
-			value    interface{}
-			fetched  bool
-			fetchErr error
+			fetchedVal string
+			value      interface{}
+			fetched    bool
+			fetchErr   error
 		)
 
 		BeforeEach(func() {
-			stepVariables = delegate.Variables(context.TODO(), sources)
-
-			buildVariables = build.NewVariables(sources, vars.NewTracker(true))
+			buildVariables = build.NewVariables(vars.NewTracker(true))
 			runState.LocalVariablesReturns(buildVariables)
 
 			sources = atc.VarSourceConfigs{
@@ -501,7 +501,7 @@ var _ = Describe("BuildStepDelegate", func() {
 				},
 			}
 
-			getVarID = planID + "/get-var/some-var-source/path"
+			getVarID = planID + "/get-var/some-var-source:path"
 
 			expectedGetVarPlan = atc.Plan{
 				ID: getVarID,
@@ -517,16 +517,25 @@ var _ = Describe("BuildStepDelegate", func() {
 				Source: "some-var-source",
 				Path:   "path",
 			}
+			fetchedVal = "fetched-value"
 
 			childState = new(execfakes.FakeRunState)
-			runState.NewScopeReturns(childState)
-			runState.RunReturns(true, nil)
-			runState.ResultStub = func(planID atc.PlanID, to interface{}) bool {
+			childState.VarSourceConfigsReturns(sources)
+			childState.RunReturns(true, nil)
+			childState.ResultStub = func(planID atc.PlanID, to interface{}) bool {
 				Expect(planID).To(Equal(getVarID))
-				to = "fetched-value"
 
-				return true
+				if reflect.TypeOf(fetchedVal).AssignableTo(reflect.TypeOf(to).Elem()) {
+					reflect.ValueOf(to).Elem().Set(reflect.ValueOf(fetchedVal))
+					return true
+				}
+
+				return false
 			}
+
+			runState.NewScopeReturns(childState)
+
+			stepVariables = delegate.Variables(context.TODO(), sources)
 		})
 
 		JustBeforeEach(func() {
@@ -548,7 +557,8 @@ var _ = Describe("BuildStepDelegate", func() {
 
 		Context("when the var is found in the build vars", func() {
 			BeforeEach(func() {
-				buildVariables.SetVar("some-var-source", "path", "fetched-value", true)
+				varRef.Source = "."
+				buildVariables.SetVar(".", "path", "fetched-value", true)
 			})
 
 			It("succeeds", func() {
@@ -565,9 +575,9 @@ var _ = Describe("BuildStepDelegate", func() {
 			})
 		})
 
-		Context("when the var is not found in the build vars", func() {
+		Context("when the var uses a var source", func() {
 			It("creates a new scope for the get var substep", func() {
-				Expect(childState.NewScopeCallCount()).To(Equal(1))
+				Expect(runState.NewScopeCallCount()).To(Equal(1))
 			})
 
 			It("sets new var source configs for the child state", func() {
@@ -588,9 +598,9 @@ var _ = Describe("BuildStepDelegate", func() {
 			})
 
 			It("runs a GetVar plan to get the var value", func() {
-				Expect(runState.RunCallCount()).To(Equal(1))
+				Expect(childState.RunCallCount()).To(Equal(1))
 
-				_, plan := runState.RunArgsForCall(0)
+				_, plan := childState.RunArgsForCall(0)
 				Expect(plan).To(Equal(expectedGetVarPlan))
 			})
 
@@ -615,7 +625,7 @@ var _ = Describe("BuildStepDelegate", func() {
 						},
 					}
 
-					buildVariables = build.NewVariables(sources, vars.NewTracker(true))
+					childState.VarSourceConfigsReturns(sources)
 				})
 
 				It("returns no matching var source error", func() {
@@ -626,7 +636,7 @@ var _ = Describe("BuildStepDelegate", func() {
 
 		Context("when running the get var step fails", func() {
 			BeforeEach(func() {
-				runState.RunStub = func(ctx context.Context, plan atc.Plan) (bool, error) {
+				childState.RunStub = func(ctx context.Context, plan atc.Plan) (bool, error) {
 					return false, nil
 				}
 			})
@@ -638,7 +648,7 @@ var _ = Describe("BuildStepDelegate", func() {
 
 		Context("when no result is returned by the get var step", func() {
 			BeforeEach(func() {
-				runState.ResultReturns(false)
+				childState.ResultReturns(false)
 			})
 
 			It("errors", func() {

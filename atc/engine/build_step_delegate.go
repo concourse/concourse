@@ -420,7 +420,7 @@ func (v *StepVariables) Get(ref vars.Reference) (interface{}, bool, error) {
 	}
 
 	if !ok {
-		return nil, false, fmt.Errorf("image check failed")
+		return nil, false, fmt.Errorf("get var failed")
 	}
 
 	var value interface{}

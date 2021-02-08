@@ -168,6 +168,18 @@ var _ = Describe("RunState", func() {
 				})
 			})
 		})
+
+		Context("when the argument to set the result onto is an interface type", func() {
+			var to interface{}
+			BeforeEach(func() {
+				state.StoreResult("some-id", "some-result")
+			})
+
+			It("populates the result", func() {
+				state.Result("some-id", &to)
+				Expect(to).To(Equal("some-result"))
+			})
+		})
 	})
 
 	Describe("NewScope", func() {
@@ -229,6 +241,20 @@ var _ = Describe("RunState", func() {
 				state = exec.NewRunState(stepper, varSources, true)
 			})
 
+			It("can track on both scopes", func() {
+				state.LocalVariables().SetVar(".", "a", "parent", true)
+				scope := state.NewScope()
+				scope.LocalVariables().SetVar(".", "a", "child", true)
+
+				mapit := vars.TrackedVarsMap{}
+				state.IterateInterpolatedCreds(mapit)
+				Expect(mapit[".:a"]).To(Equal("parent"))
+
+				mapit = vars.TrackedVarsMap{}
+				scope.IterateInterpolatedCreds(mapit)
+				Expect(mapit[".:a"]).To(Equal("child"))
+			})
+
 			It("prefers the value set in the current scope over the parent scope", func() {
 				state.LocalVariables().SetVar(".", "a", "from parent", true)
 				scope := state.NewScope()
@@ -238,6 +264,34 @@ var _ = Describe("RunState", func() {
 				scope.IterateInterpolatedCreds(mapit)
 
 				Expect(mapit[".:a"]).To(Equal("from child"))
+			})
+		})
+	})
+
+	Describe("IterateInterpolatedCreds", func() {
+		Context("when vars are tracked from local vars and using the Track method", func() {
+			BeforeEach(func() {
+				state = exec.NewRunState(stepper, varSources, true)
+
+				state.LocalVariables().SetVar(".", "a", "value", true)
+				state.Track(vars.Reference{
+					Source: "var-source",
+					Path:   "foo",
+				}, "some-value")
+				state.Track(vars.Reference{
+					Source: "other-source",
+					Path:   "bar",
+					Fields: []string{"some-field"},
+				}, "some-field-value")
+			})
+
+			It("tracks all vars", func() {
+				mapit := vars.TrackedVarsMap{}
+				state.IterateInterpolatedCreds(mapit)
+				Expect(mapit).To(HaveLen(3))
+				Expect(mapit[".:a"]).To(Equal("value"))
+				Expect(mapit["var-source:foo"]).To(Equal("some-value"))
+				Expect(mapit["other-source:bar.some-field"]).To(Equal("some-field-value"))
 			})
 		})
 	})

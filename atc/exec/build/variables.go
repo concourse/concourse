@@ -1,7 +1,6 @@
 package build
 
 import (
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -11,7 +10,7 @@ type Variables struct {
 	tracker     *vars.Tracker
 }
 
-func NewVariables(sources atc.VarSourceConfigs, tracker *vars.Tracker) *Variables {
+func NewVariables(tracker *vars.Tracker) *Variables {
 	return &Variables{
 		localVars: vars.StaticVariables{},
 		tracker:   tracker,
