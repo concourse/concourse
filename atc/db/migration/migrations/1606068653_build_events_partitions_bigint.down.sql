@@ -23,7 +23,6 @@ BEGIN;
     SELECT id, name FROM teams
   LOOP
     RAISE NOTICE 'creating new indexes for team % (%)', team.id, team.name;
-    EXECUTE format('DROP INDEX team_build_events_%s_build_id', team.id);
     EXECUTE format('DROP INDEX team_build_events_%s_build_id_event_id', team.id);
   END LOOP;
   END
@@ -37,11 +36,10 @@ BEGIN;
     SELECT id, name FROM pipelines
   LOOP
     RAISE NOTICE 'dropping new indexes for pipeline % (%)', pipeline.id, pipeline.name;
-    EXECUTE format('DROP INDEX pipeline_build_events_%s_build_id', pipeline.id);
     EXECUTE format('DROP INDEX pipeline_build_events_%s_build_id_event_id', pipeline.id);
 
     RAISE NOTICE 'renaming old indexes for pipeline % (%)', pipeline.id, pipeline.name;
-    EXECUTE format('ALTER INDEX pipeline_build_events_%s_build_id_old RENAME TO pipeline_build_events_%s_build_id', pipeline.id, pipeline.id);
+    EXECUTE format('CREATE INDEX pipeline_build_events_%s_build_id ON pipeline_build_events_%s (build_id_old)', pipeline.id, pipeline.id);
     EXECUTE format('ALTER INDEX pipeline_build_events_%s_build_id_old_event_id RENAME TO pipeline_build_events_%s_build_id_event_id', pipeline.id, pipeline.id);
   END LOOP;
   END

@@ -8,11 +8,10 @@ BEGIN;
     SELECT id, name FROM pipelines
   LOOP
     RAISE NOTICE 'renaming old indexes for pipeline % (%)', pipeline.id, pipeline.name;
-    EXECUTE format('ALTER INDEX pipeline_build_events_%s_build_id RENAME TO pipeline_build_events_%s_build_id_old', pipeline.id, pipeline.id);
+    EXECUTE format('DROP INDEX pipeline_build_events_%s_build_id', pipeline.id);
     EXECUTE format('ALTER INDEX pipeline_build_events_%s_build_id_event_id RENAME TO pipeline_build_events_%s_build_id_old_event_id', pipeline.id, pipeline.id);
 
     RAISE NOTICE 'creating new indexes for pipeline % (%)', pipeline.id, pipeline.name;
-    EXECUTE format('CREATE INDEX pipeline_build_events_%s_build_id ON pipeline_build_events_%s (build_id)', pipeline.id, pipeline.id);
     EXECUTE format('CREATE UNIQUE INDEX pipeline_build_events_%s_build_id_event_id ON pipeline_build_events_%s (build_id, event_id)', pipeline.id, pipeline.id);
   END LOOP;
   END;
@@ -27,7 +26,6 @@ BEGIN;
     SELECT id, name FROM teams
   LOOP
     RAISE NOTICE 'creating new indexes for team % (%)', team.id, team.name;
-    EXECUTE format('CREATE INDEX team_build_events_%s_build_id ON team_build_events_%s (build_id)', team.id, team.id);
     EXECUTE format('CREATE UNIQUE INDEX team_build_events_%s_build_id_event_id ON team_build_events_%s (build_id, event_id)', team.id, team.id);
   END LOOP;
   END;
@@ -39,9 +37,7 @@ BEGIN;
   CREATE OR REPLACE FUNCTION on_pipeline_insert() RETURNS TRIGGER AS $$
   BEGIN
     EXECUTE format('CREATE TABLE IF NOT EXISTS pipeline_build_events_%s () INHERITS (build_events)', NEW.id);
-    EXECUTE format('CREATE INDEX pipeline_build_events_%s_build_id ON pipeline_build_events_%s (build_id)', NEW.id, NEW.id);
     EXECUTE format('CREATE UNIQUE INDEX pipeline_build_events_%s_build_id_event_id ON pipeline_build_events_%s (build_id, event_id)', NEW.id, NEW.id);
-    EXECUTE format('CREATE INDEX pipeline_build_events_%s_build_id_old ON pipeline_build_events_%s (build_id_old)', NEW.id, NEW.id);
     EXECUTE format('CREATE UNIQUE INDEX pipeline_build_events_%s_build_id_old_event_id ON pipeline_build_events_%s (build_id_old, event_id)', NEW.id, NEW.id);
     RETURN NULL;
   END;
@@ -53,7 +49,6 @@ BEGIN;
   CREATE OR REPLACE FUNCTION on_team_insert() RETURNS TRIGGER AS $$
   BEGIN
     EXECUTE format('CREATE TABLE IF NOT EXISTS team_build_events_%s () INHERITS (build_events)', NEW.id);
-    EXECUTE format('CREATE INDEX team_build_events_%s_build_id ON team_build_events_%s (build_id)', NEW.id, NEW.id);
     EXECUTE format('CREATE UNIQUE INDEX team_build_events_%s_build_id_event_id ON team_build_events_%s (build_id, event_id)', NEW.id, NEW.id);
     RETURN NULL;
   END;
