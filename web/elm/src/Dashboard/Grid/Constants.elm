@@ -21,7 +21,7 @@ cardBodyHeight =
 
 padding : number
 padding =
-    25
+    32
 
 
 cardHeaderHeight : number -> number
@@ -31,7 +31,11 @@ cardHeaderHeight numRows =
 
 groupHeaderHeight : number
 groupHeaderHeight =
-    60
+    89
+
+
+
+-- padding top 32 + line height 25 + spacing bottom 32
 
 
 sectionHeaderHeight : number

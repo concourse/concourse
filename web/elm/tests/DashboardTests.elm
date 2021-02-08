@@ -1055,7 +1055,7 @@ all =
                                 , style "align-items" "center"
                                 ]
                             )
-            , test "team headers have a bottom margin of 25px" <|
+            , test "team headers have a bottom margin of 32px" <|
                 \_ ->
                     whenOnDashboard { highDensity = False }
                         |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
@@ -1069,7 +1069,7 @@ all =
                         |> Common.queryView
                         |> Query.findAll teamHeaderSelector
                         |> Query.each
-                            (Query.has [ style "margin-bottom" "25px" ])
+                            (Query.has [ style "margin-bottom" "32px" ])
             , test "on HD view, there is space between the list of pipelines and the role pill" <|
                 \_ ->
                     whenOnDashboard { highDensity = True }

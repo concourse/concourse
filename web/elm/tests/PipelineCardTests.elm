@@ -147,10 +147,10 @@ all =
                             [ style "width" "272px"
                             , style "height" "268px"
                             ]
-                , test "card has a left margin of 25px" <|
+                , test "card has a left margin of 32px" <|
                     noPipelinesCard
                         >> Query.has
-                            [ style "margin-left" "25px" ]
+                            [ style "margin-left" "32px" ]
                 ]
             , describe "header" <|
                 let

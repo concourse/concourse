@@ -1031,5 +1031,5 @@ pipelineSectionHeader : List (Html.Attribute msg)
 pipelineSectionHeader =
     [ style "font-size" "22px"
     , style "font-weight" Views.Styles.fontWeightBold
-    , style "padding" "30px 0 10px 37.5px"
+    , style "padding" "32px 0 0 32px"
     ]
