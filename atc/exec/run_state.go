@@ -37,7 +37,7 @@ func NewRunState(
 		stepper: stepper,
 
 		tracker:   tracker,
-		localVars: build.NewVariables(varSourceConfigs, tracker),
+		localVars: build.NewVariables(tracker),
 
 		sources: varSourceConfigs,
 
@@ -72,7 +72,6 @@ func (state *runState) LocalVariables() *build.Variables {
 	return state.localVars
 }
 
-// XXX: Test that it tracks local and vars from var sources (using Track method)
 func (state *runState) IterateInterpolatedCreds(iter vars.TrackedVarsIterator) {
 	state.tracker.IterateInterpolatedCreds(iter)
 	if state.parent != nil {

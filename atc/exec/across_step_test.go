@@ -96,7 +96,7 @@ var _ = Describe("AcrossStep", func() {
 
 		stderr = gbytes.NewBuffer()
 
-		buildVariables = build.NewVariables(nil, vars.NewTracker(true))
+		buildVariables = build.NewVariables(vars.NewTracker(true))
 		fakeDelegate = new(execfakes.FakeBuildStepDelegate)
 		fakeDelegate.StderrReturns(stderr)
 		fakeDelegate.VariablesReturns(buildVariables)

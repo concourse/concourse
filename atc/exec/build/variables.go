@@ -3,7 +3,6 @@ package build
 import (
 	"sync"
 
-	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -15,7 +14,7 @@ type Variables struct {
 	lock sync.RWMutex
 }
 
-func NewVariables(sources atc.VarSourceConfigs, tracker *vars.Tracker) *Variables {
+func NewVariables(tracker *vars.Tracker) *Variables {
 	return &Variables{
 		localVars: vars.StaticVariables{},
 		tracker:   tracker,
