@@ -18,13 +18,17 @@ func NewCheckLifecycle(conn Conn) CheckLifecycle {
 
 func (cl *checkLifecycle) DeleteCompletedChecks() error {
 	_, err := cl.conn.Exec(`
-      WITH deleted_builds AS
-      (
+      WITH resource_builds AS (
+        SELECT build_id
+        FROM resources
+        WHERE build_id IS NOT NULL
+      ),
+      deleted_builds AS (
         DELETE FROM builds USING (
           SELECT id
           FROM builds b
           WHERE completed AND resource_id IS NOT NULL
-          AND EXISTS (SELECT * FROM builds b2 WHERE b.resource_id = b2.resource_id AND b.id < b2.id)
+          AND NOT EXISTS ( SELECT 1 FROM resource_builds WHERE build_id = b.id )
             UNION ALL
           SELECT id
           FROM builds b
