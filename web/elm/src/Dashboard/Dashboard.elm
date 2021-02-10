@@ -884,7 +884,7 @@ tooltip session =
         HoverState.Tooltip (Message.PipelineCardFavoritedIcon _ id) _ ->
             let
                 isFavorited =
-                    Set.member id session.favoritedPipelines
+                    Favorites.isPipelineFavorited session { id = id }
             in
             Just
                 { body =

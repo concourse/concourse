@@ -442,7 +442,8 @@ tooltip model session =
         HoverState.Tooltip (TopBarFavoritedIcon _) _ ->
             let
                 isFavorited =
-                    Set.member (getPipelineId model.pipeline) session.favoritedPipelines
+                    RemoteData.map (Favorites.isPipelineFavorited session) model.pipeline
+                        |> RemoteData.withDefault False
             in
             Just
                 { body =
