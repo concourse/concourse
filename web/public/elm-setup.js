@@ -103,8 +103,9 @@ app.ports.deleteFromLocalStorage.subscribe(function(key) {
 
 const csrfTokenKey = "csrf_token";
 const favoritedPipelinesKey = "favorited_pipelines";
+const favoritedInstanceGroupsKey = "favorited_instance_groups";
 window.addEventListener('storage', function(event) {
-  if (event.key === csrfTokenKey || event.key === favoritedPipelinesKey) {
+  if (event.key === csrfTokenKey || event.key === favoritedPipelinesKey || event.key === favoritedInstanceGroupsKey) {
     const value = localStorage.getItem(event.key);
     setTimeout(function() {
       app.ports.receivedFromLocalStorage.send([event.key, value]);
