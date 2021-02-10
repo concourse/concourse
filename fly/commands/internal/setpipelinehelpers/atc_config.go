@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"sigs.k8s.io/yaml"
-
 	"github.com/vito/go-interact/interact"
+
+	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/configvalidate"

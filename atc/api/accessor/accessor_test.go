@@ -675,7 +675,7 @@ var _ = Describe("Accessor", func() {
 	Describe("UserInfo", func() {
 		var result atc.UserInfo
 
-		BeforeEach(func(){
+		BeforeEach(func() {
 			fakeDisplayUserIdGenerator.DisplayUserIdReturns("some-user-id")
 		})
 

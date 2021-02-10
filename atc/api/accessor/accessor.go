@@ -295,6 +295,11 @@ func (a *access) UserInfo() atc.UserInfo {
 		IsSystem:  a.IsSystem(),
 		Teams:     a.TeamRoles(),
 		DisplayUserId: a.displayUserIdGenerator.DisplayUserId(
-			claims.Connector, claims.UserID, claims.UserName, claims.PreferredUsername, claims.Email),
+			claims.Connector,
+			claims.UserID,
+			claims.UserName,
+			claims.PreferredUsername,
+			claims.Email,
+		),
 	}
 }

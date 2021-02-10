@@ -24,7 +24,6 @@ var _ = Describe("Version Checks", func() {
 		customAtcVersion string
 		flySession       *gexec.Session
 	)
-
 	BeforeEach(func() {
 		flyVersion = atcVersion
 

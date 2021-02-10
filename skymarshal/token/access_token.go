@@ -7,11 +7,12 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"github.com/concourse/concourse/atc"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"time"
+
+	"github.com/concourse/concourse/atc"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/db"

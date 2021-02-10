@@ -2,11 +2,12 @@ package api_test
 
 import (
 	"errors"
-	"github.com/concourse/concourse/atc"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/concourse/concourse/atc"
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -52,7 +53,7 @@ var _ = Describe("Users API", func() {
 						"some-team":       {"owner"},
 						"some-other-team": {"viewer"},
 					},
-					Connector: "some-connector",
+					Connector:     "some-connector",
 					DisplayUserId: "some-user-id",
 				})
 			})
