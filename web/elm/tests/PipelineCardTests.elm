@@ -404,7 +404,11 @@ all =
                         ]
                         >> findCardHeader
                         >> Expect.all
-                            [ Query.has [ text "group" ]
+                            [ Query.has
+                                [ style "height" "80px"
+                                , style "box-sizing" "border-box"
+                                ]
+                            , Query.has [ text "group" ]
                             , Query.has [ text "no instance vars" ]
                             ]
                 ]

@@ -127,9 +127,10 @@ pipelineView :
         , section : PipelinesSection
         , headerHeight : Float
         , viewingInstanceGroups : Bool
+        , inInstanceGroup : Bool
         }
     -> Html Message
-pipelineView session { now, pipeline, hovered, resourceError, existingJobs, layers, section, headerHeight, viewingInstanceGroups } =
+pipelineView session { now, pipeline, hovered, resourceError, existingJobs, layers, section, headerHeight, viewingInstanceGroups, inInstanceGroup } =
     let
         bannerStyle =
             if pipeline.stale then
@@ -143,11 +144,6 @@ pipelineView session { now, pipeline, hovered, resourceError, existingJobs, laye
                     { status = pipelineStatus existingJobs pipeline
                     , pipelineRunningKeyframes = session.pipelineRunningKeyframes
                     }
-
-        inInstanceGroup =
-            Concourse.isInInstanceGroup
-                (RemoteData.withDefault [] session.pipelines)
-                pipeline
     in
     Html.div
         (Styles.pipelineCard

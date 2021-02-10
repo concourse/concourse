@@ -713,6 +713,9 @@ updateBody session msg ( model, effects ) =
                                                         PipelineCard p ->
                                                             [ p ]
 
+                                                        InstancedPipelineCard p ->
+                                                            [ p ]
+
                                                         InstanceGroupCard p ps ->
                                                             p :: ps
                                                 )
@@ -1299,7 +1302,7 @@ instanceGroupCardsView session model =
                             |> List.map
                                 (\( p, ps ) ->
                                     ( team ++ " / " ++ p.name
-                                    , p :: ps |> List.map PipelineCard
+                                    , p :: ps |> List.map InstancedPipelineCard
                                     )
                                 )
                     )
@@ -1336,6 +1339,13 @@ cardsView session params teamCards =
                                             else
                                                 []
 
+                                        InstancedPipelineCard p ->
+                                            if Favorites.isPipelineFavorited session p then
+                                                [ c ]
+
+                                            else
+                                                []
+
                                         InstanceGroupCard p ps ->
                                             (if Favorites.isInstanceGroupFavorited session (Concourse.toInstanceGroupId p) then
                                                 [ c ]
@@ -1344,7 +1354,7 @@ cardsView session params teamCards =
                                                 []
                                             )
                                                 ++ (List.filter (Favorites.isPipelineFavorited session) (p :: ps)
-                                                        |> List.map PipelineCard
+                                                        |> List.map InstancedPipelineCard
                                                    )
                                 )
 

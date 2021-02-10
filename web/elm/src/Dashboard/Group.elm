@@ -82,6 +82,19 @@ view session params teamName cards =
                                         { bounds = bounds
                                         , headerHeight = headerHeight
                                         , pipeline = pipeline
+                                        , inInstanceGroup = False
+                                        }
+                                        teamName
+                                        |> (\html -> ( String.fromInt pipeline.id, html ))
+
+                                InstancedPipelineCard pipeline ->
+                                    pipelineCardView session
+                                        params
+                                        AllPipelinesSection
+                                        { bounds = bounds
+                                        , headerHeight = headerHeight
+                                        , pipeline = pipeline
+                                        , inInstanceGroup = True
                                         }
                                         teamName
                                         |> (\html -> ( String.fromInt pipeline.id, html ))
@@ -172,6 +185,19 @@ viewFavoritePipelines session params headers cards =
                                     { bounds = bounds
                                     , pipeline = pipeline
                                     , headerHeight = headerHeight
+                                    , inInstanceGroup = False
+                                    }
+                                    pipeline.teamName
+                                    |> (\html -> ( String.fromInt pipeline.id, html ))
+
+                            InstancedPipelineCard pipeline ->
+                                pipelineCardView session
+                                    params
+                                    FavoritesSection
+                                    { bounds = bounds
+                                    , pipeline = pipeline
+                                    , headerHeight = headerHeight
+                                    , inInstanceGroup = True
                                     }
                                     pipeline.teamName
                                     |> (\html -> ( String.fromInt pipeline.id, html ))
@@ -263,6 +289,20 @@ hdView { pipelinesWithResourceErrors, pipelineJobs, jobs, dashboardView, query }
                                                 |> List.filterMap (\j -> Dict.get ( p.id, j ) jobs)
                                         }
 
+                                InstancedPipelineCard p ->
+                                    Pipeline.hdPipelineView
+                                        session
+                                        { pipeline = p
+                                        , resourceError =
+                                            pipelinesWithResourceErrors
+                                                |> Set.member p.id
+                                        , existingJobs =
+                                            pipelineJobs
+                                                |> Dict.get p.id
+                                                |> Maybe.withDefault []
+                                                |> List.filterMap (\j -> Dict.get ( p.id, j ) jobs)
+                                        }
+
                                 InstanceGroupCard p ps ->
                                     InstanceGroup.hdCardView
                                         { pipeline = p
@@ -322,10 +362,11 @@ pipelineCardView :
         { bounds : Grid.Bounds
         , pipeline : Pipeline
         , headerHeight : Float
+        , inInstanceGroup : Bool
         }
     -> String
     -> Html Message
-pipelineCardView session params section { bounds, headerHeight, pipeline } teamName =
+pipelineCardView session params section { bounds, headerHeight, pipeline, inInstanceGroup } teamName =
     Html.div
         ([ class "card-wrapper"
          , style "position" "absolute"
@@ -409,6 +450,7 @@ pipelineCardView session params section { bounds, headerHeight, pipeline } teamN
                 , hovered = session.hovered
                 , section = section
                 , viewingInstanceGroups = params.viewingInstanceGroups
+                , inInstanceGroup = inInstanceGroup
                 }
             ]
         ]

@@ -289,8 +289,8 @@ cardSizes :
 cardSizes pipelineLayers =
     List.map
         (\card ->
-            case card of
-                PipelineCard pipeline ->
+            let
+                pipelineCardSize pipeline =
                     Dict.get pipeline.id pipelineLayers
                         |> Maybe.withDefault []
                         |> (\layers ->
@@ -302,6 +302,13 @@ cardSizes pipelineLayers =
                                         |> Maybe.withDefault 0
                                     )
                            )
+            in
+            case card of
+                PipelineCard pipeline ->
+                    pipelineCardSize pipeline
+
+                InstancedPipelineCard pipeline ->
+                    pipelineCardSize pipeline
 
                 InstanceGroupCard _ _ ->
                     ( 1, 1 )
@@ -423,29 +430,32 @@ computeCards config params cards =
 numHeaderRows : Bool -> Models.Card -> Int
 numHeaderRows viewingInstanceGroups card =
     case card of
-        Models.PipelineCard pipeline ->
-            if Dict.isEmpty pipeline.instanceVars then
-                1
+        Models.PipelineCard _ ->
+            1
 
-            else
-                let
-                    groupNameHeader =
-                        if viewingInstanceGroups then
-                            -- Don't display instance group name inside the
-                            -- card when viewing instance groups since it's in
-                            -- the outer header
-                            0
+        Models.InstancedPipelineCard pipeline ->
+            let
+                groupNameHeader =
+                    if viewingInstanceGroups then
+                        -- Don't display instance group name inside the
+                        -- card when viewing instance groups since it's in
+                        -- the outer header
+                        0
 
-                        else
-                            1
+                    else
+                        1
 
-                    instanceVarHeaders =
+                instanceVarHeaders =
+                    if Dict.isEmpty pipeline.instanceVars then
+                        1
+
+                    else
                         pipeline.instanceVars
                             |> Dict.toList
                             |> List.concatMap (\( k, v ) -> flattenJson k v)
                             |> List.length
-                in
-                groupNameHeader + instanceVarHeaders
+            in
+            groupNameHeader + instanceVarHeaders
 
         Models.InstanceGroupCard _ _ ->
             1
