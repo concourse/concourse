@@ -174,7 +174,7 @@ func (b *engineBuild) Run(ctx context.Context) {
 
 	logger.Info("running")
 
-	state, err := b.runState(logger, stepper)
+	state, err := b.runState(logger, stepper, b.build.PrivatePlan().InitialVarSourceConfigs)
 	if err != nil {
 		logger.Error("failed-to-create-run-state", err)
 
@@ -214,7 +214,6 @@ func (b *engineBuild) Run(ctx context.Context) {
 				runErr = err
 			}
 		}()
-
 		succeeded, runErr = state.Run(lagerctx.NewContext(ctx, logger), b.build.PrivatePlan())
 	}()
 
@@ -294,16 +293,11 @@ func (b *engineBuild) trackFinished(logger lager.Logger) {
 	}
 }
 
-func (b *engineBuild) runState(logger lager.Logger, stepper exec.Stepper) (exec.RunState, error) {
+func (b *engineBuild) runState(logger lager.Logger, stepper exec.Stepper, varSourceConfigs atc.VarSourceConfigs) (exec.RunState, error) {
 	id := fmt.Sprintf("build:%v", b.build.ID())
 	existingState, ok := b.trackedStates.Load(id)
 	if ok {
 		return existingState.(exec.RunState), nil
-	}
-
-	varSourceConfigs, err := b.build.VarSourceConfigs()
-	if err != nil {
-		return nil, err
 	}
 
 	state, _ := b.trackedStates.LoadOrStore(id, exec.NewRunState(stepper, varSourceConfigs, atc.EnableRedactSecrets))

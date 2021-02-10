@@ -1,5 +1,182 @@
 package atc
 
+// // current
+// atc.Plan {
+// 	Task: TaskPlan {
+// 		// custom resource type
+// 		// getvar
+// 	}
+// }
+
+// // a
+// Plan: atc.Plan {
+// 	InParallel: {
+// 		Plan {
+// 			Check: // resource type
+// 		},
+// 		Plan {
+// 			GetVar: // getvar
+// 		},
+// 	},
+// 	Plan {
+// 		Task: // references the Check and GetVar
+// 	}
+// }
+
+// resource_types:
+// - name: a
+// 	type: registry-image
+// - name: b
+// 	type a
+
+// resources:
+// - name: c
+// 	type b
+
+// jobs:
+// - name: foo
+// 	plan:
+// 		- get: c
+
+// Plan: {
+// 	OnSuccess {
+// 		Step: OnSuccess {
+// 			Step: OnSuccess {
+// 				Step: OnSuccess{
+// 					Step: Check {
+// 						ID: 1
+// 						Name: "a"
+// 						BaseImageType: "registry-image"
+// 					}
+// 					Next: Get {
+// 						ID: 2
+// 						Name: "a"
+// 						BaseImageType: "registry-image"
+// 					}
+// 				}
+// 				Next: Check {
+// 					ID: 3
+// 					Name: "b"
+// 					ImageSpecFrom: 2
+// 				}
+// 			}
+// 			Next: Get {
+// 				ID: 4
+// 				Name: "b"
+// 				ImageSpecFrom: 2
+// 			}
+// 		}
+// 		Next: Get {
+// 			ID: 5
+// 			Name: "c"
+// 			ImageSpecFrom: 4
+// 		}
+// 	}
+// }
+
+// Plan: {
+// 	Check {
+// 		Name: a-check
+// 		ImageSpec: // default registry-image
+// 	} // produces "abc" and stores in runState["a-check"]
+// 	Get: {
+// 		Name: a-get
+// 		Version: [[a-check]]	// "abc"
+// 		Vars: map[string]string {
+// 			version: "((a-check))"	// lookup runState.GetVar("a-check") and store resulte in Version
+// 		}
+// 	}
+// 	Check {
+// 		Name: b-check
+// 		ImageSpec:
+// 		Vars: map[string]string {
+// 			imagespec: a-get
+// 		}
+// 	}
+// 	Get: {
+// 		Name: b-get
+// 		Version: b-check
+// 	}
+// 	Check {
+// 		Name: c-check
+// 	}
+// 	Get: {
+// 		Name: c-get
+// 		Version: c-check
+// 	}
+// }
+
+// resource_types:
+// - name: vault
+// 	type: registry-image
+// 	source:
+// 		repository: hashicorp/vault
+
+// var_sources:
+// - name: z
+// - name: a
+// 	type: vault
+// 	source:
+// 		team: a
+// 		token: Bearer ((z:token))
+
+// plan:
+// - get_var: path
+// 	source: a
+// - get: foo
+// 	params:
+// 	- foo: ((.:path))
+
+// Plan: {
+// 	GetVar: {
+// 		PlanID: "z-get-var"
+// 		Name: "z",
+// 		Path: "token",
+// 	},
+// 	Check: {
+// 		PlanID: "a-check"
+// 	},
+// 	Get: {
+// 		PlanID: "a-get"
+// 	},
+// 	GetVar: {
+// 		PlanID: "a-get-var"
+// 		Name: "a",
+// 		Path: "path",
+// 		ImageSpec: [[a-get]],	// filled from "a-get"
+// 		Source: {	// filled in from global creds
+// 			"team": "a",
+// 			"token": "Bearer [[z-get-var]]"
+// 		},
+// 	},	// 1. store result in runState["a:path"]
+// 	GetVar: {
+// 		PlanID: "b-get-var"
+// 		Name: "b",
+// 		Path: "path",
+// 		Source: atc.Source {	// 2. Source.Evaulate(runState)
+// 			"foo": "((a:path))",	// 3. go through and template (()) by looking up runState.GetVar(...)
+// 		}
+// 	},	// 4. store result in runState["b:path"]
+// 	Get: {
+// 		PlanID: "get-foo"
+// 		Name: "foo",
+// 		Params: atc.Params{
+// 			"foo": "((.:path))",
+// 		}
+// 	}
+// }
+
+// // b
+// atc.PlanContext {
+// 	ResourceTypeConfig:
+// 	VarSourceConfig:
+
+// 	Plan: atc.Plan {
+// 		Task: TaskPlan {
+// 			// ResourceTypeConfig and VarSourceConfig gets passed around and dynamically creates new steps
+// 		}
+// 	}
+// }
 type Plan struct {
 	ID       PlanID `json:"id"`
 	Attempts []int  `json:"attempts,omitempty"`
@@ -192,6 +369,10 @@ type GetPlan struct {
 	Source                 Source                 `json:"source"`
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 
+	// Image of the container. One of these must be specified.
+	BaseImageType *string `json:"base_image_type,omitempty"`
+	ImageSpecFrom *PlanID `json:"image_spec_from,omitempty"`
+
 	// The version of the resource to fetch. One of these must be specified.
 	Version     *Version `json:"version,omitempty"`
 	VersionFrom *PlanID  `json:"version_from,omitempty"`
@@ -215,6 +396,10 @@ type PutPlan struct {
 	Source                 Source                 `json:"source"`
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 
+	// Image of the container. One of these must be specified.
+	BaseImageType *string `json:"base_image_type,omitempty"`
+	ImageSpecFrom *PlanID `json:"image_spec_from,omitempty"`
+
 	// Params to pass to the put operation.
 	Params Params `json:"params,omitempty"`
 
@@ -237,6 +422,10 @@ type CheckPlan struct {
 	Source                 Source                 `json:"source"`
 	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 
+	// Image of the container. One of these must be specified.
+	BaseImageType *string `json:"base_image_type,omitempty"`
+	ImageSpecFrom *PlanID `json:"image_spec_from,omitempty"`
+
 	// The version to check from. If not specified, defaults to the latest
 	// version of the config.
 	FromVersion Version `json:"from_version,omitempty"`
@@ -257,6 +446,15 @@ type CheckPlan struct {
 	Tags Tags `json:"tags,omitempty"`
 }
 
+type TaskConfigPathContext struct {
+	ConfigPath string `json:"config_path,omitempty"`
+
+	VarSourceConfigs VarSourceConfigs `json:"var_source_configs,omitempty"`
+
+	// Resource types to have available for use when fetching the task's image.
+	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
+}
+
 type TaskPlan struct {
 	// The name of the step.
 	Name string `json:"name"`
@@ -271,8 +469,8 @@ type TaskPlan struct {
 
 	// The task config to execute - either fetched from a path at runtime, or
 	// provided statically.
-	ConfigPath string      `json:"config_path,omitempty"`
-	Config     *TaskConfig `json:"config,omitempty"`
+	TaskConfigPathContext
+	Config *TaskConfig `json:"config,omitempty"`
 
 	// An artifact in the build plan to use as the task's image. Overrides any
 	// image set in the task's config.
@@ -288,9 +486,6 @@ type TaskPlan struct {
 	// build plan.
 	InputMapping  map[string]string `json:"input_mapping,omitempty"`
 	OutputMapping map[string]string `json:"output_mapping,omitempty"`
-
-	// Resource types to have available for use when fetching the task's image.
-	VersionedResourceTypes VersionedResourceTypes `json:"resource_types,omitempty"`
 }
 
 type SetPipelinePlan struct {

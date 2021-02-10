@@ -48,20 +48,21 @@ type planVisitor struct {
 }
 
 func (visitor *planVisitor) VisitTask(step *atc.TaskStep) error {
-	visitor.plan = visitor.planFactory.NewPlan(atc.TaskPlan{
-		Name:              step.Name,
-		Privileged:        step.Privileged,
-		Config:            step.Config,
-		ConfigPath:        step.ConfigPath,
+	taskPlan := atc.TaskPlan{
+		Name:       step.Name,
+		Privileged: step.Privileged,
+		Config:     step.Config,
+		TaskConfigPathContext: atc.TaskConfigPathContext{
+			ConfigPath:             step.ConfigPath,
+			VersionedResourceTypes: visitor.resourceTypes,
+		},
 		Vars:              step.Vars,
 		Tags:              step.Tags,
 		Params:            step.Params,
 		InputMapping:      step.InputMapping,
 		OutputMapping:     step.OutputMapping,
 		ImageArtifactName: step.ImageArtifactName,
-
-		VersionedResourceTypes: visitor.resourceTypes,
-	})
+	}
 
 	return nil
 }
@@ -91,7 +92,7 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 
 	resource.ApplySourceDefaults(visitor.resourceTypes)
 
-	visitor.plan = visitor.planFactory.NewPlan(atc.GetPlan{
+	getPlan := atc.GetPlan{
 		Name: step.Name,
 
 		Type:     resource.Type,
@@ -102,8 +103,31 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 		Tags:     step.Tags,
 
 		VersionedResourceTypes: visitor.resourceTypes,
-	})
+	}
 
+	var imageFetchPlan atc.Plan
+	imageFetchPlan, getPlan.ImageSpecFrom, getPlan.BaseImageType = visitor.fetchImagePlan(resource.Type, step.Tags)
+	// resourceType, found := visitor.resourceTypes.Lookup(resource.Type)
+	// var plan atc.PlanConfig
+	// if found {
+	// 	var tags atc.Tags
+	// 	if len(resourceType.Tags) == 0 {
+	// 		tags = step.Tags
+	// 	}
+
+	// 	imageFetchPlan, getPlanID := visitor.fetchImagePlan(resourceType, tags)
+	// 	getPlan.ImageSpecFrom = getPlanID
+
+	// 	plan = atc.OnSuccessPlan{
+	// 		Step: imageFetchPlan,
+	// 		Next: visitor.planFactory.NewPlan(getPlan),
+	// 	}
+	// } else {
+	// 	getPlan.BaseImageType = &resource.Type
+	// 	plan = getPlan
+	// }
+
+	visitor.plan = visitor.planFactory.NewPlan(plan)
 	return nil
 }
 
@@ -149,8 +173,30 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 		VersionedResourceTypes: visitor.resourceTypes,
 	})
 
+	// resourceType, found := visitor.resourceTypes.Lookup(resource.Type)
+	// var plan atc.PlanConfig
+	// if found {
+	// 	var tags atc.Tags
+	// 	if len(resourceType.Tags) == 0 {
+	// 		tags = step.Tags
+	// 	}
+
+	// 	imageFetchPlan, getPlanID := visitor.fetchImagePlan(resourceType, tags)
+	// 	putPlan.Put.ImageSpecFrom = getPlanID
+	// 	dependentGetPlan.Get.ImageSpecFrom = getPlanID
+
+	// 	plan = atc.OnSuccessPlan{
+	// 		Step: imageFetchPlan,
+	// 		Next: putPlan,
+	// 	}
+	// } else {
+	// 	putPlan.Put.BaseImageType = &resource.Type
+	// 	dependentGetPlan.Get.BaseImageType = &resource.Type
+	// 	plan = putPlan
+	// }
+
 	visitor.plan = visitor.planFactory.NewPlan(atc.OnSuccessPlan{
-		Step: putPlan,
+		Step: visitor.planFactory.NewPlan(plan),
 		Next: dependentGetPlan,
 	})
 
@@ -432,4 +478,74 @@ func (visitor *planVisitor) VisitEnsure(step *atc.EnsureStep) error {
 	visitor.plan = visitor.planFactory.NewPlan(plan)
 
 	return nil
+}
+
+func (visitor *planVisitor) fetchImagePlan(resourceTypeName string, resourceTypes atc.VersionedResourceTypes, stepTags atc.Tags) (atc.Plan, *atc.PlanID, *string) {
+	resourceType, found := resourceTypes.Lookup(resourceTypeName)
+
+	if found {
+		subPlan, subPlanID, subBaseImageType := visitor.fetchImagePlan(resourceType.Name, resourceTypes.Without(resourceType.Name), stepTags)
+
+		tags := resourceType.Tags
+		if len(resourceType.Tags) == 0 {
+			tags = stepTags
+		}
+
+		var imageFetchPlan atc.Plan
+		imageGetPlan := visitor.planFactory.NewPlan(&atc.GetPlan{
+			Name:   resourceType.Name,
+			Type:   resourceType.Type,
+			Source: resourceType.Source,
+			Params: resourceType.Params,
+
+			ImageSpecFrom: subPlanID,
+			BaseImageType: subBaseImageType,
+
+			VersionedResourceTypes: resourceTypes.Without(resourceType.Name),
+
+			Tags: tags,
+		})
+
+		resourceTypeVersion := resourceType.Version
+		if resourceTypeVersion == nil {
+			// don't know the version, need to do a Check before the Get
+			checkPlan := visitor.planFactory.NewPlan(&atc.CheckPlan{
+				Name:   resourceType.Name,
+				Type:   resourceType.Type,
+				Source: resourceType.Source,
+
+				ImageSpecFrom: subPlanID,
+				BaseImageType: subBaseImageType,
+
+				VersionedResourceTypes: resourceTypes,
+
+				Tags: tags,
+			})
+
+			imageGetPlan.Get.VersionFrom = &checkPlan.ID
+
+			imageFetchPlan = visitor.planFactory.NewPlan(atc.OnSuccessPlan{
+				Step: checkPlan,
+				Next: imageGetPlan,
+			})
+
+		} else {
+			// version is already provided, only need to do Get step
+			imageGetPlan.Get.Version = &resourceTypeVersion
+			imageFetchPlan = imageGetPlan
+		}
+
+		if subBaseImageType == nil {
+			// we have nested resource-types, need to resolve substeps first
+			return visitor.planFactory.NewPlan(atc.OnSuccessPlan{
+				Step: subPlan,
+				Next: imageFetchPlan,
+			}), &imageGetPlan.ID, nil
+		} else {
+			// this Check/Get combo is using base resource types
+			return imageFetchPlan, &imageGetPlan.ID, nil
+		}
+	} else { // base case
+		return atc.Plan{}, nil, &resourceTypeName
+	}
 }

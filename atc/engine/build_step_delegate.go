@@ -235,6 +235,7 @@ func (delegate *buildStepDelegate) FetchImage(
 		return worker.ImageSpec{}, err
 	}
 
+	// XXX: Can this not be on a child scope?
 	fetchState := delegate.state.NewScope()
 
 	imageName := defaultImageName

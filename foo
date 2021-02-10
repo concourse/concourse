@@ -1,0 +1,15 @@
+task:
+  image_resource:
+    type: foo
+
+  run: ...
+
+---
+
+
+aggregate:
+  - name: step1
+    type: CheckPlan
+    source:
+      repository: concourse/git-resource:latest
+  - 
