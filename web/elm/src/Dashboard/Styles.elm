@@ -216,7 +216,7 @@ pipelineCardHeader height =
     , style "color" Colors.dashboardPipelineHeaderText
     , style "font-size" "1.5em"
     , style "letter-spacing" "0.1em"
-    , style "padding" "10px 12.5px"
+    , style "padding" "16px"
     , style "height" <| String.fromFloat height ++ "px"
     , style "box-sizing" "border-box"
     ]
@@ -229,11 +229,11 @@ instanceGroupCardHeader =
 
 pipelineName : List (Html.Attribute msg)
 pipelineName =
-    [ style "width" "245px"
+    [ style "width" "240px"
+    , style "line-height" "21px"
     , style "white-space" "nowrap"
     , style "overflow" "hidden"
     , style "text-overflow" "ellipsis"
-    , style "padding" "2.5px 0"
     ]
 
 

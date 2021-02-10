@@ -186,7 +186,7 @@ all =
                         |> Common.queryView
                         |> findHeader
                         |> Query.has
-                            [ style "width" "245px"
+                            [ style "width" "240px"
                             , style "white-space" "nowrap"
                             , style "overflow" "hidden"
                             , style "text-overflow" "ellipsis"

@@ -340,7 +340,8 @@ all =
                     >> Query.children []
                     >> Query.first
                     >> Query.has
-                        [ style "width" "245px"
+                        [ style "width" "240px"
+                        , style "line-height" "21px"
                         , style "white-space" "nowrap"
                         , style "overflow" "hidden"
                         , style "text-overflow" "ellipsis"
