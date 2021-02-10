@@ -454,7 +454,7 @@ all =
                     |> Tuple.first
                     |> Common.queryView
                     |> Query.find [ id "dashboard" ]
-                    |> Event.simulate Event.mouseOver
+                    |> Event.simulate Event.mouseEnter
                     |> Event.expect (ApplicationMsgs.Update <| Msgs.Hover <| Just Msgs.Dashboard)
         , describe "loading section" <|
             [ test "has a loading section when awaiting API data" <|

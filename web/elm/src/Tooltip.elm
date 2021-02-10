@@ -16,11 +16,12 @@ import EffectTransformer exposing (ET)
 import HoverState exposing (TooltipPosition(..))
 import Html exposing (Html)
 import Html.Attributes exposing (id, style)
-import Html.Events exposing (onMouseEnter, onMouseLeave)
+import Html.Events exposing (onMouseLeave)
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..))
+import StrictEvents
 
 
 type alias Model m =
@@ -68,7 +69,7 @@ type Alignment
 hoverAttrs : DomID -> List (Html.Attribute Message)
 hoverAttrs domID =
     [ id (Effects.toHtmlID domID)
-    , onMouseEnter <| Hover <| Just domID
+    , StrictEvents.onMouseEnterStopPropagation <| Hover <| Just domID
     , onMouseLeave <| Hover Nothing
     ]
 

@@ -54,8 +54,6 @@ import Html.Events
     exposing
         ( onMouseEnter
         , onMouseLeave
-        , onMouseOut
-        , onMouseOver
         )
 import Http
 import List.Extra
@@ -1116,8 +1114,8 @@ dashboardView session model =
             (class (.pageBodyClass Message.Effects.stickyHeaderConfig)
                 :: id (toHtmlID Dashboard)
                 :: onScroll Scrolled
-                :: onMouseOver (Hover <| Just Dashboard)
-                :: onMouseOut (Hover Nothing)
+                :: onMouseEnter (Hover <| Just Dashboard)
+                :: onMouseLeave (Hover Nothing)
                 :: Styles.content model.highDensity
             )
             (case model.pipelines of
